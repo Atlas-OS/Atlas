@@ -1,7 +1,7 @@
 # Atlas.Hardware domain: the Atlas power scheme.
 #
-# 'Atlas' duplicates the Windows Balanced scheme under a fixed GUID, applies the four
-# reviewed AC settings and activates it, remembering the previously active scheme in
+# 'Atlas' duplicates the Windows Balanced scheme under a fixed GUID, applies four
+# AC settings and activates it, remembering the previously active scheme in
 # the Atlas services state key. 'Default' reactivates that remembered scheme (or
 # Balanced when it is gone) and deletes the Atlas scheme. Every powercfg call is
 # exit-code checked and the final active scheme is verified.

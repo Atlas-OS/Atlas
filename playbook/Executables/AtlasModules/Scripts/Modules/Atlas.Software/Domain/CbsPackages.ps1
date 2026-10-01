@@ -1,7 +1,6 @@
 # Atlas.Software domain: CBS package (CAB) install/uninstall.
 #
-# GPL-3.0-only license
-# Modified from https://github.com/he3als/online-sxs
+# Adapted from online-sxs by he3als (GPL-3.0-only).
 #
 # Install-AtlasPackage.ps1 is the optional interactive shell around these functions;
 # install phases call them directly with -NonInteractive semantics.
@@ -15,10 +14,8 @@ if (-not [IO.File]::Exists($cbsRetryHelper) -or
 . $cbsRetryHelper -LibraryOnly
 
 function Get-AtlasCbsArchitecture {
-    # Installers.ps1 supplies the module-wide, fail-closed native architecture
-    # authority. CBS package selection must never fall back to inherited process
-    # environment data or a substring match because choosing the wrong CAB is a
-    # privileged servicing error, not a best-effort installer outcome.
+    # A wrong-architecture CAB breaks servicing, so use the strict CIM check from
+    # Installers.ps1, never PROCESSOR_ARCHITECTURE.
     if (Test-AtlasSoftwareArm64) { return 'arm64' }
     return 'amd64'
 }
@@ -84,10 +81,8 @@ function Assert-AtlasCbsCertificate {
 
     $signature = Get-AuthenticodeSignature -LiteralPath $CabPath
     $cert = $signature.SignerCertificate
-    # Intact Atlas component CABs report UnknownError through this cmdlet while
-    # still exposing their Microsoft Windows signer and component EKU. The pinned
-    # manifest SHA-256 above is authoritative; reject explicit signature hash
-    # mismatch without excluding that legitimate CAB status.
+    # Intact Atlas CABs can report UnknownError here. Assert-AtlasCbsHash has already
+    # checked the pinned SHA-256, so reject only HashMismatch.
     if ($signature.Status -eq [System.Management.Automation.SignatureStatus]::HashMismatch -or $null -eq $cert) {
         throw "The CAB component signature is not intact (status '$($signature.Status)')."
     }
@@ -103,8 +98,9 @@ function Assert-AtlasCbsCertificate {
             ForEach-Object { $_.EnhancedKeyUsages | ForEach-Object { $_.Value } }
     )
 
-    if ($ekuValues -notcontains '1.3.6.1.4.1.311.10.3.6') {
-        throw "Cert doesn't have proper key usages, can't continue."
+    $windowsComponentEku = '1.3.6.1.4.1.311.10.3.6' # Windows System Component Verification
+    if ($ekuValues -notcontains $windowsComponentEku) {
+        throw 'The CAB signer lacks the Windows component EKU.'
     }
 
     # Add the Atlas test cert. It isn't cleared later, as it's required for the
@@ -120,7 +116,7 @@ $script:AtlasCbsExpectedHashes = $null
 function Get-AtlasCbsExpectedHashes {
     <#
     .SYNOPSIS
-        Loads Atlas-CbsHashes.psd1 (the SHA256 of every shipped CAB) from the packages
+        Loads Atlas-CbsHashes.psd1 (the SHA256 of every included CAB) from the packages
         folder. The CAB signing cert is regenerated on every build, so its thumbprint is
         not stable and cannot be pinned - the content hash is what we verify against.
     #>
@@ -139,15 +135,7 @@ function Get-AtlasCbsExpectedHashes {
         throw "The CBS package hash manifest '$hashFile' is missing; refusing to install unverified packages."
     }
 
-    # Parse via the AST (SafeGetValue) so loading never depends on a possibly-polluted
-    # PSModulePath under TrustedInstaller (see docs/testing.md).
-    $tableAst = [System.Management.Automation.Language.Parser]::ParseFile($hashFile, [ref]$null, [ref]$null).Find(
-        { param($node) $node -is [System.Management.Automation.Language.HashtableAst] }, $false)
-    if ($null -eq $tableAst) {
-        throw "The CBS package hash manifest '$hashFile' is not a valid data file."
-    }
-
-    $script:AtlasCbsExpectedHashes = $tableAst.SafeGetValue()
+    $script:AtlasCbsExpectedHashes = Import-AtlasDataFile -LiteralPath $hashFile
     return $script:AtlasCbsExpectedHashes
 }
 
@@ -231,6 +219,7 @@ function New-AtlasCbsRepairSource {
         https://github.com/Atlas-OS/Atlas/issues/1103
     #>
     $windir = [Environment]::GetFolderPath('Windows')
+    # The version every Atlas package manifest carries.
     $version = '38655.38527.65535.65535'
     $srcPath = '%SystemRoot%\AtlasModules\Packages\WinSxS'
     $srcPathExpanded = [System.Environment]::ExpandEnvironmentVariables($srcPath)
@@ -238,7 +227,6 @@ function New-AtlasCbsRepairSource {
     Write-Host "`nMaking repair source..." -ForegroundColor Cyan
     Write-Host ('-' * 84) -ForegroundColor Magenta
 
-    # Get the list of Atlas manifests
     Write-Host '[INFO] Getting manifests...'
     $manifests = @(Get-ChildItem -Path "$windir\WinSxS\Manifests" -File -Filter "*$version*")
     if ($manifests.Count -eq 0) {
@@ -246,7 +234,6 @@ function New-AtlasCbsRepairSource {
         return $false
     }
 
-    # Create a new repair source folder
     if (Test-Path -LiteralPath $srcPathExpanded -PathType Container) {
         Write-Host '[INFO] Deleting old RepairSrc...'
         Remove-Item -LiteralPath $srcPathExpanded -Force -Recurse
@@ -254,13 +241,11 @@ function New-AtlasCbsRepairSource {
     Write-Host '[INFO] Creating RepairSrc path...'
     New-Item -Path "$srcPathExpanded\Manifests" -Force -ItemType Directory | Out-Null
 
-    # Hardlink all the manifests to the repair source
     Write-Host '[INFO] Hard linking manifests...'
     foreach ($manifest in $manifests) {
         New-Item -ItemType HardLink -Path "$srcPathExpanded\Manifests\$($manifest.Name)" -Target $manifest.FullName | Out-Null
     }
 
-    # Register the repair source policy
     $servicingPolicyKey = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Servicing'
     if (-not (Test-Path -LiteralPath $servicingPolicyKey)) {
         New-Item -Path $servicingPolicyKey -Force | Out-Null
@@ -295,7 +280,7 @@ function Install-AtlasCbsPackage {
     <#
     .SYNOPSIS
         Installs Atlas CBS packages (CABs) online. Patterns (e.g.
-        '*Z-Atlas-NoDefender-Package*') are matched against the CABs shipped in
+        '*Z-Atlas-NoDefender-Package*') are matched against the CABs in
         AtlasModules\Packages, filtered by architecture. Must run as
         SYSTEM/TrustedInstaller.
     .PARAMETER LiteralPaths
@@ -418,7 +403,9 @@ function Uninstall-AtlasCbsPackage {
         foreach ($package in $selection.Matched) {
             try {
                 Write-Host "[INFO] Uninstalling '$package'..."
-                Remove-WindowsPackage -Online -PackageName $package -NoRestart -LogLevel 1 *>$null
+                # Stop: the catch sees only terminating errors, and this module doesn't
+                # inherit the caller's ErrorActionPreference.
+                Remove-WindowsPackage -Online -PackageName $package -NoRestart -LogLevel 1 -ErrorAction Stop *>$null
                 $removedPackages += $package
             }
             catch {

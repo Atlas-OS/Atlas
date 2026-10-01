@@ -1,8 +1,12 @@
-# Runs on the destination PC before Atlas changes Windows. Provider-owned
-# servicing is never killed; cancellation waits for the active operation.
+# Brings Windows and Store apps up to date before Atlas changes Windows. Windows
+# Update and Store work is never killed; cancellation waits for the active operation.
 [CmdletBinding()]
-param([Parameter(Mandatory)][string]$JobPath, [switch]$FunctionsOnly, [switch]$VerifyOnly, [switch]$PersistentCancellation,
+param([Parameter(Mandatory)][string]$JobPath, [switch]$FunctionsOnly, [switch]$VerifyOnly,
+    # Set by the app's protected job: 'cancel' always exists and stopping means it is
+    # non-empty, and state.json gets the job's ACL.
+    [switch]$PersistentCancellation,
     [ValidateSet('preserve','automatic','manual')][string]$DriverMode = 'preserve')
+# This elevated worker must never autoload a module from an inherited user path.
 $env:PSModulePath = [IO.Path]::Combine($PSHOME, 'Modules')
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
@@ -10,27 +14,58 @@ $ProgressPreference = 'SilentlyContinue'
 $script:PreparationClock = [Diagnostics.Stopwatch]::StartNew()
 $script:PreparationLastChange = 0L
 $script:PreparationLastProgress = ''
-# Which restart markers the last Test-PreparationRestart saw, for the state
-# journal and the app: a marker that survives a restart must be named, not
-# answered with another restart.
+# Restart markers seen by the last Test-PreparationRestart, so the app can name one
+# that survives a restart instead of asking for another.
 $script:PreparationRestartReasons = @()
+# Why the last Test-PreparationNetwork refused the connection; the app words each cause.
+$script:PreparationNetworkReason = $null
 $script:PreparationStage = 'verify'
+# Windows Update values: OperationResultCode 2 = succeeded, UpdateType 2 = driver.
+$script:UpdateSucceeded = 2
+$script:DriverUpdate = 2
+# Searches per provider before giving up on one that keeps offering updates.
+$script:PreparationPasses = 8
+
+# A failure the app can explain. $Reason is a stable id the app words in the
+# user's language; a nonzero $HResult is the provider's own error code.
+function New-PreparationFailure([string]$Message, [string]$Reason, [int]$HResult) {
+    $failure = [Exception]::new($Message)
+    if ($Reason) { $failure.Data['reason'] = $Reason }
+    if ($HResult -ne 0) { $failure.Data['errorCode'] = '0x{0:X8}' -f $HResult }
+    return $failure
+}
 
 function New-PreparationStoreFailure([string]$PackageFamilyName, [string]$State, $ErrorCode) {
-    $failure = [Exception]::new("Microsoft Store needs attention: $PackageFamilyName, $State, $ErrorCode")
-    $failure.Data['packageName'] = ($PackageFamilyName -split '_')[0].Split('.')[-1]
-    if ($null -ne $ErrorCode) {
-        $failure.Data['errorCode'] = '0x{0:X8}' -f $ErrorCode.HResult
+    $message = "Microsoft Store needs attention: $PackageFamilyName, $State"
+    if ($null -ne $ErrorCode) { $message += ", $ErrorCode" }
+    $reason = switch -Wildcard ($State) {
+        'PausedLowBattery' { 'store-paused-battery' }
+        'PausedWiFi*' { 'store-paused-network' }
     }
+    $failure = New-PreparationFailure $message $reason $(if ($null -ne $ErrorCode) { $ErrorCode.HResult } else { 0 })
+    $failure.Data['packageName'] = ($PackageFamilyName -split '_')[0].Split('.')[-1]
     return $failure
 }
 
 function Get-PreparationFailureDetail([Exception]$Exception) {
     $detail = @{ failureMessage = $Exception.Message }
-    foreach ($key in @('packageName', 'errorCode')) {
+    foreach ($key in @('packageName', 'errorCode', 'reason')) {
         if ($Exception.Data.Contains($key)) { $detail[$key] = [string]$Exception.Data[$key] }
     }
-    if (-not $detail.ContainsKey('errorCode')) { $detail.errorCode = '0x{0:X8}' -f $Exception.HResult }
+    if (-not $detail.ContainsKey('errorCode')) {
+        # Report only a Windows or provider code. The CLR's own codes
+        # (0x8013xxxx) and PowerShell's script errors name nothing to look up;
+        # a wrapped .NET failure carries the real code on an inner exception.
+        for ($cause = $Exception; $null -ne $cause; $cause = $cause.InnerException) {
+            $code = if ($cause -is [ComponentModel.Win32Exception]) {
+                if ($cause.NativeErrorCode) { 0x80070000 -bor ($cause.NativeErrorCode -band 0xFFFF) } else { 0 }
+            } else { $cause.HResult }
+            if ($code -eq 0 -or ($code -band 0xFFFF0000) -eq 0x80130000 -or
+                $cause.GetType().Namespace -like 'System.Management.Automation*') { continue }
+            $detail.errorCode = '0x{0:X8}' -f $code
+            break
+        }
+    }
     return $detail
 }
 
@@ -69,7 +104,7 @@ function Assert-PreparationUser(
 ) {
     if ($SessionId -lt 1 -or $UserSid -in @('S-1-5-18','S-1-5-19','S-1-5-20') -or
         (Get-PreparationSessionOwner) -cne $UserSid) {
-        throw 'Windows and Store preparation must run as the signed-in session owner. Open Atlas in that account; SYSTEM setup and another administrator account are not supported.'
+        throw (New-PreparationFailure 'Windows and Store preparation must run as the signed-in session owner. Open Atlas in that account; SYSTEM setup and another administrator account are not supported.' 'session-owner')
     }
 }
 
@@ -79,10 +114,25 @@ function Get-PreparationNetworkProfile {
 }
 
 function Test-PreparationNetwork {
+    $script:PreparationNetworkReason = $null
     $connectionProfile = Get-PreparationNetworkProfile
-    if ($null -eq $connectionProfile -or [string]$connectionProfile.GetNetworkConnectivityLevel() -ne 'InternetAccess') { return $false }
+    $level = if ($null -eq $connectionProfile) { 'None' } else { [string]$connectionProfile.GetNetworkConnectivityLevel() }
+    if ($level -ne 'InternetAccess') {
+        # LocalAccess and ConstrainedInternetAccess: connected, but Windows
+        # has not confirmed internet access (a captive portal or filtering).
+        $script:PreparationNetworkReason = if ($level -eq 'None') { 'offline' } else { 'limited' }
+        return $false
+    }
     $cost = $connectionProfile.GetConnectionCost()
-    return ([string]$cost.NetworkCostType -eq 'Unrestricted' -and -not $cost.Roaming -and -not $cost.OverDataLimit -and -not $cost.BackgroundDataUsageRestricted)
+    if ($cost.Roaming) {
+        $script:PreparationNetworkReason = 'roaming'
+        return $false
+    }
+    if ([string]$cost.NetworkCostType -ne 'Unrestricted' -or $cost.OverDataLimit -or $cost.BackgroundDataUsageRestricted) {
+        $script:PreparationNetworkReason = 'metered'
+        return $false
+    }
+    return $true
 }
 
 function Set-PreparationDriver {
@@ -117,16 +167,19 @@ function Test-PreparationRestart {
 }
 
 function Test-PreparationUpdate($Update) {
-    # Feature upgrades can leave the builds supported by the chosen playbook.
+    # Feature upgrades can leave the builds supported by the chosen Atlas package.
     # Optional previews are not a prerequisite for installing Atlas.
     if ($Update.BrowseOnly) { return $false }
-    if ($DriverMode -eq 'manual' -and [int]$Update.Type -eq 2) { return $false }
+    if ($DriverMode -eq 'manual' -and [int]$Update.Type -eq $script:DriverUpdate) { return $false }
     foreach ($category in $Update.Categories) {
+        # The 'Upgrades' category: feature updates.
         if ($category.CategoryID -eq '3689bdc8-b205-4af4-8d4a-a63924c5e9d5') { return $false }
     }
     return $true
 }
 
+# Must equal Get-AtlasRecoveryFileSecurity in app/resources/prepare/Stage-App.ps1;
+# validate-preparation rejects any other ACL on state.json.
 function Get-PreparationStateSecurity {
     $security = New-Object Security.AccessControl.FileSecurity
     $security.SetSecurityDescriptorSddlForm('O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;0x1200a9;;;BU)')
@@ -209,14 +262,14 @@ function Write-PreparationWindowsProgress($Job, $Updates, [string]$Stage) {
         }
         for ($i = 0; $i -lt $Updates.Count; $i++) {
             try {
-                if ([int]$progress.GetUpdateResult($i).ResultCode -eq 2) { $completed++ }
-            } catch { # WUA may not have a per-update result yet.
+                if ([int]$progress.GetUpdateResult($i).ResultCode -eq $script:UpdateSucceeded) { $completed++ }
+            } catch {
                 Write-Verbose "Update $i has no result yet: $_"
             }
         }
     } catch {
-        # A telemetry failure must not abandon a provider-owned operation or
-        # manufacture a percentage. EndDownload/EndInstall owns the result.
+        # A failed progress read must not abandon the operation or invent a
+        # percentage; EndDownload and EndInstall own the result.
         $detail = @{}
         $completed = 0
     }
@@ -269,8 +322,47 @@ function Assert-PreparationContinue {
     }
 }
 
+# WUA installs an exclusive update (Impact 2) only on its own. The next pass
+# searches again and offers whatever this one leaves out.
+function Add-PreparationWindowsUpdate($Updates, $Update) {
+    if ($Updates.Count -gt 0 -and
+        ([int]$Update.InstallationBehavior.Impact -eq 2 -or [int]$Updates.Item(0).InstallationBehavior.Impact -eq 2)) { return }
+    if (-not $Update.EulaAccepted) { $Update.AcceptEula() }
+    [void]$Updates.Add($Update)
+}
+
+# Logs each update's result and returns the updates that did not succeed, with
+# the provider's HRESULT and the revision-independent id a new search reuses.
+function Get-PreparationFailedUpdate($Result, $Updates, [string]$Label) {
+    for ($index = 0; $index -lt $Updates.Count; $index++) {
+        $item = $Result.GetUpdateResult($index)
+        $update = $Updates.Item($index)
+        "$($update.Title): $Label=$($item.ResultCode), HRESULT=$($item.HResult)" | Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
+        if ([int]$item.ResultCode -ne $script:UpdateSucceeded) {
+            [pscustomobject]@{ Id = [string]$update.Identity.UpdateID; Update = $update; HResult = [int]$item.HResult }
+        }
+    }
+}
+
+# A failed update is offered again by the next search, so each one is retried
+# once. A second failure, or one WUA does not attribute to an update, is
+# reported with the provider's code.
+function Register-PreparationRetry($Failed, $Result, [hashtable]$Retried, [string]$Message) {
+    $repeated = @($Failed | Where-Object { $Retried.ContainsKey($_.Id) })
+    if ($Failed.Count -eq 0 -or $repeated.Count -gt 0) {
+        $code = [int]$Result.HResult
+        foreach ($entry in @($repeated) + @($Failed)) {
+            if ($entry.HResult -ne 0) { $code = $entry.HResult; break }
+        }
+        throw (New-PreparationFailure $Message -HResult $code)
+    }
+    foreach ($entry in $Failed) { $Retried[$entry.Id] = $true }
+    "Retrying $($Failed.Count) failed update(s) after a fresh search." | Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
+}
+
 function Invoke-PreparationWindows {
-    for ($pass = 0; $pass -lt 8; $pass++) {
+    $retried = @{}
+    for ($pass = 0; $pass -lt $script:PreparationPasses; $pass++) {
         Assert-PreparationContinue
         if (Test-PreparationRestart) { return 'reboot' }
         if (-not (Test-PreparationNetwork)) { throw (New-Object System.Net.NetworkInformation.NetworkInformationException) }
@@ -284,17 +376,13 @@ function Invoke-PreparationWindows {
                 $interactive += $update
                 continue
             }
-            if (-not $update.EulaAccepted) { $update.AcceptEula() }
-            [void]$updates.Add($update)
+            Add-PreparationWindowsUpdate $updates $update
         }
         if ($updates.Count -eq 0) {
             # CanRequestUserInput does not mean interaction is required. Finish
             # noninteractive work first, then try remaining updates with ForceQuiet.
             # Unsupported quiet handlers return a failure instead of a prompt.
-            foreach ($update in $interactive) {
-                if (-not $update.EulaAccepted) { $update.AcceptEula() }
-                [void]$updates.Add($update)
-            }
+            foreach ($update in $interactive) { Add-PreparationWindowsUpdate $updates $update }
             if ($updates.Count -eq 0) { return 'complete' }
         }
         Assert-PreparationContinue
@@ -302,7 +390,11 @@ function Invoke-PreparationWindows {
         $downloader = $session.CreateUpdateDownloader()
         $downloader.Updates = $updates
         $downloaded = Invoke-PreparationWindowsOperation $downloader $updates Download
-        if ([int]$downloaded.ResultCode -ne 2) { throw "Windows update download failed: $($downloaded.ResultCode)" }
+        if ([int]$downloaded.ResultCode -ne $script:UpdateSucceeded) {
+            $failed = @(Get-PreparationFailedUpdate $downloaded $updates 'download result')
+            Register-PreparationRetry $failed $downloaded $retried "Windows update download failed: $($downloaded.ResultCode). See updates.log."
+            continue
+        }
         Assert-PreparationContinue
         Write-PreparationState running windows-install 0 $updates.Count
         $installer = $session.CreateUpdateInstaller()
@@ -315,23 +407,22 @@ function Invoke-PreparationWindows {
         }
         $installed = Invoke-PreparationWindowsOperation $installer $updates Install
         $manual = @()
-        for ($index = 0; $index -lt $updates.Count; $index++) {
-            $item = $installed.GetUpdateResult($index)
-            $update = $updates.Item($index)
-            "$($update.Title): result=$($item.ResultCode), HRESULT=$($item.HResult)" | Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
-            if ([int]$item.ResultCode -ne 2 -and $update.InstallationBehavior.CanRequestUserInput) {
-                $manual += $update.Title
-            }
+        $failed = @()
+        foreach ($entry in @(Get-PreparationFailedUpdate $installed $updates 'result')) {
+            if ($entry.Update.InstallationBehavior.CanRequestUserInput) { $manual += $entry.Update.Title }
+            else { $failed += $entry }
         }
         if ($installed.RebootRequired) {
             $script:PreparationRestartReasons = @('windows-update')
             return 'reboot'
         }
         if (Test-PreparationRestart) { return 'reboot' }
-        if ($manual.Count -gt 0) { throw "Windows could not finish these updates automatically. Finish them in Windows Settings, then retry: $($manual -join '; ')" }
-        if ([int]$installed.ResultCode -ne 2) { throw "Windows could not install every update: $($installed.ResultCode). See updates.log." }
+        if ($manual.Count -gt 0) { throw (New-PreparationFailure "Windows could not finish these updates automatically. Finish them in Windows Settings, then retry: $($manual -join '; ')" 'manual-updates') }
+        if ([int]$installed.ResultCode -ne $script:UpdateSucceeded) {
+            Register-PreparationRetry $failed $installed $retried "Windows could not install every update: $($installed.ResultCode). See updates.log."
+        }
     }
-    throw 'Windows still offers updates after eight passes. Resolve the remaining updates in Windows Settings.'
+    throw (New-PreparationFailure "Windows still offers updates after $script:PreparationPasses passes. Resolve the remaining updates in Windows Settings." 'windows-passes')
 }
 
 function Find-PreparationWindowsUpdate($Session) {
@@ -349,7 +440,7 @@ function Find-PreparationWindowsUpdate($Session) {
         $job.CleanUp()
         [GC]::KeepAlive($callback)
     }
-    if ([int]$found.ResultCode -ne 2) { throw "Windows update search failed: $($found.ResultCode)" }
+    if ([int]$found.ResultCode -ne $script:UpdateSucceeded) { throw "Windows update search failed: $($found.ResultCode)" }
     foreach ($update in $found.Updates) {
         if (Test-PreparationUpdate $update) { $update }
     }
@@ -370,7 +461,7 @@ function Wait-PreparationStoreSearch($Operation) {
 }
 
 function New-PreparationStoreManager {
-    if (-not (Get-AppxPackage -Name Microsoft.WindowsStore)) { throw 'Microsoft Store is not registered for this user. Open Store once, then try again.' }
+    if (-not (Get-AppxPackage -Name Microsoft.WindowsStore)) { throw (New-PreparationFailure 'Microsoft Store is not registered for this user. Open Store once, then try again.' 'store-missing') }
     Add-Type -AssemblyName System.Runtime.WindowsRuntime
     $null = [Windows.ApplicationModel.Store.Preview.InstallControl.AppInstallManager, Windows.ApplicationModel.Store.Preview.InstallControl, ContentType=WindowsRuntime]
     $null = [Windows.ApplicationModel.Store.Preview.InstallControl.AppInstallItem, Windows.ApplicationModel.Store.Preview.InstallControl, ContentType=WindowsRuntime]
@@ -379,7 +470,7 @@ function New-PreparationStoreManager {
 }
 
 function Invoke-PreparationStore {
-    for ($pass = 0; $pass -lt 8; $pass++) {
+    for ($pass = 0; $pass -lt $script:PreparationPasses; $pass++) {
         Assert-PreparationContinue
         if (-not (Test-PreparationNetwork)) { throw (New-Object System.Net.NetworkInformation.NetworkInformationException) }
         Write-PreparationState running store-search
@@ -431,17 +522,16 @@ function Invoke-PreparationStore {
             }
             Write-PreparationState running store-install $complete $items.Count -Detail @{percent = [int][Math]::Floor($percent / $items.Count)}
             if ($complete -lt $items.Count) {
-                if ([DateTime]::UtcNow -gt $deadline) { throw 'Store apps have not finished updating. Open Microsoft Store and resolve the remaining downloads.' }
+                if ([DateTime]::UtcNow -gt $deadline) { throw (New-PreparationFailure 'Store apps have not finished updating. Open Microsoft Store and resolve the remaining downloads.' 'store-timeout') }
                 Start-Sleep -Seconds 2
             }
         } while ($complete -lt $items.Count)
         Assert-PreparationContinue
-        # Store itself was included. A fresh manager/search observes any new
-        # updates revealed by the newer Store version.
+        # Updating Store itself can reveal more updates; search again before finishing.
         $again = @(Wait-PreparationStoreSearch ($manager.SearchForAllUpdatesAsync('', 'Atlas', $options)))
         if (@($again | Where-Object { [string]$_.GetCurrentStatus().InstallState -ne 'Completed' }).Count -eq 0) { return }
     }
-    throw 'Microsoft Store still offers updates after eight passes.'
+    throw (New-PreparationFailure "Microsoft Store still offers updates after $script:PreparationPasses passes." 'store-passes')
 }
 
 function Assert-PreparationCurrent {
@@ -471,7 +561,8 @@ function Assert-PreparationCurrent {
 }
 
 function Invoke-PreparationStoreWithRetry {
-    # Retry transient deployment conflicts, never an app-in-use or unknown error.
+    # Retry only 0x80240016 (another install is in progress), never an app-in-use
+    # or unknown error.
     for ($attempt = 0; $attempt -lt 4; $attempt++) {
         try { Invoke-PreparationStore; return }
         catch {
@@ -490,6 +581,7 @@ function Invoke-PreparationStoreWithRetry {
 
 function Invoke-PreparationUpdates {
     try {
+        # The last value only: stray pipeline output must not become the status.
         if ((Invoke-PreparationWindows | Select-Object -Last 1) -eq 'reboot') { return 'reboot' }
         Invoke-PreparationStoreWithRetry
         Assert-PreparationContinue
@@ -538,7 +630,7 @@ try {
     Write-PreparationState complete verify
 }
 catch [System.Net.NetworkInformation.NetworkInformationException] {
-    Write-PreparationState network verify
+    Write-PreparationState network verify -Detail @{ networkReason = $script:PreparationNetworkReason }
 }
 catch [OperationCanceledException] {
     Write-PreparationState cancelled verify

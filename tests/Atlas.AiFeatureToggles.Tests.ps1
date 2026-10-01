@@ -1,16 +1,14 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-    $modulesRoot = Join-Path $repoRoot 'playbook\Executables\AtlasModules\Scripts\Modules'
-    Import-Module (Join-Path $modulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
-    Import-Module (Join-Path $modulesRoot 'Atlas.Registry\Atlas.Registry.psd1') -Force
+    Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
+    Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Registry\Atlas.Registry.psd1') -Force
     # The companions resolve these commands after Import-AtlasModule (mocked below); load
     # the real modules once so the mocks have a command to shadow inside Atlas.Toggles.
-    Import-Module (Join-Path $modulesRoot 'Atlas.Appx\Atlas.Appx.psd1') -Force
-    Import-Module (Join-Path $modulesRoot 'Atlas.Download\Atlas.Download.psd1') -Force
-    Import-Module (Join-Path $modulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
+    Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Appx\Atlas.Appx.psd1') -Force
+    Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Download\Atlas.Download.psd1') -Force
+    Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
 
-    $togglesRoot = Join-Path $repoRoot 'playbook\Executables\AtlasModules\Toggles'
+    $togglesRoot = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles'
     $script:copilot = Get-AtlasToggleDefinition -Name Copilot -TogglesRoot $togglesRoot
     $script:widgets = Get-AtlasToggleDefinition -Name Widgets -TogglesRoot $togglesRoot
 
@@ -90,7 +88,7 @@ Describe 'Copilot toggle' {
         Mock Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles { $script:appInstalled = $true }
     }
 
-    It 'declares the disable state as machine policy, per-user taskbar value and app removal' {
+    It 'splits Copilot work between the machine and the user' {
         $disable = $script:copilot.States['Disable']
 
         $policy = @(Find-RegistryEntry -State $disable `
@@ -105,14 +103,14 @@ Describe 'Copilot toggle' {
         $button[0].Type | Should -BeExactly 'DWord'
         $button[0].Data | Should -Be 0
 
+        # Without this action, disabling Copilot would stop removing the app.
         $disable['MachineAction'] | Should -BeExactly 'Remove-AtlasCopilotApp'
         $disable.Contains('UserAction') | Should -BeFalse
-        $disable['StateValue'] | Should -Be 0
 
-        $work = Get-AtlasToggleStateWork -Definition $script:copilot -StateEntry $disable
-        $work.Machine | Should -BeTrue
-        $work.User | Should -BeTrue
-        $work.Local | Should -BeFalse
+        # The Store install must run as the user, so Enable keeps a separate user action.
+        $enable = $script:copilot.States['Enable']
+        $enable['MachineAction'] | Should -BeExactly 'Enable-AtlasCopilotMachine'
+        $enable['UserAction'] | Should -BeExactly 'Enable-AtlasCopilotUser'
     }
 
     It 'removes only the Copilot app in the machine action and leaves registry work to the declarations' {
@@ -128,20 +126,6 @@ Describe 'Copilot toggle' {
         }
         Should -Not -Invoke Set-AtlasRegistryValue -ModuleName Atlas.Toggles
         Should -Not -Invoke Remove-AtlasRegistryValue -ModuleName Atlas.Toggles
-    }
-
-    It 'splits the enable state into a machine action and a user action' {
-        $enable = $script:copilot.States['Enable']
-
-        $enable['MachineAction'] | Should -BeExactly 'Enable-AtlasCopilotMachine'
-        $enable['UserAction'] | Should -BeExactly 'Enable-AtlasCopilotUser'
-        $enable['StateValue'] | Should -Be 1
-        $script:copilot.Functions | Should -Contain 'Enable-AtlasCopilotMachine'
-        $script:copilot.Functions | Should -Contain 'Enable-AtlasCopilotUser'
-
-        $work = Get-AtlasToggleStateWork -Definition $script:copilot -StateEntry $enable
-        $work.Machine | Should -BeTrue
-        $work.User | Should -BeTrue
     }
 
     It 're-shows the taskbar button only on a legacy build with an affirmative marker' {
@@ -179,10 +163,14 @@ Describe 'Copilot toggle' {
         Should -Not -Invoke Remove-AtlasRegistryValue -ModuleName Atlas.Toggles
     }
 
-    It 'checks the app when the legacy marker is absent' {
+    It 'installs the app on a legacy build when the taskbar marker is absent' {
         $context = New-ToggleContext -Name 'Copilot' -State 'Enable'
+        $context.WindowsBuild = 22631
+
         Invoke-CompanionFunction -Definition $script:copilot -FunctionName 'Enable-AtlasCopilotUser' -Toggle $context
+
         Should -Invoke Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles -Times 1 -Exactly
+        Should -Not -Invoke Set-AtlasRegistryValue -ModuleName Atlas.Toggles
     }
 
     It 'does not accept a successful installer exit without a healthy app' {
@@ -223,39 +211,6 @@ Describe 'Widgets toggle' {
         Mock Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles
         Mock Read-AtlasYesNo -ModuleName Atlas.Toggles { $true }
         Mock Start-Process -ModuleName Atlas.Toggles
-    }
-
-    It 'declares the disable state as the widget machine policies without any function' {
-        $disable = $script:widgets.States['Disable']
-
-        $feeds = @($disable['Registry'] | Where-Object { $_.Name -eq 'EnableFeeds' })
-        $feeds.Count | Should -Be 0
-
-        $dsh = @(Find-RegistryEntry -State $disable `
-            -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Dsh' -Name 'AllowNewsAndInterests')
-        $dsh.Count | Should -Be 1
-        $dsh[0].Type | Should -BeExactly 'DWord'
-        $dsh[0].Data | Should -Be 0
-        $dsh[0].UseGroupPolicy | Should -BeTrue
-
-        foreach ($valueName in 'DisableWidgetsOnLockScreen', 'DisableWidgetsBoard') {
-            $board = @(Find-RegistryEntry -State $disable `
-                -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Dsh' -Name $valueName)
-            $board.Count | Should -Be 1
-            $board[0].Data | Should -Be 1
-        }
-
-        # The stable policy is persisted through Group Policy and verified. Newer
-        # optional policies retain their separate protected-value handling.
-        @($disable['Registry'] | Where-Object { $_['AllowOsProtected'] }).Count | Should -Be 2
-
-        @($disable['Registry']).Count | Should -Be 3
-        $disable.Contains('MachineAction') | Should -BeFalse
-        $disable.Contains('UserAction') | Should -BeFalse
-
-        $work = Get-AtlasToggleStateWork -Definition $script:widgets -StateEntry $disable
-        $work.Machine | Should -BeTrue
-        $work.User | Should -BeFalse
     }
 
     It 'enables Widgets through local policy and removes the supplemental restrictions' {

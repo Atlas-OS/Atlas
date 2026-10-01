@@ -1,4 +1,4 @@
-# https://winaero.com/how-to-disable-windows-8-boot-logo-spining-icon-and-some-other-hidden-settings
+# highestmode: https://learn.microsoft.com/windows-hardware/drivers/devtest/bcdedit--set#display-settings
 
 function Disable-AtlasHighestMode {
     param($Toggle)

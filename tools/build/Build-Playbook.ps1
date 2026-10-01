@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
-    Builds the Atlas playbook into an .apbx package (a renamed, password-protected ZIP
-    understood by AME Wizard).
+    Builds the Atlas package (.apbx), a renamed, password-protected ZIP that AME Wizard
+    can also open.
 .DESCRIPTION
     Thin entry point over the AtlasBuild module. Runs from any working directory; the
-    playbook location defaults to the repository's playbook/ directory.
+    source defaults to the repository's playbook/ folder.
 .PARAMETER Removals
     Dev-build content removals:
       Requirements       - strip <Requirement> pre-flight gates from playbook.conf
@@ -43,8 +43,8 @@ if ($LocalTest) {
 }
 
 if (-not $PlaybookPath) {
-    # Prefer the current directory when it is (or contains) a playbook, so existing
-    # "run from the playbook folder" workflows keep working; fall back to the repo layout.
+    # Prefer the current directory when it is (or contains) the package source, so
+    # running from the playbook/ folder keeps working; fall back to the repo layout.
     if (Test-Path -LiteralPath 'playbook.conf' -PathType Leaf) {
         $PlaybookPath = (Get-Location).ProviderPath
     }

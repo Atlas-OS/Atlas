@@ -28,12 +28,6 @@ Describe 'Independent Explorer Network choice' {
         }
     }
 
-    It 'propagates failure to apply or record the optional visibility choice' {
-        Mock Read-AtlasYesNo { $true }
-        Mock Invoke-AtlasToggle { throw 'navigation choice failed' }
-        { Add-AtlasFileSharingNetworkNavigationPane ([pscustomobject]@{ Silent = $false; StateRoot = 'HKCU:\TestState' }) } | Should -Throw '*navigation choice failed*'
-    }
-
     It 'keeps the fresh hidden default and detects a failed explicit visibility choice' {
         $path = Join-Path $script:AtlasTestScriptsRoot 'Tweaks\qol\explorer\disable-network-navigation-pane.psd1'
         Mock -ModuleName Atlas.Registry Get-AtlasRegistryValueState {

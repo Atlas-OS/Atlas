@@ -1,13 +1,13 @@
-# AppxSupport phase.
-# Runs as TrustedInstaller. Ordering is deliberate:
-# snapshot, exact-user package-process quiescence, installed/provisioned removal,
-# Phone Link cleanup, deprovision markers, then exact-user cache clearing. Required package failures are aggregated so
-# cleanup still runs before the checked phase returns nonzero to AME.
+# AppxSupport phase. Runs as TrustedInstaller, in this order: snapshot, stop the
+# installing user's package processes, remove installed and provisioned packages,
+# clean up Phone Link, write deprovision markers, then clear the user's caches.
+# Required package failures are collected so cleanup still runs before the phase
+# returns nonzero.
 #
-# Machine AppX work remains in this strict TrustedInstaller token and every package
-# query/removal uses AllUsers. User-controlled package cache trees are instead handed to
-# an install-state-bound medium user child; this phase never enumerates profile roots or recursively
-# deletes through a privileged token.
+# Machine AppX work stays in this token and every package query and removal uses
+# AllUsers. User-controlled cache trees are cleared by a child running as the
+# installing user, never through a privileged token, and profile roots are never
+# enumerated here.
 # https://learn.microsoft.com/en-us/powershell/module/appx/remove-appxpackage
 
 Assert-AtlasPrivilege -TrustedInstaller
@@ -32,8 +32,8 @@ catch {
     $requiredFailures.Add($_.Exception.Message)
 }
 
-# Removing Phone Link through the former AME action caused Cross Device Experience Host
-# installation issues. Preserve its separate best-effort PowerShell path.
+# Phone Link is removed on its own and best effort: removing it with the other
+# packages broke Cross Device Experience Host installation.
 try {
     Remove-AtlasPhoneLinkAppx
 }

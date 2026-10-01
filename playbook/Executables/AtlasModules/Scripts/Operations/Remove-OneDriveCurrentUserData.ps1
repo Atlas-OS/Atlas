@@ -209,7 +209,7 @@ if ($AfterBootUtcTicks -ne 0) {
         return
     }
     # Consume the entry before the one post-boot attempt; a failure remains in the
-    # transcript instead of creating an unbounded task on every future logon.
+    # transcript instead of retrying at every future logon.
     Remove-ItemProperty -LiteralPath 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' `
         -Name AtlasOneDriveCleanup -ErrorAction Stop
 }
@@ -299,7 +299,7 @@ if ($null -ne $shellFolderKey) {
 }
 
 # Any process that used the shell, including an installer file picker, can retain
-# OneDrive's DLL. Complete this exact-user file cleanup after the planned reboot.
+# OneDrive's DLL. Finish this user's file cleanup after the planned restart.
 if ($DeferFileCleanup) {
     Register-AtlasOneDrivePostBootCleanup -UserSid $expectedSid `
         -BootUtcTicks (Get-AtlasOneDriveBootUtcTicks)

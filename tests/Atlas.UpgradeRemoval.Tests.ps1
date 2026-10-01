@@ -86,7 +86,7 @@ BeforeAll {
     }
 }
 
-Describe 'Previous-install payload removal' {
+Describe 'Previous-install file removal' {
     It 'preserves device service backups byte for byte while removing old code' {
         $windowsRoot = New-UpgradeWindowsFixture -Name 'WinDirBackups'
         $other = Join-Path $windowsRoot 'AtlasModules\Other'
@@ -108,7 +108,7 @@ Describe 'Previous-install payload removal' {
         Test-Path (Join-Path $windowsRoot 'UnrelatedComponent\keep.dat') | Should -BeTrue
     }
 
-    It 'removes both Atlas payload trees and leaves every sibling intact' {
+    It 'removes both Atlas folders and leaves every sibling intact' {
         $windowsRoot = New-UpgradeWindowsFixture -Name 'WinDirFull'
 
         $result = Invoke-PreviousInstallRemoval -WindowsRoot $windowsRoot
@@ -121,7 +121,7 @@ Describe 'Previous-install payload removal' {
         Test-Path -LiteralPath (Join-Path $windowsRoot 'notepad.exe.txt') | Should -BeTrue
     }
 
-    It 'succeeds when no previous Atlas payload exists' {
+    It 'succeeds when no previous Atlas files exist' {
         $windowsRoot = Join-Path $TestDrive 'WinDirClean'
         $null = New-Item -Path (Join-Path $windowsRoot 'UnrelatedComponent') `
             -ItemType Directory -Force
@@ -132,7 +132,7 @@ Describe 'Previous-install payload removal' {
         Test-Path -LiteralPath (Join-Path $windowsRoot 'UnrelatedComponent') | Should -BeTrue
     }
 
-    It 'fails explicitly when a payload file cannot be deleted' {
+    It 'fails explicitly when an Atlas file cannot be deleted' {
         $windowsRoot = New-UpgradeWindowsFixture -Name 'WinDirLocked'
         $lockedPath = Join-Path $windowsRoot 'AtlasModules\Scripts\locked.dat'
         [IO.File]::WriteAllText($lockedPath, 'locked')
@@ -208,7 +208,7 @@ Describe 'Version-specific file removal' {
         { & $script:VersionSpecificBlock } | Should -Not -Throw
     }
 
-    It 'surfaces an undeletable Open-Shell entry as a terminating error' {
+    It 'reports an undeletable Open-Shell entry as a terminating error' {
         $null = New-Item -Path $script:startMenuRoot -ItemType Directory -Force
         $lockedPath = Join-Path $script:startMenuRoot 'Open-Shell locked.cmd'
         [IO.File]::WriteAllText($lockedPath, 'locked')

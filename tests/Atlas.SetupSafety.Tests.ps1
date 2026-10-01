@@ -1,4 +1,5 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     . (Join-Path (Split-Path $PSScriptRoot -Parent) 'app\resources\iso\Desktop-Policy.ps1')
     $source = Join-Path (Split-Path $PSScriptRoot -Parent) 'app\resources\iso\Setup.ps1'
     $errors = $null
@@ -14,6 +15,25 @@ BeforeAll {
         $_ -is [Management.Automation.Language.AssignmentStatementAst] -and $_.Left.Extent.Text -eq '$runOnce'
     })[0].Extent.StartOffset
     $script:AccountHandoff = [scriptblock]::Create($ast.Extent.Text.Substring($start, $end - $start))
+    $script:ReadConfig = [scriptblock]::Create(@($statements | Where-Object {
+        $_ -is [Management.Automation.Language.AssignmentStatementAst] -and $_.Left.Extent.Text -eq '$config'
+    })[0].Extent.Text)
+}
+
+Describe 'Setup configuration encoding' {
+    # Build-Iso leaves non-ASCII characters raw in BOM-less UTF-8. Names are built
+    # from code points so this file's own encoding cannot hide a decoding fault.
+    It 'reads the account name <Name> exactly as Build-Iso writes it' -ForEach @(
+        @{ Name = "Jos$([char]0xE9)" }
+        @{ Name = "$([char]0x5C0F)$([char]0x660E)" }
+        @{ Name = "$([char]0x41C)$([char]0x430)$([char]0x440)$([char]0x438)$([char]0x44F)" }
+    ) {
+        $root = $TestDrive
+        $written = @{ schema = 2; mode = 'configured'; options = @(); username = $Name; drivers = 'automatic' }
+        [IO.File]::WriteAllText((Join-Path $root 'setup.json'), ($written | ConvertTo-Json -Compress), (New-Object Text.UTF8Encoding($false)))
+        . $script:ReadConfig
+        $config.username | Should -BeExactly $Name
+    }
 }
 
 Describe 'First-logon security before shell registration' {

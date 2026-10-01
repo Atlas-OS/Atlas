@@ -1,6 +1,6 @@
 name: Desktop app
 
-# Playbook metadata, the front-door contract and driver policies are compiled
+# Atlas package metadata, the front-door contract and driver policies are compiled
 # into the app or its tests. Changes to those inputs must rebuild it.
 on:
   push:
@@ -77,7 +77,7 @@ jobs:
         # stub scripts in a temporary directory; nothing is installed.
         run: cargo test --locked -- --nocapture
 
-      - name: Build a LocalTest playbook for the tester-build checks
+      - name: Build a LocalTest Atlas package for the tester-build checks
         # The embedded-playbook feature compiles one APBX into the test binary.
         # Tests never install it; they only unpack it into a temporary root.
         working-directory: ${{ github.workspace }}

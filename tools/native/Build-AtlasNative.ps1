@@ -2,9 +2,9 @@
 .SYNOPSIS
     Compiles the Atlas native surface (Atlas.Native.cs) into Atlas.Native.dll.
 .DESCRIPTION
-    The payload compiles Scripts\Modules\Atlas.Core\Native\Atlas.Native.cs at runtime with
+    Atlas compiles Scripts\Modules\Atlas.Core\Native\Atlas.Native.cs at runtime with
     Add-Type, once per process, through a protected compiler directory. This tool builds
-    the same source ahead of time so the assembly can be signed and shipped beside the
+    the same source ahead of time so the assembly can be signed and released beside the
     source; Initialize-AtlasNativeType loads a DLL with a valid Authenticode signature
     instead of compiling.
 
@@ -13,10 +13,10 @@
     deterministic: the same source and compiler produce byte-identical output, which is
     what lets a reviewer rebuild and compare a released DLL. The legacy .NET Framework
     csc.exe (v4.0.30319) is accepted with -AllowLegacyCompiler for a quick local check
-    but its output is not reproducible and must not be shipped.
+    but its output is not reproducible and must not be released.
 
-    Without -SignCertificateThumbprint the DLL is left unsigned and the payload keeps
-    compiling from source. Shipping a DLL requires a code-signing certificate that the
+    Without -SignCertificateThumbprint the DLL is left unsigned and Atlas keeps
+    compiling from source. Releasing a DLL requires a code-signing certificate that the
     project does not have yet; this tool is the complete build step for when it does.
 .PARAMETER OutputPath
     Directory for Atlas.Native.dll and Atlas.Native.dll.sha256. Defaults to
@@ -151,7 +151,7 @@ if ($SignCertificateThumbprint) {
     Write-Host "Signed with '$($certificate.Subject)'."
 }
 else {
-    Write-Host 'Unsigned: the payload will keep compiling from source until a signed DLL ships.'
+    Write-Host 'Unsigned: Atlas will keep compiling from source until a signed DLL is released.'
 }
 
 $hash = (Get-FileHash -LiteralPath $dllPath -Algorithm SHA256).Hash.ToLowerInvariant()

@@ -1,12 +1,6 @@
-# Companion of add-newUser-script.psd1. Initialize-NewUser now keeps its completion
-# state exclusively in the exact user's HKCU hive. Do not recreate or consume the old
-# shared HKLM UserSetup marker: its historical Builtin Users write ACL made every value
-# in that key forgeable by another local account.
-#
-# The key is opened through .NET rather than Get-Acl: Windows PowerShell's
-# Get-Acl -LiteralPath rewrites a registry PSPath to its provider form
-# (HKEY_LOCAL_MACHINE\...) and then reports that the key does not exist, which
-# failed every upgrade from a release that still had the marker.
+# Companion of add-newUser-script.psd1. Revokes Builtin Users write access on the
+# retired HKLM UserSetup marker; its values are never read. Uses .NET, not Get-Acl:
+# Get-Acl -LiteralPath rewrites a registry PSPath and then reports the key missing.
 $ErrorActionPreference = 'Stop'
 
 $legacyMarkerSubKey = 'SOFTWARE\AtlasOS\UserSetup'
@@ -66,20 +60,27 @@ if ($null -ne $legacyKey) {
     }
 }
 
-$windowsRoot = [Environment]::GetFolderPath([Environment+SpecialFolder]::Windows)
-if ([string]::IsNullOrWhiteSpace($windowsRoot)) {
-    throw 'The protected Windows directory is unavailable for install-log ACL publication.'
-}
-$installLogsPath = [IO.Path]::Combine($windowsRoot, 'AtlasModules', 'Logs')
-if ([IO.Directory]::Exists($installLogsPath)) {
+# SYSTEM and TrustedInstaller append the install log in AtlasModules\Logs, so
+# remove the explicit Builtin Users grant pre-release builds put there. Processes
+# that are not elevated log to their own profile instead.
+function Revoke-AtlasInstallLogUserAccess([string]$Path) {
     $icaclsPath = [IO.Path]::Combine([Environment]::SystemDirectory, 'icacls.exe')
     if (-not [IO.File]::Exists($icaclsPath)) {
         throw "The inbox ACL utility is missing at '$icaclsPath'."
     }
 
-    & $icaclsPath $installLogsPath /grant '*S-1-5-32-545:(OI)(CI)M' /T | Out-Null
+    & $icaclsPath $Path /remove:g '*S-1-5-32-545' /T /Q | Out-Null
     $icaclsExitCode = $LASTEXITCODE
     if ($icaclsExitCode -ne 0) {
-        throw "icacls.exe failed to grant first-logon log access with exit code $icaclsExitCode."
+        throw "icacls.exe failed to revoke Builtin Users access to the install logs with exit code $icaclsExitCode."
     }
+}
+
+$windowsRoot = [Environment]::GetFolderPath([Environment+SpecialFolder]::Windows)
+if ([string]::IsNullOrWhiteSpace($windowsRoot)) {
+    throw 'The protected Windows directory is unavailable for install-log ACL repair.'
+}
+$installLogsPath = [IO.Path]::Combine($windowsRoot, 'AtlasModules', 'Logs')
+if ([IO.Directory]::Exists($installLogsPath)) {
+    Revoke-AtlasInstallLogUserAccess $installLogsPath
 }

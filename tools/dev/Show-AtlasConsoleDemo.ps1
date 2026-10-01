@@ -3,11 +3,11 @@
     Renders the Atlas console vocabulary and four representative launcher flows
     without touching the machine.
 .DESCRIPTION
-    Imports the payload's Atlas.Core module, feeds scripted answers to its prompts and
+    Imports the Atlas.Core module, feeds scripted answers to its prompts and
     prints exactly what a user would see for: a simple declarative toggle, a
     multi-question flow, a failure, and a manual Settings hand-over. Nothing is applied,
     elevated, recorded or logged to the shared install log; the only side effect is
-    console output. Run it under Windows PowerShell 5.1, the payload's runtime:
+    console output. Run it under Windows PowerShell 5.1, the runtime Atlas uses on users' PCs:
 
         powershell -NoProfile -File tools\dev\Show-AtlasConsoleDemo.ps1
 

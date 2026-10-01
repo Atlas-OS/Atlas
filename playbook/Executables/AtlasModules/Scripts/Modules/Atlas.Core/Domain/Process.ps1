@@ -1,9 +1,9 @@
 # Atlas.Core domain: checked native-process execution without a visible window.
 #
 # A Windows process receives one command-line string, not an argv array. PowerShell
-# 5.1 and 7 also join Start-Process -ArgumentList values without preserving their
-# boundaries. Keep argv as strings until this file serializes it with the Windows C
-# runtime rules, then launch the caller's explicit executable directly.
+# 5.1 and 7 also join Start-Process -ArgumentList values without preserving where
+# each one starts and ends. Keep argv as strings until this file serializes it with
+# the Windows C runtime rules, then launch the caller's explicit executable directly.
 
 function ConvertTo-AtlasQuotedWindowsArgument {
     param(
@@ -136,7 +136,7 @@ function Invoke-AtlasHiddenProcess {
         [int[]]$AllowedExitCode = @(0),
 
         # The extra 15 seconds above the public 24-hour operation limit lets a
-        # broker report bounded process-tree cleanup after its own deadline.
+        # broker report its time-limited process-tree cleanup after its own deadline.
         [ValidateRange(0, 86415)]
         [int]$TimeoutSeconds = 0,
 

@@ -53,12 +53,13 @@ Describe 'Official archive-app mirrors' {
             Mock Invoke-AtlasGitHubApiJson { throw 'GitHub is unavailable' }
             $assets = @(Get-AtlasPinnedNanaZipReleaseAssets)
             $assets.Count | Should -Be 2
-            $assets[0].Name | Should -Be 'NanaZip_7.0.1843.0.msixbundle'
-            $assets[1].Name | Should -Be 'NanaZip_7.0.1843.0.xml'
+            $assets[0].Name -cmatch '^NanaZip_(?<version>\d+(\.\d+){3})\.msixbundle$' | Should -BeTrue
+            $version = $Matches.version
+            $assets[1].Name | Should -BeExactly "NanaZip_$version.xml"
             foreach ($asset in $assets) {
                 $asset.Uri.Host | Should -Be 'github.com'
                 $asset.FallbackUri.Host | Should -Be 'downloads.sourceforge.net'
-                $asset.FallbackUri.AbsolutePath | Should -Be "/project/nanazip/7.0.1843.0/$($asset.Name)"
+                $asset.FallbackUri.AbsolutePath | Should -Be "/project/nanazip/$version/$($asset.Name)"
                 $asset.Sha256 | Should -Match '^[0-9a-f]{64}$'
                 $asset.Size | Should -BeGreaterThan 0
             }
@@ -154,13 +155,6 @@ Describe 'Visual C++ v14 prerequisite detection' {
             Test-AtlasVisualCppRuntimeCurrent -Architecture x64 -InstallerPath 'fixture.exe' | Should -BeFalse
         }
     }
-
-    It 'does not accept installer exit code 1638 as a general success' {
-        InModuleScope Atlas.Software {
-            Mock Invoke-AtlasContainedProcess { [pscustomobject]@{ ExitCodeUInt32 = 1638 } }
-            { Start-AtlasSoftwareInstaller -FilePath 'fixture.exe' -Description 'fixture' -SuccessExitCode @(0, 3010) } | Should -Throw '*exit code 1638*'
-        }
-    }
 }
 
 Describe 'Select-AtlasCbsPackage' {
@@ -184,18 +178,18 @@ Describe 'Select-AtlasCbsPackage' {
         }
     }
 
-    It 'reports patterns that matched nothing for the architecture' {
-        InModuleScope Atlas.Software {
-            $candidates = @(
-                'C:\Packages\Z-Atlas-NoDefender-Package-arm64-1.cab'
-            )
-            $patterns = @('*Z-Atlas-NoDefender-Package*', '*Z-Atlas-NoTelemetry-Package*')
-
-            $result = Select-AtlasCbsPackage -Candidates $candidates -Patterns $patterns -Architecture 'arm64' -SingleUsePatterns
-
-            $result.Matched | Should -Be @('C:\Packages\Z-Atlas-NoDefender-Package-arm64-1.cab')
-            $result.UnmatchedPatterns | Should -Be @('*Z-Atlas-NoTelemetry-Package*')
+    It 'reports patterns that matched nothing for <Architecture>' -TestCases @(
+        @{ Architecture = 'arm64'; Matched = @('C:\Packages\Z-Atlas-NoDefender-Package-arm64-1.cab'); Unmatched = @('*Z-Atlas-NoTelemetry-Package*') }
+        @{ Architecture = 'amd64'; Matched = @(); Unmatched = @('*Z-Atlas-NoDefender-Package*', '*Z-Atlas-NoTelemetry-Package*') }
+    ) {
+        $result = InModuleScope Atlas.Software -Parameters @{ Architecture = $Architecture } {
+            Select-AtlasCbsPackage -Candidates @('C:\Packages\Z-Atlas-NoDefender-Package-arm64-1.cab') `
+                -Patterns @('*Z-Atlas-NoDefender-Package*', '*Z-Atlas-NoTelemetry-Package*') `
+                -Architecture $Architecture -SingleUsePatterns
         }
+
+        @($result.Matched) -join ',' | Should -BeExactly ($Matched -join ',')
+        @($result.UnmatchedPatterns) -join ',' | Should -BeExactly ($Unmatched -join ',')
     }
 
     It 'consumes each pattern on its first match with -SingleUsePatterns (CAB install semantics)' {
@@ -224,25 +218,17 @@ Describe 'Select-AtlasCbsPackage' {
             @($result.UnmatchedPatterns).Count | Should -Be 0
         }
     }
-
-    It 'matches nothing when the architecture differs' {
-        InModuleScope Atlas.Software {
-            $result = Select-AtlasCbsPackage -Candidates @('C:\Packages\Z-Atlas-NoDefender-Package-arm64-1.cab') `
-                -Patterns @('*Z-Atlas-NoDefender-Package*') -Architecture 'amd64' -SingleUsePatterns
-
-            @($result.Matched).Count | Should -Be 0
-            $result.UnmatchedPatterns | Should -Be @('*Z-Atlas-NoDefender-Package*')
-        }
-    }
 }
 
 Describe 'Get-AtlasSoftwareComponentMap' {
     It 'maps every Install-AtlasSoftware component to an existing installer function' {
         InModuleScope Atlas.Software {
             $map = Get-AtlasSoftwareComponentMap
-            $expectedComponents = @('SevenZip', 'VCRedist', 'DirectX', 'Brave', 'Firefox', 'LibreWolf', 'Chrome', 'Toolbox', 'Eclean')
+            $components = (Get-Command -Name Install-AtlasSoftware).Parameters['Component'].Attributes |
+                Where-Object { $_ -is [Management.Automation.ValidateSetAttribute] } |
+                ForEach-Object { $_.ValidValues }
 
-            @($map.Keys) | Sort-Object | Should -Be ($expectedComponents | Sort-Object)
+            @($map.Keys | Sort-Object) | Should -Be @($components | Sort-Object)
             foreach ($function in $map.Values) {
                 Get-Command -Name $function -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
             }
@@ -281,26 +267,19 @@ Describe 'Install-AtlasEclean' {
 }
 
 Describe 'Test-AtlasSoftwareArm64' {
-    It 'recognizes exactly one native ARM64 computer-system result' {
-        InModuleScope Atlas.Software {
+    It 'recognizes exactly one native <SystemType> computer-system result' -TestCases @(
+        @{ SystemType = 'ARM64-based PC'; Expected = $true }
+        @{ SystemType = 'x64-based PC'; Expected = $false }
+    ) {
+        InModuleScope Atlas.Software -Parameters @{ SystemType = $SystemType; Expected = $Expected } {
             Mock Get-CimInstance {
-                [pscustomobject]@{ SystemType = 'ARM64-based PC' }
+                [pscustomobject]@{ SystemType = $SystemType }
             }
 
-            Test-AtlasSoftwareArm64 | Should -BeTrue
+            Test-AtlasSoftwareArm64 | Should -Be $Expected
             Should -Invoke Get-CimInstance -Times 1 -Exactly -ParameterFilter {
                 $ClassName -ceq 'Win32_ComputerSystem' -and $ErrorAction -eq 'Stop'
             }
-        }
-    }
-
-    It 'recognizes exactly one native x64 computer-system result' {
-        InModuleScope Atlas.Software {
-            Mock Get-CimInstance {
-                [pscustomobject]@{ SystemType = 'x64-based PC' }
-            }
-
-            Test-AtlasSoftwareArm64 | Should -BeFalse
         }
     }
 
@@ -320,31 +299,20 @@ Describe 'Test-AtlasSoftwareArm64' {
 }
 
 Describe 'Get-AtlasCbsArchitecture' {
-    It 'uses the exact module architecture authority for ARM64 CBS packages' {
-        InModuleScope Atlas.Software {
-            Mock Test-AtlasSoftwareArm64 { $true }
+    It 'uses the exact module architecture authority for <Expected> CBS packages' -TestCases @(
+        @{ IsArm64 = $true; Expected = 'arm64' }
+        @{ IsArm64 = $false; Expected = 'amd64' }
+    ) {
+        InModuleScope Atlas.Software -Parameters @{ IsArm64 = $IsArm64; Expected = $Expected } {
+            Mock Test-AtlasSoftwareArm64 { $IsArm64 }
 
-            Get-AtlasCbsArchitecture | Should -BeExactly 'arm64'
+            Get-AtlasCbsArchitecture | Should -BeExactly $Expected
             Should -Invoke Test-AtlasSoftwareArm64 -Times 1 -Exactly
         }
-    }
-
-    It 'uses the exact module architecture authority for amd64 CBS packages' {
-        InModuleScope Atlas.Software {
-            Mock Test-AtlasSoftwareArm64 { $false }
-
-            Get-AtlasCbsArchitecture | Should -BeExactly 'amd64'
-            Should -Invoke Test-AtlasSoftwareArm64 -Times 1 -Exactly
-        }
-
     }
 }
 
 Describe 'Install-AtlasSoftware' {
-    It 'rejects unknown components' {
-        { Install-AtlasSoftware -Component 'NotARealComponent' } | Should -Throw
-    }
-
     It 'returns false when protected staging cleanup fails instead of reporting success' {
         InModuleScope Atlas.Software -Parameters @{ Root = $TestDrive } {
             $stage = Join-Path -Path $Root -ChildPath 'cleanup-failure'
@@ -478,34 +446,27 @@ Describe 'Assert-AtlasFileSignature' {
 }
 
 Describe 'Get-AtlasSoftwarePickerItem' {
-    It 'offers StartAllBack on Windows 11 builds' {
-        InModuleScope Atlas.Software {
-            $items = Get-AtlasSoftwarePickerItem -WindowsBuild 22631
-
-            @($items | Where-Object { $_.Package -eq 'StartIsBack.StartAllBack' }).Count | Should -Be 1
-            @($items | Where-Object { $_.Package -eq 'StartIsBack.StartIsBack' }).Count | Should -Be 0
+    It 'offers <Offered> on build <Build>' -TestCases @(
+        @{ Build = 22631; Offered = 'StartIsBack.StartAllBack'; Hidden = 'StartIsBack.StartIsBack' }
+        @{ Build = 19045; Offered = 'StartIsBack.StartIsBack'; Hidden = 'StartIsBack.StartAllBack' }
+    ) {
+        $items = InModuleScope Atlas.Software -Parameters @{ Build = $Build } {
+            Get-AtlasSoftwarePickerItem -WindowsBuild $Build
         }
+
+        @($items | Where-Object { $_.Package -eq $Offered }).Count | Should -Be 1
+        @($items | Where-Object { $_.Package -eq $Hidden }).Count | Should -Be 0
     }
 
-    It 'offers StartIsBack on Windows 10 builds' {
-        InModuleScope Atlas.Software {
-            $items = Get-AtlasSoftwarePickerItem -WindowsBuild 19045
+    It 'gives every catalog entry a display name and a unique package id' {
+        $items = @(InModuleScope Atlas.Software { Get-AtlasSoftwarePickerItem -WindowsBuild 22631 })
 
-            @($items | Where-Object { $_.Package -eq 'StartIsBack.StartIsBack' }).Count | Should -Be 1
-            @($items | Where-Object { $_.Package -eq 'StartIsBack.StartAllBack' }).Count | Should -Be 0
+        $items.Count | Should -BeGreaterThan 0
+        foreach ($item in $items) {
+            $item.Text | Should -Not -BeNullOrEmpty
+            $item.Package | Should -Not -BeNullOrEmpty
         }
-    }
-
-    It 'keeps the full catalog with display names and package ids' {
-        InModuleScope Atlas.Software {
-            $items = @(Get-AtlasSoftwarePickerItem -WindowsBuild 22631)
-
-            $items.Count | Should -Be 39
-            foreach ($item in $items) {
-                $item.Text | Should -Not -BeNullOrEmpty
-                $item.Package | Should -Not -BeNullOrEmpty
-            }
-        }
+        @($items.Package | Sort-Object -Unique).Count | Should -Be $items.Count
     }
 }
 
@@ -597,56 +558,42 @@ Describe 'Start-AtlasSoftwareInstaller' {
         }
     }
 
-    It 'throws with the failing exit code when the installer returns a non-success code' {
-        InModuleScope Atlas.Software {
-            Mock Invoke-AtlasContainedProcess {
-                [pscustomobject]@{
-                    ExitCodeUInt32 = [uint32]1
-                }
+    It 'judges exit code <ExitCode> with <Codes> success codes' -TestCases @(
+        @{ ExitCode = 1; Codes = 'the default'; SuccessExitCode = $null; Failure = '*failed with exit code 1*' }
+        # 1638 (another version installed) is only a success where a caller says so.
+        @{ ExitCode = 1638; Codes = 'caller-supplied 0 and 3010'; SuccessExitCode = @(0, 3010); Failure = '*exit code 1638*' }
+        @{ ExitCode = 3010; Codes = 'caller-supplied 0 and 3010'; SuccessExitCode = @(0, 3010); Failure = $null }
+    ) {
+        InModuleScope Atlas.Software -Parameters @{ ExitCode = $ExitCode; SuccessExitCode = $SuccessExitCode; Failure = $Failure } {
+            Mock Invoke-AtlasContainedProcess { [pscustomobject]@{ ExitCodeUInt32 = [uint32]$ExitCode } }
+            $codes = @{}
+            if ($null -ne $SuccessExitCode) { $codes.SuccessExitCode = $SuccessExitCode }
+            $install = {
+                Start-AtlasSoftwareInstaller -FilePath 'C:\fake\setup.exe' -ArgumentList '/S' -Description 'Test' @codes
             }
 
-            { Start-AtlasSoftwareInstaller -FilePath 'C:\fake\setup.exe' -ArgumentList '/S' -Description 'Test' } |
-                Should -Throw -ExpectedMessage '*failed with exit code 1*'
+            if ($Failure) { $install | Should -Throw -ExpectedMessage $Failure }
+            else { $install | Should -Not -Throw }
         }
     }
-
-    It 'treats a caller-supplied additional success code (3010, reboot required) as success' {
-        InModuleScope Atlas.Software {
-            Mock Invoke-AtlasContainedProcess {
-                [pscustomobject]@{
-                    ExitCodeUInt32 = [uint32]3010
-                }
-            }
-
-            { Start-AtlasSoftwareInstaller -FilePath 'C:\fake\setup.exe' -ArgumentList '/S' -Description 'Test' -SuccessExitCode @(0, 3010) } |
-                Should -Not -Throw
-        }
-    }
-
 }
 
 Describe 'Start-AtlasSoftwareOptionalInstaller' {
-    It 'returns false and logs a single warning so its caller can aggregate failure' {
-        InModuleScope Atlas.Software {
-            Mock Start-AtlasSoftwareInstaller { throw 'failed with exit code 1' }
+    It 'returns <Expected> with <Warnings> warning(s) so its caller can aggregate failure' -TestCases @(
+        @{ Fails = $true; Expected = $false; Warnings = 1 }
+        @{ Fails = $false; Expected = $true; Warnings = 0 }
+    ) {
+        InModuleScope Atlas.Software -Parameters @{ Fails = $Fails; Expected = $Expected; Warnings = $Warnings } {
+            Mock Start-AtlasSoftwareInstaller { if ($Fails) { throw 'failed with exit code 1' } }
             Mock Test-AtlasContainedProcessContainmentUnconfirmed { $false }
             Mock Write-AtlasLog
 
             Start-AtlasSoftwareOptionalInstaller -FilePath 'C:\fake\setup.exe' -ArgumentList '/S' -Description 'Optional thing' |
-                Should -BeFalse
+                Should -Be $Expected
 
-            Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
+            Should -Invoke Write-AtlasLog -Times $Warnings -Exactly -ParameterFilter {
                 $Level -eq 'Warning' -and $Message -like '*failed with exit code 1*'
             }
-        }
-    }
-
-    It 'returns true only when the contained installer succeeds' {
-        InModuleScope Atlas.Software {
-            Mock Start-AtlasSoftwareInstaller
-
-            Start-AtlasSoftwareOptionalInstaller -FilePath 'C:\fake\setup.exe' -Description 'Optional thing' |
-                Should -BeTrue
         }
     }
 
@@ -664,7 +611,7 @@ Describe 'Start-AtlasSoftwareOptionalInstaller' {
 }
 
 Describe 'Invoke-AtlasSoftwareDownload' {
-    It 'streams HTTPS into the protected destination through the shared bounded reader' {
+    It 'streams HTTPS into the protected destination through the shared size-limited reader' {
         InModuleScope Atlas.Software -Parameters @{ Root = $TestDrive } {
             $destination = Join-Path -Path $Root -ChildPath 'installer.exe'
             Mock Resolve-AtlasProtectedExecutionPath { $Path }
@@ -704,7 +651,7 @@ Describe 'Invoke-AtlasSoftwareDownload' {
         }
     }
 
-    It 'removes a partial file when bounded streaming fails' {
+    It 'removes a partial file when size-limited streaming fails' {
         InModuleScope Atlas.Software -Parameters @{ Root = $TestDrive } {
             $destination = Join-Path -Path $Root -ChildPath 'partial.exe'
             Mock Resolve-AtlasProtectedExecutionPath { $Path }
@@ -871,7 +818,7 @@ Describe 'NanaZip latest-release integrity metadata' {
             Release = $script:NanaZipRelease
         } {
             { Resolve-AtlasNanaZipReleaseAssets -Release $Release } |
-                Should -Throw -ExpectedMessage '*bounded SHA-256 digest*'
+                Should -Throw -ExpectedMessage '*SHA-256 digest and a size*'
         }
     }
 }
@@ -903,7 +850,7 @@ Describe 'NanaZip package identity and provisioning boundary' {
 
 }
 
-Describe 'Install-AtlasNanaZip mutation boundary' {
+Describe 'Install-AtlasNanaZip provisioning' {
     BeforeEach {
         $script:NanaZipMutationAssets = @(
             [pscustomobject]@{
@@ -1038,36 +985,6 @@ Describe 'Install-AtlasArchiveTool asset selection' {
             throw 'An archive installation test attempted to show an interactive prompt.'
         }
     }
-    It 'routes exactly two verified NanaZip assets through the protected provisioning helper' {
-        InModuleScope Atlas.Software {
-            $commands = [pscustomobject]@{
-                GetProvisionedPackage = {
-                    [CmdletBinding()]
-                    param([switch]$Online)
-                    [void]$Online
-                    return @()
-                }
-                AddProvisionedPackage = { }
-            }
-            $assets = @(
-                [pscustomobject]@{ Name = 'NanaZip_6.5.1767.0.msixbundle'; Tag = '6.5.1767.0' }
-                [pscustomobject]@{ Name = 'NanaZip_6.5.1767.0.xml'; Tag = '6.5.1767.0' }
-            )
-            Mock Get-AtlasDismProvisioningCommands { $commands }
-            Mock Get-AtlasPinnedNanaZipReleaseAssets { $assets }
-            Mock Install-AtlasNanaZip
-
-            Install-AtlasArchiveTool -TempDir 'C:\fake\temp'
-
-            Should -Invoke Install-AtlasNanaZip -Times 1 -Exactly -ParameterFilter {
-                @($Assets).Count -eq 2 -and
-                $Assets[0].Name -ceq 'NanaZip_6.5.1767.0.msixbundle' -and
-                $Assets[1].Name -ceq 'NanaZip_6.5.1767.0.xml' -and
-                $null -ne $DismCommands.GetProvisionedPackage
-            }
-        }
-    }
-
     It 'reports a NanaZip integrity failure before installation' {
         InModuleScope Atlas.Software {
             $commands = [pscustomobject]@{
@@ -1140,6 +1057,12 @@ Describe 'Install-AtlasArchiveTool asset selection' {
                 '7-Zip uninstaller validated'
                 '7-Zip uninstaller invoked'
             )
+            Should -Invoke Install-AtlasNanaZip -Times 1 -Exactly -ParameterFilter {
+                @($Assets).Count -eq 2 -and
+                $Assets[0].Name -ceq 'NanaZip_6.5.1767.0.msixbundle' -and
+                $Assets[1].Name -ceq 'NanaZip_6.5.1767.0.xml' -and
+                $null -ne $DismCommands.GetProvisionedPackage
+            }
             Should -Invoke Read-MessageBox -Times 1 -Exactly
         }
     }

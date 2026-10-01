@@ -247,7 +247,7 @@ Install modes: Fresh, Upgrade.
 
 ## Disabled definitions
 
-These definitions ship for reference or future changes but are not dispatched by the install plan.
+These definitions are included for reference or future changes but are not dispatched by the install plan.
 
 | Tweak | Reason |
 | --- | --- |

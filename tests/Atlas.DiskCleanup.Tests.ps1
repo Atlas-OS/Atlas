@@ -1,8 +1,6 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $script:RepoRoot = Split-Path -Parent $PSScriptRoot
-    $script:CleanupPath = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Install\Tasks\Invoke-DiskCleanup.ps1'
+    $script:CleanupPath = Join-Path $script:AtlasTestScriptsRoot 'Install\Tasks\Invoke-DiskCleanup.ps1'
 
     # Load the private cleanup functions without reaching either cleanup path.
     $previousErrorActionPreference = $ErrorActionPreference
@@ -19,7 +17,7 @@ BeforeAll {
     }
 }
 
-Describe 'Atlas disk cleanup boundaries' {
+Describe 'Atlas disk cleanup scope' {
     It 'rejects a user SID on the machine cleanup path before doing work' {
         { & $script:CleanupPath -Scope Machine -ExpectedUserSid 'S-1-5-18' } |
             Should -Throw '*must not accept a user SID*'

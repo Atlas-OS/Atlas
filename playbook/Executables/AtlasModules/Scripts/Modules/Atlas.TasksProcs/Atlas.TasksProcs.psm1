@@ -1,14 +1,11 @@
 # Atlas.TasksProcs - scheduled task and process helper module.
 Set-StrictMode -Version 3.0
 
-# Atlas.Core supplies Write-AtlasLog. Import the adjacent module so standalone
-# callers do not depend on PSModulePath or an ambient command with the same name.
 $coreManifestPath = Join-Path $PSScriptRoot '..\Atlas.Core\Atlas.Core.psd1'
 if (-not [IO.File]::Exists($coreManifestPath)) {
     throw "Required Atlas.Core manifest is missing: '$coreManifestPath'."
 }
-# Reuse the orchestrator's Core instance; forcing it from nested module scope
-# removes global Core commands from the caller in Windows PowerShell 5.1.
+# No -Force: a nested forced import unloads the caller's copy in Windows PowerShell 5.1.
 Import-Module -Name $coreManifestPath -ErrorAction Stop
 
 $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'

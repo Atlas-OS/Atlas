@@ -1,7 +1,7 @@
 # Atlas.Core domain: logging and phase lifecycle.
 #
-# The one-shot orchestrator owns install sequencing, while exact-user helpers and other
-# privilege contexts can also write these files. A named mutex serializes their appends.
+# The orchestrator, helpers running as the installing user and other privilege
+# levels can all write these files. A named mutex serializes their appends.
 
 $script:AtlasCurrentPhase = $null
 $script:AtlasTranscriptActive = $false
@@ -126,9 +126,8 @@ function Write-AtlasLog {
         }
     }
     catch {
-        # Exact-user helpers intentionally run with ErrorActionPreference=Stop and may
-        # lack write access to the shared system log. Diagnostic fallback must never
-        # turn an already-handled best-effort operation into a fatal child exit.
+        # Helpers running as the user use ErrorActionPreference=Stop. A failed log
+        # write must only warn, never make a handled best-effort step fail the process.
         Write-Warning "Failed to write to the Atlas install log: $($_.Exception.Message)" `
             -WarningAction Continue
     }

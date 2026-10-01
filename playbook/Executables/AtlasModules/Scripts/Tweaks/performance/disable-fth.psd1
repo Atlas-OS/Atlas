@@ -12,7 +12,6 @@
         # https://devblogs.microsoft.com/oldnewthing/20120125-00/?p=8463
         # Document listed as only affected in Windows 7, is also in 7+
         # https://docs.microsoft.com/en-us/windows/win32/win7appqual/fault-tolerant-heap
-        # https://www.3dcadworld.com/windows-7-fault-tolerant-heap-prevents-crashing/
         # Delete folder on ARM64, as FTH doesn't exist
         @{ Path = '{windir}\AtlasDesktop\7. Security\Mitigations\Fault Tolerant Heap'; Arch = 'ARM64' }
     )

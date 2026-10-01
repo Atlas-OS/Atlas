@@ -1,14 +1,14 @@
 <#
 .SYNOPSIS
-    Verifies a built .apbx package: archive integrity, exact payload file parity, safe
+    Verifies a built .apbx package: archive integrity, exact file parity, safe
     paths, expected root layout, metadata, and a stamped OEM version.
 .DESCRIPTION
-    The strongest end-to-end signal available without applying the playbook to a live
+    The strongest end-to-end signal available without installing the package on a live
     Windows install. Exits 0 when all checks pass, 1 otherwise.
 #>
 #requires -Version 7.0
 # The apbx archive password is public by design (documented in README.md); it exists so
-# antivirus engines don't scan-flag the payload, not for secrecy.
+# antivirus engines don't scan-flag Atlas's files, not for secrecy.
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', 'Password')]
 Param(
     [Parameter(Mandatory = $true)][string]$Path,
@@ -164,12 +164,12 @@ else {
     }
 }
 
-# 3. Exact file-list parity: every source payload file must ship exactly once, and no
+# 3. Exact file-list parity: every source file must appear exactly once, and no
 # untracked/stale file may hide below an otherwise allowed root directory. Staged dev-build
 # overrides intentionally change content but never the path set, so path parity applies to
 # both release and local-test builds.
 if (-not (Test-Path -LiteralPath $PlaybookPath -PathType Container)) {
-    Add-Failure "Source playbook directory not found at '$PlaybookPath'; payload parity could not be checked."
+    Add-Failure "Source playbook/ folder not found at '$PlaybookPath'; file parity could not be checked."
 }
 else {
     try {
@@ -180,7 +180,7 @@ else {
         $payloadComparison = Compare-AtlasPayloadPath -ExpectedPath $expectedPayloadPaths -ActualPath $actualPayloadPaths
 
         if ($payloadComparison.Missing) {
-            Add-Failure "Payload files missing from the archive: $($payloadComparison.Missing -join ', ')"
+            Add-Failure "Source files missing from the archive: $($payloadComparison.Missing -join ', ')"
         }
         if ($payloadComparison.Unexpected) {
             Add-Failure "Unexpected files present in the archive: $($payloadComparison.Unexpected -join ', ')"
@@ -190,11 +190,11 @@ else {
         }
         if ($payloadComparison.Matches) {
             $canExtractArchive = $archiveIntegrityPassed -and $archivePathsSafe
-            Write-Pass "Exact source/archive payload path parity ($($expectedPayloadPaths.Count) files)."
+            Write-Pass "Exact source/archive file path parity ($($expectedPayloadPaths.Count) files)."
         }
     }
     catch {
-        Add-Failure "Payload parity validation failed: $($_.Exception.Message)"
+        Add-Failure "File parity validation failed: $($_.Exception.Message)"
     }
 }
 
@@ -202,7 +202,7 @@ else {
 if (-not $canExtractArchive) {
     Add-Failure (
         'Archive extraction was blocked because integrity, path safety, uniqueness, and ' +
-        'exact payload parity were not all established.'
+        'exact file parity were not all established.'
     )
 }
 else {

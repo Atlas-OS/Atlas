@@ -1,10 +1,8 @@
 Describe 'Atlas install orchestrator' {
     BeforeAll {
         . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-        $repoRoot = Split-Path -Parent $PSScriptRoot
-        $scriptPath = Join-Path -Path $repoRoot `
-            -ChildPath 'playbook\Executables\AtlasModules\Scripts\Entry\Invoke-AtlasInstall.ps1'
-        . $scriptPath
+        . (Join-Path $script:AtlasTestScriptsRoot 'Entry\Invoke-AtlasInstall.ps1')
+        . (Join-Path $script:AtlasTestScriptsRoot 'Install\Install-Plan.ps1')
     }
 
     It 'reports completed work and reserves full progress for a successful commit' -TestCases @(
@@ -41,7 +39,7 @@ Describe 'Atlas install orchestrator' {
         $progress.ToArray() | Should -Be $Expected
     }
 
-    It 'announces and runs an action across the install-state module boundary' {
+    It 'announces and runs an action through the install-state module' {
         $probe = New-Module -ScriptBlock {
             function Invoke-Probe { param([scriptblock]$Action) & $Action }
             Export-ModuleMember -Function Invoke-Probe
@@ -51,42 +49,9 @@ Describe 'Atlas install orchestrator' {
         $output | Should -BeExactly 'action ran'
     }
 
-    It 'closes the owning phase even when task imports replace lifecycle commands' {
-        $owner = New-Module -Name AtlasPhaseOwnerProbe -ScriptBlock {
-            $script:events = [Collections.Generic.List[string]]::new()
-            function Start-AtlasPhase { param($Phase, $Category) $script:events.Add("start:$Phase/$Category") }
-            function Stop-AtlasPhase { param([switch]$Failed) $script:events.Add("stop:$Failed") }
-            Export-ModuleMember -Function Start-AtlasPhase, Stop-AtlasPhase
-        }
-        $replacement = New-Module -Name AtlasPhaseReplacementProbe -ScriptBlock {
-            function Start-AtlasPhase { throw 'Replacement must not own this phase.' }
-            function Stop-AtlasPhase { throw 'Replacement must not close this phase.' }
-            Export-ModuleMember -Function Start-AtlasPhase, Stop-AtlasPhase
-        }
-        Mock Get-Command { $owner.ExportedCommands[$Name] } -ParameterFilter {
-            $Name -in @('Start-AtlasPhase', 'Stop-AtlasPhase')
-        }
-        $callbacks = New-AtlasInstallPhaseCallbacks
-        & $callbacks.Start 'PreInstall' 'probe'
-        Mock Get-Command { $replacement.ExportedCommands[$Name] } -ParameterFilter {
-            $Name -in @('Start-AtlasPhase', 'Stop-AtlasPhase')
-        }
-        & $callbacks.Stop $true
-        & $callbacks.Start 'Defaults' $null
-        & $callbacks.Stop $false
-        $events = & $owner { $script:events.ToArray() }
-        $events | Should -HaveCount 4
-        $events[0] | Should -BeExactly 'start:PreInstall/probe'
-        $events[1] | Should -BeExactly 'stop:True'
-        $events[2] | Should -BeExactly 'start:Defaults/'
-        $events[3] | Should -BeExactly 'stop:False'
-    }
-
-    It 'retains phase state across a same-name on-disk module import' -TestCases @(
-        @{ Failed = $false }
-        @{ Failed = $true }
-    ) {
-        param($Failed)
+    It 'keeps the owning phase module across a same-name on-disk module import' {
+        # Tasks can re-import Atlas.Core from the installed copy; the running phase
+        # must still be closed by the module instance that opened it.
         $probeRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
         $eventsPath = Join-Path $probeRoot 'events.txt'
         $body = @'
@@ -94,7 +59,7 @@ $script:active = $false
 function Start-AtlasPhase {
     param($Phase, $Category)
     $script:active = $true
-    Add-Content -LiteralPath '__EVENTS__' -Value "start:$Phase"
+    Add-Content -LiteralPath '__EVENTS__' -Value "start:$Phase/$Category"
 }
 function Stop-AtlasPhase {
     param([switch]$Failed)
@@ -117,13 +82,13 @@ Export-ModuleMember -Function Start-AtlasPhase,Stop-AtlasPhase
                 $Name -in @('Start-AtlasPhase', 'Stop-AtlasPhase')
             }
             $callbacks = New-AtlasInstallPhaseCallbacks
-            & $callbacks.Start 'PreInstall' $null
+            & $callbacks.Start 'PreInstall' 'probe'
             & { Import-Module (Join-Path $probeRoot 'installed\AtlasPhaseDiskProbe.psm1') -Force }
-            & $callbacks.Stop $Failed
+            & $callbacks.Stop $true
             & $callbacks.Start 'Next' $null
             & $callbacks.Stop $false
             @(Get-Content -LiteralPath $eventsPath) | Should -Be @(
-                'start:PreInstall', "stop:$Failed", 'start:Next', 'stop:False'
+                'start:PreInstall/probe', 'stop:True', 'start:Next/', 'stop:False'
             )
         }
         finally {
@@ -131,49 +96,48 @@ Export-ModuleMember -Function Start-AtlasPhase,Stop-AtlasPhase
         }
     }
 
-    It 'maps lifecycle checkpoints to fixed scripts and typed arguments' {
+    It 'maps every planned checkpoint to a task script that accepts its arguments' {
+        $keys = foreach ($mode in 'Fresh', 'Upgrade', 'Reapply') {
+            foreach ($isOobe in $false, $true) { (Get-AtlasInstallPlan -Mode $mode -IsOobe $isOobe).Key }
+        }
+        $targets = @($keys | Where-Object { $_.StartsWith('Checkpoint/', [StringComparison]::Ordinal) } |
+                ForEach-Object { $_.Substring('Checkpoint/'.Length) } | Sort-Object -Unique)
+        $targets.Count | Should -BeGreaterThan 0
+
+        foreach ($target in $targets) {
+            $action = Get-AtlasInstallCheckpointAction -Target $target `
+                -ScriptsRoot $script:AtlasTestScriptsRoot -SourceScriptsRoot $script:AtlasTestScriptsRoot
+            $action.Path | Should -Exist -Because $target
+            $parameters = (Get-Command -Name $action.Path).Parameters
+            foreach ($name in $action.Arguments.Keys) {
+                $value = $action.Arguments[$name]
+                $parameters.Keys | Should -Contain $name -Because "$target passes -$name"
+                foreach ($set in @($parameters[$name].Attributes | Where-Object { $_ -is [ValidateSet] })) {
+                    $value | Should -BeIn $set.ValidValues -Because "$target passes -$name $value"
+                }
+            }
+        }
+
+        # Resumes can start from the installed root; replacement must still run the
+        # extracted files, not the stale installed copy. Every other checkpoint runs
+        # from the root it is given.
         $source = Join-Path $TestDrive 'source\Scripts'
         $installed = Join-Path $TestDrive 'installed\Scripts'
-
-        $disable = Get-AtlasInstallCheckpointAction -Target NotificationDisable `
-            -ScriptsRoot $installed -SourceScriptsRoot $source
-        $disable.Path | Should -Be ([IO.Path]::Combine(
-                [IO.Path]::GetFullPath($installed),
-                'Install\Tasks\Set-NotificationState.ps1'
-            ))
-        $disable.Arguments.Mode | Should -BeExactly 'Disable'
-
-        $restore = Get-AtlasInstallCheckpointAction -Target NotificationRestore `
-            -ScriptsRoot $installed -SourceScriptsRoot $source
-        $restore.Arguments.Mode | Should -BeExactly 'Enable'
-
-        $load = Get-AtlasInstallCheckpointAction -Target DefaultHiveLoad `
-            -ScriptsRoot $source -SourceScriptsRoot $source
-        $load.Arguments.State | Should -BeExactly 'Loaded'
-
-        $unload = Get-AtlasInstallCheckpointAction -Target DefaultHiveUnload `
-            -ScriptsRoot $installed -SourceScriptsRoot $source
-        $unload.Arguments.State | Should -BeExactly 'Unloaded'
+        (Get-AtlasInstallCheckpointAction -Target PayloadReplacement -ScriptsRoot $installed -SourceScriptsRoot $source).Path |
+            Should -Be ([IO.Path]::Combine([IO.Path]::GetFullPath($source), 'Install\Tasks\Invoke-AtlasPayloadReplacement.ps1'))
+        $installedRoot = [WildcardPattern]::Escape([IO.Path]::GetFullPath($installed))
+        foreach ($target in @($targets | Where-Object { $_ -cne 'PayloadReplacement' })) {
+            (Get-AtlasInstallCheckpointAction -Target $target -ScriptsRoot $installed -SourceScriptsRoot $source).Path |
+                Should -BeLike "$installedRoot\*" -Because $target
+        }
     }
 
-    It 'always runs payload replacement from the extracted scripts root' {
-        $source = Join-Path $TestDrive 'source\Scripts'
-        $installed = Join-Path $TestDrive 'installed\Scripts'
-        $action = Get-AtlasInstallCheckpointAction -Target PayloadReplacement `
-            -ScriptsRoot $installed -SourceScriptsRoot $source
-
-        $action.Path | Should -Be ([IO.Path]::Combine(
-                [IO.Path]::GetFullPath($source),
-                'Install\Tasks\Invoke-AtlasPayloadReplacement.ps1'
-            ))
-        $action.Arguments.Count | Should -Be 0
-    }
-
-    It 'switches to the installed payload only after replacement completes' {
+    It 'switches to the installed files only after replacement completes' {
         $source = Join-Path $TestDrive 'source\Scripts'
         $installed = Join-Path $TestDrive 'installed\Scripts'
         $calls = New-Object Collections.Generic.List[object]
         $steps = New-Object Collections.Generic.List[string]
+        $completed = New-Object Collections.Generic.List[string]
         $plan = @(
             [pscustomobject]@{ Key = 'Environment'; Replay = 'Once' }
             [pscustomobject]@{ Key = 'Checkpoint/PayloadReplacement'; Replay = 'Always' }
@@ -189,46 +153,41 @@ Export-ModuleMember -Function Start-AtlasPhase,Stop-AtlasPhase
         }.GetNewClosure()
         $completeInvoker = {
             param($RequiredSteps)
-            $script:completedForTest = @($RequiredSteps)
-        }
+            $completed.AddRange([string[]]@($RequiredSteps))
+        }.GetNewClosure()
         $runner = {
             param($Path, $Parameters)
             $calls.Add([pscustomobject]@{ Path = $Path; Parameters = $Parameters })
         }.GetNewClosure()
 
-        try {
-            Invoke-AtlasInstallPlanCore -State $state -Plan $plan `
-                -SourceScriptsRoot $source -InstalledScriptsRoot $installed `
-                -StepInvoker $stepInvoker -CompleteInvoker $completeInvoker `
-                -ScriptRunner $runner -PhaseStarter {} `
-                -PhaseStopper {}
+        Invoke-AtlasInstallPlanCore -State $state -Plan $plan `
+            -SourceScriptsRoot $source -InstalledScriptsRoot $installed `
+            -StepInvoker $stepInvoker -CompleteInvoker $completeInvoker `
+            -ScriptRunner $runner -PhaseStarter {} `
+            -PhaseStopper {}
 
-            $calls[0].Path | Should -Be ([IO.Path]::Combine(
-                    [IO.Path]::GetFullPath($source),
-                    'Install\Phases\Invoke-EnvironmentPhase.ps1'
-                ))
-            $calls[1].Path | Should -Be ([IO.Path]::Combine(
-                    [IO.Path]::GetFullPath($source),
-                    'Install\Tasks\Invoke-AtlasPayloadReplacement.ps1'
-                ))
-            $calls[2].Path | Should -Be ([IO.Path]::Combine(
-                    [IO.Path]::GetFullPath($installed),
-                    'Install\Phases\Invoke-FeaturesPhase.ps1'
-                ))
-            $steps.ToArray() | Should -Be @(
-                'Environment|Once',
-                'Checkpoint/PayloadReplacement|Always',
-                'Features|Once'
-            )
-            $script:completedForTest | Should -Be @(
-                'Environment',
-                'Checkpoint/PayloadReplacement',
-                'Features'
-            )
-        }
-        finally {
-            Remove-Variable -Scope Script -Name completedForTest -ErrorAction Ignore
-        }
+        $calls[0].Path | Should -Be ([IO.Path]::Combine(
+                [IO.Path]::GetFullPath($source),
+                'Install\Phases\Invoke-EnvironmentPhase.ps1'
+            ))
+        $calls[1].Path | Should -Be ([IO.Path]::Combine(
+                [IO.Path]::GetFullPath($source),
+                'Install\Tasks\Invoke-AtlasPayloadReplacement.ps1'
+            ))
+        $calls[2].Path | Should -Be ([IO.Path]::Combine(
+                [IO.Path]::GetFullPath($installed),
+                'Install\Phases\Invoke-FeaturesPhase.ps1'
+            ))
+        $steps.ToArray() | Should -Be @(
+            'Environment|Once',
+            'Checkpoint/PayloadReplacement|Always',
+            'Features|Once'
+        )
+        $completed.ToArray() | Should -Be @(
+            'Environment',
+            'Checkpoint/PayloadReplacement',
+            'Features'
+        )
     }
 
     It 'unloads a default hive created by this invocation when a later step fails' {
@@ -380,15 +339,16 @@ Export-ModuleMember -Function Start-AtlasPhase,Stop-AtlasPhase
         } | Should -Throw '*requires its captured user SID*'
     }
 
-    It 'rejects plan-controlled script names outside the allowlists' {
-        $step = [pscustomobject]@{
-            Key = '..\payload'; Replay = 'Once'
-        }
+    It 'rejects plan-controlled script names outside the allowlists: <Key>' -TestCases @(
+        @{ Key = '..\payload'; Message = '*Unsupported install phase*' }
+        @{ Key = 'Checkpoint/Unknown'; Message = "*Unsupported install checkpoint 'Unknown'*" }
+    ) {
+        $step = [pscustomobject]@{ Key = $Key; Replay = 'Once' }
         {
             Invoke-AtlasInstallAction -Step $step -ScriptsRoot $TestDrive `
-                -SourceScriptsRoot $TestDrive -ScriptRunner {} `
+                -SourceScriptsRoot $TestDrive -ScriptRunner { throw 'runner must not be invoked' } `
                 -PhaseStarter {} -PhaseStopper {}
-        } | Should -Throw '*Unsupported install phase*'
+        } | Should -Throw $Message
     }
 
     It 'dispatches a standalone tweak step to the Tweaks phase with its slug' {
@@ -435,15 +395,5 @@ Export-ModuleMember -Function Start-AtlasPhase,Stop-AtlasPhase
                 -SourceScriptsRoot $TestDrive -ScriptRunner { throw 'runner must not be invoked' } `
                 -PhaseStarter { throw 'phase must not start' } -PhaseStopper {}
         } | Should -Throw '*Unsupported standalone tweak*'
-    }
-
-    It 'no longer maps the hidden-settings and power-settings checkpoints' -TestCases @(
-        @{ Target = 'HiddenSettingsPages' }
-        @{ Target = 'PowerSettings' }
-    ) {
-        {
-            Get-AtlasInstallCheckpointAction -Target $Target `
-                -ScriptsRoot $TestDrive -SourceScriptsRoot $TestDrive
-        } | Should -Throw "*Unsupported install checkpoint '$Target'*"
     }
 }

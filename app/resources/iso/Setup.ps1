@@ -1,4 +1,5 @@
-# Destination-only handoff. Atlas follows Windows and per-user Store updates.
+# Runs on the installed PC: as SYSTEM during specialize, as the new user at first
+# logon, and as SYSTEM from the desktop cleanup task (-RestoreDesktopPolicy).
 [CmdletBinding()]
 param([switch]$FirstLogon, [switch]$RestoreDesktopPolicy)
 Set-StrictMode -Version 3.0
@@ -6,11 +7,12 @@ $ErrorActionPreference = 'Stop'
 $root = Join-Path $env:WINDIR 'AtlasISO'
 if ([IO.Path]::GetFullPath($PSScriptRoot) -ine [IO.Path]::GetFullPath($root)) { throw 'Unexpected setup location.' }
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-$config = Get-Content -LiteralPath (Join-Path $root 'setup.json') -Raw | ConvertFrom-Json
+# Build-Iso writes UTF-8 without a byte order mark; Get-Content would read it as ANSI.
+$config = [IO.File]::ReadAllText((Join-Path $root 'setup.json')) | ConvertFrom-Json
 if ($config.schema -ne 2 -or $config.mode -notin @('interactive', 'configured', 'before-desktop')) { throw 'Unsupported setup configuration.' }
 $log = Join-Path $root 'setup.log'
-$desktopShell = '"' + (Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe') + '" -NoLogo -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + (Join-Path $root 'Desktop.ps1') + '"'
 . (Join-Path $root 'Desktop-Policy.ps1')
+$desktopShell = Get-AtlasDesktopShell $root
 if ($RestoreDesktopPolicy) {
     if ($FirstLogon -or $identity.User.Value -ne 'S-1-5-18' -or $config.mode -ne 'before-desktop') { throw 'Desktop policy cleanup requires the setup SYSTEM task.' }
     $sid = [IO.File]::ReadAllText((Join-Path $root 'account-ready')).Trim()
@@ -53,10 +55,11 @@ if (-not $FirstLogon) {
         # independent of the user's Windows Update driver policy.
         & (Join-Path $env:WINDIR 'System32\pnputil.exe') /add-driver (Join-Path $networkDrivers '*.inf') /subdirs /install | Add-Content -LiteralPath $log -Encoding UTF8
         $networkExit = $LASTEXITCODE
-        [IO.File]::WriteAllText((Join-Path $root 'network-drivers-result.json'), (@{ schema=1; exitCode=$networkExit; complete=($networkExit -in @(0,3010)) } | ConvertTo-Json -Compress))
+        $installed = $networkExit -in @(0, 3010) # 3010 = success, restart required
+        [IO.File]::WriteAllText((Join-Path $root 'network-drivers-result.json'), (@{ schema=1; exitCode=$networkExit; complete=$installed } | ConvertTo-Json -Compress))
         # A driver that does not support the selected Windows build must not
         # abort Windows installation. Keep its files and diagnostics for recovery.
-        if ($networkExit -notin @(0,3010)) { 'Network drivers need attention. Driver packages remain in Windows\AtlasISO\NetworkDrivers.' | Add-Content -LiteralPath $log -Encoding UTF8 }
+        if (-not $installed) { 'Network drivers need attention. Driver packages remain in Windows\AtlasISO\NetworkDrivers.' | Add-Content -LiteralPath $log -Encoding UTF8 }
     }
     'Atlas media staged. Updates will run in the destination user session.' | Add-Content -LiteralPath $log -Encoding UTF8
     exit 0
@@ -70,6 +73,7 @@ $winlogon = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
 Set-ItemProperty -LiteralPath $winlogon -Name AutoAdminLogon -Value '0'
 Set-ItemProperty -LiteralPath $winlogon -Name AutoLogonCount -Value 0 -Type DWord
 Remove-ItemProperty -LiteralPath $winlogon -Name DefaultPassword -ErrorAction SilentlyContinue
+# A repeated first-logon run must not expire the password again.
 if (Test-Path -LiteralPath (Join-Path $root 'account-ready')) { exit 0 }
 Set-LocalUser -SID $identity.User -PasswordNeverExpires $false
 & (Join-Path $env:WINDIR 'System32\net.exe') user $account.Name /logonpasswordchg:yes | Add-Content -LiteralPath $log -Encoding UTF8
@@ -97,8 +101,8 @@ New-Item -Path $runOnce -Force | Out-Null
 $command = '"' + (Join-Path $root 'AtlasManager.exe') + '" --setup --playbook "' + (Join-Path $root 'Atlas.apbx') + '"'
 if ($config.mode -ne 'before-desktop') {
     New-ItemProperty -LiteralPath $runOnce -Name 'Atlas ISO setup' -Value $command -PropertyType String -Force | Out-Null
+    [IO.File]::WriteAllText((Join-Path $root 'account-ready'), $identity.User.Value)
 }
-[IO.File]::WriteAllText((Join-Path $root 'account-ready'), $identity.User.Value)
 'Account prepared. Windows will request a new password at sign-in.' | Add-Content -LiteralPath $log -Encoding UTF8
 & (Join-Path $env:WINDIR 'System32\shutdown.exe') /l
 if ($LASTEXITCODE -ne 0) { throw 'Sign out to finish setting your Windows password.' }

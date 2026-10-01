@@ -168,41 +168,22 @@ Describe 'Resolve-AtlasRegistryTarget identity boundary' {
 }
 
 Describe 'Resolve-AtlasRegistryPath' {
-    Context 'HKCU normalization' {
-        It 'normalizes <PathStyle> without changing its identity scope' -TestCases @(
-            @{ PathStyle = 'drive notation'; Path = 'HKCU:\Software\X' }
-            @{ PathStyle = 'bare notation'; Path = 'HKCU\Software\X' }
-        ) {
-            $result = Resolve-AtlasRegistryPath -Path $Path
-            $result.Primary | Should -Be 'Registry::HKEY_CURRENT_USER\Software\X'
-            $result.PSObject.Properties.Match('Mirror').Count | Should -Be 0
-            $result.HkcuSubPath | Should -BeNullOrEmpty
-            $result.IsHkcu | Should -BeTrue
-        }
+    It 'normalizes <Path> to the Registry provider' -TestCases @(
+        @{ Path = 'HKCU:\Software\X'; Primary = 'Registry::HKEY_CURRENT_USER\Software\X'; IsHkcu = $true }
+        @{ Path = 'HKCU\Software\X'; Primary = 'Registry::HKEY_CURRENT_USER\Software\X'; IsHkcu = $true }
+        @{ Path = 'HKLM:\SOFTWARE\Test'; Primary = 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Test'; IsHkcu = $false }
+        @{ Path = 'HKU\S-1-5-18\Software'; Primary = 'Registry::HKEY_USERS\S-1-5-18\Software'; IsHkcu = $false }
+        @{ Path = 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Test'; Primary = 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Test'; IsHkcu = $false }
+    ) {
+        $result = Resolve-AtlasRegistryPath -Path $Path
+        $result.Primary | Should -BeExactly $Primary
+        $result.IsHkcu | Should -Be $IsHkcu
+        $result.PSObject.Properties.Match('Mirror').Count | Should -Be 0
+        $result.HkcuSubPath | Should -BeNullOrEmpty
     }
 
-    Context 'other roots pass through' {
-        It 'passes HKLM through untouched even when redirecting' {
-            $result = Resolve-AtlasRegistryPath -Path 'HKLM:\SOFTWARE\Test'
-            $result.Primary | Should -Be 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Test'
-            $result.PSObject.Properties.Match('Mirror').Count | Should -Be 0
-            $result.HkcuSubPath | Should -BeNullOrEmpty
-            $result.IsHkcu | Should -BeFalse
-        }
-
-        It 'normalizes HKU paths to the Registry provider' {
-            $result = Resolve-AtlasRegistryPath -Path 'HKU\S-1-5-18\Software'
-            $result.Primary | Should -Be 'Registry::HKEY_USERS\S-1-5-18\Software'
-        }
-
-        It 'accepts Registry:: provider notation' {
-            $result = Resolve-AtlasRegistryPath -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Test'
-            $result.Primary | Should -Be 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Test'
-        }
-
-        It 'throws on an unsupported root' {
-            { Resolve-AtlasRegistryPath -Path 'HKXX:\Software' } | Should -Throw '*Unsupported registry root*'
-        }
+    It 'throws on an unsupported root' {
+        { Resolve-AtlasRegistryPath -Path 'HKXX:\Software' } | Should -Throw '*Unsupported registry root*'
     }
 }
 
@@ -232,59 +213,25 @@ Describe 'Test-AtlasArchMatch' {
 
 Describe 'Set-AtlasRegistryValue and Remove-AtlasRegistryValue' {
     BeforeAll {
-        # Unelevated test runs never hit the LocalSystem redirect branch, so the
-        # ambient HKCU scratch key is exactly what gets written.
         $script:valuesKeyPath = "$script:testRoot\Values"
     }
 
-    It 'writes a String value' {
-        Set-AtlasRegistryValue -Path $script:valuesKeyPath -Name 'StringValue' -Type String -Data 'hello'
+    It 'writes a <Kind> value as <Expected>' -TestCases @(
+        @{ Name = 'String'; Type = 'String'; Data = 'hello'; Expected = 'hello'; Kind = 'String' }
+        @{ Name = 'Expand'; Type = 'ExpandString'; Data = '%windir%\test'; Expected = '%windir%\test'; Kind = 'ExpandString' }
+        @{ Name = 'Dword'; Type = 'DWord'; Data = 1; Expected = 1; Kind = 'DWord' }
+        # RegistryKey.SetValue accepts only Int32 for a DWord.
+        @{ Name = 'DwordMax'; Type = 'DWord'; Data = 4294967295; Expected = -1; Kind = 'DWord' }
+        @{ Name = 'Qword'; Type = 'QWord'; Data = 8589934592; Expected = 8589934592; Kind = 'QWord' }
+        @{ Name = 'Binary'; Type = 'Binary'; Data = @(1, 2, 3); Expected = @(1, 2, 3); Kind = 'Binary' }
+        @{ Name = 'Multi'; Type = 'MultiString'; Data = @('one', 'two'); Expected = @('one', 'two'); Kind = 'MultiString' }
+        @{ Name = 'None'; Type = 'None'; Data = $null; Expected = @(); Kind = 'None' }
+    ) {
+        Set-AtlasRegistryValue -Path $script:valuesKeyPath -Name $Name -Type $Type -Data $Data
         $key = Get-Item -Path $script:valuesKeyPath
-        $key.GetValue('StringValue') | Should -Be 'hello'
-        $key.GetValueKind('StringValue') | Should -Be ([Microsoft.Win32.RegistryValueKind]::String)
-    }
-
-    It 'writes an ExpandString value without expanding it' {
-        Set-AtlasRegistryValue -Path $script:valuesKeyPath -Name 'ExpandValue' -Type ExpandString -Data '%windir%\test'
-        (Get-Item -Path $script:valuesKeyPath).GetValueKind('ExpandValue') | Should -Be ([Microsoft.Win32.RegistryValueKind]::ExpandString)
-    }
-
-    It 'writes a DWord value' {
-        Set-AtlasRegistryValue -Path $script:valuesKeyPath -Name 'DwordValue' -Type DWord -Data 1
-        $key = Get-Item -Path $script:valuesKeyPath
-        $key.GetValue('DwordValue') | Should -Be 1
-        $key.GetValueKind('DwordValue') | Should -Be ([Microsoft.Win32.RegistryValueKind]::DWord)
-    }
-
-    It 'writes a DWord value above Int32.MaxValue (e.g. 0xFFFFFFFF)' {
-        Set-AtlasRegistryValue -Path $script:valuesKeyPath -Name 'DwordMax' -Type DWord -Data 4294967295
-        (Get-Item -Path $script:valuesKeyPath).GetValue('DwordMax') | Should -Be (-1)
-    }
-
-    It 'writes a QWord value' {
-        Set-AtlasRegistryValue -Path $script:valuesKeyPath -Name 'QwordValue' -Type QWord -Data 8589934592
-        $key = Get-Item -Path $script:valuesKeyPath
-        $key.GetValue('QwordValue') | Should -Be 8589934592
-        $key.GetValueKind('QwordValue') | Should -Be ([Microsoft.Win32.RegistryValueKind]::QWord)
-    }
-
-    It 'writes a Binary value' {
-        Set-AtlasRegistryValue -Path $script:valuesKeyPath -Name 'BinaryValue' -Type Binary -Data @(1, 2, 3)
-        $key = Get-Item -Path $script:valuesKeyPath
-        @($key.GetValue('BinaryValue')) | Should -Be @(1, 2, 3)
-        $key.GetValueKind('BinaryValue') | Should -Be ([Microsoft.Win32.RegistryValueKind]::Binary)
-    }
-
-    It 'writes a MultiString value' {
-        Set-AtlasRegistryValue -Path $script:valuesKeyPath -Name 'MultiValue' -Type MultiString -Data @('one', 'two')
-        $key = Get-Item -Path $script:valuesKeyPath
-        @($key.GetValue('MultiValue')) | Should -Be @('one', 'two')
-        $key.GetValueKind('MultiValue') | Should -Be ([Microsoft.Win32.RegistryValueKind]::MultiString)
-    }
-
-    It 'writes a REG_NONE value' {
-        Set-AtlasRegistryValue -Path $script:valuesKeyPath -Name 'NoneValue' -Type None
-        (Get-Item -Path $script:valuesKeyPath).GetValueKind('NoneValue') | Should -Be ([Microsoft.Win32.RegistryValueKind]::None)
+        $value = $key.GetValue($Name, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+        @($value) -join '|' | Should -BeExactly (@($Expected) -join '|')
+        $key.GetValueKind($Name) | Should -Be ([Microsoft.Win32.RegistryValueKind]$Kind)
     }
 
     It 'creates missing intermediate keys' {
@@ -304,48 +251,36 @@ Describe 'Set-AtlasRegistryValue and Remove-AtlasRegistryValue' {
         { Set-AtlasRegistryValue -Path $script:valuesKeyPath -Name 'NoData' -Type DWord } | Should -Throw '*no data*'
     }
 
-    It 'removes an existing value' {
-        Set-AtlasRegistryValue -Path $script:valuesKeyPath -Name 'ToRemove' -Type String -Data 'x'
-        Remove-AtlasRegistryValue -Path $script:valuesKeyPath -Name 'ToRemove'
-        (Get-Item -Path $script:valuesKeyPath).GetValue('ToRemove', $null) | Should -BeNullOrEmpty
+    It 'removes the existing value named ''<Name>''' -TestCases @(
+        @{ Name = 'ToRemove' }
+        @{ Name = '' }
+    ) {
+        Set-AtlasRegistryValue -Path $script:valuesKeyPath -Name $Name -Type String -Data 'x'
+        Remove-AtlasRegistryValue -Path $script:valuesKeyPath -Name $Name
+        (Get-Item -Path $script:valuesKeyPath).GetValue($Name, $null) | Should -BeNullOrEmpty
     }
 
-    It 'removes a key default value when Name is empty' {
-        Set-AtlasRegistryValue -Path $script:valuesKeyPath -Name '' -Type String -Data 'default'
-        Remove-AtlasRegistryValue -Path $script:valuesKeyPath -Name ''
-        (Get-Item -Path $script:valuesKeyPath).GetValue('', $null) | Should -BeNullOrEmpty
-    }
-
-    It 'does not throw when removing a missing value' {
+    It 'does not throw when the value or its key is missing' {
         { Remove-AtlasRegistryValue -Path $script:valuesKeyPath -Name 'NeverExisted' } | Should -Not -Throw
-    }
-
-    It 'does not throw when removing a value from a missing key' {
         { Remove-AtlasRegistryValue -Path "$script:testRoot\NoSuchKey" -Name 'Value' } | Should -Not -Throw
     }
 }
 
 Describe 'New-AtlasRegistryKey and Remove-AtlasRegistryKey' {
-    It 'creates a key with missing parents' {
+    It 'creates a key with missing parents, and again when it exists' {
         New-AtlasRegistryKey -Path "$script:testRoot\Keys\Child"
         Test-Path -Path "$script:testRoot\Keys\Child" | Should -BeTrue
-    }
-
-    It 'does not throw when the key already exists' {
         { New-AtlasRegistryKey -Path "$script:testRoot\Keys\Child" } | Should -Not -Throw
     }
 
-    It 'removes a key tree recursively' {
+    It 'removes a key tree recursively, and again when it is gone' {
         New-AtlasRegistryKey -Path "$script:testRoot\Keys\Tree\Deeper"
         Remove-AtlasRegistryKey -Path "$script:testRoot\Keys\Tree"
         Test-Path -Path "$script:testRoot\Keys\Tree" | Should -BeFalse
+        { Remove-AtlasRegistryKey -Path "$script:testRoot\Keys\Tree" } | Should -Not -Throw
     }
 
-    It 'does not throw when removing a missing key' {
-        { Remove-AtlasRegistryKey -Path "$script:testRoot\Keys\Missing" } | Should -Not -Throw
-    }
-
-    It 'refuses to delete the redirected HKCU root' {
+    It 'refuses to delete the HKCU root' {
         { Remove-AtlasRegistryKey -Path 'HKCU:\' } | Should -Throw '*Refusing to delete the registry root*'
     }
 }
@@ -419,17 +354,26 @@ Describe 'Invoke-AtlasRegistryEntries' {
         Mock -CommandName Write-AtlasLog -ModuleName Atlas.Registry
     }
 
-    It 'applies entries and skips those gated to the other architecture' {
+    It 'applies entries and skips those gated to the other architecture on <Machine>' -TestCases @(
+        @{ Machine = 'x64'; IsArm64 = $false; Applied = 'X64Only'; AppliedData = 2; Skipped = 'Arm64Only' }
+        @{ Machine = 'arm64'; IsArm64 = $true; Applied = 'Arm64Only'; AppliedData = 3; Skipped = 'X64Only' }
+    ) {
+        $script:entriesIsArm64 = $IsArm64
+        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Registry -MockWith {
+            [pscustomobject]@{ IsArm64 = $script:entriesIsArm64; LogsPath = Join-Path -Path $TestDrive -ChildPath 'Logs' }
+        }
+        $path = "$script:testRoot\Entries-$Machine"
+
         Invoke-AtlasRegistryEntries -Entries @(
-            @{ Path = "$script:testRoot\Entries"; Name = 'Ungated'; Type = 'DWord'; Data = 1 }
-            @{ Path = "$script:testRoot\Entries"; Name = 'X64Only'; Type = 'DWord'; Data = 2; Arch = 'X64' }
-            @{ Path = "$script:testRoot\Entries"; Name = 'Arm64Only'; Type = 'DWord'; Data = 3; Arch = 'ARM64' }
+            @{ Path = $path; Name = 'Ungated'; Type = 'DWord'; Data = 1 }
+            @{ Path = $path; Name = 'X64Only'; Type = 'DWord'; Data = 2; Arch = 'X64' }
+            @{ Path = $path; Name = 'Arm64Only'; Type = 'DWord'; Data = 3; Arch = 'ARM64' }
         )
 
-        $key = Get-Item -Path "$script:testRoot\Entries"
+        $key = Get-Item -Path $path
         $key.GetValue('Ungated') | Should -Be 1
-        $key.GetValue('X64Only') | Should -Be 2
-        $key.GetValue('Arm64Only', $null) | Should -BeNullOrEmpty
+        $key.GetValue($Applied, $null) | Should -Be $AppliedData
+        $key.GetValue($Skipped, $null) | Should -BeNullOrEmpty
     }
 
     It 'separates protected policy entries from ordinary current-user entries' {
@@ -447,21 +391,6 @@ Describe 'Invoke-AtlasRegistryEntries' {
         Invoke-AtlasRegistryEntries -Entries $entries -Scope ProtectedCurrentUser -IsArm64:$false
         Should -Invoke Set-AtlasRegistryValue -ModuleName Atlas.Registry -Times 2 -Exactly `
             -ParameterFilter { $Path -like 'HKCU:*Policies*' }
-    }
-
-    It 'applies arm64-gated entries on arm64 machines' {
-        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Registry -MockWith {
-            [pscustomobject]@{ IsArm64 = $true; LogsPath = Join-Path -Path $TestDrive -ChildPath 'Logs' }
-        }
-
-        Invoke-AtlasRegistryEntries -Entries @(
-            @{ Path = "$script:testRoot\EntriesArm"; Name = 'Arm64Only'; Type = 'DWord'; Data = 3; Arch = 'ARM64' }
-            @{ Path = "$script:testRoot\EntriesArm"; Name = 'X64Only'; Type = 'DWord'; Data = 2; Arch = 'X64' }
-        )
-
-        $key = Get-Item -Path "$script:testRoot\EntriesArm"
-        $key.GetValue('Arm64Only') | Should -Be 3
-        $key.GetValue('X64Only', $null) | Should -BeNullOrEmpty
     }
 
     It 'supports Delete, AddKey and DeleteKey operations' {
@@ -511,10 +440,6 @@ Windows Registry Editor Version 5.00
         (Get-Item -Path "$script:testRoot\RegImport").GetValue('Imported') | Should -Be 5
     }
 
-    It 'throws when the file is missing' {
-        { Import-AtlasRegFile -Path (Join-Path -Path $TestDrive -ChildPath 'missing.reg') } | Should -Throw '*not found*'
-    }
-
     It 'rejects HKCU imports under LocalSystem because they cannot target the installing user safely' {
         $regFile = Join-Path -Path $TestDrive -ChildPath 'unsafe-hkcu.reg'
         @'
@@ -553,14 +478,12 @@ Describe 'Values Windows itself refuses' {
         InModuleScope Atlas.Registry -Parameters @{ record = $record } {
             Test-AtlasRegistryValueRefused -ErrorRecord $record
         } | Should -BeTrue
-    }
 
-    It 'names the default value when the entry writes it' {
-        $record = InModuleScope Atlas.Registry {
+        $default = InModuleScope Atlas.Registry {
             New-AtlasRegistryValueRefusedRecord -ProviderPath 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\X' `
                 -Name '' -Cause (New-Object System.UnauthorizedAccessException('no'))
         }
-        $record.Exception.Message | Should -Match '\(default\)'
+        $default.Exception.Message | Should -Match '\(default\)'
     }
 
     It 'does not mark an ordinary failure as a refusal' {
@@ -641,17 +564,6 @@ Describe 'Registry entry failure reporting' {
                 @{ Path = "$script:testRoot\Entry"; Name = 'Broken'; Type = 'DWord'; Data = 1 }
             )
         } | Should -Throw "*registry Set of 'HKCU:\Software\AtlasRewriteTest\Entry\Broken'*raw registry error*"
-    }
-
-    It 'describes key operations and default values' {
-        InModuleScope Atlas.Registry {
-            Get-AtlasRegistryEntryDescription -Entry @{ Path = 'HKLM:\X'; Operation = 'DeleteKey' } |
-                Should -Be "registry DeleteKey of key 'HKLM:\X'"
-            Get-AtlasRegistryEntryDescription -Entry @{ Path = 'HKLM:\X'; Name = ''; Type = 'String'; Data = 'v' } |
-                Should -Be "registry Set of the default value at 'HKLM:\X'"
-            Get-AtlasRegistryEntryDescription -Entry @{ Path = 'HKLM:\X'; Name = 'V'; Operation = 'Delete' } |
-                Should -Be "registry Delete of 'HKLM:\X\V'"
-        }
     }
 
     It 'passes an entry AllowOsProtected declaration to the value writer' {

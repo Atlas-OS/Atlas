@@ -1,4 +1,5 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     . (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Preparation\Update-Windows.ps1') -JobPath $TestDrive -FunctionsOnly
 }
 
@@ -12,10 +13,38 @@ Describe 'Signed-in preparation ownership' {
         $detail.failureMessage | Should -Match 'Resources are in use'
     }
 
-    It 'preserves unexpected provider failures without inventing an app name' {
+    It 'preserves unexpected provider failures without inventing an app name or error code' {
         $detail = Get-PreparationFailureDetail ([Exception]::new('Update service unavailable'))
         $detail.failureMessage | Should -Be 'Update service unavailable'
         $detail.ContainsKey('packageName') | Should -BeFalse
+        $detail.ContainsKey('errorCode') | Should -BeFalse
+        try { throw 'Script failure' } catch { $detail = Get-PreparationFailureDetail $_.Exception }
+        $detail.failureMessage | Should -Be 'Script failure'
+        $detail.ContainsKey('errorCode') | Should -BeFalse
+    }
+
+    It 'reports the Windows code a wrapped failure carries and never a PowerShell or CLR code' {
+        try { [void][IO.File]::ReadAllText((Join-Path $TestDrive 'missing\file.txt')) } catch { $wrapped = $_.Exception }
+        (Get-PreparationFailureDetail $wrapped).errorCode | Should -Be '0x80070003'
+        $win32 = [Management.Automation.MethodInvocationException]::new('Session lookup failed', [ComponentModel.Win32Exception]::new(5))
+        (Get-PreparationFailureDetail $win32).errorCode | Should -Be '0x80070005'
+        $provider = [Runtime.InteropServices.COMException]::new('Download failed', -2145099768)
+        (Get-PreparationFailureDetail $provider).errorCode | Should -Be '0x80246008'
+        try { [void][int]'not a number' } catch { $cast = $_.Exception }
+        (Get-PreparationFailureDetail $cast).ContainsKey('errorCode') | Should -BeFalse
+    }
+
+    It 'names the causes the app words itself and keeps the worker message' {
+        try { throw (New-PreparationFailure 'Store is missing.' 'store-missing') } catch { $detail = Get-PreparationFailureDetail $_.Exception }
+        $detail.reason | Should -Be 'store-missing'
+        $detail.failureMessage | Should -Be 'Store is missing.'
+        $detail.ContainsKey('errorCode') | Should -BeFalse
+        $battery = Get-PreparationFailureDetail (New-PreparationStoreFailure 'Microsoft.WindowsStore_8wekyb3d8bbwe' 'PausedLowBattery' $null)
+        $battery.reason | Should -Be 'store-paused-battery'
+        $battery.failureMessage | Should -Be 'Microsoft Store needs attention: Microsoft.WindowsStore_8wekyb3d8bbwe, PausedLowBattery'
+        $battery.ContainsKey('errorCode') | Should -BeFalse
+        (Get-PreparationFailureDetail (New-PreparationStoreFailure 'Microsoft.WindowsStore_8wekyb3d8bbwe' 'PausedWiFiRequired' $null)).reason | Should -Be 'store-paused-network'
+        (Get-PreparationFailureDetail (New-PreparationStoreFailure 'Microsoft.WindowsStore_8wekyb3d8bbwe' 'Error' $null)).ContainsKey('reason') | Should -BeFalse
     }
 
     It 'rejects SYSTEM, session zero and another administrator account' {
@@ -24,6 +53,8 @@ Describe 'Signed-in preparation ownership' {
         { Assert-PreparationUser -UserSid 'S-1-5-21-1-2-3-1001' -SessionId 0 } | Should -Throw '*session owner*'
         { Assert-PreparationUser -UserSid 'S-1-5-21-1-2-3-1002' -SessionId 1 } | Should -Throw '*session owner*'
         { Assert-PreparationUser -UserSid 'S-1-5-21-1-2-3-1001' -SessionId 1 } | Should -Not -Throw
+        try { Assert-PreparationUser -UserSid 'S-1-5-18' -SessionId 1 } catch { $refusal = $_.Exception }
+        (Get-PreparationFailureDetail $refusal).reason | Should -Be 'session-owner'
     }
     It 'fails closed when Windows cannot identify the session owner' {
         Mock Get-PreparationSessionOwner { throw 'WTS unavailable' }
@@ -33,8 +64,13 @@ Describe 'Signed-in preparation ownership' {
 
 Describe 'Protected preparation recovery journals' {
     It 'uses the same protected administrator-owned descriptor as recovery staging' {
-        $security = Get-PreparationStateSecurity
-        $security.GetSecurityDescriptorSddlForm([Security.AccessControl.AccessControlSections]::All) | Should -Be 'O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;0x1200a9;;;BU)'
+        $sections = [Security.AccessControl.AccessControlSections]::All
+        $stageApp = Join-Path $PSScriptRoot '..\app\resources\prepare\Stage-App.ps1'
+        $staging = & { . $stageApp -FunctionsOnly; (Get-AtlasRecoveryFileSecurity).GetSecurityDescriptorSddlForm($sections) }
+        $journal = (Get-PreparationStateSecurity).GetSecurityDescriptorSddlForm($sections)
+        $journal | Should -BeExactly $staging
+        $journal | Should -BeExactly 'O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;0x1200a9;;;BU)' `
+            -Because 'only SYSTEM and administrators may change the journal'
     }
     It 'does not stop for an empty precreated cancellation marker' {
         Set-Variable -Name PersistentCancellation -Value $true
@@ -48,7 +84,16 @@ Describe 'Protected preparation recovery journals' {
         [IO.File]::WriteAllText($marker, 'stop requested')
         { Assert-PreparationContinue } | Should -Throw '*stopped*'
         [IO.File]::Delete($marker)
-        { Assert-PreparationContinue } | Should -Throw
+        { Assert-PreparationContinue } | Should -Throw '*marker is missing*'
+    }
+    It 'stops for any cancellation marker when the app did not precreate one' {
+        # Install-Atlas -VerifyOnly runs the worker this way.
+        Set-Variable -Name PersistentCancellation -Value $false
+        $JobPath = Join-Path $TestDrive 'one-shot-cancel'
+        [void][IO.Directory]::CreateDirectory($JobPath)
+        { Assert-PreparationContinue } | Should -Not -Throw
+        [IO.File]::WriteAllText((Join-Path $JobPath 'cancel'), '')
+        { Assert-PreparationContinue } | Should -Throw '*stopped*'
     }
     It 'atomically writes recovery records and refuses an existing temporary file' {
         Set-Variable -Name PersistentCancellation -Value $true
@@ -77,37 +122,39 @@ Describe 'Protected preparation recovery journals' {
         [IO.File]::ReadAllText($temporary) | Should -Be 'existing file'
         (Get-FileHash -LiteralPath $path).Hash | Should -Be $before
     }
-    It 'journals the restart markers a reboot verdict came from' {
-        $JobPath = Join-Path $TestDrive 'restart-reasons'
-        [void][IO.Directory]::CreateDirectory($JobPath)
-        Mock Get-PreparationStateSecurity {
-            $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-            $security = New-Object Security.AccessControl.FileSecurity
-            $security.SetSecurityDescriptorSddlForm("O:${sid}D:P(A;;FA;;;${sid})")
-            return $security
-        }
-        Mock Get-ItemProperty { [pscustomobject]@{CurrentBuildNumber='26200'; UBR=9278} }
-        Write-PreparationState reboot windows-install -Detail @{ restartReasons = @('servicing', 'file-renames') }
-        $record = Get-Content -LiteralPath (Join-Path $JobPath 'state.json') -Raw | ConvertFrom-Json
-        $record.status | Should -Be 'reboot'
-        @($record.activity.restartReasons) | Should -Be @('servicing', 'file-renames')
-    }
 }
 
 Describe 'Restart markers' {
-    It 'names every registry marker it saw rather than stopping at the first' {
-        Mock Test-Path { $LiteralPath -like '*Component Based Servicing*' }
-        Mock Get-ItemProperty { [pscustomobject]@{ PendingFileRenameOperations = [string[]]@('\??\C:\old.dll', '') } }
-        Mock New-Object { [pscustomobject]@{ RebootRequired = $false } } -ParameterFilter { $ComObject -eq 'Microsoft.Update.SystemInfo' }
-        Test-PreparationRestart | Should -BeTrue
-        $script:PreparationRestartReasons | Should -Be @('servicing', 'file-renames')
-    }
-    It 'reports no restart when no marker is set' {
-        Mock Test-Path { $false }
-        Mock Get-ItemProperty { [pscustomobject]@{} }
-        Mock New-Object { [pscustomobject]@{ RebootRequired = $false } } -ParameterFilter { $ComObject -eq 'Microsoft.Update.SystemInfo' }
-        Test-PreparationRestart | Should -BeFalse
-        @($script:PreparationRestartReasons).Count | Should -Be 0
+    It 'reports <Case>' -TestCases @(
+        @{ Case = 'every registry marker it saw rather than stopping at the first'
+            Servicing = $true; Renames = @('\??\C:\old.dll', ''); Agent = $false
+            Restart = $true; Reasons = @('servicing', 'file-renames') }
+        @{ Case = 'no restart when no marker is set'
+            Servicing = $false; Renames = $null; Agent = $false
+            Restart = $false; Reasons = @() }
+        # Xbox Gaming Services queues a file rename at every boot, so restarting for one
+        # would never end.
+        @{ Case = 'deferred file replacements without requiring a restart for them'
+            Servicing = $false; Renames = @('\??\C:\old.dll', ''); Agent = $false
+            Restart = $false; Reasons = @('file-renames') }
+        @{ Case = 'the update provider''s restart alongside file replacements'
+            Servicing = $false; Renames = @('\??\C:\old.dll', ''); Agent = $true
+            Restart = $true; Reasons = @('file-renames', 'update-agent') }
+        @{ Case = 'nothing for empty rename entries'
+            Servicing = $false; Renames = @('', ' '); Agent = $false
+            Restart = $false; Reasons = @() }
+    ) {
+        $script:markerFixture = @{ Servicing = $Servicing; Renames = $Renames; Agent = $Agent }
+        Mock Test-Path { $script:markerFixture.Servicing -and $LiteralPath -like '*Component Based Servicing*' }
+        Mock Get-ItemProperty {
+            if ($null -eq $script:markerFixture.Renames) { return [pscustomobject]@{} }
+            [pscustomobject]@{ PendingFileRenameOperations = [string[]]$script:markerFixture.Renames }
+        }
+        Mock New-Object { [pscustomobject]@{ RebootRequired = $script:markerFixture.Agent } } `
+            -ParameterFilter { $ComObject -eq 'Microsoft.Update.SystemInfo' }
+
+        Test-PreparationRestart | Should -Be $Restart
+        $script:PreparationRestartReasons -join ',' | Should -BeExactly ($Reasons -join ',')
     }
 }
 
@@ -183,13 +230,19 @@ Describe 'Preparation restart recovery after provider failures' {
         Mock Invoke-PreparationWindows { 'complete' }
         Mock Invoke-PreparationStore {}
         Mock Test-PreparationRestart { $false }
+        Remove-Item -LiteralPath (Join-Path $JobPath 'updates.log') -ErrorAction SilentlyContinue
     }
-    It 'reports a Store failure as restart required when Windows has pending changes' {
-        Mock Invoke-PreparationStore { throw 'Store deployment failed' }
+    It 'reports a <Provider> failure as restart required when Windows has pending changes' -TestCases @(
+        @{ Provider = 'Store'; Message = 'Store deployment failed'; StoreRuns = 1 }
+        @{ Provider = 'Windows'; Message = 'Windows install failed'; StoreRuns = 0 }
+    ) {
+        $script:providerFailure = $Message
+        Mock "Invoke-Preparation$Provider" { throw $script:providerFailure }
         Mock Test-PreparationRestart { $true }
         Invoke-PreparationUpdates | Should -Be 'reboot'
-        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'Store deployment failed'
+        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match $Message
         Should -Invoke Invoke-PreparationWindows -Times 1 -Exactly
+        Should -Invoke Invoke-PreparationStore -Times $StoreRuns -Exactly
     }
     It 'preserves a provider failure when no restart is pending' {
         Mock Invoke-PreparationStore { throw 'Store deployment failed' }
@@ -200,12 +253,6 @@ Describe 'Preparation restart recovery after provider failures' {
         Mock Test-PreparationRestart { throw 'Restart detection failed' }
         { Invoke-PreparationUpdates } | Should -Throw '*Windows install failed*'
     }
-    It 'detects a restart after a thrown Windows installer error' {
-        Mock Invoke-PreparationWindows { throw 'Windows install failed' }
-        Mock Test-PreparationRestart { $true }
-        Invoke-PreparationUpdates | Should -Be 'reboot'
-        Should -Invoke Invoke-PreparationStore -Times 0 -Exactly
-    }
     It 'rechecks Windows after Store completion' {
         $script:windowsPass = 0
         Mock Invoke-PreparationWindows { $script:windowsPass++; if ($script:windowsPass -eq 1) { 'complete' } else { 'reboot' } }
@@ -215,21 +262,30 @@ Describe 'Preparation restart recovery after provider failures' {
 }
 
 Describe 'Windows installation results requiring restart' {
+    BeforeAll {
+        function New-FixtureUpdate([string]$Title, [switch]$Interactive, [int]$Impact = 0) {
+            [pscustomobject]@{
+                Title = $Title; EulaAccepted = $true; Identity = [pscustomobject]@{ UpdateID = "$Title id" }
+                InstallationBehavior = [pscustomobject]@{ CanRequestUserInput = [bool]$Interactive; Impact = $Impact }
+            }
+        }
+    }
     BeforeEach {
         Mock Assert-PreparationContinue {}
         Mock Test-PreparationRestart { $false }
         Mock Test-PreparationNetwork { $true }
         Mock Write-PreparationState {}
-        $script:offered = [pscustomobject]@{ Title='Fixture update'; EulaAccepted=$true; InstallationBehavior=[pscustomobject]@{CanRequestUserInput=$false} }
+        Remove-Item -LiteralPath (Join-Path $JobPath 'updates.log') -ErrorAction SilentlyContinue
+        $script:offered = New-FixtureUpdate 'Fixture update'
+        $script:download = [pscustomobject]@{ResultCode=2; HResult=0}
         Mock Invoke-PreparationWindowsOperation {
-            if ($Kind -eq 'Download') { return [pscustomobject]@{ResultCode=2} }
+            if ($Kind -eq 'Download') { return $script:download }
             return $script:installation
         }
         Mock Find-PreparationWindowsUpdate { $script:offered }
-        $script:collection = [pscustomobject]@{Count=0}
-        $script:collection | Add-Member ScriptMethod Add { param($Update); $script:queuedUpdate = $Update; $this.Count++ }
-        $script:collection | Add-Member ScriptMethod Item { param($Index); if ($Index -ne 0) { throw 'Unexpected update index' }; $script:queuedUpdate }
-        $script:installation = [pscustomobject]@{ResultCode=3; RebootRequired=$true}
+        # Each search fills a new collection, as WUA's UpdateColl would.
+        $script:collections = @()
+        $script:installation = [pscustomobject]@{ResultCode=3; RebootRequired=$true; HResult=0}
         $script:installation | Add-Member ScriptMethod GetUpdateResult { param($Index); if ($Index -ne 0) { throw 'Unexpected result index' }; [pscustomobject]@{ResultCode=4; HResult=-1} }
         $script:installer = [pscustomobject]@{Updates=$null; ForceQuiet=$false; AllowSourcePrompts=$true; RebootRequiredBeforeInstallation=$false}
         $script:installer | Add-Member ScriptMethod Install { $script:installation }
@@ -240,7 +296,13 @@ Describe 'Windows installation results requiring restart' {
         $script:session | Add-Member ScriptMethod CreateUpdateDownloader { $script:downloader }
         Mock New-Object {
             if ($ComObject -eq 'Microsoft.Update.Session') { return $script:session }
-            if ($ComObject -eq 'Microsoft.Update.UpdateColl') { return $script:collection }
+            if ($ComObject -eq 'Microsoft.Update.UpdateColl') {
+                $collection = [pscustomobject]@{ Count = 0; Queued = [Collections.ArrayList]::new() }
+                $collection | Add-Member ScriptMethod Add { param($Update); [void]$this.Queued.Add($Update); $script:queuedUpdate = $Update; $this.Count++ }
+                $collection | Add-Member ScriptMethod Item { param($Index); $this.Queued[$Index] }
+                $script:collections += $collection
+                return $collection
+            }
             throw 'Unexpected provider'
         }
     }
@@ -249,30 +311,88 @@ Describe 'Windows installation results requiring restart' {
         Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'Fixture update: result=4, HRESULT=-1'
     }
     It 'installs quiet updates before asking for an interactive driver' {
-        $driver = [pscustomobject]@{ Title='Interactive driver'; InstallationBehavior=[pscustomobject]@{CanRequestUserInput=$true} }
-        Mock Find-PreparationWindowsUpdate { @($driver, $script:offered) }
+        $script:driver = New-FixtureUpdate 'Interactive driver' -Interactive
+        Mock Find-PreparationWindowsUpdate { @($script:driver, $script:offered) }
         Invoke-PreparationWindows | Should -Be 'reboot'
         $script:queuedUpdate.Title | Should -Be 'Fixture update'
         $script:PreparationRestartReasons | Should -Contain 'windows-update'
     }
     It 'tries quiet installation before asking the user to finish an interactive update' {
-        Mock Find-PreparationWindowsUpdate { [pscustomobject]@{ Title='Interactive driver'; EulaAccepted=$true; InstallationBehavior=[pscustomobject]@{CanRequestUserInput=$true} } }
+        $script:driver = New-FixtureUpdate 'Interactive driver' -Interactive
+        Mock Find-PreparationWindowsUpdate { $script:driver }
         $script:installation.RebootRequired = $false
-        { Invoke-PreparationWindows } | Should -Throw '*Windows Settings*Interactive driver*'
+        try { Invoke-PreparationWindows } catch { $thrown = $_.Exception }
+        $thrown.Message | Should -BeLike '*Windows Settings*Interactive driver*'
+        (Get-PreparationFailureDetail $thrown).reason | Should -Be 'manual-updates'
         Should -Invoke Invoke-PreparationWindowsOperation -Times 1 -Exactly -ParameterFilter { $Kind -eq 'Install' }
         $script:installer.ForceQuiet | Should -BeTrue
         $script:installer.AllowSourcePrompts | Should -BeFalse
     }
     It 'accepts a quietly installed update that could have requested input' {
-        Mock Find-PreparationWindowsUpdate { [pscustomobject]@{ Title='Interactive driver'; EulaAccepted=$true; InstallationBehavior=[pscustomobject]@{CanRequestUserInput=$true} } }
+        $script:driver = New-FixtureUpdate 'Interactive driver' -Interactive
+        $script:searches = 0
+        Mock Find-PreparationWindowsUpdate { $script:searches++; if ($script:searches -eq 1) { $script:driver } }
         $script:installation.ResultCode = 2
-        $script:installation | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ResultCode=2; HResult=0} } -Force
-        Invoke-PreparationWindows | Should -Be 'reboot'
-        $script:installer.ForceQuiet | Should -BeTrue
-    }
-    It 'still fails a partial installation that does not require restart' {
         $script:installation.RebootRequired = $false
-        { Invoke-PreparationWindows } | Should -Throw '*could not install every update*'
+        $script:installation | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ResultCode=2; HResult=0} } -Force
+        Invoke-PreparationWindows | Should -Be 'complete'
+    }
+    It 'retries a failed update once after a fresh search, then reports it with its Windows code' {
+        $script:installation.RebootRequired = $false
+        $script:installation | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ResultCode=4; HResult=-2145124330} } -Force
+        try { Invoke-PreparationWindows } catch { $thrown = $_.Exception }
+        $thrown.Message | Should -BeLike '*could not install every update*'
+        (Get-PreparationFailureDetail $thrown).errorCode | Should -Be '0x80240016'
+        Should -Invoke Find-PreparationWindowsUpdate -Times 2 -Exactly
+        Should -Invoke Invoke-PreparationWindowsOperation -Times 2 -Exactly -ParameterFilter { $Kind -eq 'Install' }
+        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'Retrying 1 failed update'
+    }
+    It 'installs a transiently failed update on the next pass' {
+        $script:installation.RebootRequired = $false
+        $script:succeeded = [pscustomobject]@{ResultCode=2; RebootRequired=$false; HResult=0}
+        $script:succeeded | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ResultCode=2; HResult=0} }
+        $script:installs = 0
+        Mock Invoke-PreparationWindowsOperation {
+            if ($Kind -eq 'Download') { return $script:download }
+            $script:installs++
+            if ($script:installs -eq 1) { return $script:installation }
+            return $script:succeeded
+        }
+        $script:searches = 0
+        Mock Find-PreparationWindowsUpdate { $script:searches++; if ($script:searches -le 2) { $script:offered } }
+        Invoke-PreparationWindows | Should -Be 'complete'
+        Should -Invoke Invoke-PreparationWindowsOperation -Times 2 -Exactly -ParameterFilter { $Kind -eq 'Install' }
+    }
+    It 'reports a failure no update accounts for at once, with the result code' {
+        $script:installation.RebootRequired = $false
+        $script:installation.ResultCode = 4
+        $script:installation.HResult = -2145124330
+        $script:installation | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ResultCode=2; HResult=0} } -Force
+        try { Invoke-PreparationWindows } catch { $thrown = $_.Exception }
+        $thrown.Message | Should -BeLike '*could not install every update*'
+        (Get-PreparationFailureDetail $thrown).errorCode | Should -Be '0x80240016'
+        Should -Invoke Invoke-PreparationWindowsOperation -Times 1 -Exactly -ParameterFilter { $Kind -eq 'Install' }
+    }
+    It 'retries a failed download once and reports the update''s Windows code' {
+        $script:download = [pscustomobject]@{ResultCode=4; HResult=0}
+        $script:download | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ResultCode=4; HResult=-2145099768} }
+        try { Invoke-PreparationWindows } catch { $thrown = $_.Exception }
+        $thrown.Message | Should -BeLike '*download failed*'
+        (Get-PreparationFailureDetail $thrown).errorCode | Should -Be '0x80246008'
+        Should -Invoke Invoke-PreparationWindowsOperation -Times 2 -Exactly -ParameterFilter { $Kind -eq 'Download' }
+        Should -Invoke Invoke-PreparationWindowsOperation -Times 0 -Exactly -ParameterFilter { $Kind -eq 'Install' }
+        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'Fixture update: download result=4, HRESULT=-2145099768'
+    }
+    It 'installs an exclusive update on its own' {
+        $normal = New-FixtureUpdate 'Normal update'
+        $exclusive = New-FixtureUpdate 'Exclusive update' -Impact 2
+        $script:found = @($normal, $exclusive)
+        Mock Find-PreparationWindowsUpdate { $script:found }
+        Invoke-PreparationWindows | Should -Be 'reboot'
+        @($script:collections[-1].Queued.Title) | Should -Be @('Normal update')
+        $script:found = @($exclusive, $normal)
+        Invoke-PreparationWindows | Should -Be 'reboot'
+        @($script:collections[-1].Queued.Title) | Should -Be @('Exclusive update')
     }
     It 'honours the installer prerequisite before invoking Install' {
         $script:installer.RebootRequiredBeforeInstallation = $true
@@ -360,9 +480,10 @@ Describe 'Progress freshness' {
             $record = Get-Content (Join-Path $JobPath 'state.json') -Raw | ConvertFrom-Json
             $record.activity.elapsedSeconds | Should -Be 70
             $record.activity.unchangedSeconds | Should -Be 65
-            Write-PreparationState running windows-download -Detail @{percent=21}
+            Write-PreparationState running windows-download -Detail @{percent=21; restartReasons=@('servicing', 'file-renames')}
             $record = Get-Content (Join-Path $JobPath 'state.json') -Raw | ConvertFrom-Json
             $record.activity.unchangedSeconds | Should -Be 0
+            @($record.activity.restartReasons) | Should -Be @('servicing', 'file-renames')
         } finally { $script:PreparationClock = $savedClock }
     }
 }
@@ -376,41 +497,32 @@ Describe 'Windows preparation prerequisites' {
         $script:networkProfile | Add-Member ScriptMethod GetConnectionCost { $script:networkCost }
         Mock Get-PreparationNetworkProfile { $script:networkProfile }
         Test-PreparationNetwork | Should -BeTrue
+        $script:PreparationNetworkReason | Should -BeNullOrEmpty
         foreach ($kind in @('Fixed','Variable','Unknown')) {
             $script:networkCost.NetworkCostType = $kind
             Test-PreparationNetwork | Should -BeFalse
+            $script:PreparationNetworkReason | Should -Be 'metered'
         }
         $script:networkCost.NetworkCostType = 'Unrestricted'
+        $script:networkCost.OverDataLimit = $true
+        Test-PreparationNetwork | Should -BeFalse
+        $script:PreparationNetworkReason | Should -Be 'metered'
+        $script:networkCost.OverDataLimit = $false
         $script:networkCost.Roaming = $true
         Test-PreparationNetwork | Should -BeFalse
+        $script:PreparationNetworkReason | Should -Be 'roaming'
         $script:networkCost.Roaming = $false
-        $script:networkLevel = 'ConstrainedInternetAccess'
+        foreach ($level in @('ConstrainedInternetAccess', 'LocalAccess')) {
+            $script:networkLevel = $level
+            Test-PreparationNetwork | Should -BeFalse
+            $script:PreparationNetworkReason | Should -Be 'limited'
+        }
+        $script:networkLevel = 'None'
         Test-PreparationNetwork | Should -BeFalse
-    }
-    It 'reports deferred file replacements without requiring a restart for them' {
-        Mock Test-Path { $false }
-        Mock Get-ItemProperty { [pscustomobject]@{ PendingFileRenameOperations = [string[]]@('\??\C:\old.dll', '') } }
-        Mock New-Object { [pscustomobject]@{ RebootRequired = $false } } -ParameterFilter { $ComObject -eq 'Microsoft.Update.SystemInfo' }
-        Test-PreparationRestart | Should -BeFalse
-        $script:PreparationRestartReasons | Should -Be @('file-renames')
-    }
-    It 'still requires a restart when the update provider asks for one alongside file replacements' {
-        Mock Test-Path { $false }
-        Mock Get-ItemProperty { [pscustomobject]@{ PendingFileRenameOperations = [string[]]@('\??\C:\old.dll', '') } }
-        Mock New-Object { [pscustomobject]@{ RebootRequired = $true } } -ParameterFilter { $ComObject -eq 'Microsoft.Update.SystemInfo' }
-        Test-PreparationRestart | Should -BeTrue
-        $script:PreparationRestartReasons | Should -Be @('file-renames', 'update-agent')
-    }
-    It 'does not treat empty rename entries as a pending restart' {
-        Mock Test-Path { $false }
-        Mock Get-ItemProperty { [pscustomobject]@{ PendingFileRenameOperations = [string[]]@('', ' ') } }
-        Mock New-Object { [pscustomobject]@{ RebootRequired = $false } }
-        Test-PreparationRestart | Should -BeFalse
-    }
-    It 'atomically replaces an existing progress record on Windows PowerShell' {
-        Write-PreparationState running windows-search
-        Write-PreparationState complete verify
-        (Get-Content -LiteralPath (Join-Path $TestDrive 'state.json') -Raw | ConvertFrom-Json).status | Should -Be 'complete'
+        $script:PreparationNetworkReason | Should -Be 'offline'
+        Mock Get-PreparationNetworkProfile { $null }
+        Test-PreparationNetwork | Should -BeFalse
+        $script:PreparationNetworkReason | Should -Be 'offline'
     }
     It 'includes recommended updates but excludes optional previews and feature upgrades' {
         Test-PreparationUpdate ([pscustomobject]@{ BrowseOnly = $false; Categories = @() }) | Should -BeTrue
@@ -432,11 +544,6 @@ Describe 'Windows preparation prerequisites' {
         { Invoke-PreparationWindows } | Should -Throw
         Should -Invoke Test-PreparationNetwork -Times 1 -Exactly
         Should -Invoke Write-PreparationState -Times 0 -Exactly
-    }
-    It 'honours cancellation before asking Windows to update' {
-        New-Item -ItemType File -Path (Join-Path $TestDrive 'cancel') -Force | Out-Null
-        { Assert-PreparationContinue } | Should -Throw '*stopped*'
-        Remove-Item -LiteralPath (Join-Path $TestDrive 'cancel')
     }
     It 'reports a pending restart without searching or installing updates' {
         Mock Test-PreparationRestart { $true }

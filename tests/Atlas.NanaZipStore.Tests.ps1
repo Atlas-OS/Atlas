@@ -1,6 +1,6 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    Import-Module (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Software\Atlas.Software.psd1') -Force
+    Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Software\Atlas.Software.psd1') -Force
 }
 
 Describe 'NanaZip Store installation' {
@@ -25,9 +25,18 @@ Describe 'NanaZip Store installation' {
         Should -Invoke Set-AtlasNanaZipStorePending -ModuleName Atlas.Software -Times 0 -Exactly
     }
 
-    It 'does not fall back when a previous request is unresolved' {
+    It 'does not fall back when a previous request is unresolved and <Failure>' -TestCases @(
+        @{ Failure = 'Store cannot activate'; ManagerFails = $true }
+        @{ Failure = 'the Store queue cannot be read'; ManagerFails = $false }
+    ) {
         Mock Get-AtlasNanaZipStoreJournal -ModuleName Atlas.Software { [pscustomobject]@{ Pending = $true } }
-        Mock New-AtlasNanaZipStoreManager -ModuleName Atlas.Software { throw 'Store unavailable' }
+        if ($ManagerFails) {
+            Mock New-AtlasNanaZipStoreManager -ModuleName Atlas.Software { throw 'Store unavailable' }
+        }
+        else {
+            Mock New-AtlasNanaZipStoreManager -ModuleName Atlas.Software { [pscustomobject]@{ CanInstallForAllUsers = $true } }
+            Mock Get-AtlasNanaZipStoreItems -ModuleName Atlas.Software { throw 'queue unavailable' }
+        }
         InModuleScope Atlas.Software { { Install-AtlasNanaZipFromStore -DismCommands @{} } | Should -Throw '*unknown outcome*' }
     }
 
@@ -50,16 +59,6 @@ Describe 'NanaZip Store installation' {
             $commands = @{ GetProvisionedPackage = { [pscustomobject]@{ DisplayName = '40174MouriNaruto.NanaZip' } } }
             Install-AtlasNanaZipFromStore -DismCommands $commands | Should -BeTrue
             Should -Invoke Set-AtlasNanaZipStorePending -Times 1 -Exactly -ParameterFilter { -not $Pending }
-        }
-    }
-
-    It 'does not clear pending state if the Store queue cannot be read' {
-        InModuleScope Atlas.Software {
-            Mock Get-AtlasNanaZipStoreJournal { [pscustomobject]@{ Pending = $true } }
-            Mock New-AtlasNanaZipStoreManager { [pscustomobject]@{ CanInstallForAllUsers = $true } }
-            Mock Get-AtlasNanaZipStoreItems { throw 'queue unavailable' }
-            { Install-AtlasNanaZipFromStore -DismCommands @{} } | Should -Throw '*unknown outcome*'
-            Should -Invoke Set-AtlasNanaZipStorePending -Times 0 -Exactly
         }
     }
 

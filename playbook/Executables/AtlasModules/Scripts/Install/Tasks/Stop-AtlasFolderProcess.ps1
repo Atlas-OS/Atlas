@@ -9,8 +9,8 @@ if (-not [IO.File]::Exists($trustBootstrap)) {
 
 $ErrorActionPreference = 'Stop'
 
-# Runs before the payload copy on upgrades, so the module is imported from the
-# extracted playbook directory rather than the (stale) copy in %windir%.
+# Runs before Atlas's files are copied on upgrades, so the module is imported from
+# the extracted package directory rather than the (stale) copy in %windir%.
 $executablesRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)))
 $coreModule = Join-Path -Path $executablesRoot -ChildPath 'AtlasModules\Scripts\Modules\Atlas.Core\Atlas.Core.psd1'
 if (-not (Test-Path -LiteralPath $coreModule -PathType Leaf)) {

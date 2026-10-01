@@ -2,7 +2,7 @@
 setlocal
 pushd "%~dp0" || exit /b 1
 set "buildExit=1"
-echo Building Playbook...
+echo Building the Atlas package...
 where pwsh >nul 2>&1
 if errorlevel 1 (
     echo PowerShell 7 ^(pwsh^) is required. See docs\building.md.

@@ -1,10 +1,7 @@
 # Atlas.Tweaks - declarative tweak engine module.
 Set-StrictMode -Version 3.0
 
-# Atlas.Core supplies shared runtime helpers; Atlas.Registry applies Registry entries
-# and classifies entry scopes; Atlas.Services applies checked service startup changes;
-# Atlas.TasksProcs applies scheduled-task changes with missing-task tolerance;
-# Atlas.Toggles applies and records a toggle's machine state for the Toggle key.
+# No -Force: a nested forced import unloads the caller's copy in Windows PowerShell 5.1.
 foreach ($dependencyManifest in @(
     '..\Atlas.Core\Atlas.Core.psd1'
     '..\Atlas.Registry\Atlas.Registry.psd1'
@@ -16,8 +13,6 @@ foreach ($dependencyManifest in @(
     if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
         throw "Required Atlas.Tweaks dependency '$manifestPath' is missing."
     }
-    # Reuse dependencies already owned by the long-running install orchestrator.
-    # A nested forced import unloads their global command surface in Windows PowerShell.
     Import-Module -Name $manifestPath -ErrorAction Stop
 }
 

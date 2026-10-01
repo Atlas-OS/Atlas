@@ -2,7 +2,7 @@
 # name, and the states assistive technology sees), so accessibility changes
 # can be checked without a screen reader. Developer tooling for UI review.
 param(
-    [string]$ProcessName = 'atlas',
+    [string]$ProcessName = 'AtlasManager',
     [int]$ProcessId = 0,
     # Invoke the control with this exact UI Automation name before dumping
     # (exercises the accessible Click action, as voice control would).
@@ -33,6 +33,12 @@ function Get-Nodes {
     }
     if ($Element.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern, [ref]$pattern)) {
         $states += 'invokable'
+    }
+    if ($Element.TryGetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern, [ref]$pattern)) {
+        $states += "expanded=$($pattern.Current.ExpandCollapseState)"
+    }
+    if ($Element.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern, [ref]$pattern) -and $pattern.Current.IsReadOnly -and $current.IsKeyboardFocusable) {
+        $states += 'readonly'
     }
     if (-not $current.IsEnabled) { $states += 'disabled' }
     if ($current.HasKeyboardFocus) { $states += 'FOCUSED' }

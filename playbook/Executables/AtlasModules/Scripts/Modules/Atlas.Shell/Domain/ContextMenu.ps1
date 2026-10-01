@@ -16,7 +16,7 @@ function ConvertTo-AtlasShellWindowsArgument {
     )
 
     if ($Value.Length -gt 32767) {
-        throw 'A shell-handler argument exceeds the Windows command-line length boundary.'
+        throw 'A shell-handler argument exceeds the Windows command-line length limit.'
     }
 
     # Apply the CommandLineToArgvW/CRT quoting rules even when quoting would be

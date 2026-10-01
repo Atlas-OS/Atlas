@@ -1,8 +1,7 @@
 # Atlas.Software - software management module.
 Set-StrictMode -Version 3.0
 
-# Atlas.Core supplies shared runtime helpers; Atlas.Shortcuts creates installer links;
-# Atlas.Download owns the download and contained-process helpers.
+# No -Force: a nested forced import unloads the caller's copy in Windows PowerShell 5.1.
 foreach ($dependencyManifest in @(
     '..\Atlas.Core\Atlas.Core.psd1'
     '..\Atlas.Shortcuts\Atlas.Shortcuts.psd1'
@@ -12,8 +11,6 @@ foreach ($dependencyManifest in @(
     if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
         throw "Required Atlas.Software dependency '$manifestPath' is missing."
     }
-    # Reuse dependencies already owned by the long-running install orchestrator.
-    # A nested forced import unloads their global command surface in Windows PowerShell.
     Import-Module -Name $manifestPath -ErrorAction Stop
 }
 

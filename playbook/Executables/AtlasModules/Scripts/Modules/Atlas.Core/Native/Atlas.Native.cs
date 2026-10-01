@@ -1,14 +1,12 @@
-// Atlas.Native - the complete native (C#) surface of the Atlas payload.
+// Atlas.Native - the complete native (C#) surface of Atlas.
 //
-// Every runtime-compiled type Atlas uses lives in this one audited file. It is
+// Every runtime-compiled type Atlas uses lives in this one file. It is
 // compiled exactly once per PowerShell process by Initialize-AtlasNativeType
 // (Atlas.Core\Domain\Native.ps1), which routes the compile through a random,
 // from-birth-ACL'd directory whenever the host holds a high-integrity token, so
 // no caller ever compiles through a requester-writable %TEMP%.
 //
-// Each section below is one formerly inline Add-Type block, kept verbatim apart
-// from the move into the single Atlas.Native namespace and the class renames.
-// Nothing here may gain behaviour without review: this is a privileged surface.
+// Everything here can run with TrustedInstaller rights, so add behaviour only with care.
 
 using System;
 using System.Collections.Generic;
@@ -674,7 +672,7 @@ namespace Atlas.Native
             string windowsDirectory = GetNativeDirectory(true);
             string systemDirectory = GetNativeDirectory(false);
             string expectedAtlasRoot = Path.GetFullPath(Path.Combine(windowsDirectory, "AtlasModules"));
-            // An Install runs from a protected staging copy of the payload; the installed
+            // An Install runs from a protected staging copy of Atlas's files; the installed
             // tree does not exist yet on a fresh machine, so only its name is fixed here.
             bool isInstall = String.Equals(request.Operation, "Install", StringComparison.Ordinal);
             string atlasRoot = isInstall
@@ -806,7 +804,7 @@ namespace Atlas.Native
 
                             // Capture the terminal root exit value, then release Atlas's
                             // PROCESS_INFORMATION references before the lifecycle advances to
-                            // its authoritative job-accounting drain check.
+                            // its job-accounting drain check, which decides the outcome.
                             CloseProcessInformationHandles(ref processInfo);
                         }
                         else if (rootWait == WAIT_FAILED) {
@@ -840,7 +838,7 @@ namespace Atlas.Native
                             }
                         }
                         finally {
-                            // Release both PROCESS_INFORMATION references before the bounded
+                            // Release both PROCESS_INFORMATION references before the time-limited
                             // post-termination drain so the ownership order stays unambiguous.
                             CloseProcessInformationHandles(ref processInfo);
                         }
@@ -849,7 +847,7 @@ namespace Atlas.Native
                     }
                     catch (Exception drainFailure) {
                         throw new InvalidOperationException(
-                            "The TrustedInstaller operation failed and Atlas could not authoritatively confirm that its privileged process tree drained.",
+                            "The TrustedInstaller operation failed and Atlas could not confirm that its privileged process tree drained.",
                             drainFailure
                         );
                     }
@@ -878,7 +876,7 @@ namespace Atlas.Native
         }
 
         static string RequireProtectedStagingPayload(string payloadRoot, string windowsDirectory) {
-            // The front door stages the extracted playbook beneath the protected staging
+            // The front door stages the extracted package beneath the protected staging
             // root with a from-birth Administrators/SYSTEM-only DACL. Only such a copy may
             // run as TrustedInstaller; a user-writable extraction folder never can.
             string stagingRoot = Path.GetFullPath(Path.Combine(windowsDirectory, "AtlasOS", "Staging"));
@@ -1231,7 +1229,7 @@ namespace Atlas.Native
             while (true) {
                 if (QueryActiveProcesses(job) == 0) return;
                 if (stopwatch.ElapsedMilliseconds >= timeoutMilliseconds) {
-                    throw new TimeoutException("The terminated TrustedInstaller process tree did not reach zero active processes within its bounded drain allowance.");
+                    throw new TimeoutException("The terminated TrustedInstaller process tree did not reach zero active processes within its drain time limit.");
                 }
                 System.Threading.Thread.Sleep(50);
             }
@@ -1369,14 +1367,14 @@ namespace Atlas.Native
                 bool inertCreatorOwner = sid == "S-1-3-0" && (rule.PropagationFlags & PropagationFlags.InheritOnly) != 0;
                 bool trustedWriter = sid == "S-1-5-18" || sid == "S-1-5-32-544" || String.Equals(sid, tiSid, StringComparison.OrdinalIgnoreCase) || inertCreatorOwner;
                 if (!trustedWriter && (rule.FileSystemRights & unsafeRights) != 0) {
-                    throw new UnauthorizedAccessException("Protected payload object grants write-capable access to an untrusted principal: '" + path + "' (" + sid + ").");
+                    throw new UnauthorizedAccessException("Protected Atlas object grants write-capable access to an untrusted principal: '" + path + "' (" + sid + ").");
                 }
             }
         }
 
         static void RequireBoundedScalar(string value, string name, int maxLength, bool allowEmpty) {
             if (value == null || (!allowEmpty && value.Length == 0)) throw new ArgumentException(name + " is required.", name);
-            if (value.Length > maxLength) throw new ArgumentOutOfRangeException(name, name + " exceeds its bounded length.");
+            if (value.Length > maxLength) throw new ArgumentOutOfRangeException(name, name + " exceeds its length limit.");
             if (value.IndexOf('\0') >= 0 || value.IndexOf('\r') >= 0 || value.IndexOf('\n') >= 0) throw new ArgumentException(name + " contains a forbidden control character.", name);
         }
 

@@ -1,4 +1,4 @@
-# https://winaero.com/how-to-disable-automatic-repair-at-windows-10-boot
+# bootstatuspolicy: https://learn.microsoft.com/windows-hardware/drivers/devtest/bcdedit--set#boot-settings
 
 function Disable-AtlasAutomaticRepair {
     param($Toggle)

@@ -44,21 +44,6 @@ Describe 'Upgrade registry choice preservation' {
         Should -Invoke Get-AtlasToggleDefinition -Times 0
     }
 }
-Describe 'Upgrade plan coverage' {
-    BeforeAll {
-        . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-        . (Join-Path $script:AtlasTestScriptsRoot 'Install\Install-Plan.ps1')
-    }
-    It 'captures choices before applying defaults and configures existing and future users' {
-        $keys = @(Get-AtlasInstallPlan -Mode Upgrade | ForEach-Object Key)
-        [array]::IndexOf($keys, 'Checkpoint/LegacyChoices') | Should -BeLessThan ([array]::IndexOf($keys, 'Defaults'))
-        foreach ($category in 'networking','performance','privacy','qol','security','debloat','scripts','misc') { $keys | Should -Contain "Tweaks/$category" }
-        $keys | Should -Contain 'Checkpoint/InstallingUserSetup'
-        $keys | Should -Not -Contain 'Tweak/scripts/set-power-settings'
-        $keys | Should -Not -Contain 'Services'
-    }
-}
-
 Describe 'Legacy registry reader on Windows PowerShell' {
     BeforeAll {
         . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')

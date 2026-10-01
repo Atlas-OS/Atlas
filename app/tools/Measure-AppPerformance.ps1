@@ -58,7 +58,7 @@ try {
                 Start-Sleep -Milliseconds 10
             } while ($true)
             $startup.Stop()
-            [void][AtlasPerformanceWindow]::ShowWindow($handle, 4)
+            [void][AtlasPerformanceWindow]::ShowWindow($handle, 4)  # SW_SHOWNOACTIVATE
             # Let startup/recovery and the asynchronous update check settle.
             Start-Sleep -Seconds 5
             $process.Refresh()
@@ -75,7 +75,7 @@ try {
             $resize = [Diagnostics.Stopwatch]::StartNew()
             for ($frame = 0; $frame -le 120; $frame++) {
                 $width = 700 + ($frame % 20) * 10
-                [void][AtlasPerformanceWindow]::SetWindowPos($handle, [IntPtr]::Zero, 0, 0, $width, 680, 6)
+                [void][AtlasPerformanceWindow]::SetWindowPos($handle, [IntPtr]::Zero, 0, 0, $width, 680, 6)  # SWP_NOMOVE | SWP_NOZORDER
                 Start-Sleep -Milliseconds 16
             }
             Start-Sleep -Milliseconds 250

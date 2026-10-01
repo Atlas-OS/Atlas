@@ -312,7 +312,7 @@ function Read-AtlasProcessExplorerState {
     }
     $item = Get-Item -LiteralPath $StatePath -Force -ErrorAction Stop
     if ($item.Length -le 0 -or $item.Length -gt 4096) {
-        throw 'The Process Explorer ownership state is not a bounded JSON file.'
+        throw 'The Process Explorer ownership state is not a JSON file of at most 4 KB.'
     }
     try {
         $state = [IO.File]::ReadAllText($item.FullName) | ConvertFrom-Json -ErrorAction Stop

@@ -112,7 +112,7 @@ Describe 'Edge removal preserves shared WebView2 infrastructure' {
     }
 }
 
-Describe 'Remove-Edge detached uninstaller boundary' {
+Describe 'Remove-Edge detached uninstaller launch window' {
     BeforeEach {
         . $script:waitEdgeUninstallerProcesses
         function Write-Status {
@@ -170,7 +170,7 @@ Describe 'Remove-Edge detached uninstaller boundary' {
 }
 
 Describe 'Remove-Edge download boundaries' {
-    It 'rejects an unsigned payload as a Microsoft installer' {
+    It 'rejects an unsigned file as a Microsoft installer' {
         . $script:assertMicrosoftSignedInstaller
         $payload = Join-Path -Path $TestDrive -ChildPath 'unsigned.exe'
         [IO.File]::WriteAllText($payload, 'not an executable payload')

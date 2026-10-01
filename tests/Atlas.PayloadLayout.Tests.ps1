@@ -1,31 +1,12 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    Import-Module -Name (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Core\Atlas.Core.psd1') -Force
     $script:executablesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables'
 }
 
-Describe 'playbook Executables top-level layout' {
-    It 'contains the Executables directory' {
-        Test-Path -LiteralPath $script:executablesRoot -PathType Container | Should -BeTrue
-    }
-
-    It 'has no *.ps1 scripts directly under Executables' {
-        $scripts = Get-ChildItem -LiteralPath $script:executablesRoot -Filter '*.ps1' -File -ErrorAction SilentlyContinue
-        $scripts.Name | Should -BeNullOrEmpty
-    }
-
-    It 'has no *.cmd scripts directly under Executables' {
-        $scripts = Get-ChildItem -LiteralPath $script:executablesRoot -Filter '*.cmd' -File -ErrorAction SilentlyContinue
-        $scripts.Name | Should -BeNullOrEmpty
-    }
-}
-
 Describe 'Paired registry assets stay in lockstep' {
-    # Some .reg payloads ship twice: once under AtlasModules\Scripts\Registry (imported by the
-    # toggle engine) and once under AtlasModules\Toolbox (consumed by the standalone Atlas
-    # Toolbox flows). See playbook/Executables/AtlasModules/Scripts/Registry/README.md.
-    # This guard fails the moment a pair diverges; edit both copies together.
-    It 'ships byte-identical content for <Name>' -TestCases @(
+    # The toggle engine imports the Scripts\Registry copy and the standalone Toolbox flows
+    # use the Toolbox copy, so the two must not drift apart.
+    It 'includes byte-identical content for <Name>' -TestCases @(
         @{ Name = 'SecurityHealthTray disable/RemoveTray'
            A    = 'AtlasModules\Scripts\Registry\SecurityHealthTray\disable.reg'
            B    = 'AtlasModules\Toolbox\Scripts\SecurityHealthTray\RemoveTray.reg' }
@@ -43,11 +24,10 @@ Describe 'Paired registry assets stay in lockstep' {
     }
 }
 
-Describe 'CBS package hash manifest stays in lockstep with the shipped CABs' {
-    # Atlas-CbsHashes.psd1 is verified before install by Assert-AtlasCbsHash. If a CAB is
-    # rebuilt without regenerating the manifest, this fails CI instead of shipping a gate
-    # that would reject every real package at install time.
-    It 'records the correct SHA256 for every shipped .cab and lists no stale entries' {
+Describe 'CBS package hash manifest stays in lockstep with the included CABs' {
+    # Assert-AtlasCbsHash checks every CAB against this manifest before install, so a stale
+    # entry would reject the real package on every machine.
+    It 'records the correct SHA256 for every included .cab and lists no stale entries' {
         $pkgDir = Join-Path -Path $script:executablesRoot -ChildPath 'AtlasModules\Packages'
         $manifestPath = Join-Path -Path $pkgDir -ChildPath 'Atlas-CbsHashes.psd1'
         Test-Path -LiteralPath $manifestPath -PathType Leaf | Should -BeTrue

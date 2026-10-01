@@ -23,9 +23,8 @@ $powerShellExe = [IO.Path]::Combine(
     'powershell.exe'
 )
 
-# Preserve the former components.yml ordering without an elevated-user identity split.
-# Machine removal runs in a fixed child contract under this TI token; user-owned HKCU and
-# LocalAppData cleanup is a separate exact-user process and is omitted during OOBE.
+# Edge's machine removal runs under this TrustedInstaller token; the installing user's
+# leftovers are cleaned in their own process, which is skipped during OOBE.
 if (Test-AtlasOption -Name 'uninstall-edge') {
     $context = Get-AtlasContext
     $removeEdgeScript = Join-Path -Path $scriptsRoot -ChildPath 'Operations\Remove-Edge.ps1'
@@ -61,18 +60,15 @@ if (Test-AtlasOption -Name 'uninstall-edge') {
     }
 }
 
-# Remove Security Center startup item
 Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' -Name 'SecurityHealth' -Force -ErrorAction SilentlyContinue
 
-# Disable Smart App Control
-# Causes slow app loading issues and sends data to Microsoft
+# Turn off Smart App Control: it slows app loading and sends data to Microsoft.
 $ciPolicyKey = 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy'
 if (-not (Test-Path -LiteralPath $ciPolicyKey)) {
     New-Item -Path $ciPolicyKey -Force | Out-Null
 }
 Set-ItemProperty -LiteralPath $ciPolicyKey -Name 'VerifiedAndReputablePolicyState' -Value 0 -Type DWord -Force
 
-# Microsoft Edge
 if (Test-AtlasOption -Name 'uninstall-edge') {
     $edgeServices = @('MicrosoftEdgeElevationService')
     foreach ($service in $edgeServices) {
@@ -95,10 +91,9 @@ if (Test-AtlasOption -Name 'uninstall-edge') {
     }
 }
 
-# OneDrive
-# The actual OneDrive setup in Windows is stripped at a component-level in the miscellaneous package.
-# Keep vendor uninstall and machine cleanup in this TI phase, then reconcile HKCU/profile
-# leftovers only inside the install-state-bound user's own token.
+# OneDrive setup itself is stripped at component level by the miscellaneous package.
+# Uninstall and machine cleanup run here as TrustedInstaller; HKCU and profile leftovers
+# are cleaned only in the installing user's own token.
 try {
     Remove-AtlasOneDrive
 }
@@ -175,8 +170,15 @@ if (Test-AtlasOption -Name 'defender-disable') {
     Register-ScheduledTask @mdCoreTask | Out-Null
 }
 if (Test-AtlasOption -Name 'defender-enable') {
-    Uninstall-AtlasCbsPackage -Packages @('*Z-Atlas-NoDefender-Package*') | Out-Null
+    # Keeping Defender after an earlier Atlas install removed it means taking its
+    # removal package off again. No match is the usual case on a fresh PC; a removal
+    # that failed must fail the install, or Atlas would report success to a user who
+    # chose to keep Defender and has no antivirus.
+    $restore = Uninstall-AtlasCbsPackage -Packages @('*Z-Atlas-NoDefender-Package*')
     Install-AtlasCbsPackage -Packages @('*Z-Atlas-NoTelemetry-Package*') -NonInteractive | Out-Null
+    if (@($restore.FailedPackages).Count -gt 0) {
+        throw "Microsoft Defender couldn't be restored: $(@($restore.FailedPackages) -join ', ')"
+    }
 }
 
 # Prevent Teams chat from being reinstalled. This key is TrustedInstaller-protected,

@@ -1,6 +1,6 @@
 @{
     Name        = 'SecurityHealthTray'
-    Description = 'Windows Security (Defender) tray icon startup entry, applied from the shipped .reg assets.'
+    Description = 'Windows Security (Defender) tray icon startup entry, applied from the included .reg files.'
     Elevation   = 'Admin'
     Script      = 'SecurityHealthTray.ps1'
     States      = @(

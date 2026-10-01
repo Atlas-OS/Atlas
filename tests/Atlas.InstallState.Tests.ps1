@@ -1,8 +1,6 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $modulesRoot = Join-Path -Path $PSScriptRoot `
-        -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
-    $script:installStateModulePath = Join-Path -Path $modulesRoot `
+    $script:installStateModulePath = Join-Path -Path $script:AtlasTestModulesRoot `
         -ChildPath 'Atlas.InstallState\Atlas.InstallState.psd1'
     Import-Module -Name $script:installStateModulePath -Force -DisableNameChecking
 
@@ -49,7 +47,7 @@ Describe 'Atlas.InstallState lifecycle' {
         @((Get-AtlasInstallState -StatePath $path).options) | Should -Be @('defender-enable')
     }
 
-    It 'rejects changed resume options without changing durable choices or completed steps' {
+    It 'rejects changed resume options without changing saved choices or completed steps' {
         $path = New-TestInstallStatePath
         Start-TestInstallState -Path $path | Out-Null
         Set-AtlasInstallOptions -StatePath $path -Options @('defender-enable') | Out-Null

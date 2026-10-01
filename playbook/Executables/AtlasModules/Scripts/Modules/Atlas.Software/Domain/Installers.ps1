@@ -43,7 +43,7 @@ function Invoke-AtlasSoftwareDownload {
         [Parameter(Mandatory = $true)][uri]$Uri,
         [Parameter(Mandatory = $true)][string]$Destination,
         [Parameter(Mandatory = $true)][string]$Description,
-        [ValidateRange(1, 1073741824)][long]$MaximumBytes = 1073741824,
+        [ValidateRange(1, 1GB)][long]$MaximumBytes = 1GB,
         [ValidateRange(1, 3600)][int]$MaximumSeconds = 900
     )
 
@@ -440,9 +440,9 @@ function Resolve-AtlasNanaZipReleaseAssets {
         if ($asset.state -cne 'uploaded' -or
             -not $digestMatch.Success -or
             -not [long]::TryParse([string]$asset.size, [ref]$assetBytes) -or
-            $assetBytes -lt 1 -or $assetBytes -gt 1073741824 -or
+            $assetBytes -lt 1 -or $assetBytes -gt 1GB -or
             [string]$asset.browser_download_url -cne $expectedUrl) {
-            throw "GitHub's '$($specification.Name)' asset is not a complete canonical upload with a bounded SHA-256 digest."
+            throw "GitHub's '$($specification.Name)' asset is not a complete canonical upload with a SHA-256 digest and a size of at most 1 GB."
         }
 
         $apiHash = $digestMatch.Groups[1].Value.ToLowerInvariant()
@@ -490,10 +490,9 @@ function Get-AtlasPinnedNanaZipReleaseAssets {
     [CmdletBinding()]
     param()
 
-    # Pin upstream release digests in the payload to avoid GitHub API requests
+    # Pin upstream release digests in Atlas's files to avoid GitHub API requests
     # during installation. SourceForge is an official NanaZip fallback host;
     # its mirror selector can route downloads without a fixed regional mirror.
-    # Verified against M2Team/NanaZip release 7.0.1843.0 on 2026-09-19.
     $tag = '7.0.1843.0'
     foreach ($asset in @(
         @{ Name = "NanaZip_$tag.msixbundle"; Size = 11931446; Sha256 = 'f5b013afff37eca32ed7e318cb7d7d1b7a1e11f9765e4c2e9afafcde15eb085d' }
@@ -544,7 +543,7 @@ function Assert-AtlasNanaZipBundleIdentity {
             })
         if ($entries.Count -ne 1 -or
             $entries[0].Length -lt 1 -or $entries[0].Length -gt 1048576) {
-            throw 'The NanaZip bundle does not contain one bounded canonical AppxBundleManifest.xml.'
+            throw 'The NanaZip bundle does not contain one canonical AppxBundleManifest.xml of at most 1 MB.'
         }
 
         $settings = New-Object Xml.XmlReaderSettings
@@ -642,8 +641,8 @@ function Test-AtlasNanaZipProvisioned {
 function Install-AtlasToolbox {
     param([Parameter(Mandatory = $true)][string]$TempDir)
 
-    # TempDir remains part of the shared installer-function contract; Toolbox
-    # uses its own protected staging directory because it executes elevated.
+    # Every installer function takes TempDir; Toolbox ignores it and uses its own
+    # protected staging directory because it runs elevated.
     [void]$TempDir
     $atlasSoftwareRoot = [IO.Directory]::GetParent($PSScriptRoot)
     $modulesRoot = $atlasSoftwareRoot.Parent
@@ -979,9 +978,8 @@ function Install-AtlasNanaZip {
             LicensePath = $assetPaths[$licenseName]
             ErrorAction = 'Stop'
         }
-        # From this point onward DISM may have mutated machine package state. A
-        # failure must propagate rather than installing 7-Zip alongside a
-        # partially or successfully provisioned NanaZip package.
+        # DISM may change machine package state from here on, so a failure past
+        # this point rethrows the original error.
         $provisioningStarted = $true
         & $DismCommands.AddProvisionedPackage @appxArgs | Out-Null
         $installed = @(& $DismCommands.GetProvisionedPackage -Online -ErrorAction Stop)

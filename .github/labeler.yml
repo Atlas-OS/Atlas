@@ -9,7 +9,7 @@ actions:
     - .github/requirements-ci.txt
     - .github/labeler.yml
 
-# Playbook
+# Atlas package
 
 playbook:
 - changed-files:

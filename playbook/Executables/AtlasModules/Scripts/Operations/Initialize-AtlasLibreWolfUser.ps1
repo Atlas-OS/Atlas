@@ -233,7 +233,7 @@ New-AtlasLibreWolfDesktopShortcut `
 $updaterRoot = [IO.Path]::Combine($libreWolfRoot, 'librewolf-winupdater')
 $updaterPath = [IO.Path]::Combine($updaterRoot, 'LibreWolf-WinUpdater.exe')
 if (-not [IO.File]::Exists($updaterPath)) {
-    Write-Warning 'LibreWolf is installed, but its WinUpdater payload is absent; no updater task was registered.'
+    Write-Warning 'LibreWolf is installed, but its WinUpdater files are missing; no updater task was registered.'
     return
 }
 

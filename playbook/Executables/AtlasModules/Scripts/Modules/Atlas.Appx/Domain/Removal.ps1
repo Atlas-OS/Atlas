@@ -1,9 +1,7 @@
 # Atlas.Appx domain: installed and provisioned package-family removal.
 #
-# AME's former family-level AppX action matched package families, not only the
-# package identity Name exposed by Get-AppxPackage. Keep that distinction here so
-# exact family names (notably Edge's `*_8wekyb3d8bbwe` identities) and wildcard
-# patterns retain their original meaning.
+# Patterns match package family names (Name_PublisherId), not only the Name that
+# Get-AppxPackage shows, so exact family names such as Edge's *_8wekyb3d8bbwe match.
 # https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/package-identity-overview
 # https://learn.microsoft.com/en-us/powershell/module/appx/remove-appxpackage
 # https://learn.microsoft.com/en-us/powershell/module/dism/remove-appxprovisionedpackage
@@ -11,8 +9,7 @@
 function Get-AtlasAppxRemovalDefinition {
     <#
     .SYNOPSIS
-        Returns the ordered package-family removal policy migrated from the former
-        AME AppX actions and now owned by the AppxSupport phase.
+        Returns the ordered package-family removal list the AppxSupport phase applies.
     #>
     return @(
         [pscustomobject]@{ Name = 'Microsoft.MicrosoftEdge_8wekyb3d8bbwe';        Option = 'uninstall-edge';      IgnoreErrors = $true }
@@ -202,9 +199,8 @@ function Invoke-AtlasAppxRemovalPlan {
     .DESCRIPTION
         All definitions are attempted in order. Command failures remain visible, but
         the fresh inventories taken afterward determine whether a required removal
-        actually failed. Definitions that formerly used AME's ignoreErrors flag remain
-        warning-only. Option gates are read from Atlas's authoritative install context
-        (install-state-backed, with released-flag compatibility).
+        actually failed. Definitions marked IgnoreErrors only warn. Option gates come
+        from the install context.
     #>
     param(
         [Parameter()]

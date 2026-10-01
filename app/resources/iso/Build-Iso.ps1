@@ -1,4 +1,4 @@
-# Host-side image worker. Never executes a playbook or writes host setup keys.
+# Host-side image worker. Never runs an Atlas package or writes host setup keys.
 [CmdletBinding()]
 param([Parameter(Mandatory)][string]$RequestFile, [ValidateSet('Inspect', 'Build')][string]$Operation)
 # This elevated worker must never autoload a module from an inherited user path.
@@ -27,11 +27,13 @@ $source = $null
 $mutex = $null
 $ownsMutex = $false
 
+# Markers for the app go straight to the console: Write-Output would be lost
+# inside a function whose output a caller captures.
 function Write-Stage([string]$Stage) {
-    Write-Output "ATLAS_STAGE:$Stage"
+    [Console]::Out.WriteLine("ATLAS_STAGE:$Stage")
     if (Test-Path -LiteralPath (Join-Path $job 'cancel')) { throw 'Cancelled at a safe checkpoint.' }
 }
-# A typed reason the app turns into specific advice; the message goes to the log.
+# A typed reason the app turns into advice; the message goes to the log.
 function Fail([string]$Reason, [string]$Message) {
     [Console]::Out.WriteLine("ATLAS_ERROR:$Reason")
     throw $Message
@@ -43,6 +45,9 @@ function Assert-PlainTree([string]$Path) {
         if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Reparse point: $($item.FullName)" }
     }
 }
+# El Torito: 2048-byte sectors with volume descriptors from sector 16; the boot
+# record holds the catalog's sector at byte 71. The catalog's validation entry
+# sums to zero, 0x88 marks a bootable entry and platform 0xEF is UEFI.
 function Assert-BootCatalog([string]$Path, [ValidateSet('x64','arm64')][string]$Architecture = 'x64') {
     $stream = [IO.File]::OpenRead($Path)
     try {
@@ -86,11 +91,12 @@ function Assert-Output {
     if ($volume.SizeRemaining -lt $required) { Fail 'disk-space' "Not enough free space. Required: $required bytes." }
     return $parent.FullName
 }
-function Get-AtlasMediaEditions([string]$ImagePath, [int[]]$SupportedBuilds) {
+function Get-AtlasMediaEditions([string]$ImagePath, [int[]]$SupportedBuilds, [switch]$OfflineReleaseCheck) {
     $architecture = $null
     foreach ($summary in @(Get-WindowsImage -ImagePath $ImagePath)) {
         $info = Get-WindowsImage -ImagePath $ImagePath -Index $summary.ImageIndex
         $version = [version]$info.Version
+        # DISM architecture: 9 = x64, 12 = ARM64.
         if ([int]$info.Architecture -notin @(9,12) -or $SupportedBuilds -notcontains $version.Build) {
             Fail 'windows-unsupported' "Unsupported Windows image: $($info.ImageName), $($info.Version), architecture $($info.Architecture)."
         }
@@ -99,11 +105,11 @@ function Get-AtlasMediaEditions([string]$ImagePath, [int[]]$SupportedBuilds) {
         }
         $architecture = [int]$info.Architecture
         if ($info.InstallationType -ne 'Client') { Fail 'windows-unsupported' 'Only Windows client installation media is supported.' }
-        if ((Get-AtlasWindowsReleaseStatus -Version $version) -ne 'Released') {
+        if ((Get-AtlasWindowsReleaseStatus -Version $version -NoRefresh:$OfflineReleaseCheck) -ne 'Released') {
             Fail 'windows-release-unknown' "The Windows image version $version could not be verified as a public release. Connect to the internet and retry, or choose official release media."
         }
-        # Match the destination edition gate. Normal Microsoft consumer media
-        # also contains Home; retain every supported edition for Setup to offer.
+        # Skip the editions Install-Atlas.ps1 refuses (Home and LTSC). Consumer media
+        # also carries Home; keep every supported edition for Setup to offer.
         $edition = [string]$info.EditionId
         if ([string]::IsNullOrWhiteSpace($edition)) { throw 'The Windows image has no edition identity.' }
         if ($edition -like 'Core*' -or $edition -in @('EnterpriseS','EnterpriseSN','EnterpriseSEval','EnterpriseSNEval','IoTEnterpriseS','IoTEnterpriseSK')) { continue }
@@ -156,7 +162,7 @@ try {
     if ($images.Count -ne 1) { throw 'Expected one install.wim or install.esd. Split images are not supported in this Beta.' }
     Import-Module Dism -ErrorAction Stop
     $sourceEditionCount = @(Get-WindowsImage -ImagePath $images[0]).Count
-    $supportedEditions = @(Get-AtlasMediaEditions -ImagePath $images[0] -SupportedBuilds $request.supportedBuilds)
+    $supportedEditions = @(Get-AtlasMediaEditions -ImagePath $images[0] -SupportedBuilds $request.supportedBuilds -OfflineReleaseCheck:($null -ne $request.PSObject.Properties['offlineReleaseCheck'] -and $request.offlineReleaseCheck -eq $true))
     $editions = @($supportedEditions | ForEach-Object { [string]$_.ImageName })
     if ($editions.Count -eq 0) { Fail 'edition-unsupported' 'The ISO contains no supported Windows editions. Windows Home and LTSC are not supported.' }
     $architecture = if ([int]$supportedEditions[0].Architecture -eq 12) { 'arm64' } else { 'x64' }
@@ -167,10 +173,10 @@ try {
     if ($request.copyNetworkDrivers) {
         $hostArchitectures = @(Get-CimInstance Win32_Processor | Select-Object -ExpandProperty Architecture -Unique)
         if ($hostArchitectures.Count -ne 1 -or [int]$hostArchitectures[0] -ne [int]$supportedEditions[0].Architecture) {
-            throw 'Network drivers cannot be copied between x64 and ARM64. Choose media for this PC or turn off network driver copying.'
+            Fail 'network-architecture' 'Network drivers cannot be copied between x64 and ARM64. Choose media for this PC or turn off network driver copying.'
         }
     }
-    Write-Output ('ATLAS_RESULT:' + (@{ editions = $editions; bytes = (Get-Item -LiteralPath $source).Length } | ConvertTo-Json -Compress))
+    Write-Output ('ATLAS_RESULT:' + (@{ editions = $editions; bytes = (Get-Item -LiteralPath $source).Length; architecture = $architecture } | ConvertTo-Json -Compress))
     if ($Operation -eq 'Inspect') { exit 0 }
     if ($request.mode -notin @('interactive', 'configured', 'before-desktop')) { throw 'Unknown setup mode.' }
     if ($request.copyNetworkDrivers -and -not $request.reinstallThisPc) { throw 'Network driver copying is only available when reinstalling this PC.' }
@@ -207,32 +213,23 @@ try {
     if ($supportedEditions.Count -ne $sourceEditionCount) {
         $filteredImage = Join-Path $work 'supported.wim'
         Export-AtlasMediaEditions -SourceImage $images[0] -DestinationImage $filteredImage -Editions $supportedEditions
-        # Only the copy inside our private workspace is replaced. No image is
-        # selected in the answer file and no generic product key is injected.
+        # Replace only the workspace copy. The answer file selects no image and
+        # sets no key, so Setup offers exactly these editions.
         Remove-Item -LiteralPath $mediaImage -Force
         $imageRelative = 'sources\install.wim'
         $mediaImage = Join-Path $media $imageRelative
         [IO.File]::Move($filteredImage, $mediaImage)
     }
-    Write-Stage inject
-    $target = Join-Path $media 'sources\$OEM$\$$\AtlasISO'
+    Write-Stage add-atlas
+    # Windows Setup copies $OEM$\$$ into %WINDIR%, so these land in %WINDIR%\AtlasISO.
+    $atlasIso = 'sources\$OEM$\$$\AtlasISO'
+    $target = Join-Path $media $atlasIso
     [void][IO.Directory]::CreateDirectory($target)
-    Copy-Item -LiteralPath $request.app -Destination (Join-Path $target 'AtlasManager.exe')
-    Copy-Item -LiteralPath $request.archive -Destination (Join-Path $target 'Atlas.apbx')
-    Copy-Item -LiteralPath (Join-Path $job 'Setup.ps1') -Destination $target
-    Copy-Item -LiteralPath (Join-Path $job 'Desktop.ps1') -Destination $target
-    Copy-Item -LiteralPath (Join-Path $job 'Desktop-Policy.ps1') -Destination $target
-    Copy-Item -LiteralPath (Join-Path $job 'THIRD-PARTY-NOTICES.txt') -Destination $target
-    Copy-Item -LiteralPath (Join-Path $job 'DriverPolicy.reg') -Destination $target
-    if ($request.copyNetworkDrivers) {
-        Write-Stage network-drivers
-        . (Join-Path $job 'Network-Drivers.ps1')
-        $networkRoot = Join-Path $target 'NetworkDrivers'
-        $networkPackages = @(Export-AtlasNetworkDrivers -Destination $networkRoot -CancelFile (Join-Path $job 'cancel') -LogPath (Join-Path $job 'network-drivers.log') -CheckUpdates:$request.updateNetworkDrivers)
-        Assert-PlainTree $networkRoot
-        [IO.File]::WriteAllText((Join-Path $target 'network-drivers.json'), (ConvertTo-Json -InputObject $networkPackages), (New-Object Text.UTF8Encoding($false)))
-        Write-Stage inject
+    $payload = [ordered]@{ 'AtlasManager.exe' = $request.app; 'Atlas.apbx' = $request.archive }
+    foreach ($name in @('Setup.ps1', 'Desktop.ps1', 'Desktop-Policy.ps1', 'THIRD-PARTY-NOTICES.txt', 'DriverPolicy.reg')) {
+        $payload[$name] = Join-Path $job $name
     }
+    foreach ($name in $payload.Keys) { Copy-Item -LiteralPath $payload[$name] -Destination (Join-Path $target $name) }
     if ($request.mode -ne 'interactive') {
         Copy-Item -LiteralPath $request.package -Destination (Join-Path $target 'Package') -Recurse
     }
@@ -291,21 +288,39 @@ try {
     $namespace.AddNamespace('u', 'urn:schemas-microsoft-com:unattend')
     foreach ($node in $document.SelectNodes('//u:LocalAccount/u:Name | //u:AutoLogon/u:Username', $namespace)) { $node.InnerText = $username }
     $answer = $document.OuterXml
+    # Setup caches an answer file only if it has settings for the current pass, so
+    # the windowsPE section restates Setup's defaults: firewall on, key and edition
+    # still asked. The sources\ and Sysprep copies cover Setup's other search paths.
     [IO.File]::WriteAllText((Join-Path $media 'autounattend.xml'), $answer, (New-Object Text.UTF8Encoding($false)))
-    # Setup discovers/caches only files with settings for the current pass.
-    # Keep the normal WinPE firewall enabled so this file is valid on first
-    # boot. Also cover optical distribution and destination search paths.
     [IO.File]::WriteAllText((Join-Path $media 'sources\autounattend.xml'), $answer, (New-Object Text.UTF8Encoding($false)))
     $sysprep = Join-Path $media 'sources\$OEM$\$$\System32\Sysprep'
     [void][IO.Directory]::CreateDirectory($sysprep)
     [IO.File]::WriteAllText((Join-Path $sysprep 'unattend.xml'), $answer, (New-Object Text.UTF8Encoding($false)))
+    # This PC's network drivers come last, so each stage is reported once, in order.
+    $networkIncluded = $false
+    if ($request.copyNetworkDrivers) {
+        Write-Stage network-drivers
+        . (Join-Path $job 'Network-Drivers.ps1')
+        $networkRoot = Join-Path $target 'NetworkDrivers'
+        $networkPackages = @(Export-AtlasNetworkDrivers -Destination $networkRoot -CancelFile (Join-Path $job 'cancel') -LogPath (Join-Path $job 'network-drivers.log') -CheckUpdates:$request.updateNetworkDrivers)
+        if ($networkPackages.Count -eq 0) {
+            # The adapters use drivers that come with Windows: nothing to add,
+            # and the app says so instead of claiming a copy.
+            [Console]::Out.WriteLine('ATLAS_NOTE:network-drivers-inbox')
+        }
+        else {
+            Assert-PlainTree $networkRoot
+            [IO.File]::WriteAllText((Join-Path $target 'network-drivers.json'), (ConvertTo-Json -InputObject $networkPackages), (New-Object Text.UTF8Encoding($false)))
+            $networkIncluded = $true
+        }
+    }
     Write-Stage master
     & (Join-Path $PSScriptRoot 'Master-Iso.ps1') -Media $media -Output $partial -CancelFile (Join-Path $job 'cancel') -Architecture $architecture
     Write-Stage verify
     Assert-BootCatalog $partial $architecture
-    if (-not (Test-Path -LiteralPath $partial) -or (Get-Item -LiteralPath $partial).Length -le (Get-Item -LiteralPath $mediaImage).Length) { throw 'The output ISO is missing or incomplete.' }
-    # Mount the finished image and confirm its setup payload and boot files can
-    # actually be read. Mount-DiskImage needs the .iso extension.
+    if ((Get-Item -LiteralPath $partial).Length -le (Get-Item -LiteralPath $mediaImage).Length) { throw 'The output ISO is incomplete.' }
+    # Re-read the image, Atlas's files and the boot files from the mounted output.
+    # Mount-DiskImage needs an .iso extension, hence the rename.
     $verifyIso = Join-Path $work 'verify.iso'
     [IO.File]::Move($partial, $verifyIso)
     $verifiedMount = $false
@@ -315,27 +330,16 @@ try {
         $checkVolumes = @($checkDisk | Get-Volume | Where-Object DriveLetter)
         if ($checkVolumes.Count -ne 1) { throw 'Output volume is unreadable.' }
         $checkRoot = "$($checkVolumes[0].DriveLetter):\"
-        # Windows' installation image is the largest and most important file.
-        # Compare with the verified staged image, which may have been exported
-        # to remove unsupported editions before mastering.
-        if ((Get-FileHash -LiteralPath $mediaImage -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath (Join-Path $checkRoot $imageRelative) -Algorithm SHA256).Hash) {
-            throw "Output Windows image verification failed: $imageRelative"
+        # The staged image, not the source: it may be the filtered export.
+        $expected = @($imageRelative, 'autounattend.xml', 'sources\autounattend.xml', 'sources\$OEM$\$$\System32\Sysprep\unattend.xml', 'sources\boot.wim', 'efi\microsoft\boot\efisys.bin') + $bootFiles
+        $expected += @(@($payload.Keys) + 'setup.json' | ForEach-Object { Join-Path $atlasIso $_ })
+        if ($networkIncluded) {
+            $expected += @(@(Get-ChildItem -LiteralPath $networkRoot -File -Force -Recurse) + @(Get-Item -LiteralPath (Join-Path $target 'network-drivers.json')) |
+                ForEach-Object { $_.FullName.Substring($media.Length + 1) })
         }
-        foreach ($relative in @('autounattend.xml', 'sources\autounattend.xml', 'sources\$OEM$\$$\System32\Sysprep\unattend.xml', 'sources\boot.wim', 'efi\microsoft\boot\efisys.bin', 'sources\$OEM$\$$\AtlasISO\AtlasManager.exe', 'sources\$OEM$\$$\AtlasISO\Atlas.apbx', 'sources\$OEM$\$$\AtlasISO\Setup.ps1', 'sources\$OEM$\$$\AtlasISO\Desktop.ps1', 'sources\$OEM$\$$\AtlasISO\Desktop-Policy.ps1', 'sources\$OEM$\$$\AtlasISO\setup.json', 'sources\$OEM$\$$\AtlasISO\DriverPolicy.reg') + $bootFiles) {
-            $before = Get-FileHash -LiteralPath (Join-Path $media $relative) -Algorithm SHA256
-            $after = Get-FileHash -LiteralPath (Join-Path $checkRoot $relative) -Algorithm SHA256
-            if ($before.Hash -ne $after.Hash) { throw "Output verification failed: $relative" }
-        }
-        $noticeRelative = 'sources\$OEM$\$$\AtlasISO\THIRD-PARTY-NOTICES.txt'
-        if ((Get-FileHash -LiteralPath (Join-Path $media $noticeRelative)).Hash -ne (Get-FileHash -LiteralPath (Join-Path $checkRoot $noticeRelative)).Hash) {
-            throw 'Output license notice verification failed.'
-        }
-        if ($request.copyNetworkDrivers) {
-            foreach ($file in @(Get-ChildItem -LiteralPath $networkRoot -File -Force -Recurse) + @(Get-Item -LiteralPath (Join-Path $target 'network-drivers.json'))) {
-                $relative = $file.FullName.Substring($media.Length + 1)
-                if ((Get-FileHash -LiteralPath $file.FullName).Hash -ne (Get-FileHash -LiteralPath (Join-Path $checkRoot $relative)).Hash) {
-                    throw "Output network driver verification failed: $relative"
-                }
+        foreach ($relative in $expected) {
+            if ((Get-FileHash -LiteralPath (Join-Path $media $relative)).Hash -ne (Get-FileHash -LiteralPath (Join-Path $checkRoot $relative)).Hash) {
+                throw "Output verification failed: $relative"
             }
         }
     }

@@ -284,8 +284,8 @@ function Invoke-AtlasEdgeUserCleanup {
         throw 'The exact user LocalApplicationData path is unavailable.'
     }
 
-    # Per-user known folders are redirectable. Bind each exact-token result as its own
-    # authority root instead of assuming it is lexically below UserProfile.
+    # Per-user known folders can be redirected. Treat each folder this token reports
+    # as its own root instead of assuming it sits below UserProfile.
     $localAppDataPath = [IO.Path]::GetFullPath($rawLocalAppDataPath)
     $localAppDataPath = Assert-AtlasUserPathBoundary -Root $localAppDataPath `
         -Path $localAppDataPath -RequireTarget

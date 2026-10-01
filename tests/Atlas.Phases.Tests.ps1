@@ -20,8 +20,7 @@ BeforeAll {
 
         $tokens = $null
         $errors = $null
-        $ast = [System.Management.Automation.Language.Parser]::ParseFile($Path, [ref]$tokens, [ref]$errors)
-        return [pscustomobject]@{ Ast = $ast; Errors = $errors }
+        return [System.Management.Automation.Language.Parser]::ParseFile($Path, [ref]$tokens, [ref]$errors)
     }
 
     function Get-AtlasPrivilegeSwitch {
@@ -42,88 +41,6 @@ BeforeAll {
         }
 
         return @($switches)
-    }
-
-    function Get-AtlasInProcessHelperInvocation {
-        param(
-            [Parameter(Mandatory = $true)]$CallerAst,
-            [Parameter(Mandatory = $true)][string]$HelperName
-        )
-
-        $callOperators = @(
-            [System.Management.Automation.Language.TokenKind]::Ampersand,
-            [System.Management.Automation.Language.TokenKind]::Dot
-        )
-        $commands = @($CallerAst.FindAll({
-                    param($node)
-                    $node -is [System.Management.Automation.Language.CommandAst] -and
-                    $callOperators -contains $node.InvocationOperator
-                }, $true))
-
-        # Direct calls, including: & (Join-Path ... -ChildPath 'Helper.ps1')
-        $invocations = @($commands | Where-Object {
-                $_.CommandElements.Count -gt 0 -and
-                $_.CommandElements[0].Extent.Text -match [regex]::Escape($HelperName)
-            })
-
-        # Variable calls, including: $script = Join-Path ... 'Helper.ps1'; & $script
-        $assignments = @($CallerAst.FindAll({
-                    param($node)
-                    $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and
-                    $node.Left -is [System.Management.Automation.Language.VariableExpressionAst] -and
-                    $node.Right.Extent.Text -match [regex]::Escape($HelperName)
-                }, $true))
-        foreach ($assignment in $assignments) {
-            $variableName = $assignment.Left.VariablePath.UserPath
-            $scope = $assignment.Parent
-            while ($null -ne $scope -and $scope -isnot [System.Management.Automation.Language.ScriptBlockAst]) {
-                $scope = $scope.Parent
-            }
-            if ($null -eq $scope) {
-                continue
-            }
-
-            $invocations += @($scope.FindAll({
-                        param($node)
-                        if ($node -isnot [System.Management.Automation.Language.CommandAst] -or
-                            $callOperators -notcontains $node.InvocationOperator -or
-                            $node.CommandElements.Count -eq 0) {
-                            return $false
-                        }
-
-                        $target = $node.CommandElements[0]
-                        return $target -is [System.Management.Automation.Language.VariableExpressionAst] -and
-                            $target.VariablePath.UserPath -eq $variableName
-                    }, $true))
-        }
-
-        return @($invocations)
-    }
-
-    function Get-AtlasPotentialSuccessExitStatement {
-        param([Parameter(Mandatory = $true)]$Ast)
-
-        $exitStatements = @($Ast.FindAll({
-                    param($node)
-                    $node -is [System.Management.Automation.Language.ExitStatementAst]
-                }, $true))
-        foreach ($exitStatement in $exitStatements) {
-            if ($null -eq $exitStatement.Pipeline) {
-                $exitStatement
-                continue
-            }
-
-            try {
-                $exitCode = [int]$exitStatement.Pipeline.SafeGetValue()
-                if ($exitCode -eq 0) {
-                    $exitStatement
-                }
-            }
-            catch {
-                # A dynamic exit expression (for example, $LASTEXITCODE) can be zero.
-                $exitStatement
-            }
-        }
     }
 
     function Invoke-AtlasSoftwarePhaseForTest {
@@ -204,55 +121,37 @@ Describe 'Install phase scripts' {
     BeforeDiscovery {
         $phasesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Install\Phases'
         $script:phaseFiles = Get-ChildItem -Path $phasesRoot -Filter 'Invoke-*Phase.ps1' -File
-
-        # Every install phase is rooted in one strict TrustedInstaller identity. Genuine
-        # user work drops through the install-state-bound exact-user launcher inside it.
-        $script:privilegeExpectations = @{
-            'Invoke-PreInstallPhase.ps1'   = 'TrustedInstaller'
-            'Invoke-ShellRefreshPhase.ps1' = 'TrustedInstaller'
-            'Invoke-EnvironmentPhase.ps1'  = 'TrustedInstaller'
-            'Invoke-FeaturesPhase.ps1'     = 'TrustedInstaller'
-            'Invoke-SoftwarePhase.ps1'     = 'TrustedInstaller'
-            'Invoke-AppxSupportPhase.ps1'  = 'TrustedInstaller'
-            'Invoke-DefaultsPhase.ps1'     = 'TrustedInstaller'
-            'Invoke-ServicesPhase.ps1'     = 'TrustedInstaller'
-            'Invoke-ComponentsPhase.ps1'   = 'TrustedInstaller'
-            'Invoke-TweaksPhase.ps1'       = 'TrustedInstaller'
-        }
     }
 
-    It 'finds every expected phase script' {
-        $names = (Get-ChildItem -Path $script:phasesRoot -Filter 'Invoke-*Phase.ps1' -File).Name
-        foreach ($expected in @('PreInstall', 'ShellRefresh', 'Environment', 'Features', 'Software', 'Services',
-                'Components', 'AppxSupport', 'Tweaks', 'Defaults')) {
-            $names | Should -Contain "Invoke-${expected}Phase.ps1"
-        }
-    }
+    It 'includes exactly the expected phase scripts' {
+        $expected = @(
+            'AppxSupport', 'Components', 'Defaults', 'Environment', 'Features',
+            'PreInstall', 'Services', 'ShellRefresh', 'Software', 'Tweaks'
+        ) | ForEach-Object { "Invoke-${_}Phase.ps1" }
+        $names = @(Get-ChildItem -Path $script:phasesRoot -Filter 'Invoke-*Phase.ps1' -File | ForEach-Object Name)
 
-    It '<Name> parses without errors' -ForEach ($phaseFiles | ForEach-Object { @{ Name = $_.Name; FullName = $_.FullName } }) {
-        $parsed = Get-AtlasPhaseAst -Path $FullName
-        $parsed.Errors | Should -BeNullOrEmpty
+        @($names | Sort-Object) | Should -Be @($expected | Sort-Object)
     }
 
     It '<Name> returns or throws without exiting the install dispatcher host' -ForEach (
         $phaseFiles | ForEach-Object { @{ Name = $_.Name; FullName = $_.FullName } }
     ) {
-        $parsed = Get-AtlasPhaseAst -Path $FullName
-        $exitStatements = @($parsed.Ast.FindAll({
+        $ast = Get-AtlasPhaseAst -Path $FullName
+        $exitStatements = @($ast.FindAll({
                     param($node)
                     $node -is [System.Management.Automation.Language.ExitStatementAst]
                 }, $true))
 
         $exitStatements | Should -BeNullOrEmpty `
-            -Because "$Name must return or throw so Invoke-AtlasInstall can durably complete or fail its phase"
+            -Because "$Name must return or throw so Invoke-AtlasInstall can record its phase as complete or failed"
     }
 
-    It '<Name> asserts <Privilege> privilege' -ForEach (
-        $privilegeExpectations.GetEnumerator() | ForEach-Object { @{ Name = $_.Key; Privilege = $_.Value } }
+    # Every phase runs as TrustedInstaller; user work goes through the exact-user
+    # launcher inside it.
+    It '<Name> asserts TrustedInstaller privilege' -ForEach (
+        $phaseFiles | ForEach-Object { @{ Name = $_.Name; FullName = $_.FullName } }
     ) {
-        $parsed = Get-AtlasPhaseAst -Path (Join-Path -Path $script:phasesRoot -ChildPath $Name)
-        $switches = Get-AtlasPrivilegeSwitch -Ast $parsed.Ast
-        $switches | Should -Contain $Privilege
+        Get-AtlasPrivilegeSwitch -Ast (Get-AtlasPhaseAst -Path $FullName) | Should -Contain 'TrustedInstaller'
     }
 }
 
@@ -396,35 +295,36 @@ Describe 'Services phase feature defaults' {
         $script:servicesPhasePath = Join-Path -Path $script:phasesRoot `
             -ChildPath 'Invoke-ServicesPhase.ps1'
 
-        # Runs the phase with the module surface stubbed: the service backup and the
-        # toggle engine record their calls, and the recorded-state table decides what the
-        # verification read-back returns.
+        # Runs the phase with its module commands stubbed. Each stub records its call, and
+        # the recorded-state table decides what the verification read-back returns.
         function Invoke-AtlasServicesPhaseForTest {
             [CmdletBinding()]
             param(
                 [Parameter(Mandatory = $true)][string]$Path,
                 [Parameter(Mandatory = $true)]$Calls,
                 [Parameter(Mandatory = $true)][hashtable]$RecordedStates,
-                [Parameter(Mandatory = $true)][hashtable]$Definitions
+                [Parameter(Mandatory = $true)][hashtable]$Definitions,
+                [switch]$BackupFails
             )
 
             & {
                 function Assert-AtlasPrivilege {
                     [CmdletBinding()]
                     param([switch]$TrustedInstaller)
-                    [void]$TrustedInstaller
+                    if ($TrustedInstaller) { [void]$Calls.Add('Privilege:TrustedInstaller') }
                 }
 
                 function Import-Module {
                     [CmdletBinding()]
                     param([string]$Name, [switch]$Force)
                     [void]$Force
-                    [void]$Calls.Add("Import-Module:$(Split-Path -Path $Name -Leaf)")
+                    [void]$Calls.Add("Import:$Name")
                 }
 
                 function Export-AtlasServicesBackup {
                     param([Parameter(Mandatory = $true)][string]$FilePath)
                     [void]$Calls.Add("Backup:$FilePath")
+                    if ($BackupFails) { throw 'simulated backup failure' }
                 }
 
                 function Invoke-AtlasToggleMachineState {
@@ -437,13 +337,11 @@ Describe 'Services phase feature defaults' {
 
                 function Get-AtlasToggleDefinition {
                     param([Parameter(Mandatory = $true)][string]$Name)
-                    [void]$Calls.Add("Definition:$Name")
                     return $Definitions[$Name]
                 }
 
                 function Get-AtlasToggleState {
                     param([Parameter(Mandatory = $true)][string]$Name)
-                    [void]$Calls.Add("State:$Name")
                     if (-not $RecordedStates.ContainsKey($Name)) {
                         return $null
                     }
@@ -473,22 +371,35 @@ Describe 'Services phase feature defaults' {
         }
     }
 
-    It 'backs up services, then applies and verifies the three feature defaults in order' {
+    It 'asserts TrustedInstaller, then backs up services before applying the three defaults in order' {
         $recorded = @{ FileSharing = 0; Location = 0; Indexing = 1 }
 
         Invoke-AtlasServicesPhaseForTest -Path $script:servicesPhasePath `
             -Calls $script:servicesCalls -RecordedStates $recorded `
             -Definitions $script:toggleDefinitions
 
-        $calls = @($script:servicesCalls)
-        $calls[0] | Should -BeExactly 'Import-Module:Atlas.Services.psd1'
-        $calls[1] | Should -BeExactly 'Import-Module:Atlas.Toggles.psd1'
-        $calls[2] | Should -BeLike 'Backup:*\AtlasModules\Other\winServices.reg'
-        @($calls | Select-Object -Skip 3) | Should -Be @(
-            'Toggle:FileSharing=Disable', 'Definition:FileSharing', 'State:FileSharing',
-            'Toggle:Location=Disable', 'Definition:Location', 'State:Location',
-            'Toggle:Indexing=Minimal', 'Definition:Indexing', 'State:Indexing'
+        $script:servicesCalls[0] | Should -BeExactly 'Privilege:TrustedInstaller'
+        $imports = @($script:servicesCalls | Where-Object { $_ -like 'Import:*' })
+        $imports.Count | Should -BeGreaterThan 0
+        foreach ($import in $imports) {
+            $import.Substring('Import:'.Length) | Should -Exist -Because 'the phase must find its modules in the installed layout'
+        }
+        $machineWork = @($script:servicesCalls | Where-Object { $_ -like 'Backup:*' -or $_ -like 'Toggle:*' })
+        $machineWork[0] | Should -BeLike 'Backup:*\AtlasModules\Other\winServices.reg'
+        @($machineWork | Select-Object -Skip 1) | Should -Be @(
+            'Toggle:FileSharing=Disable', 'Toggle:Location=Disable', 'Toggle:Indexing=Minimal'
         )
+    }
+
+    It 'makes no machine change when the services backup fails' {
+        {
+            Invoke-AtlasServicesPhaseForTest -Path $script:servicesPhasePath `
+                -Calls $script:servicesCalls -RecordedStates @{} `
+                -Definitions $script:toggleDefinitions -BackupFails
+        } | Should -Throw '*simulated backup failure*'
+
+        @($script:servicesCalls | Where-Object { $_ -like 'Toggle:*' }) | Should -BeNullOrEmpty `
+            -Because 'the backup is the only way back to the original services'
     }
 
     It 'fails when a default does not record its expected state and stops before later defaults' -TestCases @(

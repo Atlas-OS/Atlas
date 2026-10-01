@@ -32,7 +32,7 @@ function Enable-AtlasCopilotMachine {
 function Enable-AtlasCopilotUser {
     param($Toggle)
 
-    # When the taskbar Copilot button is unavailable (24H2+), Copilot ships as an app
+    # When the taskbar Copilot button is unavailable (24H2+), Copilot is a separate app
     # installed through the trusted WinGet resolver; otherwise re-show the button.
     $available = Get-ItemPropertyValue -LiteralPath 'HKCU:\Software\Microsoft\Windows\Shell\Copilot' `
         -Name 'IsCopilotAvailable' -ErrorAction SilentlyContinue

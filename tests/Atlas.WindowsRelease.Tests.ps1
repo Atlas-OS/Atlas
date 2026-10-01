@@ -1,4 +1,5 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:policy = Join-Path $PSScriptRoot '../playbook/Executables/AtlasModules/Scripts/Compatibility/Windows-Release.ps1'
     . $policy
     function New-ReleaseMarkdownFixture {
@@ -131,14 +132,25 @@ Describe 'Windows release eligibility' {
         Get-AtlasWindowsReleaseStatus -Version '10.0.26200.9999' | Should -Be 'Unknown'
         Should -Invoke Get-AtlasWindowsReleaseMarkdown -Times 2 -Exactly
     }
+    It 'decides from the bundled catalog alone without a live lookup' {
+        # Newer than every listed revision of its build: an update the catalog predates.
+        Get-AtlasWindowsReleaseStatus -Version '10.0.26200.9999' -NoRefresh | Should -Be 'Released'
+        Get-AtlasWindowsReleaseStatus -Version '10.0.26300.9999' -NoRefresh | Should -Be 'Released'
+        Get-AtlasWindowsReleaseStatus -Version '10.0.26200.9168' -NoRefresh | Should -Be 'Released'
+        # Unlisted and older than the newest listed revision, as a pre-release flight is.
+        Get-AtlasWindowsReleaseStatus -Version '10.0.26200.5551' -NoRefresh | Should -Be 'Unknown'
+        Get-AtlasWindowsReleaseStatus -Version '10.0.26100.9999' -NoRefresh | Should -Be 'Unknown'
+        Get-AtlasWindowsReleaseStatus -Version '10.0.26300.9999' -BuildLabEx '26300.1.amd64fre.rs_prerelease' -NoRefresh | Should -Be 'Preview'
+        Should -Invoke Get-AtlasWindowsReleaseMarkdown -Times 0 -Exactly
+    }
 }
 
-Describe 'Bounded official release transport' {
+Describe 'Limits on the official release transport' {
     BeforeEach {
         $script:requestFixture = New-ReleaseResponseFixture -Text (New-ReleaseMarkdownFixture)
         Mock New-AtlasWindowsReleaseRequest { $script:requestFixture }
     }
-    It 'requests Markdown with automatic redirects disabled and a bounded timeout' {
+    It 'requests Markdown with automatic redirects disabled and a timeout' {
         Get-AtlasWindowsReleaseMarkdown | Should -Match 'Version 25H2'
         $requestFixture.AllowAutoRedirect | Should -BeFalse
         $requestFixture.Accept | Should -Be 'text/markdown'
@@ -147,13 +159,11 @@ Describe 'Bounded official release transport' {
         $requestFixture.Aborted | Should -BeTrue
         $requestFixture.Response.Disposed | Should -BeTrue
     }
-    It 'does not follow a redirect to another origin' {
-        $script:requestFixture = New-ReleaseResponseFixture -Text '' -Status 302 -Location 'https://example.invalid/releases'
-        { Get-AtlasWindowsReleaseMarkdown } | Should -Throw '*outside its official HTTPS origin*'
-        Should -Invoke New-AtlasWindowsReleaseRequest -Times 1 -Exactly
-    }
-    It 'rejects HTTPS downgrade redirects' {
-        $script:requestFixture = New-ReleaseResponseFixture -Text '' -Status 302 -Location 'http://learn.microsoft.com/releases'
+    It 'does not follow a redirect to <Location>' -TestCases @(
+        @{ Location = 'https://example.invalid/releases' }
+        @{ Location = 'http://learn.microsoft.com/releases' }
+    ) {
+        $script:requestFixture = New-ReleaseResponseFixture -Text '' -Status 302 -Location $Location
         { Get-AtlasWindowsReleaseMarkdown } | Should -Throw '*outside its official HTTPS origin*'
         Should -Invoke New-AtlasWindowsReleaseRequest -Times 1 -Exactly
     }
@@ -164,9 +174,9 @@ Describe 'Bounded official release transport' {
     }
     It 'rejects HTML fallback content instead of parsing it as release evidence' {
         $requestFixture.Response.ContentType = 'text/html'
-        { Get-AtlasWindowsReleaseMarkdown } | Should -Throw '*not bounded Markdown*'
+        { Get-AtlasWindowsReleaseMarkdown } | Should -Throw '*not Markdown within the size limit*'
     }
-    It 'bounds same-origin redirect loops' {
+    It 'limits same-origin redirect loops' {
         $script:requestFixture = New-ReleaseResponseFixture -Text '' -Status 302 -Location 'https://learn.microsoft.com/redirect-loop'
         { Get-AtlasWindowsReleaseMarkdown } | Should -Throw '*redirect limit*'
         Should -Invoke New-AtlasWindowsReleaseRequest -Times 4 -Exactly

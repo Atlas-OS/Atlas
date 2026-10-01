@@ -16,7 +16,7 @@ if (-not [IO.File]::Exists($transactionHelper)) {
 . $transactionHelper
 
 # Fluent Metro does not publish a signed archive or a GitHub release-asset
-# digest. Pin the reviewed release and SHA-256 together.
+# digest. Pin the release and its SHA-256 together.
 $fluentMetroVersion = '1.5.3'
 $fluentMetroSha256 = '7d50f7deac9af1c60640d7b40a7bc9b7e68ade421237a293958c4bcb03f6b868'
 $fluentMetroBytes = 200916

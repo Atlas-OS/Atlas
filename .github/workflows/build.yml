@@ -257,7 +257,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           # Atlas-CbsHashes.psd1 gates every CAB at install time (Assert-AtlasCbsHash), so
           # a workspace with freshly built CABs must carry matching hashes before the CI
-          # playbook is packaged from it.
+          # Atlas package is built from it.
           $pkgDir = Join-Path $env:GITHUB_WORKSPACE `
               'playbook\Executables\AtlasModules\Packages'
           $manifestPath = Join-Path $pkgDir 'Atlas-CbsHashes.psd1'
@@ -303,7 +303,7 @@ jobs:
           retention-days: 7
           compression-level: 0
 
-      - name: Build and stage the CI playbook
+      - name: Build and stage the CI Atlas package
         id: create-playbook
         if: ${{ !startsWith(github.ref, 'refs/heads/na-') }}
         shell: pwsh
@@ -325,7 +325,7 @@ jobs:
               Copy-Item -Destination $stage -Force
           "ATLAS_CI_STAGE=$stage" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Upload the review-only CI playbook
+      - name: Upload the review-only CI Atlas package
         if: steps.create-playbook.outcome == 'success'
         # gh api repos/actions/upload-artifact/commits/v7.0.1 --jq '.sha'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

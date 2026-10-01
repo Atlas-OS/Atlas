@@ -1,7 +1,6 @@
-# Shell refresh phase.
-# TrustedInstaller owns orchestration only. Shell termination and Explorer startup are
-# delegated to the exact install-state-bound medium user and constrained to that token's
-# Windows session so other console/RDP sessions are never affected.
+# Shell refresh phase. TrustedInstaller only orchestrates: stopping the shell and
+# starting Explorer run as the installing user, in that user's Windows session, so
+# other console or remote sessions are never affected.
 
 Assert-AtlasPrivilege -TrustedInstaller
 

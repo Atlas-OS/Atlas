@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
-    Bumps the Atlas playbook version in playbook.conf: sets <Version>, rewrites <Title>
+    Bumps the Atlas package version in playbook.conf: sets <Version>, rewrites <Title>
     to "Atlas v<Version>" (preserving a "(dev)" suffix), and moves the previous version
     into <UpgradableFrom>, retaining an explicit list of supported sources. Also rewrites every onUpgradeVersions entry in
     Configuration/custom.yml to the new version so the upgrade-only actions stay bound
-    to the shipped version. playbook.conf is the single source of truth for the version.
+    to the released version. playbook.conf is the single source of truth for the version.
 .EXAMPLE
     tools/build/Set-AtlasVersion.ps1 -Version 0.6.0
 #>

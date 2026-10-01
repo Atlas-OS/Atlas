@@ -110,7 +110,7 @@ BeforeAll {
     }
 }
 
-Describe 'Registry payload format' {
+Describe 'Registry file format' {
     BeforeDiscovery {
         $discoveryRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\playbook')).ProviderPath
         $script:registryPayloadCases = @(
@@ -123,11 +123,11 @@ Describe 'Registry payload format' {
         )
     }
 
-    It 'ships at least one registry payload' {
+    It 'includes at least one .reg file' {
         $script:registryFiles.Count | Should -BeGreaterThan 0
     }
 
-    It 'keeps registry payloads outside Git text and line-ending filters' {
+    It 'keeps .reg files outside Git text and line-ending filters' {
         $attributesPath = Join-Path -Path $PSScriptRoot -ChildPath '..\.gitattributes'
         Get-Content -LiteralPath $attributesPath -Raw | Should -Match '(?m)^\*\.reg\s+-text\s*$'
     }
@@ -138,7 +138,7 @@ Describe 'Registry payload format' {
     }
 }
 
-Describe 'Terminal registry payload derivation' {
+Describe 'Terminal .reg file derivation' {
     It 'adds only the Atlas state marker to Toolbox state <State>' -TestCases @(
         @{ ScriptName = 'disabled.reg'; ToolboxState = 0; State = 3 }
         @{ ScriptName = 'enabled.reg'; ToolboxState = 1; State = 0 }

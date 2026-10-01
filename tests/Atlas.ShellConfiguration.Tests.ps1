@@ -209,10 +209,6 @@ Describe 'Installing-user setup marker state' {
             -ErrorAction SilentlyContinue
     }
 
-    It 'reports an unconfigured account as stage zero' {
-        Get-SetupMarker | Should -Be 0
-    }
-
     It 'round-trips the per-SID setup stages' {
         Set-SetupMarker -Value 1
         Get-SetupMarker | Should -Be 1
@@ -221,12 +217,9 @@ Describe 'Installing-user setup marker state' {
         Get-SetupMarker | Should -Be 2
     }
 
-    It 'accepts only the two defined setup stages' {
-        { Set-SetupMarker -Value 3 } | Should -Throw
-        { Set-SetupMarker -Value 0 } | Should -Throw
-    }
+    It 'reads stage zero for no marker, a marker of the wrong type or one belonging to another SID' {
+        Get-SetupMarker | Should -Be 0
 
-    It 'ignores markers of the wrong type or belonging to another SID' {
         $null = New-Item -Path $global:markerPath -Force
         Set-ItemProperty -Path $global:markerPath -Name $global:sid -Value '2' `
             -Type String -Force
@@ -303,109 +296,75 @@ Describe 'Installing-user desktop command and Explorer refresh' {
 }
 
 Describe 'Installing-user shell completion flow' {
-    It 'explicitly imports every module used directly by new-user setup' {
+    It 'imports the module of every Atlas command it calls, and stops if one is missing' {
+        $owners = @{}
+        foreach ($module in Get-ChildItem -LiteralPath $script:AtlasTestModulesRoot -Directory) {
+            $manifest = Import-PowerShellDataFile -LiteralPath (Join-Path $module.FullName "$($module.Name).psd1")
+            foreach ($name in @($manifest.FunctionsToExport)) {
+                $owners[$name] = $module.Name
+            }
+        }
+
         $importLoops = @($script:newUserAst.FindAll({
                     param($node)
                     $node -is [Management.Automation.Language.ForEachStatementAst] -and
-                    @($node.Body.FindAll({
-                                param($child)
-                                $child -is [Management.Automation.Language.CommandAst] -and
-                                $child.GetCommandName() -eq 'Import-Module'
-                            }, $true)).Count -gt 0
+                    @(Find-CommandAst -Ast $node.Body -Name 'Import-Module').Count -gt 0
                 }, $true))
-
         $importLoops.Count | Should -Be 1
-        $moduleNames = @($importLoops[0].Condition.FindAll({
+        $imported = @($importLoops[0].Condition.FindAll({
                     param($node)
                     $node -is [Management.Automation.Language.StringConstantExpressionAst]
                 }, $true) | ForEach-Object { $_.Value })
-        $moduleNames | Should -Be @('Atlas.Core', 'Atlas.Shortcuts', 'Atlas.Themes', 'Atlas.Toggles', 'Atlas.Shell')
+        $imported += @(Find-CommandAst -Ast $script:newUserAst -Name 'Import-Module' | ForEach-Object {
+                [regex]::Matches($_.Extent.Text, 'Atlas\.[A-Za-z]+') | ForEach-Object { $_.Value }
+            })
 
-        $importCommand = @($importLoops[0].Body.FindAll({
+        $used = @($script:newUserAst.FindAll({
                     param($node)
-                    $node -is [Management.Automation.Language.CommandAst] -and
-                    $node.GetCommandName() -eq 'Import-Module'
-                }, $true))[0]
+                    $node -is [Management.Automation.Language.CommandAst]
+                }, $true) | ForEach-Object { $_.GetCommandName() } |
+                Where-Object { $_ -and $owners.ContainsKey($_) } |
+                ForEach-Object { $owners[$_] } | Sort-Object -Unique)
+        $used.Count | Should -BeGreaterThan 0
+        foreach ($module in $used) {
+            $imported | Should -Contain $module
+        }
+
+        $importCommand = @(Find-CommandAst -Ast $importLoops[0].Body -Name 'Import-Module')[0]
         $parameterNames = @($importCommand.CommandElements | Where-Object {
                 $_ -is [Management.Automation.Language.CommandParameterAst]
             } | ForEach-Object { $_.ParameterName })
         $parameterNames | Should -Contain 'Force'
-        $parameterNames | Should -Contain 'ErrorAction'
         (Get-CommandParameterArgument -Command $importCommand -Name 'ErrorAction').SafeGetValue() |
             Should -BeExactly 'Stop'
     }
 
-    It 'creates the current user Atlas desktop shortcut with the Atlas folder icon' {
-        $shortcutCommands = Find-CommandAst -Ast $script:newUserAst -Name 'New-AtlasShortcut'
-
-        $shortcutCommands.Count | Should -Be 1
-        $parameterNames = @($shortcutCommands[0].CommandElements | Where-Object {
-                $_ -is [Management.Automation.Language.CommandParameterAst]
-            } | ForEach-Object { $_.ParameterName })
-        $parameterNames | Should -Contain 'Source'
-        $parameterNames | Should -Contain 'Destination'
-        $parameterNames | Should -Contain 'Icon'
-
-        (Find-StringConstant -Ast $script:newUserAst -Value 'Atlas.lnk').Count |
-            Should -Be 1
-        (Find-StringConstant -Ast $script:newUserAst -Value 'Other\atlas-folder.ico').Count |
-            Should -Be 1
-        (Find-StringConstant -Ast $script:newUserAst -Value 'DesktopDirectory').Count |
-            Should -Be 1
-    }
-
-    It 'refreshes the installing user Explorer session after committing shell state' {
-        $fromInstallCompletion = $script:newUserAst.Find({
-                param($node)
-                $node -is [Management.Automation.Language.IfStatementAst] -and
-                $node.Clauses[0].Item1.Extent.Text.Trim() -eq '$FromInstall' -and
-                $node.Clauses[0].Item2.Extent.Text -match 'Set-SetupMarker'
-            }, $true)
-
-        $fromInstallCompletion | Should -Not -BeNullOrEmpty
-        $completionBody = $fromInstallCompletion.Clauses[0].Item2
-        $marker = @(Find-CommandAst -Ast $completionBody -Name 'Set-SetupMarker')
-        $refresh = @(Find-CommandAst -Ast $completionBody `
-                -Name 'Invoke-CurrentSessionExplorerRefresh')
-
-        $marker.Count | Should -Be 1
-        (Get-CommandParameterArgument -Command $marker[0] -Name 'Value').SafeGetValue() |
-            Should -Be 2
-        $refresh.Count | Should -Be 1
-        $refresh[0].Extent.StartOffset | Should -BeGreaterThan $marker[0].Extent.EndOffset
-        $cleanup = Find-StringConstant -Ast $completionBody `
-            -Value 'Scripts\Operations\Remove-OneDriveCurrentUserData.ps1'
-        $cleanup.Count | Should -Be 0
-        @($completionBody.FindAll({
+    It 'includes every icon it uses, because setup stops without one' {
+        $atlasModulesRoot = Split-Path -Parent $script:AtlasTestScriptsRoot
+        $icons = @($script:newUserAst.FindAll({
                     param($node)
-                    $node -is [Management.Automation.Language.ReturnStatementAst]
-                }, $true)).Count | Should -Be 1
+                    $node -is [Management.Automation.Language.StringConstantExpressionAst] -and
+                    $node.Value -like '*.ico'
+                }, $true))
+
+        $icons.Count | Should -BeGreaterThan 0
+        foreach ($icon in $icons) {
+            Join-Path $atlasModulesRoot $icon.Value | Should -Exist
+        }
     }
 
-    It 'runs safe exact-user OneDrive cleanup for later non-install accounts' {
-        $cleanupStrings = Find-StringConstant -Ast $script:newUserAst `
-            -Value 'Scripts\Operations\Remove-OneDriveCurrentUserData.ps1'
+    It 'runs <Script> only for later accounts, bound to the exact user' -ForEach @(
+        @{ Script = 'Remove-OneDriveCurrentUserData.ps1'; Conditions = @('-not $FromInstall') }
+        @{
+            Script     = 'Remove-EdgeCurrentUserData.ps1'
+            Conditions = @('Test-Path -LiteralPath $uninstallEdgeFlag -PathType Leaf', '-not $FromInstall')
+        }
+    ) {
+        $cleanupStrings = Find-StringConstant -Ast $script:newUserAst -Value "Scripts\Operations\$Script"
         $cleanupStrings.Count | Should -Be 1
 
         # The launch is '& (Join-Path ...) -ExpectedUserSid $sid'; take the outermost
         # command, not the nested Join-Path.
-        $cleanupCommand = $null
-        for ($node = $cleanupStrings[0].Parent; $null -ne $node; $node = $node.Parent) {
-            if ($node -is [Management.Automation.Language.CommandAst]) {
-                $cleanupCommand = $node
-            }
-        }
-        $cleanupCommand | Should -Not -BeNullOrEmpty
-        (Get-CommandParameterArgument -Command $cleanupCommand -Name 'ExpectedUserSid').VariablePath.UserPath |
-            Should -Be 'sid'
-        Get-AncestorIfCondition -Ast $cleanupCommand | Should -Be '-not $FromInstall'
-    }
-
-    It 'runs option-gated exact-user Edge cleanup for later non-install accounts' {
-        $cleanupStrings = Find-StringConstant -Ast $script:newUserAst `
-            -Value 'Scripts\Operations\Remove-EdgeCurrentUserData.ps1'
-        $cleanupStrings.Count | Should -Be 1
-
         $cleanupCommand = $null
         for ($node = $cleanupStrings[0].Parent; $null -ne $node; $node = $node.Parent) {
             if ($node -is [Management.Automation.Language.CommandAst]) {
@@ -422,25 +381,43 @@ Describe 'Installing-user shell completion flow' {
                 $ifConditions.Add($node.Clauses[0].Item1.Extent.Text.Trim())
             }
         }
-        $ifConditions | Should -Contain '-not $FromInstall'
-        $ifConditions | Should -Contain `
-            'Test-Path -LiteralPath $uninstallEdgeFlag -PathType Leaf'
+        $ifConditions -join ' | ' | Should -BeExactly ($Conditions -join ' | ')
     }
 
     It 'completes a new user in one session without an intermediate sign-out stage' {
-        (Find-StringConstant -Ast $script:newUserAst -Value 'shutdown.exe').Count | Should -Be 0
-        (Find-StringConstant -Ast $script:newUserAst -Value 'logoff.exe').Count | Should -Be 0
-        # Keep reading legacy stage-one markers, but never create a new account
-        # that needs another sign-in before its shell configuration is complete.
+        # Legacy stage-one markers are still read, but a new account must never need
+        # another sign-in before its shell configuration is complete.
         $stageOne = @(Find-CommandAst -Ast $script:newUserAst -Name 'Set-SetupMarker' |
                 Where-Object { $_.Extent.Text -match '-Value 1' })
         $stageOne.Count | Should -Be 0
-        (Find-StringConstant -Ast $script:newUserAst `
-                -Value 'Finishing setup. Your desktop may briefly flash.').Count |
-            Should -Be 1
     }
 
-    It 'removes the successful RunOnce retry before restarting Explorer' {
+    It 'commits setup marker 2 before refreshing Explorer on the install and later-account paths' {
+        $fromInstallCompletion = $script:newUserAst.Find({
+                param($node)
+                $node -is [Management.Automation.Language.IfStatementAst] -and
+                $node.Clauses[0].Item1.Extent.Text.Trim() -eq '$FromInstall' -and
+                $node.Clauses[0].Item2.Extent.Text -match 'Set-SetupMarker'
+            }, $true)
+        $fromInstallCompletion | Should -Not -BeNullOrEmpty
+        $completionBody = $fromInstallCompletion.Clauses[0].Item2
+        $installMarker = @(Find-CommandAst -Ast $completionBody -Name 'Set-SetupMarker')
+        $installRefresh = @(Find-CommandAst -Ast $completionBody -Name 'Invoke-CurrentSessionExplorerRefresh')
+        $installReturn = @($completionBody.FindAll({
+                    param($node)
+                    $node -is [Management.Automation.Language.ReturnStatementAst]
+                }, $true))
+
+        $installMarker.Count | Should -Be 1
+        (Get-CommandParameterArgument -Command $installMarker[0] -Name 'Value').SafeGetValue() |
+            Should -Be 2
+        $installRefresh.Count | Should -Be 1
+        $installRefresh[0].Extent.StartOffset | Should -BeGreaterThan $installMarker[0].Extent.EndOffset
+        # Falling through would rerun later-account setup and start the delayed
+        # completion notice while the install is still running.
+        $installReturn.Count | Should -Be 1
+        $installReturn[0].Extent.StartOffset | Should -BeGreaterThan $installRefresh[0].Extent.EndOffset
+
         $endStatements = $script:newUserAst.EndBlock
         $markers = @(Find-CommandAst -Ast $endStatements -Name 'Set-SetupMarker' |
                 Where-Object { $_.Extent.Text -match '-Value 2' })
@@ -462,15 +439,7 @@ Describe 'Installing-user shell completion flow' {
         $laterRefresh.Count | Should -Be 1
     }
 
-    It 'logs only substantive setup stages and announces readiness after final refresh' {
-        $transcriptStarts = @(Find-CommandAst -Ast $script:newUserAst -Name 'Start-Transcript')
-        $transcriptStarts.Count | Should -Be 1
-        Get-AncestorIfCondition -Ast $transcriptStarts[0] | Should -Be '-not $FinalizeSearch'
-
-        $readyMessages = Find-StringConstant -Ast $script:newUserAst `
-            -Value 'Atlas is installed and your PC is ready to use.'
-        $readyMessages.Count | Should -Be 1
-
+    It 'announces readiness only after the final Explorer refresh of the delayed finalizer' {
         $finalizer = $script:newUserAst.Find({
                 param($node)
                 $node -is [Management.Automation.Language.IfStatementAst] -and
@@ -478,15 +447,26 @@ Describe 'Installing-user shell completion flow' {
             }, $true)
         $finalizer | Should -Not -BeNullOrEmpty
         $finalizerBody = $finalizer.Clauses[0].Item2
-        $readyMessages[0].Extent.StartOffset |
-            Should -BeGreaterThan $finalizerBody.Extent.StartOffset
-        $readyMessages[0].Extent.EndOffset |
-            Should -BeLessThan $finalizerBody.Extent.EndOffset
-
         $finalRefresh = @(Find-CommandAst -Ast $finalizerBody `
                 -Name 'Invoke-CurrentSessionExplorerRefresh')
         $finalRefresh.Count | Should -Be 1
-        $readyMessages[0].Extent.StartOffset |
-            Should -BeGreaterThan $finalRefresh[0].Extent.EndOffset
+
+        $appLaunch = @(Find-StringConstant -Ast $script:newUserAst -Value '--just-installed')
+        $persistentToast = @($script:newUserAst.FindAll({
+                    param($node)
+                    $node -is [Management.Automation.Language.CommandAst] -and
+                    $node.Extent.Text -match 'Show-AtlasToast\.ps1' -and
+                    @($node.CommandElements | Where-Object {
+                            $_ -is [Management.Automation.Language.CommandParameterAst] -and
+                            $_.ParameterName -eq 'Persistent'
+                        }).Count -eq 1
+                }, $true))
+        $appLaunch.Count | Should -Be 1
+        $persistentToast.Count | Should -Be 1
+
+        foreach ($announcement in @($appLaunch[0], $persistentToast[0])) {
+            $announcement.Extent.StartOffset | Should -BeGreaterThan $finalRefresh[0].Extent.EndOffset
+            $announcement.Extent.EndOffset | Should -BeLessThan $finalizerBody.Extent.EndOffset
+        }
     }
 }

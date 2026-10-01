@@ -98,4 +98,66 @@ Describe 'Immutable recovery copies in owned temporary storage' {
         { New-AtlasPreparationJob $script:Root '../other' '123-456' '' ([byte[]]@()) } | Should -Throw '*identity*'
         { New-AtlasPreparationJob $script:Root ('a' * 64) '../other' '' ([byte[]]@()) } | Should -Throw '*identity*'
     }
+    It 'stages media worker files from the app request immutably' {
+        $scope = 'b' * 64
+        # The shape the app sends on standard input: file contents as byte arrays.
+        $request = '{"files":[{"name":"Write-Usb.ps1","bytes":[35,32,105,110,101,114,116]},{"name":"usb-request.json","bytes":[]}]}' | ConvertFrom-Json
+        $directory = New-AtlasMediaJob $script:Root $scope '123-456' @($request.files)
+        $directory | Should -Be (Join-Path $script:Root "Media\$scope\123-456")
+        [IO.File]::ReadAllText((Join-Path $directory 'Write-Usb.ps1')) | Should -Be '# inert'
+        [IO.File]::ReadAllBytes((Join-Path $directory 'usb-request.json')) | Should -HaveCount 0
+        Assert-AtlasRecoveryFileSecurity (Join-Path $directory 'Write-Usb.ps1')
+        Assert-AtlasRecoveryFileSecurity (Join-Path $directory 'usb-request.json')
+        { New-AtlasMediaJob $script:Root $scope '123-456' @([pscustomobject]@{ name='Write-Usb.ps1'; bytes=[byte[]](1) }) } | Should -Throw
+        [IO.File]::ReadAllText((Join-Path $directory 'Write-Usb.ps1')) | Should -Be '# inert'
+    }
+    It 'creates an empty media job that the worker is staged into later' {
+        $scope = 'c' * 64
+        # The ISO page creates the job before anything can fail, so a failure
+        # always has a folder to leave its error in.
+        $request = '{"files":[]}' | ConvertFrom-Json
+        $directory = New-AtlasMediaJob $script:Root $scope '123-456' @($request.files)
+        @(Get-ChildItem -LiteralPath $directory -Force) | Should -HaveCount 0
+        $request = '{"files":[{"name":"Build-Iso.ps1","bytes":[35,32,105,110,101,114,116]}]}' | ConvertFrom-Json
+        New-AtlasMediaJob $script:Root $scope '123-456' @($request.files) | Should -Be $directory
+        [IO.File]::ReadAllText((Join-Path $directory 'Build-Iso.ps1')) | Should -Be '# inert'
+    }
+    It 'refuses path traversal in media namespaces, job names and file names' {
+        { New-AtlasMediaJob $script:Root '../other' '123-456' @() } | Should -Throw '*identity*'
+        { New-AtlasMediaJob $script:Root ('a' * 64) '..\other' @() } | Should -Throw '*identity*'
+        foreach ($name in @('..\Build-Iso.ps1', 'sources\Build-Iso.ps1', '.hidden', '')) {
+            { New-AtlasMediaJob $script:Root ('a' * 64) '123-789' @([pscustomobject]@{ name=$name; bytes=[byte[]]@() }) } | Should -Throw '*file name*'
+        }
+    }
+}
+
+Describe 'Staging request dispatch' {
+    BeforeAll {
+        $script:StageApp = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../app/resources/prepare/Stage-App.ps1'))
+    }
+    It 'refuses an unknown operation <Case> instead of copying the executable' -TestCases @(
+        @{ Case = 'in the wrong case'; Operation = 'Executable' }
+        @{ Case = 'when it is missing'; Operation = $null }
+    ) {
+        param($Case, $Operation)
+        $start = New-Object Diagnostics.ProcessStartInfo (Join-Path $PSHOME 'powershell.exe')
+        $start.Arguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $script:StageApp + '"'
+        $start.UseShellExecute = $false
+        $start.CreateNoWindow = $true
+        $start.RedirectStandardInput = $true
+        $start.RedirectStandardOutput = $true
+        $start.RedirectStandardError = $true
+        $process = [Diagnostics.Process]::Start($start)
+        try {
+            $errorText = $process.StandardError.ReadToEndAsync()
+            $process.StandardInput.Write((@{ operation = $Operation; source = (Join-Path $TestDrive 'missing.exe') } | ConvertTo-Json -Compress))
+            $process.StandardInput.Close()
+            $output = $process.StandardOutput.ReadToEnd()
+            $process.WaitForExit()
+            $process.ExitCode | Should -Not -Be 0 -Because $Case
+            $errorText.Result | Should -Match 'Unknown staging operation\.'
+            $output | Should -BeNullOrEmpty
+        }
+        finally { $process.Dispose() }
+    }
 }

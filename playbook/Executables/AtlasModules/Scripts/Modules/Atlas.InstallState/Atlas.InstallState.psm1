@@ -332,7 +332,7 @@ function Start-AtlasInstallState {
 
         # A failed Fresh transaction may have been archived by an older RC when AME
         # reclassified the partially modified machine as Reapply. Recover that exact
-        # Fresh step boundary so the remaining Fresh-only phases are not silently lost.
+        # Fresh step position so the remaining Fresh-only phases are not silently lost.
         if (-not [IO.File]::Exists($resolvedPath) -and
             $installMode -ceq 'Reapply' -and
             [IO.File]::Exists($abandonedPath)) {
@@ -373,7 +373,7 @@ function Start-AtlasInstallState {
 
                 # AME can classify a retry differently after a partial install has
                 # changed product state (for example Fresh -> Reapply). Resume the
-                # original plan, options and completed-step boundary; only refresh
+                # original plan, options and completed steps; only refresh
                 # the interactive identity before resuming.
                 $existing.status = 'Capturing'
                 $existing.userSid = $null
@@ -564,8 +564,8 @@ function Invoke-AtlasInstallStep {
         return [pscustomobject]@{ Skipped = $true; Result = $null }
     }
 
-    # Actions can launch a user process that reads this state. Keep the named
-    # state mutex out of the action boundary so the parent and child cannot
+    # Actions can launch a user process that reads this state. Never hold the
+    # named state mutex while an action runs, so the parent and child cannot
     # deadlock while waiting on each other.
     try {
         $result = & $Action
@@ -575,8 +575,8 @@ function Invoke-AtlasInstallStep {
         if ($message.Length -gt 4096) {
             $message = $message.Substring(0, 4096)
         }
-        # The action failure is the authoritative diagnostic; recording lastError is
-        # best-effort once the state or its transaction has moved on.
+        # The action failure is what gets reported; recording lastError is best
+        # effort once the state or its transaction has moved on.
         try {
             Invoke-AtlasInstallStateLocked {
                 $state = Get-AtlasInstallStateUnlocked -StatePath $resolvedPath
@@ -689,7 +689,7 @@ function Complete-AtlasInstallState {
         Publish-AtlasInstallFlagSet -State $state -FlagsPath $installFlagsPath
         $documentPath = $StateDocumentPath
         if ([string]::IsNullOrWhiteSpace($documentPath)) {
-            # AtlasOS\Installctive.json sits beside AtlasOS\state.json.
+            # state.json lives in AtlasOS, one level above Install\active.json.
             $documentPath = Join-Path -Path (Split-Path -Path (Split-Path -Path $resolvedPath -Parent) -Parent) -ChildPath 'state.json'
         }
         $null = Set-AtlasStateInstall -InstallState $state -Path $documentPath
@@ -716,7 +716,7 @@ function Complete-AtlasInstallState {
 function Get-AtlasPlaybookDocument {
     <#
     .SYNOPSIS
-        Loads playbook.conf from an explicit path or from the payload this module ships in.
+        Loads playbook.conf from an explicit path or from the package this module is part of.
     #>
     param([string]$PlaybookPath)
 
@@ -734,7 +734,7 @@ function Get-AtlasPlaybookDocument {
 function Get-AtlasPlaybookVersion {
     <#
     .SYNOPSIS
-        Returns the playbook's own version, validated as a semantic version string.
+        Returns the package's own version, validated as a semantic version string.
     #>
     param([string]$PlaybookPath)
 
@@ -787,7 +787,7 @@ function Resolve-AtlasInstallMode {
     .SYNOPSIS
         Decides whether an install of the target version is Fresh, an Upgrade, or a
         Reapply of the same version, from active install state, the machine state
-        document or legacy OEM version markers. Upgrades must be declared by the playbook.
+        document or legacy OEM version markers. Upgrades must be declared in playbook.conf.
     #>
     param(
         [Parameter(Mandatory = $true)][string]$TargetVersion,
@@ -803,8 +803,8 @@ function Resolve-AtlasInstallMode {
         if ([string]$active.targetVersion -cne $TargetVersion) {
             throw "An install state for target '$($active.targetVersion)' is already active."
         }
-        # An interrupted Fresh run can already have copied the payload without
-        # publishing a version. Its durable transaction retains the original mode.
+        # An interrupted Fresh run can already have copied Atlas's files without
+        # publishing a version. Its saved transaction retains the original mode.
         return [string]$active.mode
     }
     $document = Get-AtlasState -Path (Join-Path -Path $WindowsPath -ChildPath 'AtlasOS\state.json')
@@ -833,9 +833,9 @@ function Resolve-AtlasInstallMode {
         return 'Upgrade'
     }
 
-    # An unversioned payload is not evidence of a supported upgrade source.
+    # Atlas files without a version are not evidence of a supported upgrade source.
     if ([IO.Directory]::Exists((Join-Path -Path $WindowsPath -ChildPath 'AtlasModules\Scripts'))) {
-        throw 'An Atlas payload exists but its installed version could not be established. A supported upgrade source is required.'
+        throw 'Atlas files exist but their installed version could not be established. A supported upgrade source is required.'
     }
     return 'Fresh'
 }

@@ -175,7 +175,7 @@ function Invoke-AtlasToggleElevatedChild {
     <#
     .SYNOPSIS
         Relaunches Invoke-Toggle.ps1 through UAC and waits for it. A nonzero child exit
-        code is rethrown with the code attached so the CLI boundary can propagate it.
+        code is rethrown with the code attached so the command-line entry point can propagate it.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -702,7 +702,7 @@ function Invoke-AtlasToggleMachineState {
 function Invoke-AtlasServiceDefaultsReset {
     <#
     .SYNOPSIS
-        Applies the fixed shipped service-default plan under strict TrustedInstaller.
+        Applies Atlas's fixed service-default plan under strict TrustedInstaller.
     .DESCRIPTION
         Private and parameterless by design. This is not a generic elevation bypass:
         both the complete definition-file set and each exact default state are pinned
@@ -724,11 +724,11 @@ function Invoke-AtlasServiceDefaultsReset {
     $expectedNames = @($script:AtlasServiceDefaultResetStates.Keys | ForEach-Object { [string]$_ })
     $actualNames = @($definitionFiles | ForEach-Object { [string]$_.BaseName })
     if ($actualNames.Count -ne $expectedNames.Count) {
-        throw 'The shipped service-toggle set does not match the closed ResetServices allowlist.'
+        throw 'The installed service-toggle set does not match the closed ResetServices allowlist.'
     }
     for ($index = 0; $index -lt $expectedNames.Count; $index++) {
         if ($actualNames[$index] -cne $expectedNames[$index]) {
-            throw 'The shipped service-toggle set does not match the closed ResetServices allowlist.'
+            throw 'The installed service-toggle set does not match the closed ResetServices allowlist.'
         }
     }
 
@@ -785,7 +785,7 @@ function Invoke-AtlasToggleCurrentSessionShellRefresh {
     )
     $modulesPath = [IO.Path]::GetFullPath([string]$context.AtlasModulesPath)
     if (-not $modulesPath.Equals($expectedModulesPath, [StringComparison]::OrdinalIgnoreCase)) {
-        throw 'The toggle shell-refresh helper is outside the protected Windows payload root.'
+        throw 'The toggle shell-refresh helper is outside the protected AtlasModules folder.'
     }
 
     $helperPath = [IO.Path]::Combine($modulesPath, 'Scripts', 'Operations', 'Invoke-AtlasUserShellRefresh.ps1')

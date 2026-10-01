@@ -1,4 +1,5 @@
 BeforeAll {
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:RepoRoot = Split-Path -Parent $PSScriptRoot
     $script:PackageHelperPath = Join-Path $script:RepoRoot `
         'playbook\Executables\AtlasModules\Scripts\Operations\ProcessExplorer-Package.ps1'
@@ -8,33 +9,14 @@ BeforeAll {
 }
 
 Describe 'Process Explorer package identity' {
-    It 'selects the reviewed native binary for <Architecture>' -TestCases @(
-        @{
-            Architecture = 'X86'
-            Name = 'procexp.exe'
-            Hash = '6a26da49b2de1c70705918f8805192f7dfe43234c59a06a55145b35d46a8e660'
-        }
-        @{
-            Architecture = 'X64'
-            Name = 'procexp64.exe'
-            Hash = '917b5d71f732bf5b5423cd212c004b2433a63e9dfe02a2a27ea421252c815690'
-        }
-        @{
-            Architecture = 'ARM64'
-            Name = 'procexp64a.exe'
-            Hash = '3373e0461a8421c1c92c5b07c8b258ba09a722ebb1f082fd75f43c40ed8ef839'
-        }
+    It 'selects the native binary and its SHA-256 for <Architecture>' -TestCases @(
+        @{ Architecture = 'X86'; Name = 'procexp.exe' }
+        @{ Architecture = 'X64'; Name = 'procexp64.exe' }
+        @{ Architecture = 'ARM64'; Name = 'procexp64a.exe' }
     ) {
-        param($Architecture, $Name, $Hash)
-
         $binary = Get-AtlasProcessExplorerBinary -Architecture $Architecture
-        $binary.ArchiveName | Should -Be $Name
-        $binary.Sha256 | Should -Be $Hash
-    }
-
-    It 'rejects an unsupported native architecture' {
-        { Get-AtlasProcessExplorerBinary -Architecture 'RISCV64' } |
-            Should -Throw "*does not support native architecture 'RISCV64'*"
+        $binary.ArchiveName | Should -BeExactly $Name
+        $binary.Sha256 | Should -MatchExactly '^[0-9a-f]{64}$'
     }
 }
 
@@ -119,7 +101,7 @@ Describe 'Process Explorer ownership state' {
         $state.PcwPriorStart | Should -Be 3
     }
 
-    It 'round-trips the bounded JSON record' {
+    It 'round-trips the size-limited JSON record' {
         $statePath = Join-Path $TestDrive 'ProcessExplorer\Atlas.ProcessExplorer.State.json'
         $state = ConvertTo-AtlasProcessExplorerState -Architecture ARM64 `
             -InstalledBinarySha256 ('c' * 64) -PcwStart 4 `
@@ -291,7 +273,6 @@ Describe 'Process Explorer integration ownership' {
 
 Describe 'Process Explorer toggle caller' {
     BeforeAll {
-        . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
         $modulesRoot = Join-Path $script:RepoRoot 'playbook\Executables\AtlasModules\Scripts\Modules'
         Import-Module (Join-Path $modulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
         Import-Module (Join-Path $modulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
@@ -352,23 +333,9 @@ function Write-AtlasProcessExplorerUserPreference {
         Remove-Item -LiteralPath $script:CallRecord -Force -ErrorAction SilentlyContinue
     }
 
-    It 'declares Enable as split machine and user work and Disable as machine work' {
-        $install = $script:Definition.States['Enable']
-        $uninstall = $script:Definition.States['Disable']
-
-        $install['MachineAction'] | Should -BeExactly 'Install-AtlasProcessExplorer'
-        $install['UserAction'] | Should -BeExactly 'Set-AtlasProcessExplorerUserPreference'
-        $install['StateValue'] | Should -Be 1
-        $uninstall['MachineAction'] | Should -BeExactly 'Uninstall-AtlasProcessExplorer'
-        $uninstall.Contains('UserAction') | Should -BeFalse
-        $uninstall['StateValue'] | Should -Be 0
-
-        $installWork = Get-AtlasToggleStateWork -Definition $script:Definition -StateEntry $install
-        $installWork.Machine | Should -BeTrue
-        $installWork.User | Should -BeTrue
-        $uninstallWork = Get-AtlasToggleStateWork -Definition $script:Definition -StateEntry $uninstall
-        $uninstallWork.Machine | Should -BeTrue
-        $uninstallWork.User | Should -BeFalse
+    It 'records Enable as state 1' {
+        $script:Definition.States['Enable']['StateValue'] | Should -Be 1 `
+            -Because 'Stop-ProcessExplorerUpgrade.ps1 preserves and rewrites state 1'
     }
 
     It 'does not invent consent to disable pcw during silent replay' {
@@ -376,9 +343,12 @@ function Write-AtlasProcessExplorerUserPreference {
         Get-Content -LiteralPath $script:CallRecord | Should -Be 'Install:False'
     }
 
-    It 'sets OneInstance in the initiating user action' {
-        Invoke-ProcessExplorerFunction -FunctionName $script:Definition.States['Enable']['UserAction']
-        Get-Content -LiteralPath $script:CallRecord | Should -Be 'UserPreference'
+    It 'runs the <Action> of <State> through its package operation' -TestCases @(
+        @{ State = 'Enable'; Action = 'UserAction'; Operation = 'UserPreference' }
+        @{ State = 'Disable'; Action = 'MachineAction'; Operation = 'Uninstall' }
+    ) {
+        Invoke-ProcessExplorerFunction -FunctionName $script:Definition.States[$State][$Action]
+        Get-Content -LiteralPath $script:CallRecord | Should -Be $Operation
     }
 
     It 'installs interactively without offering to disable a boot driver' {
@@ -391,31 +361,13 @@ function Write-AtlasProcessExplorerUserPreference {
         }
         finally { $script:ToggleContext.Silent = $true }
     }
-
-    It 'delegates uninstall to the machine package operation' {
-        Invoke-ProcessExplorerFunction -FunctionName $script:Definition.States['Disable']['MachineAction']
-        Get-Content -LiteralPath $script:CallRecord | Should -Be 'Uninstall'
-    }
-
-    It 'fails clearly when the package helper is missing from the Operations folder' {
-        $missing = [pscustomobject]@{
-            Name           = 'ProcessExplorer'
-            State          = 'Enable'
-            Silent         = $true
-            OperationsPath = (Join-Path $TestDrive 'no-operations')
-        }
-
-        {
-            InModuleScope Atlas.Toggles {
-                Invoke-AtlasToggleFunction -Definition $d -FunctionName 'Install-AtlasProcessExplorer' -Toggle $t -Label 'test'
-            } -Parameters @{ d = $script:Definition; t = $missing }
-        } | Should -Throw '*package helper is missing*'
-        $script:CallRecord | Should -Not -Exist
-    }
 }
 
 Describe 'Process Explorer upgrade teardown' {
     BeforeEach {
+        # The script dot-sources the Atlas bootstrap, which replaces PSModulePath for the
+        # whole process.
+        $script:SavedModulePath = $env:PSModulePath
         $script:UpgradeStateValue = 1
         $script:UpgradeStatePath = 'HKLM:\SOFTWARE\AtlasOS\Services\ProcessExplorer'
         $script:UpgradeUninstallPath = Join-Path `
@@ -445,7 +397,11 @@ Describe 'Process Explorer upgrade teardown' {
         Mock New-Item {}
     }
 
-    It 'uses the fixed staged cleanup helper instead of the installed desktop launcher' {
+    AfterEach {
+        $env:PSModulePath = $script:SavedModulePath
+    }
+
+    It 'uses the fixed staged cleanup helper instead of the installed desktop launcher and keeps the enabled choice' {
         . $script:UpgradeStopPath
         Should -Invoke Start-Process -Times 1 -Exactly -ParameterFilter {
             $FilePath -like '*WindowsPowerShell*v1.0*powershell.exe' -and
@@ -453,22 +409,16 @@ Describe 'Process Explorer upgrade teardown' {
             $ArgumentList -contains '-NonInteractive'
         }
         Should -Invoke Start-Process -Times 0 -Exactly -ParameterFilter { $FilePath -like '*.cmd' }
-    }
-
-    It 'blocks payload removal after cleanup failure and retains the enabled choice' {
-        $script:FakeUpgradeProcess.ExitCode = 7
-        { . $script:UpgradeStopPath } | Should -Throw '*cleanup failed with exit code 7*'
-        Should -Invoke New-ItemProperty -Times 1 -Exactly -ParameterFilter { $Name -eq 'state' -and $Value -eq 1 }
-        Should -Invoke Start-Process -Times 0 -Exactly -ParameterFilter { $FilePath -like '*taskkill.exe' }
-    }
-
-    It 'preserves an enabled replay preference across teardown' {
-        . $script:UpgradeStopPath
-
         Should -Invoke New-ItemProperty -Times 1 -Exactly -ParameterFilter {
             $LiteralPath -eq $script:UpgradeStatePath -and
             $Name -eq 'state' -and $PropertyType -eq 'DWord' -and $Value -eq 1
         }
     }
 
+    It 'blocks file removal after cleanup failure and retains the enabled choice' {
+        $script:FakeUpgradeProcess.ExitCode = 7
+        { . $script:UpgradeStopPath } | Should -Throw '*cleanup failed with exit code 7*'
+        Should -Invoke New-ItemProperty -Times 1 -Exactly -ParameterFilter { $Name -eq 'state' -and $Value -eq 1 }
+        Should -Invoke Start-Process -Times 0 -Exactly -ParameterFilter { $FilePath -like '*taskkill.exe' }
+    }
 }

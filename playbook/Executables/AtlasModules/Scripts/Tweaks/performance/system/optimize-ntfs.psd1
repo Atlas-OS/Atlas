@@ -9,7 +9,7 @@
         # on last-access timestamps can be affected.
         @{ Exe = '{windir}\System32\fsutil.exe'; Args = @('behavior', 'set', 'disablelastaccess', '1') }
         # Disable the creation of 8.3 character-length file names on FAT- and NTFS-formatted volumes
-        # https://ttcshelbyville.wordpress.com/2018/12/02/should-you-disable-8dot3-for-performance-and-security
+        # https://learn.microsoft.com/windows-server/administration/windows-commands/fsutil-8dot3name
         @{ Exe = '{windir}\System32\fsutil.exe'; Args = @('8dot3name', 'set', '1') }
     )
 }

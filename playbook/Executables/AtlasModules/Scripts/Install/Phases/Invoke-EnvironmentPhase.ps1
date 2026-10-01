@@ -21,7 +21,7 @@ else {
     Write-AtlasLog -Message 'Preserving the existing Windows PowerShell execution policy during upgrade or reapply.'
 }
 
-# NGEN - .NET assemblies PowerShell optimization (speeds up PowerShell startup time)
+# Precompile the loaded .NET assemblies with NGEN, which speeds up PowerShell startup.
 try {
     $env:path = "$([Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory());" + $env:path
     [AppDomain]::CurrentDomain.GetAssemblies().Location | Where-Object { $_ } | ForEach-Object {
@@ -33,5 +33,4 @@ catch {
     Write-AtlasLog -Level Warning -Message "NGEN optimization failed: $($_.Exception.Message)"
 }
 
-# Disable PowerShell Core telemetry
 [Environment]::SetEnvironmentVariable('POWERSHELL_TELEMETRY_OPTOUT', '1', 'Machine')

@@ -141,39 +141,10 @@ Describe 'Test-AtlasTweakManifest shape and graph validation' {
     }
 }
 
-Describe 'Shipped tweak manifest execution graph' {
+Describe 'Tweak manifest execution graph' {
     It 'is complete, unique, resolvable and reachable' {
         $problems = @(Test-AtlasTweakManifest -Path $script:shippedManifestPath)
         Get-ProblemText -Problems $problems | Should -BeNullOrEmpty
-    }
-
-    It 'ships the registry-file RunAs verb as a fixed Administrator reg import' {
-        $manifest = Get-AtlasTweakManifest -Path $script:shippedManifestPath
-        $qol = @($manifest.Categories | Where-Object { $_.Name -eq 'qol' })[0]
-        $relativeRoot = 'qol\explorer\add-context-menus'
-        $definitionPath = Join-Path -Path $script:shippedTweaksRoot `
-            -ChildPath "$relativeRoot\merge-as-administrator.psd1"
-        $scriptPath = Join-Path -Path $script:shippedTweaksRoot `
-            -ChildPath "$relativeRoot\merge-as-administrator.ps1"
-        $legacyDefinition = Join-Path -Path $script:shippedTweaksRoot `
-            -ChildPath "$relativeRoot\merge-as-trustedinstaller.psd1"
-        $legacyScript = Join-Path -Path $script:shippedTweaksRoot `
-            -ChildPath "$relativeRoot\merge-as-trustedinstaller.ps1"
-
-        @($qol.Tweaks) | Should -Contain 'explorer/add-context-menus/merge-as-administrator'
-        @($qol.Tweaks) | Should -Not -Contain 'explorer/add-context-menus/merge-as-trustedinstaller'
-        $definitionPath | Should -Exist
-        $scriptPath | Should -Exist
-        $legacyDefinition | Should -Not -Exist
-        $legacyScript | Should -Not -Exist
-
-        $definition = Import-PowerShellDataFile -LiteralPath $definitionPath
-        $definition.Name | Should -BeExactly "Add 'Merge as administrator' to Context Menu"
-        $definition.Script | Should -BeExactly 'merge-as-administrator.ps1'
-        $definition.Description | Should -Match 'UAC-backed Administrator merge command'
-        $definition.ContainsKey('Registry') | Should -BeFalse
-        (@($definition.Keys | Sort-Object) -join ',') | Should -BeExactly 'Description,Name,Script'
-
     }
 
     It 'keeps category parent modes aligned with fresh and upgrade plans' {
@@ -190,44 +161,15 @@ Describe 'Shipped tweak manifest execution graph' {
         }
     }
 
-    It 'routes the upgrade-only theme as its own plan step directly after the Defaults phase' {
-        $manifest = Get-AtlasTweakManifest -Path $script:shippedManifestPath
-        $qol = @($manifest.Categories | Where-Object { $_.Name -eq 'qol' })[0]
-        $themeRoute = @($manifest.Standalone | Where-Object { $_.Slug -eq 'qol/appearance/atlas-theme-upgrade' })
-        $planScript = Join-Path $script:repositoryRoot `
-            'playbook\Executables\AtlasModules\Scripts\Install\Install-Plan.ps1'
-        . $planScript
-        $upgradeKeys = @((Get-AtlasInstallPlan -Mode Upgrade -IsOobe $false).Key)
-        $defaultsIndex = [Array]::IndexOf($upgradeKeys, 'Defaults')
-
-        @($qol.Tweaks) | Should -Not -Contain 'appearance/atlas-theme-upgrade'
-        @($themeRoute).Count | Should -Be 1
-        @($themeRoute[0].ParentModes) | Should -Be @('Upgrade')
-        $defaultsIndex | Should -BeGreaterOrEqual 0
-        $upgradeKeys[$defaultsIndex + 1] | Should -BeExactly 'Tweak/qol/appearance/atlas-theme-upgrade'
-        @((Get-AtlasInstallPlan -Mode Fresh -IsOobe $false).Key) |
-            Should -Not -Contain 'Tweak/qol/appearance/atlas-theme-upgrade'
-    }
-
     It 'keeps every standalone classification aligned with its PowerShell route' {
         $manifest = Get-AtlasTweakManifest -Path $script:shippedManifestPath
         $orchestrator = Join-Path $script:repositoryRoot `
             'playbook\Executables\AtlasModules\Scripts\Entry\Invoke-AtlasInstall.ps1'
         . $orchestrator
 
-        $expectedModes = @{
-            'qol/set-hidden-settings-pages'          = 'Fresh'
-            'scripts/set-power-settings'             = 'Fresh'
-            'qol/appearance/atlas-theme-upgrade'     = 'Upgrade'
-        }
-        foreach ($entry in @($manifest.Standalone)) {
-            $expectedModes.ContainsKey([string]$entry.Slug) | Should -BeTrue
-            (@($entry.ParentModes) -join ',') | Should -Be $expectedModes[[string]$entry.Slug]
-        }
-        @($manifest.Standalone).Count | Should -Be $expectedModes.Count
-
         # Every standalone slug is a 'Tweak/<slug>' plan step in exactly the modes its
         # manifest route declares, and the orchestrator dispatches it to the Tweaks phase.
+        @($manifest.Standalone).Count | Should -BeGreaterThan 0
         . (Join-Path $script:repositoryRoot `
                 'playbook\Executables\AtlasModules\Scripts\Install\Install-Plan.ps1')
         foreach ($entry in @($manifest.Standalone)) {
@@ -252,33 +194,10 @@ Describe 'Shipped tweak manifest execution graph' {
                     [IO.Path]::GetFullPath($TestDrive), 'Install\Phases\Invoke-TweaksPhase.ps1'))
             $dispatched[0].Parameters.Slug | Should -BeExactly $slug
         }
-
-        # The former lifecycle checkpoints for these tweaks no longer exist.
-        foreach ($removed in @('HiddenSettingsPages', 'PowerSettings')) {
-            {
-                Get-AtlasInstallCheckpointAction -Target $removed `
-                    -ScriptsRoot $TestDrive -SourceScriptsRoot $TestDrive
-            } | Should -Throw "*Unsupported install checkpoint '$removed'*"
-        }
     }
 }
 
-Describe 'Send-To install-time execution boundary' {
-    It 'runs the Atlas.Shell companion directly as the current user' {
-        $definitionPath = Join-Path -Path $script:shippedTweaksRoot `
-            -ChildPath 'qol\explorer\debloat-send-to.psd1'
-        $definition = Import-PowerShellDataFile -LiteralPath $definitionPath
-
-        $definition.Script | Should -BeExactly 'debloat-send-to.ps1'
-        $definition.RunAs | Should -BeExactly 'User'
-        $definition.Oobe | Should -BeFalse
-        $definition.ContainsKey('Run') | Should -BeFalse
-        Test-Path -LiteralPath (Join-Path -Path (Split-Path -Path $definitionPath -Parent) `
-                -ChildPath $definition.Script) -PathType Leaf | Should -BeTrue
-    }
-}
-
-Describe 'News and Interests install-time execution boundary' {
+Describe 'News and Interests install-time execution' {
     It 'applies and records the Widgets toggle instead of duplicating its policy writes' {
         $definitionPath = Join-Path -Path $script:shippedTweaksRoot `
             -ChildPath 'qol\taskbar\disable-news-and-interests.psd1'

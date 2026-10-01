@@ -793,7 +793,7 @@ Elevation: TrustedInstaller
 
 ### SecurityHealthTray
 
-Windows Security (Defender) tray icon startup entry, applied from the shipped .reg assets.
+Windows Security (Defender) tray icon startup entry, applied from the included .reg files.
 
 Elevation: Admin
 

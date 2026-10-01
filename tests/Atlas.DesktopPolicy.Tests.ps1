@@ -1,6 +1,11 @@
 BeforeAll {
-    . (Join-Path (Split-Path $PSScriptRoot -Parent) 'app\resources\iso\Desktop-Policy.ps1')
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
+    . (Join-Path $script:AtlasTestRepoRoot 'app\resources\iso\Desktop-Policy.ps1')
     $script:SetupSid = 'S-1-5-21-1-2-3-1001'
+}
+
+AfterAll {
+    [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree('Software\AtlasRewriteTest', $false)
 }
 
 Describe 'Fixed desktop cleanup task contract' {
@@ -80,7 +85,7 @@ Describe 'Fixed desktop cleanup task contract' {
 
 Describe 'Owned policy value cleanup' {
     BeforeEach {
-        $script:PolicyPath = 'Software\AtlasDesktopPolicyTests\' + [guid]::NewGuid().ToString('N')
+        $script:PolicyPath = 'Software\AtlasRewriteTest\DesktopPolicy\' + [guid]::NewGuid().ToString('N')
         $script:Key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($script:PolicyPath)
         $script:Key.SetValue('UnrelatedPolicy', 17)
         $script:AclBefore = $script:Key.GetAccessControl().GetSecurityDescriptorSddlForm([Security.AccessControl.AccessControlSections]::Access)
@@ -100,5 +105,21 @@ Describe 'Owned policy value cleanup' {
         $script:Key.GetValue('Shell') | Should -Be $Expected
         $script:Key.GetValue('UnrelatedPolicy') | Should -Be 17
         $script:Key.GetAccessControl().GetSecurityDescriptorSddlForm([Security.AccessControl.AccessControlSections]::Access) | Should -Be $script:AclBefore
+    }
+}
+
+Describe 'Desktop recovery log' {
+    It 'keeps the first error when a later recovery step fails too' {
+        $previousLocalAppData = $env:LOCALAPPDATA
+        try {
+            $env:LOCALAPPDATA = $TestDrive
+            foreach ($failure in @('Injected setup failure', 'Injected recovery failure')) {
+                try { throw $failure } catch { Write-AtlasDesktopRecoveryLog $_ }
+            }
+            $log = [IO.File]::ReadAllText((Join-Path $TestDrive 'Atlas-desktop-recovery.log'))
+            $log | Should -Match 'Injected setup failure'
+            $log | Should -Match 'Injected recovery failure'
+        }
+        finally { $env:LOCALAPPDATA = $previousLocalAppData }
     }
 }

@@ -38,7 +38,7 @@ if (-not [IO.File]::Exists($shellManifest)) {
 Microsoft.PowerShell.Core\Import-Module -Name $shellManifest -ErrorAction Stop
 
 if (-not [IO.Path]::IsPathRooted($Path) -or $Path.Length -gt 32767) {
-    throw 'The terminal working directory must be one bounded absolute path.'
+    throw 'The terminal working directory must be one absolute path of at most 32,767 characters.'
 }
 
 try {

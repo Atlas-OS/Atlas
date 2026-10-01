@@ -208,7 +208,7 @@ function Set-AtlasTaskbarPinsForProfile {
     }
 
     Write-AtlasLog -Message 'Adding new shortcuts...'
-    # Make sure it is a folder with a backslash.
+    # The trailing backslash makes Copy-Item treat the destination as a folder.
     Copy-Item -Path "$StagingPath\*" -Destination "$taskBarAppData\" -Force
 
     Write-AtlasLog -Message 'Changing in Registry...'

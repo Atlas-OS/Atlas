@@ -7,9 +7,9 @@ Write-AtlasStep -Text 'Creating Desktop and Start Menu shortcuts...'
 $defaultShortcut = "$(Get-UserPath)\Atlas.lnk"
 New-AtlasShortcut -Source "$windir\AtlasDesktop" -Destination $defaultShortcut -Icon "$windir\AtlasModules\Other\atlas-folder.ico,0"
 
-# Do not enumerate or write loaded user profiles from TrustedInstaller. Existing-user
-# setup is dispatched separately under the exact install-state-bound medium token; this entry
-# point owns only the default profile and common Start Menu assets.
+# Do not enumerate or write loaded user profiles from TrustedInstaller. The installing
+# user's setup runs separately in that user's own token; this script handles only the
+# default profile and the common Start Menu.
 
 # Start menu shortcut
 Copy-Item $defaultShortcut -Destination "$([Environment]::GetFolderPath('CommonStartMenu'))\Programs" -Force

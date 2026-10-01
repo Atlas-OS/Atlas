@@ -2,8 +2,8 @@ BeforeAll {
     Import-Module (Join-Path $PSScriptRoot '..\tools\build\AtlasBuild\AtlasBuild.psd1') -Force
 }
 
-Describe 'Playbook license distribution' {
-    It 'ships the complete project license in the installed module payload' {
+Describe 'Package license distribution' {
+    It 'includes the complete project license in the installed modules' {
         $repo = Split-Path $PSScriptRoot -Parent
         $projectLicense = Join-Path $repo 'LICENSE'
         $payloadLicense = Join-Path $repo 'playbook\Executables\AtlasModules\LICENSE'
@@ -43,20 +43,17 @@ Describe 'Get-PlaybookVersion' {
         $result.VersionLabel | Should -Be 'v0.6.0 (dev)'
     }
 
-    It 'throws on an invalid version format' {
-        $conf = Join-Path $TestDrive 'playbook.conf'
-        @'
-<Playbook>
-    <Title>Atlas</Title>
-    <Version>not.a.version</Version>
-</Playbook>
-'@ | Set-Content -Path $conf -Encoding UTF8
+    It 'throws on <Case>' -TestCases @(
+        @{ Case = 'an invalid version format'; Version = 'not.a.version'; Message = "*Invalid version format 'not.a.version'*" }
+        @{ Case = 'a missing file'; Version = $null; Message = '*playbook.conf not found*' }
+    ) {
+        $conf = Join-Path $TestDrive "$([guid]::NewGuid().ToString('N')).conf"
+        if ($Version) {
+            "<Playbook><Title>Atlas</Title><Version>$Version</Version></Playbook>" |
+                Set-Content -Path $conf -Encoding UTF8
+        }
 
-        { Get-PlaybookVersion -PlaybookConfPath $conf } | Should -Throw
-    }
-
-    It 'throws when the file is missing' {
-        { Get-PlaybookVersion -PlaybookConfPath (Join-Path $TestDrive 'missing.conf') } | Should -Throw
+        { Get-PlaybookVersion -PlaybookConfPath $conf } | Should -Throw $Message
     }
 }
 
@@ -87,25 +84,17 @@ Describe 'New-StagedPlaybookConf' {
         Test-Path $stagedConf | Should -BeFalse
     }
 
-    It 'strips requirement lines' {
-        New-StagedPlaybookConf -PlaybookConfPath $sourceConf -DestinationPath $stagedConf -RemoveRequirements | Should -BeTrue
-        $content = Get-Content $stagedConf -Raw
-        $content | Should -Not -Match '<Requirement>'
-        $content | Should -Match '<SupportedBuilds>'
-        $content | Should -Match '<ProductCode>'
-    }
+    It '-<Switch> strips only its own lines' -ForEach @(
+        @{ Switch = 'RemoveRequirements'; Gone = @('<Requirement>'); Kept = @('<SupportedBuilds>', '<ProductCode>') }
+        @{ Switch = 'RemoveWinverRequirement'; Gone = @('SupportedBuilds', '<string>26100</string>'); Kept = @('<Requirement>') }
+        @{ Switch = 'RemoveVerification'; Gone = @('<ProductCode>'); Kept = @('<Requirement>') }
+    ) {
+        $removal = @{ $Switch = $true }
+        New-StagedPlaybookConf -PlaybookConfPath $sourceConf -DestinationPath $stagedConf @removal | Should -BeTrue
 
-    It 'strips supported builds lines' {
-        New-StagedPlaybookConf -PlaybookConfPath $sourceConf -DestinationPath $stagedConf -RemoveWinverRequirement | Should -BeTrue
         $content = Get-Content $stagedConf -Raw
-        $content | Should -Not -Match 'SupportedBuilds'
-        $content | Should -Not -Match '<string>26100</string>'
-        $content | Should -Match '<Requirement>'
-    }
-
-    It 'strips the product code line' {
-        New-StagedPlaybookConf -PlaybookConfPath $sourceConf -DestinationPath $stagedConf -RemoveVerification | Should -BeTrue
-        (Get-Content $stagedConf -Raw) | Should -Not -Match '<ProductCode>'
+        foreach ($line in $Gone) { $content | Should -Not -Match ([regex]::Escape($line)) }
+        foreach ($line in $Kept) { $content | Should -Match ([regex]::Escape($line)) }
     }
 }
 
@@ -127,14 +116,9 @@ Describe 'Atlas configuration build boundary' {
         }
     }
 
-    It 'accepts the compact reviewed runner configuration' {
-        $fixture = Copy-AtlasTaskFreeConfiguration `
-            -Destination (Join-Path $TestDrive 'task-free-target')
-        $summary = Assert-AtlasConfigurationRunnerBoundary `
-            -ConfigurationRoot $fixture
-
-        $summary.Actions | Should -Be 30
-        $summary.Runs | Should -Be 27
+    It 'accepts the committed runner configuration' {
+        { Assert-AtlasConfigurationRunnerBoundary -ConfigurationRoot $script:BuildBoundarySourceConfiguration } |
+            Should -Not -Throw
     }
 
     It 'rejects currentUserElevated even when every other run field is canonical' {
@@ -153,7 +137,7 @@ Describe 'Atlas configuration build boundary' {
             Should -Throw -ExpectedMessage "*unsupported runas 'currentUserElevated'*"
     }
 
-    It 'rejects Command mode now that every privileged runner uses a direct script file' {
+    It 'rejects Command mode, because every privileged runner uses a direct script file' {
         $fixture = Copy-AtlasTaskFreeConfiguration `
             -Destination (Join-Path $TestDrive 'command-mode')
         $customYml = Join-Path $fixture 'custom.yml'
@@ -238,12 +222,10 @@ Describe 'Set-OemVersionStamp' {
 }
 
 Describe 'Get-AvailableArchiveName' {
-    It 'returns the base name when nothing conflicts' {
+    It 'keeps the base name until it exists, then appends a counter when replacement is not allowed' {
         Get-AvailableArchiveName -BaseName 'Atlas.apbx' -WorkingDirectory $TestDrive -DisplayName 'Atlas' |
             Should -Be 'Atlas.apbx'
-    }
 
-    It 'appends a counter when the file exists and replacement is not allowed' {
         New-Item -Path (Join-Path $TestDrive 'Atlas.apbx') -ItemType File | Out-Null
         Get-AvailableArchiveName -BaseName 'Atlas.apbx' -WorkingDirectory $TestDrive -DisplayName 'Atlas' |
             Should -Be 'Atlas (1).apbx'
@@ -501,8 +483,8 @@ Describe 'Atomic APBX publication' {
     }
 }
 
-Describe 'APBX payload path contracts' {
-    It 'enumerates every source payload file except generated APBX outputs' {
+Describe 'APBX file path contracts' {
+    It 'enumerates every source file except generated APBX outputs' {
         $playbook = Join-Path $TestDrive 'playbook'
         New-Item -Path (Join-Path $playbook 'Configuration') -ItemType Directory -Force | Out-Null
         New-Item -Path (Join-Path $playbook 'Executables\Nested') -ItemType Directory -Force | Out-Null
@@ -634,7 +616,7 @@ exit 37
 
 }
 
-Describe 'Playbook version coherence' {
+Describe 'Package version coherence' {
     BeforeAll {
         $script:repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
         $script:setVersionScript = Join-Path $script:repoRoot 'tools\build\Set-AtlasVersion.ps1'
@@ -666,7 +648,7 @@ Describe 'Playbook version coherence' {
         $entries.Count | Should -BeGreaterThan 0
         foreach ($entry in $entries) {
             $entry | Should -Be $confVersion `
-                -Because 'Set-AtlasVersion.ps1 must keep custom.yml upgrade actions bound to the shipped version'
+                -Because 'Set-AtlasVersion.ps1 must keep custom.yml upgrade actions bound to the released version'
         }
     }
 

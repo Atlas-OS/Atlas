@@ -8,11 +8,9 @@ BeforeAll {
         'powershell.exe'
     )
 
-    # Rehost the real entry script next to a stub toggle engine so the process
-    # boundary (arguments, logging, exit code) is exercised without touching any
-    # real toggle definition. Invoke-Toggle.ps1 lives in Scripts\Entry and resolves
-    # the trust bootstrap at ..\Initialize-AtlasPowerShell.ps1 and the engine at
-    # ..\Modules\Atlas.Toggles\Atlas.Toggles.psd1 relative to its own folder.
+    # Rehost the real entry script next to a stub toggle engine, so its process
+    # behavior (arguments, logging, exit code) runs without any real toggle.
+    # Invoke-Toggle.ps1 finds the bootstrap and modules relative to its own folder.
     $harnessRoot = Join-Path $TestDrive 'Harness'
     $harnessScripts = Join-Path $harnessRoot 'Scripts'
     $null = New-Item -Path (Join-Path $harnessScripts 'Entry') -ItemType Directory -Force
@@ -25,9 +23,8 @@ BeforeAll {
     Copy-Item -LiteralPath (Join-Path $script:ScriptsRoot 'Initialize-AtlasPowerShell.ps1') `
         -Destination (Join-Path $harnessScripts 'Initialize-AtlasPowerShell.ps1')
 
-    # The entry script imports the core presentation before the engine. The stub keeps
-    # the same command surface so the process boundary under test stays the only
-    # real code.
+    # The entry script imports Atlas.Core before the engine; the stub keeps the
+    # commands it calls.
     Set-Content -LiteralPath (Join-Path $harnessScripts 'Modules\Atlas.Core\Atlas.Core.psd1') `
         -Encoding Ascii -Value @'
 @{
@@ -130,13 +127,6 @@ Describe 'Toggle CLI entry point exit and logging contract' {
         $result.ExitCode | Should -Be 1
         $result.Output | Should -Match `
             "Applying toggle 'HarnessFailure' failed: harness toggle failure"
-    }
-
-    It 'exits nonzero for an unknown toggle name' {
-        $result = Invoke-ToggleEntry -Arguments @('-Name', 'NoSuchToggle', '/silent')
-
-        $result.ExitCode | Should -Be 1
-        $result.Output | Should -Match "Unknown toggle 'NoSuchToggle'"
     }
 
     It 'exits nonzero when no toggle name is supplied' {

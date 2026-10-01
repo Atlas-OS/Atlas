@@ -1,4 +1,8 @@
+# Stages files for the app's elevated workers under Program Files\Atlas Setup
+# Recovery, which only SYSTEM and Administrators can change, so a process running
+# as the same user cannot swap a script or request before it is used.
 param([switch]$FunctionsOnly)
+# This elevated worker must never autoload a module from an inherited user path.
 $env:PSModulePath = [IO.Path]::Combine($PSHOME, 'Modules')
 if (-not $FunctionsOnly) {
     [Console]::InputEncoding = New-Object Text.UTF8Encoding($false)
@@ -6,12 +10,15 @@ if (-not $FunctionsOnly) {
 }
 $ErrorActionPreference = 'Stop'
 
+# SYSTEM and Administrators: full control. Users: read and execute (0x1200a9).
 function Get-AtlasRecoverySecurity {
     $security = New-Object Security.AccessControl.DirectorySecurity
     $security.SetSecurityDescriptorSddlForm('O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1200a9;;;BU)')
     return $security
 }
 
+# Update-Windows.ps1 writes state.json with this same descriptor
+# (Get-PreparationStateSecurity); validate-preparation rejects any other.
 function Get-AtlasRecoveryFileSecurity {
     $security = New-Object Security.AccessControl.FileSecurity
     $security.SetSecurityDescriptorSddlForm('O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;0x1200a9;;;BU)')
@@ -25,11 +32,13 @@ function Write-AtlasProtectedRecoveryFile {
     finally { $stream.Dispose() }
 }
 
-function Get-AtlasPreparationDirectory {
-    param([string]$Root, [string]$Scope, [string]$Job, [switch]$Create)
-    if ($Scope -cnotmatch '^[0-9a-f]{64}$' -or $Job -notmatch '^\d+-\d+$') { throw 'Invalid preparation job identity.' }
+# Root\Kind\Scope\Job, creating each level with the protected descriptor or,
+# without -Create, checking that every level still has it.
+function Get-AtlasJobDirectory {
+    param([string]$Root, [ValidateSet('Preparation', 'Media')][string]$Kind, [string]$Scope, [string]$Job, [switch]$Create)
+    if ($Scope -cnotmatch '^[0-9a-f]{64}$' -or $Job -notmatch '^\d+-\d+$') { throw "Invalid $($Kind.ToLowerInvariant()) job identity." }
     $directory = $Root
-    foreach ($part in @('', 'Preparation', $Scope, $Job)) {
+    foreach ($part in @('', $Kind, $Scope, $Job)) {
         if ($part) { $directory = Join-Path $directory $part }
         if ($Create) { $null = New-AtlasRecoveryDirectory $directory }
         else {
@@ -65,11 +74,22 @@ function Get-AtlasCancellationSecurity {
 
 function New-AtlasPreparationJob {
     param([string]$Root, [string]$Scope, [string]$Job, [string]$Worker, [byte[]]$Policy)
-    $directory = Get-AtlasPreparationDirectory $Root $Scope $Job -Create
+    $directory = Get-AtlasJobDirectory $Root Preparation $Scope $Job -Create
     Write-AtlasProtectedRecoveryFile (Join-Path $directory 'Update-Windows.ps1') ([Text.Encoding]::UTF8.GetBytes($Worker)) (Get-AtlasRecoveryFileSecurity)
     Write-AtlasProtectedRecoveryFile (Join-Path $directory 'DriverPolicy.reg') $Policy (Get-AtlasRecoveryFileSecurity)
     foreach ($log in @('worker.log','updates.log')) { Write-AtlasProtectedRecoveryFile (Join-Path $directory $log) ([byte[]]@()) (Get-AtlasRecoveryFileSecurity) }
     Write-AtlasProtectedRecoveryFile (Join-Path $directory 'cancel') ([byte[]]@()) (Get-AtlasCancellationSecurity)
+    return $directory
+}
+
+# Job folder for the elevated ISO and USB workers.
+function New-AtlasMediaJob {
+    param([string]$Root, [string]$Scope, [string]$Job, [object[]]$Files)
+    $directory = Get-AtlasJobDirectory $Root Media $Scope $Job -Create
+    foreach ($file in $Files) {
+        if ([string]$file.name -cnotmatch '^[A-Za-z0-9][A-Za-z0-9.-]*$') { throw 'Invalid media job file name.' }
+        Write-AtlasProtectedRecoveryFile (Join-Path $directory $file.name) ([byte[]]$file.bytes) (Get-AtlasRecoveryFileSecurity)
+    }
     return $directory
 }
 
@@ -125,10 +145,7 @@ function Copy-AtlasRecoveryExecutable {
             try { [IO.File]::Move($temporary, $destination) }
             catch [IO.IOException] { if (-not [IO.File]::Exists($destination)) { throw } }
         }
-        Assert-AtlasRecoveryPath $destination
-        $sections = [Security.AccessControl.AccessControlSections]::Access -bor [Security.AccessControl.AccessControlSections]::Owner
-        $security = (Get-Item -LiteralPath $destination).GetAccessControl()
-        if ($security.GetSecurityDescriptorSddlForm($sections) -cne (Get-AtlasRecoveryFileSecurity).GetSecurityDescriptorSddlForm($sections)) { throw 'The recovery executable permissions changed.' }
+        Assert-AtlasRecoveryFileSecurity $destination
         if ((Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash -ine $digest) { throw 'The existing recovery executable does not match this app.' }
         return $destination
     }
@@ -144,13 +161,19 @@ if (-not $FunctionsOnly) {
     $programFiles = [Environment]::GetFolderPath('ProgramFiles')
     if ([string]::IsNullOrWhiteSpace($programFiles)) { throw 'Windows did not provide the Program Files directory.' }
     $root = Join-Path $programFiles 'Atlas Setup Recovery'
-    $path = if ($request.operation -eq 'preparation') {
-        New-AtlasPreparationJob -Root $root -Scope ([string]$request.scope) -Job ([string]$request.job) -Worker ([string]$request.worker) -Policy ([byte[]]$request.policy)
-    } elseif ($request.operation -eq 'validate-preparation') {
-        $directory = Get-AtlasPreparationDirectory $root ([string]$request.scope) ([string]$request.job)
-        foreach ($file in @('Update-Windows.ps1','DriverPolicy.reg','state.json')) { Assert-AtlasRecoveryFileSecurity (Join-Path $directory $file) }
-        Assert-AtlasRecoveryFileSecurity (Join-Path $directory 'cancel') (Get-AtlasCancellationSecurity)
-        $directory
-    } else { Copy-AtlasRecoveryExecutable -Source ([string]$request.source) -Root $root }
+    $path = switch -CaseSensitive ([string]$request.operation) {
+        'preparation' {
+            New-AtlasPreparationJob -Root $root -Scope ([string]$request.scope) -Job ([string]$request.job) -Worker ([string]$request.worker) -Policy ([byte[]]$request.policy)
+        }
+        'media' { New-AtlasMediaJob -Root $root -Scope ([string]$request.scope) -Job ([string]$request.job) -Files @($request.files) }
+        'validate-preparation' {
+            $directory = Get-AtlasJobDirectory $root Preparation ([string]$request.scope) ([string]$request.job)
+            foreach ($file in @('Update-Windows.ps1','DriverPolicy.reg','state.json')) { Assert-AtlasRecoveryFileSecurity (Join-Path $directory $file) }
+            Assert-AtlasRecoveryFileSecurity (Join-Path $directory 'cancel') (Get-AtlasCancellationSecurity)
+            $directory
+        }
+        'executable' { Copy-AtlasRecoveryExecutable -Source ([string]$request.source) -Root $root }
+        default { throw 'Unknown staging operation.' }
+    }
     [Console]::WriteLine(($path | ConvertTo-Json -Compress))
 }

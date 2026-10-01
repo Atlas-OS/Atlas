@@ -1,10 +1,7 @@
 # Atlas.Shell - shell configuration module.
 Set-StrictMode -Version 3.0
 
-# Atlas.Core supplies logging, privilege checks and UI helpers; Atlas.Registry applies
-# the current-user policy values; Atlas.Shortcuts creates the taskbar pin files. Import
-# each by its exact manifest and reuse instances a long-running caller already owns: a
-# nested forced import would unload their global command surface in Windows PowerShell 5.1.
+# No -Force: a nested forced import unloads the caller's copy in Windows PowerShell 5.1.
 foreach ($dependencyManifest in @(
     '..\Atlas.Core\Atlas.Core.psd1'
     '..\Atlas.Registry\Atlas.Registry.psd1'
@@ -17,8 +14,8 @@ foreach ($dependencyManifest in @(
     Import-Module -Name $manifestPath -ErrorAction Stop
 }
 
-# Process-boundary helpers stay in Scripts\Operations; the interactive Send To flow
-# launches the session-filtered shell refresh from there.
+# Helpers that start other processes stay in Scripts\Operations; the interactive
+# Send To flow launches the session-filtered shell refresh from there.
 $script:AtlasShellOperationsRoot = [IO.Path]::GetFullPath(
     (Join-Path -Path $PSScriptRoot -ChildPath '..\..\Operations')
 )

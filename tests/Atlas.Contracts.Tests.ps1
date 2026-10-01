@@ -1,29 +1,28 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
-    $script:PlaybookRoot = Join-Path $script:RepoRoot 'playbook'
-    $script:ModulesRoot = Join-Path $script:PlaybookRoot `
-        'Executables\AtlasModules\Scripts\Modules'
-    $script:TweaksRoot = Join-Path $script:PlaybookRoot `
-        'Executables\AtlasModules\Scripts\Tweaks'
+    $script:PlaybookRoot = Join-Path $script:AtlasTestRepoRoot 'playbook'
+    $script:ModulesRoot = $script:AtlasTestModulesRoot
+    $script:TweaksRoot = Join-Path $script:AtlasTestScriptsRoot 'Tweaks'
     $script:ConfigurationRoot = Join-Path $script:PlaybookRoot 'Configuration'
+    $script:PlaybookConf = Join-Path $script:PlaybookRoot 'playbook.conf'
 
-    Import-Module -Name (Join-Path $script:ModulesRoot `
-            'Atlas.Tweaks\Atlas.Tweaks.psd1') -Force
+    Import-Module -Name (Join-Path $script:ModulesRoot 'Atlas.Tweaks\Atlas.Tweaks.psd1') -Force
+    Import-Module -Name (Join-Path $script:ModulesRoot 'Atlas.InstallState\Atlas.InstallState.psd1') `
+        -Force -DisableNameChecking
 
-    [xml]$playbook = [IO.File]::ReadAllText((Join-Path $script:PlaybookRoot 'playbook.conf'))
+    [xml]$playbook = [IO.File]::ReadAllText($script:PlaybookConf)
     $script:FeatureOptions = @($playbook.SelectNodes(
             '/Playbook/FeaturePages/*/Options/*/Name'
         ) | ForEach-Object { $_.InnerText } | Sort-Object -Unique)
 
-    . (Join-Path $script:RepoRoot 'tools\build\AtlasBuild\AtlasYamlAction.ps1')
+    . (Join-Path $script:AtlasTestRepoRoot 'tools\build\AtlasBuild\AtlasYamlAction.ps1')
     $script:CustomActions = @(Get-AtlasYamlAction `
             -Path (Join-Path $script:ConfigurationRoot 'custom.yml') `
             -RelativePath 'custom.yml')
 }
 
 Describe 'Atlas option handoff contract' {
-    It 'keeps FeaturePage, state, YAML, and tweak option sets identical' {
+    It 'keeps FeaturePage, front-door, state, YAML, and tweak option sets identical' {
         $recordActions = @($script:CustomActions | Where-Object {
                 $_.Type -ceq 'run' -and
                 [string]$_.Properties.args -match `
@@ -64,11 +63,14 @@ Describe 'Atlas option handoff contract' {
         $tweakOptions = @(InModuleScope Atlas.Tweaks {
                 $script:AtlasKnownOptions
             } | Sort-Object -Unique)
+        $frontDoorOptions = @(Get-AtlasPlaybookOption -PlaybookPath $script:PlaybookConf |
+                ForEach-Object { $_.Options } | Sort-Object -Unique)
 
         @($yamlOptions | Sort-Object -Unique) | Should -Be $script:FeatureOptions
         $recordActions.Count | Should -Be $script:FeatureOptions.Count
         $stateOptions | Should -Be $script:FeatureOptions
         $tweakOptions | Should -Be $script:FeatureOptions
+        $frontDoorOptions | Should -Be $script:FeatureOptions
     }
 
     It 'uses only declared FeaturePage options in tweak data and option checks' {
@@ -99,7 +101,7 @@ Describe 'Atlas option handoff contract' {
     }
 }
 
-Describe 'Payload module import contracts' {
+Describe 'Atlas module import contracts' {
     BeforeDiscovery {
         $modulesRoot = Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\playbook')).ProviderPath 'Executables\AtlasModules\Scripts\Modules'
         $script:PayloadManifests = @(Get-ChildItem -LiteralPath $modulesRoot -Filter 'Atlas.*.psd1' -File -Recurse |
@@ -115,7 +117,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-# Resolve modules only from this host's own inbox modules and the payload root, so
+# Resolve modules only from this host's own inbox modules and the Atlas root, so
 # per-user or cross-edition PSModulePath entries cannot shadow the inbox modules.
 # Import-PowerShellDataFile itself lives in the inbox Utility module, so this must
 # happen before the manifest is read.
@@ -150,7 +152,7 @@ if ($missing.Count -gt 0 -or $unexpected.Count -gt 0) {
         }
     }
 
-    It 'covers every module directory under the payload module root with exactly one manifest' {
+    It 'covers every module directory under the Atlas module root with exactly one manifest' {
         # Same enumeration as the discovery above: every Atlas.* directory must carry
         # exactly one manifest named after it, so a new module cannot escape the import contract.
         $directories = @(Get-ChildItem -LiteralPath $script:ModulesRoot -Directory |
@@ -172,9 +174,9 @@ if ($missing.Count -gt 0 -or $unexpected.Count -gt 0) {
     }
 }
 
-Describe 'Payload variable definition contract' {
-    # Initialize-NewUser once read a $windir it never assigned, so every account setup
-    # died on its first use. Nothing in the parse gate or the linter catches that.
+Describe 'Atlas variable definition contract' {
+    # An unassigned variable fails only when the line runs; neither the parse gate nor
+    # the linter reports it.
     It 'never reads a variable the script does not define' {
         $automatic = @(
             '_', 'args', 'error', 'false', 'true', 'null', 'input', 'this', 'psitem', 'pscmdlet',
@@ -232,17 +234,7 @@ Describe 'Exact-user operation failure reporting' {
     BeforeAll {
         # The child runs in the user's session, so its output never reaches the install
         # console. The task reads the user's own transcript to explain a failure.
-        $taskPath = Join-Path $script:PlaybookRoot `
-            'Executables\AtlasModules\Scripts\Install\Tasks\Get-AtlasUserFailureDetail.ps1'
-        $tokens = $null
-        $errors = $null
-        $ast = [System.Management.Automation.Language.Parser]::ParseFile($taskPath, [ref]$tokens, [ref]$errors)
-        $function = $ast.Find({
-                $args[0] -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
-                $args[0].Name -eq 'Get-AtlasUserFailureDetail'
-            }, $true)
-        $function | Should -Not -BeNullOrEmpty
-        . ([scriptblock]::Create($function.Extent.Text))
+        . (Join-Path $script:AtlasTestScriptsRoot 'Install\Tasks\Get-AtlasUserFailureDetail.ps1')
     }
 
     It 'returns the tail of the newest user transcript' {

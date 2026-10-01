@@ -21,9 +21,9 @@ try {
     Invoke-AtlasPinnedDownload -Uri $openShellUri -Destination $installerPath `
         -Sha256 $openShellSha256 -ExpectedBytes $openShellBytes | Out-Null
 
-    # The upstream installer is unsigned, so the immutable release hash is the
-    # executable trust boundary. These metadata checks also catch a wrong asset
-    # selected during a reviewed version bump.
+    # The upstream installer is unsigned, so the pinned release hash is what makes
+    # it trusted. These metadata checks also catch a wrong asset picked during a
+    # version bump.
     $installer = Get-Item -LiteralPath $installerPath -Force -ErrorAction Stop
     if ($installer.VersionInfo.FileVersion -ne $openShellVersion -or
         $installer.VersionInfo.CompanyName -ne 'Open-Shell' -or
@@ -80,7 +80,7 @@ try {
     }
     $actualMsiSha256 = (Get-FileHash -LiteralPath $msiPath -Algorithm SHA256).Hash
     if (-not $actualMsiSha256.Equals($msiSha256, [StringComparison]::OrdinalIgnoreCase)) {
-        throw 'The extracted Open-Shell MSI does not match the reviewed architecture-specific SHA-256.'
+        throw 'The extracted Open-Shell MSI does not match the pinned SHA-256 for this architecture.'
     }
 
     $msiexecPath = [IO.Path]::Combine(
@@ -140,7 +140,7 @@ try {
             [StringComparison]::OrdinalIgnoreCase
         ) -or
         $installedVersion.ToString(3) -ne $openShellVersion) {
-        throw 'The Open-Shell installer exited successfully but its protected installed-file/version postcondition failed.'
+        throw 'The Open-Shell installer exited successfully, but the installed files or version are not what was expected.'
     }
 
     return [pscustomobject]@{

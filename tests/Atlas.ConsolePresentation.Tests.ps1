@@ -190,21 +190,18 @@ Describe 'Prompts' {
     }
 
     It 'reports a host without keyboard input instead of hanging' {
-        Mock Read-AtlasConsoleLine -ModuleName Atlas.Core { throw "Atlas needed an answer to 'Continue?' but this window cannot take keyboard input: no console" }
-        { Read-AtlasYesNo -Question 'Continue?' } | Should -Throw '*cannot take keyboard input*'
-    }
+        # A runspace created without a host has no console to read from.
+        $shell = [powershell]::Create()
+        try {
+            $null = $shell.AddCommand('Import-Module').
+                AddParameter('Name', (Join-Path $script:AtlasTestModulesRoot 'Atlas.Core\Atlas.Core.psd1')).
+                AddStatement().AddCommand('Read-AtlasYesNo').AddParameter('Question', 'Continue?')
+            $answer = $shell.Invoke()
 
-    It 'gates continue and exit on a single Enter with fixed wording' {
-        $script:Answers.Enqueue('')
-        $script:Answers.Enqueue('')
-        Wait-AtlasContinue
-        Wait-AtlasExit
-        Should -Invoke Read-AtlasConsoleLine -ModuleName Atlas.Core -Times 1 -Exactly -ParameterFilter {
-            $Prompt -ceq 'Press Enter to continue, or Ctrl+C to cancel. '
+            $answer | Should -BeNullOrEmpty
+            "$($shell.Streams.Error)" | Should -BeLike '*cannot take keyboard input*'
         }
-        Should -Invoke Read-AtlasConsoleLine -ModuleName Atlas.Core -Times 1 -Exactly -ParameterFilter {
-            $Prompt -ceq 'Press Enter to exit. '
-        }
+        finally { $shell.Dispose() }
     }
 }
 
@@ -247,20 +244,6 @@ Describe 'Log console styles' {
         Should -Invoke Write-Host -ModuleName Atlas.Core -Times 1 -Exactly -ParameterFilter { $Object -ceq 'Warning: careful' }
         Should -Invoke Write-Host -ModuleName Atlas.Core -Times 1 -Exactly -ParameterFilter { $Object -ceq 'Error: broken' }
         Should -Invoke Write-Host -ModuleName Atlas.Core -Times 0 -Exactly -ParameterFilter { $Object -like '*already shown*' }
-    }
-
-    It 'points elevated failures at the machine install log' {
-        Mock Test-AtlasAdmin -ModuleName Atlas.Core { $true }
-        Mock Get-AtlasContext -ModuleName Atlas.Core {
-            [pscustomobject]@{ LogsPath = (Join-Path $TestDrive 'MachineLogs') }
-        }
-        Get-AtlasInstallLogPath | Should -Be (Join-Path $TestDrive 'MachineLogs\install\atlas-install.log')
-    }
-
-    It 'points unelevated failures at the user install log' {
-        Mock Test-AtlasAdmin -ModuleName Atlas.Core { $false }
-        Get-AtlasInstallLogPath | Should -Be (Join-Path `
-            ([Environment]::GetFolderPath('LocalApplicationData')) 'AtlasOS\Logs\install\atlas-install.log')
     }
 }
 

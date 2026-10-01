@@ -6,7 +6,7 @@
 # facts; the toggle engine mirrors every recorded toggle state into it. Post-install
 # tools, the health check, support bundles and the Toolbox app read this document.
 #
-# Writes take one global mutex and replace the file atomically. The document is bounded
+# Writes take one global mutex and replace the file atomically. The document is size-limited
 # and schema-checked on every read so a malformed file is reported, never trusted.
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
     'PSUseShouldProcessForStateChangingFunctions',

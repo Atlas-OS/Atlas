@@ -48,7 +48,7 @@ foreach ($childName in @('AtlasDesktop', 'AtlasModules')) {
         continue
     }
 
-    # Keep backups in place across interruption; the new payload merges into
+    # Keep backups in place across interruption; the new files merge into
     # these directories without carrying forward any old executable scripts.
     foreach ($item in Get-ChildItem -LiteralPath $resolvedTarget -Force) {
         if ($item.FullName -eq $otherPath) { continue }

@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     Opt-in developer setup: adds a snippet to your PowerShell $PROFILE that puts the
-    Atlas payload modules on PSModulePath when working in this repository under VS Code,
+    Atlas modules on PSModulePath when working in this repository under VS Code,
     so the PowerShell extension resolves Import-Module and provides IntelliSense.
 .DESCRIPTION
     Explicit one-time setup step. Safe to re-run - the snippet is only added once.

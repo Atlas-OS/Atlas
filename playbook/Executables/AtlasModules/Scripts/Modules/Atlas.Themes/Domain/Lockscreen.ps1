@@ -10,11 +10,10 @@ function Set-AtlasLockscreenImage {
     $newImagePath = [System.IO.Path]::GetTempPath() + (New-Guid).Guid + [System.IO.Path]::GetExtension($Path)
     Copy-Item $Path $newImagePath
 
-    # setup WinRT namespaces
     Add-Type -AssemblyName System.Runtime.WindowsRuntime
     [Windows.System.UserProfile.LockScreen, Windows.System.UserProfile, ContentType = WindowsRuntime] | Out-Null
 
-    # setup async
+    # WinRT async operations, awaited through .NET tasks.
     $asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object {
             $_.Name -eq 'AsTask' -and
             $_.GetParameters().Count -eq 1 -and
@@ -32,7 +31,6 @@ function Set-AtlasLockscreenImage {
         $netTask.Wait(-1) | Out-Null
     }
 
-    # make image object
     [Windows.Storage.StorageFile, Windows.Storage, ContentType = WindowsRuntime] | Out-Null
     $image = Await ([Windows.Storage.StorageFile]::GetFileFromPathAsync($newImagePath)) ([Windows.Storage.StorageFile])
 

@@ -134,7 +134,7 @@ function New-WuaComObject {
     }
 
     # IUpdateCollection exposes an enumerator; keep the COM object itself intact
-    # when it crosses the PowerShell pipeline boundary.
+    # when it passes through the PowerShell pipeline.
     return ,$instance
 }
 

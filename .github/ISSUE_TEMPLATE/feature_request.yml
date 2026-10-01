@@ -24,7 +24,7 @@ body:
   attributes:
     label: What is your feature request regarding to?
     options:
-    - Atlas Playbook
+    - Atlas
     - Other (submit it in https://github.com/Atlas-OS/Atlas/discussions)
   validations:
     required: true

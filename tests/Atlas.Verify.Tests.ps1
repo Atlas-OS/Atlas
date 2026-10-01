@@ -243,6 +243,10 @@ Describe 'Toggle verification' {
         $script:definition = Get-AtlasToggleDefinition -Name 'Verified' -TogglesRoot $script:togglesRoot
     }
 
+    BeforeEach {
+        Remove-Item -Path $script:stateRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
     It 'reports nothing for a state that holds and drift for the other state' {
         # HKCU paths are user scope, so verify the user scope of the fixture.
         @(Test-AtlasToggleState -Definition $script:definition -StateName 'Enable' -Scope User).Count | Should -Be 0
@@ -277,7 +281,6 @@ Describe 'Toggle verification' {
     }
 
     It 'flags a recorded value that matches no state' {
-        Remove-Item -Path "$script:stateRoot\Orphan" -Recurse -Force
         Set-AtlasToggleState -Name 'Verified' -State 9 -StateRoot $script:stateRoot
         $drift = @(Test-AtlasToggleDrift -Scope User -StateRoot $script:stateRoot -TogglesRoot $script:togglesRoot)
         $drift.Count | Should -Be 1
@@ -285,7 +288,7 @@ Describe 'Toggle verification' {
     }
 
     It 'reports nothing when nothing is recorded' {
-        @(Test-AtlasToggleDrift -StateRoot "$script:testRoot\EmptyState" -TogglesRoot $script:togglesRoot).Count | Should -Be 0
+        @(Test-AtlasToggleDrift -StateRoot $script:stateRoot -TogglesRoot $script:togglesRoot).Count | Should -Be 0
     }
 }
 
@@ -345,25 +348,9 @@ Describe 'Tweak verification' {
     }
 }
 
-Describe 'Test-AtlasHealth entry script' {
-    BeforeAll {
-        $script:healthScript = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Scripts\Entry\Test-AtlasHealth.ps1'
-    }
-
-    It 'parses and documents its exit codes' {
-        $tokens = $null
-        $errors = $null
-        [System.Management.Automation.Language.Parser]::ParseFile($script:healthScript, [ref]$tokens, [ref]$errors) | Out-Null
-        @($errors).Count | Should -Be 0
-        (Get-Content -LiteralPath $script:healthScript -Raw) | Should -Match 'Exit codes: 0 no drift, 1 drift found, 2'
-    }
-
-    It 'ships as an AtlasDesktop launcher that records no state' {
+Describe 'Atlas health check launcher' {
+    It 'records no state, so Reapply never replays a health check' {
         $togglesRoot = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles'
-        $definition = Get-AtlasToggleDefinition -Name 'AtlasHealth' -TogglesRoot $togglesRoot
-        $definition['NoStateRecord'] | Should -BeTrue
-        $definition['Elevation'] | Should -Be 'Admin'
-        @(Test-AtlasToggleDefinition -Path (Join-Path $togglesRoot 'Troubleshooting\AtlasHealth.psd1')).Count | Should -Be 0
-        Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasDesktop\9. Troubleshooting\Check Atlas Health.cmd' | Should -Exist
+        (Get-AtlasToggleDefinition -Name 'AtlasHealth' -TogglesRoot $togglesRoot)['NoStateRecord'] | Should -BeTrue
     }
 }

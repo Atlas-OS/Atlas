@@ -1,7 +1,6 @@
 #Requires -RunAsAdministrator
 
-# GPL-3.0-only license
-# Modified from: https://github.com/he3als/online-sxs
+# Adapted from online-sxs by he3als (GPL-3.0-only).
 #
 # Interactive shell around the Atlas.Software CBS package engine
 # (Install-AtlasCbsPackage / Uninstall-AtlasCbsPackage). This script stays at this
@@ -22,9 +21,6 @@ if (!([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -eq 'S-1-5-1
 	throw 'This script must be run as TrustedInstaller or SYSTEM.'
 }
 
-# ======================================================================================================================= #
-# INITIAL VARIABLES                                                                                                       #
-# ======================================================================================================================= #
 $windir = [Environment]::GetFolderPath('Windows')
 $scriptsRoot = Split-Path -Parent $PSScriptRoot
 $modulesRoot = Join-Path -Path $scriptsRoot -ChildPath 'Modules'
@@ -48,9 +44,6 @@ $script:warningLevel = 0
 $script:retryPackages = @()
 $literalPackages = $null
 
-# ======================================================================================================================= #
-# FUNCTIONS                                                                                                               #
-# ======================================================================================================================= #
 function Restart {
 	shutdown /f /r /t 0 *>$null
 	Start-Sleep 2
@@ -113,9 +106,6 @@ function Finish($failedPackages) {
 	}
 }
 
-# ======================================================================================================================= #
-# UNINSTALL PACKAGES                                                                                                      #
-# ======================================================================================================================= #
 if ($UninstallPackages) {
 	$uninstallResult = Uninstall-AtlasCbsPackage -Packages $UninstallPackages
 	$script:errorLevel += @($uninstallResult.FailedPackages).Count
@@ -130,9 +120,6 @@ if ($UninstallPackages) {
 	}
 }
 
-# ======================================================================================================================= #
-# UI - SELECT PACKAGES                                                                                                    #
-# ======================================================================================================================= #
 if (!$InstallPackages -and !$literalPackages) {
 	Write-AtlasTitle -Text 'Install CBS package' -Explanation 'Installs the CBS packages you choose online, into the running Windows installation.'
 	Wait-AtlasContinue
@@ -149,9 +136,6 @@ if (!$InstallPackages -and !$literalPackages) {
 	$literalPackages = @($openFileDialog.FileNames)
 }
 
-# ======================================================================================================================= #
-# PROCESS PACKAGES                                                                                                        #
-# ======================================================================================================================= #
 try {
 	if ($literalPackages) {
 		$installResult = Install-AtlasCbsPackage -Packages $literalPackages -LiteralPaths -NonInteractive:$NoInteraction
@@ -170,7 +154,4 @@ $script:errorLevel += @($installResult.FailedPackages).Count
 $script:warningLevel += @($installResult.UnmatchedPatterns).Count
 $script:retryPackages = @($installResult.RetryPackages)
 
-# ======================================================================================================================= #
-# RESTART                                                                                                                 #
-# ======================================================================================================================= #
 Finish $installResult.FailedPackages

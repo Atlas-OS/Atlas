@@ -7,7 +7,7 @@
 
       playbook\Executables\AtlasModules\Toggles\catalog.json
           Machine-readable index of every toggle, its states, launchers, elevation and
-          state values. Shipped in the payload for AtlasToolbox and other consumers.
+          state values. Included in Atlas's files for AtlasToolbox and other consumers.
       docs\catalog\toggles.md
           Human-readable toggle reference grouped by AtlasDesktop folder.
       docs\catalog\tweaks.md
@@ -281,7 +281,7 @@ function ConvertTo-TweakMarkdown {
     $lines.Add('')
     $lines.Add('## Disabled definitions')
     $lines.Add('')
-    $lines.Add('These definitions ship for reference or future changes but are not dispatched by the install plan.')
+    $lines.Add('These definitions are included for reference or future changes but are not dispatched by the install plan.')
     $lines.Add('')
     $lines.Add('| Tweak | Reason |')
     $lines.Add('| --- | --- |')

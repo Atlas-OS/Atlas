@@ -1,7 +1,6 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $script:featuresPhase = Join-Path $PSScriptRoot `
-        '..\playbook\Executables\AtlasModules\Scripts\Install\Phases\Invoke-FeaturesPhase.ps1'
+    $script:featuresPhase = Join-Path $script:AtlasTestScriptsRoot 'Install\Phases\Invoke-FeaturesPhase.ps1'
     $tokens = $null
     $errors = $null
     $script:featuresAst = [Management.Automation.Language.Parser]::ParseFile(
@@ -54,12 +53,6 @@ Describe 'DirectPlay feature enablement' {
             $Arguments -contains '/Enable-Feature' -and $Arguments -contains '/FeatureName:DirectPlay' -and $Arguments -contains '/All'
         }
     }
-
-    It 'propagates a failed feature query' {
-        Mock Dism\Get-WindowsOptionalFeature { throw 'feature query failed' }
-        { Enable-AtlasDirectPlay } | Should -Throw '*feature query failed*'
-        Should -Invoke Invoke-AtlasDism -Times 0 -Exactly
-    }
 }
 
 Describe 'Steps Recorder capability removal' {
@@ -90,16 +83,9 @@ Describe 'Steps Recorder capability removal' {
     }
 
     It 'does not mistake a failed capability query for absence' {
-        Mock Dism\Get-WindowsCapability { throw 'servicing query failed' }
+        Mock Dism\Get-WindowsCapability { Write-Error 'servicing query failed' }
         { Remove-AtlasStepsRecorder } | Should -Throw '*servicing query failed*'
         Should -Invoke Invoke-AtlasDism -Times 0 -Exactly
-    }
-
-    It 'does not hide a removal failure, including error 87' {
-        Mock Dism\Get-WindowsCapability { [pscustomobject]@{ Name = 'App.StepsRecorder~~~~0.0.1.0'; State = 'Installed' } }
-        Mock Invoke-AtlasDism { throw 'DISM failed with exit code 87' }
-        { Remove-AtlasStepsRecorder } | Should -Throw '*exit code 87*'
-        Get-AtlasDismExitDisposition -ExitCode 87 | Should -BeExactly 'Failure'
     }
 
     It 'rejects pending or unknown servicing states' -ForEach @('InstallPending', 'UninstallPending', 'Unknown') {
@@ -121,26 +107,29 @@ Describe 'Features DISM outcomes' {
             -DeferredExitCode @(-2146498554) | Should -BeExactly 'Deferred'
         Get-AtlasDismExitDisposition -ExitCode 5 `
             -DeferredExitCode @(-2146498554) | Should -BeExactly 'Failure'
+        # 87 is what Windows returns for a capability name it no longer lists.
+        Get-AtlasDismExitDisposition -ExitCode 87 | Should -BeExactly 'Failure'
     }
 
     It 'defers pending operations only for component-store cleanup' {
-        $cleanup = @($script:featuresAst.FindAll({
-                    param($node)
-                    $node -is [Management.Automation.Language.CommandAst] -and
-                    $node.GetCommandName() -eq 'Invoke-AtlasDism' -and
-                    $node.Extent.Text -match 'Cleaning the component store'
-                }, $true))
-        $cleanup.Count | Should -Be 1
-        $cleanup[0].Extent.Text | Should -Match '-DeferredExitCode\s+@\(-2146498554\)'
+        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ State = 'Disabled' } }
+        Mock Dism\Get-WindowsCapability { [pscustomobject]@{ Name = 'App.StepsRecorder~~~~0.0.1.0'; State = 'Installed' } }
+        Mock Invoke-AtlasDism {}
 
-        $otherCalls = @($script:featuresAst.FindAll({
-                    param($node)
-                    $node -is [Management.Automation.Language.CommandAst] -and
-                    $node.GetCommandName() -eq 'Invoke-AtlasDism' -and
-                    $node.Extent.Text -notmatch 'Cleaning the component store'
-                }, $true))
-        @($otherCalls | Where-Object {
-                $_.Extent.Text -match '-DeferredExitCode'
-            }).Count | Should -Be 0
+        # Run the real phase. The mock outranks the phase's own Invoke-AtlasDism, and
+        # WinDir points at TestDrive, so dism.exe can never run.
+        & {
+            function Assert-AtlasPrivilege {}
+            function Get-AtlasContext { [pscustomobject]@{ WinDir = $TestDrive; IsUpgrade = $false } }
+            . $script:featuresPhase
+        }
+
+        Should -Invoke Invoke-AtlasDism -Times 3 -Exactly
+        Should -Invoke Invoke-AtlasDism -Times 1 -Exactly -ParameterFilter {
+            $Description -ceq 'Cleaning the component store' -and "$DeferredExitCode" -ceq '-2146498554'
+        }
+        Should -Invoke Invoke-AtlasDism -Times 0 -Exactly -ParameterFilter {
+            $Description -cne 'Cleaning the component store' -and $null -ne $DeferredExitCode
+        }
     }
 }

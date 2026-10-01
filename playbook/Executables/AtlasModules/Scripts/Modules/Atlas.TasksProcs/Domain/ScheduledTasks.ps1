@@ -124,11 +124,9 @@ function Invoke-AtlasBestEffortScheduledTaskEnd {
         [Parameter(Mandatory = $true)][string]$TaskName
     )
 
-    # /End is only a fallback after the CIM stop above. The task may disappear
-    # between enumeration and this call, and Windows PowerShell promotes native
-    # stderr to an ErrorRecord before redirection when ErrorActionPreference=Stop.
-    # Keep every outcome best-effort; payload replacement verifies the actual
-    # executable/process postconditions separately.
+    # A fallback after Stop-ScheduledTask; the task may already be gone. Native stderr
+    # would throw under Stop, so ignore every outcome: file replacement checks the
+    # result itself.
     $previousErrorPreference = $ErrorActionPreference
     try {
         $ErrorActionPreference = 'Continue'
@@ -148,7 +146,7 @@ function Stop-AtlasScheduledTaskUnderRoot {
 
         # Named tasks additionally ended via schtasks /End, because the CIM-based stop
         # can fail under TrustedInstaller in session 0. Defaults to the Atlas timer
-        # resolution task, whose running executable blocks payload replacement.
+        # resolution task, whose running executable blocks replacing Atlas's files.
         [string[]]$EndTaskName = @('Force Timer Resolution', '\Force Timer Resolution')
     )
 
@@ -156,7 +154,8 @@ function Stop-AtlasScheduledTaskUnderRoot {
         Import-Module ScheduledTasks -ErrorAction SilentlyContinue | Out-Null
     }
     catch {
-        # Module may not be available on older systems; continue with fallbacks.
+        # Best effort: without the module, Get-ScheduledTask below fails and the
+        # schtasks.exe fallbacks run instead.
         $null = $_
     }
 

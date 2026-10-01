@@ -106,18 +106,7 @@ function Test-AtlasRegistryEntries {
             continue
         }
         $targetScope = Get-AtlasRegistryEntryTargetScope -Path ([string]$entry['Path'])
-        $appliesToScope = switch ($Scope) {
-            'All' { $true }
-            'Machine' { $targetScope -ceq 'Machine' }
-            'ProtectedCurrentUser' { $targetScope -ceq 'ProtectedCurrentUser' }
-            'CurrentUser' { $targetScope -ceq 'CurrentUser' }
-            'DefaultUser' { $targetScope -in @('CurrentUser', 'ProtectedCurrentUser', 'DefaultUser') }
-        }
-        if (-not $appliesToScope) {
-            continue
-        }
-        $arch = if ($entry.ContainsKey('Arch')) { [string]$entry['Arch'] } else { '' }
-        if (-not (Test-AtlasArchMatch -Arch $arch -IsArm64 $arm64)) {
+        if (-not (Test-AtlasRegistryEntryInScope -Entry $entry -TargetScope $targetScope -Scope $Scope -IsArm64 $arm64)) {
             continue
         }
 
@@ -130,10 +119,7 @@ function Test-AtlasRegistryEntries {
             continue
         }
 
-        $operation = 'Set'
-        if ($entry.ContainsKey('Operation') -and $entry['Operation']) {
-            $operation = [string]$entry['Operation']
-        }
+        $operation = Get-AtlasRegistryEntryOperation -Entry $entry
         $name = if ($entry.ContainsKey('Name')) { [string]$entry['Name'] } else { '' }
         $path = [string]$entry['Path']
 

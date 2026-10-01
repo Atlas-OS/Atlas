@@ -57,8 +57,6 @@ foreach ($moduleManifest in @(
     Import-Module -Name $moduleManifest -ErrorAction Stop
 }
 
-$version = '1.9.5'
-
 $ProgressPreference = 'SilentlyContinue'
 $sys32 = [Environment]::GetFolderPath('System')
 $msedgeExePaths = @(
@@ -150,7 +148,7 @@ function Assert-MicrosoftSignedInstaller {
         [ValidatePattern('^[0-9a-fA-F]{64}$')]
         [string]$ExpectedSha256,
 
-        [ValidateRange(1, 1073741824)]
+        [ValidateRange(1, 1GB)]
         [long]$ExpectedBytes
     )
 
@@ -259,7 +257,7 @@ function Invoke-MicrosoftWebViewDownload {
             $effectiveUri.Host -notin $microsoftEdgeDownloadHosts -or
             -not [string]::IsNullOrEmpty($effectiveUri.Query) -or
             -not [IO.Path]::GetFileName($effectiveUri.AbsolutePath).Equals($expectedFileName, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "The WebView forwarding URL resolved to the unreviewed location '$effectiveUrl'."
+            throw "The WebView forwarding URL resolved to an unexpected location '$effectiveUrl'."
         }
 
         $download = Get-Item -LiteralPath $Destination -Force -ErrorAction Stop
@@ -394,7 +392,7 @@ function Wait-EdgeUninstallerProcesses {
             }
         )
         if ($runningIds.Count -eq 0) {
-            Write-AtlasLog -Message 'Edge uninstallers completed inside the bounded launch window.'
+            Write-AtlasLog -Message 'Edge uninstallers completed inside the launch time limit.'
             return
         }
         if ([DateTime]::UtcNow -ge $launchDeadline) {
@@ -558,7 +556,7 @@ function InstallEdgeChromium {
             -not $downloadUri.IsDefaultPort -or
             -not [string]::IsNullOrEmpty($downloadUri.Query) -or
             $downloadUri.Host -notin $microsoftEdgeDownloadHosts) {
-            throw "The Edge API returned the unreviewed download location '$link'."
+            throw "The Edge API returned an unexpected download location '$link'."
         }
 
         $architectureName = @{
@@ -579,8 +577,8 @@ function InstallEdgeChromium {
         }
 
         $expectedBytes = [long]$artifact.SizeInBytes
-        if ($expectedBytes -lt 1 -or $expectedBytes -gt 1073741824) {
-            throw 'The Edge API did not provide a valid bounded MSI byte length.'
+        if ($expectedBytes -lt 1 -or $expectedBytes -gt 1GB) {
+            throw 'The Edge API did not provide a valid MSI size of at most 1 GB.'
         }
 
         $version = [string]$edgeItem.ProductVersion
@@ -730,7 +728,7 @@ function InstallWebView {
         $originalTmp = [Environment]::GetEnvironmentVariable('TMP', 'Process')
         try {
             # The bootstrapper extracts a second stage. Keep inherited TEMP/TMP
-            # inside the same protected directory as the verified outer payload.
+            # inside the same protected directory as the verified outer installer.
             [Environment]::SetEnvironmentVariable('TEMP', $stagingDirectory, 'Process')
             [Environment]::SetEnvironmentVariable('TMP', $stagingDirectory, 'Process')
 
@@ -774,9 +772,8 @@ function InstallWebView {
     }
 }
 
-# Deliberately self-contained (standalone script). MachineContext is a narrow install-only
-# contract: Components already proves strict TI, user registry/data is split into a separate
-# exact-user script, and no install/update/WebView route is accepted here.
+# -MachineContext is the install-time path: TrustedInstaller removes only the browser,
+# and Remove-EdgeCurrentUserData.ps1 cleans the installing user's data separately.
 $currentUserSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 if ($currentUserSid -eq 'S-1-5-18') {
     if (-not $MachineContext) {
@@ -836,7 +833,7 @@ if ($UninstallEdge) {
 
     # Kick off Edge's own uninstaller detached. A synchronous system-level
     # --force-uninstall can reach RestartManager and sign out the live user on 24H2/25H2.
-    # Track the detached processes so they receive only a bounded launch window and are
+    # Track the detached processes so they receive only a limited launch window and are
     # confirmed stopped before direct file deletion begins.
     $edgeUninstallers = New-Object Collections.Generic.List[object]
     foreach ($root in @(
@@ -878,8 +875,8 @@ if ($UninstallEdge) {
         Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
     }
 
-    # User-owned shortcut cleanup runs separately under the exact install-state user.
-    # This machine contract touches only the protected common shortcut locations.
+    # The installing user's shortcuts are cleaned separately in that user's token.
+    # This machine pass touches only the protected common shortcut folders.
     $edgeShortcutNames = @('edge.lnk', 'Microsoft Edge.lnk')
     $shortcutDirs = @([Environment]::GetFolderPath('CommonDesktopDirectory'), [Environment]::GetFolderPath('CommonPrograms'))
     foreach ($shortcutDir in ($shortcutDirs | Select-Object -Unique)) {
@@ -911,7 +908,7 @@ if ($UninstallEdge) {
 
     if (EdgeInstalled) {
         if ($NonInteractive) {
-            Write-Status 'Some Microsoft Edge files were not removed. Continuing so playbook cleanup can finish.' -Level Warning
+            Write-Status 'Some Microsoft Edge files were not removed. Continuing so the rest of the installation can finish.' -Level Warning
         }
         else {
             Write-AtlasPartial -Text 'Some Microsoft Edge files could not be removed.'

@@ -62,6 +62,6 @@ if (-not $disablePowerSaving) {
             '(?i)(?<![0-9a-f])[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}(?![0-9a-f])'
         ) | ForEach-Object { $_.Value.ToLowerInvariant() } | Sort-Object -Unique)
     if ($guidMatches.Count -ne 1 -or $guidMatches[0] -cne $balancedScheme) {
-        throw 'Balanced power-scheme selection failed its active-scheme postcondition.'
+        throw 'The Balanced power scheme did not become the active scheme.'
     }
 }

@@ -1,5 +1,6 @@
 BeforeAll {
-    . (Join-Path $PSScriptRoot '..\app\resources\iso\Network-Drivers.ps1')
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
+    . (Join-Path $script:AtlasTestRepoRoot 'app\resources\iso\Network-Drivers.ps1')
 }
 
 Describe 'ISO network driver selection' {
@@ -31,9 +32,19 @@ Describe 'ISO network driver selection' {
         Test-AtlasNetworkUpdate ([pscustomobject]@{ Type=2; DriverClass='Display'; DriverHardwareID='PCI\VEN_1234&DEV_5678' }) $ids | Should -BeFalse
         Test-AtlasNetworkUpdate ([pscustomobject]@{ Type=1; DriverClass='NET'; DriverHardwareID='PCI\VEN_1234&DEV_5678' }) $ids | Should -BeFalse
     }
-    It 'does not silently claim an empty installed-driver backup succeeded' {
+    It 'copies nothing, and says so in its log, when Windows includes every adapter driver' {
         Mock Get-AtlasNetworkPackages { @() }
-        { Export-AtlasNetworkDrivers -Destination $TestDrive -CancelFile (Join-Path $TestDrive 'cancel') -LogPath (Join-Path $TestDrive 'log') } | Should -Throw '*No installed*'
+        $destination = Join-Path $TestDrive 'NetworkDrivers'
+        $log = Join-Path $TestDrive 'inbox.log'
+        $packages = @(Export-AtlasNetworkDrivers -Destination $destination -CancelFile (Join-Path $TestDrive 'cancel') -LogPath $log)
+        $packages.Count | Should -Be 0
+        Test-Path -LiteralPath $destination | Should -BeFalse
+        Get-Content -LiteralPath $log -Raw | Should -Match 'Windows includes the drivers'
+    }
+    It 'reports the empty result to the app instead of a network driver folder' {
+        $script = Get-Content -LiteralPath (Join-Path $script:AtlasTestRepoRoot 'app\resources\iso\Build-Iso.ps1') -Raw
+        $script | Should -Match 'ATLAS_NOTE:network-drivers-inbox'
+        $script | Should -Match 'if \(\$networkIncluded\)'
     }
     It 'checks cancellation before starting a package export' {
         Mock Get-AtlasNetworkPackages { [pscustomobject]@{ inf='oem7.inf' } }

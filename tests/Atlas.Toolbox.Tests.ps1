@@ -9,20 +9,34 @@ BeforeAll {
     Import-Module -Name $script:DownloadModulePath -Force
     . $script:PackagePath
 
-    function Wait-ForMarkerFile {
+    $systemRoot = [Environment]::GetFolderPath([Environment+SpecialFolder]::System)
+    $script:CommandHost = [IO.Path]::Combine($systemRoot, 'cmd.exe')
+    $script:PowerShellHost = [IO.Path]::Combine($systemRoot, 'WindowsPowerShell', 'v1.0', 'powershell.exe')
+
+    # Writes a batch file that starts a detached PowerShell descendant running $Command,
+    # then exits with $ExitCode while the descendant keeps running.
+    function New-DescendantProbe {
         param(
             [Parameter(Mandatory = $true)][string]$Path,
-            [Parameter(Mandatory = $true)][int]$TimeoutSeconds
+            [Parameter(Mandatory = $true)][string]$Command,
+            [Parameter(Mandatory = $true)][int]$ExitCode
         )
 
-        $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
-        while ([DateTime]::UtcNow -lt $deadline) {
-            if ([IO.File]::Exists($Path)) {
-                return $true
-            }
-            Start-Sleep -Milliseconds 100
-        }
-        return [IO.File]::Exists($Path)
+        $probeText = @(
+            '@echo off'
+            ('start "" /b "{0}" -NoLogo -NoProfile -NonInteractive -Command "{1}"' -f
+                $script:PowerShellHost, $Command)
+            "exit /b $ExitCode"
+            ''
+        ) -join "`r`n"
+        [IO.File]::WriteAllText($Path, $probeText, [Text.Encoding]::ASCII)
+    }
+
+    function Get-ProbeProcess {
+        param([Parameter(Mandatory = $true)][string]$Token)
+
+        @(Get-CimInstance -ClassName Win32_Process -Filter "Name = 'powershell.exe'" |
+                Where-Object { $_.CommandLine -like "*$Token*" })
     }
 }
 
@@ -34,22 +48,16 @@ Describe 'Atlas Toolbox latest-channel integrity contract' {
             Sha256 = 'a' * 64
             Size    = 123456
         }
-        Mock Get-AtlasLatestGitHubReleaseAsset { $latestAsset } -ParameterFilter {
-            $Owner -ceq 'Atlas-OS' -and
-            $Repository -ceq 'atlas-toolbox' -and
-            $AssetName -ceq 'AtlasToolbox-Setup.exe' -and
-            $ExpectedRepositoryId -eq 929016610 -and
-            $ExpectedOwnerId -eq 78708182
-        }
+        Mock Get-AtlasLatestGitHubReleaseAsset { $latestAsset }
         Mock Test-AtlasToolboxInstallation { $true } -ParameterFilter {
             $ExpectedVersion -ceq '1.2.3'
         }
         Mock Write-AtlasNote
+        Mock New-AtlasProtectedStagingDirectory { throw 'An installed Toolbox must not be staged again.' }
+        Mock Invoke-AtlasPinnedDownload
 
         Install-AtlasToolboxPackage | Should -BeNullOrEmpty
-        Should -Invoke Write-AtlasNote -Times 1 -Exactly -ParameterFilter {
-            $Text -ceq 'AtlasOS Toolbox 1.2.3 is already installed.'
-        }
+        Should -Invoke Invoke-AtlasPinnedDownload -Times 0 -Exactly
         Should -Invoke Get-AtlasLatestGitHubReleaseAsset -Times 1 -Exactly `
             -ParameterFilter {
                 $Owner -ceq 'Atlas-OS' -and
@@ -177,76 +185,46 @@ Describe 'Shared download boundary' {
     }
 
     It 'waits for an exact native executable and its longer-lived descendant' {
-        $commandHost = [IO.Path]::Combine(
-            [Environment]::GetFolderPath([Environment+SpecialFolder]::System),
-            'cmd.exe'
-        )
-        $powerShellHost = [IO.Path]::Combine(
-            [Environment]::GetFolderPath([Environment+SpecialFolder]::System),
-            'WindowsPowerShell',
-            'v1.0',
-            'powershell.exe'
-        )
         $marker = Join-Path $TestDrive 'descendant-complete.txt'
         $probe = Join-Path $TestDrive 'spawn-descendant.cmd'
-        $childCommand = "Start-Sleep -Milliseconds 900; " +
-            "[IO.File]::WriteAllText('$($marker.Replace("'", "''"))', 'complete')"
-        $probeText = @(
-            '@echo off'
-            ('start "" /b "{0}" -NoLogo -NoProfile -NonInteractive -Command "{1}"' -f
-                $powerShellHost, $childCommand)
-            'exit /b 7'
-            ''
-        ) -join "`r`n"
-        [IO.File]::WriteAllText($probe, $probeText, [Text.Encoding]::ASCII)
+        New-DescendantProbe -Path $probe -ExitCode 7 -Command ("Start-Sleep -Milliseconds 900; " +
+            "[IO.File]::WriteAllText('$($marker.Replace("'", "''"))', 'complete')")
 
-        $result = Invoke-AtlasContainedProcess -FilePath $commandHost `
+        $result = Invoke-AtlasContainedProcess -FilePath $script:CommandHost `
             -ArgumentList ([string[]]@('/d', '/s', '/c', 'call', $probe)) `
             -WorkingDirectory $TestDrive `
             -Description 'The download-boundary process probe' -Hidden -NoWindow
 
         $result.ExitCodeUInt32 | Should -Be 7
-        # The tree wait must cover the descendant; the short poll only absorbs
-        # file-visibility latency, not descendant runtime.
-        Wait-ForMarkerFile -Path $marker -TimeoutSeconds 5 | Should -BeTrue
+        $marker | Should -Exist -Because 'the call must not return before the descendant finishes'
         [IO.File]::ReadAllText($marker) | Should -BeExactly 'complete'
     }
 
     It 'terminates the complete process tree when its finite timeout expires' {
-        $commandHost = [IO.Path]::Combine(
-            [Environment]::GetFolderPath([Environment+SpecialFolder]::System),
-            'cmd.exe'
-        )
-        $powerShellHost = [IO.Path]::Combine(
-            [Environment]::GetFolderPath([Environment+SpecialFolder]::System),
-            'WindowsPowerShell',
-            'v1.0',
-            'powershell.exe'
-        )
-        $marker = Join-Path $TestDrive 'timed-out-descendant.txt'
+        $token = "atlas-timeout-probe-$([guid]::NewGuid().ToString('N'))"
         $probe = Join-Path $TestDrive 'spawn-timed-out-descendant.cmd'
-        $childCommand = "Start-Sleep -Milliseconds 1500; " +
-            "[IO.File]::WriteAllText('$($marker.Replace("'", "''"))', 'escaped')"
-        $probeText = @(
-            '@echo off'
-            ('start "" /b "{0}" -NoLogo -NoProfile -NonInteractive -Command "{1}"' -f
-                $powerShellHost, $childCommand)
-            'exit /b 0'
-            ''
-        ) -join "`r`n"
-        [IO.File]::WriteAllText($probe, $probeText, [Text.Encoding]::ASCII)
+        New-DescendantProbe -Path $probe -ExitCode 0 -Command "Start-Sleep -Seconds 30 # $token"
 
-        {
-            Invoke-AtlasContainedProcess -FilePath $commandHost `
-                -ArgumentList ([string[]]@('/d', '/s', '/c', 'call', $probe)) `
-                -WorkingDirectory $TestDrive `
-                -Description 'The timeout process probe' `
-                -TimeoutSeconds 1 -Hidden -NoWindow
-        } | Should -Throw -ExpectedMessage '*1-second timeout*process tree was terminated*'
+        try {
+            {
+                Invoke-AtlasContainedProcess -FilePath $script:CommandHost `
+                    -ArgumentList ([string[]]@('/d', '/s', '/c', 'call', $probe)) `
+                    -WorkingDirectory $TestDrive `
+                    -Description 'The timeout process probe' `
+                    -TimeoutSeconds 1 -Hidden -NoWindow
+            } | Should -Throw -ExpectedMessage '*1-second timeout*process tree was terminated*'
 
-        # An escaped descendant was spawned before the timeout throw and would write
-        # its marker about 1500ms later. Poll well past that point and require that
-        # the marker never appears; the poll returns early on escape.
-        Wait-ForMarkerFile -Path $marker -TimeoutSeconds 4 | Should -BeFalse
+            # A terminated process can linger briefly while its last handles close.
+            $deadline = [DateTime]::UtcNow.AddSeconds(5)
+            while ((Get-ProbeProcess -Token $token).Count -gt 0 -and [DateTime]::UtcNow -lt $deadline) {
+                Start-Sleep -Milliseconds 100
+            }
+            Get-ProbeProcess -Token $token | Should -BeNullOrEmpty -Because 'the descendant must not outlive the timeout'
+        }
+        finally {
+            Get-ProbeProcess -Token $token | ForEach-Object {
+                Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+            }
+        }
     }
 }

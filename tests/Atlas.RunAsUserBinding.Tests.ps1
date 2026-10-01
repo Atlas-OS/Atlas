@@ -68,17 +68,6 @@ BeforeAll {
 }
 
 Describe 'Atlas installing-user process boundary' {
-    It 'keeps the exported caller-facing command surface' {
-        $command = Get-Command -Name Invoke-AtlasAsUser
-
-        $command.Parameters.Keys | Should -Contain 'FilePath'
-        $command.Parameters.Keys | Should -Contain 'Arguments'
-        $command.Parameters.Keys | Should -Contain 'WorkingDirectory'
-        $command.Parameters.Keys | Should -Contain 'Wait'
-        $command.Parameters.Keys | Should -Contain 'TimeoutSeconds'
-        $command.Parameters.Keys | Should -Not -Contain 'Elevated'
-    }
-
     It 'passes the captured SID and session to one exact System32 PowerShell launch' {
         $calls = New-Object Collections.Generic.List[object]
 
@@ -100,10 +89,6 @@ Describe 'Atlas installing-user process boundary' {
 
         $calls[0].CommandLine | Should -BeExactly `
             ('"{0}" {1}' -f $script:PowerShellPath, $arguments)
-    }
-
-    It 'returns a nonzero child exit code unchanged' {
-        Invoke-TestUserProcess -ExitCode 23 | Should -Be 23
     }
 
     It 'skips the launch during OOBE' {

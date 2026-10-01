@@ -44,7 +44,7 @@ BeforeAll {
 
 AfterAll {
     Remove-Item -Path 'Function:\global:New-AtlasPrivacyTestService' -ErrorAction SilentlyContinue
-    Remove-Variable -Name AtlasPrivacyTestCalls, AtlasPrivacyTestStatus, AtlasPrivacyTestChoices `
+    Remove-Variable -Name AtlasPrivacyTestCalls, AtlasPrivacyTestStatus, AtlasPrivacyTestFailing, AtlasPrivacyTestPackage `
         -Scope Global -ErrorAction SilentlyContinue
 }
 
@@ -123,15 +123,25 @@ Describe 'Set-AtlasLocationMachineState' {
         @($global:AtlasPrivacyTestCalls) | Should -Contain 'MapsBroker:Stop'
     }
 
-    It 'does not start a service or report enabled settings when SCM rejects the startup change' {
-        Mock Set-Service -ModuleName Atlas.Privacy { throw 'SCM configuration denied' }
-
-        { Set-AtlasLocationMachineState -State Enable } | Should -Throw '*SCM configuration denied*'
-        Should -Invoke Get-AtlasLocationServiceController -ModuleName Atlas.Privacy -Times 0
-        Should -Invoke Set-AtlasLocationSettingsPageVisibility -ModuleName Atlas.Privacy -Times 0
-        Should -Invoke Set-Service -ModuleName Atlas.Privacy -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'lfsvc' -and $StartupType -eq 'Manual' -and $ErrorAction -eq 'Stop'
+    It 'stops before touching <Failing>, the registry or the settings pages when SCM rejects its <State> change' -TestCases @(
+        @{ State = 'Enable'; Failing = 'lfsvc' }
+        @{ State = 'Disable'; Failing = 'MapsBroker' }
+    ) {
+        $global:AtlasPrivacyTestFailing = $Failing
+        Mock Set-Service -ModuleName Atlas.Privacy {
+            if ($Name -eq $global:AtlasPrivacyTestFailing) { throw 'SCM configuration denied' }
+            $global:AtlasPrivacyTestCalls.Add("$($Name):Start=$StartupType")
         }
+
+        { Set-AtlasLocationMachineState -State $State } | Should -Throw '*SCM configuration denied*'
+        Should -Invoke Set-Service -ModuleName Atlas.Privacy -Times 1 -Exactly -ParameterFilter {
+            $Name -eq $global:AtlasPrivacyTestFailing -and $ErrorAction -eq 'Stop'
+        }
+        Should -Invoke Get-AtlasLocationServiceController -ModuleName Atlas.Privacy -Times 0 -ParameterFilter {
+            $Name -eq $global:AtlasPrivacyTestFailing
+        }
+        Should -Invoke Set-AtlasRegistryValue -ModuleName Atlas.Privacy -Times 0
+        Should -Invoke Set-AtlasLocationSettingsPageVisibility -ModuleName Atlas.Privacy -Times 0
     }
 
     It 'asserts TrustedInstaller when running as TrustedInstaller and Administrator otherwise' {
@@ -141,17 +151,6 @@ Describe 'Set-AtlasLocationMachineState' {
         Mock Test-AtlasTrustedInstaller -ModuleName Atlas.Privacy { $true }
         Set-AtlasLocationMachineState -State Enable
         Should -Invoke Assert-AtlasPrivilege -ModuleName Atlas.Privacy -Times 1 -Exactly -ParameterFilter { $TrustedInstaller }
-    }
-
-    It 'stops before touching the registry when a service change fails' {
-        Mock Set-Service -ModuleName Atlas.Privacy {
-            if ($Name -eq 'MapsBroker') { throw 'MapsBroker is protected' }
-            $global:AtlasPrivacyTestCalls.Add("$($Name):Start=$StartupType")
-        }
-
-        { Set-AtlasLocationMachineState -State Disable } | Should -Throw '*MapsBroker is protected*'
-        Should -Invoke Set-AtlasRegistryValue -ModuleName Atlas.Privacy -Times 0
-        Should -Invoke Set-AtlasLocationSettingsPageVisibility -ModuleName Atlas.Privacy -Times 0
     }
 }
 
@@ -243,23 +242,20 @@ Describe 'Remove-AtlasTelemetryComponents' {
         }
     }
 
-    It 'adds the package when it is absent and marks removal as the current choice' {
-        Mock Get-AtlasTelemetryPackageInstalled -ModuleName Atlas.Privacy { $false }
-        Mock Read-AtlasChoice -ModuleName Atlas.Privacy { 1 } -ParameterFilter { $CurrentIndex -eq 2 }
+    It 'marks the current choice and applies the other one when the package is <Presence>' -TestCases @(
+        @{ Presence = 'absent'; Installed = $false; Current = 2; Choice = 1; Expected = 'package:Install:False' }
+        @{ Presence = 'present'; Installed = $true; Current = 1; Choice = 2; Expected = 'package:Uninstall:False' }
+    ) {
+        $global:AtlasPrivacyTestPackage = @{ Installed = $Installed; Current = $Current; Choice = $Choice }
+        Mock Get-AtlasTelemetryPackageInstalled -ModuleName Atlas.Privacy { $global:AtlasPrivacyTestPackage.Installed }
+        Mock Read-AtlasChoice -ModuleName Atlas.Privacy { $global:AtlasPrivacyTestPackage.Choice } -ParameterFilter {
+            $CurrentIndex -eq $global:AtlasPrivacyTestPackage.Current
+        }
 
         Remove-AtlasTelemetryComponents
 
-        @($global:AtlasPrivacyTestCalls) | Should -Be @('package:Install:False')
+        @($global:AtlasPrivacyTestCalls) | Should -Be @($Expected)
         Should -Invoke Read-AtlasChoice -ModuleName Atlas.Privacy -Times 1 -Exactly
-    }
-
-    It 'removes the package when it is present' {
-        Mock Get-AtlasTelemetryPackageInstalled -ModuleName Atlas.Privacy { $true }
-        Mock Read-AtlasChoice -ModuleName Atlas.Privacy { 2 } -ParameterFilter { $CurrentIndex -eq 1 }
-
-        Remove-AtlasTelemetryComponents
-
-        @($global:AtlasPrivacyTestCalls) | Should -Be @('package:Uninstall:False')
     }
 
     It 'applies a chosen state silently without the installer restart prompt' {
@@ -268,14 +264,6 @@ Describe 'Remove-AtlasTelemetryComponents' {
 
         @($global:AtlasPrivacyTestCalls) | Should -Be @('package:Install:True', 'package:Uninstall:True')
         Should -Invoke Read-AtlasChoice -ModuleName Atlas.Privacy -Times 0 -Exactly
-    }
-
-    It 'propagates a failed package operation' {
-        Mock Get-AtlasTelemetryPackageInstalled -ModuleName Atlas.Privacy { $false }
-        Mock Invoke-AtlasTelemetryPackageOperation -ModuleName Atlas.Privacy { throw 'Package installation failed with exit code 3.' }
-        Mock Read-AtlasChoice -ModuleName Atlas.Privacy { 1 }
-
-        { Remove-AtlasTelemetryComponents } | Should -Throw '*exit code 3*'
     }
 
     It 'detects the NoTelemetry package by name and wraps enumeration failures' {

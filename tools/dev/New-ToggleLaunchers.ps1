@@ -36,7 +36,7 @@ if (-not $RepoRoot) {
 $togglesRoot = Join-Path -Path $RepoRoot -ChildPath 'playbook\Executables\AtlasModules\Toggles'
 $desktopRoot = Join-Path -Path $RepoRoot -ChildPath 'playbook\Executables\AtlasDesktop'
 # The AtlasToolbox GUI invokes Toolbox\**\*.cmd by hard-coded path; toggles that are also
-# surfaced there declare a 'ToolboxLauncher' (Toolbox-relative path) and get a launcher
+# listed there declare a 'ToolboxLauncher' (Toolbox-relative path) and get a launcher
 # generated under this root, exactly like their AtlasDesktop launcher.
 $toolboxRoot = Join-Path -Path $RepoRoot -ChildPath 'playbook\Executables\AtlasModules\Toolbox'
 

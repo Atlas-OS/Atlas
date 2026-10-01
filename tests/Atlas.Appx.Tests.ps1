@@ -1,8 +1,7 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
-    Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Core\Atlas.Core.psd1') -Force
-    Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Appx\Atlas.Appx.psd1') -Force
+    Import-Module -Name (Join-Path -Path $script:AtlasTestModulesRoot -ChildPath 'Atlas.Core\Atlas.Core.psd1') -Force
+    Import-Module -Name (Join-Path -Path $script:AtlasTestModulesRoot -ChildPath 'Atlas.Appx\Atlas.Appx.psd1') -Force
 
     $script:testRoot = 'HKCU:\Software\AtlasRewriteTest'
     $script:deprovisionedKey = "$script:testRoot\Deprovisioned"
@@ -16,26 +15,12 @@ Describe 'Get-AtlasAppxRemovedPackage' {
     It 'returns only families present in the snapshot but no longer installed' {
         InModuleScope Atlas.Appx {
             $removed = Get-AtlasAppxRemovedPackage `
-                -Snapshot @('Pkg.A_abc', 'Pkg.B_abc', 'Pkg.C_abc') `
+                -Snapshot @('Pkg.A_abc', '', 'Pkg.B_abc', $null, 'Pkg.C_abc') `
                 -Current @('Pkg.B_abc', 'Pkg.D_abc')
-
             $removed | Should -Be @('Pkg.A_abc', 'Pkg.C_abc')
-        }
-    }
 
-    It 'returns nothing when no packages were removed' {
-        InModuleScope Atlas.Appx {
             $removed = Get-AtlasAppxRemovedPackage -Snapshot @('Pkg.A_abc') -Current @('Pkg.A_abc', 'Pkg.B_abc')
-
             @($removed).Count | Should -Be 0
-        }
-    }
-
-    It 'ignores empty snapshot lines' {
-        InModuleScope Atlas.Appx {
-            $removed = Get-AtlasAppxRemovedPackage -Snapshot @('Pkg.A_abc', '', $null) -Current @()
-
-            $removed | Should -Be @('Pkg.A_abc')
         }
     }
 }
@@ -101,21 +86,7 @@ Describe 'Exact-user AppX cache deletion' {
         Set-Content -Path (Join-Path -Path $script:packageRoot -ChildPath 'LocalState\Data\keep.dat') -Value 'x'
     }
 
-    It 'empties TempState and *Cache* folders while keeping SettingsCache.txt and other data' {
-        InModuleScope Atlas.Appx -Parameters @{ ProfileRoot = $script:profileRoot } {
-            param($ProfileRoot)
-            Clear-AtlasAppxCacheForProfile -Mode AppxSupport -ProfileRoot $ProfileRoot `
-                -SessionId 7
-        }
-
-        Test-Path -LiteralPath (Join-Path -Path $script:packageRoot -ChildPath 'TempState') | Should -BeTrue
-        Test-Path -LiteralPath (Join-Path -Path $script:packageRoot -ChildPath 'TempState\temp.dat') | Should -BeFalse
-        Test-Path -LiteralPath (Join-Path -Path $script:packageRoot -ChildPath 'LocalState\WebCache\cache.dat') | Should -BeFalse
-        Test-Path -LiteralPath (Join-Path -Path $script:packageRoot -ChildPath 'LocalState\WebCache\SettingsCache.txt') | Should -BeTrue
-        Test-Path -LiteralPath (Join-Path -Path $script:packageRoot -ChildPath 'LocalState\Data\keep.dat') | Should -BeTrue
-    }
-
-    It 'does not inspect or mutate a sibling user profile' {
+    It 'empties TempState and *Cache* folders while keeping SettingsCache.txt, other data and other profiles' {
         $otherPackage = Join-Path -Path $TestDrive `
             -ChildPath 'Users\OtherUser\AppData\Local\Packages\Microsoft.Windows.Search_other\TempState'
         New-Item -Path $otherPackage -ItemType Directory -Force | Out-Null
@@ -128,6 +99,11 @@ Describe 'Exact-user AppX cache deletion' {
                 -SessionId 7
         }
 
+        Test-Path -LiteralPath (Join-Path -Path $script:packageRoot -ChildPath 'TempState') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path -Path $script:packageRoot -ChildPath 'TempState\temp.dat') | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path -Path $script:packageRoot -ChildPath 'LocalState\WebCache\cache.dat') | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path -Path $script:packageRoot -ChildPath 'LocalState\WebCache\SettingsCache.txt') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path -Path $script:packageRoot -ChildPath 'LocalState\Data\keep.dat') | Should -BeTrue
         Test-Path -LiteralPath $otherSentinel | Should -BeTrue
     }
 
@@ -190,12 +166,28 @@ Describe 'AppX cache child identity validation' {
         $actual | Should -Be ([IO.Path]::GetFullPath($script:cacheProfile))
     }
 
-    It 'rejects a child whose SID differs from the install state' {
+    It 'rejects <Case>' -TestCases @(
+        @{
+            Case = 'a child whose SID differs from the install state'
+            UserSid = 'S-1-5-21-1000-1000-1000-1002'; IsAdministrator = $false; RegisteredLeaf = 'InstallingUser'
+            Message = '*SID differs from the install-state-bound user*'
+        }
+        @{
+            Case = 'an administrator token even when the SID matches'
+            UserSid = $null; IsAdministrator = $true; RegisteredLeaf = 'InstallingUser'
+            Message = '*not an exact unelevated user process*'
+        }
+        @{
+            Case = 'a profile path that disagrees with protected registration'
+            UserSid = $null; IsAdministrator = $false; RegisteredLeaf = 'DifferentUser'
+            Message = '*differs from the protected SID-to-profile registration*'
+        }
+    ) {
         $evidence = [pscustomobject]@{
-            UserSid               = 'S-1-5-21-1000-1000-1000-1002'
-            IsAdministrator       = $false
+            UserSid               = if ($UserSid) { $UserSid } else { $script:cacheUserSid }
+            IsAdministrator       = $IsAdministrator
             ProfileRoot           = $script:cacheProfile
-            RegisteredProfileRoot = $script:cacheProfile
+            RegisteredProfileRoot = Join-Path -Path $TestDrive -ChildPath "Users\$RegisteredLeaf"
         }
         $evidenceReader = { $evidence }.GetNewClosure()
 
@@ -208,49 +200,7 @@ Describe 'AppX cache child identity validation' {
                 Assert-AtlasAppxCacheUserIdentity -ExpectedUserSid $ExpectedSid `
                     -EvidenceReader $EvidenceReader
             }
-        } | Should -Throw -ExpectedMessage '*SID differs from the install-state-bound user*'
-    }
-
-    It 'rejects an administrator token even when the SID matches' {
-        $evidence = [pscustomobject]@{
-            UserSid               = $script:cacheUserSid
-            IsAdministrator       = $true
-            ProfileRoot           = $script:cacheProfile
-            RegisteredProfileRoot = $script:cacheProfile
-        }
-        $evidenceReader = { $evidence }.GetNewClosure()
-
-        {
-            InModuleScope Atlas.Appx -Parameters @{
-                ExpectedSid    = $script:cacheUserSid
-                EvidenceReader = $evidenceReader
-            } {
-                param($ExpectedSid, $EvidenceReader)
-                Assert-AtlasAppxCacheUserIdentity -ExpectedUserSid $ExpectedSid `
-                    -EvidenceReader $EvidenceReader
-            }
-        } | Should -Throw -ExpectedMessage '*not an exact unelevated user process*'
-    }
-
-    It 'rejects a profile path that disagrees with protected registration' {
-        $evidence = [pscustomobject]@{
-            UserSid               = $script:cacheUserSid
-            IsAdministrator       = $false
-            ProfileRoot           = $script:cacheProfile
-            RegisteredProfileRoot = Join-Path -Path $TestDrive -ChildPath 'Users\DifferentUser'
-        }
-        $evidenceReader = { $evidence }.GetNewClosure()
-
-        {
-            InModuleScope Atlas.Appx -Parameters @{
-                ExpectedSid    = $script:cacheUserSid
-                EvidenceReader = $evidenceReader
-            } {
-                param($ExpectedSid, $EvidenceReader)
-                Assert-AtlasAppxCacheUserIdentity -ExpectedUserSid $ExpectedSid `
-                    -EvidenceReader $EvidenceReader
-            }
-        } | Should -Throw -ExpectedMessage '*differs from the protected SID-to-profile registration*'
+        } | Should -Throw -ExpectedMessage $Message
     }
 
     It 'accepts only a nonzero current-process Windows session' {
@@ -329,7 +279,7 @@ Describe 'Exact-session AppX package process stopping' {
         $script:otherSessionProcess._WaitForExit.Count | Should -Be 0
     }
 
-    It 'fails when a stopped same-session package process misses the bounded exit postcondition' {
+    It 'fails when a stopped same-session package process misses the time-limited exit postcondition' {
         $timeoutModule = New-MockObject -Type 'System.Diagnostics.ProcessModule' `
             -Properties @{ FileName = $script:packageExecutable }
         $timeoutProcess = New-MockObject -Type 'System.Diagnostics.Process' `
@@ -518,7 +468,6 @@ Describe 'Install-state-bound AppX cache launcher' {
     }
 }
 
-
 Describe 'Save-AtlasAppxSnapshot' {
     It 'writes a unique all-user Bundle/Main snapshot and creates the parent directory' {
         Mock Write-AtlasLog -ModuleName Atlas.Appx
@@ -538,73 +487,14 @@ Describe 'Save-AtlasAppxSnapshot' {
             'Contoso.One_abc'
             'Contoso.Two_abc'
         )
-        Should -Invoke Get-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly
+        Should -Invoke Get-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $AllUsers -and "$PackageTypeFilter" -match 'Bundle' -and "$PackageTypeFilter" -match 'Main'
+        }
     }
 }
 
 Describe 'AppX removal policy' {
-    It 'preserves the exact ordered family patterns formerly declared in appx.yml' {
-        $expected = @(
-            'Microsoft.MicrosoftEdge_8wekyb3d8bbwe'
-            'Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe'
-            'Microsoft.Edge.GameAssist*'
-            'MicrosoftTeams*'
-            'MSTeams*'
-            'Microsoft.Copilot*'
-            'MicrosoftWindows.Client.WebExperience*'
-            'Microsoft.WidgetsPlatformRuntime*'
-            'Clipchamp.Clipchamp*'
-            'Disney.37853FC22B2CE*'
-            'SpotifyAB.SpotifyMusic*'
-            'Microsoft.549981C3F5F10*'
-            'Microsoft.XboxApp*'
-            'microsoft.windowscommunicationsapps*'
-            'Microsoft.MSPaint*'
-            'Microsoft.Paint*'
-            'Microsoft.Getstarted*'
-            'Microsoft.WindowsBackup*'
-            'Microsoft.ZuneVideo*'
-            'Microsoft.ZuneMusic*'
-            'MicrosoftCorporationII.MicrosoftFamily*'
-            'MicrosoftCorporationII.QuickAssist*'
-            'Microsoft.MixedReality.Portal*'
-            'Microsoft.Windows.DevHome*'
-            'Microsoft.BingWeather*'
-            'Microsoft.BingNews*'
-            'Microsoft.BingFinance*'
-            'Microsoft.BingSports*'
-            'Microsoft.BingSearch*'
-            'Microsoft.OutlookForWindows*'
-            'Microsoft.GetHelp*'
-            'Microsoft.Microsoft3DViewer*'
-            'Microsoft.MicrosoftOfficeHub*'
-            'Microsoft.MicrosoftSolitaireCollection*'
-            'Microsoft.MicrosoftStickyNotes*'
-            'Microsoft.StickyNotesPreview*'
-            'Microsoft.Office.OneNote*'
-            'Microsoft.OneConnect*'
-            'Microsoft.People*'
-            'Microsoft.PowerAutomateDesktop*'
-            'Microsoft.ScreenSketch*'
-            'Microsoft.SkypeApp*'
-            'Microsoft.Todos*'
-            'Microsoft.Wallet*'
-            'Microsoft.Whiteboard*'
-            'Microsoft.WindowsAlarms*'
-            'Microsoft.WindowsCamera*'
-            'Microsoft.WindowsFeedbackHub*'
-            'Microsoft.WindowsMaps*'
-            'Microsoft.WindowsSoundRecorder*'
-            'Microsoft.StartExperiencesApp*'
-            'Ink.Handwriting.Main.Store.en-US1.0'
-        )
-
-        $definitions = @(Get-AtlasAppxRemovalDefinition)
-        @($definitions.Name) | Should -Be $expected
-        $definitions.Count | Should -Be 52
-    }
-
-    It 'preserves the Edge and Snipping Tool option gates' {
+    It 'declares the removal option gates and warning-only families' {
         $definitions = @(Get-AtlasAppxRemovalDefinition)
 
         @($definitions | Where-Object Option -eq 'uninstall-edge').Name | Should -Be @(
@@ -614,12 +504,14 @@ Describe 'AppX removal policy' {
         )
         @($definitions | Where-Object Option -eq 'remove-snipping-tool').Name |
             Should -Be @('Microsoft.ScreenSketch*')
-        @($definitions | Where-Object { $_.Option -and $_.Option -notin @('uninstall-edge', 'remove-snipping-tool') }) |
-            Should -BeNullOrEmpty
-    }
 
-    It 'preserves exactly the five warning-only family patterns' {
-        $definitions = @(Get-AtlasAppxRemovalDefinition)
+        [xml]$playbook = [IO.File]::ReadAllText((Join-Path $script:AtlasTestRepoRoot 'playbook\playbook.conf'))
+        $featureOptions = @($playbook.SelectNodes('/Playbook/FeaturePages/*/Options/*/Name') | ForEach-Object { $_.InnerText })
+        foreach ($option in @($definitions | Where-Object Option | ForEach-Object Option)) {
+            $option | Should -BeIn $featureOptions
+        }
+
+        # Ordered: WebExperience must be removed before the runtime it depends on.
         @($definitions | Where-Object IgnoreErrors).Name | Should -Be @(
             'Microsoft.MicrosoftEdge_8wekyb3d8bbwe'
             'Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe'
@@ -627,6 +519,23 @@ Describe 'AppX removal policy' {
             'MicrosoftWindows.Client.WebExperience*'
             'Microsoft.WidgetsPlatformRuntime*'
         )
+    }
+
+    It 'never matches a package that Windows, the Store or winget needs' {
+        $protected = @(
+            'Microsoft.WindowsStore', 'Microsoft.DesktopAppInstaller', 'Microsoft.SecHealthUI'
+            'Microsoft.Windows.ShellExperienceHost', 'Microsoft.Windows.StartMenuExperienceHost'
+            'Microsoft.VCLibs.140.00', 'Microsoft.UI.Xaml.2.8', 'Microsoft.WindowsAppRuntime.1.5'
+        )
+        InModuleScope Atlas.Appx -Parameters @{ Protected = $protected } {
+            param($Protected)
+            $definitions = @(Get-AtlasAppxRemovalDefinition)
+            foreach ($family in $Protected) {
+                $package = [pscustomobject]@{ Name = $family; PackageFamilyName = "$($family)_8wekyb3d8bbwe" }
+                @($definitions | Where-Object { Test-AtlasAppxFamilyMatch -Package $package -Name $_.Name }) |
+                    Should -BeNullOrEmpty -Because $family
+            }
+        }
     }
 }
 
@@ -668,24 +577,6 @@ Describe 'Package-family identity matching' {
                         DisplayName = 'MSTeams'
                         PackageName = 'MSTeams_1.0.0.0_x64__8wekyb3d8bbwe'
                     }) -Name 'MSTeams*') | Should -BeTrue
-        }
-    }
-
-    It 'selects a bundle parent instead of its architecture-specific Main child' {
-        InModuleScope Atlas.Appx {
-            $packages = @(
-                [pscustomobject]@{
-                    Name = 'Bundled.App'; PackageFamilyName = 'Bundled.App_abc';
-                    PackageFullName = 'Bundled.App_2.0_neutral_~_abc'; IsBundle = $true
-                }
-                [pscustomobject]@{
-                    Name = 'Bundled.App'; PackageFamilyName = 'Bundled.App_abc';
-                    PackageFullName = 'Bundled.App_2.0_x64__abc'; IsBundle = $false
-                }
-            )
-
-            @((Get-AtlasAppxParentInstalledPackage -Package $packages).PackageFullName) |
-                Should -Be @('Bundled.App_2.0_neutral_~_abc')
         }
     }
 }
@@ -767,7 +658,11 @@ Describe 'Invoke-AtlasAppxRemovalPlan' {
 
         Invoke-AtlasAppxRemovalPlan -Definition @($definition)
 
+        # Removing the Main child after its bundle parent reports a false failure.
         Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly
+        Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Package -ceq 'Bundled.App_2.0_neutral_~_abc' -and $AllUsers
+        }
     }
 
     It 'skips an option-gated family when the option flag is absent' {

@@ -72,7 +72,7 @@ exit 37
         $detail | Should -Match 'Invoke-AtlasInstallSession.ps1'
     }
 
-    It 'bounds failure output while retaining the final exception' {
+    It 'limits failure output while retaining the final exception' {
         $payload = Join-Path $TestDrive 'bounded'
         $logs = Join-Path $payload 'AtlasModules\Logs'
         New-Item -ItemType Directory -Path $logs -Force | Out-Null

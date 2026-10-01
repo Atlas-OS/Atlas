@@ -1,6 +1,7 @@
 BeforeAll {
-    . (Join-Path (Split-Path $PSScriptRoot -Parent) 'app\resources\iso\Desktop-Policy.ps1')
-    $source = Join-Path (Split-Path $PSScriptRoot -Parent) 'app\resources\iso\Desktop.ps1'
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
+    . (Join-Path $script:AtlasTestRepoRoot 'app\resources\iso\Desktop-Policy.ps1')
+    $source = Join-Path $script:AtlasTestRepoRoot 'app\resources\iso\Desktop.ps1'
     $errors = $null
     $ast = [Management.Automation.Language.Parser]::ParseFile($source, [ref]$null, [ref]$errors)
     if ($errors) { throw ($errors | Out-String) }
@@ -8,26 +9,29 @@ BeforeAll {
     . ([scriptblock]::Create($restore.Extent.Text))
     $start = $ast.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Start-AtlasWindowsShell' }, $true)
     . ([scriptblock]::Create($start.Extent.Text))
-    $script:policyPath = 'Software\AtlasDesktopSetupTests\' + [guid]::NewGuid().ToString('N')
+    $script:policyPath = 'Software\AtlasRewriteTest\DesktopSetup\' + [guid]::NewGuid().ToString('N')
     $script:shell = 'owned test shell'
 }
-Describe 'Before-desktop recovery' {
-BeforeEach {
-    $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($script:policyPath)
-    $key.DeleteValue('Shell', $false)
-    $key.Dispose()
-    Mock Start-Process {}
-    Mock Get-Process { @() }
-    Mock Start-Sleep {}
-    Mock Request-AtlasDesktopCleanup {
-        $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($script:policyPath, $true)
-        try { Remove-AtlasOwnedShell -Key $key -Shell $script:shell }
-        finally { if ($key) { $key.Dispose() } }
-    }
-}
+
 AfterAll {
-    [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree($script:policyPath, $false)
+    [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree('Software\AtlasRewriteTest', $false)
 }
+
+Describe 'Before-desktop recovery' {
+    BeforeEach {
+        $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($script:policyPath)
+        $key.DeleteValue('Shell', $false)
+        $key.Dispose()
+        Mock Start-Process {}
+        Mock Get-Process { @() }
+        Mock Start-Sleep {}
+        Mock Request-AtlasDesktopCleanup {
+            $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($script:policyPath, $true)
+            try { Remove-AtlasOwnedShell -Key $key -Shell $script:shell }
+            finally { if ($key) { $key.Dispose() } }
+        }
+    }
+
     It 'removes its own shell and opens Windows' {
         $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($script:policyPath, $true)
         $key.SetValue('Shell', $script:shell)
@@ -44,14 +48,14 @@ AfterAll {
         Restore-AtlasDesktop
         $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($script:policyPath)
         try { $key.GetValue('Shell') | Should -Be 'another shell' } finally { $key.Dispose() }
+        Should -Invoke Request-AtlasDesktopCleanup -Times 0 -Exactly
         Should -Invoke Start-Process -Times 1 -Exactly
     }
-    It 'opens Windows if its shell setting has already been removed' {
-        Restore-AtlasDesktop
-        Should -Invoke Start-Process -Times 1 -Exactly
-    }
-    It 'opens Windows if the policy key has been removed' {
-        [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree($script:policyPath)
+    It 'opens Windows when its shell <Case>' -TestCases @(
+        @{ Case = 'value is gone'; RemoveKey = $false }
+        @{ Case = 'key is gone'; RemoveKey = $true }
+    ) {
+        if ($RemoveKey) { [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree($script:policyPath) }
         Restore-AtlasDesktop
         Should -Invoke Start-Process -Times 1 -Exactly
     }

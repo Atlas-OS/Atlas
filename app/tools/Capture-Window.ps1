@@ -1,7 +1,7 @@
 # Captures a top-level window into a PNG through PrintWindow, so overlapping
 # windows do not end up in the picture. Developer tooling for UI review.
 param(
-    [string]$ProcessName = 'atlas',
+    [string]$ProcessName = 'AtlasManager',
     [int]$ProcessId = 0,
     [Parameter(Mandatory = $true)][string]$OutFile
 )
@@ -25,7 +25,7 @@ $hwnd = $process.MainWindowHandle
 $full = New-Object Win+RECT
 [void][Win]::GetWindowRect($hwnd, [ref]$full)
 $visible = New-Object Win+RECT
-[void][Win]::DwmGetWindowAttribute($hwnd, 9, [ref]$visible, [Runtime.InteropServices.Marshal]::SizeOf($visible))
+[void][Win]::DwmGetWindowAttribute($hwnd, 9, [ref]$visible, [Runtime.InteropServices.Marshal]::SizeOf($visible))  # DWMWA_EXTENDED_FRAME_BOUNDS
 
 $fullWidth = $full.Right - $full.Left; $fullHeight = $full.Bottom - $full.Top
 $bitmap = New-Object System.Drawing.Bitmap $fullWidth, $fullHeight

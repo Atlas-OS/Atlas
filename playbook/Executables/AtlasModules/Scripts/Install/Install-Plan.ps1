@@ -23,8 +23,8 @@ function Get-AtlasInstallPlan {
         }
         [pscustomobject][ordered]@{
             Key = 'Checkpoint/PayloadReplacement'; Modes = $allModes; Oobe = 'Any'
-            # Always sync the extracted payload before resuming completed steps. RC
-            # rebuilds can keep the same playbook version while fixing a failed run.
+            # Always sync the extracted files before resuming completed steps. RC
+            # rebuilds can keep the same package version while fixing a failed run.
             Replay = 'Always'
         }
         [pscustomobject][ordered]@{

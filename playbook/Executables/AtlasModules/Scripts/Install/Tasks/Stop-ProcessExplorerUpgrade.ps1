@@ -17,7 +17,7 @@ function Wait-AtlasChildProcess {
 
     if (-not $Process.WaitForExit($TimeoutMilliseconds)) {
         $timeoutSeconds = [Math]::Round($TimeoutMilliseconds / 1000)
-        throw "$Description did not exit within $timeoutSeconds seconds. Child completion is unknown, so payload removal is blocked."
+        throw "$Description did not exit within $timeoutSeconds seconds. Child completion is unknown, so removing the old Atlas files is blocked."
     }
 
     return [int]$Process.ExitCode
@@ -35,8 +35,8 @@ if (Test-Path -LiteralPath $toggleStatePath) {
     }
 }
 
-# Use this candidate's fixed machine cleanup entry point, not an installed desktop
-# launcher whose interactive privilege contract may differ from the installer token.
+# Use this package's own machine cleanup script, not an installed desktop launcher,
+# which may expect a different privilege level than the installer's.
 $cleanupScript = Join-Path -Path $PSScriptRoot -ChildPath 'Invoke-AtlasProcessExplorerCleanup.ps1'
 $powerShellPath = Join-Path -Path $windowsPath -ChildPath 'System32\WindowsPowerShell\v1.0\powershell.exe'
 try {
@@ -97,7 +97,7 @@ $blockingProcesses = foreach ($process in @(Get-Process -Name 'procexp', 'procex
 
 if (@($blockingProcesses).Count -gt 0) {
     $processList = (@($blockingProcesses) | ForEach-Object { "$($_.ProcessName) ($($_.Id))" }) -join ', '
-    throw "Process Explorer is still running from the Atlas payload: $processList."
+    throw "Process Explorer is still running from the Atlas folder: $processList."
 }
 
 $taskManagerIfeo = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe'
@@ -105,5 +105,5 @@ $taskManagerConfiguration = Get-ItemProperty -LiteralPath $taskManagerIfeo -Name
 $debugger = if ($null -eq $taskManagerConfiguration) { '' } else { [string]$taskManagerConfiguration.Debugger }
 if (-not [string]::IsNullOrWhiteSpace($debugger) -and
     $debugger.IndexOf($processExplorerRoot, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
-    throw "Task Manager still redirects to the Atlas Process Explorer payload: '$debugger'."
+    throw "Task Manager still redirects to Atlas's Process Explorer: '$debugger'."
 }

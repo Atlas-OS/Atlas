@@ -1,7 +1,7 @@
 function Import-AtlasTerminalsContextMenu {
     param($Toggle)
 
-    # The Terminals menu spans dozens of HKCR keys, so each state ships as a complete
+    # The Terminals menu spans dozens of HKCR keys, so each state comes as a complete
     # .reg snapshot and is applied with reg.exe instead of individual value entries.
     $regFile = switch -CaseSensitive ([string]$Toggle.State) {
         'Remove' { 'disabled.reg' }

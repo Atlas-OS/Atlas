@@ -252,7 +252,7 @@
         @{ Slug = 'qol/appearance/atlas-theme-upgrade'; ParentModes = @('Upgrade') }
     )
 
-    # Every shipped definition must be enabled exactly once above or classified here.
+    # Every included definition must be enabled exactly once above or classified here.
     Disabled = @(
         # LLMNR handles single-label \\PCNAME lookups where router DNS has no record;
         # mDNS's .local names do not replace that behavior.

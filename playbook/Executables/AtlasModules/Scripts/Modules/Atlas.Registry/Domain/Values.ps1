@@ -1,9 +1,8 @@
 # Atlas.Registry domain: registry value writes and deletes.
 #
-# A value operation can be denied after the key opens for writing. This alone
-# does not establish the cause, or prove that a different token cannot write it.
-# That refusal carries this error id so callers can tell it apart from an Atlas defect
-# such as a mistyped path, and treat it as best effort where a definition says so.
+# A write denied after its key opened gets its own error id, so callers can tell it
+# from an Atlas defect such as a mistyped path, and AllowOsProtected entries can log
+# it and continue.
 #
 # Values are written through the Microsoft.Win32.Registry API instead of the provider
 # cmdlets so the value kind is always explicit (including REG_NONE, which the provider
@@ -143,8 +142,8 @@ function Set-AtlasRegistryValue {
     <#
     .SYNOPSIS
         Writes a registry value, creating missing keys. An empty Name writes the key's
-        default value. HKCU is either the proven current token's ambient hive or the
-        explicitly install-state-bound fixed default-user hive.
+        default value. HKCU is either the current token's own hive, once verified, or
+        the default-user hive bound to the active install.
     #>
     param(
         [Parameter(Mandatory = $true)]

@@ -55,8 +55,8 @@ function Invoke-AtlasDefaultHiveRegistryProcess {
                 $null = $standardErrorTask.GetAwaiter().GetResult()
             }
             catch {
-                # Preserve the timeout as the authoritative failure. Disposal in
-                # finally remains the last-resort handle cleanup if termination races.
+                # Report the timeout, not this. The finally block still disposes the
+                # handles if termination races.
                 $null = $_
             }
             throw "Registry process timed out after $TimeoutMilliseconds ms."

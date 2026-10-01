@@ -119,7 +119,7 @@ Describe 'Invoke-AtlasHiddenProcess' {
             Should -Throw '*only waited launches*'
     }
 
-    It 'returns captured output for an explicitly allowed nonzero exit code' {
+    It 'returns output for an explicitly allowed nonzero exit code only when capture was requested' {
         $result = Invoke-AtlasHiddenProcess -FilePath $script:HostExecutable `
             -ArgumentList $script:FailureArguments -Wait -CaptureOutput `
             -AllowedExitCode @(0, 17)
@@ -127,13 +127,11 @@ Describe 'Invoke-AtlasHiddenProcess' {
         $result.ExitCode | Should -Be 17
         $result.StandardOutput | Should -BeExactly 'fixture stdout'
         $result.StandardError | Should -BeExactly 'fixture stderr'
-    }
 
-    It 'does not expose output when capture was not requested' {
-        $result = Invoke-AtlasHiddenProcess -FilePath $script:ArgvProbe `
-            -ArgumentList @('value') -Wait
+        $result = Invoke-AtlasHiddenProcess -FilePath $script:HostExecutable `
+            -ArgumentList $script:FailureArguments -Wait -AllowedExitCode @(0, 17)
 
-        $result.ExitCode | Should -Be 0
+        $result.ExitCode | Should -Be 17
         $result.StandardOutput | Should -BeNullOrEmpty
         $result.StandardError | Should -BeNullOrEmpty
     }

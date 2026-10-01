@@ -23,7 +23,7 @@ $executablesRoot = [IO.Path]::GetFullPath([IO.Path]::Combine(
 foreach ($folderName in @('AtlasModules', 'AtlasDesktop')) {
     $source = Join-Path -Path $executablesRoot -ChildPath $folderName
     if (-not (Test-Path -LiteralPath $source -PathType Container)) {
-        throw "Required playbook payload folder '$source' is missing."
+        throw "Required Atlas folder '$source' is missing."
     }
 
     Copy-Item -LiteralPath $source -Destination $windowsPath -Force -Recurse -ErrorAction Stop
@@ -31,7 +31,7 @@ foreach ($folderName in @('AtlasModules', 'AtlasDesktop')) {
 
 $themesSourceRoot = Join-Path -Path $executablesRoot -ChildPath 'Themes'
 if (-not (Test-Path -LiteralPath $themesSourceRoot -PathType Container)) {
-    throw "Required Themes payload folder '$themesSourceRoot' is missing."
+    throw "Required Themes folder '$themesSourceRoot' is missing."
 }
 
 $themesDestination = Join-Path -Path $windowsPath -ChildPath 'Resources\Themes'

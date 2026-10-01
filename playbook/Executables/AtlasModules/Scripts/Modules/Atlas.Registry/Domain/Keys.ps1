@@ -44,6 +44,8 @@ function Remove-AtlasRegistryKey {
     )
 
     $pathInfo = ConvertTo-AtlasRegistryPathInfo -Path $Path
+    # A bare HKCU resolves to a whole user hive under HKU, which the root check
+    # inside the action cannot see.
     if ($pathInfo.Root -eq 'HKEY_CURRENT_USER' -and [string]::IsNullOrEmpty($pathInfo.SubPath)) {
         throw "Refusing to delete the registry root '$Path'."
     }

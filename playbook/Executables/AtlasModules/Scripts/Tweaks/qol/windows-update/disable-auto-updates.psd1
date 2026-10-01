@@ -9,7 +9,7 @@
         @{ Path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler\OutlookUpdate'; Name = 'workCompleted'; Type = 'DWord'; Data = 1 }
 
         # Prevent random apps from installing, including Widgets or advertisements
-        # Commented until it's proven that this helps - deleting these values is irreversible
+        # Not enabled: there is no evidence it helps, and deleting these values can't be undone
         # (in YAML form):
         # - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\Settings', value: 'STOREBIZCRITICALAPPS', operation: delete}
         # - !registryValue: {path: 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\InstallService\State\CategoryCache', value: '48caba8a-2e62-2097-dcd8-4255c637b32dUS', operation: delete}

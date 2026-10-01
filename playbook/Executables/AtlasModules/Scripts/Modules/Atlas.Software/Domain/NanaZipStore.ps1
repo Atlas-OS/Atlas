@@ -1,5 +1,8 @@
 # Use the inbox Store API used by WinGet's MSStore.cpp. Unlike the WinGet
 # PowerShell module, this works in the installer's SYSTEM/Windows PowerShell host.
+
+$script:AtlasNanaZipStoreProductId = '9N8G7TSCL18R'
+
 function New-AtlasNanaZipStoreManager {
     Add-Type -AssemblyName System.Runtime.WindowsRuntime
     $null = [Windows.ApplicationModel.Store.Preview.InstallControl.AppInstallManager, Windows.ApplicationModel.Store.Preview.InstallControl, ContentType=WindowsRuntime]
@@ -52,21 +55,21 @@ function Request-AtlasNanaZipStoreInstall {
     $options.InstallForAllUsers = $true
     $options.AllowForcedAppRestart = $false
     $options.InstallInProgressToastNotificationMode = 2 # NoToast
-    $options.CompletedInstallToastNotificationMode = 2
-    return @(Wait-AtlasStoreResult -Operation ($Manager.StartProductInstallAsync('9N8G7TSCL18R', '', 'Atlas', '', $options)) `
+    $options.CompletedInstallToastNotificationMode = 2 # NoToast
+    return @(Wait-AtlasStoreResult -Operation ($Manager.StartProductInstallAsync($script:AtlasNanaZipStoreProductId, '', 'Atlas', '', $options)) `
         -ResultType ([System.Collections.Generic.IReadOnlyList[Windows.ApplicationModel.Store.Preview.InstallControl.AppInstallItem]]))
 }
 
 function Get-AtlasNanaZipStoreEntitlement {
     param($Manager)
-    $entitlement = Wait-AtlasStoreResult -Operation ($Manager.GetFreeDeviceEntitlementAsync('9N8G7TSCL18R', '', '')) `
+    $entitlement = Wait-AtlasStoreResult -Operation ($Manager.GetFreeDeviceEntitlementAsync($script:AtlasNanaZipStoreProductId, '', '')) `
         -ResultType ([Windows.ApplicationModel.Store.Preview.InstallControl.GetEntitlementResult])
     if ([string]$entitlement.Status -ne 'Succeeded') { throw "Store entitlement: $($entitlement.Status)" }
 }
 
 function Get-AtlasNanaZipStoreItems {
     param($Manager)
-    return @($Manager.AppInstallItems | Where-Object { $_.ProductId -ceq '9N8G7TSCL18R' })
+    return @($Manager.AppInstallItems | Where-Object { $_.ProductId -ceq $script:AtlasNanaZipStoreProductId })
 }
 
 function Wait-AtlasNanaZipStoreItems {
@@ -106,7 +109,7 @@ function Wait-AtlasNanaZipStoreItems {
 function Stop-AtlasNanaZipStoreInstall {
     param($Manager, [object[]]$Items, [int]$Attempts = 30)
     Write-AtlasLog -Level Warning -Message 'NanaZip Store timed out. Canceling its request before considering verified downloads.'
-    $Manager.Cancel('9N8G7TSCL18R')
+    $Manager.Cancel($script:AtlasNanaZipStoreProductId)
     for ($attempt = 0; $attempt -lt $Attempts; $attempt++) {
         # Cancellation is asynchronous. Retain the operation handles so an empty
         # queue alone cannot hide an in-flight deployment or dependency.
@@ -149,7 +152,7 @@ function Install-AtlasNanaZipFromStore {
             Write-AtlasLog -Level Warning -Message "NanaZip Store entitlement is unavailable; using verified downloads. $($_.Exception.Message)"
             return $false
         }
-        Write-AtlasLog -Message 'Installing NanaZip from Microsoft Store (9N8G7TSCL18R) for all users.'
+        Write-AtlasLog -Message "Installing NanaZip from Microsoft Store ($script:AtlasNanaZipStoreProductId) for all users."
         Set-AtlasNanaZipStorePending -Journal $journal -Pending $true
         # Exceptions here are intentionally not converted into a download retry:
         # even a failed RPC may have queued deployment in the Store service.
@@ -191,7 +194,7 @@ function Install-AtlasNanaZipFromStore {
     }
     # Failed/canceled jobs are terminal. Clear only NanaZip's queue record and
     # confirm it is gone before starting the pinned GitHub/SourceForge fallback.
-    $manager.Cancel('9N8G7TSCL18R')
+    $manager.Cancel($script:AtlasNanaZipStoreProductId)
     for ($attempt = 0; $attempt -lt 25; $attempt++) {
         if (@(Get-AtlasNanaZipStoreItems -Manager $manager).Count -eq 0) { break }
         Start-Sleep -Milliseconds 200

@@ -20,7 +20,7 @@ BeforeAll {
     }
 }
 
-Describe 'Atlas payload replacement plan' {
+Describe 'Atlas file replacement plan' {
     It 'maps <Mode> OOBE=<IsOobe> to stop=<Stop> remove=<Remove>' -TestCases @(
         @{ Mode = 'Fresh'; IsOobe = $false; Stop = $false; Remove = $false }
         @{ Mode = 'Fresh'; IsOobe = $true; Stop = $false; Remove = $false }
@@ -49,7 +49,7 @@ Describe 'Atlas payload replacement plan' {
     }
 }
 
-Describe 'Atlas payload replacement sequencing' {
+Describe 'Atlas file replacement sequencing' {
     BeforeEach {
         $script:Events = [Collections.Generic.List[string]]::new()
         $script:AtlasExtractedExecutablesRoot = 'C:\extracted'
@@ -63,7 +63,7 @@ Describe 'Atlas payload replacement sequencing' {
         Mock Assert-AtlasPayloadInstalled { $script:Events.Add('Verify') }
     }
 
-    It 'copies and verifies a fresh payload without touching an old install' {
+    It 'copies and verifies fresh files without touching an old install' {
         $plan = Resolve-AtlasPayloadReplacementPlan `
             -InstallState (New-TestInstallState -Mode Fresh)
         Invoke-AtlasPayloadReplacementCore -Plan $plan
@@ -77,7 +77,7 @@ Describe 'Atlas payload replacement sequencing' {
         @($script:Events) | Should -Be @('CBS', 'Stop', 'ProcessExplorer', 'Remove', 'Copy', 'Verify')
     }
 
-    It 'does not remove the old payload during an OOBE reapply' {
+    It 'does not remove the old files during an OOBE reapply' {
         $plan = Resolve-AtlasPayloadReplacementPlan `
             -InstallState (New-TestInstallState -Mode Reapply -IsOobe $true)
         Invoke-AtlasPayloadReplacementCore -Plan $plan
@@ -96,7 +96,7 @@ Describe 'Atlas payload replacement sequencing' {
         @($script:Events) | Should -Be @('CBS')
     }
 
-    It 'does not continue after old-payload cleanup fails' {
+    It 'does not continue after old-file cleanup fails' {
         Mock Invoke-AtlasInstalledPayloadRemove {
             $script:Events.Add('Remove')
             throw 'remove failed'
@@ -114,7 +114,7 @@ Describe 'Atlas payload replacement sequencing' {
     }
 }
 
-Describe 'Installed Atlas payload verification' {
+Describe 'Installed Atlas file verification' {
     BeforeEach {
         $script:ExtractedRoot = Join-Path $TestDrive 'extracted'
         $script:WindowsRoot = Join-Path $TestDrive 'Windows'
@@ -142,7 +142,7 @@ Describe 'Installed Atlas payload verification' {
             -Value 'installed theme'
     }
 
-    It 'accepts the installed roots, bootstrap, and theme payload' {
+    It 'accepts the installed roots, bootstrap, and theme' {
         { Assert-AtlasPayloadInstalled -ExtractedExecutablesRoot $script:ExtractedRoot `
                 -WindowsPath $script:WindowsRoot } | Should -Not -Throw
     }
@@ -151,11 +151,11 @@ Describe 'Installed Atlas payload verification' {
         Remove-Item -LiteralPath (Join-Path $script:WindowsRoot 'AtlasModules\Scripts\Initialize-AtlasPowerShell.ps1')
         { Assert-AtlasPayloadInstalled -ExtractedExecutablesRoot $script:ExtractedRoot `
                 -WindowsPath $script:WindowsRoot } |
-            Should -Throw -ExpectedMessage '*payload bootstrap*is missing*'
+            Should -Throw -ExpectedMessage '*Atlas bootstrap*is missing*'
     }
 }
 
-Describe 'CBS retry payload replacement gate' {
+Describe 'CBS retry file replacement gate' {
     It 'allows replacement when no retry exists' {
         Mock Read-AtlasCbsRetryState { $null }
         { Assert-AtlasPayloadReplacementAllowed } | Should -Not -Throw

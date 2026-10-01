@@ -48,10 +48,9 @@ function Invoke-AtlasToggleNativeCommand {
         $allowedExitCodeSet[$allowedExitCode] = $true
     }
 
-    # Native stderr becomes a PowerShell error record when it is redirected.
-    # Keep that conversion non-terminating locally so the explicitly declared
-    # native exit-code contract remains authoritative even when the toggle
-    # engine itself runs with ErrorActionPreference = Stop.
+    # Redirected native stderr becomes a PowerShell error record. Keep that
+    # non-terminating here so the declared exit codes decide success, even when
+    # the toggle engine runs with ErrorActionPreference = Stop.
     $previousErrorActionPreference = $ErrorActionPreference
     try {
         $ErrorActionPreference = 'Continue'

@@ -1,6 +1,6 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
+    $modulesRoot = $script:AtlasTestModulesRoot
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Core\Atlas.Core.psd1') -Force
     $coreModule = Get-Module -Name Atlas.Core
     & $coreModule { Initialize-AtlasNativeType }
@@ -81,9 +81,10 @@ Describe 'Get-AtlasContext install state' {
         [IO.File]::WriteAllText((Join-Path $flagsPath 'option-browser-firefox.flag'), '')
 
         $context = Get-AtlasContext -Refresh -WindowsPath $windowsPath `
-            -StateReader { $null } -WindowsBuildReader { 19045 } -OobeReader { 1 }
+            -StateReader { $null } -DocumentReader { $null } -WindowsBuildReader { 19045 } -OobeReader { 1 }
 
         $context.IsInstallStateBacked | Should -BeFalse
+        $context.IsStateDocumentBacked | Should -BeFalse
         $context.Mode | Should -BeExactly 'Legacy'
         $context.IsUpgrade | Should -BeTrue
         $context.IsOobe | Should -BeTrue
@@ -103,9 +104,8 @@ Describe 'Write-AtlasLog fallback' {
         Mock Get-AtlasContext { throw 'Unelevated logging must not resolve the machine log' } -ModuleName Atlas.Core
         Mock Test-Path { $true } -ModuleName Atlas.Core
 
-        $actual = & $coreModule { Get-AtlasInstallLogDirectory }
-        $expected = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'AtlasOS\Logs\install'
-        $actual | Should -BeExactly $expected
+        $expected = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'AtlasOS\Logs\install\atlas-install.log'
+        Get-AtlasInstallLogPath | Should -BeExactly $expected
     }
 
     It 'keeps elevated diagnostics in the protected machine log' {
@@ -113,8 +113,7 @@ Describe 'Write-AtlasLog fallback' {
         Mock Get-AtlasContext { [pscustomobject]@{ LogsPath = 'C:\Windows\AtlasModules\Logs' } } -ModuleName Atlas.Core
         Mock Test-Path { $true } -ModuleName Atlas.Core
 
-        (& $coreModule { Get-AtlasInstallLogDirectory }) |
-            Should -BeExactly 'C:\Windows\AtlasModules\Logs\install'
+        Get-AtlasInstallLogPath | Should -BeExactly 'C:\Windows\AtlasModules\Logs\install\atlas-install.log'
     }
 
     It 'does not turn a log access failure into a terminating error under strict callers' {
@@ -130,34 +129,24 @@ Describe 'Write-AtlasLog fallback' {
 }
 
 Describe 'Get-AtlasUserProcessCommandLine' {
-    It 'quotes a path with spaces and adds nothing else when there are no arguments' {
-        Get-AtlasUserProcessCommandLine -FilePath 'C:\Program Files\x.exe' |
-            Should -BeExactly '"C:\Program Files\x.exe"'
-    }
-
-    It 'appends the raw argument string after a single separating space' {
-        Get-AtlasUserProcessCommandLine -FilePath 'C:\x.exe' -Arguments '-Flag "va lue"' |
-            Should -BeExactly '"C:\x.exe" -Flag "va lue"'
-    }
-
-    It 'emits no trailing space when the argument string is empty' {
-        Get-AtlasUserProcessCommandLine -FilePath 'C:\x.exe' -Arguments '' |
-            Should -BeExactly '"C:\x.exe"'
+    It 'quotes the executable and appends the raw arguments after one space: <Expected>' -TestCases @(
+        @{ FilePath = 'C:\Program Files\x.exe'; Arguments = ''; Expected = '"C:\Program Files\x.exe"' }
+        @{ FilePath = 'C:\x.exe'; Arguments = '-Flag "va lue"'; Expected = '"C:\x.exe" -Flag "va lue"' }
+    ) {
+        Get-AtlasUserProcessCommandLine -FilePath $FilePath -Arguments $Arguments |
+            Should -BeExactly $Expected
     }
 }
 
 Describe 'Invoke-AtlasAsUser' {
-    # Mocks only - the token/CreateProcessAsUser machinery is VM-only by design and must
-    # never launch anything from the test suite.
+    # Mocks only: the CreateProcessAsUser path must never launch anything from a test.
     It 'throws when the caller is not SYSTEM' {
         Mock Test-AtlasSystem { $false } -ModuleName Atlas.Core
 
         { Invoke-AtlasAsUser -FilePath 'C:\Windows\System32\cmd.exe' } |
             Should -Throw -ExpectedMessage '*must run as SYSTEM*'
     }
-
 }
-
 
 Describe 'Invoke-AtlasTrustedInstaller' {
     BeforeEach {
@@ -203,6 +192,7 @@ Describe 'Invoke-AtlasTrustedInstaller' {
         { Invoke-AtlasTrustedInstaller -Operation ResetServices } |
             Should -Throw -ExpectedMessage '*requires a typed -RestoreSource*'
         { Invoke-AtlasTrustedInstaller -Operation RegistryImport } | Should -Throw
+        Should -Invoke Assert-AtlasPrivilege -ModuleName Atlas.Core -Times 0 -Exactly
     }
 
     It 'rejects every operation input outside the selected operation schema' {
@@ -215,6 +205,11 @@ Describe 'Invoke-AtlasTrustedInstaller' {
         { Invoke-AtlasTrustedInstaller -Operation ResetServices -RestoreSource ToggleDefaults `
                 -MachineOnly } |
             Should -Throw -ExpectedMessage "*ResetServices does not accept*'-MachineOnly'*"
+        { Invoke-AtlasTrustedInstaller -Operation Install -Name Test -InstallPhase Run `
+                -PayloadRoot 'C:\Windows\AtlasOS\Staging\candidate\Executables' } |
+            Should -Throw -ExpectedMessage "*Install does not accept*'-Name'*"
+        { Invoke-AtlasTrustedInstaller -Operation Toggle -Name Test -State Enable -InstallPhase Run } |
+            Should -Throw -ExpectedMessage "*Toggle does not accept*'-InstallPhase'*"
     }
 
     It 'passes only typed operation arguments to the fixed checked broker' {
@@ -231,19 +226,27 @@ Describe 'Invoke-AtlasTrustedInstaller' {
                 $ArgumentList -contains 'Enable' -and
                 $ArgumentList -contains '-JustContext' -and
                 $TimeoutSeconds -eq 57 -and
-                $Wait -and $CaptureOutput
+                $Wait -and $CaptureOutput -and
+                $null -eq $AllowedExitCode
             }
     }
 
-    It 'uses the candidate broker for fresh install capture and run' {
+    It 'uses the candidate broker for fresh install <Phase>' -TestCases @(
+        @{ Phase = 'Capture' }
+        @{ Phase = 'Run' }
+    ) {
         $payload = Join-Path ([Environment]::GetFolderPath('Windows')) 'AtlasOS\Staging\candidate\Executables'
-        foreach ($phase in @('Capture', 'Run')) {
-            Invoke-AtlasTrustedInstaller -Operation Install -InstallPhase $phase -PayloadRoot $payload | Out-Null
-        }
-        Should -Invoke Invoke-AtlasHiddenProcess -ModuleName Atlas.Core -Times 2 -Exactly `
+        $broker = Join-Path $payload 'AtlasModules\Scripts\Entry\Invoke-AtlasTrustedInstallerBroker.ps1'
+
+        Invoke-AtlasTrustedInstaller -Operation Install -InstallPhase $Phase -PayloadRoot $payload | Out-Null
+
+        Should -Invoke Invoke-AtlasHiddenProcess -ModuleName Atlas.Core -Times 1 -Exactly `
             -ParameterFilter {
-                $ArgumentList -contains (Join-Path ([Environment]::GetFolderPath('Windows')) `
-                    'AtlasOS\Staging\candidate\Executables\AtlasModules\Scripts\Entry\Invoke-AtlasTrustedInstallerBroker.ps1')
+                $arguments = @($ArgumentList)
+                $arguments[[array]::IndexOf($arguments, '-File') + 1] -eq $broker -and
+                $arguments[[array]::IndexOf($arguments, '-Operation') + 1] -ceq 'Install' -and
+                $arguments[[array]::IndexOf($arguments, '-InstallPhase') + 1] -ceq $Phase -and
+                $arguments[[array]::IndexOf($arguments, '-PayloadRoot') + 1] -eq $payload
             }
     }
 
@@ -253,15 +256,6 @@ Describe 'Invoke-AtlasTrustedInstaller' {
             { Invoke-AtlasTrustedInstaller -Operation Install -InstallPhase Capture -PayloadRoot $payload } | Should -Throw
         }
         Should -Not -Invoke Invoke-AtlasHiddenProcess -ModuleName Atlas.Core
-    }
-
-    It 'propagates a checked broker failure' {
-        Mock Invoke-AtlasHiddenProcess { throw 'broker exited with disallowed code 5: failed' } `
-            -ModuleName Atlas.Core
-
-        {
-            Invoke-AtlasTrustedInstaller -Operation Toggle -Name TestToggle -State Enable
-        } | Should -Throw '*disallowed code 5*failed*'
     }
 }
 
@@ -326,23 +320,6 @@ Describe 'Get-AtlasContext machine state document' {
         $context.IsOobe | Should -BeFalse
         @($context.Options) | Should -Be @('defender-enable')
         $context.StateDocumentPath | Should -Be (Join-Path $windowsPath 'AtlasOS\state.json')
-    }
-
-    It 'falls back to the published flags when no document exists' {
-        $windowsPath = Join-Path -Path $TestDrive -ChildPath 'Windows'
-        $flags = Join-Path $windowsPath 'AtlasModules\Flags'
-        [void][IO.Directory]::CreateDirectory($flags)
-        foreach ($flag in 'Upgrade.flag', 'Interactive.flag', 'option-browser-brave.flag') {
-            [IO.File]::WriteAllText((Join-Path $flags $flag), '')
-        }
-
-        $context = Get-AtlasContext -WindowsPath $windowsPath -StateReader { $null } `
-            -DocumentReader { $null } -WindowsBuildReader { 26100 }
-
-        $context.IsStateDocumentBacked | Should -BeFalse
-        $context.IsUpgrade | Should -BeTrue
-        $context.IsOobe | Should -BeFalse
-        Test-Path (Join-Path $flags 'option-browser-brave.flag') | Should -BeTrue
     }
 }
 

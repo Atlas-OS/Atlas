@@ -21,6 +21,9 @@ if ($records.Count -gt 0) { return }
 Initialize-AtlasToggleStateStore
 $userSid = [string]$context.InteractiveUserSid
 
+# Reads, never writes, the installing user's live hive from TrustedInstaller. The
+# values only pick which choices to import, and that user is the administrator
+# running the install.
 function Read-AtlasLegacyRegistryValue {
     param([string]$Path, [string]$Name)
     $pathText = ($Path.Replace(':', '') -replace '\\+', '\').TrimEnd('\')

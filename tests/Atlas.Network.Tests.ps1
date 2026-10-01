@@ -91,20 +91,19 @@ Describe 'Set-AtlasNetworkDefaults' {
         Should -Invoke Invoke-AtlasWindowsNetworkDefault -ModuleName Atlas.Network -Times 0
     }
 
-    It 'dispatches each accepted mode once and returns its summary' {
+    It 'runs only the <Mode> implementation and returns its summary' -TestCases @(
+        @{ Mode = 'Atlas'; Runs = 'Invoke-AtlasNetworkAdapterDefault'; Skips = 'Invoke-AtlasWindowsNetworkDefault' }
+        @{ Mode = 'Windows'; Runs = 'Invoke-AtlasWindowsNetworkDefault'; Skips = 'Invoke-AtlasNetworkAdapterDefault' }
+    ) {
+        # The other mode would reset real networking or rewrite real adapter settings.
         Mock Test-AtlasAdmin -ModuleName Atlas.Network { $true }
-        Mock Invoke-AtlasNetworkAdapterDefault -ModuleName Atlas.Network {
-            [pscustomobject]@{ AdapterClassKeyCount = 1; ChangedValueCount = 2 }
+        Mock -CommandName $Runs -ModuleName Atlas.Network {
+            [pscustomobject]@{ AdapterClassKeyCount = 1; ChangedValueCount = 2; NetshCommandCount = 5; RemovedDeviceCount = 1 }
         }
-        Mock Invoke-AtlasWindowsNetworkDefault -ModuleName Atlas.Network {
-            [pscustomobject]@{ NetshCommandCount = 5; RemovedDeviceCount = 1; ScanCompleted = $true }
-        }
+        Mock -CommandName $Skips -ModuleName Atlas.Network { throw 'must not run' }
 
-        (Set-AtlasNetworkDefaults -Mode Atlas).ChangedValueCount | Should -Be 2
-        (Set-AtlasNetworkDefaults -Mode Windows).NetshCommandCount | Should -Be 5
-        Should -Invoke Invoke-AtlasNetworkAdapterDefault -ModuleName Atlas.Network -Times 1 -Exactly
-        Should -Invoke Invoke-AtlasWindowsNetworkDefault -ModuleName Atlas.Network -Times 1 -Exactly
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Network -Times 2 -Exactly
+        (Set-AtlasNetworkDefaults -Mode $Mode).ChangedValueCount | Should -Be 2
+        Should -Invoke -CommandName $Runs -ModuleName Atlas.Network -Times 1 -Exactly
     }
 }
 
@@ -112,6 +111,7 @@ Describe 'Atlas adapter defaults' {
     BeforeEach {
         Mock Write-AtlasLog -ModuleName Atlas.Network
         Mock Test-AtlasAdmin -ModuleName Atlas.Network { $true }
+        Mock Invoke-AtlasHiddenProcess -ModuleName Atlas.Network { throw 'must not reset Windows networking' }
     }
 
     It 'resolves every PCI adapter class key and ignores non-PCI adapters' {
@@ -371,6 +371,7 @@ Describe 'File Sharing machine state' {
         # RuleGroup, Profiles flags, Enabled 1 = True / 2 = False) that the inbox type
         # extensions project as Name, Group, Profile and Enabled.
         Mock Get-NetFirewallRule -ModuleName Atlas.Network {
+            param($Name)
             $rules = @(
                 New-CimInstance -ClassName MSFT_NetFirewallRule -ClientOnly -Property @{
                     InstanceID   = 'FPS-SMB-In-TCP'
@@ -410,6 +411,7 @@ Describe 'File Sharing machine state' {
             }
         }
         Mock Copy-NetFirewallRule -ModuleName Atlas.Network {
+            param($InputObject, $NewName, [switch]$PassThru)
             if ($global:AtlasNetworkTestState.Copies.ContainsKey($NewName)) { throw 'duplicate rule' }
             $copy = New-CimInstance -ClassName MSFT_NetFirewallRule -ClientOnly -Property @{
                 InstanceID = $NewName

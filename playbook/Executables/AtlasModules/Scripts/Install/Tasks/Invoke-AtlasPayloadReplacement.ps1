@@ -1,8 +1,8 @@
 <#
 .SYNOPSIS
-    Replaces the installed Atlas payload from the extracted playbook.
+    Replaces the installed Atlas files with those from the extracted package.
 .DESCRIPTION
-    The committed install state decides whether an existing payload must be
+    The committed install state decides whether an existing installation must be
     stopped and removed. Replacement is blocked while a CBS retry is pending so
     the recovery command cannot be deleted underneath Safe Mode.
 #>
@@ -34,10 +34,10 @@ function Resolve-AtlasPayloadReplacementPlan {
         }
     }
     if ([string]$InstallState.status -cne 'Running') {
-        throw "Payload replacement requires a Running install state, not '$($InstallState.status)'."
+        throw "Replacing Atlas's files requires a Running install state, not '$($InstallState.status)'."
     }
     if (@('Fresh', 'Upgrade', 'Reapply') -cnotcontains [string]$InstallState.mode) {
-        throw "Payload replacement does not support install mode '$($InstallState.mode)'."
+        throw "Replacing Atlas's files does not support install mode '$($InstallState.mode)'."
     }
     if ($InstallState.isOobe -isnot [bool]) {
         throw 'Install state isOobe must be a Boolean.'
@@ -54,7 +54,7 @@ function Resolve-AtlasPayloadReplacementPlan {
 function Assert-AtlasPayloadReplacementAllowed {
     $retryState = Read-AtlasCbsRetryState
     if ($null -ne $retryState) {
-        throw "Atlas payload replacement is blocked while CBS retry state is '$($retryState.Phase)'."
+        throw "Replacing Atlas's files is blocked while the CBS retry state is '$($retryState.Phase)'."
     }
 }
 
@@ -87,28 +87,28 @@ function Assert-AtlasPayloadInstalled {
         $source = Join-Path -Path $sourceRoot -ChildPath $directory
         $destination = Join-Path -Path $destinationRoot -ChildPath $directory
         if (-not [IO.Directory]::Exists($source)) {
-            throw "Required extracted payload directory '$source' is missing."
+            throw "Required extracted directory '$source' is missing."
         }
         if (-not [IO.Directory]::Exists($destination)) {
-            throw "Installed Atlas payload directory '$destination' is missing."
+            throw "Installed Atlas directory '$destination' is missing."
         }
     }
 
     $installedBootstrap = Join-Path -Path $destinationRoot -ChildPath 'AtlasModules\Scripts\Initialize-AtlasPowerShell.ps1'
     if (-not [IO.File]::Exists($installedBootstrap)) {
-        throw "Installed Atlas payload bootstrap '$installedBootstrap' is missing."
+        throw "Installed Atlas bootstrap '$installedBootstrap' is missing."
     }
 
     $themesSource = Join-Path -Path $sourceRoot -ChildPath 'Themes'
     if (-not [IO.Directory]::Exists($themesSource)) {
-        throw "Required extracted Themes payload directory '$themesSource' is missing."
+        throw "Required extracted Themes directory '$themesSource' is missing."
     }
     $themesDestination = Join-Path -Path $destinationRoot -ChildPath 'Resources\Themes'
     foreach ($theme in @(Get-ChildItem -LiteralPath $themesSource -Force -ErrorAction Stop)) {
         $installedTheme = Join-Path -Path $themesDestination -ChildPath $theme.Name
         $installedItem = Get-Item -LiteralPath $installedTheme -Force -ErrorAction SilentlyContinue
         if ($null -eq $installedItem -or $installedItem.PSIsContainer -ne $theme.PSIsContainer) {
-            throw "Installed Atlas theme payload '$installedTheme' is missing."
+            throw "Installed Atlas theme '$installedTheme' is missing."
         }
     }
 }
@@ -126,7 +126,7 @@ function Invoke-AtlasPayloadReplacementCore {
         return
     }
     if ($null -eq $Plan) {
-        throw 'A payload replacement plan is required.'
+        throw 'A file replacement plan is required.'
     }
 
     Assert-AtlasPayloadReplacementAllowed
@@ -180,7 +180,7 @@ foreach ($requiredFile in @(
         $installStateManifest
     )) {
     if (-not [IO.File]::Exists($requiredFile)) {
-        throw "Required extracted payload-replacement file is missing at '$requiredFile'."
+        throw "Required extracted file is missing at '$requiredFile'."
     }
 }
 

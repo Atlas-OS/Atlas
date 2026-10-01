@@ -1,6 +1,5 @@
-# Atlas.Registry domain: known-folder helper.
-# The unprefixed function name is an internal contract for the scripts that resolve
-# it through PSModulePath auto-loading - do not rename it.
+# Atlas.Registry domain: known-folder helper. Keep the unprefixed name:
+# Operations\New-AtlasShortcutSet.ps1 auto-loads it by that name.
 
 function Get-UserPath {
     <#
@@ -19,10 +18,6 @@ function Get-UserPath {
     )
 
     $guid = [guid]::new($FolderID)
-    if ($null -eq $guid) {
-        throw 'Failed to convert provided FolderID!'
-    }
-
     Initialize-AtlasNativeType
 
     $pszPath = [IntPtr]::Zero

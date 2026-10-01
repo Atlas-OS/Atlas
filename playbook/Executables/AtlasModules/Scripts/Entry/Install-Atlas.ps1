@@ -1,27 +1,28 @@
 <#
 .SYNOPSIS
-    Installs Atlas from an extracted playbook without AME Wizard.
+    Installs Atlas from an extracted Atlas package without AME Wizard.
 .DESCRIPTION
-    Run from an elevated Windows PowerShell 5.1 prompt inside the extracted playbook:
+    Run from an elevated Windows PowerShell 5.1 prompt inside the extracted package:
 
         .\AtlasModules\Scripts\Entry\Install-Atlas.ps1 -Option defender-enable,
             mitigations-default, auto-updates-disable [-Option ...] [-Unattended] [-Restart]
             [-RestartComment <text>]
 
-    The script checks the machine against playbook.conf, copies the extracted payload
-    into a protected staging directory that only Administrators and SYSTEM can write,
+    The script checks the machine against playbook.conf, copies the extracted files
+    into a protected staging folder that only Administrators and SYSTEM can write,
     records the requested options there, and hands the install to the TrustedInstaller
     broker in two phases: Capture (begin the install state and record options), then,
     after this process publishes the installing user's identity, Run (commit and execute
-    the complete install plan). The same plan, state and identity model that AME drives
-    are used; AME is simply not in the loop.
+    the complete install plan). AME drives the same plan, state and identity model.
+
+    Live Windows Update and Microsoft Store checks must confirm preparation is complete
+    before the install plan starts.
 .PARAMETER Option
     FeaturePage option names from playbook.conf. Every required group (Defender,
     mitigations, automatic updates) needs exactly one choice; use Get-AtlasInstallOption
-    in the payload module Atlas.InstallState to list them.
+    in the Atlas.InstallState module to list them.
 .PARAMETER Unattended
-    Never prompts. Blocking requirements still apply. Live Windows and Microsoft Store
-    checks must confirm preparation is complete before the install plan starts.
+    Never prompts; blocking requirements still apply.
 .PARAMETER Restart
     Restarts Windows ten seconds after a successful install.
 .PARAMETER RestartComment
@@ -31,7 +32,9 @@
 .PARAMETER KeepStaging
     Leaves the protected staging copy in place after a successful install.
 .NOTES
-    Exit codes: 0 success, 1 install failure, 2 requirements not met, 3 not elevated.
+    Exit codes: 0 success, 1 install failure, 2 requirements not met, 3 not elevated,
+    5 Windows or Microsoft Store preparation is not current; the install did not start.
+    Atlas Manager's launcher reserves 4 for an install that never started.
 #>
 [CmdletBinding()]
 param(
@@ -41,7 +44,7 @@ param(
 
     [switch]$Unattended,
 
-    # Retained to explain why legacy SYSTEM setup callers must use the signed-in app.
+    # Refused: Store preparation is per user, so setup must run as the signed-in user.
     [switch]$WindowsSetup,
 
     [switch]$Restart,
@@ -103,6 +106,8 @@ function Test-AtlasDefenderPrepared {
     $features = Get-ItemProperty -LiteralPath ($base + '\Features') -Name TamperProtection -ErrorAction Stop
     $realTime = Get-ItemProperty -LiteralPath ($base + '\Real-Time Protection') -Name DisableRealtimeMonitoring -ErrorAction Stop
     $spyNet = Get-ItemProperty -LiteralPath ($base + '\SpyNet') -Name SpyNetReporting, SubmitSamplesConsent -ErrorAction Stop
+    # The four switches off: Tamper Protection (0 or 4), real-time protection,
+    # cloud-delivered protection, and automatic sample submission (prompt or never).
     return ($features.TamperProtection -in @(0,4) -and $realTime.DisableRealtimeMonitoring -eq 1 -and
         $spyNet.SpyNetReporting -eq 0 -and $spyNet.SubmitSamplesConsent -in @(0,2))
 }
@@ -121,9 +126,26 @@ function Invoke-AtlasPreparationCheck([string]$PayloadRoot, [string]$JobPath) {
     }
 }
 
+function Test-AtlasPreparationCurrent([string]$PayloadRoot, [string]$JobPath) {
+    <#
+    .SYNOPSIS
+        Whether live Windows and Store checks confirm preparation for the installing
+        user. A refusal is reported on stderr so the caller can exit with its own code.
+    #>
+    try {
+        Invoke-AtlasPreparationCheck -PayloadRoot $PayloadRoot -JobPath $JobPath
+        return $true
+    }
+    catch {
+        [Console]::Error.WriteLine("[Atlas] $($_.Exception.Message)")
+        return $false
+    }
+}
+
 function Test-AtlasPowerConnected {
     $power = Get-AtlasPowerStatus
     $batteryStatus = [int]$power.BatteryChargeStatus
+    # BatteryChargeStatus: 128 = no system battery, 255 = unknown.
     if ($batteryStatus -ne 255 -and ($batteryStatus -band 128) -ne 0) { return $true }
     switch ([string]$power.PowerLineStatus) {
         'Online' { return $true }
@@ -143,7 +165,7 @@ function Test-AtlasUserAccountReady {
 function Test-AtlasInstallRequirement {
     <#
     .SYNOPSIS
-        Evaluates the machine against the playbook's requirements. Returns objects with
+        Evaluates the machine against the package's requirements. Returns objects with
         Name, Passed, Blocking and Detail.
     #>
     param(
@@ -159,7 +181,7 @@ function Test-AtlasInstallRequirement {
     $results = @()
     foreach ($requirement in $DeclaredRequirements) {
         if ($requirement -notin @('NoAntivirus','PluggedIn','Internet','NoPendingUpdates','DefenderToggled')) {
-            throw "Direct installation cannot verify the playbook requirement '$requirement'."
+            throw "Direct installation cannot verify the package requirement '$requirement'."
         }
     }
     $results += [pscustomobject]@{
@@ -246,7 +268,6 @@ function Test-AtlasInstallRequirement {
         # A registration whose signed executable is gone is a leftover of an
         # uninstall (Malwarebytes leaves one); nothing is running to block anything.
         # A registration without a file path cannot be verified and counts as installed.
-        $thirdPartyAv = @()
         $staleAv = @()
         foreach ($registration in $registrations) {
             $signedExe = ([string]$registration.pathToSignedProductExe).Trim().Trim('"')
@@ -326,10 +347,6 @@ function New-AtlasProtectedStagingRoot {
     #>
     param([Parameter(Mandatory = $true)][string]$WindowsPath)
 
-    $createWithSecurity = [IO.Directory].GetMethod('CreateDirectory', [type[]]@([string], [Security.AccessControl.DirectorySecurity]))
-    if (-not $createWithSecurity) {
-        throw 'A protected from-birth staging directory is unavailable in this PowerShell host.'
-    }
     $security = New-AtlasFrontDoorDirectorySecurity
     # Create the shared state parent separately. CreateDirectory(path, security)
     # also stamps missing ancestors: using the staging ACL for AtlasOS would
@@ -340,11 +357,12 @@ function New-AtlasProtectedStagingRoot {
         if (([IO.File]::GetAttributes($atlasRoot) -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
             throw "The Atlas state root '$atlasRoot' must not be a reparse point."
         }
-        # Repair the restrictive parent ACL left by an earlier interrupted run.
+        # Repairs the restrictive ACL that pre-release builds of this script gave
+        # AtlasOS by creating Staging first. Remove once no such machine remains.
         [IO.Directory]::SetAccessControl($atlasRoot, $stateSecurity)
     }
     else {
-        [void]$createWithSecurity.Invoke($null, [object[]]@([string]$atlasRoot, $stateSecurity.PSObject.BaseObject))
+        [void][IO.Directory]::CreateDirectory($atlasRoot, $stateSecurity)
     }
 
     # Existing children can retain the old inherited ACL after SetAccessControl.
@@ -373,18 +391,18 @@ function New-AtlasProtectedStagingRoot {
 
     $stagingRoot = [IO.Path]::Combine($atlasRoot, 'Staging')
     if (-not [IO.Directory]::Exists($stagingRoot)) {
-        [void]$createWithSecurity.Invoke($null, [object[]]@([string]$stagingRoot, $security.PSObject.BaseObject))
+        [void][IO.Directory]::CreateDirectory($stagingRoot, $security)
     }
     $payloadRoot = [IO.Path]::Combine($stagingRoot, [guid]::NewGuid().ToString('N'))
-    [void]$createWithSecurity.Invoke($null, [object[]]@([string]$payloadRoot, $security.PSObject.BaseObject))
+    [void][IO.Directory]::CreateDirectory($payloadRoot, $security)
     return $payloadRoot
 }
 
 function Copy-AtlasPayloadToStaging {
     <#
     .SYNOPSIS
-        Copies the extracted playbook (playbook.conf and the Executables tree) into the
-        staging directory, refusing reparse points so a junction cannot redirect the copy.
+        Copies the extracted package (playbook.conf and the Executables tree) into the
+        staging folder, refusing reparse points so a junction cannot redirect the copy.
     #>
     param(
         [Parameter(Mandatory = $true)][string]$ExtractedRoot,
@@ -393,7 +411,7 @@ function Copy-AtlasPayloadToStaging {
 
     foreach ($item in Get-ChildItem -LiteralPath $ExtractedRoot -Recurse -Force) {
         if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-            throw "The extracted playbook contains a reparse point at '$($item.FullName)'; refusing to stage it."
+            throw "The extracted package contains a reparse point at '$($item.FullName)'; refusing to copy it."
         }
     }
     Copy-Item -LiteralPath (Join-Path -Path $ExtractedRoot -ChildPath 'playbook.conf') -Destination (Join-Path -Path $StagingRoot -ChildPath 'playbook.conf') -Force
@@ -414,7 +432,7 @@ try {
         throw 'WindowsSetup cannot verify per-user Microsoft Store preparation. Finish setup and run Atlas as the signed-in user.'
     }
 
-    # The extracted playbook root holds playbook.conf; this script sits under
+    # The extracted package root holds playbook.conf; this script sits under
     # Executables\AtlasModules\Scripts\Entry.
     $extractedRoot = [IO.Path]::GetFullPath([IO.Path]::Combine($scriptsRoot, '..', '..', '..'))
     $playbookPath = Join-Path -Path $extractedRoot -ChildPath 'playbook.conf'
@@ -457,11 +475,14 @@ try {
         }
     }
 
-    Write-AtlasInstallStep 'Staging the payload in a protected directory...'
+    Write-AtlasInstallStep 'Copying Atlas''s files to a protected folder...'
     $stagingRoot = New-AtlasProtectedStagingRoot -WindowsPath $windowsPath
     $payloadRoot = Copy-AtlasPayloadToStaging -ExtractedRoot $extractedRoot -StagingRoot $stagingRoot
     Write-AtlasInstallStep 'Verifying Windows and Microsoft Store preparation for the signed-in user...'
-    Invoke-AtlasPreparationCheck -PayloadRoot $payloadRoot -JobPath (Join-Path $stagingRoot 'Preparation')
+    # A distinct exit code lets Atlas Manager send the user back to preparation.
+    if (-not (Test-AtlasPreparationCurrent -PayloadRoot $payloadRoot -JobPath (Join-Path $stagingRoot 'Preparation'))) {
+        exit 5
+    }
     $request = [pscustomobject]@{ options = @($Option | Sort-Object -Unique) }
     [IO.File]::WriteAllText((Join-Path -Path $payloadRoot -ChildPath 'request.json'), ($request | ConvertTo-Json -Compress), (New-Object Text.UTF8Encoding($false)))
 

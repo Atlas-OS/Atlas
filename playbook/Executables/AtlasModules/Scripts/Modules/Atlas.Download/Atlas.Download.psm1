@@ -1,4 +1,4 @@
-# Atlas.Download - bounded HTTPS downloads, protected staging, contained native
+# Atlas.Download - size-limited HTTPS downloads, protected staging, contained native
 # execution, GitHub release resolution, and trusted WinGet resolution for elevated
 # Atlas callers. Entry points establish the protected module boundary before
 # importing this module; it does not alter the process environment itself.
@@ -12,13 +12,12 @@ param()
 
 Set-StrictMode -Version 3.0
 
-# Atlas.Core owns the single protected compile of the Atlas native surface.
+# Atlas.Native types come from Atlas.Core, which owns Atlas's only C# compile.
 $coreManifest = Join-Path -Path $PSScriptRoot -ChildPath '..\Atlas.Core\Atlas.Core.psd1'
 if (-not (Test-Path -LiteralPath $coreManifest -PathType Leaf)) {
     throw "Required Atlas.Core manifest '$coreManifest' is missing."
 }
-# Reuse the orchestrator's Core instance; forcing it from nested module scope
-# removes global Core commands from the caller in Windows PowerShell 5.1.
+# No -Force: a nested forced import unloads the caller's copy in Windows PowerShell 5.1.
 Import-Module -Name $coreManifest -ErrorAction Stop
 
 function New-AtlasProtectedStagingAcl {
@@ -116,7 +115,7 @@ function Invoke-AtlasBoundedHttpGet {
     param(
         [Parameter(Mandatory = $true)][uri]$Uri,
         [Parameter(Mandatory = $true)][IO.Stream]$OutputStream,
-        [Parameter(Mandatory = $true)][ValidateRange(1, 1073741824)][long]$MaximumBytes,
+        [Parameter(Mandatory = $true)][ValidateRange(1, 1GB)][long]$MaximumBytes,
         [ValidateRange(1, 3600)][int]$MaximumSeconds = 300,
         [long]$ExpectedBytes = -1,
         [switch]$AllowRedirect,
@@ -196,7 +195,7 @@ function Invoke-AtlasPinnedDownload {
         [Parameter(Mandatory = $true)]
         [ValidatePattern('^[0-9a-fA-F]{64}$')][string]$Sha256,
         [Parameter(Mandatory = $true)]
-        [ValidateRange(1, 1073741824)][long]$ExpectedBytes,
+        [ValidateRange(1, 1GB)][long]$ExpectedBytes,
         [ValidateRange(1, 3600)][int]$MaximumSeconds = 300
     )
 
@@ -394,7 +393,7 @@ function Resolve-AtlasGitHubRepositoryMetadata {
         [string]$RepositoryMetadata.owner.login -cne $Owner -or
         $RepositoryMetadata.private -isnot [bool] -or $RepositoryMetadata.private -or
         $RepositoryMetadata.archived -isnot [bool] -or $RepositoryMetadata.archived) {
-        throw "GitHub repository metadata does not match the reviewed immutable identity for '$fullName'."
+        throw "GitHub repository metadata does not match the expected repository identity for '$fullName'."
     }
     return [pscustomobject]@{
         RepositoryId = $repositoryId
@@ -448,9 +447,9 @@ function Resolve-AtlasGitHubReleaseAssetMetadata {
     [long]$assetId = 0
     if ($asset.state -cne 'uploaded' -or -not $digest.Success -or
         -not [long]::TryParse([string]$asset.size, [ref]$bytes) -or
-        $bytes -lt 1 -or $bytes -gt 1073741824 -or
+        $bytes -lt 1 -or $bytes -gt 1GB -or
         -not [long]::TryParse([string]$asset.id, [ref]$assetId) -or $assetId -lt 1) {
-        throw "GitHub's '$AssetName' asset is not a complete upload with a bounded digest and size."
+        throw "GitHub's '$AssetName' asset is not a complete upload with a SHA-256 digest and a size of at most 1 GB."
     }
     $tag = [string]$Release.tag_name
     $url = "https://github.com/$Owner/$Repository/releases/download/$tag/$AssetName"

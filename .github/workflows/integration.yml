@@ -1,6 +1,6 @@
 name: Integration (lab VM)
 
-# Installs the built playbook on a Hyper-V lab VM and verifies the result with the
+# Installs the built Atlas package on a Hyper-V lab VM and verifies the result with the
 # health check and a before/after state diff. This needs a self-hosted Windows runner
 # with Hyper-V, a prepared VM checkpoint and a guest credential; hosted runners cannot
 # run it. Register a runner with the labels below and set the repository variables and
@@ -41,7 +41,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Build the playbook
+      - name: Build the Atlas package
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'

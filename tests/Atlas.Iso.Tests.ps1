@@ -1,5 +1,6 @@
 BeforeAll {
-    $script:IsoResources = Join-Path (Split-Path $PSScriptRoot -Parent) 'app\resources\iso'
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
+    $script:IsoResources = Join-Path $script:AtlasTestRepoRoot 'app\resources\iso'
     $errors = $null
     $ast = [Management.Automation.Language.Parser]::ParseFile((Join-Path $script:IsoResources 'Build-Iso.ps1'), [ref]$null, [ref]$errors)
     if ($errors) { throw ($errors | Out-String) }

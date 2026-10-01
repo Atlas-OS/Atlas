@@ -53,7 +53,7 @@ function Get-AtlasInstallCheckpointAction {
 }
 
 function New-AtlasInstallPhaseCallbacks {
-    # Tasks may import Atlas.Core from the installed payload or reload it. Keep
+    # Tasks may import Atlas.Core from the installed copy or reload it. Keep
     # both lifecycle bodies bound to the same module instance so a reload
     # cannot orphan the transcript owned by an already-running phase. Invoking
     # FunctionInfo can resolve the replacement module with the same name in
@@ -230,8 +230,8 @@ function Invoke-AtlasInstallPlanCore {
             & $ProgressReporter $requiredSteps.Count $totalWork
 
             if ($key -ceq 'Checkpoint/PayloadReplacement') {
-                # A completed Once step also switches roots when resuming: its installed
-                # payload is the durable postcondition of having completed that step.
+                # Also switch roots when resuming past this Once step: the installed
+                # files are what that step left behind.
                 $scriptsRoot = $installedRoot
             }
         }
@@ -242,8 +242,8 @@ function Invoke-AtlasInstallPlanCore {
     }
     finally {
         if (-not $planCompleted) {
-            # Best-effort: the restore checkpoint no-ops without a recorded snapshot,
-            # and the install failure already in flight stays authoritative.
+            # Best effort: the restore checkpoint does nothing without a recorded
+            # snapshot, and the install failure already in flight is the one reported.
             try {
                 $restoreStep = [pscustomobject]@{
                     Key = 'Checkpoint/NotificationRestore'; Replay = 'Always'

@@ -62,7 +62,7 @@ foreach ($token in @($Rest)) {
         'justcontext' { $justContext = $true }
         'noaction' { $noExplorerRestart = $true }
         default {
-            # Generated launchers reject unknown tokens before this boundary. Keep
+            # Generated launchers reject unknown tokens before this point. Keep
             # direct invocation backward-compatible by ignoring unrelated extras.
         }
     }
@@ -71,7 +71,7 @@ foreach ($token in @($Rest)) {
 $title = if ($LauncherPath) { [IO.Path]::GetFileNameWithoutExtension($LauncherPath) } else { $Name }
 
 try {
-    # The bootstrap above rooted command auto-loading in this payload; import the core
+    # The bootstrap above rooted command auto-loading in this copy of Atlas; import the core
     # presentation and the toggle engine by their exact manifests so inherited per-user
     # modules cannot shadow them. Core first, so the engine's nested import shares the
     # instance whose console style is set here.

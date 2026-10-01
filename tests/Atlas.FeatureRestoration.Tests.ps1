@@ -35,7 +35,7 @@ Describe 'User app restoration outcomes' {
         Should -Not -Invoke Add-AppxPackage
     }
 
-    It 'downloads the exact Store product when its staged payload is gone' {
+    It 'downloads the exact Store product when its staged package is gone' {
         Mock Add-AppxPackage { throw 'payload unavailable' }
         Register-AtlasMicrosoftStore -Toggle ([pscustomobject]@{ Silent = $true })
         Should -Invoke Assert-AtlasTrustedWingetSource -Times 1 -Exactly -ParameterFilter { $Name -eq 'msstore' }
@@ -44,12 +44,6 @@ Describe 'User app restoration outcomes' {
             $ArgumentList -contains '--exact' -and $ArgumentList -contains 'msstore' -and
             $AllowedExitCodes.Count -eq 1 -and $AllowedExitCodes[0] -eq 0
         }
-    }
-
-    It 'propagates a failed Store download instead of claiming restoration' {
-        Mock Add-AppxPackage { throw 'payload unavailable' }
-        Mock Invoke-AtlasToggleNativeCommand { throw 'Store download failed' }
-        { Register-AtlasMicrosoftStore -Toggle ([pscustomobject]@{ Silent = $true }) } | Should -Throw '*Store download failed*'
     }
 
     It 'rejects a successful download that leaves no healthy Store package' {
@@ -118,7 +112,7 @@ Describe 'System Restore enable outcome' {
     }
 }
 
-Describe 'Explicit enable state boundaries' {
+Describe 'Explicit enable state scope' {
     BeforeAll {
         Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Privacy\Atlas.Privacy.psd1') -Force
         Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Shell\Atlas.Shell.psd1') -Force

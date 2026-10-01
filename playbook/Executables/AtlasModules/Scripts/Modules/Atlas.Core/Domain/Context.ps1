@@ -58,7 +58,7 @@ function Get-AtlasContext {
     .SYNOPSIS
         Returns cached information about the machine and the current install run.
     .OUTPUTS
-        PSCustomObject with filesystem paths, Windows facts and the authoritative install
+        PSCustomObject with filesystem paths, Windows facts and the recorded install
         mode, option set, target version and interactive-user identity.
     #>
     param(
@@ -173,9 +173,9 @@ function Get-AtlasContext {
         [bool]$document.isOobe
     }
     else {
-        # Completion publishes Interactive.flag for normal installs. Its absence can
-        # mean OOBE or a machine predating that contract, so consult the live setup
-        # indicator only when context is flag-backed.
+        # Completion writes Interactive.flag for normal installs. Its absence can mean
+        # OOBE or a machine installed before the flag existed, so consult the live
+        # setup indicator only when context comes from flags.
         $flagBackedOobe = $false
         if (-not (Test-Path -LiteralPath (Join-Path -Path $flagsPath -ChildPath 'Interactive.flag') -PathType Leaf)) {
             try {

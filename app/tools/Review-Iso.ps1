@@ -1,7 +1,13 @@
 # Capture read-only debug fixtures with isolated preferences. Never builds an ISO.
 param(
     [string]$Language = 'en-GB',
-    [ValidateSet('home','files','choices','before','before-desktop','review','review-before','progress','failed','release-unknown','complete','prepare-idle','prepare-busy','prepare-complete','prepare-failed','prepare-reboot','prepare-network','prepare-previous-worker','network-drivers','usb-select','usb-empty','usb-review','usb-progress','usb-failed','usb-complete')][string]$State = 'choices',
+    # The debug preview states of pages/iso.rs, pages/usb.rs and model/preview.rs.
+    [ValidateSet('home','files','files-checked','checking','not-elevated','windows','account-empty','account-invalid','choices','choices-unsupported','before','before-desktop',
+        'review','review-before','progress','progress-network','failed','build-failed','package-changed','cancelled','release-unknown','package-unsupported','complete',
+        'prepare-idle','prepare-busy','prepare-stopping','prepare-download','prepare-complete','prepare-resume','prepare-failed','prepare-failed-battery','prepare-unconfirmed',
+        'prepare-reboot','prepare-restart-persists','prepare-network','prepare-network-limited','prepare-previous-worker',
+        'network-drivers','usb-select','usb-empty','usb-review','usb-progress','usb-failed','usb-failed-iso','usb-failed-unchanged','usb-scan-failed',
+        'usb-cancelled-unchanged','usb-complete','usb-eject-failed','usb-ejected')][string]$State = 'choices',
     [int]$Width = 900, [int]$Height = 680,
     [int]$Scroll = 0,
     [switch]$Desktop,
@@ -29,7 +35,10 @@ public static class AtlasIsoReviewWindow {
  }
 }
 '@
-$name = "atlas-iso-$Language-$State-$Width-$Theme"
+# Every setting that changes the picture is in the name, so captures never overwrite each other.
+$name = "atlas-iso-$Language-$State-${Width}x$Height-$Theme"
+if ($Scroll -ne 0) { $name += "-scroll$Scroll" }
+if ($Desktop) { $name += '-desktop' }
 $root = Join-Path $env:TEMP $name
 New-Item -ItemType Directory -Path $root -Force | Out-Null
 @{ theme=$Theme; language=$Language } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $root 'settings.json') -Encoding UTF8
@@ -52,10 +61,11 @@ try {
         if ($handle -eq [IntPtr]::Zero) { Start-Sleep -Milliseconds 100 }
     } while ($handle -eq [IntPtr]::Zero -and [DateTime]::UtcNow -le $deadline -and -not $process.HasExited)
     if ($handle -eq [IntPtr]::Zero) { throw "Atlas window did not open; see $root\app.log" }
-    [void][AtlasIsoReviewWindow]::ShowWindow($handle, 5)
+    [void][AtlasIsoReviewWindow]::ShowWindow($handle, 5)  # SW_SHOW
     [void][AtlasIsoReviewWindow]::MoveWindow($handle, 60, 60, $Width, $Height, $true)
     Start-Sleep -Milliseconds 700
     if ($Scroll -ne 0) {
+        # WM_MOUSEWHEEL: the wheel delta in the high word, the cursor at (300, 300).
         [void][AtlasIsoReviewWindow]::SendMessage($handle, 0x020A, [IntPtr]($Scroll -shl 16), [IntPtr]((300 -shl 16) -bor 300))
         Start-Sleep -Milliseconds 300
     }

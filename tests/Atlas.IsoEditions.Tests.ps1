@@ -1,6 +1,6 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $source = Join-Path (Split-Path $PSScriptRoot -Parent) 'app\resources\iso\Build-Iso.ps1'
+    $source = Join-Path $script:AtlasTestRepoRoot 'app\resources\iso\Build-Iso.ps1'
     $errors = $null
     $ast = [Management.Automation.Language.Parser]::ParseFile($source, [ref]$null, [ref]$errors)
     if ($errors) { throw ($errors | Out-String) }
@@ -12,7 +12,7 @@ BeforeAll {
     function Get-WindowsImage { param($ImagePath, $Index) throw "Unmocked image query: $ImagePath, $Index" }
     function Export-WindowsImage { param($SourceImagePath, $SourceIndex, $DestinationImagePath, $CompressionType, [switch]$CheckIntegrity, $ErrorAction) throw "Unmocked image export: $SourceImagePath, $SourceIndex, $DestinationImagePath, $CompressionType, $CheckIntegrity, $ErrorAction" }
     function Write-Stage { param($Stage) throw "Unmocked stage: $Stage" }
-    function Get-AtlasWindowsReleaseStatus { param($Version) throw "Unmocked release query: $Version" }
+    function Get-AtlasWindowsReleaseStatus { param($Version, [switch]$NoRefresh) throw "Unmocked release query: $Version $NoRefresh" }
     function New-ImageFixture([int]$Index, [string]$Edition) {
         [pscustomobject]@{ImageIndex=$Index; ImageName="Windows 11 $Edition"; EditionId=$Edition; Version='10.0.26200.6584'; Architecture=9; InstallationType='Client'}
     }
@@ -82,6 +82,12 @@ Describe 'Supported editions in mixed Microsoft media' {
         Should -Invoke Get-AtlasWindowsReleaseStatus -Times 1 -Exactly -ParameterFilter { $Version -eq [version]'10.0.26200.6584' }
         Should -Invoke Export-WindowsImage -Times 0 -Exactly
     }
+    It 'checks releases against the bundled catalog alone when asked' {
+        $null = Get-AtlasMediaEditions source @(26200) -OfflineReleaseCheck
+        Should -Invoke Get-AtlasWindowsReleaseStatus -Times 5 -Exactly -ParameterFilter { $NoRefresh }
+        $null = Get-AtlasMediaEditions source @(26200)
+        Should -Invoke Get-AtlasWindowsReleaseStatus -Times 5 -Exactly -ParameterFilter { -not $NoRefresh }
+    }
     It 'rejects server media' {
         $script:Images[2].InstallationType = 'Server'
         { Get-AtlasMediaEditions source @(26200) } | Should -Throw '*client*'
@@ -118,7 +124,7 @@ Describe 'Supported editions in mixed Microsoft media' {
         foreach ($image in $script:Images) { $image.Architecture = 12 }
         { Export-AtlasMediaEditions source (Join-Path $TestDrive 'wrong-arch.wim') @(Get-AtlasMediaEditions source @(26200)) } | Should -Throw '*does not match*'
     }
-    It 'stops exporting after cancellation at an edition boundary' {
+    It 'stops exporting after cancellation between editions' {
         Mock Write-Stage { throw 'Cancelled at a safe checkpoint.' }
         { Export-AtlasMediaEditions source (Join-Path $TestDrive 'cancelled.wim') @(Get-AtlasMediaEditions source @(26200)) } | Should -Throw '*Cancelled*'
         Should -Invoke Export-WindowsImage -Times 0 -Exactly

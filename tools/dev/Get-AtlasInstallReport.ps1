@@ -5,8 +5,8 @@
 .DESCRIPTION
     Run this on a machine that has Atlas installed. It reads only; it changes nothing.
 
-    The report has two kinds of section. The authoritative one is the drift check: the
-    shipped health check reads every recorded toggle state and every applicable install
+    The report has two kinds of section. The one to trust first is the drift check: the
+    installed health check reads every recorded toggle state and every applicable install
     tweak back from this machine and reports what no longer holds. Everything else is
     context that the drift check cannot cover, because that work is imperative rather
     than declared, or because it describes the machine rather than Atlas:
@@ -16,12 +16,12 @@
          completed steps, and the recorded toggle states.
       3. The toggle state registry store.
       4. Drift, from AtlasModules\Scripts\Entry\Test-AtlasHealth.ps1.
-      5. Spot checks: Edge, Defender, Atlas CBS packages, payload tree, appearance.
+      5. Spot checks: Edge, Defender, Atlas CBS packages, Atlas folders, appearance.
       6. Services and drivers, with their startup types.
       7. Installed applications and AppX packages.
       8. Scheduled tasks.
       9. Startup entries and pending-reboot state.
-     10. Event log errors and warnings since the install.
+     10. Event log errors and warnings since the install (the newest 5,000 per log).
      11. The tail of the Atlas install logs and this account's user-setup transcript.
 
     Every section is independent. One that cannot be collected records why, and the
@@ -33,12 +33,14 @@
     How many lines to keep from the end of each log file.
 .PARAMETER EventCount
     How many recent event log entries to list per log, after the counts by source.
+.PARAMETER PartialPath
+    Also appends each section to this file as it finishes, so the sections collected
+    so far survive if the run is stopped. Removed once the full report is written.
 .PARAMETER RcDiagnostics
-    Also collects Search registry configuration, PCA task definition/history, and
-    OneDrive shell-extension permissions and loaded-module owners, WebView2 runtime
-    files/registration, local policy processing, effective Search scope and BITS
-    failure diagnostics. Read-only; does
-    not enable event logs, reapply settings, stop processes, or restart Windows.
+    Also collects Windows Search configuration and effective scope, the PCA task and its
+    history, OneDrive shell-extension permissions and owners, WebView2 runtime files and
+    registration, local policy processing and BITS failures. Read-only: it does not
+    enable event logs, reapply settings, stop processes or restart Windows.
 .EXAMPLE
     powershell -NoProfile -ExecutionPolicy Bypass -File .\Get-AtlasInstallReport.ps1
 .NOTES
@@ -56,6 +58,8 @@ param(
     [ValidateRange(1, 500)]
     [int]$EventCount = 60,
 
+    [string]$PartialPath,
+
     [switch]$RcDiagnostics
 )
 
@@ -70,16 +74,26 @@ if (-not $OutputPath) {
     $OutputPath = Join-Path -Path $desktop -ChildPath ('atlas-install-report-{0:yyyyMMdd-HHmmss}.txt' -f (Get-Date))
 }
 
-# The collectors below run as scriptblocks, so their inputs are bound at script scope.
+# Collector inputs live at script scope so a test can run one collector on its own.
 $script:LogTailLines = $LogLines
 $script:EventListCount = $EventCount
+# Newest events read per log. Limits the time the event section takes on a machine
+# with a long history since the install.
+$script:EventReadLimit = 5000
 $script:Summary = New-Object System.Collections.Generic.List[string]
+$script:PartialReport = $PartialPath
+$script:Utf8 = New-Object System.Text.UTF8Encoding($false)
 
 $windir = [Environment]::GetFolderPath('Windows')
 $atlasModules = Join-Path -Path $windir -ChildPath 'AtlasModules'
 $atlasDesktop = Join-Path -Path $windir -ChildPath 'AtlasDesktop'
 $atlasState = Join-Path -Path $windir -ChildPath 'AtlasOS'
 $report = New-Object System.Collections.Generic.List[string]
+if ($script:PartialReport) {
+    [IO.File]::WriteAllLines($script:PartialReport, [string[]]@(
+            'Atlas install report, partial: the sections finished before collection stopped.'
+        ), $script:Utf8)
+}
 
 function Add-Line {
     param([string]$Text = '')
@@ -101,7 +115,9 @@ function Add-Section {
         [Parameter(Mandatory = $true)][scriptblock]$Collector
     )
 
+    # diagnostics.rs reads the last 'Collecting: ' line to name a section that timed out.
     Write-Host "Collecting: $Title"
+    $start = $report.Count
     Add-Line ''
     Add-Line ('=' * 78)
     Add-Line $Title
@@ -120,6 +136,19 @@ function Add-Section {
     catch {
         Add-Line "COLLECTION FAILED: $($_.Exception.Message)"
         Add-Summary "Section '$Title' could not be collected: $($_.Exception.Message)"
+    }
+    finally {
+        # The partial report is a best-effort copy: failing to update it must
+        # not stop this section or the ones after it.
+        if ($script:PartialReport) {
+            try {
+                [IO.File]::AppendAllLines($script:PartialReport, [string[]]$report.GetRange($start, $report.Count - $start), $script:Utf8)
+            }
+            catch {
+                Add-Summary "The partial report could not be updated after section '$Title': $($_.Exception.Message)"
+                $script:PartialReport = $null
+            }
+        }
     }
 }
 
@@ -163,7 +192,7 @@ function Test-PathState {
     return ('{0,-46} {1}  {2}' -f $Label, $(if ($exists) { 'PRESENT' } else { 'absent ' }), $Path)
 }
 
-# The install time bounds the event log queries; without it, fall back to this boot.
+# Event log queries start at the install time; without it, they start at this boot.
 $script:InstalledAt = $null
 $statePath = Join-Path -Path $atlasState -ChildPath 'state.json'
 if (Test-Path -LiteralPath $statePath -PathType Leaf) {
@@ -223,7 +252,7 @@ Add-Section -Title '2. Atlas install state' -Collector {
         Add-Summary "Atlas $($state.installedVersion) installed $($state.installedAt) ($($state.mode)), $($toggles.Count) recorded toggle(s)."
     }
     else {
-        $lines += "state.json is missing at '$statePath'. Atlas is not installed here, or it was installed by a build that predates the state document."
+        $lines += "state.json is missing at '$statePath'."
         Add-Summary 'The Atlas machine state document is missing.'
     }
 
@@ -261,8 +290,8 @@ Add-Section -Title '3. Toggle state registry store (HKLM\SOFTWARE\AtlasOS\Servic
 Add-Section -Title '4. Health check: every recorded toggle and applicable tweak, verified against this machine' -Collector {
     $healthScript = Join-Path -Path $atlasModules -ChildPath 'Scripts\Entry\Test-AtlasHealth.ps1'
     if (-not (Test-Path -LiteralPath $healthScript -PathType Leaf)) {
-        Add-Summary 'The shipped health check is missing, so drift could not be verified.'
-        return "The health check is missing at '$healthScript'. This Atlas build predates it."
+        Add-Summary 'The installed health check is missing, so drift could not be verified.'
+        return "The health check is missing at '$healthScript'."
     }
 
     $powerShell = Join-Path -Path ([Environment]::SystemDirectory) -ChildPath 'WindowsPowerShell\v1.0\powershell.exe'
@@ -283,7 +312,7 @@ Add-Section -Title '5. Spot checks (imperative work the drift check cannot verif
     $programFilesX86 = [Environment]::GetFolderPath('ProgramFilesX86')
     $lines = @()
 
-    $lines += '-- Atlas payload --'
+    $lines += '-- Atlas files --'
     $lines += Test-PathState -Label 'AtlasModules' -Path $atlasModules
     $lines += Test-PathState -Label 'AtlasDesktop' -Path $atlasDesktop
     $lines += Test-PathState -Label 'Toolbox' -Path (Join-Path $atlasModules 'Toolbox')
@@ -524,7 +553,7 @@ Add-Section -Title '10. Event log errors and warnings since the install' -Collec
         $lines += ''
         $lines += "-- $logName --"
         try {
-            $events = @(Get-WinEvent -FilterHashtable @{ LogName = $logName; Level = 1, 2, 3; StartTime = $since } -ErrorAction Stop)
+            $events = @(Get-WinEvent -FilterHashtable @{ LogName = $logName; Level = 1, 2, 3; StartTime = $since } -MaxEvents $script:EventReadLimit -ErrorAction Stop)
         }
         catch {
             $lines += "  (no matching events, or the log could not be read: $($_.Exception.Message))"
@@ -532,12 +561,22 @@ Add-Section -Title '10. Event log errors and warnings since the install' -Collec
         }
 
         $lines += "  Total: $($events.Count)"
+        # At the limit, the events read begin later than the window does.
+        $capped = $events.Count -ge $script:EventReadLimit
+        if ($capped) {
+            # Get-WinEvent returns the newest first.
+            $oldestRead = $events[-1].TimeCreated
+            $lines += "  (only the newest $script:EventReadLimit were read, back to $oldestRead; older events in the window were not counted)"
+        }
         $lines += '  By source and id:'
         foreach ($group in @($events | Group-Object -Property ProviderName, Id | Sort-Object -Property Count -Descending)) {
             $lines += ('    {0,-5} {1}' -f $group.Count, $group.Name)
         }
         $errorCount = @($events | Where-Object { $_.Level -le 2 }).Count
-        if ($errorCount -gt 0) {
+        if ($capped) {
+            Add-Summary "$logName log: $errorCount error or critical event(s) among the newest $script:EventReadLimit errors and warnings, back to $oldestRead; older events since $since were not read."
+        }
+        elseif ($errorCount -gt 0) {
             Add-Summary "$logName log: $errorCount error or critical event(s) in the collection window beginning $since."
         }
 
@@ -621,6 +660,13 @@ if ($RcDiagnostics) {
             'HKLM:\SOFTWARE\AtlasOS\Services\PowerSaving'
             'HKLM:\SOFTWARE\AtlasOS\Search'
         )
+        # Values only for these: their branches are too large (the Search store) or unrelated.
+        $valueOnlyRoots = @(
+            'HKLM:\SOFTWARE\Microsoft\Windows Search'
+            'HKLM:\SOFTWARE\Microsoft\Windows Search\Gather\Windows\SystemIndex'
+            'HKLM:\SOFTWARE\AtlasOS\Services\PowerSaving'
+        )
+        $maxKeys = 80
         foreach ($root in $roots) {
             $lines += "-- $root --"
             if (-not (Test-Path -LiteralPath $root)) {
@@ -629,12 +675,10 @@ if ($RcDiagnostics) {
             }
             try {
                 $keys = @(Get-Item -LiteralPath $root -ErrorAction Stop)
-                # Root values include SetupCompletedSuccessfully. Limit the detailed
-                # branch dumps to configuration rather than the whole Search store.
-                if ($root -notin @($roots[0], $roots[1], $roots[6])) {
-                    $children = @(Get-ChildItem -LiteralPath $root -Recurse -ErrorAction Stop | Select-Object -First 81)
-                    if ($children.Count -gt 80) { $lines += '(branch truncated after 80 child keys)' }
-                    $keys += @($children | Select-Object -First 80)
+                if ($root -notin $valueOnlyRoots) {
+                    $children = @(Get-ChildItem -LiteralPath $root -Recurse -ErrorAction Stop | Select-Object -First ($maxKeys + 1))
+                    if ($children.Count -gt $maxKeys) { $lines += "(branch truncated after $maxKeys child keys)" }
+                    $keys += @($children | Select-Object -First $maxKeys)
                 }
                 foreach ($key in $keys) {
                     try {
@@ -707,7 +751,7 @@ if ($RcDiagnostics) {
         $root = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Microsoft\OneDrive'
         $files = @()
         if (Test-Path -LiteralPath $root -PathType Container) {
-            # The failure was in the version directory immediately below this root.
+            # OneDrive keeps FileSyncShell64.dll in each version directory directly below this root.
             foreach ($directory in @(Get-ChildItem -LiteralPath $root -Directory -Force -ErrorAction Stop)) {
                 if (($directory.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { continue }
                 $filePath = Join-Path $directory.FullName 'FileSyncShell64.dll'
@@ -879,12 +923,9 @@ if ($RcDiagnostics) {
     Add-Section -Title '17. RC diagnostics: effective Search scope' -Collector {
         $manifest = Join-Path $atlasModules 'Scripts\Modules\Atlas.Search\Atlas.Search.psd1'
         if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) {
-            return '(Atlas.Search module is missing)'
+            return "(Atlas.Search is missing at '$manifest')"
         }
         Import-Module -Name $manifest -ErrorAction Stop
-        if (-not (Get-Command Get-AtlasIndexScopeState -ErrorAction SilentlyContinue)) {
-            return '(this Atlas build does not expose the effective Search scope reader)'
-        }
         $paths = @(
             (Join-Path $atlasDesktop '__atlas_scope_probe__.lnk')
             (Join-Path ([Environment]::GetFolderPath('CommonPrograms')) '__atlas_scope_probe__.lnk')
@@ -957,7 +998,11 @@ if ($directory -and -not (Test-Path -LiteralPath $directory -PathType Container)
     New-Item -Path $directory -ItemType Directory -Force | Out-Null
 }
 $allLines = @($header) + @($report)
-[IO.File]::WriteAllLines($OutputPath, [string[]]$allLines, (New-Object System.Text.UTF8Encoding($false)))
+[IO.File]::WriteAllLines($OutputPath, [string[]]$allLines, $script:Utf8)
+# The parameter, so a partial report that stopped updating is still removed, best effort.
+if ($PartialPath) {
+    Remove-Item -LiteralPath $PartialPath -Force -ErrorAction SilentlyContinue
+}
 
 Write-Host ''
 Write-Host 'Atlas install report written to:'

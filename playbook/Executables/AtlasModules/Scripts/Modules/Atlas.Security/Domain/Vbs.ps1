@@ -1,6 +1,6 @@
 # Atlas.Security domain: Virtualization-Based Security and memory integrity.
 #
-# Supported registry contract:
+# The registry values Microsoft documents:
 # https://learn.microsoft.com/windows/security/hardware-security/enable-virtualization-based-protection-of-code-integrity
 # LSA protection, Credential Guard, kernel shadow stacks, and optional Windows features
 # are separate controls and are deliberately outside this domain's ownership.
@@ -90,7 +90,7 @@ function Set-AtlasVbsConfiguration {
         [ValidateSet('Enable', 'Disable')]
         [string]$State,
 
-        # Registry roots exist so tests can exercise the contract against a scratch hive.
+        # Tests point these at a scratch key.
         [ValidateNotNullOrEmpty()]
         [string]$DeviceGuardPath = $script:AtlasVbsDeviceGuardPath,
 

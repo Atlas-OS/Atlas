@@ -1,12 +1,11 @@
 Describe 'File Explorer Home configuration' {
     BeforeAll {
         . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-        Import-Module -Name (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Core\Atlas.Core.psd1') -Force
-        $script:tweakPath = Join-Path $PSScriptRoot `
-            '..\playbook\Executables\AtlasModules\Scripts\Tweaks\qol\explorer\disable-home.psd1'
-        Import-Module -Name (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Toggles\Atlas.Toggles.psd1') -Force
+        Import-Module -Name (Join-Path $script:AtlasTestModulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
+        Import-Module -Name (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
+        $script:tweakPath = Join-Path $script:AtlasTestScriptsRoot 'Tweaks\qol\explorer\disable-home.psd1'
         $script:homeToggle = Get-AtlasToggleDefinition -Name Home `
-            -TogglesRoot (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Toggles')
+            -TogglesRoot (Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles')
     }
 
     It 'disables both Home namespace discovery paths during installation' {
@@ -52,7 +51,5 @@ Describe 'File Explorer Home configuration' {
             $work.Machine | Should -BeTrue
             $work.User | Should -BeTrue
         }
-        $disable['StateValue'] | Should -Be 0
-        $enable['StateValue'] | Should -Be 1
     }
 }

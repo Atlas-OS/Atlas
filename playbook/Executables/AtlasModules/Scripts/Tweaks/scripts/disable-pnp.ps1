@@ -7,7 +7,8 @@ Get-NetAdapterBinding -Name '*' -ComponentID ms_msclient, ms_server, ms_lldp, ms
     Out-Null
 
 # Disable PnP devices most users don't need.
-# Keep chipset/platform detection devices enabled while AMD installer detection remains under investigation.
+# Chipset and platform devices stay enabled: vendor installers such as AMD's use them
+# to detect the platform.
 $devices = @(
     'Base System Device',
     'Composite Bus Enumerator',

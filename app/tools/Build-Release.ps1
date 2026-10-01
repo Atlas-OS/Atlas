@@ -3,7 +3,7 @@
 # keeps crt-static away from host build scripts and proc-macro DLLs.
 #
 # Without parameters this is the stable executable. -RcId and -EmbedApbx together
-# build the tester variant that carries one playbook (the same environment and
+# build the tester variant that carries one Atlas package (the same environment and
 # feature ../../tools/release/build-rc.sh uses); see docs/rc-testers-build.md.
 [CmdletBinding()]
 param(
@@ -35,7 +35,7 @@ Push-Location (Split-Path -Parent $PSScriptRoot)
 try {
     & (Join-Path $PSScriptRoot 'Export-DependencyNotices.ps1') -Check
     $env:CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS = '-C target-feature=+crt-static'
-    # Stale incremental state has produced link failures in release builds.
+    # Incremental state can break release links.
     $env:CARGO_INCREMENTAL = '0'
     $buildArguments = @('build', '--release', '--locked', '--target', 'x86_64-pc-windows-msvc')
     if ($tester) {

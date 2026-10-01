@@ -28,7 +28,7 @@ $script:AtlasLegacyTerminalCommands = @{
     OpenPSAdmin0 = 'PowerShell.exe -win 1 -nop -c iex((10..40|%%{(gp ''Registry::HKCR\TermsRunAsTI'' $_ -ea 0).$_})-join[char]10); # --%% PowerShell.exe -noexit -command Set-Location -literalPath ''%V'''
 }
 
-# Decoded REG_SZ values from the TermsRunAsTI payload shipped in 0.4.x and 0.5.x.
+# Decoded REG_SZ values from the TermsRunAsTI script included in 0.4.x and 0.5.x.
 $script:AtlasReleasedTermsData = @'
 10|function RunAsTI ($cmd,$arg) { $id='RunAsTI'; $key="Registry::HKU\$(((whoami /user)-split' ')[-1])\Volatile Environment"; $code=@'
 11| $I=[int32]; $M=$I.module.gettype("System.Runtime.Interop`Services.Mar`shal"); $P=$I.module.gettype("System.Int`Ptr"); $S=[string]

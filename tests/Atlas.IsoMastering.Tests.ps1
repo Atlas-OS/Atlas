@@ -1,5 +1,6 @@
 BeforeAll {
-    $script:Master = Join-Path (Split-Path $PSScriptRoot -Parent) 'app/resources/iso/Master-Iso.ps1'
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
+    $script:Master = Join-Path $script:AtlasTestRepoRoot 'app\resources\iso\Master-Iso.ps1'
 }
 
 Describe 'IMAPI source file lifetime' {

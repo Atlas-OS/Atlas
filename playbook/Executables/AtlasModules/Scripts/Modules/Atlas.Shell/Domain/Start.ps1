@@ -26,7 +26,7 @@ function Test-AtlasStartPinPolicySupported {
 function Get-AtlasStartLayoutPath {
     <#
     .SYNOPSIS
-        Returns the shipped Start layout JSON path under the Windows directory.
+        Returns the path of Atlas's Start layout JSON under the Windows directory.
     #>
     return Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules\Other\StartLayout.json'
 }
@@ -62,7 +62,7 @@ function Get-AtlasStartDefaultUserKey {
 function Set-AtlasStartLayout {
     <#
     .SYNOPSIS
-        Validates the shipped Windows 11 Start layout and removes the default Start
+        Validates Atlas's Windows 11 Start layout and removes the default Start
         advertisements from the fixed default-user hive.
     .DESCRIPTION
         Runs in the privileged install phase with the default-user hive loaded. The

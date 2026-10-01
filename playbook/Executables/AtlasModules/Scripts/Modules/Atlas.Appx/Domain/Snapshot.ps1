@@ -45,7 +45,7 @@ function Save-AtlasAppxSnapshot {
 
     # The removal plan operates across every existing user. Snapshot the same
     # all-user Bundle/Main inventory so deprovision markers do not depend on which
-    # account happened to launch the playbook.
+    # account happened to start the Atlas installation.
     @(Get-AppxPackage -AllUsers -PackageTypeFilter Bundle, Main -ErrorAction Stop).PackageFamilyName |
         Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
         Sort-Object -Unique |

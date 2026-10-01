@@ -84,26 +84,24 @@ Describe 'Atlas catalog' {
         $LASTEXITCODE | Should -Be 0 -Because ($output -join "`n")
     }
 
-    It 'lists every toggle definition exactly once with its states' {
+    It 'lists every toggle definition with only its public states' {
+        # catalog.json is the contract AtlasToolbox and other consumers read; -Validate
+        # only proves it matches the generator, so check it against the definitions.
         $catalog = Get-Content -LiteralPath $script:CatalogPath -Raw | ConvertFrom-Json
         $catalog.schemaVersion | Should -Be 1
         $definitions = @(Get-ChildItem -LiteralPath $script:TogglesRoot -Recurse -File -Filter '*.psd1')
-        @($catalog.toggles).Count | Should -Be $definitions.Count
-        @($catalog.toggles.name | Sort-Object -Unique).Count | Should -Be $definitions.Count
-        foreach ($toggle in $catalog.toggles) {
-            $toggle.group | Should -Not -BeNullOrEmpty
-            $toggle.elevation | Should -BeIn @('None', 'Admin', 'TrustedInstaller')
-            @($toggle.states).Count | Should -BeGreaterThan 0
-        }
-    }
+        @($catalog.toggles.name | Sort-Object) | Should -Be @($definitions.BaseName | Sort-Object)
 
-    It 'ships the generated references beside the docs' {
-        Join-Path $script:repoRoot 'docs\catalog\toggles.md' | Should -Exist
-        Join-Path $script:repoRoot 'docs\catalog\tweaks.md' | Should -Exist
-    }
-    It 'keeps internal broker choices out of the public indexing states' {
-        $catalog = Get-Content -LiteralPath $script:CatalogPath -Raw | ConvertFrom-Json
-        $indexing = $catalog.toggles | Where-Object name -eq 'Indexing'
-        @($indexing.states.name) | Should -Be @('Disable', 'Minimal', 'Enable')
+        foreach ($file in $definitions) {
+            $public = @((Import-PowerShellDataFile -LiteralPath $file.FullName).States |
+                    Where-Object { -not $_['Internal'] } | ForEach-Object { $_['Name'] })
+            $entry = @($catalog.toggles | Where-Object name -ceq $file.BaseName)
+            @($entry[0].states.name) | Should -Be $public -Because $file.BaseName
+        }
+
+        # Indexing's power-mode variants are internal steps behind Enable, so the
+        # catalog must not list them even if their Internal flag is lost.
+        $indexing = @($catalog.toggles | Where-Object name -ceq 'Indexing')
+        @($indexing[0].states.name) | Should -Be @('Disable', 'Minimal', 'Enable')
     }
 }

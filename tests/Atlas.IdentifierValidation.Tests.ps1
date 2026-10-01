@@ -1,13 +1,4 @@
 BeforeDiscovery {
-    $cultureMap = @{
-        'de' = 'de-DE'; 'en-GB' = 'en-GB'; 'en-US' = 'en-US'; 'es' = 'es-ES'; 'fr' = 'fr-FR'
-        'hi' = 'hi-IN'; 'id' = 'id-ID'; 'ja' = 'ja-JP'; 'pl' = 'pl-PL'; 'pt-BR' = 'pt-BR'
-        'ru' = 'ru-RU'; 'th' = 'th-TH'; 'tr' = 'tr-TR'; 'zh-Hans' = 'zh-CN'; 'zh-Hant' = 'zh-TW'
-    }
-    $cultures = @(foreach ($directory in Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot '..\app\i18n') -Directory) {
-        if (-not $cultureMap.ContainsKey($directory.Name)) { throw "No culture test for locale '$($directory.Name)'." }
-        @{ Locale = $directory.Name; Culture = $cultureMap[$directory.Name] }
-    })
     $root = Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts'
     $script:IdentifierCases = @(foreach ($file in Get-ChildItem -LiteralPath $root -Recurse -File | Where-Object Extension -in @('.ps1', '.psm1')) {
         $ast = [Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$null, [ref]$null)
@@ -22,36 +13,21 @@ BeforeDiscovery {
             $valid = if ($moduleName) { 'Atlas.InstallState' } elseif ($lowercase) {
                 if ($attribute.Extent.Text.Contains('(/[a-z')) { 'testing/indexing' } else { 'indexing' }
             } else { 'Indexing' }
-            foreach ($culture in $cultures) {
-                @{
-                    Location = $file.Name + ':' + $attribute.Extent.StartLineNumber
-                    Attribute = $attribute.Extent.Text
-                    Valid = $valid
-                    Invalid = $valid.Replace('I', [string][char]0x0130).Replace('i', [string][char]0x0130)
-                    Culture = $culture.Culture
-                }
+            @{
+                Location = $file.Name + ':' + $attribute.Extent.StartLineNumber
+                Attribute = $attribute.Extent.Text
+                Valid = $valid
             }
         }
     })
-}
 
-Describe 'ASCII identifier parameter binding' {
-    It 'accepts ASCII and rejects non-ASCII at <Location> under <Culture>' -TestCases $script:IdentifierCases {
-        param($Attribute, $Valid, $Invalid, $Culture)
-        # Exercise the production parameter attribute without running its privileged operation.
-        $binding = [scriptblock]::Create('param(' + $Attribute + '[string]$Name) $Name')
-        $invalidValue = [string]$Invalid
-        $dotlessValue = $Valid.Replace('I', [string][char]0x0131).Replace('i', [string][char]0x0131)
-        $previous = [Threading.Thread]::CurrentThread.CurrentCulture
-        try {
-            [Threading.Thread]::CurrentThread.CurrentCulture = [Globalization.CultureInfo]::GetCultureInfo($Culture)
-            (& $binding -Name $Valid) | Should -BeExactly $Valid
-            { & $binding -Name $invalidValue } | Should -Throw
-            { & $binding -Name $dotlessValue } | Should -Throw
-            { & $binding -Name 'bad//name' } | Should -Throw
-        }
-        finally { [Threading.Thread]::CurrentThread.CurrentCulture = $previous }
-    }
+    # Each culture breaks a different assumption: Turkish casing, the Thai Buddhist
+    # calendar and comma decimals.
+    $script:Cultures = @(
+        @{ Culture = 'tr-TR' }
+        @{ Culture = 'th-TH' }
+        @{ Culture = 'de-DE' }
+    )
 }
 
 BeforeAll {
@@ -62,15 +38,43 @@ BeforeAll {
     $script:ToggleRoot = Join-Path $script:AtlasTestScriptsRoot '..\Toggles'
     $script:TweakRoot = Join-Path $script:AtlasTestScriptsRoot 'Tweaks'
     $script:ToggleNames = @(Get-ChildItem -LiteralPath $script:ToggleRoot -Recurse -Filter '*.psd1' -File | Select-Object -ExpandProperty BaseName)
-}
 
-Describe 'Payload data across supported languages' {
-    It 'loads definitions and persists toggle records in <Locale> (<Culture>)' -TestCases $cultures {
-        param($Locale, $Culture)
+    function Use-Culture {
+        param([Parameter(Mandatory = $true)][string]$Name, [Parameter(Mandatory = $true)][scriptblock]$Action)
         $previous = [Threading.Thread]::CurrentThread.CurrentCulture
         try {
-            [Threading.Thread]::CurrentThread.CurrentCulture = [Globalization.CultureInfo]::GetCultureInfo($Culture)
-            $path = Join-Path $TestDrive "$Locale\state.json"
+            [Threading.Thread]::CurrentThread.CurrentCulture = [Globalization.CultureInfo]::GetCultureInfo($Name)
+            & $Action
+        }
+        finally { [Threading.Thread]::CurrentThread.CurrentCulture = $previous }
+    }
+}
+
+Describe 'ASCII identifier parameter binding' {
+    It 'accepts ASCII and rejects non-ASCII at <Location>' -TestCases $script:IdentifierCases {
+        param($Attribute, $Valid)
+        # Exercise the production parameter attribute without running its privileged operation.
+        # Case-insensitive matching would let the Turkish dotted I and the Kelvin sign
+        # pass for ASCII letters.
+        $binding = [scriptblock]::Create('param(' + $Attribute + '[string]$Name) $Name')
+        $dotted = $Valid.Replace('I', [string][char]0x0130).Replace('i', [string][char]0x0130)
+        $dotless = $Valid.Replace('I', [string][char]0x0131).Replace('i', [string][char]0x0131)
+        $kelvin = $Valid + [char]0x212A
+        Use-Culture tr-TR {
+            (& $binding -Name $Valid) | Should -BeExactly $Valid
+            { & $binding -Name $dotted } | Should -Throw
+            { & $binding -Name $dotless } | Should -Throw
+            { & $binding -Name $kelvin } | Should -Throw
+            { & $binding -Name 'bad//name' } | Should -Throw
+        }
+    }
+}
+
+Describe 'Atlas data under other cultures' {
+    It 'loads definitions and persists toggle records under <Culture>' -TestCases $script:Cultures {
+        param($Culture)
+        Use-Culture $Culture {
+            $path = Join-Path $TestDrive "$Culture\state.json"
             foreach ($name in $script:ToggleNames) {
                 $definition = Get-AtlasToggleDefinition -Name $name -TogglesRoot $script:ToggleRoot
                 $definition['Name'] | Should -BeExactly $name
@@ -81,14 +85,10 @@ Describe 'Payload data across supported languages' {
             @(Test-AtlasTweakManifest -Path (Join-Path $script:TweakRoot 'tweaks.manifest.psd1')).Count | Should -Be 0
             @(Get-AtlasPlaybookOption -PlaybookPath (Join-Path $script:AtlasTestRepoRoot 'playbook\playbook.conf')).Count | Should -BeGreaterThan 0
         }
-        finally { [Threading.Thread]::CurrentThread.CurrentCulture = $previous }
     }
 
-    It 'accepts every ASCII drive letter and Unicode folder names in <Locale> (<Culture>)' -TestCases $cultures {
-        param($Culture)
-        $previous = [Threading.Thread]::CurrentThread.CurrentCulture
-        try {
-            [Threading.Thread]::CurrentThread.CurrentCulture = [Globalization.CultureInfo]::GetCultureInfo($Culture)
+    It 'accepts every ASCII drive letter with Unicode folder names and rejects a dotted-I drive' {
+        Use-Culture tr-TR {
             foreach ($letter in @(65..90) + @(97..122)) {
                 $path = [string][char]$letter + ':\Users\' + [char]0x0130 + 'pek\Desktop'
                 (& (Get-Module Atlas.Search) { param($candidate) ConvertTo-AtlasIndexPath -Candidate $candidate } $path) |
@@ -96,6 +96,5 @@ Describe 'Payload data across supported languages' {
             }
             { & (Get-Module Atlas.Search) { ConvertTo-AtlasIndexPath -Candidate ([string][char]0x0130 + ':\Users') } } | Should -Throw
         }
-        finally { [Threading.Thread]::CurrentThread.CurrentCulture = $previous }
     }
 }

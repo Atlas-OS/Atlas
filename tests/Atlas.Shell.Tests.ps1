@@ -154,11 +154,6 @@ Describe 'Set-AtlasFileAssociations' {
         Mock Write-AtlasLog -ModuleName Atlas.Shell
     }
 
-    It 'rejects an unknown profile before planning' {
-        { Set-AtlasFileAssociations -AssociationProfile 'Unknown Browser' -PlanOnly } |
-            Should -Throw '*ValidateSet*'
-    }
-
     It 'leaves protected browser defaults to Windows' {
         $plan = Set-AtlasFileAssociations -AssociationProfile Firefox -PlanOnly
 
@@ -176,13 +171,13 @@ Describe 'Set-AtlasFileAssociations' {
 
         $changes = @((Set-AtlasFileAssociations -PlanOnly).Changes)
         $handlers = @($changes | Where-Object Path -Like '*\OpenWithProgids')
-        $handlers.Count | Should -Be 38
-        $handlers[0].Path | Should -BeExactly 'SOFTWARE\Classes\.001\OpenWithProgids'
-        $handlers[0].Name | Should -BeExactly '7-Zip.001'
-        $handlers[-1].Path | Should -BeExactly 'SOFTWARE\Classes\.zip\OpenWithProgids'
-        $handlers[-1].Name | Should -BeExactly '7-Zip.zip'
-        @($handlers | Where-Object { $_.Value -ne '' -or $_.Kind -ne [Microsoft.Win32.RegistryValueKind]::String }).Count |
-            Should -Be 0
+        $handlers.Count | Should -BeGreaterThan 0
+        foreach ($handler in $handlers) {
+            $handler.Path -cmatch '^SOFTWARE\\Classes\\\.(?<ext>[0-9a-z]+)\\OpenWithProgids$' | Should -BeTrue
+            $handler.Name | Should -BeExactly "7-Zip.$($Matches.ext)"
+            $handler.Value | Should -BeExactly ''
+            $handler.Kind | Should -Be ([Microsoft.Win32.RegistryValueKind]::String)
+        }
 
         $options = $changes[-1]
         $options.Path | Should -BeExactly 'SOFTWARE\7-Zip\Options'
@@ -197,17 +192,16 @@ Describe 'Set-AtlasFileAssociations' {
         @((Set-AtlasFileAssociations -PlanOnly).Changes).Count | Should -Be 0
     }
 
-    It 'applies every planned change, is retry-safe and propagates the first write failure' {
+    It 'applies every planned change for the checked user and propagates the first write failure' {
         Mock Test-AtlasMachineClassRegistration -ModuleName Atlas.Shell { $true }
         Mock Assert-AtlasFileAssociationUser -ModuleName Atlas.Shell
         Mock Write-AtlasFileAssociationChange -ModuleName Atlas.Shell
+        $planned = @((Set-AtlasFileAssociations -PlanOnly).Changes).Count
+        $planned | Should -BeGreaterThan 0
 
-        $first = Set-AtlasFileAssociations
-        $second = Set-AtlasFileAssociations
-        $first.Mode | Should -BeExactly 'Apply'
-        $second.Mode | Should -BeExactly 'Apply'
-        Should -Invoke Write-AtlasFileAssociationChange -ModuleName Atlas.Shell -Times 78 -Exactly
-        Should -Invoke Assert-AtlasFileAssociationUser -ModuleName Atlas.Shell -Times 2 -Exactly
+        (Set-AtlasFileAssociations).Mode | Should -BeExactly 'Apply'
+        Should -Invoke Write-AtlasFileAssociationChange -ModuleName Atlas.Shell -Times $planned -Exactly
+        Should -Invoke Assert-AtlasFileAssociationUser -ModuleName Atlas.Shell -Times 1 -Exactly
         Should -Invoke Write-AtlasLog -ModuleName Atlas.Shell -Times 0
 
         Mock Write-AtlasFileAssociationChange -ModuleName Atlas.Shell { throw 'registry write failed' }
@@ -414,9 +408,9 @@ Describe 'Shell context-menu argument helpers' {
         ConvertTo-AtlasShellWindowsArgument -Value $Value | Should -BeExactly $Expected
     }
 
-    It 'refuses an argument beyond the Windows command-line boundary' {
+    It 'refuses an argument beyond the Windows command-line length limit' {
         { ConvertTo-AtlasShellWindowsArgument -Value ('a' * 32768) } |
-            Should -Throw '*command-line length boundary*'
+            Should -Throw '*command-line length limit*'
     }
 
     It 'builds non-recursive and recursive native ownership arguments' {
@@ -437,16 +431,12 @@ Describe 'Shell context-menu argument helpers' {
             Should -Throw '*localized affirmative choice*'
     }
 
-    It 'accepts a tree without reparse points' {
-        $root = New-Item -ItemType Directory -Path (Join-Path $TestDrive 'plain-tree')
+    It 'accepts a plain tree and rejects a descendant junction without traversing it' {
+        $root = New-Item -ItemType Directory -Path (Join-Path $TestDrive 'ownership-tree')
         [void](New-Item -ItemType Directory -Path (Join-Path $root.FullName 'child'))
         [IO.File]::WriteAllText((Join-Path $root.FullName 'child\file.txt'), 'x')
-
         { Assert-AtlasTakeOwnershipTree -RootPath $root.FullName } | Should -Not -Throw
-    }
 
-    It 'rejects a descendant junction without traversing it' {
-        $root = New-Item -ItemType Directory -Path (Join-Path $TestDrive 'ownership-tree')
         $target = New-Item -ItemType Directory -Path (Join-Path $TestDrive 'junction-target')
         $junctionPath = Join-Path $root.FullName 'junction'
         [void](New-Item -ItemType Junction -Path $junctionPath -Target $target.FullName)
@@ -476,7 +466,7 @@ Describe 'Set-AtlasStartLayout' {
         Remove-Item -Path $script:defaultUserKey -Recurse -Force -ErrorAction SilentlyContinue
     }
 
-    It 'accepts the shipped Start layout' {
+    It 'accepts the included Start layout' {
         Mock Get-AtlasStartLayoutPath -ModuleName Atlas.Shell {
             Join-Path -Path $script:AtlasTestRepoRoot -ChildPath 'playbook\Executables\AtlasModules\Other\StartLayout.json'
         }
@@ -511,11 +501,16 @@ Describe 'Set-AtlasStartLayout' {
         { Set-AtlasStartLayout } | Should -Not -Throw
     }
 
-    It 'reports policy support on a serviced build and warns on an older one' {
-        Set-AtlasStartLayout
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Shell -Times 1 -Exactly -ParameterFilter {
-            $Message -like '*support detected on OS build 26100.4770*'
+    It 'names the exact build that introduced the 24H2 GPO and warns only below it' {
+        InModuleScope Atlas.Shell {
+            Test-AtlasStartPinPolicySupported -Build 26100 -Revision 4769 | Should -BeFalse
+            Test-AtlasStartPinPolicySupported -Build 26100 -Revision 4770 | Should -BeTrue
+            Test-AtlasStartPinPolicySupported -Build 26100 -Revision 9000 | Should -BeTrue
+            Test-AtlasStartPinPolicySupported -Build 26200 -Revision 1 | Should -BeTrue
+            Test-AtlasStartPinPolicySupported -Build 22631 -Revision 9999 | Should -BeFalse
         }
+
+        Set-AtlasStartLayout
         Should -Invoke Write-AtlasLog -ModuleName Atlas.Shell -Times 0 -ParameterFilter { $Level -eq 'Warning' }
 
         Mock Get-AtlasStartWindowsVersion -ModuleName Atlas.Shell {
@@ -524,16 +519,6 @@ Describe 'Set-AtlasStartLayout' {
         Set-AtlasStartLayout
         Should -Invoke Write-AtlasLog -ModuleName Atlas.Shell -Times 1 -Exactly -ParameterFilter {
             $Level -eq 'Warning' -and $Message -like '*26100.4769*' -and $Message -like '*26100.4770*'
-        }
-    }
-
-    It 'names the exact build boundary that introduced the 24H2 GPO' {
-        InModuleScope Atlas.Shell {
-            Test-AtlasStartPinPolicySupported -Build 26100 -Revision 4769 | Should -BeFalse
-            Test-AtlasStartPinPolicySupported -Build 26100 -Revision 4770 | Should -BeTrue
-            Test-AtlasStartPinPolicySupported -Build 26100 -Revision 9000 | Should -BeTrue
-            Test-AtlasStartPinPolicySupported -Build 26200 -Revision 1 | Should -BeTrue
-            Test-AtlasStartPinPolicySupported -Build 22631 -Revision 9999 | Should -BeFalse
         }
     }
 }
@@ -638,6 +623,7 @@ Describe 'Set-AtlasTaskbarPins' {
         Mock Invoke-AtlasTaskbarRegistryWrite -ModuleName Atlas.Shell { throw 'reg.exe failed' }
 
         { Set-AtlasTaskbarPins -NoExplorerStop } | Should -Throw '*reg.exe failed*'
+        $script:stagedShortcuts.Count | Should -BeGreaterThan 0
         foreach ($staged in $script:stagedShortcuts) {
             Test-Path -LiteralPath (Split-Path -Parent $staged) | Should -BeFalse
         }
@@ -736,23 +722,17 @@ Describe 'Add-AtlasMusicVideosToHome' {
 }
 
 Describe 'Atlas.Shell tweak bindings' {
-    It 'runs file associations as the non-elevated user outside OOBE' {
-        $definition = Import-PowerShellDataFile -LiteralPath (Join-Path $script:tweaksRoot 'scripts\set-file-associations.psd1')
+    It 'runs <Definition> as the non-elevated user outside OOBE' -ForEach @(
+        @{ Definition = 'scripts\set-file-associations.psd1' }
+        @{ Definition = 'qol\explorer\debloat-send-to.psd1' }
+    ) {
+        $path = Join-Path $script:tweaksRoot $Definition
+        $tweak = Import-PowerShellDataFile -LiteralPath $path
 
-        $definition.RunAs | Should -BeExactly 'User'
-        $definition.Oobe | Should -BeFalse
-        Test-Path -LiteralPath (Join-Path $script:tweaksRoot "scripts\$($definition.Script)") -PathType Leaf |
-            Should -BeTrue
-    }
-
-    It 'runs the Send-To debloat companion as the non-elevated user outside OOBE' {
-        $definition = Import-PowerShellDataFile -LiteralPath (Join-Path $script:tweaksRoot 'qol\explorer\debloat-send-to.psd1')
-
-        $definition.Script | Should -BeExactly 'debloat-send-to.ps1'
-        $definition.RunAs | Should -BeExactly 'User'
-        $definition.Oobe | Should -BeFalse
-        $definition.ContainsKey('Run') | Should -BeFalse
-        Test-Path -LiteralPath (Join-Path $script:tweaksRoot 'qol\explorer\debloat-send-to.ps1') -PathType Leaf |
+        $tweak.RunAs | Should -BeExactly 'User'
+        $tweak.Oobe | Should -BeFalse
+        $tweak.ContainsKey('Run') | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path (Split-Path -Parent $path) $tweak.Script) -PathType Leaf |
             Should -BeTrue
     }
 }

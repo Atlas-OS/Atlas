@@ -1,5 +1,6 @@
-# Windows release eligibility, not installation/media authenticity. Dot-sourcing
-# defines functions only; network access is deferred until an unknown build is checked.
+# Whether a Windows build is a public release. This says nothing about whether the
+# installation or media is genuine. Dot-sourcing only defines functions; the network
+# is used only when the bundled catalog cannot decide.
 function ConvertFrom-AtlasWindowsReleaseMarkdown {
     [CmdletBinding()]
     param(
@@ -46,6 +47,7 @@ function ConvertFrom-AtlasWindowsReleaseMarkdown {
     @($rows | Sort-Object { [version]$_.version })
 }
 
+# Tests mock this to serve fixed responses.
 function New-AtlasWindowsReleaseRequest {
     [CmdletBinding()]
     param([Parameter(Mandatory)][uri]$Uri)
@@ -57,12 +59,13 @@ function Get-AtlasWindowsReleaseMarkdown {
     param()
     $uri = [uri]'https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information'
     $clock = [Diagnostics.Stopwatch]::StartNew()
+    $timeoutMs = 15000
     $limit = 1MB
     for ($redirect = 0; $redirect -le 3; $redirect++) {
         if ($uri.Scheme -ne 'https' -or $uri.Host -ne 'learn.microsoft.com' -or $uri.Port -ne 443 -or $uri.UserInfo) {
             throw 'Release information redirected outside its official HTTPS origin.'
         }
-        $remaining = 15000 - [int]$clock.ElapsedMilliseconds
+        $remaining = $timeoutMs - [int]$clock.ElapsedMilliseconds
         if ($remaining -le 0) { throw 'Release information request timed out.' }
         $request = New-AtlasWindowsReleaseRequest -Uri $uri
         $request.AllowAutoRedirect = $false
@@ -80,14 +83,14 @@ function Get-AtlasWindowsReleaseMarkdown {
                 continue
             }
             if ($status -ne 200 -or $response.ContentType -notmatch '^text/markdown(?:;|$)' -or $response.ContentLength -gt $limit) {
-                throw 'Release information response was not bounded Markdown.'
+                throw 'Release information response was not Markdown within the size limit.'
             }
             $stream = $response.GetResponseStream()
             $buffer = New-Object byte[] 8192
             $body = New-Object IO.MemoryStream
             try {
                 while ($true) {
-                    $remaining = 15000 - [int]$clock.ElapsedMilliseconds
+                    $remaining = $timeoutMs - [int]$clock.ElapsedMilliseconds
                     if ($remaining -le 0) { throw 'Release information request timed out.' }
                     if ($stream.CanTimeout) { $stream.ReadTimeout = $remaining }
                     $count = $stream.Read($buffer, 0, $buffer.Length)
@@ -106,7 +109,9 @@ function Get-AtlasWindowsReleaseStatus {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][version]$Version,
-        [AllowEmptyString()][string]$BuildLabEx = ''
+        [AllowEmptyString()][string]$BuildLabEx = '',
+        # Decide from the bundled catalog alone, never Microsoft's live page.
+        [switch]$NoRefresh
     )
     if ($BuildLabEx -match '(?i)(?:^|[._-])prerelease(?:[._-]|$)') { return 'Preview' }
     if ($Version.Major -ne 10 -or $Version.Minor -ne 0 -or $Version.Build -notin @(26200,26300) -or $Version.Revision -lt 1) { return 'Unknown' }
@@ -118,8 +123,16 @@ function Get-AtlasWindowsReleaseStatus {
                     return 'Released'
                 }
             }
+            if ($NoRefresh) {
+                # Without the live page, only a revision newer than every listed one
+                # of its build is taken as an update the catalog predates. Older
+                # unlisted revisions, such as pre-release flights, stay unknown.
+                $newest = @($catalog.releases | ForEach-Object { [version]$_.version } | Where-Object { $_.Build -eq $Version.Build } | Sort-Object) | Select-Object -Last 1
+                if ($null -ne $newest -and $Version -gt $newest) { return 'Released' }
+            }
         }
     } catch { Write-Verbose "The bundled Windows release catalog could not be read: $_" }
+    if ($NoRefresh) { return 'Unknown' }
     try {
         $cached = Get-Variable -Name AtlasWindowsReleasedVersions -Scope Script -ErrorAction SilentlyContinue
         if ($null -eq $cached) {

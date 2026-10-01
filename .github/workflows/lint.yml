@@ -52,12 +52,12 @@ jobs:
         shell: pwsh
         run: |
           # Pin to a specific version so results are reproducible
-          # Update RequiredVersion when a new release ships on PowerShell Gallery
+          # Update RequiredVersion when a new release is published on PowerShell Gallery
           if (-not (Get-Module -ListAvailable PSScriptAnalyzer | Where-Object Version -eq '1.25.0')) {
               Install-Module -Name PSScriptAnalyzer -RequiredVersion 1.25.0 -Force -Scope CurrentUser
           }
 
-      - name: Lint payload and app resources
+      - name: Lint the scripts that run on users' PCs (playbook/, app/resources/)
         shell: pwsh
         run: |
           Import-Module PSScriptAnalyzer -RequiredVersion 1.25.0
@@ -67,11 +67,11 @@ jobs:
 
           if ($results) {
               $results | Format-Table -AutoSize
-              Write-Host "::error::PSScriptAnalyzer found $($results.Count) issue(s) in the payload."
+              Write-Host "::error::PSScriptAnalyzer found $($results.Count) issue(s) in the scripts that run on users' PCs."
               exit 1
           }
 
-          Write-Host "No payload issues found."
+          Write-Host "No issues found in the scripts that run on users' PCs."
 
       - name: Lint tooling and tests (tools/, tests/)
         shell: pwsh

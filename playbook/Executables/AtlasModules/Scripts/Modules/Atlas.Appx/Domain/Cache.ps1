@@ -1,9 +1,9 @@
-# Atlas.Appx domain: install-state-bound current-user package cache clearing.
+# Atlas.Appx domain: clearing the installing user's package caches.
 #
-# Machine-wide AppX removal stays in the TrustedInstaller phase. Cache deletion is
-# deliberately split into a medium, non-elevated child created from the exact install
-# state identity. The child derives only its own registered profile and refuses every
-# reparse point before deleting with non-recursive file-system primitives.
+# Machine-wide AppX removal stays in the TrustedInstaller phase. Caches are deleted by
+# a non-elevated child running as the user recorded in the install state. The child
+# finds only its own registered profile and refuses every reparse point, deleting
+# one entry at a time rather than recursively.
 
 function ConvertTo-AtlasAppxCacheSid {
     param(
@@ -333,8 +333,8 @@ function Stop-AtlasAppxPackageProcess {
         $exeName = [IO.Path]::GetFileNameWithoutExtension($exePath)
         foreach ($process in @(Get-Process -Name $exeName -ErrorAction SilentlyContinue)) {
             try {
-                # Keep the exact object returned by Get-Process and reject other logon
-                # sessions before consulting its executable path or passing it to the sink.
+                # Keep the object Get-Process returned and skip other sign-in sessions
+                # before reading its path or stopping it.
                 if ([int]$process.SessionId -ne $SessionId) { continue }
                 if ([string]::IsNullOrWhiteSpace([string]$process.Path)) { continue }
                 $processPath = [IO.Path]::GetFullPath([string]$process.Path)
@@ -347,8 +347,8 @@ function Stop-AtlasAppxPackageProcess {
                 }
             }
             catch {
-                # A target can exit naturally between enumeration and the stop sink.
-                # Treat that as the same proven postcondition; all other failures abort.
+                # The process may exit on its own between listing and stopping; that
+                # counts as stopped. Any other failure aborts.
                 $alreadyExited = try { [bool]$process.HasExited } catch { $false }
                 if ($alreadyExited) { continue }
                 throw "Couldn't stop package process '$($process.ProcessName)': $($_.Exception.Message)"
@@ -507,7 +507,7 @@ function Clear-AtlasAppxCacheForProfile {
 function Clear-AtlasAppxCache {
     <#
     .SYNOPSIS
-        Clears only the exact install-state-bound current user's fixed AppX cache groups.
+        Clears only the installing user's fixed AppX cache groups.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -520,8 +520,8 @@ function Clear-AtlasAppxCache {
     )
 
     $profileRoot = Assert-AtlasAppxCacheUserIdentity -ExpectedUserSid $ExpectedUserSid
-    # Read the child process session only after SID and profile registration have
-    # been validated. Every package-process sink receives this nonzero binding.
+    # Read the session only after the SID and profile are validated. Every package
+    # process stop is limited to this session.
     $sessionId = Get-AtlasAppxCacheCurrentSessionId
     Clear-AtlasAppxCacheForProfile -Mode $Mode -ProfileRoot $profileRoot `
         -SessionId $sessionId
@@ -559,7 +559,7 @@ function Invoke-AtlasUserAppxCacheCleanupCore {
     $modulesPath = [IO.Path]::GetFullPath([string]$Context.AtlasModulesPath)
     $expectedModulesPath = [IO.Path]::Combine($windowsPath, 'AtlasModules')
     if (-not $modulesPath.Equals($expectedModulesPath, [StringComparison]::OrdinalIgnoreCase)) {
-        throw 'The AppX cache helper path is outside the protected Windows payload root.'
+        throw 'The AppX cache helper path is outside the protected AtlasModules folder.'
     }
     $powerShellPath = Resolve-AtlasAppxCacheNormalFile `
         -Path ([IO.Path]::Combine(
@@ -590,7 +590,7 @@ function Invoke-AtlasUserAppxCacheCleanupCore {
 function Invoke-AtlasUserAppxCacheCleanup {
     <#
     .SYNOPSIS
-        Launches fixed cache cleanup as the exact install-state-bound medium user.
+        Launches the fixed cache cleanup as the installing user, without elevation.
     #>
     param(
         [Parameter(Mandatory = $true)]

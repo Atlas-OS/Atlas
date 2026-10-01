@@ -490,7 +490,7 @@ function Get-AtlasPlaybookPayloadPath {
     .SYNOPSIS
         Returns the normalized relative path of every file that belongs in an APBX.
     .DESCRIPTION
-        The playbook directory is the payload contract. Generated APBX files and their
+        The playbook/ directory defines what an APBX contains. Generated APBX files and their
         recognized interrupted-build/publication artifacts are the only files excluded
         by New-Apbx.
     #>
@@ -501,7 +501,7 @@ function Get-AtlasPlaybookPayloadPath {
 
     $resolvedRoot = (Resolve-Path -LiteralPath $PlaybookPath).ProviderPath
     if (-not (Test-Path -LiteralPath (Join-Path -Path $resolvedRoot -ChildPath 'playbook.conf') -PathType Leaf)) {
-        throw "playbook.conf not found in '$resolvedRoot' - not a playbook directory."
+        throw "playbook.conf not found in '$resolvedRoot' - not an Atlas package source folder."
     }
 
     return @(Get-ChildItem -LiteralPath $resolvedRoot -File -Recurse |
@@ -607,7 +607,7 @@ function Set-OemVersionStamp {
     <#
     .SYNOPSIS
         Writes a copy of the OEM information script with the AtlasVersionUndefined
-        placeholder replaced by the playbook version label.
+        placeholder replaced by the package version label.
     .OUTPUTS
         $true when a staged copy was written to DestinationPath.
     #>
@@ -638,7 +638,7 @@ function Set-OemVersionStamp {
 function New-Apbx {
     <#
     .SYNOPSIS
-        Packages the playbook directory into a renamed, optionally password-protected ZIP
+        Packages the playbook/ directory into a renamed, optionally password-protected ZIP
         (.apbx) understood by AME Wizard, applying dev-build staging overrides on top.
     .OUTPUTS
         Full path of the built .apbx file.
@@ -656,7 +656,7 @@ function New-Apbx {
 
     $PlaybookPath = (Resolve-Path -LiteralPath $PlaybookPath).ProviderPath
     if (-not (Test-Path -LiteralPath (Join-Path -Path $PlaybookPath -ChildPath 'playbook.conf') -PathType Leaf)) {
-        throw "playbook.conf not found in '$PlaybookPath' - not a playbook directory."
+        throw "playbook.conf not found in '$PlaybookPath' - not an Atlas package source folder."
     }
     Assert-AtlasConfigurationRunnerBoundary `
         -ConfigurationRoot (Join-Path -Path $PlaybookPath -ChildPath 'Configuration') | Out-Null
@@ -695,7 +695,7 @@ function New-Apbx {
     try {
         Set-Location -LiteralPath $PlaybookPath
 
-        # Staged overrides are written into a temp mirror of the playbook tree and added
+        # Staged overrides are written into a temp mirror of the playbook/ tree and added
         # to the archive after the main pass, replacing the originals.
         $rootTempDir = New-TemporaryDirectory
         $stagingPath = Join-Path -Path $rootTempDir.FullName -ChildPath 'playbook'

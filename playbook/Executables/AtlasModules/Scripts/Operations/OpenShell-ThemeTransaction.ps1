@@ -1,4 +1,4 @@
-# Transactional publication for the pinned Open-Shell theme payload.
+# Transactional publication for the pinned Open-Shell theme files.
 
 function Get-AtlasOpenShellThemeFileSha256 {
     [CmdletBinding()]
@@ -86,7 +86,7 @@ function Invoke-AtlasOpenShellThemeFileTransaction {
 
     $sourceItems = @(Get-ChildItem -LiteralPath $SourceDirectory -Force -ErrorAction Stop)
     if ($sourceItems.Count -ne $ExpectedFiles.Count) {
-        throw 'The extracted Open-Shell theme payload contains an unexpected number of entries.'
+        throw 'The extracted Open-Shell theme archive contains an unexpected number of entries.'
     }
 
     $expectedNames = @{}
@@ -107,7 +107,7 @@ function Invoke-AtlasOpenShellThemeFileTransaction {
     foreach ($sourceItem in $sourceItems) {
         if ($sourceItem.PSIsContainer -or
             -not $expectedNames.ContainsKey($sourceItem.Name.ToUpperInvariant())) {
-            throw "The extracted Open-Shell theme payload contains unexpected entry '$($sourceItem.Name)'."
+            throw "The extracted Open-Shell theme archive contains unexpected entry '$($sourceItem.Name)'."
         }
     }
 

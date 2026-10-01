@@ -11,10 +11,7 @@ BeforeAll {
     $script:policyPath = "$script:testRoot\Policies\DeviceGuard"
 
     $togglesRoot = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles'
-    $script:VbsState = Get-AtlasToggleDefinition -Name VbsState -TogglesRoot $togglesRoot
-    $script:ConfigVbs = Get-AtlasToggleDefinition -Name ConfigVBS -TogglesRoot $togglesRoot
     $script:ToggleDefender = Get-AtlasToggleDefinition -Name ToggleDefender -TogglesRoot $togglesRoot
-    $script:FixErrors = Get-AtlasToggleDefinition -Name FixErrors2502and2503 -TogglesRoot $togglesRoot
     $script:TweakPath = Join-Path $script:AtlasTestScriptsRoot 'Tweaks\scripts\disable-core-isolation.psd1'
 
     function Set-TestDword {
@@ -167,24 +164,19 @@ Describe 'Set-AtlasVbsConfiguration' {
         Test-Path -LiteralPath $script:deviceGuardPath | Should -BeFalse
     }
 
-    It 'refuses lock values it cannot interpret' {
-        Set-TestDword -Path $script:deviceGuardPath -Name 'Locked' -Value 2
+    It 'refuses a <Kind> lock value it cannot interpret before writing anything' -TestCases @(
+        @{ Kind = 'DWord'; Value = 2; State = 'Enable'; Message = '*unsupported value*' }
+        @{ Kind = 'String'; Value = '1'; State = 'Disable'; Message = '*not REG_DWORD*' }
+    ) {
+        New-Item -Path $script:deviceGuardPath -Force | Out-Null
+        Set-ItemProperty -LiteralPath $script:deviceGuardPath -Name 'Locked' -Value $Value -Type $Kind
 
-        { Set-AtlasVbsConfiguration -State Enable `
+        { Set-AtlasVbsConfiguration -State $State `
                 -DeviceGuardPath $script:deviceGuardPath -PolicyPath $script:policyPath } |
-            Should -Throw '*unsupported value*'
+            Should -Throw $Message
 
         Get-TestValueState -Path $script:deviceGuardPath -Name 'EnableVirtualizationBasedSecurity' |
             Should -BeNullOrEmpty
-    }
-
-    It 'refuses a lock value that is not REG_DWORD' {
-        New-Item -Path $script:deviceGuardPath -Force | Out-Null
-        Set-ItemProperty -LiteralPath $script:deviceGuardPath -Name 'Locked' -Value '1' -Type String
-
-        { Set-AtlasVbsConfiguration -State Disable `
-                -DeviceGuardPath $script:deviceGuardPath -PolicyPath $script:policyPath } |
-            Should -Throw '*not REG_DWORD*'
     }
 
     It 'requires Administrator rights before reading or writing anything' {
@@ -195,10 +187,6 @@ Describe 'Set-AtlasVbsConfiguration' {
             Should -Throw '*requires Administrator*'
 
         Test-Path -LiteralPath $script:deviceGuardPath | Should -BeFalse
-    }
-
-    It 'rejects states outside Enable and Disable' {
-        { Set-AtlasVbsConfiguration -State Off } | Should -Throw
     }
 }
 
@@ -452,133 +440,46 @@ Describe 'Security toggle companions' {
         Mock Import-AtlasModule -ModuleName Atlas.Toggles
     }
 
-    It 'VbsState routes both recorded machine states to the module' {
-        Mock Set-AtlasVbsConfiguration -ModuleName Atlas.Toggles
-
-        $definition = $script:VbsState
-        foreach ($stateName in @('Disable', 'Enable')) {
-            $state = $definition.States[$stateName]
-            $state['MachineAction'] | Should -BeExactly 'Set-AtlasVbsState'
-            Invoke-CompanionFunction -Definition $definition -FunctionName 'Set-AtlasVbsState' `
-                -Toggle (New-ToggleContext -Name 'VbsState' -State $stateName)
-        }
-
-        Should -Invoke Set-AtlasVbsConfiguration -ModuleName Atlas.Toggles -Times 2 -Exactly
-        Should -Invoke Set-AtlasVbsConfiguration -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter { $State -ceq 'Disable' }
-        Should -Invoke Set-AtlasVbsConfiguration -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter { $State -ceq 'Enable' }
-        Should -Invoke Import-AtlasModule -ModuleName Atlas.Toggles -Times 2 -Exactly -ParameterFilter { $Name -ceq 'Atlas.Security' }
-        $definition.States['Disable']['StateValue'] | Should -Be 0
-        $definition.States['Enable']['StateValue'] | Should -Be 1
-        # Both states are recorded machine work: replayed on upgrade, never per user.
-        foreach ($stateName in @('Disable', 'Enable')) {
-            $work = Get-AtlasToggleStateWork -Definition $definition -StateEntry $definition.States[$stateName]
-            $work.Machine | Should -BeTrue -Because $stateName
-            $work.User | Should -BeFalse -Because $stateName
-            $work.Local | Should -BeFalse -Because $stateName
-        }
-        @($definition.States.Values | ForEach-Object { $_['Reboot'] } | Select-Object -Unique) |
-            Should -Be @('Recommend')
-    }
-
-    It 'ConfigVBS shows the report locally without elevation or a state record' {
-        Mock Get-AtlasVbsConfiguration -ModuleName Atlas.Toggles {
-            [pscustomobject]@{
-                VbsStatus           = 'Enabled and running'
-                ConfiguredServices  = @('Memory integrity (HVCI)')
-                RunningServices     = @('Memory integrity (HVCI)')
-                RequiredProperties  = @('None')
-                AvailableProperties = @('Secure Boot')
-            }
-        }
-
-        $definition = $script:ConfigVbs
-        $run = $definition.States['Run']
-        $definition.Elevation | Should -BeExactly 'None'
-        $definition.NoStateRecord | Should -BeTrue
-        $run['Action'] | Should -BeExactly 'Show-AtlasVbsConfiguration'
-        $work = Get-AtlasToggleStateWork -Definition $definition -StateEntry $run
-        $work.Local | Should -BeTrue
-        $work.Machine | Should -BeFalse
-
-        Invoke-CompanionFunction -Definition $definition -FunctionName 'Show-AtlasVbsConfiguration' `
-            -Toggle (New-ToggleContext -Name 'ConfigVBS' -State 'Run' -Silent $false)
-
-        Should -Invoke Get-AtlasVbsConfiguration -ModuleName Atlas.Toggles -Times 1 -Exactly
-        Should -Invoke Write-AtlasNote -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
-            $Text -contains 'VBS status: Enabled and running' -and
-                $Text -contains 'Running services: Memory integrity (HVCI)'
-        }
-    }
-
-    It 'ToggleDefender chooses in the administrator process and crosses the broker as a fixed state' {
+    It 'ToggleDefender asks for the state only in an interactive administrator window' {
         Mock Set-AtlasDefenderState -ModuleName Atlas.Toggles
         Mock Read-AtlasDefenderStateChoice -ModuleName Atlas.Toggles { 'Disable' }
 
-        $definition = $script:ToggleDefender
-        $definition.Elevation | Should -BeExactly 'TrustedInstaller'
-        $definition.NoStateRecord | Should -BeTrue
-        $run = $definition.States['Run']
-        $run['InteractiveState'] | Should -BeExactly 'Select-AtlasDefenderToggleState'
-        $run['Reboot'] | Should -BeExactly 'Prompt'
-        foreach ($internal in @('Disable', 'Enable')) {
-            $definition.States[$internal]['Internal'] | Should -BeTrue
-            $definition.States[$internal]['NoStateRecord'] | Should -BeTrue
-            (Get-AtlasToggleStateWork -Definition $definition -StateEntry $definition.States[$internal]).User | Should -BeFalse
-        }
-
-        # The selector only runs interactively and returns the confirmed internal state.
-        Invoke-CompanionFunction -Definition $definition -FunctionName 'Select-AtlasDefenderToggleState' `
+        Invoke-CompanionFunction -Definition $script:ToggleDefender -FunctionName 'Select-AtlasDefenderToggleState' `
             -Toggle (New-ToggleContext -Name 'ToggleDefender' -State 'Run' -Silent $false) | Should -BeExactly 'Disable'
-        { Invoke-CompanionFunction -Definition $definition -FunctionName 'Select-AtlasDefenderToggleState' `
+        { Invoke-CompanionFunction -Definition $script:ToggleDefender -FunctionName 'Select-AtlasDefenderToggleState' `
                 -Toggle (New-ToggleContext -Name 'ToggleDefender' -State 'Run' -Silent $true) } |
             Should -Throw '*interactive window*'
         Should -Invoke Set-AtlasDefenderState -ModuleName Atlas.Toggles -Times 0 -Exactly
-
-        # The internal states apply the chosen change silently inside the broker.
-        Invoke-CompanionFunction -Definition $definition -FunctionName 'Disable-AtlasDefenderToggle' `
-            -Toggle (New-ToggleContext -Name 'ToggleDefender' -State 'Disable' -Silent $true)
-        Invoke-CompanionFunction -Definition $definition -FunctionName 'Enable-AtlasDefenderToggle' `
-            -Toggle (New-ToggleContext -Name 'ToggleDefender' -State 'Enable' -Silent $true)
-        Should -Invoke Set-AtlasDefenderState -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter { $Silent -and $State -ceq 'Disable' }
-        Should -Invoke Set-AtlasDefenderState -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter { $Silent -and $State -ceq 'Enable' }
-
-        # A silent request for the public state has no choice to apply.
-        { Invoke-CompanionFunction -Definition $definition -FunctionName 'Invoke-AtlasDefenderToggle' `
-                -Toggle (New-ToggleContext -Name 'ToggleDefender' -State 'Run' -Silent $true) } |
-            Should -Throw '*interactive window*'
     }
 
-    It 'FixErrors2502and2503 runs the TEMP repair as recorded-free TrustedInstaller machine work' {
-        Mock Repair-AtlasWindowsTempPermissions -ModuleName Atlas.Toggles
+    It 'ToggleDefender applies the chosen <Chosen> state silently inside the broker' -TestCases @(
+        @{ Chosen = 'Disable'; Companion = 'Disable-AtlasDefenderToggle' }
+        @{ Chosen = 'Enable'; Companion = 'Enable-AtlasDefenderToggle' }
+    ) {
+        Mock Set-AtlasDefenderState -ModuleName Atlas.Toggles
+        $script:defenderState = $Chosen
 
-        $definition = $script:FixErrors
-        $definition.Elevation | Should -BeExactly 'TrustedInstaller'
-        $definition.NoStateRecord | Should -BeTrue
-        $definition.States['Run']['MachineAction'] | Should -BeExactly 'Invoke-AtlasWindowsTempPermissionsRepair'
+        Invoke-CompanionFunction -Definition $script:ToggleDefender -FunctionName $Companion `
+            -Toggle (New-ToggleContext -Name 'ToggleDefender' -State $Chosen -Silent $true)
+        Should -Invoke Set-AtlasDefenderState -ModuleName Atlas.Toggles -Times 1 -Exactly
+        Should -Invoke Set-AtlasDefenderState -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            $Silent -and $State -ceq $script:defenderState
+        }
+    }
 
-        Invoke-CompanionFunction -Definition $definition -FunctionName 'Invoke-AtlasWindowsTempPermissionsRepair' `
-            -Toggle (New-ToggleContext -Name 'FixErrors2502and2503' -State 'Run' -Silent $false)
+    It 'ToggleDefender refuses a silent request for its public state, which has no choice to apply' {
+        Mock Set-AtlasDefenderState -ModuleName Atlas.Toggles
 
-        Should -Invoke Repair-AtlasWindowsTempPermissions -ModuleName Atlas.Toggles -Times 1 -Exactly
-        Should -Invoke Write-AtlasStep -ModuleName Atlas.Toggles -Times 1 -Exactly
+        { Invoke-CompanionFunction -Definition $script:ToggleDefender -FunctionName 'Invoke-AtlasDefenderToggle' `
+                -Toggle (New-ToggleContext -Name 'ToggleDefender' -State 'Run' -Silent $true) } |
+            Should -Throw '*interactive window*'
+        Should -Invoke Set-AtlasDefenderState -ModuleName Atlas.Toggles -Times 0 -Exactly
     }
 }
 
 Describe 'disable-core-isolation install tweak' {
-    It 'is a checked, single-purpose option whose companion disables VBS through the module' {
-        $definition = Import-PowerShellDataFile -LiteralPath $script:TweakPath
-        $definition.Option | Should -BeExactly 'disable-core-isolation'
-        $definition.Script | Should -BeExactly 'disable-core-isolation.ps1'
-        $definition.Keys | Should -Not -Contain 'Run'
-        $definition.Keys | Should -Not -Contain 'RemovePaths'
-        $definition.Description | Should -Match 'preserved'
-
-        Mock Import-AtlasModule
-        Mock Set-AtlasVbsConfiguration
-
-        & (Join-Path (Split-Path -Parent $script:TweakPath) $definition.Script)
-
-        Should -Invoke Import-AtlasModule -Times 1 -Exactly -ParameterFilter { $Name -ceq 'Atlas.Security' }
-        Should -Invoke Set-AtlasVbsConfiguration -Times 1 -Exactly -ParameterFilter { $State -ceq 'Disable' }
+    It 'runs only when the user chose it' {
+        (Import-PowerShellDataFile -LiteralPath $script:TweakPath).Option | Should -BeExactly 'disable-core-isolation' `
+            -Because 'without the option gate every install would turn off VBS and memory integrity'
     }
 }

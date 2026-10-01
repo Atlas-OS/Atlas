@@ -1,11 +1,7 @@
 # Atlas.Network - network adapter defaults and File Sharing configuration module.
 Set-StrictMode -Version 3.0
 
-# Atlas.Core supplies logging, privilege checks and checked native launches; Atlas.Registry
-# writes the Sharing context-menu and NcdAutoSetup values; Atlas.Services sets the NetBT
-# driver start value; Atlas.Toggles applies the Network Discovery machine state that File
-# Sharing depends on. Reuse instances a long-running caller already owns: a nested forced
-# import would unload their global command surface in Windows PowerShell 5.1.
+# No -Force: a nested forced import unloads the caller's copy in Windows PowerShell 5.1.
 foreach ($dependencyManifest in @(
     '..\Atlas.Core\Atlas.Core.psd1'
     '..\Atlas.Registry\Atlas.Registry.psd1'

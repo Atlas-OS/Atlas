@@ -41,7 +41,7 @@ foreach ($manifest in @($coreManifest, $shellManifest)) {
 }
 
 if (-not [IO.Path]::IsPathRooted($TargetPath) -or $TargetPath.Length -gt 32767) {
-    throw 'The Take Ownership target must be one bounded absolute path.'
+    throw 'The Take Ownership target must be one absolute path of at most 32,767 characters.'
 }
 
 try {

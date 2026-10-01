@@ -45,9 +45,9 @@ jobs:
           persist-credentials: false
 
       - name: Windows PowerShell 5.1 parse gate
-        # The payload runs under Windows PowerShell 5.1 on target machines; this catches
-        # PowerShell-7-only syntax before it ships. Includes .psd1 so a broken tweak
-        # definition or module manifest cannot ship and fail (or get skipped) at runtime.
+        # The scripts that run on users' PCs use Windows PowerShell 5.1; this catches
+        # PowerShell-7-only syntax before release. Includes .psd1 so a broken tweak
+        # definition or module manifest cannot be released and fail (or get skipped) at runtime.
         shell: powershell
         run: |
           $failed = $false
@@ -64,7 +64,7 @@ jobs:
           }
 
           if ($failed) { exit 1 }
-          Write-Host "All payload and app resource scripts parse under Windows PowerShell 5.1."
+          Write-Host "All Atlas and app resource scripts parse under Windows PowerShell 5.1."
 
       - name: Install Pester
         shell: pwsh
@@ -93,7 +93,7 @@ jobs:
               Install-Module -Name Pester -RequiredVersion 5.7.1 -Force -Scope CurrentUser -SkipPublisherCheck
           }
 
-      - name: Test the Windows PowerShell 5.1 payload
+      - name: Test the Windows PowerShell 5.1 scripts
         shell: powershell
         run: |
           Import-Module Pester -RequiredVersion 5.7.1

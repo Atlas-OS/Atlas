@@ -20,7 +20,7 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 
 if (-not [IO.Path]::IsPathRooted($PowerPlanPath) -or $PowerPlanPath.Length -gt 32767) {
-    throw 'The power-plan path must be one bounded absolute path.'
+    throw 'The power-plan path must be one absolute path of at most 32,767 characters.'
 }
 $canonicalPath = [IO.Path]::GetFullPath($PowerPlanPath)
 if (-not [IO.Path]::GetExtension($canonicalPath).Equals('.pow', [StringComparison]::OrdinalIgnoreCase)) {

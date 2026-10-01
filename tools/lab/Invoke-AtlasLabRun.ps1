@@ -1,11 +1,11 @@
 <#
 .SYNOPSIS
-    Installs a built playbook on a Hyper-V lab VM and verifies the result.
+    Installs a built Atlas package on a Hyper-V lab VM and verifies the result.
 .DESCRIPTION
     One lab run is the end-to-end check that CI cannot do on a hosted runner:
 
       1. Restore the VM to a clean checkpoint and boot it.
-      2. Copy the extracted playbook and the state-dump tool into the guest over
+      2. Copy the extracted package and the state-dump tool into the guest over
          PowerShell Direct and take a baseline dump of registry, services and tasks.
       3. Run the Atlas front door (Scripts\Entry\Install-Atlas.ps1) unattended with the
          requested options, from Windows PowerShell 5.1 inside the guest.
@@ -29,10 +29,10 @@
 .PARAMETER PlaybookPath
     An .apbx built by tools\build\Build-Playbook.ps1. Extracted locally with 7-Zip.
 .PARAMETER ArchiveKey
-    The zip key the playbook was built with. AME Wizard playbooks all use the same
+    The zip key the package was built with. AME Wizard playbooks all use the same
     published key; pass an empty string for a build made with -NoPassword.
 .PARAMETER ExtractedRoot
-    An already extracted playbook root (contains playbook.conf and Executables). Either
+    An already extracted package root (contains playbook.conf and Executables). Either
     this or -PlaybookPath is required.
 .PARAMETER Option
     FeaturePage options passed to the front door. Defaults to the recommended set.
@@ -109,7 +109,7 @@ function Expand-Playbook {
 
     $sevenZip = Get-Command -Name '7z' -ErrorAction SilentlyContinue
     if (-not $sevenZip) {
-        throw '7-Zip (7z) is required on PATH to extract the playbook.'
+        throw '7-Zip (7z) is required on PATH to extract the Atlas package.'
     }
     $target = Join-Path -Path ([IO.Path]::GetTempPath()) -ChildPath ('atlas-lab-' + [guid]::NewGuid().ToString('N'))
     $arguments = @('x', '-y', "-o$target")
@@ -155,7 +155,7 @@ function Wait-GuestSession {
 function Invoke-GuestPowerShell {
     <#
     .SYNOPSIS
-        Runs a script file with Windows PowerShell 5.1 inside the guest, as the payload
+        Runs a script file with Windows PowerShell 5.1 inside the guest, as Atlas's scripts
         would be run by a user, and returns its exit code with the captured output.
     #>
     param(
@@ -199,11 +199,11 @@ try {
     }
     foreach ($required in 'playbook.conf', 'Executables\AtlasModules\Scripts\Entry\Install-Atlas.ps1') {
         if (-not (Test-Path -LiteralPath (Join-Path -Path $ExtractedRoot -ChildPath $required) -PathType Leaf)) {
-            throw "'$ExtractedRoot' is not an extracted playbook: '$required' is missing."
+            throw "'$ExtractedRoot' is not an extracted Atlas package: '$required' is missing."
         }
     }
 
-    Write-LabStep 'Copying the playbook and tools into the guest.'
+    Write-LabStep 'Copying the Atlas package and tools into the guest.'
     Invoke-Command -Session $session -ScriptBlock {
         if (Test-Path -LiteralPath $using:guestRoot) { Remove-Item -LiteralPath $using:guestRoot -Recurse -Force }
         New-Item -Path $using:guestRoot -ItemType Directory -Force | Out-Null

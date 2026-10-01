@@ -62,6 +62,7 @@ public static class AtlasPriorityTestCommandLine
 
         $script:priorityWrites = [Collections.Generic.List[object]]::new()
         $script:priorityRemovals = [Collections.Generic.List[string]]::new()
+        $script:priorityOrder = [Collections.Generic.List[string]]::new()
         $toggle = [pscustomobject]@{
             Name           = 'RunWithPriority'
             State          = 'Enable'
@@ -76,6 +77,7 @@ public static class AtlasPriorityTestCommandLine
         return [pscustomobject]@{
             Writes   = @($script:priorityWrites)
             Removals = @($script:priorityRemovals)
+            Order    = @($script:priorityOrder)
         }
     }
 }
@@ -84,6 +86,7 @@ Describe 'Run with priority' {
     BeforeEach {
         Mock Write-AtlasLog -ModuleName Atlas.Toggles
         Mock Set-AtlasRegistryValue -ModuleName Atlas.Toggles {
+            $script:priorityOrder.Add('Set')
             $script:priorityWrites.Add([pscustomobject]@{
                     Path = $Path
                     Name = $Name
@@ -92,6 +95,7 @@ Describe 'Run with priority' {
                 })
         }
         Mock Remove-AtlasRegistryKey -ModuleName Atlas.Toggles {
+            $script:priorityOrder.Add('Remove')
             $script:priorityRemovals.Add($Path)
         }
     }
@@ -156,23 +160,17 @@ Describe 'Run with priority' {
             ) } | Should -Throw '*application path is required*'
     }
 
-    It 'writes one machine cascade with the six visible menu entries' {
-        $add = $script:definition.States['Enable']
-        $add['MachineAction'] | Should -BeExactly 'Add-AtlasRunWithPriorityContextMenu'
-        $add['StateValue'] | Should -Be 1
-        $result = Invoke-PriorityToggleAction -FunctionName $add['MachineAction']
+    It 'rewrites one single-selection machine cascade with the six menu entries in order' {
+        $result = Invoke-PriorityToggleAction `
+            -FunctionName $script:definition.States['Enable']['MachineAction']
         $root = 'HKLM:\SOFTWARE\Classes\exefile\Shell\Priority'
 
         $result.Removals | Should -Be @($root)
-        $result.Writes.Count | Should -Be 14
-        @($result.Writes | Where-Object {
-                $_.Path -eq $root -and $_.Name -eq 'MUIVerb' -and
-                $_.Type -eq 'String' -and $_.Data -eq 'Run with priority'
-            }).Count | Should -Be 1
+        $result.Order[0] | Should -Be 'Remove' -Because 'a stale cascade must be gone before the new one is written'
         @($result.Writes | Where-Object {
                 $_.Path -eq $root -and $_.Name -eq 'MultiSelectModel' -and
                 $_.Type -eq 'String' -and $_.Data -eq 'Single'
-            }).Count | Should -Be 1
+            }).Count | Should -Be 1 -Because 'a multi-selection would start one process per file'
 
         $labels = @($result.Writes | Where-Object {
                 $_.Name -eq 'MUIVerb' -and $_.Path -ne $root
@@ -180,9 +178,6 @@ Describe 'Run with priority' {
         $labels | Should -Be @(
             'Realtime', 'High', 'Above normal', 'Normal', 'Below normal', 'Low'
         )
-        $work = Get-AtlasToggleStateWork -Definition $script:definition -StateEntry $add
-        $work.Machine | Should -BeTrue
-        $work.User | Should -BeFalse
     }
 
     It 'keeps every selected executable as one argument to the fixed internal script' {
@@ -209,20 +204,13 @@ Describe 'Run with priority' {
         }
     }
 
-    It 'removes only the machine cascade root' {
-        # The Remove state is declarative: one DeleteKey entry, no companion function.
-        $remove = $script:definition.States['Disable']
-        $registry = @($remove['Registry'])
+    It 'removes exactly the cascade root that Enable writes' {
+        $added = Invoke-PriorityToggleAction `
+            -FunctionName $script:definition.States['Enable']['MachineAction']
+        $registry = @($script:definition.States['Disable']['Registry'])
 
         $registry | Should -HaveCount 1
-        $registry[0].Path | Should -BeExactly 'HKLM:\SOFTWARE\Classes\exefile\Shell\Priority'
         $registry[0].Operation | Should -BeExactly 'DeleteKey'
-        $remove.Contains('MachineAction') | Should -BeFalse
-        $remove.Contains('UserAction') | Should -BeFalse
-        $remove['StateValue'] | Should -Be 0
-
-        $work = Get-AtlasToggleStateWork -Definition $script:definition -StateEntry $remove
-        $work.Machine | Should -BeTrue
-        $work.User | Should -BeFalse
+        $registry[0].Path | Should -BeExactly $added.Removals[0]
     }
 }

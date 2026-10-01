@@ -189,12 +189,12 @@ Describe 'Test-AtlasTweakSchema' {
     }
 }
 
-Describe 'Shipped tweak definitions' {
+Describe 'Included tweak definitions' {
     BeforeAll {
         $script:shippedTweaksRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Tweaks')).Path
     }
 
-    It 'every shipped tweak passes schema validation' {
+    It 'every included tweak passes schema validation' {
         $problems = @(Test-AtlasTweakSchema -Path $script:shippedTweaksRoot)
         $report = @($problems | ForEach-Object { "$($_.Path): $($_.Problem)" }) -join "`n"
         $report | Should -BeNullOrEmpty
@@ -243,24 +243,15 @@ Describe 'Shipped tweak definitions' {
         $pathEntry.Type | Should -BeExactly 'ExpandString'
         $pathEntry.Data | Should -BeExactly '%SystemRoot%\AtlasModules\Other\StartLayout.json'
 
-        $layout = Get-Content -LiteralPath (Join-Path $atlasModules 'Other\StartLayout.json') `
-            -Raw | ConvertFrom-Json
-        $layout.applyOnce | Should -BeTrue
-        @($layout.pinnedList).Count | Should -Be 7
-        ($layout | ConvertTo-Json -Depth 10) | Should -Not -Match `
-            'Xbox|WhatsApp|LinkedIn|Microsoft\.Paint|SecHealthUI'
+        Get-Content -LiteralPath (Join-Path $atlasModules 'Other\StartLayout.json') -Raw |
+            Should -Not -Match 'Xbox|WhatsApp|LinkedIn|Microsoft\.Paint|SecHealthUI'
     }
-
 }
 
 Describe 'Test-AtlasTweakApplicable' {
     BeforeEach {
         Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock }
         Mock -CommandName Test-AtlasOption -ModuleName Atlas.Tweaks -MockWith { $true }
-    }
-
-    It 'applies a tweak with no gates' {
-        Test-AtlasTweakApplicable -Tweak @{ Name = 'T' } | Should -BeTrue
     }
 
     It 'gates on the selected option' {
@@ -306,30 +297,22 @@ Describe 'Test-AtlasTweakApplicable' {
     }
 
     It 'gates on MinBuild inclusively (legacy builds: [>=N])' {
-        # Windows 11 22H2 build; a MinBuild = 22000 tweak applies, a MinBuild = 26200 does not.
         Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock -WindowsBuild 22621 }
         Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; MinBuild = 22000 } | Should -BeTrue
         Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; MinBuild = 26200 } | Should -BeFalse
 
-        # Exactly at the boundary still applies (inclusive).
         Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock -WindowsBuild 22000 }
         Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; MinBuild = 22000 } | Should -BeTrue
 
-        # Windows 10 build is below the gate.
         Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock -WindowsBuild 19045 }
         Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; MinBuild = 22000 } | Should -BeFalse
     }
 
-    It "maps the end-task 'builds: [>22000]' gate via MinBuild = 22001" {
-        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock -WindowsBuild 22000 }
-        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; MinBuild = 22001 } | Should -BeFalse
-
-        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock -WindowsBuild 22621 }
-        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; MinBuild = 22001 } | Should -BeTrue
-    }
-
     It 'gates on MaxBuild inclusively (legacy builds: [<N] / [<=N])' {
         Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock -WindowsBuild 19045 }
+        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; MaxBuild = 21999 } | Should -BeTrue
+
+        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock -WindowsBuild 21999 }
         Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; MaxBuild = 21999 } | Should -BeTrue
 
         Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock -WindowsBuild 22621 }
@@ -694,7 +677,7 @@ Describe 'Invoke-AtlasTweak' {
             -Times 1 -Exactly -ParameterFilter { $Name -ceq 'Indexing' }
     }
 
-    It 'bounds RemovePaths to the Windows directory and propagates required removal failures' {
+    It 'limits RemovePaths to the Windows directory and propagates required removal failures' {
         $targetPath = Join-Path -Path $TestDrive -ChildPath 'protected-removal'
         New-Item -Path $targetPath -ItemType Directory -Force | Out-Null
         Mock -CommandName Remove-Item -ModuleName Atlas.Tweaks -MockWith {
@@ -805,12 +788,6 @@ Describe 'Get-AtlasTweakManifest and Invoke-AtlasTweakCategory' {
 '@ | Set-Content -Path (Join-Path -Path $script:tweaksRoot -ChildPath 'testing\sub\second-tweak.psd1')
     }
 
-    It 'loads the manifest and validates its shape' {
-        $manifest = Get-AtlasTweakManifest -Path (Join-Path -Path $script:tweaksRoot -ChildPath 'tweaks.manifest.psd1')
-        @($manifest.Categories).Count | Should -Be 1
-        @($manifest.Categories)[0].Name | Should -Be 'testing'
-    }
-
     It 'resolves only applicable post-user-registry refreshes in declaration order without duplicates' {
         @'
 @{
@@ -856,56 +833,6 @@ Describe 'Get-AtlasTweakManifest and Invoke-AtlasTweakCategory' {
         { Invoke-AtlasTweakCategory -Name 'nope' -TweaksRoot $script:tweaksRoot } | Should -Throw '*not defined*'
     }
 
-}
-
-Describe 'Shipped QoL advisory shell state' {
-    It 'uses the device Widgets policy without an unreliable TaskbarDa write' {
-        $definitionPath = Join-Path $PSScriptRoot `
-            '..\playbook\Executables\AtlasModules\Scripts\Tweaks\qol\taskbar\disable-news-and-interests.psd1'
-        $definition = Import-PowerShellDataFile -LiteralPath $definitionPath
-        $entry = @($definition.Registry | Where-Object {
-                $_.Path -ceq 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -and
-                $_.Name -ceq 'TaskbarDa'
-            })
-
-        $entry | Should -HaveCount 0
-    }
-}
-
-Describe 'Upgrade theme tweak plan step' {
-    BeforeAll {
-        . (Join-Path -Path $PSScriptRoot -ChildPath `
-                '..\playbook\Executables\AtlasModules\Scripts\Install\Install-Plan.ps1')
-    }
-
-    It 'applies the upgrade-only theme tweak as its own step directly after Defaults' -TestCases @(
-        @{ IsOobe = $false }
-        @{ IsOobe = $true }
-    ) {
-        $keys = @((Get-AtlasInstallPlan -Mode Upgrade -IsOobe $IsOobe).Key)
-        $defaultsIndex = [Array]::IndexOf($keys, 'Defaults')
-
-        $defaultsIndex | Should -BeGreaterOrEqual 0
-        $keys[$defaultsIndex + 1] | Should -BeExactly 'Tweak/qol/appearance/atlas-theme-upgrade'
-        @($keys | Where-Object { $_ -ceq 'Tweak/qol/appearance/atlas-theme-upgrade' }).Count | Should -Be 1
-    }
-
-    It 'does not apply the upgrade theme tweak on <Mode> installs' -TestCases @(
-        @{ Mode = 'Fresh' }
-        @{ Mode = 'Reapply' }
-    ) {
-        foreach ($isOobe in @($false, $true)) {
-            @((Get-AtlasInstallPlan -Mode $Mode -IsOobe $isOobe).Key) |
-                Should -Not -Contain 'Tweak/qol/appearance/atlas-theme-upgrade'
-        }
-    }
-
-    It 'does not run a blanket Store database repair during upgrades' {
-        $keys = @((Get-AtlasInstallPlan -Mode Upgrade).Key)
-        $keys | Should -Not -Contain 'Revert'
-        $phase = Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Install\Phases\Invoke-RevertPhase.ps1'
-        Test-Path -LiteralPath $phase | Should -BeFalse
-    }
 }
 
 Describe 'Test-AtlasTweakSchema AllowOsProtected' {

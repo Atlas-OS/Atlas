@@ -2775,7 +2775,7 @@
     {
       "name": "SecurityHealthTray",
       "group": "Security",
-      "description": "Windows Security (Defender) tray icon startup entry, applied from the shipped .reg assets.",
+      "description": "Windows Security (Defender) tray icon startup entry, applied from the included .reg files.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,

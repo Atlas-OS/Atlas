@@ -25,7 +25,7 @@ $markWidth = [double]$Matches.w
 $markHeight = [double]$Matches.h
 if ($svg -notmatch ' d="(?<d>[^"]+)"') { throw 'atlas-mark.svg has no path' }
 
-# The mark is one absolute-and-relative polygon: M/l/h/H/L/z only.
+# The mark is one polygon: M and z, plus L, H and V in either case.
 function Get-MarkPoints([string]$path) {
     $points = [System.Collections.Generic.List[double[]]]::new()
     $x = 0.0; $y = 0.0
@@ -80,7 +80,7 @@ $sizes = 16, 20, 24, 32, 48, 64, 256
 $frames = [System.Collections.Generic.List[byte[]]]::new()
 foreach ($size in $sizes) { $frames.Add((Get-Png (New-Frame $size))) }
 
-# ICO: header, one 16-byte directory entry per frame, then PNG payloads.
+# ICO: header, one 16-byte directory entry per frame, then the PNG data.
 $ico = New-Object System.IO.MemoryStream
 $writer = New-Object System.IO.BinaryWriter $ico
 $writer.Write([uint16]0); $writer.Write([uint16]1); $writer.Write([uint16]$sizes.Count)

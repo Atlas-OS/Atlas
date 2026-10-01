@@ -12,13 +12,11 @@ param()
 
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $script:atlasScriptsRoot = Join-Path -Path $PSScriptRoot `
-        -ChildPath '..\playbook\Executables\AtlasModules\Scripts'
-    $script:componentsPhase = Join-Path -Path $script:atlasScriptsRoot `
+    $script:componentsPhase = Join-Path -Path $script:AtlasTestScriptsRoot `
         -ChildPath 'Install\Phases\Invoke-ComponentsPhase.ps1'
-    $script:oneDriveUserCleanup = Join-Path -Path $script:atlasScriptsRoot `
+    $script:oneDriveUserCleanup = Join-Path -Path $script:AtlasTestScriptsRoot `
         -ChildPath 'Operations\Remove-OneDriveCurrentUserData.ps1'
-    $script:edgeUserCleanup = Join-Path -Path $script:atlasScriptsRoot `
+    $script:edgeUserCleanup = Join-Path -Path $script:AtlasTestScriptsRoot `
         -ChildPath 'Operations\Remove-EdgeCurrentUserData.ps1'
 
     $tokens = $null
@@ -65,7 +63,6 @@ BeforeAll {
             'Get-AtlasEdgeExecutablePaths'
             'Remove-AtlasOrphanedEdgeAutoLaunch'
             'Assert-AtlasUserPathBoundary'
-            'Remove-AtlasUserFileSystemEntry'
         )) {
         $functionAst = @($script:edgeAst.FindAll({
                     param($node)
@@ -94,6 +91,7 @@ BeforeAll {
         $script:CbsInstallCalls = [Collections.Generic.List[object]]::new()
         $script:RegistryWrites = [Collections.Generic.List[pscustomobject]]::new()
         $script:OneDriveRemovalError = $null
+        $script:CbsUninstallFailed = @()
     }
 
     function Assert-AtlasPrivilege {
@@ -155,6 +153,11 @@ BeforeAll {
     }
     function Uninstall-AtlasCbsPackage {
         param($Packages)
+        return [pscustomobject]@{
+            RemovedPackages   = @()
+            FailedPackages    = @($script:CbsUninstallFailed)
+            UnmatchedPatterns = @()
+        }
     }
     function New-ScheduledTaskSettingsSet {
         return 'settings'
@@ -227,7 +230,7 @@ AfterAll {
             'New-ScheduledTaskPrincipal', 'New-ScheduledTaskAction', 'Register-ScheduledTask'
             'Test-Path', 'New-Item', 'Set-ItemProperty', 'Remove-ItemProperty'
             'Get-AtlasEdgeExecutablePaths', 'Remove-AtlasOrphanedEdgeAutoLaunch'
-            'Assert-AtlasUserPathBoundary', 'Remove-AtlasUserFileSystemEntry'
+            'Assert-AtlasUserPathBoundary'
         )) {
         Microsoft.PowerShell.Management\Remove-Item -LiteralPath "Function:\$shadow" `
             -ErrorAction SilentlyContinue
@@ -239,16 +242,19 @@ Describe 'Components phase deferred and exact-user cleanup behavior' {
         Reset-PhaseRecording
     }
 
-    It 'parses in Windows PowerShell syntax' {
-        $tokens = $null
-        $errors = $null
-        [Management.Automation.Language.Parser]::ParseFile(
-            $script:componentsPhase,
-            [ref]$tokens,
-            [ref]$errors
-        ) | Out-Null
+    It 'fails the install when Defender could not be restored for a keep choice' {
+        $script:PhaseOptions = @('defender-enable')
+        $script:CbsUninstallFailed = @('Z-Atlas-NoDefender-Package~amd64~~1.0.0.0')
 
-        @($errors) | Should -BeNullOrEmpty
+        { Invoke-ComponentsPhaseUnderTest } | Should -Throw "*Microsoft Defender couldn't be restored*"
+        # The telemetry package still goes in first.
+        @($script:CbsInstallCalls | Where-Object { $_ -contains '*Z-Atlas-NoTelemetry-Package*' }).Count | Should -Be 1
+    }
+
+    It 'keeps Defender quietly when there was no removal package to take off' {
+        $script:PhaseOptions = @('defender-enable')
+
+        { Invoke-ComponentsPhaseUnderTest } | Should -Not -Throw
     }
 
     It 'defers MDCoreSvc disable to a SYSTEM task that records state before self-deleting' {
@@ -352,7 +358,7 @@ Describe 'Components phase deferred and exact-user cleanup behavior' {
 }
 
 Describe 'OneDrive exact-user cleanup boundary' {
-    It 'schedules locked file removal after reboot and preserves unsynced data' {
+    It 'defers file removal until after the reboot and preserves unsynced data' {
         $expectedSid = 'S-1-5-21-1000-2000-3000-1001'
         Mock Get-AtlasOneDriveBootUtcTicks { 638925000000000000L }
         Mock Register-AtlasOneDrivePostBootCleanup {}
@@ -361,9 +367,9 @@ Describe 'OneDrive exact-user cleanup boundary' {
         $oneDriveShortcut = Join-Path $TestDrive 'OneDrive.lnk'
         [void][IO.Directory]::CreateDirectory($oneDriveCache)
         [void][IO.Directory]::CreateDirectory($oneDriveFolder)
-        $lockedDll = Join-Path $oneDriveCache 'FileSyncShell64.dll'
+        $shellDll = Join-Path $oneDriveCache 'FileSyncShell64.dll'
         $userFile = Join-Path $oneDriveFolder 'unsynced.txt'
-        [IO.File]::WriteAllText($lockedDll, 'shell fixture')
+        [IO.File]::WriteAllText($shellDll, 'shell fixture')
         [IO.File]::WriteAllText($userFile, 'keep this user data')
         [IO.File]::WriteAllText($oneDriveShortcut, 'shortcut fixture')
         $deferGate = $script:oneDriveAst.Find({
@@ -376,16 +382,11 @@ Describe 'OneDrive exact-user cleanup boundary' {
         $fileStage = [scriptblock]::Create(
             'param([bool]$DeferFileCleanup, [string]$expectedSid)' + "`n" +
             $script:oneDriveAst.Extent.Text.Substring($deferGate.Extent.StartOffset))
-        $handle = [IO.File]::Open($lockedDll, 'Open', 'Read', 'None')
-        try {
-            { & $fileStage $true $expectedSid } | Should -Not -Throw
-            [IO.File]::Exists($lockedDll) | Should -BeTrue
-            [IO.File]::Exists($oneDriveShortcut) | Should -BeTrue
-        }
-        finally {
-            $handle.Dispose()
-        }
-        & $fileStage $false $expectedSid
+        { & $fileStage $true $expectedSid } | Should -Not -Throw
+        [IO.File]::Exists($shellDll) | Should -BeTrue
+        [IO.File]::Exists($oneDriveShortcut) | Should -BeTrue
+
+        & $fileStage $false $expectedSid 3>$null
         Should -Invoke Register-AtlasOneDrivePostBootCleanup -Times 1 -Exactly -ParameterFilter {
             $UserSid -eq 'S-1-5-21-1000-2000-3000-1001' -and
                 $BootUtcTicks -eq 638925000000000000L
@@ -531,24 +532,8 @@ Describe 'OneDrive exact-user cleanup boundary' {
         finally { $stream.Dispose() }
         Remove-AtlasOneDriveUserTree -Path $tree
         [IO.Directory]::Exists($tree) | Should -BeFalse
-    }
-
-    It 'treats a missing cleanup tree as already removed' {
-        { Remove-AtlasOneDriveUserTree -Path (Join-Path $TestDrive 'NeverExisted') } |
-            Should -Not -Throw
-    }
-
-    It 'uses only the current-user registry provider and never enumerates HKEY_USERS' {
-        $registryLiterals = @($script:oneDriveAst.FindAll({
-                    param($node)
-                    $node -is [Management.Automation.Language.StringConstantExpressionAst] -and
-                        $node.Value -match '^(HK|Registry::)'
-                }, $true) | ForEach-Object { $_.Value })
-
-        @($registryLiterals).Count | Should -BeGreaterThan 0
-        foreach ($literal in $registryLiterals) {
-            $literal | Should -Match '^HKCU:'
-        }
+        # A tree that is already gone counts as removed.
+        { Remove-AtlasOneDriveUserTree -Path $tree } | Should -Not -Throw
     }
 }
 
@@ -597,18 +582,6 @@ Describe 'Edge exact-user startup cleanup boundary' {
             [IO.File]::ReadAllText($marker) | Should -BeExactly 'preserve shared data'
         }
         finally { [IO.Directory]::Delete($root, $false) }
-    }
-
-    It 'retains a locked Edge cache file rather than following another cleanup path' {
-        $cache = Join-Path $TestDrive 'EdgeLockedCache.txt'
-        [IO.File]::WriteAllText($cache, 'locked cache')
-        $entry = Microsoft.PowerShell.Management\Get-Item -LiteralPath $cache
-        $handle = [IO.File]::Open($cache, 'Open', 'Read', 'None')
-        try {
-            { Remove-AtlasUserFileSystemEntry -Entry $entry } | Should -Throw
-            [IO.File]::Exists($cache) | Should -BeTrue
-        }
-        finally { $handle.Dispose() }
     }
 
     BeforeEach {

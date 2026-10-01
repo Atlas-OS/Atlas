@@ -122,8 +122,8 @@ function Invoke-AtlasTrustedInstaller {
                 [StringComparison]::OrdinalIgnoreCase)) {
             throw "Install PayloadRoot must be beneath the protected staging root '$stagingRoot'."
         }
-        # A fresh installation has no installed broker yet. Use the broker shipped
-        # with this protected candidate, including when upgrading an older payload.
+        # A fresh installation has no installed broker yet. Use the broker included
+        # with this protected candidate, including when upgrading an older installation.
         $brokerModulesPath = Join-Path $PayloadRoot 'AtlasModules'
     }
 
@@ -164,21 +164,15 @@ function Invoke-AtlasTrustedInstaller {
             $argumentList.Add($RestoreSource)
         }
         'Install' {
-            if ([string]::IsNullOrWhiteSpace($InstallPhase) -or [string]::IsNullOrWhiteSpace($PayloadRoot)) {
-                throw 'Install requires typed -InstallPhase and -PayloadRoot values.'
-            }
-            if (-not [IO.Path]::IsPathRooted($PayloadRoot)) {
-                throw 'Install requires an absolute -PayloadRoot.'
-            }
+            # $InstallPhase and $PayloadRoot were checked and normalized above.
             $argumentList.Add('-InstallPhase')
             $argumentList.Add($InstallPhase)
             $argumentList.Add('-PayloadRoot')
-            $argumentList.Add([IO.Path]::GetFullPath($PayloadRoot))
+            $argumentList.Add($PayloadRoot)
         }
     }
 
     Assert-AtlasPrivilege -Administrator
-    $context = Get-AtlasContext
     $powershellPath = Join-Path $context.WinDir 'System32\WindowsPowerShell\v1.0\powershell.exe'
     # The broker owns the operation deadline. Give it a short, separate window to
     # terminate and drain its kill-on-close job before the caller treats the broker

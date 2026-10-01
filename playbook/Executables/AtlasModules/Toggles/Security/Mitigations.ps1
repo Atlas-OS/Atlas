@@ -1,6 +1,6 @@
 function Set-AtlasMitigationMask {
-    # Fills MitigationAuditOptions and MitigationOptions with one byte pattern, keeping
-    # the length Windows already uses for the value (eight bytes when it is absent).
+    # Fills both masks with one byte (0x11 turns every mitigation on, 0x22 off),
+    # keeping the length Windows already uses (8 bytes when the value is absent).
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
@@ -86,7 +86,7 @@ function Enable-AtlasMitigations {
         throw 'No Win32_Processor instances were returned; mitigation policy cannot be selected safely.'
     }
     $cpuOverrides = @($processors | ForEach-Object {
-            if ([int]$_.Architecture -eq 12) {
+            if ([int]$_.Architecture -eq 12) { # ARM64
                 64
             }
             elseif ([string]$_.Manufacturer -match '(?i)Intel') {

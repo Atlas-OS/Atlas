@@ -1,5 +1,5 @@
 # Read-only screenshot of the dedicated ISO validation VM, through Hyper-V.
-param([string]$OutFile = (Join-Path $env:TEMP 'atlas-iso-vm.png'), [string]$VMName = 'Atlas-ISO-Beta-Validation')
+param([string]$OutFile = (Join-Path $env:TEMP 'atlas-iso-vm.png'), [Parameter(Mandatory)][string]$VMName)
 $ErrorActionPreference = 'Stop'
 $id = (Get-VM -Name $VMName).Id.ToString()
 $setting = Get-CimInstance -Namespace root/virtualization/v2 -ClassName Msvm_VirtualSystemSettingData -Filter "VirtualSystemIdentifier='$id'" |
@@ -8,9 +8,9 @@ $service = Get-CimInstance -Namespace root/virtualization/v2 -ClassName Msvm_Vir
 $shot = Invoke-CimMethod -InputObject $service -MethodName GetVirtualSystemThumbnailImage -Arguments @{ TargetSystem=$setting; WidthPixels=[uint16]1024; HeightPixels=[uint16]768 }
 if ($shot.ReturnValue -ne 0) { throw "Hyper-V screenshot failed: $($shot.ReturnValue)" }
 Add-Type -AssemblyName System.Drawing
-# Hyper-V may prefix the raw pixels with a four-byte thumbnail header.
-# Decode through managed bounds-checked accesses; never copy an unchecked
-# provider buffer into unmanaged bitmap memory.
+# Hyper-V returns RGB565 pixels, sometimes after a four-byte header. Decode
+# through managed, bounds-checked access; never copy an unchecked provider
+# buffer into unmanaged bitmap memory.
 [byte[]]$pixels = $shot.ImageData
 $offset = $pixels.Length - (1024 * 768 * 2)
 if ($offset -notin @(0,4)) { throw "Unexpected thumbnail size: $($pixels.Length)" }

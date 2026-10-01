@@ -80,7 +80,10 @@ function Find-AtlasToggleDefinitionFile {
     $files = @(Get-ChildItem -LiteralPath $root -Recurse -File -Filter "$Name.psd1" -ErrorAction Stop |
         Where-Object { $_.BaseName -ceq $Name })
     if ($files.Count -eq 0) {
-        throw "No toggle definition named '$Name' was found under '$root'."
+        # Tagged so replay can tell a definition Atlas no longer includes from other failures.
+        $missing = [System.Management.Automation.RuntimeException]::new("No toggle definition named '$Name' was found under '$root'.")
+        $missing.Data['AtlasToggleDefinitionMissing'] = $true
+        throw $missing
     }
     if ($files.Count -gt 1) {
         throw "Multiple toggle definitions named '$Name' were found under '$root': $(($files | ForEach-Object { $_.FullName }) -join ', ')."

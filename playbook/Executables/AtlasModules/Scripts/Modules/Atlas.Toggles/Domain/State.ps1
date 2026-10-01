@@ -118,8 +118,7 @@ function Protect-AtlasToggleStateRoot {
         [switch]$IncludeChildren
     )
 
-    # Alternate roots are an explicit test/integration seam. The production replay path
-    # always uses the fixed HKLM root and is the boundary that requires this DACL.
+    # Tests use other roots. Only the fixed HKLM root, which replay uses, needs this DACL.
     if (-not (Test-AtlasToggleProductionStateRoot -StateRoot $StateRoot)) {
         return
     }

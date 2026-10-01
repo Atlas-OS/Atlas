@@ -4,7 +4,7 @@
 # tweak files inside each category, standalone routes and deliberately disabled
 # definitions. ParentModes records the fresh/upgrade modes allowed by the ordered
 # install-plan route; the validator composes that outer gate with
-# each definition's OnUpgrade gate so an enabled-but-unreachable tweak cannot ship.
+# each definition's OnUpgrade gate so an enabled-but-unreachable tweak cannot be released.
 
 $script:AtlasTweakManifestKeys = @('Categories', 'Standalone', 'Disabled')
 $script:AtlasTweakCategoryKeys = @('Name', 'ParentModes', 'Tweaks')

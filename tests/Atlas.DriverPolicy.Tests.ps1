@@ -1,8 +1,9 @@
 BeforeAll {
-    $script:policyFiles = Join-Path (Split-Path $PSScriptRoot -Parent) 'playbook\Executables\AtlasDesktop\2. Drivers\Drivers from Windows Update'
-    $script:isolatedKey = 'Software\AtlasDriverPolicyTests\' + [guid]::NewGuid().ToString('N')
+    . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
+    $script:policyFiles = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasDesktop\2. Drivers\Drivers from Windows Update'
+    $script:isolatedKey = 'Software\AtlasRewriteTest\DriverPolicy\' + [guid]::NewGuid().ToString('N')
     function Import-IsolatedDriverPolicy([string]$Mode) {
-        # Exercise the shipped .reg pair without changing any host driver policy.
+        # Exercise the included .reg pair without changing any host driver policy.
         $text = [IO.File]::ReadAllText((Join-Path $script:policyFiles "$Mode Drivers from Windows Update.reg"))
         $text = $text.Replace('HKEY_LOCAL_MACHINE\', ('HKEY_CURRENT_USER\' + $script:isolatedKey + '\'))
         $file = Join-Path $TestDrive "$Mode.reg"
@@ -13,7 +14,7 @@ BeforeAll {
 }
 Describe 'Manual and automatic driver policy' {
     AfterAll {
-        [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree($script:isolatedKey, $false)
+        [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree('Software\AtlasRewriteTest', $false)
     }
     It 'blocks both update drivers and new-device online searches, then reverses both' {
         Import-IsolatedDriverPolicy Disable

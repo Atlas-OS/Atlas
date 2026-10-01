@@ -51,7 +51,7 @@ trap 'rm -rf "$work"' EXIT
 
 echo "== Atlas $rc_id from $commit"
 
-# 1. The production playbook, verified against the tracked source tree.
+# 1. The production Atlas package, verified against the tracked source tree.
 apbx_name="Atlas v$rc_id.apbx"
 pwsh -NoProfile -File tools/build/Build-Playbook.ps1 -FileName "Atlas v$rc_id" -OutputPath "$work" \
     -ReplaceOldPlaybook -DontOpenPbLocation

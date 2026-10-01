@@ -30,16 +30,16 @@ function Get-AtlasToggleReplayDefinition {
         $path = Find-AtlasToggleDefinitionFile -Name $Name -TogglesRoot $TogglesRoot
     }
     catch {
-        # A record whose definition no longer ships is stale. Any other lookup failure
+        # A record whose definition Atlas no longer includes is stale. Any other lookup failure
         # (a missing root, an ambiguous name) is operational and must preserve the record.
-        if ($_.Exception.Message -like 'No toggle definition named*') {
+        if ($_.Exception.Data['AtlasToggleDefinitionMissing'] -eq $true) {
             throw (New-AtlasToggleStaleReplayRecordException -Message "has no installed toggle definition named '$Name'.")
         }
         throw
     }
 
     # Loading or validating an installed definition is operational work. Those failures
-    # must preserve the user's record so a corrected payload can replay it later.
+    # must preserve the user's record so a corrected Atlas version can replay it later.
     return Import-AtlasToggleDefinitionFile -Path $path
 }
 

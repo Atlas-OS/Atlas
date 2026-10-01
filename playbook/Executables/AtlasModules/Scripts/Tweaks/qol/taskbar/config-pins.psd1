@@ -3,11 +3,11 @@
     Description  = 'Configures taskbar pins for QoL: the browser first (if any), then File Explorer.'
     OnUpgrade   = 'Skip'
     Registry    = @(
-        # The engine applies HKCU in separate exact-user and fixed default-hive passes; it
-        # never redirects TrustedInstaller through a discovered live-user hive.
-        # Explorer can transiently deny writes to its live Taskband key. These values
-        # are advisory seeds: Initialize-NewUser performs and verifies the authoritative
-        # pin replacement later, so contention here must not halt the installation.
+        # The engine applies HKCU in separate passes for the signed-in user and the
+        # default-user hive; it never sends TrustedInstaller through a user's live hive.
+        # Explorer can briefly deny writes to its live Taskband key. These values are only
+        # a starting point: Initialize-NewUser sets and verifies the pins later, so a
+        # refused write here must not stop the installation.
         @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'; Operation = 'AddKey'; IgnoreErrors = $true }
         @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'; Name = 'FavoritesVersion'; Type = 'DWord'; Data = 3; IgnoreErrors = $true }
         @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'; Name = 'MailPin'; Type = 'DWord'; Data = 0; IgnoreErrors = $true; SkipVerification = 'Explorer rewrites Taskband pin bookkeeping after applying the initial pin configuration.' }

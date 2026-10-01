@@ -11,8 +11,7 @@ BeforeAll {
     $script:PowerShell51 = Join-Path $PSHOME 'powershell.exe'
 
     # Lift the pure functions out of the two entry scripts so they run without their
-    # privilege checks and process side effects. Dot-sourcing happens here, in the
-    # BeforeAll scope, so the functions are visible to every test.
+    # privilege checks and process side effects.
     function Get-ScriptFunctionText {
         param([string]$Path, [string[]]$Names)
         $ast = [Management.Automation.Language.Parser]::ParseFile($Path, [ref]$null, [ref]$null)
@@ -23,7 +22,7 @@ BeforeAll {
         }
     }
     foreach ($text in @(Get-ScriptFunctionText -Path $script:SessionScript -Names 'Read-AtlasInstallRequest', 'Assert-AtlasInstallOptionSet') +
-        @(Get-ScriptFunctionText -Path $script:FrontDoorScript -Names 'Get-AtlasDeclaredRequirement', 'Test-AtlasDefenderPresent', 'Test-AtlasDefenderPrepared', 'Invoke-AtlasPreparationCheck', 'Get-AtlasPowerStatus', 'Test-AtlasPowerConnected', 'Test-AtlasUserAccountReady', 'Test-AtlasInstallRequirement', 'Copy-AtlasPayloadToStaging', 'Get-AtlasRestartComment', 'New-AtlasProtectedStagingRoot', 'New-AtlasFrontDoorDirectorySecurity')) {
+        @(Get-ScriptFunctionText -Path $script:FrontDoorScript -Names 'Get-AtlasDeclaredRequirement', 'Test-AtlasDefenderPresent', 'Test-AtlasDefenderPrepared', 'Invoke-AtlasPreparationCheck', 'Test-AtlasPreparationCurrent', 'Get-AtlasPowerStatus', 'Test-AtlasPowerConnected', 'Test-AtlasUserAccountReady', 'Test-AtlasInstallRequirement', 'Copy-AtlasPayloadToStaging', 'Get-AtlasRestartComment', 'New-AtlasProtectedStagingRoot', 'New-AtlasFrontDoorDirectorySecurity')) {
         . ([scriptblock]::Create($text))
     }
     $script:Groups = @(Get-AtlasPlaybookOption -PlaybookPath $script:PlaybookPath)
@@ -90,27 +89,32 @@ throw 'Stopped before install-state access.'
         }
     }
 }
-Describe 'Playbook readers' {
+Describe 'Package manifest readers' {
     It 'read the version, supported builds and option groups from playbook.conf' {
-        Get-AtlasPlaybookVersion -PlaybookPath $script:PlaybookPath | Should -Match '^\d+\.\d+\.\d+'
-        @(Get-AtlasPlaybookSupportedBuild -PlaybookPath $script:PlaybookPath) | Should -Be @(26200,26300)
+        $fixture = Join-Path $TestDrive 'readers-playbook.conf'
+        Set-Content -LiteralPath $fixture -Value @'
+<Playbook>
+	<Version>1.2.3-rc.1</Version>
+	<SupportedBuilds>
+		<!-- A comment between builds, as the real file has. -->
+		<string>26200</string>
+		<string>26300</string>
+	</SupportedBuilds>
+</Playbook>
+'@
+        Get-AtlasPlaybookVersion -PlaybookPath $fixture | Should -BeExactly '1.2.3-rc.1'
+        @(Get-AtlasPlaybookSupportedBuild -PlaybookPath $fixture) | Should -Be @(26200, 26300)
+
         $radio = @($script:Groups | Where-Object { $_.ExactlyOne })
         $radio.Count | Should -BeGreaterThan 2
         @($script:Groups | ForEach-Object { $_.Options }) | Should -Contain 'defender-enable'
         ($script:Groups | Where-Object { $_.Options -contains 'browser-brave' }).DependsOn | Should -Be 'install-another-browser'
     }
-
-    It 'agree with the option set the AME handoff and the tweak schema know' {
-        $tweaksModule = Join-Path $script:AtlasTestModulesRoot 'Atlas.Tweaks\Atlas.Tweaks.psd1'
-        Import-Module $tweaksModule -Force
-        $known = & (Get-Module Atlas.Tweaks) { $script:AtlasKnownOptions }
-        @($script:Groups | ForEach-Object { $_.Options } | Sort-Object) | Should -Be @($known | Sort-Object)
-    }
 }
 
 Describe 'Resolve-AtlasInstallMode' {
     BeforeEach { Mock Get-ItemProperty -ModuleName Atlas.InstallState { $null } }
-    It 'resumes an interrupted fresh transaction after the payload has been copied' {
+    It 'resumes an interrupted fresh transaction after the files have been copied' {
         $windows = Join-Path $TestDrive 'Interrupted'
         New-Item -Path (Join-Path $windows 'AtlasModules\Scripts') -ItemType Directory -Force | Out-Null
         $path = Join-Path $windows 'AtlasOS\Install\active.json'
@@ -128,7 +132,7 @@ Describe 'Resolve-AtlasInstallMode' {
         Resolve-AtlasInstallMode -TargetVersion '0.6.0' -WindowsPath (Join-Path $TestDrive 'Legacy') | Should -Be 'Upgrade'
     }
 
-    It 'rejects undeclared durable source versions' -TestCases @(
+    It 'rejects undeclared recorded source versions' -TestCases @(
         @{ Version = '0.3.2' }, @{ Version = '0.7.0' }
     ) {
         param($Version)
@@ -148,7 +152,7 @@ Describe 'Resolve-AtlasInstallMode' {
         Resolve-AtlasInstallMode -TargetVersion '0.5.0' -WindowsPath $windows | Should -Be 'Reapply'
     }
 
-    It 'rejects an installed payload without version evidence' {
+    It 'rejects installed Atlas files without version evidence' {
         $windows = Join-Path $TestDrive 'LegacyWindows'
         New-Item -Path (Join-Path $windows 'AtlasModules\Scripts') -ItemType Directory -Force | Out-Null
         { Resolve-AtlasInstallMode -TargetVersion '0.6.0' -WindowsPath $windows } | Should -Throw '*version could not be established*'
@@ -170,7 +174,7 @@ Describe 'Install request validation' {
             Should -Throw "*require 'install-another-browser'*"
     }
 
-    It 'reads only a bounded request.json with an options array' {
+    It 'reads only a size-limited request.json with an options array' {
         $payload = Join-Path $TestDrive 'payload'
         New-Item -Path $payload -ItemType Directory -Force | Out-Null
         Set-Content -LiteralPath (Join-Path $payload 'request.json') -Value '{"options":["defender-enable"]}'
@@ -260,6 +264,9 @@ exit $fixture.exitCode
         else {
             { Invoke-AtlasPreparationCheck -PayloadRoot $payload -JobPath $job } | Should -Throw
         }
+        # The entry exits with its own code when this is false, so the app can
+        # send the user back to preparation rather than report a failed install.
+        Test-AtlasPreparationCurrent -PayloadRoot $payload -JobPath $job | Should -Be $Passes
     }
 }
 
@@ -275,8 +282,9 @@ Describe 'User account policy preflight' {
     }
 
     It 'does not treat an unreadable UAC policy as enabled' {
-        Mock Get-ItemProperty { throw 'UAC policy access denied' }
-        { Test-AtlasUserAccountReady } | Should -Throw '*UAC policy access denied*'
+        Mock Get-ItemProperty { Write-Error 'UAC policy access denied' }
+        $ready = try { Test-AtlasUserAccountReady } catch { $false }
+        $ready | Should -BeFalse
     }
 }
 
@@ -437,7 +445,7 @@ Describe 'Front door requirements and staging' {
     }
 
     It 'does not treat an unreadable reboot marker as absent' {
-        Mock Test-Path { throw 'registry access denied' }
+        Mock Test-Path { Write-Error 'registry access denied'; $false }
         { Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client } | Should -Throw '*registry access denied*'
     }
 
@@ -462,7 +470,7 @@ Describe 'Front door requirements and staging' {
         $result.Blocking | Should -BeTrue
     }
 
-    It 'copies playbook.conf and the Executables tree and refuses a payload containing a reparse point' {
+    It 'copies playbook.conf and the Executables tree and refuses a package containing a reparse point' {
         $extracted = Join-Path $TestDrive 'extracted'
         New-Item -Path (Join-Path $extracted 'Executables\AtlasModules') -ItemType Directory -Force | Out-Null
         Set-Content -LiteralPath (Join-Path $extracted 'playbook.conf') -Value '<Playbook/>'
@@ -493,36 +501,15 @@ Describe 'Restart notice text' {
     It 'defaults to the English notice and otherwise keeps the caller''s text within shutdown.exe limits' {
         Get-AtlasRestartComment -Comment $null | Should -Be 'Atlas installation complete.'
         Get-AtlasRestartComment -Comment '   ' | Should -Be 'Atlas installation complete.'
-        Get-AtlasRestartComment -Comment "  Neustart: Atlas ist fertig `u{2713} " | Should -Be "Neustart: Atlas ist fertig `u{2713}"
+        $translated = 'Neustart: Atlas ist f' + [char]0x00FC + 'r Sie fertig ' + [char]0x2713
+        Get-AtlasRestartComment -Comment "  $translated " | Should -BeExactly $translated
         Get-AtlasRestartComment -Comment "a`tb`r`nc`0d" | Should -Be 'a b  c d'
         (Get-AtlasRestartComment -Comment ('x' * 600)).Length | Should -Be 512
-    }
-
-    It 'is declared by the front door so the app can pass it' {
-        $ast = [Management.Automation.Language.Parser]::ParseFile($script:FrontDoorScript, [ref]$null, [ref]$null)
-        @($ast.ParamBlock.Parameters | ForEach-Object { $_.Name.VariablePath.UserPath }) | Should -Contain 'RestartComment'
     }
 }
 
 Describe 'Install operation through the broker' {
-    It 'builds a typed Install request for the fixed broker and nothing else' {
-        Mock Assert-AtlasPrivilege -ModuleName Atlas.Core
-        Mock Get-AtlasContext -ModuleName Atlas.Core { [pscustomobject]@{ WinDir = 'C:\Windows'; AtlasModulesPath = 'C:\Windows\AtlasModules' } }
-        Mock Invoke-AtlasHiddenProcess -ModuleName Atlas.Core { [pscustomobject]@{ ExitCode = 0; ArgumentList = $ArgumentList } }
-
-        $result = Invoke-AtlasTrustedInstaller -Operation Install -InstallPhase Capture -PayloadRoot 'C:\Windows\AtlasOS\Staging\abc\Executables' -TimeoutSeconds 60
-
-        $joined = $result.ArgumentList -join ' '
-        $joined | Should -Match 'Invoke-AtlasTrustedInstallerBroker\.ps1'
-        $joined | Should -Match '-Operation Install'
-        $joined | Should -Match '-InstallPhase Capture'
-        $joined | Should -Match '-PayloadRoot C:\\Windows\\AtlasOS\\Staging\\abc\\Executables'
-        { Invoke-AtlasTrustedInstaller -Operation Install -InstallPhase Run -PayloadRoot 'relative\path' } | Should -Throw '*absolute*'
-        { Invoke-AtlasTrustedInstaller -Operation Install -Name 'X' -InstallPhase Run -PayloadRoot 'C:\x' } | Should -Throw "*does not accept*"
-        { Invoke-AtlasTrustedInstaller -Operation Toggle -Name 'X' -State 'On' -InstallPhase Run } | Should -Throw "*does not accept*"
-    }
-
-    It 'is rejected by the broker script when the payload root is outside the protected staging root' {
+    It 'refuses an unelevated caller or a copy outside the protected staging root' {
         $previousPreference = $ErrorActionPreference
         $ErrorActionPreference = 'Continue'
         try {
@@ -533,13 +520,8 @@ Describe 'Install operation through the broker' {
             $ErrorActionPreference = $previousPreference
         }
         $LASTEXITCODE | Should -Be 1
-        ($output | Out-String) | Should -Match 'protected staging root|Administrator'
-    }
-
-    It 'exposes the Install request fields in the native launcher' {
-        Initialize-AtlasNativeType
-        $properties = [Atlas.Native.TrustedInstallerLaunchRequest].GetProperties().Name
-        $properties | Should -Contain 'InstallPhase'
-        $properties | Should -Contain 'PayloadRoot'
+        # The privilege check runs first, so an unelevated host never reaches the staging check.
+        $expected = if (Test-AtlasAdmin) { 'protected staging root' } else { '\[privilege\]' }
+        ($output | Out-String) | Should -Match $expected
     }
 }

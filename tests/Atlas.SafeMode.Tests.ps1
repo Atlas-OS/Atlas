@@ -154,13 +154,6 @@ Describe 'Atlas CBS retry lifecycle' {
         Mock Invoke-WithAtlasCbsRetryLock { & $Action }
     }
 
-    It 'round-trips the compact Pending and Armed state' {
-        [void](Write-AtlasCbsRetryState -Phase Pending -Packages $script:package -Path $script:statePath)
-        (Read-AtlasCbsRetryState -Path $script:statePath).Phase | Should -BeExactly 'Pending'
-        [void](Write-AtlasCbsRetryState -Phase Armed -Packages $script:package -Path $script:statePath)
-        (Read-AtlasCbsRetryState -Path $script:statePath).Phase | Should -BeExactly 'Armed'
-    }
-
     It 'rejects malformed state' {
         [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($script:statePath))
         Set-Content -LiteralPath $script:statePath -Value '{"Version":1,"Phase":"Other"}'

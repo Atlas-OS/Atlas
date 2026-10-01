@@ -1,3 +1,4 @@
+# Microsoft does not document custom:16000069. Community source:
 # https://winaero.com/how-to-disable-windows-8-boot-logo-spining-icon-and-some-other-hidden-settings
 
 function Disable-AtlasSpinningAnimations {

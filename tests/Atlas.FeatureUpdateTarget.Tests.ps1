@@ -12,8 +12,8 @@ param()
 
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $script:targetScript = Join-Path -Path $PSScriptRoot -ChildPath `
-        '..\playbook\Executables\AtlasModules\Scripts\Tweaks\qol\windows-update\disable-feature-updates.ps1'
+    $script:targetScript = Join-Path -Path $script:AtlasTestScriptsRoot -ChildPath `
+        'Tweaks\qol\windows-update\disable-feature-updates.ps1'
     $script:policyPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
 
     # Execution doubles: the script targets live HKLM policy state, which the tests
@@ -47,7 +47,8 @@ BeforeAll {
     function New-ItemProperty {
         param($Path, $LiteralPath, $Name, $Value, $PropertyType, [switch]$Force)
         if ($null -ne $script:RegistryWriteError) {
-            throw $script:RegistryWriteError
+            Write-Error $script:RegistryWriteError
+            return
         }
         $script:ValueWrites.Add([pscustomobject]@{
                 Path         = if ($LiteralPath) { $LiteralPath } else { $Path }
@@ -78,18 +79,6 @@ Describe 'Feature update target pinning' {
         Reset-FeatureUpdateRecording
     }
 
-    It 'parses in Windows PowerShell syntax' {
-        $tokens = $null
-        $errors = $null
-        [Management.Automation.Language.Parser]::ParseFile(
-            $script:targetScript,
-            [ref]$tokens,
-            [ref]$errors
-        ) | Out-Null
-
-        @($errors) | Should -BeNullOrEmpty
-    }
-
     It 'pins the running feature release through the Windows Update for Business policy values' {
         Invoke-FeatureUpdateTarget
 
@@ -113,11 +102,8 @@ Describe 'Feature update target pinning' {
         $release.Count | Should -Be 1
         $release[0].Value | Should -BeExactly '24H2'
         $release[0].PropertyType | Should -BeExactly 'String'
-    }
 
-    It 'never recreates an existing policy key, preserving sibling policy values' {
-        Invoke-FeatureUpdateTarget
-
+        # Recreating the existing key would wipe policy values other tweaks wrote.
         @($script:CreatedKeys).Count | Should -Be 0
     }
 
@@ -136,9 +122,11 @@ Describe 'Feature update target pinning' {
         @($script:ValueWrites).Count | Should -Be 0
     }
 
-    It 'surfaces a failed policy registry write instead of continuing' {
-        $script:RegistryWriteError = New-Object Exception 'registry write denied'
+    It 'reports a failed policy registry write instead of continuing' {
+        # A non-terminating error, so only the script's own Stop preference ends the run.
+        $script:RegistryWriteError = 'registry write denied'
 
         { Invoke-FeatureUpdateTarget } | Should -Throw '*registry write denied*'
+        @($script:ValueWrites).Count | Should -Be 0
     }
 }

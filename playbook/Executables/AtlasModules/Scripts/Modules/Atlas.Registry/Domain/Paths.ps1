@@ -1,11 +1,10 @@
 # Atlas.Registry domain: registry path parsing and explicit HKCU scope binding.
 #
-# A privileged process must never generally redirect HKCU to a live user's HKEY_USERS
-# path. A user can create registry links inside their own hive, so an otherwise exact
-# SID still leaves TrustedInstaller acting as a deputy over user-controlled traversal.
-# Live-user mutations therefore run in that user's own medium-token process and use
-# ambient HKCU. The sole live-user exception is an install-state-bound writer restricted
-# to the two Windows-owned policy roots whose ACLs reject the medium-token user. It runs
+# A privileged process must never redirect HKCU to a signed-in user's HKEY_USERS hive:
+# the user can create registry links inside it, so TrustedInstaller would follow paths
+# the user controls. Changes to a signed-in user therefore run in that user's own
+# non-elevated process through its own HKCU. The one exception, for the installing
+# user, writes only the two Windows-owned policy roots that user cannot write; it runs
 # in a short-lived process and cannot resolve any other HKCU path.
 
 $script:AtlasRegistryIdentityContext = $null
@@ -71,13 +70,36 @@ function Get-AtlasRegistryCurrentTokenSid {
         -Label 'Current process token SID'
 }
 
+# The install context, after checking it is install-state backed and belongs to the
+# expected transaction.
+function Get-AtlasActiveRegistryTransaction {
+    param(
+        [Parameter(Mandatory = $true)][string]$Mode,
+        [AllowEmptyString()][string]$TransactionId
+    )
+
+    $transaction = Get-AtlasContext -Refresh
+    if (-not [bool]$transaction.IsInstallStateBacked) {
+        throw "$Mode registry identity requires an active Atlas install state."
+    }
+    if (-not [string]::Equals(
+            [string]$transaction.TransactionId,
+            $TransactionId,
+            [StringComparison]::Ordinal
+        )) {
+        throw "The active Atlas transaction '$($transaction.TransactionId)' does not match expected transaction '$TransactionId'."
+    }
+    return $transaction
+}
+
 function Initialize-AtlasRegistryIdentityContext {
     <#
     .SYNOPSIS
         Binds HKCU operations to either the current process token or the fixed Atlas
         default-user hive. The binding is immutable for the module lifetime.
     .DESCRIPTION
-        CurrentToken is used by an exact user process and never redirects through HKU.
+        CurrentToken is used by a process running as the user and never redirects
+        through HKU.
         DefaultUserOnly is accepted only from strict TrustedInstaller and is bound to
         the active install state. InstallingUserPoliciesOnly is also strict
         TrustedInstaller and transaction-bound, but may resolve only the fixed Windows
@@ -139,17 +161,7 @@ function Initialize-AtlasRegistryIdentityContext {
                 throw 'DefaultUserOnly registry identity context requires strict TrustedInstaller token evidence.'
             }
 
-            $transaction = Get-AtlasContext -Refresh
-            if (-not [bool]$transaction.IsInstallStateBacked) {
-                throw 'DefaultUserOnly registry identity requires an active Atlas install state.'
-            }
-            if (-not [string]::Equals(
-                    [string]$transaction.TransactionId,
-                    $TransactionId,
-                    [StringComparison]::Ordinal
-                )) {
-                throw "The active Atlas transaction '$($transaction.TransactionId)' does not match expected transaction '$TransactionId'."
-            }
+            $transaction = Get-AtlasActiveRegistryTransaction -Mode 'DefaultUserOnly' -TransactionId $TransactionId
 
             $newContext = [pscustomobject]@{
                 Mode          = 'DefaultUserOnly'
@@ -167,17 +179,7 @@ function Initialize-AtlasRegistryIdentityContext {
 
             $expectedSid = ConvertTo-AtlasCanonicalRegistrySid -Sid $InstallingUserSid `
                 -Label 'Expected installing-user SID'
-            $transaction = Get-AtlasContext -Refresh
-            if (-not [bool]$transaction.IsInstallStateBacked) {
-                throw 'InstallingUserPoliciesOnly registry identity requires an active Atlas install state.'
-            }
-            if (-not [string]::Equals(
-                    [string]$transaction.TransactionId,
-                    $TransactionId,
-                    [StringComparison]::Ordinal
-                )) {
-                throw "The active Atlas transaction '$($transaction.TransactionId)' does not match expected transaction '$TransactionId'."
-            }
+            $transaction = Get-AtlasActiveRegistryTransaction -Mode 'InstallingUserPoliciesOnly' -TransactionId $TransactionId
             if ([string]::IsNullOrWhiteSpace([string]$transaction.InteractiveUserSid)) {
                 throw 'The active Atlas install state has no installing-user SID.'
             }

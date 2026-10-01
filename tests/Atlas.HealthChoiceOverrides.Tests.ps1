@@ -39,9 +39,8 @@ Describe 'Health expectations for explicitly applied machine choices' {
         }
     }
 
-    It 'exposes the recorded-choice reader through the actual module manifest' {
-        $reader = Get-Command Get-AtlasToggleStateRecords -Module Atlas.Toggles -ErrorAction Stop
-        $records = & $reader -StateRoot (Join-Path $TestDrive 'missing-state')
+    It 'returns an empty table when no toggle state was recorded' {
+        $records = Get-AtlasToggleStateRecords -StateRoot (Join-Path $TestDrive 'missing-state')
         $records | Should -BeOfType [hashtable]
         $records.Count | Should -Be 0
     }
@@ -62,23 +61,17 @@ Describe 'Health expectations for explicitly applied machine choices' {
         }
     }
 
-    It 'checks the original defaults without a recorded override' {
-        $drift = @(Test-AtlasTweak -Path $script:choiceFile -Context $script:choiceContext)
-        $drift.Count | Should -Be 2
-        @($drift.Reason) | Should -Contain 'value data differs'
-        @($drift.Reason) | Should -Contain 'value is missing'
-    }
-
-    It 'accepts the actual enabled choices and leaves the data-file defaults unchanged' {
-        @(Test-AtlasTweak -Path $script:choiceFile -Context $script:choiceContext -RecordedToggleStates @{ Location = 1; Copilot = 1 }).Count | Should -Be 0
-        $definition = Import-PowerShellDataFile $script:choiceFile
-        $definition.Registry[0].Data | Should -Be 'Deny'
-        $definition.Registry[1].Data | Should -Be 1
-        @(Test-AtlasTweak -Path $script:choiceFile -Context $script:choiceContext).Count | Should -Be 2
-    }
-
-    It 'does not treat any recorded state as an enabled choice' {
-        @(Test-AtlasTweak -Path $script:choiceFile -Context $script:choiceContext -RecordedToggleStates @{ Location = 0; Copilot = 0 }).Count | Should -Be 2
+    It 'reports <Expected> drifted values when the recorded choices are <Label>' -TestCases @(
+        @{ Label = 'absent'; Recorded = @{}; Expected = 2 }
+        @{ Label = 'enabled'; Recorded = @{ Location = 1; Copilot = 1 }; Expected = 0 }
+        @{ Label = 'in another state'; Recorded = @{ Location = 0; Copilot = 0 }; Expected = 2 }
+    ) {
+        $drift = @(Test-AtlasTweak -Path $script:choiceFile -Context $script:choiceContext -RecordedToggleStates $Recorded)
+        $drift.Count | Should -Be $Expected
+        if ($Expected) {
+            @($drift.Reason) | Should -Contain 'value data differs'
+            @($drift.Reason) | Should -Contain 'value is missing'
+        }
     }
 
     It 'still detects a wrong override value and unrelated drift' {
@@ -112,7 +105,7 @@ Describe 'Health expectations for explicitly applied machine choices' {
         param($Replacement)
         $invalid = Join-Path $TestDrive 'invalid.psd1'
         (Get-Content $script:choiceFile -Raw).Replace("VerifyWithToggle = @{ Name = 'Location'; State = 1; Type = 'String'; Data = 'Allow' }", $Replacement) | Set-Content $invalid
-        @(Test-AtlasTweakSchema -Path $invalid).Count | Should -BeGreaterThan 0
+        (@(Test-AtlasTweakSchema -Path $invalid).Problem -join "`n") | Should -BeLike '*VerifyWithToggle*'
     }
 
     It 'verifies a replayed current-user choice in the requested user scope' {
@@ -124,9 +117,12 @@ Describe 'Health expectations for explicitly applied machine choices' {
         Should -Invoke -ModuleName Atlas.Registry Get-AtlasRegistryValueState -ParameterFilter { $Path -like 'HKLM*' } -Times 0 -Exactly
     }
 
-    It 'rejects arbitrary loaded-user hives in override metadata' {
-        $invalid = Join-Path $TestDrive 'other-user.psd1'
-        (Get-Content $script:choiceFile -Raw).Replace('HKLM\', 'HKU\S-1-5-21-Other\') | Set-Content $invalid
-        @(Test-AtlasTweakSchema -Path $invalid).Count | Should -BeGreaterThan 0
+    It 'rejects an override on a registry scope health cannot verify' {
+        # The default-user hive is a valid tweak target, so only the override rule rejects this.
+        $invalid = Join-Path $TestDrive 'default-user.psd1'
+        (Get-Content $script:choiceFile -Raw).Replace(
+            "Path = 'HKLM\SOFTWARE\AtlasHealthFixture'; Name = 'Location'",
+            "Path = 'HKU\Atlas_DefaultUser\SOFTWARE\AtlasHealthFixture'; Name = 'Location'") | Set-Content $invalid
+        (@(Test-AtlasTweakSchema -Path $invalid).Problem -join "`n") | Should -BeLike '*VerifyWithToggle*'
     }
 }

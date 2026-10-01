@@ -5,8 +5,8 @@ function Import-AtlasRegFile {
     .SYNOPSIS
         Imports a .reg file via reg.exe, throwing on a non-zero exit code. HKCU paths
         cannot identify the intended interactive account under LocalSystem, so an HKCU
-        import in that context is rejected. Use typed registry functions in an exact-user
-        process, or explicitly bind them to Atlas's loaded default-user hive.
+        import in that context is rejected. Use typed registry functions in a process
+        running as that user, or bind them to Atlas's loaded default-user hive.
     #>
     param(
         [Parameter(Mandatory = $true)]

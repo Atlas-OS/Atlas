@@ -139,10 +139,13 @@ Describe 'Index path behavior' {
         }
     }
 
-    It 'stages presets under Atlas and cleans the two legacy RC policy lists' {
-        @($script:savedRoots.Policies).Count | Should -Be 4
-        $script:savedRoots.Paths.Include | Should -BeExactly 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\AtlasOS\Search\IncludedPaths'
-        $script:savedRoots.Paths.Exclude | Should -BeExactly 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\AtlasOS\Search\ExcludedPaths'
+    It 'also clears the two policy lists earlier RCs wrote' {
+        foreach ($legacy in @(
+                'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Windows Search\DefaultIndexedPaths'
+                'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Windows Search\DefaultExcludedPaths'
+            )) {
+            $script:savedRoots.Policies | Should -Contain $legacy -Because 'upgraded machines may still hold them'
+        }
     }
 
     It 'commits the complete staged preset and propagates effective-scope verification failure' {

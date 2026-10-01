@@ -8,8 +8,6 @@ Describe 'Phone Link cross-device Resume state' {
         $script:resumePath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CrossDeviceResume\Configuration'
         $script:policyPath = 'HKCU:\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\DisableCrossDeviceResume'
 
-        # The Resume values are declarative HKCU entries of each state; the engine
-        # applies them as the user part (see Atlas.Toggles.Tests.ps1).
         function Get-ResumeEntry {
             param(
                 [Parameter(Mandatory = $true)][string]$StateName,
@@ -24,34 +22,22 @@ Describe 'Phone Link cross-device Resume state' {
         }
     }
 
-    It 'turns off both the master and OneDrive Resume values when disabled' {
-        $master = Get-ResumeEntry -StateName Disable -Path $script:resumePath -Name 'IsResumeAllowed'
-        $oneDrive = Get-ResumeEntry -StateName Disable -Path $script:resumePath -Name 'IsOneDriveResumeAllowed'
-        $policy = Get-ResumeEntry -StateName Disable -Path $script:policyPath -Name 'Value'
+    It 'sets both the master and OneDrive Resume values when <StateName>d' -ForEach @(
+        @{ StateName = 'Disable'; Allowed = 0; DisablePolicy = 1 }
+        @{ StateName = 'Enable'; Allowed = 1; DisablePolicy = 0 }
+    ) {
+        $master = Get-ResumeEntry -StateName $StateName -Path $script:resumePath -Name 'IsResumeAllowed'
+        $oneDrive = Get-ResumeEntry -StateName $StateName -Path $script:resumePath -Name 'IsOneDriveResumeAllowed'
+        $policy = Get-ResumeEntry -StateName $StateName -Path $script:policyPath -Name 'Value'
 
         $master | Should -HaveCount 1
         $master[0].Type | Should -BeExactly 'DWord'
-        $master[0].Data | Should -Be 0
+        $master[0].Data | Should -Be $Allowed
         $oneDrive | Should -HaveCount 1
         $oneDrive[0].Type | Should -BeExactly 'DWord'
-        $oneDrive[0].Data | Should -Be 0
+        $oneDrive[0].Data | Should -Be $Allowed
         $policy | Should -HaveCount 1
-        $policy[0].Data | Should -Be 1
-    }
-
-    It 'turns on both the master and OneDrive Resume values when enabled' {
-        $master = Get-ResumeEntry -StateName Enable -Path $script:resumePath -Name 'IsResumeAllowed'
-        $oneDrive = Get-ResumeEntry -StateName Enable -Path $script:resumePath -Name 'IsOneDriveResumeAllowed'
-        $policy = Get-ResumeEntry -StateName Enable -Path $script:policyPath -Name 'Value'
-
-        $master | Should -HaveCount 1
-        $master[0].Type | Should -BeExactly 'DWord'
-        $master[0].Data | Should -Be 1
-        $oneDrive | Should -HaveCount 1
-        $oneDrive[0].Type | Should -BeExactly 'DWord'
-        $oneDrive[0].Data | Should -Be 1
-        $policy | Should -HaveCount 1
-        $policy[0].Data | Should -Be 0
+        $policy[0].Data | Should -Be $DisablePolicy
     }
 
     It 'keeps the shared CDP service available with Phone Link enabled or disabled' {
@@ -61,17 +47,5 @@ Describe 'Phone Link cross-device Resume state' {
             $service[0].StartupType | Should -Be 3 -Because 'disabling Phone Link must not disable the shared Night Light service'
         }
         $script:phoneLink.States['Disable']['MachineAction'] | Should -BeExactly 'Disable-AtlasPhoneLinkMachine'
-    }
-
-    It 'keeps the Resume values as per-user work beside the machine service change' {
-        foreach ($stateName in @('Disable', 'Enable')) {
-            $state = $script:phoneLink.States[$stateName]
-            $work = Get-AtlasToggleStateWork -Definition $script:phoneLink -StateEntry $state
-            $work.Machine | Should -BeTrue -Because $stateName
-            $work.User | Should -BeTrue -Because $stateName
-            @($state['Services'] | Where-Object { $_.Name -ceq 'CDPSvc' }) | Should -HaveCount 1 -Because $stateName
-        }
-        $script:phoneLink.States['Disable']['StateValue'] | Should -Be 0
-        $script:phoneLink.States['Enable']['StateValue'] | Should -Be 1
     }
 }

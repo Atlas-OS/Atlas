@@ -1,10 +1,7 @@
 # Atlas.Privacy - location, telemetry-log and telemetry-component configuration module.
 Set-StrictMode -Version 3.0
 
-# Atlas.Core supplies logging, install context and privilege checks; Atlas.Registry
-# writes the Find My Device policy; Atlas.Services sets the location service start
-# values. Reuse instances a long-running caller already owns: a nested forced import
-# would unload their global command surface in Windows PowerShell 5.1.
+# No -Force: a nested forced import unloads the caller's copy in Windows PowerShell 5.1.
 foreach ($dependencyManifest in @(
     '..\Atlas.Core\Atlas.Core.psd1'
     '..\Atlas.Registry\Atlas.Registry.psd1'

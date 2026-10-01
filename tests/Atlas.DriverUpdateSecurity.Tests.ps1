@@ -1,15 +1,7 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $repoRoot = Split-Path -Parent $PSScriptRoot
-    $driverUpdatePath = Join-Path -Path $repoRoot `
-        -ChildPath 'playbook\Executables\AtlasModules\Scripts\Operations\Update-Drivers.ps1'
-    $tokens = $null
-    $errors = $null
-    $ast = [System.Management.Automation.Language.Parser]::ParseFile(
-        $driverUpdatePath,
-        [ref]$tokens,
-        [ref]$errors
-    )
+    $driverUpdatePath = Join-Path -Path $script:AtlasTestScriptsRoot -ChildPath 'Operations\Update-Drivers.ps1'
+    $ast = [System.Management.Automation.Language.Parser]::ParseFile($driverUpdatePath, [ref]$null, [ref]$null)
     $functionAst = $ast.Find({
             param($node)
             $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and

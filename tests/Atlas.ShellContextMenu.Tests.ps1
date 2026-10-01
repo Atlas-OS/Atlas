@@ -27,7 +27,7 @@ BeforeAll {
     }
 }
 
-Describe 'Terminal context-menu payloads' {
+Describe 'Terminal context-menu .reg files' {
     BeforeDiscovery {
         $root = (Resolve-Path (Join-Path $PSScriptRoot '..\playbook\Executables')).ProviderPath
         $script:terminalPayloadCases = @(
@@ -79,7 +79,7 @@ Describe 'Terminal context-menu payloads' {
     }
 }
 
-Describe 'Take Ownership context-menu payload' {
+Describe 'Take Ownership context-menu .reg files' {
     It 'routes files, directories, and drives through the internal handler' {
         $commands = @(Get-ContextMenuCommand -Path $script:takeOwnershipPayload -SelectionToken '%1')
 
@@ -172,7 +172,7 @@ Describe 'Shell context-menu handlers' {
 
     It 'rejects relative paths and target-type mismatches before launch' {
         { & $script:terminalHandler -Terminal CommandPrompt -Verb Open -Path '.\relative' } |
-            Should -Throw '*bounded absolute path*'
+            Should -Throw '*one absolute path of at most*'
         { & $script:takeOwnershipHandler -TargetType File -TargetPath $TestDrive } |
             Should -Throw '*file does not exist*'
         { & $script:takeOwnershipHandler -TargetType Drive -TargetPath $TestDrive } |

@@ -201,8 +201,8 @@ if ($RefreshStart) {
     }
     Remove-ItemProperty -Path $startRefreshRunPath -Name $startRefreshRunName -ErrorAction SilentlyContinue
     Remove-ItemProperty -Path $markerPath -Name $startRefreshBootName -ErrorAction SilentlyContinue
-    # ponytail: the observed churn lasts ~10 s from sign-in; poll the AppX deployment
-    # log instead if a slow disk ever outruns this.
+    # Start's package churn settles about 10 s after sign-in; 60 s leaves room for
+    # slow disks.
     Start-Sleep -Seconds 60
     Reset-StartCategories
     return

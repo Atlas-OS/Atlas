@@ -1,3 +1,5 @@
+# Atlas.Registry domain: declarative registry entry application (tweak Registry arrays).
+
 # Merge only explicitly selected bits; reject unexpected formats instead of resetting preferences.
 function Merge-AtlasRegistryMaskedData {
     param([Parameter(Mandatory = $true)][hashtable]$Entry, [object]$Current)
@@ -27,8 +29,6 @@ function Merge-AtlasRegistryMaskedData {
     }
     throw 'Mask supports only Binary or decimal String values.'
 }
-
-# Atlas.Registry domain: declarative registry entry application (tweak Registry arrays).
 
 function Test-AtlasArchMatch {
     <#
@@ -78,6 +78,42 @@ function Get-AtlasRegistryEntryTargetScope {
     return 'Machine'
 }
 
+function Test-AtlasRegistryEntryInScope {
+    <#
+    .SYNOPSIS
+        Whether an entry belongs to Scope and matches the machine architecture. Apply
+        and verify both use this, so they always select the same entries.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][hashtable]$Entry,
+        [Parameter(Mandatory = $true)][string]$TargetScope,
+        [Parameter(Mandatory = $true)][string]$Scope,
+        [Parameter(Mandatory = $true)][bool]$IsArm64
+    )
+
+    $inScope = switch ($Scope) {
+        'All' { $true }
+        'Machine' { $TargetScope -ceq 'Machine' }
+        'ProtectedCurrentUser' { $TargetScope -ceq 'ProtectedCurrentUser' }
+        'CurrentUser' { $TargetScope -ceq 'CurrentUser' }
+        'DefaultUser' { $TargetScope -in @('CurrentUser', 'ProtectedCurrentUser', 'DefaultUser') }
+    }
+    if (-not $inScope) {
+        return $false
+    }
+    $arch = if ($Entry.ContainsKey('Arch')) { [string]$Entry['Arch'] } else { '' }
+    return (Test-AtlasArchMatch -Arch $arch -IsArm64 $IsArm64)
+}
+
+function Get-AtlasRegistryEntryOperation {
+    param([Parameter(Mandatory = $true)][hashtable]$Entry)
+
+    if ($Entry.ContainsKey('Operation') -and $Entry['Operation']) {
+        return [string]$Entry['Operation']
+    }
+    return 'Set'
+}
+
 function Get-AtlasRegistryEntryDescription {
     <#
     .SYNOPSIS
@@ -89,7 +125,7 @@ function Get-AtlasRegistryEntryDescription {
         [hashtable]$Entry
     )
 
-    $operation = if ($Entry.ContainsKey('Operation') -and $Entry['Operation']) { [string]$Entry['Operation'] } else { 'Set' }
+    $operation = Get-AtlasRegistryEntryOperation -Entry $Entry
     $path = if ($Entry.ContainsKey('Path') -and $Entry['Path']) { [string]$Entry['Path'] } else { '<no path>' }
     $name = if ($Entry.ContainsKey('Name')) { [string]$Entry['Name'] } else { '' }
 
@@ -147,27 +183,13 @@ function Invoke-AtlasRegistryEntries {
                 throw "Registry entry path '$($entry['Path'])' targets an explicit user hive; only ambient current-token HKCU or the fixed Atlas default-user hive is supported."
             }
 
-            $appliesToScope = switch ($Scope) {
-                'All' { $true }
-                'Machine' { $targetScope -ceq 'Machine' }
-                'ProtectedCurrentUser' { $targetScope -ceq 'ProtectedCurrentUser' }
-                'CurrentUser' { $targetScope -ceq 'CurrentUser' }
-                'DefaultUser' { $targetScope -in @('CurrentUser', 'ProtectedCurrentUser', 'DefaultUser') }
-            }
-            if (-not $appliesToScope) {
+            if (-not (Test-AtlasRegistryEntryInScope -Entry $entry -TargetScope $targetScope -Scope $Scope -IsArm64 $arm64)) {
                 continue
             }
 
-            $arch = if ($entry.ContainsKey('Arch')) { [string]$entry['Arch'] } else { '' }
-            if (-not (Test-AtlasArchMatch -Arch $arch -IsArm64 $arm64)) {
-                continue
-            }
+            $operation = Get-AtlasRegistryEntryOperation -Entry $entry
 
-            $operation = 'Set'
-            if ($entry.ContainsKey('Operation') -and $entry['Operation']) {
-                $operation = [string]$entry['Operation']
-            }
-
+            # Check the mask before any write, so a bad declaration fails up front.
             if ($entry.ContainsKey('Mask')) { $null = Merge-AtlasRegistryMaskedData -Entry $entry -Current $null }
 
             if ($entry.ContainsKey('UseGroupPolicy') -and $entry['UseGroupPolicy'] -isnot [bool]) {
@@ -253,6 +275,7 @@ function Set-AtlasMachineDwordPolicy {
     }
     if (-not (Test-AtlasAdmin)) { throw 'Administrator privileges are required to set machine policy.' }
     Set-AtlasMachineDwordPolicyNative -SubKey $pathInfo.SubPath -Name $Name -Data $Data
+    # gpupdate waits up to 600 s for policy processing; the extra 30 s lets it exit on its own.
     Invoke-AtlasHiddenProcess -FilePath (Join-Path ([Environment]::SystemDirectory) 'gpupdate.exe') `
         -ArgumentList @('/target:computer', '/force', '/wait:600') -Wait -TimeoutSeconds 630 | Out-Null
     $drift = @(Test-AtlasRegistryEntries -Entries @(@{ Path = $Path; Name = $Name; Type = 'DWord'; Data = $Data }) -Scope Machine)

@@ -12,12 +12,10 @@ param()
 
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
-    Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Core\Atlas.Core.psd1') -Force
-    Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Registry\Atlas.Registry.psd1') -Force
+    Import-Module -Name (Join-Path -Path $script:AtlasTestModulesRoot -ChildPath 'Atlas.Core\Atlas.Core.psd1') -Force
+    Import-Module -Name (Join-Path -Path $script:AtlasTestModulesRoot -ChildPath 'Atlas.Registry\Atlas.Registry.psd1') -Force
 
-    $script:phasePath = Join-Path -Path $PSScriptRoot -ChildPath `
-        '..\playbook\Executables\AtlasModules\Scripts\Install\Phases\Invoke-EnvironmentPhase.ps1'
+    $script:phasePath = Join-Path -Path $script:AtlasTestScriptsRoot -ChildPath 'Install\Phases\Invoke-EnvironmentPhase.ps1'
     $script:testRoot = 'HKCU:\Software\AtlasRewriteTest'
     $script:policySubKey = 'Software\AtlasRewriteTest\ExecutionPolicy\ShellIds\Microsoft.PowerShell'
 
@@ -154,15 +152,15 @@ Describe 'Set-AtlasWindowsPowerShellExecutionPolicy' {
     }
 
     It 'defaults to the machine Windows PowerShell shell ID key' {
+        # The environment phase relies on these defaults, and an elevated write cannot run
+        # here. The read-back check reads the key it wrote, so a wrong default passes it.
         $command = Get-Command -Name Set-AtlasWindowsPowerShellExecutionPolicy -Module Atlas.Registry
-        $command.Parameters['Hive'].ParameterType | Should -Be ([Microsoft.Win32.RegistryHive])
-        $command.Parameters['SubKey'].ParameterType | Should -Be ([string])
-
         $defaults = @{}
         foreach ($parameter in $command.ScriptBlock.Ast.Body.ParamBlock.Parameters) {
             $defaults[$parameter.Name.VariablePath.UserPath] = $parameter.DefaultValue
         }
-        $defaults['Hive'].Extent.Text | Should -BeExactly '[Microsoft.Win32.RegistryHive]::LocalMachine'
+        (& ([scriptblock]::Create($defaults['Hive'].Extent.Text))) |
+            Should -Be ([Microsoft.Win32.RegistryHive]::LocalMachine)
         $defaults['SubKey'].SafeGetValue() |
             Should -BeExactly 'SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
     }

@@ -19,8 +19,9 @@ function Remove-AtlasOneDriveMachineRegistryItem {
 function Remove-AtlasOneDrive {
     <#
     .SYNOPSIS
-        Uninstalls the preinstalled OneDrive client and cleans up its per-user
-        registry entries, folders, scheduled tasks and shell extensions.
+        Uninstalls the preinstalled OneDrive client and removes its machine scheduled
+        tasks and shell-extension CLSIDs. Remove-OneDriveCurrentUserData.ps1 handles
+        per-user leftovers.
     #>
     Stop-Process -Name 'OneDrive' -Force -ErrorAction SilentlyContinue
 
@@ -77,9 +78,9 @@ function Remove-AtlasOneDrive {
         Write-AtlasLog -Level Warning -Message 'Protected OneDriveSetup.exe was not found; skipping executable uninstall and continuing declarative cleanup.'
     }
 
-    # User-owned HKCU and profile leftovers are removed separately by
-    # Remove-OneDriveCurrentUserData.ps1 in the exact install-state user token.
-    # Never enumerate HKEY_USERS or profile directories from this privileged phase.
+    # Remove-OneDriveCurrentUserData.ps1 removes HKCU and profile leftovers in the
+    # installing user's own token. Never enumerate HKEY_USERS or profile directories
+    # from this privileged phase.
 
     foreach ($taskPattern in @('OneDrive Reporting Task*', 'OneDrive Standalone Update Task*')) {
         foreach ($task in @(Get-ScheduledTask -TaskName $taskPattern -ErrorAction SilentlyContinue)) {

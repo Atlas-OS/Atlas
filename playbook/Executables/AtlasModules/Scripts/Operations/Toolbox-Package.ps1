@@ -54,13 +54,9 @@ function Install-AtlasToolboxPackage {
     }
     Import-Module -Name $downloadModule -ErrorAction Stop
 
-    # Toolbox intentionally follows the repository's latest stable release so
-    # a Toolbox update does not require a playbook release. Toolbox is currently
-    # unsigned and unattested, so this product policy accepts control of the
-    # reviewed immutable Atlas-OS organization/repository identities as its
-    # publisher authority. GitHub's server-computed per-asset SHA-256 and byte
-    # size provide a strict metadata-to-download binding, but are not an
-    # independent publisher signature.
+    # Toolbox tracks its latest stable release so its updates don't need an Atlas
+    # release. It is unsigned: trust rests on the pinned Atlas-OS owner and repository
+    # IDs, and GitHub's per-asset SHA-256 and size tie the download to that release.
     $toolboxRelease = Get-AtlasLatestGitHubReleaseAsset `
         -Owner 'Atlas-OS' `
         -Repository 'atlas-toolbox' `
@@ -110,7 +106,7 @@ function Install-AtlasToolboxPackage {
                 throw "Installing Toolbox failed with exit code $installerExitCode."
             }
             if (-not (Test-AtlasToolboxInstallation -ExpectedVersion $toolboxRelease.Version)) {
-                throw "The Toolbox installer exited successfully but Toolbox $($toolboxRelease.Version) did not satisfy its installed-file and version postconditions."
+                throw "The Toolbox installer exited successfully, but Toolbox $($toolboxRelease.Version) is not installed as expected."
             }
         }
         finally {

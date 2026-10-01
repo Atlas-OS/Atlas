@@ -5,38 +5,35 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $root = Join-Path $env:WINDIR 'AtlasISO'
 if ([IO.Path]::GetFullPath($PSScriptRoot) -ine [IO.Path]::GetFullPath($root)) { throw 'Unexpected desktop setup location.' }
-$policyPath = 'Software\Microsoft\Windows\CurrentVersion\Policies\System'
-$shell = '"' + (Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe') + '" -NoLogo -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + (Join-Path $root 'Desktop.ps1') + '"'
-$state = 'HKCU:\Software\AtlasOS\DesktopSetup'
 . (Join-Path $root 'Desktop-Policy.ps1')
+$policyPath = 'Software\Microsoft\Windows\CurrentVersion\Policies\System'
+$shell = Get-AtlasDesktopShell $root
+$state = 'HKCU:\Software\AtlasOS\DesktopSetup'
 function Start-AtlasWindowsShell {
-    # Explorer must run as the unelevated signed-in user. Its shell services are
-    # required for Settings, Windows Security and Store app activation on Pro.
-    # Atlas covers the desktop; this is an onboarding flow, not a kiosk lock.
+    # Explorer runs unelevated: Settings, Windows Security and Store activation
+    # need its shell services. Atlas covers the desktop but does not lock it.
     $session = [Diagnostics.Process]::GetCurrentProcess().SessionId
     if (-not (Get-Process explorer -ErrorAction SilentlyContinue | Where-Object SessionId -eq $session)) {
         Start-Process -FilePath (Join-Path $env:WINDIR 'explorer.exe')
     }
 }
 function Restore-AtlasDesktop {
-    try {
+    $readOwned = {
         $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($policyPath)
-        try { $ownedShell = $key -and [string]::Equals([string]$key.GetValue('Shell'), $shell, [StringComparison]::Ordinal) }
+        try { Test-AtlasOwnedShell $key $shell }
         finally { if ($key) { $key.Dispose() } }
-        if (-not $ownedShell) { return }
+    }
+    try {
+        if (-not (& $readOwned)) { return }
         Request-AtlasDesktopCleanup ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value)
         $deadline = [DateTime]::UtcNow.AddSeconds(15)
         do {
             Start-Sleep -Milliseconds 200
-            $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($policyPath)
-            try { $ownedShell = $key -and [string]::Equals([string]$key.GetValue('Shell'), $shell, [StringComparison]::Ordinal) }
-            finally { if ($key) { $key.Dispose() } }
+            $ownedShell = & $readOwned
         } while ($ownedShell -and [DateTime]::UtcNow -lt $deadline)
         if ($ownedShell) { throw 'Atlas desktop policy cleanup did not finish. Retry Desktop.ps1 -RestoreDesktop.' }
     }
-    catch {
-        [IO.File]::WriteAllText((Join-Path $env:LOCALAPPDATA 'Atlas-desktop-recovery.log'), ($_ | Out-String))
-    }
+    catch { Write-AtlasDesktopRecoveryLog $_ }
     finally { Start-AtlasWindowsShell }
 }
 if ($RestoreDesktop) { Restore-AtlasDesktop; exit }
@@ -45,14 +42,14 @@ if (-not $Detached) {
         # WindowStyle Hidden still opens the default terminal and blocks its Store
         # update. Relaunch without a console, then release the original terminal.
         $start = New-Object Diagnostics.ProcessStartInfo
-        $start.FileName = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
+        $start.FileName = Get-AtlasPowerShellPath
         $start.Arguments = '-NoLogo -NoProfile -ExecutionPolicy Bypass -File "' + $PSCommandPath + '" -Detached'
         $start.UseShellExecute = $false
         $start.CreateNoWindow = $true
         $process = [Diagnostics.Process]::Start($start)
         $process.Dispose()
     } catch {
-        [IO.File]::WriteAllText((Join-Path $env:LOCALAPPDATA 'Atlas-desktop-recovery.log'), ($_ | Out-String))
+        Write-AtlasDesktopRecoveryLog $_
         Restore-AtlasDesktop
     }
     exit
@@ -76,6 +73,8 @@ try {
         if ([DateTime]::UtcNow -gt $deadline) { throw 'Account preparation timed out.' }
         Start-Sleep -Seconds 1
     }
+    # The marker appeared during this session, so Setup.ps1 is signing out. Wait
+    # for that rather than show the desktop.
     if ($bootstrap) { Start-Sleep -Seconds 60; throw 'Account preparation did not sign out.' }
     $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
     if ([IO.File]::ReadAllText($marker).Trim() -ne $sid) { throw 'This account does not own Atlas setup.' }
@@ -83,8 +82,8 @@ try {
     Remove-ItemProperty -LiteralPath $state -Name RestartRequested -ErrorAction SilentlyContinue
     $app = Join-Path $root 'AtlasManager.exe'
     if (-not (Test-Path -LiteralPath $app)) { throw 'The Atlas setup app is missing.' }
-    # The real user's elevated interactive token is required by both providers.
-    # Declining UAC returns to the desktop, without changing the update result.
+    # Windows Update and Store preparation need this user's elevated token.
+    # Declining UAC returns to the desktop.
     $child = Start-Process -FilePath $app -ArgumentList '--before-desktop' -Verb RunAs -PassThru
     # Let the full-screen app appear before starting the normal shell behind it.
     # A failed or hung app must still leave access to Windows.
@@ -111,7 +110,7 @@ try {
 }
 catch {
     # A broken app, declined elevation or bootstrap failure must leave a usable PC.
-    [IO.File]::WriteAllText((Join-Path $env:LOCALAPPDATA 'Atlas-desktop-recovery.log'), ($_ | Out-String))
+    Write-AtlasDesktopRecoveryLog $_
 }
 finally {
     try { Restore-AtlasDesktop }

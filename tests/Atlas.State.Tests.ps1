@@ -9,11 +9,9 @@ Describe 'Machine state document' {
         Remove-Item -LiteralPath $script:DocumentPath -Force -ErrorAction SilentlyContinue
     }
 
-    It 'is absent until an install completes' {
+    It 'is absent until an install completes, then records it and appends history on upgrade' {
         Get-AtlasState -Path $script:DocumentPath | Should -BeNullOrEmpty
-    }
 
-    It 'records a completed install with its options and appends history on upgrade' {
         $fresh = [pscustomobject]@{
             targetVersion = '0.6.0'; mode = 'Fresh'; isOobe = $false
             options = @('defender-enable', 'browser-brave'); transactionId = '11111111-1111-4111-8111-111111111111'

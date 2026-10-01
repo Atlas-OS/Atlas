@@ -14,7 +14,7 @@
         'Invoke-AtlasToggle'
         # Machine work of one state, invoked from other privileged callers
         'Invoke-AtlasToggleMachineState'
-        # State registry (HKLM\SOFTWARE\AtlasOS\Services compatibility contract)
+        # State registry (HKLM\SOFTWARE\AtlasOS\Services, kept for compatibility)
         'Get-AtlasToggleState'
         'Get-AtlasToggleStateRecords'
         'Set-AtlasToggleState'

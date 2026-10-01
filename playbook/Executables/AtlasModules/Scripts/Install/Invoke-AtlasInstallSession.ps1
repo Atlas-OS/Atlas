@@ -2,17 +2,17 @@
 .SYNOPSIS
     TrustedInstaller half of the Atlas front door.
 .DESCRIPTION
-    Entry\Install-Atlas.ps1 stages the extracted playbook beneath the protected staging
+    Entry\Install-Atlas.ps1 stages the extracted package beneath the protected staging
     root and asks the TrustedInstaller broker to run this script from that copy, twice:
 
-      -Phase Capture   Reads request.json beside the payload, decides Fresh, Upgrade or
+      -Phase Capture   Reads request.json beside the staged files, decides Fresh, Upgrade or
                        Reapply from the machine state document, begins the install state
                        and records the validated options. The front door then publishes
                        the installing user's marker from its own session.
       -Phase Run       Binds the published user, commits the captured state and runs the
                        complete install plan through Entry\Invoke-AtlasInstall.ps1.
 
-    request.json is a bounded document: { "options": [ "<option>", ... ] }. Every option
+    request.json is a size-limited document: { "options": [ "<option>", ... ] }. Every option
     must be declared by playbook.conf, every required option group must be satisfied,
     and nothing else is accepted. The broker has already verified that this script and
     its staging root are owned and writable only by trusted principals.
@@ -46,7 +46,7 @@ function Read-AtlasInstallRequest {
         throw "The install request '$requestPath' is missing."
     }
     if ((Get-Item -LiteralPath $requestPath).Length -gt 65536) {
-        throw 'The install request exceeds its bounded size.'
+        throw 'The install request exceeds its size limit.'
     }
     $request = [IO.File]::ReadAllText($requestPath) | ConvertFrom-Json -ErrorAction Stop
     foreach ($property in $request.PSObject.Properties) {
