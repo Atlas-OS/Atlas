@@ -10,13 +10,16 @@ use gpui::{
     WindowControlArea, div, prelude::*, px, svg,
 };
 
-use super::{Icon, Typography, focus_ring, icon_sized};
+use super::tooltip::{self, TooltipState};
+use super::typography::{CAPTION_SIZE, cap_center_offset};
+use super::{ClickHandler, Icon, Typography, focus_ring, icon_sized, on_activate, pointer_hover};
 use crate::t;
-use crate::theme::{ActiveTheme, FONT_ICONS};
+use crate::theme::{ActiveTheme, FONT_ICONS, FONT_TEXT};
 
+/// The title bar's height, which popups keep clear of.
 pub const TITLE_BAR_HEIGHT: f32 = 32.;
-
-type ClickHandler = Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>;
+/// The caption buttons' width: Minimize, Maximize and Close, 46px each.
+pub const CAPTION_BUTTONS_WIDTH: f32 = 3. * 46.;
 
 #[derive(IntoElement)]
 pub struct TitleBar {
@@ -43,7 +46,11 @@ impl TitleBar {
 
 impl RenderOnce for TitleBar {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
-        let theme = cx.theme();
+        let tooltip = self
+            .settings
+            .is_some()
+            .then(|| window.use_keyed_state("title-settings", cx, |_, cx| TooltipState::new(cx)));
+        let theme = cx.theme().clone();
         let active = window.is_window_active();
         let text = if active { theme.text_primary } else { theme.text_disabled };
         let hover = theme.subtle_hover;
@@ -65,7 +72,7 @@ impl RenderOnce for TitleBar {
                     .flex_1()
                     .h_full()
                     .items_center()
-                    .gap(px(10.))
+                    .gap(px(16.))
                     .pl(px(16.))
                     .window_control_area(WindowControlArea::Drag)
                     .child(
@@ -75,9 +82,9 @@ impl RenderOnce for TitleBar {
                             .text_color(theme.brand)
                             .with_transformation(gpui::Transformation::translate(gpui::point(
                                 px(0.),
-                                super::typography::cap_center_offset(
-                                    gpui::font(crate::theme::FONT_TEXT),
-                                    gpui::rems(12. / 16.).to_pixels(window.rem_size()),
+                                cap_center_offset(
+                                    gpui::font(FONT_TEXT),
+                                    CAPTION_SIZE.to_pixels(window.rem_size()),
                                     window,
                                     cx,
                                 ),
@@ -85,16 +92,14 @@ impl RenderOnce for TitleBar {
                     )
                     .child(div().type_caption().text_color(text).child(self.title)),
             )
-            .when_some(self.settings, |this, (selected, handler)| {
-                this.child(
+            .when_some(self.settings.zip(tooltip), |this, ((selected, handler), tooltip)| {
+                let name: SharedString =
+                    if selected { t!("common-close-settings") } else { t!("common-settings") }.into();
+                let button = on_activate(
                     div()
                         .id("title-settings")
                         .role(Role::Button)
-                        .aria_label(if selected {
-                            t!("common-close-settings")
-                        } else {
-                            t!("common-settings")
-                        })
+                        .aria_label(name.clone())
                         .flex()
                         .items_center()
                         .justify_center()
@@ -104,19 +109,19 @@ impl RenderOnce for TitleBar {
                         .rounded(px(4.))
                         .border_1()
                         .border_color(theme.transparent())
-                        .text_color(if selected { theme.accent_text } else { text })
+                        // Selected, it sits on the hover fill, so it takes that fill's text colour.
+                        .text_color(if selected { theme.text_on_hover(theme.accent_text) } else { text })
                         .when(selected, |this| this.bg(hover))
-                        .hover(move |style| style.bg(hover).text_color(hover_text))
+                        .map(|this| {
+                            pointer_hover(this, window, move |style| style.bg(hover).text_color(hover_text))
+                        })
                         .active(move |style| style.bg(pressed))
                         .focus_visible(move |style| focus_ring(style, focus_outer, focus_inner))
                         .tab_index(0)
-                        .on_a11y_action(gpui::AccessibleAction::Click, {
-                            let handler = handler.clone();
-                            move |_, window, cx| handler(&ClickEvent::default(), window, cx)
-                        })
-                        .on_click(move |event, window, cx| handler(event, window, cx))
                         .child(icon_sized(Icon::Settings, 14.)),
-                )
+                    handler,
+                );
+                this.child(tooltip::attach(button, name, &tooltip, window, cx))
             })
             .child(
                 div()
@@ -181,8 +186,7 @@ impl RenderOnce for CaptionButton {
         };
         let active = window.is_window_active();
         let (hover_bg, hover_fg, pressed_bg, pressed_fg) = if is_close {
-            let red = theme.caption_close_hover();
-            let on_red = if theme.high_contrast { theme.text_on_accent } else { gpui::white() };
+            let (red, on_red) = (theme.caption_close_hover(), theme.caption_close_text());
             (red, on_red, red.opacity(0.9), on_red.opacity(0.7))
         } else {
             (
@@ -205,7 +209,7 @@ impl RenderOnce for CaptionButton {
             .text_color(idle)
             .window_control_area(self.area())
             .when(enabled, |this| {
-                this.hover(move |style| style.bg(hover_bg).text_color(hover_fg))
+                pointer_hover(this, window, move |style| style.bg(hover_bg).text_color(hover_fg))
                     .active(move |style| style.bg(pressed_bg).text_color(pressed_fg))
             })
             .child(icon_sized(self.icon(), 10.))

@@ -1,8 +1,9 @@
-//! App preferences, stored beside the downloaded playbooks under
+//! App preferences, stored beside the downloaded Atlas packages under
 //! `%LOCALAPPDATA%\AtlasOS\App`.
 
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
+use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result};
 use futures::channel::oneshot;
@@ -18,9 +19,9 @@ pub enum ThemePreference {
 }
 
 /// Which language the app speaks: the Windows display language (the
-/// default) or one the user chose. Stored as `"system"` or a BCP 47 tag, so
-/// a settings file written before the setting existed reads as System, and
-/// a tag this build does not ship is kept rather than rewritten.
+/// default) or one the user chose. Stored as `"system"` or a BCP 47 tag; a
+/// missing or empty value is System, and a tag this build doesn't include
+/// is kept.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(from = "String", into = "String")]
 pub enum LanguagePreference {
@@ -54,7 +55,8 @@ impl From<LanguagePreference> for String {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct InstallDraft {
-    /// Restart requirement recorded before registering preparation recovery.
+    /// When preparation asked for a restart (RFC 3339), saved before the
+    /// resume Run entry is registered.
     pub preparation_restart_at: Option<String>,
     /// "Get ready" finished preparing Windows with no restart owed, so a
     /// resumed draft does not ask for it again.
@@ -62,16 +64,19 @@ pub struct InstallDraft {
     /// Step name as `Step::parse` understands it.
     pub step: String,
     pub options: Vec<String>,
-    /// An already unpacked playbook, if one was ready.
+    /// An already unpacked package, if one was ready.
     pub playbook_dir: Option<PathBuf>,
+    /// The Atlas package file (.apbx) it was unpacked from, downloaded or
+    /// opened, so ISO creation can offer it after a relaunch.
+    pub package_archive: Option<PathBuf>,
     /// Which options screen was showing (see `AppModel::option_screens`).
     pub option_screen: usize,
     /// The id of the install this flow started, once it has. A completed
     /// install clears the draft that launched it and no other.
     pub session: Option<String>,
-    /// Which flow owns this draft: a random id the window that began the
-    /// flow chose. A window saves or abandons the draft only while it is the
-    /// owner; a draft without one was written before flows had identities.
+    /// Which flow owns this draft: an id chosen by the window that began it.
+    /// Only the owner saves or abandons it; `None` means unowned, and any
+    /// window may adopt it.
     pub flow: Option<String>,
 }
 
@@ -86,6 +91,15 @@ pub struct AppSettings {
     pub draft: Option<InstallDraft>,
     /// Language tags whose "preview translation" notice the user dismissed.
     pub dismissed_preview_notices: Vec<String>,
+    /// The `installedAt` of the recorded install whose Windows Security
+    /// reminder the user dismissed. A later install has its own reminder.
+    pub protection_reminder_dismissed: Option<String>,
+    /// The `installedAt` of the recorded install, kept with Microsoft
+    /// Defender, whose warning that Defender is missing the user dismissed.
+    pub defender_missing_dismissed: Option<String>,
+    /// A flow was left with Windows Security protection off, so the reminder
+    /// to turn it back on shows again after a relaunch.
+    pub protection_reminder_pending: bool,
 }
 
 impl Default for AppSettings {
@@ -97,6 +111,9 @@ impl Default for AppSettings {
             restart_after_install: true,
             draft: None,
             dismissed_preview_notices: Vec::new(),
+            protection_reminder_dismissed: None,
+            defender_missing_dismissed: None,
+            protection_reminder_pending: false,
         }
     }
 }
@@ -109,7 +126,8 @@ pub enum SettingsProblem {
     Unreadable { error: String },
     /// The file did not parse and was renamed aside.
     DamagedKept { error: String, kept_as: String },
-    /// The file did not parse and could not be renamed aside.
+    /// The file did not parse and is still where it was: it could not be
+    /// renamed aside, or it was only read (see [`read_from`]).
     Damaged { error: String },
 }
 
@@ -135,7 +153,7 @@ pub fn app_data_dir() -> PathBuf {
 }
 
 /// Where this app keeps its own files: settings, downloads, unpacked
-/// playbooks and the install session. One value names them all, so the model
+/// packages and the install session. One value names them all, so the model
 /// (and its tests) can point everything at one directory.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AppPaths {
@@ -156,7 +174,7 @@ impl AppPaths {
         self.root.join("settings.json")
     }
 
-    /// Extracted playbooks, one directory per package.
+    /// Extracted packages, one directory each.
     pub fn playbooks(&self) -> PathBuf {
         self.root.join("Playbooks")
     }
@@ -174,6 +192,25 @@ impl AppPaths {
 /// Missing settings are the defaults. An unreadable file is set aside as
 /// `settings.json.invalid` rather than silently replaced, and reported.
 pub fn load_from(path: &Path) -> Loaded {
+    let loaded = read_from(path);
+    let Some(SettingsProblem::Damaged { error }) = loaded.problem else { return loaded };
+    let aside = invalid_path(path);
+    let problem = if std::fs::rename(path, &aside).is_ok() {
+        SettingsProblem::DamagedKept {
+            error,
+            kept_as: aside.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
+        }
+    } else {
+        SettingsProblem::Damaged { error }
+    };
+    Loaded { settings: AppSettings::default(), problem: Some(problem) }
+}
+
+/// Reads the settings as [`load_from`] does but changes nothing on disk: a
+/// damaged file is reported and left in place. For readers outside the
+/// window's model (startup recovery, diagnostics), so the model's own load
+/// still finds the damaged file, sets it aside and tells the user.
+pub fn read_from(path: &Path) -> Loaded {
     let text = match std::fs::read_to_string(path) {
         Ok(text) => text,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Loaded::default(),
@@ -186,19 +223,10 @@ pub fn load_from(path: &Path) -> Loaded {
     };
     match serde_json::from_str(text.trim_start_matches('\u{feff}')) {
         Ok(settings) => Loaded { settings, problem: None },
-        Err(error) => {
-            let aside = invalid_path(path);
-            let kept = std::fs::rename(path, &aside).is_ok();
-            let problem = if kept {
-                SettingsProblem::DamagedKept {
-                    error: error.to_string(),
-                    kept_as: aside.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
-                }
-            } else {
-                SettingsProblem::Damaged { error: error.to_string() }
-            };
-            Loaded { settings: AppSettings::default(), problem: Some(problem) }
-        }
+        Err(error) => Loaded {
+            settings: AppSettings::default(),
+            problem: Some(SettingsProblem::Damaged { error: error.to_string() }),
+        },
     }
 }
 
@@ -208,15 +236,16 @@ fn invalid_path(path: &Path) -> PathBuf {
     path.with_file_name(name)
 }
 
-/// Reads the current document, lets `change` edit it (and answer something
-/// about it), and writes it back, all under a lock other instances of the
-/// app take for the same file. Every decision about the document (set this
-/// field, clear this draft and no other) is made against what is on disk at
-/// that moment, never a cached copy. A missing file starts from the
-/// defaults; a damaged one is set aside as `load_from` does; a file that
-/// exists but cannot be read fails the transaction and is left untouched.
-pub fn modify<R>(path: &Path, change: impl FnOnce(&mut AppSettings) -> R) -> Result<R> {
-    let _lock = SettingsLock::acquire(path)?;
+/// How long a settings write waits for another writer's lock before failing.
+pub const LOCK_WAIT: Duration = Duration::from_secs(2);
+
+/// A locked read-modify-write of the settings file: `change` sees what is on
+/// disk now, never a cached copy, and its answer is returned. A missing file
+/// starts from the defaults, a damaged one is set aside as [`load_from`]
+/// does, and an unreadable one fails without writing. Another writer's
+/// lock is waited for up to `wait`.
+pub fn modify<R>(path: &Path, wait: Duration, change: impl FnOnce(&mut AppSettings) -> R) -> Result<R> {
+    let _lock = SettingsLock::acquire(path, wait)?;
     let loaded = load_from(path);
     if let Some(SettingsProblem::Unreadable { error }) = &loaded.problem {
         anyhow::bail!("{} cannot be read at the moment ({error}); nothing was changed", path.display());
@@ -227,23 +256,22 @@ pub fn modify<R>(path: &Path, change: impl FnOnce(&mut AppSettings) -> R) -> Res
     Ok(answer)
 }
 
-/// A short-lived, cross-process lock on the settings file (a lock file
-/// opened with no sharing, as the launch lock is). Only contention is
-/// waited out; any other failure to open the lock file is an error at once.
+/// A short-lived lock on the settings file that every instance of the app
+/// takes: a lock file opened with no sharing. Only contention is waited
+/// out; any other failure to open the lock file is an error at once.
 struct SettingsLock {
     _file: std::fs::File,
 }
 
 impl SettingsLock {
-    fn acquire(path: &Path) -> Result<Self> {
-        const WAIT: std::time::Duration = std::time::Duration::from_secs(2);
-        const RETRY: std::time::Duration = std::time::Duration::from_millis(20);
+    fn acquire(path: &Path, wait: Duration) -> Result<Self> {
+        const RETRY: Duration = Duration::from_millis(20);
         const ERROR_SHARING_VIOLATION: i32 = 32;
         let lock_path = path.with_extension("json.lock");
         if let Some(parent) = lock_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        let deadline = std::time::Instant::now() + WAIT;
+        let deadline = Instant::now() + wait;
         loop {
             let mut options = std::fs::OpenOptions::new();
             options.read(true).write(true).create(true).truncate(false);
@@ -255,8 +283,7 @@ impl SettingsLock {
             match options.open(&lock_path) {
                 Ok(file) => return Ok(Self { _file: file }),
                 Err(error)
-                    if error.raw_os_error() == Some(ERROR_SHARING_VIOLATION)
-                        && std::time::Instant::now() < deadline =>
+                    if error.raw_os_error() == Some(ERROR_SHARING_VIOLATION) && Instant::now() < deadline =>
                 {
                     std::thread::sleep(RETRY);
                 }
@@ -268,7 +295,7 @@ impl SettingsLock {
     }
 }
 
-/// A fresh flow identity: time, process and a nanosecond stamp.
+/// A fresh flow id: the process id and a nanosecond stamp.
 pub fn new_flow_id() -> String {
     let nanos = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -277,47 +304,49 @@ pub fn new_flow_id() -> String {
     format!("{}-{nanos:x}", std::process::id())
 }
 
-/// The one way the app writes its settings: transactions run in order on a
-/// thread of their own, each a locked read-modify-write of the current
-/// document (see [`modify`]), so the window's thread never waits for the
-/// lock and no writer ever replaces the document with a stale copy. The
-/// caller receives the transaction's answer when it has been written.
+/// The one way the app writes settings: [`modify`] transactions run in order
+/// on their own thread, so the window's thread never waits for the lock and
+/// no writer saves a stale copy. Each caller gets its answer once it is
+/// written.
 #[derive(Clone)]
 pub struct Store {
     jobs: mpsc::Sender<Job>,
 }
 
-type Job = Box<dyn FnOnce(&Path) + Send>;
+type Job = Box<dyn FnOnce(&Path, Duration) + Send>;
 
 impl Store {
-    pub fn new(path: PathBuf) -> Self {
+    /// A writer for the file at `path` that waits up to `lock_wait` for
+    /// another writer's lock.
+    pub fn new(path: PathBuf, lock_wait: Duration) -> Self {
         let (jobs, queue) = mpsc::channel::<Job>();
         std::thread::Builder::new()
             .name("atlas-settings".into())
             .spawn(move || {
                 for job in queue {
-                    job(&path);
+                    job(&path, lock_wait);
                 }
             })
             .expect("start the settings thread");
         Self { jobs }
     }
 
-    /// Queues `change`; the receiver resolves with its answer once the
+    /// Queues `change` at once. The future resolves with its answer once the
     /// document has been written, or with the reason it was not.
-    pub fn transact<R: Send + 'static>(
-        &self,
-        change: impl FnOnce(&mut AppSettings) -> R + Send + 'static,
-    ) -> oneshot::Receiver<Result<R, String>> {
+    pub fn transact<R, F>(&self, change: F) -> impl Future<Output = Result<R, String>> + use<R, F>
+    where
+        R: Send + 'static,
+        F: FnOnce(&mut AppSettings) -> R + Send + 'static,
+    {
         let (done, answer) = oneshot::channel();
-        let job: Job = Box::new(move |path| {
-            let result = modify(path, change).map_err(|error| format!("{error:#}"));
+        let job: Job = Box::new(move |path, wait| {
+            let result = modify(path, wait, change).map_err(|error| format!("{error:#}"));
             let _ = done.send(result);
         });
         if self.jobs.send(job).is_err() {
             log::error!("the settings thread is gone");
         }
-        answer
+        async move { answer.await.unwrap_or_else(|_| Err("the settings writer stopped".into())) }
     }
 }
 
@@ -351,6 +380,9 @@ mod tests {
         let path = temp.path().join("nested").join("settings.json");
         let settings = AppSettings {
             dismissed_preview_notices: vec![],
+            protection_reminder_dismissed: Some("2026-09-30T20:06:21.9690173+00:00".into()),
+            defender_missing_dismissed: Some("2026-09-30T20:06:21.9690173+00:00".into()),
+            protection_reminder_pending: true,
             drivers: Some(super::super::preparation::Drivers::Manual),
             theme: ThemePreference::Dark,
             language: LanguagePreference::Explicit("de".into()),
@@ -359,6 +391,7 @@ mod tests {
                 step: "options".into(),
                 options: vec!["defender-enable".into()],
                 playbook_dir: Some(PathBuf::from(r"C:\Playbooks\0.6.0")),
+                package_archive: Some(PathBuf::from(r"C:\Downloads\Atlas.apbx")),
                 option_screen: 2,
                 session: Some("20260905-120000-1234-abc".into()),
                 flow: Some("flow-1".into()),
@@ -404,6 +437,21 @@ mod tests {
     }
 
     #[test]
+    fn reading_a_damaged_file_leaves_it_for_the_load_that_reports_it() {
+        let temp = TempDir::new("settings-damaged-read");
+        let path = temp.path().join("settings.json");
+        std::fs::write(&path, "{").unwrap();
+        let read = read_from(&path);
+        assert_eq!(read.settings, AppSettings::default());
+        assert!(matches!(read.problem, Some(SettingsProblem::Damaged { .. })));
+        assert!(path.is_file(), "the damaged file stays where it is");
+        assert!(!temp.path().join("settings.json.invalid").exists());
+        // The model's load still finds it, sets it aside and reports that.
+        assert!(matches!(load_from(&path).problem, Some(SettingsProblem::DamagedKept { .. })));
+        assert!(!path.exists());
+    }
+
+    #[test]
     fn older_settings_files_read_as_match_windows_and_unknown_tags_are_kept() {
         let temp = TempDir::new("settings-language");
         let path = temp.path().join("settings.json");
@@ -435,7 +483,7 @@ mod tests {
         .unwrap();
         // A caller holding an older idea of the file clears the draft only if
         // the one on disk is the one it means.
-        let cleared = modify(&path, |settings| {
+        let cleared = modify(&path, LOCK_WAIT, |settings| {
             if settings.draft.as_ref().is_some_and(|draft| draft.step == "install") {
                 settings.draft = None;
                 true
@@ -448,13 +496,12 @@ mod tests {
         let on_disk = load_from(&path).settings;
         assert_eq!(on_disk.draft, Some(newer.clone()));
         assert_eq!(on_disk.theme, ThemePreference::Dark, "other settings on disk are kept");
-        modify(&path, |settings| settings.draft = None).unwrap();
+        modify(&path, LOCK_WAIT, |settings| settings.draft = None).unwrap();
         assert!(load_from(&path).settings.draft.is_none());
     }
 
-    /// The follow-up verification's two failures: a writer overlapping a
-    /// locked transaction, and a stale whole-document preference save. With
-    /// every writer a transaction, both changes survive.
+    /// A writer overlapping a locked transaction, and a stale whole-document
+    /// save: with every writer a transaction, both changes survive.
     #[test]
     fn concurrent_and_stale_writers_both_keep_the_other_ones_change() {
         let temp = TempDir::new("settings-writers");
@@ -463,31 +510,24 @@ mod tests {
         let draft =
             InstallDraft { step: "security".into(), flow: Some("b".into()), ..InstallDraft::default() };
         // A slow transaction holds the lock while another store writes.
-        let a = Store::new(path.clone());
-        let b = Store::new(path.clone());
+        let a = Store::new(path.clone(), LOCK_WAIT);
+        let b = Store::new(path.clone(), LOCK_WAIT);
         let slow = a.transact(|settings| {
-            std::thread::sleep(std::time::Duration::from_millis(300));
+            std::thread::sleep(Duration::from_millis(300));
             settings.theme = ThemePreference::Dark;
         });
-        std::thread::sleep(std::time::Duration::from_millis(50));
-        let started = std::time::Instant::now();
+        std::thread::sleep(Duration::from_millis(50));
         let other = {
             let draft = draft.clone();
             b.transact(move |settings| settings.draft = Some(draft))
         };
-        futures::executor::block_on(slow).unwrap().unwrap();
-        futures::executor::block_on(other).unwrap().unwrap();
-        assert!(
-            started.elapsed() >= std::time::Duration::from_millis(200),
-            "the second writer waited for the lock"
-        );
+        futures::executor::block_on(slow).unwrap();
+        futures::executor::block_on(other).unwrap();
         let on_disk = load_from(&path).settings;
         assert_eq!(on_disk.theme, ThemePreference::Dark);
         assert_eq!(on_disk.draft, Some(draft.clone()));
         // A preference change from a store that never saw the draft.
-        futures::executor::block_on(a.transact(|settings| settings.restart_after_install = false))
-            .unwrap()
-            .unwrap();
+        futures::executor::block_on(a.transact(|settings| settings.restart_after_install = false)).unwrap();
         let on_disk = load_from(&path).settings;
         assert!(!on_disk.restart_after_install);
         assert_eq!(on_disk.draft, Some(draft), "a field update never erases another window's draft");
@@ -495,7 +535,7 @@ mod tests {
         drop(a.transact(|settings| settings.theme = ThemePreference::Light));
         drop(a.transact(|settings| settings.theme = ThemePreference::Dark));
         let last = a.transact(|settings| settings.theme = ThemePreference::System);
-        futures::executor::block_on(last).unwrap().unwrap();
+        futures::executor::block_on(last).unwrap();
         assert_eq!(load_from(&path).settings.theme, ThemePreference::System);
     }
 
@@ -522,7 +562,7 @@ mod tests {
             .open(&path)
             .unwrap();
         assert!(matches!(load_from(&path).problem, Some(SettingsProblem::Unreadable { .. })));
-        let error = modify(&path, |settings| settings.draft = None).unwrap_err();
+        let error = modify(&path, LOCK_WAIT, |settings| settings.draft = None).unwrap_err();
         assert!(error.to_string().contains("nothing was changed"), "{error:#}");
         drop(holder);
         assert_eq!(std::fs::read(&path).unwrap(), before, "the document is untouched");
@@ -536,5 +576,11 @@ mod tests {
         let path = temp.path().join("settings.json");
         std::fs::create_dir_all(&path).unwrap();
         assert!(save_to(&path, &AppSettings::default()).is_err());
+        let names: Vec<String> = std::fs::read_dir(temp.path())
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(names, vec!["settings.json"], "the temporary file is removed");
     }
 }

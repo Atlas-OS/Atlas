@@ -5,11 +5,16 @@
 use std::time::Duration;
 
 use gpui::{
-    Animation, AnimationExt, App, ElementId, IntoElement, ParentElement, RenderOnce, Role, SharedString,
-    Styled, Transformation, Window, div, ease_in_out, percentage, prelude::*, px, relative, svg,
+    Animation, AnimationExt, App, ElementId, IntoElement, Live, ParentElement, RenderOnce, Role,
+    SharedString, Styled, Transformation, Window, div, ease_in_out, percentage, prelude::*, px, relative,
+    svg,
 };
 
 use crate::theme::ActiveTheme;
+
+const BAR_HEIGHT: f32 = 3.;
+/// The indeterminate segment's share of the track.
+const SEGMENT: f32 = 0.33;
 
 #[derive(IntoElement)]
 pub struct ProgressBar {
@@ -17,57 +22,78 @@ pub struct ProgressBar {
     label: SharedString,
     /// `None` animates an indeterminate sweep.
     value: Option<f32>,
+    decorative: bool,
+    live: bool,
 }
 
 impl ProgressBar {
     pub fn new(id: impl Into<ElementId>, label: impl Into<SharedString>, value: Option<f32>) -> Self {
-        Self { id: id.into(), label: label.into(), value: value.map(|v| v.clamp(0., 1.)) }
+        Self {
+            id: id.into(),
+            label: label.into(),
+            value: value.map(|v| v.clamp(0., 1.)),
+            decorative: false,
+            live: false,
+        }
+    }
+
+    /// Drawn only, with no progress node of its own, for a bar whose words
+    /// beside it say everything: the restart countdown's sentence and its
+    /// buttons' group name give the seconds, so the bar's elapsed fraction
+    /// would only contradict them.
+    pub fn decorative(mut self) -> Self {
+        self.decorative = true;
+        self
+    }
+
+    /// Announces its name when it changes, as the one live node of a task
+    /// in progress: name it after the stage or step, not the percentage.
+    pub fn live(mut self) -> Self {
+        self.live = true;
+        self
     }
 }
 
 impl RenderOnce for ProgressBar {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme();
+        let exposed = !self.decorative;
         let track = div()
             .id(self.id)
-            .role(Role::ProgressIndicator)
-            .aria_label(self.label)
-            .when_some(self.value, |this, value| {
-                this.aria_numeric_value((value * 100.).round() as f64)
-                    .aria_min_numeric_value(0.)
-                    .aria_max_numeric_value(100.)
+            .when(exposed, |this| {
+                this.role(Role::ProgressIndicator)
+                    .aria_label(self.label)
+                    .when(self.live, |this| this.aria_live(Live::Polite))
+                    .when_some(self.value, |this, value| {
+                        this.aria_numeric_value((value * 100.).round() as f64)
+                            .aria_min_numeric_value(0.)
+                            .aria_max_numeric_value(100.)
+                    })
             })
             .relative()
             .w_full()
-            .h(px(3.))
-            .rounded(px(1.5))
+            .h(px(BAR_HEIGHT))
+            .rounded(px(BAR_HEIGHT / 2.))
             .bg(theme.control_strong_stroke.opacity(0.35))
             .overflow_hidden();
         let accent = theme.accent;
+        let bar = || div().absolute().top_0().h_full().rounded(px(BAR_HEIGHT / 2.)).bg(accent);
 
         match self.value {
-            Some(value) => track.child(
-                div().absolute().left_0().top_0().h_full().rounded(px(1.5)).bg(accent).w(relative(value)),
-            ),
-            None if theme.reduce_motion => track.child(
-                div().absolute().left_0().top_0().h_full().rounded(px(1.5)).bg(accent).w(relative(0.5)),
-            ),
+            Some(value) => track.child(bar().left_0().w(relative(value))),
+            // A paused frame of the sweep: a segment clear of the left edge
+            // never reads as a fraction done.
+            None if theme.reduce_motion => track.child(bar().left(relative(SEGMENT)).w(relative(SEGMENT))),
+            // The segment enters from the left and leaves at the right.
             None => track.child(
-                div()
-                    .absolute()
-                    .top_0()
-                    .h_full()
-                    .w(relative(0.33))
-                    .rounded(px(1.5))
-                    .bg(accent)
-                    .with_animation(
-                        "progress-sweep",
-                        Animation::new(Duration::from_millis(1600))
-                            .repeat()
-                            .with_easing(ease_in_out)
-                            .with_max_fps(60.),
-                        |this, delta| this.left(relative(-0.33 + delta * 1.33)),
-                    ),
+                bar().w(relative(SEGMENT)).with_animation(
+                    "progress-sweep",
+                    Animation::new(Duration::from_millis(1600))
+                        .repeat()
+                        .with_easing(ease_in_out)
+                        .with_max_fps(60.),
+                    |this, delta| this.left(relative(-SEGMENT + delta * (1. + SEGMENT))),
+                ),
             ),
         }
     }

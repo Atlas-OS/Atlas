@@ -57,21 +57,22 @@ fn collect_apps(key: &Key, apps: &mut BTreeSet<String>) {
         let Ok(app) = key.open(name) else { continue };
         let Ok(name) = app.get_string("DisplayName") else { continue };
         let name = name.trim().to_lowercase();
+        // Count visible, uninstallable products only. Microsoft apps such as
+        // Office still count: skipping the whole publisher would hide prior use.
         if app.get_u32("SystemComponent").unwrap_or_default() == 1
             || app.get_string("ParentKeyName").is_ok_and(|value| !value.is_empty())
             || app.get_string("ReleaseType").is_ok_and(|value| !value.is_empty())
+            || !app.get_string("UninstallString").is_ok_and(|value| !value.trim().is_empty())
             || !counts_as_desktop_app(&name)
         {
             continue;
         }
-        // Only count visible, uninstallable products. Keep Microsoft desktop
-        // products such as Office; excluding the entire publisher hides prior use.
-        if app.get_string("UninstallString").is_ok_and(|value| !value.trim().is_empty()) {
-            apps.insert(name);
-        }
+        apps.insert(name);
     }
 }
 
+/// False for runtimes and drivers that a fresh install or an OEM image
+/// already has.
 fn counts_as_desktop_app(name: &str) -> bool {
     !name.is_empty()
         && ![

@@ -1,5 +1,5 @@
 {
-  "cargoLockSha256": "15EC1EB51C1A0516C10E1D9649B7D9C91062B7F676E5FF6C424F667F040C3566",
+  "cargoLockSha256": "7B93DB32822F77D97798CE05D1AB345C11A49530F79DA7132CB825517F5F230A",
   "hashEncoding": "UTF-8 with LF line endings; supplemental hashes retain downloaded bytes",
   "target": "x86_64-pc-windows-msvc",
   "scope": "conservative locked target resolution, including build and development packages",
@@ -42,16 +42,16 @@
     {
       "package": "accesskit_windows",
       "version": "0.34.0",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "source": null,
       "license": "MIT OR Apache-2.0",
       "normalWindowsDependency": true,
       "notices": [
         {
-          "path": "https://raw.githubusercontent.com/AccessKit/accesskit/c88605b96d04431f9c3c792464a0f2f253480e94/LICENSE-APACHE",
+          "path": "LICENSE-APACHE",
           "sha256": "62C7A1E35F56406896D7AA7CA52D0CC0D272AC022B5D2796E7D6905DB8A3636A"
         },
         {
-          "path": "https://raw.githubusercontent.com/AccessKit/accesskit/c88605b96d04431f9c3c792464a0f2f253480e94/LICENSE-MIT",
+          "path": "LICENSE-MIT",
           "sha256": "23F18E03DC49DF91622FE2A76176497404E46CED8A715D9D2B67A7446571CCA3"
         }
       ]

@@ -57,26 +57,21 @@ fn report(bounds: Bounds<Pixels>, cx: &mut App) {
 pub(super) fn reveal_in(handle: &ScrollHandle, window: &mut Window, cx: &mut App) {
     let Some(target) = cx.default_global::<FocusReveal>().focused else { return };
     let viewport = handle.bounds();
-    if viewport.size.height <= px(0.) {
+    // A focused scroll container (the install log) is revealed by the
+    // container around it, not scrolled within itself.
+    if viewport.size.height <= px(0.) || target == viewport {
         return;
     }
     let offset = handle.offset();
     // Children are laid out before the scroll offset applies; add it to
     // compare them with the reported bounds, which are as painted.
-    let mut content: Option<Bounds<Pixels>> = None;
-    let mut index = 0;
-    while let Some(child) = handle.bounds_for_item(index) {
-        let child = Bounds { origin: child.origin + offset, size: child.size };
-        content = Some(match content {
-            Some(existing) => Bounds::from_corners(
-                existing.origin.min(&child.origin),
-                existing.bottom_right().max(&child.bottom_right()),
-            ),
-            None => child,
-        });
-        index += 1;
-    }
-    let Some(content) = content else { return };
+    let Some(content) = (0..)
+        .map_while(|index| handle.bounds_for_item(index))
+        .map(|child| Bounds { origin: child.origin + offset, ..child })
+        .reduce(|a, b| a.union(&b))
+    else {
+        return;
+    };
     if !content.intersects(&target) {
         return;
     }

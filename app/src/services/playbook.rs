@@ -1,8 +1,8 @@
-//! The playbook package: reading playbook.conf (what the install offers and
+//! The Atlas package: reading playbook.conf (what the install offers and
 //! requires) and unpacking an .apbx so the front door script can run it.
 //!
 //! Unpacking is transactional and the result immutable. The archive is
-//! written to a private staging directory under the playbook cache,
+//! written to a private staging directory under the package cache,
 //! validated there, and only then moved into its final place, which is named
 //! after the package's version *and* the archive's content digest
 //! (`<cache>/<version>_<digest>`). Two packages that both call themselves
@@ -18,15 +18,29 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
+use super::files::is_reparse_point;
 use super::releases::sha256_file;
 
 /// The archive password is public by design; it only stops antivirus engines
 /// from scanning the scripts inside the package before they are staged.
-const APBX_PASSWORD: &[u8] = b"malte";
+pub(crate) const APBX_PASSWORD: &str = "malte";
 
-/// The playbook.conf shipped in this repository, used to describe options
+/// The install time playbook.conf claims when it gives none.
+const DEFAULT_ESTIMATED_MINUTES: u32 = 15;
+
+/// The playbook.conf in this repository, used to describe options
 /// before any release has been downloaded.
 const BUILTIN_CONF: &str = include_str!("../../../playbook/playbook.conf");
+
+/// The first Atlas release that includes the front door script this app drives.
+pub const FIRST_FRONT_DOOR_VERSION: &str = "0.6.0";
+
+/// Whether an Atlas version is known to predate the front door script. A
+/// version that cannot be read is not: the package's own files decide.
+pub fn predates_front_door(version: &str) -> bool {
+    super::releases::AtlasVersion::parse(version).is_some()
+        && super::releases::compare_versions(version, FIRST_FRONT_DOOR_VERSION).is_lt()
+}
 
 /// The package predates the front door script this app drives. Typed so the
 /// UI can explain it in the user's language.
@@ -39,7 +53,7 @@ impl std::fmt::Display for Unsupported {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Atlas {} predates this app and has no front door script; install it with the AME Wizard, or use Atlas 0.6.0 or newer here",
+            "Atlas {} predates this app and has no front door script; install it with AME Wizard, or use Atlas {FIRST_FRONT_DOOR_VERSION} or newer here",
             self.version
         )
     }
@@ -47,8 +61,26 @@ impl std::fmt::Display for Unsupported {
 
 impl std::error::Error for Unsupported {}
 
+/// The package is recent enough to have the front door script but does not
+/// contain it: damaged, incomplete, or not an Atlas release.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Incomplete {
+    pub version: String,
+}
+
+impl std::fmt::Display for Incomplete {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Atlas {} has no front door script at Executables\\AtlasModules\\Scripts\\Entry\\Install-Atlas.ps1",
+            self.version
+        )
+    }
+}
+
+impl std::error::Error for Incomplete {}
+
 const STAGING_PREFIX: &str = ".staging-";
-const RETIRED_PREFIX: &str = ".retired-";
 /// Written into every published directory: which archive it came from.
 const IDENTITY_FILE: &str = ".atlas-package.json";
 /// Hex digits of the archive digest in the directory name.
@@ -154,7 +186,7 @@ impl Manifest {
     }
 }
 
-/// The manifest of an already unpacked playbook directory.
+/// The manifest of an already unpacked package directory.
 pub fn read_manifest(dir: &Path) -> Result<Manifest> {
     let text = fs::read_to_string(dir.join("playbook.conf"))
         .with_context(|| format!("read {}", dir.join("playbook.conf").display()))?;
@@ -174,17 +206,15 @@ pub fn parse(xml: &str) -> Result<Manifest> {
             .to_owned()
     };
 
-    let supported_builds = root
-        .children()
-        .find(|n| n.has_tag_name("SupportedBuilds"))
-        .map(|node| {
-            node.children()
-                .filter(|n| n.has_tag_name("string"))
-                .filter_map(|n| n.text()?.trim().parse().ok())
-                .collect()
-        })
-        .unwrap_or_default();
-
+    // The `<string>` items of a list element such as `<SupportedBuilds>`.
+    let strings = |tag: &str| {
+        root.children()
+            .find(|n| n.has_tag_name(tag))
+            .into_iter()
+            .flat_map(|list| list.children().filter(|n| n.has_tag_name("string")))
+            .filter_map(|n| n.text())
+            .map(str::trim)
+    };
     let pages = root
         .children()
         .find(|n| n.has_tag_name("FeaturePages"))
@@ -193,19 +223,9 @@ pub fn parse(xml: &str) -> Result<Manifest> {
 
     Ok(Manifest {
         version: text_of("Version"),
-        upgradable_from: root
-            .children()
-            .find(|n| n.has_tag_name("UpgradableFrom"))
-            .map(|node| {
-                node.children()
-                    .filter(|n| n.has_tag_name("string"))
-                    .filter_map(|n| n.text())
-                    .map(|s| s.trim().to_owned())
-                    .collect()
-            })
-            .unwrap_or_default(),
-        supported_builds,
-        estimated_minutes: text_of("EstimatedMinutes").parse().unwrap_or(15),
+        upgradable_from: strings("UpgradableFrom").map(str::to_owned).collect(),
+        supported_builds: strings("SupportedBuilds").filter_map(|build| build.parse().ok()).collect(),
+        estimated_minutes: text_of("EstimatedMinutes").parse().unwrap_or(DEFAULT_ESTIMATED_MINUTES),
         pages,
     })
 }
@@ -259,15 +279,15 @@ fn parse_page(node: roxmltree::Node) -> Option<FeaturePage> {
     })
 }
 
-/// Checks that a playbook version can name a cache directory: the same shape
+/// Checks that a package version can name a cache directory: the same shape
 /// `Get-AtlasPlaybookVersion` accepts (`major.minor.patch` with an optional
 /// `-suffix` of letters, digits, dots and dashes), which rules out empty,
 /// relative, rooted and separator-bearing values.
 pub fn validate_version(version: &str) -> Result<&str> {
     const MAX_LEN: usize = 64;
     let text = version.trim();
-    anyhow::ensure!(!text.is_empty(), "the playbook has no version");
-    anyhow::ensure!(text.len() <= MAX_LEN, "the playbook version {text:?} is too long");
+    anyhow::ensure!(!text.is_empty(), "the package has no version");
+    anyhow::ensure!(text.len() <= MAX_LEN, "the package version {text:?} is too long");
     let (core, suffix) = match text.split_once('-') {
         Some((core, suffix)) => (core, Some(suffix)),
         None => (text, None),
@@ -275,30 +295,27 @@ pub fn validate_version(version: &str) -> Result<&str> {
     let parts: Vec<&str> = core.split('.').collect();
     let core_ok =
         parts.len() == 3 && parts.iter().all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()));
-    anyhow::ensure!(core_ok, "the playbook version {text:?} is not major.minor.patch");
+    anyhow::ensure!(core_ok, "the package version {text:?} is not major.minor.patch");
     if let Some(suffix) = suffix {
         let suffix_ok =
             !suffix.is_empty() && suffix.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'.' || b == b'-');
-        anyhow::ensure!(suffix_ok, "the playbook version {text:?} has an invalid suffix");
+        anyhow::ensure!(suffix_ok, "the package version {text:?} has an invalid suffix");
     }
     // Windows drops trailing dots from directory names, which would make the
     // published path differ from the version.
-    anyhow::ensure!(!text.ends_with('.'), "the playbook version {text:?} ends with a dot");
+    anyhow::ensure!(!text.ends_with('.'), "the package version {text:?} ends with a dot");
     Ok(text)
 }
 
-/// The front door script inside an extracted playbook. The package keeps
-/// `playbook.conf` at its root and the payload under `Executables`; the script
-/// finds the root from its own location.
+/// The front door script inside an extracted package. The package keeps
+/// `playbook.conf` at its root and Atlas's files under `Executables`; the
+/// script finds the root from its own location.
 pub fn front_door(dir: &Path) -> PathBuf {
     dir.join("Executables").join("AtlasModules").join("Scripts").join("Entry").join("Install-Atlas.ps1")
 }
 
-/// `canonicalize` on Windows answers in the `\\?\` verbatim form. PowerShell's
-/// path cmdlets (`Join-Path`, `Split-Path`, `Resolve-Path`) cannot parse that
-/// prefix, and the extracted directory is handed to the ISO worker and the
-/// install script, so the ordinary drive form is kept instead. Rust itself
-/// accepts both forms.
+/// Drops the `\\?\` prefix `canonicalize` adds: PowerShell's path cmdlets
+/// cannot parse it, and these paths are handed to PowerShell.
 pub fn plain_path(path: PathBuf) -> PathBuf {
     let Some(text) = path.to_str() else { return path };
     let Some(rest) = text.strip_prefix(r"\\?\") else { return path };
@@ -318,18 +335,22 @@ pub fn is_extracted(dir: &Path) -> bool {
 /// again: an archive with the same content is recognised by its digest and
 /// the existing directory returned as it is; different content of the same
 /// version gets a directory of its own, leaving the first untouched.
+///
+/// Published directories are never removed: another window, a draft or an
+/// install record may still point at one, and removing it would defeat the
+/// identity scheme.
 pub fn extract_into(
     apbx: &Path,
     root: &Path,
     mut progress: impl FnMut(usize, usize),
 ) -> Result<(PathBuf, Manifest)> {
     let file = fs::File::open(apbx).with_context(|| format!("open {}", apbx.display()))?;
-    let mut archive = zip::ZipArchive::new(file).context("read the playbook archive")?;
+    let mut archive = zip::ZipArchive::new(file).context("read the package archive")?;
 
     // Read the manifest first so the target directory carries the real version.
     let manifest = {
         let mut entry = archive
-            .by_name_decrypt("playbook.conf", APBX_PASSWORD)
+            .by_name_decrypt("playbook.conf", APBX_PASSWORD.as_bytes())
             .context("the package has no playbook.conf")?;
         let mut text = String::new();
         entry.read_to_string(&mut text).context("read playbook.conf")?;
@@ -345,7 +366,7 @@ pub fn extract_into(
     let target = root.join(identity.directory_name());
     anyhow::ensure!(
         target.parent() == Some(root.as_path()) && is_plain_component(&target),
-        "the playbook version {version:?} does not name a cache directory"
+        "the package version {version:?} does not name a cache directory"
     );
     // The same bytes were unpacked before: the directory is immutable, so
     // it still holds exactly this package.
@@ -359,7 +380,12 @@ pub fn extract_into(
     let result = (|| -> Result<PathBuf> {
         extract_entries(&mut archive, &staging, &mut progress)?;
         if !is_extracted(&staging) {
-            return Err(Unsupported { version: version.clone() }.into());
+            let version = version.clone();
+            return Err(if predates_front_door(&version) {
+                Unsupported { version }.into()
+            } else {
+                Incomplete { version }.into()
+            });
         }
         reject_reparse_points(&staging)?;
         fs::write(staging.join(IDENTITY_FILE), serde_json::to_string_pretty(&identity)?)
@@ -389,12 +415,7 @@ fn holds(dir: &Path, identity: &PackageIdentity) -> bool {
     is_extracted(dir) && self::identity(dir).as_ref() == Some(identity)
 }
 
-/// Published directories are never removed by the app. Which of them a
-/// window, a draft or an install record still refers to is not knowable from
-/// one process (another window may hold a prepared package in memory), and
-/// deleting a directory that a request points at would defeat the identity
-/// scheme. Distinct packages therefore accumulate, one directory each; a
-/// collection step needs a cross-process ownership protocol first.
+/// Whether the path ends in an ordinary name, not `..`, a root or a drive.
 fn is_plain_component(path: &Path) -> bool {
     matches!(path.components().next_back(), Some(Component::Normal(_)))
 }
@@ -406,8 +427,9 @@ fn extract_entries<R: Read + std::io::Seek>(
 ) -> Result<()> {
     let total = archive.len();
     for index in 0..total {
-        let mut entry =
-            archive.by_index_decrypt(index, APBX_PASSWORD).with_context(|| format!("read entry {index}"))?;
+        let mut entry = archive
+            .by_index_decrypt(index, APBX_PASSWORD.as_bytes())
+            .with_context(|| format!("read entry {index}"))?;
         let Some(relative) = entry.enclosed_name() else {
             anyhow::bail!("the package contains an unsafe path: {}", entry.name());
         };
@@ -469,19 +491,6 @@ fn reject_reparse_points(dir: &Path) -> Result<()> {
     Ok(())
 }
 
-fn is_reparse_point(metadata: &fs::Metadata) -> bool {
-    #[cfg(windows)]
-    {
-        use std::os::windows::fs::MetadataExt;
-        const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
-        metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0
-    }
-    #[cfg(not(windows))]
-    {
-        metadata.file_type().is_symlink()
-    }
-}
-
 /// Publishes the validated staging directory under the package's name, or
 /// the first free numbered alternative. A published directory is never
 /// replaced, moved or removed here: if another extractor of the same bytes
@@ -518,7 +527,7 @@ fn publish(staging: &Path, root: &Path, identity: &PackageIdentity) -> Result<Pa
                         anyhow::bail!(
                             "the unpacked package under {} could not be moved into place: Windows refused the move for {} seconds, so another program is probably still reading it",
                             staging.display(),
-                            LOCK_ATTEMPTS as u64 * LOCK_PAUSE.as_millis() as u64 / 1000
+                            (LOCK_PAUSE * LOCK_ATTEMPTS).as_secs()
                         );
                     }
                     std::thread::sleep(LOCK_PAUSE);
@@ -548,33 +557,20 @@ enum MoveOutcome {
 /// replaces an existing file or empty directory on Windows, so publication
 /// uses the move without the replace flag: whatever occupies the
 /// destination, however briefly it has been there, is never overwritten.
-#[cfg(windows)]
 fn move_without_replacing(from: &Path, to: &Path) -> std::result::Result<(), MoveOutcome> {
+    use windows::Win32::Foundation::{
+        ERROR_ACCESS_DENIED, ERROR_ALREADY_EXISTS, ERROR_FILE_EXISTS, WIN32_ERROR,
+    };
     use windows::Win32::Storage::FileSystem::{MOVE_FILE_FLAGS, MoveFileExW};
     use windows::core::HSTRING;
-    const ERROR_ACCESS_DENIED: i32 = 5;
-    const ERROR_ALREADY_EXISTS: i32 = 183;
-    const ERROR_FILE_EXISTS: i32 = 80;
     let (from, to) = (HSTRING::from(from.as_os_str()), HSTRING::from(to.as_os_str()));
     match unsafe { MoveFileExW(&from, &to, MOVE_FILE_FLAGS(0)) } {
         Ok(()) => Ok(()),
-        Err(error) => {
-            let code = error.code().0 & 0xFFFF;
-            if code == ERROR_ALREADY_EXISTS || code == ERROR_FILE_EXISTS || code == ERROR_ACCESS_DENIED {
-                Err(Occupied)
-            } else {
-                Err(Failed(std::io::Error::from_raw_os_error(code)))
-            }
-        }
+        Err(error) => match WIN32_ERROR((error.code().0 & 0xFFFF) as u32) {
+            ERROR_ALREADY_EXISTS | ERROR_FILE_EXISTS | ERROR_ACCESS_DENIED => Err(Occupied),
+            code => Err(Failed(std::io::Error::from_raw_os_error(code.0 as i32))),
+        },
     }
-}
-
-#[cfg(not(windows))]
-fn move_without_replacing(from: &Path, to: &Path) -> std::result::Result<(), MoveOutcome> {
-    if to.exists() {
-        return Err(Occupied);
-    }
-    fs::rename(from, to).map_err(Failed)
 }
 
 fn unique_path(root: &Path, prefix: &str) -> PathBuf {
@@ -594,15 +590,15 @@ fn create_unique_dir(root: &Path, prefix: &str) -> Result<PathBuf> {
     anyhow::bail!("could not create a staging directory under {}", root.display())
 }
 
-/// Removes staging or retired directories left behind by an interrupted
-/// earlier run. Recent ones may belong to another running instance.
+/// Removes staging directories left by an interrupted run. Recent ones may
+/// belong to another running instance.
 fn sweep_leftovers(root: &Path) {
     const MIN_AGE: Duration = Duration::from_secs(60 * 60);
     let Ok(entries) = fs::read_dir(root) else { return };
     for entry in entries.flatten() {
         let name = entry.file_name();
         let name = name.to_string_lossy();
-        if !name.starts_with(STAGING_PREFIX) && !name.starts_with(RETIRED_PREFIX) {
+        if !name.starts_with(STAGING_PREFIX) {
             continue;
         }
         let old = entry
@@ -690,7 +686,12 @@ mod tests {
         let temp = TempDir::new("playbook-valid");
         let package = apbx::write(&temp.path().join("valid.apbx"), &apbx::valid("0.6.0"));
         let root = temp.path().join("Playbooks");
-        let (dir, manifest) = extract_into(&package, &root, |_, _| {}).unwrap();
+        let mut seen = Vec::new();
+        let (dir, manifest) = extract_into(&package, &root, |done, total| seen.push((done, total))).unwrap();
+        // Progress once per entry, ending at the total.
+        let total = seen.last().unwrap().1;
+        assert_eq!(seen.len(), total);
+        assert_eq!(seen.last(), Some(&(total, total)));
         assert_eq!(manifest.version, "0.6.0");
         let digest = sha256_file(&package).unwrap();
         assert_eq!(dir, plain_path(root.canonicalize().unwrap()).join(format!("0.6.0_{}", &digest[..16])));
@@ -716,7 +717,18 @@ mod tests {
     }
 
     #[test]
-    fn a_failed_replacement_keeps_the_previous_extraction() {
+    fn only_versions_before_the_front_door_predate_it() {
+        for version in ["0.5.0", "0.5.0-hotfix", "v0.4", "0.3.2"] {
+            assert!(predates_front_door(version), "{version}");
+        }
+        // Suffixes sort after their base release (Atlas tags hotfixes that way).
+        for version in ["0.6.0", "0.6.0-rc.1", "v0.7.0", "1.0.0", "next"] {
+            assert!(!predates_front_door(version), "{version}");
+        }
+    }
+
+    #[test]
+    fn failed_extractions_keep_the_previous_package_and_leave_nothing_behind() {
         let temp = TempDir::new("playbook-replace");
         let root = temp.path().join("Playbooks");
         let good = apbx::write(&temp.path().join("good.apbx"), &apbx::valid("0.6.0"));
@@ -724,16 +736,22 @@ mod tests {
         let marker = front_door(&dir);
         let before = fs::read(&marker).unwrap();
 
-        // No front door: fails validation after extraction.
-        let old = apbx::write(&temp.path().join("old.apbx"), &apbx::without_front_door("0.6.0"));
+        // No front door: fails validation after extraction. An older package
+        // predates it; a current one is incomplete.
+        let old = apbx::write(&temp.path().join("old.apbx"), &apbx::without_front_door("0.5.0"));
         let error = extract_into(&old, &root, |_, _| {}).unwrap_err();
-        assert_eq!(error.downcast_ref::<Unsupported>(), Some(&Unsupported { version: "0.6.0".into() }));
+        assert_eq!(error.downcast_ref::<Unsupported>(), Some(&Unsupported { version: "0.5.0".into() }));
+        for version in ["0.6.0", "0.6.1"] {
+            let damaged = apbx::write(&temp.path().join("damaged.apbx"), &apbx::without_front_door(version));
+            let error = extract_into(&damaged, &root, |_, _| {}).unwrap_err();
+            assert_eq!(error.downcast_ref::<Incomplete>(), Some(&Incomplete { version: version.into() }));
+        }
         // Traversal entry: fails during extraction.
         let unsafe_entry =
             apbx::write(&temp.path().join("unsafe.apbx"), &apbx::with_entry("0.6.0", "../escape.txt"));
         assert!(extract_into(&unsafe_entry, &root, |_, _| {}).is_err());
         // Corrupt data: fails mid-copy.
-        let corrupt = apbx::write(&temp.path().join("corrupt.apbx"), &apbx::truncated("0.6.0"));
+        let corrupt = apbx::write(&temp.path().join("corrupt.apbx"), &apbx::corrupted("0.6.0"));
         assert!(extract_into(&corrupt, &root, |_, _| {}).is_err());
 
         assert_eq!(fs::read(&marker).unwrap(), before, "the previous package must survive");
@@ -854,19 +872,6 @@ mod tests {
     }
 
     #[test]
-    fn progress_is_reported_for_every_entry() {
-        let temp = TempDir::new("playbook-progress");
-        let package = apbx::write(&temp.path().join("valid.apbx"), &apbx::valid("0.6.0"));
-        let mut seen = Vec::new();
-        extract_into(&package, &temp.path().join("Playbooks"), |done, total| seen.push((done, total)))
-            .unwrap();
-        let total = seen.last().unwrap().1;
-        assert_eq!(seen.len(), total);
-        assert_eq!(seen.last().unwrap().0, total);
-    }
-
-    #[cfg(windows)]
-    #[test]
     fn a_move_refused_by_an_open_handle_is_retried_rather_than_called_occupied() {
         let temp = TempDir::new("playbook-locked");
         let package = apbx::write(&temp.path().join("valid.apbx"), &apbx::valid("0.6.0"));
@@ -900,7 +905,7 @@ mod tests {
         assert_eq!(plain_path(PathBuf::from(r"\\?\UNC\server\share\x")), PathBuf::from(r"\\server\share\x"));
         assert_eq!(plain_path(PathBuf::from(r"C:\Users\x")), PathBuf::from(r"C:\Users\x"));
         assert_eq!(plain_path(PathBuf::from(r"\\server\share")), PathBuf::from(r"\\server\share"));
-        // What a tester's PowerShell receives must not start with the prefix.
+        // What PowerShell receives must not start with the prefix.
         let temp = TempDir::new("playbook-plain");
         let package = apbx::write(&temp.path().join("valid.apbx"), &apbx::valid("0.6.0"));
         let (dir, _) = extract_into(&package, &temp.path().join("Playbooks"), |_, _| {}).unwrap();

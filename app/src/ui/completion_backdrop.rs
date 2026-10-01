@@ -1,6 +1,7 @@
 //! A single procedural DirectX background quad for the completion page. The
 //! artwork keeps clear of the text: the page reports the blocks it lays out
 //! and the shader fades the dots out around them.
+
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::Duration;
@@ -35,12 +36,10 @@ impl KeepOut {
     /// children's bounds in `slot`.
     pub fn record(&self, slot: usize) -> impl Fn(Vec<Bounds<Pixels>>, &mut Window, &mut App) + 'static {
         let blocks = self.0.clone();
-        move |children, _, _| blocks.borrow_mut()[slot] = union(&children)
+        move |children, _, _| {
+            blocks.borrow_mut()[slot] = children.into_iter().reduce(|a, b| a.union(&b));
+        }
     }
-}
-
-fn union(bounds: &[Bounds<Pixels>]) -> Option<Bounds<Pixels>> {
-    bounds.iter().copied().reduce(|a, b| a.union(&b))
 }
 
 #[derive(IntoElement)]
@@ -72,15 +71,13 @@ impl RenderOnce for CompletionBackdrop {
             phase: 0.,
             keep_out: self.keep_out,
         };
-        // Atlas itself switches Windows animations off (the Interface/Animation
-        // toggle clears the client-area animation bit), so `theme.reduce_motion`
-        // is true on practically every machine that reaches this page. Honouring
-        // it here would freeze the artwork for everyone, so the loop always runs;
-        // it is slow, low-contrast and 30 fps, and never carries information.
+        // Ignores `reduce_motion` on purpose: Atlas's own animation tweak turns
+        // Windows animations off on nearly every PC that reaches this page, so
+        // honouring it would freeze the art for everyone. The loop is slow,
+        // faint, 30 fps and carries no information.
         //
-        // It only runs while the window is active. An inactive window shows
-        // the loop's first frame; dropping the animation element resets its
-        // clock, so the motion resumes from that same frame on activation.
+        // Animates only while the window is active. Dropping the animation
+        // resets its clock, so it resumes from the frame shown while inactive.
         if !window.is_window_active() {
             return surface.child(halftone).into_any_element();
         }
@@ -208,7 +205,7 @@ mod tests {
 
     #[test]
     fn shader_parameters_preserve_the_gpu_abi_and_loop_seam() {
-        // DirectX StructuredBuffer<Background> uses this exact existing stride.
+        // The DirectX StructuredBuffer<Background> stride must stay 72 bytes.
         assert_eq!(std::mem::size_of::<Background>(), 72);
         let c = colour();
         let start = flowing_gradient(0., c, c, c, 10., 40.);
@@ -256,14 +253,5 @@ mod tests {
         let none = keep_out_quad(quad_bounds, background, [None, Some(card)]);
         assert_eq!(none.corner_radii, Corners::default());
         assert_eq!(none.border_widths, quad.border_widths);
-    }
-
-    #[test]
-    fn a_block_is_the_union_of_its_children() {
-        assert_eq!(union(&[]), None);
-        let a = Bounds::new(point(px(10.), px(10.)), size(px(20.), px(5.)));
-        let b = Bounds::new(point(px(5.), px(30.)), size(px(10.), px(10.)));
-        assert_eq!(union(&[a]), Some(a));
-        assert_eq!(union(&[a, b]), Some(Bounds::new(point(px(5.), px(10.)), size(px(25.), px(30.)))));
     }
 }

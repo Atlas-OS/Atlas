@@ -8,7 +8,7 @@
 //! instead, and the Ease of Access text size and animation preferences are
 //! carried here so every control can honour them.
 
-use gpui::{App, Global, Hsla, Rgba, WindowAppearance, rgb, rgba};
+use gpui::{App, Global, Hsla, Rgba, WindowAppearance, rgb};
 
 use crate::services::settings::ThemePreference;
 use crate::services::system::{AccessibilityPreferences, SystemColors};
@@ -83,8 +83,11 @@ pub struct Theme {
     pub control_fill_hover: Hsla,
     pub control_fill_pressed: Hsla,
     pub control_fill_disabled: Hsla,
+    /// A focused text box's fill (WinUI ControlFillColorInputActive).
+    pub control_fill_input_active: Hsla,
     pub control_stroke: Hsla,
-    pub control_stroke_strong: Hsla,
+    pub control_stroke_secondary: Hsla,
+    pub control_stroke_on_accent_secondary: Hsla,
     pub control_strong_stroke: Hsla,
     pub control_strong_stroke_disabled: Hsla,
 
@@ -97,6 +100,9 @@ pub struct Theme {
     pub layer_stroke: Hsla,
     pub solid_background: Hsla,
     pub divider: Hsla,
+    /// Tooltips and flyouts: the solid colour WinUI's acrylic falls back to.
+    pub flyout_fill: Hsla,
+    pub flyout_stroke: Hsla,
 
     pub focus_outer: Hsla,
     pub focus_inner: Hsla,
@@ -115,10 +121,6 @@ impl Global for Theme {}
 
 fn c(hex: u32) -> Hsla {
     rgb(hex).into()
-}
-
-fn ca(hex: u32) -> Hsla {
-    rgba(hex).into()
 }
 
 fn tint(rgb_hex: u32, alpha: f32) -> Hsla {
@@ -182,8 +184,10 @@ impl Theme {
             control_fill_hover: tint(0xF9F9F9, 0.5),
             control_fill_pressed: tint(0xF9F9F9, 0.3),
             control_fill_disabled: tint(0xF9F9F9, 0.3),
+            control_fill_input_active: c(0xFFFFFF),
             control_stroke: tint(0x000000, 0.0578),
-            control_stroke_strong: tint(0x000000, 0.1622),
+            control_stroke_secondary: tint(0x000000, 0.1622),
+            control_stroke_on_accent_secondary: tint(0x000000, 0.14),
             control_strong_stroke: tint(0x000000, 0.4458),
             control_strong_stroke_disabled: tint(0x000000, 0.2169),
 
@@ -196,6 +200,8 @@ impl Theme {
             layer_stroke: tint(0x000000, 0.0578),
             solid_background: c(0xF3F3F3),
             divider: tint(0x000000, 0.0803),
+            flyout_fill: c(0xF9F9F9),
+            flyout_stroke: tint(0x000000, 0.0578),
 
             focus_outer: tint(0x000000, 0.896),
             focus_inner: c(0xFFFFFF),
@@ -240,8 +246,10 @@ impl Theme {
             control_fill_hover: tint(0xFFFFFF, 0.0837),
             control_fill_pressed: tint(0xFFFFFF, 0.0326),
             control_fill_disabled: tint(0xFFFFFF, 0.0419),
+            control_fill_input_active: tint(0x1E1E1E, 0.70),
             control_stroke: tint(0xFFFFFF, 0.0698),
-            control_stroke_strong: tint(0xFFFFFF, 0.093),
+            control_stroke_secondary: tint(0xFFFFFF, 0.093),
+            control_stroke_on_accent_secondary: tint(0x000000, 0.14),
             control_strong_stroke: tint(0xFFFFFF, 0.544),
             control_strong_stroke_disabled: tint(0xFFFFFF, 0.158),
 
@@ -254,6 +262,8 @@ impl Theme {
             layer_stroke: tint(0xFFFFFF, 0.0698),
             solid_background: c(0x202020),
             divider: tint(0xFFFFFF, 0.0837),
+            flyout_fill: c(0x2C2C2C),
+            flyout_stroke: tint(0x000000, 0.2),
 
             focus_outer: c(0xFFFFFF),
             focus_inner: tint(0x000000, 0.7),
@@ -312,8 +322,10 @@ impl Theme {
             control_fill_hover: highlight,
             control_fill_pressed: highlight,
             control_fill_disabled: button_face,
+            control_fill_input_active: button_face,
             control_stroke: button_text,
-            control_stroke_strong: button_text,
+            control_stroke_secondary: button_text,
+            control_stroke_on_accent_secondary: button_text,
             control_strong_stroke: text,
             control_strong_stroke_disabled: gray,
 
@@ -326,6 +338,8 @@ impl Theme {
             layer_stroke: text,
             solid_background: window,
             divider: text,
+            flyout_fill: window,
+            flyout_stroke: text,
 
             focus_outer: text,
             focus_inner: window,
@@ -350,9 +364,14 @@ impl Theme {
         if self.high_contrast { self.accent } else { c(0xC42B1C) }
     }
 
+    /// The close glyph on [`Self::caption_close_hover`].
+    pub fn caption_close_text(&self) -> Hsla {
+        if self.high_contrast { self.text_on_accent } else { c(0xFFFFFF) }
+    }
+
     /// Transparent, for elements that should let Mica through.
     pub fn transparent(&self) -> Hsla {
-        ca(0x00000000)
+        Hsla::transparent_black()
     }
 
     /// Text colour for hovered controls: the high-contrast palette swaps to
@@ -360,10 +379,22 @@ impl Theme {
     pub fn text_on_hover(&self, normal: Hsla) -> Hsla {
         if self.high_contrast { self.text_on_accent } else { normal }
     }
+
+    /// The fill behind selected text: the accent tinted, as Windows text
+    /// boxes show it, or a contrast theme's highlight, opaque.
+    pub fn selection_fill(&self) -> Hsla {
+        if self.high_contrast { self.accent } else { self.accent.opacity(0.4) }
+    }
+
+    /// The colour selected text takes on [`Self::selection_fill`]: the
+    /// highlight text colour in a contrast theme; elsewhere it keeps its own.
+    pub fn selection_text(&self) -> Option<Hsla> {
+        self.high_contrast.then_some(self.text_on_accent)
+    }
 }
 
 /// WCAG relative luminance of an opaque colour.
-pub fn relative_luminance(colour: Hsla) -> f32 {
+fn relative_luminance(colour: Hsla) -> f32 {
     let rgba: Rgba = colour.into();
     fn channel(c: f32) -> f32 {
         if c <= 0.03928 { c / 12.92 } else { ((c + 0.055) / 1.055).powf(2.4) }
@@ -442,19 +473,20 @@ mod tests {
             assert_readable(&format!("{name} body"), theme.text_primary, theme.card_fill, layer);
             assert_readable(&format!("{name} secondary"), theme.text_secondary, theme.card_fill, layer);
             assert_readable(
+                &format!("{name} secondary on the layer"),
+                theme.text_secondary,
+                theme.layer_fill,
+                backdrop,
+            );
+            assert_readable(
                 &format!("{name} standard button"),
                 theme.text_primary,
                 theme.control_fill,
                 layer,
             );
+            assert_readable(&format!("{name} flyout"), theme.text_primary, theme.flyout_fill, backdrop);
+            assert_readable(&format!("{name} error caption"), theme.critical, theme.card_fill, layer);
         }
-    }
-
-    #[test]
-    fn the_brand_blue_is_kept_for_artwork_only() {
-        assert_eq!(Theme::light().brand, c(ATLAS_BLUE));
-        assert!(contrast_ratio(c(0xFFFFFF), c(ATLAS_BLUE), c(0xFFFFFF)) < AA_NORMAL_TEXT);
-        assert_ne!(Theme::light().accent, c(ATLAS_BLUE));
     }
 
     #[test]
@@ -493,11 +525,90 @@ mod tests {
         assert_eq!(theme.text_on_accent, c(0x000000));
     }
 
+    /// The Windows 11 contrast themes, as `Ease of Access Themes\*.theme` define them.
+    fn windows_contrast_themes() -> [(&'static str, SystemColors); 4] {
+        let theme = |window, window_text, button_face, button_text, highlight, highlight_text, gray, link| {
+            SystemColors {
+                window,
+                window_text,
+                button_face,
+                button_text,
+                highlight,
+                highlight_text,
+                gray_text: gray,
+                hot_light: link,
+            }
+        };
+        [
+            (
+                "Aquatic",
+                theme(0x202020, 0xFFFFFF, 0x202020, 0xFFFFFF, 0x8EE3F0, 0x263B50, 0xA6A6A6, 0x75E9FC),
+            ),
+            ("Desert", theme(0xFFFAEF, 0x3D3D3D, 0xFFFAEF, 0x202020, 0x903909, 0xFFF5E3, 0x676767, 0x1C5E75)),
+            ("Dusk", theme(0x2D3236, 0xFFFFFF, 0x2D3236, 0xB6F6F0, 0xA1BFDE, 0x212D3B, 0xA6A6A6, 0x70EBDE)),
+            (
+                "Night sky",
+                theme(0x000000, 0xFFFFFF, 0x000000, 0xFFEE32, 0xD6B4FD, 0x2B2B2B, 0xA6A6A6, 0x8080FF),
+            ),
+        ]
+    }
+
+    #[test]
+    fn contrast_themes_pair_text_with_the_fill_it_sits_on() {
+        for (name, colors) in windows_contrast_themes() {
+            let theme = Theme::high_contrast(colors);
+            let window = theme.solid_background;
+            let highlight = theme.subtle_hover;
+            assert_readable(
+                &format!("{name} hovered row"),
+                theme.text_on_hover(theme.text_primary),
+                highlight,
+                window,
+            );
+            assert_readable(
+                &format!("{name} selected gear"),
+                theme.text_on_hover(theme.accent_text),
+                highlight,
+                window,
+            );
+            assert_readable(
+                &format!("{name} hovered link"),
+                theme.text_on_hover(theme.accent_text_hover),
+                highlight,
+                window,
+            );
+            assert_readable(&format!("{name} link"), theme.accent_text, theme.card_fill, window);
+            // Why hovered rows must not keep their own text colour: window
+            // text on the highlight fill is unreadable in every theme.
+            assert!(contrast_ratio(theme.text_primary, highlight, window) < AA_NORMAL_TEXT, "{name}");
+        }
+    }
+
+    #[test]
+    fn contrast_themes_select_text_with_the_system_highlight_pair() {
+        for (name, colors) in windows_contrast_themes() {
+            let theme = Theme::high_contrast(colors);
+            let field = theme.control_fill;
+            let fill = theme.selection_fill();
+            assert_eq!(fill.a, 1.0, "{name}: high contrast never blends");
+            let text = theme.selection_text().expect(name);
+            assert_readable(&format!("{name} selected text"), text, fill, field);
+            // Non-text contrast: the selection stands out from the field.
+            let ratio = contrast_ratio(fill, field, field);
+            assert!(ratio >= 3.0, "{name}: the selection is {ratio:.2}:1 against the field");
+        }
+        for theme in [Theme::light(), Theme::dark()] {
+            assert_eq!(theme.selection_text(), None, "selected text keeps its colour on the tint");
+            assert!(theme.selection_fill().a < 1.0);
+        }
+    }
+
     #[test]
     fn contrast_ratio_matches_the_wcag_reference_values() {
         let ratio = contrast_ratio(c(0x000000), c(0xFFFFFF), c(0xFFFFFF));
         assert!((ratio - 21.0).abs() < 0.01);
-        let ratio = contrast_ratio(c(0xFFFFFF), c(ATLAS_BLUE), c(0xFFFFFF));
-        assert!((ratio - 3.21).abs() < 0.02, "{ratio}");
+        // #767676 is the lightest grey that clears AA on white.
+        let ratio = contrast_ratio(c(0x767676), c(0xFFFFFF), c(0xFFFFFF));
+        assert!((ratio - 4.54).abs() < 0.01, "{ratio}");
     }
 }

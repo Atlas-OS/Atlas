@@ -25,8 +25,6 @@ dependencies = [
 [[package]]
 name = "accesskit_windows"
 version = "0.34.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "106c2b961215864d1c2e703ee63269c25c4e80a577ffb2c1017b9c17dcdf83a1"
 dependencies = [
  "accesskit",
  "accesskit_consumer",
@@ -241,6 +239,7 @@ dependencies = [
  "intl_pluralrules",
  "log",
  "proc-macro2",
+ "raw-window-handle",
  "regex",
  "ring",
  "roxmltree 0.21.1",

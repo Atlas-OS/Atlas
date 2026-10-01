@@ -3,16 +3,17 @@
 use std::rc::Rc;
 
 use gpui::{
-    App, BoxShadow, ClickEvent, ElementId, IntoElement, ParentElement, RenderOnce, Role, SharedString,
-    Styled, Window, div, point, prelude::*, px,
+    App, BoxShadow, ClickEvent, ElementId, FocusHandle, Hsla, IntoElement, ParentElement, RenderOnce, Role,
+    SharedString, Styled, Window, div, point, prelude::*, px,
 };
 
 use super::icons::icon_in_line_sized;
-use super::{BODY_LINE_HEIGHT, Icon, Revealed, Typography, focus_ring, icon, icon_in_line};
-use crate::t;
-use crate::theme::ActiveTheme;
-
-type ClickHandler = Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>;
+use super::tooltip::{self, TooltipState};
+use super::{
+    BODY_LINE_HEIGHT, ClickHandler, Icon, Revealed, Typography, focus_ring, icon, icon_in_line, on_activate,
+    pointer_hover,
+};
+use crate::theme::{ActiveTheme, Theme};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum ButtonVariant {
@@ -34,6 +35,14 @@ pub struct Button {
     /// The accessible name when the label is empty (icon-only buttons) or
     /// needs more context than the visible text gives.
     aria_label: Option<SharedString>,
+    tooltip: Option<SharedString>,
+    /// Read after the name, such as why a disabled button can't be used yet.
+    description: Option<SharedString>,
+    /// A disclosure's state: whether what it shows is open.
+    expanded: Option<bool>,
+    /// The page's programmatic default, which shows its focus ring whenever
+    /// it has focus.
+    keyboard_default: bool,
     variant: ButtonVariant,
     icon: Option<Icon>,
     trailing_icon: Option<Icon>,
@@ -42,6 +51,7 @@ pub struct Button {
     centre_label: bool,
     opens_externally: bool,
     on_click: Option<ClickHandler>,
+    focus: Option<FocusHandle>,
 }
 
 impl Button {
@@ -50,6 +60,10 @@ impl Button {
             id: id.into(),
             label: label.into(),
             aria_label: None,
+            tooltip: None,
+            description: None,
+            expanded: None,
+            keyboard_default: false,
             variant: ButtonVariant::Standard,
             icon: None,
             trailing_icon: None,
@@ -58,6 +72,7 @@ impl Button {
             centre_label: false,
             opens_externally: false,
             on_click: None,
+            focus: None,
         }
     }
 
@@ -109,8 +124,45 @@ impl Button {
         self
     }
 
+    /// A Fluent tooltip, shown on hover and on keyboard focus. Give every
+    /// icon-only button one, usually its accessible name. Text that adds to
+    /// the name is also the button's accessible description.
+    pub fn tooltip(mut self, text: impl Into<SharedString>) -> Self {
+        self.tooltip = Some(text.into());
+        self
+    }
+
+    /// What assistive technology reads after the name: for a disabled
+    /// button, what it waits for. A tooltip that adds to the name comes first.
+    pub fn aria_description(mut self, text: impl Into<SharedString>) -> Self {
+        self.description = Some(text.into());
+        self
+    }
+
+    /// A Show details or Hide details toggle: whether what it opens is shown.
+    /// Narrator reads "collapsed" or "expanded", and the change when pressed.
+    pub fn expanded(mut self, expanded: bool) -> Self {
+        self.expanded = Some(expanded);
+        self
+    }
+
+    /// The page's programmatic default. Shows the focus ring whenever
+    /// focused, like a Windows default button, not only after a key press.
+    pub fn keyboard_default(mut self) -> Self {
+        self.keyboard_default = true;
+        self
+    }
+
     pub fn on_click(mut self, handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> Self {
         self.on_click = Some(Rc::new(handler));
+        self
+    }
+
+    /// Lets the page move keyboard focus to the button, to make it the
+    /// keyboard's default. A button with a tooltip takes focus through the
+    /// tooltip's own handle, so the two don't combine.
+    pub fn focus_handle(mut self, handle: FocusHandle) -> Self {
+        self.focus = Some(handle);
         self
     }
 
@@ -122,67 +174,85 @@ impl Button {
     }
 }
 
+/// A button's colours at rest, hovered and pressed, and its outline.
+struct Colours {
+    fill: Hsla,
+    fill_hover: Hsla,
+    fill_pressed: Hsla,
+    text: Hsla,
+    text_hover: Hsla,
+    text_pressed: Hsla,
+    stroke: Hsla,
+}
+
+fn colours(theme: &Theme, variant: ButtonVariant, disabled: bool) -> Colours {
+    let mut colours = match variant {
+        ButtonVariant::Accent => Colours {
+            fill: theme.accent,
+            fill_hover: theme.accent_hover,
+            fill_pressed: theme.accent_pressed,
+            text: theme.text_on_accent,
+            text_hover: theme.text_on_accent,
+            text_pressed: theme.text_on_accent,
+            stroke: theme.control_stroke,
+        },
+        ButtonVariant::Standard => Colours {
+            fill: theme.control_fill,
+            fill_hover: theme.control_fill_hover,
+            fill_pressed: theme.control_fill_pressed,
+            text: theme.text_primary,
+            text_hover: theme.text_on_hover(theme.text_primary),
+            text_pressed: theme.text_on_hover(theme.text_secondary),
+            stroke: theme.control_stroke,
+        },
+        ButtonVariant::Subtle => Colours {
+            fill: theme.transparent(),
+            fill_hover: theme.subtle_hover,
+            fill_pressed: theme.subtle_pressed,
+            text: theme.text_primary,
+            text_hover: theme.text_on_hover(theme.text_primary),
+            text_pressed: theme.text_on_hover(theme.text_secondary),
+            stroke: theme.transparent(),
+        },
+        ButtonVariant::Hyperlink => Colours {
+            fill: theme.transparent(),
+            fill_hover: theme.subtle_hover,
+            fill_pressed: theme.subtle_pressed,
+            text: theme.accent_text,
+            text_hover: theme.text_on_hover(theme.accent_text_hover),
+            text_pressed: theme.text_on_hover(theme.accent_text_hover),
+            stroke: theme.transparent(),
+        },
+    };
+    if disabled {
+        (colours.fill, colours.text) = match variant {
+            ButtonVariant::Accent => (theme.accent_disabled, theme.text_on_accent_disabled),
+            ButtonVariant::Standard => (theme.control_fill_disabled, theme.text_disabled),
+            ButtonVariant::Subtle | ButtonVariant::Hyperlink => (theme.transparent(), theme.text_disabled),
+        };
+    }
+    colours
+}
+
 impl RenderOnce for Button {
-    fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+        // A disabled button can't take focus or hover, so it shows no tooltip.
+        let tooltip = self.tooltip.clone().filter(|_| !self.disabled).map(|text| {
+            let state = window.use_keyed_state(self.id.clone(), cx, |_, cx| TooltipState::new(cx));
+            (text, state)
+        });
         let theme = cx.theme();
         let disabled = self.disabled;
         let variant = self.variant;
         let is_link = variant == ButtonVariant::Hyperlink;
-
-        let (fill, fill_hover, fill_pressed, text, text_hover, text_pressed, stroke) = match variant {
-            ButtonVariant::Accent => (
-                theme.accent,
-                theme.accent_hover,
-                theme.accent_pressed,
-                theme.text_on_accent,
-                theme.text_on_accent,
-                theme.text_on_accent,
-                theme.control_stroke,
-            ),
-            ButtonVariant::Standard => (
-                theme.control_fill,
-                theme.control_fill_hover,
-                theme.control_fill_pressed,
-                theme.text_primary,
-                theme.text_on_hover(theme.text_primary),
-                theme.text_on_hover(theme.text_secondary),
-                theme.control_stroke,
-            ),
-            ButtonVariant::Subtle => (
-                theme.transparent(),
-                theme.subtle_hover,
-                theme.subtle_pressed,
-                theme.text_primary,
-                theme.text_on_hover(theme.text_primary),
-                theme.text_on_hover(theme.text_secondary),
-                theme.transparent(),
-            ),
-            ButtonVariant::Hyperlink => (
-                theme.transparent(),
-                theme.subtle_hover,
-                theme.subtle_pressed,
-                theme.accent_text,
-                theme.text_on_hover(theme.accent_text_hover),
-                theme.text_on_hover(theme.accent_text_hover),
-                theme.transparent(),
-            ),
-        };
-
-        let (fill, text) = if disabled {
-            match variant {
-                ButtonVariant::Accent => (theme.accent_disabled, theme.text_on_accent_disabled),
-                ButtonVariant::Standard => (theme.control_fill_disabled, theme.text_disabled),
-                _ => (theme.transparent(), theme.text_disabled),
-            }
-        } else {
-            (fill, text)
-        };
+        let Colours { fill, fill_hover, fill_pressed, text, text_hover, text_pressed, stroke } =
+            colours(theme, variant, disabled);
 
         // Win11 draws a slightly darker stroke on the bottom edge of raised
         // buttons; a 1px offset shadow reproduces it without a gradient border.
         let bottom_edge = match (variant, disabled, theme.high_contrast) {
-            (ButtonVariant::Accent, false, false) => Some(gpui::black().opacity(0.14)),
-            (ButtonVariant::Standard, false, false) => Some(theme.control_stroke_strong),
+            (ButtonVariant::Accent, false, false) => Some(theme.control_stroke_on_accent_secondary),
+            (ButtonVariant::Standard, false, false) => Some(theme.control_stroke_secondary),
             _ => None,
         };
         let focus_outer = theme.focus_outer;
@@ -191,14 +261,22 @@ impl RenderOnce for Button {
         let height = if self.compact { 24. } else { 32. };
         let icon_only = self.label.is_empty();
         let on_click = self.on_click.clone();
+        debug_assert!(self.focus.is_none() || self.tooltip.is_none(), "a button takes one focus handle");
+        let focus = self.focus.clone();
         let name = self.aria_label.clone().unwrap_or_else(|| self.label.clone());
-        let description = disabled.then(|| t!("common-not-available"));
+        let description = super::compose_description(&[
+            tooltip::description(self.tooltip.as_ref(), &name).filter(|_| !disabled),
+            self.description.clone(),
+        ]);
+        let keyboard_default = self.keyboard_default;
 
         let button = div()
             .id(self.id)
             .role(if self.opens_externally { Role::Link } else { Role::Button })
             .aria_label(name)
             .when_some(description, |this, text| this.aria_description(text))
+            .when_some(self.expanded, |this, expanded| this.aria_expanded(expanded))
+            .aria_disabled(disabled)
             .flex()
             .flex_shrink_0()
             .items_center()
@@ -209,7 +287,7 @@ impl RenderOnce for Button {
             .rounded(px(4.))
             .bg(fill)
             .border_1()
-            .border_color(if disabled { theme.control_stroke } else { stroke })
+            .border_color(stroke)
             .text_color(text)
             .type_body()
             .when(is_link, |this| this.cursor_pointer())
@@ -223,19 +301,19 @@ impl RenderOnce for Button {
                 }])
             })
             .when(!disabled, |this| {
-                this.tab_index(0)
-                    .hover(move |style| style.bg(fill_hover).text_color(text_hover))
-                    .active(move |style| style.bg(fill_pressed).text_color(text_pressed))
-                    .focus_visible(move |style| focus_ring(style, focus_outer, focus_inner))
-                    .when_some(on_click, |this, handler| {
-                        // See selection.rs: the accessible Click must reach
-                        // the handler even when the button is out of view.
-                        let by_action = handler.clone();
-                        this.on_click(move |event, window, cx| handler(event, window, cx))
-                            .on_a11y_action(gpui::AccessibleAction::Click, move |_, window, cx| {
-                                by_action(&ClickEvent::default(), window, cx)
-                            })
-                    })
+                let this = match focus {
+                    Some(handle) => this.track_focus(&handle.tab_index(0).tab_stop(true)),
+                    None => this.tab_index(0),
+                };
+                let this =
+                    pointer_hover(this, window, move |style| style.bg(fill_hover).text_color(text_hover))
+                        .active(move |style| style.bg(fill_pressed).text_color(text_pressed));
+                let this = if keyboard_default {
+                    this.focus(move |style| focus_ring(style, focus_outer, focus_inner))
+                } else {
+                    this.focus_visible(move |style| focus_ring(style, focus_outer, focus_inner))
+                };
+                this.when_some(on_click, on_activate)
             })
             .when_some(self.icon, |this, glyph| {
                 this.child(if icon_only || self.centre_label {
@@ -258,6 +336,30 @@ impl RenderOnce for Button {
                     icon_in_line_sized(glyph, 12., BODY_LINE_HEIGHT).into_any_element()
                 })
             });
+        let button = match tooltip {
+            Some((text, state)) => tooltip::attach(button, text, &state, window, cx),
+            None => button,
+        };
         Revealed::new(button)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn disabling_a_button_never_changes_its_outline() {
+        for theme in [Theme::light(), Theme::dark()] {
+            for variant in [
+                ButtonVariant::Accent,
+                ButtonVariant::Standard,
+                ButtonVariant::Subtle,
+                ButtonVariant::Hyperlink,
+            ] {
+                let (enabled, disabled) = (colours(&theme, variant, false), colours(&theme, variant, true));
+                assert_eq!(enabled.stroke, disabled.stroke, "{:?} {variant:?}", theme.appearance);
+            }
+        }
     }
 }

@@ -62,7 +62,7 @@ fn embedded_playbook() -> Option<String> {
         apbx.to_string_lossy().replace('\\', "/")
     );
     let out = std::path::Path::new(&std::env::var("OUT_DIR").unwrap()).join("embedded.rs");
-    std::fs::write(&out, generated).expect("write the embedded playbook binding");
+    std::fs::write(&out, generated).expect("write the embedded package binding");
     Some(rc_id)
 }
 

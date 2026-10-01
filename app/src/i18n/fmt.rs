@@ -4,6 +4,12 @@
 //!
 //! `ATLAS_FORMAT_LOCALE=<tag>` overrides the format locale for review, so a
 //! German number format can be checked on an English machine.
+//!
+//! The pinned GPUI cannot draw right-to-left text (see `docs/i18n.md`), so a
+//! date, time or locale name that Windows gives in a right-to-left script is
+//! replaced: dates and times by a standard numeric form, the name by its
+//! English form. Numbers keep the regional format; their digits and
+//! separators are never right-to-left.
 
 use std::sync::OnceLock;
 
@@ -20,17 +26,54 @@ fn format_locale() -> &'static LocaleName {
     })
 }
 
-/// The regional format locale's tag, for the Settings page.
+/// Whether text has characters of a right-to-left script: Hebrew, Arabic,
+/// Syriac, Thaana, N'Ko and their neighbours, the Hebrew and Arabic
+/// presentation forms, and the right-to-left blocks beyond the BMP, such as
+/// Adlam.
+fn shows_rtl(text: &str) -> bool {
+    text.chars().any(|c| {
+        matches!(
+            u32::from(c),
+            0x0590..=0x08FF | 0xFB1D..=0xFDFF | 0xFE70..=0xFEFF | 0x10800..=0x10FFF | 0x1E800..=0x1EFFF
+        )
+    })
+}
+
+/// The regional format locale's tag.
 pub fn format_locale_tag() -> String {
-    match format_locale() {
+    locale_tag_in(format_locale())
+}
+
+fn locale_tag_in(locale: &LocaleName) -> String {
+    match locale {
         LocaleName::Named(name) => name.clone(),
         LocaleName::UserDefault => locale::user_format_locale().unwrap_or_else(|| "en-US".to_owned()),
     }
 }
 
-/// The regional format locale's own name for itself.
+/// The locale's own name for itself, or its English name when its own is
+/// right-to-left.
+fn locale_name_in(locale: &LocaleName) -> String {
+    locale::display_name(locale, true)
+        .filter(|name| !shows_rtl(name))
+        .or_else(|| locale::display_name(locale, false))
+        .unwrap_or_else(|| locale_tag_in(locale))
+}
+
+/// The regional format locale's own name for itself, for the Settings page.
 pub fn format_locale_name() -> String {
-    locale::display_name(format_locale(), true).unwrap_or_else(format_locale_tag)
+    locale_name_in(format_locale())
+}
+
+/// Whether dates and times show as the regional format has them; false
+/// when that format writes them right to left, so they fall back.
+pub fn dates_follow_region() -> bool {
+    let now = local_parts(&Local::now());
+    let locale = format_locale();
+    ![locale::format_date(locale, &now), locale::format_time(locale, &now)]
+        .iter()
+        .flatten()
+        .any(|text| shows_rtl(text))
 }
 
 /// A whole number with the regional grouping: "1,234" or "1.234" or "1 234".
@@ -44,9 +87,36 @@ pub fn decimal(value: f64, fraction_digits: usize) -> String {
         .unwrap_or_else(|| format!("{value:.fraction_digits$}"))
 }
 
+const MIB: f64 = 1024. * 1024.;
+
 /// Bytes as a number of MB with one decimal, regional separators.
 pub fn megabytes_value(bytes: u64) -> String {
-    decimal(bytes as f64 / (1024. * 1024.), 1)
+    decimal(bytes as f64 / MIB, 1)
+}
+
+/// The unit a file size is shown in: whole megabytes below a gigabyte and
+/// gigabytes with one decimal from there, as Windows does. Binary units,
+/// matching Explorer.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SizeUnit {
+    Megabytes,
+    Gigabytes,
+}
+
+impl SizeUnit {
+    /// The unit for `bytes`. A pair such as "done of total" uses the total's.
+    pub fn of(bytes: u64) -> Self {
+        // Anything that would round to 1,024 MB is shown as 1.0 GB instead.
+        if (bytes as f64 / MIB).round() >= 1024. { Self::Gigabytes } else { Self::Megabytes }
+    }
+
+    /// `bytes` as a number in this unit, with regional separators.
+    pub fn value(self, bytes: u64) -> String {
+        match self {
+            Self::Megabytes => decimal(bytes as f64 / MIB, 0),
+            Self::Gigabytes => decimal(bytes as f64 / (MIB * 1024.), 1),
+        }
+    }
 }
 
 fn local_parts(when: &DateTime<Local>) -> LocalDateTime {
@@ -63,13 +133,23 @@ fn local_parts(when: &DateTime<Local>) -> LocalDateTime {
 
 /// "21 October 2025" (en-GB), "October 21, 2025" (en-US), "21. Oktober 2025" (de).
 pub fn long_date(when: &DateTime<Local>) -> String {
-    locale::format_date(format_locale(), &local_parts(when))
+    long_date_in(format_locale(), when)
+}
+
+fn long_date_in(locale: &LocaleName, when: &DateTime<Local>) -> String {
+    locale::format_date(locale, &local_parts(when))
+        .filter(|text| !shows_rtl(text))
         .unwrap_or_else(|| when.format("%Y-%m-%d").to_string())
 }
 
 /// "20:13" or "8:13 PM", as the regional format has it.
 pub fn time(when: &DateTime<Local>) -> String {
-    locale::format_time(format_locale(), &local_parts(when))
+    time_in(format_locale(), when)
+}
+
+fn time_in(locale: &LocaleName, when: &DateTime<Local>) -> String {
+    locale::format_time(locale, &local_parts(when))
+        .filter(|text| !shows_rtl(text))
         .unwrap_or_else(|| when.format("%H:%M").to_string())
 }
 
@@ -98,7 +178,7 @@ pub fn fluent_number<M>(value: &FluentValue<'_>, _memoizer: &M) -> Option<String
 
 /// The fewest fraction digits in `min..=max` that show the value exactly
 /// (as far as `max` digits can).
-pub fn needed_fraction_digits(value: f64, min: usize, max: usize) -> usize {
+fn needed_fraction_digits(value: f64, min: usize, max: usize) -> usize {
     let max = max.max(min);
     let scaled_max = (value * 10f64.powi(max as i32)).round();
     for digits in min..max {
@@ -125,15 +205,53 @@ mod tests {
     }
 
     #[test]
-    fn regional_formatting_never_fails_outright() {
-        // Whatever the machine's regional format, these produce something sensible.
-        let text = integer(1234567);
-        assert!(text.contains("1") && text.contains("567"), "{text}");
+    fn right_to_left_scripts_are_recognised() {
+        assert!(shows_rtl("עברית"));
+        assert!(shows_rtl("08:13 م"));
+        assert!(shows_rtl("ދިވެހި"), "Thaana");
+        assert!(shows_rtl("\u{1E900}"), "Adlam, beyond the BMP");
+        assert!(!shows_rtl("21 October 2025, 20:13"));
+        assert!(!shows_rtl("2025年10月21日"));
+        assert!(!shows_rtl("21 ตุลาคม 2568"));
+        assert!(!shows_rtl("२१ अक्टूबर २०२५"));
+    }
+
+    #[test]
+    fn right_to_left_regional_formats_fall_back_to_forms_atlas_can_draw() {
+        use chrono::TimeZone;
+        let named = |tag: &str| LocaleName::Named(tag.to_owned());
+        let when = Local.with_ymd_and_hms(2025, 10, 21, 20, 13, 5).single().unwrap();
+        for tag in ["ar-SA", "ar-EG", "he-IL", "fa-IR", "ur-PK", "ckb-IQ", "dv-MV", "syr-SY"] {
+            for text in
+                [long_date_in(&named(tag), &when), time_in(&named(tag), &when), locale_name_in(&named(tag))]
+            {
+                assert!(!shows_rtl(&text), "{tag}: {text}");
+            }
+        }
+        assert_eq!(long_date_in(&named("ar-SA"), &when), "2025-10-21");
+        assert_eq!(locale_name_in(&named("he-IL")), "Hebrew (Israel)");
+        // The fallback is per string: a right-to-left locale whose time is already Latin keeps it.
+        assert_eq!(time_in(&named("he-IL"), &when), "20:13");
+        // Left-to-right formats are unchanged.
+        assert_eq!(long_date_in(&named("en-GB"), &when), "21 October 2025");
+    }
+
+    #[test]
+    fn sizes_move_to_gigabytes_at_a_gigabyte() {
+        const MB: u64 = 1024 * 1024;
+        assert_eq!(SizeUnit::of(900 * MB), SizeUnit::Megabytes);
+        assert_eq!(SizeUnit::of(1023 * MB), SizeUnit::Megabytes);
+        assert_eq!(SizeUnit::of(1024 * MB - 1), SizeUnit::Gigabytes, "it would round to 1,024 MB");
+        assert_eq!(SizeUnit::of(1024 * MB), SizeUnit::Gigabytes);
+        let whole = SizeUnit::Megabytes.value(900 * MB);
+        assert_eq!(whole, "900", "no decimal below a gigabyte");
+        let gb = SizeUnit::Gigabytes.value(1536 * MB);
+        assert!(gb.len() == 3 && gb.starts_with('1') && gb.ends_with('5'), "{gb}");
+        // Download progress counts binary megabytes, as Explorer does.
         let mb = megabytes_value(1536 * 1024);
-        assert!(mb.contains("1") && mb.contains("5"), "{mb}");
-        let when = parse_local("2025-10-21T20:13:05+00:00").unwrap();
-        assert!(long_date(&when).contains("2025"));
-        assert!(!time(&when).is_empty());
-        assert!(parse_local("not a date").is_none());
+        assert!(mb.len() == 3 && mb.starts_with('1') && mb.ends_with('5'), "{mb}");
+        // A progress pair shares its total's unit, so the smaller value stays in GB.
+        let done = SizeUnit::of(1536 * MB).value(512 * MB);
+        assert!(done.len() == 3 && done.starts_with('0') && done.ends_with('5'), "{done}");
     }
 }

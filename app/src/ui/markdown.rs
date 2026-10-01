@@ -3,14 +3,15 @@
 //! Anything else is shown as plain text rather than guessed at.
 
 use std::ops::Range;
+use std::rc::Rc;
 
 use gpui::{
     AnyElement, App, ElementId, FontStyle, FontWeight, HighlightStyle, IntoElement, ParentElement,
     RenderOnce, Role, SharedString, StyledText, UnderlineStyle, Window, div, prelude::*, px,
 };
 
-use super::{Revealed, Typography, focus_ring};
-use crate::theme::ActiveTheme;
+use super::{Revealed, Typography, focus_ring, on_activate, pointer_hover};
+use crate::theme::{ActiveTheme, Theme};
 
 #[derive(Clone, Debug, Default)]
 pub struct Inline {
@@ -139,10 +140,10 @@ fn parse_inline(source: &str) -> Inline {
     let mut out = Inline::default();
     let bytes = source.as_bytes();
     let mut i = 0;
-    let mut bold_open: Option<usize> = None;
-    // The opener's position and which character opened it, so an unclosed
-    // one can be put back as text.
-    let mut italic_open: Option<(usize, char)> = None;
+    // Where each open marker went in the output and the source, so an
+    // unclosed one can be put back as written.
+    let mut bold_open: Option<(usize, usize)> = None;
+    let mut italic_open: Option<(usize, usize)> = None;
 
     while i < bytes.len() {
         let rest = &source[i..];
@@ -158,8 +159,8 @@ fn parse_inline(source: &str) -> Inline {
         }
         if rest.starts_with("**") || rest.starts_with("__") {
             match bold_open.take() {
-                Some(start) => out.bold.push(start..out.text.len()),
-                None => bold_open = Some(out.text.len()),
+                Some((start, _)) => out.bold.push(start..out.text.len()),
+                None => bold_open = Some((out.text.len(), i)),
             }
             i += 2;
             continue;
@@ -209,14 +210,14 @@ fn parse_inline(source: &str) -> Inline {
             let prev_is_word = prev.is_some_and(|c| !c.is_whitespace());
             let prev_is_alphanumeric = prev.is_some_and(char::is_alphanumeric);
             match italic_open.take() {
-                Some((start, opener)) if opener == marker && prev_is_word => {
+                Some((start, opener)) if source[opener..].starts_with(marker) && prev_is_word => {
                     out.italic.push(start..out.text.len());
                 }
                 Some(open) => {
                     italic_open = Some(open);
                     out.text.push(marker);
                 }
-                None if next_is_word && !prev_is_alphanumeric => italic_open = Some((out.text.len(), marker)),
+                None if next_is_word && !prev_is_alphanumeric => italic_open = Some((out.text.len(), i)),
                 None => out.text.push(marker),
             }
             i += 1;
@@ -227,14 +228,15 @@ fn parse_inline(source: &str) -> Inline {
         out.text.push(ch);
         i += ch.len_utf8();
     }
-    // Unbalanced markers were literal text after all.
-    if let Some((start, marker)) = italic_open {
-        out.text.insert(start, marker);
-        shift_ranges(&mut out, start, 1);
-    }
-    if let Some(start) = bold_open {
-        out.text.insert_str(start, "**");
-        shift_ranges(&mut out, start, 2);
+    // Unclosed markers were literal text after all. Put back the one opened
+    // later first, so the earlier one's position still holds.
+    let mut unclosed: Vec<(usize, usize, usize)> = Vec::new();
+    unclosed.extend(bold_open.map(|(at, opener)| (at, opener, 2)));
+    unclosed.extend(italic_open.map(|(at, opener)| (at, opener, 1)));
+    unclosed.sort_by_key(|&(_, opener, _)| std::cmp::Reverse(opener));
+    for (at, opener, len) in unclosed {
+        out.text.insert_str(at, &source[opener..opener + len]);
+        shift_ranges(&mut out, at, len);
     }
     out
 }
@@ -276,33 +278,45 @@ fn strip_tags(source: &str) -> String {
     out
 }
 
-/// Renders parsed blocks as a column of GPUI text elements, each exposed to
-/// assistive technology the way the app's own controls are: headings with
-/// their level, runs of bullets as a list of items, paragraphs and quotes as
-/// readable text (a label's name is its value, as for `a11y_text`), and
-/// every link as a focusable, activatable link element
-/// rather than a coloured range inside a plain text run. A block's text is
-/// reported once, on the block; the styled runs inside it are decorative.
+/// Renders parsed blocks with the app's accessibility: headings carry their
+/// level, a run of bullets is one list, paragraphs and quotes are labels
+/// whose value is their text, and links are real link controls. Inline
+/// styling is decorative.
 #[derive(IntoElement)]
 pub struct Markdown {
     id: SharedString,
     blocks: Vec<Block>,
+    /// The heading level of the card the notes sit in: a `#` heading is
+    /// reported one level below it, so the page's outline holds.
+    base_level: usize,
 }
 
 impl Markdown {
     pub fn new(id: impl Into<SharedString>, blocks: Vec<Block>) -> Self {
-        Self { id: id.into(), blocks }
+        Self { id: id.into(), blocks, base_level: 0 }
+    }
+
+    /// Nests the notes' headings under a heading at `level`.
+    pub fn under_heading(mut self, level: usize) -> Self {
+        self.base_level = level;
+        self
     }
 }
 
+/// The level a Markdown heading of `level` is reported at, under a heading at
+/// `base`: at most 9, which UIA's heading levels stop at.
+fn nested_level(base: usize, level: u8) -> usize {
+    (base + usize::from(level)).min(9)
+}
+
 impl RenderOnce for Markdown {
-    fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
-        let theme = cx.theme().clone();
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+        let theme = cx.theme();
         let mut column = div().flex().flex_col().gap(px(2.));
         let mut previous_was_space = true;
         let mut blocks = self.blocks.into_iter().enumerate().peekable();
         while let Some((index, block)) = blocks.next() {
-            let id = format!("{}-{index}", self.id);
+            let id = ElementId::named_usize(self.id.clone(), index);
             let element: AnyElement = match block {
                 Block::Space => {
                     column = column.child(div().h(px(6.)));
@@ -311,27 +325,27 @@ impl RenderOnce for Markdown {
                 }
                 Block::Rule => div().h(px(1.)).my(px(6.)).bg(theme.divider).into_any_element(),
                 Block::Heading(level, inline) => div()
-                    .id(ElementId::Name(id.clone().into()))
+                    .id(id)
                     .role(Role::Heading)
-                    .aria_level(usize::from(level))
+                    .aria_level(nested_level(self.base_level, level))
                     .aria_label(inline.text.clone())
                     .when(!previous_was_space, |this| this.pt(px(8.)))
                     .pb(px(2.))
                     .map(|this| if level <= 2 { this.type_body_large() } else { this.type_body_strong() })
                     .font_weight(FontWeight::SEMIBOLD)
                     .text_color(theme.text_primary)
-                    .child(inline_content(&id, inline, &theme))
+                    .child(inline_content(inline, window, theme))
                     .into_any_element(),
                 Block::Paragraph(inline) => div()
-                    .id(ElementId::Name(id.clone().into()))
+                    .id(id)
                     .role(Role::Label)
                     .aria_value(inline.text.clone())
                     .type_body()
                     .text_color(theme.text_secondary)
-                    .child(inline_content(&id, inline, &theme))
+                    .child(inline_content(inline, window, theme))
                     .into_any_element(),
                 Block::Quote(inline) => div()
-                    .id(ElementId::Name(id.clone().into()))
+                    .id(id)
                     .role(Role::Label)
                     .aria_value(inline.text.clone())
                     .pl(px(12.))
@@ -340,49 +354,48 @@ impl RenderOnce for Markdown {
                     .border_color(theme.control_strong_stroke)
                     .type_body()
                     .text_color(theme.text_secondary)
-                    .child(inline_content(&id, inline, &theme))
+                    .child(inline_content(inline, window, theme))
                     .into_any_element(),
                 Block::Bullet { depth, marker, text } => {
                     // A run of bullets is one list; nested depth is shown by
                     // indentation and stays in the same list.
-                    let mut items = vec![(id.clone(), depth, marker, text)];
+                    let mut items = vec![(depth, marker, text)];
                     while let Some((_, Block::Bullet { .. })) = blocks.peek() {
-                        let Some((next_index, Block::Bullet { depth, marker, text })) = blocks.next() else {
+                        let Some((_, Block::Bullet { depth, marker, text })) = blocks.next() else {
                             break;
                         };
-                        items.push((format!("{}-{next_index}", self.id), depth, marker, text));
+                        items.push((depth, marker, text));
                     }
                     let count = items.len();
                     div()
-                        .id(ElementId::Name(format!("{id}-list").into()))
+                        .id(id)
                         .role(Role::List)
+                        .aria_size_of_set(count)
                         .flex()
                         .flex_col()
                         .gap(px(2.))
-                        .children(items.into_iter().enumerate().map(
-                            |(position, (id, depth, marker, text))| {
-                                div()
-                                    .id(ElementId::Name(id.clone().into()))
-                                    .role(Role::ListItem)
-                                    .aria_label(text.text.clone())
-                                    .aria_position_in_set(position + 1)
-                                    .aria_size_of_set(count)
-                                    .flex()
-                                    .items_start()
-                                    .gap(px(8.))
-                                    .pl(px(4. + depth as f32 * 16.))
-                                    .type_body()
-                                    .text_color(theme.text_secondary)
-                                    .child(
-                                        div()
-                                            .flex_shrink_0()
-                                            .min_w(px(10.))
-                                            .text_color(theme.text_tertiary)
-                                            .child(marker),
-                                    )
-                                    .child(div().flex_1().min_w_0().child(inline_content(&id, text, &theme)))
-                            },
-                        ))
+                        .children(items.into_iter().enumerate().map(|(position, (depth, marker, text))| {
+                            div()
+                                .id(("item", position))
+                                .role(Role::ListItem)
+                                .aria_label(text.text.clone())
+                                // AccessKit counts from 0 and takes the size from the list.
+                                .aria_position_in_set(position)
+                                .flex()
+                                .items_start()
+                                .gap(px(8.))
+                                .pl(px(4. + depth as f32 * 16.))
+                                .type_body()
+                                .text_color(theme.text_secondary)
+                                .child(
+                                    div()
+                                        .flex_shrink_0()
+                                        .min_w(px(10.))
+                                        .text_color(theme.text_tertiary)
+                                        .child(marker),
+                                )
+                                .child(div().flex_1().min_w_0().child(inline_content(text, window, theme)))
+                        }))
                         .into_any_element()
                 }
             };
@@ -393,12 +406,9 @@ impl RenderOnce for Markdown {
     }
 }
 
-/// The styled text of one block. Without links it is a single styled run.
-/// With links, the run is split at each link into plain segments and link
-/// elements that flow together and wrap; each link is a real control: a
-/// tab stop with the focus ring, opened by click, keyboard or the
-/// accessible action, and reported with the link's own text.
-fn inline_content(id: &str, inline: Inline, theme: &crate::theme::Theme) -> AnyElement {
+/// One block's text. Links split it into plain runs and focusable link
+/// controls that wrap together.
+fn inline_content(inline: Inline, window: &Window, theme: &Theme) -> AnyElement {
     if inline.links.is_empty() {
         return styled_run(&inline, 0..inline.text.len(), theme).into_any_element();
     }
@@ -411,8 +421,7 @@ fn inline_content(id: &str, inline: Inline, theme: &crate::theme::Theme) -> AnyE
             row = row.child(div().min_w_0().child(styled_run(&inline, cursor..range.start, theme)));
         }
         let label: SharedString = inline.text[range.clone()].to_owned().into();
-        row =
-            row.child(inline_link(ElementId::Name(format!("{id}-link-{number}").into()), label, url, theme));
+        row = row.child(inline_link(("link", number).into(), label, url, window, theme));
         cursor = range.end;
     }
     if cursor < inline.text.len() {
@@ -422,7 +431,7 @@ fn inline_content(id: &str, inline: Inline, theme: &crate::theme::Theme) -> AnyE
 }
 
 /// One segment of a block's text with its bold, italic and code runs.
-fn styled_run(inline: &Inline, segment: Range<usize>, theme: &crate::theme::Theme) -> StyledText {
+fn styled_run(inline: &Inline, segment: Range<usize>, theme: &Theme) -> StyledText {
     let clip = |range: &Range<usize>| -> Option<Range<usize>> {
         let start = range.start.max(segment.start);
         let end = range.end.min(segment.end);
@@ -456,18 +465,21 @@ fn inline_link(
     id: ElementId,
     label: SharedString,
     url: String,
-    theme: &crate::theme::Theme,
+    window: &Window,
+    theme: &Theme,
 ) -> impl IntoElement {
     let colour = theme.accent_text;
     let hover = theme.text_on_hover(theme.accent_text_hover);
+    // A contrast theme pairs the hover text with the highlight fill, as the
+    // app's hyperlink buttons do; the underline then follows the text.
+    let hover_fill = theme.high_contrast.then_some(theme.subtle_hover);
+    let underline = (!theme.high_contrast).then_some(colour);
     let focus_outer = theme.focus_outer;
     let focus_inner = theme.focus_inner;
-    let open = std::rc::Rc::new(move |cx: &mut App| cx.open_url(&url));
-    let by_action = open.clone();
     let text = StyledText::new(label.clone()).with_highlights(vec![(
         0..label.len(),
         HighlightStyle {
-            underline: Some(UnderlineStyle { thickness: px(1.), color: Some(colour), wavy: false }),
+            underline: Some(UnderlineStyle { thickness: px(1.), color: underline, wavy: false }),
             ..Default::default()
         },
     )]);
@@ -482,17 +494,31 @@ fn inline_link(
         .border_color(theme.transparent())
         .text_color(colour)
         .cursor_pointer()
-        .hover(move |style| style.text_color(hover))
+        .map(|this| {
+            pointer_hover(this, window, move |style| {
+                let style = style.text_color(hover);
+                match hover_fill {
+                    Some(fill) => style.bg(fill),
+                    None => style,
+                }
+            })
+        })
         .focus_visible(move |style| focus_ring(style, focus_outer, focus_inner))
-        .on_click(move |_, _, cx| open(cx))
-        .on_a11y_action(gpui::AccessibleAction::Click, move |_, _, cx| by_action(cx))
         .child(text);
-    Revealed::new(link)
+    Revealed::new(on_activate(link, Rc::new(move |_, _, cx| cx.open_url(&url))))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::parse_inline;
+    use super::{nested_level, parse_inline};
+
+    #[test]
+    fn notes_headings_sit_under_their_card() {
+        assert_eq!(nested_level(2, 1), 3, "a # heading in a level-2 card");
+        assert_eq!(nested_level(2, 3), 5);
+        assert_eq!(nested_level(0, 2), 2, "on its own, its own level");
+        assert_eq!(nested_level(5, 6), 9, "never past HeadingLevel9");
+    }
 
     #[test]
     fn a_marker_inside_a_word_is_text() {
@@ -515,6 +541,10 @@ mod tests {
         let inline = parse_inline("a *dangling opener");
         assert_eq!(inline.text, "a *dangling opener");
         assert!(inline.italic.is_empty());
+        // Each as written, in place, whichever opened first.
+        for text in ["*a **b", "**a *b", "__a *b", "*a __b"] {
+            assert_eq!(parse_inline(text).text, text);
+        }
         let mixed = parse_inline("_open then `code` and [link](https://x.y)");
         assert_eq!(mixed.text, "_open then code and link");
         assert_eq!(mixed.code, vec![11..15]);

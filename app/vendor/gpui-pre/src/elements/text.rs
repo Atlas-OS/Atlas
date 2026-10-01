@@ -196,6 +196,8 @@ impl Element for Text {
 
     fn write_a11y_info(&self, node: &mut accesskit::Node) {
         node.set_value(self.text.to_string());
+        // Atlas patch: text never announces itself; a live ancestor does.
+        node.set_live(accesskit::Live::Off);
     }
 
     fn request_layout(
@@ -1074,6 +1076,8 @@ impl Element for InteractiveText {
 
     fn write_a11y_info(&self, node: &mut accesskit::Node) {
         node.set_value(self.text.text.to_string());
+        // Atlas patch: text never announces itself; a live ancestor does.
+        node.set_live(accesskit::Live::Off);
     }
 
     fn request_layout(

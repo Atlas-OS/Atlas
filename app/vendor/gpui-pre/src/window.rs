@@ -2735,6 +2735,14 @@ impl Window {
         self.a11y.set_window_title(title.to_string());
     }
 
+    /// Sets the language of the window's content (a BCP 47 tag) for
+    /// assistive technology. It is reported on the root node, so every node
+    /// inherits it unless an element sets its own with `aria_lang`; on
+    /// Windows it becomes each element's UIA Culture. Atlas patch.
+    pub fn set_accessibility_language(&mut self, language: Option<SharedString>) {
+        self.a11y.set_language(language);
+    }
+
     /// Sets the position of the macOS traffic light buttons.
     #[cfg(target_os = "macos")]
     pub fn set_traffic_light_position(&self, position: Point<Pixels>) {

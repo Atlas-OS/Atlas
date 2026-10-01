@@ -1,20 +1,24 @@
-//! Helpers for service tests: disposable directories under the system temp
-//! folder and small synthetic .apbx packages. Nothing here touches the real
-//! app data, the registry hives the app reads, or the machine's Atlas state.
+//! Helpers for service tests: disposable directories and registry keys, and
+//! small synthetic .apbx packages. Nothing here touches the real app data,
+//! the registry keys the app reads, or the machine's Atlas state.
 
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-/// A fresh directory that is removed when dropped.
+use windows_registry::{CURRENT_USER, Key};
+
+fn unique_suffix() -> String {
+    let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or_default();
+    format!("{}-{nanos:x}", std::process::id())
+}
+
+/// A fresh directory under the system temp folder, removed when dropped.
 pub struct TempDir(PathBuf);
 
 impl TempDir {
     pub fn new(name: &str) -> Self {
-        let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or_default();
-        let path = std::env::temp_dir()
-            .join("atlas-app-tests")
-            .join(format!("{name}-{}-{nanos:x}", std::process::id()));
+        let path = std::env::temp_dir().join("atlas-app-tests").join(format!("{name}-{}", unique_suffix()));
         fs::create_dir_all(&path).expect("create a temporary test directory");
         Self(path)
     }
@@ -30,13 +34,36 @@ impl Drop for TempDir {
     }
 }
 
-/// Synthetic playbook packages.
+/// A fresh key under `HKCU\Software\AtlasOS\AppTests`, removed with
+/// everything in it when dropped, so a failing test leaves nothing behind.
+pub struct TestKey {
+    path: String,
+    pub key: Key,
+}
+
+impl TestKey {
+    pub fn new(name: &str) -> Self {
+        let path = format!(r"Software\AtlasOS\AppTests\{name}-{}", unique_suffix());
+        let key = CURRENT_USER.create(&path).expect("create a test key under HKCU");
+        Self { path, key }
+    }
+}
+
+impl Drop for TestKey {
+    fn drop(&mut self) {
+        let _ = CURRENT_USER.remove_tree(&self.path);
+    }
+}
+
+/// Synthetic Atlas packages.
 pub mod apbx {
     use std::io::Write;
     use std::path::{Path, PathBuf};
 
     use zip::write::{FileOptions, SimpleFileOptions};
     use zip::{AesMode, ZipWriter};
+
+    use crate::services::playbook::APBX_PASSWORD;
 
     pub const FRONT_DOOR: &str = "Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1";
 
@@ -48,15 +75,16 @@ pub mod apbx {
 
     pub struct Package {
         pub entries: Vec<Entry>,
-        /// Bytes to flip after writing, to simulate a damaged archive.
+        /// Bytes that locate the damage: the 8 bytes after them are flipped
+        /// once the archive is written.
         pub corrupt_marker: Option<Vec<u8>>,
     }
 
-    pub fn conf(version: &str) -> String {
+    fn conf(version: &str) -> String {
         conf_with_builds(version, &[26100])
     }
 
-    pub fn conf_with_builds(version: &str, builds: &[u32]) -> String {
+    fn conf_with_builds(version: &str, builds: &[u32]) -> String {
         let builds: String = builds.iter().map(|b| format!("<string>{b}</string>")).collect();
         format!(
             "<Playbook><Version>{version}</Version><SupportedBuilds>{builds}</SupportedBuilds><FeaturePages><RadioPage DefaultOption=\"defender-enable\"><Options><RadioOption><Name>defender-enable</Name><Text>Keep Defender</Text></RadioOption><RadioOption><Name>defender-disable</Name><Text>Remove Defender</Text></RadioOption></Options></RadioPage></FeaturePages></Playbook>"
@@ -111,7 +139,7 @@ pub mod apbx {
 
     /// A package whose last (stored, unencrypted) entry fails its CRC check
     /// while it is being copied out.
-    pub fn truncated(version: &str) -> Package {
+    pub fn corrupted(version: &str) -> Package {
         let mut package = valid(version);
         let marker = b"ATLAS-CORRUPTION-MARKER-".repeat(64);
         package.entries.push(Entry {
@@ -130,7 +158,7 @@ pub mod apbx {
             let mut options: SimpleFileOptions =
                 FileOptions::default().compression_method(zip::CompressionMethod::Stored);
             if entry.encrypted {
-                options = options.with_aes_encryption(AesMode::Aes256, "malte");
+                options = options.with_aes_encryption(AesMode::Aes256, APBX_PASSWORD);
             }
             writer.start_file(&entry.name, options).expect("start an entry");
             writer.write_all(&entry.data).expect("write an entry");
@@ -147,7 +175,7 @@ pub mod apbx {
         path.to_path_buf()
     }
 
-    /// Staging or retired directories still present under a cache root.
+    /// Staging directories still present under a cache root.
     pub fn leftovers(root: &Path) -> Vec<PathBuf> {
         let Ok(entries) = std::fs::read_dir(root) else { return Vec::new() };
         entries

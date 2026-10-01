@@ -1,5 +1,5 @@
 //! Windows application construction, shared by the app, probes and tests.
-//! Uses the same backend as gpui-pre-platform without its other OS dependencies.
+//! Uses gpui-pre-windows directly, without gpui-pre-platform's other OS backends.
 
 use std::rc::Rc;
 

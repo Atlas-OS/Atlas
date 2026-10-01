@@ -7,11 +7,16 @@
 //! Raw diagnostics (Windows error text, paths, versions, build numbers) are
 //! passed through as text arguments and never translated or reformatted.
 
-use crate::model::{AcquireProblem, ElevationProblem, Notice, Preflight, RestartProblem, ScreenKind};
+use crate::model::{
+    AcquireProblem, ElevationProblem, InstallBlock, Notice, Preflight, ProtectionReminder, ReminderReason,
+    RestartProblem, ScreenKind,
+};
 use crate::services::atlas_state::InstallMode;
 use crate::services::installer::{InstallOutcome, Phase};
 use crate::services::playbook::FeaturePage;
-use crate::services::requirements::{CheckDetail, CheckId};
+use crate::services::preparation::Activity;
+use crate::services::reports::SendProblem;
+use crate::services::requirements::{CheckDetail, CheckId, CheckResult};
 use crate::services::security::{Protection, SwitchCounts};
 use crate::services::settings::SettingsProblem;
 use crate::services::system::SystemInfo;
@@ -21,6 +26,16 @@ use crate::t;
 pub fn join_list(items: &[String]) -> String {
     let separator = t!("list-separator");
     items.join(&separator)
+}
+
+/// Joins items as a list that ends with the language's "and": "Tamper
+/// Protection, Real-time protection and Cloud-delivered protection".
+pub fn join_and(items: &[String]) -> String {
+    match items {
+        [] => String::new(),
+        [only] => only.clone(),
+        [head @ .., last] => t!("list-and", a = join_list(head), b = last.as_str()),
+    }
 }
 
 /// The user-facing name of a pending-restart marker id reported by the
@@ -44,11 +59,75 @@ pub fn restart_reasons(ids: &[String]) -> String {
     join_list(&names)
 }
 
+/// A Store update could not replace an app that is running.
+const ERROR_PACKAGES_IN_USE: &str = "0x80073D02";
+/// Windows Update refused to start while another install or a required
+/// restart is pending.
+const WU_E_INSTALL_NOT_ALLOWED: &str = "0x80240016";
+
+/// What to do about a preparation run that failed. `failure` is the
+/// worker's own report, if it wrote one; `has_error` says the app recorded
+/// an error of its own. A run that ended with neither is not called a
+/// failure it cannot describe.
+pub fn preparation_failure(failure: Option<&Activity>, has_error: bool) -> String {
+    let Some(failure) = failure else {
+        return if has_error { t!("prepare-failed") } else { t!("prepare-ended-unconfirmed") };
+    };
+    match failure.error_code.as_deref() {
+        Some(code) if code.eq_ignore_ascii_case(ERROR_PACKAGES_IN_USE) => {
+            let app = failure.package_name.clone().unwrap_or_else(|| t!("prepare-affected-app"));
+            t!("prepare-app-in-use", app = app)
+        }
+        Some(code) if code.eq_ignore_ascii_case(WU_E_INSTALL_NOT_ALLOWED) => t!("prepare-install-busy"),
+        _ => failure
+            .reason
+            .as_deref()
+            .and_then(preparation_failure_reason)
+            .unwrap_or_else(|| t!("prepare-failed")),
+    }
+}
+
+/// Advice for a cause the preparation worker names. An id this build does
+/// not know gets the general message instead.
+pub fn preparation_failure_reason(id: &str) -> Option<String> {
+    Some(match id {
+        "session-owner" => t!("prepare-failed-session-owner"),
+        "store-missing" => t!("prepare-failed-store-missing"),
+        "store-paused-battery" => t!("prepare-failed-store-battery"),
+        "store-paused-network" => t!("prepare-failed-store-network"),
+        "store-timeout" => t!("prepare-failed-store-timeout"),
+        "store-passes" => t!("prepare-failed-store-passes"),
+        "manual-updates" => t!("prepare-failed-manual-updates"),
+        "windows-passes" => t!("prepare-failed-windows-passes"),
+        _ => return None,
+    })
+}
+
+/// Why preparation needs another connection, from the cause the worker
+/// reported. Older workers report none.
+pub fn preparation_network(reason: Option<&str>) -> String {
+    match reason {
+        Some("limited") => t!("prepare-network-limited"),
+        Some("metered") => t!("prepare-network-metered"),
+        _ => t!("prepare-network-needed"),
+    }
+}
+
 /// Joins alternatives: "26100 or 26200".
 pub fn join_or(items: &[String]) -> String {
     let mut iter = items.iter();
     let Some(first) = iter.next() else { return String::new() };
     iter.fold(first.clone(), |acc, next| t!("list-or", a = acc, b = next))
+}
+
+/// "900 MB" or "6.1 GB": a file size in the unit that suits it.
+pub fn file_size(bytes: u64) -> String {
+    let unit = super::fmt::SizeUnit::of(bytes);
+    let size = unit.value(bytes);
+    match unit {
+        super::fmt::SizeUnit::Megabytes => t!("size-megabytes", size = size),
+        super::fmt::SizeUnit::Gigabytes => t!("size-gigabytes", size = size),
+    }
 }
 
 /// "Windows 11 Pro 25H2 (build 26200.1234)".
@@ -92,21 +171,20 @@ impl CheckId {
     pub fn fix_label(self) -> Option<String> {
         Some(match self {
             CheckId::PendingUpdates | CheckId::PendingReboot => t!("check-fix-windows-update"),
+            CheckId::ThirdPartyAntivirus => t!("check-fix-apps"),
             CheckId::Internet => t!("check-fix-network"),
             CheckId::Power => t!("check-fix-power"),
             CheckId::Activation => t!("check-fix-activation"),
             _ => return None,
         })
     }
+}
 
-    /// What the user confirms when a blocking check could not run.
-    pub fn acknowledgement(self) -> String {
-        match self {
-            CheckId::PendingUpdates => t!("check-ack-updates"),
-            CheckId::PendingReboot => t!("check-ack-reboot"),
-            CheckId::Internet => t!("check-ack-internet"),
-            _ => t!("check-ack-generic"),
-        }
+impl CheckResult {
+    /// What the user confirms by hand, for the one result that allows it
+    /// (see [`CheckResult::needs_acknowledgement`]).
+    pub fn acknowledgement(&self) -> Option<String> {
+        self.needs_acknowledgement().then(|| t!("check-ack-updates"))
     }
 }
 
@@ -203,6 +281,33 @@ pub fn security_summary(counts: &SwitchCounts) -> String {
     }
 }
 
+impl ProtectionReminder {
+    /// What to turn back on, naming the switches as Windows Security does,
+    /// or that Defender is missing.
+    pub fn message(&self) -> String {
+        if self.missing {
+            return t!("installed-defender-missing-message");
+        }
+        let names: Vec<String> = self.switches.iter().map(|switch| switch.title()).collect();
+        let switches = join_and(&names);
+        match (self.unreadable, self.reason) {
+            (true, _) => t!("home-security-reminder-unreadable-message", switches = switches),
+            (false, ReminderReason::LeftFlow) => t!("home-security-reminder-message", switches = switches),
+            (false, ReminderReason::KeptDefender) => t!("installed-security-message", switches = switches),
+        }
+    }
+}
+
+/// Why a report wasn't sent, and what to do instead.
+pub fn report_failure(problem: SendProblem) -> String {
+    match problem {
+        SendProblem::Retry => t!("report-failed"),
+        SendProblem::Busy => t!("report-failed-busy"),
+        SendProblem::Outdated => t!("report-failed-outdated"),
+        SendProblem::Diagnostics => t!("report-failed-diagnostics"),
+    }
+}
+
 impl InstallOutcome {
     pub fn title(self) -> String {
         match self {
@@ -212,12 +317,31 @@ impl InstallOutcome {
         }
     }
 
-    /// What the user should do next, given how far the install got.
-    pub fn advice(self, phase: Phase) -> String {
+    /// The result bar's title: an installer that never started didn't
+    /// "finish" anything, unless an earlier attempt had already begun.
+    pub fn heading(self, resumed: bool) -> String {
         match self {
-            InstallOutcome::Succeeded => t!("outcome-succeeded"),
+            InstallOutcome::NotStarted if !resumed => t!("preflight-title"),
+            _ => self.title(),
+        }
+    }
+
+    /// What the user should do next, given how far the install got.
+    /// `resumed` is a retry of an install an earlier attempt already began
+    /// applying: stopping early no longer means nothing changed.
+    pub fn advice(self, phase: Phase, resumed: bool) -> String {
+        let early = phase < Phase::Applying;
+        match self {
+            InstallOutcome::Succeeded => t!("restart-needed"),
+            InstallOutcome::Failed(2) if resumed && early => t!("outcome-requirements-resumed"),
             InstallOutcome::Failed(2) => t!("outcome-requirements"),
+            InstallOutcome::Failed(3) if resumed && early => t!("outcome-not-elevated-resumed"),
             InstallOutcome::Failed(3) => t!("outcome-not-elevated"),
+            outcome if outcome.needs_preparation() && resumed => t!("outcome-preparation-stale-resumed"),
+            outcome if outcome.needs_preparation() => t!("outcome-preparation-stale"),
+            InstallOutcome::Failed(_) | InstallOutcome::NotStarted if resumed && early => {
+                t!("outcome-failed-resumed")
+            }
             InstallOutcome::Failed(_) => match phase {
                 Phase::Preflight => t!("outcome-failed-preflight"),
                 Phase::Staging => t!("outcome-failed-staging"),
@@ -273,7 +397,10 @@ impl ScreenKind {
             ScreenKind::Defender => t!("screen-defender-question"),
             ScreenKind::Mitigations => t!("screen-mitigations-question"),
             ScreenKind::Updates => t!("screen-updates-question"),
-            ScreenKind::Extras => t!("screen-extras-question"),
+            // Its title is already the generic question; wrapping it would
+            // read "Choose an option for Choose an option". The extras screen
+            // asks no one question: each page on it has its own title.
+            ScreenKind::ChooseOne | ScreenKind::Extras => self.title(),
             other => t!("screen-generic-question", title = other.title()),
         }
     }
@@ -293,7 +420,7 @@ impl ScreenKind {
 }
 
 /// What choosing an option means for the PC, in one line, for the options
-/// this app knows. Unknown options rely on the playbook's own text.
+/// this app knows. Unknown options rely on the package's own text.
 pub fn option_consequence(name: &str) -> Option<String> {
     Some(match name {
         "defender-enable" => t!("consequence-defender-enable"),
@@ -314,9 +441,9 @@ pub fn option_consequence(name: &str) -> Option<String> {
     })
 }
 
-/// Exact package wording, kept separate from editable interface copy.
-/// These plain, single-line messages are checked against the built-in
-/// manifest by the catalog gate. They are never displayed to the user.
+/// The manifest's exact English text for a `playbook-*` message id: the
+/// baseline that decides whether app copy may replace package text. Never
+/// shown.
 pub(super) fn playbook_source(id: &str) -> Option<&'static str> {
     include_str!("../../i18n/playbook-source.ftl").lines().find_map(|line| {
         let (key, value) = line.split_once(" = ")?;
@@ -324,14 +451,18 @@ pub(super) fn playbook_source(id: &str) -> Option<&'static str> {
     })
 }
 
+/// Whether `package_text` is the wording this app knows for `id`.
+fn recognised(id: &str, package_text: &str) -> bool {
+    playbook_source(id).is_some_and(|source| source.trim() == package_text.trim())
+}
+
 /// Use app copy only for recognised package wording. A reworded or unknown
 /// option keeps its own text, in English as well as translated languages.
 fn guarded(id: &str, package_text: &str) -> String {
-    let catalog = super::current();
-    let trimmed = package_text.trim();
-    match playbook_source(id) {
-        Some(source) if source.trim() == trimmed => catalog.format(id, None, &[]),
-        _ => trimmed.to_owned(),
+    if recognised(id, package_text) {
+        super::current().format(id, None, &[])
+    } else {
+        package_text.trim().to_owned()
     }
 }
 
@@ -340,11 +471,30 @@ pub fn option_label(name: &str, package_text: &str) -> String {
     guarded(&format!("playbook-option-{name}"), package_text)
 }
 
-/// Explanations must follow the same compatibility guard as their labels.
+/// The consequence line for an option, only while its package text is the
+/// wording this app knows.
 pub fn known_option_consequence(name: &str, package_text: &str) -> Option<String> {
-    (playbook_source(&format!("playbook-option-{name}")) == Some(package_text.trim()))
-        .then(|| option_consequence(name))
-        .flatten()
+    recognised(&format!("playbook-option-{name}"), package_text).then(|| option_consequence(name)).flatten()
+}
+
+/// What an option means for the install on this PC, which has the user's
+/// data: removing Microsoft Edge deletes its bookmarks, history and saved
+/// passwords here. Before the desktop exists (an ISO's setup) there is no
+/// data yet, so the general line applies, as on ISO creation's own pages.
+pub fn known_install_consequence(name: &str, package_text: &str, before_desktop: bool) -> Option<String> {
+    let recognised = recognised(&format!("playbook-option-{name}"), package_text);
+    match name {
+        "uninstall-edge" if recognised && !before_desktop => Some(t!("consequence-uninstall-edge-data")),
+        _ => known_option_consequence(name, package_text),
+    }
+}
+
+/// The caution a list of choices about to be applied to this PC shows under
+/// an option that deletes the user's data, when its text is the wording this
+/// app knows.
+pub fn known_data_caution(name: &str, package_text: &str) -> Option<String> {
+    (name == "uninstall-edge" && recognised(&format!("playbook-option-{name}"), package_text))
+        .then(|| t!("caution-uninstall-edge"))
 }
 
 /// The one line playbook.conf repeats on every checkbox page. Only this
@@ -357,7 +507,7 @@ pub fn is_page_boilerplate(text: &str) -> bool {
     PAGE_BOILERPLATE.contains(&text.trim())
 }
 
-/// The playbook's own description of a page, translated when this app knows
+/// The package's own description of a page, translated when this app knows
 /// it, minus the boilerplate line every checkbox page repeats.
 ///
 /// Option explanations are guarded separately by [`known_option_consequence`].
@@ -388,10 +538,34 @@ impl Notice {
                 }
                 SettingsProblem::Damaged { error } => t!("notice-settings-damaged", error = error),
             },
-            Notice::SettingsNotSaved { error } => error.clone(),
+            Notice::SettingsNotSaved { error } => t!("notice-settings-not-saved", error = error),
             Notice::SessionUnreadable { error, record } => {
                 t!("notice-session-unreadable-message", path = record.display().to_string(), error = error)
             }
+        }
+    }
+}
+
+impl InstallBlock {
+    /// `bundled` is a tester build, which can't open another package.
+    pub fn text(&self, bundled: bool) -> String {
+        match self {
+            InstallBlock::Unsupported { source, target: Some(target) } => {
+                t!("install-source-unsupported", source = source, target = target)
+            }
+            InstallBlock::Unsupported { source, target: None } => {
+                t!("install-source-unsupported-any", source = source)
+            }
+            InstallBlock::ResumeOther { target, .. } if bundled => {
+                t!("install-source-resume-bundled", target = target)
+            }
+            InstallBlock::ResumeOther { target, downloads } => {
+                t!("install-source-resume", target = target, folder = downloads.display().to_string())
+            }
+            InstallBlock::RecordUnreadable { error, record } => {
+                t!("notice-session-unreadable-message", path = record.display().to_string(), error = error)
+            }
+            InstallBlock::Unknown => t!("install-source-unknown"),
         }
     }
 }
@@ -402,6 +576,12 @@ impl AcquireProblem {
         match self {
             AcquireProblem::NoPlaybookAsset { version } => t!("acquire-no-asset", version = version),
             AcquireProblem::Unsupported { version } => t!("acquire-unsupported", version = version),
+            AcquireProblem::Incomplete { version } if bundled => {
+                let error = crate::services::playbook::Incomplete { version: version.clone() }.to_string();
+                t!("acquire-failed-bundled", error = error)
+            }
+            AcquireProblem::Incomplete { version } => t!("acquire-incomplete", version = version),
+            AcquireProblem::Stalled => t!("acquire-stalled"),
             AcquireProblem::Other { error } if bundled => t!("acquire-failed-bundled", error = error),
             AcquireProblem::Other { error } => t!("acquire-failed", error = error),
         }
@@ -409,7 +589,9 @@ impl AcquireProblem {
 }
 
 impl Preflight {
-    pub fn text(&self, system: &SystemInfo) -> String {
+    /// `resumed` is a retry of an install an earlier attempt already began
+    /// applying: a launch refused now changed nothing, but that one did.
+    pub fn text(&self, system: &SystemInfo, resumed: bool) -> String {
         match self {
             Preflight::InvalidOptions { error } => t!("preflight-invalid-options", error = error),
             Preflight::Changed { checks, security } => {
@@ -425,7 +607,9 @@ impl Preflight {
                 t!("preflight-changed", problems = problems.join(" "))
             }
             Preflight::Busy => t!("preflight-busy"),
+            Preflight::TakenOver => t!("preflight-taken-over"),
             Preflight::RecordUnreadable { error } => t!("preflight-record-unreadable", error = error),
+            Preflight::Refused { error } if resumed => t!("preflight-refused-resumed", error = error),
             Preflight::Refused { error } => t!("preflight-refused", error = error),
         }
     }
@@ -436,6 +620,7 @@ impl ElevationProblem {
         match self {
             ElevationProblem::Declined => t!("elevation-declined"),
             ElevationProblem::DeclinedContinue => t!("elevation-declined-continue"),
+            ElevationProblem::TakenOver => t!("elevation-taken-over"),
             ElevationProblem::DraftNotSaved { error } => t!("elevation-draft-not-saved", error = error),
         }
     }
@@ -457,14 +642,69 @@ mod tests {
     use crate::services::security::SwitchCounts;
 
     #[test]
-    fn security_summaries_read_as_before() {
+    fn security_summary_lists_only_nonzero_counts() {
         english(|| {
-            assert_eq!(security_summary(&SwitchCounts { off: 2, on: 0, unknown: 2 }), "2 can't be read");
+            assert_eq!(security_summary(&SwitchCounts { off: 4, on: 0, unknown: 0 }), t!("security-all-off"));
+            assert_eq!(
+                security_summary(&SwitchCounts { off: 2, on: 0, unknown: 2 }),
+                t!("security-count-unreadable", count = 2u32)
+            );
             assert_eq!(
                 security_summary(&SwitchCounts { off: 2, on: 1, unknown: 1 }),
-                "1 still on, 1 can't be read"
+                t!(
+                    "security-count-join",
+                    a = t!("security-count-still-on", count = 1u32),
+                    b = t!("security-count-unreadable", count = 1u32)
+                )
             );
-            assert_eq!(security_summary(&SwitchCounts { off: 4, on: 0, unknown: 0 }), "All off");
+        });
+    }
+
+    /// An unrecognised required radio page is a ChooseOne screen. Its heading
+    /// must not wrap its own title in the generic question.
+    #[test]
+    fn no_screen_question_repeats_its_own_title() {
+        english(|| {
+            assert_eq!(ScreenKind::ChooseOne.question(), ScreenKind::ChooseOne.title());
+            for kind in [
+                ScreenKind::Defender,
+                ScreenKind::Mitigations,
+                ScreenKind::Updates,
+                ScreenKind::Browser,
+                ScreenKind::Power,
+                ScreenKind::Apps,
+                ScreenKind::OptionalApps,
+                ScreenKind::ChooseOne,
+                ScreenKind::Extras,
+            ] {
+                let (title, question) = (kind.title(), kind.question());
+                assert!(question.matches(title.as_str()).count() <= 1, "{kind:?}: {question}");
+            }
+        });
+    }
+
+    /// Edition advice names the editions the gate refuses, and gives only
+    /// examples the gate accepts (see `SystemInfo::supported_edition`).
+    #[test]
+    fn edition_advice_matches_the_edition_gate() {
+        let edition = |id: &str, installation: &str| {
+            SystemInfo { edition_id: id.into(), installation_type: installation.into(), ..Default::default() }
+                .supported_edition()
+        };
+        english(|| {
+            let host = CheckDetail::EditionUnsupported.text(&SystemInfo::default());
+            let iso = t!("iso-failed-edition");
+            for (name, id) in
+                [("Pro", "Professional"), ("Education", "Education"), ("Enterprise", "Enterprise")]
+            {
+                assert!(host.contains(name) && iso.contains(name), "{name} is not named");
+                assert!(edition(id, "Client"), "{id} is named as supported but refused");
+            }
+            for (name, id) in [("Home", "Core"), ("LTSC", "EnterpriseS")] {
+                assert!(host.contains(name) && iso.contains(name), "{name} is not named");
+                assert!(!edition(id, "Client"), "{id} is named as unsupported but accepted");
+            }
+            assert!(host.contains("Server") && !edition("ServerStandard", "Server"));
         });
     }
 
@@ -472,10 +712,7 @@ mod tests {
     fn check_details_keep_raw_diagnostics_and_identifiers_verbatim() {
         english(|| {
             let missing = CheckDetail::BuildUnsupported { supported: vec![], actual: 26200 };
-            assert_eq!(
-                missing.text(&SystemInfo::default()),
-                "This playbook does not declare any supported Windows builds. Choose a full playbook build instead of a LocalTest package."
-            );
+            assert_eq!(missing.text(&SystemInfo::default()), t!("detail-build-missing"));
             let system = SystemInfo {
                 product_name: "Windows 11 Pro".into(),
                 display_version: "25H2".into(),
@@ -483,45 +720,199 @@ mod tests {
                 revision: 1234,
                 ..Default::default()
             };
-            assert_eq!(system_description(&system), "Windows 11 Pro 25H2 (build 26200.1234)");
-            let unsupported = CheckDetail::BuildUnsupported { supported: vec![26100, 26200], actual: 22631 };
+            assert!(system_description(&system).contains("26200.1234"));
+            // Build numbers are identifiers: never grouped like quantities.
+            let unsupported =
+                CheckDetail::BuildUnsupported { supported: vec![26100, 26200], actual: 22631 }.text(&system);
+            for build in ["26100", "26200", "22631"] {
+                assert!(unsupported.contains(build), "{unsupported}");
+            }
+            assert!(!unsupported.contains("22,631"), "{unsupported}");
+            let titles = vec!["KB1".into(), "KB2".into(), "KB3".into()];
+            let pending = CheckDetail::UpdatesPending { titles }.text(&system);
+            assert!(pending.contains("KB1; KB2") && !pending.contains("KB3"), "{pending}");
+            let error = "0x80240438: la conexión falló";
+            let unknown = CheckDetail::UpdatesUnknown { error: error.into() }.text(&system);
+            assert!(unknown.contains(error), "{unknown}");
+            let products = vec!["Avast".into(), "Norton".into()];
+            let found = CheckDetail::AntivirusFound { products: products.clone() }.text(&system);
+            assert!(found.contains(&join_list(&products)), "{found}");
+        });
+    }
+
+    /// Which advice an outcome gets. A retry of an install an earlier attempt
+    /// began applying must never say that nothing changed, however early it
+    /// stops.
+    #[test]
+    fn install_advice_follows_outcome_phase_and_resume() {
+        use InstallOutcome::{Failed, Lost, NotStarted};
+        english(|| {
+            let table = [
+                (Failed(1), Phase::Preflight, false, "outcome-failed-preflight"),
+                (Failed(1), Phase::Staging, false, "outcome-failed-staging"),
+                (Failed(1), Phase::Applying, false, "outcome-failed-applying"),
+                (Failed(1), Phase::Applying, true, "outcome-failed-applying"),
+                (Failed(1), Phase::Preflight, true, "outcome-failed-resumed"),
+                (Failed(1), Phase::Staging, true, "outcome-failed-resumed"),
+                (NotStarted, Phase::Preflight, false, "outcome-not-started"),
+                (NotStarted, Phase::Preflight, true, "outcome-failed-resumed"),
+                (Failed(2), Phase::Preflight, false, "outcome-requirements"),
+                (Failed(2), Phase::Applying, false, "outcome-requirements"),
+                (Failed(2), Phase::Preflight, true, "outcome-requirements-resumed"),
+                (Failed(3), Phase::Preflight, false, "outcome-not-elevated"),
+                (Failed(3), Phase::Preflight, true, "outcome-not-elevated-resumed"),
+                (Failed(5), Phase::Staging, false, "outcome-preparation-stale"),
+                (Failed(5), Phase::Staging, true, "outcome-preparation-stale-resumed"),
+                (Lost, Phase::Preflight, true, "outcome-lost"),
+            ];
+            for (outcome, phase, resumed, id) in table {
+                assert_eq!(
+                    outcome.advice(phase, resumed),
+                    crate::i18n::text(id, &[]),
+                    "{outcome:?} {phase:?} resumed: {resumed}"
+                );
+            }
+            // Out-of-date preparation sends the user back to Get ready, whose
+            // button then reads prepare-start; other failures don't.
+            let button = t!("prepare-start");
+            assert!(Failed(5).advice(Phase::Staging, false).contains(&button));
+            assert!(Failed(5).advice(Phase::Staging, true).contains(&button));
+            assert!(!Failed(1).advice(Phase::Staging, false).contains(&button));
+            // An unconfirmed result is not called a failure.
+            assert_eq!(Lost.title(), t!("outcome-lost-title"));
+            assert_ne!(Lost.title(), Failed(1).title());
+            // An installer that never started didn't "finish": unless an earlier attempt changed things.
+            assert_eq!(NotStarted.heading(false), t!("preflight-title"));
+            assert_eq!(NotStarted.heading(true), t!("outcome-failed-title"));
+            assert_eq!(Failed(1).heading(false), t!("outcome-failed-title"));
+            // Neither names a button that may be unavailable.
+            for outcome in [NotStarted, Lost] {
+                assert!(!outcome.advice(Phase::Preflight, false).contains(&t!("common-try-again")));
+            }
+            // A launch refused on a retry changed nothing itself, but an earlier attempt did.
+            let error = "the log could not be created";
+            let refused = Preflight::Refused { error: error.into() };
+            assert_eq!(refused.text(&SystemInfo::default(), false), t!("preflight-refused", error = error));
             assert_eq!(
-                unsupported.text(&system),
-                "This Atlas version requires Windows build 26100 or 26200. Your PC has build 22631. Install a supported Windows version before continuing."
-            );
-            let one = CheckDetail::UpdatesPending { titles: vec!["KB1".into()] };
-            assert_eq!(one.text(&system), "Install this update first: KB1.");
-            let three =
-                CheckDetail::UpdatesPending { titles: vec!["KB1".into(), "KB2".into(), "KB3".into()] };
-            assert_eq!(three.text(&system), "Install 3 updates first, including KB1; KB2.");
-            let raw = CheckDetail::UpdatesUnknown { error: "0x80240438: la conexión falló".into() };
-            assert!(raw.text(&system).ends_with("(0x80240438: la conexión falló)"));
-            let av = CheckDetail::AntivirusFound { products: vec!["Avast".into(), "Norton".into()] };
-            assert_eq!(
-                av.text(&system),
-                "Antivirus software may block installation: Avast, Norton. Uninstall this software before continuing."
+                refused.text(&SystemInfo::default(), true),
+                t!("preflight-refused-resumed", error = error)
             );
         });
     }
 
     #[test]
-    fn outcomes_and_phases_map_to_advice() {
+    fn install_blocks_name_the_target_and_offer_no_file_to_a_tester_build() {
         english(|| {
-            let applying = InstallOutcome::Failed(1).advice(Phase::Applying);
-            assert!(applying.contains("Some changes may already have been made"));
-            assert!(applying.contains("turn the protections you turned off back on"));
-            assert!(applying.contains("if they're still available"));
-            assert!(!InstallOutcome::Failed(1).advice(Phase::Applying).contains("Nothing"));
-            assert!(InstallOutcome::Failed(1).advice(Phase::Preflight).contains("before changing anything"));
-            assert!(InstallOutcome::Failed(2).advice(Phase::Applying).contains("requirements"));
-            assert_eq!(InstallOutcome::Lost.title(), "Couldn't confirm the installation result");
+            let unsupported = |target: Option<&str>| InstallBlock::Unsupported {
+                source: "0.4.0".into(),
+                target: target.map(str::to_owned),
+            };
+            assert!(unsupported(Some("0.6.0")).text(false).contains("0.6.0"));
+            assert!(!unsupported(None).text(false).contains("0.6.0"), "no target before a package is chosen");
+            let open = t!("package-open-file");
+            let resume = InstallBlock::ResumeOther { target: "0.6.1".into(), downloads: r"C:\D".into() };
+            assert!(resume.text(false).contains(&open) && resume.text(false).contains(r"C:\D"));
+            assert!(!resume.text(true).contains(&open), "a tester build can't open one");
+        });
+    }
+
+    #[test]
+    fn preparation_failures_get_the_most_specific_advice_available() {
+        english(|| {
+            let activity = |code: Option<&str>, reason: Option<&str>| Activity {
+                failure_message: Some("worker text".into()),
+                error_code: code.map(str::to_owned),
+                reason: reason.map(str::to_owned),
+                ..Activity::default()
+            };
+            // A provider code the app knows comes first.
+            let in_use = activity(Some(ERROR_PACKAGES_IN_USE), Some("store-timeout"));
+            assert_eq!(
+                preparation_failure(Some(&in_use), false),
+                t!("prepare-app-in-use", app = t!("prepare-affected-app"))
+            );
+            let busy = activity(Some(WU_E_INSTALL_NOT_ALLOWED), None);
+            assert_eq!(preparation_failure(Some(&busy), false), t!("prepare-install-busy"));
+            let battery = activity(None, Some("store-paused-battery"));
+            assert_eq!(preparation_failure(Some(&battery), false), t!("prepare-failed-store-battery"));
+            let unknown = activity(Some("0x80070005"), Some("a-newer-cause"));
+            assert_eq!(preparation_failure(Some(&unknown), false), t!("prepare-failed"));
+            // A run that ended without a report is not described as a failure it cannot name.
+            assert_eq!(preparation_failure(None, false), t!("prepare-ended-unconfirmed"));
+            assert_eq!(preparation_failure(None, true), t!("prepare-failed"));
+        });
+    }
+
+    #[test]
+    fn every_cause_the_worker_names_has_its_own_advice() {
+        english(|| {
+            let worker = crate::services::preparation::WORKER;
+            // Calls that pass a literal message, then the cause.
+            let mut named: Vec<&str> = worker
+                .split("New-PreparationFailure ")
+                .skip(1)
+                .filter_map(|call| {
+                    let quote = call.chars().next().filter(|c| *c == '\'' || *c == '"')?;
+                    let message = &call[1..];
+                    let after = &message[message.find(quote)? + 1..];
+                    after.trim_start().strip_prefix('\'')?.split('\'').next()
+                })
+                .collect();
+            // The Store's own paused states.
+            named.extend(["store-paused-battery", "store-paused-network"]);
+            assert!(named.len() >= 8, "{named:?}");
+            for id in named {
+                assert!(worker.contains(&format!("'{id}'")), "{id} is not named by the worker");
+                assert!(preparation_failure_reason(id).is_some(), "no advice for {id}");
+            }
+            assert_eq!(preparation_failure_reason("a-newer-cause"), None);
+            // Why the worker refused a connection.
+            for reason in ["limited", "metered", "offline", "roaming"] {
+                assert!(worker.contains(&format!("'{reason}'")), "{reason} is not named by the worker");
+            }
+            assert_eq!(preparation_network(Some("limited")), t!("prepare-network-limited"));
+            assert_eq!(preparation_network(Some("metered")), t!("prepare-network-metered"));
+            for reason in [None, Some("offline"), Some("roaming")] {
+                assert_eq!(preparation_network(reason), t!("prepare-network-needed"));
+            }
+        });
+    }
+
+    #[test]
+    fn only_the_update_scan_can_be_confirmed_by_hand() {
+        use crate::services::requirements::Verdict;
+        english(|| {
+            for id in CheckId::ALL {
+                for verdict in [Verdict::Pass, Verdict::Warn, Verdict::Fail, Verdict::Unknown] {
+                    let result = CheckResult { id, verdict, detail: CheckDetail::UpdatesNone };
+                    assert_eq!(
+                        result.acknowledgement().is_some(),
+                        id == CheckId::PendingUpdates && verdict == Verdict::Unknown,
+                        "{id:?} {verdict:?}"
+                    );
+                }
+            }
+        });
+    }
+
+    #[test]
+    fn a_package_without_the_front_door_is_told_apart_by_its_version() {
+        english(|| {
+            let incomplete = AcquireProblem::Incomplete { version: "0.6.1".into() };
+            // A damaged new package doesn't get the advice for an old one.
+            let old = AcquireProblem::Unsupported { version: "0.6.1".into() };
+            assert_ne!(incomplete.text(false), old.text(false));
+            let retry = t!("common-try-again");
+            assert!(incomplete.text(true).contains(&retry), "a tester build offers only Try again");
         });
     }
 
     #[test]
     fn playbook_text_is_translated_only_when_it_matches_the_source() {
         english(|| {
-            assert_eq!(option_label("defender-disable", "Disable Defender"), "Remove Microsoft Defender");
+            let label = option_label("defender-disable", "Disable Defender");
+            assert_eq!(label, t!("playbook-option-defender-disable"));
+            assert_ne!(label, "Disable Defender");
             assert!(known_option_consequence("defender-disable", "Disable Defender").is_some());
             assert_eq!(known_option_consequence("defender-disable", "Pause Defender"), None);
             assert_eq!(option_label("defender-disable", "Pause Defender"), "Pause Defender");
@@ -570,5 +961,70 @@ mod tests {
                 assert!(option_consequence(&option.name).is_some(), "no consequence for {}", option.name);
             }
         }
+    }
+
+    #[test]
+    fn lists_end_with_the_language_s_and() {
+        english(|| {
+            let names = |items: &[&str]| items.iter().map(|item| item.to_string()).collect::<Vec<_>>();
+            assert_eq!(join_and(&[]), "");
+            assert_eq!(join_and(&names(&["Tamper Protection"])), "Tamper Protection");
+            assert_eq!(join_and(&names(&["A", "B"])), "A and B");
+            assert_eq!(join_and(&names(&["A", "B", "C"])), "A, B and C");
+        });
+    }
+
+    #[test]
+    fn a_protection_reminder_names_only_the_switches_it_read() {
+        use crate::services::security::{Protection, SecurityStatus, Switch};
+        let reading = SecurityStatus {
+            tamper_protection: Switch::Off,
+            real_time_protection: Switch::On,
+            cloud_delivered: Switch::Off,
+            sample_submission: Switch::Unknown,
+            defender_present: true,
+        };
+        let reminder = |reason, status: &SecurityStatus| ProtectionReminder::from_reading(reason, status);
+        english(|| {
+            let kept = reminder(ReminderReason::KeptDefender, &reading).unwrap();
+            assert_eq!(kept.switches, [Protection::CloudDelivered, Protection::TamperProtection]);
+            let message = kept.message();
+            assert!(message.contains("Cloud-delivered protection and Tamper Protection"), "{message}");
+            assert!(message.contains("You kept Microsoft Defender"), "{message}");
+            assert!(!message.contains("Real-time") && !message.contains("sample"), "{message}");
+
+            let left = reminder(ReminderReason::LeftFlow, &reading).unwrap().message();
+            assert!(left.contains("Atlas isn't installing anything"), "{left}");
+            assert!(left.contains("Cloud-delivered protection and Tamper Protection"), "{left}");
+
+            // Nothing reads off: what couldn't be read is named, without claiming it is off.
+            let unread =
+                SecurityStatus { tamper_protection: Switch::On, cloud_delivered: Switch::Unknown, ..reading };
+            let soft = reminder(ReminderReason::KeptDefender, &unread).unwrap();
+            assert!(soft.unreadable);
+            let message = soft.message();
+            assert!(message.contains("couldn't read"), "{message}");
+            assert!(
+                message.contains("Cloud-delivered protection and Automatic sample submission"),
+                "{message}"
+            );
+            assert!(!message.contains("still off"), "{message}");
+        });
+        // Every switch on: nothing to remind about.
+        let on = SecurityStatus {
+            tamper_protection: Switch::On,
+            real_time_protection: Switch::On,
+            cloud_delivered: Switch::On,
+            sample_submission: Switch::On,
+            defender_present: true,
+        };
+        assert_eq!(reminder(ReminderReason::KeptDefender, &on), None);
+        // Defender gone: leaving a flow, nothing was turned off to turn back
+        // on; after an install that kept it, that it's missing.
+        let gone = SecurityStatus { defender_present: false, ..reading };
+        assert_eq!(reminder(ReminderReason::LeftFlow, &gone), None);
+        let missing = reminder(ReminderReason::KeptDefender, &gone).unwrap();
+        assert!(missing.missing && missing.switches.is_empty() && !missing.unreadable);
+        english(|| assert_eq!(missing.message(), t!("installed-defender-missing-message")));
     }
 }

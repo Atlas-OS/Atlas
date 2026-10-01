@@ -252,7 +252,10 @@ impl LineLayout {
                     last_candidate_x = x;
                 }
             } else {
-                if ch != ' ' && first_non_whitespace_ix.is_some() {
+                if ch != ' '
+                    && first_non_whitespace_ix.is_some()
+                    && super::glue_breaks::may_break_after(prev_ch)
+                {
                     last_candidate_ix = Some(boundary);
                     last_candidate_x = x;
                 }
@@ -1164,5 +1167,32 @@ mod tests {
 
         let positions = glyph_x_positions(&layout);
         assert_eq!(positions, vec![0.5, 0.5]);
+    }
+
+    /// Lays `text` out one 10px glyph per character and wraps it.
+    fn wrap_monospaced(text: &str, wrap_width: f32) -> Vec<usize> {
+        let glyphs = text
+            .char_indices()
+            .enumerate()
+            .map(|(i, (index, _))| glyph_at(i as f32 * 10., index))
+            .collect();
+        let mut layout = make_layout(glyphs);
+        layout.width = px(text.chars().count() as f32 * 10.);
+        layout.len = text.len();
+        layout
+            .compute_wrap_boundaries(text, px(wrap_width), None)
+            .iter()
+            .map(|boundary| boundary.glyph_ix)
+            .collect()
+    }
+
+    // Atlas patch (glue_breaks.rs): the overflowing `?` follows a no-break
+    // space, so the line breaks before "cd" instead of orphaning the mark.
+    #[test]
+    fn test_wrap_keeps_a_mark_after_a_no_break_space() {
+        assert_eq!(wrap_monospaced("ab cd\u{00A0}?", 65.), vec![3]);
+        assert_eq!(wrap_monospaced("ab cd\u{202F}?", 65.), vec![3]);
+        // Without glue, `?` stays a break opportunity (`foo?b=2`).
+        assert_eq!(wrap_monospaced("ab cde?", 65.), vec![6]);
     }
 }

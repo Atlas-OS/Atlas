@@ -28,20 +28,6 @@
     "sha256": "23F18E03DC49DF91622FE2A76176497404E46CED8A715D9D2B67A7446571CCA3"
   },
   {
-    "package": "accesskit_windows",
-    "version": "0.34.0",
-    "file": "supplemental/accesskit_windows-0.34.0/LICENSE-APACHE",
-    "url": "https://raw.githubusercontent.com/AccessKit/accesskit/c88605b96d04431f9c3c792464a0f2f253480e94/LICENSE-APACHE",
-    "sha256": "62C7A1E35F56406896D7AA7CA52D0CC0D272AC022B5D2796E7D6905DB8A3636A"
-  },
-  {
-    "package": "accesskit_windows",
-    "version": "0.34.0",
-    "file": "supplemental/accesskit_windows-0.34.0/LICENSE-MIT",
-    "url": "https://raw.githubusercontent.com/AccessKit/accesskit/c88605b96d04431f9c3c792464a0f2f253480e94/LICENSE-MIT",
-    "sha256": "23F18E03DC49DF91622FE2A76176497404E46CED8A715D9D2B67A7446571CCA3"
-  },
-  {
     "package": "defmt-parser",
     "version": "1.0.0",
     "file": "supplemental/defmt-parser-1.0.0/LICENSE-APACHE",

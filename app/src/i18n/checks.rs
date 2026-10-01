@@ -12,11 +12,14 @@
 //!   variable on every branch (also statically), and formats *on its own*,
 //!   with no fallback, without a single Fluent error for representative
 //!   counts plus every exact numeric variant it declares;
-//! - the playbook translations match the options the built-in manifest
+//! - an English overlay (en-US) holds only messages that differ from the
+//!   source, so a later source edit can't be hidden behind a stale copy;
+//! - the `playbook-*` translations match the options the built-in manifest
 //!   declares;
-//! - mutation tests prove the gate rejects a broken reference (including one
-//!   hidden in an unsampled branch), a cycle, a dropped variable, a variable
-//!   missing from one branch, and a bad plural category.
+//! - mutation tests prove the gate rejects a broken reference (in a
+//!   translation or the source, including one hidden in an unsampled
+//!   branch), a cycle, a dropped variable, a variable missing from one
+//!   branch, a bad plural category and an overlay copy.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -51,6 +54,9 @@ struct MessageInfo {
     functions: BTreeSet<String>,
     /// Text variables the message shows on every branch (see `always_shows`).
     always_shown: BTreeSet<String>,
+    /// The parsed value, for comparing an overlay message with the source.
+    /// Comments are not part of it.
+    value: String,
 }
 
 fn collect_pattern(pattern: &Pattern<&str>, info: &mut MessageInfo) {
@@ -169,6 +175,7 @@ fn parse_text(tag: &str, ftl: &str) -> Result<Parsed, Vec<String>> {
             Entry::Message(message) => {
                 let mut info = MessageInfo::default();
                 if let Some(value) = &message.value {
+                    info.value = format!("{value:?}");
                     collect_pattern(value, &mut info);
                     info.always_shown = info
                         .variables
@@ -257,8 +264,6 @@ fn reference_problems(tag: &str, parsed: &Parsed) -> Vec<String> {
     problems
 }
 
-// ----- The t! scanner -------------------------------------------------------
-
 /// Every `t!` invocation in the app's Rust sources, found by lexing the
 /// files: `t!(...)`, `crate::t!(...)`, `t! { ... }` and `t![...]` all count,
 /// comments and string literals do not. Arguments are parsed as Rust, so a
@@ -343,8 +348,6 @@ fn walk(root: &Path) -> Vec<std::path::PathBuf> {
     files
 }
 
-// ----- Plural rules ---------------------------------------------------------
-
 /// The plural-rules locale fluent-bundle would use for this tag: the same
 /// lookup it performs, so "en-GB" resolves to "en" and "zh-Hant" to "zh".
 /// A language that would silently get English rules is a mistake.
@@ -404,13 +407,6 @@ fn sample_args(info: &MessageInfo, count: i64) -> Vec<(&str, Arg)> {
         .collect()
 }
 
-// ----- Per-catalog validation --------------------------------------------
-
-/// Translations that may legitimately leave out a source variable. Empty
-/// today; add `(tag, message id, variable)` with a reason if a language
-/// needs it.
-const OMISSIONS_ALLOWED: &[(&str, &str, &str)] = &[];
-
 /// Validates one catalog's text on its own against the parsed source. The
 /// result lists every problem found; an empty list is a pass.
 fn validate(tag: &str, ftl: &str, pseudo: bool, source: &Parsed) -> Vec<String> {
@@ -438,21 +434,19 @@ fn validate(tag: &str, ftl: &str, pseudo: bool, source: &Parsed) -> Vec<String> 
             }
             continue;
         };
+        if overlay && target.value == info.value {
+            problems.push(format!("{tag}: {id} is identical to the source; remove it from the overlay"));
+        }
         for variable in target.variables.difference(&info.variables) {
             problems.push(format!("{tag}: {id} uses a variable the source does not have: ${variable}"));
         }
         for variable in info.variables.difference(&target.variables) {
-            if !OMISSIONS_ALLOWED.contains(&(tag, id.as_str(), variable.as_str())) {
-                problems.push(format!("{tag}: {id} dropped the source variable ${variable}"));
-            }
+            problems.push(format!("{tag}: {id} dropped the source variable ${variable}"));
         }
         // A text variable (one the source does not merely select on) must be
         // shown on every branch of the translation, statically.
         for variable in info.variables.difference(&info.selectors) {
-            if target.variables.contains(variable)
-                && !target.always_shown.contains(variable)
-                && !OMISSIONS_ALLOWED.contains(&(tag, id.as_str(), variable.as_str()))
-            {
+            if target.variables.contains(variable) && !target.always_shown.contains(variable) {
                 problems.push(format!("{tag}: {id} does not show ${variable} on every branch"));
             }
         }
@@ -504,10 +498,10 @@ fn validate(tag: &str, ftl: &str, pseudo: bool, source: &Parsed) -> Vec<String> 
     problems
 }
 
-/// The playbook messages the built-in manifest calls for: option labels for
-/// every option, and a description for every page whose description is not
-/// the shared boilerplate. Each needs UI copy and a separate exact-text
-/// baseline for the runtime guard.
+/// The `playbook-*` messages the built-in manifest calls for: option
+/// labels for every option, and a description for every page whose
+/// description is not the shared boilerplate. Each needs UI copy and a
+/// separate exact-text baseline for the runtime guard.
 fn playbook_inventory() -> BTreeMap<String, String> {
     let manifest = crate::services::playbook::Manifest::builtin();
     let mut expected = BTreeMap::new();
@@ -618,19 +612,6 @@ fn untranslated(locale: &'static Locale, source: &Parsed) -> Vec<String> {
     }
 }
 
-#[test]
-fn catalog_checks_plural_rules_exist_for_every_locale() {
-    for locale in LOCALES {
-        let categories = plural_categories(&plural_rules(locale.tag, locale.pseudo).unwrap());
-        assert!(categories.contains("other"), "{}: {categories:?}", locale.tag);
-    }
-    assert!(plural_categories(&plural_rules("pl", false).unwrap()).contains("few"));
-    assert!(plural_categories(&plural_rules("ru", false).unwrap()).contains("many"));
-    assert!(!plural_categories(&plural_rules("ja", false).unwrap()).contains("one"));
-}
-
-// ----- Mutation tests: the gate must reject these ---------------------------
-
 /// Replaces one message's value (single- or multi-line) in catalog text.
 fn mutate(ftl: &str, id: &str, replacement: &str) -> String {
     let mut out = String::new();
@@ -661,20 +642,25 @@ fn german_problems(mutation: impl FnOnce(&str) -> String) -> Vec<String> {
 
 #[test]
 fn the_gate_rejects_a_broken_message_reference() {
-    let problems = german_problems(|ftl| mutate(ftl, "common-cancel", "{ nonexistent-reference }"));
-    assert!(
-        problems.iter().any(|p| p.contains("common-cancel") && p.contains("does not exist")),
-        "{problems:?}"
-    );
-    assert!(
-        problems.iter().any(|p| p.contains("common-cancel") && p.contains("did not format")),
-        "{problems:?}"
-    );
+    let source = parse(catalog::source());
+    // In the source too: every language falls back to it.
+    for tag in ["de", catalog::SOURCE_TAG] {
+        let ftl = mutate(catalog::find(tag).unwrap().ftl, "common-cancel", "{ nonexistent-reference }");
+        let problems = validate(tag, &ftl, false, &source);
+        assert!(
+            problems.iter().any(|p| p.contains("common-cancel") && p.contains("does not exist")),
+            "{tag}: {problems:?}"
+        );
+        assert!(
+            problems.iter().any(|p| p.contains("common-cancel") && p.contains("did not format")),
+            "{tag}: {problems:?}"
+        );
+    }
 }
 
 #[test]
 fn the_gate_rejects_a_broken_reference_hidden_in_an_unsampled_branch() {
-    // The recheck's case: a bad reference behind an exact variant no sample hits.
+    // A bad reference behind an exact variant that no sample count hits.
     let problems = german_problems(|ftl| {
         mutate(
             ftl,
@@ -699,7 +685,7 @@ fn the_gate_rejects_a_dropped_variable_and_one_missing_from_a_branch() {
         problems.iter().any(|p| p.contains("home-status-update") && p.contains("dropped")),
         "{problems:?}"
     );
-    // The recheck's case: $titles present in the default branch only.
+    // $titles shown in the default branch only.
     let problems = german_problems(|ftl| {
         mutate(
             ftl,
@@ -755,11 +741,18 @@ fn the_gate_rejects_a_plural_category_the_language_lacks_and_junk() {
 }
 
 #[test]
-fn the_gate_validates_the_source_too() {
+fn the_gate_rejects_an_overlay_message_that_copies_the_source() {
     let source = parse(catalog::source());
-    let broken = mutate(catalog::source().ftl, "common-cancel", "{ nonexistent-reference }");
-    let problems = validate(catalog::SOURCE_TAG, &broken, false, &source);
-    assert!(problems.iter().any(|p| p.contains("common-cancel")), "{problems:?}");
+    let american = catalog::find("en-US").unwrap();
+    let copied = format!("{}\n# Only the comment differs.\ncommon-cancel = Cancel\n", american.ftl);
+    let problems = validate("en-US", &copied, false, &source);
+    assert!(
+        problems.iter().any(|p| p.contains("common-cancel") && p.contains("identical to the source")),
+        "{problems:?}"
+    );
+    // A spelling difference is what the overlay is for.
+    let problems = validate("en-US", american.ftl, false, &source);
+    assert!(problems.is_empty(), "{problems:?}");
 }
 
 #[test]

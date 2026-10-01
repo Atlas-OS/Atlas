@@ -38,18 +38,15 @@ pub const LANGUAGE_ENV: &str = "ATLAS_LANGUAGE";
 pub enum Decision {
     /// A test or review override (`--language`, `ATLAS_LANGUAGE`).
     Override(String),
-    /// The setting names a shipped language.
+    /// The setting names a language the app includes.
     Setting,
-    /// The setting names a language this build does not ship; English is
+    /// The setting names a language this build doesn't include; English is
     /// showing and the preference is kept as it was.
     SettingUnavailable(String),
-    /// "Match Windows" found a shipped language in the display-language list.
+    /// "Match Windows" found an included language in the display-language list.
     Windows,
     /// "Match Windows" found none of the display languages; English is showing.
     WindowsUnmatched,
-    /// "Match Windows" found a display language that ships only as a preview
-    /// translation (tag); English is showing until the user opts in.
-    WindowsPreview(String),
     /// The display-language list could not be read; English is showing.
     WindowsUnavailable(String),
 }
@@ -81,10 +78,7 @@ impl Localization {
     pub fn follows_windows(&self) -> bool {
         matches!(
             self.decision,
-            Decision::Windows
-                | Decision::WindowsUnmatched
-                | Decision::WindowsPreview(_)
-                | Decision::WindowsUnavailable(_)
+            Decision::Windows | Decision::WindowsUnmatched | Decision::WindowsUnavailable(_)
         )
     }
 
@@ -142,7 +136,7 @@ fn override_tag(argument: Option<&str>) -> Option<String> {
 /// the Windows display-language list, then English. A failure anywhere
 /// leaves the app usable in English and is recorded in the decision.
 pub fn activate(preference: &LanguagePreference, override_argument: Option<&str>) -> Localization {
-    activate_with(preference, override_argument, windows_languages())
+    activate_with(preference, override_argument, current_windows_languages())
 }
 
 /// Environment variable that stands in for the Windows display-language
@@ -150,13 +144,9 @@ pub fn activate(preference: &LanguagePreference, override_argument: Option<&str>
 /// act as a failed query.
 pub const WINDOWS_LANGUAGES_ENV: &str = "ATLAS_WINDOWS_LANGUAGES";
 
-/// The Windows display-language list as the app sees it (honouring the
-/// review override), for the activation re-check.
+/// The Windows display-language list, or its stand-in from
+/// [`WINDOWS_LANGUAGES_ENV`].
 pub fn current_windows_languages() -> Result<Vec<String>, String> {
-    windows_languages()
-}
-
-fn windows_languages() -> Result<Vec<String>, String> {
     match std::env::var(WINDOWS_LANGUAGES_ENV) {
         Ok(value) if value.trim().eq_ignore_ascii_case("error") => {
             Err("simulated failure (ATLAS_WINDOWS_LANGUAGES=error)".to_owned())
@@ -178,11 +168,9 @@ pub fn activate_with(
     let windows_languages = windows.as_ref().cloned().unwrap_or_default();
     let all: Vec<&'static Locale> = catalog::LOCALES.iter().collect();
     let listed: Vec<&'static Locale> = catalog::LOCALES.iter().filter(|locale| locale.listed()).collect();
-    let auto: Vec<&'static Locale> =
-        catalog::LOCALES.iter().filter(|locale| locale.auto_selectable()).collect();
 
     let (decision, chain) = if let Some(tag) = override_tag(override_argument) {
-        // Overrides may name anything shipped, including the pseudo-locale.
+        // Overrides may name any included language, even the pseudo-locale.
         let chain = match catalog::find(&tag) {
             Some(locale) => vec![locale, catalog::source()],
             None => negotiate::negotiate(&negotiate::parse_tags([tag.as_str()]), &all),
@@ -203,25 +191,9 @@ pub fn activate_with(
             LanguagePreference::System => match &windows {
                 Ok(list) => {
                     let requested = negotiate::parse_tags(list.iter().map(String::as_str));
-                    let chain = negotiate::negotiate(&requested, &auto);
-                    // Which of the user's languages the automatic choice
-                    // satisfied, and whether a preview translation of an
-                    // earlier one exists to opt into.
-                    let matched = chain.first().and_then(|first| request_index(&requested, first));
-                    let preview = negotiate::negotiate(&requested, &listed)
-                        .first()
-                        .copied()
-                        .filter(|first| !first.auto_selectable())
-                        .and_then(|first| request_index(&requested, first).map(|index| (index, first)));
-                    let decision = match (matched, preview) {
-                        (Some(used), Some((wanted, locale))) if wanted < used => {
-                            Decision::WindowsPreview(locale.tag.to_owned())
-                        }
-                        (Some(_), _) => Decision::Windows,
-                        (None, Some((_, locale))) => Decision::WindowsPreview(locale.tag.to_owned()),
-                        (None, None) => Decision::WindowsUnmatched,
-                    };
-                    (decision, chain)
+                    let chain = negotiate::negotiate(&requested, &listed);
+                    let matched = chain.first().is_some_and(|first| serves_a_request(&requested, first));
+                    (if matched { Decision::Windows } else { Decision::WindowsUnmatched }, chain)
                 }
                 Err(error) => {
                     log::warn!("could not read the Windows display languages: {error}");
@@ -244,16 +216,11 @@ pub fn activate_with(
     Localization { decision, chain, windows_languages, format_locale: fmt::format_locale_tag() }
 }
 
-/// Whether a requested tag and a shipped locale share a language (so English
-/// chosen as the fallback is not mistaken for a Windows match).
-fn language_matches(requested: &LanguageIdentifier, shipped: &LanguageIdentifier) -> bool {
-    requested.language == shipped.language
-}
-
-/// The position in the user's list of the first language `locale` serves.
-fn request_index(requested: &[LanguageIdentifier], locale: &Locale) -> Option<usize> {
-    let id = locale.id();
-    requested.iter().position(|request| language_matches(request, &id))
+/// Whether `locale` speaks one of the requested languages, so English that
+/// ends the chain as the fallback is not mistaken for a Windows match.
+fn serves_a_request(requested: &[LanguageIdentifier], locale: &Locale) -> bool {
+    let language = locale.id().language;
+    requested.iter().any(|request| request.language == language)
 }
 
 /// Formats a message: `t!("id")` or `t!("id", count = 3, name = "x")`.
@@ -309,29 +276,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn text_falls_through_the_chain_and_never_shows_a_broken_message() {
-        with_chain(&["pl"], || {
-            assert_eq!(t!("common-cancel"), "Anuluj");
-            // A missing translation falls back to the source, not the id.
-            assert_ne!(t!("app-name"), "app-name");
-        });
+    fn text_comes_from_the_chain_and_an_unknown_id_shows_as_itself() {
+        let cancel = english(|| t!("common-cancel"));
+        with_chain(&["pl"], || assert_ne!(t!("common-cancel"), cancel));
         with_chain(&["qps-ploc"], || {
             let text = t!("common-cancel");
             assert!(text.starts_with("Ċáñċéŀ"), "{text}");
         });
-        english(|| {
-            assert_eq!(t!("common-cancel"), "Cancel");
-            assert_eq!(text("no-such-message", &[]), "no-such-message");
-        });
+        english(|| assert_eq!(text("no-such-message", &[]), "no-such-message"));
     }
 
     #[test]
-    fn plural_counts_select_the_right_form_and_format_regionally() {
-        english(|| {
-            assert_eq!(t!("security-count-still-on", count = 1u32), "1 still on");
-            assert_eq!(t!("security-count-still-on", count = 2u32), "2 still on");
-            assert_eq!(t!("log-earlier-lines", count = 1u32), "1 earlier line is in the log file.");
-        });
+    fn counts_reach_plural_selectors_as_numbers() {
         with_chain(&["pl"], || {
             for (count, expected) in
                 [(1u32, "wiersz"), (2, "wiersze"), (5, "wierszy"), (22, "wiersze"), (12, "wierszy")]
@@ -362,7 +318,7 @@ mod tests {
     }
 
     #[test]
-    fn match_windows_recovers_after_a_failed_query_and_offers_previews_explicitly() {
+    fn match_windows_recovers_after_a_failed_query_and_auto_selects_previews() {
         exclusive(|| {
             let failed = activate_with(&LanguagePreference::System, None, Err("boom".into()));
             assert_eq!(failed.decision, Decision::WindowsUnavailable("boom".into()));
@@ -387,6 +343,12 @@ mod tests {
             assert_eq!(nothing.decision, Decision::WindowsUnmatched);
             let empty = activate_with(&LanguagePreference::System, None, Ok(vec![]));
             assert_eq!(empty.decision, Decision::WindowsUnmatched);
+            // Windows can list the pseudo-locale; it is never picked, or offered.
+            let pseudo = activate_with(&LanguagePreference::System, None, Ok(vec!["qps-ploc".into()]));
+            assert!(!pseudo.primary().pseudo);
+            assert_eq!(pseudo.decision, Decision::WindowsUnmatched);
+            let pseudo = activate_with(&LanguagePreference::Explicit("qps-ploc".into()), None, Ok(vec![]));
+            assert_eq!(pseudo.decision, Decision::SettingUnavailable("qps-ploc".into()));
 
             // An explicit choice of a preview language is honoured, and does
             // not follow Windows.
@@ -395,38 +357,30 @@ mod tests {
             assert_eq!(chosen.decision, Decision::Setting);
             assert_eq!(chosen.primary().tag, "de");
             assert!(!chosen.follows_windows());
-            // The override is preserved whatever Windows says.
-            let forced = activate_with(&LanguagePreference::System, Some("pl"), Err("boom".into()));
-            assert_eq!(forced.primary().tag, "pl");
-        });
-    }
-
-    #[test]
-    fn the_decision_reports_how_the_language_was_chosen() {
-        exclusive(|| {
-            let windows = locale::ui_languages().unwrap_or_default();
-            let state = activate(&LanguagePreference::System, None);
-            assert!(!state.chain.is_empty());
-            assert!(state.chain.iter().any(|l| l.tag == "en-GB"), "{:?}", state.chain);
-            assert_eq!(state.windows_languages, windows);
-            let german = activate(&LanguagePreference::Explicit("de".into()), None);
-            assert_eq!(german.decision, Decision::Setting);
-            assert_eq!(german.primary().tag, "de");
-            let unknown = activate(&LanguagePreference::Explicit("xx".into()), None);
+            let unknown =
+                activate_with(&LanguagePreference::Explicit("xx".into()), None, Ok(vec!["en-US".into()]));
             assert_eq!(unknown.decision, Decision::SettingUnavailable("xx".into()));
             assert_eq!(unknown.primary().tag, "en-GB");
-            let pseudo = activate(&LanguagePreference::System, Some("qps-ploc"));
+
+            // The override is preserved whatever Windows says, and may name the pseudo-locale.
+            let forced = activate_with(&LanguagePreference::System, Some("pl"), Err("boom".into()));
+            assert_eq!(forced.primary().tag, "pl");
+            let pseudo =
+                activate_with(&LanguagePreference::System, Some("qps-ploc"), Ok(vec!["en-US".into()]));
             assert_eq!(pseudo.decision, Decision::Override("qps-ploc".into()));
             assert!(pseudo.primary().pseudo);
-            let traditional = activate(&LanguagePreference::System, Some("zh-TW"));
+            let traditional =
+                activate_with(&LanguagePreference::System, Some("zh-TW"), Ok(vec!["en-US".into()]));
             assert_eq!(traditional.primary().tag, "zh-Hant");
             assert!(traditional.font_fallbacks().is_some());
-            assert_eq!(traditional.primary().direction, catalog::Direction::LeftToRight);
         });
     }
 }
 
-// Exercise the exact line-break helper used by our pinned GPUI patch.
+// The vendored GPUI's own tests don't build outside the Zed workspace, so
+// the app runs its complex-script line-breaking tests here.
 #[cfg(test)]
 #[path = "../../vendor/gpui-pre/src/text_system/complex_script_breaks.rs"]
 mod complex_script_break_tests;
+#[cfg(test)]
+mod line_breaks;

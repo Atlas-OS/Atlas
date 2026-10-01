@@ -22,7 +22,7 @@ impl Step {
     /// Command-line and draft spelling.
     pub fn parse(name: &str) -> Option<Step> {
         match name.to_ascii_lowercase().as_str() {
-            "ready" | "checks" => Some(Step::Ready),
+            "ready" => Some(Step::Ready),
             "options" => Some(Step::Options),
             "security" => Some(Step::Security),
             "install" => Some(Step::Install),
@@ -40,7 +40,7 @@ impl Step {
     }
 
     pub fn index(self) -> usize {
-        Step::ALL.iter().position(|s| *s == self).unwrap_or(0)
+        self as usize
     }
 
     pub fn next(self) -> Option<Step> {
@@ -55,7 +55,7 @@ impl Step {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RunState {
     Idle,
-    /// Final checks are running again just before the child starts.
+    /// Final checks are running again just before the installer starts.
     Preparing,
     Running,
     Finished(InstallOutcome),
@@ -65,6 +65,20 @@ impl RunState {
     /// The install is in progress: nothing that feeds it may change.
     pub fn is_locked(self) -> bool {
         matches!(self, RunState::Preparing | RunState::Running)
+    }
+
+    /// The install finished and succeeded.
+    pub fn succeeded(self) -> bool {
+        matches!(self, RunState::Finished(outcome) if outcome.is_success())
+    }
+
+    /// Nothing runs and no success is showing, so Install (or Try again) is on offer.
+    pub fn may_start(self) -> bool {
+        match self {
+            RunState::Idle => true,
+            RunState::Finished(outcome) => !outcome.is_success(),
+            RunState::Preparing | RunState::Running => false,
+        }
     }
 }
 
@@ -118,11 +132,7 @@ impl Flow {
 
     /// Starts (or restarts) the flow at the first step.
     pub fn begin(&mut self) -> Result<(), Refusal> {
-        self.require_unlocked()?;
-        self.active = true;
-        self.step = Step::Ready;
-        self.run = RunState::Idle;
-        Ok(())
+        self.resume(Step::Ready)
     }
 
     /// Picks the flow up where a draft or a startup flag left it.
@@ -172,7 +182,7 @@ impl Flow {
 
     pub fn back(&mut self) -> Result<Step, Refusal> {
         self.require_active()?;
-        if matches!(self.run, RunState::Finished(outcome) if outcome.is_success()) {
+        if self.run.succeeded() {
             return Err(Refusal::Complete);
         }
         let previous = self.step.previous().ok_or(Refusal::WrongState)?;
@@ -190,13 +200,13 @@ impl Flow {
         Ok(())
     }
 
-    /// Final checks before the child process starts.
+    /// Final checks before the installer starts.
     pub fn start_preparing(&mut self) -> Result<(), Refusal> {
         self.require_active()?;
         if self.step != Step::Install {
             return Err(Refusal::WrongState);
         }
-        if matches!(self.run, RunState::Finished(outcome) if outcome.is_success()) {
+        if self.run.succeeded() {
             return Err(Refusal::Complete);
         }
         self.run = RunState::Preparing;
@@ -220,7 +230,7 @@ impl Flow {
         Ok(())
     }
 
-    /// The child ended. A success ends the flow; anything else keeps the
+    /// The installer ended. A success ends the flow; anything else keeps the
     /// user on the install step with the result and log.
     pub fn finish(&mut self, outcome: InstallOutcome) -> Result<(), Refusal> {
         if self.run != RunState::Running {

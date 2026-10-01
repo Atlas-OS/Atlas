@@ -88,7 +88,7 @@ mod seal {
 
 pub use accesskit;
 pub use accesskit::Action as AccessibleAction;
-pub use accesskit::{Orientation, Role, Toggled};
+pub use accesskit::{Live, Orientation, Role, Toggled};
 pub use action::*;
 pub use anyhow::Result;
 pub use app::*;

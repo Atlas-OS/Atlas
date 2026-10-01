@@ -72,7 +72,10 @@ impl LineWrapper {
                             }
                         } else {
                             // CJK may not be space separated, e.g.: `Hello world你好世界`
-                            if c != ' ' && first_non_whitespace_ix.is_some() {
+                            if c != ' '
+                                && first_non_whitespace_ix.is_some()
+                                && super::glue_breaks::may_break_after(prev_c)
+                            {
                                 last_candidate_ix = ix;
                                 last_candidate_width = width;
                             }
@@ -482,6 +485,11 @@ impl LineWrapper {
         // the next line. `/` and `?` stay break opportunities so long paths
         // and URLs (`a/b`, `foo?b=2`) can wrap.
         matches!(c, '!' | ')' | ']' | '}' | '"' | '”' | '»' | '…') ||
+        // Atlas patch: German closes quotes with `“`, which English only opens
+        // with after a space, so it never needs a break before it. CJK
+        // closing and stop punctuation may not start a line either (kinsoku,
+        // UAX #14 classes CL and EX).
+        matches!(c, '“' | '、' | '。' | '，' | '．' | '！' | '？' | '：' | '；' | '）' | '］' | '｝' | '」' | '』' | '】' | '〕' | '〉' | '》' | '〗' | '〙') ||
         // `⋯` character is special used in Zed, to keep this at the end of the line.
         matches!(c, '⋯') ||
 
@@ -1161,6 +1169,8 @@ mod tests {
         assert_word("plz!");
         assert_word("see)");
         assert_word("quoted”");
+        assert_word("Ja“");
+        assert_word("。、，！？）」』】");
         assert_word("well…");
 
         // Space

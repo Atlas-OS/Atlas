@@ -1,31 +1,48 @@
 //! The window: title bar and one content layer over Mica. The app has a single
-//! destination (Home); the install flow and Settings open from it and offer a
-//! way back, so there is no navigation pane.
+//! destination (Home); every other page offers a way back to it, so there is
+//! no navigation pane.
 //!
 //! The shell also owns what is window-wide: keyboard traversal (Tab and
 //! Shift+Tab), the theme (appearance, contrast, text size), and the close
 //! guard that keeps a running install from being abandoned unknowingly.
 
+use std::cell::Cell;
+use std::path::PathBuf;
+use std::sync::atomic::Ordering;
+use std::time::{Duration, Instant};
+
 use gpui::{
-    Context, Entity, FocusHandle, IntoElement, ParentElement, PromptLevel, Render, Styled, Subscription,
-    Window, WindowBackgroundAppearance, div, prelude::*, px,
+    Context, Div, Entity, FocusHandle, IntoElement, ParentElement, Pixels, PromptLevel, Render, ScrollHandle,
+    Styled, Subscription, Window, WindowBackgroundAppearance, div, prelude::*, px,
 };
 
 use crate::i18n::Localization;
-use crate::model::{AppModel, ModelEvent, Page};
-use crate::pages::{HomePage, InstallPage, InstalledPage, InstallingPage, IsoPage, SettingsPage};
+use crate::model::{AppModel, CloseGuard, ModelEvent, Page, Step};
+use crate::pages::{
+    CONTENT_MAX_WIDTH, HomePage, InstallPage, InstalledPage, InstallingPage, IsoPage, PAGE_PADDING,
+    ReportPage, SettingsPage, back_arrow,
+};
+use crate::services::system::links;
 use crate::t;
 use crate::theme::{ActiveTheme, Appearance, FONT_TEXT, Theme};
 use crate::ui::actions::{FocusNext, FocusPrevious, NavigateBack};
-use crate::ui::{BODY_LINE_HEIGHT, Button, Icon, TitleBar, Typography, focus_reveal, icon_in_line};
+use crate::ui::{
+    Button, InfoBar, ScrollbarState, Severity, TitleBar, Typography, a11y_text, dismiss_button, focus_reveal,
+    nested_scrollbar, page_keyboard_scrolling,
+};
 
-/// Where the window opens. Set from the command line for review and testing.
+/// The share of the window's height the app-wide notices may take. Past it
+/// they scroll on their own, so very large text never leaves the page
+/// without room.
+const NOTICES_MAX_SHARE: f32 = 0.4;
+
+/// Where the window opens, from the command line and the launch state.
 #[derive(Clone, Debug, Default)]
 pub struct StartAt {
     pub page: Option<Page>,
-    pub step: Option<crate::model::Step>,
+    pub step: Option<Step>,
     /// An .apbx to unpack on launch.
-    pub playbook: Option<std::path::PathBuf>,
+    pub playbook: Option<PathBuf>,
     /// A language tag that outranks the setting (`--language`), for review.
     pub language: Option<String>,
 }
@@ -38,14 +55,19 @@ pub struct Shell {
     installing: Entity<InstallingPage>,
     installed: Entity<InstalledPage>,
     settings: Entity<SettingsPage>,
-    report: Entity<crate::pages::ReportPage>,
+    report: Entity<ReportPage>,
     system_appearance: Appearance,
     focus_handle: FocusHandle,
     /// The user confirmed closing while an install runs.
     close_confirmed: bool,
+    /// Whether a restart countdown was running last time the model changed,
+    /// to flash the taskbar button when one starts unseen.
+    countdown_seen: bool,
     /// The backdrop last handed to Windows; the platform call is not cheap
     /// and not guarded, so it is made only on a change.
-    applied_backdrop: std::cell::Cell<Option<WindowBackgroundAppearance>>,
+    applied_backdrop: Cell<Option<WindowBackgroundAppearance>>,
+    notices_scroll: ScrollHandle,
+    notices_scrollbar: ScrollbarState,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -53,20 +75,7 @@ impl Shell {
     pub fn new(start: StartAt, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let language = start.language.clone();
         let model = cx.new(|cx| AppModel::new(language, cx));
-        model.update(cx, |model, cx| {
-            if let Some(page) = start.page {
-                if page == Page::Install && !model.flow.active {
-                    model.start_flow_at(crate::model::Step::Ready, cx);
-                }
-                model.navigate(page, cx);
-            }
-            if let Some(step) = start.step {
-                model.start_flow_at(step, cx);
-            }
-            if let Some(path) = start.playbook.clone() {
-                model.load_playbook_file(path, cx);
-            }
-        });
+        model.update(cx, |model, cx| model.apply_start(start.page, start.step, start.playbook, cx));
         let system_appearance = Appearance::from_window(window.appearance());
         {
             let (theme, localization) = {
@@ -83,8 +92,21 @@ impl Shell {
         let focus_handle = cx.focus_handle();
         window.focus(&focus_handle, cx);
 
+        model.update(cx, |model, _| model.set_window_active(window.is_window_active()));
         let subscriptions = vec![
-            cx.observe(&model, |_, _, cx| cx.notify()),
+            cx.observe_in(&model, window, |this, model, window, cx| {
+                // A countdown that starts while the window is behind others
+                // flashes its taskbar button until the user comes back.
+                let counting = model.read(cx).restart_countdown().is_some();
+                if counting
+                    && !std::mem::replace(&mut this.countdown_seen, true)
+                    && !window.is_window_active()
+                {
+                    crate::services::system::flash_until_foreground(window);
+                }
+                this.countdown_seen = counting;
+                cx.notify();
+            }),
             cx.subscribe(&model, |this, _, event: &ModelEvent, cx| match event {
                 ModelEvent::ThemeChanged => this.apply_theme(cx),
                 ModelEvent::LanguageChanged => this.apply_language(cx),
@@ -97,10 +119,14 @@ impl Shell {
             cx.observe_window_activation(window, |this, window, cx| {
                 // Ease of Access and language settings change outside the
                 // app; re-read them whenever the user comes back to the window.
-                if window.is_window_active() {
+                let active = window.is_window_active();
+                this.model.update(cx, |model, _| model.set_window_active(active));
+                if active {
                     this.model.update(cx, |model, cx| {
                         model.refresh_accessibility(cx);
                         model.refresh_language(cx);
+                        // Back from Windows Security, a reminder names what is still off.
+                        model.refresh_protection(cx);
                     });
                 }
                 // Chrome and the completion backdrop draw differently for
@@ -121,87 +147,102 @@ impl Shell {
             installing: cx.new(|cx| InstallingPage::new(model.clone(), cx)),
             installed: cx.new(|cx| InstalledPage::new(model.clone(), cx)),
             settings: cx.new(|cx| SettingsPage::new(model.clone(), cx)),
-            report: cx.new(|cx| crate::pages::ReportPage::new(model.clone(), cx)),
+            report: cx.new(|cx| ReportPage::new(model.clone(), cx)),
             model,
             system_appearance,
             focus_handle,
             close_confirmed: false,
-            applied_backdrop: std::cell::Cell::new(None),
+            countdown_seen: false,
+            applied_backdrop: Cell::new(None),
+            notices_scroll: ScrollHandle::new(),
+            notices_scrollbar: ScrollbarState::new(),
             _subscriptions: subscriptions,
         };
         shell.sync_backdrop(window, cx);
         shell
     }
 
-    /// Closing while an install runs is allowed, but only knowingly: the
-    /// install carries on in the background and the app can be reopened to
-    /// follow it, and the user is told so first.
+    /// Lets the window close only once the user knows what closing does to the
+    /// job under way (see [`CloseGuard`]).
     fn should_close(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
-        if self.model.read(cx).before_desktop && self.model.read(cx).locked() {
+        // A dialog is already asking; it answers, not a second one.
+        if window.has_active_prompt() {
             return false;
         }
-        if self.model.read(cx).preparation.busy() {
-            let response = window.prompt(
-                PromptLevel::Warning,
-                &t!("prepare-title"),
-                Some(&t!("prepare-stop-description")),
-                &[t!("iso-keep-open").as_str(), t!("prepare-stop").as_str()],
-                cx,
-            );
-            let model = self.model.clone();
-            cx.spawn(async move |_, cx| {
-                if response.await == Ok(1) {
-                    model.update(cx, |m, cx| {
-                        m.preparation_cancel.store(true, std::sync::atomic::Ordering::Relaxed);
-                        cx.notify();
-                    });
-                }
-            })
-            .detach();
+        let state = self.model.read(cx);
+        // Closing ends desktop setup, so before the desktop it waits until nothing runs.
+        if state.before_desktop && state.locked() {
             return false;
         }
-        if self.model.read(cx).iso_busy {
-            let title =
-                if self.model.read(cx).usb_busy { t!("usb-close-title") } else { t!("iso-close-title") };
-            let message =
-                if self.model.read(cx).usb_busy { t!("usb-working") } else { t!("iso-close-message") };
-            let keep = t!("iso-keep-open");
-            let cancel = t!("iso-cancel");
-            let response = window.prompt(
-                PromptLevel::Warning,
-                &title,
-                Some(&message),
-                &[keep.as_str(), cancel.as_str()],
-                cx,
-            );
-            let model = self.model.clone();
-            cx.spawn(async move |_, cx| {
-                if response.await == Ok(1) {
-                    model.update(cx, |m, cx| {
-                        m.iso_cancel.store(true, std::sync::atomic::Ordering::Relaxed);
-                        cx.notify();
-                    });
-                }
-            })
-            .detach();
-            return false;
+        if self.close_confirmed {
+            // A close already confirmed waits for the launch hand-off.
+            return !state.launching();
         }
-        if self.close_confirmed || !self.model.read(cx).locked() {
-            return true;
+        let guard = state.close_guard();
+        let usb = state.usb_busy;
+        // A dialog opens over the window, so a minimised or hidden window
+        // comes back first (closing from the taskbar, for example).
+        if !matches!(guard, CloseGuard::None | CloseGuard::Wait) && !window.is_window_active() {
+            window.activate_window();
         }
-        let (title, message, keep, close) = (
-            t!("window-close-title"),
-            t!("window-close-message"),
-            t!("window-close-keep"),
-            t!("window-close-close"),
-        );
+        let (title, message) = match guard {
+            CloseGuard::None => return true,
+            CloseGuard::ProtectionOff => {
+                self.confirm_closing_with_protection_off(window, cx);
+                return false;
+            }
+            // Saving a preparation restart takes a moment; then Windows restarts.
+            CloseGuard::Wait => return false,
+            CloseGuard::Restart => {
+                self.confirm_restart_before_closing(window, cx);
+                return false;
+            }
+            CloseGuard::Preparation => {
+                let (title, message) = (t!("prepare-close-title"), t!("prepare-close-message"));
+                let stop = |m: &mut AppModel| m.preparation_cancel.store(true, Ordering::Relaxed);
+                self.offer_stop(&title, &message, &t!("prepare-stop"), stop, window, cx);
+                return false;
+            }
+            CloseGuard::Media => {
+                let (title, message) = if usb {
+                    (t!("usb-close-title"), t!("usb-working"))
+                } else {
+                    (t!("iso-close-title"), t!("iso-close-message"))
+                };
+                let stop = |m: &mut AppModel| m.iso_cancel.store(true, Ordering::Relaxed);
+                self.offer_stop(&title, &message, &t!("iso-cancel"), stop, window, cx);
+                return false;
+            }
+            CloseGuard::PreparingInstall => {
+                (t!("window-close-preparing-title"), t!("window-close-preparing-message"))
+            }
+            CloseGuard::Install => {
+                // Only an open window restarts the PC when installing ends.
+                let restart = state
+                    .session
+                    .as_ref()
+                    .map_or(state.settings.restart_after_install, |session| session.request.restart);
+                let message =
+                    if restart { t!("window-close-message-restart") } else { t!("window-close-message") };
+                (t!("window-close-title"), message)
+            }
+        };
+        let (keep, close) = (t!("window-close-keep"), t!("window-close-close"));
         let answer =
             window.prompt(PromptLevel::Warning, &title, Some(&message), &[keep.as_str(), close.as_str()], cx);
         cx.spawn_in(window, async move |this, cx| {
             if answer.await == Ok(1) {
-                this.update_in(cx, |shell, window, _cx| {
-                    shell.close_confirmed = true;
-                    window.remove_window();
+                this.update_in(cx, |shell, window, cx| {
+                    // Still before the launch: stop it, so closing starts
+                    // nothing. If the installer started while the question
+                    // was open, ask again in the words for that.
+                    if guard == CloseGuard::PreparingInstall
+                        && !shell.model.update(cx, |model, cx| model.abandon_preparing(cx))
+                        && !shell.should_close(window, cx)
+                    {
+                        return;
+                    }
+                    shell.close_after_launch(window, cx);
                 })
                 .ok();
             }
@@ -210,26 +251,129 @@ impl Shell {
         false
     }
 
-    /// Escape does what the page's back arrow does, so it works only where
-    /// the arrow is drawn: Settings, the ISO page while no job runs, and the
-    /// install flow outside desktop setup. Home, a running install and the
-    /// completion page have no arrow and ignore it. The model's own refusals
-    /// (a busy preparation or ISO job) apply as they do to the arrow.
-    fn navigate_back(&mut self, cx: &mut Context<Self>) {
-        // Escape inside the USB panel closes the panel first, as its Back button does.
-        if self.model.read(cx).page == Page::Iso && self.iso.update(cx, |iso, cx| iso.close_usb_panel(cx)) {
+    /// Offers to stop a job that stops at a safe point. The window stays open
+    /// either way; it can be closed once the job has ended.
+    fn offer_stop(
+        &mut self,
+        title: &str,
+        message: &str,
+        stop_label: &str,
+        stop: fn(&mut AppModel),
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let keep = t!("iso-keep-open");
+        let answer =
+            window.prompt(PromptLevel::Warning, title, Some(message), &[keep.as_str(), stop_label], cx);
+        let model = self.model.clone();
+        cx.spawn(async move |_, cx| {
+            if answer.await == Ok(1) {
+                model.update(cx, |model, cx| {
+                    stop(model);
+                    cx.notify();
+                });
+            }
+        })
+        .detach();
+    }
+
+    /// Closes the window once a confirmed close may go ahead. The process
+    /// ends with its last window, and a launch still on its worker (the
+    /// installer starting, its completion window being armed) would end with
+    /// it, so the close waits for the launch to answer, for a while at most.
+    fn close_after_launch(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        const LAUNCH_WAIT: Duration = Duration::from_secs(15);
+        self.close_confirmed = true;
+        if !self.model.read(cx).launching() {
+            window.remove_window();
             return;
         }
-        let state = self.model.read(cx);
-        let has_arrow = !state.install_in_progress()
-            && match state.page {
-                Page::Settings | Page::Report => true,
-                Page::Iso => !state.iso_busy,
-                Page::Install => !state.before_desktop,
-                Page::Home | Page::Installed => false,
-            };
-        if has_arrow {
-            self.model.update(cx, |model, cx| model.navigate(Page::Home, cx));
+        cx.spawn_in(window, async move |this, cx| {
+            let deadline = Instant::now() + LAUNCH_WAIT;
+            loop {
+                let launching =
+                    this.update_in(cx, |shell, _, cx| shell.model.read(cx).launching()).unwrap_or(false);
+                if !launching || Instant::now() >= deadline {
+                    break;
+                }
+                cx.background_executor().timer(Duration::from_millis(50)).await;
+            }
+            this.update_in(cx, |_, window, _| window.remove_window()).ok();
+        })
+        .detach();
+    }
+
+    /// Atlas keeps the restart countdown, so closing the window would drop
+    /// the restart without a word. The user keeps the window, restarts now,
+    /// or closes knowing the PC must be restarted by hand. The countdown is
+    /// held while the prompt is open and starts again if the window stays.
+    fn confirm_restart_before_closing(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let (title, message) = (t!("window-close-restart-title"), t!("window-close-restart-message"));
+        let (keep, restart, close) =
+            (t!("window-close-keep"), t!("restart-now"), t!("window-close-restart-close"));
+        self.model.update(cx, |model, _| model.hold_restart());
+        let answer = window.prompt(
+            PromptLevel::Warning,
+            &title,
+            Some(&message),
+            &[keep.as_str(), restart.as_str(), close.as_str()],
+            cx,
+        );
+        cx.spawn_in(window, async move |this, cx| {
+            let answer = answer.await;
+            this.update_in(cx, |shell, window, cx| match answer {
+                Ok(1) => shell.model.update(cx, |model, cx| model.restart_now(cx)),
+                Ok(2) => {
+                    shell.model.update(cx, |model, cx| model.cancel_restart(cx));
+                    shell.close_after_launch(window, cx);
+                }
+                // Keep open, or the prompt went away without an answer.
+                _ => shell.model.update(cx, |model, cx| model.resume_restart(cx)),
+            })
+            .ok();
+        })
+        .detach();
+    }
+
+    /// Closing during a setup with protection switches read off would leave
+    /// them off. The user keeps the window, opens Windows Security to turn
+    /// them back on, or closes knowing the setup continues when Atlas opens
+    /// again.
+    fn confirm_closing_with_protection_off(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(reminder) = self.model.read(cx).protection_left_off() else { return };
+        let names: Vec<String> = reminder.switches.iter().map(|switch| switch.title()).collect();
+        let title = t!("window-close-protection-title");
+        let message =
+            t!("window-close-protection-message", switches = crate::i18n::describe::join_and(&names));
+        let (keep, open, close) =
+            (t!("window-close-keep"), t!("common-open-windows-security"), t!("window-close-close"));
+        let answer = window.prompt(
+            PromptLevel::Warning,
+            &title,
+            Some(&message),
+            &[keep.as_str(), open.as_str(), close.as_str()],
+            cx,
+        );
+        cx.spawn_in(window, async move |this, cx| {
+            let answer = answer.await;
+            this.update_in(cx, |shell, window, cx| match answer {
+                Ok(1) => cx.open_url(links::WINDOWS_SECURITY_PROTECTION),
+                Ok(2) => shell.close_after_launch(window, cx),
+                _ => {}
+            })
+            .ok();
+        })
+        .detach();
+    }
+
+    /// Escape does what the page's back arrow does, and nothing where no arrow is drawn.
+    fn navigate_back(&mut self, cx: &mut Context<Self>) {
+        // Escape inside the USB panel goes back there first, as its Back button does.
+        if self.model.read(cx).page == Page::Iso && self.iso.update(cx, |iso, cx| iso.usb_back(cx)) {
+            return;
+        }
+        if let Some(target) = back_arrow(self.model.read(cx)) {
+            self.model.update(cx, |model, cx| model.navigate(target, cx));
         }
     }
 
@@ -270,11 +414,24 @@ impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.sync_backdrop(window, cx);
         let theme = cx.theme();
-        // The type ramp is in rems; the Ease of Access text size scales it.
+        // The type ramp is in rems; the Ease of Access text size scales it,
+        // and the display sizes follow it as WinUI's do.
         window.set_rem_size(px(16. * theme.text_scale));
-        let (page, installing, preview_notice) = {
+        crate::ui::set_text_scale(theme.text_scale);
+        // Screen readers read the window in the language it's shown in.
+        let tag = cx.global::<Localization>().primary().tag;
+        window.set_accessibility_language(Some(tag.into()));
+        let (page, installing, preview_notice, settings_reachable, before_desktop, may_exit_setup) = {
             let state = self.model.read(cx);
-            (state.page, state.install_in_progress(), state.preview_notice().map(|locale| locale.native_name))
+            (
+                state.page,
+                state.install_in_progress(),
+                state.preview_notice().map(|locale| locale.native_name),
+                state.can_navigate(Page::Settings),
+                state.before_desktop,
+                // Leaving drops a restart countdown as closing would.
+                !state.locked() && !state.restart_cancellable(),
+            )
         };
         let model = self.model.clone();
         // Script-specific font fallbacks for the current language, inherited
@@ -293,6 +450,7 @@ impl Render for Shell {
                 focus_reveal::request(window, cx);
             })
             .on_action(cx.listener(|this, _: &NavigateBack, _, cx| this.navigate_back(cx)))
+            .map(page_keyboard_scrolling)
             .size_full()
             .flex()
             .flex_col()
@@ -307,9 +465,10 @@ impl Render for Shell {
             })
             .type_body()
             .child(TitleBar::new(t!("app-name")).when(
-                !self.model.read(cx).before_desktop && !installing && page != Page::Installed,
+                !before_desktop && page != Page::Installed && settings_reachable,
                 |bar| {
-                    // Settings cannot change during an install; the gear goes with them.
+                    // Settings cannot open during an install, a preparation or
+                    // an ISO job; the gear goes with them.
                     bar.settings(page == Page::Settings, move |_, _, cx| {
                         model.update(cx, |model, cx| {
                             let target =
@@ -319,98 +478,7 @@ impl Render for Shell {
                     })
                 },
             ))
-            // A tester build: one persistent line of chrome says which
-            // candidate this is and that nothing else installs from it.
-            .when_some(crate::services::embedded::rc_id(), |this, rc_id| {
-                this.child(
-                    div()
-                        .id("rc-banner")
-                        .role(gpui::Role::Status)
-                        .flex_shrink_0()
-                        .flex()
-                        .items_start()
-                        .gap(px(8.))
-                        .pl(px(16.))
-                        .pr(px(16.))
-                        .pt(px(2.))
-                        .pb(px(8.))
-                        .child(icon_in_line(Icon::Info, BODY_LINE_HEIGHT).text_color(theme.info))
-                        .child(
-                            div()
-                                .flex_1()
-                                .min_w_0()
-                                .type_body()
-                                .whitespace_normal()
-                                .child(t!("rc-banner", release = rc_id)),
-                        ),
-                )
-            })
-            // A preview translation is in use: one line of chrome under the
-            // title bar says so, with the two ways out, until the user
-            // dismisses it for this language or picks English.
-            .when_some(preview_notice, |this, language| {
-                let switch = self.model.clone();
-                let change = self.model.clone();
-                let dismiss = self.model.clone();
-                this.child(
-                    div()
-                        .id("preview-notice")
-                        .role(gpui::Role::Status)
-                        .flex_shrink_0()
-                        .flex()
-                        .items_start()
-                        .gap(px(8.))
-                        .pl(px(16.))
-                        .pr(px(8.))
-                        .pt(px(2.))
-                        .pb(px(8.))
-                        .child(icon_in_line(Icon::Info, BODY_LINE_HEIGHT).text_color(theme.info))
-                        .child(
-                            div()
-                                .flex_1()
-                                .min_w_0()
-                                .flex()
-                                .flex_wrap()
-                                .items_center()
-                                .gap_x(px(4.))
-                                .child(
-                                    div()
-                                        .type_body()
-                                        .whitespace_normal()
-                                        .mr(px(4.))
-                                        .child(t!("preview-notice", language = language)),
-                                )
-                                .child(
-                                    Button::new("preview-notice-english", t!("preview-notice-switch"))
-                                        .hyperlink()
-                                        .compact()
-                                        .on_click(move |_, _, cx| {
-                                            switch.update(cx, |model, cx| model.switch_to_english(cx))
-                                        }),
-                                )
-                                .child(div().text_color(theme.text_tertiary).child("·"))
-                                .child(
-                                    Button::new("preview-notice-language", t!("preview-notice-language"))
-                                        .hyperlink()
-                                        .compact()
-                                        .on_click(move |_, _, cx| {
-                                            change.update(cx, |model, cx| model.navigate(Page::Settings, cx))
-                                        }),
-                                ),
-                        )
-                        .child(
-                            Button::new("preview-notice-dismiss", "")
-                                .icon(Icon::Cancel)
-                                .subtle()
-                                .compact()
-                                .aria_label(t!("common-dismiss"))
-                                .on_click(move |_, _, cx| {
-                                    dismiss.update(cx, |model, cx| model.dismiss_preview_notice(cx))
-                                }),
-                        ),
-                )
-            })
-            .when(self.model.read(cx).before_desktop && page != Page::Installed, |this| {
+            .when(before_desktop && page != Page::Installed, |this| {
                 this.child(
                     div()
                         .px(px(24.))
@@ -419,16 +487,15 @@ impl Render for Shell {
                         .items_center()
                         .gap(px(16.))
                         .child(
-                            div()
-                                .flex_1()
-                                .min_w_0()
-                                .whitespace_normal()
-                                .child(t!("desktop-setup-description")),
+                            div().flex_1().min_w_0().whitespace_normal().child(a11y_text(
+                                "desktop-setup-description",
+                                t!("desktop-setup-description"),
+                            )),
                         )
                         .child(
                             div().flex_shrink_0().child(
-                                crate::ui::Button::new("desktop-exit", t!("desktop-setup-exit"))
-                                    .disabled(self.model.read(cx).locked())
+                                Button::new("desktop-exit", t!("desktop-setup-exit"))
+                                    .disabled(!may_exit_setup)
                                     .on_click(|_, window, _| window.remove_window()),
                             ),
                         ),
@@ -448,6 +515,15 @@ impl Render for Shell {
                     .border_color(theme.layer_stroke)
                     .overflow_hidden()
                     .flex_col()
+                    .when_some(
+                        self.app_notices(
+                            page,
+                            preview_notice,
+                            settings_reachable,
+                            window.viewport_size().height * NOTICES_MAX_SHARE,
+                        ),
+                        |this, notices| this.child(notices),
+                    )
                     .child(if installing {
                         // One thing at a time: the whole layer is the install.
                         self.installing.clone().into_any_element()
@@ -462,5 +538,88 @@ impl Render for Shell {
                         }
                     }),
             )
+    }
+}
+
+impl Shell {
+    /// What holds for the whole app, inset at the top of the content: a
+    /// tester build, which installs nothing else, and a preview translation,
+    /// with the two ways out of it until the user dismisses it for this
+    /// language or picks English. They stay above every page, at most
+    /// `max_height` tall.
+    fn app_notices(
+        &self,
+        page: Page,
+        preview_language: Option<&'static str>,
+        settings_reachable: bool,
+        max_height: Pixels,
+    ) -> Option<Div> {
+        let rc = crate::services::embedded::rc_id().map(|rc_id| {
+            InfoBar::new(Severity::Informational, "", t!("rc-banner", release = rc_id)).id("rc-banner")
+        });
+        let preview = preview_language.map(|language| {
+            let (switch, change, dismiss) = (self.model.clone(), self.model.clone(), self.model.clone());
+            let actions = div()
+                .flex()
+                .flex_wrap()
+                .gap(px(8.))
+                .child(
+                    Button::new("preview-notice-english", t!("preview-notice-switch"))
+                        .hyperlink()
+                        .compact()
+                        .on_click(move |_, _, cx| switch.update(cx, |model, cx| model.switch_to_english(cx))),
+                )
+                // Settings is out of reach while an install or a job runs, and
+                // needs no link while it shows; English stays one click away.
+                .when(settings_reachable && page != Page::Settings, |this| {
+                    this.child(
+                        Button::new("preview-notice-language", t!("preview-notice-language"))
+                            .hyperlink()
+                            .compact()
+                            .on_click(move |_, _, cx| {
+                                change.update(cx, |model, cx| model.navigate(Page::Settings, cx))
+                            }),
+                    )
+                });
+            InfoBar::new(Severity::Informational, "", t!("preview-notice", language = language))
+                .id("preview-notice")
+                .action(actions)
+                .close_button(dismiss_button("preview-notice-dismiss", move |_, _, cx| {
+                    dismiss.update(cx, |model, cx| model.dismiss_preview_notice(cx))
+                }))
+        });
+        if rc.is_none() && preview.is_none() {
+            return None;
+        }
+        // In the page's column, so the bars line up with the content below.
+        Some(
+            div()
+                .relative()
+                .flex_shrink_0()
+                .child(
+                    div()
+                        .id("app-notices")
+                        .max_h(max_height)
+                        .overflow_y_scroll()
+                        .track_scroll(&self.notices_scroll)
+                        .flex()
+                        // The column keeps its own height, so what is past the cap scrolls.
+                        .items_start()
+                        .justify_center()
+                        .child(
+                            div()
+                                .w_full()
+                                .max_w(px(CONTENT_MAX_WIDTH))
+                                .px(px(PAGE_PADDING))
+                                .pt(px(16.))
+                                .flex()
+                                .flex_col()
+                                .gap(px(8.))
+                                .children(rc)
+                                .children(preview),
+                        ),
+                )
+                .child(nested_scrollbar(&self.notices_scroll, &self.notices_scrollbar)),
+        )
     }
 }

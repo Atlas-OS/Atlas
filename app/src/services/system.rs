@@ -1,8 +1,14 @@
 //! Facts about the machine: Windows version, elevation, power, connectivity,
 //! process liveness and the accessibility preferences the UI honours.
 
+use std::ops::RangeInclusive;
+use std::os::windows::process::CommandExt;
+use std::path::PathBuf;
+
 use anyhow::{Context, Result};
-use windows::Win32::Foundation::{CloseHandle, FILETIME, HANDLE, HWND, STILL_ACTIVE};
+use windows::Win32::Foundation::{
+    CloseHandle, ERROR_INVALID_PARAMETER, FILETIME, HANDLE, HWND, STILL_ACTIVE, WIN32_ERROR,
+};
 use windows::Win32::Graphics::Gdi::{
     COLOR_BTNFACE, COLOR_BTNTEXT, COLOR_GRAYTEXT, COLOR_HIGHLIGHT, COLOR_HIGHLIGHTTEXT, COLOR_HOTLIGHT,
     COLOR_WINDOW, COLOR_WINDOWTEXT, GetSysColor, SYS_COLOR_INDEX,
@@ -10,12 +16,12 @@ use windows::Win32::Graphics::Gdi::{
 use windows::Win32::Networking::WinInet::{INTERNET_CONNECTION, InternetGetConnectedState};
 use windows::Win32::Security::{
     GetTokenInformation, TOKEN_ELEVATION, TOKEN_ELEVATION_TYPE, TOKEN_QUERY, TokenElevation,
-    TokenElevationType,
+    TokenElevationType, TokenElevationTypeDefault, TokenElevationTypeFull, TokenElevationTypeLimited,
 };
 use windows::Win32::System::Power::{GetSystemPowerStatus, SYSTEM_POWER_STATUS};
 use windows::Win32::System::SystemInformation::GetTickCount64;
 use windows::Win32::System::Threading::{
-    GetCurrentProcess, GetExitCodeProcess, GetProcessTimes, OpenProcess, OpenProcessToken,
+    CREATE_NO_WINDOW, GetCurrentProcess, GetExitCodeProcess, GetProcessTimes, OpenProcess, OpenProcessToken,
     PROCESS_QUERY_LIMITED_INFORMATION,
 };
 use windows::Win32::UI::Accessibility::{HCF_HIGHCONTRASTON, HIGHCONTRASTW};
@@ -113,8 +119,9 @@ pub fn is_elevated() -> bool {
     }
 }
 
-/// EnableLUA alone is insufficient after re-enabling UAC without restarting.
-/// An administrator with an unlinked token still cannot launch limited user work.
+/// Whether UAC is on and in effect for this token. EnableLUA alone is not
+/// enough: UAC turned back on takes effect only after a restart, and until
+/// then an administrator has no limited token to run the user's part with.
 pub fn user_account_ready() -> Result<bool> {
     let enabled = LOCAL_MACHINE
         .open(r"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System")?
@@ -140,32 +147,23 @@ pub fn user_account_ready() -> Result<bool> {
                 std::mem::size_of_val(&elevation) as u32,
                 &mut returned,
             )?;
-            Ok(user_account_token_ready(enabled, kind.0, elevation.TokenIsElevated != 0))
+            Ok(user_account_token_ready(enabled, kind, elevation.TokenIsElevated != 0))
         })();
         let _ = CloseHandle(token);
         result
     }
 }
 
-fn user_account_token_ready(enabled: u32, elevation_type: i32, elevated: bool) -> bool {
-    enabled == 1 && (matches!(elevation_type, 2 | 3) || (elevation_type == 1 && !elevated))
+/// A split token (full or limited) means UAC is in effect. A default token
+/// is fine for a standard user, never for an unfiltered administrator.
+fn user_account_token_ready(enabled: u32, kind: TOKEN_ELEVATION_TYPE, elevated: bool) -> bool {
+    enabled == 1
+        && (kind == TokenElevationTypeFull
+            || kind == TokenElevationTypeLimited
+            || (kind == TokenElevationTypeDefault && !elevated))
 }
 
-#[cfg(test)]
-#[test]
-fn uac_requires_both_policy_and_a_usable_user_token() {
-    assert!(user_account_token_ready(1, 2, true));
-    assert!(user_account_token_ready(1, 3, false));
-    assert!(user_account_token_ready(1, 1, false));
-    // UAC disabled; re-enabled without restarting; unfiltered built-in Administrator.
-    assert!(!user_account_token_ready(0, 1, true));
-    assert!(!user_account_token_ready(1, 1, true));
-    assert!(!user_account_token_ready(0, 2, true));
-    assert!(!user_account_token_ready(2, 2, true));
-    assert!(!user_account_token_ready(1, 0, false));
-}
-
-fn shell_execute(verb: &str, target: &str) -> Result<()> {
+pub(crate) fn shell_execute(verb: &str, target: &str) -> Result<()> {
     shell_execute_with_args(verb, target, "")
 }
 
@@ -198,13 +196,15 @@ pub fn relaunch_elevated() -> Result<()> {
     shell_execute("runas", &exe.to_string_lossy())
 }
 
-/// ISO setup and preparation recovery retain their install page and playbook.
+/// Relaunches elevated on the install page, with `--playbook` if given. A
+/// quote or a trailing backslash would end the quoted argument early, so such
+/// a path is refused.
 pub fn relaunch_setup_elevated(playbook: Option<&std::path::Path>) -> Result<()> {
     let exe = std::env::current_exe()?;
     let mut args = String::from("--page install");
     if let Some(path) = playbook {
         let path = path.to_string_lossy();
-        anyhow::ensure!(!path.contains('"') && !path.ends_with('\\'), "Invalid playbook path");
+        anyhow::ensure!(!path.contains('"') && !path.ends_with('\\'), "invalid package path");
         args.push_str(&format!(" --playbook \"{path}\""));
     }
     shell_execute_with_args("runas", &exe.to_string_lossy(), &args)
@@ -215,89 +215,50 @@ pub fn relaunch_iso_elevated() -> Result<()> {
     shell_execute_with_args("runas", &exe.to_string_lossy(), "--page iso")
 }
 
-pub fn powershell_path() -> std::path::PathBuf {
-    std::env::var_os("SystemRoot")
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| std::path::PathBuf::from(r"C:\Windows"))
-        .join(r"System32\WindowsPowerShell\v1.0\powershell.exe")
+/// The Windows directory, from `SystemRoot`.
+pub fn windows_dir() -> PathBuf {
+    std::env::var_os("SystemRoot").map(PathBuf::from).unwrap_or_else(|| PathBuf::from(r"C:\Windows"))
 }
 
-/// Keep cancellation cooperative so workers can finish servicing and release mounted media.
-pub fn watch_cancellation(
-    cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
-    stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
-    marker: std::path::PathBuf,
-) -> std::thread::JoinHandle<()> {
-    std::thread::spawn(move || {
-        use std::sync::atomic::Ordering;
-        let mut reported = false;
-        while !stop.load(Ordering::Relaxed) {
-            if cancel.load(Ordering::Relaxed) {
-                match std::fs::File::create(&marker) {
-                    Ok(_) => break,
-                    Err(error) if !reported => {
-                        log::error!(
-                            "could not signal cancellation at {}: {error}; retrying",
-                            marker.display()
-                        );
-                        reported = true;
-                    }
-                    Err(_) => {}
-                }
-            }
-            std::thread::sleep(std::time::Duration::from_millis(100));
-        }
-    })
-}
+/// The longest restart notice `shutdown.exe /c` accepts.
+const SHUTDOWN_COMMENT_MAX: usize = 512;
 
-#[cfg(test)]
-mod cancellation_tests {
-    use super::watch_cancellation;
-    use std::sync::{
-        Arc,
-        atomic::{AtomicBool, Ordering},
-    };
-    use std::time::{Duration, Instant};
-
-    #[test]
-    fn unknown_battery_flags_do_not_mean_no_battery() {
-        use super::{PowerSource, classify_power};
-        assert_eq!(classify_power(255, 255), PowerSource::Unknown);
-        assert_eq!(classify_power(255, 1), PowerSource::Mains);
-        assert_eq!(classify_power(255, 0), PowerSource::Battery);
-        assert_eq!(classify_power(128, 255), PowerSource::Mains);
-        assert_eq!(classify_power(1, 0), PowerSource::Battery);
-    }
-
-    #[test]
-    fn cancellation_retries_a_failed_marker_write_until_the_directory_is_writable() {
-        let temp = super::super::test_support::TempDir::new("cancel-retry");
-        let parent = temp.path().join("not-yet-created");
-        let marker = parent.join("cancel");
-        assert!(std::fs::File::create(&marker).is_err());
-        let stop = Arc::new(AtomicBool::new(false));
-        let watcher = watch_cancellation(Arc::new(AtomicBool::new(true)), stop.clone(), marker.clone());
-        std::thread::sleep(Duration::from_millis(150));
-        let before_repair = marker.exists();
-        std::fs::create_dir(&parent).unwrap();
-        let deadline = Instant::now() + Duration::from_secs(3);
-        while !marker.exists() && Instant::now() < deadline {
-            std::thread::sleep(Duration::from_millis(20));
-        }
-        stop.store(true, Ordering::Relaxed);
-        watcher.join().unwrap();
-        assert!(!before_repair);
-        assert_eq!(std::fs::metadata(marker).unwrap().len(), 0);
-    }
-}
-
-/// Restarts Windows immediately, after the app countdown.
-/// `comment` is the message Windows shows in its restart notice (at most
-/// 512 characters).
+/// Restarts Windows immediately; any countdown or warning belongs to the
+/// caller. `comment` is the message Windows shows in its restart notice;
+/// `shutdown.exe` refuses control characters and anything past
+/// [`SHUTDOWN_COMMENT_MAX`], so those are dropped.
+///
+/// Debug builds accept `ATLAS_REVIEW_NO_RESTART` for design review: the
+/// restart is logged and reported as requested, and Windows keeps running,
+/// so a capture of a countdown or a Restart now button can never restart
+/// the reviewer's PC.
 pub fn schedule_restart(comment: &str) -> Result<()> {
+    if cfg!(debug_assertions) && std::env::var_os("ATLAS_REVIEW_NO_RESTART").is_some() {
+        log::warn!("ATLAS_REVIEW_NO_RESTART is set; not restarting Windows");
+        return Ok(());
+    }
     super::desktop_setup::note_restart()?;
-    let comment: String = comment.chars().take(512).collect();
-    shutdown(&["/r", "/t", "0", "/c", &comment])
+    let comment: String = comment.chars().filter(|c| !c.is_control()).take(SHUTDOWN_COMMENT_MAX).collect();
+    accept_restart_under_way(shutdown(&["/r", "/t", "0", "/c", comment.trim()]))
+}
+
+/// ERROR_SHUTDOWN_IN_PROGRESS and ERROR_SHUTDOWN_IS_SCHEDULED: Windows is
+/// already shutting down or restarting, so another window's request, or a
+/// second press, isn't refused: the restart is under way.
+const RESTART_UNDER_WAY: [i32; 2] = [1115, 1190];
+
+fn accept_restart_under_way(result: Result<()>) -> Result<()> {
+    match result {
+        Err(error)
+            if error
+                .downcast_ref::<ShutdownFailed>()
+                .is_some_and(|failed| failed.code.is_some_and(|code| RESTART_UNDER_WAY.contains(&code))) =>
+        {
+            log::info!("a restart is already under way: {error:#}");
+            Ok(())
+        }
+        other => other,
+    }
 }
 
 /// `shutdown.exe` exited with an error.
@@ -316,18 +277,11 @@ impl std::fmt::Display for ShutdownFailed {
 impl std::error::Error for ShutdownFailed {}
 
 fn shutdown(arguments: &[&str]) -> Result<()> {
-    let system32 = std::env::var_os("SystemRoot")
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| std::path::PathBuf::from(r"C:\Windows"))
-        .join("System32");
-    let mut command = std::process::Command::new(system32.join("shutdown.exe"));
-    command.args(arguments);
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        command.creation_flags(0x0800_0000);
-    }
-    let output = command.output().context("run shutdown.exe")?;
+    let output = std::process::Command::new(windows_dir().join(r"System32\shutdown.exe"))
+        .args(arguments)
+        .creation_flags(CREATE_NO_WINDOW.0)
+        .output()
+        .context("run shutdown.exe")?;
     if output.status.success() {
         Ok(())
     } else {
@@ -371,8 +325,6 @@ pub fn internet_connected() -> bool {
     let mut flags = INTERNET_CONNECTION(0);
     unsafe { InternetGetConnectedState(&mut flags, None) }.is_ok()
 }
-
-// ----- Processes ------------------------------------------------------------
 
 struct ProcessHandle(HANDLE);
 
@@ -423,11 +375,12 @@ pub enum Liveness {
 }
 
 pub fn process_liveness(pid: u32, start_time: u64) -> Liveness {
-    /// ERROR_INVALID_PARAMETER: no process has this id.
-    const NO_SUCH_PROCESS: i32 = 87;
     let handle = match ProcessHandle::open(pid) {
         Ok(handle) => handle,
-        Err(error) if error.code().0 & 0xFFFF == NO_SUCH_PROCESS => return Liveness::Ended,
+        // OpenProcess answers "invalid parameter" for a PID no process has.
+        Err(error) if WIN32_ERROR::from_error(&error) == Some(ERROR_INVALID_PARAMETER) => {
+            return Liveness::Ended;
+        }
         Err(error) => return Liveness::Unknown(format!("open process {pid}: {error}")),
     };
     match handle.is_running() {
@@ -457,11 +410,10 @@ pub fn booted_since(moment: &str) -> bool {
     let Ok(moment) = chrono::DateTime::parse_from_rfc3339(moment) else { return false };
     let uptime = std::time::Duration::from_millis(unsafe { GetTickCount64() });
     let booted = chrono::Utc::now() - chrono::Duration::from_std(uptime).unwrap_or_default();
-    // Reads are milliseconds apart. A minute hid quick installs followed by a reboot.
+    // One second of slack covers the gap between reading the clock and the
+    // uptime. More would miss a quick install followed by a restart.
     booted - chrono::Duration::seconds(1) > moment.with_timezone(&chrono::Utc)
 }
-
-// ----- Accessibility preferences ---------------------------------------------
 
 /// Ease of Access settings that change how the UI should draw.
 #[derive(Clone, Debug, PartialEq)]
@@ -470,11 +422,14 @@ pub struct AccessibilityPreferences {
     pub high_contrast: bool,
     /// "Show animations in Windows" is off.
     pub reduce_motion: bool,
-    /// The "Text size" slider, 1.0 to 2.25.
+    /// The "Text size" slider, within [`TEXT_SCALE`].
     pub text_scale: f32,
     /// System colours to draw with while a contrast theme is active.
     pub system_colors: Option<SystemColors>,
 }
+
+/// The range of Settings > Accessibility > Text size.
+const TEXT_SCALE: RangeInclusive<f32> = 1.0..=2.25;
 
 impl Default for AccessibilityPreferences {
     fn default() -> Self {
@@ -496,13 +451,21 @@ pub struct SystemColors {
 }
 
 impl AccessibilityPreferences {
+    /// Debug builds accept `ATLAS_TEXT_SCALE` (1.0 to 2.25) and
+    /// `ATLAS_HIGH_CONTRAST` (any value, a dark contrast palette) for design
+    /// review, so these settings can be checked without changing Windows.
     pub fn read() -> Self {
-        let high_contrast = high_contrast_on();
+        let review = |name| cfg!(debug_assertions).then(|| std::env::var(name).ok()).flatten();
+        let review_contrast = review("ATLAS_HIGH_CONTRAST").is_some();
+        let high_contrast = review_contrast || high_contrast_on();
         Self {
             high_contrast,
             reduce_motion: !client_area_animation(),
-            text_scale: text_scale(),
-            system_colors: high_contrast.then(SystemColors::read),
+            text_scale: review("ATLAS_TEXT_SCALE")
+                .and_then(|scale| scale.parse::<f32>().ok())
+                .map_or_else(text_scale, |scale| scale.clamp(*TEXT_SCALE.start(), *TEXT_SCALE.end())),
+            system_colors: high_contrast
+                .then(|| if review_contrast { SystemColors::REVIEW } else { SystemColors::read() }),
         }
     }
 }
@@ -541,11 +504,23 @@ fn text_scale() -> f32 {
     CURRENT_USER
         .open(r"SOFTWARE\Microsoft\Accessibility")
         .and_then(|key| key.get_u32("TextScaleFactor"))
-        .map(|percent| (percent as f32 / 100.0).clamp(1.0, 2.25))
+        .map(|percent| (percent as f32 / 100.0).clamp(*TEXT_SCALE.start(), *TEXT_SCALE.end()))
         .unwrap_or(1.0)
 }
 
 impl SystemColors {
+    /// A dark contrast palette for review builds; see `AccessibilityPreferences::read`.
+    const REVIEW: Self = Self {
+        window: 0x000000,
+        window_text: 0xFFFFFF,
+        button_face: 0x000000,
+        button_text: 0xFFFFFF,
+        highlight: 0xD6B4FD,
+        highlight_text: 0x2B2B2B,
+        gray_text: 0xA6A6A6,
+        hot_light: 0xFFFF00,
+    };
+
     fn read() -> Self {
         fn color(index: SYS_COLOR_INDEX) -> u32 {
             // GetSysColor returns COLORREF (0x00BBGGRR).
@@ -565,20 +540,109 @@ impl SystemColors {
     }
 }
 
+/// Flashes the window's taskbar button, and its caption, until the user
+/// brings it to the front: a restart countdown started while nobody looks.
+/// It never takes focus or restores a minimised window.
+pub fn flash_until_foreground(window: &gpui::Window) {
+    use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+    use windows::Win32::UI::WindowsAndMessaging::{FLASHW_ALL, FLASHW_TIMERNOFG, FLASHWINFO, FlashWindowEx};
+    let Ok(handle) = HasWindowHandle::window_handle(window) else { return };
+    let RawWindowHandle::Win32(handle) = handle.as_raw() else { return };
+    let info = FLASHWINFO {
+        cbSize: std::mem::size_of::<FLASHWINFO>() as u32,
+        hwnd: HWND(handle.hwnd.get() as *mut _),
+        dwFlags: FLASHW_ALL | FLASHW_TIMERNOFG,
+        // Until the window comes to the front.
+        uCount: 0,
+        dwTimeout: 0,
+    };
+    // SAFETY: the window handle is GPUI's own, alive while `window` is.
+    let _ = unsafe { FlashWindowEx(&info) };
+}
+
 /// Well-known shell targets used by the UI.
 pub mod links {
     pub const WINDOWS_SECURITY_PROTECTION: &str = "windowsdefender://threatsettings";
     pub const WINDOWS_UPDATE: &str = "ms-settings:windowsupdate";
+    pub const NETWORK: &str = "ms-settings:network";
+    pub const POWER: &str = "ms-settings:powersleep";
+    pub const ACTIVATION: &str = "ms-settings:activation";
     pub const DOCS: &str = "https://docs.atlasos.net/";
     pub const GITHUB: &str = "https://github.com/Atlas-OS/Atlas";
     pub const RELEASES: &str = "https://github.com/Atlas-OS/Atlas/releases";
-    pub const ISSUES: &str = "https://github.com/Atlas-OS/Atlas/issues";
     pub const DISCORD: &str = "https://discord.atlasos.net/";
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_restart_already_under_way_is_not_a_refusal() {
+        let failed =
+            |code| -> Result<()> { Err(ShutdownFailed { code: Some(code), message: "x".into() }.into()) };
+        assert!(accept_restart_under_way(failed(1115)).is_ok(), "shutting down already");
+        assert!(accept_restart_under_way(failed(1190)).is_ok(), "already scheduled");
+        assert!(accept_restart_under_way(failed(5)).is_err(), "access denied is still a refusal");
+        assert!(accept_restart_under_way(Err(anyhow::anyhow!("no shutdown.exe"))).is_err());
+    }
+
+    /// The edition gate exists three times: here, in ISO creation and in the
+    /// front door script, `Install-Atlas.ps1`. They must refuse the same LTSC
+    /// editions (and every Core* edition), because the app's edition advice
+    /// is worded from this one.
+    #[test]
+    fn every_edition_gate_refuses_the_same_editions() {
+        let edition = |id: &str| {
+            SystemInfo { edition_id: id.into(), installation_type: "Client".into(), ..Default::default() }
+                .supported_edition()
+        };
+        let iso = include_str!("../../resources/iso/Build-Iso.ps1");
+        let iso_line = iso.lines().find(|line| line.contains("$edition -like 'Core*'")).expect("ISO gate");
+        let iso_list = &iso_line[iso_line.find("-in @(").expect("ISO list") + 6..];
+        let iso_ids: Vec<&str> = iso_list[..iso_list.find(')').unwrap()]
+            .split(',')
+            .map(|id| id.trim().trim_matches('\''))
+            .collect();
+        let direct =
+            include_str!("../../../playbook/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1");
+        let direct_line =
+            direct.lines().find(|line| line.contains("$EditionId -notlike 'Core*'")).expect("direct gate");
+        let direct_list = &direct_line[direct_line.find("'^(").expect("direct list") + 3..];
+        let direct_ids: Vec<&str> = direct_list[..direct_list.find(")$'").unwrap()].split('|').collect();
+        assert_eq!(iso_ids, direct_ids);
+        assert!(iso_ids.len() >= 6, "{iso_ids:?}");
+        for id in iso_ids.iter().copied().chain(["Core", "CoreN", "CoreSingleLanguage"]) {
+            assert!(!edition(id), "{id} passes the app's gate");
+        }
+        for id in
+            ["Professional", "ProfessionalWorkstation", "Education", "ProfessionalEducation", "Enterprise"]
+        {
+            assert!(edition(id), "{id} fails the app's gate");
+        }
+    }
+
+    #[test]
+    fn uac_requires_both_policy_and_a_usable_user_token() {
+        assert!(user_account_token_ready(1, TokenElevationTypeFull, true));
+        assert!(user_account_token_ready(1, TokenElevationTypeLimited, false));
+        assert!(user_account_token_ready(1, TokenElevationTypeDefault, false));
+        // UAC disabled; re-enabled without restarting; unfiltered built-in Administrator.
+        assert!(!user_account_token_ready(0, TokenElevationTypeDefault, true));
+        assert!(!user_account_token_ready(1, TokenElevationTypeDefault, true));
+        assert!(!user_account_token_ready(0, TokenElevationTypeFull, true));
+        assert!(!user_account_token_ready(2, TokenElevationTypeFull, true));
+        assert!(!user_account_token_ready(1, TOKEN_ELEVATION_TYPE(0), false));
+    }
+
+    #[test]
+    fn unknown_battery_flags_do_not_mean_no_battery() {
+        assert_eq!(classify_power(255, 255), PowerSource::Unknown);
+        assert_eq!(classify_power(255, 1), PowerSource::Mains);
+        assert_eq!(classify_power(255, 0), PowerSource::Battery);
+        assert_eq!(classify_power(128, 255), PowerSource::Mains);
+        assert_eq!(classify_power(1, 0), PowerSource::Battery);
+    }
 
     #[test]
     fn the_current_process_is_alive_and_a_stale_start_time_is_not() {
@@ -616,12 +680,5 @@ mod tests {
         assert!(booted_since("2001-01-01T00:00:00+00:00"), "the PC booted after 2001");
         assert!(!booted_since(&chrono::Local::now().to_rfc3339()), "not since a moment ago");
         assert!(!booted_since("not a time"), "an unreadable time never claims a boot");
-    }
-
-    #[test]
-    fn accessibility_preferences_read_without_failing() {
-        let preferences = AccessibilityPreferences::read();
-        assert!((1.0..=2.25).contains(&preferences.text_scale));
-        assert_eq!(preferences.high_contrast, preferences.system_colors.is_some());
     }
 }

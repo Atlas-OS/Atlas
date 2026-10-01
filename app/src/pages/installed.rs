@@ -1,21 +1,24 @@
-//! The "Atlas is installed" window: opened by the payload's first-logon
-//! setup once the restart has finished, so the person who left the PC to
-//! install comes back to a proper completion screen rather than a toast.
+//! The "Atlas is installed" page: opened by the completion Run entry after the
+//! install's restart, or by the Atlas package's new-user script for accounts set
+//! up later, so whoever left the PC to install comes back to a completion screen
+//! rather than a toast. When the install left the PC with less protection, it
+//! says so before it says "you're all set".
 
 use gpui::{
     AnyElement, Context, Entity, IntoElement, ParentElement, Render, Role, ScrollHandle, Styled, Window, div,
     prelude::*, px, svg,
 };
 
-use super::{card_body, card_header, chip_list, detail_row, detail_text};
+use super::home::protection_reminder_bar;
+use super::{card_body, card_header, detail_row, detail_text, options_value, recorded_options};
 use crate::i18n::{describe, fmt};
-use crate::model::{AppModel, Page};
+use crate::model::AppModel;
 use crate::services::system::links;
 use crate::t;
 use crate::theme::ActiveTheme;
 use crate::ui::{
-    Button, CompletionBackdrop, FocusHandles, Icon, KeepOut, ScrollbarState, Typography, a11y_text, card,
-    icon_sized, scrollbar,
+    Button, CompletionBackdrop, FocusHandles, Icon, InfoBar, KeepOut, ScrollbarState, Severity, Typography,
+    a11y_text, card, icon_sized, scrollbar,
 };
 
 pub struct InstalledPage {
@@ -55,18 +58,39 @@ impl Render for InstalledPage {
             Some(version) => t!("installed-title-version", version = version),
             None => t!("installed-title"),
         };
-        let options: Vec<String> =
-            installed.map(|i| i.options.iter().map(|o| state.option_label(o)).collect()).unwrap_or_default();
+        let options = installed.map(|i| recorded_options(state, &i.options)).unwrap_or_default();
         let mode = installed.map(|i| i.install_mode().label());
         let when = installed.and_then(|i| i.installed_at_local()).map(|when| fmt::long_date(&when));
         let system_text = describe::system_description(&state.system);
+        // Protection the install reduced comes before "you're all set", and
+        // turning it back on is the page's one accent while it shows. A
+        // missing Defender has no such action, so Done stays the accent.
+        let reminder = protection_reminder_bar(&model, state, "installed", true, &heading_focus);
+        let reminding = state.protection_reminder().is_some_and(|reminder| !reminder.missing);
+        let defender_removed = installed
+            .is_some_and(|i| i.options.iter().any(|option| option == "defender-disable"))
+            .then(|| {
+                InfoBar::new(
+                    Severity::Warning,
+                    t!("installed-defender-removed-title"),
+                    t!("installed-defender-removed-message"),
+                )
+                .id("installed-defender-removed")
+            });
+        // "You're all set" only where a reading confirms it: an install that
+        // kept Defender needs Defender there with every switch on. Dismissing
+        // a reminder hides the bar, not what Windows Security reports.
+        let all_set = reminder.is_none()
+            && defender_removed.is_none()
+            && !state.protection_reading_pending()
+            && (!state.kept_defender_recorded() || state.protection_confirmed_on());
 
         let details: Option<AnyElement> = installed.map(|_| {
             card(cx)
                 .w_full()
                 .child(card_header(cx, "your-install", t!("home-your-install"), None))
                 .child(
-                    card_body(cx)
+                    card_body()
                         .when_some(mode, |this, mode| {
                             this.child(detail_row(
                                 cx,
@@ -93,15 +117,7 @@ impl Render for InstalledPage {
                             cx,
                             "options",
                             t!("common-options"),
-                            if options.is_empty() {
-                                div()
-                                    .text_color(theme.text_secondary)
-                                    .child(detail_text("options", t!("common-none")))
-                                    .into_any_element()
-                            } else {
-                                chip_list(cx, "installed-options", &t!("common-options"), options)
-                                    .into_any_element()
-                            },
+                            options_value(cx, "options", "installed-options", options),
                         )),
                 )
                 .into_any_element()
@@ -165,13 +181,17 @@ impl Render for InstalledPage {
                             .text_center()
                             .child(title),
                     )
-                    .child(
-                        div()
-                            .type_body_large()
-                            .text_color(theme.text_secondary)
-                            .text_center()
-                            .child(a11y_text("installed-line", t!("installed-ready"))),
-                    )
+                    .when(all_set, |this| {
+                        this.child(
+                            div()
+                                .type_body_large()
+                                .text_color(theme.text_secondary)
+                                .text_center()
+                                .child(a11y_text("installed-line", t!("installed-ready"))),
+                        )
+                    })
+                    .children(defender_removed)
+                    .children(reminder)
                     .child(
                         div()
                             .flex()
@@ -181,31 +201,14 @@ impl Render for InstalledPage {
                             .pt(px(8.))
                             .child(
                                 Button::new("installed-done", t!("common-done"))
-                                    .accent()
+                                    .when(!reminding, Button::accent)
                                     .on_click(|_, window, _| window.remove_window()),
                             )
                             .child(
-                                div()
-                                    .flex()
-                                    .flex_wrap()
-                                    .justify_center()
-                                    .gap(px(8.))
-                                    .child(
-                                        Button::new("installed-docs", t!("common-read-the-docs"))
-                                            .hyperlink()
-                                            .trailing_icon(Icon::OpenInNewWindow)
-                                            .opens(links::DOCS),
-                                    )
-                                    .child(
-                                        Button::new("installed-home", t!("installed-open-atlas"))
-                                            .hyperlink()
-                                            .on_click({
-                                                let model = model.clone();
-                                                move |_, _, cx| {
-                                                    model.update(cx, |m, cx| m.navigate(Page::Home, cx))
-                                                }
-                                            }),
-                                    ),
+                                Button::new("installed-docs", t!("common-read-the-docs"))
+                                    .hyperlink()
+                                    .trailing_icon(Icon::OpenInNewWindow)
+                                    .opens(links::DOCS),
                             ),
                     ),
             )

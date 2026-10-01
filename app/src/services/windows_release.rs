@@ -1,17 +1,23 @@
-//! Release eligibility, not ISO authenticity. Public cumulative updates can share
-//! a build number with earlier Insider flights; only published GA rows qualify.
+//! Whether a Windows build is a public release, not whether an ISO is genuine.
+//! Cumulative updates can share a build number with earlier Insider flights,
+//! so only builds Microsoft lists under the General Availability Channel
+//! qualify.
+
 use std::collections::HashSet;
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Mutex, OnceLock, PoisonError};
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, ensure};
 use chrono::NaiveDate;
 use serde::Deserialize;
 
-pub const SOURCE_URL: &str =
+const SOURCE_URL: &str =
     "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information";
-pub const CATALOG: &str =
+/// The bundled list of public releases, shared with the PowerShell side.
+pub(super) const CATALOG: &str =
     include_str!("../../../playbook/Executables/AtlasModules/Scripts/Compatibility/windows-releases.json");
+/// How long a reading of Microsoft's page is reused.
+const CACHE_FOR: Duration = Duration::from_secs(15 * 60);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Status {
@@ -21,10 +27,7 @@ pub enum Status {
 }
 
 #[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
 struct Catalog {
-    schema_version: u32,
-    supported_releases: Vec<BuildFamily>,
     releases: Vec<Release>,
 }
 
@@ -35,27 +38,14 @@ struct Release {
     available_date: String,
 }
 
-#[derive(Deserialize)]
-struct BuildFamily {
-    build: u32,
-    release: String,
-}
-
+/// Supported builds and their release names; must match the catalog's
+/// supportedReleases.
 const BUILD_FAMILIES: &[(u32, &str)] = &[(26200, "25H2"), (26300, "26H2")];
 
 fn snapshot() -> &'static HashSet<String> {
     static SNAPSHOT: OnceLock<HashSet<String>> = OnceLock::new();
     SNAPSHOT.get_or_init(|| {
         let catalog: Catalog = serde_json::from_str(CATALOG).expect("validated Windows release catalog");
-        assert_eq!(catalog.schema_version, 2);
-        assert_eq!(
-            catalog
-                .supported_releases
-                .iter()
-                .map(|family| (family.build, family.release.as_str()))
-                .collect::<Vec<_>>(),
-            BUILD_FAMILIES
-        );
         catalog
             .releases
             .into_iter()
@@ -69,22 +59,19 @@ fn snapshot() -> &'static HashSet<String> {
     })
 }
 
+/// Insider builds come from an rs_prerelease branch, whatever their number.
 fn preview_branch(build_lab: &str) -> bool {
     build_lab.to_ascii_lowercase().split(['.', '_', '-']).any(|part| part == "prerelease")
 }
 
-/// Whether a revision missing from the bundled catalog may be looked up on
-/// Microsoft's release page. A tester build must not depend on a live
-/// Microsoft page to decide whether Windows is eligible, so
-/// it never refreshes. The stable build keeps the lookup: there an unlisted
-/// revision stays Unknown until the page confirms it.
-const REFRESH_ONLINE: bool = !cfg!(feature = "embedded-playbook");
+/// Whether an unlisted revision may be checked on Microsoft's release page.
+/// Tester builds never depend on a live page, here or for an ISO; stable
+/// builds keep an unlisted revision Unknown until the page lists it.
+pub(crate) const REFRESH_ONLINE: bool = !cfg!(feature = "embedded-playbook");
 
-/// `refresh` is `None` when no live lookup is allowed. Without one, a revision
-/// of the supported GA build on a release branch that the bundled snapshot
-/// does not list is treated as released: the snapshot only ages forward, so
-/// the likely explanation is a cumulative update newer than the snapshot,
-/// and a tester build must not block on a page it cannot read.
+/// With no `refresh` (tester builds), an unlisted revision of a supported
+/// build on a release branch counts as released: the bundled list only ages,
+/// so it is most likely a newer cumulative update.
 fn classify_with(
     version: &str,
     build_lab: &str,
@@ -127,10 +114,11 @@ struct CachedReleases {
 }
 
 fn latest() -> Result<HashSet<String>> {
-    static CACHE: OnceLock<Mutex<Option<CachedReleases>>> = OnceLock::new();
-    let mut cache = CACHE.get_or_init(|| Mutex::new(None)).lock().map_err(|e| anyhow::anyhow!("{e}"))?;
+    static CACHE: Mutex<Option<CachedReleases>> = Mutex::new(None);
+    // Held across the fetch, so concurrent checks share one request.
+    let mut cache = CACHE.lock().unwrap_or_else(PoisonError::into_inner);
     if let Some(cached) = &*cache
-        && cached.checked_at.elapsed() < Duration::from_secs(15 * 60)
+        && cached.checked_at.elapsed() < CACHE_FOR
     {
         return Ok(cached.versions.clone());
     }
@@ -158,26 +146,33 @@ fn latest() -> Result<HashSet<String>> {
     Ok(versions)
 }
 
+/// A Markdown heading line without its `#` or `**` decoration.
+fn heading(line: &str) -> &str {
+    line.trim().trim_start_matches('#').trim().trim_matches('*')
+}
+
 fn parse_markdown(text: &str, today: NaiveDate) -> Result<HashSet<String>> {
     let mut versions = HashSet::new();
     for &(build, release) in BUILD_FAMILIES {
-        let heading = format!("Version {release} (OS build {build})");
-        if text.lines().any(|line| line.trim().trim_start_matches('#').trim().trim_matches('*') == heading) {
-            versions.extend(parse_release_section(text, today, build, release)?);
+        let section = format!("Version {release} (OS build {build})");
+        if text.lines().any(|line| heading(line) == section) {
+            versions.extend(parse_release_section(text, today, build, &section)?);
         }
     }
     ensure!(!versions.is_empty(), "No supported public Windows release table found in Microsoft's response");
     Ok(versions)
 }
 
-fn parse_release_section(text: &str, today: NaiveDate, build: u32, release: &str) -> Result<HashSet<String>> {
+/// The released versions in the table under the heading `section`.
+fn parse_release_section(text: &str, today: NaiveDate, build: u32, section: &str) -> Result<HashSet<String>> {
+    let prefix = format!("{build}.");
     let mut inside = false;
     let mut versions = HashSet::new();
     let mut seen = HashSet::new();
     let mut header = false;
     for line in text.lines() {
-        let heading = line.trim().trim_start_matches('#').trim().trim_matches('*');
-        if heading == format!("Version {release} (OS build {build})") {
+        let heading = heading(line);
+        if heading == section {
             inside = true;
             continue;
         }
@@ -197,18 +192,19 @@ fn parse_release_section(text: &str, today: NaiveDate, build: u32, release: &str
         }
         ensure!(cells.len() == 7 && cells[0].is_empty() && cells[6].is_empty(), "Malformed GA release row");
         let date = NaiveDate::parse_from_str(cells[3], "%Y-%m-%d")?;
-        let prefix = format!("{build}.");
         let revision = cells[4].strip_prefix(&prefix).context("Unexpected GA release build")?;
         ensure!(
             !revision.is_empty() && revision.bytes().all(|byte| byte.is_ascii_digit()),
             "Malformed GA release revision"
         );
-        let revision: i32 = revision.parse()?;
+        let revision: u32 = revision.parse()?;
         let version = format!("10.0.{build}.{revision}");
         ensure!(seen.insert(version.clone()), "Duplicate GA release version");
         if date > today {
             continue;
         }
+        // The KB cell is not used, but checking its shape makes a reworked
+        // page fail closed instead of being misread.
         if !cells[5].is_empty() {
             let (kb, url) = cells[5]
                 .strip_prefix('[')
@@ -231,7 +227,7 @@ fn parse_release_section(text: &str, today: NaiveDate, build: u32, release: &str
     }
     ensure!(
         header && !versions.is_empty(),
-        "No public {release} release table found in Microsoft's response"
+        "No public release table under {section} in Microsoft's response"
     );
     Ok(versions)
 }
@@ -241,6 +237,21 @@ mod tests {
     use super::*;
 
     type Refresh = fn() -> Result<HashSet<String>>;
+
+    #[test]
+    fn the_catalog_lists_the_supported_build_families() {
+        let catalog: serde_json::Value = serde_json::from_str(CATALOG).unwrap();
+        assert_eq!(catalog["schemaVersion"], 2);
+        let families: Vec<(u64, &str)> = catalog["supportedReleases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|family| (family["build"].as_u64().unwrap(), family["release"].as_str().unwrap()))
+            .collect();
+        let expected: Vec<(u64, &str)> =
+            BUILD_FAMILIES.iter().map(|&(build, release)| (u64::from(build), release)).collect();
+        assert_eq!(families, expected);
+    }
 
     #[test]
     fn released_26h2_versions_are_known_offline_and_prerelease_branches_are_refused() {
@@ -306,7 +317,6 @@ mod tests {
             Status::Preview
         );
         // A tester build never reaches Microsoft's page; the build gate alone still applies.
-        assert_eq!(REFRESH_ONLINE, !cfg!(feature = "embedded-playbook"));
         if !REFRESH_ONLINE {
             assert_eq!(classify(26200, 65535, "ge_release"), Status::Released);
             assert_eq!(classify(26100, 65535, "ge_release"), Status::Unknown);

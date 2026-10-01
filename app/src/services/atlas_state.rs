@@ -1,11 +1,13 @@
 //! Reads the machine state document that an Atlas install leaves behind at
 //! `%windir%\AtlasOS\state.json` (owned by the Atlas.State PowerShell module).
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use chrono::{DateTime, Local};
 use serde::Deserialize;
+
+use super::{files, registry};
 
 /// How an install was done, from the state document's `mode`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -51,7 +53,8 @@ pub struct HistoryEntry {
 }
 
 impl AtlasState {
-    /// Capture writes a state document before the payload has finished.
+    /// Whether the document records a finished install: capture writes one
+    /// before the install finishes.
     pub fn has_completed_install(&self) -> bool {
         self.installed_version.as_ref().is_some_and(|version| !version.trim().is_empty())
             && self.installed_at_local().is_some()
@@ -91,9 +94,7 @@ pub fn state_path() -> PathBuf {
     {
         return PathBuf::from(path);
     }
-    let windir =
-        std::env::var_os("SystemRoot").map(PathBuf::from).unwrap_or_else(|| PathBuf::from(r"C:\Windows"));
-    windir.join("AtlasOS").join("state.json")
+    super::system::windows_dir().join(r"AtlasOS\state.json")
 }
 
 /// `Ok(None)` when Atlas has never been installed here.
@@ -101,28 +102,27 @@ pub fn read() -> Result<Option<AtlasState>> {
     read_at(&state_path())
 }
 
-fn read_at(path: &std::path::Path) -> Result<Option<AtlasState>> {
-    let text = match std::fs::read_to_string(path) {
-        Ok(text) => text,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(error) => return Err(error).with_context(|| format!("read {}", path.display())),
-    };
-    let state: AtlasState = serde_json::from_str(text.trim_start_matches('\u{feff}'))
-        .with_context(|| format!("parse {}", path.display()))?;
-    if state.schema_version != 1 {
+fn read_at(path: &Path) -> Result<Option<AtlasState>> {
+    let state: Option<AtlasState> = files::read_json(path)?;
+    if let Some(state) = &state
+        && state.schema_version != 1
+    {
         anyhow::bail!(
             "the Atlas state document uses schema {}, which this app does not understand",
             state.schema_version
         );
     }
-    Ok(Some(state))
+    Ok(state)
 }
 
-/// Eligibility evidence only; an active transaction is not a completed installation.
+/// What is installed, for deciding whether a package may install here. An
+/// install in progress is `Resume`, never `Installed`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum InstallIdentity {
     Fresh,
     Installed(String),
+    /// An unfinished install of this version, with the options it was
+    /// started with once its plan is running.
     Resume(String, Option<Vec<String>>),
 }
 
@@ -138,7 +138,9 @@ impl InstallIdentity {
     }
 }
 
-/// Matches the front door's precedence. The backend revalidates before mutation.
+/// Reads the install identity in the front door's order: an install in
+/// progress, then state.json, then the registry markers of Atlas before 0.6.
+/// The front door checks again before changing anything.
 pub fn read_install_identity() -> Result<InstallIdentity> {
     let path = state_path();
     let fixture = cfg!(debug_assertions) && std::env::var_os("ATLAS_STATE_FILE").is_some();
@@ -161,9 +163,9 @@ pub fn read_install_identity() -> Result<InstallIdentity> {
 }
 
 fn read_identity_at(
-    path: &std::path::Path,
+    path: &Path,
     legacy: impl FnOnce() -> Result<Vec<String>>,
-    payload_exists: impl FnOnce() -> Result<bool>,
+    atlas_files_exist: impl FnOnce() -> Result<bool>,
 ) -> Result<InstallIdentity> {
     let root = path.parent().context("Atlas state directory")?;
     let active = root.join("Install/active.json");
@@ -177,7 +179,7 @@ fn read_identity_at(
                     && doc["mode"].as_str().is_some_and(
                         |m| ["fresh", "upgrade", "reapply"].contains(&m.to_ascii_lowercase().as_str())
                     ),
-                "The active Atlas installation record is invalid"
+                "the active Atlas installation record is invalid"
             );
             let options = if doc["status"] == "Running" {
                 Some(
@@ -185,7 +187,7 @@ fn read_identity_at(
                         .context("read original Atlas installation choices")?,
                 )
             } else {
-                anyhow::ensure!(doc["status"] == "Capturing", "Invalid active installation status");
+                anyhow::ensure!(doc["status"] == "Capturing", "invalid active installation status");
                 None
             };
             return Ok(InstallIdentity::Resume(target.unwrap().to_owned(), options));
@@ -202,11 +204,11 @@ fn read_identity_at(
     let mut versions = legacy()?;
     versions.sort();
     versions.dedup();
-    anyhow::ensure!(versions.len() <= 1, "Installed Atlas version markers disagree");
+    anyhow::ensure!(versions.len() <= 1, "installed Atlas version markers disagree");
     if let Some(version) = versions.pop() {
         return Ok(InstallIdentity::Installed(version));
     }
-    anyhow::ensure!(!payload_exists()?, "An Atlas payload exists without an identifiable installed version");
+    anyhow::ensure!(!atlas_files_exist()?, "Atlas's files exist without an identifiable installed version");
     Ok(InstallIdentity::Fresh)
 }
 
@@ -219,7 +221,7 @@ fn read_legacy_versions() -> Result<Vec<String>> {
         let value = windows_registry::LOCAL_MACHINE.open(key).and_then(|key| key.get_string(name));
         match value {
             Ok(value) => Ok(legacy_version(&value)),
-            Err(error) if error.code().0 == 0x8007_0002_u32 as i32 => Ok(None),
+            Err(error) if error.code().0 == registry::NOT_FOUND => Ok(None),
             Err(error) => Err(error).context("read legacy Atlas identity"),
         }
     });
@@ -233,10 +235,11 @@ fn read_legacy_versions() -> Result<Vec<String>> {
 }
 
 fn legacy_version(value: &str) -> Option<String> {
+    const PREFIX: &str = "Atlas Playbook ";
     let version = value
-        .get(..15)
-        .filter(|prefix| prefix.eq_ignore_ascii_case("Atlas Playbook "))
-        .and_then(|_| value.get(15..))?;
+        .get(..PREFIX.len())
+        .filter(|prefix| prefix.eq_ignore_ascii_case(PREFIX))
+        .and_then(|_| value.get(PREFIX.len()..))?;
     let version = version.strip_prefix(['v', 'V']).unwrap_or(version);
     let parts: Vec<_> = version.split('.').collect();
     (parts.len() == 3 && parts.iter().all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit())))
@@ -244,13 +247,15 @@ fn legacy_version(value: &str) -> Option<String> {
 }
 
 #[cfg(test)]
-mod completion_state_tests {
+mod tests {
     use super::*;
 
     #[test]
     fn declared_upgrade_sources_and_same_version_reapply_are_distinct_from_other_installs() {
-        let manifest = super::super::playbook::Manifest::builtin();
-        assert_eq!(manifest.upgradable_from, ["0.4.1", "0.5.0", "0.5.1"]);
+        let manifest = super::super::playbook::parse(
+            "<Playbook><Version>0.6.0</Version><UpgradableFrom><string>0.4.1</string><string>0.5.0</string><string>0.5.1</string></UpgradableFrom></Playbook>",
+        )
+        .unwrap();
         for version in ["0.4.1", "0.5.0", "0.5.1", "0.6.0"] {
             assert!(InstallIdentity::Installed(version.into()).allows(&manifest));
         }
@@ -279,7 +284,7 @@ mod completion_state_tests {
     }
 
     #[test]
-    fn identity_files_preserve_active_then_durable_then_legacy_precedence() {
+    fn identity_files_preserve_active_then_state_then_legacy_precedence() {
         let temp = super::super::test_support::TempDir::new("eligibility");
         let state = temp.path().join("state.json");
         let active = temp.path().join("Install/active.json");
@@ -291,30 +296,30 @@ mod completion_state_tests {
         )
         .unwrap();
         let no_legacy = || -> Result<Vec<String>> { panic!("must not read legacy evidence") };
-        let no_payload = || -> Result<bool> { panic!("must not read payload evidence") };
+        let no_files = || -> Result<bool> { panic!("must not look for Atlas's files") };
         assert_eq!(
-            read_identity_at(&state, no_legacy, no_payload).unwrap(),
+            read_identity_at(&state, no_legacy, no_files).unwrap(),
             InstallIdentity::Resume("0.6.0".into(), None)
         );
         std::fs::remove_file(&active).unwrap();
         assert_eq!(
-            read_identity_at(&state, no_legacy, no_payload).unwrap(),
+            read_identity_at(&state, no_legacy, no_files).unwrap(),
             InstallIdentity::Installed("0.3.2".into())
         );
         std::fs::write(&state, r#"{"schemaVersion":1,"options":["choice"]}"#).unwrap();
         assert_eq!(
-            read_identity_at(&state, || Ok(vec!["0.5.0".into(), "0.5.0".into()]), no_payload).unwrap(),
+            read_identity_at(&state, || Ok(vec!["0.5.0".into(), "0.5.0".into()]), no_files).unwrap(),
             InstallIdentity::Installed("0.5.0".into())
         );
-        assert!(read_identity_at(&state, || Ok(vec!["0.5.0".into(), "0.4.1".into()]), no_payload).is_err());
+        assert!(read_identity_at(&state, || Ok(vec!["0.5.0".into(), "0.4.1".into()]), no_files).is_err());
         assert!(read_identity_at(&state, || Ok(vec![]), || Ok(true)).is_err());
         assert_eq!(read_identity_at(&state, || Ok(vec![]), || Ok(false)).unwrap(), InstallIdentity::Fresh);
-        assert!(read_identity_at(&state, || anyhow::bail!("registry access denied"), no_payload).is_err());
+        assert!(read_identity_at(&state, || anyhow::bail!("registry access denied"), no_files).is_err());
         std::fs::write(&active, "broken").unwrap();
-        assert!(read_identity_at(&state, no_legacy, no_payload).is_err());
+        assert!(read_identity_at(&state, no_legacy, no_files).is_err());
         std::fs::remove_file(&active).unwrap();
         std::fs::write(&state, "broken").unwrap();
-        assert!(read_identity_at(&state, no_legacy, no_payload).is_err());
+        assert!(read_identity_at(&state, no_legacy, no_files).is_err());
     }
 
     #[test]
@@ -348,28 +353,22 @@ mod completion_state_tests {
         }
     }
 
+    /// Capture writes state.json before the install has finished; only a
+    /// version and a valid time of completion make it an installed PC.
     #[test]
-    fn captured_or_incomplete_state_is_not_an_installed_pc() {
-        for (version, timestamp) in [
-            (None, None),
-            (Some("0.6.0"), None),
-            (Some("0.6.0"), Some("invalid")),
-            (Some(""), Some("2026-09-07T14:00:00Z")),
+    fn only_a_versioned_timestamped_state_is_an_installed_pc() {
+        for (version, timestamp, installed) in [
+            (None, None, false),
+            (Some("0.6.0"), None, false),
+            (Some("0.6.0"), Some("invalid"), false),
+            (Some(""), Some("2026-09-07T14:00:00Z"), false),
+            (Some("0.6.0"), Some("2026-09-07T14:00:00Z"), true),
         ] {
             let state: AtlasState = serde_json::from_value(serde_json::json!({
                 "schemaVersion": 1, "installedVersion": version, "installedAt": timestamp,
             }))
             .unwrap();
-            assert!(!state.has_completed_install());
+            assert_eq!(state.has_completed_install(), installed, "{version:?} {timestamp:?}");
         }
-    }
-
-    #[test]
-    fn completed_payload_state_can_open_the_completion_page() {
-        let state: AtlasState = serde_json::from_value(serde_json::json!({
-            "schemaVersion": 1, "installedVersion": "0.6.0", "installedAt": "2026-09-07T14:00:00Z",
-        }))
-        .unwrap();
-        assert!(state.has_completed_install());
     }
 }

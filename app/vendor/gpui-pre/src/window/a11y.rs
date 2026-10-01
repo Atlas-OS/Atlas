@@ -152,6 +152,9 @@ pub(crate) struct A11y {
     /// The window's title, used to label the root node so assistive
     /// technology can tell windows apart.
     window_title: Option<SharedString>,
+    /// The language the window's content is in (a BCP 47 tag), set on the
+    /// root node so every node inherits it. Atlas patch.
+    language: Option<SharedString>,
     /// The focus id we most recently reported as having no accessibility node,
     /// used to log at most once per focus change rather than every frame.
     last_focus_without_node: Option<FocusId>,
@@ -178,6 +181,7 @@ impl A11y {
             node_bounds: FxHashMap::default(),
             action_listeners: FxHashMap::default(),
             window_title,
+            language: None,
             last_focus_without_node: None,
             debug: debug::A11yDebug::default(),
             #[cfg(debug_assertions)]
@@ -203,6 +207,12 @@ impl A11y {
 
     pub(crate) fn set_window_title(&mut self, title: impl Into<SharedString>) {
         self.window_title = Some(title.into());
+    }
+
+    /// Sets the language the root node reports, which every node inherits
+    /// unless it sets its own. Atlas patch.
+    pub(crate) fn set_language(&mut self, language: Option<SharedString>) {
+        self.language = language;
     }
 
     /// Ensures that [`Self::is_active`] returns up to date information.
@@ -272,7 +282,7 @@ impl A11y {
         self.focus_ids.clear();
         self.node_bounds.clear();
         self.action_listeners.clear();
-        self.nodes.begin_frame(self.window_title.as_ref());
+        self.nodes.begin_frame(self.window_title.as_ref(), self.language.as_ref());
     }
 
     /// Finalize the tree and produce a [`TreeUpdate`] for the platform adapter.
@@ -467,7 +477,7 @@ impl A11yNodeBuilder {
     }
 
     /// Push the root node to start a new frame.
-    fn begin_frame(&mut self, window_title: Option<&SharedString>) {
+    fn begin_frame(&mut self, window_title: Option<&SharedString>, language: Option<&SharedString>) {
         self.all_nodes.clear();
         self.ids_stack.clear();
         self.nodes_stack.clear();
@@ -477,6 +487,9 @@ impl A11yNodeBuilder {
         let mut root_node = accesskit::Node::new(accesskit::Role::Window);
         if let Some(title) = window_title {
             root_node.set_label(title.to_string());
+        }
+        if let Some(language) = language {
+            root_node.set_language(language.to_string());
         }
 
         self.ids_stack.push(ROOT_NODE_ID);

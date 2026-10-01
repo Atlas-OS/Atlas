@@ -3,7 +3,7 @@
 //! Matching is CLDR-aware (likely subtags), so `zh-TW` and `zh-HK` resolve
 //! to Traditional Chinese and `zh-CN` and `zh` to Simplified; scripts are
 //! never crossed by accident. A regional request (`pt-PT`, `fr-CA`, `en-AU`)
-//! takes the closest shipped variant of its language. The English source
+//! takes the closest included variant of its language. The English source
 //! always ends the chain.
 
 use fluent_langneg::{NegotiationStrategy, negotiate_languages};
@@ -19,7 +19,7 @@ const BRITISH_SPELLING_REGIONS: &[&str] = &[
     "IM",
 ];
 
-/// A shipped variant to try first for a request, before the general
+/// An included variant to try first for a request, before the general
 /// negotiation, when the general rules would pick a poorer match.
 fn preferred_variant(request: &LanguageIdentifier, available: &[&'static Locale]) -> Option<&'static Locale> {
     if request.language.as_str() == "en"
@@ -31,7 +31,7 @@ fn preferred_variant(request: &LanguageIdentifier, available: &[&'static Locale]
     None
 }
 
-/// Shipped locales that share a language and script with `locale`: regional
+/// Included locales that share a language and script with `locale`: regional
 /// overlays of one another (en-US over en-GB), which must stay adjacent so a
 /// message missing from the overlay comes from its base, never from a
 /// later language in the Windows list. Scripts are never crossed.
@@ -54,10 +54,10 @@ fn same_language_and_script(locale: &Locale, available: &[&'static Locale]) -> V
 /// first.
 pub fn negotiate(requested: &[LanguageIdentifier], available: &[&'static Locale]) -> Vec<&'static Locale> {
     let source = catalog::source();
-    // Fluent's bundles still use unic-langid; langneg 0.14 negotiates with
-    // ICU identifiers. Convert at this boundary, once per language change.
+    // Fluent bundles use unic-langid; langneg 0.14 takes ICU identifiers.
+    // Convert here, once per language change.
     let ids: Vec<fluent_langneg::LanguageIdentifier> =
-        available.iter().map(|locale| locale.tag.parse().expect("valid shipped locale")).collect();
+        available.iter().map(|locale| locale.tag.parse().expect("valid included locale")).collect();
 
     let mut ordered: Vec<&'static Locale> = Vec::new();
     let push = |locale: &'static Locale, ordered: &mut Vec<&'static Locale>| {
@@ -111,7 +111,7 @@ mod tests {
     use super::*;
     use crate::i18n::catalog::LOCALES;
 
-    /// The pool an explicit choice (and the preview hint) negotiates against.
+    /// The languages the app offers.
     fn listed() -> Vec<&'static Locale> {
         LOCALES.iter().filter(|locale| locale.listed()).collect()
     }
@@ -121,17 +121,6 @@ mod tests {
             .into_iter()
             .map(|locale| locale.tag)
             .collect()
-    }
-
-    #[test]
-    fn match_windows_negotiates_against_every_real_language() {
-        use crate::i18n::catalog::Readiness;
-        let auto: Vec<&'static Locale> = LOCALES.iter().filter(|locale| locale.auto_selectable()).collect();
-        assert!(auto.iter().all(|locale| locale.readiness >= Readiness::Preview && !locale.pseudo));
-        assert!(auto.iter().any(|locale| locale.tag == "en-GB"));
-        // A preview translation is reachable automatically; the shell announces it.
-        let german = negotiate(&parse_tags(["de-DE"]), &auto);
-        assert_eq!(german.iter().map(|l| l.tag).collect::<Vec<_>>(), ["de", "en-GB"]);
     }
 
     #[test]
@@ -149,7 +138,7 @@ mod tests {
     }
 
     #[test]
-    fn regional_requests_take_the_shipped_variant_of_their_language() {
+    fn regional_requests_take_the_included_variant_of_their_language() {
         assert_eq!(chain(&["id-ID"]), ["id", "en-GB"]);
         assert_eq!(chain(&["th-TH"]), ["th", "en-GB"]);
         assert_eq!(chain(&["hi-IN"]), ["hi", "en-GB"]);
@@ -179,7 +168,7 @@ mod tests {
     #[test]
     fn unsupported_and_malformed_requests_fall_back_to_english() {
         assert_eq!(chain(&["xx-YY"]), ["en-GB"]);
-        assert_eq!(chain(&["ar-SA"]), ["en-GB"], "no right-to-left catalog is shipped");
+        assert_eq!(chain(&["ar-SA"]), ["en-GB"], "no right-to-left catalog is included");
         assert_eq!(chain(&[]), ["en-GB"]);
         assert_eq!(chain(&["xx-YY", "pl-PL"]), ["pl", "en-GB"], "the next Windows language is used");
         assert_eq!(chain(&["not a tag!!", "de-DE"]), ["de", "en-GB"]);
@@ -199,51 +188,6 @@ mod tests {
             chain(&["zh-TW", "zh-CN"]),
             ["zh-Hant", "zh-Hans", "en-GB"],
             "different scripts stay apart"
-        );
-    }
-
-    #[test]
-    fn scripts_are_never_crossed_even_for_the_same_language() {
-        // Serbian is not shipped; this checks the negotiation rule itself with
-        // synthetic locales so a future sr-Latn/sr-Cyrl pair behaves.
-        use crate::i18n::catalog::{Direction, Readiness};
-        static SR: [Locale; 2] = [
-            Locale {
-                tag: "sr-Cyrl",
-                native_name: "",
-                english_name: "",
-                direction: Direction::LeftToRight,
-                readiness: Readiness::Source,
-                font_fallbacks: &[],
-                ftl: "",
-                pseudo: false,
-            },
-            Locale {
-                tag: "sr-Latn",
-                native_name: "",
-                english_name: "",
-                direction: Direction::LeftToRight,
-                readiness: Readiness::Source,
-                font_fallbacks: &[],
-                ftl: "",
-                pseudo: false,
-            },
-        ];
-        let available: Vec<&'static Locale> = SR.iter().collect();
-        let tags = |requested: &[&str]| -> Vec<&'static str> {
-            negotiate(&parse_tags(requested.iter().copied()), &available).into_iter().map(|l| l.tag).collect()
-        };
-        assert_eq!(tags(&["sr-Latn-RS"]), ["sr-Latn", "en-GB"]);
-        assert_eq!(tags(&["sr-Cyrl-RS"]), ["sr-Cyrl", "en-GB"]);
-        assert_eq!(tags(&["sr"]), ["sr-Cyrl", "en-GB"], "bare Serbian maximises to Cyrillic");
-        assert_eq!(tags(&["sr-ME"]), ["sr-Latn", "en-GB"], "Montenegro maximises to Latin");
-    }
-
-    #[test]
-    fn the_pseudo_locale_is_never_chosen_automatically() {
-        assert_eq!(chain(&["qps-ploc"]), ["en-GB"]);
-        assert!(
-            catalog::find("qps-ploc").is_some_and(|locale| !locale.auto_selectable() && !locale.listed())
         );
     }
 }

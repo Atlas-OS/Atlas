@@ -1,5 +1,6 @@
 mod font_fallbacks;
 mod font_features;
+mod glue_breaks;
 mod line;
 mod line_layout;
 mod line_wrapper;

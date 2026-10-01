@@ -2,7 +2,13 @@
 //! Windows 11.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+// The one place the Windows-only assumption is enforced; no other code needs
+// a `cfg(windows)` guard.
+#[cfg(not(windows))]
+compile_error!("Atlas Manager builds only for Windows.");
+
 mod assets;
+mod cli;
 mod environment;
 mod flow;
 mod i18n;
@@ -16,97 +22,102 @@ mod ui;
 
 use crate::platform::application;
 use gpui::{
-    App, Bounds, KeyBinding, TitlebarOptions, WindowBackgroundAppearance, WindowBounds, WindowOptions,
-    prelude::*, px, size,
+    App, Bounds, TitlebarOptions, WindowBackgroundAppearance, WindowBounds, WindowOptions, prelude::*, px,
+    size,
 };
 
-use crate::shell::{Shell, StartAt};
-use crate::ui::actions::{FocusNext, FocusPrevious, NavigateBack, RadioNext, RadioPrevious};
+use crate::cli::Launch;
+use crate::shell::Shell;
 
-/// `atlas [--page home|install|iso|updates|settings|report|installed] [--step options|security|checks|install]
-/// [--playbook <file.apbx>] [--language <tag>] [--just-installed]`. A bare `.apbx` argument (from
-/// "Open with") also works. `--language` (or `ATLAS_LANGUAGE`) outranks the language setting, for review.
-fn start_at() -> StartAt {
-    let mut start = StartAt::default();
-    let mut args = std::env::args().skip(1);
-    while let Some(flag) = args.next() {
-        match flag.as_str() {
-            "--page" => start.page = args.next().as_deref().and_then(model::Page::parse),
-            "--step" => start.step = args.next().as_deref().and_then(model::Step::parse),
-            "--playbook" => start.playbook = args.next().map(std::path::PathBuf::from),
-            "--language" => start.language = args.next(),
-            // Opened by the payload's first-logon setup after the install's restart.
-            "--just-installed" => start.page = Some(model::Page::Installed),
-            other if other.to_ascii_lowercase().ends_with(".apbx") => {
-                start.playbook = Some(std::path::PathBuf::from(other));
-            }
-            _ => {}
+/// Removes the Run entries this launch came from once sign-in has had time
+/// to start the other programs the key lists: Explorer may still be working
+/// through the key, and a program it started must not write to it meanwhile
+/// (see `services::preparation::RESUME_SETTLE`).
+fn settle_and_clear(resume: bool, completion: bool, launched_at: std::time::Instant) {
+    if !resume && !completion {
+        return;
+    }
+    std::thread::sleep(services::preparation::RESUME_SETTLE.saturating_sub(launched_at.elapsed()));
+    if resume {
+        services::preparation::clear_resume();
+    }
+    if completion {
+        services::session::clear_completion();
+    }
+}
+
+/// Collects diagnostics without a window and reports where they went.
+fn export_diagnostics() {
+    let result = services::diagnostics::export(&services::settings::app_data_dir(), None);
+    match &result {
+        Ok(path) => {
+            log::info!("Diagnostic export: {}", path.display());
+            println!("{}", path.display());
+        }
+        Err(error) => {
+            log::error!("Diagnostic export failed: {error:#}");
+            eprintln!("{error:#}");
         }
     }
-    if start.playbook.is_some() && start.page.is_none() {
-        start.page = Some(model::Page::Install);
+    // The release build has no console, so the path is also shown in a message box.
+    services::diagnostics::report_headless_export(&result);
+    if result.is_err() {
+        std::process::exit(1);
     }
-    if cfg!(feature = "embedded-playbook")
-        && let Some(path) = start.playbook.take()
-    {
-        log::info!("Ignoring {}: this tester build installs only its bundled playbook", path.display());
+}
+
+/// Writes the license notices to `path`, or opens them.
+fn export_licenses(path: Option<std::path::PathBuf>) {
+    let result = match path {
+        Some(path) => services::licenses::write_to(&path).map_err(anyhow::Error::from),
+        None => services::licenses::open(),
+    };
+    if let Err(error) = result {
+        log::error!("Could not export license notices: {error}");
+        std::process::exit(1);
     }
-    start
 }
 
 fn main() {
+    let launched_at = std::time::Instant::now();
     services::diagnostics::init_logging();
-    // Headless collection also works when the window cannot initialize.
-    if std::env::args().any(|arg| arg == "--export-diagnostics") {
-        let result = services::diagnostics::export(&services::settings::app_data_dir(), None);
-        match &result {
-            Ok(path) => {
-                log::info!("Diagnostic export: {}", path.display());
-                println!("{}", path.display());
-            }
-            Err(error) => {
-                log::error!("Diagnostic export failed: {error:#}");
-                eprintln!("{error:#}");
-            }
+    let launch = match cli::parse(std::env::args_os().skip(1)) {
+        // Headless collection also works when the window cannot initialize.
+        Launch::ExportDiagnostics => {
+            export_diagnostics();
+            return;
         }
-        // The release build has no console, so the path is also shown in a message box.
-        services::diagnostics::report_headless_export(&result);
-        if result.is_err() {
-            std::process::exit(1);
+        Launch::Licenses(path) => {
+            export_licenses(path);
+            return;
         }
-        return;
-    }
-    let mut arguments = std::env::args_os().skip(1);
-    if arguments.next().as_deref() == Some(std::ffi::OsStr::new("--licenses")) {
-        let result = match arguments.next() {
-            Some(path) => {
-                services::licenses::write_to(std::path::Path::new(&path)).map_err(anyhow::Error::from)
-            }
-            None => services::licenses::open(),
-        };
-        if let Err(error) = result {
-            log::error!("Could not export license notices: {error}");
-            std::process::exit(1);
-        }
-        return;
-    }
-    let mut start = start_at();
-    if std::env::args().any(|arg| arg == "--after-preparation-restart") {
+        Launch::Window(launch) => launch,
+    };
+    let mut start = launch.start;
+    let mut clear_resume = false;
+    let mut clear_completion = false;
+    if launch.after_preparation_restart {
+        use services::preparation::Resume;
         let paths = services::settings::AppPaths::from_process();
         match services::preparation::resume_after_restart(&paths.settings()) {
-            Ok(false) => return,
-            Ok(true) => {}
-            Err(error) => log::error!("preparation recovery: {error:#}"),
+            Resume::Wait => return,
+            Resume::Abandoned => {
+                settle_and_clear(true, false, launched_at);
+                return;
+            }
+            Resume::Open => clear_resume = true,
+            Resume::Unreadable => {}
         }
     }
     let before_desktop = services::desktop_setup::active();
     if before_desktop {
         start.page = Some(model::Page::Install);
         let paths = services::settings::AppPaths::from_process();
-        // A tester build unpacks its bundled playbook once the flow is Ready.
+        // A tester build unpacks its bundled package once the flow is Ready.
         if !cfg!(feature = "embedded-playbook")
-            && services::settings::load_from(&paths.settings()).settings.draft.is_none()
+            && services::settings::read_from(&paths.settings()).settings.draft.is_none()
         {
+            // Installation media stages Atlas.apbx beside AtlasManager.exe.
             start.playbook =
                 std::env::current_exe().ok().and_then(|p| p.parent().map(|p| p.join("Atlas.apbx")));
         }
@@ -115,40 +126,47 @@ fn main() {
             start.playbook = None;
         }
     }
-    if std::env::args().any(|arg| arg == "--setup" || arg == "--after-preparation-restart")
-        && !services::system::is_elevated()
-    {
-        let launched = if std::env::args().any(|arg| arg == "--after-preparation-restart") {
+    if (launch.setup || launch.after_preparation_restart) && !services::system::is_elevated() {
+        let launched = if launch.after_preparation_restart {
             // Let asynchronous draft recovery choose the page and package.
             services::system::relaunch_elevated()
         } else {
             services::system::relaunch_setup_elevated(start.playbook.as_deref())
         };
         match launched {
-            Ok(()) => return,
-            // Cancelling UAC leaves the normal window and its elevation action available.
+            // The elevated copy decides for itself; this launch opens no
+            // window. Windows may elevate without asking, so the entry waits
+            // out sign-in here rather than relying on a prompt to delay it.
+            Ok(()) => {
+                settle_and_clear(clear_resume, false, launched_at);
+                return;
+            }
+            // Cancelling UAC leaves the normal window and its elevation
+            // action available; the entry is removed behind it.
             Err(error) => log::warn!("Setup elevation was not completed: {error:#}"),
         }
     }
-    if std::env::args().any(|arg| arg == "--after-install-restart") {
+    if launch.after_install_restart {
+        use services::session::Completion;
         let paths = services::settings::AppPaths::from_process().session();
-        if !services::session::completion_after_restart(&paths).unwrap_or(false) {
-            return;
+        match services::session::completion_after_restart(&paths) {
+            Completion::Wait => return,
+            Completion::Clear => {
+                settle_and_clear(clear_resume, true, launched_at);
+                return;
+            }
+            Completion::Show => clear_completion = true,
         }
         start.page = Some(model::Page::Installed);
     }
+    // Removed behind the window; a window closed sooner waits for it below.
+    let settle = (clear_resume || clear_completion)
+        .then(|| std::thread::spawn(move || settle_and_clear(clear_resume, clear_completion, launched_at)));
 
     application(false).with_assets(assets::Assets).run(move |cx: &mut App| {
-        // Keyboard traversal is not built into GPUI; the root handles these.
-        cx.bind_keys([
-            KeyBinding::new("tab", FocusNext, None),
-            KeyBinding::new("shift-tab", FocusPrevious, None),
-            KeyBinding::new("escape", NavigateBack, None),
-            KeyBinding::new("down", RadioNext, Some("RadioGroup")),
-            KeyBinding::new("right", RadioNext, Some("RadioGroup")),
-            KeyBinding::new("up", RadioPrevious, Some("RadioGroup")),
-            KeyBinding::new("left", RadioPrevious, Some("RadioGroup")),
-        ]);
+        cx.bind_keys(ui::key_bindings());
+        // Prompts are Fluent ContentDialogs over the window, in its theme.
+        cx.set_prompt_builder(ui::content_dialog::build);
 
         let bounds = Bounds::centered(None, size(px(900.), px(680.)), cx);
         let options = WindowOptions {
@@ -170,7 +188,6 @@ fn main() {
             icon: assets::window_icon(),
             ..Default::default()
         };
-        let start = start.clone();
         cx.open_window(options, move |window, cx| cx.new(|cx| Shell::new(start, window, cx)))
             .expect("open the Atlas Manager window");
         cx.on_window_closed(|cx, _| {
@@ -181,4 +198,9 @@ fn main() {
         .detach();
         cx.activate(true);
     });
+    // The window has closed. The process ends once the entries are gone, or
+    // they would open Atlas again at the next sign-in.
+    if let Some(settle) = settle {
+        let _ = settle.join();
+    }
 }

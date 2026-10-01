@@ -1,18 +1,18 @@
-//! A tester build carries one playbook inside the executable and installs
-//! nothing else. The bytes are written to the downloads folder once and then
-//! go through the same extraction and caching as a downloaded package, so
-//! everything downstream sees an ordinary `.apbx` with an exact digest.
+//! A tester build carries one Atlas package inside the executable and
+//! installs nothing else. The bytes are written to the downloads folder once
+//! and then go through the same extraction and caching as a downloaded
+//! package, so everything downstream sees an ordinary `.apbx` with an exact
+//! digest.
 //!
 //! Without the `embedded-playbook` feature this module only answers "no".
 #![cfg_attr(not(any(test, feature = "embedded-playbook")), allow(dead_code, unused_imports))]
 
 use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
 
 use super::playbook;
-use super::releases::sha256_file;
+use super::releases::{partial_path, sha256_bytes, sha256_file, sweep_partials};
 
 #[cfg(feature = "embedded-playbook")]
 mod built {
@@ -63,10 +63,6 @@ pub fn holds(dir: &Path) -> bool {
     package_matches(dir, sha256())
 }
 
-pub(crate) fn sha256_bytes(bytes: &[u8]) -> String {
-    ring::digest::digest(&ring::digest::SHA256, bytes).as_ref().iter().map(|b| format!("{b:02x}")).collect()
-}
-
 /// An unpacked directory was extracted from an archive with this digest.
 pub(crate) fn package_matches(dir: &Path, sha256: &str) -> bool {
     playbook::identity(dir).is_some_and(|identity| identity.sha256.eq_ignore_ascii_case(sha256))
@@ -86,9 +82,8 @@ pub(crate) fn materialize_into(destination: &Path, bytes: &[u8], sha256: &str) -
     }
     let dir = destination.parent().context("the embedded package needs a parent directory")?;
     std::fs::create_dir_all(dir).with_context(|| format!("create {}", dir.display()))?;
-    let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or_default();
-    let name = destination.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let partial = dir.join(format!("{name}.{}-{nanos:x}.partial", std::process::id()));
+    sweep_partials(dir);
+    let partial = partial_path(dir, &super::releases::file_name(destination));
     let result = std::fs::write(&partial, bytes)
         .with_context(|| format!("write {}", partial.display()))
         .and_then(|()| {

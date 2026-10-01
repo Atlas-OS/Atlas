@@ -1,4 +1,4 @@
-### Atlas Manager: German (de), preview translation. Revised on 16 September 2026 from the en-GB source (i18n/en-GB/atlas.ftl).
+### Atlas Manager: German (de), preview translation. Revised on 1 October 2026 from the en-GB source (i18n/en-GB/atlas.ftl).
 ###
 ### Conventions for this catalog:
 ### - Sie-form throughout, "Ihr PC" for the computer, Atlas or Windows as actor.
@@ -13,6 +13,9 @@
 ###   Windows-Sicherheit, Windows Update, GitHub, Discord, Atlas Toolbox,
 ###   AME Wizard, Snipping Tool, LocalTest. German quotation marks („ “) mark
 ###   button and step names quoted inside sentences.
+### - The .apbx file is the "Atlas-Paket" ("Paket" once that is clear; its file
+###   is the "Paketdatei"). "Playbook" only where a text explains that AME
+###   Wizard calls it that.
 ### - Plural categories: one, other.
 
 ## Shared
@@ -28,8 +31,6 @@ common-change = Ändern
 common-copy = Kopieren
 # Shown where a list of options is empty.
 common-none = Keine
-# Accessible description of a disabled control.
-common-not-available = Zurzeit nicht verfügbar
 # Accessible name of the back arrow on the Install and Settings pages.
 common-back-to-home = Zurück zur Startseite
 # Accessible name of the gear button in the title bar.
@@ -42,6 +43,9 @@ common-try-again = Erneut versuchen
 common-read-the-docs = Atlas-Anleitung lesen
 common-show-details = Details anzeigen
 common-hide-details = Details ausblenden
+# Accessible name of a Show details or Hide details toggle. $action is common-show-details or
+# common-hide-details; $section is the title of the card it opens.
+common-details-a11y = { $action }, { $section }
 common-open-log-file = Protokolldatei öffnen
 # Accessible name of the Copy button beside the install log.
 common-copy-install-log = Installationsprotokoll kopieren
@@ -57,16 +61,41 @@ common-checking = Wird geprüft
 list-separator = { ", " }
 # Joins two alternatives: "26100 oder 26200".
 list-or = { $a } oder { $b }
+list-and = { $a } und { $b }
+# Accessible name of a message bar that announces itself: its title, then its message.
+infobar-a11y = { $title }. { $message }
 
 ## Window
 
 # Dialog shown when the window is closed while an install runs.
 window-close-title = Fenster während der Installation schließen?
 window-close-message = Die Installation läuft im Hintergrund weiter. Öffnen Sie Atlas erneut, um den Fortschritt und das Ergebnis zu sehen. Lassen Sie Ihren PC eingeschaltet, bis die Installation abgeschlossen ist.
+# Instead of window-close-message when the installation restarts the PC afterwards: only an
+# open Atlas window restarts it, so closing the window cancels that.
+window-close-message-restart = Die Installation läuft im Hintergrund weiter, aber Ihr PC wird nicht automatisch neu gestartet, solange Atlas geschlossen ist. Öffnen Sie Atlas erneut, um den Fortschritt und das Ergebnis zu sehen. Lassen Sie Ihren PC eingeschaltet, bis die Installation abgeschlossen ist.
 window-close-keep = Offen lassen
 window-close-close = Fenster schließen
-# Title of the file picker for a playbook (.apbx) file.
-file-dialog-open-playbook = Atlas-Playbook (.apbx) öffnen
+# Dialog shown when the window is closed during the final checks, before the
+# installer has started; window-close-keep and window-close-close are its buttons.
+window-close-preparing-title = Fenster vor Beginn der Installation schließen?
+window-close-preparing-message = Atlas prüft gerade Ihren PC und hat mit der Installation noch nicht begonnen. Wenn Sie jetzt schließen, wird die Installation nicht gestartet. Öffnen Sie Atlas erneut, um fortzufahren.
+prepare-close-title = Updates laufen noch
+# "Stop updating" is prepare-stop, the dialog's other button.
+prepare-close-message = Lassen Sie Atlas geöffnet, während Updates laufen. Wenn Sie „Updates anhalten“ wählen, werden die Updates nach dem aktuellen Schritt angehalten und Sie können Atlas danach schließen.
+# Dialog shown when the window is closed during the restart countdown after a
+# successful install. Its buttons are window-close-keep, restart-now and
+# window-close-restart-close.
+window-close-restart-title = Atlas ohne Neustart schließen?
+# „Jetzt neu starten“ is restart-now, one of this dialog's three buttons.
+window-close-restart-message = Ihr PC muss neu gestartet werden, um die Einrichtung von Atlas abzuschließen. Wenn Sie Atlas jetzt schließen, wird Ihr PC nicht neu gestartet. Starten Sie ihn dann selbst neu, sobald Sie bereit sind. Speichern Sie Ihre Arbeit, bevor Sie „Jetzt neu starten“ wählen.
+window-close-restart-close = Ohne Neustart schließen
+# Dialog shown when the window is closed during a setup with Windows Security switches still
+# off. $switches names them as Windows Security does, joined like a list. Its buttons are
+# window-close-keep, common-open-windows-security and window-close-close.
+window-close-protection-title = Atlas mit ausgeschaltetem Schutz schließen?
+window-close-protection-message = Einige Schutzfunktionen in der Windows-Sicherheit sind noch ausgeschaltet: { $switches }. Wenn Sie Atlas nicht fertig installieren möchten, schalten Sie diese Schutzfunktionen vor dem Schließen wieder ein. Wenn Sie Atlas fertig installieren möchten, setzt Atlas die Einrichtung fort, sobald Sie es wieder öffnen.
+# Title of the file picker for an Atlas package (.apbx) file.
+file-dialog-open-package = Atlas-Paket (.apbx) öffnen
 # Message Windows shows in its restart notification.
 shutdown-comment = Atlas ist installiert. Windows wird neu gestartet, um die Einrichtung abzuschließen.
 # Message Windows shows in its restart notification when "Get ready" restarts
@@ -81,16 +110,22 @@ system-description = { $product } { $version } (Build { $build })
 ## Home page
 
 home-not-installed = Willkommen bei Atlas
+# The headline when Atlas Manager can't tell what is installed on this PC.
+home-state-unknown = Atlas auf diesem PC
 # The headline when Atlas is installed. $version is text.
 home-version = Atlas { $version }
 # $date is a formatted date.
 home-installed-on = Installiert am { $date }
 home-status-checking = Es wird nach Updates gesucht
+# While startup checks whether another window's installation is running.
+home-status-recovering = Suche nach laufender Installation
 home-status-offline = Suche nach Updates fehlgeschlagen
 home-status-not-checked = Noch nicht nach Updates gesucht
 home-status-update = Atlas { $version } ist verfügbar
 home-status-up-to-date = Auf dem neuesten Stand
 home-status-newest = Neueste Version: Atlas { $version }
+# An earlier installation of Atlas { $version } stopped before it finished.
+home-status-unfinished = Atlas { $version } ist nicht fertig installiert
 home-check-again = Erneut prüfen
 # Primary button while an install is running or waiting.
 home-show-install = Fortschritt anzeigen
@@ -98,18 +133,26 @@ home-continue-installing = Einrichtung fortsetzen
 home-update-to = Auf Atlas { $version } aktualisieren
 home-reinstall = Atlas neu installieren
 home-install = Atlas installieren
+home-finish-install = Atlas { $version } fertig installieren
 home-start-over = Von vorn beginnen
+home-restart-title = Ihr PC muss neu gestartet werden
 home-security-reminder-title = Schalten Sie Ihren Schutz wieder ein
-# Names the four switches exactly as the German Windows Security app labels them.
-home-security-reminder-message = Es läuft keine Installation. Öffnen Sie die Windows-Sicherheit und schalten Sie die vier Schalter Manipulationsschutz, Echtzeitschutz, Cloudbasierter Schutz und Automatische Übermittlung von Beispielen wieder ein.
+# Instead of home-security-reminder-title when no switch reads off but some couldn't be read
+# (with home-security-reminder-unreadable-message).
+home-security-reminder-unreadable-title = Stellen Sie sicher, dass Ihr Schutz eingeschaltet ist
+home-security-reminder-message = Atlas installiert gerade nichts, aber einige Schutzfunktionen in der Windows-Sicherheit sind noch ausgeschaltet. Öffnen Sie die Windows-Sicherheit und stellen Sie sicher, dass diese eingeschaltet sind: { $switches }.
+home-security-reminder-unreadable-message = Atlas konnte nicht alle Schutzschalter lesen. Prüfen Sie in der Windows-Sicherheit, ob diese eingeschaltet sind: { $switches }.
 home-elevation-title = Atlas benötigt eine Berechtigung für die Installation
 home-state-error-title = Ihre Atlas-Installationsdaten konnten nicht gelesen werden
+home-state-error-message = Ihre Atlas-Version, Ihre Auswahl und Ihr Verlauf werden möglicherweise nicht richtig angezeigt. Wählen Sie „Erneut prüfen“, um es noch einmal zu versuchen. Details: { $error }
 home-whats-new = Neu in Atlas { $version }
 home-view-release = Versionshinweise auf GitHub ansehen
 home-released = Veröffentlicht am { $date }
 home-show-less = Weniger anzeigen
 home-show-full-notes = Alle Versionshinweise anzeigen
 home-your-install = Ihre Atlas-Installation
+# Atlas is installed, but without the record Atlas Manager keeps (older versions didn't write one).
+home-install-unrecorded = Auf diesem PC ist nicht erfasst, wie Atlas installiert wurde. Ihre Auswahl und der Installationsverlauf können daher nicht angezeigt werden.
 # Row label: how Atlas was set up.
 home-set-up = Eingerichtet
 home-set-up-during-oobe = Während der Windows-Ersteinrichtung
@@ -117,25 +160,21 @@ home-history = Installationsverlauf
 # One history row. $version is text, $mode one of the history-mode-* messages, $date a formatted date and time.
 home-history-entry = Atlas { $version } · { $mode } · { $date }
 home-how-it-works = So machen Sie Ihren PC bereit für Atlas
-home-step-1-title = PC prüfen
-home-step-1-detail = Atlas prüft Windows und lädt die Installationsdateien herunter. Ihre Windows-Einstellungen bleiben dabei unverändert.
-# Tester build: the playbook is bundled, nothing is downloaded.
-home-step-1-detail-bundled = Atlas prüft Windows und bereitet die mitgelieferten Installationsdateien vor. Ihre Windows-Einstellungen bleiben dabei unverändert.
-home-step-2-title = Auswahl treffen
-home-step-2-detail = Legen Sie fest, wie Windows mit Schutz und Updates umgeht, und wählen Sie bei Bedarf zusätzliche Apps und Einstellungen.
-home-step-3-title = Virenschutz vorübergehend ausschalten
-home-step-3-detail = Atlas zeigt Ihnen vier Schalter in der Windows-Sicherheit, die Sie ausschalten, damit sie die Installation nicht blockieren.
-home-step-4-title = Installieren und neu starten
+home-step-1-detail = Atlas prüft Ihren PC, installiert ausstehende Updates für Windows und aus dem Microsoft Store und lädt die Installationsdateien herunter. Dabei werden möglicherweise Store-Apps geschlossen und Ihr PC muss eventuell neu gestartet werden. Speichern Sie deshalb zuerst Ihre Arbeit.
+# Tester build: the Atlas package is bundled, nothing is downloaded.
+home-step-1-detail-bundled = Atlas prüft Ihren PC, installiert ausstehende Updates für Windows und aus dem Microsoft Store und bereitet die mitgelieferten Installationsdateien vor. Dabei werden möglicherweise Store-Apps geschlossen und Ihr PC muss eventuell neu gestartet werden. Speichern Sie deshalb zuerst Ihre Arbeit.
+home-step-2-detail = Entscheiden Sie, ob Sie Microsoft Defender und den Prozessorschutz behalten, wie Windows-Updates installiert werden und welche optionalen Extras Sie möchten.
+home-step-3-detail = Schalten Sie vier Schutzschalter in der Windows-Sicherheit aus, damit sie die Installation nicht blockieren. Atlas zeigt Ihnen, wie das geht.
 home-step-4-detail =
     { $minutes ->
-        [one] Etwa eine Minute.
-       *[other] Etwa { $minutes } Minuten.
+        [one] Die Installation dauert etwa eine Minute. Danach muss Ihr PC neu gestartet werden.
+       *[other] Die Installation dauert etwa { $minutes } Minuten. Danach muss Ihr PC neu gestartet werden.
     }
 # Accessible name of a numbered step.
 home-step-a11y = Schritt { $number }: { $title }
 home-github = Atlas auf GitHub ansehen
 home-discord = Atlas-Community auf Discord beitreten
-home-report-problem = Problem auf GitHub melden
+home-report-problem = Problem melden
 
 ## How an install was done (from the state document)
 
@@ -158,15 +197,19 @@ notice-settings-unreadable = Atlas konnte Ihre gespeicherten App-Einstellungen n
 notice-settings-damaged-kept = Die Datei mit Ihren App-Einstellungen war beschädigt und wurde zurückgesetzt. Eine Kopie der alten Datei ist als { $file } gespeichert. Details: { $error }
 notice-settings-damaged = Die Datei mit Ihren App-Einstellungen war beschädigt. Atlas verwendet vorerst die Standardeinstellungen. Details: { $error }
 notice-settings-not-saved-title = App-Einstellungen konnten nicht gespeichert werden
+# $error is a raw error message (text).
+notice-settings-not-saved = Atlas konnte Ihre letzten Änderungen nicht speichern. Sie gehen möglicherweise verloren, wenn Sie Atlas schließen. Wenn ein anderes Atlas-Fenster geöffnet ist, schließen Sie es und nehmen Sie die Änderung erneut vor. Details: { $error }
 notice-session-unreadable-title = Vorherige Installation konnte nicht geprüft werden
 # $path is a file path (text).
-notice-session-unreadable-message = Atlas kann { $path } nicht lesen und muss wissen, ob noch eine Installation läuft. Wenn Sie unsicher sind, holen Sie sich Hilfe in der Atlas-Community, bevor Sie diese Datei entfernen. Löschen Sie die Datei nur, wenn Sie sicher wissen, dass keine Installation läuft, und versuchen Sie es dann erneut. Details: { $error }
+notice-session-unreadable-message = Atlas konnte nicht feststellen, ob eine frühere Installation noch läuft. Wenn Sie unsicher sind, bitten Sie die Atlas-Community um Hilfe. Nur wenn Sie sicher sind, dass keine Installation läuft, löschen Sie { $path } und versuchen Sie es erneut. Details: { $error }
 
 ## Administrator elevation
 
 elevation-declined = Die Berechtigung wurde nicht erteilt. Versuchen Sie es erneut und wählen Sie „Ja“, wenn Windows fragt, ob Atlas Änderungen an Ihrem Gerät vornehmen darf.
 elevation-declined-continue = Die Berechtigung wurde nicht erteilt. Versuchen Sie es erneut und wählen Sie „Ja“, wenn Windows fragt, ob Atlas Änderungen an Ihrem Gerät vornehmen darf. Ihre Auswahl ist gespeichert.
 elevation-draft-not-saved = Atlas konnte Ihre Auswahl nicht speichern und wurde deshalb nicht als Administrator neu geöffnet. Versuchen Sie es erneut. Details: { $error }
+# Shown with the home-start-over button.
+elevation-taken-over = Ein anderes Atlas-Fenster verwendet jetzt diese Einrichtung, daher wurde Atlas nicht als Administrator neu geöffnet. Fahren Sie in dem anderen Fenster fort oder wählen Sie „Von vorn beginnen“, um die Einrichtung hier noch einmal zu durchlaufen.
 
 ## The install flow
 
@@ -182,28 +225,57 @@ stepper-step-a11y = Schritt { $number } von { $total }, { $title }, { $status }
 stepper-status-completed = abgeschlossen
 stepper-status-current = aktueller Schritt
 stepper-status-upcoming = späterer Schritt
+stepper-status-attention = erfordert Aufmerksamkeit
 # Heading above each step's content.
 step-heading = Schritt { $number } von { $total }: { $title }
+# Accessible name of the step heading on a screen of Your choices, read when it takes focus.
+# $heading is step-heading; $progress is options-progress; $question is the screen's question.
+step-heading-choice-a11y = { $heading }. { $progress }: { $question }
+# The same on the optional extras screen; $progress is options-progress-extras.
+step-heading-extras-a11y = { $heading }. { $progress }
 
 ## Step 1: Get ready
 
 ready-banner-busy-title = Ihr PC wird vorbereitet
 ready-banner-busy-message = Atlas prüft Ihren PC und bereitet die Installationsdateien vor.
-ready-banner-blocked-title = Ihr PC braucht noch etwas Vorbereitung
-ready-banner-blocked-message = Folgen Sie den Hinweisen unten und wählen Sie dann „Erneut prüfen“.
+ready-banner-blocked-title = Ihr PC ist noch nicht bereit
+ready-banner-blocked-message = Beheben Sie die markierten Punkte unter „PC-Prüfungen“ und wählen Sie dann „Erneut prüfen“.
 ready-banner-no-package-title = Laden Sie Atlas herunter, um fortzufahren
-ready-banner-no-package-message = Laden Sie unten die neueste Version herunter oder öffnen Sie ein gespeichertes Atlas-Playbook (.apbx).
-# Tester build: the bundled playbook could not be unpacked.
-ready-banner-no-package-bundled-title = Bereiten Sie das mitgelieferte Playbook vor, um fortzufahren
-ready-banner-no-package-bundled-message = Das mit dieser Testversion mitgelieferte Playbook ist noch nicht bereit. Sehen Sie sich unten die Karte „Installationsdateien“ an.
+ready-banner-no-package-message = Laden Sie Atlas unter „Installationsdateien“ herunter oder wählen Sie „Paketdatei öffnen“, wenn Sie bereits ein Atlas-Paket (.apbx) haben.
+# Tester build: the bundled Atlas package couldn't be unpacked.
+ready-banner-no-package-bundled-title = Bereiten Sie das mitgelieferte Atlas-Paket vor, um fortzufahren
+ready-banner-no-package-bundled-message = Das mit dieser Testversion mitgelieferte Atlas-Paket ist noch nicht bereit. Sehen Sie sich die Karte „Installationsdateien“ an.
+ready-banner-updates-title = Aktualisieren Sie Windows und die Store-Apps, um fortzufahren
+ready-banner-updates-message = Wählen Sie „Updates suchen und installieren“. Wenn die Updates abgeschlossen sind, prüft Atlas Ihren PC erneut.
+# While Windows and Store apps update. "Update Windows and Store apps" is prepare-title, the
+# card further down the page.
+ready-banner-updating-title = Windows und Store-Apps werden aktualisiert
+ready-banner-updating-message = Das kann eine Weile dauern. Lassen Sie Atlas geöffnet. Den Fortschritt sehen Sie unter „Windows und Store-Apps aktualisieren“.
+# After Stop updating. "Check and install updates" is prepare-start, the card's button.
+ready-banner-updates-stopped-title = Aktualisierung angehalten
+ready-banner-updates-stopped-message = Wählen Sie „Updates suchen und installieren“ unter „Windows und Store-Apps aktualisieren“, um die Updates abzuschließen.
+# Atlas reopened after restarting the PC to continue updating. "Continue updates" is
+# prepare-continue, the card's button.
+ready-banner-updates-resumed-title = Ihr PC wurde neu gestartet
+ready-banner-updates-resumed-message = Wählen Sie „Updates fortsetzen“ unter „Windows und Store-Apps aktualisieren“, um die Updates abzuschließen.
+# Under prepare-failed-title or prepare-unconfirmed-title. "Try again" is common-try-again,
+# the card's button.
+ready-banner-updates-failed-message = Unter „Windows und Store-Apps aktualisieren“ erfahren Sie, was zu tun ist. Wählen Sie danach „Erneut versuchen“.
+# Under prepare-reboot-title. "Restart and continue" is prepare-restart, the card's button.
+ready-banner-reboot-message = Speichern Sie zuerst Ihre Arbeit und wählen Sie dann „Neu starten und fortfahren“ unter „Windows und Store-Apps aktualisieren“.
 ready-banner-warnings-title = Ein paar Punkte zum Prüfen
-ready-banner-warnings-message = Lesen Sie die Hinweise unten und führen Sie die empfohlenen Schritte aus, bevor Sie fortfahren.
+ready-banner-warnings-message = Sie können fortfahren, aber lesen Sie zuerst die markierten Punkte unter „PC-Prüfungen“.
 ready-banner-ok-title = Sie können jetzt Ihre Auswahl treffen
 ready-banner-ok-message = Alle Prüfungen sind bestanden und die Installationsdateien sind bereit.
 
 # Card title and accessible name of the list of checks.
 ready-this-pc = PC-Prüfungen
 ready-check-again = Erneut prüfen
+ready-checks-passed =
+    { $count ->
+        [one] { $count } Prüfung bestanden
+       *[other] { $count } Prüfungen bestanden
+    }
 
 package-title = Installationsdateien
 # $received and $total are formatted numbers of megabytes (text).
@@ -215,9 +287,12 @@ package-unpacking-progress =
     }
 package-unpacking = Wird entpackt
 package-looking = Die neueste Atlas-Version wird gesucht.
-# Tester build: the bundled playbook is being unpacked, nothing is downloaded.
-package-looking-bundled = Das mitgelieferte Playbook wird vorbereitet.
-package-none = Noch keine Installationsdateien. Ein Playbook (.apbx) enthält die Anweisungen und Dateien, die Atlas benötigt.
+# Tester build: the bundled Atlas package is being unpacked, nothing is downloaded.
+package-looking-bundled = Das mitgelieferte Atlas-Paket wird vorbereitet.
+package-none = Laden Sie Atlas herunter, um die Installationsdateien zu erhalten. Wenn Sie bereits ein Atlas-Paket (.apbx) haben, öffnen Sie stattdessen dieses.
+# The GitHub release check failed. „Neueste Version herunterladen“ is package-download-newest,
+# the button offered in this state; it checks again.
+package-release-failed = Atlas konnte nicht nach der neuesten Version suchen. Prüfen Sie Ihre Internetverbindung und wählen Sie dann „Neueste Version herunterladen“ oder öffnen Sie ein gespeichertes Atlas-Paket (.apbx).
 # Short status words beside the card title.
 package-status-downloading = Wird heruntergeladen
 package-status-unpacking = Wird entpackt
@@ -231,18 +306,22 @@ package-progress = Fortschritt der Installationsdateien
 package-download-again = Erneut herunterladen
 package-download-version = Atlas { $version } herunterladen
 package-download-newest = Neueste Version herunterladen
-package-open-file = Playbook-Datei öffnen
+package-cancel-download = Download abbrechen
+package-open-file = Paketdatei öffnen
 # Where the package came from. $file is a file name, $path a folder path (text).
 package-from-release = Atlas { $version } wurde von GitHub heruntergeladen und ist bereit zur Installation.
 package-from-file = Atlas { $version } wurde aus { $file } geladen und ist bereit zur Installation.
 package-unpacked = Atlas { $version } ist bereit zur Installation.
-package-at = Installationsdateien: { $path }
 package-none-yet = Keine Installationsdateien ausgewählt
-acquire-no-asset = Für Atlas { $version } steht keine Playbook-Datei zum Herunterladen bereit. Öffnen Sie ein gespeichertes Atlas-Playbook (.apbx), um fortzufahren.
+acquire-no-asset = Für Atlas { $version } gibt es keine Paketdatei zum Herunterladen. Öffnen Sie ein gespeichertes Atlas-Paket (.apbx), um fortzufahren.
 acquire-unsupported = Diese App kann Atlas 0.6.0 und neuer installieren. Verwenden Sie für Atlas { $version } stattdessen den AME Wizard.
-acquire-failed = Die Installationsdateien konnten nicht vorbereitet werden. Laden Sie sie erneut herunter oder öffnen Sie ein anderes Atlas-Playbook (.apbx). Details: { $error }
-# Tester build: the bundled playbook could not be unpacked. Try again is the only control offered.
-acquire-failed-bundled = Das mitgelieferte Playbook konnte nicht vorbereitet werden. Wählen Sie „Erneut versuchen“. Details: { $error }
+# A package new enough to include the installer script that this app drives, but without it.
+acquire-incomplete = In Atlas { $version } fehlen Dateien, die diese App zur Installation benötigt. Laden Sie es erneut herunter oder öffnen Sie ein anderes Atlas-Paket (.apbx).
+acquire-failed = Die Installationsdateien konnten nicht vorbereitet werden. Laden Sie sie erneut herunter oder öffnen Sie ein anderes Atlas-Paket (.apbx). Details: { $error }
+# The download received nothing for a minute and was stopped.
+acquire-stalled = Der Download reagiert nicht mehr. Prüfen Sie Ihre Internetverbindung und laden Sie die Dateien dann erneut herunter oder öffnen Sie ein gespeichertes Atlas-Paket (.apbx).
+# Tester build: the bundled Atlas package couldn't be unpacked. Try again is the only control offered.
+acquire-failed-bundled = Das mitgelieferte Atlas-Paket konnte nicht vorbereitet werden. Wählen Sie „Erneut versuchen“. Details: { $error }
 
 ## System checks
 
@@ -266,43 +345,42 @@ check-fix-windows-update = Windows Update öffnen
 check-fix-network = Netzwerkeinstellungen öffnen
 check-fix-power = Energieeinstellungen öffnen
 check-fix-activation = Aktivierung öffnen
-# Check boxes the user ticks when a check could not run.
+check-fix-apps = Installierte Apps öffnen
+# Check box the user ticks when the Windows Update scan could not run.
 check-ack-updates = Ich habe in Windows Update nachgesehen: Es warten keine Updates auf die Installation
-check-ack-reboot = Ich habe Windows neu gestartet und es ist kein weiterer Neustart nötig
-check-ack-internet = Dieser PC ist mit dem Internet verbunden
-check-ack-generic = Ich habe diese Anforderung selbst geprüft
 
 detail-admin-ok = Atlas hat die Berechtigung, die für die Installation nötigen Änderungen vorzunehmen.
-detail-admin-missing = Führen Sie Atlas als Administrator aus und wählen Sie „Ja“, wenn Windows um Erlaubnis fragt.
+detail-admin-missing = Führen Sie Atlas als Administrator aus. Fragt Windows um Erlaubnis, wählen Sie „Ja“.
 # $builds is a list of build numbers such as "26100 oder 26200"; $build is this PC's (text).
 detail-build-unsupported = Diese Atlas-Version benötigt Windows-Build { $builds }. Ihr PC hat Build { $build }. Installieren Sie eine unterstützte Windows-Version, bevor Sie fortfahren.
+detail-build-missing = Dieses Atlas-Paket gibt keine unterstützten Windows-Builds an. Verwenden Sie einen vollständigen Build des Pakets statt eines LocalTest-Builds.
 detail-updates-none = Es warten keine Windows-Updates auf die Installation.
 # $titles lists up to two update names (text); $count is the total.
 detail-updates-pending =
     { $count ->
-        [1] Installieren Sie zuerst dieses Update: { $titles }.
-        [2] Installieren Sie zuerst diese Updates: { $titles }.
-       *[other] Installieren Sie zuerst { $count } Updates, darunter { $titles }.
+        [1] Dieses Update steht aus: { $titles }. Atlas installiert es unter „Windows und Store-Apps aktualisieren“.
+        [2] Diese Updates stehen aus: { $titles }. Atlas installiert sie unter „Windows und Store-Apps aktualisieren“.
+       *[other] { $count } Updates stehen aus, darunter { $titles }. Atlas installiert sie unter „Windows und Store-Apps aktualisieren“.
     }
 detail-updates-unknown = Windows-Updates konnten nicht geprüft werden. Öffnen Sie Windows Update und bestätigen Sie unten, falls keine Updates warten. ({ $error })
 detail-reboot-none = Windows benötigt derzeit keinen Neustart.
-detail-reboot-pending = Starten Sie Ihren PC neu, um frühere Änderungen abzuschließen. Öffnen Sie danach Atlas erneut und prüfen Sie noch einmal.
+detail-reboot-pending = Windows muss neu gestartet werden, um frühere Änderungen abzuschließen. Wenn Sie „Updates suchen und installieren“ wählen, bittet Atlas Sie zuerst um einen Neustart.
 # $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
-detail-reboot-pending-reasons = Starten Sie Ihren PC neu, um frühere Änderungen abzuschließen ({ $reasons }). Öffnen Sie danach Atlas erneut und prüfen Sie noch einmal.
+detail-reboot-pending-reasons = Windows muss neu gestartet werden, um frühere Änderungen abzuschließen ({ $reasons }). Wenn Sie „Updates suchen und installieren“ wählen, bittet Atlas Sie zuerst um einen Neustart.
 # Warning, not a block: $files lists up to three file paths Windows will replace or remove at the next restart.
-detail-reboot-file-renames = Windows wartet darauf, beim nächsten Neustart Dateien zu ersetzen oder zu entfernen ({ $files }). Manche Apps, etwa Xbox Gaming Services, hinterlassen diese Markierung nach jedem Neustart. Atlas kann trotzdem installiert werden.
+detail-reboot-file-renames = Sie können fortfahren. Windows muss beim nächsten Neustart Dateien ersetzen oder entfernen ({ $files }). Manche Apps, etwa Xbox Gaming Services, verursachen das nach jedem Neustart.
 detail-reboot-unknown = Es konnte nicht geprüft werden, ob Windows einen Neustart benötigt. Starten Sie Ihren PC neu, öffnen Sie Atlas erneut und prüfen Sie noch einmal. ({ $error })
 detail-antivirus-none = Es wurde keine andere Antivirensoftware gefunden.
 # $products is a list of product names (text).
-detail-antivirus-found = Antivirensoftware kann die Installation blockieren: { $products }. Deinstallieren Sie diese Software, bevor Sie fortfahren.
+detail-antivirus-found = Andere Antivirensoftware als Microsoft Defender kann die Installation blockieren. Deinstallieren Sie { $products } und wählen Sie dann „Erneut prüfen“.
 # Warning, not a block: Security Center still lists the product but its files are gone.
 detail-antivirus-stale = Die Windows-Sicherheit führt { $products } noch auf, aber die Dateien sind nicht mehr vorhanden, die Software ist also nicht mehr installiert. Atlas kann trotzdem installiert werden.
-detail-antivirus-unknown = Andere Antivirensoftware konnte nicht geprüft werden. Sehen Sie Ihre installierten Apps durch, bevor Sie fortfahren. ({ $error })
+detail-antivirus-unknown = Andere Antivirensoftware konnte nicht geprüft werden. Wählen Sie „Erneut prüfen“. Wenn die Prüfung weiterhin fehlschlägt, starten Sie Ihren PC neu und prüfen Sie erneut. ({ $error })
 detail-internet-ok = Sie sind verbunden. Halten Sie die Verbindung aufrecht, während Atlas Software herunterlädt und installiert.
 detail-internet-missing = Stellen Sie eine Internetverbindung her und prüfen Sie dann erneut.
 detail-power-mains = Ihr PC ist an das Stromnetz angeschlossen. Lassen Sie ihn angeschlossen, bis die Installation abgeschlossen ist.
 detail-power-battery = Schließen Sie Ihren PC ans Stromnetz an, damit er während der gesamten Installation eingeschaltet bleibt.
-detail-power-unknown = Die Stromversorgung konnte nicht geprüft werden. Wenn Sie einen Laptop verwenden, schließen Sie ihn ans Stromnetz an, bevor Sie fortfahren.
+detail-power-unknown = Atlas konnte nicht feststellen, ob Ihr PC am Stromnetz angeschlossen ist. Wenn es ein Laptop ist, schließen Sie ihn ans Stromnetz an und wählen Sie dann „Erneut prüfen“. Wenn das immer wieder passiert, wählen Sie „Bericht senden“.
 detail-activation-ok = Windows ist aktiviert. Atlas ändert daran nichts.
 detail-activation-missing = Windows ist nicht aktiviert. Sie können fortfahren, aber Atlas aktiviert Windows nicht für Sie.
 detail-activation-no-licence = Windows hat keine Lizenz gemeldet. Sie können fortfahren; Atlas ändert den Aktivierungsstatus nicht.
@@ -312,10 +390,11 @@ detail-activation-unknown = Die Windows-Aktivierung konnte nicht geprüft werden
 
 options-progress = Auswahl { $number } von { $total }
 options-progress-extras = Auswahl { $number } von { $total }: optionale Extras
+options-change-later = Microsoft Defender, Prozessorschutz und Update-Einstellungen können Sie später im Atlas-Ordner auf Ihrem Desktop ändern.
 # Short names for each decision (summary rows) and the question each screen asks.
 screen-defender-title = Microsoft Defender
-screen-defender-question = Virenschutz eingeschaltet lassen?
-screen-mitigations-title = Prozessorsicherheit
+screen-defender-question = Microsoft Defender behalten?
+screen-mitigations-title = Prozessorschutz
 screen-mitigations-question = Prozessorschutz von Windows beibehalten?
 screen-updates-title = Windows Update
 screen-updates-question = Wie soll Windows Updates installieren?
@@ -325,11 +404,10 @@ screen-apps-title = Apps
 screen-optional-apps-title = Optionale Apps
 screen-choose-one-title = Option wählen
 screen-extras-title = Optionale Extras
-screen-extras-question = Wählen Sie die Extras, die Sie möchten
 # Question for a required choice this app has no specific wording for.
 screen-generic-question = Wählen Sie eine Option für { $title }
 learn-more-defender = Mehr über Microsoft Defender erfahren
-learn-more-mitigations = Mehr über Prozessorsicherheit erfahren
+learn-more-mitigations = Mehr über Prozessorschutz erfahren
 learn-more-updates = Mehr über Windows Update erfahren
 learn-more-browser = Mehr über Browser erfahren
 learn-more-power = Mehr über Energie und Sicherheit erfahren
@@ -338,21 +416,21 @@ learn-more-eclean = Wie eclean mit AtlasOS zusammenarbeitet
 learn-more-generic = Einrichtungsanleitung lesen
 # One line under the chosen answer: what it means for the PC.
 consequence-defender-enable = Behält den integrierten Virenschutz von Windows bei, der hilft, Ihren PC vor Viren und anderen Bedrohungen zu schützen.
-consequence-defender-disable = Entfernt Microsoft Defender. Ihr PC hat dann keinen Virenschutz, bis Sie eine andere Antiviren-App installieren.
-consequence-mitigations-default = Behält die Standardschutzmaßnahmen von Windows gegen Angriffe bei, die Schwachstellen des Prozessors ausnutzen.
-consequence-mitigations-disable = Schaltet diese Schutzmaßnahmen aus und verringert die Sicherheit. Ob sich die Leistung ändert, hängt von Ihrem Prozessor ab.
-consequence-auto-updates-disable = Sie müssen Windows Update selbst öffnen und Updates installieren. Update-Benachrichtigungen bleiben eingeschaltet.
+consequence-defender-disable = Entfernt auch SmartScreen. Ihr PC hat keinen Virenschutz, bis Sie eine andere Antivirensoftware installieren, und Windows warnt Sie nicht mehr, bevor Sie nicht erkannte Apps oder Downloads öffnen.
+consequence-mitigations-default = Behält den Standardschutz von Windows gegen Prozessorschwachstellen und gegen Angriffe bei, die Fehler in Apps ausnutzen.
+consequence-mitigations-disable = Schaltet auch den Exploit-Schutz für Apps aus, etwa den Ablaufsteuerungsschutz (CFG). Das verringert die Sicherheit. Ein möglicher Leistungsunterschied hängt von Ihrem Prozessor ab.
+consequence-auto-updates-disable = Öffnen Sie regelmäßig Windows Update, um Updates zu installieren. Update-Benachrichtigungen bleiben eingeschaltet.
 consequence-auto-updates-default = Windows installiert Updates automatisch, einschließlich Sicherheitskorrekturen.
 
-## Playbook text
-## The playbook package carries its own English text for each option. These
+## Atlas package text
+## The Atlas package carries its own English text for each option. These
 ## UI labels and explanations are used only when the package text matches
 ## i18n/playbook-source.ftl. A future package with different wording keeps
 ## its own text instead of receiving a potentially outdated description.
 
 playbook-option-defender-enable = Microsoft Defender behalten (empfohlen)
 playbook-option-defender-disable = Microsoft Defender entfernen
-playbook-option-mitigations-default = Standardschutz behalten (empfohlen)
+playbook-option-mitigations-default = Prozessorschutz behalten (empfohlen)
 playbook-option-mitigations-disable = Prozessorschutz ausschalten
 playbook-option-auto-updates-disable = Updates selbst installieren
 playbook-option-auto-updates-default = Updates automatisch installieren
@@ -363,14 +441,14 @@ playbook-option-remove-snipping-tool = Snipping Tool entfernen
 playbook-option-uninstall-edge = Microsoft Edge entfernen
 playbook-option-install-another-browser = Browser installieren
 playbook-option-install-toolbox = Atlas Toolbox installieren
+playbook-option-install-eclean = eclean installieren
 playbook-option-browser-brave = Brave
 playbook-option-browser-librewolf = LibreWolf
 playbook-option-browser-firefox = Firefox
 playbook-option-browser-chrome = Chrome
-playbook-page-defender-enable-description = Microsoft Defender ist der integrierte Virenschutz von Windows. Es wird empfohlen, ihn zu behalten. Entfernen Sie ihn nur, wenn Sie die Risiken kennen und eine andere Antiviren-App verwenden möchten.
-playbook-page-mitigations-default-description = Diese Schutzmaßnahmen, auch „Mitigations“ genannt, helfen gegen Schwachstellen im Prozessor. Es wird empfohlen, die Windows-Standardeinstellungen beizubehalten.
-playbook-page-auto-updates-disable-description = Windows-Updates enthalten Sicherheitskorrekturen. Windows kann sie automatisch installieren, oder Sie installieren sie selbst.
-consequence-install-toolbox = Mit Atlas Toolbox verwalten Sie Ihre Atlas-Einstellungen. Toolbox ist in der Betaphase, einige Funktionen sind daher möglicherweise noch nicht fertig.
+playbook-page-defender-enable-description = Microsoft Defender ist der in Windows integrierte Virenschutz. Entfernen Sie ihn nur, wenn Sie die Risiken kennen und eine andere Antivirensoftware verwenden möchten. Unabhängig von Ihrer Wahl schaltet Atlas die Intelligente App-Steuerung, den Erweiterten Phishingschutz und „Mein Gerät suchen“ aus.
+playbook-page-mitigations-default-description = Diese Schutzfunktionen, auch Mitigationen genannt, helfen, Ihren PC vor Prozessorschwachstellen wie Spectre und Meltdown und vor Angriffen zu schützen, die Fehler in Apps ausnutzen. Es wird empfohlen, die Standardeinstellungen von Windows beizubehalten.
+playbook-page-auto-updates-disable-description = Windows-Updates enthalten Sicherheitskorrekturen. Sie können sie von Windows automatisch installieren lassen oder selbst installieren. In beiden Fällen belässt Atlas Windows auf der aktuellen Version, die nur so lange Sicherheitskorrekturen erhält, bis Microsoft den Support dafür beendet. Atlas schaltet außerdem automatische Updates für Apps aus dem Microsoft Store aus. Aktualisieren Sie diese Apps daher im Microsoft Store.
 playbook-page-browser-brave-description = Wählen Sie einen Browser, der installiert werden soll. Atlas ändert Ihre Browsereinstellungen nicht.
 
 ## Step 3: Windows Security
@@ -380,12 +458,10 @@ security-banner-reading-message = Atlas prüft die vier Schutzschalter unten.
 security-banner-off-title = Alle vier Schutzschalter sind aus
 # Shown instead of the switch list when an earlier Atlas install removed Microsoft Defender.
 security-banner-absent-title = Microsoft Defender ist auf diesem PC nicht installiert
-security-banner-absent-message = Eine frühere Atlas-Installation hat ihn entfernt, daher gibt es hier nichts auszuschalten. Fahren Sie fort, wenn Sie bereit sind.
-security-banner-off-message = Sie können jetzt Ihre Auswahl überprüfen, bevor Sie installieren.
-security-banner-readable-off-title = Alle Schalter, die Atlas lesen konnte, sind aus
-security-banner-readable-off-message = Prüfen Sie die übrigen Schalter in der Windows-Sicherheit.
-security-banner-on-title = Virenschutz vorübergehend ausschalten
-security-banner-on-message = Diese Schutzfunktionen können die Änderungen blockieren, die Atlas vornehmen muss.
+security-banner-absent-message = In diesem Schritt müssen Sie nichts ausschalten. Wählen Sie „Weiter“.
+security-banner-off-message = Wählen Sie „Weiter“, um Ihre Einrichtung zu überprüfen und Atlas zu installieren.
+security-banner-on-title = Virenschutz in der Windows-Sicherheit ausschalten
+security-banner-on-message = Microsoft Defender kann die Änderungen blockieren, die Atlas vornimmt. Wählen Sie „Windows-Sicherheit öffnen“ und schalten Sie jeden unten aufgeführten Schalter aus. Wenn Sie Microsoft Defender behalten, schalten Sie die Schalter nach Abschluss der Installation wieder ein.
 # The page name in Windows Security.
 security-list-title = Einstellungen für Viren- & Bedrohungsschutz
 security-switch-off = Aus
@@ -400,57 +476,55 @@ security-count-still-on = { $count } noch eingeschaltet
 security-count-unreadable = { $count } nicht lesbar
 security-count-join = { $a } und { $b }
 security-unknown-title = Bestätigen Sie die Schalter, die Atlas nicht lesen konnte
-security-unknown-message = Wenn Sie in der Windows-Sicherheit geprüft haben, dass alle vier Schalter aus sind, bestätigen Sie das unten.
+security-unknown-message = Stellen Sie sicher, dass in der Windows-Sicherheit alle vier Schalter aus sind, und bestätigen Sie das dann unten.
 security-acknowledge = Ich habe in der Windows-Sicherheit nachgesehen und alle vier Schalter sind aus
 security-unknown-unelevated-title = Atlas benötigt eine Berechtigung, um den Schutz zu prüfen
 security-unknown-unelevated-message = Führen Sie Atlas als Administrator aus, damit es die Einstellungen von Microsoft Defender lesen kann.
 # The four switches, named as the German Windows Security app names them.
 protection-tamper = Manipulationsschutz
-protection-tamper-why = Muss zuerst aus sein, damit Defender Änderungen an seinen Schutzeinstellungen zulässt.
+protection-tamper-why = Schalten Sie diesen Schutz aus, damit Defender Atlas nicht daran hindert, die Sicherheitseinstellungen von Defender zu ändern.
 protection-realtime = Echtzeitschutz
-protection-realtime-why = Muss aus sein, damit die Dateiprüfung pausiert und Defender die Atlas-Installationsdateien nicht blockiert.
+protection-realtime-why = Schalten Sie diesen Schutz aus, damit Defender die Atlas-Installationsdateien beim Prüfen nicht blockiert.
 protection-cloud = Cloudbasierter Schutz
-protection-cloud-why = Muss aus sein, damit keine Online-Bedrohungsprüfung die Atlas-Installationsdateien blockiert.
+protection-cloud-why = Schalten Sie diesen Schutz aus, damit Online-Bedrohungsprüfungen die Atlas-Installationsdateien nicht blockieren.
 protection-samples = Automatische Übermittlung von Beispielen
 protection-samples-why = Muss aus sein, damit Defender Atlas-Dateien nicht automatisch zur Analyse an Microsoft sendet.
 
 ## Step 4: Install
 
-install-preparing-title = Eine letzte Prüfung vor der Installation
-install-preparing-message = Atlas prüft Ihren PC und die Schutzeinstellungen noch einmal, bevor Änderungen vorgenommen werden.
-install-installing = Wird installiert
-install-running = Läuft
 # Accessible name of the progress bar.
 install-progress = Installationsfortschritt
-phase-preflight = PC wird geprüft und Dateien werden vorbereitet
-phase-staging = Installationsdateien werden bereitgestellt
-phase-applying = Windows wird eingerichtet. Lassen Sie Ihren PC eingeschaltet.
-phase-done = Einrichtung wird abgeschlossen
+# The installation's progress shown beside the bar. $percent is a whole number from 0 to 99.
+install-percent = { $percent } %
 outcome-succeeded-title = Atlas ist installiert
 outcome-lost-title = Installationsergebnis konnte nicht bestätigt werden
 outcome-failed-title = Installation nicht abgeschlossen
-# The same sentence as the Installing view shows after success.
-outcome-succeeded = { restart-needed }
-outcome-requirements = Ihr PC hat die Voraussetzungen für die Installation nicht erfüllt. An Ihrem PC wurde nichts geändert. Gehen Sie zurück zu „Vorbereiten“ und führen Sie die Prüfungen erneut aus.
-outcome-not-elevated = An Ihrem PC wurde nichts geändert. Führen Sie Atlas als Administrator aus und versuchen Sie es erneut.
-outcome-failed-preflight = Die Installation ist abgebrochen, bevor etwas geändert wurde. Öffnen Sie die Protokolldatei, um die Ursache zu sehen, und versuchen Sie es dann erneut.
-outcome-failed-staging = Die Installation ist beim Vorbereiten der Dateien abgebrochen, bevor Windows geändert wurde. Öffnen Sie die Protokolldatei, um die Ursache zu sehen, und versuchen Sie es dann erneut.
-outcome-failed-applying = Einige Änderungen wurden möglicherweise bereits vorgenommen. Wenn Sie hier aufhören, schalten Sie die zuvor ausgeschalteten Schutzfunktionen in der Windows-Sicherheit wieder ein, sofern sie noch verfügbar sind. Öffnen Sie die Protokolldatei, um die Ursache zu sehen. Sie können „Erneut versuchen“ wählen.
-outcome-not-started = Das Installationsprogramm ist nicht rechtzeitig gestartet. An Ihrem PC wurde nichts geändert. Wählen Sie „Erneut versuchen“.
-outcome-lost = Das Installationsprogramm wurde beendet, ohne ein Ergebnis zu melden; einige Änderungen wurden möglicherweise bereits vorgenommen. Öffnen Sie die Protokolldatei, um die Ursache zu sehen, bevor Sie „Erneut versuchen“ wählen.
+outcome-requirements = Ihr PC hat die Voraussetzungen für die Installation nicht erfüllt. Die Installation hat nichts geändert. Gehen Sie zurück zu „Vorbereiten“ und führen Sie die Prüfungen erneut aus.
+# The -resumed variants follow a retry of an installation an earlier attempt had already started applying.
+outcome-requirements-resumed = Ihr PC hat die Voraussetzungen für die Installation nicht erfüllt, daher wurde dieser Versuch abgebrochen. Ein früherer Versuch hat bereits mit Änderungen begonnen. Gehen Sie zurück zu „Vorbereiten“ und führen Sie die Prüfungen erneut aus.
+outcome-not-elevated = Atlas hatte keine Administratorrechte. Die Installation hat nichts geändert. Führen Sie Atlas als Administrator aus und versuchen Sie es dann erneut.
+outcome-not-elevated-resumed = Atlas hatte keine Administratorrechte, daher wurde dieser Versuch abgebrochen. Ein früherer Versuch hat bereits mit Änderungen begonnen. Führen Sie Atlas als Administrator aus und versuchen Sie es dann erneut.
+# The installer's live check found Windows or Store updates unfinished. „Vorbereiten“ offers the
+# update check again; „Updates suchen und installieren“ is prepare-start, its button in that state.
+outcome-preparation-stale = Atlas konnte nicht bestätigen, dass Windows und die Store-Apps auf dem neuesten Stand sind, daher wurde die Installation abgebrochen, bevor Windows geändert wurde. Gehen Sie zurück zu „Vorbereiten“ und wählen Sie „Updates suchen und installieren“.
+outcome-preparation-stale-resumed = Atlas konnte nicht bestätigen, dass Windows und die Store-Apps auf dem neuesten Stand sind, daher wurde dieser Versuch abgebrochen. Ein früherer Versuch hat jedoch bereits mit Änderungen begonnen. Gehen Sie zurück zu „Vorbereiten“ und wählen Sie „Updates suchen und installieren“.
+outcome-failed-preflight = Die Installation ist abgebrochen, bevor etwas geändert wurde. Sie können es erneut versuchen. Wenn sie wieder abbricht, wählen Sie „Bericht senden“.
+outcome-failed-staging = Die Installation ist beim Vorbereiten der Dateien abgebrochen, bevor Windows geändert wurde. Sie können es erneut versuchen. Wenn sie wieder abbricht, wählen Sie „Bericht senden“.
+outcome-failed-applying = Einige Änderungen wurden möglicherweise bereits vorgenommen. Sie können es erneut versuchen. Wenn Sie hier aufhören, schalten Sie die zuvor ausgeschalteten Schutzfunktionen in der Windows-Sicherheit wieder ein, sofern sie noch verfügbar sind.
+outcome-failed-resumed = Dieser Versuch wurde vorzeitig abgebrochen, aber ein früherer Versuch hat bereits mit Änderungen begonnen. Sie können es erneut versuchen. Wenn Sie hier aufhören, schalten Sie die zuvor ausgeschalteten Schutzfunktionen in der Windows-Sicherheit wieder ein, sofern sie noch verfügbar sind.
+outcome-not-started = Das Installationsprogramm ist nicht rechtzeitig gestartet. Die Installation hat nichts geändert. Sie können es erneut versuchen.
+outcome-lost = Das Installationsprogramm wurde beendet, ohne ein Ergebnis zu melden, und einige Änderungen wurden möglicherweise bereits vorgenommen. Sie können es erneut versuchen. Wenn Sie hier aufhören, schalten Sie die zuvor ausgeschalteten Schutzfunktionen in der Windows-Sicherheit wieder ein, sofern sie noch verfügbar sind.
 restart-now-message = Windows wird neu gestartet, um die Einrichtung von Atlas abzuschließen.
 restart-countdown =
     { $seconds ->
-        [one] Windows startet in { $seconds } Sekunde neu, damit Atlas die Einrichtung abschließen kann.
-       *[other] Windows startet in { $seconds } Sekunden neu, damit Atlas die Einrichtung abschließen kann.
+        [one] Windows startet in { $seconds } Sekunde neu, um die Einrichtung von Atlas abzuschließen. Wenn Sie zuerst Ihre Arbeit speichern möchten, wählen Sie „Später neu starten“.
+       *[other] Windows startet in { $seconds } Sekunden neu, um die Einrichtung von Atlas abzuschließen. Wenn Sie zuerst Ihre Arbeit speichern möchten, wählen Sie „Später neu starten“.
     }
 restart-stopped = Automatischer Neustart abgebrochen. Speichern Sie Ihre Arbeit und starten Sie dann Ihren PC neu, um die Einrichtung von Atlas abzuschließen.
 restart-needed = Speichern Sie Ihre Arbeit und starten Sie dann Ihren PC neu, um die Einrichtung von Atlas abzuschließen.
 restart-dont-now = Später neu starten
 restart-now = Jetzt neu starten
-# Accessible name of the countdown bar.
-restart-progress = Zeit bis zum Neustart
-restart-start-failed = Windows konnte nicht neu gestartet werden. Speichern Sie Ihre Arbeit und starten Sie Ihren PC dann über das Startmenü neu. Details: { $error }
+restart-start-failed = Atlas konnte Ihren PC nicht neu starten. Speichern Sie Ihre Arbeit und starten Sie den PC dann über das Startmenü neu. Details: { $error }
 preflight-title = Installation wurde nicht gestartet
 preflight-invalid-options = Atlas konnte diese Auswahl nicht verwenden. Gehen Sie zurück zu „Ihre Auswahl“, überprüfen Sie sie und versuchen Sie es dann erneut. Details: { $error }
 # $problems is a sentence or two built from preflight-problem and preflight-security.
@@ -458,25 +532,30 @@ preflight-changed = Der Zustand Ihres PCs hat sich seit den letzten Prüfungen g
 preflight-problem = { $title }: { $detail }
 # $summary is the Windows Security summary such as "2 noch eingeschaltet".
 preflight-security = Windows-Sicherheit: { $summary }.
-preflight-busy = Ein anderes Atlas-Fenster startet gerade eine Installation. Warten Sie einen Moment und versuchen Sie es dann erneut.
-preflight-record-unreadable = Atlas konnte nicht prüfen, ob die vorherige Installation noch läuft, und hat deshalb keine neue gestartet. Schließen Sie Atlas und öffnen Sie es erneut, um Hinweise zur Wiederherstellung zu erhalten. Details: { $error }
-preflight-refused = Das Installationsprogramm konnte nicht gestartet werden. An Ihrem PC wurde nichts geändert. Details: { $error }
+preflight-busy = Ein anderes Atlas-Fenster startet gerade eine Installation. Warten Sie einen Moment und wählen Sie dann erneut „Atlas installieren“.
+# Shown with the home-start-over button.
+preflight-taken-over = Ein anderes Atlas-Fenster verwendet jetzt diese Einrichtung, daher wurde die Installation nicht gestartet. Fahren Sie in dem anderen Fenster fort oder wählen Sie „Von vorn beginnen“, um die Einrichtung hier noch einmal zu durchlaufen.
+preflight-record-unreadable = Atlas konnte nicht prüfen, ob die vorherige Installation noch läuft, und hat deshalb keine neue gestartet. Gehen Sie zurück zu „Vorbereiten“, um zu sehen, wie es weitergeht. Details: { $error }
+preflight-refused = Das Installationsprogramm konnte nicht gestartet werden. Die Installation hat nichts geändert. Wählen Sie „Atlas installieren“, um es erneut zu versuchen. Wenn das immer wieder passiert, wählen Sie „Bericht senden“. Details: { $error }
+# Instead of preflight-refused when retrying an installation an earlier attempt had already started applying.
+preflight-refused-resumed = Das Installationsprogramm konnte nicht gestartet werden, daher wurde dieser Versuch abgebrochen. Ein früherer Versuch hat bereits mit Änderungen begonnen. Wählen Sie „Atlas installieren“, um es erneut zu versuchen. Wenn das immer wieder passiert, wählen Sie „Bericht senden“. Details: { $error }
 go-to-ready = Zurück zu „Vorbereiten“
 go-to-options = Zurück zu „Ihre Auswahl“
+# Replaces Weiter on a choice opened from a Change link on the Install step, while Weiter leads straight back there.
+go-to-install = Zurück zu „Installieren“
 output-problem-title = Installationsfortschritt konnte nicht gelesen werden
 output-problem-message = Atlas konnte das Protokoll nicht lesen. Das bedeutet nicht, dass die Installation gestoppt wurde. Lassen Sie Ihren PC eingeschaltet und versuchen Sie, die Protokolldatei zu öffnen. Details: { $error }
 install-elevate-title = Atlas benötigt eine Berechtigung für die Installation
 install-no-package-title = Wählen Sie zuerst Ihre Installationsdateien
-install-no-package-message = Gehen Sie zurück zu „Vorbereiten“, um Atlas herunterzuladen oder ein gespeichertes Playbook (.apbx) zu öffnen.
+install-no-package-message = Gehen Sie zurück zu „Vorbereiten“, um Atlas herunterzuladen oder ein gespeichertes Atlas-Paket (.apbx) zu öffnen.
 # Tester build variant of install-no-package-message.
-install-no-package-bundled-message = Gehen Sie zurück zu „Vorbereiten“, um das mit dieser Testversion mitgelieferte Playbook vorzubereiten.
+install-no-package-bundled-message = Gehen Sie zurück zu „Vorbereiten“, um das mit dieser Testversion mitgelieferte Atlas-Paket vorzubereiten.
 # Step 4 when step 1 is incomplete for this session (checks or Windows updates), with go-to-ready as the button.
 install-not-ready-title = Schließen Sie zuerst „Vorbereiten“ ab
-install-not-ready-message = Die PC-Prüfungen oder die Prüfung auf Windows-Updates unter „Vorbereiten“ sind in dieser Sitzung noch nicht abgeschlossen.
+install-not-ready-message = Atlas muss die Prüfung Ihres PCs und die Windows-Updates abschließen, bevor es installieren kann.
 install-security-title = Virenschutz vor der Installation prüfen
 install-security-reading = Die vier Schutzschalter werden noch einmal geprüft.
-install-security-message = { $summary }. Öffnen Sie die Windows-Sicherheit und stellen Sie sicher, dass alle vier Schalter aus sind, bevor Sie fortfahren.
-summary-this-install = Installationsübersicht
+install-security-message = { $summary }. Öffnen Sie die Windows-Sicherheit und stellen Sie sicher, dass alle vier Schalter aus sind, bevor Sie installieren.
 summary-try-again = Vor dem nächsten Versuch überprüfen
 summary-ready = Ihre Atlas-Einrichtung überprüfen
 summary-activation = Aktivierung
@@ -492,18 +571,20 @@ summary-duration-value =
 summary-restart-checkbox = PC nach der Installation automatisch neu starten
 summary-show-command = Installationsbefehl anzeigen
 summary-hide-command = Installationsbefehl ausblenden
+summary-copy-command-a11y = Installationsbefehl kopieren
 summary-command-unavailable = Der Installationsbefehl konnte nicht erstellt werden. Details: { $error }
 summary-not-chosen = Noch nicht gewählt
 # Accessible name of a Change link. $title is a screen-*-title message.
 summary-change-a11y = { $title } ändern
 footer-still-checking = Installation wird vorbereitet
-footer-fix-items = Schließen Sie die Prüfungen oben ab, um fortzufahren
-footer-need-package = Laden Sie Atlas herunter oder öffnen Sie ein Playbook, um fortzufahren
+footer-fix-items = Beheben Sie die Punkte unter „PC-Prüfungen“, um fortzufahren
+footer-need-package = Laden Sie Atlas herunter oder öffnen Sie ein Atlas-Paket, um fortzufahren
 # Tester build variant of footer-need-package.
-footer-need-package-bundled = Bereiten Sie das mitgelieferte Playbook vor, um fortzufahren
+footer-need-package-bundled = Bereiten Sie das mitgelieferte Atlas-Paket vor, um fortzufahren
 footer-reading-security = Schutzschalter werden geprüft
-button-checking = Wird geprüft
-button-installing = Wird installiert
+footer-security-pending = Stellen Sie alle vier Schalter auf „Aus“, um fortzufahren
+footer-security-confirm = Bestätigen Sie die Schalter, die Atlas nicht lesen konnte, um fortzufahren
+footer-install-ready = Speichern Sie zuerst Ihre Arbeit und schließen Sie Ihre Apps
 button-install = Atlas installieren
 log-earlier-lines =
     { $count ->
@@ -530,13 +611,20 @@ installing-started-minutes =
         [one] Gestartet um { $time }, vor einer Minute
        *[other] Gestartet um { $time }, vor { $minutes } Minuten
     }
+installing-restart-auto = Ihr PC wird automatisch neu gestartet, wenn die Installation abgeschlossen ist. Speichern Sie bis dahin Ihre Arbeit in anderen Apps.
 
 ## The "Atlas is installed" window after the restart
 
 installed-title-version = Atlas { $version } ist installiert
 installed-title = Atlas ist installiert
 installed-ready = Alles erledigt. Ihr PC ist mit Atlas einsatzbereit.
-installed-open-atlas = Atlas-Installation ansehen
+installed-security-message = Sie haben Microsoft Defender behalten, aber einige seiner Schutzfunktionen sind noch ausgeschaltet. Öffnen Sie die Windows-Sicherheit und stellen Sie sicher, dass diese eingeschaltet sind: { $switches }.
+installed-defender-removed-title = Microsoft Defender wurde entfernt
+installed-defender-removed-message = Ihr PC hat keinen Virenschutz, bis Sie eine andere Antivirensoftware installieren. SmartScreen wurde ebenfalls entfernt, daher warnt Windows Sie nicht mehr, bevor Sie nicht erkannte Apps oder Downloads öffnen.
+# Home and the "Atlas is installed" window, after an installation that kept Microsoft Defender,
+# when it is missing. Its title is security-banner-absent-title; "Report a problem" is
+# home-report-problem, its button.
+installed-defender-missing-message = Sie haben sich entschieden, Microsoft Defender zu behalten, aber er fehlt. Wenn Sie keine andere Antivirensoftware verwenden, installieren Sie eine, um Ihren PC zu schützen. Wenn Sie Defender nicht selbst entfernt haben, wählen Sie „Problem melden“.
 
 ## Settings
 
@@ -549,11 +637,14 @@ settings-theme-contrast-note = Atlas verwendet die Farben Ihres Windows-Kontrast
 settings-theme-mica-note = Der durchscheinende Hintergrund wird angezeigt, wenn Sie dasselbe helle oder dunkle Design wie Windows wählen.
 settings-language = Sprache
 settings-language-system = Wie Windows
+settings-language-system-selected = { settings-language-system } ({ $language })
 # Under "Wie Windows": which language that gives. $language is a language's own name.
 settings-language-system-detail = Bei „Wie Windows“: { $language }
-# Under a language that is translated but not yet reviewed by a native speaker.
-settings-language-preview = Vorschau · sprachliche Prüfung steht noch aus
-preview-notice = { $language } ist eine Vorschau-Übersetzung.
+# A short tag under each language that is translated but not yet reviewed by a native speaker.
+settings-language-preview-tag = Vorschau
+# Under the language list, once, explaining the Vorschau tag.
+settings-language-preview-note = Vorschau-Übersetzungen wurden noch nicht muttersprachlich geprüft.
+preview-notice = { $language } ist eine Vorschau-Übersetzung und kann Fehler enthalten.
 preview-notice-switch = Zu Englisch wechseln
 preview-notice-language = Sprache ändern
 # $tag is a language tag (text).
@@ -563,19 +654,23 @@ settings-language-windows-unmatched = Atlas unterstützt Ihre Windows-Anzeigespr
 settings-language-windows-unavailable = Ihre Windows-Anzeigesprache konnte nicht ermittelt werden. Atlas verwendet vorerst Englisch. Details: { $error }
 # $locale is the regional format's own name, for example "Deutsch (Deutschland)".
 settings-language-formats = Zahlen, Datum und Uhrzeit folgen Ihrem regionalen Format in Windows ({ $locale }).
+# Instead of settings-language-formats when the regional format writes dates or times
+# right to left. $locale is the format's English name, for example "Arabic (Saudi Arabia)".
+settings-language-formats-numbers-only = Zahlen folgen Ihrem regionalen Format in Windows ({ $locale }). Datum und Uhrzeit werden in einem Standardformat angezeigt, da Atlas noch keinen Text von rechts nach links darstellen kann.
 settings-language-contribute = Beim Übersetzen von Atlas auf GitHub helfen
-settings-installing = Installation
 settings-restart-label = PC nach der Installation automatisch neu starten
 settings-restart-locked = Sie können das ändern, sobald die Installation abgeschlossen ist.
-settings-restart-description = Zum Abschluss der Einrichtung ist ein Neustart nötig. Speichern Sie Ihre Arbeit vor der Installation, wenn der automatische Neustart eingeschaltet ist.
+settings-restart-description = Wenn diese Option eingeschaltet ist, wird Ihr PC innerhalb einer Minute nach Abschluss der Installation neu gestartet. Dabei werden Ihre geöffneten Apps geschlossen. Speichern Sie Ihre Arbeit, bevor Sie installieren.
+settings-help = Hilfe und Feedback
 settings-about = Info
 settings-about-app = Atlas Manager
-settings-about-data = App-Dateien
 settings-about-licence = Lizenz
 settings-about-licence-value = GPL-3.0, kostenlos und Open Source
 settings-view-source = Quellcode auf GitHub ansehen
 # Link that opens the third-party licence notices.
 settings-view-licences = Lizenzhinweise anzeigen
+# Under the links when Windows could not open the notices.
+settings-licences-failed = Die Lizenzhinweise konnten nicht geöffnet werden. Versuchen Sie es erneut oder sehen Sie sie im Quellcode auf GitHub nach.
 settings-open-data-folder = App-Ordner öffnen
 
 ## Optional choices: explanations shown before selection.
@@ -585,125 +680,183 @@ consequence-disable-power-saving = Schaltet Energiesparfunktionen aus. Ihr PC ve
 consequence-disable-core-isolation = Schaltet eine zusätzliche Sicherheitsebene von Windows aus, einschließlich der Speicherintegrität. Das verringert den Schutz und kann Apps oder Spiele beeinträchtigen, die darauf angewiesen sind.
 consequence-remove-snipping-tool = Entfernt die Windows-App für Screenshots und Bildschirmaufnahmen.
 consequence-uninstall-edge = Entfernt den Browser Microsoft Edge. Stellen Sie sicher, dass Sie einen anderen Browser haben, oder wählen Sie unten einen aus.
+# Instead of consequence-uninstall-edge when Atlas is installed on this PC, which has the
+# user's Edge data. "choose one below" refers to the browser choice under it.
+consequence-uninstall-edge-data = Entfernt Microsoft Edge und löscht Ihre Favoriten, Ihren Verlauf und Ihre gespeicherten Kennwörter in Edge auf diesem PC. Alles, was nicht mit Ihrem Microsoft-Konto synchronisiert ist, geht verloren. Stellen Sie sicher, dass Sie einen anderen Browser haben, oder wählen Sie unten einen aus.
+# Under Remove Microsoft Edge in the Install step's summary, with a caution glyph.
+caution-uninstall-edge = Löscht Ihre Favoriten, Ihren Verlauf und Ihre gespeicherten Kennwörter in Edge auf diesem PC.
 consequence-install-another-browser = Wählen Sie unten einen Browser aus; Atlas installiert ihn für Sie.
+consequence-install-toolbox = Mit Atlas Toolbox verwalten Sie Ihre Atlas-Einstellungen. Toolbox ist in der Betaphase, einige Funktionen sind daher möglicherweise noch nicht fertig.
+consequence-install-eclean = Ein Wartungstool vom Team hinter AtlasOS, mit dem Sie Ihren PC nach der Einrichtung aufräumen können. Prüfen Sie überflüssige Dateien und Autostart-Apps. Erfordert ein Konto und eine Internetverbindung.
 
 # Introduction on the home page before Atlas is installed.
-home-intro = Atlas passt Windows so an, dass weniger im Hintergrund läuft und weniger ablenkt. Wir führen Sie durch alle Prüfungen und Entscheidungen, bevor Änderungen vorgenommen werden.
+home-intro = Atlas passt Windows so an, dass weniger im Hintergrund läuft und weniger ablenkt. Installieren Sie Atlas direkt nach einer Neuinstallation von Windows, bevor Sie eigene Apps und Dateien hinzufügen.
 
-detail-build-missing = Dieses Playbook gibt keine unterstützten Windows-Builds an. Wählen Sie ein vollständiges Playbook statt eines LocalTest-Pakets.
 ## ISO creation (Beta)
 iso-home-title = Windows-Installationsmedium
-iso-home-description = Erstellen Sie eine Windows-ISO mit Atlas für eine Neuinstallation auf diesem oder einem anderen PC.
+iso-home-description = Erstellen Sie eine Windows-Installationsdatei (ISO) mit Atlas und installieren Sie damit Windows auf diesem oder einem anderen PC neu.
 iso-open = Atlas-ISO erstellen
 iso-title = Atlas-ISO erstellen
 iso-beta = Beta
 iso-beta-description = Testen Sie die ISO in einer virtuellen Maschine, bevor Sie sie auf einem PC verwenden. Sichern Sie Ihre Dateien, bevor Sie Windows installieren.
-iso-admin-description = Zum Lesen von Windows-Abbildern und Erstellen von Installationsmedien sind Administratorrechte erforderlich.
-iso-files-description = Wählen Sie eine unveränderte Windows-11-ISO für x64, ein Atlas-Playbook (.apbx) und einen neuen Dateinamen für das Ergebnis.
-# Tester build: no playbook picker.
-iso-files-description-bundled = Wählen Sie eine unveränderte Windows-11-ISO für x64 und einen neuen Dateinamen für das Ergebnis. Verwendet wird das mit dieser Testversion mitgelieferte Playbook.
+iso-admin-description = Atlas benötigt Administratorrechte, um Ihre Windows-ISO zu lesen und die neue zu erstellen. Wählen Sie „Als Administrator ausführen“ und dann „Ja“, wenn Windows nachfragt.
+iso-files-description = Atlas erstellt eine Kopie einer Windows-11-ISO und fügt Atlas hinzu, sodass Sie Windows damit neu installieren können. Wählen Sie eine von Microsoft heruntergeladene Windows-11-ISO, laden Sie das neueste Atlas-Paket herunter oder wählen Sie ein vorhandenes (.apbx), und legen Sie dann fest, wo die neue ISO gespeichert wird.
+# Tester build: no package picker.
+iso-files-description-bundled = Atlas erstellt eine Kopie einer Windows-11-ISO und fügt das mit dieser Testversion mitgelieferte Atlas-Paket hinzu. Wählen Sie eine von Microsoft heruntergeladene Windows-11-ISO und legen Sie dann fest, wo die neue ISO gespeichert wird.
 iso-source = Windows-ISO
-iso-package = Atlas-Playbook (0.6+)
+iso-source-download = Windows 11 bei Microsoft herunterladen
+# $minimum is the first Atlas version that can be used (text, such as 0.6.0).
+iso-package = Atlas-Paket ({ $minimum } oder neuer)
 iso-output = Neue ISO speichern unter
 iso-no-file = Keine Datei ausgewählt
 iso-browse = Durchsuchen
 iso-save-as = Speichern unter
+# Accessible name of the Browse or Save as button beside a file field: $action is
+# that button's text and $field the field's label.
+iso-pick-a11y = { $action }: { $field }
 iso-inspect = Dateien prüfen
-iso-mode-title = Windows- und Atlas-Einstellungen
-iso-mode-interactive = Atlas-Einstellungen nach der Anmeldung wählen
-iso-mode-interactive-description = Nach der Anmeldung hilft Ihnen der Atlas Manager, Windows und die Store-Apps zu aktualisieren, Ihre Einstellungen zu wählen und Atlas anzuwenden.
-iso-mode-before = Atlas-Einstellungen jetzt wählen
-iso-mode-before-description = Speichern Sie Ihre Atlas-Einstellungen in der ISO. Aktualisieren Sie nach der Anmeldung Windows und die Store-Apps und wenden Sie Atlas mit diesen Einstellungen an.
-iso-package-unsupported-title = Neueres Playbook wählen
-iso-package-unsupported = Für die ISO-Einrichtung wird Atlas 0.6 oder neuer mit ISO-Unterstützung benötigt. Wählen Sie ein kompatibles Playbook.
-# Tester build: the bundled playbook cannot be swapped, so the only way on is the after-sign-in mode.
-iso-package-unsupported-bundled-title = Atlas-Einstellungen können nicht in dieser ISO gespeichert werden
-iso-package-unsupported-bundled = Das mit dieser Testversion mitgelieferte Playbook unterstützt die ISO-Einrichtung nicht. Wählen Sie stattdessen „Atlas-Einstellungen nach der Anmeldung wählen“.
-iso-atlas-options = Atlas-Einstellungen
+iso-mode-title = Wie möchten Sie Atlas einrichten?
+iso-mode-interactive = Atlas-Auswahl nach der Anmeldung treffen
+iso-mode-interactive-description = Nach der Anmeldung öffnet sich Atlas und führt Sie durch die Updates, Ihre Auswahl und die Installation von Atlas.
+iso-mode-before = Atlas-Auswahl jetzt treffen
+iso-mode-before-description = Atlas speichert Ihre Auswahl in der ISO. Nach der Anmeldung öffnet sich Atlas und führt Sie durch die Updates. Danach installieren Sie Atlas mit dieser Auswahl.
+iso-package-unsupported-title = Neueres Atlas-Paket wählen
+# „Atlas-Auswahl nach der Anmeldung treffen“ is iso-mode-interactive.
+iso-package-unsupported = Dieses Atlas-Paket kann keine Atlas-Auswahl in der ISO speichern. Wählen Sie ein neueres Paket oder „Atlas-Auswahl nach der Anmeldung treffen“.
+# Shown when Check files refuses the Atlas package; $minimum as for iso-package.
+iso-failed-package-unsupported = Mit diesem Atlas-Paket kann keine ISO erstellt werden. Wählen Sie ein Paket für Atlas { $minimum } oder neuer.
+# Tester build: the bundled Atlas package cannot be swapped, so the only way on is the after-sign-in mode.
+iso-package-unsupported-bundled-title = Atlas-Auswahl kann nicht in dieser ISO gespeichert werden
+# „Atlas-Auswahl nach der Anmeldung treffen“ is iso-mode-interactive.
+iso-package-unsupported-bundled = Das mit dieser Testversion mitgelieferte Atlas-Paket unterstützt die ISO-Einrichtung nicht. Wählen Sie stattdessen „Atlas-Auswahl nach der Anmeldung treffen“.
+iso-atlas-options = Atlas-Auswahl
 iso-review = ISO überprüfen
-iso-review-description = Atlas erstellt eine neue ISO. Die ursprüngliche Datei bleibt erhalten. Starten Sie von der neuen ISO, um Windows zu installieren. Beim Erstellen wird Atlas nicht auf diesem PC installiert.
+iso-review-description = Beim Erstellen der ISO wird nichts auf diesem PC installiert und Ihre ursprüngliche ISO bleibt unverändert. Danach kann Atlas die neue ISO auf ein USB-Laufwerk übertragen, damit Sie Windows davon neu installieren können.
 iso-review-files = Dateien
-iso-review-package = Atlas-Playbook
+iso-step-windows = Windows-Einrichtung
+iso-step-review = Überprüfung
+iso-review-package = Atlas-Paket
 iso-review-output = Neue ISO
 iso-review-editions = Editionen
-iso-review-size = Größe
-iso-review-size-value = { $size } MB
+iso-architecture-x64 = x64
+iso-architecture-arm64 = Arm64
+# A file size; $size is a formatted number (text). Megabytes below a gigabyte.
+size-megabytes = { $size } MB
+size-gigabytes = { $size } GB
 iso-review-account = Kontoname
 iso-review-target = Installation auf
 iso-review-drivers = Treiber
 iso-create = ISO erstellen
-iso-stage-inspect = Windows-Abbild wird geprüft
+iso-progress-title = Ihre ISO wird erstellt
+iso-stage-inspect = Ihre Windows-ISO wird geprüft
 iso-stage-copy = Windows-Dateien werden kopiert
-iso-stage-inject = Atlas wird hinzugefügt
-iso-stage-master = ISO wird erstellt
-iso-stage-verify = Ergebnis wird überprüft
+iso-stage-add-atlas = Atlas wird hinzugefügt
+iso-stage-master = ISO-Datei wird geschrieben
+iso-stage-verify = Neue ISO wird geprüft
 iso-stage-cleanup = Wird abgeschlossen
-iso-progress-description = Lassen Sie die App geöffnet. Die Verarbeitung großer Abbilder kann einige Zeit dauern.
+# Accessible name of one stage while the ISO is created. No "Step": the screen reader adds
+# "4 of 6". $status is stepper-status-completed or one of the three below.
+iso-stage-a11y = { $title }, { $status }
+iso-stage-status-current = läuft
+# The stage where creating the ISO stopped with an error.
+iso-stage-status-failed = fehlgeschlagen
+iso-stage-status-not-started = noch nicht gestartet
+iso-progress-description = Lassen Sie Atlas geöffnet. Die Verarbeitung großer Abbilder kann einige Zeit dauern.
 iso-cancel = Erstellung abbrechen
 iso-cancelling = Warten auf einen sicheren Abbruchpunkt
 iso-cancelled = ISO-Erstellung abgebrochen
-iso-cancelled-description = Ihre ursprüngliche ISO bleibt erhalten. Im Diagnoseprotokoll steht, ob noch temporäre Dateien entfernt werden müssen.
+iso-cancelled-description = Ihre ursprüngliche ISO ist unverändert. Falls temporäre Dateien zurückgeblieben sind, wählen Sie „Protokollordner öffnen“, um zu sehen, wo sie liegen.
 iso-complete = Ihre ISO ist fertig
-iso-complete-description = Testen Sie die ISO in einer virtuellen Maschine und erstellen Sie damit anschließend ein Windows-Installationsmedium.
+iso-complete-description = Die ISO-Erstellung ist in der Betaphase. Testen Sie die ISO daher zuerst in einer virtuellen Maschine. Wählen Sie dann „Installations-USB erstellen“ und sichern Sie Ihre Dateien, bevor Sie Windows neu installieren.
 iso-open-folder = Im Ordner anzeigen
 iso-failed = ISO-Erstellung konnte nicht abgeschlossen werden
-iso-failed-description = Öffnen Sie die Diagnose, um die Ursache zu sehen. Beheben Sie das Problem und versuchen Sie es dann erneut.
+iso-failed-description = Stellen Sie sicher, dass Ihre Dateien noch am gewählten Ort liegen und das Laufwerk, auf dem Sie speichern, angeschlossen ist, und wählen Sie dann „ISO erstellen“. Wenn es weiterhin fehlschlägt, wählen Sie „Bericht senden“.
 # Title while the Check files step fails; the messages below say why.
 iso-check-failed = Dateien konnten nicht geprüft werden
-iso-check-failed-description = Öffnen Sie die Diagnose, um die Ursache zu sehen. Beheben Sie das Problem und prüfen Sie die Dateien dann erneut.
-# Title when Windows refused the administrator relaunch (UAC declined); elevation-declined is the message.
-iso-elevation-title = Administratorrechte sind erforderlich
+iso-check-failed-description = Stellen Sie sicher, dass die ISO und das Atlas-Paket noch am gewählten Ort liegen und vollständig heruntergeladen sind, und wählen Sie dann „Dateien prüfen“. Wenn es weiterhin fehlschlägt, wählen Sie „Bericht senden“.
+# Title of the bar that asks for administrator permission. Its message is iso-admin-description,
+# or elevation-declined after Windows refused the relaunch (UAC declined).
+iso-elevation-title = Atlas benötigt eine Berechtigung zum Erstellen einer ISO
 # Typed reasons reported by the image worker.
 iso-failed-output-exists = Eine Datei mit diesem Namen ist bereits vorhanden. Wählen Sie „Speichern unter“ und geben Sie einen neuen Dateinamen ein.
-iso-failed-destination = Speichern Sie die neue ISO auf einem lokalen NTFS- oder ReFS-Laufwerk. Netzwerkorte sowie FAT32- und exFAT-Laufwerke können die Installationsdateien nicht aufnehmen.
+iso-failed-destination = Atlas kann die neue ISO dort nicht speichern. Wählen Sie „Speichern unter“ und dann einen Ordner auf diesem PC, etwa „Downloads“. Netzwerkorte und mit FAT32 oder exFAT formatierte Laufwerke können nicht verwendet werden. Das betrifft viele USB-Laufwerke.
 iso-failed-space = Auf dem Ziellaufwerk ist nicht genügend freier Speicherplatz vorhanden. Geben Sie Speicherplatz frei oder speichern Sie die neue ISO auf einem anderen Laufwerk.
-iso-failed-edition = Diese ISO enthält keine unterstützten Windows-Editionen. Windows Home und LTSC werden nicht unterstützt; verwenden Sie eine ISO mit Pro, Pro for Workstations oder Enterprise.
+# Home and LTSC are the editions ISO creation drops; the others are examples it keeps.
+iso-failed-edition = Diese ISO enthält keine unterstützten Windows-Editionen. Windows Home und LTSC werden nicht unterstützt. Verwenden Sie eine ISO mit einer anderen Edition, etwa Pro, Education oder Enterprise.
 iso-failed-customised = Diese ISO enthält bereits angepasste Setup-Dateien wie autounattend.xml. Wählen Sie eine unveränderte Windows-ISO von Microsoft.
-iso-failed-windows-unsupported = Dieses Windows-Abbild wird vom Playbook nicht unterstützt. Verwenden Sie eine unveränderte 64-Bit-ISO einer Windows-11-Version, die dieses Playbook unterstützt.
-iso-diagnostics = Diagnose öffnen
+iso-failed-windows-unsupported = Dieses Windows-Abbild wird vom Atlas-Paket nicht unterstützt. Verwenden Sie eine unveränderte 64-Bit-ISO einer Windows-11-Version, die dieses Paket unterstützt.
+iso-failed-network-architecture = Die Netzwerktreiber dieses PCs passen nicht zur Architektur dieser ISO. Gehen Sie zurück und deaktivieren Sie „Netzwerktreiber dieses PCs einbinden“ oder wählen Sie eine ISO für diesen PC.
+iso-failed-unstaged = Atlas konnte seinen Arbeitsordner nicht vorbereiten, daher wurde nichts geändert. Versuchen Sie es erneut. Wenn der Fehler weiterhin auftritt, wählen Sie „Diagnose exportieren“ für einen Fehlerbericht.
+iso-failed-package-changed = Das Atlas-Paket wurde nach der Prüfung der Dateien geändert. Wählen Sie „Ändern“ neben „Dateien“ und dann „Dateien prüfen“.
+iso-diagnostics = Protokollordner öffnen
 iso-close-title = Die ISO wird noch erstellt
 iso-close-message = Lassen Sie dieses Fenster geöffnet, bis die Erstellung oder der Abbruch abgeschlossen ist. Beim Abbrechen wird gewartet, bis der laufende Vorgang sicher beendet werden kann.
 iso-keep-open = Geöffnet lassen
 prepare-title = Windows und Store-Apps aktualisieren
-prepare-description = Installieren Sie vor Atlas die Windows-Updates und aktualisieren Sie den Microsoft Store sowie alle installierten Store-Apps. Store-Apps können beim Aktualisieren geschlossen werden.
-prepare-complete = Windows und die Store-Apps sind auf dem neuesten Stand.
-prepare-reboot = Windows muss neu gestartet werden. Ihre Atlas-Auswahl wird gespeichert. Suchen Sie nach der Anmeldung erneut nach Updates.
+prepare-description = Vor der Installation aktualisiert Atlas Windows, den Microsoft Store und Ihre Store-Apps. Geöffnete Store-Apps wie Editor, Paint oder Windows-Terminal werden beim Aktualisieren möglicherweise geschlossen. Speichern Sie deshalb vorher Ihre Arbeit darin. Möglicherweise muss Ihr PC auch neu gestartet werden.
+prepare-complete = Atlas hat keine weiteren Windows- oder Store-Updates zum Installieren gefunden.
+prepare-reboot-title = Starten Sie Ihren PC neu, um fortzufahren
+prepare-reboot = Ihr PC muss neu gestartet werden, um die Installation der Updates abzuschließen. Atlas speichert Ihre bisherige Auswahl und öffnet sich nach der Anmeldung wieder.
 # $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
-prepare-reboot-reasons = Windows muss neu gestartet werden ({ $reasons }). Ihre Atlas-Auswahl wird gespeichert. Suchen Sie nach der Anmeldung erneut nach Updates.
+prepare-reboot-reasons = Ihr PC muss neu gestartet werden, um die Installation der Updates abzuschließen ({ $reasons }). Atlas speichert Ihre bisherige Auswahl und öffnet sich nach der Anmeldung wieder.
+# Under the restart message: the button restarts Windows without a countdown.
+prepare-reboot-save-work = Speichern Sie zuerst Ihre Arbeit und schließen Sie Ihre Apps. Ihr PC wird sofort neu gestartet, wenn Sie „Neu starten und fortfahren“ wählen.
 # Shown instead of another restart when Windows asks for one again right after restarting.
-prepare-restart-persists = Windows meldet auch nach dem Neustart noch einen ausstehenden Neustart ({ $reasons }). Ein weiterer Neustart wird daran wahrscheinlich nichts ändern. Öffnen Sie Windows Update und schließen Sie alles ab, was noch wartet. Suchen Sie dann erneut nach Updates. Wenn nichts wartet, wählen Sie „Diagnose exportieren“ und melden Sie das Problem.
+prepare-restart-persists = Ihr PC wurde neu gestartet, aber Windows meldet weiterhin, dass ein Neustart nötig ist ({ $reasons }). Ein weiterer Neustart hilft daher wahrscheinlich nicht. Wählen Sie „Windows Update öffnen“, schließen Sie dort alles ab, was noch aussteht, und wählen Sie dann „Erneut versuchen“. Wenn nichts aussteht, wählen Sie „Bericht senden“.
 # Names of the markers Windows sets when it wants a restart. They complete
-# "Windows muss neu gestartet werden (…)"; keep them short.
+# "Ihr PC muss neu gestartet werden, um die Installation der Updates abzuschließen (…)";
+# keep them short.
 prepare-reason-servicing = Windows-Wartung
 prepare-reason-windows-update = Windows Update
 prepare-reason-file-renames = noch zu ersetzende Dateien
 prepare-reason-update-agent = der Windows Update-Dienst
 prepare-reason-unknown = Grund nicht gemeldet
-prepare-failed = Einige Updates konnten nicht abgeschlossen werden. Prüfe den Fehler unten, behebe das Problem und versuche es erneut.
-prepare-cancelled = Die Vorbereitung wurde angehalten. Suchen Sie vor dem Fortfahren erneut nach Updates.
+prepare-failed = Wählen Sie „Erneut versuchen“. Wenn es wieder fehlschlägt, schließen Sie die restlichen Updates in Windows Update oder im Microsoft Store ab oder wählen Sie „Bericht senden“.
+prepare-failed-title = Einige Updates konnten nicht abgeschlossen werden
+# The update run ended without writing any result, for example after Atlas was closed
+# while it ran. „Erneut versuchen“ is common-try-again, the button beside it.
+prepare-ended-unconfirmed = Die Aktualisierung wurde beendet, bevor ein Ergebnis gemeldet wurde. Atlas kann daher nicht bestätigen, dass Windows und die Store-Apps auf dem neuesten Stand sind. Wählen Sie „Erneut versuchen“, um nach Updates zu suchen.
+prepare-unconfirmed-title = Update-Ergebnis konnte nicht bestätigt werden
+# „Updates suchen und installieren“ is prepare-start, its button in this state.
+prepare-cancelled = Die Aktualisierung wurde angehalten. Einige Updates wurden möglicherweise bereits installiert. Wählen Sie „Updates suchen und installieren“, um die Updates abzuschließen, bevor Sie fortfahren.
 prepare-windows-search = Windows Update wird geprüft…
 prepare-windows-download = Windows-Updates werden heruntergeladen…
 prepare-windows-install = Windows-Updates werden installiert…
 prepare-store-search = Microsoft Store wird geprüft…
 prepare-store-install = Microsoft Store und seine Apps werden aktualisiert…
-prepare-stop-description = Zum Anhalten muss der laufende Updatevorgang abgeschlossen werden. Lassen Sie Atlas bis dahin geöffnet.
-prepare-stop = Nach diesem Vorgang anhalten
+prepare-stop-description = Atlas hält an, sobald der aktuelle Schritt abgeschlossen ist. Lassen Sie Atlas bis dahin geöffnet.
+prepare-stop = Updates anhalten
 prepare-restart = Neu starten und fortfahren
 prepare-start = Updates suchen und installieren
+# Under the preparation button while it is unavailable. $check is the check-supported-build title.
+prepare-blocked-source = Nicht verfügbar, weil diese Installation nicht fortgesetzt werden kann. Beachten Sie die Meldung oben auf der Seite.
+prepare-needs-build-check = Verfügbar, sobald die Prüfung „{ $check }“ unter „PC-Prüfungen“ bestanden ist.
+# Under the preparation button, and under the Administrator check, while the installation files are still downloading or unpacking.
+prepare-wait-for-package = Verfügbar, sobald die Installationsdateien bereit sind.
 iso-username = Name des lokalen Kontos
-iso-account-description = Nach der Neuinstallation fordert Windows Sie auf, ein Kennwort festzulegen.
+iso-account-description = Bei der Windows-Einrichtung wird ein lokales Konto mit diesem Namen erstellt, Sie brauchen also kein Microsoft-Konto. Bei der ersten Anmeldung fordert Windows Sie auf, ein Kennwort festzulegen.
 iso-username-placeholder = Ihr Name
-iso-account-invalid = Verwenden Sie 1–20 Zeichen ohne Leerzeichen am Anfang oder Ende und ohne unzulässige Zeichen für Windows-Kontonamen.
-iso-privacy-defaults = Windows deaktiviert bei der Einrichtung automatisch die optionale Datenfreigabe und personalisierte Angebote.
+iso-account-empty = Geben Sie einen Namen für das lokale Konto ein, um fortzufahren
+iso-account-invalid = Verwenden Sie bis zu 20 Zeichen, ohne Leerzeichen am Anfang oder Ende und ohne diese Zeichen: " / \ [ ] : ; | = , + * ? < > @
+iso-account-trailing-dot = Der Name darf nicht mit einem Punkt enden.
+iso-account-reserved = Windows verwendet diesen Namen für ein integriertes Konto. Wählen Sie einen anderen Namen.
+iso-privacy-defaults = Diese ISO überspringt bei der Windows-Einrichtung die Seiten für Lizenz, Microsoft-Konto und Datenschutz und schaltet die optionale Datenfreigabe und personalisierte Angebote aus.
 prepare-drivers = Wie sollen Treiber installiert werden?
 prepare-drivers-auto = Treiber über Windows Update beziehen
 prepare-drivers-auto-detail = Windows sucht passende Treiber für Ihre Hardware. Für die meisten PCs empfohlen.
 prepare-drivers-manual = Treiber selbst installieren
-prepare-drivers-manual-detail = Treiberdownloads über Windows Update werden blockiert. Sie müssen Treiber selbst beschaffen; vorhandene Treiber bleiben installiert.
-prepare-network-needed = Verbinden Sie sich über ein nicht getaktetes WLAN oder Ethernet und versuchen Sie es erneut. Fehlt WLAN, installieren Sie zuerst den Netzwerktreiber.
+prepare-drivers-manual-detail = Windows Update installiert keine Treiber. Sie müssen sie daher vom Hersteller Ihres PCs oder Geräts beziehen. Bereits installierte Treiber bleiben erhalten.
+prepare-drivers-description = Mit Treibern kann Windows Ihre Hardware nutzen, etwa Grafik, Sound und WLAN. Wenn Sie dies nach dem Aktualisieren ändern, muss Atlas erneut nach Updates suchen.
+prepare-network-needed = Für Updates ist eine nicht getaktete Internetverbindung erforderlich. Verbinden Sie sich mit einem WLAN oder über Ethernet und wählen Sie dann „Erneut versuchen“. Wenn Sie keine WLAN-Netzwerke sehen, installieren Sie zuerst Ihren Netzwerktreiber.
+# Connected, but Windows found no internet access (a captive portal, or DNS or firewall filtering).
+prepare-network-limited = Windows meldet, dass dieses Netzwerk keinen Internetzugang hat. Melden Sie sich beim Netzwerk an, falls Sie dazu aufgefordert werden, oder prüfen Sie Ihren Router sowie DNS- oder Firewall-Filter. Versuchen Sie es dann erneut.
+# „Getaktete Verbindung“ is the switch's name in Windows network settings.
+prepare-network-metered = Diese Verbindung ist getaktet oder hat ein Datenlimit. Verbinden Sie sich mit einem nicht getakteten Netzwerk oder schalten Sie „Getaktete Verbindung“ in den Netzwerkeinstellungen aus. Versuchen Sie es dann erneut.
 prepare-network-settings = Netzwerkeinstellungen öffnen
 iso-target-title = Auf welchem PC möchten Sie Windows neu installieren?
 iso-target-this = Auf diesem PC
+# Under This PC (iso-target-this), before it's chosen.
+iso-target-this-description = Atlas kann die WLAN- und Ethernet-Treiber dieses PCs in die ISO einbinden, damit Windows direkt nach der Neuinstallation online gehen kann.
 iso-target-other = Auf einem anderen PC
 iso-copy-network = Netzwerktreiber dieses PCs einbinden
 iso-network-detail = Verwendet die WLAN- und Ethernet-Treiber dieses PCs bei der Windows-Installation. Verbinden Sie sich danach erneut mit dem WLAN.
@@ -713,21 +866,26 @@ iso-network-updated = Zuerst bei Windows Update suchen
 iso-network-updated-detail = Lädt passende Treiber von Windows Update herunter und behält installierte Treiber als Reserve. Erfordert eine nicht getaktete Verbindung.
 iso-stage-network-drivers = Netzwerktreiber werden vorbereitet
 iso-network-failed = Die Netzwerktreiber konnten nicht vorbereitet werden. Prüfen Sie die Diagnoseinformationen oder gehen Sie zurück und ändern Sie die Netzwerktreiberoption.
+# Under iso-complete when Include this PC's network drivers was chosen but the adapters use
+# drivers that come with Windows, so none were added.
+iso-network-inbox = Die Netzwerkadapter dieses PCs verwenden Treiber, die in Windows enthalten sind. Die ISO muss sie daher nicht einbinden.
 iso-mode-desktop = Einrichtung vor dem Desktop abschließen
-iso-mode-desktop-description = Speichern Sie Ihre Atlas-Einstellungen jetzt und schließen Sie Updates und die Atlas-Einrichtung ab, bevor der Windows-Desktop geöffnet wird.
+iso-mode-desktop-description = Atlas speichert Ihre Auswahl in der ISO. Nach der Anmeldung schließt Atlas Updates und Installation ab, bevor der Windows-Desktop geöffnet wird.
 desktop-setup-description = Schließen Sie die Einrichtung Ihres PCs ab. Ihre Atlas-Auswahl ist gespeichert. Bei Bedarf können Sie zu Windows wechseln.
 desktop-setup-exit = In Windows fortfahren
 
 # Windows installation USB (Beta)
 usb-title = Installations-USB erstellen
 usb-existing = USB aus einer vorhandenen ISO erstellen
-usb-description = Erstellen Sie einen startfähigen USB-Stick, um eine unterstützte Version von Windows 11 und Atlas auf Ihrem PC zu installieren.
+usb-description = Übertragen Sie eine ISO auf ein USB-Laufwerk, um Windows davon neu zu installieren. Verwenden Sie eine mit Atlas erstellte ISO, um Atlas gleich mit zu installieren.
 usb-choose-iso = ISO auswählen
 usb-drive = USB-Laufwerk
-usb-empty = Schließen Sie ein USB-Laufwerk an und aktualisieren Sie die Liste. Angezeigt werden nur beschreibbare USB-Laufwerke zwischen 8 GB und 2 TB, die nicht die laufende Windows-Installation enthalten.
+# $min and $max are formatted numbers (text), in gigabytes and terabytes.
+usb-empty = Keine USB-Laufwerke gefunden. Schließen Sie ein USB-Laufwerk mit mindestens { $min } GB an und wählen Sie dann „Aktualisieren“. Laufwerke über { $max } TB, schreibgeschützte Laufwerke und das Laufwerk, von dem Windows läuft, werden nicht angezeigt.
 usb-refresh = Aktualisieren
 # Shown when the drive list could not be read.
-usb-scan-failed = Die Liste der USB-Laufwerke konnte nicht gelesen werden. Prüfen Sie, ob das Laufwerk angeschlossen ist, und aktualisieren Sie dann die Liste. Öffnen Sie die Diagnose für weitere Informationen.
+usb-scan-failed = Prüfen Sie, ob das Laufwerk angeschlossen ist, und wählen Sie dann „Aktualisieren“. Wählen Sie für Details „Protokollordner öffnen“.
+usb-scan-failed-title = USB-Laufwerke konnten nicht aufgelistet werden
 # Parts of a drive's detail line, joined by usb-detail-separator; empty parts are left out.
 # $size is a formatted number of gigabytes (text); $volumes and $serial are text.
 usb-drive-size = { $size } GB
@@ -735,119 +893,162 @@ usb-drive-serial = Seriennummer: { $serial }
 usb-detail-separator = { " · " }
 usb-review = USB-Auswahl prüfen
 usb-erase-title = Dieses USB-Laufwerk löschen?
-usb-erase-description = Alle Dateien und Partitionen auf { $drive } ({ $size } GB) werden dauerhaft gelöscht. Ihre ISO bleibt erhalten.
-usb-layout = Die Windows-Installation belegt bis zu 32 GB. Verbleibender Speicher bleibt nicht zugeordnet. Der USB-Stick ist für PCs mit UEFI vorgesehen.
-usb-ack = Mir ist bewusst, dass der gesamte Inhalt dieses USB-Laufwerks gelöscht wird.
+usb-erase-description = Der gesamte Inhalt von { $drive } ({ $size } GB) wird dauerhaft gelöscht, einschließlich aller Dateien und Partitionen. Kopieren Sie zuerst alles, was Sie behalten möchten, auf ein anderes Laufwerk. Ihre ISO bleibt erhalten.
+usb-layout = Atlas belegt bis zu 32 GB des Laufwerks und lässt den Rest ungenutzt. Das USB-Laufwerk funktioniert auf PCs, die im UEFI-Modus starten. Diesen Modus setzt Windows 11 voraus.
+usb-ack = Mir ist bewusst, dass der gesamte Inhalt dieses USB-Laufwerks gelöscht wird
 usb-write = Löschen und USB erstellen
 usb-stage-prepare = Installationsdateien werden vorbereitet…
 usb-stage-format = USB wird formatiert…
 usb-stage-copy = Installationsdateien werden kopiert…
 usb-stage-verify = USB wird überprüft…
-usb-working = Lassen Sie Atlas geöffnet und das USB-Laufwerk angeschlossen. Beim Abbrechen wird auf einen sicheren Haltepunkt gewartet. Ein unfertiger USB-Stick eignet sich nicht zur Windows-Installation.
+usb-working = Lassen Sie Atlas geöffnet und das USB-Laufwerk angeschlossen. Wenn Sie abbrechen, kann das unfertige USB-Laufwerk nicht zur Windows-Installation verwendet werden.
 # Titles of the error bar, the success bar and the close prompt while a USB is being written.
 usb-failed-title = USB-Erstellung konnte nicht abgeschlossen werden
 usb-complete-title = Ihr USB-Stick ist bereit
 usb-close-title = Der USB-Stick wird noch erstellt
-usb-failed = Der USB-Stick konnte nicht fertiggestellt werden. Prüfen Sie die Verbindung und öffnen Sie die Diagnose. Wählen Sie das Laufwerk für einen neuen Versuch erneut aus.
-usb-cancelled = Die USB-Erstellung wurde angehalten. Das Laufwerk enthält möglicherweise unvollständige Installationsdateien. Erstellen Sie es vor der Windows-Installation erneut.
-usb-complete = Ihr USB-Stick ist bereit. Alle Dateien wurden überprüft. Werfen Sie ihn aus, schließen Sie ihn am Ziel-PC an und wählen Sie ihn im UEFI-Startmenü aus.
+# After erasing may have begun.
+usb-failed = Das Laufwerk wurde möglicherweise bereits gelöscht und kann daher noch nicht zur Windows-Installation verwendet werden. Stellen Sie sicher, dass es angeschlossen ist, und wählen Sie dann „USB-Auswahl prüfen“, um es erneut zu versuchen. Wenn Sie es neu angeschlossen haben, wählen Sie zuerst „Aktualisieren“ und dann erneut das Laufwerk.
+# Before anything on the drive was changed: in general, then for the reasons the writer reports.
+usb-failed-unchanged = Ihr USB-Laufwerk wurde nicht verändert. Wählen Sie „Protokollordner öffnen“, um die Ursache zu sehen, und dann „USB-Auswahl prüfen“, um es erneut zu versuchen.
+usb-failed-iso = Mit dieser ISO kann kein Installations-USB erstellt werden. Wählen Sie eine mit Atlas erstellte ISO oder eine Windows-11-ISO von Microsoft für eine Version, die Atlas unterstützt. Ihr USB-Laufwerk wurde nicht verändert.
+usb-failed-location = Die ISO oder der Atlas Manager befindet sich auf diesem USB-Laufwerk, an einem Netzwerkort oder in einem verknüpften Ordner. Verschieben Sie die Datei in einen lokalen Ordner auf diesem PC und versuchen Sie es dann erneut. Ihr USB-Laufwerk wurde nicht verändert.
+usb-failed-space = Auf dem Windows-Laufwerk ist nicht genügend Speicherplatz frei, um die Installationsdateien vorzubereiten. Geben Sie Speicherplatz frei und versuchen Sie es dann erneut. Ihr USB-Laufwerk wurde nicht verändert.
+usb-failed-fit = Die Installationsdateien passen nicht auf dieses USB-Laufwerk. Verwenden Sie ein größeres Laufwerk und versuchen Sie es dann erneut. Ihr USB-Laufwerk wurde nicht verändert.
+usb-failed-drive-changed = Das USB-Laufwerk wurde entfernt, neu angeschlossen oder ersetzt, nachdem die Liste gelesen wurde. Wählen Sie „Aktualisieren“, wählen Sie das Laufwerk erneut aus und wählen Sie dann „USB-Auswahl prüfen“. Ihr USB-Laufwerk wurde nicht verändert.
+usb-cancelled = Das Laufwerk enthält möglicherweise unvollständige Installationsdateien. Erstellen Sie es vor der Windows-Installation erneut.
+usb-cancelled-title = USB-Erstellung abgebrochen
+usb-cancelled-unchanged = Ihr USB-Laufwerk wurde nicht verändert.
+usb-complete = Atlas hat alle Dateien geprüft. Wählen Sie „USB auswerfen“ und sichern Sie dann die Dateien auf dem PC, auf dem Sie Windows neu installieren möchten. Schließen Sie das Laufwerk an diesen PC an und starten Sie ihn über sein Boot-Menü vom USB-Laufwerk (oft mit F12, F11 oder Esc beim Starten des PCs).
 usb-eject = USB auswerfen
-usb-ejected = Sie können das USB-Laufwerk sicher entfernen. Wählen Sie es im UEFI-Startmenü Ihres PCs aus, um Windows zu installieren.
-usb-eject-failed = Windows konnte das USB-Laufwerk nicht auswerfen. Schließen Sie geöffnete Dateien und Fenster auf dem Laufwerk und versuchen Sie es erneut.
-ready-fresh-title = Beginnen Sie mit einer Neuinstallation von Windows
-ready-fresh-description = Atlas erfordert eine Neuinstallation von Windows, außer bei unterstützten Atlas-Upgrades. Prüfen Sie vor einer Neuinstallation unten die Windows-Kompatibilität. Sichern Sie zuerst Ihre Dateien.
-detail-edition-unsupported = Verwenden Sie Windows 11 Pro, Pro for Workstations oder Enterprise. Home, LTSC und Server werden nicht unterstützt. Wenn Ihre Edition nicht erkannt wurde, klären Sie dies vor dem Fortfahren.
+usb-ejected = Sie können das USB-Laufwerk jetzt abziehen. Sichern Sie die Dateien auf dem PC, auf dem Sie Windows neu installieren möchten. Starten Sie diesen PC dann über sein Boot-Menü vom USB-Laufwerk (oft mit F12, F11 oder Esc beim Starten).
+usb-eject-failed = Schließen Sie alle Dateien und Fenster, die das Laufwerk verwenden, und versuchen Sie es dann erneut.
+usb-eject-failed-title = USB konnte nicht ausgeworfen werden
+ready-fresh-title = Atlas ist für eine Neuinstallation von Windows gedacht
+ready-fresh-description = Wenn Sie Windows auf diesem PC bereits verwenden, sichern Sie Ihre Dateien und installieren Sie Windows neu, bevor Sie fortfahren. Stellen Sie vorher sicher, dass die Prüfung „Windows-Kompatibilität“ unter „PC-Prüfungen“ bestanden ist, damit Sie eine unterstützte Version neu installieren.
+# Home, LTSC and Server are the editions the check refuses; the others are examples of
+# editions it accepts. Keep edition names as Windows shows them.
+detail-edition-unsupported = Die Editionen Home, LTSC und Server von Windows 11 werden nicht unterstützt. Verwenden Sie eine andere Edition, etwa Pro, Education oder Enterprise. Wenn Windows Ihre Edition nicht erkennen konnte, klären Sie das, bevor Sie fortfahren.
 install-source-title = Installation nicht möglich
-install-source-unsupported = Atlas { $source } kann nicht direkt auf { $target } aktualisiert werden. Installieren Sie Windows neu, um diese Version zu verwenden.
-install-source-unknown = Atlas konnte den Installationsstatus nicht prüfen. Beheben Sie Probleme mit ausstehenden Installationen und prüfen Sie die Diagnose, bevor Sie es erneut versuchen.
+install-source-unsupported = Atlas { $source } kann nicht direkt auf { $target } aktualisiert werden. Um diese Version zu verwenden, sichern Sie Ihre Dateien und installieren Sie Windows neu.
+# Before a package is chosen, so the version on offer isn't known yet.
+install-source-unsupported-any = Atlas { $source } kann nicht direkt aktualisiert werden. Um eine neuere Version zu verwenden, sichern Sie Ihre Dateien und installieren Sie Windows neu.
+# „Paketdatei öffnen“ is package-open-file. $folder is a folder path (text).
+install-source-resume = Eine Installation von Atlas { $target } wurde nicht abgeschlossen und kann nur mit dem Paket für Atlas { $target } abgeschlossen werden. Wählen Sie „Paketdatei öffnen“ und dann dieses Atlas-Paket (.apbx). Falls Atlas es heruntergeladen hat, finden Sie es in { $folder }.
+# Tester build: only the bundled Atlas package can be installed.
+install-source-resume-bundled = Eine Installation von Atlas { $target } wurde nicht abgeschlossen. Diese Testversion kann nur ihr mitgeliefertes Atlas-Paket installieren. Schließen Sie die Installation daher mit dem Paket für Atlas { $target } in einer regulären Version von Atlas Manager ab.
+install-source-unknown = Atlas konnte nicht feststellen, was auf diesem PC bereits installiert ist, und installiert deshalb vorerst nichts. Wählen Sie „Bericht senden“, damit das Atlas-Team helfen kann.
+# $problem is one of the install-source-* messages; $error is a raw error message (text).
+install-source-details = { $problem } Details: { $error }
 iso-edition-selection = Es werden nur unterstützte Editionen übernommen. Wählen Sie bei der Windows-Installation eine Edition, für die Sie eine Windows-Lizenz haben.
 detail-windows-preview = Insider-Builds werden nicht unterstützt. Verwenden Sie eine regulär veröffentlichte Version von Windows 11.
 detail-windows-release-unknown = Atlas konnte nicht bestätigen, dass dieser Windows-Build regulär veröffentlicht wurde. Stellen Sie eine Internetverbindung her und prüfen Sie erneut.
-iso-release-unknown = Atlas konnte nicht bestätigen, dass diese ISO eine regulär veröffentlichte und vom Playbook unterstützte Windows-Version enthält. Stellen Sie eine Internetverbindung her und versuchen Sie es erneut, oder wählen Sie ein offizielles Installationsmedium.
-prepare-previous-worker = Ein zuvor gestarteter Updatevorgang läuft noch. Atlas wartet, bis er abgeschlossen ist. Danach können Sie es erneut versuchen.
+iso-release-unknown = Atlas konnte nicht bestätigen, dass diese ISO eine regulär veröffentlichte Version von Windows 11 enthält, die das Atlas-Paket unterstützt. Stellen Sie eine Internetverbindung her und wählen Sie dann erneut „Dateien prüfen“. Wenn es weiterhin fehlschlägt, laden Sie die ISO erneut von Microsoft herunter.
+prepare-previous-worker = Zuvor gestartete Updates laufen noch. Atlas wartet, bis sie abgeschlossen sind. Danach können Sie erneut nach Updates suchen.
 
-ready-used-windows-title = Diese Windows-Installation wurde offenbar bereits genutzt
-ready-used-windows-description = Diese Windows-Installation zeigt Spuren früherer Nutzung. Atlas hier zu installieren wird nicht unterstützt; davon wird dringend abgeraten. Fahren Sie nur fort, wenn Sie die Risiken verstehen.
+ready-used-windows-title = Windows auf diesem PC wurde offenbar schon genutzt
+ready-used-windows-description = Windows wurde auf diesem PC vor mindestens einer Woche installiert oder enthält bereits mehrere Apps. Die Installation von Atlas wird hier nicht unterstützt und es wird dringend davon abgeraten: Vorhandene Apps und Einstellungen funktionieren möglicherweise nicht wie erwartet, und Atlas entfernt OneDrive. Dateien darin werden dann nicht mehr synchronisiert, und Ihre Ordner „Desktop“, „Dokumente“ und „Bilder“ wirken möglicherweise leer. Sichern Sie zuerst Ihre Dateien und installieren Sie Windows neu, oder fahren Sie nur fort, wenn Sie das Risiko in Kauf nehmen.
 ready-used-windows-dismiss = Trotzdem fortfahren
-playbook-option-install-eclean = eclean installieren
-consequence-install-eclean = Ein Wartungstool vom Team hinter AtlasOS, mit dem Sie Ihren PC nach der Einrichtung aufräumen können. Prüfen Sie überflüssige Dateien und Autostart-Apps. Erfordert ein Konto und eine Internetverbindung.
 
-prepare-resumed = Windows wurde neu gestartet. Deine Atlas-Auswahl wurde wiederhergestellt. Setze die Updates vor der Installation von Atlas fort.
+prepare-resumed = Ihr PC wurde neu gestartet und Atlas hat Ihre bisherige Auswahl wiederhergestellt. Wählen Sie „Updates fortsetzen“, um die Updates abzuschließen, bevor Sie Atlas installieren.
 prepare-continue = Updates fortsetzen
-prepare-saving-restart = Deine Auswahl wird gespeichert und Atlas wird für den Start nach dem Windows-Neustart eingerichtet…
-prepare-restart-save-failed = Deine Auswahl konnte nicht gespeichert werden. Versuche es vor dem Neustart erneut.
-prepare-restart-registration-failed = Deine Auswahl ist gespeichert, aber Atlas konnte nicht für den automatischen Start eingerichtet werden. Versuche es erneut oder starte Windows neu und öffne Atlas manuell.
-prepare-restart-failed = Windows konnte nicht neu gestartet werden. Versuche es erneut oder starte über Windows neu. Deine Auswahl ist gespeichert und Atlas wird danach geöffnet.
+prepare-saving-restart = Ihre Auswahl wird gespeichert und Atlas wird so eingerichtet, dass es nach dem Neustart von Windows wieder geöffnet wird…
+prepare-restart-save-failed = Ihre Auswahl konnte nicht gespeichert werden. Versuchen Sie es vor dem Neustart erneut.
+prepare-restart-registration-failed = Ihre Auswahl ist gespeichert, aber Atlas konnte nicht einrichten, dass es sich nach dem Neustart wieder öffnet. Versuchen Sie es erneut oder starten Sie Ihren PC selbst neu und öffnen Sie Atlas nach der Anmeldung.
+prepare-restart-failed = Atlas konnte Ihren PC nicht neu starten. Versuchen Sie es erneut oder starten Sie ihn über das Startmenü neu. Ihre Auswahl ist gespeichert und Atlas öffnet sich nach der Anmeldung wieder.
 diagnostics-export = Diagnose exportieren
 diagnostics-exporting = Diagnosedaten werden gesammelt…
-diagnostics-show = Diagnose-ZIP anzeigen
-diagnostics-privacy = Eine bereinigte ZIP-Datei für einen öffentlichen Fehlerbericht erstellen.
-diagnostics-error = Diagnose konnte nicht exportiert werden. Details: { $error }
+diagnostics-privacy = Senden Sie einen Bericht vertraulich an das Atlas-Team oder exportieren Sie eine Diagnose-ZIP-Datei, die Sie weitergeben können, wenn Sie um Hilfe bitten. Atlas entfernt daraus Ihren Benutzernamen, Ihren PC-Namen und E-Mail-Adressen.
+# Title of the result bar after an export; its button is iso-open-folder.
+diagnostics-saved = Diagnose-ZIP erstellt
+diagnostics-failed-title = Diagnose konnte nicht exportiert werden
+# $error is the raw error (text).
+diagnostics-failed = Prüfen Sie, ob auf Ihrem PC genügend Speicherplatz frei ist, und versuchen Sie es dann erneut. Details: { $error }
 
 ## Tester builds (embedded-playbook feature)
 
 # One line of chrome under the title bar on a release-candidate build.
-rc-banner = Atlas { $release } Testversion. Diese App installiert nur das mitgelieferte Playbook.
+rc-banner = Testversion von Atlas { $release }. Diese App installiert nur das mitgelieferte Atlas-Paket.
 home-status-bundled = Testversion { $release }
 package-bundled = Das mit dieser Testversion mitgelieferte Atlas { $version } ist bereit zur Installation.
 rc-about-release = Testversion
 rc-about-commit = Quell-Commit
-rc-about-package = Mitgeliefertes Playbook (SHA-256)
-iso-package-bundled = Das mit dieser Testversion mitgelieferte Playbook
+rc-about-package = Mitgeliefertes Atlas-Paket (SHA-256)
+iso-package-bundled = Das mit dieser Testversion mitgelieferte Atlas-Paket
 prepare-percent = { $percent } % dieser Phase
 prepare-count = Abgeschlossene Updates: { $completed } von { $total }
 prepare-bytes = { $downloaded } von ungefähr { $total } MB heruntergeladen
 prepare-elapsed = Verstrichen: { $minutes } Min. { $seconds } Sek.
 prepare-progress-waiting = Warten auf den Updatedienst. Für diesen Schritt ist keine Prozentangabe verfügbar.
-prepare-progress-unchanged = Seit { $minutes } Min. wurde kein Fortschritt gemeldet. Große Updates können dauern. Öffnen Sie die Diagnose für weitere Informationen.
-prepare-report-delayed = Seit { $seconds } Sek. wurde kein Status empfangen. Öffnen Sie die Diagnose, um den Updateprozess zu prüfen.
+prepare-progress-unchanged = Seit { $minutes } Min. kein Fortschritt. Große Updates können eine Weile dauern. Lassen Sie Atlas daher geöffnet. Wählen Sie für Details „Protokollordner öffnen“.
+prepare-report-delayed = Windows hat seit { $seconds } Sek. keinen Fortschritt gemeldet. Möglicherweise laufen noch Updates. Lassen Sie Atlas daher geöffnet.
 
 prepare-affected-app = die betroffene App
-prepare-app-in-use = Schließe { $app } und ihre Fenster und versuche es erneut. Windows kann die App nicht aktualisieren, solange ihre Dateien verwendet werden. Starte Windows bei Bedarf neu und versuche es vor dem Öffnen der App erneut. Wenn kein App-Fenster geöffnet ist, beende die App im Task-Manager.
-prepare-install-busy = Eine andere Installation oder ein erforderlicher Neustart blockiert Updates. Warte auf den Abschluss anderer Installationen, starte Windows bei Bedarf neu und versuche es erneut.
+prepare-app-in-use = Schließen Sie { $app } und versuchen Sie es dann erneut. Windows kann die App nicht aktualisieren, solange sie geöffnet ist. Wenn Sie ihr Fenster nicht finden, beenden Sie sie im Task-Manager. Wenn es weiterhin fehlschlägt, starten Sie Ihren PC neu und versuchen Sie es erneut, bevor Sie { $app } öffnen.
+prepare-install-busy = Eine andere Installation oder ein erforderlicher Neustart blockiert Updates. Warten Sie, bis andere Installationen abgeschlossen sind, starten Sie Ihren PC neu, wenn Windows Sie dazu auffordert, und versuchen Sie es dann erneut.
+# Causes the update worker names. The worker's own English message is shown below as a detail.
+prepare-failed-session-owner = Atlas läuft unter einem anderen Konto als dem, das bei Windows angemeldet ist. Melden Sie sich mit einem Administratorkonto bei Windows an, öffnen Sie Atlas unter diesem Konto und versuchen Sie es dann erneut.
+prepare-failed-store-missing = Der Microsoft Store ist für Ihr Konto nicht eingerichtet. Öffnen Sie den Microsoft Store einmal oder installieren Sie ihn neu, falls er fehlt. Versuchen Sie es dann erneut.
+prepare-failed-store-battery = Der Microsoft Store hat Updates angehalten, um Akku zu sparen. Schließen Sie Ihren PC ans Stromnetz an und versuchen Sie es dann erneut.
+prepare-failed-store-network = Der Microsoft Store hat Updates angehalten, bis Ihr PC eine nicht getaktete Verbindung hat. Verbinden Sie sich über ein nicht getaktetes WLAN oder Ethernet und versuchen Sie es dann erneut.
+prepare-failed-store-timeout = Die Store-Apps wurden noch nicht fertig aktualisiert. Schließen Sie die restlichen Downloads im Microsoft Store ab und versuchen Sie es dann erneut.
+prepare-failed-store-passes = Der Microsoft Store hat immer wieder neue Updates angeboten. Schließen Sie die restlichen Updates im Microsoft Store ab und versuchen Sie es dann erneut.
+prepare-failed-manual-updates = Einige Windows-Updates müssen in Windows Update abgeschlossen werden. Öffnen Sie Windows Update, schließen Sie die Updates dort ab und versuchen Sie es dann erneut.
+prepare-failed-windows-passes = Windows Update hat immer wieder neue Updates angeboten. Schließen Sie die restlichen Updates in Windows Update ab und versuchen Sie es dann erneut.
 prepare-error-code = Fehlercode: { $code }
 prepare-open-store = Microsoft Store öffnen
 
 check-user-account = Benutzerkonto
-detail-user-account-ok = Die Benutzerkontensteuerung ist aktiviert und dein Konto ist für die Installation bereit.
-detail-user-account-not-ready = Aktiviere die Benutzerkontensteuerung (UAC), starte den PC neu und versuche es erneut. Wenn du das integrierte Administratorkonto verwendest, melde dich mit einem anderen Administratorkonto an.
-detail-user-account-unknown = Atlas konnte dein Benutzerkonto nicht prüfen. Prüfe es vor der Installation erneut. Windows meldet: { $error }
+detail-user-account-ok = Die Benutzerkontensteuerung ist aktiviert und Ihr Konto ist für die Installation bereit.
+detail-user-account-not-ready = Aktivieren Sie die Benutzerkontensteuerung (UAC), starten Sie Ihren PC neu und versuchen Sie es dann erneut. Wenn Sie das integrierte Administratorkonto verwenden, melden Sie sich mit einem anderen Administratorkonto an.
+detail-user-account-unknown = Atlas konnte Ihr Benutzerkonto nicht prüfen. Prüfen Sie es vor der Installation erneut. Windows meldet: { $error }
 
-footer-prepare-required = Schließen Sie oben die Windows- und Store-Updates ab, um fortzufahren
+footer-prepare-required = Schließen Sie die Updates für Windows und Store-Apps ab, um fortzufahren
+footer-prepare-stopping = Updates werden nach dem aktuellen Schritt angehalten…
 resume-choices-title = Vorherige Installation fortsetzen
-resume-choices-detail = Ihre ursprünglichen Einstellungen wurden wiederhergestellt und können erst nach Abschluss dieser Installation geändert werden.
-prepare-download-scope = Der Fortschritt gilt für diesen Download-Durchlauf, nicht nur für das unten genannte Update. Danach folgt die Installation.
+resume-choices-detail = Um diese Installation abzuschließen, hat Atlas Ihre Auswahl vom letzten Mal wiederhergestellt. Unter „Ihre Auswahl“ können Sie sie erst ändern, wenn die Installation abgeschlossen ist.
 
 ## Voluntary reports
 report-title = Bericht senden
 report-received = Bericht erhalten
-report-reference = Deine Referenz: { $reference }. Bewahre sie für Rückfragen zu diesem Bericht auf.
-report-details = Was ist passiert?
-report-intro = Beschreibe ein Problem oder schlage eine Verbesserung vor (10–4.000 Zeichen).
-report-message = Deine Nachricht
+report-reference = Bewahren Sie diese Referenz auf, falls Sie das Atlas-Team zu diesem Bericht kontaktieren. Wenn Sie Kontaktdaten angegeben haben, kann das Team Ihnen darüber antworten, eine Antwort ist aber nicht garantiert.
+# Accessible name of the Copy button beside the report reference.
+report-copy-reference = Berichtsreferenz kopieren
+report-another = Weiteren Bericht senden
+# Label of the choice between the two kinds of report.
+report-kind = Was möchten Sie senden?
+report-kind-issue = Ein Problem
+report-kind-suggestion = Einen Vorschlag
+# $min and $max are numbers: the message lengths the report service accepts.
+report-intro = Beschreiben Sie, was passiert ist oder was Sie sich anders wünschen ({ $min }–{ $max } Zeichen). Geben Sie in Ihrer Nachricht keine Kennwörter an.
+report-message = Ihre Nachricht
 report-message-placeholder = Ich wollte…
 report-contact = Kontaktdaten (optional)
 report-contact-placeholder = E-Mail oder Discord-Benutzername
 report-attach = Diagnosedaten beifügen
+report-attach-description = Protokolle und Systemdetails, die bei der Suche nach der Ursache helfen. Atlas entfernt Ihren Benutzernamen, Ihren PC-Namen, E-Mail-Adressen und bekannte Kennwörter oder Schlüssel. Fehlerdetails, Hardwaremodelle und App-Namen bleiben erhalten. Sie können die ZIP-Datei vor dem Senden prüfen.
 report-prepare = Diagnosedaten vorbereiten
 report-review = ZIP prüfen
-report-privacy = Atlas entfernt sensible Kennungen aus den Diagnosedaten und behält die technischen Details für die Untersuchung bei. Du kannst die ZIP vor dem Senden prüfen. Deine Nachricht und Kontaktdaten werden unverändert und privat an das Atlas-Team unter reports.atlasos.net gesendet. Berichte werden nach 90 Tagen gelöscht. Sicherheitsprotokolle des Servers können deine IP-Adresse erfassen.
+report-prepare-failed-title = Diagnosedaten konnten nicht vorbereitet werden
+# $error is a raw error message (text).
+report-prepare-failed = Wählen Sie erneut „Diagnosedaten vorbereiten“ oder deaktivieren Sie „Diagnosedaten beifügen“, um Ihren Bericht ohne sie zu senden. Details: { $error }
+report-privacy = Ihr Bericht geht vertraulich an das Atlas-Team unter reports.atlasos.net. Ihre Nachricht und Ihre Kontaktdaten werden so gesendet, wie Sie sie eingegeben haben. Das Team kann zur Untersuchung KI-Dienste anderer Unternehmen nutzen. Diese erhalten Ihre Nachricht und die Diagnosedaten, aber nicht Ihre Kontaktdaten. Berichte werden nach 90 Tagen gelöscht, und Sicherheitsprotokolle des Servers können Ihre IP-Adresse erfassen.
 report-website = Datenschutz und Berichtswebsite
-report-consent = Ich stimme dem Senden dieses Berichts und der ausgewählten Diagnosedaten zu.
-report-failed = Der Bericht konnte nicht gesendet werden. Deine Nachricht bleibt erhalten. Versuche es erneut, nutze die Website oder exportiere die Diagnosedaten.
+report-consent = Ich stimme zu, diesen Bericht und alle beigefügten Diagnosedaten an das Atlas-Team zu senden
+report-failed = Ihre Nachricht bleibt erhalten. Prüfen Sie Ihre Internetverbindung und wählen Sie dann „Erneut versuchen“ oder senden Sie Ihren Bericht über die Berichtswebsite.
+report-failed-busy = Der Berichtsdienst ist ausgelastet. Ihre Nachricht bleibt erhalten. Versuchen Sie es später erneut.
+report-failed-outdated = Diese Version von Atlas Manager kann keine Berichte mehr senden. Ihre Nachricht bleibt erhalten: Kopieren Sie sie und fügen Sie sie auf der Berichtswebsite ein. Wenn Sie Diagnosedaten beigefügt haben, wählen Sie „ZIP prüfen“ und hängen Sie die ZIP-Datei dort ebenfalls an.
+report-failed-diagnostics = Die vorbereiteten Diagnosedaten können nicht gesendet werden. Ihre Nachricht bleibt erhalten. Wählen Sie erneut „Diagnosedaten vorbereiten“ oder deaktivieren Sie „Diagnosedaten beifügen“.
+# Link under a report that wasn't sent.
+report-failed-website = Berichtswebsite öffnen
 report-sending = Wird gesendet…
 report-send = Bericht senden
 
-report-validation-title = Berichtsdetails prüfen
+# $min and $max are numbers: the message lengths the report service accepts.
+report-validation-message = Geben Sie { $min }–{ $max } Zeichen ein.
 
-report-validation-message = Gib 10–4.000 Zeichen ein.
+# $max is a number: the longest contact details the report service accepts.
+report-validation-contact = Die Kontaktdaten dürfen höchstens { $max } Zeichen lang sein.
 
-report-validation-contact = Beschränke die Kontaktdaten auf 254 Zeichen.
-
-report-validation-diagnostics = Bereite Diagnosedaten vor oder deaktiviere „Diagnosedaten beifügen“.
-
-report-validation-collecting = Warte, bis die Diagnosedaten bereit sind. Dann kannst du die ZIP prüfen.
-
-report-validation-consent = Bestätige, dass du dem Senden dieses Berichts zustimmst.
+report-validation-consent = Bestätigen Sie, dass Sie dem Senden dieses Berichts zustimmen.
 
 report-failed-title = Bericht nicht gesendet

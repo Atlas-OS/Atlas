@@ -1,5 +1,5 @@
 //! GitHub releases of Atlas-OS/Atlas: what is newest, and downloading the
-//! playbook asset with progress and verification.
+//! Atlas package with progress and verification.
 
 use std::cmp::Ordering;
 use std::io::{Read, Write};
@@ -47,7 +47,7 @@ impl Release {
         self.tag_name.trim_start_matches(['v', 'V'])
     }
 
-    /// The playbook file to install, if the release ships one.
+    /// The Atlas package to install, if the release includes one.
     pub fn playbook_asset(&self) -> Option<&Asset> {
         self.assets.iter().find(|asset| asset.name.to_ascii_lowercase().ends_with(".apbx"))
     }
@@ -69,11 +69,12 @@ const METADATA_TIMEOUT: Duration = Duration::from_secs(20);
 /// may take to start answering. The body is tens of megabytes.
 const DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(60 * 30);
 const RESPONSE_TIMEOUT: Duration = Duration::from_secs(30);
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 
 fn agent(total: Duration) -> ureq::Agent {
     let config = ureq::Agent::config_builder()
         .user_agent(USER_AGENT)
-        .timeout_connect(Some(Duration::from_secs(10)))
+        .timeout_connect(Some(CONNECT_TIMEOUT))
         .timeout_recv_response(Some(RESPONSE_TIMEOUT))
         .timeout_global(Some(total))
         .http_status_as_error(true)
@@ -170,13 +171,19 @@ fn record_path(destination: &Path) -> PathBuf {
 /// Streams an asset to disk, reporting (received, total) as it goes. Total is
 /// the asset size GitHub reports, so the bar is accurate even without a
 /// Content-Length header. The file is verified before it replaces any
-/// earlier copy.
-pub fn download_into(dir: &Path, asset: &Asset, mut progress: impl FnMut(u64, u64)) -> Result<PathBuf> {
-    log::info!("Downloading playbook asset {}; bytes={}; digest={:?}", asset.name, asset.size, asset.digest);
+/// earlier copy. Once `cancelled` says so, the transfer stops at its next
+/// chunk and its partial file is removed.
+pub fn download_into(
+    dir: &Path,
+    asset: &Asset,
+    cancelled: impl Fn() -> bool,
+    mut progress: impl FnMut(u64, u64),
+) -> Result<PathBuf> {
+    log::info!("Downloading package asset {}; bytes={}; digest={:?}", asset.name, asset.size, asset.digest);
     std::fs::create_dir_all(dir).with_context(|| format!("create {}", dir.display()))?;
+    sweep_partials(dir);
     let destination = dir.join(&asset.name);
-    let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or_default();
-    let partial = dir.join(format!("{}.{}-{nanos:x}.partial", asset.name, std::process::id()));
+    let partial = partial_path(dir, &asset.name);
 
     let result = (|| -> Result<()> {
         let response = agent(DOWNLOAD_TIMEOUT)
@@ -195,7 +202,8 @@ pub fn download_into(dir: &Path, asset: &Asset, mut progress: impl FnMut(u64, u6
             if read == 0 {
                 break;
             }
-            file.write_all(&buffer[..read]).context("write the playbook")?;
+            anyhow::ensure!(!cancelled(), "the download was cancelled");
+            file.write_all(&buffer[..read]).context("write the package")?;
             received += read as u64;
             progress(received, asset.size.max(received));
         }
@@ -207,6 +215,37 @@ pub fn download_into(dir: &Path, asset: &Asset, mut progress: impl FnMut(u64, u6
         let _ = std::fs::remove_file(&partial);
     }
     result.map(|()| destination)
+}
+
+/// A file in `dir` to write `name` to before it is verified and renamed into
+/// place: named for this process and moment, so concurrent writers never
+/// share one, and ending in `.partial` for [`sweep_partials`].
+pub(crate) fn partial_path(dir: &Path, name: &str) -> PathBuf {
+    let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or_default();
+    dir.join(format!("{name}.{}-{nanos:x}.partial", std::process::id()))
+}
+
+/// Removes `.partial` files that an interrupted earlier run (a closed window,
+/// a crash) left in `dir`. A download still being written by another
+/// instance is younger than its timeout and stays.
+pub fn sweep_partials(dir: &Path) {
+    let Ok(entries) = std::fs::read_dir(dir) else { return };
+    for entry in entries.flatten() {
+        if !entry.file_name().to_string_lossy().ends_with(".partial")
+            || !entry.file_type().is_ok_and(|kind| kind.is_file())
+        {
+            continue;
+        }
+        let abandoned = entry
+            .metadata()
+            .and_then(|metadata| metadata.modified())
+            .ok()
+            .and_then(|modified| SystemTime::now().duration_since(modified).ok())
+            .is_some_and(|age| age > DOWNLOAD_TIMEOUT * 2);
+        if abandoned {
+            let _ = std::fs::remove_file(entry.path());
+        }
+    }
 }
 
 /// Verifies a fully downloaded file against the asset and moves it into
@@ -270,7 +309,20 @@ pub fn sha256_file(path: &Path) -> Result<String> {
         }
         context.update(&buffer[..read]);
     }
-    Ok(context.finish().as_ref().iter().map(|b| format!("{b:02x}")).collect())
+    Ok(hex(context.finish().as_ref()))
+}
+
+pub(crate) fn sha256_bytes(bytes: &[u8]) -> String {
+    hex(ring::digest::digest(&ring::digest::SHA256, bytes).as_ref())
+}
+
+/// Lower-case hex, the form GitHub and the package identity use for digests.
+pub(crate) fn hex(bytes: &[u8]) -> String {
+    use std::fmt::Write;
+    bytes.iter().fold(String::with_capacity(bytes.len() * 2), |mut text, byte| {
+        let _ = write!(text, "{byte:02x}");
+        text
+    })
 }
 
 pub fn file_name(path: &Path) -> String {
@@ -331,17 +383,10 @@ mod tests {
     }
 
     #[test]
-    fn a_same_name_same_size_file_is_not_treated_as_the_asset() {
-        let temp = TempDir::new("releases-cache");
-        let (asset, _) = asset(temp.path(), "Atlas.apbx", b"payload-bytes");
-        // Present with the right size but never verified: not cached.
-        assert_eq!(cached_in(temp.path(), &asset), None);
-    }
-
-    #[test]
     fn promotion_verifies_length_and_digest_and_records_identity() {
         let temp = TempDir::new("releases-promote");
-        let (asset, path) = asset(temp.path(), "Atlas.apbx", b"payload-bytes");
+        let (asset, path) = asset(temp.path(), "Atlas.apbx", b"package-bytes");
+        assert_eq!(cached_in(temp.path(), &asset), None, "present with the right size but never verified");
         let partial = temp.path().join("Atlas.apbx.partial");
         std::fs::rename(&path, &partial).unwrap();
         promote(&partial, &path, &asset).unwrap();
@@ -356,14 +401,33 @@ mod tests {
         assert_eq!(cached_in(temp.path(), &other), None);
 
         // Local modification invalidates the cache.
-        std::fs::write(&path, b"payload-BYTES").unwrap();
+        std::fs::write(&path, b"package-BYTES").unwrap();
         assert_eq!(cached_in(temp.path(), &asset), None);
+    }
+
+    #[test]
+    fn only_abandoned_partial_downloads_are_swept() {
+        let temp = TempDir::new("releases-sweep");
+        let (asset, path) = asset(temp.path(), "Atlas.apbx", b"package-bytes");
+        let partial = temp.path().join("Atlas.apbx.partial");
+        std::fs::rename(&path, &partial).unwrap();
+        promote(&partial, &path, &asset).unwrap();
+        let old = temp.path().join("Atlas.apbx.1-a.partial");
+        let fresh = temp.path().join("Atlas.apbx.2-b.partial");
+        std::fs::write(&old, b"interrupted").unwrap();
+        std::fs::write(&fresh, b"still downloading").unwrap();
+        let long_ago = SystemTime::now() - Duration::from_secs(60 * 60 * 3);
+        std::fs::File::options().write(true).open(&old).unwrap().set_modified(long_ago).unwrap();
+        sweep_partials(temp.path());
+        assert!(!old.exists(), "an abandoned partial download is removed");
+        assert!(fresh.exists(), "a download another instance may be writing stays");
+        assert_eq!(cached_in(temp.path(), &asset), Some(path), "verified downloads and their records stay");
     }
 
     #[test]
     fn a_short_or_mismatching_download_is_refused() {
         let temp = TempDir::new("releases-refuse");
-        let (mut asset, path) = asset(temp.path(), "Atlas.apbx", b"payload-bytes");
+        let (mut asset, path) = asset(temp.path(), "Atlas.apbx", b"package-bytes");
         let partial = temp.path().join("Atlas.apbx.partial");
         std::fs::rename(&path, &partial).unwrap();
         asset.size += 1;

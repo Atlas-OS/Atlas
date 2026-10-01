@@ -1453,6 +1453,37 @@ pub trait StatefulInteractiveElement: InteractiveElement {
         self
     }
 
+    /// Report this element as disabled: on Windows, UIA `IsEnabled` is false,
+    /// and screen readers say it is unavailable. Atlas patch.
+    fn aria_disabled(mut self, disabled: bool) -> Self {
+        self.interactivity().aria.disabled = disabled;
+        self
+    }
+
+    /// Report this element's value as read-only, as a text box that can be
+    /// focused and read but not edited. Atlas patch.
+    fn aria_read_only(mut self, read_only: bool) -> Self {
+        self.interactivity().aria.read_only = read_only;
+        self
+    }
+
+    /// Make this element a live region: assistive technology announces it
+    /// when it appears or its name changes. Every other node reports
+    /// [`Live::Off`](accesskit::Live::Off), so the setting never spreads to
+    /// the controls inside it. Atlas patch.
+    fn aria_live(mut self, live: accesskit::Live) -> Self {
+        self.interactivity().aria.live = Some(live);
+        self
+    }
+
+    /// The language of this element's content (a BCP 47 tag), when it differs
+    /// from the window's (see `Window::set_accessibility_language`). Its
+    /// descendants inherit it. Atlas patch.
+    fn aria_lang(mut self, language: impl Into<SharedString>) -> Self {
+        self.interactivity().aria.language = Some(language.into());
+        self
+    }
+
     /// Register a handler for an accessibility action on this element.
     /// The handler is called when a screen reader requests the given action.
     ///
@@ -2076,6 +2107,11 @@ pub(crate) struct AriaProperties {
     pub(crate) column_index: Option<usize>,
     pub(crate) row_count: Option<usize>,
     pub(crate) column_count: Option<usize>,
+    // Atlas patch: the states and language below.
+    pub(crate) disabled: bool,
+    pub(crate) read_only: bool,
+    pub(crate) live: Option<accesskit::Live>,
+    pub(crate) language: Option<SharedString>,
 }
 
 /// The interactivity struct. Powers all of the general-purpose
@@ -3523,6 +3559,17 @@ impl Interactivity {
         }
         if let Some(count) = self.aria.column_count {
             node.set_column_count(count);
+        }
+        // Atlas patch: states, live setting and language.
+        if self.aria.disabled {
+            node.set_disabled();
+        }
+        if self.aria.read_only {
+            node.set_read_only();
+        }
+        node.set_live(self.aria.live.unwrap_or(accesskit::Live::Off));
+        if let Some(language) = &self.aria.language {
+            node.set_language(language.to_string());
         }
         if !self.click_listeners.is_empty() {
             node.add_action(accesskit::Action::Click);
@@ -5064,6 +5111,28 @@ mod tests {
         assert_eq!(node.min_numeric_value(), Some(6.0));
         assert_eq!(node.max_numeric_value(), Some(72.0));
         assert_eq!(node.numeric_value_step(), Some(1.0));
+    }
+
+    /// Atlas patch: disabled and read-only states, the live setting (Off
+    /// unless asked for, so it never spreads) and the language.
+    #[test]
+    fn test_write_a11y_info_states_live_and_language() {
+        let mut plain = accesskit::Node::new(accesskit::Role::Button);
+        Interactivity::default().write_a11y_info(&mut plain);
+        assert!(!plain.is_disabled() && !plain.is_read_only());
+        assert_eq!(plain.live(), Some(accesskit::Live::Off));
+        assert_eq!(plain.language(), None);
+
+        let mut interactivity = Interactivity::default();
+        interactivity.aria.disabled = true;
+        interactivity.aria.read_only = true;
+        interactivity.aria.live = Some(accesskit::Live::Polite);
+        interactivity.aria.language = Some("de".into());
+        let mut node = accesskit::Node::new(accesskit::Role::Status);
+        interactivity.write_a11y_info(&mut node);
+        assert!(node.is_disabled() && node.is_read_only());
+        assert_eq!(node.live(), Some(accesskit::Live::Polite));
+        assert_eq!(node.language(), Some("de"));
     }
 
     /// Two focusable, clickable elements ("a" and "b") used to exercise the

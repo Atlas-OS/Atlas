@@ -28,7 +28,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 ureq = { version = "3", features = ["json"] }
-# Read encrypted/deflated playbooks without also building the Zopfli encoder.
+# Read encrypted/deflated Atlas packages without also building the Zopfli encoder.
 zip = { version = "8.6", default-features = false, features = ["deflate-flate2-zlib-rs", "aes-crypto"] }
 image = { version = "0.25", default-features = false, features = ["png"] }
 roxmltree = "0.21"
@@ -40,6 +40,8 @@ unic-langid = { version = "0.9", features = ["likelysubtags"] }
 unicode-segmentation = "1"
 
 [target.'cfg(windows)'.dependencies]
+# The window's HWND, to flash its taskbar button (GPUI's own flashes once).
+raw-window-handle = "0.6"
 windows-registry = "0.100"
 windows = { version = "0.62", features = [
     "Win32_Foundation",
@@ -63,7 +65,7 @@ windows = { version = "0.62", features = [
 ] }
 
 [features]
-# A tester build that carries one playbook and installs nothing else. The
+# A tester build that carries one Atlas package and installs nothing else. The
 # release script sets ATLAS_EMBED_APBX and ATLAS_RC_ID; see docs/rc-testers-build.md
 # (app/docs/rc-testers-build.md from the repository root).
 embedded-playbook = []
@@ -90,7 +92,9 @@ opt-level = 2
 # Keep full debugging for Atlas itself without generating large dependency PDBs.
 debug = false
 
-# Pinned GPUI: text shaping and native completion artwork. See each vendor ATLAS-PATCH.md.
+# Pinned GPUI (text shaping, native completion artwork, accessibility states)
+# and AccessKit's Windows adapter (heading levels). See each vendor ATLAS-PATCH.md.
 [patch.crates-io]
 gpui-pre = { path = "vendor/gpui-pre" }
 gpui-pre-windows = { path = "vendor/gpui-pre-windows" }
+accesskit_windows = { path = "vendor/accesskit_windows" }

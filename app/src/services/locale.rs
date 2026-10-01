@@ -1,19 +1,16 @@
-//! What Windows says about language and region: the user's ordered display
-//! languages (for choosing the app language) and the regional format locale
-//! (for numbers, dates and times). The two are independent settings in
-//! Windows and stay independent here: someone can read an English UI with
-//! German number formats, and Atlas preserves that.
-//!
-//! Everything here is a thin, checked adapter over the Win32 NLS APIs. It
-//! never guesses from the keyboard layout, the install language or a LANGID.
+//! Windows language and region settings: the ordered display languages (for
+//! the app language) and the regional format (for numbers, dates and times).
+//! Windows keeps them independent and so does Atlas, so an English UI can use
+//! German number formats. Nothing is inferred from the keyboard layout or
+//! the install language.
 
 use anyhow::{Context, Result};
 use windows::Win32::Foundation::{ERROR_INSUFFICIENT_BUFFER, LPARAM, SYSTEMTIME};
 use windows::Win32::Globalization::{
-    DATE_LONGDATE, EnumDateFormatsExEx, GetDateFormatEx, GetLocaleInfoEx, GetNumberFormatEx, GetTimeFormatEx,
-    GetUserDefaultLocaleName, GetUserPreferredUILanguages, LOCALE_ILZERO, LOCALE_INEGNUMBER, LOCALE_SDECIMAL,
-    LOCALE_SENGLISHDISPLAYNAME, LOCALE_SGROUPING, LOCALE_SLONGDATE, LOCALE_SNATIVEDISPLAYNAME,
-    LOCALE_STHOUSAND, MUI_LANGUAGE_NAME, NUMBERFMTW, TIME_NOSECONDS,
+    DATE_LONGDATE, ENUM_DATE_FORMATS_FLAGS, EnumDateFormatsExEx, GetDateFormatEx, GetLocaleInfoEx,
+    GetNumberFormatEx, GetTimeFormatEx, GetUserDefaultLocaleName, GetUserPreferredUILanguages, LOCALE_ILZERO,
+    LOCALE_INEGNUMBER, LOCALE_SDECIMAL, LOCALE_SENGLISHDISPLAYNAME, LOCALE_SGROUPING, LOCALE_SLONGDATE,
+    LOCALE_SNATIVEDISPLAYNAME, LOCALE_STHOUSAND, MUI_LANGUAGE_NAME, NUMBERFMTW, TIME_NOSECONDS,
 };
 use windows::core::BOOL;
 use windows::core::{HSTRING, PCWSTR, PWSTR};
@@ -52,8 +49,8 @@ fn with_locale<T>(locale: &LocaleName, f: impl FnOnce(PCWSTR) -> T) -> T {
 /// (for example `["de-DE", "en-US"]`). This is the "Windows display
 /// language" list, the same one Windows itself uses to pick a UI language.
 pub fn ui_languages() -> Result<Vec<String>> {
-    // Two-call sizing with a bounded retry, because the list can change
-    // between the size query and the read.
+    // Ask for the size, then read; retry a few times in case the list
+    // changes in between.
     for _ in 0..4 {
         let mut count = 0u32;
         let mut size = 0u32;
@@ -96,19 +93,24 @@ pub fn user_format_locale() -> Option<String> {
     String::from_utf16(&buffer[..(written as usize).saturating_sub(1)]).ok().filter(|name| !name.is_empty())
 }
 
+/// Runs a Win32 call that fills a UTF-16 buffer: first with none, to learn
+/// the size, then with one that size. `call` returns what Windows does: the
+/// length written, terminator included, or 0 or less on failure.
+fn read_wide(mut call: impl FnMut(Option<&mut [u16]>) -> i32) -> Option<String> {
+    let needed = call(None);
+    if needed <= 0 {
+        return None;
+    }
+    let mut buffer = vec![0u16; needed as usize];
+    let written = call(Some(&mut buffer));
+    if written <= 0 {
+        return None;
+    }
+    String::from_utf16(&buffer[..(written as usize).saturating_sub(1)]).ok()
+}
+
 fn locale_info(locale: &LocaleName, kind: u32) -> Option<String> {
-    with_locale(locale, |name| {
-        let needed = unsafe { GetLocaleInfoEx(name, kind, None) };
-        if needed <= 0 {
-            return None;
-        }
-        let mut buffer = vec![0u16; needed as usize];
-        let written = unsafe { GetLocaleInfoEx(name, kind, Some(&mut buffer)) };
-        if written <= 0 {
-            return None;
-        }
-        String::from_utf16(&buffer[..(written as usize).saturating_sub(1)]).ok()
-    })
+    with_locale(locale, |name| read_wide(|buffer| unsafe { GetLocaleInfoEx(name, kind, buffer) }))
 }
 
 /// How the locale calls itself ("Deutsch (Deutschland)"), or in English.
@@ -118,7 +120,7 @@ pub fn display_name(locale: &LocaleName, native: bool) -> Option<String> {
 
 /// `LOCALE_SGROUPING` ("3;0", "3;2;0", "3") as the `NUMBERFMT.Grouping`
 /// number the formatter wants (3, 32, 30).
-pub fn grouping_from_locale_string(grouping: &str) -> u32 {
+fn grouping_from_locale_string(grouping: &str) -> u32 {
     let parts: Vec<u32> = grouping.split(';').filter_map(|part| part.trim().parse().ok()).collect();
     let (digits, repeats) = match parts.split_last() {
         Some((0, rest)) => (rest, true),
@@ -151,6 +153,7 @@ pub fn format_number(locale: &LocaleName, value: f64, fraction_digits: usize) ->
         NumDigits: fraction_digits as u32,
         LeadingZero: leading_zero,
         Grouping: grouping,
+        // NUMBERFMTW takes PWSTR, but GetNumberFormatEx only reads the separators.
         lpDecimalSep: PWSTR(decimal.as_ptr() as *mut u16),
         lpThousandSep: PWSTR(thousand.as_ptr() as *mut u16),
         NegativeOrder: negative_order,
@@ -158,26 +161,9 @@ pub fn format_number(locale: &LocaleName, value: f64, fraction_digits: usize) ->
     // The input must be culture-invariant: '.' decimal, '-' sign, no grouping.
     let text = HSTRING::from(format!("{value:.fraction_digits$}"));
     with_locale(locale, |name| {
-        let needed = unsafe {
-            GetNumberFormatEx(name, 0, PCWSTR(text.as_ptr()), Some(&format as *const NUMBERFMTW), None)
-        };
-        if needed <= 0 {
-            return None;
-        }
-        let mut buffer = vec![0u16; needed as usize];
-        let written = unsafe {
-            GetNumberFormatEx(
-                name,
-                0,
-                PCWSTR(text.as_ptr()),
-                Some(&format as *const NUMBERFMTW),
-                Some(&mut buffer),
-            )
-        };
-        if written <= 0 {
-            return None;
-        }
-        String::from_utf16(&buffer[..(written as usize).saturating_sub(1)]).ok()
+        read_wide(|buffer| unsafe {
+            GetNumberFormatEx(name, 0, PCWSTR(text.as_ptr()), Some(&format as *const NUMBERFMTW), buffer)
+        })
     })
 }
 
@@ -210,7 +196,7 @@ impl LocalDateTime {
 
 /// Whether a Windows date pattern shows a weekday (`ddd` or `dddd`) outside
 /// quoted literals.
-pub fn has_weekday(pattern: &str) -> bool {
+fn has_weekday(pattern: &str) -> bool {
     let mut in_quote = false;
     let mut run = 0usize;
     for ch in pattern.chars() {
@@ -265,7 +251,7 @@ fn long_date_patterns(locale: &LocaleName) -> Vec<String> {
 /// long date is used when it has no weekday (so customisations are kept);
 /// otherwise the first weekday-free long date Windows itself lists for the
 /// locale; otherwise the user's long date unchanged, weekday and all.
-pub fn date_pattern(locale: &LocaleName) -> Option<String> {
+fn date_pattern(locale: &LocaleName) -> Option<String> {
     let own = locale_info(locale, LOCALE_SLONGDATE)?;
     if !has_weekday(&own) {
         return Some(own);
@@ -279,29 +265,11 @@ pub fn date_pattern(locale: &LocaleName) -> Option<String> {
 pub fn format_date(locale: &LocaleName, when: &LocalDateTime) -> Option<String> {
     let time = when.system_time();
     let pattern = HSTRING::from(date_pattern(locale)?);
+    let flags = ENUM_DATE_FORMATS_FLAGS(0);
     with_locale(locale, |name| {
-        let flags = windows::Win32::Globalization::ENUM_DATE_FORMATS_FLAGS(0);
-        let needed = unsafe {
-            GetDateFormatEx(name, flags, Some(&time), PCWSTR(pattern.as_ptr()), None, PCWSTR::null())
-        };
-        if needed <= 0 {
-            return None;
-        }
-        let mut buffer = vec![0u16; needed as usize];
-        let written = unsafe {
-            GetDateFormatEx(
-                name,
-                flags,
-                Some(&time),
-                PCWSTR(pattern.as_ptr()),
-                Some(&mut buffer),
-                PCWSTR::null(),
-            )
-        };
-        if written <= 0 {
-            return None;
-        }
-        String::from_utf16(&buffer[..(written as usize).saturating_sub(1)]).ok()
+        read_wide(|buffer| unsafe {
+            GetDateFormatEx(name, flags, Some(&time), PCWSTR(pattern.as_ptr()), buffer, PCWSTR::null())
+        })
     })
 }
 
@@ -310,17 +278,9 @@ pub fn format_date(locale: &LocaleName, when: &LocalDateTime) -> Option<String> 
 pub fn format_time(locale: &LocaleName, when: &LocalDateTime) -> Option<String> {
     let time = when.system_time();
     with_locale(locale, |name| {
-        let needed = unsafe { GetTimeFormatEx(name, TIME_NOSECONDS, Some(&time), PCWSTR::null(), None) };
-        if needed <= 0 {
-            return None;
-        }
-        let mut buffer = vec![0u16; needed as usize];
-        let written =
-            unsafe { GetTimeFormatEx(name, TIME_NOSECONDS, Some(&time), PCWSTR::null(), Some(&mut buffer)) };
-        if written <= 0 {
-            return None;
-        }
-        String::from_utf16(&buffer[..(written as usize).saturating_sub(1)]).ok()
+        read_wide(|buffer| unsafe {
+            GetTimeFormatEx(name, TIME_NOSECONDS, Some(&time), PCWSTR::null(), buffer)
+        })
     })
 }
 

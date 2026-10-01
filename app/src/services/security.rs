@@ -1,6 +1,7 @@
-//! Live view of the four Windows Security switches that must be off before the
-//! playbook can run. The values are the same ones the AME Wizard watches; they
-//! mirror the "Virus & threat protection settings" page one to one.
+//! Live view of the four Windows Security switches that must be off before
+//! Atlas installs, read from the registry values behind the "Virus & threat
+//! protection settings" page. AME Wizard reads the same values, so the app
+//! and AME Wizard agree on whether a PC is ready.
 
 use windows_registry::{Key, LOCAL_MACHINE};
 
@@ -36,10 +37,10 @@ pub enum Protection {
 impl Protection {
     /// Order matches the Windows Security page, so the two lists line up visually.
     pub const ALL: [Protection; 4] = [
-        Protection::TamperProtection,
         Protection::RealTimeProtection,
         Protection::CloudDelivered,
         Protection::SampleSubmission,
+        Protection::TamperProtection,
     ];
 }
 
@@ -99,6 +100,11 @@ impl SecurityStatus {
         Protection::ALL.iter().any(|p| self.get(*p).is_off())
     }
 
+    /// The switches in `state`, in Windows Security's order.
+    pub fn switches(&self, state: Switch) -> Vec<Protection> {
+        Protection::ALL.into_iter().filter(|p| self.get(*p) == state).collect()
+    }
+
     pub fn counts(&self) -> SwitchCounts {
         let mut counts = SwitchCounts::default();
         for protection in Protection::ALL {
@@ -113,8 +119,11 @@ impl SecurityStatus {
 
     /// Reads every switch. Cheap enough to poll once a second.
     pub fn read() -> Self {
+        if let Some(status) = review_status() {
+            return status;
+        }
         let defender_present =
-            !matches!(super::requirements::key_present(LOCAL_MACHINE, WINDEFEND_SERVICE), Ok(false));
+            !matches!(super::registry::key_present(LOCAL_MACHINE, WINDEFEND_SERVICE), Ok(false));
         let root = LOCAL_MACHINE.open(DEFENDER).ok();
         let open = |name: &str| root.as_ref().and_then(|root| root.open(name).ok());
         let features = open("Features");
@@ -122,34 +131,62 @@ impl SecurityStatus {
         let spynet = open("SpyNet");
 
         Self {
-            tamper_protection: features
-                .as_ref()
-                .and_then(|key| key.get_u32("TamperProtection").ok())
-                .map(tamper_protection_switch)
-                .unwrap_or(Switch::Unknown),
-            // 1 = the user switched real-time protection off; absent = on.
+            tamper_protection: read_switch(features.as_ref(), "TamperProtection", tamper_protection_switch),
+            // 1 = switched off. Absent or unreadable counts as on, which keeps
+            // the step blocked.
             real_time_protection: match &real_time {
                 Some(key) => match key.get_u32("DisableRealtimeMonitoring") {
                     Ok(1) => Switch::Off,
-                    Ok(_) => Switch::On,
-                    Err(_) => Switch::On,
+                    _ => Switch::On,
                 },
                 None => Switch::Unknown,
             },
             // 0 = off, 1 basic, 2 advanced.
-            cloud_delivered: value(spynet.as_ref(), "SpyNetReporting", |v| v != 0),
-            sample_submission: spynet
-                .as_ref()
-                .and_then(|key| key.get_u32("SubmitSamplesConsent").ok())
-                .map(sample_submission_switch)
-                .unwrap_or(Switch::Unknown),
+            cloud_delivered: read_switch(spynet.as_ref(), "SpyNetReporting", |value| {
+                if value == 0 { Switch::Off } else { Switch::On }
+            }),
+            sample_submission: read_switch(spynet.as_ref(), "SubmitSamplesConsent", sample_submission_switch),
             defender_present,
         }
     }
 }
 
-/// Both prompting for every sample and never sending disable automatic submission.
-/// Only the two automatic modes should keep the Windows Security step blocked.
+/// Debug builds accept `ATLAS_SECURITY_PREVIEW` for design review, so the
+/// Windows Security reminders can be checked without changing Windows
+/// Security: `on`, `off`, `some-off` (Tamper Protection and Cloud-delivered
+/// protection off), `unreadable` or `absent` (Defender removed).
+fn review_status() -> Option<SecurityStatus> {
+    if !cfg!(debug_assertions) {
+        return None;
+    }
+    let all = |switch| SecurityStatus {
+        tamper_protection: switch,
+        real_time_protection: switch,
+        cloud_delivered: switch,
+        sample_submission: switch,
+        defender_present: true,
+    };
+    match std::env::var("ATLAS_SECURITY_PREVIEW").ok()?.as_str() {
+        "on" => Some(all(Switch::On)),
+        "off" => Some(all(Switch::Off)),
+        "some-off" => Some(SecurityStatus {
+            tamper_protection: Switch::Off,
+            cloud_delivered: Switch::Off,
+            ..all(Switch::On)
+        }),
+        "unreadable" => Some(SecurityStatus { tamper_protection: Switch::Unknown, ..all(Switch::On) }),
+        "absent" => Some(SecurityStatus { defender_present: false, ..all(Switch::Unknown) }),
+        _ => None,
+    }
+}
+
+/// A switch from a DWORD value; `Unknown` when the key or value cannot be read.
+fn read_switch(key: Option<&Key>, name: &str, switch: fn(u32) -> Switch) -> Switch {
+    key.and_then(|key| key.get_u32(name).ok()).map_or(Switch::Unknown, switch)
+}
+
+/// 0 (always prompt) and 2 (never send) stop automatic submission; 1 and 3
+/// send automatically and keep the step blocked.
 fn sample_submission_switch(consent: u32) -> Switch {
     match consent {
         0 | 2 => Switch::Off,
@@ -158,22 +195,12 @@ fn sample_submission_switch(consent: u32) -> Switch {
     }
 }
 
+/// 0 and 4 are off, 1 and 5 on; any other value is not claimed either way.
 fn tamper_protection_switch(value: u32) -> Switch {
     match value {
         0 | 4 => Switch::Off,
         1 | 5 => Switch::On,
         _ => Switch::Unknown,
-    }
-}
-
-fn value(key: Option<&Key>, name: &str, is_on: impl Fn(u32) -> bool) -> Switch {
-    match key {
-        Some(key) => match key.get_u32(name) {
-            Ok(value) if is_on(value) => Switch::On,
-            Ok(_) => Switch::Off,
-            Err(_) => Switch::Unknown,
-        },
-        None => Switch::Unknown,
     }
 }
 
@@ -233,5 +260,14 @@ mod tests {
         };
         assert!(all_off.all_off());
         assert!(!SecurityStatus::default().any_off());
+
+        // Listed in Windows Security's order, whatever the state.
+        assert_eq!(
+            status.switches(Switch::Off),
+            [Protection::RealTimeProtection, Protection::TamperProtection]
+        );
+        assert_eq!(mixed.switches(Switch::Unknown), [Protection::SampleSubmission]);
+        assert_eq!(mixed.switches(Switch::On), [Protection::CloudDelivered]);
+        assert!(all_off.switches(Switch::On).is_empty());
     }
 }

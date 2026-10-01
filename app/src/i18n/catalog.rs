@@ -1,4 +1,4 @@
-//! The shipped languages and their message catalogs.
+//! The languages the app includes, and their message catalogs.
 //!
 //! Every catalog is a Fluent file compiled into the executable, so the
 //! translations are available offline, during elevation and inside the
@@ -19,7 +19,7 @@ use super::pseudo;
 
 /// Text direction of a language. The pinned GPUI renders left-to-right text
 /// only (see `docs/i18n.md`), so a right-to-left locale would be excluded
-/// from the language list; none ships yet.
+/// from the language list.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Direction {
     LeftToRight,
@@ -27,9 +27,8 @@ pub enum Direction {
     RightToLeft,
 }
 
-/// How far a translation has come. Decides whether "Match Windows" may pick
-/// it on its own; an explicit choice in Settings can pick any shipped
-/// language and sees the readiness beside it.
+/// How far a translation has come. Settings labels a preview, and while one
+/// is showing the shell offers English (see `AppModel::preview_notice`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Readiness {
     /// Translation awaiting native-speaker review. Labelled as a preview.
@@ -38,14 +37,7 @@ pub enum Readiness {
     Source,
 }
 
-/// The lowest readiness that "Match Windows" selects without being asked.
-/// Preview translations are chosen like any other, so a user whose Windows
-/// speaks the language sees Atlas in it; because no native speaker has
-/// reviewed them, the shell shows a dismissible notice naming the preview
-/// and offering English (see `AppModel::preview_notice`).
-pub const AUTO_SELECT_MIN_READINESS: Readiness = Readiness::Preview;
-
-/// A shipped language.
+/// A language the app includes.
 #[derive(Debug)]
 pub struct Locale {
     /// BCP 47 tag; also the catalog directory under `i18n/`.
@@ -68,17 +60,10 @@ pub struct Locale {
 
 impl Locale {
     pub fn id(&self) -> LanguageIdentifier {
-        self.tag.parse().expect("every shipped locale tag is a valid language identifier")
+        self.tag.parse().expect("every included locale tag is a valid language identifier")
     }
 
-    /// Whether "Match Windows" may select this locale on its own.
-    pub fn auto_selectable(&self) -> bool {
-        !self.pseudo
-            && self.direction == Direction::LeftToRight
-            && self.readiness >= AUTO_SELECT_MIN_READINESS
-    }
-
-    /// Whether the language appears in the Settings list.
+    /// Whether the language is offered: in the Settings list and to "Match Windows".
     pub fn listed(&self) -> bool {
         !self.pseudo && self.direction == Direction::LeftToRight
     }
@@ -95,7 +80,7 @@ const CJK_HANS: &[&str] = &["Microsoft YaHei UI"];
 const CJK_HANT: &[&str] = &["Microsoft JhengHei UI"];
 const CJK_JA: &[&str] = &["Yu Gothic UI", "Meiryo UI"];
 
-/// Every shipped locale, source first. Order matters for negotiation ties:
+/// Every included locale, source first. Order matters for negotiation ties:
 /// a request that matches several entries equally well takes the first.
 pub static LOCALES: &[Locale] = &[
     Locale {
@@ -340,7 +325,7 @@ struct Layer {
 
 /// Parses a catalog's text into a bundle, returning the problems found
 /// (syntax errors, duplicate ids) as text. The validation tests build every
-/// shipped catalog this way, on its own, so a translation's own errors are
+/// included catalog this way, on its own, so a translation's own errors are
 /// never masked by a fallback.
 pub(crate) fn compile(
     id: LanguageIdentifier,
@@ -359,9 +344,8 @@ pub(crate) fn compile(
     if let Err(errors) = bundle.add_resource(resource) {
         problems.extend(errors.iter().map(|error| format!("duplicate entry: {error:?}")));
     }
-    // Fluent can wrap interpolated values in FSI/PDI isolates for bidi
-    // text. Every shipped language is left-to-right and the pinned GPUI
-    // cannot shape right-to-left scripts, so the marks would only leak
+    // No FSI/PDI bidi isolation marks: every included language is left to
+    // right (GPUI can't shape right-to-left text), so they would only leak
     // into accessible names and copied text. Turn them on with the first
     // right-to-left locale.
     bundle.set_use_isolating(false);
@@ -406,7 +390,7 @@ pub fn elide_placeables(text: &str) -> String {
     out
 }
 
-/// Parses a locale's catalog into a bundle. Problems in a shipped catalog
+/// Parses a locale's catalog into a bundle. Problems in an included catalog
 /// are a defect the tests catch; at runtime the good entries are kept and
 /// the rest fall through to the next language.
 fn build_layer(locale: &'static Locale) -> Layer {
@@ -454,14 +438,11 @@ impl Catalog {
         errors.is_empty().then(|| text.into_owned())
     }
 
-    /// Formats a message (or one of its attributes). A language whose
-    /// translation fails to format, for example because it references a
-    /// message that does not exist, is skipped in favour of the next one.
-    /// The tests keep every shipped catalog formatting cleanly on its own,
-    /// so the only way every language can fail is a caller passing the
-    /// wrong arguments; that case shows the sentence with the unresolved
-    /// parts elided (never Fluent's `{...}` syntax), logs an error, and
-    /// fails loudly in debug builds.
+    /// Formats a message (or attribute) in the first language that formats it
+    /// cleanly. The catalog tests keep every language formatting on its own,
+    /// so if none can, the caller passed the wrong arguments: show the first
+    /// attempt with the unresolved parts elided, log it, and panic in debug
+    /// builds.
     pub fn format(&self, id: &str, attribute: Option<&str>, args: &[(&str, Arg)]) -> String {
         let fluent_args = if args.is_empty() {
             None
