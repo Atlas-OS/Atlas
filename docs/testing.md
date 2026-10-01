@@ -77,6 +77,10 @@ build/archive parity. They make no persistent changes; registry tests create and
   a process, crosses a privilege boundary, saves state or recovers.
 - Assert on behavior or data (definitions, plans, manifests), never script text, except
   for exact cross-artifact contracts such as a path a `.reg` file embeds.
+- Don't add tests that only check that a file, function, definition entry or string exists
+  or is gone, or that repeat a definition's values. Definition validation and the
+  generators' `-Validate` runs catch drift. Keep such a check only when it is the sole
+  guard of a real rule, such as a privacy default or a privilege split.
 - Begin each Windows PowerShell test file's `BeforeAll` with
   `. (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')`, which enforces the host and module
   paths (see its header). Keep shared host setup there.
