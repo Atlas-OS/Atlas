@@ -17,16 +17,41 @@ use ring::{digest, hmac};
 use rusqlite::Connection;
 use serde_json::json;
 use std::{
+    fs,
     net::IpAddr,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::{Arc, Mutex},
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tokio::sync::Semaphore;
 
 pub const MAX_ZIP: u64 = 64 * 1024 * 1024;
-pub const PRIVACY_VERSION: &str = "2026-09-30";
+/// Version of the privacy notice that consent covers. The web form
+/// (atlas-reports-ui `api.ts`) and Atlas Manager (`app/src/services/reports.rs`)
+/// send the same value, so change all three with the notice text.
+pub const PRIVACY_VERSION: &str = "2026-10-01";
 pub const MAX_REPORTS: i64 = 10_000;
+/// Days a report and its audit history are kept, as the privacy notice promises.
+pub const RETENTION_DAYS: i64 = 90;
+pub(crate) const STATUSES: [&str; 4] = ["new", "investigating", "resolved", "closed"];
+pub(crate) const HOUR: i64 = 3_600;
+pub(crate) const DAY: i64 = 86_400;
+/// Largest JSON body on any route. reports-mcp relies on it to limit report text.
+pub(crate) const MAX_JSON: usize = 32 * 1024;
+/// Uploads that can be received and validated at once.
+const UPLOAD_SLOTS: usize = 2;
+/// Disk space kept free for every upload slot at full size.
+pub(crate) const UPLOAD_HEADROOM: u64 = MAX_ZIP * UPLOAD_SLOTS as u64;
+/// Requests served at once; the rest are asked to retry.
+const MAX_REQUESTS: usize = 32;
+/// Agent read actions, as an SQL list. They have their own audit limit, so they
+/// cannot evict administrator entries.
+const AGENT_ACCESS: &str = "'agent-list','agent-read','agent-download'";
+/// Most agent read entries the audit log keeps.
+const AGENT_AUDIT_ROWS: i64 = 10_000;
+/// Most entries of every other kind the audit log keeps.
+const AUDIT_ROWS: i64 = 50_000;
+
 pub type ApiResult<T> = Result<T, ApiError>;
 
 pub struct ApiError(pub StatusCode, pub &'static str);
@@ -37,7 +62,7 @@ impl IntoResponse for ApiError {
 }
 impl From<rusqlite::Error> for ApiError {
     fn from(error: rusqlite::Error) -> Self {
-        eprintln!("Report database operation failed: {error}");
+        log_failure("database", &error);
         Self(
             StatusCode::SERVICE_UNAVAILABLE,
             "Reports are temporarily unavailable. Please retry.",
@@ -46,13 +71,39 @@ impl From<rusqlite::Error> for ApiError {
 }
 impl From<std::io::Error> for ApiError {
     fn from(error: std::io::Error) -> Self {
-        eprintln!("Report storage operation failed: {error}");
+        log_failure("storage", &error);
         Self(
             StatusCode::SERVICE_UNAVAILABLE,
             "Report storage is temporarily unavailable. Save your diagnostics and retry.",
         )
     }
 }
+
+/// Why the service could not start.
+#[derive(Debug)]
+pub enum StartupError {
+    /// An invalid setting. The text names it without echoing its value.
+    Config(&'static str),
+    /// A storage or database failure, already logged with its cause.
+    Storage,
+}
+impl From<rusqlite::Error> for StartupError {
+    fn from(error: rusqlite::Error) -> Self {
+        log_failure("database", &error);
+        Self::Storage
+    }
+}
+impl From<std::io::Error> for StartupError {
+    fn from(error: std::io::Error) -> Self {
+        log_failure("storage", &error);
+        Self::Storage
+    }
+}
+/// Logs the cause for the operator. Senders only ever see fixed text.
+fn log_failure(kind: &str, error: &dyn std::fmt::Display) {
+    eprintln!("Report {kind} operation failed: {error}");
+}
+
 pub fn now() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -65,6 +116,53 @@ pub fn hex(bytes: &[u8]) -> String {
 pub fn sha(bytes: &[u8]) -> String {
     hex(digest::digest(&digest::SHA256, bytes).as_ref())
 }
+/// Whether `value` is 64 hex digits, the form of a SHA-256 or HMAC tag.
+pub(crate) fn is_hex64(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|b| b.is_ascii_hexdigit())
+}
+
+/// Messages signed with the gateway secret. Each kind has its own prefix, so a
+/// signature issued for one purpose is never accepted for another. Agent key
+/// signatures are stored, so changing their format revokes every key.
+pub(crate) mod claim {
+    pub fn upload(id: &str, key_hash: &str) -> String {
+        format!("upload:{id}:{key_hash}")
+    }
+    pub fn csrf(user: &str, day: i64) -> String {
+        format!("csrf:{user}:{day}")
+    }
+    pub fn agent(token: &str) -> String {
+        format!("agent:{token}")
+    }
+}
+
+/// Moves committed changes into the database file and empties the WAL, so
+/// deleted text does not remain in older WAL frames.
+pub(crate) fn scrub_wal(db: &Connection) {
+    let _ = db.query_row("PRAGMA wal_checkpoint(TRUNCATE)", [], |_| Ok(()));
+}
+/// Adds one to a rate bucket and returns its new count.
+pub(crate) fn bump(db: &Connection, bucket: &str) -> rusqlite::Result<i64> {
+    db.query_row(
+        "INSERT INTO rates VALUES(?1,1) ON CONFLICT(bucket) DO UPDATE SET n=n+1 RETURNING n",
+        [bucket],
+        |r| r.get(0),
+    )
+}
+/// Rate buckets are named `{hour}:…` and kept for 24 hours.
+pub(crate) fn purge_rates(db: &Connection, hour: i64) -> rusqlite::Result<usize> {
+    db.execute(
+        "DELETE FROM rates WHERE CAST(substr(bucket,1,instr(bucket,':')-1) AS INTEGER) < ?1",
+        [hour - 24],
+    )
+}
+/// Removes a file, treating one that is already gone as removed.
+pub(crate) fn remove_if_present(path: &Path) -> std::io::Result<()> {
+    match fs::remove_file(path) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        result => result,
+    }
+}
 
 pub struct Config {
     pub data: PathBuf,
@@ -74,7 +172,6 @@ pub struct Config {
     pub admins: Vec<String>,
     pub proxy_ips: Vec<IpAddr>,
     pub quota_bytes: u64,
-    pub retention_days: i64,
 }
 
 pub struct Store {
@@ -82,15 +179,16 @@ pub struct Store {
     pub db: Mutex<Connection>,
     pub uploads: Arc<Semaphore>,
     requests: Semaphore,
+    key: hmac::Key,
 }
 pub type AppState = Arc<Store>;
 impl Store {
     pub fn signature(&self, value: &str) -> String {
-        let key = hmac::Key::new(hmac::HMAC_SHA256, self.config.gateway_secret.as_bytes());
-        hex(hmac::sign(&key, value.as_bytes()).as_ref())
+        hex(hmac::sign(&self.key, value.as_bytes()).as_ref())
     }
     pub fn verify(&self, value: &str, signature: &str) -> bool {
-        if signature.len() != 64 || !signature.bytes().all(|b| b.is_ascii_hexdigit()) {
+        // Hex digits are ASCII, so the two-byte slices below never split a character.
+        if !is_hex64(signature) {
             return false;
         }
         let tag = (0..64)
@@ -100,92 +198,92 @@ impl Store {
         let Ok(tag) = tag else {
             return false;
         };
-        let key = hmac::Key::new(hmac::HMAC_SHA256, self.config.gateway_secret.as_bytes());
-        hmac::verify(&key, value.as_bytes(), &tag).is_ok()
+        hmac::verify(&self.key, value.as_bytes(), &tag).is_ok()
     }
+    /// Compares a supplied gateway secret with the configured one in constant
+    /// time, by using each as an HMAC key over the same message.
     pub fn verify_gateway(&self, supplied: &str) -> bool {
-        let expected_key = hmac::Key::new(hmac::HMAC_SHA256, self.config.gateway_secret.as_bytes());
-        let supplied_key = hmac::Key::new(hmac::HMAC_SHA256, supplied.as_bytes());
-        hmac::verify(
-            &expected_key,
-            b"atlas-gateway",
-            hmac::sign(&supplied_key, b"atlas-gateway").as_ref(),
-        )
-        .is_ok()
+        let supplied = hmac::Key::new(hmac::HMAC_SHA256, supplied.as_bytes());
+        let tag = hmac::sign(&supplied, b"atlas-gateway");
+        hmac::verify(&self.key, b"atlas-gateway", tag.as_ref()).is_ok()
     }
     pub fn file(&self, id: uuid::Uuid) -> PathBuf {
         self.config.data.join("uploads").join(format!("{id}.zip"))
     }
+    /// Counts every file in the upload folder, including interrupted and
+    /// orphaned uploads, not just committed reports.
     pub fn stored_bytes(&self) -> ApiResult<u64> {
-        // Include interrupted and orphaned uploads, not just committed rows.
-        let mut bytes = 0u64;
-        for entry in std::fs::read_dir(self.config.data.join("uploads"))? {
-            let entry = entry?;
-            let metadata = entry.metadata()?;
+        let mut bytes = 0;
+        for entry in fs::read_dir(self.config.data.join("uploads"))? {
+            // A failed upload may remove its temporary file during the walk.
+            let metadata = match entry.and_then(|entry| entry.metadata()) {
+                Ok(metadata) => metadata,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+                Err(error) => return Err(error.into()),
+            };
             if metadata.is_file() {
-                bytes = bytes.checked_add(metadata.len()).ok_or(ApiError(
-                    StatusCode::SERVICE_UNAVAILABLE,
-                    "Report storage is full.",
-                ))?;
+                bytes += metadata.len();
             }
         }
         Ok(bytes)
     }
     pub fn prune(&self) -> ApiResult<()> {
-        let db = self.db.lock().unwrap();
-        let cutoff = now() - self.config.retention_days * 86400;
-        let mut statement =
-            db.prepare("SELECT id FROM reports WHERE created < ?1 OR (ready=0 AND created < ?2)")?;
-        let ids = statement
-            .query_map([cutoff, now() - 86400], |row| row.get::<_, String>(0))?
-            .collect::<Result<Vec<_>, _>>()?;
-        for id in ids {
-            if let Ok(id) = id.parse() {
-                let path = self.file(id);
-                if path.exists() {
-                    std::fs::remove_file(path)?;
+        let mut db = self.db.lock().unwrap();
+        let result = self.prune_locked(&mut db);
+        scrub_wal(&db);
+        result
+    }
+    // Holding the lock for the whole pass stops an upload from committing a
+    // file between the ready check and its removal.
+    fn prune_locked(&self, db: &mut Connection) -> ApiResult<()> {
+        let cutoff = now() - RETENTION_DAYS * DAY;
+        let transaction = db.transaction()?;
+        // Removing the rows first leaves their attachments to the orphan sweep
+        // below, so one undeletable file cannot keep other reports.
+        transaction.execute(
+            "DELETE FROM reports WHERE created < ?1 OR (ready=0 AND created < ?2)",
+            [cutoff, now() - DAY],
+        )?;
+        purge_rates(&transaction, now() / HOUR)?;
+        transaction.execute("DELETE FROM audit WHERE at < ?1", [cutoff])?;
+        // The audit_bound trigger already limits agent reads as they are written.
+        transaction.execute(
+            &format!(
+                "DELETE FROM audit WHERE action NOT IN ({AGENT_ACCESS}) AND rowid NOT IN
+                (SELECT rowid FROM audit WHERE action NOT IN ({AGENT_ACCESS}) ORDER BY rowid DESC LIMIT {AUDIT_ROWS})"
+            ),
+            [],
+        )?;
+        transaction.commit()?;
+        for entry in fs::read_dir(self.config.data.join("uploads"))?.flatten() {
+            let path = entry.path();
+            let remove = match path.extension().and_then(|e| e.to_str()) {
+                // A recent .part file may belong to an upload in progress.
+                Some("part") => entry
+                    .metadata()
+                    .and_then(|m| m.modified())
+                    .is_ok_and(|t| t.elapsed().unwrap_or_default().as_secs() > DAY as u64),
+                // Also recovers a crash between the rename and the SQLite commit.
+                Some("zip") => {
+                    let id = path.file_stem().and_then(|n| n.to_str()).unwrap_or("");
+                    !db.query_row(
+                        "SELECT EXISTS(SELECT 1 FROM reports WHERE id=?1 AND ready=1)",
+                        [id],
+                        |r| r.get::<_, bool>(0),
+                    )?
                 }
-            }
-            db.execute("DELETE FROM reports WHERE id=?1", [&id])?;
-        }
-        db.execute("DELETE FROM audit WHERE at < ?1", [cutoff])?;
-        db.execute("DELETE FROM audit WHERE rowid NOT IN (SELECT rowid FROM audit ORDER BY rowid DESC LIMIT 10000)", [])?;
-        for entry in std::fs::read_dir(self.config.data.join("uploads"))? {
-            let entry = entry?;
-            if entry.path().extension().is_some_and(|e| e == "part")
-                && entry
-                    .metadata()?
-                    .modified()?
-                    .elapsed()
-                    .unwrap_or_default()
-                    .as_secs()
-                    > 86400
-            {
-                std::fs::remove_file(entry.path())?;
-            }
-            if entry.path().extension().is_some_and(|e| e == "zip") {
-                let id = entry
-                    .path()
-                    .file_stem()
-                    .and_then(|n| n.to_str())
-                    .unwrap_or("")
-                    .to_owned();
-                let ready: bool = db.query_row(
-                    "SELECT EXISTS(SELECT 1 FROM reports WHERE id=?1 AND ready=1)",
-                    [&id],
-                    |r| r.get(0),
-                )?;
-                // Recover crashes between the atomic rename and SQLite commit.
-                if !ready {
-                    std::fs::remove_file(entry.path())?;
-                }
+                _ => false,
+            };
+            if remove && let Err(error) = remove_if_present(&path) {
+                eprintln!("Report storage cleanup failed: {error}");
             }
         }
         Ok(())
     }
 }
 
-pub fn create(config: Config) -> ApiResult<(Router, AppState)> {
+/// Names the first invalid setting without echoing any configured value.
+fn invalid_setting(config: &Config) -> Option<&'static str> {
     let origin = config.origin.parse::<axum::http::Uri>().ok();
     let valid_origin = origin.as_ref().is_some_and(|uri| {
         let authority = uri.authority().map(|a| a.as_str()).unwrap_or("");
@@ -198,92 +296,121 @@ pub fn create(config: Config) -> ApiResult<(Router, AppState)> {
             && !config.origin.ends_with('/')
             && (uri.scheme_str() == Some("https") || (local && uri.scheme_str() == Some("http")))
     });
-    if !valid_origin
-        || config.gateway_secret.len() < 32
+    if !valid_origin {
+        Some(
+            "ATLAS_REPORTS_ORIGIN must be an https:// origin (http:// only on loopback) with no path, trailing slash, query or user info",
+        )
+    } else if config.gateway_secret.len() < 32
         || config.gateway_secret.chars().any(char::is_control)
-        || config.admins.is_empty()
+    {
+        Some(
+            "ATLAS_REPORTS_GATEWAY_SECRET must be at least 32 characters with no control characters",
+        )
+    } else if config.admins.is_empty()
         || config
             .admins
             .iter()
-            .any(|a| a.is_empty() || a.chars().any(char::is_control))
-        || config.proxy_ips.is_empty()
+            .any(|a| a.is_empty() || a.trim() != a || a.chars().any(char::is_control))
+    {
+        Some(
+            "ATLAS_REPORTS_ADMINS must list at least one username, with no empty entries, surrounding spaces or control characters",
+        )
+    } else if config.proxy_ips.is_empty()
         || config
             .proxy_ips
             .iter()
             .any(|ip| ip.is_unspecified() || ip.is_multicast())
-        || !(1..=365).contains(&config.retention_days)
-        || config.quota_bytes < MAX_ZIP * 2
     {
-        return Err(ApiError(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Invalid service configuration",
-        ));
+        Some(
+            "ATLAS_REPORTS_PROXY_IPS must list at least one specific proxy IP address, not an unspecified or multicast one",
+        )
+    } else if config.quota_bytes < UPLOAD_HEADROOM {
+        Some("ATLAS_REPORTS_QUOTA_BYTES must be at least 134217728, twice the upload limit")
+    } else {
+        None
     }
-    if std::fs::symlink_metadata(&config.data).is_ok_and(|m| m.file_type().is_symlink()) {
-        return Err(ApiError(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Data directory must not be a symbolic link",
-        ));
+}
+
+/// Creates `path` if needed and, on Unix, limits access to the service account.
+/// A symbolic link is refused with `symlink_error`.
+fn private_dir(path: &Path, symlink_error: &'static str) -> Result<(), StartupError> {
+    if fs::symlink_metadata(path).is_ok_and(|m| m.file_type().is_symlink()) {
+        return Err(StartupError::Config(symlink_error));
     }
-    std::fs::create_dir_all(config.data.join("uploads"))?;
-    if std::fs::symlink_metadata(config.data.join("uploads"))?
-        .file_type()
-        .is_symlink()
-    {
-        return Err(ApiError(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Upload directory must not be a symbolic link",
-        ));
-    }
+    fs::create_dir_all(path)?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        for path in [&config.data, &config.data.join("uploads")] {
-            std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o700))?;
-        }
+        fs::set_permissions(path, fs::Permissions::from_mode(0o700))?;
     }
-    let db = Connection::open(config.data.join("reports.sqlite3"))?;
+    Ok(())
+}
+
+fn open_database(path: &Path) -> Result<Connection, StartupError> {
+    let db = Connection::open(path)?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(
-            config.data.join("reports.sqlite3"),
-            std::fs::Permissions::from_mode(0o600),
-        )?;
+        fs::set_permissions(path, fs::Permissions::from_mode(0o600))?;
     }
-    db.busy_timeout(std::time::Duration::from_secs(10))?;
+    db.busy_timeout(Duration::from_secs(10))?;
     db.execute_batch("PRAGMA journal_mode=WAL;
+        PRAGMA secure_delete=ON;
         CREATE TABLE IF NOT EXISTS reports(id TEXT PRIMARY KEY,key_hash TEXT UNIQUE NOT NULL,fingerprint TEXT NOT NULL,created INTEGER NOT NULL,category TEXT NOT NULL,message TEXT NOT NULL,contact TEXT NOT NULL,version TEXT NOT NULL,expects_zip INTEGER NOT NULL,ready INTEGER NOT NULL,bytes INTEGER NOT NULL DEFAULT 0,digest TEXT NOT NULL DEFAULT '',summary TEXT NOT NULL DEFAULT '{}',status TEXT NOT NULL DEFAULT 'new',notes TEXT NOT NULL DEFAULT '',privacy_version TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS rates(bucket TEXT PRIMARY KEY,n INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS audit(at INTEGER NOT NULL,actor TEXT NOT NULL,action TEXT NOT NULL,report_id TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS agent_tokens(id TEXT PRIMARY KEY,name TEXT NOT NULL,signature TEXT NOT NULL,created INTEGER NOT NULL,expires INTEGER NOT NULL,last_used INTEGER,revoked INTEGER NOT NULL DEFAULT 0,can_delete INTEGER NOT NULL DEFAULT 0);
-        CREATE TRIGGER IF NOT EXISTS audit_bound AFTER INSERT ON audit BEGIN
-            DELETE FROM audit WHERE rowid <= NEW.rowid - 10000;
-        END;")?;
-    let has_delete_scope: bool = db.query_row(
-        "SELECT EXISTS(SELECT 1 FROM pragma_table_info('agent_tokens') WHERE name='can_delete')",
-        [],
-        |r| r.get(0),
-    )?;
-    if !has_delete_scope {
-        db.execute(
-            "ALTER TABLE agent_tokens ADD COLUMN can_delete INTEGER NOT NULL DEFAULT 0",
-            [],
-        )?;
+        CREATE INDEX IF NOT EXISTS audit_action ON audit(action);")?;
+    // Recreated on every start so the limit always matches AGENT_ACCESS.
+    db.execute_batch(&format!(
+        "DROP TRIGGER IF EXISTS audit_bound;
+        CREATE TRIGGER audit_bound AFTER INSERT ON audit WHEN NEW.action IN ({AGENT_ACCESS}) BEGIN
+            DELETE FROM audit WHERE action IN ({AGENT_ACCESS}) AND rowid <= NEW.rowid - {AGENT_AUDIT_ROWS};
+        END;"
+    ))?;
+    // user_version 1 means the file was rebuilt once with secure_delete on, so
+    // no text deleted before then remains.
+    let version: i64 = db.query_row("PRAGMA user_version", [], |r| r.get(0))?;
+    if version == 0 {
+        match db.execute_batch("VACUUM; PRAGMA user_version=1;") {
+            Ok(()) => scrub_wal(&db),
+            Err(error) => {
+                eprintln!("Report database compaction failed; it will retry at next start: {error}")
+            }
+        }
     }
+    Ok(db)
+}
+
+pub fn create(config: Config) -> Result<(Router, AppState), StartupError> {
+    if let Some(reason) = invalid_setting(&config) {
+        return Err(StartupError::Config(reason));
+    }
+    private_dir(&config.data, "Data directory must not be a symbolic link")?;
+    private_dir(
+        &config.data.join("uploads"),
+        "Upload directory must not be a symbolic link",
+    )?;
+    let db = open_database(&config.data.join("reports.sqlite3"))?;
+    let key = hmac::Key::new(hmac::HMAC_SHA256, config.gateway_secret.as_bytes());
     let state = Arc::new(Store {
         config,
         db: Mutex::new(db),
-        uploads: Arc::new(Semaphore::new(2)),
-        requests: Semaphore::new(32),
+        uploads: Arc::new(Semaphore::new(UPLOAD_SLOTS)),
+        requests: Semaphore::new(MAX_REQUESTS),
+        key,
     });
-    state.prune()?;
+    if state.prune().is_err() {
+        eprintln!("Startup cleanup failed; it will retry hourly.");
+    }
     let app =
         routes::router(state.clone()).layer(middleware::from_fn_with_state(state.clone(), guard));
     Ok((app, state))
 }
 
 async fn guard(State(state): State<AppState>, request: Request<Body>, next: Next) -> Response {
+    // Serve only the configured host, so a DNS name rebound to this server
+    // cannot reach the API.
     let host = request
         .headers()
         .get("host")

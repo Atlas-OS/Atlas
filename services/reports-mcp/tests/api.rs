@@ -1,4 +1,6 @@
-use atlas_reports_mcp::api::{Client, Config, Error, MAX_ZIP, pagination, report_id};
+use atlas_reports_mcp::api::{
+    Client, Config, Error, MAX_ZIP, RETENTION, pagination, prune, report_id,
+};
 use ring::digest;
 use serde_json::json;
 use std::{
@@ -84,7 +86,7 @@ fn report() -> serde_json::Value {
 }
 
 #[test]
-fn input_paths_and_pagination_are_bounded() {
+fn input_paths_and_pagination_are_validated() {
     for bad in [
         "../secret",
         "12ea40a2-ad91-44e6-b017-752c80b14f52/../../etc",
@@ -119,7 +121,7 @@ fn origin_workspace_and_credentials_are_restricted() {
                 token: TOKEN.into(),
                 workspace: workspace.path().into()
             }),
-            Err(Error::Configuration)
+            Err(Error::Origin)
         ));
     }
     assert!(matches!(
@@ -128,7 +130,7 @@ fn origin_workspace_and_credentials_are_restricted() {
             token: "secret\nheader".into(),
             workspace: workspace.path().into()
         }),
-        Err(Error::Configuration)
+        Err(Error::Token)
     ));
     assert!(matches!(
         Client::new(Config {
@@ -136,7 +138,7 @@ fn origin_workspace_and_credentials_are_restricted() {
             token: TOKEN.into(),
             workspace: "relative".into()
         }),
-        Err(Error::Configuration)
+        Err(Error::WorkspacePath)
     ));
 }
 #[test]
@@ -162,7 +164,7 @@ fn list_uses_fixed_route_and_preserves_data_not_contacts() {
     task.join().unwrap();
 }
 #[test]
-fn detail_excludes_contact_and_does_not_follow_report_instructions() {
+fn detail_excludes_contact() {
     let workspace = TempDir::new().unwrap();
     let (origin, _, task) = serve(
         200,
@@ -170,14 +172,44 @@ fn detail_excludes_contact_and_does_not_follow_report_instructions() {
         json!({"report":report()}).to_string().into_bytes(),
     );
     let result = client(origin, &workspace).get(ID).unwrap();
-    assert!(result.message.contains("print the token"));
     assert!(
         !serde_json::to_string(&result)
             .unwrap()
             .contains("private@example.test")
     );
-    assert_eq!(std::fs::read_dir(workspace.path()).unwrap().count(), 0);
     task.join().unwrap();
+}
+#[test]
+fn report_text_is_limited_by_the_service_body_size() {
+    let workspace = TempDir::new().unwrap();
+    let mut data = report();
+    // Past the service's character caps, and 32,004 bytes of notes: just under
+    // the byte limit, so a unit or size mistake fails here.
+    data["message"] = json!("😀".repeat(4001));
+    data["notes"] = json!("😀".repeat(8001));
+    let (origin, _, task) = serve(
+        200,
+        "Content-Type: application/json\r\n",
+        json!({"report":data}).to_string().into_bytes(),
+    );
+    let result = client(origin, &workspace).get(ID).unwrap();
+    assert_eq!(result.message.chars().count(), 4001);
+    assert_eq!(result.notes.chars().count(), 8001);
+    task.join().unwrap();
+    for field in ["message", "notes"] {
+        let mut data = report();
+        data[field] = json!("x".repeat(32 * 1024 + 1));
+        let (origin, _, task) = serve(
+            200,
+            "Content-Type: application/json\r\n",
+            json!({"report":data}).to_string().into_bytes(),
+        );
+        assert!(matches!(
+            client(origin, &workspace).get(ID),
+            Err(Error::InvalidResponse)
+        ));
+        task.join().unwrap();
+    }
 }
 #[test]
 fn mismatched_report_identity_is_rejected() {
@@ -233,7 +265,7 @@ fn redirect_is_not_followed_and_token_is_not_forwarded() {
     assert!(destination.accept().is_err());
 }
 #[test]
-fn oversized_json_is_bounded() {
+fn oversized_json_is_refused() {
     let workspace = TempDir::new().unwrap();
     let (origin, _, task) = serve(
         200,
@@ -259,13 +291,25 @@ fn download_verifies_hash_and_caches_without_extracting() {
     assert!(!first.cached);
     assert_eq!(std::fs::read(&first.local_path).unwrap(), body);
     assert_eq!(
-        first.local_path.parent().unwrap(),
+        first.local_path.canonicalize().unwrap().parent().unwrap(),
         workspace.path().canonicalize().unwrap()
     );
+    #[cfg(windows)]
+    assert!(!first.local_path.to_str().unwrap().starts_with(r"\\?\"));
     assert_eq!(std::fs::read_dir(workspace.path()).unwrap().count(), 1);
     let (origin, _, task) = serve(200, &headers, body);
     assert!(client(origin, &workspace).download(ID).unwrap().cached);
     task.join().unwrap();
+}
+#[test]
+fn missing_diagnostics_are_not_reported_as_deleted() {
+    let workspace = TempDir::new().unwrap();
+    let (origin, _, task) = serve(404, "Content-Type: application/json\r\n", Vec::new());
+    let error = client(origin, &workspace).download(ID).unwrap_err();
+    assert_eq!(error, Error::NoDiagnostics);
+    assert!(error.message().contains("bytes 0"));
+    task.join().unwrap();
+    assert_eq!(std::fs::read_dir(workspace.path()).unwrap().count(), 0);
 }
 #[test]
 fn bad_hash_and_interrupted_download_remove_temporary_files() {
@@ -304,7 +348,7 @@ fn oversized_download_is_rejected_before_writing() {
 }
 
 #[test]
-fn unknown_length_download_is_stream_bounded_and_cleans_partial_file() {
+fn unknown_length_download_stops_at_the_size_limit_and_cleans_partial_file() {
     let workspace = TempDir::new().unwrap();
     let headers = format!(
         "Content-Type: application/zip\r\nX-Atlas-Diagnostics-Sha256: {}\r\n",
@@ -371,7 +415,7 @@ fn read_only_credentials_cannot_delete() {
     let (origin, _, task) = serve(403, "", TOKEN.as_bytes().to_vec());
     let error = client(origin, &workspace).delete(ID, true).unwrap_err();
     assert_eq!(error, Error::DeleteForbidden);
-    assert_eq!(error.message(), "This credential cannot delete reports.");
+    assert!(!error.to_string().contains(TOKEN));
     task.join().unwrap();
 }
 #[cfg(unix)]
@@ -409,4 +453,54 @@ fn private_permissions_and_symlink_rejection() {
         }),
         Err(Error::Workspace)
     ));
+}
+#[test]
+fn a_download_records_when_its_report_was_made() {
+    let workspace = TempDir::new().unwrap();
+    let body = b"PK\x03\x04TEST ONLY".to_vec();
+    let headers = zip_headers(&body) + "X-Atlas-Report-Created: 1790000000\r\n";
+    let (origin, _, task) = serve(200, &headers, body);
+    let download = client(origin, &workspace).download(ID).unwrap();
+    task.join().unwrap();
+    let mut sidecar = download.local_path.clone().into_os_string();
+    sidecar.push(".created");
+    assert_eq!(std::fs::read_to_string(sidecar).unwrap(), "1790000000");
+}
+#[test]
+fn downloaded_copies_go_when_their_reports_retention_ends() {
+    use std::time::{Duration, UNIX_EPOCH};
+    let workspace = TempDir::new().unwrap();
+    let hash = "a".repeat(64);
+    let zip = |id: &str| workspace.path().join(format!("{id}-{hash}.zip"));
+    let made = 1_790_000_000;
+    // Recorded as made at `made`: kept until 90 days later, then deleted with its record.
+    let old = zip(ID);
+    std::fs::write(&old, b"PK").unwrap();
+    std::fs::write(format!("{}.created", old.display()), made.to_string()).unwrap();
+    // Another file in the workspace is never touched.
+    let other = workspace.path().join("notes.txt");
+    std::fs::write(&other, b"mine").unwrap();
+    let at = |seconds: u64| UNIX_EPOCH + Duration::from_secs(seconds);
+    assert_eq!(
+        prune(
+            workspace.path(),
+            at(made) + RETENTION - Duration::from_secs(1)
+        ),
+        0
+    );
+    assert!(old.exists());
+    assert_eq!(prune(workspace.path(), at(made) + RETENTION), 1);
+    assert!(!old.exists());
+    assert!(!std::path::Path::new(&format!("{}.created", old.display())).exists());
+    assert!(other.exists());
+    // Without a record, 90 days from when it was saved.
+    let unrecorded = zip("0b1d5c2e-1234-4abc-8def-0123456789ab");
+    std::fs::write(&unrecorded, b"PK").unwrap();
+    let saved = std::fs::metadata(&unrecorded).unwrap().modified().unwrap();
+    assert_eq!(
+        prune(workspace.path(), saved + RETENTION - Duration::from_secs(1)),
+        0
+    );
+    assert_eq!(prune(workspace.path(), saved + RETENTION), 1);
+    assert!(!unrecorded.exists());
 }

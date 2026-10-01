@@ -154,5 +154,95 @@ async fn configuration_errors_do_not_echo_secret_or_write_stdout() {
         .unwrap();
     assert!(!result.status.success());
     assert!(result.stdout.is_empty());
-    assert!(!String::from_utf8(result.stderr).unwrap().contains(token));
+    let stderr = String::from_utf8(result.stderr).unwrap();
+    assert!(stderr.contains("ATLAS_REPORTS_ORIGIN must be"), "{stderr}");
+    assert!(!stderr.contains(token));
+    let result = Command::new(env!("CARGO_BIN_EXE_atlas-reports-mcp"))
+        .env("ATLAS_REPORTS_AGENT_TOKEN", token)
+        .env_remove("ATLAS_REPORTS_ORIGIN")
+        .env_remove("ATLAS_REPORTS_WORKSPACE")
+        .output()
+        .await
+        .unwrap();
+    assert!(!result.status.success());
+    assert!(result.stdout.is_empty());
+    let stderr = String::from_utf8(result.stderr).unwrap();
+    assert!(stderr.contains("Set ATLAS_REPORTS_WORKSPACE"), "{stderr}");
+    assert!(!stderr.contains(token));
+    let result = Command::new(env!("CARGO_BIN_EXE_atlas-reports-mcp"))
+        .env_remove("ATLAS_REPORTS_AGENT_TOKEN")
+        .output()
+        .await
+        .unwrap();
+    assert!(!result.status.success());
+    let stderr = String::from_utf8(result.stderr).unwrap();
+    assert!(
+        stderr.contains("an access key from Agent access"),
+        "{stderr}"
+    );
+    // A folder cannot be created under a file on any platform.
+    let parent = tempfile::NamedTempFile::new().unwrap();
+    let result = Command::new(env!("CARGO_BIN_EXE_atlas-reports-mcp"))
+        .env("ATLAS_REPORTS_AGENT_TOKEN", token)
+        .env_remove("ATLAS_REPORTS_ORIGIN")
+        .env("ATLAS_REPORTS_WORKSPACE", parent.path().join("diagnostics"))
+        .output()
+        .await
+        .unwrap();
+    assert!(!result.status.success());
+    assert!(result.stdout.is_empty());
+    let stderr = String::from_utf8(result.stderr).unwrap();
+    assert!(
+        stderr.contains("ATLAS_REPORTS_WORKSPACE must be a folder"),
+        "{stderr}"
+    );
+    assert!(!stderr.contains(token));
+}
+
+/// Runs the server with valid settings, sends `input` and returns its stderr
+/// once it exits. `close` ends stdin after the input; otherwise it stays open.
+async fn handshake_failure(input: &[u8], close: bool) -> String {
+    let workspace = tempfile::TempDir::new().unwrap();
+    let token = "TESTONLY_HANDSHAKE_TOKEN_01234567890123456789";
+    let mut child = Command::new(env!("CARGO_BIN_EXE_atlas-reports-mcp"))
+        .env("ATLAS_REPORTS_AGENT_TOKEN", token)
+        .env("ATLAS_REPORTS_WORKSPACE", workspace.path())
+        .env("ATLAS_REPORTS_ORIGIN", "http://127.0.0.1:9")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true)
+        .spawn()
+        .unwrap();
+    let mut stdin = child.stdin.take().unwrap();
+    stdin.write_all(input).await.unwrap();
+    let _open = (!close).then_some(stdin);
+    let result = timeout(Duration::from_secs(10), child.wait_with_output())
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(!result.status.success());
+    let stderr = String::from_utf8(result.stderr).unwrap();
+    assert!(!stderr.contains(token), "{stderr}");
+    stderr
+}
+
+#[tokio::test]
+async fn handshake_errors_say_what_the_client_did() {
+    let stderr = handshake_failure(
+        b"{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n",
+        false,
+    )
+    .await;
+    assert!(
+        stderr.contains("did not complete the initialize handshake"),
+        "{stderr}"
+    );
+    assert!(!stderr.contains("closed the connection"), "{stderr}");
+    assert!(!stderr.contains("notifications/initialized"), "{stderr}");
+    let stderr = handshake_failure(b"", true).await;
+    assert!(
+        stderr.contains("closed the connection before completing the initialize handshake"),
+        "{stderr}"
+    );
 }
