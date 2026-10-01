@@ -123,16 +123,6 @@ Describe 'Install phase scripts' {
         $script:phaseFiles = Get-ChildItem -Path $phasesRoot -Filter 'Invoke-*Phase.ps1' -File
     }
 
-    It 'includes exactly the expected phase scripts' {
-        $expected = @(
-            'AppxSupport', 'Components', 'Defaults', 'Environment', 'Features',
-            'PreInstall', 'Services', 'ShellRefresh', 'Software', 'Tweaks'
-        ) | ForEach-Object { "Invoke-${_}Phase.ps1" }
-        $names = @(Get-ChildItem -Path $script:phasesRoot -Filter 'Invoke-*Phase.ps1' -File | ForEach-Object Name)
-
-        @($names | Sort-Object) | Should -Be @($expected | Sort-Object)
-    }
-
     It '<Name> returns or throws without exiting the install dispatcher host' -ForEach (
         $phaseFiles | ForEach-Object { @{ Name = $_.Name; FullName = $_.FullName } }
     ) {

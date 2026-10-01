@@ -132,6 +132,32 @@ Export-ModuleMember -Function Start-AtlasPhase,Stop-AtlasPhase
         }
     }
 
+    It 'runs every planned phase step from an existing phase script and plans every phase script' {
+        $steps = foreach ($mode in 'Fresh', 'Upgrade', 'Reapply') {
+            foreach ($isOobe in $false, $true) {
+                Get-AtlasInstallPlan -Mode $mode -IsOobe $isOobe |
+                    Where-Object { -not $_.Key.StartsWith('Checkpoint/', [StringComparison]::Ordinal) }
+            }
+        }
+        $ran = New-Object 'Collections.Generic.List[string]'
+        $runner = { param($Path) $ran.Add($Path) }.GetNewClosure()
+        foreach ($step in $steps) {
+            Invoke-AtlasInstallAction -Step $step -ScriptsRoot $script:AtlasTestScriptsRoot `
+                -SourceScriptsRoot $script:AtlasTestScriptsRoot -ScriptRunner $runner `
+                -PhaseStarter {} -PhaseStopper {}
+        }
+
+        $planned = @($ran | Sort-Object -Unique)
+        foreach ($path in $planned) {
+            $path | Should -Exist
+        }
+        $onDisk = @(Get-ChildItem -LiteralPath (Join-Path $script:AtlasTestScriptsRoot 'Install\Phases') `
+                -Filter 'Invoke-*Phase.ps1' -File | ForEach-Object FullName)
+        foreach ($path in $onDisk) {
+            $planned | Should -Contain $path -Because 'a phase script no plan reaches never runs'
+        }
+    }
+
     It 'switches to the installed files only after replacement completes' {
         $source = Join-Path $TestDrive 'source\Scripts'
         $installed = Join-Path $TestDrive 'installed\Scripts'

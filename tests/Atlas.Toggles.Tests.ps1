@@ -1089,16 +1089,6 @@ Describe 'Generated launchers' {
         $LASTEXITCODE | Should -Be 0 -Because ($output -join "`n")
     }
 
-    It 'are two-line stubs that hand the toggle name, state and their own path to the shared body' {
-        $stub = Get-Content -LiteralPath (Join-Path $script:repoRoot 'playbook\Executables\AtlasDesktop\2. Drivers\Run Update Drivers.cmd')
-        $stub.Count | Should -Be 2
-        $stub[0] | Should -Be '@echo off'
-        $stub[1] | Should -Be 'call "%__APPDIR__%..\AtlasModules\Scripts\Entry\Invoke-AtlasToggleLauncher.cmd" UpdateDrivers Run "%~f0" %*'
-
-        $menuStub = Get-Content -LiteralPath (Join-Path $script:repoRoot 'playbook\Executables\AtlasDesktop\6. Advanced Configuration\Toggle Windows Updates\Toggle Windows Updates.cmd')
-        $menuStub[1] | Should -Match ' ToggleWindowsUpdates - "%~f0" %\*$'
-    }
-
     It 'canonicalizes only the supported launcher flags before reaching PowerShell' {
         $bodyLines = @(Get-Content -LiteralPath $script:LauncherBody)
         $parserStart = [array]::IndexOf($bodyLines, 'set "AtlasLauncherSilent="')
@@ -1126,19 +1116,36 @@ Describe 'Generated launchers' {
         $rejected | Should -Not -Match '^SINK '
     }
 
-    It 'propagate the shared body exit code through the two-line stub, including negative values' {
-        # The real stub, with its body swapped for one that exits with the first extra argument.
+    It 'pass the toggle name, state and their own path to the shared body and keep its exit code' {
+        # The real stubs, with their body swapped for one that echoes what it received and
+        # exits with the first extra argument.
         $body = Join-Path $TestDrive 'body.cmd'
-        [IO.File]::WriteAllText($body, "@echo off`r`nexit /b %~4`r`n", [Text.Encoding]::ASCII)
-        $shipped = @(Get-Content -LiteralPath (Join-Path $script:repoRoot 'playbook\Executables\AtlasDesktop\2. Drivers\Run Update Drivers.cmd'))
-        $shipped[1] | Should -Match '^call "[^"]+" '
+        [IO.File]::WriteAllText($body, "@echo off`r`necho %~1^|%~2^|%~3`r`nexit /b %~4`r`n", [Text.Encoding]::ASCII)
         $stub = Join-Path $TestDrive 'stub.cmd'
-        [IO.File]::WriteAllText($stub, (($shipped[0], ($shipped[1] -replace '^call "[^"]+"', "call `"$body`"")) -join "`r`n") + "`r`n", [Text.Encoding]::ASCII)
-
         $commandHost = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'cmd.exe')
-        foreach ($code in 0, 37, -1) {
-            & $commandHost /d /c "`"$stub`" $code" | Out-Null
-            $LASTEXITCODE | Should -Be $code
+        # %__APPDIR__% is System32, so the call must resolve inside the installed AtlasModules.
+        $installedModules = '%__APPDIR__%..\AtlasModules\'
+        $cases = @(
+            @{ Path = '2. Drivers\Run Update Drivers.cmd'; Name = 'UpdateDrivers'; State = 'Run' }
+            @{ Path = '6. Advanced Configuration\Toggle Windows Updates\Toggle Windows Updates.cmd'; Name = 'ToggleWindowsUpdates'; State = '-' }
+        )
+
+        foreach ($case in $cases) {
+            $shipped = @(Get-Content -LiteralPath (Join-Path $script:repoRoot "playbook\Executables\AtlasDesktop\$($case.Path)"))
+            $shipped.Count | Should -Be 2
+            $call = [regex]::Match($shipped[1], '^call "([^"]+)" ')
+            $call.Success | Should -BeTrue -Because $shipped[1]
+            $target = $call.Groups[1].Value
+            $target.StartsWith($installedModules, [StringComparison]::Ordinal) | Should -BeTrue -Because $target
+            (Join-Path $script:repoRoot "playbook\Executables\AtlasModules\$($target.Substring($installedModules.Length))") |
+                Should -Be $script:LauncherBody
+            [IO.File]::WriteAllText($stub, (($shipped[0], ($shipped[1] -replace '^call "[^"]+"', "call `"$body`"")) -join "`r`n") + "`r`n", [Text.Encoding]::ASCII)
+
+            foreach ($code in 0, 37, -1) {
+                $received = & $commandHost /d /c "`"$stub`" $code"
+                $LASTEXITCODE | Should -Be $code
+                $received | Should -BeExactly "$($case.Name)|$($case.State)|$stub"
+            }
         }
     }
 }

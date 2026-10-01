@@ -1,16 +1,15 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
 
-    $scriptPath = Join-Path $PSScriptRoot `
-        '..\playbook\Executables\AtlasModules\Scripts\Tweaks\qol\config-start-menu.ps1'
+    $script:scriptPath = Join-Path $script:AtlasTestScriptsRoot 'Tweaks\qol\config-start-menu.ps1'
     $tokens = $null
     $errors = $null
-    $script:ast = [Management.Automation.Language.Parser]::ParseFile($scriptPath, [ref]$tokens, [ref]$errors)
+    $ast = [Management.Automation.Language.Parser]::ParseFile($script:scriptPath, [ref]$tokens, [ref]$errors)
     @($errors).Count | Should -Be 0
 
     # The policy function is defined inside the companion script; lift it out so it can
     # run against mocked CIM cmdlets without executing the rest of the tweak.
-    $functionAst = $script:ast.Find({
+    $functionAst = $ast.Find({
             param($node)
             $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
             $node.Name -eq 'Set-AtlasStartPinnedFolderPolicy'
@@ -84,16 +83,18 @@ Describe 'Start pinned-folder policy' {
         { Set-AtlasStartPinnedFolderPolicy } | Should -Throw '*more than one configuration instance*'
     }
 
-    It 'invokes folder configuration before clearing the Start cache' {
-        $commands = @($script:ast.FindAll({
-                    param($node)
-                    $node -is [Management.Automation.Language.CommandAst]
-                }, $true))
-        $policy = @($commands | Where-Object { $_.GetCommandName() -eq 'Set-AtlasStartPinnedFolderPolicy' })
-        $cleanup = @($commands | Where-Object { $_.GetCommandName() -eq 'Invoke-AtlasUserAppxCacheCleanup' })
+    It 'hides the folders after setting the layout and before clearing the Start cache' {
+        # Clearing the cache first would leave Start showing the folders until the next reset.
+        function Set-AtlasStartLayout { }
+        function Invoke-AtlasUserAppxCacheCleanup { param([string]$Mode) [void]$Mode }
+        $calls = [Collections.Generic.List[string]]::new()
+        Mock Import-Module { }
+        Mock Set-AtlasStartLayout { $calls.Add('layout') }
+        Mock New-CimInstance { $calls.Add('folders'); New-TestStartPolicyInstance -Value 0 }
+        Mock Invoke-AtlasUserAppxCacheCleanup { $calls.Add("cache:$Mode") }
 
-        $policy.Count | Should -Be 1
-        $cleanup.Count | Should -Be 1
-        $policy[0].Extent.EndOffset | Should -BeLessThan $cleanup[0].Extent.StartOffset
+        & $script:scriptPath
+
+        @($calls) | Should -Be @('layout', 'folders', 'cache:StartMenu')
     }
 }
