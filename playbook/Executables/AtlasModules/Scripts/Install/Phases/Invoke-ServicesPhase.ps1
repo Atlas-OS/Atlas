@@ -4,8 +4,9 @@
 # minimal. Each default is the machine part of the corresponding toggle, applied and
 # recorded through the toggle engine so the install and the launcher share one
 # implementation and upgrade replay sees the same record a user's choice would leave.
-# The committed install plan admits this phase only for fresh modes; it runs as
-# TrustedInstaller. Generic Windows service and driver startup values stay at their OS
+# The committed install plan admits this phase for Fresh and Rebase installs; it runs
+# as TrustedInstaller. A Rebase keeps every recorded choice for the Defaults phase to
+# replay and applies a default only where nothing was recorded. Generic Windows service and driver startup values stay at their OS
 # defaults; optional product behavior is configured through documented policy or
 # feature-specific interfaces.
 
@@ -21,11 +22,16 @@ Import-Module -Name (Join-Path $modulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') 
 $backupPath = Join-Path -Path $atlasModulesRoot -ChildPath 'Other\winServices.reg'
 Export-AtlasServicesBackup -FilePath $backupPath
 
+$rebase = (Get-AtlasContext).IsRebase
 foreach ($default in @(
         @{ Name = 'FileSharing'; State = 'Disable' }
         @{ Name = 'Location'; State = 'Disable' }
         @{ Name = 'Indexing'; State = 'Minimal' }
     )) {
+    if ($rebase -and $null -ne (Get-AtlasToggleState -Name $default.Name)) {
+        Write-AtlasLog -Message "Kept the recorded '$($default.Name)' choice; the Defaults phase replays it."
+        continue
+    }
     Invoke-AtlasToggleMachineState -Name $default.Name -State $default.State
 
     $expected = (Get-AtlasToggleDefinition -Name $default.Name).States[$default.State]['StateValue']

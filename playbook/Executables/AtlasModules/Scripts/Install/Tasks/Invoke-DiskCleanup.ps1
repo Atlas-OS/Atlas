@@ -84,7 +84,12 @@ function Test-AtlasOtherWindowsInstall {
 }
 
 function Invoke-AtlasDiskCleanup {
-    param([Parameter(Mandatory = $true)][string]$CleanMgrPath)
+    param(
+        [Parameter(Mandatory = $true)][string]$CleanMgrPath,
+        # Windows was just moved to another release: keep what Windows needs to
+        # report on or undo that.
+        [switch]$KeepRecovery
+    )
 
     Get-Process -Name cleanmgr -ErrorAction SilentlyContinue |
         Stop-Process -Force -ErrorAction SilentlyContinue
@@ -113,6 +118,11 @@ function Invoke-AtlasDiskCleanup {
         'Windows Defender'                      = 2
         'Temporary Sync Files'                  = 2
         'Device Driver Packages'                = 2
+    }
+
+    if ($KeepRecovery) {
+        $categories['Setup Log Files'] = 0
+        $categories['Device Driver Packages'] = 0
     }
 
     foreach ($category in $categories.GetEnumerator()) {
@@ -170,7 +180,8 @@ function Invoke-AtlasMachineCleanup {
         [Parameter(Mandatory = $true)][string]$SystemRoot,
         [Parameter(Mandatory = $true)][string]$WindowsRoot,
         [Parameter(Mandatory = $true)][string]$CleanMgrPath,
-        [Parameter(Mandatory = $true)][string]$VssAdminPath
+        [Parameter(Mandatory = $true)][string]$VssAdminPath,
+        [switch]$KeepRecovery
     )
 
     if (Test-AtlasOtherWindowsInstall -SystemRoot $SystemRoot) {
@@ -190,8 +201,12 @@ function Invoke-AtlasMachineCleanup {
 
     $systemDrive = [IO.Path]::GetFullPath($SystemRoot).TrimEnd('\', '/')
     Write-Output 'No other Windows installation found, running machine cleanup.'
-    Invoke-AtlasDiskCleanup -CleanMgrPath $CleanMgrPath
+    Invoke-AtlasDiskCleanup -CleanMgrPath $CleanMgrPath -KeepRecovery:$KeepRecovery
     Invoke-AtlasTempCleanup -Path ([IO.Path]::Combine($WindowsRoot, 'Temp'))
+    if ($KeepRecovery) {
+        Write-Output 'Keeping restore points while Atlas Manager has Windows Update settings to put back.'
+        return
+    }
     Invoke-AtlasSystemShadowCopyCleanup -VssAdminPath $VssAdminPath -SystemDrive $systemDrive
 }
 
@@ -239,5 +254,8 @@ $systemRoot = [IO.Path]::GetPathRoot([Environment]::SystemDirectory)
 $windowsRoot = [IO.Directory]::GetParent([Environment]::SystemDirectory).FullName
 $cleanMgrPath = [IO.Path]::Combine([Environment]::SystemDirectory, 'cleanmgr.exe')
 $vssAdminPath = [IO.Path]::Combine([Environment]::SystemDirectory, 'vssadmin.exe')
+. (Join-Path -Path $scriptsRoot -ChildPath 'Preparation\WindowsTransition.ps1')
+# An open or unreadable record both mean a Windows move may still need undoing.
+$keepRecovery = $null -ne (Test-AtlasWindowsTransitionOpen)
 Invoke-AtlasMachineCleanup -SystemRoot $systemRoot -WindowsRoot $windowsRoot `
-    -CleanMgrPath $cleanMgrPath -VssAdminPath $vssAdminPath
+    -CleanMgrPath $cleanMgrPath -VssAdminPath $vssAdminPath -KeepRecovery:$keepRecovery

@@ -87,6 +87,9 @@ Describe 'Set-AtlasServiceStartup' {
             -ServicesRoot $script:servicesRoot -AllowMissing -PassThru
         $result.Applied | Should -BeFalse
         $result.StartupType | Should -BeNullOrEmpty
+        # A service this PC doesn't have, such as BthPan without Bluetooth, is no warning.
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Services -Times 0 -Exactly -ParameterFilter { $Level -eq 'Warning' }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Services -Times 1 -Exactly -ParameterFilter { $Message -eq "Service or driver 'MissingSvc' isn't on this PC; nothing to change." }
     }
 
     It 'tolerates disabling an absent service and verifies it without drift' {

@@ -97,7 +97,7 @@ Export-ModuleMember -Function Start-AtlasPhase,Stop-AtlasPhase
     }
 
     It 'maps every planned checkpoint to a task script that accepts its arguments' {
-        $keys = foreach ($mode in 'Fresh', 'Upgrade', 'Reapply') {
+        $keys = foreach ($mode in 'Fresh', 'Upgrade', 'Reapply', 'Rebase') {
             foreach ($isOobe in $false, $true) { (Get-AtlasInstallPlan -Mode $mode -IsOobe $isOobe).Key }
         }
         $targets = @($keys | Where-Object { $_.StartsWith('Checkpoint/', [StringComparison]::Ordinal) } |
@@ -133,7 +133,7 @@ Export-ModuleMember -Function Start-AtlasPhase,Stop-AtlasPhase
     }
 
     It 'runs every planned phase step from an existing phase script and plans every phase script' {
-        $steps = foreach ($mode in 'Fresh', 'Upgrade', 'Reapply') {
+        $steps = foreach ($mode in 'Fresh', 'Upgrade', 'Reapply', 'Rebase') {
             foreach ($isOobe in $false, $true) {
                 Get-AtlasInstallPlan -Mode $mode -IsOobe $isOobe |
                     Where-Object { -not $_.Key.StartsWith('Checkpoint/', [StringComparison]::Ordinal) }

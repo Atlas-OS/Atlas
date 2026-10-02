@@ -113,7 +113,10 @@ Describe 'Package manifest readers' {
 }
 
 Describe 'Resolve-AtlasInstallMode' {
-    BeforeEach { Mock Get-ItemProperty -ModuleName Atlas.InstallState { $null } }
+    BeforeEach {
+        Mock Get-ItemProperty -ModuleName Atlas.InstallState { $null }
+        Mock Get-AtlasWindowsTransitionRebase -ModuleName Atlas.InstallState { $null }
+    }
     It 'resumes an interrupted fresh transaction after the files have been copied' {
         $windows = Join-Path $TestDrive 'Interrupted'
         New-Item -Path (Join-Path $windows 'AtlasModules\Scripts') -ItemType Directory -Force | Out-Null
@@ -124,7 +127,7 @@ Describe 'Resolve-AtlasInstallMode' {
         { Resolve-AtlasInstallMode -TargetVersion '0.7.0' -WindowsPath $windows } | Should -Throw '*already active*'
     }
     It 'accepts declared legacy OEM versions' -TestCases @(
-        @{ Version = '0.4.1' }, @{ Version = '0.5.0' }, @{ Version = '0.5.1' }
+        @{ Version = '0.4.1' }, @{ Version = '0.5.0' }
     ) {
         param($Version)
         $script:LegacyVersion = $Version
@@ -133,7 +136,7 @@ Describe 'Resolve-AtlasInstallMode' {
     }
 
     It 'rejects undeclared recorded source versions' -TestCases @(
-        @{ Version = '0.3.2' }, @{ Version = '0.7.0' }
+        @{ Version = '0.3.2' }, @{ Version = '0.5.1' }, @{ Version = '0.7.0' }
     ) {
         param($Version)
         $windows = Join-Path $TestDrive 'Unsupported'
@@ -156,6 +159,25 @@ Describe 'Resolve-AtlasInstallMode' {
         $windows = Join-Path $TestDrive 'LegacyWindows'
         New-Item -Path (Join-Path $windows 'AtlasModules\Scripts') -ItemType Directory -Force | Out-Null
         { Resolve-AtlasInstallMode -TargetVersion '0.6.0' -WindowsPath $windows } | Should -Throw '*version could not be established*'
+    }
+
+    It 'is Rebase after Windows rebuilt itself while Atlas Manager moved it, with or without the markers' {
+        Mock Get-AtlasWindowsTransitionRebase -ModuleName Atlas.InstallState { [pscustomobject]@{ AtlasVersion = '0.5.0'; Options = @('defender-disable') } }
+        Mock Get-ItemProperty -ModuleName Atlas.InstallState { [pscustomobject]@{ Model = 'Atlas Playbook v0.5.0'; RegisteredOrganization = 'Atlas Playbook v0.5.0' } }
+        $windows = Join-Path $TestDrive 'Rebuilt'
+        New-Item -Path $windows -ItemType Directory -Force | Out-Null
+        Resolve-AtlasInstallMode -TargetVersion '0.6.0' -WindowsPath $windows | Should -Be 'Rebase'
+        Mock Get-ItemProperty -ModuleName Atlas.InstallState { $null }
+        Resolve-AtlasInstallMode -TargetVersion '0.6.0' -WindowsPath $windows | Should -Be 'Rebase' -Because 'the record of the move keeps the version when the markers are gone'
+    }
+
+    It 'is Rebase for the same version and still refuses an undeclared one' {
+        Mock Get-AtlasWindowsTransitionRebase -ModuleName Atlas.InstallState { [pscustomobject]@{ AtlasVersion = '0.6.0'; Options = @() } }
+        $windows = Join-Path $TestDrive 'RebuiltSame'
+        New-Item -Path $windows -ItemType Directory -Force | Out-Null
+        Resolve-AtlasInstallMode -TargetVersion '0.6.0' -WindowsPath $windows | Should -Be 'Rebase'
+        Mock Get-AtlasWindowsTransitionRebase -ModuleName Atlas.InstallState { [pscustomobject]@{ AtlasVersion = '0.3.2'; Options = @() } }
+        { Resolve-AtlasInstallMode -TargetVersion '0.6.0' -WindowsPath $windows } | Should -Throw '*not a declared upgrade source*'
     }
 }
 
@@ -431,17 +453,22 @@ Describe 'Front door requirements and staging' {
         Should -Invoke Get-AtlasWindowsReleaseStatus -Times 1 -Exactly -ParameterFilter { $Version -eq [version]'10.0.26200.5551' -and $BuildLabEx -eq 'rs_prerelease' }
     }
 
-    It 'warns about pending file renames without blocking when no update marker is set' {
+    It 'only notes pending file replacements when neither restart flag is set' {
+        # The printer driver replacements a cumulative update left after its own
+        # restart, with no restart flag.
         Mock Test-Path { $false }
         Mock Get-CimInstance { @() }
-        Mock Get-ItemProperty { [pscustomobject]@{ PendingFileRenameOperations = @('*1\??\C:\Windows\System32\gamingservicesproxy_13.dll.0', '') } }
+        $script:Renames = foreach ($file in @('MXDWDRV.DLL', 'PJLMON.DLL', 'PS5UI.DLL', 'PSCRIPT5.DLL', 'UNIDRV.DLL')) {
+            "*1\??\C:\Windows\System32\spool\drivers\x64\3\New\$file"
+            "\??\C:\Windows\System32\spool\drivers\x64\3\$file"
+        }
+        Mock Get-ItemProperty { [pscustomobject]@{ PendingFileRenameOperations = @($script:Renames) } }
         $results = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client
-        $reboot = $results | Where-Object Name -eq 'No pending reboot'
-        $reboot.Passed | Should -BeTrue
+        ($results | Where-Object Name -eq 'No pending reboot').Passed | Should -BeTrue
         $files = $results | Where-Object Name -eq 'No pending file replacements'
-        $files.Passed | Should -BeFalse
+        $files.Passed | Should -BeTrue -Because 'without a restart flag nothing needs the user'
         $files.Blocking | Should -BeFalse
-        $files.Detail | Should -BeLike '*C:\Windows\System32\gamingservicesproxy_13.dll.0*'
+        $files.Detail | Should -BeLike '*C:\Windows\System32\spool\drivers\x64\3\New\MXDWDRV.DLL*'
     }
 
     It 'does not treat an unreadable reboot marker as absent' {

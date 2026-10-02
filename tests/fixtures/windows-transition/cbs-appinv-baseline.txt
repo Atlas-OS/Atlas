@@ -1,0 +1,29 @@
+2026-10-01 21:44:29, Info                  CBS    Repr: Staged package check completes
+2026-10-01 21:44:29, Info                  CBS    
+2026-10-01 21:44:29, Info                  CBS    =================================
+2026-10-01 21:44:29, Info                  CBS    Checking System Update Readiness.
+2026-10-01 21:44:29, Info                  CBS    
+2026-10-01 21:44:29, Info                  CBS    (p)	CSI Payload Corrupt	(n)			amd64_microsoft-windows-a..n-experience-appinv_31bf3856ad364e35_10.0.26100.1591_none_b8a08e9482a41bbe\aeinvext.dll
+2026-10-01 21:44:29, Info                  CBS    (p)	CSI Payload Corrupt	(n)			amd64_microsoft-windows-a..n-experience-appinv_31bf3856ad364e35_10.0.26100.1591_none_b8a08e9482a41bbe\Microsoft.Management.Deployment.winmd
+2026-10-01 21:44:29, Info                  CBS    
+2026-10-01 21:44:29, Info                  CBS    Summary:
+2026-10-01 21:44:29, Info                  CBS    Operation: Detect only 
+2026-10-01 21:44:29, Info                  CBS    Operation result: 0x0
+2026-10-01 21:44:29, Info                  CBS    Last Successful Step: Stage package detection completes.
+2026-10-01 21:44:29, Info                  CBS    Total Detected Corruption:	2
+2026-10-01 21:44:29, Info                  CBS    	CBS Manifest Corruption:	0
+2026-10-01 21:44:29, Info                  CBS    	CBS Metadata Corruption:	0
+2026-10-01 21:44:29, Info                  CBS    	CSI Manifest Corruption:	0
+2026-10-01 21:44:29, Info                  CBS    	CSI Metadata Corruption:	0
+2026-10-01 21:44:29, Info                  CBS    	CSI Payload Corruption:	2
+2026-10-01 21:44:29, Info                  CBS    	CSI FileFlags Corrupt:	0
+2026-10-01 21:44:29, Info                  CBS    Total Repaired Corruption:	0
+2026-10-01 21:44:29, Info                  CBS    	CBS Manifest Repaired:	0
+2026-10-01 21:44:29, Info                  CBS    	CSI Manifest Repaired:	0
+2026-10-01 21:44:29, Info                  CBS    	CSI Payload Repaired:	0
+2026-10-01 21:44:29, Info                  CBS    	CSI FileFlags Repaired:	0
+2026-10-01 21:44:29, Info                  CBS    	CSI Registry Metadata refreshed:	False
+2026-10-01 21:44:29, Info                  CBS    	CSI Store Metadata refreshed:	True
+2026-10-01 21:44:29, Info                  CBS    Staged Packages:
+2026-10-01 21:44:29, Info                  CBS    	CBS Staged packages:	0
+2026-10-01 21:44:29, Info                  CBS    	CBS Staged packages removed:	0

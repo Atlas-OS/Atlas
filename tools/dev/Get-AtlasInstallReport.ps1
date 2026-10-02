@@ -23,6 +23,10 @@
       9. Startup entries and pending-reboot state.
      10. Event log errors and warnings since the install (the newest 5,000 per log).
      11. The tail of the Atlas install logs and this account's user-setup transcript.
+     12. Windows version transition: what Atlas Manager changed to move Windows to
+         another release, whether Windows rebuilt itself during the move, Windows
+         Update policy and history, Atlas servicing packages, and the tails of the
+         servicing and Setup logs and update events.
 
     Every section is independent. One that cannot be collected records why, and the
     report still completes.
@@ -474,6 +478,39 @@ Add-Section -Title '7. Installed applications and AppX packages' -Collector {
         $lines += "AppX query failed: $($_.Exception.Message)"
     }
 
+    # Microsoft Store, App Installer and the frameworks Store apps run on, by
+    # version: an old Store can't update apps. Also the toggle record of a Store
+    # the user removed and the machine-wide automatic-update setting.
+    $lines += ''
+    $lines += '-- Microsoft Store and its frameworks for this user --'
+    foreach ($name in @('Microsoft.WindowsStore', 'Microsoft.DesktopAppInstaller', 'Microsoft.StorePurchaseApp',
+            'Microsoft.VCLibs.140.00*', 'Microsoft.UI.Xaml.*', 'Microsoft.NET.Native.Framework.*',
+            'Microsoft.NET.Native.Runtime.*', 'Microsoft.WindowsAppRuntime.*')) {
+        $found = @(Get-AppxPackage -Name $name -ErrorAction SilentlyContinue | Sort-Object -Property Name, Version)
+        if ($found.Count -eq 0) { $lines += ('{0,-58} not installed' -f $name) }
+        foreach ($package in $found) {
+            $lines += ('{0,-58} {1,-18} {2,-8} {3}' -f $package.Name, $package.Version, $package.Architecture, $package.Status)
+        }
+    }
+    $lines += ('Microsoft Store toggle record (state 0 = removed): {0}' -f (Get-RegistryValueOrNull -Path 'HKLM:\SOFTWARE\AtlasOS\Services\MicrosoftStore' -Name 'state'))
+    $lines += ('Store app automatic updates, AutoDownload (2 = off): {0}' -f (Get-RegistryValueOrNull -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsStore\WindowsUpdate' -Name 'AutoDownload'))
+    $lines += ('Store policy AutoDownload: {0}; RemoveWindowsStore: {1}; DisableStoreApps: {2}' -f
+        (Get-RegistryValueOrNull -Path 'HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore' -Name 'AutoDownload'),
+        (Get-RegistryValueOrNull -Path 'HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore' -Name 'RemoveWindowsStore'),
+        (Get-RegistryValueOrNull -Path 'HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore' -Name 'DisableStoreApps'))
+
+    # What Get ready's last runs did about the Store: each repair step, and each
+    # Store item with its versions and how it ended.
+    $preparationRoot = Join-Path -Path ([Environment]::GetFolderPath('ProgramFiles')) -ChildPath 'Atlas Setup Recovery\Preparation'
+    $updateLogs = @(Get-ChildItem -LiteralPath $preparationRoot -Recurse -File -Filter 'updates.log' -ErrorAction SilentlyContinue |
+            Sort-Object -Property LastWriteTimeUtc -Descending | Select-Object -First 3)
+    foreach ($log in $updateLogs) {
+        $storeLines = @(Get-Content -LiteralPath $log.FullName -ErrorAction SilentlyContinue | Where-Object { $_ -like 'Microsoft Store: *' })
+        if ($storeLines.Count -eq 0) { continue }
+        $lines += "-- Microsoft Store in $($log.FullName) ($($log.LastWriteTime.ToString('s'))) --"
+        $lines += @($storeLines | Select-Object -Last 80)
+    }
+
     $lines += ''
     try {
         $provisioned = @(Get-AppxProvisionedPackage -Online -ErrorAction Stop | Sort-Object -Property DisplayName)
@@ -536,6 +573,11 @@ Add-Section -Title '9. Startup entries and pending reboot' -Collector {
     $lines += ('{0,-52} {1}' -f 'WindowsUpdate RebootRequired', (Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired'))
     $pendingRenames = Get-RegistryValueOrNull -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Name 'PendingFileRenameOperations'
     $lines += ('{0,-52} {1}' -f 'PendingFileRenameOperations', $(if ($pendingRenames) { "$(@($pendingRenames).Count) entry(s)" } else { 'none' }))
+    # The sources (every other entry), so a report shows what waits for the restart.
+    $renameEntries = @($pendingRenames)
+    for ($index = 0; $index -lt [Math]::Min($renameEntries.Count, 40); $index += 2) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$renameEntries[$index])) { $lines += "  $($renameEntries[$index])" }
+    }
     $lines
 }
 
@@ -645,8 +687,160 @@ Add-Section -Title '11. Atlas logs' -Collector {
     $lines
 }
 
+Add-Section -Title '12. Windows version transition' -Collector {
+    # What Atlas Manager changed to move Windows to another release, what Windows
+    # Update and servicing reported, and the state around it. Read only.
+    $lines = @()
+    $windows = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+    $lines += "Windows: $($windows.CurrentBuildNumber).$($windows.UBR) $($windows.DisplayVersion) $($windows.EditionID) $($windows.InstallationType)"
+    $recordPath = 'HKLM:\SOFTWARE\AtlasOS\WindowsTransition'
+    foreach ($name in @('Journal', 'LastResult')) {
+        $value = Get-RegistryValueOrNull -Path $recordPath -Name $name
+        if ($null -eq $value) {
+            $lines += "${name}: (none)"
+            continue
+        }
+        $lines += "${name}:"
+        try { $lines += (([string]$value | ConvertFrom-Json) | ConvertTo-Json -Depth 8) }
+        catch { $lines += "  (not JSON) $value" }
+        if ($name -eq 'Journal') { Add-Summary 'Atlas Manager has Windows Update settings changed for an update and not yet put back.' }
+    }
+    # The copy that stands in for the record when a rebuilt Windows lost the registry.
+    $copy = Join-Path -Path ([Environment]::GetFolderPath('ProgramFiles')) -ChildPath 'Atlas Setup Recovery\WindowsTransition\journal.json'
+    if (Test-Path -LiteralPath $copy -PathType Leaf) {
+        $lines += "Copy of the record ($((Get-Item -LiteralPath $copy).LastWriteTime.ToString('s'))):"
+        try { $lines += ((Get-Content -LiteralPath $copy -Raw | ConvertFrom-Json) | ConvertTo-Json -Depth 8) }
+        catch { $lines += "  (unreadable: $($_.Exception.Message))" }
+    }
+    else { $lines += 'Copy of the record: (none)' }
+    $journalText = Get-RegistryValueOrNull -Path $recordPath -Name 'Journal'
+    if ($null -ne $journalText) {
+        try {
+            $journal = [string]$journalText | ConvertFrom-Json
+            $rebuild = $journal.PSObject.Properties['rebuild']
+            $decision = if ($null -ne $rebuild -and $null -ne $rebuild.Value) {
+                "Rebuild decision: rebuilt=$($rebuild.Value.rebuilt) signals=$(@($rebuild.Value.signals) -join ',') at $($rebuild.Value.checkedAt)"
+            }
+            else { 'Rebuild decision: (not made yet)' }
+            $lines += $decision
+            if ($null -ne $rebuild -and $null -ne $rebuild.Value -and $rebuild.Value.rebuilt) { Add-Summary 'Windows rebuilt itself during the move; the Atlas install runs as a Rebase.' }
+        }
+        catch { $lines += "Rebuild decision: (record not JSON: $($_.Exception.Message))" }
+    }
+    $reoffered = Get-RegistryValueOrNull -Path 'HKLM:\SOFTWARE\AtlasOS\Preparation' -Name 'Reoffered'
+    $lines += "Updates offered again after they installed: $(if ($null -eq $reoffered) { '(none)' } else { $reoffered })"
+    $lines += '-- Setup traces of a rebuild --'
+    $systemRoot = Split-Path -Path $windir -Parent
+    $old = Join-Path -Path $systemRoot -ChildPath 'Windows.old\Windows'
+    $lines += "Windows.old\Windows: $(if (Test-Path -LiteralPath $old) { if (@(Get-ChildItem -LiteralPath $old -Force -ErrorAction SilentlyContinue | Select-Object -First 1).Count -gt 0) { 'populated' } else { 'empty' } } else { 'missing' })"
+    $bt = Join-Path -Path $systemRoot -ChildPath '$WINDOWS.~BT'
+    $lines += "`$WINDOWS.~BT: $(if (Test-Path -LiteralPath $bt) { 'present' } else { 'missing' })"
+    foreach ($panther in @((Join-Path -Path $windir -ChildPath 'Panther'), (Join-Path -Path $bt -ChildPath 'Sources\Panther'))) {
+        foreach ($file in @('setupact.log', 'setuperr.log')) {
+            $path = Join-Path -Path $panther -ChildPath $file
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { continue }
+            $lines += "$path (written $((Get-Item -LiteralPath $path).LastWriteTime.ToString('s'))):"
+            try { $lines += Get-FileTail -Path $path -Count 200 }
+            catch { $lines += "(unreadable: $path`: $($_.Exception.Message))" }
+        }
+    }
+    $lines += '-- Windows Update policy, pause and service values --'
+    foreach ($path in @(
+            'SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+            'SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
+            'SOFTWARE\Microsoft\WindowsUpdate\UpdatePolicy\Settings'
+            'SOFTWARE\Microsoft\WindowsUpdate\UpdatePolicy\PolicyState'
+            'SOFTWARE\Microsoft\WindowsUpdate\UX\Settings'
+        )) {
+        $key = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($path, $false)
+        if ($null -eq $key) {
+            $lines += "${path}: (missing)"
+            continue
+        }
+        try {
+            foreach ($name in @($key.GetValueNames() | Sort-Object)) {
+                $lines += "  $path\$name = $($key.GetValueKind($name)) $($key.GetValue($name))"
+            }
+        }
+        finally { $key.Dispose() }
+    }
+    $pages = Get-RegistryValueOrNull -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' -Name 'SettingsPageVisibility'
+    $lines += "SettingsPageVisibility: $pages"
+    foreach ($name in @('wuauserv', 'UsoSvc', 'WaaSMedicSvc', 'BITS', 'CryptSvc', 'TrustedInstaller', 'DoSvc')) {
+        $start = Get-RegistryValueOrNull -Path "HKLM:\SYSTEM\CurrentControlSet\Services\$name" -Name 'Start'
+        $status = (Get-Service -Name $name -ErrorAction SilentlyContinue).Status
+        $lines += "  service $name start=$start status=$status"
+    }
+    foreach ($taskName in @('sih', 'sihboot')) {
+        $task = Get-ScheduledTask -TaskPath '\Microsoft\Windows\WindowsUpdate\' -TaskName $taskName -ErrorAction SilentlyContinue
+        $lines += "  task WindowsUpdate\$taskName state=$(if ($task) { $task.State } else { 'missing' })"
+    }
+    $lines += '-- Atlas servicing packages --'
+    $packages = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\Packages'
+    $root = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($packages, $false)
+    if ($null -ne $root) {
+        try {
+            foreach ($name in @($root.GetSubKeyNames() | Where-Object { $_ -like 'Z-Atlas-*' } | Sort-Object)) {
+                $lines += "  $name state=$(Get-RegistryValueOrNull -Path "HKLM:\$packages\$name" -Name 'CurrentState')"
+            }
+        }
+        finally { $root.Dispose() }
+    }
+    $lines += '-- Windows Update history (newest 30) --'
+    try {
+        $searcher = (New-Object -ComObject Microsoft.Update.Session).CreateUpdateSearcher()
+        $count = [Math]::Min([int]$searcher.GetTotalHistoryCount(), 30)
+        if ($count -gt 0) {
+            foreach ($entry in $searcher.QueryHistory(0, $count)) {
+                $lines += ('  {0:yyyy-MM-dd HH:mm} result={1} 0x{2:X8} {3}' -f $entry.Date, $entry.ResultCode, [int]$entry.HResult, $entry.Title)
+            }
+        }
+    }
+    catch { $lines += "(history unavailable: $($_.Exception.Message))" }
+    # The component store's state and what Windows's newest full store check found.
+    try { $lines += "Component store: $((Repair-WindowsImage -Online -CheckHealth -ErrorAction Stop).ImageHealthState)" }
+    catch { $lines += ("Component store: (check failed, 0x{0:X8}: {1})" -f $_.Exception.HResult, $_.Exception.Message) }
+    try {
+        $cbsLog = Join-Path -Path $windir -ChildPath 'Logs\CBS\CBS.log'
+        $stream = [IO.FileStream]::new($cbsLog, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]'ReadWrite, Delete')
+        try {
+            [void]$stream.Seek([Math]::Max(0, $stream.Length - 16MB), [IO.SeekOrigin]::Begin)
+            $cbsTail = [IO.StreamReader]::new($stream).ReadToEnd() -split "`r?`n"
+        }
+        finally { $stream.Dispose() }
+        $start = -1
+        for ($i = $cbsTail.Count - 1; $i -ge 0; $i--) { if ($cbsTail[$i] -match 'Checking System Update Readiness\.') { $start = $i; break } }
+        if ($start -lt 0) { $lines += 'Newest store check: (none in the servicing log)' }
+        else {
+            $lines += '-- Newest store check in CBS.log --'
+            for ($i = $start; $i -lt [Math]::Min($cbsTail.Count, $start + 60); $i++) {
+                $lines += "  $($cbsTail[$i])"
+                if ($cbsTail[$i] -match 'Total Operation Time') { break }
+            }
+        }
+    }
+    catch { $lines += "Newest store check: (unreadable: $($_.Exception.Message))" }
+    foreach ($log in @(
+            @{ Path = (Join-Path -Path $windir -ChildPath 'Logs\CBS\CBS.log'); Lines = 300 }
+            @{ Path = (Join-Path -Path $windir -ChildPath 'Logs\DISM\dism.log'); Lines = 200 }
+        )) {
+        try { $lines += Get-FileTail -Path $log.Path -Count $log.Lines }
+        catch { $lines += "(unreadable: $($log.Path): $($_.Exception.Message))" }
+    }
+    foreach ($logName in @('Microsoft-Windows-WindowsUpdateClient/Operational', 'Setup')) {
+        $lines += "-- $logName (newest $script:EventListCount) --"
+        try {
+            foreach ($updateEvent in @(Get-WinEvent -LogName $logName -MaxEvents $script:EventListCount -ErrorAction Stop)) {
+                $lines += ('  {0:yyyy-MM-dd HH:mm:ss} {1} {2}: {3}' -f $updateEvent.TimeCreated, $updateEvent.Id, $updateEvent.LevelDisplayName, (($updateEvent.Message -replace '\s+', ' ').Trim()))
+            }
+        }
+        catch { $lines += "(no events or log unavailable: $($_.Exception.Message))" }
+    }
+    $lines
+}
+
 if ($RcDiagnostics) {
-    Add-Section -Title '12. RC diagnostics: Windows Search configuration' -Collector {
+    Add-Section -Title '13. RC diagnostics: Windows Search configuration' -Collector {
         $lines = @()
         $service = Get-Service -Name WSearch -ErrorAction Stop
         $lines += "WSearch status: $($service.Status)"
@@ -700,7 +894,7 @@ if ($RcDiagnostics) {
         $lines
     }
 
-    Add-Section -Title '13. RC diagnostics: PcaPatchDbTask' -Collector {
+    Add-Section -Title '14. RC diagnostics: PcaPatchDbTask' -Collector {
         $lines = @()
         $taskPath = '\Microsoft\Windows\Application Experience\'
         $taskName = 'PcaPatchDbTask'
@@ -746,7 +940,7 @@ if ($RcDiagnostics) {
         $lines
     }
 
-    Add-Section -Title '14. RC diagnostics: OneDrive shell extension' -Collector {
+    Add-Section -Title '15. RC diagnostics: OneDrive shell extension' -Collector {
         $lines = @()
         $root = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Microsoft\OneDrive'
         $files = @()
@@ -789,7 +983,7 @@ if ($RcDiagnostics) {
         $lines
     }
 
-    Add-Section -Title '15. RC diagnostics: WebView2 runtime and Widgets' -Collector {
+    Add-Section -Title '16. RC diagnostics: WebView2 runtime and Widgets' -Collector {
         $lines = @()
         # Microsoft documents pv under this client ID as Evergreen detection.
         # Edge Stable and Microsoft.Win32WebViewHost are not substitutes for it.
@@ -878,7 +1072,7 @@ if ($RcDiagnostics) {
         $lines
     }
 
-    Add-Section -Title '16. RC diagnostics: local Group Policy processing' -Collector {
+    Add-Section -Title '17. RC diagnostics: local Group Policy processing' -Collector {
         $lines = @()
         $since = if ($script:InstalledAt) {
             $script:InstalledAt.AddMinutes(-30)
@@ -920,7 +1114,7 @@ if ($RcDiagnostics) {
         $lines
     }
 
-    Add-Section -Title '17. RC diagnostics: effective Search scope' -Collector {
+    Add-Section -Title '18. RC diagnostics: effective Search scope' -Collector {
         $manifest = Join-Path $atlasModules 'Scripts\Modules\Atlas.Search\Atlas.Search.psd1'
         if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) {
             return "(Atlas.Search is missing at '$manifest')"
@@ -939,7 +1133,7 @@ if ($RcDiagnostics) {
         'Minimal expects AtlasDesktop/Start Menu included and both user paths excluded. Full expects Documents included and AppData excluded. Disabled Search may not answer.'
     }
 
-    Add-Section -Title '18. RC diagnostics: BITS service failures' -Collector {
+    Add-Section -Title '19. RC diagnostics: BITS service failures' -Collector {
         $lines = @()
         $since = if ($script:InstalledAt) { $script:InstalledAt.AddMinutes(-30) }
         else { (Get-CimInstance -ClassName Win32_OperatingSystem).LastBootUpTime }

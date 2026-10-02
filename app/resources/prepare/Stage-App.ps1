@@ -73,9 +73,11 @@ function Get-AtlasCancellationSecurity {
 }
 
 function New-AtlasPreparationJob {
-    param([string]$Root, [string]$Scope, [string]$Job, [string]$Worker, [byte[]]$Policy)
+    param([string]$Root, [string]$Scope, [string]$Job, [string]$Worker, [byte[]]$Policy, [string]$Library, [string]$Registry)
     $directory = Get-AtlasJobDirectory $Root Preparation $Scope $Job -Create
     Write-AtlasProtectedRecoveryFile (Join-Path $directory 'Update-Windows.ps1') ([Text.Encoding]::UTF8.GetBytes($Worker)) (Get-AtlasRecoveryFileSecurity)
+    Write-AtlasProtectedRecoveryFile (Join-Path $directory 'WindowsTransition.ps1') ([Text.Encoding]::UTF8.GetBytes($Library)) (Get-AtlasRecoveryFileSecurity)
+    Write-AtlasProtectedRecoveryFile (Join-Path $directory 'RegistryFile.ps1') ([Text.Encoding]::UTF8.GetBytes($Registry)) (Get-AtlasRecoveryFileSecurity)
     Write-AtlasProtectedRecoveryFile (Join-Path $directory 'DriverPolicy.reg') $Policy (Get-AtlasRecoveryFileSecurity)
     foreach ($log in @('worker.log','updates.log')) { Write-AtlasProtectedRecoveryFile (Join-Path $directory $log) ([byte[]]@()) (Get-AtlasRecoveryFileSecurity) }
     Write-AtlasProtectedRecoveryFile (Join-Path $directory 'cancel') ([byte[]]@()) (Get-AtlasCancellationSecurity)
@@ -163,12 +165,12 @@ if (-not $FunctionsOnly) {
     $root = Join-Path $programFiles 'Atlas Setup Recovery'
     $path = switch -CaseSensitive ([string]$request.operation) {
         'preparation' {
-            New-AtlasPreparationJob -Root $root -Scope ([string]$request.scope) -Job ([string]$request.job) -Worker ([string]$request.worker) -Policy ([byte[]]$request.policy)
+            New-AtlasPreparationJob -Root $root -Scope ([string]$request.scope) -Job ([string]$request.job) -Worker ([string]$request.worker) -Policy ([byte[]]$request.policy) -Library ([string]$request.library) -Registry ([string]$request.registry)
         }
         'media' { New-AtlasMediaJob -Root $root -Scope ([string]$request.scope) -Job ([string]$request.job) -Files @($request.files) }
         'validate-preparation' {
             $directory = Get-AtlasJobDirectory $root Preparation ([string]$request.scope) ([string]$request.job)
-            foreach ($file in @('Update-Windows.ps1','DriverPolicy.reg','state.json')) { Assert-AtlasRecoveryFileSecurity (Join-Path $directory $file) }
+            foreach ($file in @('Update-Windows.ps1','WindowsTransition.ps1','RegistryFile.ps1','DriverPolicy.reg','state.json')) { Assert-AtlasRecoveryFileSecurity (Join-Path $directory $file) }
             Assert-AtlasRecoveryFileSecurity (Join-Path $directory 'cancel') (Get-AtlasCancellationSecurity)
             $directory
         }

@@ -12,6 +12,9 @@ param()
 
 Set-StrictMode -Version 3.0
 
+# Mode resolution reads Atlas Manager's record of a Windows move.
+. (Join-Path -Path $PSScriptRoot -ChildPath '..\..\Preparation\WindowsTransition.ps1')
+
 # Completion publishes the install facts into the machine state document.
 $stateDocumentManifest = Join-Path -Path $PSScriptRoot -ChildPath '..\Atlas.State\Atlas.State.psd1'
 if (-not (Test-Path -LiteralPath $stateDocumentManifest -PathType Leaf)) {
@@ -110,7 +113,7 @@ function Assert-AtlasInstallStateDocument {
     if (@('Capturing', 'Running', 'Completed') -notcontains $State.status) {
         throw "Install state has an invalid status '$($State.status)'."
     }
-    if (@('Fresh', 'Upgrade', 'Reapply') -notcontains $State.mode) {
+    if (@('Fresh', 'Upgrade', 'Reapply', 'Rebase') -notcontains $State.mode) {
         throw "Install state has an invalid mode '$($State.mode)'."
     }
     if ($State.isOobe -isnot [bool]) {
@@ -305,7 +308,7 @@ function Start-AtlasInstallState {
     param(
         [Parameter(Mandatory = $true)][string]$TargetVersion,
         [Parameter(Mandatory = $true)]
-        [ValidateSet('Fresh', 'Upgrade', 'Reapply')]
+        [ValidateSet('Fresh', 'Upgrade', 'Reapply', 'Rebase')]
         [string]$Mode,
         [bool]$IsOobe = $false,
         [string]$CaptureNonce = ([Guid]::NewGuid().ToString('D')),
@@ -626,7 +629,7 @@ function Publish-AtlasInstallFlagSet {
     )
 
     $names = @()
-    if ([string]$State.mode -ceq 'Upgrade') {
+    if (@('Upgrade', 'Rebase') -ccontains [string]$State.mode) {
         $names += 'Upgrade.flag'
     }
     if (-not [bool]$State.isOobe) {
@@ -788,6 +791,9 @@ function Resolve-AtlasInstallMode {
         Decides whether an install of the target version is Fresh, an Upgrade, or a
         Reapply of the same version, from active install state, the machine state
         document or legacy OEM version markers. Upgrades must be declared in playbook.conf.
+        Rebase puts an installed Atlas back on a Windows that rebuilt itself while
+        Atlas Manager moved it to a newer release; the version can then come from
+        that move's record when the markers are gone.
     #>
     param(
         [Parameter(Mandatory = $true)][string]$TargetVersion,
@@ -807,6 +813,7 @@ function Resolve-AtlasInstallMode {
         # publishing a version. Its saved transaction retains the original mode.
         return [string]$active.mode
     }
+    $rebase = Get-AtlasWindowsTransitionRebase
     $document = Get-AtlasState -Path (Join-Path -Path $WindowsPath -ChildPath 'AtlasOS\state.json')
     $installedVersion = if ($null -ne $document) { [string]$document.installedVersion } else { '' }
     if ([string]::IsNullOrWhiteSpace($installedVersion)) {
@@ -822,14 +829,19 @@ function Resolve-AtlasInstallMode {
         if (@($legacyVersions).Count -gt 1) { throw 'Installed Atlas version markers disagree.' }
         if (@($legacyVersions).Count -eq 1) { $installedVersion = [string]@($legacyVersions)[0] }
     }
+    if ([string]::IsNullOrWhiteSpace($installedVersion) -and $null -ne $rebase) {
+        $installedVersion = $rebase.AtlasVersion
+    }
     if (-not [string]::IsNullOrWhiteSpace($installedVersion)) {
         if ($installedVersion -ceq $TargetVersion) {
+            if ($null -ne $rebase) { return 'Rebase' }
             return 'Reapply'
         }
         $playbook = Get-AtlasPlaybookDocument -PlaybookPath $PlaybookPath
         if (@($playbook.UpgradableFrom.string) -cnotcontains $installedVersion) {
             throw "Atlas $installedVersion is not a declared upgrade source for $TargetVersion. A fresh Windows installation is required."
         }
+        if ($null -ne $rebase) { return 'Rebase' }
         return 'Upgrade'
     }
 

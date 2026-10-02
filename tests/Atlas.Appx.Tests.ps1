@@ -768,6 +768,32 @@ Describe 'Install-AtlasGameBar' {
         $script:wingetLog = Join-Path $TestDrive 'winget-args.txt'
         $script:fakeWinget = Join-Path $TestDrive 'winget.cmd'
         Mock Get-AtlasTrustedWingetPath -ModuleName Atlas.Appx { $script:fakeWinget }
+        $script:gameBar = @()
+        Mock Get-AppxPackage -ModuleName Atlas.Appx { $script:gameBar }
+    }
+
+    It 'leaves a Game Bar this account already has alone, without WinGet or the Store' {
+        $script:gameBar = @([pscustomobject]@{ Name = 'Microsoft.XboxGamingOverlay'; Status = 'Ok' })
+
+        Install-AtlasGameBar
+
+        Should -Invoke Get-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Name -ceq 'Microsoft.XboxGamingOverlay' -and -not $AllUsers
+        }
+        Should -Not -Invoke Get-AtlasTrustedWingetPath -ModuleName Atlas.Appx
+        Should -Not -Invoke Assert-AtlasTrustedWingetSource -ModuleName Atlas.Appx
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Message -like '*already installed for this account*'
+        }
+    }
+
+    It 'installs a Game Bar this account has but Windows reports broken' {
+        $script:gameBar = @([pscustomobject]@{ Name = 'Microsoft.XboxGamingOverlay'; Status = 'NeedsRemediation' })
+        Set-Content -LiteralPath $script:fakeWinget -Encoding Ascii -Value '@exit /b 0'
+
+        Install-AtlasGameBar
+
+        Should -Invoke Get-AtlasTrustedWingetPath -ModuleName Atlas.Appx -Times 1 -Exactly
     }
 
     It 'installs the Store package through the trusted client with exact arguments' {

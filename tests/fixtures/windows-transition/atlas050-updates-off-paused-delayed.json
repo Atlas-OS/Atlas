@@ -1,0 +1,50 @@
+{
+  "name": "Atlas 0.5.0 with a Settings pause until 2026-11-05, the 0.5.0 deferral, update notifications off and Toggle Windows Updates set to Disable",
+  "readAt": "2026-10-02T04:00:54Z",
+  "values": {
+    "service.wuauserv": 4,
+    "service.UsoSvc": 2,
+    "policy.DeferQualityUpdates": 1,
+    "policy.DeferQualityUpdatesPeriodInDays": 30,
+    "pause.PausedFeatureStatus": 1,
+    "pause.PausedQualityStatus": 1,
+    "pause.PauseFeatureUpdatesStartTime": "2026-10-01T17:32:47Z",
+    "pause.PauseFeatureUpdatesEndTime": "2026-11-05T17:32:38Z",
+    "pause.PauseQualityUpdatesStartTime": "2026-10-01T17:32:47Z",
+    "pause.PauseQualityUpdatesEndTime": "2026-11-05T17:32:38Z",
+    "pause.PauseUpdatesStartTime": "2026-10-01T17:32:47Z",
+    "pause.PauseUpdatesExpiryTime": "2026-11-05T17:32:38Z"
+  },
+  "toggleRecords": {
+    "ToggleWindowsUpdates": 0,
+    "UpdateNotifications": 0
+  },
+  "blockers": [
+    { "kind": "off", "owned": true },
+    { "kind": "paused", "owned": false },
+    { "kind": "delayed", "owned": false }
+  ],
+  "lastResultSeen": {
+    "schema": 1,
+    "closedAt": "2026-10-02T04:30:45.7871470Z",
+    "outcome": "Installed",
+    "kind": "access",
+    "restored": [
+      "policy.DeferQualityUpdates",
+      "policy.DeferQualityUpdatesPeriodInDays",
+      "pause.PausedFeatureStatus",
+      "pause.PausedQualityStatus",
+      "pause.PauseFeatureUpdatesStartTime",
+      "pause.PauseFeatureUpdatesEndTime",
+      "pause.PauseQualityUpdatesStartTime",
+      "pause.PauseQualityUpdatesEndTime",
+      "pause.PauseUpdatesStartTime",
+      "pause.PauseUpdatesExpiryTime"
+    ],
+    "changed": [],
+    "owned": [],
+    "pin": "kept",
+    "build": 26200,
+    "ubr": 9457
+  }
+}

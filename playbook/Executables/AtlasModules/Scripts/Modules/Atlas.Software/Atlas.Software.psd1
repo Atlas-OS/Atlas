@@ -8,6 +8,8 @@
     FunctionsToExport = @(
         'Install-AtlasCbsPackage'
         'Uninstall-AtlasCbsPackage'
+        'Update-AtlasCbsRepairSource'
+        'Get-AtlasComponentCleanupBlocker'
         'Install-AtlasSoftware'
         'Show-AtlasSoftwarePicker'
         'Remove-AtlasOneDrive'

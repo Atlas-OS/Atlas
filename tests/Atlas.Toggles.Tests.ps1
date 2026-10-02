@@ -496,6 +496,9 @@ Describe 'Replay of recorded states' {
             Test-Path -LiteralPath (Join-Path $StateRoot $name) | Should -BeFalse -Because $name
         }
         Join-Path $script:ReplayWork 'machine.txt' | Should -Not -Exist
+        # Records an older Atlas left are expected after an update; clearing them is no warning.
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 0 -Exactly -ParameterFilter { $Level -eq 'Warning' }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -ParameterFilter { $Message -like "Toggle 'SplitToggle' state '9' does not map*Cleared its old record; the PC itself is unchanged." }
     }
 
     It 'preserves metadata-only keys without warning or replay in either scope' {

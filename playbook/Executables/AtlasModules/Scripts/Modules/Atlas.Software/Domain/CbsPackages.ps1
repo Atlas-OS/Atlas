@@ -254,6 +254,55 @@ function New-AtlasCbsRepairSource {
     return $true
 }
 
+function Get-AtlasCbsRepairSourcePolicy {
+    $value = Get-ItemProperty -LiteralPath 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Servicing' -Name 'LocalSourcePath' -ErrorAction SilentlyContinue
+    if ($null -eq $value) { return $null }
+    return [string]$value.LocalSourcePath
+}
+
+function Remove-AtlasCbsRepairSourcePolicy {
+    Remove-ItemProperty -LiteralPath 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Servicing' -Name 'LocalSourcePath' -ErrorAction Stop
+}
+
+function Update-AtlasCbsRepairSource {
+    <#
+    .SYNOPSIS
+        Keeps the repair source the Atlas packages need. An update replaces
+        %windir%\AtlasModules, and the repair source in it, without installing the
+        packages again: recreate it while they are installed, and never leave
+        LocalSourcePath naming a folder that is gone. Returns what it did.
+    #>
+    param([AllowEmptyCollection()][string[]]$AtlasPackages = @())
+
+    if ($AtlasPackages.Count -gt 0 -and (New-AtlasCbsRepairSource)) { return 'recreated' }
+    # Reading the policy expands its %SystemRoot%, so both sides are compared expanded.
+    $atlasSource = [Environment]::ExpandEnvironmentVariables('%SystemRoot%\AtlasModules\Packages\WinSxS')
+    $policy = Get-AtlasCbsRepairSourcePolicy
+    if ($null -eq $policy -or [Environment]::ExpandEnvironmentVariables($policy) -ne $atlasSource) { return 'unchanged' }
+    if (Test-Path -LiteralPath $atlasSource -PathType Container) { return 'unchanged' }
+    Remove-AtlasCbsRepairSourcePolicy
+    return 'removed'
+}
+
+function Get-AtlasComponentCleanupBlocker {
+    <#
+    .SYNOPSIS
+        Why the component store cleanup must not run now, or $null. With an Atlas
+        package installed, the cleanup rebuilds the inbox component the package
+        replaces from its oldest version and can't rebuild all of its files, which
+        leaves the store reporting damage. Fresh installs run it before the Atlas
+        packages are installed; once they are, it never runs.
+    #>
+    param(
+        [bool]$IsUpgrade,
+        [AllowEmptyCollection()][string[]]$AtlasPackages = @()
+    )
+
+    if ($AtlasPackages.Count -gt 0) { return "the Atlas servicing packages are installed ($($AtlasPackages -join ', '))" }
+    if ($IsUpgrade) { return 'this updates an earlier Atlas install' }
+    return $null
+}
+
 function Register-AtlasCbsFailureFallback {
     <#
     .SYNOPSIS

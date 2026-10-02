@@ -88,6 +88,11 @@ try {
     if ([string]::IsNullOrWhiteSpace($Name)) {
         throw 'Invoke-Toggle.ps1 requires -Name <SettingName>.'
     }
+    # Only these two can undo what Atlas Manager turned on to update Windows.
+    if ($Name -in @('ToggleWindowsUpdates', 'PauseUpdates')) {
+        . ([IO.Path]::Combine($scriptsRoot, 'Preparation', 'WindowsTransition.ps1'))
+        Assert-AtlasToggleAllowedDuringTransition -Name $Name
+    }
 
     $invokeParams = @{
         Name              = $Name

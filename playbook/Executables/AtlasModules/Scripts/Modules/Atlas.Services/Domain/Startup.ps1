@@ -50,9 +50,9 @@ function Set-AtlasServiceStartup {
         if (-not $AllowMissing) {
             throw "Required service or driver '$Name' does not exist under '$ServicesRoot'."
         }
-        Write-AtlasLog -Level Warning -Message (
-            "Optional service or driver '$Name' does not exist; skipping it."
-        )
+        # Optional entries name services some Windows versions or PCs don't have,
+        # such as BthPan without Bluetooth: nothing to do, and nothing wrong.
+        Write-AtlasLog -Message "Service or driver '$Name' isn't on this PC; nothing to change."
         if ($PassThru) {
             return [pscustomobject]@{ Name = $Name; Applied = $false; StartupType = $null }
         }

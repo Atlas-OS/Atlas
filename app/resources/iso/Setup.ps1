@@ -12,6 +12,7 @@ $config = [IO.File]::ReadAllText((Join-Path $root 'setup.json')) | ConvertFrom-J
 if ($config.schema -ne 2 -or $config.mode -notin @('interactive', 'configured', 'before-desktop')) { throw 'Unsupported setup configuration.' }
 $log = Join-Path $root 'setup.log'
 . (Join-Path $root 'Desktop-Policy.ps1')
+. (Join-Path $root 'RegistryFile.ps1')
 $desktopShell = Get-AtlasDesktopShell $root
 if ($RestoreDesktopPolicy) {
     if ($FirstLogon -or $identity.User.Value -ne 'S-1-5-18' -or $config.mode -ne 'before-desktop') { throw 'Desktop policy cleanup requires the setup SYSTEM task.' }
@@ -46,8 +47,8 @@ if (-not $FirstLogon) {
     }
     Set-Acl -LiteralPath $root -AclObject $acl
     if (Test-Path -LiteralPath (Join-Path $root 'DriverPolicy.reg')) {
-        & (Join-Path $env:WINDIR 'System32\reg.exe') import (Join-Path $root 'DriverPolicy.reg') | Add-Content -LiteralPath $log -Encoding UTF8
-        if ($LASTEXITCODE -ne 0) { throw 'Windows could not apply the ISO driver policy.' }
+        try { Import-AtlasRegistryFile (Join-Path $root 'DriverPolicy.reg') $log }
+        catch { throw "Windows could not apply the ISO driver policy: $($_.Exception.Message)" }
     }
     $networkDrivers = Join-Path $root 'NetworkDrivers'
     if (Test-Path -LiteralPath $networkDrivers) {

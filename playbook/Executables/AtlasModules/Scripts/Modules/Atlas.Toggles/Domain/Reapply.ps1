@@ -111,7 +111,9 @@ function Remove-AtlasToggleReplayRecord {
         [string]$Reason
     )
 
-    Write-AtlasLog -Level Warning -Message "Toggle '$Name' $Reason Removing stale registry record."
+    # Expected after an update from an older Atlas, whose records this version no
+    # longer uses: clearing one changes nothing on the PC, so it isn't a warning.
+    Write-AtlasLog -Message "Toggle '$Name' $Reason Cleared its old record; the PC itself is unchanged."
     $key = Get-Item -LiteralPath $KeyPath -ErrorAction Stop
     foreach ($valueName in @('state', 'path')) {
         if (@($key.GetValueNames()) -contains $valueName) {

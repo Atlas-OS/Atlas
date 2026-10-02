@@ -14,6 +14,7 @@ foreach ($name in @('Build-Iso.ps1', 'Master-Iso.ps1', 'Setup.ps1', 'Desktop.ps1
 foreach ($name in @('Windows-Release.ps1', 'windows-releases.json')) {
     Copy-Item -LiteralPath (Join-Path $compatibility $name) -Destination $root -Force
 }
+Copy-Item -LiteralPath (Join-Path $compatibility '..\Preparation\RegistryFile.ps1') -Destination (Join-Path $root 'RegistryFile.ps1') -Force
 $request = [IO.File]::ReadAllText((Join-Path $root 'request.json')) | ConvertFrom-Json
 $policyName = if ($request.drivers -eq 'manual') { 'Disable' } else { 'Enable' }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot "..\..\playbook\Executables\AtlasDesktop\2. Drivers\Drivers from Windows Update\$policyName Drivers from Windows Update.reg") -Destination (Join-Path $root 'DriverPolicy.reg') -Force

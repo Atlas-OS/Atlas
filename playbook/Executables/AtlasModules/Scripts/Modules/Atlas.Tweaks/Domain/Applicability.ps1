@@ -48,7 +48,10 @@ function Get-AtlasTweakSkipReason {
     if ($Tweak.ContainsKey('OnUpgrade') -and $Tweak['OnUpgrade']) {
         $onUpgrade = [string]$Tweak['OnUpgrade']
     }
-    if ($onUpgrade -eq 'Skip' -and $context.IsUpgrade) {
+    # A Rebase repeats the fresh-install tweaks that declare OnRebase = 'Run'.
+    $rebase = $null -ne $context.PSObject.Properties['IsRebase'] -and [bool]$context.IsRebase
+    $runsOnRebase = $Tweak.ContainsKey('OnRebase') -and [string]$Tweak['OnRebase'] -ceq 'Run'
+    if ($onUpgrade -eq 'Skip' -and $context.IsUpgrade -and -not ($rebase -and $runsOnRebase)) {
         return 'skipped on upgrade installs'
     }
     if ($onUpgrade -eq 'Only' -and -not $context.IsUpgrade) {

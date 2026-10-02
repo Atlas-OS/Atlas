@@ -1,0 +1,74 @@
+[
+  {
+    "name": "Atlas 0.5.0 installed on build 26200.9168: no memory integrity key, only Scenarios\\KeyGuard\\Status",
+    "values": {
+      "enableVirtualizationBasedSecurity": 0,
+      "hypervisorEnforcedCodeIntegrity": null,
+      "runAsPpl": 0
+    },
+    "off": true
+  },
+  {
+    "name": "Atlas 0.5.0 on a PC with memory integrity (ConfigVBS.ps1 -DisableAllVBS)",
+    "values": {
+      "enableVirtualizationBasedSecurity": 0,
+      "hypervisorEnforcedCodeIntegrity": 0,
+      "runAsPpl": 0
+    },
+    "off": true
+  },
+  {
+    "name": "Atlas 0.5.0 where Windows had no memory integrity key, so only the DeviceGuard value was written",
+    "values": {
+      "enableVirtualizationBasedSecurity": 0,
+      "hypervisorEnforcedCodeIntegrity": null,
+      "runAsPpl": 0
+    },
+    "off": true
+  },
+  {
+    "name": "Memory integrity turned off in Windows Security alone",
+    "values": {
+      "enableVirtualizationBasedSecurity": null,
+      "hypervisorEnforcedCodeIntegrity": 0,
+      "runAsPpl": null
+    },
+    "off": false
+  },
+  {
+    "name": "Windows as installed, memory integrity on",
+    "values": {
+      "enableVirtualizationBasedSecurity": null,
+      "hypervisorEnforcedCodeIntegrity": 1,
+      "runAsPpl": null
+    },
+    "off": false
+  },
+  {
+    "name": "Turned back on with Atlas 0.5.0's Enable VBS",
+    "values": {
+      "enableVirtualizationBasedSecurity": 1,
+      "hypervisorEnforcedCodeIntegrity": 1,
+      "runAsPpl": 0
+    },
+    "off": false
+  },
+  {
+    "name": "Virtualization-based security off but memory integrity turned on again afterwards",
+    "values": {
+      "enableVirtualizationBasedSecurity": 0,
+      "hypervisorEnforcedCodeIntegrity": 1,
+      "runAsPpl": 0
+    },
+    "off": false
+  },
+  {
+    "name": "Windows as installed on a PC without memory integrity",
+    "values": {
+      "enableVirtualizationBasedSecurity": null,
+      "hypervisorEnforcedCodeIntegrity": null,
+      "runAsPpl": null
+    },
+    "off": false
+  }
+]

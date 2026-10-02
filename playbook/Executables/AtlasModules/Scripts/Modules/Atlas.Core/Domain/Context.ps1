@@ -135,7 +135,7 @@ function Get-AtlasContext {
     $options = @()
     if ($isInstallStateBacked) {
         $mode = [string]$installState.mode
-        if ($mode -cnotin @('Fresh', 'Upgrade', 'Reapply')) {
+        if ($mode -cnotin @('Fresh', 'Upgrade', 'Reapply', 'Rebase')) {
             throw "The Atlas install-state mode '$mode' is invalid."
         }
         $targetVersion = [string]$installState.targetVersion
@@ -156,11 +156,13 @@ function Get-AtlasContext {
         $options = @($document.options | ForEach-Object { [string]$_ })
     }
 
+    # Rebase is an upgrade that also repeats the fresh-install work a rebuilt
+    # Windows undid; IsRebase tells the steps that differ.
     $isUpgrade = if ($isInstallStateBacked) {
-        $mode -cin @('Upgrade', 'Reapply')
+        $mode -cin @('Upgrade', 'Reapply', 'Rebase')
     }
     elseif ($isDocumentBacked) {
-        [string]$document.mode -ceq 'Upgrade'
+        [string]$document.mode -cin @('Upgrade', 'Rebase')
     }
     else {
         Test-Path -LiteralPath (Join-Path -Path $flagsPath -ChildPath 'Upgrade.flag') -PathType Leaf
@@ -203,6 +205,7 @@ function Get-AtlasContext {
         IsArm64            = ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64')
         WindowsBuild       = $windowsBuild
         IsUpgrade          = $isUpgrade
+        IsRebase           = $isInstallStateBacked -and $mode -ceq 'Rebase'
         IsOobe             = $isOobe
         IsInstallStateBacked     = $isInstallStateBacked
         IsStateDocumentBacked    = $isDocumentBacked

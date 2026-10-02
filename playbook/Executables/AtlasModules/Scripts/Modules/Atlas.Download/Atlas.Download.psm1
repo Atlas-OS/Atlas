@@ -498,12 +498,16 @@ function Get-AtlasTrustedWingetPath {
     [void](Import-Module -Name $manifest -Force -ErrorAction Stop)
     $packages = @(Appx\Get-AppxPackage -Name Microsoft.DesktopAppInstaller `
             -ErrorAction SilentlyContinue)
-    try {
-        $packages += @(Appx\Get-AppxPackage -AllUsers `
-                -Name Microsoft.DesktopAppInstaller -ErrorAction Stop)
-    }
-    catch {
-        Write-Verbose "The all-users App Installer query was unavailable: $($_.Exception.Message)"
+    # Only administrators may list other accounts' packages; a standard user's
+    # sign-in replay uses its own App Installer.
+    if (Test-AtlasAdmin) {
+        try {
+            $packages += @(Appx\Get-AppxPackage -AllUsers `
+                    -Name Microsoft.DesktopAppInstaller -ErrorAction Stop)
+        }
+        catch {
+            Write-Verbose "The all-users App Installer query was unavailable: $($_.Exception.Message)"
+        }
     }
 
     $windowsApps = [IO.Path]::Combine(

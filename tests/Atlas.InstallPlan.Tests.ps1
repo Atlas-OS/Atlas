@@ -13,7 +13,7 @@ Describe 'Atlas install plan' {
                 'Services', 'Components', 'AppxSupport', 'Defaults',
                 'Tweaks/networking', 'Tweaks/performance', 'Tweaks/privacy', 'Tweaks/qol',
                 'Tweaks/security', 'Tweaks/debloat', 'Tweaks/scripts', 'Tweaks/misc',
-                'Tweak/scripts/set-power-settings', 'Checkpoint/InstallingUserSetup',
+                'Tweak/scripts/set-power-settings', 'Checkpoint/WindowsTransition', 'Checkpoint/InstallingUserSetup',
                 'Checkpoint/NotificationRestore', 'Checkpoint/DefaultHiveUnload'
             )
         }
@@ -26,7 +26,7 @@ Describe 'Atlas install plan' {
                 'Tweaks/networking', 'Tweaks/performance',
                 'Tweaks/privacy', 'Tweaks/qol', 'Tweaks/security', 'Tweaks/debloat',
                 'Tweaks/scripts', 'Tweaks/misc', 'Tweak/scripts/set-power-settings',
-                'Checkpoint/NotificationRestore', 'Checkpoint/DefaultHiveUnload'
+                'Checkpoint/WindowsTransition', 'Checkpoint/NotificationRestore', 'Checkpoint/DefaultHiveUnload'
             )
         }
         @{
@@ -37,7 +37,7 @@ Describe 'Atlas install plan' {
                 'Tweak/qol/appearance/atlas-theme-upgrade',
                 'Tweaks/networking', 'Tweaks/performance', 'Tweaks/privacy', 'Tweaks/qol',
                 'Tweaks/security', 'Tweaks/debloat', 'Tweaks/scripts', 'Tweaks/misc',
-                'Checkpoint/InstallingUserSetup',
+                'Checkpoint/WindowsTransition', 'Checkpoint/InstallingUserSetup',
                 'Checkpoint/OemBranding', 'Checkpoint/NotificationRestore',
                 'Checkpoint/DefaultHiveUnload'
             )
@@ -50,6 +50,20 @@ Describe 'Atlas install plan' {
                 'Tweak/qol/appearance/atlas-theme-upgrade',
                 'Tweaks/networking', 'Tweaks/performance', 'Tweaks/privacy', 'Tweaks/qol',
                 'Tweaks/security', 'Tweaks/debloat', 'Tweaks/scripts', 'Tweaks/misc',
+                'Checkpoint/WindowsTransition', 'Checkpoint/OemBranding', 'Checkpoint/NotificationRestore',
+                'Checkpoint/DefaultHiveUnload'
+            )
+        }
+        @{
+            Mode = 'Rebase'; IsOobe = $false; Expected = @(
+                'Checkpoint/DefaultHiveLoad', 'Checkpoint/PayloadReplacement',
+                'Checkpoint/NotificationDisable', 'Checkpoint/RebaseRecovery', 'Checkpoint/LegacyChoices',
+                'PreInstall', 'ShellRefresh', 'Environment',
+                'Checkpoint/InitializePath', 'Features', 'Software', 'Services', 'Components', 'AppxSupport', 'Defaults',
+                'Tweak/qol/appearance/atlas-theme-upgrade',
+                'Tweaks/networking', 'Tweaks/performance', 'Tweaks/privacy', 'Tweaks/qol',
+                'Tweaks/security', 'Tweaks/debloat', 'Tweaks/scripts', 'Tweaks/misc',
+                'Checkpoint/WindowsTransition', 'Checkpoint/InstallingUserSetup',
                 'Checkpoint/OemBranding', 'Checkpoint/NotificationRestore',
                 'Checkpoint/DefaultHiveUnload'
             )
@@ -59,7 +73,7 @@ Describe 'Atlas install plan' {
                 'Checkpoint/DefaultHiveLoad', 'Checkpoint/PayloadReplacement',
                 'Checkpoint/NotificationDisable', 'PreInstall', 'ShellRefresh', 'Environment',
                 'Checkpoint/InitializePath', 'Features', 'Software', 'Defaults',
-                'Checkpoint/NotificationRestore', 'Checkpoint/DefaultHiveUnload'
+                'Checkpoint/WindowsTransition', 'Checkpoint/NotificationRestore', 'Checkpoint/DefaultHiveUnload'
             )
         }
         @{
@@ -67,7 +81,7 @@ Describe 'Atlas install plan' {
                 'Checkpoint/DefaultHiveLoad', 'Checkpoint/PayloadReplacement',
                 'Checkpoint/NotificationDisable', 'PreInstall', 'Environment',
                 'Checkpoint/InitializePath', 'Features', 'Software', 'Defaults',
-                'Checkpoint/NotificationRestore', 'Checkpoint/DefaultHiveUnload'
+                'Checkpoint/WindowsTransition', 'Checkpoint/NotificationRestore', 'Checkpoint/DefaultHiveUnload'
             )
         }
     ) {

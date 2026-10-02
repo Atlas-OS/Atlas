@@ -670,7 +670,7 @@ Describe 'Package version coherence' {
         [IO.File]::ReadAllText($conf) | Should -Match ([regex]::Escape("Atlas v$bumpVersion"))
         $bumpedConf = [xml][IO.File]::ReadAllText($conf)
         @($bumpedConf.Playbook.UpgradableFrom.string) | Should -Contain $originalVersion
-        foreach ($sourceVersion in '0.4.1', '0.5.0', '0.5.1') {
+        foreach ($sourceVersion in '0.4.1', '0.5.0') {
             @($bumpedConf.Playbook.UpgradableFrom.string) | Should -Contain $sourceVersion
         }
         $bumpedEntries = Get-OnUpgradeVersion -Path $customYml

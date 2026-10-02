@@ -70,7 +70,7 @@ function Assert-AtlasStateDocument {
     if ([int]$State.schemaVersion -ne $script:AtlasStateSchemaVersion) {
         throw "The Atlas state document schema version $($State.schemaVersion) is not supported."
     }
-    if ($null -ne $State.mode -and [string]$State.mode -cnotin @('Fresh', 'Upgrade', 'Reapply')) {
+    if ($null -ne $State.mode -and [string]$State.mode -cnotin @('Fresh', 'Upgrade', 'Reapply', 'Rebase')) {
         throw "The Atlas state document mode '$($State.mode)' is invalid."
     }
     foreach ($option in @($State.options)) {

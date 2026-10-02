@@ -126,6 +126,8 @@ BeforeAll {
             })
         return $script:AsUserExitCode
     }
+    # Stands in for the Rebase record reader the phase loads, so a test can mock it.
+    function Get-AtlasWindowsTransitionRebase { }
     function Remove-AtlasOneDrive {
         if ($null -ne $script:OneDriveRemovalError) {
             throw $script:OneDriveRemovalError
@@ -223,7 +225,7 @@ AfterAll {
     foreach ($shadow in @(
             'Assert-AtlasPrivilege', 'Import-Module', 'Test-AtlasOption', 'Get-AtlasContext'
             'ConvertTo-AtlasWindowsArgumentString', 'Invoke-AtlasHiddenProcess'
-            'Invoke-AtlasAsUser', 'Remove-AtlasOneDrive', 'Write-AtlasLog'
+            'Invoke-AtlasAsUser', 'Remove-AtlasOneDrive', 'Write-AtlasLog', 'Get-AtlasWindowsTransitionRebase'
             'Stop-AtlasService', 'Set-AtlasServiceStartup', 'Remove-AtlasScheduledTask'
             'Install-AtlasCbsPackage', 'Uninstall-AtlasCbsPackage'
             'New-ScheduledTaskSettingsSet', 'New-ScheduledTaskTrigger'
@@ -322,6 +324,34 @@ Describe 'Components phase deferred and exact-user cleanup behavior' {
                 $_.Level -eq 'Warning' -and
                 $_.Message -like '*Exact-user Edge leftover cleanup exited with code 1; continuing installation*'
             }).Count | Should -Be 1
+    }
+
+    It 'leaves Edge and OneDrive in a Rebase when an account had them before Windows moved' {
+        $script:PhaseOptions = @('uninstall-edge')
+        $script:PhaseContext = [pscustomobject]@{ IsOobe = $false; IsRebase = $true; InteractiveUserSid = 'S-1-5-21-1000-2000-3000-1001' }
+        Mock Get-AtlasWindowsTransitionRebase { [pscustomobject]@{ Carry = [pscustomobject]@{ edge = $true; oneDrive = $true } } }
+        Mock Remove-AtlasOneDrive { }
+
+        Invoke-ComponentsPhaseUnderTest
+
+        @($script:HiddenProcessCalls).Count | Should -Be 0
+        @($script:AsUserCalls).Count | Should -Be 0
+        Should -Invoke Remove-AtlasOneDrive -Times 0
+        @($script:RegistryWrites | Where-Object { $_.Path -like '*Deprovisioned\Microsoft.MicrosoftEdge*' }).Count | Should -Be 0
+        @($script:LogCalls | Where-Object { $_.Message -like 'Left Edge*' }).Count | Should -Be 1
+        @($script:LogCalls | Where-Object { $_.Message -like 'Left OneDrive*' }).Count | Should -Be 1
+    }
+
+    It 'removes in a Rebase only the Edge and OneDrive Windows put back' {
+        $script:PhaseOptions = @('uninstall-edge')
+        $script:PhaseContext = [pscustomobject]@{ IsOobe = $false; IsRebase = $true; InteractiveUserSid = 'S-1-5-21-1000-2000-3000-1001' }
+        Mock Get-AtlasWindowsTransitionRebase { [pscustomobject]@{ Carry = [pscustomobject]@{ edge = $false; oneDrive = $false } } }
+        Mock Remove-AtlasOneDrive { }
+
+        Invoke-ComponentsPhaseUnderTest
+
+        @($script:HiddenProcessCalls).Count | Should -Be 1
+        Should -Invoke Remove-AtlasOneDrive -Times 1 -Exactly
     }
 
     It 'requires the install-state user SID for non-OOBE OneDrive cleanup' {

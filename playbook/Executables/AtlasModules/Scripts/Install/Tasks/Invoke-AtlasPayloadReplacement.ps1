@@ -36,7 +36,7 @@ function Resolve-AtlasPayloadReplacementPlan {
     if ([string]$InstallState.status -cne 'Running') {
         throw "Replacing Atlas's files requires a Running install state, not '$($InstallState.status)'."
     }
-    if (@('Fresh', 'Upgrade', 'Reapply') -cnotcontains [string]$InstallState.mode) {
+    if (@('Fresh', 'Upgrade', 'Reapply', 'Rebase') -cnotcontains [string]$InstallState.mode) {
         throw "Replacing Atlas's files does not support install mode '$($InstallState.mode)'."
     }
     if ($InstallState.isOobe -isnot [bool]) {

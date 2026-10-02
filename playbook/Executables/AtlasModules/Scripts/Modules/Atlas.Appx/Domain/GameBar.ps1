@@ -7,9 +7,17 @@ function Install-AtlasGameBar {
         client, treating "already installed" as success.
     .DESCRIPTION
         Runs as the signed-in user because Store installs register for that account.
+        A Game Bar already registered and working for the account is left as it is,
+        so replaying the choice at sign-in reaches neither WinGet nor the Store.
         WinGet reports 0x8A15002B when the package is installed and no applicable
         upgrade exists; any other non-zero exit code fails the install.
     #>
+    $installed = @(Get-AppxPackage -Name Microsoft.XboxGamingOverlay -ErrorAction SilentlyContinue |
+            Where-Object { [string]$_.Status -eq 'Ok' })
+    if ($installed.Count -gt 0) {
+        Write-AtlasLog -Message 'Xbox Game Bar is already installed for this account.'
+        return
+    }
     $wingetPath = Get-AtlasTrustedWingetPath
     Assert-AtlasTrustedWingetSource -WingetPath $wingetPath -Name msstore
     & $wingetPath install --exact --id 9NZKPSTSNW4P --source msstore `

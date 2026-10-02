@@ -1,7 +1,7 @@
 # Atlas.Tweaks domain: tweak schema validation (used by CI and locally before builds).
 
 $script:AtlasTweakTopLevelKeys = @(
-    'Name', 'Description', 'Option', 'Arch', 'OnUpgrade', 'Oobe', 'RunAs', 'MinBuild', 'MaxBuild',
+    'Name', 'Description', 'Option', 'Arch', 'OnUpgrade', 'OnRebase', 'Oobe', 'RunAs', 'MinBuild', 'MaxBuild',
     'Registry', 'PostUserRegistryRefresh', 'Services', 'ScheduledTasks', 'Toggle', 'Run', 'RemovePaths', 'Script'
 )
 
@@ -119,6 +119,10 @@ function Test-AtlasTweakFileSchema {
 
     if ($tweak.ContainsKey('OnUpgrade') -and $tweak['OnUpgrade'] -notin @('Skip', 'Only', 'Both')) {
         Add-Problem -Problem "'OnUpgrade' must be 'Skip', 'Only' or 'Both', got '$($tweak['OnUpgrade'])'."
+    }
+
+    if ($tweak.ContainsKey('OnRebase') -and ($tweak['OnRebase'] -cne 'Run' -or [string]$tweak['OnUpgrade'] -cne 'Skip')) {
+        Add-Problem -Problem "'OnRebase' must be 'Run', on a tweak with OnUpgrade = 'Skip'."
     }
 
     if ($tweak.ContainsKey('Oobe') -and -not ($tweak['Oobe'] -is [bool])) {

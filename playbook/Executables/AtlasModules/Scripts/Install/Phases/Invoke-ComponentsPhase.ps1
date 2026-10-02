@@ -23,9 +23,24 @@ $powerShellExe = [IO.Path]::Combine(
     'powershell.exe'
 )
 
+# A Rebase leaves Edge and OneDrive when they were installed before Windows moved:
+# someone, on any account, kept or put them back and may use them. Without the
+# record, both are left.
+$keepEdge = $false
+$keepOneDrive = $false
+if ((Get-AtlasContext).IsRebase) {
+    . (Join-Path $scriptsRoot 'Preparation\WindowsTransition.ps1')
+    $rebase = Get-AtlasWindowsTransitionRebase
+    $keepEdge = $null -eq $rebase -or [bool]$rebase.Carry.edge
+    $keepOneDrive = $null -eq $rebase -or [bool]$rebase.Carry.oneDrive
+    if ($keepEdge -and (Test-AtlasOption -Name 'uninstall-edge')) { Write-AtlasLog -Message 'Left Edge: it was installed before Windows moved.' }
+    if ($keepOneDrive) { Write-AtlasLog -Message 'Left OneDrive: it was installed before Windows moved.' }
+}
+$removeEdge = (Test-AtlasOption -Name 'uninstall-edge') -and -not $keepEdge
+
 # Edge's machine removal runs under this TrustedInstaller token; the installing user's
 # leftovers are cleaned in their own process, which is skipped during OOBE.
-if (Test-AtlasOption -Name 'uninstall-edge') {
+if ($removeEdge) {
     $context = Get-AtlasContext
     $removeEdgeScript = Join-Path -Path $scriptsRoot -ChildPath 'Operations\Remove-Edge.ps1'
     Invoke-AtlasHiddenProcess -FilePath $powerShellExe -ArgumentList @(
@@ -69,7 +84,7 @@ if (-not (Test-Path -LiteralPath $ciPolicyKey)) {
 }
 Set-ItemProperty -LiteralPath $ciPolicyKey -Name 'VerifiedAndReputablePolicyState' -Value 0 -Type DWord -Force
 
-if (Test-AtlasOption -Name 'uninstall-edge') {
+if ($removeEdge) {
     $edgeServices = @('MicrosoftEdgeElevationService')
     foreach ($service in $edgeServices) {
         Stop-AtlasService -Name $service
@@ -95,7 +110,7 @@ if (Test-AtlasOption -Name 'uninstall-edge') {
 # Uninstall and machine cleanup run here as TrustedInstaller; HKCU and profile leftovers
 # are cleaned only in the installing user's own token.
 try {
-    Remove-AtlasOneDrive
+    if (-not $keepOneDrive) { Remove-AtlasOneDrive }
 }
 catch {
     $containmentUnconfirmed = $false
@@ -113,7 +128,7 @@ catch {
 }
 
 $oneDriveContext = Get-AtlasContext
-if (-not $oneDriveContext.IsOobe) {
+if (-not $oneDriveContext.IsOobe -and -not $keepOneDrive) {
     $interactiveUserSid = [string]$oneDriveContext.InteractiveUserSid
     if ([string]::IsNullOrWhiteSpace($interactiveUserSid)) {
         throw 'OneDrive current-user cleanup requires the install-state user SID.'

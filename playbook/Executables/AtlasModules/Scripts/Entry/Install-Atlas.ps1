@@ -191,11 +191,12 @@ function Test-AtlasInstallRequirement {
         Blocking = $true
         Detail = "edition '$EditionId', installation '$InstallationType'; Windows Home, LTSC, IoT LTSC and Server are not supported"
     }
+    $buildPassed = $SupportedBuilds -contains $WindowsBuild
     $results += [pscustomobject]@{
         Name     = 'Windows build'
-        Passed   = $SupportedBuilds -contains $WindowsBuild
+        Passed   = $buildPassed
         Blocking = $true
-        Detail   = "build $WindowsBuild; supported: $($SupportedBuilds -join ', ')"
+        Detail   = "build $WindowsBuild; supported: $($SupportedBuilds -join ', ')$(if (-not $buildPassed -and $WindowsBuild -in @(26100, 26200)) { '. Atlas Manager can move Windows 11, version 24H2 or 25H2 to a supported version first' })"
     }
     $release = Get-AtlasWindowsReleaseStatus -Version ([version]("10.0.$WindowsBuild.$WindowsRevision")) -BuildLabEx $BuildLabEx
     $results += [pscustomobject]@{
@@ -227,8 +228,9 @@ function Test-AtlasInstallRequirement {
         Name = 'No pending reboot'; Passed = -not $pendingReboot; Blocking = $true
         Detail = 'restart Windows before installing so servicing does not run alongside Atlas'
     }
-    # Deferred file replacements warn but do not block: apps such as Xbox Gaming
-    # Services queue one at every boot, so a restart never clears it.
+    # Deferred file replacements without either restart flag are only noted: an
+    # update can queue some (printer drivers, for one) without asking for a
+    # restart, and apps such as Xbox Gaming Services queue one at every boot.
     $sessionManager = Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -ErrorAction Stop
     $renameProperty = $sessionManager.PSObject.Properties['PendingFileRenameOperations']
     $pendingFiles = @()
@@ -242,7 +244,7 @@ function Test-AtlasInstallRequirement {
         }
     }
     $results += [pscustomobject]@{
-        Name = 'No pending file replacements'; Passed = $pendingFiles.Count -eq 0; Blocking = $false
+        Name = 'No pending file replacements'; Passed = $true; Blocking = $false
         Detail = if ($pendingFiles.Count -eq 0) { 'no files are waiting to be replaced at the next restart' } else { "Windows will replace or remove files at the next restart ($(($pendingFiles | Select-Object -First 3) -join ', ')); apps such as Xbox Gaming Services leave this set after every restart" }
     }
 
@@ -309,6 +311,42 @@ function Test-AtlasInstallRequirement {
     }
 
     return $results
+}
+
+function Test-AtlasWindowsUpdateInProgress {
+    <#
+    .SYNOPSIS
+        Blocks while Atlas Manager is moving Windows to another release, or when its
+        record of the Windows Update settings it changed cannot be read. Windows Update
+        settings turned on for plain updates are put back by this install's last steps.
+    #>
+    param([Parameter(Mandatory = $true)][int]$WindowsBuild)
+
+    $open = Test-AtlasWindowsTransitionOpen
+    $passed = $true
+    $detail = 'Atlas Manager is not updating Windows'
+    if ($null -ne $open -and -not $open.Readable) {
+        $passed = $false
+        $detail = "Atlas Manager's record of the Windows Update settings it changed cannot be read: $($open.Error)"
+    }
+    elseif ($null -ne $open -and $open.Kind -eq 'transition' -and $WindowsBuild -ne $open.TargetBuild) {
+        $passed = $false
+        $detail = "Atlas Manager is moving Windows to build $($open.TargetBuild); finish or stop that in Atlas Manager first"
+    }
+    # Whether Windows rebuilt itself decides the install mode, so the install
+    # waits until Atlas Manager has checked.
+    elseif ($null -ne $open -and $open.Kind -eq 'transition' -and $null -eq $open.Rebuild) {
+        $passed = $false
+        $detail = 'Atlas Manager has not checked how Windows moved yet; continue updating in Atlas Manager first'
+    }
+    elseif ($null -ne $open -and $open.Kind -eq 'transition' -and $open.Rebuild -eq 'components-lost') {
+        $passed = $false
+        $detail = 'Atlas packages are gone after the Windows update without Windows reinstalling itself; send a report from Atlas Manager'
+    }
+    elseif ($null -ne $open) {
+        $detail = 'the Windows Update settings Atlas Manager turned on are put back at the end of this install'
+    }
+    return [pscustomobject]@{ Name = 'No Windows update in progress'; Passed = $passed; Blocking = $true; Detail = $detail }
 }
 
 function New-AtlasFrontDoorDirectorySecurity {
@@ -441,8 +479,7 @@ try {
     $context = Get-AtlasContext -Refresh
 
     Write-AtlasInstallStep "Atlas $targetVersion from '$extractedRoot'."
-    $mode = Resolve-AtlasInstallMode -TargetVersion $targetVersion -WindowsPath $windowsPath
-    Write-AtlasInstallStep "This will be a $mode install."
+    . (Join-Path -Path $scriptsRoot -ChildPath 'Preparation\WindowsTransition.ps1')
 
     $windowsVersion = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction Stop
     [xml]$playbookDocument = [IO.File]::ReadAllText($playbookPath)
@@ -451,6 +488,7 @@ try {
             -WindowsRevision ([int]$windowsVersion.UBR) -BuildLabEx ([string]$windowsVersion.BuildLabEx) `
             -InstallationType ([string]$windowsVersion.InstallationType) `
             -DeclaredRequirements @(Get-AtlasDeclaredRequirement -Playbook $playbookDocument))
+    $requirements += Test-AtlasWindowsUpdateInProgress -WindowsBuild ([int]$context.WindowsBuild)
     $blocked = $false
     foreach ($requirement in $requirements) {
         if ($requirement.Passed) {
@@ -474,6 +512,10 @@ try {
             exit 2
         }
     }
+    # After the requirements, so a Windows version Atlas does not support is
+    # reported as such rather than as an Atlas version it cannot update.
+    $mode = Resolve-AtlasInstallMode -TargetVersion $targetVersion -WindowsPath $windowsPath
+    Write-AtlasInstallStep "This will be a $mode install."
 
     Write-AtlasInstallStep 'Copying Atlas''s files to a protected folder...'
     $stagingRoot = New-AtlasProtectedStagingRoot -WindowsPath $windowsPath

@@ -9,13 +9,16 @@ function Get-AtlasInstallPlan {
     [OutputType([object[]])]
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet('Fresh', 'Upgrade', 'Reapply')]
+        [ValidateSet('Fresh', 'Upgrade', 'Reapply', 'Rebase')]
         [string]$Mode,
 
         [bool]$IsOobe = $false
     )
 
-    $allModes = @('Fresh', 'Upgrade', 'Reapply')
+    # Rebase: the Upgrade plan plus the fresh-install work a Windows that rebuilt
+    # itself undid. Fresh-only steps that would overwrite the user's own layout,
+    # theme, file associations, settings pages or power plan stay out.
+    $allModes = @('Fresh', 'Upgrade', 'Reapply', 'Rebase')
     $steps = @(
         [pscustomobject][ordered]@{
             Key = 'Checkpoint/DefaultHiveLoad'; Modes = $allModes; Oobe = 'Any'
@@ -32,7 +35,13 @@ function Get-AtlasInstallPlan {
             Replay = 'Always'
         }
         [pscustomobject][ordered]@{
-            Key = 'Checkpoint/LegacyChoices'; Modes = @('Upgrade'); Oobe = 'Any'
+            # Before the choices are read: brings back the service backups and the
+            # recorded choices a rebuilt Windows lost.
+            Key = 'Checkpoint/RebaseRecovery'; Modes = @('Rebase'); Oobe = 'Any'
+            Replay = 'Once'
+        }
+        [pscustomobject][ordered]@{
+            Key = 'Checkpoint/LegacyChoices'; Modes = @('Upgrade', 'Rebase'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
@@ -64,15 +73,15 @@ function Get-AtlasInstallPlan {
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Services'; Modes = @('Fresh'); Oobe = 'Any'
+            Key = 'Services'; Modes = @('Fresh', 'Rebase'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Components'; Modes = @('Fresh'); Oobe = 'Any'
+            Key = 'Components'; Modes = @('Fresh', 'Rebase'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'AppxSupport'; Modes = @('Fresh'); Oobe = 'Any'
+            Key = 'AppxSupport'; Modes = @('Fresh', 'Rebase'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
@@ -80,39 +89,39 @@ function Get-AtlasInstallPlan {
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweak/qol/appearance/atlas-theme-upgrade'; Modes = @('Upgrade'); Oobe = 'Any'
+            Key = 'Tweak/qol/appearance/atlas-theme-upgrade'; Modes = @('Upgrade', 'Rebase'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/networking'; Modes = @('Fresh', 'Upgrade'); Oobe = 'Any'
+            Key = 'Tweaks/networking'; Modes = @('Fresh', 'Upgrade', 'Rebase'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/performance'; Modes = @('Fresh', 'Upgrade'); Oobe = 'Any'
+            Key = 'Tweaks/performance'; Modes = @('Fresh', 'Upgrade', 'Rebase'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/privacy'; Modes = @('Fresh', 'Upgrade'); Oobe = 'Any'
+            Key = 'Tweaks/privacy'; Modes = @('Fresh', 'Upgrade', 'Rebase'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/qol'; Modes = @('Fresh', 'Upgrade'); Oobe = 'Any'
+            Key = 'Tweaks/qol'; Modes = @('Fresh', 'Upgrade', 'Rebase'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/security'; Modes = @('Fresh', 'Upgrade'); Oobe = 'Any'
+            Key = 'Tweaks/security'; Modes = @('Fresh', 'Upgrade', 'Rebase'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/debloat'; Modes = @('Fresh', 'Upgrade'); Oobe = 'Any'
+            Key = 'Tweaks/debloat'; Modes = @('Fresh', 'Upgrade', 'Rebase'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/scripts'; Modes = @('Fresh', 'Upgrade'); Oobe = 'Any'
+            Key = 'Tweaks/scripts'; Modes = @('Fresh', 'Upgrade', 'Rebase'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/misc'; Modes = @('Fresh', 'Upgrade'); Oobe = 'Any'
+            Key = 'Tweaks/misc'; Modes = @('Fresh', 'Upgrade', 'Rebase'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
@@ -120,11 +129,17 @@ function Get-AtlasInstallPlan {
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Checkpoint/InstallingUserSetup'; Modes = @('Fresh', 'Upgrade'); Oobe = 'NonOobe'
+            # After Defaults has replayed the user's choices and Tweaks/qol has
+            # written the pin, so only what nothing else owns is put back.
+            Key = 'Checkpoint/WindowsTransition'; Modes = $allModes; Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Checkpoint/OemBranding'; Modes = @('Upgrade'); Oobe = 'Any'
+            Key = 'Checkpoint/InstallingUserSetup'; Modes = @('Fresh', 'Upgrade', 'Rebase'); Oobe = 'NonOobe'
+            Replay = 'Once'
+        }
+        [pscustomobject][ordered]@{
+            Key = 'Checkpoint/OemBranding'; Modes = @('Upgrade', 'Rebase'); Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{

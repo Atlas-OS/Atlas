@@ -26,10 +26,12 @@ function Get-AtlasInstallCheckpointAction {
         DefaultHiveLoad = @{ Path = 'Install\Tasks\Set-AtlasDefaultUserHive.ps1'; Args = @{ State = 'Loaded' } }
         PayloadReplacement = @{ Path = 'Install\Tasks\Invoke-AtlasPayloadReplacement.ps1'; Args = @{} }
         LegacyChoices = @{ Path = 'Install\Tasks\Import-AtlasLegacyChoices.ps1'; Args = @{} }
+        RebaseRecovery = @{ Path = 'Install\Tasks\Restore-AtlasRebaseState.ps1'; Args = @{} }
         NotificationDisable = @{ Path = 'Install\Tasks\Set-NotificationState.ps1'; Args = @{ Mode = 'Disable' } }
         InitializePath = @{ Path = 'Install\Tasks\Initialize-AtlasPath.ps1'; Args = @{} }
         InstallingUserSetup = @{ Path = 'Install\Tasks\Invoke-AtlasInstallingUserSetup.ps1'; Args = @{} }
         OemBranding = @{ Path = 'Install\Tasks\Set-OemInformation.ps1'; Args = @{} }
+        WindowsTransition = @{ Path = 'Install\Tasks\Complete-AtlasWindowsTransition.ps1'; Args = @{} }
         NotificationRestore = @{ Path = 'Install\Tasks\Set-NotificationState.ps1'; Args = @{ Mode = 'Enable' } }
         DefaultHiveUnload = @{ Path = 'Install\Tasks\Set-AtlasDefaultUserHive.ps1'; Args = @{ State = 'Unloaded' } }
     }

@@ -42,7 +42,12 @@ BeforeAll {
     }
     function Get-ItemProperty {
         param($Path, $LiteralPath, $Name, $ErrorAction)
-        return [pscustomobject]@{ DisplayVersion = $script:DisplayVersion }
+        $target = if ($LiteralPath) { $LiteralPath } else { $Path }
+        if ($target -ne $script:policyPath) { return [pscustomobject]@{ DisplayVersion = $script:DisplayVersion } }
+        # The writer reads its values back.
+        $values = [ordered]@{}
+        foreach ($write in $script:ValueWrites) { $values[$write.Name] = $write.Value }
+        return [pscustomobject]$values
     }
     function New-ItemProperty {
         param($Path, $LiteralPath, $Name, $Value, $PropertyType, [switch]$Force)

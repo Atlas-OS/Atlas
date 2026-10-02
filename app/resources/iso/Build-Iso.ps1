@@ -226,7 +226,7 @@ try {
     $target = Join-Path $media $atlasIso
     [void][IO.Directory]::CreateDirectory($target)
     $payload = [ordered]@{ 'AtlasManager.exe' = $request.app; 'Atlas.apbx' = $request.archive }
-    foreach ($name in @('Setup.ps1', 'Desktop.ps1', 'Desktop-Policy.ps1', 'THIRD-PARTY-NOTICES.txt', 'DriverPolicy.reg')) {
+    foreach ($name in @('Setup.ps1', 'Desktop.ps1', 'Desktop-Policy.ps1', 'RegistryFile.ps1', 'THIRD-PARTY-NOTICES.txt', 'DriverPolicy.reg')) {
         $payload[$name] = Join-Path $job $name
     }
     foreach ($name in $payload.Keys) { Copy-Item -LiteralPath $payload[$name] -Destination (Join-Path $target $name) }

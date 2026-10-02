@@ -1,7 +1,8 @@
 # Features phase.
 # Windows optional-feature work via DISM: enable DirectPlay, remove the Steps Recorder
-# capability (fresh installs only), and clean the component store. Runs as
-# TrustedInstaller and requires online component sources.
+# capability (fresh installs only), clean the component store while that is safe, and
+# keep the Atlas packages' repair source. Runs as TrustedInstaller and requires online
+# component sources.
 Assert-AtlasPrivilege -TrustedInstaller
 
 $context = Get-AtlasContext
@@ -84,10 +85,26 @@ function Enable-AtlasDirectPlay {
 
 Enable-AtlasDirectPlay
 
-if (-not $context.IsUpgrade) {
+# A Rebase repeats it: a rebuilt Windows brings Steps Recorder back.
+if (-not $context.IsUpgrade -or $context.IsRebase) {
     Remove-AtlasStepsRecorder
 }
 
-Invoke-AtlasDism -Description 'Cleaning the component store' -Arguments @(
-    '/Online', '/Cleanup-Image', '/StartComponentCleanup'
-) -DeferredExitCode @(-2146498554) # 0x800f0806: pending operations
+$scriptsRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+. (Join-Path $scriptsRoot 'Preparation\WindowsTransition.ps1')
+Import-Module -Name (Join-Path $scriptsRoot 'Modules\Atlas.Software\Atlas.Software.psd1') -Force -ErrorAction Stop
+$atlasPackages = @(Get-AtlasInstalledAtlasPackage)
+
+# A fresh install cleans the store here, before the Components phase installs the
+# Atlas packages. It must never run after them: see Get-AtlasComponentCleanupBlocker.
+$cleanupBlocker = Get-AtlasComponentCleanupBlocker -IsUpgrade ([bool]$context.IsUpgrade) -AtlasPackages $atlasPackages
+if ($cleanupBlocker) {
+    Write-AtlasLog -Message "Skipped cleaning the component store: $cleanupBlocker."
+}
+else {
+    Invoke-AtlasDism -Description 'Cleaning the component store' -Arguments @(
+        '/Online', '/Cleanup-Image', '/StartComponentCleanup'
+    ) -DeferredExitCode @(-2146498554) # 0x800f0806: pending operations
+}
+
+Write-AtlasLog -Message "Atlas packages' repair source: $(Update-AtlasCbsRepairSource -AtlasPackages $atlasPackages)."

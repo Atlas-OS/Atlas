@@ -25,8 +25,28 @@ Save-AtlasAppxSnapshot
 Invoke-AtlasUserAppxCacheCleanup -Mode AppxQuiesce
 
 $requiredFailures = [System.Collections.Generic.List[string]]::new()
+# A Rebase removes only what Windows brought back: an app that was installed before
+# Windows moved was kept or reinstalled by the user, and removing it deletes its data.
+$definitions = @(Get-AtlasAppxRemovalDefinition)
+$context = Get-AtlasContext
+if ($context.IsRebase) {
+    . (Join-Path (Split-Path -Parent $modulesRoot) 'Preparation\WindowsTransition.ps1')
+    $rebase = Get-AtlasWindowsTransitionRebase
+    if ($null -eq $rebase) { throw 'A Rebase install needs Atlas Manager''s record of the Windows move.' }
+    $before = @($rebase.Carry.appx)
+    $selection = @(Select-AtlasRebaseAppxRemoval $definitions $before)
+    if ($before.Count -eq 0) {
+        Write-AtlasLog -Message 'Left every AppX family: the record of the Windows move has no list of the apps installed before it.'
+    }
+    else {
+        foreach ($entry in @($selection | Where-Object Kept)) {
+            Write-AtlasLog -Message "Left AppX family '$($entry.Definition.Name)': it was installed before Windows moved."
+        }
+    }
+    $definitions = @($selection | Where-Object { -not $_.Kept } | ForEach-Object { $_.Definition })
+}
 try {
-    Invoke-AtlasAppxRemovalPlan
+    if ($definitions.Count -gt 0) { Invoke-AtlasAppxRemovalPlan -Definition $definitions }
 }
 catch {
     $requiredFailures.Add($_.Exception.Message)

@@ -121,3 +121,58 @@ Describe 'First-logon security before shell registration' {
         Should -Invoke Register-AtlasDesktopCleanup -Times 0 -Exactly
     }
 }
+
+Describe 'The drivers choice during ISO setup' {
+    BeforeAll {
+        $source = Join-Path (Split-Path $PSScriptRoot -Parent) 'app\resources\iso\Setup.ps1'
+        $ast = [Management.Automation.Language.Parser]::ParseFile($source, [ref]$null, [ref]$null)
+        # The step that applies DriverPolicy.reg, and the libraries setup loads.
+        $script:DriverStep = [scriptblock]::Create(@($ast.FindAll({
+                        param($node)
+                        $node -is [Management.Automation.Language.IfStatementAst] -and
+                        $node.Clauses[0].Item1.Extent.Text -like '*DriverPolicy.reg*'
+                    }, $true))[0].Extent.Text)
+        $script:Libraries = @($ast.EndBlock.Statements | Where-Object {
+                $_.Extent.Text -match "^\. \(Join-Path \`$root '([^']+)'\)$"
+            } | ForEach-Object { $_.Extent.Text -replace "^\. \(Join-Path \`$root '([^']+)'\)$", '$1' })
+        . (Join-Path $script:AtlasTestScriptsRoot 'Preparation\RegistryFile.ps1')
+    }
+    BeforeEach {
+        $script:root = $TestDrive
+        $script:log = Join-Path $TestDrive 'setup.log'
+        Mock Import-AtlasRegistryFile {}
+    }
+
+    It 'loads only libraries the media build copies beside it' {
+        $build = [Management.Automation.Language.Parser]::ParseFile(
+            (Join-Path (Split-Path $PSScriptRoot -Parent) 'app\resources\iso\Build-Iso.ps1'), [ref]$null, [ref]$null)
+        $copy = $build.Find({
+                param($node)
+                $node -is [Management.Automation.Language.ForEachStatementAst] -and
+                @($node.Condition.FindAll({ param($n) $n -is [Management.Automation.Language.StringConstantExpressionAst] }, $true).Value) -contains 'Setup.ps1'
+            }, $true)
+        $copied = @($copy.Condition.FindAll({ param($n) $n -is [Management.Automation.Language.StringConstantExpressionAst] }, $true).Value)
+        @($script:Libraries).Count | Should -BeGreaterThan 0
+        foreach ($library in $script:Libraries) { $copied | Should -Contain $library }
+    }
+
+    It 'applies the staged drivers choice with the shared import, logging to setup.log' {
+        Set-Content -LiteralPath (Join-Path $TestDrive 'DriverPolicy.reg') -Value 'Windows Registry Editor Version 5.00'
+        & $script:DriverStep
+        Should -Invoke Import-AtlasRegistryFile -Times 1 -Exactly -ParameterFilter {
+            $Path -eq (Join-Path $TestDrive 'DriverPolicy.reg') -and $Log -eq (Join-Path $TestDrive 'setup.log')
+        }
+    }
+
+    It 'stops setup with its own message when the drivers choice cannot be applied' {
+        Set-Content -LiteralPath (Join-Path $TestDrive 'DriverPolicy.reg') -Value 'Windows Registry Editor Version 5.00'
+        Mock Import-AtlasRegistryFile { throw 'DriverPolicy.reg has a line Atlas doesn''t apply: odd' }
+        { & $script:DriverStep } | Should -Throw '*could not apply the ISO driver policy*odd*'
+    }
+
+    It 'leaves the drivers alone when the media carries no choice' {
+        Remove-Item -LiteralPath (Join-Path $TestDrive 'DriverPolicy.reg') -ErrorAction SilentlyContinue
+        & $script:DriverStep
+        Should -Invoke Import-AtlasRegistryFile -Times 0 -Exactly
+    }
+}

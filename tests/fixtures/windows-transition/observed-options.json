@@ -1,0 +1,134 @@
+[
+  {
+    "name": "Atlas 0.5.0 with Defender kept and the default extras",
+    "packages": [
+      "Z-Atlas-NoTelemetry-Package~31bf3856ad364e35~amd64~~5.0.0.0"
+    ],
+    "facts": {
+      "toggles": [
+        {
+          "name": "Mitigations",
+          "state": 2
+        },
+        {
+          "name": "AutomaticUpdates",
+          "state": 0
+        },
+        {
+          "name": "Hibernation",
+          "state": 0
+        },
+        {
+          "name": "PowerSaving",
+          "state": 0
+        },
+        {
+          "name": "FileSharing",
+          "state": 0
+        }
+      ],
+      "browser": "Brave",
+      "edge": false,
+      "appx": [
+        "Microsoft.WindowsCalculator_8wekyb3d8bbwe",
+        "Microsoft.Paint_8wekyb3d8bbwe"
+      ],
+      "toolbox": true,
+      "coreIsolationOff": true,
+      "browsers": [
+        "browser-brave"
+      ]
+    },
+    "options": [
+      "defender-enable",
+      "mitigations-default",
+      "auto-updates-disable",
+      "disable-hibernation",
+      "disable-power-saving",
+      "uninstall-edge",
+      "remove-snipping-tool",
+      "disable-core-isolation",
+      "install-toolbox",
+      "install-another-browser",
+      "browser-brave"
+    ]
+  },
+  {
+    "name": "Defender removed, mitigations off, automatic updates on, no extras",
+    "packages": [
+      "Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0",
+      "Z-Atlas-NoTelemetry-Package~31bf3856ad364e35~amd64~~5.0.0.0"
+    ],
+    "facts": {
+      "toggles": [
+        {
+          "name": "Mitigations",
+          "state": 0
+        },
+        {
+          "name": "AutomaticUpdates",
+          "state": 1
+        },
+        {
+          "name": "Hibernation",
+          "state": 1
+        },
+        {
+          "name": "PowerSaving",
+          "state": 1
+        }
+      ],
+      "browser": null,
+      "edge": true,
+      "appx": [
+        "Microsoft.ScreenSketch_8wekyb3d8bbwe"
+      ],
+      "toolbox": false,
+      "coreIsolationOff": false,
+      "browsers": [
+        "browser-firefox"
+      ]
+    },
+    "options": [
+      "defender-disable",
+      "mitigations-disable",
+      "auto-updates-default"
+    ]
+  },
+  {
+    "name": "LibreWolf, which Atlas 0.5.0 records as an empty name",
+    "packages": [],
+    "facts": {
+      "toggles": [],
+      "browser": "",
+      "edge": true,
+      "appx": [],
+      "toolbox": false,
+      "coreIsolationOff": false,
+      "browsers": [
+        "browser-librewolf"
+      ]
+    },
+    "options": [
+      "install-another-browser",
+      "browser-librewolf"
+    ]
+  },
+  {
+    "name": "An empty browser name with two browsers installed names none",
+    "packages": [],
+    "facts": {
+      "toggles": [],
+      "browser": "",
+      "edge": true,
+      "appx": [],
+      "toolbox": false,
+      "coreIsolationOff": false,
+      "browsers": [
+        "browser-librewolf",
+        "browser-firefox"
+      ]
+    },
+    "options": []
+  }
+]
