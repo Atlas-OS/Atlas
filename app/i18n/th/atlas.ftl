@@ -1040,3 +1040,189 @@ report-validation-contact = จำกัดข้อมูลติดต่อ�
 report-validation-consent = ยืนยันว่าคุณยินยอมส่งรายงานนี้
 
 report-failed-title = ยังไม่ได้ส่งรายงาน
+
+## Windows version update
+# Home, under the update button, when the update also moves Windows.
+home-plan-intro = การอัปเดตนี้มีสองส่วน ไฟล์และแอปของคุณจะยังอยู่ หากการอัปเดต Windows ทำให้การเปลี่ยนแปลงใด ๆ ของ Atlas หายไป Atlas จะนำการเปลี่ยนแปลงเหล่านั้นกลับมา
+home-plan-windows-title = Windows 11 เวอร์ชัน { $release }
+home-plan-windows-detail = Atlas จะติดตั้งเวอร์ชันนี้จาก Windows Update และพีซีของคุณจะรีสตาร์ตเพื่อติดตั้งให้เสร็จ
+# The same step where moving is optional.
+home-plan-windows-optional = แนะนำ Atlas จะติดตั้งเวอร์ชันนี้จาก Windows Update และพีซีของคุณจะรีสตาร์ตเพื่อติดตั้งให้เสร็จ
+home-plan-atlas-title = Atlas { $version }
+home-plan-atlas-detail = Atlas จะอัปเดตไฟล์ของตัวเองและคงตัวเลือกที่คุณเลือกไว้ พีซีของคุณจะรีสตาร์ตในตอนท้าย
+# $date and $until are dates.
+home-end-of-updates-title = Windows 11 เวอร์ชัน { $current } จะหยุดรับการอัปเดตความปลอดภัยในวันที่ { $date }
+home-end-of-updates-past-title = Windows 11 เวอร์ชัน { $current } ไม่ได้รับการอัปเดตความปลอดภัยอีกต่อไป
+home-end-of-updates-message = การอัปเดตเป็น Atlas { $version } จะอัปเดตพีซีเครื่องนี้เป็น Windows 11 เวอร์ชัน { $release } ด้วย ซึ่งจะได้รับการอัปเดตความปลอดภัยจนถึงวันที่ { $until }
+# Home, when this Windows can't take the Atlas version at all. $product is Windows'
+# own name for the edition, such as Windows 11 Home.
+install-windows-edition = Atlas { $version } ใช้ได้กับ Windows 11 Pro, Enterprise และ Education แต่พีซีเครื่องนี้ใช้ { $product } Atlas จึงติดตั้งบนพีซีเครื่องนี้ไม่ได้
+# The same, on a version whose security updates end. $date is a date.
+install-windows-edition-ending = Atlas { $version } ใช้ได้กับ Windows 11 Pro, Enterprise และ Education แต่พีซีเครื่องนี้ใช้ { $product } Atlas จึงติดตั้งบนพีซีเครื่องนี้ไม่ได้ Windows 11 เวอร์ชัน { $current } จะหยุดรับการอัปเดตความปลอดภัยในวันที่ { $date } Windows Update อัปเดตพีซีเครื่องนี้เป็นเวอร์ชันที่ใหม่กว่าได้
+# $releases lists the supported releases, such as "25H2 or 26H2".
+install-windows-no-path = Atlas { $version } ต้องใช้ Windows 11 เวอร์ชัน { $releases } แต่ Windows Update อัปเดตพีซีเครื่องนี้จาก Windows ที่มีอยู่ไปเป็นเวอร์ชันนั้นไม่ได้ หากต้องการใช้ Atlas { $version } ให้สำรองไฟล์ของคุณแล้วติดตั้ง Windows ใหม่ด้วย ISO พร้อม Atlas
+# Home, when Atlas changed Windows Update settings for an update and hasn't put them back.
+home-update-access-title = การตั้งค่า Windows Update ถูกเปลี่ยนไว้สำหรับการอัปเดต Atlas
+# When the last check found no offer yet.
+home-update-access-not-offered = Atlas เปิด Windows Update เพื่ออัปเดตพีซีเครื่องนี้เป็น Windows 11 เวอร์ชัน { $release } แต่ Windows Update ยังไม่ได้เสนอเวอร์ชันนี้ เลือก ตรวจสอบอีกครั้ง หรือ คืนค่าการตั้งค่า
+home-update-access-before = Atlas เปิด Windows Update เพื่ออัปเดตพีซีเครื่องนี้เป็น Windows 11 เวอร์ชัน { $release } แต่ยังอัปเดตไม่เสร็จ อัปเดตต่อให้เสร็จ หรือเลือก คืนค่าการตั้งค่า
+home-update-access-after = พีซีเครื่องนี้ใช้ Windows 11 เวอร์ชัน { $release } แล้ว ติดตั้ง Atlas ให้เสร็จ หรือเลือก คืนค่าการตั้งค่า
+home-update-access-plain = Atlas เปิด Windows Update เพื่อติดตั้งการอัปเดต แต่ยังอัปเดตไม่เสร็จ อัปเดตต่อให้เสร็จ หรือเลือก คืนค่าการตั้งค่า
+home-update-access-unreadable = Atlas อ่านบันทึกการตั้งค่า Windows Update ที่ Atlas เปลี่ยนไว้ไม่ได้ จึงจะไม่เปลี่ยนแปลงหรือคืนค่าสิ่งใด เลือก ส่งรายงาน เพื่อให้ทีม Atlas ช่วยเหลือ
+# $error is the raw error.
+home-update-access-failed = Atlas คืนค่าการตั้งค่าไม่ได้ ลองอีกครั้ง หรือเลือก ส่งรายงาน รายละเอียด: { $error }
+home-update-access-install-active = ติดตั้ง Atlas ให้เสร็จก่อน ขั้นตอนสุดท้ายของการติดตั้งจะคืนค่าการตั้งค่าเหล่านี้
+home-continue-update = ดำเนินการอัปเดตต่อ
+home-put-back = คืนค่าการตั้งค่า
+home-putting-back = กำลังคืนค่าการตั้งค่า…
+# Get ready: the Windows version card.
+windows-card-title = Windows 11 เวอร์ชัน { $release }
+windows-card-required = Atlas { $version } ต้องใช้ Windows เวอร์ชันที่ใหม่กว่า เมื่อ Atlas อัปเดต Windows ด้านล่าง Atlas จะติดตั้ง Windows 11 เวอร์ชัน { $release } จาก Windows Update ด้วย
+windows-card-question = พีซีเครื่องนี้ควรใช้ Windows เวอร์ชันใด
+windows-choice-move = อัปเดตเป็น Windows 11 เวอร์ชัน { $release }
+# $date is when the new version stops getting security updates.
+windows-choice-move-detail = แนะนำ ได้รับการอัปเดตความปลอดภัยจนถึงวันที่ { $date } และต้องรีสตาร์ตเพิ่มอีกหนึ่งครั้ง
+windows-choice-keep = คงไว้ที่ Windows 11 เวอร์ชัน { $current }
+windows-choice-keep-detail = พีซีของคุณจะใช้เวอร์ชันนี้ต่อไป Windows Update จะไม่อัปเดตพีซีเป็นเวอร์ชันที่ใหม่กว่า หากต้องการเปลี่ยนเวอร์ชันภายหลังจึงต้องอัปเดตอีกครั้งใน Atlas Manager
+windows-card-facts = สิ่งที่จะเปลี่ยนแปลง
+windows-fact-keep = ไฟล์และแอปของคุณจะยังอยู่ หากการอัปเดตทำให้การเปลี่ยนแปลงใด ๆ ของ Atlas หายไป Atlas จะนำการเปลี่ยนแปลงเหล่านั้นกลับมาเมื่อติดตั้ง
+windows-fact-restart = พีซีของคุณจะรีสตาร์ตอีกอย่างน้อยหนึ่งครั้งเพื่อให้การอัปเดตเสร็จสมบูรณ์
+# Also after home-plan-windows-detail on Home, and among the 26H2 card's facts: how long Windows Update can take to offer the new version, which Atlas waits for by itself.
+transition-offer-expectation = โดยปกติ Windows Update จะเสนอเวอร์ชันนี้ภายในไม่กี่นาที แต่อาจใช้เวลานานถึง 2 ชั่วโมง Atlas จะรอและตรวจสอบให้คุณ
+windows-fact-stays = หลังจากนั้น Windows จะคงอยู่ที่เวอร์ชัน { $release } และจะไม่อัปเดตเป็นเวอร์ชันที่ใหม่กว่าเอง
+windows-fact-removed = เวอร์ชัน { $release } ไม่มีทั้ง Windows PowerShell 2.0 และเครื่องมือ WMIC
+# How to undo the move: Windows may switch the new version on in place, which Update history
+# can uninstall, or reinstall itself, which Go back undoes for 10 days. Update history, Go back,
+# Recovery and System are Windows' own labels; use them as your language's Windows shows them.
+windows-card-undo = หากต้องการย้อนการอัปเดตนี้ในภายหลัง ให้ถอนการติดตั้งการอัปเดตจาก ประวัติการอัปเดต ใน Windows Update แต่หาก Windows ติดตั้งตัวเองใหม่เพื่ออัปเดต ให้เลือก ย้อนกลับ ในหน้า การกู้คืน ของการตั้งค่า ระบบ แทน โดยต้องทำภายใน 10 วัน Atlas { $version } ไม่รองรับเวอร์ชัน { $current } จึงอย่าย้อนการอัปเดตนี้หลังจากติดตั้ง Atlas { $version } แล้ว
+windows-card-undo-optional = หากต้องการย้อนการอัปเดตนี้ในภายหลัง ให้ถอนการติดตั้งการอัปเดตจาก ประวัติการอัปเดต ใน Windows Update แต่หาก Windows ติดตั้งตัวเองใหม่เพื่ออัปเดต ให้เลือก ย้อนกลับ ในหน้า การกู้คืน ของการตั้งค่า ระบบ แทน โดยต้องทำภายใน 10 วัน
+windows-terms = ฉันยอมรับข้อกำหนดสิทธิ์การใช้งานซอฟต์แวร์ของ Microsoft สำหรับ Windows 11 เวอร์ชัน { $release }
+windows-terms-link = อ่านข้อกำหนดสิทธิ์การใช้งาน
+# Cancel is the flow's own button (common-cancel); Stop updating confirms it (prepare-stop).
+windows-card-locked = หากต้องการคงไว้ที่เวอร์ชัน { $current } ให้เลือก ยกเลิก แล้วเลือก หยุดอัปเดต
+# Get ready: the update card while Windows moves.
+prepare-description-transition = ก่อนติดตั้ง Atlas จะติดตั้งการอัปเดตที่ Windows รอติดตั้งอยู่ จากนั้นติดตั้ง Windows 11 เวอร์ชัน { $release } แล้วอัปเดต Microsoft Store และแอปจาก Store ของคุณ แอปจาก Store ที่คุณเปิดอยู่อาจปิดลงระหว่างอัปเดต จึงควรบันทึกงานในแอปเหล่านั้นก่อน และพีซีของคุณจะรีสตาร์ตอย่างน้อยหนึ่งครั้ง
+prepare-start-transition = อัปเดต Windows เป็นเวอร์ชัน { $release }
+prepare-needs-terms = ใช้ได้เมื่อคุณยอมรับข้อกำหนดสิทธิ์การใช้งานในการ์ด Windows 11 เวอร์ชัน { $release }
+ready-banner-not-offered-message = ดูสิ่งที่คุณทำได้ตอนนี้ในการ์ด อัปเดต Windows และแอปจาก Store
+ready-banner-transition-failed-message = ดูสิ่งที่ต้องทำต่อในการ์ด อัปเดต Windows และแอปจาก Store
+ready-banner-terms-title = ยอมรับข้อกำหนดสิทธิ์การใช้งานเพื่อดำเนินการต่อ
+ready-banner-terms-message = ข้อกำหนดอยู่ในการ์ด Windows 11 เวอร์ชัน { $release } ด้านล่างของหน้านี้ จากนั้นเลือก อัปเดต Windows เป็นเวอร์ชัน { $release }
+# The bar that names each Windows Update setting Atlas turns on for the update.
+access-notice-title = Atlas จะเปิด Windows Update ไว้ชั่วคราว
+access-off = Windows Update ปิดอยู่บนพีซีเครื่องนี้ Atlas จะเปิดอีกครั้งระหว่างอัปเดต Windows
+access-paused = การอัปเดต Windows ถูกหยุดชั่วคราวอยู่บนพีซีเครื่องนี้ Atlas จะยกเลิกการหยุดชั่วคราวระหว่างอัปเดต Windows
+access-delayed = การอัปเดตรายเดือนถูกเลื่อนออกไปบนพีซีเครื่องนี้ Atlas จะยกเลิกการเลื่อนระหว่างอัปเดต Windows
+# After the lines above. "As you chose" applies when an Atlas setting the user chose set them.
+access-back-chosen = เมื่อติดตั้ง Atlas { $version } แล้ว การตั้งค่าเหล่านี้จะกลับไปเป็นตามที่คุณเลือกไว้
+access-back = เมื่อติดตั้ง Atlas { $version } แล้ว การตั้งค่าเหล่านี้จะกลับไปเป็นเหมือนเดิม
+access-back-stop = หากคุณหยุดก่อนถึงตอนนั้น Atlas จะคืนค่าการตั้งค่าเหล่านี้ให้
+# The restart that finishes the new version.
+prepare-reboot-transition = Windows 11 เวอร์ชัน { $release } ติดตั้งแล้ว เลือก รีสตาร์ตและดำเนินการต่อ เพื่อติดตั้งให้เสร็จ Atlas จะเปิดขึ้นอีกครั้งหลังจากคุณเข้าสู่ระบบ
+prepare-reboot-commit = Windows ต้องรีสตาร์ตอีกหนึ่งครั้งเพื่อติดตั้งเวอร์ชัน { $release } ให้เสร็จ Atlas จะเปิดขึ้นอีกครั้งหลังจากคุณเข้าสู่ระบบ
+prepare-restart-commit-failed = Windows เตรียมเวอร์ชัน { $release } ให้พร้อมติดตั้งต่อตอนรีสตาร์ตไม่ได้ พีซีของคุณจึงไม่ได้รีสตาร์ต เลือก รีสตาร์ตและดำเนินการต่อ เพื่อลองอีกครั้ง
+prepare-reason-feature-update = Windows เวอร์ชันใหม่
+prepare-reason-feature-commit = การติดตั้ง Windows เวอร์ชันใหม่ให้เสร็จ
+prepare-resumed-transition = พีซีของคุณรีสตาร์ตแล้ว เลือก อัปเดตต่อ เพื่อให้ Atlas ตรวจสอบว่า Windows 11 เวอร์ชัน { $release } ติดตั้งเสร็จแล้ว และติดตั้งการอัปเดตที่เหลืออยู่
+# Under the progress bar while Windows Update has yet to offer the new version.
+prepare-waiting-offer = กำลังรอให้ Windows Update เสนอ Windows 11 เวอร์ชัน { $release } โดยปกติจะใช้เวลาไม่กี่นาที แต่อาจนานถึง 2 ชั่วโมง คุณใช้พีซีต่อไปได้ แต่ให้เปิด Atlas ไว้
+# After a restart for the updates Windows installs before the new version.
+prepare-resumed-before-move = พีซีของคุณรีสตาร์ตเพื่อติดตั้งการอัปเดตให้เสร็จแล้ว เลือก อัปเดตต่อ เพื่อให้ Atlas ติดตั้งการอัปเดตที่เหลืออยู่ แล้วจึงติดตั้ง Windows 11 เวอร์ชัน { $release }
+# Outcomes of moving Windows. Each says what changed and what to do next.
+prepare-not-offered-title = กำลังรอให้ Windows Update เสนอ Windows 11 เวอร์ชัน { $release }
+prepare-transition-failed-title = Windows อัปเดตเป็นเวอร์ชัน { $release } ไม่ได้
+prepare-failed-feature-not-offered = Windows Update อาจใช้เวลาสักพักกว่าจะเสนอ Windows 11 เวอร์ชัน { $release } ให้กับพีซี พีซีของคุณยังใช้เวอร์ชัน { $current } อยู่
+# Added after the message above while Atlas looks again by itself.
+prepare-offer-rechecking = Atlas จะตรวจสอบอีกครั้งทุก 10 นาที และดำเนินการต่อเองทันทีที่ Windows Update เสนอเวอร์ชันนี้ หรือคุณจะเลือก ตรวจสอบอีกครั้ง ก็ได้
+# Under the progress bar while Atlas waits, updated as time passes: how long it has waited, then when it looks again, or that it's looking now. Shown together on one line. Thai has one plural category.
+prepare-offer-waited =
+    { $minutes ->
+       *[other] รอมาแล้ว { $minutes } นาที
+    }
+prepare-offer-next-check =
+    { $minutes ->
+       *[other] จะตรวจสอบอีกครั้งในอีก { $minutes } นาที
+    }
+prepare-offer-checking-now = กำลังตรวจสอบ
+# Added instead while Atlas isn't looking again by itself.
+prepare-offer-check-again = เลือก ตรวจสอบอีกครั้ง เพื่อตรวจสอบตอนนี้
+# After 2 hours of looking again without an offer.
+prepare-offer-wait-ended-title = Windows Update ยังไม่ได้เสนอ Windows 11 เวอร์ชัน { $release }
+prepare-offer-wait-ended = Windows Update ไม่ได้เสนอ Windows 11 เวอร์ชัน { $release } ภายใน 2 ชั่วโมง Atlas จึงหยุดรอและคืนค่าการตั้งค่า Windows Update ของคุณแล้ว เลือก ตรวจสอบอีกครั้ง ในภายหลัง หากรอไม่ได้ ให้สำรองไฟล์ของคุณแล้วติดตั้ง Windows ใหม่ด้วย ISO พร้อม Atlas
+# Instead of prepare-offer-wait-ended when putting the settings back at the end of the wait failed. $error is the raw error.
+prepare-offer-wait-put-back-failed = Windows Update ไม่ได้เสนอ Windows 11 เวอร์ชัน { $release } ภายใน 2 ชั่วโมง และ Atlas คืนค่าการตั้งค่า Windows Update ของคุณไม่ได้ เลือก คืนค่าการตั้งค่า เพื่อลองอีกครั้ง รายละเอียด: { $error }
+# $missing lists the hardware this PC lacks, from the two messages below.
+prepare-failed-feature-hardware = พีซีเครื่องนี้ไม่ตรงตามข้อกำหนดฮาร์ดแวร์ของ Windows 11 ({ $missing }) Windows Update จึงจะไม่อัปเดตพีซีเป็นเวอร์ชัน { $release } พีซีของคุณยังใช้เวอร์ชัน { $current } อยู่ หากต้องการใช้ Atlas { $version } ให้สำรองไฟล์ของคุณแล้วติดตั้ง Windows ใหม่ด้วย ISO พร้อม Atlas
+hardware-tpm = TPM 2.0
+hardware-uefi = เฟิร์มแวร์ UEFI
+prepare-failed-feature-hidden = Windows 11 เวอร์ชัน { $release } ถูกซ่อนไว้ใน Windows Update บนพีซีเครื่องนี้ ใช้เครื่องมือที่คุณใช้ซ่อนเพื่อแสดงการอัปเดตนี้อีกครั้ง แล้วเลือก ลองอีกครั้ง
+# $needed and $free are whole gigabytes; $drive is a drive such as C:.
+prepare-failed-feature-disk-space = Windows ต้องมีพื้นที่ว่างอย่างน้อย { $needed } GB ในไดรฟ์ { $drive } สำหรับการอัปเดตนี้ แต่ไดรฟ์นี้มีพื้นที่ว่าง { $free } GB Atlas ไม่ได้เปลี่ยนแปลงสิ่งใด เพิ่มพื้นที่ว่าง แล้วเลือก ลองอีกครั้ง
+prepare-failed-feature-servicing = Windows รายงานว่าที่เก็บคอมโพเนนต์ของ Windows เสียหายและซ่อมแซมไม่ได้ Atlas จึงไม่ได้เปลี่ยนแปลงสิ่งใด ซ่อมแซม Windows แล้วเลือก ลองอีกครั้ง
+prepare-failed-feature-managed = พีซีเครื่องนี้รับการอัปเดตจากเซิร์ฟเวอร์อัปเดตขององค์กร Atlas จึงอัปเดตพีซีเป็นเวอร์ชัน { $release } ไม่ได้ Atlas ไม่ได้เปลี่ยนแปลงสิ่งใด
+# $setting is the technical name of a Windows Update policy value or service, such as NoAutoUpdate or BITS, shown as it is.
+prepare-failed-feature-policy = มีบางอย่างบนพีซีเครื่องนี้เปลี่ยน { $setting } กลับคืนทุกครั้งหลังจากที่ Atlas เปลี่ยน Atlas จึงอัปเดต Windows ไม่ได้ หากพีซีเครื่องนี้อยู่ภายใต้การจัดการขององค์กร ให้สอบถามองค์กรนั้น เมื่อคุณหยุด Atlas จะคืนค่าสิ่งที่ Atlas เปลี่ยนไว้
+prepare-failed-feature-blocked = การตั้งค่าที่ Atlas ไม่ได้เปลี่ยนกำลังทำให้ Windows Update ทำงานไม่ได้: { $setting } เปลี่ยนการตั้งค่านี้เพื่อให้ Windows Update ทำงานได้ แล้วเลือก ลองอีกครั้ง
+prepare-failed-feature-rolled-back = Windows ติดตั้งเวอร์ชัน { $release } ให้เสร็จระหว่างรีสตาร์ตไม่ได้ จึงย้อนกลับไปใช้เวอร์ชัน { $current } ไฟล์และแอปของคุณไม่ได้รับผลกระทบ เลือก ลองอีกครั้ง หรือเลือก ส่งรายงาน
+prepare-failed-feature-components-lost = การเปลี่ยนแปลงบางอย่างของ Atlas หายไปหลังการอัปเดต Windows และไม่มีร่องรอยว่า Windows ติดตั้งตัวเองใหม่ Atlas จึงบอกไม่ได้ว่าเกิดอะไรขึ้น และยังไม่ได้ติดตั้ง Atlas { $version } เลือก ส่งรายงาน เพื่อให้ทีม Atlas ช่วยเหลือ
+prepare-failed-feature-build = เวอร์ชัน Windows ของพีซีเครื่องนี้เปลี่ยนไประหว่างที่ Atlas กำลังอัปเดต เลือก คืนค่าการตั้งค่า แล้วเริ่มใหม่จากหน้าหลัก
+prepare-failed-feature-journal = Atlas อ่านบันทึกการตั้งค่า Windows Update ที่ Atlas เปลี่ยนไว้ไม่ได้ จึงจะไม่เปลี่ยนแปลงหรือคืนค่าสิ่งใด เลือก ส่งรายงาน เพื่อให้ทีม Atlas ช่วยเหลือ
+# $setting is the name of a Windows Update policy value, such as TargetReleaseVersionInfo.
+prepare-failed-feature-pin = นโยบาย Windows Update บนพีซีเครื่องนี้ ({ $setting }) มีค่าที่ Atlas บันทึกไว้ไม่ได้ Atlas จึงไม่ได้เปลี่ยนแปลงสิ่งใด เลือก ส่งรายงาน เพื่อให้ทีม Atlas ช่วยเหลือ
+prepare-failed-feature-terms = ยอมรับข้อกำหนดสิทธิ์การใช้งานสำหรับ Windows 11 เวอร์ชัน { $release } แล้วเลือก ลองอีกครั้ง
+prepare-failed-feature-failed = Windows ติดตั้งเวอร์ชัน { $release } ไม่ได้ พีซีของคุณยังใช้เวอร์ชัน { $current } อยู่ เลือก ลองอีกครั้ง หากยังไม่สำเร็จ ให้เลือก ส่งรายงาน
+prepare-check-again = ตรวจสอบอีกครั้ง
+prepare-keep-version = คงไว้ที่เวอร์ชัน { $current }
+# Asked before leaving the update with Windows Update settings changed.
+stop-update-title = หยุดอัปเดตเป็น Atlas { $version } หรือไม่
+stop-update-before = Atlas จะคืนค่าการตั้งค่า Windows Update ที่ Atlas เปลี่ยนไว้ การอัปเดตที่ Windows ติดตั้งไปแล้วจะยังคงอยู่ และพีซีของคุณจะยังใช้ Windows 11 เวอร์ชัน { $current }
+stop-update-after = พีซีของคุณจะยังใช้ Windows 11 เวอร์ชัน { $release } และ Atlas จะคืนค่าการตั้งค่า Windows Update ที่ Atlas เปลี่ยนไว้
+stop-update-access = Atlas จะคืนค่าการตั้งค่า Windows Update ที่ Atlas เปลี่ยนไว้ การอัปเดตที่ Windows ติดตั้งไปแล้วจะยังคงอยู่
+stop-update-keep = อัปเดตต่อไป
+window-close-update-access-title = ปิด Atlas หรือไม่
+window-close-update-access-message = Atlas จะคืนค่าการตั้งค่า Windows Update ที่ Atlas เปลี่ยนไว้ก่อนปิด คุณเริ่มอัปเดตอีกครั้งได้จากหน้าหลัก
+window-close-put-back = คืนค่าและปิด
+# When putting the settings back before closing failed. The reason comes first, then this
+# message; the buttons are window-close-keep and window-close-close.
+window-close-put-back-failed-title = ปิดโดยไม่คืนค่าการตั้งค่าหรือไม่
+window-close-put-back-failed-message = หากปิด Atlas ตอนนี้ การตั้งค่า Windows Update จะยังเป็นตามที่ Atlas เปลี่ยนไว้ เมื่อคุณเปิด Atlas อีกครั้ง หน้าหลักจะเสนอให้คืนค่าการตั้งค่าเหล่านั้น
+# The "Atlas is installed" window, when the user's choice turned Windows Update off again.
+installed-update-off-again = Windows Update ปิดอีกครั้งตามที่คุณเลือก ขณะที่ปิดอยู่ พีซีของคุณจะไม่ได้รับการอัปเดตความปลอดภัย
+installed-update-paused-again = การอัปเดต Windows ถูกหยุดชั่วคราวอีกครั้งตามที่คุณเลือก ขณะที่หยุดชั่วคราวอยู่ พีซีของคุณจะไม่ได้รับการอัปเดตความปลอดภัย
+# PC checks: Windows compatibility on a version Atlas moves from.
+detail-build-transition = พีซีเครื่องนี้ใช้ Windows 11 เวอร์ชัน { $current } ซึ่ง Atlas เวอร์ชันนี้ไม่รองรับ Atlas จะอัปเดต Windows เป็นเวอร์ชัน { $release } เมื่ออัปเดต Windows ด้านล่าง
+# The first lines of a report about a Windows update that didn't finish; technical
+# details follow in English.
+report-transition-intro = การอัปเดต Windows สำหรับ Atlas ไม่เสร็จสมบูรณ์ รายละเอียดสำหรับทีม Atlas:
+# When Windows reinstalled itself while it moved to a newer version, instead of
+# switching the new version on in place. Atlas then puts all of its changes back.
+mode-rebase = การติดตั้งซ้ำหลังการอัปเดต Windows
+history-mode-rebase = ติดตั้งซ้ำหลังอัปเดต Windows
+ready-rebase-title = Windows ติดตั้งตัวเองใหม่ระหว่างอัปเดต
+# $previous is the Atlas version the PC had before.
+ready-rebase-message = Windows 11 เวอร์ชัน { $release } เข้ามาแทนที่ Windows เดิมของพีซีเครื่องนี้ การเปลี่ยนแปลงบางอย่างของ Atlas จึงหายไป Atlas { $version } จะนำการเปลี่ยนแปลงเหล่านั้นกลับมา โดยใช้ตัวเลือกที่คุณเลือกไว้สำหรับ Atlas { $previous }
+# Your choices on an update, started from what the installed Atlas chose.
+upgrade-choices-title = ตัวเลือกของคุณจาก Atlas { $previous }
+upgrade-choices-detail = Atlas เริ่มจากสิ่งที่ Atlas { $previous } ตั้งค่าไว้บนพีซีเครื่องนี้ การอัปเดตจะคงผลของตัวเลือกเหล่านั้นไว้ การยกเลิกการเลือกรายการเพิ่มเติมที่นี่จึงไม่ได้ย้อนผลนั้นกลับ หากต้องการเปลี่ยนในภายหลัง ให้ใช้โฟลเดอร์ Atlas หรือการตั้งค่า Windows
+rebase-choices-title = ตัวเลือกของคุณจาก Atlas { $previous }
+rebase-choices-detail = Atlas ใช้ตัวเลือกที่คุณเลือกไว้สำหรับ Atlas { $previous } จึงไม่มีอะไรให้เลือกที่นี่ คุณเปลี่ยนตัวเลือกเหล่านี้ได้ภายหลังในโฟลเดอร์ Atlas
+# $missing lists the choices, such as "Microsoft Defender, Mitigations".
+rebase-choices-partial = Atlas ใช้ตัวเลือกที่คุณเลือกไว้สำหรับ Atlas { $previous } แต่หาตัวเลือกต่อไปนี้ไม่พบ จึงควรตรวจดู: { $missing }
+# Asked before any restart Atlas makes while other people are signed in to the PC.
+restart-other-title = มีผู้ใช้อีกคนเข้าสู่ระบบพีซีเครื่องนี้อยู่
+restart-others-title = มีผู้ใช้คนอื่นหลายคนเข้าสู่ระบบพีซีเครื่องนี้อยู่
+# $names lists their account names, such as "Alex and Sam".
+restart-others-message = การรีสตาร์ตจะปิดแอปของผู้ใช้อื่น และงานที่ยังไม่ได้บันทึกของพวกเขาจะสูญหาย ผู้ที่เข้าสู่ระบบอยู่: { $names }
+restart-others-keep = ไม่รีสตาร์ต
+restart-others-restart = ยังคงรีสตาร์ต
+# Microsoft Store itself, before the Store apps. Get ready's status line while it updates or is repaired.
+prepare-store-self-update = กำลังอัปเดต Microsoft Store ก่อน เนื่องจาก Microsoft Store บนพีซีเครื่องนี้ไม่ใช่เวอร์ชันล่าสุด
+prepare-store-repair = กำลังซ่อมแซม Microsoft Store ขั้นตอนนี้อาจใช้เวลาสองสามนาที
+# Under prepare-complete, once Get ready has finished.
+prepare-store-updated = Microsoft Store ไม่ใช่เวอร์ชันล่าสุด Atlas จึงอัปเดต Microsoft Store ก่อนอัปเดตแอปของคุณ
+prepare-store-bootstrapped = Microsoft Store อัปเดตตัวเองไม่ได้ Atlas จึงติดตั้ง App Installer และ Microsoft Store เวอร์ชันล่าสุดจาก Microsoft
+prepare-store-repaired = Microsoft Store ไม่ทำงาน Atlas จึงซ่อมแซมให้แล้ว
+prepare-store-skipped-removed = Microsoft Store ถูกปิดไว้บนพีซีเครื่องนี้ Atlas จึงข้ามการอัปเดตแอปจาก Store
+# "Repair Microsoft Store" is prepare-repair-store; "Send a report" is report-title.
+prepare-failed-store-repair-failed = Microsoft Store ไม่ทำงาน และ Atlas ซ่อมแซมไม่ได้ เลือก ซ่อมแซม Microsoft Store เพื่อลองอีกครั้ง หากยังไม่ได้ผล ให้เลือก ส่งรายงาน
+prepare-repair-store = ซ่อมแซม Microsoft Store

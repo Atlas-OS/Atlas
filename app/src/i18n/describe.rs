@@ -20,6 +20,7 @@ use crate::services::requirements::{CheckDetail, CheckId, CheckResult};
 use crate::services::security::{Protection, SwitchCounts};
 use crate::services::settings::SettingsProblem;
 use crate::services::system::SystemInfo;
+use crate::services::windows_release::WindowsBlock;
 use crate::t;
 
 /// Joins items with the language's list separator: "Brave, Firefox".
@@ -47,6 +48,8 @@ pub fn restart_reason(id: &str) -> String {
         "windows-update" => t!("prepare-reason-windows-update"),
         "file-renames" => t!("prepare-reason-file-renames"),
         "update-agent" => t!("prepare-reason-update-agent"),
+        "feature-update" => t!("prepare-reason-feature-update"),
+        "feature-commit" => t!("prepare-reason-feature-commit"),
         other => other.to_owned(),
     }
 }
@@ -97,10 +100,106 @@ pub fn preparation_failure_reason(id: &str) -> Option<String> {
         "store-paused-network" => t!("prepare-failed-store-network"),
         "store-timeout" => t!("prepare-failed-store-timeout"),
         "store-passes" => t!("prepare-failed-store-passes"),
+        "store-repair-failed" => t!("prepare-failed-store-repair-failed"),
         "manual-updates" => t!("prepare-failed-manual-updates"),
         "windows-passes" => t!("prepare-failed-windows-passes"),
         _ => return None,
     })
+}
+
+/// What preparation did about Microsoft Store itself, said once it's done.
+pub fn store_outcome(outcome: crate::services::preparation::StoreOutcome) -> String {
+    use crate::services::preparation::StoreOutcome;
+    match outcome {
+        StoreOutcome::Updated => t!("prepare-store-updated"),
+        StoreOutcome::Bootstrapped => t!("prepare-store-bootstrapped"),
+        StoreOutcome::Repaired => t!("prepare-store-repaired"),
+        StoreOutcome::SkippedRemoved => t!("prepare-store-skipped-removed"),
+    }
+}
+
+/// The release names a move needs for its wording: where Windows goes
+/// (`release`), where it is (`current`) and the Atlas version it's for.
+pub struct TransitionWords<'a> {
+    pub release: &'a str,
+    pub current: &'a str,
+    pub version: &'a str,
+}
+
+/// What a move between Windows releases ended with and what to do next, for
+/// a cause the update worker names. `None` for any other failure.
+pub fn transition_failure(failure: &Activity, words: &TransitionWords) -> Option<String> {
+    let (release, current, version) = (words.release, words.current, words.version);
+    let reason = failure.reason.as_deref()?;
+    Some(match reason {
+        // A missing monthly update is installed first; one Windows Update
+        // doesn't offer yet is the same wait as the release itself.
+        "feature-not-offered" | "feature-prerequisite" => {
+            t!("prepare-failed-feature-not-offered", release = release, current = current)
+        }
+        "feature-hardware" => {
+            let missing: Vec<String> = failure
+                .hardware
+                .as_deref()
+                .unwrap_or_default()
+                .split(',')
+                .filter_map(|part| match part.trim() {
+                    "tpm" => Some(t!("hardware-tpm")),
+                    "uefi" => Some(t!("hardware-uefi")),
+                    _ => None,
+                })
+                .collect();
+            t!(
+                "prepare-failed-feature-hardware",
+                missing = join_list(&missing),
+                release = release,
+                current = current,
+                version = version
+            )
+        }
+        "feature-hidden" => t!("prepare-failed-feature-hidden", release = release),
+        "feature-disk-space" => t!(
+            "prepare-failed-feature-disk-space",
+            needed = failure.needed_gb.clone().unwrap_or_default(),
+            drive = failure.drive.clone().unwrap_or_default(),
+            free = failure.free_gb.clone().unwrap_or_default()
+        ),
+        "feature-servicing" => t!("prepare-failed-feature-servicing"),
+        "feature-managed" => t!("prepare-failed-feature-managed", release = release),
+        "feature-policy" => {
+            t!("prepare-failed-feature-policy", setting = failure.setting.clone().unwrap_or_default())
+        }
+        "feature-blocked" => {
+            t!("prepare-failed-feature-blocked", setting = failure.setting.clone().unwrap_or_default())
+        }
+        "feature-rolled-back" => {
+            t!("prepare-failed-feature-rolled-back", release = release, current = current)
+        }
+        "feature-components-lost" => t!("prepare-failed-feature-components-lost", version = version),
+        "feature-build" => t!("prepare-failed-feature-build"),
+        "feature-journal" => t!("prepare-failed-feature-journal"),
+        "feature-pin" => {
+            t!("prepare-failed-feature-pin", setting = failure.setting.clone().unwrap_or_default())
+        }
+        "feature-terms" => t!("prepare-failed-feature-terms", release = release),
+        "feature-failed" => t!("prepare-failed-feature-failed", release = release, current = current),
+        _ => return None,
+    })
+}
+
+/// Why putting the Windows Update settings back failed, from the worker's error.
+pub fn restore_failure(error: &str) -> String {
+    restore_failure_cause(error).unwrap_or_else(|| t!("home-update-access-failed", error = error))
+}
+
+/// Why putting the settings back failed, for a cause the worker names; `None`
+/// for any other error, which only the log explains.
+pub fn restore_failure_cause(error: &str) -> Option<String> {
+    match crate::services::preparation::operation_reason(error) {
+        Some("feature-install-active") => Some(t!("home-update-access-install-active")),
+        Some("feature-journal") => Some(t!("home-update-access-unreadable")),
+        _ => None,
+    }
 }
 
 /// Why preparation needs another connection, from the cause the worker
@@ -200,6 +299,9 @@ impl CheckDetail {
             CheckDetail::EditionUnsupported => t!("detail-edition-unsupported"),
             CheckDetail::WindowsPreview => t!("detail-windows-preview"),
             CheckDetail::WindowsReleaseUnknown => t!("detail-windows-release-unknown"),
+            CheckDetail::BuildTransition { current, release } => {
+                t!("detail-build-transition", current = current.as_str(), release = release.as_str())
+            }
             CheckDetail::BuildUnsupported { supported, actual } => {
                 if supported.is_empty() {
                     return t!("detail-build-missing");
@@ -360,6 +462,7 @@ impl InstallMode {
             InstallMode::Fresh => t!("mode-fresh"),
             InstallMode::Upgrade => t!("mode-upgrade"),
             InstallMode::Reapply => t!("mode-reapply"),
+            InstallMode::Rebase => t!("mode-rebase"),
             InstallMode::Unknown => t!("mode-unknown"),
         }
     }
@@ -370,6 +473,7 @@ impl InstallMode {
             InstallMode::Fresh => t!("history-mode-fresh"),
             InstallMode::Upgrade => t!("history-mode-upgrade"),
             InstallMode::Reapply => t!("history-mode-reapply"),
+            InstallMode::Rebase => t!("history-mode-rebase"),
             InstallMode::Unknown => t!("history-mode-unknown"),
         }
     }
@@ -566,6 +670,24 @@ impl InstallBlock {
                 t!("notice-session-unreadable-message", path = record.display().to_string(), error = error)
             }
             InstallBlock::Unknown => t!("install-source-unknown"),
+            InstallBlock::Windows { block, version, product, current, releases, ending } => match block {
+                WindowsBlock::Edition => match ending {
+                    Some(date) => t!(
+                        "install-windows-edition-ending",
+                        version = version.as_str(),
+                        product = product.as_str(),
+                        current = current.as_str(),
+                        date = crate::i18n::fmt::day(*date)
+                    ),
+                    None => {
+                        t!("install-windows-edition", version = version.as_str(), product = product.as_str())
+                    }
+                },
+                WindowsBlock::NoPath { .. } => {
+                    t!("install-windows-no-path", version = version.as_str(), releases = join_or(releases))
+                }
+                WindowsBlock::Preview => t!("detail-windows-preview"),
+            },
         }
     }
 }
@@ -875,6 +997,86 @@ mod tests {
             for reason in [None, Some("offline"), Some("roaming")] {
                 assert_eq!(preparation_network(reason), t!("prepare-network-needed"));
             }
+        });
+    }
+
+    /// Every cause the update worker and its library name for a Windows
+    /// move has words of its own, with the facts it carries filled in.
+    #[test]
+    fn every_cause_a_windows_move_names_has_its_own_words() {
+        english(|| {
+            use crate::services::preparation::{LIBRARY, WORKER};
+            let mut named: Vec<&str> = [WORKER, LIBRARY]
+                .iter()
+                .flat_map(|source| source.split("New-AtlasTransitionFailure ").skip(1))
+                .filter_map(|call| {
+                    let quote = call.chars().next().filter(|c| *c == '\'' || *c == '"')?;
+                    let message = &call[1..];
+                    let after = &message[message.find(quote)? + 1..];
+                    after.trim_start().strip_prefix('\'')?.split('\'').next()
+                })
+                .collect();
+            named.sort_unstable();
+            named.dedup();
+            assert!(named.len() >= 15, "{named:?}");
+            let words = TransitionWords { release: "26H2", current: "24H2", version: "0.6.0" };
+            for id in named {
+                let activity = Activity {
+                    reason: Some(id.to_owned()),
+                    hardware: Some("tpm,uefi".into()),
+                    drive: Some("C:".into()),
+                    free_gb: Some("3".into()),
+                    needed_gb: Some("6".into()),
+                    setting: Some("BITS".into()),
+                    ..Activity::default()
+                };
+                // Only putting the settings back names this one.
+                if id == "feature-restore" {
+                    let error = format!("{id}: Atlas couldn't put back service.wuauserv.");
+                    assert_eq!(
+                        restore_failure(&error),
+                        t!("home-update-access-failed", error = error.as_str())
+                    );
+                    continue;
+                }
+                if id == "feature-install-active" {
+                    assert_eq!(
+                        restore_failure(&format!("{id}: unfinished")),
+                        t!("home-update-access-install-active")
+                    );
+                    continue;
+                }
+                let text =
+                    transition_failure(&activity, &words).unwrap_or_else(|| panic!("no words for {id}"));
+                assert!(!text.contains('{'), "{id}: {text}");
+            }
+            let hardware = Activity {
+                reason: Some("feature-hardware".into()),
+                hardware: Some("tpm,uefi".into()),
+                ..Activity::default()
+            };
+            let text = transition_failure(&hardware, &words).unwrap();
+            assert!(text.contains("TPM 2.0") && text.contains("UEFI firmware"), "{text}");
+            let space = Activity {
+                reason: Some("feature-disk-space".into()),
+                drive: Some("D:".into()),
+                free_gb: Some("3".into()),
+                needed_gb: Some("6".into()),
+                ..Activity::default()
+            };
+            let text = transition_failure(&space, &words).unwrap();
+            assert!(text.contains("D:") && text.contains('3') && text.contains('6'), "{text}");
+            assert_eq!(
+                transition_failure(
+                    &Activity { reason: Some("store-missing".into()), ..Activity::default() },
+                    &words
+                ),
+                None
+            );
+            assert!(
+                Activity { reason: Some("feature-prerequisite".into()), ..Activity::default() }.not_offered()
+            );
+            assert_eq!(restart_reason("feature-update"), t!("prepare-reason-feature-update"));
         });
     }
 

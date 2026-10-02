@@ -14,12 +14,12 @@ mod summary;
 use std::sync::atomic::Ordering;
 
 use gpui::{
-    AnyElement, App, Context, Entity, FocusHandle, IntoElement, Point, Render, ScrollHandle, SharedString,
-    Styled, Window, prelude::*, px,
+    AnyElement, App, Context, Entity, FocusHandle, IntoElement, Point, PromptLevel, Render, ScrollHandle,
+    SharedString, Styled, Window, prelude::*, px,
 };
 
 use super::{CommandBar, LogIds, LogView, StepStatus, Stepper, focusable_heading, on_model, page_frame};
-use crate::model::{AppModel, ElevationProblem, RunState, Step};
+use crate::model::{AppModel, ElevationProblem, RunState, Step, StopQuestion};
 use crate::services::iso;
 use crate::services::preparation::State as Preparation;
 use crate::services::windows_installation::Evidence;
@@ -135,7 +135,7 @@ impl InstallPage {
                 } else if !state.preparation.ready()
                     && state.preparation != Preparation::Idle
                     // A build that fails its check cannot be prepared; that check is what to fix.
-                    && state.preparation_build_supported()
+                    && state.preparation_may_start()
                 {
                     (t!("footer-prepare-required"), false)
                 } else if !state.checks_complete() || state.acquisition.is_busy() {
@@ -196,6 +196,13 @@ impl InstallPage {
                     window.remove_window();
                     return;
                 }
+                // Windows Update settings changed for the update are put back
+                // on the way out; the user is told first.
+                if let Some(question) = model.read(cx).stop_question() {
+                    let version = model.read(cx).manifest().version.clone();
+                    ask_to_stop_updating(&model, question, &version, window, cx);
+                    return;
+                }
                 model.update(cx, |m, cx| {
                     if m.preparation.busy() {
                         m.preparation_cancel.store(true, Ordering::Relaxed);
@@ -251,6 +258,33 @@ impl InstallPage {
             .primary(forward)
             .into_any_element()
     }
+}
+
+/// Asks before leaving the flow with Windows Update settings changed: Stop
+/// updating puts them back, then leaves; Keep updating stays.
+fn ask_to_stop_updating(
+    model: &Entity<AppModel>,
+    question: StopQuestion,
+    version: &str,
+    window: &mut Window,
+    cx: &mut App,
+) {
+    let title = t!("stop-update-title", version = version);
+    let message = match question {
+        StopQuestion::Access => t!("stop-update-access"),
+        StopQuestion::BeforeMove { current } => t!("stop-update-before", current = current),
+        StopQuestion::AfterMove { release } => t!("stop-update-after", release = release),
+    };
+    let (keep, stop) = (t!("stop-update-keep"), t!("prepare-stop"));
+    let answer =
+        window.prompt(PromptLevel::Warning, &title, Some(&message), &[keep.as_str(), stop.as_str()], cx);
+    let model = model.clone();
+    cx.spawn(async move |cx| {
+        if answer.await == Ok(1) {
+            model.update(cx, |model, cx| model.stop_updating(cx));
+        }
+    })
+    .detach();
 }
 
 /// Why the last relaunch as administrator failed, for the steps before

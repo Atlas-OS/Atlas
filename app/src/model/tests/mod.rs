@@ -14,8 +14,10 @@ mod options;
 mod package;
 mod preferences;
 mod preparation;
+mod rebase;
 mod recovery;
 mod restart;
+mod transition;
 
 use crate::model::test_harness::{act, fixture, new_model, read, run_model_test, wait_for};
 

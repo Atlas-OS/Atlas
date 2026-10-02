@@ -16,8 +16,8 @@ use gpui::{
     Styled, Subscription, Window, WindowBackgroundAppearance, div, prelude::*, px,
 };
 
-use crate::i18n::Localization;
-use crate::model::{AppModel, CloseGuard, ModelEvent, Page, Step};
+use crate::i18n::{Localization, describe};
+use crate::model::{AppModel, CloseGuard, ModelEvent, Page, RestoreStatus, Step};
 use crate::pages::{
     CONTENT_MAX_WIDTH, HomePage, InstallPage, InstalledPage, InstallingPage, IsoPage, PAGE_PADDING,
     ReportPage, SettingsPage, back_arrow,
@@ -63,6 +63,8 @@ pub struct Shell {
     /// Whether a restart countdown was running last time the model changed,
     /// to flash the taskbar button when one starts unseen.
     countdown_seen: bool,
+    /// The dialog asking to restart over other people's sessions is open.
+    asking_about_sessions: bool,
     /// The backdrop last handed to Windows; the platform call is not cheap
     /// and not guarded, so it is made only on a change.
     applied_backdrop: Cell<Option<WindowBackgroundAppearance>>,
@@ -105,11 +107,22 @@ impl Shell {
                     crate::services::system::flash_until_foreground(window);
                 }
                 this.countdown_seen = counting;
+                if model.read(cx).restart_confirmation().is_some() && !this.asking_about_sessions {
+                    // After the event that held the restart, such as another dialog's answer.
+                    cx.defer_in(window, |this, window, cx| this.ask_about_other_sessions(window, cx));
+                }
                 cx.notify();
             }),
-            cx.subscribe(&model, |this, _, event: &ModelEvent, cx| match event {
+            cx.subscribe_in(&model, window, |this, _, event: &ModelEvent, window, cx| match event {
                 ModelEvent::ThemeChanged => this.apply_theme(cx),
                 ModelEvent::LanguageChanged => this.apply_language(cx),
+                // Get ready's live status says what happened; the taskbar
+                // button brings the user back to it.
+                ModelEvent::NeedsAttention => {
+                    if !window.is_window_active() {
+                        crate::services::system::flash_until_foreground(window);
+                    }
+                }
             }),
             cx.observe_window_appearance(window, |this, window, cx| {
                 this.system_appearance = Appearance::from_window(window.appearance());
@@ -153,13 +166,53 @@ impl Shell {
             focus_handle,
             close_confirmed: false,
             countdown_seen: false,
+            asking_about_sessions: false,
             applied_backdrop: Cell::new(None),
             notices_scroll: ScrollHandle::new(),
             notices_scrollbar: ScrollbarState::new(),
             _subscriptions: subscriptions,
         };
         shell.sync_backdrop(window, cx);
+        // A preview can open with a restart already held.
+        cx.defer_in(window, |this, window, cx| this.ask_about_other_sessions(window, cx));
         shell
+    }
+
+    /// Other people are signed in, so a restart would close their apps:
+    /// the user restarts anyway or keeps the PC running. Don't restart is
+    /// the safe answer, and Escape chooses it.
+    fn ask_about_other_sessions(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(confirmation) = self.model.read(cx).restart_confirmation().cloned() else { return };
+        if self.asking_about_sessions || window.has_active_prompt() {
+            return;
+        }
+        self.asking_about_sessions = true;
+        let title = match confirmation.people.len() {
+            1 => t!("restart-other-title"),
+            _ => t!("restart-others-title"),
+        };
+        let message =
+            t!("restart-others-message", names = crate::i18n::describe::join_and(&confirmation.people));
+        let (keep, restart) = (t!("restart-others-keep"), t!("restart-others-restart"));
+        let answer = window.prompt(
+            PromptLevel::Warning,
+            &title,
+            Some(&message),
+            &[keep.as_str(), restart.as_str()],
+            cx,
+        );
+        cx.spawn_in(window, async move |this, cx| {
+            let answer = answer.await;
+            this.update_in(cx, |shell, _, cx| {
+                shell.asking_about_sessions = false;
+                shell.model.update(cx, |model, cx| match answer {
+                    Ok(1) => model.confirm_restart(cx),
+                    _ => model.decline_restart_confirmation(cx),
+                });
+            })
+            .ok();
+        })
+        .detach();
     }
 
     /// Lets the window close only once the user knows what closing does to the
@@ -195,6 +248,10 @@ impl Shell {
             CloseGuard::Wait => return false,
             CloseGuard::Restart => {
                 self.confirm_restart_before_closing(window, cx);
+                return false;
+            }
+            CloseGuard::WindowsUpdateAccess => {
+                self.confirm_put_back_before_closing(window, cx);
                 return false;
             }
             CloseGuard::Preparation => {
@@ -249,6 +306,80 @@ impl Shell {
         })
         .detach();
         false
+    }
+
+    /// Windows Update is turned on for an update that hasn't changed Windows
+    /// yet. Closing puts the settings back first, then closes as any other
+    /// close would; if that failed, it says why and leaves the choice to close.
+    fn confirm_put_back_before_closing(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let (title, message) =
+            (t!("window-close-update-access-title"), t!("window-close-update-access-message"));
+        let (keep, close) = (t!("iso-keep-open"), t!("window-close-put-back"));
+        let answer =
+            window.prompt(PromptLevel::Warning, &title, Some(&message), &[keep.as_str(), close.as_str()], cx);
+        cx.spawn_in(window, async move |this, cx| {
+            if answer.await != Ok(1) {
+                return;
+            }
+            let (finished, mut put_back) = futures::channel::oneshot::channel();
+            let mut finished = Some(finished);
+            this.update(cx, |shell, cx| {
+                shell.model.update(cx, |model, cx| {
+                    model.restore_before_closing(
+                        move |_, done, _| {
+                            if let Some(finished) = finished.take() {
+                                let _ = finished.send(done);
+                            }
+                        },
+                        cx,
+                    )
+                })
+            })
+            .ok();
+            match (&mut put_back).await {
+                // Anything else closing asks about, such as protection left
+                // off, is asked now.
+                Ok(true) => {
+                    this.update_in(cx, |shell, window, cx| {
+                        if shell.should_close(window, cx) {
+                            shell.close_after_launch(window, cx);
+                        }
+                    })
+                    .ok();
+                }
+                Ok(false) => {
+                    this.update_in(cx, |shell, window, cx| {
+                        shell.confirm_closing_without_put_back(window, cx)
+                    })
+                    .ok();
+                }
+                Err(_) => {}
+            }
+        })
+        .detach();
+    }
+
+    /// Putting the settings back failed: says why, and closes only if the
+    /// user still wants to.
+    fn confirm_closing_without_put_back(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let cause = match &self.model.read(cx).restore_status {
+            RestoreStatus::Failed(error) => describe::restore_failure_cause(error),
+            _ => return,
+        };
+        let title = t!("window-close-put-back-failed-title");
+        let message = match cause {
+            Some(cause) => format!("{cause}\n\n{}", t!("window-close-put-back-failed-message")),
+            None => t!("window-close-put-back-failed-message"),
+        };
+        let (keep, close) = (t!("window-close-keep"), t!("window-close-close"));
+        let answer =
+            window.prompt(PromptLevel::Warning, &title, Some(&message), &[keep.as_str(), close.as_str()], cx);
+        cx.spawn_in(window, async move |this, cx| {
+            if answer.await == Ok(1) {
+                this.update_in(cx, |shell, window, cx| shell.close_after_launch(window, cx)).ok();
+            }
+        })
+        .detach();
     }
 
     /// Offers to stop a job that stops at a safe point. The window stays open

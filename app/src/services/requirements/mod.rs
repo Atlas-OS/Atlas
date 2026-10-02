@@ -91,6 +91,14 @@ pub enum CheckDetail {
         supported: Vec<u32>,
         actual: u32,
     },
+    /// The package doesn't support this Windows version, and Atlas moves
+    /// Windows to `release` when it updates Windows. Still a failure: the
+    /// install can't start on this version.
+    BuildTransition {
+        /// This PC's version, such as "24H2".
+        current: String,
+        release: String,
+    },
     UpdatesNone,
     UpdatesPending {
         titles: Vec<String>,
@@ -193,6 +201,18 @@ pub fn run(id: CheckId, ctx: &CheckContext) -> CheckResult {
                     super::windows_release::Status::Preview => (Verdict::Fail, D::WindowsPreview),
                     super::windows_release::Status::Unknown => (Verdict::Unknown, D::WindowsReleaseUnknown),
                 }
+            } else if let Some((transition, _)) = super::windows_release::transition_for(
+                &ctx.system,
+                &ctx.supported_builds,
+                super::desktop_setup::active(),
+            ) {
+                (
+                    Verdict::Fail,
+                    D::BuildTransition {
+                        current: ctx.system.display_version.clone(),
+                        release: transition.target_release.to_owned(),
+                    },
+                )
             } else {
                 (
                     Verdict::Fail,
@@ -206,14 +226,7 @@ pub fn run(id: CheckId, ctx: &CheckContext) -> CheckResult {
             Err(error) => (Verdict::Unknown, D::UpdatesUnknown { error: format!("{error:#}") }),
         },
         CheckId::PendingReboot => match reboot_markers() {
-            Ok(markers) if !markers.blocking.is_empty() => (
-                Verdict::Fail,
-                D::RebootPending { reasons: markers.blocking.iter().map(|r| (*r).to_owned()).collect() },
-            ),
-            Ok(markers) if !markers.file_renames.is_empty() => {
-                (Verdict::Warn, D::RebootFileRenames { files: markers.file_renames })
-            }
-            Ok(_) => (Verdict::Pass, D::RebootNone),
+            Ok(markers) => reboot_verdict(markers),
             Err(error) => (Verdict::Unknown, D::RebootUnknown { error: format!("{error:#}") }),
         },
         CheckId::ThirdPartyAntivirus => match third_party_antivirus() {
@@ -256,8 +269,50 @@ pub fn run(id: CheckId, ctx: &CheckContext) -> CheckResult {
     CheckResult { id, verdict, detail }
 }
 
+/// Whether Windows owes a restart, from the flags servicing and Windows Update
+/// set for it. Pending file replacements on their own are only a note: an
+/// update can queue some (printer drivers, for one) without either flag, and
+/// apps such as Xbox Gaming Services queue one at every boot.
+fn reboot_verdict(markers: providers::RebootMarkers) -> (Verdict, CheckDetail) {
+    if !markers.blocking.is_empty() {
+        (
+            Verdict::Fail,
+            CheckDetail::RebootPending {
+                reasons: markers.blocking.iter().map(|r| (*r).to_owned()).collect(),
+            },
+        )
+    } else if !markers.file_renames.is_empty() {
+        (Verdict::Pass, CheckDetail::RebootFileRenames { files: markers.file_renames })
+    } else {
+        (Verdict::Pass, CheckDetail::RebootNone)
+    }
+}
+
 #[cfg(test)]
 mod tests {
+
+    /// The 20 printer driver replacements the September 2026 cumulative update
+    /// left after its restart, with neither restart flag set.
+    #[test]
+    fn file_replacements_without_a_restart_flag_never_need_attention() {
+        let driver = |name: &str| format!(r"C:\Windows\System32\spool\drivers\x64\3\New\{name}");
+        let files: Vec<String> =
+            ["MXDWDRV.DLL", "PJLMON.DLL", "PS5UI.DLL", "PSCRIPT5.DLL", "UNIDRV.DLL", "UNIDRVUI.DLL"]
+                .iter()
+                .map(|name| driver(name))
+                .collect();
+        let (verdict, detail) =
+            reboot_verdict(providers::RebootMarkers { blocking: vec![], file_renames: files.clone() });
+        assert_eq!(verdict, Verdict::Pass);
+        assert_eq!(detail, CheckDetail::RebootFileRenames { files: files.clone() });
+        let (verdict, _) =
+            reboot_verdict(providers::RebootMarkers { blocking: vec!["servicing"], file_renames: files });
+        assert_eq!(verdict, Verdict::Fail, "a restart flag still needs a restart");
+        assert_eq!(
+            reboot_verdict(providers::RebootMarkers { blocking: vec![], file_renames: vec![] }),
+            (Verdict::Pass, CheckDetail::RebootNone)
+        );
+    }
     use super::*;
 
     fn result(id: CheckId, verdict: Verdict) -> CheckResult {
@@ -306,10 +361,25 @@ mod tests {
         }
         context.system.edition_id = "Professional".into();
         assert_eq!(run(CheckId::SupportedBuild, &context).verdict, Verdict::Pass);
-        context.system.build = 26100;
+        context.system.build = 22631;
         let result = run(CheckId::SupportedBuild, &context);
         assert!(result.blocks_install());
-        assert_eq!(result.detail, CheckDetail::BuildUnsupported { supported: vec![26200], actual: 26100 });
+        assert_eq!(result.detail, CheckDetail::BuildUnsupported { supported: vec![26200], actual: 22631 });
+        // A version Atlas moves from still fails: the install can't start on it.
+        context.system.build = 26100;
+        context.system.display_version = "24H2".into();
+        context.supported_builds = vec![26200, 26300];
+        let result = run(CheckId::SupportedBuild, &context);
+        assert!(result.blocks_install());
+        assert_eq!(
+            result.detail,
+            CheckDetail::BuildTransition { current: "24H2".into(), release: "26H2".into() }
+        );
+        // Home on that version is ruled out by its edition first.
+        context.system.edition_id = "Core".into();
+        assert_eq!(run(CheckId::SupportedBuild, &context).detail, CheckDetail::EditionUnsupported);
+        context.system.edition_id = "Professional".into();
+        context.supported_builds = vec![26200];
         context.system.build = 26200;
         context.system.installation_type = "Server".into();
         assert!(run(CheckId::SupportedBuild, &context).blocks_install());

@@ -50,6 +50,26 @@ pub struct OwedRestart {
     pub epoch: u64,
 }
 
+/// A restart Atlas holds until the user confirms it, because other people
+/// are signed in and restarting closes their apps too.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RestartConfirmation {
+    pub kind: RestartKind,
+    /// Their account names, each once.
+    pub people: Vec<String>,
+}
+
+/// Which restart is waiting to be confirmed.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RestartKind {
+    /// The restart that completes an install, from its countdown or Restart now.
+    Install,
+    /// Home's Restart now, for an install that still owes its restart.
+    Owed,
+    /// The restart Get ready asks for while preparing Windows.
+    Preparation,
+}
+
 /// What the restart timer found when it woke.
 enum Tick {
     Continue,
@@ -75,7 +95,12 @@ impl AppModel {
     /// The countdown is chosen once, as it starts: the usual one while the
     /// window is in front, a longer one when nobody may be looking at it. It
     /// doesn't shorten if the user comes back.
+    /// Nothing counts down while other people are signed in: Atlas asks
+    /// first, and restarts only once the user agrees.
     pub(super) fn begin_restart_countdown(&mut self, cx: &mut Context<Self>) {
+        if self.hold_for_other_sessions(RestartKind::Install, cx) {
+            return;
+        }
         let timing = self.env.restart;
         let total = if self.window_active { timing.countdown } else { timing.background_countdown };
         let generation = self.restart_generation.next();
@@ -114,6 +139,11 @@ impl AppModel {
                 if this.restart_declined() {
                     this.follow_declined_restart();
                     cx.notify();
+                } else if this.hold_for_other_sessions(RestartKind::Install, cx) {
+                    // Someone signed in during the countdown. This timer is
+                    // ending, so only the countdown goes.
+                    this.restart_generation.next();
+                    this.attempt.restart = None;
                 } else {
                     this.request_restart(cx);
                 }
@@ -243,6 +273,15 @@ impl AppModel {
     /// request Windows accepted but hasn't acted on by the end of the grace
     /// period.
     pub fn restart_owed_now(&mut self, cx: &mut Context<Self>) {
+        if self.owed_restart().is_none_or(|owed| owed.requested)
+            || self.hold_for_other_sessions(RestartKind::Owed, cx)
+        {
+            return;
+        }
+        self.request_owed_restart(cx);
+    }
+
+    fn request_owed_restart(&mut self, cx: &mut Context<Self>) {
         if self.owed_restart().is_none_or(|owed| owed.requested) {
             return;
         }
@@ -284,6 +323,63 @@ impl AppModel {
         }
         self.stop_restart_timer();
         self.attempt.restart_cancelled = false;
+        if self.hold_for_other_sessions(RestartKind::Install, cx) {
+            return;
+        }
         self.request_restart(cx);
+    }
+
+    /// The restart waiting for the user to confirm it over other people's
+    /// sessions, if any.
+    pub fn restart_confirmation(&self) -> Option<&RestartConfirmation> {
+        self.restart_confirmation.as_ref()
+    }
+
+    /// Reads who else is signed in right before a restart. With nobody,
+    /// the restart goes ahead; otherwise it is held and the shell asks.
+    /// A list Windows won't give is logged, and the restart goes ahead as
+    /// it did before Atlas looked.
+    pub(super) fn hold_for_other_sessions(&mut self, kind: RestartKind, cx: &mut Context<Self>) -> bool {
+        let people = match (self.env.adapters.read_other_sessions)() {
+            Ok(people) => people,
+            Err(error) => {
+                log::warn!("could not read who else is signed in: {error:#}");
+                Vec::new()
+            }
+        };
+        if people.is_empty() {
+            return false;
+        }
+        log::info!("{} other people signed in; asking before the {kind:?} restart", people.len());
+        self.restart_confirmation = Some(RestartConfirmation { kind, people });
+        cx.notify();
+        true
+    }
+
+    /// The user chose to restart although other people are signed in.
+    pub fn confirm_restart(&mut self, cx: &mut Context<Self>) {
+        let Some(confirmation) = self.restart_confirmation.take() else { return };
+        log::info!("restart confirmed over other people's sessions");
+        match confirmation.kind {
+            RestartKind::Install => {
+                if self.flow.run.succeeded() && !self.attempt.restart_requested {
+                    self.stop_restart_timer();
+                    self.attempt.restart_cancelled = false;
+                    self.request_restart(cx);
+                }
+            }
+            RestartKind::Owed => self.request_owed_restart(cx),
+            RestartKind::Preparation => self.restart_preparation_now(cx),
+        }
+        cx.notify();
+    }
+
+    /// The user kept the PC running for the others. The restart is still
+    /// owed, and Restart now asks again.
+    pub fn decline_restart_confirmation(&mut self, cx: &mut Context<Self>) {
+        if self.restart_confirmation.take().is_some() {
+            log::info!("restart not confirmed; other people are signed in");
+            cx.notify();
+        }
     }
 }

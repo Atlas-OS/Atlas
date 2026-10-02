@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use gpui::Context;
 
 use super::install::disarm_completion;
-use super::{Acquisition, AppModel, ElevationProblem, Page, RunState, Step};
+use super::{Acquisition, AppModel, ElevationProblem, Page, RestoreStatus, RunState, Step};
 use crate::services::iso;
 use crate::services::settings::{self, InstallDraft};
 
@@ -77,6 +77,9 @@ impl AppModel {
         }
         if self.flow.step == Step::Ready {
             self.enter_ready(cx);
+        }
+        if self.flow.step == Step::Options && self.flow.may_edit() {
+            self.apply_recorded_choices();
         }
         self.save_draft(cx);
         self.sync_security_watch(cx);
@@ -258,6 +261,17 @@ impl AppModel {
         self.acknowledged.clear();
         self.preflight_problem = None;
         self.elevation_error = None;
+        // Licence terms and the version choice belong to one flow.
+        self.windows_terms_accepted = false;
+        self.windows_transition_declined = false;
+        self.recorded_choices_applied = false;
+        self.store_outcome_seen = None;
+        self.stop_offer_wait();
+        // An earlier put-back that failed is offered again from what the
+        // record says now, not from that failure.
+        if matches!(self.restore_status, RestoreStatus::Failed(_)) {
+            self.restore_status = RestoreStatus::Idle;
+        }
         self.security_reminder = false;
         self.forget_pending_reminder(cx);
         self.returning_to_install = false;
@@ -321,6 +335,7 @@ impl AppModel {
             return;
         }
         self.returning_to_install = false;
+        self.stop_offer_wait();
         // Protection was switched off for an install that is not happening
         // (or that stopped early); remind the user to put it back.
         self.security_reminder = !finished_ok && self.security.any_off();

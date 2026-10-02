@@ -52,11 +52,19 @@ pub fn stage() -> Result<PathBuf> {
     invoke(serde_json::json!({"operation":"executable", "source":source}))
 }
 
-pub fn stage_preparation(job: &Path, worker: &str, policy: &[u8]) -> Result<()> {
+/// Stages the worker, the libraries it dot-sources and the driver policy in a
+/// protected job directory.
+pub fn stage_preparation(
+    job: &Path,
+    worker: &str,
+    library: &str,
+    registry: &str,
+    policy: &[u8],
+) -> Result<()> {
     let (scope, name) = job_names(job)?;
     invoke_for(
         job,
-        serde_json::json!({"operation":"preparation", "scope":scope, "job":name, "worker":worker, "policy":policy}),
+        serde_json::json!({"operation":"preparation", "scope":scope, "job":name, "worker":worker, "library":library, "registry":registry, "policy":policy}),
     )
 }
 

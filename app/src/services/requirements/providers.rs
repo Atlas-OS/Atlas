@@ -40,7 +40,22 @@ const UPGRADES_CATEGORY: &str = "3689bdc8-b205-4af4-8d4a-a63924c5e9d5";
 /// single-threaded apartment without a message pump, slow providers return
 /// nothing.
 pub(super) fn pending_updates() -> Result<Vec<String>> {
+    let start = LOCAL_MACHINE
+        .open(r"SYSTEM\CurrentControlSet\Services\wuauserv")
+        .and_then(|key| key.get_u32("Start"))
+        .ok();
+    if !may_search(start) {
+        anyhow::bail!("the Windows Update service is turned off, so Atlas didn't search");
+    }
     UPDATE_SEARCH.run(UPDATE_SEARCH_DEADLINE, pending_updates_on_this_thread)
+}
+
+/// Whether the Windows Update service's start type lets the check search.
+/// An elevated search with the service disabled sets it to start on demand,
+/// which would change the PC before Get ready has recorded how Windows Update
+/// was set; the update step turns it on itself, and puts it back.
+fn may_search(start: Option<u32>) -> bool {
+    start != Some(4)
 }
 
 fn pending_updates_on_this_thread() -> Result<Vec<String>> {
@@ -51,6 +66,7 @@ fn pending_updates_on_this_thread() -> Result<Vec<String>> {
         let searcher = session.CreateUpdateSearcher().context("create the update searcher")?;
         searcher.SetOnline(VARIANT_BOOL::from(false))?;
         let manual_drivers = preparation::existing_driver_policy() == preparation::Drivers::Manual;
+        let reoffered = preparation::reoffered_updates();
         let result = searcher
             .Search(&BSTR::from(
                 "IsInstalled=0 and IsHidden=0 and BrowseOnly=0 and DeploymentAction='Installation'",
@@ -63,6 +79,11 @@ fn pending_updates_on_this_thread() -> Result<Vec<String>> {
             let update = updates.get_Item(index)?;
             // Drivers are left alone when the user installs them by hand.
             if manual_drivers && update.Type()? == utDriver {
+                continue;
+            }
+            // Offered again after it installed: the worker no longer waits for it.
+            let identity = update.Identity()?;
+            if reoffered.contains(&format!("{}/{}", identity.UpdateID()?, identity.RevisionNumber()?)) {
                 continue;
             }
             let categories = update.Categories()?;
@@ -221,6 +242,14 @@ mod tests {
         // Nothing to verify against: fail closed.
         for executable in [None, Some(String::new()), Some("windowsdefender://".to_owned())] {
             assert!(AntivirusProduct { name: "X".into(), executable }.installed());
+        }
+    }
+
+    #[test]
+    fn a_disabled_windows_update_service_is_never_searched() {
+        assert!(!super::may_search(Some(4)));
+        for start in [Some(2), Some(3), None] {
+            assert!(super::may_search(start), "{start:?}");
         }
     }
 }

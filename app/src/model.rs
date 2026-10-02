@@ -11,17 +11,20 @@ mod elevation;
 mod eligibility;
 mod install;
 mod navigation;
+mod offer_wait;
 mod options;
 mod package;
 mod preferences;
 mod preparation;
 mod preview;
+mod rebase;
 mod recovery;
 mod restart;
 #[cfg(test)]
 pub(crate) mod test_harness;
 #[cfg(test)]
 mod tests;
+mod transition;
 
 pub use checks::{ReadyHelp, ReadyStatus};
 pub use elevation::ElevationProblem;
@@ -30,7 +33,8 @@ pub use install::{InstallAttempt, Preflight};
 pub use options::ScreenKind;
 pub use package::{AcquireProblem, Acquisition, Origin, PlaybookSource, ReleaseCheck};
 pub use preferences::{ProtectionReminder, ReminderReason};
-pub use restart::{OwedRestart, RestartCountdown, RestartProblem};
+pub use restart::{OwedRestart, RestartConfirmation, RestartCountdown, RestartKind, RestartProblem};
+pub use transition::{RestoreStatus, StopQuestion};
 
 // The Install page's tests check the Windows Security rule directly.
 #[cfg(test)]
@@ -53,7 +57,8 @@ use crate::services::requirements::{CheckId, CheckResult};
 use crate::services::security::SecurityStatus;
 use crate::services::session::{SessionPaths, SessionRecord};
 use crate::services::settings::{self, AppSettings, SettingsProblem};
-use crate::services::system::{AccessibilityPreferences, SystemInfo};
+use crate::services::system::AccessibilityPreferences;
+use crate::services::update_access::UpdateAccess;
 use crate::services::{self, desktop_setup, diagnostics, iso};
 
 use navigation::PendingStart;
@@ -99,6 +104,9 @@ pub enum Notice {
 pub enum ModelEvent {
     ThemeChanged,
     LanguageChanged,
+    /// Something the user waited for while the window may be behind others
+    /// has happened, such as Windows Update offering the new release.
+    NeedsAttention,
 }
 
 /// Counts restarts of one kind of background task. A task keeps the
@@ -133,6 +141,9 @@ pub enum CloseGuard {
     Install,
     /// The restart countdown is running, and only this window keeps it.
     Restart,
+    /// Windows Update is turned on for an update that hasn't changed Windows
+    /// yet: closing puts the settings back first, or keeps the window.
+    WindowsUpdateAccess,
     /// A setup is under way with Windows Security switches read off:
     /// closing leaves them off unless the user finishes or turns them back on.
     ProtectionOff,
@@ -172,7 +183,35 @@ pub struct AppModel {
     pub page_visit: u64,
     /// The page the report page was opened from, for its back arrow.
     report_return: Page,
-    pub system: SystemInfo,
+    pub system: services::system::SystemInfo,
+    /// What holds Windows Update back and Atlas's record of what it turned
+    /// on for an update; `None` until read, or when it can't be.
+    pub update_access: Option<UpdateAccess>,
+    /// The user chose to keep this Windows version where moving is optional.
+    pub windows_transition_declined: bool,
+    /// The user accepted Microsoft's licence terms for the version Atlas
+    /// moves Windows to, in this flow.
+    pub windows_terms_accepted: bool,
+    /// This flow started Your choices from the installed Atlas's choices; the
+    /// user's changes since then stand.
+    recorded_choices_applied: bool,
+    /// What updating in this flow did about Microsoft Store itself, kept
+    /// across a run that ended in a restart.
+    store_outcome_seen: Option<services::preparation::StoreOutcome>,
+    /// Get ready is waiting for Windows Update to offer the new release.
+    pub offer_wait: Option<offer_wait::OfferWait>,
+    offer_wait_generation: Generation,
+    offer_wait_task: Option<Task<()>>,
+    /// Refreshes Get ready while it waits between looks.
+    offer_wait_tick: Option<Task<()>>,
+    /// When a run first said it was waiting for the offer, in this flow.
+    offer_waiting_since: Option<std::time::Instant>,
+    /// This window has looked for an offer it found missing before it opened.
+    offer_reopen_checked: bool,
+    /// The install options an Atlas without a state document shows on the PC,
+    /// read with the installation state.
+    pub legacy_choices: Vec<String>,
+    pub restore_status: RestoreStatus,
     pub elevated: bool,
     pub atlas: Result<Option<AtlasState>, String>,
     pub install_identity: Result<atlas_state::InstallIdentity, String>,
@@ -275,6 +314,8 @@ pub struct AppModel {
     /// A finished install still owes its restart (see
     /// [`AppModel::owed_restart`]).
     owed_restart: Option<OwedRestart>,
+    /// A restart held until the user confirms it over other people's sessions.
+    restart_confirmation: Option<RestartConfirmation>,
     session_paths: SessionPaths,
 }
 
@@ -331,6 +372,7 @@ impl AppModel {
         let session_paths = env.paths.session();
         let store = settings::Store::new(env.paths.settings(), env.settings_lock_wait);
         let elevated = (env.adapters.is_elevated)();
+        let system = (env.adapters.read_system)();
         let mut model = Self {
             diagnostics_busy: false,
             diagnostics_result: None,
@@ -348,6 +390,7 @@ impl AppModel {
             driver_default: (env.adapters.read_driver_default)(),
             install_identity: (env.adapters.read_install_identity)().map_err(|e| format!("{e:#}")),
             atlas: (env.adapters.read_atlas_state)().map_err(|e| format!("{e:#}")),
+            legacy_choices: (env.adapters.read_legacy_choices)(),
             env,
             page: Page::Home,
             page_visit: 0,
@@ -355,7 +398,19 @@ impl AppModel {
             iso_busy: false,
             usb_busy: false,
             iso_cancel: Arc::new(AtomicBool::new(false)),
-            system: SystemInfo::read(),
+            system,
+            update_access: None,
+            windows_transition_declined: false,
+            windows_terms_accepted: false,
+            recorded_choices_applied: false,
+            store_outcome_seen: None,
+            offer_wait: None,
+            offer_wait_generation: Generation::default(),
+            offer_wait_task: None,
+            offer_wait_tick: None,
+            offer_waiting_since: None,
+            offer_reopen_checked: false,
+            restore_status: RestoreStatus::Idle,
             elevated,
             settings: loaded.settings,
             notice: loaded.problem.map(Notice::SettingsReset),
@@ -407,6 +462,7 @@ impl AppModel {
             protection: None,
             protection_generation: Generation::default(),
             owed_restart: None,
+            restart_confirmation: None,
             session_paths,
         };
         if let Some(preview) = preview::requested() {
@@ -416,15 +472,20 @@ impl AppModel {
         if model.env.check_updates {
             model.check_for_updates(cx);
         }
+        model.refresh_update_access();
         model.begin_recovery(cx);
         model.refresh_page_notices(cx);
         model
     }
 
-    /// An install, an ISO or USB job, or Windows preparation is running;
-    /// nothing that feeds the install may change.
+    /// An install, an ISO or USB job, Windows preparation or putting back
+    /// Windows Update settings is running; nothing that feeds the install
+    /// may change.
     pub fn locked(&self) -> bool {
-        self.flow.locked() || self.iso_busy || self.preparation.busy()
+        self.flow.locked()
+            || self.iso_busy
+            || self.preparation.busy()
+            || self.restore_status == RestoreStatus::Running
     }
 
     /// Whether the shell's window is in front, as it reports on activation.

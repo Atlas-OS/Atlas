@@ -31,6 +31,10 @@ impl AppModel {
             option_screen: self.option_screen,
             session: self.own_session.clone(),
             flow: self.flow_id.clone(),
+            windows_transition_declined: self.windows_transition_declined,
+            windows_terms_accepted: self.windows_terms_accepted,
+            recorded_choices_applied: self.recorded_choices_applied,
+            store_outcome: self.store_outcome_seen.map(|outcome| outcome.id().to_owned()),
         })
     }
 

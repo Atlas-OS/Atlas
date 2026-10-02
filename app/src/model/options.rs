@@ -94,7 +94,7 @@ impl AppModel {
     }
 
     pub fn choose_option(&mut self, page_index: usize, name: &str, cx: &mut Context<Self>) {
-        if self.original_options().is_some() || self.locked() || !self.flow.may_edit() {
+        if self.locked_options().is_some() || self.locked() || !self.flow.may_edit() {
             return;
         }
         let Some(page) = self.manifest().pages.get(page_index) else { return };
@@ -156,10 +156,11 @@ fn place_with_children(
 
 impl AppModel {
     /// Option names to pass to the installer: an unfinished install's
-    /// original choices, or the current ones honouring `DependsOn` pages.
+    /// original choices, a rebuilt Windows's kept ones, or the current ones
+    /// honouring `DependsOn` pages.
     pub fn effective_options(&self) -> Vec<String> {
-        if let Some(options) = self.original_options() {
-            return options.to_vec();
+        if let Some(options) = self.locked_options() {
+            return options;
         }
         let manifest = self.manifest();
         let mut names = Vec::new();

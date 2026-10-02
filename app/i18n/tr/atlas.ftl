@@ -1060,3 +1060,147 @@ report-validation-contact = İletişim bilgilerini { $max } karakterle sınırla
 report-validation-consent = Bu raporu göndermeyi kabul ettiğinizi onaylayın.
 
 report-failed-title = Rapor gönderilmedi
+
+## Windows version update
+home-plan-intro = Bu güncelleştirme iki bölümden oluşur. Dosyalarınız ve uygulamalarınız korunur. Windows'u güncelleştirmek Atlas'ın değişikliklerinden bazılarını geri alırsa Atlas bunları yeniden uygular.
+home-plan-windows-title = Windows 11, sürüm { $release }
+home-plan-windows-detail = Atlas bunu Windows Update'ten yükler. Tamamlamak için bilgisayarınız yeniden başlar.
+home-plan-windows-optional = Önerilir. Atlas bunu Windows Update'ten yükler. Tamamlamak için bilgisayarınız yeniden başlar.
+home-plan-atlas-title = Atlas { $version }
+home-plan-atlas-detail = Atlas dosyalarını güncelleştirir ve yaptığınız seçimleri korur. Sonunda bilgisayarınız yeniden başlar.
+home-end-of-updates-title = Windows 11 { $current } sürümü için güvenlik güncelleştirmeleri { $date } tarihinde sona eriyor
+home-end-of-updates-past-title = Windows 11 { $current } sürümü artık güvenlik güncelleştirmesi almıyor
+home-end-of-updates-message = Atlas { $version } sürümüne güncelleştirmek bu bilgisayarı Windows 11 { $release } sürümüne de geçirir. Bu sürüm { $until } tarihine kadar güvenlik güncelleştirmeleri alır.
+install-windows-edition = Atlas { $version } sürümü Windows 11 Pro, Enterprise ve Education ile çalışır. Bu bilgisayarda { $product } yüklü, bu yüzden Atlas bu bilgisayara kurulamaz.
+install-windows-edition-ending = Atlas { $version } sürümü Windows 11 Pro, Enterprise ve Education ile çalışır. Bu bilgisayarda { $product } yüklü, bu yüzden Atlas bu bilgisayara kurulamaz. Windows 11 { $current } sürümü için güvenlik güncelleştirmeleri { $date } tarihinde sona eriyor. Windows Update bu bilgisayarı daha yeni bir sürüme geçirebilir.
+install-windows-no-path = Atlas { $version } sürümü için Windows 11 { $releases } sürümü gerekiyor ve Windows Update bu bilgisayarı mevcut Windows'tan bu sürüme geçiremiyor. Atlas { $version } sürümünü kullanmak için dosyalarınızı yedekleyin ve Windows'u bir Atlas ISO'suyla yeniden yükleyin.
+home-update-access-title = Atlas güncelleştirmesi için Windows Update ayarları değiştirildi
+home-update-access-not-offered = Atlas, bu bilgisayarı Windows 11 { $release } sürümüne geçirmek için Windows Update'i açtı, ancak Windows Update bu sürümü henüz sunmadı. Yeniden denetle'yi veya Ayarları geri yükle'yi seçin.
+home-update-access-before = Atlas, bu bilgisayarı Windows 11 { $release } sürümüne geçirmek için Windows Update'i açtı ve işlemi henüz bitirmedi. Güncelleştirmeye devam edin veya Ayarları geri yükle'yi seçin.
+home-update-access-after = Bu bilgisayarda Windows 11 { $release } sürümü var. Atlas kurulumunu tamamlayın veya Ayarları geri yükle'yi seçin.
+home-update-access-plain = Atlas, güncelleştirmeleri yüklemek için Windows Update'i açtı ve işlemi henüz bitirmedi. Güncelleştirmeye devam edin veya Ayarları geri yükle'yi seçin.
+home-update-access-unreadable = Atlas, değiştirdiği Windows Update ayarlarının kaydını okuyamıyor, bu yüzden hiçbir şeyi değiştirmeyecek veya geri yüklemeyecek. Atlas ekibinin yardımcı olabilmesi için Rapor gönder'i seçin.
+home-update-access-failed = Atlas ayarları geri yükleyemedi. Yeniden deneyin veya Rapor gönder'i seçin. Ayrıntılar: { $error }
+home-update-access-install-active = Önce Atlas kurulumunu tamamlayın. Kurulumun son adımı bu ayarları geri yükler.
+home-continue-update = Güncelleştirmeye devam et
+home-put-back = Ayarları geri yükle
+home-putting-back = Ayarlar geri yükleniyor…
+windows-card-title = Windows 11, sürüm { $release }
+windows-card-required = Atlas { $version } sürümü için daha yeni bir Windows sürümü gerekiyor. Atlas aşağıda Windows'u güncelleştirirken Windows Update'ten Windows 11 { $release } sürümünü de yükler.
+windows-card-question = Bu bilgisayar hangi Windows sürümünü kullansın?
+windows-choice-move = Windows 11 { $release } sürümüne güncelleştir
+windows-choice-move-detail = Önerilir. { $date } tarihine kadar güvenlik güncelleştirmeleri. Bir yeniden başlatma daha.
+windows-choice-keep = Windows 11 { $current } sürümünde kal
+windows-choice-keep-detail = Bilgisayarınız bu sürümde kalır. Windows Update onu daha yeni bir sürüme geçirmez, bu yüzden daha sonra geçmek için Atlas Manager'da ayrı bir güncelleştirme gerekir.
+windows-card-facts = Neler değişir
+windows-fact-keep = Dosyalarınız ve uygulamalarınız korunur. Güncelleştirme Atlas'ın değişikliklerinden bazılarını geri alırsa Atlas, kurulurken bunları yeniden uygular.
+windows-fact-restart = Tamamlamak için bilgisayarınız en az bir kez daha yeniden başlar.
+transition-offer-expectation = Windows Update bu sürümü genellikle birkaç dakika içinde sunar, ancak bu 2 saate kadar sürebilir; Atlas sizin yerinize bekler ve denetler.
+windows-fact-stays = Sonrasında Windows { $release } sürümünde kalır ve kendiliğinden daha yeni bir sürüme geçmez.
+windows-fact-removed = { $release } sürümünde Windows PowerShell 2.0 ve WMIC aracı yer almaz.
+# Güncelleştirme geçmişi (Update history), Geri dön (Go back) and Sistem > Kurtarma are
+# Windows' own Turkish labels.
+windows-card-undo = Daha sonra geri almak için güncelleştirmeyi Windows Update > Güncelleştirme geçmişi bölümünden kaldırın. Windows güncelleştirme sırasında kendini yeniden yüklediyse bunun yerine 10 gün içinde Ayarlar > Sistem > Kurtarma bölümünde Geri dön'ü seçin. Atlas { $version } sürümü { $current } sürümünü desteklemez, bu yüzden Atlas { $version } kurulduktan sonra bu güncelleştirmeyi geri almayın.
+windows-card-undo-optional = Daha sonra geri almak için güncelleştirmeyi Windows Update > Güncelleştirme geçmişi bölümünden kaldırın. Windows güncelleştirme sırasında kendini yeniden yüklediyse bunun yerine 10 gün içinde Ayarlar > Sistem > Kurtarma bölümünde Geri dön'ü seçin.
+windows-terms = Windows 11 { $release } sürümü için Microsoft Yazılım Lisans Koşulları'nı kabul ediyorum
+windows-terms-link = Lisans koşullarını oku
+windows-card-locked = { $current } sürümünde kalmak için İptal'i, ardından Güncellemeyi durdur'u seçin.
+prepare-description-transition = Atlas, kurulumdan önce Windows'un beklediği güncelleştirmeleri, ardından Windows 11 { $release } sürümünü yükler, sonra da Microsoft Store'u ve Store uygulamalarınızı güncelleştirir. Açık Store uygulamaları güncelleştirilirken kapanabilir; bu yüzden önce bu uygulamalardaki çalışmanızı kaydedin. Bilgisayarınız en az bir kez yeniden başlar.
+prepare-start-transition = Windows'u { $release } sürümüne güncelleştir
+prepare-needs-terms = Windows 11, sürüm { $release } kartında lisans koşullarını kabul ettiğinizde kullanılabilir.
+ready-banner-not-offered-message = Şimdi neler yapabileceğinizi görmek için Windows ve Store güncellemeleri kartına bakın.
+ready-banner-transition-failed-message = Sonra ne yapmanız gerektiğini görmek için Windows ve Store güncellemeleri kartına bakın.
+ready-banner-terms-title = Devam etmek için lisans koşullarını kabul edin
+ready-banner-terms-message = Koşullar bu sayfanın aşağısındaki Windows 11, sürüm { $release } kartında. Ardından Windows'u { $release } sürümüne güncelleştir'i seçin.
+access-notice-title = Atlas, Windows Update'i geçici olarak açıyor
+access-off = Windows Update bu bilgisayarda kapalı. Atlas, Windows'u güncelleştirirken onu yeniden açar.
+access-paused = Windows güncelleştirmeleri bu bilgisayarda duraklatılmış. Atlas, Windows'u güncelleştirirken bunları sürdürür.
+access-delayed = Aylık güncelleştirmeler bu bilgisayarda ertelenmiş. Atlas, Windows'u güncelleştirirken ertelemeyi kaldırır.
+access-back-chosen = Atlas { $version } kurulduğunda bu ayarlar seçtiğiniz şekle döner.
+access-back = Atlas { $version } kurulduğunda bu ayarlar eski hâline döner.
+access-back-stop = Bundan önce durdurursanız Atlas bunları geri yükler.
+prepare-reboot-transition = Windows 11 { $release } sürümü yüklendi. Yüklemeyi tamamlamak için Yeniden başlat ve devam et'i seçin. Oturum açtıktan sonra Atlas yeniden açılır.
+prepare-reboot-commit = { $release } sürümünün yüklenmesini tamamlamak için Windows'un bir kez daha yeniden başlatılması gerekiyor. Oturum açtıktan sonra Atlas yeniden açılır.
+prepare-restart-commit-failed = Windows, { $release } sürümünü yeniden başlatma sırasında tamamlanacak şekilde hazırlayamadı, bu yüzden bilgisayarınız yeniden başlamadı. Yeniden denemek için Yeniden başlat ve devam et'i seçin.
+prepare-reason-feature-update = yeni Windows sürümü
+prepare-reason-feature-commit = yeni Windows sürümünün tamamlanması
+prepare-resumed-transition = Bilgisayarınız yeniden başladı. Atlas'ın Windows 11 { $release } sürümünün tamamlandığını denetlemesi ve kalan güncelleştirmeleri yüklemesi için Güncellemelere devam et'i seçin.
+prepare-waiting-offer = Windows Update'in Windows 11 { $release } sürümünü sunması bekleniyor. Bu genellikle birkaç dakika sürer, ancak 2 saate kadar sürebilir. Bilgisayarınızı kullanmaya devam edebilirsiniz; Atlas'ı açık bırakın.
+prepare-resumed-before-move = Bilgisayarınız, güncelleştirmelerin yüklenmesini tamamlamak için yeniden başladı. Atlas'ın kalan güncelleştirmeleri, ardından Windows 11 { $release } sürümünü yükleyebilmesi için Güncellemelere devam et'i seçin.
+prepare-not-offered-title = Windows Update'in Windows 11 { $release } sürümünü sunması bekleniyor
+prepare-transition-failed-title = Windows, { $release } sürümüne geçemedi
+prepare-failed-feature-not-offered = Windows Update'in Windows 11 { $release } sürümünü bir bilgisayara sunması biraz zaman alabilir. Bilgisayarınızda hâlâ { $current } sürümü var.
+prepare-offer-rechecking = Atlas her 10 dakikada bir yeniden denetler ve Windows Update bu sürümü sunar sunmaz kendiliğinden devam eder. Yeniden denetle'yi de seçebilirsiniz.
+prepare-offer-waited =
+    { $minutes ->
+        [one] { $minutes } dakikadır bekleniyor.
+       *[other] { $minutes } dakikadır bekleniyor.
+    }
+prepare-offer-next-check =
+    { $minutes ->
+        [one] Sonraki denetim { $minutes } dakika sonra.
+       *[other] Sonraki denetim { $minutes } dakika sonra.
+    }
+prepare-offer-checking-now = Şimdi denetleniyor.
+prepare-offer-check-again = Şimdi denetlemek için Yeniden denetle'yi seçin.
+prepare-offer-wait-ended-title = Windows Update, Windows 11 { $release } sürümünü henüz sunmadı
+prepare-offer-wait-ended = Windows Update, Windows 11 { $release } sürümünü 2 saat içinde sunmadı, bu yüzden Atlas beklemeyi bıraktı ve Windows Update ayarlarınızı geri yükledi. Daha sonra Yeniden denetle'yi seçin. Bekleyemiyorsanız dosyalarınızı yedekleyin ve Windows'u bir Atlas ISO'suyla yeniden yükleyin.
+prepare-offer-wait-put-back-failed = Windows Update, Windows 11 { $release } sürümünü 2 saat içinde sunmadı ve Atlas, Windows Update ayarlarınızı geri yükleyemedi. Yeniden denemek için Ayarları geri yükle'yi seçin. Ayrıntılar: { $error }
+prepare-failed-feature-hardware = Bu bilgisayar Windows 11 donanım gereksinimlerini karşılamıyor ({ $missing }), bu yüzden Windows Update onu { $release } sürümüne geçirmez. Bilgisayarınızda hâlâ { $current } sürümü var. Atlas { $version } sürümünü kullanmak için dosyalarınızı yedekleyin ve Windows'u bir Atlas ISO'suyla yeniden yükleyin.
+hardware-tpm = TPM 2.0
+hardware-uefi = UEFI ürün yazılımı
+prepare-failed-feature-hidden = Windows 11 { $release } sürümü bu bilgisayarda Windows Update'te gizlenmiş. Gizlemek için kullandığınız araçla yeniden gösterin, ardından Yeniden dene'yi seçin.
+prepare-failed-feature-disk-space = Windows'un bu güncelleştirme için { $drive } sürücüsünde en az { $needed } GB boş alana ihtiyacı var, sürücüde ise { $free } GB boş alan var. Atlas hiçbir şeyi değiştirmedi. Alan boşaltın, ardından Yeniden dene'yi seçin.
+prepare-failed-feature-servicing = Windows, bileşen deposunda onaramadığı bir hasar bildiriyor, bu yüzden Atlas hiçbir şeyi değiştirmedi. Windows'u onarın, ardından Yeniden dene'yi seçin.
+prepare-failed-feature-managed = Bu bilgisayar güncelleştirmeleri bir kuruluşun güncelleştirme sunucusundan alıyor, bu yüzden Atlas onu { $release } sürümüne geçiremez. Atlas hiçbir şeyi değiştirmedi.
+prepare-failed-feature-policy = Bu bilgisayardaki bir şey, Atlas değiştirdikten sonra şunu sürekli eski hâline getiriyor: { $setting }. Bu yüzden Atlas Windows'u güncelleştiremiyor. Bu bilgisayarı bir kuruluş yönetiyorsa kuruluşa danışın. Durdurduğunuzda Atlas değiştirdiklerini geri yükler.
+prepare-failed-feature-blocked = Atlas'ın değiştirmediği bir ayar Windows Update'in çalışmasını engelliyor: { $setting }. Windows Update'in çalışabilmesi için bu ayarı değiştirin, ardından Yeniden dene'yi seçin.
+prepare-failed-feature-rolled-back = Windows, { $release } sürümünün yüklenmesini yeniden başlatma sırasında tamamlayamadı ve { $current } sürümüne geri döndü. Dosyalarınız ve uygulamalarınız etkilenmedi. Yeniden dene'yi veya Rapor gönder'i seçin.
+prepare-failed-feature-components-lost = Windows güncelleştirmesinden sonra Atlas'ın bazı değişiklikleri kayboldu ve Windows'un kendini yeniden yüklediğine dair bir iz yok, bu yüzden Atlas ne olduğunu anlayamıyor. Atlas { $version } kurulmadı. Atlas ekibinin yardımcı olabilmesi için Rapor gönder'i seçin.
+prepare-failed-feature-build = Atlas bu bilgisayarı güncelleştirirken Windows sürümü değişti. Ayarları geri yükle'yi seçin, ardından Giriş sayfasından baştan başlayın.
+prepare-failed-feature-journal = Atlas, değiştirdiği Windows Update ayarlarının kaydını okuyamıyor, bu yüzden hiçbir şeyi değiştirmeyecek veya geri yüklemeyecek. Atlas ekibinin yardımcı olabilmesi için Rapor gönder'i seçin.
+# $setting is the name of a Windows Update policy value, such as TargetReleaseVersionInfo (text).
+prepare-failed-feature-pin = Bu bilgisayardaki bir Windows Update ilkesinin ({ $setting }) değeri Atlas'ın kaydedemeyeceği türden, bu yüzden Atlas hiçbir şeyi değiştirmedi. Atlas ekibinin yardımcı olabilmesi için Rapor gönder'i seçin.
+prepare-failed-feature-terms = Windows 11 { $release } sürümünün lisans koşullarını kabul edin, ardından Yeniden dene'yi seçin.
+prepare-failed-feature-failed = Windows, { $release } sürümünü yükleyemedi. Bilgisayarınızda hâlâ { $current } sürümü var. Yeniden dene'yi seçin. Yine başarısız olursa Rapor gönder'i seçin.
+prepare-check-again = Yeniden denetle
+prepare-keep-version = { $current } sürümünde kal
+stop-update-title = Atlas { $version } sürümüne güncelleştirme durdurulsun mu?
+stop-update-before = Atlas, değiştirdiği Windows Update ayarlarını geri yükler. Windows'un zaten yüklediği güncelleştirmeler yüklü kalır ve bilgisayarınız Windows 11 { $current } sürümünde kalır.
+stop-update-after = Bilgisayarınız Windows 11 { $release } sürümünde kalır. Atlas, değiştirdiği Windows Update ayarlarını geri yükler.
+stop-update-access = Atlas, değiştirdiği Windows Update ayarlarını geri yükler. Windows'un zaten yüklediği güncelleştirmeler yüklü kalır.
+stop-update-keep = Güncelleştirmeye devam et
+window-close-update-access-title = Atlas kapatılsın mı?
+window-close-update-access-message = Atlas kapanmadan önce değiştirdiği Windows Update ayarlarını geri yükler. Güncelleştirmeye Giriş sayfasından yeniden başlayabilirsiniz.
+window-close-put-back = Geri yükle ve kapat
+# When putting the settings back before closing failed. The reason comes first, then this
+# message; the buttons are window-close-keep and window-close-close.
+window-close-put-back-failed-title = Ayarlar geri yüklenmeden kapatılsın mı?
+window-close-put-back-failed-message = Atlas'ı şimdi kapatırsanız Windows Update ayarları Atlas'ın değiştirdiği şekilde kalır. Atlas'ı yeniden açtığınızda Giriş sayfası bunları geri yüklemeyi önerir.
+installed-update-off-again = Seçtiğiniz gibi Windows Update yeniden kapatıldı. Kapalıyken bilgisayarınız güvenlik güncelleştirmesi almaz.
+installed-update-paused-again = Seçtiğiniz gibi Windows güncelleştirmeleri yeniden duraklatıldı. Duraklatılmışken bilgisayarınız güvenlik güncelleştirmesi almaz.
+detail-build-transition = Bu bilgisayarda, bu Atlas sürümünün desteklemediği Windows 11 { $current } sürümü var. Atlas aşağıda Windows'u güncelleştirirken Windows'u { $release } sürümüne geçirir.
+report-transition-intro = Atlas için Windows güncelleştirmesi tamamlanmadı. Atlas ekibi için ayrıntılar:
+mode-rebase = Windows güncelleştirmesinden sonra yeniden kurulum
+history-mode-rebase = Windows güncelleştirmesinden sonra yeniden kurulum
+ready-rebase-title = Windows güncelleştirme sırasında kendini yeniden yükledi
+ready-rebase-message = Windows 11 { $release } sürümü bu bilgisayardaki önceki Windows'un yerini aldı, bu yüzden Atlas'ın bazı değişiklikleri kayboldu. Atlas { $version }, Atlas { $previous } için yaptığınız seçimlerle bunları yeniden uygular.
+upgrade-choices-title = Atlas { $previous } sürümündeki seçimleriniz
+upgrade-choices-detail = Atlas, Atlas { $previous } sürümünün bu bilgisayarda ayarladıklarından yola çıktı. Güncelleştirme bu seçimlerin yaptıklarını korur, bu yüzden burada bir ek özelliğin işaretini kaldırmak onu geri almaz. Birini daha sonra değiştirmek için Atlas klasörünü veya Windows Ayarları'nı kullanın.
+rebase-choices-title = Atlas { $previous } sürümündeki seçimleriniz
+rebase-choices-detail = Atlas, Atlas { $previous } için yaptığınız seçimleri kullanır, bu yüzden burada seçilecek bir şey yok. Bunları daha sonra Atlas klasöründen değiştirebilirsiniz.
+rebase-choices-partial = Atlas, Atlas { $previous } için yaptığınız seçimleri kullanır. Şunları bulamadı, bu yüzden bunları denetleyin: { $missing }
+restart-other-title = Bu bilgisayarda başka biri oturum açmış
+restart-others-title = Bu bilgisayarda başka kişiler oturum açmış
+restart-others-message = Yeniden başlatma onların uygulamalarını kapatır ve kaydedilmemiş çalışmaları kaybolur. Oturum açmış olanlar: { $names }.
+# "Yeniden başlatma" alone would read as the noun "restart", so the button says what it cancels.
+restart-others-keep = Yeniden başlatmaktan vazgeç
+restart-others-restart = Yine de yeniden başlat
+prepare-store-self-update = Önce Microsoft Store güncelleştiriliyor. Bu bilgisayardaki sürümü güncel değil.
+prepare-store-repair = Microsoft Store onarılıyor. Bu birkaç dakika sürebilir.
+prepare-store-updated = Microsoft Store güncel değildi, bu yüzden Atlas onu uygulamalarınızdan önce güncelleştirdi.
+prepare-store-bootstrapped = Microsoft Store kendini güncelleştiremedi, bu yüzden Atlas en son Uygulama Yükleyicisi'ni ve Microsoft Store'u Microsoft'tan yükledi.
+prepare-store-repaired = Microsoft Store çalışmıyordu, bu yüzden Atlas onu onardı.
+prepare-store-skipped-removed = Microsoft Store bu bilgisayarda kapalı, bu yüzden Atlas Store uygulaması güncelleştirmelerini atladı.
+prepare-failed-store-repair-failed = Microsoft Store çalışmıyor ve Atlas onu onaramadı. Yeniden denemek için Microsoft Store'u onar'ı seçin. Yine çalışmazsa Rapor gönder'i seçin.
+prepare-repair-store = Microsoft Store'u onar

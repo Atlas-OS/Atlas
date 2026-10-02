@@ -389,7 +389,7 @@ impl InstallPage {
                 .collect();
             let title = screen.kind.title();
             let key = format!("choice-{index}");
-            let change = state.original_options().is_none().then(|| {
+            let change = state.locked_options().is_none().then(|| {
                 Button::new(("change-choice", index), t!("common-change"))
                     .hyperlink()
                     .compact()

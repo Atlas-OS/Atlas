@@ -20,7 +20,7 @@ impl InstallPage {
             (
                 state.manifest().clone(),
                 state.effective_options().into_iter().collect::<std::collections::BTreeSet<_>>(),
-                state.flow.may_edit() && state.original_options().is_none(),
+                state.flow.may_edit() && state.locked_options().is_none(),
                 state.option_screens(),
                 state.current_option_screen(),
                 state.playbook.as_ref().map(|package| package.dir.clone()),
@@ -37,6 +37,38 @@ impl InstallPage {
                     t!("resume-choices-title"),
                     t!("resume-choices-detail"),
                 )
+                .into_any_element(),
+            );
+        } else if let Some(choices) = self.model.read(cx).rebase_choices() {
+            let detail = if choices.complete() {
+                t!("rebase-choices-detail", previous = choices.previous.as_str())
+            } else {
+                let missing: Vec<String> = choices.missing.iter().map(|kind| kind.title()).collect();
+                t!(
+                    "rebase-choices-partial",
+                    previous = choices.previous.as_str(),
+                    missing = describe::join_and(&missing).as_str()
+                )
+            };
+            cards.push(
+                InfoBar::new(
+                    Severity::Informational,
+                    t!("rebase-choices-title", previous = choices.previous.as_str()),
+                    detail,
+                )
+                .id("options-rebase-note")
+                .into_any_element(),
+            );
+        } else if let Some((previous, _)) = self.model.read(cx).installed_choices() {
+            // An update starts from what the installed Atlas chose; Upgrade
+            // keeps what those choices did, ticked or not.
+            cards.push(
+                InfoBar::new(
+                    Severity::Informational,
+                    t!("upgrade-choices-title", previous = previous.as_str()),
+                    t!("upgrade-choices-detail", previous = previous.as_str()),
+                )
+                .id("options-upgrade-note")
                 .into_any_element(),
             );
         }

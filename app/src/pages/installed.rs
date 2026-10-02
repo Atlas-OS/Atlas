@@ -14,6 +14,7 @@ use super::{card_body, card_header, detail_row, detail_text, options_value, reco
 use crate::i18n::{describe, fmt};
 use crate::model::AppModel;
 use crate::services::system::links;
+use crate::services::update_access::BlockerKind;
 use crate::t;
 use crate::theme::ActiveTheme;
 use crate::ui::{
@@ -77,6 +78,19 @@ impl Render for InstalledPage {
                 )
                 .id("installed-defender-removed")
             });
+        // The user's own choice turned Windows Update off or paused it again
+        // after Atlas had it on for the update; say what that means.
+        let update_choice = state.update_choice_after_install().and_then(|kinds| {
+            if kinds.contains(&BlockerKind::Off) {
+                Some(t!("installed-update-off-again"))
+            } else if kinds.contains(&BlockerKind::Paused) {
+                Some(t!("installed-update-paused-again"))
+            } else {
+                None
+            }
+        });
+        let update_choice = update_choice
+            .map(|message| InfoBar::new(Severity::Informational, message, "").id("installed-update-choice"));
         // "You're all set" only where a reading confirms it: an install that
         // kept Defender needs Defender there with every switch on. Dismissing
         // a reminder hides the bar, not what Windows Security reports.
@@ -192,6 +206,7 @@ impl Render for InstalledPage {
                     })
                     .children(defender_removed)
                     .children(reminder)
+                    .children(update_choice)
                     .child(
                         div()
                             .flex()

@@ -361,6 +361,14 @@ impl ReportPage {
         if self.receipt.is_some() || self.preview {
             return;
         }
+        // A Windows update that stopped starts the report with its cause, so
+        // one Send carries what the team needs. The user's own words stay.
+        if self.message.read(cx).value().trim().is_empty()
+            && let Some(context) = self.model.read(cx).report_context()
+        {
+            self.message.update(cx, |input, cx| input.set_value(context.clone(), cx));
+            self.last_message = context;
+        }
         let recent = self.export_asked.is_some_and(|(asked, then)| asked + 1 >= visit && then == run);
         if !recent && let Some(path) = self.prepared(cx) {
             self.spent_diagnostics = Some(path);

@@ -78,6 +78,17 @@ pub struct InstallDraft {
     /// Only the owner saves or abandons it; `None` means unowned, and any
     /// window may adopt it.
     pub flow: Option<String>,
+    /// The user chose to keep this Windows version where moving is optional.
+    pub windows_transition_declined: bool,
+    /// The user accepted Microsoft's licence terms for the Windows version
+    /// Atlas moves to.
+    pub windows_terms_accepted: bool,
+    /// Your choices started from the installed Atlas's choices; the user's
+    /// changes since stand.
+    pub recorded_choices_applied: bool,
+    /// What an earlier run in this flow did about Microsoft Store itself,
+    /// by the worker's id, so Get ready still says it after a restart.
+    pub store_outcome: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -397,6 +408,10 @@ mod tests {
                 flow: Some("flow-1".into()),
                 preparation_restart_at: None,
                 preparation_ready: true,
+                windows_transition_declined: true,
+                windows_terms_accepted: true,
+                recorded_choices_applied: true,
+                store_outcome: Some("store-repaired".into()),
             }),
         };
         save_to(&path, &settings).unwrap();

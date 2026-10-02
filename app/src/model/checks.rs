@@ -30,6 +30,9 @@ pub enum ReadyStatus {
     /// Only Windows and Store updates are left, and Check and install updates
     /// hasn't run yet.
     Updates,
+    /// Only updates are left, and they move Windows to a new version, whose
+    /// licence terms the user hasn't accepted yet.
+    WindowsTerms,
     /// Windows and Store apps are updating, or waiting on an earlier run.
     Updating,
     /// Updating was stopped before it finished; Check and install updates
@@ -103,10 +106,23 @@ impl AppModel {
     /// than the user: Windows updates waiting, or a restart Windows wants,
     /// found before the updates have run. It installs the one and asks for
     /// the other, so until then the result is a note, not a blocker.
+    /// The same holds for a Windows version Atlas moves from, once the move
+    /// is chosen, and for an update scan that couldn't run because Windows
+    /// Update is turned off, which updating turns on.
     pub fn handled_by_preparation(&self, result: &CheckResult) -> bool {
-        !self.preparation.ready()
-            && result.verdict == Verdict::Fail
-            && matches!(result.id, CheckId::PendingUpdates | CheckId::PendingReboot)
+        if self.preparation.ready() {
+            return false;
+        }
+        match (result.id, result.verdict, &result.detail) {
+            (CheckId::PendingUpdates | CheckId::PendingReboot, Verdict::Fail, _) => true,
+            (CheckId::SupportedBuild, Verdict::Fail, CheckDetail::BuildTransition { .. }) => {
+                self.transition_chosen()
+            }
+            (CheckId::PendingUpdates, Verdict::Unknown, _) => {
+                self.update_access.as_ref().is_some_and(|access| !access.blockers.is_empty())
+            }
+            _ => false,
+        }
     }
 
     /// Whether the "Get ready" step is satisfied. Preparation must be done,
@@ -148,6 +164,9 @@ impl AppModel {
             ReadyStatus::NoPackage
         } else if !self.preparation.ready() {
             match self.preparation {
+                Preparation::Idle if self.transition_chosen() && !self.windows_terms_accepted => {
+                    ReadyStatus::WindowsTerms
+                }
                 Preparation::Idle => ReadyStatus::Updates,
                 Preparation::Cancelled => ReadyStatus::UpdatesStopped,
                 Preparation::Resumed => ReadyStatus::UpdatesResumed,
@@ -361,6 +380,9 @@ impl AppModel {
                         }
                         if id == CheckId::Administrator {
                             this.elevated = elevated();
+                        }
+                        if this.checks_complete() {
+                            this.check_offer_on_reopen(cx);
                         }
                         cx.notify();
                     })

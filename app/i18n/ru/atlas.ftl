@@ -1068,3 +1068,145 @@ report-validation-contact = Укажите контактные данные д�
 report-validation-consent = Подтвердите согласие на отправку этого отчёта.
 
 report-failed-title = Отчёт не отправлен
+
+## Windows version update
+home-plan-intro = Это обновление состоит из двух частей. Ваши файлы и приложения сохранятся. Если обновление Windows отменит какие-либо изменения Atlas, Atlas вернёт их.
+home-plan-windows-title = Windows 11, версия { $release }
+home-plan-windows-detail = Atlas установит её через Центр обновления Windows. Чтобы завершить установку, ПК перезагрузится.
+home-plan-windows-optional = Рекомендуется. Atlas установит её через Центр обновления Windows. Чтобы завершить установку, ПК перезагрузится.
+home-plan-atlas-title = Atlas { $version }
+home-plan-atlas-detail = Atlas обновит свои файлы и сохранит выбранные вами настройки. В конце ПК перезагрузится.
+home-end-of-updates-title = Windows 11 версии { $current } перестанет получать обновления безопасности { $date }
+home-end-of-updates-past-title = Windows 11 версии { $current } больше не получает обновления безопасности
+home-end-of-updates-message = При обновлении до Atlas { $version } этот ПК также перейдёт на Windows 11 версии { $release }, которая будет получать обновления безопасности до { $until }.
+install-windows-edition = Atlas { $version } поддерживает Windows 11 Pro, Enterprise и Education. На этом ПК установлена { $product }, поэтому установить на него Atlas нельзя.
+install-windows-edition-ending = Atlas { $version } поддерживает Windows 11 Pro, Enterprise и Education. На этом ПК установлена { $product }, поэтому установить на него Atlas нельзя. Windows 11 версии { $current } перестанет получать обновления безопасности { $date }. Центр обновления Windows может перевести этот ПК на более новую версию.
+install-windows-no-path = Для Atlas { $version } нужна Windows 11 версии { $releases }, а Центр обновления Windows не может перевести на неё этот ПК с установленной сейчас Windows. Чтобы использовать Atlas { $version }, создайте резервную копию файлов и переустановите Windows с помощью ISO-образа с Atlas.
+home-update-access-title = Параметры Центра обновления Windows изменены для обновления Atlas
+home-update-access-not-offered = Atlas включил Центр обновления Windows, чтобы перевести этот ПК на Windows 11 версии { $release }, но Центр обновления Windows её ещё не предложил. Нажмите «Проверить снова» или «Вернуть параметры».
+home-update-access-before = Atlas включил Центр обновления Windows, чтобы перевести этот ПК на Windows 11 версии { $release }, но ещё не завершил обновление. Продолжите обновление или нажмите «Вернуть параметры».
+home-update-access-after = На этом ПК установлена Windows 11 версии { $release }. Завершите установку Atlas или нажмите «Вернуть параметры».
+home-update-access-plain = Atlas включил Центр обновления Windows, чтобы установить обновления, но ещё не завершил их установку. Продолжите обновление или нажмите «Вернуть параметры».
+home-update-access-unreadable = Atlas не удаётся прочитать собственную запись об изменённых им параметрах Центра обновления Windows, поэтому он ничего не будет менять или возвращать. Нажмите «Отправить отчёт», чтобы команда Atlas могла помочь.
+home-update-access-failed = Atlas не удалось вернуть параметры. Повторите попытку или нажмите «Отправить отчёт». Подробности: { $error }
+home-update-access-install-active = Сначала завершите установку Atlas. На её последнем этапе Atlas вернёт эти параметры.
+home-continue-update = Продолжить обновление
+home-put-back = Вернуть параметры
+home-putting-back = Возврат параметров…
+windows-card-title = Windows 11, версия { $release }
+windows-card-required = Для Atlas { $version } нужна более новая версия Windows. Обновляя Windows в разделе ниже, Atlas также установит Windows 11 версии { $release } через Центр обновления Windows.
+windows-card-question = Какую версию Windows использовать на этом ПК?
+windows-choice-move = Обновить до Windows 11 версии { $release }
+windows-choice-move-detail = Рекомендуется. Обновления безопасности до { $date }. Ещё одна перезагрузка.
+windows-choice-keep = Оставить Windows 11 версии { $current }
+windows-choice-keep-detail = ПК останется на этой версии. Центр обновления Windows не будет переводить его на более новую версию, поэтому для перехода позже понадобится ещё одно обновление в Atlas Manager.
+windows-card-facts = Что изменится
+windows-fact-keep = Ваши файлы и приложения сохранятся. Если обновление отменит какие-либо изменения Atlas, Atlas вернёт их при установке.
+windows-fact-restart = Чтобы завершить обновление, ПК перезагрузится ещё как минимум один раз.
+transition-offer-expectation = Обычно Центр обновления Windows предлагает новую версию в течение нескольких минут, но ожидание может занять до 2 часов; Atlas сам будет ждать и проверять.
+windows-fact-stays = После этого Windows останется на версии { $release } и не будет сама переходить на более новую версию.
+windows-fact-removed = В версии { $release } нет Windows PowerShell 2.0 и средства WMIC.
+windows-card-undo = Чтобы позже отменить обновление, удалите его в журнале обновлений: «Параметры» > «Центр обновления Windows» > «Журнал обновлений». Если при обновлении Windows переустановилась, вместо этого в течение 10 дней нажмите «Назад» в разделе «Параметры» > «Система» > «Восстановление». Atlas { $version } не поддерживает версию { $current }, поэтому не отменяйте обновление после установки Atlas { $version }.
+windows-card-undo-optional = Чтобы позже отменить обновление, удалите его в журнале обновлений: «Параметры» > «Центр обновления Windows» > «Журнал обновлений». Если при обновлении Windows переустановилась, вместо этого в течение 10 дней нажмите «Назад» в разделе «Параметры» > «Система» > «Восстановление».
+windows-terms = Я принимаю условия лицензии на программное обеспечение Microsoft для Windows 11 версии { $release }
+windows-terms-link = Прочитать условия лицензии
+windows-card-locked = Чтобы оставить версию { $current }, нажмите «Отмена», затем «Остановить обновление».
+prepare-description-transition = Перед установкой Atlas установит ожидающие обновления Windows, затем Windows 11 версии { $release }, а затем обновит Microsoft Store и ваши приложения Store. Открытые приложения Store могут закрыться во время обновления, поэтому сначала сохраните в них работу. ПК перезагрузится как минимум один раз.
+prepare-start-transition = Обновить Windows до версии { $release }
+prepare-needs-terms = Станет доступно, когда вы примете условия лицензии в разделе «Windows 11, версия { $release }».
+ready-banner-not-offered-message = Что можно сделать сейчас, описано в разделе «Обновление Windows и приложений Store».
+ready-banner-transition-failed-message = Что делать дальше, описано в разделе «Обновление Windows и приложений Store».
+ready-banner-terms-title = Примите условия лицензии, чтобы продолжить
+ready-banner-terms-message = Они находятся ниже на этой странице, в разделе «Windows 11, версия { $release }». Затем нажмите «Обновить Windows до версии { $release }».
+access-notice-title = Atlas временно включит Центр обновления Windows
+access-off = Центр обновления Windows на этом ПК отключён. Atlas снова включит его на время обновления Windows.
+access-paused = Обновления Windows на этом ПК приостановлены. Atlas возобновит их на время обновления Windows.
+access-delayed = Ежемесячные обновления на этом ПК отложены. Atlas отменит отсрочку на время обновления Windows.
+access-back-chosen = После установки Atlas { $version } эти параметры вернутся в состояние, которое вы выбрали.
+access-back = После установки Atlas { $version } эти параметры вернутся в прежнее состояние.
+access-back-stop = Если вы остановите обновление раньше, Atlas вернёт их.
+prepare-reboot-transition = Windows 11 версии { $release } установлена. Чтобы завершить её установку, нажмите «Перезагрузить и продолжить». Atlas снова откроется после входа в систему.
+prepare-reboot-commit = Чтобы завершить установку версии { $release }, Windows нужна ещё одна перезагрузка. Atlas снова откроется после входа в систему.
+prepare-restart-commit-failed = Windows не удалось подготовить версию { $release } к завершению установки при перезагрузке, поэтому ПК не перезагрузился. Чтобы повторить попытку, нажмите «Перезагрузить и продолжить».
+prepare-reason-feature-update = новая версия Windows
+prepare-reason-feature-commit = завершение установки новой версии Windows
+prepare-resumed-transition = ПК перезагрузился. Нажмите «Продолжить обновления», чтобы Atlas проверил, что установка Windows 11 версии { $release } завершена, и установил оставшиеся обновления.
+prepare-waiting-offer = Ожидание, пока Центр обновления Windows предложит Windows 11 версии { $release }. Обычно это занимает несколько минут, но может занять до 2 часов. Можно продолжать пользоваться ПК, но не закрывайте Atlas.
+prepare-resumed-before-move = ПК перезагрузился, чтобы завершить установку обновлений. Нажмите «Продолжить обновления», чтобы Atlas установил оставшиеся обновления, а затем Windows 11 версии { $release }.
+prepare-not-offered-title = Ожидание, пока Центр обновления Windows предложит Windows 11 версии { $release }
+prepare-transition-failed-title = Windows не удалось перейти на версию { $release }
+prepare-failed-feature-not-offered = Центр обновления Windows может предложить Windows 11 версии { $release } не сразу. На ПК по-прежнему установлена версия { $current }.
+prepare-offer-rechecking = Atlas повторяет проверку каждые 10 минут и сам продолжит обновление, как только Центр обновления Windows предложит новую версию. Можно также нажать «Проверить снова».
+prepare-offer-waited =
+    { $minutes ->
+        [one] Atlas ждёт уже { $minutes } минуту.
+        [few] Atlas ждёт уже { $minutes } минуты.
+        [many] Atlas ждёт уже { $minutes } минут.
+       *[other] Atlas ждёт уже { $minutes } минуты.
+    }
+prepare-offer-next-check =
+    { $minutes ->
+        [one] Следующая проверка через { $minutes } минуту.
+        [few] Следующая проверка через { $minutes } минуты.
+        [many] Следующая проверка через { $minutes } минут.
+       *[other] Следующая проверка через { $minutes } минуты.
+    }
+prepare-offer-checking-now = Идёт проверка.
+prepare-offer-check-again = Чтобы проверить сейчас, нажмите «Проверить снова».
+prepare-offer-wait-ended-title = Центр обновления Windows пока не предложил Windows 11 версии { $release }
+prepare-offer-wait-ended = Центр обновления Windows не предложил Windows 11 версии { $release } в течение 2 часов, поэтому Atlas прекратил ожидание и вернул параметры Центра обновления Windows. Нажмите «Проверить снова» позже. Если вы не можете ждать, создайте резервную копию файлов и переустановите Windows с помощью ISO-образа с Atlas.
+prepare-offer-wait-put-back-failed = Центр обновления Windows не предложил Windows 11 версии { $release } в течение 2 часов, и Atlas не удалось вернуть параметры Центра обновления Windows. Чтобы повторить попытку, нажмите «Вернуть параметры». Подробности: { $error }
+prepare-failed-feature-hardware = Этот ПК не соответствует требованиям Windows 11 к оборудованию ({ $missing }), поэтому Центр обновления Windows не переведёт его на версию { $release }. На ПК по-прежнему установлена версия { $current }. Чтобы использовать Atlas { $version }, создайте резервную копию файлов и переустановите Windows с помощью ISO-образа с Atlas.
+hardware-tpm = TPM 2.0
+hardware-uefi = встроенное ПО UEFI
+prepare-failed-feature-hidden = Windows 11 версии { $release } скрыта в Центре обновления Windows на этом ПК. Снова сделайте её видимой с помощью средства, которым вы её скрыли, затем нажмите «Повторить попытку».
+prepare-failed-feature-disk-space = Для этого обновления Windows нужно не менее { $needed } ГБ свободного места на диске { $drive }, а сейчас свободно { $free } ГБ. Atlas ничего не изменил. Освободите место, затем нажмите «Повторить попытку».
+prepare-failed-feature-servicing = Windows сообщает о повреждении хранилища компонентов, которое не может исправить, поэтому Atlas ничего не изменил. Восстановите Windows, затем нажмите «Повторить попытку».
+prepare-failed-feature-managed = Этот ПК получает обновления с сервера обновлений организации, поэтому Atlas не может перевести его на версию { $release }. Atlas ничего не изменил.
+prepare-failed-feature-policy = Что-то на этом ПК снова и снова отменяет изменения, которые Atlas вносит в { $setting }, поэтому Atlas не может обновить Windows. Если этим ПК управляет организация, обратитесь к её администратору. Когда вы остановите обновление, Atlas вернёт всё, что изменил.
+prepare-failed-feature-blocked = Параметр, который Atlas не изменял, не даёт Центру обновления Windows работать: { $setting }. Измените его так, чтобы Центр обновления Windows мог работать, затем нажмите «Повторить попытку».
+prepare-failed-feature-rolled-back = Windows не удалось завершить установку версии { $release } во время перезагрузки, и система вернулась к версии { $current }. Ваши файлы и приложения не затронуты. Нажмите «Повторить попытку» или «Отправить отчёт».
+prepare-failed-feature-components-lost = После обновления Windows часть изменений Atlas пропала, но признаков переустановки Windows нет, поэтому Atlas не может определить, что произошло. Atlas { $version } не установлен. Нажмите «Отправить отчёт», чтобы команда Atlas могла помочь.
+prepare-failed-feature-build = Версия Windows на этом ПК изменилась, пока Atlas её обновлял. Нажмите «Вернуть параметры», затем начните заново с главной страницы.
+prepare-failed-feature-journal = Atlas не удаётся прочитать собственную запись об изменённых им параметрах Центра обновления Windows, поэтому он ничего не будет менять или возвращать. Нажмите «Отправить отчёт», чтобы команда Atlas могла помочь.
+prepare-failed-feature-pin = У политики Центра обновления Windows на этом ПК ({ $setting }) задано значение, которое Atlas не может сохранить, поэтому Atlas ничего не изменил. Нажмите «Отправить отчёт», чтобы команда Atlas могла помочь.
+prepare-failed-feature-terms = Примите условия лицензии для Windows 11 версии { $release }, затем нажмите «Повторить попытку».
+prepare-failed-feature-failed = Windows не удалось установить версию { $release }. На ПК по-прежнему установлена версия { $current }. Нажмите «Повторить попытку». Если ошибка повторится, нажмите «Отправить отчёт».
+prepare-check-again = Проверить снова
+prepare-keep-version = Оставить версию { $current }
+stop-update-title = Остановить обновление до Atlas { $version }?
+stop-update-before = Atlas вернёт изменённые им параметры Центра обновления Windows. Уже установленные обновления Windows останутся, а на ПК сохранится Windows 11 версии { $current }.
+stop-update-after = На ПК останется Windows 11 версии { $release }. Atlas вернёт изменённые им параметры Центра обновления Windows.
+stop-update-access = Atlas вернёт изменённые им параметры Центра обновления Windows. Уже установленные обновления Windows останутся.
+stop-update-keep = Не останавливать
+window-close-update-access-title = Закрыть Atlas?
+window-close-update-access-message = Перед закрытием Atlas вернёт изменённые им параметры Центра обновления Windows. Начать обновление снова можно с главной страницы.
+window-close-put-back = Вернуть и закрыть
+window-close-put-back-failed-title = Закрыть, не вернув параметры?
+window-close-put-back-failed-message = Если закрыть Atlas сейчас, параметры Центра обновления Windows останутся в том виде, в каком их изменил Atlas. Когда вы снова откроете Atlas, на главной странице будет предложено их вернуть.
+installed-update-off-again = Центр обновления Windows снова отключён, как вы выбрали. Пока он отключён, ПК не получает обновления безопасности.
+installed-update-paused-again = Обновления Windows снова приостановлены, как вы выбрали. Пока они приостановлены, ПК не получает обновления безопасности.
+detail-build-transition = На этом ПК установлена Windows 11 версии { $current }, которую эта версия Atlas не поддерживает. Atlas переведёт Windows на версию { $release }, когда будет обновлять Windows в разделе ниже.
+report-transition-intro = Обновление Windows для Atlas не завершено. Подробности для команды Atlas:
+mode-rebase = Переустановка после обновления Windows
+history-mode-rebase = переустановка после обновления Windows
+ready-rebase-title = Windows переустановилась во время обновления
+ready-rebase-message = Windows 11 версии { $release } заменила прежнюю Windows на этом ПК, поэтому часть изменений Atlas пропала. Atlas { $version } вернёт их с настройками, выбранными вами для Atlas { $previous }.
+upgrade-choices-title = Ваши настройки из Atlas { $previous }
+upgrade-choices-detail = За основу взято то, что Atlas { $previous } настроил на этом ПК. Обновление сохраняет результат этих настроек, поэтому если снять здесь флажок дополнения, его действие не отменится. Чтобы позже что-то изменить, используйте папку Atlas или приложение «Параметры».
+rebase-choices-title = Ваши настройки из Atlas { $previous }
+rebase-choices-detail = Atlas использует настройки, выбранные вами для Atlas { $previous }, поэтому здесь ничего выбирать не нужно. Позже их можно изменить в папке Atlas.
+rebase-choices-partial = Atlas использует настройки, выбранные вами для Atlas { $previous }. Некоторые из них найти не удалось, поэтому проверьте их: { $missing }
+restart-other-title = На этом ПК выполнен вход другим пользователем
+restart-others-title = На этом ПК выполнен вход другими пользователями
+restart-others-message = Перезагрузка закроет их приложения, и они потеряют несохранённую работу. Выполнен вход: { $names }.
+restart-others-keep = Не перезагружать
+restart-others-restart = Всё равно перезагрузить
+prepare-store-self-update = Сначала обновляется Microsoft Store: на этом ПК установлена устаревшая версия.
+prepare-store-repair = Исправление Microsoft Store. Это может занять несколько минут.
+prepare-store-updated = Версия Microsoft Store была устаревшей, поэтому Atlas обновил его перед вашими приложениями.
+prepare-store-bootstrapped = Microsoft Store не удалось обновиться самостоятельно, поэтому Atlas установил последние версии «Установщика приложений» и Microsoft Store напрямую от Microsoft.
+prepare-store-repaired = Microsoft Store не работал, поэтому Atlas исправил его.
+prepare-store-skipped-removed = Microsoft Store на этом ПК отключён, поэтому Atlas пропустил обновление приложений Store.
+prepare-failed-store-repair-failed = Microsoft Store не работает, и Atlas не удалось его исправить. Чтобы повторить попытку, нажмите «Исправить Microsoft Store». Если он по-прежнему не работает, нажмите «Отправить отчёт».
+prepare-repair-store = Исправить Microsoft Store

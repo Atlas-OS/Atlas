@@ -12,16 +12,19 @@ use crate::model::{Acquisition, AppModel, InstallBlock, Page, ReadyHelp, ReadySt
 use crate::pages::{card_body, detail_text, drivers_radio, on_model, step_card_header};
 use crate::services::atlas_state::InstallIdentity;
 use crate::services::requirements::{CheckId, CheckResult, Verdict};
+use crate::services::windows_release::TransitionNeed;
 use crate::t;
 use crate::theme::ActiveTheme;
 use crate::ui::{
-    Button, CapCenteredText, CheckBox, Icon, InfoBar, LightState, ProgressBar, ProgressRing, Severity,
-    StatusLight, TextMark, Typography, a11y_text, card, icon,
+    BODY_LINE_HEIGHT, Button, CapCenteredText, CheckBox, Icon, InfoBar, LightState, ProgressBar,
+    ProgressRing, RadioGroup, RadioItem, Severity, StatusLight, TextMark, Typography, a11y_text, card, icon,
+    icon_in_line_sized,
 };
 
 impl InstallPage {
     pub(super) fn ready_cards(&mut self, cx: &mut Context<Self>) -> Vec<AnyElement> {
         let drivers = self.drivers_card(cx);
+        let windows = self.windows_card(cx);
         let preparation_focus = self.focus.get("preparation-status", cx);
         let action_focus = self.focus.get("prepare-action", cx);
         let model = self.model.clone();
@@ -33,6 +36,7 @@ impl InstallPage {
         // over; dismissing it must not bring another bar back in its place.
         let fresh_identity = matches!(state.install_identity, Ok(InstallIdentity::Fresh));
         let used_windows = fresh_identity && self.windows_installation.suggests_prior_use();
+        let rebase = state.rebase_choices();
         let note = if state.original_options().is_some() {
             Some(
                 InfoBar::new(
@@ -41,6 +45,22 @@ impl InstallPage {
                     t!("resume-choices-detail"),
                 )
                 .id("ready-resume-note"),
+            )
+        } else if let Some(choices) = rebase {
+            // After a move during which Windows reinstalled itself instead of
+            // switching the new version on in place.
+            Some(
+                InfoBar::new(
+                    Severity::Informational,
+                    t!("ready-rebase-title"),
+                    t!(
+                        "ready-rebase-message",
+                        release = state.system.display_version.as_str(),
+                        version = state.manifest().version.as_str(),
+                        previous = choices.previous.as_str()
+                    ),
+                )
+                .id("ready-rebase-note"),
             )
         } else if fresh_identity && !used_windows && !self.staged_iso_setup {
             Some(
@@ -95,10 +115,14 @@ impl InstallPage {
         if state.ready_status() == Some(ReadyStatus::Blocked) && help == Some(ReadyHelp::Checks) {
             cards.push(self.diagnostics.panel(&self.model, cx).into_any_element());
         }
-        cards.extend([
-            drivers,
-            self.preparation_card(help == Some(ReadyHelp::Preparation), preparation_focus, action_focus, cx),
-        ]);
+        cards.push(drivers);
+        cards.extend(windows);
+        cards.push(self.preparation_card(
+            help == Some(ReadyHelp::Preparation),
+            preparation_focus,
+            action_focus,
+            cx,
+        ));
         cards
     }
 
@@ -163,7 +187,13 @@ impl InstallPage {
                 Some(
                     // Stays enabled while the checks run, so it keeps focus;
                     // choosing it again starts them over.
+                    // Named with its card: the Windows card can show its own Check again.
                     Button::new("checks-rerun", t!("ready-check-again"))
+                        .aria_label(t!(
+                            "common-details-a11y",
+                            action = t!("ready-check-again"),
+                            section = t!("ready-this-pc")
+                        ))
                         .compact()
                         .icon(Icon::Refresh)
                         .disabled(state.locked())
@@ -361,7 +391,7 @@ impl InstallPage {
     fn drivers_card(&mut self, cx: &mut Context<Self>) -> AnyElement {
         let (selected, disabled) = {
             let state = self.model.read(cx);
-            (state.driver_preference(), state.locked())
+            (state.driver_preference(), state.locked() || state.preparation_choices_fixed())
         };
         let model = self.model.clone();
         let drivers = drivers_radio("prepare-drivers", selected, &mut self.focus, cx, move |drivers, cx| {
@@ -381,6 +411,122 @@ impl InstallPage {
                     .child(drivers.disabled(disabled)),
             )
             .into_any_element()
+    }
+
+    /// The Windows version Atlas moves this PC to before installing: what
+    /// changes, the choice where moving is optional, and Microsoft's licence
+    /// terms. It never takes the accent; the update card's button starts it.
+    fn windows_card(&mut self, cx: &mut Context<Self>) -> Option<AnyElement> {
+        let (transition, need, current, build, version, chosen, terms, locked, open) = {
+            let state = self.model.read(cx);
+            let (transition, need) = state.windows_transition()?;
+            (
+                transition,
+                need,
+                state.system.display_version.clone(),
+                state.system.build,
+                state.manifest().version.clone(),
+                state.transition_chosen(),
+                state.windows_terms_accepted,
+                state.locked(),
+                state.transition_open(),
+            )
+        };
+        let terms_fixed = terms && self.model.read(cx).preparation_choices_fixed();
+        let release = transition.target_release;
+        let model = self.model.clone();
+        let choice = (need == TransitionNeed::Optional).then(|| {
+            let (move_key, keep_key) = ("windows-release-move", "windows-release-keep");
+            let items = [
+                RadioItem::new(
+                    move_key,
+                    t!("windows-choice-move", release = release),
+                    self.focus.get(move_key, cx),
+                )
+                .description(t!("windows-choice-move-detail", date = fmt::day(transition.end_of_updates()))),
+                RadioItem::new(
+                    keep_key,
+                    t!("windows-choice-keep", current = current.as_str()),
+                    self.focus.get(keep_key, cx),
+                )
+                .description(t!("windows-choice-keep-detail")),
+            ];
+            let model = model.clone();
+            RadioGroup::new("windows-release", t!("windows-card-question"))
+                .items(items)
+                .selected(Some(usize::from(!chosen)))
+                .disabled(locked || open)
+                .on_select(move |index, _, cx| {
+                    model.update(cx, |m, cx| m.set_windows_transition(index == 1, cx))
+                })
+        });
+        let theme = cx.theme();
+        let mut body = card_body().gap(px(8.));
+        body = match choice {
+            None => body.child(div().type_body().text_color(theme.text_secondary).child(a11y_text(
+                "windows-card-required",
+                t!("windows-card-required", version = version.as_str(), release = release),
+            ))),
+            Some(group) => body
+                .child(div().type_body().text_color(theme.text_secondary).child(t!("windows-card-question")))
+                .child(group)
+                .when(open, |this| {
+                    this.child(div().type_caption().text_color(theme.text_secondary).child(detail_text(
+                        "windows-card-locked",
+                        t!("windows-card-locked", current = current.as_str()),
+                    )))
+                }),
+        };
+        if chosen {
+            let mut facts = vec![
+                t!("windows-fact-keep"),
+                t!("windows-fact-restart"),
+                t!("transition-offer-expectation"),
+                t!("windows-fact-stays", release = release),
+            ];
+            // 25H2 removed both already; only a PC on 24H2 loses them now.
+            if build == 26100 {
+                facts.push(t!("windows-fact-removed", release = release));
+            }
+            let undo = if need == TransitionNeed::Required {
+                t!("windows-card-undo", version = version.as_str(), current = current.as_str())
+            } else {
+                t!("windows-card-undo-optional")
+            };
+            let terms_box = CheckBox::new("windows-terms", t!("windows-terms", release = release), terms)
+                .disabled(locked || terms_fixed)
+                .on_toggle(on_model(&model, move |m, cx| m.accept_windows_terms(!terms, cx)));
+            body = body
+                .child(fact_list(&facts, cx))
+                .child(
+                    div()
+                        .type_caption()
+                        .text_color(theme.text_secondary)
+                        .child(detail_text("windows-card-undo", undo)),
+                )
+                .child(
+                    div().flex().flex_col().gap(px(2.)).pt(px(4.)).child(terms_box).child(
+                        div().flex().child(
+                            Button::new("windows-terms-link", t!("windows-terms-link"))
+                                .hyperlink()
+                                .compact()
+                                .trailing_icon(Icon::OpenInNewWindow)
+                                .opens(WINDOWS_TERMS),
+                        ),
+                    ),
+                );
+        }
+        Some(
+            card(cx)
+                .child(step_card_header(
+                    cx,
+                    "windows-version",
+                    t!("windows-card-title", release = release),
+                    None,
+                ))
+                .child(body)
+                .into_any_element(),
+        )
     }
 
     fn package_card(&self, cx: &App) -> AnyElement {
@@ -526,6 +672,40 @@ impl InstallPage {
     }
 }
 
+/// Where Microsoft publishes the licence terms of the Windows version a
+/// feature-update policy asks for, as the policy's own help names it.
+const WINDOWS_TERMS: &str = "https://aka.ms/WindowsTargetVersioninfo";
+
+/// What moving Windows keeps and changes, one line each, with a check mark.
+fn fact_list(facts: &[String], cx: &App) -> AnyElement {
+    let theme = cx.theme();
+    div()
+        .id("windows-facts")
+        .role(Role::List)
+        .aria_label(t!("windows-card-facts"))
+        .flex()
+        .flex_col()
+        .gap(px(4.))
+        .children(facts.iter().enumerate().map(|(index, fact)| {
+            div()
+                .id(("windows-fact", index))
+                .role(Role::ListItem)
+                .aria_label(fact.clone())
+                .flex()
+                .items_start()
+                .gap(px(8.))
+                .child(
+                    icon_in_line_sized(Icon::CheckMark, 12., BODY_LINE_HEIGHT)
+                        .flex_shrink_0()
+                        .text_color(theme.success),
+                )
+                .child(
+                    div().flex_1().min_w_0().type_body().text_color(theme.text_primary).child(fact.clone()),
+                )
+        }))
+        .into_any_element()
+}
+
 /// Whether a check's row offers its Settings page: whenever the check didn't
 /// pass, except for an antivirus app that is already gone, which nothing in
 /// Settings can remove.
@@ -561,6 +741,35 @@ fn status_bar(status: ReadyStatus, state: &AppModel) -> InfoBar {
         ReadyStatus::Updates => {
             (Severity::Informational, t!("ready-banner-updates-title"), t!("ready-banner-updates-message"))
         }
+        ReadyStatus::WindowsTerms => {
+            let release = state.windows_transition().map_or("", |(transition, _)| transition.target_release);
+            (
+                Severity::Informational,
+                t!("ready-banner-terms-title"),
+                t!("ready-banner-terms-message", release = release),
+            )
+        }
+        // A look for the offer while Atlas waits for it leaves the live bar
+        // as it was, so only a change is announced.
+        ReadyStatus::Updating
+            if state.offer_wait_running()
+                && matches!(
+                    state.preparation,
+                    Preparation::Running {
+                        stage: crate::services::preparation::Stage::WindowsSearch
+                            | crate::services::preparation::Stage::Verify,
+                        ..
+                    }
+                ) =>
+        {
+            let release =
+                state.transition_request().map(|request| request.target_release).unwrap_or_default();
+            (
+                Severity::Informational,
+                t!("prepare-not-offered-title", release = release.as_str()),
+                t!("ready-banner-not-offered-message"),
+            )
+        }
         ReadyStatus::Updating => {
             let message = if state.preparation == Preparation::WaitingExternal {
                 t!("prepare-previous-worker")
@@ -582,7 +791,26 @@ fn status_bar(status: ReadyStatus, state: &AppModel) -> InfoBar {
             t!("ready-banner-updates-resumed-message"),
         ),
         ReadyStatus::UpdatesFailed => {
-            (Severity::Error, t!("prepare-failed-title"), t!("ready-banner-updates-failed-message"))
+            // A move between Windows releases that stopped is named as such,
+            // as the update card does.
+            let failure = state.preparation_progress.as_ref().and_then(|progress| progress.failure());
+            let reason =
+                failure.and_then(|failure| failure.reason.as_deref()).filter(|r| r.starts_with("feature-"));
+            let release =
+                state.transition_request().map(|request| request.target_release).unwrap_or_default();
+            match (failure, reason) {
+                (Some(failure), Some(_)) if failure.not_offered() => (
+                    Severity::Informational,
+                    t!("prepare-not-offered-title", release = release.as_str()),
+                    t!("ready-banner-not-offered-message"),
+                ),
+                (Some(_), Some(_)) => (
+                    Severity::Error,
+                    t!("prepare-transition-failed-title", release = release.as_str()),
+                    t!("ready-banner-transition-failed-message"),
+                ),
+                _ => (Severity::Error, t!("prepare-failed-title"), t!("ready-banner-updates-failed-message")),
+            }
         }
         ReadyStatus::UpdatesUnconfirmed => {
             (Severity::Warning, t!("prepare-unconfirmed-title"), t!("ready-banner-updates-failed-message"))

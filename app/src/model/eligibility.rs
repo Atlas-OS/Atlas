@@ -24,6 +24,22 @@ pub enum InstallBlock {
     RecordUnreadable { error: String, record: PathBuf },
     /// The installation state couldn't be established.
     Unknown,
+    /// This Windows can't take the package: its edition, or a version no
+    /// update Atlas can make moves on from. Home says so before the flow,
+    /// with what it needs to word it.
+    Windows {
+        block: crate::services::windows_release::WindowsBlock,
+        /// The Atlas version Home would install.
+        version: String,
+        /// Windows' own name for this PC's edition.
+        product: String,
+        /// This PC's release, such as "24H2".
+        current: String,
+        /// The releases the package supports.
+        releases: Vec<String>,
+        /// When this release stops getting security updates, on Home and Pro.
+        ending: Option<chrono::NaiveDate>,
+    },
 }
 
 impl AppModel {
@@ -69,6 +85,25 @@ impl AppModel {
     pub fn start_block(&self) -> Option<InstallBlock> {
         self.identity_block()
             .filter(|block| self.bundled() || !matches!(block, InstallBlock::ResumeOther { .. }))
+            .or_else(|| {
+                self.windows_block().map(|block| InstallBlock::Windows {
+                    block,
+                    version: self
+                        .release
+                        .release()
+                        .map_or_else(|| self.manifest().version.clone(), |r| r.version().to_owned()),
+                    product: self.system.product_name.clone(),
+                    current: self.system.display_version.clone(),
+                    releases: self
+                        .manifest()
+                        .supported_builds
+                        .iter()
+                        .filter_map(|build| crate::services::windows_release::release_name(*build))
+                        .map(str::to_owned)
+                        .collect(),
+                    ending: crate::services::windows_release::end_of_updates(&self.system),
+                })
+            })
     }
 
     /// Judges the install identity against the package that will run. Until
@@ -146,8 +181,10 @@ impl AppModel {
     }
 
     pub fn refresh_atlas_state(&mut self) {
+        self.refresh_update_access();
         self.atlas = (self.env.adapters.read_atlas_state)().map_err(|e| format!("{e:#}"));
         self.install_identity = (self.env.adapters.read_install_identity)().map_err(|e| format!("{e:#}"));
+        self.legacy_choices = (self.env.adapters.read_legacy_choices)();
         if let Err(error) = &self.install_identity {
             log::warn!("could not establish Atlas installation eligibility: {error}");
         }

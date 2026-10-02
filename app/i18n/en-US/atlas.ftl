@@ -35,3 +35,11 @@ iso-edition-selection = Only supported editions are included. During Windows set
 
 ## Windows installation USB (Beta)
 usb-cancelled-title = USB creation canceled
+
+## Windows version update
+windows-terms-link = Read the license terms
+prepare-needs-terms = Available when you accept the license terms in Windows 11, version { $release }.
+ready-banner-terms-title = Accept the license terms to continue
+prepare-failed-feature-terms = Accept the license terms for Windows 11, version { $release }, then choose Try again.
+prepare-failed-feature-managed = This PC gets updates from an organization's update server, so Atlas can't move it to version { $release }. Atlas didn't change anything.
+prepare-failed-feature-policy = Something on this PC keeps changing { $setting } back after Atlas changes it, so Atlas can't update Windows. If an organization manages this PC, ask them. Atlas puts back what it changed when you stop.

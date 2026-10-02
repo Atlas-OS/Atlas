@@ -11,6 +11,8 @@ use anyhow::{Context, Result, ensure};
 use chrono::NaiveDate;
 use serde::Deserialize;
 
+use super::system::SystemInfo;
+
 const SOURCE_URL: &str =
     "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information";
 /// The bundled list of public releases, shared with the PowerShell side.
@@ -232,11 +234,216 @@ fn parse_release_section(text: &str, today: NaiveDate, build: u32, section: &str
     Ok(versions)
 }
 
+/// The release name of a build Atlas supports, such as "26H2".
+pub fn release_name(build: u32) -> Option<&'static str> {
+    BUILD_FAMILIES.iter().find(|family| family.0 == build).map(|family| family.1)
+}
+
+/// A move between Windows releases through Windows Update. Microsoft
+/// delivers it as an enablement package: the files are already there, and
+/// one restart switches the new release on. Kept apart from
+/// [`BUILD_FAMILIES`], which lists the builds Atlas supports, not the ones it
+/// can move from.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Transition {
+    pub sources: &'static [u32],
+    pub target_build: u32,
+    pub target_release: &'static str,
+    /// KB numbers Windows Update is known to offer the move under. They name
+    /// the update in logs; the worker picks the offer by the release its
+    /// title names, so a new KB doesn't stop the move.
+    pub kbs: &'static [u32],
+    /// KB numbers of the optional cumulative update the move needs first. The
+    /// worker installs that update, or a newer one for the same build, and no
+    /// other optional update.
+    pub prerequisites: &'static [u32],
+    /// The revision that includes the prerequisites. It tells "needs a newer
+    /// monthly update" apart from "not offered yet" and never gates anything.
+    pub minimum_revision: u32,
+    /// When the target release stops getting security updates on Home and Pro.
+    pub target_end_of_updates: &'static str,
+}
+
+pub const TRANSITIONS: &[Transition] = &[Transition {
+    sources: &[26100, 26200],
+    target_build: 26300,
+    target_release: "26H2",
+    // The enablement package, and the offer that delivers it on 25H2.
+    kbs: &[5_121_794, 5_129_195],
+    // The September 2026 preview cumulative update; regular updates from
+    // October 2026 include it.
+    prerequisites: &[5_124_010],
+    minimum_revision: 9546,
+    target_end_of_updates: "2028-10-10",
+}];
+
+/// When a build stops getting security updates on the Home and Pro editions.
+/// Enterprise and Education get a longer window.
+const HOME_PRO_END_OF_UPDATES: &[(u32, &str)] = &[(26100, "2026-10-13")];
+
+/// Whether this PC gets updates on the Home and Pro schedule.
+fn home_pro_family(system: &SystemInfo) -> bool {
+    let edition = system.edition_id.to_ascii_lowercase();
+    edition.starts_with("core") || edition.starts_with("professional")
+}
+
+/// When this PC's Windows release stops getting security updates, for an
+/// edition on the Home and Pro schedule.
+pub fn end_of_updates(system: &SystemInfo) -> Option<NaiveDate> {
+    if !home_pro_family(system) {
+        return None;
+    }
+    HOME_PRO_END_OF_UPDATES
+        .iter()
+        .find(|(build, _)| *build == system.build)
+        .and_then(|(_, date)| NaiveDate::parse_from_str(date, "%Y-%m-%d").ok())
+}
+
+impl Transition {
+    pub fn end_of_updates(&self) -> NaiveDate {
+        NaiveDate::parse_from_str(self.target_end_of_updates, "%Y-%m-%d").expect("valid transition date")
+    }
+}
+
+/// Whether the release a PC is on must move for Atlas, or only may.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TransitionNeed {
+    /// The package does not support this build: the move comes first.
+    Required,
+    /// The package supports this build; moving is recommended.
+    Optional,
+}
+
+/// The move this PC can make before installing a package that supports
+/// `supported`: on a source build, with a supported edition and a released
+/// Windows, toward a target the package supports. Never during Windows
+/// setup, where Windows Update is not Atlas's to drive.
+pub fn transition_for(
+    system: &SystemInfo,
+    supported: &[u32],
+    desktop_setup: bool,
+) -> Option<(&'static Transition, TransitionNeed)> {
+    if desktop_setup || !system.supported_edition() || preview_branch(&system.build_lab) {
+        return None;
+    }
+    let transition = TRANSITIONS
+        .iter()
+        .find(|t| t.sources.contains(&system.build) && supported.contains(&t.target_build))?;
+    let need =
+        if supported.contains(&system.build) { TransitionNeed::Optional } else { TransitionNeed::Required };
+    Some((transition, need))
+}
+
+/// The transition that moves Windows to `release`, for a move under way.
+pub fn transition_to(release: &str) -> Option<&'static Transition> {
+    TRANSITIONS.iter().find(|t| t.target_release.eq_ignore_ascii_case(release))
+}
+
+/// Why a package that supports `supported` can't be installed on this PC
+/// whatever Atlas does, so Home can say so before anything starts.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WindowsBlock {
+    /// Home, LTSC or Server: the edition, not the version, rules it out.
+    Edition,
+    /// No update Atlas can make reaches a supported version from this one.
+    NoPath { build: u32 },
+    /// An Insider or preview build.
+    Preview,
+}
+
+pub fn windows_block(system: &SystemInfo, supported: &[u32], desktop_setup: bool) -> Option<WindowsBlock> {
+    if desktop_setup || system.build == 0 {
+        return None;
+    }
+    if !system.supported_edition() {
+        return Some(WindowsBlock::Edition);
+    }
+    if preview_branch(&system.build_lab) {
+        return Some(WindowsBlock::Preview);
+    }
+    if supported.contains(&system.build) || transition_for(system, supported, desktop_setup).is_some() {
+        return None;
+    }
+    Some(WindowsBlock::NoPath { build: system.build })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     type Refresh = fn() -> Result<HashSet<String>>;
+
+    fn system(build: u32, edition: &str) -> SystemInfo {
+        SystemInfo {
+            build,
+            revision: 9550,
+            edition_id: edition.into(),
+            installation_type: "Client".into(),
+            build_lab: format!("{build}.9550.amd64fre.ge_release.260918-1415"),
+            ..SystemInfo::default()
+        }
+    }
+
+    #[test]
+    fn only_a_supported_edition_on_a_source_build_can_move_toward_a_supported_target() {
+        let supported = [26200, 26300];
+        let need = |system: &SystemInfo| {
+            transition_for(system, &supported, false)
+                .map(|(transition, need)| (transition.target_build, need))
+        };
+        assert_eq!(need(&system(26100, "Professional")), Some((26300, TransitionNeed::Required)));
+        assert_eq!(need(&system(26200, "Enterprise")), Some((26300, TransitionNeed::Optional)));
+        for build in [26300, 22631, 28000, 19045] {
+            assert_eq!(need(&system(build, "Professional")), None, "{build}");
+        }
+        for edition in ["Core", "CoreSingleLanguage", "EnterpriseS", "IoTEnterpriseS"] {
+            assert_eq!(need(&system(26100, edition)), None, "{edition}");
+        }
+        let mut server = system(26100, "ServerStandard");
+        server.installation_type = "Server".into();
+        assert_eq!(need(&server), None);
+        let mut insider = system(26100, "Professional");
+        insider.build_lab = "26100.1.amd64fre.rs_prerelease.240101".into();
+        assert_eq!(need(&insider), None);
+        assert_eq!(transition_for(&system(26100, "Professional"), &supported, true), None, "Windows setup");
+        assert_eq!(
+            transition_for(&system(26100, "Professional"), &[26200], false),
+            None,
+            "a target the package lacks"
+        );
+    }
+
+    #[test]
+    fn home_names_what_rules_a_pc_out_before_anything_starts() {
+        let supported = [26200, 26300];
+        let block = |system: &SystemInfo| windows_block(system, &supported, false);
+        assert_eq!(block(&system(26100, "Core")), Some(WindowsBlock::Edition));
+        assert_eq!(block(&system(26100, "EnterpriseS")), Some(WindowsBlock::Edition));
+        assert_eq!(block(&system(22631, "Professional")), Some(WindowsBlock::NoPath { build: 22631 }));
+        assert_eq!(block(&system(28000, "Professional")), Some(WindowsBlock::NoPath { build: 28000 }));
+        let mut insider = system(26300, "Professional");
+        insider.build_lab = "26300.1.amd64fre.rs_prerelease.260101".into();
+        assert_eq!(block(&insider), Some(WindowsBlock::Preview));
+        for build in [26100, 26200, 26300] {
+            assert_eq!(block(&system(build, "Professional")), None, "{build}");
+        }
+        assert_eq!(windows_block(&system(22631, "Core"), &supported, true), None, "Windows setup");
+    }
+
+    #[test]
+    fn only_home_and_pro_on_24h2_get_the_end_of_updates_warning() {
+        let date = NaiveDate::from_ymd_opt(2026, 10, 13);
+        for edition in ["Core", "Professional", "ProfessionalWorkstation", "ProfessionalEducation"] {
+            assert_eq!(end_of_updates(&system(26100, edition)), date, "{edition}");
+        }
+        for edition in ["Enterprise", "Education", "IoTEnterprise"] {
+            assert_eq!(end_of_updates(&system(26100, edition)), None, "{edition}");
+        }
+        assert_eq!(end_of_updates(&system(26200, "Professional")), None);
+        assert_eq!(TRANSITIONS[0].end_of_updates(), NaiveDate::from_ymd_opt(2028, 10, 10).unwrap());
+        assert_eq!(transition_to("26h2").map(|t| t.target_build), Some(26300));
+        assert_eq!(transition_to("25H2"), None);
+    }
 
     #[test]
     fn the_catalog_lists_the_supported_build_families() {

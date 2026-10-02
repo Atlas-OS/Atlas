@@ -142,6 +142,15 @@ fn long_date_in(locale: &LocaleName, when: &DateTime<Local>) -> String {
         .unwrap_or_else(|| when.format("%Y-%m-%d").to_string())
 }
 
+/// A calendar day, such as an end-of-support date, as [`long_date`] words it.
+pub fn day(date: chrono::NaiveDate) -> String {
+    use chrono::TimeZone;
+    match date.and_hms_opt(12, 0, 0).and_then(|noon| Local.from_local_datetime(&noon).single()) {
+        Some(when) => long_date(&when),
+        None => date.format("%Y-%m-%d").to_string(),
+    }
+}
+
 /// "20:13" or "8:13 PM", as the regional format has it.
 pub fn time(when: &DateTime<Local>) -> String {
     time_in(format_locale(), when)

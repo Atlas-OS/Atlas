@@ -12,9 +12,11 @@ use super::{
     options_value, page_frame, recorded_options,
 };
 use crate::i18n::{describe, fmt};
-use crate::model::{AppModel, InstallBlock, Page, ReleaseCheck, Step};
+use crate::model::{AppModel, InstallBlock, Page, ReleaseCheck, RestoreStatus, Step};
 use crate::services::releases::Release;
 use crate::services::system::links;
+use crate::services::update_access::JournalKind;
+use crate::services::windows_release::{self, TransitionNeed, WindowsBlock};
 use crate::t;
 use crate::theme::{ActiveTheme, FONT_TEXT};
 use crate::ui::{
@@ -314,17 +316,37 @@ impl HomePage {
                 InfoBar::new(Severity::Error, t!("install-source-title"), message).id("home-eligibility");
             if let Some(diagnostics) = diagnostics {
                 bar = bar.action(div().w_full().child(diagnostics));
-            } else if matches!(block, InstallBlock::Unsupported { .. }) {
+            } else if matches!(
+                block,
+                InstallBlock::Unsupported { .. }
+                    | InstallBlock::Windows { block: WindowsBlock::NoPath { .. }, .. }
+            ) {
                 // Reinstalling Windows is the way on, and an Atlas ISO is where it starts.
                 bar = bar.action(
                     Button::new("home-eligibility-iso", t!("iso-open"))
                         .disabled(state.locked() || state.recovering)
                         .on_click(on_model(model, |m, cx| m.navigate_iso_for_this_pc(cx))),
                 );
+            } else if matches!(
+                block,
+                InstallBlock::Windows { block: WindowsBlock::Edition, ending: Some(_), .. }
+            ) {
+                // Windows Update moves this edition on, without Atlas.
+                bar = bar.action(
+                    Button::new("home-eligibility-windows-update", t!("check-fix-windows-update"))
+                        .trailing_icon(Icon::OpenInNewWindow)
+                        .opens(links::WINDOWS_UPDATE),
+                );
             }
             body.push(bar.into_any_element());
         }
 
+        if let Some(bar) = end_of_updates_bar(state) {
+            body.push(bar.into_any_element());
+        }
+        if let Some(bar) = self.update_access_bar(state) {
+            body.push(bar.into_any_element());
+        }
         if let Some(notice) = &state.notice {
             let (model, headline) = (model.clone(), self.headline_focus.clone());
             body.push(
@@ -372,6 +394,145 @@ impl HomePage {
             );
         }
         body
+    }
+
+    /// Atlas changed Windows Update settings for an update that isn't
+    /// finished: continue it, or put the settings back. A record Atlas can't
+    /// read is reported, never acted on.
+    fn update_access_bar(&self, state: &AppModel) -> Option<InfoBar> {
+        let model = &self.model;
+        let access = state.update_access.as_ref().filter(|access| access.open() && !state.flow.active)?;
+        if access.journal.is_none() {
+            return Some(
+                InfoBar::new(
+                    Severity::Error,
+                    t!("home-update-access-title"),
+                    t!("home-update-access-unreadable"),
+                )
+                .id("home-update-access"),
+            );
+        }
+        let journal = access.journal.as_ref()?;
+        let release = journal.target.as_ref().map(|target| target.release.clone()).unwrap_or_default();
+        let message = match journal.kind {
+            JournalKind::Access => t!("home-update-access-plain"),
+            _ if journal.installed()
+                || journal.target.as_ref().is_some_and(|t| t.build == state.system.build) =>
+            {
+                t!("home-update-access-after", release = release.as_str())
+            }
+            _ if state.transition_waiting_for_offer() => {
+                t!("home-update-access-not-offered", release = release.as_str())
+            }
+            _ => t!("home-update-access-before", release = release.as_str()),
+        };
+        let continue_label = if state.transition_waiting_for_offer() {
+            t!("prepare-check-again")
+        } else {
+            t!("home-continue-update")
+        };
+        let running = state.restore_status == RestoreStatus::Running;
+        // The hero's Update button continues it when an update is on offer.
+        // Waiting for an offer, Check again belongs here, beside its message.
+        let continue_here = state.offered_update().is_none() || state.transition_waiting_for_offer();
+        let actions = div()
+            .flex()
+            .flex_wrap()
+            .gap(px(8.))
+            .when(continue_here, |row| {
+                row.child(
+                    Button::new("home-continue-update", continue_label)
+                        .disabled(state.recovering || state.elevating || state.start_block().is_some())
+                        .on_click(on_model(model, |m, cx| m.begin_install(cx))),
+                )
+            })
+            .child(
+                Button::new(
+                    "home-put-back",
+                    if running { t!("home-putting-back") } else { t!("home-put-back") },
+                )
+                .when(!state.elevated, |button| button.icon(Icon::Admin))
+                .disabled(!state.may_restore_update_access())
+                .on_click(on_model(model, |m, cx| m.restore_update_access(cx))),
+            );
+        let mut bar = InfoBar::new(Severity::Warning, t!("home-update-access-title"), message)
+            .id("home-update-access")
+            .action(actions);
+        // Why the settings didn't come back, or why they can't yet.
+        let problem = match &state.restore_status {
+            RestoreStatus::Failed(error) => Some(describe::restore_failure(error)),
+            _ if state.resume_target().is_some() || state.rebuilt_windows_awaits_install() => {
+                Some(t!("home-update-access-install-active"))
+            }
+            _ => None,
+        };
+        if let Some(problem) = problem {
+            bar = bar.content(div().type_body().child(a11y_text("home-update-access-problem", problem)));
+        }
+        Some(bar)
+    }
+
+    /// The two parts of an update that also moves Windows, under the hero.
+    fn update_plan(&self, state: &AppModel, window: &Window, cx: &App) -> Option<AnyElement> {
+        // The update on offer, or, in a tester build, its bundled package
+        // when that is newer than what's installed.
+        let version = match state.offered_update() {
+            Some(release) => release.version().to_owned(),
+            None if state.bundled() && state.start_block().is_none() => {
+                let bundled = state.manifest().version.clone();
+                let installed = state.installed_version()?;
+                crate::services::releases::compare_versions(&bundled, installed).is_gt().then_some(bundled)?
+            }
+            None => return None,
+        };
+        let (transition, need) = state.windows_transition()?;
+        if state.flow.active {
+            return None;
+        }
+        let theme = cx.theme();
+        let windows_detail = match need {
+            TransitionNeed::Required => t!("home-plan-windows-detail"),
+            TransitionNeed::Optional => t!("home-plan-windows-optional"),
+        };
+        // How long the offer can take, said before anyone waits for it.
+        let windows_detail = format!("{windows_detail} {}", t!("transition-offer-expectation"));
+        let steps = [
+            (t!("home-plan-windows-title", release = transition.target_release), windows_detail),
+            (t!("home-plan-atlas-title", version = version.as_str()), t!("home-plan-atlas-detail")),
+        ];
+        // A move under way shows how far it got.
+        let moved = state.system.build == transition.target_build;
+        let steps_now = if moved {
+            [StepStatus::Done, StepStatus::Current]
+        } else {
+            [StepStatus::Current, StepStatus::Upcoming]
+        };
+        let progress = state.transition_open().then_some(steps_now);
+        let title_top = step_title_top(window, cx);
+        Some(
+            card(cx)
+                .child(
+                    div()
+                        .px(px(16.))
+                        .pt(px(16.))
+                        .type_body()
+                        .text_color(theme.text_secondary)
+                        .child(a11y_text("home-plan-intro", t!("home-plan-intro"))),
+                )
+                .child(
+                    div()
+                        .id("home-plan")
+                        .role(Role::List)
+                        .aria_label(t!("home-plan-intro"))
+                        .aria_size_of_set(2)
+                        .child(card_body().children(steps.into_iter().enumerate().map(
+                            |(index, (title, detail))| {
+                                step_line(index, 2, title, detail, progress.map(|p| p[index]), title_top, cx)
+                            },
+                        ))),
+                )
+                .into_any_element(),
+        )
     }
 
     /// "What's new" in the update Home offers.
@@ -513,9 +674,22 @@ impl Render for HomePage {
         }
         let diagnostics = matches!(self.model.read(cx).start_block(), Some(InstallBlock::Unknown))
             .then(|| self.diagnostics.content(&model, cx));
+        // A Windows Update record Atlas can't read, or settings it couldn't
+        // put back, are worth a report; its panel goes right under the bar.
+        let access_help = {
+            let state = self.model.read(cx);
+            diagnostics.is_none()
+                && !state.flow.active
+                && (state.update_access.as_ref().is_some_and(|access| access.journal_error.is_some())
+                    || matches!(state.restore_status, RestoreStatus::Failed(_)))
+        };
         let state = self.model.read(cx);
         let mut body: Vec<AnyElement> = vec![self.hero(state, cx)];
         body.extend(self.notices(state, diagnostics));
+        if access_help {
+            body.push(self.diagnostics.panel(&model, cx).into_any_element());
+        }
+        body.extend(self.update_plan(state, window, cx));
         if let Some(release) = state.offered_update() {
             body.push(self.release_notes_card(release, cx));
         }
@@ -526,6 +700,34 @@ impl Render for HomePage {
         self.diagnostics.settle(&model, window, cx);
         page_frame("home-scroll", None, None, None, (&self.scroll, &self.scrollbar), body, None, cx)
     }
+}
+
+/// Windows 11, version 24H2 on Home and Pro stops getting security updates:
+/// Home says when, and that the update moves it to a supported version.
+fn end_of_updates_bar(state: &AppModel) -> Option<InfoBar> {
+    let (transition, _) = state.windows_transition()?;
+    let ending = windows_release::end_of_updates(&state.system)?;
+    let current = state.system.display_version.as_str();
+    let title = if chrono::Local::now().date_naive() > ending {
+        t!("home-end-of-updates-past-title", current = current)
+    } else {
+        t!("home-end-of-updates-title", current = current, date = fmt::day(ending))
+    };
+    let version =
+        state.release.release().map_or_else(|| state.manifest().version.clone(), |r| r.version().to_owned());
+    Some(
+        InfoBar::new(
+            Severity::Warning,
+            title,
+            t!(
+                "home-end-of-updates-message",
+                version = version.as_str(),
+                release = transition.target_release,
+                until = fmt::day(transition.end_of_updates())
+            ),
+        )
+        .id("home-end-of-updates"),
+    )
 }
 
 /// The card that follows the hero.

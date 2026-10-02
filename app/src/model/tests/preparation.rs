@@ -11,7 +11,7 @@ use crate::model::test_harness::{
 use crate::model::{AppModel, RunState, Step};
 use crate::services::installer::InstallOutcome;
 use crate::services::playbook;
-use crate::services::preparation::{Drivers, RestartProblem, State};
+use crate::services::preparation::{Drivers, RestartProblem, State, StoreOutcome};
 use crate::services::settings::{self, InstallDraft};
 use crate::services::test_support::apbx;
 
@@ -282,6 +282,147 @@ fn the_driver_default_is_not_read_per_render_and_a_choice_overrides_it() {
         assert_eq!(*reads.lock().unwrap(), before, "rendering does not read the machine");
         act(&mut cx, &model, |m, cx| m.set_drivers(Drivers::Automatic, cx));
         assert_eq!(read(&cx, &model, AppModel::driver_preference), Drivers::Automatic, "a choice wins");
+        settle(&cx, &model).await;
+    });
+}
+
+/// A worker double that reports `report` as its last word and ends in `state`,
+/// counting its runs.
+fn store_worker(
+    report: serde_json::Value,
+    state: State,
+    runs: Arc<Mutex<u32>>,
+) -> Arc<crate::environment::RunPreparation> {
+    Arc::new(move |_, _, _, mut progress| {
+        *runs.lock().unwrap() += 1;
+        progress(serde_json::from_value(report.clone()).unwrap());
+        Ok(state.clone())
+    })
+}
+
+/// A run that updated Microsoft Store and then needed a restart still says so
+/// when updating is done after the restart, from the draft the restart kept.
+#[test]
+fn what_updating_did_about_microsoft_store_is_said_after_a_restart() {
+    run_model_test(|mut cx| async move {
+        let (temp, _, env) = fixture("preparation-store-restart");
+        let (package, _) = marking_package(&temp, 0);
+        let model = new_model(&mut cx, env.clone());
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        act(&mut cx, &model, |m, cx| m.begin_install(cx));
+        act(&mut cx, &model, |m, cx| m.load_playbook_file(package.clone(), cx));
+        wait_for(&cx, &model, "the package and the checks", |m| m.playbook.is_some() && m.checks_complete())
+            .await;
+        let runs = Arc::new(Mutex::new(0));
+        let restart = serde_json::json!({
+            "schema": 1, "status": "reboot", "stage": "windows-install", "completed": 0, "total": 0,
+            "activity": { "storeOutcome": "store-updated", "restartReasons": ["servicing"] }
+        });
+        act(&mut cx, &model, |m, cx| {
+            m.env.adapters.run_preparation = store_worker(restart, State::Reboot, runs.clone());
+            m.prepare_windows(cx);
+        });
+        wait_for(&cx, &model, "the restart to be owed", |m| m.preparation == State::Reboot).await;
+        assert_eq!(read(&cx, &model, |m| m.store_outcome()), None, "not before updating is done");
+        crate::model::test_harness::wait_on_disk(&cx, &env, "the Store outcome in the draft", |s| {
+            s.draft.as_ref().is_some_and(|d| d.store_outcome.as_deref() == Some("store-updated"))
+        })
+        .await;
+
+        // After the restart: a new window restores the draft, and the run
+        // that finishes says nothing more about the Store.
+        let draft = crate::services::settings::load_from(&env.paths.settings()).settings.draft.unwrap();
+        let done = serde_json::json!({
+            "schema": 1, "status": "complete", "stage": "verify", "completed": 0, "total": 0, "activity": {}
+        });
+        act(&mut cx, &model, |m, cx| {
+            m.store_outcome_seen = None;
+            m.restore_preparation(&draft);
+            m.preparation = State::Resumed;
+            m.env.adapters.run_preparation = store_worker(done, State::Ready, runs.clone());
+            m.prepare_windows(cx);
+        });
+        wait_for(&cx, &model, "the run after the restart", |m| m.preparation == State::Ready).await;
+        assert_eq!(read(&cx, &model, |m| m.store_outcome()), Some(StoreOutcome::Updated));
+    });
+}
+
+/// Get ready says what it did about Microsoft Store itself once it's done, and
+/// a Store it couldn't repair is offered the repairs again and a report.
+#[test]
+fn get_ready_says_what_it_did_about_microsoft_store() {
+    run_model_test(|mut cx| async move {
+        let (temp, _, env) = fixture("preparation-store-outcome");
+        let (package, _) = marking_package(&temp, 0);
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        act(&mut cx, &model, |m, cx| m.begin_install(cx));
+        act(&mut cx, &model, |m, cx| m.load_playbook_file(package.clone(), cx));
+        wait_for(&cx, &model, "the package and the checks", |m| m.playbook.is_some() && m.checks_complete())
+            .await;
+        let runs = Arc::new(Mutex::new(0));
+
+        for (id, outcome) in [
+            ("store-updated", StoreOutcome::Updated),
+            ("store-bootstrapped", StoreOutcome::Bootstrapped),
+            ("store-repaired", StoreOutcome::Repaired),
+            ("store-skipped-removed", StoreOutcome::SkippedRemoved),
+        ] {
+            let report = serde_json::json!({
+                "schema": 1, "status": "complete", "stage": "verify", "completed": 0, "total": 0,
+                "activity": { "storeOutcome": id }
+            });
+            act(&mut cx, &model, |m, cx| {
+                m.env.adapters.run_preparation = store_worker(report, State::Ready, runs.clone());
+                m.preparation = State::Idle;
+                m.prepare_windows(cx);
+            });
+            wait_for(&cx, &model, "the run to finish", |m| m.preparation == State::Ready).await;
+            assert_eq!(read(&cx, &model, |m| m.store_outcome()), Some(outcome), "{id}");
+            assert!(!read(&cx, &model, |m| m.store_repair_failed()));
+        }
+
+        // A run that says nothing about the Store, and an outcome this build doesn't know.
+        for activity in [serde_json::json!({}), serde_json::json!({ "storeOutcome": "store-later" })] {
+            let report = serde_json::json!({
+                "schema": 1, "status": "complete", "stage": "verify", "completed": 0, "total": 0, "activity": activity
+            });
+            act(&mut cx, &model, |m, cx| {
+                m.env.adapters.run_preparation = store_worker(report, State::Ready, runs.clone());
+                m.preparation = State::Idle;
+                m.prepare_windows(cx);
+            });
+            wait_for(&cx, &model, "the run to finish", |m| m.preparation == State::Ready).await;
+            assert_eq!(read(&cx, &model, |m| m.store_outcome()), None);
+        }
+
+        // The repairs didn't help: the failure is the Store's own, and trying
+        // again runs the worker, and so the repairs, again.
+        let failed = serde_json::json!({
+            "schema": 1, "status": "failed", "stage": "store-repair", "completed": 0, "total": 0,
+            "activity": { "reason": "store-repair-failed", "failureMessage": "Microsoft Store couldn't be repaired." }
+        });
+        act(&mut cx, &model, |m, cx| {
+            m.env.adapters.run_preparation = store_worker(failed, State::Failed, runs.clone());
+            m.preparation = State::Idle;
+            m.prepare_windows(cx);
+        });
+        wait_for(&cx, &model, "the failed run", |m| m.preparation == State::Failed).await;
+        read(&cx, &model, |m| {
+            assert!(m.store_repair_failed());
+            assert_eq!(m.store_outcome(), None);
+            let failure = m.preparation_progress.as_ref().and_then(|p| p.failure());
+            assert_eq!(
+                crate::i18n::describe::preparation_failure(failure, false),
+                crate::t!("prepare-failed-store-repair-failed")
+            );
+        });
+        let before = *runs.lock().unwrap();
+        act(&mut cx, &model, |m, cx| m.prepare_windows(cx));
+        wait_for(&cx, &model, "the second try", |m| {
+            m.preparation == State::Failed && *runs.lock().unwrap() > before
+        })
+        .await;
         settle(&cx, &model).await;
     });
 }

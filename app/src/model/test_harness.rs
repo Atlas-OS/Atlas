@@ -173,6 +173,20 @@ pub(super) fn three_off_one_unreadable() -> SecurityStatus {
 
 pub(super) use super::preview::passing;
 
+/// A PC on a Windows version and edition every test package supports and
+/// no update needs to move: Windows 11 Pro, version 26H2.
+pub(crate) fn supported_system() -> crate::services::system::SystemInfo {
+    crate::services::system::SystemInfo {
+        product_name: "Windows 11 Pro".into(),
+        display_version: "26H2".into(),
+        build: 26300,
+        revision: 9550,
+        edition_id: "Professional".into(),
+        installation_type: "Client".into(),
+        build_lab: "26300.9550.amd64fre.ge_release.260918-1415".into(),
+    }
+}
+
 /// A machine that is elevated, passes every check, and whose Windows
 /// Security reading, install identity and state document are whatever the
 /// test puts in the shared cells.
@@ -183,6 +197,8 @@ pub(crate) struct Machine {
     pub(super) scheduled: Arc<Mutex<u32>>,
     /// Completion windows armed for installs that started.
     pub(super) armed: Arc<Mutex<u32>>,
+    /// The other people signed in; `None` reads as a failure to list them.
+    pub(super) others: Arc<Mutex<Option<Vec<String>>>>,
 }
 
 impl Machine {
@@ -193,6 +209,7 @@ impl Machine {
             identity: Arc::new(Mutex::new(Some(atlas_state::InstallIdentity::Fresh))),
             state: Arc::new(Mutex::new(None)),
             armed: Arc::new(Mutex::new(0)),
+            others: Arc::new(Mutex::new(Some(Vec::new()))),
         }
     }
 
@@ -206,6 +223,7 @@ impl Machine {
         let identity = self.identity.clone();
         let state = self.state.clone();
         let armed = self.armed.clone();
+        let others = self.others.clone();
         Adapters {
             register_preparation_resume: Arc::new(|| Ok(())),
             is_elevated: Arc::new(|| true),
@@ -226,6 +244,16 @@ impl Machine {
             }),
             fetch_release: Arc::new(|| anyhow::bail!("no network in tests")),
             read_driver_default: Arc::new(|| crate::services::preparation::Drivers::Automatic),
+            read_system: Arc::new(supported_system),
+            run_preparation: Arc::new(|_, _, _, _| {
+                anyhow::bail!("real Windows servicing is disabled in unit tests")
+            }),
+            read_update_access: Arc::new(|| Ok(Default::default())),
+            run_operation: Arc::new(|_, operation| anyhow::bail!("no worker in tests: {operation:?}")),
+            read_legacy_choices: Arc::new(Vec::new),
+            read_other_sessions: Arc::new(move || {
+                others.lock().unwrap().clone().ok_or_else(|| anyhow::anyhow!("sessions unreadable"))
+            }),
         }
     }
 

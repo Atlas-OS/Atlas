@@ -1047,3 +1047,192 @@ report-validation-contact = Limite los datos de contacto a { $max } caracteres.
 report-validation-consent = Confirme que acepta enviar este informe.
 
 report-failed-title = El informe no se envió
+
+## Windows version update
+# Inicio, bajo el botón de actualización, cuando la actualización también cambia la versión de Windows.
+home-plan-intro = Esta actualización tiene dos partes. Sus archivos y aplicaciones se conservan. Si al actualizar Windows se deshace alguno de los cambios de Atlas, Atlas los vuelve a aplicar.
+home-plan-windows-title = Windows 11, versión { $release }
+home-plan-windows-detail = Atlas la instala desde Windows Update. Su PC se reinicia para terminar de instalarla.
+# El mismo paso cuando el cambio de versión es opcional.
+home-plan-windows-optional = Recomendado. Atlas la instala desde Windows Update. Su PC se reinicia para terminar de instalarla.
+home-plan-atlas-title = Atlas { $version }
+home-plan-atlas-detail = Atlas actualiza sus propios archivos y conserva las preferencias que eligió. Su PC se reinicia al final.
+# $date y $until son fechas.
+home-end-of-updates-title = Windows 11, versión { $current }, deja de recibir actualizaciones de seguridad el { $date }
+home-end-of-updates-past-title = Windows 11, versión { $current }, ya no recibe actualizaciones de seguridad
+home-end-of-updates-message = Al actualizar a Atlas { $version }, este equipo también pasa a Windows 11, versión { $release }, que recibe actualizaciones de seguridad hasta el { $until }.
+# Inicio, cuando este Windows no admite la versión de Atlas. $product es el nombre que Windows da
+# a la edición, como Windows 11 Home.
+install-windows-edition = Atlas { $version } funciona con Windows 11 Pro, Enterprise y Education. Este equipo tiene { $product }, así que Atlas no se puede instalar en él.
+# Lo mismo, en una versión cuyas actualizaciones de seguridad terminan. $date es una fecha.
+install-windows-edition-ending = Atlas { $version } funciona con Windows 11 Pro, Enterprise y Education. Este equipo tiene { $product }, así que Atlas no se puede instalar en él. Windows 11, versión { $current }, deja de recibir actualizaciones de seguridad el { $date }. Windows Update puede actualizar este equipo a una versión más reciente.
+# $releases enumera las versiones compatibles, como "25H2 o 26H2".
+install-windows-no-path = Atlas { $version } requiere Windows 11, versión { $releases }, y Windows Update no puede llevar este equipo a esa versión desde el Windows que tiene. Para usar Atlas { $version }, haga una copia de seguridad de sus archivos y reinstale Windows con una ISO de Atlas.
+# Inicio, cuando Atlas cambió la configuración de Windows Update para una actualización y aún no la ha restaurado.
+home-update-access-title = La configuración de Windows Update sigue cambiada para la actualización de Atlas
+# Cuando la última comprobación aún no encontró la oferta.
+home-update-access-not-offered = Atlas activó Windows Update para actualizar este equipo a Windows 11, versión { $release }, y Windows Update aún no la ha ofrecido. Elija Volver a comprobar o Restaurar la configuración.
+home-update-access-before = Atlas activó Windows Update para actualizar este equipo a Windows 11, versión { $release }, y aún no ha terminado. Continúe la actualización o elija Restaurar la configuración.
+home-update-access-after = Este equipo ya tiene Windows 11, versión { $release }. Termine de instalar Atlas o elija Restaurar la configuración.
+home-update-access-plain = Atlas activó Windows Update para instalar actualizaciones y aún no ha terminado. Continúe la actualización o elija Restaurar la configuración.
+home-update-access-unreadable = Atlas no puede leer los datos que guardó sobre la configuración de Windows Update que cambió, así que no cambiará ni restaurará nada. Elija Enviar un informe para que el equipo de Atlas pueda ayudarle.
+# $error es el error sin procesar.
+home-update-access-failed = Atlas no pudo restaurar la configuración. Elija Reintentar o Enviar un informe. Detalles: { $error }
+home-update-access-install-active = Termine primero de instalar Atlas. Al final de la instalación, Atlas restaura esta configuración.
+home-continue-update = Continuar la actualización
+home-put-back = Restaurar la configuración
+home-putting-back = Restaurando la configuración…
+# Preparación: la tarjeta de la versión de Windows.
+windows-card-title = Windows 11, versión { $release }
+windows-card-required = Atlas { $version } requiere una versión más reciente de Windows. Cuando Atlas actualice Windows, en la tarjeta de abajo, también instalará Windows 11, versión { $release }, desde Windows Update.
+windows-card-question = ¿Qué versión de Windows debe usar este equipo?
+windows-choice-move = Actualizar a Windows 11, versión { $release }
+# $date es la fecha en que la nueva versión deja de recibir actualizaciones de seguridad.
+windows-choice-move-detail = Recomendado. Actualizaciones de seguridad hasta el { $date }. Un reinicio más.
+windows-choice-keep = Conservar Windows 11, versión { $current }
+windows-choice-keep-detail = Su PC se queda en esta versión. Windows Update no lo pasará a una versión más reciente, así que cambiar de versión más adelante requerirá otra actualización en Atlas Manager.
+windows-card-facts = Qué cambia
+windows-fact-keep = Sus archivos y aplicaciones se conservan. Si la actualización deshace alguno de los cambios de Atlas, Atlas los vuelve a aplicar al instalarse.
+windows-fact-restart = Su PC se reinicia al menos una vez más para terminar de instalarla.
+# También tras home-plan-windows-detail en Inicio: cuánto puede tardar Windows Update en ofrecer la nueva versión.
+transition-offer-expectation = Windows Update suele ofrecerla en unos minutos, pero puede tardar hasta 2 horas; Atlas espera y lo comprueba por usted.
+windows-fact-stays = Después, Windows se queda en la versión { $release } y no pasa por sí solo a una versión más reciente.
+windows-fact-removed = La versión { $release } no incluye Windows PowerShell 2.0 ni la herramienta WMIC.
+# Cómo deshacer el cambio: Windows puede activar la nueva versión sin reinstalarse (se desinstala
+# desde Historial de actualizaciones) o reinstalarse (se deshace con Volver durante 10 días).
+# Historial de actualizaciones, Volver, Recuperación y Sistema son los nombres de Windows en español.
+windows-card-undo = Para deshacerlo más adelante, desinstale la actualización desde Historial de actualizaciones en Windows Update. Si Windows se reinstaló para actualizarse, elija en su lugar Volver en Configuración > Sistema > Recuperación, en un plazo de 10 días. Atlas { $version } no es compatible con la versión { $current }, así que no deshaga la actualización una vez instalado Atlas { $version }.
+windows-card-undo-optional = Para deshacerlo más adelante, desinstale la actualización desde Historial de actualizaciones en Windows Update. Si Windows se reinstaló para actualizarse, elija en su lugar Volver en Configuración > Sistema > Recuperación, en un plazo de 10 días.
+windows-terms = Acepto los Términos de licencia del software de Microsoft para Windows 11, versión { $release }
+windows-terms-link = Leer los términos de licencia
+# Cancelar es el botón del propio flujo; Detener actualizaciones lo confirma (prepare-stop).
+windows-card-locked = Para conservar la versión { $current }, elija Cancelar y, después, Detener actualizaciones.
+# Preparación: la tarjeta de actualización mientras cambia la versión de Windows.
+prepare-description-transition = Antes de instalar, Atlas instala las actualizaciones pendientes de Windows, después Windows 11, versión { $release }, y por último actualiza Microsoft Store y sus aplicaciones de la Store. Las aplicaciones de la Store que tenga abiertas pueden cerrarse mientras se actualizan, así que guarde antes su trabajo en ellas. Su PC se reiniciará al menos una vez.
+prepare-start-transition = Actualizar Windows a la versión { $release }
+prepare-needs-terms = Disponible cuando acepte los términos de licencia en la tarjeta Windows 11, versión { $release }.
+ready-banner-not-offered-message = Consulte en Actualizar Windows y las apps de la Store qué puede hacer ahora.
+ready-banner-transition-failed-message = Consulte en Actualizar Windows y las apps de la Store qué debe hacer a continuación.
+ready-banner-terms-title = Acepte los términos de licencia para continuar
+ready-banner-terms-message = Están en la tarjeta Windows 11, versión { $release }, más abajo en esta página. Después, elija Actualizar Windows a la versión { $release }.
+# La barra que nombra cada opción de Windows Update que Atlas activa para la actualización.
+access-notice-title = Atlas activa Windows Update temporalmente
+access-off = Windows Update está desactivado en este equipo. Atlas lo vuelve a activar mientras actualiza Windows.
+access-paused = Las actualizaciones de Windows están en pausa en este equipo. Atlas las reanuda mientras actualiza Windows.
+access-delayed = Las actualizaciones mensuales están aplazadas en este equipo. Atlas quita el aplazamiento mientras actualiza Windows.
+# Tras las líneas anteriores. "Como usted eligió" se usa cuando las fijó una opción de Atlas que eligió el usuario.
+access-back-chosen = Cuando Atlas { $version } esté instalado, esta configuración volverá a quedar como usted eligió.
+access-back = Cuando Atlas { $version } esté instalado, esta configuración volverá a quedar como estaba.
+access-back-stop = Si detiene la actualización antes, Atlas la restaurará.
+# El reinicio que termina la nueva versión.
+prepare-reboot-transition = Windows 11, versión { $release }, está instalado. Elija Reiniciar y continuar para terminar la instalación. Atlas se volverá a abrir cuando inicie sesión.
+prepare-reboot-commit = Windows necesita reiniciarse una vez más para terminar de instalar la versión { $release }. Atlas se volverá a abrir cuando inicie sesión.
+prepare-restart-commit-failed = Windows no pudo dejar lista la versión { $release } para terminar de instalarla al reiniciar, así que su PC no se reinició. Elija Reiniciar y continuar para volver a intentarlo.
+prepare-reason-feature-update = la nueva versión de Windows
+prepare-reason-feature-commit = finalización de la nueva versión de Windows
+prepare-resumed-transition = Su PC se reinició. Elija Continuar actualizaciones para que Atlas compruebe que Windows 11, versión { $release }, terminó de instalarse e instale las actualizaciones que falten.
+# Bajo la barra de progreso mientras Windows Update aún no ha ofrecido la nueva versión.
+prepare-waiting-offer = Esperando a que Windows Update ofrezca Windows 11, versión { $release }. Suele tardar unos minutos, pero puede llevar hasta 2 horas. Puede seguir usando su PC; deje Atlas abierto.
+# Tras un reinicio por las actualizaciones que Windows instala antes de la nueva versión.
+prepare-resumed-before-move = Su PC se reinició para terminar de instalar actualizaciones. Elija Continuar actualizaciones para que Atlas instale las actualizaciones que falten y, después, Windows 11, versión { $release }.
+# Resultados del cambio de versión de Windows. Cada uno dice qué cambió y qué hacer a continuación.
+prepare-not-offered-title = Esperando a que Windows Update ofrezca Windows 11, versión { $release }
+prepare-transition-failed-title = No se pudo actualizar Windows a la versión { $release }
+prepare-failed-feature-not-offered = Windows Update puede tardar un tiempo en ofrecer Windows 11, versión { $release }, a un equipo. Su PC sigue teniendo la versión { $current }.
+# Se añade tras el mensaje anterior mientras Atlas vuelve a comprobarlo por su cuenta.
+prepare-offer-rechecking = Atlas vuelve a comprobarlo cada 10 minutos y continúa por sí solo en cuanto Windows Update la ofrezca. También puede elegir Volver a comprobar.
+# Bajo la barra de progreso mientras Atlas espera, en una sola línea: cuánto lleva esperando y cuándo vuelve a comprobarlo, o que lo está comprobando ahora.
+prepare-offer-waited =
+    { $minutes ->
+        [one] Esperando desde hace { $minutes } minuto.
+       *[other] Esperando desde hace { $minutes } minutos.
+    }
+prepare-offer-next-check =
+    { $minutes ->
+        [one] Próxima comprobación en { $minutes } minuto.
+       *[other] Próxima comprobación en { $minutes } minutos.
+    }
+prepare-offer-checking-now = Comprobando ahora.
+# Se añade en su lugar cuando Atlas no vuelve a comprobarlo por su cuenta.
+prepare-offer-check-again = Elija Volver a comprobar para buscarla ahora.
+# Tras 2 horas de comprobaciones sin oferta.
+prepare-offer-wait-ended-title = Windows Update aún no ha ofrecido Windows 11, versión { $release }
+prepare-offer-wait-ended = Windows Update no ofreció Windows 11, versión { $release }, en 2 horas, así que Atlas dejó de esperar y restauró su configuración de Windows Update. Elija Volver a comprobar más tarde. Si no puede esperar, haga una copia de seguridad de sus archivos y reinstale Windows con una ISO de Atlas.
+# En lugar del anterior cuando no se pudo restaurar la configuración al final de la espera. $error es el error sin procesar.
+prepare-offer-wait-put-back-failed = Windows Update no ofreció Windows 11, versión { $release }, en 2 horas, y Atlas no pudo restaurar su configuración de Windows Update. Elija Restaurar la configuración para volver a intentarlo. Detalles: { $error }
+# $missing enumera el hardware que le falta a este equipo, a partir de los dos mensajes siguientes.
+prepare-failed-feature-hardware = Este equipo no cumple los requisitos de hardware de Windows 11 ({ $missing }), así que Windows Update no lo actualizará a la versión { $release }. Su PC sigue teniendo la versión { $current }. Para usar Atlas { $version }, haga una copia de seguridad de sus archivos y reinstale Windows con una ISO de Atlas.
+hardware-tpm = TPM 2.0
+hardware-uefi = firmware UEFI
+prepare-failed-feature-hidden = La versión { $release } de Windows 11 está oculta en Windows Update en este equipo. Vuelva a mostrarla con la herramienta que usó para ocultarla y, después, elija Reintentar.
+# $needed y $free son gigabytes enteros; $drive es una unidad, como C:.
+prepare-failed-feature-disk-space = Windows necesita al menos { $needed } GB libres en la unidad { $drive } para esta actualización, y solo tiene { $free } GB. Atlas no cambió nada. Libere espacio y, después, elija Reintentar.
+prepare-failed-feature-servicing = Windows informa de daños en su almacén de componentes que no puede reparar, así que Atlas no cambió nada. Repare Windows y, después, elija Reintentar.
+prepare-failed-feature-managed = Este equipo recibe las actualizaciones del servidor de actualizaciones de una organización, así que Atlas no puede actualizarlo a la versión { $release }. Atlas no cambió nada.
+# $setting es el nombre técnico de un valor de directiva o un servicio de Windows Update, como
+# NoAutoUpdate o BITS, que se muestra tal cual.
+prepare-failed-feature-policy = Algo en este equipo vuelve a cambiar { $setting } cada vez que Atlas lo cambia, así que Atlas no puede actualizar Windows. Si una organización administra este equipo, consulte con ella. Cuando detenga la actualización, Atlas restaurará lo que cambió.
+prepare-failed-feature-blocked = Una opción que Atlas no cambió impide que Windows Update se ejecute: { $setting }. Cámbiela para que Windows Update pueda ejecutarse y, después, elija Reintentar.
+prepare-failed-feature-rolled-back = Windows no pudo terminar de instalar la versión { $release } durante el reinicio y volvió a la versión { $current }. Sus archivos y aplicaciones no se han visto afectados. Elija Reintentar o Enviar un informe.
+prepare-failed-feature-components-lost = Algunos de los cambios de Atlas ya no están después de la actualización de Windows, y Windows no muestra señales de haberse reinstalado, así que Atlas no puede saber qué ocurrió. Atlas { $version } no se instaló. Elija Enviar un informe para que el equipo de Atlas pueda ayudarle.
+prepare-failed-feature-build = La versión de Windows de este equipo cambió mientras Atlas lo actualizaba. Elija Restaurar la configuración y, después, vuelva a empezar desde la página de inicio.
+prepare-failed-feature-journal = Atlas no puede leer los datos que guardó sobre la configuración de Windows Update que cambió, así que no cambiará ni restaurará nada. Elija Enviar un informe para que el equipo de Atlas pueda ayudarle.
+# $setting es el nombre de un valor de directiva de Windows Update, como TargetReleaseVersionInfo.
+prepare-failed-feature-pin = Una directiva de Windows Update de su PC, { $setting }, tiene un valor que Atlas no puede guardar, así que Atlas no cambió nada. Elija Enviar un informe para que el equipo de Atlas pueda ayudarle.
+prepare-failed-feature-terms = Acepte los términos de licencia de Windows 11, versión { $release }, y, después, elija Reintentar.
+prepare-failed-feature-failed = Windows no pudo instalar la versión { $release }. Su PC sigue teniendo la versión { $current }. Elija Reintentar. Si vuelve a fallar, elija Enviar un informe.
+prepare-check-again = Volver a comprobar
+prepare-keep-version = Conservar la versión { $current }
+# Pregunta antes de abandonar la actualización con la configuración de Windows Update cambiada.
+stop-update-title = ¿Dejar de actualizar a Atlas { $version }?
+stop-update-before = Atlas restaurará la configuración de Windows Update que cambió. Las actualizaciones que Windows ya instaló seguirán instaladas, y su PC conservará Windows 11, versión { $current }.
+stop-update-after = Su PC conservará Windows 11, versión { $release }. Atlas restaurará la configuración de Windows Update que cambió.
+stop-update-access = Atlas restaurará la configuración de Windows Update que cambió. Las actualizaciones que Windows ya instaló seguirán instaladas.
+stop-update-keep = Seguir actualizando
+window-close-update-access-title = ¿Cerrar Atlas?
+window-close-update-access-message = Antes de cerrarse, Atlas restaurará la configuración de Windows Update que cambió. Puede volver a iniciar la actualización desde la página de inicio.
+window-close-put-back = Restaurar y cerrar
+# Cuando no se pudo restaurar la configuración antes de cerrar. Primero se muestra el motivo y
+# después este mensaje; los botones son window-close-keep y window-close-close.
+window-close-put-back-failed-title = ¿Cerrar sin restaurar la configuración?
+window-close-put-back-failed-message = Si cierra Atlas ahora, la configuración de Windows Update se quedará como Atlas la cambió. Cuando vuelva a abrir Atlas, la página de inicio le ofrecerá restaurarla.
+# La ventana "Atlas está instalado", cuando la elección del usuario volvió a desactivar Windows Update.
+installed-update-off-again = Windows Update vuelve a estar desactivado, como usted eligió. Mientras esté desactivado, su PC no recibirá actualizaciones de seguridad.
+installed-update-paused-again = Las actualizaciones de Windows vuelven a estar en pausa, como usted eligió. Mientras estén en pausa, su PC no recibirá actualizaciones de seguridad.
+# Comprobaciones del equipo: compatibilidad con Windows en una versión desde la que Atlas actualiza.
+detail-build-transition = Este equipo tiene Windows 11, versión { $current }, que no es compatible con esta versión de Atlas. Atlas pasará Windows a la versión { $release } cuando lo actualice en Actualizar Windows y las apps de la Store, más abajo.
+# Primeras líneas de un informe sobre una actualización de Windows que no terminó; a continuación
+# siguen los detalles técnicos en inglés.
+report-transition-intro = La actualización de Windows para Atlas no terminó. Detalles para el equipo de Atlas:
+# Cuando Windows se reinstaló al pasar a una versión más reciente, en lugar de activar la nueva
+# versión sin reinstalarse. Atlas vuelve a aplicar entonces todos sus cambios.
+mode-rebase = Reinstalación tras una actualización de Windows
+history-mode-rebase = reinstalación tras una actualización de Windows
+ready-rebase-title = Windows se reinstaló durante la actualización
+# $previous es la versión de Atlas que tenía antes el equipo.
+ready-rebase-message = Windows 11, versión { $release }, reemplazó el Windows que tenía este equipo, así que se perdieron algunos de los cambios de Atlas. Atlas { $version } los vuelve a aplicar con las preferencias que eligió para Atlas { $previous }.
+# Sus preferencias en una actualización, a partir de lo que eligió el Atlas instalado.
+upgrade-choices-title = Sus preferencias de Atlas { $previous }
+upgrade-choices-detail = Atlas partió de lo que Atlas { $previous } configuró en este equipo. La actualización conserva lo que hicieron esas preferencias, así que desmarcar aquí un extra opcional no deshace su efecto. Para cambiar alguna más adelante, use la carpeta Atlas o la Configuración de Windows.
+rebase-choices-title = Sus preferencias de Atlas { $previous }
+rebase-choices-detail = Atlas usa las preferencias que eligió para Atlas { $previous }, así que aquí no hay nada que elegir. Puede cambiarlas más adelante en la carpeta Atlas.
+# $missing enumera las preferencias, como "Microsoft Defender, Protecciones del procesador".
+rebase-choices-partial = Atlas usa las preferencias que eligió para Atlas { $previous }. No pudo encontrar las siguientes, así que revíselas: { $missing }
+# Pregunta antes de cualquier reinicio que haga Atlas mientras otras personas tienen la sesión iniciada en el equipo.
+restart-other-title = Otra persona tiene la sesión iniciada en este equipo
+restart-others-title = Otras personas tienen la sesión iniciada en este equipo
+# $names enumera los nombres de sus cuentas, como "Alex y Sam".
+restart-others-message = Al reiniciar se cerrarán las aplicaciones de esas sesiones y se perderá el trabajo que no se haya guardado. Con sesión iniciada: { $names }.
+restart-others-keep = No reiniciar
+restart-others-restart = Reiniciar de todos modos
+# Microsoft Store en sí, antes de las aplicaciones de la Store. Línea de estado de Preparación mientras se actualiza o se repara.
+prepare-store-self-update = Actualizando primero Microsoft Store. Está desactualizada en este equipo.
+prepare-store-repair = Reparando Microsoft Store. Esto puede tardar unos minutos.
+# Bajo prepare-complete, cuando Preparación ha terminado.
+prepare-store-updated = Microsoft Store estaba desactualizada, así que Atlas la actualizó antes que sus aplicaciones.
+prepare-store-bootstrapped = Microsoft Store no pudo actualizarse por sí sola, así que Atlas instaló desde Microsoft las versiones más recientes de Instalador de aplicación y de Microsoft Store.
+prepare-store-repaired = Microsoft Store no funcionaba, así que Atlas la reparó.
+prepare-store-skipped-removed = Microsoft Store está desactivada en este equipo, así que Atlas omitió las actualizaciones de las aplicaciones de la Store.
+# "Reparar Microsoft Store" es prepare-repair-store; "Enviar un informe" es report-title.
+prepare-failed-store-repair-failed = Microsoft Store no funciona y Atlas no pudo repararla. Elija Reparar Microsoft Store para volver a intentarlo. Si sigue sin funcionar, elija Enviar un informe.
+prepare-repair-store = Reparar Microsoft Store

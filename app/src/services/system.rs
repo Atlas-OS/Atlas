@@ -7,7 +7,8 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use windows::Win32::Foundation::{
-    CloseHandle, ERROR_INVALID_PARAMETER, FILETIME, HANDLE, HWND, STILL_ACTIVE, WIN32_ERROR,
+    CloseHandle, ERROR_ACCESS_DENIED, ERROR_INVALID_PARAMETER, FILETIME, HANDLE, HWND, STILL_ACTIVE,
+    WIN32_ERROR,
 };
 use windows::Win32::Graphics::Gdi::{
     COLOR_BTNFACE, COLOR_BTNTEXT, COLOR_GRAYTEXT, COLOR_HIGHLIGHT, COLOR_HIGHLIGHTTEXT, COLOR_HOTLIGHT,
@@ -15,10 +16,14 @@ use windows::Win32::Graphics::Gdi::{
 };
 use windows::Win32::Networking::WinInet::{INTERNET_CONNECTION, InternetGetConnectedState};
 use windows::Win32::Security::{
-    GetTokenInformation, TOKEN_ELEVATION, TOKEN_ELEVATION_TYPE, TOKEN_QUERY, TokenElevation,
+    EqualSid, GetTokenInformation, TOKEN_ELEVATION, TOKEN_ELEVATION_TYPE, TOKEN_QUERY, TokenElevation,
     TokenElevationType, TokenElevationTypeDefault, TokenElevationTypeFull, TokenElevationTypeLimited,
 };
 use windows::Win32::System::Power::{GetSystemPowerStatus, SYSTEM_POWER_STATUS};
+use windows::Win32::System::RemoteDesktop::{
+    WTS_CURRENT_SERVER_HANDLE, WTS_PROCESS_INFO_EXW, WTSEnumerateProcessesExW, WTSFreeMemoryExW,
+    WTSTypeProcessInfoLevel1,
+};
 use windows::Win32::System::SystemInformation::GetTickCount64;
 use windows::Win32::System::Threading::{
     CREATE_NO_WINDOW, GetCurrentProcess, GetExitCodeProcess, GetProcessTimes, OpenProcess, OpenProcessToken,
@@ -30,7 +35,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
     SPI_GETCLIENTAREAANIMATION, SPI_GETHIGHCONTRAST, SW_SHOWNORMAL, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS,
     SystemParametersInfoW,
 };
-use windows::core::{HSTRING, PCWSTR};
+use windows::core::{HSTRING, PCWSTR, PWSTR};
 use windows_registry::{CURRENT_USER, LOCAL_MACHINE};
 
 /// The Windows release this app is running on, read once at startup.
@@ -381,6 +386,14 @@ pub fn process_liveness(pid: u32, start_time: u64) -> Liveness {
         Err(error) if WIN32_ERROR::from_error(&error) == Some(ERROR_INVALID_PARAMETER) => {
             return Liveness::Ended;
         }
+        // A process this one may not open, in someone else's session say,
+        // is never one Atlas started.
+        Err(error)
+            if WIN32_ERROR::from_error(&error) == Some(ERROR_ACCESS_DENIED)
+                && process_is_elsewhere(pid) == Some(true) =>
+        {
+            return Liveness::Ended;
+        }
         Err(error) => return Liveness::Unknown(format!("open process {pid}: {error}")),
     };
     match handle.is_running() {
@@ -392,6 +405,49 @@ pub fn process_liveness(pid: u32, start_time: u64) -> Liveness {
         Some(actual) if start_time == 0 || actual == start_time => Liveness::Alive,
         Some(_) => Liveness::Ended,
         None => Liveness::Unknown(format!("query creation time for process {pid}")),
+    }
+}
+
+/// Whether the process using `pid` belongs to another session, or to another
+/// account, than this process. Atlas only follows processes it started in its
+/// own session, as its own user, and Windows gives each user one session, so
+/// such a process has taken the PID over. Read from the list Remote Desktop
+/// Services keeps of every session's processes, which needs no access to the
+/// process. `None` when Windows doesn't say: the list can't be read, lacks
+/// the PID, or names no account where the sessions match.
+fn process_is_elsewhere(pid: u32) -> Option<bool> {
+    /// WTS_ANY_SESSION: every session's processes.
+    const ANY_SESSION: u32 = 0xFFFF_FFFE;
+    let mut level = 1u32;
+    let mut list = PWSTR::null();
+    let mut count = 0u32;
+    // SAFETY: Windows allocates `count` level-1 entries at `list`; they are
+    // read in place, then freed once.
+    unsafe {
+        WTSEnumerateProcessesExW(
+            Some(WTS_CURRENT_SERVER_HANDLE),
+            &mut level,
+            ANY_SESSION,
+            &mut list,
+            &mut count,
+        )
+        .ok()?;
+        if list.is_null() {
+            return None;
+        }
+        let processes = std::slice::from_raw_parts(list.0 as *const WTS_PROCESS_INFO_EXW, count as usize);
+        let find = |id: u32| processes.iter().find(|process| process.ProcessId == id);
+        let answer = find(std::process::id()).zip(find(pid)).and_then(|(own, other)| {
+            if own.SessionId != other.SessionId {
+                Some(true)
+            } else if own.pUserSid.is_invalid() || other.pUserSid.is_invalid() {
+                None
+            } else {
+                Some(EqualSid(own.pUserSid, other.pUserSid).is_err())
+            }
+        });
+        let _ = WTSFreeMemoryExW(WTSTypeProcessInfoLevel1, list.0 as *const _, count);
+        answer
     }
 }
 
@@ -666,13 +722,26 @@ mod tests {
     }
 
     #[test]
-    fn a_pid_nobody_has_is_ended_and_a_refusal_is_unknown() {
+    fn a_pid_nobody_has_is_ended() {
         // PIDs are multiples of four; an odd one can never name a process.
         assert_eq!(process_liveness(0x7FFF_FFF1, 0), Liveness::Ended);
         assert_eq!(process_liveness(std::process::id(), 0), Liveness::Alive);
-        // The System process (4) refuses limited queries only to restricted
-        // tokens; whichever it is, the answer is never "ended".
-        assert_ne!(process_liveness(4, 0), Liveness::Ended);
+    }
+
+    /// After fast user switching, a PID Atlas recorded can belong to a process
+    /// in the other person's session that this one may not open. It is
+    /// another process, not one still running for Atlas.
+    #[test]
+    fn a_pid_taken_over_in_another_session_is_ended() {
+        assert_eq!(process_is_elsewhere(std::process::id()), Some(false));
+        // The System process (4) always runs in session 0, never a user's.
+        assert_eq!(process_is_elsewhere(4), Some(true));
+        let start = process_start_time(4).unwrap_or(1);
+        assert_eq!(
+            process_liveness(4, start),
+            if ProcessHandle::open(4).is_ok() { Liveness::Alive } else { Liveness::Ended },
+            "refused or not, its own start time is the only way it counts as running"
+        );
     }
 
     #[test]

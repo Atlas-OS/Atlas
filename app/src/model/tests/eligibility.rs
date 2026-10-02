@@ -220,7 +220,7 @@ fn home_offers_no_update_that_this_pc_cannot_start() {
             act(cx, &model, |m, _| m.refresh_atlas_state());
             read(cx, &model, |m| m.offered_update().map(|release| release.version().to_owned()))
         };
-        act(&mut cx, &model, |m, _| m.release = ReleaseCheck::Ready { release: release("v0.5.1", vec![]) });
+        act(&mut cx, &model, |m, _| m.release = ReleaseCheck::Ready { release: release("v0.5.0", vec![]) });
         assert_eq!(offered(&machine, Installed("0.4.0".into()), &mut cx), None);
         read(&cx, &model, |m| {
             assert!(m.update_available().is_some(), "newer, but this PC can't take it");
@@ -231,10 +231,10 @@ fn home_offers_no_update_that_this_pc_cannot_start() {
             );
         });
         act(&mut cx, &model, |m, _| m.release = ReleaseCheck::Ready { release: release("v0.6.0", vec![]) });
-        assert_eq!(offered(&machine, Installed("0.5.1".into()), &mut cx).as_deref(), Some("0.6.0"));
-        // An unfinished install of 0.5.1 is finished, not updated.
-        *machine.state.lock().unwrap() = Some(completed_state("0.5.0"));
-        assert_eq!(offered(&machine, Resume("0.5.1".into(), None), &mut cx), None);
+        assert_eq!(offered(&machine, Installed("0.5.0".into()), &mut cx).as_deref(), Some("0.6.0"));
+        // An unfinished install of 0.5.0 is finished, not updated.
+        *machine.state.lock().unwrap() = Some(completed_state("0.4.1"));
+        assert_eq!(offered(&machine, Resume("0.5.0".into(), None), &mut cx), None);
     });
 }
 

@@ -231,7 +231,7 @@ impl AppModel {
                 self.flow.resume(Step::Ready).ok();
                 self.flow_id.get_or_insert_with(settings::new_flow_id);
                 self.navigate(Page::Install, cx);
-                self.follow_preparation(job.directory.clone(), Some(job), cx);
+                self.follow_preparation(job.directory.clone(), Some(job), false, cx);
             }
             Err(error) => log::warn!("could not inspect preparation recovery: {error:#}"),
             Ok(None) => {}

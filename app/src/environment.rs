@@ -3,17 +3,26 @@
 //! controlled ones, so they run without elevation, a restart or a particular
 //! Windows Security state.
 
+use std::path::Path;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 
 use crate::services::atlas_state::{self, AtlasState, InstallIdentity};
-use crate::services::preparation::{self, Drivers};
+use crate::services::preparation::{self, Drivers, Operation, PreparationRequest, Progress, State};
 use crate::services::releases::{self, Release};
 use crate::services::requirements::{self, CheckContext, CheckId, CheckResult};
 use crate::services::security::SecurityStatus;
 use crate::services::session::{self, SessionPaths};
 use crate::services::settings::{self, AppPaths};
+use crate::services::system::SystemInfo;
+use crate::services::update_access::{self, UpdateAccess};
 use crate::services::{iso, system};
+
+/// Runs one preparation in a job folder, reporting the worker's progress.
+pub type RunPreparation = dyn Fn(&Path, &PreparationRequest, Arc<AtomicBool>, Box<dyn FnMut(Progress) + Send>) -> anyhow::Result<State>
+    + Send
+    + Sync;
 
 /// The machine as the model sees it. Every reader is a plain function, so a
 /// test can substitute one without a trait for each service.
@@ -35,6 +44,19 @@ pub struct Adapters {
     pub fetch_release: Arc<dyn Fn() -> anyhow::Result<Release> + Send + Sync>,
     /// The driver policy this PC has when the user has not chosen one.
     pub read_driver_default: Arc<dyn Fn() -> Drivers + Send + Sync>,
+    /// This PC's Windows version and edition.
+    pub read_system: Arc<dyn Fn() -> SystemInfo + Send + Sync>,
+    /// The Windows and Store update worker; run on a worker thread.
+    pub run_preparation: Arc<RunPreparation>,
+    /// What holds Windows Update back, and Atlas's record of what it turned on.
+    pub read_update_access: Arc<dyn Fn() -> anyhow::Result<UpdateAccess> + Send + Sync>,
+    /// A short worker operation (commit, put back) for the settings at the
+    /// given path; run on a worker thread.
+    pub run_operation: Arc<dyn Fn(&Path, Operation) -> anyhow::Result<()> + Send + Sync>,
+    /// The install options an Atlas without a state document shows on the PC.
+    pub read_legacy_choices: Arc<dyn Fn() -> Vec<String> + Send + Sync>,
+    /// The other people signed in to this PC, whose apps a restart closes.
+    pub read_other_sessions: Arc<dyn Fn() -> anyhow::Result<Vec<String>> + Send + Sync>,
 }
 
 impl Adapters {
@@ -54,6 +76,14 @@ impl Adapters {
             read_driver_default: Arc::new(|| {
                 iso::staged_drivers().unwrap_or_else(preparation::existing_driver_policy)
             }),
+            read_system: Arc::new(SystemInfo::read),
+            run_preparation: Arc::new(|job, request, cancel, report| {
+                preparation::run(job, request, cancel, report)
+            }),
+            read_update_access: Arc::new(update_access::read),
+            run_operation: Arc::new(preparation::run_operation),
+            read_legacy_choices: Arc::new(crate::services::legacy_choices::read),
+            read_other_sessions: Arc::new(crate::services::signed_in::others),
         }
     }
 }
@@ -85,6 +115,26 @@ impl Default for RestartTiming {
     }
 }
 
+/// How Get ready waits for Windows Update to offer a new Windows release:
+/// how often it looks again, and for how long in all.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct OfferRecheckTiming {
+    pub interval: Duration,
+    pub window: Duration,
+    /// How often Get ready's clock of the wait is refreshed between looks.
+    pub tick: Duration,
+}
+
+impl Default for OfferRecheckTiming {
+    fn default() -> Self {
+        Self {
+            interval: Duration::from_secs(10 * 60),
+            window: Duration::from_secs(2 * 60 * 60),
+            tick: Duration::from_secs(15),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Environment {
     pub paths: AppPaths,
@@ -97,6 +147,7 @@ pub struct Environment {
     /// `--language`, which outranks the language setting (review and testing).
     pub language_override: Option<String>,
     pub restart: RestartTiming,
+    pub offer_recheck: OfferRecheckTiming,
     /// How long a settings write waits for another window's lock before it fails.
     pub settings_lock_wait: Duration,
     pub adapters: Adapters,
@@ -112,6 +163,7 @@ impl Environment {
             embedded_startup: cfg!(feature = "embedded-playbook"),
             language_override,
             restart: RestartTiming::default(),
+            offer_recheck: OfferRecheckTiming::default(),
             settings_lock_wait: settings::LOCK_WAIT,
             adapters: Adapters::windows(),
         }
@@ -127,6 +179,7 @@ impl Environment {
             embedded_startup: false,
             language_override: None,
             restart: RestartTiming::default(),
+            offer_recheck: OfferRecheckTiming::default(),
             settings_lock_wait: settings::LOCK_WAIT,
             adapters: Adapters::windows(),
         }

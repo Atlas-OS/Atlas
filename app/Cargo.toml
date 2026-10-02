@@ -53,6 +53,7 @@ windows = { version = "0.62", features = [
     "Win32_System_Com",
     "Win32_System_Ole",
     "Win32_System_Power",
+    "Win32_System_RemoteDesktop",
     "Win32_System_Rpc",
     "Win32_System_SystemInformation",
     "Win32_System_Threading",

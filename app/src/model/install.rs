@@ -157,6 +157,7 @@ impl AppModel {
             RunState::Preparing if !self.launching => CloseGuard::PreparingInstall,
             RunState::Preparing | RunState::Running => CloseGuard::Install,
             _ if self.restart_cancellable() => CloseGuard::Restart,
+            _ if self.update_access_close_guard() => CloseGuard::WindowsUpdateAccess,
             _ if self.protection_left_off().is_some() => CloseGuard::ProtectionOff,
             _ => CloseGuard::None,
         }

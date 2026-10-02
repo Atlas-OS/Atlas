@@ -15,6 +15,9 @@ pub enum InstallMode {
     Fresh,
     Upgrade,
     Reapply,
+    /// Atlas put back on a Windows that rebuilt itself while Atlas Manager
+    /// moved it to a newer release.
+    Rebase,
     Unknown,
 }
 
@@ -24,6 +27,7 @@ impl InstallMode {
             Some("fresh") => InstallMode::Fresh,
             Some("upgrade") => InstallMode::Upgrade,
             Some("reapply") => InstallMode::Reapply,
+            Some("rebase") => InstallMode::Rebase,
             _ => InstallMode::Unknown,
         }
     }
@@ -150,7 +154,13 @@ pub fn read_install_identity() -> Result<InstallIdentity> {
             if fixture {
                 return Ok(Vec::new());
             }
-            read_legacy_versions()
+            let mut versions = read_legacy_versions()?;
+            if versions.is_empty() {
+                // A Windows that rebuilt itself during Atlas Manager's move can
+                // lose the markers; the record of the move kept the version.
+                versions.extend(super::update_access::rebase_version());
+            }
+            Ok(versions)
         },
         || {
             if fixture {
@@ -176,9 +186,8 @@ fn read_identity_at(
             anyhow::ensure!(
                 doc["schemaVersion"] == 1
                     && target.is_some()
-                    && doc["mode"].as_str().is_some_and(
-                        |m| ["fresh", "upgrade", "reapply"].contains(&m.to_ascii_lowercase().as_str())
-                    ),
+                    && doc["mode"].as_str().is_some_and(|m| ["fresh", "upgrade", "reapply", "rebase"]
+                        .contains(&m.to_ascii_lowercase().as_str())),
                 "the active Atlas installation record is invalid"
             );
             let options = if doc["status"] == "Running" {
@@ -253,18 +262,24 @@ mod tests {
     #[test]
     fn declared_upgrade_sources_and_same_version_reapply_are_distinct_from_other_installs() {
         let manifest = super::super::playbook::parse(
-            "<Playbook><Version>0.6.0</Version><UpgradableFrom><string>0.4.1</string><string>0.5.0</string><string>0.5.1</string></UpgradableFrom></Playbook>",
+            "<Playbook><Version>0.6.0</Version><UpgradableFrom><string>0.4.1</string><string>0.5.0</string></UpgradableFrom></Playbook>",
         )
         .unwrap();
-        for version in ["0.4.1", "0.5.0", "0.5.1", "0.6.0"] {
+        for version in ["0.4.1", "0.5.0", "0.6.0"] {
             assert!(InstallIdentity::Installed(version.into()).allows(&manifest));
         }
-        for version in ["0.3.2", "0.5.0-hotfix", "0.7.0", "unknown"] {
+        for version in ["0.3.2", "0.5.0-hotfix", "0.5.1", "0.7.0", "unknown"] {
             assert!(!InstallIdentity::Installed(version.into()).allows(&manifest));
         }
         assert!(InstallIdentity::Fresh.allows(&manifest));
         assert!(InstallIdentity::Resume("0.6.0".into(), None).allows(&manifest));
-        assert!(!InstallIdentity::Resume("0.5.1".into(), None).allows(&manifest));
+        assert!(!InstallIdentity::Resume("0.5.0".into(), None).allows(&manifest));
+    }
+
+    #[test]
+    fn a_rebase_is_its_own_install_mode() {
+        assert_eq!(InstallMode::parse(Some("Rebase")), InstallMode::Rebase);
+        assert_eq!(InstallMode::parse(Some("rebase")), InstallMode::Rebase);
     }
 
     #[test]

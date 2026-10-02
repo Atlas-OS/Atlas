@@ -461,6 +461,7 @@ const WORKER_FILES: &[(&str, &str)] = &[
     ("Setup.ps1", include_str!("../../resources/iso/Setup.ps1")),
     ("Desktop.ps1", include_str!("../../resources/iso/Desktop.ps1")),
     ("Desktop-Policy.ps1", include_str!("../../resources/iso/Desktop-Policy.ps1")),
+    ("RegistryFile.ps1", super::preparation::REGISTRY_LIBRARY),
     ("Network-Drivers.ps1", include_str!("../../resources/iso/Network-Drivers.ps1")),
 ];
 
@@ -782,6 +783,27 @@ mod tests {
         }
         assert_eq!(json["mode"], "before-desktop");
         assert_eq!(json["drivers"], "automatic");
+    }
+
+    #[test]
+    fn every_script_setup_loads_goes_onto_the_media() {
+        // Setup.ps1 runs from %WINDIR%\AtlasISO, where only what Build-Iso
+        // copies from the job is; a script it dot-sources must be in both.
+        let setup = include_str!("../../resources/iso/Setup.ps1");
+        let build = include_str!("../../resources/iso/Build-Iso.ps1");
+        let loaded: Vec<&str> = setup
+            .lines()
+            .filter_map(|line| line.trim().strip_prefix(". (Join-Path $root '"))
+            .filter_map(|rest| rest.strip_suffix("')"))
+            .collect();
+        assert!(
+            loaded.contains(&"RegistryFile.ps1"),
+            "setup applies the drivers choice with the shared import"
+        );
+        for name in loaded {
+            assert!(WORKER_FILES.iter().any(|(file, _)| *file == name), "the job lacks {name}");
+            assert!(build.contains(&format!("'{name}'")), "Build-Iso.ps1 doesn't copy {name} onto the media");
+        }
     }
 
     #[test]

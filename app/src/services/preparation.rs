@@ -22,6 +22,14 @@ use super::{files, recovery_app, registry};
 /// agree on the journal and the failure causes it names.
 pub(crate) const WORKER: &str =
     include_str!("../../../playbook/Executables/AtlasModules/Scripts/Preparation/Update-Windows.ps1");
+/// The functions-only library the worker dot-sources for moving Windows to
+/// another release and putting back the Windows Update settings it changed.
+pub(crate) const LIBRARY: &str =
+    include_str!("../../../playbook/Executables/AtlasModules/Scripts/Preparation/WindowsTransition.ps1");
+/// The functions-only library that applies the drivers choice, shared by the
+/// worker and ISO setup.
+pub(crate) const REGISTRY_LIBRARY: &str =
+    include_str!("../../../playbook/Executables/AtlasModules/Scripts/Preparation/RegistryFile.ps1");
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -31,8 +39,57 @@ pub enum Stage {
     WindowsDownload,
     WindowsInstall,
     StoreSearch,
+    /// Microsoft Store or App Installer updating itself, before the apps.
+    StoreSelfUpdate,
     StoreInstall,
+    /// Repairing a Microsoft Store that couldn't update.
+    StoreRepair,
     Verify,
+}
+
+/// What a finished run did about Microsoft Store itself.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StoreOutcome {
+    /// It was out of date and updated itself first.
+    Updated,
+    /// It couldn't update itself, so App Installer and the Store came from Microsoft.
+    Bootstrapped,
+    /// It wasn't working and a repair fixed it.
+    Repaired,
+    /// The user removed it, so Store app updates were skipped.
+    SkippedRemoved,
+}
+
+impl StoreOutcome {
+    pub fn id(self) -> &'static str {
+        match self {
+            Self::Updated => "store-updated",
+            Self::Bootstrapped => "store-bootstrapped",
+            Self::Repaired => "store-repaired",
+            Self::SkippedRemoved => "store-skipped-removed",
+        }
+    }
+
+    /// The outcome to keep when a later run reports `later`: a repair says
+    /// more than the update it led to, as the worker keeps it within a run.
+    pub fn then(self, later: Self) -> Self {
+        if matches!(self, Self::Bootstrapped | Self::Repaired) && later == Self::Updated {
+            self
+        } else {
+            later
+        }
+    }
+
+    /// The worker's id for an outcome; `None` for one this build doesn't know.
+    pub fn from_id(id: &str) -> Option<Self> {
+        Some(match id {
+            "store-updated" => Self::Updated,
+            "store-bootstrapped" => Self::Bootstrapped,
+            "store-repaired" => Self::Repaired,
+            "store-skipped-removed" => Self::SkippedRemoved,
+            _ => return None,
+        })
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
@@ -61,6 +118,10 @@ pub struct Progress {
     pub updated_at: u64,
     #[serde(default)]
     pub activity: Activity,
+    /// `commit` or `restore` for a short operation's worker (see
+    /// [`Operation`]); none for a preparation run.
+    #[serde(default)]
+    pub operation: Option<String>,
 }
 
 /// Details the worker may add to its journal; all optional, so a journal
@@ -79,6 +140,9 @@ pub struct Activity {
     /// Seconds since the provider's progress last changed. The journal is
     /// rewritten while it stays the same, so a fresh journal is not progress.
     pub unchanged_seconds: u64,
+    /// What the worker is waiting for while progress can't move:
+    /// `feature-offer` while Windows Update has yet to offer the new release.
+    pub waiting: Option<String>,
     /// Which restart markers the worker saw when it asked for a restart
     /// (`servicing`, `windows-update`, `file-renames`, `update-agent`).
     pub restart_reasons: Vec<String>,
@@ -88,6 +152,27 @@ pub struct Activity {
     /// Why the connection was refused: `offline`, `limited`, `metered` or
     /// `roaming`.
     pub network_reason: Option<String>,
+    /// The setting or service that keeps Windows Update off (`feature-blocked`,
+    /// `feature-managed`).
+    pub setting: Option<String>,
+    /// The drive and the space a Windows update needs (`feature-disk-space`),
+    /// in whole gigabytes.
+    pub drive: Option<String>,
+    pub free_gb: Option<String>,
+    pub needed_gb: Option<String>,
+    /// Windows 11 hardware this PC lacks, comma-separated: `tpm`, `uefi`
+    /// (`feature-hardware`).
+    pub hardware: Option<String>,
+    /// What a finished run did about Microsoft Store itself (see [`StoreOutcome`]).
+    pub store_outcome: Option<String>,
+}
+
+impl Activity {
+    /// Whether a move ended waiting for Windows Update rather than failing:
+    /// Microsoft hasn't offered the release to this PC yet.
+    pub fn not_offered(&self) -> bool {
+        matches!(self.reason.as_deref(), Some("feature-not-offered" | "feature-prerequisite"))
+    }
 }
 
 impl Progress {
@@ -162,6 +247,38 @@ impl Drivers {
     }
 }
 
+/// Updates the worker installed successfully that Windows Update offered
+/// again at once, by `"<update id>/<revision>"`: installing them again changes
+/// nothing, so they no longer count as pending. The worker keeps the list
+/// under HKLM, where only administrators write; entries older than 30 days
+/// lapse.
+pub fn reoffered_updates() -> std::collections::HashSet<String> {
+    let text = windows_registry::LOCAL_MACHINE
+        .open(r"SOFTWARE\AtlasOS\Preparation")
+        .and_then(|key| key.get_string("Reoffered"))
+        .unwrap_or_default();
+    parse_reoffered(&text, chrono::Utc::now())
+}
+
+fn parse_reoffered(text: &str, now: chrono::DateTime<chrono::Utc>) -> std::collections::HashSet<String> {
+    let entries: Vec<serde_json::Value> = match serde_json::from_str(text.trim_start_matches('\u{feff}')) {
+        Ok(serde_json::Value::Array(entries)) => entries,
+        Ok(entry @ serde_json::Value::Object(_)) => vec![entry],
+        _ => return Default::default(),
+    };
+    entries
+        .iter()
+        .filter(|entry| {
+            entry["at"].as_str().and_then(|at| chrono::DateTime::parse_from_rfc3339(at).ok()).is_some_and(
+                |at| now.signed_duration_since(at.with_timezone(&chrono::Utc)) < chrono::Duration::days(30),
+            )
+        })
+        .filter_map(|entry| entry["key"].as_str())
+        .filter(|key| !key.is_empty() && key.len() <= 80 && !key.chars().any(char::is_control))
+        .map(str::to_owned)
+        .collect()
+}
+
 /// Manual when any Windows Update driver-exclusion policy is already set.
 pub fn existing_driver_policy() -> Drivers {
     let blocked = [
@@ -185,8 +302,10 @@ impl State {
     /// The state a finished run settles into. A restart request that follows
     /// a restart Atlas already made, with no update work in between, means a
     /// marker survives restarts; it is named instead of restarting again.
+    /// A restart that finishes a Windows version change is the exception:
+    /// the worker bounds those itself.
     pub fn settle(self, after_restart: bool, did_work: bool, reasons: Vec<String>) -> Self {
-        if self == Self::Reboot && after_restart && !did_work {
+        if self == Self::Reboot && after_restart && !did_work && !finishes_version_change(&reasons) {
             return Self::RestartPersists { reasons };
         }
         self
@@ -194,6 +313,156 @@ impl State {
     pub fn ready(&self) -> bool {
         matches!(self, Self::Ready)
     }
+}
+
+/// The restart reasons the worker names around a Windows version change:
+/// the package is installed and needs a restart, or Windows needs one more
+/// restart with Atlas's commit before it.
+pub const FEATURE_UPDATE: &str = "feature-update";
+pub const FEATURE_COMMIT: &str = "feature-commit";
+
+/// Whether a restart request finishes a Windows version change, which
+/// Atlas commits just before restarting.
+pub fn finishes_version_change(reasons: &[String]) -> bool {
+    reasons.iter().any(|reason| reason == FEATURE_UPDATE || reason == FEATURE_COMMIT)
+}
+
+/// A move to another Windows release for the worker to make, from
+/// [`crate::services::windows_release::TRANSITIONS`].
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TransitionRequest {
+    pub target_release: String,
+    pub target_build: u32,
+    pub sources: Vec<u32>,
+    pub kbs: Vec<u32>,
+    pub prerequisites: Vec<u32>,
+    pub minimum_revision: u32,
+    /// The user accepted Microsoft's licence terms for the target release.
+    /// Without it the worker refuses before downloading anything.
+    pub accept_license: bool,
+    /// Only look for the offer again, while waiting for Windows Update.
+    pub offer_only: bool,
+}
+
+impl TransitionRequest {
+    pub fn new(transition: &super::windows_release::Transition, accept_license: bool) -> Self {
+        Self {
+            target_release: transition.target_release.to_owned(),
+            target_build: transition.target_build,
+            sources: transition.sources.to_vec(),
+            kbs: transition.kbs.to_vec(),
+            prerequisites: transition.prerequisites.to_vec(),
+            minimum_revision: transition.minimum_revision,
+            accept_license,
+            offer_only: false,
+        }
+    }
+}
+
+/// What one preparation run does.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PreparationRequest {
+    pub drivers: Drivers,
+    pub transition: Option<TransitionRequest>,
+    /// Turn Windows Update on for this run when it is off, paused or delayed.
+    pub open_update_access: bool,
+}
+
+fn join_numbers(numbers: &[u32]) -> String {
+    numbers.iter().map(u32::to_string).collect::<Vec<_>>().join(",")
+}
+
+/// The worker's arguments for `request`, after `-JobPath`.
+pub fn worker_args(request: &PreparationRequest) -> Vec<String> {
+    let mut args = vec![
+        "-PersistentCancellation".to_owned(),
+        "-DriverMode".to_owned(),
+        request.drivers.argument().to_owned(),
+    ];
+    if let Some(transition) = &request.transition {
+        args.extend([
+            "-WindowsTarget".to_owned(),
+            transition.target_release.clone(),
+            "-TargetBuild".to_owned(),
+            transition.target_build.to_string(),
+            "-SourceBuilds".to_owned(),
+            join_numbers(&transition.sources),
+            "-FeatureKb".to_owned(),
+            join_numbers(&transition.kbs),
+            "-MinimumRevision".to_owned(),
+            transition.minimum_revision.to_string(),
+        ]);
+        if !transition.prerequisites.is_empty() {
+            args.extend(["-PrerequisiteKb".to_owned(), join_numbers(&transition.prerequisites)]);
+        }
+        if transition.accept_license {
+            args.push("-AcceptLicense".to_owned());
+        }
+        if transition.offer_only {
+            args.push("-OfferOnly".to_owned());
+        }
+    } else if request.open_update_access {
+        args.push("-OpenWindowsUpdate".to_owned());
+    }
+    args
+}
+
+/// A short worker operation outside a preparation run.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Operation {
+    /// Atlas's commit of a pending Windows version change, just before Atlas
+    /// restarts Windows.
+    Commit,
+    /// Puts back the Windows Update settings an unfinished update changed.
+    Restore,
+}
+
+impl Operation {
+    fn switch(self) -> &'static str {
+        match self {
+            Self::Commit => "-CommitFeatureUpdate",
+            Self::Restore => "-RestoreWindowsUpdate",
+        }
+    }
+}
+
+/// Runs `operation` in a protected job of its own and waits for it. An
+/// error carries the worker's reason and message.
+pub fn run_operation(settings: &Path, operation: Operation) -> Result<()> {
+    if cfg!(test) {
+        bail!("real Windows servicing is disabled in unit tests");
+    }
+    let job = new_job(settings)?;
+    recovery_app::stage_preparation(&job, WORKER, LIBRARY, REGISTRY_LIBRARY, Drivers::Automatic.policy())?;
+    let log = fs::File::create(job.join("worker.log"))?;
+    let status = powershell::command()
+        .arg("-File")
+        .arg(job.join("Update-Windows.ps1"))
+        .arg("-JobPath")
+        .arg(&job)
+        .arg("-PersistentCancellation")
+        .arg(operation.switch())
+        .stdout(Stdio::from(log.try_clone()?))
+        .stderr(Stdio::from(log))
+        .status()
+        .with_context(|| format!("start {operation:?}"))?;
+    let progress = read_progress(&job);
+    match progress.as_ref().map(|progress| progress.status) {
+        Some(Status::Complete) if status.success() => Ok(()),
+        _ => {
+            let activity = progress.map(|progress| progress.activity).unwrap_or_default();
+            bail!(
+                "{}{}",
+                activity.reason.map(|reason| format!("{reason}: ")).unwrap_or_default(),
+                activity.failure_message.unwrap_or_else(|| format!("the worker ended with {status}"))
+            )
+        }
+    }
+}
+
+/// The reason id in an error from [`run_operation`], if the worker named one.
+pub fn operation_reason(error: &str) -> Option<&str> {
+    error.split_once(": ").map(|(reason, _)| reason).filter(|reason| reason.starts_with("feature-"))
 }
 
 pub fn new_job(settings: &Path) -> Result<PathBuf> {
@@ -296,7 +565,8 @@ pub fn recover_running(settings: &Path) -> Result<Option<RunningJob>> {
             continue;
         }
         let Some(progress) = read_progress(&entry.path()) else { continue };
-        if progress.pid == 0 || progress.process_start == 0 {
+        // A commit or put-back still running is not a run to follow.
+        if progress.pid == 0 || progress.process_start == 0 || progress.operation.is_some() {
             continue;
         }
         if system::process_liveness(progress.pid, progress.process_start) != Liveness::Ended {
@@ -389,7 +659,7 @@ fn monitor_with(
 
 pub fn run(
     job: &Path,
-    drivers: Drivers,
+    request: &PreparationRequest,
     cancel: Arc<AtomicBool>,
     report: impl FnMut(Progress),
 ) -> Result<State> {
@@ -399,15 +669,15 @@ pub fn run(
     if !super::desktop_setup::active() {
         recovery_app::stage().context("prepare a local app copy before Windows updates")?;
     }
-    recovery_app::stage_preparation(job, WORKER, drivers.policy())?;
+    recovery_app::stage_preparation(job, WORKER, LIBRARY, REGISTRY_LIBRARY, request.drivers.policy())?;
     let log = fs::File::create(job.join("worker.log"))?;
+    log::info!("Windows preparation: {}", worker_args(request).join(" "));
     let mut child = powershell::command()
         .arg("-File")
         .arg(job.join("Update-Windows.ps1"))
         .arg("-JobPath")
         .arg(job)
-        .arg("-PersistentCancellation")
-        .args(["-DriverMode", drivers.argument()])
+        .args(worker_args(request))
         .stdout(Stdio::from(log.try_clone()?))
         .stderr(Stdio::from(log))
         .spawn()
@@ -424,15 +694,41 @@ pub fn run(
         monitor(RunningJob { directory: job.to_owned(), pid, process_start, trusted: true }, cancel, report);
     let exit = child.wait()?;
     if !exit.success() {
-        bail!("Windows preparation failed; see {}", job.join("updates.log").display());
+        return reported_failure(job, pid, process_start, result);
     }
     result
+}
+
+/// What a worker that exited with an error ended in: the failure its journal
+/// reports, which Get ready words, or an error when it reported none. No
+/// offer yet is logged as the outcome it is.
+fn reported_failure(job: &Path, pid: u32, process_start: u64, result: Result<State>) -> Result<State> {
+    let log = job.join("updates.log");
+    if let Ok(State::Failed) = result
+        && let Some(progress) = read_progress(job)
+        && progress.pid == pid
+        && progress.process_start == process_start
+        && let Some(failure) = progress.failure()
+    {
+        let reason = failure.reason.as_deref().unwrap_or("none");
+        let message = failure.failure_message.as_deref().unwrap_or_default();
+        if failure.not_offered() {
+            log::info!("Windows preparation ended without an offer ({reason}): {message}");
+        } else {
+            log::error!("Windows preparation failed ({reason}): {message}; see {}", log.display());
+        }
+        return Ok(State::Failed);
+    }
+    bail!("Windows preparation failed; see {}", log.display())
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RestartProblem {
     Save,
     Registration,
+    /// Windows couldn't get the version change ready for the restart, so
+    /// Atlas didn't restart.
+    Commit,
     Restart,
 }
 
@@ -580,6 +876,42 @@ mod tests {
         assert_eq!(result, State::Failed);
     }
 
+    /// A worker exits with an error when a run stops, also when Windows
+    /// Update only hasn't offered the new release yet. What it reported is
+    /// the result Get ready words; only a worker that reported nothing is an
+    /// error here.
+    #[test]
+    fn a_worker_that_reported_why_it_stopped_ends_failed_with_that_report() {
+        let temp = TempDir::new("preparation-reported-failure");
+        let job = temp.path();
+        let write = |pid: u32, reason: Option<&str>| {
+            let mut activity = serde_json::json!({ "reason": reason });
+            if reason.is_some() {
+                activity["failureMessage"] = "Windows Update does not offer 26H2 to this PC yet.".into();
+            }
+            fs::write(
+                job.join("state.json"),
+                serde_json::json!({
+                    "schema":1,"status":"failed","stage":"windows-search","completed":0,"total":0,
+                    "pid":pid,"processStart":7,"activity":activity
+                })
+                .to_string(),
+            )
+            .unwrap();
+        };
+        let failed = || Ok(State::Failed);
+        for reason in ["feature-not-offered", "feature-failed"] {
+            write(42, Some(reason));
+            assert_eq!(reported_failure(job, 42, 7, failed()).unwrap(), State::Failed, "{reason}");
+        }
+        write(42, None);
+        assert!(reported_failure(job, 42, 7, failed()).is_err(), "no reason, no message: unexplained");
+        write(43, Some("feature-not-offered"));
+        assert!(reported_failure(job, 42, 7, failed()).is_err(), "another worker's journal");
+        write(42, Some("feature-not-offered"));
+        assert!(reported_failure(job, 42, 7, Ok(State::Ready)).is_err(), "an error exit after success");
+    }
+
     #[test]
     fn cancellation_only_writes_an_existing_marker() {
         let temp = TempDir::new("persistent-cancel");
@@ -638,6 +970,12 @@ mod tests {
         journal(&job, pid, start + 1, "complete");
         assert!(recover_running(&settings).unwrap().is_none());
         assert_eq!(monitor_with(&recovered, |_| {}, || Liveness::Ended, HEARTBEAT).unwrap(), State::Failed);
+        journal(&job, pid, start, "complete");
+        let mut operation: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(job.join("state.json")).unwrap()).unwrap();
+        operation["operation"] = "restore".into();
+        fs::write(job.join("state.json"), operation.to_string()).unwrap();
+        assert!(recover_running(&settings).unwrap().is_none(), "a put-back is not a run to follow");
         journal(&job, pid, start, "complete");
         let mut reads = 0;
         let result = monitor_with(
@@ -762,6 +1100,88 @@ $record | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $PSScri
         // Other verdicts are untouched.
         assert_eq!(State::Ready.settle(true, false, reasons.clone()), State::Ready);
         assert_eq!(State::Failed.settle(true, false, reasons), State::Failed);
+        // Finishing a Windows version change needs its own restarts, which
+        // the worker bounds; a marker that survives restarts is still named.
+        for reason in [FEATURE_UPDATE, FEATURE_COMMIT] {
+            assert_eq!(State::Reboot.settle(true, false, vec![reason.to_owned()]), State::Reboot, "{reason}");
+        }
+        assert_eq!(
+            State::Reboot.settle(true, false, vec!["windows-update".to_owned()]),
+            State::RestartPersists { reasons: vec!["windows-update".to_owned()] }
+        );
+    }
+
+    fn transition(accept_license: bool) -> TransitionRequest {
+        TransitionRequest::new(&crate::services::windows_release::TRANSITIONS[0], accept_license)
+    }
+
+    #[test]
+    fn the_worker_is_asked_to_move_windows_only_with_a_request_and_to_accept_terms_only_when_the_user_did() {
+        let plain =
+            PreparationRequest { drivers: Drivers::Manual, transition: None, open_update_access: false };
+        assert_eq!(worker_args(&plain), ["-PersistentCancellation", "-DriverMode", "manual"]);
+        let open = PreparationRequest { open_update_access: true, ..plain.clone() };
+        assert!(worker_args(&open).contains(&"-OpenWindowsUpdate".to_owned()));
+        assert!(!worker_args(&open).contains(&"-WindowsTarget".to_owned()));
+
+        let moving = PreparationRequest {
+            transition: Some(transition(false)),
+            open_update_access: true,
+            ..plain.clone()
+        };
+        let args = worker_args(&moving);
+        let value = |flag: &str| args.iter().position(|arg| arg == flag).map(|index| args[index + 1].clone());
+        assert_eq!(value("-WindowsTarget").as_deref(), Some("26H2"));
+        assert_eq!(value("-TargetBuild").as_deref(), Some("26300"));
+        assert_eq!(value("-SourceBuilds").as_deref(), Some("26100,26200"));
+        assert_eq!(value("-FeatureKb").as_deref(), Some("5121794,5129195"));
+        assert_eq!(value("-PrerequisiteKb").as_deref(), Some("5124010"));
+        assert_eq!(value("-MinimumRevision").as_deref(), Some("9546"));
+        assert!(!args.contains(&"-AcceptLicense".to_owned()), "terms not accepted");
+        assert!(!args.contains(&"-OpenWindowsUpdate".to_owned()), "a move turns Windows Update on itself");
+        let accepted = PreparationRequest { transition: Some(transition(true)), ..plain.clone() };
+        assert!(worker_args(&accepted).contains(&"-AcceptLicense".to_owned()));
+        assert!(!worker_args(&accepted).contains(&"-OfferOnly".to_owned()));
+        let recheck = PreparationRequest {
+            transition: Some(TransitionRequest { offer_only: true, ..transition(true) }),
+            ..plain
+        };
+        assert!(worker_args(&recheck).contains(&"-OfferOnly".to_owned()));
+    }
+
+    #[test]
+    fn an_update_offered_again_after_it_installed_stops_counting_for_30_days() {
+        let now =
+            chrono::DateTime::parse_from_rfc3339("2026-10-01T12:00:00Z").unwrap().with_timezone(&chrono::Utc);
+        let text = r#"[{"key":"0d5c1a3b-3a2b-4c6d-9e1f-2a3b4c5d6e7f/200","kb":"5007651","at":"2026-09-30T08:00:00Z"},
+            {"key":"old/1","at":"2026-08-01T08:00:00Z"},{"key":"","at":"2026-09-30T08:00:00Z"},{"at":"2026-09-30T08:00:00Z"}]"#;
+        let handled = parse_reoffered(text, now);
+        assert_eq!(handled.len(), 1);
+        assert!(handled.contains("0d5c1a3b-3a2b-4c6d-9e1f-2a3b4c5d6e7f/200"));
+        let one = r#"{"key":"a/1","at":"2026-09-30T08:00:00Z"}"#;
+        assert!(parse_reoffered(one, now).contains("a/1"), "one entry written on its own");
+        assert!(parse_reoffered("{not json", now).is_empty());
+        assert!(parse_reoffered("", now).is_empty());
+    }
+
+    #[test]
+    fn a_version_change_report_carries_what_the_app_words() {
+        let line = r#"ATLAS_PREP:{"schema":1,"status":"reboot","stage":"windows-install","completed":0,"total":0,"activity":{"restartReasons":["feature-update"],"unchangedSeconds":0}}"#;
+        assert!(finishes_version_change(&parse_event(line).unwrap().activity.restart_reasons));
+        let line = r#"ATLAS_PREP:{"schema":1,"status":"failed","stage":"windows-search","completed":0,"total":0,"activity":{"failureMessage":"Drive C: has 2 GB free","reason":"feature-disk-space","drive":"C:","freeGb":"2","neededGb":"6","hardware":"tpm,uefi","setting":"BITS"}}"#;
+        let failure = parse_event(line).unwrap().failure().cloned().unwrap();
+        assert_eq!(failure.reason.as_deref(), Some("feature-disk-space"));
+        assert_eq!(
+            (failure.drive.as_deref(), failure.free_gb.as_deref(), failure.needed_gb.as_deref()),
+            (Some("C:"), Some("2"), Some("6"))
+        );
+        assert_eq!(failure.hardware.as_deref(), Some("tpm,uefi"));
+        assert_eq!(failure.setting.as_deref(), Some("BITS"));
+        assert_eq!(
+            operation_reason("feature-install-active: An Atlas install is unfinished"),
+            Some("feature-install-active")
+        );
+        assert_eq!(operation_reason("the worker ended with exit code: 1"), None);
     }
 
     /// The field names Update-Windows.ps1 writes for the causes and restart
