@@ -150,18 +150,56 @@ Describe 'Set-AtlasVbsConfiguration' {
         (Get-TestValueState -Path $script:hvciPath -Name 'Enabled').Value | Should -Be 1
     }
 
-    It 'refuses to overwrite a policy-managed configuration' -TestCases @(
-        @{ PolicyValue = 'EnableVirtualizationBasedSecurity' }
-        @{ PolicyValue = 'LsaCfgFlags' }
-        @{ PolicyValue = 'KernelShadowStacks' }
-    ) {
-        Set-TestDword -Path $script:policyPath -Name $PolicyValue -Value 0
+    It 'disables when policy already turns VBS off, as guides for disabling VBS leave it' {
+        # The values an RC7 tester's PC had from such a guide.
+        Set-TestDword -Path $script:policyPath -Name 'EnableVirtualizationBasedSecurity' -Value 0
+        Set-TestDword -Path $script:policyPath -Name 'HVCIMATRequired' -Value 0
+        Set-TestDword -Path $script:policyPath -Name 'LsaCfgFlags' -Value 0
 
-        { Set-AtlasVbsConfiguration -State Disable `
+        Set-AtlasVbsConfiguration -State Disable `
+            -DeviceGuardPath $script:deviceGuardPath -PolicyPath $script:policyPath
+
+        (Get-TestValueState -Path $script:deviceGuardPath -Name 'EnableVirtualizationBasedSecurity').Value | Should -Be 0
+        (Get-TestValueState -Path $script:hvciPath -Name 'Enabled').Value | Should -Be 0
+    }
+
+    It 'refuses to <State> over policy value <Name> = <Value> and writes nothing' -TestCases @(
+        @{ State = 'Disable'; Name = 'EnableVirtualizationBasedSecurity'; Value = 1 }
+        @{ State = 'Disable'; Name = 'LsaCfgFlags'; Value = 2 }
+        @{ State = 'Disable'; Name = 'ConfigureSystemGuardLaunch'; Value = 1 }
+        @{ State = 'Disable'; Name = 'ConfigureKernelShadowStacksLaunch'; Value = 1 }
+        @{ State = 'Disable'; Name = 'EnableVirtualizationBasedSecurity'; Value = 7 }
+        @{ State = 'Enable'; Name = 'EnableVirtualizationBasedSecurity'; Value = 0 }
+        @{ State = 'Enable'; Name = 'HypervisorEnforcedCodeIntegrity'; Value = 0 }
+    ) {
+        Set-TestDword -Path $script:policyPath -Name $Name -Value $Value
+
+        { Set-AtlasVbsConfiguration -State $State `
                 -DeviceGuardPath $script:deviceGuardPath -PolicyPath $script:policyPath } |
-            Should -Throw "*managed by policy value '$PolicyValue'*"
+            Should -Throw "*($Name = $Value)*"
 
         Test-Path -LiteralPath $script:deviceGuardPath | Should -BeFalse
+    }
+
+    It 'enables when policy only configures Credential Guard' {
+        Set-TestDword -Path $script:policyPath -Name 'LsaCfgFlags' -Value 2
+
+        Set-AtlasVbsConfiguration -State Enable `
+            -DeviceGuardPath $script:deviceGuardPath -PolicyPath $script:policyPath
+
+        (Get-TestValueState -Path $script:hvciPath -Name 'Enabled').Value | Should -Be 1
+    }
+
+    It 'logs a warning and writes nothing over conflicting policy when asked to skip' {
+        Set-TestDword -Path $script:policyPath -Name 'EnableVirtualizationBasedSecurity' -Value 1
+
+        Set-AtlasVbsConfiguration -State Disable -SkipWhenPolicyConflicts `
+            -DeviceGuardPath $script:deviceGuardPath -PolicyPath $script:policyPath
+
+        Test-Path -LiteralPath $script:deviceGuardPath | Should -BeFalse
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Security -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and $Message -like '*EnableVirtualizationBasedSecurity = 1*'
+        }
     }
 
     It 'refuses a <Kind> lock value it cannot interpret before writing anything' -TestCases @(
@@ -481,5 +519,19 @@ Describe 'disable-core-isolation install tweak' {
     It 'runs only when the user chose it' {
         (Import-PowerShellDataFile -LiteralPath $script:TweakPath).Option | Should -BeExactly 'disable-core-isolation' `
             -Because 'without the option gate every install would turn off VBS and memory integrity'
+    }
+
+    It 'finishes without changes when policy keeps VBS on' {
+        Mock Assert-AtlasPrivilege -ModuleName Atlas.Security
+        Mock Write-AtlasLog -ModuleName Atlas.Security
+        Mock Import-AtlasModule {}
+        Mock Get-AtlasVbsDwordState -ModuleName Atlas.Security -ParameterFilter { $Name -eq 'EnableVirtualizationBasedSecurity' } {
+            [pscustomobject]@{ Exists = $Path -like '*Policies*'; Value = 1 }
+        }
+        Mock Set-AtlasRegistryValue -ModuleName Atlas.Security { throw 'The tweak wrote a value.' }
+
+        & ($script:TweakPath -replace '\.psd1$', '.ps1')
+
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Security -ParameterFilter { $Level -eq 'Warning' }
     }
 }

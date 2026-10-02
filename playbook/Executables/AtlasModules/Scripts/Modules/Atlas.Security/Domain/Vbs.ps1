@@ -55,40 +55,64 @@ function Assert-AtlasVbsDwordValue {
     }
 }
 
-function Assert-AtlasVbsLocalConfigurationAuthority {
+function Get-AtlasVbsPolicyConflict {
+    <#
+    .SYNOPSIS
+        Names the Device Guard policy values that would override the requested state.
+        Policy that already agrees, such as "Turn On Virtualization Based Security" set
+        to Disabled (EnableVirtualizationBasedSecurity = 0) or a guide's
+        LsaCfgFlags = 0, is not a conflict.
+    #>
     param(
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$PolicyPath
+        [Parameter(Mandatory = $true)][ValidateSet('Enable', 'Disable')][string]$State,
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$PolicyPath
     )
 
-    foreach ($policyValueName in @(
-            'EnableVirtualizationBasedSecurity'
-            'HypervisorEnforcedCodeIntegrity'
-            'RequirePlatformSecurityFeatures'
-            'LsaCfgFlags'
-            'ConfigureSystemGuardLaunch'
-            'KernelShadowStacks'
-        )) {
-        $policyState = Get-AtlasVbsDwordState -Path $PolicyPath -Name $policyValueName
-        if ($policyState.Exists) {
-            throw "VBS is managed by policy value '$policyValueName'; Atlas will not overwrite local runtime state."
-        }
+    # The data each value takes in Windows' DeviceGuard.admx. RequirePlatformSecurityFeatures
+    # and HVCIMATRequired only qualify a feature the policy turns on, so they never conflict.
+    $meanings = [ordered]@{
+        EnableVirtualizationBasedSecurity = @{ On = @(1); Off = @(0); Unset = @() }
+        HypervisorEnforcedCodeIntegrity   = @{ On = @(1, 2); Off = @(0); Unset = @(3) }
+        LsaCfgFlags                       = @{ On = @(1, 2); Off = @(0); Unset = @(3) }
+        MachineIdentityIsolation          = @{ On = @(1, 2); Off = @(0); Unset = @(3) }
+        ConfigureSystemGuardLaunch        = @{ On = @(1); Off = @(2); Unset = @(0) }
+        ConfigureKernelShadowStacksLaunch = @{ On = @(1, 2); Off = @(3); Unset = @(0) }
     }
+    # Enabling needs VBS and memory integrity; every other feature runs on VBS, so any
+    # of them turned on by policy keeps VBS from being disabled.
+    $blocksEnable = @('EnableVirtualizationBasedSecurity', 'HypervisorEnforcedCodeIntegrity')
+
+    $conflicts = New-Object 'Collections.Generic.List[string]'
+    foreach ($name in $meanings.Keys) {
+        $policy = Get-AtlasVbsDwordState -Path $PolicyPath -Name $name
+        if (-not $policy.Exists) { continue }
+        $meaning = $meanings[$name]
+        $value = [int]$policy.Value
+        $known = $meaning.On + $meaning.Off + $meaning.Unset
+        $conflicting = if ($value -notin $known) { $true }
+        elseif ($State -ceq 'Disable') { $value -in $meaning.On }
+        else { $name -in $blocksEnable -and $value -in $meaning.Off }
+        if ($conflicting) { $conflicts.Add("$name = $value") }
+    }
+    return [string[]]$conflicts.ToArray()
 }
 
 function Set-AtlasVbsConfiguration {
     <#
     .SYNOPSIS
         Enables or disables VBS and memory integrity through Microsoft's documented
-        runtime registry values, refusing when policy manages them or a UEFI lock
-        protects the current state. Every written value is read back.
+        runtime registry values, refusing when policy overrides the requested state or
+        a UEFI lock protects the current state. Every written value is read back.
     #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
         [ValidateSet('Enable', 'Disable')]
         [string]$State,
+
+        # Log a warning and change nothing when policy overrides the requested state,
+        # instead of failing. Installs use it so a PC's own policy can't stop them.
+        [switch]$SkipWhenPolicyConflicts,
 
         # Tests point these at a scratch key.
         [ValidateNotNullOrEmpty()]
@@ -99,7 +123,13 @@ function Set-AtlasVbsConfiguration {
     )
 
     Assert-AtlasPrivilege -Administrator
-    Assert-AtlasVbsLocalConfigurationAuthority -PolicyPath $PolicyPath
+    $conflicts = @(Get-AtlasVbsPolicyConflict -State $State -PolicyPath $PolicyPath)
+    if ($conflicts.Count -gt 0) {
+        $message = "Policy under '$PolicyPath' overrides this change ($($conflicts -join ', ')); Atlas leaves VBS as the policy sets it."
+        if (-not $SkipWhenPolicyConflicts) { throw $message }
+        Write-AtlasLog -Level Warning -Message "VBS and memory integrity not configured to $($State.ToLowerInvariant()). $message"
+        return
+    }
 
     $hvciPath = Join-Path -Path $DeviceGuardPath -ChildPath $script:AtlasVbsHvciRelativePath
     $deviceGuardLock = Get-AtlasVbsDwordState -Path $DeviceGuardPath -Name 'Locked'

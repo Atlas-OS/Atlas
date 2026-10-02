@@ -2,4 +2,4 @@
 $ErrorActionPreference = 'Stop'
 
 Import-AtlasModule -Name Atlas.Security
-Set-AtlasVbsConfiguration -State Disable
+Set-AtlasVbsConfiguration -State Disable -SkipWhenPolicyConflicts
