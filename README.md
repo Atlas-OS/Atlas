@@ -37,7 +37,7 @@ AtlasOS, or Atlas, is an open-source Windows configuration project. It applies p
 
 Atlas Manager is new. If it doesn't work for you, use the alternative installer, [AME Wizard](https://amelabs.net), with the Atlas package (`.apbx`) from the same release. AME Wizard calls the package a playbook.
 
-Atlas 0.6 needs a fresh installation of Windows 11 25H2 (build 26200) or 26H2 (build 26300), unless you're upgrading from Atlas 0.4.1, 0.5.0 or 0.5.1 on a supported build. See the [upgrade requirements](docs/upgrading.md).
+Atlas 0.6 needs a fresh installation of Windows 11 25H2 (build 26200) or 26H2 (build 26300), unless you're upgrading from Atlas 0.4.1 or 0.5.0 on a supported build. On Windows 11 24H2, Atlas Manager moves Windows to 26H2 first. See the [upgrade requirements](docs/upgrading.md).
 
 ## 👀 Why Atlas?
 ### 🔒 Enhanced Privacy

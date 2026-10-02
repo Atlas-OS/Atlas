@@ -17,8 +17,13 @@ testers.
 | USB drive | A USB disk from 8 GB to 2 TB. It is erased. |
 
 Supported builds come from `playbook.conf`, read by the PC checks, the ISO
-edition filter and the USB writer. Upgrades from 0.4.1, 0.5.0 and 0.5.1
-(`UpgradableFrom`) also need a supported build.
+edition filter and the USB writer. Upgrades from 0.4.1 and 0.5.0
+(`UpgradableFrom`) also need a supported build; Atlas Manager moves 24H2 to 26H2
+first, and offers the same move on 25H2
+([upgrading](../../docs/upgrading.md#windows-version-transition)).
+Where it can't, it points to this page instead, with a reminder to back up first:
+a version with no update path (such as 23H2), hardware below the Windows 11
+requirements, or a PC Windows Update isn't offering 26H2 to yet.
 
 ## Create an ISO
 

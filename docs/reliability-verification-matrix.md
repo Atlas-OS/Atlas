@@ -9,7 +9,7 @@ each release review. Results from a different candidate do not certify the curre
 | Area | Required outcome | Evidence still needed for the publication candidate |
 | --- | --- | --- |
 | Fresh installation | Fresh Windows 11 25H2 or 26H2; preparation, Atlas installation, restart and health checks complete | Exact-candidate VM runs on supported editions, then representative physical hardware |
-| Atlas upgrades | Declared 0.4.1, 0.5.0 and 0.5.1 sources; choices and backups preserved | Each official source on a supported Windows build; document the Windows transition required for older installs |
+| Atlas upgrades | Declared 0.4.1 and 0.5.0 sources; choices and backups preserved | Each official source on a supported Windows build; document the Windows transition required for older installs |
 | User lifecycle | Installing user, another existing profile and a new profile receive the intended settings | First sign-in, failed migration retry and protected-policy limitations |
 | ISO creation (Beta) | Media verification, native local account/password change and successful boot | Exact-candidate interactive, saved-choice and before-desktop flows; supported-edition filtering with firmware Home/Pro keys and keyless devices |
 | Preparation | Windows, Microsoft Store and installed Store apps updated before applying Atlas | Provider failure, offline/reconnect, pending reboot and retry with both driver policies |

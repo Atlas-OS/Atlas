@@ -156,9 +156,10 @@ neither holds anything back.
 
 | Variable | Shows |
 | --- | --- |
-| `ATLAS_PREPARATION_PREVIEW=<state>` | The install flow with a stand-in package. Get ready: `idle`, `busy`, `stopping`, `download`, `complete`, `resume`, `resumed`, `cancelled`, `failed`, `failed-battery`, `unconfirmed`, `reboot`, `restart-persists`, `network`, `network-limited`, `previous-worker`, `ineligible`, `pending-updates`, `checks-blocked`, `checks-warnings`. Windows Security: `security-on`, `security-off`, `security-readable-off`, `security-unreadable`, `security-absent`. Install: `install-ready`, `install-refused`, `install-busy`. |
+| `ATLAS_PREPARATION_PREVIEW=<state>` | The install flow with a stand-in package. Get ready: `idle`, `busy`, `stopping`, `download`, `complete`, `resume`, `resumed`, `cancelled`, `failed`, `failed-battery`, `unconfirmed`, `reboot`, `reboot-others` (Restart now asking first because other people are signed in), `restart-persists`, `network`, `network-limited`, `previous-worker`, `ineligible`, `pending-updates`, `checks-blocked`, `checks-warnings`. Microsoft Store itself: `store-updating`, `store-repairing`, `store-updated`, `store-bootstrapped`, `store-repaired`, `store-skipped-removed`, `store-repair-failed`. Moving Windows to 26H2: `windows-required`, `windows-ready`, `windows-choice`, `windows-keep`, `windows-blockers`, `windows-running`, `windows-waiting`, `windows-restart`, `windows-commit-failed`, `windows-resumed`, `windows-not-offered`, `windows-not-offered-25h2`, `windows-not-offered-ended`, `windows-hardware`, `windows-rolled-back`, `windows-disk-space`, `windows-blocked`, `windows-components-lost`, `windows-managed`, `windows-failed`; after Windows reinstalled itself during the move, `windows-rebuilt`, and Your choices with every choice kept (`options-rebase`) or one missing (`options-rebase-partial`); an update from Atlas 0.5.0 starting from the extras the PC shows (`options-upgrade`). Home: `home-24h2-pro`, `home-25h2`, `home-24h2-home`, `home-23h2`, `home-update-access`, `home-update-access-after`, `home-not-offered`, `home-update-access-unreadable`, `home-put-back-failed`, and Restart now asking first because someone else is signed in (`home-restart-others`). The completion window: `installed-update-off`. Windows Security: `security-on`, `security-off`, `security-readable-off`, `security-unreadable`, `security-absent`. Install: `install-ready`, `install-refused`, `install-busy`. |
 | `ATLAS_SECURITY_PREVIEW=<reading>` | Every Windows Security reading as `on`, `off`, `some-off` (Tamper Protection and Cloud-delivered protection off), `unreadable` or `absent` (Defender removed), for the reminders on Home and the completion window. |
 | `ATLAS_REPORT_PREVIEW=<state>` | Send a report as `invalid`, `collecting`, `ready`, `prepare-failed`, `waiting`, `sending`, `sent`, `failed`, `busy`, `outdated` or `diagnostics`. Nothing is collected, and Send fails without connecting. |
+| `ATLAS_REVIEW_OTHER_SESSIONS=<names>` | Debug builds: the account names, separated by commas, that Atlas reads as signed in besides you, so the question before a restart can be reviewed on a PC nobody else uses. |
 | `ATLAS_REVIEW_NO_RESTART=1` | A restart Atlas asks for is logged and reported as accepted, and Windows keeps running, so capturing a countdown or **Restart now** is safe. |
 | `ATLAS_ISO_PREVIEW=<state>`, `ATLAS_DESKTOP_PREVIEW=1` | ISO, USB and before-desktop states; `tools\Review-Iso.ps1` sets them ([ISO creation](docs/iso-creation.md#review-and-localization)). |
 
@@ -291,7 +292,16 @@ tools/            release build, notices, measurement and review scripts
 - Home lists the four steps. While a setup is unfinished, it marks the steps
   done and the current one, as the stepper does.
 - Get ready shows Installation files, PC checks, the drivers choice, and Update
-  Windows and Store apps, under one status bar that names the next action. The checks keep
+  Windows and Store apps, under one status bar that names the next action. Where
+  the package needs a newer Windows (24H2 to 26H2), or recommends one (25H2), a
+  Windows 11, version 26H2 card says what changes and asks for Microsoft's licence
+  terms; Update Windows to version 26H2 then moves Windows first
+  ([upgrading](../docs/upgrading.md#windows-version-transition)). Home shows the
+  two parts of such an update, warns when 24H2 stops getting security updates,
+  and says when an edition or version can't take the package at all. If Windows
+  reinstalls itself instead of switching the new version on, Get ready says so and
+  Your choices uses the choices recorded before the move, asking only for one
+  nothing recorded ([Rebase](../docs/upgrading.md#rebase)). The checks keep
   their order while they run; then the ones that need attention come first and
   the passed ones fold into "N checks passed" behind **Show details**. A failed
   check offers the Windows Settings page that fixes it, such as **Open installed
@@ -415,6 +425,17 @@ starts.
 - The app never starts a second servicing worker while one is running.
   Cancelling never kills an active Windows Update operation; preparation keeps
   its worker until Windows Update or the Store returns.
+- Moving Windows to another release, and turning Windows Update on where an
+  earlier Atlas, the user or a tool turned it off, paused or delayed it, go through the same worker
+  and its functions-only `WindowsTransition.ps1`, staged beside it. Its record in
+  `HKLM\SOFTWARE\AtlasOS\WindowsTransition` survives a lost draft; Home offers
+  to continue or put the settings back while one is open, and closing the window
+  before Windows has moved puts them back first. **Restart and continue** runs
+  the worker's one-shot commit after recovery is registered and before the
+  restart. Each move appends what it read, changed, searched for, found and
+  installed to `windows-transition.log` in the protected preparation folder, which
+  diagnostics include with the record, Windows Update history and the servicing
+  logs.
 - Preparation and direct installation share the Atlas package's
   `Scripts/Preparation/Update-Windows.ps1`. Direct installation checks live
   Windows and Store readiness first. Store's verification API can queue paused

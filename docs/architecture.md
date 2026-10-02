@@ -100,13 +100,17 @@ package's `Executables` folder:
 | Windows build and edition | Unsupported |
 | Windows release | Not confirmed generally available ([Windows release policy](windows-release-policy.md)) |
 | User Account Control | Off, or the account lacks a normal non-elevated token (this rules out the built-in Administrator) |
-| Pending restart | Servicing or Windows Update needs one. Pending file replacements only warn, because apps such as Xbox Gaming Services queue one at every boot. |
+| Pending restart | Servicing or Windows Update needs one, by their own restart flags. Pending file replacements without either flag are only a note: an update can queue some, such as printer drivers, without asking for a restart, and apps such as Xbox Gaming Services queue one at every boot. |
 | `PluggedIn` | On battery |
 | `NoAntivirus` | Third-party antivirus is registered |
 | `DefenderToggled` | Windows Security switches are on |
 
 The last three apply only when `playbook.conf` declares them. A check that cannot run
-counts as a failure.
+counts as a failure. The front door also blocks while Atlas Manager is moving Windows to
+another release and Windows hasn't reached it, or while its record of the Windows Update
+settings it changed (`HKLM\SOFTWARE\AtlasOS\WindowsTransition`) can't be read. It checks
+the Windows build before it resolves the install mode, so a Windows version Atlas doesn't
+support is reported as such.
 
 ### Preparation check
 
@@ -118,7 +122,7 @@ worker Atlas Manager embeds. It passes only when:
   active queue items;
 - the connection has confirmed internet access and is not metered, data-limited or
   roaming;
-- Windows needs no restart (pending file replacements are reported but do not block);
+- Windows needs no restart (pending file replacements are noted but neither warn nor block);
 - the update service is available.
 
 The check never downloads or installs updates. Newly found Store updates are queued paused, even with
@@ -160,8 +164,9 @@ and [`IInstallationResult::RebootRequired`](https://github.com/MicrosoftDocs/sdk
    with the options in `request.json`.
 2. **Capture.** The TrustedInstaller broker's `Install` operation runs
    `Install\Invoke-AtlasInstallSession.ps1`, which validates the request against the
-   option groups in `playbook.conf`, picks Fresh, Upgrade or Reapply from the machine state
-   document, begins the install state and records the options.
+   option groups in `playbook.conf`, picks Fresh, Upgrade, Reapply or Rebase from the
+   machine state document and Atlas Manager's record of a Windows move, begins the install
+   state and records the options.
 3. The front door publishes the installing user's marker from its own session.
 4. **Run.** A second `Install` call commits the state and runs
    `Entry\Invoke-AtlasInstall.ps1 -Run`. Failure keeps the staging copy for resuming;
@@ -231,7 +236,8 @@ is the only ordered install table.
 | DefaultHiveLoad | All | Included | Always |
 | PayloadReplacement | All | Included | Always |
 | NotificationDisable | All | Included | Always |
-| LegacyChoices | Upgrade | Included | Once |
+| RebaseRecovery | Rebase | Included | Once |
+| LegacyChoices | Upgrade, Rebase | Included | Once |
 | PreInstall | All | Included | Once |
 | ShellRefresh | All | Excluded | Once |
 | Environment | All | Included | Once |
@@ -239,25 +245,34 @@ is the only ordered install table.
 | InitializePath | All | Included | Once |
 | Features | All | Included | Once |
 | Software | All | Included | Once |
-| Services | Fresh | Included | Once |
-| Components | Fresh | Included | Once |
-| AppxSupport | Fresh | Included | Once |
+| Services | Fresh, Rebase | Included | Once |
+| Components | Fresh, Rebase | Included | Once |
+| AppxSupport | Fresh, Rebase | Included | Once |
 | Defaults | All | Included | Once |
-| Tweak: qol/appearance/atlas-theme-upgrade | Upgrade | Included | Once |
-| Tweaks: networking, performance, privacy, qol, security, debloat, scripts, misc | Fresh, Upgrade | Included | Once |
+| Tweak: qol/appearance/atlas-theme-upgrade | Upgrade, Rebase | Included | Once |
+| Tweaks: networking, performance, privacy, qol, security, debloat, scripts, misc | Fresh, Upgrade, Rebase | Included | Once |
 | Tweak: scripts/set-power-settings | Fresh | Included | Once |
-| InstallingUserSetup | Fresh, Upgrade | Excluded | Once |
-| OemBranding | Upgrade | Included | Once |
+| WindowsTransition | All | Included | Once |
+| InstallingUserSetup | Fresh, Upgrade, Rebase | Excluded | Once |
+| OemBranding | Upgrade, Rebase | Included | Once |
 | NotificationRestore | All | Included | Always |
 | DefaultHiveUnload | All | Included | Always |
 
-All means Fresh, Upgrade and Reapply. Reapply gets only the common work.
+All means Fresh, Upgrade, Reapply and Rebase. Reapply gets only the common work. Rebase
+puts Atlas back on a Windows that rebuilt itself while Atlas Manager moved it to a newer
+release: the Upgrade plan, plus the fresh-install phases the rebuild undid, with the choices
+recorded before the move ([upgrading](upgrading.md#rebase)).
 
 - LegacyChoices registers existing user profiles for logon migration. If no toggle states
   are recorded, it adopts the choices existing settings uniquely identify
   ([upgrading.md](upgrading.md)).
 - On an upgrade, InstallingUserSetup migrates the installing user's settings without
   resetting their desktop layout.
+- WindowsTransition puts back the Windows Update settings Atlas Manager turned on to
+  update Windows, after Defaults has replayed recorded choices and Tweaks/qol has written
+  the feature-update pin. Settings a recorded toggle owns are left to the replay. A
+  failure here is a warning; the record stays open and Atlas Manager offers to put the
+  settings back from Home ([upgrading.md](upgrading.md#windows-version-transition)).
 - Fresh OOBE has no installing user, so live-user registry work, ShellRefresh and
   InstallingUserSetup are excluded; machine and default-user tweak parts still apply.
   Instead, the default profile gets the first-logon RunOnce entry, and Initialize-NewUser
@@ -291,13 +306,44 @@ rejected.
 | PreInstall | Remove obsolete Atlas elevation artifacts (Install\Compat) and run limited machine and user cleanup |
 | ShellRefresh | Refresh the exact installing user's shell outside OOBE |
 | Environment | Apply environment and runtime configuration |
-| Features | Apply Windows capabilities and optional features |
+| Features | Apply Windows capabilities and optional features; clean the component store on fresh installs only, before the Components phase installs the Atlas packages (see below); keep the Atlas packages' repair source |
 | Software | Install selected utilities and browsers. Toolbox resolves the latest stable release at install time, not a version pinned in the Atlas package. |
 | Services | Back up Windows services, then apply and record the File Sharing, Location and Indexing defaults as the machine part of those toggles |
 | Components | Apply machine component and browser cleanup, and the Defender choice. Keeping Defender uninstalls the `Z-Atlas-NoDefender-Package` CBS package if it is present; a failed removal fails the install rather than report success on a PC with no antivirus. |
 | AppxSupport | Apply installed/provisioned AppX changes and exact-user cache work |
 | Defaults | Initialize the toggle state store on fresh installs; replay recorded toggles on upgrades and reapplies |
 | Tweaks | Apply one declarative category, or one standalone tweak, in explicit machine, current-user and default-user scopes |
+
+### The component store and the Atlas packages
+
+The Atlas CBS packages replace inbox components with a higher version
+(`38655.38527.65535.65535`). Once a cumulative update adds a newer version of a replaced
+component, `DISM /StartComponentCleanup` rebuilds the oldest version from its baseline and
+can't rebuild all of its files. With `Z-Atlas-NoTelemetry-Package` installed, it rebuilds
+Application Experience (AppInv) 10.0.26100.1591 without `aeinvext.dll` and
+`Microsoft.Management.Deployment.winmd`, and the next store check reports the store as
+repairable. So:
+
+- The Features phase cleans the store only when no Atlas package is installed and the
+  install isn't an update: on a fresh install, before the Components phase. Otherwise it
+  logs why it skipped.
+- Every install keeps the packages' repair source: an update replaces
+  `%windir%\AtlasModules`, so the Features phase recreates
+  `AtlasModules\Packages\WinSxS` while the packages are installed, or removes the
+  `Servicing\LocalSourcePath` policy when it names that folder and the folder is gone.
+- An online `DISM /RestoreHealth` doesn't bring such a store back to clean: it repairs
+  those two files and the next check reports other 10.0.26100.1591-baseline files
+  instead (Device Inventory's `devinv.dll`, and `resources.pri` of the File Explorer and
+  OOBE user experiences). Offline, it fails with 0x800F0915: the Atlas repair source
+  holds only the Atlas manifests.
+- So Atlas PCs can read as repairable from the packages alone. Before moving Windows to a
+  newer release, the update worker records the store check's result and the corrupt items
+  the newest check in `CBS.log` names, labelled as the known Atlas package pattern or not,
+  and goes on with a repairable store. Whether Windows moved is decided after the restart,
+  as for any move. A check that can't run is logged with its error and the move goes on too;
+  only a store Windows can't repair stops the move with `feature-servicing`.
+
+Windows's own scheduled store cleanup can do the same on any PC with the packages.
 
 ## Install state
 

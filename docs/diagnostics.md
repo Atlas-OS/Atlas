@@ -74,6 +74,15 @@ encodings are explicitly omitted.
   before installation.
 - Correlate app log timestamps with the installation, preparation or media job, and
   check `report/machine-report.txt` for health, state and Windows events.
+- For Get ready's updates, and above all a move to a newer Windows release, read
+  `preparation/windows-transition.log` first: every step of the move, with each outcome's
+  reason id (`feature-*`). Each job folder's `updates.log` has that run's updates and the
+  Microsoft Store items it waited for. A run that found no offer yet ends with an
+  `Outcome (feature-not-offered)` line, not an error record. `report/machine-report.txt`
+  adds the record under `HKLM\SOFTWARE\AtlasOS\WindowsTransition`, the Windows Update
+  policies, services and tasks, the Atlas servicing packages, update history, the ends of
+  `CBS.log` and `DISM.log`, the Setup and Windows Update event channels and pending file
+  renames.
 - A completed ZIP does not mean the operation succeeded; check collection errors and
   the operation's own result.
 - Files captured during a running operation are snapshots, not a consistent
