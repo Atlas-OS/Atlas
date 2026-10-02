@@ -147,7 +147,12 @@ Describe 'Staging request dispatch' {
         $start.RedirectStandardInput = $true
         $start.RedirectStandardOutput = $true
         $start.RedirectStandardError = $true
-        $process = [Diagnostics.Process]::Start($start)
+        # StandardInput writes the console input encoding's byte order mark as it opens, which
+        # Atlas Manager never sends; a UTF-8 console (as on CI runners) would otherwise add one.
+        $inputEncoding = [Console]::InputEncoding
+        [Console]::InputEncoding = New-Object Text.UTF8Encoding $false
+        try { $process = [Diagnostics.Process]::Start($start) }
+        finally { [Console]::InputEncoding = $inputEncoding }
         try {
             $errorText = $process.StandardError.ReadToEndAsync()
             $process.StandardInput.Write((@{ operation = $Operation; source = (Join-Path $TestDrive 'missing.exe') } | ConvertTo-Json -Compress))
