@@ -18,13 +18,19 @@ What this is
 Before you start
 - Windows 11 25H2 (build 26200) and 26H2 (build 26300) are accepted.
   26H2 is enabled for further testing after a successful x64 VM install and
-  post-restart check; physical hardware, ARM64 and upgrades still need testing.
+  post-restart check; physical hardware and ARM64 still need testing.
+- Atlas 0.5.0 and 0.5.0-hotfix on Windows 11 24H2 or 25H2 can be updated.
+  Atlas Manager first moves Windows to 26H2 through Windows Update, then
+  applies this candidate. Waiting for Windows Update to offer 26H2 can take
+  from a minute to a couple of hours; Atlas Manager shows how long it has
+  been waiting. This has been tested only in VMs.
 - Use a disposable Windows 11 installation (a VM or a spare PC). Do not test
-  on a machine you rely on.
+  on a machine you rely on. To test the update from 0.5.0, use a spare PC or
+  a copy of your installation.
 - Windows Update still needs an internet connection. This is not an offline
   installer.
-- An installed candidate cannot be upgraded. Reinstall Windows before trying
-  the next candidate or the final release.
+- An installed 0.6 candidate cannot be upgraded. Reinstall Windows before
+  trying the next candidate or the final release.
 
 Reporting problems
 - In Atlas Manager, open Settings and choose Send a report under Help and
