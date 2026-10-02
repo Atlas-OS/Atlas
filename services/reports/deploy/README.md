@@ -81,8 +81,12 @@ storage quota and expiry.
   legacy `securityLevel` or `bic` (Browser Integrity Check) exemption to
   `/api/v1/`, `/api/agent/` and certificate challenges, and test with both user
   agents.
-- Keep managed WAF rules, rate limiting and DDoS protection. Rate-limit
-  `POST /api/v1/reports` here too: the service limits each client address, but
+- Exempt only `PUT /api/v1/reports/{id}/diagnostics` requests carrying a Bearer
+  upload token and `Content-Type: application/zip` from managed WAF and bot
+  challenges. Binary archives can trigger the WAF's body-size anomaly rule;
+  the service verifies upload tokens, archive contents and size limits.
+- Keep managed WAF rules on other routes, rate limiting and DDoS protection.
+  Rate-limit `POST /api/v1/reports` here too: the service limits each client address, but
   only the proxy can stop many addresses from filling the daily report cap.
 
 ## Operations
