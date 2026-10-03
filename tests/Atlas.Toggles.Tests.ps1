@@ -389,6 +389,11 @@ Describe 'Replay of recorded states' {
         $script:ReplayWork = Join-Path $TestDrive 'ReplayWork'
         New-Item -Path $script:ReplayWork -ItemType Directory -Force | Out-Null
 
+        $cpuIdleRoot = Join-Path $script:ShippedTogglesRoot 'General'
+        New-TestToggle -Root $script:ReplayRoot -Name 'CpuIdle' `
+            -Definition (Get-Content -LiteralPath (Join-Path $cpuIdleRoot 'CpuIdle.psd1') -Raw) `
+            -Companion (Get-Content -LiteralPath (Join-Path $cpuIdleRoot 'CpuIdle.ps1') -Raw)
+
         New-TestToggle -Root $script:ReplayRoot -Name 'SplitToggle' -Definition @'
 @{
     Name      = 'SplitToggle'
@@ -461,6 +466,86 @@ Describe 'Replay of recorded states' {
         Join-Path $script:ReplayWork 'user.txt' | Should -Not -Exist
         @((Get-Item -LiteralPath $recordPath).GetValueNames()) | Should -Not -Contain 'path'
         (Get-AtlasToggleState -Name 'SplitToggle' -StateRoot $StateRoot).State | Should -Be 0
+    }
+
+    It 'skips an old CPU idle disable choice on SMT and continues replaying other choices' {
+        Mock Get-CimInstance -ModuleName Atlas.Toggles {
+            @(
+                [pscustomobject]@{ NumberOfCores = 4; NumberOfLogicalProcessors = 4 }
+                [pscustomobject]@{ NumberOfCores = 8; NumberOfLogicalProcessors = 16 }
+            )
+        } -ParameterFilter { $ClassName -eq 'Win32_Processor' }
+        Mock Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles
+        Set-AtlasToggleState -Name CpuIdle -State 0 -StateRoot $StateRoot
+        Set-AtlasToggleState -Name SplitToggle -State 1 -StateRoot $StateRoot
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReplayRoot
+
+        (Get-AtlasToggleState -Name CpuIdle -StateRoot $StateRoot).State | Should -BeNullOrEmpty
+        Get-Content (Join-Path $script:ReplayWork 'machine.txt') | Should -Be 'SplitToggle:On:1:silent=True'
+        Should -Invoke Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles -Times 0 -Exactly
+    }
+
+    It 'keeps and replays an old CPU idle disable choice when SMT is absent' {
+        Mock Get-CimInstance -ModuleName Atlas.Toggles {
+            [pscustomobject]@{ NumberOfCores = 8; NumberOfLogicalProcessors = 8 }
+        } -ParameterFilter { $ClassName -eq 'Win32_Processor' }
+        Mock Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles
+        Set-AtlasToggleState -Name CpuIdle -State 0 -StateRoot $StateRoot
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReplayRoot
+
+        (Get-AtlasToggleState -Name CpuIdle -StateRoot $StateRoot).State | Should -Be 0
+        Should -Invoke Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles -Times 1 -Exactly `
+            -ParameterFilter { $ArgumentList[0] -eq '/setacvalueindex' -and $ArgumentList[4] -eq '1' }
+        Should -Invoke Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles -Times 1 -Exactly `
+            -ParameterFilter { $ArgumentList[0] -eq '/setactive' }
+    }
+
+    It 'always replays enabling CPU idle without requiring the processor query' {
+        Mock Get-CimInstance -ModuleName Atlas.Toggles { throw 'Processor query should not be needed.' } `
+            -ParameterFilter { $ClassName -eq 'Win32_Processor' }
+        Mock Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles
+        Set-AtlasToggleState -Name CpuIdle -State 1 -StateRoot $StateRoot
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReplayRoot
+
+        (Get-AtlasToggleState -Name CpuIdle -StateRoot $StateRoot).State | Should -Be 1
+        Should -Invoke Get-CimInstance -ModuleName Atlas.Toggles -Times 0 -Exactly
+        Should -Invoke Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles -Times 1 -Exactly `
+            -ParameterFilter { $ArgumentList[0] -eq '/setacvalueindex' -and $ArgumentList[4] -eq '0' }
+    }
+
+    It 'still rejects a manual CPU idle disable request on SMT without recording it' {
+        Mock Get-CimInstance -ModuleName Atlas.Toggles {
+            [pscustomobject]@{ NumberOfCores = 8; NumberOfLogicalProcessors = 16 }
+        } -ParameterFilter { $ClassName -eq 'Win32_Processor' }
+        Mock Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles
+        Set-AtlasToggleState -Name CpuIdle -State 1 -StateRoot $StateRoot
+        $definition = Get-AtlasToggleDefinition -Name CpuIdle -TogglesRoot $script:ReplayRoot
+
+        { InModuleScope Atlas.Toggles -Parameters @{ Definition = $definition; Root = $StateRoot } {
+                param($Definition, $Root)
+                Invoke-AtlasToggleInProcess -Definition $Definition -StateName Disable -Scope Machine `
+                    -Silent -NoExplorerRestart -SkipPreamble -StateRoot $Root
+            } } |
+            Should -Throw '*Hyper-Threading or SMT*Nothing was changed*'
+
+        (Get-AtlasToggleState -Name CpuIdle -StateRoot $StateRoot).State | Should -Be 1
+        Should -Invoke Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles -Times 0 -Exactly
+    }
+
+    It 'preserves the old CPU idle choice if processor detection fails' {
+        Mock Get-CimInstance -ModuleName Atlas.Toggles { throw 'CIM unavailable' } `
+            -ParameterFilter { $ClassName -eq 'Win32_Processor' }
+        Mock Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles
+        Set-AtlasToggleState -Name CpuIdle -State 0 -StateRoot $StateRoot
+
+        { Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReplayRoot } |
+            Should -Throw '*failed for 1 toggle(s)*CpuIdle*CIM unavailable*'
+
+        (Get-AtlasToggleState -Name CpuIdle -StateRoot $StateRoot).State | Should -Be 0
+        Should -Invoke Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles -Times 0 -Exactly
     }
 
     It 'leaves a record that has only user work for first sign-in replay' {

@@ -198,7 +198,7 @@ Elevation: Admin
 
 ### CpuIdle
 
-Processor idle-disable power setting. The powercfg value is inverted relative to the toggle (Disable Idle sets it to 1, Enable Idle to 0), and Disable is rejected on Hyper-Threading/SMT systems without changing or recording the state.
+Processor idle-disable power setting. Disable Idle sets powercfg to 1; Enable Idle sets it to 0. On Hyper-Threading/SMT systems, manual disable requests are rejected and old disable records are skipped during upgrades without changing the power setting.
 
 Elevation: Admin
 

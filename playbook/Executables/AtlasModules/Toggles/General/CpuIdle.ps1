@@ -1,20 +1,22 @@
+function Test-AtlasCpuIdleDisableSupported {
+    param($Toggle)
+
+    foreach ($cpu in Get-CimInstance -ClassName Win32_Processor -ErrorAction Stop) {
+        if ([int]$cpu.NumberOfLogicalProcessors -gt [int]$cpu.NumberOfCores) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Disable-AtlasCpuIdle {
     param($Toggle)
 
     $powercfg = "$($Toggle.WinDir)\System32\powercfg.exe"
     $idleGuid = '5d76a2ca-e8c0-402f-a133-2158492d58ad'
 
-    # On Hyper-Threading/SMT systems disabling idle harms performance, so reject the
-    # transition without changing or recording the requested state.
-    $smt = $false
-    foreach ($cpu in Get-CimInstance Win32_Processor) {
-        if ([int]$cpu.NumberOfLogicalProcessors -gt [int]$cpu.NumberOfCores) {
-            $smt = $true
-            break
-        }
-    }
-
-    if ($smt) {
+    # Reject a manual request; upgrades use the same check to skip an old unsupported choice.
+    if (-not (Test-AtlasCpuIdleDisableSupported -Toggle $Toggle)) {
         throw 'Hyper-Threading or SMT is enabled on this processor, and disabling idle states would make overall CPU performance much worse. Nothing was changed; consider disabling C-states in the BIOS instead.'
     }
 
