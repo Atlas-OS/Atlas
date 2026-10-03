@@ -262,6 +262,7 @@ try {
   </settings>
   <settings pass="oobeSystem">
     <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <RegisteredOwner>ATLAS_LOCAL_ACCOUNT</RegisteredOwner>
       <OOBE>
         <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
         <HideEULAPage>true</HideEULAPage>
@@ -286,7 +287,7 @@ try {
     [xml]$document = $answer
     $namespace = New-Object Xml.XmlNamespaceManager($document.NameTable)
     $namespace.AddNamespace('u', 'urn:schemas-microsoft-com:unattend')
-    foreach ($node in $document.SelectNodes('//u:LocalAccount/u:Name | //u:AutoLogon/u:Username', $namespace)) { $node.InnerText = $username }
+    foreach ($node in $document.SelectNodes('//u:LocalAccount/u:Name | //u:AutoLogon/u:Username | //u:RegisteredOwner', $namespace)) { $node.InnerText = $username }
     $answer = $document.OuterXml
     # Setup caches an answer file only if it has settings for the current pass, so
     # the windowsPE section restates Setup's defaults: firewall on, key and edition
