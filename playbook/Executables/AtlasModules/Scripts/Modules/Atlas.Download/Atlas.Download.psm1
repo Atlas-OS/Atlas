@@ -129,7 +129,8 @@ function Invoke-AtlasBoundedHttpGet {
     $handler = New-Object Net.Http.HttpClientHandler
     $handler.AllowAutoRedirect = [bool]$AllowRedirect
     $handler.MaxAutomaticRedirections = 5
-    $handler.SslProtocols = [Security.Authentication.SslProtocols]::Tls12
+    # Let Windows negotiate TLS, including TLS 1.3-only download endpoints.
+    $handler.SslProtocols = [Security.Authentication.SslProtocols]::None
     $client = New-Object Net.Http.HttpClient($handler)
     $client.Timeout = [Threading.Timeout]::InfiniteTimeSpan
     $client.DefaultRequestHeaders.UserAgent.ParseAdd('AtlasOS-Playbook')
