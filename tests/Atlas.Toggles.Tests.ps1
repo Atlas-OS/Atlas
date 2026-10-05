@@ -326,6 +326,34 @@ Describe 'Set-AtlasToggleState / Get-AtlasToggleState' {
 }
 
 Describe 'Initialize-AtlasToggleStateStore' {
+    It 'leaves a current modern-menu record without legacy metadata unchanged' {
+        Set-AtlasToggleState -Name OldContextMenu -State 0 -StateRoot $StateRoot
+
+        Initialize-AtlasToggleStateStore -StateRoot $StateRoot
+
+        (Get-AtlasToggleState -Name OldContextMenu -StateRoot $StateRoot).State | Should -Be 0
+        Remove-Item -LiteralPath (Join-Path $StateRoot 'OldContextMenu') -Recurse -Force
+    }
+
+    It 'preserves the actual legacy context-menu choice for <Launcher>' -ForEach @(
+        @{ Launcher = 'Old Context Menu (default).cmd'; Expected = 1 }
+        @{ Launcher = 'New Context Menu.cmd'; Expected = 0 }
+        @{ Launcher = 'unknown.cmd'; Expected = 0 }
+    ) {
+        $keyPath = Join-Path $StateRoot 'OldContextMenu'
+        New-Item -Path $keyPath -Force | Out-Null
+        New-ItemProperty -LiteralPath $keyPath -Name state -Value 0 -PropertyType DWord -Force | Out-Null
+        New-ItemProperty -LiteralPath $keyPath -Name path -Value ("C:\Windows\AtlasDesktop\$Launcher") -PropertyType String -Force | Out-Null
+
+        Initialize-AtlasToggleStateStore -StateRoot $StateRoot
+
+        (Get-AtlasToggleState -Name OldContextMenu -StateRoot $StateRoot).State | Should -Be $Expected
+        @((Get-Item -LiteralPath $keyPath).GetValueNames()) | Should -Not -Contain 'path'
+        Initialize-AtlasToggleStateStore -StateRoot $StateRoot
+        (Get-AtlasToggleState -Name OldContextMenu -StateRoot $StateRoot).State | Should -Be $Expected
+        Remove-Item -LiteralPath $keyPath -Recurse -Force
+    }
+
     It 'removes legacy executable paths while preserving non-replay product metadata' {
         $keyPath = Join-Path $StateRoot 'PauseUpdates'
         New-Item -Path $keyPath -Force | Out-Null
@@ -384,6 +412,22 @@ Describe 'Atlas toggle production state ACL' {
 }
 
 Describe 'Replay of recorded states' {
+    It 'migrates the legacy classic menu before resolving the upgrade replay state' {
+        $keyPath = Join-Path $StateRoot 'OldContextMenu'
+        New-Item -Path $keyPath -Force | Out-Null
+        New-ItemProperty -LiteralPath $keyPath -Name state -Value 0 -PropertyType DWord -Force | Out-Null
+        New-ItemProperty -LiteralPath $keyPath -Name path -Value 'C:\Windows\AtlasDesktop\Old Context Menu (default).cmd' -PropertyType String -Force | Out-Null
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ShippedTogglesRoot
+
+        (Get-AtlasToggleState -Name OldContextMenu -StateRoot $StateRoot).State | Should -Be 1
+        @((Get-Item -LiteralPath $keyPath).GetValueNames()) | Should -Not -Contain 'path'
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            $Message -eq "Toggle 'OldContextMenu' state 'Enable' has no machine work to re-apply."
+        }
+        Remove-Item -LiteralPath $keyPath -Recurse -Force
+    }
+
     BeforeAll {
         $script:ReplayRoot = Join-Path $TestDrive 'ReplayToggles'
         $script:ReplayWork = Join-Path $TestDrive 'ReplayWork'

@@ -182,6 +182,7 @@ function Invoke-AtlasToggleReapply {
         $name = [string]$subkey.PSChildName
 
         try {
+            Repair-AtlasLegacyContextMenuState -Key $subkey
             $replay = Resolve-AtlasToggleReplayRecord -Subkey $subkey -TogglesRoot $TogglesRoot
         }
         catch {

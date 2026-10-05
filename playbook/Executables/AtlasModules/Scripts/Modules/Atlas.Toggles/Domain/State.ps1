@@ -159,6 +159,21 @@ function Remove-AtlasToggleLegacyPath {
     }
 }
 
+function Repair-AtlasLegacyContextMenuState {
+    param([Parameter(Mandatory = $true)]$Key)
+
+    # Both 0.5 launchers wrote state 0. The filename distinguishes their intent;
+    # the stored path is never executed.
+    if ($Key.PSChildName -eq 'OldContextMenu' -and
+        $Key.GetValue('state', $null) -eq 0 -and
+        $Key.GetValueKind('state') -eq [Microsoft.Win32.RegistryValueKind]::DWord -and
+        $Key.GetValue('path', $null) -is [string] -and
+        [string]$Key.GetValue('path') -cmatch '(^|[\\/])Old Context Menu \(default\)\.cmd$') {
+        Set-ItemProperty -LiteralPath $Key.PSPath -Name 'state' -Value 1 -ErrorAction Stop
+        Write-AtlasLog -Message 'Migrated the legacy classic context-menu choice before removing its launcher path.'
+    }
+}
+
 function Initialize-AtlasToggleStateStore {
     <#
     .SYNOPSIS
@@ -174,6 +189,7 @@ function Initialize-AtlasToggleStateStore {
         return
     }
     foreach ($child in @(Get-ChildItem -LiteralPath $StateRoot -ErrorAction Stop)) {
+        Repair-AtlasLegacyContextMenuState -Key $child
         Remove-AtlasToggleLegacyPath -KeyPath $child.PSPath
     }
     Sync-AtlasToggleStateDocument -StateRoot $StateRoot
