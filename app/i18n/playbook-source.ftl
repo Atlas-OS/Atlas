@@ -24,3 +24,7 @@ playbook-page-mitigations-default-description = Disabling mitigations reduces se
 playbook-page-auto-updates-disable-description = Updates are important for security, you'll get update notifications regardless.
 playbook-page-browser-brave-description = Select your preferred browser to install. Browser settings are not modified.
 playbook-option-install-eclean = Install eclean
+playbook-option-keyboard-shortcuts = Yes, with keyboard shortcuts
+playbook-option-keyboard-selector = Yes, with the taskbar selector
+playbook-option-keyboard-single = No, I use one keyboard layout
+playbook-page-keyboard-shortcuts-description = Choose how you switch keyboard languages.

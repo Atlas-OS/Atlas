@@ -1165,3 +1165,13 @@ prepare-store-repaired = Microsoft Store が動作していなかったため、
 prepare-store-skipped-removed = この PC では Microsoft Store がオフになっているため、Atlas は Store アプリの更新をスキップしました。
 prepare-failed-store-repair-failed = Microsoft Store が動作せず、Atlas は修復できませんでした。もう一度試すには、「Microsoft Store を修復」を選んでください。それでも動作しない場合は、「レポートを送信」を選んでください。
 prepare-repair-store = Microsoft Store を修復
+
+screen-keyboard-title = キーボードの言語
+screen-keyboard-question = 複数のキーボード言語を使いますか？
+playbook-option-keyboard-shortcuts = はい、キーボードショートカットで切り替えます
+playbook-option-keyboard-selector = はい、タスクバーの選択メニューを使います
+playbook-option-keyboard-single = いいえ、配列は1つだけです
+consequence-keyboard-shortcuts = Alt+Shiftで言語、Ctrl+Shiftで配列を切り替えます。
+consequence-keyboard-selector = ゲーム中の誤操作を防ぐため、Alt+ShiftとCtrl+Shiftを無効にします。
+playbook-page-keyboard-shortcuts-description = キーボード言語の切り替え方法を選んでください。
+consequence-keyboard-single = { consequence-keyboard-selector }

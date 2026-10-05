@@ -333,6 +333,56 @@ Describe 'Invoke-AtlasTweak' {
         Mock -CommandName Write-AtlasLog -ModuleName Atlas.Registry
     }
 
+    It 'records the explicit keyboard choice on fresh installs and upgrades: <Choice>, upgrade=<Upgrade>' -ForEach @(
+        @{ Choice = 'keyboard-shortcuts'; Expected = 'Enable'; Upgrade = $false }
+        @{ Choice = 'keyboard-selector'; Expected = 'Disable'; Upgrade = $false }
+        @{ Choice = 'keyboard-single'; Expected = 'Disable'; Upgrade = $false }
+        @{ Choice = 'keyboard-shortcuts'; Expected = 'Enable'; Upgrade = $true }
+        @{ Choice = 'keyboard-selector'; Expected = 'Disable'; Upgrade = $true }
+        @{ Choice = 'keyboard-single'; Expected = 'Disable'; Upgrade = $true }
+    ) {
+        Mock Get-AtlasContext -ModuleName Atlas.Tweaks {
+            $context = New-TestContextMock -IsUpgrade $Upgrade
+            $context | Add-Member -NotePropertyName Options -NotePropertyValue @($Choice)
+            $context
+        }
+        Mock Import-AtlasModule -ModuleName Atlas.Tweaks
+        Mock Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks
+
+        Invoke-AtlasTweak -Path (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Tweaks\qol\set-keyboard-switching.psd1')
+
+        Should -Invoke Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks -Times 1 -Exactly `
+            -ParameterFilter { $Name -ceq 'KeyboardShortcuts' -and $State -ceq $Expected }
+    }
+
+    It 'keeps existing keyboard settings when an older options snapshot has no keyboard choice' {
+        Mock Get-AtlasContext -ModuleName Atlas.Tweaks {
+            $context = New-TestContextMock
+            $context | Add-Member -NotePropertyName Options -NotePropertyValue @('defender-enable')
+            $context
+        }
+        Mock Import-AtlasModule -ModuleName Atlas.Tweaks
+        Mock Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks
+
+        Invoke-AtlasTweak -Path (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Tweaks\qol\set-keyboard-switching.psd1')
+
+        Should -Invoke Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks -Times 0 -Exactly
+    }
+
+    It 'rejects conflicting keyboard choices before recording any changes' {
+        Mock Get-AtlasContext -ModuleName Atlas.Tweaks {
+            $context = New-TestContextMock
+            $context | Add-Member -NotePropertyName Options -NotePropertyValue @('keyboard-shortcuts', 'keyboard-single')
+            $context
+        }
+        Mock Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks
+
+        { Invoke-AtlasTweak -Path (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Tweaks\qol\set-keyboard-switching.psd1') } |
+            Should -Throw '*exactly one keyboard*'
+
+        Should -Invoke Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks -Times 0 -Exactly
+    }
+
     It 'applies a registry-only tweak through the ambient HKCU path when unelevated' {
         $tweakFile = Join-Path -Path $TestDrive -ChildPath 'registry-tweak.psd1'
         @'

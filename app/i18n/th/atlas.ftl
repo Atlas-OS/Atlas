@@ -1226,3 +1226,13 @@ prepare-store-skipped-removed = Microsoft Store ถูกปิดไว้บ�
 # "Repair Microsoft Store" is prepare-repair-store; "Send a report" is report-title.
 prepare-failed-store-repair-failed = Microsoft Store ไม่ทำงาน และ Atlas ซ่อมแซมไม่ได้ เลือก ซ่อมแซม Microsoft Store เพื่อลองอีกครั้ง หากยังไม่ได้ผล ให้เลือก ส่งรายงาน
 prepare-repair-store = ซ่อมแซม Microsoft Store
+
+screen-keyboard-title = ภาษาของแป้นพิมพ์
+screen-keyboard-question = คุณใช้แป้นพิมพ์หลายภาษาหรือไม่?
+playbook-option-keyboard-shortcuts = ใช่ ใช้แป้นพิมพ์ลัด
+playbook-option-keyboard-selector = ใช่ ใช้ตัวเลือกบนแถบงาน
+playbook-option-keyboard-single = ไม่ ใช้รูปแบบแป้นพิมพ์เดียว
+consequence-keyboard-shortcuts = Alt+Shift สลับภาษา ส่วน Ctrl+Shift สลับรูปแบบแป้นพิมพ์
+consequence-keyboard-selector = ปิด Alt+Shift และ Ctrl+Shift เพื่อป้องกันการสลับโดยไม่ตั้งใจขณะเล่นเกม
+playbook-page-keyboard-shortcuts-description = เลือกวิธีสลับภาษาของแป้นพิมพ์
+consequence-keyboard-single = { consequence-keyboard-selector }

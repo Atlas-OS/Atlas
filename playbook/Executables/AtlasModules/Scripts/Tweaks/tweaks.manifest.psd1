@@ -91,6 +91,7 @@
                 'bcdedit-tweaks'
                 'best-wallpaper-quality'
                 'disable-mouse-accel'
+                'set-keyboard-switching'
                 'disable-settings-tips'
                 'disable-spell-checking'
                 'disable-store-auto-updates'

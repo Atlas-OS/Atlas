@@ -21,6 +21,7 @@ const KEPT: &[&str] = &[
     "defender-disable",
     "mitigations-default",
     "auto-updates-disable",
+    "keyboard-shortcuts",
     "disable-hibernation",
     "uninstall-edge",
 ];
@@ -112,7 +113,7 @@ fn a_choice_the_record_lacks_is_asked_again_and_the_rest_are_kept() {
         });
         read(&cx, &model, |m| {
             let choices = m.rebase_choices().unwrap();
-            assert_eq!(choices.missing, vec![ScreenKind::Mitigations]);
+            assert_eq!(choices.missing, vec![ScreenKind::Mitigations, ScreenKind::Keyboard]);
             assert!(m.locked_options().is_none(), "the user makes the missing choice");
             for option in partial {
                 assert!(m.options.contains(option), "{option} is kept");

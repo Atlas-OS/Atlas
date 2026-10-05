@@ -1204,3 +1204,13 @@ prepare-store-repaired = Microsoft Store çalışmıyordu, bu yüzden Atlas onu 
 prepare-store-skipped-removed = Microsoft Store bu bilgisayarda kapalı, bu yüzden Atlas Store uygulaması güncelleştirmelerini atladı.
 prepare-failed-store-repair-failed = Microsoft Store çalışmıyor ve Atlas onu onaramadı. Yeniden denemek için Microsoft Store'u onar'ı seçin. Yine çalışmazsa Rapor gönder'i seçin.
 prepare-repair-store = Microsoft Store'u onar
+
+screen-keyboard-title = Klavye dilleri
+screen-keyboard-question = Birden fazla klavye dili kullanıyor musunuz?
+playbook-option-keyboard-shortcuts = Evet, klavye kısayollarıyla
+playbook-option-keyboard-selector = Evet, görev çubuğundaki seçiciyle
+playbook-option-keyboard-single = Hayır, tek bir klavye düzeni kullanıyorum
+consequence-keyboard-shortcuts = Alt+Shift dili, Ctrl+Shift klavye düzenini değiştirir.
+consequence-keyboard-selector = Oyun sırasında yanlışlıkla geçiş yapmamak için Alt+Shift ve Ctrl+Shift kapatılır.
+playbook-page-keyboard-shortcuts-description = Klavye dilini nasıl değiştireceğinizi seçin.
+consequence-keyboard-single = { consequence-keyboard-selector }

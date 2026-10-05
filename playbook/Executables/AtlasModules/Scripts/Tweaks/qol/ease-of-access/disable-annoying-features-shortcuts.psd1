@@ -10,12 +10,6 @@
         @{ Path = 'HKCU\Control Panel\Accessibility\StickyKeys'; Name = 'Flags'; Mask = '4'; MigrateDwordToString = $true; Type = 'String'; Data = '506' }
         @{ Path = 'HKCU\Control Panel\Accessibility\ToggleKeys'; Name = 'Flags'; Mask = '4'; MigrateDwordToString = $true; Type = 'String'; Data = '58' }
 
-        # Disable language bar shortcuts (stock values are REG_SZ; 3 = off)
-        @{ Path = 'HKCU\Control Panel\Input Method\Hot Keys\00000104'; Operation = 'DeleteKey' }
-        @{ Path = 'HKCU\Keyboard Layout\Toggle'; Name = 'Layout Hotkey'; Type = 'String'; Data = '3' }
-        @{ Path = 'HKCU\Keyboard Layout\Toggle'; Name = 'Language Hotkey'; Type = 'String'; Data = '3' }
-        @{ Path = 'HKCU\Keyboard Layout\Toggle'; Name = 'Hotkey'; Type = 'String'; Data = '3' }
-
         # Disable Narrator shortcut
         @{ Path = 'HKCU\Software\Microsoft\Narrator\NoRoam'; Name = 'WinEnterLaunchEnabled'; Type = 'DWord'; Data = 0 }
     )

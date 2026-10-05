@@ -1366,3 +1366,13 @@ prepare-store-skipped-removed = Microsoft Store is turned off on this PC, so Atl
 # "Repair Microsoft Store" is prepare-repair-store; "Send a report" is report-title.
 prepare-failed-store-repair-failed = Microsoft Store isn't working, and Atlas couldn't repair it. Choose Repair Microsoft Store to try again. If it still doesn't work, choose Send a report.
 prepare-repair-store = Repair Microsoft Store
+
+screen-keyboard-title = Keyboard languages
+screen-keyboard-question = Do you use multiple keyboard languages?
+playbook-option-keyboard-shortcuts = Yes, with keyboard shortcuts
+playbook-option-keyboard-selector = Yes, with the taskbar selector
+playbook-option-keyboard-single = No, I use one keyboard layout
+consequence-keyboard-shortcuts = Alt+Shift switches languages; Ctrl+Shift switches layouts.
+consequence-keyboard-selector = Turn off Alt+Shift and Ctrl+Shift to avoid accidental switches while gaming.
+playbook-page-keyboard-shortcuts-description = Choose how you switch keyboard languages.
+consequence-keyboard-single = { consequence-keyboard-selector }

@@ -3,6 +3,30 @@
 use crate::model::ScreenKind;
 use crate::model::test_harness::{act, fixture, new_model, read, run_model_test, wait_for};
 
+#[test]
+fn keyboard_switching_is_one_exclusive_choice_passed_to_the_installer() {
+    run_model_test(|mut cx| async move {
+        let (_temp, _, env) = fixture("keyboard-choice");
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        let page = read(&cx, &model, |m| {
+            let screen = m.option_screens().into_iter().find(|s| s.kind == ScreenKind::Keyboard).unwrap();
+            assert!(screen.required);
+            assert_eq!(screen.pages.len(), 1);
+            assert!(m.effective_options().iter().any(|o| o == "keyboard-shortcuts"));
+            screen.pages[0]
+        });
+        for name in ["keyboard-selector", "keyboard-single", "keyboard-shortcuts"] {
+            act(&mut cx, &model, |m, cx| m.choose_option(page, name, cx));
+            read(&cx, &model, |m| {
+                let chosen: Vec<_> =
+                    m.effective_options().into_iter().filter(|o| o.starts_with("keyboard-")).collect();
+                assert_eq!(chosen, [name]);
+            });
+        }
+    });
+}
+
 /// A page shown only when an option is chosen comes straight after the page
 /// that offers that option: the browser picker follows the apps that say
 /// "choose one below", not the optional apps in between.

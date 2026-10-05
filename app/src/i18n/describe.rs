@@ -486,6 +486,7 @@ impl ScreenKind {
             ScreenKind::Defender => t!("screen-defender-title"),
             ScreenKind::Mitigations => t!("screen-mitigations-title"),
             ScreenKind::Updates => t!("screen-updates-title"),
+            ScreenKind::Keyboard => t!("screen-keyboard-title"),
             ScreenKind::Browser => t!("screen-browser-title"),
             ScreenKind::Power => t!("screen-power-title"),
             ScreenKind::Apps => t!("screen-apps-title"),
@@ -501,6 +502,7 @@ impl ScreenKind {
             ScreenKind::Defender => t!("screen-defender-question"),
             ScreenKind::Mitigations => t!("screen-mitigations-question"),
             ScreenKind::Updates => t!("screen-updates-question"),
+            ScreenKind::Keyboard => t!("screen-keyboard-question"),
             // Its title is already the generic question; wrapping it would
             // read "Choose an option for Choose an option". The extras screen
             // asks no one question: each page on it has its own title.
@@ -514,6 +516,7 @@ impl ScreenKind {
             ScreenKind::Defender => t!("learn-more-defender"),
             ScreenKind::Mitigations => t!("learn-more-mitigations"),
             ScreenKind::Updates => t!("learn-more-updates"),
+            ScreenKind::Keyboard => t!("learn-more-generic"),
             ScreenKind::Browser => t!("learn-more-browser"),
             ScreenKind::Power => t!("learn-more-power"),
             ScreenKind::Apps => t!("learn-more-apps"),
@@ -533,6 +536,9 @@ pub fn option_consequence(name: &str) -> Option<String> {
         "mitigations-disable" => t!("consequence-mitigations-disable"),
         "auto-updates-disable" => t!("consequence-auto-updates-disable"),
         "auto-updates-default" => t!("consequence-auto-updates-default"),
+        "keyboard-shortcuts" => t!("consequence-keyboard-shortcuts"),
+        "keyboard-selector" => t!("consequence-keyboard-selector"),
+        "keyboard-single" => t!("consequence-keyboard-single"),
         "disable-hibernation" => t!("consequence-disable-hibernation"),
         "disable-power-saving" => t!("consequence-disable-power-saving"),
         "disable-core-isolation" => t!("consequence-disable-core-isolation"),

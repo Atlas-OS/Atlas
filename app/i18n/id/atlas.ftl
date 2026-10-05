@@ -1170,3 +1170,13 @@ prepare-store-repaired = Microsoft Store tidak berfungsi, jadi Atlas memperbaiki
 prepare-store-skipped-removed = Microsoft Store dinonaktifkan di PC ini, jadi Atlas melewati pembaruan aplikasi Store.
 prepare-failed-store-repair-failed = Microsoft Store tidak berfungsi, dan Atlas tidak dapat memperbaikinya. Pilih Perbaiki Microsoft Store untuk mencoba lagi. Jika masih tidak berfungsi, pilih Kirim laporan.
 prepare-repair-store = Perbaiki Microsoft Store
+
+screen-keyboard-title = Bahasa keyboard
+screen-keyboard-question = Apakah Anda menggunakan beberapa bahasa keyboard?
+playbook-option-keyboard-shortcuts = Ya, dengan pintasan keyboard
+playbook-option-keyboard-selector = Ya, dengan pemilih di taskbar
+playbook-option-keyboard-single = Tidak, saya hanya menggunakan satu tata letak
+consequence-keyboard-shortcuts = Alt+Shift mengganti bahasa; Ctrl+Shift mengganti tata letak.
+consequence-keyboard-selector = Nonaktifkan Alt+Shift dan Ctrl+Shift agar tidak berganti tanpa sengaja saat bermain.
+playbook-page-keyboard-shortcuts-description = Pilih cara mengganti bahasa keyboard.
+consequence-keyboard-single = { consequence-keyboard-selector }

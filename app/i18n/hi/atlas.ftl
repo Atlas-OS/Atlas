@@ -1195,3 +1195,13 @@ prepare-store-repaired = Microsoft Store काम नहीं कर रहा
 prepare-store-skipped-removed = इस PC पर Microsoft Store बंद है, इसलिए Atlas ने Store ऐप के अपडेट छोड़ दिए।
 prepare-failed-store-repair-failed = Microsoft Store काम नहीं कर रहा है, और Atlas उसे ठीक नहीं कर सका। फिर कोशिश करने के लिए “Microsoft Store ठीक करें” चुनें। अगर यह फिर भी काम न करे, तो “रिपोर्ट भेजें” चुनें।
 prepare-repair-store = Microsoft Store ठीक करें
+
+screen-keyboard-title = कीबोर्ड की भाषाएँ
+screen-keyboard-question = क्या आप कीबोर्ड की कई भाषाएँ इस्तेमाल करते हैं?
+playbook-option-keyboard-shortcuts = हाँ, कीबोर्ड शॉर्टकट से
+playbook-option-keyboard-selector = हाँ, टास्कबार के चयनकर्ता से
+playbook-option-keyboard-single = नहीं, मैं एक ही कीबोर्ड लेआउट इस्तेमाल करता हूँ
+consequence-keyboard-shortcuts = Alt+Shift से भाषा और Ctrl+Shift से लेआउट बदलता है।
+consequence-keyboard-selector = गेम खेलते समय गलती से बदलाव रोकने के लिए Alt+Shift और Ctrl+Shift बंद करें।
+playbook-page-keyboard-shortcuts-description = चुनें कि कीबोर्ड की भाषा कैसे बदलनी है।
+consequence-keyboard-single = { consequence-keyboard-selector }

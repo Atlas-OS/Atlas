@@ -1149,3 +1149,13 @@ prepare-store-repaired = Microsoft Store 無法正常運作，因此 Atlas 已�
 prepare-store-skipped-removed = 這台電腦已關閉 Microsoft Store，因此 Atlas 略過了市集應用程式的更新。
 prepare-failed-store-repair-failed = Microsoft Store 無法正常運作，Atlas 也無法修復它。請選擇「修復 Microsoft Store」再試一次。如果仍然無法運作，請選擇「傳送報告」。
 prepare-repair-store = 修復 Microsoft Store
+
+screen-keyboard-title = 鍵盤語言
+screen-keyboard-question = 你使用多種鍵盤語言嗎？
+playbook-option-keyboard-shortcuts = 是，使用鍵盤快捷鍵
+playbook-option-keyboard-selector = 是，使用工作列選擇器
+playbook-option-keyboard-single = 否，只使用一種鍵盤配置
+consequence-keyboard-shortcuts = Alt+Shift 切換語言；Ctrl+Shift 切換配置。
+consequence-keyboard-selector = 關閉 Alt+Shift 和 Ctrl+Shift，避免遊戲時意外切換。
+playbook-page-keyboard-shortcuts-description = 選擇切換鍵盤語言的方式。
+consequence-keyboard-single = { consequence-keyboard-selector }

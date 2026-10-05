@@ -1983,6 +1983,46 @@
       ]
     },
     {
+      "name": "KeyboardShortcuts",
+      "group": "Interface",
+      "description": "Alt+Shift language switching and Ctrl+Shift keyboard-layout switching. Installed layouts, Windows+Space and IME shortcuts are unchanged.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\Keyboard Languages\\Enable Language Shortcuts.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 3,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null
+          }
+        },
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\Keyboard Languages\\Disable Language Shortcuts.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 3,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null
+          }
+        }
+      ]
+    },
+    {
       "name": "LockScreen",
       "group": "Interface",
       "description": "Windows lock screen. Enable shows it and verifies the blocking policy values are gone; Disable hides it.",

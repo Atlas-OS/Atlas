@@ -1171,3 +1171,13 @@ prepare-store-repaired = Le Microsoft Store ne fonctionnait pas : Atlas l’a d
 prepare-store-skipped-removed = Le Microsoft Store est désactivé sur ce PC : Atlas a donc ignoré les mises à jour des applications du Store.
 prepare-failed-store-repair-failed = Le Microsoft Store ne fonctionne pas et Atlas n’a pas pu le réparer. Choisissez Réparer Microsoft Store pour réessayer. Si le problème persiste, choisissez Envoyer un rapport.
 prepare-repair-store = Réparer Microsoft Store
+
+screen-keyboard-title = Langues du clavier
+screen-keyboard-question = Utilisez-vous plusieurs langues de clavier ?
+playbook-option-keyboard-shortcuts = Oui, avec des raccourcis clavier
+playbook-option-keyboard-selector = Oui, avec le sélecteur de la barre des tâches
+playbook-option-keyboard-single = Non, une seule disposition
+consequence-keyboard-shortcuts = Alt+Shift change la langue ; Ctrl+Shift change la disposition.
+consequence-keyboard-selector = Désactive Alt+Shift et Ctrl+Shift pour éviter les changements involontaires en jeu.
+playbook-page-keyboard-shortcuts-description = Choisissez comment changer la langue du clavier.
+consequence-keyboard-single = { consequence-keyboard-selector }

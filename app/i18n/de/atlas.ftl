@@ -1233,3 +1233,13 @@ prepare-store-skipped-removed = Der Microsoft Store ist auf diesem PC ausgeschal
 # „Microsoft Store reparieren“ is prepare-repair-store; „Bericht senden“ is report-title.
 prepare-failed-store-repair-failed = Der Microsoft Store funktioniert nicht, und Atlas konnte ihn nicht reparieren. Wählen Sie „Microsoft Store reparieren“, um es erneut zu versuchen. Wenn er weiterhin nicht funktioniert, wählen Sie „Bericht senden“.
 prepare-repair-store = Microsoft Store reparieren
+
+screen-keyboard-title = Tastatursprachen
+screen-keyboard-question = Verwenden Sie mehrere Tastatursprachen?
+playbook-option-keyboard-shortcuts = Ja, mit Tastenkombinationen
+playbook-option-keyboard-selector = Ja, mit der Auswahl in der Taskleiste
+playbook-option-keyboard-single = Nein, ich verwende nur ein Tastaturlayout
+consequence-keyboard-shortcuts = Alt+Shift wechselt die Sprache; Ctrl+Shift wechselt das Layout.
+consequence-keyboard-selector = Alt+Shift und Ctrl+Shift ausschalten, um versehentliche Wechsel beim Spielen zu vermeiden.
+playbook-page-keyboard-shortcuts-description = Wählen Sie, wie Sie die Tastatursprache wechseln.
+consequence-keyboard-single = { consequence-keyboard-selector }

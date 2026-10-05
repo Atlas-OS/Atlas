@@ -24,6 +24,7 @@ pub enum ScreenKind {
     Defender,
     Mitigations,
     Updates,
+    Keyboard,
     Browser,
     Power,
     Apps,
@@ -39,6 +40,7 @@ impl ScreenKind {
             n if n.starts_with("defender") => ScreenKind::Defender,
             n if n.starts_with("mitigations") => ScreenKind::Mitigations,
             n if n.starts_with("auto-updates") => ScreenKind::Updates,
+            n if n.starts_with("keyboard-") => ScreenKind::Keyboard,
             n if n.starts_with("browser") => ScreenKind::Browser,
             n if n.starts_with("disable-hibernation") || n.starts_with("disable-power") => ScreenKind::Power,
             n if n.starts_with("remove-")
