@@ -183,7 +183,7 @@ Describe 'Resolve-AtlasInstallMode' {
 
 Describe 'Install request validation' {
     It 'accepts a complete option set and rejects unknown, repeated and incomplete sets' {
-        $good = @('defender-enable', 'mitigations-default', 'auto-updates-disable', 'install-another-browser', 'browser-brave')
+        $good = @('defender-enable', 'mitigations-default', 'auto-updates-disable', 'keyboard-shortcuts', 'install-another-browser', 'browser-brave')
         @(Assert-AtlasInstallOptionSet -Options $good -Groups $script:Groups) | Should -Be $good
 
         { Assert-AtlasInstallOptionSet -Options ($good + 'not-an-option') -Groups $script:Groups } | Should -Throw '*not declared*'
@@ -192,8 +192,12 @@ Describe 'Install request validation' {
             Should -Throw '*Exactly one of*'
         { Assert-AtlasInstallOptionSet -Options @('defender-enable', 'mitigations-default') -Groups $script:Groups } |
             Should -Throw '*Exactly one of auto-updates*'
-        { Assert-AtlasInstallOptionSet -Options @('defender-enable', 'mitigations-default', 'auto-updates-disable', 'browser-brave') -Groups $script:Groups } |
+        { Assert-AtlasInstallOptionSet -Options @('defender-enable', 'mitigations-default', 'auto-updates-disable', 'keyboard-shortcuts', 'browser-brave') -Groups $script:Groups } |
             Should -Throw "*require 'install-another-browser'*"
+        { Assert-AtlasInstallOptionSet -Options @('defender-enable', 'mitigations-default', 'auto-updates-disable') -Groups $script:Groups } |
+            Should -Throw '*Exactly one of keyboard-*'
+        { Assert-AtlasInstallOptionSet -Options ($good + 'keyboard-single') -Groups $script:Groups } |
+            Should -Throw '*Exactly one of keyboard-*'
     }
 
     It 'reads only a size-limited request.json with an options array' {

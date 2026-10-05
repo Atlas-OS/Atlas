@@ -11,6 +11,7 @@ $script:AtlasKnownOptions = @(
     'defender-disable', 'defender-enable',
     'disable-core-isolation', 'disable-hibernation', 'disable-power-saving',
     'install-another-browser', 'install-toolbox', 'install-eclean',
+    'keyboard-shortcuts', 'keyboard-selector', 'keyboard-single',
     'mitigations-default', 'mitigations-disable',
     'remove-snipping-tool', 'uninstall-edge'
 )
