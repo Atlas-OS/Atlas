@@ -8,7 +8,9 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use windows_registry::{CURRENT_USER, LOCAL_MACHINE};
+use windows_registry::{CURRENT_USER, LOCAL_MACHINE, Type};
+
+use super::registry::NOT_FOUND;
 
 /// What the PC shows, as the worker reads it.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -104,7 +106,19 @@ fn read_facts() -> Facts {
     let toggles = subkeys(LOCAL_MACHINE, r"SOFTWARE\AtlasOS\Services")
         .into_iter()
         .filter_map(|name| {
-            dword(&format!(r"SOFTWARE\AtlasOS\Services\{name}"), "state").map(|state| (name, state))
+            let path = format!(r"SOFTWARE\AtlasOS\Services\{name}");
+            let state = dword(&path, "state")?;
+            let state = if name == "AutomaticUpdates" {
+                let launcher = LOCAL_MACHINE.open(&path).and_then(|key| key.get_string("path")).ok();
+                if state == 1 && launcher.as_deref().is_some_and(is_legacy_cpu_menu_launcher) {
+                    automatic_updates_from_policy(read_automatic_updates_policy().ok()?)?
+                } else {
+                    state
+                }
+            } else {
+                state
+            };
+            Some((name, state))
         })
         .collect();
     // The installing user's apps: an unelevated read can't list every user's.
@@ -157,6 +171,40 @@ fn read_facts() -> Facts {
     }
 }
 
+fn is_legacy_cpu_menu_launcher(path: &str) -> bool {
+    let file = path.rsplit(['\\', '/']).next().unwrap_or_default();
+    [
+        "Add Idle Toggle in Desktop Context Menu.cmd",
+        "Remove Idle Toggle in Desktop Context Menu (default).cmd",
+    ]
+    .iter()
+    .any(|name| file.eq_ignore_ascii_case(name))
+}
+
+// Two old CPU menu launchers overwrote AutomaticUpdates. Only a recognized
+// record is repaired, using the live update policy rather than its wrong value.
+fn automatic_updates_from_policy(value: Option<u32>) -> Option<u32> {
+    match value {
+        Some(2) => Some(0),
+        None | Some(3..=5) => Some(1),
+        _ => None,
+    }
+}
+
+fn read_automatic_updates_policy() -> anyhow::Result<Option<u32>> {
+    let key = match LOCAL_MACHINE.open(r"SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU") {
+        Ok(key) => key,
+        Err(error) if error.code().0 == NOT_FOUND => return Ok(None),
+        Err(error) => return Err(error.into()),
+    };
+    match key.get_value("AUOptions") {
+        Ok(value) if value.ty() == Type::U32 => u32::try_from(value).map(Some).map_err(Into::into),
+        Ok(_) => anyhow::bail!("AUOptions is not REG_DWORD"),
+        Err(error) if error.code().0 == NOT_FOUND => Ok(None),
+        Err(error) => Err(error.into()),
+    }
+}
+
 /// What Atlas 0.5.0's "Disable Core Isolation" (`ConfigVBS.ps1 -DisableAllVBS`)
 /// leaves under `Control\DeviceGuard`: virtualization-based security off, and
 /// memory integrity off where Windows had its key. Without that key the
@@ -170,6 +218,23 @@ fn core_isolation_off(vbs: Option<u32>, memory_integrity: Option<u32>) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_cpu_menu_record_cannot_enable_automatic_updates() {
+        for path in [
+            r"C:\Windows\AtlasDesktop\Add Idle Toggle in Desktop Context Menu.cmd",
+            "D:/Atlas/Remove Idle Toggle in Desktop Context Menu (default).cmd",
+            "C:/Atlas/add idle toggle in desktop context menu.cmd",
+        ] {
+            assert!(is_legacy_cpu_menu_launcher(path));
+        }
+        assert!(!is_legacy_cpu_menu_launcher("C:/Atlas/Enable Automatic Updates.cmd"));
+        assert!(!is_legacy_cpu_menu_launcher("C:/Atlas/Add Idle Toggle in Desktop Context Menu.cmd.exe"));
+        assert_eq!(automatic_updates_from_policy(Some(2)), Some(0));
+        assert_eq!(automatic_updates_from_policy(None), Some(1));
+        assert_eq!(automatic_updates_from_policy(Some(4)), Some(1));
+        assert_eq!(automatic_updates_from_policy(Some(9)), None);
+    }
 
     /// The registry values Atlas 0.5.0 and Windows leave, shared with the
     /// worker's Pester cases.

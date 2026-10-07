@@ -238,6 +238,21 @@ BeforeAll {
     }
 }
 
+Describe 'Legacy automatic-update record recovery' {
+    BeforeEach { Reset-Machine }
+    It 'reads the real update policy when a CPU menu launcher overwrote its record' -ForEach @(
+        @{ Kind = 'DWord'; Data = 2; Expected = 0 }
+        @{ Kind = 'DWord'; Data = 4; Expected = 1 }
+        @{ Kind = 'absent'; Data = 0; Expected = 1 }
+        @{ Kind = 'String'; Data = '2'; Expected = $null }
+        @{ Kind = 'DWord'; Data = 9; Expected = $null }
+    ) {
+        if ($Kind -ne 'absent') { Set-Fake 'SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' 'AUOptions' $Kind $Data }
+        Get-AtlasTransitionAutomaticUpdatesPolicyState | Should -Be $Expected
+        $script:Writes.Count | Should -Be 0
+    }
+}
+
 AfterAll {
     foreach ($shadow in @('Test-Path', 'New-Item', 'New-ItemProperty', 'Get-ItemProperty')) {
         Microsoft.PowerShell.Management\Remove-Item -LiteralPath "Function:\$shadow" -ErrorAction SilentlyContinue

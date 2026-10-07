@@ -617,10 +617,31 @@ function Get-AtlasTransitionToggleRecord {
     try {
         foreach ($name in @($key.GetSubKeyNames())) {
             $state = Get-AtlasTransitionValue "SOFTWARE\AtlasOS\Services\$name" 'state'
-            if ($state.Present -and $state.Kind -eq 'DWord') { [pscustomobject][ordered]@{ name = $name; state = [int64]$state.Data } }
+            if (-not $state.Present -or $state.Kind -ne 'DWord') { continue }
+            $value = [int64]$state.Data
+            if ($name -eq 'AutomaticUpdates' -and $value -eq 1) {
+                $launcher = Get-AtlasTransitionValue "SOFTWARE\AtlasOS\Services\$name" 'path'
+                if ($launcher.Present -and $launcher.Kind -eq 'String') {
+                    $file = ([string]$launcher.Data -split '[\\/]')[-1]
+                    if ($file -in @('Add Idle Toggle in Desktop Context Menu.cmd', 'Remove Idle Toggle in Desktop Context Menu (default).cmd')) {
+                        $value = Get-AtlasTransitionAutomaticUpdatesPolicyState
+                        if ($null -eq $value) { continue }
+                    }
+                }
+            }
+            [pscustomobject][ordered]@{ name = $name; state = $value }
         }
     }
     finally { $key.Dispose() }
+}
+
+function Get-AtlasTransitionAutomaticUpdatesPolicyState {
+    $policy = Get-AtlasTransitionValue 'SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' 'AUOptions'
+    if (-not $policy.Present) { return 1 }
+    if ($policy.Kind -ne 'DWord') { return $null }
+    if ([int64]$policy.Data -eq 2) { return 0 }
+    if ([int64]$policy.Data -in @(3, 4, 5)) { return 1 }
+    return $null
 }
 
 function Get-AtlasTransitionAppxName {

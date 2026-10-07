@@ -71,3 +71,66 @@ Describe 'Legacy registry reader on Windows PowerShell' {
         Read-AtlasLegacyRegistryValue -Path 'HKU\OtherUser' -Name 'Value' | Should -BeNullOrEmpty
     }
 }
+
+Describe 'Partial legacy choice capture' {
+    BeforeAll {
+        . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
+        Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
+        . (Join-Path $script:AtlasTestScriptsRoot 'Install\Tasks\Import-AtlasLegacyChoices.ps1') -LibraryOnly
+    }
+    BeforeEach {
+        $script:CapturedChoices = @{}
+        $script:ChoiceContext = [pscustomobject]@{ AtlasModulesPath = $TestDrive; InteractiveUserSid = 'S-1-5-21-1-2-3-1001'; IsArm64 = $false }
+        Mock Initialize-AtlasToggleStateStore {}
+        Mock Get-AtlasToggleStateRecords { @{ Existing = 0; RecentItems = 0; Sleep = 0 } }
+        Mock Get-ChildItem { @('Existing', 'Missing', 'Absent', 'Ambiguous') | ForEach-Object { [pscustomobject]@{ BaseName = $_ } } }
+        Mock Get-AtlasToggleDefinition {
+            $states = @{ Enable = @{ Name = 'Enable'; StateValue = 1; Registry = @(@{ Path = 'HKLM\Example'; Name = $Name; Type = 'DWord'; Data = 1 }) } }
+            if ($Name -eq 'Ambiguous') { $states.Disable = @{ Name = 'Disable'; StateValue = 0; Registry = @(@{ Path = 'HKLM\Example'; Name = $Name; Data = 1 }) } }
+            @{ Name = $Name; States = $states }
+        }
+        Mock Test-AtlasArchMatch { $true }
+        Mock Get-ItemPropertyValue { '01234567-0123-0123-0123-012345678901' }
+        Mock Read-AtlasLegacyRegistryValue {
+            if ($Name -in @('Missing', 'Ambiguous', 'Start_TrackDocs', 'ACSettingIndex')) {
+                return @{ KeyExists = $true; Exists = $true; Kind = 'DWord'; Value = 1 }
+            }
+            return @{ KeyExists = $false; Exists = $false; Value = $null }
+        }
+        Mock Set-AtlasToggleState { $script:CapturedChoices[$Name] = $State }
+        Mock Write-AtlasLog {}
+    }
+    It 'captures a missing observable choice even when other choices are recorded' {
+        Import-AtlasLegacyChoices -Context $script:ChoiceContext
+        $script:CapturedChoices.Count | Should -Be 1
+        $script:CapturedChoices.Missing | Should -Be 1
+        Should -Invoke Get-AtlasToggleDefinition -Times 4
+        Should -Invoke Read-AtlasLegacyRegistryValue -Times 0 -ParameterFilter { $Name -eq 'Existing' }
+    }
+    It 'never replaces recorded Recent Items or Sleep choices with live observations' {
+        Import-AtlasLegacyChoices -Context $script:ChoiceContext
+        $script:CapturedChoices.ContainsKey('RecentItems') | Should -BeFalse
+        $script:CapturedChoices.ContainsKey('Sleep') | Should -BeFalse
+    }
+    It 'does not invent a choice from absent values or two matching states' {
+        Import-AtlasLegacyChoices -Context $script:ChoiceContext
+        $script:CapturedChoices.ContainsKey('Absent') | Should -BeFalse
+        $script:CapturedChoices.ContainsKey('Ambiguous') | Should -BeFalse
+    }
+    It 'reads the installing user hive instead of the privileged process user' {
+        Import-AtlasLegacyChoices -Context $script:ChoiceContext
+        Should -Invoke Read-AtlasLegacyRegistryValue -Times 1 -ParameterFilter {
+            $Name -eq 'Start_TrackDocs' -and $UserSid -eq 'S-1-5-21-1-2-3-1001'
+        }
+    }
+    It 'does not infer a DWORD choice from a string with the same text' {
+        Mock Read-AtlasLegacyRegistryValue { @{ KeyExists = $true; Exists = $true; Kind = 'String'; Value = '1' } }
+        Import-AtlasLegacyChoices -Context $script:ChoiceContext
+        $script:CapturedChoices.ContainsKey('Missing') | Should -BeFalse
+    }
+    It 'tolerates an absent active power plan when capturing missing choices' {
+        Mock Get-AtlasToggleStateRecords { @{ Existing = 0; RecentItems = 0 } }
+        { Import-AtlasLegacyChoices -Context $script:ChoiceContext } | Should -Not -Throw
+        $script:CapturedChoices.ContainsKey('Sleep') | Should -BeFalse
+    }
+}
