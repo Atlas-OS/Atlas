@@ -20,6 +20,7 @@ $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 
 foreach ($domainModule in @(
     'State.ps1'
+    'LegacyState.ps1'
     'Interaction.ps1'
     'Native.ps1'
     'Definition.ps1'

@@ -11,6 +11,7 @@
             Launcher      = '6. Advanced Configuration\Services\NVIDIA Display Container\Context Menu\Add Container Context Menu.cmd'
             Reboot        = 'RestartExplorer'
             MachineAction = 'Add-AtlasNVidiaContainerContextMenu'
+            ReplayApplicable = 'Test-AtlasNVidiaContainerContextMenuApplicable'
         }
         @{
             Name          = 'Disable'

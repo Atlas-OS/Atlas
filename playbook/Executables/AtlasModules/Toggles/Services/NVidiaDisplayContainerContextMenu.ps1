@@ -1,7 +1,13 @@
+function Test-AtlasNVidiaContainerContextMenuApplicable {
+    param($Toggle)
+
+    return Test-Path -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem'
+}
+
 function Add-AtlasNVidiaContainerContextMenu {
     param($Toggle)
 
-    if (-not (Test-Path -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem')) {
+    if (-not (Test-AtlasNVidiaContainerContextMenuApplicable -Toggle $Toggle)) {
         throw 'NVIDIA Display Container LS is not installed; its context menu cannot be added and no state was recorded.'
     }
 

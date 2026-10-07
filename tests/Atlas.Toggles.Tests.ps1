@@ -326,6 +326,36 @@ Describe 'Set-AtlasToggleState / Get-AtlasToggleState' {
 }
 
 Describe 'Initialize-AtlasToggleStateStore' {
+    It 'keeps an enabled verbose-message choice without legacy metadata' {
+        Set-AtlasToggleState -Name VerboseMessages -State 1 -StateRoot $StateRoot
+
+        Initialize-AtlasToggleStateStore -StateRoot $StateRoot
+
+        (Get-AtlasToggleState -Name VerboseMessages -StateRoot $StateRoot).State | Should -Be 1
+        Remove-Item -LiteralPath (Join-Path $StateRoot 'VerboseMessages') -Recurse -Force
+    }
+
+    It 'preserves the legacy verbose-message choice for <Launcher>' -ForEach @(
+        @{ Launcher = 'Disable Verbose Messages (default).cmd'; State = 1; Expected = 0 }
+        @{ Launcher = 'disable verbose messages (default).cmd'; State = 1; Expected = 0 }
+        @{ Launcher = 'Disable Verbose Messages (default).cmd'; State = 0; Expected = 0 }
+        @{ Launcher = 'Enable Verbose Messages.cmd'; State = 1; Expected = 1 }
+        @{ Launcher = 'unknown.cmd'; State = 1; Expected = 1 }
+    ) {
+        $keyPath = Join-Path $StateRoot 'VerboseMessages'
+        New-Item -Path $keyPath -Force | Out-Null
+        New-ItemProperty -LiteralPath $keyPath -Name state -Value $State -PropertyType DWord -Force | Out-Null
+        New-ItemProperty -LiteralPath $keyPath -Name path -Value ("C:\Windows\AtlasDesktop\$Launcher") -PropertyType String -Force | Out-Null
+
+        Initialize-AtlasToggleStateStore -StateRoot $StateRoot
+
+        (Get-AtlasToggleState -Name VerboseMessages -StateRoot $StateRoot).State | Should -Be $Expected
+        @((Get-Item -LiteralPath $keyPath).GetValueNames()) | Should -Not -Contain 'path'
+        Initialize-AtlasToggleStateStore -StateRoot $StateRoot
+        (Get-AtlasToggleState -Name VerboseMessages -StateRoot $StateRoot).State | Should -Be $Expected
+        Remove-Item -LiteralPath $keyPath -Recurse -Force
+    }
+
     It 'leaves a current modern-menu record without legacy metadata unchanged' {
         Set-AtlasToggleState -Name OldContextMenu -State 0 -StateRoot $StateRoot
 
@@ -412,6 +442,24 @@ Describe 'Atlas toggle production state ACL' {
 }
 
 Describe 'Replay of recorded states' {
+    It 'replays disabling verbose messages from the incorrectly enabled legacy record' {
+        $keyPath = Join-Path $StateRoot 'VerboseMessages'
+        New-Item -Path $keyPath -Force | Out-Null
+        New-ItemProperty -LiteralPath $keyPath -Name state -Value 1 -PropertyType DWord -Force | Out-Null
+        New-ItemProperty -LiteralPath $keyPath -Name path -Value 'C:\Windows\AtlasDesktop\Disable Verbose Messages (default).cmd' -PropertyType String -Force | Out-Null
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ShippedTogglesRoot
+
+        (Get-AtlasToggleState -Name VerboseMessages -StateRoot $StateRoot).State | Should -Be 0
+        @((Get-Item -LiteralPath $keyPath).GetValueNames()) | Should -Not -Contain 'path'
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            $Message -eq "Re-applying toggle 'VerboseMessages' machine state 'Disable'."
+        }
+        Should -Invoke Invoke-AtlasRegistryEntries -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            @($Entries).Count -eq 1 -and $Entries[0].Name -eq 'verbosestatus' -and $Entries[0].Operation -eq 'Delete'
+        }
+    }
+
     It 'migrates the legacy classic menu before resolving the upgrade replay state' {
         $keyPath = Join-Path $StateRoot 'OldContextMenu'
         New-Item -Path $keyPath -Force | Out-Null

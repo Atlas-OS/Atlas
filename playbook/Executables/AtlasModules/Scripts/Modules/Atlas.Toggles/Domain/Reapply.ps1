@@ -176,6 +176,7 @@ function Invoke-AtlasToggleReapply {
     }
 
     Protect-AtlasToggleStateRoot -StateRoot $StateRoot -IncludeChildren
+    Repair-AtlasLegacyToggleAlias -StateRoot $StateRoot
     $failures = @()
 
     foreach ($subkey in @(Get-ChildItem -LiteralPath $StateRoot -ErrorAction Stop)) {
@@ -183,6 +184,8 @@ function Invoke-AtlasToggleReapply {
 
         try {
             Repair-AtlasLegacyContextMenuState -Key $subkey
+            Repair-AtlasLegacyVerboseMessagesState -Key $subkey
+            Repair-AtlasLegacyToggleState -Key $subkey
             $replay = Resolve-AtlasToggleReplayRecord -Subkey $subkey -TogglesRoot $TogglesRoot
         }
         catch {

@@ -169,8 +169,25 @@ function Repair-AtlasLegacyContextMenuState {
         $Key.GetValueKind('state') -eq [Microsoft.Win32.RegistryValueKind]::DWord -and
         $Key.GetValue('path', $null) -is [string] -and
         [string]$Key.GetValue('path') -cmatch '(^|[\\/])Old Context Menu \(default\)\.cmd$') {
-        Set-ItemProperty -LiteralPath $Key.PSPath -Name 'state' -Value 1 -ErrorAction Stop
-        Write-AtlasLog -Message 'Migrated the legacy classic context-menu choice before removing its launcher path.'
+        $state = Get-AtlasLegacyToggleObservedState -Name OldContextMenu
+        if ($null -eq $state) { $state = 1 }
+        Set-ItemProperty -LiteralPath $Key.PSPath -Name 'state' -Value ([int]$state) -ErrorAction Stop
+        Write-AtlasLog -Message "Migrated the legacy context-menu choice to state $state before removing its launcher path."
+    }
+}
+
+function Repair-AtlasLegacyVerboseMessagesState {
+    param([Parameter(Mandatory = $true)]$Key)
+
+    # The 0.5 disable launcher wrote state 1. Its filename identifies the disabled
+    # choice; the stored path is inspected as data and never executed.
+    if ($Key.PSChildName -eq 'VerboseMessages' -and
+        $Key.GetValue('state', $null) -eq 1 -and
+        $Key.GetValueKind('state') -eq [Microsoft.Win32.RegistryValueKind]::DWord -and
+        $Key.GetValue('path', $null) -is [string] -and
+        [string]$Key.GetValue('path') -match '(^|[\\/])Disable Verbose Messages \(default\)\.cmd$') {
+        Set-ItemProperty -LiteralPath $Key.PSPath -Name 'state' -Value 0 -ErrorAction Stop
+        Write-AtlasLog -Message 'Migrated the legacy disabled verbose-message choice before removing its launcher path.'
     }
 }
 
@@ -188,8 +205,11 @@ function Initialize-AtlasToggleStateStore {
     if (-not (Test-Path -LiteralPath $StateRoot)) {
         return
     }
+    Repair-AtlasLegacyToggleAlias -StateRoot $StateRoot
     foreach ($child in @(Get-ChildItem -LiteralPath $StateRoot -ErrorAction Stop)) {
         Repair-AtlasLegacyContextMenuState -Key $child
+        Repair-AtlasLegacyVerboseMessagesState -Key $child
+        Repair-AtlasLegacyToggleState -Key $child
         Remove-AtlasToggleLegacyPath -KeyPath $child.PSPath
     }
     Sync-AtlasToggleStateDocument -StateRoot $StateRoot
