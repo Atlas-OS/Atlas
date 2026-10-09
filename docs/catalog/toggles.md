@@ -430,8 +430,8 @@ Elevation: Admin
 
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
-| Disable | 0 | `3. General Configuration\Web Search (includes Search Highlights)\Disable Web Search (default).cmd` | RestartExplorer | registry 12, machineAction `Disable-AtlasWebSearchMachine` |
-| Enable | 1 | `3. General Configuration\Web Search (includes Search Highlights)\Enable Web Search.cmd` | RestartExplorer | registry 11, machineAction `Enable-AtlasWebSearchMachine`, userAction `Enable-AtlasWebSearchUser` |
+| Disable | 0 | `3. General Configuration\Web Search (includes Search Highlights)\Disable Web Search (default).cmd` | RestartExplorer | registry 13, machineAction `Disable-AtlasWebSearchMachine` |
+| Enable | 1 | `3. General Configuration\Web Search (includes Search Highlights)\Enable Web Search.cmd` | RestartExplorer | registry 12, machineAction `Enable-AtlasWebSearchMachine`, userAction `Enable-AtlasWebSearchUser` |
 
 ### Widgets
 

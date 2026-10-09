@@ -65,7 +65,7 @@ Install modes: Fresh, Upgrade.
 | `disable-win-error-reporting`<br>Disable Windows Error Reporting | Disables Windows Error Reporting for privacy and QoL |  | registry 2 |
 | `disallow-ms-accounts`<br>Disallow Users to Be Non-local | For privacy and QoL, users are prevented from adding Microsoft accounts as user accounts instead of local accounts. Settings-driven MSA flows (add account, local-to-MSA conversion, settings backup sign-in) are blocked; signing into individual apps (Store, Xbox) still works. |  | registry 1 |
 | `disallow-user-activity-upload`<br>Disallow Upload and Publish of User Activities | Disables the upload and publish of user activities for privacy |  | registry 2 |
-| `search-settings`<br>Configure Search on the Taskbar | Configures search for the optimal usability and privacy, such as disabling online features to make it more minimal and snappy |  | registry 9 |
+| `search-settings`<br>Configure Search on the Taskbar | Configures search for the optimal usability and privacy, such as disabling online features to make it more minimal and snappy |  | registry 10 |
 | `apply-privacy-toggle-defaults`<br>Apply Privacy Toggle Defaults | Disables Phone Link, recent-item tracking, and web search through their toggle definitions, recording each applied choice for upgrade and user replay. |  | toggle 3 |
 | `apps/disable-nvidia-telemetry`<br>Disable NVIDIA Control Panel Telemetry | Disables NVIDIA Control Panel telemetry for privacy |  | registry 1 |
 | `apps/disable-office-telemetry`<br>Disable Office Telemetry | Disables Microsoft Office telemetry for privacy |  | registry 3 |

@@ -90,6 +90,8 @@ if (-not $FinalizeSearch) {
 }
 
 function Set-SearchTaskbarMode {
+    Import-Module -Name (Join-Path $windir 'AtlasModules\Scripts\Modules\Atlas.Registry\Atlas.Registry.psd1') -ErrorAction Stop
+    $null = Initialize-AtlasRegistryIdentityContext -CurrentToken -ExpectedUserSid $sid
     $searchPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
     $settingsPath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'
     foreach ($path in @($searchPath, $settingsPath)) {
@@ -100,10 +102,11 @@ function Set-SearchTaskbarMode {
 
     Set-ItemProperty -Path $searchPath -Name SearchboxTaskbarMode -Value 1 -Type DWord -Force
     Set-ItemProperty -Path $searchPath -Name SearchboxTaskbarModeCache -Value 1 -Type DWord -Force
-    Set-ItemProperty -Path $settingsPath -Name IsAADCloudSearchEnabled -Value 0 -Type DWord -Force
-    Set-ItemProperty -Path $settingsPath -Name IsDeviceSearchHistoryEnabled -Value 0 -Type DWord -Force
-    Set-ItemProperty -Path $settingsPath -Name IsDynamicSearchBoxEnabled -Value 0 -Type DWord -Force
-    Set-ItemProperty -Path $settingsPath -Name IsMSACloudSearchEnabled -Value 0 -Type DWord -Force
+    # Keep finalization running when Windows refuses an individual preference.
+    $entries = foreach ($name in @('IsAADCloudSearchEnabled', 'IsDeviceSearchHistoryEnabled', 'IsDynamicSearchBoxEnabled', 'IsMSACloudSearchEnabled')) {
+        @{ Path = $settingsPath; Name = $name; Type = 'DWord'; Data = 0; AllowOsProtected = $true }
+    }
+    Invoke-AtlasRegistryEntries -Entries $entries -Scope CurrentUser -IsArm64 $false
 }
 
 function Set-AtlasFirstLogonPreferences {

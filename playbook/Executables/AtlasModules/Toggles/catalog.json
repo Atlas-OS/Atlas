@@ -1464,7 +1464,7 @@
           "launcher": "3. General Configuration\\Web Search (includes Search Highlights)\\Disable Web Search (default).cmd",
           "reboot": "RestartExplorer",
           "work": {
-            "registry": 12,
+            "registry": 13,
             "services": 0,
             "scheduledTasks": 0,
             "machineAction": "Disable-AtlasWebSearchMachine",
@@ -1478,7 +1478,7 @@
           "launcher": "3. General Configuration\\Web Search (includes Search Highlights)\\Enable Web Search.cmd",
           "reboot": "RestartExplorer",
           "work": {
-            "registry": 11,
+            "registry": 12,
             "services": 0,
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasWebSearchMachine",

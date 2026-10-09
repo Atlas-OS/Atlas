@@ -13,7 +13,12 @@ param()
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     Import-Module -Name (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Core\Atlas.Core.psd1') -Force
+    Import-Module -Name (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Registry\Atlas.Registry.psd1') -Force
     Import-Module -Name (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Toggles\Atlas.Toggles.psd1') -Force
+    $script:searchRefusal = InModuleScope Atlas.Registry {
+        New-AtlasRegistryValueRefusedRecord -ProviderPath 'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SearchSettings' `
+            -Name IsAADCloudSearchEnabled -Cause ([UnauthorizedAccessException]::new('Access denied'))
+    }
     function Import-FunctionUnderTest {
         param(
             [Parameter(Mandatory = $true)][string]$Path,
@@ -42,6 +47,7 @@ BeforeAll {
     Import-FunctionUnderTest -Path $script:newUserScript -Name Invoke-AtlasDesktopCommand
     Import-FunctionUnderTest -Path $script:newUserScript -Name Invoke-CurrentSessionExplorerRefresh
     Import-FunctionUnderTest -Path $script:newUserScript -Name Set-AtlasFirstLogonPreferences
+    Import-FunctionUnderTest -Path $script:newUserScript -Name Set-SearchTaskbarMode
 
     $tokens = $null
     $errors = $null
@@ -114,11 +120,48 @@ BeforeAll {
 }
 
 AfterAll {
+    Remove-Item Function:\Set-SearchTaskbarMode -ErrorAction SilentlyContinue
     Remove-Item Function:\Set-AtlasFirstLogonPreferences -ErrorAction SilentlyContinue
     Remove-Item Function:\Get-SetupMarker -ErrorAction SilentlyContinue
     Remove-Item Function:\Set-SetupMarker -ErrorAction SilentlyContinue
     Remove-Item Function:\Invoke-AtlasDesktopCommand -ErrorAction SilentlyContinue
     Remove-Item Function:\Invoke-CurrentSessionExplorerRefresh -ErrorAction SilentlyContinue
+}
+
+Describe 'First-logon search preferences' {
+    BeforeEach {
+        $global:windir = [Environment]::GetFolderPath('Windows')
+        $global:sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+        InModuleScope Atlas.Registry { $script:AtlasRegistryIdentityContext = $null }
+        Mock Import-Module {}
+        Mock Test-Path { $true }
+        Mock Set-ItemProperty {}
+        Mock Write-AtlasLog -ModuleName Atlas.Registry {}
+        Mock Invoke-AtlasRegistryTargetOperation -ModuleName Atlas.Registry {
+            throw $script:searchRefusal
+        } -ParameterFilter { $Path -eq 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings' }
+    }
+    AfterEach {
+        Remove-Variable windir, sid -Scope Global -ErrorAction SilentlyContinue
+    }
+
+    It 'finishes search finalization when Windows refuses its optional preferences' {
+        { Set-SearchTaskbarMode } | Should -Not -Throw
+        Should -Invoke Set-ItemProperty -Times 2 -Exactly -ParameterFilter {
+            $Path -eq 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' -and
+            $Name -in @('SearchboxTaskbarMode', 'SearchboxTaskbarModeCache') -and $Value -eq 1
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Registry -Times 4 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and $Message -match 'Continuing without'
+        }
+    }
+
+    It 'does not hide unrelated failures while finishing search setup' {
+        Mock Invoke-AtlasRegistryTargetOperation -ModuleName Atlas.Registry {
+            throw 'Unexpected registry failure'
+        } -ParameterFilter { $Path -eq 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings' }
+        { Set-SearchTaskbarMode } | Should -Throw '*Unexpected registry failure*'
+    }
 }
 
 Describe 'First-logon preferences after Windows profile creation' {
