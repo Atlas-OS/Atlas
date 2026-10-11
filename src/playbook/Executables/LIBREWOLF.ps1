@@ -22,7 +22,7 @@ $librewolfDownload = "https://gitlab.com/api/v4/projects/$gitLabId/packages/gene
 
 Write-Output "Downloading the latest LibreWolf setup"
 $outputLibrewolf = "$drive\$librewolfFileName"
-curl.exe -LSs "$librewolfDownload" -o "$outputLibrewolf" $timeouts
+curl.exe -LSs --fail "$librewolfDownload" -o "$outputLibrewolf" $timeouts
 if ($LASTEXITCODE -ne 0) {
 	throw "Downloading LibreWolf failed."
 }
@@ -46,7 +46,7 @@ $librewolfUpdaterDownload = (Invoke-RestMethod -Uri "$librewolfUpdaterURI").Asse
 
 Write-Output "Downloading the latest LibreWolf WinUpdater ZIP"
 $outputLibrewolfUpdater = "$drive\librewolf-winupdater.zip"
-curl.exe -LSs "$librewolfUpdaterDownload" -o "$outputLibrewolfUpdater" $timeouts
+curl.exe -LSs --fail "$librewolfUpdaterDownload" -o "$outputLibrewolfUpdater" $timeouts
 if ($LASTEXITCODE -ne 0) {
 	throw "Downloading LibreWolf WinUpdater failed."
 }
