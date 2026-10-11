@@ -201,10 +201,12 @@ if ($Hive.StartsWith("S-"))
   $fileStream.Close()
   $dataString = [Text.Encoding]::Unicode.GetString($bytesData)
   $position1 = $dataString.IndexOf($userExperienceSearch)
-  if ($position1 -ge 0) {
-  $position2 = $dataString.IndexOf("}", $position1)
-  $userExperience = $dataString.Substring($position1, $position2 - $position1 + 1)
+  $position2 = if ($position1 -ge 0) { $dataString.IndexOf("}", $position1) } else { -1 }
+  if ($position2 -lt 0) {
+    Write-Host "Couldn't find the user experience string in Shell32.dll, skipping file associations for HKEY_USERS\$Hive."
+    exit 1
   }
+  $userExperience = $dataString.Substring($position1, $position2 - $position1 + 1)
 }
 
 Write-Host "Setting file associations for HKEY_USERS\$Hive..."

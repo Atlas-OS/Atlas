@@ -1,6 +1,6 @@
 ---
 title: Disable Core Isolation
-description: Disables Core Isolation (VBS). May break WSL2 and Docker Desktop.
+description: Disables Core Isolation (VBS) based on the user's options
 option: 'disable-core-isolation'
 actions:
   - !powerShell:
