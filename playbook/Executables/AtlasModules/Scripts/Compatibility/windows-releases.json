@@ -12,10 +12,10 @@
     }
   ],
   "sourceUrl": "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information",
-  "sourceCommit": "13ff9d05e2a9f65dc8b9efa78a9022d3c9e1f190",
-  "sourceSha256": "D37E1185B0EEB269D1509FCDE75F0DCB6470F733D3E3D60917DFC81DAE1B6B65",
-  "updatedAt": "2026-09-30T07:37:00.0000000Z",
-  "asOfDate": "2026-09-30",
+  "sourceCommit": "f366cc818ab2aa05af44561657da401727e0bab1",
+  "sourceSha256": "237F9E4071458E43D533B2B3C41CEA7B56D5DAC65480CEC2D15BDCB48CE1E1DE",
+  "updatedAt": "2026-10-13T21:41:00.0000000Z",
+  "asOfDate": "2026-10-15",
   "releases": [
     {
       "version": "10.0.26200.6584",
@@ -204,6 +204,12 @@
       "kb": "KB5124010"
     },
     {
+      "version": "10.0.26200.9711",
+      "availableDate": "2026-10-13",
+      "updateType": "2026-10 B",
+      "kb": "KB5127648"
+    },
+    {
       "version": "10.0.26300.9457",
       "availableDate": "2026-09-29",
       "updateType": "",
@@ -214,6 +220,12 @@
       "availableDate": "2026-09-29",
       "updateType": "2026-09 D",
       "kb": "KB5124010"
+    },
+    {
+      "version": "10.0.26300.9711",
+      "availableDate": "2026-10-13",
+      "updateType": "2026-10 B",
+      "kb": "KB5127648"
     }
   ]
 }
