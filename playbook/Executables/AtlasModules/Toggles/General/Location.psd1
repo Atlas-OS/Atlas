@@ -11,6 +11,8 @@
             Reboot        = 'None'
             MachineAction = 'Disable-AtlasLocation'
             Registry      = @(
+                # What the install's app permissions set, so Enable's Allow doesn't stay behind.
+                @{ Path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location'; Name = 'Value'; Type = 'String'; Data = 'Deny' }
                 @{ Path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location'; Name = 'ShowGlobalPrompts'; Type = 'DWord'; Data = 0 }
             )
         }

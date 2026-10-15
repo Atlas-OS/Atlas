@@ -72,6 +72,27 @@ function Get-EntryCount {
     return @($value).Count
 }
 
+# Whether a state changes the signed-in user's own settings, as the toggle engine
+# decides it (Get-AtlasToggleStateWork): plain HKCU values or a UserAction, in a
+# toggle that needs elevation. The engine runs that part only in the user's own,
+# unelevated process, so an elevated caller must start the launcher as that user.
+# HKCU policy keys are written by the machine part.
+function Test-UserWork {
+    param(
+        [Parameter(Mandatory = $true)][System.Collections.IDictionary]$Definition,
+        [Parameter(Mandatory = $true)][System.Collections.IDictionary]$State
+    )
+
+    if ([string](Get-OptionalValue -Table $Definition -Key 'Elevation' -Default 'None') -ceq 'None') { return $false }
+    if ($null -ne (Get-OptionalValue -Table $State -Key 'UserAction')) { return $true }
+    foreach ($entry in @(Get-OptionalValue -Table $State -Key 'Registry' -Default @())) {
+        if ([string]$entry['Path'] -notmatch '^(?i)(?:Registry::)?(?:HKCU:?|HKEY_CURRENT_USER)\\(.*)$') { continue }
+        $subPath = $Matches[1].Trim('\')
+        if ($subPath -notmatch '(?i)^Software\\(?:Microsoft\\Windows\\CurrentVersion\\)?Policies(?:\\|$)') { return $true }
+    }
+    return $false
+}
+
 function Get-ToggleCatalog {
     $toggles = New-Object System.Collections.Generic.List[object]
     foreach ($file in @(Get-ChildItem -LiteralPath $togglesRoot -Recurse -File -Filter '*.psd1' | Sort-Object -Property FullName)) {
@@ -99,6 +120,7 @@ function Get-ToggleCatalog {
                 machineAction  = Get-OptionalValue -Table $state -Key 'MachineAction'
                 userAction     = Get-OptionalValue -Table $state -Key 'UserAction'
                 action         = Get-OptionalValue -Table $state -Key 'Action'
+                user           = Test-UserWork -Definition $definition -State $state
             }
             $states.Add([pscustomobject]$record)
         }

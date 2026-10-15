@@ -74,7 +74,7 @@ Manager runs it too. Run it from an elevated Windows PowerShell prompt in the ex
 package's `Executables` folder:
 
 ~~~
-.\AtlasModules\Scripts\Entry\Install-Atlas.ps1 -Option defender-enable, mitigations-default, auto-updates-disable -Restart
+.\AtlasModules\Scripts\Entry\Install-Atlas.ps1 -Option defender-enable, mitigations-default, auto-updates-disable, keyboard-shortcuts -Restart
 ~~~
 
 | Parameter | Effect |
@@ -563,8 +563,9 @@ The definitions are the only hand-written description of what Atlas can do.
 `tools\dev\Export-AtlasCatalog.ps1` derives everything that lists them:
 
 - `Toggles\catalog.json` in the Atlas package: every toggle with its states, launchers,
-  elevation and state values. It is the machine-readable contract for AtlasToolbox and
-  other consumers.
+  elevation and state values, and whether a state changes the signed-in user's own
+  settings (`work.user`), which only an unelevated launch can do. It is the
+  machine-readable contract for AtlasToolbox and other consumers.
 - The references under [docs/catalog](catalog/toggles.md).
 
 Output is deterministic, and CI checks that the committed files match the definitions.

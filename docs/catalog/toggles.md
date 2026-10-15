@@ -295,7 +295,7 @@ Elevation: Admin
 
 | State | Value | Launcher | Reboot | Work |
 | --- | --- | --- | --- | --- |
-| Disable | 0 | `3. General Configuration\Location\Disable Location (default).cmd` | None | registry 1, machineAction `Disable-AtlasLocation` |
+| Disable | 0 | `3. General Configuration\Location\Disable Location (default).cmd` | None | registry 2, machineAction `Disable-AtlasLocation` |
 | Enable | 1 | `3. General Configuration\Location\Enable Location.cmd` | None | registry 2, machineAction `Enable-AtlasLocation`, userAction `Show-AtlasLocationSettings` |
 
 ### NetworkNavigationPane

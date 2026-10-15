@@ -22,7 +22,8 @@
             "scheduledTasks": 0,
             "machineAction": "Remove-AtlasMicrosoftStore",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -36,7 +37,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": "Register-AtlasMicrosoftStore",
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -62,7 +64,8 @@
             "scheduledTasks": 0,
             "machineAction": "Install-AtlasProcessExplorer",
             "userAction": "Set-AtlasProcessExplorerUserPreference",
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -76,7 +79,8 @@
             "scheduledTasks": 0,
             "machineAction": "Uninstall-AtlasProcessExplorer",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -103,7 +107,8 @@
             "scheduledTasks": 0,
             "machineAction": "Disable-AtlasWindowsUpdates",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -118,7 +123,8 @@
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasWindowsUpdates",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -145,7 +151,8 @@
             "scheduledTasks": 0,
             "machineAction": "Disable-AtlasAdvancedBootOptions",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -160,7 +167,8 @@
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasAdvancedBootOptions",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -187,7 +195,8 @@
             "scheduledTasks": 0,
             "machineAction": "Disable-AtlasAutomaticRepair",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -202,7 +211,8 @@
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasAutomaticRepair",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -229,7 +239,8 @@
             "scheduledTasks": 0,
             "machineAction": "Disable-AtlasBootLogo",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -244,7 +255,8 @@
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasBootLogo",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -271,7 +283,8 @@
             "scheduledTasks": 0,
             "machineAction": "Disable-AtlasHighestMode",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -286,7 +299,8 @@
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasHighestMode",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -313,7 +327,8 @@
             "scheduledTasks": 0,
             "machineAction": "Disable-AtlasKernelParameters",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -328,7 +343,8 @@
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasKernelParameters",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -355,7 +371,8 @@
             "scheduledTasks": 0,
             "machineAction": "Disable-AtlasNewBootMenu",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -370,7 +387,8 @@
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasNewBootMenu",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -397,7 +415,8 @@
             "scheduledTasks": 0,
             "machineAction": "Disable-AtlasSpinningAnimations",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -412,7 +431,8 @@
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasSpinningAnimations",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -439,7 +459,8 @@
             "scheduledTasks": 0,
             "machineAction": "Show-AtlasBootValues",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -465,7 +486,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -479,7 +501,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -505,7 +528,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -519,7 +543,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -545,7 +570,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -559,7 +585,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -585,7 +612,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -599,7 +627,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -626,7 +655,8 @@
             "scheduledTasks": 0,
             "machineAction": "Remove-AtlasCopilotApp",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -641,7 +671,8 @@
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasCopilotMachine",
             "userAction": "Enable-AtlasCopilotUser",
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -667,7 +698,8 @@
             "scheduledTasks": 0,
             "machineAction": "Disable-AtlasCpuIdle",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -681,7 +713,8 @@
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasCpuIdle",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -707,7 +740,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -721,7 +755,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -747,7 +782,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -761,7 +797,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -788,7 +825,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasFileSharingMachineState",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -803,7 +841,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasFileSharingMachineState",
             "userAction": "Add-AtlasFileSharingNetworkNavigationPane",
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -829,7 +868,8 @@
             "scheduledTasks": 0,
             "machineAction": "Remove-AtlasGameBarOverlayPackage",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -843,7 +883,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": "Install-AtlasGameBarPackage",
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -869,7 +910,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -883,7 +925,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -909,7 +952,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasHibernationPowerState",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -923,7 +967,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasHibernationPowerState",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -949,7 +994,8 @@
             "scheduledTasks": 0,
             "machineAction": "Disable-AtlasSearchIndexing",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -963,7 +1009,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasMinimalSearchIndexing",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -977,7 +1024,8 @@
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasSearchIndexing",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -998,12 +1046,13 @@
           "launcher": "3. General Configuration\\Location\\Disable Location (default).cmd",
           "reboot": "None",
           "work": {
-            "registry": 1,
+            "registry": 2,
             "services": 0,
             "scheduledTasks": 0,
             "machineAction": "Disable-AtlasLocation",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -1017,7 +1066,8 @@
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasLocation",
             "userAction": "Show-AtlasLocationSettings",
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -1043,7 +1093,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -1057,7 +1108,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -1083,7 +1135,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -1097,7 +1150,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -1123,7 +1177,8 @@
             "scheduledTasks": 0,
             "machineAction": "Disable-AtlasPhoneLinkMachine",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -1137,7 +1192,8 @@
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasPhoneLinkMachine",
             "userAction": "Enable-AtlasPhoneLinkUser",
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -1163,7 +1219,8 @@
             "scheduledTasks": 0,
             "machineAction": "Invoke-AtlasPowerSavingToggle",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -1177,7 +1234,8 @@
             "scheduledTasks": 0,
             "machineAction": "Invoke-AtlasPowerSavingToggle",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -1203,7 +1261,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -1217,7 +1276,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -1243,7 +1303,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasSleepState",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -1257,7 +1318,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasSleepState",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -1283,7 +1345,8 @@
             "scheduledTasks": 1,
             "machineAction": "Set-AtlasSleepStudyEventLogState",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -1297,7 +1360,8 @@
             "scheduledTasks": 1,
             "machineAction": "Set-AtlasSleepStudyEventLogState",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -1323,7 +1387,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -1337,7 +1402,8 @@
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasWindowsVolumeProtection",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -1363,7 +1429,8 @@
             "scheduledTasks": 0,
             "machineAction": "Unregister-AtlasTimerResolutionTask",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -1377,7 +1444,8 @@
             "scheduledTasks": 0,
             "machineAction": "Register-AtlasTimerResolutionTask",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -1403,7 +1471,8 @@
             "scheduledTasks": 0,
             "machineAction": "Invoke-AtlasDriverUpdate",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -1429,7 +1498,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -1443,7 +1513,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -1469,7 +1540,8 @@
             "scheduledTasks": 0,
             "machineAction": "Disable-AtlasWebSearchMachine",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -1483,7 +1555,8 @@
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasWebSearchMachine",
             "userAction": "Enable-AtlasWebSearchUser",
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -1509,7 +1582,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -1523,7 +1597,8 @@
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasWidgetsMachine",
             "userAction": "Install-AtlasWidgetsUser",
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -1549,7 +1624,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -1563,7 +1639,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -1589,7 +1666,8 @@
             "scheduledTasks": 0,
             "machineAction": "Hide-AtlasWorkplaceSettingsPage",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -1603,7 +1681,8 @@
             "scheduledTasks": 0,
             "machineAction": "Show-AtlasWorkplaceSettingsPage",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -1629,7 +1708,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": "Invoke-AtlasAnimationLogoffPrompt",
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -1643,7 +1723,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": "Invoke-AtlasAnimationLogoffPrompt",
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -1669,7 +1750,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -1683,7 +1765,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -1709,7 +1792,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -1723,7 +1807,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -1749,7 +1834,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -1763,7 +1849,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -1789,7 +1876,8 @@
             "scheduledTasks": 0,
             "machineAction": "Import-AtlasTerminalsContextMenu",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -1803,7 +1891,8 @@
             "scheduledTasks": 0,
             "machineAction": "Import-AtlasTerminalsContextMenu",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -1817,7 +1906,8 @@
             "scheduledTasks": 0,
             "machineAction": "Import-AtlasTerminalsContextMenu",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -1843,7 +1933,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -1857,7 +1948,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -1883,7 +1975,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -1897,7 +1990,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -1923,7 +2017,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -1937,7 +2032,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -1963,7 +2059,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -1977,7 +2074,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -2003,7 +2101,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -2017,7 +2116,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -2043,7 +2143,8 @@
             "scheduledTasks": 0,
             "machineAction": "Assert-AtlasLockScreenPolicyRemoved",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -2057,7 +2158,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -2083,7 +2185,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -2097,7 +2200,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -2123,7 +2227,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -2137,7 +2242,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -2163,7 +2269,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -2177,7 +2284,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -2203,7 +2311,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -2217,7 +2326,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -2243,7 +2353,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -2257,7 +2368,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -2283,7 +2395,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasRecentItemsSettingsPage",
             "userAction": "Show-AtlasRecentItemsMessage",
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -2297,7 +2410,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasRecentItemsSettingsPage",
             "userAction": "Show-AtlasRecentItemsMessage",
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -2323,7 +2437,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -2337,7 +2452,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -2363,7 +2479,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": "Show-AtlasRestartExplorerMessage"
+            "action": "Show-AtlasRestartExplorerMessage",
+            "user": false
           }
         }
       ]
@@ -2389,7 +2506,8 @@
             "scheduledTasks": 0,
             "machineAction": "Add-AtlasRunWithPriorityContextMenu",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -2403,7 +2521,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -2429,7 +2548,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": "Invoke-AtlasSendToContextMenuChooser"
+            "action": "Invoke-AtlasSendToContextMenuChooser",
+            "user": false
           }
         }
       ]
@@ -2455,7 +2575,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -2469,7 +2590,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -2483,7 +2605,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -2509,7 +2632,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -2523,7 +2647,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -2549,7 +2674,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -2563,7 +2689,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -2589,7 +2716,8 @@
             "scheduledTasks": 0,
             "machineAction": "Import-AtlasTakeOwnershipContextMenu",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -2603,7 +2731,8 @@
             "scheduledTasks": 0,
             "machineAction": "Import-AtlasTakeOwnershipContextMenu",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -2629,7 +2758,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -2643,7 +2773,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -2670,7 +2801,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": "Show-AtlasVbsConfiguration"
+            "action": "Show-AtlasVbsConfiguration",
+            "user": false
           }
         }
       ]
@@ -2696,7 +2828,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -2710,7 +2843,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -2736,7 +2870,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -2750,7 +2885,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -2777,7 +2913,8 @@
             "scheduledTasks": 0,
             "machineAction": "Disable-AtlasMitigations",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -2792,7 +2929,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasMitigationsWindowsDefault",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -2807,7 +2945,8 @@
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasMitigations",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -2833,7 +2972,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasSecurityHealthTrayStartup",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -2847,7 +2987,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasSecurityHealthTrayStartup",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -2874,7 +3015,8 @@
             "scheduledTasks": 0,
             "machineAction": "Invoke-AtlasDefenderToggle",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -2900,7 +3042,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasVbsState",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -2914,7 +3057,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasVbsState",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -2940,7 +3084,8 @@
             "scheduledTasks": 0,
             "machineAction": "Disable-AtlasBluetoothDevices",
             "userAction": "Remove-AtlasBluetoothSendTo",
-            "action": null
+            "action": null,
+            "user": true
           }
         },
         {
@@ -2954,7 +3099,8 @@
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasBluetoothDevices",
             "userAction": "Set-AtlasBluetoothSendTo",
-            "action": null
+            "action": null,
+            "user": true
           }
         }
       ]
@@ -2980,7 +3126,8 @@
             "scheduledTasks": 0,
             "machineAction": "Disable-AtlasSmbDirectFeature",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -2994,7 +3141,8 @@
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasSmbDirectFeature",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -3020,7 +3168,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -3034,7 +3183,8 @@
             "scheduledTasks": 0,
             "machineAction": "Enable-AtlasNetworkDiscoveryServices",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -3061,7 +3211,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasNVidiaDisplayContainerState",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -3076,7 +3227,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasNVidiaDisplayContainerState",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -3102,7 +3254,8 @@
             "scheduledTasks": 0,
             "machineAction": "Add-AtlasNVidiaContainerContextMenu",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -3116,7 +3269,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -3142,7 +3296,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasPrintingMachineState",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -3156,7 +3311,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasPrintingMachineState",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -3183,7 +3339,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasSuperFetchMachineState",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -3198,7 +3355,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasSuperFetchMachineState",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -3224,7 +3382,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": "Invoke-AtlasSoftwarePicker"
+            "action": "Invoke-AtlasSoftwarePicker",
+            "user": false
           }
         }
       ]
@@ -3250,7 +3409,8 @@
             "scheduledTasks": 0,
             "machineAction": "Invoke-AtlasEdgeRemover",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -3276,7 +3436,8 @@
             "scheduledTasks": 0,
             "machineAction": null,
             "userAction": null,
-            "action": "Remove-AtlasPythonStoreAlias"
+            "action": "Remove-AtlasPythonStoreAlias",
+            "user": false
           }
         }
       ]
@@ -3302,7 +3463,8 @@
             "scheduledTasks": 0,
             "machineAction": "Show-AtlasHealthReport",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -3328,7 +3490,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasNetworkDefaultState",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -3342,7 +3505,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasNetworkDefaultState",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -3369,7 +3533,8 @@
             "scheduledTasks": 0,
             "machineAction": "Invoke-AtlasWindowsTempPermissionsRepair",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -3395,7 +3560,8 @@
             "scheduledTasks": 0,
             "machineAction": "Invoke-AtlasStoreFixer",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -3422,7 +3588,8 @@
             "scheduledTasks": 0,
             "machineAction": "Repair-AtlasWindowsComponents",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -3449,7 +3616,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasSafeModeBoot",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -3464,7 +3632,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasSafeModeBoot",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -3479,7 +3648,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasSafeModeBoot",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         },
         {
@@ -3494,7 +3664,8 @@
             "scheduledTasks": 0,
             "machineAction": "Set-AtlasSafeModeBoot",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]
@@ -3521,7 +3692,8 @@
             "scheduledTasks": 0,
             "machineAction": "Invoke-AtlasTelemetryComponentsMenu",
             "userAction": null,
-            "action": null
+            "action": null,
+            "user": false
           }
         }
       ]

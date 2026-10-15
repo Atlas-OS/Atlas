@@ -105,3 +105,19 @@ Describe 'Atlas catalog' {
         @($indexing[0].states.name) | Should -Be @('Disable', 'Minimal', 'Enable')
     }
 }
+
+Describe 'Catalog user work' {
+    It 'marks exactly the states the toggle engine runs only as the signed-in user' {
+        Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
+        $catalog = [IO.File]::ReadAllText($script:CatalogPath) | ConvertFrom-Json
+        foreach ($toggle in @($catalog.toggles)) {
+            $definition = Get-AtlasToggleDefinition -Name $toggle.name -TogglesRoot $script:TogglesRoot
+            foreach ($state in @($toggle.states)) {
+                $work = & (Get-Module Atlas.Toggles) {
+                    param($Definition, $StateName) Get-AtlasToggleStateWork -Definition $Definition -StateEntry $Definition['States'][$StateName]
+                } $definition $state.name
+                [bool]$state.work.user | Should -Be ([bool]$work.User) -Because "$($toggle.name) $($state.name)"
+            }
+        }
+    }
+}
