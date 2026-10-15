@@ -932,6 +932,24 @@ mod offer_wait {
         });
     }
 
+    /// A look refused before it starts, as when a check now fails, keeps the
+    /// wait going and still lets it end on time.
+    #[test]
+    fn a_refused_look_still_lets_the_wait_end() {
+        run_model_test(|mut cx| async move {
+            let mut scene = scene_waiting("offer-wait-refused", 40, 300);
+            offering_after(&mut scene, usize::MAX);
+            let model = start_waiting(&mut cx, &scene).await;
+            wait_for(&cx, &model, "the first look to find nothing", |m| m.offer_rechecks_active()).await;
+            // Every later look is refused before a run starts.
+            act(&mut cx, &model, |m, _| m.elevated = false);
+            wait_for(&cx, &model, "the wait to run out", |m| m.offer_wait.is_some_and(|wait| wait.expired))
+                .await;
+            assert_eq!(scene.requests.lock().unwrap().len(), 1, "no run while the looks are refused");
+            settle(&cx, &model).await;
+        });
+    }
+
     /// A move that waits for a newer monthly update looks again with full
     /// runs, the only ones that install it.
     #[test]

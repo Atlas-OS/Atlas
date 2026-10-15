@@ -156,7 +156,10 @@ fn an_unfinished_install_of_another_version_waits_for_its_own_package() {
         let model = new_model(&mut cx, env.clone());
         wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
         assert!(read(&cx, &model, |m| m.start_block().is_none() && m.install_block().is_none()));
-        act(&mut cx, &model, |m, cx| m.begin_install(cx));
+        act(&mut cx, &model, |m, cx| {
+            m.begin_install(cx);
+            m.preparation = crate::services::preparation::State::Ready;
+        });
         read(&cx, &model, |m| {
             assert!(m.flow.active && m.page == Page::Install);
             assert!(!m.ready_to_continue());

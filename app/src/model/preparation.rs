@@ -39,19 +39,21 @@ impl AppModel {
     }
 
     /// Starts a preparation run; `offer_only` only looks for the offer of a
-    /// move already targeted, as the looks while waiting for it do.
-    pub(super) fn start_preparation(&mut self, offer_only: bool, cx: &mut Context<Self>) {
+    /// move already targeted, as the looks while waiting for it do. Returns
+    /// whether preparation moved on: a run started or followed, or a failure
+    /// shown. A refused start leaves everything as it was.
+    pub(super) fn start_preparation(&mut self, offer_only: bool, cx: &mut Context<Self>) -> bool {
         log::info!("Windows preparation requested");
         if preview::active() {
-            return;
+            return false;
         }
         self.refresh_atlas_state();
         if self.install_block().is_some() {
             cx.notify();
-            return;
+            return false;
         }
         if self.locked() || !self.elevated || !self.flow.active || self.flow.step != Step::Ready {
-            return;
+            return false;
         }
         // Checking again after the wait ended starts a new wait.
         if self.offer_wait.as_ref().is_some_and(|wait| wait.expired) {
@@ -65,18 +67,18 @@ impl AppModel {
                     job.directory.display()
                 );
                 self.follow_preparation(job.directory.clone(), Some(job), false, cx);
-                return;
+                return true;
             }
             Err(error) => {
                 log::error!("preparation recovery: {error:#}");
                 self.fail_preparation(error, cx);
-                return;
+                return true;
             }
             Ok(None) => {}
         }
         if !self.preparation_may_start() {
             cx.notify();
-            return;
+            return false;
         }
         match preparation::new_job(&self.env.paths.settings()) {
             Ok(job) => self.follow_preparation(job, None, offer_only, cx),
@@ -85,6 +87,7 @@ impl AppModel {
                 self.fail_preparation(error, cx);
             }
         }
+        true
     }
 
     /// Ends a preparation that could not start, with `error` as its reason.

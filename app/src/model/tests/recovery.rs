@@ -10,6 +10,7 @@ use crate::model::test_harness::{
 };
 use crate::model::{InstallBlock, Notice, Page, RunState, Step};
 use crate::services::installer::{InstallOutcome, Phase};
+use crate::services::playbook;
 use crate::services::session::{self, LaunchLock};
 use crate::services::settings::InstallDraft;
 
@@ -221,5 +222,42 @@ fn a_recovered_failure_is_not_ready_on_a_draft_that_does_not_vouch_for_it() {
                 assert!(!m.can_install());
             });
         }
+    });
+}
+
+/// A draft whose package has since lost a file (security software
+/// quarantined a script, say) resumes without it, and opening the package
+/// again unpacks a complete copy instead of handing back the damaged one.
+#[test]
+fn a_draft_whose_package_lost_a_file_resumes_without_it() {
+    run_model_test(async move |mut cx| {
+        let (temp, _, env) = fixture("model-draft-damaged-package");
+        let (package, _) = marking_package(&temp, 0);
+        let (dir, _) = playbook::extract_into(&package, &env.paths.playbooks(), |_, _| {}).unwrap();
+        std::fs::remove_file(dir.join("Executables/AtlasModules/Scripts/Initialize-AtlasPowerShell.ps1"))
+            .unwrap();
+        save_draft(
+            &env,
+            InstallDraft {
+                step: "ready".into(),
+                playbook_dir: Some(dir.clone()),
+                flow: Some("saved-flow".into()),
+                ..InstallDraft::default()
+            },
+        );
+        let model = new_model(&mut cx, env.clone());
+        wait_for(&cx, &model, "the draft", |m| !m.recovering && m.flow.active).await;
+        read(&cx, &model, |m| {
+            assert_eq!(m.flow_id.as_deref(), Some("saved-flow"), "the draft itself is resumed");
+            assert!(m.playbook.is_none(), "the damaged copy is not");
+        });
+        act(&mut cx, &model, |m, cx| m.load_playbook_file(package.clone(), cx));
+        wait_for(&cx, &model, "the package", |m| m.playbook.is_some()).await;
+        read(&cx, &model, |m| {
+            let book = m.playbook.as_ref().unwrap();
+            assert_ne!(book.dir, dir);
+            assert!(playbook::intact(&book.dir));
+        });
+        settle(&cx, &model).await;
     });
 }

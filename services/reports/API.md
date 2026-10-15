@@ -112,9 +112,9 @@ Create a report with `Content-Type: application/json`:
 
 | Status | When |
 | --- | --- |
-| 201 | Returns `id`, `received`, and `upload_token` if `has_diagnostics` is true. Resending the same fields with the same `submission_key` returns the same report, so retries are safe; they still count toward the hourly limit. |
+| 201 | Returns `id`, `received`, and `upload_token` if `has_diagnostics` is true. Resending the same fields with the same `submission_key` returns the same report, so retries are safe; they still count toward the hourly limit. A report whose diagnostics did not arrive within 24 hours has expired: resending it, changed or not, replaces it with a new report, with a new `id` and `upload_token`. |
 | 403 | An `Origin` header other than `ATLAS_REPORTS_ORIGIN` |
-| 409 | Different fields under a used `submission_key` |
+| 409 | Different fields under the `submission_key` of a report that has not expired |
 | 422 | An outdated `privacy_version`, with a `detail` asking the sender to reload the page or update Atlas Manager; or another invalid field, with a general `detail` |
 
 Use a new `submission_key` when the sender edits the report or starts another.

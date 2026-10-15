@@ -27,13 +27,23 @@ fn navigation_goes_only_where_the_window_can_show_the_page() {
             assert_eq!((m.page, m.page_visit), (Page::Home, 2));
         });
 
-        // A running preparation keeps the window where it is.
+        // A running preparation keeps the window where it is, but its
+        // progress and Stop on the Install page can always be reached: a look
+        // for the update offer can start while the window shows another page.
         act(&mut cx, &model, |m, cx| {
-            m.preparation = State::Running { stage: Stage::StoreInstall, completed: 1, total: 2 };
-            assert!(!m.can_navigate(Page::Settings) && !m.can_navigate(Page::Report));
             m.navigate(Page::Settings, cx);
-            assert_eq!((m.page, m.page_visit), (Page::Home, 2));
+            m.preparation = State::Running { stage: Stage::StoreInstall, completed: 1, total: 2 };
+            assert!(!m.can_navigate(Page::Home) && !m.can_navigate(Page::Report));
+            assert_eq!(m.back_target(), Page::Install, "the back arrow leads to the progress");
+            m.navigate(Page::Home, cx);
+            assert_eq!((m.page, m.page_visit), (Page::Settings, 3));
+            m.navigate(Page::Install, cx);
+            assert_eq!((m.page, m.page_visit), (Page::Install, 4));
+            assert_eq!(m.back_target(), Page::Home);
+            assert!(!m.can_navigate(Page::Home) && !m.can_navigate(Page::Settings), "nothing leaves it");
             m.preparation = State::Ready;
+            m.navigate(Page::Home, cx);
+            assert_eq!((m.page, m.page_visit), (Page::Home, 5));
         });
 
         // An ISO job allows only the ISO page.

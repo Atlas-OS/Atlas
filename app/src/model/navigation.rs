@@ -8,6 +8,7 @@ use gpui::Context;
 use super::install::disarm_completion;
 use super::{Acquisition, AppModel, ElevationProblem, Page, RestoreStatus, RunState, Step};
 use crate::services::iso;
+use crate::services::preparation::State;
 use crate::services::settings::{self, InstallDraft};
 
 /// Where the launch asked to open, kept while startup recovery is still
@@ -25,18 +26,23 @@ impl AppModel {
     /// Whether [`navigate`](Self::navigate) would go to `page` now. Nothing
     /// leaves a running preparation, an ISO or USB job, or the installing
     /// view, which covers every page; controls that navigate are hidden or
-    /// disabled when this says no, and `navigate` refuses as a backstop.
+    /// disabled when this says no, and `navigate` refuses as a backstop. A
+    /// preparation can start while the window shows another page (a look for
+    /// the Windows Update offer while Atlas waits for it), so the Install
+    /// page, which shows its progress and Stop, can always be reached.
     pub fn can_navigate(&self, page: Page) -> bool {
-        !self.preparation.busy()
+        !(self.preparation.busy() && page != Page::Install)
             && !(self.iso_busy && page != Page::Iso)
             && !(self.install_in_progress() && page != Page::Install)
     }
 
     /// Where the page's back arrow and Escape go: the report page returns to
     /// the page it was opened from, while that page still has something to
-    /// show; everything else returns home.
+    /// show; everything else returns home. While a preparation runs, only
+    /// the Install page can be reached, so every other page leads there.
     pub fn back_target(&self) -> Page {
         match (self.page, self.report_return) {
+            (page, _) if page != Page::Install && self.preparation.busy() => Page::Install,
             (Page::Report, Page::Install) if !self.flow.active => Page::Home,
             (Page::Report, origin) => origin,
             _ => Page::Home,
@@ -266,6 +272,14 @@ impl AppModel {
         self.windows_transition_declined = false;
         self.recorded_choices_applied = false;
         self.store_outcome_seen = None;
+        // So does a preparation that finished, failed or stopped: it was made
+        // for that flow's choices, and this one may move Windows elsewhere. A
+        // restart it asked for, or made, is kept; starting over would forget it.
+        if !matches!(self.preparation, State::Reboot | State::Resumed | State::RestartPersists { .. }) {
+            self.preparation = State::Idle;
+            self.preparation_progress = None;
+            self.preparation_error = None;
+        }
         self.stop_offer_wait();
         // An earlier put-back that failed is offered again from what the
         // record says now, not from that failure.

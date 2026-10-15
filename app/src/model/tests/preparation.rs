@@ -241,7 +241,10 @@ fn checking_again_after_a_finished_preparation_stops_vouching_for_it() {
         let (package, _) = marking_package(&temp, 0);
         let model = new_model(&mut cx, env.clone());
         wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
-        act(&mut cx, &model, |m, cx| m.begin_install(cx));
+        act(&mut cx, &model, |m, cx| {
+            m.begin_install(cx);
+            m.preparation = State::Ready;
+        });
         act(&mut cx, &model, |m, cx| m.load_playbook_file(package, cx));
         wait_for(&cx, &model, "the package and the checks", |m| m.playbook.is_some() && m.checks_complete())
             .await;
@@ -257,6 +260,50 @@ fn checking_again_after_a_finished_preparation_stops_vouching_for_it() {
             s.draft.as_ref().is_some_and(|draft| !draft.preparation_ready)
         })
         .await;
+    });
+}
+
+/// A preparation made for one flow says nothing about the next, which may
+/// move Windows to another release: starting over prepares again, without
+/// the old run's failure text. A restart asked for, or just made, is kept.
+#[test]
+fn starting_over_forgets_a_finished_preparation_but_not_a_restart() {
+    run_model_test(async move |mut cx| {
+        let (_temp, _, env) = fixture("model-preparation-new-flow");
+        let model = new_model(&mut cx, env.clone());
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        let failure = serde_json::json!({
+            "schema": 1, "status": "failed", "stage": "windows-install", "completed": 0, "total": 0,
+            "activity": { "reason": "feature-failed", "failureMessage": "worker text" }
+        });
+        for earlier in [State::Ready, State::Failed, State::Cancelled, State::Network] {
+            act(&mut cx, &model, |m, cx| {
+                m.preparation = earlier.clone();
+                m.preparation_progress = Some(serde_json::from_value(failure.clone()).unwrap());
+                m.preparation_error = Some("worker text".into());
+                m.begin_install(cx);
+            });
+            read(&cx, &model, |m| {
+                assert!(m.flow.active && m.flow.step == Step::Ready);
+                assert_eq!(m.preparation, State::Idle, "after {earlier:?}");
+                assert!(m.preparation_progress.is_none() && m.preparation_error.is_none());
+            });
+            let flow = read(&cx, &model, |m| m.flow_id.clone());
+            wait_on_disk(&cx, &env, "the new flow's draft, not vouching for preparation", |s| {
+                s.draft.as_ref().is_some_and(|draft| draft.flow == flow && !draft.preparation_ready)
+            })
+            .await;
+        }
+        for owed in
+            [State::Reboot, State::Resumed, State::RestartPersists { reasons: vec!["servicing".into()] }]
+        {
+            act(&mut cx, &model, |m, cx| {
+                m.preparation = owed.clone();
+                m.begin_install(cx);
+            });
+            assert_eq!(read(&cx, &model, |m| m.preparation.clone()), owed);
+        }
+        settle(&cx, &model).await;
     });
 }
 

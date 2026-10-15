@@ -842,6 +842,91 @@ async fn unchanged_retry_returns_same_report_and_edit_conflicts() {
         StatusCode::CONFLICT
     );
 }
+/// Diagnostics are refused once a report is a day old, so a retry after
+/// that must not be given the same report: it gets a new one that accepts
+/// them, while a retry within the day still gets the same one.
+#[tokio::test]
+async fn a_retry_after_the_upload_window_replaces_the_expired_report() {
+    let f = Fixture::new();
+    let data = metadata();
+    let (_, first) = f.json("POST", "/api/v1/reports", data.clone(), false).await;
+    let (_, again) = f.json("POST", "/api/v1/reports", data.clone(), false).await;
+    assert_eq!(
+        again["id"], first["id"],
+        "within the window, the same report"
+    );
+    let upload = |receipt: &Value| {
+        (
+            format!(
+                "/api/v1/reports/{}/diagnostics",
+                receipt["id"].as_str().unwrap()
+            ),
+            format!("Bearer {}", receipt["upload_token"].as_str().unwrap()),
+        )
+    };
+    f.state
+        .db
+        .lock()
+        .unwrap()
+        .execute(
+            "UPDATE reports SET created=?1 WHERE id=?2",
+            rusqlite::params![atlas_reports::now() - 86401, first["id"].as_str().unwrap()],
+        )
+        .unwrap();
+    let (path, token) = upload(&first);
+    let headers = [
+        ("authorization", token.as_str()),
+        ("content-type", "application/zip"),
+    ];
+    assert_eq!(
+        f.request("PUT", &path, archive(None, true), false, &headers)
+            .await
+            .0,
+        StatusCode::NOT_FOUND,
+        "the expired report takes no diagnostics"
+    );
+
+    let (code, replaced) = f.json("POST", "/api/v1/reports", data.clone(), false).await;
+    assert_eq!(code, StatusCode::CREATED);
+    assert_ne!(replaced["id"], first["id"]);
+    assert_eq!(replaced["received"], false);
+    let (path, token) = upload(&replaced);
+    let headers = [
+        ("authorization", token.as_str()),
+        ("content-type", "application/zip"),
+    ];
+    assert_eq!(
+        f.request("PUT", &path, archive(None, true), false, &headers)
+            .await
+            .0,
+        StatusCode::OK
+    );
+    assert_eq!(
+        count(&f, "SELECT count(*) FROM reports"),
+        1,
+        "the expired report is gone"
+    );
+    assert_eq!(count(&f, "SELECT count(*) FROM reports WHERE ready=1"), 1);
+    // A complete report never expires this way: a retry days later still gets it.
+    f.state
+        .db
+        .lock()
+        .unwrap()
+        .execute(
+            "UPDATE reports SET created=?1 WHERE id=?2",
+            rusqlite::params![
+                atlas_reports::now() - 3 * 86400,
+                replaced["id"].as_str().unwrap()
+            ],
+        )
+        .unwrap();
+    let (_, later) = f.json("POST", "/api/v1/reports", data, false).await;
+    assert_eq!(
+        (later["id"].clone(), later["received"].clone()),
+        (replaced["id"].clone(), true.into())
+    );
+}
+
 #[tokio::test]
 async fn foreign_origins_and_stale_csrf_tokens_are_refused() {
     let f = Fixture::new();

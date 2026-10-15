@@ -66,6 +66,14 @@ static SID: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)(S-1-5-21-\d+-\d
 // unlike an account SID's optional RID there is no shorter match to fall back
 // to.
 static ENTRA_SID: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)S-1-12-1-\d+-\d+-\d+-\d+").unwrap());
+// The protected preparation and media job folders sit in one folder per
+// app-data directory, named by the SHA-256 of its settings path. That path
+// contains the profile name, which a guess could be checked against.
+static RECOVERY_SCOPE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)(Atlas Setup Recovery[\\/]+(?:Preparation|Media)[\\/]+)([0-9a-f]{64})\b").unwrap()
+});
+/// One word character, as `\w` and `\b` count them.
+static WORD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\w$").unwrap());
 /// JSON keys whose values are credentials, removed whatever they hold.
 static SENSITIVE_KEY: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?i)^(?:password|passwd|pwd|access[_-]?token|refresh[_-]?token|api[_-]?key|client[_-]?secret|authorization|proxy-authorization|cookie|set-cookie|private[_-]?key)$").unwrap()
@@ -109,7 +117,7 @@ impl Redactor {
                     .iter()
                     .any(|item| value.eq_ignore_ascii_case(item))
             {
-                this.identities.push(Regex::new(&format!(r"(?i)\b{}\b", regex::escape(&value))).unwrap());
+                this.identities.push(identity(&value));
             }
         }
         this
@@ -129,6 +137,11 @@ impl Redactor {
         text = URL_AUTH.replace_all(&text, "${1}[credential removed]@${2}").into_owned();
         text = URL_SIGNATURE.replace_all(&text, "${1}[credential removed]").into_owned();
         let aliases = &mut self.aliases;
+        // Before the collecting user's names, which could match a word of the
+        // folder names around it and hide the hash from this pattern.
+        text = RECOVERY_SCOPE
+            .replace_all(&text, |caps: &Captures<'_>| format!("{}{}", &caps[1], alias(aliases, &caps[2])))
+            .into_owned();
         // Addresses first: a domain name aliased on its own would leave the
         // rest of an address that no longer looks like one.
         text = EMAIL.replace_all(&text, |caps: &Captures<'_>| alias(aliases, &caps[0])).into_owned();
@@ -230,6 +243,21 @@ impl Redactor {
             Some(self.text(&source).into_bytes())
         }
     }
+}
+
+/// Matches an account, computer or domain name where it stands on its own:
+/// with no word character beside it at either end. `\b` says that only for
+/// an end that is itself a word character; beside punctuation, as at the end
+/// of `Jack!`, it would demand a word character instead. `\B` says it there,
+/// and like `\b` consumes no character, so two occurrences one character
+/// apart both match.
+fn identity(name: &str) -> Regex {
+    let edge = |end: Option<char>| match end {
+        Some(end) if WORD.is_match(end.encode_utf8(&mut [0; 4])) => r"\b",
+        _ => r"\B",
+    };
+    let (first, last) = (edge(name.chars().next()), edge(name.chars().next_back()));
+    Regex::new(&format!("(?i){first}{}{last}", regex::escape(name))).unwrap()
 }
 
 /// The profile folder names on this PC that contain whitespace: the current
@@ -361,6 +389,48 @@ mod tests {
             redactor.text("'C:\\Users\\Jane Doe' is denied for Jane Doe; ask bob@corp.example.org\n");
         assert!(!result.contains("Doe") && !result.contains("bob"), "{result}");
         assert!(result.contains("'C:\\Users\\anonymous-2' is denied for anonymous-2;"), "{result}");
+        assert_eq!(redactor.text(&result), result);
+    }
+
+    #[test]
+    fn names_that_begin_or_end_with_punctuation_are_aliased_where_they_stand_alone() {
+        let mut redactor = Redactor::with_profiles(Vec::new());
+        // Only these names, whatever this PC's own are.
+        redactor.identities.clear();
+        for name in ["Jack!", "(Desk)", "Al"] {
+            redactor.identities.push(identity(name));
+        }
+        let result = redactor.text(
+            "Jack! signed in on (Desk). 'Jack!' then Jack!,Jack! and at the end Jack!\nAlready Al.\nPC=(DESK)\n",
+        );
+        assert!(!result.contains("Jack") && !result.contains("Desk") && !result.contains("DESK"), "{result}");
+        assert_eq!(result.matches("anonymous-1").count(), 5, "{result}");
+        assert!(result.contains("on anonymous-2. 'anonymous-1'"), "{result}");
+        assert!(result.contains("PC=anonymous-2\n"), "{result}");
+        // A name that is all word characters still never matches inside a word.
+        assert!(result.contains("Already anonymous-3.\n"), "{result}");
+        assert_eq!(redactor.text(&result), result);
+    }
+
+    #[test]
+    fn recovery_job_folders_keep_no_hash_of_the_profile_path() {
+        let scope = crate::services::releases::sha256_bytes(
+            br"C:\Users\Priya\AppData\Local\AtlasOS\App\settings.json",
+        );
+        let executable = "0".repeat(64);
+        let source = format!(
+            "following a preparation worker still running: pid 42 in C:\\Program Files\\Atlas Setup Recovery\\Preparation\\{scope}\\1234-5678\n\
+             {{\"job\":\"C:\\\\Program Files\\\\Atlas Setup Recovery\\\\Media\\\\{}\\\\99-1\"}}\n\
+             C:\\Program Files\\Atlas Setup Recovery\\{executable}\\AtlasManager.exe\n",
+            scope.to_uppercase()
+        );
+        let mut redactor = Redactor::with_profiles(Vec::new());
+        let result = redactor.text(&source);
+        assert!(!result.to_lowercase().contains(&scope), "{result}");
+        assert!(result.contains("Recovery\\Preparation\\anonymous-1\\1234-5678\n"), "{result}");
+        assert!(result.contains("Recovery\\\\Media\\\\anonymous-1\\\\99-1"), "{result}");
+        // The executable's folder is named by its own digest, which says nothing about anyone.
+        assert!(result.contains(&format!("Recovery\\{executable}\\AtlasManager.exe")), "{result}");
         assert_eq!(redactor.text(&result), result);
     }
 

@@ -5,7 +5,7 @@ use std::fs;
 use std::io::{self, Write};
 use std::os::windows::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
-use std::process::Stdio;
+use std::process::{Child, ExitStatus, Stdio};
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -426,6 +426,11 @@ impl Operation {
     }
 }
 
+/// The longest the commit before a restart may take. The window can't close
+/// or offer anything else meanwhile, so a commit that never answers must not
+/// hold it for good.
+const COMMIT_LIMIT: Duration = Duration::from_secs(15 * 60);
+
 /// Runs `operation` in a protected job of its own and waits for it. An
 /// error carries the worker's reason and message.
 pub fn run_operation(settings: &Path, operation: Operation) -> Result<()> {
@@ -435,7 +440,7 @@ pub fn run_operation(settings: &Path, operation: Operation) -> Result<()> {
     let job = new_job(settings)?;
     recovery_app::stage_preparation(&job, WORKER, LIBRARY, REGISTRY_LIBRARY, Drivers::Automatic.policy())?;
     let log = fs::File::create(job.join("worker.log"))?;
-    let status = powershell::command()
+    let mut child = powershell::command()
         .arg("-File")
         .arg(job.join("Update-Windows.ps1"))
         .arg("-JobPath")
@@ -444,8 +449,24 @@ pub fn run_operation(settings: &Path, operation: Operation) -> Result<()> {
         .arg(operation.switch())
         .stdout(Stdio::from(log.try_clone()?))
         .stderr(Stdio::from(log))
-        .status()
+        .spawn()
         .with_context(|| format!("start {operation:?}"))?;
+    let status = match operation {
+        Operation::Commit => match wait_within(&mut child, COMMIT_LIMIT)? {
+            Some(status) => status,
+            None => {
+                // A commit that fails still lets the restart go ahead, and a
+                // second commit before the restart may break the update, so
+                // one that never answers is stopped and treated the same way.
+                log::warn!(
+                    "The commit of the Windows version change gave no answer within {} minutes; stopped it so the restart can go ahead",
+                    COMMIT_LIMIT.as_secs() / 60
+                );
+                return Ok(());
+            }
+        },
+        Operation::Restore => child.wait()?,
+    };
     let progress = read_progress(&job);
     match progress.as_ref().map(|progress| progress.status) {
         Some(Status::Complete) if status.success() => Ok(()),
@@ -457,6 +478,23 @@ pub fn run_operation(settings: &Path, operation: Operation) -> Result<()> {
                 activity.failure_message.unwrap_or_else(|| format!("the worker ended with {status}"))
             )
         }
+    }
+}
+
+/// Waits up to `limit` for `child` to exit. One still running then is stopped,
+/// and `None` returned.
+fn wait_within(child: &mut Child, limit: Duration) -> io::Result<Option<ExitStatus>> {
+    let deadline = Instant::now() + limit;
+    loop {
+        if let Some(status) = child.try_wait()? {
+            return Ok(Some(status));
+        }
+        if Instant::now() >= deadline {
+            let _ = child.kill();
+            child.wait()?;
+            return Ok(None);
+        }
+        std::thread::sleep(POLL);
     }
 }
 
@@ -990,6 +1028,23 @@ mod tests {
         .unwrap();
         assert_eq!(reads, 2, "unknown ownership must not release the operation");
         assert_eq!(result, State::Ready);
+    }
+
+    /// The commit before a restart waits for its worker only so long: one
+    /// that never answers is stopped, so the restart can go ahead.
+    #[test]
+    fn a_worker_that_outlives_its_limit_is_stopped() {
+        let mut quick = powershell::command().arg("-Command").arg("exit 3").spawn().unwrap();
+        // Shared Windows runners can take several seconds to start PowerShell.
+        let status = wait_within(&mut quick, Duration::from_secs(60)).unwrap().expect("it exits by itself");
+        assert_eq!(status.code(), Some(3));
+
+        let mut stuck =
+            powershell::command().arg("-Command").arg("Start-Sleep -Seconds 120").spawn().unwrap();
+        let started = Instant::now();
+        assert!(wait_within(&mut stuck, Duration::from_millis(500)).unwrap().is_none());
+        assert!(started.elapsed() < Duration::from_secs(30), "it was not waited out");
+        assert!(stuck.try_wait().unwrap().is_some(), "it was stopped");
     }
 
     #[test]

@@ -100,7 +100,15 @@ impl AppModel {
         // An ownerless draft is adopted by this window.
         self.flow_id = Some(draft.flow.clone().unwrap_or_else(settings::new_flow_id));
         self.own_session = draft.session.clone();
-        if let Some(dir) = draft.playbook_dir.filter(|dir| playbook::is_extracted(dir)) {
+        // A package that has lost a file since (to security software, say) is
+        // not resumed; Get ready prepares one again, as for a draft without one.
+        if let Some(dir) = draft.playbook_dir.filter(|dir| {
+            let intact = playbook::intact(dir);
+            if !intact && dir.exists() {
+                log::warn!("The draft's package {} is incomplete; not resuming it", dir.display());
+            }
+            intact
+        }) {
             if self.bundled() && !bundled_holds(&dir) {
                 // A draft from another package (or an unverifiable one) is
                 // not this tester build's to resume; the bundled package is

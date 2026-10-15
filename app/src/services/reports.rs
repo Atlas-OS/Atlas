@@ -72,6 +72,24 @@ impl fmt::Display for DiagnosticsUnusable {
 }
 impl std::error::Error for DiagnosticsUnusable {}
 
+/// The service no longer takes diagnostics for the report: its upload window
+/// has passed, or the report is gone. Sending again files it afresh under a
+/// new key instead of asking for this report again.
+#[derive(Debug)]
+pub(crate) struct ReportExpired;
+impl fmt::Display for ReportExpired {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("the report service no longer takes diagnostics for this report")
+    }
+}
+impl std::error::Error for ReportExpired {}
+
+/// Whether sending again after this error from [`send`] needs a new
+/// submission key.
+pub fn needs_new_key(error: &anyhow::Error) -> bool {
+    error.downcast_ref::<ReportExpired>().is_some()
+}
+
 /// Classifies an error from [`send`].
 pub fn problem(error: &anyhow::Error) -> SendProblem {
     if error.downcast_ref::<ServiceIncompatible>().is_some() {
@@ -240,17 +258,24 @@ fn upload(agent: &ureq::Agent, id: &str, token: &str, file: &File) -> Result<()>
         .header("Content-Type", "application/zip")
         .header("Content-Length", &file.metadata()?.len().to_string())
         .send(&file)
-        .map_err(|error| match error {
-            ureq::Error::StatusCode(413 | 422) => {
-                anyhow::Error::from(error).context(DiagnosticsUnusable("The service refused the diagnostics"))
-            }
-            error => error.into(),
-        })?;
+        .map_err(upload_failure)?;
     if response.status().as_u16() != 200 {
         bail!("Unexpected upload response");
     }
     let uploaded: UploadReceipt = response.body_mut().with_config().limit(RECEIPT_LIMIT).read_json()?;
     uploaded.validate(id)
+}
+
+fn upload_failure(error: ureq::Error) -> anyhow::Error {
+    match error {
+        ureq::Error::StatusCode(413 | 422) => {
+            anyhow::Error::from(error).context(DiagnosticsUnusable("The service refused the diagnostics"))
+        }
+        // A token the service issued is refused only once its report has
+        // expired or been removed.
+        ureq::Error::StatusCode(404) => anyhow::Error::from(error).context(ReportExpired),
+        error => error.into(),
+    }
 }
 
 #[cfg(test)]
@@ -324,6 +349,21 @@ mod tests {
         let error =
             send(&new_key().unwrap(), Category::Issue, "Valid test message", "", Some(&missing)).unwrap_err();
         assert_eq!(problem(&error), SendProblem::Diagnostics);
+    }
+
+    /// The service refuses diagnostics for a report past its upload window
+    /// with 404; that report is not asked for again.
+    #[test]
+    fn a_refused_upload_token_asks_for_a_new_key() {
+        let expired = upload_failure(ureq::Error::StatusCode(404));
+        assert!(needs_new_key(&expired));
+        assert_eq!(problem(&expired), SendProblem::Retry);
+        assert!(!retryable(&expired), "the automatic retry would reuse the key");
+        for status in [413, 422, 429, 500, 503] {
+            assert!(!needs_new_key(&upload_failure(ureq::Error::StatusCode(status))), "{status}");
+        }
+        assert_eq!(problem(&upload_failure(ureq::Error::StatusCode(413))), SendProblem::Diagnostics);
+        assert!(!needs_new_key(&ureq::Error::ConnectionFailed.into()));
     }
 
     #[test]

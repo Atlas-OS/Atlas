@@ -489,6 +489,11 @@ impl ReportPage {
             }
             Err(error) => {
                 log::warn!("Report was not sent: {error:#}");
+                if reports::needs_new_key(&error) {
+                    // The service has closed this report, so sending it again
+                    // files it afresh.
+                    self.key = None;
+                }
                 let problem = reports::problem(&error);
                 if problem == SendProblem::Diagnostics {
                     // Not offered again: Send collects another first.
@@ -974,6 +979,33 @@ mod tests {
                 // Another report after this one never reuses its key.
                 page.start_new(cx);
                 assert_ne!(page.submission_key(edited, "someone@example.org", Some(&newer)), recategorised);
+            });
+        });
+    }
+
+    /// After the service closed the report (its diagnostics came too late),
+    /// trying again sends the same report under a new key.
+    #[test]
+    fn a_report_the_service_closed_is_sent_again_under_a_new_key() {
+        run_model_test(|mut cx| async move {
+            let temp = TempDir::new("report-expired");
+            block_exports(&temp);
+            let model = new_model(&mut cx, Machine::new(all_off()).environment(temp.path()));
+            let page = cx.update(|cx| cx.new(|cx| ReportPage::new(model.clone(), cx)));
+            page.update(&mut cx, |page, cx| {
+                let message = "Setup stopped at the Defender step";
+                let zip = temp.path().join("Atlas-diagnostics.zip");
+                let first = page.submission_key(message, "", Some(&zip)).expect("a key");
+                let closed =
+                    anyhow::Error::from(ureq::Error::StatusCode(404)).context(reports::ReportExpired);
+                page.delivery = Delivery::Sending;
+                page.finish(Err(closed), Some(zip.clone()), cx);
+                assert_eq!(page.failure, Some(SendProblem::Retry));
+                let renewed = page.submission_key(message, "", Some(&zip)).expect("a key");
+                assert_ne!(renewed, first);
+                // An ordinary failure keeps the new key for its retry.
+                page.finish(Err(anyhow::anyhow!("connection reset")), Some(zip.clone()), cx);
+                assert_eq!(page.submission_key(message, "", Some(&zip)), Some(renewed));
             });
         });
     }

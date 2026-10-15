@@ -36,6 +36,10 @@ pub const RETENTION_DAYS: i64 = 90;
 pub(crate) const STATUSES: [&str; 4] = ["new", "investigating", "resolved", "closed"];
 pub(crate) const HOUR: i64 = 3_600;
 pub(crate) const DAY: i64 = 86_400;
+/// Seconds after a report is made that its diagnostics may still be uploaded.
+/// A report still waiting for them after that has expired: cleanup removes it,
+/// and sending it again makes a new one.
+pub(crate) const UPLOAD_WINDOW: i64 = DAY;
 /// Largest JSON body on any route. reports-mcp relies on it to limit report text.
 pub(crate) const MAX_JSON: usize = 32 * 1024;
 /// Uploads that can be received and validated at once.
@@ -242,7 +246,7 @@ impl Store {
         // below, so one undeletable file cannot keep other reports.
         transaction.execute(
             "DELETE FROM reports WHERE created < ?1 OR (ready=0 AND created < ?2)",
-            [cutoff, now() - DAY],
+            [cutoff, now() - UPLOAD_WINDOW],
         )?;
         purge_rates(&transaction, now() / HOUR)?;
         transaction.execute("DELETE FROM audit WHERE at < ?1", [cutoff])?;

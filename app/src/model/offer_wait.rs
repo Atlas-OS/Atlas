@@ -199,7 +199,11 @@ impl AppModel {
                 }
                 log::info!("Looking again for the Windows release Windows Update hasn't offered yet");
                 let offer_only = !this.offer_wait.is_some_and(|wait| wait.full_runs);
-                this.start_preparation(offer_only, cx);
+                // A check that now fails, such as the connection, refuses the
+                // look; the wait goes on, and still ends on time.
+                if !this.start_preparation(offer_only, cx) {
+                    this.schedule_offer_recheck(this.env.offer_recheck.interval, cx);
+                }
             })
             .ok();
         }));

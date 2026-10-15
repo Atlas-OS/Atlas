@@ -1,7 +1,7 @@
 use crate::{
     ApiError, ApiResult, AppState, DAY, HOUR, MAX_JSON, MAX_REPORTS, MAX_ZIP, PRIVACY_VERSION,
-    RETENTION_DAYS, STATUSES, UPLOAD_HEADROOM, archive, bump, claim, hex, is_hex64, now,
-    purge_rates, remove_if_present, scrub_wal, sha,
+    RETENTION_DAYS, STATUSES, UPLOAD_HEADROOM, UPLOAD_WINDOW, archive, bump, claim, hex, is_hex64,
+    now, purge_rates, remove_if_present, scrub_wal, sha,
 };
 use axum::{
     Json, Router,
@@ -252,14 +252,23 @@ async fn submit(
     let fingerprint = sha(&serde_json::to_vec(&details).unwrap());
     let mut db = state.db.lock().unwrap();
     let transaction = db.transaction_with_behavior(TransactionBehavior::Immediate)?;
-    let old: Option<(String, String, bool)> = transaction
+    let old: Option<(String, String, bool, i64)> = transaction
         .query_row(
-            "SELECT id,fingerprint,ready FROM reports WHERE key_hash=?1",
+            "SELECT id,fingerprint,ready,created FROM reports WHERE key_hash=?1",
             [&key_hash],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
         )
         .optional()?;
-    let (id, ready) = if let Some((id, old_fingerprint, ready)) = old {
+    // Diagnostics for a report past its upload window are refused, so handing
+    // that report out again would fail every upload until cleanup removed it.
+    // Sending it again makes a new report in its place.
+    let expired = old
+        .as_ref()
+        .is_some_and(|(_, _, ready, created)| !ready && *created < now() - UPLOAD_WINDOW);
+    if expired {
+        transaction.execute("DELETE FROM reports WHERE key_hash=?1", [&key_hash])?;
+    }
+    let (id, ready) = if let Some((id, old_fingerprint, ready, _)) = old.filter(|_| !expired) {
         if fingerprint != old_fingerprint {
             return Err(ApiError(
                 StatusCode::CONFLICT,
@@ -304,6 +313,9 @@ async fn submit(
         (id, !details.has_diagnostics)
     };
     transaction.commit()?;
+    if expired {
+        scrub_wal(&db);
+    }
     let upload_token = details
         .has_diagnostics
         .then(|| state.signature(&claim::upload(&id, &key_hash)));
@@ -342,7 +354,7 @@ async fn upload(
         .strip_prefix("Bearer ")
         .unwrap_or("");
     if !expects
-        || created < now() - DAY
+        || created < now() - UPLOAD_WINDOW
         || !state.verify(&claim::upload(&id.to_string(), &key_hash), supplied)
     {
         return Err(ApiError(StatusCode::NOT_FOUND, "Upload not found."));

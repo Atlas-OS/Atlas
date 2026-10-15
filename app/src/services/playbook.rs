@@ -8,8 +8,10 @@
 //! (`<cache>/<version>_<digest>`). Two packages that both call themselves
 //! 0.6.0 therefore never share a directory: a manifest read from a prepared
 //! package always describes the files at that path, whatever another window
-//! unpacks later. Identical content is recognised and reused.
+//! unpacks later. Identical content is recognised and reused, while it still
+//! holds every file it was unpacked with.
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
@@ -108,6 +110,45 @@ impl PackageIdentity {
 pub fn identity(dir: &Path) -> Option<PackageIdentity> {
     let text = fs::read_to_string(dir.join(IDENTITY_FILE)).ok()?;
     serde_json::from_str(&text).ok()
+}
+
+/// The identity file in full: the package's identity, and every file the
+/// archive unpacked to (`/`-separated, relative to the directory) with its
+/// size, so a copy that has since lost or changed a file can be recognised.
+#[derive(Serialize, Deserialize)]
+struct Record {
+    #[serde(flatten)]
+    identity: PackageIdentity,
+    files: BTreeMap<String, u64>,
+}
+
+fn record(dir: &Path) -> Option<Record> {
+    let text = fs::read_to_string(dir.join(IDENTITY_FILE)).ok()?;
+    serde_json::from_str(&text).ok()
+}
+
+/// Whether a published directory still holds every file it was unpacked
+/// with, at its unpacked size. Security software that quarantines one script
+/// leaves a copy that can never install; one published before the files were
+/// recorded can't be checked, so it counts as damaged too.
+pub fn intact(dir: &Path) -> bool {
+    record(dir).is_some_and(|record| complete(dir, &record))
+}
+
+fn complete(dir: &Path, record: &Record) -> bool {
+    is_extracted(dir) && first_missing(dir, &record.files).is_none()
+}
+
+/// The first of `files` that `dir` no longer holds as a regular file of the
+/// recorded size.
+fn first_missing<'a>(dir: &Path, files: &'a BTreeMap<String, u64>) -> Option<&'a str> {
+    files
+        .iter()
+        .find(|(name, size)| {
+            let path = name.split('/').fold(dir.to_path_buf(), |path, part| path.join(part));
+            !fs::symlink_metadata(path).is_ok_and(|meta| meta.is_file() && meta.len() == **size)
+        })
+        .map(|(name, _)| name.as_str())
 }
 
 #[derive(Clone, Debug)]
@@ -333,8 +374,10 @@ pub fn is_extracted(dir: &Path) -> bool {
 /// written and validated in a private staging directory first, then
 /// published as `<root>/<version>_<digest>`. That directory is never written
 /// again: an archive with the same content is recognised by its digest and
-/// the existing directory returned as it is; different content of the same
-/// version gets a directory of its own, leaving the first untouched.
+/// the existing directory returned as it is, unless it has lost a file since,
+/// when the archive is unpacked again under the next free name; different
+/// content of the same version gets a directory of its own, leaving the
+/// first untouched.
 ///
 /// Published directories are never removed: another window, a draft or an
 /// install record may still point at one, and removing it would defeat the
@@ -368,8 +411,8 @@ pub fn extract_into(
         target.parent() == Some(root.as_path()) && is_plain_component(&target),
         "the package version {version:?} does not name a cache directory"
     );
-    // The same bytes were unpacked before: the directory is immutable, so
-    // it still holds exactly this package.
+    // The same bytes were unpacked before and every file is still there:
+    // the directory is immutable, so it holds exactly this package.
     if let Some(published) = find_published(&root, &identity) {
         let total = archive.len();
         progress(total, total);
@@ -378,7 +421,7 @@ pub fn extract_into(
 
     let staging = create_unique_dir(&root, &format!("{STAGING_PREFIX}{version}-"))?;
     let result = (|| -> Result<PathBuf> {
-        extract_entries(&mut archive, &staging, &mut progress)?;
+        let files = extract_entries(&mut archive, &staging, &mut progress)?;
         if !is_extracted(&staging) {
             let version = version.clone();
             return Err(if predates_front_door(&version) {
@@ -387,8 +430,16 @@ pub fn extract_into(
                 Incomplete { version }.into()
             });
         }
+        // Security software may remove a file as soon as it has been written.
+        if let Some(name) = first_missing(&staging, &files) {
+            anyhow::bail!(
+                "{} was removed or changed right after it was unpacked, probably by security software",
+                name.replace('/', "\\")
+            );
+        }
         reject_reparse_points(&staging)?;
-        fs::write(staging.join(IDENTITY_FILE), serde_json::to_string_pretty(&identity)?)
+        let record = Record { identity: identity.clone(), files };
+        fs::write(staging.join(IDENTITY_FILE), serde_json::to_string_pretty(&record)?)
             .context("record the package identity")?;
         publish(&staging, &root, &identity)
     })();
@@ -406,13 +457,14 @@ fn candidates(root: &Path, identity: &PackageIdentity) -> Vec<PathBuf> {
     std::iter::once(root.join(&name)).chain((2..=9).map(|n| root.join(format!("{name}-{n}")))).collect()
 }
 
-/// A complete published copy of exactly this package, if there is one.
+/// A complete published copy of exactly this package, if there is one. A
+/// damaged copy is passed over and left as it is.
 fn find_published(root: &Path, identity: &PackageIdentity) -> Option<PathBuf> {
     candidates(root, identity).into_iter().find(|dir| holds(dir, identity))
 }
 
 fn holds(dir: &Path, identity: &PackageIdentity) -> bool {
-    is_extracted(dir) && self::identity(dir).as_ref() == Some(identity)
+    record(dir).is_some_and(|record| record.identity == *identity && complete(dir, &record))
 }
 
 /// Whether the path ends in an ordinary name, not `..`, a root or a drive.
@@ -420,12 +472,16 @@ fn is_plain_component(path: &Path) -> bool {
     matches!(path.components().next_back(), Some(Component::Normal(_)))
 }
 
+/// Writes every entry under `staging` and returns the files written, as the
+/// identity file records them. A name the archive repeats keeps the size it
+/// was last written with.
 fn extract_entries<R: Read + std::io::Seek>(
     archive: &mut zip::ZipArchive<R>,
     staging: &Path,
     progress: &mut impl FnMut(usize, usize),
-) -> Result<()> {
+) -> Result<BTreeMap<String, u64>> {
     let total = archive.len();
+    let mut files = BTreeMap::new();
     for index in 0..total {
         let mut entry = archive
             .by_index_decrypt(index, APBX_PASSWORD.as_bytes())
@@ -444,10 +500,13 @@ fn extract_entries<R: Read + std::io::Seek>(
             }
             let mut output = fs::File::create(&path).with_context(|| format!("create {}", path.display()))?;
             std::io::copy(&mut entry, &mut output).with_context(|| format!("write {}", path.display()))?;
+            let name =
+                relative.components().map(|part| part.as_os_str().to_string_lossy()).collect::<Vec<_>>();
+            files.insert(name.join("/"), entry.size());
         }
         progress(index + 1, total);
     }
-    Ok(())
+    Ok(files)
 }
 
 /// Beyond `enclosed_name()`: every component must be an ordinary name with no
@@ -801,6 +860,56 @@ mod tests {
         assert!(dir_b.join("remnant.txt").is_file(), "the occupied path is left as it was");
         assert_eq!(extract_into(&second, &root, |_, _| {}).unwrap().0, dir_b2);
         assert!(apbx::leftovers(&root).is_empty());
+    }
+
+    /// Security software can quarantine one script from a published copy.
+    /// That copy is never handed out again: the same archive is unpacked
+    /// under the next name, and the damaged copy is left as it is.
+    #[test]
+    fn a_published_copy_that_lost_or_changed_a_file_is_unpacked_again() {
+        let temp = TempDir::new("playbook-damaged");
+        let root = temp.path().join("Playbooks");
+        let package = apbx::write(&temp.path().join("a.apbx"), &apbx::valid("0.6.0"));
+        let (dir, _) = extract_into(&package, &root, |_, _| {}).unwrap();
+        assert!(intact(&dir));
+        let files = record(&dir).unwrap().files;
+        assert_eq!(files.len(), 3, "every file is recorded: {files:?}");
+        assert_eq!(files[apbx::FRONT_DOOR], fs::metadata(front_door(&dir)).unwrap().len());
+
+        let script = dir.join("Executables/AtlasModules/Scripts/Initialize-AtlasPowerShell.ps1");
+        fs::remove_file(&script).unwrap();
+        assert!(is_extracted(&dir) && !intact(&dir), "the front door alone does not make a package");
+        let (again, _) = extract_into(&package, &root, |_, _| {}).unwrap();
+        assert_eq!(again, PathBuf::from(format!("{}-2", dir.display())));
+        assert!(intact(&again) && script.parent().unwrap().is_dir() && !script.exists());
+        assert_eq!(extract_into(&package, &root, |_, _| {}).unwrap().0, again, "the new copy is reused");
+
+        // A file cut short is no better than a missing one.
+        let script = again.join("Executables/AtlasModules/Scripts/Initialize-AtlasPowerShell.ps1");
+        fs::write(&script, "#").unwrap();
+        assert!(!intact(&again));
+        assert_eq!(
+            extract_into(&package, &root, |_, _| {}).unwrap().0,
+            PathBuf::from(format!("{}-3", dir.display()))
+        );
+        assert!(apbx::leftovers(&root).is_empty());
+    }
+
+    /// A directory published before files were recorded can't be checked,
+    /// so it is not reused or resumed; its archive is unpacked again.
+    #[test]
+    fn a_copy_without_a_file_record_is_not_trusted() {
+        let temp = TempDir::new("playbook-unrecorded");
+        let root = temp.path().join("Playbooks");
+        let package = apbx::write(&temp.path().join("a.apbx"), &apbx::valid("0.6.0"));
+        let (dir, _) = extract_into(&package, &root, |_, _| {}).unwrap();
+        let recorded = identity(&dir).unwrap();
+        fs::write(dir.join(IDENTITY_FILE), serde_json::to_string(&recorded).unwrap()).unwrap();
+        assert_eq!(identity(&dir), Some(recorded), "the identity still reads");
+        assert!(is_extracted(&dir) && !intact(&dir));
+        let (again, _) = extract_into(&package, &root, |_, _| {}).unwrap();
+        assert_ne!(again, dir);
+        assert!(intact(&again));
     }
 
     /// A path occupied by something that is not the package (a stray file, an

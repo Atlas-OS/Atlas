@@ -131,9 +131,13 @@ pub(super) fn model_as_started(cx: &mut AsyncApp, env: Environment) -> Entity<Ap
 }
 
 /// Walks a fresh model from Home to the Install step with the package
-/// unpacked, every check passed and Windows Security read.
+/// unpacked, Windows prepared, every check passed and Windows Security read.
 pub(super) async fn walk_to_install(cx: &mut AsyncApp, model: &Entity<AppModel>, package: &Path) {
-    act(cx, model, |m, cx| m.begin_install(cx));
+    act(cx, model, |m, cx| {
+        m.begin_install(cx);
+        // A new flow prepares again; this walk is on a PC already prepared.
+        m.preparation = crate::services::preparation::State::Ready;
+    });
     assert!(read(cx, model, |m| m.flow.active && m.flow.step == Step::Ready && m.page == Page::Install));
     act(cx, model, |m, cx| m.load_playbook_file(package.to_path_buf(), cx));
     wait_for(cx, model, "the package and the checks", |m| m.playbook.is_some() && m.checks_complete()).await;
