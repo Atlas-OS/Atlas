@@ -33,6 +33,25 @@ Describe 'Protected recovery descriptors' {
     }
 }
 
+Describe 'Links on recovery paths' {
+    It 'refuses a path that passes through a junction' {
+        $target = Join-Path $TestDrive 'target'
+        [void][IO.Directory]::CreateDirectory($target)
+        [IO.File]::WriteAllBytes((Join-Path $target 'AtlasManager.exe'), [byte[]](1, 2, 3))
+        $junction = Join-Path $TestDrive 'linked'
+        $null = cmd.exe /d /c mklink /J "$junction" "$target"
+        try {
+            { Assert-AtlasRecoveryPath (Join-Path $junction 'AtlasManager.exe') } | Should -Throw '*Linked*'
+        }
+        finally { [IO.Directory]::Delete($junction) }
+        { Assert-AtlasRecoveryPath (Join-Path $target 'AtlasManager.exe') } | Should -Not -Throw
+    }
+    It 'accepts a reparse point that is not a link, such as a OneDrive folder' {
+        Mock Get-Item { [pscustomobject]@{ Attributes = [IO.FileAttributes]'Archive, ReparsePoint'; LinkType = $null; Parent = $null } }
+        { Assert-AtlasRecoveryPath 'C:\Users\Someone\OneDrive\Desktop\AtlasManager.exe' } | Should -Not -Throw
+    }
+}
+
 Describe 'Immutable recovery copies in owned temporary storage' {
     BeforeEach {
         # Exercise the real copy/hash/atomic rename with a current-user-only test ACL.

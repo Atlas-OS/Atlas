@@ -26,7 +26,8 @@ for an issue, so there is no separate step. It reuses a ZIP only if you exported
 page you came from; otherwise each report collects its own. **Review ZIP** shows the ZIP
 in its folder before you send, and choosing **Send report** while collection runs sends
 once it finishes. If sending fails, your text stays on the page and a retry reuses the same
-submission. You can also use [the report website](https://reports.atlasos.net), which
+submission, unless the service has closed it after a day without its ZIP; the retry then
+sends a new one. You can also use [the report website](https://reports.atlasos.net), which
 shows the same privacy notice, or share the ZIP yourself.
 
 - Export after a failure, before deleting app data or reinstalling Windows. Retrying
@@ -55,7 +56,7 @@ Exported text is redacted; the original local logs are unchanged.
 
 | Treatment | Data |
 | --- | --- |
-| Replaced with consistent anonymous labels | Account profile names; the collecting user's account, computer and domain names; the local account name entered for an ISO's setup; email addresses; account SID prefixes; Microsoft Entra ID account SIDs |
+| Replaced with consistent anonymous labels | Account profile names; the collecting user's account, computer and domain names; the local account name entered for an ISO's setup; email addresses; account SID prefixes; Microsoft Entra ID account SIDs; the per-profile job folder names under `Atlas Setup Recovery`, which are derived from the profile path |
 | Removed | Password fields, API credentials, HTTP authorization and cookies, signed URL credentials, common access-token formats, product keys, private keys |
 | Kept | Account RIDs and well-known Windows SIDs (for diagnosing permissions); error messages, stack traces, timestamps, build and version numbers, selected options, operation IDs, hardware models, device identifiers, network (IP and MAC) addresses, installed applications, the useful remainder of file paths |
 
@@ -77,7 +78,9 @@ encodings are explicitly omitted.
 - For Get ready's updates, and above all a move to a newer Windows release, read
   `preparation/windows-transition.log` first: every step of the move, with each outcome's
   reason id (`feature-*`). Each job folder's `updates.log` has that run's updates and the
-  Microsoft Store items it waited for. A run that found no offer yet ends with an
+  Microsoft Store items it waited for. A Store item that ends in `Error` usually reports
+  only 0x80073CF9 (the install failed); the machine report's event section lists the AppX
+  deployment errors that say why. A run that found no offer yet ends with an
   `Outcome (feature-not-offered)` line, not an error record. `report/machine-report.txt`
   adds the record under `HKLM\SOFTWARE\AtlasOS\WindowsTransition`, the Windows Update
   policies, services and tasks, the Atlas servicing packages, update history, the ends of

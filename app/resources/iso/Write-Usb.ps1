@@ -68,10 +68,12 @@ function Assert-AtlasUsbPaths {
     foreach ($path in $Paths) {
         $item = Get-Item -LiteralPath $path -Force -ErrorAction Stop
         if ($item.FullName -notmatch '^[A-Za-z]:\\') { Fail 'source-location' 'Use a local source and working directory.' }
-        # Reject links/mount points: the drive letter alone must describe the backing disk.
+        # Reject links and mount points (LinkType Junction): the drive letter alone must
+        # describe the backing disk. Other reparse points, such as OneDrive Files
+        # On-Demand folders, keep their data on the same volume.
         $ancestor = $item
         while ($null -ne $ancestor) {
-            if (($ancestor.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { Fail 'source-location' 'Linked source or working paths are not supported.' }
+            if (($ancestor.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -and @('SymbolicLink', 'Junction') -contains $ancestor.LinkType) { Fail 'source-location' 'Linked source or working paths are not supported.' }
             $ancestor = if ($ancestor -is [IO.FileInfo]) { $ancestor.Directory } else { $ancestor.Parent }
         }
         $partition = Get-Partition -DriveLetter $item.FullName.Substring(0,1) -ErrorAction Stop

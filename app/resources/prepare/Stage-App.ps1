@@ -95,11 +95,14 @@ function New-AtlasMediaJob {
     return $directory
 }
 
+# Refuses symbolic links and junctions anywhere on the path. Other reparse
+# points store data rather than redirect: OneDrive Files On-Demand marks the
+# Desktop and Downloads folders it backs up, where Atlas Manager often runs from.
 function Assert-AtlasRecoveryPath {
     param([string]$Path)
     $item = Get-Item -LiteralPath $Path -Force
     while ($null -ne $item) {
-        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -and @('SymbolicLink', 'Junction') -contains $item.LinkType) {
             throw 'Linked recovery paths are not supported.'
         }
         $item = if ($item -is [IO.FileInfo]) { $item.Directory } else { $item.Parent }

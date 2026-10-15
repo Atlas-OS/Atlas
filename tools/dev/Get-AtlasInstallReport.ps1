@@ -589,13 +589,20 @@ Add-Section -Title '10. Event log errors and warnings since the install' -Collec
         (Get-CimInstance -ClassName Win32_OperatingSystem).LastBootUpTime
     }
     $lines = @()
-    $lines += "Window: since $since (critical, error and warning)"
+    $lines += "Window: since $since (critical, error and warning; errors only for AppX deployment)"
 
-    foreach ($logName in 'System', 'Application') {
+    # A failed Store app update reports only 0x80073CF9 (the install failed); the AppX
+    # deployment log says why. Its warnings are routine, so only errors are read.
+    foreach ($source in @(
+            @{ LogName = 'System'; Level = 1, 2, 3 }
+            @{ LogName = 'Application'; Level = 1, 2, 3 }
+            @{ LogName = 'Microsoft-Windows-AppXDeploymentServer/Operational'; Level = 1, 2 }
+        )) {
+        $logName = $source.LogName
         $lines += ''
         $lines += "-- $logName --"
         try {
-            $events = @(Get-WinEvent -FilterHashtable @{ LogName = $logName; Level = 1, 2, 3; StartTime = $since } -MaxEvents $script:EventReadLimit -ErrorAction Stop)
+            $events = @(Get-WinEvent -FilterHashtable @{ LogName = $logName; Level = $source.Level; StartTime = $since } -MaxEvents $script:EventReadLimit -ErrorAction Stop)
         }
         catch {
             $lines += "  (no matching events, or the log could not be read: $($_.Exception.Message))"

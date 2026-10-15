@@ -828,6 +828,49 @@ Describe 'The install''s own check after an update was offered again' {
     }
 }
 
+Describe 'Windows Update searches that end with errors' {
+    BeforeEach {
+        # Each search returns the next result; a warning names the part that failed.
+        $warning = [pscustomobject]@{ HResult = -2145107924; Context = 1; Message = 'The server could not be reached. ' }
+        $script:results = New-Object System.Collections.Queue
+        $script:session = [pscustomobject]@{}
+        $script:session | Add-Member ScriptMethod CreateUpdateSearcher {
+            $searcher = [pscustomobject]@{ Online = $false; ServerSelection = 0; ServiceID = ''; IncludePotentiallySupersededUpdates = $false }
+            $searcher | Add-Member ScriptMethod BeginSearch {
+                $job = [pscustomobject]@{ IsCompleted = $true }
+                $job | Add-Member ScriptMethod CleanUp { }
+                $job
+            }
+            $searcher | Add-Member ScriptMethod EndSearch { $script:results.Dequeue() }
+            $searcher
+        }
+        $script:partial = [pscustomobject]@{ ResultCode = 3; Updates = @(); Warnings = @($warning) }
+        Mock Get-PreparationServerSelection { 2 }
+        Mock New-PreparationCallback { [pscustomobject]@{} }
+        Mock Write-AtlasTransitionEvidence { }
+        Mock Wait-PreparationSeconds { }
+        Remove-Item -LiteralPath (Join-Path $TestDrive 'updates.log') -ErrorAction SilentlyContinue
+    }
+
+    It 'searches again after a partial failure and logs what failed' {
+        $script:results.Enqueue($script:partial)
+        $script:results.Enqueue([pscustomobject]@{ ResultCode = 2; Updates = @([pscustomobject]@{ Title = 'Cumulative update' }) })
+        $found = @(Invoke-PreparationSearch $script:session 'IsInstalled=0')
+        @($found.Title) | Should -Be @('Cumulative update')
+        Should -Invoke Wait-PreparationSeconds -Times 1 -Exactly
+        Get-Content -LiteralPath (Join-Path $TestDrive 'updates.log') -Raw | Should -Match 'result 3 on attempt 1 of 3: 0x8024402C \(context 1\) The server could not be reached\.'
+    }
+
+    It 'stops with the code of the part that failed when every attempt fails' {
+        1..3 | ForEach-Object { $script:results.Enqueue($script:partial) }
+        try { Invoke-PreparationSearch $script:session 'IsInstalled=0'; throw 'expected a failure' }
+        catch { $detail = Get-PreparationFailureDetail $_.Exception }
+        $detail.errorCode | Should -Be '0x8024402C'
+        $detail.failureMessage | Should -Match '^Windows update search failed: 3 \(0x8024402C'
+        Should -Invoke Wait-PreparationSeconds -Times 2 -Exactly
+    }
+}
+
 Describe 'Provider progress without interrupting servicing' {
     BeforeEach {
         $script:ticks = 0

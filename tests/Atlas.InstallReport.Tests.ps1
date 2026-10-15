@@ -101,7 +101,24 @@ Describe 'Install report event log section' {
             [pscustomobject]@{ Level = 3; TimeCreated = [datetime]'2026-09-19'; ProviderName = 'Tcpip'; Id = 4199; Message = 'conflict'; LevelDisplayName = 'Warning' },
             [pscustomobject]@{ Level = 3; TimeCreated = [datetime]'2026-09-18'; ProviderName = 'Tcpip'; Id = 4199; Message = 'conflict'; LevelDisplayName = 'Warning' }
         )
-        Mock Get-WinEvent { $script:Events }
+        $script:AppxLog = 'Microsoft-Windows-AppXDeploymentServer/Operational'
+        $script:AppxEvents = @()
+        Mock Get-WinEvent { $script:Events } -ParameterFilter { $FilterHashtable.LogName -ne $script:AppxLog }
+        Mock Get-WinEvent { $script:AppxEvents } -ParameterFilter { $FilterHashtable.LogName -eq $script:AppxLog }
+    }
+
+    It 'reports AppX deployment errors, the reason behind a failed Store update' {
+        $script:EventReadLimit = 5000
+        $script:AppxEvents = @(
+            [pscustomobject]@{ Level = 2; TimeCreated = [datetime]'2026-09-21'; ProviderName = 'Microsoft-Windows-AppXDeployment-Server'; Id = 404; Message = 'AppX Deployment operation failed with error 0x80073CF9'; LevelDisplayName = 'Error' }
+        )
+        $lines = & $script:EventCollector
+        Should -Invoke Get-WinEvent -Times 1 -Exactly -ParameterFilter {
+            $FilterHashtable.LogName -eq $script:AppxLog -and (@($FilterHashtable.Level) -join ',') -eq '1,2'
+        }
+        $script:Summary | Should -HaveCount 3
+        $script:Summary[2] | Should -Match "^$([regex]::Escape($script:AppxLog)) log: 1 error"
+        ($lines -join "`n") | Should -Match 'operation failed with error 0x80073CF9'
     }
 
     It 'counts errors for the whole window when every event was read' {

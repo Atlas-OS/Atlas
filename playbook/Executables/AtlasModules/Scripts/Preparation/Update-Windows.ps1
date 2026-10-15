@@ -41,9 +41,14 @@ $script:PreparationRestartReasons = @()
 # Why the last Test-PreparationNetwork refused the connection; the app words each cause.
 $script:PreparationNetworkReason = $null
 $script:PreparationStage = 'verify'
-# Windows Update values: OperationResultCode 2 = succeeded, UpdateType 2 = driver.
+# Windows Update values: OperationResultCode 2 = succeeded and 3 = succeeded with
+# errors, UpdateType 2 = driver.
 $script:UpdateSucceeded = 2
+$script:UpdateSucceededWithErrors = 3
 $script:DriverUpdate = 2
+# Searches that end with errors, and the wait between them, before preparation stops.
+$script:PreparationSearchAttempts = 3
+$script:PreparationSearchRetrySeconds = 30
 # Searches per provider before giving up on one that keeps offering updates.
 $script:PreparationPasses = 8
 # What the worker's reports say while it searches: set while it waits for
@@ -613,25 +618,50 @@ function Format-PreparationService($Searcher) {
     }
 }
 
-function Invoke-PreparationSearch($Session, [string]$Criteria, [switch]$IncludeSuperseded) {
-    $searcher = New-PreparationSearcher $Session
-    # A hidden update can be superseded by another hidden one; without this the
-    # search for hidden updates can miss it.
-    if ($IncludeSuperseded) { $searcher.IncludePotentiallySupersededUpdates = $true }
-    $callback = New-PreparationCallback
-    $job = $searcher.BeginSearch($Criteria, $callback, $null)
-    try {
-        while (-not $job.IsCompleted) {
-            Write-PreparationState running windows-search -Detail $script:PreparationSearchDetail
-            Start-Sleep -Seconds 2
-        }
-        $found = $searcher.EndSearch($job)
-    } finally {
-        $job.CleanUp()
-        [GC]::KeepAlive($callback)
+# The parts of a search that failed, from the warnings its result carries.
+function Get-PreparationSearchWarning($Result) {
+    $warnings = $Result.PSObject.Properties['Warnings']
+    if ($null -eq $warnings -or $null -eq $warnings.Value) { return }
+    foreach ($warning in @($warnings.Value)) {
+        [pscustomobject]@{ HResult = [int]$warning.HResult; Context = [int]$warning.Context; Message = ([string]$warning.Message).Trim() }
     }
-    Write-AtlasTransitionEvidence "search on $(Format-PreparationService $searcher): result $($found.ResultCode), $(@($found.Updates).Count) update(s) for $Criteria"
-    if ([int]$found.ResultCode -ne $script:UpdateSucceeded) { throw "Windows update search failed: $($found.ResultCode)" }
+}
+
+function Invoke-PreparationSearch($Session, [string]$Criteria, [switch]$IncludeSuperseded) {
+    for ($attempt = 1; ; $attempt++) {
+        $searcher = New-PreparationSearcher $Session
+        # A hidden update can be superseded by another hidden one; without this the
+        # search for hidden updates can miss it.
+        if ($IncludeSuperseded) { $searcher.IncludePotentiallySupersededUpdates = $true }
+        $callback = New-PreparationCallback
+        $job = $searcher.BeginSearch($Criteria, $callback, $null)
+        try {
+            while (-not $job.IsCompleted) {
+                Write-PreparationState running windows-search -Detail $script:PreparationSearchDetail
+                Start-Sleep -Seconds 2
+            }
+            $found = $searcher.EndSearch($job)
+        } finally {
+            $job.CleanUp()
+            [GC]::KeepAlive($callback)
+        }
+        Write-AtlasTransitionEvidence "search on $(Format-PreparationService $searcher): result $($found.ResultCode), $(@($found.Updates).Count) update(s) for $Criteria"
+        $code = [int]$found.ResultCode
+        if ($code -eq $script:UpdateSucceeded) { break }
+        # Result 3 (succeeded with errors) means part of the search failed, so what it
+        # found may be incomplete. Its warnings say which part; that is often a passing
+        # service fault, so the search runs again before preparation stops.
+        $warnings = @(Get-PreparationSearchWarning $found)
+        $described = if ($warnings.Count) { ($warnings | ForEach-Object { '0x{0:X8} (context {1}) {2}' -f $_.HResult, $_.Context, $_.Message }) -join '; ' } else { 'no warnings given' }
+        "Windows Update search ended with result $code on attempt $attempt of $script:PreparationSearchAttempts`: $described" |
+            Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
+        Write-AtlasTransitionEvidence "search warnings: $described"
+        if ($code -ne $script:UpdateSucceededWithErrors -or $attempt -ge $script:PreparationSearchAttempts) {
+            $hresult = if ($warnings.Count) { $warnings[0].HResult } else { 0 }
+            throw (New-PreparationFailure "Windows update search failed: $code ($described)" $null $hresult)
+        }
+        Wait-PreparationSeconds $script:PreparationSearchRetrySeconds
+    }
     foreach ($update in $found.Updates) { $update }
 }
 

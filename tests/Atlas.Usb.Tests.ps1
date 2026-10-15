@@ -308,6 +308,20 @@ Describe 'USB destination safety' {
         Mock Get-Partition { [pscustomobject]@{ DiskNumber=7 } }
         { Assert-AtlasUsbPaths $script:Disk @($file) } | Should -Not -Throw
     }
+    It 'refuses a path through a junction but accepts a reparse point that is not a link' {
+        Mock Get-Partition { [pscustomobject]@{ DiskNumber=7 } }
+        Mock Fail { throw "$Reason|$Message" }
+        $target = Join-Path $TestDrive 'target'
+        [void][IO.Directory]::CreateDirectory($target)
+        Set-Content -LiteralPath (Join-Path $target 'source.iso') -Value 'data'
+        $junction = Join-Path $TestDrive 'linked'
+        $null = cmd.exe /d /c mklink /J "$junction" "$target"
+        try { { Assert-AtlasUsbPaths $script:Disk @(Join-Path $junction 'source.iso') } | Should -Throw 'source-location|*Linked*' }
+        finally { [IO.Directory]::Delete($junction) }
+        # OneDrive Files On-Demand marks backed-up folders such as the Desktop this way.
+        Mock Get-Item { [pscustomobject]@{ FullName='C:\Users\Someone\OneDrive\Desktop\AtlasManager.exe'; Attributes=[IO.FileAttributes]'Archive, ReparsePoint'; LinkType=$null; Parent=$null } }
+        { Assert-AtlasUsbPaths $script:Disk @('C:\Users\Someone\OneDrive\Desktop\AtlasManager.exe') } | Should -Not -Throw
+    }
 }
 
 Describe 'USB file copy cancellation and existing data' {
