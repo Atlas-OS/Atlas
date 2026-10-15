@@ -5,14 +5,23 @@ function Get-RegUserPaths {
     )
 
     $regPattern = 'Volatile Environment|AME_UserHive_'
-    if ($NoDefault) {$regPattern = "$regPattern[1-9].*"}
-    $initPaths = Get-ChildItem -Path "Registry::HKU" | Where-Object { $_.Name -match "S-[0-9-]+(?!.*_)|$regPattern" }
+    $defaultPathPattern = '(^|\\)\.DEFAULT$|(^|\\)AME_UserHive_Default$'
 
-    # If the 'Volatile Environment' key exists, that means it is a proper user. Built in accounts/SIDs don't have this key
+    $initPaths = Get-ChildItem -Path "Registry::HKU" |
+        Where-Object {
+            $keyName = $_.Name
+            $isUserHive = $keyName -match 'S-[0-9-]+(?!.*_)' -or $keyName -match 'AME_UserHive_'
+            $isDefaultHive = $keyName -match $defaultPathPattern
+
+            $isUserHive -and (-not ($NoDefault -and $isDefaultHive))
+        }
+
+    # If the 'Volatile Environment' key exists, that means it is a proper user. Built in accounts/SIDs don't have this key.
     $paths = @()
     if (!$DontCheckEnv) {
         foreach ($userKey in $initPaths) {
-            if ((Get-ChildItem -Path $userKey.PsPath | Where-Object { $_ -match $regPattern }).Count -ne 0) {
+            $hasUserMarker = Get-ChildItem -Path $userKey.PsPath | Where-Object { $_.Name -match $regPattern }
+            if ($hasUserMarker) {
                 $paths += $userKey
             }
         }
@@ -20,7 +29,7 @@ function Get-RegUserPaths {
         $paths = $initPaths
     }
 
-    return $paths
+    return @($paths)
 }
 
 Export-ModuleMember -Function Get-RegUserPaths
