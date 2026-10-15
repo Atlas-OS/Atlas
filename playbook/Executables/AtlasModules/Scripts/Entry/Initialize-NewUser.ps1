@@ -445,7 +445,11 @@ Set-AtlasTaskbarPins @pinArguments
 if (-not $FromInstall) {
     Set-AtlasFirstLogonPreferences
 }
-Invoke-AtlasToggleUserReapply
+# A recorded choice whose user part fails here, such as a Store app while offline,
+# stays recorded and shows in the health check. It must not leave this account's
+# setup to run again at every sign-in, or fail an install whose machine work is done.
+try { Invoke-AtlasToggleUserReapply }
+catch { Write-Warning "Some recorded choices were not applied for this user: $($_.Exception.Message)" }
 Set-SearchTaskbarMode
 
 # Apply this after theme setup, which can overwrite registry-only High Contrast

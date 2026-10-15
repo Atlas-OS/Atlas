@@ -14,15 +14,20 @@ function Remove-AtlasCopilotApp {
     )
 }
 
-function Enable-AtlasCopilotMachine {
+function Test-AtlasCopilotEdgeInstalled {
     param($Toggle)
 
     $programFilesX86 = [Environment]::GetFolderPath([Environment+SpecialFolder]::ProgramFilesX86)
     if ([string]::IsNullOrWhiteSpace($programFilesX86)) {
         throw 'Copilot: the 32-bit Program Files directory is unavailable.'
     }
-    $edgePath = [IO.Path]::Combine($programFilesX86, 'Microsoft\Edge\Application\msedge.exe')
-    if (-not [IO.File]::Exists($edgePath)) {
+    return (Test-Path -LiteralPath ([IO.Path]::Combine($programFilesX86, 'Microsoft\Edge\Application\msedge.exe')) -PathType Leaf)
+}
+
+function Enable-AtlasCopilotMachine {
+    param($Toggle)
+
+    if (-not (Test-AtlasCopilotEdgeInstalled -Toggle $Toggle)) {
         throw 'Copilot needs Microsoft Edge, which is not installed. Install Edge from 1. Software, then try again.'
     }
 

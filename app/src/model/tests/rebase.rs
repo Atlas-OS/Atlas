@@ -178,6 +178,9 @@ fn an_update_from_0_5_0_starts_from_the_extras_the_pc_shows() {
             toolbox: true,
             core_isolation_off: true,
             browsers: vec!["browser-brave".into()],
+            // Atlas 0.5.0 turned the language hotkeys off; this user has two layouts.
+            language_hotkey: Some("3".into()),
+            keyboard_layouts: 2,
         };
         let observed = crate::services::legacy_choices::observed_options(&facts);
         env.adapters.read_legacy_choices = std::sync::Arc::new(move || observed.clone());
@@ -199,9 +202,10 @@ fn an_update_from_0_5_0_starts_from_the_extras_the_pc_shows() {
             assert_eq!(previous, "0.5.0");
             assert!(m.locked_options().is_none(), "the user can still change them");
             let effective = m.effective_options();
-            for option in
-                extras.iter().chain(["defender-enable", "mitigations-default", "auto-updates-disable"].iter())
-            {
+            for option in extras.iter().chain(
+                ["defender-enable", "mitigations-default", "auto-updates-disable", "keyboard-selector"]
+                    .iter(),
+            ) {
                 assert!(effective.iter().any(|chosen| chosen == option), "{option} is preselected");
             }
         });

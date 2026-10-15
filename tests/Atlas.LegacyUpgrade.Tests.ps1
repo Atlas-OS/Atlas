@@ -77,6 +77,7 @@ Describe 'Partial legacy choice capture' {
         . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
         Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
         . (Join-Path $script:AtlasTestScriptsRoot 'Install\Tasks\Import-AtlasLegacyChoices.ps1') -LibraryOnly
+        $script:Bluetooth = Get-AtlasToggleDefinition -Name Bluetooth -TogglesRoot (Join-Path (Split-Path -Parent $script:AtlasTestScriptsRoot) 'Toggles')
     }
     BeforeEach {
         $script:CapturedChoices = @{}
@@ -132,5 +133,22 @@ Describe 'Partial legacy choice capture' {
         Mock Get-AtlasToggleStateRecords { @{ Existing = 0; RecentItems = 0 } }
         { Import-AtlasLegacyChoices -Context $script:ChoiceContext } | Should -Not -Throw
         $script:CapturedChoices.ContainsKey('Sleep') | Should -BeFalse
+    }
+    It 'leaves a matching state that also changes services or runs actions unrecorded' {
+        Mock Get-AtlasToggleDefinition {
+            $enable = @{ Name = 'Enable'; StateValue = 1; Registry = @(@{ Path = 'HKLM\Example'; Name = $Name; Type = 'DWord'; Data = 1 }) }
+            if ($Name -eq 'Missing') { $enable.Services = @(@{ Name = 'ExampleService'; StartupType = 3 }); $enable.MachineAction = 'Enable-Example' }
+            @{ Name = $Name; States = @{ Enable = $enable } }
+        }
+        Import-AtlasLegacyChoices -Context $script:ChoiceContext
+        $script:CapturedChoices.ContainsKey('Missing') | Should -BeFalse
+    }
+    It 'does not adopt Bluetooth from the policy value Windows itself sets' {
+        Mock Get-AtlasToggleDefinition { $script:Bluetooth }
+        Mock Get-ChildItem { [pscustomobject]@{ BaseName = 'Bluetooth' } }
+        # PolicyManager\default\Connectivity\AllowBluetooth\value is 2 on a stock PC.
+        Mock Read-AtlasLegacyRegistryValue { @{ KeyExists = $true; Exists = $true; Kind = 'DWord'; Value = 2 } } -ParameterFilter { $Path -like '*AllowBluetooth' }
+        Import-AtlasLegacyChoices -Context $script:ChoiceContext
+        $script:CapturedChoices.ContainsKey('Bluetooth') | Should -BeFalse
     }
 }

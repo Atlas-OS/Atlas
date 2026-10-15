@@ -102,6 +102,10 @@ switch ($Operation) {
         if (-not [string]::IsNullOrWhiteSpace($Option)) {
             throw 'Begin does not accept -Option.'
         }
+        # AME Wizard chooses the mode by itself, so it stops before anything changes
+        # where the front door would refuse or choose a Rebase.
+        . (Join-Path -Path $scriptsRoot -ChildPath 'Preparation\WindowsTransition.ps1')
+        Assert-AtlasWindowsTransitionAllowsAme -WindowsBuild ([int](Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name CurrentBuildNumber).CurrentBuildNumber)
         $state = Start-AtlasInstallState `
             -TargetVersion (Get-AtlasPlaybookVersion) `
             -Mode $Mode `

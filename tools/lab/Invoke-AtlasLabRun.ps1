@@ -70,7 +70,7 @@ param(
     [string]$ExtractedRoot,
 
     [ValidatePattern('^[a-z0-9-]+$')]
-    [string[]]$Option = @('defender-enable', 'mitigations-default', 'auto-updates-default'),
+    [string[]]$Option = @('defender-enable', 'mitigations-default', 'auto-updates-default', 'keyboard-shortcuts'),
 
     [string]$OutputPath,
 

@@ -193,3 +193,18 @@ if ($null -eq $installState) {
 }
 $plan = Resolve-AtlasPayloadReplacementPlan -InstallState $installState
 Invoke-AtlasPayloadReplacementCore -Plan $plan
+
+# Removing the previous files took the Atlas packages' repair source with them. The
+# Features phase recreates it but runs once, so a retried install recreates it here,
+# and Windows never names a repair source that is gone.
+if ([bool]$plan.RemoveInstalledPayload) {
+    try {
+        $installedScripts = [IO.Path]::Combine($script:AtlasWindowsPath, 'AtlasModules', 'Scripts')
+        . ([IO.Path]::Combine($installedScripts, 'Preparation', 'WindowsTransition.ps1'))
+        Import-Module -Name ([IO.Path]::Combine($installedScripts, 'Modules', 'Atlas.Software', 'Atlas.Software.psd1')) -ErrorAction Stop
+        Write-Output "Atlas packages' repair source: $(Update-AtlasCbsRepairSource -AtlasPackages @(Get-AtlasInstalledAtlasPackage))."
+    }
+    catch {
+        Write-Warning "The Atlas packages' repair source was not checked after replacing Atlas's files: $($_.Exception.Message)"
+    }
+}

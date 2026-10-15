@@ -485,6 +485,9 @@ Describe 'Replay of recorded states' {
         New-TestToggle -Root $script:ReplayRoot -Name 'CpuIdle' `
             -Definition (Get-Content -LiteralPath (Join-Path $cpuIdleRoot 'CpuIdle.psd1') -Raw) `
             -Companion (Get-Content -LiteralPath (Join-Path $cpuIdleRoot 'CpuIdle.ps1') -Raw)
+        New-TestToggle -Root $script:ReplayRoot -Name 'Copilot' `
+            -Definition (Get-Content -LiteralPath (Join-Path $cpuIdleRoot 'Copilot.psd1') -Raw) `
+            -Companion (Get-Content -LiteralPath (Join-Path $cpuIdleRoot 'Copilot.ps1') -Raw)
 
         New-TestToggle -Root $script:ReplayRoot -Name 'SplitToggle' -Definition @'
 @{
@@ -576,6 +579,17 @@ Describe 'Replay of recorded states' {
         (Get-AtlasToggleState -Name CpuIdle -StateRoot $StateRoot).State | Should -BeNullOrEmpty
         Get-Content (Join-Path $script:ReplayWork 'machine.txt') | Should -Be 'SplitToggle:On:1:silent=True'
         Should -Invoke Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles -Times 0 -Exactly
+    }
+
+    It 'drops a Copilot enable choice that Atlas 0.5.0 recorded on a PC without Edge' {
+        Mock Test-Path -ModuleName Atlas.Toggles { $false } -ParameterFilter { $LiteralPath -like '*\msedge.exe' }
+        Set-AtlasToggleState -Name Copilot -State 1 -StateRoot $StateRoot
+        Set-AtlasToggleState -Name SplitToggle -State 1 -StateRoot $StateRoot
+
+        { Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReplayRoot } | Should -Not -Throw
+
+        (Get-AtlasToggleState -Name Copilot -StateRoot $StateRoot).State | Should -BeNullOrEmpty
+        Get-Content (Join-Path $script:ReplayWork 'machine.txt') | Should -Be 'SplitToggle:On:1:silent=True'
     }
 
     It 'keeps and replays an old CPU idle disable choice when SMT is absent' {
@@ -1294,6 +1308,25 @@ Describe 'Generated launchers' {
         $rejected = & $commandHost /d /e:on /v:off /c "call `"$probePath`" /silent /unsupported" 2>&1
         $LASTEXITCODE | Should -Be 87 -Because ($rejected -join "`n")
         $rejected | Should -Not -Match '^SINK '
+    }
+
+    It 'keeps the toggle''s exit code when the body is run directly rather than called: <Code>' -TestCases @(
+        @{ Code = 0; Expected = 0 }
+        @{ Code = 3; Expected = 3 }
+        @{ Code = -1; Expected = 1 }
+    ) {
+        param($Code, $Expected)
+        # Atlas Manager and the Toolbox start the body with cmd /c, not through a stub's call.
+        $bodyLines = @(Get-Content -LiteralPath $script:LauncherBody)
+        $tailStart = [array]::FindIndex($bodyLines, [Predicate[string]] { param($line) $line -like '"%AtlasNativePowerShell%"*' }) + 1
+        $tailStart | Should -BeGreaterThan 0
+        $probePath = Join-Path -Path $TestDrive -ChildPath 'launcher-exit-probe.cmd'
+        $probeLines = @('@echo off', "cmd /d /c exit $Code") + @($bodyLines[$tailStart..($bodyLines.Count - 1)])
+        [IO.File]::WriteAllText($probePath, (($probeLines -join "`r`n") + "`r`n"), [Text.Encoding]::ASCII)
+
+        $commandHost = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'cmd.exe')
+        $null = & $commandHost /d /s /c "`"$probePath`""
+        $LASTEXITCODE | Should -Be $Expected
     }
 
     It 'pass the toggle name, state and their own path to the shared body and keep its exit code' {

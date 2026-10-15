@@ -162,7 +162,13 @@ function Get-AtlasContext {
         $mode -cin @('Upgrade', 'Reapply', 'Rebase')
     }
     elseif ($isDocumentBacked) {
-        [string]$document.mode -cin @('Upgrade', 'Rebase')
+        # A Reapply records its own mode, but the fresh-install work an earlier
+        # update skipped is still not on this PC.
+        $history = $document.PSObject.Properties['history']
+        $updated = $null -ne $history -and @(@($history.Value) | Where-Object {
+                $null -ne $_ -and $null -ne $_.PSObject.Properties['mode'] -and [string]$_.mode -cin @('Upgrade', 'Rebase')
+            }).Count -gt 0
+        [string]$document.mode -cin @('Upgrade', 'Rebase') -or $updated
     }
     else {
         Test-Path -LiteralPath (Join-Path -Path $flagsPath -ChildPath 'Upgrade.flag') -PathType Leaf

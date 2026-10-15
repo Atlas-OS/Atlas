@@ -28,6 +28,11 @@ pub struct Facts {
     pub core_isolation_off: bool,
     /// Browsers Atlas offers that are installed, by option name.
     pub browsers: Vec<String>,
+    /// The installing user's Alt+Shift setting (`HKCU\Keyboard Layout\Toggle`,
+    /// `Language Hotkey`) as text, whether stored as text or a number.
+    pub language_hotkey: Option<String>,
+    /// How many keyboard layouts the installing user has (`Keyboard Layout\Preload`).
+    pub keyboard_layouts: usize,
 }
 
 /// The install options `facts` show.
@@ -78,6 +83,14 @@ pub fn observed_options(facts: &Facts) -> Vec<String> {
         let browser = browser.to_owned();
         add("install-another-browser");
         add(&browser);
+    }
+    // Atlas 0.5.0 turned Alt+Shift and Ctrl+Shift off for every user (3). Someone who
+    // turned them back on in Settings has 1 or 2 again.
+    match facts.language_hotkey.as_deref() {
+        Some("3") if facts.keyboard_layouts > 1 => add("keyboard-selector"),
+        Some("3") => add("keyboard-single"),
+        Some(_) => add("keyboard-shortcuts"),
+        None => {}
     }
     options
 }
@@ -140,6 +153,19 @@ fn read_facts() -> Facts {
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|| r"C:\Program Files (x86)".into());
     let exists = |path: &Path| path.exists();
+    // Atlas 0.5.0 stored the hotkeys as numbers; Windows and Settings store text.
+    let language_hotkey = CURRENT_USER.open(r"Keyboard Layout\Toggle").ok().and_then(|key| {
+        let value = key.get_value("Language Hotkey").ok()?;
+        match value.ty() {
+            Type::U32 => u32::try_from(value).ok().map(|number| number.to_string()),
+            Type::String => String::try_from(value).ok().map(|text| text.trim().to_owned()),
+            _ => None,
+        }
+    });
+    let keyboard_layouts = CURRENT_USER
+        .open(r"Keyboard Layout\Preload")
+        .and_then(|key| key.values().map(Iterator::count))
+        .unwrap_or_default();
     let browsers = [
         ("browser-brave", r"BraveSoftware\Brave-Browser\Application\brave.exe"),
         ("browser-firefox", r"Mozilla Firefox\firefox.exe"),
@@ -168,6 +194,8 @@ fn read_facts() -> Facts {
             ),
         ),
         browsers,
+        language_hotkey,
+        keyboard_layouts,
     }
 }
 
@@ -297,6 +325,8 @@ mod tests {
                 toolbox: facts["toolbox"].as_bool().unwrap(),
                 core_isolation_off: facts["coreIsolationOff"].as_bool().unwrap(),
                 browsers: strings(&facts["browsers"]),
+                language_hotkey: facts["languageHotkey"].as_str().map(str::to_owned),
+                keyboard_layouts: facts["keyboardLayouts"].as_u64().unwrap_or_default() as usize,
             };
             assert_eq!(observed_options(&facts), strings(&case["options"]), "{}", case["name"]);
         }

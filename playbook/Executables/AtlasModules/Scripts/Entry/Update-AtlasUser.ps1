@@ -37,7 +37,10 @@ try {
     foreach ($category in 'networking', 'performance', 'privacy', 'qol', 'security', 'debloat', 'scripts', 'misc') {
         Invoke-AtlasTweakCategory -Name $category -RegistryScope CurrentUser -RegistryOnly -Context $context
     }
-    Invoke-AtlasToggleUserReapply
+    # As in Initialize-NewUser: a choice whose user part fails stays recorded and shows
+    # in the health check, without failing the upgrade after its machine work.
+    try { Invoke-AtlasToggleUserReapply }
+    catch { Write-Warning "Some recorded choices were not applied for this user: $($_.Exception.Message)" }
     $null = New-Item -Path $markerPath -Force
     New-ItemProperty -LiteralPath $markerPath -Name $markerName -Value $version -PropertyType String -Force | Out-Null
 }

@@ -78,7 +78,18 @@ function Import-AtlasLegacyChoices {
             }
             if ($match -and $positiveEvidence) { $matchingStates += $state }
         }
+        # Registry values are all the evidence there is, so replay must not do more
+        # than write them again. A state with services, tasks or actions is left: its
+        # values can be Windows' own defaults (Bluetooth's AllowBluetooth=2 is), and
+        # replaying it would reset services or re-enable devices nobody chose to.
+        $imperative = @()
         if ($matchingStates.Count -eq 1) {
+            $imperative = @(@('Services', 'ScheduledTasks', 'MachineAction', 'UserAction', 'Action') | Where-Object { $matchingStates[0].Contains($_) -and $matchingStates[0][$_] })
+        }
+        if ($imperative.Count -gt 0) {
+            Write-AtlasLog -Message "Left observed legacy choice '$($definition.Name)' state '$($matchingStates[0].Name)' unrecorded: it does more than set registry values."
+        }
+        elseif ($matchingStates.Count -eq 1) {
             Set-AtlasToggleState -Name $definition.Name -State ([int]$matchingStates[0].StateValue)
             Write-AtlasLog -Message "Adopted observed legacy choice '$($definition.Name)' state '$($matchingStates[0].Name)'."
         }

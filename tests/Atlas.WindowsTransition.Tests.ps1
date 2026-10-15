@@ -78,6 +78,10 @@ BeforeAll {
         foreach ($key in $script:Registry.Keys) { if ($key.StartsWith("$Path|") -or $key.StartsWith("$Path\")) { return $true } }
         return $false
     }
+    function Get-AtlasTransitionSubKeyName([string]$Path) {
+        @($script:Registry.Keys | Where-Object { $_.StartsWith("$Path\") } |
+                ForEach-Object { ($_.Substring($Path.Length + 1) -split '[\\|]')[0] } | Sort-Object -Unique)
+    }
     function New-AtlasTransitionJournalKey([string]$Path) { }
     function Set-AtlasTransitionServiceStart([string]$Name, [int]$Start) {
         $script:Writes.Add("service $Name $Start")
@@ -154,7 +158,7 @@ BeforeAll {
         if ($values.Count -eq 0) { return $null }
         return [pscustomobject]$values
     }
-    foreach ($double in @('Get-AtlasTransitionValue', 'Set-AtlasTransitionValue', 'Remove-AtlasTransitionValue', 'Set-AtlasTransitionServiceStart', 'Set-AtlasTransitionTask', 'New-ItemProperty', 'Write-AtlasTransitionCopy', 'Remove-AtlasTransitionCopy', 'Set-AtlasToggleState')) {
+    foreach ($double in @('Get-AtlasTransitionValue', 'Get-AtlasTransitionSubKeyName', 'Set-AtlasTransitionValue', 'Remove-AtlasTransitionValue', 'Set-AtlasTransitionServiceStart', 'Set-AtlasTransitionTask', 'New-ItemProperty', 'Write-AtlasTransitionCopy', 'Remove-AtlasTransitionCopy', 'Set-AtlasToggleState')) {
         if ((Get-Command -Name $double -CommandType Function).ScriptBlock.ToString() -notmatch 'script:(Registry|Writes|Tasks)|Set-AtlasTransitionValue') {
             throw "$double is not the in-memory double; no test may reach the live registry."
         }
@@ -1553,6 +1557,20 @@ Describe 'Putting the settings back' {
         Get-AtlasWindowsTransitionRebase | Should -Not -BeNullOrEmpty
     }
 
+    It 'records a Rebase as done before a setting that fails to go back keeps the record open' {
+        $journal = Read-Journal
+        $journal | Add-Member -NotePropertyName carry -NotePropertyValue ([pscustomobject]@{
+                atlasVersion = '0.5.0'; options = @('defender-disable'); optionSource = 'observed'; toggles = @(); browser = $null
+                atlasModules = $true; edge = $false; oneDrive = $false; defender = $false; appx = @('Microsoft.Paint_8wekyb3d8bbwe') }) -Force
+        $journal | Add-Member -NotePropertyName rebuild -NotePropertyValue ([pscustomobject]@{ rebuilt = $true; signals = @('windows-old'); checkedAt = '2026-10-02T00:00:00Z' }) -Force
+        Write-AtlasWindowsTransition $journal
+        Mock Set-AtlasTransitionServiceStart { throw 'Access is denied' } -ParameterFilter { $Name -eq 'wuauserv' }
+        Mock Get-AtlasTransitionOwnerRecord { $false }
+        { Complete-AtlasWindowsTransition -Rebased } | Should -Throw '*couldn''t put back*'
+        Read-AtlasWindowsTransition | Should -Not -BeNullOrEmpty -Because 'the setting is still to be put back'
+        Get-AtlasWindowsTransitionRebase | Should -BeNullOrEmpty -Because 'a later install is not another Rebase'
+    }
+
     It 'is the install''s closing step, which reports what it left' {
         $lines = @(Complete-AtlasWindowsTransition)
         ($lines -join "`n") | Should -Match 'Left as the replayed choices set them: .*service\.wuauserv'
@@ -1590,6 +1608,24 @@ Describe 'Install and toggle guards while Windows Update is turned on' {
         $lost = Test-AtlasWindowsUpdateInProgress -WindowsBuild 26300
         $lost.Passed | Should -BeFalse
         $lost.Detail | Should -Match 'Atlas packages are gone'
+    }
+
+    It 'lets AME Wizard install only after a move finished in place on its target' {
+        [void](Save-AtlasWindowsTransitionSnapshot -Kind access -Source ([pscustomobject]@{ build = 26200 }) -Target $null -UserSid 'S')
+        { Assert-AtlasWindowsTransitionAllowsAme -WindowsBuild 26200 } | Should -Not -Throw
+        Reset-Machine
+        [void](Save-AtlasWindowsTransitionSnapshot -Kind transition -Source ([pscustomobject]@{ build = 26100 }) `
+                -Target ([pscustomobject]@{ release = '26H2'; build = 26300; kb = '5121794' }) -UserSid 'S')
+        { Assert-AtlasWindowsTransitionAllowsAme -WindowsBuild 26100 } | Should -Throw '*Finish the move in Atlas Manager*'
+        { Assert-AtlasWindowsTransitionAllowsAme -WindowsBuild 26300 } | Should -Throw '*Finish the move*' -Because 'how Windows moved is not known yet'
+        $journal = Read-AtlasWindowsTransition
+        $journal | Add-Member -NotePropertyName rebuild -NotePropertyValue ([pscustomobject]@{ rebuilt = $true; signals = @('windows-old'); checkedAt = '2026-10-02T00:00:00Z' }) -Force
+        Write-AtlasWindowsTransition $journal
+        { Assert-AtlasWindowsTransitionAllowsAme -WindowsBuild 26300 } | Should -Throw '*Finish the move*' -Because 'only Atlas Manager puts Atlas back with a Rebase'
+        $journal.rebuild.rebuilt = $false
+        Write-AtlasWindowsTransition $journal
+        Mock Get-AtlasInstalledAtlasPackage { @() }
+        { Assert-AtlasWindowsTransitionAllowsAme -WindowsBuild 26300 } | Should -Not -Throw
     }
 
     It 'allows a plain update''s record and blocks an unreadable one' {
@@ -1776,10 +1812,12 @@ Describe 'What the record keeps of the Atlas install' {
         $cases = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'fixtures\windows-transition\observed-options.json') -Raw | ConvertFrom-Json
         @($cases).Count | Should -BeGreaterThan 0
         foreach ($case in @($cases)) {
+            $optional = { param($Name) $property = $case.facts.PSObject.Properties[$Name]; if ($null -ne $property) { $property.Value } }
             $facts = [pscustomobject]@{
                 State = $null; LegacyVersions = @('0.5.0'); Toggles = @($case.facts.toggles)
                 Browser = $case.facts.browser; AtlasModules = $true; Edge = $case.facts.edge; OneDrive = $false; Defender = $true
                 Appx = @($case.facts.appx); Toolbox = $case.facts.toolbox; CoreIsolationOff = $case.facts.coreIsolationOff; Browsers = @($case.facts.browsers)
+                LanguageHotkey = & $optional 'languageHotkey'; KeyboardLayouts = [int](& $optional 'keyboardLayouts')
             }
             $carry = ConvertTo-AtlasTransitionCarry $facts @($case.packages)
             (@($carry.options) -join ',') | Should -BeExactly (@($case.options) -join ',') -Because $case.name
@@ -1954,6 +1992,26 @@ Describe 'Putting Atlas back on a rebuilt Windows' {
         @(Restore-AtlasRebaseChoice $carry)[0] | Should -Match 'kept the 1 recorded choices'
         @($script:Writes | Where-Object { $_ -like 'toggle *' }) | Should -BeNullOrEmpty
         $script:ToggleRecords['FileSharing'] | Should -Be 1
+    }
+
+    It 'brings back the 0.5.0 launcher name with a choice, for the repair that reads it' {
+        # 0.5.0's "Hide Lock Screen.cmd" wrote state 1, the opposite of the choice.
+        $carry = ConvertTo-AtlasTransitionCarry (New-Atlas050Fact) @()
+        $carry.toggles = @([pscustomobject]@{ name = 'LockScreen'; state = 1; path = 'Hide Lock Screen.cmd' })
+        Test-AtlasTransitionCarry $carry | Should -BeTrue
+        $null = @(Restore-AtlasRebaseChoice $carry)
+        $script:ToggleRecords['LockScreen'] | Should -Be 1
+        (Get-Fake 'SOFTWARE\AtlasOS\Services\LockScreen' path).Data | Should -BeExactly 'Hide Lock Screen.cmd'
+        $carry.toggles = @([pscustomobject]@{ name = 'LockScreen'; state = 1; path = '..\..\Windows\evil.ps1' })
+        Test-AtlasTransitionCarry $carry | Should -BeFalse
+    }
+
+    It 'keeps only the file name of the launcher that wrote a record' {
+        Set-Fake 'SOFTWARE\AtlasOS\Services\OldContextMenu' state DWord 0
+        Set-Fake 'SOFTWARE\AtlasOS\Services\OldContextMenu' path String 'C:\Windows\AtlasDesktop. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).cmd'
+        $records = @(Get-AtlasTransitionToggleRecord)
+        $records | Should -HaveCount 1
+        $records[0].path | Should -BeExactly 'Old Context Menu (default).cmd'
     }
 
     It 'repeats only the app removals of apps that were not there before Windows moved' {

@@ -13,7 +13,7 @@ Assert-AtlasPrivilege -TrustedInstaller
 . (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'Preparation\WindowsTransition.ps1')
 
 try {
-    foreach ($line in @(Complete-AtlasWindowsTransition)) {
+    foreach ($line in @(Complete-AtlasWindowsTransition -Rebased:([bool](Get-AtlasContext).IsRebase))) {
         Write-AtlasLog -Message ([string]$line)
     }
 }

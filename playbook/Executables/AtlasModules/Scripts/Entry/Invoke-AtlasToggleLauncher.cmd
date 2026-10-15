@@ -69,8 +69,10 @@ goto parseArguments
 set "AtlasStateArgument="
 if not "%AtlasToggleState%"=="-" set "AtlasStateArgument=-State "%AtlasToggleState%""
 "%AtlasNativePowerShell%" -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%AtlasWindowsRoot%\AtlasModules\Scripts\Entry\Invoke-Toggle.ps1" -Name "%AtlasToggleName%" %AtlasStateArgument% -LauncherPath "%AtlasLauncherPath%" %AtlasLauncherSilent% %AtlasLauncherJustContext% %AtlasLauncherNoAction%
+rem The code is named: a bare exit /b reports 0 when this file is run directly by
+rem cmd /c rather than called, as Atlas Manager and the Toolbox do.
 if errorlevel 0 (
-    if errorlevel 1 exit /b
+    if errorlevel 1 exit /b %errorlevel%
 ) else (
     exit /b 1
 )

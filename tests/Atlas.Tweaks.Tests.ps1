@@ -347,6 +347,27 @@ Describe 'Invoke-AtlasTweak' {
             $context
         }
         Mock Import-AtlasModule -ModuleName Atlas.Tweaks
+        Mock Get-AtlasToggleState -ModuleName Atlas.Tweaks { $null }
+        Mock Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks
+
+        Invoke-AtlasTweak -Path (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Tweaks\qol\set-keyboard-switching.psd1')
+
+        Should -Invoke Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks -Times 1 -Exactly `
+            -ParameterFilter { $Name -ceq 'KeyboardShortcuts' -and $State -ceq $Expected }
+    }
+
+    It 'keeps a keyboard choice recorded since the install on an update, but not on a fresh install: upgrade=<Upgrade>' -ForEach @(
+        @{ Upgrade = $true; Expected = 'Enable' }
+        @{ Upgrade = $false; Expected = 'Disable' }
+    ) {
+        Mock Get-AtlasContext -ModuleName Atlas.Tweaks {
+            $context = New-TestContextMock -IsUpgrade $Upgrade
+            $context | Add-Member -NotePropertyName Options -NotePropertyValue @('keyboard-single')
+            $context
+        }
+        Mock Import-AtlasModule -ModuleName Atlas.Tweaks
+        # Enable Language Shortcuts.cmd was run after installing with one layout.
+        Mock Get-AtlasToggleState -ModuleName Atlas.Tweaks { [pscustomobject]@{ Name = 'KeyboardShortcuts'; State = 1 } }
         Mock Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks
 
         Invoke-AtlasTweak -Path (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Tweaks\qol\set-keyboard-switching.psd1')

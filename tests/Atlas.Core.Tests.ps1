@@ -321,6 +321,28 @@ Describe 'Get-AtlasContext machine state document' {
         @($context.Options) | Should -Be @('defender-enable')
         $context.StateDocumentPath | Should -Be (Join-Path $windowsPath 'AtlasOS\state.json')
     }
+
+    It 'still counts as an update after a Reapply of an updated install, but not of a fresh one' -TestCases @(
+        @{ First = 'Upgrade'; Expected = $true }
+        @{ First = 'Rebase'; Expected = $true }
+        @{ First = 'Fresh'; Expected = $false }
+    ) {
+        param($First, $Expected)
+        $windowsPath = Join-Path -Path $TestDrive -ChildPath 'Windows'
+        [void][IO.Directory]::CreateDirectory($windowsPath)
+        $document = [pscustomobject]@{
+            installedVersion = '0.6.0'; mode = 'Reapply'; isOobe = $false; isInteractive = $true; options = @()
+            history = @(
+                [pscustomobject]@{ version = '0.6.0'; mode = $First; completedAt = '2026-10-01T00:00:00Z'; transactionId = 'a' }
+                [pscustomobject]@{ version = '0.6.0'; mode = 'Reapply'; completedAt = '2026-10-02T00:00:00Z'; transactionId = 'b' }
+            )
+        }
+
+        $context = Get-AtlasContext -WindowsPath $windowsPath -StateReader { $null } `
+            -DocumentReader { $document } -WindowsBuildReader { 26100 }
+
+        $context.IsUpgrade | Should -Be $Expected
+    }
 }
 
 Describe 'Native assembly loader seam' {

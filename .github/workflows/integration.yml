@@ -17,7 +17,7 @@ on:
       options:
         description: "Comma-separated FeaturePage options for the install"
         required: false
-        default: "defender-enable,mitigations-default,auto-updates-default"
+        default: "defender-enable,mitigations-default,auto-updates-default,keyboard-shortcuts"
         type: string
 
 permissions:

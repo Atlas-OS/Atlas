@@ -5,7 +5,8 @@
     Run from an elevated Windows PowerShell 5.1 prompt inside the extracted package:
 
         .\AtlasModules\Scripts\Entry\Install-Atlas.ps1 -Option defender-enable,
-            mitigations-default, auto-updates-disable [-Option ...] [-Unattended] [-Restart]
+            mitigations-default, auto-updates-disable, keyboard-shortcuts [-Option ...] [-Unattended]
+            [-Restart]
             [-RestartComment <text>]
 
     The script checks the machine against playbook.conf, copies the extracted files
@@ -19,8 +20,8 @@
     before the install plan starts.
 .PARAMETER Option
     FeaturePage option names from playbook.conf. Every required group (Defender,
-    mitigations, automatic updates) needs exactly one choice; use Get-AtlasInstallOption
-    in the Atlas.InstallState module to list them.
+    mitigations, automatic updates, keyboard language switching) needs exactly one
+    choice; use Get-AtlasInstallOption in the Atlas.InstallState module to list them.
 .PARAMETER Unattended
     Never prompts; blocking requirements still apply.
 .PARAMETER Restart
@@ -515,7 +516,7 @@ try {
     # After the requirements, so a Windows version Atlas does not support is
     # reported as such rather than as an Atlas version it cannot update.
     $mode = Resolve-AtlasInstallMode -TargetVersion $targetVersion -WindowsPath $windowsPath
-    Write-AtlasInstallStep "This will be a $mode install."
+    Write-AtlasInstallStep "Install mode: $mode."
 
     Write-AtlasInstallStep 'Copying Atlas''s files to a protected folder...'
     $stagingRoot = New-AtlasProtectedStagingRoot -WindowsPath $windowsPath

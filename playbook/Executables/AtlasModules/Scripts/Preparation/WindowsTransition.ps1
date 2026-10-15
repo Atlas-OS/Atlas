@@ -122,6 +122,13 @@ function Remove-AtlasTransitionValue([string]$Path, [string]$Name) {
     finally { $key.Dispose() }
 }
 
+function Get-AtlasTransitionSubKeyName([string]$Path) {
+    $key = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($Path, $false)
+    if ($null -eq $key) { return }
+    try { @($key.GetSubKeyNames()) }
+    finally { $key.Dispose() }
+}
+
 function Test-AtlasTransitionKey([string]$Path) {
     $key = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($Path, $false)
     if ($null -eq $key) { return $false }
@@ -612,27 +619,31 @@ function Get-AtlasTransitionLegacyVersion {
 }
 
 function Get-AtlasTransitionToggleRecord {
-    $key = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey('SOFTWARE\AtlasOS\Services', $false)
-    if ($null -eq $key) { return }
-    try {
-        foreach ($name in @($key.GetSubKeyNames())) {
-            $state = Get-AtlasTransitionValue "SOFTWARE\AtlasOS\Services\$name" 'state'
-            if (-not $state.Present -or $state.Kind -ne 'DWord') { continue }
-            $value = [int64]$state.Data
-            if ($name -eq 'AutomaticUpdates' -and $value -eq 1) {
-                $launcher = Get-AtlasTransitionValue "SOFTWARE\AtlasOS\Services\$name" 'path'
-                if ($launcher.Present -and $launcher.Kind -eq 'String') {
-                    $file = ([string]$launcher.Data -split '[\\/]')[-1]
-                    if ($file -in @('Add Idle Toggle in Desktop Context Menu.cmd', 'Remove Idle Toggle in Desktop Context Menu (default).cmd')) {
-                        $value = Get-AtlasTransitionAutomaticUpdatesPolicyState
-                        if ($null -eq $value) { continue }
-                    }
+    foreach ($name in @(Get-AtlasTransitionSubKeyName 'SOFTWARE\AtlasOS\Services')) {
+        $state = Get-AtlasTransitionValue "SOFTWARE\AtlasOS\Services\$name" 'state'
+        if (-not $state.Present -or $state.Kind -ne 'DWord') { continue }
+        $value = [int64]$state.Data
+        if ($name -eq 'AutomaticUpdates' -and $value -eq 1) {
+            $launcher = Get-AtlasTransitionValue "SOFTWARE\AtlasOS\Services\$name" 'path'
+            if ($launcher.Present -and $launcher.Kind -eq 'String') {
+                $file = ([string]$launcher.Data -split '[\\/]')[-1]
+                if ($file -in @('Add Idle Toggle in Desktop Context Menu.cmd', 'Remove Idle Toggle in Desktop Context Menu (default).cmd')) {
+                    $value = Get-AtlasTransitionAutomaticUpdatesPolicyState
+                    if ($null -eq $value) { continue }
                 }
             }
-            [pscustomobject][ordered]@{ name = $name; state = $value }
         }
+        $record = [ordered]@{ name = $name; state = $value }
+        # The file name of the 0.5.0 launcher that wrote it, as data: some of those
+        # wrote the opposite value, and Initialize-AtlasToggleStateStore corrects it
+        # by name. A Rebase that has to bring the records back needs it too.
+        $launcher = Get-AtlasTransitionValue "SOFTWARE\AtlasOS\Services\$name" 'path'
+        if ($launcher.Present -and $launcher.Kind -eq 'String') {
+            $file = ([string]$launcher.Data -split '[\\/]')[-1]
+            if ($file -match '^[A-Za-z0-9 ().,_-]{1,128}\.cmd$') { $record.path = $file }
+        }
+        [pscustomobject]$record
     }
-    finally { $key.Dispose() }
 }
 
 function Get-AtlasTransitionAutomaticUpdatesPolicyState {
@@ -706,7 +717,33 @@ function Get-AtlasTransitionMachineFact {
         Toolbox = Test-AtlasTransitionKey 'SOFTWARE\AtlasOS\Toolbox'
         CoreIsolationOff = Test-AtlasTransitionCoreIsolationOff
         Browsers = @(Get-AtlasTransitionBrowser)
+        # The signed-in user's, which preparation runs as.
+        LanguageHotkey = Get-AtlasTransitionLanguageHotkey
+        KeyboardLayouts = Get-AtlasTransitionKeyboardLayoutCount
     }
+}
+
+# Alt+Shift (Keyboard Layout\Toggle, Language Hotkey) as text: Atlas 0.5.0 stored
+# it as a number, Windows and Settings as text.
+function Get-AtlasTransitionLanguageHotkey {
+    $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Keyboard Layout\Toggle', $false)
+    if ($null -eq $key) { return $null }
+    try {
+        if (@($key.GetValueNames()) -notcontains 'Language Hotkey') { return $null }
+        switch ([string]$key.GetValueKind('Language Hotkey')) {
+            'DWord' { return [string][int64]$key.GetValue('Language Hotkey') }
+            'String' { return ([string]$key.GetValue('Language Hotkey')).Trim() }
+        }
+        return $null
+    }
+    finally { $key.Dispose() }
+}
+
+function Get-AtlasTransitionKeyboardLayoutCount {
+    $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Keyboard Layout\Preload', $false)
+    if ($null -eq $key) { return 0 }
+    try { return @($key.GetValueNames()).Count }
+    finally { $key.Dispose() }
 }
 
 # What Atlas 0.5.0's "Disable Core Isolation" (ConfigVBS.ps1 -DisableAllVBS)
@@ -766,6 +803,11 @@ function Get-AtlasTransitionObservedOption($Facts, [string[]]$AtlasPackages) {
         }
     }
     if ($browser) { 'install-another-browser'; $browser }
+    # Atlas 0.5.0 turned Alt+Shift and Ctrl+Shift off for every user (3). Someone who
+    # turned them back on in Settings has 1 or 2 again.
+    $hotkey = & $fact 'LanguageHotkey'
+    if ([string]$hotkey -ceq '3') { if ([int](& $fact 'KeyboardLayouts') -gt 1) { 'keyboard-selector' } else { 'keyboard-single' } }
+    elseif (-not [string]::IsNullOrEmpty([string]$hotkey)) { 'keyboard-shortcuts' }
 }
 
 function ConvertTo-AtlasTransitionCarry($Facts, [string[]]$AtlasPackages = @()) {
@@ -805,6 +847,8 @@ function Test-AtlasTransitionCarry($Carry) {
     foreach ($option in @($Carry.options)) { if ([string]$option -cnotmatch '^[a-z0-9-]{1,64}$') { return $false } }
     foreach ($record in @($Carry.toggles)) {
         if ([string]$record.name -cnotmatch '^[A-Za-z0-9]{1,64}$' -or ($record.state -isnot [int] -and $record.state -isnot [long]) -or [int64]$record.state -lt 0 -or [int64]$record.state -gt 1000) { return $false }
+        $launcher = $record.PSObject.Properties['path']
+        if ($null -ne $launcher -and [string]$launcher.Value -cnotmatch '^[A-Za-z0-9 ().,_-]{1,128}\.cmd$') { return $false }
     }
     if (@($Carry.toggles).Count -gt 400 -or @($Carry.appx).Count -gt 800) { return $false }
     foreach ($name in @($Carry.appx)) { if ([string]$name -cnotmatch '^[A-Za-z0-9._-]{1,128}$') { return $false } }
@@ -883,6 +927,12 @@ function Restore-AtlasRebaseChoice($Carry) {
         $restored = 0
         foreach ($record in @($Carry.toggles)) {
             Set-AtlasToggleState -Name ([string]$record.name) -State ([int]$record.state)
+            # The 0.5.0 launcher name goes back beside the state, so the choices step
+            # that follows corrects a value that launcher wrote the wrong way round.
+            $launcher = $record.PSObject.Properties['path']
+            if ($null -ne $launcher) {
+                Set-AtlasTransitionValue "SOFTWARE\AtlasOS\Services\$([string]$record.name)" 'path' 'String' ([string]$launcher.Value)
+            }
             $restored++
         }
         "brought back $restored recorded choices from the record of the move"
@@ -1203,15 +1253,39 @@ function Restore-AtlasWindowsTransition {
 }
 
 # The install's closing step: after the Atlas install has replayed the user's
-# choices and written its own pin, everything else comes back.
-function Complete-AtlasWindowsTransition([string]$Root = (Get-AtlasWindowsTransitionRoot)) {
+# choices and written its own pin, everything else comes back. A Rebase install that
+# got here has put Atlas back on the rebuilt Windows, so the record says so first: a
+# setting that can't be put back then keeps the record open for that alone, and a
+# later install isn't taken for another Rebase.
+function Complete-AtlasWindowsTransition([string]$Root = (Get-AtlasWindowsTransitionRoot), [switch]$Rebased) {
     $open = Test-AtlasWindowsTransitionOpen $Root
     if ($null -eq $open) { return 'No Windows Update settings were changed for an update; nothing to put back.' }
     if (-not $open.Readable) { throw "The Windows Update record could not be read, so nothing was put back: $($open.Error)" }
+    if ($Rebased -and $null -ne (Get-AtlasWindowsTransitionRebase $Root)) {
+        $journal = Read-AtlasWindowsTransition $Root
+        $journal.rebuild.rebuilt = $false
+        Add-AtlasTransitionHistory $journal 'rebase' 'Atlas was put back on the rebuilt Windows'
+        Write-AtlasWindowsTransition $journal $Root
+        'Atlas was put back on the rebuilt Windows.'
+    }
     $result = Restore-AtlasWindowsTransition -Outcome Installed -Root $Root
     "Windows Update settings put back: $(@($result.restored) -join ', ')"
     if (@($result.owned).Count -gt 0) { "Left as the replayed choices set them: $(@($result.owned) -join ', ')" }
     if (@($result.changed).Count -gt 0) { "Left because they changed since: $(@($result.changed) -join ', ')" }
+}
+
+# An install through AME Wizard, which can't put Atlas back with a Rebase, waits
+# until a move to a newer Windows release has finished in place on its target build.
+# Windows Update turned on for plain updates is put back by the install's last step.
+function Assert-AtlasWindowsTransitionAllowsAme([int]$WindowsBuild, [string]$Root = (Get-AtlasWindowsTransitionRoot)) {
+    $open = Test-AtlasWindowsTransitionOpen $Root
+    if ($null -eq $open) { return }
+    if (-not $open.Readable) {
+        throw "Atlas Manager's record of the Windows Update settings it changed can't be read: $($open.Error) Open Atlas Manager to continue."
+    }
+    if ($open.Kind -eq 'transition' -and ($WindowsBuild -ne $open.TargetBuild -or $open.Rebuild -ne 'in-place')) {
+        throw 'Atlas Manager is moving this PC to a newer Windows release. Finish the move in Atlas Manager, which then installs Atlas.'
+    }
 }
 
 # Toggling Windows Update or its pause by hand while Atlas has it turned on for an

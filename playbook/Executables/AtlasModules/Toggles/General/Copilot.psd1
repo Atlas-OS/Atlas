@@ -22,6 +22,9 @@
             Launcher        = '3. General Configuration\AI Features\Microsoft Copilot\Enable Microsoft Copilot.cmd'
             ToolboxLauncher = 'Scripts\Copilot\Enable Microsoft Copilot.cmd'
             Reboot          = 'RestartExplorer'
+            # Atlas 0.5.0 recorded Enable before checking for Edge, which it removes by
+            # default; such a record is dropped on replay rather than failing the upgrade.
+            ReplayApplicable = 'Test-AtlasCopilotEdgeInstalled'
             MachineAction   = 'Enable-AtlasCopilotMachine'
             UserAction      = 'Enable-AtlasCopilotUser'
         }

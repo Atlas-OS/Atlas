@@ -37,7 +37,9 @@
       "coreIsolationOff": true,
       "browsers": [
         "browser-brave"
-      ]
+      ],
+      "languageHotkey": "3",
+      "keyboardLayouts": 2
     },
     "options": [
       "defender-enable",
@@ -50,7 +52,8 @@
       "disable-core-isolation",
       "install-toolbox",
       "install-another-browser",
-      "browser-brave"
+      "browser-brave",
+      "keyboard-selector"
     ]
   },
   {
@@ -87,12 +90,15 @@
       "coreIsolationOff": false,
       "browsers": [
         "browser-firefox"
-      ]
+      ],
+      "languageHotkey": "3",
+      "keyboardLayouts": 1
     },
     "options": [
       "defender-disable",
       "mitigations-disable",
-      "auto-updates-default"
+      "auto-updates-default",
+      "keyboard-single"
     ]
   },
   {
@@ -107,11 +113,14 @@
       "coreIsolationOff": false,
       "browsers": [
         "browser-librewolf"
-      ]
+      ],
+      "languageHotkey": "1",
+      "keyboardLayouts": 2
     },
     "options": [
       "install-another-browser",
-      "browser-librewolf"
+      "browser-librewolf",
+      "keyboard-shortcuts"
     ]
   },
   {
