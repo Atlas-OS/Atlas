@@ -336,6 +336,7 @@ impl IsoPage {
                 | "files-empty"
                 | "failed"
                 | "release-unknown"
+                | "release-unlisted"
                 | "package-unsupported"
                 | "checking"
                 | "not-elevated"
@@ -383,6 +384,7 @@ impl IsoPage {
             "failed" => JobResult::Failed(None),
             "build-failed" => JobResult::Failed(Some(FailureReason::Build)),
             "release-unknown" => JobResult::Failed(Some(FailureReason::WindowsReleaseUnknown)),
+            "release-unlisted" => JobResult::Failed(Some(FailureReason::WindowsReleaseUnlisted)),
             "package-unsupported" => JobResult::Failed(Some(FailureReason::PackageUnsupported)),
             "package-changed" => JobResult::Failed(Some(FailureReason::PackageChanged)),
             "cancelled" => JobResult::Cancelled,
@@ -1809,6 +1811,7 @@ impl IsoPage {
         }
         let message = match failure {
             Some(FailureReason::WindowsReleaseUnknown) => t!("iso-release-unknown"),
+            Some(FailureReason::WindowsReleaseUnlisted) => t!("iso-release-unlisted"),
             Some(FailureReason::OutputExists) => t!("iso-failed-output-exists"),
             Some(FailureReason::DestinationFilesystem) => t!("iso-failed-destination"),
             Some(FailureReason::DiskSpace) => t!("iso-failed-space"),

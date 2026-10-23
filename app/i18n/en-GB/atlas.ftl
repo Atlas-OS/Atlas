@@ -1054,7 +1054,10 @@ install-source-details = { $problem } Details: { $error }
 iso-edition-selection = Only supported editions are included. During Windows setup, choose an edition you have a Windows licence for.
 detail-windows-preview = Insider builds aren't supported. Use a public release of Windows 11.
 detail-windows-release-unknown = Atlas couldn't verify this Windows build as a public release. Connect to the internet and check again.
+# $build is this PC's Windows build and update number, such as 26300.9807 (text).
+detail-windows-release-unlisted = Build { $build } isn't in Microsoft's list of public Windows 11 releases, so Atlas can't install on it yet. Release Preview and other preview builds aren't supported. Choose Check again once Microsoft lists this build.
 iso-release-unknown = Atlas couldn't confirm that this ISO is a public release of Windows 11 that the Atlas package supports. Connect to the internet, then choose Check files again. If it still fails, download the ISO from Microsoft again.
+iso-release-unlisted = The Windows 11 build in this ISO isn't in Microsoft's list of public releases. Release Preview and other preview builds aren't supported. Download the ISO from Microsoft, or choose Check files again once Microsoft lists this build.
 prepare-previous-worker = Updates started earlier are still running. Atlas will wait for them to finish, then you can check for updates again.
 
 ready-used-windows-title = Windows on this PC looks used

@@ -980,7 +980,10 @@ install-source-details = { $problem } Подробности: { $error }
 iso-edition-selection = Включены только поддерживаемые редакции. При установке Windows выберите редакцию, для которой у вас есть лицензия Windows.
 detail-windows-preview = Сборки Insider не поддерживаются. Используйте общедоступную версию Windows 11.
 detail-windows-release-unknown = Atlas не удалось подтвердить, что эта сборка Windows общедоступна. Подключитесь к интернету и повторите проверку.
+# $build is this PC's Windows build and update number, such as 26300.9807 (text).
+detail-windows-release-unlisted = Сборки { $build } нет в списке общедоступных выпусков Windows 11 от Microsoft, поэтому Atlas пока нельзя на неё установить. Сборки Release Preview и другие предварительные сборки не поддерживаются. Нажмите «Проверить снова», когда Microsoft добавит эту сборку в список.
 iso-release-unknown = Atlas не удалось подтвердить, что этот ISO-образ — общедоступный выпуск Windows 11, поддерживаемый пакетом Atlas. Подключитесь к интернету и снова нажмите «Проверить файлы». Если ошибка повторится, скачайте ISO-образ с сайта Microsoft заново.
+iso-release-unlisted = Сборки Windows 11 из этого ISO-образа нет в списке общедоступных выпусков от Microsoft. Сборки Release Preview и другие предварительные сборки не поддерживаются. Скачайте ISO-образ с сайта Microsoft или снова нажмите «Проверить файлы», когда Microsoft добавит эту сборку в список.
 prepare-previous-worker = Ранее запущенные обновления ещё выполняются. Atlas дождётся их завершения, после чего можно будет снова проверить обновления.
 
 ready-used-windows-title = Похоже, Windows на этом ПК уже использовалась

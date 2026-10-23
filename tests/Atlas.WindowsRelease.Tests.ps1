@@ -127,6 +127,14 @@ Describe 'Windows release eligibility' {
         Get-AtlasWindowsReleaseStatus -Version '10.0.26200.9999' | Should -Be 'Released'
         Should -Invoke Get-AtlasWindowsReleaseMarkdown -Times 1 -Exactly
     }
+    It 'tells a build the published list leaves out from a failed lookup' {
+        Mock Get-AtlasWindowsReleaseMarkdown { New-ReleaseMarkdownFixture }
+        # A Release Preview row and an unlisted newer revision alike.
+        Get-AtlasWindowsReleaseStatus -Version '10.0.26300.9990' | Should -Be 'Unlisted'
+        Get-AtlasWindowsReleaseStatus -Version '10.0.26300.9807' | Should -Be 'Unlisted'
+        Get-AtlasWindowsReleaseStatus -Version '10.0.26300.9807' -NoRefresh | Should -Be 'Released'
+        Should -Invoke Get-AtlasWindowsReleaseMarkdown -Times 1 -Exactly
+    }
     It 'does not permanently cache a failed lookup' {
         Get-AtlasWindowsReleaseStatus -Version '10.0.26200.9999' | Should -Be 'Unknown'
         Get-AtlasWindowsReleaseStatus -Version '10.0.26200.9999' | Should -Be 'Unknown'

@@ -935,9 +935,12 @@ install-source-unknown = Atlas no pudo confirmar qué hay ya instalado en su PC,
 # $problem es uno de los mensajes install-source-*; $error es un mensaje de error sin procesar (texto).
 install-source-details = { $problem } Detalles: { $error }
 iso-edition-selection = Solo se incluyen las ediciones compatibles. Durante la instalación de Windows, elija una edición para la que tenga licencia de Windows.
-detail-windows-preview = Las compilaciones Insider no son compatibles. Use una versión pública de Windows 11.
+detail-windows-preview = Las compilaciones Insider no cuentan con soporte. Use una versión pública de Windows 11.
 detail-windows-release-unknown = Atlas no pudo confirmar que esta compilación de Windows sea una versión pública. Conéctese a Internet y vuelva a comprobarlo.
+# $build is this PC's Windows build and update number, such as 26300.9807 (text).
+detail-windows-release-unlisted = La compilación { $build } no figura en la lista de versiones públicas de Windows 11 de Microsoft, así que Atlas todavía no puede instalarse en ella. Las compilaciones Release Preview y otras compilaciones preliminares no cuentan con soporte. Elija Volver a comprobar cuando Microsoft incluya esta compilación en la lista.
 iso-release-unknown = Atlas no pudo confirmar que esta ISO sea una versión pública de Windows 11 compatible con el paquete de Atlas. Conéctese a Internet y vuelva a elegir Comprobar archivos. Si sigue fallando, vuelva a descargar la ISO de Microsoft.
+iso-release-unlisted = La compilación de Windows 11 de esta ISO no figura en la lista de versiones públicas de Microsoft. Las compilaciones Release Preview y otras compilaciones preliminares no cuentan con soporte. Descargue la ISO de Microsoft o vuelva a elegir Comprobar archivos cuando Microsoft incluya esta compilación en la lista.
 prepare-previous-worker = Las actualizaciones iniciadas antes siguen en curso. Atlas esperará a que terminen y, después, podrá volver a buscar actualizaciones.
 
 ready-used-windows-title = Parece que Windows ya se ha usado en este equipo

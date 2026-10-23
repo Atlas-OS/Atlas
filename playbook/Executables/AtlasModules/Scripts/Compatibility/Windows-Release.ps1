@@ -141,6 +141,9 @@ function Get-AtlasWindowsReleaseStatus {
             $script:AtlasWindowsReleasedVersions = @($releases | ForEach-Object { $_.version })
         }
         if ($script:AtlasWindowsReleasedVersions -contains $Version.ToString()) { return 'Released' }
+        # Read, but left out: most often a Release Preview build, or an update the
+        # page doesn't list yet.
+        return 'Unlisted'
     } catch { Write-Verbose "Windows release information is unavailable: $_" }
     # Neither missing enrollment indicators nor a failed lookup proves an Insider build.
     'Unknown'

@@ -919,7 +919,10 @@ install-source-details = { $problem }詳細: { $error }
 iso-edition-selection = 対応するエディションのみが含まれます。Windows のセットアップでは、Windows ライセンスをお持ちのエディションを選択してください。
 detail-windows-preview = Insider ビルドには対応していません。Windows 11 の一般公開版を使用してください。
 detail-windows-release-unknown = この Windows ビルドが一般公開版かどうかを確認できませんでした。インターネットに接続して、もう一度確認してください。
+# $build is this PC's Windows build and update number, such as 26300.9807 (text).
+detail-windows-release-unlisted = ビルド { $build } は Microsoft の Windows 11 一般公開版の一覧に含まれていないため、Atlas はまだこのビルドにインストールできません。Release Preview ビルドやその他のプレビュー ビルドには対応していません。Microsoft がこのビルドを一覧に追加したら、「もう一度確認」を選んでください。
 iso-release-unknown = この ISO が、Atlas パッケージが対応する Windows 11 の一般公開版であることを Atlas は確認できませんでした。インターネットに接続してから、もう一度「ファイルを確認」を選んでください。それでも失敗する場合は、Microsoft から ISO をダウンロードし直してください。
+iso-release-unlisted = この ISO の Windows 11 ビルドは、Microsoft の一般公開版の一覧に含まれていません。Release Preview ビルドやその他のプレビュー ビルドには対応していません。Microsoft から ISO をダウンロードするか、Microsoft がこのビルドを一覧に追加してから、もう一度「ファイルを確認」を選んでください。
 prepare-previous-worker = 以前に開始した更新がまだ実行中です。Atlas は完了するまで待機します。完了後に、もう一度更新を確認できます。
 
 ready-used-windows-title = この PC の Windows はすでに使用されているようです

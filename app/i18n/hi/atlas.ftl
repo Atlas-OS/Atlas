@@ -944,7 +944,10 @@ install-source-details = { $problem } विवरण: { $error }
 iso-edition-selection = केवल समर्थित संस्करण शामिल हैं। Windows सेटअप के दौरान वह संस्करण चुनें जिसके लिए आपके पास Windows लाइसेंस है।
 detail-windows-preview = Insider बिल्ड समर्थित नहीं हैं। Windows 11 का सार्वजनिक रिलीज़ संस्करण इस्तेमाल करें।
 detail-windows-release-unknown = Atlas पुष्टि नहीं कर सका कि यह Windows बिल्ड सार्वजनिक रूप से रिलीज़ हुआ है। इंटरनेट से कनेक्ट करें और दोबारा जाँचें।
+# $build is this PC's Windows build and update number, such as 26300.9807 (text).
+detail-windows-release-unlisted = बिल्ड { $build } Microsoft की Windows 11 सार्वजनिक रिलीज़ की सूची में नहीं है, इसलिए Atlas अभी इस पर इंस्टॉल नहीं हो सकता। Release Preview बिल्ड और दूसरे पूर्वावलोकन बिल्ड समर्थित नहीं हैं। Microsoft के इस बिल्ड को सूची में जोड़ने के बाद “दोबारा जाँचें” चुनें।
 iso-release-unknown = Atlas पुष्टि नहीं कर सका कि यह ISO, Windows 11 का ऐसा सार्वजनिक रिलीज़ है, जिसका Atlas पैकेज समर्थन करता है। इंटरनेट से कनेक्ट करें, फिर “फ़ाइलें जाँचें” दोबारा चुनें। अगर फिर भी विफल हो, तो Microsoft से ISO दोबारा डाउनलोड करें।
+iso-release-unlisted = इस ISO का Windows 11 बिल्ड Microsoft की सार्वजनिक रिलीज़ की सूची में नहीं है। Release Preview बिल्ड और दूसरे पूर्वावलोकन बिल्ड समर्थित नहीं हैं। Microsoft से ISO डाउनलोड करें, या Microsoft के इस बिल्ड को सूची में जोड़ने के बाद “फ़ाइलें जाँचें” दोबारा चुनें।
 prepare-previous-worker = पहले शुरू हुए अपडेट अभी भी चल रहे हैं। Atlas उनके पूरा होने का इंतज़ार करेगा, फिर आप अपडेट की जाँच दोबारा कर सकेंगे।
 
 ready-used-windows-title = इस PC पर Windows पहले से इस्तेमाल किया हुआ लगता है

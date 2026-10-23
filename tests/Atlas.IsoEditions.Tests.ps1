@@ -82,6 +82,11 @@ Describe 'Supported editions in mixed Microsoft media' {
         Should -Invoke Get-AtlasWindowsReleaseStatus -Times 1 -Exactly -ParameterFilter { $Version -eq [version]'10.0.26200.6584' }
         Should -Invoke Export-WindowsImage -Times 0 -Exactly
     }
+    It 'names a build Microsoft does not list apart from one it could not check' {
+        Mock Get-AtlasWindowsReleaseStatus { 'Unlisted' }
+        { Get-AtlasMediaEditions source @(26200) } | Should -Throw "*not in Microsoft's list of public Windows 11 releases*"
+        Should -Invoke Export-WindowsImage -Times 0 -Exactly
+    }
     It 'checks releases against the bundled catalog alone when asked' {
         $null = Get-AtlasMediaEditions source @(26200) -OfflineReleaseCheck
         Should -Invoke Get-AtlasWindowsReleaseStatus -Times 5 -Exactly -ParameterFilter { $NoRefresh }

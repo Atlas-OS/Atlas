@@ -930,7 +930,10 @@ install-source-details = { $problem } รายละเอียด: { $error }
 iso-edition-selection = มีเฉพาะรุ่นที่รองรับเท่านั้น ระหว่างติดตั้ง Windows ให้เลือกรุ่นที่คุณมีสิทธิ์การใช้งาน Windows
 detail-windows-preview = ไม่รองรับบิลด์ Insider ให้ใช้ Windows 11 รุ่นที่เผยแพร่ทั่วไป
 detail-windows-release-unknown = Atlas ยืนยันไม่ได้ว่าบิลด์ Windows นี้เป็นรุ่นที่เผยแพร่ทั่วไป เชื่อมต่ออินเทอร์เน็ต แล้วตรวจสอบอีกครั้ง
+# $build is this PC's Windows build and update number, such as 26300.9807 (text).
+detail-windows-release-unlisted = บิลด์ { $build } ไม่อยู่ในรายการ Windows 11 รุ่นที่เผยแพร่ทั่วไปของ Microsoft จึงยังติดตั้ง Atlas บนบิลด์นี้ไม่ได้ ไม่รองรับบิลด์ Release Preview และบิลด์ตัวอย่างอื่น ๆ เลือก ตรวจสอบอีกครั้ง เมื่อ Microsoft เพิ่มบิลด์นี้ลงในรายการแล้ว
 iso-release-unknown = Atlas ยืนยันไม่ได้ว่า ISO นี้เป็น Windows 11 รุ่นที่เผยแพร่ทั่วไปซึ่งแพ็กเกจ Atlas รองรับ เชื่อมต่ออินเทอร์เน็ต แล้วเลือก ตรวจสอบไฟล์ อีกครั้ง หากยังไม่สำเร็จ ให้ดาวน์โหลด ISO จาก Microsoft ใหม่
+iso-release-unlisted = บิลด์ Windows 11 ใน ISO นี้ไม่อยู่ในรายการรุ่นที่เผยแพร่ทั่วไปของ Microsoft ไม่รองรับบิลด์ Release Preview และบิลด์ตัวอย่างอื่น ๆ ดาวน์โหลด ISO จาก Microsoft หรือเลือก ตรวจสอบไฟล์ อีกครั้ง เมื่อ Microsoft เพิ่มบิลด์นี้ลงในรายการแล้ว
 prepare-previous-worker = การอัปเดตที่เริ่มไว้ก่อนหน้านี้ยังทำงานอยู่ Atlas จะรอให้เสร็จ แล้วคุณจึงตรวจหาการอัปเดตอีกครั้งได้
 
 ready-used-windows-title = Windows บนพีซีเครื่องนี้ดูเหมือนเคยใช้งานมาแล้ว

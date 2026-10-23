@@ -1031,7 +1031,10 @@ install-source-details = { $problem } Detalhes: { $error }
 iso-edition-selection = Apenas as edições compatíveis são incluídas. Durante a instalação do Windows, escolha uma edição para a qual você tenha uma licença do Windows.
 detail-windows-preview = As compilações Insider não são compatíveis. Use uma versão pública do Windows 11.
 detail-windows-release-unknown = O Atlas não conseguiu confirmar se esta compilação do Windows é uma versão pública. Conecte-se à internet e verifique novamente.
+# $build is this PC's Windows build and update number, such as 26300.9807 (text).
+detail-windows-release-unlisted = A compilação { $build } não está na lista de versões públicas do Windows 11 da Microsoft, por isso o Atlas ainda não pode ser instalado nela. As compilações Release Preview e outras compilações de versão prévia não são compatíveis. Escolha Verificar novamente quando a Microsoft incluir esta compilação na lista.
 iso-release-unknown = O Atlas não conseguiu confirmar se esta ISO é uma versão pública do Windows 11 compatível com o pacote do Atlas. Conecte-se à internet e escolha Verificar arquivos novamente. Se ainda falhar, baixe a ISO da Microsoft de novo.
+iso-release-unlisted = A compilação do Windows 11 desta ISO não está na lista de versões públicas da Microsoft. As compilações Release Preview e outras compilações de versão prévia não são compatíveis. Baixe a ISO da Microsoft ou escolha Verificar arquivos novamente quando a Microsoft incluir esta compilação na lista.
 prepare-previous-worker = As atualizações iniciadas anteriormente ainda estão em andamento. O Atlas aguardará a conclusão delas e depois você poderá buscar atualizações novamente.
 
 ready-used-windows-title = O Windows deste PC parece já ter sido usado

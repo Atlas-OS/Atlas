@@ -942,7 +942,10 @@ install-source-details = { $problem } Details: { $error }
 iso-edition-selection = Es werden nur unterstützte Editionen übernommen. Wählen Sie bei der Windows-Installation eine Edition, für die Sie eine Windows-Lizenz haben.
 detail-windows-preview = Insider-Builds werden nicht unterstützt. Verwenden Sie eine regulär veröffentlichte Version von Windows 11.
 detail-windows-release-unknown = Atlas konnte nicht bestätigen, dass dieser Windows-Build regulär veröffentlicht wurde. Stellen Sie eine Internetverbindung her und prüfen Sie erneut.
+# $build is this PC's Windows build and update number, such as 26300.9807 (text).
+detail-windows-release-unlisted = Build { $build } steht nicht in Microsofts Liste der regulär veröffentlichten Versionen von Windows 11, daher lässt sich Atlas darauf noch nicht installieren. Release-Preview-Builds und andere Vorschau-Builds werden nicht unterstützt. Wählen Sie „Erneut prüfen“, sobald Microsoft diesen Build aufführt.
 iso-release-unknown = Atlas konnte nicht bestätigen, dass diese ISO eine regulär veröffentlichte Version von Windows 11 enthält, die das Atlas-Paket unterstützt. Stellen Sie eine Internetverbindung her und wählen Sie dann erneut „Dateien prüfen“. Wenn es weiterhin fehlschlägt, laden Sie die ISO erneut von Microsoft herunter.
+iso-release-unlisted = Der Windows-11-Build in dieser ISO steht nicht in Microsofts Liste der regulär veröffentlichten Versionen. Release-Preview-Builds und andere Vorschau-Builds werden nicht unterstützt. Laden Sie die ISO von Microsoft herunter oder wählen Sie erneut „Dateien prüfen“, sobald Microsoft diesen Build aufführt.
 prepare-previous-worker = Zuvor gestartete Updates laufen noch. Atlas wartet, bis sie abgeschlossen sind. Danach können Sie erneut nach Updates suchen.
 
 ready-used-windows-title = Windows auf diesem PC wurde offenbar schon genutzt

@@ -3,7 +3,7 @@ param(
     [string]$Language = 'en-GB',
     # The debug preview states of pages/iso.rs, pages/usb.rs and model/preview.rs.
     [ValidateSet('home','files','files-checked','checking','not-elevated','windows','account-empty','account-invalid','choices','choices-unsupported','before','before-desktop',
-        'review','review-before','progress','progress-network','failed','build-failed','package-changed','cancelled','release-unknown','package-unsupported','complete',
+        'review','review-before','progress','progress-network','failed','build-failed','package-changed','cancelled','release-unknown','release-unlisted','package-unsupported','complete',
         'prepare-idle','prepare-busy','prepare-stopping','prepare-download','prepare-complete','prepare-resume','prepare-failed','prepare-failed-battery','prepare-unconfirmed',
         'prepare-reboot','prepare-restart-persists','prepare-network','prepare-network-limited','prepare-previous-worker',
         'network-drivers','usb-select','usb-empty','usb-review','usb-progress','usb-failed','usb-failed-iso','usb-failed-unchanged','usb-scan-failed',

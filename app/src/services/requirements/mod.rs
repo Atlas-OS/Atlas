@@ -86,6 +86,8 @@ pub enum CheckDetail {
     BuildSupported,
     EditionUnsupported,
     WindowsPreview,
+    /// Microsoft's list of public releases doesn't include this build.
+    WindowsReleaseUnlisted,
     WindowsReleaseUnknown,
     BuildUnsupported {
         supported: Vec<u32>,
@@ -199,6 +201,7 @@ pub fn run(id: CheckId, ctx: &CheckContext) -> CheckResult {
                 ) {
                     super::windows_release::Status::Released => (Verdict::Pass, D::BuildSupported),
                     super::windows_release::Status::Preview => (Verdict::Fail, D::WindowsPreview),
+                    super::windows_release::Status::Unlisted => (Verdict::Fail, D::WindowsReleaseUnlisted),
                     super::windows_release::Status::Unknown => (Verdict::Unknown, D::WindowsReleaseUnknown),
                 }
             } else if let Some((transition, _)) = super::windows_release::transition_for(

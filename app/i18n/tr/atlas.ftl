@@ -950,7 +950,10 @@ install-source-details = { $problem } Ayrıntılar: { $error }
 iso-edition-selection = Yalnızca desteklenen sürümler dahil edilir. Windows kurulumu sırasında Windows lisansınızın bulunduğu sürümü seçin.
 detail-windows-preview = Insider derlemeleri desteklenmiyor. Windows 11’in genel kullanıma sunulan bir sürümünü kullanın.
 detail-windows-release-unknown = Atlas, bu Windows derlemesinin genel kullanıma sunulduğunu doğrulayamadı. İnternete bağlanıp yeniden denetleyin.
+# $build is this PC's Windows build and update number, such as 26300.9807 (text).
+detail-windows-release-unlisted = { $build } derlemesi, Microsoft’un genel kullanıma sunulan Windows 11 sürümleri listesinde yer almıyor; bu nedenle Atlas henüz bu derlemeye kurulamaz. Release Preview derlemeleri ve diğer önizleme derlemeleri desteklenmiyor. Microsoft bu derlemeyi listeye eklediğinde Yeniden denetle’yi seçin.
 iso-release-unknown = Atlas, bu ISO’nun Atlas paketinin desteklediği ve genel kullanıma sunulmuş bir Windows 11 sürümü olduğunu doğrulayamadı. İnternete bağlanın, ardından Dosyaları denetle’yi yeniden seçin. Sorun devam ederse ISO’yu Microsoft’tan yeniden indirin.
+iso-release-unlisted = Bu ISO’daki Windows 11 derlemesi, Microsoft’un genel kullanıma sunulan sürümler listesinde yer almıyor. Release Preview derlemeleri ve diğer önizleme derlemeleri desteklenmiyor. ISO’yu Microsoft’tan indirin ya da Microsoft bu derlemeyi listeye eklediğinde Dosyaları denetle’yi yeniden seçin.
 prepare-previous-worker = Daha önce başlayan güncellemeler hâlâ sürüyor. Atlas bunların bitmesini bekleyecek, ardından güncellemeleri yeniden denetleyebilirsiniz.
 
 ready-used-windows-title = Bu bilgisayardaki Windows kullanılmış görünüyor

@@ -909,7 +909,10 @@ install-source-details = { $problem }詳細資料：{ $error }
 iso-edition-selection = 僅包含支援的版本。安裝 Windows 時，請選擇您擁有 Windows 授權的版本。
 detail-windows-preview = 不支援 Insider 預覽組建。請使用 Windows 11 的正式發行版本。
 detail-windows-release-unknown = Atlas 無法確認此 Windows 組建是否已正式發行。請連線至網際網路後重新檢查。
+# $build is this PC's Windows build and update number, such as 26300.9807 (text).
+detail-windows-release-unlisted = Microsoft 的 Windows 11 正式發行版本清單中沒有組建 { $build }，因此 Atlas 目前還無法安裝在此組建上。不支援 Release Preview 組建和其他預覽組建。待 Microsoft 將此組建列入清單後，請選擇「再次檢查」。
 iso-release-unknown = Atlas 無法確認此 ISO 是 Atlas 套件支援的 Windows 11 正式發行版本。請連線至網際網路，然後再次選擇「檢查檔案」。如果仍然失敗，請從 Microsoft 重新下載 ISO。
+iso-release-unlisted = 此 ISO 中的 Windows 11 組建不在 Microsoft 的正式發行版本清單中。不支援 Release Preview 組建和其他預覽組建。請從 Microsoft 下載 ISO，或待 Microsoft 將此組建列入清單後，再次選擇「檢查檔案」。
 prepare-previous-worker = 先前開始的更新仍在執行。Atlas 會等待更新完成，之後您就可以再次檢查更新。
 
 ready-used-windows-title = 這台電腦上的 Windows 似乎已使用過

@@ -229,6 +229,7 @@ servicing are outside the
 | Problem | What to do |
 | --- | --- |
 | Release information unavailable or unrecognised | The check stops with an explanation. Retry. |
+| The ISO's Windows build isn't in Microsoft's list of public releases | Release Preview and other preview builds aren't supported. Use an ISO from Microsoft, or check the files again once Microsoft lists the build. |
 | A network driver was rejected | Windows installation continues. See `%windir%\AtlasISO\setup.log` and PnPUtil's exit code in `network-drivers-result.json`. Install manually from `%windir%\AtlasISO\NetworkDrivers`. |
 | Before-desktop cleanup failed | Explorer still opens, and `%LOCALAPPDATA%\Atlas-desktop-recovery.log` has the error. Run `%windir%\AtlasISO\Desktop.ps1 -RestoreDesktop`. The shell remains available for recovery at the next sign-in. |
 | An ISO or USB job failed | Its logs, request and errors stay in its job directory under `%ProgramFiles%\Atlas Setup Recovery\Media`, which **Open log folder** shows. |
@@ -315,7 +316,7 @@ window size and a scroll offset; `-Desktop` adds the before-desktop bar.
 | Screen | States |
 | --- | --- |
 | Home | `home` |
-| Files | `files`, `files-checked`, `checking`, `not-elevated`, `failed`, `release-unknown`, `package-unsupported` |
+| Files | `files`, `files-checked`, `checking`, `not-elevated`, `failed`, `release-unknown`, `release-unlisted`, `package-unsupported` |
 | Windows setup | `windows`, `account-empty`, `account-invalid`, `network-drivers` |
 | Your choices | `choices`, `choices-unsupported`, `before`, `before-desktop` |
 | Review and Create | `review`, `review-before`, `progress`, `progress-network`, `build-failed`, `package-changed`, `cancelled`, `complete` |

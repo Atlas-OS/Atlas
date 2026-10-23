@@ -960,7 +960,10 @@ install-source-details = { $problem } Szczegóły: { $error }
 iso-edition-selection = Uwzględnione są tylko obsługiwane edycje. Podczas instalacji Windows wybierz edycję, na którą masz licencję Windows.
 detail-windows-preview = Kompilacje Insider nie są obsługiwane. Użyj publicznie wydanej wersji systemu Windows 11.
 detail-windows-release-unknown = Atlas nie mógł potwierdzić, że ta kompilacja systemu Windows została publicznie wydana. Połącz się z internetem i sprawdź ponownie.
+# $build is this PC's Windows build and update number, such as 26300.9807 (text).
+detail-windows-release-unlisted = Kompilacji { $build } nie ma na liście publicznie wydanych wersji systemu Windows 11 prowadzonej przez firmę Microsoft, dlatego nie można jeszcze zainstalować na niej Atlasa. Kompilacje Release Preview i inne kompilacje zapoznawcze nie są obsługiwane. Wybierz Sprawdź ponownie, gdy Microsoft doda tę kompilację do listy.
 iso-release-unknown = Atlas nie mógł potwierdzić, że ten obraz ISO zawiera publicznie wydaną wersję Windows 11 obsługiwaną przez pakiet Atlasa. Połącz się z internetem, a potem ponownie wybierz Sprawdź pliki. Jeśli to nie pomoże, pobierz obraz ISO od firmy Microsoft jeszcze raz.
+iso-release-unlisted = Kompilacji systemu Windows 11 z tego obrazu ISO nie ma na liście publicznie wydanych wersji prowadzonej przez firmę Microsoft. Kompilacje Release Preview i inne kompilacje zapoznawcze nie są obsługiwane. Pobierz obraz ISO od firmy Microsoft albo ponownie wybierz Sprawdź pliki, gdy Microsoft doda tę kompilację do listy.
 prepare-previous-worker = Wcześniej rozpoczęte aktualizacje nadal trwają. Atlas poczeka na ich zakończenie, a potem możesz ponownie sprawdzić aktualizacje.
 
 ready-used-windows-title = Windows na tym komputerze wygląda na używany

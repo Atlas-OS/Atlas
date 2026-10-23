@@ -454,10 +454,12 @@ Describe 'Front door requirements and staging' {
         { Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('FutureRequirement') } | Should -Throw '*cannot verify*'
     }
 
-    It 'blocks preview and unverifiable Windows releases independently of the base build' -TestCases @(
-        @{ Release='Preview' }, @{ Release='Unknown' }
+    It 'blocks preview, unlisted and unverifiable Windows releases independently of the base build' -TestCases @(
+        @{ Release='Preview'; Detail='*Insider or preview*' }
+        @{ Release='Unlisted'; Detail="*build 26200.5551 is not in Microsoft's list*" }
+        @{ Release='Unknown'; Detail='*could not be verified*' }
     ) {
-        param($Release)
+        param($Release, $Detail)
         $script:ReleaseFixture = $Release
         Mock Get-AtlasWindowsReleaseStatus { $script:ReleaseFixture }
         Mock Test-Path { $false }
@@ -465,6 +467,7 @@ Describe 'Front door requirements and staging' {
         $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -WindowsRevision 5551 -BuildLabEx 'rs_prerelease' -EditionId Professional -InstallationType Client | Where-Object Name -eq 'Windows release'
         $result.Passed | Should -BeFalse
         $result.Blocking | Should -BeTrue
+        $result.Detail | Should -BeLike $Detail
         Should -Invoke Get-AtlasWindowsReleaseStatus -Times 1 -Exactly -ParameterFilter { $Version -eq [version]'10.0.26200.5551' -and $BuildLabEx -eq 'rs_prerelease' }
     }
 

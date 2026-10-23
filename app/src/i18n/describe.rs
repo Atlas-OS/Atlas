@@ -298,6 +298,9 @@ impl CheckDetail {
             CheckDetail::BuildSupported => system_description(system),
             CheckDetail::EditionUnsupported => t!("detail-edition-unsupported"),
             CheckDetail::WindowsPreview => t!("detail-windows-preview"),
+            CheckDetail::WindowsReleaseUnlisted => {
+                t!("detail-windows-release-unlisted", build = format!("{}.{}", system.build, system.revision))
+            }
             CheckDetail::WindowsReleaseUnknown => t!("detail-windows-release-unknown"),
             CheckDetail::BuildTransition { current, release } => {
                 t!("detail-build-transition", current = current.as_str(), release = release.as_str())

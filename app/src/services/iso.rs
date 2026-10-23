@@ -387,6 +387,8 @@ fn prune_jobs_in(root: &Path) {
 pub enum FailureReason {
     /// The Windows build could not be verified as a public release.
     WindowsReleaseUnknown,
+    /// Microsoft's list of public releases doesn't include the image's build.
+    WindowsReleaseUnlisted,
     /// The output file already exists.
     OutputExists,
     /// The destination is not a local NTFS or ReFS volume.
@@ -417,6 +419,7 @@ impl FailureReason {
     pub fn parse(value: &str) -> Option<Self> {
         Some(match value {
             "windows-release-unknown" => Self::WindowsReleaseUnknown,
+            "windows-release-unlisted" => Self::WindowsReleaseUnlisted,
             "output-exists" => Self::OutputExists,
             "destination-filesystem" => Self::DestinationFilesystem,
             "disk-space" => Self::DiskSpace,
@@ -915,6 +918,10 @@ mod tests {
         assert_eq!(
             FailureReason::parse("windows-release-unknown"),
             Some(FailureReason::WindowsReleaseUnknown)
+        );
+        assert_eq!(
+            FailureReason::parse("windows-release-unlisted"),
+            Some(FailureReason::WindowsReleaseUnlisted)
         );
         assert_eq!(FailureReason::parse("check"), None);
         assert_eq!(FailureReason::parse("network-architecture"), Some(FailureReason::NetworkArchitecture));

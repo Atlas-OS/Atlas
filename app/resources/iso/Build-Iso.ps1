@@ -105,7 +105,11 @@ function Get-AtlasMediaEditions([string]$ImagePath, [int[]]$SupportedBuilds, [sw
         }
         $architecture = [int]$info.Architecture
         if ($info.InstallationType -ne 'Client') { Fail 'windows-unsupported' 'Only Windows client installation media is supported.' }
-        if ((Get-AtlasWindowsReleaseStatus -Version $version -NoRefresh:$OfflineReleaseCheck) -ne 'Released') {
+        $release = Get-AtlasWindowsReleaseStatus -Version $version -NoRefresh:$OfflineReleaseCheck
+        if ($release -eq 'Unlisted') {
+            Fail 'windows-release-unlisted' "The Windows image version $version is not in Microsoft's list of public Windows 11 releases. Release Preview and other preview builds are not supported."
+        }
+        if ($release -ne 'Released') {
             Fail 'windows-release-unknown' "The Windows image version $version could not be verified as a public release. Connect to the internet and retry, or choose official release media."
         }
         # Skip the editions Install-Atlas.ps1 refuses (Home and LTSC). Consumer media

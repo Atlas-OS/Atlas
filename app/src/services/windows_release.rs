@@ -25,6 +25,9 @@ const CACHE_FOR: Duration = Duration::from_secs(15 * 60);
 pub enum Status {
     Released,
     Preview,
+    /// Microsoft's page was read and leaves this version out: most often a
+    /// Release Preview build, or an update the page doesn't list yet.
+    Unlisted,
     Unknown,
 }
 
@@ -86,14 +89,10 @@ fn classify_with(
     if known.contains(version) {
         return Status::Released;
     }
-    match refresh {
-        Some(refresh) => {
-            if refresh().is_ok_and(|versions| versions.contains(version)) {
-                Status::Released
-            } else {
-                Status::Unknown
-            }
-        }
+    match refresh.map(|refresh| refresh()) {
+        Some(Ok(versions)) if versions.contains(version) => Status::Released,
+        Some(Ok(_)) => Status::Unlisted,
+        Some(Err(_)) => Status::Unknown,
         None => Status::Released,
     }
 }
@@ -510,6 +509,18 @@ mod tests {
             assert_eq!(
                 classify_with(version, "ge_release", snapshot(), Some(|| anyhow::bail!("offline"))),
                 Status::Unknown
+            );
+        }
+        // Read, but left out: a Release Preview build or one not listed yet.
+        for version in ["10.0.26200.5551", "10.0.26300.9807"] {
+            assert_eq!(
+                classify_with(
+                    version,
+                    "ge_release",
+                    snapshot(),
+                    Some(|| Ok(HashSet::from(["10.0.26300.9711".into()])))
+                ),
+                Status::Unlisted
             );
         }
     }

@@ -19,7 +19,8 @@ reads DISM's four-part image version, including its service-pack build/revision
 | --- | --- |
 | `Released` | The complete version is in the public General Availability table with an availability date no later than today. |
 | `Preview` | A supplied BuildLabEx contains a delimited `prerelease` branch marker. |
-| `Unknown` | Eligibility could not be established: an unlisted version, unavailable release information or an unexpected response format. Not evidence of an Insider installation. |
+| `Unlisted` | Microsoft's release information was read, and the complete version isn't in its General Availability tables. Most often a Release Preview build, or an update the page doesn't list yet. Atlas says so and suggests checking again once Microsoft lists it. |
+| `Unknown` | Eligibility could not be established: unavailable release information, an unexpected response format, or an unlisted version checked offline. Not evidence of an Insider installation. |
 
 - Public optional non-security updates qualify, even when Microsoft calls them
   "Preview".

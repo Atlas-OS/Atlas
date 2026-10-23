@@ -921,7 +921,10 @@ install-source-details = { $problem } Detail: { $error }
 iso-edition-selection = Hanya edisi yang didukung yang disertakan. Saat menginstal Windows, pilih edisi yang sesuai dengan lisensi Windows Anda.
 detail-windows-preview = Build Insider tidak didukung. Gunakan rilis publik Windows 11.
 detail-windows-release-unknown = Atlas tidak dapat memastikan bahwa build Windows ini merupakan rilis publik. Hubungkan ke internet, lalu periksa lagi.
+# $build is this PC's Windows build and update number, such as 26300.9807 (text).
+detail-windows-release-unlisted = Build { $build } tidak ada dalam daftar rilis publik Windows 11 dari Microsoft, sehingga Atlas belum dapat diinstal pada build ini. Build Release Preview dan build pratinjau lainnya tidak didukung. Pilih Periksa lagi setelah Microsoft menambahkan build ini ke daftar.
 iso-release-unknown = Atlas tidak dapat memastikan bahwa ISO ini adalah rilis publik Windows 11 yang didukung oleh paket Atlas. Hubungkan ke internet, lalu pilih Periksa file lagi. Jika masih gagal, unduh ulang ISO dari Microsoft.
+iso-release-unlisted = Build Windows 11 dalam ISO ini tidak ada dalam daftar rilis publik dari Microsoft. Build Release Preview dan build pratinjau lainnya tidak didukung. Unduh ISO dari Microsoft, atau pilih Periksa file lagi setelah Microsoft menambahkan build ini ke daftar.
 prepare-previous-worker = Pembaruan yang dimulai sebelumnya masih berjalan. Atlas akan menunggu hingga selesai, lalu Anda dapat memeriksa pembaruan lagi.
 
 ready-used-windows-title = Windows di PC ini tampaknya sudah pernah digunakan

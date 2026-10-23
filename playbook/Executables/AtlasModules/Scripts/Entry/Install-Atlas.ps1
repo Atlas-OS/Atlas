@@ -202,7 +202,12 @@ function Test-AtlasInstallRequirement {
     $release = Get-AtlasWindowsReleaseStatus -Version ([version]("10.0.$WindowsBuild.$WindowsRevision")) -BuildLabEx $BuildLabEx
     $results += [pscustomobject]@{
         Name = 'Windows release'; Passed = $release -eq 'Released'; Blocking = $true
-        Detail = if ($release -eq 'Released') { 'a published Windows release' } elseif ($release -eq 'Preview') { 'Insider or preview Windows builds are not supported' } else { 'Windows release could not be verified; connect to the internet and retry with official supported Windows media' }
+        Detail = switch ($release) {
+            'Released' { 'a published Windows release' }
+            'Preview' { 'Insider or preview Windows builds are not supported' }
+            'Unlisted' { "build $WindowsBuild.$WindowsRevision is not in Microsoft's list of public Windows 11 releases; Release Preview and other preview builds are not supported, so check again once Microsoft lists it" }
+            default { 'Windows release could not be verified; connect to the internet and retry with official supported Windows media' }
+        }
     }
 
     $accountReady = $false
