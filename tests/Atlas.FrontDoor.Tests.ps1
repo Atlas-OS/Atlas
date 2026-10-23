@@ -200,6 +200,17 @@ Describe 'Install request validation' {
             Should -Throw '*Exactly one of keyboard-*'
     }
 
+    It 'resumes an install begun before a required group with the options it began with' {
+        # An RC without the keyboard page recorded these; the resume must keep them.
+        $began = @('defender-enable', 'mitigations-default', 'auto-updates-disable')
+        @(Assert-AtlasInstallOptionSet -Options $began -Groups $script:Groups -ResumedOptions $began) | Should -Be $began
+
+        { Assert-AtlasInstallOptionSet -Options @('defender-enable', 'mitigations-default') -Groups $script:Groups -ResumedOptions ($began + 'keyboard-single') } |
+            Should -Throw '*Exactly one of auto-updates*'
+        { Assert-AtlasInstallOptionSet -Options ($began + 'keyboard-single' + 'keyboard-shortcuts') -Groups $script:Groups -ResumedOptions $began } |
+            Should -Throw '*Exactly one of keyboard-*'
+    }
+
     It 'reads only a size-limited request.json with an options array' {
         $payload = Join-Path $TestDrive 'payload'
         New-Item -Path $payload -ItemType Directory -Force | Out-Null

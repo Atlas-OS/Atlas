@@ -35,6 +35,38 @@ fn resume_uses_protected_choices_even_when_the_local_draft_is_missing_or_changed
     });
 }
 
+/// An install interrupted before its package gained a required page
+/// resumes with the choices it began with, not a vague block.
+#[test]
+fn an_unfinished_install_from_before_a_required_page_still_resumes() {
+    run_model_test(|mut cx| async move {
+        let (_temp, machine, env) = fixture("resume-added-page");
+        // The bundled package judges the choices, as Get ready's would.
+        let env = Environment { embedded_startup: true, ..env };
+        let manifest = playbook::Manifest::builtin();
+        let keyboard = ["keyboard-shortcuts", "keyboard-selector", "keyboard-single"];
+        assert!(keyboard.iter().all(|name| manifest.option_label(name).is_some()));
+        let saved: Vec<String> = crate::services::iso::default_options(&manifest)
+            .into_iter()
+            .filter(|name| !keyboard.contains(&name.as_str()))
+            .collect();
+        *machine.identity.lock().unwrap() =
+            Some(atlas_state::InstallIdentity::Resume(manifest.version.clone(), Some(saved.clone())));
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        read(&cx, &model, |m| {
+            assert!(m.install_block().is_none() && m.start_block().is_none());
+            assert_eq!(m.effective_options(), saved);
+        });
+        // A choice the package doesn't offer still can't be resumed.
+        let unknown = [saved.clone(), vec!["shell-command".into()]].concat();
+        *machine.identity.lock().unwrap() =
+            Some(atlas_state::InstallIdentity::Resume(manifest.version.clone(), Some(unknown)));
+        act(&mut cx, &model, |m, _| m.refresh_atlas_state());
+        assert_eq!(read(&cx, &model, AppModel::install_block), Some(InstallBlock::Unknown));
+    });
+}
+
 #[test]
 fn unsupported_or_unreadable_identity_blocks_before_preparation_and_is_rechecked_before_launch() {
     run_model_test(|mut cx| async move {

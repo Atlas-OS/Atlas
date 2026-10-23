@@ -140,7 +140,7 @@ impl AppModel {
                 let invalid = !provisional
                     && options
                         .as_ref()
-                        .is_some_and(|options| iso::validate_options(manifest, options).is_err());
+                        .is_some_and(|options| iso::validate_resumed_options(manifest, options).is_err());
                 invalid.then_some(InstallBlock::Unknown)
             }
             Ok(identity @ InstallIdentity::Installed(version)) => {

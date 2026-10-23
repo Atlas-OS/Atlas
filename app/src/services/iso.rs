@@ -141,6 +141,17 @@ pub fn supports_version(version: &str) -> bool {
 }
 
 pub fn validate_options(manifest: &super::playbook::Manifest, options: &[String]) -> Result<()> {
+    check_options(manifest, options, false)
+}
+
+/// An unfinished install's choices, against the package that finishes it.
+/// The install keeps them, so a required page added since it began may have
+/// no choice; Invoke-AtlasInstallSession.ps1 accepts that on a resume too.
+pub fn validate_resumed_options(manifest: &super::playbook::Manifest, options: &[String]) -> Result<()> {
+    check_options(manifest, options, true)
+}
+
+fn check_options(manifest: &super::playbook::Manifest, options: &[String], resumed: bool) -> Result<()> {
     use std::collections::HashSet;
     let unique: HashSet<_> = options.iter().collect();
     if unique.len() != options.len() || options.iter().any(|o| manifest.option_label(o).is_none()) {
@@ -149,9 +160,8 @@ pub fn validate_options(manifest: &super::playbook::Manifest, options: &[String]
     for page in &manifest.pages {
         let selected = page.options.iter().filter(|o| options.contains(&o.name)).count();
         let active = page.depends_on.as_ref().is_none_or(|n| options.contains(n));
-        if (!active && selected != 0)
-            || (active && page.kind == super::playbook::PageKind::Radio && selected != 1)
-        {
+        let required = active && page.kind == super::playbook::PageKind::Radio;
+        if (!active && selected != 0) || (required && selected != 1 && !(resumed && selected == 0)) {
             bail!("The Atlas choices are incomplete or inconsistent");
         }
     }
@@ -1024,6 +1034,13 @@ mod tests {
             [&[][..], &["a1", "a2"], &["a1", "a1"], &["a1", "shell-command"], &["a1", "b1"], &["a1", "extra"]]
         {
             assert!(validate_options(&manifest, &options(refused)).is_err(), "{refused:?}");
+        }
+        // An unfinished install keeps its choices: a required page the package
+        // added since may have none, but nothing else is let through.
+        assert!(validate_resumed_options(&manifest, &options(&["extra", "b2"])).is_ok());
+        assert!(validate_resumed_options(&manifest, &options(&["a1", "extra"])).is_ok());
+        for refused in [&["a1", "a2"][..], &["a1", "a1"], &["a1", "shell-command"], &["a1", "b1"]] {
+            assert!(validate_resumed_options(&manifest, &options(refused)).is_err(), "{refused:?}");
         }
     }
 

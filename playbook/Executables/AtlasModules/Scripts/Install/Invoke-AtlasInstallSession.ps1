@@ -73,10 +73,16 @@ function Assert-AtlasInstallOptionSet {
     <#
     .SYNOPSIS
         Rejects unknown options and unsatisfied option groups; returns the option set.
+    .PARAMETER ResumedOptions
+        The options of the unfinished install this request resumes. A resume must
+        keep them, so a required group added to the package after they were
+        recorded may stay unchosen when they chose nothing in it; its steps then
+        change nothing.
     #>
     param(
         [Parameter(Mandatory = $true)][AllowEmptyCollection()][string[]]$Options,
-        [Parameter(Mandatory = $true)][object[]]$Groups
+        [Parameter(Mandatory = $true)][object[]]$Groups,
+        [AllowEmptyCollection()][string[]]$ResumedOptions
     )
 
     $known = @($Groups | ForEach-Object { $_.Options })
@@ -96,7 +102,9 @@ function Assert-AtlasInstallOptionSet {
             }
             continue
         }
-        if ($group.ExactlyOne -and $chosen.Count -ne 1) {
+        $addedSinceResumed = $chosen.Count -eq 0 -and $PSBoundParameters.ContainsKey('ResumedOptions') -and
+            -not @($ResumedOptions | Where-Object { $group.Options -ccontains $_ })
+        if ($group.ExactlyOne -and $chosen.Count -ne 1 -and -not $addedSinceResumed) {
             throw "Exactly one of $($group.Options -join ', ') must be selected."
         }
     }
@@ -124,8 +132,14 @@ try {
         'Capture' {
             $targetVersion = Get-AtlasPlaybookVersion -PlaybookPath $playbookPath
             $installRequest = Read-AtlasInstallRequest -PayloadRoot $payloadRoot -WithMode
-            $options = Assert-AtlasInstallOptionSet -Options $installRequest.options `
-                -Groups @(Get-AtlasPlaybookOption -PlaybookPath $playbookPath)
+            $optionCheck = @{ Options = $installRequest.options; Groups = @(Get-AtlasPlaybookOption -PlaybookPath $playbookPath) }
+            # The same test Set-AtlasInstallOptions uses to hold a resume to its options.
+            $active = Get-AtlasInstallState
+            if ($null -ne $active -and $active.targetVersion -ceq $targetVersion -and
+                ($active.status -ceq 'Running' -or @($active.completedSteps).Count -gt 0)) {
+                $optionCheck.ResumedOptions = @($active.options | ForEach-Object { [string]$_ })
+            }
+            $options = Assert-AtlasInstallOptionSet @optionCheck
             $mode = Resolve-AtlasInstallMode -TargetVersion $targetVersion
 
             $null = Start-AtlasInstallState -TargetVersion $targetVersion -Mode $mode -IsOobe ([bool]$installRequest.windowsSetup) `
