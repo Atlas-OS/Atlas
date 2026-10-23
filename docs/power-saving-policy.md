@@ -92,6 +92,10 @@ implements both states.
   with a fresh duplicate of Balanced, sets the four AC values and activates it.
 - **Default** activates the saved plan if it is installed and is not the Atlas plan,
   otherwise Balanced, then deletes the Atlas plan.
+- **Unlisted plans:** on Modern Standby PCs, `powercfg /list` shows only Balanced
+  and its copies. The Ultimate Performance copy older Atlas versions made is left
+  out but still holds the Atlas GUID, so both states also look for its key under
+  `HKLM\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes` and delete it.
 - **Checks:** every `%SystemRoot%\System32\powercfg.exe` call stops the run on a
   nonzero exit code, and every plan GUID from `powercfg` or the registry is validated.
   The active plan is read back before success is reported. Default removes the saved

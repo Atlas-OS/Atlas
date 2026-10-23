@@ -68,6 +68,7 @@ Describe 'Atlas power-saving state' {
         $script:activeQueue = New-Object 'Collections.Generic.Queue[string]'
         Mock Get-AtlasActivePowerScheme -ModuleName Atlas.Hardware { $script:activeQueue.Dequeue() }
         Mock Get-AtlasPowerSchemeInventory -ModuleName Atlas.Hardware { @($script:balanced, $script:custom) }
+        Mock Test-AtlasPowerSchemeStored -ModuleName Atlas.Hardware { $false }
         Mock Get-AtlasPreviousPowerScheme -ModuleName Atlas.Hardware { $null }
         Mock Save-AtlasPreviousPowerScheme -ModuleName Atlas.Hardware { $SchemeGuid }
         Mock Clear-AtlasPreviousPowerScheme -ModuleName Atlas.Hardware
@@ -117,6 +118,36 @@ Describe 'Atlas power-saving state' {
         Should -Invoke Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware -Times 1 -Exactly -ParameterFilter {
             $ArgumentList[0] -ceq '/delete' -and
                 $ArgumentList[1] -ceq $script:atlas
+        }
+    }
+
+    It 'replaces an Atlas plan that Modern Standby leaves out of the list' {
+        # An older Atlas copied Ultimate Performance; Modern Standby lists only
+        # Balanced and its copies, yet the plan still holds the GUID.
+        Mock Test-AtlasPowerSchemeStored -ModuleName Atlas.Hardware { $SchemeGuid -ceq $script:atlas }
+        $script:activeQueue.Enqueue($script:balanced)
+        $script:activeQueue.Enqueue($script:atlas)
+        $script:calls = New-Object Collections.Generic.List[string]
+        Mock Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware { $script:calls.Add($ArgumentList[0]); @() }
+
+        Invoke-PowerSavingCore -Mode Atlas
+
+        $script:calls.IndexOf('/delete') | Should -BeLessThan $script:calls.IndexOf('/duplicatescheme')
+        Should -Invoke Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware -Times 1 -Exactly -ParameterFilter {
+            $ArgumentList[0] -ceq '/delete' -and $ArgumentList[1] -ceq $script:atlas
+        }
+        Should -Invoke Save-AtlasPreviousPowerScheme -ModuleName Atlas.Hardware -Times 1 -Exactly `
+            -ParameterFilter { $SchemeGuid -ceq $script:balanced }
+    }
+
+    It 'removes an unlisted Atlas plan when restoring the previous plan' {
+        Mock Test-AtlasPowerSchemeStored -ModuleName Atlas.Hardware { $SchemeGuid -ceq $script:atlas }
+        $script:activeQueue.Enqueue($script:balanced)
+
+        Invoke-PowerSavingCore -Mode Default
+
+        Should -Invoke Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware -Times 1 -Exactly -ParameterFilter {
+            $ArgumentList[0] -ceq '/delete' -and $ArgumentList[1] -ceq $script:atlas
         }
     }
 
@@ -187,6 +218,18 @@ Describe 'powercfg helpers' {
                 Invoke-AtlasPowerCfg -FilePath $c -ArgumentList @('/d', '/c', 'exit 7')
             } -Parameters @{ c = $commandProcessor }
         } | Should -Throw "*exit code '7'*"
+    }
+
+    It 'reports the exit code and powercfg message when the engine stops on errors' {
+        $commandProcessor = Join-Path -Path ([Environment]::SystemDirectory) `
+            -ChildPath 'cmd.exe'
+
+        {
+            InModuleScope Atlas.Hardware {
+                $ErrorActionPreference = 'Stop'
+                Invoke-AtlasPowerCfg -FilePath $c -ArgumentList @('/d', '/c', 'echo scheme exists 1>&2 & exit 1')
+            } -Parameters @{ c = $commandProcessor }
+        } | Should -Throw "*exit code '1'*scheme exists*"
     }
 
     It 'parses scheme GUIDs independently of localized powercfg labels' {

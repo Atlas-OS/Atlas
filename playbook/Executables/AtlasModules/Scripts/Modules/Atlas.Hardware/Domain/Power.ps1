@@ -36,8 +36,17 @@ function Invoke-AtlasPowerCfg {
         [string[]]$ArgumentList
     )
 
-    $output = @(& $FilePath @ArgumentList 2>&1)
-    $exitCode = $LASTEXITCODE
+    # Redirected stderr becomes an error record, which Stop would throw before the
+    # exit code is read; keep it as output so the exit code decides.
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $output = @(& $FilePath @ArgumentList 2>&1)
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
     if ($null -eq $exitCode -or [int]$exitCode -ne 0) {
         $detail = (@($output | ForEach-Object { [string]$_ }) -join ' ').Trim()
         throw "powercfg.exe $($ArgumentList -join ' ') failed with exit code '$exitCode'. $detail"
@@ -82,6 +91,29 @@ function Get-AtlasPowerSchemeInventory {
 
     return @(Get-AtlasPowerSchemeGuidFromOutput `
             -Output (Invoke-AtlasPowerCfg -FilePath $PowerCfgPath -ArgumentList @('/l')))
+}
+
+# Modern Standby PCs list only Balanced and plans copied from it, but an unlisted
+# plan, such as the Ultimate Performance copy older Atlas versions made, still
+# holds its GUID: /duplicatescheme then refuses it. Windows keeps each plan as a
+# key under User\PowerSchemes.
+function Test-AtlasPowerSchemeStored {
+    param([Parameter(Mandatory = $true)][string]$SchemeGuid)
+
+    $scheme = ConvertTo-AtlasPowerSchemeGuid -Value $SchemeGuid
+    $baseKey = [Microsoft.Win32.RegistryKey]::OpenBaseKey(
+        [Microsoft.Win32.RegistryHive]::LocalMachine,
+        [Microsoft.Win32.RegistryView]::Registry64
+    )
+    $key = $null
+    try {
+        $key = $baseKey.OpenSubKey("SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes\$scheme", $false)
+        return $null -ne $key
+    }
+    finally {
+        if ($null -ne $key) { $key.Dispose() }
+        $baseKey.Dispose()
+    }
 }
 
 function Get-AtlasPreviousPowerScheme {
@@ -195,6 +227,8 @@ function Invoke-AtlasPowerSavingState {
     if ($installed -cnotcontains $script:BalancedPowerScheme) {
         throw 'The Windows Balanced power scheme is not installed.'
     }
+    $atlasPresent = $installed -ccontains $script:AtlasPowerScheme -or
+        (Test-AtlasPowerSchemeStored -SchemeGuid $script:AtlasPowerScheme)
 
     $savedToClear = $null
     if ($RequestedMode -ceq 'Atlas') {
@@ -210,7 +244,7 @@ function Invoke-AtlasPowerSavingState {
         }
         [void](Save-AtlasPreviousPowerScheme -SchemeGuid $previous)
 
-        if ($installed -ccontains $script:AtlasPowerScheme) {
+        if ($atlasPresent) {
             if ($active -ceq $script:AtlasPowerScheme) {
                 [void](Invoke-AtlasPowerCfg -FilePath $PowerCfgPath `
                         -ArgumentList @('/setactive', $script:BalancedPowerScheme))
@@ -261,7 +295,7 @@ function Invoke-AtlasPowerSavingState {
 
         [void](Invoke-AtlasPowerCfg -FilePath $PowerCfgPath `
                 -ArgumentList @('/setactive', $target))
-        if ($installed -ccontains $script:AtlasPowerScheme) {
+        if ($atlasPresent) {
             [void](Invoke-AtlasPowerCfg -FilePath $PowerCfgPath `
                     -ArgumentList @('/delete', $script:AtlasPowerScheme))
         }
