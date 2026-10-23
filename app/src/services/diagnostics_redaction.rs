@@ -15,6 +15,11 @@ pub struct Redactor {
 
 /// Profile folders that are not an account's and keep their names.
 const SHARED_PROFILES: [&str; 4] = ["Public", "Default", "Default User", "All Users"];
+/// Names that identify no one but are words of the logs themselves: aliasing
+/// them would turn "User account" into "anonymous-1 account". Profile paths
+/// with them are still aliased.
+const GENERIC_NAMES: [&str; 8] =
+    ["WORKGROUP", "NT AUTHORITY", "SYSTEM", "User", "Admin", "Administrator", "Owner", "Guest"];
 
 static SECRETS: LazyLock<[Regex; 6]> = LazyLock::new(|| {
     [
@@ -113,9 +118,7 @@ impl Redactor {
         for name in ["USERNAME", "COMPUTERNAME", "USERDOMAIN", "USERDNSDOMAIN"] {
             if let Ok(value) = std::env::var(name)
                 && !value.is_empty()
-                && !["WORKGROUP", "NT AUTHORITY", "SYSTEM"]
-                    .iter()
-                    .any(|item| value.eq_ignore_ascii_case(item))
+                && !GENERIC_NAMES.iter().any(|item| value.eq_ignore_ascii_case(item))
             {
                 this.identities.push(identity(&value));
             }
