@@ -229,10 +229,9 @@ try {
     foreach ($name in @('Setup.ps1', 'Desktop.ps1', 'Desktop-Policy.ps1', 'RegistryFile.ps1', 'THIRD-PARTY-NOTICES.txt', 'DriverPolicy.reg')) {
         $payload[$name] = Join-Path $job $name
     }
+    # The app installs from Atlas.apbx. The unpacked package stays off the media:
+    # its deepest launchers pass MAX_PATH under a workspace in the user's folders.
     foreach ($name in $payload.Keys) { Copy-Item -LiteralPath $payload[$name] -Destination (Join-Path $target $name) }
-    if ($request.mode -ne 'interactive') {
-        Copy-Item -LiteralPath $request.package -Destination (Join-Path $target 'Package') -Recurse
-    }
     $username = [string]$request.username
     if ($username.Length -lt 1 -or $username.Length -gt 20 -or $username.Trim() -cne $username -or $username.EndsWith('.') -or $username -match '[\p{Cc}"/\\\[\]:;|=,+*?<>@]' -or $username -in @('administrator','guest','defaultaccount','defaultuser0','wdagutilityaccount','system','anonymous logon')) { throw 'Invalid Windows local account name.' }
     if ($request.drivers -notin @('automatic','manual')) { throw 'Choose an automatic or manual driver policy.' }
