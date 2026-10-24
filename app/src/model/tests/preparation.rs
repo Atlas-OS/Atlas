@@ -2,16 +2,19 @@
 //! a draft remembers of it.
 
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
+use crate::model::offer_wait::OfferWait;
 use crate::model::test_harness::{
-    act, fixture, marking_package, model_as_started, new_model, read, run_model_test, save_draft, settle,
-    wait_for, wait_on_disk, walk_to_install,
+    act, completed_session, fixture, marking_package, model_as_started, new_model, passing, ps_literal, read,
+    run_model_test, save_draft, settle, wait_for, wait_on_disk, walk_to_install,
 };
 use crate::model::{AppModel, RunState, Step};
 use crate::services::installer::InstallOutcome;
 use crate::services::playbook;
 use crate::services::preparation::{Drivers, RestartProblem, State, StoreOutcome};
+use crate::services::recovery_app::SourceLinked;
+use crate::services::requirements::CheckId;
 use crate::services::settings::{self, InstallDraft};
 use crate::services::test_support::apbx;
 
@@ -93,6 +96,18 @@ fn preparation_restart_failures_are_visible_and_do_not_schedule_shutdown() {
         })
         .await;
         assert_eq!(*machine.scheduled.lock().unwrap(), 0);
+        // An app folder reached through a link is its own problem: moving
+        // Atlas Manager fixes it.
+        act(&mut cx, &model, |m, cx| {
+            m.env.adapters.register_preparation_resume =
+                Arc::new(|| Err(SourceLinked("linked folder".into()).into()));
+            m.restart_preparation(cx);
+        });
+        wait_for(&cx, &model, "the linked folder", |m| {
+            m.preparation_problem == Some(RestartProblem::SourceLinked)
+        })
+        .await;
+        assert_eq!(*machine.scheduled.lock().unwrap(), 0);
         act(&mut cx, &model, |m, cx| {
             m.env.adapters.register_preparation_resume = Arc::new(|| Ok(()));
             m.env.adapters.schedule_restart = Arc::new(|_| anyhow::bail!("shutdown denied"));
@@ -105,7 +120,13 @@ fn preparation_restart_failures_are_visible_and_do_not_schedule_shutdown() {
         let foreign = InstallDraft { flow: Some("newer-window".into()), ..InstallDraft::default() };
         settings::modify(&env.paths.settings(), settings::LOCK_WAIT, |doc| doc.draft = Some(foreign.clone()))
             .unwrap();
+        // From here on a restart would take, and be counted.
+        let scheduled = machine.scheduled.clone();
         act(&mut cx, &model, |m, cx| {
+            m.env.adapters.schedule_restart = Arc::new(move |_| {
+                *scheduled.lock().unwrap() += 1;
+                Ok(())
+            });
             m.env.adapters.register_preparation_resume = Arc::new(|| panic!("must own the draft"));
             m.restart_preparation(cx);
         });
@@ -145,6 +166,77 @@ fn preparation_restart_returns_to_a_retry_when_windows_does_not_exit() {
         .await;
         assert_eq!(*machine.scheduled.lock().unwrap(), 1);
         assert_eq!(read(&cx, &model, |m| m.preparation.clone()), State::Reboot);
+    });
+}
+
+/// After a restart Atlas made, a run that asks for another is believed only
+/// when it did update work first; one that only looked names a marker that
+/// survives restarts instead.
+#[test]
+fn after_a_restart_only_update_work_makes_another_restart_genuine() {
+    run_model_test(|mut cx| async move {
+        let (_temp, _, env) = fixture("preparation-restart-after-work");
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        act(&mut cx, &model, |m, cx| m.begin_install(cx));
+        wait_for(&cx, &model, "the checks", |m| m.checks_complete()).await;
+        for (stage, genuine) in [("store-repair", true), ("windows-search", false)] {
+            let events = ["running", "reboot"].map(|status| {
+                serde_json::json!({
+                    "schema": 1, "status": status, "stage": stage, "completed": 0, "total": 0,
+                    "activity": { "restartReasons": ["servicing"] }
+                })
+            });
+            act(&mut cx, &model, |m, cx| {
+                m.env.adapters.run_preparation = Arc::new(move |_, _, _, mut progress| {
+                    for event in &events {
+                        progress(serde_json::from_value(event.clone()).unwrap());
+                    }
+                    Ok(State::Reboot)
+                });
+                m.preparation = State::Resumed;
+                m.prepare_windows(cx);
+            });
+            wait_for(&cx, &model, "the run", |m| {
+                matches!(m.preparation, State::Reboot | State::RestartPersists { .. })
+            })
+            .await;
+            assert_eq!(read(&cx, &model, |m| m.preparation == State::Reboot), genuine, "{stage}");
+        }
+        settle(&cx, &model).await;
+    });
+}
+
+/// A run refused because Atlas Manager runs from a linked folder is told
+/// apart from other failures, under the context the run adds to it, and a
+/// run that fails otherwise is not taken for it.
+#[test]
+fn a_linked_app_folder_is_told_apart_from_other_preparation_failures() {
+    run_model_test(|mut cx| async move {
+        let (_temp, _, env) = fixture("preparation-source-linked");
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        act(&mut cx, &model, |m, cx| m.begin_install(cx));
+        wait_for(&cx, &model, "the checks", |m| m.checks_complete()).await;
+        for linked in [true, false] {
+            act(&mut cx, &model, |m, cx| {
+                m.env.adapters.run_preparation = Arc::new(move |_, _, _, _| {
+                    if linked {
+                        Err(anyhow::Error::from(SourceLinked("linked folder".into()))
+                            .context("prepare a local app copy before Windows updates"))
+                    } else {
+                        anyhow::bail!("other")
+                    }
+                });
+                m.prepare_windows(cx);
+            });
+            wait_for(&cx, &model, "the run to fail and the checks after it", |m| {
+                m.preparation == State::Failed && m.checks_complete()
+            })
+            .await;
+            assert_eq!(read(&cx, &model, |m| m.preparation_source_linked), linked);
+        }
+        settle(&cx, &model).await;
     });
 }
 
@@ -194,7 +286,6 @@ fn a_resumed_draft_keeps_a_finished_preparation() {
 }
 
 #[test]
-#[cfg(windows)]
 fn an_install_that_finds_preparation_out_of_date_offers_it_again() {
     run_model_test(async move |mut cx| {
         let (temp, _, env) = fixture("model-preparation-stale");
@@ -202,8 +293,8 @@ fn an_install_that_finds_preparation_out_of_date_offers_it_again() {
         let code = temp.path().join("exit-code.txt");
         std::fs::write(&code, "1").unwrap();
         let body = format!(
-            "Write-Host '[Atlas] Copying Atlas''s files to a protected folder...'\r\nexit ([int](Get-Content -LiteralPath '{}'))",
-            code.display()
+            "Write-Host '[Atlas] Copying Atlas''s files to a protected folder...'\r\nexit ([int](Get-Content -LiteralPath {}))",
+            ps_literal(&code)
         );
         let package = apbx::write(&temp.path().join("package.apbx"), &apbx::with_front_door("0.6.0", &body));
         let model = new_model(&mut cx, env.clone());
@@ -303,6 +394,47 @@ fn starting_over_forgets_a_finished_preparation_but_not_a_restart() {
             });
             assert_eq!(read(&cx, &model, |m| m.preparation.clone()), owed);
         }
+        settle(&cx, &model).await;
+    });
+}
+
+/// Done after a successful install resumes a draft another flow saved
+/// meanwhile, and that flow prepares Windows for itself: the preparation
+/// this window holds was made for the install that finished.
+#[test]
+fn a_draft_resumed_after_done_prepares_windows_for_itself() {
+    run_model_test(async move |mut cx| {
+        let (temp, _, env) = fixture("model-preparation-after-done");
+        let (package, _) = marking_package(&temp, 0);
+        let record = completed_session(&env, &package, false);
+        save_draft(
+            &env,
+            InstallDraft {
+                step: "ready".into(),
+                playbook_dir: Some(record.request.playbook_dir.clone()),
+                flow: Some("second-window".into()),
+                ..InstallDraft::default()
+            },
+        );
+        // `new_model` holds a finished preparation, as the window that ran the install does.
+        let model = new_model(&mut cx, env.clone());
+        wait_for(&cx, &model, "the recovered success", |m| matches!(m.flow.run, RunState::Finished(_))).await;
+        assert!(read(&cx, &model, |m| m.preparation.ready()));
+        // A check from before the install, which its owed restart would fail now.
+        act(&mut cx, &model, |m, _| {
+            m.checks = vec![(CheckId::PendingReboot, Some(passing(CheckId::PendingReboot)))]
+        });
+        act(&mut cx, &model, |m, cx| m.cancel_flow(cx));
+        wait_for(&cx, &model, "the other flow to be picked up", |m| m.flow.active).await;
+        read(&cx, &model, |m| {
+            assert_eq!(m.flow_id.as_deref(), Some("second-window"));
+            assert_eq!(m.preparation, State::Idle, "its draft never said Windows was prepared");
+            assert!(!m.ready_to_continue());
+        });
+        wait_for(&cx, &model, "the resumed flow's own checks", |m| {
+            m.checks.len() == CheckId::ALL.len() && m.checks_complete()
+        })
+        .await;
         settle(&cx, &model).await;
     });
 }
@@ -470,6 +602,32 @@ fn get_ready_says_what_it_did_about_microsoft_store() {
             m.preparation == State::Failed && *runs.lock().unwrap() > before
         })
         .await;
+        settle(&cx, &model).await;
+    });
+}
+
+/// Checking again after a wait for the offer ended starts a new wait, whose
+/// clock counts from that run's search, not from the wait that ended.
+#[test]
+fn checking_again_after_an_offer_wait_ended_starts_a_new_clock() {
+    run_model_test(|mut cx| async move {
+        let (_temp, _, env) = fixture("preparation-offer-wait-again");
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        act(&mut cx, &model, |m, cx| m.begin_install(cx));
+        wait_for(&cx, &model, "the checks", |m| m.checks_complete()).await;
+        act(&mut cx, &model, |m, cx| {
+            let ended =
+                Instant::now().checked_sub(Duration::from_secs(125 * 60)).unwrap_or_else(Instant::now);
+            m.offer_wait = Some(OfferWait { expired: true, ..OfferWait::started(ended) });
+            m.offer_waiting_since = Some(ended);
+            m.prepare_windows(cx);
+        });
+        read(&cx, &model, |m| {
+            assert!(m.preparation.busy(), "the check runs");
+            assert!(m.offer_wait.is_none() && m.offer_waiting_since.is_none());
+        });
+        wait_for(&cx, &model, "the run to end", |m| !m.preparation.busy()).await;
         settle(&cx, &model).await;
     });
 }

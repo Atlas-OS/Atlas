@@ -9,7 +9,6 @@ pub struct Assets;
 
 const FILES: &[(&str, &[u8])] = &[
     ("brand/atlas-mark.svg", include_bytes!("../assets/brand/atlas-mark.svg")),
-    ("brand/atlas-wordmark.svg", include_bytes!("../assets/brand/atlas-wordmark.svg")),
     ("brand/toolbox.png", include_bytes!("../assets/brand/toolbox.png")),
     ("brand/eclean.png", include_bytes!("../assets/brand/eclean.png")),
     ("icons/ring.svg", include_bytes!("../assets/icons/ring.svg")),

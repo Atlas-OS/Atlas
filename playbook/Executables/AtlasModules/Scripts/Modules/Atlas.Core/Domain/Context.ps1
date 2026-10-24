@@ -153,6 +153,10 @@ function Get-AtlasContext {
     }
     elseif ($isDocumentBacked) {
         $installedVersion = [string]$document.installedVersion
+        # Recording a toggle can create the document before an install records a mode.
+        if (-not [string]::IsNullOrWhiteSpace([string]$document.mode)) {
+            $mode = [string]$document.mode
+        }
         $options = @($document.options | ForEach-Object { [string]$_ })
     }
 
@@ -217,7 +221,7 @@ function Get-AtlasContext {
         IsStateDocumentBacked    = $isDocumentBacked
         StateDocumentPath        = $documentPath
         InstalledVersion         = $installedVersion
-        Mode                     = if ($isInstallStateBacked) { $mode } else { 'Legacy' }
+        Mode                     = if ($null -ne $mode) { $mode } else { 'Legacy' }
         TargetVersion            = $targetVersion
         InteractiveUserSid       = $interactiveUserSid
         InteractiveUserSessionId = $interactiveUserSessionId

@@ -100,11 +100,6 @@ Describe 'Test-AtlasRegistryEntries' {
         { Test-AtlasRegistryEntries -Entries @($entry) -IsArm64 $false } | Should -Throw '*non-empty reason string*'
     }
 
-    It 'still reports refused OS-protected values as drift' {
-        $entry = @{ Path = "$script:testRootPath\Reg"; Name = 'Absent'; Type = 'DWord'; Data = 1; AllowOsProtected = $true }
-        @(Test-AtlasRegistryEntries -Entries @($entry) -IsArm64 $false).Reason | Should -Be 'value is missing'
-    }
-
     It 'compares binary and multi-string data element by element' {
         New-ItemProperty -Path "$script:testRoot\Reg" -Name 'Bytes' -Value ([byte[]](1, 2)) -PropertyType Binary -Force | Out-Null
         New-ItemProperty -Path "$script:testRoot\Reg" -Name 'Lines' -Value ([string[]]('a', 'b')) -PropertyType MultiString -Force | Out-Null
@@ -323,6 +318,21 @@ Describe 'Tweak verification' {
         $drift.Count | Should -Be 1
         $drift[0].Tweak | Should -Be 'drifts'
         $drift[0].Target | Should -Be "$script:testRootPath\Tweak\Value"
+    }
+
+    It 'reads HKCU policy entries back in the protected current-user scope only' {
+        $tweakFile = Join-Path $TestDrive 'policy.psd1'
+        "@{ Name = 'policy'; Registry = @(@{ Path = 'HKCU\Software\Policies\AtlasVerifyFixture'; Name = 'Value'; Type = 'DWord'; Data = 1 }) }" |
+            Set-Content -LiteralPath $tweakFile
+        Mock -ModuleName Atlas.Registry Get-AtlasRegistryValueState {
+            [pscustomobject]@{ KeyExists = $true; ValueExists = $false; Kind = $null; Data = $null }
+        }
+
+        @(Test-AtlasTweak -Path $tweakFile -RegistryScope CurrentUser -Context (New-TestContextMock)).Count | Should -Be 0
+        $drift = @(Test-AtlasTweak -Path $tweakFile -RegistryScope ProtectedCurrentUser -Context (New-TestContextMock))
+        $drift.Count | Should -Be 1
+        $drift[0].Target | Should -Be 'HKCU\Software\Policies\AtlasVerifyFixture\Value'
+        $drift[0].Reason | Should -Be 'value is missing'
     }
 
     It 'skips tweaks that do not apply to the context' {

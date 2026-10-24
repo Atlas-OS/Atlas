@@ -20,7 +20,7 @@ impl InstallPage {
             (
                 state.manifest().clone(),
                 state.effective_options().into_iter().collect::<std::collections::BTreeSet<_>>(),
-                state.flow.may_edit() && state.locked_options().is_none(),
+                !state.locked() && state.locked_options().is_none(),
                 state.option_screens(),
                 state.current_option_screen(),
                 state.playbook.as_ref().map(|package| package.dir.clone()),

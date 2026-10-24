@@ -4,14 +4,14 @@ use std::collections::BTreeSet;
 
 use crate::model::checks::{preflight_decision, security_verified};
 use crate::model::test_harness::{
-    Machine, act, all_off, fixture, marking_package, new_model, passing, read, run_model_test,
+    Machine, act, all_off, fixture, marking_package, new_model, passing, read, run_model_test, settle,
     three_off_one_unreadable, wait_for, walk_to_install,
 };
 use crate::model::{
     AcquireProblem, Acquisition, Origin, PlaybookSource, Preflight, ReadyHelp, ReadyStatus, RunState, Step,
 };
 use crate::services::atlas_state::InstallIdentity;
-use crate::services::installer::{InstallOutcome, Phase};
+use crate::services::installer::{self, InstallOutcome, Phase};
 use crate::services::playbook::Manifest;
 use crate::services::preparation::{Stage, State};
 use crate::services::requirements::{CheckDetail, CheckId, CheckResult, Verdict};
@@ -266,6 +266,14 @@ fn security_is_verified_against_the_reading_the_user_confirmed() {
     assert!(!security_verified(&all_unknown, Some(confirmed), true), "a broader unknown set is not covered");
     assert!(!security_verified(&one_on, Some(one_on), true), "a readable On is never confirmable");
     assert!(security_verified(&all_off(), None, false), "all off needs no confirmation");
+    assert!(
+        security_verified(
+            &SecurityStatus { defender_present: false, ..SecurityStatus::default() },
+            None,
+            false
+        ),
+        "no Defender, nothing to turn off"
+    );
 }
 
 /// The final decision lets through an update scan that could not run once
@@ -298,7 +306,6 @@ fn only_an_acknowledged_update_scan_that_could_not_run_passes_the_final_checks()
 }
 
 #[test]
-#[cfg(windows)]
 fn a_confirmation_invalidated_by_the_final_reading_does_not_start_the_install() {
     run_model_test(async move |mut cx| {
         let temp = TempDir::new("model-stale-confirmation");
@@ -344,6 +351,72 @@ fn a_confirmation_invalidated_by_the_final_reading_does_not_start_the_install() 
         wait_for(&cx, &model, "the install to finish", |m| matches!(m.flow.run, RunState::Finished(_))).await;
         assert_eq!(read(&cx, &model, |m| m.flow.run), RunState::Finished(InstallOutcome::Succeeded));
         assert!(marker.exists());
+        assert_eq!(
+            read(&cx, &model, |m| m.session.as_ref().map(|s| s.request.windows_security_confirmed)),
+            Some(true),
+            "the front door is told the user confirmed the unreadable switch"
+        );
         assert!(read(&cx, &model, |m| m.attempt.phase >= Phase::Applying));
+    });
+}
+
+/// The front door hears of a confirmation the final reading passes on,
+/// even when the reading at the click needed none.
+#[test]
+fn the_front_door_is_told_of_the_confirmation_the_final_reading_passes_on() {
+    run_model_test(async move |mut cx| {
+        let temp = TempDir::new("model-final-confirmation");
+        let machine = Machine::new(three_off_one_unreadable());
+        let env = machine.environment(&temp.path().join("App"));
+        let (package, marker) = marking_package(&temp, 0);
+        let model = new_model(&mut cx, env.clone());
+
+        walk_to_install(&mut cx, &model, &package).await;
+        act(&mut cx, &model, |m, cx| m.acknowledge_security(true, cx));
+        act(&mut cx, &model, |m, cx| m.next_step(cx));
+        // The unreadable switch reads off for a moment: nothing rests on the
+        // confirmation then.
+        machine.set_security(all_off());
+        wait_for(&cx, &model, "every switch read off", |m| m.security.all_off() && m.can_install()).await;
+        assert!(!read(&cx, &model, |m| m.security_confirmed_by_hand()));
+
+        // By the final reading it's unreadable again, as the user confirmed it.
+        machine.set_security(three_off_one_unreadable());
+        act(&mut cx, &model, |m, cx| m.start_install(cx));
+        wait_for(&cx, &model, "the install to finish", |m| matches!(m.flow.run, RunState::Finished(_))).await;
+        assert!(marker.exists());
+        assert!(
+            read(&cx, &model, |m| m.session.as_ref().is_some_and(|s| s.request.windows_security_confirmed)),
+            "the front door must be told the gate passed on the confirmation"
+        );
+        settle(&cx, &model).await;
+    });
+}
+
+/// The front door is told the user confirmed Windows Security by hand
+/// exactly when the gate passed on that confirmation.
+#[test]
+fn the_install_command_says_so_only_when_windows_security_was_confirmed_by_hand() {
+    run_model_test(async move |mut cx| {
+        for (reading, by_hand) in [(three_off_one_unreadable(), true), (all_off(), false)] {
+            let temp = TempDir::new("model-security-by-hand");
+            let machine = Machine::new(reading);
+            let env = machine.environment(&temp.path().join("App"));
+            let (package, _) = marking_package(&temp, 0);
+            let model = new_model(&mut cx, env);
+            walk_to_install(&mut cx, &model, &package).await;
+            if by_hand {
+                act(&mut cx, &model, |m, cx| m.acknowledge_security(true, cx));
+            }
+            act(&mut cx, &model, |m, cx| m.next_step(cx));
+            let request = read(&cx, &model, |m| {
+                assert!(m.can_install(), "{reading:?}");
+                m.install_request().unwrap()
+            });
+            assert_eq!(request.windows_security_confirmed, by_hand, "{reading:?}");
+            let command = installer::command_line(&request).unwrap();
+            assert_eq!(command.contains(" -WindowsSecurityConfirmed"), by_hand, "{command}");
+            settle(&cx, &model).await;
+        }
     });
 }

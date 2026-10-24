@@ -460,10 +460,12 @@ mod tests {
     }
 
     #[test]
-    fn released_26h2_versions_are_known_offline_and_prerelease_branches_are_refused() {
-        for revision in [9457, 9550] {
-            assert_eq!(classify(26300, revision, "ge_release"), Status::Released);
-            assert_eq!(classify(26300, revision, "26300.1.amd64fre.rs_prerelease"), Status::Preview);
+    fn catalogued_versions_are_released_and_prerelease_branches_are_refused() {
+        for (build, revision) in [(26200, 6584), (26300, 9457), (26300, 9550)] {
+            assert_eq!(classify(build, revision, "ge_release"), Status::Released, "{build}.{revision}");
+            // A promoted Insider build number only counts on a release branch.
+            let insider = format!("{build}.1.amd64fre.rs_prerelease");
+            assert_eq!(classify(build, revision, &insider), Status::Preview, "{build}.{revision}");
         }
         assert_eq!(classify(28000, 9457, "ge_release"), Status::Unknown);
         assert_eq!(classify(26300, 0, "ge_release"), Status::Unknown);
@@ -493,21 +495,21 @@ mod tests {
         for version in ["10.0.26200.6584", "10.0.26200.7309", "10.0.26200.9278"] {
             assert_eq!(classify_with(version, "ge_release", snapshot(), Some(no_network)), Status::Released);
         }
-        assert_eq!(classify(26200, 6584, "26200.1.amd64fre.rs_prerelease.250101"), Status::Preview);
-        assert_eq!(classify(26200, 0, ""), Status::Unknown);
-        assert_eq!(classify(26100, 6584, ""), Status::Unknown);
     }
 
     #[test]
     fn unknown_builds_refresh_without_treating_failed_verification_as_insider() {
+        // Its own list, not the bundled one, so a catalog update that lists
+        // these builds can't change the answers.
+        let known = HashSet::from(["10.0.26300.9711".to_owned()]);
         let version = "10.0.26200.9999";
         assert_eq!(
-            classify_with(version, "ge_release", snapshot(), Some(|| Ok(HashSet::from([version.into()])))),
+            classify_with(version, "ge_release", &known, Some(|| Ok(HashSet::from([version.into()])))),
             Status::Released
         );
         for version in ["10.0.26200.5074", "10.0.26200.5551", version] {
             assert_eq!(
-                classify_with(version, "ge_release", snapshot(), Some(|| anyhow::bail!("offline"))),
+                classify_with(version, "ge_release", &known, Some(|| anyhow::bail!("offline"))),
                 Status::Unknown
             );
         }
@@ -517,7 +519,7 @@ mod tests {
                 classify_with(
                     version,
                     "ge_release",
-                    snapshot(),
+                    &known,
                     Some(|| Ok(HashSet::from(["10.0.26300.9711".into()])))
                 ),
                 Status::Unlisted
@@ -529,7 +531,6 @@ mod tests {
     fn without_a_live_lookup_unlisted_ga_revisions_pass_but_insider_branches_still_fail() {
         let offline = None::<Refresh>;
         assert_eq!(classify_with("10.0.26200.9999", "ge_release", snapshot(), offline), Status::Released);
-        assert_eq!(classify_with("10.0.26200.6584", "ge_release", snapshot(), offline), Status::Released);
         assert_eq!(
             classify_with("10.0.26200.9999", "26200.1.amd64fre.rs_prerelease.250101", snapshot(), offline),
             Status::Preview

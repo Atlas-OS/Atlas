@@ -21,7 +21,7 @@ use super::{
 use crate::i18n::{describe, fmt};
 use crate::model::{Acquisition, AppModel, Page, ReleaseCheck, ScreenKind};
 use crate::services::iso::{self, Architecture, FailureReason, ImageInfo, Mode, Stage, UsernameProblem};
-use crate::services::playbook::{Manifest, PageKind};
+use crate::services::playbook::{self, Manifest, PageKind};
 use crate::services::preparation::Drivers;
 use crate::services::{settings, system};
 use crate::t;
@@ -189,6 +189,12 @@ fn account_error(name: &str) -> Option<String> {
         UsernameProblem::TrailingDot => t!("iso-account-trailing-dot"),
         UsernameProblem::Reserved => t!("iso-account-reserved"),
     })
+}
+
+/// The manifest's pages in the install flow's order: a page shown only when
+/// an option is chosen comes straight after the page that offers it.
+fn page_order(manifest: &Manifest) -> Vec<usize> {
+    playbook::follow_parents(&manifest.pages, (0..manifest.pages.len()).collect())
 }
 
 /// A new ISO in `folder` that overwrites nothing: Atlas-Windows.iso, then
@@ -506,9 +512,11 @@ impl IsoPage {
             .detach();
             return;
         }
+        // The dialog shows this on its Open button, so it names the action,
+        // as the USB page and Get ready word their pickers of these files.
         let prompt = match field {
-            Field::Source => t!("iso-source"),
-            _ => t!("iso-package", minimum = iso::MINIMUM_VERSION),
+            Field::Source => t!("usb-choose-iso"),
+            _ => t!("file-dialog-open-package"),
         };
         let receiver = cx.prompt_for_paths(PathPromptOptions {
             files: true,
@@ -888,6 +896,8 @@ impl IsoPage {
     fn files(&self, checked: bool, cx: &mut Context<Self>) -> AnyElement {
         let mut content = card_body().gap(px(14.));
         let bundled = self.model.read(cx).bundled();
+        // On the rule `pick` refuses on: while any job holds the app.
+        let locked = self.model.read(cx).locked();
         let fields = [
             (Field::Source, t!("iso-source"), &self.source),
             (Field::Package, t!("iso-package", minimum = iso::MINIMUM_VERSION), &self.archive),
@@ -940,6 +950,7 @@ impl IsoPage {
                                         field = label.as_str()
                                     ))
                                     .icon(Icon::Folder)
+                                    .disabled(locked)
                                     .on_click(cx.listener(move |this, _, _, cx| this.pick(field, cx))),
                             ),
                     )
@@ -1225,7 +1236,8 @@ impl IsoPage {
         if self.mode != Mode::Interactive
             && let Some(manifest) = self.manifest.clone()
         {
-            for (page_index, page) in manifest.pages.iter().enumerate() {
+            for page_index in page_order(&manifest) {
+                let page = &manifest.pages[page_index];
                 if page.depends_on.as_ref().is_some_and(|name| !self.options.contains(name)) {
                     continue;
                 }
@@ -1296,10 +1308,9 @@ impl IsoPage {
             return vec![];
         };
         let secondary = cx.theme().text_secondary;
-        manifest
-            .pages
-            .iter()
-            .enumerate()
+        page_order(manifest)
+            .into_iter()
+            .map(|index| (index, &manifest.pages[index]))
             .filter(|(_, page)| page.depends_on.as_ref().is_none_or(|name| self.options.contains(name)))
             .map(|(index, page)| {
                 let title = ScreenKind::of_page(page).title();
@@ -1491,6 +1502,9 @@ impl IsoPage {
     /// doesn't say it beside the problem.
     fn hint(&self, gates: Gates, cx: &App) -> String {
         match self.step {
+            // The footer isn't built while this page's own job runs, so this
+            // is another job, such as Windows preparation, holding the app.
+            _ if self.model.read(cx).locked() => t!("iso-locked"),
             IsoStep::Windows if self.username.read(cx).value().is_empty() => t!("iso-account-empty"),
             // Why Review ISO is unavailable; the bar above offers the fixes.
             IsoStep::Choices if !gates.mode => t!("iso-package-unsupported-bundled-title"),
@@ -1978,11 +1992,34 @@ mod tests {
             assert_eq!(account_error("Atlas/PC"), Some(t!("iso-account-invalid")));
             assert_eq!(account_error("Atlas."), Some(t!("iso-account-trailing-dot")));
             assert_eq!(account_error("Guest"), Some(t!("iso-account-reserved")));
-            // The message lists every symbol Windows refuses.
-            for symbol in "\"/\\[]:;|=,+*?<>@".chars() {
-                assert!(t!("iso-account-invalid").contains(symbol), "{symbol}");
-            }
         });
+        // The message lists every symbol the check refuses, in every language.
+        // The symbols are found by asking the check, so the two can't drift apart.
+        let refused: Vec<char> = (' '..='~')
+            .filter(|c| c.is_ascii_punctuation())
+            .filter(|c| iso::username_problem(&format!("Atlas{c}PC")) == Some(UsernameProblem::Invalid))
+            .collect();
+        for locale in crate::i18n::catalog::LOCALES.iter().filter(|locale| !locale.pseudo) {
+            crate::i18n::testing::with_chain(&[locale.tag], || {
+                let message = t!("iso-account-invalid");
+                for symbol in &refused {
+                    assert!(message.contains(*symbol), "{}: {symbol}", locale.tag);
+                }
+            });
+        }
+    }
+
+    /// As in the install flow, the browser picker comes straight after the
+    /// apps that say to choose one below.
+    #[test]
+    fn the_browser_picker_follows_the_apps_that_offer_it() {
+        let manifest = Manifest::builtin();
+        let kinds: Vec<ScreenKind> = page_order(&manifest)
+            .into_iter()
+            .map(|index| ScreenKind::of_page(&manifest.pages[index]))
+            .collect();
+        let apps = kinds.iter().position(|kind| *kind == ScreenKind::Apps).unwrap();
+        assert_eq!(kinds[apps + 1], ScreenKind::Browser);
     }
 
     #[test]
@@ -2098,18 +2135,25 @@ mod tests {
                 page.reinstall_this_pc = true;
                 page.drivers = Drivers::Manual;
                 page.go_to_step(IsoStep::Choices, cx);
-                page.mode = Mode::Interactive;
+                // Set up before sign-in, which the package supports, with a choice of its own.
+                page.setup_available = true;
+                page.mode = Mode::Configured;
+                let chosen: Vec<String> = vec!["defender-disable".into()];
+                page.options = chosen.clone();
                 page.go_to_step(IsoStep::Review, cx);
                 page.go_to_step(IsoStep::Files, cx);
                 assert_eq!(page.furthest, IsoStep::Review);
                 assert!(page.gates(cx).reachable(page.step, IsoStep::Review, page.furthest));
                 assert_eq!(page.username.read(cx).value(), "Ada");
                 assert!(page.reinstall_this_pc && page.drivers == Drivers::Manual);
+                assert_eq!((page.mode, &page.options), (Mode::Configured, &chosen));
                 // Choosing another file means checking again from the start.
                 page.invalidate(cx);
                 assert_eq!((page.step, page.furthest), (IsoStep::Files, IsoStep::Files));
                 assert!(!page.gates(cx).reachable(IsoStep::Files, IsoStep::Windows, page.furthest));
                 assert_eq!(page.username.read(cx).value(), "Ada");
+                // Kept for the next check, which carries them over for the same package.
+                assert_eq!((page.mode, &page.options), (Mode::Configured, &chosen));
             });
         });
     }
@@ -2167,6 +2211,17 @@ mod tests {
                 // Why Review ISO is unavailable, not the harder of the two fixes.
                 assert_eq!(page.hint(page.gates(cx), cx), t!("iso-package-unsupported-bundled-title"));
                 page.setup_available = true;
+                assert_eq!(page.hint(page.gates(cx), cx), "");
+                // Another job holding the app is why every step waits.
+                page.model.update(cx, |m, _| {
+                    m.preparation = crate::services::preparation::State::Running {
+                        stage: Default::default(),
+                        completed: 0,
+                        total: 0,
+                    }
+                });
+                assert_eq!(page.hint(page.gates(cx), cx), t!("iso-locked"));
+                page.model.update(cx, |m, _| m.preparation = crate::services::preparation::State::Ready);
                 assert_eq!(page.hint(page.gates(cx), cx), "");
             });
         });

@@ -14,8 +14,10 @@ manifest and complete execution graph with `Test-AtlasTweakManifest -Path
 Verify an applied tweak with `Test-AtlasTweak -Path <tweak.psd1>` or a whole category with
 `Test-AtlasTweakCategory -Name <category>`: both read the `Registry`, `Services` and
 `ScheduledTasks` declarations back from the machine and return one record per entry that
-no longer holds. `Run`, `RemovePaths` and companion scripts are not verified. The health
-check (`Scripts\Entry\Test-AtlasHealth.ps1`) runs this for every category.
+no longer holds. `-RegistryScope` picks `Machine` (the default), `ProtectedCurrentUser`
+(HKCU policy keys) or `CurrentUser` entries. `Run`, `RemovePaths` and companion scripts
+are not verified. The health check (`Scripts\Entry\Test-AtlasHealth.ps1`) runs this for
+every category and for the Standalone tweaks the install plan ran on that machine.
 
 **Naming:** tweak files are kebab-case (`set-hidden-settings-pages.psd1`), deliberately
 unlike the `Verb-Noun` scripts elsewhere: these are data definitions addressed by manifest
@@ -72,7 +74,7 @@ explicit point, after the live-HKCU pass.
 | --- | --- | --- |
 | `Name` | string (required) | Display name, used in logs. |
 | `Description` | string | What the tweak does and why. |
-| `Option` | string | Only apply when the user selected this FeaturePage option. Known values: `auto-updates-default`, `auto-updates-disable`, `browser-brave`, `browser-chrome`, `browser-firefox`, `browser-librewolf`, `defender-disable`, `defender-enable`, `disable-core-isolation`, `disable-hibernation`, `disable-power-saving`, `install-another-browser`, `install-toolbox`, `install-eclean`, `mitigations-default`, `mitigations-disable`, `remove-snipping-tool`, `uninstall-edge`. |
+| `Option` | string | Only apply when the user selected this FeaturePage option. Known values: `auto-updates-default`, `auto-updates-disable`, `browser-brave`, `browser-chrome`, `browser-firefox`, `browser-librewolf`, `defender-disable`, `defender-enable`, `disable-core-isolation`, `disable-hibernation`, `disable-power-saving`, `install-another-browser`, `install-toolbox`, `install-eclean`, `keyboard-shortcuts`, `keyboard-selector`, `keyboard-single`, `mitigations-default`, `mitigations-disable`, `remove-snipping-tool`, `uninstall-edge`. |
 | `Arch` | `'X64'` or `'ARM64'` | Only apply on this architecture. |
 | `MinBuild` / `MaxBuild` | integer | Only apply on this Windows build range (inclusive). Maps the old YAML `builds: ['>=22000']` (`MinBuild = 22000`) and `builds: ['<22000']` (`MaxBuild = 21999`). Not enforced when the build number can't be read. |
 | `OnUpgrade` | `'Both'` (default), `'Skip'` or `'Only'` | `Skip` = fresh installs only, `Only` = upgrade installs only, `Both` = either mode when the install plan reaches this tweak. `ParentModes` still limits the category or standalone route; this key does not add work to Reapply. |
@@ -81,10 +83,10 @@ explicit point, after the live-HKCU pass.
 | `RunAs` | `'User'` | Runs the companion `Script` as the exact install-state-bound, non-elevated user via `Invoke-AtlasAsUser`; other keys keep their own execution context. Requires `Oobe = $false`, a first-login path for the eventual user, and a successful `-ExpectedUserSid` token check. Elevated user companions are unsupported; shell work must use the session-filtered refresh helper. |
 | `Registry` | array of hashtables | Registry operations, see below. |
 | `PostUserRegistryRefresh` | `'ShellRefresh'`, `'ExplorerRefresh'`, `'SearchShellRefresh'`, `'StartMenuRefresh'`, or `'ExplorerAndSettingsRefresh'` | After the exact install-state-bound user's live-HKCU pass succeeds, runs the selected session-filtered refresh and requires exit code 0. Requires an ambient HKCU entry; duplicate operations are collapsed in manifest order. During OOBE, default-profile registry data is still applied but the live-session refresh is deferred to first logon. Do not duplicate the refresh in `Run` or `Script`. |
-| `Services` | array of hashtables | `@{ Name; StartupType (int 0-4); Operation; AllowMissing; IgnoreErrors }`. `Operation` is `'Change'` (default; writes the service key's `Start` value directly so protected services work), `'Stop'` or `'Start'`. `StartupType` is required for `Change`: 0 = Boot, 1 = System, 2 = Automatic, 3 = Manual, 4 = Disabled. A missing service is an error unless the entry declares `AllowMissing = $true` (for edition-, build- or hardware-optional services); any other failure is an error unless the entry declares `IgnoreErrors = $true`. Applied by `Invoke-AtlasServiceEntries` in Atlas.Services, which toggles share. |
+| `Services` | array of hashtables | `@{ Name; StartupType (int 0-4); Operation; AllowMissing; IgnoreErrors }`. `Operation` is `'Change'` (default; writes the service key's `Start` value directly so protected services work), `'Stop'` or `'Start'`. `StartupType` is required for `Change`: 0 = Boot, 1 = System, 2 = Automatic, 3 = Manual, 4 = Disabled. A missing service is skipped for `StartupType` 4, since it can't run; for 0-3 it is an error unless the entry declares `AllowMissing = $true` (for edition-, build- or hardware-optional services); any other failure is an error unless the entry declares `IgnoreErrors = $true`. Applied by `Invoke-AtlasServiceEntries` in Atlas.Services, which toggles share. |
 | `ScheduledTasks` | array of hashtables | `@{ Path; Operation; IgnoreErrors }` with `Operation` = `'Disable'` (default) or `'Enable'`, applied through the Atlas.TasksProcs helpers and the exact System32 `schtasks.exe`. A missing task is logged as a warning. Access failures, nonzero exits and failed readback are errors unless `IgnoreErrors = $true`, which also tolerates malformed entries. |
 | `Toggle` | array of hashtables | `@{ Name; State }`. Applies and records the machine part of an installed AtlasDesktop toggle state through `Invoke-AtlasToggleMachineState`, so the install and the launcher share one implementation (see `AtlasModules\Toggles\README.md`). Runs in the machine pass after `ScheduledTasks`. |
-| `Run` | array of hashtables | `@{ Exe; Args; Arch; IgnoreErrors; Wait; RunAs; AllowedExitCodes }`. `Exe` must be absolute or start with `{windir}`; `Args` is an array of exact strings. Runs are always waited and checked, accepting only 0 unless exact System32 DISM declares `@(0, 3010)`. `IgnoreErrors = $true` turns a machine-run failure into a warning. `RunAs = 'User'` runs as the exact install-state-bound user, requires `Wait = $true`, passes `-ExpectedUserSid`, and cannot ignore failure. |
+| `Run` | array of hashtables | `@{ Exe; Args; Arch; IgnoreErrors; Wait; AllowedExitCodes }`. `Exe` must be absolute or start with `{windir}`; `Args` is an array of exact strings. Runs execute in the machine pass and are always waited and checked, so `Wait` can only be `$true`; only 0 is accepted unless exact System32 DISM declares `@(0, 3010)`. `IgnoreErrors = $true` turns a failure into a warning. Exact-user work belongs in a companion `Script` with `RunAs = 'User'`. |
 | `RemovePaths` | array of hashtables | `@{ Path; Arch; IgnoreErrors }`; paths must resolve beneath `{windir}`, are removed recursively, and an already-missing path is success. A failed removal is fatal by default unless the entry explicitly declares `IgnoreErrors = $true`. |
 | `Script` | string | Relative path to a companion `.ps1` next to the tweak file, invoked after all other keys for genuinely imperative work. |
 
@@ -93,7 +95,7 @@ explicit point, after the live-HKCU pass.
 ```powershell
 @{
     Path         = 'HKLM:\...' # or 'HKCU\...', the fixed HKU\Atlas_DefaultUser, Registry::HKEY_...
-    Name         = 'ValueName' # required for Set/Delete
+    Name         = 'ValueName' # required for Set/Delete; '' is the key's default value
     Type         = 'DWord'     # String | ExpandString | Binary | DWord | MultiString | QWord | None
     Data         = 0           # required for Set unless Type is None/String/ExpandString
     Operation    = 'Set'       # Set (default) | Delete | DeleteKey | AddKey
@@ -102,8 +104,25 @@ explicit point, after the live-HKCU pass.
     AllowOsProtected = $true   # optional: warn and continue only when Windows refuses this value
     UseGroupPolicy = $true     # optional: HKLM Software\Policies DWORD Set only; save local GPO, refresh and verify
     SkipVerification = 'Windows rewrites this initial value.' # optional: reason to exclude a transient entry from drift checks
+    Mask         = '4'         # optional, Binary or String Set only: change only these bits, see below
+    MigrateDwordToString = $true # optional, masked String only: read an existing DWORD value as the flags
+    VerifyWithToggle = @{ Name = 'Location'; State = 1; Type = 'String'; Data = 'Allow' } # optional, see below
 }
 ```
+
+`Mask` keeps a user's other flags. For `Binary`, `Mask` and `Data` are byte arrays of the
+same length; for `String`, both are unsigned decimal flag strings such as `'4'`. A missing
+value is written as `Data`, and a value of an unexpected kind or length fails the entry. A
+masked entry must be a `Set` and cannot use `UseGroupPolicy` or `VerifyWithToggle`.
+`MigrateDwordToString = $true` lets a masked `String` entry take over a value older Atlas
+releases wrote as a DWORD, rewriting it as a decimal string.
+
+`VerifyWithToggle` names a toggle, an integer `State`, and a `Set` (`Type` and `Data`) or
+`Delete` override. Once that state is recorded, an update applies the override instead of
+the install default and verification expects it. It needs a fully verified `Set` or
+`Delete` of a machine or current-user value, so it cannot be combined with `Mask` or
+`SkipVerification`. See
+[Registry entry options](../../../../../docs/architecture.md#registry-entry-options).
 
 `IgnoreErrors` and `AllowOsProtected` are not the same thing. `IgnoreErrors` tolerates every
 failure, including a mistyped path that would otherwise never be noticed. `AllowOsProtected`

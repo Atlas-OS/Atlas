@@ -15,6 +15,17 @@ pub(super) enum DraftWrite {
     Failed(String),
 }
 
+/// A draft write that failed. Later draft writes, and settings writes while
+/// it stands, replay it until one lands, so a lost write doesn't come back
+/// on the next launch.
+#[derive(Clone, Debug)]
+pub(super) enum UnsavedDraft {
+    /// Removing flow `flow`'s draft after that flow was left.
+    Removal { flow: Option<String> },
+    /// Flow `flow`'s draft, written over whatever is on disk.
+    TakeOver { flow: Option<String> },
+}
+
 impl AppModel {
     /// This flow's draft as it stands, or `None` outside a flow.
     pub(super) fn current_draft(&self) -> Option<InstallDraft> {
@@ -33,6 +44,7 @@ impl AppModel {
             flow: self.flow_id.clone(),
             windows_transition_declined: self.windows_transition_declined,
             windows_terms_accepted: self.windows_terms_accepted,
+            used_windows_accepted: self.used_windows_accepted,
             recorded_choices_applied: self.recorded_choices_applied,
             store_outcome: self.store_outcome_seen.map(|outcome| outcome.id().to_owned()),
         })
@@ -59,6 +71,39 @@ impl AppModel {
         .detach();
     }
 
+    /// [`AppModel::persist`] for a draft write. `change` says whether it
+    /// settled the draft on disk as this window means it, which makes up for
+    /// any [`UnsavedDraft`]. A failed write leaves `unsaved`, if given, for
+    /// later writes to replay.
+    fn persist_draft(
+        &mut self,
+        change: impl FnOnce(&mut AppSettings) -> bool + Send + 'static,
+        unsaved: Option<UnsavedDraft>,
+        then: impl FnOnce(&mut Self, bool, &mut Context<Self>) + 'static,
+        cx: &mut Context<Self>,
+    ) {
+        let answer = self.store.transact(change);
+        cx.spawn(async move |this, cx| {
+            let answer = answer.await;
+            this.update(cx, |this, cx| match answer {
+                Ok(landed) => {
+                    if landed {
+                        this.unsaved_draft = None;
+                    }
+                    then(this, landed, cx);
+                }
+                Err(error) => {
+                    if unsaved.is_some() {
+                        this.unsaved_draft = unsaved;
+                    }
+                    this.settings_failed(error, cx);
+                }
+            })
+            .ok();
+        })
+        .detach();
+    }
+
     fn settings_failed(&mut self, error: String, cx: &mut Context<Self>) {
         log::warn!("could not save settings: {error}");
         if self.notice.is_none() {
@@ -73,15 +118,15 @@ impl AppModel {
     }
 
     /// Saves a preference the user changed. While a failed save is being
-    /// reported, the change writes everything this window holds instead (see
-    /// [`AppModel::resave_settings`]), so the change that was lost is saved
-    /// with it.
+    /// reported, or a draft write is still lost, the change writes everything
+    /// this window holds instead (see [`AppModel::resave_settings`]), so what
+    /// was lost is saved with it.
     pub(super) fn persist_preference(
         &mut self,
         change: impl FnOnce(&mut AppSettings) + Send + 'static,
         cx: &mut Context<Self>,
     ) {
-        if self.save_failed() {
+        if self.save_failed() || self.unsaved_draft.is_some() {
             self.resave_settings(cx);
         } else {
             self.persist(change, |_, (), _| {}, cx);
@@ -89,37 +134,50 @@ impl AppModel {
     }
 
     /// After a failed save, writes every preference this window holds, plus
-    /// its draft while this flow still owns it. A transaction replays only
-    /// the field it changes, so only this recovers the lost write; the notice
-    /// goes once it succeeds.
+    /// its draft while this flow still owns it, or the draft removal or
+    /// take-over a failed write left undone (see [`UnsavedDraft`]). A
+    /// transaction replays only the field it changes, so only this recovers
+    /// a lost preference; the notice goes once it succeeds.
     pub(super) fn resave_settings(&mut self, cx: &mut Context<Self>) {
-        let held = self.settings.clone();
+        // Every field by name, so a new preference fails to build here
+        // until someone decides how it is replayed.
+        let AppSettings {
+            drivers,
+            theme,
+            language,
+            restart_after_install,
+            draft: _,
+            dismissed_preview_notices,
+            protection_reminder_dismissed,
+            defender_missing_dismissed,
+            protection_reminder_pending,
+        } = self.settings.clone();
         let draft = self.current_draft();
-        self.persist(
+        let unsaved = self.unsaved_draft.clone();
+        self.persist_draft(
             move |doc| {
-                doc.theme = held.theme;
-                doc.language = held.language;
-                doc.restart_after_install = held.restart_after_install;
-                if held.drivers.is_some() {
-                    doc.drivers = held.drivers;
+                doc.theme = theme;
+                doc.language = language;
+                doc.restart_after_install = restart_after_install;
+                if drivers.is_some() {
+                    doc.drivers = drivers;
                 }
-                for tag in held.dismissed_preview_notices {
+                for tag in dismissed_preview_notices {
                     if !doc.dismissed_preview_notices.iter().any(|t| t.eq_ignore_ascii_case(&tag)) {
                         doc.dismissed_preview_notices.push(tag);
                     }
                 }
-                if held.protection_reminder_dismissed.is_some() {
-                    doc.protection_reminder_dismissed = held.protection_reminder_dismissed;
+                if protection_reminder_dismissed.is_some() {
+                    doc.protection_reminder_dismissed = protection_reminder_dismissed;
                 }
-                if held.defender_missing_dismissed.is_some() {
-                    doc.defender_missing_dismissed = held.defender_missing_dismissed;
+                if defender_missing_dismissed.is_some() {
+                    doc.defender_missing_dismissed = defender_missing_dismissed;
                 }
-                doc.protection_reminder_pending = held.protection_reminder_pending;
-                if let Some(draft) = draft {
-                    write_if_owned(doc, draft);
-                }
+                doc.protection_reminder_pending = protection_reminder_pending;
+                write_draft(doc, draft, unsaved)
             },
-            |this, (), cx| {
+            None,
+            |this, _, cx| {
                 if this.save_failed() {
                     this.notice = None;
                     cx.notify();
@@ -135,8 +193,10 @@ impl AppModel {
     pub(super) fn save_draft(&mut self, cx: &mut Context<Self>) {
         let Some(draft) = self.current_draft() else { return };
         self.settings.draft = Some(draft.clone());
-        self.persist(
-            move |doc| write_if_owned(doc, draft),
+        let unsaved = self.unsaved_draft.clone();
+        self.persist_draft(
+            move |doc| write_draft(doc, Some(draft), unsaved),
+            None,
             |_, written, _| {
                 if !written {
                     log::warn!(
@@ -151,7 +211,9 @@ impl AppModel {
     /// Writes `draft` as [`AppModel::save_draft`] does, for a caller that
     /// must know the outcome before it goes on. The write is queued at once.
     pub(super) fn write_owned_draft(&self, draft: InstallDraft) -> impl Future<Output = DraftWrite> + use<> {
-        let written = self.store.transact(move |doc| write_if_owned(doc, draft));
+        // A take-over that was lost still applies; the next save settles it.
+        let unsaved = self.unsaved_draft.clone();
+        let written = self.store.transact(move |doc| write_draft(doc, Some(draft), unsaved));
         async move {
             match written.await {
                 Ok(true) => DraftWrite::Written,
@@ -166,7 +228,16 @@ impl AppModel {
     pub(super) fn take_over_draft(&mut self, cx: &mut Context<Self>) {
         let Some(draft) = self.current_draft() else { return };
         self.settings.draft = Some(draft.clone());
-        self.persist(move |doc| doc.draft = Some(draft), |_, (), _| {}, cx);
+        let unsaved = UnsavedDraft::TakeOver { flow: draft.flow.clone() };
+        self.persist_draft(
+            move |doc| {
+                doc.draft = Some(draft);
+                true
+            },
+            Some(unsaved),
+            |_, _, _| {},
+            cx,
+        );
     }
 
     /// Abandons this flow's draft: the one on disk goes only while this flow
@@ -176,13 +247,14 @@ impl AppModel {
         self.preparation_problem = None;
         self.settings.draft = None;
         let flow = self.flow_id.clone();
-        self.persist(
+        let unsaved = UnsavedDraft::Removal { flow: flow.clone() };
+        self.persist_draft(
             move |doc| {
-                if draft_owned_by(&doc.draft, flow.as_deref()) {
-                    doc.draft = None;
-                }
+                remove_if_owned(doc, flow.as_deref());
+                true
             },
-            |_, (), _| {},
+            Some(unsaved),
+            |_, _, _| {},
             cx,
         );
     }
@@ -220,6 +292,36 @@ fn write_if_owned(doc: &mut AppSettings, draft: InstallDraft) -> bool {
         doc.draft = Some(draft);
     }
     owned
+}
+
+/// Removes the draft in `doc` if flow `flow` may (see [`draft_owned_by`]).
+fn remove_if_owned(doc: &mut AppSettings, flow: Option<&str>) {
+    if draft_owned_by(&doc.draft, flow) {
+        doc.draft = None;
+    }
+}
+
+/// Writes this window's `draft` into `doc`: over anything while its flow's
+/// take-over hasn't landed, otherwise only while its flow owns the one on
+/// disk. With no draft, it makes the removal a failed write left undone.
+/// Says whether this settles the draft on disk as this window means it. A
+/// write with neither to make settles nothing: a failure reported after it
+/// was queued is still owed.
+fn write_draft(doc: &mut AppSettings, draft: Option<InstallDraft>, unsaved: Option<UnsavedDraft>) -> bool {
+    match (draft, unsaved) {
+        (Some(draft), Some(UnsavedDraft::TakeOver { flow })) if draft.flow == flow => {
+            doc.draft = Some(draft);
+            true
+        }
+        (Some(draft), _) => write_if_owned(doc, draft),
+        (None, Some(UnsavedDraft::Removal { flow })) => {
+            remove_if_owned(doc, flow.as_deref());
+            true
+        }
+        // A take-over for a flow that has ended is owed nothing.
+        (None, Some(UnsavedDraft::TakeOver { .. })) => true,
+        (None, None) => false,
+    }
 }
 
 /// Whether flow `flow` may write or remove the draft on disk: there is none,

@@ -75,6 +75,8 @@ window-close-message = Installation will continue in the background. Open Atlas 
 # Instead of window-close-message when the installation restarts the PC afterwards: only an
 # open Atlas window restarts it, so closing the window cancels that.
 window-close-message-restart = Installation will continue in the background, but your PC won't restart automatically while Atlas is closed. Open Atlas again to check progress and see the result. Keep your PC on until it finishes.
+# The safe answer in every dialog shown when the window is closed, including those for ISO
+# and USB creation, updates and Windows Update access.
 window-close-keep = Keep open
 window-close-close = Close window
 # Dialog shown when the window is closed during the final checks, before the
@@ -82,7 +84,7 @@ window-close-close = Close window
 window-close-preparing-title = Close before installation starts?
 window-close-preparing-message = Atlas is still checking your PC and hasn't started installing. If you close now, installation won't start. Open Atlas again to continue.
 # Dialog shown when the window is closed while Windows and Store apps update. Its
-# message is prepare-close-message; its buttons are iso-keep-open and prepare-stop.
+# message is prepare-close-message; its buttons are window-close-keep and prepare-stop.
 prepare-close-title = Updates are still running
 # "Stop updating" is prepare-stop, the dialog's other button.
 prepare-close-message = Keep Atlas open while updates run. If you choose Stop updating, updates stop after the current step and you can close Atlas then.
@@ -98,7 +100,8 @@ window-close-restart-close = Close without restarting
 # window-close-keep, common-open-windows-security and window-close-close.
 window-close-protection-title = Close Atlas with protection turned off?
 window-close-protection-message = Some protection in Windows Security is still off: { $switches }. If you're not going to finish installing Atlas, turn it back on before you close. If you are, Atlas continues your setup when you open it again.
-# Title of the file picker for an Atlas package (.apbx) file.
+# The Open button of the file picker for an Atlas package (.apbx) file, on Get ready and the
+# ISO page. It's a button label, so keep it short.
 file-dialog-open-package = Open an Atlas package (.apbx)
 # Message Windows shows in its restart notification.
 shutdown-comment = Atlas is installed. Restarting Windows to finish setup.
@@ -862,7 +865,9 @@ iso-failed-package-changed = The Atlas package changed after the files were chec
 iso-diagnostics = Open log folder
 iso-close-title = ISO creation is still running
 iso-close-message = Keep this window open until creation or cancellation finishes. Cancelling waits for the current operation to reach a safe stopping point.
-iso-keep-open = Keep open
+# On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,
+# from another page. Their controls are unavailable until it finishes.
+iso-locked = Atlas is busy with Windows Update. You can continue here once it finishes.
 prepare-title = Update Windows and Store apps
 # Notepad, Paint and Windows Terminal are examples of Store apps that may be open. Use their
 # names as Windows shows them in your language.
@@ -907,6 +912,10 @@ prepare-failed-store-timeout = Store apps haven't finished updating. Finish the 
 prepare-failed-store-passes = Microsoft Store kept offering new updates. Finish the remaining updates in Microsoft Store, then try again.
 prepare-failed-manual-updates = Some Windows updates need to be finished in Windows Update. Open Windows Update, finish them, then try again.
 prepare-failed-windows-passes = Windows Update kept offering new updates. Finish the remaining updates in Windows Update, then try again.
+# Atlas Manager runs from a folder that links to another place (a junction or symbolic
+# link). "Linked folder" and "local folder" as in usb-failed-location. Atlas keeps using
+# the folder it was opened from, so trying again in the same window can't help.
+prepare-failed-source-linked = Atlas Manager is in a linked folder. Close Atlas, move Atlas Manager to a local folder on this PC, then open it from there.
 prepare-error-code = Error code: { $code }
 prepare-open-store = Open Microsoft Store
 # "Check and install updates" is prepare-start, its button in this state.
@@ -983,6 +992,8 @@ desktop-setup-exit = Continue in Windows
 usb-title = Create installation USB
 usb-existing = Create a USB from an existing ISO
 usb-description = Put an ISO on a USB drive so you can reinstall Windows from it. Use an ISO created by Atlas to install Atlas at the same time.
+# Button that opens the file picker for an ISO, and the Open button of that picker, on the USB
+# and ISO pages.
 usb-choose-iso = Choose ISO
 usb-drive = USB drive
 # $min and $max are formatted numbers (text), in gigabytes and terabytes.
@@ -1073,6 +1084,9 @@ prepare-continue = Continue updates
 prepare-saving-restart = Saving your choices and arranging to reopen Atlas after Windows restarts…
 prepare-restart-save-failed = Your choices couldn't be saved. Try again before restarting.
 prepare-restart-registration-failed = Your choices are saved, but Atlas couldn't arrange to open again after the restart. Try again, or restart your PC yourself and open Atlas after you sign in.
+# The same cause as prepare-failed-source-linked, met while arranging the restart. Both ways
+# on need the move, because Atlas keeps using the folder it was opened from.
+prepare-restart-source-linked = Your choices are saved, but Atlas can't arrange to open again after the restart while Atlas Manager is in a linked folder. Close Atlas and move Atlas Manager to a local folder on this PC. Then open it from there, or restart your PC yourself and open it from there after you sign in.
 prepare-restart-failed = Atlas couldn't restart your PC. Try again, or restart it from the Start menu. Your choices are saved, and Atlas opens again after you sign in.
 diagnostics-export = Export diagnostics
 diagnostics-exporting = Collecting diagnostics…
@@ -1097,6 +1111,7 @@ iso-package-bundled = The Atlas package bundled with this test build
 check-user-account = User account
 detail-user-account-ok = UAC is enabled and your account is ready for installation.
 detail-user-account-not-ready = Turn on User Account Control (UAC), restart your PC, then try again. If you use the built-in Administrator account, sign in with another administrator account.
+detail-user-account-work-or-school = Atlas can't be installed from a work or school (Microsoft Entra ID) account. Sign in with a local account or a Microsoft account, then try again.
 detail-user-account-unknown = Atlas couldn't check your user account. Check again before installing. Windows reported: { $error }
 
 footer-prepare-required = Finish updating Windows and Store apps to continue
@@ -1318,6 +1333,8 @@ stop-update-before = Atlas puts back the Windows Update settings it changed. Upd
 stop-update-after = Your PC keeps Windows 11, version { $release }. Atlas puts back the Windows Update settings it changed.
 stop-update-access = Atlas puts back the Windows Update settings it changed. Updates Windows already installed stay installed.
 stop-update-keep = Keep updating
+# Dialog shown when the window is closed while Windows Update is turned on for an update; its
+# buttons are window-close-keep and window-close-put-back.
 window-close-update-access-title = Close Atlas?
 window-close-update-access-message = Atlas puts back the Windows Update settings it changed before closing. You can start the update again from Home.
 window-close-put-back = Put back and close

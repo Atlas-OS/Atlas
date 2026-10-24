@@ -101,15 +101,19 @@ Describe 'Atlas installing-user process boundary' {
     }
 
     It 'rejects missing or invalid captured identity before launch' -TestCases @(
-        @{ Sid = 'S-1-5-18'; Session = 7 }
-        @{ Sid = 'S-1-5-21-111-222-333-1001'; Session = 0 }
-        @{ Sid = 'S-1-5-21-111-222-333-1001'; Session = '7' }
+        @{ Sid = 'S-1-5-18'; Session = 7; Message = '*interactive account SID*' }
+        @{ Sid = 'S-1-5-21-111-222-333-1001'; Session = 0; Message = '*invalid interactive user session ID*' }
+        @{ Sid = 'S-1-5-21-111-222-333-1001'; Session = '7'; Message = '*integer interactive user session ID*' }
+        # An identity that was never captured arrives as a blank SID or a null session.
+        # Neither may fall back to another account or session.
+        @{ Sid = ''; Session = 7; Message = '*valid interactive user SID*' }
+        @{ Sid = 'S-1-5-21-111-222-333-1001'; Session = $null; Message = '*integer interactive user session ID*' }
     ) {
-        param($Sid, $Session)
+        param($Sid, $Session, $Message)
         $calls = New-Object Collections.Generic.List[object]
         $context = New-TestUserContext -Sid $Sid -SessionId $Session
 
-        { Invoke-TestUserProcess -Context $context -Calls $calls } | Should -Throw
+        { Invoke-TestUserProcess -Context $context -Calls $calls } | Should -Throw -ExpectedMessage $Message
         $calls.Count | Should -Be 0
     }
 

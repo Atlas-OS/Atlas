@@ -215,17 +215,31 @@ mod tests {
     }
 
     #[test]
-    fn an_empty_multi_line_input_puts_the_ime_at_the_start_of_its_text() {
+    fn an_empty_input_puts_the_ime_before_its_placeholder() {
         // The placeholder is what was shaped; the caret is before it.
         let placeholder = shaped("I was trying to…", 300.);
         let caret = Bounds::new(point(px(0.), px(0.)), size(px(2.), px(20.)));
         assert_eq!(composition_bounds("", &placeholder, 0..0, false), Some(caret));
-        // A layout made for other text is not used.
+    }
+
+    #[test]
+    fn a_layout_for_other_text_places_no_ime_window() {
+        let placeholder = shaped("I was trying to…", 300.);
         assert_eq!(composition_bounds("x", &placeholder, 0..0, false), None);
-        // Otherwise the composition's first row: "two" on the second.
-        let rows = shaped("one two three", 30.);
-        let second = Bounds::new(point(px(0.), px(20.)), size(px(18.), px(20.)));
-        assert_eq!(composition_bounds("one two three", &rows, 4..7, false), Some(second));
+    }
+
+    #[test]
+    fn a_composition_goes_on_the_row_its_start_is_on() {
+        // Wrapped after "one " and "two ".
+        let text = "one two three";
+        let rows = shaped(text, 30.);
+        let bounds = |range, at_row_end| composition_bounds(text, &rows, range, at_row_end);
+        let on = |x: f32, y: f32, width: f32| Bounds::new(point(px(x), px(y)), size(px(width), px(20.)));
+        assert_eq!(bounds(4..7, false), Some(on(0., 20., 18.)), "\"two\" on the second row");
+        assert_eq!(bounds(4..13, false), Some(on(0., 20., 24.)), "only the part on that row");
+        // A caret put at the end of the first row keeps the window there.
+        assert_eq!(bounds(4..4, true), Some(on(24., 0., 0.)));
+        assert_eq!(bounds(4..4, false), Some(on(0., 20., 0.)));
     }
 
     #[test]

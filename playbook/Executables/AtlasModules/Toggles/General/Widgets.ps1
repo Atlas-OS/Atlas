@@ -16,7 +16,7 @@ function Enable-AtlasWidgetsMachine {
             $programFilesX86,
             'Microsoft\Edge\Application\msedge.exe'
         )
-        $installEdge = -not [IO.File]::Exists($edgePath)
+        $installEdge = -not (Test-Path -LiteralPath $edgePath -PathType Leaf)
 
         if ($installEdge) {
             Write-AtlasNote -Text 'Widgets needs Microsoft Edge, which is not installed.'

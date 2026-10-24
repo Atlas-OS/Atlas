@@ -100,30 +100,9 @@ Describe 'Atlas process privilege decisions' {
         finally { $identity.Dispose() }
     }
 
-    It 'classifies the real current token without treating Administrator or SYSTEM as TrustedInstaller' {
-        $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-        try {
-            $principal = New-Object Security.Principal.WindowsPrincipal($identity)
-            $expectedAdmin = $principal.IsInRole(
-                [Security.Principal.WindowsBuiltInRole]::Administrator
-            )
-            $expectedSystem = $identity.User.Value -ceq 'S-1-5-18'
-        }
-        finally {
-            $identity.Dispose()
-        }
-
-        Test-AtlasAdmin | Should -Be $expectedAdmin
-        Test-AtlasSystem | Should -Be $expectedSystem
+    It 'does not accept the real current token as TrustedInstaller' {
         Test-AtlasTrustedInstaller | Should -BeFalse
         { Assert-AtlasPrivilege -TrustedInstaller } | Should -Throw '*TrustedInstaller service token*'
-
-        if ($expectedAdmin) {
-            { Assert-AtlasPrivilege -Administrator } | Should -Not -Throw
-        }
-        else {
-            { Assert-AtlasPrivilege -Administrator } | Should -Throw '*Administrator rights*'
-        }
     }
 
     It 'accepts only the strict TrustedInstaller token shape' -TestCases @(

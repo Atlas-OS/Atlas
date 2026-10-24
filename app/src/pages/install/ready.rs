@@ -82,7 +82,7 @@ impl InstallPage {
         let mut cards = Vec::new();
         // Errors and the used-Windows warning always show.
         cards.extend(elevation_problem(state, &model));
-        if used_windows && !self.used_windows_warning_dismissed {
+        if used_windows && !state.used_windows_accepted {
             cards.push(self.used_windows_warning(state, cx));
         }
         if let Some(status) = status {
@@ -143,10 +143,9 @@ impl InstallPage {
             .child(Button::new("ready-used-windows-dismiss", t!("ready-used-windows-dismiss")).on_click(
                 // The bar and its button go away; focus goes back to the step heading.
                 cx.listener(|this, _, window, cx| {
-                    this.used_windows_warning_dismissed = true;
+                    this.model.update(cx, |m, cx| m.accept_used_windows(cx));
                     let heading = this.focus.get("step-heading", cx);
                     window.focus(&heading, cx);
-                    cx.notify();
                 }),
             ));
         InfoBar::new(Severity::Warning, t!("ready-used-windows-title"), t!("ready-used-windows-description"))
@@ -457,7 +456,7 @@ impl InstallPage {
                 .selected(Some(usize::from(!chosen)))
                 .disabled(locked || open)
                 .on_select(move |index, _, cx| {
-                    model.update(cx, |m, cx| m.set_windows_transition(index == 1, cx))
+                    model.update(cx, |m, cx| m.keep_windows_version(index == 1, cx))
                 })
         });
         let theme = cx.theme();

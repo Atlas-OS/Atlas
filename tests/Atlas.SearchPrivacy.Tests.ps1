@@ -25,7 +25,7 @@ Describe 'Search privacy on Windows that refuses per-user preferences' {
         Remove-Item -LiteralPath $script:searchRoot -Recurse -Force
     }
 
-    It 'finishes <Route> while keeping cloud search controlled by machine policy' -ForEach @(
+    It 'finishes <Route> and applies its cloud-search policy' -ForEach @(
         @{ Route = 'Privacy tweak' }
         @{ Route = 'Disable Web Search' }
         @{ Route = 'Enable Web Search' }

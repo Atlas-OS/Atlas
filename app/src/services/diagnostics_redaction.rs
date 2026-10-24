@@ -15,11 +15,27 @@ pub struct Redactor {
 
 /// Profile folders that are not an account's and keep their names.
 const SHARED_PROFILES: [&str; 4] = ["Public", "Default", "Default User", "All Users"];
-/// Names that identify no one but are words of the logs themselves: aliasing
-/// them would turn "User account" into "anonymous-1 account". Profile paths
-/// with them are still aliased.
-const GENERIC_NAMES: [&str; 8] =
-    ["WORKGROUP", "NT AUTHORITY", "SYSTEM", "User", "Admin", "Administrator", "Owner", "Guest"];
+/// Names that identify no one but are words of the logs themselves, Atlas's
+/// own among them: aliasing them would turn "User account" into "anonymous-1
+/// account" and "module=Atlas.Install" into "module=anonymous-1.Install".
+/// Profile paths with them are still aliased.
+const GENERIC_NAMES: [&str; 10] = [
+    "WORKGROUP",
+    "NT AUTHORITY",
+    "SYSTEM",
+    "User",
+    "Admin",
+    "Administrator",
+    "Owner",
+    "Guest",
+    "Atlas",
+    "AtlasOS",
+];
+/// NUL characters in a row that are taken for padding rather than text: the
+/// zeros a crash or hard reset leaves where a log's length reached the disk
+/// before its data. UTF-16 text read as UTF-8 never has more than two in a
+/// row, so it is still refused.
+const NUL_RUN: usize = 16;
 
 static SECRETS: LazyLock<[Regex; 6]> = LazyLock::new(|| {
     [
@@ -86,14 +102,28 @@ static SENSITIVE_KEY: LazyLock<Regex> = LazyLock::new(|| {
 /// The local account name typed for an ISO, in each media job's request.json.
 static IDENTITY_KEY: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)^user[_-]?name$").unwrap());
 
+/// A text file as it goes into the archive.
+pub struct Redacted {
+    pub bytes: Vec<u8>,
+    /// Runs of NUL padding were taken out.
+    pub padding_removed: bool,
+}
+
 impl Redactor {
+    /// A redactor for the collecting user on this PC.
     pub fn new() -> Self {
-        Self::with_profiles(spaced_profiles())
+        let names: Vec<String> = ["USERNAME", "COMPUTERNAME", "USERDOMAIN", "USERDNSDOMAIN"]
+            .into_iter()
+            .filter_map(|name| std::env::var(name).ok())
+            .collect();
+        Self::with(&names, spaced_profiles())
     }
 
-    /// A redactor that knows `spaced`, the profile folder names containing
-    /// whitespace, so it can tell where such a name ends.
-    fn with_profiles(spaced: Vec<String>) -> Self {
+    /// A redactor that aliases `names`, the collecting user's account,
+    /// computer and domain names, wherever they stand alone, and knows
+    /// `spaced`, the profile folder names containing whitespace, so it can
+    /// tell where such a name ends.
+    pub fn with(names: &[String], spaced: Vec<String>) -> Self {
         // Longest first, so a name is never cut short by another it begins with.
         let mut spaced: Vec<String> = spaced.iter().map(|name| regex::escape(name)).collect();
         spaced.sort_by_key(|name| std::cmp::Reverse(name.len()));
@@ -102,9 +132,15 @@ impl Redactor {
         } else {
             format!(r"(?P<spaced>{})(?P<after>\W|\z)|", spaced.join("|"))
         };
-        let mut this = Self {
+        Self {
             aliases: HashMap::new(),
-            identities: Vec::new(),
+            identities: names
+                .iter()
+                .filter(|name| {
+                    !name.is_empty() && !GENERIC_NAMES.iter().any(|item| name.eq_ignore_ascii_case(item))
+                })
+                .map(|name| identity(name))
+                .collect(),
             // A profile name may contain spaces when a separator follows it on
             // the same line. Otherwise a known name with spaces is matched
             // whole, and any other stops at whitespace, so a quoted or
@@ -114,16 +150,7 @@ impl Redactor {
                 r#"(?i)(?P<prefix>[a-z]:[\\/]+Users[\\/]+)(?:(?P<name>[^\\/\r\n"<>:|?*,;=+\[\]@]+)(?P<separator>[\\/])|{spaced}(?P<tail>[^\\/\r\n"<>:|?*,;=+\[\]@\s]+))"#
             ))
             .unwrap(),
-        };
-        for name in ["USERNAME", "COMPUTERNAME", "USERDOMAIN", "USERDNSDOMAIN"] {
-            if let Ok(value) = std::env::var(name)
-                && !value.is_empty()
-                && !GENERIC_NAMES.iter().any(|item| value.eq_ignore_ascii_case(item))
-            {
-                this.identities.push(identity(&value));
-            }
         }
-        this
     }
 
     pub fn text(&mut self, source: &str) -> String {
@@ -211,10 +238,10 @@ impl Redactor {
         }
     }
 
-    /// Redacts a text file: UTF-8, or UTF-16 with a byte order mark. JSON is
-    /// redacted by key as well, and written back pretty-printed. `None` for
-    /// anything else, which the caller leaves out.
-    pub fn file(&mut self, bytes: &[u8]) -> Option<Vec<u8>> {
+    /// Redacts a text file: UTF-8, or UTF-16 with a byte order mark, without
+    /// its NUL padding. JSON is redacted by key as well, and written back
+    /// pretty-printed. `None` for anything else, which the caller leaves out.
+    pub fn file(&mut self, bytes: &[u8]) -> Option<Redacted> {
         let source = if bytes.starts_with(&[0xff, 0xfe]) || bytes.starts_with(&[0xfe, 0xff]) {
             if !bytes.len().is_multiple_of(2) {
                 return None;
@@ -236,16 +263,37 @@ impl Redactor {
         } else {
             std::str::from_utf8(bytes).ok()?.trim_start_matches('\u{feff}').to_owned()
         };
-        if source.contains('\0') {
+        let padding_removed = source.contains('\0');
+        let source = if padding_removed { without_padding(&source)? } else { source };
+        let bytes = if let Ok(mut value) = serde_json::from_str::<Value>(&source) {
+            self.json(&mut value);
+            serde_json::to_vec_pretty(&value).ok()?
+        } else {
+            self.text(&source).into_bytes()
+        };
+        Some(Redacted { bytes, padding_removed })
+    }
+}
+
+/// `text` without its runs of NUL padding: one with more text after it is
+/// marked, one at the end is dropped. `None` when a shorter run or a single
+/// NUL is left, as in binary data or UTF-16 without a byte order mark.
+fn without_padding(text: &str) -> Option<String> {
+    let mut kept = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(start) = rest.find('\0') {
+        let after = rest[start..].trim_start_matches('\0');
+        if rest.len() - start - after.len() < NUL_RUN {
             return None;
         }
-        if let Ok(mut value) = serde_json::from_str::<Value>(&source) {
-            self.json(&mut value);
-            serde_json::to_vec_pretty(&value).ok()
-        } else {
-            Some(self.text(&source).into_bytes())
+        kept.push_str(&rest[..start]);
+        if !after.is_empty() {
+            kept.push_str("[NUL bytes removed]");
         }
+        rest = after;
     }
+    kept.push_str(rest);
+    Some(kept)
 }
 
 /// Matches an account, computer or domain name where it stands on its own:
@@ -294,10 +342,15 @@ fn alias(aliases: &mut HashMap<String, String>, value: &str) -> String {
 mod tests {
     use super::*;
 
+    /// A redactor that knows no account, computer or profile names.
+    fn nameless() -> Redactor {
+        Redactor::with(&[], Vec::new())
+    }
+
     #[test]
     fn removes_credentials_without_losing_failure_context() {
         let source = r#"{"password":"two words","nested":{"apiKey":"top-secret"},"error":"Access denied (0x80070005) at C:\\Users\\Sample Person\\AppData\\Local\\AtlasOS\\Logs\\install.log","build":"26200.9278","model":"Samsung SSD 980","transactionId":"test-job-42","options":["disable-defender"],"url":"https://user:secret@example.org/Atlas.apbx?sig=secret-value&version=1","email":"test@example.net"}"#;
-        let result = String::from_utf8(Redactor::new().file(source.as_bytes()).unwrap()).unwrap();
+        let result = String::from_utf8(nameless().file(source.as_bytes()).unwrap().bytes).unwrap();
         for secret in
             ["two words", "top-secret", "Sample Person", "user:secret", "secret-value", "test@example.net"]
         {
@@ -325,8 +378,8 @@ mod tests {
         let source = "C:\\Users\\Alice\\AppData\\Local\\AtlasOS error\nC:\\Users\\Bob\\AppData\\Local\\AtlasOS error\nC:\\Users\\Alice\\Downloads\\Atlas.apbx\nS-1-5-18 S-1-5-32-544 S-1-5-21-111-222-333-1001\npassword='a secret' HRESULT=0x80070005\n";
         let bytes: Vec<u8> =
             [0xff, 0xfe].into_iter().chain(source.encode_utf16().flat_map(u16::to_le_bytes)).collect();
-        let mut redactor = Redactor::new();
-        let result = String::from_utf8(redactor.file(&bytes).unwrap()).unwrap();
+        let mut redactor = nameless();
+        let result = String::from_utf8(redactor.file(&bytes).unwrap().bytes).unwrap();
         assert!(!result.contains("Alice") && !result.contains("Bob") && !result.contains("a secret"));
         assert_eq!(result.matches("anonymous-1").count(), 2);
         assert!(result.contains("anonymous-2") && result.contains("S-1-5-18 S-1-5-32-544"));
@@ -338,7 +391,7 @@ mod tests {
     #[test]
     fn aliases_glued_and_entra_sids_but_keeps_well_known_ones() {
         let source = "\\GoogleUpdateTaskUserS-1-5-21-111-222-333-1001Core{A}\nTask-S-1-5-21-111-222-333-1001\nHKU\\S-1-5-21-111-222-333-1001_Classes\nS-1-12-1-1234-5678-9012-3456 S-1-5-18 S-1-5-32-544\n\\GoogleUpdateTaskUserS-1-12-1-1234-5678-9012-3456Core{B}\n\\MicrosoftEdgeUpdateTaskUserS-1-12-1-1234-5678-9012-3456UA{C}\nHKU\\S-1-12-1-1234-5678-9012-3456_Classes\n";
-        let mut redactor = Redactor::new();
+        let mut redactor = nameless();
         let result = redactor.text(source);
         assert!(!result.contains("111-222-333") && !result.contains("1234-5678"), "{result}");
         assert_eq!(result.matches("anonymous-1-1001").count(), 3, "{result}");
@@ -356,7 +409,7 @@ mod tests {
     #[test]
     fn a_path_ending_at_the_profile_folder_keeps_the_rest_of_its_line() {
         let source = "Access to the path 'C:\\Users\\Zelda' is denied.\npath C:\\Users\\Zelda is missing, retrying\nC:\\Users\\Zelda\\x and C:\\Users\\Zelda.\nC:\\Users\\O'Brien\\AppData and 'C:\\Users\\O'Brien'\nC:\\Users\\Public C:\\Users\\Default User\\NTUSER.DAT\n";
-        let mut redactor = Redactor::new();
+        let mut redactor = nameless();
         let result = redactor.text(source);
         assert!(!result.contains("Zelda") && !result.contains("Brien"), "{result}");
         assert!(result.contains("'C:\\Users\\anonymous-1' is denied."), "{result}");
@@ -370,7 +423,7 @@ mod tests {
     #[test]
     fn a_profile_name_with_spaces_keeps_one_label_wherever_its_path_ends() {
         let source = "Access to the path 'C:\\Users\\Jane Doe' is denied.\nUSERPROFILE=C:\\Users\\Jane Doe\nC:\\Users\\Jane Doe\\AppData\\x.log\nSaved to C:\\Users\\Jane Doe.\nC:\\Users\\Jane Doe Smith\\x and 'C:\\Users\\Jane Doe Smith'\nC:\\Users\\Default User\\NTUSER.DAT\n";
-        let mut redactor = Redactor::with_profiles(vec!["Jane Doe".into(), "Jane Doe Smith".into()]);
+        let mut redactor = Redactor::with(&[], vec!["Jane Doe".into(), "Jane Doe Smith".into()]);
         let result = redactor.text(source);
         assert!(!result.contains("Doe") && !result.contains("Smith"), "{result}");
         assert!(result.contains("'C:\\Users\\anonymous-1' is denied.\n"), "{result}");
@@ -384,10 +437,8 @@ mod tests {
 
     #[test]
     fn the_collecting_users_name_with_spaces_is_aliased_before_its_profile_path() {
-        let mut redactor = Redactor::with_profiles(Vec::new());
-        redactor.identities.push(Regex::new(r"(?i)\bJane Doe\b").unwrap());
         // A domain name aliased on its own must not break an address apart.
-        redactor.identities.push(Regex::new(r"(?i)\bcorp\.example\.org\b").unwrap());
+        let mut redactor = Redactor::with(&["Jane Doe".into(), "corp.example.org".into()], Vec::new());
         let result =
             redactor.text("'C:\\Users\\Jane Doe' is denied for Jane Doe; ask bob@corp.example.org\n");
         assert!(!result.contains("Doe") && !result.contains("bob"), "{result}");
@@ -397,12 +448,7 @@ mod tests {
 
     #[test]
     fn names_that_begin_or_end_with_punctuation_are_aliased_where_they_stand_alone() {
-        let mut redactor = Redactor::with_profiles(Vec::new());
-        // Only these names, whatever this PC's own are.
-        redactor.identities.clear();
-        for name in ["Jack!", "(Desk)", "Al"] {
-            redactor.identities.push(identity(name));
-        }
+        let mut redactor = Redactor::with(&["Jack!", "(Desk)", "Al"].map(String::from), Vec::new());
         let result = redactor.text(
             "Jack! signed in on (Desk). 'Jack!' then Jack!,Jack! and at the end Jack!\nAlready Al.\nPC=(DESK)\n",
         );
@@ -427,7 +473,7 @@ mod tests {
              C:\\Program Files\\Atlas Setup Recovery\\{executable}\\AtlasManager.exe\n",
             scope.to_uppercase()
         );
-        let mut redactor = Redactor::with_profiles(Vec::new());
+        let mut redactor = nameless();
         let result = redactor.text(&source);
         assert!(!result.to_lowercase().contains(&scope), "{result}");
         assert!(result.contains("Recovery\\Preparation\\anonymous-1\\1234-5678\n"), "{result}");
@@ -440,15 +486,15 @@ mod tests {
     #[test]
     fn the_iso_account_name_gets_the_label_of_its_profile() {
         let source = r#"{"username":"Priya","output":"C:\\Users\\Priya\\x.iso","options":["disable-defender"],"supportedBuilds":[26100]}"#;
-        let mut redactor = Redactor::new();
-        let once = redactor.file(source.as_bytes()).unwrap();
+        let mut redactor = nameless();
+        let once = redactor.file(source.as_bytes()).unwrap().bytes;
         let result = String::from_utf8(once.clone()).unwrap();
         assert!(!result.contains("Priya"), "{result}");
         let json: Value = serde_json::from_str(&result).unwrap();
         assert_eq!(json["output"], format!("C:\\Users\\{}\\x.iso", json["username"].as_str().unwrap()));
         assert_eq!(json["options"][0], "disable-defender");
         assert_eq!(json["supportedBuilds"][0], 26100);
-        assert_eq!(redactor.file(&once).unwrap(), once);
+        assert_eq!(redactor.file(&once).unwrap().bytes, once);
     }
 
     #[test]
@@ -456,7 +502,7 @@ mod tests {
         // The second Authorization header is mid-line, where the header rule
         // cannot see it.
         let text = "Cookie: session=secret; second=also-secret\nAuthorization: Basic dXNlcjpwYXNz\nrequest Authorization: Basic bWlkOmxpbmU=\nsetup.exe -Password 'two words' -Mode Repair\n<Password>xml-secret</Password>\n-----BEGIN PRIVATE KEY-----\nkey-material\n-----END PRIVATE KEY-----\nERROR exit=5 module=Atlas.Install line=42";
-        let result = Redactor::new().text(text);
+        let result = nameless().text(text);
         for secret in [
             "session=secret",
             "also-secret",
@@ -476,7 +522,7 @@ mod tests {
     #[test]
     fn repeated_redaction_keeps_aliases_and_credential_markers_stable() {
         let source = "C:\\Users\\Sample Person\\AppData\\Local\\AtlasOS\\install.log\npassword='secret'\nsetup.exe -Password 'secret' -Mode Repair\n";
-        let mut redactor = Redactor::new();
+        let mut redactor = nameless();
         let once = redactor.text(source);
         assert_eq!(redactor.text(&once), once);
     }
@@ -485,6 +531,65 @@ mod tests {
     fn keeps_driver_names_and_code_signing_results() {
         let evidence =
             "Microsoft Basic Display Adapter; signature=valid; signature: invalid; ERROR=0x800B0100";
-        assert_eq!(Redactor::new().text(evidence), evidence);
+        assert_eq!(nameless().text(evidence), evidence);
+    }
+
+    #[test]
+    fn generic_and_atlas_names_stay_words_of_the_logs() {
+        let names = ["User", "ATLAS", "AtlasOS", "Jane", ""].map(String::from);
+        let mut redactor = Redactor::with(&names, Vec::new());
+        let result = redactor.text(
+            "User account Jane signed in\nAtlas Manager 0.6.0 started\nERROR module=Atlas.Install\n\
+             https://example.org/Atlas.apbx\n%LOCALAPPDATA%\\AtlasOS\\App\nC:\\Users\\Atlas\\AppData\n",
+        );
+        assert!(result.contains("User account anonymous-1 signed in\n"), "{result}");
+        for evidence in [
+            "Atlas Manager 0.6.0 started",
+            "module=Atlas.Install",
+            "example.org/Atlas.apbx",
+            "\\AtlasOS\\App",
+        ] {
+            assert!(result.contains(evidence), "lost {evidence}: {result}");
+        }
+        // A profile folder is someone's whatever it is called.
+        assert!(result.contains("C:\\Users\\anonymous-2\\AppData"), "{result}");
+    }
+
+    #[test]
+    fn the_collecting_users_account_name_is_aliased() {
+        let Ok(name) = std::env::var("USERNAME") else { return };
+        if name.is_empty() || GENERIC_NAMES.iter().any(|item| name.eq_ignore_ascii_case(item)) {
+            return;
+        }
+        assert_eq!(Redactor::new().text(&format!("signed in as {name}")), "signed in as anonymous-1");
+    }
+
+    #[test]
+    fn nul_padding_is_taken_out_and_utf16_without_a_mark_is_still_refused() {
+        let mut redactor = nameless();
+        // UTF-8 with a byte order mark, as the engine's logs are, cut off by a crash.
+        let padded = [b"\xef\xbb\xbfphase 3 started\r\n".as_slice(), &[0; 4096]].concat();
+        let redacted = redactor.file(&padded).unwrap();
+        assert!(redacted.padding_removed);
+        assert_eq!(redacted.bytes, b"phase 3 started\r\n");
+        // A resumed install writes on after the padding, and that is redacted as usual.
+        let resumed =
+            [b"phase 3 started\r\n".as_slice(), &[0; 512], b"resumed in C:\\Users\\Zelda\\x\r\n"].concat();
+        assert_eq!(
+            String::from_utf8(redactor.file(&resumed).unwrap().bytes).unwrap(),
+            "phase 3 started\r\n[NUL bytes removed]resumed in C:\\Users\\anonymous-1\\x\r\n"
+        );
+        let utf16: Vec<u8> = [0xff, 0xfe]
+            .into_iter()
+            .chain("line\r\n".encode_utf16().flat_map(u16::to_le_bytes))
+            .chain([0; 64])
+            .collect();
+        assert_eq!(redactor.file(&utf16).unwrap().bytes, b"line\r\n");
+        assert!(!redactor.file(b"no padding").unwrap().padding_removed);
+        // Without a mark, UTF-16 has a NUL beside each ASCII character and
+        // at most two together, as between 'a' and U+0100.
+        let unmarked: Vec<u8> = "a\u{100}bc".encode_utf16().flat_map(u16::to_le_bytes).collect();
+        assert!(redactor.file(&unmarked).is_none());
+        assert!(redactor.file(&[b"short".as_slice(), &[0; NUL_RUN - 1], b"run"].concat()).is_none());
     }
 }

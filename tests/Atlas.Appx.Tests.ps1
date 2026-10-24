@@ -429,6 +429,16 @@ Describe 'Install-state-bound AppX cache launcher' {
         } | Should -Throw -ExpectedMessage '*failed with exit code 23*'
     }
 
+    It 'names the session-helper stage and the likely cause when the quiesce child exits 12' {
+        {
+            InModuleScope Atlas.Appx -Parameters @{ Context = $script:launcherContext } {
+                param($Context)
+                Invoke-AtlasUserAppxCacheCleanupCore -Context $Context `
+                    -Mode AppxQuiesce -Launcher { return 12 }
+            }
+        } | Should -Throw -ExpectedMessage '*AppxQuiesce AppX step*during process stop (exit code 12)*Teams or Windows Search*'
+    }
+
     It 'rejects a reparse point in the protected child script ancestry before launch' {
         $junctionWindows = Join-Path -Path $TestDrive -ChildPath 'JunctionWindows'
         $junctionPowerShell = Join-Path -Path $junctionWindows `
@@ -465,6 +475,40 @@ Describe 'Install-state-bound AppX cache launcher' {
                     -Mode AppxSupport -Launcher { throw 'launcher must not run' }
             }
         } | Should -Throw -ExpectedMessage '*non-normal ancestor*'
+    }
+}
+
+Describe 'Exact-user AppX cache child script' {
+    It 'exits <ExitCode> in <Mode> mode when the session step <Outcome>' -TestCases @(
+        @{ Mode = 'AppxQuiesce'; Outcome = 'fails'; ExitCode = 12; CacheCleared = $false }
+        @{ Mode = 'AppxSupport'; Outcome = 'fails'; ExitCode = 12; CacheCleared = $false }
+        @{ Mode = 'AppxSupport'; Outcome = 'succeeds'; ExitCode = 0; CacheCleared = $true }
+    ) {
+        $scripts = Join-Path $TestDrive "child-$Mode-$Outcome\Scripts"
+        $operations = Join-Path $scripts 'Operations'
+        $appx = Join-Path $scripts 'Modules\Atlas.Appx'
+        New-Item -Path $operations, $appx -ItemType Directory -Force | Out-Null
+        Copy-Item (Join-Path $script:AtlasTestScriptsRoot 'Initialize-AtlasPowerShell.ps1') $scripts
+        Copy-Item (Join-Path $script:AtlasTestScriptsRoot 'Operations\Clear-AtlasUserAppxCache.ps1') $operations
+        $helper = 'param([string]$Operation, [string]$ExpectedUserSid)'
+        if ($Outcome -eq 'fails') {
+            # The real helper reports a failed process stop this way.
+            $helper += "`ntrap { exit 12 }`nthrow 'fixture process stop failure'"
+        }
+        Set-Content (Join-Path $operations 'Invoke-AtlasUserShellRefresh.ps1') $helper
+        $marker = Join-Path $TestDrive "cache-$Mode-$Outcome.txt"
+        Set-Content (Join-Path $appx 'Atlas.Appx.psd1') "@{ RootModule = 'Atlas.Appx.psm1'; ModuleVersion = '1.0.0' }"
+        Set-Content (Join-Path $appx 'Atlas.Appx.psm1') (
+            'function Clear-AtlasAppxCache { param($Mode, $ExpectedUserSid) ' +
+            "Set-Content -LiteralPath '$marker' -Value `$Mode }"
+        )
+
+        & (Join-Path $PSHOME 'powershell.exe') -NoProfile -NonInteractive -ExecutionPolicy Bypass `
+            -File (Join-Path $operations 'Clear-AtlasUserAppxCache.ps1') `
+            -Mode $Mode -ExpectedUserSid 'S-1-5-21-1000-1000-1000-1001'
+
+        $LASTEXITCODE | Should -Be $ExitCode
+        Test-Path -LiteralPath $marker | Should -Be $CacheCleared
     }
 }
 
@@ -599,10 +643,9 @@ Describe 'Invoke-AtlasAppxRemovalPlan' {
             PackageName = 'Contoso.App_1.0.0.0_neutral__abc123'
         }
 
-        InModuleScope Atlas.Appx {
-            $script:testInstalledInventoryCalls = 0
-            $script:testProvisionedInventoryCalls = 0
-        }
+        # Mock bodies run in this file's session state, so their counters live here.
+        $script:testInstalledInventoryCalls = 0
+        $script:testProvisionedInventoryCalls = 0
         $removalEvents = [System.Collections.Generic.List[string]]::new()
         Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith {
             $script:testInstalledInventoryCalls++
@@ -683,24 +726,27 @@ Describe 'Invoke-AtlasAppxRemovalPlan' {
         Should -Invoke Remove-AppxProvisionedPackage -ModuleName Atlas.Appx -Times 0 -Exactly
     }
 
-    It 'downgrades both cmdlet and verification failures for IgnoreErrors families' {
+    It 'defers an IgnoreErrors removal error to final inventory and warns once when the package remains' {
         $definition = [pscustomobject]@{ Name = 'Optional.App*'; Option = $null; IgnoreErrors = $true }
         $installed = [pscustomobject]@{
             Name = 'Optional.App'; PackageFamilyName = 'Optional.App_abc'; PackageFullName = 'Optional.App_1.0_x64__abc'
         }
-        InModuleScope Atlas.Appx { $script:testInstalledInventoryCalls = 0 }
-        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith {
-            $script:testInstalledInventoryCalls++
-            return @($installed)
-        }
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith { @($installed) }
         Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith { @() }
         Mock Remove-AppxPackage -ModuleName Atlas.Appx -MockWith { throw 'access denied' }
 
         { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } | Should -Not -Throw
 
         Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -ParameterFilter {
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Level -ne 'Warning' -and $Level -ne 'Error' -and
+            $Message -like "*'Optional.App_1.0_x64__abc'; deferring to final inventory: access denied"
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
             $Level -eq 'Warning' -and $Message -like "Ignoring AppX removal failure for 'Optional.App*':*"
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 0 -Exactly -ParameterFilter {
+            $Level -eq 'Error'
         }
     }
 
@@ -729,10 +775,10 @@ Describe 'Invoke-AtlasAppxRemovalPlan' {
 
     It 'accepts a provisioned-package error when final inventory confirms removal' {
         $definition = [pscustomobject]@{ Name = 'Stale.App*'; Option = $null; IgnoreErrors = $false }
-        InModuleScope Atlas.Appx { $script:testStaleProvisionedCalls = 0 }
+        $script:testStaleProvisionedCalls = 0
         Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith { @() }
         Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith {
-            $script:testStaleProvisionedCalls = [int]$script:testStaleProvisionedCalls + 1
+            $script:testStaleProvisionedCalls++
             if ($script:testStaleProvisionedCalls -eq 1) {
                 return @([pscustomobject]@{
                         DisplayName = 'Stale.App'; PackageName = 'Stale.App_1.0_neutral__abc'

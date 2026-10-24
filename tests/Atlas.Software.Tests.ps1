@@ -48,22 +48,49 @@ BeforeAll {
 }
 
 Describe 'Official archive-app mirrors' {
-    It 'resolves a pinned NanaZip bundle and license without GitHub access' {
-        InModuleScope Atlas.Software {
-            Mock Invoke-AtlasGitHubApiJson { throw 'GitHub is unavailable' }
+    It 'downloads each pinned NanaZip asset from its SourceForge mirror when GitHub fails' {
+        $temp = Join-Path -Path $TestDrive -ChildPath 'nanazip-pinned-mirror'
+        New-Item -Path $temp -ItemType Directory | Out-Null
+        InModuleScope Atlas.Software -Parameters @{ Temp = $temp } {
+            param($Temp)
             $assets = @(Get-AtlasPinnedNanaZipReleaseAssets)
             $assets.Count | Should -Be 2
-            $assets[0].Name -cmatch '^NanaZip_(?<version>\d+(\.\d+){3})\.msixbundle$' | Should -BeTrue
-            $version = $Matches.version
-            $assets[1].Name | Should -BeExactly "NanaZip_$version.xml"
+            $tag = [string]$assets[0].Tag
             foreach ($asset in $assets) {
-                $asset.Uri.Host | Should -Be 'github.com'
-                $asset.FallbackUri.Host | Should -Be 'downloads.sourceforge.net'
-                $asset.FallbackUri.AbsolutePath | Should -Be "/project/nanazip/$version/$($asset.Name)"
                 $asset.Sha256 | Should -Match '^[0-9a-f]{64}$'
                 $asset.Size | Should -BeGreaterThan 0
             }
-            Should -Invoke Invoke-AtlasGitHubApiJson -Times 0 -Exactly
+            $commands = [pscustomobject]@{
+                GetProvisionedPackage = {
+                    [pscustomobject]@{ DisplayName = '40174MouriNaruto.NanaZip'; Version = $tag }
+                }.GetNewClosure()
+                AddProvisionedPackage = { }
+            }
+            # Keeps the test off the network if a GitHub API lookup is reintroduced.
+            Mock Invoke-AtlasGitHubApiJson { throw 'GitHub is unavailable' }
+            Mock Resolve-AtlasProtectedExecutionPath { $Path }
+            Mock Assert-AtlasNanaZipBundleIdentity
+            Mock Write-AtlasLog
+            Mock Invoke-AtlasPinnedDownload {
+                if ($Uri.Host -eq 'github.com') { throw 'HTTP 403' }
+                $Destination
+            }
+
+            Install-AtlasNanaZip -TempDir $Temp -Assets $assets -DismCommands $commands | Should -BeTrue
+
+            Should -Invoke Invoke-AtlasPinnedDownload -Times 4 -Exactly
+            foreach ($asset in $assets) {
+                foreach ($expectedUri in @(
+                        "https://github.com/M2Team/NanaZip/releases/download/$tag/$($asset.Name)"
+                        "https://downloads.sourceforge.net/project/nanazip/$tag/$($asset.Name)"
+                    )) {
+                    Should -Invoke Invoke-AtlasPinnedDownload -Times 1 -Exactly -ParameterFilter {
+                        $Uri.AbsoluteUri -ceq $expectedUri -and
+                        $Sha256 -ceq $asset.Sha256 -and
+                        $ExpectedBytes -eq $asset.Size
+                    }
+                }
+            }
         }
     }
 }
@@ -96,6 +123,29 @@ Describe 'Archive download failover' {
             Mock Write-AtlasLog {}
             Mock Invoke-AtlasPinnedDownload { throw 'SHA-256 mismatch' }
             { Invoke-AtlasArchiveDownload -Uris @('https://github.com/a', 'https://downloads.sourceforge.net/a') -Destination $Destination -Sha256 ('a' * 64) -ExpectedBytes 42 } | Should -Throw '*github.com*sourceforge.net*'
+        }
+    }
+
+    It 'gives each source a limit that grows with the asset size' {
+        InModuleScope Atlas.Software -Parameters @{ Destination = (Join-Path $TestDrive 'bundle.msixbundle') } {
+            Mock Write-AtlasLog {}
+            Mock Invoke-AtlasPinnedDownload { $Destination }
+            Invoke-AtlasArchiveDownload -Uris @('https://github.com/a') -Destination $Destination -Sha256 ('a' * 64) -ExpectedBytes 11931446 | Should -Be $Destination
+            Should -Invoke Invoke-AtlasPinnedDownload -Times 1 -Exactly -ParameterFilter { $MaximumSeconds -eq 365 }
+        }
+    }
+
+    It 'names the time limit when a source is too slow' {
+        InModuleScope Atlas.Software -Parameters @{ Destination = (Join-Path $TestDrive 'slow.msixbundle') } {
+            Mock Write-AtlasLog {}
+            Mock Invoke-AtlasPinnedDownload {
+                # The shape the shared HTTP reader throws when its deadline cancels a read.
+                $deadline = New-Object Threading.CancellationTokenSource
+                $deadline.Cancel()
+                [Threading.Tasks.Task]::Delay(1000, $deadline.Token).GetAwaiter().GetResult()
+            }
+            { Invoke-AtlasArchiveDownload -Uris @('https://github.com/a', 'https://downloads.sourceforge.net/a') -Destination $Destination -Sha256 ('a' * 64) -ExpectedBytes 11931446 } |
+                Should -Throw "*github.com/a : the download didn't finish within its 365-second limit.*sourceforge.net/a : the download didn't finish*"
         }
     }
 }
@@ -458,15 +508,32 @@ Describe 'Get-AtlasSoftwarePickerItem' {
         @($items | Where-Object { $_.Package -eq $Hidden }).Count | Should -Be 0
     }
 
-    It 'gives every catalog entry a display name and a unique package id' {
-        $items = @(InModuleScope Atlas.Software { Get-AtlasSoftwarePickerItem -WindowsBuild 22631 })
+    It 'gives every build <Build> entry a name and a unique id and source that the installer accepts' -TestCases @(
+        @{ Build = 22631 }
+        @{ Build = 19045 }
+    ) {
+        InModuleScope Atlas.Software -Parameters @{ Build = $Build } {
+            param($Build)
+            $items = @(Get-AtlasSoftwarePickerItem -WindowsBuild $Build)
+            # Check against the install boundary's own parameter validation.
+            $parameters = (Get-Command -Name Invoke-AtlasSoftwarePickerPackageInstall).Parameters
+            $pattern = @($parameters['PackageId'].Attributes |
+                    Where-Object { $_ -is [Management.Automation.ValidatePatternAttribute] })
+            $sources = @($parameters['Source'].Attributes |
+                    Where-Object { $_ -is [Management.Automation.ValidateSetAttribute] })
+            $pattern.Count | Should -Be 1
+            $sources.Count | Should -Be 1
 
-        $items.Count | Should -BeGreaterThan 0
-        foreach ($item in $items) {
-            $item.Text | Should -Not -BeNullOrEmpty
-            $item.Package | Should -Not -BeNullOrEmpty
+            $items.Count | Should -BeGreaterThan 0
+            foreach ($item in $items) {
+                $item.Text | Should -Not -BeNullOrEmpty
+                [regex]::IsMatch($item.Package, $pattern[0].RegexPattern, $pattern[0].Options) |
+                    Should -BeTrue -Because "'$($item.Package)' must pass the PackageId validation"
+                $item.Source -cin $sources[0].ValidValues |
+                    Should -BeTrue -Because "'$($item.Package)' must use an accepted source"
+            }
+            @($items.Package | Sort-Object -Unique).Count | Should -Be $items.Count
         }
-        @($items.Package | Sort-Object -Unique).Count | Should -Be $items.Count
     }
 }
 
@@ -487,7 +554,7 @@ Describe 'Invoke-AtlasSoftwarePickerPackageBatch' {
 
             $failures = @(Invoke-AtlasSoftwarePickerPackageBatch `
                     -PackageId @('Vendor.First', 'Vendor.Broken', 'Vendor.Last') `
-                    -Catalog $catalog -AtlasContext ([pscustomobject]@{}))
+                    -Catalog $catalog)
 
             Should -Invoke Invoke-AtlasSoftwarePickerPackageInstall -Times 3 -Exactly
             Should -Invoke Write-AtlasWarning -Times 1 -Exactly
@@ -507,13 +574,48 @@ Describe 'Invoke-AtlasSoftwarePickerPackageBatch' {
 
             $failures = @(Invoke-AtlasSoftwarePickerPackageBatch `
                     -PackageId @('Vendor.Missing', 'Vendor.Present') `
-                    -Catalog $catalog -AtlasContext ([pscustomobject]@{}))
+                    -Catalog $catalog)
 
             Should -Invoke Invoke-AtlasSoftwarePickerPackageInstall -Times 1 -Exactly `
                 -ParameterFilter { $PackageId -ceq 'Vendor.Present' }
             $failures.Count | Should -Be 1
             $failures[0].PackageId | Should -BeExactly 'Vendor.Missing'
         }
+    }
+}
+
+Describe 'Invoke-AtlasSoftwarePickerPackageInstall' {
+    BeforeEach {
+        $script:fakeWinget = Join-Path -Path $TestDrive -ChildPath 'winget.cmd'
+        Mock Get-AtlasTrustedWingetPath -ModuleName Atlas.Software { $script:fakeWinget }
+        Mock Assert-AtlasTrustedWingetSource -ModuleName Atlas.Software
+        Mock Write-AtlasNote -ModuleName Atlas.Software
+    }
+
+    It 'accepts an installed package that has no applicable upgrade and keeps WinGet output off the pipeline' {
+        Set-Content -LiteralPath $script:fakeWinget -Encoding Ascii -Value @(
+            '@echo No available upgrade found.'
+            '@exit /b -1978335189'
+        )
+
+        $output = @(InModuleScope Atlas.Software {
+                Invoke-AtlasSoftwarePickerPackageInstall -PackageId 'Notepad++.Notepad++' -Source winget
+            })
+
+        $output.Count | Should -Be 0
+        Should -Invoke Write-AtlasNote -ModuleName Atlas.Software -Times 1 -Exactly -ParameterFilter {
+            $Text -like "'Notepad++.Notepad++' is already installed*"
+        }
+    }
+
+    It 'reports any other WinGet exit code in hexadecimal' {
+        Set-Content -LiteralPath $script:fakeWinget -Encoding Ascii -Value '@exit /b -1978335212'
+
+        InModuleScope Atlas.Software {
+            { Invoke-AtlasSoftwarePickerPackageInstall -PackageId 'Valve.Steam' -Source winget } |
+                Should -Throw "*'Valve.Steam' from 'winget' with exit code 0x8A150014."
+        }
+        Should -Invoke Write-AtlasNote -ModuleName Atlas.Software -Times 0
     }
 }
 
@@ -530,6 +632,25 @@ Describe 'CBS Safe Mode retry fallback' {
                 $Packages[0] -ceq 'C:\Packages\one.cab' -and
                 $Packages[1] -ceq 'C:\Packages\two.cab'
             }
+        }
+    }
+
+    It 'tells the user that the Safe Mode retry is armed and how to run it' {
+        InModuleScope Atlas.Software {
+            Mock Assert-AtlasPrivilege {}
+            Mock Initialize-AtlasCbsEnvironment {}
+            Mock Write-Host {}
+            Mock Enable-AtlasCbsRetry {}
+            Mock Install-AtlasCbsCab {
+                [pscustomobject]@{
+                    Path = $CabPath; Success = $false; RetryEligible = $true
+                    Sha256 = ('A' * 64); FailureKind = 'Servicing'
+                }
+            }
+            { Install-AtlasCbsPackage -Packages @('C:\Packages\one.cab') -PackagesPath 'C:\Packages' `
+                    -LiteralPaths -NonInteractive } |
+                Should -Throw '*one.cab.*Safe Mode with Command Prompt*Invoke-AtlasCbsRetry.cmd*'
+            Should -Invoke Enable-AtlasCbsRetry -Times 1 -Exactly
         }
     }
 }
@@ -728,14 +849,45 @@ ManifestType: installer
         }
     }
 
-    It 'rejects duplicate or noncanonical latest installer assets' {
-        $script:LibreWolfRelease.assets += $script:LibreWolfRelease.assets[0].PSObject.Copy()
+    It 'rejects <Case>' -TestCases @(
+        @{
+            Case    = 'a duplicate installer asset'
+            Change  = { param($Release) $Release.assets += $Release.assets[0].PSObject.Copy() }
+            Message = '*exactly one*'
+        }
+        @{
+            Case    = 'an installer asset outside the canonical download host'
+            Change  = {
+                param($Release)
+                $Release.assets[0].browser_download_url =
+                'https://attacker.example/librewolf/152.0.5-1/librewolf-152.0.5-1-windows-x86_64-setup.exe'
+            }
+            Message = '*canonical LibreWolf download URL*'
+        }
+        @{
+            Case    = 'a prerelease'
+            Change  = { param($Release) $Release.prerelease = $true }
+            Message = '*not a stable LibreWolf release*'
+        }
+        @{
+            Case    = 'a draft'
+            Change  = { param($Release) $Release.draft = $true }
+            Message = '*not a stable LibreWolf release*'
+        }
+        @{
+            Case    = 'a tag that leaves the download path'
+            Change  = { param($Release) $Release.tag_name = '152.0.5-1/..' }
+            Message = '*not a stable LibreWolf release*'
+        }
+    ) {
+        & $Change $script:LibreWolfRelease
         InModuleScope Atlas.Software -Parameters @{
             Release = $script:LibreWolfRelease
+            Message = $Message
         } {
             { Resolve-AtlasLibreWolfReleaseMetadata `
                     -Release $Release -Architecture x86_64 } |
-                Should -Throw -ExpectedMessage '*exactly one*'
+                Should -Throw -ExpectedMessage $Message
         }
     }
 
@@ -772,53 +924,61 @@ ManifestType: installer
                 Should -Throw -ExpectedMessage '*does not attest*'
         }
     }
-}
 
-Describe 'NanaZip latest-release integrity metadata' {
-    BeforeEach {
-        $script:NanaZipBundleHash = '606bba9cd7f3a8805bb89c6669e0abfd67a705ddc98939148afedefeed520b9c'
-        $script:NanaZipLicenseHash = '75e59bba87de633e848f20285a24c3328e9670009a7acd34bb4d070bc5cebe53'
-        $script:NanaZipRelease = [pscustomobject]@{
-            tag_name   = '6.5.1767.0'
+    It 'installs the newest release winget-pkgs has merged while a newer one awaits review' {
+        $newer = [pscustomobject]@{
+            tag_name   = '152.0.6-1'
             draft      = $false
             prerelease = $false
-            assets     = @(
-                [pscustomobject]@{
-                    name = 'NanaZip_6.5.1767.0.msixbundle'; state = 'uploaded'; size = 11885370
-                    digest = "sha256:$script:NanaZipBundleHash"
-                    browser_download_url = 'https://github.com/M2Team/NanaZip/releases/download/6.5.1767.0/NanaZip_6.5.1767.0.msixbundle'
-                }
-                [pscustomobject]@{
-                    name = 'NanaZip_6.5.1767.0.xml'; state = 'uploaded'; size = 2667
-                    digest = "sha256:$script:NanaZipLicenseHash"
-                    browser_download_url = 'https://github.com/M2Team/NanaZip/releases/download/6.5.1767.0/NanaZip_6.5.1767.0.xml'
-                }
-            )
+            assets     = @([pscustomobject]@{
+                    name                 = 'librewolf-152.0.6-1-windows-x86_64-setup.exe'
+                    browser_download_url = 'https://dl.librewolf.net/librewolf/152.0.6-1/librewolf-152.0.6-1-windows-x86_64-setup.exe'
+                })
+        }
+        $draft = [pscustomobject]@{ tag_name = '152.0.7-1'; draft = $true; prerelease = $false; assets = @() }
+        InModuleScope Atlas.Software -Parameters @{
+            Releases = @($draft, $newer, $script:LibreWolfRelease)
+            Manifest = $script:LibreWolfWingetContent
+        } {
+            Mock Write-AtlasLog
+            Mock Invoke-AtlasSoftwareApiJson { $Releases }
+            Mock Invoke-AtlasGitHubApiJson { throw "Unexpected GitHub request for '$Uri'." }
+            Mock Invoke-AtlasGitHubApiJson -ParameterFilter {
+                $Uri.AbsolutePath -ceq '/repos/microsoft/winget-pkgs/contents/manifests/l/LibreWolf/LibreWolf'
+            } -MockWith {
+                [pscustomobject]@{ name = '152.0.4-1'; type = 'dir' }
+                [pscustomobject]@{ name = '152.0.5-1'; type = 'dir' }
+            }
+            Mock Invoke-AtlasGitHubApiJson -ParameterFilter {
+                $Uri.AbsolutePath -ceq '/repos/microsoft/winget-pkgs/contents/manifests/l/LibreWolf/LibreWolf/152.0.5-1/LibreWolf.LibreWolf.installer.yaml'
+            } -MockWith { $Manifest }
+
+            $metadata = Get-AtlasLatestLibreWolfInstallerMetadata -Architecture x86_64
+
+            $metadata.Tag | Should -BeExactly '152.0.5-1'
+            $metadata.Uri.AbsoluteUri | Should -BeExactly 'https://dl.librewolf.net/librewolf/152.0.5-1/librewolf-152.0.5-1-windows-x86_64-setup.exe'
+            $metadata.Sha256 | Should -BeExactly '227f69a02c286f90e82b6155f7cbfd01eacc63ddae7ca73594ec32c5f4bc84f6'
+            Should -Invoke Invoke-AtlasGitHubApiJson -Times 2 -Exactly
+            Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
+                $Message -like '*152.0.6-1 is awaiting Microsoft winget-pkgs review; installing 152.0.5-1*'
+            }
         }
     }
 
-    It 'returns the exact stable bundle and license facts from GitHub asset digests' {
-        InModuleScope Atlas.Software -Parameters @{
-            Release = $script:NanaZipRelease
-        } {
-            $assets = @(Resolve-AtlasNanaZipReleaseAssets -Release $Release)
+    It 'fails before reading a manifest when winget-pkgs has merged none of the newest releases' {
+        InModuleScope Atlas.Software -Parameters @{ Releases = @($script:LibreWolfRelease) } {
+            Mock Write-AtlasLog
+            Mock Invoke-AtlasSoftwareApiJson { $Releases }
+            Mock Invoke-AtlasGitHubApiJson { throw "Unexpected GitHub request for '$Uri'." }
+            Mock Invoke-AtlasGitHubApiJson -ParameterFilter {
+                $Uri.AbsolutePath -ceq '/repos/microsoft/winget-pkgs/contents/manifests/l/LibreWolf/LibreWolf'
+            } -MockWith {
+                [pscustomobject]@{ name = '152.0.4-1'; type = 'dir' }
+            }
 
-            $assets.Count | Should -Be 2
-            $assets[0].Name | Should -BeExactly 'NanaZip_6.5.1767.0.msixbundle'
-            $assets[0].Sha256 | Should -BeExactly '606bba9cd7f3a8805bb89c6669e0abfd67a705ddc98939148afedefeed520b9c'
-            $assets[0].Size | Should -Be 11885370
-            $assets[1].Name | Should -BeExactly 'NanaZip_6.5.1767.0.xml'
-            @($assets[0].PSObject.Properties.Name) | Should -Be @('Tag', 'Name', 'Uri', 'Sha256', 'Size')
-        }
-    }
-
-    It 'rejects an exact-name asset without a GitHub SHA-256 digest' {
-        $script:NanaZipRelease.assets[0].digest = $null
-        InModuleScope Atlas.Software -Parameters @{
-            Release = $script:NanaZipRelease
-        } {
-            { Resolve-AtlasNanaZipReleaseAssets -Release $Release } |
-                Should -Throw -ExpectedMessage '*SHA-256 digest and a size*'
+            { Get-AtlasLatestLibreWolfInstallerMetadata -Architecture x86_64 } |
+                Should -Throw "*hasn't merged any of the newest LibreWolf releases (152.0.5-1)*"
+            Should -Invoke Invoke-AtlasGitHubApiJson -Times 1 -Exactly
         }
     }
 }
@@ -916,7 +1076,7 @@ Describe 'Install-AtlasNanaZip provisioning' {
         }
     }
 
-    It 'reports exhausted NanaZip downloads without starting another installer' {
+    It 'reports a download failure as a download-source failure without calling DISM' {
         $temp = Join-Path -Path $TestDrive -ChildPath 'nanazip-pre-mutation'
         New-Item -Path $temp -ItemType Directory | Out-Null
         InModuleScope Atlas.Software -Parameters @{
@@ -930,16 +1090,12 @@ Describe 'Install-AtlasNanaZip provisioning' {
             Mock Resolve-AtlasProtectedExecutionPath { $Path }
             Mock Invoke-AtlasPinnedDownload { throw 'verified download unavailable' }
             Mock Write-AtlasLog
-            Mock Test-AtlasContainedProcessContainmentUnconfirmed { $false }
-            Mock Test-Path -ParameterFilter {
-                $LiteralPath -eq 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\7-Zip'
-            } -MockWith { $false }
 
             { Install-AtlasNanaZip -TempDir $Temp -Assets $Assets -DismCommands $commands } | Should -Throw '*verified download sources*'
         }
     }
 
-    It 'propagates a failed post-provisioning readback without installing 7-Zip' {
+    It 'rethrows the original error when the readback after DISM fails' {
         $temp = Join-Path -Path $TestDrive -ChildPath 'nanazip-readback-failure'
         New-Item -Path $temp -ItemType Directory | Out-Null
         InModuleScope Atlas.Software -Parameters @{
@@ -969,8 +1125,10 @@ Describe 'Install-AtlasNanaZip provisioning' {
             Mock Invoke-AtlasPinnedDownload { $Destination }
             Mock Assert-AtlasNanaZipBundleIdentity
 
+            # Exact match: DISM may have changed machine state, so the error must
+            # not be reworded as a download-source failure.
             { Install-AtlasNanaZip -TempDir $Temp -Assets $Assets -DismCommands $commands } |
-                Should -Throw -ExpectedMessage '*without provisioning NanaZip*'
+                Should -Throw -ExpectedMessage "DISM returned without provisioning NanaZip version '6.5.1767.0'."
         }
     }
 }
@@ -1006,116 +1164,56 @@ Describe 'Install-AtlasArchiveTool asset selection' {
         }
     }
 
-    It 'provisions and verifies NanaZip before invoking the validated 7-Zip uninstaller' {
+    It 'falls back to the pinned NanaZip download when the Store path declines' {
         InModuleScope Atlas.Software {
             $commands = [pscustomobject]@{
-                GetProvisionedPackage = { return @() }
+                GetProvisionedPackage = {
+                    [CmdletBinding()]
+                    param([switch]$Online)
+                    [void]$Online
+                    return @()
+                }
                 AddProvisionedPackage = { }
             }
-            $assets = @(
+            Mock Get-AtlasDismProvisioningCommands { $commands }
+            Mock Get-AtlasPinnedNanaZipReleaseAssets {
                 [pscustomobject]@{ Name = 'NanaZip_6.5.1767.0.msixbundle'; Tag = '6.5.1767.0' }
                 [pscustomobject]@{ Name = 'NanaZip_6.5.1767.0.xml'; Tag = '6.5.1767.0' }
-            )
-            $script:ArchiveToolEvents = New-Object Collections.Generic.List[string]
-            $script:SevenZipRegistryChecks = 0
-            $expectedUninstaller = [IO.Path]::Combine(
-                [Environment]::GetFolderPath('ProgramFiles'),
-                '7-Zip',
-                'Uninstall.exe'
-            )
-
-            Mock Get-AtlasDismProvisioningCommands { $commands }
-            Mock Get-AtlasPinnedNanaZipReleaseAssets { $assets }
-            Mock Test-Path -ParameterFilter {
-                $LiteralPath -eq 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\7-Zip'
-            } -MockWith {
-                $script:SevenZipRegistryChecks++
-                return ($script:SevenZipRegistryChecks -eq 1)
             }
-            Mock Read-MessageBox { 'Yes' } -RemoveParameterType @('Icon', 'Buttons')
-            Mock Install-AtlasNanaZip {
-                $script:ArchiveToolEvents.Add('NanaZip provisioned')
-                return $true
-            }
-            Mock Get-ItemProperty {
-                [pscustomobject]@{
-                    QuietUninstallString = '"' + $expectedUninstaller + '" /S'
-                }
-            }
-            Mock Resolve-AtlasProtectedExecutionPath {
-                $script:ArchiveToolEvents.Add('7-Zip uninstaller validated')
-                return $Path
-            }
-            Mock Start-AtlasSoftwareInstaller {
-                $script:ArchiveToolEvents.Add('7-Zip uninstaller invoked')
-            }
+            Mock Install-AtlasNanaZip { $true }
+            Mock Write-AtlasLog
 
             Install-AtlasArchiveTool -TempDir 'C:\fake\temp'
 
-            $script:ArchiveToolEvents | Should -Be @(
-                'NanaZip provisioned'
-                '7-Zip uninstaller validated'
-                '7-Zip uninstaller invoked'
-            )
+            Should -Invoke Install-AtlasNanaZipFromStore -Times 1 -Exactly -ParameterFilter {
+                $null -ne $DismCommands.AddProvisionedPackage
+            }
             Should -Invoke Install-AtlasNanaZip -Times 1 -Exactly -ParameterFilter {
                 @($Assets).Count -eq 2 -and
                 $Assets[0].Name -ceq 'NanaZip_6.5.1767.0.msixbundle' -and
                 $Assets[1].Name -ceq 'NanaZip_6.5.1767.0.xml' -and
-                $null -ne $DismCommands.GetProvisionedPackage
-            }
-            Should -Invoke Read-MessageBox -Times 1 -Exactly
-        }
-    }
-}
-
-Describe 'the 7-Zip uninstall-string parser' {
-    # This helper is deliberately an exact 7-Zip recognizer, not a general
-    # registry command-line parser.
-
-    It 'accepts only the quoted expected path with an optional exact /S' {
-        InModuleScope Atlas.Software {
-            $expected = 'C:\Program Files\7-Zip\Uninstall.exe'
-            foreach ($uninstallString in @(
-                    '"C:\Program Files\7-Zip\Uninstall.exe"',
-                    '"C:\Program Files\7-Zip\Uninstall.exe" /S'
-                )) {
-                $parsed = Get-AtlasParsedUninstallString `
-                    -UninstallString $uninstallString `
-                    -ExpectedFilePath $expected
-
-                $parsed.FilePath | Should -BeExactly $expected
-                $parsed.ArgumentList | Should -Be @('/S')
+                $null -ne $DismCommands.AddProvisionedPackage -and
+                $TempDir -ceq 'C:\fake\temp'
             }
         }
     }
 
-    It 'rejects wrong paths, extra arguments, metacharacters, casing changes, and whitespace changes' {
+    It 'keeps an installed 7-Zip without asking or installing NanaZip' {
         InModuleScope Atlas.Software {
-            $expected = 'C:\Program Files\7-Zip\Uninstall.exe'
-            foreach ($candidate in @(
-                    'C:\Program Files\7-Zip\Uninstall.exe /S',
-                    '"C:\Windows\System32\calc.exe" /S',
-                    '"C:\Program Files\7-Zip\Uninstall.exe" /s',
-                    '"C:\Program Files\7-Zip\Uninstall.exe" /S /D=C:\Temp',
-                    '"C:\Program Files\7-Zip\Uninstall.exe" /S & calc.exe',
-                    '"C:\Program Files\7-Zip\Uninstall.exe" ',
-                    ' "C:\Program Files\7-Zip\Uninstall.exe" /S'
-                )) {
-                Get-AtlasParsedUninstallString `
-                    -UninstallString $candidate `
-                    -ExpectedFilePath $expected |
-                    Should -BeNullOrEmpty -Because "'$candidate' is not the exact 7-Zip grammar"
+            Mock Test-Path -ParameterFilter {
+                $LiteralPath -eq 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\7-Zip'
+            } -MockWith { $true }
+            Mock Get-AtlasDismProvisioningCommands { throw 'DISM is not needed when 7-Zip stays.' }
+            Mock Install-AtlasNanaZip
+            Mock Write-AtlasLog
+
+            Install-AtlasArchiveTool -TempDir 'C:\fake\temp'
+
+            Should -Invoke Install-AtlasNanaZipFromStore -Times 0 -Exactly
+            Should -Invoke Install-AtlasNanaZip -Times 0 -Exactly
+            Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
+                $Message -like '7-Zip is installed*skips NanaZip*'
             }
         }
     }
-
-    It 'rejects an invalid expected execution path rather than generalizing the parser' {
-        InModuleScope Atlas.Software {
-            { Get-AtlasParsedUninstallString `
-                    -UninstallString '"C:\Program Files\7-Zip\Uninstall.exe" /S' `
-                    -ExpectedFilePath 'C:\Program Files\7-Zip\Uninstall.exe:evil' } |
-                Should -Throw -ExpectedMessage '*alternate data stream*'
-        }
-    }
-
 }

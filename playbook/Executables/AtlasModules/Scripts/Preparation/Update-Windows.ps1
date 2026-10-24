@@ -46,6 +46,13 @@ $script:PreparationStage = 'verify'
 $script:UpdateSucceeded = 2
 $script:UpdateSucceededWithErrors = 3
 $script:DriverUpdate = 2
+# The upgrades category, where Windows Update lists feature updates and
+# enablement packages.
+$script:UpgradesCategory = '3689BDC8-B205-4AF4-8D4A-A63924C5E9D5'
+# ERROR_NO_MORE_ITEMS (0x80070103), which a driver's install ends with when the
+# device already has a driver at least as good. Windows Update offers that driver
+# again, and it fails the same way every time.
+$script:DriverNotNeeded = -2147024637
 # Searches that end with errors, and the wait between them, before preparation stops.
 $script:PreparationSearchAttempts = 3
 $script:PreparationSearchRetrySeconds = 30
@@ -54,7 +61,8 @@ $script:PreparationPasses = 8
 # What the worker's reports say while it searches: set while it waits for
 # Windows Update to offer a new release, so the app words the wait as one.
 $script:PreparationSearchDetail = @{}
-# Updates that installed and were offered again, by the registry value below.
+# Updates Get ready no longer waits for (offered again after they installed, or
+# drivers the device doesn't need), by the registry value below.
 $script:PreparationReofferedRoot = 'SOFTWARE\AtlasOS\Preparation'
 
 # A failure the app can explain. $Reason is a stable id the app words in the
@@ -166,6 +174,14 @@ function Test-PreparationNetwork {
     return $true
 }
 
+# Appends a line to this job's updates.log, always in UTF-8 like the driver policy
+# import, so the file is UTF-8 whichever writes first. Windows PowerShell's
+# Add-Content otherwise writes the ANSI code page, which exported diagnostics
+# leave out.
+function Write-PreparationLog([string]$Text) {
+    Add-Content -LiteralPath (Join-Path $JobPath 'updates.log') -Value $Text -Encoding UTF8
+}
+
 function Set-PreparationDriver {
     if ($DriverMode -eq 'preserve') { return }
     try { Import-AtlasRegistryFile (Join-Path $JobPath 'DriverPolicy.reg') (Join-Path $JobPath 'updates.log') }
@@ -202,11 +218,7 @@ function Test-PreparationUpdate($Update) {
     # Optional previews are not a prerequisite for installing Atlas.
     if ($Update.BrowseOnly) { return $false }
     if ($DriverMode -eq 'manual' -and [int]$Update.Type -eq $script:DriverUpdate) { return $false }
-    foreach ($category in $Update.Categories) {
-        # The 'Upgrades' category: feature updates.
-        if ($category.CategoryID -eq '3689bdc8-b205-4af4-8d4a-a63924c5e9d5') { return $false }
-    }
-    return $true
+    return -not (Test-PreparationUpgradeCategory $Update)
 }
 
 # Must equal Get-AtlasRecoveryFileSecurity in app/resources/prepare/Stage-App.ps1;
@@ -371,7 +383,7 @@ function Get-PreparationFailedUpdate($Result, $Updates, [string]$Label) {
     for ($index = 0; $index -lt $Updates.Count; $index++) {
         $item = $Result.GetUpdateResult($index)
         $update = $Updates.Item($index)
-        "$($update.Title): $Label=$($item.ResultCode), HRESULT=$($item.HResult)" | Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
+        Write-PreparationLog "$($update.Title): $Label=$($item.ResultCode), HRESULT=$($item.HResult)"
         if ([int]$item.ResultCode -ne $script:UpdateSucceeded) {
             [pscustomobject]@{ Id = [string]$update.Identity.UpdateID; Update = $update; HResult = [int]$item.HResult }
         }
@@ -391,7 +403,7 @@ function Register-PreparationRetry($Failed, $Result, [hashtable]$Retried, [strin
         throw (New-PreparationFailure $Message -HResult $code)
     }
     foreach ($entry in $Failed) { $Retried[$entry.Id] = $true }
-    "Retrying $($Failed.Count) failed update(s) after a fresh search." | Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
+    Write-PreparationLog "Retrying $($Failed.Count) failed update(s) after a fresh search."
 }
 
 # An update by its id and revision: a new revision is a new update to install.
@@ -405,7 +417,9 @@ function Get-PreparationUpdateKey($Update) {
 # Windows Security platform update can stay offered while the app keeps its old
 # version. Installing it again changes nothing, so such an update is recorded
 # under HKLM, which only administrators write, and is no longer waited for; the
-# install's own check reads the same record.
+# install's own check reads the same record. A driver Windows Update fails with
+# 0x80070103, because the device already has one at least as good, is recorded
+# the same way.
 function Read-PreparationReoffered {
     $value = Get-AtlasTransitionValue $script:PreparationReofferedRoot 'Reoffered'
     if (-not $value.Present -or $value.Kind -ne 'String') { return @() }
@@ -450,21 +464,32 @@ function Get-PreparationInstalledVersion($Update) {
     return ''
 }
 
+# Logs why an update is no longer waited for, then records it.
+function Save-PreparationHandled($Update, [string]$Line) {
+    Write-PreparationLog $Line
+    Write-AtlasTransitionEvidence $Line
+    try {
+        $title = [string]$Update.Title
+        $key = Get-PreparationUpdateKey $Update
+        $entries = @(Read-PreparationReoffered | Where-Object { [string]$_.key -ne $key })
+        $entries += [pscustomobject][ordered]@{ key = $key; kb = (@(Get-PreparationUpdateKb $Update) -join ','); title = $title.Substring(0, [Math]::Min($title.Length, 200)); at = [DateTime]::UtcNow.ToString('o') }
+        # The install's check skips only what's listed, so the list has room for more
+        # than one run records. Entries lapse after 30 days.
+        if ($entries.Count -gt 100) { $entries = $entries[($entries.Count - 100)..($entries.Count - 1)] }
+        Write-PreparationReoffered $entries
+    }
+    catch { Write-PreparationLog "The update could not be recorded: $($_.Exception.Message)" }
+}
+
 function Add-PreparationReoffered($Update) {
     $title = [string]$Update.Title
     $offered = if ($title -match '\(Version ([0-9.]+)\)') { $Matches[1] } else { '' }
     $installed = Get-PreparationInstalledVersion $Update
-    $line = "reoffered-after-success, not installed again: '$title' KB=$((@(Get-PreparationUpdateKb $Update)) -join ',') offered=$offered installed=$installed"
-    $line | Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
-    Write-AtlasTransitionEvidence $line
-    try {
-        $key = Get-PreparationUpdateKey $Update
-        $entries = @(Read-PreparationReoffered | Where-Object { [string]$_.key -ne $key })
-        $entries += [pscustomobject][ordered]@{ key = $key; kb = (@(Get-PreparationUpdateKb $Update) -join ','); title = $title.Substring(0, [Math]::Min($title.Length, 200)); at = [DateTime]::UtcNow.ToString('o') }
-        if ($entries.Count -gt 20) { $entries = $entries[($entries.Count - 20)..($entries.Count - 1)] }
-        Write-PreparationReoffered $entries
-    }
-    catch { "The re-offered update could not be recorded: $($_.Exception.Message)" | Add-Content -LiteralPath (Join-Path $JobPath 'updates.log') }
+    Save-PreparationHandled $Update "reoffered-after-success, not installed again: '$title' KB=$((@(Get-PreparationUpdateKb $Update)) -join ',') offered=$offered installed=$installed"
+}
+
+function Add-PreparationDriverNotNeeded($Update) {
+    Save-PreparationHandled $Update "driver not needed, not installed again: '$($Update.Title)': Windows reports a driver at least as good is installed (0x80070103)"
 }
 
 # The revision of this build an update's title names, as in "(26200.9550)", or 0.
@@ -499,7 +524,7 @@ function Select-PreparationNewestUpdate($Updates) {
         $id = [string]$update.Identity.UpdateID
         if (($revision -gt 0 -and $revision -lt $newest) -or $superseded.ContainsKey($id)) {
             $line = "Left '$($update.Title)' for now: a newer update in this pass replaces it."
-            $line | Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
+            Write-PreparationLog $line
             Write-AtlasTransitionEvidence $line
             continue
         }
@@ -509,8 +534,10 @@ function Select-PreparationNewestUpdate($Updates) {
 
 function Invoke-PreparationWindows {
     $retried = @{}
-    # Updates this run installed successfully, by id and revision.
+    # Updates this run installed successfully, and drivers it found the device
+    # doesn't need, by id and revision.
     $succeeded = @{}
+    $notNeeded = @{}
     for ($pass = 0; $pass -lt $script:PreparationPasses; $pass++) {
         Assert-PreparationContinue
         if (Test-PreparationRestart) { return 'reboot' }
@@ -521,10 +548,12 @@ function Invoke-PreparationWindows {
         $updates = New-Object -ComObject Microsoft.Update.UpdateColl
         $interactive = @()
         foreach ($update in @(Select-PreparationNewestUpdate (@(Find-PreparationWindowsUpdate $session) + @(Find-PreparationPrerequisiteUpdate $session)))) {
-            if ($succeeded.ContainsKey((Get-PreparationUpdateKey $update))) {
+            $key = Get-PreparationUpdateKey $update
+            if ($succeeded.ContainsKey($key)) {
                 Add-PreparationReoffered $update
                 continue
             }
+            if ($notNeeded.ContainsKey($key)) { continue }
             if ($update.InstallationBehavior.CanRequestUserInput) {
                 $interactive += $update
                 continue
@@ -566,8 +595,14 @@ function Invoke-PreparationWindows {
         }
         $manual = @()
         $failed = @()
+        $unneededDrivers = 0
         foreach ($entry in @(Get-PreparationFailedUpdate $installed $updates 'result')) {
-            if ($entry.Update.InstallationBehavior.CanRequestUserInput) { $manual += $entry.Update.Title }
+            if ($entry.HResult -eq $script:DriverNotNeeded -and [int]$entry.Update.Type -eq $script:DriverUpdate) {
+                $notNeeded[(Get-PreparationUpdateKey $entry.Update)] = $true
+                Add-PreparationDriverNotNeeded $entry.Update
+                $unneededDrivers++
+            }
+            elseif ($entry.Update.InstallationBehavior.CanRequestUserInput) { $manual += $entry.Update.Title }
             else { $failed += $entry }
         }
         if ($installed.RebootRequired) {
@@ -576,7 +611,9 @@ function Invoke-PreparationWindows {
         }
         if (Test-PreparationRestart) { return 'reboot' }
         if ($manual.Count -gt 0) { throw (New-PreparationFailure "Windows could not finish these updates automatically. Finish them in Windows Settings, then retry: $($manual -join '; ')" 'manual-updates') }
-        if ([int]$installed.ResultCode -ne $script:UpdateSucceeded) {
+        # A pass whose only failures were drivers the device doesn't need is done,
+        # and the next search leaves them out.
+        if ([int]$installed.ResultCode -ne $script:UpdateSucceeded -and ($failed.Count -gt 0 -or $unneededDrivers -eq 0)) {
             Register-PreparationRetry $failed $installed $retried "Windows could not install every update: $($installed.ResultCode). See updates.log."
         }
     }
@@ -653,8 +690,7 @@ function Invoke-PreparationSearch($Session, [string]$Criteria, [switch]$IncludeS
         # service fault, so the search runs again before preparation stops.
         $warnings = @(Get-PreparationSearchWarning $found)
         $described = if ($warnings.Count) { ($warnings | ForEach-Object { '0x{0:X8} (context {1}) {2}' -f $_.HResult, $_.Context, $_.Message }) -join '; ' } else { 'no warnings given' }
-        "Windows Update search ended with result $code on attempt $attempt of $script:PreparationSearchAttempts`: $described" |
-            Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
+        Write-PreparationLog "Windows Update search ended with result $code on attempt $attempt of $script:PreparationSearchAttempts`: $described"
         Write-AtlasTransitionEvidence "search warnings: $described"
         if ($code -ne $script:UpdateSucceededWithErrors -or $attempt -ge $script:PreparationSearchAttempts) {
             $hresult = if ($warnings.Count) { $warnings[0].HResult } else { 0 }
@@ -670,7 +706,7 @@ function Find-PreparationWindowsUpdate($Session) {
     foreach ($update in @(Invoke-PreparationSearch $Session "IsInstalled=0 and IsHidden=0 and BrowseOnly=0 and DeploymentAction='Installation'")) {
         if (-not (Test-PreparationUpdate $update)) { continue }
         if ($handled.Contains((Get-PreparationUpdateKey $update))) {
-            "Left '$($update.Title)': it installed before and Windows offers it again." | Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
+            Write-PreparationLog "Left '$($update.Title)': Windows offers it again, and an earlier pass recorded it as done."
             continue
         }
         $update
@@ -698,7 +734,7 @@ function Get-PreparationUpdateKb($Update) {
 
 function Test-PreparationUpgradeCategory($Update) {
     foreach ($category in @($Update.Categories)) {
-        if ([string]$category.CategoryID -eq '3689bdc8-b205-4af4-8d4a-a63924c5e9d5') { return $true }
+        if ([string]$category.CategoryID -eq $script:UpgradesCategory) { return $true }
     }
     return $false
 }
@@ -732,12 +768,7 @@ function Test-PreparationKnownKb($Update, [string]$List) {
 # A Windows cumulative update for this build: its title names the build and a
 # revision above the one installed, as in "(KB5124010) (26200.9600)".
 function Test-PreparationNewerRevision($Update, $Version) {
-    $property = $Update.PSObject.Properties['Title']
-    $title = if ($null -ne $property) { [string]$property.Value } else { '' }
-    foreach ($match in [regex]::Matches($title, "(^|[^0-9])$($Version.Build)\.(\d{1,6})([^0-9]|$)")) {
-        if ([int]$match.Groups[2].Value -gt $Version.Ubr) { return $true }
-    }
-    return $false
+    return (Get-PreparationTitleRevision $Update $Version.Build) -gt $Version.Ubr
 }
 
 function Get-PreparationWindowsVersion {
@@ -915,8 +946,7 @@ function Invoke-PreparationStoreWithRetry {
         catch {
             $detail = Get-PreparationFailureDetail $_.Exception
             if (-not $detail.ContainsKey('errorCode') -or $detail.errorCode -ne '0x80240016' -or $attempt -eq 3 -or (Test-PreparationRestart)) { throw }
-            "Store is busy; retrying in 15 seconds (attempt $($attempt + 2) of 4)." |
-                Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
+            Write-PreparationLog "Store is busy; retrying in 15 seconds (attempt $($attempt + 2) of 4)."
             for ($second = 0; $second -lt 15; $second++) {
                 Assert-PreparationContinue
                 Write-PreparationState running store-search
@@ -959,7 +989,7 @@ $script:PreparationWingetOwnerId = 6154722
 $script:PreparationMicrosoftPublisher = 'CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US'
 
 function Write-PreparationStoreEvidence([string]$Text) {
-    "Microsoft Store: $Text" | Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
+    Write-PreparationLog "Microsoft Store: $Text"
     Write-AtlasTransitionEvidence "store: $Text"
 }
 
@@ -1491,11 +1521,11 @@ function Invoke-PreparationUpdates {
     catch {
         # A failed or interrupted provider can still have committed updates.
         # Keep the original diagnostic even when restarting is the next action.
-        $_ | Out-String | Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
+        Write-PreparationLog ($_ | Out-String)
         try {
             if (Test-PreparationRestart) { return 'reboot' }
         } catch {
-            $_ | Out-String | Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
+            Write-PreparationLog ($_ | Out-String)
         }
         throw
     }
@@ -1514,9 +1544,6 @@ $script:PreparationServiceRestartLimit = 2
 $script:PreparationServiceRestarts = 0
 $script:PreparationTargetReread = $false
 
-# The upgrades category, where Windows Update lists feature updates and
-# enablement packages.
-$script:UpgradesCategory = '3689BDC8-B205-4AF4-8D4A-A63924C5E9D5'
 # WU_E_WU_DISABLED, WU_E_CALL_CANCELLED_BY_POLICY and ERROR_SERVICE_DISABLED:
 # something turned Windows Update off again.
 $script:UpdateAccessCodes = @(-2145124306, -2145124305, -2147023838)
@@ -1829,7 +1856,7 @@ function Install-PreparationFeatureUpdate($Session, $Update, $Journal, [bool]$Ma
         Write-AtlasTransitionEvidence "install ${label}: result=$($installed.ResultCode) HRESULT=0x$('{0:X8}' -f [int]$item.HResult) restart=$($installed.RebootRequired)"
         # Whether Windows moved is decided after the restart, by the build it
         # starts. Here, any result that leaves work for a restart is enough.
-        if ([int]$installed.ResultCode -in @($script:UpdateSucceeded, 3) -or $installed.RebootRequired) {
+        if ([int]$installed.ResultCode -in @($script:UpdateSucceeded, $script:UpdateSucceededWithErrors) -or $installed.RebootRequired) {
             Set-PreparationInstalled $Journal "update=$($Update.Identity.UpdateID) result=$($installed.ResultCode)" $Update
             return 'installed'
         }
@@ -1857,14 +1884,15 @@ function Install-PreparationFeatureUpdate($Session, $Update, $Journal, [bool]$Ma
 # How Windows moved, decided once on the target build and kept in the record:
 # switched on in place (the Atlas components are all there), or rebuilt by Setup,
 # after which the Atlas install puts Atlas back with the recorded choices. Atlas
-# components gone without any sign of Setup is not explained, and stops.
+# components gone without any sign of Setup is not explained, and stops. A later
+# run reads the decision back, never makes it again: an Atlas install since may
+# have changed the packages.
 function Test-PreparationRebuild($Journal) {
-    if ($null -ne $Journal.PSObject.Properties['rebuild'] -and $null -ne $Journal.rebuild) {
-        if ($Journal.rebuild.rebuilt) { return }
-        $present = @(Get-AtlasInstalledAtlasPackage)
-        $missing = @(@($Journal.atlasPackages) | Where-Object { $present -notcontains $_ })
-        if ($missing.Count -eq 0) { return }
+    $decided = Get-AtlasTransitionRebuildDecision $Journal
+    if ($decided -eq 'components-lost') {
+        throw (New-AtlasTransitionFailure "Atlas components were missing after the update, without a sign of Setup (recorded: $(@($Journal.rebuild.signals) -join ','))." 'feature-components-lost')
     }
+    if ($null -ne $decided) { return }
     $since = [DateTime]::Parse([string]$Journal.createdAt, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::AdjustToUniversal)
     $present = @(Get-AtlasInstalledAtlasPackage)
     $facts = Get-AtlasTransitionRebuildFact $since
@@ -2130,7 +2158,7 @@ catch [OperationCanceledException] {
 }
 catch {
     $failureDetail = Get-PreparationFailureDetail $_.Exception
-    Format-PreparationStop $_ $failureDetail | Add-Content -LiteralPath (Join-Path $JobPath 'updates.log')
+    Write-PreparationLog (Format-PreparationStop $_ $failureDetail)
     if ($transitionRun) {
         Write-PreparationTransitionOutcome (Get-PreparationEndStep $failureDetail) ("reason=$($failureDetail['reason']) code=$($failureDetail['errorCode']) $($failureDetail.failureMessage)")
     }

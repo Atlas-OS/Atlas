@@ -4,26 +4,39 @@ BeforeAll {
         Import-Module (Join-Path $script:AtlasTestModulesRoot "$module\$module.psd1") -Force
     }
     $script:payloadRoot = Split-Path -Parent $script:AtlasTestScriptsRoot
-    . (Join-Path $script:payloadRoot 'Toggles\General\FileSharing.ps1')
+    $script:fileSharing = Get-AtlasToggleDefinition -Name FileSharing -TogglesRoot (Join-Path $script:payloadRoot 'Toggles')
+
+    # Runs the Enable user action the way the engine does: with the engine's own
+    # $Toggle context, dot-sourced inside Atlas.Toggles under strict mode.
+    function Invoke-NetworkPaneChoice {
+        param([bool]$Silent)
+
+        InModuleScope Atlas.Toggles {
+            $context = New-AtlasToggleContext -Definition $d -StateName 'Enable' -Silent:$silent -StateRoot 'HKCU:\TestState'
+            Invoke-AtlasToggleFunction -Definition $d -FunctionName ([string]$d['States']['Enable']['UserAction']) `
+                -Toggle $context -Label 'test'
+        } -Parameters @{ d = $script:fileSharing; silent = $Silent }
+    }
 }
 
 Describe 'Independent Explorer Network choice' {
     BeforeEach {
-        Mock Read-AtlasYesNo { $false }
-        Mock Invoke-AtlasToggle {}
+        Mock Read-AtlasYesNo -ModuleName Atlas.Toggles { $false }
+        Mock Invoke-AtlasToggle -ModuleName Atlas.Toggles {}
     }
 
     It 'does not change visibility during service replay or when the optional choice is declined' {
-        Add-AtlasFileSharingNetworkNavigationPane ([pscustomobject]@{ Silent = $true; StateRoot = 'HKCU:\TestState' })
-        Should -Invoke Read-AtlasYesNo -Times 0 -Exactly
-        Add-AtlasFileSharingNetworkNavigationPane ([pscustomobject]@{ Silent = $false; StateRoot = 'HKCU:\TestState' })
-        Should -Invoke Invoke-AtlasToggle -Times 0 -Exactly
+        Invoke-NetworkPaneChoice -Silent $true
+        Should -Invoke Read-AtlasYesNo -ModuleName Atlas.Toggles -Times 0 -Exactly
+        Invoke-NetworkPaneChoice -Silent $false
+        Should -Invoke Read-AtlasYesNo -ModuleName Atlas.Toggles -Times 1 -Exactly
+        Should -Invoke Invoke-AtlasToggle -ModuleName Atlas.Toggles -Times 0 -Exactly
     }
 
     It 'uses the recording and replay owner when the user requests Network visibility' {
-        Mock Read-AtlasYesNo { $true }
-        Add-AtlasFileSharingNetworkNavigationPane ([pscustomobject]@{ Silent = $false; StateRoot = 'HKCU:\TestState' })
-        Should -Invoke Invoke-AtlasToggle -Times 1 -Exactly -ParameterFilter {
+        Mock Read-AtlasYesNo -ModuleName Atlas.Toggles { $true }
+        Invoke-NetworkPaneChoice -Silent $false
+        Should -Invoke Invoke-AtlasToggle -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
             $Name -ceq 'NetworkNavigationPane' -and $State -ceq 'Enable' -and $StateRoot -eq 'HKCU:\TestState' -and $NoExplorerRestart -and $DeferPostAction
         }
     }

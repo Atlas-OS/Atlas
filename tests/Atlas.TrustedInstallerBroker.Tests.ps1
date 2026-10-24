@@ -12,7 +12,10 @@ BeforeAll {
     # Exercise the real broker in a separate process, with a private native boundary
     # that records requests instead of creating privileged processes.
     Set-Content -LiteralPath (Join-Path $fixtureModules 'Atlas.Core\Atlas.Core.psm1') -Encoding UTF8 -Value @'
-function Assert-AtlasPrivilege { param([switch]$Administrator) }
+function Assert-AtlasPrivilege {
+    param([switch]$Administrator)
+    if ($Administrator -and $env:ATLAS_BROKER_TEST_DENY_ADMIN) { throw '[privilege] fixture refusal' }
+}
 function Invoke-AtlasTrustedInstallerNativeOperation {
     param($Operation, $TimeoutMilliseconds, $Name, $State, $Silent, $JustContext,
         $NoExplorerRestart, $MachineOnly, $RestoreSource, $InstallPhase, $PayloadRoot)
@@ -37,17 +40,20 @@ Export-ModuleMember -Function Get-AtlasToggleDefinition
     $script:BrokerPowerShell = Join-Path $PSHOME 'powershell.exe'
     $script:PreviousBrokerResult = $env:ATLAS_BROKER_TEST_RESULT
     $script:PreviousBrokerExit = $env:ATLAS_BROKER_TEST_EXIT
+    $script:PreviousBrokerDenyAdmin = $env:ATLAS_BROKER_TEST_DENY_ADMIN
 }
 
 AfterAll {
     $env:ATLAS_BROKER_TEST_RESULT = $script:PreviousBrokerResult
     $env:ATLAS_BROKER_TEST_EXIT = $script:PreviousBrokerExit
+    $env:ATLAS_BROKER_TEST_DENY_ADMIN = $script:PreviousBrokerDenyAdmin
 }
 
 Describe 'TrustedInstaller broker private native dispatch' {
     BeforeEach {
         $env:ATLAS_BROKER_TEST_RESULT = Join-Path $TestDrive ([guid]::NewGuid().ToString() + '.json')
         $env:ATLAS_BROKER_TEST_EXIT = '0'
+        $env:ATLAS_BROKER_TEST_DENY_ADMIN = $null
     }
 
     It 'dispatches a validated toggle through the private module function' {
@@ -119,5 +125,73 @@ Describe 'TrustedInstaller broker private native dispatch' {
         $LASTEXITCODE | Should -Be 37
         ($output | Out-String) | Should -Match 'error details unavailable'
         ($output | Out-String) | Should -Match 'child exited with code 37'
+    }
+
+    It 'dispatches the Safe Mode CBS retry with no operation inputs' {
+        & $script:BrokerPowerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script:BrokerFixture `
+            -Operation CbsRetry -TimeoutSeconds 3600
+        $LASTEXITCODE | Should -Be 0
+        $request = Get-Content -LiteralPath $env:ATLAS_BROKER_TEST_RESULT -Raw | ConvertFrom-Json
+        # The retry reads its packages from its own state file, so only the deadline crosses.
+        @($request.PSObject.Properties.Name | Sort-Object) | Should -Be @('Operation', 'TimeoutMilliseconds')
+        $request.Operation | Should -Be 'CbsRetry'
+        $request.TimeoutMilliseconds | Should -Be 3600000
+    }
+
+    It 'rejects a CBS retry given -<Parameter> before native dispatch' -TestCases @(
+        @{ Parameter = 'Name'; Arguments = @('-Name', 'Indexing') }
+        @{ Parameter = 'RestoreSource'; Arguments = @('-RestoreSource', 'ToggleDefaults') }
+        @{ Parameter = 'PayloadRoot'; Arguments = @('-PayloadRoot', 'C:\x') }
+    ) {
+        $previousPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            $output = & $script:BrokerPowerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script:BrokerFixture `
+                -Operation CbsRetry @Arguments 2>&1
+        }
+        finally { $ErrorActionPreference = $previousPreference }
+        $LASTEXITCODE | Should -Be 1
+        ($output | Out-String) | Should -Match "CbsRetry does not accept '-$Parameter'"
+        Test-Path -LiteralPath $env:ATLAS_BROKER_TEST_RESULT | Should -BeFalse
+    }
+
+    It 'refuses an install copy outside the protected staging root: <Label>' -TestCases @(
+        @{ Label = 'a folder elsewhere'; Relative = $null }
+        @{ Label = 'a sibling that shares its prefix'; Relative = 'AtlasOS\Staging-other\x' }
+        @{ Label = 'a path that climbs out of it'; Relative = 'AtlasOS\Staging\..\x' }
+    ) {
+        # $TestDrive doesn't exist during discovery, so the first case builds its path here.
+        $payloadRoot = if ($Relative) {
+            Join-Path ([Environment]::GetFolderPath('Windows')) $Relative
+        }
+        else {
+            Join-Path $TestDrive 'not-staging'
+        }
+        $previousPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            $output = & $script:BrokerPowerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script:BrokerFixture `
+                -Operation Install -InstallPhase Capture -PayloadRoot $payloadRoot 2>&1
+        }
+        finally { $ErrorActionPreference = $previousPreference }
+        $LASTEXITCODE | Should -Be 1
+        ($output | Out-String) | Should -Match 'protected staging root'
+        Test-Path -LiteralPath $env:ATLAS_BROKER_TEST_RESULT | Should -BeFalse
+    }
+
+    It 'refuses a caller without Administrator rights before native dispatch' {
+        # The fixture's Atlas.Core refuses on request, so this holds on elevated hosts too.
+        $env:ATLAS_BROKER_TEST_DENY_ADMIN = '1'
+        $payloadRoot = Join-Path ([Environment]::GetFolderPath('Windows')) 'AtlasOS\Staging\BrokerTest\Executables'
+        $previousPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            $output = & $script:BrokerPowerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script:BrokerFixture `
+                -Operation Install -InstallPhase Capture -PayloadRoot $payloadRoot 2>&1
+        }
+        finally { $ErrorActionPreference = $previousPreference }
+        $LASTEXITCODE | Should -Be 1
+        ($output | Out-String) | Should -Match '\[privilege\]'
+        Test-Path -LiteralPath $env:ATLAS_BROKER_TEST_RESULT | Should -BeFalse
     }
 }

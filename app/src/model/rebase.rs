@@ -37,17 +37,12 @@ impl AppModel {
         let carry = self.update_access.as_ref()?.journal.as_ref()?.rebase()?;
         let previous = carry.atlas_version.clone()?;
         let manifest = self.manifest();
-        let offered: BTreeSet<&str> = manifest
-            .pages
-            .iter()
-            .flat_map(|page| page.options.iter().map(|option| option.name.as_str()))
-            .collect();
         // Someone kept Edge or put it back, so the Rebase leaves it, and
         // Your choices shows it kept.
         let options: Vec<String> = carry
             .options
             .iter()
-            .filter(|name| offered.contains(name.as_str()))
+            .filter(|name| manifest.option_label(name).is_some())
             .filter(|name| !(carry.edge && name.as_str() == UNINSTALL_EDGE))
             .cloned()
             .collect();
@@ -87,19 +82,15 @@ impl AppModel {
         };
         let observed = || Some(self.legacy_choices.clone()).filter(|options| !options.is_empty());
         let options = recorded.or_else(carried).or_else(observed)?;
-        let offered: BTreeSet<&str> = self
-            .manifest()
-            .pages
-            .iter()
-            .flat_map(|page| page.options.iter().map(|option| option.name.as_str()))
-            .collect();
-        let options = options.into_iter().filter(|name| offered.contains(name.as_str())).collect();
+        let manifest = self.manifest();
+        let options = options.into_iter().filter(|name| manifest.option_label(name).is_some()).collect();
         Some((version.clone(), options))
     }
 
     /// Starts Your choices, once per flow, from the choices a rebuilt
-    /// Windows's record kept, or else from the installed Atlas's. A required
-    /// choice neither shows keeps the current one.
+    /// Windows's record kept, or else from the installed Atlas's. A radio
+    /// choice neither shows keeps the current one, or else its default,
+    /// including one on a page shown only once another option is ticked.
     pub(super) fn apply_recorded_choices(&mut self) {
         if self.recorded_choices_applied {
             return;
@@ -113,10 +104,10 @@ impl AppModel {
         };
         self.recorded_choices_applied = true;
         let mut options: BTreeSet<String> = kept.into_iter().collect();
-        for page in &self.manifest().pages {
-            if page.kind != PageKind::Radio || page.depends_on.is_some() {
-                continue;
-            }
+        let manifest = self.manifest();
+        // The browser picker too: a record names a browser only when one was
+        // installed, and the installer refuses the picker left empty once shown.
+        for page in manifest.pages.iter().filter(|page| page.kind == PageKind::Radio) {
             if page.options.iter().any(|option| options.contains(&option.name)) {
                 continue;
             }

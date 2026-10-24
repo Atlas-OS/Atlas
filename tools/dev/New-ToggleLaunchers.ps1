@@ -12,8 +12,9 @@
 
     With -Validate, no files are written: the expected launchers are regenerated in
     memory and diffed against the files on disk. Drifted, missing and orphaned launchers
-    (stubs calling the shared launcher body with no matching definition) are reported and the
-    script exits 1 on any problem.
+    (stubs calling the shared launcher body with no matching definition) are reported, as is
+    any other .cmd under either tree that is not one of the few listed hand-written
+    launchers. The script exits 1 on any problem.
 .EXAMPLE
     .\New-ToggleLaunchers.ps1            # (re)generate all launchers
     .\New-ToggleLaunchers.ps1 -Validate  # CI drift check
@@ -35,10 +36,16 @@ if (-not $RepoRoot) {
 
 $togglesRoot = Join-Path -Path $RepoRoot -ChildPath 'playbook\Executables\AtlasModules\Toggles'
 $desktopRoot = Join-Path -Path $RepoRoot -ChildPath 'playbook\Executables\AtlasDesktop'
-# The AtlasToolbox GUI invokes Toolbox\**\*.cmd by hard-coded path; toggles that are also
-# listed there declare a 'ToolboxLauncher' (Toolbox-relative path) and get a launcher
-# generated under this root, exactly like their AtlasDesktop launcher.
+# Toolbox releases before 0.2.0 open a few .cmd files under this tree by hard-coded path
+# (docs/compatibility.md lists them). Only those toggles declare a 'ToolboxLauncher'
+# (Toolbox-relative path) and get a stub generated under this root.
 $toolboxRoot = Join-Path -Path $RepoRoot -ChildPath 'playbook\Executables\AtlasModules\Toolbox'
+# The only launchers no toggle describes; docs/architecture.md gives each one's reason.
+$handWrittenLaunchers = @(
+    'Install AtlasOS Toolbox.cmd'
+    '4. Interface Tweaks\Start Menu\Install Open-Shell.cmd'
+    '9. Troubleshooting\Set services to defaults.cmd'
+) | ForEach-Object { [IO.Path]::GetFullPath((Join-Path -Path $desktopRoot -ChildPath $_)).ToLowerInvariant() }
 
 if (-not (Test-Path -LiteralPath $togglesRoot -PathType Container)) {
     Write-Error "Toggle definitions root '$togglesRoot' does not exist."
@@ -99,7 +106,7 @@ function Resolve-LauncherTargetPath {
     $relative = [string]$LauncherRelative
     if ([IO.Path]::IsPathRooted($relative) -or
         $relative.Contains('/') -or
-        $relative -cnotmatch '\A[A-Za-z0-9 ._()\\-]+\z' -or
+        $relative -cnotmatch '\A[A-Za-z0-9 ._()+\\-]+\z' -or
         -not $relative.EndsWith('.cmd', [StringComparison]::Ordinal)) {
         throw "Launcher metadata '$relative' from '$Source' is not a safe relative .cmd path."
     }
@@ -287,12 +294,20 @@ if ($Validate) {
         }
     }
 
-    # Check both launcher trees for stubs no longer declared by a definition.
+    # Check both launcher trees for stubs no longer declared by a definition, and for
+    # hand-written launchers that nothing here keeps in step.
     foreach ($orphanRoot in @($desktopRoot, $toolboxRoot)) {
         foreach ($cmdFile in @(Get-ChildItem -LiteralPath $orphanRoot -Recurse -File -Filter '*.cmd')) {
+            $key = $cmdFile.FullName.ToLowerInvariant()
+            if ($expected.ContainsKey($key)) {
+                continue
+            }
             $content = [System.IO.File]::ReadAllText($cmdFile.FullName)
-            if ($content -match 'Invoke-AtlasToggleLauncher\.cmd' -and -not $expected.ContainsKey($cmdFile.FullName.ToLowerInvariant())) {
+            if ($content -match 'Invoke-AtlasToggleLauncher\.cmd') {
                 $problems.Add("Orphan launcher: '$($cmdFile.FullName)' calls Invoke-AtlasToggleLauncher.cmd but no toggle definition declares it.")
+            }
+            elseif ($handWrittenLaunchers -notcontains $key) {
+                $problems.Add("Unlisted launcher: '$($cmdFile.FullName)' is not generated from a toggle definition. Make it a toggle, or add it to the hand-written launchers in New-ToggleLaunchers.ps1 with its reason in docs/architecture.md.")
             }
         }
     }

@@ -17,7 +17,7 @@ use super::{
     focusable_heading, page_frame,
 };
 use crate::i18n::fmt;
-use crate::model::AppModel;
+use crate::model::{AppModel, Page};
 use crate::services::usb::{self, Drive, FailureReason, Progress};
 use crate::services::{iso, settings};
 use crate::t;
@@ -106,6 +106,9 @@ pub struct UsbPage {
     review: bool,
     acknowledged: bool,
     scanning: bool,
+    /// A drive list asked for while another job held the app; it is read
+    /// once that job ends.
+    list_pending: bool,
     working: bool,
     complete: bool,
     ejected: bool,
@@ -118,11 +121,14 @@ pub struct UsbPage {
     focus: FocusHandles,
     preview: bool,
     diagnostics: Diagnostics,
-    /// The state last announced by moving focus: review, scanning, working,
-    /// complete, ejected and the error. Selection, the acknowledgement and
-    /// progress are left out so they never move focus.
-    shown: Option<(bool, bool, bool, bool, bool, Option<UsbError>)>,
+    shown: Option<Shown>,
 }
+
+/// The state last announced by moving focus: review, scanning, working,
+/// complete, ejected, the error and the page visit, so returning to the
+/// open panel is announced too. Selection, the acknowledgement and
+/// progress are left out so they never move focus.
+type Shown = (bool, bool, bool, bool, bool, Option<UsbError>, u64);
 
 impl UsbPage {
     pub fn new(
@@ -132,7 +138,16 @@ impl UsbPage {
         preview: Option<&str>,
         cx: &mut Context<Self>,
     ) -> Self {
-        cx.observe(&model, |_, _, cx| cx.notify()).detach();
+        cx.observe(&model, |this, model, cx| {
+            // A list that waited for another job is read once it ends; deferred,
+            // as at opening, so the model isn't updated from its own notification.
+            if this.take_due_list(model.read(cx)) {
+                let entity = cx.entity();
+                cx.defer(move |cx| entity.update(cx, |this, cx| this.start("List", cx)));
+            }
+            cx.notify();
+        })
+        .detach();
         let mut page = Self {
             closed: false,
             model,
@@ -143,6 +158,7 @@ impl UsbPage {
             review: false,
             acknowledged: false,
             scanning: false,
+            list_pending: false,
             working: false,
             complete: false,
             ejected: false,
@@ -222,8 +238,26 @@ impl UsbPage {
         .detach();
     }
 
+    /// Whether a drive list that waited for another job can be read now: the
+    /// job has ended and the panel is on screen. The wait is used up, so one
+    /// job's end starts one list.
+    fn take_due_list(&mut self, state: &AppModel) -> bool {
+        let due = self.list_pending && !self.closed && state.page == Page::Iso && !state.locked();
+        if due {
+            self.list_pending = false;
+        }
+        due
+    }
+
     fn start(&mut self, operation: &'static str, cx: &mut Context<Self>) {
-        if self.preview || self.working || self.scanning || self.model.read(cx).locked() {
+        if self.preview || self.working || self.scanning {
+            return;
+        }
+        if self.model.read(cx).locked() {
+            // Another job, such as Windows preparation, holds the app; the panel
+            // says so, and a drive list waits for the job to end.
+            self.list_pending |= operation == "List";
+            cx.notify();
             return;
         }
         if operation == "Write" && (!self.review || !self.acknowledged || self.source.is_none()) {
@@ -358,10 +392,16 @@ fn drive_detail(drive: &Drive, serial: bool) -> String {
 impl Render for UsbPage {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let busy = self.working || self.scanning;
+        let (held, visit) = {
+            let state = self.model.read(cx);
+            // Another job holds the app, so nothing here can start until it ends.
+            (state.locked() && !busy, state.page_visit)
+        };
         // Results are announced by moving focus to them: an error or result
         // bar, the progress heading, or the drive list.
         let status = self.focus.get("usb-status", cx);
-        let shown = (self.review, self.scanning, self.working, self.complete, self.ejected, self.error);
+        let shown =
+            (self.review, self.scanning, self.working, self.complete, self.ejected, self.error, visit);
         let announce = self.shown != Some(shown);
         self.shown = Some(shown);
         let secondary = cx.theme().text_secondary;
@@ -393,6 +433,15 @@ impl Render for UsbPage {
                 body.push(self.diagnostics.panel(&self.model, cx).into_any_element());
             }
             focus = Some(status.clone());
+        }
+        if held {
+            let mut bar = InfoBar::new(Severity::Informational, "", t!("iso-locked")).id("usb-locked");
+            // Before any list was read, the bar stands in for it.
+            if self.list_pending && self.drives.is_empty() && focus.is_none() {
+                bar = bar.focus_handle(status.clone());
+                focus = Some(status.clone());
+            }
+            body.push(bar.into_any_element());
         }
         let footer = if busy {
             let text = if self.scanning {
@@ -453,6 +502,7 @@ impl Render for UsbPage {
                 CommandBar::new().back(done).primary(
                     Button::new("usb-eject", t!("usb-eject"))
                         .accent()
+                        .disabled(held)
                         .on_click(cx.listener(|this, _, _, cx| this.start("Eject", cx))),
                 )
             }
@@ -509,7 +559,7 @@ impl Render for UsbPage {
                 .primary(
                     Button::new("usb-write", t!("usb-write"))
                         .accent()
-                        .disabled(!self.acknowledged)
+                        .disabled(!self.acknowledged || held)
                         .on_click(cx.listener(|this, _, _, cx| this.start("Write", cx))),
                 )
         } else {
@@ -553,7 +603,9 @@ impl Render for UsbPage {
                 .collect::<Vec<_>>();
             let entity = cx.entity();
             let mut content = card_body().gap(px(12.));
-            if items.is_empty() {
+            // A list still waiting for another job has found nothing yet; the
+            // bar above says what it waits for.
+            if items.is_empty() && !self.list_pending {
                 let empty = t!(
                     "usb-empty",
                     min = gigabytes(usb::MIN_BYTES),
@@ -566,7 +618,7 @@ impl Render for UsbPage {
                     focus = Some(status.clone());
                 }
                 content = content.child(text);
-            } else {
+            } else if !items.is_empty() {
                 content = content.child(
                     RadioGroup::new("usb-drives", t!("usb-drive"))
                         .items(items)
@@ -589,6 +641,7 @@ impl Render for UsbPage {
                         Some(Icon::Usb),
                         Some(
                             Button::new("usb-refresh", t!("usb-refresh"))
+                                .disabled(held)
                                 .on_click(cx.listener(|this, _, _, cx| this.start("List", cx)))
                                 .into_any_element(),
                         ),
@@ -726,11 +779,14 @@ mod tests {
     fn the_drive_list_leaves_the_serial_number_to_review() {
         crate::i18n::testing::english(|| {
             let drive = usb::preview_drive();
-            assert_eq!(drive_detail(&drive, false), "256.1 GB · F: USB");
-            assert_eq!(drive_detail(&drive, true), "256.1 GB · F: USB · Serial: USB-PREVIEW");
+            // Decimal gigabytes, as drives are sold, in this PC's number format.
+            let size = t!("usb-drive-size", size = fmt::decimal(256.1, 1));
+            let sep = t!("usb-detail-separator");
+            assert_eq!(drive_detail(&drive, false), format!("{size}{sep}F: USB"));
+            assert_eq!(drive_detail(&drive, true), format!("{size}{sep}F: USB{sep}Serial: USB-PREVIEW"));
             // Parts Windows didn't report are left out.
             let bare = Drive { volumes: " ".into(), serial: String::new(), ..drive };
-            assert_eq!(drive_detail(&bare, true), "256.1 GB");
+            assert_eq!(drive_detail(&bare, true), size);
         });
     }
 
@@ -751,6 +807,36 @@ mod tests {
                 assert_eq!(panel.selected, Some(0));
                 panel.back(cx);
                 assert!(panel.closed);
+            });
+        });
+    }
+
+    #[test]
+    fn a_drive_list_asked_for_while_atlas_is_busy_waits_for_it() {
+        use crate::model::test_harness::{Machine, all_off, new_model, run_model_test};
+        use crate::services::preparation::State;
+        use crate::services::test_support::TempDir;
+        run_model_test(|mut cx| async move {
+            let temp = TempDir::new("usb-locked");
+            let model = new_model(&mut cx, Machine::new(all_off()).environment(temp.path()));
+            // A look for the Windows Update offer, started while the ISO page is open.
+            model.update(&mut cx, |m, _| {
+                m.page = Page::Iso;
+                m.preparation = State::Running { stage: Default::default(), completed: 0, total: 0 };
+            });
+            let panel = cx.update(|cx| cx.new(|cx| UsbPage::new(model.clone(), None, vec![], None, cx)));
+            panel.update(&mut cx, |panel, cx| {
+                // The list asked for on opening waits, instead of reading as no drives at all.
+                assert!(panel.list_pending && !panel.scanning && panel.error.is_none());
+                assert!(!panel.take_due_list(model.read(cx)));
+                assert!(panel.list_pending, "still waiting while the look runs");
+                model.update(cx, |m, _| m.preparation = State::Ready);
+                assert!(panel.take_due_list(model.read(cx)), "read once the look ends");
+                assert!(!panel.take_due_list(model.read(cx)), "one job's end starts one list");
+                panel.list_pending = true;
+                model.update(cx, |m, _| m.page = Page::Install);
+                assert!(!panel.take_due_list(model.read(cx)), "not while the panel is out of sight");
+                assert!(panel.list_pending);
             });
         });
     }

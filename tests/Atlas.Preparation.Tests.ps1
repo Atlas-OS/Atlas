@@ -124,6 +124,35 @@ Describe 'Protected preparation recovery journals' {
     }
 }
 
+Describe 'Preparation logs' {
+    It 'writes updates.log in UTF-8 whichever line comes first' {
+        $JobPath = Join-Path $TestDrive 'utf8-log'
+        [void][IO.Directory]::CreateDirectory($JobPath)
+        $log = Join-Path $JobPath 'updates.log'
+        # The app creates the log empty; the lines are a localized update title and
+        # error position.
+        [IO.File]::WriteAllBytes($log, [byte[]]@())
+        $title = "Kumulatives Update f$([char]0xFC)r Windows 11"
+        $position = "Au caract$([char]0xE8)re 12"
+        Write-PreparationLog $title
+        Write-PreparationLog $position
+        $bytes = [IO.File]::ReadAllBytes($log)
+        @($bytes[0..2]) | Should -Be @(0xEF, 0xBB, 0xBF)
+        [Text.Encoding]::UTF8.GetString($bytes, 3, $bytes.Length - 3) | Should -BeExactly "$title`r`n$position`r`n"
+    }
+
+    It 'keeps the older transition log under a name diagnostics collect' {
+        $script:AtlasTransitionEvidencePath = Join-Path $TestDrive 'windows-transition.log'
+        try {
+            [IO.File]::WriteAllText($script:AtlasTransitionEvidencePath, ('x' * 1MB) + 'an earlier step')
+            Write-AtlasTransitionEvidence 'the next step'
+            [IO.File]::ReadAllText((Join-Path $TestDrive 'windows-transition.old.log')) | Should -Match 'an earlier step$'
+            [IO.File]::ReadAllText($script:AtlasTransitionEvidencePath) | Should -Match '^\S+ the next step\r\n$'
+        }
+        finally { $script:AtlasTransitionEvidencePath = $null }
+    }
+}
+
 Describe 'Restart markers' {
     It 'reports <Case>' -TestCases @(
         @{ Case = 'every registry marker it saw rather than stopping at the first'
@@ -265,12 +294,6 @@ Describe 'Preparation restart recovery after provider failures' {
         Mock Invoke-PreparationWindows { throw 'Windows install failed' }
         Mock Test-PreparationRestart { throw 'Restart detection failed' }
         { Invoke-PreparationUpdates } | Should -Throw '*Windows install failed*'
-    }
-    It 'rechecks Windows after Store completion' {
-        $script:windowsPass = 0
-        Mock Invoke-PreparationWindows { $script:windowsPass++; if ($script:windowsPass -eq 1) { 'complete' } else { 'reboot' } }
-        Invoke-PreparationUpdates | Should -Be 'reboot'
-        Should -Invoke Invoke-PreparationStore -Times 1 -Exactly
     }
 }
 
@@ -497,12 +520,12 @@ Describe 'Microsoft Store before the Store apps' {
         $log | Should -Match 'item Microsoft\.StorePurchaseApp_8wekyb3d8bbwe: none -> 22504\.1401\.5\.0, Error'
     }
 
-    It 'lets the update stage run the Store stage between the Windows passes' {
+    It 'lets the update stage run the Store stage between the Windows passes, and returns the second pass''s result' {
         $script:Order = [Collections.Generic.List[string]]::new()
         Mock Write-PreparationState {}
-        Mock Invoke-PreparationWindows { $script:Order.Add('windows'); 'complete' }
+        Mock Invoke-PreparationWindows { $script:Order.Add('windows'); if ($script:Order.Count -eq 1) { 'complete' } else { 'reboot' } }
         Mock Invoke-PreparationStoreStage { $script:Order.Add('store') }
-        Invoke-PreparationUpdates | Should -Be 'complete'
+        Invoke-PreparationUpdates | Should -Be 'reboot'
         @($script:Order) | Should -Be @('windows', 'store', 'windows')
 
         # A restart the first pass needs comes before the Store.
@@ -563,6 +586,18 @@ Describe 'Windows installation results requiring restart' {
                 Title = $Title; EulaAccepted = $true; Identity = [pscustomobject]@{ UpdateID = "$Title id" }
                 InstallationBehavior = [pscustomobject]@{ CanRequestUserInput = [bool]$Interactive; Impact = $Impact }
             }
+        }
+        # The offered update, of $Type, fails with ERROR_NO_MORE_ITEMS (0x80070103)
+        # every time, and Windows Update offers it until something records it.
+        function Set-NoMoreItemsFailure([int]$Type) {
+            $script:offered | Add-Member NoteProperty Type $Type
+            $script:record = @()
+            Mock Read-PreparationReoffered { $script:record }
+            Mock Write-PreparationReoffered { $script:record = @($Entries) }
+            Mock Find-PreparationWindowsUpdate { if (@($script:record).Count -eq 0) { $script:offered } }
+            $script:installation.RebootRequired = $false
+            $script:installation.ResultCode = 4
+            $script:installation | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ResultCode=4; HResult=-2147024637} } -Force
         }
     }
     BeforeEach {
@@ -668,6 +703,32 @@ Describe 'Windows installation results requiring restart' {
         $thrown.Message | Should -BeLike '*could not install every update*'
         (Get-PreparationFailureDetail $thrown).errorCode | Should -Be '0x80240016'
         Should -Invoke Invoke-PreparationWindowsOperation -Times 1 -Exactly -ParameterFilter { $Kind -eq 'Install' }
+    }
+    It 'counts a driver as done when the device already has one at least as good, and records it for the checks after' {
+        Set-NoMoreItemsFailure 2
+        Invoke-PreparationWindows | Should -Be 'complete'
+        Should -Invoke Invoke-PreparationWindowsOperation -Times 1 -Exactly -ParameterFilter { $Kind -eq 'Install' }
+        @($script:record.key) | Should -Be @('Fixture update id/0')
+        $log = Get-Content (Join-Path $JobPath 'updates.log') -Raw
+        $log | Should -Match "driver not needed, not installed again: 'Fixture update'"
+        $log | Should -Not -Match 'Retrying'
+    }
+    It 'still counts the driver as done when the record can''t be written' {
+        Set-NoMoreItemsFailure 2
+        Mock Write-PreparationReoffered { throw 'Access is denied' }
+        Invoke-PreparationWindows | Should -Be 'complete'
+        Should -Invoke Invoke-PreparationWindowsOperation -Times 1 -Exactly -ParameterFilter { $Kind -eq 'Install' }
+        $script:record | Should -BeNullOrEmpty
+        $log = Get-Content (Join-Path $JobPath 'updates.log') -Raw
+        $log | Should -Match 'The update could not be recorded: Access is denied'
+        $log | Should -Not -Match 'Retrying'
+    }
+    It 'still retries and reports a software update that fails the same way' {
+        Set-NoMoreItemsFailure 1
+        try { Invoke-PreparationWindows } catch { $thrown = $_.Exception }
+        (Get-PreparationFailureDetail $thrown).errorCode | Should -Be '0x80070103'
+        Should -Invoke Invoke-PreparationWindowsOperation -Times 2 -Exactly -ParameterFilter { $Kind -eq 'Install' }
+        $script:record | Should -BeNullOrEmpty
     }
     It 'retries a failed download once and reports the update''s Windows code' {
         $script:download = [pscustomobject]@{ResultCode=4; HResult=0}
@@ -1064,5 +1125,28 @@ Describe 'Transient Store deployment recovery' {
         Mock Assert-PreparationContinue { throw [OperationCanceledException]::new('Stopped') }
         { Invoke-PreparationStoreWithRetry } | Should -Throw '*Stopped*'
         Should -Invoke Invoke-PreparationStore -Times 1 -Exactly
+    }
+}
+
+Describe 'How Windows moved, once the record says' {
+    BeforeEach {
+        Mock Write-PreparationJournal {}
+        # The Atlas install's Defender choice uninstalled the package the record lists.
+        Mock Get-AtlasInstalledAtlasPackage { @() }
+        $script:RebuildFacts = [pscustomobject]@{ WindowsOld = $false; SetupFolder = $false; PantherWritten = $false; AtlasModules = $true }
+        Mock Get-AtlasTransitionRebuildFact { $script:RebuildFacts }
+        $script:Journal = [pscustomobject]@{
+            createdAt = '2026-10-01T00:00:00Z'
+            atlasPackages = @('Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0')
+            rebuild = [pscustomobject]@{ rebuilt = $false; signals = @(); checkedAt = '2026-10-02T00:00:00Z' }
+        }
+    }
+
+    It 'stops again on the components it found gone without a sign of Setup' {
+        $script:Journal.rebuild.signals = @('windows-old', 'packages-missing')
+        try { Test-PreparationRebuild $script:Journal } catch { $thrown = $_.Exception }
+        $thrown.Data['reason'] | Should -BeExactly 'feature-components-lost'
+        Get-AtlasTransitionRebuildDecision $script:Journal | Should -BeExactly 'components-lost'
+        Should -Invoke Write-PreparationJournal -Times 0 -Exactly
     }
 }

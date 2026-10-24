@@ -50,16 +50,21 @@ function Find-AtlasInstallUserMarker {
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [string]$Nonce
+        [string]$Nonce,
+
+        [Microsoft.Win32.RegistryKey]$UsersRoot = [Microsoft.Win32.Registry]::Users
     )
 
     $markers = New-Object 'Collections.Generic.List[object]'
-    $usersRoot = [Microsoft.Win32.Registry]::Users
-    foreach ($hiveName in $usersRoot.GetSubKeyNames()) {
-        if ($hiveName -notmatch '^S-1-5-21-(?:\d+-){3}\d+$') {
+    # Work or school (Microsoft Entra ID) accounts load as S-1-12-1 hives. The
+    # install plan can't act for them, so a marker there is only named.
+    $entraHives = New-Object 'Collections.Generic.List[string]'
+    foreach ($hiveName in $UsersRoot.GetSubKeyNames()) {
+        $entra = $hiveName -match '^S-1-12-1-(?:\d+-){3}\d+$'
+        if (-not $entra -and $hiveName -notmatch '^S-1-5-21-(?:\d+-){3}\d+$') {
             continue
         }
-        $marker = $usersRoot.OpenSubKey(
+        $marker = $UsersRoot.OpenSubKey(
             "$hiveName\Software\AtlasOS\InstallSession",
             $false
         )
@@ -69,6 +74,10 @@ function Find-AtlasInstallUserMarker {
         try {
             $markerNonce = [string]$marker.GetValue('Nonce', $null)
             if ($markerNonce -cne $Nonce) {
+                continue
+            }
+            if ($entra) {
+                $entraHives.Add($hiveName)
                 continue
             }
             $claimedSid = [string]$marker.GetValue('UserSid', $null)
@@ -88,6 +97,10 @@ function Find-AtlasInstallUserMarker {
         }
     }
 
+    if ($markers.Count -eq 0 -and $entraHives.Count -gt 0) {
+        throw ("The install was started from a work or school (Microsoft Entra ID) account ($($entraHives -join ', ')). " +
+            "Atlas can't be installed from such an account; sign in with a local account or a Microsoft account, then try again.")
+    }
     if ($markers.Count -ne 1) {
         throw "Expected one current-user install marker for nonce '$Nonce'; found $($markers.Count)."
     }

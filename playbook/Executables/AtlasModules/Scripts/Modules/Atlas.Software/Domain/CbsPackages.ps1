@@ -322,7 +322,6 @@ function Register-AtlasCbsFailureFallback {
     })
     Write-Host 'Arming the failed CBS packages for a Safe Mode retry.'
     [void](Enable-AtlasCbsRetry -Packages $packagePaths)
-    Write-Host 'After Safe Mode starts, run CbsRetry.ps1 -Recover from the command prompt.'
 }
 
 function Install-AtlasCbsPackage {
@@ -403,10 +402,13 @@ function Install-AtlasCbsPackage {
     }
 
     if (($failedPackages.Count -gt 0) -and $NonInteractive) {
+        $failure = "These CBS packages failed to install: $($failedPackages -join ', ')."
         if ($retryPackages.Count -gt 0) {
             Register-AtlasCbsFailureFallback -RetryPackages $retryPackages
+            # This failure ends the install, so it's where the user learns of the retry.
+            $failure += " $(Get-AtlasCbsRetryInstruction)"
         }
-        throw "These CBS packages failed to install: $($failedPackages -join ', ')"
+        throw $failure
     }
 
     return [pscustomobject]@{

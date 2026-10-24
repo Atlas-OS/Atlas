@@ -82,10 +82,16 @@ if ($LASTEXITCODE -ne 0) { throw 'Windows could not require a password change fo
 if ($config.mode -eq 'before-desktop') {
     # Register only after OOBE. A default-profile shell prevents Windows deployment.
     $shellKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\System'
-    New-Item -Path $shellKey -Force | Out-Null
+    # New-Item -Force recreates an existing key empty, wiping the policies in it
+    # and the Shell this check looks for, so create the key only when it's missing.
+    if (-not (Test-Path -LiteralPath $shellKey)) { New-Item -Path $shellKey -Force | Out-Null }
     $policy = Get-Item -LiteralPath $shellKey
     try {
-        if ($policy.GetValue('Shell')) { throw 'A custom Windows shell is already configured.' }
+        if ($policy.GetValue('Shell')) {
+            # Windows keeps no output from first-logon commands, so setup.log is the only record.
+            'This account already has a custom Windows shell, so Atlas left it in place and did not register its setup shell.' | Add-Content -LiteralPath $log -Encoding UTF8
+            throw 'A custom Windows shell is already configured.'
+        }
     } finally { $policy.Dispose() }
     Register-AtlasDesktopCleanup -Sid $identity.User.Value -Root $root
     try {
@@ -98,9 +104,10 @@ if ($config.mode -eq 'before-desktop') {
     }
 }
 $runOnce = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce'
-New-Item -Path $runOnce -Force | Out-Null
 $command = '"' + (Join-Path $root 'AtlasManager.exe') + '" --setup --playbook "' + (Join-Path $root 'Atlas.apbx') + '"'
 if ($config.mode -ne 'before-desktop') {
+    # Keep any commands already queued for this account's next sign-in.
+    if (-not (Test-Path -LiteralPath $runOnce)) { New-Item -Path $runOnce -Force | Out-Null }
     New-ItemProperty -LiteralPath $runOnce -Name 'Atlas ISO setup' -Value $command -PropertyType String -Force | Out-Null
     [IO.File]::WriteAllText((Join-Path $root 'account-ready'), $identity.User.Value)
 }

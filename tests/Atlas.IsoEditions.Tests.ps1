@@ -76,16 +76,15 @@ Describe 'Supported editions in mixed Microsoft media' {
         $script:Images[2].Architecture = 0
         { Get-AtlasMediaEditions source @(26200) } | Should -Throw '*Unsupported Windows image*'
     }
-    It 'rejects an unverified full version before exporting any edition' {
+    It 'rejects an unverified full version at the first image' {
         Mock Get-AtlasWindowsReleaseStatus { 'Unknown' }
         { Get-AtlasMediaEditions source @(26200) } | Should -Throw '*could not be verified as a public release*'
         Should -Invoke Get-AtlasWindowsReleaseStatus -Times 1 -Exactly -ParameterFilter { $Version -eq [version]'10.0.26200.6584' }
-        Should -Invoke Export-WindowsImage -Times 0 -Exactly
     }
     It 'names a build Microsoft does not list apart from one it could not check' {
         Mock Get-AtlasWindowsReleaseStatus { 'Unlisted' }
         { Get-AtlasMediaEditions source @(26200) } | Should -Throw "*not in Microsoft's list of public Windows 11 releases*"
-        Should -Invoke Export-WindowsImage -Times 0 -Exactly
+        Should -Invoke Get-AtlasWindowsReleaseStatus -Times 1 -Exactly
     }
     It 'checks releases against the bundled catalog alone when asked' {
         $null = Get-AtlasMediaEditions source @(26200) -OfflineReleaseCheck
@@ -130,8 +129,10 @@ Describe 'Supported editions in mixed Microsoft media' {
         { Export-AtlasMediaEditions source (Join-Path $TestDrive 'wrong-arch.wim') @(Get-AtlasMediaEditions source @(26200)) } | Should -Throw '*does not match*'
     }
     It 'stops exporting after cancellation between editions' {
-        Mock Write-Stage { throw 'Cancelled at a safe checkpoint.' }
+        # The first checkpoint passes: only a check repeated before each edition stops the second export.
+        $script:StageCalls = 0
+        Mock Write-Stage { $script:StageCalls++; if ($script:StageCalls -gt 1) { throw 'Cancelled at a safe checkpoint.' } }
         { Export-AtlasMediaEditions source (Join-Path $TestDrive 'cancelled.wim') @(Get-AtlasMediaEditions source @(26200)) } | Should -Throw '*Cancelled*'
-        Should -Invoke Export-WindowsImage -Times 0 -Exactly
+        Should -Invoke Export-WindowsImage -Times 1 -Exactly
     }
 }

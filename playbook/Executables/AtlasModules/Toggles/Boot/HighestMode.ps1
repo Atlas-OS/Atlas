@@ -3,16 +3,7 @@
 function Disable-AtlasHighestMode {
     param($Toggle)
 
-    $bcdEditPath = [IO.Path]::Combine($Toggle.WinDir, 'System32', 'bcdedit.exe')
-    $bcdEditOutput = Invoke-AtlasToggleNativeCommand -FilePath $bcdEditPath `
-        -ArgumentList ([string[]]@('/enum', '{globalsettings}')) `
-        -AllowedExitCodes ([int[]]@(0))
-    if (($bcdEditOutput -join [Environment]::NewLine) -match
-        '(?im)^[ \t]*highestmode(?:[ \t]+|$)') {
-        Invoke-AtlasToggleNativeCommand -FilePath $bcdEditPath `
-            -ArgumentList ([string[]]@('/deletevalue', '{globalsettings}', 'highestmode')) `
-            -AllowedExitCodes ([int[]]@(0)) | Out-Null
-    }
+    Remove-AtlasToggleBcdValue -WinDir $Toggle.WinDir -Identifier '{globalsettings}' -Element 'highestmode'
 }
 
 function Enable-AtlasHighestMode {

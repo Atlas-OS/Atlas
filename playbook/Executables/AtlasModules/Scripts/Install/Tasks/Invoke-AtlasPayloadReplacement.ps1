@@ -3,13 +3,13 @@
     Replaces the installed Atlas files with those from the extracted package.
 .DESCRIPTION
     The committed install state decides whether an existing installation must be
-    stopped and removed. Replacement is blocked while a CBS retry is pending so
-    the recovery command cannot be deleted underneath Safe Mode.
+    stopped and removed. Replacement is blocked while a CBS retry is armed, so the
+    recovery command can't be deleted underneath Safe Mode. A retry that was never
+    armed, and the Safe Mode package list Atlas 0.5 left in System32, are given up first.
 #>
 
 [CmdletBinding()]
 param(
-    [switch]$VerifyOnly,
     [switch]$LibraryOnly
 )
 
@@ -44,17 +44,24 @@ function Resolve-AtlasPayloadReplacementPlan {
     }
 
     $hasInstalledPayload = [string]$InstallState.mode -cne 'Fresh'
+    $completedSteps = @()
+    if ($null -ne $InstallState.PSObject.Properties['completedSteps']) {
+        $completedSteps = @($InstallState.completedSteps)
+    }
     return [pscustomobject][ordered]@{
         Mode                   = [string]$InstallState.mode
         StopInstalledPayload   = $hasInstalledPayload
         RemoveInstalledPayload = $hasInstalledPayload -and -not [bool]$InstallState.isOobe
+        ChoicesReplayed        = $completedSteps -icontains 'Defaults'
     }
 }
 
 function Assert-AtlasPayloadReplacementAllowed {
+    Remove-AtlasLegacyCbsRetryList
+    Clear-AtlasUnarmedCbsRetry
     $retryState = Read-AtlasCbsRetryState
     if ($null -ne $retryState) {
-        throw "Replacing Atlas's files is blocked while the CBS retry state is '$($retryState.Phase)'."
+        throw "Replacing Atlas's files is blocked while the CBS retry state is '$($retryState.Phase)' ('$(Get-AtlasCbsRetryStatePath)'). $(Get-AtlasCbsRetryInstruction -Phase ([string]$retryState.Phase))"
     }
 }
 
@@ -72,6 +79,29 @@ function Invoke-AtlasInstalledPayloadRemove {
 
 function Invoke-AtlasExtractedPayloadCopy {
     & $script:AtlasCopyPayloadScript
+}
+
+function Test-AtlasProcessExplorerChoiceEnabled {
+    $statePath = 'HKLM:\SOFTWARE\AtlasOS\Services\ProcessExplorer'
+    if (-not (Test-Path -LiteralPath $statePath)) {
+        return $false
+    }
+    $stateKey = Get-Item -LiteralPath $statePath -ErrorAction Stop
+    return @($stateKey.GetValueNames()) -contains 'state' -and
+        $stateKey.GetValueKind('state') -eq [Microsoft.Win32.RegistryValueKind]::DWord -and
+        [int]$stateKey.GetValue('state') -eq 1
+}
+
+function Invoke-AtlasProcessExplorerRestore {
+    # The same package operation the Defaults replay runs, which leaves pcw as it is.
+    try {
+        . ([IO.Path]::Combine($script:AtlasWindowsPath, 'AtlasModules', 'Scripts', 'Operations', 'ProcessExplorer-Package.ps1'))
+        Install-AtlasProcessExplorerPackage
+    }
+    catch {
+        throw "Reinstalling Process Explorer for the recorded ProcessExplorer choice failed: $($_.Exception.Message)"
+    }
+    Write-Output 'Reinstalled Process Explorer for the recorded ProcessExplorer choice.'
 }
 
 function Assert-AtlasPayloadInstalled {
@@ -115,22 +145,14 @@ function Assert-AtlasPayloadInstalled {
 
 function Invoke-AtlasPayloadReplacementCore {
     [CmdletBinding()]
-    param(
-        [AllowNull()][psobject]$Plan,
-        [switch]$VerifyOnly
-    )
-
-    if ($VerifyOnly) {
-        Assert-AtlasPayloadInstalled -ExtractedExecutablesRoot $script:AtlasExtractedExecutablesRoot `
-            -WindowsPath $script:AtlasWindowsPath
-        return
-    }
-    if ($null -eq $Plan) {
-        throw 'A file replacement plan is required.'
-    }
+    param([Parameter(Mandatory = $true)][psobject]$Plan)
 
     Assert-AtlasPayloadReplacementAllowed
+    $restoreProcessExplorer = $false
     if ([bool]$Plan.StopInstalledPayload) {
+        # The teardown below removes an enabled Process Explorer and Defaults puts it
+        # back, but a resumed install skips Defaults once it has completed.
+        $restoreProcessExplorer = [bool]$Plan.ChoicesReplayed -and (Test-AtlasProcessExplorerChoiceEnabled)
         Invoke-AtlasInstalledPayloadStop
         Invoke-AtlasProcessExplorerStop
     }
@@ -140,6 +162,9 @@ function Invoke-AtlasPayloadReplacementCore {
     Invoke-AtlasExtractedPayloadCopy
     Assert-AtlasPayloadInstalled -ExtractedExecutablesRoot $script:AtlasExtractedExecutablesRoot `
         -WindowsPath $script:AtlasWindowsPath
+    if ($restoreProcessExplorer) {
+        Invoke-AtlasProcessExplorerRestore
+    }
 }
 
 if ($LibraryOnly) {
@@ -154,10 +179,6 @@ $script:AtlasWindowsPath = [Environment]::GetFolderPath('Windows')
 if ([string]::IsNullOrWhiteSpace($script:AtlasWindowsPath) -or
     -not [IO.Directory]::Exists($script:AtlasWindowsPath)) {
     throw "Windows directory '$($script:AtlasWindowsPath)' is not available."
-}
-if ($VerifyOnly) {
-    Invoke-AtlasPayloadReplacementCore -VerifyOnly
-    return
 }
 
 $script:AtlasStopInstalledPayloadScript = Join-Path -Path $PSScriptRoot `

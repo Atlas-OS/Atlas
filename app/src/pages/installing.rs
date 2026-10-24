@@ -7,7 +7,8 @@ use gpui::{
     prelude::*, px, svg,
 };
 
-use super::{LogIds, LogView, card_header, log_actions, on_model};
+use super::install::details_toggle;
+use super::{LogIds, LogView, card_header, focusable_heading, log_actions, on_model};
 use crate::i18n::fmt;
 use crate::model::{AppModel, RunState};
 use crate::services::installer::Phase;
@@ -184,18 +185,11 @@ impl Render for InstallingPage {
                 svg().path("brand/atlas-mark.svg").size(px(48.)).text_color(theme.brand).into_any_element()
             })
             .child(
-                div()
-                    .id("installing-heading")
-                    .role(Role::Heading)
-                    .aria_level(1)
-                    .aria_label(title.clone())
+                focusable_heading("installing-heading", 1, title, &heading_focus, cx)
+                    .m(px(-1.))
                     // Focused, it reads the line under it too: what happens next.
                     .when(!line.is_empty(), |this| this.aria_description(line.clone()))
-                    .track_focus(&heading_focus.clone().tab_stop(false))
-                    .type_title()
-                    .text_color(theme.text_primary)
-                    .text_center()
-                    .child(title),
+                    .text_center(),
             )
             .child(
                 div()
@@ -323,25 +317,13 @@ impl Render for InstallingPage {
 
         // The log stays a click away, never in the way.
         let show_details = self.show_details;
-        let details_label = if show_details { t!("common-hide-details") } else { t!("common-show-details") };
-        column = column.child(
-            div().pt(px(8.)).child(
-                Button::new("installing-details", details_label.clone())
-                    .aria_label(t!(
-                        "common-details-a11y",
-                        action = details_label,
-                        section = t!("common-install-log")
-                    ))
-                    .expanded(show_details)
-                    .hyperlink()
-                    .compact()
-                    .trailing_icon(if show_details { Icon::ChevronUp } else { Icon::ChevronDown })
-                    .on_click(cx.listener(|this, _, _, cx| {
-                        this.show_details = !this.show_details;
-                        cx.notify();
-                    })),
-            ),
-        );
+        column = column.child(div().pt(px(8.)).child(details_toggle(
+            "installing-details",
+            t!("common-install-log"),
+            show_details,
+            |page| &mut page.show_details,
+            cx,
+        )));
         if show_details {
             let actions = log_actions(&model, LOG_IDS, cx);
             column = column.child(

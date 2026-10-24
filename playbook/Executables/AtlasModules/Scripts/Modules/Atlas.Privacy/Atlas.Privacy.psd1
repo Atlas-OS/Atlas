@@ -8,7 +8,6 @@
     FunctionsToExport = @(
         'Set-AtlasLocationMachineState'
         'Clear-AtlasTelemetryLogFiles'
-        'Remove-AtlasTelemetryComponents'
         'Read-AtlasTelemetryPackageChoice'
         'Set-AtlasTelemetryPackageState'
     )

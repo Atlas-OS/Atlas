@@ -95,8 +95,8 @@ function Get-AtlasTakeOwnershipArgumentPlan {
 function Assert-AtlasTakeOwnershipTree {
     <#
     .SYNOPSIS
-        Fails when any descendant of a recursive Take Ownership root is a reparse
-        point, without traversing into the reparse point itself.
+        Fails when any listable descendant of a recursive Take Ownership root is a
+        reparse point, without traversing into the reparse point itself.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -109,7 +109,16 @@ function Assert-AtlasTakeOwnershipTree {
 
     while ($pendingDirectories.Count -gt 0) {
         $directoryPath = $pendingDirectories.Pop()
-        foreach ($entryPath in [IO.Directory]::GetFileSystemEntries($directoryPath)) {
+        try {
+            $entryPaths = [IO.Directory]::GetFileSystemEntries($directoryPath)
+        }
+        catch [UnauthorizedAccessException], [IO.DirectoryNotFoundException], [IO.PathTooLongException] {
+            # Skip a directory the administrator cannot list, such as System Volume
+            # Information on every NTFS drive, or one that has gone. takeown /SKIPSL and
+            # icacls /l still don't follow links inside it once ownership opens it.
+            continue
+        }
+        foreach ($entryPath in $entryPaths) {
             $attributes = [IO.File]::GetAttributes($entryPath)
             if (($attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
                 throw "The recursive Take Ownership target contains a descendant reparse point: '$entryPath'."

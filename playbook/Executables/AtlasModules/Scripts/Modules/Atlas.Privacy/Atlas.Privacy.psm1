@@ -29,5 +29,5 @@ foreach ($domainModule in @(
 }
 
 Export-ModuleMember -Function @(
-    'Set-AtlasLocationMachineState', 'Clear-AtlasTelemetryLogFiles', 'Remove-AtlasTelemetryComponents', 'Read-AtlasTelemetryPackageChoice', 'Set-AtlasTelemetryPackageState'
+    'Set-AtlasLocationMachineState', 'Clear-AtlasTelemetryLogFiles', 'Read-AtlasTelemetryPackageChoice', 'Set-AtlasTelemetryPackageState'
 )

@@ -1,6 +1,5 @@
 # Companion of config-start-menu.psd1.
 $ErrorActionPreference = 'Stop'
-$scriptsRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\..')).ProviderPath
 
 function Set-AtlasStartPinnedFolderPolicy {
     # These are device-scoped Start CSP settings. Microsoft exposes no equivalent
@@ -56,14 +55,12 @@ function Set-AtlasStartPinnedFolderPolicy {
 }
 
 # Set the Start Menu layout for every user.
-Import-Module -Name (Join-Path $scriptsRoot 'Modules\Atlas.Shell\Atlas.Shell.psd1') `
-    -Force -ErrorAction Stop
+Import-AtlasModule -Name Atlas.Shell
 Set-AtlasStartLayout
 
 # Keep every optional folder beside the Start power button hidden.
 Set-AtlasStartPinnedFolderPolicy
 
 # Clear the Start Menu experience host cache so the new layout takes effect.
-Import-Module -Name (Join-Path $scriptsRoot 'Modules\Atlas.Appx\Atlas.Appx.psd1') `
-    -Force -ErrorAction Stop
+Import-AtlasModule -Name Atlas.Appx
 Invoke-AtlasUserAppxCacheCleanup -Mode StartMenu

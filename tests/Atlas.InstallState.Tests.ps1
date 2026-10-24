@@ -2,6 +2,9 @@ BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:installStateModulePath = Join-Path -Path $script:AtlasTestModulesRoot `
         -ChildPath 'Atlas.InstallState\Atlas.InstallState.psd1'
+    # Atlas.InstallState imports Atlas.State into its own scope. Loading it here first
+    # lets tests read the state document through the same module instance.
+    Import-Module -Name (Join-Path $script:AtlasTestModulesRoot 'Atlas.State\Atlas.State.psd1') -Force
     Import-Module -Name $script:installStateModulePath -Force -DisableNameChecking
 
     function New-TestInstallStatePath {
@@ -44,6 +47,46 @@ Describe 'Atlas.InstallState lifecycle' {
         Set-AtlasInstallOptions -StatePath $path -Options @('defender-disable') | Out-Null
         Start-TestInstallState -Path $path | Out-Null
         Set-AtlasInstallOptions -StatePath $path -Options @('defender-enable') | Out-Null
+        @((Get-AtlasInstallState -StatePath $path).options) | Should -Be @('defender-enable')
+    }
+
+    It 'records an interrupted AME capture afresh instead of merging its options' {
+        $path = New-TestInstallStatePath
+        Start-TestInstallState -Path $path | Out-Null
+        Add-AtlasInstallOption -StatePath $path -Name 'defender-disable' | Out-Null
+        Add-AtlasInstallOption -StatePath $path -Name 'uninstall-edge' | Out-Null
+        Start-TestInstallState -Path $path | Out-Null
+        Add-AtlasInstallOption -StatePath $path -Name 'defender-enable' | Out-Null
+        Commit-AtlasInstallState -StatePath $path | Out-Null
+
+        @((Get-AtlasInstallState -StatePath $path).options) | Should -Be @('defender-enable')
+    }
+
+    It 'records options afresh when AME reclassifies a failed run that completed no steps' {
+        $path = New-TestInstallStatePath
+        Start-TestInstallState -Path $path | Out-Null
+        Add-AtlasInstallOption -StatePath $path -Name 'defender-disable' | Out-Null
+        Commit-AtlasInstallState -StatePath $path | Out-Null
+        { Invoke-AtlasInstallStep -StatePath $path -Name 'Features' -Action { throw 'failure' } } | Should -Throw '*failure*'
+
+        $retry = Start-AtlasInstallState -StatePath $path -TargetVersion '0.6.0' -Mode Reapply
+        $retry.mode | Should -BeExactly 'Fresh'
+        @($retry.options).Count | Should -Be 0
+        Add-AtlasInstallOption -StatePath $path -Name 'defender-enable' | Out-Null
+        @((Get-AtlasInstallState -StatePath $path).options) | Should -Be @('defender-enable')
+    }
+
+    It 'keeps a committed run''s options on a same-mode retry that completed no steps' {
+        $path = New-TestInstallStatePath
+        Start-TestInstallState -Path $path | Out-Null
+        Add-AtlasInstallOption -StatePath $path -Name 'defender-enable' | Out-Null
+        Commit-AtlasInstallState -StatePath $path | Out-Null
+        { Invoke-AtlasInstallStep -StatePath $path -Name 'Features' -Action { throw 'failure' } } | Should -Throw '*failure*'
+
+        $retry = Start-TestInstallState -Path $path
+        $retry.status | Should -BeExactly 'Running'
+        @($retry.options) | Should -Be @('defender-enable')
+        Add-AtlasInstallOption -StatePath $path -Name 'defender-enable' | Out-Null
         @((Get-AtlasInstallState -StatePath $path).options) | Should -Be @('defender-enable')
     }
 
@@ -113,7 +156,9 @@ Describe 'Atlas.InstallState lifecycle' {
 
     It 'resumes the original plan when AME reclassifies a recorded failed run' {
         $path = New-TestInstallStatePath
-        $first = Start-TestInstallState -Path $path -Status Running
+        Start-TestInstallState -Path $path | Out-Null
+        Add-AtlasInstallOption -StatePath $path -Name 'browser-brave' | Out-Null
+        $first = Commit-AtlasInstallState -StatePath $path
         $workRoot = Join-Path (Split-Path $path -Parent) 'work'
         [IO.File]::WriteAllText((Join-Path $workRoot 'partial.txt'), 'partial')
         Invoke-AtlasInstallStep -StatePath $path -Name 'Features' -Action { } | Out-Null
@@ -130,15 +175,38 @@ Describe 'Atlas.InstallState lifecycle' {
         $retry.status | Should -BeExactly 'Capturing'
         $retry.mode | Should -BeExactly 'Fresh'
         $retry.captureNonce | Should -BeExactly 'retry-capture'
-        @($retry.options).Count | Should -Be 0
+        @($retry.options) | Should -Be @('browser-brave')
         @($retry.completedSteps) | Should -Contain 'Features'
         Test-Path -LiteralPath (Join-Path $workRoot 'partial.txt') | Should -BeTrue
         Test-Path -LiteralPath (Join-Path (Split-Path $path -Parent) 'abandoned.json') | Should -BeFalse
     }
 
+    It 'resumes a reclassified retry again when its capture was interrupted before Commit' {
+        $path = New-TestInstallStatePath
+        Start-TestInstallState -Path $path | Out-Null
+        Add-AtlasInstallOption -StatePath $path -Name 'browser-brave' | Out-Null
+        $first = Commit-AtlasInstallState -StatePath $path
+        Invoke-AtlasInstallStep -StatePath $path -Name 'Features' -Action { } | Out-Null
+        { Invoke-AtlasInstallStep -StatePath $path -Name 'Tweaks' -Action { throw 'install failed' } } |
+            Should -Throw '*install failed*'
+        Start-AtlasInstallState -StatePath $path -TargetVersion '0.6.0' -Mode Reapply -CaptureNonce 'first-retry' | Out-Null
+
+        $retry = Start-AtlasInstallState -StatePath $path -TargetVersion '0.6.0' `
+            -Mode Reapply -CaptureNonce 'second-retry'
+
+        $retry.transactionId | Should -BeExactly $first.transactionId
+        $retry.status | Should -BeExactly 'Capturing'
+        $retry.mode | Should -BeExactly 'Fresh'
+        $retry.captureNonce | Should -BeExactly 'second-retry'
+        @($retry.options) | Should -Be @('browser-brave')
+        @($retry.completedSteps) | Should -Be @('Features')
+    }
+
     It 'recovers an older RC abandoned Fresh transaction on a Reapply retry' {
         $path = New-TestInstallStatePath
-        $first = Start-TestInstallState -Path $path -Status Running
+        Start-TestInstallState -Path $path | Out-Null
+        Add-AtlasInstallOption -StatePath $path -Name 'browser-brave' | Out-Null
+        $first = Commit-AtlasInstallState -StatePath $path
         Invoke-AtlasInstallStep -StatePath $path -Name 'Features' -Action { } | Out-Null
         {
             Invoke-AtlasInstallStep -StatePath $path -Name 'Tweaks/privacy' `
@@ -156,6 +224,7 @@ Describe 'Atlas.InstallState lifecycle' {
         $retry.status | Should -BeExactly 'Capturing'
         $retry.mode | Should -BeExactly 'Fresh'
         $retry.captureNonce | Should -BeExactly 'recovered-capture'
+        @($retry.options) | Should -Be @('browser-brave')
         @($retry.completedSteps) | Should -Contain 'Features'
         Test-Path -LiteralPath (Join-Path $directory 'abandoned.json') | Should -BeFalse
         Test-Path -LiteralPath (Join-Path $directory 'work') -PathType Container | Should -BeTrue
@@ -293,7 +362,10 @@ Describe 'Atlas.InstallState persistence' {
     }
 
     It 'archives completed diagnostics and removes active work only after required steps' {
-        $path = New-TestInstallStatePath
+        # Mirror the Windows layout so the default state document path is checked too.
+        $root = Join-Path -Path $TestDrive -ChildPath ([Guid]::NewGuid().ToString('N'))
+        $path = Join-Path -Path $root -ChildPath 'AtlasOS\Install\active.json'
+        $documentPath = Join-Path -Path $root -ChildPath 'AtlasOS\state.json'
         $flagsPath = Join-Path (Split-Path $path -Parent) 'published-flags'
         Start-TestInstallState -Path $path | Out-Null
         Add-AtlasInstallOption -StatePath $path -Name 'install-toolbox' | Out-Null
@@ -309,9 +381,18 @@ Describe 'Atlas.InstallState persistence' {
                 -RequiredSteps @('Apply/Tweaks', 'Apply/Software') -FlagsPath $flagsPath
         } | Should -Throw -ExpectedMessage '*Apply/Software*'
         Test-Path -LiteralPath $path | Should -BeTrue
+        Test-Path -LiteralPath $documentPath | Should -BeFalse
 
         $completed = Complete-AtlasInstallState -StatePath $path `
             -RequiredSteps 'Apply/Tweaks' -FlagsPath $flagsPath
+        $document = Get-AtlasState -Path $documentPath
+        $document.installedVersion | Should -BeExactly '0.6.0'
+        $document.mode | Should -BeExactly 'Fresh'
+        $document.isInteractive | Should -BeTrue
+        @($document.options) | Should -Be @('install-toolbox')
+        @($document.history) | Should -HaveCount 1
+        $document.history[0].transactionId | Should -BeExactly $completed.transactionId
+        Test-Path -LiteralPath (Join-Path (Split-Path $path -Parent) 'state.json') | Should -BeFalse
         $lastPath = Join-Path (Split-Path $path -Parent) 'last.json'
         $archived = [IO.File]::ReadAllText($lastPath) | ConvertFrom-Json
         $completed.status | Should -BeExactly 'Completed'

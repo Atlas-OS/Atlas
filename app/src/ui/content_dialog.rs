@@ -25,7 +25,7 @@ use gpui::{
 use super::actions::{FocusNext, FocusPrevious, NavigateBack};
 use super::titlebar::{CAPTION_BUTTONS_WIDTH, TITLE_BAR_HEIGHT};
 use super::{Button, ScrollbarState, Typography, a11y_text, elevation_shadow, nested_scrollbar};
-use crate::theme::ActiveTheme;
+use crate::theme::{ActiveTheme, text_font};
 
 /// WinUI's ContentDialog width limits.
 const MIN_WIDTH: f32 = 320.;
@@ -103,8 +103,8 @@ impl ContentDialog {
     }
 
     /// Whether the buttons fit side by side in equal columns, and the width
-    /// the dialog needs for them when they do.
-    fn button_layout(&self, window: &Window) -> (bool, f32) {
+    /// the dialog needs for them when they do, with labels set in `font`.
+    fn button_layout(&self, font: &gpui::Font, window: &Window) -> (bool, f32) {
         let size = super::typography::BODY_SIZE.to_pixels(window.rem_size());
         let widest = self
             .answers
@@ -112,7 +112,7 @@ impl ContentDialog {
             .map(|label| {
                 let run = [gpui::TextRun {
                     len: label.len(),
-                    font: gpui::font(crate::theme::FONT_TEXT),
+                    font: font.clone(),
                     color: gpui::black(),
                     background_color: None,
                     underline: None,
@@ -138,7 +138,10 @@ impl Render for ContentDialog {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.theme().clone();
         let smoke = gpui::black().opacity(0.3);
-        let (side_by_side, row_width) = self.button_layout(window);
+        // The prompt is drawn as a root of its own, so it inherits nothing
+        // from the window's root, the language's font fallbacks included.
+        let font = text_font(cx);
+        let (side_by_side, row_width) = self.button_layout(&font, window);
         let buttons = self.visual_order().into_iter().map(|index| {
             let label = self.answers[index].clone();
             Button::new(("dialog-answer", index), label)
@@ -211,7 +214,7 @@ impl Render for ContentDialog {
             .key_context("ContentDialog")
             .size_full()
             .relative()
-            .font_family(crate::theme::FONT_TEXT)
+            .font(font)
             .on_action(cx.listener(|this, _: &FocusNext, window, cx| this.cycle(true, window, cx)))
             .on_action(cx.listener(|this, _: &FocusPrevious, window, cx| this.cycle(false, window, cx)))
             // Escape answers Keep open, and never reaches the page's Back.

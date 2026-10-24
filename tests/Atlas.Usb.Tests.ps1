@@ -239,12 +239,9 @@ Describe 'Safe ejection of USB Attached SCSI storage' {
 }
 
 Describe 'USB destination safety' {
-    It 'keeps the copy target bound to a volume when its drive letter changes' {
+    It 'returns the volume GUID path, never a drive-letter root' {
         $volume = [pscustomobject]@{ DriveLetter='Z'; UniqueId='\\?\Volume{12345678-1234-1234-1234-123456789abc}\' }
-        $target = Get-AtlasUsbTargetRoot $volume
-        $volume.DriveLetter = 'Y'
-        Get-AtlasUsbTargetRoot $volume | Should -Be $target
-        $target | Should -Be $volume.UniqueId
+        Get-AtlasUsbTargetRoot $volume | Should -BeExactly $volume.UniqueId
     }
     It 'rejects a mutable drive-letter or malformed target path' -ForEach @('Z:\', '', '\\?\Volume{invalid}\') {
         { Get-AtlasUsbTargetRoot ([pscustomobject]@{UniqueId=$_}) } | Should -Throw '*stable USB volume*'
@@ -308,6 +305,17 @@ Describe 'USB destination safety' {
         Mock Get-Partition { [pscustomobject]@{ DiskNumber=7 } }
         { Assert-AtlasUsbPaths $script:Disk @($file) } | Should -Not -Throw
     }
+    It 'refuses a drive letter with no partition behind it as a source location' {
+        $file = Join-Path $TestDrive 'source.iso'
+        Set-Content -LiteralPath $file -Value 'data'
+        # What Get-Partition reports for a mapped network or encrypted-container drive.
+        Mock Get-Partition { Write-Error -Message 'No MSFT_Partition objects found' -Category ObjectNotFound -ErrorAction Stop }
+        { Assert-AtlasUsbPaths $script:Disk @($file) } | Should -Throw 'source-location|*no local disk partition*'
+        # Any other lookup failure isn't the user's to fix, so it stays untyped.
+        Mock Get-Partition { Write-Error -Message 'Injected storage failure' -Category NotSpecified -ErrorAction Stop }
+        { Assert-AtlasUsbPaths $script:Disk @($file) } | Should -Throw 'Injected storage failure'
+        Should -Invoke Fail -Times 1 -Exactly
+    }
     It 'refuses a path through a junction but accepts a reparse point that is not a link' {
         Mock Get-Partition { [pscustomobject]@{ DiskNumber=7 } }
         Mock Fail { throw "$Reason|$Message" }
@@ -321,6 +329,69 @@ Describe 'USB destination safety' {
         # OneDrive Files On-Demand marks backed-up folders such as the Desktop this way.
         Mock Get-Item { [pscustomobject]@{ FullName='C:\Users\Someone\OneDrive\Desktop\AtlasManager.exe'; Attributes=[IO.FileAttributes]'Archive, ReparsePoint'; LinkType=$null; Parent=$null } }
         { Assert-AtlasUsbPaths $script:Disk @('C:\Users\Someone\OneDrive\Desktop\AtlasManager.exe') } | Should -Not -Throw
+    }
+    Context 'the write worker' {
+        BeforeAll {
+            # The worker writes its manifest beside the script, and a function made from
+            # a script block has no $PSScriptRoot, so load it from a file in a job folder.
+            $ast = [Management.Automation.Language.Parser]::ParseFile($script:UsbScript,[ref]$null,[ref]$null)
+            $worker = $ast.Find({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Invoke-AtlasUsbWorker'},$true)
+            $script:Job = Join-Path $TestDrive 'write-job'
+            [void][IO.Directory]::CreateDirectory($script:Job)
+            [IO.File]::WriteAllText((Join-Path $script:Job 'Invoke-AtlasUsbWorker.ps1'), $worker.Extent.Text, (New-Object Text.UTF8Encoding($true)))
+            . (Join-Path $script:Job 'Invoke-AtlasUsbWorker.ps1')
+        }
+        BeforeEach {
+            $script:Source = Join-Path $TestDrive 'Windows.iso'
+            Set-Content -LiteralPath $script:Source -Value 'fixture'
+            $script:Root = '\\?\Volume{12345678-1234-1234-1234-123456789abc}\'
+            $script:Destinations = [Collections.Generic.List[string]]::new()
+            $script:Image = [Microsoft.Management.Infrastructure.CimInstance]::new('MSFT_DiskImage', 'root/Microsoft/Windows/Storage')
+            $script:Image.CimInstanceProperties.Add([Microsoft.Management.Infrastructure.CimProperty]::Create('Attached', $true, [Microsoft.Management.Infrastructure.CimFlags]::None))
+            Mock Read-AtlasUsbRequest { [pscustomobject]@{ drive=$script:Expected; eraseConfirmed=$true; source=$script:Source; app=$script:Source; supportedBuilds=@(26200) } }
+            Mock Assert-AtlasUsbIdentity { $script:Disk }
+            Mock Assert-AtlasUsbPaths { }
+            Mock Assert-AtlasUsbContinue { }
+            Mock Write-AtlasUsbProgress { }
+            # The mocked Get-ChildItem takes -File only for a path on an existing
+            # FileSystem drive, so the mounted ISO reports the test drive's letter.
+            $script:MediaRoot = [IO.Path]::GetPathRoot($TestDrive)
+            Mock Get-DiskImage { $script:Image }
+            Mock Get-Volume { [pscustomobject]@{ DriveLetter=$script:MediaRoot.Substring(0,1) } }
+            Mock Import-Module { }
+            Mock Get-AtlasUsbMediaInfo { [pscustomobject]@{ imagePath=($script:MediaRoot + 'sources\install.wim'); architecture=9 } }
+            Mock Get-ChildItem {
+                [pscustomobject]@{ FullName=($script:MediaRoot + 'setup.exe'); Length=1KB; Attributes=[IO.FileAttributes]::Archive }
+                [pscustomobject]@{ FullName=($script:MediaRoot + 'sources\boot.wim'); Length=1MB; Attributes=[IO.FileAttributes]::Archive }
+            }
+            Mock Get-FileHash { [pscustomobject]@{ Hash='HASH' } }
+            Mock Format-AtlasUsb { [pscustomobject]@{ DriveLetter='Z'; UniqueId=$script:Root } }
+            Mock Assert-AtlasUsbVolume { }
+            Mock Copy-AtlasUsbFile { $script:Destinations.Add($Destination) }
+            Mock Test-AtlasUsbCopy { }
+        }
+        It 'copies to and verifies the formatted volume by its GUID path, not its drive letter' {
+            # The worker reads its script parameters through dynamic scope.
+            $script:RequestFile = Join-Path $script:Job 'usb-request.json'
+            $script:Operation = 'Write'
+            $null = Invoke-AtlasUsbWorker
+            # Windows can hand Z: to another volume while the copy runs.
+            ($script:Destinations -join ',') | Should -BeExactly "$($script:Root)setup.exe,$($script:Root)sources\boot.wim"
+            Should -Invoke Test-AtlasUsbCopy -Times 1 -Exactly -ParameterFilter { $Target -ceq $script:Root }
+        }
+        It 'keeps the outcome when the split folder cannot be removed' {
+            $script:RequestFile = Join-Path $script:Job 'usb-request.json'
+            $script:Operation = 'Write'
+            $script:Split = Join-Path $script:Job 'split'
+            [void][IO.Directory]::CreateDirectory($script:Split)
+            Mock Remove-Item { throw 'held open' } -ParameterFilter { $LiteralPath -eq $script:Split }
+            # A scratch file another process still holds must not fail a verified write.
+            (@(Invoke-AtlasUsbWorker) -join "`n") | Should -Match '^ATLAS_RESULT:.*"verified":true'
+            # A cleanup failure must not replace the error in flight.
+            Mock Test-AtlasUsbCopy { throw 'USB verification failed: setup.exe' }
+            { Invoke-AtlasUsbWorker } | Should -Throw 'USB verification failed: setup.exe'
+            Should -Invoke Remove-Item -Times 2 -Exactly -ParameterFilter { $LiteralPath -eq $script:Split }
+        }
     }
 }
 

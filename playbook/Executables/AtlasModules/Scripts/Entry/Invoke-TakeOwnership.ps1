@@ -44,6 +44,8 @@ if (-not [IO.Path]::IsPathRooted($TargetPath) -or $TargetPath.Length -gt 32767) 
     throw 'The Take Ownership target must be one absolute path of at most 32,767 characters.'
 }
 
+# The Drive verb passes "%1." so the root's trailing backslash can't escape the
+# closing quote; GetFullPath drops the dot.
 try {
     $canonicalPath = [IO.Path]::GetFullPath($TargetPath)
 }
@@ -133,11 +135,40 @@ if (-not $isAdministrator) {
     throw 'The elevated Take Ownership handler does not have an administrator token.'
 }
 
-if ($TargetType -in @('Directory', 'Drive')) {
-    # Fail closed before recursion if any currently reachable descendant is a
-    # reparse point. /SKIPSL and icacls /l below provide the native no-follow
-    # policy as well. The remaining path-namespace race is a live VM test gate.
-    Assert-AtlasTakeOwnershipTree -RootPath $canonicalPath
+function Get-AtlasTakeOwnershipYesChoice {
+    <#
+    .SYNOPSIS
+        Returns the localized Yes letter that takeown.exe /d expects, read from the
+        [Y,N]? prompt choice.exe prints.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ChoicePath
+    )
+
+    # With no input, choice.exe writes an error to stderr and exits 255. Windows
+    # PowerShell 5.1 makes redirected stderr a terminating error under Stop.
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $choiceOutput = @($null | & $ChoicePath 2>$null)
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    if ($choiceOutput.Count -lt 1 -or
+        [string]::IsNullOrWhiteSpace([string]$choiceOutput[0]) -or
+        ([string]$choiceOutput[0]).Length -lt 3 -or
+        -not ([string]$choiceOutput[0]).StartsWith('[', [StringComparison]::Ordinal)) {
+        throw 'Could not determine the localized affirmative response for takeown.exe.'
+    }
+    $yesChoice = ([string]$choiceOutput[0]).Substring(1, 1)
+    if ([char]::IsWhiteSpace($yesChoice[0]) -or $yesChoice -eq '"') {
+        throw 'The localized affirmative response for takeown.exe is invalid.'
+    }
+    return $yesChoice
 }
 
 $takeOwnPath = [IO.Path]::Combine([Environment]::SystemDirectory, 'takeown.exe')
@@ -153,17 +184,11 @@ $failure = $null
 try {
     $yesChoice = $null
     if ($TargetType -in @('Directory', 'Drive')) {
-        $choiceOutput = @($null | & $choicePath 2>$null)
-        if ($choiceOutput.Count -lt 1 -or
-            [string]::IsNullOrWhiteSpace([string]$choiceOutput[0]) -or
-            ([string]$choiceOutput[0]).Length -lt 3 -or
-            -not ([string]$choiceOutput[0]).StartsWith('[', [StringComparison]::Ordinal)) {
-            throw 'Could not determine the localized affirmative response for takeown.exe.'
-        }
-        $yesChoice = ([string]$choiceOutput[0]).Substring(1, 1)
-        if ([char]::IsWhiteSpace($yesChoice[0]) -or $yesChoice -eq '"') {
-            throw 'The localized affirmative response for takeown.exe is invalid.'
-        }
+        # Fail closed before recursion if any currently reachable descendant is a
+        # reparse point. /SKIPSL and icacls /l below provide the native no-follow
+        # policy as well. The remaining path-namespace race is a live VM test gate.
+        Assert-AtlasTakeOwnershipTree -RootPath $canonicalPath
+        $yesChoice = Get-AtlasTakeOwnershipYesChoice -ChoicePath $choicePath
     }
 
     $argumentPlan = Get-AtlasTakeOwnershipArgumentPlan `
@@ -185,7 +210,13 @@ try {
 }
 catch {
     $failure = $_
-    Write-AtlasNotApplied -Title 'Take Ownership' -Reason $_.Exception.Message
+    # Some errors carry an empty message, which Write-AtlasNotApplied would reject
+    # before the pause below.
+    $reason = $_.Exception.Message
+    if ([string]::IsNullOrWhiteSpace($reason)) {
+        $reason = $_.FullyQualifiedErrorId
+    }
+    Write-AtlasNotApplied -Title 'Take Ownership' -Reason $reason
 }
 
 if ($Pause) {

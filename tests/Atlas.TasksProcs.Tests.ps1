@@ -57,7 +57,7 @@ Describe 'Scheduled-task command failure and postcondition checks' {
     }
 
     It 'logs the verified state after a successful change' {
-        InModuleScope Atlas.TasksProcs { $script:stateReads = 0 }
+        $script:stateReads = 0
         Mock Get-AtlasScheduledTaskState -ModuleName Atlas.TasksProcs {
             $script:stateReads++
             if ($script:stateReads -eq 1) { 'Enabled' } else { 'Disabled' }
@@ -363,9 +363,90 @@ Describe 'Root-scoped cleanup helpers' {
             -ParameterFilter { $Process.Id -eq 101 }
     }
 
-    It 'tolerates a named fallback task disappearing before schtasks can end it' {
+    It 'stops only the scheduled tasks whose action runs under a root' {
+        $atlasModules = Join-Path ([Environment]::GetFolderPath('Windows')) 'AtlasModules'
+        $script:rootTasks = @(
+            [pscustomobject]@{
+                TaskName = 'Atlas tool'; TaskPath = '\'
+                Actions  = @([pscustomobject]@{ Execute = "$atlasModules\Tools\tool.exe" })
+            }
+            [pscustomobject]@{
+                TaskName = 'Lookalike'; TaskPath = '\Vendor\'
+                Actions  = @([pscustomobject]@{ Execute = "${atlasModules}Old\tool.exe" })
+            }
+            [pscustomobject]@{
+                TaskName = 'Elsewhere'; TaskPath = '\Vendor\'
+                Actions  = @([pscustomobject]@{ Execute = 'C:\Program Files\Vendor\tool.exe' })
+            }
+        )
+        Mock Get-ScheduledTask -ModuleName Atlas.TasksProcs -MockWith { $script:rootTasks }
+        Mock Stop-ScheduledTask -ModuleName Atlas.TasksProcs
+        Mock Invoke-AtlasBestEffortScheduledTaskEnd -ModuleName Atlas.TasksProcs
+
+        Stop-AtlasScheduledTaskUnderRoot -RootsLower @("$atlasModules\".ToLowerInvariant())
+
+        Should -Invoke Stop-ScheduledTask -ModuleName Atlas.TasksProcs -Times 1 -Exactly
+        Should -Invoke Stop-ScheduledTask -ModuleName Atlas.TasksProcs -Times 1 -Exactly -ParameterFilter {
+            $TaskName -ceq 'Atlas tool' -and $TaskPath -ceq '\'
+        }
+    }
+
+    It 'stops a task whose quoted %windir% program lies under a root given in any case' {
+        # Get-ScheduledTask returns the Command element of
+        # AtlasModules\Other\Force Timer Resolution.xml as written, quotes included.
+        Mock Get-ScheduledTask -ModuleName Atlas.TasksProcs -MockWith {
+            @(
+                [pscustomobject]@{
+                    TaskName = 'Force Timer Resolution'; TaskPath = '\'
+                    Actions  = @([pscustomobject]@{ Execute = '"%windir%\AtlasModules\Tools\SetTimerResolution.exe"' })
+                }
+                [pscustomobject]@{
+                    TaskName = 'Elsewhere'; TaskPath = '\'
+                    Actions  = @([pscustomobject]@{ Execute = '"C:\Program Files\Other\other.exe"' })
+                }
+            )
+        }
+        Mock Stop-ScheduledTask -ModuleName Atlas.TasksProcs
+        Mock Invoke-AtlasBestEffortScheduledTaskEnd -ModuleName Atlas.TasksProcs
+
+        $root = Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules'
+        Stop-AtlasScheduledTaskUnderRoot -RootsLower @($root.ToUpperInvariant()) -EndTaskName @()
+
+        Should -Invoke Stop-ScheduledTask -ModuleName Atlas.TasksProcs -Times 1 -Exactly
+        Should -Invoke Stop-ScheduledTask -ModuleName Atlas.TasksProcs -Times 1 -Exactly -ParameterFilter {
+            $TaskName -ceq 'Force Timer Resolution' -and $TaskPath -ceq '\'
+        }
+    }
+
+    It 'skips a task whose program is a bare name, even from a current directory under the root' {
+        $root = (New-Item -ItemType Directory -Path (Join-Path $TestDrive 'Root')).FullName
+        Mock Get-ScheduledTask -ModuleName Atlas.TasksProcs -MockWith {
+            [pscustomobject]@{
+                TaskName = 'Bare Name'; TaskPath = '\'
+                Actions  = @([pscustomobject]@{ Execute = 'tool.exe' })
+            }
+        }
+        Mock Stop-ScheduledTask -ModuleName Atlas.TasksProcs
+        Mock Invoke-AtlasBestEffortScheduledTaskEnd -ModuleName Atlas.TasksProcs
+
+        # Resolved against the current directory, the name would land under the root.
+        $currentDirectory = [Environment]::CurrentDirectory
+        try {
+            [Environment]::CurrentDirectory = $root
+            Stop-AtlasScheduledTaskUnderRoot -RootsLower @($root) -EndTaskName @()
+        }
+        finally {
+            [Environment]::CurrentDirectory = $currentDirectory
+        }
+
+        Should -Invoke Stop-ScheduledTask -ModuleName Atlas.TasksProcs -Times 0 -Exactly
+    }
+
+    It 'ends a named fallback task and tolerates it disappearing first, under the engine Stop preference' {
+        $argumentsLog = Join-Path $TestDrive 'schtasks-arguments.txt'
         $fakeSchtasks = Join-Path $TestDrive 'schtasks-race.cmd'
         Set-Content -LiteralPath $fakeSchtasks -Encoding Ascii -Value @(
+            "@>>`"$argumentsLog`" echo %*"
             '@echo ERROR: The system cannot find the file specified. 1>&2'
             '@exit /b 1'
         )
@@ -373,9 +454,16 @@ Describe 'Root-scoped cleanup helpers' {
         Mock Get-AtlasSchtasksPath -ModuleName Atlas.TasksProcs `
             -MockWith { $fakeSchtasks }
 
+        # Native stderr becomes a terminating error under Stop unless the call guards it.
         {
-            Stop-AtlasScheduledTaskUnderRoot -RootsLower @('c:\windows\atlasmodules\') `
-                -EndTaskName 'Force Timer Resolution'
+            InModuleScope Atlas.TasksProcs {
+                $ErrorActionPreference = 'Stop'
+                Stop-AtlasScheduledTaskUnderRoot -RootsLower @('c:\windows\atlasmodules\') `
+                    -EndTaskName 'Force Timer Resolution'
+            }
         } | Should -Not -Throw
+
+        Get-Content -LiteralPath $argumentsLog |
+            Should -BeExactly '/End /TN "Force Timer Resolution"'
     }
 }

@@ -171,8 +171,19 @@ impl Activity {
     /// Whether a move ended waiting for Windows Update rather than failing:
     /// Microsoft hasn't offered the release to this PC yet.
     pub fn not_offered(&self) -> bool {
-        matches!(self.reason.as_deref(), Some("feature-not-offered" | "feature-prerequisite"))
+        self.reason.as_deref().is_some_and(waits_for_offer)
     }
+}
+
+/// The cause a move names when the monthly update it needs isn't installed
+/// yet. Only a full run installs one, so a look for it isn't offer-only.
+pub const MISSING_PREREQUISITE: &str = "feature-prerequisite";
+
+/// Whether a failure cause is a wait for Windows Update rather than a
+/// failure: the release isn't offered yet, or the monthly update it needs
+/// isn't installed. The worker's own list is in `Get-PreparationEndStep`.
+pub fn waits_for_offer(reason: &str) -> bool {
+    matches!(reason, "feature-not-offered" | MISSING_PREREQUISITE)
 }
 
 impl Progress {
@@ -247,11 +258,12 @@ impl Drivers {
     }
 }
 
-/// Updates the worker installed successfully that Windows Update offered
-/// again at once, by `"<update id>/<revision>"`: installing them again changes
-/// nothing, so they no longer count as pending. The worker keeps the list
-/// under HKLM, where only administrators write; entries older than 30 days
-/// lapse.
+/// Updates the worker no longer waits for, by `"<update id>/<revision>"`: ones it
+/// installed successfully that Windows Update offered again at once, and drivers
+/// Windows Update fails with 0x80070103 because the device already has one at
+/// least as good. Installing them again changes nothing, so they no longer count
+/// as pending. The worker keeps the list under HKLM, where only administrators
+/// write; entries older than 30 days lapse.
 pub fn reoffered_updates() -> std::collections::HashSet<String> {
     let text = windows_registry::LOCAL_MACHINE
         .open(r"SOFTWARE\AtlasOS\Preparation")
@@ -472,10 +484,14 @@ pub fn run_operation(settings: &Path, operation: Operation) -> Result<()> {
         Some(Status::Complete) if status.success() => Ok(()),
         _ => {
             let activity = progress.map(|progress| progress.activity).unwrap_or_default();
+            // A worker that stopped without a message left its error on stderr.
             bail!(
                 "{}{}",
                 activity.reason.map(|reason| format!("{reason}: ")).unwrap_or_default(),
-                activity.failure_message.unwrap_or_else(|| format!("the worker ended with {status}"))
+                activity.failure_message.unwrap_or_else(|| format!(
+                    "the worker ended with {status}; see {}",
+                    job.join("worker.log").display()
+                ))
             )
         }
     }
@@ -741,7 +757,6 @@ pub fn run(
 /// reports, which Get ready words, or an error when it reported none. No
 /// offer yet is logged as the outcome it is.
 fn reported_failure(job: &Path, pid: u32, process_start: u64, result: Result<State>) -> Result<State> {
-    let log = job.join("updates.log");
     if let Ok(State::Failed) = result
         && let Some(progress) = read_progress(job)
         && progress.pid == pid
@@ -753,17 +768,28 @@ fn reported_failure(job: &Path, pid: u32, process_start: u64, result: Result<Sta
         if failure.not_offered() {
             log::info!("Windows preparation ended without an offer ({reason}): {message}");
         } else {
-            log::error!("Windows preparation failed ({reason}): {message}; see {}", log.display());
+            log::error!(
+                "Windows preparation failed ({reason}): {message}; see {}",
+                job.join("updates.log").display()
+            );
         }
         return Ok(State::Failed);
     }
-    bail!("Windows preparation failed; see {}", log.display())
+    // A worker that stopped before it could report, such as one PowerShell
+    // refused to run, left its error on stderr, in worker.log.
+    bail!(
+        "Windows preparation stopped without reporting why; see worker.log and updates.log in {}",
+        job.display()
+    )
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RestartProblem {
     Save,
     Registration,
+    /// Atlas Manager runs from a linked folder, so recovery after the restart
+    /// could not be registered.
+    SourceLinked,
     /// Windows couldn't get the version change ready for the restart, so
     /// Atlas didn't restart.
     Commit,
@@ -865,6 +891,7 @@ pub fn clear_resume() {
 mod tests {
     use super::*;
     use crate::services::test_support::{TempDir, TestKey};
+    use crate::services::windows_release::{self, Transition};
 
     #[test]
     fn progress_recovers_legacy_journals_and_uses_only_provider_percentages() {
@@ -897,15 +924,19 @@ mod tests {
         let job =
             RunningJob { directory: temp.path().to_owned(), pid: 123, process_start: 456, trusted: true };
         journal(&job.directory, job.pid, job.process_start, "running");
-        let started = Instant::now();
         let mut reports = Vec::new();
+        // The worker ends on the second look, a poll after the journal went.
+        let mut looks = 0;
         let result = monitor_with(
             &job,
             |event| {
                 reports.push(event);
                 let _ = fs::remove_file(job.directory.join("state.json"));
             },
-            || if started.elapsed() >= Duration::from_millis(60) { Liveness::Ended } else { Liveness::Alive },
+            || {
+                looks += 1;
+                if looks == 1 { Liveness::Alive } else { Liveness::Ended }
+            },
             Duration::from_millis(20),
         )
         .unwrap();
@@ -938,6 +969,9 @@ mod tests {
             .unwrap();
         };
         let failed = || Ok(State::Failed);
+        // One that stopped before writing a journal left its error on stderr.
+        let unexplained = reported_failure(job, 42, 7, failed()).unwrap_err().to_string();
+        assert!(unexplained.contains("worker.log"), "{unexplained}");
         for reason in ["feature-not-offered", "feature-failed"] {
             write(42, Some(reason));
             assert_eq!(reported_failure(job, 42, 7, failed()).unwrap(), State::Failed, "{reason}");
@@ -948,6 +982,24 @@ mod tests {
         assert!(reported_failure(job, 42, 7, failed()).is_err(), "another worker's journal");
         write(42, Some("feature-not-offered"));
         assert!(reported_failure(job, 42, 7, Ok(State::Ready)).is_err(), "an error exit after success");
+    }
+
+    /// The worker ends a run as an outcome rather than a failure for exactly
+    /// the causes the app waits out.
+    #[test]
+    fn the_worker_and_the_app_agree_on_what_waits_for_the_offer() {
+        let (_, end_step) =
+            WORKER.split_once("function Get-PreparationEndStep").expect("the worker's end step");
+        let (_, list) = end_step.split_once("-in @(").expect("its list of causes");
+        let causes: Vec<&str> =
+            list[..list.find(')').unwrap()].split(',').map(|cause| cause.trim().trim_matches('\'')).collect();
+        assert_eq!(causes.len(), 2, "{causes:?}");
+        assert!(
+            causes.contains(&"feature-not-offered") && causes.contains(&MISSING_PREREQUISITE),
+            "{causes:?}"
+        );
+        assert!(causes.iter().all(|cause| waits_for_offer(cause)), "{causes:?}");
+        assert!(!waits_for_offer("feature-failed"));
     }
 
     #[test]
@@ -1068,8 +1120,10 @@ $ErrorActionPreference = 'Stop'
 $record = @{schema=1;status='running';stage='verify';completed=0;total=0;pid=$PID;processStart=[Diagnostics.Process]::GetCurrentProcess().StartTime.ToUniversalTime().ToFileTimeUtc()}
 $record | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $PSScriptRoot 'state.json')
 [Console]::WriteLine('started')
-$deadline = [DateTime]::UtcNow.AddSeconds(60)
+$deadline = [DateTime]::UtcNow.AddSeconds(30)
 while ((Get-Content -LiteralPath (Join-Path $PSScriptRoot 'cancel') -Raw) -cne 'cancel' -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 25 }
+# Only a stop that was asked for is reported as one.
+if ((Get-Content -LiteralPath (Join-Path $PSScriptRoot 'cancel') -Raw) -cne 'cancel') { exit 1 }
 $record.status = 'cancelled'
 $record | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $PSScriptRoot 'state.json')
 [Console]::WriteLine('stopped')
@@ -1101,26 +1155,52 @@ $record | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $PSScri
         };
         let state = monitor(recovered, Arc::new(AtomicBool::new(true)), |_| {}).unwrap();
         assert_eq!(state, State::Cancelled);
+        assert_eq!(fs::read_to_string(job.join("cancel")).unwrap(), "cancel", "the job's own marker");
         assert!(child.0.wait().unwrap().success());
         let log = fs::read_to_string(job.join("worker.log")).unwrap();
         assert!(log.contains("started") && log.contains("stopped"));
     }
 
     #[test]
-    fn restart_registration_survives_same_boot_and_is_removed_after_recovery() {
+    fn the_recovery_entry_is_registered_within_the_run_limit() {
         let test = TestKey::new("resume");
         let exe = Path::new(r"C:\Program Files\Atlas Setup Recovery\hash\AtlasManager.exe");
         register_at(&test.key, exe).unwrap();
         let command = test.key.get_string(RESUME_VALUE).unwrap();
         assert_eq!(command, format!("\"{}\" --after-preparation-restart", exe.display()));
-        assert_eq!(resume_for(State::Reboot), Resume::Wait);
-        assert_eq!(resume_for(State::Resumed), Resume::Open);
-        assert_eq!(resume_for(State::Idle), Resume::Abandoned, "abandoned drafts do not reopen");
-        // Deciding never writes the key; the entry goes only when cleared.
-        assert_eq!(test.key.get_string(RESUME_VALUE).unwrap(), command);
-        registry::remove_value(&test.key, RESUME_VALUE).unwrap();
-        assert!(test.key.get_string(RESUME_VALUE).is_err());
-        registry::remove_value(&test.key, RESUME_VALUE).unwrap();
+        // A path whose command takes exactly `units` UTF-16 units.
+        let path = |units: usize| {
+            let quoting = command.len() - exe.as_os_str().len();
+            PathBuf::from(format!(r"C:\{}", "a".repeat(units - quoting - 3)))
+        };
+        register_at(&test.key, &path(RUN_COMMAND_LIMIT - 1)).unwrap();
+        let longest = test.key.get_string(RESUME_VALUE).unwrap();
+        assert_eq!(longest.encode_utf16().count(), RUN_COMMAND_LIMIT - 1);
+        assert!(register_at(&test.key, &path(RUN_COMMAND_LIMIT)).is_err());
+        assert_eq!(test.key.get_string(RESUME_VALUE).unwrap(), longest, "a refused entry writes nothing");
+    }
+
+    #[test]
+    fn a_launch_from_the_recovery_entry_follows_the_saved_restart() {
+        let temp = TempDir::new("preparation-resume");
+        let settings = temp.path().join("settings.json");
+        assert_eq!(resume_after_restart(&settings), Resume::Abandoned, "no settings");
+        let save = |draft: Option<crate::services::settings::InstallDraft>| {
+            let document = crate::services::settings::AppSettings { draft, ..Default::default() };
+            crate::services::settings::save_to(&settings, &document).unwrap();
+        };
+        let restart_at = |at: &str| crate::services::settings::InstallDraft {
+            preparation_restart_at: Some(at.to_owned()),
+            ..Default::default()
+        };
+        save(None);
+        assert_eq!(resume_after_restart(&settings), Resume::Abandoned, "no draft");
+        save(Some(Default::default()));
+        assert_eq!(resume_after_restart(&settings), Resume::Abandoned, "a draft that owes no restart");
+        save(Some(restart_at(&chrono::Utc::now().to_rfc3339())));
+        assert_eq!(resume_after_restart(&settings), Resume::Wait, "Windows hasn't restarted yet");
+        save(Some(restart_at("2001-01-01T00:00:00Z")));
+        assert_eq!(resume_after_restart(&settings), Resume::Open);
     }
 
     #[test]
@@ -1166,8 +1246,20 @@ $record | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $PSScri
         );
     }
 
+    /// A move with values of its own, so the argument tests follow
+    /// `worker_args` rather than the release data.
+    const MOVE: Transition = Transition {
+        sources: &[11111, 22222],
+        target_build: 33333,
+        target_release: "99H9",
+        kbs: &[1_111_111, 2_222_222],
+        prerequisites: &[3_333_333],
+        minimum_revision: 4444,
+        target_end_of_updates: "2099-12-31",
+    };
+
     fn transition(accept_license: bool) -> TransitionRequest {
-        TransitionRequest::new(&crate::services::windows_release::TRANSITIONS[0], accept_license)
+        TransitionRequest::new(&MOVE, accept_license)
     }
 
     #[test]
@@ -1186,12 +1278,12 @@ $record | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $PSScri
         };
         let args = worker_args(&moving);
         let value = |flag: &str| args.iter().position(|arg| arg == flag).map(|index| args[index + 1].clone());
-        assert_eq!(value("-WindowsTarget").as_deref(), Some("26H2"));
-        assert_eq!(value("-TargetBuild").as_deref(), Some("26300"));
-        assert_eq!(value("-SourceBuilds").as_deref(), Some("26100,26200"));
-        assert_eq!(value("-FeatureKb").as_deref(), Some("5121794,5129195"));
-        assert_eq!(value("-PrerequisiteKb").as_deref(), Some("5124010"));
-        assert_eq!(value("-MinimumRevision").as_deref(), Some("9546"));
+        assert_eq!(value("-WindowsTarget").as_deref(), Some("99H9"));
+        assert_eq!(value("-TargetBuild").as_deref(), Some("33333"));
+        assert_eq!(value("-SourceBuilds").as_deref(), Some("11111,22222"));
+        assert_eq!(value("-FeatureKb").as_deref(), Some("1111111,2222222"));
+        assert_eq!(value("-PrerequisiteKb").as_deref(), Some("3333333"));
+        assert_eq!(value("-MinimumRevision").as_deref(), Some("4444"));
         assert!(!args.contains(&"-AcceptLicense".to_owned()), "terms not accepted");
         assert!(!args.contains(&"-OpenWindowsUpdate".to_owned()), "a move turns Windows Update on itself");
         let accepted = PreparationRequest { transition: Some(transition(true)), ..plain.clone() };
@@ -1199,9 +1291,68 @@ $record | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $PSScri
         assert!(!worker_args(&accepted).contains(&"-OfferOnly".to_owned()));
         let recheck = PreparationRequest {
             transition: Some(TransitionRequest { offer_only: true, ..transition(true) }),
-            ..plain
+            ..plain.clone()
         };
         assert!(worker_args(&recheck).contains(&"-OfferOnly".to_owned()));
+        let direct = PreparationRequest {
+            transition: Some(TransitionRequest { prerequisites: Vec::new(), ..transition(true) }),
+            ..plain
+        };
+        assert!(!worker_args(&direct).contains(&"-PrerequisiteKb".to_owned()), "no prerequisite");
+    }
+
+    /// PowerShell binds the arguments before the worker runs, so an unknown
+    /// parameter or a value its validation refuses stops it before it writes
+    /// a journal. Each argument the app passes, for every move it can make,
+    /// is bound here as PowerShell would against the embedded worker.
+    #[test]
+    fn every_argument_binds_to_a_parameter_of_the_embedded_worker() {
+        let params = &WORKER[..WORKER.find("\n$env:PSModulePath").expect("the end of the param block")];
+        let find = |pattern: String| {
+            regex::Regex::new(&pattern).unwrap().captures(params).map(|found| found[1].to_owned())
+        };
+        let bind = |args: &[String]| {
+            let mut args = args.iter();
+            while let Some(flag) = args.next() {
+                let name = regex::escape(flag.strip_prefix('-').expect("a parameter name"));
+                let kind = find(format!(r"(?i)\[(\w+)\]\s*\${name}\b"))
+                    .unwrap_or_else(|| panic!("the worker has no {flag}"));
+                if kind.eq_ignore_ascii_case("switch") {
+                    continue;
+                }
+                let value = args.next().unwrap_or_else(|| panic!("{flag} has no value"));
+                if kind.eq_ignore_ascii_case("int") {
+                    assert!(value.parse::<i32>().is_ok(), "{flag} {value}");
+                }
+                // Both validations ignore case unless told otherwise.
+                if let Some(pattern) =
+                    find(format!(r"(?i)\[ValidatePattern\('([^']*)'\)\]\s*\[\w+\]\s*\${name}\b"))
+                {
+                    let pattern = regex::Regex::new(&format!("(?i){pattern}")).unwrap();
+                    assert!(pattern.is_match(value), "{flag} {value}");
+                }
+                if let Some(set) = find(format!(r"(?i)\[ValidateSet\(([^)]*)\)\]\s*\[\w+\]\s*\${name}\b")) {
+                    let mut allowed = set.split(',').map(|item| item.trim().trim_matches('\''));
+                    assert!(allowed.any(|item| item.eq_ignore_ascii_case(value)), "{flag} {value}");
+                }
+            }
+        };
+        let job = || vec!["-JobPath".to_owned(), r"C:\Program Files\Atlas Setup Recovery\1-2".to_owned()];
+        for drivers in [Drivers::Automatic, Drivers::Manual] {
+            let opening = PreparationRequest { drivers, transition: None, open_update_access: true };
+            bind(&[job(), worker_args(&opening)].concat());
+            for target in windows_release::TRANSITIONS {
+                let request = TransitionRequest { offer_only: true, ..TransitionRequest::new(target, true) };
+                let moving =
+                    PreparationRequest { drivers, transition: Some(request), open_update_access: false };
+                bind(&[job(), worker_args(&moving)].concat());
+            }
+        }
+        for operation in [Operation::Commit, Operation::Restore] {
+            bind(
+                &[job(), vec!["-PersistentCancellation".to_owned(), operation.switch().to_owned()]].concat(),
+            );
+        }
     }
 
     #[test]

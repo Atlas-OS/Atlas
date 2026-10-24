@@ -76,6 +76,8 @@ window-close-message = Kurulum arka planda devam eder. İlerlemeyi ve sonucu gö
 # Instead of window-close-message when the installation restarts the PC afterwards: only an
 # open Atlas window restarts it, so closing the window cancels that.
 window-close-message-restart = Kurulum arka planda devam eder, ancak Atlas kapalıyken bilgisayarınız otomatik olarak yeniden başlamaz. İlerlemeyi ve sonucu görmek için Atlas'ı yeniden açın. Kurulum bitene kadar bilgisayarınızı açık tutun.
+# The safe answer in every dialog shown when the window is closed, including those for ISO
+# and USB creation, updates and Windows Update access.
 window-close-keep = Açık tut
 window-close-close = Pencereyi kapat
 # Dialog shown when the window is closed during the final checks, before the
@@ -97,7 +99,8 @@ window-close-restart-close = Yeniden başlatmadan kapat
 # window-close-keep, common-open-windows-security and window-close-close.
 window-close-protection-title = Koruma kapalıyken Atlas kapatılsın mı?
 window-close-protection-message = Windows Güvenliği'ndeki bazı korumalar hâlâ kapalı: { $switches }. Atlas'ı kurmayı bitirmeyecekseniz, kapatmadan önce bunları yeniden açın. Bitirecekseniz, Atlas'ı yeniden açtığınızda Atlas kurulumunuza kaldığı yerden devam eder.
-# Title of the file picker for an Atlas package (.apbx) file.
+# The Open button of the file picker for an Atlas package (.apbx) file, on Get ready and the
+# ISO page. It's a button label, so keep it short.
 file-dialog-open-package = Atlas paketi aç (.apbx)
 # Message Windows shows in its restart notification.
 shutdown-comment = Atlas kuruldu. Kurulumu tamamlamak için Windows yeniden başlatılıyor.
@@ -795,7 +798,9 @@ iso-failed-package-changed = Dosyalar denetlendikten sonra Atlas paketi değişt
 iso-diagnostics = Günlük klasörünü aç
 iso-close-title = ISO oluşturma devam ediyor
 iso-close-message = Oluşturma veya iptal işlemi bitene kadar bu pencereyi açık tutun. İptal işlemi, mevcut işlemin güvenle durdurulabileceği noktayı bekler.
-iso-keep-open = Açık tut
+# On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,
+# from another page. Their controls are unavailable until it finishes.
+iso-locked = Atlas şu anda Windows Update ile meşgul. Bu iş bittiğinde buradan devam edebilirsiniz.
 # Card title. Turkish uses a noun phrase so that other messages can name the card
 # ("Windows ve Store güncellemeleri kartında"); an imperative title reads as an instruction there.
 prepare-title = Windows ve Store güncellemeleri
@@ -886,6 +891,8 @@ desktop-setup-exit = Windows’ta devam et
 usb-title = Kurulum USB’si oluştur
 usb-existing = Mevcut bir ISO’dan USB oluştur
 usb-description = Windows’u yeniden yükleyebilmeniz için bir ISO’yu USB sürücüsüne yazın. Atlas’ı aynı anda kurmak için Atlas ile oluşturulmuş bir ISO kullanın.
+# Button that opens the file picker for an ISO, and the Open button of that picker, on the USB
+# and ISO pages.
 usb-choose-iso = ISO seç
 usb-drive = USB sürücüsü
 # $min and $max are formatted numbers (text), in gigabytes and terabytes.
@@ -965,6 +972,7 @@ prepare-continue = Güncellemelere devam et
 prepare-saving-restart = Seçimleriniz kaydediliyor ve Windows yeniden başlatıldıktan sonra Atlas’ın açılması ayarlanıyor…
 prepare-restart-save-failed = Seçimleriniz kaydedilemedi. Yeniden başlatmadan önce tekrar deneyin.
 prepare-restart-registration-failed = Seçimleriniz kaydedildi, ancak Atlas yeniden başlatmadan sonra kendini açılacak şekilde ayarlayamadı. Tekrar deneyin veya bilgisayarınızı kendiniz yeniden başlatıp oturum açtıktan sonra Atlas’ı açın.
+prepare-restart-source-linked = Seçimleriniz kaydedildi, ancak Atlas Manager bağlantılı bir klasördeyken Atlas yeniden başlatmadan sonra kendini açılacak şekilde ayarlayamaz. Atlas’ı kapatın ve Atlas Manager’ı bu bilgisayardaki yerel bir klasöre taşıyın. Ardından oradan açın veya bilgisayarınızı kendiniz yeniden başlatıp oturum açtıktan sonra oradan açın.
 prepare-restart-failed = Atlas bilgisayarınızı yeniden başlatamadı. Tekrar deneyin veya Başlat menüsünden yeniden başlatın. Seçimleriniz kaydedildi ve Atlas, oturum açtıktan sonra yeniden açılır.
 diagnostics-export = Tanılama verilerini dışa aktar
 diagnostics-exporting = Tanılama verileri toplanıyor…
@@ -1005,12 +1013,14 @@ prepare-failed-store-timeout = Store uygulamalarının güncellenmesi tamamlanma
 prepare-failed-store-passes = Microsoft Store yeni güncellemeler sunmaya devam etti. Kalan güncellemeleri Microsoft Store’da tamamlayın, ardından tekrar deneyin.
 prepare-failed-manual-updates = Bazı Windows güncellemelerinin Windows Update’te tamamlanması gerekiyor. Windows Update’i açıp bunları tamamlayın, ardından tekrar deneyin.
 prepare-failed-windows-passes = Windows Update yeni güncellemeler sunmaya devam etti. Kalan güncellemeleri Windows Update’te tamamlayın, ardından tekrar deneyin.
+prepare-failed-source-linked = Atlas Manager bağlantılı bir klasörde. Atlas’ı kapatın, Atlas Manager’ı bu bilgisayardaki yerel bir klasöre taşıyın, ardından oradan açın.
 prepare-error-code = Hata kodu: { $code }
 prepare-open-store = Microsoft Store’u aç
 
 check-user-account = Kullanıcı hesabı
 detail-user-account-ok = UAC açık ve hesabınız kuruluma hazır.
 detail-user-account-not-ready = Kullanıcı Hesabı Denetimi’ni (UAC) açın, bilgisayarınızı yeniden başlatın ve tekrar deneyin. Yerleşik Administrator hesabını kullanıyorsanız başka bir yönetici hesabıyla oturum açın.
+detail-user-account-work-or-school = Atlas, iş veya okul hesabından (Microsoft Entra ID) kurulamaz. Yerel bir hesapla veya Microsoft hesabıyla oturum açın, ardından tekrar deneyin.
 detail-user-account-unknown = Atlas kullanıcı hesabınızı denetleyemedi. Kurulumdan önce tekrar denetleyin. Windows bildirimi: { $error }
 
 footer-prepare-required = Devam etmek için Windows ve Store uygulamalarını güncellemeyi bitirin
@@ -1173,6 +1183,8 @@ stop-update-before = Atlas, değiştirdiği Windows Update ayarlarını geri yü
 stop-update-after = Bilgisayarınız Windows 11 { $release } sürümünde kalır. Atlas, değiştirdiği Windows Update ayarlarını geri yükler.
 stop-update-access = Atlas, değiştirdiği Windows Update ayarlarını geri yükler. Windows'un zaten yüklediği güncelleştirmeler yüklü kalır.
 stop-update-keep = Güncelleştirmeye devam et
+# Dialog shown when the window is closed while Windows Update is turned on for an update; its
+# buttons are window-close-keep and window-close-put-back.
 window-close-update-access-title = Atlas kapatılsın mı?
 window-close-update-access-message = Atlas kapanmadan önce değiştirdiği Windows Update ayarlarını geri yükler. Güncelleştirmeye Giriş sayfasından yeniden başlayabilirsiniz.
 window-close-put-back = Geri yükle ve kapat

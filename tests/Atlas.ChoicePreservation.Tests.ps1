@@ -5,44 +5,68 @@ BeforeAll {
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Shell\Atlas.Shell.psd1') -Force
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Search\Atlas.Search.psd1') -Force
     $script:choiceRoot = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles'
-    . (Join-Path $script:choiceRoot 'General\WebSearch.ps1')
-    . (Join-Path $script:choiceRoot 'General\PhoneLink.ps1')
-    . (Join-Path $script:choiceRoot 'General\Sleep.ps1')
-    . (Join-Path $script:choiceRoot 'General\Indexing.ps1')
+
+    # Runs a state's machine action the way the engine does: with the engine's own
+    # $Toggle context, dot-sourced inside Atlas.Toggles under strict mode, so
+    # module-scoped mocks apply and a strict-mode failure shows up here too.
+    function Invoke-MachineAction {
+        param(
+            [Parameter(Mandatory = $true)][string]$Toggle,
+            [Parameter(Mandatory = $true)][string]$State,
+            [bool]$Silent = $true
+        )
+
+        $definition = Get-AtlasToggleDefinition -Name $Toggle -TogglesRoot $script:choiceRoot
+        InModuleScope Atlas.Toggles {
+            $context = New-AtlasToggleContext -Definition $d -StateName $s -Silent:$silent -StateRoot 'HKCU:\Unused'
+            Invoke-AtlasToggleFunction -Definition $d -FunctionName ([string]$d['States'][$s]['MachineAction']) `
+                -Toggle $context -Label 'test'
+        } -Parameters @{ d = $definition; s = $State; silent = $Silent }
+    }
 }
 
 Describe 'Independent choices survive toggle replay' {
     BeforeEach {
-        Mock Import-AtlasModule {}
-        Mock Read-AtlasYesNo { throw 'Silent work must not prompt.' }
-        Mock Set-AtlasRegistryValue {}
-        Mock Remove-AtlasRegistryValue {}
-        Mock Set-AtlasSettingsPageVisibility {}
-        Mock Get-Service { [pscustomobject]@{ Status = 'Stopped' } }
-        Mock Set-AtlasIndexingMachineState {}
-        Mock Set-AtlasToggleState {}
+        Mock Write-AtlasLog -ModuleName Atlas.Toggles
+        Mock Write-AtlasStep -ModuleName Atlas.Toggles
+        Mock Write-AtlasWarning -ModuleName Atlas.Toggles
+        Mock Write-AtlasSuccess -ModuleName Atlas.Toggles
+        Mock Import-AtlasModule -ModuleName Atlas.Toggles
+        Mock Read-AtlasYesNo -ModuleName Atlas.Toggles { throw 'Silent work must not prompt.' }
+        Mock Set-AtlasRegistryValue -ModuleName Atlas.Toggles
+        Mock Remove-AtlasRegistryValue -ModuleName Atlas.Toggles
+        Mock Set-AtlasSettingsPageVisibility -ModuleName Atlas.Toggles
+        Mock Get-Service -ModuleName Atlas.Toggles { [pscustomobject]@{ Status = 'Stopped' } }
+        Mock Set-AtlasIndexingMachineState -ModuleName Atlas.Toggles
+        Mock Set-AtlasToggleState -ModuleName Atlas.Toggles
     }
 
     It 'preserves search location and disabled indexing in silent Web Search enable' {
-        Enable-AtlasWebSearchMachine -Toggle ([pscustomobject]@{ Silent = $true })
-        Should -Invoke Set-AtlasRegistryValue -Times 0 -Exactly
-        Should -Invoke Remove-AtlasRegistryValue -Times 0 -Exactly
-        Should -Invoke Set-AtlasIndexingMachineState -Times 0 -Exactly
-        Should -Invoke Read-AtlasYesNo -Times 0 -Exactly
-        Should -Invoke Set-AtlasToggleState -Times 0 -Exactly
+        Invoke-MachineAction -Toggle WebSearch -State Enable
+        Should -Invoke Set-AtlasRegistryValue -ModuleName Atlas.Toggles -Times 0 -Exactly
+        Should -Invoke Remove-AtlasRegistryValue -ModuleName Atlas.Toggles -Times 0 -Exactly
+        Should -Invoke Set-AtlasIndexingMachineState -ModuleName Atlas.Toggles -Times 0 -Exactly
+        Should -Invoke Read-AtlasYesNo -ModuleName Atlas.Toggles -Times 0 -Exactly
+        Should -Invoke Set-AtlasToggleState -ModuleName Atlas.Toggles -Times 0 -Exactly
     }
 
     It 'records indexing only after an explicit successful indexing change' {
-        Mock Read-AtlasYesNo { $true }
-        Enable-AtlasWebSearchMachine -Toggle ([pscustomobject]@{ Silent = $false; StateRoot = 'HKCU:\Unused' })
-        Should -Invoke Set-AtlasIndexingMachineState -Times 1 -Exactly -ParameterFilter { $State -eq 'Full' -and $PreservePowerModes }
-        Should -Invoke Set-AtlasToggleState -Times 1 -Exactly -ParameterFilter { $Name -eq 'Indexing' -and $State -eq 2 }
+        Mock Read-AtlasYesNo -ModuleName Atlas.Toggles { $true }
+        Invoke-MachineAction -Toggle WebSearch -State Enable -Silent $false
+        Should -Invoke Set-AtlasIndexingMachineState -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            $State -eq 'Full' -and $PreservePowerModes
+        }
+        Should -Invoke Set-AtlasToggleState -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            $Name -eq 'Indexing' -and $State -eq 2 -and $StateRoot -ceq 'HKCU:\Unused'
+        }
     }
 
     It 'preserves power-mode handling when full indexing is replayed' {
-        Enable-AtlasSearchIndexing -Toggle ([pscustomobject]@{ Silent = $true })
-        Should -Invoke Set-AtlasIndexingMachineState -Times 1 -Exactly -ParameterFilter { $State -eq 'Full' -and $PreservePowerModes }
-        Should -Not -Invoke Read-AtlasYesNo
+        Invoke-MachineAction -Toggle Indexing -State Enable
+        Should -Invoke Set-AtlasIndexingMachineState -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            $State -eq 'Full' -and $PreservePowerModes
+        }
+        Should -Not -Invoke Read-AtlasYesNo -ModuleName Atlas.Toggles
     }
 
     It 'preserves independent account consumer and Store policies in silent Phone Link enable' {
@@ -50,35 +74,35 @@ Describe 'Independent choices survive toggle replay' {
         @($definition.States.Enable.Registry | Where-Object {
             $_.Name -in @('NoConnectedUser', 'DisableWindowsConsumerFeatures', 'AutoDownload')
         }) | Should -HaveCount 0
-        Enable-AtlasPhoneLinkMachine -Toggle ([pscustomobject]@{ Silent = $true })
-        Should -Invoke Set-AtlasRegistryValue -Times 0 -Exactly
-        Should -Invoke Remove-AtlasRegistryValue -Times 0 -Exactly
-        Should -Invoke Read-AtlasYesNo -Times 0 -Exactly
+        Invoke-MachineAction -Toggle PhoneLink -State Enable
+        Should -Invoke Set-AtlasRegistryValue -ModuleName Atlas.Toggles -Times 0 -Exactly
+        Should -Invoke Remove-AtlasRegistryValue -ModuleName Atlas.Toggles -Times 0 -Exactly
+        Should -Invoke Read-AtlasYesNo -ModuleName Atlas.Toggles -Times 0 -Exactly
     }
 
     It 'does not change hibernation when its optional change is declined' {
-        Mock Read-AtlasYesNo { $false }
-        Mock Test-Path { $true }
-        Mock Invoke-AtlasToggleNativeCommand {}
-        Mock Invoke-AtlasToggleMachineState {}
-        Set-AtlasSleepState -Toggle ([pscustomobject]@{
-            Silent = $false; State = 'Disable'; WinDir = $env:SystemRoot; StateRoot = 'HKCU:\Unused'
-        })
-        Should -Invoke Invoke-AtlasToggleMachineState -Times 0 -Exactly
+        Mock Read-AtlasYesNo -ModuleName Atlas.Toggles { $false }
+        Mock Test-Path -ModuleName Atlas.Toggles { $true } -ParameterFilter { $LiteralPath -like '*\powercfg.exe' }
+        Mock Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles
+        Mock Invoke-AtlasToggleMachineState -ModuleName Atlas.Toggles
+        Invoke-MachineAction -Toggle Sleep -State Disable -Silent $false
+        Should -Invoke Read-AtlasYesNo -ModuleName Atlas.Toggles -Times 1 -Exactly
+        Should -Invoke Invoke-AtlasToggleMachineState -ModuleName Atlas.Toggles -Times 0 -Exactly
     }
 
     It 'does not change broader policies when every Phone Link enable dependency is declined' {
-        Mock Read-AtlasYesNo { $false }
-        Enable-AtlasPhoneLinkMachine -Toggle ([pscustomobject]@{ Silent = $false })
-        Should -Invoke Set-AtlasRegistryValue -Times 0 -Exactly
-        Should -Invoke Remove-AtlasRegistryValue -Times 0 -Exactly
+        Mock Read-AtlasYesNo -ModuleName Atlas.Toggles { $false }
+        Invoke-MachineAction -Toggle PhoneLink -State Enable -Silent $false
+        Should -Invoke Read-AtlasYesNo -ModuleName Atlas.Toggles -Times 3 -Exactly
+        Should -Invoke Set-AtlasRegistryValue -ModuleName Atlas.Toggles -Times 0 -Exactly
+        Should -Invoke Remove-AtlasRegistryValue -ModuleName Atlas.Toggles -Times 0 -Exactly
     }
 
     It 'does not record indexing if the explicitly requested change fails' {
-        Mock Read-AtlasYesNo { $true }
-        Mock Set-AtlasIndexingMachineState { throw 'indexing failed' }
-        { Enable-AtlasWebSearchMachine -Toggle ([pscustomobject]@{ Silent = $false; StateRoot = 'HKCU:\Unused' }) } | Should -Throw '*indexing failed*'
-        Should -Invoke Set-AtlasToggleState -Times 0 -Exactly
+        Mock Read-AtlasYesNo -ModuleName Atlas.Toggles { $true }
+        Mock Set-AtlasIndexingMachineState -ModuleName Atlas.Toggles { throw 'indexing failed' }
+        { Invoke-MachineAction -Toggle WebSearch -State Enable -Silent $false } | Should -Throw '*indexing failed*'
+        Should -Invoke Set-AtlasToggleState -ModuleName Atlas.Toggles -Times 0 -Exactly
     }
 
     It 'retains user tracking preferences when recent items are unlocked' {
@@ -121,4 +145,3 @@ Describe 'Independent choices survive toggle replay' {
         }
     }
 }
-

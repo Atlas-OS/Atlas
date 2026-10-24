@@ -286,7 +286,8 @@ Describe 'Services phase feature defaults' {
             -ChildPath 'Invoke-ServicesPhase.ps1'
 
         # Runs the phase with its module commands stubbed. Each stub records its call, and
-        # the recorded-state table decides what the verification read-back returns.
+        # the recorded-state table decides what the verification read-back returns. A
+        # toggle listed in AppliedStates records that state when the phase applies it.
         function Invoke-AtlasServicesPhaseForTest {
             [CmdletBinding()]
             param(
@@ -294,10 +295,16 @@ Describe 'Services phase feature defaults' {
                 [Parameter(Mandatory = $true)]$Calls,
                 [Parameter(Mandatory = $true)][hashtable]$RecordedStates,
                 [Parameter(Mandatory = $true)][hashtable]$Definitions,
+                [hashtable]$AppliedStates = @{},
+                [switch]$IsRebase,
                 [switch]$BackupFails
             )
 
             & {
+                function Get-AtlasContext {
+                    return [pscustomobject]@{ IsRebase = [bool]$IsRebase }
+                }
+
                 function Assert-AtlasPrivilege {
                     [CmdletBinding()]
                     param([switch]$TrustedInstaller)
@@ -323,6 +330,9 @@ Describe 'Services phase feature defaults' {
                         [Parameter(Mandatory = $true)][string]$State
                     )
                     [void]$Calls.Add("Toggle:$Name=$State")
+                    if ($AppliedStates.ContainsKey($Name)) {
+                        $RecordedStates[$Name] = $AppliedStates[$Name]
+                    }
                 }
 
                 function Get-AtlasToggleDefinition {
@@ -344,7 +354,7 @@ Describe 'Services phase feature defaults' {
                         [Parameter(Mandatory = $true)][string]$Message
                     )
                     [void]$Level
-                    [void]$Message
+                    [void]$Calls.Add("Log:$Message")
                 }
 
                 . $Path
@@ -404,5 +414,23 @@ Describe 'Services phase feature defaults' {
 
         $toggleCalls = @($script:servicesCalls | Where-Object { $_ -like 'Toggle:*' })
         $toggleCalls[-1] | Should -BeExactly "Toggle:$Failing=$State"
+    }
+
+    It 'keeps a recorded choice on a Rebase and applies only the defaults nothing recorded' {
+        $recorded = @{ FileSharing = 1 }
+
+        Invoke-AtlasServicesPhaseForTest -Path $script:servicesPhasePath `
+            -Calls $script:servicesCalls -RecordedStates $recorded `
+            -AppliedStates @{ Location = 0; Indexing = 1 } `
+            -Definitions $script:toggleDefinitions -IsRebase
+
+        $machineWork = @($script:servicesCalls | Where-Object { $_ -like 'Backup:*' -or $_ -like 'Toggle:*' })
+        $machineWork[0] | Should -BeLike 'Backup:*\AtlasModules\Other\winServices.reg'
+        @($machineWork | Select-Object -Skip 1) | Should -Be @(
+            'Toggle:Location=Disable', 'Toggle:Indexing=Minimal'
+        )
+        $recorded.FileSharing | Should -Be 1
+        @($script:servicesCalls | Where-Object { $_ -like "Log:Kept the recorded 'FileSharing' choice*" }).Count |
+            Should -Be 1
     }
 }

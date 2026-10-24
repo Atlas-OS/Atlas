@@ -65,6 +65,8 @@ window-close-message = Установка продолжится в фоново
 # Instead of window-close-message when the installation restarts the PC afterwards: only an
 # open Atlas window restarts it, so closing the window cancels that.
 window-close-message-restart = Установка продолжится в фоновом режиме, но пока Atlas закрыт, ПК не перезагрузится автоматически. Чтобы увидеть ход и результат, снова откройте Atlas. Не выключайте ПК до завершения установки.
+# The safe answer in every dialog shown when the window is closed, including those for ISO
+# and USB creation, updates and Windows Update access.
 window-close-keep = Не закрывать
 window-close-close = Закрыть окно
 # Dialog shown when the window is closed during the final checks, before the
@@ -86,7 +88,8 @@ window-close-restart-close = Закрыть без перезагрузки
 # window-close-keep, common-open-windows-security and window-close-close.
 window-close-protection-title = Закрыть Atlas с отключённой защитой?
 window-close-protection-message = Некоторые средства защиты в приложении «Безопасность Windows» всё ещё отключены: { $switches }. Если вы не собираетесь завершать установку Atlas, включите их снова, прежде чем закрыть Atlas. Если собираетесь, Atlas продолжит настройку, когда вы снова его откроете.
-# Title of the file picker for an Atlas package (.apbx) file.
+# The Open button of the file picker for an Atlas package (.apbx) file, on Get ready and the
+# ISO page. It's a button label, so keep it short.
 file-dialog-open-package = Открыть пакет Atlas (.apbx)
 # Message Windows shows in its restart notification.
 shutdown-comment = Atlas установлен. Windows перезагружается, чтобы завершить настройку.
@@ -808,7 +811,9 @@ iso-failed-package-changed = Пакет Atlas изменился после пр
 iso-diagnostics = Открыть папку журналов
 iso-close-title = ISO-образ ещё создаётся
 iso-close-message = Не закрывайте окно до завершения создания или отмены. Отмена произойдёт, когда текущую операцию можно будет безопасно остановить.
-iso-keep-open = Оставить открытым
+# On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,
+# from another page. Their controls are unavailable until it finishes.
+iso-locked = Atlas сейчас работает с Центром обновления Windows. Продолжить здесь можно будет после завершения.
 prepare-title = Обновление Windows и приложений Store
 prepare-description = Перед установкой Atlas обновит Windows, Microsoft Store и ваши приложения Store. Открытые приложения Store, например Блокнот, Paint или Терминал Windows, могут закрыться во время обновления, поэтому сначала сохраните в них работу. Также может потребоваться перезагрузка ПК.
 prepare-complete = Atlas больше не нашёл обновлений Windows и приложений Store для установки.
@@ -846,6 +851,7 @@ prepare-failed-store-timeout = Приложения Store ещё не обнов
 prepare-failed-store-passes = Microsoft Store продолжал предлагать новые обновления. Установите оставшиеся обновления в Microsoft Store и повторите попытку.
 prepare-failed-manual-updates = Установку некоторых обновлений Windows нужно завершить в Центре обновления Windows. Откройте Центр обновления Windows, завершите установку и повторите попытку.
 prepare-failed-windows-passes = Центр обновления Windows продолжал предлагать новые обновления. Установите оставшиеся обновления в Центре обновления Windows и повторите попытку.
+prepare-failed-source-linked = Atlas Manager находится в связанной папке. Закройте Atlas, переместите Atlas Manager в локальную папку на этом ПК, затем откройте его оттуда.
 prepare-error-code = Код ошибки: { $code }
 prepare-open-store = Открыть Microsoft Store
 # "Найти и установить обновления" is prepare-start, its button in this state.
@@ -916,6 +922,8 @@ desktop-setup-exit = Продолжить в Windows
 usb-title = Создать установочную флешку
 usb-existing = Создать флешку из готового ISO
 usb-description = Запишите ISO-образ на USB-накопитель, чтобы переустановить с него Windows. Чтобы одновременно установить Atlas, используйте ISO-образ, созданный в Atlas.
+# Button that opens the file picker for an ISO, and the Open button of that picker, on the USB
+# and ISO pages.
 usb-choose-iso = Выбрать ISO
 usb-drive = USB-накопитель
 # $min and $max are formatted numbers (text), in gigabytes and terabytes.
@@ -995,6 +1003,7 @@ prepare-continue = Продолжить обновления
 prepare-saving-restart = Сохранение настроек и подготовка к повторному открытию Atlas после перезагрузки Windows…
 prepare-restart-save-failed = Не удалось сохранить настройки. Повторите попытку перед перезагрузкой.
 prepare-restart-registration-failed = Настройки сохранены, но Atlas не удалось настроить автоматическое открытие после перезагрузки. Повторите попытку или перезагрузите ПК самостоятельно и откройте Atlas после входа в систему.
+prepare-restart-source-linked = Настройки сохранены, но пока Atlas Manager находится в связанной папке, Atlas не может настроить автоматическое открытие после перезагрузки. Закройте Atlas и переместите Atlas Manager в локальную папку на этом ПК. Затем откройте его оттуда или перезагрузите ПК самостоятельно и откройте его оттуда после входа в систему.
 prepare-restart-failed = Atlas не удалось перезагрузить ПК. Повторите попытку или перезагрузите ПК через меню «Пуск». Настройки сохранены, и Atlas снова откроется после входа в систему.
 diagnostics-export = Экспорт диагностики
 diagnostics-exporting = Сбор диагностики…
@@ -1019,6 +1028,7 @@ iso-package-bundled = Пакет Atlas, встроенный в эту тест�
 check-user-account = Учётная запись
 detail-user-account-ok = Контроль учётных записей включён, и ваша учётная запись готова к установке.
 detail-user-account-not-ready = Включите контроль учётных записей (UAC), перезагрузите ПК и повторите попытку. Если вы используете встроенную учётную запись Администратор, войдите под другой учётной записью администратора.
+detail-user-account-work-or-school = Atlas нельзя установить под рабочей или учебной учётной записью (Microsoft Entra ID). Войдите под локальной учётной записью или учётной записью Майкрософт и повторите попытку.
 detail-user-account-unknown = Atlas не удалось проверить вашу учётную запись. Повторите проверку перед установкой. Сообщение Windows: { $error }
 
 footer-prepare-required = Чтобы продолжить, завершите обновление Windows и приложений Store
@@ -1182,6 +1192,8 @@ stop-update-before = Atlas вернёт изменённые им парамет
 stop-update-after = На ПК останется Windows 11 версии { $release }. Atlas вернёт изменённые им параметры Центра обновления Windows.
 stop-update-access = Atlas вернёт изменённые им параметры Центра обновления Windows. Уже установленные обновления Windows останутся.
 stop-update-keep = Не останавливать
+# Dialog shown when the window is closed while Windows Update is turned on for an update; its
+# buttons are window-close-keep and window-close-put-back.
 window-close-update-access-title = Закрыть Atlas?
 window-close-update-access-message = Перед закрытием Atlas вернёт изменённые им параметры Центра обновления Windows. Начать обновление снова можно с главной страницы.
 window-close-put-back = Вернуть и закрыть

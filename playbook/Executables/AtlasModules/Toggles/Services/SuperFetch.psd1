@@ -17,7 +17,6 @@
             Name            = 'Enable'
             StateValue      = 1
             Launcher        = '6. Advanced Configuration\Services\Superfetch\Enable SuperFetch (default).cmd'
-            ToolboxLauncher = 'Scripts\SuperFetch\EnableSuperFetch.cmd'
             Reboot          = 'Recommend'
             MachineAction   = 'Set-AtlasSuperFetchMachineState'
         }

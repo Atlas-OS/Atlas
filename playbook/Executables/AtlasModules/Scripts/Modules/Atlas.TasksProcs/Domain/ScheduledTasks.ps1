@@ -142,6 +142,9 @@ function Invoke-AtlasBestEffortScheduledTaskEnd {
 
 function Stop-AtlasScheduledTaskUnderRoot {
     param(
+        # Roots in any case, normalized here as Stop-AtlasProcessUnderRoot does.
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
         [string[]]$RootsLower,
 
         # Named tasks additionally ended via schtasks /End, because the CIM-based stop
@@ -149,6 +152,10 @@ function Stop-AtlasScheduledTaskUnderRoot {
         # resolution task, whose running executable blocks replacing Atlas's files.
         [string[]]$EndTaskName = @('Force Timer Resolution', '\Force Timer Resolution')
     )
+
+    $roots = @($RootsLower | ForEach-Object {
+            [IO.Path]::GetFullPath($_).TrimEnd([char[]]@('\', '/')) + '\'
+        })
 
     try {
         Import-Module ScheduledTasks -ErrorAction SilentlyContinue | Out-Null
@@ -181,17 +188,22 @@ function Stop-AtlasScheduledTaskUnderRoot {
 
             if (-not $execute) { continue }
 
-            $executeLower = try {
-                ([System.IO.Path]::GetFullPath($execute)).ToLowerInvariant()
+            # A task stores its program as typed, often quoted and with an unexpanded
+            # variable, as Atlas's own "%windir%\AtlasModules\..." task does. A bare
+            # name such as 'cmd' is skipped rather than resolved against the current
+            # directory.
+            $executePath = try {
+                $expanded = [Environment]::ExpandEnvironmentVariables(([string]$execute).Trim().Trim('"'))
+                if ([IO.Path]::IsPathRooted($expanded)) { [IO.Path]::GetFullPath($expanded) } else { $null }
             }
             catch {
                 $null
             }
 
-            if (-not $executeLower) { continue }
+            if (-not $executePath) { continue }
 
-            foreach ($root in $RootsLower) {
-                if ($executeLower.StartsWith($root)) {
+            foreach ($root in $roots) {
+                if ($executePath.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) {
                     $matchesRoot = $true
                     break
                 }

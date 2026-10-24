@@ -9,7 +9,7 @@ use gpui::{
 
 use super::{InstallPage, LOG_IDS, LOG_LINES_SHOWN, details_toggle, go_to_ready_button, start_over_button};
 use crate::i18n::describe;
-use crate::model::{ElevationProblem, Preflight, RunState, Step};
+use crate::model::{AppModel, ElevationProblem, Preflight, RunState, Step};
 use crate::pages::{
     ListEntry, card_body, caution_caption, detail_row, detail_row_with_action, detail_text, log_actions,
     on_model, plain_list, step_card_header,
@@ -46,7 +46,7 @@ impl InstallPage {
             // anything else, here rather than in a bar of its own.
             let relaunch = (!state.elevated).then(|| {
                 if state.elevation_error == Some(ElevationProblem::TakenOver) {
-                    start_over_button("result-start-over", &model)
+                    start_over_button("result-start-over", state, &model)
                 } else {
                     Button::new("result-elevate", t!("common-restart-as-administrator"))
                         .accent()
@@ -99,7 +99,7 @@ impl InstallPage {
                 )
                 .id("install-preflight")
                 .focus_handle(preflight_focus)
-                .when_some(preflight_action(problem, &model), |bar, action| bar.action(action))
+                .when_some(preflight_action(problem, state, &model), |bar, action| bar.action(action))
                 .into_any_element(),
             );
             // A refusal follows an attempt that never started, so no result shows above.
@@ -127,7 +127,7 @@ impl InstallPage {
                     // Relaunching cannot help while another window owns the
                     // setup; starting over here can.
                     let action = if state.elevation_error == Some(ElevationProblem::TakenOver) {
-                        start_over_button("install-start-over", &model)
+                        start_over_button("install-start-over", state, &model)
                     } else {
                         Button::new("install-elevate", t!("common-restart-as-administrator"))
                             .accent()
@@ -259,6 +259,7 @@ impl InstallPage {
                     .child(
                         CheckBox::new("install-restart", t!("summary-restart-checkbox"), restart)
                             .description(t!("settings-restart-description"))
+                            .disabled(state.locked())
                             .on_toggle(on_model(&model, |m, cx| {
                                 let next = !m.settings.restart_after_install;
                                 m.set_restart_after_install(next, cx);
@@ -458,11 +459,11 @@ fn preflight_fix(problem: &Preflight) -> Option<PreflightFix> {
 }
 
 /// The refusal bar's button, if it has one (see [`PreflightFix`]).
-fn preflight_action(problem: &Preflight, model: &gpui::Entity<crate::model::AppModel>) -> Option<Button> {
+fn preflight_action(problem: &Preflight, state: &AppModel, model: &gpui::Entity<AppModel>) -> Option<Button> {
     Some(match preflight_fix(problem)? {
         PreflightFix::Options => Button::new("install-back-options", t!("go-to-options"))
             .on_click(on_model(model, |m, cx| m.set_step(Step::Options, cx))),
-        PreflightFix::StartOver => start_over_button("install-start-over", model),
+        PreflightFix::StartOver => start_over_button("install-start-over", state, model),
         PreflightFix::Ready => go_to_ready_button("install-back-ready", model),
     })
 }

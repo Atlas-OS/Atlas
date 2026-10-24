@@ -5,8 +5,8 @@
     Reads the machine state document, then verifies every recorded AtlasDesktop toggle
     state and every applicable install tweak against the live machine: registry values,
     service startup types and scheduled-task states. Machine scope is checked from any
-    elevated session; the current user's own HKCU declarations are checked as well, so
-    run it from the account whose settings you care about.
+    elevated session; the current user's own HKCU declarations, including HKCU policy
+    keys, are checked as well, so run it from the account whose settings you care about.
 
     Nothing is changed. Re-run an AtlasDesktop launcher to re-apply a drifted toggle;
     review drifted install tweaks individually. Reapply does not rerun one-time tweaks.
@@ -34,12 +34,14 @@ function Get-AtlasHealthReport {
     <#
     .SYNOPSIS
         Builds the report object: install facts from the state document plus the drift
-        of every recorded toggle state and every applicable tweak category.
+        of every recorded toggle state, every tweak category and the given Standalone
+        tweaks.
     #>
     param(
         [Parameter(Mandatory = $true)]$Context,
         [Parameter(Mandatory = $true)]$Document,
-        [Parameter(Mandatory = $true)][string[]]$Categories
+        [Parameter(Mandatory = $true)][string[]]$Categories,
+        [string[]]$StandaloneTweakPaths = @()
     )
 
     $toggleDrift = @(Test-AtlasToggleDrift -Scope Machine, User)
@@ -47,7 +49,12 @@ function Get-AtlasHealthReport {
     $tweakDrift = @()
     foreach ($category in $Categories) {
         $tweakDrift += @(Test-AtlasTweakCategory -Name $category -RegistryScope Machine -Context $Context -RecordedToggleStates $recordedToggleStates)
+        $tweakDrift += @(Test-AtlasTweakCategory -Name $category -RegistryScope ProtectedCurrentUser -Context $Context -RecordedToggleStates $recordedToggleStates)
         $tweakDrift += @(Test-AtlasTweakCategory -Name $category -RegistryScope CurrentUser -Context $Context -RecordedToggleStates $recordedToggleStates)
+    }
+    # Standalone tweaks cannot declare live-user entries, so machine scope covers them.
+    foreach ($path in $StandaloneTweakPaths) {
+        $tweakDrift += @(Test-AtlasTweak -Path $path -RegistryScope Machine -Context $Context -RecordedToggleStates $recordedToggleStates)
     }
 
     return [pscustomobject][ordered]@{
@@ -61,6 +68,29 @@ function Get-AtlasHealthReport {
         toggleDrift      = $toggleDrift
         tweakDrift       = $tweakDrift
         healthy          = ($toggleDrift.Count -eq 0 -and $tweakDrift.Count -eq 0)
+    }
+}
+
+function Get-AtlasHealthStandaloneTweakPath {
+    <#
+    .SYNOPSIS
+        Returns the files of the manifest's Standalone tweaks that an install plan for
+        this machine ran.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]$Context,
+        [Parameter(Mandatory = $true)]$Manifest,
+        [Parameter(Mandatory = $true)][string]$TweaksRoot
+    )
+
+    # Reach them from the context, not the document's mode: a Reapply records its own
+    # mode, which no plan step names, and an earlier update in the history makes this
+    # an upgraded machine.
+    $parentMode = if ($Context.IsUpgrade) { 'Upgrade' } else { 'Fresh' }
+    foreach ($entry in @($Manifest['Standalone'])) {
+        if (@($entry['ParentModes']) -ccontains $parentMode) {
+            Join-Path -Path $TweaksRoot -ChildPath (([string]$entry['Slug'] -replace '/', '\') + '.psd1')
+        }
     }
 }
 
@@ -114,9 +144,12 @@ try {
         exit 2
     }
 
-    $manifest = Get-AtlasTweakManifest -Path (Join-Path -Path $scriptsRoot -ChildPath 'Tweaks\tweaks.manifest.psd1')
+    $tweaksRoot = Join-Path -Path $scriptsRoot -ChildPath 'Tweaks'
+    $manifest = Get-AtlasTweakManifest -Path (Join-Path -Path $tweaksRoot -ChildPath 'tweaks.manifest.psd1')
     $categories = @($manifest['Categories'] | ForEach-Object { [string]$_['Name'] })
-    $report = Get-AtlasHealthReport -Context $context -Document $document -Categories $categories
+    $standaloneTweakPaths = @(Get-AtlasHealthStandaloneTweakPath -Context $context -Manifest $manifest -TweaksRoot $tweaksRoot)
+    $report = Get-AtlasHealthReport -Context $context -Document $document -Categories $categories `
+        -StandaloneTweakPaths $standaloneTweakPaths
 
     if ($Json) {
         $report | ConvertTo-Json -Depth 8

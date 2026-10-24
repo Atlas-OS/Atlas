@@ -16,7 +16,7 @@ use crate::model::{AppModel, InstallBlock, Page, ReleaseCheck, RestoreStatus, St
 use crate::services::releases::Release;
 use crate::services::system::links;
 use crate::services::update_access::JournalKind;
-use crate::services::windows_release::{self, TransitionNeed, WindowsBlock};
+use crate::services::windows_release::{self, Transition, TransitionNeed, WindowsBlock};
 use crate::t;
 use crate::theme::{ActiveTheme, FONT_TEXT};
 use crate::ui::{
@@ -181,7 +181,7 @@ impl HomePage {
                 Button::new(id, label)
                     .when(accent, Button::accent)
                     .icon(icon)
-                    .disabled(recovering)
+                    .disabled(recovering || locked || elevating)
                     .on_click(on_model(model, |m, cx| m.begin_install(cx))),
             )
         };
@@ -442,7 +442,12 @@ impl HomePage {
             .when(continue_here, |row| {
                 row.child(
                     Button::new("home-continue-update", continue_label)
-                        .disabled(state.recovering || state.elevating || state.start_block().is_some())
+                        .disabled(
+                            state.recovering
+                                || state.elevating
+                                || state.locked()
+                                || state.start_block().is_some(),
+                        )
                         .on_click(on_model(model, |m, cx| m.begin_install(cx))),
                 )
             })
@@ -485,7 +490,9 @@ impl HomePage {
             }
             None => return None,
         };
-        let (transition, need) = state.windows_transition()?;
+        let recorded = state.recorded_transition();
+        let (transition, need, progress) =
+            plan_move(recorded, state.windows_transition(), state.system.build)?;
         if state.flow.active {
             return None;
         }
@@ -494,20 +501,17 @@ impl HomePage {
             TransitionNeed::Required => t!("home-plan-windows-detail"),
             TransitionNeed::Optional => t!("home-plan-windows-optional"),
         };
-        // How long the offer can take, said before anyone waits for it.
-        let windows_detail = format!("{windows_detail} {}", t!("transition-offer-expectation"));
+        // How long the offer can take, said before anyone waits for it and
+        // left out once Windows has moved.
+        let windows_detail = if progress.is_some_and(|steps| steps[0] == StepStatus::Done) {
+            windows_detail
+        } else {
+            format!("{windows_detail} {}", t!("transition-offer-expectation"))
+        };
         let steps = [
             (t!("home-plan-windows-title", release = transition.target_release), windows_detail),
             (t!("home-plan-atlas-title", version = version.as_str()), t!("home-plan-atlas-detail")),
         ];
-        // A move under way shows how far it got.
-        let moved = state.system.build == transition.target_build;
-        let steps_now = if moved {
-            [StepStatus::Done, StepStatus::Current]
-        } else {
-            [StepStatus::Current, StepStatus::Upcoming]
-        };
-        let progress = state.transition_open().then_some(steps_now);
         let title_top = step_title_top(window, cx);
         Some(
             card(cx)
@@ -763,6 +767,27 @@ fn step_progress(current: Option<Step>, satisfied: impl Fn(Step) -> bool) -> [Op
     Step::ALL.map(|step| {
         current.map(|current| StepStatus::visited(step.index(), current.index(), satisfied(step)))
     })
+}
+
+/// The move Home's update plan describes, and how far its two parts got on
+/// `build`: the move Atlas's record has under way, also once Windows has
+/// moved, or else the one this PC can make, not started.
+fn plan_move(
+    recorded: Option<&'static Transition>,
+    offered: Option<(&'static Transition, TransitionNeed)>,
+    build: u32,
+) -> Option<(&'static Transition, TransitionNeed, Option<[StepStatus; 2]>)> {
+    let Some(transition) = recorded else {
+        return offered.map(|(transition, need)| (transition, need, None));
+    };
+    // Once Windows has moved there's no move left to offer, or to recommend.
+    let need = offered.map_or(TransitionNeed::Required, |(_, need)| need);
+    let progress = if build == transition.target_build {
+        [StepStatus::Done, StepStatus::Current]
+    } else {
+        [StepStatus::Current, StepStatus::Upcoming]
+    };
+    Some((transition, need, Some(progress)))
 }
 
 /// Whether the hero's button is the page's accent: continuing a setup, or
@@ -1128,5 +1153,21 @@ mod tests {
             step_progress(Some(Step::Security), |step| step != Step::Ready),
             [Some(Attention), Some(Done), Some(Current), Some(Upcoming)]
         );
+    }
+
+    #[test]
+    fn the_update_plan_follows_a_move_until_atlas_is_installed() {
+        use StepStatus::{Current, Done, Upcoming};
+        use TransitionNeed::{Optional, Required};
+        let to_26h2 = windows_release::transition_to("26H2").unwrap();
+        assert_eq!(plan_move(None, Some((to_26h2, Optional)), 26200), Some((to_26h2, Optional, None)));
+        assert_eq!(
+            plan_move(Some(to_26h2), Some((to_26h2, Required)), 26100),
+            Some((to_26h2, Required, Some([Current, Upcoming])))
+        );
+        // On the new build this PC has no move to make, but the record says
+        // Windows is done and Atlas is next.
+        assert_eq!(plan_move(Some(to_26h2), None, 26300), Some((to_26h2, Required, Some([Done, Current]))));
+        assert_eq!(plan_move(None, None, 26300), None);
     }
 }

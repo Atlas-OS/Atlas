@@ -1,6 +1,7 @@
 //! The preview-translation notice and switching to English, and the
 //! Windows Security reminders on Home and the "Atlas is installed" window.
 
+use crate::i18n::Decision;
 use crate::model::preferences::english_for;
 use crate::model::test_harness::{
     act, all_off, fixture, new_model, read, run_model_test, settle, wait_for, wait_on_disk,
@@ -77,22 +78,16 @@ fn the_kept_defender_reminder_names_what_reads_off_until_dismissed_for_that_inst
         })
         .await;
         let relaunched = new_model(&mut cx, env.clone());
+        // Before its first reading there's no reminder, dismissed or not.
+        wait_for(&cx, &relaunched, "the relaunched reading", |m| !m.protection_reading_pending()).await;
+        assert!(read(&cx, &relaunched, |m| m.protection_reminder().is_none()), "still dismissed");
         settle(&cx, &relaunched).await;
-        assert!(read(&cx, &relaunched, |m| m.protection_reminder().is_none()));
 
         // A later install that kept Defender has a reminder of its own.
         *machine.state.lock().unwrap() = Some(recorded("2026-10-01T09:00:00+00:00", &["defender-enable"]));
-        let later = new_model(&mut cx, env.clone());
+        let later = new_model(&mut cx, env);
         wait_for(&cx, &later, "the later install's reminder", |m| m.protection_reminder().is_some()).await;
         settle(&cx, &later).await;
-
-        // An install that removed Defender has no switch reminder.
-        *machine.state.lock().unwrap() = Some(recorded("2026-10-01T10:00:00+00:00", &["defender-disable"]));
-        machine.set_security(all_off());
-        let removed = new_model(&mut cx, env);
-        act(&mut cx, &removed, |m, cx| m.refresh_protection(cx));
-        settle(&cx, &removed).await;
-        assert!(read(&cx, &removed, |m| m.protection_reminder().is_none()));
     });
 }
 
@@ -179,12 +174,17 @@ fn a_kept_defender_that_is_missing_is_a_warning_once_the_restart_is_done() {
         wait_on_disk(&cx, &env, "the dismissal", |s| s.defender_missing_dismissed.is_some()).await;
         assert!(read(&cx, &model, |m| m.settings.protection_reminder_dismissed.is_none()));
 
-        // An install that removed Defender has its own bar, not this one.
+        // An install that removed Defender has its own bar: neither this one
+        // nor the switches reminder, whatever Windows Security reads.
         *machine.state.lock().unwrap() = Some(recorded("2026-10-01T10:00:00+00:00", &["defender-disable"]));
         let removed = new_model(&mut cx, env.clone());
-        act(&mut cx, &removed, |m, cx| m.refresh_protection(cx));
-        settle(&cx, &removed).await;
-        assert!(read(&cx, &removed, |m| m.protection_reminder().is_none()));
+        act(&mut cx, &removed, |m, _| {
+            assert!(!m.kept_defender_recorded());
+            m.protection = Some(all_off());
+            assert!(m.protection_reminder().is_none(), "no switches reminder");
+            m.protection = Some(absent);
+            assert!(m.protection_reminder().is_none(), "no missing Defender warning");
+        });
 
         // Leaving a flow where Defender is gone: nothing to turn back on.
         let left = new_model(&mut cx, env);
@@ -262,6 +262,49 @@ fn the_reminder_a_flow_left_survives_a_relaunch() {
     });
 }
 
+/// Leaving a flow on a PC where the Defender an install kept is gone leaves
+/// nothing to turn back on: the missing-Defender warning stays, and a
+/// reminder an earlier run left pending ends with the first reading.
+#[test]
+fn a_flow_left_without_defender_keeps_the_missing_defender_warning() {
+    run_model_test(|mut cx| async move {
+        let (_temp, machine, env) = fixture("protection-missing-left");
+        *machine.state.lock().unwrap() = Some(recorded("2026-09-30T20:06:21+00:00", &["defender-enable"]));
+        // What Defender left in the registry still reads off.
+        machine.set_security(SecurityStatus { defender_present: false, ..all_off() });
+        let model = new_model(&mut cx, env.clone());
+        wait_for(&cx, &model, "the warning", |m| m.protection_reminder().is_some_and(|r| r.missing)).await;
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        act(&mut cx, &model, |m, cx| m.start_flow_at(Step::Security, cx));
+        wait_for(&cx, &model, "the flow's reading", |m| m.security_fresh()).await;
+        act(&mut cx, &model, |m, cx| {
+            m.cancel_flow(cx);
+            // Nothing to turn back on, so nothing is pinned or saved.
+            assert!(!m.security_reminder && !m.settings.protection_reminder_pending);
+        });
+        wait_for(&cx, &model, "the warning back on Home", |m| {
+            m.protection_reminder().is_some_and(|r| r.missing && r.reason == ReminderReason::KeptDefender)
+        })
+        .await;
+        wait_on_disk(&cx, &env, "no pending reminder", |s| !s.protection_reminder_pending).await;
+        settle(&cx, &model).await;
+
+        // A reminder left pending by an earlier run, or an older build.
+        save_to(
+            &env.paths.settings(),
+            &AppSettings { protection_reminder_pending: true, ..AppSettings::default() },
+        )
+        .unwrap();
+        let relaunched = new_model(&mut cx, env.clone());
+        wait_for(&cx, &relaunched, "the warning after a relaunch", |m| {
+            m.protection_reminder().is_some_and(|r| r.missing && r.reason == ReminderReason::KeptDefender)
+        })
+        .await;
+        wait_on_disk(&cx, &env, "the pending reminder forgotten", |s| !s.protection_reminder_pending).await;
+        settle(&cx, &relaunched).await;
+    });
+}
+
 #[test]
 fn a_preview_translation_is_announced_until_dismissed_or_english_is_chosen() {
     run_model_test(|mut cx| async move {
@@ -293,6 +336,29 @@ fn a_preview_translation_is_announced_until_dismissed_or_english_is_chosen() {
         );
         assert!(read(&cx, &model, |m| m.preview_notice().is_none()));
         wait_on_disk(&cx, &env, "the English choice", |s| s.language == language).await;
+    });
+}
+
+/// `--language` outranks the setting for the whole session: choosing a
+/// language, or "Match Windows" again, saves the choice and keeps the override.
+#[test]
+fn the_language_override_outranks_the_setting_for_the_whole_session() {
+    run_model_test(|mut cx| async move {
+        let (_temp, _, mut env) = fixture("language-override");
+        env.language_override = Some("de".into());
+        let model = new_model(&mut cx, env.clone());
+        let overridden = Decision::Override("de".into());
+        assert_eq!(read(&cx, &model, |m| m.localization.decision.clone()), overridden);
+        act(&mut cx, &model, |m, cx| m.set_language(LanguagePreference::System, cx));
+        assert_eq!(read(&cx, &model, |m| m.localization.decision.clone()), overridden);
+        act(&mut cx, &model, |m, cx| m.set_language(LanguagePreference::Explicit("pl".into()), cx));
+        assert_eq!(read(&cx, &model, |m| m.localization.decision.clone()), overridden);
+        assert_eq!(read(&cx, &model, |m| m.localization.primary().tag), "de");
+        wait_on_disk(&cx, &env, "the saved choice", |s| {
+            s.language == LanguagePreference::Explicit("pl".into())
+        })
+        .await;
+        settle(&cx, &model).await;
     });
 }
 

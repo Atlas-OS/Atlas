@@ -1,6 +1,7 @@
-//! Helpers for service tests: disposable directories and registry keys, and
-//! small synthetic .apbx packages. Nothing here touches the real app data,
-//! the registry keys the app reads, or the machine's Atlas state.
+//! Helpers for service tests: disposable directories and registry keys, stub
+//! front doors and small synthetic .apbx packages. Nothing here touches the
+//! real app data, the registry keys the app reads, or the machine's Atlas
+//! state.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -53,6 +54,23 @@ impl Drop for TestKey {
     fn drop(&mut self) {
         let _ = CURRENT_USER.remove_tree(&self.path);
     }
+}
+
+/// The real front door's text before its parameter block, and the inside of
+/// that block.
+pub fn front_door_parts() -> (&'static str, &'static str) {
+    let script = include_str!("../../../playbook/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1");
+    let (head, rest) = script.split_once("\nparam(").expect("the front door's parameter block");
+    let (block, _) = rest.split_once("\n)").expect("the end of the front door's parameter block");
+    (head, block)
+}
+
+/// A front door that runs `body` behind the real script's help and parameter
+/// block, so a stub binds a launch's arguments exactly as the front door does.
+pub fn front_door_script(body: &str) -> String {
+    let (head, block) = front_door_parts();
+    // The byte order mark makes Windows PowerShell 5.1 read a body's non-ASCII text as UTF-8.
+    format!("\u{feff}{}\nparam({block}\n)\r\n{body}\r\n", head.trim_start_matches('\u{feff}'))
 }
 
 /// Synthetic Atlas packages.
@@ -115,13 +133,11 @@ pub mod apbx {
     }
 
     /// A valid package whose front door runs `body` (Windows PowerShell 5.1)
-    /// with the real parameter block, so a model test can install it.
+    /// behind the real front door's parameter block, so a model test can
+    /// install it.
     pub fn with_front_door(version: &str, body: &str) -> Package {
         let mut package = valid(version);
-        let script = format!(
-            "\u{feff}[CmdletBinding()]\r\nparam(\r\n    [Parameter(Mandatory = $true)]\r\n    [ValidatePattern('^[a-z0-9-]+$')]\r\n    [string[]]$Option,\r\n    [switch]$Unattended,\r\n    [switch]$Restart,\r\n    [string]$RestartComment,\r\n    [switch]$KeepStaging\r\n)\r\n{body}\r\n"
-        );
-        package.entries[1] = entry(FRONT_DOOR, script);
+        package.entries[1] = entry(FRONT_DOOR, super::front_door_script(body));
         package
     }
 

@@ -30,26 +30,43 @@ pub fn others() -> Result<Vec<String>> {
             .map(str::to_owned)
             .collect());
     }
-    let mut current = 0;
-    // SAFETY: plain out-parameter call for this process.
-    unsafe { ProcessIdToSessionId(GetCurrentProcessId(), &mut current) }.context("read this session")?;
+    let current = current_session()?;
     let own = account(WTS_CURRENT_SESSION);
-    let sessions = sessions()?;
+    Ok(others_from(current, own.as_ref(), &sessions()?, account))
+}
+
+/// The choice behind [`others`]: `current` is this process's session, `own`
+/// the account running Atlas, and `account` reads a session's account. Only
+/// sessions that could count are read.
+fn others_from(
+    current: u32,
+    own: Option<&Account>,
+    sessions: &[(u32, WTS_CONNECTSTATE_CLASS)],
+    account: impl Fn(u32) -> Option<Account>,
+) -> Vec<String> {
     let mut names = Vec::new();
-    for (id, state) in sessions {
+    for &(id, state) in sessions {
         if id == current || !(state == WTSActive || state == WTSDisconnected) {
             continue;
         }
         // A session with nobody signed in, such as the sign-in screen.
         let Some(person) = account(id) else { continue };
-        if own.as_ref().is_some_and(|own| own.same_as(&person)) {
+        if own.is_some_and(|own| own.same_as(&person)) {
             continue;
         }
         if !names.iter().any(|name: &String| name.to_lowercase() == person.user.to_lowercase()) {
             names.push(person.user);
         }
     }
-    Ok(names)
+    names
+}
+
+/// The session this process runs in.
+fn current_session() -> Result<u32> {
+    let mut current = 0;
+    // SAFETY: plain out-parameter call for this process.
+    unsafe { ProcessIdToSessionId(GetCurrentProcessId(), &mut current) }.context("read this session")?;
+    Ok(current)
 }
 
 /// Every session on this PC, with its state.
@@ -105,14 +122,76 @@ fn query(session: u32, class: WTS_INFO_CLASS) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
+    use windows::Win32::System::RemoteDesktop::{WTSConnected, WTSIdle, WTSListen};
+
     use super::*;
 
-    /// Whoever runs the tests is signed in; who else is depends on the PC,
-    /// but never includes them.
+    fn signed_in(domain: &str, user: &str) -> Option<Account> {
+        Some(Account { domain: domain.into(), user: user.into() })
+    }
+
+    /// Atlas runs in session 1 as PC\morgan.
+    fn morgan() -> Account {
+        Account { domain: "PC".into(), user: "morgan".into() }
+    }
+
     #[test]
-    fn the_user_running_atlas_is_never_someone_else() {
-        let others = others().expect("read the sessions");
+    fn the_user_running_atlas_is_left_out_wherever_they_are_signed_in() {
+        let sessions = [(1, WTSActive), (2, WTSDisconnected), (3, WTSDisconnected)];
+        let account = |id: u32| match id {
+            1 => signed_in("PC", "morgan"),
+            2 => signed_in("pc", "MORGAN"),
+            _ => signed_in("CORP", "morgan"),
+        };
+        // The same name from another domain is someone else.
+        assert_eq!(others_from(1, Some(&morgan()), &sessions, account), ["morgan"]);
+        // Atlas's own session doesn't count even when its account can't be read.
+        assert!(others_from(1, None, &sessions[..1], account).is_empty());
+    }
+
+    /// Only a session someone is using or left disconnected still has their
+    /// apps open.
+    #[test]
+    fn only_people_with_apps_open_count() {
+        let sessions = [
+            (0, WTSDisconnected),
+            (2, WTSActive),
+            (3, WTSDisconnected),
+            (4, WTSListen),
+            (5, WTSIdle),
+            (6, WTSConnected),
+        ];
+        let account = |id: u32| match id {
+            // Services: nobody signed in.
+            0 => None,
+            2 => signed_in("PC", "Alex"),
+            3 => signed_in("PC", "Sam"),
+            _ => signed_in("PC", "Robin"),
+        };
+        assert_eq!(others_from(1, Some(&morgan()), &sessions, account), ["Alex", "Sam"]);
+    }
+
+    #[test]
+    fn each_person_is_listed_once() {
+        let sessions = [(2, WTSActive), (3, WTSDisconnected)];
+        let account = |id: u32| if id == 2 { signed_in("PC", "Alex") } else { signed_in("PC", "ALEX") };
+        assert_eq!(others_from(1, Some(&morgan()), &sessions, account), ["Alex"]);
+    }
+
+    /// The Windows calls behind [`others`] on this PC. Who is signed in
+    /// varies, but this process's own session is always listed, and its
+    /// account can be read.
+    #[test]
+    fn this_pcs_sessions_include_the_one_running_the_tests() {
+        let current = current_session().expect("read this session");
+        let sessions = sessions().expect("list the sessions");
+        assert!(sessions.iter().any(|&(id, _)| id == current), "{current} in {sessions:?}");
+        // A lookup that never reads anyone would list nobody else either.
         let own = account(WTS_CURRENT_SESSION).expect("the account running the tests");
-        assert!(!others.iter().any(|name| name.eq_ignore_ascii_case(&own.user)), "{others:?}");
+        assert!(account(current).is_some_and(|person| person.same_as(&own)), "session {current}");
+        // Reading every session's account, signed in or not, must not crash.
+        for (id, _) in sessions {
+            let _ = account(id);
+        }
     }
 }

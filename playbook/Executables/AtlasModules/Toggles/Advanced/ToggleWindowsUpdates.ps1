@@ -14,6 +14,8 @@ function Set-AtlasWindowsUpdateTaskState {
         [bool]$Enabled
     )
 
+    # The UpdateOrchestrator tasks refuse changes from Administrators and accept
+    # SYSTEM, which is why this toggle runs as TrustedInstaller.
     Import-Module -Name ScheduledTasks -ErrorAction Stop
     $allTasks = @(Get-ScheduledTask -ErrorAction Stop)
     foreach ($taskPath in (Get-AtlasWindowsUpdateTaskPaths)) {
@@ -37,9 +39,7 @@ function Set-AtlasWindowsUpdateTaskState {
 function Disable-AtlasWindowsUpdates {
     param($Toggle)
 
-    if (-not $Toggle.Silent) {
-        Write-AtlasStep -Text 'Stopping the Windows Update services and disabling their scheduled tasks...'
-    }
+    [void]$Toggle
     foreach ($serviceName in @('wuauserv', 'UsoSvc', 'WaaSMedicSvc')) {
         $service = Get-Service -Name $serviceName -ErrorAction Stop
         if ($service.Status -ne [System.ServiceProcess.ServiceControllerStatus]::Stopped) {
@@ -61,9 +61,17 @@ function Disable-AtlasWindowsUpdates {
 function Enable-AtlasWindowsUpdates {
     param($Toggle)
 
-    if (-not $Toggle.Silent) {
-        Write-AtlasStep -Text 'Starting the Windows Update services and enabling their scheduled tasks...'
-    }
+    [void]$Toggle
+    # Lift the blocking policies first, so a failure later in the run can't leave
+    # updates blocked, and the services start without them.
+    $wu = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    Remove-AtlasRegistryValue -Path $wu -Name 'DisableWindowsUpdateAccess'
+    Remove-AtlasRegistryValue -Path $wu -Name 'DoNotConnectToWindowsUpdateInternetLocations'
+    Remove-AtlasRegistryValue -Path "$wu\AU" -Name 'NoAutoUpdate'
+
+    Import-AtlasModule -Name Atlas.Shell
+    Set-AtlasSettingsPageVisibility -Operation unhide -Page windowsupdate
+
     foreach ($serviceName in @('wuauserv', 'UsoSvc', 'WaaSMedicSvc')) {
         Set-AtlasServiceStartup -Name $serviceName -StartupType 3
         $service = Get-Service -Name $serviceName -ErrorAction Stop
@@ -72,12 +80,4 @@ function Enable-AtlasWindowsUpdates {
         }
     }
     Set-AtlasWindowsUpdateTaskState -Enabled $true
-
-    $wu = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
-    Remove-AtlasRegistryValue -Path $wu -Name 'DisableWindowsUpdateAccess'
-    Remove-AtlasRegistryValue -Path $wu -Name 'DoNotConnectToWindowsUpdateInternetLocations'
-    Remove-AtlasRegistryValue -Path "$wu\AU" -Name 'NoAutoUpdate'
-
-    Import-AtlasModule -Name Atlas.Shell
-    Set-AtlasSettingsPageVisibility -Operation unhide -Page windowsupdate
 }

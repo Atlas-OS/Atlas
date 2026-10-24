@@ -408,21 +408,27 @@ Describe 'Invoke-AtlasRegistryEntries' {
         Test-Path -Path "$script:testRoot\EntryOps\AddedKey" | Should -BeTrue
     }
 
-    It 'fails a malformed or unwritable entry by default' {
-        {
+    It 'fails a malformed entry by default' {
+        $err = {
             Invoke-AtlasRegistryEntries -Entries @(
                 @{ Path = "$script:testRoot\EntryFail"; Name = 'Broken' } # Set without a Type
             )
-        } | Should -Throw
+        } | Should -Throw "*Failed to apply registry Set of '$script:testRoot\EntryFail\Broken'*" `
+            -ErrorId 'AtlasRegistryEntryFailed*' -PassThru
+        # The binder's own message is localised, so check the parameter it rejected instead.
+        $err.Exception.InnerException | Should -BeOfType ([System.Management.Automation.ParameterBindingException])
+        $err.Exception.InnerException.ParameterName | Should -BeExactly 'Type'
     }
 
     It 'logs and continues when IgnoreErrors is explicit' {
         Invoke-AtlasRegistryEntries -Entries @(
             @{ Path = "$script:testRoot\EntryFail"; Name = 'Broken'; IgnoreErrors = $true } # Set without a Type
+            @{ Path = "$script:testRoot\EntryFail"; Name = 'After'; Type = 'DWord'; Data = 1 }
         )
 
         Should -Invoke -CommandName Write-AtlasLog -ModuleName Atlas.Registry -Times 1 -Exactly `
-            -ParameterFilter { $Level -eq 'Warning' }
+            -ParameterFilter { $Level -eq 'Warning' -and $Message -like 'Ignoring failure of registry Set of*Broken*' }
+        (Get-Item -Path "$script:testRoot\EntryFail").GetValue('After') | Should -Be 1
     }
 }
 
@@ -517,12 +523,21 @@ Describe 'Values Windows itself refuses' {
 
     It 'continues past a refused delete only when the caller allows it' {
         Mock -CommandName Write-AtlasLog -ModuleName Atlas.Registry -MockWith { }
-        Mock -CommandName Invoke-AtlasRegistryTargetOperation -ModuleName Atlas.Registry -MockWith {
-            throw $script:RefusedRecord
+        # RegistryKey.DeleteValue returns normally when Windows refuses the delete; the
+        # value is simply still there afterwards.
+        Mock -CommandName Split-AtlasRegistryProviderPath -ModuleName Atlas.Registry -MockWith {
+            $key = New-Object -TypeName psobject
+            $key | Add-Member -MemberType ScriptMethod -Name DeleteValue -Value { }
+            $key | Add-Member -MemberType ScriptMethod -Name GetValueNames -Value { , [string[]]@('Policy') }
+            $key | Add-Member -MemberType ScriptMethod -Name Close -Value { }
+            $baseKey = New-Object -TypeName psobject
+            $baseKey | Add-Member -MemberType NoteProperty -Name Key -Value $key
+            $baseKey | Add-Member -MemberType ScriptMethod -Name OpenSubKey -Value { $this.Key }
+            [pscustomobject]@{ BaseKey = $baseKey; SubPath = 'Software\AtlasRewriteTest\Delete' }
         }
 
         { Remove-AtlasRegistryValue -Path "$script:testRoot\Delete" -Name 'Policy' } |
-            Should -Throw '*cause of the access denial is not established*'
+            Should -Throw -ErrorId 'AtlasRegistryValueWriteRefused'
         { Remove-AtlasRegistryValue -Path "$script:testRoot\Delete" -Name 'Policy' -AllowOsProtected } |
             Should -Not -Throw
         Should -Invoke -CommandName Write-AtlasLog -ModuleName Atlas.Registry -Times 1 -Exactly `

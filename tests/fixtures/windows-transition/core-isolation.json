@@ -1,6 +1,6 @@
 [
   {
-    "name": "Atlas 0.5.0 installed on build 26200.9168: no memory integrity key, only Scenarios\\KeyGuard\\Status",
+    "name": "Atlas 0.5.0 where Windows had no memory integrity key (seen on 26200.9168 with only Scenarios\\KeyGuard\\Status), so only the DeviceGuard value was written",
     "values": {
       "enableVirtualizationBasedSecurity": 0,
       "hypervisorEnforcedCodeIntegrity": null,
@@ -13,15 +13,6 @@
     "values": {
       "enableVirtualizationBasedSecurity": 0,
       "hypervisorEnforcedCodeIntegrity": 0,
-      "runAsPpl": 0
-    },
-    "off": true
-  },
-  {
-    "name": "Atlas 0.5.0 where Windows had no memory integrity key, so only the DeviceGuard value was written",
-    "values": {
-      "enableVirtualizationBasedSecurity": 0,
-      "hypervisorEnforcedCodeIntegrity": null,
       "runAsPpl": 0
     },
     "off": true

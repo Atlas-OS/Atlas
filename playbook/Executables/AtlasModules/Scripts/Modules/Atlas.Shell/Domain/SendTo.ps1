@@ -207,9 +207,10 @@ function Set-AtlasSendToContextMenu {
         Enables or disables the current user's Send To context-menu items.
     .DESCRIPTION
         Exactly one of -Disable, -Enable or -DebloatDefaults selects the items; with none
-        of them the multichoice helper asks interactively and offers an Explorer restart
-        afterwards. Runs as the signed-in user; -ExpectedUserSid pins the token when the
-        install pipeline launches it.
+        of them the multichoice helper asks interactively, and the function returns
+        $true once the choice is applied or $false when the dialog was cancelled, so the
+        toggle can offer the Explorer restart. Runs as the signed-in user;
+        -ExpectedUserSid pins the token when the install pipeline launches it.
     #>
     param(
         [string[]]$Disable,
@@ -273,18 +274,12 @@ function Set-AtlasSendToContextMenu {
         -AvailableName $availableNames -DisableAllChoice $disableAllChoice
     if ($selection.Cancelled) {
         Write-Verbose 'The Send-To selection dialog was cancelled; no state was changed.'
-        return
+        return $false
     }
 
     foreach ($name in $availableNames) {
         Set-AtlasSendToItemState -Name $name -Path $items[$name] `
             -Enabled ($selection.Enabled -ccontains $name)
     }
-    if (Read-AtlasYesNo -Question 'Restart File Explorer now to apply the change?' -DefaultYes) {
-        $shellRefresh = Join-Path -Path $script:AtlasShellOperationsRoot -ChildPath 'Invoke-AtlasUserShellRefresh.ps1'
-        if (-not (Test-Path -LiteralPath $shellRefresh -PathType Leaf)) {
-            throw "The user shell refresh helper is missing at '$shellRefresh'."
-        }
-        & $shellRefresh -CurrentSession -Operation ExplorerRefresh
-    }
+    return $true
 }

@@ -5,8 +5,7 @@
 # CBS package failures throw to the one-shot orchestrator, which returns the install's
 # single nonzero status to the custom.yml shim.
 #
-# Not handled here: the 'iso: only' OfflineSys WdBoot delete (AME-only, in custom.yml)
-# and Edge's installed/provisioned package-family removal (the AppxSupport phase).
+# Not handled here: Edge's installed/provisioned package-family removal (the AppxSupport phase).
 
 Assert-AtlasPrivilege -TrustedInstaller
 
@@ -46,7 +45,7 @@ if ($removeEdge) {
     Invoke-AtlasHiddenProcess -FilePath $powerShellExe -ArgumentList @(
         '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
         '-File', $removeEdgeScript,
-        '-UninstallEdge', '-KeepAppX', '-NonInteractive', '-MachineContext'
+        '-UninstallEdge', '-NonInteractive', '-MachineContext'
     ) -Wait | Out-Null
 
     if (-not $context.IsOobe) {
@@ -85,11 +84,8 @@ if (-not (Test-Path -LiteralPath $ciPolicyKey)) {
 Set-ItemProperty -LiteralPath $ciPolicyKey -Name 'VerifiedAndReputablePolicyState' -Value 0 -Type DWord -Force
 
 if ($removeEdge) {
-    $edgeServices = @('MicrosoftEdgeElevationService')
-    foreach ($service in $edgeServices) {
-        Stop-AtlasService -Name $service
-    }
-    foreach ($service in $edgeServices) {
+    # Remove-Edge.ps1 already stopped and disabled Edge's services; this keeps them off if one is left.
+    foreach ($service in @('MicrosoftEdgeElevationService')) {
         # Edge service names vary across supported package/build combinations.
         Set-AtlasServiceStartup -Name $service -StartupType 4 -AllowMissing
     }
@@ -106,7 +102,7 @@ if ($removeEdge) {
     }
 }
 
-# OneDrive setup itself is stripped at component level by the miscellaneous package.
+# Windows keeps the inbox OneDriveSetup.exe; Atlas doesn't strip it at component level.
 # Uninstall and machine cleanup run here as TrustedInstaller; HKCU and profile leftovers
 # are cleaned only in the installing user's own token.
 try {

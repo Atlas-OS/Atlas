@@ -22,8 +22,10 @@ $ErrorActionPreference = 'Stop'
 # no interactive output to suppress.
 [void]$Silent
 
-$scriptsRoot = Split-Path -Parent $PSScriptRoot
-. (Join-Path -Path $scriptsRoot -ChildPath 'Initialize-AtlasPowerShell.ps1')
+$scriptsRoot = [IO.Path]::GetFullPath([IO.Path]::GetDirectoryName($PSScriptRoot))
+$bootstrap = [IO.Path]::Combine($scriptsRoot, 'Initialize-AtlasPowerShell.ps1')
+if (-not [IO.File]::Exists($bootstrap)) { throw "The PowerShell bootstrap is missing at '$bootstrap'." }
+. $bootstrap
 Import-Module -Name (Join-Path -Path $scriptsRoot -ChildPath 'Modules\Atlas.Shell\Atlas.Shell.psd1') -ErrorAction Stop
 
 Set-AtlasSettingsPageVisibility -Operation $Operation.TrimStart('/') -Page $Page `

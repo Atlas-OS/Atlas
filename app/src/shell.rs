@@ -8,12 +8,13 @@
 
 use std::cell::Cell;
 use std::path::PathBuf;
+use std::rc::Rc;
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
 use gpui::{
-    Context, Div, Entity, FocusHandle, IntoElement, ParentElement, Pixels, PromptLevel, Render, ScrollHandle,
-    Styled, Subscription, Window, WindowBackgroundAppearance, div, prelude::*, px,
+    App, Context, Div, Entity, FocusHandle, IntoElement, ParentElement, Pixels, PromptLevel, Render,
+    ScrollHandle, Styled, Subscription, Window, WindowBackgroundAppearance, div, prelude::*, px,
 };
 
 use crate::i18n::{Localization, describe};
@@ -24,7 +25,7 @@ use crate::pages::{
 };
 use crate::services::system::links;
 use crate::t;
-use crate::theme::{ActiveTheme, Appearance, FONT_TEXT, Theme};
+use crate::theme::{ActiveTheme, Appearance, Theme, text_font};
 use crate::ui::actions::{FocusNext, FocusPrevious, NavigateBack};
 use crate::ui::{
     Button, InfoBar, ScrollbarState, Severity, TitleBar, Typography, a11y_text, dismiss_button, focus_reveal,
@@ -153,10 +154,19 @@ impl Shell {
             this.update(cx, |shell, cx| shell.should_close(window, cx)).unwrap_or(true)
         });
 
+        // Desktop setup's Cancel closes as the caption Close button does,
+        // asking first; `Window::remove_window` would close without asking.
+        let close = {
+            let shell = cx.entity().downgrade();
+            Rc::new(move |window: &mut Window, cx: &mut App| {
+                shell.update(cx, |shell, cx| shell.request_close(window, cx)).ok();
+            })
+        };
+
         let shell = Self {
             home: cx.new(|cx| HomePage::new(model.clone(), cx)),
             iso: cx.new(|cx| IsoPage::new(model.clone(), cx)),
-            install: cx.new(|cx| InstallPage::new(model.clone(), cx)),
+            install: cx.new(|cx| InstallPage::new(model.clone(), close, cx)),
             installing: cx.new(|cx| InstallingPage::new(model.clone(), cx)),
             installed: cx.new(|cx| InstalledPage::new(model.clone(), cx)),
             settings: cx.new(|cx| SettingsPage::new(model.clone(), cx)),
@@ -308,13 +318,22 @@ impl Shell {
         false
     }
 
+    /// Closes the window as the caption Close button does, asking first about
+    /// anything closing would interrupt (see [`Shell::should_close`]).
+    fn request_close(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.should_close(window, cx) {
+            self.close_after_launch(window, cx);
+        }
+    }
+
     /// Windows Update is turned on for an update that hasn't changed Windows
     /// yet. Closing puts the settings back first, then closes as any other
-    /// close would; if that failed, it says why and leaves the choice to close.
+    /// close would; if that failed, it says why and leaves the choice to close,
+    /// and if it never started, closing asks again from what runs now.
     fn confirm_put_back_before_closing(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let (title, message) =
             (t!("window-close-update-access-title"), t!("window-close-update-access-message"));
-        let (keep, close) = (t!("iso-keep-open"), t!("window-close-put-back"));
+        let (keep, close) = (t!("window-close-keep"), t!("window-close-put-back"));
         let answer =
             window.prompt(PromptLevel::Warning, &title, Some(&message), &[keep.as_str(), close.as_str()], cx);
         cx.spawn_in(window, async move |this, cx| {
@@ -340,12 +359,7 @@ impl Shell {
                 // Anything else closing asks about, such as protection left
                 // off, is asked now.
                 Ok(true) => {
-                    this.update_in(cx, |shell, window, cx| {
-                        if shell.should_close(window, cx) {
-                            shell.close_after_launch(window, cx);
-                        }
-                    })
-                    .ok();
+                    this.update_in(cx, |shell, window, cx| shell.request_close(window, cx)).ok();
                 }
                 Ok(false) => {
                     this.update_in(cx, |shell, window, cx| {
@@ -353,7 +367,28 @@ impl Shell {
                     })
                     .ok();
                 }
-                Err(_) => {}
+                // The put-back never started: something started after closing
+                // asked, so closing asks again in the words for what runs now.
+                // A put-back already running, as when the offer wait ran out,
+                // is waited for and answered as this one would be.
+                Err(_) => {
+                    let mut waited = false;
+                    while this
+                        .update(cx, |shell, cx| shell.model.read(cx).restore_status == RestoreStatus::Running)
+                        .unwrap_or(false)
+                    {
+                        waited = true;
+                        cx.background_executor().timer(Duration::from_millis(50)).await;
+                    }
+                    this.update_in(cx, |shell, window, cx| {
+                        if waited && matches!(shell.model.read(cx).restore_status, RestoreStatus::Failed(_)) {
+                            shell.confirm_closing_without_put_back(window, cx);
+                        } else {
+                            shell.request_close(window, cx);
+                        }
+                    })
+                    .ok();
+                }
             }
         })
         .detach();
@@ -393,7 +428,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let keep = t!("iso-keep-open");
+        let keep = t!("window-close-keep");
         let answer =
             window.prompt(PromptLevel::Warning, title, Some(message), &[keep.as_str(), stop_label], cx);
         let model = self.model.clone();
@@ -565,9 +600,6 @@ impl Render for Shell {
             )
         };
         let model = self.model.clone();
-        // Script-specific font fallbacks for the current language, inherited
-        // by every element; families set lower down override only the family.
-        let font_fallbacks = cx.global::<Localization>().font_fallbacks();
 
         div()
             .id("atlas-root")
@@ -587,13 +619,8 @@ impl Render for Shell {
             .flex_col()
             .when(!theme.mica, |this| this.bg(theme.solid_background))
             .text_color(theme.text_primary)
-            .font(gpui::Font {
-                family: FONT_TEXT.into(),
-                features: gpui::FontFeatures::default(),
-                fallbacks: font_fallbacks,
-                weight: gpui::FontWeight::NORMAL,
-                style: gpui::FontStyle::Normal,
-            })
+            // The current language's script fallbacks, for every element.
+            .font(text_font(cx))
             .type_body()
             .child(TitleBar::new(t!("app-name")).when(
                 !before_desktop && page != Page::Installed && settings_reachable,
@@ -627,7 +654,9 @@ impl Render for Shell {
                             div().flex_shrink_0().child(
                                 Button::new("desktop-exit", t!("desktop-setup-exit"))
                                     .disabled(!may_exit_setup)
-                                    .on_click(|_, window, _| window.remove_window()),
+                                    .on_click(
+                                        cx.listener(|this, _, window, cx| this.request_close(window, cx)),
+                                    ),
                             ),
                         ),
                 )

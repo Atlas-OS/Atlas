@@ -58,13 +58,22 @@ impl AppModel {
             .is_some_and(|journal| journal.installed())
     }
 
+    /// The move under way by Atlas's record, if its target is one Atlas knows.
+    pub fn recorded_transition(&self) -> Option<&'static Transition> {
+        self.update_access
+            .as_ref()
+            .and_then(UpdateAccess::transition)
+            .and_then(|journal| journal.target.as_ref())
+            .and_then(|target| windows_release::transition_to(&target.release))
+    }
+
     /// What the next preparation run asks the worker to do about the
     /// Windows version: continue a move under way, or start the one chosen.
     pub fn transition_request(&self) -> Option<TransitionRequest> {
-        if let Some(journal) = self.update_access.as_ref().and_then(UpdateAccess::transition) {
-            let transition =
-                journal.target.as_ref().and_then(|target| windows_release::transition_to(&target.release))?;
-            return Some(TransitionRequest::new(transition, self.windows_terms_accepted));
+        if self.transition_open() {
+            return self
+                .recorded_transition()
+                .map(|transition| TransitionRequest::new(transition, self.windows_terms_accepted));
         }
         let (transition, _) = self.windows_transition()?;
         self.transition_chosen().then(|| TransitionRequest::new(transition, self.windows_terms_accepted))
@@ -100,18 +109,31 @@ impl AppModel {
             )
     }
 
-    /// Keeps or moves an optional Windows version. Refused while anything
-    /// runs, and while a move is under way: stopping it decides that.
-    pub fn set_windows_transition(&mut self, keep: bool, cx: &mut Context<Self>) {
-        if self.locked() || !self.flow.may_edit() || self.transition_open() {
+    /// Forgets the last preparation run, made for choices that changed, and
+    /// what it reported: Get ready offers to start updating again, not a
+    /// failure that no longer applies.
+    pub(super) fn reset_preparation(&mut self) {
+        self.preparation = preparation::State::Idle;
+        self.preparation_progress = None;
+        self.preparation_error = None;
+        self.preparation_source_linked = false;
+    }
+
+    /// Keeps the Windows version (`keep`) or moves an optional one. Refused
+    /// while anything runs, and while a move is under way: stopping it
+    /// decides that. Updating starts over for the new choice, except that a
+    /// restart owed or just made is kept, since starting over would forget it.
+    pub fn keep_windows_version(&mut self, keep: bool, cx: &mut Context<Self>) {
+        if self.locked() || self.transition_open() {
             return;
         }
         if self.windows_transition_declined == keep {
             return;
         }
         self.windows_transition_declined = keep;
-        // Preparation starts over for the new choice, on disk too.
-        self.preparation = Default::default();
+        if !self.preparation_choices_fixed() {
+            self.reset_preparation();
+        }
         self.save_draft(cx);
         cx.notify();
     }
@@ -121,12 +143,12 @@ impl AppModel {
     /// not withdrawn, and updating doesn't start over.
     pub fn accept_windows_terms(&mut self, accepted: bool, cx: &mut Context<Self>) {
         let fixed = self.preparation_choices_fixed();
-        if self.locked() || !self.flow.may_edit() || (fixed && !accepted) {
+        if self.locked() || (fixed && !accepted) {
             return;
         }
         self.windows_terms_accepted = accepted;
         if !fixed {
-            self.preparation = Default::default();
+            self.reset_preparation();
         }
         self.save_draft(cx);
         cx.notify();
@@ -176,17 +198,16 @@ impl AppModel {
         windows_release::windows_block(&self.system, &self.manifest().supported_builds, self.before_desktop)
     }
 
-    /// Whether Put back settings may run: a record is open, nothing runs,
-    /// and no Atlas install is unfinished, nor owed to a Windows that rebuilt
-    /// itself: that install's own last step puts them back, and needs the
-    /// record until then.
+    /// Whether Put back settings may run: a record is open, nothing runs, no
+    /// elevation prompt is up, and no Atlas install is unfinished, nor owed
+    /// to a Windows that rebuilt itself: that install's own last step puts
+    /// them back, and needs the record until then.
     pub fn may_restore_update_access(&self) -> bool {
         self.update_access.as_ref().is_some_and(|access| access.journal.is_some())
             && !self.rebuilt_windows_awaits_install()
             && !self.locked()
-            && !self.flow.locked()
+            && !self.elevating
             && self.resume_target().is_none()
-            && self.restore_status != RestoreStatus::Running
     }
 
     /// Windows rebuilt itself during the move, and the record keeps what the
@@ -209,10 +230,25 @@ impl AppModel {
         then: impl FnOnce(&mut Self, bool, &mut Context<Self>) + 'static,
         cx: &mut Context<Self>,
     ) {
-        if super::preview::active() || !self.may_restore_update_access() {
+        if super::preview::active() {
+            return;
+        }
+        if !self.may_restore_update_access() {
+            // Offered before something changed: `then` is dropped
+            // unanswered, so the log says why.
+            log::info!(
+                "not putting back Windows Update settings: record open {}, busy {}, install unfinished {}",
+                self.update_access.as_ref().is_some_and(|access| access.journal.is_some()),
+                self.locked() || self.elevating,
+                self.resume_target().is_some() || self.rebuilt_windows_awaits_install(),
+            );
             return;
         }
         if !self.elevated {
+            // Nothing may start while the prompt is up, a second Put back
+            // included (see `relaunch_as_administrator`).
+            self.elevating = true;
+            cx.notify();
             cx.spawn(async move |this, cx| {
                 Self::relaunch_as_administrator(this, cx, |_, _| {
                     log::info!("putting back declined at the prompt")
@@ -297,14 +333,18 @@ impl AppModel {
         let Some(journal) = self.update_access.as_ref().and_then(|access| access.journal.as_ref()) else {
             return false;
         };
+        // A preview puts nothing back, so offering to before closing would
+        // only ask again.
         self.elevated
+            && !super::preview::active()
             && !journal.installed()
             && !matches!(self.preparation, State::Reboot | State::SavingRestart | State::Restarting)
             && self.may_restore_update_access()
     }
 
     /// Puts the settings back before closing, then tells `then` whether
-    /// that worked.
+    /// that worked. If the put-back can't start, as when something started
+    /// since closing asked, `then` is dropped uncalled.
     pub fn restore_before_closing(
         &mut self,
         then: impl FnOnce(&mut Self, bool, &mut Context<Self>) + 'static,

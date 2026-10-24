@@ -14,12 +14,6 @@ foreach ($dependencyManifest in @(
     Import-Module -Name $manifestPath -ErrorAction Stop
 }
 
-# Helpers that start other processes stay in Scripts\Operations; the interactive
-# Send To flow launches the session-filtered shell refresh from there.
-$script:AtlasShellOperationsRoot = [IO.Path]::GetFullPath(
-    (Join-Path -Path $PSScriptRoot -ChildPath '..\..\Operations')
-)
-
 $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 
 foreach ($domainModule in @(

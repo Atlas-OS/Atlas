@@ -23,7 +23,7 @@ $script:AtlasTweakEntryKeys = @{
     Services       = @('Name', 'Operation', 'StartupType', 'AllowMissing', 'IgnoreErrors')
     ScheduledTasks = @('Path', 'Operation', 'IgnoreErrors')
     Toggle         = @('Name', 'State')
-    Run            = @('Exe', 'Args', 'Arch', 'IgnoreErrors', 'Wait', 'RunAs', 'AllowedExitCodes')
+    Run            = @('Exe', 'Args', 'Arch', 'IgnoreErrors', 'Wait', 'AllowedExitCodes')
     RemovePaths    = @('Path', 'Arch', 'IgnoreErrors')
 }
 
@@ -401,9 +401,6 @@ function Test-AtlasTweakFileSchema {
                     [string]$entry['Exe'] -ine '{windir}\System32\dism.exe') {
                     Add-Problem -Problem "Run entry 'AllowedExitCodes' is only supported for the exact '{windir}\System32\dism.exe' executable."
                 }
-                if ($entry.ContainsKey('RunAs')) {
-                    Add-Problem -Problem "Run entry 'AllowedExitCodes' cannot be combined with 'RunAs'; exact-user launches require exit code 0."
-                }
             }
 
             if ($entry.ContainsKey('Arch') -and $entry['Arch'] -notin @('X64', 'ARM64')) {
@@ -417,18 +414,6 @@ function Test-AtlasTweakFileSchema {
 
             if ($entry.ContainsKey('IgnoreErrors') -and -not ($entry['IgnoreErrors'] -is [bool])) {
                 Add-Problem -Problem "Run entry 'IgnoreErrors' must be a boolean."
-            }
-
-            if ($entry.ContainsKey('RunAs')) {
-                if ($entry['RunAs'] -cne 'User') {
-                    Add-Problem -Problem "Run entry 'RunAs' must be exactly 'User'."
-                }
-                if (-not $entry.ContainsKey('Wait') -or $entry['Wait'] -ne $true) {
-                    Add-Problem -Problem "Run entry 'RunAs=User' requires 'Wait = `$true'."
-                }
-                if ($entry.ContainsKey('IgnoreErrors') -and $entry['IgnoreErrors'] -eq $true) {
-                    Add-Problem -Problem "Run entry 'RunAs=User' cannot ignore identity-bound launch failures."
-                }
             }
         }
     }

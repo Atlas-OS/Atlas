@@ -129,23 +129,41 @@ impl SecurityStatus {
         let features = open("Features");
         let real_time = open("Real-Time Protection");
         let spynet = open("SpyNet");
+        let value = |key: &Option<Key>, name: &str| key.as_ref().map(|key| dword(key, name));
+        Self::from_values(
+            value(&features, "TamperProtection"),
+            value(&real_time, "DisableRealtimeMonitoring"),
+            value(&spynet, "SpyNetReporting"),
+            value(&spynet, "SubmitSamplesConsent"),
+            defender_present,
+        )
+    }
 
+    /// The switches from their registry values, each `None` when its key
+    /// can't be opened and `Some(None)` when the value isn't a DWORD, or a
+    /// QWORD that fits in 32 bits. The front door's check uses the same rule,
+    /// and a shared fixture keeps the two in step.
+    fn from_values(
+        tamper: Option<Option<u32>>,
+        real_time: Option<Option<u32>>,
+        cloud: Option<Option<u32>>,
+        samples: Option<Option<u32>>,
+        defender_present: bool,
+    ) -> Self {
         Self {
-            tamper_protection: read_switch(features.as_ref(), "TamperProtection", tamper_protection_switch),
+            tamper_protection: tamper.flatten().map_or(Switch::Unknown, tamper_protection_switch),
             // 1 = switched off. Absent or unreadable counts as on, which keeps
             // the step blocked.
-            real_time_protection: match &real_time {
-                Some(key) => match key.get_u32("DisableRealtimeMonitoring") {
-                    Ok(1) => Switch::Off,
-                    _ => Switch::On,
-                },
+            real_time_protection: match real_time {
+                Some(Some(1)) => Switch::Off,
+                Some(_) => Switch::On,
                 None => Switch::Unknown,
             },
             // 0 = off, 1 basic, 2 advanced.
-            cloud_delivered: read_switch(spynet.as_ref(), "SpyNetReporting", |value| {
-                if value == 0 { Switch::Off } else { Switch::On }
-            }),
-            sample_submission: read_switch(spynet.as_ref(), "SubmitSamplesConsent", sample_submission_switch),
+            cloud_delivered: cloud
+                .flatten()
+                .map_or(Switch::Unknown, |value| if value == 0 { Switch::Off } else { Switch::On }),
+            sample_submission: samples.flatten().map_or(Switch::Unknown, sample_submission_switch),
             defender_present,
         }
     }
@@ -180,9 +198,10 @@ fn review_status() -> Option<SecurityStatus> {
     }
 }
 
-/// A switch from a DWORD value; `Unknown` when the key or value cannot be read.
-fn read_switch(key: Option<&Key>, name: &str, switch: fn(u32) -> Switch) -> Switch {
-    key.and_then(|key| key.get_u32(name).ok()).map_or(Switch::Unknown, switch)
+/// A REG_DWORD, or a REG_QWORD that fits in 32 bits, which the front door
+/// reads the same way.
+fn dword(key: &Key, name: &str) -> Option<u32> {
+    key.get_u32(name).ok()
 }
 
 /// 0 (always prompt) and 2 (never send) stop automatic submission; 1 and 3
@@ -231,6 +250,67 @@ mod tests {
         assert_eq!(sample_submission_switch(3), Switch::On);
         assert_eq!(sample_submission_switch(4), Switch::Unknown);
         assert_eq!(sample_submission_switch(u32::MAX), Switch::Unknown);
+    }
+
+    /// The registry values Windows and privacy tools leave, shared with the
+    /// front door's Pester cases. A key the case leaves out is missing, a
+    /// value that isn't a number isn't a DWORD, and {"qword": n} is a
+    /// REG_QWORD.
+    #[test]
+    fn the_switches_match_the_front_door_s_for_every_shared_case() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../tests/fixtures/front-door/windows-security.json");
+        let cases: Vec<serde_json::Value> =
+            serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        assert!(!cases.is_empty());
+        for case in cases {
+            let value = |key: &str, name: &str| {
+                case["registry"].get(key).map(|values| {
+                    let raw = &values[name];
+                    raw.get("qword").unwrap_or(raw).as_u64().and_then(|number| u32::try_from(number).ok())
+                })
+            };
+            let status = SecurityStatus::from_values(
+                value("Features", "TamperProtection"),
+                value("Real-Time Protection", "DisableRealtimeMonitoring"),
+                value("SpyNet", "SpyNetReporting"),
+                value("SpyNet", "SubmitSamplesConsent"),
+                true,
+            );
+            let expected = |name: &str| match case["switches"][name].as_str() {
+                Some("off") => Switch::Off,
+                Some("on") => Switch::On,
+                Some("unreadable") => Switch::Unknown,
+                other => panic!("{name}: {other:?}"),
+            };
+            assert_eq!(
+                [
+                    status.tamper_protection,
+                    status.real_time_protection,
+                    status.cloud_delivered,
+                    status.sample_submission
+                ],
+                ["tamperProtection", "realTimeProtection", "cloudDelivered", "sampleSubmission"]
+                    .map(expected),
+                "{}",
+                case["name"]
+            );
+        }
+    }
+
+    /// A REG_DWORD, or a REG_QWORD that fits in 32 bits, is a value, as it is
+    /// to the front door.
+    #[test]
+    fn a_dword_or_a_qword_that_fits_is_read_as_a_switch_value() {
+        let test = crate::services::test_support::TestKey::new("security-dword");
+        test.key.set_u32("Dword", 1).unwrap();
+        test.key.set_u64("Qword", 1).unwrap();
+        test.key.set_u64("Large", u64::from(u32::MAX) + 1).unwrap();
+        test.key.set_string("Text", "1").unwrap();
+        assert_eq!(dword(&test.key, "Dword"), Some(1));
+        assert_eq!(dword(&test.key, "Qword"), Some(1));
+        assert_eq!(dword(&test.key, "Large"), None);
+        assert_eq!(dword(&test.key, "Text"), None);
+        assert_eq!(dword(&test.key, "Missing"), None);
     }
 
     #[test]

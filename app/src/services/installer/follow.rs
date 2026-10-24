@@ -29,11 +29,12 @@ pub fn machine_log_path() -> PathBuf {
 pub(super) struct Gone;
 
 /// Tails the log until the installer ends, then drains everything that is
-/// left before reporting the outcome. The machine log is followed too, from
-/// the offset recorded at `offset_path`, when there is one.
+/// left before reporting the outcome. The machine log at `machine_log` is
+/// followed too, from the offset recorded at `offset_path`, when there is one.
 pub(super) fn follow(
     log_path: PathBuf,
     offset_path: PathBuf,
+    machine_log: PathBuf,
     mut watch: Watch,
     mut sender: Sender<InstallEvent>,
 ) -> Result<(), Gone> {
@@ -43,7 +44,7 @@ pub(super) fn follow(
     let mut machine = fs::read_to_string(offset_path)
         .ok()
         .and_then(|offset| offset.parse().ok())
-        .map(|offset| Tail::new(machine_log_path(), offset));
+        .map(|offset| Tail::new(machine_log, offset));
     let outcome = loop {
         let ended = watch.poll();
         log.pump(&mut buffer, &mut sender)?;
@@ -112,7 +113,7 @@ fn deliver(sender: &mut Sender<InstallEvent>, event: InstallEvent) -> Result<(),
 }
 
 /// The most read from a file at once, so a long backlog arrives in pieces.
-const MAX_READ_BYTES: usize = 4 * 1024 * 1024;
+pub(super) const MAX_READ_BYTES: usize = 4 * 1024 * 1024;
 
 /// Reads what was appended to the file since `position`, at most
 /// [`MAX_READ_BYTES`] of it.
@@ -282,8 +283,9 @@ mod tests {
     }
 
     /// The cap applies to complete lines too: in one push, with CRLF, several
-    /// at once, at the boundary, across the chunk that brings the newline,
-    /// and at `finish()`.
+    /// at once, at the boundary and across the chunk that brings the newline.
+    /// An unfinished line is held to it across pushes, so `finish()` never has
+    /// more than the cap to emit.
     #[test]
     fn complete_lines_are_cut_at_the_same_cap_as_unfinished_ones() {
         let marked = MAX_LINE_BYTES + TRUNCATION_MARKER.len();
@@ -334,14 +336,20 @@ mod tests {
         assert!(kept.chars().all(|c| c == '\u{20ac}'), "no replacement character at the cut");
         assert!(kept.len() <= MAX_LINE_BYTES);
 
-        // The final unterminated remainder is cut too.
+        // An unterminated remainder of exactly the cap, reached across two
+        // pushes, is still pending, and finish() emits it whole.
         assert!(decoder.push(&vec![b'g'; MAX_LINE_BYTES - 1]).is_empty());
         assert!(decoder.push(b"g").is_empty(), "exactly the cap is still pending");
         assert_eq!(decoder.finish().unwrap().len(), MAX_LINE_BYTES);
+
+        // The cap counts what is pending, not what one push brings: a single
+        // byte past it is cut and marked, leaving nothing for finish().
         let mut decoder = LineDecoder::default();
-        // Under the overflow trigger but over it once trimmed at finish: the
-        // cap applies to what finish() emits as well.
         assert!(decoder.push(&vec![b'h'; MAX_LINE_BYTES]).is_empty());
-        assert_eq!(decoder.finish().unwrap().len(), MAX_LINE_BYTES);
+        let lines = decoder.push(b"h");
+        assert_eq!(lines.len(), 1);
+        assert_eq!(lines[0].len(), marked);
+        assert!(lines[0].ends_with(TRUNCATION_MARKER));
+        assert_eq!(decoder.finish(), None);
     }
 }

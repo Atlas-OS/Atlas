@@ -123,11 +123,7 @@ fn read_facts() -> Facts {
             let state = dword(&path, "state")?;
             let state = if name == "AutomaticUpdates" {
                 let launcher = LOCAL_MACHINE.open(&path).and_then(|key| key.get_string("path")).ok();
-                if state == 1 && launcher.as_deref().is_some_and(is_legacy_cpu_menu_launcher) {
-                    automatic_updates_from_policy(read_automatic_updates_policy().ok()?)?
-                } else {
-                    state
-                }
+                automatic_updates_record(state, launcher.as_deref(), read_automatic_updates_policy)?
             } else {
                 state
             };
@@ -210,7 +206,21 @@ fn is_legacy_cpu_menu_launcher(path: &str) -> bool {
 }
 
 // Two old CPU menu launchers overwrote AutomaticUpdates. Only a recognized
-// record is repaired, using the live update policy rather than its wrong value.
+// record is repaired, using the live update policy rather than its wrong value;
+// a policy that can't be read leaves the choice out. The policy is read only
+// for such a record.
+fn automatic_updates_record(
+    state: u32,
+    launcher: Option<&str>,
+    policy: impl FnOnce() -> anyhow::Result<Option<u32>>,
+) -> Option<u32> {
+    if state == 1 && launcher.is_some_and(is_legacy_cpu_menu_launcher) {
+        automatic_updates_from_policy(policy().ok()?)
+    } else {
+        Some(state)
+    }
+}
+
 fn automatic_updates_from_policy(value: Option<u32>) -> Option<u32> {
     match value {
         Some(2) => Some(0),
@@ -247,21 +257,44 @@ fn core_isolation_off(vbs: Option<u32>, memory_integrity: Option<u32>) -> bool {
 mod tests {
     use super::*;
 
+    /// The AutomaticUpdates records and update policies Atlas 0.5.0 and
+    /// Windows leave, shared with the worker's Pester cases. `record` is the
+    /// state read, or null when the choice is left out.
     #[test]
     fn a_cpu_menu_record_cannot_enable_automatic_updates() {
-        for path in [
-            r"C:\Windows\AtlasDesktop\Add Idle Toggle in Desktop Context Menu.cmd",
-            "D:/Atlas/Remove Idle Toggle in Desktop Context Menu (default).cmd",
-            "C:/Atlas/add idle toggle in desktop context menu.cmd",
-        ] {
-            assert!(is_legacy_cpu_menu_launcher(path));
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../tests/fixtures/windows-transition/legacy-automatic-updates.json"
+        );
+        let cases: Vec<serde_json::Value> =
+            serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        assert!(!cases.is_empty());
+        for case in cases {
+            let policy = || -> anyhow::Result<Option<u32>> {
+                match &case["policy"] {
+                    serde_json::Value::Null => Ok(None),
+                    policy if policy["kind"] == "DWord" => Ok(Some(policy["data"].as_u64().unwrap() as u32)),
+                    // What read_automatic_updates_policy answers for any other kind.
+                    _ => anyhow::bail!("AUOptions is not REG_DWORD"),
+                }
+            };
+            assert_eq!(
+                automatic_updates_record(
+                    case["state"].as_u64().unwrap() as u32,
+                    case["launcher"].as_str(),
+                    policy
+                ),
+                case["record"].as_u64().map(|state| state as u32),
+                "{}",
+                case["name"]
+            );
         }
-        assert!(!is_legacy_cpu_menu_launcher("C:/Atlas/Enable Automatic Updates.cmd"));
-        assert!(!is_legacy_cpu_menu_launcher("C:/Atlas/Add Idle Toggle in Desktop Context Menu.cmd.exe"));
-        assert_eq!(automatic_updates_from_policy(Some(2)), Some(0));
-        assert_eq!(automatic_updates_from_policy(None), Some(1));
-        assert_eq!(automatic_updates_from_policy(Some(4)), Some(1));
-        assert_eq!(automatic_updates_from_policy(Some(9)), None);
+        let unread = || -> anyhow::Result<Option<u32>> { panic!("only a CPU menu record reads the policy") };
+        assert_eq!(
+            automatic_updates_record(0, Some("Add Idle Toggle in Desktop Context Menu.cmd"), unread),
+            Some(0)
+        );
+        assert_eq!(automatic_updates_record(1, None, unread), Some(1));
     }
 
     /// The registry values Atlas 0.5.0 and Windows leave, shared with the

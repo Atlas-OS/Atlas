@@ -53,7 +53,11 @@ function Write-AtlasNotificationPolicyState {
     param([Parameter(Mandatory = $true)]$State)
 
     if ($State.existed) {
-        [void](New-Item -Path $script:AtlasNotificationPolicyPath -Force -ErrorAction Stop)
+        # New-Item -Force recreates an existing key empty, which would drop the other
+        # notification policies set beside this one.
+        if (-not (Test-Path -LiteralPath $script:AtlasNotificationPolicyPath)) {
+            [void](New-Item -Path $script:AtlasNotificationPolicyPath -Force -ErrorAction Stop)
+        }
         [void](New-ItemProperty -LiteralPath $script:AtlasNotificationPolicyPath `
                 -Name $script:AtlasNotificationPolicyName -PropertyType DWord `
                 -Value ([int]$State.value) -Force -ErrorAction Stop)

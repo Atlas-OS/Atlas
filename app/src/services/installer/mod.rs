@@ -12,7 +12,7 @@ mod follow;
 mod tests;
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -23,6 +23,8 @@ use serde::{Deserialize, Serialize};
 
 use super::session::{self, Inspection, LaunchLock, SessionPaths, SessionRecord};
 use super::{playbook, powershell, system};
+#[cfg(test)]
+pub(crate) use command::ps_quote;
 use command::wrapper_command;
 pub use command::{command_line, valid_option_name, validate_options};
 pub use follow::machine_log_path;
@@ -36,6 +38,11 @@ pub struct InstallRequest {
     /// Restart Windows once the install succeeds. Atlas restarts it itself;
     /// the front door is never asked to.
     pub restart: bool,
+    /// The user confirmed by hand, in Windows Security, the switches Atlas
+    /// couldn't read, so the front door accepts those unread. One that reads
+    /// on still stops it. Records from earlier builds lack it.
+    #[serde(default)]
+    pub windows_security_confirmed: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -253,7 +260,7 @@ fn launch(
         }
     };
     #[cfg(test)]
-    LAST_SPAWNED.with(|last| last.set(child.id()));
+    LAST_SPAWNED.with(|last| last.set((child.id(), system::process_start_time(child.id()).unwrap_or(0))));
 
     if let Err(error) = hand_over(paths, &mut record, &child) {
         let _ = child.kill();
@@ -265,7 +272,8 @@ fn launch(
 
     let (sender, receiver) = channel(EVENT_BACKLOG);
     let (log_path, offset_path) = (record.log_path.clone(), record.machine_offset_path());
-    thread::spawn(move || follow(log_path, offset_path, Watch::Owned(child), sender));
+    let machine_log = paths.machine_log.clone();
+    thread::spawn(move || follow(log_path, offset_path, machine_log, Watch::Owned(child), sender));
     Ok((record, receiver))
 }
 
@@ -279,7 +287,7 @@ fn record_launch(
 ) -> Result<(fs::File, fs::File)> {
     // Every install appends to the machine log; remember where this one
     // starts so a follower shows only its lines.
-    let machine_offset = fs::metadata(machine_log_path()).map(|m| m.len()).unwrap_or(0);
+    let machine_offset = fs::metadata(&paths.machine_log).map(|m| m.len()).unwrap_or(0);
     fs::write(record.machine_offset_path(), machine_offset.to_string())?;
     let log_err = log.try_clone().context("share the log file")?;
     fail_point(FailPoint::InitialRecord)?;
@@ -318,7 +326,9 @@ pub enum FailPoint {
 #[cfg(test)]
 thread_local! {
     static FAIL_AT: std::cell::Cell<Option<FailPoint>> = const { std::cell::Cell::new(None) };
-    static LAST_SPAWNED: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+    /// The last child spawned on this thread and its creation time, so a
+    /// test can tell it apart from a later process given the same PID.
+    static LAST_SPAWNED: std::cell::Cell<(u32, u64)> = const { std::cell::Cell::new((0, 0)) };
 }
 
 #[cfg(test)]
@@ -334,13 +344,14 @@ fn fail_point(_point: FailPoint) -> Result<()> {
     Ok(())
 }
 
-/// Follows an install that an earlier app instance started. Output starts
+/// Follows an install that an earlier app instance started, with the machine
+/// log at `machine_log` (see [`SessionPaths::machine_log`]). Output starts
 /// from the beginning of the log, so the whole history is available.
-pub fn reattach(record: &SessionRecord) -> Receiver<InstallEvent> {
+pub fn reattach(record: &SessionRecord, machine_log: &Path) -> Receiver<InstallEvent> {
     let (sender, receiver) = channel(EVENT_BACKLOG);
     let (log_path, offset_path) = (record.log_path.clone(), record.machine_offset_path());
-    let watch = Watch::Detached(record.clone());
-    thread::spawn(move || follow(log_path, offset_path, watch, sender));
+    let (machine_log, watch) = (machine_log.to_path_buf(), Watch::Detached(record.clone()));
+    thread::spawn(move || follow(log_path, offset_path, machine_log, watch, sender));
     receiver
 }
 

@@ -263,8 +263,9 @@ Validation (`src/archive.rs`) reads every member to check its CRC, and refuses:
 | Headers | Local headers that disagree with the central directory, Info-ZIP Unicode path or comment fields (which can replace the stored name), and data descriptors |
 | Layout | Data before the first member, and gaps between members or before the central directory |
 
-A refused archive returns 422 and is not kept. The sender can retry with the same
-token until it expires.
+A refused archive returns 422 and is not kept. The service log names the check that
+refused it and the report ID; the response doesn't. The sender can retry with the
+same token until it expires.
 
 ## How it works
 
@@ -273,4 +274,4 @@ token until it expires.
   attachments with no completed report.
 - **Older databases**, created before `secure_delete`, are rebuilt once with
   `VACUUM` at startup to clear text left by earlier deletions, retrying at each
-  start until it succeeds (`create` in `src/lib.rs`).
+  start until it succeeds (`open_database` in `src/lib.rs`).

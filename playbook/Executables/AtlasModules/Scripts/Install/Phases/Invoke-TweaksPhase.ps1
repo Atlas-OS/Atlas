@@ -78,6 +78,7 @@ function Invoke-AtlasTweakCategoryPasses {
             '-WindowsBuild', [string]$context.WindowsBuild
         )
         if ($context.IsUpgrade) { $policyArguments += '-IsUpgrade' }
+        if ($context.IsRebase) { $policyArguments += '-IsRebase' }
         if ($context.IsArm64) { $policyArguments += '-IsArm64' }
         Invoke-AtlasHiddenProcess -FilePath $script:powerShellPath -ArgumentList $policyArguments -Wait | Out-Null
 
@@ -88,6 +89,7 @@ function Invoke-AtlasTweakCategoryPasses {
             '-WindowsBuild', [string]$context.WindowsBuild
         )
         if ($context.IsUpgrade) { $registryArguments += '-IsUpgrade' }
+        if ($context.IsRebase) { $registryArguments += '-IsRebase' }
         if ($context.IsArm64) { $registryArguments += '-IsArm64' }
 
         Invoke-AtlasTweakUserScript `

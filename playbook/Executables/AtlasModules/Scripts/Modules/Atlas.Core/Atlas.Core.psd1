@@ -27,6 +27,7 @@
         'Assert-AtlasPrivilege'
         'Invoke-AtlasTrustedInstaller'
         'Invoke-AtlasAsUser'
+        'Get-AtlasUserSessionHelperStage'
         'Get-AtlasUserProcessCommandLine'
         # Process
         'ConvertTo-AtlasWindowsArgumentString'

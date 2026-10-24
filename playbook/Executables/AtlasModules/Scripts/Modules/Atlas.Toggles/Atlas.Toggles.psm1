@@ -40,7 +40,7 @@ Export-ModuleMember -Function @(
     'Get-AtlasToggleDefinition', 'Test-AtlasToggleDefinition', 'Get-AtlasToggleStateWork',
     'Invoke-AtlasToggle', 'Invoke-AtlasToggleMachineState',
     'Get-AtlasToggleState', 'Get-AtlasToggleStateRecords', 'Set-AtlasToggleState',
-    'Invoke-AtlasToggleNativeCommand',
+    'Invoke-AtlasToggleNativeCommand', 'Remove-AtlasToggleBcdValue',
     'Initialize-AtlasToggleStateStore',
     'Invoke-AtlasToggleReapply', 'Invoke-AtlasToggleUserReapply',
     'Test-AtlasToggleState', 'Test-AtlasToggleDrift'

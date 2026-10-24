@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Elevated broker for the closed Atlas TrustedInstaller operation surface.
+    Elevated broker for the closed set of Atlas TrustedInstaller operations.
 .DESCRIPTION
     Accepts only typed Atlas identifiers. The native launcher maps them to fixed scripts
     beneath the installed AtlasModules tree and returns the target's exit code.
@@ -8,7 +8,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Toggle', 'ResetServices', 'Install')]
+    [ValidateSet('Toggle', 'ResetServices', 'Install', 'CbsRetry')]
     [string]$Operation,
 
     [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$', Options = [Text.RegularExpressions.RegexOptions]::None)]
@@ -121,6 +121,14 @@ try {
             }
             $parameters.InstallPhase = $InstallPhase
             $parameters.PayloadRoot = $resolvedPayloadRoot
+        }
+        'CbsRetry' {
+            # The retry's packages come from its own state file, never from the caller.
+            foreach ($parameterName in @('Name', 'State', 'JustContext', 'NoExplorerRestart', 'MachineOnly', 'RestoreSource', 'InstallPhase', 'PayloadRoot')) {
+                if ($PSBoundParameters.ContainsKey($parameterName)) {
+                    throw "CbsRetry does not accept '-$parameterName'."
+                }
+            }
         }
     }
 

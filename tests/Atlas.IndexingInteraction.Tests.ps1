@@ -4,7 +4,6 @@ BeforeAll {
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Search\Atlas.Search.psd1') -Force
     $script:indexRoot = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles'
-    . (Join-Path $script:indexRoot 'General\Indexing.ps1')
 }
 Describe 'Interactive indexing across the TrustedInstaller boundary' {
     BeforeEach {
@@ -39,7 +38,13 @@ Describe 'Interactive indexing across the TrustedInstaller boundary' {
         Mock Test-AtlasAdmin -ModuleName Atlas.Toggles { $false }
         Mock Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles {}
         Invoke-AtlasToggle -Name Indexing -State Enable -TogglesRoot $script:indexRoot
-        Should -Invoke Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter { $ArgumentList -notcontains '-Silent' }
+        # Invoke-Toggle.ps1 reads any of these spellings as silent, and the child must
+        # still get the public state so it asks the power-mode question itself.
+        Should -Invoke Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            $stateIndex = [array]::IndexOf($ArgumentList, '-State')
+            @($ArgumentList | Where-Object { $_ -match '^[/-](silent|quiet)$' }).Count -eq 0 -and
+                $stateIndex -ge 0 -and $ArgumentList[$stateIndex + 1].Trim('"') -ceq 'Enable'
+        }
         Should -Not -Invoke Read-AtlasYesNo -ModuleName Atlas.Toggles
     }
     It 'rejects an unrecognized selector result before dispatch' {
@@ -54,22 +59,42 @@ Describe 'Interactive indexing across the TrustedInstaller boundary' {
     }
 }
 Describe 'Selected indexing records reflect completed work' {
+    BeforeAll {
+        $script:indexing = Get-AtlasToggleDefinition -Name Indexing -TogglesRoot $script:indexRoot
+
+        # Runs the broker's machine action for a fixed internal state the way the
+        # engine does: dot-sourced inside Atlas.Toggles under strict mode.
+        function Invoke-SelectedIndexing {
+            param([Parameter(Mandatory = $true)][string]$State)
+
+            InModuleScope Atlas.Toggles {
+                $context = New-AtlasToggleContext -Definition $d -StateName $s -Silent -StateRoot 'HKCU:\Unused'
+                Invoke-AtlasToggleFunction -Definition $d -FunctionName ([string]$d['States'][$s]['MachineAction']) `
+                    -Toggle $context -Label 'test'
+            } -Parameters @{ d = $script:indexing; s = $State }
+        }
+    }
     BeforeEach {
-        Mock Import-AtlasModule {}
-        Mock Set-AtlasIndexingMachineState {}
-        Mock Set-AtlasToggleState {}
+        Mock Write-AtlasLog -ModuleName Atlas.Toggles
+        Mock Import-AtlasModule -ModuleName Atlas.Toggles
+        Mock Set-AtlasIndexingMachineState -ModuleName Atlas.Toggles
+        Mock Set-AtlasToggleState -ModuleName Atlas.Toggles
     }
     It 'applies the explicit value and keeps the existing replay record' -ForEach @(
         @{ Choice = 'EnableRespectPowerModes'; Value = 1 }
         @{ Choice = 'EnableIgnorePowerModes'; Value = 0 }
     ) {
-        Set-AtlasSelectedFullIndexing -Toggle @{ State = $Choice; StateRoot = 'HKCU:\Unused' }
-        Should -Invoke Set-AtlasIndexingMachineState -Times 1 -Exactly -ParameterFilter { $State -ceq 'Full' -and $RespectPowerModes -eq $Value -and -not $PreservePowerModes }
-        Should -Invoke Set-AtlasToggleState -Times 1 -Exactly -ParameterFilter { $Name -ceq 'Indexing' -and $State -eq 2 -and $StateRoot -ceq 'HKCU:\Unused' }
+        Invoke-SelectedIndexing -State $Choice
+        Should -Invoke Set-AtlasIndexingMachineState -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            $State -ceq 'Full' -and $RespectPowerModes -eq $Value -and -not $PreservePowerModes
+        }
+        Should -Invoke Set-AtlasToggleState -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            $Name -ceq 'Indexing' -and $State -eq 2 -and $StateRoot -ceq 'HKCU:\Unused'
+        }
     }
     It 'does not overwrite a record if preset application fails' {
-        Mock Set-AtlasIndexingMachineState { throw 'preset failed' }
-        { Set-AtlasSelectedFullIndexing -Toggle @{ State = 'EnableRespectPowerModes'; StateRoot = 'HKCU:\Unused' } } | Should -Throw '*preset failed*'
-        Should -Not -Invoke Set-AtlasToggleState
+        Mock Set-AtlasIndexingMachineState -ModuleName Atlas.Toggles { throw 'preset failed' }
+        { Invoke-SelectedIndexing -State EnableRespectPowerModes } | Should -Throw '*preset failed*'
+        Should -Not -Invoke Set-AtlasToggleState -ModuleName Atlas.Toggles
     }
 }

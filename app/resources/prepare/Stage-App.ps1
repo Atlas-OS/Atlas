@@ -9,6 +9,9 @@ if (-not $FunctionsOnly) {
     [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
 }
 $ErrorActionPreference = 'Stop'
+# The exit code for an Atlas Manager started from a linked folder, which the
+# user can fix by moving it, unlike a link on the protected side.
+$AtlasSourceLinkedExitCode = 2
 
 # SYSTEM and Administrators: full control. Users: read and execute (0x1200a9).
 function Get-AtlasRecoverySecurity {
@@ -95,18 +98,22 @@ function New-AtlasMediaJob {
     return $directory
 }
 
-# Refuses symbolic links and junctions anywhere on the path. Other reparse
+# Whether a symbolic link or junction is anywhere on the path. Other reparse
 # points store data rather than redirect: OneDrive Files On-Demand marks the
 # Desktop and Downloads folders it backs up, where Atlas Manager often runs from.
-function Assert-AtlasRecoveryPath {
+function Test-AtlasLinkedPath {
     param([string]$Path)
     $item = Get-Item -LiteralPath $Path -Force
     while ($null -ne $item) {
-        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -and @('SymbolicLink', 'Junction') -contains $item.LinkType) {
-            throw 'Linked recovery paths are not supported.'
-        }
+        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -and @('SymbolicLink', 'Junction') -contains $item.LinkType) { return $true }
         $item = if ($item -is [IO.FileInfo]) { $item.Directory } else { $item.Parent }
     }
+    return $false
+}
+
+function Assert-AtlasRecoveryPath {
+    param([string]$Path)
+    if (Test-AtlasLinkedPath $Path) { throw 'Linked recovery paths are not supported.' }
 }
 
 function Assert-AtlasRecoverySecurity {
@@ -177,7 +184,15 @@ if (-not $FunctionsOnly) {
             Assert-AtlasRecoveryFileSecurity (Join-Path $directory 'cancel') (Get-AtlasCancellationSecurity)
             $directory
         }
-        'executable' { Copy-AtlasRecoveryExecutable -Source ([string]$request.source) -Root $root }
+        'executable' {
+            # Still refused: this user's processes could retarget the link
+            # under the elevated read. The exit code lets the app say why.
+            if (Test-AtlasLinkedPath ([string]$request.source)) {
+                [Console]::Error.WriteLine('Atlas Manager was started from a linked folder. Linked recovery paths are not supported.')
+                exit $AtlasSourceLinkedExitCode
+            }
+            Copy-AtlasRecoveryExecutable -Source ([string]$request.source) -Root $root
+        }
         default { throw 'Unknown staging operation.' }
     }
     [Console]::WriteLine(($path | ConvertTo-Json -Compress))

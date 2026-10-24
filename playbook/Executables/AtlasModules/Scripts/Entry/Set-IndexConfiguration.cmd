@@ -65,6 +65,9 @@ if defined indexPath goto invokeWithPath
 goto invokeWithoutPath
 
 :invokeWithPath
+rem A trailing backslash, as in a drive root, would escape the closing quote below.
+rem A dot after it prevents that, and the index engine's GetFullPath drops the dot.
+if "%indexPath:~-1%"=="\" set "indexPath=%indexPath%."
 "%AtlasNativePowerShell%" -NoProfile -NoLogo -NonInteractive -ExecutionPolicy Bypass -File "%script%" -Operation "%operation%" -IndexPath "%indexPath%"
 if errorlevel 0 (
     if errorlevel 1 exit /b

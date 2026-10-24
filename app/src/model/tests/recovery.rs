@@ -91,7 +91,6 @@ fn an_unreadable_install_record_holds_the_flow_at_get_ready_until_it_reads_clean
 }
 
 #[test]
-#[cfg(windows)]
 fn a_success_found_on_reopening_shows_its_result_and_clears_its_draft() {
     run_model_test(async move |mut cx| {
         let (temp, _, env) = fixture("model-recovered-success");
@@ -135,7 +134,6 @@ fn a_success_found_on_reopening_shows_its_result_and_clears_its_draft() {
 }
 
 #[test]
-#[cfg(windows)]
 fn a_failure_found_on_reopening_runs_the_checks_its_retry_needs() {
     run_model_test(async move |mut cx| {
         let (temp, _, env) = fixture("model-recovered-failure");
@@ -190,7 +188,6 @@ fn a_failure_found_on_reopening_runs_the_checks_its_retry_needs() {
 /// Only the draft that launched the recovered install speaks for its
 /// preparation, and only as far as it goes.
 #[test]
-#[cfg(windows)]
 fn a_recovered_failure_is_not_ready_on_a_draft_that_does_not_vouch_for_it() {
     run_model_test(async move |mut cx| {
         for (launcher, prepared) in [(false, true), (true, false)] {
@@ -258,6 +255,44 @@ fn a_draft_whose_package_lost_a_file_resumes_without_it() {
             assert_ne!(book.dir, dir);
             assert!(playbook::intact(&book.dir));
         });
+        settle(&cx, &model).await;
+    });
+}
+
+/// A draft holds the choices in effect, so no browser while Install a
+/// Browser is unticked. The picker's default comes back on resuming, and
+/// ticking the box later finds a browser chosen.
+#[test]
+fn a_resumed_draft_keeps_the_browser_pickers_default() {
+    run_model_test(async move |mut cx| {
+        let (_temp, _, env) = fixture("model-draft-browser-default");
+        let options = crate::services::iso::default_options(&playbook::Manifest::builtin());
+        assert!(!options.iter().any(|o| o.starts_with("browser-")));
+        save_draft(
+            &env,
+            InstallDraft {
+                step: "options".into(),
+                options,
+                flow: Some("earlier-window".into()),
+                ..InstallDraft::default()
+            },
+        );
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "the draft", |m| !m.recovering && m.flow.active).await;
+        act(&mut cx, &model, |m, cx| {
+            assert!(m.options.contains("browser-brave"), "kept, though not in effect");
+            let page = m
+                .manifest()
+                .pages
+                .iter()
+                .position(|page| page.options.iter().any(|o| o.name == "install-another-browser"))
+                .unwrap();
+            m.choose_option(page, "install-another-browser", cx);
+        });
+        let browsers: Vec<String> = read(&cx, &model, |m| {
+            m.effective_options().into_iter().filter(|o| o.starts_with("browser-")).collect()
+        });
+        assert_eq!(browsers, ["browser-brave"]);
         settle(&cx, &model).await;
     });
 }

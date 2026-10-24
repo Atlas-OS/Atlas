@@ -2,13 +2,15 @@
 
 <#
 	.SYNOPSIS
-	Uninstalls or reinstalls Microsoft Edge and its related components. Made by @he3als.
+	Removes or installs Microsoft Edge, and installs the Edge WebView2 runtime. Made by @he3als.
 
 	.Description
-	Uninstalls or reinstalls Microsoft Edge and its related components in a non-forceful manner, based upon switches or user choices in a TUI.
+	Removes the Edge browser, its services and its shell registration, chosen with switches or from a menu.
+	EdgeUpdate and the WebView2 runtime stay, as Windows and other apps share them. Edge's AppX packages
+	are removed by the Atlas install's AppxSupport phase, not here. Can also install Edge or WebView2 from Microsoft.
 
 	.PARAMETER UninstallEdge
-	Uninstalls Edge, leaving the Edge user data.
+	Removes Edge, leaving the Edge user data.
 
 	.PARAMETER InstallEdge
 	Installs Edge, leaving the previous Edge user data.
@@ -16,14 +18,13 @@
 	.PARAMETER InstallWebView
 	Installs Edge WebView2 using the Evergreen installer.
 
-	.PARAMETER RemoveEdgeData
-	Removes all Edge user data. Compatible with -InstallEdge.
-
-	.PARAMETER KeepAppX
-	Doesn't check for and remove the AppX, in case you want to use alternative AppX removal methods. Doesn't work with UninstallEdge.
-
 	.PARAMETER NonInteractive
 	When combined with other parameters, this does not prompt the user for anything.
+
+	.PARAMETER MachineContext
+	The Atlas install's removal, run as TrustedInstaller with -UninstallEdge -NonInteractive. It removes
+	only machine-wide files and registration; Remove-EdgeCurrentUserData.ps1 cleans the installing
+	user's part in that user's own token.
 
 	.PARAMETER Embedded
 	The Atlas toggle engine hosts this script in its own window: it has printed the
@@ -37,14 +38,17 @@ param (
     [switch]$UninstallEdge,
     [switch]$InstallEdge,
     [switch]$InstallWebView,
-    [switch]$RemoveEdgeData,
-    [switch]$KeepAppX,
     [switch]$NonInteractive,
     [switch]$MachineContext,
     [switch]$Embedded
 )
 
 Set-StrictMode -Version 3.0
+# The toggle engine calls this script inside the engine's process, where ErrorActionPreference
+# is Stop and Windows PowerShell would turn the first redirected stderr line of reg.exe,
+# takeown or icacls into a terminating error. Exit codes and explicit -ErrorAction Stop
+# decide failures here, as when the install or the Widgets toggle start a new process.
+$ErrorActionPreference = 'Continue'
 
 $modulesRoot = Join-Path (Split-Path -Parent $PSScriptRoot) 'Modules'
 foreach ($moduleManifest in @(
@@ -77,9 +81,8 @@ if ($NonInteractive -and (!$UninstallEdge -and !$InstallEdge -and !$InstallWebVi
 if ($InstallEdge -and $UninstallEdge) {
     throw "You can't use both -InstallEdge and -UninstallEdge as arguments."
 }
-if ($MachineContext -and (-not $UninstallEdge -or -not $KeepAppX -or
-        -not $NonInteractive -or $InstallEdge -or $InstallWebView -or $RemoveEdgeData)) {
-    throw 'MachineContext supports only the fixed noninteractive Edge-browser removal contract with KeepAppX and without user-data mutation.'
+if ($MachineContext -and (-not $UninstallEdge -or -not $NonInteractive -or $InstallEdge -or $InstallWebView)) {
+    throw 'MachineContext supports only the fixed noninteractive removal of the Edge browser.'
 }
 
 function Pause {
@@ -286,12 +289,6 @@ function Invoke-MicrosoftWebViewDownload {
     }
 }
 
-function DeleteIfExist($Path) {
-    if (Test-Path $Path) {
-        Remove-Item -Path $Path -Force -Recurse -Confirm:$false
-    }
-}
-
 function Remove-EdgePath {
     # Take ownership, grant Administrators full control, then delete - with a cmd 'rd'
     # retry for trees the provider can't remove.
@@ -320,9 +317,9 @@ function EdgeInstalled {
 }
 
 function KillEdgeProcesses {
-    $ErrorActionPreference = 'SilentlyContinue'
-    foreach ($service in (Get-Service -Name 'MicrosoftEdgeElevationService').Name) {
-        Stop-Service -Name $service -Force
+    # Strict mode throws for a property read off an empty result, so loop over objects.
+    foreach ($service in @(Get-Service -Name 'MicrosoftEdgeElevationService' -ErrorAction SilentlyContinue)) {
+        Stop-Service -Name $service.Name -Force -ErrorAction SilentlyContinue
     }
 
     # Match only the Edge browser; a bare '\Microsoft\*' would
@@ -337,7 +334,7 @@ function KillEdgeProcesses {
 
     foreach (
         $process in
-        (Get-Process | Where-Object {
+        @(Get-Process | Where-Object {
             $processPath = $_.Path
             # Never the WebView2 Runtime (by name or install path): the shell hosts it on
             # 24H2/25H2 and we don't uninstall it, so killing it drops the live session.
@@ -346,11 +343,10 @@ function KillEdgeProcesses {
                 (@($edgePathPatterns | Where-Object { $processPath -like $_ }).Count -gt 0) -or
                 ($_.Name -match '^(msedge|MicrosoftEdge|MicrosoftEdgeCP|MicrosoftEdgeSH)$')
             )
-        }).Id
+        })
     ) {
-        Stop-Process -Id $process -Force
+        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
     }
-    $ErrorActionPreference = 'Continue'
 }
 
 function Wait-EdgeUninstallerProcesses {
@@ -426,6 +422,45 @@ function Wait-EdgeUninstallerProcesses {
     } while ($true)
 
     throw "Could not confirm termination of detached Edge uninstaller process(es): $($remainingIds -join ', ')."
+}
+
+function Invoke-EdgeUninstallers {
+    <#
+        Kick off Edge's own uninstallers detached. A synchronous system-level
+        --force-uninstall can reach RestartManager and sign out the live user on
+        24H2/25H2, so the launched processes get only a limited launch window and are
+        confirmed stopped before direct file deletion begins.
+    #>
+    param(
+        [string[]]$Root = @(
+            "$([Environment]::GetFolderPath('ProgramFilesx86'))\Microsoft\Edge\Application",
+            "$([Environment]::GetFolderPath('ProgramFiles'))\Microsoft\Edge\Application"
+        )
+    )
+
+    $edgeUninstallers = New-Object Collections.Generic.List[object]
+    foreach ($applicationRoot in $Root) {
+        if (-not (Test-Path $applicationRoot)) {
+            continue
+        }
+        foreach ($setup in @(Get-ChildItem -Path $applicationRoot -Filter 'setup.exe' -Recurse -ErrorAction SilentlyContinue | Sort-Object -Property FullName -Unique)) {
+            Write-AtlasLog -Message "Launching the Edge uninstaller at '$($setup.FullName)'."
+            try {
+                $edgeUninstaller = Start-Process -FilePath $setup.FullName `
+                    -ArgumentList '--uninstall --system-level --force-uninstall' `
+                    -WindowStyle Hidden -PassThru -ErrorAction Stop
+                if ($null -ne $edgeUninstaller) {
+                    $edgeUninstallers.Add($edgeUninstaller)
+                }
+            }
+            catch {
+                Write-Status "The Edge uninstaller '$($setup.FullName)' could not be started: $($_.Exception.Message)" -Level Warning
+            }
+        }
+    }
+
+    # @() over a List[object] made by New-Object throws "Argument types do not match".
+    Wait-EdgeUninstallerProcesses -Process $edgeUninstallers.ToArray()
 }
 
 function DisableEdgeBrowserServices {
@@ -805,7 +840,6 @@ if (!$UninstallEdge -and !$InstallEdge -and !$InstallWebView) {
         Set-AtlasLogConsoleStyle -Style Interactive
         Write-AtlasTitle -Text 'Install or Remove Edge'
     }
-    $RemoveEdgeData = $false
 
     Write-AtlasNote -Text "Microsoft Edge is currently $(@('not installed', 'installed')[$edgeInstalled])."
     Write-AtlasBlankLine
@@ -830,36 +864,7 @@ if ($UninstallEdge) {
     Write-AtlasStep -Text 'Removing Microsoft Edge. This can take a minute...'
     KillEdgeProcesses
     DisableEdgeBrowserServices
-
-    # Kick off Edge's own uninstaller detached. A synchronous system-level
-    # --force-uninstall can reach RestartManager and sign out the live user on 24H2/25H2.
-    # Track the detached processes so they receive only a limited launch window and are
-    # confirmed stopped before direct file deletion begins.
-    $edgeUninstallers = New-Object Collections.Generic.List[object]
-    foreach ($root in @(
-            "$([Environment]::GetFolderPath('ProgramFilesx86'))\Microsoft\Edge\Application",
-            "$([Environment]::GetFolderPath('ProgramFiles'))\Microsoft\Edge\Application"
-        )) {
-        if (-not (Test-Path $root)) {
-            continue
-        }
-        foreach ($setup in @(Get-ChildItem -Path $root -Filter 'setup.exe' -Recurse -ErrorAction SilentlyContinue | Sort-Object -Property FullName -Unique)) {
-            Write-AtlasLog -Message "Launching the Edge uninstaller at '$($setup.FullName)'."
-            try {
-                $edgeUninstaller = Start-Process -FilePath $setup.FullName `
-                    -ArgumentList '--uninstall --system-level --force-uninstall' `
-                    -WindowStyle Hidden -PassThru -ErrorAction Stop
-                if ($null -ne $edgeUninstaller) {
-                    $edgeUninstallers.Add($edgeUninstaller)
-                }
-            }
-            catch {
-                Write-Status "The Edge uninstaller '$($setup.FullName)' could not be started: $($_.Exception.Message)" -Level Warning
-            }
-        }
-    }
-
-    Wait-EdgeUninstallerProcesses -Process @($edgeUninstallers)
+    Invoke-EdgeUninstallers
     KillEdgeProcesses
 
     # Remove only the Edge browser. EdgeCore, EdgeUpdate and EdgeWebView are shared
@@ -917,12 +922,6 @@ if ($UninstallEdge) {
     else {
         Write-Status 'Microsoft Edge was removed.' -Level Success
     }
-}
-
-if ($RemoveEdgeData) {
-    KillEdgeProcesses
-    DeleteIfExist "$([Environment]::GetFolderPath('LocalApplicationData'))\Microsoft\Edge"
-    Write-Status 'Existing Edge user data was removed.'
 }
 
 if ($InstallEdge) {

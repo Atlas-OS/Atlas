@@ -29,19 +29,33 @@ if [[ ${RUSTFLAGS+x} || ${CARGO_ENCODED_RUSTFLAGS+x} ]]; then
     echo 'Unset RUSTFLAGS and CARGO_ENCODED_RUSTFLAGS; the build uses target-scoped CRT flags.' >&2
     exit 1
 fi
-for tool in pwsh cargo git sha256sum 7z; do
+for tool in pwsh cargo git tar sha256sum 7z; do
     command -v "$tool" >/dev/null || { echo "Required tool not found: $tool" >&2; exit 1; }
 done
 cargo xwin --version >/dev/null 2>&1 || { echo 'cargo-xwin is missing; run tools/release/setup-linux.sh.' >&2; exit 1; }
 
 cd "$root"
-if [[ -n "$(git status --porcelain --untracked-files=no)" && $allow_dirty -eq 0 ]]; then
+dirty=0
+if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
+    dirty=1
+fi
+if [[ $dirty -eq 1 && $allow_dirty -eq 0 ]]; then
     echo 'The tree has uncommitted changes. Commit them or pass --allow-dirty for a non-publishable build.' >&2
     exit 1
 fi
 commit="$(git rev-parse --short HEAD)"
+# Matches the commit build.rs records for About and diagnostics.
+if [[ $dirty -eq 1 ]]; then
+    commit+='-dirty'
+fi
 version="$(sed -n 's/.*<Version>\([^<]*\)<\/Version>.*/\1/p' playbook/playbook.conf | head -1)"
 [[ -n "$version" ]] || { echo 'Cannot read <Version> from playbook/playbook.conf.' >&2; exit 1; }
+# build.rs refuses a mismatch too, but only after the Atlas package is built and verified.
+cargo_version="$(sed -n '/^\[package\]/,/^\[/s/^version *= *"\([^"]*\)".*/\1/p' app/Cargo.toml | head -1)"
+if [[ "$cargo_version" != "$version" ]]; then
+    echo "app/Cargo.toml is at ${cargo_version:-no version} but playbook/playbook.conf is at $version; bump both." >&2
+    exit 1
+fi
 rc_id="$version-rc.$rc"
 final="$root/artifacts/rc/$rc_id"
 work="$root/artifacts/rc/.$rc_id.building"
@@ -51,11 +65,19 @@ trap 'rm -rf "$work"' EXIT
 
 echo "== Atlas $rc_id from $commit"
 
-# 1. The production Atlas package, verified against the tracked source tree.
+# 1. The production Atlas package. The build packs every file in the folder it's given, so a
+#    committed tree builds from an export of the commit's playbook/: untracked or ignored
+#    files in the checkout would otherwise reach testers and still pass verification.
+source_playbook="$root/playbook"
+if [[ $dirty -eq 0 ]]; then
+    mkdir -p "$work/source"
+    git archive --format=tar HEAD playbook | tar -x -C "$work/source"
+    source_playbook="$work/source/playbook"
+fi
 apbx_name="Atlas v$rc_id.apbx"
-pwsh -NoProfile -File tools/build/Build-Playbook.ps1 -FileName "Atlas v$rc_id" -OutputPath "$work" \
-    -ReplaceOldPlaybook -DontOpenPbLocation
-pwsh -NoProfile -File tools/build/Test-Apbx.ps1 -Path "$work/$apbx_name"
+pwsh -NoProfile -File tools/build/Build-Playbook.ps1 -PlaybookPath "$source_playbook" \
+    -FileName "Atlas v$rc_id" -OutputPath "$work" -ReplaceOldPlaybook -DontOpenPbLocation
+pwsh -NoProfile -File tools/build/Test-Apbx.ps1 -Path "$work/$apbx_name" -PlaybookPath "$source_playbook"
 
 # 2. The executable that carries exactly those bytes.
 export XWIN_CACHE_DIR="$root/artifacts/xwin"
@@ -91,7 +113,7 @@ zip_name="AtlasManager-$rc_id-windows-x64.zip"
     cp "zip/AtlasManager.exe" "AtlasManager.exe"
     sha256sum "$zip_name" "$apbx_name" "AtlasManager.exe" | tee SHA256SUMS.txt
     rm -f "AtlasManager.exe"
-    rm -rf zip
+    rm -rf zip source
 )
 
 # 5. Publish the finished directory in one move.

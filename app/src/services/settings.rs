@@ -1,6 +1,7 @@
 //! App preferences, stored beside the downloaded Atlas packages under
 //! `%LOCALAPPDATA%\AtlasOS\App`.
 
+use std::os::windows::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -83,6 +84,8 @@ pub struct InstallDraft {
     /// The user accepted Microsoft's licence terms for the Windows version
     /// Atlas moves to.
     pub windows_terms_accepted: bool,
+    /// The user went on past the warning that Windows here looks used.
+    pub used_windows_accepted: bool,
     /// Your choices started from the installed Atlas's choices; the user's
     /// changes since stand.
     pub recorded_choices_applied: bool,
@@ -200,8 +203,10 @@ impl AppPaths {
     }
 }
 
-/// Missing settings are the defaults. An unreadable file is set aside as
-/// `settings.json.invalid` rather than silently replaced, and reported.
+/// Missing settings are the defaults. A damaged file (not UTF-8 or not valid
+/// JSON) is set aside as `settings.json.invalid` rather than silently
+/// replaced, and reported; one that can't be read at the moment is left alone
+/// and reported.
 pub fn load_from(path: &Path) -> Loaded {
     let loaded = read_from(path);
     let Some(SettingsProblem::Damaged { error }) = loaded.problem else { return loaded };
@@ -222,8 +227,8 @@ pub fn load_from(path: &Path) -> Loaded {
 /// window's model (startup recovery, diagnostics), so the model's own load
 /// still finds the damaged file, sets it aside and tells the user.
 pub fn read_from(path: &Path) -> Loaded {
-    let text = match std::fs::read_to_string(path) {
-        Ok(text) => text,
+    let bytes = match std::fs::read(path) {
+        Ok(bytes) => bytes,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Loaded::default(),
         Err(error) => {
             return Loaded {
@@ -232,12 +237,16 @@ pub fn read_from(path: &Path) -> Loaded {
             };
         }
     };
-    match serde_json::from_str(text.trim_start_matches('\u{feff}')) {
+    // Content that isn't UTF-8 (a hand edit saved as UTF-16, say) won't read
+    // any better later, so it counts as damaged, not unreadable.
+    let parsed = std::str::from_utf8(&bytes).map_err(|error| error.to_string()).and_then(|text| {
+        serde_json::from_str(text.trim_start_matches('\u{feff}')).map_err(|error| error.to_string())
+    });
+    match parsed {
         Ok(settings) => Loaded { settings, problem: None },
-        Err(error) => Loaded {
-            settings: AppSettings::default(),
-            problem: Some(SettingsProblem::Damaged { error: error.to_string() }),
-        },
+        Err(error) => {
+            Loaded { settings: AppSettings::default(), problem: Some(SettingsProblem::Damaged { error }) }
+        }
     }
 }
 
@@ -285,12 +294,7 @@ impl SettingsLock {
         let deadline = Instant::now() + wait;
         loop {
             let mut options = std::fs::OpenOptions::new();
-            options.read(true).write(true).create(true).truncate(false);
-            #[cfg(windows)]
-            {
-                use std::os::windows::fs::OpenOptionsExt;
-                options.share_mode(0);
-            }
+            options.read(true).write(true).create(true).truncate(false).share_mode(0);
             match options.open(&lock_path) {
                 Ok(file) => return Ok(Self { _file: file }),
                 Err(error)
@@ -364,20 +368,7 @@ impl Store {
 /// Writes the whole document to a temporary file and renames it into place,
 /// so an interruption never leaves a half-written settings file.
 pub fn save_to(path: &Path, settings: &AppSettings) -> Result<()> {
-    let parent = path.parent().context("the settings path has no parent")?;
-    std::fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
-    let json = serde_json::to_string_pretty(settings)?;
-    let mut temp_name = path.file_name().map(|n| n.to_os_string()).unwrap_or_default();
-    temp_name.push(format!(".{}.tmp", std::process::id()));
-    let temp = path.with_file_name(temp_name);
-    let result = (|| -> Result<()> {
-        std::fs::write(&temp, json).with_context(|| format!("write {}", temp.display()))?;
-        std::fs::rename(&temp, path).with_context(|| format!("replace {}", path.display()))
-    })();
-    if result.is_err() {
-        let _ = std::fs::remove_file(&temp);
-    }
-    result
+    super::files::write_json_atomically(path, settings)
 }
 
 #[cfg(test)]
@@ -410,6 +401,7 @@ mod tests {
                 preparation_ready: true,
                 windows_transition_declined: true,
                 windows_terms_accepted: true,
+                used_windows_accepted: true,
                 recorded_choices_applied: true,
                 store_outcome: Some("store-repaired".into()),
             }),
@@ -464,6 +456,23 @@ mod tests {
         // The model's load still finds it, sets it aside and reports that.
         assert!(matches!(load_from(&path).problem, Some(SettingsProblem::DamagedKept { .. })));
         assert!(!path.exists());
+    }
+
+    #[test]
+    fn a_file_that_is_not_utf8_is_damaged_rather_than_unreadable() {
+        let temp = TempDir::new("settings-utf16");
+        let path = temp.path().join("settings.json");
+        // `{}` as Windows PowerShell 5.1's `>` writes it: UTF-16 with a byte order mark.
+        let utf16 = b"\xff\xfe{\0}\0";
+        std::fs::write(&path, utf16).unwrap();
+        assert!(matches!(
+            load_from(&path).problem,
+            Some(SettingsProblem::DamagedKept { kept_as, .. }) if kept_as == "settings.json.invalid"
+        ));
+        // A write sets such a file aside too, rather than refusing.
+        std::fs::write(&path, utf16).unwrap();
+        modify(&path, LOCK_WAIT, |settings| settings.theme = ThemePreference::Dark).unwrap();
+        assert_eq!(load_from(&path).settings.theme, ThemePreference::Dark);
     }
 
     #[test]
@@ -555,9 +564,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(windows)]
     fn a_document_that_cannot_be_read_is_not_replaced_with_defaults() {
-        use std::os::windows::fs::OpenOptionsExt;
         const FILE_SHARE_WRITE: u32 = 0x2;
         const FILE_SHARE_DELETE: u32 = 0x4;
         let temp = TempDir::new("settings-unreadable");
@@ -582,20 +589,5 @@ mod tests {
         drop(holder);
         assert_eq!(std::fs::read(&path).unwrap(), before, "the document is untouched");
         assert_eq!(load_from(&path).settings.draft, Some(draft));
-    }
-
-    #[test]
-    fn a_save_that_cannot_complete_reports_an_error() {
-        let temp = TempDir::new("settings-fail");
-        // A directory where the file should be makes the rename fail.
-        let path = temp.path().join("settings.json");
-        std::fs::create_dir_all(&path).unwrap();
-        assert!(save_to(&path, &AppSettings::default()).is_err());
-        let names: Vec<String> = std::fs::read_dir(temp.path())
-            .unwrap()
-            .flatten()
-            .map(|e| e.file_name().to_string_lossy().into_owned())
-            .collect();
-        assert_eq!(names, vec!["settings.json"], "the temporary file is removed");
     }
 }

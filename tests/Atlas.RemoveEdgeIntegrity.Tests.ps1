@@ -24,6 +24,7 @@ BeforeAll {
             'Assert-MicrosoftSignedInstaller',
             'Invoke-MicrosoftWebViewDownload',
             'Wait-EdgeUninstallerProcesses',
+            'Invoke-EdgeUninstallers',
             'Remove-EdgeRegistration',
             'Remove-EdgeRegistryKey',
             'DisableEdgeBrowserServices',
@@ -42,6 +43,8 @@ BeforeAll {
 
 Describe 'Edge removal preserves shared WebView2 infrastructure' {
     BeforeEach {
+        # The extracted functions run under the strict mode Remove-Edge.ps1 sets.
+        Set-StrictMode -Version 3.0
         . $script:edgeFunctions['Remove-EdgeRegistration']
         . $script:edgeFunctions['Remove-EdgeRegistryKey']
         . $script:edgeFunctions['DisableEdgeBrowserServices']
@@ -97,29 +100,66 @@ Describe 'Edge removal preserves shared WebView2 infrastructure' {
         Should -Invoke Set-Service -Times 0 -ParameterFilter { $Name -eq 'edgeupdate' }
     }
 
-    It 'stops Edge while leaving WebView2 and the updater running' {
-        Mock Get-Service { @() }
+    It 'stops Edge while leaving WebView2, the updater and other Microsoft apps running' {
+        Mock Get-Service { [pscustomobject]@{ Name = 'MicrosoftEdgeElevationService' } }
         Mock Stop-Service {}
-        Mock Get-Process { @(
-            [pscustomobject]@{ Id = 101; Name = 'msedge'; Path = 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe' }
-            [pscustomobject]@{ Id = 102; Name = 'msedgewebview2'; Path = 'C:\Program Files (x86)\Microsoft\EdgeWebView\Application\msedgewebview2.exe' }
-            [pscustomobject]@{ Id = 103; Name = 'MicrosoftEdgeUpdate'; Path = 'C:\Program Files (x86)\Microsoft\EdgeUpdate\MicrosoftEdgeUpdate.exe' }
-        ) }
+        Mock Get-Process {
+            $microsoft = Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Microsoft'
+            @(
+                [pscustomobject]@{ Id = 101; Name = 'msedge'; Path = "$microsoft\Edge\Application\msedge.exe" }
+                [pscustomobject]@{ Id = 102; Name = 'msedgewebview2'; Path = "$microsoft\EdgeWebView\Application\msedgewebview2.exe" }
+                [pscustomobject]@{ Id = 103; Name = 'MicrosoftEdgeUpdate'; Path = "$microsoft\EdgeUpdate\MicrosoftEdgeUpdate.exe" }
+                # Only its path marks this one as Edge's.
+                [pscustomobject]@{ Id = 104; Name = 'setup'; Path = "$microsoft\Edge\Application\141.0.0.0\Installer\setup.exe" }
+                [pscustomobject]@{ Id = 105; Name = 'OneDrive'; Path = "$microsoft\OneDrive\OneDrive.exe" }
+            )
+        }
         Mock Stop-Process {}
         KillEdgeProcesses
+        Should -Invoke Stop-Service -Times 1 -Exactly
+        Should -Invoke Stop-Process -Times 2 -Exactly
         Should -Invoke Stop-Process -Times 1 -Exactly -ParameterFilter { $Id -eq 101 }
-        Should -Invoke Stop-Process -Times 0 -ParameterFilter { $Id -in @(102, 103) }
+        Should -Invoke Stop-Process -Times 1 -Exactly -ParameterFilter { $Id -eq 104 }
+    }
+
+    It 'finds nothing to stop once Edge has exited' {
+        # The second call, after the uninstallers, almost always sees this.
+        Mock Get-Service { [pscustomobject]@{ Name = 'MicrosoftEdgeElevationService' } }
+        Mock Stop-Service {}
+        Mock Get-Process {
+            $microsoft = Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Microsoft'
+            @(
+                [pscustomobject]@{ Id = 102; Name = 'msedgewebview2'; Path = "$microsoft\EdgeWebView\Application\msedgewebview2.exe" }
+                [pscustomobject]@{ Id = 103; Name = 'MicrosoftEdgeUpdate'; Path = "$microsoft\EdgeUpdate\MicrosoftEdgeUpdate.exe" }
+            )
+        }
+        Mock Stop-Process {}
+        { KillEdgeProcesses } | Should -Not -Throw
+        Should -Invoke Stop-Process -Times 0
+    }
+
+    It 'still stops Edge when its elevation service is already gone' {
+        Mock Get-Service {}
+        Mock Stop-Service {}
+        Mock Get-Process {
+            [pscustomobject]@{
+                Id = 101; Name = 'msedge'
+                Path = Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Microsoft\Edge\Application\msedge.exe'
+            }
+        }
+        Mock Stop-Process {}
+        { KillEdgeProcesses } | Should -Not -Throw
+        Should -Invoke Stop-Service -Times 0
+        Should -Invoke Stop-Process -Times 1 -Exactly -ParameterFilter { $Id -eq 101 }
     }
 }
 
 Describe 'Remove-Edge detached uninstaller launch window' {
     BeforeEach {
+        Set-StrictMode -Version 3.0
         . $script:waitEdgeUninstallerProcesses
-        function Write-Status {
-            param([string]$Text, $Level)
-            $null = $Text
-            $null = $Level
-        }
+        # Keeps these fixtures out of the real Atlas install and warnings logs.
+        Mock Write-AtlasLog
     }
 
     It 'returns without delay or termination when every tracked uninstaller has exited' {
@@ -132,6 +172,7 @@ Describe 'Remove-Edge detached uninstaller launch window' {
         Should -Invoke Get-Process -Times 1 -Exactly -ParameterFilter { $Id -eq 4101 }
         Should -Invoke Start-Sleep -Times 0
         Should -Invoke Stop-Process -Times 0
+        Should -Invoke Write-AtlasLog -Times 0 -ParameterFilter { $Level -eq 'Warning' }
     }
 
     It 'terminates and verifies an uninstaller that outlives its launch window' {
@@ -151,6 +192,7 @@ Describe 'Remove-Edge detached uninstaller launch window' {
             $Id -eq 4102 -and $Force
         }
         Should -Invoke Get-Process -Times 2 -Exactly -ParameterFilter { $Id -eq 4102 }
+        Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter { $Level -eq 'Warning' }
     }
 
     It 'refuses direct removal when uninstaller termination cannot be confirmed' {
@@ -166,6 +208,28 @@ Describe 'Remove-Edge detached uninstaller launch window' {
         Should -Invoke Stop-Process -Times 1 -Exactly -ParameterFilter {
             $Id -eq 4103 -and $Force
         }
+    }
+
+    It 'launches every installed version''s uninstaller and waits for each one' {
+        . $script:edgeFunctions['Invoke-EdgeUninstallers']
+        function Write-Status { param($Text, $Level) $null = $Text; $null = $Level }
+        $application = Join-Path $TestDrive 'Edge\Application'
+        foreach ($version in '154.0.4258.48', '156.0.4314.42') {
+            $installer = New-Item -ItemType Directory -Force -Path (Join-Path $application "$version\Installer")
+            Set-Content -LiteralPath (Join-Path $installer.FullName 'setup.exe') -Value ''
+        }
+        $script:nextUninstallerId = 4200
+        Mock Start-Process { [pscustomobject]@{ Id = ++$script:nextUninstallerId } }
+        Mock Get-Process
+        Mock Start-Sleep
+
+        Invoke-EdgeUninstallers -Root @($application, (Join-Path $TestDrive 'Missing\Application'))
+
+        Should -Invoke Start-Process -Times 2 -Exactly -ParameterFilter {
+            $ArgumentList -ceq '--uninstall --system-level --force-uninstall'
+        }
+        Should -Invoke Get-Process -Times 1 -Exactly -ParameterFilter { $Id -eq 4201 }
+        Should -Invoke Get-Process -Times 1 -Exactly -ParameterFilter { $Id -eq 4202 }
     }
 }
 

@@ -8,9 +8,10 @@ The Windows PowerShell tests need Windows PowerShell 5.1; the build tools and bu
 need PowerShell 7. On each, install the CI versions of Pester (5.7.1) and PSScriptAnalyzer
 (1.25.0); see `.github/workflows/test.yml` and `lint.yml`. The inbox Pester 3 is too old.
 
-Run unit tests unelevated; they use mocks, temporary files and scratch HKCU keys. Run
-install and configuration checks only in a disposable Windows VM, never on a development
-host.
+Run unit tests unelevated; they use mocks, temporary files and scratch HKCU keys. CI runs
+them elevated, so a test must give the same result under either token: mock the privilege
+check or set up the state it reads, rather than branching on the real token. Run install
+and configuration checks only in a disposable Windows VM, never on a development host.
 
 Release candidates need the evidence listed in the
 [release verification matrix](reliability-verification-matrix.md); rerun the relevant VM and
@@ -146,9 +147,13 @@ install can: the front door, the TrustedInstaller broker, plan phases, sign-in r
 the health check. Take the checkpoint after Windows setup, before installing Atlas.
 
 ```powershell
+pwsh tools/build/Build-Playbook.ps1 -FileName 'Atlas Lab' -ReplaceOldPlaybook -DontOpenPbLocation
 pwsh tools/lab/Invoke-AtlasLabRun.ps1 -VMName AtlasLab -CheckpointName clean `
-    -Credential (Get-Credential) -PlaybookPath "playbook\Atlas Test.apbx"
+    -Credential (Get-Credential) -PlaybookPath "playbook\Atlas Lab.apbx"
 ```
+
+The lab needs a full build: a `-LocalTest` build leaves out `<SupportedBuilds>`, so the
+front door refuses it.
 
 Each run restores the checkpoint, copies the Atlas package in over PowerShell Direct,
 installs Atlas unattended through `Scripts\Entry\Install-Atlas.ps1`, reboots and runs

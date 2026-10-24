@@ -48,6 +48,9 @@ BeforeAll {
     Import-FunctionUnderTest -Path $script:newUserScript -Name Invoke-CurrentSessionExplorerRefresh
     Import-FunctionUnderTest -Path $script:newUserScript -Name Set-AtlasFirstLogonPreferences
     Import-FunctionUnderTest -Path $script:newUserScript -Name Set-SearchTaskbarMode
+    Import-FunctionUnderTest -Path $script:newUserScript -Name Test-BuiltInAdministrator
+    Import-FunctionUnderTest -Path $script:newUserScript -Name Test-FullAdministratorToken
+    Import-FunctionUnderTest -Path $script:newUserScript -Name Get-UserSetupTokenBlock
 
     $tokens = $null
     $errors = $null
@@ -93,6 +96,21 @@ BeforeAll {
         return $null
     }
 
+    # First sign-in writes the Web Search state's user values itself, so read them from
+    # the definition: its search-box mode, and its SearchSettings values that carry data.
+    function Get-WebSearchUserState {
+        param([Parameter(Mandatory = $true)][string]$State)
+
+        $definition = Import-PowerShellDataFile -LiteralPath (Join-Path $script:AtlasTestScriptsRoot '..\Toggles\General\WebSearch.psd1')
+        $registry = @(@($definition.States | Where-Object { $_.Name -ceq $State })[0].Registry)
+        $modes = @($registry | Where-Object { $_.Name -ceq 'SearchboxTaskbarMode' -and $_.ContainsKey('Data') })
+        $modes.Count | Should -Be 1
+        [pscustomobject]@{
+            Mode     = $modes[0].Data
+            Settings = @($registry | Where-Object { $_.Path -like '*\SearchSettings' -and $_.ContainsKey('Data') })
+        }
+    }
+
     # Returns the AST of the argument bound to -Name on one command: either the
     # attached '-Name:value' argument or the element that follows the parameter.
     function Get-CommandParameterArgument {
@@ -126,6 +144,9 @@ AfterAll {
     Remove-Item Function:\Set-SetupMarker -ErrorAction SilentlyContinue
     Remove-Item Function:\Invoke-AtlasDesktopCommand -ErrorAction SilentlyContinue
     Remove-Item Function:\Invoke-CurrentSessionExplorerRefresh -ErrorAction SilentlyContinue
+    Remove-Item Function:\Test-BuiltInAdministrator -ErrorAction SilentlyContinue
+    Remove-Item Function:\Test-FullAdministratorToken -ErrorAction SilentlyContinue
+    Remove-Item Function:\Get-UserSetupTokenBlock -ErrorAction SilentlyContinue
 }
 
 Describe 'First-logon search preferences' {
@@ -140,9 +161,74 @@ Describe 'First-logon search preferences' {
         Mock Invoke-AtlasRegistryTargetOperation -ModuleName Atlas.Registry {
             throw $script:searchRefusal
         } -ParameterFilter { $Path -eq 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings' }
+        # Keep this PC's own Atlas choices out of the default case.
+        Mock Get-ItemProperty { $null } -ParameterFilter { $Path -eq 'HKLM:\SOFTWARE\AtlasOS\Services\WebSearch' }
     }
     AfterEach {
         Remove-Variable windir, sid -Scope Global -ErrorAction SilentlyContinue
+    }
+
+    It 'keeps a recorded Enable Web Search choice instead of the Atlas default' {
+        $script:webSearchState = Get-WebSearchUserState -State 'Enable'
+        Mock Get-ItemProperty { [pscustomobject]@{ state = 1 } } -ParameterFilter {
+            $Path -eq 'HKLM:\SOFTWARE\AtlasOS\Services\WebSearch' -and $Name -eq 'state'
+        }
+        Mock Invoke-AtlasRegistryEntries {}
+
+        Set-SearchTaskbarMode
+
+        # The cache mirrors the mode, so it takes the definition's mode too.
+        Should -Invoke Set-ItemProperty -Times 2 -Exactly -ParameterFilter {
+            $Path -eq 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' -and
+            $Name -in @('SearchboxTaskbarMode', 'SearchboxTaskbarModeCache') -and
+            $Value -eq $script:webSearchState.Mode
+        }
+        Should -Invoke Set-ItemProperty -Times 2 -Exactly
+        Should -Invoke Invoke-AtlasRegistryEntries -Times 1 -Exactly -ParameterFilter {
+            $written = @($Entries | ForEach-Object { '{0}={1}' -f $_.Name, $_.Data } | Sort-Object)
+            $expected = @($script:webSearchState.Settings | ForEach-Object { '{0}={1}' -f $_.Name, $_.Data } | Sort-Object)
+            $expected.Count -gt 0 -and ($written -join ';') -ceq ($expected -join ';')
+        }
+    }
+
+    It 'applies the Atlas default when the recorded Web Search choice is <Recorded>' -ForEach @(
+        @{ Recorded = 'Disable'; Record = [pscustomobject]@{ state = 0 } }
+        @{ Recorded = 'a string'; Record = [pscustomobject]@{ state = '1' } }
+    ) {
+        $script:webSearchState = Get-WebSearchUserState -State 'Disable'
+        Mock Get-ItemProperty { $Record } -ParameterFilter {
+            $Path -eq 'HKLM:\SOFTWARE\AtlasOS\Services\WebSearch' -and $Name -eq 'state'
+        }
+        Mock Invoke-AtlasRegistryEntries {}
+
+        Set-SearchTaskbarMode
+
+        Should -Invoke Set-ItemProperty -Times 2 -Exactly -ParameterFilter {
+            $Name -in @('SearchboxTaskbarMode', 'SearchboxTaskbarModeCache') -and
+            $Value -eq $script:webSearchState.Mode
+        }
+        # Every value written is the default state's own value for it.
+        Should -Invoke Invoke-AtlasRegistryEntries -Times 1 -Exactly -ParameterFilter {
+            $expected = @($script:webSearchState.Settings | ForEach-Object { '{0}={1}' -f $_.Name, $_.Data })
+            @($Entries).Count -eq 4 -and
+            @($Entries | Where-Object { $expected -notcontains ('{0}={1}' -f $_.Name, $_.Data) }).Count -eq 0
+        }
+    }
+
+    It 'reads the Web Search record without Atlas.Toggles, which the delayed finalizer does not load' {
+        $definition = $script:newUserAst.Find({
+                param($node)
+                $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
+                $node.Name -eq 'Set-SearchTaskbarMode'
+            }, $true)
+        $togglesCommands = @((Import-PowerShellDataFile -LiteralPath (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1')).FunctionsToExport)
+        $used = @(Find-CommandAst -Ast $definition.Body -Name 'Get-ItemProperty')
+        $used.Count | Should -Be 1
+        @($definition.Body.FindAll({
+                    param($node)
+                    $node -is [Management.Automation.Language.CommandAst] -and
+                    $node.GetCommandName() -in $togglesCommands
+                }, $true)).Count | Should -Be 0
     }
 
     It 'finishes search finalization when Windows refuses its optional preferences' {
@@ -161,6 +247,130 @@ Describe 'First-logon search preferences' {
             throw 'Unexpected registry failure'
         } -ParameterFilter { $Path -eq 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings' }
         { Set-SearchTaskbarMode } | Should -Throw '*Unexpected registry failure*'
+    }
+}
+
+Describe 'Later-account setup with a full administrator token' {
+    BeforeAll {
+        $statements = @($script:newUserAst.EndBlock.Statements)
+        $script:tokenGate = @($statements | Where-Object {
+                $_ -is [Management.Automation.Language.IfStatementAst] -and
+                @(Find-CommandAst -Ast $_ -Name 'Write-Warning' |
+                        Where-Object { $_.Extent.Text -like '*skipped user setup*' }).Count -gt 0
+            })
+        $script:moduleImports = @($statements | Where-Object {
+                $_ -is [Management.Automation.Language.ForEachStatementAst] -and
+                @(Find-CommandAst -Ast $_ -Name 'Import-Module').Count -gt 0
+            })
+        $script:filesCheck = @($statements | Where-Object {
+                $_ -is [Management.Automation.Language.IfStatementAst] -and
+                $_.Clauses[0].Item1.Extent.Text -like '*`[IO.File`]::Exists($bootstrap)*' -and
+                $_.Clauses[0].Item2.Extent.Text -like '*user-setup files are missing*'
+            })
+        $script:retryWrites = @(Find-CommandAst -Ast $script:newUserAst -Name 'Set-ItemProperty' | Where-Object {
+                $nameArgument = Get-CommandParameterArgument -Command $_ -Name 'Name'
+                $null -ne $nameArgument -and $nameArgument.Extent.Text -ceq 'RunScript'
+            })
+        # The token check, the sign-in retry and the gate, run on their own.
+        $checkStart = @($statements | Where-Object {
+                $_ -is [Management.Automation.Language.AssignmentStatementAst] -and
+                $_.Left.Extent.Text -eq '$tokenBlock'
+            })[0].Extent.StartOffset
+        $script:tokenCheck = [scriptblock]::Create("param(`$FromInstall)`n" +
+            $script:newUserAst.Extent.Text.Substring($checkStart, $script:tokenGate[0].Extent.EndOffset - $checkStart))
+    }
+
+    BeforeEach {
+        $script:principal = [pscustomobject]@{ IsAdmin = $true } |
+            Add-Member -MemberType ScriptMethod -Name IsInRole -Value { $this.IsAdmin } -PassThru
+        Mock New-Object { $script:principal } -ParameterFilter { $TypeName -eq 'Security.Principal.WindowsPrincipal' }
+        Mock Test-BuiltInAdministrator { $false }
+        Mock Get-ItemProperty { $null } -ParameterFilter { $Name -eq 'FilterAdministratorToken' }
+        Mock Test-Path { $true }
+        Mock New-Item {}
+        Mock Set-ItemProperty {}
+        Mock Write-Warning {}
+    }
+
+    It 'returns <Expected> for an administrator token <Admin> with EnableLUA <EnableLua>' -ForEach @(
+        @{ Admin = $false; EnableLua = 0; Expected = $null }
+        @{ Admin = $true; EnableLua = 0; Expected = 'UacOff' }
+        @{ Admin = $true; EnableLua = $null; Expected = 'UacOff' }
+        @{ Admin = $true; EnableLua = 1; Expected = 'BuiltInAdministrator' }
+    ) {
+        $script:principal.IsAdmin = $Admin
+        Mock Get-ItemProperty { if ($null -ne $EnableLua) { [pscustomobject]@{ EnableLUA = $EnableLua } } } -ParameterFilter { $Name -eq 'EnableLUA' }
+
+        Get-UserSetupTokenBlock | Should -Be $Expected
+    }
+
+    It 'warns and <Retry> the sign-in retry for <Account> when EnableLUA is <EnableLua>' -ForEach @(
+        @{ Account = 'another administrator'; BuiltIn = $false; ApprovalMode = $null; EnableLua = 0; Retry = 'keeps'; RetryCount = 1; Reason = '*(UAC) is off*' }
+        @{ Account = 'another administrator'; BuiltIn = $false; ApprovalMode = $null; EnableLua = $null; Retry = 'keeps'; RetryCount = 1; Reason = '*(UAC) is off*' }
+        @{ Account = 'another administrator'; BuiltIn = $false; ApprovalMode = $null; EnableLua = 1; Retry = 'drops'; RetryCount = 0; Reason = '*built-in Administrator*' }
+        @{ Account = 'the built-in Administrator'; BuiltIn = $true; ApprovalMode = $null; EnableLua = 0; Retry = 'drops'; RetryCount = 0; Reason = '*built-in Administrator*' }
+        @{ Account = 'the built-in Administrator in Admin Approval Mode'; BuiltIn = $true; ApprovalMode = 1; EnableLua = 0; Retry = 'keeps'; RetryCount = 1; Reason = '*(UAC) is off*' }
+    ) {
+        Mock Get-ItemProperty { if ($null -ne $EnableLua) { [pscustomobject]@{ EnableLUA = $EnableLua } } } -ParameterFilter { $Name -eq 'EnableLUA' }
+        Mock Test-BuiltInAdministrator { $BuiltIn }
+        if ($null -ne $ApprovalMode) {
+            Mock Get-ItemProperty { [pscustomobject]@{ FilterAdministratorToken = $ApprovalMode } } -ParameterFilter { $Name -eq 'FilterAdministratorToken' }
+        }
+
+        & $script:tokenCheck -FromInstall $false
+
+        # A retry helps only when turning UAC on gives the account a standard token, which
+        # it doesn't for the built-in Administrator outside Admin Approval Mode.
+        Should -Invoke Set-ItemProperty -Times $RetryCount -Exactly -ParameterFilter { $Name -eq 'RunScript' }
+        Should -Invoke Write-Warning -Times 1 -Exactly -ParameterFilter { $Message -like $Reason }
+    }
+
+    It 'queues the sign-in retry and carries on for a standard user token' {
+        $script:principal.IsAdmin = $false
+
+        & $script:tokenCheck -FromInstall $false
+
+        Should -Invoke Set-ItemProperty -Times 1 -Exactly -ParameterFilter { $Name -eq 'RunScript' }
+        Should -Invoke Write-Warning -Times 0 -Exactly
+    }
+
+    It 'stops before the user-setup files are checked or any module is imported' {
+        $script:tokenGate.Count | Should -Be 1
+        $script:moduleImports.Count | Should -Be 1
+        $script:filesCheck.Count | Should -Be 1
+        $returns = @($script:tokenGate[0].Clauses[0].Item2.FindAll({
+                    param($node)
+                    $node -is [Management.Automation.Language.ReturnStatementAst]
+                }, $true))
+        $returns.Count | Should -BeGreaterThan 0
+        $gateEnd = $script:tokenGate[0].Extent.EndOffset
+        $gateEnd | Should -BeLessThan $script:filesCheck[0].Extent.StartOffset
+        $gateEnd | Should -BeLessThan $script:moduleImports[0].Extent.StartOffset
+    }
+
+    It 'queues the sign-in retry before stopping, decided by the same token check' {
+        $script:retryWrites.Count | Should -Be 1
+        $script:retryWrites[0].Extent.EndOffset | Should -BeLessThan $script:tokenGate[0].Extent.StartOffset
+
+        $retryCondition = $null
+        for ($node = $script:retryWrites[0].Parent; $null -ne $node; $node = $node.Parent) {
+            if ($node -is [Management.Automation.Language.IfStatementAst]) {
+                $retryCondition = $node.Clauses[0].Item1
+                break
+            }
+        }
+        $retryCondition | Should -Not -BeNullOrEmpty
+        $variablesIn = {
+            param($Ast)
+            @($Ast.FindAll({
+                        param($node)
+                        $node -is [Management.Automation.Language.VariableExpressionAst]
+                    }, $true) | ForEach-Object { $_.VariablePath.UserPath } | Sort-Object -Unique)
+        }
+        $retryVariables = & $variablesIn $retryCondition
+        $retryVariables | Should -Contain 'FromInstall'
+        $gateVariables = & $variablesIn $script:tokenGate[0].Clauses[0].Item1
+        @($gateVariables | Where-Object { $retryVariables -contains $_ }).Count | Should -BeGreaterThan 0
     }
 }
 

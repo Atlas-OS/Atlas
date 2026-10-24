@@ -1,0 +1,65 @@
+[
+  {
+    "name": "A CPU menu launcher's record where policy turns automatic updates off",
+    "state": 1,
+    "launcher": "C:\\Windows\\AtlasDesktop\\3. General Configuration\\CPU Idle\\Desktop Context Menu\\Add Idle Toggle in Desktop Context Menu.cmd",
+    "policy": { "kind": "DWord", "data": 2 },
+    "record": 0
+  },
+  {
+    "name": "A CPU menu launcher's record where policy leaves automatic updates on",
+    "state": 1,
+    "launcher": "D:/Atlas/Remove Idle Toggle in Desktop Context Menu (default).cmd",
+    "policy": { "kind": "DWord", "data": 4 },
+    "record": 1
+  },
+  {
+    "name": "A CPU menu launcher's record, named in other case, with no update policy: Windows's default",
+    "state": 1,
+    "launcher": "C:/Atlas/add idle toggle in desktop context menu.cmd",
+    "policy": null,
+    "record": 1
+  },
+  {
+    "name": "A CPU menu launcher's record with an update policy stored as text",
+    "state": 1,
+    "launcher": "C:\\Windows\\AtlasDesktop\\3. General Configuration\\CPU Idle\\Desktop Context Menu\\Add Idle Toggle in Desktop Context Menu.cmd",
+    "policy": { "kind": "String", "data": "2" },
+    "record": null
+  },
+  {
+    "name": "A CPU menu launcher's record with an update policy value Windows doesn't define",
+    "state": 1,
+    "launcher": "C:\\Windows\\AtlasDesktop\\3. General Configuration\\CPU Idle\\Desktop Context Menu\\Remove Idle Toggle in Desktop Context Menu (default).cmd",
+    "policy": { "kind": "DWord", "data": 9 },
+    "record": null
+  },
+  {
+    "name": "Automatic updates turned off, whatever the policy says, even from a CPU menu launcher",
+    "state": 0,
+    "launcher": "C:\\Windows\\AtlasDesktop\\3. General Configuration\\CPU Idle\\Desktop Context Menu\\Add Idle Toggle in Desktop Context Menu.cmd",
+    "policy": { "kind": "String", "data": "2" },
+    "record": 0
+  },
+  {
+    "name": "Another launcher's record is kept as written",
+    "state": 1,
+    "launcher": "C:/Atlas/Enable Automatic Updates.cmd",
+    "policy": { "kind": "DWord", "data": 2 },
+    "record": 1
+  },
+  {
+    "name": "A launcher whose name only starts like a CPU menu one",
+    "state": 1,
+    "launcher": "C:/Atlas/Add Idle Toggle in Desktop Context Menu.cmd.exe",
+    "policy": { "kind": "DWord", "data": 2 },
+    "record": 1
+  },
+  {
+    "name": "A record without a launcher is kept as written",
+    "state": 1,
+    "launcher": null,
+    "policy": { "kind": "DWord", "data": 2 },
+    "record": 1
+  }
+]

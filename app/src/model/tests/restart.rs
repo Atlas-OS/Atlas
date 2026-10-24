@@ -38,7 +38,6 @@ fn installed_at(minutes: i64) -> AtlasState {
 /// and nothing of its own is saved. The installing view, which has its own
 /// Restart now, never shows it.
 #[test]
-#[cfg(windows)]
 fn home_offers_the_restart_a_finished_install_still_owes() {
     run_model_test(async move |mut cx| {
         let (temp, machine, mut env) = fixture("model-restart-owed");
@@ -118,7 +117,6 @@ fn home_offers_the_restart_a_finished_install_still_owes() {
 /// Cancelling a countdown stops its timer: a countdown begun straight after
 /// asks Windows to restart once, not once per timer.
 #[test]
-#[cfg(windows)]
 fn an_old_restart_timer_cannot_touch_a_newer_countdown() {
     run_model_test(async move |mut cx| {
         let (temp, machine, env) = fixture("model-restart-timer");
@@ -158,7 +156,6 @@ fn an_old_restart_timer_cannot_touch_a_newer_countdown() {
 }
 
 #[test]
-#[cfg(windows)]
 fn restart_now_asks_windows_at_once_and_the_request_cannot_be_taken_back() {
     run_model_test(async move |mut cx| {
         let (temp, machine, env) = fixture("model-restart-now");
@@ -222,7 +219,6 @@ fn restart_now_asks_windows_at_once_and_the_request_cannot_be_taken_back() {
 /// later" in any of them stops them all, and Done in the window that
 /// declined does not bring the restart back.
 #[test]
-#[cfg(windows)]
 fn restart_later_in_one_window_stops_every_window_following_the_install() {
     run_model_test(async move |mut cx| {
         let (temp, machine, env) = fixture("model-restart-declined");
@@ -267,7 +263,6 @@ fn restart_later_in_one_window_stops_every_window_following_the_install() {
 /// is open, Keep open starts the countdown again, and Close without
 /// restarting still declines it for every window.
 #[test]
-#[cfg(windows)]
 fn the_close_prompt_holds_the_restart_countdown() {
     run_model_test(async move |mut cx| {
         let (temp, machine, env) = fixture("model-restart-held");
@@ -375,7 +370,6 @@ async fn installed_with_others(
 /// restart keeps the PC running with the restart still owed, and only an
 /// explicit Restart anyway asks Windows.
 #[test]
-#[cfg(windows)]
 fn a_restart_over_other_peoples_sessions_waits_for_the_user() {
     run_model_test(async move |mut cx| {
         let (_temp, machine, model) = installed_with_others(
@@ -414,7 +408,6 @@ fn a_restart_over_other_peoples_sessions_waits_for_the_user() {
 /// Someone who signs in while the countdown runs holds it at the end: the
 /// countdown goes, and Atlas asks instead of restarting.
 #[test]
-#[cfg(windows)]
 fn someone_signing_in_during_the_countdown_holds_the_restart() {
     run_model_test(async move |mut cx| {
         let (_temp, machine, model) =
@@ -432,10 +425,31 @@ fn someone_signing_in_during_the_countdown_holds_the_restart() {
     });
 }
 
+/// A countdown held by the close prompt that resumes after someone else
+/// signed in ends there: Atlas asks instead, and Don't restart leaves no
+/// countdown saying Windows is restarting.
+#[test]
+fn a_held_countdown_resumed_over_other_peoples_sessions_ends() {
+    run_model_test(|mut cx| async move {
+        let (_temp, machine, env) = fixture("restart-held-others");
+        let model = new_model(&mut cx, env);
+        act(&mut cx, &model, |m, cx| m.begin_restart_countdown(cx));
+        act(&mut cx, &model, |m, _| m.hold_restart());
+        *machine.others.lock().unwrap() = Some(vec!["Alex".into()]);
+        act(&mut cx, &model, |m, cx| m.resume_restart(cx));
+        read(&cx, &model, |m| {
+            assert_eq!(m.restart_confirmation().map(|asked| asked.kind), Some(RestartKind::Install));
+            assert!(m.restart_countdown().is_none(), "nothing counts down while others are signed in");
+        });
+        act(&mut cx, &model, |m, cx| m.decline_restart_confirmation(cx));
+        read(&cx, &model, |m| assert!(m.restart_countdown().is_none() && !m.restart_cancellable()));
+        assert_eq!(*machine.scheduled.lock().unwrap(), 0);
+    });
+}
+
 /// A session list Windows won't give doesn't stop the restart: the
 /// countdown was the warning, as before Atlas looked.
 #[test]
-#[cfg(windows)]
 fn an_unreadable_session_list_does_not_hold_the_restart() {
     run_model_test(async move |mut cx| {
         let (temp, machine, env) = fixture("model-restart-others-unreadable");
@@ -463,7 +477,6 @@ fn an_unreadable_session_list_does_not_hold_the_restart() {
 
 /// Get ready's restart and Home's Restart now ask the same question.
 #[test]
-#[cfg(windows)]
 fn get_ready_and_home_ask_before_restarting_over_others() {
     run_model_test(async move |mut cx| {
         let (temp, machine, mut env) = fixture("model-restart-others-home");

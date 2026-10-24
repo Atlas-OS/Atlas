@@ -160,10 +160,8 @@ Describe 'Test-AtlasTweakSchema' {
         $problemText | Should -Match "Run entry 'Args' must be an array"
         $problemText | Should -Match "AllowedExitCodes.*unique integer exit-code set"
         $problemText | Should -Match "AllowedExitCodes.*only supported for the exact.*dism\.exe"
-        $problemText | Should -Match "AllowedExitCodes.*cannot be combined with.*RunAs"
-        $problemText | Should -Match "Run entry 'RunAs=User' requires 'Wait = \`$true'"
-        $problemText | Should -Match "Run entry 'RunAs=User' cannot ignore"
-        $problemText | Should -Match "Run entry 'RunAs' must be exactly 'User'"
+        $problemText | Should -Match "Run entry has an unknown key 'RunAs'"
+        $problemText | Should -Match "Run entry 'Wait' can only be"
         $problemText | Should -Match "RemovePaths entry 'IgnoreErrors' must be a boolean"
         $problemText | Should -Match 'does not exist next to the tweak file'
     }
@@ -198,6 +196,37 @@ Describe 'Included tweak definitions' {
         $problems = @(Test-AtlasTweakSchema -Path $script:shippedTweaksRoot)
         $report = @($problems | ForEach-Object { "$($_.Path): $($_.Problem)" }) -join "`n"
         $report | Should -BeNullOrEmpty
+    }
+
+    # The schema checks only that a Toggle entry looks like a name and a state. A toggle
+    # renamed or left without that state would fail the tweak's whole category during install,
+    # and so would a state spelt in another case: the engine passes the tweak's spelling on,
+    # and companions match it case-sensitively.
+    It 'names an installed toggle state in every Toggle entry' {
+        Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1')
+        $togglesRoot = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles'
+        $references = @(Get-ChildItem -LiteralPath $script:shippedTweaksRoot -Filter '*.psd1' -File -Recurse |
+                Where-Object Name -cne 'tweaks.manifest.psd1' |
+                ForEach-Object {
+                    $slug = $_.FullName.Substring($script:shippedTweaksRoot.Length + 1) -replace '\\', '/' -replace '\.psd1$', ''
+                    $tweak = Import-PowerShellDataFile -LiteralPath $_.FullName
+                    foreach ($entry in @($tweak['Toggle'] | Where-Object { $null -ne $_ })) {
+                        [pscustomobject]@{ Slug = $slug; Name = [string]$entry['Name']; State = [string]$entry['State'] }
+                    }
+                })
+
+        $references.Count | Should -BeGreaterThan 0
+        foreach ($reference in $references) {
+            $because = "$($reference.Slug) applies toggle $($reference.Name) state $($reference.State)"
+            try {
+                $definition = Get-AtlasToggleDefinition -Name $reference.Name -TogglesRoot $togglesRoot
+            }
+            catch {
+                throw "$because, which has no installed definition: $($_.Exception.Message)"
+            }
+            [string]$definition['Name'] | Should -BeExactly $reference.Name -Because $because
+            @($definition['States'].Keys) -ccontains $reference.State | Should -BeTrue -Because $because
+        }
     }
 
     It 'disables and stops PCA before disabling the task its service re-enables' {
@@ -268,21 +297,21 @@ Describe 'Test-AtlasTweakApplicable' {
         Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; Arch = 'X64' } | Should -BeFalse
     }
 
-    It 'defaults OnUpgrade to Both, matching legacy YAML semantics' {
-        Test-AtlasTweakApplicable -Tweak @{ Name = 'T' } | Should -BeTrue
+    # A missing OnUpgrade means Both, matching the legacy YAML semantics.
+    It 'gates OnUpgrade <Label>: fresh <Fresh>, upgrade <Upgrade>, Rebase <Rebase>' -ForEach @(
+        @{ Label = 'missing'; Gates = @{}; Fresh = $true; Upgrade = $true; Rebase = $true }
+        @{ Label = 'Both'; Gates = @{ OnUpgrade = 'Both' }; Fresh = $true; Upgrade = $true; Rebase = $true }
+        @{ Label = 'Skip'; Gates = @{ OnUpgrade = 'Skip' }; Fresh = $true; Upgrade = $false; Rebase = $false }
+        @{ Label = 'Skip with OnRebase Run'; Gates = @{ OnUpgrade = 'Skip'; OnRebase = 'Run' }; Fresh = $true; Upgrade = $false; Rebase = $true }
+        @{ Label = 'Only'; Gates = @{ OnUpgrade = 'Only' }; Fresh = $false; Upgrade = $true; Rebase = $true }
+    ) {
+        $tweak = @{ Name = 'T' } + $Gates
+        $rebaseContext = New-TestContextMock -IsUpgrade $true
+        $rebaseContext | Add-Member -NotePropertyName IsRebase -NotePropertyValue $true
 
-        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock -IsUpgrade $true }
-        Test-AtlasTweakApplicable -Tweak @{ Name = 'T' } | Should -BeTrue
-        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; OnUpgrade = 'Skip' } | Should -BeFalse
-    }
-
-    It 'honors OnUpgrade Only and Both' {
-        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; OnUpgrade = 'Only' } | Should -BeFalse
-        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; OnUpgrade = 'Both' } | Should -BeTrue
-
-        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock -IsUpgrade $true }
-        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; OnUpgrade = 'Only' } | Should -BeTrue
-        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; OnUpgrade = 'Both' } | Should -BeTrue
+        Test-AtlasTweakApplicable -Tweak $tweak -Context (New-TestContextMock) | Should -Be $Fresh
+        Test-AtlasTweakApplicable -Tweak $tweak -Context (New-TestContextMock -IsUpgrade $true) | Should -Be $Upgrade
+        Test-AtlasTweakApplicable -Tweak $tweak -Context $rebaseContext | Should -Be $Rebase
     }
 
     It 'skips Oobe = $false tweaks during OOBE only' {
@@ -374,6 +403,30 @@ Describe 'Invoke-AtlasTweak' {
 
         Should -Invoke Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks -Times 1 -Exactly `
             -ParameterFilter { $Name -ceq 'KeyboardShortcuts' -and $State -ceq $Expected }
+    }
+
+    It 'keeps a mitigations choice recorded since the install on an update, but not on a fresh install: upgrade=<Upgrade>' -ForEach @(
+        @{ Upgrade = $true; Expected = 'WindowsDefault' }
+        @{ Upgrade = $false; Expected = 'Disable' }
+    ) {
+        Mock Get-AtlasContext -ModuleName Atlas.Tweaks {
+            $context = New-TestContextMock -IsUpgrade $Upgrade
+            $context | Add-Member -NotePropertyName Options -NotePropertyValue @('mitigations-disable')
+            $context
+        }
+        Mock Get-AtlasContext -ModuleName Atlas.Toggles {
+            [pscustomobject]@{ AtlasModulesPath = Join-Path $script:AtlasTestScriptsRoot '..' }
+        }
+        # Set Windows Default Mitigations.cmd was run after installing with mitigations off.
+        Mock Get-AtlasToggleState -ModuleName Atlas.Tweaks { [pscustomobject]@{ Name = 'Mitigations'; State = 1 } }
+        Mock Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks
+        Mock Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks
+
+        Invoke-AtlasTweak -Path (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Tweaks\scripts\disable-mitigations.psd1')
+
+        Should -Invoke Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks -Times 1 -Exactly `
+            -ParameterFilter { $Name -ceq 'Mitigations' -and $State -ceq $Expected }
+        Should -Invoke Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks -Times 0 -Exactly
     }
 
     It 'keeps existing keyboard settings when an older options snapshot has no keyboard choice' {
@@ -469,8 +522,9 @@ Describe 'Invoke-AtlasTweak' {
             New-TestContextMock -IsInstallStateBacked $true
         }
         Mock -CommandName Invoke-AtlasAsUser -ModuleName Atlas.Tweaks -MockWith { 0 }
+        $marker = Join-Path -Path $TestDrive -ChildPath 'runas-should-not-run.txt'
         $companion = Join-Path -Path $TestDrive -ChildPath 'runas.ps1'
-        'New-Item -Path (Join-Path $env:TEMP "atlas-runas-should-not-exist.txt") -Force | Out-Null' | Set-Content -Path $companion
+        "New-Item -Path '$($marker -replace "'", "''")' -Force | Out-Null" | Set-Content -Path $companion
         $tweakFile = Join-Path -Path $TestDrive -ChildPath 'runas-tweak.psd1'
         @'
 @{
@@ -487,10 +541,9 @@ Describe 'Invoke-AtlasTweak' {
         # companion into the current process.
         Should -Invoke -CommandName Invoke-AtlasAsUser -ModuleName Atlas.Tweaks -Times 1 `
             -ParameterFilter {
-                -not $PSBoundParameters.ContainsKey('Elevated') -and
                 $Arguments -match '-ExpectedUserSid S-1-5-21-1-2-3-1001$'
             }
-        Test-Path (Join-Path $env:TEMP 'atlas-runas-should-not-exist.txt') | Should -BeFalse
+        Test-Path -LiteralPath $marker | Should -BeFalse
 
         Mock -CommandName Invoke-AtlasAsUser -ModuleName Atlas.Tweaks -MockWith { 9 }
         { Invoke-AtlasTweak -Path $tweakFile } | Should -Throw '*exited with code 9*'
@@ -541,16 +594,14 @@ Describe 'Invoke-AtlasTweak' {
 }
 '@ | Set-Content -Path $tweakFile
 
-        Invoke-AtlasTweak -Path $tweakFile
+        # Unlike the real Windows directory, so the expansion must come from the context.
+        $context = New-TestContextMock
+        $context.WinDir = 'X:\AtlasWin'
+        Invoke-AtlasTweak -Path $tweakFile -Context $context
 
         $captured = [AppDomain]::CurrentDomain.GetData('AtlasTweaksExpandedRun')
-        $captured.FilePath | Should -Be `
-            (Join-Path ([Environment]::GetFolderPath('Windows')) 'System32\example.exe')
-        @($captured.ArgumentList) | Should -Be @(
-            (Join-Path ([Environment]::GetFolderPath('Windows')) 'path with spaces\')
-            'embedded"quote'
-            ''
-        )
+        $captured.FilePath | Should -BeExactly 'X:\AtlasWin\System32\example.exe'
+        @($captured.ArgumentList) | Should -BeExactly @('X:\AtlasWin\path with spaces\', 'embedded"quote', '')
         @($captured.AllowedExitCode) | Should -Be @(0)
     }
 
@@ -581,35 +632,6 @@ Describe 'Invoke-AtlasTweak' {
             Set-Content -Path $wrongExeFile
         { Invoke-AtlasTweak -Path $wrongExeFile } |
             Should -Throw '*AllowedExitCodes is restricted*'
-    }
-
-    It 'runs a User-scoped entry through the exact-user launcher and never ignores its failure' {
-        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith {
-            New-TestContextMock -IsInstallStateBacked $true
-        }
-        Mock -CommandName Invoke-AtlasAsUser -ModuleName Atlas.Tweaks -MockWith { 0 }
-        Mock -CommandName Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks
-        $tweakFile = Join-Path -Path $TestDrive -ChildPath 'user-run-tweak.psd1'
-        @'
-@{
-    Name = 'User Run Tweak'
-    Run = @(
-        @{ Exe = 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'; Args = @('-File', 'C:\Windows\AtlasModules\Scripts\Entry\Invoke-AtlasUserExample.ps1', '-DebloatDefaults'); Wait = $true; RunAs = 'User'; IgnoreErrors = $true }
-    )
-}
-'@ | Set-Content -Path $tweakFile
-
-        Invoke-AtlasTweak -Path $tweakFile
-
-        Should -Invoke -CommandName Invoke-AtlasAsUser -ModuleName Atlas.Tweaks -Times 1 -Exactly `
-            -ParameterFilter {
-                $FilePath -eq 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -and
-                $Arguments -eq '-File C:\Windows\AtlasModules\Scripts\Entry\Invoke-AtlasUserExample.ps1 -DebloatDefaults -ExpectedUserSid S-1-5-21-1-2-3-1001'
-            }
-        Should -Invoke -CommandName Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks -Times 0
-
-        Mock -CommandName Invoke-AtlasAsUser -ModuleName Atlas.Tweaks -MockWith { 5 }
-        { Invoke-AtlasTweak -Path $tweakFile } | Should -Throw '*exited with code 5*'
     }
 
     It 'propagates a required machine Run failure by default' {

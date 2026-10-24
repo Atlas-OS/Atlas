@@ -220,12 +220,14 @@ Describe 'Atlas service backup' {
     }
 
     It 'restores typed values and reports services removed since backup' {
+        # Removed restores to Manual: the real helper skips a missing service bound for
+        # Disabled before it checks AllowMissing, so only a value like this one needs it.
         Write-TestAtlasServicesBackup -Path $script:backupPath -Lines @(
             'Windows Registry Editor Version 5.00'
             '[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Alpha]'
             '"Start"=dword:00000002'
             '[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Removed]'
-            '"Start"=dword:00000004'
+            '"Start"=dword:00000003'
         )
         Mock Set-AtlasServiceStartup -ModuleName Atlas.Services {
             if ($Name -ceq 'Alpha') {
@@ -244,6 +246,12 @@ Describe 'Atlas service backup' {
         $result.MissingCount | Should -Be 1
         Should -Invoke Set-AtlasServiceStartup `
             -ModuleName Atlas.Services -Times 2 -Exactly
+        Should -Invoke Set-AtlasServiceStartup -ModuleName Atlas.Services -Times 1 -Exactly -ParameterFilter {
+            $Name -ceq 'Alpha' -and $StartupType -eq 2 -and $AllowMissing -and $PassThru
+        }
+        Should -Invoke Set-AtlasServiceStartup -ModuleName Atlas.Services -Times 1 -Exactly -ParameterFilter {
+            $Name -ceq 'Removed' -and $StartupType -eq 3 -and $AllowMissing -and $PassThru
+        }
     }
 
 }

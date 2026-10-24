@@ -229,7 +229,7 @@ Describe 'Clear-AtlasTelemetryLogFiles' {
     }
 }
 
-Describe 'Remove-AtlasTelemetryComponents' {
+Describe 'NoTelemetry package choice and state' {
     BeforeEach {
         Mock Write-AtlasLog -ModuleName Atlas.Privacy
         Mock Write-AtlasNote -ModuleName Atlas.Privacy
@@ -242,9 +242,9 @@ Describe 'Remove-AtlasTelemetryComponents' {
         }
     }
 
-    It 'marks the current choice and applies the other one when the package is <Presence>' -TestCases @(
-        @{ Presence = 'absent'; Installed = $false; Current = 2; Choice = 1; Expected = 'package:Install:False' }
-        @{ Presence = 'present'; Installed = $true; Current = 1; Choice = 2; Expected = 'package:Uninstall:False' }
+    It 'marks the current choice and returns the other one when the package is <Presence>' -TestCases @(
+        @{ Presence = 'absent'; Installed = $false; Current = 2; Choice = 1; Expected = 'Add' }
+        @{ Presence = 'present'; Installed = $true; Current = 1; Choice = 2; Expected = 'Remove' }
     ) {
         $global:AtlasPrivacyTestPackage = @{ Installed = $Installed; Current = $Current; Choice = $Choice }
         Mock Get-AtlasTelemetryPackageInstalled -ModuleName Atlas.Privacy { $global:AtlasPrivacyTestPackage.Installed }
@@ -252,9 +252,10 @@ Describe 'Remove-AtlasTelemetryComponents' {
             $CurrentIndex -eq $global:AtlasPrivacyTestPackage.Current
         }
 
-        Remove-AtlasTelemetryComponents
+        Read-AtlasTelemetryPackageChoice | Should -BeExactly $Expected
 
-        @($global:AtlasPrivacyTestCalls) | Should -Be @($Expected)
+        # Choosing changes nothing: the toggle applies the choice in a separate step.
+        @($global:AtlasPrivacyTestCalls).Count | Should -Be 0
         Should -Invoke Read-AtlasChoice -ModuleName Atlas.Privacy -Times 1 -Exactly
     }
 

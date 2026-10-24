@@ -40,6 +40,8 @@ Describe 'Atlas install orchestrator' {
     }
 
     It 'announces and runs an action through the install-state module' {
+        $messages = New-Object 'Collections.Generic.List[string]'
+        Mock Write-AtlasLog { $messages.Add($Message) }
         $probe = New-Module -ScriptBlock {
             function Invoke-Probe { param([scriptblock]$Action) & $Action }
             Export-ModuleMember -Function Invoke-Probe
@@ -47,6 +49,7 @@ Describe 'Atlas install orchestrator' {
         $action = New-AtlasInstallAnnouncedAction -Name 'PreInstall' -Action { 'action ran' }
         $output = & $probe { param($Callback) Invoke-Probe -Action $Callback } $action
         $output | Should -BeExactly 'action ran'
+        $messages.ToArray() | Should -BeExactly @("Running install step 'PreInstall'.")
     }
 
     It 'keeps the owning phase module across a same-name on-disk module import' {

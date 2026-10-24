@@ -268,6 +268,13 @@ impl AppModel {
         self.security_fresh() && security_verified(&self.security, self.security_confirmation, self.elevated)
     }
 
+    /// Whether Windows Security passes the gate only on the user's word for
+    /// the switches that can't be read. The front door is told so, as it
+    /// refuses what it can't read otherwise.
+    pub fn security_confirmed_by_hand(&self) -> bool {
+        confirmed_by_hand(&self.security, self.security_confirmation, self.elevated)
+    }
+
     pub fn can_install(&self) -> bool {
         self.flow.active
             && self.flow.step == Step::Install
@@ -339,7 +346,7 @@ impl AppModel {
     }
 
     pub fn acknowledge_security(&mut self, confirmed: bool, cx: &mut Context<Self>) {
-        if self.locked() || !self.flow.may_edit() {
+        if self.locked() {
             return;
         }
         self.security_confirmation = confirmed.then_some(self.security);
@@ -352,7 +359,7 @@ impl AppModel {
     /// `requirements::bounded`).
     pub fn run_checks(&mut self, cx: &mut Context<Self>) {
         self.refresh_atlas_state();
-        if self.locked() || !self.flow.may_edit() {
+        if self.locked() {
             return;
         }
         self.recheck_record(cx);
@@ -403,7 +410,7 @@ impl AppModel {
     }
 
     pub fn acknowledge_check(&mut self, id: CheckId, confirmed: bool, cx: &mut Context<Self>) {
-        if self.locked() || !self.flow.may_edit() {
+        if self.locked() {
             return;
         }
         if confirmed {
@@ -411,6 +418,14 @@ impl AppModel {
         } else {
             self.acknowledged.remove(&id);
         }
+        cx.notify();
+    }
+
+    /// Goes on past the warning that Windows here looks used, for the rest of
+    /// this flow, Atlas's own restarts included.
+    pub fn accept_used_windows(&mut self, cx: &mut Context<Self>) {
+        self.used_windows_accepted = true;
+        self.save_draft(cx);
         cx.notify();
     }
 }
@@ -431,9 +446,13 @@ pub fn security_verified(
     elevated: bool,
 ) -> bool {
     // No Defender, no switches: an earlier Atlas install removed it.
-    !status.defender_present
-        || status.all_off()
-        || (elevated && confirmation == Some(*status) && status.off_where_readable())
+    !status.defender_present || status.all_off() || confirmed_by_hand(status, confirmation, elevated)
+}
+
+/// The part of [`security_verified`] that rests on the user's confirmation:
+/// every readable switch is off and the rest were confirmed by hand.
+fn confirmed_by_hand(status: &SecurityStatus, confirmation: Option<SecurityStatus>, elevated: bool) -> bool {
+    status.defender_present && elevated && confirmation == Some(*status) && status.off_where_readable()
 }
 
 /// The last decision before the child starts, from the readings taken a

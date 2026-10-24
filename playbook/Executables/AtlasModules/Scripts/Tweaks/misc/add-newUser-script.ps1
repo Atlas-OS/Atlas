@@ -3,60 +3,47 @@
 # Get-Acl -LiteralPath rewrites a registry PSPath and then reports the key missing.
 $ErrorActionPreference = 'Stop'
 
-$legacyMarkerSubKey = 'SOFTWARE\AtlasOS\UserSetup'
-$usersSid = New-Object -TypeName Security.Principal.SecurityIdentifier `
-    -ArgumentList 'S-1-5-32-545'
-$aclRights = [Security.AccessControl.RegistryRights]::ReadPermissions -bor
-    [Security.AccessControl.RegistryRights]::ChangePermissions
-$legacyKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey(
-    $legacyMarkerSubKey,
-    [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree,
-    $aclRights)
-if ($null -ne $legacyKey) {
-    try {
-        # Revoke only explicit allow rules for Builtin Users. Never enumerate, migrate, or
-        # delete values in this historically user-writable key: none can be authenticated.
-        $accessSections = [Security.AccessControl.AccessControlSections]::Access
-        $legacyAcl = $legacyKey.GetAccessControl($accessSections)
-        $aclChanged = $false
-        foreach ($rule in @($legacyAcl.GetAccessRules(
-                    $true,
-                    $false,
-                    [Security.Principal.SecurityIdentifier]
-                ))) {
-            if ($rule.IdentityReference.Value -ceq $usersSid.Value -and
-                $rule.AccessControlType -eq [Security.AccessControl.AccessControlType]::Allow) {
-                [void]$legacyAcl.RemoveAccessRuleSpecific($rule)
-                $aclChanged = $true
-            }
-        }
-        if ($aclChanged) {
-            $legacyKey.SetAccessControl($legacyAcl)
-        }
-
-        # Fail closed if a write-capable Users rule survives through inheritance or an ACL
-        # publication failure. Read-only legacy access is harmless because values are ignored.
-        $writeRights = [Security.AccessControl.RegistryRights]::SetValue -bor
-            [Security.AccessControl.RegistryRights]::CreateSubKey -bor
-            [Security.AccessControl.RegistryRights]::WriteKey -bor
-            [Security.AccessControl.RegistryRights]::ChangePermissions -bor
-            [Security.AccessControl.RegistryRights]::TakeOwnership -bor
-            [Security.AccessControl.RegistryRights]::FullControl
-        $publishedAcl = $legacyKey.GetAccessControl($accessSections)
-        foreach ($rule in @($publishedAcl.GetAccessRules(
-                    $true,
-                    $true,
-                    [Security.Principal.SecurityIdentifier]
-                ))) {
-            if ($rule.IdentityReference.Value -ceq $usersSid.Value -and
-                $rule.AccessControlType -eq [Security.AccessControl.AccessControlType]::Allow -and
-                (($rule.RegistryRights -band $writeRights) -ne 0)) {
-                throw 'The legacy machine UserSetup marker still grants write access to Builtin Users.'
-            }
+# Revoke only explicit allow rules for Builtin Users. Never enumerate, migrate, or
+# delete values in this historically user-writable key: none can be authenticated.
+# The key must be open with ReadPermissions and ChangePermissions.
+function Revoke-AtlasLegacyMarkerUserAccess([Microsoft.Win32.RegistryKey]$Key) {
+    $usersSid = 'S-1-5-32-545'
+    $accessSections = [Security.AccessControl.AccessControlSections]::Access
+    $acl = $Key.GetAccessControl($accessSections)
+    $aclChanged = $false
+    foreach ($rule in @($acl.GetAccessRules(
+                $true,
+                $false,
+                [Security.Principal.SecurityIdentifier]
+            ))) {
+        if ($rule.IdentityReference.Value -ceq $usersSid -and
+            $rule.AccessControlType -eq [Security.AccessControl.AccessControlType]::Allow) {
+            [void]$acl.RemoveAccessRuleSpecific($rule)
+            $aclChanged = $true
         }
     }
-    finally {
-        $legacyKey.Close()
+    if ($aclChanged) {
+        $Key.SetAccessControl($acl)
+    }
+
+    # Fail closed if a write-capable Users rule survives through inheritance or an ACL
+    # publication failure. Read-only legacy access is harmless because values are ignored.
+    # Only bits that grant a write count: SetValue, CreateSubKey, CreateLink, DELETE,
+    # WRITE_DAC, WRITE_OWNER, GENERIC_ALL and GENERIC_WRITE. WriteKey and FullControl
+    # also carry read bits, so they would match the Users read rule that keys under
+    # HKLM\SOFTWARE normally inherit.
+    $writeMask = 0x500D0026
+    $publishedAcl = $Key.GetAccessControl($accessSections)
+    foreach ($rule in @($publishedAcl.GetAccessRules(
+                $true,
+                $true,
+                [Security.Principal.SecurityIdentifier]
+            ))) {
+        if ($rule.IdentityReference.Value -ceq $usersSid -and
+            $rule.AccessControlType -eq [Security.AccessControl.AccessControlType]::Allow -and
+            (([int]$rule.RegistryRights -band $writeMask) -ne 0)) {
+            throw 'The legacy machine UserSetup marker still grants write access to Builtin Users.'
+        }
     }
 }
 
@@ -73,6 +60,21 @@ function Revoke-AtlasInstallLogUserAccess([string]$Path) {
     $icaclsExitCode = $LASTEXITCODE
     if ($icaclsExitCode -ne 0) {
         throw "icacls.exe failed to revoke Builtin Users access to the install logs with exit code $icaclsExitCode."
+    }
+}
+
+$aclRights = [Security.AccessControl.RegistryRights]::ReadPermissions -bor
+    [Security.AccessControl.RegistryRights]::ChangePermissions
+$legacyKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey(
+    'SOFTWARE\AtlasOS\UserSetup',
+    [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree,
+    $aclRights)
+if ($null -ne $legacyKey) {
+    try {
+        Revoke-AtlasLegacyMarkerUserAccess $legacyKey
+    }
+    finally {
+        $legacyKey.Close()
     }
 }
 

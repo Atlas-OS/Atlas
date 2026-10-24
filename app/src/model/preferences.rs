@@ -196,8 +196,15 @@ impl AppModel {
                     return;
                 }
                 this.awaiting_reminder_reading = false;
-                // Nothing left off: the reminder a flow left need not survive a relaunch.
-                if this.security_reminder && !status.any_off() {
+                if this.security_reminder && !status.defender_present {
+                    // Without Defender there's nothing to turn back on, and the
+                    // reminder a flow left would hide that an install which
+                    // kept Defender no longer has it.
+                    this.security_reminder = false;
+                    this.forget_pending_reminder(cx);
+                    cx.notify();
+                } else if this.security_reminder && !status.any_off() {
+                    // Nothing left off: the reminder a flow left need not survive a relaunch.
                     this.forget_pending_reminder(cx);
                 }
                 if this.protection != Some(status) {
@@ -229,7 +236,7 @@ impl AppModel {
     }
 
     /// Forgets that reminder: dismissed, an install started or finished, or
-    /// a reading has no switch off.
+    /// a reading has no switch off or no Defender.
     pub(super) fn forget_pending_reminder(&mut self, cx: &mut Context<Self>) {
         if self.settings.protection_reminder_pending {
             self.settings.protection_reminder_pending = false;
@@ -324,9 +331,11 @@ impl AppModel {
 
     /// Applies the language setting against an already-read Windows list, so
     /// a refresh negotiates against the list it just compared and never
-    /// downgrades a working choice because a second query failed.
+    /// downgrades a working choice because a second query failed. `--language`
+    /// outranks the setting for the whole session, as `ATLAS_LANGUAGE` does.
     fn apply_language_with(&mut self, windows: Result<Vec<String>, String>, cx: &mut Context<Self>) {
-        self.localization = i18n::activate_with(&self.settings.language, None, windows);
+        let language_override = self.env.language_override.as_deref();
+        self.localization = i18n::activate_with(&self.settings.language, language_override, windows);
         cx.emit(ModelEvent::LanguageChanged);
         cx.notify();
     }
@@ -361,7 +370,7 @@ impl AppModel {
     }
 
     pub fn set_restart_after_install(&mut self, restart: bool, cx: &mut Context<Self>) {
-        if self.locked() || !self.flow.may_edit() {
+        if self.locked() {
             return;
         }
         self.settings.restart_after_install = restart;

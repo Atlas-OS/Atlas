@@ -55,6 +55,41 @@ function Set-AtlasPrintContextMenu {
     }
 }
 
+function Add-AtlasPrintingCapability {
+    # These optional tools are downloaded from Windows Update, which can be off or
+    # unreachable. Printing already works without them, so a failed add is reported
+    # and the state is still recorded; upgrade replay and the service reset carry on.
+    param(
+        [Parameter(Mandatory = $true)]
+        $Toggle,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Dism,
+
+        [Parameter(Mandatory = $true)]
+        [string]$CapabilityName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Label
+    )
+
+    try {
+        Invoke-AtlasToggleNativeCommand -FilePath $Dism `
+            -ArgumentList ([string[]]@('/Online', '/Add-Capability', "/CapabilityName:$CapabilityName", '/NoRestart')) `
+            -AllowedExitCodes ([int[]]@(0, 3010)) | Out-Null
+    }
+    catch {
+        Write-AtlasLog -Level Warning -Message "Printing: $CapabilityName could not be added: $($_.Exception.Message)" `
+            -ErrorRecord $_ -NoConsole:(-not $Toggle.Silent)
+        if (-not $Toggle.Silent) {
+            Write-AtlasPartial -Text @(
+                "Printing is enabled, but $Label couldn't be added. Windows Update may be off or unreachable;"
+                'you can add it later from Optional features in Settings.'
+            )
+        }
+    }
+}
+
 function Set-AtlasPrintingMachineState {
     param($Toggle)
 
@@ -94,14 +129,12 @@ function Set-AtlasPrintingMachineState {
     if (-not $Toggle.Silent) {
         Write-AtlasStep -Text 'Adding the Print Management console. This can take a while...'
     }
-    Invoke-AtlasToggleNativeCommand -FilePath $dism `
-        -ArgumentList ([string[]]@('/Online', '/Add-Capability', '/CapabilityName:Print.Management.Console~~~~0.0.1.0', '/NoRestart')) `
-        -AllowedExitCodes ([int[]]@(0, 3010)) | Out-Null
+    Add-AtlasPrintingCapability -Toggle $Toggle -Dism $dism `
+        -CapabilityName 'Print.Management.Console~~~~0.0.1.0' -Label 'the Print Management console'
 
     if (-not $Toggle.Silent -and (Read-AtlasYesNo -Question 'Also add Windows Fax and Scan?')) {
         Write-AtlasStep -Text 'Adding Windows Fax and Scan...'
-        Invoke-AtlasToggleNativeCommand -FilePath $dism `
-            -ArgumentList ([string[]]@('/Online', '/Add-Capability', '/CapabilityName:Print.Fax.Scan~~~~0.0.1.0', '/NoRestart')) `
-            -AllowedExitCodes ([int[]]@(0, 3010)) | Out-Null
+        Add-AtlasPrintingCapability -Toggle $Toggle -Dism $dism `
+            -CapabilityName 'Print.Fax.Scan~~~~0.0.1.0' -Label 'Windows Fax and Scan'
     }
 }

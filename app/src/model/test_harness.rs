@@ -35,6 +35,18 @@ pub(crate) fn run_model_test<Fut>(body: impl FnOnce(AsyncApp) -> Fut + 'static)
 where
     Fut: Future<Output = ()> + 'static,
 {
+    // Debug builds, tests included, read review previews (ATLAS_*_PREVIEW)
+    // from the process rather than through `Environment`, so one left set in
+    // the shell would open the model or a page in its review state.
+    let previews: Vec<String> = std::env::vars_os()
+        .map(|(name, _)| name.to_string_lossy().to_ascii_uppercase())
+        .filter(|name| name.starts_with("ATLAS_") && name.ends_with("_PREVIEW"))
+        .collect();
+    assert!(
+        previews.is_empty(),
+        "unset {} before running the tests: a review preview replaces the state they build",
+        previews.join(", ")
+    );
     crate::i18n::testing::exclusive(|| {
         let outcome: Rc<RefCell<Option<Outcome>>> = Rc::new(RefCell::new(None));
         let sink = outcome.clone();
@@ -266,12 +278,18 @@ impl Machine {
     }
 }
 
+/// `path` as a single-quoted PowerShell string for a stub front door: the
+/// temporary folder can sit under a profile whose name holds an apostrophe.
+pub(super) fn ps_literal(path: &Path) -> String {
+    crate::services::installer::ps_quote(&path.display().to_string())
+}
+
 /// A package whose front door records that it ran, then exits with `code`.
 pub(super) fn marking_package(temp: &TempDir, code: i32) -> (PathBuf, PathBuf) {
     let marker = temp.path().join("front-door-ran.txt");
     let body = format!(
-        "Write-Host '[Atlas] Running the install plan as TrustedInstaller. This takes several minutes...'\r\nSet-Content -LiteralPath '{}' -Value 'ran'\r\nexit {code}",
-        marker.display()
+        "Write-Host '[Atlas] Running the install plan as TrustedInstaller. This takes several minutes...'\r\nSet-Content -LiteralPath {} -Value 'ran'\r\nexit {code}",
+        ps_literal(&marker)
     );
     let package = apbx::write(&temp.path().join("package.apbx"), &apbx::with_front_door("0.6.0", &body));
     (package, marker)
@@ -285,8 +303,8 @@ pub(super) fn package_of(temp: &TempDir, version: &str) -> PathBuf {
 /// A package whose front door waits until `gate` exists, then succeeds.
 pub(super) fn gated_package(temp: &TempDir, gate: &Path) -> PathBuf {
     let body = format!(
-        "while (-not (Test-Path -LiteralPath '{}')) {{ Start-Sleep -Milliseconds 50 }}\r\nexit 0",
-        gate.display()
+        "while (-not (Test-Path -LiteralPath {})) {{ Start-Sleep -Milliseconds 50 }}\r\nexit 0",
+        ps_literal(gate)
     );
     apbx::write(&temp.path().join("gated.apbx"), &apbx::with_front_door("0.6.0", &body))
 }
@@ -295,7 +313,12 @@ pub(super) fn gated_package(temp: &TempDir, gate: &Path) -> PathBuf {
 /// record, log and exit file a reopened app would find.
 pub(super) fn completed_session(env: &Environment, package: &Path, restart: bool) -> SessionRecord {
     let (dir, _) = playbook::extract_into(package, &env.paths.playbooks(), |_, _| {}).unwrap();
-    let request = InstallRequest { playbook_dir: dir, options: vec!["defender-enable".into()], restart };
+    let request = InstallRequest {
+        playbook_dir: dir,
+        options: vec!["defender-enable".into()],
+        restart,
+        windows_security_confirmed: false,
+    };
     let (record, mut events) = installer::start(request, &env.paths.session()).expect("start the stub");
     futures::executor::block_on(async {
         while let Some(event) = events.next().await {

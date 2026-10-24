@@ -32,11 +32,14 @@ BeforeAll {
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Software\Atlas.Software.psd1') -Force
 
-    function Invoke-FeaturesPhase([bool]$IsUpgrade) {
+    function Invoke-FeaturesPhase([bool]$IsUpgrade, [bool]$IsRebase = $false) {
         $script:PhaseUpgrade = $IsUpgrade
+        $script:PhaseRebase = $IsRebase
         & {
             function Assert-AtlasPrivilege {}
-            function Get-AtlasContext { [pscustomobject]@{ WinDir = $TestDrive; IsUpgrade = $script:PhaseUpgrade } }
+            function Get-AtlasContext {
+                [pscustomobject]@{ WinDir = $TestDrive; IsUpgrade = $script:PhaseUpgrade; IsRebase = $script:PhaseRebase }
+            }
             . $script:featuresPhase
         }
     }
@@ -138,7 +141,8 @@ Describe 'Features DISM outcomes' {
 
         Should -Invoke Invoke-AtlasDism -Times 3 -Exactly
         Should -Invoke Invoke-AtlasDism -Times 1 -Exactly -ParameterFilter {
-            $Description -ceq 'Cleaning the component store' -and "$DeferredExitCode" -ceq '-2146498554'
+            $Description -ceq 'Cleaning the component store' -and "$DeferredExitCode" -ceq '-2146498554' -and
+            $Arguments -contains '/StartComponentCleanup'
         }
         Should -Invoke Invoke-AtlasDism -Times 0 -Exactly -ParameterFilter {
             $Description -cne 'Cleaning the component store' -and $null -ne $DeferredExitCode
@@ -155,12 +159,6 @@ Describe 'Component store cleanup with the Atlas packages' {
         Mock Update-AtlasCbsRepairSource { 'recreated' }
     }
 
-    It 'cleans the store on a fresh install, before any Atlas package is installed' {
-        Mock Get-AtlasInstalledAtlasPackage {}
-        Invoke-FeaturesPhase -IsUpgrade $false
-        Should -Invoke Invoke-AtlasDism -Times 1 -Exactly -ParameterFilter { $Arguments -contains '/StartComponentCleanup' }
-    }
-
     It 'never cleans it once an Atlas package is installed, or on an update, and says why' -TestCases @(
         @{ Case = 'an update'; Upgrade = $true; Packages = @() }
         @{ Case = 'an installed NoTelemetry package'; Upgrade = $false; Packages = @('Z-Atlas-NoTelemetry-Package~31bf3856ad364e35~amd64~~5.0.0.0') }
@@ -172,6 +170,29 @@ Describe 'Component store cleanup with the Atlas packages' {
         Should -Invoke Invoke-AtlasDism -Times 0 -Exactly -ParameterFilter { $Arguments -contains '/StartComponentCleanup' } -Because $Case
         Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter { $Message -like 'Skipped cleaning the component store: *' }
         Should -Invoke Update-AtlasCbsRepairSource -Times 1 -Exactly
+    }
+}
+
+Describe 'Features work by install mode' {
+    BeforeEach {
+        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ State = 'Enabled' } }
+        Mock Dism\Get-WindowsCapability { [pscustomobject]@{ Name = 'App.StepsRecorder~~~~0.0.1.0'; State = 'Installed' } }
+        Mock Invoke-AtlasDism {}
+        Mock Write-AtlasLog {}
+        Mock Get-AtlasInstalledAtlasPackage {}
+        Mock Update-AtlasCbsRepairSource { 'unchanged' }
+    }
+
+    It 'removes Steps Recorder <Removals> time(s) and cleans the store <Cleanups> time(s) on <Case>' -TestCases @(
+        @{ Case = 'a fresh install'; Upgrade = $false; Rebase = $false; Removals = 1; Cleanups = 1 }
+        # A rebuilt Windows brings Steps Recorder back; it is still an update for the store.
+        @{ Case = 'a Rebase'; Upgrade = $true; Rebase = $true; Removals = 1; Cleanups = 0 }
+        @{ Case = 'a plain update'; Upgrade = $true; Rebase = $false; Removals = 0; Cleanups = 0 }
+    ) {
+        param($Case, $Upgrade, $Rebase, $Removals, $Cleanups)
+        Invoke-FeaturesPhase -IsUpgrade $Upgrade -IsRebase $Rebase
+        Should -Invoke Invoke-AtlasDism -Times $Removals -Exactly -ParameterFilter { $Arguments -contains '/Remove-Capability' } -Because $Case
+        Should -Invoke Invoke-AtlasDism -Times $Cleanups -Exactly -ParameterFilter { $Arguments -contains '/StartComponentCleanup' } -Because $Case
     }
 }
 

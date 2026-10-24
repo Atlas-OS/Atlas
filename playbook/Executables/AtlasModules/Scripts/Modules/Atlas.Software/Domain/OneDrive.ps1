@@ -1,9 +1,10 @@
 # Atlas.Software domain: OneDrive removal.
 #
 # Everything is best-effort because most of these leftovers only exist in some
-# configurations. The actual OneDrive setup in Windows is stripped at a component level
-# in the miscellaneous CBS package; this removes the preinstalled client and its
-# leftovers.
+# configurations. Windows keeps its inbox OneDriveSetup.exe; this runs its /uninstall
+# and removes the machine scheduled tasks and shell-extension CLSIDs.
+# Remove-OneDriveCurrentUserData.ps1 removes per-user leftovers for the installing
+# account and for later accounts.
 
 function Remove-AtlasOneDriveMachineRegistryItem {
     param([Parameter(Mandatory = $true)][string[]]$Path)
@@ -24,18 +25,6 @@ function Remove-AtlasOneDrive {
         per-user leftovers.
     #>
     Stop-Process -Name 'OneDrive' -Force -ErrorAction SilentlyContinue
-
-    $atlasSoftwareRoot = [IO.Directory]::GetParent($PSScriptRoot)
-    $modulesRoot = $atlasSoftwareRoot.Parent
-    $downloadModule = [IO.Path]::Combine(
-        $modulesRoot.FullName,
-        'Atlas.Download',
-        'Atlas.Download.psd1'
-    )
-    if (-not [IO.File]::Exists($downloadModule)) {
-        throw "The Atlas.Download module manifest is missing at '$downloadModule'."
-    }
-    Import-Module -Name $downloadModule -ErrorAction Stop
 
     $windir = [Environment]::GetFolderPath('Windows')
     $setupPaths = @(

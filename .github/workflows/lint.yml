@@ -78,7 +78,8 @@ jobs:
         run: |
           Import-Module PSScriptAnalyzer -RequiredVersion 1.25.0
           $settings = '.github/linters/PSScriptAnalyzerSettings.psd1'
-          $paths = @('tools', 'tests', 'app/tools/Build-Release.ps1', 'app/tools/Export-DependencyNotices.ps1', 'app/tools/tests') | Where-Object { Test-Path $_ }
+          # A listed path that disappears fails the job instead of silently dropping out of lint.
+          $paths = @('tools', 'tests', 'app/tools/Build-Release.ps1', 'app/tools/Export-DependencyNotices.ps1', 'app/tools/tests')
           $results = Get-ChildItem -Path $paths -Recurse -Include '*.ps1','*.psm1' |
               Invoke-ScriptAnalyzer -Settings $settings
 

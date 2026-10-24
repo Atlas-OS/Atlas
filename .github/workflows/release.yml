@@ -17,7 +17,8 @@ jobs:
   build:
     if: github.repository == 'Atlas-OS/Atlas'
     runs-on: windows-latest
-    timeout-minutes: 30
+    # Room for a cold release build of the app.
+    timeout-minutes: 60
     permissions:
       contents: read
 
@@ -27,6 +28,42 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
+
+      - name: Check the tag against playbook.conf
+        # Any v* tag starts this workflow, so a malformed or early tag must fail before the
+        # app build rather than after it.
+        shell: pwsh
+        env:
+          ATLAS_TAG: ${{ github.ref_name }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+
+          $tag = $env:ATLAS_TAG
+          if ($tag -cnotmatch '^v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$') {
+              throw "Release tag '$tag' is not a canonical stable semantic version."
+          }
+
+          $conf = [xml](Get-Content -LiteralPath 'playbook\playbook.conf' -Raw)
+          $version = [string]$conf.Playbook.Version
+          if ($tag -cne "v$version") {
+              throw "Tag '$tag' does not match playbook.conf version 'v$version'."
+          }
+
+      - name: Install the Rust toolchain
+        # The version comes from app/rust-toolchain.toml, as in app.yml.
+        # gh api repos/dtolnay/rust-toolchain/commits/stable --jq '.sha'
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+        with:
+          toolchain: 1.98.1
+          components: rustfmt, clippy
+
+      - name: Build the stable Atlas Manager
+        # Without parameters this is the stable build, never the tester one. There's no
+        # build cache, so nothing another workflow saved can end up in the executable.
+        working-directory: app
+        shell: pwsh
+        run: ./tools/Build-Release.ps1
 
       - name: Build, verify, and hash the release bundle
         shell: pwsh
@@ -47,6 +84,12 @@ jobs:
               throw "Tag '$tag' does not match playbook.conf version 'v$version'."
           }
 
+          # The app takes its version (About, diagnostics, file properties) from app/Cargo.toml.
+          $exe = Get-Item -LiteralPath 'app\target\x86_64-pc-windows-msvc\release\AtlasManager.exe' -ErrorAction Stop
+          if ($exe.VersionInfo.ProductVersion -cne $version) {
+              throw "AtlasManager.exe is version '$($exe.VersionInfo.ProductVersion)', not playbook.conf's '$version'."
+          }
+
           $playbookName = "Atlas $tag"
           & .\tools\build\Build-Playbook.ps1 -FileName $playbookName -DontOpenPbLocation
           $apbx = Get-Item -LiteralPath "playbook\$playbookName.apbx" -ErrorAction Stop
@@ -57,16 +100,20 @@ jobs:
           New-Item -Path $bundle -ItemType Directory -Force | Out-Null
           New-Item -Path $zipContents -ItemType Directory -Force | Out-Null
 
-          $apbxCopy = Copy-Item -LiteralPath $apbx.FullName -Destination $bundle -PassThru -Force
+          # GitHub turns spaces in asset names into dots, which would leave SHA256SUMS.txt
+          # naming files the release doesn't have.
+          $assetName = "Atlas-$tag"
+          $apbxCopy = Copy-Item -LiteralPath $apbx.FullName -Destination (Join-Path $bundle "$assetName.apbx") -PassThru -Force
           Copy-Item -LiteralPath $apbx.FullName -Destination $zipContents -Force
           Get-ChildItem -LiteralPath 'tools\release-zip' -File |
               Copy-Item -Destination $zipContents -Force
+          $exeCopy = Copy-Item -LiteralPath $exe.FullName -Destination $bundle -PassThru -Force
 
-          $zip = Join-Path $bundle "$playbookName.zip"
+          $zip = Join-Path $bundle "$assetName.zip"
           Compress-Archive -Path (Join-Path $zipContents '*') -DestinationPath $zip -Force
           $zipFile = Get-Item -LiteralPath $zip -ErrorAction Stop
 
-          $releaseFiles = @($apbxCopy, $zipFile) | Sort-Object Name
+          $releaseFiles = @($apbxCopy, $zipFile, $exeCopy) | Sort-Object Name
           $hashLines = @($releaseFiles | ForEach-Object {
                   $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
                   "$hash  $($_.Name)"
@@ -118,6 +165,12 @@ jobs:
         with:
           subject-path: ${{ runner.temp }}/atlas-release/*.zip
 
+      - name: Attest Atlas Manager
+        # gh api repos/actions/attest/commits/v4.1.1 --jq '.sha'
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: ${{ runner.temp }}/atlas-release/*.exe
+
   publish-draft:
     if: github.repository == 'Atlas-OS/Atlas'
     needs: attest-promotion
@@ -163,15 +216,17 @@ jobs:
           $hashFile = Get-Item -LiteralPath (Join-Path $bundle 'SHA256SUMS.txt') -ErrorAction Stop
           $apbxFiles = @(Get-ChildItem -LiteralPath $bundle -Filter '*.apbx' -File)
           $zipFiles = @(Get-ChildItem -LiteralPath $bundle -Filter '*.zip' -File)
-          if ($apbxFiles.Count -ne 1 -or $zipFiles.Count -ne 1) {
-              throw 'The promotion bundle must contain exactly one APBX and one ZIP.'
+          $exeFiles = @(Get-ChildItem -LiteralPath $bundle -Filter '*.exe' -File)
+          if ($apbxFiles.Count -ne 1 -or $zipFiles.Count -ne 1 -or $exeFiles.Count -ne 1) {
+              throw 'The promotion bundle must contain exactly one APBX, one ZIP and one executable.'
           }
-          if ($apbxFiles[0].Name -cne "Atlas $tag.apbx" -or
-              $zipFiles[0].Name -cne "Atlas $tag.zip") {
+          if ($apbxFiles[0].Name -cne "Atlas-$tag.apbx" -or
+              $zipFiles[0].Name -cne "Atlas-$tag.zip" -or
+              $exeFiles[0].Name -cne 'AtlasManager.exe') {
               throw 'The promotion bundle filenames do not match the release tag.'
           }
 
-          $expectedNames = @($apbxFiles[0].Name, $zipFiles[0].Name) | Sort-Object
+          $expectedNames = @($apbxFiles[0].Name, $zipFiles[0].Name, $exeFiles[0].Name) | Sort-Object
           $manifestNames = [Collections.Generic.List[string]]::new()
           foreach ($line in [IO.File]::ReadAllLines($hashFile.FullName, [Text.Encoding]::ASCII)) {
               if ($line -cnotmatch '^(?<Hash>[0-9a-f]{64})  (?<Name>[^\\/]+)$') {
@@ -191,7 +246,7 @@ jobs:
           }
           if ([string]::Join('|', @($manifestNames | Sort-Object)) -cne
               [string]::Join('|', $expectedNames)) {
-              throw 'SHA256SUMS.txt does not bind exactly the APBX and release ZIP.'
+              throw 'SHA256SUMS.txt does not bind exactly the APBX, the release ZIP and AtlasManager.exe.'
           }
 
       - name: Create a draft release
@@ -204,11 +259,12 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $tag = $env:ATLAS_TAG
           $bundle = Join-Path $env:RUNNER_TEMP 'atlas-release'
-          $apbx = Get-Item -LiteralPath (Join-Path $bundle "Atlas $tag.apbx") -ErrorAction Stop
-          $zip = Get-Item -LiteralPath (Join-Path $bundle "Atlas $tag.zip") -ErrorAction Stop
+          $apbx = Get-Item -LiteralPath (Join-Path $bundle "Atlas-$tag.apbx") -ErrorAction Stop
+          $zip = Get-Item -LiteralPath (Join-Path $bundle "Atlas-$tag.zip") -ErrorAction Stop
+          $exe = Get-Item -LiteralPath (Join-Path $bundle 'AtlasManager.exe') -ErrorAction Stop
           $hashes = Get-Item -LiteralPath (Join-Path $bundle 'SHA256SUMS.txt') -ErrorAction Stop
           & gh release create $tag --draft --verify-tag --title "Atlas $tag" `
-              $apbx.FullName $zip.FullName $hashes.FullName
+              $apbx.FullName $zip.FullName $exe.FullName $hashes.FullName
           if ($LASTEXITCODE -ne 0) {
               throw "Creating the draft release for '$tag' failed."
           }

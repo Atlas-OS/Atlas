@@ -1,5 +1,7 @@
 [package]
 name = "atlas-app"
+# Equal to <Version> in playbook/playbook.conf; tools/build/Set-AtlasVersion.ps1 bumps both.
+# Tester builds and the tag release fail when they differ.
 version = "0.6.0"
 edition = "2024"
 description = "Atlas Manager: the graphical front door for installing and updating AtlasOS."

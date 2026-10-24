@@ -108,35 +108,25 @@ function Resolve-AtlasTaskbarBrowser {
     return $ExplorerName
 }
 
-function Invoke-AtlasTaskbarRegistryWrite {
+function ConvertFrom-AtlasTaskbarHexString {
     <#
     .SYNOPSIS
-        Writes one REG_BINARY Taskband value through the protected reg.exe and fails
-        on a non-zero exit code.
+        Converts a recorded Taskband hex string into the bytes of its REG_BINARY value.
     #>
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [string]$RegExe,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$RegistryKey,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$Name,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$Data
+        [string]$Hex
     )
 
-    & $RegExe 'add' $RegistryKey '/v' $Name '/t' 'REG_BINARY' '/d' $Data '/f' | Out-Null
-    $exitCode = $LASTEXITCODE
-    if ($exitCode -ne 0) {
-        throw "reg.exe failed to write '$RegistryKey\\$Name' (exit code $exitCode)."
+    if ($Hex.Length % 2 -ne 0 -or $Hex -cnotmatch '\A[0-9A-Fa-f]+\z') {
+        throw 'A Taskband value must be an even-length hexadecimal string.'
     }
+    $bytes = New-Object byte[] ([int]($Hex.Length / 2))
+    for ($index = 0; $index -lt $bytes.Length; $index++) {
+        $bytes[$index] = [Convert]::ToByte($Hex.Substring($index * 2, 2), 16)
+    }
+    return , $bytes
 }
 
 function Get-AtlasTaskbarProfileTarget {
@@ -179,10 +169,6 @@ function Set-AtlasTaskbarPinsForProfile {
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [string]$RegExe,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
         [string]$Browser
     )
 
@@ -213,8 +199,8 @@ function Set-AtlasTaskbarPinsForProfile {
 
     Write-AtlasLog -Message 'Changing in Registry...'
     foreach ($entry in $Registry.GetEnumerator()) {
-        Invoke-AtlasTaskbarRegistryWrite -RegExe $RegExe -RegistryKey $RegistryKey `
-            -Name ([string]$entry.Name) -Data ([string]$entry.Value)
+        Set-AtlasRegistryValue -Path $RegistryKey -Name ([string]$entry.Name) -Type Binary `
+            -Data (ConvertFrom-AtlasTaskbarHexString -Hex ([string]$entry.Value))
     }
 }
 
@@ -225,22 +211,14 @@ function Set-AtlasTaskbarPins {
         replacing every existing pin.
     .DESCRIPTION
         Runs as the signed-in user. An unsupported or missing browser falls back to
-        Microsoft Edge, then to File Explorer alone. Explorer is stopped around the
-        replacement so it adopts the new pins unless -NoExplorerStop is given, in which
-        case the caller refreshes the shell itself.
+        Microsoft Edge, then to File Explorer alone. Explorer is left running; the
+        caller refreshes the current session's shell once all user setup is done, so
+        Explorer adopts the new pins.
     #>
     param(
         [AllowEmptyString()]
-        [string]$Browser,
-
-        [switch]$NoExplorerStop
+        [string]$Browser
     )
-
-    $windir = [Environment]::GetFolderPath('Windows')
-    $regExe = Join-Path -Path $windir -ChildPath 'System32\reg.exe'
-    if (-not (Test-Path -LiteralPath $regExe -PathType Leaf)) {
-        throw "The protected registry executable is missing at '$regExe'."
-    }
 
     $edge = $script:AtlasTaskbarEdgeName
     $explorer = $script:AtlasTaskbarExplorerName
@@ -273,19 +251,10 @@ function Set-AtlasTaskbarPins {
             }
         }
 
-        if (-not $NoExplorerStop) {
-            Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
-            Start-Sleep -Milliseconds 500
-        }
-
         $target = Get-AtlasTaskbarProfileTarget
         Set-AtlasTaskbarPinsForProfile -Sid $target.Sid -AppData $target.AppData `
             -RegistryKey $target.RegistryKey -StagingPath $tmp.FullName -Registry $reg `
-            -RegExe $regExe -Browser $Browser
-
-        if (-not $NoExplorerStop) {
-            Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
-        }
+            -Browser $Browser
     }
     finally {
         if ($null -ne $tmp -and (Test-Path -LiteralPath $tmp.FullName)) {

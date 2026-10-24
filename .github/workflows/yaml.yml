@@ -1,0 +1,55 @@
+name: Lint YAML
+
+on:
+  push:
+    paths:
+      - "**.yml"
+      - "**.yaml"
+      - ".github/requirements-ci.txt"
+  pull_request:
+    paths:
+      - "**.yml"
+      - "**.yaml"
+      - ".github/requirements-ci.txt"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  yamllint:
+    # The lock file's PyYAML wheel is the Windows x64 CPython 3.13 build.
+    runs-on: windows-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        # gh api repos/actions/checkout/commits/v7.0.0 --jq '.sha'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up pinned Python
+        # gh api repos/actions/setup-python/commits/v6.3.0 --jq '.sha'
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.13"
+
+      - name: Install hash-locked Python dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python -m pip install --disable-pip-version-check --no-input `
+              --only-binary=:all: --require-hashes -r .github/requirements-ci.txt
+          if ($LASTEXITCODE -ne 0) {
+              throw 'Installing the hash-locked CI dependencies failed.'
+          }
+
+      - name: Validate YAML files
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python -m yamllint -c .yamllint.yml .
+          if ($LASTEXITCODE -ne 0) {
+              throw 'YAML validation failed.'
+          }

@@ -117,17 +117,24 @@ Describe 'Set-AtlasSettingsPageVisibility' {
     }
 
     It 'closes only Settings in the caller session, and none when cleanup is suppressed' {
-        Mock Get-Process -ModuleName Atlas.Shell {
-            $currentSession = [Diagnostics.Process]::GetCurrentProcess().SessionId
-            [pscustomobject]@{ ProcessName = 'SystemSettings'; Id = 4101; SessionId = $currentSession }
-            [pscustomobject]@{ ProcessName = 'explorer'; Id = 4102; SessionId = $currentSession }
-            [pscustomobject]@{ ProcessName = 'SystemSettings'; Id = 4103; SessionId = $currentSession + 1 }
-        }
+        # Typed doubles bind to -InputObject as real processes do; plain objects would bind -Id.
+        $currentSession = [Diagnostics.Process]::GetCurrentProcess().SessionId
+        $processes = @(
+            New-MockObject -Type 'System.Diagnostics.Process' `
+                -Properties @{ ProcessName = 'SystemSettings'; Id = 4101; SessionId = $currentSession }
+            New-MockObject -Type 'System.Diagnostics.Process' `
+                -Properties @{ ProcessName = 'explorer'; Id = 4102; SessionId = $currentSession }
+            New-MockObject -Type 'System.Diagnostics.Process' `
+                -Properties @{ ProcessName = 'SystemSettings'; Id = 4103; SessionId = $currentSession + 1 }
+        )
+        Mock Get-Process -ModuleName Atlas.Shell -MockWith { $processes }.GetNewClosure()
         Mock Stop-Process -ModuleName Atlas.Shell
 
         Set-AtlasSettingsPageVisibility -Operation hide -Page printers
         Should -Invoke Stop-Process -ModuleName Atlas.Shell -Times 1 -Exactly
-        Should -Not -Invoke Stop-Process -ModuleName Atlas.Shell -ParameterFilter { $InputObject.Id -eq 4103 }
+        Should -Invoke Stop-Process -ModuleName Atlas.Shell -Times 1 -Exactly -ParameterFilter {
+            $InputObject.Id -eq 4101 -and $Force
+        }
 
         Set-AtlasSettingsPageVisibility -Operation unhide -Page printers -NoProcessCleanup
         Should -Invoke Get-Process -ModuleName Atlas.Shell -Times 1 -Exactly
@@ -154,22 +161,10 @@ Describe 'Set-AtlasFileAssociations' {
         Mock Write-AtlasLog -ModuleName Atlas.Shell
     }
 
-    It 'leaves protected browser defaults to Windows' {
-        $plan = Set-AtlasFileAssociations -AssociationProfile Firefox -PlanOnly
-
-        $plan.Mode | Should -BeExactly 'PlanOnly'
-        $plan.Profile | Should -BeExactly 'Firefox'
-        $plan.BrowserDefaultRequested | Should -BeTrue
-        $plan.BrowserDefaultDisposition | Should -BeExactly 'WindowsProtectedUserActionRequired'
-        $plan.DefaultAppsSettingsUri | Should -BeExactly 'ms-settings:defaultapps'
-        @($plan.Changes | Where-Object Hive -ne 'CurrentUser').Count | Should -Be 0
-        @($plan.Changes | Where-Object Value -Match 'Brave|Firefox|Chrome|LibreWolf|Edge').Count | Should -Be 0
-    }
-
     It 'maps every registered 7-Zip archive handler to OpenWithProgids' {
         Mock Test-AtlasMachineClassRegistration -ModuleName Atlas.Shell { $true }
 
-        $changes = @((Set-AtlasFileAssociations -PlanOnly).Changes)
+        $changes = @(InModuleScope Atlas.Shell { Get-AtlasArchiveAssociationChange })
         $handlers = @($changes | Where-Object Path -Like '*\OpenWithProgids')
         $handlers.Count | Should -BeGreaterThan 0
         foreach ($handler in $handlers) {
@@ -189,33 +184,22 @@ Describe 'Set-AtlasFileAssociations' {
     It 'plans nothing when no 7-Zip handler is registered on the machine' {
         Mock Test-AtlasMachineClassRegistration -ModuleName Atlas.Shell { $false }
 
-        @((Set-AtlasFileAssociations -PlanOnly).Changes).Count | Should -Be 0
+        @(InModuleScope Atlas.Shell { Get-AtlasArchiveAssociationChange }).Count | Should -Be 0
     }
 
     It 'applies every planned change for the checked user and propagates the first write failure' {
         Mock Test-AtlasMachineClassRegistration -ModuleName Atlas.Shell { $true }
         Mock Assert-AtlasFileAssociationUser -ModuleName Atlas.Shell
         Mock Write-AtlasFileAssociationChange -ModuleName Atlas.Shell
-        $planned = @((Set-AtlasFileAssociations -PlanOnly).Changes).Count
+        $planned = @(InModuleScope Atlas.Shell { Get-AtlasArchiveAssociationChange }).Count
         $planned | Should -BeGreaterThan 0
 
-        (Set-AtlasFileAssociations).Mode | Should -BeExactly 'Apply'
+        Set-AtlasFileAssociations | Should -BeNullOrEmpty
         Should -Invoke Write-AtlasFileAssociationChange -ModuleName Atlas.Shell -Times $planned -Exactly
         Should -Invoke Assert-AtlasFileAssociationUser -ModuleName Atlas.Shell -Times 1 -Exactly
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Shell -Times 0
 
         Mock Write-AtlasFileAssociationChange -ModuleName Atlas.Shell { throw 'registry write failed' }
         { Set-AtlasFileAssociations } | Should -Throw '*registry write failed*'
-    }
-
-    It 'warns that a requested browser default stays user-controlled' {
-        Mock Test-AtlasMachineClassRegistration -ModuleName Atlas.Shell { $false }
-        Mock Assert-AtlasFileAssociationUser -ModuleName Atlas.Shell
-
-        Set-AtlasFileAssociations -AssociationProfile LibreWolf | Out-Null
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Shell -Times 1 -Exactly -ParameterFilter {
-            $Level -eq 'Warning' -and $Message -like "*'LibreWolf' browser default remains user-controlled*"
-        }
     }
 
     It 'validates the expected user SID before any registry work' {
@@ -295,7 +279,7 @@ Describe 'Set-AtlasSendToContextMenu' {
         }
     }
 
-    It 'binds the registry engine to the caller-supplied user SID' {
+    It 'forwards the caller-supplied user SID' {
         Set-AtlasSendToContextMenu -Disable @('Documents') -ExpectedUserSid 'S-1-5-21-1-2-3-1001'
 
         Should -Invoke Assert-AtlasSendToUser -ModuleName Atlas.Shell -Times 1 -Exactly -ParameterFilter {
@@ -347,6 +331,31 @@ Describe 'Set-AtlasSendToContextMenu' {
         }
     }
 
+}
+
+Describe 'Assert-AtlasSendToUser' {
+    BeforeEach {
+        Mock Initialize-AtlasRegistryIdentityContext -ModuleName Atlas.Shell
+    }
+
+    It 'binds the registry engine to the token SID unless the caller names one' {
+        $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+
+        InModuleScope Atlas.Shell -Parameters @{ Sid = $sid } {
+            Assert-AtlasSendToUser -ExpectedUserSid $Sid | Should -BeExactly $Sid
+            Assert-AtlasSendToUser -ExpectedUserSid '' | Should -BeExactly $Sid
+            Assert-AtlasSendToUser | Should -BeExactly $Sid
+            Assert-AtlasSendToUser -ExpectedUserSid 'S-1-5-21-1-2-3-2002' | Should -BeExactly $Sid
+        }
+
+        Should -Invoke Initialize-AtlasRegistryIdentityContext -ModuleName Atlas.Shell -Times 3 -Exactly -ParameterFilter {
+            $CurrentToken -and $ExpectedUserSid -ceq $sid
+        }
+        # A caller-supplied SID reaches Atlas.Registry unchanged so its mismatch check still runs.
+        Should -Invoke Initialize-AtlasRegistryIdentityContext -ModuleName Atlas.Shell -Times 1 -Exactly -ParameterFilter {
+            $CurrentToken -and $ExpectedUserSid -ceq 'S-1-5-21-1-2-3-2002'
+        }
+    }
 }
 
 Describe 'Send-To item state' {
@@ -429,6 +438,42 @@ Describe 'Shell context-menu argument helpers' {
         $drive.IcaclsArguments | Should -Not -Contain '/q'
         { Get-AtlasTakeOwnershipArgumentPlan -TargetType Directory -TargetPath 'C:\directory' } |
             Should -Throw '*localized affirmative choice*'
+    }
+
+    It 'skips a directory the administrator cannot list instead of failing the scan' {
+        $root = New-Item -ItemType Directory -Path (Join-Path $TestDrive 'ownership-unlistable')
+        $locked = New-Item -ItemType Directory -Path (Join-Path $root.FullName 'locked')
+        [IO.File]::WriteAllText((Join-Path $root.FullName 'file.txt'), 'x')
+        $acl = Get-Acl -LiteralPath $locked.FullName
+        $deny = [Security.AccessControl.FileSystemAccessRule]::new(
+            [Security.Principal.WindowsIdentity]::GetCurrent().User,
+            [Security.AccessControl.FileSystemRights]::ListDirectory,
+            [Security.AccessControl.AccessControlType]::Deny
+        )
+        $acl.AddAccessRule($deny)
+        Set-Acl -LiteralPath $locked.FullName -AclObject $acl
+        $linkPath = Join-Path $root.FullName 'a-open\link'
+
+        try {
+            { [void][IO.Directory]::GetFileSystemEntries($locked.FullName) } | Should -Throw
+            { Assert-AtlasTakeOwnershipTree -RootPath $root.FullName } | Should -Not -Throw
+            { Assert-AtlasTakeOwnershipTree -RootPath $locked.FullName } | Should -Not -Throw
+
+            # 'a-open' is pushed before 'locked', so the scan reaches it only after skipping 'locked'.
+            [void](New-Item -ItemType Directory -Path (Join-Path $root.FullName 'a-open'))
+            $target = New-Item -ItemType Directory -Path (Join-Path $TestDrive 'ownership-unlistable-target')
+            [void](New-Item -ItemType Junction -Path $linkPath -Target $target.FullName)
+            { Assert-AtlasTakeOwnershipTree -RootPath $root.FullName } |
+                Should -Throw '*descendant reparse point*'
+        }
+        finally {
+            if (Test-Path -LiteralPath $linkPath) {
+                Remove-Item -LiteralPath $linkPath -Force
+            }
+            $acl = Get-Acl -LiteralPath $locked.FullName
+            [void]$acl.RemoveAccessRule($deny)
+            Set-Acl -LiteralPath $locked.FullName -AclObject $acl
+        }
     }
 
     It 'accepts a plain tree and rejects a descendant junction without traversing it' {
@@ -528,7 +573,6 @@ Describe 'Set-AtlasTaskbarPins' {
         Mock Write-AtlasLog -ModuleName Atlas.Shell
         Mock Test-AtlasTaskbarExecutable -ModuleName Atlas.Shell { $true }
         Mock Stop-Process -ModuleName Atlas.Shell
-        Mock Start-Sleep -ModuleName Atlas.Shell
         $script:appData = Join-Path $TestDrive 'AppData'
         Remove-Item -LiteralPath $script:appData -Recurse -Force -ErrorAction SilentlyContinue
         $script:profileAppData = $script:appData
@@ -551,7 +595,7 @@ Describe 'Set-AtlasTaskbarPins' {
     }
 
     It 'replaces the pin folder with File Explorer plus the selected browser and writes the Taskband values' {
-        Set-AtlasTaskbarPins -Browser 'Brave' -NoExplorerStop
+        Set-AtlasTaskbarPins -Browser 'Brave'
 
         @(Get-ChildItem -LiteralPath $script:taskBarFolder | ForEach-Object { $_.Name } | Sort-Object) |
             Should -Be @('Brave.lnk', 'File Explorer.lnk')
@@ -571,7 +615,7 @@ Describe 'Set-AtlasTaskbarPins' {
 
     It 'falls back to Microsoft Edge and then to File Explorer alone' {
         Mock Test-AtlasTaskbarExecutable -ModuleName Atlas.Shell { $Path -like '*\msedge.exe' }
-        Set-AtlasTaskbarPins -Browser 'Firefox' -NoExplorerStop
+        Set-AtlasTaskbarPins -Browser 'Firefox'
 
         @(Get-ChildItem -LiteralPath $script:taskBarFolder | ForEach-Object { $_.Name } | Sort-Object) |
             Should -Be @('File Explorer.lnk', 'Microsoft Edge.lnk')
@@ -580,7 +624,7 @@ Describe 'Set-AtlasTaskbarPins' {
         }
 
         Mock Test-AtlasTaskbarExecutable -ModuleName Atlas.Shell { $false }
-        Set-AtlasTaskbarPins -Browser 'Unknown Browser' -NoExplorerStop
+        Set-AtlasTaskbarPins -Browser 'Unknown Browser'
 
         @(Get-ChildItem -LiteralPath $script:taskBarFolder | ForEach-Object { $_.Name }) |
             Should -Be @('File Explorer.lnk')
@@ -595,18 +639,10 @@ Describe 'Set-AtlasTaskbarPins' {
         }
     }
 
-    It 'stops Explorer around the replacement unless suppressed' {
-        Set-AtlasTaskbarPins
-
-        Should -Invoke Stop-Process -ModuleName Atlas.Shell -Times 2 -Exactly -ParameterFilter {
-            $Name -eq 'explorer' -and $Force
-        }
-    }
-
     It 'skips a profile without an AppData directory and still removes its staging directory' {
         $script:profileAppData = Join-Path $TestDrive 'missing-appdata'
 
-        Set-AtlasTaskbarPins -NoExplorerStop
+        Set-AtlasTaskbarPins
 
         Should -Invoke Write-AtlasLog -ModuleName Atlas.Shell -Times 1 -Exactly -ParameterFilter {
             $Level -eq 'Warning' -and $Message -like '*skipping taskbar pin cleanup*'
@@ -620,39 +656,41 @@ Describe 'Set-AtlasTaskbarPins' {
     }
 
     It 'removes the staging directory even when a Taskband write fails' {
-        Mock Invoke-AtlasTaskbarRegistryWrite -ModuleName Atlas.Shell { throw 'reg.exe failed' }
+        Mock Set-AtlasRegistryValue -ModuleName Atlas.Shell { throw 'registry write failed' }
 
-        { Set-AtlasTaskbarPins -NoExplorerStop } | Should -Throw '*reg.exe failed*'
+        { Set-AtlasTaskbarPins } | Should -Throw '*registry write failed*'
         $script:stagedShortcuts.Count | Should -BeGreaterThan 0
         foreach ($staged in $script:stagedShortcuts) {
             Test-Path -LiteralPath (Split-Path -Parent $staged) | Should -BeFalse
         }
     }
 
-    It 'turns a native reg.exe failure into a terminating error' {
-        $fakeReg = Join-Path $TestDrive 'reg-failure.cmd'
-        Set-Content -LiteralPath $fakeReg -Value '@exit /b 5'
+    It 'fails pinning when Windows refuses a Taskband write' {
+        # The real Set-AtlasRegistryValue runs, so a Taskband write that allowed an
+        # OS-protected refusal would log it and report success with the old pins.
+        Mock Write-AtlasLog -ModuleName Atlas.Registry
+        $script:taskbandRefusal = InModuleScope Atlas.Registry {
+            New-AtlasRegistryValueRefusedRecord -ProviderPath 'HKEY_CURRENT_USER\Software\AtlasRewriteTest\Taskband' `
+                -Name 'Favorites' -Cause ([UnauthorizedAccessException]::new('denied'))
+        }
+        Mock Set-AtlasRegistryValueCore -ModuleName Atlas.Registry { throw $script:taskbandRefusal }
 
-        InModuleScope Atlas.Shell -Parameters @{ RegExe = $fakeReg } {
-            { Invoke-AtlasTaskbarRegistryWrite -RegExe $RegExe -RegistryKey 'HKCU\Test' -Name Favorites -Data '00' } |
-                Should -Throw '*exit code 5*'
+        { Set-AtlasTaskbarPins } | Should -Throw -ErrorId 'AtlasRegistryValueWriteRefused'
+        Should -Invoke Set-AtlasRegistryValueCore -ModuleName Atlas.Registry -Times 1 -Exactly
+        $script:stagedShortcuts.Count | Should -BeGreaterThan 0
+        foreach ($staged in $script:stagedShortcuts) {
+            Test-Path -LiteralPath (Split-Path -Parent $staged) | Should -BeFalse
         }
     }
 
-    It 'passes the exact reg.exe add arguments for a binary value' {
-        $fakeReg = Join-Path $TestDrive 'reg-capture.cmd'
-        $captured = Join-Path $TestDrive 'reg-capture.txt'
-        Set-Content -LiteralPath $fakeReg -Encoding Ascii -Value @(
-            "@echo %*> `"$captured`""
-            '@exit /b 0'
-        )
-
-        InModuleScope Atlas.Shell -Parameters @{ RegExe = $fakeReg } {
-            Invoke-AtlasTaskbarRegistryWrite -RegExe $RegExe -RegistryKey 'HKCU\Test\Taskband' -Name Favorites -Data 'FF00AB'
+    It 'converts a recorded Taskband hex string to its bytes and rejects malformed data' {
+        InModuleScope Atlas.Shell {
+            $bytes = ConvertFrom-AtlasTaskbarHexString -Hex 'FF00ab'
+            $bytes.GetType() | Should -Be ([byte[]])
+            $bytes | Should -Be @([byte]0xFF, [byte]0x00, [byte]0xAB)
+            { ConvertFrom-AtlasTaskbarHexString -Hex 'ABC' } | Should -Throw '*even-length hexadecimal*'
+            { ConvertFrom-AtlasTaskbarHexString -Hex '0G' } | Should -Throw '*even-length hexadecimal*'
         }
-
-        (Get-Content -LiteralPath $captured -Raw).Trim() |
-            Should -BeExactly 'add HKCU\Test\Taskband /v Favorites /t REG_BINARY /d FF00AB /f'
     }
 }
 
@@ -689,29 +727,57 @@ Describe 'Add-AtlasMusicVideosToHome' {
             }
             return $shell
         }
-        $script:homeFolders = @(
-            [Environment]::GetFolderPath('MyVideos')
-            [Environment]::GetFolderPath('MyMusic')
-        ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and (Test-Path -LiteralPath $_ -PathType Container) }
+        $script:videosFolder = (New-Item -ItemType Directory -Path (Join-Path $TestDrive 'Videos') -Force).FullName
+        $script:musicFolder = (New-Item -ItemType Directory -Path (Join-Path $TestDrive 'Music') -Force).FullName
+        $script:missingFolder = Join-Path $TestDrive 'Unavailable\Videos'
+        Mock Get-AtlasHomeFolderCandidate -ModuleName Atlas.Shell {
+            [pscustomobject]@{ Name = 'Videos'; Path = $script:videosFolder }
+            [pscustomobject]@{ Name = 'Music'; Path = $script:musicFolder }
+        }
     }
 
     AfterEach {
         Remove-Variable -Name AtlasShellHomeTest -Scope Global -ErrorAction SilentlyContinue
     }
 
-    It 'pins the existing Music and Videos folders that are not pinned yet' {
+    It 'pins the Videos and Music folders in order when neither is pinned yet' {
         Add-AtlasMusicVideosToHome
 
         @($global:AtlasShellHomeTest.Invocations) |
-            Should -Be @($script:homeFolders | ForEach-Object { "pintohome|$_" })
+            Should -Be @("pintohome|$script:videosFolder", "pintohome|$script:musicFolder")
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Shell -Times 0 -ParameterFilter { $Level -eq 'Warning' }
     }
 
-    It 'leaves folders alone that Home already lists' {
-        $global:AtlasShellHomeTest.Pins = @($script:homeFolders)
+    It 'leaves a folder alone that Home already lists' {
+        $global:AtlasShellHomeTest.Pins = @($script:videosFolder)
 
         Add-AtlasMusicVideosToHome
 
-        @($global:AtlasShellHomeTest.Invocations).Count | Should -Be 0
+        @($global:AtlasShellHomeTest.Invocations) | Should -Be @("pintohome|$script:musicFolder")
+    }
+
+    It 'skips and names a missing folder but still pins the other' {
+        Mock Get-AtlasHomeFolderCandidate -ModuleName Atlas.Shell {
+            [pscustomobject]@{ Name = 'Videos'; Path = $script:missingFolder }
+            [pscustomobject]@{ Name = 'Music'; Path = $script:musicFolder }
+        }
+        Add-AtlasMusicVideosToHome
+        @($global:AtlasShellHomeTest.Invocations) | Should -Be @("pintohome|$script:musicFolder")
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Shell -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and $Message -like '*Videos folder*'
+        }
+
+        # Windows reports a known folder that doesn't exist as an empty path.
+        $global:AtlasShellHomeTest.Invocations.Clear()
+        Mock Get-AtlasHomeFolderCandidate -ModuleName Atlas.Shell {
+            [pscustomobject]@{ Name = 'Videos'; Path = $script:videosFolder }
+            [pscustomobject]@{ Name = 'Music'; Path = '' }
+        }
+        Add-AtlasMusicVideosToHome
+        @($global:AtlasShellHomeTest.Invocations) | Should -Be @("pintohome|$script:videosFolder")
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Shell -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and $Message -like '*Music folder*'
+        }
     }
 
     It 'fails when the Home namespace cannot be opened' {

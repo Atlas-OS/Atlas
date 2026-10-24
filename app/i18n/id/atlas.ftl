@@ -76,6 +76,8 @@ window-close-message = Penginstalan akan berlanjut di latar belakang. Buka Atlas
 # Instead of window-close-message when the installation restarts the PC afterwards: only an
 # open Atlas window restarts it, so closing the window cancels that.
 window-close-message-restart = Penginstalan akan berlanjut di latar belakang, tetapi PC Anda tidak akan dimulai ulang secara otomatis selama Atlas ditutup. Buka Atlas lagi untuk melihat kemajuan dan hasilnya. Biarkan PC tetap menyala hingga penginstalan selesai.
+# The safe answer in every dialog shown when the window is closed, including those for ISO
+# and USB creation, updates and Windows Update access.
 window-close-keep = Biarkan terbuka
 window-close-close = Tutup jendela
 # Dialog shown when the window is closed during the final checks, before the
@@ -97,7 +99,8 @@ window-close-restart-close = Tutup tanpa memulai ulang
 # window-close-keep, common-open-windows-security and window-close-close.
 window-close-protection-title = Tutup Atlas saat perlindungan masih nonaktif?
 window-close-protection-message = Beberapa perlindungan di Keamanan Windows masih nonaktif: { $switches }. Jika Anda tidak akan menyelesaikan penginstalan Atlas, aktifkan kembali perlindungan tersebut sebelum menutup Atlas. Jika Anda akan menyelesaikannya, Atlas akan melanjutkan penyiapan Anda saat dibuka lagi.
-# Title of the file picker for an Atlas package (.apbx) file.
+# The Open button of the file picker for an Atlas package (.apbx) file, on Get ready and the
+# ISO page. It's a button label, so keep it short.
 file-dialog-open-package = Buka paket Atlas (.apbx)
 # Message Windows shows in its restart notification.
 shutdown-comment = Atlas sudah terinstal. Windows dimulai ulang untuk menyelesaikan penyiapan.
@@ -771,7 +774,9 @@ iso-failed-package-changed = Paket Atlas berubah setelah file diperiksa. Pilih U
 iso-diagnostics = Buka folder log
 iso-close-title = Pembuatan ISO masih berlangsung
 iso-close-message = Biarkan jendela ini terbuka hingga pembuatan atau pembatalan selesai. Pembatalan menunggu hingga operasi saat ini dapat dihentikan dengan aman.
-iso-keep-open = Biarkan terbuka
+# On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,
+# from another page. Their controls are unavailable until it finishes.
+iso-locked = Atlas sedang memproses Windows Update. Anda dapat melanjutkan di sini setelah selesai.
 prepare-title = Perbarui Windows dan aplikasi Store
 prepare-description = Sebelum menginstal, Atlas memperbarui Windows, Microsoft Store, dan aplikasi Store Anda. Aplikasi Store yang sedang terbuka, seperti Notepad, Paint, atau Windows Terminal, mungkin ditutup saat diperbarui, jadi simpan pekerjaan Anda di aplikasi tersebut terlebih dahulu. PC Anda mungkin juga perlu dimulai ulang.
 prepare-complete = Atlas tidak menemukan pembaruan Windows atau Store lain yang perlu diinstal.
@@ -857,6 +862,8 @@ desktop-setup-exit = Lanjutkan di Windows
 usb-title = Buat USB instalasi
 usb-existing = Buat USB dari ISO yang sudah ada
 usb-description = Salin ISO ke drive USB agar Anda dapat menginstal ulang Windows dari drive tersebut. Gunakan ISO yang dibuat oleh Atlas untuk sekaligus menginstal Atlas.
+# Button that opens the file picker for an ISO, and the Open button of that picker, on the USB
+# and ISO pages.
 usb-choose-iso = Pilih ISO
 usb-drive = Drive USB
 # $min and $max are formatted numbers (text), in gigabytes and terabytes.
@@ -936,6 +943,7 @@ prepare-continue = Lanjutkan pembaruan
 prepare-saving-restart = Menyimpan pilihan Anda dan mengatur Atlas agar terbuka kembali setelah Windows dimulai ulang…
 prepare-restart-save-failed = Pilihan Anda tidak dapat disimpan. Coba lagi sebelum memulai ulang.
 prepare-restart-registration-failed = Pilihan Anda tersimpan, tetapi Atlas tidak dapat mengatur agar terbuka kembali setelah PC dimulai ulang. Coba lagi, atau mulai ulang PC Anda sendiri dan buka Atlas setelah Anda masuk.
+prepare-restart-source-linked = Pilihan Anda tersimpan, tetapi selama Atlas Manager berada di folder tertaut, Atlas tidak dapat mengatur agar terbuka kembali setelah PC dimulai ulang. Tutup Atlas dan pindahkan Atlas Manager ke folder lokal di PC ini. Lalu buka dari sana, atau mulai ulang PC Anda sendiri dan buka dari sana setelah Anda masuk.
 prepare-restart-failed = Atlas tidak dapat memulai ulang PC Anda. Coba lagi, atau mulai ulang PC melalui menu Mulai. Pilihan Anda tersimpan, dan Atlas akan terbuka kembali setelah Anda masuk.
 diagnostics-export = Ekspor diagnostik
 diagnostics-exporting = Mengumpulkan diagnostik…
@@ -976,12 +984,14 @@ prepare-failed-store-timeout = Aplikasi Store belum selesai diperbarui. Selesaik
 prepare-failed-store-passes = Microsoft Store terus menawarkan pembaruan baru. Selesaikan pembaruan yang tersisa di Microsoft Store, lalu coba lagi.
 prepare-failed-manual-updates = Beberapa pembaruan Windows perlu diselesaikan di Windows Update. Buka Windows Update, selesaikan pembaruan tersebut, lalu coba lagi.
 prepare-failed-windows-passes = Windows Update terus menawarkan pembaruan baru. Selesaikan pembaruan yang tersisa di Windows Update, lalu coba lagi.
+prepare-failed-source-linked = Atlas Manager berada di folder tertaut. Tutup Atlas, pindahkan Atlas Manager ke folder lokal di PC ini, lalu buka dari sana.
 prepare-error-code = Kode kesalahan: { $code }
 prepare-open-store = Buka Microsoft Store
 
 check-user-account = Akun pengguna
 detail-user-account-ok = UAC aktif dan akun Anda siap untuk penginstalan.
 detail-user-account-not-ready = Aktifkan Kontrol Akun Pengguna (UAC), mulai ulang PC, lalu coba lagi. Jika Anda menggunakan akun Administrator bawaan, masuk dengan akun administrator lain.
+detail-user-account-work-or-school = Atlas tidak dapat diinstal dari akun kerja atau sekolah (Microsoft Entra ID). Masuk dengan akun lokal atau akun Microsoft, lalu coba lagi.
 detail-user-account-unknown = Atlas tidak dapat memeriksa akun pengguna Anda. Periksa lagi sebelum menginstal. Windows melaporkan: { $error }
 
 footer-prepare-required = Selesaikan pembaruan Windows dan aplikasi Store untuk melanjutkan
@@ -1140,6 +1150,8 @@ stop-update-before = Atlas akan mengembalikan pengaturan Windows Update yang diu
 stop-update-after = PC Anda tetap menggunakan Windows 11, versi { $release }. Atlas akan mengembalikan pengaturan Windows Update yang diubahnya.
 stop-update-access = Atlas akan mengembalikan pengaturan Windows Update yang diubahnya. Pembaruan yang sudah diinstal Windows tetap terinstal.
 stop-update-keep = Teruskan pembaruan
+# Dialog shown when the window is closed while Windows Update is turned on for an update; its
+# buttons are window-close-keep and window-close-put-back.
 window-close-update-access-title = Tutup Atlas?
 window-close-update-access-message = Sebelum ditutup, Atlas akan mengembalikan pengaturan Windows Update yang diubahnya. Anda dapat memulai pembaruan lagi dari Beranda.
 window-close-put-back = Kembalikan dan tutup

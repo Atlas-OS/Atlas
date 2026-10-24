@@ -126,7 +126,8 @@ pub enum InstallIdentity {
     Fresh,
     Installed(String),
     /// An unfinished install of this version, with the options it was
-    /// started with once its plan is running.
+    /// started with once its plan is running or any of its steps has
+    /// completed: from then on the install keeps those options.
     Resume(String, Option<Vec<String>>),
 }
 
@@ -178,31 +179,27 @@ fn read_identity_at(
     atlas_files_exist: impl FnOnce() -> Result<bool>,
 ) -> Result<InstallIdentity> {
     let root = path.parent().context("Atlas state directory")?;
-    let active = root.join("Install/active.json");
-    match std::fs::read_to_string(&active) {
-        Ok(text) => {
-            let doc: serde_json::Value = serde_json::from_str(text.trim_start_matches('\u{feff}'))?;
-            let target = doc["targetVersion"].as_str().filter(|s| !s.trim().is_empty());
-            anyhow::ensure!(
-                doc["schemaVersion"] == 1
-                    && target.is_some()
-                    && doc["mode"].as_str().is_some_and(|m| ["fresh", "upgrade", "reapply", "rebase"]
-                        .contains(&m.to_ascii_lowercase().as_str())),
-                "the active Atlas installation record is invalid"
-            );
-            let options = if doc["status"] == "Running" {
-                Some(
-                    serde_json::from_value::<Vec<String>>(doc["options"].clone())
-                        .context("read original Atlas installation choices")?,
-                )
-            } else {
-                anyhow::ensure!(doc["status"] == "Capturing", "invalid active installation status");
-                None
-            };
-            return Ok(InstallIdentity::Resume(target.unwrap().to_owned(), options));
-        }
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-        Err(error) => return Err(error).context("read active Atlas installation"),
+    if let Some(doc) = files::read_json::<serde_json::Value>(&root.join("Install/active.json"))? {
+        let invalid = |field: &str| format!("the active Atlas installation record has an invalid {field}");
+        anyhow::ensure!(doc["schemaVersion"] == 1, invalid("schemaVersion"));
+        let target = doc["targetVersion"]
+            .as_str()
+            .filter(|s| !s.trim().is_empty())
+            .with_context(|| invalid("targetVersion"))?;
+        anyhow::ensure!(InstallMode::parse(doc["mode"].as_str()) != InstallMode::Unknown, invalid("mode"));
+        let status = doc["status"]
+            .as_str()
+            .filter(|status| ["Capturing", "Running"].contains(status))
+            .with_context(|| invalid("status"))?;
+        // The same test Set-AtlasInstallOptions uses to hold a resume to its
+        // original options.
+        let held =
+            status == "Running" || doc["completedSteps"].as_array().is_some_and(|steps| !steps.is_empty());
+        let options = held
+            .then(|| serde_json::from_value::<Vec<String>>(doc["options"].clone()))
+            .transpose()
+            .context("read original Atlas installation choices")?;
+        return Ok(InstallIdentity::Resume(target.to_owned(), options));
     }
     let state = read_at(path)?;
     let version =
@@ -276,10 +273,37 @@ mod tests {
         assert!(!InstallIdentity::Resume("0.5.0".into(), None).allows(&manifest));
     }
 
+    /// Start-AtlasInstallState writes active.json, so every mode it accepts
+    /// must be one the app reads as itself, and nothing else may be read.
     #[test]
-    fn a_rebase_is_its_own_install_mode() {
-        assert_eq!(InstallMode::parse(Some("Rebase")), InstallMode::Rebase);
-        assert_eq!(InstallMode::parse(Some("rebase")), InstallMode::Rebase);
+    fn every_mode_the_install_state_writes_is_one_the_app_reads() {
+        let module = include_str!(
+            "../../../playbook/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/Atlas.InstallState.psm1"
+        );
+        let start =
+            &module[module.find("function Start-AtlasInstallState").expect("Start-AtlasInstallState")..];
+        let list = &start[start.find("[ValidateSet(").expect("its mode list") + "[ValidateSet(".len()..];
+        let modes: Vec<&str> =
+            list[..list.find(')').unwrap()].split(',').map(|mode| mode.trim().trim_matches('\'')).collect();
+        assert!(modes.len() >= 4, "{modes:?}");
+        let temp = super::super::test_support::TempDir::new("install-modes");
+        let state = temp.path().join("state.json");
+        let active = temp.path().join("Install/active.json");
+        std::fs::create_dir_all(active.parent().unwrap()).unwrap();
+        let identity = |mode: &str| {
+            let doc = serde_json::json!({
+                "schemaVersion": 1, "targetVersion": "0.6.0", "mode": mode, "status": "Capturing",
+            });
+            std::fs::write(&active, doc.to_string()).unwrap();
+            read_identity_at(&state, || panic!("must use active state"), || panic!("must use active state"))
+        };
+        for mode in modes.iter().flat_map(|mode| [mode.to_string(), mode.to_ascii_lowercase()]) {
+            let parsed = InstallMode::parse(Some(&mode));
+            assert!(format!("{parsed:?}").eq_ignore_ascii_case(&mode), "{mode} reads as {parsed:?}");
+            assert_eq!(identity(&mode).unwrap(), InstallIdentity::Resume("0.6.0".into(), None), "{mode}");
+        }
+        assert_eq!(InstallMode::parse(Some("Repair")), InstallMode::Unknown);
+        assert!(identity("Repair").is_err());
     }
 
     #[test]
@@ -337,35 +361,51 @@ mod tests {
         assert!(read_identity_at(&state, no_legacy, no_files).is_err());
     }
 
+    /// A plan that runs, or one recovered to Capturing with steps already
+    /// done, keeps its original options; so does the app.
     #[test]
-    fn running_install_recovers_exact_choices_and_rejects_missing_or_invalid_choices() {
+    fn a_started_install_recovers_exact_choices_and_rejects_missing_or_invalid_choices() {
         let temp = super::super::test_support::TempDir::new("resume-choices");
         let state = temp.path().join("state.json");
         let active = temp.path().join("Install/active.json");
         std::fs::create_dir_all(active.parent().unwrap()).unwrap();
-        for options in [
-            serde_json::json!(["auto-updates-disable", "disable-power-saving"]),
-            serde_json::Value::Null,
-            serde_json::json!([42]),
-        ] {
-            std::fs::write(&active, serde_json::json!({"schemaVersion":1,"targetVersion":"0.6.0","mode":"Fresh","status":"Running","options":options}).to_string()).unwrap();
-            let result = read_identity_at(
-                &state,
-                || panic!("must use active state"),
-                || panic!("must use active state"),
-            );
-            if options[0].is_string() {
-                assert_eq!(
-                    result.unwrap(),
-                    InstallIdentity::Resume(
-                        "0.6.0".into(),
-                        Some(vec!["auto-updates-disable".into(), "disable-power-saving".into()])
-                    )
-                );
-            } else {
-                assert!(result.is_err());
+        let read = |status: &str, steps: serde_json::Value, options: &serde_json::Value| {
+            let doc = serde_json::json!({
+                "schemaVersion": 1, "targetVersion": "0.6.0", "mode": "Fresh", "status": status,
+                "completedSteps": steps, "options": options,
+            });
+            std::fs::write(&active, doc.to_string()).unwrap();
+            read_identity_at(&state, || panic!("must use active state"), || panic!("must use active state"))
+        };
+        for (status, steps) in
+            [("Running", serde_json::json!([])), ("Capturing", serde_json::json!(["Features"]))]
+        {
+            for options in [
+                serde_json::json!(["auto-updates-disable", "disable-power-saving"]),
+                serde_json::Value::Null,
+                serde_json::json!([42]),
+            ] {
+                let result = read(status, steps.clone(), &options);
+                if options[0].is_string() {
+                    assert_eq!(
+                        result.unwrap(),
+                        InstallIdentity::Resume(
+                            "0.6.0".into(),
+                            Some(vec!["auto-updates-disable".into(), "disable-power-saving".into()])
+                        ),
+                        "{status}"
+                    );
+                } else {
+                    assert!(result.is_err(), "{status} {options}");
+                }
             }
         }
+        // Until then the choices can still change, whatever they were.
+        assert_eq!(
+            read("Capturing", serde_json::json!([]), &serde_json::Value::Null).unwrap(),
+            InstallIdentity::Resume("0.6.0".into(), None)
+        );
+        assert!(read("Completed", serde_json::json!(["Features"]), &serde_json::json!([])).is_err());
     }
 
     /// Capture writes state.json before the install has finished; only a

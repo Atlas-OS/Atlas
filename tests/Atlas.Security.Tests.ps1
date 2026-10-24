@@ -12,6 +12,7 @@ BeforeAll {
 
     $togglesRoot = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles'
     $script:ToggleDefender = Get-AtlasToggleDefinition -Name ToggleDefender -TogglesRoot $togglesRoot
+    $script:FixErrors2502and2503 = Get-AtlasToggleDefinition -Name FixErrors2502and2503 -TogglesRoot $togglesRoot
     $script:TweakPath = Join-Path $script:AtlasTestScriptsRoot 'Tweaks\scripts\disable-core-isolation.psd1'
 
     function Set-TestDword {
@@ -311,24 +312,16 @@ Describe 'Windows Defender state' {
         }
     }
 
-    It 'lets the menu choose the change when no state is given' {
+    It 'shows the menu for the current state and the warning, then returns the choice without changing anything' {
         Mock Read-AtlasDefenderMenuChoice -ModuleName Atlas.Security { 'Disable' }
 
-        Set-AtlasDefenderState
+        Read-AtlasDefenderStateChoice | Should -BeExactly 'Disable'
 
         Should -Invoke Read-AtlasDefenderMenuChoice -ModuleName Atlas.Security -Times 1 -Exactly -ParameterFilter {
             $CurrentState -ceq 'Enabled'
         }
         Should -Invoke Write-AtlasWarning -ModuleName Atlas.Security -Times 1 -Exactly
         Should -Invoke Wait-AtlasContinue -ModuleName Atlas.Security -Times 1 -Exactly
-        Should -Invoke Invoke-AtlasDefenderPackageInstaller -ModuleName Atlas.Security -Times 1 -Exactly -ParameterFilter {
-            $Operation -ceq 'Install'
-        }
-    }
-
-    It 'requires a state when running silently' {
-        { Set-AtlasDefenderState -Silent } | Should -Throw '*requires -State*'
-
         Should -Invoke Invoke-AtlasDefenderPackageInstaller -ModuleName Atlas.Security -Times 0 -Exactly
     }
 
@@ -392,6 +385,82 @@ exit 3
             'nointeraction=True'
         )
     }
+
+    It 'returns only the exit code of a silent installer that prints, and logs what it printed' {
+        Mock Write-AtlasLog -ModuleName Atlas.Security
+        $fakeInstaller = Join-Path $TestDrive 'Install-AtlasPackage-Printing.ps1'
+        @(
+            'param([string[]]$InstallPackages, [string[]]$UninstallPackages, [switch]$NoInteraction)'
+            "Write-Host ''"
+            "Write-Host 'The package change completed.'"
+            "Write-Output 'pipeline line'"
+            "[Console]::Error.WriteLine('stderr line')"
+            'exit 0'
+        ) | Set-Content -LiteralPath $fakeInstaller -Encoding UTF8
+        $installer = [pscustomobject]@{ ScriptPath = $fakeInstaller; PowerShellPath = Join-Path $PSHOME 'powershell.exe' }
+
+        # The toggle engine runs companions with Stop, under which redirected stderr throws.
+        $exitCode = InModuleScope Atlas.Security {
+            $ErrorActionPreference = 'Stop'
+            Invoke-AtlasDefenderPackageInstaller -Operation Install -Installer $i -NoInteraction
+        } -Parameters @{ i = $installer }
+
+        ($exitCode -is [int]) | Should -BeTrue
+        $exitCode | Should -Be 0
+        foreach ($line in @('The package change completed.', 'pipeline line', 'stderr line')) {
+            Should -Invoke Write-AtlasLog -ModuleName Atlas.Security -Times 1 -Exactly -ParameterFilter {
+                $Message -ceq "Package installer: $line"
+            }
+        }
+    }
+
+    It 'completes a silent Defender change whose installer prints before it exits 0' {
+        Mock Write-AtlasLog -ModuleName Atlas.Security
+        Mock Get-AtlasDefenderPackageNames -ModuleName Atlas.Security { @() }
+        $script:printingInstaller = Join-Path $TestDrive 'Install-AtlasPackage-Done.ps1'
+        @(
+            'param([string[]]$InstallPackages, [string[]]$UninstallPackages, [switch]$NoInteraction)'
+            "Write-Host ''"
+            "Write-Host 'The package change completed.'"
+            'exit 0'
+        ) | Set-Content -LiteralPath $script:printingInstaller -Encoding UTF8
+        Mock Get-AtlasDefenderPackageInstaller -ModuleName Atlas.Security {
+            [pscustomobject]@{ ScriptPath = $script:printingInstaller; PowerShellPath = Join-Path $PSHOME 'powershell.exe' }
+        }
+
+        { Set-AtlasDefenderState -State Disable -Silent } | Should -Not -Throw
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Security -Times 1 -Exactly -ParameterFilter {
+            $Message -like 'Windows Defender Disable requested*'
+        }
+    }
+
+    It 'gives an interactive installer the console and returns its exit code' {
+        $callRecord = Join-Path $TestDrive 'interactive-installer-call.txt'
+        $fakeInstaller = Join-Path $TestDrive 'Install-AtlasPackage-Interactive.ps1'
+        # What it prints must reach the console, not join the returned exit code.
+        @"
+param([string[]]`$InstallPackages, [string[]]`$UninstallPackages, [switch]`$NoInteraction)
+Set-Content -LiteralPath '$callRecord' -Value @(
+    "install=`$(`$InstallPackages -join '|')"
+    "nointeraction=`$NoInteraction"
+)
+Write-Host 'Restart now? ' -NoNewline
+Write-Output 'pipeline line'
+exit 5
+"@ | Set-Content -LiteralPath $fakeInstaller -Encoding UTF8
+        $installer = [pscustomobject]@{ ScriptPath = $fakeInstaller; PowerShellPath = Join-Path $PSHOME 'powershell.exe' }
+
+        $exitCode = InModuleScope Atlas.Security {
+            Invoke-AtlasDefenderPackageInstaller -Operation Install -Installer $i
+        } -Parameters @{ i = $installer }
+
+        ($exitCode -is [int]) | Should -BeTrue
+        $exitCode | Should -Be 5
+        Get-Content -LiteralPath $callRecord | Should -Be @(
+            'install=*Z-Atlas-NoDefender-Package*'
+            'nointeraction=False'
+        )
+    }
 }
 
 Describe 'Repair-AtlasWindowsTempPermissions' {
@@ -419,10 +488,16 @@ Describe 'Repair-AtlasWindowsTempPermissions' {
         }
     }
 
-    It 'replaces a directory DACL with exactly the four default TEMP rules' {
+    It 'replaces only the directory DACL, with exactly the four default TEMP rules' {
         $target = New-Item -ItemType Directory -Path (Join-Path $TestDrive 'TempRoot') -Force
         $script:aclTarget = $target.FullName
-        $null = New-Item -ItemType File -Path (Join-Path $target.FullName 'existing.txt') -Force
+        $subdirectory = New-Item -ItemType Directory -Path (Join-Path $target.FullName 'existing') -Force
+        $descendants = @(
+            (New-Item -ItemType File -Path (Join-Path $target.FullName 'existing.txt') -Force).FullName
+            $subdirectory.FullName
+            (New-Item -ItemType File -Path (Join-Path $subdirectory.FullName 'nested.txt') -Force).FullName
+        )
+        $descendantSddl = @($descendants | ForEach-Object { (Get-Acl -LiteralPath $_).Sddl })
 
         InModuleScope Atlas.Security { Set-AtlasWindowsTempRootAcl -Path $p } -Parameters @{ p = $target.FullName }
 
@@ -441,10 +516,24 @@ Describe 'Repair-AtlasWindowsTempPermissions' {
         $users.InheritanceFlags | Should -Be ([Security.AccessControl.InheritanceFlags]::ContainerInherit)
         $creatorOwner = $rules | Where-Object { $_.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value -ceq 'S-1-3-0' }
         $creatorOwner.PropagationFlags | Should -Be ([Security.AccessControl.PropagationFlags]::InheritOnly)
-        # Existing content is untouched and the repair is idempotent.
-        Test-Path -LiteralPath (Join-Path $target.FullName 'existing.txt') | Should -BeTrue
+        # Descendants keep their own DACLs: rewriting them would be the privileged walk of a
+        # user-writable tree that the repair avoids. The repair is also idempotent.
+        foreach ($index in 0..($descendants.Count - 1)) {
+            (Get-Acl -LiteralPath $descendants[$index]).Sddl |
+                Should -BeExactly $descendantSddl[$index] -Because $descendants[$index]
+        }
         { InModuleScope Atlas.Security { Set-AtlasWindowsTempRootAcl -Path $p } -Parameters @{ p = $target.FullName } } |
             Should -Not -Throw
+    }
+
+    It 'keeps the Windows reason when the TEMP DACL cannot be written' {
+        Initialize-AtlasNativeType
+        $security = New-Object Security.AccessControl.DirectorySecurity
+        $security.SetAccessRuleProtection($true, $false)
+        $missing = Join-Path $TestDrive 'missing\nested'
+
+        { [Atlas.Native.DirectoryDacl]::SetProtected($missing, $security) } |
+            Should -Throw "*Setting the DACL of '$([WildcardPattern]::Escape($missing))' failed: *(Win32 error 3).*"
     }
 
     It 'requires Administrator rights before touching the Windows TEMP directory' {
@@ -513,6 +602,18 @@ Describe 'Security toggle companions' {
             Should -Throw '*interactive window*'
         Should -Invoke Set-AtlasDefenderState -ModuleName Atlas.Toggles -Times 0 -Exactly
     }
+
+    It 'FixErrors2502and2503 explains the repair in the administrator window before the silent broker runs' {
+        $selector = [string]$script:FixErrors2502and2503['States']['Run']['InteractiveState']
+        $selector | Should -BeExactly 'Show-AtlasWindowsTempRepairNote' `
+            -Because 'the repair runs in the silent TrustedInstaller broker, so only an InteractiveState can show the note'
+        Invoke-CompanionFunction -Definition $script:FixErrors2502and2503 -FunctionName $selector `
+            -Toggle (New-ToggleContext -Name 'FixErrors2502and2503' -State 'Run' -Silent $false) | Should -BeExactly 'Run'
+        Should -Invoke Write-AtlasNote -ModuleName Atlas.Toggles -Times 1 -Exactly
+        { Invoke-CompanionFunction -Definition $script:FixErrors2502and2503 -FunctionName $selector `
+                -Toggle (New-ToggleContext -Name 'FixErrors2502and2503' -State 'Run' -Silent $true) } |
+            Should -Throw '*interactive window*'
+    }
 }
 
 Describe 'disable-core-isolation install tweak' {
@@ -525,6 +626,7 @@ Describe 'disable-core-isolation install tweak' {
         Mock Assert-AtlasPrivilege -ModuleName Atlas.Security
         Mock Write-AtlasLog -ModuleName Atlas.Security
         Mock Import-AtlasModule {}
+        Mock Get-AtlasContext { [pscustomobject]@{ IsUpgrade = $false } }
         Mock Get-AtlasVbsDwordState -ModuleName Atlas.Security -ParameterFilter { $Name -eq 'EnableVirtualizationBasedSecurity' } {
             [pscustomobject]@{ Exists = $Path -like '*Policies*'; Value = 1 }
         }
@@ -533,5 +635,44 @@ Describe 'disable-core-isolation install tweak' {
         & ($script:TweakPath -replace '\.psd1$', '.ps1')
 
         Should -Invoke Write-AtlasLog -ModuleName Atlas.Security -ParameterFilter { $Level -eq 'Warning' }
+    }
+
+    It 'keeps a VBS choice recorded since the install on an update, but not on a fresh install: upgrade=<Upgrade>' -ForEach @(
+        @{ Upgrade = $true; Expected = 0; ExpectedLog = 1 }
+        @{ Upgrade = $false; Expected = 1; ExpectedLog = 0 }
+    ) {
+        Mock Import-AtlasModule {}
+        Mock Get-AtlasContext { [pscustomobject]@{ IsUpgrade = $Upgrade } }
+        # Enable VBS.cmd was run after installing with VBS off. Only the VbsState record
+        # exists, so a lookup under any other name finds nothing.
+        Mock Get-AtlasToggleState { $null }
+        Mock Get-AtlasToggleState -ParameterFilter { $Name -ceq 'VbsState' } {
+            [pscustomobject]@{ Name = 'VbsState'; State = 1 }
+        }
+        Mock Write-AtlasLog {}
+        Mock Set-AtlasVbsConfiguration {}
+
+        & ($script:TweakPath -replace '\.psd1$', '.ps1')
+
+        Should -Invoke Set-AtlasVbsConfiguration -Times $Expected -Exactly
+        Should -Invoke Set-AtlasVbsConfiguration -Times $Expected -Exactly -ParameterFilter {
+            $State -ceq 'Disable' -and $SkipWhenPolicyConflicts
+        }
+        Should -Invoke Write-AtlasLog -Times $ExpectedLog -Exactly -ParameterFilter {
+            $Message -like '*recorded VbsState choice*'
+        }
+    }
+
+    It 'disables VBS on an update when no VbsState choice is recorded' {
+        Mock Import-AtlasModule {}
+        Mock Get-AtlasContext { [pscustomobject]@{ IsUpgrade = $true } }
+        Mock Get-AtlasToggleState { $null }
+        Mock Set-AtlasVbsConfiguration {}
+
+        & ($script:TweakPath -replace '\.psd1$', '.ps1')
+
+        Should -Invoke Set-AtlasVbsConfiguration -Times 1 -Exactly -ParameterFilter {
+            $State -ceq 'Disable' -and $SkipWhenPolicyConflicts
+        }
     }
 }

@@ -144,7 +144,8 @@ pub struct Environment {
     /// when a flow needs it, and GitHub is never asked. Tests keep this off
     /// and choose their own packages.
     pub embedded_startup: bool,
-    /// `--language`, which outranks the language setting (review and testing).
+    /// `--language` or, without it, `ATLAS_LANGUAGE`: a language that outranks the setting (review and
+    /// testing). Read once, here, so `Environment::isolated` and the tests never see the shell's variable.
     pub language_override: Option<String>,
     pub restart: RestartTiming,
     pub offer_recheck: OfferRecheckTiming,
@@ -161,7 +162,7 @@ impl Environment {
             // A tester build installs only its bundled package, so it never checks for releases.
             check_updates: !cfg!(feature = "embedded-playbook"),
             embedded_startup: cfg!(feature = "embedded-playbook"),
-            language_override,
+            language_override: language_override.or_else(|| std::env::var(crate::i18n::LANGUAGE_ENV).ok()),
             restart: RestartTiming::default(),
             offer_recheck: OfferRecheckTiming::default(),
             settings_lock_wait: settings::LOCK_WAIT,

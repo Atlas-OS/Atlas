@@ -1,11 +1,12 @@
 # Console presentation
 
 Every AtlasDesktop launcher, Toolbox launcher and nested helper prints through one
-vocabulary, `Atlas.Core\Domain\Ui.ps1`, which needs only Windows PowerShell 5.1. This
-page is for contributors who write or review that output. A run shows an Atlas
-heading, plain sentences, honest progress, one outcome line and one exit pause. Each
-line states its meaning in words, so colour is only a hint and a console, transcript
-or bug report reads the same.
+vocabulary, `Atlas.Core\Domain\Ui.ps1`, which needs only Windows PowerShell 5.1. The
+hand-written launchers ([architecture](architecture.md#launchers-and-console-output)) echo
+the same sentences for the lines they print themselves. This page is for contributors who
+write or review that output. A run shows an Atlas heading, plain sentences, honest
+progress, one outcome line and one exit pause. Each line states its meaning in words, so
+colour is only a hint and a console, transcript or bug report reads the same.
 
 ## The vocabulary
 
@@ -48,12 +49,14 @@ Press Enter to continue, or Ctrl+C to cancel.
 <step>...                           only for work that takes time
 <question>? [y/N]                   when user input is needed
 <facts, warnings, next steps>
-Restarting File Explorer...         only when the state declares Reboot = 'RestartExplorer'
+Restarting File Explorer...         when the state declares Reboot = 'RestartExplorer', or after a companion's own restart question
 File Explorer was restarted to apply this change.
 
 Done: <launcher or menu label>.     or  Not finished yet: ... / Partly done: ...
 Restart required: ...               only when the state declares Reboot = 'Prompt'
 Restart Windows now? [y/N]          ('Recommend' prints Restart recommended: ... and does not ask)
+Sign out required: ...              only when the state declares Reboot = 'SignOut'
+Sign out now? [y/N]
 
 Press Enter to exit.
 ```
@@ -71,13 +74,17 @@ Press Enter to exit.
 ## Who prints what
 
 - **Toggle engine:** the heading, warning gate, a `Menu` toggle's numbered state menu,
-  closing line, restart or Explorer follow-up and exit pause. Its `Done:` line is the
-  only success message. It appears only after every part of the state applied and,
-  for machine work, after the state record was written.
+  closing line, restart or Explorer follow-up and exit pause, and one progress step
+  before the silent TrustedInstaller broker starts. A failed File Explorer restart after
+  the change applied is reported as `Partly done:`. Its `Done:` line is the only success
+  message. It appears only after every part of the state applied and, for machine work,
+  after the state record was written.
 - **Companions:** steps for slow work, their existing questions through
   `Read-AtlasYesNo`, and facts the closing line cannot know. Never `Finished`,
   `Completed` or `Changes applied`. A handoff to Settings calls
-  `Write-AtlasManualStep`.
+  `Write-AtlasManualStep`. A companion that asks before restarting File Explorer calls
+  `Invoke-AtlasToggleCurrentSessionShellRefresh -Operation ExplorerRefresh` and reports a
+  failed refresh with `Write-AtlasPartial`, because its own change is already in place.
 - **Nested helpers** (Remove-Edge, Update-Drivers, the CBS package installer, the
   software picker, the nested Network navigation choice): the same vocabulary, never a
   pause. The caller checks the exit code and throws, so a helper that stopped early

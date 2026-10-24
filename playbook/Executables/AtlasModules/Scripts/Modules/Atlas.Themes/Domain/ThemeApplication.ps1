@@ -15,7 +15,9 @@ function Set-AtlasTheme {
     }
 
     function Set-ThemeUsingExplorer {
-        Write-Warning "Failed to apply theme using COM, falling back to launching file..."
+        param([string]$Reason)
+
+        Write-Warning "Applying the theme through IThemeManager failed: $Reason Opening '$Path' through Explorer instead."
 
         Stop-ThemeProcesses
         Start-Process -FilePath explorer -ArgumentList $Path
@@ -27,7 +29,7 @@ function Set-AtlasTheme {
     try {
         [Atlas.Native.ThemeManager]::ApplyTheme($Path)
     } catch {
-        Set-ThemeUsingExplorer
+        Set-ThemeUsingExplorer -Reason $_.Exception.Message
     }
 
     Stop-ThemeProcesses

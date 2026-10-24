@@ -465,6 +465,19 @@ fn a_download_records_when_its_report_was_made() {
     let mut sidecar = download.local_path.clone().into_os_string();
     sidecar.push(".created");
     assert_eq!(std::fs::read_to_string(sidecar).unwrap(), "1790000000");
+    // A time that can't be right isn't recorded, so the copy goes 90 days
+    // after it was saved instead.
+    for created in ["-1", "1000000000000"] {
+        let workspace = TempDir::new().unwrap();
+        let body = b"PK\x03\x04TEST ONLY".to_vec();
+        let headers = zip_headers(&body) + &format!("X-Atlas-Report-Created: {created}\r\n");
+        let (origin, _, task) = serve(200, &headers, body);
+        let download = client(origin, &workspace).download(ID).unwrap();
+        task.join().unwrap();
+        let mut sidecar = download.local_path.into_os_string();
+        sidecar.push(".created");
+        assert!(!std::path::Path::new(&sidecar).exists(), "{created}");
+    }
 }
 #[test]
 fn downloaded_copies_go_when_their_reports_retention_ends() {

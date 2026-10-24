@@ -23,6 +23,8 @@ param(
 
     [switch]$IsUpgrade,
 
+    [switch]$IsRebase,
+
     [switch]$IsArm64
 )
 
@@ -64,6 +66,7 @@ $context = [pscustomobject]@{
     IsArm64              = [bool]$IsArm64
     WindowsBuild         = $WindowsBuild
     IsUpgrade            = [bool]$IsUpgrade
+    IsRebase             = [bool]$IsRebase
     IsOobe               = $false
     IsInstallStateBacked = $true
     Options              = $options

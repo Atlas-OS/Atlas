@@ -8,7 +8,6 @@ use gpui::Context;
 use super::install::disarm_completion;
 use super::{Acquisition, AppModel, ElevationProblem, Page, RestoreStatus, RunState, Step};
 use crate::services::iso;
-use crate::services::preparation::State;
 use crate::services::settings::{self, InstallDraft};
 
 /// Where the launch asked to open, kept while startup recovery is still
@@ -131,9 +130,9 @@ impl AppModel {
                 }
                 return;
             }
-            let screens = self.option_screens().len();
-            if self.option_screen + 1 < screens {
-                self.option_screen += 1;
+            let screen = self.current_option_screen();
+            if screen + 1 < self.option_screens().len() {
+                self.option_screen = screen + 1;
                 self.after_step_change(cx);
                 return;
             }
@@ -160,12 +159,11 @@ impl AppModel {
             return;
         }
         self.returning_to_install = false;
-        if self.flow.step == Step::Options
-            && self.flow.may_edit()
-            && self.flow.active
-            && self.option_screen > 0
-        {
-            self.option_screen -= 1;
+        // From the screen showing: a draft's index can be past the last
+        // screen of a package that has fewer.
+        let screen = self.current_option_screen();
+        if self.flow.step == Step::Options && self.flow.may_edit() && self.flow.active && screen > 0 {
+            self.option_screen = screen - 1;
             self.after_step_change(cx);
             return;
         }
@@ -256,7 +254,9 @@ impl AppModel {
             cx.notify();
             return;
         }
-        if self.iso_busy || self.preparation.busy() {
+        // A put-back of Windows Update settings counts too: under it the new
+        // flow's checks and package are refused, and nothing starts them after.
+        if self.locked() {
             return;
         }
         if self.recovering || self.flow.begin().is_err() {
@@ -265,26 +265,29 @@ impl AppModel {
         self.checks.clear();
         self.check_tasks.clear();
         self.acknowledged.clear();
+        self.security_confirmation = None;
         self.preflight_problem = None;
         self.elevation_error = None;
-        // Licence terms and the version choice belong to one flow.
+        // Licence terms, the version choice and going on past the used-Windows
+        // warning belong to one flow.
         self.windows_terms_accepted = false;
         self.windows_transition_declined = false;
+        self.used_windows_accepted = false;
         self.recorded_choices_applied = false;
         self.store_outcome_seen = None;
-        // So does a preparation that finished, failed or stopped: it was made
-        // for that flow's choices, and this one may move Windows elsewhere. A
-        // restart it asked for, or made, is kept; starting over would forget it.
-        if !matches!(self.preparation, State::Reboot | State::Resumed | State::RestartPersists { .. }) {
-            self.preparation = State::Idle;
-            self.preparation_progress = None;
-            self.preparation_error = None;
-        }
+        // So does a preparation that finished, failed or stopped; a restart it
+        // asked for, or made, is kept.
+        self.forget_preparation();
         self.stop_offer_wait();
         // An earlier put-back that failed is offered again from what the
         // record says now, not from that failure.
         if matches!(self.restore_status, RestoreStatus::Failed(_)) {
             self.restore_status = RestoreStatus::Idle;
+        }
+        // So is a package attempt that failed for an earlier flow or on the
+        // ISO page: this flow tries again rather than showing that failure.
+        if matches!(self.acquisition, Acquisition::Failed(_)) {
+            self.acquisition = Acquisition::Idle;
         }
         self.security_reminder = false;
         self.forget_pending_reminder(cx);
@@ -315,7 +318,12 @@ impl AppModel {
                         cx.notify();
                         return false;
                     }
-                    let Err(error) = saved else { return true };
+                    let Err(error) = saved else {
+                        // This flow's draft replaced whatever an earlier
+                        // failed write left to replay.
+                        this.unsaved_draft = None;
+                        return true;
+                    };
                     this.elevating = false;
                     this.flow.cancel().ok();
                     this.flow_id = None;
@@ -351,8 +359,9 @@ impl AppModel {
         self.returning_to_install = false;
         self.stop_offer_wait();
         // Protection was switched off for an install that is not happening
-        // (or that stopped early); remind the user to put it back.
-        self.security_reminder = !finished_ok && self.security.any_off();
+        // (or that stopped early); remind the user to put it back. Without
+        // Defender there is nothing to put back.
+        self.security_reminder = !finished_ok && self.security.defender_present && self.security.any_off();
         if self.security_reminder {
             // The flow's reading is newer than any Home took before it began.
             self.protection = None;

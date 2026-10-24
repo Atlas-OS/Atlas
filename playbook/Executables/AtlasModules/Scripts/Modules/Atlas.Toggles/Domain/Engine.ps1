@@ -8,6 +8,8 @@
 # The launcher never elevates - the engine does. Companion functions run under strict
 # mode with terminating errors, so a failed action can never be recorded as applied.
 
+# Keep these in file-name sort order: Invoke-AtlasServiceDefaultsReset compares them
+# position by position with the sorted Services\*.psd1 files.
 $script:AtlasServiceDefaultResetStates = [ordered]@{
     Bluetooth                        = 'Enable'
     LanmanWorkstation                = 'Enable'
@@ -74,24 +76,6 @@ function Resolve-AtlasToggleStateName {
     throw "Toggle '$($Definition['Name'])' was invoked silently without a -State and no recorded state or SilentDefault could resolve one."
 }
 
-function ConvertTo-AtlasToggleQuotedWindowsArgument {
-    param(
-        [Parameter(Mandatory = $true)]
-        [AllowEmptyString()]
-        [string]$Value
-    )
-
-    if ($Value.Length -gt 32766) {
-        throw 'A toggle relaunch argument exceeded the Windows command-line value limit.'
-    }
-
-    # Start-Process joins ArgumentList into one Windows command line. Escape quotes
-    # and the backslashes that precede them, then double trailing backslashes.
-    $escaped = [regex]::Replace($Value, '(\\*)"', '$1$1\"')
-    $escaped = [regex]::Replace($escaped, '(\\+)$', '$1$1')
-    return '"' + $escaped + '"'
-}
-
 function Start-AtlasToggleAdminRelaunch {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
         'PSUseShouldProcessForStateChangingFunctions',
@@ -109,21 +93,35 @@ function Start-AtlasToggleAdminRelaunch {
         [string[]]$ArgumentList
     )
 
-    return Microsoft.PowerShell.Management\Start-Process `
-        -FilePath $FilePath `
-        -ArgumentList $ArgumentList `
-        -WorkingDirectory ([Environment]::GetFolderPath('System')) `
-        -Verb RunAs `
-        -Wait `
-        -PassThru `
-        -ErrorAction Stop
+    # Windows PowerShell 5.1's Start-Process turns a declined prompt's Win32Exception
+    # into an InvalidOperationException, so the caller could never tell a cancel apart.
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = $FilePath
+    $startInfo.Arguments = ConvertTo-AtlasWindowsArgumentString -ArgumentList $ArgumentList
+    $startInfo.WorkingDirectory = [Environment]::GetFolderPath('System')
+    $startInfo.UseShellExecute = $true
+    $startInfo.Verb = 'runas'
+    try {
+        $process = [Diagnostics.Process]::Start($startInfo)
+    }
+    catch [Management.Automation.MethodInvocationException] {
+        if ($null -eq $_.Exception.InnerException) {
+            throw
+        }
+        throw $_.Exception.InnerException
+    }
+    if ($null -ne $process) {
+        $process.WaitForExit()
+    }
+    return $process
 }
 
 function Get-AtlasToggleRelaunchArgumentList {
     <#
     .SYNOPSIS
         Reconstructs the Invoke-Toggle.ps1 argument list used to relaunch the current
-        invocation in an elevated context.
+        invocation in an elevated context. Returns plain argv elements;
+        Start-AtlasToggleAdminRelaunch serializes them into the command line.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -146,14 +144,14 @@ function Get-AtlasToggleRelaunchArgumentList {
 
     $argumentList = @(
         '-NoProfile', '-NoLogo', '-ExecutionPolicy', 'Bypass',
-        '-File', (ConvertTo-AtlasToggleQuotedWindowsArgument -Value $invokeTogglePath),
-        '-Name', (ConvertTo-AtlasToggleQuotedWindowsArgument -Value $Name)
+        '-File', $invokeTogglePath,
+        '-Name', $Name
     )
     if ($State) {
-        $argumentList += @('-State', (ConvertTo-AtlasToggleQuotedWindowsArgument -Value $State))
+        $argumentList += @('-State', $State)
     }
     if ($LauncherPath) {
-        $argumentList += @('-LauncherPath', (ConvertTo-AtlasToggleQuotedWindowsArgument -Value $LauncherPath))
+        $argumentList += @('-LauncherPath', $LauncherPath)
     }
     if ($Silent) {
         $argumentList += '/silent'
@@ -184,7 +182,11 @@ function Invoke-AtlasToggleElevatedChild {
         [Parameter(Mandatory = $true)]
         [string[]]$ArgumentList,
 
-        [switch]$Silent
+        [switch]$Silent,
+
+        # The caller already applied the state's user work, so a cancelled prompt
+        # leaves that change in place but unrecorded.
+        [switch]$UserWorkApplied
     )
 
     $powershellPath = [IO.Path]::Combine(
@@ -203,6 +205,13 @@ function Invoke-AtlasToggleElevatedChild {
     }
     catch [ComponentModel.Win32Exception] {
         if ($_.Exception.NativeErrorCode -eq 1223) {
+            if ($UserWorkApplied) {
+                $cancelled = [InvalidOperationException]::new(
+                    "The administrator permission prompt for '$Name' was cancelled, so the change was made but Atlas didn't record it."
+                )
+                $cancelled.Data['Atlas.Toggle.ElevationCancelledAfterUserWork'] = $true
+                throw $cancelled
+            }
             throw "The administrator permission prompt for '$Name' was cancelled, so nothing was changed."
         }
         throw "Administrator elevation for toggle '$Name' failed: $($_.Exception.Message)"
@@ -488,8 +497,8 @@ function Invoke-AtlasTogglePostAction {
     <#
     .SYNOPSIS
         The interactive close of a run: the Explorer refresh, the one closing line, the
-        restart follow-up the state declares and the single exit pause. Silent callers
-        get only the Explorer refresh.
+        restart or sign-out follow-up the state declares and the single exit pause.
+        Silent callers get only the Explorer refresh.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -532,7 +541,18 @@ function Invoke-AtlasTogglePostAction {
             if (-not $Silent) {
                 Write-AtlasStep -Text 'Restarting File Explorer...'
             }
-            Invoke-AtlasToggleCurrentSessionShellRefresh -Operation $operation -Silent:$Silent
+            # The change has already applied, so a failed refresh leaves an interactive
+            # run partly done rather than not applied.
+            try {
+                Invoke-AtlasToggleCurrentSessionShellRefresh -Operation $operation -Silent:$Silent
+            }
+            catch {
+                if ($Silent) {
+                    throw
+                }
+                Write-AtlasLog -Level Warning -NoConsole -Message "The File Explorer refresh for toggle '$ToggleName' failed: $($_.Exception.Message)"
+                Write-AtlasPartial -Text "The change is applied, but File Explorer couldn't be restarted safely in this session. Restart File Explorer, or sign out and back in."
+            }
         }
     }
 
@@ -550,6 +570,16 @@ function Invoke-AtlasTogglePostAction {
             if (Read-AtlasYesNo -Question 'Restart Windows now?') {
                 Write-AtlasStep -Text 'Restarting Windows...'
                 & "$($Context.WinDir)\System32\shutdown.exe" /r /t 0
+            }
+        }
+        'SignOut' {
+            # Signing out ends the session, so it waits for this closing step, after the
+            # elevated child has recorded the choice.
+            Write-AtlasRestartNotice -Kind SignOut
+            if (Read-AtlasYesNo -Question 'Sign out now?') {
+                Write-AtlasStep -Text 'Signing out...'
+                Invoke-AtlasToggleNativeCommand -FilePath "$($Context.WinDir)\System32\logoff.exe" `
+                    -ArgumentList ([string[]]@()) -AllowedExitCodes ([int[]]@(0)) | Out-Null
             }
         }
     }
@@ -753,6 +783,14 @@ function Invoke-AtlasServiceDefaultsReset {
             throw "ResetServices definition '$name' must declare only '$expectedState' as its '(default)' state."
         }
 
+        # A default for hardware this PC lacks, such as the NVIDIA service without an
+        # NVIDIA driver, is skipped as upgrade replay skips it. Skipped isn't completed.
+        if (-not (Test-AtlasToggleReplayApplicable -Definition $definition -StateName $expectedState `
+                    -StateRoot $script:AtlasToggleDefaultStateRoot)) {
+            Write-AtlasLog -Message "ResetServices skipped '$name': its '$expectedState' state does not apply on this PC."
+            continue
+        }
+
         Invoke-AtlasToggleInProcess -Definition $definition -StateName $expectedState -Scope Machine `
             -Silent -NoExplorerRestart -SkipPreamble -ResetServices
         $completed[$name] = $true
@@ -855,9 +893,10 @@ function Invoke-AtlasToggle {
     }
 
     # A Menu toggle asks before its state is known, so the heading comes first and the
-    # preamble later skips it.
-    $titleShown = $false
-    if (-not $Silent -and -not $State -and $definition.Contains('Menu') -and [bool]$definition['Menu']) {
+    # preamble later skips it. A nested choice stays under the enclosing run's heading
+    # and window title.
+    $titleShown = [bool]$DeferPostAction
+    if (-not $titleShown -and -not $Silent -and -not $State -and $definition.Contains('Menu') -and [bool]$definition['Menu']) {
         Write-AtlasTitle -Text (Get-AtlasToggleDisplayName -Definition $definition -StateEntry @{} -LauncherPath $LauncherPath)
         $titleShown = $true
     }
@@ -982,7 +1021,20 @@ function Invoke-AtlasToggle {
         # The TrustedInstaller broker remains noninteractive by design.
         $argumentList = Get-AtlasToggleRelaunchArgumentList -Name $Name -State $stateName -LauncherPath $LauncherPath `
             -Silent:($elevation -ceq 'TrustedInstaller') -JustContext:$JustContext -NoExplorerRestart -MachineOnly
-        Invoke-AtlasToggleElevatedChild -Name $Name -ArgumentList $argumentList -Silent:$Silent
+        try {
+            Invoke-AtlasToggleElevatedChild -Name $Name -ArgumentList $argumentList -Silent:$Silent `
+                -UserWorkApplied:$userBeforeRecord
+        }
+        catch {
+            # The user work has already applied, so a declined prompt leaves only the
+            # record missing and the run partly done.
+            if (-not $userBeforeRecord -or $null -eq $_.Exception.Data -or
+                -not $_.Exception.Data.Contains('Atlas.Toggle.ElevationCancelledAfterUserWork')) {
+                throw
+            }
+            Write-AtlasLog -Level Warning -NoConsole -Message $_.Exception.Message
+            Write-AtlasPartial -Text "The administrator permission prompt was cancelled, so Atlas didn't save this choice. The setting has changed for this account, but an Atlas update can change it back, and new accounts won't get it."
+        }
 
         $actualBinding = Get-AtlasToggleUserCallerBinding
         if ([string]$actualBinding.Sid -cne [string]$binding.Sid -or
@@ -1034,6 +1086,10 @@ function Invoke-AtlasToggle {
             }
             $stateName = [string]$selection[0]
         }
+        # The broker runs silently, so this window is the only place progress can show.
+        if (-not $Silent -and -not $JustContext) {
+            Write-AtlasStep -Text 'Applying the change as TrustedInstaller. This can take a few minutes...'
+        }
         Invoke-AtlasTrustedInstaller -Operation Toggle -Name ([string]$definition['Name']) -State $stateName `
             -Silent:$true -JustContext:$JustContext `
             -NoExplorerRestart:($NoExplorerRestart -or $deferShellRefreshToCaller) | Out-Null
@@ -1068,6 +1124,18 @@ function Invoke-AtlasToggle {
         if (-not $Silent) {
             Write-AtlasStep -Text 'Restarting File Explorer...'
         }
-        Invoke-AtlasToggleCurrentSessionShellRefresh -Operation $shellRefreshOperation -Silent:$Silent
+        # The elevated child has already applied the change, so a failed refresh leaves
+        # the run partly done rather than not applied.
+        try {
+            Invoke-AtlasToggleCurrentSessionShellRefresh -Operation $shellRefreshOperation -Silent:$Silent
+        }
+        catch {
+            if ($Silent) {
+                throw
+            }
+            Write-AtlasLog -Level Warning -NoConsole -Message "The File Explorer refresh for toggle '$Name' failed: $($_.Exception.Message)"
+            Write-AtlasPartial -Text "The change is applied, but File Explorer couldn't be restarted safely in this session. Restart File Explorer, or sign out and back in."
+            Wait-AtlasExit
+        }
     }
 }

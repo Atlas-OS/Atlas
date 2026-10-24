@@ -6,7 +6,6 @@ on:
       - "playbook/**"
       - "tools/**"
       - ".github/requirements-ci.txt"
-      - ".yamllint.yml"
       - ".github/workflows/build.yml"
   workflow_dispatch:
     inputs:
@@ -69,15 +68,6 @@ jobs:
               throw 'Installing the hash-locked CI dependencies failed.'
           }
 
-      - name: Validate YAML files
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          python -m yamllint -c .yamllint.yml .
-          if ($LASTEXITCODE -ne 0) {
-              throw 'YAML validation failed.'
-          }
-
       - name: Select SxS configs
         id: sxsc-configs
         shell: pwsh
@@ -104,6 +94,9 @@ jobs:
               if ($LASTEXITCODE -ne 0) {
                   Write-Host 'Previous push commit is unavailable; regenerating all SxS configs.'
                   $regenerateAll = $true
+                  # The runner exits with the last native exit code, and no later
+                  # native call on this path replaces the handled failure.
+                  $global:LASTEXITCODE = 0
               }
           }
 

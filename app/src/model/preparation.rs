@@ -13,6 +13,7 @@ use super::{AppModel, RestartKind, Step, preview};
 use crate::services::preparation::{
     self, Drivers, Operation, PreparationRequest, RestartProblem, Stage, State, Status, StoreOutcome,
 };
+use crate::services::recovery_app::SourceLinked;
 use crate::services::settings::InstallDraft;
 use crate::t;
 
@@ -22,13 +23,13 @@ impl AppModel {
     }
 
     pub fn set_drivers(&mut self, drivers: Drivers, cx: &mut Context<Self>) {
-        if self.locked() || !self.flow.may_edit() || self.preparation_choices_fixed() {
+        if self.locked() || self.preparation_choices_fixed() {
             return;
         }
         self.settings.drivers = Some(drivers);
         // Preparation starts over under the new policy, on disk too: a draft
         // resumed later must not skip it.
-        self.preparation = Default::default();
+        self.reset_preparation();
         self.persist_preference(move |doc| doc.drivers = Some(drivers), cx);
         self.save_draft(cx);
         cx.notify();
@@ -55,9 +56,10 @@ impl AppModel {
         if self.locked() || !self.elevated || !self.flow.active || self.flow.step != Step::Ready {
             return false;
         }
-        // Checking again after the wait ended starts a new wait.
+        // Checking again after the wait ended starts a new wait, with a clock
+        // of its own.
         if self.offer_wait.as_ref().is_some_and(|wait| wait.expired) {
-            self.offer_wait = None;
+            self.stop_offer_wait();
         }
         match preparation::recover_running(&self.env.paths.settings()) {
             Ok(Some(job)) => {
@@ -93,6 +95,7 @@ impl AppModel {
     /// Ends a preparation that could not start, with `error` as its reason.
     fn fail_preparation(&mut self, error: anyhow::Error, cx: &mut Context<Self>) {
         self.preparation_progress = None;
+        self.preparation_source_linked = error.downcast_ref::<SourceLinked>().is_some();
         self.preparation_error = Some(format!("{error:#}"));
         self.preparation = State::Failed;
         cx.notify();
@@ -127,6 +130,7 @@ impl AppModel {
         self.preparation_job = Some(job.clone());
         self.preparation_progress = None;
         self.preparation_error = None;
+        self.preparation_source_linked = false;
         self.preparation_cancel = Arc::new(AtomicBool::new(false));
         let cancel = self.preparation_cancel.clone();
         self.preparation = if recovered.as_ref().is_some_and(|job| !job.trusted) {
@@ -150,16 +154,7 @@ impl AppModel {
             });
             let mut did_work = false;
             while let Some(event) = rx.next().await {
-                if event.status == Status::Running
-                    && matches!(
-                        event.stage,
-                        Stage::WindowsDownload
-                            | Stage::WindowsInstall
-                            | Stage::StoreSelfUpdate
-                            | Stage::StoreInstall
-                            | Stage::StoreRepair
-                    )
-                {
+                if event.status == Status::Running && does_work(event.stage) {
                     did_work = true;
                 }
                 this.update(cx, |this, cx| {
@@ -192,6 +187,8 @@ impl AppModel {
                 let state = result
                     .unwrap_or_else(|error| {
                         log::error!("Windows preparation: {error:#}");
+                        // Moving Atlas Manager fixes this one; the page says so.
+                        this.preparation_source_linked = error.downcast_ref::<SourceLinked>().is_some();
                         this.preparation_error = Some(format!("{error:#}"));
                         State::Failed
                     })
@@ -288,7 +285,11 @@ impl AppModel {
                 DraftWrite::Written => {
                     cx.background_executor().spawn(async move { register() }).await.map_err(|error| {
                         log::error!("preparation recovery registration: {error:#}");
-                        RestartProblem::Registration
+                        if error.downcast_ref::<SourceLinked>().is_some() {
+                            RestartProblem::SourceLinked
+                        } else {
+                            RestartProblem::Registration
+                        }
                     })
                 }
                 not_saved => {
@@ -346,10 +347,11 @@ impl AppModel {
     }
 
     /// Takes over what a draft says about Windows preparation: a restart
-    /// still owed, or a preparation already finished.
+    /// still owed, a preparation already finished, or neither.
     pub(super) fn restore_preparation(&mut self, draft: &InstallDraft) {
         self.windows_transition_declined = draft.windows_transition_declined;
         self.windows_terms_accepted = draft.windows_terms_accepted;
+        self.used_windows_accepted = draft.used_windows_accepted;
         self.recorded_choices_applied = draft.recorded_choices_applied;
         self.store_outcome_seen = draft.store_outcome.as_deref().and_then(StoreOutcome::from_id);
         self.preparation_restart_at = draft.preparation_restart_at.clone();
@@ -359,6 +361,34 @@ impl AppModel {
             // Windows was prepared before the draft was saved, and no
             // restart is owed: the Install step need not wait for it again.
             self.preparation = State::Ready;
+        } else {
+            // What this window holds from a flow before, such as an install
+            // that has just finished, isn't this draft's preparation.
+            self.forget_preparation();
         }
+    }
+
+    /// Forgets a preparation that finished, failed or stopped: it was made
+    /// for one flow's choices, and the next may move Windows elsewhere. A
+    /// restart it asked for, or made, is kept; forgetting it would forget
+    /// the restart.
+    pub(super) fn forget_preparation(&mut self) {
+        if !matches!(self.preparation, State::Reboot | State::Resumed | State::RestartPersists { .. }) {
+            self.reset_preparation();
+        }
+    }
+}
+
+/// Whether a stage the worker reports running is update work: after a
+/// restart Atlas made, a run that did some may genuinely need another. Every
+/// stage is named, so a new one has to be placed.
+fn does_work(stage: Stage) -> bool {
+    match stage {
+        Stage::WindowsDownload
+        | Stage::WindowsInstall
+        | Stage::StoreSelfUpdate
+        | Stage::StoreInstall
+        | Stage::StoreRepair => true,
+        Stage::WindowsSearch | Stage::StoreSearch | Stage::Verify => false,
     }
 }

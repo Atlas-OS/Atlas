@@ -107,6 +107,24 @@ Describe 'ConvertTo-AtlasWindowsArgumentString' {
         $result.StandardError | Should -BeNullOrEmpty
         $actual | Should -Be $expected
     }
+
+    It 'matches the command line the TrustedInstaller broker builds for CreateProcess' {
+        Initialize-AtlasNativeType
+        $arguments = [string[]]@(
+            'plain'
+            'with spaces'
+            ''
+            'embedded"quote'
+            'trailing\'
+            'slashes before quote \"tail'
+            "tab`tvalue"
+        )
+
+        # The broker keeps its own copy of the quoting rules; this pins it to the
+        # serializer above, which the real-child round trip checks.
+        [Atlas.Native.TrustedInstallerProcess]::BuildWindowsCommandLine($script:ArgvProbe, $arguments) |
+            Should -BeExactly (ConvertTo-AtlasWindowsArgumentString -ArgumentList (@($script:ArgvProbe) + $arguments))
+    }
 }
 
 Describe 'Invoke-AtlasHiddenProcess' {

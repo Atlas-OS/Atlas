@@ -27,7 +27,9 @@
 .PARAMETER Credential
     Local administrator credential inside the guest.
 .PARAMETER PlaybookPath
-    An .apbx built by tools\build\Build-Playbook.ps1. Extracted locally with 7-Zip.
+    An .apbx built by tools\build\Build-Playbook.ps1 without -LocalTest: LocalTest builds
+    leave out <SupportedBuilds>, so the front door refuses them. Extracted locally with
+    7-Zip.
 .PARAMETER ArchiveKey
     The zip key the package was built with. AME Wizard playbooks all use the same
     published key; pass an empty string for a build made with -NoPassword.
@@ -94,6 +96,7 @@ Start-Transcript -Path $transcript -Force | Out-Null
 
 $guestRoot = 'C:\AtlasLab'
 $compareTool = Join-Path -Path $repoRoot -ChildPath 'tools\dev\Compare-SystemState.ps1'
+Import-Module (Join-Path -Path $repoRoot -ChildPath 'tools\build\AtlasBuild\AtlasBuild.psd1') -Force
 
 function Write-LabStep {
     param([Parameter(Mandatory = $true)][string]$Message)
@@ -107,18 +110,12 @@ function Expand-Playbook {
     #>
     param([Parameter(Mandatory = $true)][string]$Path, [AllowEmptyString()][string]$Key)
 
-    $sevenZip = Get-Command -Name '7z' -ErrorAction SilentlyContinue
-    if (-not $sevenZip) {
-        throw '7-Zip (7z) is required on PATH to extract the Atlas package.'
-    }
     $target = Join-Path -Path ([IO.Path]::GetTempPath()) -ChildPath ('atlas-lab-' + [guid]::NewGuid().ToString('N'))
-    $arguments = @('x', '-y', "-o$target")
+    $arguments = @('x', '-y', '-bso0', '-bsp0', "-o$target")
     if ($Key) { $arguments += "-p$Key" }
     $arguments += $Path
-    & $sevenZip.Source @arguments | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "7-Zip failed to extract '$Path' (exit code $LASTEXITCODE)."
-    }
+    Invoke-SevenZip -SevenZipPath (Resolve-SevenZip) -ArgumentList $arguments `
+        -ErrorContext "Extracting '$Path'" | Out-Null
     return $target
 }
 
@@ -155,43 +152,70 @@ function Wait-GuestSession {
 function Invoke-GuestPowerShell {
     <#
     .SYNOPSIS
-        Runs a script file with Windows PowerShell 5.1 inside the guest, as Atlas's scripts
-        would be run by a user, and returns its exit code with the captured output.
+        Runs a script file, or a command, with Windows PowerShell 5.1 inside the guest, as
+        Atlas's scripts would be run by a user, and returns its exit code with the captured
+        output.
     #>
+    [CmdletBinding(DefaultParameterSetName = 'File')]
     param(
         [Parameter(Mandatory = $true)]$Session,
-        [Parameter(Mandatory = $true)][string]$ScriptPath,
-        [string[]]$Arguments = @(),
+        [Parameter(Mandatory = $true, ParameterSetName = 'File')][string]$ScriptPath,
+        [Parameter(ParameterSetName = 'File')][string[]]$Arguments = @(),
+        [Parameter(Mandatory = $true, ParameterSetName = 'Command')][string]$Command,
         [int]$TimeoutSeconds = 600
     )
 
-    $guestArguments = @($Arguments)
+    if ($PSCmdlet.ParameterSetName -eq 'Command') {
+        $hostArguments = @('-Command', $Command)
+        $description = "Guest command '$Command'"
+    }
+    else {
+        $hostArguments = @('-File', $ScriptPath) + @($Arguments)
+        $description = "Guest script '$ScriptPath'"
+    }
     $job = Invoke-Command -Session $Session -AsJob -ScriptBlock {
         $powershell = Join-Path -Path ([Environment]::GetFolderPath('System')) -ChildPath 'WindowsPowerShell\v1.0\powershell.exe'
-        $scriptArguments = @($using:guestArguments)
-        $output = & $powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $using:ScriptPath @scriptArguments 2>&1 | ForEach-Object { "$_" }
+        $guestArguments = @($using:hostArguments)
+        $output = & $powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass @guestArguments 2>&1 | ForEach-Object { "$_" }
         [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = $output }
     }
     if (-not (Wait-Job -Job $job -Timeout $TimeoutSeconds)) {
         Stop-Job -Job $job
-        throw "Guest script '$ScriptPath' did not finish within $TimeoutSeconds seconds."
+        throw "$description did not finish within $TimeoutSeconds seconds."
     }
     return Receive-Job -Job $job
+}
+
+function Get-FrontDoorCommand {
+    <#
+    .SYNOPSIS
+        The Windows PowerShell command that runs the front door unattended with the given
+        options and exits with its exit code.
+    .DESCRIPTION
+        -File passes each argument as one string, which cannot carry the front door's
+        [string[]] option list, so the lab runs a command with an array literal, as Atlas
+        Manager does. A call that never sets an exit code, such as one whose parameters
+        are rejected, counts as 1.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$ScriptPath,
+        # Single quotes are enough for names of this shape.
+        [Parameter(Mandatory = $true)][ValidatePattern('^[a-z0-9-]+$')][string[]]$Option
+    )
+
+    $optionList = (@($Option) | ForEach-Object { "'$_'" }) -join ','
+    return (
+        'try {{ & ''{0}'' -Unattended -Option @({1}); $atlasExit = $LASTEXITCODE }} ' +
+        'catch {{ [Console]::Error.WriteLine($_.Exception.Message); $atlasExit = 1 }}; ' +
+        'if ($null -eq $atlasExit) {{ $atlasExit = 1 }}; exit $atlasExit'
+    ) -f ($ScriptPath -replace "'", "''"), $optionList
 }
 
 $exitCode = 0
 $session = $null
 $extractedTemp = $null
 try {
-    Write-LabStep "Restoring '$VMName' to checkpoint '$CheckpointName'."
-    $checkpoint = Get-VMCheckpoint -VMName $VMName -Name $CheckpointName -ErrorAction Stop
-    if ((Get-VM -Name $VMName).State -ne 'Off') {
-        Stop-VM -Name $VMName -TurnOff -Force
-    }
-    Restore-VMCheckpoint -VMCheckpoint $checkpoint -Confirm:$false
-    Start-VM -Name $VMName
-    $session = Wait-GuestSession -Name $VMName -GuestCredential $Credential -TimeoutSeconds $BootTimeoutSeconds
-
+    # Before the VM is touched, so a missing tool or a wrong package fails in seconds.
     if ($PSCmdlet.ParameterSetName -eq 'Apbx') {
         Write-LabStep "Extracting '$PlaybookPath'."
         $extractedTemp = Expand-Playbook -Path $PlaybookPath -Key $ArchiveKey
@@ -202,6 +226,19 @@ try {
             throw "'$ExtractedRoot' is not an extracted Atlas package: '$required' is missing."
         }
     }
+    $playbookConf = [xml](Get-Content -LiteralPath (Join-Path -Path $ExtractedRoot -ChildPath 'playbook.conf') -Raw -Encoding UTF8)
+    if ($null -eq $playbookConf.Playbook.SelectSingleNode('SupportedBuilds')) {
+        throw "'$ExtractedRoot' is a LocalTest build: its playbook.conf has no <SupportedBuilds>, so the front door would refuse it. Build the package without -LocalTest."
+    }
+
+    Write-LabStep "Restoring '$VMName' to checkpoint '$CheckpointName'."
+    $checkpoint = Get-VMCheckpoint -VMName $VMName -Name $CheckpointName -ErrorAction Stop
+    if ((Get-VM -Name $VMName).State -ne 'Off') {
+        Stop-VM -Name $VMName -TurnOff -Force
+    }
+    Restore-VMCheckpoint -VMCheckpoint $checkpoint -Confirm:$false
+    Start-VM -Name $VMName
+    $session = Wait-GuestSession -Name $VMName -GuestCredential $Credential -TimeoutSeconds $BootTimeoutSeconds
 
     Write-LabStep 'Copying the Atlas package and tools into the guest.'
     Invoke-Command -Session $session -ScriptBlock {
@@ -219,8 +256,8 @@ try {
 
     Write-LabStep "Installing Atlas with options: $($Option -join ', ')."
     $install = Invoke-GuestPowerShell -Session $session -TimeoutSeconds $InstallTimeoutSeconds `
-        -ScriptPath "$guestRoot\playbook\Executables\AtlasModules\Scripts\Entry\Install-Atlas.ps1" `
-        -Arguments (@('-Unattended', '-Option') + @($Option -join ','))
+        -Command (Get-FrontDoorCommand -Option $Option `
+            -ScriptPath "$guestRoot\playbook\Executables\AtlasModules\Scripts\Entry\Install-Atlas.ps1")
     $install.Output | Set-Content -LiteralPath (Join-Path -Path $OutputPath -ChildPath 'install.log')
     if ($install.ExitCode -ne 0) {
         Write-LabStep "Install exited with code $($install.ExitCode); see install.log."

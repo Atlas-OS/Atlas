@@ -138,27 +138,30 @@ pub fn read_lines(mut stream: impl BufRead, log: &mut impl Write, mut on_line: i
 
 #[cfg(test)]
 mod tests {
+    use std::sync::atomic::AtomicUsize;
     use std::time::Instant;
 
     use super::*;
-    use crate::services::test_support::TempDir;
 
     #[test]
-    fn cancellation_retries_a_failed_marker_write_until_the_directory_is_writable() {
-        let temp = TempDir::new("cancel-retry");
-        let parent = temp.path().join("not-yet-created");
-        let marker = parent.join("cancel");
-        assert!(File::create(&marker).is_err());
-        let watch = CancelWatch::start(Arc::new(AtomicBool::new(true)), marker.clone(), create_marker);
-        std::thread::sleep(Duration::from_millis(150));
-        let before_repair = marker.exists();
-        std::fs::create_dir(&parent).unwrap();
-        let deadline = Instant::now() + Duration::from_secs(3);
-        while !marker.exists() && Instant::now() < deadline {
+    fn cancellation_retries_a_failed_marker_write_and_stops_once_it_succeeds() {
+        // `start` takes a plain `fn`, so the writer counts its calls in a static.
+        static CALLS: AtomicUsize = AtomicUsize::new(0);
+        fn fails_twice(_: &Path) -> io::Result<()> {
+            match CALLS.fetch_add(1, Ordering::SeqCst) {
+                0 | 1 => Err(io::ErrorKind::NotFound.into()),
+                _ => Ok(()),
+            }
+        }
+        let watch = CancelWatch::start(Arc::new(AtomicBool::new(true)), PathBuf::from("cancel"), fails_twice);
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while CALLS.load(Ordering::SeqCst) < 3 && Instant::now() < deadline {
             std::thread::sleep(Duration::from_millis(20));
         }
+        assert_eq!(CALLS.load(Ordering::SeqCst), 3, "the third write succeeds");
+        // A few more retry intervals: a watch that kept writing would show here.
+        std::thread::sleep(Duration::from_millis(300));
         drop(watch);
-        assert!(!before_repair);
-        assert_eq!(std::fs::metadata(marker).unwrap().len(), 0);
+        assert_eq!(CALLS.load(Ordering::SeqCst), 3);
     }
 }

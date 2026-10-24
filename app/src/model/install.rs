@@ -13,6 +13,7 @@ use super::drafts::DraftWrite;
 use super::package::bundled_holds;
 use super::{AppModel, CloseGuard, RestartCountdown, RestartProblem, RunState, preview};
 use crate::services::installer::{self, InstallEvent, InstallOutcome, InstallRequest, Phase};
+use crate::services::iso;
 use crate::services::preparation::State as PreparationState;
 use crate::services::requirements::{CheckDetail, CheckId, CheckResult};
 use crate::services::security::{SecurityStatus, SwitchCounts};
@@ -219,12 +220,14 @@ impl AppModel {
             playbook_dir: source.dir.clone(),
             options: self.effective_options(),
             restart: self.settings.restart_after_install,
+            windows_security_confirmed: self.security_confirmed_by_hand(),
         })
     }
 
     /// Starts the install: the mandatory checks and the Windows Security
     /// switches are read again first, and the child only starts if they still
-    /// pass. The request is captured now and cannot change afterwards.
+    /// pass. The request is captured now; only whether Windows Security passed
+    /// on the user's confirmation is taken from the final reading.
     ///
     /// The decision is made on the window's thread from the fresh readings;
     /// the launch itself (which takes the cross-process lock and spawns the
@@ -249,8 +252,18 @@ impl AppModel {
             cx.notify();
             return;
         }
-        let Some(request) = self.install_request() else { return };
-        if let Err(error) = installer::validate_options(&request.options) {
+        let Some(mut request) = self.install_request() else { return };
+        // The installer refuses choices the package's pages don't accept, but
+        // only once protection is off. An unfinished install may leave a
+        // required page added since it began unchosen, as the installer allows.
+        let choices = if self.resume_target().is_some() {
+            iso::validate_resumed_options(self.manifest(), &request.options)
+        } else {
+            iso::validate_options(self.manifest(), &request.options)
+        };
+        if let Err(error) = installer::validate_options(&request.options).and(choices) {
+            // The error names neither the page nor the option; the choices do.
+            log::warn!("The package refuses these choices: {:?}", request.options);
             self.refuse_install(Preflight::InvalidOptions { error: format!("{error:#}") }, cx);
             return;
         }
@@ -277,9 +290,18 @@ impl AppModel {
                     (results, read_security(), is_elevated())
                 })
                 .await;
-            if !this.update(cx, |this, cx| this.apply_preflight(readings, cx)).unwrap_or(false) {
+            // The front door hears whether the final reading, not the one at
+            // the click, passed on the user's confirmation.
+            let Some(confirmed) = this
+                .update(cx, |this, cx| {
+                    this.apply_preflight(readings, cx).then(|| this.security_confirmed_by_hand())
+                })
+                .ok()
+                .flatten()
+            else {
                 return;
-            }
+            };
+            request.windows_security_confirmed = confirmed;
             // The draft names the install it is about to launch before the
             // child can run, so a window that closes (or crashes) during the
             // handoff leaves a record on disk and a draft that agree.
@@ -386,6 +408,7 @@ impl AppModel {
     /// the flow to the idle Install step. Every refusal counts, so one like
     /// the last is announced again.
     fn refuse_install(&mut self, problem: Preflight, cx: &mut Context<Self>) {
+        log::warn!("Installation not started: {problem:?}");
         self.flow.stop_preparing().ok();
         self.preflight_problem = Some(problem);
         self.preflight_epoch += 1;
@@ -421,7 +444,7 @@ impl AppModel {
                     self.own_session = None;
                     self.save_draft(cx);
                     self.flow.start_running().ok();
-                    let events = installer::reattach(&existing);
+                    let events = installer::reattach(&existing, &self.session_paths.machine_log);
                     self.follow_session(existing, events, cx);
                 }
                 // The protocol guarantees nothing ran: back to idle with the
@@ -550,8 +573,8 @@ impl AppModel {
 
     pub fn reveal_log(&self, cx: &mut Context<Self>) {
         if let Some(session) = &self.session {
-            let machine = installer::machine_log_path();
-            cx.reveal_path(log_to_reveal(self.attempt.phase, &session.log_path, &machine, machine.exists()));
+            let machine = &self.session_paths.machine_log;
+            cx.reveal_path(log_to_reveal(self.attempt.phase, &session.log_path, machine, machine.exists()));
         }
     }
 }

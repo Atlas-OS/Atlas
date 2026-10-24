@@ -1,6 +1,5 @@
 [CmdletBinding()]
 param (
-    [switch]$RestartAfterUpdate,
     [switch]$Silent
 )
 
@@ -21,8 +20,10 @@ if (-not [IO.File]::Exists($atlasCoreModule)) {
     throw "The protected Atlas.Core root module is missing at '$atlasCoreModule'."
 }
 
+# No -Force: the toggle engine runs this script in-process, and a nested forced import
+# replaces its Atlas.Core instance in Windows PowerShell 5.1.
 $loadedAtlasCore = @(
-    Microsoft.PowerShell.Core\Import-Module -Name $atlasCoreManifest -Force -PassThru -ErrorAction Stop
+    Microsoft.PowerShell.Core\Import-Module -Name $atlasCoreManifest -PassThru -ErrorAction Stop
 )
 if ($loadedAtlasCore.Count -ne 1 -or
     $loadedAtlasCore[0].Name -ne 'Atlas.Core' -or
@@ -42,69 +43,8 @@ if (-not $Silent) {
     Set-AtlasLogConsoleStyle -Style Interactive
 }
 
-function Test-Admin {
-    if (-not (Test-AtlasAdmin)) {
-        Write-AtlasLog -Message "Restarting script with administrator privileges..."
-        if (-not $Silent) {
-            Write-AtlasStep -Text 'Asking for administrator permission...'
-        }
-
-        $arguments = @(
-            "-ExecutionPolicy RemoteSigned",
-            "-NoProfile",
-            "-File `"$PSCommandPath`""
-        )
-        if ($RestartAfterUpdate) {
-            $arguments += "-RestartAfterUpdate"
-        }
-        if ($Silent) {
-            $arguments += "-Silent"
-        }
-
-        $powershellPath = [IO.Path]::Combine(
-            [Environment]::GetFolderPath([Environment+SpecialFolder]::System),
-            'WindowsPowerShell',
-            'v1.0',
-            'powershell.exe'
-        )
-        if (-not [IO.File]::Exists($powershellPath)) {
-            throw "The protected PowerShell host is missing at '$powershellPath'."
-        }
-
-        $startProcessParams = @{
-            FilePath         = $powershellPath
-            WorkingDirectory = [Environment]::GetFolderPath(
-                [Environment+SpecialFolder]::System
-            )
-            ArgumentList     = ($arguments -join ' ')
-            Verb             = 'RunAs'
-            Wait             = $true
-            PassThru         = $true
-            ErrorAction      = 'Stop'
-        }
-        if ($Silent) {
-            $startProcessParams['WindowStyle'] = 'Hidden'
-        }
-
-        try {
-            $elevatedProcess = Microsoft.PowerShell.Management\Start-Process @startProcessParams
-        }
-        catch {
-            if ($_.Exception -is [ComponentModel.Win32Exception] -and
-                $_.Exception.NativeErrorCode -eq 1223) {
-                [Console]::Error.WriteLine('Driver update elevation was cancelled by the user.')
-                exit 1223
-            }
-            throw
-        }
-        if ($null -eq $elevatedProcess -or
-            $elevatedProcess.PSObject.Properties.Name -notcontains 'ExitCode') {
-            throw 'Driver update elevation did not return an exit-code-bearing process.'
-        }
-        exit ([int]$elevatedProcess.ExitCode)
-    }
-}
-Test-Admin
+# The toggle engine elevates before it runs this script; a direct run must be elevated too.
+Assert-AtlasPrivilege -Administrator
 
 function New-WuaComObject {
     [CmdletBinding()]
@@ -119,8 +59,8 @@ function New-WuaComObject {
     )
 
     # Fixed inbox WUA coclass IDs avoid all ProgID and PowerShell module lookup.
-    # Test-Admin ensures COM activation occurs in an elevated process, where UAC
-    # excludes per-user COM class registrations from resolution.
+    # The administrator assertion above ensures COM activation occurs in an elevated
+    # process, where UAC excludes per-user COM class registrations from resolution.
     $classIds = @{
         ServiceManager   = [Guid]'f8d253d9-89a4-4daa-87b6-1168369f0b21'
         Session          = [Guid]'4cb43d7f-7eee-4906-8698-60da1c38f2fe'
@@ -393,7 +333,11 @@ function Update-Drivers {
         return $true
     }
 
-    Write-AtlasLog -Message "Available driver updates:"
+    # The update ID tells apart drivers that share a title.
+    Write-AtlasLog -Message "Available driver updates ($($updates.Count)):"
+    foreach ($update in $updates) {
+        Write-AtlasLog -Message (" - {0} ({1})" -f $update.Title.ToString().Trim(), $update.Identity.UpdateID)
+    }
 
     if ($Silent) {
         Write-AtlasLog -Message "Silent mode enabled; selecting all available driver updates."
@@ -414,7 +358,7 @@ function Update-Drivers {
 
     Write-AtlasLog -Message "Installing selected driver updates..."
     foreach ($update in $selection) {
-        Write-AtlasLog -Message (" - {0}" -f $update.Title.ToString().Trim())
+        Write-AtlasLog -Message (" - {0} ({1})" -f $update.Title.ToString().Trim(), $update.Identity.UpdateID)
     }
     if (-not $Silent) {
         Write-AtlasStep -Text "Downloading and installing $($selection.Count) driver update(s). This can take a while..."
@@ -439,13 +383,6 @@ function Update-Drivers {
         if (-not $Silent) {
             Write-AtlasRestartNotice -Kind Required
         }
-    }
-
-    if ($RestartAfterUpdate) {
-        Write-AtlasLog -Message "RestartAfterUpdate is enabled. Restarting the system in 10 seconds..."
-        Start-Sleep -Seconds 10
-        Microsoft.PowerShell.Management\Restart-Computer -Force -ErrorAction Stop
-        return $true
     }
 
     if (-not $Silent) {

@@ -371,7 +371,7 @@ impl std::fmt::Debug for Catalog {
 /// Fluent writes an unresolved placeable as `{$name}` or `{message-id}`.
 /// When no catalog can format a message, the sentence is shown with those
 /// parts elided instead of Fluent's syntax.
-pub fn elide_placeables(text: &str) -> String {
+fn elide_placeables(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut depth = 0usize;
     for ch in text.chars() {
@@ -388,6 +388,16 @@ pub fn elide_placeables(text: &str) -> String {
         }
     }
     out
+}
+
+/// What a lookup found: the formatted text; the first language's attempt
+/// with its unresolved parts elided, when no language formats it cleanly;
+/// or no message at all.
+#[derive(Debug, PartialEq)]
+enum Resolved {
+    Clean(String),
+    Elided(String),
+    Missing,
 }
 
 /// Parses a locale's catalog into a bundle. Problems in an included catalog
@@ -438,12 +448,12 @@ impl Catalog {
         errors.is_empty().then(|| text.into_owned())
     }
 
-    /// Formats a message (or attribute) in the first language that formats it
+    /// Formats a message's value in the first language that formats it
     /// cleanly. The catalog tests keep every language formatting on its own,
     /// so if none can, the caller passed the wrong arguments: show the first
     /// attempt with the unresolved parts elided, log it, and panic in debug
     /// builds.
-    pub fn format(&self, id: &str, attribute: Option<&str>, args: &[(&str, Arg)]) -> String {
+    pub fn format(&self, id: &str, args: &[(&str, Arg)]) -> String {
         let fluent_args = if args.is_empty() {
             None
         } else {
@@ -453,54 +463,54 @@ impl Catalog {
             }
             Some(fluent_args)
         };
+        match self.resolve(id, fluent_args.as_ref()) {
+            Resolved::Clean(text) => text,
+            Resolved::Elided(text) => {
+                log::error!("no catalog could format {id}; showing it with the unresolved parts elided");
+                debug_assert!(false, "no catalog could format {id} with {args:?}");
+                text
+            }
+            Resolved::Missing => {
+                self.report_missing(id);
+                id.to_owned()
+            }
+        }
+    }
+
+    /// The lookup behind [`Catalog::format`], without its debug-build panic,
+    /// so tests see what a release build shows.
+    fn resolve(&self, id: &str, args: Option<&FluentArgs>) -> Resolved {
         let mut last_resort: Option<String> = None;
         for bundle in &self.bundles {
             let Some(message) = bundle.bundle.get_message(id) else { continue };
-            let pattern = match attribute {
-                Some(name) => message.get_attribute(name).map(|attribute| attribute.value()),
-                None => message.value(),
-            };
-            let Some(pattern) = pattern else { continue };
+            let Some(pattern) = message.value() else { continue };
             let mut errors: Vec<FluentError> = Vec::new();
-            let text = bundle.bundle.format_pattern(pattern, fluent_args.as_ref(), &mut errors);
+            let text = bundle.bundle.format_pattern(pattern, args, &mut errors);
             if errors.is_empty() {
-                return text.into_owned();
+                return Resolved::Clean(text.into_owned());
             }
-            self.report(bundle.tag, id, attribute, &errors);
+            self.report(bundle.tag, id, &errors);
             last_resort.get_or_insert_with(|| text.into_owned());
         }
-        if let Some(text) = last_resort {
-            log::error!(
-                "no catalog could format {id}{}; showing it with the unresolved parts elided",
-                dotted(attribute)
-            );
-            debug_assert!(false, "no catalog could format {id}{} with {args:?}", dotted(attribute));
-            return elide_placeables(&text);
-        }
-        self.report_missing(id, attribute);
-        match attribute {
-            Some(name) => format!("{id}.{name}"),
-            None => id.to_owned(),
+        match last_resort {
+            Some(text) => Resolved::Elided(elide_placeables(&text)),
+            None => Resolved::Missing,
         }
     }
 
-    fn report(&self, tag: &str, id: &str, attribute: Option<&str>, errors: &[FluentError]) {
-        let key = format!("{tag}:{id}:{}", attribute.unwrap_or_default());
+    fn report(&self, tag: &str, id: &str, errors: &[FluentError]) {
+        let key = format!("{tag}:{id}");
         if self.reported.lock().map(|mut seen| seen.insert(key)).unwrap_or(false) {
-            log::warn!("{tag}: message {id}{} did not format cleanly: {errors:?}", dotted(attribute));
+            log::warn!("{tag}: message {id} did not format cleanly: {errors:?}");
         }
     }
 
-    fn report_missing(&self, id: &str, attribute: Option<&str>) {
-        let key = format!("missing:{id}:{}", attribute.unwrap_or_default());
+    fn report_missing(&self, id: &str) {
+        let key = format!("missing:{id}");
         if self.reported.lock().map(|mut seen| seen.insert(key)).unwrap_or(false) {
-            log::error!("no catalog defines the message {id}{}", dotted(attribute));
+            log::error!("no catalog defines the message {id}");
         }
     }
-}
-
-fn dotted(attribute: Option<&str>) -> String {
-    attribute.map(|name| format!(".{name}")).unwrap_or_default()
 }
 
 #[cfg(test)]
@@ -513,21 +523,27 @@ mod tests {
         let good = "greeting = Hello { $name }\n";
         // The broken first layer is skipped for the message it breaks.
         let chain = Catalog::from_texts(&[("de", broken), ("en-GB", good)]);
-        assert_eq!(chain.format("greeting", None, &[("name", Arg::Text("Ada".into()))]), "Hello Ada");
-        assert_eq!(chain.format("plain", None, &[]), "Plain");
-        // Nothing valid anywhere: no `{...}` reaches the screen.
-        let alone = Catalog::from_texts(&[("de", broken)]);
-        let shown =
-            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| alone.format("greeting", None, &[])));
-        if cfg!(debug_assertions) {
-            assert!(shown.is_err(), "debug builds fail loudly");
-        } else {
-            let shown = shown.unwrap();
-            assert!(!shown.contains('{') && !shown.contains('}'), "{shown}");
-            assert!(shown.starts_with("Hello"), "{shown}");
-        }
+        assert_eq!(chain.format("greeting", &[("name", Arg::Text("Ada".into()))]), "Hello Ada");
+        assert_eq!(chain.format("plain", &[]), "Plain");
+        // Nothing valid anywhere: the first language's attempt is shown with
+        // no `{...}`, never the bare id.
+        let failing = Catalog::from_texts(&[
+            ("de", "greeting = Hallo { nonexistent-reference }\n"),
+            ("fr", "greeting = Bonjour { other-missing }\n"),
+        ]);
+        assert_eq!(failing.resolve("greeting", None), Resolved::Elided("Hallo \u{2026}".into()));
+        assert_eq!(failing.resolve("absent", None), Resolved::Missing);
+        assert_eq!(failing.format("absent", &[]), "absent");
         assert_eq!(elide_placeables("Atlas {$version} is available"), "Atlas \u{2026} is available");
         assert_eq!(elide_placeables("no braces"), "no braces");
         assert_eq!(elide_placeables("{a{b}c}"), "\u{2026}");
+    }
+
+    #[cfg(debug_assertions)]
+    #[test]
+    #[should_panic(expected = "no catalog could format greeting")]
+    fn a_total_failure_fails_loudly_in_debug_builds() {
+        let broken = Catalog::from_texts(&[("de", "greeting = Hello { nonexistent-reference }\n")]);
+        broken.format("greeting", &[]);
     }
 }

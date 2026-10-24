@@ -115,38 +115,44 @@ function Invoke-AtlasSoftwarePickerPackageInstall {
         side-channel result file.
     #>
     param(
+        # A leading letter or digit keeps an ID from being read as a WinGet option.
         [Parameter(Mandatory = $true)]
-        [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$', Options = [Text.RegularExpressions.RegexOptions]::None)]
+        [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9.+_-]{0,199}$', Options = [Text.RegularExpressions.RegexOptions]::None)]
         [string]$PackageId,
 
         [Parameter(Mandatory = $true)]
         [ValidateSet('winget', 'msstore')]
-        [string]$Source,
-
-        [Parameter(Mandatory = $true)]
-        $AtlasContext
+        [string]$Source
     )
-
-    $downloadModule = [IO.Path]::Combine(
-        $AtlasContext.AtlasModulesPath,
-        'Scripts',
-        'Modules',
-        'Atlas.Download',
-        'Atlas.Download.psd1'
-    )
-    if (-not [IO.File]::Exists($downloadModule)) {
-        throw "The Atlas.Download module manifest is missing at '$downloadModule'."
-    }
-    Import-Module -Name $downloadModule -ErrorAction Stop
 
     $wingetPath = Get-AtlasTrustedWingetPath
     Assert-AtlasTrustedWingetSource -WingetPath $wingetPath -Name $Source
-    & $wingetPath install --exact --id $PackageId --source $Source `
-        --accept-package-agreements --accept-source-agreements `
-        --disable-interactivity --silent
-    $wingetExitCode = $LASTEXITCODE
-    if ($wingetExitCode -ne 0) {
-        throw "WinGet failed to install '$PackageId' from '$Source' with exit code $wingetExitCode."
+    # WinGet writes readable progress and localised errors only to a console, so it
+    # inherits this one instead of a pipe. Callers collect this function's output.
+    # Start-Process -Wait isn't used: it also waits for any app the installer starts.
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = $wingetPath
+    $startInfo.Arguments = ConvertTo-AtlasWindowsArgumentString -ArgumentList @(
+        'install', '--exact', '--id', $PackageId, '--source', $Source,
+        '--accept-package-agreements', '--accept-source-agreements',
+        '--disable-interactivity', '--silent'
+    )
+    $startInfo.UseShellExecute = $false
+    $process = [Diagnostics.Process]::Start($startInfo)
+    try {
+        $process.WaitForExit()
+        $wingetExitCode = [BitConverter]::ToUInt32([BitConverter]::GetBytes([int]$process.ExitCode), 0)
+    }
+    finally {
+        $process.Dispose()
+    }
+    # WinGet upgrades an installed package instead, and reports 0x8A15002B when
+    # no applicable upgrade exists.
+    if ($wingetExitCode -eq [Convert]::ToUInt32('8A15002B', 16)) {
+        Write-AtlasNote -Text "'$PackageId' is already installed, and WinGet found no upgrade for it."
+    }
+    elseif ($wingetExitCode -ne 0) {
+        throw "WinGet failed to install '$PackageId' from '$Source' with exit code 0x$($wingetExitCode.ToString('X8'))."
     }
 }
 
@@ -163,10 +169,7 @@ function Invoke-AtlasSoftwarePickerPackageBatch {
 
         [Parameter(Mandatory = $true)]
         [AllowEmptyCollection()]
-        [object[]]$Catalog,
-
-        [Parameter(Mandatory = $true)]
-        $AtlasContext
+        [object[]]$Catalog
     )
 
     $failures = New-Object 'System.Collections.Generic.List[object]'
@@ -181,7 +184,7 @@ function Invoke-AtlasSoftwarePickerPackageBatch {
             }
 
             $null = Invoke-AtlasSoftwarePickerPackageInstall `
-                -PackageId $package -Source $catalogItem.Source -AtlasContext $AtlasContext
+                -PackageId $package -Source $catalogItem.Source
         }
         catch {
             $message = $_.Exception.Message
@@ -203,28 +206,6 @@ function Show-AtlasSoftwarePicker {
         Returns $false when WinGet is unavailable, $true otherwise. The caller owns
         the exit pause.
     #>
-    $atlasContext = Get-AtlasContext
-    $trustBootstrap = [IO.Path]::Combine(
-        $atlasContext.AtlasModulesPath,
-        'Scripts',
-        'Initialize-AtlasPowerShell.ps1'
-    )
-    if (-not [IO.File]::Exists($trustBootstrap)) {
-        throw "The PowerShell trust bootstrap is missing at '$trustBootstrap'."
-    }
-    . $trustBootstrap
-
-    $downloadModule = [IO.Path]::Combine(
-        $atlasContext.AtlasModulesPath,
-        'Scripts',
-        'Modules',
-        'Atlas.Download',
-        'Atlas.Download.psd1'
-    )
-    if (-not [IO.File]::Exists($downloadModule)) {
-        throw "The Atlas.Download module manifest is missing at '$downloadModule'."
-    }
-    Import-Module -Name $downloadModule -ErrorAction Stop
     try {
         $wingetPath = Get-AtlasTrustedWingetPath
         Assert-AtlasTrustedWingetSource -WingetPath $wingetPath -Name winget
@@ -342,7 +323,7 @@ function Show-AtlasSoftwarePicker {
                 Write-AtlasStep -Text "Installing $($installPackages.Count) package(s) with WinGet. This can take a while..."
                 Write-AtlasNote -Text ([string[]]@($installPackages | ForEach-Object { "  - $_" }))
                 $failures = @(Invoke-AtlasSoftwarePickerPackageBatch `
-                        -PackageId $installPackages -Catalog $items -AtlasContext $atlasContext)
+                        -PackageId $installPackages -Catalog $items)
                 if ($failures.Count -ne 0) {
                     throw "$($failures.Count) of $($installPackages.Count) selected package(s) failed to install; see the warnings above."
                 }

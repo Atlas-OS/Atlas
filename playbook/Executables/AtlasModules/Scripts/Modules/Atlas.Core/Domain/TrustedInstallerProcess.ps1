@@ -1,4 +1,4 @@
-# Starts the three supported TrustedInstaller operations through Atlas.Native.cs.
+# Starts the four supported TrustedInstaller operations through Atlas.Native.cs.
 # Requests select a fixed operation; callers cannot supply an executable or command
 # line. Native code resolves protected entry points and uses the TrustedInstaller
 # token, with no fallback to LSASS, winlogon or a generic SYSTEM process.
@@ -12,7 +12,7 @@ function Invoke-AtlasTrustedInstallerNativeOperation {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet('Toggle', 'ResetServices', 'Install')]
+        [ValidateSet('Toggle', 'ResetServices', 'Install', 'CbsRetry')]
         [string]$Operation,
 
         [Parameter(Mandatory = $true)]

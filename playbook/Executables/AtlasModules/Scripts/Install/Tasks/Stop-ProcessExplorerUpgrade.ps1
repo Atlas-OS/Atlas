@@ -61,16 +61,19 @@ finally {
     }
 }
 
-$taskkillPath = Join-Path -Path $windowsPath -ChildPath 'System32\taskkill.exe'
-$taskkillProcess = Start-Process -FilePath $taskkillPath -ArgumentList @('/IM', 'taskmgr.exe') -WindowStyle Hidden -PassThru
-$taskkillExitCode = Wait-AtlasChildProcess -Process $taskkillProcess -TimeoutMilliseconds 30000 `
-    -Description 'taskkill.exe while closing taskmgr.exe'
-if ($taskkillExitCode -ne 0 -and $taskkillExitCode -ne 128) {
-    throw "taskkill.exe failed while closing taskmgr.exe with exit code $taskkillExitCode."
+# This runs in session 0, which cannot ask a Task Manager in the user's session to
+# close, so end it. Kill only starts termination; the wait confirms it.
+foreach ($taskManager in @(Get-Process -Name 'taskmgr' -ErrorAction SilentlyContinue)) {
+    $killFailure = ''
+    try { $taskManager.Kill() }
+    catch { $killFailure = ": $($_.Exception.GetBaseException().Message.TrimEnd('.'))" }
+    if (-not $taskManager.WaitForExit(10000)) {
+        throw "Task Manager (process $($taskManager.Id)) didn't stop within ten seconds$killFailure. Close Task Manager, then try again."
+    }
 }
 
 if (@(Get-Process -Name 'taskmgr' -ErrorAction SilentlyContinue).Count -gt 0) {
-    throw 'Task Manager is still running after the upgrade cleanup attempted to stop it.'
+    throw 'Task Manager opened again while Atlas was stopping it. Close Task Manager, then try again.'
 }
 
 $processExplorerRoot = Join-Path -Path $windowsPath -ChildPath 'AtlasModules\Apps\ProcessExplorer'

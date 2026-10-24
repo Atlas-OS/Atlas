@@ -33,16 +33,9 @@ $arguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "
 $exitCode = Invoke-AtlasAsUser -FilePath $powerShellPath -Arguments $arguments `
     -WorkingDirectory ([string]$context.WinDir)
 if ($exitCode -ne 0) {
-    $failureStage = switch ($exitCode) {
-        10 { 'bootstrap' }
-        11 { 'current-session identity validation' }
-        12 { 'process stop' }
-        13 { 'Explorer start' }
-        14 { 'Explorer recovery' }
-        15 { 'installing-user SID validation' }
-        16 { 'Windows session validation' }
-        17 { 'operation selection' }
-        default { 'unknown stage' }
+    $failureStage = Get-AtlasUserSessionHelperStage -ExitCode $exitCode
+    if ($null -eq $failureStage) {
+        $failureStage = 'unknown stage'
     }
     throw "Exact-user shell refresh failed during $failureStage (exit code $exitCode)."
 }

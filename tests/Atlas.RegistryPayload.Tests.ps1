@@ -133,27 +133,10 @@ Describe 'Registry file format' {
     }
 }
 
-Describe 'Terminal .reg file derivation' {
-    It 'adds only the Atlas state marker to Toolbox state <State>' -TestCases @(
-        @{ ScriptName = 'disabled.reg'; ToolboxState = 0; State = 3 }
-        @{ ScriptName = 'enabled.reg'; ToolboxState = 1; State = 0 }
-        @{ ScriptName = 'minimal.reg'; ToolboxState = 2; State = 1 }
-    ) {
-        $scriptsFile = Get-Item -LiteralPath (Join-Path -Path $script:executablesRoot -ChildPath "AtlasModules\Scripts\Registry\Terminals\$ScriptName")
-        $toolboxFile = Get-Item -LiteralPath (Join-Path -Path $script:executablesRoot -ChildPath "AtlasModules\Toolbox\ConfigurationServices\ContextMenuTerminals\ContextMenuTerminals_$ToolboxState.reg")
-
-        $scriptsText = Read-AtlasRegistryPayload -File $scriptsFile
-        $toolboxText = Read-AtlasRegistryPayload -File $toolboxFile
-        $expectedSuffix = "`r`n[HKEY_LOCAL_MACHINE\SOFTWARE\AtlasOS\ContextMenuTerminals]`r`n`"state`"=dword:$($State.ToString('x8'))`r`n"
-
-        $scriptsText | Should -BeExactly ($toolboxText + $expectedSuffix)
-    }
-
+Describe 'Terminal .reg files' {
     It 'removes stale Atlas terminal trees before recreating only user and Administrator entries' -TestCases @(
         @{ RelativePath = 'AtlasModules\Scripts\Registry\Terminals\enabled.reg'; WindowsTerminalAdmin = 4 }
         @{ RelativePath = 'AtlasModules\Scripts\Registry\Terminals\minimal.reg'; WindowsTerminalAdmin = 0 }
-        @{ RelativePath = 'AtlasModules\Toolbox\ConfigurationServices\ContextMenuTerminals\ContextMenuTerminals_1.reg'; WindowsTerminalAdmin = 4 }
-        @{ RelativePath = 'AtlasModules\Toolbox\ConfigurationServices\ContextMenuTerminals\ContextMenuTerminals_2.reg'; WindowsTerminalAdmin = 0 }
     ) {
         $file = Get-Item -LiteralPath (Join-Path -Path $script:executablesRoot -ChildPath $RelativePath)
         $text = Read-AtlasRegistryPayload -File $file
@@ -180,5 +163,23 @@ Describe 'Terminal .reg file derivation' {
         @([regex]::Matches($text, [regex]::Escape('@="PowerShell (Admin)"'))).Count | Should -Be 4
         @([regex]::Matches($text, [regex]::Escape('"MUIVerb"="Windows Terminal (Admin)"'))).Count |
             Should -Be $WindowsTerminalAdmin
+    }
+
+    It 'removes every Atlas terminal tree and recreates none when disabled' {
+        $file = Get-Item -LiteralPath (Join-Path -Path $script:executablesRoot `
+                -ChildPath 'AtlasModules\Scripts\Registry\Terminals\disabled.reg')
+        $text = Read-AtlasRegistryPayload -File $file
+
+        foreach ($classRoot in @(
+                'TermsRunAsTI',
+                'Directory\shell\AtlasTerminals',
+                'LibraryFolder\shell\AtlasTerminals',
+                'Drive\shell\AtlasTerminals',
+                'Directory\Background\shell\AtlasTerminals'
+            )) {
+            @([regex]::Matches($text, [regex]::Escape("[-HKEY_CLASSES_ROOT\$classRoot]"))).Count | Should -Be 1
+        }
+        $text | Should -Not -Match '(?m)^\[HKEY_CLASSES_ROOT\\[^\]]*AtlasTerminals'
+        $text | Should -Not -Match '(?m)^\[HKEY_CLASSES_ROOT\\TermsRunAsTI[\\\]]'
     }
 }

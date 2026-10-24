@@ -92,6 +92,7 @@ BeforeAll {
         $script:RegistryWrites = [Collections.Generic.List[pscustomobject]]::new()
         $script:OneDriveRemovalError = $null
         $script:CbsUninstallFailed = @()
+        $script:CbsUninstallUnmatched = @()
     }
 
     function Assert-AtlasPrivilege {
@@ -158,7 +159,7 @@ BeforeAll {
         return [pscustomobject]@{
             RemovedPackages   = @()
             FailedPackages    = @($script:CbsUninstallFailed)
-            UnmatchedPatterns = @()
+            UnmatchedPatterns = @($script:CbsUninstallUnmatched)
         }
     }
     function New-ScheduledTaskSettingsSet {
@@ -255,8 +256,12 @@ Describe 'Components phase deferred and exact-user cleanup behavior' {
 
     It 'keeps Defender quietly when there was no removal package to take off' {
         $script:PhaseOptions = @('defender-enable')
+        # What Uninstall-AtlasCbsPackage returns on a PC Atlas never removed Defender from.
+        $script:CbsUninstallUnmatched = @('*Z-Atlas-NoDefender-Package*')
 
         { Invoke-ComponentsPhaseUnderTest } | Should -Not -Throw
+        @($script:CbsInstallCalls | Where-Object { $_ -contains '*Z-Atlas-NoTelemetry-Package*' }).Count | Should -Be 1
+        @($script:LogCalls | Where-Object { $_.Level -eq 'Warning' }).Count | Should -Be 0
     }
 
     It 'defers MDCoreSvc disable to a SYSTEM task that records state before self-deleting' {
@@ -358,12 +363,27 @@ Describe 'Components phase deferred and exact-user cleanup behavior' {
         $script:PhaseContext.IsOobe = $false
         $script:PhaseContext.InteractiveUserSid = ''
 
-        { Invoke-ComponentsPhaseUnderTest } | Should -Throw '*install-state user SID*'
+        { Invoke-ComponentsPhaseUnderTest } | Should -Throw '*OneDrive current-user cleanup requires*'
     }
 
-    It 'skips the exact-user cleanup process entirely during OOBE' {
-        Invoke-ComponentsPhaseUnderTest
+    It 'requires the install-state user SID for non-OOBE Edge cleanup' {
+        $script:PhaseOptions = @('uninstall-edge')
+        $script:PhaseContext.IsOobe = $false
+        $script:PhaseContext.InteractiveUserSid = ''
 
+        { Invoke-ComponentsPhaseUnderTest } | Should -Throw '*Edge current-user cleanup requires*'
+        @($script:AsUserCalls).Count | Should -Be 0
+    }
+
+    It 'skips both exact-user cleanup processes during OOBE' {
+        $script:PhaseOptions = @('uninstall-edge')
+        # OOBE installs never bind a user.
+        $script:PhaseContext.InteractiveUserSid = $null
+
+        { Invoke-ComponentsPhaseUnderTest } | Should -Not -Throw
+
+        # Machine-wide Edge removal still runs.
+        @($script:HiddenProcessCalls).Count | Should -Be 1
         @($script:AsUserCalls).Count | Should -Be 0
     }
 
@@ -385,9 +405,35 @@ Describe 'Components phase deferred and exact-user cleanup behavior' {
                 $_.Message -like '*Removing OneDrive failed: ordinary removal failure*'
             }).Count | Should -Be 1
     }
+
+    It 'passes Remove-Edge.ps1 only the switches it declares and leaves its services to it' {
+        $script:PhaseOptions = @('uninstall-edge')
+        Mock Stop-AtlasService { }
+
+        Invoke-ComponentsPhaseUnderTest
+
+        @($script:HiddenProcessCalls).Count | Should -Be 1
+        $arguments = @($script:HiddenProcessCalls[0].ArgumentList)
+        $fileIndex = [array]::IndexOf($arguments, '-File')
+        $edgeScript = $arguments[$fileIndex + 1]
+        $edgeScript | Should -BeLike '*\Operations\Remove-Edge.ps1'
+        # A switch the script doesn't declare fails parameter binding, and with it every install.
+        $declared = @([Management.Automation.Language.Parser]::ParseFile($edgeScript, [ref]$null, [ref]$null).
+            ParamBlock.Parameters | ForEach-Object { $_.Name.VariablePath.UserPath })
+        foreach ($switch in @($arguments[($fileIndex + 2)..($arguments.Count - 1)])) {
+            $declared | Should -Contain $switch.TrimStart('-') -Because "Remove-Edge.ps1 must bind '$switch'"
+        }
+        # Remove-Edge.ps1 stops Edge's services; stopping a missing one again only logs a false warning.
+        Should -Invoke Stop-AtlasService -Times 0 -Exactly
+    }
 }
 
 Describe 'OneDrive exact-user cleanup boundary' {
+    BeforeEach {
+        # The extracted functions run under the strict mode their script sets.
+        Set-StrictMode -Version 3.0
+    }
+
     It 'defers file removal until after the reboot and preserves unsynced data' {
         $expectedSid = 'S-1-5-21-1000-2000-3000-1001'
         Mock Get-AtlasOneDriveBootUtcTicks { 638925000000000000L }
@@ -514,6 +560,33 @@ Describe 'OneDrive exact-user cleanup boundary' {
             Should -Throw '*is a reparse point*'
     }
 
+    Context 'a OneDrive folder under Files On-Demand' {
+        BeforeEach {
+            $script:profileRoot = Join-Path $TestDrive 'Profile'
+            [void][IO.Directory]::CreateDirectory((Join-Path $script:profileRoot 'OneDrive'))
+        }
+
+        It 'resolves through a OneDrive folder that Files On-Demand marks as a reparse point' {
+            # Windows PowerShell sees the cloud files reparse point on a signed-in user's OneDrive folder.
+            Mock Get-Item -ParameterFilter { $LiteralPath -like '*\OneDrive' } {
+                [pscustomobject]@{ Attributes = [IO.FileAttributes]'Directory, ReparsePoint'; LinkType = $null }
+            }
+            Resolve-AtlasOneDriveUserDirectory -Root $script:profileRoot -ChildPath 'OneDrive\Desktop' |
+                Should -BeExactly ([IO.Path]::Combine([IO.Path]::GetFullPath($script:profileRoot), 'OneDrive\Desktop'))
+        }
+
+        It 'still refuses a <LinkType> on the way' -TestCases @(
+            @{ LinkType = 'SymbolicLink' }
+            @{ LinkType = 'Junction' }
+        ) {
+            Mock Get-Item -ParameterFilter { $LiteralPath -like '*\OneDrive' } {
+                [pscustomobject]@{ Attributes = [IO.FileAttributes]'Directory, ReparsePoint'; LinkType = $LinkType }
+            }
+            { Resolve-AtlasOneDriveUserDirectory -Root $script:profileRoot -ChildPath 'OneDrive\Desktop' } |
+                Should -Throw '*OneDrive*links elsewhere*'
+        }
+    }
+
     It 'deletes a junction inside the tree without traversing into its target' {
         $tree = Join-Path $TestDrive 'CacheTree'
         $outside = Join-Path $TestDrive 'JunctionTarget'
@@ -615,6 +688,8 @@ Describe 'Edge exact-user startup cleanup boundary' {
     }
 
     BeforeEach {
+        # The extracted functions run under the strict mode their script sets.
+        Set-StrictMode -Version 3.0
         $script:edgeRegistryRoot = 'Software\AtlasRewriteTest\EdgeCleanup'
         $script:edgeRunSubKey = "$script:edgeRegistryRoot\Run"
         $script:edgeApprovedSubKey = "$script:edgeRegistryRoot\StartupApproved"

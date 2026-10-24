@@ -425,9 +425,7 @@ impl ReportPage {
         if self.attach && self.prepared(cx).is_none() {
             // Collecting again after a failure is part of sending.
             self.delivery = Delivery::Waiting;
-            if !self.model.read(cx).diagnostics_busy {
-                self.model.update(cx, |m, cx| m.export_diagnostics(cx));
-            }
+            self.prepare_diagnostics(cx);
             return None;
         }
         self.start_sending(cx);
@@ -949,23 +947,48 @@ mod tests {
             block_exports(&temp);
             let model = new_model(&mut cx, Machine::new(all_off()).environment(temp.path()));
             let page = cx.update(|cx| cx.new(|cx| ReportPage::new(model.clone(), cx)));
+            let (sender, sent) = failing(vec![anyhow::anyhow!("connection reset")]);
+            let message = "Setup stopped at the Defender step";
+            let zip = temp.path().join("Atlas-diagnostics.zip");
+            model.update(&mut cx, |m, _| m.diagnostics_result = Some(Ok(zip.clone())));
+            page.update(&mut cx, |page, cx| {
+                page.sender = sender;
+                page.message.update(cx, |input, cx| input.set_value(message, cx));
+                page.consent = true;
+            });
+            send_now(&mut cx, &page).await;
+            page.read_with(&cx, |page, cx| {
+                assert!(page.receipt.is_none());
+                assert_eq!(page.failure, Some(SendProblem::Retry));
+                assert_eq!(page.message.read(cx).value(), message);
+                assert_eq!(page.prepared(cx), Some(zip.clone()), "the ZIP is kept for the retry");
+            });
+            send_now(&mut cx, &page).await;
+            page.read_with(&cx, |page, _| assert!(page.receipt.is_some()));
+            // Sending the same report again is the same submission.
+            let sent = sent.lock().unwrap().clone();
+            assert_eq!(sent.len(), 2);
+            assert_eq!(sent[0], sent[1]);
+            assert_eq!(sent[0].1, Some(zip));
+        });
+    }
+
+    #[test]
+    fn anything_sent_that_changed_makes_it_another_report() {
+        run_model_test(|mut cx| async move {
+            let temp = TempDir::new("report-key");
+            block_exports(&temp);
+            let model = new_model(&mut cx, Machine::new(all_off()).environment(temp.path()));
+            let page = cx.update(|cx| cx.new(|cx| ReportPage::new(model.clone(), cx)));
             page.update(&mut cx, |page, cx| {
                 let message = "Setup stopped at the Defender step";
                 let zip = temp.path().join("Atlas-diagnostics.zip");
-                page.message.update(cx, |input, cx| input.set_value(message, cx));
-                let first = page.submission_key(message, "", Some(&zip)).expect("a key");
-                page.delivery = Delivery::Sending;
-                page.finish(Err(anyhow::anyhow!("connection reset")), Some(zip.clone()), cx);
-                assert!(page.delivery == Delivery::Idle && page.receipt.is_none());
-                assert_eq!(page.failure, Some(SendProblem::Retry));
-                assert_eq!(page.message.read(cx).value(), message);
-                // Sending the same report again is the same submission.
-                assert_eq!(page.submission_key(message, "", Some(&zip)), Some(first.clone()));
-
-                // Anything sent that changed makes it another report.
+                let first = page.submission_key(message, "", Some(&zip));
+                assert!(first.is_some());
+                assert_eq!(page.submission_key(message, "", Some(&zip)), first);
                 let edited = "Setup stopped at the Install step";
                 let changed = page.submission_key(edited, "", Some(&zip));
-                assert!(changed.is_some() && changed != Some(first));
+                assert!(changed.is_some() && changed != first);
                 let contact = page.submission_key(edited, "someone@example.org", Some(&zip));
                 assert_ne!(contact, changed);
                 let newer = temp.path().join("newer.zip");
@@ -980,6 +1003,7 @@ mod tests {
                 page.start_new(cx);
                 assert_ne!(page.submission_key(edited, "someone@example.org", Some(&newer)), recategorised);
             });
+            settle_export(&cx, &model).await;
         });
     }
 
@@ -992,21 +1016,45 @@ mod tests {
             block_exports(&temp);
             let model = new_model(&mut cx, Machine::new(all_off()).environment(temp.path()));
             let page = cx.update(|cx| cx.new(|cx| ReportPage::new(model.clone(), cx)));
-            page.update(&mut cx, |page, cx| {
-                let message = "Setup stopped at the Defender step";
-                let zip = temp.path().join("Atlas-diagnostics.zip");
-                let first = page.submission_key(message, "", Some(&zip)).expect("a key");
-                let closed =
-                    anyhow::Error::from(ureq::Error::StatusCode(404)).context(reports::ReportExpired);
-                page.delivery = Delivery::Sending;
-                page.finish(Err(closed), Some(zip.clone()), cx);
-                assert_eq!(page.failure, Some(SendProblem::Retry));
-                let renewed = page.submission_key(message, "", Some(&zip)).expect("a key");
-                assert_ne!(renewed, first);
-                // An ordinary failure keeps the new key for its retry.
-                page.finish(Err(anyhow::anyhow!("connection reset")), Some(zip.clone()), cx);
-                assert_eq!(page.submission_key(message, "", Some(&zip)), Some(renewed));
+            let closed = anyhow::Error::from(ureq::Error::StatusCode(404)).context(reports::ReportExpired);
+            let (sender, sent) = failing(vec![closed, anyhow::anyhow!("connection reset")]);
+            model.update(&mut cx, |m, _| {
+                m.diagnostics_result = Some(Ok(temp.path().join("Atlas-diagnostics.zip")))
             });
+            page.update(&mut cx, |page, cx| {
+                page.sender = sender;
+                page.message
+                    .update(cx, |input, cx| input.set_value("Setup stopped at the Defender step", cx));
+                page.consent = true;
+            });
+            send_now(&mut cx, &page).await;
+            page.read_with(&cx, |page, _| assert_eq!(page.failure, Some(SendProblem::Retry)));
+            send_now(&mut cx, &page).await;
+            send_now(&mut cx, &page).await;
+            page.read_with(&cx, |page, _| assert!(page.receipt.is_some()));
+            let keys: Vec<String> = sent.lock().unwrap().iter().map(|(key, _)| key.clone()).collect();
+            assert_eq!(keys.len(), 3);
+            assert_ne!(keys[1], keys[0], "the closed report is filed afresh");
+            assert_eq!(keys[2], keys[1], "an ordinary failure keeps the new key for its retry");
+        });
+    }
+
+    #[test]
+    fn a_preview_never_collects_diagnostics_even_when_sent() {
+        run_model_test(|mut cx| async move {
+            let temp = TempDir::new("report-preview");
+            block_exports(&temp);
+            let model = new_model(&mut cx, Machine::new(all_off()).environment(temp.path()));
+            let page = cx.update(|cx| cx.new(|cx| ReportPage::new(model.clone(), cx)));
+            page.update(&mut cx, |page, cx| {
+                page.preview = true;
+                page.message
+                    .update(cx, |input, cx| input.set_value("Setup stopped at the Defender step", cx));
+                page.consent = true;
+                assert_eq!(page.submit(cx), None);
+                assert_eq!(page.delivery, Delivery::Waiting);
+            });
+            assert!(!model.read_with(&cx, |m, _| m.diagnostics_busy), "nothing is collected");
         });
     }
 
@@ -1106,6 +1154,37 @@ mod tests {
             },
         );
         (sender, sent)
+    }
+
+    /// The submission key and ZIP of each report a test sent.
+    type Keys = Arc<std::sync::Mutex<Vec<(String, Option<PathBuf>)>>>;
+
+    /// A sender that records the key and ZIP it was given, fails with each of
+    /// `failures` in turn, then accepts.
+    fn failing(failures: Vec<anyhow::Error>) -> (Sender, Keys) {
+        let failures = std::sync::Mutex::new(std::collections::VecDeque::from(failures));
+        let keys = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = keys.clone();
+        let sender: Sender = Arc::new(
+            move |key: &str, _: Category, _: &str, _: &str, path: Option<&Path>| -> anyhow::Result<String> {
+                log.lock().unwrap().push((key.to_owned(), path.map(Path::to_path_buf)));
+                match failures.lock().unwrap().pop_front() {
+                    Some(error) => Err(error),
+                    None => Ok("29e43f22-3eff-48ab-a4f3-2d2da90e1410".into()),
+                }
+            },
+        );
+        (sender, keys)
+    }
+
+    /// Chooses Send report with the diagnostics ready, so it goes at once,
+    /// and waits for its result.
+    async fn send_now(cx: &mut gpui::AsyncApp, page: &Entity<ReportPage>) {
+        page.update(cx, |page, cx| {
+            assert_eq!(page.submit(cx), None);
+            assert_eq!(page.delivery, Delivery::Sending);
+        });
+        settle_send(cx, page).await;
     }
 
     #[test]

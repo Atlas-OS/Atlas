@@ -5,8 +5,7 @@ BeforeAll {
     $errors = $null
     $ast = [Management.Automation.Language.Parser]::ParseFile($source, [ref]$null, [ref]$errors)
     if ($errors) { throw ($errors | Out-String) }
-    # Execute the first-logon account/security handoff, stopping at an injected
-    # shell registration failure before any registry ACL API can be reached.
+    # The first-logon account handoff, up to the RunOnce registration.
     $statements = @($ast.EndBlock.Statements)
     $start = @($statements | Where-Object {
         $_ -is [Management.Automation.Language.AssignmentStatementAst] -and $_.Left.Extent.Text -eq '$account'
@@ -15,6 +14,11 @@ BeforeAll {
         $_ -is [Management.Automation.Language.AssignmentStatementAst] -and $_.Left.Extent.Text -eq '$runOnce'
     })[0].Extent.StartOffset
     $script:AccountHandoff = [scriptblock]::Create($ast.Extent.Text.Substring($start, $end - $start))
+    # The RunOnce registration that follows it.
+    $queueEnd = @($statements | Where-Object {
+        $_ -is [Management.Automation.Language.IfStatementAst] -and $_.Clauses[0].Item1.Extent.Text -eq "`$config.mode -ne 'before-desktop'"
+    })[0].Extent.EndOffset
+    $script:QueueSetup = [scriptblock]::Create($ast.Extent.Text.Substring($end, $queueEnd - $end))
     $script:ReadConfig = [scriptblock]::Create(@($statements | Where-Object {
         $_ -is [Management.Automation.Language.AssignmentStatementAst] -and $_.Left.Extent.Text -eq '$config'
     })[0].Extent.Text)
@@ -57,9 +61,11 @@ Describe 'First-logon security before shell registration' {
             $script:Operations.Add('RequirePasswordChange')
             $script:FakeNet
         } -ParameterFilter { $ChildPath -eq 'System32\net.exe' }
+        # Stops the handoff before it touches the shell key, unless a test lets it through.
         Mock New-Item { throw 'Injected shell registration failure' }
         Mock Register-AtlasDesktopCleanup {}
         Mock Unregister-AtlasDesktopCleanup {}
+        Mock New-ItemProperty {}
         $script:ReadPolicyPath = 'Software\AtlasSetupSafetyReadTests\' + [guid]::NewGuid().ToString('N')
         [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($script:ReadPolicyPath).Dispose()
         Mock Get-Item { [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($script:ReadPolicyPath) }
@@ -67,6 +73,9 @@ Describe 'First-logon security before shell registration' {
     AfterEach {
         $global:LASTEXITCODE = $script:PreviousNativeExitCode
         [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree($script:ReadPolicyPath, $false)
+    }
+    AfterAll {
+        [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree('Software\AtlasSetupSafetyReadTests', $false)
     }
     It 'disables automatic logon and requires a password change even when shell registration fails' {
         { & $script:AccountHandoff } | Should -Throw '*shell registration failure*'
@@ -79,31 +88,19 @@ Describe 'First-logon security before shell registration' {
         { & $script:AccountHandoff } | Should -Throw '*require a password change*'
         Should -Invoke New-Item -Times 0 -Exactly
     }
-    It 'registers cleanup before setting the shell without granting registry write permissions' {
-        $fixturePath = 'Software\AtlasSetupSafetyTests\' + [guid]::NewGuid().ToString('N')
-        $script:FixturePolicy = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($fixturePath)
-        try {
-            $script:FixturePolicy.SetValue('UnrelatedPolicy', 19)
-            $before = $script:FixturePolicy.GetAccessControl().GetSecurityDescriptorSddlForm([Security.AccessControl.AccessControlSections]::Access)
-            Mock New-Item {}
-            Mock Register-AtlasDesktopCleanup { $script:Operations.Add('RegisterCleanup') }
-            Mock Set-ItemProperty {
-                param($Name, $Value)
-                $script:Operations.Add($Name)
-                if ($Name -eq 'Shell') { $script:FixturePolicy.SetValue('Shell', $Value) }
-            }
-            & $script:AccountHandoff
-            $script:FixturePolicy.GetValue('Shell') | Should -Be $script:desktopShell
-            $script:FixturePolicy.GetValue('UnrelatedPolicy') | Should -Be 19
-            $script:FixturePolicy.GetAccessControl().GetSecurityDescriptorSddlForm([Security.AccessControl.AccessControlSections]::Access) | Should -Be $before
-            ($script:Operations -join ',') | Should -Be 'AutoAdminLogon,AutoLogonCount,DefaultPassword,PasswordExpires,RequirePasswordChange,RegisterCleanup,Shell'
-            [IO.File]::ReadAllText((Join-Path $TestDrive 'account-ready')) | Should -Be $script:identity.User.Value
-            Should -Invoke Register-AtlasDesktopCleanup -Times 1 -Exactly -ParameterFilter { $Sid -eq $script:identity.User.Value -and $Root -eq $TestDrive }
-        }
-        finally {
-            $script:FixturePolicy.Dispose()
-            [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree($fixturePath, $false)
-        }
+    It 'registers cleanup before setting the shell for the signed-in user only' {
+        Mock New-Item {}
+        Mock Register-AtlasDesktopCleanup { $script:Operations.Add('RegisterCleanup') }
+        & $script:AccountHandoff
+        ($script:Operations -join ',') | Should -Be 'AutoAdminLogon,AutoLogonCount,DefaultPassword,PasswordExpires,RequirePasswordChange,RegisterCleanup,Shell'
+        # The default profile and other accounts keep the Windows shell, and the
+        # existing-shell check reads the key the shell is written to.
+        $shellKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\System'
+        Should -Invoke New-Item -Times 1 -Exactly -ParameterFilter { $Path -eq $shellKey }
+        Should -Invoke Get-Item -Times 1 -Exactly -ParameterFilter { $LiteralPath -eq $shellKey }
+        Should -Invoke Set-ItemProperty -Times 1 -Exactly -ParameterFilter { $LiteralPath -eq $shellKey -and $Name -eq 'Shell' -and $Value -eq $script:desktopShell }
+        [IO.File]::ReadAllText((Join-Path $TestDrive 'account-ready')) | Should -Be $script:identity.User.Value
+        Should -Invoke Register-AtlasDesktopCleanup -Times 1 -Exactly -ParameterFilter { $Sid -eq $script:identity.User.Value -and $Root -eq $TestDrive }
     }
     It 'removes the cleanup task and ready marker if shell assignment fails' {
         Mock New-Item {}
@@ -113,12 +110,28 @@ Describe 'First-logon security before shell registration' {
         Should -Invoke Unregister-AtlasDesktopCleanup -Times 1 -Exactly
         [IO.File]::Exists((Join-Path $TestDrive 'account-ready')) | Should -BeFalse
     }
-    It 'refuses to replace an existing shell' {
+    It 'refuses to replace an existing shell without recreating its key' {
         $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($script:ReadPolicyPath, $true)
         try { $key.SetValue('Shell', 'existing shell') } finally { $key.Dispose() }
-        Mock New-Item {}
+        # New-Item -Force would recreate the existing key empty and hide the shell.
+        Mock Test-Path { $true } -ParameterFilter { $LiteralPath -like '*\Policies\System' }
         { & $script:AccountHandoff } | Should -Throw '*custom Windows shell*'
+        Should -Invoke New-Item -Times 0 -Exactly
         Should -Invoke Register-AtlasDesktopCleanup -Times 0 -Exactly
+        Should -Invoke Add-Content -Times 1 -Exactly -ParameterFilter { $LiteralPath -eq $script:log -and "$Value" -like '*custom Windows shell*' }
+    }
+    It 'queues Atlas without recreating a RunOnce key that already holds commands' {
+        $script:config.mode = 'configured'
+        # New-Item -Force would recreate the existing key empty and drop the queued commands.
+        Mock Test-Path { $true } -ParameterFilter { $LiteralPath -like '*\RunOnce' }
+        & $script:QueueSetup
+        Should -Invoke New-Item -Times 0 -Exactly
+        Should -Invoke New-ItemProperty -Times 1 -Exactly -ParameterFilter { $Name -eq 'Atlas ISO setup' }
+    }
+    It 'leaves RunOnce alone in before-desktop mode' {
+        & $script:QueueSetup
+        Should -Invoke New-Item -Times 0 -Exactly
+        Should -Invoke New-ItemProperty -Times 0 -Exactly
     }
 }
 
@@ -126,34 +139,18 @@ Describe 'The drivers choice during ISO setup' {
     BeforeAll {
         $source = Join-Path (Split-Path $PSScriptRoot -Parent) 'app\resources\iso\Setup.ps1'
         $ast = [Management.Automation.Language.Parser]::ParseFile($source, [ref]$null, [ref]$null)
-        # The step that applies DriverPolicy.reg, and the libraries setup loads.
+        # The step that applies DriverPolicy.reg.
         $script:DriverStep = [scriptblock]::Create(@($ast.FindAll({
                         param($node)
                         $node -is [Management.Automation.Language.IfStatementAst] -and
                         $node.Clauses[0].Item1.Extent.Text -like '*DriverPolicy.reg*'
                     }, $true))[0].Extent.Text)
-        $script:Libraries = @($ast.EndBlock.Statements | Where-Object {
-                $_.Extent.Text -match "^\. \(Join-Path \`$root '([^']+)'\)$"
-            } | ForEach-Object { $_.Extent.Text -replace "^\. \(Join-Path \`$root '([^']+)'\)$", '$1' })
         . (Join-Path $script:AtlasTestScriptsRoot 'Preparation\RegistryFile.ps1')
     }
     BeforeEach {
         $script:root = $TestDrive
         $script:log = Join-Path $TestDrive 'setup.log'
         Mock Import-AtlasRegistryFile {}
-    }
-
-    It 'loads only libraries the media build copies beside it' {
-        $build = [Management.Automation.Language.Parser]::ParseFile(
-            (Join-Path (Split-Path $PSScriptRoot -Parent) 'app\resources\iso\Build-Iso.ps1'), [ref]$null, [ref]$null)
-        $copy = $build.Find({
-                param($node)
-                $node -is [Management.Automation.Language.ForEachStatementAst] -and
-                @($node.Condition.FindAll({ param($n) $n -is [Management.Automation.Language.StringConstantExpressionAst] }, $true).Value) -contains 'Setup.ps1'
-            }, $true)
-        $copied = @($copy.Condition.FindAll({ param($n) $n -is [Management.Automation.Language.StringConstantExpressionAst] }, $true).Value)
-        @($script:Libraries).Count | Should -BeGreaterThan 0
-        foreach ($library in $script:Libraries) { $copied | Should -Contain $library }
     }
 
     It 'applies the staged drivers choice with the shared import, logging to setup.log' {

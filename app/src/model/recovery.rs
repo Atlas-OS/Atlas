@@ -129,8 +129,16 @@ impl AppModel {
         if !draft.options.is_empty() {
             self.options = draft.options.into_iter().collect();
         }
+        // A draft holds the choices in effect, which leave out the default of
+        // a page shown only once another option is ticked.
+        self.fill_radio_defaults();
         self.option_screen = draft.option_screen;
         if self.flow.resume(step).is_ok() {
+            // The checks of the flow before, such as an install that has just
+            // finished, say nothing about this PC now: Get ready runs them again.
+            self.checks.clear();
+            self.check_tasks.clear();
+            self.acknowledged.clear();
             self.enter_ready(cx);
             self.navigate(Page::Install, cx);
         }
@@ -293,7 +301,7 @@ impl AppModel {
             });
         }
         self.options = record.request.options.iter().cloned().collect();
-        let events = installer::reattach(&record);
+        let events = installer::reattach(&record, &self.session_paths.machine_log);
         self.follow_session(record, events, cx);
         self.attempt.recovered = ended;
         self.navigate(Page::Install, cx);

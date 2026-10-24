@@ -162,51 +162,21 @@ function Write-AtlasFileAssociationChange {
 function Set-AtlasFileAssociations {
     <#
     .SYNOPSIS
-        Advertises installed archive handlers for the current user and reports the
-        association plan; browser defaults stay user-controlled.
+        Advertises installed archive handlers for the current user; browser defaults
+        stay user-controlled.
     .DESCRIPTION
-        Runs as the signed-in, non-elevated user. With -PlanOnly the plan is returned
-        without any token check or registry write; otherwise the token must match
+        Runs as the signed-in, non-elevated user: the token must match
         -ExpectedUserSid (when given) and be an interactive non-service, non-elevated
         account. Every write is idempotent, so rerunning is the recovery path.
     #>
     param(
-        [ValidateSet('Base', 'Microsoft Edge', 'Brave', 'LibreWolf', 'Firefox', 'Google Chrome')]
-        [string]$AssociationProfile = 'Base',
-
         [AllowNull()]
         [AllowEmptyString()]
-        [string]$ExpectedUserSid,
-
-        [switch]$PlanOnly
+        [string]$ExpectedUserSid
     )
 
-    $changes = @(Get-AtlasArchiveAssociationChange)
-    $browserDefaultRequested = $AssociationProfile -ne 'Base'
-    $result = [pscustomobject]@{
-        Profile                   = $AssociationProfile
-        Mode                      = if ($PlanOnly) { 'PlanOnly' } else { 'Apply' }
-        BrowserDefaultRequested   = $browserDefaultRequested
-        BrowserDefaultDisposition = if ($browserDefaultRequested) { 'WindowsProtectedUserActionRequired' } else { 'NotRequested' }
-        DefaultAppsSettingsUri    = 'ms-settings:defaultapps'
-        ManagedDevicePolicy       = 'DefaultAssociationsConfiguration'
-        FirstSignInProvisioning   = 'Import-DefaultAppAssociations'
-        HandlerRegistration       = 'OpenWithProgidsOnly'
-        Recovery                  = 'RerunIdempotently'
-        Changes                   = $changes
-    }
-
-    if ($PlanOnly) {
-        return $result
-    }
-
     Assert-AtlasFileAssociationUser -ExpectedUserSid $ExpectedUserSid
-    if ($browserDefaultRequested) {
-        Write-AtlasLog -Level Warning -Message "The '$AssociationProfile' browser default remains user-controlled. Open ms-settings:defaultapps or use documented provisioning policy."
-    }
-
-    foreach ($change in $changes) {
+    foreach ($change in @(Get-AtlasArchiveAssociationChange)) {
         Write-AtlasFileAssociationChange -Change $change
     }
-    return $result
 }

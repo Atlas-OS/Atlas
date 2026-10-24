@@ -20,10 +20,16 @@ run from any directory:
 tools/release/build-rc.sh --rc N [--allow-dirty]
 ```
 
+`build-rc.sh` stops before building anything if the `[package]` version in
+`app/Cargo.toml` differs from `playbook.conf`'s. Otherwise:
+
 1. `tools/build/Build-Playbook.ps1` builds the production Atlas package,
    `Atlas v<version>-rc.N.apbx`, with every eligibility gate intact (`<version>`
-   comes from `playbook/playbook.conf`). `tools/build/Test-Apbx.ps1` verifies
-   it against the tracked `playbook/` tree.
+   comes from `playbook/playbook.conf`). With no uncommitted changes, it's
+   built from an export of the commit's `playbook/`, so untracked and ignored files
+   in the checkout stay out, and `tools/build/Test-Apbx.ps1` verifies it against
+   that export. With `--allow-dirty` and uncommitted changes, both use the
+   working tree.
 2. After `tools/Export-DependencyNotices.ps1 -Check` confirms the third-party
    notices are current, `cargo xwin build --release --locked --target x86_64-pc-windows-msvc
    --features embedded-playbook` compiles the app with a static C runtime.
@@ -37,7 +43,8 @@ tools/release/build-rc.sh --rc N [--allow-dirty]
    step, so a failed run leaves an earlier candidate untouched.
 
 The script refuses uncommitted changes unless `--allow-dirty` is passed; the
-recorded commit then ends in `-dirty` and the candidate is not publishable.
+recorded commit (in About, diagnostics and `README-RC.txt`) then ends in
+`-dirty` and the candidate is not publishable.
 Nothing is tagged or uploaded: the maintainer posts the ZIP and checksum lines
 by hand.
 
@@ -52,7 +59,7 @@ so a tester build is never produced by accident.
 | Variable | Meaning |
 | --- | --- |
 | `ATLAS_EMBED_APBX` | Path of a readable Atlas package (`.apbx`) to embed. |
-| `ATLAS_RC_ID` | The candidate id shown to testers, for example `0.6.0-rc.1`: letters, digits, dots and dashes only, ending in `-rc.N` (N from 1 to 65535, no leading zero). |
+| `ATLAS_RC_ID` | The candidate id shown to testers, for example `0.6.0-rc.1`: letters, digits, dots and dashes only, starting with the version in `app/Cargo.toml` and ending in `-rc.N` (N from 1 to 65535, no leading zero). |
 
 `build.rs` also records the tree's short Git commit as `ATLAS_SOURCE_COMMIT`
 (`-dirty` with changes, `unknown` without Git). `build-rc.sh` sets

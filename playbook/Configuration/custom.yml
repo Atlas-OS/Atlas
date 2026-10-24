@@ -128,14 +128,6 @@ actions:
     weight: 1
     handleExitCodes: { "!0": halt }
 
-  # AME alone owns this mounted-image mutation; live installation is PowerShell-owned.
-  - !registryKey:
-    path: 'HKLM\OfflineSys\ControlSet001\Services\WdBoot'
-    operation: delete
-    option: 'defender-disable'
-    iso: only
-    onUpgrade: false
-
   - !writeStatus: { status: 'Installing AtlasOS' }
   - !run:
     exe: '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe'

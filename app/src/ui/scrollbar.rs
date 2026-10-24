@@ -406,7 +406,13 @@ mod tests {
         for key in [ScrollKey::LineDown, ScrollKey::PageDown, ScrollKey::Bottom, ScrollKey::PageUp] {
             assert_eq!(keyboard_offset(px(0.), px(400.), px(0.), px(20.), key), px(0.));
         }
+    }
+
+    #[test]
+    fn a_page_is_never_shorter_than_a_line() {
         // A viewport shorter than the overlap still moves by at least a line.
-        assert_eq!(keyboard_offset(px(0.), px(30.), px(600.), px(20.), ScrollKey::PageDown), px(-20.));
+        let short = |offset: f32, key| keyboard_offset(px(offset), px(30.), px(600.), px(20.), key);
+        assert_eq!(short(0., ScrollKey::PageDown), px(-20.));
+        assert_eq!(short(-100., ScrollKey::PageUp), px(-80.));
     }
 }

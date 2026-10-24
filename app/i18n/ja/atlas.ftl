@@ -72,6 +72,8 @@ window-close-message = インストールはバックグラウンドで続行さ
 # Instead of window-close-message when the installation restarts the PC afterwards: only an
 # open Atlas window restarts it, so closing the window cancels that.
 window-close-message-restart = インストールはバックグラウンドで続行されますが、Atlas を閉じている間は PC が自動的に再起動しません。進行状況と結果を確認するには、Atlas をもう一度開いてください。インストールが終わるまで PC の電源を切らないでください。
+# The safe answer in every dialog shown when the window is closed, including those for ISO
+# and USB creation, updates and Windows Update access.
 window-close-keep = 開いたままにする
 window-close-close = ウィンドウを閉じる
 # Dialog shown when the window is closed during the final checks, before the
@@ -93,7 +95,8 @@ window-close-restart-close = 再起動せずに閉じる
 # window-close-keep, common-open-windows-security and window-close-close.
 window-close-protection-title = 保護がオフのまま Atlas を閉じますか?
 window-close-protection-message = Windows セキュリティの一部の保護がまだオフになっています: { $switches }。Atlas のインストールを最後まで行わない場合は、閉じる前に保護をオンに戻してください。インストールを続ける場合は、Atlas をもう一度開くとセットアップを再開します。
-# Title of the file picker for an Atlas package (.apbx) file.
+# The Open button of the file picker for an Atlas package (.apbx) file, on Get ready and the
+# ISO page. It's a button label, so keep it short.
 file-dialog-open-package = Atlas パッケージ (.apbx) を開く
 # Message Windows shows in its restart notification.
 shutdown-comment = Atlas のインストールが完了しました。セットアップを完了するため、Windows を再起動します。
@@ -769,7 +772,9 @@ iso-failed-package-changed = ファイルの確認後に Atlas パッケージ�
 iso-diagnostics = ログ フォルダーを開く
 iso-close-title = ISO の作成はまだ実行中です
 iso-close-message = 作成またはキャンセルが完了するまで、このウィンドウを開いたままにしてください。キャンセルは、現在の処理を安全に停止できる時点まで待機します。
-iso-keep-open = 開いたままにする
+# On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,
+# from another page. Their controls are unavailable until it finishes.
+iso-locked = Atlas は Windows Update の処理中です。完了すると、ここで続行できます。
 prepare-title = Windows と Store アプリの更新
 prepare-description = インストール前に、Atlas は Windows、Microsoft Store、Store アプリを更新します。メモ帳、ペイント、ターミナルなど、開いている Store アプリは更新中に終了することがあるため、先に作業内容を保存してください。PC の再起動が必要になることもあります。
 prepare-complete = インストールする Windows と Store の更新プログラムは、もう見つかりませんでした。
@@ -855,6 +860,8 @@ desktop-setup-exit = Windows で続ける
 usb-title = インストール USB を作成
 usb-existing = 既存の ISO から USB を作成
 usb-description = ISO を USB ドライブに書き込んで、その USB から Windows を再インストールできるようにします。Atlas も同時にインストールするには、Atlas で作成した ISO を使用してください。
+# Button that opens the file picker for an ISO, and the Open button of that picker, on the USB
+# and ISO pages.
 usb-choose-iso = ISO を選択
 usb-drive = USB ドライブ
 # $min and $max are formatted numbers (text), in gigabytes and terabytes.
@@ -934,6 +941,7 @@ prepare-continue = 更新を続ける
 prepare-saving-restart = 選択内容を保存し、Windows の再起動後に Atlas を開くよう設定しています…
 prepare-restart-save-failed = 選択内容を保存できませんでした。再起動する前にもう一度お試しください。
 prepare-restart-registration-failed = 選択内容は保存されましたが、再起動後に Atlas が自動で開くよう設定できませんでした。もう一度試すか、ご自身で PC を再起動し、サインイン後に Atlas を開いてください。
+prepare-restart-source-linked = 選択内容は保存されましたが、Atlas Manager がリンクされたフォルダーにある間は、再起動後に Atlas が自動で開くよう設定できません。Atlas を閉じ、Atlas Manager をこの PC のローカル フォルダーに移動してください。その後、そこから開くか、ご自身で PC を再起動し、サインイン後にそこから開いてください。
 prepare-restart-failed = Atlas は PC を再起動できませんでした。もう一度試すか、スタート メニューから再起動してください。選択内容は保存されており、サインイン後に Atlas が再び開きます。
 diagnostics-export = 診断情報をエクスポート
 diagnostics-exporting = 診断情報を収集中…
@@ -974,12 +982,14 @@ prepare-failed-store-timeout = Store アプリの更新が完了していませ�
 prepare-failed-store-passes = Microsoft Store から新しい更新プログラムが提供され続けました。Microsoft Store で残りの更新を完了してから、再試行してください。
 prepare-failed-manual-updates = 一部の Windows 更新プログラムは Windows Update で完了する必要があります。Windows Update を開いて完了してから、再試行してください。
 prepare-failed-windows-passes = Windows Update から新しい更新プログラムが提供され続けました。Windows Update で残りの更新を完了してから、再試行してください。
+prepare-failed-source-linked = Atlas Manager がリンクされたフォルダーにあります。Atlas を閉じ、Atlas Manager をこの PC のローカル フォルダーに移動してから、そこから開いてください。
 prepare-error-code = エラー コード: { $code }
 prepare-open-store = Microsoft Store を開く
 
 check-user-account = ユーザー アカウント
 detail-user-account-ok = UAC が有効で、アカウントのインストール準備が整っています。
 detail-user-account-not-ready = ユーザー アカウント制御 (UAC) を有効にし、PC を再起動してから、もう一度お試しください。組み込みの Administrator アカウントを使用している場合は、別の管理者アカウントでサインインしてください。
+detail-user-account-work-or-school = 職場または学校アカウント (Microsoft Entra ID) からは Atlas をインストールできません。ローカル アカウントまたは Microsoft アカウントでサインインしてから、再試行してください。
 detail-user-account-unknown = Atlas はユーザー アカウントを確認できませんでした。インストール前に再確認してください。Windows の報告: { $error }
 
 footer-prepare-required = 続行するには、Windows と Store アプリの更新を完了してください
@@ -1135,6 +1145,8 @@ stop-update-before = Atlas は変更した Windows Update の設定を元に戻�
 stop-update-after = PC は Windows 11 バージョン { $release } のままです。Atlas は変更した Windows Update の設定を元に戻します。
 stop-update-access = Atlas は変更した Windows Update の設定を元に戻します。Windows がすでにインストールした更新プログラムはそのまま残ります。
 stop-update-keep = 更新を継続
+# Dialog shown when the window is closed while Windows Update is turned on for an update; its
+# buttons are window-close-keep and window-close-put-back.
 window-close-update-access-title = Atlas を閉じますか?
 window-close-update-access-message = Atlas は閉じる前に、変更した Windows Update の設定を元に戻します。更新はホームからもう一度開始できます。
 window-close-put-back = 元に戻して閉じる

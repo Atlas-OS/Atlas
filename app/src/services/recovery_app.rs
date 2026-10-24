@@ -113,22 +113,78 @@ fn invoke_for(job: &Path, request: serde_json::Value) -> Result<()> {
     Ok(())
 }
 
+/// Run with `-Command`, the request on its input.
+const STAGE_APP: &str = include_str!("../../resources/prepare/Stage-App.ps1");
+
+/// Stage-App.ps1's exit code when Atlas Manager was started from a linked
+/// folder, which moving it fixes.
+const SOURCE_LINKED_EXIT_CODE: i32 = 2;
+
+/// Atlas Manager was started from a folder reached through a junction or
+/// symbolic link, which staging refuses. Moving it to a folder that isn't
+/// linked fixes it.
+#[derive(Debug)]
+pub struct SourceLinked(pub String);
+
+impl std::fmt::Display for SourceLinked {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "recovery staging failed: {}", self.0)
+    }
+}
+
+impl std::error::Error for SourceLinked {}
+
 fn invoke(request: serde_json::Value) -> Result<PathBuf> {
+    run_staging(STAGE_APP, &request)
+}
+
+/// Runs a staging script with `request` on its input and reads the path it
+/// answers with.
+fn run_staging(script: &str, request: &serde_json::Value) -> Result<PathBuf> {
     let mut child = powershell::command()
         .arg("-Command")
-        .arg(include_str!("../../resources/prepare/Stage-App.ps1"))
+        .arg(script)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
         .context("start the recovery staging")?;
-    let request = serde_json::to_vec(&request)?;
+    let request = serde_json::to_vec(request)?;
     child.stdin.take().context("recovery staging input")?.write_all(&request)?;
     let output = child.wait_with_output()?;
+    if output.status.code() == Some(SOURCE_LINKED_EXIT_CODE) {
+        return Err(SourceLinked(String::from_utf8_lossy(&output.stderr).trim().to_owned()).into());
+    }
     anyhow::ensure!(
         output.status.success(),
         "recovery staging failed: {}",
         String::from_utf8_lossy(&output.stderr)
     );
     serde_json::from_slice(&output.stdout).context("read staged recovery path")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A linked source is told apart from every other staging failure, by the
+    /// exit code Stage-App.ps1 itself uses for it.
+    #[test]
+    fn a_linked_source_is_its_own_error() {
+        let code = format!("$AtlasSourceLinkedExitCode = {SOURCE_LINKED_EXIT_CODE}");
+        assert!(
+            STAGE_APP.contains(&code),
+            "Stage-App.ps1 no longer exits {SOURCE_LINKED_EXIT_CODE} for a link"
+        );
+        let request = serde_json::json!({"operation": "executable"});
+        let stub = |message: &str, code: i32| {
+            format!("$null = [Console]::In.ReadToEnd(); [Console]::Error.WriteLine('{message}'); exit {code}")
+        };
+        let error = run_staging(&stub("linked folder", SOURCE_LINKED_EXIT_CODE), &request).unwrap_err();
+        let linked = error.downcast_ref::<SourceLinked>().expect("a linked source");
+        assert_eq!(linked.0, "linked folder");
+        assert_eq!(error.to_string(), "recovery staging failed: linked folder");
+        let other = run_staging(&stub("denied", 1), &request).unwrap_err();
+        assert!(!other.is::<SourceLinked>(), "{other:#}");
+    }
 }

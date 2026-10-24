@@ -89,7 +89,7 @@
       "name": "ToggleWindowsUpdates",
       "group": "Advanced",
       "description": "Windows Update services, scheduled tasks and policies through one menu launcher. Replay resolves the recorded state, so no SilentDefault is needed.",
-      "elevation": "Admin",
+      "elevation": "TrustedInstaller",
       "noStateRecord": false,
       "menu": true,
       "launcher": "6. Advanced Configuration\\Toggle Windows Updates\\Toggle Windows Updates.cmd",
@@ -648,7 +648,6 @@
           "stateValue": 0,
           "launcher": "3. General Configuration\\AI Features\\Microsoft Copilot\\Disable Microsoft Copilot (default).cmd",
           "reboot": "RestartExplorer",
-          "toolboxLauncher": "Scripts\\Copilot\\DisableMicrosoftCopilot.cmd",
           "work": {
             "registry": 2,
             "services": 0,
@@ -664,7 +663,6 @@
           "stateValue": 1,
           "launcher": "3. General Configuration\\AI Features\\Microsoft Copilot\\Enable Microsoft Copilot.cmd",
           "reboot": "RestartExplorer",
-          "toolboxLauncher": "Scripts\\Copilot\\Enable Microsoft Copilot.cmd",
           "work": {
             "registry": 0,
             "services": 0,
@@ -722,7 +720,7 @@
     {
       "name": "CpuIdleContextMenu",
       "group": "General",
-      "description": "CPU Idle desktop context menu (HKCR DesktopBackground shell entry). The Command values invoke the CPU Idle launchers and are stored as REG_SZ with %windir% intentionally left unexpanded.",
+      "description": "CPU Idle desktop context menu (HKCR DesktopBackground shell entry). The Command values run the CPU Idle launchers interactively, so they can ask for administrator permission, and are stored as REG_SZ with %windir% intentionally left unexpanded.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -735,7 +733,7 @@
           "launcher": "3. General Configuration\\CPU Idle\\Desktop Context Menu\\Add Idle Toggle in Desktop Context Menu.cmd",
           "reboot": "None",
           "work": {
-            "registry": 10,
+            "registry": 12,
             "services": 0,
             "scheduledTasks": 0,
             "machineAction": null,
@@ -818,7 +816,6 @@
           "stateValue": 0,
           "launcher": "3. General Configuration\\File Sharing\\Disable File Sharing (default).cmd",
           "reboot": "Prompt",
-          "toolboxLauncher": "ConfigurationServices\\FIleSharing\\disable.cmd",
           "work": {
             "registry": 0,
             "services": 0,
@@ -834,7 +831,6 @@
           "stateValue": 1,
           "launcher": "3. General Configuration\\File Sharing\\Enable File Sharing.cmd",
           "reboot": "Prompt",
-          "toolboxLauncher": "ConfigurationServices\\FIleSharing\\enable.cmd",
           "work": {
             "registry": 0,
             "services": 0,
@@ -1690,7 +1686,7 @@
     {
       "name": "Animation",
       "group": "Interface",
-      "description": "Visual effects and animations. Disable applies the Atlas minimal set; Enable restores the Windows defaults. Both states offer a sign-out afterwards so the changes apply.",
+      "description": "Visual effects and animations. Disable applies the Atlas minimal set; Enable restores the Windows defaults. Both states offer to sign out after the choice is recorded, so the changes apply.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -1701,13 +1697,13 @@
           "name": "Disable",
           "stateValue": 0,
           "launcher": "4. Interface Tweaks\\Visual Effects (Animations)\\Atlas Visual Effects (default).cmd",
-          "reboot": "None",
+          "reboot": "SignOut",
           "work": {
             "registry": 11,
             "services": 0,
             "scheduledTasks": 0,
             "machineAction": null,
-            "userAction": "Invoke-AtlasAnimationLogoffPrompt",
+            "userAction": null,
             "action": null,
             "user": true
           }
@@ -1716,13 +1712,13 @@
           "name": "Enable",
           "stateValue": 1,
           "launcher": "4. Interface Tweaks\\Visual Effects (Animations)\\Default Windows Visual Effects.cmd",
-          "reboot": "None",
+          "reboot": "SignOut",
           "work": {
             "registry": 11,
             "services": 0,
             "scheduledTasks": 0,
             "machineAction": null,
-            "userAction": "Invoke-AtlasAnimationLogoffPrompt",
+            "userAction": null,
             "action": null,
             "user": true
           }
@@ -2461,7 +2457,7 @@
     {
       "name": "RestartExplorer",
       "group": "Interface",
-      "description": "Restart Windows Explorer. The engine performs the restart through Reboot = RestartExplorer (which /noaction suppresses), so the action only prints status and no state is recorded.",
+      "description": "Restarts File Explorer for the signed-in user; /noaction skips the restart. The engine performs and announces the restart through Reboot = RestartExplorer, so the action itself does nothing. Records no state.",
       "elevation": "None",
       "noStateRecord": true,
       "menu": false,
@@ -2906,7 +2902,6 @@
           "stateValue": 0,
           "launcher": "7. Security\\Mitigations\\Disable All Mitigations.cmd",
           "reboot": "Recommend",
-          "toolboxLauncher": "ConfigurationServices\\Mitigations\\Mitigations_0.cmd",
           "work": {
             "registry": 4,
             "services": 0,
@@ -2922,7 +2917,6 @@
           "stateValue": 1,
           "launcher": "7. Security\\Mitigations\\Set Windows Default Mitigations.cmd",
           "reboot": "Recommend",
-          "toolboxLauncher": "ConfigurationServices\\Mitigations\\Mitigations_2.cmd",
           "work": {
             "registry": 7,
             "services": 0,
@@ -2938,7 +2932,6 @@
           "stateValue": 2,
           "launcher": "7. Security\\Mitigations\\Enable All Mitigations.cmd",
           "reboot": "Recommend",
-          "toolboxLauncher": "ConfigurationServices\\Mitigations\\Mitigations_1.cmd",
           "work": {
             "registry": 0,
             "services": 0,
@@ -3348,7 +3341,6 @@
           "stateValue": 1,
           "launcher": "6. Advanced Configuration\\Services\\Superfetch\\Enable SuperFetch (default).cmd",
           "reboot": "Recommend",
-          "toolboxLauncher": "Scripts\\SuperFetch\\EnableSuperFetch.cmd",
           "work": {
             "registry": 0,
             "services": 0,
@@ -3472,7 +3464,7 @@
     {
       "name": "DefaultAtlasNetwork",
       "group": "Troubleshooting",
-      "description": "Network adapter reset. Enable applies Atlas defaults; Disable restores Windows defaults. Both states share the Atlas.Network Set-AtlasNetworkDefaults implementation with the Toolbox.",
+      "description": "Network adapter reset. Enable applies Atlas defaults; Disable restores Windows defaults. Both states share the Atlas.Network Set-AtlasNetworkDefaults implementation.",
       "elevation": "Admin",
       "noStateRecord": true,
       "menu": false,
@@ -3484,6 +3476,7 @@
           "stateValue": 1,
           "launcher": "9. Troubleshooting\\Network\\Reset Network to Atlas Default.cmd",
           "reboot": "Recommend",
+          "toolboxLauncher": "Scripts\\Troubleshooting\\TroubleshootingNetwork\\AtlasDefault.cmd",
           "work": {
             "registry": 0,
             "services": 0,
@@ -3499,6 +3492,7 @@
           "stateValue": 0,
           "launcher": "9. Troubleshooting\\Network\\Reset Network to Windows Default.cmd",
           "reboot": "Recommend",
+          "toolboxLauncher": "Scripts\\Troubleshooting\\TroubleshootingNetwork\\WindowsDefault.cmd",
           "work": {
             "registry": 0,
             "services": 0,
@@ -3532,6 +3526,33 @@
             "services": 0,
             "scheduledTasks": 0,
             "machineAction": "Invoke-AtlasWindowsTempPermissionsRepair",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "FixExplorerRuntimeError",
+      "group": "Troubleshooting",
+      "description": "Fixes blank Microsoft Visual C++ Runtime Library errors from File Explorer by removing the search redirect that older Atlas builds left. Records no state.",
+      "elevation": "Admin",
+      "noStateRecord": true,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Run",
+          "stateValue": null,
+          "launcher": "9. Troubleshooting\\Fix File Explorer Visual C++ Runtime Error.cmd",
+          "reboot": "RestartExplorer",
+          "work": {
+            "registry": 3,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
             "userAction": null,
             "action": null,
             "user": false
@@ -3609,7 +3630,6 @@
           "stateValue": null,
           "launcher": "9. Troubleshooting\\Safe Mode\\Safe Mode.cmd",
           "reboot": "Recommend",
-          "toolboxLauncher": "ConfigurationServices\\SafeMode\\SafeMode_3.cmd",
           "work": {
             "registry": 0,
             "services": 0,
@@ -3625,7 +3645,6 @@
           "stateValue": null,
           "launcher": "9. Troubleshooting\\Safe Mode\\Safe Mode with Command Prompt.cmd",
           "reboot": "Recommend",
-          "toolboxLauncher": "ConfigurationServices\\SafeMode\\SafeMode_1.cmd",
           "work": {
             "registry": 0,
             "services": 0,
@@ -3641,7 +3660,6 @@
           "stateValue": null,
           "launcher": "9. Troubleshooting\\Safe Mode\\Safe Mode with Networking.cmd",
           "reboot": "Recommend",
-          "toolboxLauncher": "ConfigurationServices\\SafeMode\\SafeMode_2.cmd",
           "work": {
             "registry": 0,
             "services": 0,
@@ -3657,7 +3675,6 @@
           "stateValue": null,
           "launcher": "9. Troubleshooting\\Safe Mode\\Exit Safe Mode.cmd",
           "reboot": "Recommend",
-          "toolboxLauncher": "ConfigurationServices\\SafeMode\\SafeMode_0.cmd",
           "work": {
             "registry": 0,
             "services": 0,

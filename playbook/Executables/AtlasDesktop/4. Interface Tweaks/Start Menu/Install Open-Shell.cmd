@@ -5,11 +5,13 @@ if errorlevel 1 exit /b 1
 cd /d "%__APPDIR__%"
 if errorlevel 1 exit /b 1
 for %%I in ("%__APPDIR__%..") do set "AtlasWindowsRoot=%%~fI"
-set "SystemRoot=%AtlasWindowsRoot%"
-set "windir=%AtlasWindowsRoot%"
-set "ComSpec=%__APPDIR__%cmd.exe"
-set "PATHEXT=.COM;.EXE;.BAT;.CMD"
-set "PATH=%__APPDIR__%;%AtlasWindowsRoot%;%__APPDIR__%Wbem;%__APPDIR__%WindowsPowerShell\v1.0"
+set "launcherEnvironment=%AtlasWindowsRoot%\AtlasModules\Scripts\Entry\Initialize-PowerShellLauncherEnvironment.cmd"
+if not exist "%launcherEnvironment%" (
+    echo PowerShell launcher environment helper not found: "%launcherEnvironment%"
+    exit /b 1
+)
+call "%launcherEnvironment%"
+if errorlevel 1 exit /b 1
 set "script=%AtlasWindowsRoot%\AtlasModules\Scripts\Entry\Install-OpenShell.ps1"
 if not exist "%script%" (
 	echo Script not found.
@@ -17,53 +19,10 @@ if not exist "%script%" (
 	exit /b 1
 )
 
-:: Capture one compatibility token as data, then clear every managed-runtime
-:: loader input before the first PowerShell process starts. This prevents a
-:: medium caller's profiler/startup hook from crossing the Atlas UAC prompt.
+:: Capture one compatibility token as data; it is never passed on as command text.
 set "AtlasLauncherArgument=%~1"
-set "COR_ENABLE_PROFILING="
-set "COR_PROFILER="
-set "COR_PROFILER_PATH="
-set "COR_PROFILER_PATH_32="
-set "COR_PROFILER_PATH_64="
-set "COR_PROFILER_PATH_ARM32="
-set "COR_PROFILER_PATH_ARM64="
-set "COR_PROFILER_PATH_X86="
-set "COR_PROFILER_PATH_AMD64="
-set "CORECLR_ENABLE_PROFILING="
-set "CORECLR_PROFILER="
-set "CORECLR_PROFILER_PATH="
-set "CORECLR_PROFILER_PATH_32="
-set "CORECLR_PROFILER_PATH_64="
-set "CORECLR_PROFILER_PATH_ARM64="
-set "CORECLR_PROFILER_PATH_X86="
-set "DOTNET_STARTUP_HOOKS="
-set "DOTNET_ADDITIONAL_DEPS="
-set "DOTNET_SHARED_STORE="
-set "DOTNET_ROOT="
-set "DOTNET_ROOT_X86="
-set "DOTNET_ROOT_X64="
-set "DOTNET_ROOT_ARM64="
-set "DOTNET_HOST_PATH="
-set "DOTNET_BUNDLE_EXTRACT_BASE_DIR="
-set "APPDOMAIN_MANAGER_ASM="
-set "APPDOMAIN_MANAGER_TYPE="
-set "APPDOMAIN_MANAGER_APP_CONFIG="
-set "APPDOMAIN_MANAGER_INITIALIZATION_OPTIONS="
-set "COMPLUS_APPDOMAINMANAGERASSEMBLY="
-set "COMPLUS_APPDOMAINMANAGERTYPE="
-set "COMPLUS_APPLICATIONMIGRATIONRUNTIMEACTIVATIONCONFIGPATH="
-set "COMPLUS_INSTALLROOT="
-set "COMPLUS_VERSION="
-set "COMPLUS_TPALIST="
-set "COMPLUS_JITNAME="
-set "COMPLUS_JITPATH="
-set "COMPLUS_ALTJIT="
-set "COMPLUS_ALTJITNAME="
-set "COMPLUS_ALTJITPATH="
-set "PSModulePath="
 
-"%__APPDIR__%fltmc.exe" > nul 2>&1
+"%AtlasNativeFltmc%" > nul 2>&1
 if not errorlevel 1 goto alreadyElevated
 
 :: This window only waits for the elevated one, which prints the rest of the run.
@@ -73,7 +32,7 @@ if not defined AtlasLauncherArgument (
 	echo.
 	echo Asking for administrator permission...
 )
-"%__APPDIR__%WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -Command "$a=$env:AtlasLauncherArgument;if($a -and $a -notin @('/silent','-silent')){exit 2};$s=[IO.Path]::Combine([Environment]::GetFolderPath('Windows'),'AtlasModules','Scripts','Entry','Install-OpenShell.ps1');$p=[Activator]::CreateInstance([Diagnostics.ProcessStartInfo]);$p.FileName=[IO.Path]::Combine([Environment]::GetFolderPath('System'),'WindowsPowerShell','v1.0','powershell.exe');$p.WorkingDirectory=[Environment]::GetFolderPath('System');$q=[char]34;$p.Arguments='-NoLogo -NoProfile -ExecutionPolicy Bypass -File '+$q+$s+$q+' -ShellRefreshByCaller'+$(if($a){' -Silent'});$p.UseShellExecute=$true;$p.Verb='runas';try{$c=[Diagnostics.Process]::Start($p);if($null -eq $c){exit 1};$c.WaitForExit();exit $c.ExitCode}catch{if($_.Exception -is [ComponentModel.Win32Exception] -and $_.Exception.NativeErrorCode -eq 1223){exit 1223};exit 1}"
+"%AtlasNativePowerShell%" -NoLogo -NoProfile -Command "$a=$env:AtlasLauncherArgument;if($a -and $a -notin @('/silent','-silent')){exit 2};$s=[IO.Path]::Combine([Environment]::GetFolderPath('Windows'),'AtlasModules','Scripts','Entry','Install-OpenShell.ps1');$p=[Activator]::CreateInstance([Diagnostics.ProcessStartInfo]);$p.FileName=[IO.Path]::Combine([Environment]::GetFolderPath('System'),'WindowsPowerShell','v1.0','powershell.exe');$p.WorkingDirectory=[Environment]::GetFolderPath('System');$q=[char]34;$p.Arguments='-NoLogo -NoProfile -ExecutionPolicy Bypass -File '+$q+$s+$q+' -ShellRefreshByCaller'+$(if($a){' -Silent'});$p.UseShellExecute=$true;$p.Verb='runas';try{$c=[Diagnostics.Process]::Start($p);if($null -eq $c){exit 1};$c.WaitForExit();exit $c.ExitCode}catch{if($_.Exception -is [ComponentModel.Win32Exception] -and $_.Exception.NativeErrorCode -eq 1223){exit 1223};exit 1}"
 if errorlevel 0 (
     if errorlevel 1 exit /b
 ) else (
@@ -83,19 +42,32 @@ if errorlevel 0 (
 :: The UAC child is complete, but this launcher is still medium integrity. Refresh
 :: and restart Explorer only in this caller's Windows session.
 set "shellRefreshScript=%AtlasWindowsRoot%\AtlasModules\Scripts\Operations\Invoke-AtlasUserShellRefresh.ps1"
-if not exist "%shellRefreshScript%" exit /b 1
+if not exist "%shellRefreshScript%" (
+    if not defined AtlasLauncherArgument echo User-session shell refresh helper not found: "%shellRefreshScript%"
+    goto shellRefreshFailed
+)
 if not defined AtlasLauncherArgument echo Restarting File Explorer...
-"%__APPDIR__%WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%shellRefreshScript%" -CurrentSession
+"%AtlasNativePowerShell%" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%shellRefreshScript%" -CurrentSession
 if errorlevel 0 (
-    if errorlevel 1 exit /b 1
+    if errorlevel 1 goto shellRefreshFailed
 ) else (
-    exit /b 1
+    goto shellRefreshFailed
 )
 if not defined AtlasLauncherArgument echo File Explorer was restarted to apply this change.
 exit /b 0
 
+:shellRefreshFailed
+:: The elevated window already said Done and closed, so this one owns the advice.
+if not defined AtlasLauncherArgument (
+    echo Partly done: Open-Shell is installed, but File Explorer could not be restarted safely in this session.
+    echo Restart File Explorer, or sign out and back in, to see this change.
+    echo.
+    set /p "AtlasExit=Press Enter to exit. "
+)
+exit /b 1
+
 :alreadyElevated
-"%__APPDIR__%WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%script%"
+"%AtlasNativePowerShell%" -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%script%"
 if errorlevel 0 (
     if errorlevel 1 exit /b
 ) else (

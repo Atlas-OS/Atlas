@@ -147,3 +147,23 @@ function Invoke-AtlasAsUser {
     return Invoke-AtlasBoundUserProcess -FilePath $FilePath -Arguments $Arguments `
         -WorkingDirectory $WorkingDirectory -Wait:$Wait -TimeoutSeconds $TimeoutSeconds
 }
+
+function Get-AtlasUserSessionHelperStage {
+    <#
+    .SYNOPSIS
+        The stage Invoke-AtlasUserShellRefresh.ps1 names by its exit code, or $null for any other code.
+    #>
+    param([Parameter(Mandatory = $true)][int]$ExitCode)
+
+    switch ($ExitCode) {
+        10 { return 'bootstrap' }
+        11 { return 'current-session identity validation' }
+        12 { return 'process stop' }
+        13 { return 'Explorer start' }
+        14 { return 'Explorer recovery' }
+        15 { return 'installing-user SID validation' }
+        16 { return 'Windows session validation' }
+        17 { return 'operation selection' }
+    }
+    return $null
+}

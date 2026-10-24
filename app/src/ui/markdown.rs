@@ -7,7 +7,8 @@ use std::rc::Rc;
 
 use gpui::{
     AnyElement, App, ElementId, FontStyle, FontWeight, HighlightStyle, IntoElement, ParentElement,
-    RenderOnce, Role, SharedString, StyledText, UnderlineStyle, Window, div, prelude::*, px,
+    RenderOnce, Role, SharedString, StyledText, UnderlineStyle, Window, combine_highlights, div, prelude::*,
+    px,
 };
 
 use super::{Revealed, Typography, focus_ring, on_activate, pointer_hover};
@@ -242,9 +243,13 @@ fn parse_inline(source: &str) -> Inline {
 }
 
 fn shift_ranges(inline: &mut Inline, from: usize, by: usize) {
+    // A range the marker is put back inside grows to hold it, so its end
+    // still falls after the character it ended on.
     let shift = |r: &mut Range<usize>| {
         if r.start >= from {
             r.start += by;
+            r.end += by;
+        } else if r.end > from {
             r.end += by;
         }
     };
@@ -432,6 +437,18 @@ fn inline_content(inline: Inline, window: &Window, theme: &Theme) -> AnyElement 
 
 /// One segment of a block's text with its bold, italic and code runs.
 fn styled_run(inline: &Inline, segment: Range<usize>, theme: &Theme) -> StyledText {
+    let highlights = segment_highlights(inline, segment.clone(), theme);
+    StyledText::new(inline.text[segment].to_owned()).with_highlights(highlights)
+}
+
+/// The styling of `segment`, from its start. Emphasis can hold code or more
+/// emphasis (`**Run `x`**`, `***Note***`), but GPUI takes runs that do not
+/// overlap: the ranges are split where they meet and their styles merged.
+fn segment_highlights(
+    inline: &Inline,
+    segment: Range<usize>,
+    theme: &Theme,
+) -> Vec<(Range<usize>, HighlightStyle)> {
     let clip = |range: &Range<usize>| -> Option<Range<usize>> {
         let start = range.start.max(segment.start);
         let end = range.end.min(segment.end);
@@ -456,8 +473,7 @@ fn styled_run(inline: &Inline, segment: Range<usize>, theme: &Theme) -> StyledTe
             },
         ));
     }
-    highlights.sort_by_key(|(range, _)| range.start);
-    StyledText::new(inline.text[segment].to_owned()).with_highlights(highlights)
+    combine_highlights(highlights, []).collect()
 }
 
 /// A link inside running text, drawn as the app's hyperlinks are.
@@ -510,7 +526,26 @@ fn inline_link(
 
 #[cfg(test)]
 mod tests {
-    use super::{nested_level, parse_inline};
+    use std::ops::Range;
+
+    use super::{nested_level, parse_inline, segment_highlights};
+    use crate::theme::Theme;
+
+    /// A styled run as (range, bold, italic, code).
+    type Run = (Range<usize>, bool, bool, bool);
+
+    /// `source`'s text and its styled runs.
+    fn runs(source: &str) -> (String, Vec<Run>) {
+        let inline = parse_inline(source);
+        let runs = segment_highlights(&inline, 0..inline.text.len(), &Theme::light())
+            .into_iter()
+            .map(|(range, style)| {
+                let (bold, italic) = (style.font_weight.is_some(), style.font_style.is_some());
+                (range, bold, italic, style.background_color.is_some())
+            })
+            .collect();
+        (inline.text, runs)
+    }
 
     #[test]
     fn notes_headings_sit_under_their_card() {
@@ -549,6 +584,33 @@ mod tests {
         assert_eq!(mixed.text, "_open then code and link");
         assert_eq!(mixed.code, vec![11..15]);
         assert_eq!(mixed.links[0].0, 20..24);
+        // A marker put back inside bold is bold too, and the bold still ends after "é".
+        let straddled = parse_inline("**a *é** c");
+        assert_eq!(straddled.text, "a *é c");
+        assert_eq!(straddled.bold, vec![0..5]);
+    }
+
+    #[test]
+    fn nested_styling_is_split_into_runs_that_do_not_overlap() {
+        let (text, found) = runs("**Use `xy`** — then restart");
+        assert_eq!(text, "Use xy — then restart");
+        assert_eq!(found, [(0..4, true, false, false), (4..6, true, false, true)]);
+        let (_, found) = runs("*a **b** c*");
+        assert_eq!(
+            found,
+            [(0..2, false, true, false), (2..3, true, true, false), (3..5, false, true, false)]
+        );
+        assert_eq!(runs("***Note*** é…").1, [(0..4, true, true, false)]);
+        // GPUI lays each run out after the one before it, slicing the text at its ends.
+        for source in ["_**x**_ ü", "**a *é** c", "**é *ü**", "*a **b* ü", "**`é` ü** x"] {
+            let (text, found) = runs(source);
+            let mut end = 0;
+            for (range, ..) in &found {
+                assert!(end <= range.start && range.start < range.end, "{source:?}: {found:?}");
+                assert!(text.is_char_boundary(range.start) && text.is_char_boundary(range.end), "{source:?}");
+                end = range.end;
+            }
+        }
     }
 
     #[test]

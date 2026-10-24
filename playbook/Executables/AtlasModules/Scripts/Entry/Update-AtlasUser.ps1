@@ -5,8 +5,10 @@
 [CmdletBinding()]
 param([string]$ExpectedUserSid)
 
-$scriptsRoot = Split-Path -Parent $PSScriptRoot
-. (Join-Path $scriptsRoot 'Initialize-AtlasPowerShell.ps1')
+$scriptsRoot = [IO.Path]::GetFullPath([IO.Path]::GetDirectoryName($PSScriptRoot))
+$bootstrap = [IO.Path]::Combine($scriptsRoot, 'Initialize-AtlasPowerShell.ps1')
+if (-not [IO.File]::Exists($bootstrap)) { throw "The PowerShell bootstrap is missing at '$bootstrap'." }
+. $bootstrap
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $actualSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
@@ -32,16 +34,22 @@ $null = New-Item -Path $logRoot -ItemType Directory -Force
 Start-Transcript -Path (Join-Path $logRoot ('{0:yyyyMMdd-HHmmss}-upgrade-user-{1}.log' -f (Get-Date), $PID)) | Out-Null
 try {
     $null = Initialize-AtlasRegistryIdentityContext -CurrentToken -ExpectedUserSid $actualSid
-    # The installing-user pass already handles protected policy roots. Later logons
-    # apply ordinary HKCU settings under that user's own token.
-    foreach ($category in 'networking', 'performance', 'privacy', 'qol', 'security', 'debloat', 'scripts', 'misc') {
-        Invoke-AtlasTweakCategory -Name $category -RegistryScope CurrentUser -RegistryOnly -Context $context
+    # Each Tweaks/<category> install step already applied the installing user's HKCU
+    # entries, protected policy roots included. This pass is for other accounts
+    # migrating at their next logon, under their own token, for every category in the
+    # manifest Invoke-AtlasTweakCategory reads.
+    if (-not $ExpectedUserSid) {
+        $manifest = Get-AtlasTweakManifest -Path (Join-Path $context.AtlasModulesPath 'Scripts\Tweaks\tweaks.manifest.psd1')
+        foreach ($category in @($manifest['Categories'] | ForEach-Object { [string]$_['Name'] })) {
+            Invoke-AtlasTweakCategory -Name $category -RegistryScope CurrentUser -RegistryOnly -Context $context
+        }
     }
     # As in Initialize-NewUser: a choice whose user part fails stays recorded and shows
     # in the health check, without failing the upgrade after its machine work.
     try { Invoke-AtlasToggleUserReapply }
     catch { Write-Warning "Some recorded choices were not applied for this user: $($_.Exception.Message)" }
-    $null = New-Item -Path $markerPath -Force
+    # New-Item -Force would recreate an existing key empty, losing Initialize-NewUser's markers.
+    if (-not (Test-Path -LiteralPath $markerPath)) { $null = New-Item -Path $markerPath -Force }
     New-ItemProperty -LiteralPath $markerPath -Name $markerName -Value $version -PropertyType String -Force | Out-Null
 }
 finally { Stop-Transcript | Out-Null }

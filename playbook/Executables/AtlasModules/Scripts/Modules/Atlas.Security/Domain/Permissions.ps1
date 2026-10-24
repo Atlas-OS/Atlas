@@ -78,8 +78,10 @@ function Set-AtlasWindowsTempRootAcl {
         )
         $acl.AddAccessRule($rule)
     }
-    # Persist only the changed DACL section; owner, group and audit entries are untouched.
-    (New-Object IO.DirectoryInfo($Path)).SetAccessControl($acl)
+    # Write only this directory's DACL: owner, group and audit entries stay as they are,
+    # and descendants keep their own ACLs (see the header).
+    Initialize-AtlasNativeType
+    [Atlas.Native.DirectoryDacl]::SetProtected($Path, $acl)
 
     $verifiedAcl = Get-Acl -LiteralPath $Path -ErrorAction Stop
     if (-not $verifiedAcl.AreAccessRulesProtected) {

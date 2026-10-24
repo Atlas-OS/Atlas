@@ -116,7 +116,9 @@ impl Flow {
         self.run.is_locked()
     }
 
-    /// Whether the package, options and install settings may change.
+    /// Whether this flow lets the package, options and install settings
+    /// change. Model actions refuse on `AppModel::locked`, which includes
+    /// this and the other work that holds the install.
     pub fn may_edit(&self) -> bool {
         !self.locked()
     }

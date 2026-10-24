@@ -146,6 +146,18 @@ async fn submit_from(fixture: &Fixture, client: &str) -> StatusCode {
         .await
         .0
 }
+/// Runs `attempt` on a new fixture until it starts and ends in the same hour,
+/// since rate counts belong to one hour. Assert on what it returns.
+async fn within_one_hour<T>(attempt: impl AsyncFn(&Fixture) -> T) -> T {
+    loop {
+        let fixture = Fixture::new();
+        let hour = atlas_reports::now() / 3600;
+        let result = attempt(&fixture).await;
+        if atlas_reports::now() / 3600 == hour {
+            return result;
+        }
+    }
+}
 fn count(fixture: &Fixture, sql: &str) -> i64 {
     fixture
         .state
@@ -289,11 +301,22 @@ async fn agent_bearer_requires_trusted_gateway_and_cannot_replace_browser_auth()
         .0,
         StatusCode::FORBIDDEN
     );
+    // Sign-in headers cannot replace the bearer. A same-origin browser GET
+    // sends no Origin, so this must not rely on the Origin check.
     assert_eq!(
-        f.json("GET", "/api/agent/reports", Value::Null, true)
-            .await
-            .0,
-        StatusCode::FORBIDDEN
+        f.request(
+            "GET",
+            "/api/agent/reports",
+            vec![],
+            false,
+            &[
+                ("remote-user", "jack"),
+                ("x-atlas-gateway", "test-gateway-secret-xxxxxxxxxxxxxxxx")
+            ]
+        )
+        .await
+        .0,
+        StatusCode::UNAUTHORIZED
     );
     assert_eq!(
         agent_request(&f, &issued, "GET", "/api/admin/reports", Value::Null)
@@ -631,6 +654,50 @@ async fn agent_access_cannot_evict_protected_audit_records() {
             1
         );
     }
+}
+
+#[test]
+fn cleanup_bounds_audit_history_by_age_and_count() {
+    let f = Fixture::new();
+    // One administrator entry more than the 50,000 kept, then agent reads,
+    // which must not take their place. The newest entry is too old, so only
+    // the age limit removes it.
+    f.state
+        .db
+        .lock()
+        .unwrap()
+        .execute_batch(&format!(
+            "WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM n WHERE i < 50001)
+            INSERT INTO audit SELECT {now},'jack','review',i FROM n;
+            WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM n WHERE i < 10000)
+            INSERT INTO audit SELECT {now},'agent:seed','agent-read','' FROM n;
+            INSERT INTO audit VALUES({aged},'jack','review','aged');",
+            now = atlas_reports::now(),
+            aged = atlas_reports::now() - 91 * 86400
+        ))
+        .unwrap();
+    f.state.prune().unwrap_or_else(|_| panic!("prune"));
+    assert_eq!(
+        count(&f, "SELECT count(*) FROM audit WHERE report_id='aged'"),
+        0
+    );
+    assert_eq!(
+        count(&f, "SELECT count(*) FROM audit WHERE action='review'"),
+        50_000
+    );
+    // The oldest entry goes, not the newest.
+    assert_eq!(
+        count(&f, "SELECT count(*) FROM audit WHERE report_id='1'"),
+        0
+    );
+    assert_eq!(
+        count(&f, "SELECT count(*) FROM audit WHERE report_id='50001'"),
+        1
+    );
+    assert_eq!(
+        count(&f, "SELECT count(*) FROM audit WHERE action='agent-read'"),
+        10_000
+    );
 }
 
 #[tokio::test]
@@ -976,11 +1043,61 @@ async fn foreign_origins_and_stale_csrf_tokens_are_refused() {
         review("https://evil.test", token(day)).await,
         StatusCode::FORBIDDEN
     );
-    // A page left open past midnight can still save.
-    assert_eq!(
-        review("https://reports.test", token(day - 1)).await,
-        StatusCode::OK
-    );
+    // A page left open past midnight can still save. Saving again is
+    // harmless, so retry if midnight passes during the request.
+    loop {
+        let day = atlas_reports::now() / 86400;
+        let code = review("https://reports.test", token(day - 1)).await;
+        if atlas_reports::now() / 86400 == day {
+            assert_eq!(code, StatusCode::OK);
+            break;
+        }
+    }
+}
+
+#[tokio::test]
+async fn session_token_lets_the_dashboard_save() {
+    let f = Fixture::with(|config| Config {
+        admins: vec!["jack".into(), "alice".into()],
+        ..config
+    });
+    let mut data = metadata();
+    data["has_diagnostics"] = false.into();
+    let (_, receipt) = f.json("POST", "/api/v1/reports", data, false).await;
+    let path = format!("/api/admin/reports/{}", receipt["id"].as_str().unwrap());
+    let gateway = ("x-atlas-gateway", "test-gateway-secret-xxxxxxxxxxxxxxxx");
+    let (code, session, _, _) = f
+        .request(
+            "GET",
+            "/api/admin/session",
+            vec![],
+            false,
+            &[("remote-user", "jack"), gateway],
+        )
+        .await;
+    assert_eq!(code, StatusCode::OK);
+    assert_eq!(session["user"], "jack");
+    let csrf = session["csrf"].as_str().unwrap();
+    assert!(csrf.len() == 64 && csrf.bytes().all(|b| b.is_ascii_hexdigit()));
+    let save = async |user: &str| {
+        f.request(
+            "PATCH",
+            &path,
+            serde_json::to_vec(&json!({"status":"investigating"})).unwrap(),
+            false,
+            &[
+                ("remote-user", user),
+                gateway,
+                ("origin", "https://reports.test"),
+                ("x-atlas-csrf", csrf),
+            ],
+        )
+        .await
+        .0
+    };
+    assert_eq!(save("jack").await, StatusCode::OK);
+    // The token belongs to the administrator it was issued to.
+    assert_eq!(save("alice").await, StatusCode::FORBIDDEN);
 }
 #[tokio::test]
 async fn stale_privacy_notice_has_its_own_reason() {
@@ -1140,7 +1257,12 @@ async fn cleanup_and_startup_continue_past_undeletable_files() {
     assert_eq!(count(&f, "SELECT count(*) FROM reports"), 0);
     assert!(!f.state.file(ids[1]).exists());
     assert!(f.state.file(ids[0]).is_dir());
-    assert!(create(config(&f.state.config.data)).is_ok());
+    // Starting again runs the same cleanup and still starts.
+    let orphan = f.state.file(Uuid::new_v4());
+    std::fs::write(&orphan, b"orphaned diagnostics").unwrap();
+    let _ = create(config(&f.state.config.data)).unwrap();
+    assert!(!orphan.exists());
+    assert!(f.state.file(ids[0]).is_dir());
 }
 
 #[test]
@@ -1361,7 +1483,15 @@ async fn orphaned_and_interrupted_files_count_toward_quota_and_are_recovered() {
     );
     f.state.prune().unwrap_or_else(|_| panic!("prune"));
     assert!(part.exists()); // A current upload may still own this file.
-    std::fs::remove_file(part).unwrap();
+    // One untouched for over a day was left by an upload that never finished.
+    std::fs::File::options()
+        .write(true)
+        .open(&part)
+        .unwrap()
+        .set_modified(std::time::SystemTime::now() - std::time::Duration::from_secs(2 * 86400))
+        .unwrap();
+    f.state.prune().unwrap_or_else(|_| panic!("prune"));
+    assert!(!part.exists());
     assert_eq!(f.send(archive(None, true)).await.1, StatusCode::OK);
 }
 
@@ -1617,125 +1747,73 @@ fn configuration_errors_name_the_setting_and_loopback_may_use_http() {
 
 #[tokio::test]
 async fn rate_identity_trusts_forwarded_client_only_via_gateway() {
-    let f = Fixture::new();
-    let proxy = [
-        ("x-atlas-gateway", "test-gateway-secret-xxxxxxxxxxxxxxxx"),
-        ("cf-connecting-ip", "192.0.2.10"),
-    ];
-    for _ in 0..12 {
-        assert_eq!(
+    let (codes, expected): (Vec<_>, Vec<_>) = within_one_hour(async |f| {
+        let submit = async |headers: &[(&str, &str)]| {
             f.request(
                 "POST",
                 "/api/v1/reports",
                 serde_json::to_vec(&metadata()).unwrap(),
                 false,
-                &proxy
+                headers,
             )
             .await
-            .0,
-            StatusCode::CREATED
-        );
-    }
-    assert_eq!(
-        f.request(
-            "POST",
-            "/api/v1/reports",
-            serde_json::to_vec(&metadata()).unwrap(),
-            false,
-            &proxy
-        )
-        .await
-        .0,
-        StatusCode::TOO_MANY_REQUESTS
-    );
-    assert_eq!(
-        f.request(
-            "POST",
-            "/api/v1/reports",
-            serde_json::to_vec(&metadata()).unwrap(),
-            false,
-            &[
-                ("x-atlas-gateway", "test-gateway-secret-xxxxxxxxxxxxxxxx"),
-                ("cf-connecting-ip", "192.0.2.11")
-            ]
-        )
-        .await
-        .0,
-        StatusCode::CREATED
-    );
-    // A client cannot select its rate identity by sending the header alone.
-    for _ in 0..12 {
-        assert_eq!(
-            f.request(
-                "POST",
-                "/api/v1/reports",
-                serde_json::to_vec(&metadata()).unwrap(),
-                false,
-                &[("cf-connecting-ip", "192.0.2.12")]
-            )
-            .await
-            .0,
-            StatusCode::CREATED
-        );
-    }
-    assert_eq!(
-        f.request(
-            "POST",
-            "/api/v1/reports",
-            serde_json::to_vec(&metadata()).unwrap(),
-            false,
-            &[("cf-connecting-ip", "192.0.2.13")]
-        )
-        .await
-        .0,
-        StatusCode::TOO_MANY_REQUESTS
-    );
-    assert_eq!(
-        f.request(
-            "POST",
-            "/api/v1/reports",
-            serde_json::to_vec(&metadata()).unwrap(),
-            false,
-            &[("x-forwarded-for", "1.2.3.4")]
-        )
-        .await
-        .0,
-        StatusCode::TOO_MANY_REQUESTS
-    );
-    // The proxy appends the client it saw, so only the last entry is trusted.
-    let forwarded = async |chain: &str| {
-        f.request(
-            "POST",
-            "/api/v1/reports",
-            serde_json::to_vec(&metadata()).unwrap(),
-            false,
-            &[
+            .0
+        };
+        // Each entry is the status received and the one expected.
+        let mut codes = Vec::new();
+        for _ in 0..12 {
+            codes.push((submit_from(f, "192.0.2.10").await, StatusCode::CREATED));
+        }
+        codes.push((
+            submit_from(f, "192.0.2.10").await,
+            StatusCode::TOO_MANY_REQUESTS,
+        ));
+        codes.push((submit_from(f, "192.0.2.11").await, StatusCode::CREATED));
+        // A client cannot select its rate identity by sending the header alone.
+        for _ in 0..12 {
+            codes.push((
+                submit(&[("cf-connecting-ip", "192.0.2.12")]).await,
+                StatusCode::CREATED,
+            ));
+        }
+        codes.push((
+            submit(&[("cf-connecting-ip", "192.0.2.13")]).await,
+            StatusCode::TOO_MANY_REQUESTS,
+        ));
+        codes.push((
+            submit(&[("x-forwarded-for", "1.2.3.4")]).await,
+            StatusCode::TOO_MANY_REQUESTS,
+        ));
+        // The proxy appends the client it saw, so only the last entry is trusted.
+        let forwarded = async |chain: &str| {
+            submit(&[
                 ("x-atlas-gateway", "test-gateway-secret-xxxxxxxxxxxxxxxx"),
                 ("x-forwarded-for", chain),
-            ],
-        )
-        .await
-        .0
-    };
-    for _ in 0..12 {
-        assert_eq!(
-            forwarded("198.51.100.9, 192.0.2.20").await,
-            StatusCode::CREATED
-        );
-    }
-    assert_eq!(
-        forwarded("198.51.100.10, 192.0.2.20").await,
-        StatusCode::TOO_MANY_REQUESTS
-    );
+            ])
+            .await
+        };
+        for _ in 0..12 {
+            codes.push((
+                forwarded("198.51.100.9, 192.0.2.20").await,
+                StatusCode::CREATED,
+            ));
+        }
+        codes.push((
+            forwarded("198.51.100.10, 192.0.2.20").await,
+            StatusCode::TOO_MANY_REQUESTS,
+        ));
+        codes
+    })
+    .await
+    .into_iter()
+    .unzip();
+    assert_eq!(codes, expected);
 }
 
 #[tokio::test]
 async fn one_client_cannot_spend_the_shared_hourly_budget() {
-    // Seeded buckets belong to one hour, so start again if the hour changes.
-    loop {
-        let f = Fixture::new();
-        let hour = atlas_reports::now() / 3600;
-        let global = format!("{hour}:global:report");
+    let (codes, spent, other) = within_one_hour(async |f| {
+        let global = format!("{}:global:report", atlas_reports::now() / 3600);
         f.state
             .db
             .lock()
@@ -1744,66 +1822,59 @@ async fn one_client_cannot_spend_the_shared_hourly_budget() {
             .unwrap();
         let mut codes = Vec::new();
         for _ in 0..32 {
-            codes.push(submit_from(&f, "192.0.2.40").await);
+            codes.push(submit_from(f, "192.0.2.40").await);
         }
-        let spent = count(&f, &format!("SELECT n FROM rates WHERE bucket='{global}'"));
-        let other = submit_from(&f, "192.0.2.41").await;
-        if atlas_reports::now() / 3600 != hour {
-            continue;
-        }
-        assert!(codes[..12].iter().all(|c| *c == StatusCode::CREATED));
-        assert!(
-            codes[12..]
-                .iter()
-                .all(|c| *c == StatusCode::TOO_MANY_REQUESTS)
-        );
-        assert_eq!(spent, 992);
-        assert_eq!(other, StatusCode::CREATED);
-        break;
-    }
+        let spent = count(f, &format!("SELECT n FROM rates WHERE bucket='{global}'"));
+        (codes, spent, submit_from(f, "192.0.2.41").await)
+    })
+    .await;
+    assert!(codes[..12].iter().all(|c| *c == StatusCode::CREATED));
+    assert!(
+        codes[12..]
+            .iter()
+            .all(|c| *c == StatusCode::TOO_MANY_REQUESTS)
+    );
+    assert_eq!(spent, 992);
+    assert_eq!(other, StatusCode::CREATED);
 }
 
 #[tokio::test]
 async fn spent_shared_budget_stores_no_client_buckets() {
-    loop {
-        let f = Fixture::new();
-        let hour = atlas_reports::now() / 3600;
+    let (code, before, after) = within_one_hour(async |f| {
         f.state
             .db
             .lock()
             .unwrap()
             .execute(
                 "INSERT INTO rates VALUES(?1,1000)",
-                [format!("{hour}:global:report")],
+                [format!("{}:global:report", atlas_reports::now() / 3600)],
             )
             .unwrap();
-        let before = count(&f, "SELECT count(*) FROM rates");
-        let code = submit_from(&f, "192.0.2.42").await;
-        if atlas_reports::now() / 3600 != hour {
-            continue;
-        }
-        assert_eq!(code, StatusCode::TOO_MANY_REQUESTS);
-        assert_eq!(count(&f, "SELECT count(*) FROM rates"), before);
-        break;
-    }
+        let before = count(f, "SELECT count(*) FROM rates");
+        let code = submit_from(f, "192.0.2.42").await;
+        (code, before, count(f, "SELECT count(*) FROM rates"))
+    })
+    .await;
+    assert_eq!(code, StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(after, before);
 }
 
 #[tokio::test]
 async fn ipv6_rate_identity_is_the_64() {
-    let f = Fixture::new();
-    for host in 1..=12 {
-        assert_eq!(
-            submit_from(&f, &format!("2001:db8::{host:x}")).await,
-            StatusCode::CREATED
-        );
-    }
+    let codes = within_one_hour(async |f| {
+        let mut codes = Vec::new();
+        for host in 1..=12 {
+            codes.push(submit_from(f, &format!("2001:db8::{host:x}")).await);
+        }
+        codes.push(submit_from(f, "2001:db8::ff").await);
+        codes.push(submit_from(f, "2001:db8:0:1::1").await);
+        codes
+    })
+    .await;
+    assert!(codes[..12].iter().all(|c| *c == StatusCode::CREATED));
     assert_eq!(
-        submit_from(&f, "2001:db8::ff").await,
-        StatusCode::TOO_MANY_REQUESTS
-    );
-    assert_eq!(
-        submit_from(&f, "2001:db8:0:1::1").await,
-        StatusCode::CREATED
+        codes[12..],
+        [StatusCode::TOO_MANY_REQUESTS, StatusCode::CREATED]
     );
 }
 

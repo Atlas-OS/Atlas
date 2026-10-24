@@ -45,6 +45,15 @@ fn embedded_playbook() -> Option<String> {
     };
     let valid = rc_id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'.' || b == b'-');
     assert!(valid, "ATLAS_RC_ID {rc_id:?} may only contain letters, digits, dots and dashes");
+    // The release scripts take the id from playbook.conf; the version resource's
+    // numbers, Settings and diagnostics take Cargo's version. A bump that missed
+    // one would give the executable two versions.
+    let version = std::env::var("CARGO_PKG_VERSION").expect("package version");
+    assert!(
+        rc_id.starts_with(&format!("{version}-rc.")),
+        "ATLAS_RC_ID {rc_id:?} must start with {version}-rc., the version in app/Cargo.toml; \
+         bump app/Cargo.toml (and app/Cargo.lock) with playbook/playbook.conf"
+    );
     let apbx = std::env::var_os("ATLAS_EMBED_APBX")
         .map(std::path::PathBuf::from)
         .and_then(|path| path.canonicalize().ok())

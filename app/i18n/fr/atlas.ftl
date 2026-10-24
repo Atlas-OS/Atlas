@@ -62,6 +62,7 @@ window-close-message = L’installation continue en arrière-plan. Rouvrez Atlas
 # Instead of window-close-message when the installation restarts the PC afterwards: only an
 # open Atlas window restarts it, so closing the window cancels that.
 window-close-message-restart = L’installation continue en arrière-plan, mais votre PC ne redémarrera pas automatiquement tant qu’Atlas est fermé. Rouvrez Atlas pour suivre sa progression et voir le résultat. Laissez votre PC allumé jusqu’à la fin.
+# La réponse sans risque dans toutes les boîtes de dialogue affichées à la fermeture de la fenêtre, y compris celles de la création d'ISO et de clé USB, des mises à jour et de l'accès à Windows Update.
 window-close-keep = Garder la fenêtre ouverte
 window-close-close = Fermer la fenêtre
 # Boîte de dialogue affichée si la fenêtre est fermée pendant les dernières vérifications, avant le démarrage du programme d'installation ; window-close-keep et window-close-close sont ses boutons.
@@ -80,7 +81,7 @@ window-close-restart-close = Fermer sans redémarrer
 # window-close-keep, common-open-windows-security and window-close-close.
 window-close-protection-title = Fermer Atlas avec la protection désactivée ?
 window-close-protection-message = Certaines protections de Sécurité Windows sont encore désactivées : { $switches }. Si vous ne comptez pas terminer l’installation d’Atlas, réactivez-les avant de fermer. Si vous comptez la terminer, Atlas reprendra votre configuration lorsque vous le rouvrirez.
-# Titre du sélecteur de fichier pour un package Atlas (.apbx).
+# Le bouton Ouvrir du sélecteur de fichier pour un package Atlas (.apbx), à l'étape Préparation et sur la page ISO. C'est le libellé d'un bouton, donc restez bref.
 file-dialog-open-package = Ouvrir un package Atlas (.apbx)
 # Message affiché par Windows dans sa notification de redémarrage.
 shutdown-comment = Atlas est installé. Windows redémarre pour terminer la configuration.
@@ -778,7 +779,8 @@ iso-failed-package-changed = Le package Atlas a changé après la vérification 
 iso-diagnostics = Ouvrir le dossier des journaux
 iso-close-title = La création de l’ISO est en cours
 iso-close-message = Gardez cette fenêtre ouverte jusqu’à la fin de la création ou de l’annulation. L’annulation attend que l’opération en cours puisse s’arrêter sans risque.
-iso-keep-open = Garder ouvert
+# Sur les pages ISO et USB pendant qu'Atlas met à jour Windows, ou rétablit les paramètres Windows Update, depuis une autre page. Leurs commandes restent indisponibles jusqu'à la fin.
+iso-locked = Atlas est occupé avec Windows Update. Vous pourrez continuer ici une fois l’opération terminée.
 prepare-title = Mettre à jour Windows et les applications du Store
 prepare-description = Avant l’installation, Atlas met à jour Windows, le Microsoft Store et vos applications du Store. Les applications du Store ouvertes, comme le Bloc-notes, Paint ou le Terminal Windows, peuvent se fermer pendant leur mise à jour : enregistrez d’abord votre travail dans ces applications. Votre PC devra peut-être aussi redémarrer.
 prepare-complete = Atlas n’a plus trouvé de mises à jour Windows ou du Store à installer.
@@ -864,6 +866,7 @@ desktop-setup-exit = Continuer dans Windows
 usb-title = Créer une clé d’installation
 usb-existing = Créer une clé USB depuis une ISO existante
 usb-description = Copiez une ISO sur une clé USB pour pouvoir réinstaller Windows à partir de celle-ci. Utilisez une ISO créée par Atlas pour installer Atlas en même temps.
+# Bouton qui ouvre le sélecteur de fichier pour une ISO, et bouton Ouvrir de ce sélecteur, sur les pages USB et ISO.
 usb-choose-iso = Choisir une ISO
 usb-drive = Clé USB
 usb-empty = Aucune clé USB trouvée. Branchez une clé USB d’au moins { $min } Go, puis choisissez Actualiser. Les supports de plus de { $max } To, les supports en lecture seule et le disque sur lequel Windows s’exécute ne sont pas affichés.
@@ -941,6 +944,7 @@ prepare-continue = Poursuivre les mises à jour
 prepare-saving-restart = Enregistrement de vos choix et configuration de la réouverture d’Atlas après le redémarrage de Windows…
 prepare-restart-save-failed = Vos choix n’ont pas pu être enregistrés. Réessayez avant de redémarrer.
 prepare-restart-registration-failed = Vos choix sont enregistrés, mais Atlas n’a pas pu prévoir sa réouverture après le redémarrage. Réessayez, ou redémarrez votre PC vous-même et ouvrez Atlas après votre connexion.
+prepare-restart-source-linked = Vos choix sont enregistrés, mais tant qu’Atlas Manager se trouve dans un dossier lié, Atlas ne peut pas prévoir sa réouverture après le redémarrage. Fermez Atlas et déplacez Atlas Manager dans un dossier local de ce PC. Ouvrez-le ensuite depuis ce dossier, ou redémarrez votre PC vous-même et ouvrez-le depuis ce dossier après votre connexion.
 prepare-restart-failed = Atlas n’a pas pu redémarrer votre PC. Réessayez ou redémarrez-le depuis le menu Démarrer. Vos choix sont enregistrés et Atlas se rouvrira après votre connexion.
 diagnostics-export = Exporter les diagnostics
 diagnostics-exporting = Collecte des diagnostics…
@@ -981,12 +985,14 @@ prepare-failed-store-timeout = Les applications du Store n’ont pas fini de se 
 prepare-failed-store-passes = Le Microsoft Store a continué à proposer de nouvelles mises à jour. Terminez les mises à jour restantes dans le Microsoft Store, puis réessayez.
 prepare-failed-manual-updates = Certaines mises à jour Windows doivent être terminées dans Windows Update. Ouvrez Windows Update, terminez-les, puis réessayez.
 prepare-failed-windows-passes = Windows Update a continué à proposer de nouvelles mises à jour. Terminez les mises à jour restantes dans Windows Update, puis réessayez.
+prepare-failed-source-linked = Atlas Manager se trouve dans un dossier lié. Fermez Atlas, déplacez Atlas Manager dans un dossier local de ce PC, puis ouvrez-le depuis ce dossier.
 prepare-error-code = Code d’erreur : { $code }
 prepare-open-store = Ouvrir Microsoft Store
 
 check-user-account = Compte utilisateur
 detail-user-account-ok = Le contrôle de compte d’utilisateur est activé et votre compte est prêt pour l’installation.
 detail-user-account-not-ready = Activez le contrôle de compte d’utilisateur (UAC), redémarrez votre PC, puis réessayez. Si vous utilisez le compte Administrateur intégré, connectez-vous avec un autre compte administrateur.
+detail-user-account-work-or-school = Atlas ne peut pas être installé depuis un compte professionnel ou scolaire (Microsoft Entra ID). Connectez-vous avec un compte local ou un compte Microsoft, puis réessayez.
 detail-user-account-unknown = Atlas n’a pas pu vérifier votre compte utilisateur. Vérifiez à nouveau avant l’installation. Windows a signalé : { $error }
 
 footer-prepare-required = Terminez la mise à jour de Windows et des applications du Store pour continuer
@@ -1143,6 +1149,7 @@ stop-update-before = Atlas rétablit les paramètres Windows Update qu’il a mo
 stop-update-after = Votre PC conserve Windows 11, version { $release }. Atlas rétablit les paramètres Windows Update qu’il a modifiés.
 stop-update-access = Atlas rétablit les paramètres Windows Update qu’il a modifiés. Les mises à jour déjà installées par Windows le restent.
 stop-update-keep = Continuer la mise à jour
+# Boîte de dialogue affichée si la fenêtre est fermée pendant que Windows Update est activé pour une mise à jour. Ses boutons sont window-close-keep et window-close-put-back.
 window-close-update-access-title = Fermer Atlas ?
 window-close-update-access-message = Avant de se fermer, Atlas rétablit les paramètres Windows Update qu’il a modifiés. Vous pourrez recommencer la mise à jour depuis l’accueil.
 window-close-put-back = Rétablir et fermer

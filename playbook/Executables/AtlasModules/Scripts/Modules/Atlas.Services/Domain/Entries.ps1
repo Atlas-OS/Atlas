@@ -7,8 +7,9 @@ function Invoke-AtlasServiceEntries {
         Applies a Services entry array. Each entry is a hashtable with Name, an
         Operation of 'Change' (default), 'Stop' or 'Start', a StartupType of 0-4 for
         Change, an optional AllowMissing switch that tolerates an absent optional
-        service or driver, and an optional IgnoreErrors switch that turns any failure
-        into a logged warning.
+        service or driver for StartupType 0-3, and an optional IgnoreErrors switch that
+        turns any failure into a logged warning. A missing service is always skipped
+        for StartupType 4, because it can't run.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -68,7 +69,8 @@ function Test-AtlasServiceEntries {
     .SYNOPSIS
         Reports every Change entry whose service Start value differs from its
         StartupType. Stop and Start operations describe transient state and are not
-        verified. A missing service drifts unless the entry declares AllowMissing.
+        verified. A missing service never drifts for StartupType 4, because it can't
+        run; for 0-3 it drifts unless the entry declares AllowMissing.
     #>
     param(
         [Parameter(Mandatory = $true)]

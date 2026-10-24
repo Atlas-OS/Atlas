@@ -28,6 +28,10 @@ $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
 if ($null -eq $identity.User) {
     throw 'The current user token has no Windows SID.'
 }
+# The install plan's per-user steps accept only account SIDs, which Entra ID accounts lack.
+if (-not $identity.User.IsAccountSid()) {
+    throw "Atlas can't be installed from a work or school (Microsoft Entra ID) account. Sign in with a local account or a Microsoft account, then try again."
+}
 $userSid = $identity.User.Value
 $sessionId = [Diagnostics.Process]::GetCurrentProcess().SessionId
 if ($sessionId -lt 1) {

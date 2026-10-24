@@ -8,6 +8,20 @@ function Get-AtlasShellApplication {
     return New-Object -ComObject Shell.Application
 }
 
+function Get-AtlasHomeFolderCandidate {
+    <#
+    .SYNOPSIS
+        Lists the current user's shell folders to pin to File Explorer Home, in pin order.
+    .DESCRIPTION
+        GetFolderPath returns an empty path for a folder that doesn't exist, so each
+        entry carries a name the skip warning can report.
+    #>
+    return @(
+        [pscustomobject]@{ Name = 'Videos'; Path = [Environment]::GetFolderPath('MyVideos') }
+        [pscustomobject]@{ Name = 'Music'; Path = [Environment]::GetFolderPath('MyMusic') }
+    )
+}
+
 function Add-AtlasMusicVideosToHome {
     <#
     .SYNOPSIS
@@ -24,12 +38,10 @@ function Add-AtlasMusicVideosToHome {
     }
 
     $currentPins = @($homeNamespace.Items() | ForEach-Object { $_.Path })
-    foreach ($path in @(
-        [Environment]::GetFolderPath('MyVideos'),
-        [Environment]::GetFolderPath('MyMusic')
-    )) {
+    foreach ($candidate in @(Get-AtlasHomeFolderCandidate)) {
+        $path = $candidate.Path
         if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Container)) {
-            Write-AtlasLog -Level Warning -Message "Skipping missing shell folder '$path'."
+            Write-AtlasLog -Level Warning -Message "Skipping the $($candidate.Name) folder: it does not exist ('$path')."
             continue
         }
 

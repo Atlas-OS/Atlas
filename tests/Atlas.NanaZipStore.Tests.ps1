@@ -160,7 +160,7 @@ Describe 'Stalled NanaZip cancellation before download fallback' {
         Mock Write-AtlasLog -ModuleName Atlas.Software
         Mock Start-Sleep -ModuleName Atlas.Software
     }
-    It 'waits for cancellation of every handle and removal from the queue' {
+    It 'waits until every handle reports a terminal state' {
         InModuleScope Atlas.Software {
             $script:reads = 0
             $item = [pscustomobject]@{}
@@ -173,6 +173,32 @@ Describe 'Stalled NanaZip cancellation before download fallback' {
             Mock Get-AtlasNanaZipStoreItems { @() }
             { Stop-AtlasNanaZipStoreInstall -Manager $manager -Items @($item) -Attempts 3 } | Should -Not -Throw
             $script:reads | Should -Be 3
+        }
+    }
+    It 'waits until the Store queue no longer lists NanaZip' {
+        InModuleScope Atlas.Software {
+            $script:queueReads = 0
+            $item = [pscustomobject]@{}
+            $item | Add-Member ScriptMethod GetCurrentStatus { [pscustomobject]@{ InstallState = 'Canceled' } }
+            $manager = [pscustomobject]@{}
+            $manager | Add-Member ScriptMethod Cancel {}
+            Mock Get-AtlasNanaZipStoreItems {
+                $script:queueReads++
+                if ($script:queueReads -le 2) { [pscustomobject]@{ ProductId = '9N8G7TSCL18R' } }
+            }
+            { Stop-AtlasNanaZipStoreInstall -Manager $manager -Items @($item) -Attempts 3 } | Should -Not -Throw
+            $script:queueReads | Should -Be 3
+            Should -Invoke Start-Sleep -Times 2 -Exactly
+        }
+    }
+    It 'refuses fallback while the Store queue still lists NanaZip' {
+        InModuleScope Atlas.Software {
+            $item = [pscustomobject]@{}
+            $item | Add-Member ScriptMethod GetCurrentStatus { [pscustomobject]@{ InstallState = 'Canceled' } }
+            $manager = [pscustomobject]@{}
+            $manager | Add-Member ScriptMethod Cancel {}
+            Mock Get-AtlasNanaZipStoreItems { [pscustomobject]@{ ProductId = '9N8G7TSCL18R' } }
+            { Stop-AtlasNanaZipStoreInstall -Manager $manager -Items @($item) -Attempts 2 } | Should -Throw '*not confirmed*'
         }
     }
     It 'refuses fallback when cancellation cannot be confirmed' {

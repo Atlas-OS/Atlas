@@ -4,7 +4,8 @@
 //! window stays open, Get ready looks again every so often, for a while, and
 //! continues the move when the offer comes. Windows Update stays turned on
 //! meanwhile; the user agreed to the move and its record is open. When the
-//! wait ends without an offer, the settings are put back.
+//! wait ends without an offer, the settings are put back, unless an Atlas
+//! install still to finish does that itself.
 
 use std::time::{Duration, Instant};
 
@@ -12,7 +13,7 @@ use gpui::Context;
 
 use super::{AppModel, Step};
 use crate::environment::OfferRecheckTiming;
-use crate::services::preparation::{Activity, State};
+use crate::services::preparation::{Activity, MISSING_PREREQUISITE, State, waits_for_offer};
 use crate::services::update_access::UpdateAccess;
 
 /// The wait for an offer in this flow.
@@ -85,19 +86,19 @@ impl AppModel {
     }
 
     /// The record of a move says its last run found no offer, as Home and
-    /// Get ready see it when the app opens again.
+    /// Get ready see it when the app opens again: it names a cause a live
+    /// run waits on too.
     pub fn transition_waiting_for_offer(&self) -> bool {
-        self.last_recorded_outcome().is_some_and(|detail| {
-            detail.contains("reason=feature-not-offered") || detail.contains("reason=feature-prerequisite")
-        })
+        self.last_recorded_reason().is_some_and(waits_for_offer)
     }
 
-    /// The detail of the record's last entry when it is an outcome, before
-    /// the move is installed.
-    fn last_recorded_outcome(&self) -> Option<&str> {
+    /// The cause the record's last entry names when it is an outcome, before
+    /// the move is installed. The worker writes `reason=<id> code=<code> <message>`.
+    fn last_recorded_reason(&self) -> Option<&str> {
         let journal = self.update_access.as_ref().and_then(UpdateAccess::transition)?;
-        let entry = journal.history.last().filter(|_| !journal.installed())?;
-        (entry.event == "outcome").then_some(entry.detail.as_str())
+        let entry =
+            journal.history.last().filter(|entry| entry.event == "outcome" && !journal.installed())?;
+        entry.detail.strip_prefix("reason=")?.split(' ').next()
     }
 
     /// The wait goes on after the last run: it found no offer, or it lost
@@ -211,10 +212,21 @@ impl AppModel {
 
     /// The wait is over: the settings go back, as when stopping, and Get
     /// ready says to check again later. While something else runs, the
-    /// settings go back once it's done.
+    /// settings go back once it's done. An Atlas install still to finish
+    /// puts them back as its last step and needs the record until then, so
+    /// there the looks just stop, and Get ready offers Check again.
     fn expire_offer_wait(&mut self, cx: &mut Context<Self>) {
         self.offer_wait_task = None;
         self.offer_wait_tick = None;
+        if self.resume_target().is_some() || self.rebuilt_windows_awaits_install() {
+            log::info!(
+                "Windows Update offered nothing while Atlas waited; the Atlas install puts the settings back"
+            );
+            self.stop_offer_wait();
+            // The ticks that redrew Get ready have stopped with the looks.
+            cx.notify();
+            return;
+        }
         if !self.may_restore_update_access()
             && self.update_access.as_ref().is_some_and(|access| access.journal.is_some())
         {
@@ -251,16 +263,10 @@ impl AppModel {
         }
         self.offer_reopen_checked = true;
         log::info!("Looking again for the Windows release Windows Update hadn't offered");
-        let offer_only = !self
-            .last_recorded_outcome()
-            .is_some_and(|detail| detail.contains(&format!("reason={MISSING_PREREQUISITE}")));
+        let offer_only = self.last_recorded_reason() != Some(MISSING_PREREQUISITE);
         self.start_preparation(offer_only, cx);
     }
 }
-
-/// The cause a move names when the monthly update it needs isn't installed
-/// yet. Only a full run installs one, so a look for it isn't offer-only.
-const MISSING_PREREQUISITE: &str = "feature-prerequisite";
 
 #[cfg(test)]
 mod tests {

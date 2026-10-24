@@ -1,6 +1,6 @@
 //! Public, opt-in report intake. Attachments are validated in place and never
-//! extracted, executed or made publicly readable. See README.md for the boundary
-//! between the public API and the authenticated reverse proxy.
+//! extracted, executed or made publicly readable. See "Proxy trust" in API.md for
+//! the boundary between the public API and the authenticated reverse proxy.
 mod agent;
 mod archive;
 mod routes;

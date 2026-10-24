@@ -33,7 +33,14 @@ $sessionOperation = switch -CaseSensitive ($Mode) {
     'AppxQuiesce' { 'AppxQuiesce' }
     default { throw "Unsupported exact-user AppX operation '$Mode'." }
 }
+
+# The helper reports failure only through its exit code. Run with &, its exit
+# ends just the helper, so pass the code on as this process's exit code.
+$global:LASTEXITCODE = 0
 & $sessionProcessHelper -Operation $sessionOperation -ExpectedUserSid $ExpectedUserSid
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
 
 if ($Mode -ceq 'AppxQuiesce') {
     return

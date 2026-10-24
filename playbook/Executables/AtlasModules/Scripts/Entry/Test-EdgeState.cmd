@@ -79,9 +79,9 @@ if /i not "%~1"=="/silent" (
 :main
 echo]
 if %___edge%==0 (
-	"%__APPDIR__%WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NoLogo -NonInteractive -ExecutionPolicy Bypass -File "%edgeScript%" -NonInteractive -InstallWebView -InstallEdge
+	"%AtlasNativePowerShell%" -NoProfile -NoLogo -NonInteractive -ExecutionPolicy Bypass -File "%edgeScript%" -NonInteractive -InstallWebView -InstallEdge
 ) else (
-	"%__APPDIR__%WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NoLogo -NonInteractive -ExecutionPolicy Bypass -File "%edgeScript%" -NonInteractive -InstallWebView
+	"%AtlasNativePowerShell%" -NoProfile -NoLogo -NonInteractive -ExecutionPolicy Bypass -File "%edgeScript%" -NonInteractive -InstallWebView
 )
 
 if errorlevel 1 exit /b

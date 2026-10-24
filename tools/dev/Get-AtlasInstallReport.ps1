@@ -12,8 +12,9 @@
     than declared, or because it describes the machine rather than Atlas:
 
       1. Machine, under a summary of the findings.
-      2. Atlas install state: the state document, the last install transaction and its
-         completed steps, and the recorded toggle states.
+      2. Atlas install state: the state document and its recorded toggle states, then
+         any unfinished install transaction and the last completed one, with their
+         completed steps.
       3. The toggle state registry store.
       4. Drift, from AtlasModules\Scripts\Entry\Test-AtlasHealth.ps1.
       5. Spot checks: Edge, Defender, Atlas CBS packages, Atlas folders, appearance.
@@ -196,6 +197,29 @@ function Test-PathState {
     return ('{0,-46} {1}  {2}' -f $Label, $(if ($exists) { 'PRESENT' } else { 'absent ' }), $Path)
 }
 
+function Get-InstallTransactionLine {
+    <#
+    .SYNOPSIS
+        The report lines for one install transaction document, in the same layout for an
+        unfinished transaction and the last completed one.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)]$Transaction
+    )
+
+    '{0,-20}: {1}' -f [IO.Path]::GetFileName($Path), $Path
+    "  status            : $($Transaction.status)"
+    "  targetVersion     : $($Transaction.targetVersion)  mode $($Transaction.mode)  oobe $($Transaction.isOobe)"
+    "  transactionId     : $($Transaction.transactionId)"
+    "  options           : $(@($Transaction.options) -join ', ')"
+    "  lastError         : $(if ($Transaction.lastError) { $Transaction.lastError } else { '(none)' })"
+    "  completedSteps    : $(@($Transaction.completedSteps).Count)"
+    foreach ($step in @($Transaction.completedSteps)) {
+        "    $step"
+    }
+}
+
 # Event log queries start at the install time; without it, they start at this boot.
 $script:InstalledAt = $null
 $statePath = Join-Path -Path $atlasState -ChildPath 'state.json'
@@ -234,6 +258,7 @@ Add-Section -Title '1. Machine' -Collector {
 }
 
 Add-Section -Title '2. Atlas install state' -Collector {
+    $activePath = Join-Path -Path $atlasState -ChildPath 'Install\active.json'
     $lastPath = Join-Path -Path $atlasState -ChildPath 'Install\last.json'
     $lines = @()
 
@@ -260,19 +285,48 @@ Add-Section -Title '2. Atlas install state' -Collector {
         Add-Summary 'The Atlas machine state document is missing.'
     }
 
+    # A failed or interrupted install keeps its transaction, and the error that stopped
+    # it, in active.json until it is resumed; last.json is written only on completion.
+    # An empty or 'null' file parses to nothing without an error, and a missing property
+    # throws under strict mode, so both count as unreadable, as they do for the engine.
+    $lines += ''
+    $activeFound = $false
+    foreach ($path in @($activePath, "$activePath.bak")) {
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { continue }
+        $activeFound = $true
+        try {
+            $active = [IO.File]::ReadAllText($path) | ConvertFrom-Json
+            if ($active -isnot [Management.Automation.PSCustomObject]) { throw 'It is empty or not a JSON object.' }
+            $transactionLines = @(Get-InstallTransactionLine -Path $path -Transaction $active)
+            $summary = "Unfinished install transaction: $($active.mode) of $($active.targetVersion), status $($active.status), $(@($active.completedSteps).Count) step(s) completed, lastError $(if ($active.lastError) { ([string]$active.lastError).TrimEnd('.') } else { 'none' })."
+        }
+        catch {
+            $lines += "$path is unreadable: $($_.Exception.Message)"
+            Add-Summary "The unfinished install transaction at '$path' is unreadable: $($_.Exception.Message)"
+            continue
+        }
+        $lines += $transactionLines
+        Add-Summary $summary
+        break
+    }
+    if (-not $activeFound) {
+        $lines += "active.json is missing at '$activePath', so no install is unfinished."
+    }
+
     $lines += ''
     if (Test-Path -LiteralPath $lastPath -PathType Leaf) {
-        $last = Get-Content -LiteralPath $lastPath -Raw | ConvertFrom-Json
-        $lines += "last.json           : $lastPath"
-        $lines += "  status            : $($last.status)"
-        $lines += "  targetVersion     : $($last.targetVersion)  mode $($last.mode)  oobe $($last.isOobe)"
-        $lines += "  transactionId     : $($last.transactionId)"
-        $lines += "  lastError         : $(if ($last.lastError) { $last.lastError } else { '(none)' })"
-        $lines += "  completedSteps    : $(@($last.completedSteps).Count)"
-        foreach ($step in @($last.completedSteps)) {
-            $lines += "    $step"
+        try {
+            $last = [IO.File]::ReadAllText($lastPath) | ConvertFrom-Json
+            if ($last -isnot [Management.Automation.PSCustomObject]) { throw 'It is empty or not a JSON object.' }
+            $transactionLines = @(Get-InstallTransactionLine -Path $lastPath -Transaction $last)
+            $summary = "Last completed install transaction: $($last.mode) of $($last.targetVersion), $(@($last.completedSteps).Count) step(s) completed."
+            $lines += $transactionLines
+            Add-Summary $summary
         }
-        Add-Summary "Last install transaction: $($last.status), $(@($last.completedSteps).Count) step(s) completed, lastError $(if ($last.lastError) { $last.lastError } else { 'none' })."
+        catch {
+            $lines += "$lastPath is unreadable: $($_.Exception.Message)"
+            Add-Summary "The last completed install transaction at '$lastPath' is unreadable: $($_.Exception.Message)"
+        }
     }
     else {
         $lines += "last.json is missing at '$lastPath'."
@@ -299,9 +353,19 @@ Add-Section -Title '4. Health check: every recorded toggle and applicable tweak,
     }
 
     $powerShell = Join-Path -Path ([Environment]::SystemDirectory) -ChildPath 'WindowsPowerShell\v1.0\powershell.exe'
-    $output = & $powerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $healthScript 2>&1 |
-        ForEach-Object { "$_" }
-    $exitCode = $LASTEXITCODE
+    # Windows PowerShell turns redirected native stderr into error records, which the
+    # report's Stop preference would make fatal. The health check writes to stderr
+    # exactly when it cannot run, so keep that as output and let the exit code decide.
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $output = & $powerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $healthScript 2>&1 |
+            ForEach-Object { "$_" }
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
     $meaning = switch ($exitCode) {
         0 { 'no drift' }
         1 { 'drift found, listed above' }
@@ -735,7 +799,7 @@ Add-Section -Title '12. Windows version transition' -Collector {
         catch { $lines += "Rebuild decision: (record not JSON: $($_.Exception.Message))" }
     }
     $reoffered = Get-RegistryValueOrNull -Path 'HKLM:\SOFTWARE\AtlasOS\Preparation' -Name 'Reoffered'
-    $lines += "Updates offered again after they installed: $(if ($null -eq $reoffered) { '(none)' } else { $reoffered })"
+    $lines += "Updates Get ready no longer waits for (offered again after they installed, or drivers the device doesn't need): $(if ($null -eq $reoffered) { '(none)' } else { $reoffered })"
     $lines += '-- Setup traces of a rebuild --'
     $systemRoot = Split-Path -Path $windir -Parent
     $old = Join-Path -Path $systemRoot -ChildPath 'Windows.old\Windows'

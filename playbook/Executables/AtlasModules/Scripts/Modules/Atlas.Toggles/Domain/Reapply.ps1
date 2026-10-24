@@ -5,6 +5,11 @@
 # state's machine work. User work is replayed separately in each account's own
 # non-elevated first sign-in process.
 
+# Records listed here replay first, in this order; the rest follow in registry order.
+# PowerSaving rebuilds or switches the active power plan, which drops per-plan choices
+# such as CpuIdle and Sleep, so it goes first.
+$script:AtlasToggleReplayFirst = @('PowerSaving')
+
 function New-AtlasToggleStaleReplayRecordException {
     param(
         [Parameter(Mandatory = $true)]
@@ -179,7 +184,12 @@ function Invoke-AtlasToggleReapply {
     Repair-AtlasLegacyToggleAlias -StateRoot $StateRoot
     $failures = @()
 
-    foreach ($subkey in @(Get-ChildItem -LiteralPath $StateRoot -ErrorAction Stop)) {
+    $subkeys = @(Get-ChildItem -LiteralPath $StateRoot -ErrorAction Stop)
+    $replayOrder = @(foreach ($firstName in $script:AtlasToggleReplayFirst) {
+            $subkeys | Where-Object { [string]$_.PSChildName -ieq $firstName }
+        }) + @($subkeys | Where-Object { $script:AtlasToggleReplayFirst -notcontains [string]$_.PSChildName })
+
+    foreach ($subkey in $replayOrder) {
         $name = [string]$subkey.PSChildName
 
         try {

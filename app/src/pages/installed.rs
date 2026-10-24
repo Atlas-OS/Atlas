@@ -5,12 +5,14 @@
 //! says so before it says "you're all set".
 
 use gpui::{
-    AnyElement, Context, Entity, IntoElement, ParentElement, Render, Role, ScrollHandle, Styled, Window, div,
+    AnyElement, Context, Entity, IntoElement, ParentElement, Render, ScrollHandle, Styled, Window, div,
     prelude::*, px, svg,
 };
 
 use super::home::protection_reminder_bar;
-use super::{card_body, card_header, detail_row, detail_text, options_value, recorded_options};
+use super::{
+    card_body, card_header, detail_row, detail_text, focusable_heading, options_value, recorded_options,
+};
 use crate::i18n::{describe, fmt};
 use crate::model::AppModel;
 use crate::services::system::links;
@@ -184,16 +186,9 @@ impl Render for InstalledPage {
                     .w_full()
                     .on_children_prepainted(keep_out.record(0))
                     .child(
-                        div()
-                            .id("installed-heading")
-                            .role(Role::Heading)
-                            .aria_level(1)
-                            .aria_label(title.clone())
-                            .track_focus(&heading_focus.clone().tab_stop(false))
-                            .type_title()
-                            .text_color(theme.text_primary)
-                            .text_center()
-                            .child(title),
+                        focusable_heading("installed-heading", 1, title, &heading_focus, cx)
+                            .m(px(-1.))
+                            .text_center(),
                     )
                     .when(all_set, |this| {
                         this.child(

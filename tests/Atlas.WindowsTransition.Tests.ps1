@@ -255,6 +255,18 @@ Describe 'Legacy automatic-update record recovery' {
         Get-AtlasTransitionAutomaticUpdatesPolicyState | Should -Be $Expected
         $script:Writes.Count | Should -Be 0
     }
+    It 'reads the same AutomaticUpdates record as the app: <name>' -ForEach @(
+        (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'fixtures\windows-transition\legacy-automatic-updates.json') -Raw | ConvertFrom-Json) |
+            ForEach-Object { @{ name = $_.name; state = $_.state; launcher = $_.launcher; policy = $_.policy; record = $_.record } }
+    ) {
+        $recordKey = 'SOFTWARE\AtlasOS\Services\AutomaticUpdates'
+        Set-Fake $recordKey state DWord ([int64]$state)
+        if ($null -ne $launcher) { Set-Fake $recordKey path String $launcher }
+        if ($null -ne $policy) { Set-Fake 'SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' 'AUOptions' $policy.kind $policy.data }
+        $records = @(Get-AtlasTransitionToggleRecord | Where-Object { $_.name -eq 'AutomaticUpdates' })
+        if ($null -eq $record) { $records | Should -HaveCount 0 }
+        else { $records | Should -HaveCount 1; $records[0].state | Should -Be $record }
+    }
 }
 
 AfterAll {
@@ -910,12 +922,16 @@ Describe 'Moving Windows' {
         Should -Invoke Invoke-PreparationWindowsOperation -Times 0 -Exactly
     }
 
-    It 'restarts for an update whose install leaves work for the restart, whatever its result code' {
+    It 'restarts for an update that installed with errors or leaves work for the restart: result <Code>, restart <Restart>' -ForEach @(
+        @{ Code = 4; HResult = -2145116149; Restart = $true }
+        @{ Code = 3; HResult = 0; Restart = $false }
+    ) {
         $script:Offers.default = @(New-Offer 'Windows 11, version 26H2' @('5129195') -Upgrade)
-        $script:Install = New-Result 3 0 $true
+        $script:Install = New-Result $Code $HResult $Restart
         Invoke-PreparationTransition | Should -Be 'reboot'
         $script:PreparationRestartReasons | Should -Be @('feature-update')
         (Read-Journal).phase | Should -BeExactly 'installed'
+        Should -Invoke Invoke-PreparationWindowsOperation -Times 1 -Exactly -ParameterFilter { $Kind -eq 'Install' }
     }
 
     It 'restarts Windows Update to read the new target before it searches' {
@@ -1155,6 +1171,12 @@ Describe 'The record of updates Windows offers again after they installed' {
         Set-Fake 'SOFTWARE\AtlasOS\Preparation' Reoffered String '{not json'
         @(Read-PreparationReoffered) | Should -BeNullOrEmpty
     }
+
+    It 'keeps every driver one run finds the device doesn''t need' {
+        $drivers = @(1..21 | ForEach-Object { New-Offer "Fixture driver $_" -Type 2 })
+        foreach ($driver in $drivers) { Add-PreparationDriverNotNeeded $driver }
+        @(Read-PreparationReoffered).key | Should -Be @($drivers | ForEach-Object { "$($_.Identity.UpdateID)/1" })
+    }
 }
 
 Describe 'The update service a search asks' {
@@ -1354,12 +1376,18 @@ Describe 'Restarting into the new version' {
         $thrown.Data['reason'] | Should -BeExactly 'feature-rolled-back'
     }
 
-    It 'finishes the updates on the new version when the Atlas components are all there' {
+    It 'finishes the updates and records that Windows switched on in place when the Atlas components are all there' {
         $script:Windows.CurrentBuildNumber = '26300'
-        $script:Windows.DisplayVersion = '26H2'
         Invoke-PreparationTransition | Should -Be 'complete'
-        (Read-Journal).phase | Should -BeExactly 'on-target'
         Should -Invoke Invoke-PreparationUpdates -Times 1 -Exactly
+        $journal = Read-Journal
+        $journal.phase | Should -BeExactly 'on-target'
+        $journal.rebuild.rebuilt | Should -BeFalse
+        @($journal.rebuild.signals) | Should -BeNullOrEmpty
+        $journal.history[-1].event | Should -BeExactly 'on-target'
+        $journal.history[-2].event | Should -BeExactly 'moved'
+        $journal.history[-2].detail | Should -Match 'switched on in place'
+        Get-AtlasWindowsTransitionRebase | Should -BeNullOrEmpty
     }
 
     It 'stops when the Atlas components are gone with no sign that Setup ran' {
@@ -1371,14 +1399,34 @@ Describe 'Restarting into the new version' {
         (Read-Journal).rebuild.rebuilt | Should -BeFalse
     }
 
-    It 'records that Windows switched on in place and finishes the updates' {
+    It 'keeps the in-place move it recorded after the Atlas install removed a package' {
         $script:Windows.CurrentBuildNumber = '26300'
         Invoke-PreparationTransition | Should -Be 'complete'
+        # The install's Defender choice uninstalled the package the record lists.
+        $script:Packages = @()
+        Invoke-PreparationTransition | Should -Be 'complete'
         $journal = Read-Journal
+        @($journal.history | Where-Object { $_.event -eq 'moved' }).Count | Should -Be 1
         $journal.rebuild.rebuilt | Should -BeFalse
         @($journal.rebuild.signals) | Should -BeNullOrEmpty
-        $journal.history[-2].event | Should -BeExactly 'moved'
-        $journal.history[-2].detail | Should -Match 'switched on in place'
+        (Test-AtlasWindowsTransitionOpen).Rebuild | Should -BeExactly 'in-place'
+    }
+
+    It 'takes a Rebase that put Atlas back for neither another Rebase nor lost components' {
+        $script:Windows.CurrentBuildNumber = '26300'
+        $journal = Read-Journal
+        $journal | Add-Member -NotePropertyName carry -NotePropertyValue (ConvertTo-AtlasTransitionCarry (New-Atlas050Fact) $script:Packages) -Force
+        Write-AtlasWindowsTransition $journal
+        $script:Packages = @()
+        $script:RebuildFacts = [pscustomobject]@{ WindowsOld = $true; SetupFolder = $true; PantherWritten = $true; AtlasModules = $false }
+        Invoke-PreparationTransition | Should -Be 'complete'
+        # The Rebase install's last step leaves the record open over one setting.
+        Mock Set-AtlasTransitionServiceStart { throw 'Access is denied' } -ParameterFilter { $Name -eq 'wuauserv' }
+        Mock Get-AtlasTransitionOwnerRecord { $false }
+        { Complete-AtlasWindowsTransition -Rebased } | Should -Throw '*couldn''t put back*'
+        (Test-AtlasWindowsTransitionOpen).Rebuild | Should -BeExactly 'in-place'
+        Invoke-PreparationTransition | Should -Be 'complete'
+        (Read-Journal).rebuild.rebuilt | Should -BeFalse
         Get-AtlasWindowsTransitionRebase | Should -BeNullOrEmpty
     }
 
@@ -1649,29 +1697,19 @@ Describe 'Install and toggle guards while Windows Update is turned on' {
 }
 
 Describe 'The install''s closing step' {
-    BeforeAll {
-        . (Join-Path $script:AtlasTestScriptsRoot 'Install\Install-Plan.ps1')
-        . (Join-Path $script:AtlasTestScriptsRoot 'Entry\Invoke-AtlasInstall.ps1')
-    }
+    BeforeAll { . (Join-Path $script:AtlasTestScriptsRoot 'Install\Install-Plan.ps1') }
 
-    It 'runs once in <Mode> (OOBE <Oobe>), after the choices are replayed and the pin is written' -TestCases @(
+    It 'runs in <Mode> (OOBE <Oobe>) after the choices are replayed and the pin is written' -TestCases @(
         @{ Mode = 'Fresh'; Oobe = $false }, @{ Mode = 'Fresh'; Oobe = $true }
         @{ Mode = 'Upgrade'; Oobe = $false }, @{ Mode = 'Upgrade'; Oobe = $true }
         @{ Mode = 'Reapply'; Oobe = $false }, @{ Mode = 'Reapply'; Oobe = $true }
+        @{ Mode = 'Rebase'; Oobe = $false }, @{ Mode = 'Rebase'; Oobe = $true }
     ) {
         param($Mode, $Oobe)
-        $plan = @(Get-AtlasInstallPlan -Mode $Mode -IsOobe $Oobe)
-        $keys = @($plan.Key)
+        $keys = @((Get-AtlasInstallPlan -Mode $Mode -IsOobe $Oobe).Key)
         $index = [array]::IndexOf($keys, 'Checkpoint/WindowsTransition')
         $index | Should -BeGreaterThan ([array]::IndexOf($keys, 'Defaults'))
         if ($keys -contains 'Tweaks/qol') { $index | Should -BeGreaterThan ([array]::IndexOf($keys, 'Tweaks/qol')) }
-        ($plan | Where-Object Key -eq 'Checkpoint/WindowsTransition').Replay | Should -BeExactly 'Once'
-    }
-
-    It 'maps to the task that closes the record' {
-        $action = Get-AtlasInstallCheckpointAction -Target WindowsTransition -ScriptsRoot $script:AtlasTestScriptsRoot -SourceScriptsRoot $TestDrive
-        $action.Path | Should -BeExactly (Join-Path $script:AtlasTestScriptsRoot 'Install\Tasks\Complete-AtlasWindowsTransition.ps1')
-        [IO.File]::Exists($action.Path) | Should -BeTrue
     }
 }
 
@@ -1701,31 +1739,6 @@ Describe 'Disk cleanup while a move may need undoing' {
         $script:Flags['Device Driver Packages'] | Should -Be 0
         $script:Flags['Temporary Sync Files'] | Should -Be 2
         Should -Invoke Invoke-AtlasSystemShadowCopyCleanup -Times 0 -Exactly
-    }
-}
-
-Describe 'Staging the update worker' {
-    BeforeAll { . (Join-Path $script:AtlasTestRepoRoot 'app\resources\prepare\Stage-App.ps1') -FunctionsOnly }
-
-    It 'stages the libraries beside the worker with the same protected permissions' {
-        # Unelevated, the folders and files get this user's ownership instead.
-        Mock New-AtlasRecoveryDirectory {
-            param($Path)
-            [void][IO.Directory]::CreateDirectory($Path)
-            return [IO.Path]::GetFullPath($Path)
-        }
-        Mock Get-AtlasRecoveryFileSecurity {
-            $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-            $security = New-Object Security.AccessControl.FileSecurity
-            $security.SetSecurityDescriptorSddlForm("O:${sid}D:P(A;;FA;;;${sid})")
-            return $security
-        }
-        $root = Join-Path $TestDrive 'Recovery'
-        $directory = New-AtlasPreparationJob $root ('c' * 64) '123-456' '# worker' ([byte[]](1)) '# library' '# registry'
-        [IO.File]::ReadAllText((Join-Path $directory 'WindowsTransition.ps1')) | Should -BeExactly '# library'
-        [IO.File]::ReadAllText((Join-Path $directory 'RegistryFile.ps1')) | Should -BeExactly '# registry'
-        Assert-AtlasRecoveryFileSecurity (Join-Path $directory 'WindowsTransition.ps1')
-        Assert-AtlasRecoveryFileSecurity (Join-Path $directory 'RegistryFile.ps1')
     }
 }
 
@@ -1866,8 +1879,13 @@ Describe 'What the record keeps of the Atlas install' {
         $path = Join-Path $TestDrive 'copy\journal.json'
         [void][IO.Directory]::CreateDirectory((Split-Path -Parent $path))
         [IO.File]::WriteAllText($path, '{}')
-        $owner = [IO.File]::GetAccessControl($path).GetOwner([Security.Principal.SecurityIdentifier]).Value
-        if ($owner -in @('S-1-5-18', 'S-1-5-32-544')) { Set-ItResult -Skipped -Because 'this test runs elevated, so its file belongs to Administrators'; return }
+        # An elevated run creates files owned by Administrators, so hand the copy
+        # to the account running the tests, which the copy never trusts.
+        $me = [Security.Principal.WindowsIdentity]::GetCurrent().User
+        if ($me.Value -eq 'S-1-5-18') { Set-ItResult -Skipped -Because 'SYSTEM is an owner the copy trusts'; return }
+        $acl = [IO.File]::GetAccessControl($path)
+        $acl.SetOwner($me)
+        [IO.File]::SetAccessControl($path, $acl)
         $thrown = & {
             . $script:Library
             function Get-AtlasTransitionCopyPath { $path }
@@ -1921,13 +1939,13 @@ Describe 'Telling a rebuilt Windows from one switched on in place' {
     }
 
     It 'needs Setup''s traces and Atlas''s components gone together' -TestCases @(
-        @{ Case = 'Setup ran, Atlas is all there'; Old = $true; Bt = $true; Log = $false; Modules = $true; Packages = $true; Rebuilt = $false; Lost = $false }
-        @{ Case = 'Windows.old filled but no Setup trace'; Old = $true; Bt = $false; Log = $false; Modules = $false; Packages = $false; Rebuilt = $false; Lost = $true }
-        @{ Case = 'Setup log only, Atlas gone'; Old = $false; Bt = $false; Log = $true; Modules = $false; Packages = $false; Rebuilt = $false; Lost = $true }
-        @{ Case = 'a rebuild by Setup'; Old = $true; Bt = $false; Log = $true; Modules = $false; Packages = $false; Rebuilt = $true; Lost = $true }
-        @{ Case = 'a rebuild that kept the Atlas folder'; Old = $true; Bt = $true; Log = $false; Modules = $true; Packages = $false; Rebuilt = $true; Lost = $true }
+        @{ Case = 'Setup ran, Atlas is all there'; Old = $true; Bt = $true; Log = $false; Modules = $true; Packages = $true; Rebuilt = $false; Lost = $false; Decision = 'in-place' }
+        @{ Case = 'Windows.old filled but no Setup trace'; Old = $true; Bt = $false; Log = $false; Modules = $false; Packages = $false; Rebuilt = $false; Lost = $true; Decision = 'components-lost' }
+        @{ Case = 'Setup log only, Atlas gone'; Old = $false; Bt = $false; Log = $true; Modules = $false; Packages = $false; Rebuilt = $false; Lost = $true; Decision = 'components-lost' }
+        @{ Case = 'a rebuild by Setup'; Old = $true; Bt = $false; Log = $true; Modules = $false; Packages = $false; Rebuilt = $true; Lost = $true; Decision = 'rebuilt' }
+        @{ Case = 'a rebuild that kept the Atlas folder'; Old = $true; Bt = $true; Log = $false; Modules = $true; Packages = $false; Rebuilt = $true; Lost = $true; Decision = 'rebuilt' }
     ) {
-        param($Case, $Old, $Bt, $Log, $Modules, $Packages, $Rebuilt, $Lost)
+        param($Case, $Old, $Bt, $Log, $Modules, $Packages, $Rebuilt, $Lost, $Decision)
         $drive = Join-Path $TestDrive 'Drive'
         if ($Old) { [void][IO.Directory]::CreateDirectory((Join-Path $drive 'Windows.old\Windows\System32')) }
         if ($Bt) { [void][IO.Directory]::CreateDirectory((Join-Path $drive '$WINDOWS.~BT')) }
@@ -1940,6 +1958,12 @@ Describe 'Telling a rebuilt Windows from one switched on in place' {
         $rebuild = Resolve-AtlasTransitionRebuild $script:Journal (Get-AtlasTransitionRebuildFact -Since $script:Since -WindowsPath $script:Windows050) $present
         $rebuild.rebuilt | Should -Be $Rebuilt -Because $Case
         $rebuild.lost | Should -Be $Lost -Because $Case
+        Get-AtlasTransitionRebuildDecision ([pscustomobject]@{ rebuild = [pscustomobject]@{ rebuilt = $rebuild.rebuilt; signals = $rebuild.signals } }) |
+            Should -BeExactly $Decision -Because $Case
+        # A Rebase that put Atlas back clears rebuilt and keeps the signals.
+        $cleared = if ($Decision -ceq 'rebuilt') { 'in-place' } else { $Decision }
+        Get-AtlasTransitionRebuildDecision ([pscustomobject]@{ rebuild = [pscustomobject]@{ rebuilt = $false; signals = $rebuild.signals } }) |
+            Should -BeExactly $cleared -Because "$Case, after a Rebase"
     }
 
     It 'ignores a Setup log older than the move' {
@@ -2032,7 +2056,6 @@ Describe 'Putting Atlas back on a rebuilt Windows' {
 Describe 'The Rebase install plan' {
     BeforeAll {
         . (Join-Path $script:AtlasTestScriptsRoot 'Install\Install-Plan.ps1')
-        . (Join-Path $script:AtlasTestScriptsRoot 'Entry\Invoke-AtlasInstall.ps1')
         Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
         Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Tweaks\Atlas.Tweaks.psd1') -Force -DisableNameChecking
     }
@@ -2048,12 +2071,6 @@ Describe 'The Rebase install plan' {
         [array]::IndexOf($rebase, 'Checkpoint/RebaseRecovery') | Should -BeLessThan ([array]::IndexOf($rebase, 'Checkpoint/LegacyChoices'))
         [array]::IndexOf($rebase, 'Checkpoint/RebaseRecovery') | Should -BeGreaterThan ([array]::IndexOf($rebase, 'Checkpoint/PayloadReplacement'))
         [array]::IndexOf($rebase, 'Services') | Should -BeLessThan ([array]::IndexOf($rebase, 'Defaults')) -Because 'the replay of recorded choices comes after the phases that set defaults'
-    }
-
-    It 'maps the recovery step to its task' {
-        $action = Get-AtlasInstallCheckpointAction -Target RebaseRecovery -ScriptsRoot $script:AtlasTestScriptsRoot -SourceScriptsRoot $TestDrive
-        $action.Path | Should -BeExactly (Join-Path $script:AtlasTestScriptsRoot 'Install\Tasks\Restore-AtlasRebaseState.ps1')
-        [IO.File]::Exists($action.Path) | Should -BeTrue
     }
 
     It 'repeats exactly the fresh-install tweaks that leave the user''s own settings alone' {

@@ -13,14 +13,6 @@ BeforeAll {
     $script:publicResetPath = Join-Path -Path $script:scriptsRoot `
         -ChildPath 'Entry\Invoke-AtlasResetServices.ps1'
     $script:hostExecutable = (Get-Process -Id $PID).Path
-    $script:wrapperPaths = @(
-        (Join-Path -Path $script:repoRoot `
-            -ChildPath 'playbook\Executables\AtlasDesktop\9. Troubleshooting\Set services to defaults.cmd')
-        (Join-Path -Path $script:repoRoot `
-            -ChildPath 'playbook\Executables\AtlasModules\Toolbox\Scripts\setServicesToDefaults.cmd')
-        (Join-Path -Path $script:repoRoot `
-            -ChildPath 'playbook\Executables\AtlasModules\Toolbox\Scripts\Troubleshooting\Set services to defaults.cmd')
-    )
 
     function Invoke-AtlasTrustedInstaller {
         [CmdletBinding()]
@@ -54,7 +46,7 @@ BeforeAll {
         Copy-Item -LiteralPath (Join-Path $script:AtlasTestScriptsRoot 'Initialize-AtlasPowerShell.ps1') -Destination $scripts
 
         Write-TestFile -Path (Join-Path $modules 'Atlas.Core\Atlas.Core.psd1') -Content @'
-@{ RootModule = 'Atlas.Core.psm1'; ModuleVersion = '1.0.0'; FunctionsToExport = @('Assert-AtlasPrivilege', 'Get-AtlasContext') }
+@{ RootModule = 'Atlas.Core.psm1'; ModuleVersion = '1.0.0'; FunctionsToExport = @('Assert-AtlasPrivilege', 'Get-AtlasContext', 'Write-AtlasLog') }
 '@
         Write-TestFile -Path (Join-Path $modules 'Atlas.Core\Atlas.Core.psm1') -Content @'
 function Write-ResetEvent { param([string]$Message) Add-Content -LiteralPath $env:ATLAS_RESET_TEST_LOG -Value $Message -Encoding UTF8 }
@@ -64,7 +56,8 @@ function Assert-AtlasPrivilege {
     if (-not $TrustedInstaller) { throw 'simulated privilege failure' }
 }
 function Get-AtlasContext { [pscustomobject]@{ AtlasModulesPath = $env:ATLAS_RESET_TEST_ROOT } }
-Export-ModuleMember -Function Assert-AtlasPrivilege, Get-AtlasContext
+function Write-AtlasLog { param([string]$Message, [string]$Level, $ErrorRecord) Write-ResetEvent "Log:${Level}:$Message" }
+Export-ModuleMember -Function Assert-AtlasPrivilege, Get-AtlasContext, Write-AtlasLog
 '@
         Write-TestFile -Path (Join-Path $modules 'Atlas.Services\Atlas.Services.psd1') -Content @'
 @{ RootModule = 'Atlas.Services.psm1'; ModuleVersion = '1.0.0'; FunctionsToExport = @('Restore-AtlasServicesBackup') }
@@ -150,8 +143,11 @@ Describe 'Reset Services privileged adapter behavior' {
         $result.Events | Should -Be @('Privilege:True', 'ResetDefaults', "Restore:$expectedRestore")
 
         $failed = Invoke-AtlasResetFixture -Fixture $script:fixture -RestoreSource WindowsBackup -FailAt ResetDefaults
-        $failed.ExitCode | Should -Not -Be 0
-        $failed.Events | Should -Be @('Privilege:True', 'ResetDefaults')
+        $failed.ExitCode | Should -Be 1
+        $failed.Events | Should -Be @(
+            'Privilege:True', 'ResetDefaults'
+            'Log:Error:Resetting services to defaults (WindowsBackup) failed: simulated service reset failure'
+        )
     }
 }
 
@@ -163,6 +159,7 @@ Describe 'Reset Services public adapter behavior' {
         Mock -CommandName Import-Module -ParameterFilter { $Name -like '*Atlas.Core*' } -MockWith {}
         Mock -CommandName Test-AtlasAdmin -MockWith { $true }
         Mock -CommandName Invoke-AtlasTrustedInstaller
+        Mock -CommandName Write-AtlasLog
     }
 
     AfterEach {
@@ -183,14 +180,8 @@ Describe 'Reset Services public adapter behavior' {
             throw 'TrustedInstaller broker exited with disallowed code 5: target failed.'
         }
         { & $script:publicResetPath -Silent } | Should -Throw '*disallowed code 5*target failed*'
-    }
-}
-
-Describe 'Reset Services launcher parity' {
-    It 'keeps the desktop and Toolbox launchers identical' {
-        $contents = @($script:wrapperPaths | ForEach-Object { Get-Content -LiteralPath $_ -Raw })
-        $contents.Count | Should -Be 3
-        $contents[1] | Should -BeExactly $contents[0]
-        $contents[2] | Should -BeExactly $contents[0]
+        Should -Invoke -CommandName Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Error' -and $Message -like 'Resetting services failed: *disallowed code 5*'
+        }
     }
 }

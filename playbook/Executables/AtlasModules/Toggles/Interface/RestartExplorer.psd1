@@ -1,6 +1,6 @@
 @{
     Name          = 'RestartExplorer'
-    Description   = 'Restart Windows Explorer. The engine performs the restart through Reboot = RestartExplorer (which /noaction suppresses), so the action only prints status and no state is recorded.'
+    Description   = 'Restarts File Explorer for the signed-in user; /noaction skips the restart. The engine performs and announces the restart through Reboot = RestartExplorer, so the action itself does nothing. Records no state.'
     Elevation     = 'None'
     NoStateRecord = $true
     Script        = 'RestartExplorer.ps1'

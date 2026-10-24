@@ -64,7 +64,9 @@ Redaction is targeted: it cannot reliably detect arbitrary personal text or an
 unrecognised secret format in third-party output. The app therefore names what it
 removes (the user name, PC name, email addresses and known passwords or keys) and never
 calls the ZIP anonymous. UTF-8 and BOM-marked UTF-16 logs are supported; unknown or binary
-encodings are explicitly omitted.
+encodings are explicitly omitted. Runs of NUL bytes that a crash or hard reset leaves in a
+log are taken out, marked `[NUL bytes removed]` where more text follows, and the manifest
+lists that file as `included: NUL bytes removed`.
 
 ## Triage
 
@@ -77,8 +79,11 @@ encodings are explicitly omitted.
   check `report/machine-report.txt` for health, state and Windows events.
 - For Get ready's updates, and above all a move to a newer Windows release, read
   `preparation/windows-transition.log` first: every step of the move, with each outcome's
-  reason id (`feature-*`). Each job folder's `updates.log` has that run's updates and the
-  Microsoft Store items it waited for. A Store item that ends in `Error` usually reports
+  reason id (`feature-*`). Once that log passes 1 MiB, the earlier steps are in
+  `preparation/windows-transition.old.log`. Each job folder's `updates.log` has that run's
+  updates and the Microsoft Store items it waited for. A worker that stopped before it
+  could report, for example because PowerShell refused to run it, wrote its error to
+  `worker.log` in the same folder. A Store item that ends in `Error` usually reports
   only 0x80073CF9 (the install failed); the machine report's event section lists the AppX
   deployment errors that say why. A run that found no offer yet ends with an
   `Outcome (feature-not-offered)` line, not an error record. `report/machine-report.txt`

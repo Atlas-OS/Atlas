@@ -1,5 +1,8 @@
 //! Facts about the machine: Windows version, elevation, power, connectivity,
-//! process liveness and the accessibility preferences the UI honours.
+//! process liveness and the accessibility preferences the UI honours. Also
+//! what the app asks of Windows itself: opening shell targets and the Atlas
+//! links, relaunching elevated, restarting Windows and flashing the taskbar
+//! button.
 
 use std::ops::RangeInclusive;
 use std::os::windows::process::CommandExt;
@@ -16,8 +19,10 @@ use windows::Win32::Graphics::Gdi::{
 };
 use windows::Win32::Networking::WinInet::{INTERNET_CONNECTION, InternetGetConnectedState};
 use windows::Win32::Security::{
-    EqualSid, GetTokenInformation, TOKEN_ELEVATION, TOKEN_ELEVATION_TYPE, TOKEN_QUERY, TokenElevation,
-    TokenElevationType, TokenElevationTypeDefault, TokenElevationTypeFull, TokenElevationTypeLimited,
+    EqualSid, GetSidIdentifierAuthority, GetSidSubAuthority, GetSidSubAuthorityCount, GetTokenInformation,
+    IsValidSid, SECURITY_NT_AUTHORITY, SID_IDENTIFIER_AUTHORITY, TOKEN_ELEVATION, TOKEN_ELEVATION_TYPE,
+    TOKEN_QUERY, TOKEN_USER, TokenElevation, TokenElevationType, TokenElevationTypeDefault,
+    TokenElevationTypeFull, TokenElevationTypeLimited, TokenUser,
 };
 use windows::Win32::System::Power::{GetSystemPowerStatus, SYSTEM_POWER_STATUS};
 use windows::Win32::System::RemoteDesktop::{
@@ -166,6 +171,39 @@ fn user_account_token_ready(enabled: u32, kind: TOKEN_ELEVATION_TYPE, elevated: 
         && (kind == TokenElevationTypeFull
             || kind == TokenElevationTypeLimited
             || (kind == TokenElevationTypeDefault && !elevated))
+}
+
+/// Whether the user running Atlas has an account SID, as local accounts and
+/// Microsoft accounts do. The install plan acts only for such an account, so
+/// `Install-Atlas.ps1` refuses any other, such as a work or school (Microsoft
+/// Entra ID) account, whose SID is S-1-12-1-….
+pub fn user_has_account_sid() -> Result<bool> {
+    unsafe {
+        let mut token = HANDLE::default();
+        OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token)?;
+        let result = (|| -> Result<bool> {
+            // TOKEN_USER and the SID it points to, in one buffer aligned for both.
+            let mut size = 0u32;
+            let _ = GetTokenInformation(token, TokenUser, None, 0, &mut size);
+            let mut buffer = vec![0usize; (size as usize).div_ceil(std::mem::size_of::<usize>())];
+            GetTokenInformation(token, TokenUser, Some(buffer.as_mut_ptr().cast()), size, &mut size)?;
+            let sid = (*buffer.as_ptr().cast::<TOKEN_USER>()).User.Sid;
+            anyhow::ensure!(IsValidSid(sid).as_bool(), "the process token has no valid user SID");
+            let parts: Vec<u32> = (0..u32::from(*GetSidSubAuthorityCount(sid)))
+                .map(|index| *GetSidSubAuthority(sid, index))
+                .collect();
+            Ok(account_sid(*GetSidIdentifierAuthority(sid), &parts))
+        })();
+        let _ = CloseHandle(token);
+        result
+    }
+}
+
+/// S-1-5-21-a-b-c-rid: an account domain's three parts and the account's
+/// RID. `Initialize-AtlasInstallState.ps1` finds the installing user's hive
+/// by the same shape.
+fn account_sid(authority: SID_IDENTIFIER_AUTHORITY, parts: &[u32]) -> bool {
+    authority == SECURITY_NT_AUTHORITY && matches!(parts, [21, _, _, _, _])
 }
 
 pub(crate) fn shell_execute(verb: &str, target: &str) -> Result<()> {
@@ -382,15 +420,8 @@ pub enum Liveness {
 pub fn process_liveness(pid: u32, start_time: u64) -> Liveness {
     let handle = match ProcessHandle::open(pid) {
         Ok(handle) => handle,
-        // OpenProcess answers "invalid parameter" for a PID no process has.
-        Err(error) if WIN32_ERROR::from_error(&error) == Some(ERROR_INVALID_PARAMETER) => {
-            return Liveness::Ended;
-        }
-        // A process this one may not open, in someone else's session say,
-        // is never one Atlas started.
         Err(error)
-            if WIN32_ERROR::from_error(&error) == Some(ERROR_ACCESS_DENIED)
-                && process_is_elsewhere(pid) == Some(true) =>
+            if open_error_means_ended(WIN32_ERROR::from_error(&error), || process_is_elsewhere(pid)) =>
         {
             return Liveness::Ended;
         }
@@ -405,6 +436,19 @@ pub fn process_liveness(pid: u32, start_time: u64) -> Liveness {
         Some(actual) if start_time == 0 || actual == start_time => Liveness::Alive,
         Some(_) => Liveness::Ended,
         None => Liveness::Unknown(format!("query creation time for process {pid}")),
+    }
+}
+
+/// Whether OpenProcess failing with `code` means the recorded process has
+/// ended. `elsewhere` ([`process_is_elsewhere`]) is asked only on a refusal.
+fn open_error_means_ended(code: Option<WIN32_ERROR>, elsewhere: impl FnOnce() -> Option<bool>) -> bool {
+    match code {
+        // OpenProcess answers "invalid parameter" for a PID no process has.
+        Some(ERROR_INVALID_PARAMETER) => true,
+        // A process this one may not open, in someone else's session say,
+        // is never one Atlas started.
+        Some(ERROR_ACCESS_DENIED) => elsewhere() == Some(true),
+        _ => false,
     }
 }
 
@@ -599,10 +643,10 @@ impl SystemColors {
 /// Flashes the window's taskbar button, and its caption, until the user
 /// brings it to the front: a restart countdown started while nobody looks.
 /// It never takes focus or restores a minimised window.
-pub fn flash_until_foreground(window: &gpui::Window) {
-    use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+pub fn flash_until_foreground(window: &impl raw_window_handle::HasWindowHandle) {
+    use raw_window_handle::RawWindowHandle;
     use windows::Win32::UI::WindowsAndMessaging::{FLASHW_ALL, FLASHW_TIMERNOFG, FLASHWINFO, FlashWindowEx};
-    let Ok(handle) = HasWindowHandle::window_handle(window) else { return };
+    let Ok(handle) = window.window_handle() else { return };
     let RawWindowHandle::Win32(handle) = handle.as_raw() else { return };
     let info = FLASHWINFO {
         cbSize: std::mem::size_of::<FLASHWINFO>() as u32,
@@ -612,7 +656,7 @@ pub fn flash_until_foreground(window: &gpui::Window) {
         uCount: 0,
         dwTimeout: 0,
     };
-    // SAFETY: the window handle is GPUI's own, alive while `window` is.
+    // SAFETY: the handle is the caller's window's, alive while `window` is borrowed.
     let _ = unsafe { FlashWindowEx(&info) };
 }
 
@@ -691,6 +735,22 @@ mod tests {
         assert!(!user_account_token_ready(1, TOKEN_ELEVATION_TYPE(0), false));
     }
 
+    /// The install plan acts only for local accounts and Microsoft accounts,
+    /// so Get ready refuses a work or school account before preparing Windows.
+    #[test]
+    fn only_an_account_sid_is_one_atlas_can_install_for() {
+        // S-1-5-21-111-222-333-1001: a local account or a Microsoft account.
+        assert!(account_sid(SECURITY_NT_AUTHORITY, &[21, 111, 222, 333, 1001]));
+        // S-1-12-1-2933642503-1247987907-1399130510-4207851353: Microsoft Entra ID.
+        let entra = SID_IDENTIFIER_AUTHORITY { Value: [0, 0, 0, 0, 0, 12] };
+        assert!(!account_sid(entra, &[1, 2933642503, 1247987907, 1399130510, 4207851353]));
+        // S-1-5-18, Local System, and S-1-5-21-111-222-333, a domain rather than an account.
+        assert!(!account_sid(SECURITY_NT_AUTHORITY, &[18]));
+        assert!(!account_sid(SECURITY_NT_AUTHORITY, &[21, 111, 222, 333]));
+        // Whatever account runs this, its token's SID can be read.
+        assert!(user_has_account_sid().is_ok());
+    }
+
     #[test]
     fn unknown_battery_flags_do_not_mean_no_battery() {
         assert_eq!(classify_power(255, 255), PowerSource::Unknown);
@@ -723,9 +783,23 @@ mod tests {
 
     #[test]
     fn a_pid_nobody_has_is_ended() {
-        // PIDs are multiples of four; an odd one can never name a process.
-        assert_eq!(process_liveness(0x7FFF_FFF1, 0), Liveness::Ended);
-        assert_eq!(process_liveness(std::process::id(), 0), Liveness::Alive);
+        // Far above any PID Windows assigns, so OpenProcess answers "invalid
+        // parameter". Windows ignores a PID's two low bits, so an odd PID next
+        // to a real one would open that process instead.
+        assert_eq!(process_liveness(0x7FFF_FFF0, 0), Liveness::Ended);
+    }
+
+    /// Only "no such process", or a refusal for a process in another session
+    /// or account, ends a recorded process; any other refusal says nothing.
+    #[test]
+    fn only_a_missing_pid_or_one_refused_elsewhere_has_ended() {
+        let unasked = || -> Option<bool> { panic!("only a refusal asks where the process runs") };
+        assert!(open_error_means_ended(Some(ERROR_INVALID_PARAMETER), unasked));
+        assert!(open_error_means_ended(Some(ERROR_ACCESS_DENIED), || Some(true)));
+        assert!(!open_error_means_ended(Some(ERROR_ACCESS_DENIED), || Some(false)));
+        assert!(!open_error_means_ended(Some(ERROR_ACCESS_DENIED), || None));
+        assert!(!open_error_means_ended(Some(windows::Win32::Foundation::ERROR_NOT_ENOUGH_MEMORY), unasked));
+        assert!(!open_error_means_ended(None, unasked));
     }
 
     /// After fast user switching, a PID Atlas recorded can belong to a process
@@ -736,6 +810,8 @@ mod tests {
         assert_eq!(process_is_elsewhere(std::process::id()), Some(false));
         // The System process (4) always runs in session 0, never a user's.
         assert_eq!(process_is_elsewhere(4), Some(true));
+        // Only an unelevated run is refused PID 4; an elevated one opens it,
+        // so the test above is what covers the refusal there.
         let start = process_start_time(4).unwrap_or(1);
         assert_eq!(
             process_liveness(4, start),

@@ -728,13 +728,29 @@ mod tests {
         assert_eq!(place.top, px(512.) - wanted(ROW));
         assert!(place.top >= px(40.));
         // A choice further down is scrolled into the list, as near the box as
-        // the clamp allows.
-        for index in [5, 12, 16] {
+        // the clamp allows. The list rises to meet it: 12 and 16 take it up to
+        // the title bar.
+        for (index, top) in [(5, 164.), (12, 40.), (16, 40.)] {
             let place = placement(combo, px(520.), wanted(ROW), px(ROW), LEN, Some(index));
+            assert_eq!(place.top, px(top), "{index}");
             let row_top = px(FIRST_ROW_TOP) + px(ROW) * index as f32 - place.scroll;
             assert!(row_top >= px(0.) && row_top + px(ROW) <= place.max_height, "{index} is in view");
             assert!(place.top >= px(40.) && place.top + place.max_height <= px(512.));
         }
+    }
+
+    #[test]
+    fn where_the_clamp_leaves_room_the_current_choice_opens_on_the_box() {
+        // 900x680, the box low enough that three rows don't fit below it.
+        let combo = Bounds::new(point(px(40.), px(580.)), size(px(352.), px(32.)));
+        let height = |len: usize| px(ROW * len as f32 + LIST_CHROME);
+        let place = placement(combo, px(680.), height(3), px(ROW), 3, Some(1));
+        assert_eq!(place, Placement { top: px(539.), max_height: px(114.), scroll: px(0.), over: true });
+        let row_top = place.top + px(FIRST_ROW_TOP) + px(ROW) - place.scroll;
+        assert_eq!(row_top, combo.top(), "the choice's row is on the box");
+        // With no choice, the list is centred on the box.
+        let place = placement(combo, px(680.), height(2), px(ROW), 2, None);
+        assert_eq!(place, Placement { top: px(557.), max_height: px(78.), scroll: px(0.), over: true });
     }
 
     #[test]
@@ -752,5 +768,9 @@ mod tests {
                 assert!(row_top >= px(0.) && row_top + px(row) <= place.max_height, "{index} is in view");
             }
         }
+        // The list can't move, so its rows scroll to put the 10th on the box.
+        let place = placement(combo, px(520.), wanted(row), px(row), LEN, Some(9));
+        assert_eq!(place.scroll, px(194.));
+        assert_eq!(place.top + px(FIRST_ROW_TOP) + px(row) * 9. - place.scroll, combo.top());
     }
 }

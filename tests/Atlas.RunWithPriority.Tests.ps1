@@ -134,16 +134,16 @@ Describe 'Run with priority' {
             Should -Throw '*does not exist*'
     }
 
-    It 'round-trips the fixed handler and selected target through Realtime UAC arguments' {
+    It 'round-trips the fixed handler, the chosen priority and the target through the UAC relaunch arguments' {
         $handler = 'C:\Windows\AtlasModules\Scripts\Operations\Invoke-AtlasPriorityLaunch.ps1'
         $target = 'C:\Program Files\Atlas & games\Unicode {0} app.exe' -f [char]0x03A9
         $arguments = @(Get-AtlasPriorityRelaunchArgumentList `
-                -HandlerPath $handler -ExecutablePath $target)
+                -HandlerPath $handler -ExecutablePath $target -Priority 'High')
         $parsed = [AtlasPriorityTestCommandLine]::Split($arguments -join ' ')
 
         $parsed.Count | Should -Be 12
         $parsed[6] | Should -BeExactly $handler
-        $parsed[8] | Should -BeExactly 'Realtime'
+        $parsed[8] | Should -BeExactly 'High'
         $parsed[10] | Should -BeExactly $target
         $parsed[11] | Should -BeExactly '-Elevated'
     }
@@ -211,5 +211,93 @@ Describe 'Run with priority' {
         $registry | Should -HaveCount 1
         $registry[0].Operation | Should -BeExactly 'DeleteKey'
         $registry[0].Path | Should -BeExactly $added.Removals[0]
+    }
+}
+
+Describe 'Run with priority launch' {
+    BeforeAll {
+        $script:launch = @{
+            ExecutablePath = 'C:\Program Files\Atlas\setup.exe'
+            Priority       = 'High'
+            PriorityClass  = [uint32]0x80
+            PowerShellPath = 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+            HandlerPath    = 'C:\Windows\AtlasModules\Scripts\Operations\Invoke-AtlasPriorityLaunch.ps1'
+        }
+    }
+
+    BeforeEach {
+        Mock Start-AtlasPriorityProcess {}
+        Mock Start-AtlasPriorityElevatedHandler {}
+    }
+
+    It 'starts the target directly at the chosen priority' {
+        Start-AtlasPriorityTarget @script:launch -IsAdministrator $false
+
+        Should -Invoke Start-AtlasPriorityProcess -Times 1 -Exactly -ParameterFilter {
+            $ExecutablePath -ceq 'C:\Program Files\Atlas\setup.exe' -and $PriorityClass -eq 0x80
+        }
+        Should -Invoke Start-AtlasPriorityElevatedHandler -Times 0
+    }
+
+    It 'sends Realtime through UAC without trying a direct start' {
+        $realtime = $script:launch.Clone()
+        $realtime.Priority = 'Realtime'
+        $realtime.PriorityClass = [uint32]0x100
+
+        Start-AtlasPriorityTarget @realtime -IsAdministrator $false
+
+        Should -Invoke Start-AtlasPriorityProcess -Times 0
+        Should -Invoke Start-AtlasPriorityElevatedHandler -Times 1 -Exactly -ParameterFilter { $Priority -ceq 'Realtime' }
+    }
+
+    It 'relaunches through UAC with the same priority when the executable asks for administrator rights' {
+        Mock Start-AtlasPriorityProcess { throw [ComponentModel.Win32Exception]::new(740) }
+
+        Start-AtlasPriorityTarget @script:launch -IsAdministrator $false
+
+        Should -Invoke Start-AtlasPriorityElevatedHandler -Times 1 -Exactly -ParameterFilter {
+            $Priority -ceq 'High' -and
+            $ExecutablePath -ceq 'C:\Program Files\Atlas\setup.exe' -and
+            $HandlerPath -ceq 'C:\Windows\AtlasModules\Scripts\Operations\Invoke-AtlasPriorityLaunch.ps1'
+        }
+    }
+
+    It 'rethrows other launch failures, and elevation failures in the elevated handler' {
+        Mock Start-AtlasPriorityProcess { throw [ComponentModel.Win32Exception]::new(193) }
+        { Start-AtlasPriorityTarget @script:launch -IsAdministrator $false } | Should -Throw
+
+        Mock Start-AtlasPriorityProcess { throw [ComponentModel.Win32Exception]::new(740) }
+        { Start-AtlasPriorityTarget @script:launch -IsAdministrator $true -Elevated } | Should -Throw
+
+        Should -Invoke Start-AtlasPriorityElevatedHandler -Times 0
+    }
+
+    It 'accepts -Elevated only from the installed handler' {
+        $target = Join-Path $TestDrive 'tool.exe'
+        Copy-Item -LiteralPath (Join-Path ([Environment]::SystemDirectory) 'where.exe') -Destination $target
+
+        { Invoke-AtlasPriorityLaunch -Priority High -TargetPath $target -Elevated } |
+            Should -Throw '*only through the installed Atlas handler*'
+        Should -Invoke Start-AtlasPriorityProcess -Times 0
+    }
+
+    It 'names the Windows reason for a failed native launch' {
+        Initialize-AtlasNativeType
+        $record = $null
+        try {
+            [Atlas.Native.PriorityLauncher]::Start($null, 'x', 'C:\', [uint32]0x20)
+        }
+        catch {
+            $record = $_
+        }
+        Get-AtlasPriorityFailureReason -ErrorRecord $record -FileName 'tool.exe' |
+            Should -BeLike '*application path is required*'
+
+        $native = [Management.Automation.ErrorRecord]::new(
+            [ComponentModel.Win32Exception]::new(193, 'CreateProcessW failed for the selected executable'),
+            'NativeFailure', [Management.Automation.ErrorCategory]::NotSpecified, $null)
+        $reason = Get-AtlasPriorityFailureReason -ErrorRecord $native -FileName 'tool.exe'
+        $reason | Should -BeLike '*tool.exe*(Windows error 193).'
+        $reason | Should -Not -BeLike '*%1*'
     }
 }

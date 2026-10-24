@@ -18,8 +18,9 @@
         'Get-AtlasToggleState'
         'Get-AtlasToggleStateRecords'
         'Set-AtlasToggleState'
-        # Checked native command invocation for companion functions
+        # Checked native command invocation and BCD element removal for companion functions
         'Invoke-AtlasToggleNativeCommand'
+        'Remove-AtlasToggleBcdValue'
         # State-store initialization and replay
         'Initialize-AtlasToggleStateStore'
         'Invoke-AtlasToggleReapply'

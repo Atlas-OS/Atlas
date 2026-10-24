@@ -1,7 +1,7 @@
 # Moving Windows to a newer release through Windows Update, and putting back the
 # Windows Update settings changed for it. Function definitions only: the update
-# worker, the install checkpoint, the front door, the pin tweak and the toggle entry
-# all dot-source this file, and none of them may inherit a side effect from it.
+# worker, the Atlas.InstallState module and many install, toggle and tweak scripts
+# dot-source this file, and none of them may inherit a side effect from it.
 # Windows PowerShell 5.1.
 
 # The journal lives under HKLM, which only administrators and SYSTEM can write, so a
@@ -23,9 +23,10 @@ function Write-AtlasTransitionEvidence([string]$Text) {
     $line = '{0:yyyy-MM-ddTHH:mm:ssZ} {1}' -f [DateTime]::UtcNow, $Text
     try {
         $file = [IO.FileInfo]::new($path)
-        # Keep one older log, so the history can't grow without limit.
+        # Keep one older log, so the history can't grow without limit. Its name
+        # still ends in .log, which diagnostics collect.
         if ($file.Exists -and $file.Length -gt 1MB) {
-            [IO.File]::Copy($path, "$path.old", $true)
+            [IO.File]::Copy($path, [IO.Path]::ChangeExtension($path, '.old.log'), $true)
             [IO.File]::WriteAllText($path, '')
         }
         [IO.File]::AppendAllText($path, $line + [Environment]::NewLine, [Text.UTF8Encoding]::new($false))
@@ -50,34 +51,35 @@ function Get-AtlasWindowsTransitionItem {
     $pause = 'SOFTWARE\Microsoft\WindowsUpdate\UpdatePolicy\Settings'
     $ux = 'SOFTWARE\Microsoft\WindowsUpdate\UX\Settings'
     $services = 'SYSTEM\CurrentControlSet\Services'
-    # A leading comma keeps each row an array of its own.
+    # Id, group, key or task path, value or task name, kinds, lifted value, owner
+    # toggle and rule. A leading comma keeps each row an array of its own.
     $rows = @(
-        ,@('policy.DisableWindowsUpdateAccess', 'off', $policy, 'DisableWindowsUpdateAccess', 'DWord', $null, 'ToggleWindowsUpdates', 'A', 'nonzero')
-        ,@('policy.DoNotConnectToWindowsUpdateInternetLocations', 'off', $policy, 'DoNotConnectToWindowsUpdateInternetLocations', 'DWord', $null, 'ToggleWindowsUpdates', 'B', 'nonzero')
-        ,@('policy.AU.NoAutoUpdate', 'off', "$policy\AU", 'NoAutoUpdate', 'DWord', $null, 'ToggleWindowsUpdates', 'B', 'nonzero')
-        ,@('service.wuauserv', 'off', "$services\wuauserv", 'Start', 'DWord', 3, 'ToggleWindowsUpdates', 'A', 'disabled')
-        ,@('service.UsoSvc', 'off', "$services\UsoSvc", 'Start', 'DWord', 3, 'ToggleWindowsUpdates', 'A', 'disabled')
-        ,@('task.sih', 'off', 'Microsoft\Windows\WindowsUpdate', 'sih', 'Task', 'Enabled', 'ToggleWindowsUpdates', 'A', 'task')
-        ,@('task.sihboot', 'off', 'Microsoft\Windows\WindowsUpdate', 'sihboot', 'Task', 'Enabled', 'ToggleWindowsUpdates', 'A', 'task')
-        ,@('policy.DeferQualityUpdates', 'delayed', $policy, 'DeferQualityUpdates', 'DWord', $null, $null, 'A', 'nonzero')
-        ,@('policy.DeferQualityUpdatesPeriodInDays', 'delayed', $policy, 'DeferQualityUpdatesPeriodInDays', 'DWord', $null, $null, 'A', 'nonzero')
-        ,@('pause.PausedFeatureStatus', 'paused', $pause, 'PausedFeatureStatus', 'DWord', 0, 'PauseUpdates', 'B', 'nonzero')
-        ,@('pause.PausedQualityStatus', 'paused', $pause, 'PausedQualityStatus', 'DWord', 0, 'PauseUpdates', 'B', 'nonzero')
-        ,@('pause.PauseFeatureUpdatesStartTime', 'paused', $ux, 'PauseFeatureUpdatesStartTime', 'String', $null, 'PauseUpdates', 'B', 'paused')
-        ,@('pause.PauseFeatureUpdatesEndTime', 'paused', $ux, 'PauseFeatureUpdatesEndTime', 'String', $null, 'PauseUpdates', 'B', 'future')
-        ,@('pause.PauseQualityUpdatesStartTime', 'paused', $ux, 'PauseQualityUpdatesStartTime', 'String', $null, 'PauseUpdates', 'B', 'paused')
-        ,@('pause.PauseQualityUpdatesEndTime', 'paused', $ux, 'PauseQualityUpdatesEndTime', 'String', $null, 'PauseUpdates', 'B', 'future')
-        ,@('pause.PauseUpdatesStartTime', 'paused', $ux, 'PauseUpdatesStartTime', 'String', $null, 'PauseUpdates', 'B', 'paused')
-        ,@('pause.PauseUpdatesExpiryTime', 'paused', $ux, 'PauseUpdatesExpiryTime', 'String', $null, 'PauseUpdates', 'B', 'future')
-        ,@('pause.FlightSettingsMaxPauseDays', 'paused', $ux, 'FlightSettingsMaxPauseDays', 'DWord', $null, 'PauseUpdates', 'B', 'paused')
-        ,@('pin.TargetReleaseVersion', 'pin', $policy, 'TargetReleaseVersion', 'DWord,String', $null, $null, 'transition', 'pin')
-        ,@('pin.ProductVersion', 'pin', $policy, 'ProductVersion', 'String', $null, $null, 'transition', 'pin')
-        ,@('pin.TargetReleaseVersionInfo', 'pin', $policy, 'TargetReleaseVersionInfo', 'String', $null, $null, 'transition', 'pin')
+        ,@('policy.DisableWindowsUpdateAccess', 'off', $policy, 'DisableWindowsUpdateAccess', 'DWord', $null, 'ToggleWindowsUpdates', 'nonzero')
+        ,@('policy.DoNotConnectToWindowsUpdateInternetLocations', 'off', $policy, 'DoNotConnectToWindowsUpdateInternetLocations', 'DWord', $null, 'ToggleWindowsUpdates', 'nonzero')
+        ,@('policy.AU.NoAutoUpdate', 'off', "$policy\AU", 'NoAutoUpdate', 'DWord', $null, 'ToggleWindowsUpdates', 'nonzero')
+        ,@('service.wuauserv', 'off', "$services\wuauserv", 'Start', 'DWord', 3, 'ToggleWindowsUpdates', 'disabled')
+        ,@('service.UsoSvc', 'off', "$services\UsoSvc", 'Start', 'DWord', 3, 'ToggleWindowsUpdates', 'disabled')
+        ,@('task.sih', 'off', 'Microsoft\Windows\WindowsUpdate', 'sih', 'Task', 'Enabled', 'ToggleWindowsUpdates', 'task')
+        ,@('task.sihboot', 'off', 'Microsoft\Windows\WindowsUpdate', 'sihboot', 'Task', 'Enabled', 'ToggleWindowsUpdates', 'task')
+        ,@('policy.DeferQualityUpdates', 'delayed', $policy, 'DeferQualityUpdates', 'DWord', $null, $null, 'nonzero')
+        ,@('policy.DeferQualityUpdatesPeriodInDays', 'delayed', $policy, 'DeferQualityUpdatesPeriodInDays', 'DWord', $null, $null, 'nonzero')
+        ,@('pause.PausedFeatureStatus', 'paused', $pause, 'PausedFeatureStatus', 'DWord', 0, 'PauseUpdates', 'nonzero')
+        ,@('pause.PausedQualityStatus', 'paused', $pause, 'PausedQualityStatus', 'DWord', 0, 'PauseUpdates', 'nonzero')
+        ,@('pause.PauseFeatureUpdatesStartTime', 'paused', $ux, 'PauseFeatureUpdatesStartTime', 'String', $null, 'PauseUpdates', 'paused')
+        ,@('pause.PauseFeatureUpdatesEndTime', 'paused', $ux, 'PauseFeatureUpdatesEndTime', 'String', $null, 'PauseUpdates', 'future')
+        ,@('pause.PauseQualityUpdatesStartTime', 'paused', $ux, 'PauseQualityUpdatesStartTime', 'String', $null, 'PauseUpdates', 'paused')
+        ,@('pause.PauseQualityUpdatesEndTime', 'paused', $ux, 'PauseQualityUpdatesEndTime', 'String', $null, 'PauseUpdates', 'future')
+        ,@('pause.PauseUpdatesStartTime', 'paused', $ux, 'PauseUpdatesStartTime', 'String', $null, 'PauseUpdates', 'paused')
+        ,@('pause.PauseUpdatesExpiryTime', 'paused', $ux, 'PauseUpdatesExpiryTime', 'String', $null, 'PauseUpdates', 'future')
+        ,@('pause.FlightSettingsMaxPauseDays', 'paused', $ux, 'FlightSettingsMaxPauseDays', 'DWord', $null, 'PauseUpdates', 'paused')
+        ,@('pin.TargetReleaseVersion', 'pin', $policy, 'TargetReleaseVersion', 'DWord,String', $null, $null, 'pin')
+        ,@('pin.ProductVersion', 'pin', $policy, 'ProductVersion', 'String', $null, $null, 'pin')
+        ,@('pin.TargetReleaseVersionInfo', 'pin', $policy, 'TargetReleaseVersionInfo', 'String', $null, $null, 'pin')
     )
     foreach ($row in $rows) {
         [pscustomobject][ordered]@{
             Id = $row[0]; Group = $row[1]; Path = $row[2]; Name = $row[3]
-            Kinds = @($row[4] -split ','); Lift = $row[5]; Owner = $row[6]; Tier = $row[7]; Rule = $row[8]
+            Kinds = @($row[4] -split ','); Lift = $row[5]; Owner = $row[6]; Rule = $row[7]
         }
     }
 }
@@ -361,6 +363,31 @@ function Remove-AtlasWindowsTransition([string]$Root = (Get-AtlasWindowsTransiti
     Remove-AtlasTransitionValue $Root 'Journal'
 }
 
+# What a rebuild check's signals mean: Setup ran (Windows.old beside Setup's folder
+# or a fresh Setup log) and Atlas's components went missing. The check and every
+# later read of its record use this one rule.
+function Get-AtlasTransitionRebuildVerdict([string[]]$Signals) {
+    return [pscustomobject]@{
+        Setup = $Signals -contains 'windows-old' -and ($Signals -contains 'setup-folder' -or $Signals -contains 'setup-log')
+        Lost = $Signals -contains 'packages-missing' -or $Signals -contains 'atlas-files-missing'
+    }
+}
+
+# How Windows moved, as Atlas Manager decided once on the target build: 'rebuilt',
+# 'in-place', or 'components-lost' when Atlas's components were gone without Setup
+# rebuilding Windows. $null until it has checked. The decision is read back, never
+# made again: the install changes the packages. A Rebase install that put Atlas
+# back clears rebuilt; the signals still show that Setup ran, so the components
+# they found gone aren't a loss.
+function Get-AtlasTransitionRebuildDecision($Journal) {
+    $recorded = $Journal.PSObject.Properties['rebuild']
+    if ($null -eq $recorded -or $null -eq $recorded.Value) { return $null }
+    if ($recorded.Value.rebuilt) { return 'rebuilt' }
+    $verdict = Get-AtlasTransitionRebuildVerdict @($recorded.Value.signals)
+    if ($verdict.Lost -and -not $verdict.Setup) { return 'components-lost' }
+    return 'in-place'
+}
+
 # Kind, target and phase of an open journal, without acting on it. Unreadable
 # journals are reported as such, never as absent.
 function Test-AtlasWindowsTransitionOpen([string]$Root = (Get-AtlasWindowsTransitionRoot)) {
@@ -368,16 +395,7 @@ function Test-AtlasWindowsTransitionOpen([string]$Root = (Get-AtlasWindowsTransi
     catch { return [pscustomobject]@{ Readable = $false; Kind = $null; Phase = $null; TargetBuild = 0; Rebuild = $null; Error = $_.Exception.Message } }
     if ($null -eq $journal) { return $null }
     $build = if ($journal.kind -eq 'transition') { [int]$journal.target.build } else { 0 }
-    # How Windows moved, as Atlas Manager decided once on the target build:
-    # 'rebuilt', 'in-place', or 'components-lost' when Atlas's components were
-    # gone without Setup rebuilding Windows. $null until it has checked. The
-    # decision is read back, never made again: the install changes the packages.
-    $rebuild = $null
-    $recorded = $journal.PSObject.Properties['rebuild']
-    if ($null -ne $recorded -and $null -ne $recorded.Value) {
-        $lost = @(@($recorded.Value.signals) | Where-Object { $_ -in @('packages-missing', 'atlas-files-missing') }).Count -gt 0
-        $rebuild = if ($recorded.Value.rebuilt) { 'rebuilt' } elseif ($lost) { 'components-lost' } else { 'in-place' }
-    }
+    $rebuild = Get-AtlasTransitionRebuildDecision $journal
     return [pscustomobject]@{ Readable = $true; Kind = [string]$journal.kind; Phase = [string]$journal.phase; TargetBuild = $build; Rebuild = $rebuild; Error = $null }
 }
 
@@ -665,12 +683,12 @@ function Get-AtlasTransitionAppxName {
 
 function Test-AtlasTransitionPath([string]$Path) { return [IO.File]::Exists($Path) -or [IO.Directory]::Exists($Path) }
 
-$script:AtlasProfileList = 'SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList'
+function Get-AtlasTransitionProfileListKey { 'SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList' }
 
 # The accounts of the people who use this PC, from Windows's profile list; the
 # system's own service profiles are left out.
 function Get-AtlasTransitionProfileSid {
-    $key = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($script:AtlasProfileList, $false)
+    $key = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey((Get-AtlasTransitionProfileListKey), $false)
     if ($null -eq $key) { return }
     try { @($key.GetSubKeyNames() | Where-Object { $_ -like 'S-1-5-21-*' }) }
     finally { $key.Dispose() }
@@ -678,7 +696,7 @@ function Get-AtlasTransitionProfileSid {
 
 function Get-AtlasTransitionProfilePath {
     foreach ($sid in @(Get-AtlasTransitionProfileSid)) {
-        $path = Get-AtlasTransitionValue "$script:AtlasProfileList\$sid" 'ProfileImagePath'
+        $path = Get-AtlasTransitionValue "$(Get-AtlasTransitionProfileListKey)\$sid" 'ProfileImagePath'
         if ($path.Present -and $path.Kind -in @('String', 'ExpandString') -and [string]$path.Data) {
             [Environment]::ExpandEnvironmentVariables([string]$path.Data)
         }
@@ -889,10 +907,9 @@ function Resolve-AtlasTransitionRebuild($Journal, $Facts, [string[]]$PresentPack
     if ($Facts.PantherWritten) { $signals += 'setup-log' }
     if ($missing.Count -gt 0) { $signals += 'packages-missing' }
     if ($modulesLost) { $signals += 'atlas-files-missing' }
-    $setup = $Facts.WindowsOld -and ($Facts.SetupFolder -or $Facts.PantherWritten)
-    $lost = $missing.Count -gt 0 -or $modulesLost
+    $verdict = Get-AtlasTransitionRebuildVerdict $signals
     return [pscustomobject][ordered]@{
-        rebuilt = $setup -and $lost; setup = [bool]$setup; lost = [bool]$lost
+        rebuilt = $verdict.Setup -and $verdict.Lost; setup = [bool]$verdict.Setup; lost = [bool]$verdict.Lost
         signals = @($signals); missing = @($missing); checkedAt = [DateTime]::UtcNow.ToString('o')
     }
 }

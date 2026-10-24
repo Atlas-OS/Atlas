@@ -32,24 +32,12 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 
 $shellManifest = [IO.Path]::Combine($scriptsRoot, 'Modules', 'Atlas.Shell', 'Atlas.Shell.psd1')
-if (-not [IO.File]::Exists($shellManifest)) {
-    throw "The protected Atlas.Shell manifest is missing at '$shellManifest'."
-}
-Microsoft.PowerShell.Core\Import-Module -Name $shellManifest -ErrorAction Stop
-
-if (-not [IO.Path]::IsPathRooted($Path) -or $Path.Length -gt 32767) {
-    throw 'The terminal working directory must be one absolute path of at most 32,767 characters.'
-}
-
-try {
-    $canonicalPath = [IO.Path]::GetFullPath($Path)
-}
-catch {
-    throw "The terminal working directory is invalid: '$Path'."
-}
-
-if (-not [IO.Directory]::Exists($canonicalPath)) {
-    throw "The terminal working directory does not exist: '$canonicalPath'."
+$coreManifest = [IO.Path]::Combine($scriptsRoot, 'Modules', 'Atlas.Core', 'Atlas.Core.psd1')
+foreach ($manifest in @($coreManifest, $shellManifest)) {
+    if (-not [IO.File]::Exists($manifest)) {
+        throw "The protected module manifest is missing at '$manifest'."
+    }
+    Microsoft.PowerShell.Core\Import-Module -Name $manifest -ErrorAction Stop
 }
 
 function Get-AtlasWindowsTerminalPath {
@@ -78,7 +66,7 @@ function Get-AtlasWindowsTerminalPath {
         }
     }
     if (-not $loadedFromInbox) {
-        throw 'PowerShell did not load Appx from its protected inbox module directory.'
+        throw "PowerShell didn't load Appx from its protected inbox module directory."
     }
 
     $selectedPackage = $null
@@ -98,12 +86,12 @@ function Get-AtlasWindowsTerminalPath {
     }
 
     if ($null -eq $selectedPackage) {
-        throw 'A registered Microsoft Store Windows Terminal package was not found for this user.'
+        throw "A registered Microsoft Store Windows Terminal package wasn't found for this user."
     }
 
     $installPath = [IO.Path]::GetFullPath([string]$selectedPackage.InstallLocation)
     if (-not [IO.Directory]::Exists($installPath)) {
-        throw "The registered Windows Terminal package directory does not exist: '$installPath'."
+        throw "The registered Windows Terminal package directory doesn't exist: '$installPath'."
     }
     if (([IO.File]::GetAttributes($installPath) -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
         throw "The registered Windows Terminal package directory is a reparse point: '$installPath'."
@@ -123,41 +111,107 @@ function Get-AtlasWindowsTerminalPath {
     return $terminalPath
 }
 
-$argumentList = @()
-switch ($Terminal) {
-    'CommandPrompt' {
-        $executablePath = [IO.Path]::Combine([Environment]::SystemDirectory, 'cmd.exe')
+function Start-AtlasTerminalProcess {
+    param(
+        [Parameter(Mandatory = $true)]
+        [Diagnostics.ProcessStartInfo]$StartInfo
+    )
+
+    # Not Start-Process: it resolves -WorkingDirectory as a wildcard path, so a folder
+    # such as 'Movies [2020]' fails or opens a sibling that matches the pattern.
+    return [Diagnostics.Process]::Start($StartInfo)
+}
+
+function Show-AtlasTerminalFailure {
+    <#
+    .SYNOPSIS
+        Logs why no terminal opened and tells the user. Explorer starts this handler
+        without a window, so its own error is never seen.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [Management.Automation.ErrorRecord]$ErrorRecord
+    )
+
+    $reason = $ErrorRecord.Exception.GetBaseException().Message
+    # Neither report may replace the original error.
+    try {
+        Write-AtlasLog -Level Error -Message "Couldn't open $Terminal at '$Path': $reason" -ErrorRecord $ErrorRecord
     }
-    'PowerShell' {
-        $executablePath = [IO.Path]::Combine(
-            [Environment]::SystemDirectory,
-            'WindowsPowerShell',
-            'v1.0',
-            'powershell.exe'
-        )
-        $argumentList = @('-NoLogo', '-NoExit')
+    catch {
+        $null = $_
     }
-    'WindowsTerminal' {
-        $executablePath = Get-AtlasWindowsTerminalPath
-        $argumentList = @('-d', (ConvertTo-AtlasShellWindowsArgument -Value $canonicalPath))
+    try {
+        & ([IO.Path]::Combine($scriptsRoot, 'Operations', 'Show-AtlasToast.ps1')) `
+            -Title Atlas -Message "Couldn't open the terminal. $reason"
+    }
+    catch {
+        $null = $_
     }
 }
 
-if (-not [IO.File]::Exists($executablePath)) {
-    throw "The selected terminal executable is missing at '$executablePath'."
-}
+try {
+    if (-not [IO.Path]::IsPathRooted($Path) -or $Path.Length -gt 32767) {
+        throw 'The terminal working directory must be one absolute path of at most 32,767 characters.'
+    }
 
-$startParameters = @{
-    FilePath         = $executablePath
-    WorkingDirectory = $canonicalPath
-    Verb             = $Verb
-    PassThru         = $true
-}
-if ($argumentList.Count -gt 0) {
-    $startParameters.ArgumentList = $argumentList
-}
+    # The verbs pass "%V." so a drive root's trailing backslash can't escape the
+    # closing quote; GetFullPath drops the dot.
+    try {
+        $canonicalPath = [IO.Path]::GetFullPath($Path)
+    }
+    catch {
+        throw "The terminal working directory is invalid: '$Path'."
+    }
 
-$process = Microsoft.PowerShell.Management\Start-Process @startParameters
-if ($null -eq $process) {
-    throw "Failed to start $Terminal at '$canonicalPath'."
+    if (-not [IO.Directory]::Exists($canonicalPath)) {
+        throw "The terminal working directory doesn't exist: '$canonicalPath'."
+    }
+
+    $argumentList = @()
+    switch ($Terminal) {
+        'CommandPrompt' {
+            $executablePath = [IO.Path]::Combine([Environment]::SystemDirectory, 'cmd.exe')
+        }
+        'PowerShell' {
+            $executablePath = [IO.Path]::Combine(
+                [Environment]::SystemDirectory,
+                'WindowsPowerShell',
+                'v1.0',
+                'powershell.exe'
+            )
+            $argumentList = @('-NoLogo', '-NoExit')
+        }
+        'WindowsTerminal' {
+            $executablePath = Get-AtlasWindowsTerminalPath
+            $argumentList = @('-d', (ConvertTo-AtlasShellWindowsArgument -Value $canonicalPath))
+        }
+    }
+
+    if (-not [IO.File]::Exists($executablePath)) {
+        throw "The selected terminal executable is missing at '$executablePath'."
+    }
+
+    # The arguments are fixed switches and a path ConvertTo-AtlasShellWindowsArgument
+    # has quoted, so a plain join is the command line.
+    $startInfo = [Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = $executablePath
+    $startInfo.Arguments = $argumentList -join ' '
+    $startInfo.WorkingDirectory = $canonicalPath
+    $startInfo.UseShellExecute = $true
+    $startInfo.Verb = $Verb
+
+    $process = Start-AtlasTerminalProcess -StartInfo $startInfo
+    if ($null -eq $process) {
+        throw "Failed to start $Terminal at '$canonicalPath'."
+    }
+}
+catch {
+    # Declining the UAC prompt of an Admin entry is the user's choice, not a failure.
+    $baseException = $_.Exception.GetBaseException()
+    if ($baseException -is [ComponentModel.Win32Exception] -and $baseException.NativeErrorCode -eq 1223) {
+        return
+    }
+    Show-AtlasTerminalFailure -ErrorRecord $_
+    throw
 }

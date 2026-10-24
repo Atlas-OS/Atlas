@@ -80,6 +80,9 @@ pub enum CheckDetail {
     AdministratorMissing,
     UserAccountOk,
     UserAccountNotReady,
+    /// A work or school (Microsoft Entra ID) account, or any other account
+    /// without an account SID: the install plan can't act for it.
+    UserAccountWorkOrSchool,
     UserAccountUnknown {
         error: String,
     },
@@ -185,9 +188,13 @@ pub fn run(id: CheckId, ctx: &CheckContext) -> CheckResult {
                 (Verdict::Fail, D::AdministratorMissing)
             }
         }
-        CheckId::UserAccount => match system::user_account_ready() {
-            Ok(true) => (Verdict::Pass, D::UserAccountOk),
-            Ok(false) => (Verdict::Fail, D::UserAccountNotReady),
+        CheckId::UserAccount => match system::user_has_account_sid() {
+            Ok(false) => (Verdict::Fail, D::UserAccountWorkOrSchool),
+            Ok(true) => match system::user_account_ready() {
+                Ok(true) => (Verdict::Pass, D::UserAccountOk),
+                Ok(false) => (Verdict::Fail, D::UserAccountNotReady),
+                Err(error) => (Verdict::Unknown, D::UserAccountUnknown { error: format!("{error:#}") }),
+            },
             Err(error) => (Verdict::Unknown, D::UserAccountUnknown { error: format!("{error:#}") }),
         },
         CheckId::SupportedBuild => {
@@ -386,5 +393,32 @@ mod tests {
         context.system.build = 26200;
         context.system.installation_type = "Server".into();
         assert!(run(CheckId::SupportedBuild, &context).blocks_install());
+    }
+
+    /// On a listed build, Windows's release decides; neither case reaches
+    /// Microsoft's page. An Insider build fails, and a release that can't be
+    /// established blocks without a way to acknowledge it.
+    #[test]
+    fn a_listed_build_still_needs_a_public_release() {
+        let mut context = CheckContext {
+            system: SystemInfo {
+                build: 26200,
+                revision: 6584,
+                edition_id: "Professional".into(),
+                installation_type: "Client".into(),
+                build_lab: "26200.1.amd64fre.rs_prerelease.250101".into(),
+                ..Default::default()
+            },
+            supported_builds: vec![26200],
+        };
+        let result = run(CheckId::SupportedBuild, &context);
+        assert_eq!((result.verdict, &result.detail), (Verdict::Fail, &CheckDetail::WindowsPreview));
+        assert!(result.blocks_install());
+        context.system.revision = 0;
+        context.system.build_lab = "26200.1.amd64fre.ge_release.250101".into();
+        let result = run(CheckId::SupportedBuild, &context);
+        assert_eq!((result.verdict, &result.detail), (Verdict::Unknown, &CheckDetail::WindowsReleaseUnknown));
+        assert!(result.blocks_install());
+        assert!(!result.needs_acknowledgement());
     }
 }

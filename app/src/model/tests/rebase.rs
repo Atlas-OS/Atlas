@@ -45,9 +45,16 @@ fn every_kept_choice_is_used_and_none_is_asked_again() {
             kept.sort();
             assert_eq!(effective, kept, "the install gets exactly the kept choices");
         });
-        act(&mut cx, &model, |m, cx| m.choose_option(1, "mitigations-disable", cx));
-        read(&cx, &model, |m| {
-            assert!(!m.effective_options().iter().any(|option| option == "mitigations-disable"), "locked");
+        act(&mut cx, &model, |m, cx| {
+            let page = m
+                .manifest()
+                .pages
+                .iter()
+                .position(|page| page.options.iter().any(|o| o.name == "mitigations-disable"))
+                .unwrap();
+            let before = m.options.clone();
+            m.choose_option(page, "mitigations-disable", cx);
+            assert_eq!(m.options, before, "a choice the record kept can't be changed");
         });
     });
 }
@@ -225,5 +232,36 @@ fn an_update_from_0_5_0_starts_from_the_extras_the_pc_shows() {
                 "the user's change stands"
             );
         });
+    });
+}
+
+/// An update whose recorded choices name no browser keeps the browser
+/// picker's default, so ticking Install a Browser finds one chosen.
+#[test]
+fn an_update_with_no_browser_recorded_keeps_the_pickers_default() {
+    run_model_test(|mut cx| async move {
+        let (_temp, machine, mut env) = fixture("upgrade-no-browser");
+        *machine.identity.lock().unwrap() =
+            Some(crate::services::atlas_state::InstallIdentity::Installed("0.5.0".into()));
+        let observed: Vec<String> =
+            ["defender-enable", "mitigations-default", "auto-updates-disable"].map(str::to_owned).to_vec();
+        env.adapters.read_legacy_choices = std::sync::Arc::new(move || observed.clone());
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        act(&mut cx, &model, |m, cx| {
+            m.apply_recorded_choices();
+            assert!(m.options.contains("browser-brave"), "kept, though not in effect");
+            let page = m
+                .manifest()
+                .pages
+                .iter()
+                .position(|page| page.options.iter().any(|o| o.name == "install-another-browser"))
+                .unwrap();
+            m.choose_option(page, "install-another-browser", cx);
+        });
+        let browsers: Vec<String> = read(&cx, &model, |m| {
+            m.effective_options().into_iter().filter(|o| o.starts_with("browser-")).collect()
+        });
+        assert_eq!(browsers, ["browser-brave"]);
     });
 }

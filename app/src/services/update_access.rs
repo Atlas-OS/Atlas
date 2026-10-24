@@ -545,12 +545,13 @@ fn read_copy_at(path: &std::path::Path) -> Result<Option<String>> {
     std::fs::read_to_string(path).map(Some).with_context(|| format!("read {}", path.display()))
 }
 
-/// `SettingsPageVisibility` hides the pages it lists after `hide:`.
+/// `SettingsPageVisibility` hides the pages it lists after `hide:`, or every
+/// page but those listed after `showonly:`. Settings reads the prefix in any
+/// case, as the Atlas engine does.
 fn hides_windows_update(pages: &str) -> bool {
-    pages
-        .trim()
-        .strip_prefix("hide:")
-        .is_some_and(|list| list.split(';').any(|page| page.trim().eq_ignore_ascii_case("windowsupdate")))
+    let Some((mode, list)) = pages.trim().split_once(':') else { return false };
+    let listed = list.split(';').any(|page| page.trim().eq_ignore_ascii_case("windowsupdate"));
+    if mode.eq_ignore_ascii_case("hide") { listed } else { mode.eq_ignore_ascii_case("showonly") && !listed }
 }
 
 #[cfg(test)]
@@ -746,9 +747,14 @@ mod tests {
     }
 
     #[test]
-    fn only_a_listed_windows_update_page_counts_as_hidden() {
+    fn the_windows_update_page_is_hidden_when_listed_or_left_off_an_allowlist() {
         assert!(hides_windows_update("hide:recovery;windowsupdate;home"));
+        assert!(hides_windows_update("Hide:windowsupdate"), "as Microsoft's guidance writes it");
         assert!(!hides_windows_update("hide:recovery;home"));
         assert!(!hides_windows_update("showonly:windowsupdate"));
+        assert!(!hides_windows_update("showonly:about;windowsupdate"));
+        assert!(hides_windows_update("ShowOnly:display;about"));
+        assert!(hides_windows_update("showonly:"), "an empty allowlist shows no page");
+        assert!(!hides_windows_update("windowsupdate"), "no prefix, no policy");
     }
 }

@@ -276,22 +276,74 @@ Describe 'Included toggle definitions' {
         ($problems | ForEach-Object { "$($_.Path): $($_.Problem)" }) -join "`n" | Should -BeNullOrEmpty
     }
 
-    It 'declare exactly the closed service-defaults set with one (default) state each' {
-        InModuleScope Atlas.Toggles {
-            $servicesRoot = Join-Path $ShippedTogglesRoot 'Services'
-            $expected = @($script:AtlasServiceDefaultResetStates.Keys | ForEach-Object { [string]$_ })
-            @(Get-ChildItem -LiteralPath $servicesRoot -File -Filter '*.psd1' | Sort-Object Name | ForEach-Object { $_.BaseName }) |
-                Should -Be @($expected | Sort-Object)
+    It 'never hard-code the Windows directory' {
+        # Windows is not always at C:\Windows; an ExpandString with %SystemRoot% follows it.
+        $files = Get-ChildItem -LiteralPath $script:ShippedTogglesRoot -Recurse -File | Where-Object { $_.Extension -in '.ps1', '.psd1' }
+        @($files | Select-String -Pattern "(?i)['""][a-z]:\\Windows\\" | ForEach-Object { "$($_.Path):$($_.LineNumber)" }) |
+            Should -BeNullOrEmpty
+    }
 
-            foreach ($name in $expected) {
-                $definition = Get-AtlasToggleDefinition -Name $name -TogglesRoot $servicesRoot
-                (Get-AtlasToggleElevation -Definition $definition) | Should -Be 'Admin'
-                $defaults = @($definition.States.Keys | Where-Object {
-                        [string]$definition.States[$_]['Launcher'] -like '*(default)*'
-                    })
-                $defaults | Should -Be @([string]$script:AtlasServiceDefaultResetStates[$name])
+    It 'keep prompts and progress out of TrustedInstaller machine actions, which the broker runs silently' {
+        $interactive = '^(Read-Atlas\w+|Wait-AtlasContinue|Write-Atlas(Step|Note|Warning|Success|NextStep|ManualStep|Partial))$'
+        $problems = foreach ($file in Get-ChildItem -LiteralPath $script:ShippedTogglesRoot -Recurse -Filter '*.psd1') {
+            $definition = Import-PowerShellDataFile -LiteralPath $file.FullName
+            if ($definition['Elevation'] -cne 'TrustedInstaller' -or -not $definition['Script']) { continue }
+            $companion = [Management.Automation.Language.Parser]::ParseFile(
+                (Join-Path $file.DirectoryName $definition['Script']), [ref]$null, [ref]$null)
+            foreach ($state in $definition['States']) {
+                if (-not $state['MachineAction']) { continue }
+                $function = $companion.Find({
+                        param($node)
+                        $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -ceq $state['MachineAction']
+                    }, $true)
+                if (-not $function) {
+                    "$($definition['Name']): $($state['MachineAction']) is not defined"
+                    continue
+                }
+                foreach ($call in $function.Body.FindAll({ param($node) $node -is [Management.Automation.Language.CommandAst] }, $true)) {
+                    if ([string]$call.GetCommandName() -match $interactive) {
+                        "$($definition['Name']): $($state['MachineAction']) calls $($call.GetCommandName())"
+                    }
+                }
             }
-        } -Parameters @{ ShippedTogglesRoot = $script:ShippedTogglesRoot }
+        }
+        @($problems) | Should -BeNullOrEmpty
+    }
+
+    It 'never run a desktop launcher silently from an Explorer verb' {
+        # Explorer starts verbs with the filtered token, and a silent run won't ask for administrator permission.
+        $problems = foreach ($file in Get-ChildItem -LiteralPath $script:ShippedTogglesRoot -Recurse -Filter '*.psd1') {
+            $definition = Import-PowerShellDataFile -LiteralPath $file.FullName
+            foreach ($state in $definition['States']) {
+                foreach ($entry in $state['Registry']) {
+                    $data = [string]$entry['Data']
+                    if ($data -match '(?i)\\AtlasDesktop\\.+\.cmd' -and $data -match '(?i)\s/silent\b') {
+                        "$($definition['Name']): $($entry['Path'])"
+                    }
+                }
+            }
+        }
+        @($problems) | Should -BeNullOrEmpty
+    }
+
+    It 'reset exactly the closed service-defaults set to one (default) state each, in allowlist order' {
+        InModuleScope Atlas.Toggles {
+            $applied = [Collections.Generic.List[string]]::new()
+            Mock Assert-AtlasPrivilege
+            Mock Get-AtlasContext { [pscustomobject]@{ AtlasModulesPath = $ModulesPath } }
+            # Whether a default applies on this PC is covered in Atlas.ServiceDefaultsReset.Tests.ps1.
+            Mock Test-AtlasToggleReplayApplicable { $true }
+            Mock Invoke-AtlasToggleInProcess { $applied.Add("$($Definition['Name']):${StateName}:$([bool]$ResetServices)") }
+
+            # The real guard compares the name-sorted files with the allowlist position by
+            # position, so an allowlist out of file-name order fails the reset on every PC.
+            Invoke-AtlasServiceDefaultsReset
+
+            $expected = @($script:AtlasServiceDefaultResetStates.Keys | ForEach-Object {
+                    "${_}:$($script:AtlasServiceDefaultResetStates[$_]):True"
+                })
+            @($applied) | Should -Be $expected
+        } -Parameters @{ ModulesPath = (Split-Path -Parent $script:ShippedTogglesRoot) }
     }
 }
 
@@ -326,15 +378,6 @@ Describe 'Set-AtlasToggleState / Get-AtlasToggleState' {
 }
 
 Describe 'Initialize-AtlasToggleStateStore' {
-    It 'keeps an enabled verbose-message choice without legacy metadata' {
-        Set-AtlasToggleState -Name VerboseMessages -State 1 -StateRoot $StateRoot
-
-        Initialize-AtlasToggleStateStore -StateRoot $StateRoot
-
-        (Get-AtlasToggleState -Name VerboseMessages -StateRoot $StateRoot).State | Should -Be 1
-        Remove-Item -LiteralPath (Join-Path $StateRoot 'VerboseMessages') -Recurse -Force
-    }
-
     It 'preserves the legacy verbose-message choice for <Launcher>' -ForEach @(
         @{ Launcher = 'Disable Verbose Messages (default).cmd'; State = 1; Expected = 0 }
         @{ Launcher = 'disable verbose messages (default).cmd'; State = 1; Expected = 0 }
@@ -356,20 +399,14 @@ Describe 'Initialize-AtlasToggleStateStore' {
         Remove-Item -LiteralPath $keyPath -Recurse -Force
     }
 
-    It 'leaves a current modern-menu record without legacy metadata unchanged' {
-        Set-AtlasToggleState -Name OldContextMenu -State 0 -StateRoot $StateRoot
-
-        Initialize-AtlasToggleStateStore -StateRoot $StateRoot
-
-        (Get-AtlasToggleState -Name OldContextMenu -StateRoot $StateRoot).State | Should -Be 0
-        Remove-Item -LiteralPath (Join-Path $StateRoot 'OldContextMenu') -Recurse -Force
-    }
-
     It 'preserves the actual legacy context-menu choice for <Launcher>' -ForEach @(
         @{ Launcher = 'Old Context Menu (default).cmd'; Expected = 1 }
         @{ Launcher = 'New Context Menu.cmd'; Expected = 0 }
         @{ Launcher = 'unknown.cmd'; Expected = 0 }
     ) {
+        # No observable user, so the classic-menu fallback applies whatever this PC's own
+        # install state and menu are.
+        Mock Get-AtlasLegacyToggleObservedState -ModuleName Atlas.Toggles { $null }
         $keyPath = Join-Path $StateRoot 'OldContextMenu'
         New-Item -Path $keyPath -Force | Out-Null
         New-ItemProperty -LiteralPath $keyPath -Name state -Value 0 -PropertyType DWord -Force | Out-Null
@@ -461,6 +498,7 @@ Describe 'Replay of recorded states' {
     }
 
     It 'migrates the legacy classic menu before resolving the upgrade replay state' {
+        Mock Get-AtlasLegacyToggleObservedState -ModuleName Atlas.Toggles { $null }
         $keyPath = Join-Path $StateRoot 'OldContextMenu'
         New-Item -Path $keyPath -Force | Out-Null
         New-ItemProperty -LiteralPath $keyPath -Name state -Value 0 -PropertyType DWord -Force | Out-Null
@@ -764,6 +802,21 @@ Describe 'Replay of recorded states' {
         { Invoke-AtlasToggleUserReapply -StateRoot $StateRoot -TogglesRoot $script:ReplayRoot } |
             Should -Throw '*non-elevated*'
     }
+
+    It 'replays the power plan before the per-plan choices it would otherwise reset' {
+        $script:replayed = [Collections.Generic.List[string]]::new()
+        Mock Invoke-AtlasToggleFunction -ModuleName Atlas.Toggles {
+            if ($Label -eq 'machine action') { $script:replayed.Add([string]$Toggle.Name) }
+            $true
+        }
+        foreach ($name in 'CpuIdle', 'PowerSaving', 'Sleep') {
+            Set-AtlasToggleState -Name $name -State 0 -StateRoot $StateRoot
+        }
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ShippedTogglesRoot
+
+        $script:replayed | Should -Be @('PowerSaving', 'CpuIdle', 'Sleep')
+    }
 }
 
 Describe 'Invoke-AtlasToggle' {
@@ -844,6 +897,14 @@ Describe 'Invoke-AtlasToggle' {
     NoStateRecord = $true
     Script        = 'BrokerToggle.ps1'
     States        = @( @{ Name = 'Run'; Launcher = 'A\Run.cmd'; Reboot = 'Recommend'; MachineAction = 'Invoke-AtlasTestMachine' } )
+}
+'@ -Companion $script:MarkerCompanion
+        New-TestToggle -Root $script:TogglesRoot -Name 'ExplorerToggle' -Definition @'
+@{
+    Name      = 'ExplorerToggle'
+    Elevation = 'Admin'
+    Script    = 'ExplorerToggle.ps1'
+    States    = @( @{ Name = 'On'; StateValue = 1; Launcher = 'A\On.cmd'; Reboot = 'RestartExplorer'; MachineAction = 'Invoke-AtlasTestMachine' } )
 }
 '@ -Companion $script:MarkerCompanion
         New-TestToggle -Root $script:TogglesRoot -Name 'MenuToggle' -Definition @'
@@ -934,6 +995,30 @@ Describe 'Invoke-AtlasToggle' {
     }
 
     Context 'machine-only elevated toggles' {
+        It 'reports a failed caller-side Explorer restart as partly done once the elevated child applied the change' {
+            Mock Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles
+            Mock Write-AtlasStep -ModuleName Atlas.Toggles
+            Mock Write-AtlasPartial -ModuleName Atlas.Toggles { Set-AtlasRunOutcome -Outcome Partial }
+            Mock Invoke-AtlasToggleCurrentSessionShellRefresh -ModuleName Atlas.Toggles {
+                throw 'Current-session toggle shell refresh exited with code 14.'
+            }
+
+            { Invoke-AtlasToggle -Name 'ExplorerToggle' -State 'On' -LauncherPath $script:launcher `
+                    -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot } | Should -Not -Throw
+
+            InModuleScope Atlas.Toggles { Get-AtlasRunOutcome } | Should -BeExactly 'Partial'
+            Should -Invoke Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+                @($ArgumentList) -contains '/noaction'
+            }
+            Should -Invoke Write-AtlasPartial -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+                "$Text" -like "*File Explorer couldn't be restarted*"
+            }
+            Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+                $Level -ceq 'Warning' -and $Message -like '*exited with code 14*'
+            }
+            Should -Invoke Wait-AtlasExit -ModuleName Atlas.Toggles -Times 1 -Exactly
+        }
+
         It 'applies registry, services and the machine function in order, then records the state' {
             Mock Test-AtlasAdmin -ModuleName Atlas.Toggles { $true }
             $script:order = @()
@@ -970,7 +1055,9 @@ Describe 'Invoke-AtlasToggle' {
                 -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
 
             Should -Invoke Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
-                $Name -eq 'MachineToggle' -and ($ArgumentList -join ' ') -like '*-State "On"*' -and ($ArgumentList -join ' ') -notlike '*-MachineOnly*'
+                $Name -eq 'MachineToggle' -and ($ArgumentList -join ' ') -like '*-State On*' -and
+                    ($ArgumentList -join ' ') -notlike '*-MachineOnly*' -and
+                    @($ArgumentList | Where-Object { $_ -match '^[/-](silent|quiet)$' }).Count -eq 0
             }
             Get-Marker 'machine' | Should -BeNullOrEmpty
         }
@@ -1003,9 +1090,21 @@ Describe 'Invoke-AtlasToggle' {
         Context 'menu resolution' {
             BeforeEach { Mock Test-AtlasAdmin -ModuleName Atlas.Toggles { $true } }
 
-            It 'accepts an explicit -State without showing the menu' {
+            It 'prefers an explicit -State over the recorded state and SilentDefault in silent mode' {
+                Set-AtlasToggleState -Name 'MenuToggle' -State 1 -StateRoot $StateRoot
                 Invoke-AtlasToggle -Name 'MenuToggle' -State 'Disable' -Silent -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
                 Get-Marker 'machine' | Should -Be 'MenuToggle:Disable:0:silent=True'
+            }
+
+            It 'accepts an explicit -State interactively without showing the menu' {
+                # The elevated child of a menu choice gets -State without /silent.
+                Mock Read-AtlasChoice -ModuleName Atlas.Toggles { throw 'menu shown' }
+
+                Invoke-AtlasToggle -Name 'MenuToggle' -State 'Disable' -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
+
+                Get-Marker 'machine' | Should -Be 'MenuToggle:Disable:0:silent=False'
+                Should -Invoke Read-AtlasChoice -ModuleName Atlas.Toggles -Times 0 -Exactly
+                Should -Invoke Write-AtlasTitle -ModuleName Atlas.Toggles -Times 1 -Exactly
             }
 
             It 'silently re-applies the recorded state when -State is omitted' {
@@ -1047,26 +1146,46 @@ Describe 'Invoke-AtlasToggle' {
             Mock Invoke-AtlasTogglePostAction -ModuleName Atlas.Toggles {
                 Test-Path -LiteralPath (Join-Path $env:AtlasToggleTestDir 'record-dispatched.txt') | Should -BeTrue
             }
+            Mock Write-AtlasTitle -ModuleName Atlas.Toggles
 
             Invoke-AtlasToggle -Name 'UserOnlyToggle' -State 'On' -LauncherPath $script:launcher `
                 -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
 
-            Should -Invoke Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles -Times 1 -Exactly
+            Should -Invoke Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter { $UserWorkApplied }
             Should -Invoke Invoke-AtlasTogglePostAction -ModuleName Atlas.Toggles -Times 1 -Exactly
+            Should -Invoke Write-AtlasTitle -ModuleName Atlas.Toggles -Times 1 -Exactly
             Get-Marker 'user' | Should -Be 'UserOnlyToggle:On'
         }
 
-        It 'defers only completion for a nested user choice while retaining its recording child' {
+        It 'records the Visual Effects choice before it offers to sign out' {
+            $script:events = [Collections.Generic.List[string]]::new()
+            Mock Invoke-AtlasRegistryEntries -ModuleName Atlas.Toggles { $script:events.Add("registry:$Scope") }
+            Mock Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles { $script:events.Add("record:$UserWorkApplied") }
+            Mock Write-AtlasRestartNotice -ModuleName Atlas.Toggles
+            Mock Write-AtlasStep -ModuleName Atlas.Toggles
+            Mock Read-AtlasYesNo -ModuleName Atlas.Toggles { $script:events.Add("ask:$Question"); $true }
+            Mock Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles {
+                $script:events.Add("native:$([IO.Path]::GetFileName($FilePath))")
+            }
+
+            Invoke-AtlasToggle -Name 'Animation' -State 'Enable' -TogglesRoot $script:ShippedTogglesRoot -StateRoot $StateRoot
+
+            $script:events | Should -Be @('registry:CurrentUser', 'record:True', 'ask:Sign out now?', 'native:logoff.exe')
+        }
+
+        It 'defers completion and the heading for a nested user choice while retaining its recording child' {
             Mock Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles {
                 [IO.File]::ReadAllText((Join-Path $env:AtlasToggleTestDir 'user.txt')) | Should -Be 'UserOnlyToggle:On'
             }
             Mock Invoke-AtlasTogglePostAction -ModuleName Atlas.Toggles
+            Mock Write-AtlasTitle -ModuleName Atlas.Toggles
 
             Invoke-AtlasToggle -Name 'UserOnlyToggle' -State 'On' -DeferPostAction `
                 -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
 
             Should -Invoke Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles -Times 1 -Exactly
             Should -Not -Invoke Invoke-AtlasTogglePostAction -ModuleName Atlas.Toggles
+            Should -Not -Invoke Write-AtlasTitle -ModuleName Atlas.Toggles -Because 'the enclosing run owns the heading and window title'
             Get-Marker 'user' | Should -Be 'UserOnlyToggle:On'
         }
 
@@ -1093,6 +1212,34 @@ Describe 'Invoke-AtlasToggle' {
             Should -Not -Invoke Invoke-AtlasTogglePostAction -ModuleName Atlas.Toggles
         }
 
+        It 'reports a declined recording prompt after user-only work as partly done (<Mode>)' -ForEach @(
+            @{ Mode = 'standalone'; Deferred = $false }
+            @{ Mode = 'nested choice'; Deferred = $true }
+        ) {
+            Mock Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles {
+                $cancelled = [InvalidOperationException]::new('prompt cancelled')
+                $cancelled.Data['Atlas.Toggle.ElevationCancelledAfterUserWork'] = $true
+                throw $cancelled
+            }
+            Mock Invoke-AtlasTogglePostAction -ModuleName Atlas.Toggles
+            Mock Write-AtlasPartial -ModuleName Atlas.Toggles { Set-AtlasRunOutcome -Outcome Partial }
+            InModuleScope Atlas.Toggles { Reset-AtlasRunOutcome }
+            $extra = if ($Deferred) { @{ DeferPostAction = $true } } else { @{ LauncherPath = $script:launcher } }
+
+            { Invoke-AtlasToggle -Name 'UserOnlyToggle' -State 'On' @extra `
+                    -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot } | Should -Not -Throw
+
+            Get-Marker 'user' | Should -Be 'UserOnlyToggle:On'
+            InModuleScope Atlas.Toggles { Get-AtlasRunOutcome } | Should -BeExactly 'Partial'
+            Should -Invoke Write-AtlasPartial -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+                "$Text" -like "*didn't save this choice*an Atlas update can change it back*"
+            }
+            Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+                $Level -ceq 'Warning' -and $Message -ceq 'prompt cancelled'
+            }
+            Should -Invoke Invoke-AtlasTogglePostAction -ModuleName Atlas.Toggles -Times $(if ($Deferred) { 0 } else { 1 }) -Exactly
+        }
+
         It 'preserves interactive prerequisites in the Administrator child, then runs user work locally' {
             $script:scopes = @()
             Mock Invoke-AtlasRegistryEntries -ModuleName Atlas.Toggles { $script:scopes += $Scope }
@@ -1102,7 +1249,8 @@ Describe 'Invoke-AtlasToggle' {
                 -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
 
             Should -Invoke Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
-                ($ArgumentList -join ' ') -like '*-MachineOnly*' -and ($ArgumentList -join ' ') -notlike '*/silent*'
+                ($ArgumentList -join ' ') -like '*-MachineOnly*' -and ($ArgumentList -join ' ') -notlike '*/silent*' -and
+                    -not $UserWorkApplied
             }
             Get-Marker 'machine' | Should -BeNullOrEmpty
             Get-Marker 'user' | Should -Be 'SplitToggle:On'
@@ -1179,15 +1327,38 @@ Describe 'Invoke-AtlasToggle' {
 
         It 'routes an Administrator caller through the typed broker only, confirming first' {
             Mock Test-AtlasAdmin -ModuleName Atlas.Toggles { $true }
+            $script:events = @()
+            Mock Wait-AtlasContinue -ModuleName Atlas.Toggles { $script:events += 'confirm' }
+            Mock Write-AtlasStep -ModuleName Atlas.Toggles { $script:events += 'step' }
+            Mock Invoke-AtlasTrustedInstaller -ModuleName Atlas.Toggles {
+                $script:events += 'broker'
+                [pscustomobject]@{ ExitCode = 0 }
+            }
 
             Invoke-AtlasToggle -Name 'BrokerToggle' -State 'Run' -NoExplorerRestart -LauncherPath $script:launcher `
                 -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
 
-            Should -Invoke Wait-AtlasContinue -ModuleName Atlas.Toggles -Times 1 -Exactly
+            $script:events | Should -Be @('confirm', 'step', 'broker')
+            Should -Invoke Write-AtlasStep -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+                $Text -like 'Applying the change as TrustedInstaller*'
+            }
             Should -Invoke Invoke-AtlasTrustedInstaller -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
                 $Operation -eq 'Toggle' -and $Name -eq 'BrokerToggle' -and $State -eq 'Run' -and $Silent -eq $true
             }
             Get-Marker 'machine' | Should -BeNullOrEmpty
+        }
+
+        It 'prints no broker progress step in a <Mode> run' -ForEach @(
+            @{ Mode = 'silent'; Extra = @{ Silent = $true } }
+            @{ Mode = 'context-only'; Extra = @{ JustContext = $true } }
+        ) {
+            Mock Test-AtlasAdmin -ModuleName Atlas.Toggles { $true }
+            Mock Write-AtlasStep -ModuleName Atlas.Toggles
+
+            Invoke-AtlasToggle -Name 'BrokerToggle' -State 'Run' @Extra -TogglesRoot $script:TogglesRoot -StateRoot $StateRoot
+
+            Should -Invoke Invoke-AtlasTrustedInstaller -ModuleName Atlas.Toggles -Times 1 -Exactly
+            Should -Not -Invoke Write-AtlasStep -ModuleName Atlas.Toggles
         }
 
         It 'runs in-process only with strict TrustedInstaller evidence' {
@@ -1268,6 +1439,73 @@ Describe 'Invoke-AtlasToggleMachineState' {
             Should -Throw '*does not declare Admin or TrustedInstaller*'
         { Invoke-AtlasToggleMachineState -Name 'Dependency' -State 'Off' -StateRoot $StateRoot -TogglesRoot $script:DependencyRoot } |
             Should -Throw "*does not define exact state 'Off'*"
+    }
+}
+
+Describe 'Invoke-AtlasTogglePostAction' {
+    BeforeEach {
+        $script:events = [Collections.Generic.List[string]]::new()
+        Mock Write-AtlasCompletion -ModuleName Atlas.Toggles { $script:events.Add('completion') }
+        Mock Write-AtlasRestartNotice -ModuleName Atlas.Toggles { $script:events.Add("notice:$Kind") }
+        Mock Write-AtlasStep -ModuleName Atlas.Toggles
+        Mock Wait-AtlasExit -ModuleName Atlas.Toggles { $script:events.Add('exit') }
+        Mock Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles {
+            $script:events.Add("native:$([IO.Path]::GetFileName($FilePath))")
+        }
+    }
+
+    It 'offers the declared sign-out after the closing line and signs out on yes' {
+        Mock Read-AtlasYesNo -ModuleName Atlas.Toggles { $script:events.Add("ask:$Question"); $true }
+
+        InModuleScope Atlas.Toggles {
+            Invoke-AtlasTogglePostAction -ToggleName 'Animation' -StateEntry @{ Reboot = 'SignOut' } `
+                -Context ([pscustomobject]@{ WinDir = 'C:\Windows' })
+        }
+
+        $script:events | Should -Be @('completion', 'notice:SignOut', 'ask:Sign out now?', 'native:logoff.exe', 'exit')
+        Should -Invoke Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            $FilePath -eq 'C:\Windows\System32\logoff.exe' -and @($ArgumentList).Count -eq 0 -and
+                (@($AllowedExitCodes) -join ',') -eq '0'
+        }
+    }
+
+    It 'keeps the session on no and asks nothing in a silent run' {
+        Mock Read-AtlasYesNo -ModuleName Atlas.Toggles { $false }
+
+        InModuleScope Atlas.Toggles {
+            $entry = @{ Reboot = 'SignOut' }
+            $context = [pscustomobject]@{ WinDir = 'C:\Windows' }
+            Invoke-AtlasTogglePostAction -ToggleName 'Animation' -StateEntry $entry -Context $context
+            Invoke-AtlasTogglePostAction -ToggleName 'Animation' -StateEntry $entry -Context $context -Silent
+        }
+
+        Should -Invoke Read-AtlasYesNo -ModuleName Atlas.Toggles -Times 1 -Exactly
+        Should -Not -Invoke Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles
+    }
+
+    It 'reports a failed Explorer restart as partly done, and fails a silent run' {
+        Mock Test-AtlasSystem -ModuleName Atlas.Toggles { $false }
+        Mock Write-AtlasLog -ModuleName Atlas.Toggles
+        Mock Write-AtlasPartial -ModuleName Atlas.Toggles { $script:events.Add('partial') }
+        Mock Invoke-AtlasToggleCurrentSessionShellRefresh -ModuleName Atlas.Toggles {
+            throw 'Current-session toggle shell refresh exited with code 14.'
+        }
+
+        InModuleScope Atlas.Toggles {
+            Invoke-AtlasTogglePostAction -ToggleName 'Explorer' -StateEntry @{ Reboot = 'RestartExplorer' } `
+                -Context ([pscustomobject]@{ WinDir = 'C:\Windows' })
+        }
+        $script:events | Should -Be @('partial', 'completion', 'exit')
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            $Level -ceq 'Warning' -and $Message -like '*exited with code 14*'
+        }
+
+        {
+            InModuleScope Atlas.Toggles {
+                Invoke-AtlasTogglePostAction -ToggleName 'Explorer' -StateEntry @{ Reboot = 'RestartExplorer' } `
+                    -Context ([pscustomobject]@{ WinDir = 'C:\Windows' }) -Silent
+            }
+        } | Should -Throw '*exited with code 14*'
     }
 }
 
@@ -1363,23 +1601,58 @@ Describe 'Generated launchers' {
     }
 }
 
-Describe 'Get-AtlasToggleRelaunchArgumentList' {
+Describe 'Toggle elevation relaunch' {
     BeforeEach {
+        Mock Write-AtlasLog -ModuleName Atlas.Toggles
         Mock Get-AtlasContext -ModuleName Atlas.Toggles {
-            [pscustomobject]@{ AtlasModulesPath = 'C:\Windows\AtlasModules' }
+            [pscustomobject]@{
+                WinDir           = [Environment]::GetFolderPath('Windows')
+                AtlasModulesPath = 'C:\Windows\AtlasModules'
+            }
         }
     }
 
-    It 'quotes every dynamic value in the joined Windows command line' {
+    It 'builds plain argv for the relaunch' {
         InModuleScope Atlas.Toggles {
-            $list = Get-AtlasToggleRelaunchArgumentList -Name 'My Toggle' -State 'Enable Now' -LauncherPath 'C:\Program Files\x.cmd'
-            $joined = $list -join ' '
-
-            $joined | Should -Match '-File "C:\\Windows\\AtlasModules\\Scripts\\Entry\\Invoke-Toggle.ps1"'
-            $joined | Should -Match '-Name "My Toggle"'
-            $joined | Should -Match '-State "Enable Now"'
-            $joined | Should -Match '-LauncherPath "C:\\Program Files\\x.cmd"'
+            Get-AtlasToggleRelaunchArgumentList -Name 'MyToggle' -State 'On' -LauncherPath 'C:\Program Files\x.cmd' -MachineOnly |
+                Should -Be @(
+                    '-NoProfile', '-NoLogo', '-ExecutionPolicy', 'Bypass'
+                    '-File', 'C:\Windows\AtlasModules\Scripts\Entry\Invoke-Toggle.ps1'
+                    '-Name', 'MyToggle', '-State', 'On', '-LauncherPath', 'C:\Program Files\x.cmd', '-MachineOnly'
+                )
         }
+    }
+
+    It 'serializes the argv with the shared Windows quoting and keeps the shell''s Win32 error' {
+        Mock ConvertTo-AtlasWindowsArgumentString -ModuleName Atlas.Toggles { 'serialized' }
+        $missing = Join-Path $TestDrive 'missing.exe'
+
+        # A missing file fails ShellExecuteEx before any elevation prompt.
+        $failure = { InModuleScope Atlas.Toggles -Parameters @{ Path = $missing } {
+                param($Path)
+                Start-AtlasToggleAdminRelaunch -FilePath $Path -ArgumentList @('-Name', 'My Toggle')
+            } } | Should -Throw -ExceptionType ([ComponentModel.Win32Exception]) -PassThru
+
+        $failure.Exception.NativeErrorCode | Should -Be 2
+        Should -Invoke ConvertTo-AtlasWindowsArgumentString -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            (@($ArgumentList) -join '|') -eq '-Name|My Toggle'
+        }
+    }
+
+    It 'reports a declined prompt as cancelled and says whether the user work already ran (<Case>)' -ForEach @(
+        @{ Case = 'nothing applied yet'; Applied = $false; Expected = "*prompt for 'MyToggle' was cancelled, so nothing was changed." }
+        @{ Case = 'user work applied'; Applied = $true; Expected = "*prompt for 'MyToggle' was cancelled, so the change was made but Atlas didn't record it." }
+    ) {
+        Mock Start-AtlasToggleAdminRelaunch -ModuleName Atlas.Toggles { throw [ComponentModel.Win32Exception]::new(1223) }
+
+        $failure = { InModuleScope Atlas.Toggles -Parameters @{ Applied = $Applied } {
+                param($Applied)
+                Invoke-AtlasToggleElevatedChild -Name 'MyToggle' -ArgumentList @('-Name', 'MyToggle') -Silent `
+                    -UserWorkApplied:$Applied
+            } } | Should -Throw $Expected -PassThru
+
+        # The engine reports the applied case as partly done by this key, not the text.
+        $failure.Exception.Data.Contains('Atlas.Toggle.ElevationCancelledAfterUserWork') | Should -Be $Applied
     }
 }
 

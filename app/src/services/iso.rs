@@ -799,21 +799,28 @@ mod tests {
     }
 
     #[test]
-    fn every_script_setup_loads_goes_onto_the_media() {
-        // Setup.ps1 runs from %WINDIR%\AtlasISO, where only what Build-Iso
-        // copies from the job is; a script it dot-sources must be in both.
-        let setup = include_str!("../../resources/iso/Setup.ps1");
+    fn every_script_the_installed_pc_runs_goes_onto_the_media() {
+        // These run from %WINDIR%\AtlasISO, where only what Build-Iso copies from
+        // the job is. A script they load or name (the shell policy names
+        // Desktop.ps1, the cleanup task Setup.ps1) must be in both.
         let build = include_str!("../../resources/iso/Build-Iso.ps1");
-        let loaded: Vec<&str> = setup
-            .lines()
-            .filter_map(|line| line.trim().strip_prefix(". (Join-Path $root '"))
-            .filter_map(|rest| rest.strip_suffix("')"))
+        let scripts = [
+            include_str!("../../resources/iso/Setup.ps1"),
+            include_str!("../../resources/iso/Desktop.ps1"),
+            include_str!("../../resources/iso/Desktop-Policy.ps1"),
+        ];
+        // Scripts only: setup.json, the logs and the markers are written at run time.
+        let named: std::collections::BTreeSet<&str> = scripts
+            .into_iter()
+            .flat_map(|script| script.split("Join-Path $").skip(1))
+            .filter_map(|rest| rest.strip_prefix("root '").or_else(|| rest.strip_prefix("Root '")))
+            .filter_map(|rest| rest.split('\'').next())
+            .filter(|name| name.ends_with(".ps1"))
             .collect();
-        assert!(
-            loaded.contains(&"RegistryFile.ps1"),
-            "setup applies the drivers choice with the shared import"
-        );
-        for name in loaded {
+        for name in ["Setup.ps1", "Desktop.ps1", "Desktop-Policy.ps1", "RegistryFile.ps1"] {
+            assert!(named.contains(name), "the installed-PC scripts no longer name {name}");
+        }
+        for name in named {
             assert!(WORKER_FILES.iter().any(|(file, _)| *file == name), "the job lacks {name}");
             assert!(build.contains(&format!("'{name}'")), "Build-Iso.ps1 doesn't copy {name} onto the media");
         }

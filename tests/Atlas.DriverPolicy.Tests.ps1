@@ -27,6 +27,14 @@ Describe 'Manual and automatic driver policy' {
         (Get-ItemProperty ($base + 'Policies\Microsoft\Windows\DriverSearching')).PSObject.Properties['SearchOrderConfig'] | Should -BeNullOrEmpty
         (Get-ItemProperty ($base + 'Microsoft\Windows\CurrentVersion\DriverSearching')).SearchOrderConfig | Should -Be 1
     }
+
+    It 'gives the release ZIP the same disable policy as the package' {
+        # The release ZIP carries its own copy beside the APBX, so it must not drift from the package's.
+        $release = Join-Path $script:AtlasTestRepoRoot 'tools\release-zip\Disable Automatic Driver Installation.reg'
+        $package = Join-Path $script:policyFiles 'Disable Drivers from Windows Update.reg'
+        (Get-FileHash -LiteralPath $release -Algorithm SHA256).Hash |
+            Should -Be (Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash -Because 'edit both copies together'
+    }
 }
 
 Describe 'Applying the drivers choice' {

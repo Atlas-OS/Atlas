@@ -587,18 +587,33 @@ function New-StagedPlaybookConf {
 
     $patternTokens = @()
     if ($RemoveRequirements) { $patternTokens += '<Requirement>' }
-    if ($RemoveWinverRequirement) { $patternTokens += '<string>', '</SupportedBuilds>', '<SupportedBuilds>' }
     if ($RemoveVerification) { $patternTokens += '<ProductCode>' }
 
-    if ($patternTokens.Count -eq 0) {
+    if ($patternTokens.Count -eq 0 -and -not $RemoveWinverRequirement) {
         return $false
     }
 
     Set-ParentDirectory -Path $DestinationPath
-    $pattern = [string]::Join('|', $patternTokens)
-    Get-Content -Path $PlaybookConfPath -Encoding UTF8 |
-        Where-Object { $_ -notmatch $pattern } |
-        Set-Content -Path $DestinationPath -Encoding UTF8
+    $pattern = if ($patternTokens.Count -gt 0) { [string]::Join('|', $patternTokens) } else { $null }
+    # <SupportedBuilds> goes as a whole block: its <string> entries share their tag
+    # with <UpgradableFrom>, which dev builds keep.
+    $insideSupportedBuilds = $false
+    $stagedLines = foreach ($line in Get-Content -Path $PlaybookConfPath -Encoding UTF8) {
+        if ($RemoveWinverRequirement -and $line -match '<SupportedBuilds>') {
+            $insideSupportedBuilds = $true
+        }
+        if ($insideSupportedBuilds) {
+            if ($line -match '</SupportedBuilds>') {
+                $insideSupportedBuilds = $false
+            }
+            continue
+        }
+        if ($pattern -and $line -match $pattern) {
+            continue
+        }
+        $line
+    }
+    $stagedLines | Set-Content -Path $DestinationPath -Encoding UTF8
 
     return (Test-Path -LiteralPath $DestinationPath)
 }
@@ -757,8 +772,9 @@ function New-Apbx {
             $passwordArgs += '-pmalte'
         }
 
-        # Store-level compression for speed; -bs* flags keep 7-Zip quiet.
-        $archiveArgs = @('a', '-tzip', '-y', '-mx1', '-bso0', '-bse0', '-bsp0')
+        # Fastest compression. -bso0 and -bsp0 silence normal output and progress; errors
+        # stay on stderr so Invoke-SevenZip can say which file failed and why.
+        $archiveArgs = @('a', '-tzip', '-y', '-mx1', '-bso0', '-bsp0')
         if ($script:IsWindowsPlatform) {
             $archiveArgs += '-spf'
         }
@@ -774,7 +790,7 @@ function New-Apbx {
         if ($stagedFiles) {
             Set-Location -LiteralPath $stagingPath
             try {
-                $updateArgs = @('u', '-bso0', '-bse0', '-bsp0')
+                $updateArgs = @('u', '-bso0', '-bsp0')
                 $updateArgs += $passwordArgs
                 $updateArgs += $buildApbxPath
                 $updateArgs += '*'
@@ -787,7 +803,7 @@ function New-Apbx {
             }
         }
 
-        $integrityArgs = @('t', '-bso0', '-bse0', '-bsp0') +
+        $integrityArgs = @('t', '-bso0', '-bsp0') +
             $passwordArgs + @($buildApbxPath)
         Invoke-SevenZip -SevenZipPath $sevenZipPath -ArgumentList $integrityArgs `
             -ErrorContext 'Verifying built APBX archive' | Out-Null

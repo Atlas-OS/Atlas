@@ -74,12 +74,35 @@ function Invoke-AtlasDefenderPackageInstaller {
         '-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $Installer.ScriptPath,
         "-${Operation}Packages", $script:AtlasDefenderPackagePattern
     )
-    if ($NoInteraction) {
-        $arguments += '-NoInteraction'
+    if (-not $NoInteraction) {
+        # Interactively the installer asks its own questions. Redirecting its output
+        # would hold each prompt back until it was answered, so it shares this console.
+        $process = Start-Process -FilePath $Installer.PowerShellPath `
+            -ArgumentList (ConvertTo-AtlasWindowsArgumentString -ArgumentList $arguments) `
+            -NoNewWindow -Wait -PassThru -ErrorAction Stop
+        return $process.ExitCode
     }
 
-    & $Installer.PowerShellPath @arguments
-    return $LASTEXITCODE
+    # Captured so the installer's console lines never join the returned exit code. A
+    # silent run has no window to show them in, so they go to the log. Redirected stderr
+    # becomes error records, which Stop would throw before the exit code is read.
+    $arguments += '-NoInteraction'
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $output = @(& $Installer.PowerShellPath @arguments 2>&1)
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+    foreach ($line in $output) {
+        $text = ([string]$line).Trim()
+        if ($text.Length -gt 0) {
+            Write-AtlasLog -Message "Package installer: $text"
+        }
+    }
+    return $exitCode
 }
 
 function Read-AtlasDefenderMenuChoice {
@@ -156,12 +179,12 @@ function Set-AtlasDefenderState {
     <#
     .SYNOPSIS
         Disables Windows Defender by installing the NoDefender package, or enables it by
-        removing that package. Without -State the interactive menu picks the change;
-        a silent call must name the state. The package installer prompts for its own
-        restart.
+        removing that package. Read-AtlasDefenderStateChoice is the interactive menu.
+        Without -Silent the package installer prompts for its own restart.
     #>
     [CmdletBinding()]
     param(
+        [Parameter(Mandatory = $true)]
         [ValidateSet('Enable', 'Disable')]
         [string]$State,
 
@@ -171,13 +194,7 @@ function Set-AtlasDefenderState {
     $installer = Get-AtlasDefenderPackageInstaller
     $current = Get-AtlasDefenderState
 
-    if (-not $State) {
-        if ($Silent) {
-            throw 'A silent Defender change requires -State Enable or Disable.'
-        }
-        $State = Read-AtlasDefenderMenuChoice -CurrentState $current
-    }
-    elseif ("${State}d" -ceq $current) {
+    if ("${State}d" -ceq $current) {
         Write-AtlasLog -Message "Windows Defender is already $($current.ToLowerInvariant()); no package change is needed."
         return
     }

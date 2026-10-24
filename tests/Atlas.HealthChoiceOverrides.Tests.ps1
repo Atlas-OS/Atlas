@@ -10,11 +10,17 @@ BeforeAll {
     $script:choiceFile = Join-Path $TestDrive 'choice.psd1'
     $healthPath = Join-Path $script:AtlasTestScriptsRoot 'Entry\Test-AtlasHealth.ps1'
     $healthAst = [System.Management.Automation.Language.Parser]::ParseFile($healthPath, [ref]$null, [ref]$null)
-    $reportFunction = $healthAst.Find({
-        param($node)
-        $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Get-AtlasHealthReport'
-    }, $false)
-    . ([scriptblock]::Create($reportFunction.Extent.Text))
+    foreach ($functionName in 'Get-AtlasHealthReport', 'Get-AtlasHealthStandaloneTweakPath') {
+        $function = $healthAst.Find({
+            param($node)
+            $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $functionName
+        }, $false)
+        . ([scriptblock]::Create($function.Extent.Text))
+    }
+    $script:healthDocument = [pscustomobject]@{
+        installedVersion = 'test'; installedAt = 'test'; mode = 'Reapply'
+        options = @(); history = @(); toggles = [pscustomobject]@{}
+    }
     @'
 @{
     Name = 'Choice fixture'
@@ -49,16 +55,64 @@ Describe 'Health expectations for explicitly applied machine choices' {
         Mock Test-AtlasToggleDrift { @() }
         Mock Get-AtlasToggleStateRecords { @{ Location = 1; Copilot = 1 } }
         Mock Test-AtlasTweakCategory { @() }
-        $document = [pscustomobject]@{
-            installedVersion = 'test'; installedAt = 'test'; mode = 'Reapply'
-            options = @(); history = @(); toggles = [pscustomobject]@{}
+        Mock Test-AtlasTweakCategory -ParameterFilter { $RegistryScope -eq 'CurrentUser' } {
+            [pscustomobject]@{ Tweak = 'user-fixture'; Kind = 'Registry'; Target = 'HKCU\Fixture'; Reason = 'value is missing' }
         }
-        $report = Get-AtlasHealthReport -Context $script:choiceContext -Document $document -Categories privacy
-        $report.healthy | Should -BeTrue
+        $report = Get-AtlasHealthReport -Context $script:choiceContext -Document $script:healthDocument -Categories privacy
+        $report.healthy | Should -BeFalse
+        @($report.tweakDrift).Count | Should -Be 1
+        $report.tweakDrift[0].Tweak | Should -Be 'user-fixture'
         Should -Invoke Get-AtlasToggleStateRecords -Times 1 -Exactly
-        Should -Invoke Test-AtlasTweakCategory -Times 2 -Exactly -ParameterFilter {
-            $RecordedToggleStates.Location -eq 1 -and $RecordedToggleStates.Copilot -eq 1
+        Should -Invoke Test-AtlasToggleDrift -Times 1 -Exactly -ParameterFilter {
+            @($Scope) -contains 'Machine' -and @($Scope) -contains 'User'
         }
+        Should -Invoke Test-AtlasTweakCategory -Times 3 -Exactly
+        foreach ($scope in 'Machine', 'ProtectedCurrentUser', 'CurrentUser') {
+            Should -Invoke Test-AtlasTweakCategory -Times 1 -Exactly -ParameterFilter {
+                $Name -eq 'privacy' -and $RegistryScope -ceq $scope -and
+                $RecordedToggleStates.Location -eq 1 -and $RecordedToggleStates.Copilot -eq 1
+            }
+        }
+    }
+
+    It 'is not healthy when only a recorded toggle state drifted' {
+        Mock Test-AtlasToggleDrift {
+            [pscustomobject]@{ Toggle = 'Location'; State = 1; Scope = 'Machine'; Kind = 'Registry'; Target = 'HKLM\Fixture'; Reason = 'value data differs' }
+        }
+        Mock Get-AtlasToggleStateRecords { @{} }
+        Mock Test-AtlasTweakCategory { @() }
+        $report = Get-AtlasHealthReport -Context $script:choiceContext -Document $script:healthDocument -Categories privacy
+        $report.healthy | Should -BeFalse
+        @($report.toggleDrift).Count | Should -Be 1
+        @($report.tweakDrift).Count | Should -Be 0
+    }
+
+    It 'checks the Standalone tweaks the install plan ran, in machine scope with the recorded choices' {
+        $manifest = @{ Standalone = @(
+                @{ Slug = 'scripts/fresh-only'; ParentModes = @('Fresh') }
+                @{ Slug = 'qol/nested/upgrade-only'; ParentModes = @('Upgrade') }
+            ) }
+        $root = Join-Path $TestDrive 'Tweaks'
+        @(Get-AtlasHealthStandaloneTweakPath -Context $script:choiceContext -Manifest $manifest -TweaksRoot $root) |
+            Should -Be @(Join-Path $root 'scripts\fresh-only.psd1')
+        $upgraded = $script:choiceContext.PSObject.Copy()
+        $upgraded.IsUpgrade = $true
+        @(Get-AtlasHealthStandaloneTweakPath -Context $upgraded -Manifest $manifest -TweaksRoot $root) |
+            Should -Be @(Join-Path $root 'qol\nested\upgrade-only.psd1')
+
+        # The fixture's HKLM entries drift only when read in machine scope.
+        Mock Test-AtlasToggleDrift { @() }
+        Mock Test-AtlasTweakCategory { @() }
+        Mock Get-AtlasToggleStateRecords { @{} }
+        $report = Get-AtlasHealthReport -Context $script:choiceContext -Document $script:healthDocument -Categories privacy `
+            -StandaloneTweakPaths $script:choiceFile
+        $report.healthy | Should -BeFalse
+        @($report.tweakDrift | Where-Object Tweak -eq 'Choice fixture').Count | Should -Be 2
+
+        Mock Get-AtlasToggleStateRecords { @{ Location = 1; Copilot = 1 } }
+        $report = Get-AtlasHealthReport -Context $script:choiceContext -Document $script:healthDocument -Categories privacy `
+            -StandaloneTweakPaths $script:choiceFile
+        $report.healthy | Should -BeTrue
     }
 
     It 'reports <Expected> drifted values when the recorded choices are <Label>' -TestCases @(

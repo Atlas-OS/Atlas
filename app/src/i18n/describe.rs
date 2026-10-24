@@ -14,7 +14,7 @@ use crate::model::{
 use crate::services::atlas_state::InstallMode;
 use crate::services::installer::{InstallOutcome, Phase};
 use crate::services::playbook::FeaturePage;
-use crate::services::preparation::Activity;
+use crate::services::preparation::{Activity, waits_for_offer};
 use crate::services::reports::SendProblem;
 use crate::services::requirements::{CheckDetail, CheckId, CheckResult};
 use crate::services::security::{Protection, SwitchCounts};
@@ -134,7 +134,7 @@ pub fn transition_failure(failure: &Activity, words: &TransitionWords) -> Option
     Some(match reason {
         // A missing monthly update is installed first; one Windows Update
         // doesn't offer yet is the same wait as the release itself.
-        "feature-not-offered" | "feature-prerequisite" => {
+        reason if waits_for_offer(reason) => {
             t!("prepare-failed-feature-not-offered", release = release, current = current)
         }
         "feature-hardware" => {
@@ -294,6 +294,7 @@ impl CheckDetail {
             CheckDetail::AdministratorMissing => t!("detail-admin-missing"),
             CheckDetail::UserAccountOk => t!("detail-user-account-ok"),
             CheckDetail::UserAccountNotReady => t!("detail-user-account-not-ready"),
+            CheckDetail::UserAccountWorkOrSchool => t!("detail-user-account-work-or-school"),
             CheckDetail::UserAccountUnknown { error } => t!("detail-user-account-unknown", error = error),
             CheckDetail::BuildSupported => system_description(system),
             CheckDetail::EditionUnsupported => t!("detail-edition-unsupported"),
@@ -573,7 +574,7 @@ fn recognised(id: &str, package_text: &str) -> bool {
 /// option keeps its own text, in English as well as translated languages.
 fn guarded(id: &str, package_text: &str) -> String {
     if recognised(id, package_text) {
-        super::current().format(id, None, &[])
+        super::current().format(id, &[])
     } else {
         package_text.trim().to_owned()
     }
@@ -989,11 +990,14 @@ mod tests {
                     after.trim_start().strip_prefix('\'')?.split('\'').next()
                 })
                 .collect();
-            // The Store's own paused states.
-            named.extend(["store-paused-battery", "store-paused-network"]);
+            // The Store's own paused states, which the worker names apart from those calls.
+            let paused = ["store-paused-battery", "store-paused-network"];
+            for id in paused {
+                assert!(worker.contains(&format!("'{id}'")), "{id} is not named by the worker");
+            }
+            named.extend(paused);
             assert!(named.len() >= 8, "{named:?}");
             for id in named {
-                assert!(worker.contains(&format!("'{id}'")), "{id} is not named by the worker");
                 assert!(preparation_failure_reason(id).is_some(), "no advice for {id}");
             }
             assert_eq!(preparation_failure_reason("a-newer-cause"), None);
@@ -1029,13 +1033,43 @@ mod tests {
             named.dedup();
             assert!(named.len() >= 15, "{named:?}");
             let words = TransitionWords { release: "26H2", current: "24H2", version: "0.6.0" };
+            let missing = join_list(&[t!("hardware-tpm"), t!("hardware-uefi")]);
+            let (release, current, version) =
+                (("release", "26H2"), ("current", "24H2"), ("version", "0.6.0"));
+            let setting = ("setting", "BITS");
+            let disk = [("needed", "46"), ("drive", "D:"), ("free", "13")];
+            // Each cause, the message it gets and the facts that message shows,
+            // so a cause given another's words, or a fact in the wrong place, fails.
+            type Expected<'a> = (&'a str, &'a str, &'a [(&'a str, &'a str)]);
+            let expected: &[Expected] = &[
+                ("feature-not-offered", "prepare-failed-feature-not-offered", &[release, current]),
+                ("feature-prerequisite", "prepare-failed-feature-not-offered", &[release, current]),
+                (
+                    "feature-hardware",
+                    "prepare-failed-feature-hardware",
+                    &[("missing", missing.as_str()), release, current, version],
+                ),
+                ("feature-hidden", "prepare-failed-feature-hidden", &[release]),
+                ("feature-disk-space", "prepare-failed-feature-disk-space", &disk),
+                ("feature-servicing", "prepare-failed-feature-servicing", &[]),
+                ("feature-managed", "prepare-failed-feature-managed", &[release]),
+                ("feature-policy", "prepare-failed-feature-policy", &[setting]),
+                ("feature-blocked", "prepare-failed-feature-blocked", &[setting]),
+                ("feature-rolled-back", "prepare-failed-feature-rolled-back", &[release, current]),
+                ("feature-components-lost", "prepare-failed-feature-components-lost", &[version]),
+                ("feature-build", "prepare-failed-feature-build", &[]),
+                ("feature-journal", "prepare-failed-feature-journal", &[]),
+                ("feature-pin", "prepare-failed-feature-pin", &[setting]),
+                ("feature-terms", "prepare-failed-feature-terms", &[release]),
+                ("feature-failed", "prepare-failed-feature-failed", &[release, current]),
+            ];
             for id in named {
                 let activity = Activity {
                     reason: Some(id.to_owned()),
                     hardware: Some("tpm,uefi".into()),
-                    drive: Some("C:".into()),
-                    free_gb: Some("3".into()),
-                    needed_gb: Some("6".into()),
+                    drive: Some("D:".into()),
+                    free_gb: Some("13".into()),
+                    needed_gb: Some("46".into()),
                     setting: Some("BITS".into()),
                     ..Activity::default()
                 };
@@ -1057,24 +1091,14 @@ mod tests {
                 }
                 let text =
                     transition_failure(&activity, &words).unwrap_or_else(|| panic!("no words for {id}"));
-                assert!(!text.contains('{'), "{id}: {text}");
+                let (_, message, facts) = expected
+                    .iter()
+                    .find(|(cause, ..)| *cause == id)
+                    .unwrap_or_else(|| panic!("{id} needs its expected words in this test"));
+                let args: Vec<(&str, crate::i18n::Arg)> =
+                    facts.iter().map(|(name, value)| (*name, (*value).into())).collect();
+                assert_eq!(text, crate::i18n::text(message, &args), "{id}");
             }
-            let hardware = Activity {
-                reason: Some("feature-hardware".into()),
-                hardware: Some("tpm,uefi".into()),
-                ..Activity::default()
-            };
-            let text = transition_failure(&hardware, &words).unwrap();
-            assert!(text.contains("TPM 2.0") && text.contains("UEFI firmware"), "{text}");
-            let space = Activity {
-                reason: Some("feature-disk-space".into()),
-                drive: Some("D:".into()),
-                free_gb: Some("3".into()),
-                needed_gb: Some("6".into()),
-                ..Activity::default()
-            };
-            let text = transition_failure(&space, &words).unwrap();
-            assert!(text.contains("D:") && text.contains('3') && text.contains('6'), "{text}");
             assert_eq!(
                 transition_failure(
                     &Activity { reason: Some("store-missing".into()), ..Activity::default() },

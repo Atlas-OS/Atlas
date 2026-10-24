@@ -1,8 +1,3 @@
-# Set-AtlasThemeMru reads the build from [Environment]::OSVersion, which cannot be mocked,
-# so only the case for the running build can run. Pester evaluates -Skip during discovery,
-# so the flag is set here rather than in BeforeAll.
-$script:isWin11 = [System.Environment]::OSVersion.Version.Build -ge 22000
-
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
@@ -11,29 +6,43 @@ BeforeAll {
 }
 
 Describe 'Set-AtlasThemeMru' {
+    BeforeAll {
+        $script:themeMruNames = @(
+            'atlas-v0.4.x-dark.theme'
+            'atlas-v0.4.x-light.theme'
+            'atlas-v0.5.x-dark.theme'
+            'atlas-v0.5.x-light.theme'
+            'dark.theme'
+            'aero.theme'
+        )
+    }
+
     BeforeEach {
         # No ParameterFilter, so nothing reaches HKCU or stops a real process.
         Mock Set-ItemProperty -ModuleName Atlas.Themes
         Mock Stop-ThemeProcesses -ModuleName Atlas.Themes
     }
 
-    It 'writes the Windows 11 ThemeMRU list to the CurrentVersion\Themes key' -Skip:(-not $script:isWin11) {
+    It 'writes the ThemeMRU list to the CurrentVersion\Themes key' {
+        $expected = -join @($script:themeMruNames | ForEach-Object { "$env:SystemRoot\resources\Themes\$_;" })
+
         Set-AtlasThemeMru
 
         Should -Invoke Set-ItemProperty -ModuleName Atlas.Themes -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'ThemeMRU' -and
-            $Path -like '*CurrentVersion\Themes' -and
-            $Value -like '*atlas-v0.4.x-dark.theme*' -and
-            $Value -like '*atlas-v0.5.x-light.theme*' -and
-            $Value -like '*aero.theme*'
+            $Path -ceq 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes' -and
+            $Name -ceq 'ThemeMRU' -and
+            $Value -ceq $expected -and
+            $Type -eq 'String'
         }
         Should -Invoke Stop-ThemeProcesses -ModuleName Atlas.Themes -Times 1 -Exactly
     }
 
-    It 'is a no-op on Windows 10 (build < 22000)' -Skip:($script:isWin11) {
-        Set-AtlasThemeMru
-
-        Should -Invoke Set-ItemProperty -ModuleName Atlas.Themes -Times 0 -Exactly
+    It 'lists only Atlas themes that the Atlas package installs' {
+        # Copy-AtlasPayload copies these to Resources\Themes; the other entries are inbox themes.
+        $themesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\Themes'
+        foreach ($name in @($script:themeMruNames -like 'atlas-*')) {
+            Join-Path -Path $themesRoot -ChildPath $name | Should -Exist
+        }
     }
 }
 

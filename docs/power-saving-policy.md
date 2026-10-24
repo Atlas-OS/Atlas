@@ -22,9 +22,10 @@ A fresh install with **Maximum Performance (Disable Power Saving)**
 (`disable-power-saving`) applies `Disable`. Without that option, the installer
 activates Balanced.
 
-Default Power-saving undoes only Atlas's change. It never runs
-`powercfg /restoredefaultschemes`, which would delete the machine's current plans and
-their settings.
+Default Power-saving undoes only Atlas's change, apart from applying any recorded CPU
+Idle and Sleep choices to the restored plan (see [How it works](#how-it-works)). It
+never runs `powercfg /restoredefaultschemes`, which would delete the machine's current
+plans and their settings.
 
 ## AC settings
 
@@ -37,6 +38,8 @@ only these AC values:
 | Allow Throttle States (Processor power management, `54533251-82be-4824-96c1-47b60b740d00`) | `3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb` | `0` | Disabled on AC. Firmware thermal controls still apply. |
 | Turn off display after (Display, `7516b95f-f776-4464-8c53-06167f40cc99`) | `3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e` | `0` | Never. Can increase display energy use. |
 | Processor performance time check interval (Processor power management, `54533251-82be-4824-96c1-47b60b740d00`) | `4d2b0152-7d5c-498b-88e2-34345392a2c5` | `200` | 200 ms, within the documented Windows range. An Atlas product choice, not a performance or DPC-latency guarantee. |
+
+Recorded CPU Idle and Sleep choices are applied to this plan too.
 
 ## What the toggle does not change
 
@@ -92,12 +95,19 @@ implements both states.
   with a fresh duplicate of Balanced, sets the four AC values and activates it.
 - **Default** activates the saved plan if it is installed and is not the Atlas plan,
   otherwise Balanced, then deletes the Atlas plan.
+- **Per-plan choices:** CPU idle and sleep settings belong to each plan, so after
+  either state the toggle applies the recorded CpuIdle and Sleep choices to the plan it
+  left active. A recorded choice that doesn't apply on this PC, such as disabling CPU
+  idle with SMT on, is skipped. One that can't be applied is logged as a warning, and
+  an interactive run says to run that choice's launcher again; neither fails the
+  toggle. Upgrade replay restores PowerSaving before them.
 - **Unlisted plans:** on Modern Standby PCs, `powercfg /list` shows only Balanced
   and its copies. The Ultimate Performance copy older Atlas versions made is left
   out but still holds the Atlas GUID, so both states also look for its key under
   `HKLM\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes` and delete it.
-- **Checks:** every `%SystemRoot%\System32\powercfg.exe` call stops the run on a
-  nonzero exit code, and every plan GUID from `powercfg` or the registry is validated.
+- **Checks:** every `%SystemRoot%\System32\powercfg.exe` call that
+  `Set-AtlasPowerSavingState` makes stops the run on a nonzero exit code, and every
+  plan GUID from `powercfg` or the registry is validated.
   The active plan is read back before success is reported. Default removes the saved
   value only after that check.
 

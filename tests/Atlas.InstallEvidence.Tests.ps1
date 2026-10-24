@@ -93,6 +93,7 @@ exit 37
         $request = Join-Path $payload 'request.json'
         $original = '{"status":"Running","options":["install-toolbox"]}'
         [IO.File]::WriteAllText($active, $original)
+        [IO.File]::WriteAllText((Join-Path $state 'last.json'), '{"status":"Completed","transactionId":"last-fixture"}')
         [IO.File]::WriteAllText($request, '{"options":[]}')
         $legacyLogs = Join-Path $payload 'AtlasModules\Logs\install'
         New-Item -ItemType Directory -Path $legacyLogs -Force | Out-Null
@@ -103,6 +104,7 @@ exit 37
         $log = Get-ChildItem (Join-Path $app 'Logs') -Filter '*.log'
         $text = Get-Content $log.FullName -Raw
         $text | Should -Match 'install-toolbox'
+        $text | Should -Match 'last-fixture'
         $text | Should -Match 'request.json'
         $text | Should -Match 'Visual C\+\+ Runtime fixture failed with exit code 1234'
         $text | Should -Match 'Unavailable:'

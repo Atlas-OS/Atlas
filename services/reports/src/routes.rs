@@ -35,8 +35,15 @@ pub(crate) fn header<'a>(headers: &'a HeaderMap, name: &str) -> &'a str {
 pub(crate) fn trusted(state: &AppState, request: &Request) -> bool {
     let peer = request.extensions().get::<ConnectInfo<SocketAddr>>();
     let supplied = header(request.headers(), "x-atlas-gateway");
-    peer.is_some_and(|peer| state.config.proxy_ips.contains(&peer.0.ip()))
+    peer.is_some_and(|peer| pinned_proxy(&state.config.proxy_ips, peer.0.ip()))
         && state.verify_gateway(supplied)
+}
+/// Whether `peer` is one of the configured proxies. A dual-stack listener
+/// reports IPv4 peers as IPv4-mapped IPv6 addresses, so both sides are
+/// compared in canonical form.
+fn pinned_proxy(proxies: &[IpAddr], peer: IpAddr) -> bool {
+    let peer = peer.to_canonical();
+    proxies.iter().any(|proxy| proxy.to_canonical() == peer)
 }
 /// A host usually controls a whole IPv6 /64, so it shares one rate identity.
 /// IPv4-mapped addresses are canonicalised first so they stay per address.
@@ -400,7 +407,7 @@ async fn upload(
     let path = temporary.0.clone();
     // The validator keeps the upload permit even if the client disconnects.
     let (summary, _permit) =
-        tokio::task::spawn_blocking(move || (archive::validate(&path), permit))
+        tokio::task::spawn_blocking(move || (archive::validate(&path, id), permit))
             .await
             .map_err(|_| {
                 ApiError(
@@ -676,7 +683,23 @@ pub(crate) fn delete_report(
 
 #[cfg(test)]
 mod tests {
-    use super::client_key;
+    use super::{client_key, pinned_proxy};
+
+    #[test]
+    fn a_proxy_is_recognised_through_a_dual_stack_listener() {
+        let ips = |list: &[&str]| {
+            list.iter()
+                .map(|ip| ip.parse().unwrap())
+                .collect::<Vec<_>>()
+        };
+        let pinned =
+            |proxies: &[&str], peer: &str| pinned_proxy(&ips(proxies), peer.parse().unwrap());
+        assert!(pinned(&["172.30.80.2"], "::ffff:172.30.80.2"));
+        assert!(pinned(&["::ffff:172.30.80.2"], "172.30.80.2"));
+        assert!(pinned(&["172.30.80.2"], "172.30.80.2"));
+        assert!(!pinned(&["172.30.80.2"], "::ffff:172.30.80.3"));
+        assert!(!pinned(&["127.0.0.1"], "::1"));
+    }
 
     #[test]
     fn ipv6_clients_share_a_64_and_mapped_ipv4_stays_per_address() {

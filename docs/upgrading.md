@@ -179,6 +179,9 @@ How the move works:
   Security platform update, is installed once and then left for 30 days: it's logged as
   `reoffered-after-success` and recorded under `HKLM\SOFTWARE\AtlasOS\Preparation`, so the
   install's own check doesn't wait for it either.
+- A driver that Windows Update fails with 0x80070103, because the device already has one
+  at least as good, is logged as `driver not needed` and kept in the same record for 30
+  days, so the install's own check doesn't wait for it either.
 - Atlas commits the change once, just before it restarts Windows: it finds the installed
   update again by the id the record keeps and commits it. A commit that fails is logged, and
   the restart goes ahead: only the build Windows starts decides whether it moved.
@@ -206,9 +209,10 @@ When the move waits for a newer monthly update first (`feature-prerequisite`), t
 full runs, since only those install it. **Check again** looks at once. When the offer comes,
 the move goes on; after 2 hours without one, Atlas Manager puts the settings back (once
 nothing else runs) and says to check again later, or to reinstall from an Atlas ISO after a
-backup. Opened again on a move still waiting, Home offers **Check again** and Get ready looks
-once by itself. Hardware below the Windows 11 requirements is named as such (reinstall from
-an Atlas ISO).
+backup. While an Atlas install is still to finish, it only stops looking, because that install
+puts the settings back as its last step. Opened again on a move still waiting, Home offers
+**Check again** and Get ready looks once by itself. Hardware below the Windows 11
+requirements is named as such (reinstall from an Atlas ISO).
 
 Cancelling from any step before the install starts (Cancel asks first, and **Stop updating**
 on the card between looks does the same), or closing Atlas Manager before 26H2 is installed,

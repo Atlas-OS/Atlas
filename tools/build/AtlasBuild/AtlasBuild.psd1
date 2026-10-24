@@ -13,7 +13,6 @@
         'Get-AtlasPlaybookPayloadPath'
         'Compare-AtlasPayloadPath'
         'Get-AtlasYamlAction'
-        'Get-AtlasConfigurationRunnerContract'
         'Assert-AtlasConfigurationRunnerBoundary'
         'New-StagedPlaybookConf'
         'Set-OemVersionStamp'

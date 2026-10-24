@@ -9,8 +9,9 @@ use windows::Win32::Foundation::{ERROR_INSUFFICIENT_BUFFER, LPARAM, SYSTEMTIME};
 use windows::Win32::Globalization::{
     DATE_LONGDATE, ENUM_DATE_FORMATS_FLAGS, EnumDateFormatsExEx, GetDateFormatEx, GetLocaleInfoEx,
     GetNumberFormatEx, GetTimeFormatEx, GetUserDefaultLocaleName, GetUserPreferredUILanguages, LOCALE_ILZERO,
-    LOCALE_INEGNUMBER, LOCALE_SDECIMAL, LOCALE_SENGLISHDISPLAYNAME, LOCALE_SGROUPING, LOCALE_SLONGDATE,
-    LOCALE_SNATIVEDISPLAYNAME, LOCALE_STHOUSAND, MUI_LANGUAGE_NAME, NUMBERFMTW, TIME_NOSECONDS,
+    LOCALE_INEGNUMBER, LOCALE_NOUSEROVERRIDE, LOCALE_SDECIMAL, LOCALE_SENGLISHDISPLAYNAME, LOCALE_SGROUPING,
+    LOCALE_SLONGDATE, LOCALE_SNATIVEDISPLAYNAME, LOCALE_STHOUSAND, MUI_LANGUAGE_NAME, NUMBERFMTW,
+    TIME_FORMAT_FLAGS, TIME_NOSECONDS,
 };
 use windows::core::BOOL;
 use windows::core::{HSTRING, PCWSTR, PWSTR};
@@ -18,9 +19,15 @@ use windows::core::{HSTRING, PCWSTR, PWSTR};
 /// `LOCALE_NAME_MAX_LENGTH` from the Windows SDK: the longest locale name, with its terminator.
 const LOCALE_NAME_MAX_LENGTH: usize = 85;
 
-/// A locale name for the NLS functions: an explicit BCP 47 name, or the
-/// user's regional format (Settings > Time & language > Language & region >
-/// Regional format), including any customisations made there.
+/// A locale name for the NLS functions: the user's regional format
+/// (Settings > Time & language > Language & region > Regional format),
+/// including any customisations made there, or an explicit BCP 47 name. A
+/// named locale reads its standard separators, grouping, times and long date
+/// even when it is the PC's own format, so a review or a test gives the same
+/// result whatever the user has customised, with one exception: where that
+/// long date has a weekday, the weekday-free date used instead comes from the
+/// list Windows enumerates, and for the PC's own locale that list can start
+/// with the user's customised long date.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub enum LocaleName {
     #[default]
@@ -33,6 +40,14 @@ impl LocaleName {
         match self {
             LocaleName::UserDefault => None,
             LocaleName::Named(name) => Some(HSTRING::from(name.as_str())),
+        }
+    }
+
+    /// The flag that keeps the user's customisations out of a named locale.
+    fn override_flag(&self) -> u32 {
+        match self {
+            LocaleName::UserDefault => 0,
+            LocaleName::Named(_) => LOCALE_NOUSEROVERRIDE,
         }
     }
 }
@@ -110,6 +125,7 @@ fn read_wide(mut call: impl FnMut(Option<&mut [u16]>) -> i32) -> Option<String> 
 }
 
 fn locale_info(locale: &LocaleName, kind: u32) -> Option<String> {
+    let kind = kind | locale.override_flag();
     with_locale(locale, |name| read_wide(|buffer| unsafe { GetLocaleInfoEx(name, kind, buffer) }))
 }
 
@@ -138,8 +154,8 @@ fn grouping_from_locale_string(grouping: &str) -> u32 {
 }
 
 /// Formats a decimal number with exactly `fraction_digits` decimals, using the
-/// locale's separators, grouping and negative style, with the user's
-/// overrides. `None` when Windows cannot format it.
+/// locale's separators, grouping and negative style (see [`LocaleName`] for
+/// the user's customisations). `None` when Windows cannot format it.
 pub fn format_number(locale: &LocaleName, value: f64, fraction_digits: usize) -> Option<String> {
     if !value.is_finite() {
         return None;
@@ -247,10 +263,14 @@ fn long_date_patterns(locale: &LocaleName) -> Vec<String> {
     patterns
 }
 
-/// The pattern used for dates. Patterns are never edited: the user's own
-/// long date is used when it has no weekday (so customisations are kept);
-/// otherwise the first weekday-free long date Windows itself lists for the
-/// locale; otherwise the user's long date unchanged, weekday and all.
+/// The pattern used for dates. Patterns are never edited: the locale's own
+/// long date is used when it has no weekday (so the user's customisations
+/// are kept); otherwise the first weekday-free long date Windows itself
+/// lists for the locale; otherwise the locale's long date unchanged,
+/// weekday and all. Windows can't leave the user's customisations out of
+/// that list (`EnumDateFormatsExEx` refuses `LOCALE_NOUSEROVERRIDE`), so for
+/// the PC's own locale it can start with the user's customised long date,
+/// even for a named locale.
 fn date_pattern(locale: &LocaleName) -> Option<String> {
     let own = locale_info(locale, LOCALE_SLONGDATE)?;
     if !has_weekday(&own) {
@@ -261,7 +281,7 @@ fn date_pattern(locale: &LocaleName) -> Option<String> {
 
 /// The date in the locale's long format, without the weekday where Windows
 /// offers such a format ("21 October 2025" in en-GB, "October 21, 2025" in
-/// en-US, "2025. október 21." in hu-HU), honouring user overrides.
+/// en-US, "2025. október 21." in hu-HU).
 pub fn format_date(locale: &LocaleName, when: &LocalDateTime) -> Option<String> {
     let time = when.system_time();
     let pattern = HSTRING::from(date_pattern(locale)?);
@@ -273,14 +293,14 @@ pub fn format_date(locale: &LocaleName, when: &LocalDateTime) -> Option<String> 
     })
 }
 
-/// The wall-clock time without seconds ("20:13" or "8:13 PM"), as the user's
-/// regional format has it.
+/// The wall-clock time without seconds ("20:13" or "8:13 PM"), as the
+/// locale has it.
 pub fn format_time(locale: &LocaleName, when: &LocalDateTime) -> Option<String> {
     let time = when.system_time();
+    // LOCALE_NOUSEROVERRIDE is allowed here because no pattern is passed.
+    let flags = TIME_FORMAT_FLAGS(TIME_NOSECONDS.0 | locale.override_flag());
     with_locale(locale, |name| {
-        read_wide(|buffer| unsafe {
-            GetTimeFormatEx(name, TIME_NOSECONDS, Some(&time), PCWSTR::null(), buffer)
-        })
+        read_wide(|buffer| unsafe { GetTimeFormatEx(name, flags, Some(&time), PCWSTR::null(), buffer) })
     })
 }
 
@@ -312,7 +332,7 @@ mod tests {
     }
 
     #[test]
-    fn numbers_follow_the_named_locale_not_the_ui_language() {
+    fn numbers_follow_the_named_locale() {
         assert_eq!(format_number(&named("en-US"), 1234.5, 2).as_deref(), Some("1,234.50"));
         assert_eq!(format_number(&named("de-DE"), 1234.5, 2).as_deref(), Some("1.234,50"));
         assert_eq!(format_number(&named("de-CH"), 1234.5, 2).as_deref(), Some("1’234.50"));

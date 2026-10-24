@@ -41,6 +41,36 @@ BeforeAll {
 }
 
 Describe 'Atlas Toolbox latest-channel integrity contract' {
+    BeforeAll {
+        function New-ToolboxRepositoryFixture {
+            [pscustomobject]@{
+                id        = 929016610
+                full_name = 'Atlas-OS/atlas-toolbox'
+                private   = $false
+                archived  = $false
+                owner     = [pscustomobject]@{ id = 78708182; login = 'Atlas-OS' }
+            }
+        }
+
+        function New-ToolboxReleaseFixture {
+            [pscustomobject]@{
+                draft      = $false
+                prerelease = $false
+                tag_name   = 'v1.2.3'
+                assets     = @(
+                    [pscustomobject]@{
+                        id                   = 42
+                        name                 = 'AtlasToolbox-Setup.exe'
+                        state                = 'uploaded'
+                        size                 = 123456
+                        digest               = 'sha256:' + ('a' * 64)
+                        browser_download_url = 'https://github.com/Atlas-OS/atlas-toolbox/releases/download/v1.2.3/AtlasToolbox-Setup.exe'
+                    }
+                )
+            }
+        }
+    }
+
     It 'requests the latest stable Toolbox asset without a pinned version' {
         $latestAsset = [pscustomobject]@{
             Version = '1.2.3'
@@ -68,25 +98,9 @@ Describe 'Atlas Toolbox latest-channel integrity contract' {
             }
     }
 
-    It 'binds each resolved latest asset to exact GitHub identity, bytes, and digest' {
-        $release = [pscustomobject]@{
-            draft      = $false
-            prerelease = $false
-            tag_name   = 'v1.2.3'
-            assets     = @(
-                [pscustomobject]@{
-                    id                   = 42
-                    name                 = 'AtlasToolbox-Setup.exe'
-                    state                = 'uploaded'
-                    size                 = 123456
-                    digest               = 'sha256:' + ('a' * 64)
-                    browser_download_url = 'https://github.com/Atlas-OS/atlas-toolbox/releases/download/v1.2.3/AtlasToolbox-Setup.exe'
-                }
-            )
-        }
-
+    It 'binds each resolved latest asset to its canonical release URL, bytes, and digest' {
         # The resolver is private to Atlas.Download; reach it through the module scope.
-        InModuleScope Atlas.Download -Parameters @{ Release = $release } {
+        InModuleScope Atlas.Download -Parameters @{ Release = (New-ToolboxReleaseFixture) } {
             param($Release)
 
             $asset = Resolve-AtlasGitHubReleaseAssetMetadata `
@@ -113,6 +127,54 @@ Describe 'Atlas Toolbox latest-channel integrity contract' {
                     -Release $Release -Owner Atlas-OS -Repository atlas-toolbox `
                     -AssetName AtlasToolbox-Setup.exe
             } | Should -Throw '*canonical repository and tag*'
+        }
+    }
+
+    Context 'Pinned repository identity' {
+        BeforeEach {
+            $script:Repository = New-ToolboxRepositoryFixture
+            $script:Release = New-ToolboxReleaseFixture
+            # The resolver calls the API helper inside Atlas.Download, so the mock lives
+            # there. Any other request fails rather than reaching GitHub.
+            Mock Invoke-AtlasGitHubApiJson -ModuleName Atlas.Download -MockWith {
+                switch -CaseSensitive ($Uri.AbsoluteUri) {
+                    'https://api.github.com/repos/Atlas-OS/atlas-toolbox' { return $script:Repository }
+                    'https://api.github.com/repos/Atlas-OS/atlas-toolbox/releases/latest' { return $script:Release }
+                    default { throw "Unexpected GitHub API request '$Uri'." }
+                }
+            }
+        }
+
+        It 'returns the latest asset from the pinned repository' {
+            $asset = Get-AtlasLatestGitHubReleaseAsset -Owner Atlas-OS -Repository atlas-toolbox `
+                -AssetName AtlasToolbox-Setup.exe -ExpectedRepositoryId 929016610 -ExpectedOwnerId 78708182
+
+            $asset.Version | Should -BeExactly '1.2.3'
+            $asset.Sha256 | Should -BeExactly ('a' * 64)
+            $asset.Size | Should -Be 123456
+            Should -Invoke Invoke-AtlasGitHubApiJson -ModuleName Atlas.Download -Times 2 -Exactly
+        }
+
+        It 'rejects <Case> before requesting release metadata' -TestCases @(
+            @{ Case = 'another repository ID'; Field = 'id'; Value = 929016611 }
+            @{ Case = 'a non-numeric repository ID'; Field = 'id'; Value = 'atlas-toolbox' }
+            @{ Case = 'another owner ID'; Field = 'owner.id'; Value = 78708183 }
+            @{ Case = 'another owner login'; Field = 'owner.login'; Value = 'atlas-os' }
+            @{ Case = 'another full name'; Field = 'full_name'; Value = 'atlas-os/atlas-toolbox' }
+            @{ Case = 'a private repository'; Field = 'private'; Value = $true }
+            @{ Case = 'an archived repository'; Field = 'archived'; Value = $true }
+        ) {
+            param($Field, $Value)
+
+            $metadata = if ($Field -like 'owner.*') { $script:Repository.owner } else { $script:Repository }
+            $metadata.PSObject.Properties[$Field -replace '^owner\.'].Value = $Value
+
+            {
+                Get-AtlasLatestGitHubReleaseAsset -Owner Atlas-OS -Repository atlas-toolbox `
+                    -AssetName AtlasToolbox-Setup.exe -ExpectedRepositoryId 929016610 -ExpectedOwnerId 78708182
+            } | Should -Throw '*expected repository identity*'
+            Should -Invoke Invoke-AtlasGitHubApiJson -ModuleName Atlas.Download -Times 0 -Exactly `
+                -ParameterFilter { $Uri.AbsolutePath -like '*/releases/latest' }
         }
     }
 
@@ -153,35 +215,58 @@ Describe 'Shared download boundary' {
         Test-Path -LiteralPath $destination | Should -BeFalse
     }
 
-    It 'keeps a download only after its exact byte length and SHA-256 match' {
-        $source = Join-Path $TestDrive 'expected-payload.bin'
-        $destination = Join-Path $TestDrive 'verified-payload.bin'
-        [IO.File]::WriteAllBytes($source, [Text.Encoding]::UTF8.GetBytes('atlas payload'))
-        $expectedBytes = [IO.File]::ReadAllBytes($source)
-        $hash = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash
+    It 'keeps a download whose byte length and SHA-256 match' {
+        $destination = Join-Path $TestDrive 'verified-download.bin'
+        $received = [Text.Encoding]::UTF8.GetBytes('atlas download')
+        $hash = (Get-FileHash -InputStream ([IO.MemoryStream]::new($received)) -Algorithm SHA256).Hash
         # Invoke-AtlasPinnedDownload calls the HTTP helper inside Atlas.Download, so the
-        # mock must live in the module; its body runs there too and reads the source file
-        # from a fixed environment hook instead of this test's scope.
-        $env:ATLAS_TEST_DOWNLOAD_SOURCE = $source
-        try {
-            Mock Invoke-AtlasBoundedHttpGet -ModuleName Atlas.Download -MockWith {
-                $bytes = [IO.File]::ReadAllBytes($env:ATLAS_TEST_DOWNLOAD_SOURCE)
-                $OutputStream.Write($bytes, 0, $bytes.Length)
-                return $bytes.Length
-            }
+        # mock must live in the module.
+        Mock Invoke-AtlasBoundedHttpGet -ModuleName Atlas.Download -MockWith {
+            $OutputStream.Write($received, 0, $received.Length)
+            return [long]$received.Length
+        }
 
-            $result = Invoke-AtlasPinnedDownload -Uri 'https://example.test/payload.bin' `
-                -Destination $destination -Sha256 $hash `
-                -ExpectedBytes $expectedBytes.Length
-        }
-        finally {
-            Remove-Item Env:\ATLAS_TEST_DOWNLOAD_SOURCE -ErrorAction SilentlyContinue
-        }
+        $result = Invoke-AtlasPinnedDownload -Uri 'https://example.test/download.bin' `
+            -Destination $destination -Sha256 $hash -ExpectedBytes $received.Length
 
         Should -Invoke Invoke-AtlasBoundedHttpGet -ModuleName Atlas.Download -Times 1 -Exactly `
-            -ParameterFilter { [string]$Uri -eq 'https://example.test/payload.bin' }
+            -ParameterFilter { [string]$Uri -eq 'https://example.test/download.bin' }
         $result | Should -BeExactly $destination
-        [IO.File]::ReadAllBytes($destination) | Should -Be $expectedBytes
+        [IO.File]::ReadAllBytes($destination) | Should -Be $received
+    }
+
+    It 'deletes a download whose SHA-256 does not match' {
+        $destination = Join-Path $TestDrive 'mismatched-download.bin'
+        $received = [Text.Encoding]::UTF8.GetBytes('atlas download')
+        Mock Invoke-AtlasBoundedHttpGet -ModuleName Atlas.Download -MockWith {
+            $OutputStream.Write($received, 0, $received.Length)
+            return [long]$received.Length
+        }
+
+        {
+            Invoke-AtlasPinnedDownload -Uri 'https://example.test/download.bin' `
+                -Destination $destination -Sha256 ('0' * 64) -ExpectedBytes $received.Length
+        } | Should -Throw '*SHA-256*does not match*'
+
+        Test-Path -LiteralPath $destination | Should -BeFalse
+    }
+
+    It 'deletes a download that ends before its expected byte length' {
+        $destination = Join-Path $TestDrive 'short-download.bin'
+        $received = [Text.Encoding]::UTF8.GetBytes('atlas')
+        # The hash matches the bytes received, so only the length check can reject them.
+        $hash = (Get-FileHash -InputStream ([IO.MemoryStream]::new($received)) -Algorithm SHA256).Hash
+        Mock Invoke-AtlasBoundedHttpGet -ModuleName Atlas.Download -MockWith {
+            $OutputStream.Write($received, 0, $received.Length)
+            return [long]$received.Length
+        }
+
+        {
+            Invoke-AtlasPinnedDownload -Uri 'https://example.test/download.bin' `
+                -Destination $destination -Sha256 $hash -ExpectedBytes 13
+        } | Should -Throw '*returned 5 bytes; expected 13*'
+
+        Test-Path -LiteralPath $destination | Should -BeFalse
     }
 
     It 'waits for an exact native executable and its longer-lived descendant' {

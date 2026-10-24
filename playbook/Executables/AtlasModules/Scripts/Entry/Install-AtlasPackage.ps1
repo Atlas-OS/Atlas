@@ -4,8 +4,9 @@
 #
 # Interactive shell around the Atlas.Software CBS package engine
 # (Install-AtlasCbsPackage / Uninstall-AtlasCbsPackage). This script stays at this
-# exact path because toolbox flows (Atlas.Security's Set-AtlasDefenderState,
-# Atlas.Privacy's Remove-AtlasTelemetryComponents) invoke it. Install phases call the module
+# exact path because toggles start it: Atlas.Security's Set-AtlasDefenderState (through
+# Invoke-AtlasDefenderPackageInstaller) and Atlas.Privacy's Set-AtlasTelemetryPackageState
+# (through Invoke-AtlasTelemetryPackageOperation). Install phases call the module
 # functions directly instead.
 
 param (
@@ -15,6 +16,11 @@ param (
 	[switch]$NoInteraction
 )
 
+$scriptsRoot = [IO.Path]::GetFullPath([IO.Path]::GetDirectoryName($PSScriptRoot))
+$bootstrap = [IO.Path]::Combine($scriptsRoot, 'Initialize-AtlasPowerShell.ps1')
+if (-not [IO.File]::Exists($bootstrap)) { throw "The PowerShell bootstrap is missing at '$bootstrap'." }
+. $bootstrap
+
 Set-StrictMode -Version 3.0
 
 if (!([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -eq 'S-1-5-18')) {
@@ -22,7 +28,6 @@ if (!([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -eq 'S-1-5-1
 }
 
 $windir = [Environment]::GetFolderPath('Windows')
-$scriptsRoot = Split-Path -Parent $PSScriptRoot
 $modulesRoot = Join-Path -Path $scriptsRoot -ChildPath 'Modules'
 $cbsRetryScript = Join-Path -Path $scriptsRoot -ChildPath 'Operations\CbsRetry.ps1'
 if (!(Test-Path -LiteralPath $cbsRetryScript -PathType Leaf)) {
@@ -34,7 +39,6 @@ if (($helperItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
 }
 . $cbsRetryScript -LibraryOnly
 
-. (Join-Path -Path $scriptsRoot -ChildPath 'Initialize-AtlasPowerShell.ps1')
 Import-Module -Name (Join-Path $modulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force -ErrorAction Stop
 Import-Module -Name (Join-Path $modulesRoot 'Atlas.Software\Atlas.Software.psd1') -Force -ErrorAction Stop
 $sys32 = [Environment]::GetFolderPath('System')
@@ -80,7 +84,10 @@ function Finish($failedPackages) {
 		if (Read-AtlasYesNo -Question 'Arm a Safe Mode retry for the failed packages and restart now?') {
 			$retryPaths = @($script:retryPackages | ForEach-Object { [string]$_.Path })
 			[void](Enable-AtlasCbsRetry -Packages $retryPaths)
-			Write-AtlasNextStep -Text 'Safe Mode retry armed. Run CbsRetry.ps1 -Recover from the Safe Mode command prompt.'
+			Write-AtlasNextStep -Text "Safe Mode retry armed. $(Get-AtlasCbsRetryInstruction)"
+			# The retry is armed already, so there's nothing to cancel; this only gives
+			# the user time to note the command before Windows restarts into Safe Mode.
+			Wait-AtlasContinue -Message 'Press Enter to restart Windows.'
 			Write-AtlasStep -Text 'Restarting Windows...'
 			Restart
 		} else {

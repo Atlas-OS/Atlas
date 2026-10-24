@@ -105,7 +105,7 @@ Install modes: Fresh, Upgrade.
 | `disable-windows-spotlight`<br>Disable Windows Spotlight | Windows Spotlight provides lockscreen messages like 'Like what you see?', and are disabled for QoL and privacy |  | registry 11 |
 | `do-not-reduce-sounds`<br>Do Not Reduce Sounds While in a Call | Makes it so that Windows does not reduce sounds in a call for QoL, as people generally wouldn't want this behavior |  | registry 1 |
 | `hide-disabled-disconnected-sounds`<br>Hide Disabled and Disconnected Devices in Sounds Panel | Hides disabled and disconnected devices in the sounds panel (mmsys.cpl) for QoL |  | registry 2 |
-| `show-all-tasks-control-panel`<br>Show All Tasks in Control Panel | Shows 'All Tasks' in Control Panel (God Mode), so that people can easily access all settings for QoL |  | registry 2, Script `show-all-tasks-control-panel.ps1` |
+| `show-all-tasks-control-panel`<br>Show All Tasks in Control Panel | Shows 'All Tasks' in Control Panel (God Mode), so that people can easily access all settings for QoL |  | registry 6 |
 | `visual-effects`<br>Configure Visual Effects | Configures the visual effects in Windows for the optimal responsiveness, performance and QoL |  | registry 11 |
 | `disable-tips`<br>Disable Tips | Disables tips for QoL and privacy |  | registry 1 |
 | `disable-win11-settings-banner`<br>Disable Windows 11 Settings Banner | Disables the Windows 11 Settings banner (ValueBanner), which normally displays 'advertisements' such as Microsoft 365 on non-Enterprise editions |  | registry 1 |
@@ -139,7 +139,7 @@ Install modes: Fresh, Upgrade.
 | `explorer/disable-network-navigation-pane`<br>Disable Network Navigation Pane in Explorer | Disables the network navigation pane/item in the Explorer sidebar for QoL by default, as it is mostly unused |  | registry 1 |
 | `explorer/full-context-on-more-than-15-items`<br>Always Show the Full Context Menu On Items | Fixes context menu items missing when more than 15 files are selected, this sets it to 100 items instead of 15, where some context menu items disappear |  | registry 1 |
 | `explorer/hide-frequently-used-items`<br>Hide Recent Items | Hide recent items in Quick Access and other places for privacy and QoL |  | registry 6 |
-| `explorer/import-power-plan`<br>Add Power Plan File Association | Adds a file association for .pow files, so you can simply double click on it and import it |  | registry 2, Script `import-power-plan.ps1` |
+| `explorer/import-power-plan`<br>Add Power Plan File Association | Adds a file association for .pow files, so you can simply double click on it and import it |  | registry 5 |
 | `explorer/minimize-mouse-hover-time`<br>Minimize Mouse Hover Time for Item Info | Minimizes mouse hover time (from 400 ms to 20 ms) for hovering over files or folders mostly in File Explorer, so that you can instantly see information for QoL |  | registry 1 |
 | `explorer/no-internet-open-with`<br>Disable Internet File Association Service | Makes it so that Windows does not ask you if you want to get results from the web for an unknown file extension |  | registry 1 |
 | `explorer/open-to-this-pc`<br>Open File Explorer to This PC | Configures File Explorer to open to This PC instead of Quick Access for QoL |  | registry 1 |
@@ -156,7 +156,7 @@ Install modes: Fresh, Upgrade.
 | `explorer/enable-long-paths`<br>Enable Long Paths | Disables the default path length limit. |  | registry 1 |
 | `explorer/add-context-menus/merge-as-administrator`<br>Add 'Merge as administrator' to Context Menu | Adds a UAC-backed Administrator merge command to the context menu for registry files |  | Script `merge-as-administrator.ps1` |
 | `explorer/add-context-menus/new-bat`<br>Adds Batch Scripts to 'New' Context Menu | Adds batch scripts (.bat) to 'New' context menu |  | registry 2 |
-| `explorer/add-context-menus/new-ps1`<br>Add PowerShell Script to 'New' Context Menu | Adds PowerShell script (.ps1) to 'New' context menu |  | registry 2, Script `new-ps1.ps1` |
+| `explorer/add-context-menus/new-ps1`<br>Add PowerShell Script to 'New' Context Menu | Adds PowerShell script (.ps1) to 'New' context menu |  | registry 4 |
 | `explorer/add-context-menus/new-reg`<br>Add Registry Entries to 'New' Context Menu | Adds registry entries (.reg) to 'New' context menu |  | registry 2 |
 | `explorer/remove-context-menus/cast-to-device`<br>Remove 'Cast to device' from Context Menu | Removes 'Cast to device' from Context Menu |  | registry 1 |
 | `explorer/remove-context-menus/extract`<br>Remove 'Extract' from Context Menu | Removes 'Extract' from Context Menu |  | toggle 1 |
@@ -217,8 +217,8 @@ Install modes: Fresh, Upgrade.
 | --- | --- | --- | --- |
 | `set-file-associations`<br>Set File Associations | Registers safe current-user handlers; default-app choices remain user-controlled. | OnUpgrade=Skip, Oobe=false | Script `set-file-associations.ps1` |
 | `disable-core-isolation`<br>Disable Virtualization-Based Security | Disables VBS and Memory Integrity through Microsoft's documented runtime registry controls. Credential Guard preferences, LSA protection, kernel stack protection preferences, and optional Windows features are preserved rather than guessed or removed. | Option=disable-core-isolation | Script `disable-core-isolation.ps1` |
-| `disable-mitigations`<br>Disable Mitigations | Disables Windows exploit-protection mitigations when the user selected the option. | Option=mitigations-disable | run 1 |
-| `disable-pnp`<br>Disable Devices | Disables network adapter bindings and PnP devices that most users do not need, to reduce background resource usage. Note: this includes the SMB client and server bindings - accessing network shares (\\NAS) and sharing files/printers from this PC stop working until the bindings are re-enabled. | OnUpgrade=Skip | Script `disable-pnp.ps1` |
+| `disable-mitigations`<br>Disable Mitigations | Disables Windows exploit-protection mitigations when the user selected the option. | Option=mitigations-disable | toggle 1 |
+| `disable-pnp`<br>Disable Devices | Disables the LLDP network adapter binding and PnP devices that most users don't need, to reduce background resource usage. The File Sharing toggle manages the SMB client, server and discovery bindings. | OnUpgrade=Skip | Script `disable-pnp.ps1` |
 | `set-profile-pictures`<br>Set Profile Pictures | Sets the default Atlas profile pictures. | OnUpgrade=Skip | Script `set-profile-pictures.ps1` |
 | `backup-services`<br>Backup Atlas Services and Drivers | Backs up the default Atlas services and drivers after all the tweaks are finished. | OnUpgrade=Skip | Script `backup-services.ps1` |
 | `update-client-cbs`<br>Modify Client.CBS | Modifies components related to Client.CBS, the miscellaneous system package in Windows 10+. |  | run 1 |

@@ -61,12 +61,14 @@ function Assert-AtlasPrivilege {
 function Invoke-AtlasTrustedInstaller {
     <#
     .SYNOPSIS
-        Runs one closed Atlas operation through the fixed elevated broker.
+        Runs one closed Atlas operation through the fixed elevated broker. Throws when
+        the broker exits nonzero, with its output in the message, so a returned result
+        always has ExitCode 0.
     #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet('Toggle', 'ResetServices', 'Install')]
+        [ValidateSet('Toggle', 'ResetServices', 'Install', 'CbsRetry')]
         [string]$Operation,
 
         [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$', Options = [Text.RegularExpressions.RegexOptions]::None)]
@@ -96,6 +98,7 @@ function Invoke-AtlasTrustedInstaller {
         Toggle        = @('Name', 'State', 'Silent', 'JustContext', 'NoExplorerRestart', 'MachineOnly')
         ResetServices = @('RestoreSource')
         Install       = @('InstallPhase', 'PayloadRoot')
+        CbsRetry      = @()
     }
     foreach ($operationParameter in @(
             'Name', 'State', 'Silent', 'JustContext', 'NoExplorerRestart', 'MachineOnly', 'RestoreSource',

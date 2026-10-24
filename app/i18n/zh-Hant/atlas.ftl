@@ -67,6 +67,8 @@ window-close-message = 安裝會在背景繼續進行。再次開啟 Atlas 即�
 # Instead of window-close-message when the installation restarts the PC afterwards: only an
 # open Atlas window restarts it, so closing the window cancels that.
 window-close-message-restart = 安裝會在背景繼續進行，但 Atlas 關閉期間，電腦不會自動重新啟動。再次開啟 Atlas 即可查看進度與結果。安裝完成前，請讓電腦保持開機。
+# The safe answer in every dialog shown when the window is closed, including those for ISO
+# and USB creation, updates and Windows Update access.
 window-close-keep = 保持開啟
 window-close-close = 關閉視窗
 # Dialog shown when the window is closed during the final checks, before the
@@ -88,7 +90,8 @@ window-close-restart-close = 關閉但不重新啟動
 # window-close-keep, common-open-windows-security and window-close-close.
 window-close-protection-title = 要在防護關閉的狀態下關閉 Atlas 嗎？
 window-close-protection-message = Windows 安全性中仍有部分防護處於關閉狀態：{ $switches }。如果您不打算完成 Atlas 的安裝，請在關閉前重新開啟這些防護。如果您會完成安裝，再次開啟 Atlas 時，它會繼續您的設定。
-# Title of the file picker for an Atlas package (.apbx) file.
+# The Open button of the file picker for an Atlas package (.apbx) file, on Get ready and the
+# ISO page. It's a button label, so keep it short.
 file-dialog-open-package = 開啟 Atlas 套件（.apbx）
 # Message Windows shows in its restart notification.
 shutdown-comment = Atlas 已安裝完成。Windows 即將重新啟動以完成設定。
@@ -757,7 +760,9 @@ iso-failed-package-changed = 檢查檔案後，Atlas 套件已變更。請選擇
 iso-diagnostics = 開啟記錄資料夾
 iso-close-title = ISO 仍在建立中
 iso-close-message = 請保持此視窗開啟，直到建立或取消完成。取消作業會等待目前步驟可以安全停止後再執行。
-iso-keep-open = 保持開啟
+# On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,
+# from another page. Their controls are unavailable until it finishes.
+iso-locked = Atlas 正在處理 Windows Update。完成後即可在此繼續。
 prepare-title = 更新 Windows 和市集應用程式
 prepare-description = 安裝之前，Atlas 會更新 Windows、Microsoft Store 和您的市集應用程式。已開啟的市集應用程式（例如記事本、小畫家或 Windows 終端機）可能會在更新時關閉，因此請先儲存您在其中的工作。電腦也可能需要重新啟動。
 prepare-complete = Atlas 沒有找到其他需要安裝的 Windows 或市集應用程式更新。
@@ -844,6 +849,8 @@ desktop-setup-exit = 在 Windows 中繼續
 usb-title = 建立安裝隨身碟
 usb-existing = 使用現有 ISO 建立隨身碟
 usb-description = 將 ISO 寫入 USB 磁碟機，以便用它重新安裝 Windows。使用 Atlas 建立的 ISO，即可同時安裝 Atlas。
+# Button that opens the file picker for an ISO, and the Open button of that picker, on the USB
+# and ISO pages.
 usb-choose-iso = 選擇 ISO
 usb-drive = USB 磁碟機
 # $min and $max are formatted numbers (text), in gigabytes and terabytes.
@@ -924,6 +931,7 @@ prepare-continue = 繼續更新
 prepare-saving-restart = 正在儲存您的選擇，並設定在 Windows 重新啟動後開啟 Atlas…
 prepare-restart-save-failed = 無法儲存您的選擇。請在重新啟動前重試。
 prepare-restart-registration-failed = 您的選擇已儲存，但 Atlas 無法設定在重新啟動後自動開啟。請再試一次，或自行重新啟動電腦，並在登入後開啟 Atlas。
+prepare-restart-source-linked = 您的選擇已儲存，但 Atlas Manager 位於連結的資料夾中時，Atlas 無法設定在重新啟動後自動開啟。請關閉 Atlas，並將 Atlas Manager 移至這台電腦的本機資料夾。然後從該處開啟，或自行重新啟動電腦，並在登入後從該處開啟。
 prepare-restart-failed = Atlas 無法重新啟動您的電腦。請再試一次，或從「開始」功能表重新啟動。您的選擇已儲存，Atlas 會在您登入後重新開啟。
 diagnostics-export = 匯出診斷資訊
 diagnostics-exporting = 正在收集診斷資訊…
@@ -964,12 +972,14 @@ prepare-failed-store-timeout = 市集應用程式尚未完成更新。請在 Mic
 prepare-failed-store-passes = Microsoft Store 持續提供新的更新。請在 Microsoft Store 中完成其餘的更新，然後再試一次。
 prepare-failed-manual-updates = 部分 Windows 更新需要在 Windows Update 中完成。請開啟 Windows Update 完成這些更新，然後再試一次。
 prepare-failed-windows-passes = Windows Update 持續提供新的更新。請在 Windows Update 中完成其餘的更新，然後再試一次。
+prepare-failed-source-linked = Atlas Manager 位於連結的資料夾中。請關閉 Atlas，將 Atlas Manager 移至這台電腦的本機資料夾，然後從該處開啟。
 prepare-error-code = 錯誤碼：{ $code }
 prepare-open-store = 開啟 Microsoft Store
 
 check-user-account = 使用者帳戶
 detail-user-account-ok = UAC 已啟用，您的帳戶已準備好進行安裝。
 detail-user-account-not-ready = 請啟用使用者帳戶控制（UAC），重新啟動電腦後再試。如果您使用的是內建 Administrator 帳戶，請使用另一個系統管理員帳戶登入。
+detail-user-account-work-or-school = 無法從公司或學校帳戶（Microsoft Entra ID）安裝 Atlas。請使用本機帳戶或 Microsoft 帳戶登入，然後再試一次。
 detail-user-account-unknown = Atlas 無法檢查您的使用者帳戶。請在安裝前重新檢查。Windows 回報：{ $error }
 
 footer-prepare-required = 請先完成 Windows 和市集應用程式的更新再繼續
@@ -1121,6 +1131,8 @@ stop-update-before = Atlas 會還原它變更的 Windows Update 設定。Windows
 stop-update-after = 您的電腦會維持在 Windows 11 版本 { $release }。Atlas 會還原它變更的 Windows Update 設定。
 stop-update-access = Atlas 會還原它變更的 Windows Update 設定。Windows 已安裝的更新會保留。
 stop-update-keep = 繼續進行更新
+# Dialog shown when the window is closed while Windows Update is turned on for an update; its
+# buttons are window-close-keep and window-close-put-back.
 window-close-update-access-title = 要關閉 Atlas 嗎？
 window-close-update-access-message = Atlas 會在關閉前還原它變更的 Windows Update 設定。您可以從首頁重新開始更新。
 window-close-put-back = 還原並關閉

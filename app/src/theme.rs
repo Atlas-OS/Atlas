@@ -8,8 +8,9 @@
 //! instead, and the Ease of Access text size and animation preferences are
 //! carried here so every control can honour them.
 
-use gpui::{App, Global, Hsla, Rgba, WindowAppearance, rgb};
+use gpui::{App, Font, FontFeatures, FontStyle, FontWeight, Global, Hsla, Rgba, WindowAppearance, rgb};
 
+use crate::i18n::Localization;
 use crate::services::settings::ThemePreference;
 use crate::services::system::{AccessibilityPreferences, SystemColors};
 
@@ -17,6 +18,20 @@ pub const FONT_TEXT: &str = "Segoe UI Variable Text";
 pub const FONT_DISPLAY: &str = "Segoe UI Variable Display";
 pub const FONT_ICONS: &str = "Segoe Fluent Icons";
 pub const FONT_MONO: &str = "Cascadia Mono";
+
+/// [`FONT_TEXT`] with the current language's script fallbacks. Families set
+/// lower down change only the family, so every element under whatever sets
+/// this keeps the fallbacks: the window's root, and the content dialog, which
+/// is drawn as a root of its own.
+pub fn text_font(cx: &App) -> Font {
+    Font {
+        family: FONT_TEXT.into(),
+        features: FontFeatures::default(),
+        fallbacks: cx.global::<Localization>().font_fallbacks(),
+        weight: FontWeight::NORMAL,
+        style: FontStyle::Normal,
+    }
+}
 
 /// Brand blue from the website and logo. Used for artwork; control fills use
 /// a shade that keeps white text readable.
@@ -428,6 +443,29 @@ pub fn contrast_ratio(text: Hsla, background: Hsla, backdrop: Hsla) -> f32 {
     (light + 0.05) / (dark + 0.05)
 }
 
+/// The Windows 11 contrast themes, as `Ease of Access Themes\*.theme` define
+/// them, for the tests of every control that draws in them.
+#[cfg(test)]
+pub(crate) fn windows_contrast_themes() -> [(&'static str, SystemColors); 4] {
+    let theme =
+        |window, window_text, button_face, button_text, highlight, highlight_text, gray, link| SystemColors {
+            window,
+            window_text,
+            button_face,
+            button_text,
+            highlight,
+            highlight_text,
+            gray_text: gray,
+            hot_light: link,
+        };
+    [
+        ("Aquatic", theme(0x202020, 0xFFFFFF, 0x202020, 0xFFFFFF, 0x8EE3F0, 0x263B50, 0xA6A6A6, 0x75E9FC)),
+        ("Desert", theme(0xFFFAEF, 0x3D3D3D, 0xFFFAEF, 0x202020, 0x903909, 0xFFF5E3, 0x676767, 0x1C5E75)),
+        ("Dusk", theme(0x2D3236, 0xFFFFFF, 0x2D3236, 0xB6F6F0, 0xA1BFDE, 0x212D3B, 0xA6A6A6, 0x70EBDE)),
+        ("Night sky", theme(0x000000, 0xFFFFFF, 0x000000, 0xFFEE32, 0xD6B4FD, 0x2B2B2B, 0xA6A6A6, 0x8080FF)),
+    ]
+}
+
 pub trait ActiveTheme {
     fn theme(&self) -> &Theme;
 }
@@ -449,12 +487,13 @@ mod tests {
         assert!(ratio >= AA_NORMAL_TEXT, "{name}: {ratio:.2}:1 is below {AA_NORMAL_TEXT}:1");
     }
 
+    // Disabled pairs are left out on purpose: WinUI's disabled tokens fall
+    // below 4.5:1 by design, and WCAG exempts controls that can't be used.
     #[test]
-    fn accent_buttons_keep_readable_labels_in_every_state() {
+    fn accent_buttons_keep_readable_labels_while_enabled() {
         for theme in [Theme::light(), Theme::dark()] {
             let name = format!("{:?}", theme.appearance);
-            let backdrop = theme.solid_background;
-            let layer = composite(theme.layer_fill, backdrop);
+            let layer = composite(theme.layer_fill, theme.solid_background);
             assert_readable(&format!("{name} accent"), theme.text_on_accent, theme.accent, layer);
             assert_readable(&format!("{name} accent hover"), theme.text_on_accent, theme.accent_hover, layer);
             assert_readable(
@@ -463,6 +502,15 @@ mod tests {
                 theme.accent_pressed,
                 layer,
             );
+        }
+    }
+
+    #[test]
+    fn light_and_dark_keep_text_readable_on_the_fill_it_sits_on() {
+        for theme in [Theme::light(), Theme::dark()] {
+            let name = format!("{:?}", theme.appearance);
+            let backdrop = theme.solid_background;
+            let layer = composite(theme.layer_fill, backdrop);
             assert_readable(&format!("{name} link"), theme.accent_text, theme.card_fill, layer);
             assert_readable(
                 &format!("{name} link hover"),
@@ -525,32 +573,33 @@ mod tests {
         assert_eq!(theme.text_on_accent, c(0x000000));
     }
 
-    /// The Windows 11 contrast themes, as `Ease of Access Themes\*.theme` define them.
-    fn windows_contrast_themes() -> [(&'static str, SystemColors); 4] {
-        let theme = |window, window_text, button_face, button_text, highlight, highlight_text, gray, link| {
-            SystemColors {
-                window,
-                window_text,
-                button_face,
-                button_text,
-                highlight,
-                highlight_text,
-                gray_text: gray,
-                hot_light: link,
-            }
+    #[test]
+    fn mica_shows_only_while_the_app_matches_the_system_appearance() {
+        let accessibility = AccessibilityPreferences {
+            high_contrast: false,
+            reduce_motion: true,
+            text_scale: 1.25,
+            system_colors: None,
         };
-        [
-            (
-                "Aquatic",
-                theme(0x202020, 0xFFFFFF, 0x202020, 0xFFFFFF, 0x8EE3F0, 0x263B50, 0xA6A6A6, 0x75E9FC),
-            ),
-            ("Desert", theme(0xFFFAEF, 0x3D3D3D, 0xFFFAEF, 0x202020, 0x903909, 0xFFF5E3, 0x676767, 0x1C5E75)),
-            ("Dusk", theme(0x2D3236, 0xFFFFFF, 0x2D3236, 0xB6F6F0, 0xA1BFDE, 0x212D3B, 0xA6A6A6, 0x70EBDE)),
-            (
-                "Night sky",
-                theme(0x000000, 0xFFFFFF, 0x000000, 0xFFEE32, 0xD6B4FD, 0x2B2B2B, 0xA6A6A6, 0x8080FF),
-            ),
-        ]
+        for system in [Appearance::Light, Appearance::Dark] {
+            for (preference, appearance) in [
+                (ThemePreference::System, system),
+                (ThemePreference::Light, Appearance::Light),
+                (ThemePreference::Dark, Appearance::Dark),
+            ] {
+                let theme = Theme::resolve(preference, system, &accessibility);
+                let name = format!("{preference:?} on a {system:?} system");
+                // DWM tints Mica for the system appearance, not the app's.
+                assert_eq!((theme.appearance, theme.mica), (appearance, appearance == system), "{name}");
+                assert!(!theme.high_contrast, "{name}");
+                assert!(theme.reduce_motion, "{name}");
+                assert_eq!(theme.text_scale, 1.25, "{name}");
+            }
+        }
+        // A contrast theme whose colours couldn't be read keeps the usual palette.
+        let unread = AccessibilityPreferences { high_contrast: true, ..accessibility };
+        let theme = Theme::resolve(ThemePreference::Light, Appearance::Dark, &unread);
+        assert_eq!((theme.appearance, theme.mica, theme.high_contrast), (Appearance::Light, false, false));
     }
 
     #[test]

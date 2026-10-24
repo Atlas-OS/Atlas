@@ -155,9 +155,11 @@ mod tests {
                 3
             }
         };
+        // Where every width fits, the search stops one pixel above zero and
+        // never tries 0px. First, so a loosened exit fails here rather than
+        // hanging on the searches below.
+        assert_eq!(narrowest(px(90.), |_| true), px(1.));
         assert_eq!(narrowest(px(90.), |width| lines(width) <= 2), px(60.));
         assert_eq!(narrowest(px(90.), |width| lines(width) <= 1), px(90.));
-        // A hint already on one line at its full width stays there.
-        assert_eq!(narrowest(px(1.), |_| true), px(1.));
     }
 }

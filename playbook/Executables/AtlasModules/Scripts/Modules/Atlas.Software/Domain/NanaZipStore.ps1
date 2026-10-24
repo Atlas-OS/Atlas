@@ -54,8 +54,8 @@ function Request-AtlasNanaZipStoreInstall {
     $options = New-Object Windows.ApplicationModel.Store.Preview.InstallControl.AppInstallOptions
     $options.InstallForAllUsers = $true
     $options.AllowForcedAppRestart = $false
-    $options.InstallInProgressToastNotificationMode = 2 # NoToast
-    $options.CompletedInstallToastNotificationMode = 2 # NoToast
+    $options.InstallInProgressToastNotificationMode = 'NoToast'
+    $options.CompletedInstallToastNotificationMode = 'NoToast'
     return @(Wait-AtlasStoreResult -Operation ($Manager.StartProductInstallAsync($script:AtlasNanaZipStoreProductId, '', 'Atlas', '', $options)) `
         -ResultType ([System.Collections.Generic.IReadOnlyList[Windows.ApplicationModel.Store.Preview.InstallControl.AppInstallItem]]))
 }

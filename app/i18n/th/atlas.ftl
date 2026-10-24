@@ -82,6 +82,8 @@ window-close-message = การติดตั้งจะดำเนินต
 # Instead of window-close-message when the installation restarts the PC afterwards: only an
 # open Atlas window restarts it, so closing the window cancels that.
 window-close-message-restart = การติดตั้งจะดำเนินต่อไปในเบื้องหลัง แต่พีซีของคุณจะไม่รีสตาร์ตโดยอัตโนมัติขณะที่ Atlas ปิดอยู่ เปิด Atlas อีกครั้งเพื่อดูความคืบหน้าและผลลัพธ์ และเปิดพีซีไว้จนกว่าจะเสร็จ
+# The safe answer in every dialog shown when the window is closed, including those for ISO
+# and USB creation, updates and Windows Update access.
 window-close-keep = เปิดหน้าต่างไว้
 window-close-close = ปิดหน้าต่าง
 # Dialog shown when the window is closed during the final checks, before the
@@ -103,7 +105,8 @@ window-close-restart-close = ปิดโดยไม่รีสตาร์ต
 # window-close-keep, common-open-windows-security and window-close-close.
 window-close-protection-title = ปิด Atlas ขณะที่การป้องกันยังปิดอยู่หรือไม่
 window-close-protection-message = การป้องกันบางรายการในแอป ความปลอดภัยของ Windows ยังปิดอยู่: { $switches } หากคุณจะไม่ติดตั้ง Atlas ต่อให้เสร็จ ให้เปิดการป้องกันเหล่านี้อีกครั้งก่อนปิด หากจะติดตั้งต่อ Atlas จะตั้งค่าต่อจากเดิมเมื่อคุณเปิด Atlas อีกครั้ง
-# Title of the file picker for an Atlas package (.apbx) file.
+# The Open button of the file picker for an Atlas package (.apbx) file, on Get ready and the
+# ISO page. It's a button label, so keep it short.
 file-dialog-open-package = เปิดแพ็กเกจ Atlas (.apbx)
 # Message Windows shows in its restart notification.
 shutdown-comment = ติดตั้ง Atlas แล้ว กำลังรีสตาร์ต Windows เพื่อตั้งค่าให้เสร็จสมบูรณ์
@@ -779,7 +782,9 @@ iso-failed-package-changed = แพ็กเกจ Atlas มีการเป�
 iso-diagnostics = เปิดโฟลเดอร์บันทึก
 iso-close-title = ยังสร้าง ISO อยู่
 iso-close-message = เปิดหน้าต่างนี้ไว้จนกว่าการสร้างหรือการยกเลิกจะเสร็จ การยกเลิกจะรอจนกว่าขั้นตอนปัจจุบันจะหยุดได้อย่างปลอดภัย
-iso-keep-open = เปิดไว้
+# On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,
+# from another page. Their controls are unavailable until it finishes.
+iso-locked = Atlas กำลังทำงานกับ Windows Update คุณดำเนินการต่อที่นี่ได้เมื่อเสร็จแล้ว
 prepare-title = อัปเดต Windows และแอปจาก Store
 prepare-description = Atlas จะอัปเดต Windows รวมถึง Microsoft Store และแอปจาก Store ของคุณก่อนติดตั้ง แอปจาก Store ที่คุณเปิดอยู่ เช่น Notepad, Paint หรือ Windows Terminal อาจปิดลงระหว่างอัปเดต จึงควรบันทึกงานในแอปเหล่านั้นก่อน และพีซีของคุณอาจต้องรีสตาร์ตด้วย
 prepare-complete = Atlas ไม่พบการอัปเดต Windows หรือ Store ที่ต้องติดตั้งเพิ่มเติม
@@ -866,6 +871,8 @@ desktop-setup-exit = ดำเนินการต่อใน Windows
 usb-title = สร้าง USB ติดตั้ง Windows
 usb-existing = สร้าง USB จาก ISO ที่มีอยู่
 usb-description = นำ ISO ใส่ลงในไดรฟ์ USB เพื่อใช้ติดตั้ง Windows ใหม่ หากใช้ ISO ที่สร้างโดย Atlas จะติดตั้ง Atlas ไปพร้อมกันได้
+# Button that opens the file picker for an ISO, and the Open button of that picker, on the USB
+# and ISO pages.
 usb-choose-iso = เลือก ISO
 usb-drive = ไดรฟ์ USB
 # $min and $max are formatted numbers (text), in gigabytes and terabytes.
@@ -945,6 +952,7 @@ prepare-continue = อัปเดตต่อ
 prepare-saving-restart = กำลังบันทึกตัวเลือกของคุณและตั้งค่าให้ Atlas เปิดขึ้นอีกครั้งหลังจาก Windows รีสตาร์ต…
 prepare-restart-save-failed = บันทึกตัวเลือกของคุณไม่ได้ ลองอีกครั้งก่อนรีสตาร์ต
 prepare-restart-registration-failed = ตัวเลือกของคุณบันทึกไว้แล้ว แต่ Atlas ตั้งค่าให้เปิดขึ้นอีกครั้งหลังรีสตาร์ตไม่ได้ ลองอีกครั้ง หรือรีสตาร์ตพีซีด้วยตนเองแล้วเปิด Atlas หลังจากเข้าสู่ระบบ
+prepare-restart-source-linked = ตัวเลือกของคุณบันทึกไว้แล้ว แต่ขณะที่ Atlas Manager อยู่ในโฟลเดอร์ที่ลิงก์ไว้ Atlas จะตั้งค่าให้เปิดขึ้นอีกครั้งหลังรีสตาร์ตไม่ได้ ปิด Atlas แล้วย้าย Atlas Manager ไปยังโฟลเดอร์ในพีซีเครื่องนี้ จากนั้นเปิดจากที่นั่น หรือรีสตาร์ตพีซีด้วยตนเองแล้วเปิดจากที่นั่นหลังจากเข้าสู่ระบบ
 prepare-restart-failed = Atlas รีสตาร์ตพีซีของคุณไม่ได้ ลองอีกครั้ง หรือรีสตาร์ตจากเมนูเริ่ม ตัวเลือกของคุณบันทึกไว้แล้ว และ Atlas จะเปิดขึ้นอีกครั้งหลังจากคุณเข้าสู่ระบบ
 diagnostics-export = ส่งออกข้อมูลการวินิจฉัย
 diagnostics-exporting = กำลังรวบรวมข้อมูลการวินิจฉัย…
@@ -985,12 +993,14 @@ prepare-failed-store-timeout = แอปจาก Store ยังอัปเด
 prepare-failed-store-passes = Microsoft Store ยังมีการอัปเดตใหม่เข้ามาเรื่อย ๆ ติดตั้งการอัปเดตที่เหลือใน Microsoft Store ให้เสร็จ แล้วลองอีกครั้ง
 prepare-failed-manual-updates = การอัปเดต Windows บางรายการต้องติดตั้งให้เสร็จใน Windows Update เปิด Windows Update แล้วติดตั้งการอัปเดตเหล่านั้นให้เสร็จ จากนั้นลองอีกครั้ง
 prepare-failed-windows-passes = Windows Update ยังมีการอัปเดตใหม่เข้ามาเรื่อย ๆ ติดตั้งการอัปเดตที่เหลือใน Windows Update ให้เสร็จ แล้วลองอีกครั้ง
+prepare-failed-source-linked = Atlas Manager อยู่ในโฟลเดอร์ที่ลิงก์ไว้ ปิด Atlas ย้าย Atlas Manager ไปยังโฟลเดอร์ในพีซีเครื่องนี้ แล้วเปิดจากที่นั่น
 prepare-error-code = รหัสข้อผิดพลาด: { $code }
 prepare-open-store = เปิด Microsoft Store
 
 check-user-account = บัญชีผู้ใช้
 detail-user-account-ok = เปิดใช้งาน UAC แล้ว และบัญชีของคุณพร้อมสำหรับการติดตั้ง
 detail-user-account-not-ready = เปิดการควบคุมบัญชีผู้ใช้ (UAC) รีสตาร์ตพีซี แล้วลองอีกครั้ง หากคุณใช้บัญชี Administrator ที่มีมาในระบบ ให้เข้าสู่ระบบด้วยบัญชีผู้ดูแลระบบอื่น
+detail-user-account-work-or-school = ไม่สามารถติดตั้ง Atlas จากบัญชีที่ทำงานหรือโรงเรียน (Microsoft Entra ID) ได้ เข้าสู่ระบบด้วยบัญชีภายในเครื่องหรือบัญชี Microsoft แล้วลองอีกครั้ง
 detail-user-account-unknown = Atlas ตรวจสอบบัญชีผู้ใช้ของคุณไม่ได้ ตรวจสอบอีกครั้งก่อนติดตั้ง รายละเอียดจาก Windows: { $error }
 
 footer-prepare-required = อัปเดต Windows และแอปจาก Store ให้เสร็จเพื่อดำเนินการต่อ
@@ -1182,6 +1192,8 @@ stop-update-before = Atlas จะคืนค่าการตั้งค่�
 stop-update-after = พีซีของคุณจะยังใช้ Windows 11 เวอร์ชัน { $release } และ Atlas จะคืนค่าการตั้งค่า Windows Update ที่ Atlas เปลี่ยนไว้
 stop-update-access = Atlas จะคืนค่าการตั้งค่า Windows Update ที่ Atlas เปลี่ยนไว้ การอัปเดตที่ Windows ติดตั้งไปแล้วจะยังคงอยู่
 stop-update-keep = อัปเดตต่อไป
+# Dialog shown when the window is closed while Windows Update is turned on for an update; its
+# buttons are window-close-keep and window-close-put-back.
 window-close-update-access-title = ปิด Atlas หรือไม่
 window-close-update-access-message = Atlas จะคืนค่าการตั้งค่า Windows Update ที่ Atlas เปลี่ยนไว้ก่อนปิด คุณเริ่มอัปเดตอีกครั้งได้จากหน้าหลัก
 window-close-put-back = คืนค่าและปิด

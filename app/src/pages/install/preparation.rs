@@ -187,6 +187,7 @@ impl InstallPage {
             State::RestartPersists { reasons } => {
                 t!("prepare-restart-persists", reasons = describe::restart_reasons(reasons))
             }
+            State::Failed if state.preparation_source_linked => t!("prepare-failed-source-linked"),
             State::Failed => outcome
                 .clone()
                 .unwrap_or_else(|| describe::preparation_failure(failure, state.preparation_error.is_some())),
@@ -211,9 +212,7 @@ impl InstallPage {
         let page_hidden = state.update_access.as_ref().is_some_and(|access| access.page_hidden);
         // Where Windows lets the user resolve what stopped preparation.
         let shortcut = match &state.preparation {
-            State::Network => {
-                Some(("prepare-network", t!("prepare-network-settings"), "ms-settings:network"))
-            }
+            State::Network => Some(("prepare-network", t!("prepare-network-settings"), links::NETWORK)),
             State::RestartPersists { .. } => {
                 Some(("prepare-open-windows-update", t!("check-fix-windows-update"), links::WINDOWS_UPDATE))
             }
@@ -288,33 +287,41 @@ impl InstallPage {
         };
         // Trying again can't help when Windows was rebuilt, the record can't
         // be read or an organisation manages updates; a report or putting the
-        // settings back can.
-        let retry_useless = matches!(
-            reason,
-            Some(
-                "feature-components-lost"
-                    | "feature-journal"
-                    | "feature-managed"
-                    | "feature-build"
-                    | "feature-hardware"
-            )
-        );
+        // settings back can. Nor can it for a linked Atlas Manager folder:
+        // staging uses the path this process started from, so only reopening
+        // Atlas from the new folder helps.
+        let retry_useless = (state.preparation == State::Failed && state.preparation_source_linked)
+            || matches!(
+                reason,
+                Some(
+                    "feature-components-lost"
+                        | "feature-journal"
+                        | "feature-managed"
+                        | "feature-build"
+                        | "feature-hardware"
+                )
+            );
         let main_button = Button::new("prepare-action", label)
             .focus_handle(action_focus)
             .when(accent, Button::accent)
             .disabled(!enabled)
-            .on_click(on_model(&self.model, |m, cx| {
-                let stop_requested = m.preparation_cancel.load(Ordering::Relaxed);
-                match PrepareAction::of(&m.preparation, stop_requested) {
-                    PrepareAction::Stopping | PrepareAction::Restarting | PrepareAction::Stop => {
-                        m.preparation_cancel.store(true, Ordering::Relaxed)
+            .on_click(cx.listener(|this, _, _, cx| {
+                // The run this starts is the user's: how it ends is announced,
+                // even when it ends as the last one did.
+                this.preparation_asked = true;
+                this.model.update(cx, |m, cx| {
+                    let stop_requested = m.preparation_cancel.load(Ordering::Relaxed);
+                    match PrepareAction::of(&m.preparation, stop_requested) {
+                        PrepareAction::Stopping | PrepareAction::Restarting | PrepareAction::Stop => {
+                            m.preparation_cancel.store(true, Ordering::Relaxed)
+                        }
+                        PrepareAction::Restart => m.restart_preparation(cx),
+                        PrepareAction::Continue | PrepareAction::Retry | PrepareAction::Start => {
+                            m.prepare_windows(cx)
+                        }
                     }
-                    PrepareAction::Restart => m.restart_preparation(cx),
-                    PrepareAction::Continue | PrepareAction::Retry | PrepareAction::Start => {
-                        m.prepare_windows(cx)
-                    }
-                }
-                cx.notify();
+                    cx.notify();
+                });
             }));
         let now = chrono::Utc::now().timestamp().max(0) as u64;
         let stalled = matches!(state.preparation, State::Running { .. })
@@ -333,7 +340,7 @@ impl InstallPage {
         let optional = state.windows_transition().is_some_and(|(_, need)| need == TransitionNeed::Optional);
         let keep = (not_offered && optional && !state.transition_open()).then(|| {
             Button::new("prepare-keep-version", t!("prepare-keep-version", current = current.as_str()))
-                .on_click(on_model(&self.model, |m, cx| m.set_windows_transition(true, cx)))
+                .on_click(on_model(&self.model, |m, cx| m.keep_windows_version(true, cx)))
         });
         let iso = (matches!(reason, Some("feature-hardware")) || not_offered)
             .then(|| state.can_navigate(Page::Iso))
@@ -478,6 +485,7 @@ impl InstallPage {
                 let problem = state.preparation_problem.map(|problem| match problem {
                     RestartProblem::Save => t!("prepare-restart-save-failed"),
                     RestartProblem::Registration => t!("prepare-restart-registration-failed"),
+                    RestartProblem::SourceLinked => t!("prepare-restart-source-linked"),
                     RestartProblem::Commit => t!("prepare-restart-commit-failed", release = release.as_str()),
                     RestartProblem::Restart => t!("prepare-restart-failed"),
                 });

@@ -7,11 +7,12 @@ BeforeAll {
     $script:PlaybookPath = Join-Path $script:AtlasTestRepoRoot 'playbook\playbook.conf'
     $script:SessionScript = Join-Path $script:AtlasTestScriptsRoot 'Install\Invoke-AtlasInstallSession.ps1'
     $script:FrontDoorScript = Join-Path $script:AtlasTestScriptsRoot 'Entry\Install-Atlas.ps1'
-    $script:BrokerScript = Join-Path $script:AtlasTestScriptsRoot 'Entry\Invoke-AtlasTrustedInstallerBroker.ps1'
+    $script:StateScript = Join-Path $script:AtlasTestScriptsRoot 'Entry\Initialize-AtlasInstallState.ps1'
+    $script:SecurityCases = Join-Path $script:AtlasTestRepoRoot 'tests\fixtures\front-door\windows-security.json'
     $script:PowerShell51 = Join-Path $PSHOME 'powershell.exe'
 
-    # Lift the pure functions out of the two entry scripts so they run without their
-    # privilege checks and process side effects.
+    # Lift the functions out of the scripts so they run without their privilege
+    # checks and process side effects.
     function Get-ScriptFunctionText {
         param([string]$Path, [string[]]$Names)
         $ast = [Management.Automation.Language.Parser]::ParseFile($Path, [ref]$null, [ref]$null)
@@ -22,11 +23,21 @@ BeforeAll {
         }
     }
     foreach ($text in @(Get-ScriptFunctionText -Path $script:SessionScript -Names 'Read-AtlasInstallRequest', 'Assert-AtlasInstallOptionSet') +
-        @(Get-ScriptFunctionText -Path $script:FrontDoorScript -Names 'Get-AtlasDeclaredRequirement', 'Test-AtlasDefenderPresent', 'Test-AtlasDefenderPrepared', 'Invoke-AtlasPreparationCheck', 'Test-AtlasPreparationCurrent', 'Get-AtlasPowerStatus', 'Test-AtlasPowerConnected', 'Test-AtlasUserAccountReady', 'Test-AtlasInstallRequirement', 'Copy-AtlasPayloadToStaging', 'Get-AtlasRestartComment', 'New-AtlasProtectedStagingRoot', 'New-AtlasFrontDoorDirectorySecurity')) {
+        @(Get-ScriptFunctionText -Path $script:FrontDoorScript -Names 'Get-AtlasDeclaredRequirement', 'Test-AtlasDefenderPresent', 'Get-AtlasDefenderSwitch', 'Test-AtlasDefenderPrepared', 'Invoke-AtlasPreparationCheck', 'Test-AtlasPreparationCurrent', 'Get-AtlasPowerStatus', 'Test-AtlasPowerConnected', 'Test-AtlasUserAccountReady', 'Test-AtlasInstallRequirement', 'Copy-AtlasPayloadToStaging', 'Get-AtlasRestartComment', 'New-AtlasProtectedStagingRoot', 'New-AtlasFrontDoorDirectorySecurity', 'Remove-AtlasStagedPackage', 'Remove-AtlasEarlierStagedPackage', 'Invoke-AtlasInstallPhase') +
+        @(Get-ScriptFunctionText -Path $script:StateScript -Names 'Find-AtlasInstallUserMarker')) {
         . ([scriptblock]::Create($text))
     }
     $script:Groups = @(Get-AtlasPlaybookOption -PlaybookPath $script:PlaybookPath)
     function Get-AtlasWindowsReleaseStatus { param($Version, $BuildLabEx) throw "Unmocked release query: $Version $BuildLabEx" }
+    # The requirement checks default to this process's account. These tests check a
+    # local account's; a test about another account type passes -AccountSid itself.
+    $PSDefaultParameterValues = @{ 'Test-AtlasInstallRequirement:AccountSid' = 'S-1-5-21-111-222-333-1001' }
+
+    function Get-TestRequirement {
+        param([string]$Name, [hashtable]$Arguments = @{})
+        Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client @Arguments |
+            Where-Object Name -eq $Name
+    }
 }
 
 Describe 'Protected front-door staging' {
@@ -34,7 +45,6 @@ Describe 'Protected front-door staging' {
         @{ Entry = 'Initialize-AtlasInstallState.ps1'; Arguments = @('-Operation', 'RecordOption'); Module = 'Atlas.InstallState' }
         @{ Entry = 'Publish-AtlasInstallUser.ps1'; Arguments = @(); Module = 'Atlas.InstallState' }
         @{ Entry = 'Invoke-AtlasResetServices.ps1'; Arguments = @('-Silent'); Module = 'Atlas.Core' }
-        @{ Entry = 'Invoke-AtlasTrustedInstaller.ps1'; Arguments = @('-Operation', 'ResetServices', '-RestoreSource', 'ToggleDefaults'); Module = 'Atlas.Core' }
         @{ Entry = 'Invoke-AtlasTrustedInstallerBroker.ps1'; Arguments = @('-Operation', 'ResetServices', '-RestoreSource', 'ToggleDefaults'); Module = 'Atlas.Core' }
         @{ Entry = 'Restore-AtlasServiceDefaults.ps1'; Arguments = @('-RestoreSource', 'ToggleDefaults'); Module = 'Atlas.Core' }
         @{ Entry = 'Test-TrustedWinget.ps1'; Arguments = @(); Module = 'Atlas.Download' }
@@ -100,15 +110,43 @@ Describe 'Package manifest readers' {
 		<string>26200</string>
 		<string>26300</string>
 	</SupportedBuilds>
+	<FeaturePages>
+		<RadioPage IsRequired="true" DefaultOption="radio-b">
+			<TopLine Text="Page text the reader skips."/>
+			<Options>
+				<RadioOption><Text>A</Text><Name>radio-a</Name></RadioOption>
+				<RadioOption><Text>B</Text><Name>radio-b</Name></RadioOption>
+			</Options>
+		</RadioPage>
+		<CheckboxPage>
+			<Options>
+				<CheckboxOption><Text>C</Text><Name>check-c</Name></CheckboxOption>
+				<CheckboxOption><Text>D</Text><Name>check-d</Name></CheckboxOption>
+			</Options>
+		</CheckboxPage>
+		<!-- A comment between pages. -->
+		<RadioImagePage DependsOn="check-d" DefaultOption="image-e">
+			<Options>
+				<RadioImageOption><Text>E</Text><Name>image-e</Name><FileName>e</FileName></RadioImageOption>
+				<RadioImageOption><Text>F</Text><Name>image-f</Name><FileName>f</FileName></RadioImageOption>
+			</Options>
+		</RadioImagePage>
+	</FeaturePages>
 </Playbook>
 '@
         Get-AtlasPlaybookVersion -PlaybookPath $fixture | Should -BeExactly '1.2.3-rc.1'
         @(Get-AtlasPlaybookSupportedBuild -PlaybookPath $fixture) | Should -Be @(26200, 26300)
 
-        $radio = @($script:Groups | Where-Object { $_.ExactlyOne })
-        $radio.Count | Should -BeGreaterThan 2
-        @($script:Groups | ForEach-Object { $_.Options }) | Should -Contain 'defender-enable'
-        ($script:Groups | Where-Object { $_.Options -contains 'browser-brave' }).DependsOn | Should -Be 'install-another-browser'
+        $groups = @(Get-AtlasPlaybookOption -PlaybookPath $fixture)
+        $groups | Should -HaveCount 3
+        @($groups[0].Options) | Should -Be @('radio-a', 'radio-b')
+        @($groups[1].Options) | Should -Be @('check-c', 'check-d')
+        @($groups[2].Options) | Should -Be @('image-e', 'image-f')
+        @($groups.ExactlyOne) | Should -Be @($true, $false, $true)
+        $groups[0].DependsOn | Should -BeNullOrEmpty
+        $groups[1].DependsOn | Should -BeNullOrEmpty
+        $groups[2].DependsOn | Should -BeExactly 'check-d'
+        $groups[0].Default | Should -BeExactly 'radio-b'
     }
 }
 
@@ -198,6 +236,8 @@ Describe 'Install request validation' {
             Should -Throw '*Exactly one of keyboard-*'
         { Assert-AtlasInstallOptionSet -Options ($good + 'keyboard-single') -Groups $script:Groups } |
             Should -Throw '*Exactly one of keyboard-*'
+        { Assert-AtlasInstallOptionSet -Options ($good + 'browser-firefox') -Groups $script:Groups } |
+            Should -Throw '*Exactly one of browser-*'
     }
 
     It 'resumes an install begun before a required group with the options it began with' {
@@ -219,37 +259,18 @@ Describe 'Install request validation' {
 
         Set-Content -LiteralPath (Join-Path $payload 'request.json') -Value '{"options":[],"mode":"Fresh"}'
         { Read-AtlasInstallRequest -PayloadRoot $payload } | Should -Throw "*unknown field 'mode'*"
+        Set-Content -LiteralPath (Join-Path $payload 'request.json') -Value '{"options":[],"windowsSetup":true}'
+        { Read-AtlasInstallRequest -PayloadRoot $payload } | Should -Throw "*unknown field 'windowsSetup'*"
+
+        # Valid JSON on both sides of the 64 KiB limit, so only the size check can refuse it.
+        $atLimit = '{"options":["' + ('a' * (65536 - 16)) + '"]}'
+        [IO.File]::WriteAllText((Join-Path $payload 'request.json'), $atLimit)
+        @(Read-AtlasInstallRequest -PayloadRoot $payload) | Should -HaveCount 1
+        [IO.File]::WriteAllText((Join-Path $payload 'request.json'), $atLimit.Replace('"a', '"aa'))
+        { Read-AtlasInstallRequest -PayloadRoot $payload } | Should -Throw '*exceeds its size limit*'
 
         Remove-Item -LiteralPath (Join-Path $payload 'request.json')
         { Read-AtlasInstallRequest -PayloadRoot $payload } | Should -Throw '*missing*'
-    }
-
-    It 'preserves the interactive default and rejects a non-Boolean setup mode' {
-        $payload = Join-Path $TestDrive 'setup-request'
-        New-Item -Path $payload -ItemType Directory -Force | Out-Null
-        $requestPath = Join-Path $payload 'request.json'
-        Set-Content -LiteralPath $requestPath -Value '{"options":["defender-enable"]}'
-        (Read-AtlasInstallRequest -PayloadRoot $payload -WithMode).windowsSetup | Should -BeFalse
-        Set-Content -LiteralPath $requestPath -Value '{"options":[],"windowsSetup":"true"}'
-        { Read-AtlasInstallRequest -PayloadRoot $payload -WithMode } | Should -Throw '*Boolean*'
-    }
-
-    It 'refuses setup mode outside Windows Setup' {
-        Mock Get-ItemPropertyValue { 0 }
-        $payload = Join-Path $TestDrive 'not-setup'
-        New-Item -Path $payload -ItemType Directory -Force | Out-Null
-        Set-Content -LiteralPath (Join-Path $payload 'request.json') -Value '{"options":[],"windowsSetup":true}'
-        { Read-AtlasInstallRequest -PayloadRoot $payload -WithMode } | Should -Throw '*Windows Setup is not running*'
-    }
-
-    It 'carries setup mode through the validated request during Setup' {
-        Mock Get-ItemPropertyValue { 1 }
-        $payload = Join-Path $TestDrive 'during-setup'
-        New-Item -Path $payload -ItemType Directory -Force | Out-Null
-        Set-Content -LiteralPath (Join-Path $payload 'request.json') -Value '{"options":["defender-enable"],"windowsSetup":true}'
-        $request = Read-AtlasInstallRequest -PayloadRoot $payload -WithMode
-        $request.windowsSetup | Should -BeTrue
-        @($request.options) | Should -Be @('defender-enable')
     }
 }
 
@@ -325,12 +346,110 @@ Describe 'User account policy preflight' {
     }
 }
 
+Describe 'Front door Windows Security readings' {
+    It 'reads every shared case as Atlas Manager does' {
+        # Windows PowerShell 5.1 passes a JSON array on as one object.
+        $cases = @(Get-Content -LiteralPath $script:SecurityCases -Raw | ConvertFrom-Json | ForEach-Object { $_ })
+        $cases.Count | Should -BeGreaterThan 1
+        $states = @{ off = 'Off'; on = 'On'; unreadable = 'Unknown' }
+        foreach ($case in $cases) {
+            # A key the case leaves out is missing; a JSON string stands for a value
+            # that isn't a DWORD, and {"qword": n} for a REG_QWORD, which .NET reads as a [long].
+            $registry = @{}
+            foreach ($key in $case.registry.PSObject.Properties) {
+                $values = @{}
+                foreach ($value in $key.Value.PSObject.Properties) {
+                    $qword = if ($null -ne $value.Value) { $value.Value.PSObject.Properties['qword'] }
+                    $values[$value.Name] = if ($null -ne $qword) { [long]$qword.Value } else { $value.Value }
+                }
+                $registry[$key.Name] = $values
+            }
+            $switches = Get-AtlasDefenderSwitch -Registry $registry
+            @($switches.TamperProtection, $switches.RealTimeProtection, $switches.CloudDelivered, $switches.SampleSubmission) |
+                Should -Be @(
+                    $states[$case.switches.tamperProtection], $states[$case.switches.realTimeProtection],
+                    $states[$case.switches.cloudDelivered], $states[$case.switches.sampleSubmission]
+                ) -Because $case.name
+            foreach ($name in 'RealTimeProtection', 'CloudDelivered', 'SampleSubmission', 'TamperProtection') {
+                $switches.Reasons.Contains($name) | Should -Be ($switches.$name -eq 'Unknown') -Because "$($case.name): $name"
+            }
+        }
+    }
+
+    It 'reads the registry key types as the shared cases describe them: <Name>' -ForEach @(
+        @{
+            Name     = 'DWORDs'
+            Tamper   = @{ Data = 4; Kind = 'DWord' }
+            RealTime = @{ Data = 1; Kind = 'DWord' }
+            Expected = @('Off', 'Off', 'Unknown', 'Unknown')
+        }
+        @{
+            Name     = 'a QWORD that fits and a string'
+            Tamper   = @{ Data = [long]4; Kind = 'QWord' }
+            RealTime = @{ Data = '1'; Kind = 'String' }
+            Expected = @('Off', 'On', 'Unknown', 'Unknown')
+        }
+        @{
+            Name     = "a QWORD that doesn't fit"
+            Tamper   = @{ Data = [long]0x100000004; Kind = 'QWord' }
+            RealTime = @{ Data = 0; Kind = 'DWord' }
+            Expected = @('Unknown', 'On', 'Unknown', 'Unknown')
+        }
+    ) {
+        # SpyNet is left out, as a PC that never had it.
+        $subKey = "Software\AtlasRewriteTest\$([Guid]::NewGuid().ToString('N'))"
+        try {
+            foreach ($entry in @(
+                    @{ Key = 'Features'; Name = 'TamperProtection'; Value = $Tamper }
+                    @{ Key = 'Real-Time Protection'; Name = 'DisableRealtimeMonitoring'; Value = $RealTime }
+                )) {
+                $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey("$subKey\$($entry.Key)")
+                try { $key.SetValue($entry.Name, $entry.Value.Data, [Microsoft.Win32.RegistryValueKind]$entry.Value.Kind) }
+                finally { $key.Dispose() }
+            }
+
+            $switches = Get-AtlasDefenderSwitch -Root ([Microsoft.Win32.Registry]::CurrentUser) -SubKey $subKey
+
+            @($switches.TamperProtection, $switches.RealTimeProtection, $switches.CloudDelivered, $switches.SampleSubmission) |
+                Should -Be $Expected
+            $switches.Reasons['CloudDelivered'] | Should -Be 'SpyNet key missing'
+        }
+        finally {
+            [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree($subKey, $false)
+        }
+    }
+
+    It 'reads a QWORD that fits in 32 bits as Atlas Manager does, and leaves a larger one unread' {
+        $switches = Get-AtlasDefenderSwitch -Registry @{
+            'Features'             = @{ TamperProtection = [long]4 }
+            'Real-Time Protection' = @{ DisableRealtimeMonitoring = [long]1 }
+            'SpyNet'               = @{ SpyNetReporting = [long]0; SubmitSamplesConsent = [long]2 }
+        }
+        @($switches.TamperProtection, $switches.RealTimeProtection, $switches.CloudDelivered, $switches.SampleSubmission) |
+            Should -Be @('Off', 'Off', 'Off', 'Off')
+        Test-AtlasDefenderPrepared -Switch $switches | Should -BeTrue
+
+        $tooLarge = [long][uint32]::MaxValue + 1
+        $switches = Get-AtlasDefenderSwitch -Registry @{
+            'Features'             = @{ TamperProtection = $tooLarge }
+            'Real-Time Protection' = @{ DisableRealtimeMonitoring = $tooLarge }
+            'SpyNet'               = @{ SpyNetReporting = $tooLarge; SubmitSamplesConsent = $tooLarge }
+        }
+        # Real-time protection reads on, as in the app: its key is there and the value isn't 1.
+        @($switches.TamperProtection, $switches.RealTimeProtection, $switches.CloudDelivered, $switches.SampleSubmission) |
+            Should -Be @('Unknown', 'On', 'Unknown', 'Unknown')
+        $switches.Reasons.TamperProtection | Should -Be "Features\TamperProtection is a QWORD that doesn't fit in 32 bits"
+    }
+}
+
 Describe 'Front door requirements and staging' {
     BeforeEach {
         Mock Get-AtlasWindowsReleaseStatus { 'Released' }
         Mock Test-AtlasUserAccountReady { $true }
         Mock Get-ItemProperty { [pscustomobject]@{} }
         Mock Test-AtlasPowerConnected { $true }
+        # Keep the host's Security Center out of every requirement check.
+        Mock Get-CimInstance { @() }
     }
 
     It 'blocks an account without a limited token and explains how to recover' {
@@ -349,6 +468,22 @@ Describe 'Front door requirements and staging' {
         $result.Passed | Should -BeFalse
         $result.Blocking | Should -BeTrue
         $result.Detail | Should -BeLike '*token query failed*'
+    }
+
+    It 'refuses a work or school (Microsoft Entra ID) account before anything is copied' {
+        Mock Test-Path { $false }
+        $result = Get-TestRequirement -Name 'User account' -Arguments @{ AccountSid = 'S-1-12-1-2933642503-1247987907-1399130510-4207851353' }
+        $result.Passed | Should -BeFalse
+        $result.Blocking | Should -BeTrue
+        $result.Detail | Should -BeLike "Atlas can't be installed from a work or school (Microsoft Entra ID) account.*"
+        Should -Invoke Test-AtlasUserAccountReady -Times 0 -Exactly
+    }
+
+    It 'goes on to the UAC check for a local or Microsoft account' {
+        Mock Test-Path { $false }
+        $result = Get-TestRequirement -Name 'User account' -Arguments @{ AccountSid = 'S-1-5-21-111-222-333-1001' }
+        $result.Passed | Should -BeTrue
+        Should -Invoke Test-AtlasUserAccountReady -Times 1 -Exactly
     }
 
     It 'blocks unsupported builds, pending restart and declared prerequisites' {
@@ -396,6 +531,20 @@ Describe 'Front door requirements and staging' {
         $result.Detail | Should -Match 'found: Malwarebytes'
     }
 
+    It 'counts an antivirus registration without a drive or UNC path as installed' {
+        # A URI or an unexpanded %variable% path can't be checked on disk, so, as in the app, it counts as installed.
+        Mock Test-Path { $false }
+        Mock Get-CimInstance {
+            @(
+                [pscustomobject]@{ displayName = 'Contoso Link'; pathToSignedProductExe = 'contoso://' }
+                [pscustomobject]@{ displayName = 'Contoso'; pathToSignedProductExe = '%ProgramFiles%\Contoso\av.exe' }
+            )
+        }
+        $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('NoAntivirus') | Where-Object Name -eq 'No third-party antivirus'
+        $result.Passed | Should -BeFalse
+        $result.Detail | Should -Match 'found: Contoso Link, Contoso'
+    }
+
     It 'leaves undeclared antivirus and power checks advisory' {
         Mock Test-Path { $false }
         Mock Get-CimInstance { @([pscustomobject]@{ displayName = 'Contoso Shield' }) }
@@ -410,7 +559,6 @@ Describe 'Front door requirements and staging' {
         $declared = @(Get-AtlasDeclaredRequirement -Playbook $manifest)
         $declared | Should -HaveCount 0
         Mock Test-Path { $true }
-        Mock Get-CimInstance { @() }
         $results = @(Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26100 -EditionId Core -InstallationType Client -DeclaredRequirements $declared)
         foreach ($name in @('Windows build', 'Windows edition', 'No pending reboot')) {
             $result = $results | Where-Object Name -eq $name
@@ -425,29 +573,73 @@ Describe 'Front door requirements and staging' {
         @(Get-AtlasDeclaredRequirement -Playbook $manifest) | Should -Be @('NoAntivirus', 'PluggedIn')
     }
 
-    It 'blocks enabled or unreadable required Windows Security settings' {
-        Mock Test-Path { $false }
-        Mock Get-CimInstance { @() }
-        Mock Test-AtlasDefenderPresent { $true }
-        Mock Test-AtlasDefenderPrepared { $false }
-        $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('DefenderToggled') | Where-Object Name -eq 'Windows Security'
-        $result.Passed | Should -BeFalse
-        $result.Blocking | Should -BeTrue
-        Mock Test-AtlasDefenderPrepared { throw 'Access denied' }
-        $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('DefenderToggled') | Where-Object Name -eq 'Windows Security'
-        $result.Passed | Should -BeFalse
-        $result.Detail | Should -Match 'could not be checked'
-    }
-
     It 'passes the Windows Security requirement when an earlier install removed Defender' {
         Mock Test-Path { $false }
-        Mock Get-CimInstance { @() }
         Mock Test-AtlasDefenderPresent { $false }
-        Mock Test-AtlasDefenderPrepared { throw "Cannot find path 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Features' because it does not exist." }
+        Mock Get-AtlasDefenderSwitch { throw "Cannot find path 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Features' because it does not exist." }
         $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('DefenderToggled') | Where-Object Name -eq 'Windows Security'
         $result.Passed | Should -BeTrue
         $result.Detail | Should -Match 'not installed'
-        Should -Invoke Test-AtlasDefenderPrepared -Times 0
+        Should -Invoke Get-AtlasDefenderSwitch -Times 0
+    }
+
+    Context 'the Windows Security switches' {
+        BeforeEach {
+            Mock Test-Path { $false }
+            Mock Test-AtlasDefenderPresent { $true }
+        }
+
+        It 'accepts switches it could not read only once the user confirmed them' {
+            Mock Get-AtlasDefenderSwitch { [pscustomobject][ordered]@{ RealTimeProtection = 'Off'; CloudDelivered = 'Off'; SampleSubmission = 'Unknown'; TamperProtection = 'Off' } }
+            $refused = Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('DefenderToggled') }
+            $refused.Passed | Should -BeFalse
+            $refused.Blocking | Should -BeTrue
+            $refused.Detail | Should -BeLike "*couldn't be read: automatic sample submission*-WindowsSecurityConfirmed*"
+
+            $confirmed = Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('DefenderToggled'); WindowsSecurityConfirmed = $true }
+            $confirmed.Passed | Should -BeTrue
+            $confirmed.Detail | Should -BeLike '*confirmed*automatic sample submission'
+        }
+
+        It 'names why a switch could not be read' {
+            # Inside the mock, $Registry is the mocked call's own unset parameter, so
+            # the mock returns a reading taken here.
+            $reading = Get-AtlasDefenderSwitch -Registry @{
+                'Features'             = @{ TamperProtection = 4 }
+                'Real-Time Protection' = @{ DisableRealtimeMonitoring = 1 }
+                'SpyNet'               = @{ SpyNetReporting = 0 }
+            }
+            $reading.Reasons.SampleSubmission | Should -Be 'SpyNet\SubmitSamplesConsent missing'
+            Mock Get-AtlasDefenderSwitch { $reading }
+
+            $refused = Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('DefenderToggled') }
+            $refused.Passed | Should -BeFalse
+            $refused.Detail | Should -BeLike "*couldn't be read: automatic sample submission (SpyNet\SubmitSamplesConsent missing).*"
+
+            $confirmed = Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('DefenderToggled'); WindowsSecurityConfirmed = $true }
+            $confirmed.Passed | Should -BeTrue
+            $confirmed.Detail | Should -BeLike '*confirmed*: automatic sample submission (SpyNet\SubmitSamplesConsent missing)'
+        }
+
+        It 'still blocks a switch that reads on when the user confirmed the rest' {
+            Mock Get-AtlasDefenderSwitch { [pscustomobject][ordered]@{ RealTimeProtection = 'Off'; CloudDelivered = 'On'; SampleSubmission = 'Unknown'; TamperProtection = 'Unknown' } }
+            $result = Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('DefenderToggled'); WindowsSecurityConfirmed = $true }
+            $result.Passed | Should -BeFalse
+            $result.Detail | Should -BeLike "*on: cloud-delivered protection; couldn't be read: automatic sample submission, Tamper Protection"
+        }
+
+        It 'passes every switch off without asking for confirmation' {
+            Mock Get-AtlasDefenderSwitch { [pscustomobject][ordered]@{ RealTimeProtection = 'Off'; CloudDelivered = 'Off'; SampleSubmission = 'Off'; TamperProtection = 'Off' } }
+            (Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('DefenderToggled') }).Passed | Should -BeTrue
+        }
+
+        It 'fails closed when reading the switches throws, confirmed or not' {
+            Mock Get-AtlasDefenderSwitch { throw 'Access denied' }
+            $result = Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('DefenderToggled'); WindowsSecurityConfirmed = $true }
+            $result.Passed | Should -BeFalse
+            $result.Blocking | Should -BeTrue
+            $result.Detail | Should -BeLike '*could not be checked: Access denied'
+        }
     }
 
     It 'rejects an unknown declared requirement instead of silently bypassing it' {
@@ -463,7 +655,6 @@ Describe 'Front door requirements and staging' {
         $script:ReleaseFixture = $Release
         Mock Get-AtlasWindowsReleaseStatus { $script:ReleaseFixture }
         Mock Test-Path { $false }
-        Mock Get-CimInstance { @() }
         $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -WindowsRevision 5551 -BuildLabEx 'rs_prerelease' -EditionId Professional -InstallationType Client | Where-Object Name -eq 'Windows release'
         $result.Passed | Should -BeFalse
         $result.Blocking | Should -BeTrue
@@ -475,7 +666,6 @@ Describe 'Front door requirements and staging' {
         # The printer driver replacements a cumulative update left after its own
         # restart, with no restart flag.
         Mock Test-Path { $false }
-        Mock Get-CimInstance { @() }
         $script:Renames = foreach ($file in @('MXDWDRV.DLL', 'PJLMON.DLL', 'PS5UI.DLL', 'PSCRIPT5.DLL', 'UNIDRV.DLL')) {
             "*1\??\C:\Windows\System32\spool\drivers\x64\3\New\$file"
             "\??\C:\Windows\System32\spool\drivers\x64\3\$file"
@@ -508,7 +698,6 @@ Describe 'Front door requirements and staging' {
     ) {
         param($Edition, $Type, $Passed)
         Mock Test-Path { $false }
-        Mock Get-CimInstance { @() }
         $requirements = @(Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId $Edition -InstallationType $Type)
         $result = $requirements | Where-Object Name -eq 'Windows edition'
         $result.Passed | Should -Be $Passed
@@ -538,7 +727,32 @@ Describe 'Front door requirements and staging' {
             return
         }
         { Copy-AtlasPayloadToStaging -ExtractedRoot $extracted -StagingRoot (Join-Path $TestDrive 'staging2') } |
-            Should -Throw '*reparse point*'
+            Should -Throw '*link or junction*'
+    }
+
+    It 'copies a reparse point that holds its own data and refuses one that is a <LinkType>' -TestCases @(
+        @{ LinkType = 'SymbolicLink' }
+        @{ LinkType = 'Junction' }
+    ) {
+        param($LinkType)
+        # A OneDrive Files On-Demand placeholder is a reparse point with no link type.
+        $extracted = Join-Path $TestDrive 'placeholder-pkg'
+        $staging = Join-Path $TestDrive 'placeholder-staging'
+        $script:ReparseLinkType = $null
+        Mock Get-ChildItem -ParameterFilter { $Recurse } {
+            [pscustomobject]@{
+                FullName   = (Join-Path $extracted 'Executables\placeholder.txt')
+                Attributes = [IO.FileAttributes]'Archive, ReparsePoint'
+                LinkType   = $script:ReparseLinkType
+            }
+        }
+        Mock Copy-Item {}
+        { Copy-AtlasPayloadToStaging -ExtractedRoot $extracted -StagingRoot $staging } | Should -Not -Throw
+        Should -Invoke Copy-Item -Times 2 -Exactly
+
+        $script:ReparseLinkType = $LinkType
+        { Copy-AtlasPayloadToStaging -ExtractedRoot $extracted -StagingRoot $staging } | Should -Throw '*link or junction*'
+        Should -Invoke Copy-Item -Times 2 -Exactly
     }
 }
 
@@ -553,20 +767,167 @@ Describe 'Restart notice text' {
     }
 }
 
-Describe 'Install operation through the broker' {
-    It 'refuses an unelevated caller or a copy outside the protected staging root' {
-        $previousPreference = $ErrorActionPreference
-        $ErrorActionPreference = 'Continue'
-        try {
-            $output = & $script:PowerShell51 -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script:BrokerScript `
-                -Operation Install -InstallPhase Capture -PayloadRoot (Join-Path $TestDrive 'not-staging') 2>&1
+Describe 'Install-user marker' {
+    BeforeAll {
+        # Stands in for HKEY_USERS: one subkey per loaded hive, named by its SID.
+        function New-TestMarker {
+            param([string]$Sid)
+            $marker = $script:Users.CreateSubKey("$Sid\Software\AtlasOS\InstallSession")
+            try {
+                $marker.SetValue('Nonce', $script:Nonce, [Microsoft.Win32.RegistryValueKind]::String)
+                $marker.SetValue('UserSid', $Sid, [Microsoft.Win32.RegistryValueKind]::String)
+                $marker.SetValue('SessionId', 1, [Microsoft.Win32.RegistryValueKind]::DWord)
+            }
+            finally { $marker.Dispose() }
         }
-        finally {
-            $ErrorActionPreference = $previousPreference
+    }
+
+    BeforeEach {
+        $script:UsersPath = "Software\AtlasRewriteTest\InstallUserMarker-$([guid]::NewGuid().ToString('N'))"
+        $script:Users = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($script:UsersPath)
+        $script:Nonce = [guid]::NewGuid().ToString('D')
+    }
+
+    AfterEach {
+        $script:Users.Dispose()
+        [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree($script:UsersPath, $false)
+    }
+
+    It 'names the work or school account whose hive holds the marker' {
+        New-TestMarker -Sid 'S-1-12-1-2933642503-1247987907-1399130510-4207851353'
+        $script:Users.CreateSubKey('S-1-5-21-111-222-333-1001\Software').Dispose()
+        { Find-AtlasInstallUserMarker -Nonce $script:Nonce -UsersRoot $script:Users } |
+            Should -Throw '*work or school (Microsoft Entra ID) account (S-1-12-1-2933642503-1247987907-1399130510-4207851353)*sign in with a local account*'
+    }
+
+    It 'finds the marker in a local or Microsoft account''s hive' {
+        New-TestMarker -Sid 'S-1-12-1-2933642503-1247987907-1399130510-4207851353'
+        New-TestMarker -Sid 'S-1-5-21-111-222-333-1001'
+        $found = Find-AtlasInstallUserMarker -Nonce $script:Nonce -UsersRoot $script:Users
+        $found.Sid | Should -Be 'S-1-5-21-111-222-333-1001'
+        $found.SessionId | Should -Be 1
+    }
+}
+
+Describe 'Front door staging copies' {
+    BeforeAll {
+        function New-TestStagingCopy {
+            param([string]$Root)
+            foreach ($file in @(
+                    'playbook.conf'
+                    'Executables\request.json'
+                    'Executables\AtlasModules\Logs\install-run.log'
+                    'Executables\AtlasModules\Scripts\Entry\Install-Atlas.ps1'
+                    'Executables\AtlasModules\Packages\x.cab'
+                    'Executables\AtlasDesktop\readme.txt'
+                    'Preparation\worker.log'
+                    'Preparation\state.json'
+                )) {
+                $path = Join-Path $Root $file
+                [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($path))
+                Set-Content -LiteralPath $path -Value 'x'
+            }
         }
-        $LASTEXITCODE | Should -Be 1
-        # The privilege check runs first, so an unelevated host never reaches the staging check.
-        $expected = if (Test-AtlasAdmin) { 'protected staging root' } else { '\[privilege\]' }
-        ($output | Out-String) | Should -Match $expected
+        function Get-TestStagedFile {
+            param([string]$Root)
+            @(Get-ChildItem -LiteralPath $Root -Recurse -File -Force | ForEach-Object { $_.FullName.Substring($Root.Length + 1) } | Sort-Object)
+        }
+        $script:Evidence = @(
+            'Executables\AtlasModules\Logs\install-run.log'
+            'Executables\request.json'
+            'Preparation\state.json'
+            'Preparation\worker.log'
+        )
+    }
+
+    It 'keeps only what diagnostics export when it removes a copy''s package files' {
+        $copy = Join-Path $TestDrive 'Staging\one'
+        New-TestStagingCopy -Root $copy
+        Remove-AtlasStagedPackage -StagingRoot $copy
+        Get-TestStagedFile -Root $copy | Should -Be $script:Evidence
+        { Remove-AtlasStagedPackage -StagingRoot $copy } | Should -Not -Throw
+        { Remove-AtlasStagedPackage -StagingRoot (Join-Path $TestDrive 'Staging\missing') } | Should -Not -Throw
+    }
+
+    It 'tidies only the copies that earlier attempts left' {
+        $staging = Join-Path $TestDrive 'Tidy'
+        $now = [DateTime]::UtcNow
+        foreach ($copy in @(@{ Name = 'earlier'; Age = 60 }, @{ Name = 'current'; Age = 10 }, @{ Name = 'later'; Age = 0 })) {
+            $root = Join-Path $staging $copy.Name
+            New-TestStagingCopy -Root $root
+            [IO.Directory]::SetCreationTimeUtc($root, $now.AddMinutes(-$copy.Age))
+        }
+        $all = Get-TestStagedFile -Root (Join-Path $staging 'current')
+
+        Remove-AtlasEarlierStagedPackage -StagingRoot (Join-Path $staging 'current')
+        Get-TestStagedFile -Root (Join-Path $staging 'earlier') | Should -Be $script:Evidence
+        Get-TestStagedFile -Root (Join-Path $staging 'current') | Should -Be $all
+        Get-TestStagedFile -Root (Join-Path $staging 'later') | Should -Be $all -Because 'another run may still be using a newer copy'
+    }
+}
+
+Describe 'Front door phase failures' {
+    It 'keeps the broker''s message and ends with what to do next' -TestCases @(
+        @{ Phase = 'Capture'; Message = 'Install capture failed: *'; Log = 'install-capture.log'; Next = 'try again.' }
+        @{ Phase = 'Run'; Message = 'The install plan failed: *'; Log = 'install-run.log'; Next = 'resume.' }
+    ) {
+        param($Phase, $Message, $Log, $Next)
+        Mock Invoke-AtlasTrustedInstaller { throw "'powershell.exe' exited with disallowed code 1. Output: the end of the phase log" }
+        $payload = 'C:\Windows\AtlasOS\Staging\0123\Executables'
+        $thrown = $null
+        try { Invoke-AtlasInstallPhase -Phase $Phase -PayloadRoot $payload -TimeoutSeconds 60 }
+        catch { $thrown = $_.Exception.Message }
+        $thrown | Should -BeLike $Message
+        $thrown | Should -BeLike "*disallowed code 1. Output: the end of the phase log The full log is '$payload\AtlasModules\Logs\$Log'. Re-run this script with the same options to $Next"
+        Should -Invoke Invoke-AtlasTrustedInstaller -Times 1 -Exactly -ParameterFilter {
+            $Operation -eq 'Install' -and $InstallPhase -eq $Phase -and $PayloadRoot -eq $payload -and $TimeoutSeconds -eq 60
+        }
+    }
+
+    It 'returns nothing when the broker succeeds' {
+        Mock Invoke-AtlasTrustedInstaller { [pscustomobject]@{ ExitCode = 0; StandardOutput = 'done'; StandardError = '' } }
+        Invoke-AtlasInstallPhase -Phase Run -PayloadRoot 'C:\Windows\AtlasOS\Staging\0123\Executables' -TimeoutSeconds 60 | Should -BeNullOrEmpty
+    }
+}
+
+Describe 'Front door script body' {
+    BeforeAll {
+        # The lifted functions can't show what the script body does with them.
+        $script:FrontDoorAst = [Management.Automation.Language.Parser]::ParseFile($script:FrontDoorScript, [ref]$null, [ref]$null)
+        function Get-ScriptCommandCall {
+            param([Management.Automation.Language.Ast]$Ast, [string]$Name)
+            foreach ($command in $Ast.FindAll({ param($node) $node -is [Management.Automation.Language.CommandAst] }, $true)) {
+                if ($command.GetCommandName() -eq $Name) { $command }
+            }
+        }
+        function Test-InScriptFunction {
+            param([Management.Automation.Language.Ast]$Ast)
+            for ($parent = $Ast.Parent; $null -ne $parent; $parent = $parent.Parent) {
+                if ($parent -is [Management.Automation.Language.FunctionDefinitionAst]) { return $true }
+            }
+            return $false
+        }
+    }
+
+    It 'forwards -WindowsSecurityConfirmed to the requirement check' {
+        $calls = @(Get-ScriptCommandCall -Ast $script:FrontDoorAst -Name 'Test-AtlasInstallRequirement' | Where-Object { -not (Test-InScriptFunction -Ast $_) })
+        $calls.Count | Should -Be 1
+        $parameter = @($calls[0].CommandElements | Where-Object {
+                $_ -is [Management.Automation.Language.CommandParameterAst] -and $_.ParameterName -eq 'WindowsSecurityConfirmed'
+            })
+        $parameter.Count | Should -Be 1
+        $parameter[0].Argument | Should -BeOfType [Management.Automation.Language.VariableExpressionAst]
+        $parameter[0].Argument.VariablePath.UserPath | Should -Be 'WindowsSecurityConfirmed'
+    }
+
+    It 'strips the staging copy before exit 5 and in the catch before the broker starts' {
+        $exitFive = $script:FrontDoorAst.Find({
+                param($node)
+                $node -is [Management.Automation.Language.ExitStatementAst] -and "$($node.Pipeline)" -eq '5'
+            }, $true)
+        @(Get-ScriptCommandCall -Ast $exitFive.Parent -Name 'Remove-AtlasStagedPackage').Count | Should -Be 1
+        $try = @($script:FrontDoorAst.EndBlock.Statements | Where-Object { $_ -is [Management.Automation.Language.TryStatementAst] })
+        $try.Count | Should -Be 1
+        @(Get-ScriptCommandCall -Ast $try[0].CatchClauses[0].Body -Name 'Remove-AtlasStagedPackage').Count | Should -Be 1
     }
 }

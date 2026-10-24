@@ -347,18 +347,40 @@ impl RenderOnce for Button {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::theme::{contrast_ratio, windows_contrast_themes};
+
+    const VARIANTS: [ButtonVariant; 4] =
+        [ButtonVariant::Accent, ButtonVariant::Standard, ButtonVariant::Subtle, ButtonVariant::Hyperlink];
 
     #[test]
     fn disabling_a_button_never_changes_its_outline() {
         for theme in [Theme::light(), Theme::dark()] {
-            for variant in [
-                ButtonVariant::Accent,
-                ButtonVariant::Standard,
-                ButtonVariant::Subtle,
-                ButtonVariant::Hyperlink,
-            ] {
+            for variant in VARIANTS {
                 let (enabled, disabled) = (colours(&theme, variant, false), colours(&theme, variant, true));
                 assert_eq!(enabled.stroke, disabled.stroke, "{:?} {variant:?}", theme.appearance);
+            }
+        }
+    }
+
+    /// The colours a button actually draws with. Contrast themes keep gray
+    /// text readable, so a disabled label must stay readable there too.
+    #[test]
+    fn contrast_themes_keep_every_button_label_readable() {
+        for (name, colors) in windows_contrast_themes() {
+            let theme = Theme::high_contrast(colors);
+            // What a transparent fill shows.
+            let window = theme.solid_background;
+            for variant in VARIANTS {
+                let (enabled, disabled) = (colours(&theme, variant, false), colours(&theme, variant, true));
+                for (state, text, fill) in [
+                    ("at rest", enabled.text, enabled.fill),
+                    ("hovered", enabled.text_hover, enabled.fill_hover),
+                    ("pressed", enabled.text_pressed, enabled.fill_pressed),
+                    ("disabled", disabled.text, disabled.fill),
+                ] {
+                    let ratio = contrast_ratio(text, fill, window);
+                    assert!(ratio >= 4.5, "{name} {variant:?} {state}: {ratio:.2}:1 is below 4.5:1");
+                }
             }
         }
     }

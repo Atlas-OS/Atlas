@@ -126,6 +126,15 @@ Describe 'Temporary notification policy state' {
             Should -BeFalse
     }
 
+    It 'never recreates an existing policy key, which would drop its other values' {
+        $script:AtlasNotificationRegistryTestState.KeyExists = $true
+
+        . $script:NotificationScriptPath -Mode Disable
+        . $script:NotificationScriptPath -Mode Enable
+
+        Should -Invoke New-Item -Times 0 -Exactly -ParameterFilter { $Path -eq $script:NotificationPolicyPath }
+    }
+
     It 'rejects a pre-existing non-DWORD policy without changing it' {
         $script:AtlasNotificationRegistryTestState.KeyExists = $true
         $script:AtlasNotificationRegistryTestState.ValueExists = $true

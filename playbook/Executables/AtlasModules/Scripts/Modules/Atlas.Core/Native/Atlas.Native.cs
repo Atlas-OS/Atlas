@@ -952,6 +952,20 @@ namespace Atlas.Native
                 return;
             }
 
+            // The Safe Mode command prompt has only an administrator token, and servicing
+            // needs TrustedInstaller. The operation takes no input.
+            if (String.Equals(request.Operation, "CbsRetry", StringComparison.Ordinal)) {
+                applicationPath = Path.Combine(systemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
+                string scriptPath = Path.Combine(atlasRoot, "Scripts", "Operations", "CbsRetry.ps1");
+                heldObjects.Add(OpenProtectedFile(applicationPath, true, null));
+                heldObjects.Add(OpenProtectedFile(scriptPath, true, atlasRoot));
+                arguments = new string[] {
+                    "-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                    "-File", scriptPath, "-Recover"
+                };
+                return;
+            }
+
             throw new ArgumentException("The operation is outside the closed TrustedInstaller operation schema.", "request.Operation");
         }
 
@@ -966,23 +980,31 @@ namespace Atlas.Native
             service = OpenService(scm, "TrustedInstaller", SERVICE_QUERY_STATUS | SERVICE_START);
             if (service == IntPtr.Zero) throw LastError("OpenService(TrustedInstaller) failed");
 
-            SERVICE_STATUS_PROCESS status = QueryService(service);
-            if (status.dwCurrentState == SERVICE_STOPPED) {
-                ThrowIfDeadlineExceeded(stopwatch, request.TimeoutMilliseconds);
-                if (!StartService(service, 0, IntPtr.Zero)) {
-                    int error = Marshal.GetLastWin32Error();
-                    if (error != ERROR_SERVICE_ALREADY_RUNNING) {
-                        throw new Win32Exception(error, "StartService(TrustedInstaller) failed.");
-                    }
-                }
-            }
-
+            // TrustedInstaller is demand-start and stops itself when idle, so Atlas can
+            // find it on its way down. Start it whenever it is seen stopped, and fail only
+            // when a start Atlas requested ends stopped.
+            SERVICE_STATUS_PROCESS status;
+            bool startRequested = false;
+            int startAttempts = 0;
             while (true) {
                 ThrowIfDeadlineExceeded(stopwatch, request.TimeoutMilliseconds);
                 status = QueryService(service);
                 if (status.dwCurrentState == SERVICE_RUNNING && status.dwProcessId != 0) break;
                 if (status.dwCurrentState == SERVICE_STOPPED) {
-                    throw new InvalidOperationException(String.Format("TrustedInstaller stopped while starting (Win32 exit {0}, service exit {1}).", status.dwWin32ExitCode, status.dwServiceSpecificExitCode));
+                    if (startRequested || startAttempts == 3) {
+                        throw new InvalidOperationException(String.Format("TrustedInstaller stopped while starting (Win32 exit {0}, service exit {1}).", status.dwWin32ExitCode, status.dwServiceSpecificExitCode));
+                    }
+                    startAttempts++;
+                    if (StartService(service, 0, IntPtr.Zero)) {
+                        startRequested = true;
+                    }
+                    else {
+                        // Another caller's start got in first; follow the state it reaches.
+                        int error = Marshal.GetLastWin32Error();
+                        if (error != ERROR_SERVICE_ALREADY_RUNNING) {
+                            throw new Win32Exception(error, "StartService(TrustedInstaller) failed.");
+                        }
+                    }
                 }
                 System.Threading.Thread.Sleep(100);
             }
@@ -1782,6 +1804,36 @@ namespace Atlas.Native
             }
 
             return processInformation.dwProcessId;
+        }
+    }
+
+    // ----- Windows TEMP root DACL -----
+    // PowerShell consumer: Atlas.Security\Domain\Permissions.ps1 (Set-AtlasWindowsTempRootAcl)
+    // SetFileSecurity writes this one directory's DACL. The managed SetAccessControl goes
+    // through SetNamedSecurityInfo, which also rewrites every descendant's inherited ACEs.
+    // https://learn.microsoft.com/windows/win32/api/securitybaseapi/nf-securitybaseapi-setfilesecurityw
+    public static class DirectoryDacl
+    {
+        private const uint DaclSecurityInformation = 0x00000004;
+        private const uint ProtectedDaclSecurityInformation = 0x80000000;
+
+        [DllImport("advapi32.dll", EntryPoint = "SetFileSecurityW", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Unicode)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetFileSecurity(string fileName, uint securityInformation, byte[] securityDescriptor);
+
+        public static void SetProtected(string path, DirectorySecurity security)
+        {
+            if (String.IsNullOrEmpty(path) || !Path.IsPathRooted(path))
+                throw new ArgumentException("A full directory path is required.", "path");
+            if (security == null)
+                throw new ArgumentNullException("security");
+            if (!SetFileSecurity(path, DaclSecurityInformation | ProtectedDaclSecurityInformation, security.GetSecurityDescriptorBinaryForm()))
+            {
+                // The engine logs only the message, so it carries the system text and code.
+                int error = Marshal.GetLastWin32Error();
+                throw new Win32Exception(error, "Setting the DACL of '" + path + "' failed: " +
+                    new Win32Exception(error).Message + " (Win32 error " + error + ").");
+            }
         }
     }
 

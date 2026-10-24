@@ -110,18 +110,19 @@ installation and recovery checks on Windows.
 
 `tools/release/build-rc.sh --rc N` builds one tester bundle on Linux:
 
-1. the production Atlas package, with every eligibility gate, verified with
-   `Test-Apbx.ps1`;
+1. the production Atlas package, with every eligibility gate, built from the commit's
+   `playbook/` rather than the working tree and verified with `Test-Apbx.ps1`;
 2. `AtlasManager.exe` built with the `embedded-playbook` feature, carrying exactly that
    package;
 3. a ZIP of both, the license notices and a tester note.
 
 Output goes to `artifacts/rc/<version>-rc.N/`, with `SHA256SUMS.txt` beside the ZIP. A
 failed run leaves an earlier candidate untouched. The tree must be committed unless you pass
-`--allow-dirty`; About and diagnostics then show a `-dirty` commit. Nothing is tagged or
-published: post the ZIP and checksum lines by hand. See
-[`app/docs/rc-testers-build.md`](../app/docs/rc-testers-build.md) for the design and the
-checks still owed on Windows.
+`--allow-dirty`. With uncommitted changes to tracked files, that builds from the working
+tree, untracked files included, and About, diagnostics and `README-RC.txt` show a `-dirty`
+commit. Without such changes it still builds from the commit, so untracked files stay out.
+Nothing is tagged or published: post the ZIP and checksum lines by hand. See [`app/docs/rc-testers-build.md`](../app/docs/rc-testers-build.md) for the
+design and the checks still owed on Windows.
 
 A tester build never checks GitHub, downloads, or opens another Atlas package. On first
 use it writes its bundled package to the app's Downloads folder and unpacks it through the
@@ -168,14 +169,20 @@ The ordinary build workflow produces short-lived review artifacts and publishes 
 SxS CAB candidates are separate artifacts; review them before committing them under
 `playbook/`.
 
-A canonical `vX.Y.Z` tag matching `playbook.conf` builds and verifies the APBX and release
-ZIP, records their hashes and attestations, and creates a draft GitHub release through the
-`release` environment. That environment must set the variable `ATLAS_RELEASE_ENABLED` to
-`true`.
+A canonical `vX.Y.Z` tag matching `playbook.conf` builds and verifies the APBX, the release
+ZIP and the stable `AtlasManager.exe`. It records their hashes in `SHA256SUMS.txt`, attests
+them, and creates a draft GitHub release through the `release` environment. That environment
+must set the variable `ATLAS_RELEASE_ENABLED` to `true`.
+
+The release files are `Atlas-vX.Y.Z.apbx`, `Atlas-vX.Y.Z.zip` and `AtlasManager.exe`. They
+have no spaces because GitHub renames asset files that do, and the checksum file would then
+name files the release doesn't have. The workflow also stops if `AtlasManager.exe` reports a
+version other than the one in `playbook.conf`.
 
 ## Version bumps
 
-`<Version>` in `playbook.conf` is the single source of truth. Bump it with:
+The release version is `<Version>` in `playbook.conf`. Bump it with the script; `-Version`
+takes all three numbers (`0.7.0`, not `0.7`):
 
 ```
 pwsh tools/build/Set-AtlasVersion.ps1 -Version 0.7.0
@@ -183,8 +190,20 @@ pwsh tools/build/Set-AtlasVersion.ps1 -Version 0.7.0
 
 This sets `<Version>`, rewrites `<Title>` to `Atlas v0.7.0`, moves the previous version
 into `<UpgradableFrom>`, and points every `onUpgradeVersions` entry in
-`playbook/Configuration/custom.yml` at the new version. Review and commit the diff, then tag
-`v0.7.0` to start the release workflow.
+`playbook/Configuration/custom.yml` at the new version.
+
+It also sets the `[package]` `version` in `app/Cargo.toml` and the `atlas-app` entry in
+`app/Cargo.lock`, which the `--locked` builds need. Atlas Manager shows that version in its
+file properties, under **About** in Settings and in diagnostics. A tester build fails when
+`ATLAS_RC_ID` doesn't start with it, and so does the tag release when `AtlasManager.exe`
+and `playbook.conf` disagree.
+
+It also rewrites the `Atlas vX.Y.Z for Windows 11 …` options in
+`.github/ISSUE_TEMPLATE/bug_report.yml`, which a test keeps equal to the `playbook.conf`
+version. If `playbook.conf` already has the version, the script leaves it alone and only
+brings the other files in line with it.
+
+Review and commit the diff, then tag `v0.7.0` to start the release workflow.
 
 ## Optional developer setup
 

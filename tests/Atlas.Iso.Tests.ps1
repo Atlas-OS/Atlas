@@ -6,8 +6,16 @@ BeforeAll {
     if ($errors) { throw ($errors | Out-String) }
     $function = $ast.Find({ param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Assert-BootCatalog' }, $true)
     . ([scriptblock]::Create($function.Extent.Text))
-    $xmlLiteral = $ast.Find({ param($n) $n -is [Management.Automation.Language.StringConstantExpressionAst] -and $n.Value.StartsWith('<?xml') }, $true)
-    $script:Answer = [xml]$xmlLiteral.Value
+    # The worker's statements from the answer template to the finished file, so the
+    # tests read what the media carries after the account name and architecture go in.
+    $answerSteps = @($ast.FindAll({ param($n) $n -is [Management.Automation.Language.AssignmentStatementAst] -and $n.Left.Extent.Text -eq '$answer' }, $true))
+    $start = $answerSteps[0].Extent.StartOffset
+    $script:WriteAnswer = [scriptblock]::Create($ast.Extent.Text.Substring($start, $answerSteps[-1].Extent.EndOffset - $start))
+    function New-TestAnswer([string]$architecture, [string]$username) {
+        . $script:WriteAnswer
+        [xml]$answer
+    }
+    $script:Answer = New-TestAnswer x64 'Atlas'
     $script:Media = Join-Path $TestDrive 'media'
     New-Item -ItemType Directory -Path (Join-Path $script:Media 'boot'), (Join-Path $script:Media 'efi\microsoft\boot') -Force | Out-Null
     [IO.File]::WriteAllBytes((Join-Path $script:Media 'boot\etfsboot.com'), (New-Object byte[] 4096))
@@ -41,6 +49,22 @@ Describe 'Native ISO mastering' {
         $specialize = @($script:Answer.unattend.settings | Where-Object pass -eq 'specialize')
         $specialize | Should -HaveCount 1
         $specialize[0].component.RunSynchronous.RunSynchronousCommand.Path | Should -Match 'AtlasISO\\Setup.ps1'
+    }
+    It 'names the account and matches the components to <Architecture> media' -ForEach @(
+        @{ Architecture = 'x64'; Expected = 'amd64' }
+        @{ Architecture = 'arm64'; Expected = 'arm64' }
+    ) {
+        # Setup.ps1 refuses a first logon whose account isn't the configured name.
+        $name = 'A&B'
+        $answer = New-TestAnswer $Architecture $name
+        $answer.OuterXml | Should -Not -Match 'ATLAS_LOCAL_ACCOUNT'
+        $oobe = @($answer.unattend.settings | Where-Object pass -eq 'oobeSystem')[0].component
+        $oobe.UserAccounts.LocalAccounts.LocalAccount.Name | Should -BeExactly $name
+        $oobe.AutoLogon.Username | Should -BeExactly $name
+        $oobe.RegisteredOwner | Should -BeExactly $name
+        $components = @($answer.unattend.settings.component)
+        $components | Should -HaveCount 3
+        foreach ($component in $components) { $component.processorArchitecture | Should -BeExactly $Expected }
     }
     It 'creates a complete image with independently readable BIOS and UEFI catalog entries' {
         { Assert-BootCatalog $script:Image } | Should -Not -Throw

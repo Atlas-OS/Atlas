@@ -296,8 +296,4 @@ function Disable-AtlasFileSharing {
         }
     }
     Write-AtlasLog -Message 'Disabled File Sharing adapter bindings, NetBIOS, NetBT, sharing firewall rules and the Sharing context menu.'
-
-    if (-not $Silent) {
-        Write-AtlasFileSharingCompletion
-    }
 }

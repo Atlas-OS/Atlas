@@ -83,3 +83,56 @@ Describe 'Invoke-AtlasToggleNativeCommand' {
         } | Should -Throw '*duplicate exit code 0*'
     }
 }
+
+Describe 'Remove-AtlasToggleBcdValue' {
+    BeforeEach {
+        $script:bcdOutput = @(
+            'Global Settings'
+            '---------------'
+            'identifier              {globalsettings}'
+            'locale                  en-US'
+            'advancedoptions         Yes'
+            'custom:16000067         Yes'
+        )
+        Mock Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles { $script:bcdOutput } -ParameterFilter {
+            $ArgumentList[0] -eq '/enum'
+        }
+        Mock Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles {} -ParameterFilter {
+            $ArgumentList[0] -eq '/deletevalue'
+        }
+    }
+
+    It 'deletes <Element> when bcdedit lists it' -ForEach @(
+        @{ Element = 'advancedoptions' }
+        @{ Element = 'custom:16000067' }
+    ) {
+        InModuleScope Atlas.Toggles {
+            Remove-AtlasToggleBcdValue -WinDir 'C:\Windows' -Identifier '{globalsettings}' -Element $e
+        } -Parameters @{ e = $Element }
+
+        Should -Invoke Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            $ArgumentList[0] -eq '/deletevalue' -and
+            ($ArgumentList -join '|') -ceq "/deletevalue|{globalsettings}|$Element" -and
+            $FilePath -ceq 'C:\Windows\System32\bcdedit.exe' -and
+            ($AllowedExitCodes -join ',') -ceq '0'
+        }
+    }
+
+    # /deletevalue fails for an element that isn't set, and a prefix isn't the element.
+    It 'leaves <Element> alone when bcdedit does not list it' -ForEach @(
+        @{ Element = 'optionsedit' }
+        @{ Element = 'advanced' }
+        @{ Element = 'custom:16000069' }
+    ) {
+        InModuleScope Atlas.Toggles {
+            Remove-AtlasToggleBcdValue -WinDir 'C:\Windows' -Identifier '{globalsettings}' -Element $e
+        } -Parameters @{ e = $Element }
+
+        Should -Invoke Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles -Times 0 -Exactly -ParameterFilter {
+            $ArgumentList[0] -eq '/deletevalue'
+        }
+        Should -Invoke Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            $ArgumentList[0] -eq '/enum'
+        }
+    }
+}

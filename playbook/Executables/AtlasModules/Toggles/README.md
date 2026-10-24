@@ -14,13 +14,18 @@ declarations, so a definition never states its own privilege split:
 | Work | Declared by | Runs as | Replayed |
 | --- | --- | --- | --- |
 | Machine | `HKLM` registry entries, `Services`, `ScheduledTasks`, `MachineAction` | the declared `Elevation` (Administrator or TrustedInstaller) | on upgrade, from the recorded state |
-| User | `HKCU` registry entries, `UserAction` | the launching user's own non-elevated process, after the machine part succeeds | at each account's first sign-in |
+| User | `HKCU` registry entries, `UserAction` | the launching user's own non-elevated process (after the machine part when there is one) | at each account's first sign-in |
 | Local | any registry entry and `Action` of an `Elevation = 'None'` toggle | the launcher process, unchanged | never (such toggles record no state) |
 
-A state that has user work must be launched from a non-elevated process: the engine
-runs the machine part in a UAC child (or through the TrustedInstaller broker), records
-the state there, then finishes the user part in the launching process so it can never
-inherit an elevated token. A state with only machine work is elevated as a whole.
+A state that has user work must be launched from a non-elevated process, so that work
+can never inherit an elevated token. When the state also has machine work or a
+`ContextAction`, the engine runs the machine part in a UAC child (or through the
+TrustedInstaller broker), records the state there, then finishes the user part in the
+launching process. A state whose only work is per-user runs that work first, in the
+launching process; the privileged child then only records the choice, and the closing
+line waits for that record. A failed user step therefore never replaces an earlier
+recorded choice. A state with only machine work is elevated as a whole. A `/justcontext`
+run only runs the `ContextAction`; it applies no other work and records nothing.
 
 Validate every definition without running any toggle code with
 `Test-AtlasToggleDefinition -Path <Toggles folder>` (CI runs it). Regenerate launchers with
@@ -47,7 +52,7 @@ existing recorded choices. Direct callers using old state identifiers must updat
     Warning         = 'Shown and confirmed before an interactive run.'   # optional
     Menu            = $true                  # optional: one launcher with a numbered state picker
     Launcher        = '6. Advanced Configuration\...\Toggle X.cmd'      # Menu toggles only
-    ToolboxLauncher = 'Scripts\X\toggleX.cmd'                            # optional Toolbox copy
+    ToolboxLauncher = 'Scripts\X\toggleX.cmd'                            # only for a path a Toolbox release before 0.2.0 opens (docs/compatibility.md)
     SilentDefault   = 'Enable'               # Menu toggles: state used silently with no record
     NoStateRecord   = $true                  # optional: never record this toggle
     Script          = 'Bluetooth.ps1'        # companion; required when a state names a function
@@ -56,13 +61,13 @@ existing recorded choices. Direct callers using old state identifiers must updat
             Name             = 'Disable'     # required identifier
             StateValue       = 0             # REG_DWORD recorded under HKLM\SOFTWARE\AtlasOS\Services\<Name>
             Launcher         = '6. Advanced Configuration\Services\Bluetooth\Disable Bluetooth.cmd'
-            ToolboxLauncher  = 'ConfigurationServices\X\X_0.cmd'   # optional
+            ToolboxLauncher  = 'Scripts\X\disableX.cmd'             # only for a path a Toolbox release before 0.2.0 opens (docs/compatibility.md)
             MenuLabel        = 'Disable Bluetooth'                  # Menu toggles
-            Reboot           = 'Recommend'   # 'None' | 'Recommend' | 'Prompt' | 'RestartExplorer'
+            Reboot           = 'Recommend'   # 'None' | 'Recommend' | 'Prompt' | 'RestartExplorer' | 'SignOut'
             ShellRefreshOperation = 'SearchShellRefresh'   # with RestartExplorer; default ExplorerRefresh
             NoStateRecord    = $true         # optional per-state variant
             Registry         = @( @{ Path = 'HKLM:\...'; Name = 'Value'; Type = 'DWord'; Data = 0 } )
-            Services         = @( @{ Name = 'bthserv'; StartupType = 4; AllowMissing = $true } )
+            Services         = @( @{ Name = 'bthserv'; StartupType = 4 } )
             ScheduledTasks   = @( @{ Path = '\Microsoft\Windows\X\Task'; Operation = 'Disable' } )
             MachineAction    = 'Disable-AtlasBluetoothMachine'   # companion function
             UserAction       = 'Disable-AtlasBluetoothUser'      # companion function
@@ -137,22 +142,31 @@ asks, `Write-AtlasNote`, `Write-AtlasWarning` and `Write-AtlasSuccess` for facts
 `Write-AtlasNextStep` or `Write-AtlasManualStep` when the user must continue elsewhere
 (the latter turns the closing line into `Not finished yet:`). The engine owns the
 heading, the definition's warning gate, the `Done:` line, the restart follow-up and the
-single exit pause, so a companion never prints "Finished" or pauses. A companion that
-runs a script or helper checks its exit code and throws, so a helper that stopped early
-is reported as not applied.
+single exit pause, so a companion never prints "Finished" or pauses. It never signs out
+either: `Reboot = 'SignOut'` shows the sign-out notice after the closing line and asks
+"Sign out now?" (interactive runs only), by which time the choice is recorded. A
+companion that runs a script or helper checks its exit code and throws, so a helper that
+stopped early is reported as not applied. A companion that asks before restarting File
+Explorer calls `Invoke-AtlasToggleCurrentSessionShellRefresh -Operation ExplorerRefresh`
+and reports a failed refresh with `Write-AtlasPartial`, because its own change is
+already in place.
 
-A public machine-only TrustedInstaller state may name an `InteractiveState` companion
-function. The administrator process invokes it before handing the work to the
-silent TrustedInstaller broker. It must return exactly one existing machine-only state name; it must not
-return user or local work. Use fixed internal states to carry a prompted choice into
-the broker, as Indexing does. Record the public choice only after that work succeeds.
+A TrustedInstaller toggle's machine work always runs in the silent broker, so a prompt,
+warning or step in its `MachineAction` never reaches the user. A public machine-only
+TrustedInstaller state may instead name an `InteractiveState` companion function. The
+administrator process invokes it before handing the work to the silent TrustedInstaller
+broker. It must return exactly one existing machine-only state name; it must not return
+user or local work. Returning the state's own name confirms it, as Mitigations does
+after its warning. Use fixed internal states to carry a prompted choice into the
+broker, as Indexing does. Record the public choice only after that work succeeds.
 Silent replay skips the selector and applies the original recorded state, so its
 machine action must preserve any separately saved option without prompting.
 
 ## State record and replay
 
-Only the machine part records state, and only after it completes. Upgrades replay every
-recorded state's machine part from the installed definition; records whose definition
+Only the privileged machine process records state, and only after the machine part
+completes (for a user-only state, after the user part has succeeded). Upgrades replay
+every recorded state's machine part from the installed definition; records whose definition
 or state no longer exists are removed. First sign-in replays every recorded state's
 user part for the new account. Toggles that must never replay (safe mode, one-shot
 repairs, information views) declare `NoStateRecord`.

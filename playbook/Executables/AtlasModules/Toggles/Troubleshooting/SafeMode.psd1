@@ -6,32 +6,28 @@
     Script        = 'SafeMode.ps1'
     States        = @(
         @{
-            Name            = 'Minimal'
-            Launcher        = '9. Troubleshooting\Safe Mode\Safe Mode.cmd'
-            ToolboxLauncher = 'ConfigurationServices\SafeMode\SafeMode_3.cmd'
-            Reboot          = 'Recommend'
-            MachineAction   = 'Set-AtlasSafeModeBoot'
+            Name          = 'Minimal'
+            Launcher      = '9. Troubleshooting\Safe Mode\Safe Mode.cmd'
+            Reboot        = 'Recommend'
+            MachineAction = 'Set-AtlasSafeModeBoot'
         }
         @{
-            Name            = 'CommandPrompt'
-            Launcher        = '9. Troubleshooting\Safe Mode\Safe Mode with Command Prompt.cmd'
-            ToolboxLauncher = 'ConfigurationServices\SafeMode\SafeMode_1.cmd'
-            Reboot          = 'Recommend'
-            MachineAction   = 'Set-AtlasSafeModeBoot'
+            Name          = 'CommandPrompt'
+            Launcher      = '9. Troubleshooting\Safe Mode\Safe Mode with Command Prompt.cmd'
+            Reboot        = 'Recommend'
+            MachineAction = 'Set-AtlasSafeModeBoot'
         }
         @{
-            Name            = 'Networking'
-            Launcher        = '9. Troubleshooting\Safe Mode\Safe Mode with Networking.cmd'
-            ToolboxLauncher = 'ConfigurationServices\SafeMode\SafeMode_2.cmd'
-            Reboot          = 'Recommend'
-            MachineAction   = 'Set-AtlasSafeModeBoot'
+            Name          = 'Networking'
+            Launcher      = '9. Troubleshooting\Safe Mode\Safe Mode with Networking.cmd'
+            Reboot        = 'Recommend'
+            MachineAction = 'Set-AtlasSafeModeBoot'
         }
         @{
-            Name            = 'Exit'
-            Launcher        = '9. Troubleshooting\Safe Mode\Exit Safe Mode.cmd'
-            ToolboxLauncher = 'ConfigurationServices\SafeMode\SafeMode_0.cmd'
-            Reboot          = 'Recommend'
-            MachineAction   = 'Set-AtlasSafeModeBoot'
+            Name          = 'Exit'
+            Launcher      = '9. Troubleshooting\Safe Mode\Exit Safe Mode.cmd'
+            Reboot        = 'Recommend'
+            MachineAction = 'Set-AtlasSafeModeBoot'
         }
     )
 }

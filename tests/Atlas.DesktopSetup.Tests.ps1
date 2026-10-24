@@ -39,6 +39,8 @@ Describe 'Before-desktop recovery' {
         Restore-AtlasDesktop
         $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($script:policyPath)
         try { $key.GetValue('Shell') | Should -BeNullOrEmpty } finally { $key.Dispose() }
+        # The user can't write the policy key, so the SYSTEM task for this account removes the shell.
+        Should -Invoke Request-AtlasDesktopCleanup -Times 1 -Exactly -ParameterFilter { $Sid -eq [Security.Principal.WindowsIdentity]::GetCurrent().User.Value }
         Should -Invoke Start-Process -Times 1 -Exactly -ParameterFilter { $FilePath -eq (Join-Path $env:WINDIR 'explorer.exe') }
     }
     It 'preserves a shell installed by another application' {

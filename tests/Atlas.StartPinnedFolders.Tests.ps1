@@ -87,8 +87,9 @@ Describe 'Start pinned-folder policy' {
         # Clearing the cache first would leave Start showing the folders until the next reset.
         function Set-AtlasStartLayout { }
         function Invoke-AtlasUserAppxCacheCleanup { param([string]$Mode) [void]$Mode }
+        function Import-AtlasModule { param([string]$Name) [void]$Name }
         $calls = [Collections.Generic.List[string]]::new()
-        Mock Import-Module { }
+        Mock Import-AtlasModule { }
         Mock Set-AtlasStartLayout { $calls.Add('layout') }
         Mock New-CimInstance { $calls.Add('folders'); New-TestStartPolicyInstance -Value 0 }
         Mock Invoke-AtlasUserAppxCacheCleanup { $calls.Add("cache:$Mode") }

@@ -61,19 +61,27 @@ function Set-AtlasMitigationsWindowsDefault {
         -AllowedExitCodes ([int[]]@(0)) | Out-Null
 }
 
+function Confirm-AtlasMitigationsEnable {
+    param($Toggle)
+
+    # The machine action runs in the silent TrustedInstaller broker, so the warning is
+    # shown here, in the administrator window, before the broker starts.
+    if ($Toggle.Silent) {
+        throw 'Confirming every mitigation needs an interactive window.'
+    }
+    Write-AtlasWarning -Text @(
+        'This force-enables every security mitigation. It slows performance and worsens'
+        "compatibility; 'Set Windows Default Mitigations' is the recommended choice."
+    )
+    Wait-AtlasContinue
+    return 'Enable'
+}
+
 function Enable-AtlasMitigations {
     param($Toggle)
 
-    # Everything stays in this function: the confirmation must come before any change,
-    # and FeatureSettingsOverride depends on the installed processor.
-    if (-not $Toggle.Silent) {
-        Write-AtlasWarning -Text @(
-            'This force-enables every security mitigation. It slows performance and worsens'
-            "compatibility; 'Set Windows Default Mitigations' is the recommended choice."
-        )
-        Wait-AtlasContinue
-    }
-
+    # Everything stays in this function because FeatureSettingsOverride depends on
+    # the installed processor.
     $memoryManagement = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management'
     $kernel = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\kernel'
     $sessionManager = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager'

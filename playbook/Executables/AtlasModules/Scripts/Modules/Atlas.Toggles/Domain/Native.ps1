@@ -85,3 +85,42 @@ function Invoke-AtlasToggleNativeCommand {
 
     $nativeOutput
 }
+
+function Remove-AtlasToggleBcdValue {
+    <#
+    .SYNOPSIS
+        Deletes one element from a BCD object, only when bcdedit lists it, because
+        /deletevalue fails for an element that is not set.
+    #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+        'PSUseShouldProcessForStateChangingFunctions',
+        '',
+        Justification = 'Toggle companions call this only for a state the user or replay already chose.'
+    )]
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$WinDir,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Identifier,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Element
+    )
+
+    $bcdEditPath = [IO.Path]::Combine($WinDir, 'System32', 'bcdedit.exe')
+    $bcdEditOutput = Invoke-AtlasToggleNativeCommand -FilePath $bcdEditPath `
+        -ArgumentList ([string[]]@('/enum', $Identifier)) `
+        -AllowedExitCodes ([int[]]@(0))
+    if (($bcdEditOutput -join [Environment]::NewLine) -notmatch
+        ('(?im)^[ \t]*' + [regex]::Escape($Element) + '(?:[ \t]+|$)')) {
+        return
+    }
+    Invoke-AtlasToggleNativeCommand -FilePath $bcdEditPath `
+        -ArgumentList ([string[]]@('/deletevalue', $Identifier, $Element)) `
+        -AllowedExitCodes ([int[]]@(0)) | Out-Null
+}

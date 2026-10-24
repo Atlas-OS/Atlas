@@ -1,7 +1,8 @@
 name: Desktop app
 
-# Atlas package metadata, the front-door contract and driver policies are compiled
-# into the app or its tests. Changes to those inputs must rebuild it.
+# The paths cover every file outside app/ that the app or its tests compile in or read
+# (the include_str!, include_bytes! and CARGO_MANIFEST_DIR paths in app/src) and the
+# package build the tester-build step runs. Changes to any of them must rebuild the app.
 on:
   push:
     paths:
@@ -10,7 +11,13 @@ on:
       - "playbook/Executables/AtlasModules/Scripts/Preparation/**"
       - "playbook/Executables/AtlasModules/Scripts/Compatibility/**"
       - "playbook/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1"
+      - "playbook/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/**"
       - "playbook/Executables/AtlasDesktop/2. Drivers/Drivers from Windows Update/*.reg"
+      - "tools/dev/Get-AtlasInstallReport.ps1"
+      - "tools/build/**"
+      - "tests/fixtures/**"
+      - "services/reports/src/lib.rs"
+      - "LICENSE"
       - ".github/workflows/app.yml"
   pull_request:
     paths:
@@ -19,7 +26,13 @@ on:
       - "playbook/Executables/AtlasModules/Scripts/Preparation/**"
       - "playbook/Executables/AtlasModules/Scripts/Compatibility/**"
       - "playbook/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1"
+      - "playbook/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/**"
       - "playbook/Executables/AtlasDesktop/2. Drivers/Drivers from Windows Update/*.reg"
+      - "tools/dev/Get-AtlasInstallReport.ps1"
+      - "tools/build/**"
+      - "tests/fixtures/**"
+      - "services/reports/src/lib.rs"
+      - "LICENSE"
       - ".github/workflows/app.yml"
   workflow_dispatch:
 
@@ -86,10 +99,15 @@ jobs:
       - name: Clippy and test the tester build (embedded-playbook)
         env:
           ATLAS_EMBED_APBX: ${{ github.workspace }}/playbook/Atlas Test.apbx
-          # build.rs requires a candidate number from 1; this id only labels the CI test binary.
-          ATLAS_RC_ID: 0.6.0-rc.1
+        # The step's status is the last native exit code, so a Clippy failure must stop it here.
         run: |
+          # build.rs requires the id to name app/Cargo.toml's version and a candidate number
+          # from 1; it only labels the CI test binary.
+          $metadata = cargo metadata --no-deps --format-version 1 --locked | ConvertFrom-Json
+          $version = $metadata.packages.Where({ $_.name -eq 'atlas-app' })[0].version
+          $env:ATLAS_RC_ID = "$version-rc.1"
           cargo clippy --locked --all-targets --features embedded-playbook -- -D warnings
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cargo test --locked --features embedded-playbook -- --nocapture
 
       - name: Build production executable

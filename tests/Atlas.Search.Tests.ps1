@@ -38,11 +38,20 @@ Describe 'Index path behavior' {
                 Include = 'HKCU:\Software\AtlasRewriteTest\Search\Paths'
                 Exclude = 'HKCU:\Software\AtlasRewriteTest\Search\Exclusions'
             }
+            # The other policy lists the module clears move under the scratch key too,
+            # so CleanPolicies walks the real list without touching HKLM.
+            $machinePrefix = 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\'
             $script:AtlasIndexPolicyRoots = @(
                 $script:AtlasIndexPathRoots.Include
                 $script:AtlasIndexPathRoots.Exclude
+                foreach ($policyRoot in @($saved.Policies | Where-Object { @($saved.Paths.Values) -notcontains $_ })) {
+                    if (-not $policyRoot.StartsWith($machinePrefix, [StringComparison]::OrdinalIgnoreCase)) {
+                        throw "Policy root '$policyRoot' cannot be moved into the scratch hive."
+                    }
+                    'Registry::HKEY_CURRENT_USER\Software\AtlasRewriteTest\' + $policyRoot.Substring($machinePrefix.Length)
+                }
             )
-        }
+        } -Parameters @{ saved = $script:savedRoots }
     }
 
     AfterAll {
@@ -114,7 +123,7 @@ Describe 'Index path behavior' {
         $entry.GetValue($url) | Should -BeExactly $url
     }
 
-    It 'clears only policy lists, preserving Search-owned scope and policy caches' {
+    It 'clears every policy list, including the two earlier RCs wrote, and keeps Search-owned scope and caches' {
         $internalRoot = 'HKCU:\Software\AtlasRewriteTest\Search\Gather'
         $cacheRoot = 'HKCU:\Software\AtlasRewriteTest\Search\CurrentPolicies'
         foreach ($root in @($internalRoot, $cacheRoot)) {
@@ -122,29 +131,31 @@ Describe 'Index path behavior' {
             Set-ItemProperty -LiteralPath $root -Name Included -Value 1 -Type DWord
         }
         New-Item -Path 'HKCU:\Software\AtlasRewriteTest\Search\Paths\0' -Force | Out-Null
+        # Written out rather than derived from the module's list, so dropping either
+        # entry from that list leaves these seeded and fails the test.
+        $legacyRoots = @(
+            'HKCU:\Software\AtlasRewriteTest\Policies\Microsoft\Windows\Windows Search\DefaultIndexedPaths'
+            'HKCU:\Software\AtlasRewriteTest\Policies\Microsoft\Windows\Windows Search\DefaultExcludedPaths'
+        )
+        foreach ($root in $legacyRoots) {
+            New-Item -Path "$root\Stale" -Force | Out-Null
+            Set-ItemProperty -LiteralPath $root -Name 'C:\Stale' -Value 'C:\Stale' -Type String
+        }
 
         Set-AtlasIndexConfiguration -Operation CleanPolicies
 
         foreach ($root in @(
                 'HKCU:\Software\AtlasRewriteTest\Search\Paths'
                 'HKCU:\Software\AtlasRewriteTest\Search\Exclusions'
+                $legacyRoots
             )) {
             Test-Path -LiteralPath $root | Should -BeTrue
-            @(Get-ChildItem -Path $root).Count | Should -Be 0
-            @((Get-Item -Path $root).GetValueNames()).Count | Should -Be 0
+            @(Get-ChildItem -LiteralPath $root).Count | Should -Be 0
+            @((Get-Item -LiteralPath $root).GetValueNames()).Count | Should -Be 0
         }
         foreach ($root in @($internalRoot, $cacheRoot)) {
             Test-Path -LiteralPath "$root\Stale" | Should -BeTrue
             (Get-Item -LiteralPath $root).GetValue('Included') | Should -Be 1
-        }
-    }
-
-    It 'also clears the two policy lists earlier RCs wrote' {
-        foreach ($legacy in @(
-                'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Windows Search\DefaultIndexedPaths'
-                'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Windows Search\DefaultExcludedPaths'
-            )) {
-            $script:savedRoots.Policies | Should -Contain $legacy -Because 'upgraded machines may still hold them'
         }
     }
 
@@ -181,10 +192,7 @@ Describe 'Set-AtlasIndexConfiguration' {
         Mock Test-AtlasAdmin -ModuleName Atlas.Search { $true }
         $global:AtlasSearchTestCalls = New-Object 'System.Collections.Generic.List[string]'
         Mock Get-AtlasIndexNativePaths -ModuleName Atlas.Search {
-            [pscustomobject]@{
-                GpUpdate = 'C:\Windows\System32\gpupdate.exe'
-                Sc       = 'C:\Windows\System32\sc.exe'
-            }
+            [pscustomobject]@{ Sc = 'C:\Windows\System32\sc.exe' }
         }
     }
 
@@ -248,10 +256,10 @@ Describe 'Set-AtlasIndexConfiguration' {
         Mock Complete-AtlasIndexScope -ModuleName Atlas.Search {
             [void]$global:AtlasSearchTestCalls.Add('scope:verified')
         }
+        # Start runs no native command of its own; any that appeared would break the
+        # exact sequence below.
         Mock Invoke-AtlasHiddenProcess -ModuleName Atlas.Search {
-            [void]$global:AtlasSearchTestCalls.Add(
-                "native:$([IO.Path]::GetFileName($FilePath)):$($ArgumentList -join ','):wait=$Wait"
-            )
+            [void]$global:AtlasSearchTestCalls.Add("native:$([IO.Path]::GetFileName($FilePath))")
         }
 
         Set-AtlasIndexConfiguration -Operation Start
@@ -486,6 +494,60 @@ Describe 'Index configuration process contracts' {
 
         $exitCode | Should -Be 1
         ($output | Out-String) | Should -Match 'requires an explicit setting value'
+    }
+
+    It 'hands <Argument> from the compatibility launcher as one path the engine accepts' -ForEach @(
+        @{ Argument = 'D:\Data\'; Expected = 'D:\Data' }
+        @{ Argument = 'D:\'; Expected = 'D:\' }
+        @{ Argument = 'D:\Data'; Expected = 'D:\Data' }
+        @{ Argument = '\\server\share\'; Expected = '\\server\share' }
+    ) {
+        # The launcher runs only from the installed Windows directory, so run its
+        # path-forwarding lines against a probe that reports what -File bound.
+        $lines = @([IO.File]::ReadAllLines($script:launcherPath))
+        $start = [Array]::IndexOf($lines, ':invokeWithPath')
+        $start | Should -BeGreaterThan -1
+        $end = $start + 1
+        while ($end -lt $lines.Count -and $lines[$end] -notmatch ' -IndexPath ') {
+            $end++
+        }
+        $end | Should -BeLessThan $lines.Count
+
+        $probe = Join-Path $TestDrive 'Show-IndexPath.ps1'
+        Set-Content -LiteralPath $probe -Encoding Ascii -Value @'
+param([string]$Operation, [string]$IndexPath)
+[Console]::Out.WriteLine($IndexPath)
+'@
+        $harness = Join-Path $TestDrive 'invoke-with-path.cmd'
+        $harnessLines = @(
+            '@echo off'
+            'setlocal EnableExtensions DisableDelayedExpansion'
+            'set "operation=Include"'
+            'set "indexPath=%~1"'
+            "set `"script=$probe`""
+            'set "AtlasNativePowerShell=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"'
+        ) + $lines[($start + 1)..$end]
+        [IO.File]::WriteAllLines($harness, [string[]]$harnessLines, [Text.Encoding]::ASCII)
+
+        $startInfo = [Diagnostics.ProcessStartInfo]::new()
+        $startInfo.FileName = Join-Path ([Environment]::SystemDirectory) 'cmd.exe'
+        $startInfo.Arguments = "/d /c call `"$harness`" `"$Argument`""
+        $startInfo.UseShellExecute = $false
+        $startInfo.CreateNoWindow = $true
+        $startInfo.RedirectStandardOutput = $true
+        $process = [Diagnostics.Process]::Start($startInfo)
+        try {
+            $bound = $process.StandardOutput.ReadToEnd().Trim()
+            $process.WaitForExit()
+        }
+        finally {
+            $process.Dispose()
+        }
+
+        InModuleScope Atlas.Search -Parameters @{ Bound = $bound } {
+            param($Bound)
+            ConvertTo-AtlasIndexPath -Candidate $Bound
+        } | Should -BeExactly $Expected
     }
 
     It 'rejects unsupported compatibility-launcher arguments with code 2' {

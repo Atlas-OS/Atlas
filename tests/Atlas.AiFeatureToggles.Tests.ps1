@@ -199,11 +199,23 @@ Describe 'Widgets toggle' {
     BeforeEach {
         Mock Set-AtlasMachineDwordPolicy -ModuleName Atlas.Toggles
         Mock Write-AtlasLog -ModuleName Atlas.Toggles
+        Mock Write-AtlasNote -ModuleName Atlas.Toggles
+        Mock Write-AtlasStep -ModuleName Atlas.Toggles
         Mock Set-AtlasRegistryValue -ModuleName Atlas.Toggles
         Mock Remove-AtlasRegistryValue -ModuleName Atlas.Toggles
         Mock Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles
         Mock Read-AtlasYesNo -ModuleName Atlas.Toggles { $true }
         Mock Start-Process -ModuleName Atlas.Toggles
+        # Pin the Edge check so every host takes the branch a test asks for.
+        $script:edgeInstalled = $true
+        Mock Test-Path -ModuleName Atlas.Toggles { $script:edgeInstalled } -ParameterFilter {
+            $LiteralPath -like '*\Microsoft\Edge\Application\msedge.exe'
+        }
+        $script:expectedPowerShell = [IO.Path]::Combine(
+            $env:SystemRoot,
+            'System32\WindowsPowerShell\v1.0\powershell.exe'
+        )
+        $script:expectedHelper = Join-Path $script:operationsPath 'Remove-Edge.ps1'
     }
 
     It 'enables Widgets through local policy and removes the supplemental restrictions' {
@@ -229,24 +241,56 @@ Describe 'Widgets toggle' {
         Should -Not -Invoke Start-Process -ModuleName Atlas.Toggles
     }
 
-    It 'uses the bundled helper and inbox Windows PowerShell in interactive mode' {
+    It 'only updates WebView2 through the bundled helper when Edge is installed' {
         $context = New-ToggleContext -Name 'Widgets' -State 'Enable' -Silent $false
-        $expectedPowerShell = [IO.Path]::Combine(
-            $env:SystemRoot,
-            'System32\WindowsPowerShell\v1.0\powershell.exe'
-        )
-        $expectedHelper = Join-Path $script:operationsPath 'Remove-Edge.ps1'
 
         Invoke-CompanionFunction -Definition $script:widgets -FunctionName 'Enable-AtlasWidgetsMachine' -Toggle $context
 
+        # Proves the pinned check above decided the branch, not this host's Edge.
+        Should -Invoke Test-Path -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            $LiteralPath -like '*\Microsoft\Edge\Application\msedge.exe'
+        }
+        Should -Not -Invoke Read-AtlasYesNo -ModuleName Atlas.Toggles
         Should -Invoke Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
-            $FilePath -ceq $expectedPowerShell -and
+            $FilePath -ceq $script:expectedPowerShell -and
                 $ArgumentList -contains '-InstallWebView' -and
-                $ArgumentList[([array]::IndexOf($ArgumentList, '-File') + 1)] -ceq $expectedHelper -and
+                $ArgumentList -notcontains '-InstallEdge' -and
+                $ArgumentList[([array]::IndexOf($ArgumentList, '-File') + 1)] -ceq $script:expectedHelper -and
                 $AllowedExitCodes.Count -eq 1 -and $AllowedExitCodes[0] -eq 0
         }
+        Should -Invoke Set-AtlasMachineDwordPolicy -ModuleName Atlas.Toggles -Times 1 -Exactly
         Should -Invoke Remove-AtlasRegistryValue -ModuleName Atlas.Toggles -Times 2 -Exactly
         Should -Not -Invoke Start-Process -ModuleName Atlas.Toggles
+    }
+
+    It 'installs Edge with WebView2 before the policies when Edge is missing and the user agrees' {
+        $script:edgeInstalled = $false
+        $context = New-ToggleContext -Name 'Widgets' -State 'Enable' -Silent $false
+
+        Invoke-CompanionFunction -Definition $script:widgets -FunctionName 'Enable-AtlasWidgetsMachine' -Toggle $context
+
+        Should -Invoke Read-AtlasYesNo -ModuleName Atlas.Toggles -Times 1 -Exactly
+        Should -Invoke Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            $FilePath -ceq $script:expectedPowerShell -and
+                $ArgumentList -contains '-InstallWebView' -and
+                $ArgumentList -contains '-InstallEdge'
+        }
+        Should -Invoke Set-AtlasMachineDwordPolicy -ModuleName Atlas.Toggles -Times 1 -Exactly
+        Should -Invoke Remove-AtlasRegistryValue -ModuleName Atlas.Toggles -Times 2 -Exactly
+    }
+
+    It 'leaves Widgets disabled when the Edge install is declined' {
+        $script:edgeInstalled = $false
+        Mock Read-AtlasYesNo -ModuleName Atlas.Toggles { $false }
+        $context = New-ToggleContext -Name 'Widgets' -State 'Enable' -Silent $false
+
+        { Invoke-CompanionFunction -Definition $script:widgets -FunctionName 'Enable-AtlasWidgetsMachine' -Toggle $context } |
+            Should -Throw '*declined*'
+
+        Should -Invoke Read-AtlasYesNo -ModuleName Atlas.Toggles -Times 1 -Exactly
+        Should -Not -Invoke Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles
+        Should -Not -Invoke Set-AtlasMachineDwordPolicy -ModuleName Atlas.Toggles
+        Should -Not -Invoke Remove-AtlasRegistryValue -ModuleName Atlas.Toggles
     }
 
     It 'leaves the policies untouched when the Edge helper fails' {

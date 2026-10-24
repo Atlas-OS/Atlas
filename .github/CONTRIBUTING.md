@@ -18,15 +18,8 @@ Run the [Windows PowerShell tests and build tests in their separate hosts](../do
 Use unelevated test shells; configuration actions and installation checks belong in a
 disposable VM.
 
-Lint in PowerShell 7 with PSScriptAnalyzer 1.25.0 (CI runs both profiles):
-
-```powershell
-Get-ChildItem playbook -Recurse -Include *.ps1,*.psm1 |
-    Invoke-ScriptAnalyzer -Settings .github/linters/PSScriptAnalyzerSettings.Payload.psd1
-
-Get-ChildItem tools,tests -Recurse -Include *.ps1,*.psm1 |
-    Invoke-ScriptAnalyzer -Settings .github/linters/PSScriptAnalyzerSettings.psd1
-```
+Lint in PowerShell 7 with PSScriptAnalyzer 1.25.0 using
+[the two profiles CI runs](../docs/testing.md#1-psscriptanalyzer).
 
 ## Where things live
 
@@ -62,4 +55,5 @@ Get-ChildItem tools,tests -Recurse -Include *.ps1,*.psm1 |
 - **Bump the version:** `pwsh tools/build/Set-AtlasVersion.ps1 -Version X.Y.Z`.
 
 The scripts that run on users' PCs use **Windows PowerShell 5.1** — avoid PowerShell
-7-only syntax in anything under `playbook/`. The CI parse gate enforces this.
+7-only syntax in anything under `playbook/` or `app/resources/`. The CI parse gate
+enforces this.

@@ -223,7 +223,9 @@ Describe 'Windows network defaults' {
                     Arguments       = @($ArgumentList)
                     AllowedExitCode = @($AllowedExitCode)
                     Wait            = [bool]$Wait
+                    CaptureOutput   = [bool]$CaptureOutput
                 })
+            [pscustomobject]@{ ExitCode = 0; StandardOutput = ''; StandardError = '' }
         }
     }
 
@@ -239,6 +241,10 @@ Describe 'Windows network defaults' {
                 [pscustomobject]@{
                     InstanceId = 'pci\ven_8086&dev_1111\3&11111111&0&00'
                 }
+                # The Wi-Fi Direct virtual adapter's enumerator is a braced GUID.
+                [pscustomobject]@{
+                    InstanceId = '{5D624F94-8850-40C3-A3FA-A4FD2080BAF3}\VWIFIMP_WFD\5&1A2B3C4D&0&11'
+                }
             )
         }
 
@@ -249,14 +255,15 @@ Describe 'Windows network defaults' {
         $calls = $global:AtlasNetworkTestCalls.ToArray()
 
         $result.NetshCommandCount | Should -Be 5
-        $result.RemovedDeviceCount | Should -Be 2
+        $result.RemovedDeviceCount | Should -Be 3
         $result.ScanCompleted | Should -BeTrue
-        $calls.Count | Should -Be 8
+        $calls.Count | Should -Be 9
         @($calls[0..4].FilePath | Select-Object -Unique) |
             Should -Be @((Join-Path $system32 'netsh.exe'))
-        @($calls[5..7].FilePath | Select-Object -Unique) |
+        @($calls[5..8].FilePath | Select-Object -Unique) |
             Should -Be @((Join-Path $system32 'pnputil.exe'))
         @($calls.Wait | Select-Object -Unique) | Should -Be @($true)
+        @($calls[0..4].CaptureOutput | Select-Object -Unique) | Should -Be @($true)
         @($calls[0].Arguments) | Should -Be @('int', 'ip', 'reset')
         @($calls[4].Arguments) | Should -Be @('winsock', 'reset')
         @($calls[5].Arguments) | Should -Be @(
@@ -265,32 +272,72 @@ Describe 'Windows network defaults' {
         @($calls[6].Arguments) | Should -Be @(
             '/remove-device', 'SWD\DAFUPNPPROVIDER\UUID:ABCDEF'
         )
-        @($calls[7].Arguments) | Should -Be @('/scan-devices')
-        @($calls[0].AllowedExitCode) | Should -Be @(0)
+        @($calls[7].Arguments) | Should -Be @(
+            '/remove-device', '{5D624F94-8850-40C3-A3FA-A4FD2080BAF3}\VWIFIMP_WFD\5&1A2B3C4D&0&11'
+        )
+        @($calls[8].Arguments) | Should -Be @('/scan-devices')
+        foreach ($ipReset in $calls[0..2]) {
+            @($ipReset.AllowedExitCode) | Should -Be @(0, 1)
+        }
+        @($calls[3].AllowedExitCode) | Should -Be @(0)
+        @($calls[4].AllowedExitCode) | Should -Be @(0)
         @($calls[5].AllowedExitCode) | Should -Be @(0, 3010)
-        @($calls[7].AllowedExitCode) | Should -Be @(0, 3010)
+        @($calls[8].AllowedExitCode) | Should -Be @(0, 3010)
     }
 
-    It 'stops before device enumeration when the first netsh command fails' {
+    It 'continues past the exit code 1 every ip reset reports and logs each reset''s output' {
+        Mock Get-AtlasPresentNetworkDevice -ModuleName Atlas.Network {
+            [pscustomobject]@{ InstanceId = 'PCI\VEN_8086&DEV_1111\3&11111111&0&00' }
+        }
+        # Mirrors netsh: the shared ipv4/ipv6 reset handler exits 1 even when it succeeds.
+        Mock Invoke-AtlasHiddenProcess -ModuleName Atlas.Network {
+            $global:AtlasNetworkTestCalls.Add([pscustomobject]@{ Arguments = @($ArgumentList) })
+            $command = $ArgumentList -join ' '
+            $exitCode = if ($command -in @('int ip reset', 'interface ipv4 reset', 'interface ipv6 reset')) { 1 } else { 0 }
+            if ($AllowedExitCode -notcontains $exitCode) {
+                throw "exited with disallowed code $exitCode"
+            }
+            [pscustomobject]@{
+                ExitCode       = $exitCode
+                StandardOutput = "Resetting Interface, OK!`r`nResetting , failed.`r`nAccess is denied.`r`n`r`n"
+                StandardError  = ''
+            }
+        }
+
+        $result = Set-AtlasNetworkDefaults -Mode Windows
+
+        $result.RemovedDeviceCount | Should -Be 1
+        $global:AtlasNetworkTestCalls.Count | Should -Be 7
+        @($global:AtlasNetworkTestCalls[6].Arguments) | Should -Be @('/scan-devices')
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Network -Times 1 -Exactly -ParameterFilter {
+            $Message -ceq 'netsh int ip reset exited with code 1. Resetting Interface, OK! | Resetting , failed. | Access is denied.'
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Network -Times 5 -Exactly -ParameterFilter {
+            $Message -clike 'netsh * exited with code *'
+        }
+    }
+
+    It 'stops at the first failing netsh command before removing any device' {
+        Mock Get-AtlasPresentNetworkDevice -ModuleName Atlas.Network {
+            [pscustomobject]@{ InstanceId = 'PCI\VEN_8086&DEV_1111\3&11111111&0&00' }
+        }
         Mock Invoke-AtlasHiddenProcess -ModuleName Atlas.Network {
             $global:AtlasNetworkTestCalls.Add([pscustomobject]@{ Arguments = @($ArgumentList) })
             throw 'native exit code 5'
         }
-        Mock Get-AtlasPresentNetworkDevice -ModuleName Atlas.Network { throw 'must not enumerate devices' }
 
         { Set-AtlasNetworkDefaults -Mode Windows } | Should -Throw '*native exit code 5*'
         $global:AtlasNetworkTestCalls.Count | Should -Be 1
         @($global:AtlasNetworkTestCalls[0].Arguments) | Should -Be @('int', 'ip', 'reset')
-        Should -Invoke Get-AtlasPresentNetworkDevice -ModuleName Atlas.Network -Times 0
     }
 
-    It 'rejects a malformed device identifier before pnputil receives it' {
+    It 'rejects a malformed device identifier before the network stack is reset' {
         Mock Get-AtlasPresentNetworkDevice -ModuleName Atlas.Network {
             [pscustomobject]@{ InstanceId = '/scan-devices' }
         }
 
         { Set-AtlasNetworkDefaults -Mode Windows } | Should -Throw '*not canonical*'
-        $global:AtlasNetworkTestCalls.Count | Should -Be 5
+        $global:AtlasNetworkTestCalls.Count | Should -Be 0
     }
 
     It 'propagates a device-removal failure without scanning' {
@@ -307,6 +354,7 @@ Describe 'Windows network defaults' {
             if ($ArgumentList[0] -eq '/remove-device') {
                 throw 'device removal failed with exit code 31'
             }
+            [pscustomobject]@{ ExitCode = 0; StandardOutput = ''; StandardError = '' }
         }
 
         { Set-AtlasNetworkDefaults -Mode Windows } | Should -Throw '*exit code 31*'
@@ -451,6 +499,15 @@ Describe 'File Sharing machine state' {
         Should -Invoke Write-AtlasStep -ModuleName Atlas.Network -Times 0
     }
 
+    It 'disables interactively with only the step line, leaving the closing line to the toggle engine' {
+        { Disable-AtlasFileSharing -NetBtInterfacesRoot $script:interfacesRoot -ServicesRoot $script:servicesRoot } |
+            Should -Not -Throw
+
+        $global:AtlasNetworkTestState.BindingsEnabled | Should -BeFalse
+        Should -Invoke Write-AtlasStep -ModuleName Atlas.Network -Times 1 -Exactly
+        Should -Invoke Read-AtlasYesNo -ModuleName Atlas.Network -Times 0
+    }
+
     It 'fails when a managed binding stays enabled after the disable' {
         Mock Disable-NetAdapterBinding -ModuleName Atlas.Network {}
 
@@ -493,7 +550,7 @@ Describe 'File Sharing machine state' {
         Enable-AtlasFileSharing -Silent -NetBtInterfacesRoot $script:interfacesRoot -ServicesRoot $script:servicesRoot
 
         Should -Invoke Invoke-AtlasToggleMachineState -ModuleName Atlas.Network -Times 1 -Exactly -ParameterFilter {
-            $Name -ceq 'NetworkDiscovery' -and -not $PSBoundParameters.ContainsKey('StateRoot')
+            $Name -ceq 'NetworkDiscovery' -and -not $PesterBoundParameters.ContainsKey('StateRoot')
         }
     }
 

@@ -1,0 +1,130 @@
+[
+  {
+    "name": "Every switch off, sample submission set to never send",
+    "registry": {
+      "Features": { "TamperProtection": 4 },
+      "Real-Time Protection": { "DisableRealtimeMonitoring": 1 },
+      "SpyNet": { "SpyNetReporting": 0, "SubmitSamplesConsent": 2 }
+    },
+    "switches": { "tamperProtection": "off", "realTimeProtection": "off", "cloudDelivered": "off", "sampleSubmission": "off" }
+  },
+  {
+    "name": "Every switch off, sample submission set to always prompt",
+    "registry": {
+      "Features": { "TamperProtection": 0 },
+      "Real-Time Protection": { "DisableRealtimeMonitoring": 1 },
+      "SpyNet": { "SpyNetReporting": 0, "SubmitSamplesConsent": 0 }
+    },
+    "switches": { "tamperProtection": "off", "realTimeProtection": "off", "cloudDelivered": "off", "sampleSubmission": "off" }
+  },
+  {
+    "name": "Windows as installed",
+    "registry": {
+      "Features": { "TamperProtection": 5 },
+      "Real-Time Protection": { "DisableRealtimeMonitoring": 0 },
+      "SpyNet": { "SpyNetReporting": 2, "SubmitSamplesConsent": 1 }
+    },
+    "switches": { "tamperProtection": "on", "realTimeProtection": "on", "cloudDelivered": "on", "sampleSubmission": "on" }
+  },
+  {
+    "name": "Tamper Protection 1, basic cloud-delivered protection and sending every sample",
+    "registry": {
+      "Features": { "TamperProtection": 1 },
+      "Real-Time Protection": { "DisableRealtimeMonitoring": 1 },
+      "SpyNet": { "SpyNetReporting": 1, "SubmitSamplesConsent": 3 }
+    },
+    "switches": { "tamperProtection": "on", "realTimeProtection": "off", "cloudDelivered": "on", "sampleSubmission": "on" }
+  },
+  {
+    "name": "No DisableRealtimeMonitoring value: real-time protection is on, as Windows has it by default",
+    "registry": {
+      "Features": { "TamperProtection": 4 },
+      "Real-Time Protection": {},
+      "SpyNet": { "SpyNetReporting": 0, "SubmitSamplesConsent": 2 }
+    },
+    "switches": { "tamperProtection": "off", "realTimeProtection": "on", "cloudDelivered": "off", "sampleSubmission": "off" }
+  },
+  {
+    "name": "Real-time protection turned off as text rather than a number",
+    "registry": {
+      "Features": { "TamperProtection": 4 },
+      "Real-Time Protection": { "DisableRealtimeMonitoring": "1" },
+      "SpyNet": { "SpyNetReporting": 0, "SubmitSamplesConsent": 2 }
+    },
+    "switches": { "tamperProtection": "off", "realTimeProtection": "on", "cloudDelivered": "off", "sampleSubmission": "off" }
+  },
+  {
+    "name": "SubmitSamplesConsent deleted by a privacy tool",
+    "registry": {
+      "Features": { "TamperProtection": 4 },
+      "Real-Time Protection": { "DisableRealtimeMonitoring": 1 },
+      "SpyNet": { "SpyNetReporting": 0 }
+    },
+    "switches": { "tamperProtection": "off", "realTimeProtection": "off", "cloudDelivered": "off", "sampleSubmission": "unreadable" }
+  },
+  {
+    "name": "No SpyNet key",
+    "registry": {
+      "Features": { "TamperProtection": 4 },
+      "Real-Time Protection": { "DisableRealtimeMonitoring": 1 }
+    },
+    "switches": { "tamperProtection": "off", "realTimeProtection": "off", "cloudDelivered": "unreadable", "sampleSubmission": "unreadable" }
+  },
+  {
+    "name": "No Features or Real-Time Protection key",
+    "registry": {
+      "SpyNet": { "SpyNetReporting": 0, "SubmitSamplesConsent": 2 }
+    },
+    "switches": { "tamperProtection": "unreadable", "realTimeProtection": "unreadable", "cloudDelivered": "off", "sampleSubmission": "off" }
+  },
+  {
+    "name": "Values Windows doesn't define: Tamper Protection 2, SubmitSamplesConsent 4",
+    "registry": {
+      "Features": { "TamperProtection": 2 },
+      "Real-Time Protection": { "DisableRealtimeMonitoring": 1 },
+      "SpyNet": { "SpyNetReporting": 0, "SubmitSamplesConsent": 4 }
+    },
+    "switches": { "tamperProtection": "unreadable", "realTimeProtection": "off", "cloudDelivered": "off", "sampleSubmission": "unreadable" }
+  },
+  {
+    "name": "Tamper Protection and cloud-delivered protection stored as text",
+    "registry": {
+      "Features": { "TamperProtection": "4" },
+      "Real-Time Protection": { "DisableRealtimeMonitoring": 1 },
+      "SpyNet": { "SpyNetReporting": "0", "SubmitSamplesConsent": 2 }
+    },
+    "switches": { "tamperProtection": "unreadable", "realTimeProtection": "off", "cloudDelivered": "unreadable", "sampleSubmission": "off" }
+  },
+  {
+    "name": "Real-time protection turned off as a QWORD rather than a DWORD",
+    "registry": {
+      "Features": { "TamperProtection": 4 },
+      "Real-Time Protection": { "DisableRealtimeMonitoring": { "qword": 1 } },
+      "SpyNet": { "SpyNetReporting": 0, "SubmitSamplesConsent": 2 }
+    },
+    "switches": { "tamperProtection": "off", "realTimeProtection": "off", "cloudDelivered": "off", "sampleSubmission": "off" }
+  },
+  {
+    "name": "Tamper Protection, cloud-delivered protection and sample submission stored as QWORDs",
+    "registry": {
+      "Features": { "TamperProtection": { "qword": 4 } },
+      "Real-Time Protection": { "DisableRealtimeMonitoring": 1 },
+      "SpyNet": { "SpyNetReporting": { "qword": 0 }, "SubmitSamplesConsent": { "qword": 2 } }
+    },
+    "switches": { "tamperProtection": "off", "realTimeProtection": "off", "cloudDelivered": "off", "sampleSubmission": "off" }
+  },
+  {
+    "name": "QWORDs too large for 32 bits",
+    "registry": {
+      "Features": { "TamperProtection": { "qword": 4294967300 } },
+      "Real-Time Protection": { "DisableRealtimeMonitoring": { "qword": 4294967297 } },
+      "SpyNet": { "SpyNetReporting": { "qword": 4294967296 }, "SubmitSamplesConsent": { "qword": 4294967298 } }
+    },
+    "switches": { "tamperProtection": "unreadable", "realTimeProtection": "on", "cloudDelivered": "unreadable", "sampleSubmission": "unreadable" }
+  },
+  {
+    "name": "No Windows Defender key at all",
+    "registry": {},
+    "switches": { "tamperProtection": "unreadable", "realTimeProtection": "unreadable", "cloudDelivered": "unreadable", "sampleSubmission": "unreadable" }
+  }
+]

@@ -4,7 +4,7 @@ BeforeAll {
     $errors = $null
     $script:ReportAst = [Management.Automation.Language.Parser]::ParseFile($script:ReportScript, [ref]$null, [ref]$errors)
     if ($errors) { throw ($errors | Out-String) }
-    foreach ($name in 'Add-Line', 'Add-Summary', 'Add-Section') {
+    foreach ($name in 'Add-Line', 'Add-Summary', 'Add-Section', 'Get-InstallTransactionLine') {
         $function = $script:ReportAst.Find({
                 param($node)
                 $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name
@@ -146,5 +146,107 @@ Describe 'Install report event log section' {
         $script:Summary.Clear()
         $null = & $script:EventCollector
         $script:Summary[1] | Should -BeLike 'Application log: 0 error or critical event(s) among the newest 3 *'
+    }
+}
+
+Describe 'Install report install state section' {
+    BeforeAll {
+        $section = $script:ReportAst.Find({
+                param($node)
+                $node -is [Management.Automation.Language.CommandAst] -and
+                    $node.GetCommandName() -eq 'Add-Section' -and $node.Extent.Text -match "-Title '2\."
+            }, $true)
+        $script:StateCollector = $section.CommandElements[-1].ScriptBlock.GetScriptBlock()
+        function New-TransactionJson {
+            param([string]$Status, [string]$Mode, [string[]]$Steps = @(), [string]$LastError)
+            [pscustomobject]@{
+                schemaVersion = 1; targetVersion = '0.6.0'; transactionId = [guid]::NewGuid().ToString('D')
+                status = $Status; mode = $Mode; isOobe = $false; options = @('defender-enable')
+                userSid = $null; userSessionId = $null; captureNonce = 'nonce'
+                completedSteps = @($Steps); lastError = $(if ($LastError) { $LastError } else { $null })
+            } | ConvertTo-Json -Compress
+        }
+    }
+    BeforeEach {
+        $script:Summary = New-Object System.Collections.Generic.List[string]
+        $script:atlasState = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        $script:statePath = Join-Path $script:atlasState 'state.json'
+        $script:installRoot = Join-Path $script:atlasState 'Install'
+        New-Item -ItemType Directory -Path $script:installRoot -Force | Out-Null
+        [IO.File]::WriteAllText((Join-Path $script:installRoot 'last.json'), (New-TransactionJson -Status Completed -Mode Fresh -Steps 'phase-a', 'phase-b'))
+    }
+
+    It 'reports the failed transaction in active.json besides the last completed one' {
+        [IO.File]::WriteAllText((Join-Path $script:installRoot 'active.json'), (New-TransactionJson -Status Running -Mode Reapply -Steps 'phase-a' -LastError 'Step phase-b failed.'))
+
+        $lines = & $script:StateCollector
+
+        $script:Summary | Should -Contain 'Unfinished install transaction: Reapply of 0.6.0, status Running, 1 step(s) completed, lastError Step phase-b failed.'
+        $script:Summary | Should -Contain 'Last completed install transaction: Fresh of 0.6.0, 2 step(s) completed.'
+        $lines | Should -Contain '  lastError         : Step phase-b failed.'
+    }
+
+    It 'falls back to the backup when active.json is unreadable' {
+        [IO.File]::WriteAllText((Join-Path $script:installRoot 'active.json'), '{ not json')
+        [IO.File]::WriteAllText((Join-Path $script:installRoot 'active.json.bak'), (New-TransactionJson -Status Running -Mode Fresh -LastError 'Step phase-a failed.'))
+
+        $lines = & $script:StateCollector
+
+        @($lines | Where-Object { $_ -like '*active.json is unreadable:*' }) | Should -HaveCount 1
+        $lines | Should -Contain ('{0,-20}: {1}' -f 'active.json.bak', (Join-Path $script:installRoot 'active.json.bak'))
+        $script:Summary | Should -Contain 'Unfinished install transaction: Fresh of 0.6.0, status Running, 0 step(s) completed, lastError Step phase-a failed.'
+    }
+
+    It 'falls back to the backup when active.json is empty' {
+        [IO.File]::WriteAllText((Join-Path $script:installRoot 'active.json'), '')
+        [IO.File]::WriteAllText((Join-Path $script:installRoot 'active.json.bak'), (New-TransactionJson -Status Running -Mode Fresh -LastError 'Step phase-a failed.'))
+
+        $lines = & $script:StateCollector
+
+        @($lines | Where-Object { $_ -like '*active.json is unreadable:*' }) | Should -HaveCount 1
+        $lines | Should -Contain ('{0,-20}: {1}' -f 'active.json.bak', (Join-Path $script:installRoot 'active.json.bak'))
+        $script:Summary | Should -Contain 'Last completed install transaction: Fresh of 0.6.0, 2 step(s) completed.'
+    }
+
+    It 'keeps the rest of the section when last.json is empty' {
+        [IO.File]::WriteAllText((Join-Path $script:installRoot 'active.json'), (New-TransactionJson -Status Running -Mode Reapply -Steps 'phase-a' -LastError 'Step phase-b failed.'))
+        [IO.File]::WriteAllText((Join-Path $script:installRoot 'last.json'), '')
+
+        $lines = & $script:StateCollector
+
+        $lines | Should -Contain '  lastError         : Step phase-b failed.'
+        @($lines | Where-Object { $_ -like '*last.json is unreadable: It is empty or not a JSON object.' }) | Should -HaveCount 1
+    }
+}
+
+Describe 'Install report health check section' {
+    BeforeAll {
+        $section = $script:ReportAst.Find({
+                param($node)
+                $node -is [Management.Automation.Language.CommandAst] -and
+                    $node.GetCommandName() -eq 'Add-Section' -and $node.Extent.Text -match "-Title '4\."
+            }, $true)
+        $script:HealthCollector = $section.CommandElements[-1].ScriptBlock.GetScriptBlock()
+    }
+
+    It 'records a health check that cannot run, with its stderr, instead of failing the section' {
+        $script:Summary = New-Object System.Collections.Generic.List[string]
+        $script:atlasModules = Join-Path $TestDrive 'AtlasModules'
+        $entry = Join-Path $script:atlasModules 'Scripts\Entry'
+        New-Item -ItemType Directory -Path $entry -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $entry 'Test-AtlasHealth.ps1') -Value @(
+            "Write-Output 'checking'"
+            "[Console]::Error.WriteLine('Atlas is not installed on this machine.')"
+            'exit 2'
+        )
+        # As the report runs it.
+        $ErrorActionPreference = 'Stop'
+
+        $lines = @(& $script:HealthCollector)
+
+        $lines | Should -Contain 'checking'
+        $lines | Should -Contain 'Atlas is not installed on this machine.'
+        $lines | Should -Contain 'Health check exit code: 2 (the check could not run)'
+        $script:Summary | Should -Contain 'Health check: the check could not run (exit code 2).'
     }
 }

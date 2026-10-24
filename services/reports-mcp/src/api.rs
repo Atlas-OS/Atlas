@@ -23,6 +23,10 @@ const MAX_TEXT: usize = 32 * 1024;
 pub const RETENTION: Duration = Duration::from_secs(90 * 24 * 60 * 60);
 /// Beside each downloaded ZIP: when its report was made, in Unix seconds.
 const CREATED_SUFFIX: &str = ".created";
+/// A download's temporary file this old was left by a server stopped
+/// mid-download: every request ends within two minutes, so one still running
+/// here or in another server sharing the workspace is never this old.
+const ABANDONED: Duration = Duration::from_secs(24 * 60 * 60);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
@@ -326,8 +330,9 @@ impl Client {
             download_lock: Mutex::new(()),
         })
     }
-    /// Deletes downloaded ZIPs whose reports are past their 90 days (see
-    /// [`prune`]). Runs at startup and before every tool call.
+    /// Deletes downloaded ZIPs whose reports are past their 90 days, and
+    /// temporary files left by interrupted downloads (see [`prune`]). Runs at
+    /// startup and before every tool call.
     pub fn prune(&self) -> usize {
         prune(&self.workspace, SystemTime::now())
     }
@@ -448,12 +453,20 @@ impl Client {
         if length.is_some_and(|size| size > MAX_ZIP) {
             return Err(Error::TooLarge);
         }
-        // When the report was made, so the copy can be deleted with it.
+        // When the report was made, so the copy can be deleted with it. A time
+        // more than a day ahead can't be right and would keep the copy past its
+        // 90 days, so the copy goes 90 days after it was saved instead.
+        let latest = SystemTime::now() + Duration::from_secs(24 * 60 * 60);
         let created = response
             .headers()
             .get("x-atlas-report-created")
             .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.parse::<i64>().ok());
+            .and_then(|v| v.parse::<u64>().ok())
+            .filter(|&seconds| {
+                UNIX_EPOCH
+                    .checked_add(Duration::from_secs(seconds))
+                    .is_some_and(|made| made <= latest)
+            });
         let destination = self.workspace.join(format!("{id}-{checksum}.zip"));
         let cached = regular_file(&destination)?;
         let bytes = if cached {
@@ -512,7 +525,7 @@ impl Client {
 
 /// Records when a downloaded ZIP's report was made, beside it, unless that
 /// is already recorded.
-fn record_created(zip: &Path, created: i64) -> Result<()> {
+fn record_created(zip: &Path, created: u64) -> Result<()> {
     let path = sidecar(zip);
     if regular_file(&path)? {
         return Ok(());
@@ -547,11 +560,19 @@ fn downloaded_zip(name: &str) -> bool {
         })
 }
 
+/// Whether `name` is a download's temporary file: `{uuid}.part`.
+fn partial_download(name: &str) -> bool {
+    name.strip_suffix(".part")
+        .is_some_and(|stem| report_id(stem).is_ok())
+}
+
 /// Deletes each ZIP this server downloaded into `workspace` once its
 /// report's retention has ended at `now`, with the record of when that
 /// report was made. A ZIP downloaded before that was recorded goes 90 days
-/// after it was saved. Other files are left alone; nothing that can't be
-/// read or removed stops the rest. Returns how many ZIPs were deleted.
+/// after it was saved. A download's temporary file, left only when a server
+/// was stopped mid-download, goes a day after it was last written. Other
+/// files are left alone; nothing that can't be read or removed stops the
+/// rest. Returns how many ZIPs were deleted.
 pub fn prune(workspace: &Path, now: SystemTime) -> usize {
     let Ok(entries) = fs::read_dir(workspace) else {
         return 0;
@@ -560,6 +581,20 @@ pub fn prune(workspace: &Path, now: SystemTime) -> usize {
     for entry in entries.flatten() {
         let name = entry.file_name();
         let Some(name) = name.to_str() else { continue };
+        if partial_download(name) {
+            let part = entry.path();
+            if matches!(regular_file(&part), Ok(true))
+                && fs::metadata(&part)
+                    .and_then(|m| m.modified())
+                    .is_ok_and(|written| {
+                        now.duration_since(written)
+                            .is_ok_and(|age| age >= ABANDONED)
+                    })
+            {
+                let _ = fs::remove_file(&part);
+            }
+            continue;
+        }
         if !downloaded_zip(name) {
             continue;
         }
@@ -567,10 +602,12 @@ pub fn prune(workspace: &Path, now: SystemTime) -> usize {
         if !matches!(regular_file(&zip), Ok(true)) {
             continue;
         }
+        // A time SystemTime can't hold, such as an edited record, would panic
+        // when added; the ZIP then goes 90 days after it was saved.
         let started = fs::read_to_string(sidecar(&zip))
             .ok()
             .and_then(|text| text.trim().parse::<u64>().ok())
-            .map(|seconds| UNIX_EPOCH + Duration::from_secs(seconds))
+            .and_then(|seconds| UNIX_EPOCH.checked_add(Duration::from_secs(seconds)))
             .or_else(|| fs::metadata(&zip).and_then(|m| m.modified()).ok());
         let Some(started) = started else { continue };
         if now
@@ -585,10 +622,52 @@ pub fn prune(workspace: &Path, now: SystemTime) -> usize {
     deleted
 }
 
-#[cfg(all(test, windows))]
+#[cfg(test)]
 mod tests {
-    use super::display_path;
+    use super::*;
 
+    #[test]
+    fn interrupted_downloads_go_a_day_after_their_last_write() {
+        let workspace = tempfile::TempDir::new().unwrap();
+        let part = workspace.path().join(format!("{}.part", Uuid::new_v4()));
+        let other = workspace.path().join("notes.part");
+        fs::write(&part, b"PK").unwrap();
+        fs::write(&other, b"mine").unwrap();
+        let written = fs::metadata(&part).unwrap().modified().unwrap();
+        // A download still in progress keeps its file.
+        assert_eq!(
+            prune(
+                workspace.path(),
+                written + ABANDONED - Duration::from_secs(1)
+            ),
+            0
+        );
+        assert!(part.exists());
+        // Deleted, but not counted as a downloaded ZIP.
+        assert_eq!(prune(workspace.path(), written + ABANDONED * 2), 0);
+        assert!(!part.exists());
+        // Only names a download gives its temporary file are touched.
+        assert!(other.exists());
+    }
+
+    #[test]
+    fn a_record_past_what_the_clock_can_hold_falls_back_to_the_save_time() {
+        let workspace = tempfile::TempDir::new().unwrap();
+        let zip = workspace
+            .path()
+            .join(format!("{}-{}.zip", Uuid::new_v4(), "a".repeat(64)));
+        fs::write(&zip, b"PK").unwrap();
+        fs::write(sidecar(&zip), u64::MAX.to_string()).unwrap();
+        let saved = fs::metadata(&zip).unwrap().modified().unwrap();
+        assert_eq!(
+            prune(workspace.path(), saved + RETENTION - Duration::from_secs(1)),
+            0
+        );
+        assert_eq!(prune(workspace.path(), saved + RETENTION), 1);
+        assert!(!zip.exists() && !sidecar(&zip).exists());
+    }
+
+    #[cfg(windows)]
     #[test]
     fn verbatim_paths_are_simplified_only_when_equivalent() {
         let show = |path: &str| display_path(path.into()).to_str().unwrap().to_owned();

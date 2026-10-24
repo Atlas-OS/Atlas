@@ -157,49 +157,7 @@ function Get-AtlasYamlAction {
         [pscustomobject]@{
             File = $resolvedPath; RelativePath = $RelativePath; Line = $start + 1
             Type = $type; Text = $lines[$start..($end - 1)] -join "`n"
-            Properties = $properties; DocumentProperties = [ordered]@{}
-        }
-    }
-}
-function ConvertTo-AtlasYamlCanonicalValue {
-    param([AllowNull()]$Value)
-    if ($null -eq $Value) { return 'null' }
-    if ($Value -is [bool]) { return 'bool:' + $Value.ToString().ToLowerInvariant() }
-    if ($Value -is [int]) { return 'int:' + $Value.ToString() }
-    if ($Value -is [Collections.IDictionary]) {
-        $entries = foreach ($key in @($Value.Keys | Sort-Object)) {
-            $text = [string]$key
-            '{0}:{1}={2}' -f $text.Length, $text, (ConvertTo-AtlasYamlCanonicalValue $Value[$key])
-        }
-        return 'map:{' + ($entries -join ';') + '}'
-    }
-    if ($Value -is [Collections.IEnumerable] -and $Value -isnot [string]) {
-        return 'array:[' + (@($Value | ForEach-Object {
-                    ConvertTo-AtlasYamlCanonicalValue $_
-                }) -join ';') + ']'
-    }
-    $text = [string]$Value
-    return 'string:' + $text.Length + ':' + $text
-}
-function Get-AtlasConfigurationRunnerContract {
-    [CmdletBinding()]
-    param([Parameter(Mandatory = $true)][string]$ConfigurationRoot)
-    $root = (Resolve-Path -LiteralPath $ConfigurationRoot).ProviderPath
-    $files = @(Get-ChildItem -LiteralPath $root -Filter '*.yml' -File -Recurse |
-            Sort-Object FullName)
-    foreach ($file in $files) {
-        $relativePath = $file.FullName.Substring($root.Length + 1) -replace '\\', '/'
-        $runs = @(Get-AtlasYamlAction -Path $file.FullName -RelativePath $relativePath |
-                Where-Object Type -eq run)
-        for ($ordinal = 0; $ordinal -lt $runs.Count; $ordinal++) {
-            $action = $runs[$ordinal]
-            [pscustomobject]@{ RelativePath = $relativePath; Ordinal = $ordinal
-                Line = $action.Line
-                Signature = '{0}|type=3:run|run={1:D4}|properties={2}|document={3}' -f `
-                    $relativePath, $ordinal,
-                    (ConvertTo-AtlasYamlCanonicalValue $action.Properties),
-                    (ConvertTo-AtlasYamlCanonicalValue $action.DocumentProperties)
-            }
+            Properties = $properties
         }
     }
 }
@@ -216,7 +174,8 @@ function Assert-AtlasConfigurationRunnerBoundary {
             (($variants | ForEach-Object Name) -join ', '))
     }
     $files = @(Get-ChildItem -LiteralPath $root -Filter '*.yml' -File -Recurse)
-    if ($files.Count -ne 1 -or $files[0].Name -cne 'custom.yml') {
+    if ($files.Count -ne 1 -or $files[0].Name -cne 'custom.yml' -or
+        -not (Test-Path -LiteralPath (Join-Path -Path $root -ChildPath 'custom.yml') -PathType Leaf)) {
         throw 'Configuration must contain exactly one reviewed custom.yml file.'
     }
     $actions = @(Get-AtlasYamlAction -Path $files[0].FullName -RelativePath 'custom.yml')
@@ -227,19 +186,10 @@ function Assert-AtlasConfigurationRunnerBoundary {
         throw 'Configuration contains retired runner actions: ' +
             (($retired | ForEach-Object { "custom.yml:$($_.Line) !$($_.Type)" }) -join ', ')
     }
-    if (@($actions | Where-Object Type -notin @('run', 'writeStatus', 'registryKey')).Count) {
+    if (@($actions | Where-Object Type -notin @('run', 'writeStatus')).Count) {
         throw 'Configuration contains an unsupported action type.'
     }
-    if ($actions.Count -ne 33) { throw "Configuration must contain 33 actions; found $($actions.Count)." }
-    $registry = @($actions | Where-Object Type -eq registryKey)
-    $expectedRegistry = ConvertTo-AtlasYamlCanonicalValue ([ordered]@{
-            path = 'HKLM\OfflineSys\ControlSet001\Services\WdBoot'; operation = 'delete'
-            option = 'defender-disable'; iso = 'only'; onUpgrade = $false
-        })
-    if ($registry.Count -ne 1 -or
-        (ConvertTo-AtlasYamlCanonicalValue $registry[0].Properties) -cne $expectedRegistry) {
-        throw 'Configuration !registryKey contract differs from the reviewed ISO-only WdBoot delete.'
-    }
+    if ($actions.Count -ne 32) { throw "Configuration must contain 32 actions; found $($actions.Count)." }
     $statuses = @($actions | Where-Object Type -eq writeStatus)
     if ($statuses.Count -ne 2 -or
         [string]$statuses[0].Properties.status -cne 'Preparing AtlasOS installation' -or
@@ -344,6 +294,5 @@ function Assert-AtlasConfigurationRunnerBoundary {
         $beginKeys.Count -ne 6 -or $options.Count -ne 21 -or $reapplyVersions.Count -ne 1) {
         throw 'Configuration runner operation counts differ from the compact Atlas contract.'
     }
-    return [pscustomobject]@{ Files = 1; Actions = $actions.Count; Runs = $runs.Count
-        RequiresTrustedRunnerEnvironment = $true }
+    return [pscustomobject]@{ Files = 1; Actions = $actions.Count; Runs = $runs.Count }
 }

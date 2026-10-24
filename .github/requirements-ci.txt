@@ -1,6 +1,7 @@
-# Build-workflow Python dependencies. Python is fixed to CPython 3.13 x64 and pip is
-# invoked with --only-binary=:all: --require-hashes, so changing any package, interpreter,
-# platform, or artifact requires an explicit review of this lock file.
+# CI Python dependencies for build.yml (sxsc) and yaml.yml (yamllint). Python is fixed
+# to CPython 3.13 x64 and pip is invoked with --only-binary=:all: --require-hashes, so
+# changing any package, interpreter, platform, or artifact requires an explicit review of
+# this lock file.
 # PyYAML authorizes the reviewed Windows x64 CPython 3.13 runner wheel and the 3.14 wheel
 # used by the current local validation environment; CI remains fixed to 3.13.
 yamllint==1.38.0 --hash=sha256:fc394a5b3be980a4062607b8fdddc0843f4fa394152b6da21722f5d59013c220

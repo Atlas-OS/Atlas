@@ -99,10 +99,51 @@ fn the_report_page_goes_back_to_where_it_was_opened() {
     });
 }
 
+/// Install and Continue update on Home begin nothing while Windows Update
+/// settings are being put back: the new flow's checks and package couldn't
+/// run under it.
+#[test]
+fn no_flow_begins_while_settings_are_put_back() {
+    run_model_test(|mut cx| async move {
+        use crate::model::RestoreStatus;
+        let (_temp, _, env) = fixture("model-begin-during-put-back");
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        act(&mut cx, &model, |m, cx| {
+            m.restore_status = RestoreStatus::Running;
+            m.begin_install(cx);
+            assert!(!m.flow.active, "nothing begins under the put-back");
+            m.restore_status = RestoreStatus::Idle;
+            m.begin_install(cx);
+            assert!(m.flow.active && !m.checks.is_empty(), "it begins once the put-back ends");
+        });
+        settle(&cx, &model).await;
+    });
+}
+
+/// Back on Your choices steps from the screen showing, also when a draft's
+/// index is past the last screen of a package that has fewer.
+#[test]
+fn back_steps_from_the_options_screen_that_shows() {
+    run_model_test(|mut cx| async move {
+        let (_temp, _, env) = fixture("model-options-back");
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        act(&mut cx, &model, |m, cx| {
+            m.start_flow_at(Step::Options, cx);
+            let last = m.option_screens().len() - 1;
+            assert!(last > 0, "the built-in package has more than one screen");
+            m.option_screen = last + 3;
+            m.previous_step(cx);
+            assert_eq!((m.flow.step, m.current_option_screen()), (Step::Options, last - 1));
+        });
+        settle(&cx, &model).await;
+    });
+}
+
 /// A Change link on the Install step brings the user back to it, through
 /// Windows Security only when its reading no longer passes.
 #[test]
-#[cfg(windows)]
 fn a_change_link_returns_to_the_summary() {
     run_model_test(async move |mut cx| {
         let (temp, machine, env) = fixture("model-change-link");
@@ -149,7 +190,6 @@ fn a_change_link_returns_to_the_summary() {
 /// arrives while startup recovery is still running waits for it, so the
 /// saved draft resumes instead of being replaced.
 #[test]
-#[cfg(windows)]
 fn a_start_request_waits_for_startup_recovery() {
     run_model_test(async move |mut cx| {
         use crate::services::preparation::State;
@@ -198,7 +238,6 @@ fn a_start_request_waits_for_startup_recovery() {
 /// still wins over a resumed draft, unless the user has gone elsewhere
 /// meanwhile: recovery's end never pulls them back to it.
 #[test]
-#[cfg(windows)]
 fn a_start_page_the_user_left_during_recovery_is_not_shown_again() {
     run_model_test(async move |mut cx| {
         for (page, draft, leave, expected) in

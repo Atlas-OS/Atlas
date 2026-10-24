@@ -582,7 +582,18 @@ function Invoke-AtlasUserAppxCacheCleanupCore {
         throw 'The install-state-bound AppX cache launcher returned an invalid exit code.'
     }
     if ([int]$exitCode -ne 0) {
-        throw "The install-state-bound AppX cache child failed with exit code $exitCode."
+        # Exit code 1 is the child failing on its own; 10-17 come from its session helper.
+        $stage = Get-AtlasUserSessionHelperStage -ExitCode ([int]$exitCode)
+        $message = if ($null -ne $stage) {
+            "The $Mode AppX step for the installing user failed during $stage (exit code $exitCode)."
+        }
+        else {
+            "The $Mode AppX step for the installing user failed with exit code $exitCode."
+        }
+        if ($Mode -ceq 'AppxQuiesce' -and [int]$exitCode -eq 12) {
+            $message += " Microsoft Teams or Windows Search didn't close; restart Windows and try again."
+        }
+        throw $message
     }
     return [int]$exitCode
 }

@@ -51,8 +51,11 @@ pub enum Decision {
     WindowsUnavailable(String),
 }
 
-/// The live localization state. A GPUI global so the shell can observe it;
-/// the catalog itself is process-wide so any code can format a message.
+/// The live localization state, held by `AppModel`, which reports a change
+/// as `ModelEvent::LanguageChanged`. The shell then copies it into a GPUI
+/// global for views that render without the model, such as a content
+/// dialog's font fallbacks. The catalog itself is process-wide so any code
+/// can format a message.
 #[derive(Clone, Debug)]
 pub struct Localization {
     pub decision: Decision,
@@ -117,17 +120,14 @@ pub fn current() -> Arc<Catalog> {
 
 /// Formats a message in the current language. Prefer the [`t!`] macro.
 pub fn text(id: &str, args: &[(&str, Arg)]) -> String {
-    current().format(id, None, args)
+    current().format(id, args)
 }
 
-/// The override in force, if any: the explicit argument (from `--language`)
-/// wins over the environment variable.
+/// The override in force, if any. `--language` or, failing that,
+/// [`LANGUAGE_ENV`] is read once at startup into `Environment`, so both act
+/// alike and tests don't pick up the shell's variables.
 fn override_tag(argument: Option<&str>) -> Option<String> {
-    argument
-        .map(str::to_owned)
-        .or_else(|| std::env::var(LANGUAGE_ENV).ok())
-        .map(|tag| tag.trim().to_owned())
-        .filter(|tag| !tag.is_empty())
+    argument.map(str::trim).filter(|tag| !tag.is_empty()).map(str::to_owned)
 }
 
 /// Chooses the language chain for a preference and installs its catalog.
@@ -338,9 +338,15 @@ mod tests {
             assert_eq!(german.primary().tag, "de");
             assert!(german.primary().readiness < Readiness::Source);
             assert!(german.follows_windows());
+        });
+    }
 
+    #[test]
+    fn match_windows_shows_english_when_no_listed_language_matches() {
+        exclusive(|| {
             let nothing = activate_with(&LanguagePreference::System, None, Ok(vec!["xx-YY".into()]));
             assert_eq!(nothing.decision, Decision::WindowsUnmatched);
+            assert_eq!(nothing.primary().tag, "en-GB");
             let empty = activate_with(&LanguagePreference::System, None, Ok(vec![]));
             assert_eq!(empty.decision, Decision::WindowsUnmatched);
             // Windows can list the pseudo-locale; it is never picked, or offered.
@@ -349,9 +355,13 @@ mod tests {
             assert_eq!(pseudo.decision, Decision::WindowsUnmatched);
             let pseudo = activate_with(&LanguagePreference::Explicit("qps-ploc".into()), None, Ok(vec![]));
             assert_eq!(pseudo.decision, Decision::SettingUnavailable("qps-ploc".into()));
+        });
+    }
 
-            // An explicit choice of a preview language is honoured, and does
-            // not follow Windows.
+    #[test]
+    fn an_explicit_setting_is_honoured_when_the_app_includes_it() {
+        exclusive(|| {
+            // A preview language is honoured, and does not follow Windows.
             let chosen =
                 activate_with(&LanguagePreference::Explicit("de".into()), None, Ok(vec!["en-US".into()]));
             assert_eq!(chosen.decision, Decision::Setting);
@@ -361,10 +371,18 @@ mod tests {
                 activate_with(&LanguagePreference::Explicit("xx".into()), None, Ok(vec!["en-US".into()]));
             assert_eq!(unknown.decision, Decision::SettingUnavailable("xx".into()));
             assert_eq!(unknown.primary().tag, "en-GB");
+        });
+    }
 
-            // The override is preserved whatever Windows says, and may name the pseudo-locale.
+    #[test]
+    fn an_override_outranks_the_setting_and_windows() {
+        exclusive(|| {
+            // Preserved whatever Windows says, and may name the pseudo-locale.
             let forced = activate_with(&LanguagePreference::System, Some("pl"), Err("boom".into()));
+            assert_eq!(forced.decision, Decision::Override("pl".into()));
             assert_eq!(forced.primary().tag, "pl");
+            let chosen = activate_with(&LanguagePreference::Explicit("de".into()), Some(" ja "), Ok(vec![]));
+            assert_eq!(chosen.decision, Decision::Override("ja".into()));
             let pseudo =
                 activate_with(&LanguagePreference::System, Some("qps-ploc"), Ok(vec!["en-US".into()]));
             assert_eq!(pseudo.decision, Decision::Override("qps-ploc".into()));
@@ -373,6 +391,9 @@ mod tests {
                 activate_with(&LanguagePreference::System, Some("zh-TW"), Ok(vec!["en-US".into()]));
             assert_eq!(traditional.primary().tag, "zh-Hant");
             assert!(traditional.font_fallbacks().is_some());
+            // A blank override is none.
+            let blank = activate_with(&LanguagePreference::System, Some(" "), Ok(vec!["de-DE".into()]));
+            assert_eq!(blank.decision, Decision::Windows);
         });
     }
 }

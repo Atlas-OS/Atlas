@@ -419,6 +419,40 @@ Describe 'Process Explorer upgrade teardown' {
         $script:FakeUpgradeProcess.ExitCode = 7
         { . $script:UpgradeStopPath } | Should -Throw '*cleanup failed with exit code 7*'
         Should -Invoke New-ItemProperty -Times 1 -Exactly -ParameterFilter { $Name -eq 'state' -and $Value -eq 1 }
-        Should -Invoke Start-Process -Times 0 -Exactly -ParameterFilter { $FilePath -like '*taskkill.exe' }
+        Should -Invoke Get-Process -Times 0 -Exactly -ParameterFilter { $Name -contains 'taskmgr' }
+    }
+
+    Context 'with Task Manager open' {
+        BeforeEach {
+            $script:TaskManager = [pscustomobject]@{ Id = 4242; Killed = 0; Exits = $true; KillError = $null }
+            $script:TaskManager | Add-Member -MemberType ScriptMethod -Name Kill -Value {
+                $this.Killed++
+                if ($null -ne $this.KillError) { throw $this.KillError }
+            }
+            $script:TaskManager | Add-Member -MemberType ScriptMethod -Name WaitForExit -Value { $this.Exits }
+            # Open for the first query only: the check after ending it finds none.
+            $script:TaskManagerQueries = 0
+            Mock Get-Process -ParameterFilter { $Name -contains 'taskmgr' } -MockWith {
+                $script:TaskManagerQueries++
+                if ($script:TaskManagerQueries -eq 1) { $script:TaskManager }
+            }
+        }
+
+        It 'ends a running Task Manager and waits for it to exit' {
+            . $script:UpgradeStopPath
+            $script:TaskManager.Killed | Should -Be 1
+        }
+
+        It 'tells the user to close Task Manager when it does not stop' {
+            $script:TaskManager.Exits = $false
+            $script:TaskManager.KillError = [ComponentModel.Win32Exception]::new(5, 'Access is denied.')
+            { . $script:UpgradeStopPath } |
+                Should -Throw "*process 4242*didn't stop within ten seconds: Access is denied. Close Task Manager, then try again.*"
+        }
+
+        It 'accepts a Task Manager that exits before it is ended' {
+            $script:TaskManager.KillError = [InvalidOperationException]::new('exited')
+            { . $script:UpgradeStopPath } | Should -Not -Throw
+        }
     }
 }

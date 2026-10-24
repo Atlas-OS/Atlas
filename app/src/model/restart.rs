@@ -99,6 +99,9 @@ impl AppModel {
     /// first, and restarts only once the user agrees.
     pub(super) fn begin_restart_countdown(&mut self, cx: &mut Context<Self>) {
         if self.hold_for_other_sessions(RestartKind::Install, cx) {
+            // A held countdown resumed into other people's sessions ends
+            // here, as at expiry. This never runs inside the timer it drops.
+            self.stop_restart_timer();
             return;
         }
         let timing = self.env.restart;

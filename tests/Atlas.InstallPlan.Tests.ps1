@@ -38,8 +38,7 @@ Describe 'Atlas install plan' {
                 'Tweaks/networking', 'Tweaks/performance', 'Tweaks/privacy', 'Tweaks/qol',
                 'Tweaks/security', 'Tweaks/debloat', 'Tweaks/scripts', 'Tweaks/misc',
                 'Checkpoint/WindowsTransition', 'Checkpoint/InstallingUserSetup',
-                'Checkpoint/OemBranding', 'Checkpoint/NotificationRestore',
-                'Checkpoint/DefaultHiveUnload'
+                'Checkpoint/NotificationRestore', 'Checkpoint/DefaultHiveUnload'
             )
         }
         @{
@@ -50,8 +49,7 @@ Describe 'Atlas install plan' {
                 'Tweak/qol/appearance/atlas-theme-upgrade',
                 'Tweaks/networking', 'Tweaks/performance', 'Tweaks/privacy', 'Tweaks/qol',
                 'Tweaks/security', 'Tweaks/debloat', 'Tweaks/scripts', 'Tweaks/misc',
-                'Checkpoint/WindowsTransition', 'Checkpoint/OemBranding', 'Checkpoint/NotificationRestore',
-                'Checkpoint/DefaultHiveUnload'
+                'Checkpoint/WindowsTransition', 'Checkpoint/NotificationRestore', 'Checkpoint/DefaultHiveUnload'
             )
         }
         @{
@@ -64,8 +62,7 @@ Describe 'Atlas install plan' {
                 'Tweaks/networking', 'Tweaks/performance', 'Tweaks/privacy', 'Tweaks/qol',
                 'Tweaks/security', 'Tweaks/debloat', 'Tweaks/scripts', 'Tweaks/misc',
                 'Checkpoint/WindowsTransition', 'Checkpoint/InstallingUserSetup',
-                'Checkpoint/OemBranding', 'Checkpoint/NotificationRestore',
-                'Checkpoint/DefaultHiveUnload'
+                'Checkpoint/NotificationRestore', 'Checkpoint/DefaultHiveUnload'
             )
         }
         @{

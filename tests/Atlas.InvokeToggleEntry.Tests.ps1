@@ -24,7 +24,8 @@ BeforeAll {
         -Destination (Join-Path $harnessScripts 'Initialize-AtlasPowerShell.ps1')
 
     # The entry script imports Atlas.Core before the engine; the stub keeps the
-    # commands it calls.
+    # commands it calls. Like the real logger, only the Interactive console style
+    # honours -NoConsole, and the exit pause prints a marker instead of waiting.
     Set-Content -LiteralPath (Join-Path $harnessScripts 'Modules\Atlas.Core\Atlas.Core.psd1') `
         -Encoding Ascii -Value @'
 @{
@@ -37,14 +38,17 @@ BeforeAll {
 '@
     Set-Content -LiteralPath (Join-Path $harnessScripts 'Modules\Atlas.Core\Atlas.Core.psm1') `
         -Encoding Ascii -Value @'
-function Set-AtlasLogConsoleStyle { param([string]$Style) }
+$script:consoleStyle = 'Diagnostic'
+function Set-AtlasLogConsoleStyle { param([string]$Style) $script:consoleStyle = $Style }
 function Write-AtlasLog {
     param([string]$Message, [string]$Level = 'Info', $ErrorRecord, [switch]$NoConsole)
-    Write-Output "[$($Level.ToUpperInvariant())] $Message"
+    if (-not ($NoConsole -and $script:consoleStyle -eq 'Interactive')) {
+        Write-Output "[$($Level.ToUpperInvariant())] $Message"
+    }
 }
 function Get-AtlasInstallLogPath { 'C:\harness\atlas-install.log' }
 function Write-AtlasNotApplied { param([string]$Title, [string]$Reason, [string]$DetailsPath) Write-Output "Not applied: $Title. $Reason" }
-function Wait-AtlasExit { param([string]$Message) }
+function Wait-AtlasExit { param([string]$Message) Write-Output 'harness exit pause' }
 '@
     Set-Content -LiteralPath (Join-Path $harnessScripts 'Modules\Atlas.Toggles\Atlas.Toggles.psd1') `
         -Encoding Ascii -Value @'
@@ -127,6 +131,22 @@ Describe 'Toggle CLI entry point exit and logging contract' {
         $result.ExitCode | Should -Be 1
         $result.Output | Should -Match `
             "Applying toggle 'HarnessFailure' failed: harness toggle failure"
+        # A silent caller has no window to explain the failure in or pause.
+        $result.Output | Should -Not -Match 'Not applied:'
+        $result.Output | Should -Not -Match 'harness exit pause'
+    }
+
+    It 'shows an interactive failure once, then pauses before exiting nonzero' {
+        $result = Invoke-ToggleEntry -Arguments @('-Name', 'HarnessFailure')
+
+        $result.ExitCode | Should -Be 1 -Because $result.Output
+        $lines = @($result.Output -split '\r?\n' | Where-Object { $_ })
+        @($lines | Where-Object { $_ -ceq 'Not applied: HarnessFailure. harness toggle failure' }) |
+            Should -HaveCount 1 -Because $result.Output
+        @($lines | Where-Object { $_ -ceq 'harness exit pause' }) | Should -HaveCount 1 -Because $result.Output
+        $lines[-1] | Should -BeExactly 'harness exit pause'
+        # The failure block already gives the reason; the log line stays off the console.
+        $result.Output | Should -Not -Match '\[ERROR\]'
     }
 
     It 'exits nonzero when no toggle name is supplied' {

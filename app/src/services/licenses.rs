@@ -6,7 +6,8 @@ use std::sync::{Mutex, PoisonError};
 pub const TEXT: &str = concat!(
     "ATLAS PROJECT LICENSE\n\n",
     include_str!("../../../LICENSE"),
-    "\n\nGPUI INPUT ADAPTATION\nCopyright Zed Industries. Atlas adds themed, labelled username input.\n\n",
+    "\n\nGPUI INPUT ADAPTATION\nCopyright Zed Industries. ",
+    "Atlas adapts its input example into themed, labelled text boxes, single- and multi-line.\n\n",
     include_str!("../../licenses/GPUI-input-APACHE-2.0.txt"),
     "\n\n",
     include_str!("../../licenses/THIRD-PARTY-NOTICES.txt"),

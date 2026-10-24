@@ -1,4 +1,4 @@
-# Atlas.Tweaks domain: tweak gating (Option / Arch / OnUpgrade / Oobe).
+# Atlas.Tweaks domain: tweak gating (Option / Arch / OnUpgrade / OnRebase / Oobe / MinBuild / MaxBuild).
 
 function Get-AtlasTweakSkipReason {
     <#
@@ -80,7 +80,7 @@ function Test-AtlasTweakApplicable {
     <#
     .SYNOPSIS
         Returns whether a tweak (loaded from its .psd1) applies to the current install
-        context, evaluating its Option, Arch, OnUpgrade and Oobe gates.
+        context, evaluating its Option, Arch, OnUpgrade/OnRebase, Oobe and MinBuild/MaxBuild gates.
     #>
     param(
         [Parameter(Mandatory = $true)]

@@ -71,9 +71,13 @@ Describe 'Console vocabulary' {
     }
 
     It 'prints the standard failure block with the log location' {
-        $lines = Get-ConsoleLine { Write-AtlasNotApplied -Title 'Enable Widgets' -Reason 'Edge missing' -DetailsPath 'C:\logs\atlas-install.log' }
+        $lines = Get-ConsoleLine {
+            Write-AtlasNote -Text 'Checking Edge...'
+            Write-AtlasNotApplied -Title 'Enable Widgets' -Reason 'Edge missing' -DetailsPath 'C:\logs\atlas-install.log'
+        }
 
         $lines | Should -Be @(
+            'Checking Edge...'
             ''
             'Not applied: Enable Widgets.'
             'Error: Edge missing'
@@ -87,8 +91,19 @@ Describe 'Run outcome and closing line' {
 
     It 'starts as Applied and prints Done' {
         Get-AtlasRunOutcome | Should -BeExactly 'Applied'
-        $lines = Get-ConsoleLine { Write-AtlasCompletion -Title 'Enable Sleep' }
-        $lines | Should -Be @('', 'Done: Enable Sleep.')
+        $lines = Get-ConsoleLine {
+            Write-AtlasStep -Text 'Applying...'
+            Write-AtlasCompletion -Title 'Enable Sleep'
+        }
+        $lines | Should -Be @('Applying...', '', 'Done: Enable Sleep.')
+    }
+
+    It 'separates the closing line with one blank line, not two' {
+        $lines = Get-ConsoleLine {
+            Write-AtlasTitle -Text 'Enable Sleep'
+            Write-AtlasCompletion -Title 'Enable Sleep'
+        }
+        $lines | Should -Be @('AtlasOS - Enable Sleep', '----------------------', '', 'Done: Enable Sleep.')
     }
 
     It 'becomes Manual after a manual step so the closing line does not claim success' {

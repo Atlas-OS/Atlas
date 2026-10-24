@@ -235,14 +235,12 @@ else {
             'Archive runner boundary ({0} actions, {1} checked PowerShell runs).' -f `
                 $runnerSummary.Actions, $runnerSummary.Runs
         )
-        if ($runnerSummary.RequiresTrustedRunnerEnvironment) {
-            Write-Warning (
-                'The YAML contract cannot authenticate the inherited process environment: ' +
-                'RunAction expands %SystemRoot% before launch, and managed-runtime startup, ' +
-                'profiling, JIT, and AppDomain variables act before script entry. The upstream ' +
-                'AME runner must construct the complete trusted environment before process creation.'
-            )
-        }
+        Write-Warning (
+            'The YAML contract cannot authenticate the inherited process environment: ' +
+            'RunAction expands %SystemRoot% before launch, and managed-runtime startup, ' +
+            'profiling, JIT, and AppDomain variables act before script entry. The upstream ' +
+            'AME runner must construct the complete trusted environment before process creation.'
+        )
 
         $sourceConfigurationRoot = Join-Path -Path $PlaybookPath -ChildPath 'Configuration'
         $sourceConfigurationContract = @(Get-AtlasConfigurationByteContract `
@@ -261,36 +259,6 @@ else {
             )
         }
         Write-Pass 'Every archive configuration byte matches the reviewed source.'
-
-        $expectedRunnerContract = @(Get-AtlasConfigurationRunnerContract `
-                -ConfigurationRoot $sourceConfigurationRoot)
-        $archiveRunnerContract = @(Get-AtlasConfigurationRunnerContract `
-                -ConfigurationRoot $extractedConfigurationRoot)
-        $runnerContractDifference = @(Compare-Object `
-                -ReferenceObject @($expectedRunnerContract.Signature) `
-                -DifferenceObject @($archiveRunnerContract.Signature) `
-                -CaseSensitive)
-        if ($runnerContractDifference.Count -gt 0) {
-            $firstDifference = $runnerContractDifference[0]
-            throw (
-                'Archive runner contract differs from the reviewed source configuration: ' +
-                "[$($firstDifference.SideIndicator)] $($firstDifference.InputObject)"
-            )
-        }
-        Write-Pass 'Archive runner order and action-local contracts match the reviewed source.'
-
-        $expectedCustomYml = Join-Path -Path $sourceConfigurationRoot -ChildPath 'custom.yml'
-        $archiveCustomYml = Join-Path -Path $extractedConfigurationRoot -ChildPath 'custom.yml'
-        if (-not (Test-Path -LiteralPath $expectedCustomYml -PathType Leaf) -or
-            -not (Test-Path -LiteralPath $archiveCustomYml -PathType Leaf)) {
-            throw 'Expected-profile or archive custom.yml is missing.'
-        }
-        $expectedCustomBytes = [Convert]::ToBase64String([IO.File]::ReadAllBytes($expectedCustomYml))
-        $archiveCustomBytes = [Convert]::ToBase64String([IO.File]::ReadAllBytes($archiveCustomYml))
-        if ($expectedCustomBytes -cne $archiveCustomBytes) {
-            throw 'Archive custom.yml differs from the reviewed source configuration.'
-        }
-        Write-Pass 'Archive custom.yml is byte-identical to the reviewed source.'
     }
     catch {
         Add-Failure "Archive runner-boundary validation failed: $($_.Exception.Message)"

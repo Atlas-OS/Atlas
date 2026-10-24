@@ -114,10 +114,11 @@ the shaders come from the committed Windows export.
 
 ### CI
 
-`.github/workflows/app.yml` runs on changes under `app/` and to the `playbook/`
-files compiled into the app (`playbook.conf`, the front door, the preparation
-and compatibility scripts, the driver-policy files). It runs the format check,
-then Clippy and the tests twice (without features, and with
+`.github/workflows/app.yml` runs on changes under `app/` and to the files
+outside it that the app or its tests compile in or read, such as
+`playbook.conf`, the front door, the diagnostics collector and the shared test
+fixtures; its path filter lists them all. It runs the format check, then Clippy
+and the tests twice (without features, and with
 `--features embedded-playbook` against a LocalTest package), and saves the
 release executable as `atlas-manager-windows-x64`.
 
@@ -144,7 +145,7 @@ features, release profile and dependency debug symbols.
 | --- | --- |
 | `ATLAS_APP_DATA=<dir>` | Keeps settings, downloads, unpacked packages, install logs and the session in `<dir>`, never the real `%LOCALAPPDATA%\AtlasOS\App`. |
 | `ATLAS_STATE_FILE=<state.json>` | Debug builds: shows the installed or update-available state on a PC without Atlas. Release builds always read `%windir%\AtlasOS\state.json` (`src/services/atlas_state.rs`). |
-| `ATLAS_FORMAT_LOCALE=<tag>` | Overrides the regional format for numbers, dates and times, for example `de-DE`. |
+| `ATLAS_FORMAT_LOCALE=<tag>` | Overrides the regional format for numbers, dates and times with that locale's standard formats, for example `de-DE`. Customisations made in Windows are ignored, except that when `<tag>` is the PC's own regional format a date can still follow a customised long date. |
 | `ATLAS_WINDOWS_LANGUAGES=de-DE,en-US` | Replaces the Windows display-language list; `error` simulates a failed query. |
 | `ATLAS_TEXT_SCALE=1.5`, `ATLAS_HIGH_CONTRAST=1` | Debug builds: preview a text size (1.0 to 2.25) or a contrast theme without changing Windows. |
 
@@ -354,8 +355,11 @@ starts.
 
 - The app runs `Install-Atlas.ps1 -Option @(...) -Unattended` through
   `powershell.exe -Command` (so the option list arrives as a real array) with
-  UTF-8 output. The child logs to `...\App\Logs`; `...\App\session.json`
-  records the process and log.
+  UTF-8 output, adding `-WindowsSecurityConfirmed` when the user confirmed by
+  hand the Windows Security switches Atlas couldn't read. The front door then
+  accepts those unreadable switches but still blocks any switch that reads on.
+  The child logs to `...\App\Logs`; `...\App\session.json` records the process
+  and log.
 - Launching holds a cross-process lock. The record is written before the child
   starts, and the child runs the front door only after a go-ahead, so no
   installer runs unrecorded and two windows cannot start overlapping installs
@@ -418,11 +422,14 @@ starts.
 - Reopening the app reattaches to the worker by PID and process creation time
   and reads its journal. If Windows cannot tell whether it is running, Atlas
   assumes it is; a process that reused the PID does not count.
-- Journals in the older user-writable `%LOCALAPPDATA%\AtlasOS\App\Preparation`
-  can only make Atlas wait for their worker, never prove success or provide a
-  cancellation target. Once that worker exits, the user retries through the
-  protected path.
-- The app never starts a second servicing worker while one is running.
+- A running job whose folder Windows can't confirm is the protected one staging
+  created can only make Atlas wait for its worker, never prove success or
+  provide a cancellation target. Once that worker exits, the user retries
+  through the protected path. Jobs that 0.6.0 release candidates kept in the
+  user-writable `%LOCALAPPDATA%\AtlasOS\App\Preparation` are no longer
+  followed; diagnostics still collect them.
+- The app never starts a second servicing worker while one it can follow is
+  running, and a machine-wide lock stops any worker running beside another.
   Cancelling never kills an active Windows Update operation; preparation keeps
   its worker until Windows Update or the Store returns.
 - Moving Windows to another release, and turning Windows Update on where an

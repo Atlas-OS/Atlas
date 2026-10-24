@@ -601,7 +601,7 @@ fn untranslated(locale: &'static Locale, source: &Parsed) -> Vec<String> {
             let args = sample_args(info, 3);
             !id.starts_with("playbook-option-browser-")
                 && !matches!(id.as_str(), "app-name" | "home-github" | "home-discord" | "list-separator")
-                && own.format(id, None, &args) == english.format(id, None, &args)
+                && own.format(id, &args) == english.format(id, &args)
         })
         .map(|(id, _)| id)
         .collect();

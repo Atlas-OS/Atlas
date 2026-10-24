@@ -34,8 +34,12 @@ fn elevation_runs_off_the_windows_thread_once_and_a_refusal_ends_the_flow() {
         wait_until(&cx, "the elevation prompt", || !prompts.lock().unwrap().is_empty()).await;
         // Start over and Try again do nothing while the prompt is up.
         act(&mut cx, &model, |m, cx| {
+            let (flow, draft) = (m.flow_id.clone(), m.settings.draft.clone());
             m.begin_install(cx);
             m.relaunch_elevated(cx);
+            assert_eq!(m.flow_id, flow, "Start over waits for the prompt");
+            assert_eq!(m.settings.draft, draft, "Try again waits for the prompt");
+            assert!(m.elevating);
         });
         answer.send(()).unwrap();
         wait_for(&cx, &model, "the refusal", |m| m.elevation_error.is_some()).await;
@@ -124,5 +128,40 @@ fn a_relaunch_is_not_offered_for_a_setup_another_window_took_over() {
         });
         settle(&cx, &model).await;
         assert_eq!(settings::load_from(&env.paths.settings()).settings.draft, Some(foreign));
+    });
+}
+
+/// The draft Home's Install writes before the UAC prompt replaces whatever is
+/// on disk, so it settles a draft write an earlier failure left to replay.
+#[test]
+fn beginning_a_flow_settles_a_lost_draft_write() {
+    run_model_test(|mut cx| async move {
+        use crate::model::drafts::UnsavedDraft;
+        let (_temp, _, mut env) = fixture("elevation-settles-unsaved");
+        env.adapters.is_elevated = Arc::new(|| false);
+        let prompted = Arc::new(Mutex::new(false));
+        let (answer, answered) = std::sync::mpsc::channel::<()>();
+        let answered = Mutex::new(answered);
+        env.adapters.relaunch_elevated = Arc::new({
+            let prompted = prompted.clone();
+            move || {
+                *prompted.lock().unwrap() = true;
+                answered.lock().unwrap().recv().ok();
+                anyhow::bail!("the user chose No")
+            }
+        });
+        let model = new_model(&mut cx, env.clone());
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        act(&mut cx, &model, |m, cx| {
+            m.unsaved_draft = Some(UnsavedDraft::Removal { flow: Some("earlier-flow".into()) });
+            m.begin_install(cx);
+        });
+        // Checked while the prompt is up: a declined prompt's own draft
+        // removal would settle it too.
+        wait_until(&cx, "the elevation prompt", || *prompted.lock().unwrap()).await;
+        assert!(read(&cx, &model, |m| m.unsaved_draft.is_none()), "the new flow's draft settled it");
+        answer.send(()).unwrap();
+        wait_for(&cx, &model, "the refusal", |m| m.elevation_error.is_some()).await;
+        settle(&cx, &model).await;
     });
 }

@@ -201,7 +201,10 @@ fn the_move_waits_for_the_licence_terms_and_for_everything_else_that_would_stop_
             assert_eq!(m.ready_status(), Some(ReadyStatus::WindowsTerms));
         });
         act(&mut cx, &model, |m, cx| m.prepare_windows(cx));
-        assert!(scene.requests.lock().unwrap().is_empty(), "nothing runs before the terms are accepted");
+        assert!(
+            read(&cx, &model, |m| m.preparation_job.is_none() && !m.preparation.busy()),
+            "nothing runs before the terms are accepted"
+        );
 
         act(&mut cx, &model, |m, cx| m.accept_windows_terms(true, cx));
         for (id, detail) in [
@@ -499,15 +502,18 @@ fn stopping_before_the_move_puts_the_settings_back_once_and_never_during_an_unfi
         assert_eq!(scene.calls(), ["Restore"]);
         assert_eq!(read(&cx, &model, |m| m.page), Page::Home);
 
-        // An unfinished Atlas install puts them back itself.
-        scene.calls.lock().unwrap().clear();
+        // An unfinished Atlas install puts them back itself. The record is
+        // still open here, so only the install keeps Put back from running.
+        assert!(read(&cx, &model, AppModel::may_restore_update_access), "the record is still open");
         *scene.machine.identity.lock().unwrap() = Some(InstallIdentity::Resume("0.6.0".into(), None));
-        act(&mut cx, &model, |m, cx| {
-            m.refresh_atlas_state();
-            m.restore_update_access(cx);
-        });
+        act(&mut cx, &model, |m, _| m.refresh_atlas_state());
         assert!(!read(&cx, &model, AppModel::may_restore_update_access));
-        assert!(scene.calls().is_empty());
+        act(&mut cx, &model, |m, cx| m.restore_update_access(cx));
+        assert_eq!(
+            read(&cx, &model, |m| m.restore_status.clone()),
+            RestoreStatus::Idle,
+            "nothing is put back"
+        );
         settle(&cx, &model).await;
     });
 }
@@ -642,11 +648,19 @@ fn put_back_from_home_runs_elevated_or_relaunches_for_it() {
         act(&mut cx, &model, |m, cx| m.restore_update_access(cx));
         wait_for(&cx, &model, "the put-back", |m| m.restore_status == RestoreStatus::Idle).await;
         assert_eq!(scene.calls(), ["Restore"]);
+        // A second press before the prompt shows starts no second prompt.
         act(&mut cx, &model, |m, cx| {
             m.elevated = false;
             m.restore_update_access(cx);
+            m.restore_update_access(cx);
         });
-        wait_until(&cx, "the elevation prompt", || *relaunched.lock().unwrap() == 1).await;
+        assert!(
+            read(&cx, &model, |m| m.elevating && !m.may_restore_update_access()),
+            "Put back waits for the prompt"
+        );
+        wait_for(&cx, &model, "the prompt to be declined", |m| !m.elevating).await;
+        assert_eq!(*relaunched.lock().unwrap(), 1, "one prompt");
+        assert!(read(&cx, &model, AppModel::may_restore_update_access), "declined, it's offered again");
         assert_eq!(scene.calls(), ["Restore"], "nothing runs without administrator rights");
         settle(&cx, &model).await;
     });
@@ -664,7 +678,7 @@ fn the_version_choice_and_terms_are_kept_reset_preparation_and_wait_while_anythi
         });
         act(&mut cx, &model, |m, cx| {
             m.preparation = State::Ready;
-            m.set_windows_transition(true, cx);
+            m.keep_windows_version(true, cx);
         });
         read(&cx, &model, |m| {
             assert!(m.windows_transition_declined);
@@ -674,7 +688,7 @@ fn the_version_choice_and_terms_are_kept_reset_preparation_and_wait_while_anythi
         });
         act(&mut cx, &model, |m, cx| {
             m.preparation = State::Running { stage: Default::default(), completed: 0, total: 0 };
-            m.set_windows_transition(false, cx);
+            m.keep_windows_version(false, cx);
             m.accept_windows_terms(true, cx);
         });
         read(&cx, &model, |m| {
@@ -693,12 +707,110 @@ fn the_version_choice_and_terms_are_kept_reset_preparation_and_wait_while_anythi
         act(&mut cx, &model, |m, cx| {
             m.refresh_update_access();
             m.windows_transition_declined = false;
-            m.set_windows_transition(true, cx);
+            m.keep_windows_version(true, cx);
         });
         assert!(!read(&cx, &model, |m| m.windows_transition_declined));
         // Drafts written before these fields still load.
         let old: InstallDraft = serde_json::from_str(r#"{"step":"ready","options":[]}"#).unwrap();
         assert!(!old.windows_terms_accepted && !old.windows_transition_declined);
+        settle(&cx, &model).await;
+    });
+}
+
+/// A move whose run failed before any record was made, as when an
+/// organisation manages updates: keeping the version forgets that failure
+/// with the run, so Get ready offers to start updating again.
+#[test]
+fn a_new_version_choice_forgets_the_failure_of_the_last_run() {
+    run_model_test(|mut cx| async move {
+        let mut scene = scene("transition-choice-failure", system(26200, "25H2", "Professional"));
+        scene.worker(report("failed", &[], Some("feature-managed")), State::Failed);
+        let model = new_model(&mut cx, scene.env.clone());
+        to_get_ready(&mut cx, &model, &scene.package).await;
+        act(&mut cx, &model, |m, cx| {
+            m.accept_windows_terms(true, cx);
+            m.prepare_windows(cx);
+        });
+        wait_for(&cx, &model, "the move to fail and the checks after it", |m| {
+            m.preparation == State::Failed && m.checks_complete()
+        })
+        .await;
+        read(&cx, &model, |m| {
+            assert!(!m.transition_open(), "no record was made");
+            assert!(m.preparation_progress.as_ref().is_some_and(|p| p.failure().is_some()));
+        });
+        // The scripted run fails without an error of its own, so one is planted.
+        let plant_error = |m: &mut AppModel| {
+            m.preparation_error = Some("worker text".into());
+            m.preparation_source_linked = true;
+        };
+        let forgotten = |m: &AppModel| {
+            m.preparation_progress.is_none() && m.preparation_error.is_none() && !m.preparation_source_linked
+        };
+        act(&mut cx, &model, |m, cx| {
+            plant_error(m);
+            m.keep_windows_version(true, cx);
+        });
+        read(&cx, &model, |m| {
+            assert_eq!(m.preparation, State::Idle);
+            assert!(forgotten(m), "the failure goes too");
+            assert!(m.preparation_may_start(), "keeping 25H2 can start updating");
+        });
+        // A new driver policy forgets a failure the same way.
+        act(&mut cx, &model, |m, cx| m.prepare_windows(cx));
+        wait_for(&cx, &model, "the run to fail again and the checks after it", |m| {
+            m.preparation == State::Failed && m.checks_complete()
+        })
+        .await;
+        let other = match read(&cx, &model, AppModel::driver_preference) {
+            Drivers::Automatic => Drivers::Manual,
+            Drivers::Manual => Drivers::Automatic,
+        };
+        act(&mut cx, &model, |m, cx| {
+            plant_error(m);
+            m.set_drivers(other, cx);
+        });
+        read(&cx, &model, |m| {
+            assert_eq!(m.preparation, State::Idle);
+            assert!(forgotten(m), "the failure goes too");
+        });
+        settle(&cx, &model).await;
+    });
+}
+
+/// A restart owed, or one just made, outlasts a new version choice: the
+/// draft still says so, and the run after it still knows it follows a
+/// restart, so a marker that survives restarts is named, not restarted for.
+#[test]
+fn a_new_version_choice_keeps_a_restart_owed_or_just_made() {
+    run_model_test(|mut cx| async move {
+        let mut scene = scene("transition-choice-restart", system(26200, "25H2", "Professional"));
+        // Windows asks for a restart again without updating anything.
+        scene.worker(report("reboot", &["windows-update"], None), State::Reboot);
+        let model = new_model(&mut cx, scene.env.clone());
+        to_get_ready(&mut cx, &model, &scene.package).await;
+        act(&mut cx, &model, |m, cx| m.accept_windows_terms(true, cx));
+        for state in [State::Reboot, State::Resumed] {
+            act(&mut cx, &model, |m, cx| {
+                m.preparation = state.clone();
+                m.preparation_restart_at = Some("2026-10-01T09:00:00Z".into());
+                let keep = !m.windows_transition_declined;
+                m.keep_windows_version(keep, cx);
+            });
+            assert_eq!(read(&cx, &model, |m| m.preparation.clone()), state, "the new choice keeps it");
+        }
+        crate::model::test_harness::wait_on_disk(&cx, &scene.env, "the owed restart and the choice", |s| {
+            s.draft
+                .as_ref()
+                .is_some_and(|d| d.preparation_restart_at.is_some() && !d.windows_transition_declined)
+        })
+        .await;
+        act(&mut cx, &model, |m, cx| m.prepare_windows(cx));
+        wait_for(&cx, &model, "the run", |m| !m.preparation.busy() && m.preparation != State::Resumed).await;
+        assert_eq!(
+            read(&cx, &model, |m| m.preparation.clone()),
+            State::RestartPersists { reasons: vec!["windows-update".into()] }
+        );
         settle(&cx, &model).await;
     });
 }
@@ -751,20 +863,41 @@ fn a_report_about_a_move_that_stopped_starts_with_its_cause_and_state() {
     });
 }
 
-/// After a restart, Get ready names the stage: updates before the move, or
-/// the new version itself.
+/// From the worker's installed phase on, Windows has the new version, or only
+/// waits for the restart that switches it on.
 #[test]
-fn after_a_restart_the_copy_follows_whether_the_new_version_is_installed() {
+fn a_move_counts_as_installed_from_the_installed_phase_on() {
+    for (phase, installed) in
+        [("lifted", false), ("targeted", false), ("installed", true), ("on-target", true)]
+    {
+        let access = record("transition", phase);
+        assert_eq!(access.transition().map(|journal| journal.installed()), Some(installed), "{phase}");
+    }
+}
+
+/// On the target already, no move is left to choose, yet the record still
+/// names one: Home's plan and Get ready's next run both read it from there.
+#[test]
+fn home_and_get_ready_agree_on_a_move_already_on_its_target() {
     run_model_test(|mut cx| async move {
-        let scene = scene("transition-stage", system(26200, "25H2", "Professional"));
+        use crate::services::preparation::TransitionRequest;
+        use crate::services::windows_release;
+        let scene = scene("transition-on-target", system(26300, "26H2", "Professional"));
+        *scene.access.lock().unwrap() = record("transition", "on-target");
         let model = new_model(&mut cx, scene.env.clone());
         wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
-        for (phase, installed) in
-            [("lifted", false), ("targeted", false), ("installed", true), ("on-target", true)]
-        {
-            act(&mut cx, &model, |m, _| m.update_access = Some(record("transition", phase)));
-            assert_eq!(read(&cx, &model, AppModel::transition_installed), installed, "{phase}");
-        }
+        let to_26h2 = windows_release::transition_to("26H2");
+        assert!(to_26h2.is_some());
+        read(&cx, &model, |m| {
+            assert!(!m.flow.active);
+            assert_eq!(m.recorded_transition(), to_26h2);
+            assert!(m.windows_transition().is_none(), "nothing left to choose on 26H2");
+            assert_eq!(
+                m.transition_request(),
+                to_26h2.map(|transition| TransitionRequest::new(transition, m.windows_terms_accepted))
+            );
+        });
+        settle(&cx, &model).await;
     });
 }
 
@@ -939,10 +1072,17 @@ mod offer_wait {
         run_model_test(|mut cx| async move {
             let mut scene = scene_waiting("offer-wait-refused", 40, 300);
             offering_after(&mut scene, usize::MAX);
+            // Once the first look has run the power check fails, so every
+            // later look is refused before a run starts.
+            let looked = scene.requests.clone();
+            scene.env.adapters.run_check = Arc::new(move |id, context| match id {
+                CheckId::Power if !looked.lock().unwrap().is_empty() => {
+                    CheckResult { id, verdict: Verdict::Fail, detail: CheckDetail::PowerBattery }
+                }
+                CheckId::SupportedBuild => requirements::run(id, context),
+                _ => passing(id),
+            });
             let model = start_waiting(&mut cx, &scene).await;
-            wait_for(&cx, &model, "the first look to find nothing", |m| m.offer_rechecks_active()).await;
-            // Every later look is refused before a run starts.
-            act(&mut cx, &model, |m, _| m.elevated = false);
             wait_for(&cx, &model, "the wait to run out", |m| m.offer_wait.is_some_and(|wait| wait.expired))
                 .await;
             assert_eq!(scene.requests.lock().unwrap().len(), 1, "no run while the looks are refused");
@@ -988,6 +1128,62 @@ mod offer_wait {
             wait_until(&cx, "the settings to go back", || scene.calls().iter().any(|call| call == "Restore"))
                 .await;
             assert!(read(&cx, &model, |m| m.offer_wait.is_some_and(|wait| wait.expired)));
+            settle(&cx, &model).await;
+        });
+    }
+
+    /// An unfinished Atlas install puts the settings back as its last step,
+    /// so a wait that runs out meanwhile stops looking and leaves them on.
+    #[test]
+    fn a_wait_that_runs_out_during_an_unfinished_install_stops_looking() {
+        run_model_test(|mut cx| async move {
+            let mut scene = scene_waiting("offer-wait-install-active", 40, 120);
+            *scene.machine.identity.lock().unwrap() = Some(InstallIdentity::Resume("0.6.0".into(), None));
+            offering_after(&mut scene, usize::MAX);
+            let model = start_waiting(&mut cx, &scene).await;
+            wait_for(&cx, &model, "the first look to find nothing", |m| m.offer_rechecks_active()).await;
+            wait_for(&cx, &model, "the looks to stop", |m| !m.offer_wait_running()).await;
+            read(&cx, &model, |m| {
+                assert!(m.offer_wait.is_none(), "nothing was put back, so the wait isn't shown as ended");
+                assert!(m.waiting_for_offer(), "Get ready offers Check again");
+            });
+            let looks = scene.requests.lock().unwrap().len();
+            cx.background_executor().timer(Duration::from_millis(300)).await;
+            assert_eq!(scene.requests.lock().unwrap().len(), looks, "no look after the wait ended");
+            assert!(!scene.calls().iter().any(|call| call == "Restore"), "the install puts them back");
+            settle(&cx, &model).await;
+        });
+    }
+
+    /// With every later look refused, the wait's own timer ends it, and Get
+    /// ready is drawn again without the wait.
+    #[test]
+    fn a_wait_ended_by_its_timer_during_an_unfinished_install_redraws_get_ready() {
+        run_model_test(|mut cx| async move {
+            let mut scene = scene_waiting("offer-wait-install-refused", 40, 300);
+            *scene.machine.identity.lock().unwrap() = Some(InstallIdentity::Resume("0.6.0".into(), None));
+            offering_after(&mut scene, usize::MAX);
+            let looked = scene.requests.clone();
+            scene.env.adapters.run_check = Arc::new(move |id, context| match id {
+                CheckId::Power if !looked.lock().unwrap().is_empty() => {
+                    CheckResult { id, verdict: Verdict::Fail, detail: CheckDetail::PowerBattery }
+                }
+                CheckId::SupportedBuild => requirements::run(id, context),
+                _ => passing(id),
+            });
+            let model = start_waiting(&mut cx, &scene).await;
+            // Whether the wait showed at the last redraw.
+            let shown = Arc::new(Mutex::new(None));
+            let _observation = cx.update(|app| {
+                let shown = shown.clone();
+                app.observe(&model, move |model, app| {
+                    *shown.lock().unwrap() = Some(model.read(app).offer_wait_running());
+                })
+            });
+            wait_for(&cx, &model, "the first look to find nothing", |m| m.offer_rechecks_active()).await;
+            wait_for(&cx, &model, "the looks to stop", |m| !m.offer_wait_running()).await;
+            wait_until(&cx, "a redraw without the wait", || *shown.lock().unwrap() == Some(false)).await;
+            assert_eq!(scene.requests.lock().unwrap().len(), 1, "no run while the looks are refused");
             settle(&cx, &model).await;
         });
     }
@@ -1041,9 +1237,51 @@ mod offer_wait {
             wait_until(&cx, "one look by itself", || !scene.requests.lock().unwrap().is_empty()).await;
             let request = scene.requests.lock().unwrap()[0].clone();
             assert!(request.transition.unwrap().offer_only);
-            act(&mut cx, &model, |m, cx| m.run_checks(cx));
-            cx.background_executor().timer(Duration::from_millis(200)).await;
-            assert_eq!(scene.requests.lock().unwrap().len(), 1, "only once per window");
+            // A new flow in the same window starts updating over, and its
+            // checks don't look again.
+            wait_for(&cx, &model, "the look to find nothing", |m| m.preparation == State::Failed).await;
+            act(&mut cx, &model, |m, cx| {
+                m.cancel_flow(cx);
+                m.begin_install(cx);
+                m.windows_terms_accepted = true;
+            });
+            wait_for(&cx, &model, "the new flow's checks", |m| m.flow.active && m.checks_complete()).await;
+            assert_eq!(read(&cx, &model, |m| m.preparation.clone()), State::Idle, "only once per window");
+            assert_eq!(scene.requests.lock().unwrap().len(), 1);
+            settle(&cx, &model).await;
+        });
+    }
+
+    /// Opened again on a move whose last run needed a newer monthly update,
+    /// Get ready's own look is a full run, the only kind that installs it.
+    #[test]
+    fn opened_again_on_a_move_waiting_for_a_monthly_update_it_looks_with_a_full_run() {
+        run_model_test(|mut cx| async move {
+            let mut scene = scene_waiting("offer-wait-reopen-prerequisite", 10_000, 100_000);
+            let mut access = record("transition", "targeted");
+            if let Some(journal) = access.journal.as_mut() {
+                journal.history.push(crate::services::update_access::HistoryEntry {
+                    at: "2026-10-02T09:00:00Z".into(),
+                    event: "outcome".into(),
+                    detail: "reason=feature-prerequisite code= This PC needs a newer monthly update first."
+                        .into(),
+                });
+            }
+            *scene.access.lock().unwrap() = access;
+            offering_after(&mut scene, usize::MAX);
+            let model = new_model(&mut cx, scene.env.clone());
+            assert!(read(&cx, &model, AppModel::transition_waiting_for_offer), "Home offers Check again");
+            wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+            act(&mut cx, &model, |m, cx| {
+                m.preparation = State::Idle;
+                m.begin_install(cx);
+                m.windows_terms_accepted = true;
+            });
+            act(&mut cx, &model, |m, cx| m.load_playbook_file(scene.package.clone(), cx));
+            wait_until(&cx, "one look by itself", || !scene.requests.lock().unwrap().is_empty()).await;
+            let request = scene.requests.lock().unwrap()[0].clone();
+            assert!(!request.transition.unwrap().offer_only, "a full run installs the monthly update");
+            wait_for(&cx, &model, "the look to end", |m| !m.preparation.busy()).await;
             settle(&cx, &model).await;
         });
     }

@@ -3,60 +3,31 @@ $ErrorActionPreference = 'Stop'
 $systemDirectory = [Environment]::SystemDirectory
 $powerCfgPath = [IO.Path]::Combine($systemDirectory, 'powercfg.exe')
 
-function Invoke-AtlasPowerSettingsNative {
-    param(
-        [Parameter(Mandatory = $true)][string]$FilePath,
-        [Parameter(Mandatory = $true)][string[]]$ArgumentList,
-        [Parameter(Mandatory = $true)][string]$Description
-    )
-
-    if (-not [IO.File]::Exists($FilePath)) {
-        throw "$Description is missing at '$FilePath'."
-    }
-
-    $nativeOutput = @(& $FilePath @ArgumentList 2>&1)
-    $nativeExitCode = $LASTEXITCODE
-    if ($null -eq $nativeExitCode -or [int]$nativeExitCode -ne 0) {
-        $diagnostic = (@($nativeOutput | ForEach-Object { [string]$_ }) -join ' ').Trim()
-        if ($diagnostic.Length -gt 512) {
-            $diagnostic = $diagnostic.Substring(0, 512)
-        }
-        throw "$Description failed with exit code '$nativeExitCode'. $diagnostic"
-    }
-    return @($nativeOutput)
-}
-
 $disablePowerSaving = [bool](Test-AtlasOption -Name 'disable-power-saving')
 $disableHibernation = [bool](Test-AtlasOption -Name 'disable-hibernation')
 
+# The toggles' machine states apply and record these choices, so the install and the
+# AtlasDesktop launchers can't drift apart.
+Import-AtlasModule -Name Atlas.Toggles
 if ($disablePowerSaving) {
-    Import-AtlasModule -Name Atlas.Toggles
     Invoke-AtlasToggleMachineState -Name PowerSaving -State Disable
 }
 
 # Disabling hibernation also makes NTFS accessible outside Windows.
 if ($disableHibernation) {
-    $null = Invoke-AtlasPowerSettingsNative -FilePath $powerCfgPath `
-        -ArgumentList ([string[]]@('/hibernate', 'off')) `
-        -Description 'Hibernation disable operation'
-    $flyoutPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FlyoutMenuSettings'
-    if (-not (Test-Path -LiteralPath $flyoutPath)) {
-        $null = New-Item -Path $flyoutPath -Force -ErrorAction Stop
-    }
-    Set-ItemProperty -LiteralPath $flyoutPath -Name 'ShowHibernateOption' `
-        -Value 0 -Type DWord -Force -ErrorAction Stop
+    Invoke-AtlasToggleMachineState -Name Hibernation -State Disable
 }
 
 # Keep the Balanced power scheme when power saving is retained.
 if (-not $disablePowerSaving) {
     $balancedScheme = '381b4222-f694-41f0-9685-ff5bb260df2e'
-    $null = Invoke-AtlasPowerSettingsNative -FilePath $powerCfgPath `
+    $null = Invoke-AtlasToggleNativeCommand -FilePath $powerCfgPath `
         -ArgumentList ([string[]]@('/setactive', $balancedScheme)) `
-        -Description 'Balanced power-scheme selection'
-    $activeOutput = @(Invoke-AtlasPowerSettingsNative -FilePath $powerCfgPath `
+        -AllowedExitCodes ([int[]]@(0))
+    $activeOutput = (Invoke-AtlasToggleNativeCommand -FilePath $powerCfgPath `
             -ArgumentList ([string[]]@('/getactivescheme')) `
-            -Description 'Active power-scheme verification')
-    $activeText = @($activeOutput | ForEach-Object { [string]$_ }) -join "`n"
+            -AllowedExitCodes ([int[]]@(0)) -PassThru).Output
+    $activeText = @($activeOutput) -join "`n"
     $guidMatches = @([regex]::Matches(
             $activeText,
             '(?i)(?<![0-9a-f])[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}(?![0-9a-f])'

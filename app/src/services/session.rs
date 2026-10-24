@@ -20,11 +20,18 @@ use super::{files, registry, system};
 pub struct SessionPaths {
     pub record: PathBuf,
     pub logs: PathBuf,
+    /// The detailed log Atlas's install scripts append to, shared by every
+    /// install on the PC.
+    pub machine_log: PathBuf,
 }
 
 impl SessionPaths {
+    /// The session files under `root`, and this PC's machine log. Tests get a
+    /// machine log under `root` instead, which only a test writes.
     pub fn under(root: &Path) -> Self {
-        Self { record: root.join("session.json"), logs: root.join("Logs") }
+        let machine_log =
+            if cfg!(test) { root.join("atlas-install.log") } else { super::installer::machine_log_path() };
+        Self { record: root.join("session.json"), logs: root.join("Logs"), machine_log }
     }
 }
 
@@ -532,7 +539,12 @@ mod tests {
             started_at: String::new(),
             log_path: temp.path().join("install-s.log"),
             exit_path: temp.path().join("install-s.exit"),
-            request: InstallRequest { playbook_dir: temp.path().into(), options: vec![], restart: false },
+            request: InstallRequest {
+                playbook_dir: temp.path().into(),
+                options: vec![],
+                restart: false,
+                windows_security_confirmed: false,
+            },
         };
         let unknown = || system::Liveness::Unknown("open process 4: access denied".into());
         // Without a result the owner is unknown, and nothing may start.

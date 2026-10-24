@@ -81,7 +81,8 @@ fn pending_updates_on_this_thread() -> Result<Vec<String>> {
             if manual_drivers && update.Type()? == utDriver {
                 continue;
             }
-            // Offered again after it installed: the worker no longer waits for it.
+            // Recorded by the worker as done (offered again after it installed, or
+            // a driver no better than the device's own), so it no longer waits for it.
             let identity = update.Identity()?;
             if reoffered.contains(&format!("{}/{}", identity.UpdateID()?, identity.RevisionNumber()?)) {
                 continue;
@@ -156,8 +157,12 @@ impl AntivirusProduct {
             return true;
         };
         // Only a drive or UNC path can be checked; a URI (inbox products
-        // register `windowsdefender://`) cannot, so it counts as installed.
-        let looks_like_path = executable.as_bytes().get(1) == Some(&b':') || executable.starts_with(r"\\");
+        // register `windowsdefender://`) or an unexpanded `%variable%` path
+        // cannot, so it counts as installed. Install-Atlas.ps1 tests the same.
+        let bytes = executable.as_bytes();
+        let looks_like_path = (bytes.first().is_some_and(u8::is_ascii_alphabetic)
+            && bytes.get(1) == Some(&b':'))
+            || executable.starts_with(r"\\");
         if !looks_like_path {
             return true;
         }
@@ -240,8 +245,11 @@ mod tests {
         };
         assert!(!gone.installed());
         // Nothing to verify against: fail closed.
-        for executable in [None, Some(String::new()), Some("windowsdefender://".to_owned())] {
-            assert!(AntivirusProduct { name: "X".into(), executable }.installed());
+        let unverifiable =
+            ["", "windowsdefender://", "contoso://", r"%ProgramFiles%\Contoso\never-created.exe"];
+        for executable in unverifiable.map(|path| Some(path.to_owned())).into_iter().chain([None]) {
+            let product = AntivirusProduct { name: "X".into(), executable };
+            assert!(product.installed(), "{product:?}");
         }
     }
 

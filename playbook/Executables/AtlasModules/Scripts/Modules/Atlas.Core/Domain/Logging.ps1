@@ -28,11 +28,17 @@ function Get-AtlasLogConsoleStyle {
 function Get-AtlasInstallLogDirectory {
     # Medium-integrity desktop actions cannot append to the protected machine log.
     # Keep their diagnostics in their own profile; elevated callers never follow it.
-    $logsPath = if (Test-AtlasAdmin) {
-        (Get-AtlasContext).LogsPath
+    # The machine log root is fixed. Use the context only once it is loaded, so
+    # logging never reads the install-state documents and keeps working when one is
+    # damaged or locked.
+    $logsPath = if (-not (Test-AtlasAdmin)) {
+        Join-Path -Path ([Environment]::GetFolderPath('LocalApplicationData')) -ChildPath 'AtlasOS\Logs'
+    }
+    elseif ($null -ne $script:AtlasContext) {
+        $script:AtlasContext.LogsPath
     }
     else {
-        Join-Path -Path ([Environment]::GetFolderPath('LocalApplicationData')) -ChildPath 'AtlasOS\Logs'
+        Join-Path -Path ([Environment]::GetFolderPath('Windows')) -ChildPath 'AtlasModules\Logs'
     }
     $installLogPath = Join-Path -Path $logsPath -ChildPath 'install'
     if (-not (Test-Path -LiteralPath $installLogPath -PathType Container)) {
@@ -46,8 +52,16 @@ function Get-AtlasInstallLogPath {
     <#
     .SYNOPSIS
         The shared install log this process appends to, for pointing a user at details.
+        Returns $null when the log folder is unavailable.
     #>
-    return Join-Path -Path (Get-AtlasInstallLogDirectory) -ChildPath 'atlas-install.log'
+    # Failure handlers call this while reporting another error; it must not replace
+    # that report with its own.
+    try {
+        return Join-Path -Path (Get-AtlasInstallLogDirectory) -ChildPath 'atlas-install.log'
+    }
+    catch {
+        return $null
+    }
 }
 
 function Write-AtlasLogFile {

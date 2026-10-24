@@ -60,3 +60,32 @@ fn a_dependent_page_follows_the_page_it_depends_on() {
         });
     });
 }
+
+/// Ticking Install a Browser finds a browser chosen, whatever the choices
+/// came from. Drafts and install records hold only the choices in effect, so
+/// none of them names a browser while the box is unticked, and the installer
+/// refuses the browser choice left unmade.
+#[test]
+fn ticking_install_a_browser_finds_one_chosen() {
+    run_model_test(|mut cx| async move {
+        let (_temp, _, env) = fixture("browser-default");
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        act(&mut cx, &model, |m, cx| {
+            let in_effect = crate::services::iso::default_options(m.manifest());
+            assert!(!in_effect.iter().any(|o| o.starts_with("browser-")), "{in_effect:?}");
+            m.options = in_effect.into_iter().collect();
+            let page = m
+                .manifest()
+                .pages
+                .iter()
+                .position(|page| page.options.iter().any(|o| o.name == "install-another-browser"))
+                .unwrap();
+            m.choose_option(page, "install-another-browser", cx);
+        });
+        let browsers: Vec<String> = read(&cx, &model, |m| {
+            m.effective_options().into_iter().filter(|o| o.starts_with("browser-")).collect()
+        });
+        assert_eq!(browsers, ["browser-brave"]);
+    });
+}

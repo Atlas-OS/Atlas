@@ -1,6 +1,7 @@
-//! The debug-only `ATLAS_PREPARATION_PREVIEW` fixture, which opens the
-//! install flow in a chosen state for review captures: Get ready in a
-//! preparation or check state, Windows Security with a chosen reading, or
+//! The debug-only `ATLAS_PREPARATION_PREVIEW` fixture, which opens the app
+//! in a chosen state for review captures: Home with an update on offer, the
+//! completion window, or the install flow at Get ready in a preparation or
+//! check state, Your choices, Windows Security with a chosen reading, or
 //! Install ready to start. Its package is a stand-in, so updating,
 //! restarting and installing all do nothing while a preview shows.
 
@@ -47,7 +48,17 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
         apply_installed(model);
         return;
     }
+    let step = match preview {
+        _ if preview.starts_with("options-") => Step::Options,
+        _ if preview.starts_with("security-") => Step::Security,
+        _ if preview.starts_with("install-") => Step::Install,
+        _ => Step::Ready,
+    };
     let windows = preview.strip_prefix("windows-");
+    // The cause the worker names for a failed move to 26H2.
+    let outcome = windows.and_then(|state| {
+        FEATURE_OUTCOMES.iter().find(|(name, _)| *name == state).map(|(_, reason)| *reason)
+    });
     // The preparation state, whether it has a job folder to open, and the
     // worker's last report.
     let (state, has_job, report) = match preview {
@@ -163,14 +174,9 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
         "windows-resumed" => (State::Resumed, true, None),
         // Windows reinstalled itself during the move; Atlas puts its changes back.
         "windows-rebuilt" | "options-rebase" | "options-rebase-partial" => (State::Ready, true, None),
-        _ if windows.is_some_and(|state| FEATURE_OUTCOMES.iter().any(|(name, _)| *name == state)) => {
-            let (_, reason) = FEATURE_OUTCOMES.iter().find(|(name, _)| Some(*name) == windows).unwrap();
-            (State::Failed, true, Some(feature_failure(reason)))
-        }
+        _ if outcome.is_some() => (State::Failed, true, outcome.map(feature_failure)),
         // The steps after Get ready follow a preparation that finished.
-        _ if preview.starts_with("security-") || preview.starts_with("install-") => {
-            (State::Ready, false, None)
-        }
+        _ if step != Step::Ready => (State::Ready, false, None),
         _ => (State::Idle, false, None),
     };
     model.preparation = state;
@@ -281,12 +287,6 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
     if let Some(state) = preview.strip_prefix("options-") {
         apply_rebase(model, state);
     }
-    let step = match preview {
-        _ if preview.starts_with("options-") => Step::Options,
-        _ if preview.starts_with("security-") => Step::Security,
-        _ if preview.starts_with("install-") => Step::Install,
-        _ => Step::Ready,
-    };
     if let Some(reading) = security_reading(preview) {
         model.env.adapters.read_security = Arc::new(move || reading);
     }

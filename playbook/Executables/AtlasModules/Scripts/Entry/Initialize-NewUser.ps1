@@ -8,6 +8,12 @@ param(
     [string]$ExpectedUserSid
 )
 
+# Setup starts with the user's own environment, so pin module resolution before the
+# first autoloaded command. A missing bootstrap stops setup further down, after the
+# RunOnce retry is queued again.
+$bootstrap = [IO.Path]::Combine([Environment]::GetFolderPath('Windows'), 'AtlasModules', 'Scripts', 'Initialize-AtlasPowerShell.ps1')
+if ([IO.File]::Exists($bootstrap)) { . $bootstrap }
+
 $ErrorActionPreference = 'Stop'
 $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $windir = [Environment]::GetFolderPath('Windows')
@@ -100,12 +106,25 @@ function Set-SearchTaskbarMode {
         }
     }
 
-    Set-ItemProperty -Path $searchPath -Name SearchboxTaskbarMode -Value 1 -Type DWord -Force
-    Set-ItemProperty -Path $searchPath -Name SearchboxTaskbarModeCache -Value 1 -Type DWord -Force
-    # Keep finalization running when Windows refuses an individual preference.
-    $entries = foreach ($name in @('IsAADCloudSearchEnabled', 'IsDeviceSearchHistoryEnabled', 'IsDynamicSearchBoxEnabled', 'IsMSACloudSearchEnabled')) {
-        @{ Path = $settingsPath; Name = $name; Type = 'DWord'; Data = 0; AllowOsProtected = $true }
+    # Follow a recorded 'Enable Web Search' choice, which the replay has applied: the
+    # search box with highlights, and none of the cloud-search values it removed. The
+    # delayed finalizer doesn't load Atlas.Toggles, so read the record directly.
+    $webSearch = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\AtlasOS\Services\WebSearch' -Name state `
+            -ErrorAction SilentlyContinue).state
+    if ($webSearch -is [int] -and $webSearch -eq 1) {
+        $mode = 2
+        $entries = @(@{ Path = $settingsPath; Name = 'IsDynamicSearchBoxEnabled'; Type = 'DWord'; Data = 1; AllowOsProtected = $true })
     }
+    else {
+        $mode = 1
+        $entries = foreach ($name in @('IsAADCloudSearchEnabled', 'IsDeviceSearchHistoryEnabled', 'IsDynamicSearchBoxEnabled', 'IsMSACloudSearchEnabled')) {
+            @{ Path = $settingsPath; Name = $name; Type = 'DWord'; Data = 0; AllowOsProtected = $true }
+        }
+    }
+
+    Set-ItemProperty -Path $searchPath -Name SearchboxTaskbarMode -Value $mode -Type DWord -Force
+    Set-ItemProperty -Path $searchPath -Name SearchboxTaskbarModeCache -Value $mode -Type DWord -Force
+    # Keep finalization running when Windows refuses an individual preference.
     Invoke-AtlasRegistryEntries -Entries $entries -Scope CurrentUser -IsArm64 $false
 }
 
@@ -255,10 +274,40 @@ if ($setupMarker -ge 2) {
     return
 }
 
+function Test-BuiltInAdministrator {
+    return [Security.Principal.WindowsIdentity]::GetCurrent().User.IsWellKnown(
+        [Security.Principal.WellKnownSidType]::AccountAdministratorSid
+    )
+}
+
+function Test-FullAdministratorToken {
+    $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+# Returns $null when this token can run user setup, otherwise why it can't: UacOff,
+# which turning on UAC fixes, or BuiltInAdministrator, which it doesn't unless Admin
+# Approval Mode covers that account too (FilterAdministratorToken).
+function Get-UserSetupTokenBlock {
+    if (-not (Test-FullAdministratorToken)) { return $null }
+    $systemPolicyPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
+    $builtInAdministrator = (Test-BuiltInAdministrator) -and
+        (Get-ItemProperty -Path $systemPolicyPath -Name FilterAdministratorToken `
+            -ErrorAction SilentlyContinue).FilterAdministratorToken -ne 1
+    $enableLua = (Get-ItemProperty -Path $systemPolicyPath -Name EnableLUA -ErrorAction SilentlyContinue).EnableLUA
+    if (-not $builtInAdministrator -and $enableLua -ne 1) { return 'UacOff' }
+    return 'BuiltInAdministrator'
+}
+
+# User setup needs this account's standard token, but the built-in Administrator, and
+# any administrator while UAC is off, signs in with a full one that the user-only steps
+# below refuse. Say why and stop; retry at later sign-ins only when turning UAC on fixes it.
+$tokenBlock = if ($FromInstall) { $null } else { Get-UserSetupTokenBlock }
+
 # RunOnce deletes its value before launching. Requeue the current stage first so a
 # required setup failure is retried at the next logon instead of stranding the account.
 $runOncePath = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce'
-if (-not $FromInstall) {
+if (-not $FromInstall -and $tokenBlock -ne 'BuiltInAdministrator') {
     if (-not (Test-Path -LiteralPath $runOncePath)) {
         $null = New-Item -Path $runOncePath -Force
     }
@@ -266,15 +315,25 @@ if (-not $FromInstall) {
     Set-ItemProperty -Path $runOncePath -Name RunScript -Value $runOnceCommand -Type ExpandString -Force
 }
 
+if ($null -ne $tokenBlock) {
+    if ($tokenBlock -eq 'UacOff') {
+        Write-Warning ('Atlas skipped user setup for this account: User Account Control (UAC) is off, so it has a full administrator token, and setup needs a standard user token. ' +
+            'Turn on UAC and restart Windows; setup runs again at the next sign-in.')
+    }
+    else {
+        Write-Warning ('Atlas skipped user setup for this account: the built-in Administrator account has a full administrator token, and setup needs a standard user token. ' +
+            "Use another account to get Atlas's user settings.")
+    }
+    return
+}
+
 $atlasModules = Join-Path $windir 'AtlasModules'
 $atlasDesktop = Join-Path $windir 'AtlasDesktop'
-$initializer = Join-Path $atlasModules 'Scripts\Initialize-AtlasPowerShell.ps1'
 if (-not (Test-Path -LiteralPath $atlasModules -PathType Container) -or
     -not (Test-Path -LiteralPath $atlasDesktop -PathType Container) -or
-    -not (Test-Path -LiteralPath $initializer -PathType Leaf)) {
+    -not [IO.File]::Exists($bootstrap)) {
     throw 'Atlas user-setup files are missing from the Windows directory.'
 }
-. $initializer
 $modulesRoot = Join-Path $atlasModules 'Scripts\Modules'
 # Atlas.Core carries Initialize-AtlasNativeType, the single native compile entry point.
 foreach ($moduleName in @('Atlas.Core', 'Atlas.Shortcuts', 'Atlas.Themes', 'Atlas.Toggles', 'Atlas.Shell')) {
@@ -340,7 +399,7 @@ if (-not $FromInstall) {
         Write-Warning "Failed to initialize LibreWolf for the current user: $($_.Exception.Message)"
     }
 
-    [void](Set-AtlasFileAssociations -AssociationProfile Base -ExpectedUserSid $sid)
+    Set-AtlasFileAssociations -ExpectedUserSid $sid
 
     Set-AtlasSendToContextMenu -DebloatDefaults -ExpectedUserSid $sid
 }
@@ -359,41 +418,39 @@ if ($setupMarker -lt 1) {
 
     $env:ATLAS_USER_CONTEXT = '1'
     try {
-        if ([Environment]::OSVersion.Version.Build -ge 22000) {
-            Invoke-AtlasDesktopCommand '4. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).cmd'
-            Invoke-AtlasDesktopCommand '4. Interface Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).cmd'
+        Invoke-AtlasDesktopCommand '4. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).cmd'
+        Invoke-AtlasDesktopCommand '4. Interface Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).cmd'
 
-            Set-AtlasTheme -Path (Join-Path $windir 'Resources\Themes\atlas-v0.5.x-dark.theme')
-            Set-AtlasThemeMru | Out-Null
+        Set-AtlasTheme -Path (Join-Path $windir 'Resources\Themes\atlas-v0.5.x-dark.theme')
+        Set-AtlasThemeMru | Out-Null
 
-            try {
-                $wallpaper = Join-Path $atlasModules 'Wallpapers\atlas-v0.5.x-dark.png'
-                if (Test-Path -LiteralPath $wallpaper -PathType Leaf) {
-                    Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name WallPaper -Value $wallpaper -Type String -Force
-                    Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name WallpaperStyle -Value '10' -Type String -Force
-                    Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name TileWallpaper -Value '0' -Type String -Force
+        try {
+            $wallpaper = Join-Path $atlasModules 'Wallpapers\atlas-v0.5.x-dark.png'
+            if (Test-Path -LiteralPath $wallpaper -PathType Leaf) {
+                Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name WallPaper -Value $wallpaper -Type String -Force
+                Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name WallpaperStyle -Value '10' -Type String -Force
+                Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name TileWallpaper -Value '0' -Type String -Force
 
-                    $wallpapersKey = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers'
-                    if (-not (Test-Path -LiteralPath $wallpapersKey)) {
-                        $null = New-Item -Path $wallpapersKey -Force
-                    }
-                    Set-ItemProperty -Path $wallpapersKey -Name BackgroundType -Value 0 -Type DWord -Force
-
-                    Initialize-AtlasNativeType
-                    [Atlas.Native.Wallpaper]::SystemParametersInfo(
-                        0x14, 0, $wallpaper, 0x03) | Out-Null
+                $wallpapersKey = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers'
+                if (-not (Test-Path -LiteralPath $wallpapersKey)) {
+                    $null = New-Item -Path $wallpapersKey -Force
                 }
-            }
-            catch {
-                Write-Warning "Failed to set the Atlas wallpaper: $($_.Exception.Message)"
-            }
+                Set-ItemProperty -Path $wallpapersKey -Name BackgroundType -Value 0 -Type DWord -Force
 
-            try {
-                Add-AtlasMusicVideosToHome
+                Initialize-AtlasNativeType
+                [Atlas.Native.Wallpaper]::SystemParametersInfo(
+                    0x14, 0, $wallpaper, 0x03) | Out-Null
             }
-            catch {
-                Write-Warning "Failed to pin Music and Videos to Home: $($_.Exception.Message)"
-            }
+        }
+        catch {
+            Write-Warning "Failed to set the Atlas wallpaper: $($_.Exception.Message)"
+        }
+
+        try {
+            Add-AtlasMusicVideosToHome
+        }
+        catch {
+            Write-Warning "Failed to pin Music and Videos to Home: $($_.Exception.Message)"
         }
 
         try {
@@ -435,13 +492,7 @@ if (-not [string]::IsNullOrWhiteSpace($browser) -and $browser -notin $allowedBro
     $browser = $null
 }
 
-$pinArguments = @{
-    NoExplorerStop = $true
-}
-if (-not [string]::IsNullOrWhiteSpace($browser)) {
-    $pinArguments['Browser'] = $browser
-}
-Set-AtlasTaskbarPins @pinArguments
+Set-AtlasTaskbarPins -Browser $browser
 if (-not $FromInstall) {
     Set-AtlasFirstLogonPreferences
 }

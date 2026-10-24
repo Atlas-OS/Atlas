@@ -76,7 +76,13 @@ function Assert-AtlasUsbPaths {
             if (($ancestor.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -and @('SymbolicLink', 'Junction') -contains $ancestor.LinkType) { Fail 'source-location' 'Linked source or working paths are not supported.' }
             $ancestor = if ($ancestor -is [IO.FileInfo]) { $ancestor.Directory } else { $ancestor.Parent }
         }
-        $partition = Get-Partition -DriveLetter $item.FullName.Substring(0,1) -ErrorAction Stop
+        try { $partition = Get-Partition -DriveLetter $item.FullName.Substring(0,1) -ErrorAction Stop }
+        catch {
+            # Mapped network, optical and encrypted-container drives have no partition.
+            # Any other lookup failure is not the user's to fix.
+            if ($_.CategoryInfo.Category -eq 'ObjectNotFound') { Fail 'source-location' 'The ISO, app or working files are on a drive with no local disk partition. Move them to a local folder first.' }
+            throw
+        }
         if ($partition.DiskNumber -eq $Disk.Number) { Fail 'source-location' 'The USB contains the ISO, app or working files. Move them to another drive first.' }
     }
 }
@@ -431,8 +437,13 @@ function Invoke-AtlasUsbWorker {
         if ($ownedMount) { Dismount-DiskImage -ImagePath $source -ErrorAction Continue | Out-Null }
         $sourceLock.Dispose()
         # Remove only the split scratch folder; logs and manifest.json stay in the job.
+        # A file still held open must not fail a verified write or replace the error
+        # in flight: the app prunes old jobs later.
         $scratchPath = Join-Path $PSScriptRoot 'split'
-        if (Test-Path -LiteralPath $scratchPath) { Remove-Item -LiteralPath $scratchPath -Recurse -Force }
+        if (Test-Path -LiteralPath $scratchPath) {
+            try { Remove-Item -LiteralPath $scratchPath -Recurse -Force -ErrorAction Stop }
+            catch { [Console]::Error.WriteLine("Cleanup required: $scratchPath. $_") }
+        }
     }
 }
 

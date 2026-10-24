@@ -110,6 +110,14 @@ Describe 'Set-AtlasWindowsPowerShellExecutionPolicy' {
     }
 
     It 'writes RemoteSigned into every registry view and reads it back' {
+        # HKCU\Software is one key in both views, so reading the value back cannot show a
+        # skipped view. Record the view of each key the function checks instead.
+        $script:checkedViews = New-Object 'Collections.Generic.List[Microsoft.Win32.RegistryView]'
+        Mock -CommandName Get-AtlasWindowsPowerShellExecutionPolicyValue -ModuleName Atlas.Registry -MockWith {
+            $script:checkedViews.Add($Key.View)
+            [string]$Key.GetValue('ExecutionPolicy', $null)
+        }
+
         Set-AtlasWindowsPowerShellExecutionPolicy `
             -Hive ([Microsoft.Win32.RegistryHive]::CurrentUser) -SubKey $script:policySubKey
 
@@ -119,11 +127,10 @@ Describe 'Set-AtlasWindowsPowerShellExecutionPolicy' {
         else {
             @([Microsoft.Win32.RegistryView]::Default)
         }
+        @($script:checkedViews) | Should -Be $views
         foreach ($view in $views) {
             Get-TestExecutionPolicyValue -View $view | Should -BeExactly 'RemoteSigned'
         }
-        (Get-ItemProperty -Path "HKCU:\$script:policySubKey" -Name ExecutionPolicy).ExecutionPolicy |
-            Should -BeExactly 'RemoteSigned'
     }
 
     It 'replaces a different existing policy without touching sibling values' {

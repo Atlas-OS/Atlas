@@ -11,6 +11,7 @@ mod ready;
 mod security;
 mod summary;
 
+use std::rc::Rc;
 use std::sync::atomic::Ordering;
 
 use gpui::{
@@ -32,6 +33,9 @@ const LOG_IDS: LogIds =
 /// Log lines drawn; older lines are in the file.
 const LOG_LINES_SHOWN: usize = 500;
 
+/// Closes the window as the caption Close button does, asking first.
+pub type CloseHandler = Rc<dyn Fn(&mut Window, &mut App)>;
+
 pub struct InstallPage {
     model: Entity<AppModel>,
     scroll: ScrollHandle,
@@ -49,14 +53,20 @@ pub struct InstallPage {
     show_preparation_details: bool,
     /// Whether updating was under way last frame, to follow how it ended.
     preparation_was_busy: bool,
+    /// The user chose the update card's button since updating was last
+    /// seen idle, so the run it starts is theirs, not one of Atlas's looks.
+    preparation_asked: bool,
+    /// Updating was last seen idle waiting for the offer, with looks to come.
+    offer_wait_shown: bool,
     windows_installation: Evidence,
-    used_windows_warning_dismissed: bool,
     /// This copy was staged by Atlas installation media in the Windows it has
     /// just installed, so the fresh-install note is left out.
     staged_iso_setup: bool,
     /// The step and option screen drawn last frame, to reset scrolling and focus on a change.
     shown_step: Option<(Step, usize)>,
-    shown_run: Option<RunState>,
+    /// The run drawn last frame, with the install it belongs to, so each
+    /// result is brought into view once, a retry's too.
+    shown_run: Option<(RunState, Option<String>)>,
     /// The last refusal of the final checks that was brought into view.
     shown_preflight_epoch: u64,
     /// Updating was last seen waiting to continue after Atlas's own restart,
@@ -66,10 +76,12 @@ pub struct InstallPage {
     seen_visit: u64,
     focus: FocusHandles,
     diagnostics: super::Diagnostics,
+    /// The shell's own close, so Cancel doesn't depend on where focus is.
+    close: CloseHandler,
 }
 
 impl InstallPage {
-    pub fn new(model: Entity<AppModel>, cx: &mut Context<Self>) -> Self {
+    pub fn new(model: Entity<AppModel>, close: CloseHandler, cx: &mut Context<Self>) -> Self {
         cx.observe(&model, |_, _, cx| cx.notify()).detach();
         cx.spawn(async move |this, cx| {
             let evidence = cx.background_executor().spawn(async { Evidence::read() }).await;
@@ -91,8 +103,9 @@ impl InstallPage {
             show_passed_checks: false,
             show_preparation_details: false,
             preparation_was_busy: false,
+            preparation_asked: false,
+            offer_wait_shown: false,
             windows_installation: Default::default(),
-            used_windows_warning_dismissed: false,
             staged_iso_setup: iso::is_staged_setup(),
             shown_step: None,
             shown_run: None,
@@ -101,6 +114,7 @@ impl InstallPage {
             seen_visit: 0,
             focus: FocusHandles::default(),
             diagnostics: super::Diagnostics::new(cx),
+            close,
         }
     }
 
@@ -190,10 +204,12 @@ impl InstallPage {
             stopping || (locked && !matches!(state.preparation, Preparation::Running { .. }));
         let on_cancel = {
             let model = model.clone();
+            let close = self.close.clone();
             move |_: &gpui::ClickEvent, window: &mut Window, cx: &mut App| {
-                // Desktop setup has no Home to return to, so Cancel closes the window.
+                // Desktop setup has no Home to return to, so Cancel closes the
+                // window, asking first as the caption Close button does.
                 if model.read(cx).before_desktop && !model.read(cx).preparation.busy() {
-                    window.remove_window();
+                    close(window, cx);
                     return;
                 }
                 // Windows Update settings changed for the update are put back
@@ -295,16 +311,19 @@ fn elevation_problem(state: &AppModel, model: &Entity<AppModel>) -> Option<AnyEl
     let bar =
         InfoBar::new(Severity::Error, t!("install-elevate-title"), problem.text()).id("step-elevate-problem");
     let bar = if *problem == ElevationProblem::TakenOver {
-        bar.action(start_over_button("step-start-over", model))
+        bar.action(start_over_button("step-start-over", state, model))
     } else {
         bar
     };
     Some(bar.into_any_element())
 }
 
-/// Starts the setup again from Get ready.
-fn start_over_button(id: &'static str, model: &Entity<AppModel>) -> Button {
-    Button::new(id, t!("home-start-over")).on_click(on_model(model, |m, cx| m.begin_install(cx)))
+/// Starts the setup again from Get ready, unavailable while
+/// [`AppModel::begin_install`] would refuse.
+fn start_over_button(id: &'static str, state: &AppModel, model: &Entity<AppModel>) -> Button {
+    Button::new(id, t!("home-start-over"))
+        .disabled(state.recovering || state.elevating || state.locked())
+        .on_click(on_model(model, |m, cx| m.begin_install(cx)))
 }
 
 /// Leads back to Get ready, where what stands in the way is fixed.
@@ -315,13 +334,14 @@ fn go_to_ready_button(id: &'static str, model: &Entity<AppModel>) -> Button {
 /// The Show details link with its chevron, which opens or folds the part of
 /// the page that `flag` says is shown. Its accessible name adds `section`,
 /// the title of the card it opens, so every toggle on a page has its own
-/// name, and it reports whether that part is shown.
-fn details_toggle(
+/// name, and it reports whether that part is shown. The installing view
+/// shares it, so the same control reads the same on both.
+pub(super) fn details_toggle<T: 'static>(
     id: &'static str,
     section: impl Into<SharedString>,
     shown: bool,
-    flag: fn(&mut InstallPage) -> &mut bool,
-    cx: &Context<InstallPage>,
+    flag: fn(&mut T) -> &mut bool,
+    cx: &Context<T>,
 ) -> Button {
     let label = if shown { t!("common-hide-details") } else { t!("common-show-details") };
     let section: SharedString = section.into();
@@ -364,14 +384,15 @@ impl Render for InstallPage {
         if arrived {
             window.focus(&step_heading, cx);
         }
-        if self.shown_run != Some(run) {
-            let was_finished = matches!(self.shown_run, Some(RunState::Finished(_)));
-            self.shown_run = Some(run);
-            if matches!(run, RunState::Finished(_)) && !was_finished {
-                self.scroll.set_offset(Point::default());
-                reveal_focus(&result_focus, window, cx);
-            }
+        // The installing view covers this page while an install runs, so a
+        // retry goes from one result straight to the next; the install each
+        // belongs to tells them apart.
+        let shown_run = (run, self.model.read(cx).session.as_ref().map(|session| session.id.clone()));
+        if result_is_new(self.shown_run.as_ref(), &shown_run) {
+            self.scroll.set_offset(Point::default());
+            reveal_focus(&result_focus, window, cx);
         }
+        self.shown_run = Some(shown_run);
         // The final checks refused while the installing view was showing;
         // each refusal is brought into view and announced, even one like the last.
         let (preflight_epoch, refused) = {
@@ -390,12 +411,30 @@ impl Render for InstallPage {
         // bar that explains it, so focus follows to that bar: the outcome is
         // announced, and the keyboard isn't left on a button that went away.
         let preparation_focus = self.focus.get("preparation-status", cx);
-        let (busy, in_bar) = {
-            let state = &self.model.read(cx).preparation;
-            (state.busy(), preparation::in_bar(state))
+        let (busy, in_bar, waiting) = {
+            let state = self.model.read(cx);
+            (
+                state.preparation.busy(),
+                preparation::in_bar(&state.preparation),
+                state.waiting_for_offer() && state.offer_rechecks_active(),
+            )
         };
-        if std::mem::replace(&mut self.preparation_was_busy, busy) && in_bar && step == Step::Ready {
-            reveal_focus(&preparation_focus, window, cx);
+        let was_busy = std::mem::replace(&mut self.preparation_was_busy, busy);
+        if !busy {
+            if was_busy
+                && in_bar
+                && step == Step::Ready
+                && preparation_end_is_news(
+                    self.preparation_asked,
+                    self.offer_wait_shown,
+                    waiting,
+                    window.focused(cx).is_some(),
+                )
+            {
+                reveal_focus(&preparation_focus, window, cx);
+            }
+            self.preparation_asked = false;
+            self.offer_wait_shown = waiting;
         }
         // Back after Atlas's own restart, Continue updates is what's next:
         // it takes focus once and is brought into view.
@@ -441,6 +480,20 @@ impl Render for InstallPage {
     }
 }
 
+/// Whether the run drawn now is a result to bring into view: a finished run
+/// not drawn last frame. A retry's result belongs to another install, so it
+/// counts even when it ends the same way.
+fn result_is_new(shown: Option<&(RunState, Option<String>)>, now: &(RunState, Option<String>)) -> bool {
+    shown != Some(now) && matches!(now.0, RunState::Finished(_))
+}
+
+/// Whether updating that just ended on Get ready takes focus. A look Atlas
+/// made by itself that found the wait as it was is no news: focus stays
+/// where the user left it, unless it went with a control the look took away.
+fn preparation_end_is_news(asked: bool, was_waiting: bool, waiting: bool, focus_kept: bool) -> bool {
+    asked || !was_waiting || !waiting || !focus_kept
+}
+
 /// Moves focus to `handle` and brings it into view on the next frame, as a
 /// result or the next button it puts focus on can be off screen.
 fn reveal_focus(handle: &FocusHandle, window: &mut Window, cx: &mut App) {
@@ -471,5 +524,39 @@ impl InstallPage {
                 progress = t!("options-progress-extras", number = number, total = total)
             )
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::services::installer::InstallOutcome;
+
+    #[test]
+    fn only_news_from_updating_takes_focus() {
+        // (asked, was waiting, still waiting, focus kept)
+        let table = [
+            ((false, true, true, true), false, "an automatic look that found the wait as it was"),
+            ((true, true, true, true), true, "the user's own Check again"),
+            ((false, true, false, true), true, "a look that ended the wait, as Network or its expiry does"),
+            ((false, true, true, false), true, "focus went with a control the look took away"),
+            ((false, false, true, true), true, "the first look that found the wait"),
+        ];
+        for ((asked, was_waiting, waiting, focus_kept), news, case) in table {
+            assert_eq!(preparation_end_is_news(asked, was_waiting, waiting, focus_kept), news, "{case}");
+        }
+    }
+
+    #[test]
+    fn each_install_result_is_brought_into_view_once() {
+        let failed =
+            |session: &str| (RunState::Finished(InstallOutcome::Failed(1)), Some(session.to_owned()));
+        let first = failed("first");
+        assert!(result_is_new(None, &first));
+        assert!(result_is_new(Some(&(RunState::Running, Some("first".into()))), &first));
+        assert!(!result_is_new(Some(&first), &first), "the same result again");
+        // A retry from the result goes straight to the next one, the same failure in another install.
+        assert!(result_is_new(Some(&first), &failed("retry")));
+        assert!(!result_is_new(None, &(RunState::Idle, None)), "no result to show");
     }
 }

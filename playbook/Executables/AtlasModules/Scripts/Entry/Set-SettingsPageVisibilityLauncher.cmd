@@ -34,12 +34,12 @@ if not "%~4"=="" goto unsupportedArguments
 goto invokeSilent
 
 :invoke
-"%__APPDIR__%WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%script%" "%~1" "%~2"
+"%AtlasNativePowerShell%" -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%script%" "%~1" "%~2"
 if errorlevel 1 exit /b
 exit /b 0
 
 :invokeSilent
-"%__APPDIR__%WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%script%" "%~1" "%~2" -Silent
+"%AtlasNativePowerShell%" -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%script%" "%~1" "%~2" -Silent
 if errorlevel 1 exit /b
 exit /b 0
 

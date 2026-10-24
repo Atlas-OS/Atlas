@@ -31,7 +31,7 @@ $script:AtlasToggleFunctionKeys = @(
     'MachineAction', 'UserAction', 'Action', 'ContextAction', 'ReplayApplicable', 'InteractiveState'
 )
 $script:AtlasToggleElevations = @('None', 'Admin', 'TrustedInstaller')
-$script:AtlasToggleRebootModes = @('None', 'Recommend', 'Prompt', 'RestartExplorer')
+$script:AtlasToggleRebootModes = @('None', 'Recommend', 'Prompt', 'RestartExplorer', 'SignOut')
 $script:AtlasToggleShellRefreshOperations = @(
     'ShellRefresh', 'ExplorerRefresh', 'SearchShellRefresh', 'ExplorerAndSettingsRefresh'
 )

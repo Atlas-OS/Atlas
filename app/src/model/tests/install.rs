@@ -1,5 +1,6 @@
 //! Closing while an install starts or runs, arming the completion window,
-//! and a launch refused because another window took the setup over.
+//! and a launch refused because another window took the setup over or the
+//! choices don't fit the package.
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -18,7 +19,6 @@ use crate::services::settings::{self, InstallDraft};
 /// final checks run (the install never starts), the running install (it
 /// carries on), and the restart countdown (only this window keeps it).
 #[test]
-#[cfg(windows)]
 fn closing_is_guarded_by_what_it_would_interrupt() {
     run_model_test(async move |mut cx| {
         use crate::services::preparation::State;
@@ -99,7 +99,6 @@ fn closing_is_guarded_by_what_it_would_interrupt() {
 /// really started. Until it has, the launch is still being handed over,
 /// and a confirmed close waits for it.
 #[test]
-#[cfg(windows)]
 fn the_completion_window_is_armed_off_the_windows_thread_for_a_started_install_only() {
     run_model_test(async move |mut cx| {
         let (temp, machine, mut env) = fixture("model-arm-completion");
@@ -157,9 +156,8 @@ fn the_completion_window_is_armed_off_the_windows_thread_for_a_started_install_o
 
 /// Another window began a setup of its own: the install refuses, as often
 /// as it is asked, without touching that window's draft, and Start over
-/// takes the setup back here.
+/// takes the setup back here, starting it from nothing.
 #[test]
-#[cfg(windows)]
 fn a_setup_another_window_took_over_is_refused_each_time_until_started_over() {
     run_model_test(async move |mut cx| {
         let (temp, _, env) = fixture("model-taken-over");
@@ -188,12 +186,100 @@ fn a_setup_another_window_took_over_is_refused_each_time_until_started_over() {
         assert_eq!(settings::load_from(&env.paths.settings()).settings.draft, Some(foreign));
         assert!(!marker.exists());
 
-        act(&mut cx, &model, |m, cx| m.begin_install(cx));
+        act(&mut cx, &model, |m, cx| {
+            m.acknowledge_security(true, cx);
+            assert!(m.security_acknowledged());
+            m.begin_install(cx);
+            assert!(!m.security_acknowledged(), "a confirmation belongs to the flow it was given in");
+        });
         let mine = read(&cx, &model, |m| m.flow_id.clone());
         wait_on_disk(&cx, &env, "the setup to be taken back", |s| {
             s.draft.as_ref().is_some_and(|draft| draft.flow == mine)
         })
         .await;
+    });
+}
+
+/// Choices the package's pages don't accept, here two answers to one
+/// question, refuse the install before the final checks begin: the
+/// installer would refuse them only once protection is off.
+#[test]
+fn choices_the_package_does_not_accept_refuse_the_install_at_once() {
+    run_model_test(async move |mut cx| {
+        let (temp, _, env) = fixture("model-invalid-choices");
+        let (package, _) = marking_package(&temp, 0);
+        let model = new_model(&mut cx, env);
+        walk_to_install(&mut cx, &model, &package).await;
+        act(&mut cx, &model, |m, cx| m.next_step(cx));
+        wait_for(&cx, &model, "the install to be possible", AppModel::can_install).await;
+        act(&mut cx, &model, |m, cx| {
+            m.options.extend(["defender-enable", "defender-disable"].map(String::from));
+            m.start_install(cx);
+            assert_eq!(m.flow.run, RunState::Idle, "the final checks never began");
+            assert!(matches!(m.preflight_problem, Some(Preflight::InvalidOptions { .. })));
+        });
+        settle(&cx, &model).await;
+    });
+}
+
+/// An unfinished install keeps the choices it began with, so one begun
+/// before its package gained a required page starts without an answer to
+/// that page. The same choices refuse a fresh install.
+#[test]
+fn a_resumed_install_starts_without_an_answer_to_a_page_added_since() {
+    run_model_test(async move |mut cx| {
+        use crate::model::Step;
+        use crate::model::test_harness::ps_literal;
+        use crate::services::atlas_state::InstallIdentity;
+        use crate::services::test_support::apbx;
+        let (temp, machine, env) = fixture("model-resumed-choices");
+        let marker = temp.path().join("front-door-ran.txt");
+        let body = format!("Set-Content -LiteralPath {} -Value 'ran'\r\nexit 0", ps_literal(&marker));
+        let mut contents = apbx::with_front_door("0.6.0", &body);
+        // A second required question, the keyboard page's kind.
+        contents.entries[0].data = concat!(
+            "<Playbook><Version>0.6.0</Version><SupportedBuilds><string>26100</string></SupportedBuilds>",
+            "<FeaturePages><RadioPage DefaultOption=\"defender-enable\"><Options>",
+            "<RadioOption><Name>defender-enable</Name><Text>Keep Defender</Text></RadioOption>",
+            "<RadioOption><Name>defender-disable</Name><Text>Remove Defender</Text></RadioOption>",
+            "</Options></RadioPage><RadioPage DefaultOption=\"keyboard-single\"><Options>",
+            "<RadioOption><Name>keyboard-single</Name><Text>One layout</Text></RadioOption>",
+            "<RadioOption><Name>keyboard-selector</Name><Text>Layout selector</Text></RadioOption>",
+            "</Options></RadioPage></FeaturePages></Playbook>"
+        )
+        .into();
+        let package = apbx::write(&temp.path().join("package.apbx"), &contents);
+        let model = new_model(&mut cx, env);
+        act(&mut cx, &model, |m, cx| {
+            m.begin_install(cx);
+            m.preparation = crate::services::preparation::State::Ready;
+        });
+        act(&mut cx, &model, |m, cx| m.load_playbook_file(package, cx));
+        wait_for(&cx, &model, "the package and the checks", |m| m.playbook.is_some() && m.checks_complete())
+            .await;
+        for _ in 0..3 {
+            act(&mut cx, &model, |m, cx| m.next_step(cx));
+        }
+        assert_eq!(read(&cx, &model, |m| m.flow.step), Step::Security, "two screens of choices");
+        wait_for(&cx, &model, "a Windows Security reading", |m| m.security_fresh()).await;
+        act(&mut cx, &model, |m, cx| m.next_step(cx));
+        wait_for(&cx, &model, "the install to be possible", AppModel::can_install).await;
+        let saved = vec!["defender-enable".to_string()];
+        act(&mut cx, &model, |m, cx| {
+            m.options.retain(|name| saved.contains(name));
+            m.start_install(cx);
+            assert_eq!(m.flow.run, RunState::Idle, "a fresh install answers every page");
+            assert!(matches!(m.preflight_problem, Some(Preflight::InvalidOptions { .. })));
+        });
+        *machine.identity.lock().unwrap() = Some(InstallIdentity::Resume("0.6.0".into(), Some(saved)));
+        act(&mut cx, &model, |m, cx| {
+            m.start_install(cx);
+            assert_eq!(m.flow.run, RunState::Preparing, "the resumed install goes on to the final checks");
+            assert!(m.preflight_problem.is_none());
+        });
+        wait_for(&cx, &model, "the install to finish", |m| matches!(m.flow.run, RunState::Finished(_))).await;
+        assert!(marker.exists(), "the front door ran");
+        settle(&cx, &model).await;
     });
 }
 

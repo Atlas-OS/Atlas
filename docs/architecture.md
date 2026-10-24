@@ -18,10 +18,10 @@ playbook/
 ├─ playbook.conf
 ├─ Configuration/custom.yml           AME handoff
 └─ Executables/
-   ├─ AtlasDesktop/                   user-facing launchers (two-line .cmd stubs)
+   ├─ AtlasDesktop/                   user-facing launchers (mostly generated two-line .cmd stubs)
    ├─ AtlasModules/
    │  ├─ Toggles/<Group>/<Name>.psd1   data-only toggle definitions (+ optional <Name>.ps1 companion)
-   │  ├─ Toolbox/                     launcher stubs and assets the Toolbox app opens by path
+   │  ├─ Toolbox/                     launcher stubs and assets that Toolbox releases before 0.2.0 open by path
    │  └─ Scripts/
    │     ├─ Initialize-AtlasPowerShell.ps1   PowerShell bootstrap every entry point dot-sources
    │     ├─ Compatibility/            Windows release catalog and its check (windows-release-policy.md)
@@ -60,11 +60,14 @@ recognized build and publication artifacts. There is no manifest of the package'
 the APBX verifier compares source and archive paths and rejects missing, extra or changed
 files.
 
-Entry, operation and install scripts find the Scripts root with
-`Split-Path -Parent $PSScriptRoot` (two levels for `Install\Tasks`, `Install\Phases` and
-`Install\Compat`). They dot-source `Initialize-AtlasPowerShell.ps1` before importing
-anything, then import modules by exact manifest path. Installed paths are
-`%windir%\AtlasModules\Scripts\Entry\...`, `...\Operations\...` and `...\Install\Tasks\...`.
+Entry scripts find the Scripts root with `[IO.Path]::GetDirectoryName($PSScriptRoot)` and
+dot-source `Initialize-AtlasPowerShell.ps1` before any autoloadable command, so a module
+on an inherited `PSModulePath` can't shadow `Split-Path` or `Join-Path`. Operation,
+install-task and phase scripts run only from an Atlas process that has already done this,
+so they may use `Split-Path -Parent $PSScriptRoot` (two levels for `Install\Tasks`,
+`Install\Phases` and `Install\Compat`). Scripts import modules by exact manifest path.
+Installed paths are `%windir%\AtlasModules\Scripts\Entry\...`, `...\Operations\...` and
+`...\Install\Tasks\...`.
 
 ## The Atlas front door
 
@@ -79,10 +82,11 @@ package's `Executables` folder:
 
 | Parameter | Effect |
 | --- | --- |
-| `-Option` | FeaturePage options from `playbook.conf`, one per required group (Defender, mitigations, automatic updates). `Get-AtlasInstallOption` (Atlas.InstallState) lists them. |
+| `-Option` | FeaturePage options from `playbook.conf`, one per required group (Defender, mitigations, automatic updates, keyboard language switching). `Get-AtlasPlaybookOption` (Atlas.InstallState) lists them. |
 | `-Unattended` | No prompts, including the confirmation after warnings. Requirements still apply. |
+| `-WindowsSecurityConfirmed` | The user checked Windows Security by hand: switches whose values are missing or unrecognised don't block, but any that reads on still does. Atlas Manager passes it when the user confirmed the reading of its final check. |
 | `-Restart` | Restarts Windows ten seconds after a successful install. `-RestartComment` sets the notice text. |
-| `-KeepStaging` | Keeps the staging copy after a successful install. |
+| `-KeepStaging` | Keeps this run's staging copy whole, whatever the outcome. |
 
 | Exit code | Meaning |
 | --- | --- |
@@ -99,11 +103,11 @@ package's `Executables` folder:
 | --- | --- |
 | Windows build and edition | Unsupported |
 | Windows release | Not confirmed generally available ([Windows release policy](windows-release-policy.md)) |
-| User Account Control | Off, or the account lacks a normal non-elevated token (this rules out the built-in Administrator) |
+| User account | User Account Control is off, the account lacks a normal non-elevated token (this rules out the built-in Administrator), or it's a work or school (Microsoft Entra ID) account |
 | Pending restart | Servicing or Windows Update needs one, by their own restart flags. Pending file replacements without either flag are only a note: an update can queue some, such as printer drivers, without asking for a restart, and apps such as Xbox Gaming Services queue one at every boot. |
 | `PluggedIn` | On battery |
 | `NoAntivirus` | Third-party antivirus is registered |
-| `DefenderToggled` | Windows Security switches are on |
+| `DefenderToggled` | Windows Security switches are on, or can't be read and `-WindowsSecurityConfirmed` wasn't given |
 
 The last three apply only when `playbook.conf` declares them. A check that cannot run
 counts as a failure. The front door also blocks while Atlas Manager is moving Windows to
@@ -117,7 +121,10 @@ support is reported as such.
 Before capture, the front door runs `Preparation\Update-Windows.ps1 -VerifyOnly`, the
 worker Atlas Manager embeds. It passes only when:
 
-- an online Windows scan finds no required updates;
+- an online Windows scan finds no required updates, apart from those Get ready recorded
+  under `HKLM\SOFTWARE\AtlasOS\Preparation`: an update Windows Update offers again at once
+  after it installed, and a driver it fails with 0x80070103 because the device already
+  has one at least as good;
 - Microsoft Store is registered for the installing user, with no outstanding updates or
   active queue items;
 - the connection has confirmed internet access and is not metered, data-limited or
@@ -169,8 +176,11 @@ and [`IInstallationResult::RebootRequired`](https://github.com/MicrosoftDocs/sdk
    state and records the options.
 3. The front door publishes the installing user's marker from its own session.
 4. **Run.** A second `Install` call commits the state and runs
-   `Entry\Invoke-AtlasInstall.ps1 -Run`. Failure keeps the staging copy for resuming;
-   success removes it.
+   `Entry\Invoke-AtlasInstall.ps1 -Run`. A rerun resumes from the install state, in a new
+   staging copy. A run that the preparation check refuses, or that stops before Capture,
+   keeps only its `request.json`, `Preparation` folder and `Executables\AtlasModules\Logs`
+   for diagnostics. A successful install removes its own copy and strips the package
+   files from older copies the same way.
 
 The native launcher accepts `Install` only for a copy of the package under the protected
 staging root with trusted owner and writers, the same protection it gives the installed
@@ -213,7 +223,6 @@ AME task includes, and contains no feature workflow.
 | One non-OOBE user marker | currentUser | Publish that user's SID and session ID, with the capture nonce, in their HKCU |
 | Eighteen option calls | TrustedInstaller | Record only FeaturePage options selected by AME |
 | Commit | TrustedInstaller | Validate the marker, bind the user when applicable, and freeze the captured state |
-| WdBoot delete | AME offline registry action | Apply the one ISO-only mounted-image exception |
 | Entry\Invoke-AtlasInstall.ps1 -Run | TrustedInstaller | Execute the complete live install plan |
 
 - The user marker only publishes identity: no install work, elevation or session change.
@@ -221,8 +230,8 @@ AME task includes, and contains no feature workflow.
 - Options are separate actions because AME gates actions per option. Capture stays in
   PowerShell, not AME registry actions, so Atlas code writes and validates every install
   fact.
-- WdBoot targets an offline mounted image, so it sits outside the plan and cannot run
-  during a live install. All other live work runs in the one TrustedInstaller process.
+- Nothing runs against a mounted ISO image: all install work runs live, in the one
+  TrustedInstaller process.
 - The front door reuses the marker, Commit and `-Run`, but captures mode and options from
   one validated request.
 
@@ -254,7 +263,6 @@ is the only ordered install table.
 | Tweak: scripts/set-power-settings | Fresh | Included | Once |
 | WindowsTransition | All | Included | Once |
 | InstallingUserSetup | Fresh, Upgrade, Rebase | Excluded | Once |
-| OemBranding | Upgrade, Rebase | Included | Once |
 | NotificationRestore | All | Included | Always |
 | DefaultHiveUnload | All | Included | Always |
 
@@ -362,12 +370,19 @@ operator reconciliation states. It holds the schema and target versions, transac
 status, mode, OOBE state, options, installing-user SID and session, capture nonce,
 completed steps and last error.
 
-1. **Begin** creates Capturing state. A retry reuses it only if the target version, mode
-   and OOBE scope match; a conflicting Begin is rejected.
+1. **Begin** creates Capturing state. A retry reuses it when the target version, mode
+   and OOBE scope match. A conflicting Begin is rejected unless the active run is
+   Running and recorded a failure, or is a capture with completed steps that such a
+   retry left before Commit: Atlas then keeps its mode, OOBE scope and completed steps,
+   returns it to Capturing and captures the installing user again. A Reapply
+   Begin also recovers a failed Fresh run that an earlier release candidate archived as
+   abandoned.json. A capture that starts again with no completed steps records its
+   options afresh; once a step has completed, the run keeps its original options.
 2. **Capture** adds options and the user. A retry may refresh only the same user's
-   session ID; a different SID is rejected.
-3. **Commit** sets Running. Later AME calls cannot reclassify the mode, OOBE state,
-   options or user.
+   session ID; a different SID is rejected until a failed run is captured again.
+3. **Commit** sets Running. Later AME calls cannot reclassify the mode or OOBE state;
+   the options and user change only when a failed run is captured again, as step 1
+   describes.
 4. **Steps.** Success adds the key to completedSteps; failure records the error and leaves
    the key incomplete.
 5. **Completion** requires every applicable key. It replaces the installed flags with the
@@ -491,7 +506,8 @@ These keys are defined in the
 | `UseGroupPolicy = $true` | Writes HKLM `Software\Policies` DWORD Set entries through `IGroupPolicyObject`, keeping unrelated local policy. Atlas checks `gpupdate` and verifies the effective value before reporting success. Widgets uses it for `AllowNewsAndInterests`, which covers the taskbar entry as well as the board. |
 | `VerifyWithToggle` | On a machine or current-user default: a toggle `Name`, integer `State`, and a `Set` (`Type`/`Data`) or `Delete` override. |
 
-`VerifyWithToggle` (`Atlas.Tweaks\Domain\Verify.ps1`) expects the override when that
+`VerifyWithToggle` (`Get-AtlasUpgradeRegistryEntries` in `Atlas.Tweaks\Domain\Invoke.ps1`,
+which both upgrade apply and verification use) expects the override when that
 toggle's recorded state matches, and the install default otherwise. Either way the value
 is checked, so an incorrect override is still drift. Fresh installs apply the default; an
 upgrade applies the override when the state matches, so it does not restore a restriction
@@ -537,22 +553,34 @@ schema has the full rules.
 
 - Machine work runs under the declared elevation and is recorded under
   `HKLM\SOFTWARE\AtlasOS\Services` once it completes.
-- User work runs after the machine part succeeds, in the launching user's own
-  non-elevated process, so it never inherits an elevated token.
+- User work runs in the launching user's own non-elevated process, so it never
+  inherits an elevated token. It follows the machine part when the state has one; a
+  user-only state finishes its user work before the privileged child records it.
 - Upgrades replay each recorded state's machine part from the installed definition. Each
   account's first sign-in replays the user parts.
 - The state store never persists executable paths.
 
 ### Launchers and console output
 
-- Every AtlasDesktop and Toolbox `.cmd` is a generated two-line stub. It calls
+- AtlasDesktop and Toolbox launchers are generated two-line `.cmd` stubs, apart from the
+  three hand-written ones below. Each stub calls
   `Scripts\Entry\Invoke-AtlasToggleLauncher.cmd` with the toggle name, the state and its
   own path.
-- That shared body anchors to the protected command host and sanitizes the environment. It
-  validates `/silent`, `/quiet`, `/justcontext` and `/noaction` before Windows PowerShell
-  starts, then runs `Entry\Invoke-Toggle.ps1`.
+- That shared body anchors to the protected command host and sanitizes the environment
+  with `Entry\Initialize-PowerShellLauncherEnvironment.cmd`. It validates `/silent`,
+  `/quiet`, `/justcontext` and `/noaction` before Windows PowerShell starts, then runs
+  `Entry\Invoke-Toggle.ps1`.
 - `tools\dev\New-ToggleLaunchers.ps1` regenerates and validates the stubs without running
-  toggle code.
+  toggle code. Its `-Validate` run also rejects any other hand-written `.cmd` under either
+  tree, so a new one has to be added to the list in that script and described below.
+- Three AtlasDesktop launchers are hand-written because no toggle describes them. They
+  call the same environment helper, and the lines they print themselves reuse the Ui.ps1
+  sentences:
+  - `Install AtlasOS Toolbox.cmd` and `4. Interface Tweaks\Start Menu\Install Open-Shell.cmd`
+    start their own elevated installer. Install Open-Shell then restarts File Explorer in
+    the caller's session.
+  - `9. Troubleshooting\Set services to defaults.cmd` forwards to
+    `Entry\Invoke-AtlasResetServices.ps1`.
 - The engine and the Atlas.Core console vocabulary (`Domain\Ui.ps1`) own what an
   interactive run prints; companions only add steps, questions and facts through the same
   helpers. [console-presentation.md](console-presentation.md) has the details.
@@ -602,17 +630,21 @@ for later accounts.
 The orchestrator already runs as TrustedInstaller, started by AME or by the front door
 through the broker. Post-install tools use the native TrustedInstaller broker
 (`Entry\Invoke-AtlasTrustedInstallerBroker.ps1`), not an arbitrary RunAsTI launcher. It
-accepts three typed operations:
+accepts four typed operations:
 
 | Operation | Runs |
 | --- | --- |
 | Toggle | Installed `Entry\Invoke-Toggle.ps1` |
 | ResetServices | Installed `Entry\Restore-AtlasServiceDefaults.ps1` |
 | Install | The protected staging copy of `Install\Invoke-AtlasInstallSession.ps1` (see [the front door](#the-atlas-front-door)) |
+| CbsRetry | Installed `Operations\CbsRetry.ps1 -Recover`, the Safe Mode retry of failed CBS packages |
 
 The process contract is deliberately small: the caller gets the target's exit code, and
-diagnostics go to standard error. Native launch evidence is internal, not part of the
-protocol. Feature logic stays in the shared modules and toggle definitions.
+diagnostics go to standard error. The TrustedInstaller child itself has no standard
+handles, so the Toggle and ResetServices targets log their failure reason to the machine
+install log, and the broker relays the session log for Install. Native launch evidence
+is internal, not part of the protocol. Feature logic stays in the shared modules and
+toggle definitions.
 `Scripts\RunAsTI.cmd` is only a deny-only stub for obsolete shortcuts (see
 [compatibility.md](compatibility.md)).
 
@@ -620,21 +652,37 @@ protocol. Feature logic stays in the shared modules and toggle definitions.
 
 [Operations\SafeMode.ps1](../playbook/Executables/AtlasModules/Scripts/Operations/SafeMode.ps1)
 has four operations: Minimal, Networking, CommandPrompt and Exit. It uses the fixed
-System32 `bcdedit.exe`. Its only state is the prior Winlogon shell, needed to undo
-CommandPrompt mode, in `C:\Windows\AtlasOS\Recovery\SafeMode.json`.
+System32 `bcdedit.exe`. It changes only boot configuration: CommandPrompt mode sets
+`safeboot minimal` and `safebootalternateshell yes`, so Safe Mode starts Command Prompt
+while normal boots keep their shell. Earlier builds also set the Winlogon shell to cmd.exe
+and saved the original in `C:\Windows\AtlasOS\Recovery\SafeMode.json`; every operation
+puts that shell back if it is still cmd.exe, then deletes the file.
 
 [Operations\CbsRetry.ps1](../playbook/Executables/AtlasModules/Scripts/Operations/CbsRetry.ps1)
 recovers failed CBS packages:
 
 1. Atlas records absolute package paths in `C:\Windows\AtlasOS\Recovery\CbsRetry.json`.
-2. The state moves from Pending to Armed once CommandPrompt Safe Mode is set.
-3. `CbsRetry.ps1 -Recover` exits Safe Mode and runs the Atlas.Software CBS installer with
-   those literal paths.
+2. The state moves from Pending to Armed once CommandPrompt Safe Mode is set. Arming
+   also sets the machine-wide `PROMPT` environment variable, so the Safe Mode command
+   prompt shows the retry instruction. The SafeBoot `AlternateShell` value stays
+   cmd.exe: Safe Mode with Command Prompt starts only a bare program name as its shell,
+   and anything else gets the Explorer desktop. The `PROMPT` value it replaced is saved
+   in `CbsRetryPrompt.json` beside the state, and leaving the retry's Safe Mode puts it
+   back.
+3. At the Safe Mode command prompt, the user runs `Scripts\Entry\Invoke-AtlasCbsRetry.cmd`.
+   Its `CbsRetry.ps1 -Recover` starts itself again through the broker's CbsRetry
+   operation, because servicing needs a TrustedInstaller token. With that token it exits
+   Safe Mode and runs the Atlas.Software CBS installer with those literal paths. With any
+   other token it changes nothing.
 4. The state file is removed only after the retry succeeds.
+   `Invoke-AtlasCbsRetry.cmd /discard` gives the retry up: it leaves Safe Mode and
+   removes the state.
 
-One mutex serializes the retry. The PayloadReplacement phase refuses to run while CBS
-retry state exists, so it cannot replace the installer recovery needs. Recovery is always
-an explicit `-Recover` operation, never a hidden scheduled task or AME task runner.
+One mutex serializes the retry. The PayloadReplacement phase refuses to run while a retry
+is armed, so it can't replace the installer recovery needs. It first gives up a retry that
+was never armed, and removes the Safe Mode package list Atlas 0.5 left in System32, which
+records a past failure rather than a retry in progress. Recovery is always an explicit
+`-Recover` operation, never a hidden scheduled task or AME task runner.
 
 ## PowerShell modules
 

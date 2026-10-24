@@ -1,41 +1,27 @@
 function Disable-AtlasSearchIndexing {
     param($Toggle)
 
+    [void]$Toggle
     Import-AtlasModule -Name Atlas.Search
-
-    if (-not $Toggle.Silent) {
-        Write-AtlasStep -Text 'Disabling search indexing...'
-    }
     Set-AtlasIndexingMachineState -State Disable
 }
 
 function Set-AtlasMinimalSearchIndexing {
     param($Toggle)
 
+    [void]$Toggle
     Import-AtlasModule -Name Atlas.Search
-
-    if (-not $Toggle.Silent) {
-        Write-AtlasStep -Text 'Configuring minimal search indexing (the Start menu and the Atlas folder only)...'
-    }
     Set-AtlasIndexingMachineState -State Minimal
 }
 
 function Enable-AtlasSearchIndexing {
     param($Toggle)
 
+    # TrustedInstaller work always runs silently, so the interactive power-mode
+    # question is Select-AtlasFullIndexingState.
+    [void]$Toggle
     Import-AtlasModule -Name Atlas.Search
-
-    if ($Toggle.Silent) {
-        Set-AtlasIndexingMachineState -State Full -PreservePowerModes
-        return
-    }
-
-    $respectPowerModes = 0
-    if (Read-AtlasYesNo -Question 'Pause indexing while on battery power or gaming?') {
-        $respectPowerModes = 1
-    }
-    Write-AtlasStep -Text 'Enabling full search indexing...'
-    Set-AtlasIndexingMachineState -State Full -RespectPowerModes $respectPowerModes
+    Set-AtlasIndexingMachineState -State Full -PreservePowerModes
 }
 
 function Select-AtlasFullIndexingState {

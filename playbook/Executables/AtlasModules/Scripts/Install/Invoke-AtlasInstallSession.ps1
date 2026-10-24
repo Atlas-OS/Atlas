@@ -5,10 +5,10 @@
     Entry\Install-Atlas.ps1 stages the extracted package beneath the protected staging
     root and asks the TrustedInstaller broker to run this script from that copy, twice:
 
-      -Phase Capture   Reads request.json beside the staged files, decides Fresh, Upgrade or
-                       Reapply from the machine state document, begins the install state
-                       and records the validated options. The front door then publishes
-                       the installing user's marker from its own session.
+      -Phase Capture   Reads request.json beside the staged files, decides Fresh, Upgrade,
+                       Reapply or Rebase from the machine state document, begins the
+                       install state and records the validated options. The front door
+                       then publishes the installing user's marker from its own session.
       -Phase Run       Binds the published user, commits the captured state and runs the
                        complete install plan through Entry\Invoke-AtlasInstall.ps1.
 
@@ -39,7 +39,7 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 
 function Read-AtlasInstallRequest {
-    param([Parameter(Mandatory = $true)][string]$PayloadRoot, [switch]$WithMode)
+    param([Parameter(Mandatory = $true)][string]$PayloadRoot)
 
     $requestPath = Join-Path -Path $PayloadRoot -ChildPath 'request.json'
     if (-not [IO.File]::Exists($requestPath)) {
@@ -50,22 +50,13 @@ function Read-AtlasInstallRequest {
     }
     $request = [IO.File]::ReadAllText($requestPath) | ConvertFrom-Json -ErrorAction Stop
     foreach ($property in $request.PSObject.Properties) {
-        if ($property.Name -cnotin @('options', 'windowsSetup')) {
+        if ($property.Name -cne 'options') {
             throw "The install request has an unknown field '$($property.Name)'."
         }
     }
     if ($null -eq $request.PSObject.Properties['options']) {
         throw "The install request declares no 'options'."
     }
-    $setup = $false
-    if ($null -ne $request.PSObject.Properties['windowsSetup']) {
-        if ($request.windowsSetup -isnot [bool]) { throw 'windowsSetup must be a Boolean.' }
-        $setup = $request.windowsSetup
-        if ($setup -and (Get-ItemPropertyValue -LiteralPath 'HKLM:\SYSTEM\Setup' -Name SystemSetupInProgress -ErrorAction Stop) -ne 1) {
-            throw 'Windows Setup is not running.'
-        }
-    }
-    if ($WithMode) { return [pscustomobject]@{ options = @($request.options | ForEach-Object { [string]$_ }); windowsSetup = $setup } }
     return @($request.options | ForEach-Object { [string]$_ })
 }
 
@@ -131,8 +122,8 @@ try {
     switch ($Phase) {
         'Capture' {
             $targetVersion = Get-AtlasPlaybookVersion -PlaybookPath $playbookPath
-            $installRequest = Read-AtlasInstallRequest -PayloadRoot $payloadRoot -WithMode
-            $optionCheck = @{ Options = $installRequest.options; Groups = @(Get-AtlasPlaybookOption -PlaybookPath $playbookPath) }
+            $requestedOptions = @(Read-AtlasInstallRequest -PayloadRoot $payloadRoot)
+            $optionCheck = @{ Options = $requestedOptions; Groups = @(Get-AtlasPlaybookOption -PlaybookPath $playbookPath) }
             # The same test Set-AtlasInstallOptions uses to hold a resume to its options.
             $active = Get-AtlasInstallState
             if ($null -ne $active -and $active.targetVersion -ceq $targetVersion -and
@@ -142,7 +133,7 @@ try {
             $options = Assert-AtlasInstallOptionSet @optionCheck
             $mode = Resolve-AtlasInstallMode -TargetVersion $targetVersion
 
-            $null = Start-AtlasInstallState -TargetVersion $targetVersion -Mode $mode -IsOobe ([bool]$installRequest.windowsSetup) `
+            $null = Start-AtlasInstallState -TargetVersion $targetVersion -Mode $mode `
                 -CaptureNonce ([guid]::NewGuid().ToString('D'))
             Set-AtlasInstallOptions -Options $options | Out-Null
             $message = "Atlas install state ready for $mode of $targetVersion with options: $($options -join ', ')."

@@ -217,15 +217,18 @@ function Remove-AtlasRegistryValue {
             }
 
             try {
-                # The second argument suppresses the missing-value exception.
+                # DeleteValue drops every RegDeleteValue error, not only a missing value,
+                # so reading the key back is the only way to see that Windows refused.
                 $key.DeleteValue($Name, $false)
-            }
-            catch [System.UnauthorizedAccessException] {
-                # Distinguish value-level denial from failure to open the key.
-                throw (New-AtlasRegistryValueRefusedRecord -ProviderPath $providerPath -Name $Name -Cause $_.Exception)
+                $stillPresent = @($key.GetValueNames()) -contains $Name
             }
             finally {
                 $key.Close()
+            }
+            if ($stillPresent) {
+                $cause = New-Object System.UnauthorizedAccessException(
+                    'The value was still present after the delete returned.')
+                throw (New-AtlasRegistryValueRefusedRecord -ProviderPath $providerPath -Name $Name -Cause $cause)
             }
         }
     }

@@ -49,16 +49,11 @@ function Invoke-AtlasTweakRunEntries {
         [bool]$IsArm64,
 
         [Parameter(Mandatory = $true)]
-        [string]$WinDir,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNull()]
-        [object]$Context
+        [string]$WinDir
     )
 
     foreach ($entry in $Entries) {
         $ignoreErrors = [bool](Get-AtlasTweakEntryValue -Entry $entry -Key 'IgnoreErrors' -Default $false)
-        $runAs = [string](Get-AtlasTweakEntryValue -Entry $entry -Key 'RunAs' -Default '')
 
         try {
             $arch = [string](Get-AtlasTweakEntryValue -Entry $entry -Key 'Arch' -Default '')
@@ -85,26 +80,10 @@ function Invoke-AtlasTweakRunEntries {
             $allowedExitCodes = [int[]]@(0)
             if ($entry.ContainsKey('AllowedExitCodes')) {
                 $dismPath = Join-Path -Path $WinDir -ChildPath 'System32\dism.exe'
-                if ($runAs -or
-                    -not [string]::Equals($exe, $dismPath, [StringComparison]::OrdinalIgnoreCase)) {
+                if (-not [string]::Equals($exe, $dismPath, [StringComparison]::OrdinalIgnoreCase)) {
                     throw "AllowedExitCodes is restricted to @(0, 3010) on '$dismPath'."
                 }
                 $allowedExitCodes = [int[]]@(0, 3010)
-            }
-
-            if (-not [string]::IsNullOrWhiteSpace($runAs)) {
-                if ($runAs -cne 'User') {
-                    throw "Run entry has unsupported RunAs '$runAs'."
-                }
-                $expectedUserSid = Get-AtlasTweakUserSid -Context $Context
-                $arguments += @('-ExpectedUserSid', $expectedUserSid)
-                $serializedArguments = ConvertTo-AtlasWindowsArgumentString `
-                    -ArgumentList ([string[]]$arguments)
-                $exitCode = Invoke-AtlasAsUser -FilePath $exe -Arguments $serializedArguments
-                if ($exitCode -ne 0) {
-                    throw "RunAs=User entry '$exe' exited with code $exitCode."
-                }
-                continue
             }
 
             Invoke-AtlasHiddenProcess -FilePath $exe `
@@ -112,7 +91,7 @@ function Invoke-AtlasTweakRunEntries {
                 -AllowedExitCode $allowedExitCodes | Out-Null
         }
         catch {
-            if ($ignoreErrors -and [string]::IsNullOrWhiteSpace($runAs)) {
+            if ($ignoreErrors) {
                 $entryExe = Get-AtlasTweakEntryValue -Entry $entry -Key 'Exe' -Default '<no executable>'
                 Write-AtlasLog -Message "Ignored Run entry failure (executable: '$entryExe'): $($_.Exception.Message)" -Level Warning
                 continue
@@ -326,7 +305,7 @@ function Invoke-AtlasTweak {
 
     if ($tweak.ContainsKey('Run') -and $tweak['Run']) {
         Invoke-AtlasTweakRunEntries -Entries $tweak['Run'] -IsArm64 ([bool]$Context.IsArm64) `
-            -WinDir ([string]$Context.WinDir) -Context $Context
+            -WinDir ([string]$Context.WinDir)
     }
 
     if ($tweak.ContainsKey('RemovePaths') -and $tweak['RemovePaths']) {

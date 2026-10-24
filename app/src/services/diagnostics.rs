@@ -83,6 +83,11 @@ fn create_log(path: &Path) -> io::Result<File> {
     OpenOptions::new().create_new(true).write(true).share_mode(FILE_SHARE_READ.0).open(path)
 }
 
+/// Opens an existing log to write on at its end, shared as [`create_log`] shares it.
+fn append_log(path: &Path) -> io::Result<File> {
+    OpenOptions::new().append(true).share_mode(FILE_SHARE_READ.0).open(path)
+}
+
 struct RollingLog {
     path: PathBuf,
     file: Option<File>,
@@ -99,21 +104,46 @@ impl RollingLog {
     fn rotated(&self, index: usize) -> PathBuf {
         self.path.with_extension(format!("{index}.log"))
     }
+
+    /// Starts a new log, keeping the full one as the first rotated copy. The
+    /// full log is moved aside before the older copies shift: a program that
+    /// has it open without sharing deletion (a viewer following it may) stops
+    /// the move, and then the log carries on in the same file, the copies
+    /// untouched, until another limit's worth has been written. A first copy
+    /// held open that way can't make room, so the full log goes back and
+    /// carries on the same way; only the oldest copy is lost.
+    fn rotate(&mut self) -> io::Result<File> {
+        // Atlas's own handle does not share deletion either.
+        self.file.take();
+        let full = self.path.with_extension("rotating.log");
+        if let Err(error) = fs::rename(&self.path, &full) {
+            return self.postpone(error);
+        }
+        let _ = fs::remove_file(self.rotated(LOG_ROTATIONS));
+        for index in (1..LOG_ROTATIONS).rev() {
+            let _ = fs::rename(self.rotated(index), self.rotated(index + 1));
+        }
+        // Left under the holding name, the next rotation would replace it.
+        if let Err(error) = fs::rename(&full, self.rotated(1))
+            && fs::rename(&full, &self.path).is_ok()
+        {
+            return self.postpone(error);
+        }
+        create_log(&self.path)
+    }
+
+    /// Carries on in the full log, saying why it wasn't rotated.
+    fn postpone(&self, error: io::Error) -> io::Result<File> {
+        let mut file = append_log(&self.path)?;
+        writeln!(file, "{} app log rotation postponed: {error}", chrono::Utc::now())?;
+        Ok(file)
+    }
 }
 
 impl Write for RollingLog {
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
         if self.bytes >= self.limit {
-            self.file.take();
-            let _ = fs::remove_file(self.rotated(LOG_ROTATIONS));
-            for index in (1..LOG_ROTATIONS).rev() {
-                let source = self.rotated(index);
-                if source.exists() {
-                    fs::rename(source, self.rotated(index + 1))?;
-                }
-            }
-            fs::rename(&self.path, self.rotated(1))?;
-            self.file = Some(create_log(&self.path)?);
+            self.file = Some(self.rotate()?);
             self.bytes = 0;
         }
         let count = bytes.len().min((self.limit - self.bytes) as usize);
@@ -261,8 +291,8 @@ fn skips_staged_files(parent: &str, child: &str) -> bool {
 }
 
 impl Bundle {
-    fn new(file: File) -> Self {
-        Self { zip: ZipWriter::new(file), entries: Vec::new(), bytes: 0, files: 0, redactor: Redactor::new() }
+    fn new(file: File, redactor: Redactor) -> Self {
+        Self { zip: ZipWriter::new(file), entries: Vec::new(), bytes: 0, files: 0, redactor }
     }
 
     fn note(&mut self, name: &str, status: impl ToString) {
@@ -290,7 +320,7 @@ impl Bundle {
     /// Writes one of the archive's own texts and returns its redacted size.
     fn text(&mut self, name: &str, bytes: &[u8]) -> Result<u64> {
         let name = self.redactor.text(name);
-        let bytes = self.redactor.file(bytes).context("diagnostic text encoding is unsupported")?;
+        let bytes = self.redactor.file(bytes).context("diagnostic text encoding is unsupported")?.bytes;
         self.write_member(&name, &bytes)?;
         Ok(bytes.len() as u64)
     }
@@ -367,10 +397,11 @@ impl Bundle {
                 return Ok(());
             }
         }
-        let Some(bytes) = self.redactor.file(&bytes) else {
+        let Some(redacted) = self.redactor.file(&bytes) else {
             self.note(name, "omitted: unsupported text encoding");
             return Ok(());
         };
+        let bytes = redacted.bytes;
         if !self.fits(bytes.len() as u64) {
             self.note(name, "omitted: redacted text exceeds size limit");
             return Ok(());
@@ -380,10 +411,14 @@ impl Bundle {
         // exactly the contents reviewers receive.
         self.write_member(&name, &bytes)?;
         let hash = super::releases::sha256_bytes(&bytes);
-        self.entries.push(json!({"path":name,"status":"included","bytes":bytes.len(),"sha256":hash}));
+        let status = if redacted.padding_removed { "included: NUL bytes removed" } else { "included" };
+        self.entries.push(json!({"path":name,"status":status,"bytes":bytes.len(),"sha256":hash}));
         Ok(())
     }
 }
+
+/// Where the collector appends each section it finishes.
+const PARTIAL_REPORT: &str = "machine-report.partial.txt";
 
 /// The section the collector was working on: it announces each as it starts.
 fn stuck_section(log: &str) -> Option<&str> {
@@ -411,15 +446,17 @@ fn spawn_collector(directory: &Path, script: &[u8]) -> Result<std::process::Chil
     // directory that a different process could replace before launch.
     // The paths travel in the environment, so no character in a profile name
     // can end a quoted string early. The collector appends each finished
-    // section to the partial report, which survives a timeout.
+    // section to the partial report, which survives a timeout. Its output is
+    // UTF-8, as the export accepts, not the console's code page.
     let mut child = super::powershell::command()
         .arg("-Command")
         .arg(
-            "$source = [Console]::In.ReadToEnd(); & ([scriptblock]::Create($source)) \
+            "[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false); \
+             $source = [Console]::In.ReadToEnd(); & ([scriptblock]::Create($source)) \
              -OutputPath $env:ATLAS_REPORT_OUTPUT -PartialPath $env:ATLAS_REPORT_PARTIAL",
         )
         .env("ATLAS_REPORT_OUTPUT", directory.join("machine-report.txt"))
-        .env("ATLAS_REPORT_PARTIAL", directory.join("machine-report.partial.txt"))
+        .env("ATLAS_REPORT_PARTIAL", directory.join(PARTIAL_REPORT))
         .stdin(Stdio::piped())
         .stdout(output.try_clone()?)
         .stderr(output)
@@ -459,7 +496,7 @@ fn wait_collector(mut child: std::process::Child, log: &Path, deadline: Duration
 /// Works before Atlas installation and without elevation. Missing protected files
 /// are reported instead of aborting the rest of the export.
 pub fn export(root: &Path, package: Option<Value>) -> Result<PathBuf> {
-    let saved = super::settings::read_from(&root.join("settings.json"));
+    let saved = super::settings::read_from(&super::settings::AppPaths::under(root).settings());
     let package_directory = saved.settings.draft.and_then(|draft| draft.playbook_dir).or_else(|| {
         super::session::load(&super::session::SessionPaths::under(root))
             .ok()
@@ -478,7 +515,15 @@ pub fn export(root: &Path, package: Option<Value>) -> Result<PathBuf> {
     let working = exports.join(format!("collect-{id}"));
     fs::create_dir(&working)?;
     let collector = collect_report(&working).err().map(|error| format!("{error:#}"));
-    let archive = Archive { root, working: &working, package_directory: package_directory.as_deref() };
+    let local = std::env::var_os("LOCALAPPDATA").map(PathBuf::from);
+    let windows = std::env::var_os("WINDIR").map(PathBuf::from);
+    let archive = Archive {
+        root,
+        working: &working,
+        package_directory: package_directory.as_deref(),
+        local: local.as_deref(),
+        windows: windows.as_deref(),
+    };
     let result = archive.write_to(&exports.join(format!("Atlas-diagnostics-{id}.zip")), package, collector);
     let _ = fs::remove_dir_all(&working);
     result.context("export Atlas diagnostics")
@@ -486,10 +531,15 @@ pub fn export(root: &Path, package: Option<Value>) -> Result<PathBuf> {
 
 /// Where the evidence for one archive comes from.
 struct Archive<'a> {
+    /// The app's data folder.
     root: &'a Path,
     /// The collector's folder for this export.
     working: &'a Path,
     package_directory: Option<&'a Path>,
+    /// `%LOCALAPPDATA%`.
+    local: Option<&'a Path>,
+    /// `%WINDIR%`.
+    windows: Option<&'a Path>,
 }
 
 impl Archive<'_> {
@@ -504,7 +554,7 @@ impl Archive<'_> {
         let temporary = destination.with_extension("partial");
         let output = OpenOptions::new().create_new(true).write(true).open(&temporary)?;
         let written = self
-            .write(Bundle::new(output), package, collector)
+            .write(Bundle::new(output, Redactor::new()), package, collector)
             .and_then(|()| Ok(fs::rename(&temporary, destination)?));
         if written.is_err() {
             let _ = fs::remove_file(&temporary);
@@ -526,10 +576,13 @@ impl Archive<'_> {
         for name in ["Logs", "Preparation", "settings.json", "settings.json.invalid", "session.json"] {
             bundle.collect(&self.root.join(name), &format!("app/{name}"), 0)?;
         }
+        // Which executable the completion window and Home's restart bar go by.
+        let launcher = super::session::launcher_path(&super::session::SessionPaths::under(self.root));
+        bundle.collect(&launcher, "app/launcher.json", 0)?;
         if let Some(path) = LOG_LOCATION.get() {
             bundle.collect(path, "app/current-process.log", 0)?;
         }
-        let settings = self.root.join("settings.json");
+        let settings = super::settings::AppPaths::under(self.root).settings();
         match super::recovery_app::preparation_root(&settings) {
             Ok(path) => bundle.collect(&path, "preparation", 0)?,
             Err(error) => bundle.note("preparation", error),
@@ -538,13 +591,11 @@ impl Archive<'_> {
             Ok(path) => bundle.collect(&path, "media", 0)?,
             Err(error) => bundle.note("media", error),
         }
-        if let Some(local) = std::env::var_os("LOCALAPPDATA") {
-            let local = PathBuf::from(local);
+        if let Some(local) = self.local {
             bundle.collect(&local.join("AtlasOS/Logs"), "user/logs", 0)?;
             bundle.collect(&local.join("Atlas-desktop-recovery.log"), "user/desktop-recovery.log", 0)?;
         }
-        if let Some(windows) = std::env::var_os("WINDIR") {
-            let windows = PathBuf::from(windows);
+        if let Some(windows) = self.windows {
             bundle.collect(&windows.join("AtlasModules/Logs"), "playbook/logs", 0)?;
             bundle.collect(&windows.join("AtlasOS"), "playbook/state", 0)?;
             bundle.collect(&windows.join("AtlasISO/setup.log"), "iso/setup.log", 0)?;
@@ -587,6 +638,13 @@ mod tests {
     use super::*;
     use crate::services::iso::NOTICES;
     use crate::services::test_support::TempDir;
+    use windows::Win32::Storage::FileSystem::FILE_SHARE_WRITE;
+
+    /// A bundle writing to `path` whose redactor knows no account, computer
+    /// or profile names.
+    fn bundle(path: &Path) -> Bundle {
+        Bundle::new(File::create(path).unwrap(), Redactor::with(&[], Vec::new()))
+    }
 
     #[test]
     fn panic_details_survive_process_exit() {
@@ -607,8 +665,11 @@ mod tests {
         assert!(!status.success());
         let file = fs::read_dir(temp.path().join("Logs")).unwrap().next().unwrap().unwrap();
         let text = fs::read_to_string(file.path()).unwrap();
-        assert!(text.contains("PANIC") && text.contains("diagnostic panic fixture"));
-        assert!(text.contains("stack backtrace") || text.contains("0:"));
+        assert!(text.contains("PANIC"), "{text}");
+        // The first frame follows the message, numbered whether or not its
+        // symbol resolves; timestamps before it cannot pass for it.
+        let after = &text[text.find("diagnostic panic fixture").expect(&text)..];
+        assert!(after.contains("\n   0: "), "{text}");
     }
 
     #[test]
@@ -618,7 +679,7 @@ mod tests {
         let _handle = OpenOptions::new().create_new(true).write(true).share_mode(0).open(&locked).unwrap();
         let readable = temp.path().join("readable.log");
         fs::write(&readable, "useful evidence").unwrap();
-        let mut bundle = Bundle::new(File::create(temp.path().join("out.zip")).unwrap());
+        let mut bundle = bundle(&temp.path().join("out.zip"));
         bundle.collect(&locked, "locked.log", 0).unwrap();
         bundle.collect(&readable, "readable.log", 0).unwrap();
         assert!(bundle.entries[0]["status"].as_str().unwrap().contains("unreadable"));
@@ -636,13 +697,66 @@ mod tests {
     }
 
     #[test]
+    fn a_log_another_program_holds_open_keeps_its_records_and_older_copies() {
+        let temp = TempDir::new("diagnostic-rotation-held");
+        let path = temp.path().join("app-test.log");
+        let mut log = RollingLog::new(path.clone(), 4).unwrap();
+        log.write_all(b"1111222233334444").unwrap();
+        // A viewer following the log shares writing but not deletion, so
+        // the log cannot be moved aside.
+        let viewer = OpenOptions::new()
+            .read(true)
+            .share_mode((FILE_SHARE_READ | FILE_SHARE_WRITE).0)
+            .open(&path)
+            .unwrap();
+        log.write_all(b"5555").unwrap();
+        log.write_all(b"6666").unwrap();
+        let held = fs::read_to_string(&path).unwrap();
+        assert!(held.starts_with("4444") && held.ends_with("6666"), "{held}");
+        assert!(held.contains("rotation postponed") && held.contains("5555"), "{held}");
+        for (index, copy) in [(1, "3333"), (2, "2222"), (3, "1111")] {
+            assert_eq!(fs::read_to_string(log.rotated(index)).unwrap(), copy);
+        }
+        drop(viewer);
+        log.write_all(b"7777").unwrap();
+        assert_eq!(fs::read(&path).unwrap(), b"7777");
+        assert_eq!(fs::read_to_string(log.rotated(1)).unwrap(), held);
+        assert_eq!(fs::read(log.rotated(2)).unwrap(), b"3333");
+    }
+
+    #[test]
+    fn a_first_copy_another_program_holds_open_loses_no_full_log() {
+        let temp = TempDir::new("diagnostic-rotation-copy-held");
+        let path = temp.path().join("app-test.log");
+        let mut log = RollingLog::new(path.clone(), 4).unwrap();
+        log.write_all(b"11112222").unwrap();
+        // The first copy can't move on, so it can't make room for the full log.
+        let viewer = OpenOptions::new()
+            .read(true)
+            .share_mode((FILE_SHARE_READ | FILE_SHARE_WRITE).0)
+            .open(log.rotated(1))
+            .unwrap();
+        // Two rotations while it's held: neither may lose the log before it.
+        log.write_all(b"33334444").unwrap();
+        let held = fs::read_to_string(&path).unwrap();
+        assert!(held.starts_with("2222") && held.ends_with("4444"), "{held}");
+        assert!(held.contains("3333") && held.contains("rotation postponed"), "{held}");
+        assert!(!path.with_extension("rotating.log").exists());
+        drop(viewer);
+        log.write_all(b"5555").unwrap();
+        assert_eq!(fs::read(&path).unwrap(), b"5555");
+        assert_eq!(fs::read_to_string(log.rotated(1)).unwrap(), held);
+        assert_eq!(fs::read(log.rotated(2)).unwrap(), b"1111");
+    }
+
+    #[test]
     fn archive_redacts_copies_and_metadata_and_hashes_the_exported_bytes() {
         let temp = TempDir::new("diagnostic-redacted-archive");
         let source = temp.path().join("install.log");
         let original = "ERROR 0x80070005 C:\\Users\\Test Person\\AppData\\Local\\AtlasOS\\install.log\npassword='test credential'\ntransaction=job-42\n";
         fs::write(&source, original).unwrap();
         let target = temp.path().join("test.zip");
-        let mut bundle = Bundle::new(File::create(&target).unwrap());
+        let mut bundle = bundle(&target);
         bundle.collect(&source, "logs/install.log", 0).unwrap();
         bundle.note("missing.log", "unreadable C:\\Users\\Test Person\\missing.log");
         bundle.text("manifest.json", &serde_json::to_vec(&json!({"files":bundle.entries})).unwrap()).unwrap();
@@ -680,7 +794,7 @@ mod tests {
         fs::write(executables.join("request.json"), "{\"options\":[]}").unwrap();
         fs::write(state.join("Install/active.json"), "install state").unwrap();
         let target = temp.path().join("test.zip");
-        let mut bundle = Bundle::new(File::create(&target).unwrap());
+        let mut bundle = bundle(&target);
         bundle.collect(&state, "playbook/state", 0).unwrap();
         assert!(bundle.files < 20);
         bundle.zip.finish().unwrap();
@@ -706,17 +820,24 @@ mod tests {
         fs::write(source.join("install.log"), &text).unwrap();
         fs::write(source.join("private.exe"), "excluded").unwrap();
         File::create(source.join("large.log")).unwrap().set_len(FILE_LIMIT + 1).unwrap();
+        // The zeros a hard reset leaves where the length reached the disk before the data.
+        fs::write(source.join("crashed.log"), [b"last record\r\n".as_slice(), &[0; 4096]].concat()).unwrap();
         let target = temp.path().join("test.zip");
-        let mut bundle = Bundle::new(File::create(&target).unwrap());
+        let mut bundle = bundle(&target);
         bundle.collect(&source, "logs", 0).unwrap();
         bundle.collect(&source.join("absent.log"), "absent.log", 0).unwrap();
         assert!(bundle.entries.iter().any(|entry| entry["status"].as_str().unwrap().contains("size limit")));
         assert!(bundle.entries.iter().any(|entry| entry["status"].as_str().unwrap().contains("unavailable")));
+        let crashed = bundle.entries.iter().find(|entry| entry["path"] == "logs/crashed.log").unwrap();
+        assert_eq!(crashed["status"], "included: NUL bytes removed");
         bundle.zip.finish().unwrap();
         let mut zip = zip::ZipArchive::new(File::open(&target).unwrap()).unwrap();
         let mut restored = String::new();
         zip.by_name("logs/install.log").unwrap().read_to_string(&mut restored).unwrap();
         assert_eq!(restored, text);
+        restored.clear();
+        zip.by_name("logs/crashed.log").unwrap().read_to_string(&mut restored).unwrap();
+        assert_eq!(restored, "last record\r\n");
         assert!(zip.by_name("logs/private.exe").is_err());
     }
 
@@ -725,7 +846,7 @@ mod tests {
         let temp = TempDir::new("diagnostic-budget");
         let log = temp.path().join("late.log");
         fs::write(&log, "x".repeat(100)).unwrap();
-        let mut bundle = Bundle::new(File::create(temp.path().join("test.zip")).unwrap());
+        let mut bundle = bundle(&temp.path().join("test.zip"));
         assert_eq!(bundle.text("READ-ME.txt", README_TEXT.as_bytes()).unwrap(), README_TEXT.len() as u64);
         assert_eq!(bundle.bytes, README_TEXT.len() as u64);
         bundle.bytes = TOTAL_LIMIT - MANIFEST_RESERVE - 10;
@@ -734,18 +855,7 @@ mod tests {
     }
 
     #[test]
-    fn a_collector_that_stopped_early_leaves_its_finished_sections_and_names_the_last() {
-        let temp = TempDir::new("diagnostic-partial");
-        let working = temp.path().join("collect");
-        fs::create_dir(&working).unwrap();
-        fs::write(working.join("machine-report.partial.txt"), "1. Machine\nfinished section").unwrap();
-        let target = temp.path().join("test.zip");
-        let mut bundle = Bundle::new(File::create(&target).unwrap());
-        bundle.collect(&working, "report", 0).unwrap();
-        bundle.zip.finish().unwrap();
-        let mut zip = zip::ZipArchive::new(File::open(&target).unwrap()).unwrap();
-        assert!(zip.by_name("report/machine-report.partial.txt").is_ok());
-
+    fn stuck_section_names_the_last_announced_section() {
         let log =
             "Collecting: 1. Machine\r\nCollecting: 10. Event log errors and warnings since the install\r\n";
         assert_eq!(stuck_section(log), Some("10. Event log errors and warnings since the install"));
@@ -753,15 +863,48 @@ mod tests {
     }
 
     #[test]
+    fn an_archive_keeps_a_stopped_collectors_sections_and_the_launch_record() {
+        let temp = TempDir::new("diagnostic-archive");
+        let root = temp.path().join("App");
+        let working = temp.path().join("collect");
+        fs::create_dir(&root).unwrap();
+        fs::create_dir(&working).unwrap();
+        fs::write(working.join(PARTIAL_REPORT), "1. Machine\nfinished section").unwrap();
+        let exe = Path::new("C:\\Program Files\\Atlas Setup Recovery\\AtlasManager.exe");
+        super::super::session::write_launcher(&super::super::session::SessionPaths::under(&root), exe)
+            .unwrap();
+        let collector = "machine collector timed out after 60 seconds in section '2. Slow'";
+        let archive =
+            Archive { root: &root, working: &working, package_directory: None, local: None, windows: None };
+        let target = temp.path().join("test.zip");
+        archive.write(bundle(&target), None, Some(collector.to_owned())).unwrap();
+        let mut zip = zip::ZipArchive::new(File::open(&target).unwrap()).unwrap();
+        let mut read = |name: &str| {
+            let mut text = String::new();
+            zip.by_name(name).unwrap().read_to_string(&mut text).unwrap();
+            text
+        };
+        assert_eq!(read(&format!("report/{PARTIAL_REPORT}")), "1. Machine\nfinished section");
+        assert!(read("app/launcher.json").contains("AtlasManager.exe"));
+        // The report service refuses an archive whose manifest says otherwise.
+        let manifest: Value = serde_json::from_str(&read("manifest.json")).unwrap();
+        assert_eq!(manifest["schema"], 2);
+        assert_eq!(manifest["redaction"], "public-v1");
+        assert_eq!(manifest["collectorError"], collector);
+    }
+
+    #[test]
     fn the_collector_gets_its_paths_whatever_the_profile_name_and_a_timeout_names_the_section() {
         let temp = TempDir::new("diagnostic-collector");
-        // Every single quote PowerShell recognises, as a profile name may hold.
-        let working = temp.path().join("O\u{2019}Brien's \u{2018}x\u{201A}\u{201B}");
+        // Every single quote PowerShell recognises, as a profile name may
+        // hold, and a letter the console's code page would write as one byte.
+        let working = temp.path().join("O\u{2019}Brien's \u{2018}x\u{201A}\u{201B} J\u{fc}rgen");
         fs::create_dir(&working).unwrap();
         let stub = |sleep: u32| {
             format!(
                 "param([string]$OutputPath, [string]$PartialPath)\r\n\
                  [IO.File]::WriteAllText($PartialPath, 'finished')\r\n\
+                 Write-Host \"Writing $OutputPath\"\r\n\
                  Write-Host 'Collecting: 2. Slow'\r\n\
                  Start-Sleep -Seconds {sleep}\r\n\
                  [IO.File]::WriteAllText($OutputPath, 'complete')\r\n"
@@ -769,8 +912,12 @@ mod tests {
         };
         run_collector(&working, stub(0).as_bytes(), Duration::from_secs(60)).unwrap();
         assert_eq!(fs::read_to_string(working.join("machine-report.txt")).unwrap(), "complete");
+        // The export takes the collector's log only as UTF-8.
+        let output = fs::read(working.join("collector.log")).unwrap();
+        let output = String::from_utf8(output).expect("the collector's output is UTF-8");
+        assert!(output.contains("J\u{fc}rgen"), "{output}");
 
-        fs::remove_file(working.join("machine-report.partial.txt")).unwrap();
+        fs::remove_file(working.join(PARTIAL_REPORT)).unwrap();
         // The short deadline starts once the section is under way, so a slow
         // PowerShell start cannot use it up.
         let log = working.join("collector.log");
@@ -782,7 +929,7 @@ mod tests {
         }
         let error = wait_collector(child, &log, Duration::from_secs(1)).unwrap_err();
         assert!(format!("{error:#}").contains("in section '2. Slow'"), "{error:#}");
-        assert_eq!(fs::read_to_string(working.join("machine-report.partial.txt")).unwrap(), "finished");
+        assert_eq!(fs::read_to_string(working.join(PARTIAL_REPORT)).unwrap(), "finished");
     }
 
     /// A job's copy of the notices is left out, in current media jobs (which
@@ -791,7 +938,7 @@ mod tests {
     fn iso_jobs_are_exported_without_their_licence_notices() {
         let temp = TempDir::new("diagnostic-iso-notices");
         let target = temp.path().join("test.zip");
-        let mut bundle = Bundle::new(File::create(&target).unwrap());
+        let mut bundle = bundle(&target);
         for (root, name) in [("Media", "media"), ("ISO", "app/ISO")] {
             let job = temp.path().join(root).join("123-456");
             fs::create_dir_all(&job).unwrap();

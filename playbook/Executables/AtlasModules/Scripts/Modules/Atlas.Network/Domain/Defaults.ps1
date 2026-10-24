@@ -207,21 +207,8 @@ function Invoke-AtlasWindowsNetworkDefault {
     $netshPath = Join-Path -Path $systemDirectory -ChildPath 'netsh.exe'
     $pnpUtilPath = Join-Path -Path $systemDirectory -ChildPath 'pnputil.exe'
 
-    $netshCommands = @(
-        [pscustomobject]@{ Arguments = [string[]]@('int', 'ip', 'reset') }
-        [pscustomobject]@{ Arguments = [string[]]@('interface', 'ipv4', 'reset') }
-        [pscustomobject]@{ Arguments = [string[]]@('interface', 'ipv6', 'reset') }
-        [pscustomobject]@{ Arguments = [string[]]@('interface', 'tcp', 'reset') }
-        [pscustomobject]@{ Arguments = [string[]]@('winsock', 'reset') }
-    )
-    foreach ($command in $netshCommands) {
-        Invoke-AtlasHiddenProcess `
-            -FilePath $netshPath `
-            -ArgumentList ([object[]]$command.Arguments) `
-            -Wait `
-            -AllowedExitCode ([int[]]@(0)) | Out-Null
-    }
-
+    # Every identifier is checked before netsh runs, so a rejected one can't leave the
+    # stack reset with the old devices still installed.
     $deviceIds = New-Object 'System.Collections.Generic.List[string]'
     $seen = @{}
     foreach ($device in @(Get-AtlasPresentNetworkDevice)) {
@@ -230,15 +217,41 @@ function Invoke-AtlasWindowsNetworkDefault {
             throw 'An active network device has no instance identifier.'
         }
 
+        # The enumerator is a name or, for virtual buses such as Wi-Fi Direct, a braced GUID.
         $instanceId = [string]$device.InstanceId
         if ($instanceId.Length -gt 200 -or
-            $instanceId -notmatch '(?i)^[A-Z0-9_]{1,32}\\[^\x00-\x1F"]{1,199}$') {
+            $instanceId -notmatch
+            '(?i)^(?:[A-Z0-9_]{1,32}|\{[0-9A-F]{8}(?:-[0-9A-F]{4}){3}-[0-9A-F]{12}\})\\[^\x00-\x1F"]{1,199}$') {
             throw "Network device identifier '$instanceId' is not canonical."
         }
         if (-not $seen.ContainsKey($instanceId)) {
             $seen[$instanceId] = $true
             $deviceIds.Add($instanceId)
         }
+    }
+
+    # The ip, ipv4 and ipv6 resets share a handler that ends with ERROR_SUPPRESS_OUTPUT,
+    # which netsh reports as exit code 1 even when every item reset. Their per-item
+    # results appear only in the output, so every command's output goes to the log.
+    $netshCommands = @(
+        [pscustomobject]@{ Arguments = [string[]]@('int', 'ip', 'reset'); AllowedExitCode = [int[]]@(0, 1) }
+        [pscustomobject]@{ Arguments = [string[]]@('interface', 'ipv4', 'reset'); AllowedExitCode = [int[]]@(0, 1) }
+        [pscustomobject]@{ Arguments = [string[]]@('interface', 'ipv6', 'reset'); AllowedExitCode = [int[]]@(0, 1) }
+        [pscustomobject]@{ Arguments = [string[]]@('interface', 'tcp', 'reset'); AllowedExitCode = [int[]]@(0) }
+        [pscustomobject]@{ Arguments = [string[]]@('winsock', 'reset'); AllowedExitCode = [int[]]@(0) }
+    )
+    foreach ($command in $netshCommands) {
+        $result = Invoke-AtlasHiddenProcess `
+            -FilePath $netshPath `
+            -ArgumentList ([object[]]$command.Arguments) `
+            -Wait `
+            -AllowedExitCode $command.AllowedExitCode `
+            -CaptureOutput
+        $outputLines = @(("{0}`n{1}" -f $result.StandardOutput, $result.StandardError) -split '\r?\n' |
+                ForEach-Object { $_.Trim() } |
+                Where-Object { $_.Length -gt 0 })
+        Write-AtlasLog -Message ("netsh {0} exited with code {1}. {2}" -f
+            ($command.Arguments -join ' '), $result.ExitCode, ($outputLines -join ' | '))
     }
 
     foreach ($instanceId in $deviceIds) {

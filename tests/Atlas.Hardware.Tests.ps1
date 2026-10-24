@@ -26,6 +26,7 @@ BeforeAll {
             State          = $State
             StateValue     = $null
             Silent         = $Silent
+            StateRoot      = 'HKCU:\Software\AtlasRewriteTest\HardwareCompanions'
             OperationsPath = Join-Path $TestDrive 'Operations'
         }
     }
@@ -329,6 +330,8 @@ Describe 'Set-AtlasDeviceState' {
             )
         }
         Mock Set-AtlasPnpDeviceState -ModuleName Atlas.Hardware { @(0) }
+        Mock Get-AtlasPnpDeviceParentId -ModuleName Atlas.Hardware { $null }
+        Mock Start-Sleep -ModuleName Atlas.Hardware
     }
 
     It 'disables every present device matching a pattern and nothing else' {
@@ -420,6 +423,183 @@ Describe 'Set-AtlasDeviceState' {
 
         Should -Invoke Get-AtlasPresentPnpDevice -ModuleName Atlas.Hardware -Times 0 -Exactly
     }
+
+    It 'leaves matched descendants to a matched ancestor when disabling' {
+        Mock Get-AtlasPresentPnpDevice -ModuleName Atlas.Hardware {
+            @(
+                (New-PnpDevice -FriendlyName 'USB Root Hub' -InstanceId 'USB\ROOT_HUB30\HUB1')
+                (New-PnpDevice -FriendlyName 'Intel Bluetooth Adapter' -InstanceId 'USB\VID_8087&PID_0026\BT1')
+                (New-PnpDevice -FriendlyName 'Microsoft Bluetooth LE Enumerator' -InstanceId 'BTH\MS_BTHLE\BT2')
+                (New-PnpDevice -FriendlyName 'Headphones' -InstanceId 'BTHLE\DEV_A\BT3')
+                (New-PnpDevice -FriendlyName 'Bluetooth LE Generic Attribute Service' -InstanceId 'BTHLEDEVICE\GATT\BT4')
+            )
+        }
+        # The paired headphones don't match, so the GATT service's matched ancestor is
+        # two levels up. Windows reports parent IDs in their own case.
+        Mock Get-AtlasPnpDeviceParentId -ModuleName Atlas.Hardware {
+            switch -CaseSensitive ([string]$Device.InstanceId) {
+                'USB\VID_8087&PID_0026\BT1' { 'USB\ROOT_HUB30\HUB1' }
+                'BTH\MS_BTHLE\BT2' { 'USB\VID_8087&PID_0026\bt1' }
+                'BTHLE\DEV_A\BT3' { 'BTH\MS_BTHLE\BT2' }
+                'BTHLEDEVICE\GATT\BT4' { 'BTHLE\DEV_A\BT3' }
+                default { $null }
+            }
+        }
+
+        Set-AtlasDeviceState -State Disable -Devices '*Bluetooth*' -Silent
+
+        Should -Invoke Set-AtlasPnpDeviceState -ModuleName Atlas.Hardware -Times 1 -Exactly
+        Should -Invoke Set-AtlasPnpDeviceState -ModuleName Atlas.Hardware -Times 1 -Exactly -ParameterFilter {
+            $InstanceId -ceq 'USB\VID_8087&PID_0026\BT1' -and $State -ceq 'Disable'
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Hardware -Times 1 -Exactly -ParameterFilter {
+            $Message -ceq 'Left 2 matched device(s) to a matched parent: Microsoft Bluetooth LE Enumerator, Bluetooth LE Generic Attribute Service.'
+        }
+    }
+
+    It 'still disables every match when the device tree cannot be read' {
+        Mock Get-AtlasPnpDeviceParentId -ModuleName Atlas.Hardware { throw 'provider unavailable' }
+
+        Set-AtlasDeviceState -State Disable -Devices '*Bluetooth*' -Silent
+
+        Should -Invoke Set-AtlasPnpDeviceState -ModuleName Atlas.Hardware -Times 2 -Exactly
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Hardware -Times 1 -Exactly -ParameterFilter {
+            $Level -ceq 'Warning' -and $Message -like "Couldn't read the device tree*provider unavailable*"
+        }
+    }
+
+    It 'enables a matched child that reappears disabled once its parent starts' {
+        # Code 22 is a device's own disable flag, which a child keeps while its parent is off.
+        $script:deviceCodes = [ordered]@{ 'USB\VID_8087&PID_0026\BT1' = 22 }
+        Mock Get-AtlasPresentPnpDevice -ModuleName Atlas.Hardware {
+            foreach ($id in @($script:deviceCodes.Keys)) {
+                $name = if ($id -like 'BTH\*') { 'Microsoft Bluetooth Enumerator' } else { 'Intel Bluetooth Adapter' }
+                [pscustomobject]@{ FriendlyName = $name; InstanceId = $id; ConfigManagerErrorCode = $script:deviceCodes[$id] }
+            }
+        }
+        Mock Set-AtlasPnpDeviceState -ModuleName Atlas.Hardware {
+            $script:deviceCodes[$InstanceId] = 0
+            if ($InstanceId -ceq 'USB\VID_8087&PID_0026\BT1') {
+                $script:deviceCodes['BTH\MS_BTHBRB\BT2'] = 22
+            }
+        }
+
+        Set-AtlasDeviceState -State Enable -Devices '*Bluetooth*' -Silent
+
+        Should -Invoke Set-AtlasPnpDeviceState -ModuleName Atlas.Hardware -Times 2 -Exactly -ParameterFilter {
+            $State -ceq 'Enable'
+        }
+        $script:deviceCodes['BTH\MS_BTHBRB\BT2'] | Should -Be 0
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Hardware -Times 1 -Exactly -ParameterFilter {
+            $Message -ceq 'Enabled 2 matched device(s): Intel Bluetooth Adapter, Microsoft Bluetooth Enumerator.'
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Hardware -Times 0 -Exactly -ParameterFilter { $Level -ceq 'Warning' }
+    }
+
+    It 'keeps polling until a slow parent enumerates its disabled child' {
+        # The radio's child appears only on the third poll after the radio is enabled.
+        $script:enumerations = 0
+        $script:deviceCodes = [ordered]@{ 'USB\VID_8087&PID_0026\BT1' = 22 }
+        Mock Get-AtlasPresentPnpDevice -ModuleName Atlas.Hardware {
+            $script:enumerations++
+            if ($script:enumerations -eq 4) {
+                $script:deviceCodes['BTH\MS_BTHBRB\BT2'] = 22
+            }
+            foreach ($id in @($script:deviceCodes.Keys)) {
+                $name = if ($id -like 'BTH\*') { 'Microsoft Bluetooth Enumerator' } else { 'Intel Bluetooth Adapter' }
+                [pscustomobject]@{ FriendlyName = $name; InstanceId = $id; ConfigManagerErrorCode = $script:deviceCodes[$id] }
+            }
+        }
+        Mock Set-AtlasPnpDeviceState -ModuleName Atlas.Hardware { $script:deviceCodes[$InstanceId] = 0 }
+
+        Set-AtlasDeviceState -State Enable -Devices '*Bluetooth*' -Silent
+
+        $script:deviceCodes['BTH\MS_BTHBRB\BT2'] | Should -Be 0
+        Should -Invoke Start-Sleep -ModuleName Atlas.Hardware -Times 4 -Exactly
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Hardware -Times 1 -Exactly -ParameterFilter {
+            $Message -ceq 'Enabled 2 matched device(s): Intel Bluetooth Adapter, Microsoft Bluetooth Enumerator.'
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Hardware -Times 0 -Exactly -ParameterFilter { $Level -ceq 'Warning' }
+    }
+
+    It 'warns naming a matched device that stays disabled after enabling' {
+        Mock Get-AtlasPresentPnpDevice -ModuleName Atlas.Hardware {
+            [pscustomobject]@{ FriendlyName = 'Intel Bluetooth Adapter'; InstanceId = 'USB\VID_8087&PID_0026\BT1'; ConfigManagerErrorCode = 22 }
+        }
+
+        { Set-AtlasDeviceState -State Enable -Devices '*Bluetooth*' -Silent } | Should -Not -Throw
+
+        Should -Invoke Start-Sleep -ModuleName Atlas.Hardware -Times 5 -Exactly
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Hardware -Times 1 -Exactly -ParameterFilter {
+            $Message -like 'No other matched devices appeared within 10 seconds of enabling.*'
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Hardware -Times 1 -Exactly -ParameterFilter {
+            $Level -ceq 'Warning' -and
+            $Message -ceq 'Matched device(s) still disabled after enabling: Intel Bluetooth Adapter (USB\VID_8087&PID_0026\BT1).'
+        }
+    }
+
+    It 'does not wait for children when no matched device was disabled' {
+        Set-AtlasDeviceState -State Enable -Devices '*Bluetooth*' -Silent
+
+        Should -Invoke Start-Sleep -ModuleName Atlas.Hardware -Times 0 -Exactly
+        Should -Invoke Get-AtlasPresentPnpDevice -ModuleName Atlas.Hardware -Times 1 -Exactly
+    }
+}
+
+Describe 'Get-AtlasPnpDeviceParentId' {
+    BeforeEach {
+        # Invoke-CimMethod binds -InputObject only to a CIM instance. The PnpDevice type
+        # data that adds InstanceId isn't loaded here.
+        $script:radio = New-CimInstance -ClassName Win32_PnPEntity -Namespace root/cimv2 -ClientOnly `
+            -Property @{ DeviceID = 'USB\VID_8087&PID_0026\BT1' }
+        Add-Member -InputObject $script:radio -NotePropertyName InstanceId -NotePropertyValue $script:radio.DeviceID -Force
+    }
+
+    It 'returns the parent instance ID that GetDeviceProperties reports' {
+        Mock Invoke-CimMethod -ModuleName Atlas.Hardware {
+            [pscustomobject]@{
+                ReturnValue      = 0
+                deviceProperties = @(New-CimInstance -ClassName Win32_PnPDevicePropertyString -Namespace root/cimv2 -ClientOnly `
+                        -Property @{ KeyName = 'DEVPKEY_Device_Parent'; Data = 'USB\ROOT_HUB30\HUB1' })
+            }
+        }
+
+        InModuleScope Atlas.Hardware -Parameters @{ Device = $script:radio } {
+            param($Device)
+            Get-AtlasPnpDeviceParentId -Device $Device
+        } | Should -BeExactly 'USB\ROOT_HUB30\HUB1'
+        Should -Invoke Invoke-CimMethod -ModuleName Atlas.Hardware -Times 1 -Exactly -ParameterFilter {
+            $MethodName -ceq 'GetDeviceProperties' -and
+            @($Arguments['devicePropertyKeys']) -ccontains 'DEVPKEY_Device_Parent'
+        }
+    }
+
+    It 'returns nothing for the root device, whose property has no Data' {
+        Mock Invoke-CimMethod -ModuleName Atlas.Hardware {
+            [pscustomobject]@{
+                ReturnValue      = 0
+                deviceProperties = @(New-CimInstance -ClassName Win32_PnPDeviceProperty -Namespace root/cimv2 -ClientOnly `
+                        -Property @{ KeyName = 'DEVPKEY_Device_Parent' })
+            }
+        }
+
+        InModuleScope Atlas.Hardware -Parameters @{ Device = $script:radio } {
+            param($Device)
+            Get-AtlasPnpDeviceParentId -Device $Device
+        } | Should -BeNullOrEmpty
+    }
+
+    It 'reports a failed GetDeviceProperties call' {
+        Mock Invoke-CimMethod -ModuleName Atlas.Hardware { [pscustomobject]@{ ReturnValue = 5; deviceProperties = $null } }
+
+        {
+            InModuleScope Atlas.Hardware -Parameters @{ Device = $script:radio } {
+                param($Device)
+                Get-AtlasPnpDeviceParentId -Device $Device
+            }
+        } | Should -Throw "Reading the parent of device 'USB\VID_8087&PID_0026\BT1' returned 5."
+    }
 }
 
 Describe 'Hardware toggle companions' {
@@ -428,6 +608,7 @@ Describe 'Hardware toggle companions' {
         Mock Write-AtlasSuccess -ModuleName Atlas.Toggles
         Mock Write-AtlasStep -ModuleName Atlas.Toggles
         Mock Import-AtlasModule -ModuleName Atlas.Toggles
+        Mock Get-AtlasToggleState -ModuleName Atlas.Toggles { $null }
     }
 
     It 'PowerSaving maps both recorded states onto the power-saving modes' {
@@ -489,5 +670,44 @@ Describe 'set-power-settings install tweak' {
         Should -Invoke Invoke-AtlasToggleMachineState -Times 1 -Exactly -ParameterFilter {
             $Name -ceq 'PowerSaving' -and $State -ceq 'Disable'
         }
+    }
+
+    It 'applies and records the hibernation choice through the toggle engine' {
+        Mock Test-AtlasOption { $Name -cin @('disable-power-saving', 'disable-hibernation') }
+        Mock Import-AtlasModule
+        Mock Invoke-AtlasToggleMachineState
+        Mock Invoke-AtlasToggleNativeCommand
+
+        & $script:PowerTweakScript
+
+        Should -Invoke Invoke-AtlasToggleMachineState -Times 1 -Exactly -ParameterFilter {
+            $Name -ceq 'Hibernation' -and $State -ceq 'Disable'
+        }
+        Should -Not -Invoke Invoke-AtlasToggleNativeCommand
+    }
+
+    It 'selects Balanced through the checked native runner when power saving is kept' {
+        # Literal GUIDs: a mock the companion calls resolves $script: in the companion's own scope.
+        Mock Test-AtlasOption { $false }
+        Mock Import-AtlasModule
+        Mock Invoke-AtlasToggleMachineState
+        Mock Invoke-AtlasToggleNativeCommand {
+            if ($PassThru) { [pscustomobject]@{ Output = [string[]]@('Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced)') } }
+        }
+
+        & $script:PowerTweakScript
+
+        Should -Not -Invoke Invoke-AtlasToggleMachineState
+        Should -Invoke Invoke-AtlasToggleNativeCommand -Times 1 -Exactly -ParameterFilter {
+            ($ArgumentList -join ' ') -ceq '/setactive 381b4222-f694-41f0-9685-ff5bb260df2e' -and ($AllowedExitCodes -join ',') -ceq '0'
+        }
+        Should -Invoke Invoke-AtlasToggleNativeCommand -Times 1 -Exactly -ParameterFilter {
+            ($ArgumentList -join ' ') -ceq '/getactivescheme' -and $PassThru
+        }
+
+        Mock Invoke-AtlasToggleNativeCommand {
+            if ($PassThru) { [pscustomobject]@{ Output = [string[]]@('Power Scheme GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c  (High performance)') } }
+        }
+        { & $script:PowerTweakScript } | Should -Throw '*Balanced power scheme did not become the active scheme*'
     }
 }

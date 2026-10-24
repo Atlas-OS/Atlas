@@ -83,6 +83,8 @@ function Set-AtlasWinlogonShell {
     finally { $key.Dispose() }
 }
 
+# Earlier Atlas builds set the Winlogon shell to cmd.exe for CommandPrompt mode and saved
+# the original here; it's read only to put that shell back.
 function Read-AtlasSafeModeShellState {
     param([string]$Path = (Get-AtlasSafeModePaths).ShellState)
     if (![IO.File]::Exists($Path)) { return $null }
@@ -93,16 +95,6 @@ function Read-AtlasSafeModeShellState {
         throw "Safe Mode shell state '$Path' is invalid."
     }
     return $state
-}
-
-function Write-AtlasSafeModeShellState {
-    param([Parameter(Mandatory = $true)]$Shell, [string]$Path = (Get-AtlasSafeModePaths).ShellState)
-    [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($Path))
-    $json = [ordered]@{
-        Version = 1; Owner = 'AtlasOS'; OriginalShell = [string]$Shell.Value
-        OriginalKind = [string]$Shell.Kind
-    } | ConvertTo-Json -Compress
-    [IO.File]::WriteAllText($Path, $json, (New-Object Text.UTF8Encoding($false)))
 }
 
 function Clear-AtlasSafeModeShellState {
@@ -139,7 +131,9 @@ function Set-AtlasSafeMode {
     )
 
     if ($Mode -cne 'Exit' -and !$AllowCbsRetryPending -and (Test-AtlasCbsRetryPending)) {
-        throw 'A CBS retry is pending; only Exit may change Safe Mode.'
+        # CbsRetry.ps1 owns the wording of how to give up the retry.
+        . (Join-Path $PSScriptRoot 'CbsRetry.ps1') -LibraryOnly
+        throw "A CBS retry is pending; only Exit may change Safe Mode. $(Get-AtlasCbsRetryInstruction -Phase Pending)"
     }
     $boot = Get-AtlasSafeBootConfiguration
     $shell = Get-AtlasWinlogonShell
@@ -161,20 +155,16 @@ function Set-AtlasSafeMode {
         Invoke-AtlasBcdEdit -Arguments @('/set', '{current}', 'safeboot', $target) | Out-Null
     }
     if ($Mode -ceq 'CommandPrompt') {
+        # This boot starts the SafeBoot AlternateShell (cmd.exe). The Winlogon shell is left
+        # alone because normal boots use it, including after leaving Safe Mode through msconfig.
         if (!$boot.AlternateShellPresent -or !$boot.AlternateShell) {
             Invoke-AtlasBcdEdit -Arguments @('/set', '{current}', 'safebootalternateshell', 'yes') | Out-Null
         }
-        if (![string]::Equals([string]$shell.Value, 'cmd.exe', [StringComparison]::OrdinalIgnoreCase)) {
-            Write-AtlasSafeModeShellState -Shell $shell
-            Set-AtlasWinlogonShell -Value 'cmd.exe' -Kind String
-        }
     }
-    else {
-        if ($boot.AlternateShellPresent) {
-            Invoke-AtlasBcdEdit -Arguments @('/deletevalue', '{current}', 'safebootalternateshell') | Out-Null
-        }
-        Restore-AtlasSafeModeShell -CurrentShell $shell -State $shellState
+    elseif ($boot.AlternateShellPresent) {
+        Invoke-AtlasBcdEdit -Arguments @('/deletevalue', '{current}', 'safebootalternateshell') | Out-Null
     }
+    Restore-AtlasSafeModeShell -CurrentShell $shell -State $shellState
 }
 
 if (!$LibraryOnly) {

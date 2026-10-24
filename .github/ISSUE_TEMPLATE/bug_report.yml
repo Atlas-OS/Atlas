@@ -55,9 +55,10 @@ body:
 - type: dropdown
   attributes:
     label: Atlas Version
+    description: Run winver to see your Windows version.
     options:
-    - Atlas v0.6.0 for Windows 11 24H2
     - Atlas v0.6.0 for Windows 11 25H2
+    - Atlas v0.6.0 for Windows 11 26H2
   validations:
     required: true
 
@@ -76,4 +77,4 @@ body:
 - type: textarea
   attributes:
     label: Additional content
-    description: Anything you want to add.
+    description: Anything you want to add. To include diagnostics, open Atlas Manager's Settings, choose **Export diagnostics** under Help and feedback, then **Show in folder**, and attach the ZIP.

@@ -3,7 +3,9 @@
 //! because Windows treats them as separate settings and so do users.
 //!
 //! `ATLAS_FORMAT_LOCALE=<tag>` overrides the format locale for review, so a
-//! German number format can be checked on an English machine.
+//! German number format can be checked on an English machine. It gives the
+//! locale's standard formats, without the user's customisations, even when
+//! the tag is the PC's own regional format.
 //!
 //! The pinned GPUI cannot draw right-to-left text (see `docs/i18n.md`), so a
 //! date, time or locale name that Windows gives in a right-to-left script is
@@ -163,9 +165,14 @@ fn time_in(locale: &LocaleName, when: &DateTime<Local>) -> String {
 }
 
 /// Date and time together, for history rows where two installs on one day
-/// need telling apart.
+/// need telling apart. A space joins them, as Windows does; a comma suits
+/// English but not, say, "2025年10月21日 20:13".
 pub fn date_time(when: &DateTime<Local>) -> String {
-    format!("{}, {}", long_date(when), time(when))
+    date_time_in(format_locale(), when)
+}
+
+fn date_time_in(locale: &LocaleName, when: &DateTime<Local>) -> String {
+    format!("{} {}", long_date_in(locale, when), time_in(locale, when))
 }
 
 /// Parses an RFC 3339 timestamp from a state document or release record.
@@ -218,8 +225,9 @@ mod tests {
         assert!(shows_rtl("עברית"));
         assert!(shows_rtl("08:13 م"));
         assert!(shows_rtl("ދިވެހި"), "Thaana");
+        assert!(shows_rtl("ܣܘܪܝܝܐ"), "Syriac");
         assert!(shows_rtl("\u{1E900}"), "Adlam, beyond the BMP");
-        assert!(!shows_rtl("21 October 2025, 20:13"));
+        assert!(!shows_rtl("21 October 2025 20:13"));
         assert!(!shows_rtl("2025年10月21日"));
         assert!(!shows_rtl("21 ตุลาคม 2568"));
         assert!(!shows_rtl("२१ अक्टूबर २०२५"));
@@ -230,19 +238,26 @@ mod tests {
         use chrono::TimeZone;
         let named = |tag: &str| LocaleName::Named(tag.to_owned());
         let when = Local.with_ymd_and_hms(2025, 10, 21, 20, 13, 5).single().unwrap();
+        // Each of these writes its own name right to left, so each must take
+        // the fallback.
         for tag in ["ar-SA", "ar-EG", "he-IL", "fa-IR", "ur-PK", "ckb-IQ", "dv-MV", "syr-SY"] {
-            for text in
-                [long_date_in(&named(tag), &when), time_in(&named(tag), &when), locale_name_in(&named(tag))]
-            {
-                assert!(!shows_rtl(&text), "{tag}: {text}");
-            }
+            let english = locale::display_name(&named(tag), false).unwrap();
+            assert_eq!(locale_name_in(&named(tag)), english, "{tag}");
         }
-        assert_eq!(long_date_in(&named("ar-SA"), &when), "2025-10-21");
         assert_eq!(locale_name_in(&named("he-IL")), "Hebrew (Israel)");
+        // So do their long dates, except dv-MV's weekday-free one, which is numeric.
+        for tag in ["ar-SA", "ar-EG", "he-IL", "fa-IR", "ur-PK", "ckb-IQ", "syr-SY"] {
+            assert_eq!(long_date_in(&named(tag), &when), "2025-10-21", "{tag}");
+        }
+        // And these mark the time with a right-to-left AM or PM.
+        for tag in ["ar-SA", "ar-EG", "fa-IR", "ckb-IQ", "syr-SY"] {
+            assert_eq!(time_in(&named(tag), &when), "20:13", "{tag}");
+        }
         // The fallback is per string: a right-to-left locale whose time is already Latin keeps it.
-        assert_eq!(time_in(&named("he-IL"), &when), "20:13");
+        assert_eq!(time_in(&named("ur-PK"), &when), "8:13 PM");
         // Left-to-right formats are unchanged.
         assert_eq!(long_date_in(&named("en-GB"), &when), "21 October 2025");
+        assert_eq!(date_time_in(&named("ja-JP"), &when), "2025年10月21日 20:13");
     }
 
     #[test]
@@ -254,13 +269,12 @@ mod tests {
         assert_eq!(SizeUnit::of(1024 * MB), SizeUnit::Gigabytes);
         let whole = SizeUnit::Megabytes.value(900 * MB);
         assert_eq!(whole, "900", "no decimal below a gigabyte");
-        let gb = SizeUnit::Gigabytes.value(1536 * MB);
-        assert!(gb.len() == 3 && gb.starts_with('1') && gb.ends_with('5'), "{gb}");
+        // Compared through the same formatter, so this PC's decimal symbol
+        // and leading-zero setting don't matter.
+        assert_eq!(SizeUnit::Gigabytes.value(1536 * MB), decimal(1.5, 1));
         // Download progress counts binary megabytes, as Explorer does.
-        let mb = megabytes_value(1536 * 1024);
-        assert!(mb.len() == 3 && mb.starts_with('1') && mb.ends_with('5'), "{mb}");
+        assert_eq!(megabytes_value(1536 * 1024), decimal(1.5, 1));
         // A progress pair shares its total's unit, so the smaller value stays in GB.
-        let done = SizeUnit::of(1536 * MB).value(512 * MB);
-        assert!(done.len() == 3 && done.starts_with('0') && done.ends_with('5'), "{done}");
+        assert_eq!(SizeUnit::of(1536 * MB).value(512 * MB), decimal(0.5, 1));
     }
 }

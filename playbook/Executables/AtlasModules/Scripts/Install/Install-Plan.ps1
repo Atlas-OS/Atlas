@@ -139,10 +139,6 @@ function Get-AtlasInstallPlan {
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Checkpoint/OemBranding'; Modes = @('Upgrade', 'Rebase'); Oobe = 'Any'
-            Replay = 'Once'
-        }
-        [pscustomobject][ordered]@{
             Key = 'Checkpoint/NotificationRestore'; Modes = $allModes; Oobe = 'Any'
             Replay = 'Always'
         }

@@ -63,8 +63,12 @@ function Resolve-AtlasOneDriveUserDirectory {
     if (-not [IO.Directory]::Exists($canonicalRoot)) {
         throw "The exact-user OneDrive cleanup root '$canonicalRoot' is unavailable."
     }
-    if (([IO.File]::GetAttributes($canonicalRoot) -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-        throw "The exact-user OneDrive cleanup root '$canonicalRoot' is a reparse point."
+    # Only links lead out of the user's tree. Files On-Demand marks the OneDrive folder and
+    # folders it backs up as reparse points too, but their data stays in place.
+    $rootItem = Microsoft.PowerShell.Management\Get-Item -LiteralPath $canonicalRoot -Force
+    if (($rootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -and
+        @('SymbolicLink', 'Junction') -contains $rootItem.LinkType) {
+        throw "The exact-user OneDrive cleanup root '$canonicalRoot' is a reparse point that links elsewhere."
     }
 
     $target = [IO.Path]::GetFullPath([IO.Path]::Combine($canonicalRoot, $ChildPath))
@@ -86,8 +90,10 @@ function Resolve-AtlasOneDriveUserDirectory {
         if (-not [IO.Directory]::Exists($cursor)) {
             break
         }
-        if (([IO.File]::GetAttributes($cursor) -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-            throw "OneDrive cleanup path component '$cursor' is a reparse point."
+        $item = Microsoft.PowerShell.Management\Get-Item -LiteralPath $cursor -Force
+        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -and
+            @('SymbolicLink', 'Junction') -contains $item.LinkType) {
+            throw "OneDrive cleanup path component '$cursor' is a reparse point that links elsewhere."
         }
     }
     return $target
@@ -101,8 +107,11 @@ function Remove-AtlasOneDriveUserEntry {
     )
 
     try {
+        # Delete a link itself, never what it leads to. A Files On-Demand placeholder is a
+        # reparse point too, but it holds this user's data, so it's handled like any item.
         $attributes = [IO.File]::GetAttributes($Entry.FullName)
-        if (($attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        if (($attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -and
+            @('SymbolicLink', 'Junction') -contains $Entry.LinkType) {
             if ($Entry.PSIsContainer) {
                 [IO.Directory]::Delete($Entry.FullName, $false)
             }
@@ -221,7 +230,6 @@ $oneDriveCache = Resolve-AtlasOneDriveUserDirectory -Root $localAppData `
     -ChildPath 'Microsoft\OneDrive'
 $oneDriveShortcut = Resolve-AtlasOneDriveUserDirectory -Root $roamingAppData `
     -ChildPath 'Microsoft\Windows\Start Menu\Programs\OneDrive.lnk'
-$oneDriveFolder = Resolve-AtlasOneDriveUserDirectory -Root $userProfile -ChildPath 'OneDrive'
 
 # Complete every identity and path-boundary check before the first mutation.
 $processModule = Join-Path (Split-Path -Parent $PSScriptRoot) 'Modules\Atlas.TasksProcs\Atlas.TasksProcs.psd1'
@@ -316,18 +324,26 @@ if ([IO.File]::Exists($oneDriveShortcut)) {
 }
 
 # The sync root can contain unsynced user data. Remove it only when no real files remain.
-if ([IO.Directory]::Exists($oneDriveFolder)) {
-    $remainingFiles = @(
-        Microsoft.PowerShell.Management\Get-ChildItem -LiteralPath $oneDriveFolder `
-            -Recurse -File -Force -ErrorAction Stop |
-            Where-Object { $_.Name -cne 'desktop.ini' }
-    )
-    if ($remainingFiles.Count -eq 0) {
-        Remove-AtlasOneDriveUserTree -Path $oneDriveFolder -Failures $cleanupFailures
+# OneDrive's leftover sync state is outside Atlas's control, so a problem reading it
+# skips only this step.
+try {
+    $oneDriveFolder = Resolve-AtlasOneDriveUserDirectory -Root $userProfile -ChildPath 'OneDrive'
+    if ([IO.Directory]::Exists($oneDriveFolder)) {
+        $remainingFiles = @(
+            Microsoft.PowerShell.Management\Get-ChildItem -LiteralPath $oneDriveFolder `
+                -Recurse -File -Force -ErrorAction Stop |
+                Where-Object { $_.Name -cne 'desktop.ini' }
+        )
+        if ($remainingFiles.Count -eq 0) {
+            Remove-AtlasOneDriveUserTree -Path $oneDriveFolder -Failures $cleanupFailures
+        }
+        else {
+            Write-Warning "Not deleting '$oneDriveFolder': it still contains $($remainingFiles.Count) file(s)."
+        }
     }
-    else {
-        Write-Warning "Not deleting '$oneDriveFolder': it still contains $($remainingFiles.Count) file(s)."
-    }
+}
+catch {
+    Write-Warning "Skipped the OneDrive folder: $($_.Exception.Message)"
 }
 if ($cleanupFailures.Count -gt 0) {
     throw "OneDrive cleanup retained $($cleanupFailures.Count) item(s): $($cleanupFailures -join '; ')"

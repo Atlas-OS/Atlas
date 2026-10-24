@@ -2,7 +2,8 @@
 
 function Get-AtlasSoftwareComponentMap {
     # Component -> installer function. 'SevenZip' maps to the archive-tool installer,
-    # which installs NanaZip. Keep the legacy component name for callers.
+    # which installs NanaZip unless 7-Zip is already installed. Keep the legacy
+    # component name for callers.
     return @{
         SevenZip  = 'Install-AtlasArchiveTool'
         VCRedist  = 'Install-AtlasVisualCppRuntimes'
@@ -245,13 +246,13 @@ function Resolve-AtlasLibreWolfReleaseMetadata {
     if ($Release.draft -isnot [bool] -or $Release.draft -or
         $Release.prerelease -isnot [bool] -or $Release.prerelease -or
         $tag -cnotmatch '^[0-9]+\.[0-9]+(?:\.[0-9]+)?-[0-9]+$') {
-        throw 'Codeberg latest-release metadata is not a stable LibreWolf release.'
+        throw "Codeberg release '$tag' is not a stable LibreWolf release."
     }
 
     $assetName = "librewolf-$tag-windows-$Architecture-setup.exe"
     $assets = @($Release.assets | Where-Object { [string]$_.name -ceq $assetName })
     if ($assets.Count -ne 1) {
-        throw "Codeberg latest-release metadata did not contain exactly one '$assetName' asset."
+        throw "Codeberg release '$tag' did not contain exactly one '$assetName' asset."
     }
     $asset = $assets[0]
     $expectedUrl = "https://dl.librewolf.net/librewolf/$tag/$assetName"
@@ -378,11 +379,36 @@ function Get-AtlasLatestLibreWolfInstallerMetadata {
         [string]$Architecture
     )
 
-    $release = Invoke-AtlasSoftwareApiJson `
-        -Uri 'https://codeberg.org/api/v1/repos/librewolf/bsys6/releases/latest' `
-        -Description 'LibreWolf Codeberg latest-release metadata'
-    $releaseMetadata = Resolve-AtlasLibreWolfReleaseMetadata `
-        -Release $release -Architecture $Architecture
+    # Microsoft's winget-pkgs review merges each LibreWolf release hours or days
+    # after Codeberg publishes it. Install the newest recent release it has merged;
+    # LibreWolf WinUpdater updates it afterwards.
+    $releases = @(Invoke-AtlasSoftwareApiJson `
+            -Uri 'https://codeberg.org/api/v1/repos/librewolf/bsys6/releases?limit=5' `
+            -Description 'LibreWolf Codeberg release metadata')
+    $candidates = @(foreach ($release in $releases) {
+            try {
+                Resolve-AtlasLibreWolfReleaseMetadata -Release $release -Architecture $Architecture
+            }
+            catch {
+                Write-AtlasLog -Message "Skipping a LibreWolf release: $($_.Exception.Message)"
+            }
+        })
+    if ($candidates.Count -eq 0) {
+        throw "None of the $($releases.Count) newest Codeberg releases is a stable LibreWolf release with a Windows $Architecture setup."
+    }
+
+    $mergedTags = @(Invoke-AtlasGitHubApiJson `
+            -Uri 'https://api.github.com/repos/microsoft/winget-pkgs/contents/manifests/l/LibreWolf/LibreWolf' `
+            -Description 'Microsoft winget-pkgs LibreWolf version list' |
+            Where-Object { [string]$_.type -ceq 'dir' } |
+            ForEach-Object { [string]$_.name })
+    $releaseMetadata = $candidates | Where-Object { $_.Tag -cin $mergedTags } | Select-Object -First 1
+    if ($null -eq $releaseMetadata) {
+        throw "Microsoft winget-pkgs hasn't merged any of the newest LibreWolf releases ($($candidates.Tag -join ', ')) yet. Try again later."
+    }
+    if ($releaseMetadata.Tag -cne $candidates[0].Tag) {
+        Write-AtlasLog -Message "LibreWolf $($candidates[0].Tag) is awaiting Microsoft winget-pkgs review; installing $($releaseMetadata.Tag), which LibreWolf WinUpdater will update."
+    }
 
     $wingetManifestUri = [uri](
         'https://api.github.com/repos/microsoft/winget-pkgs/contents/' +
@@ -404,61 +430,6 @@ function Get-AtlasLatestLibreWolfInstallerMetadata {
     }
 }
 
-function Resolve-AtlasNanaZipReleaseAssets {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]$Release
-    )
-
-    $tag = [string]$Release.tag_name
-    if ($Release.draft -isnot [bool] -or $Release.draft -or
-        $Release.prerelease -isnot [bool] -or $Release.prerelease -or
-        $tag -cnotmatch '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$') {
-        throw 'GitHub latest-release metadata is not a stable NanaZip release.'
-    }
-
-    $specifications = @(
-        [pscustomobject]@{ Name = "NanaZip_$tag.msixbundle" }
-        [pscustomobject]@{ Name = "NanaZip_$tag.xml" }
-    )
-    $resolved = @()
-    foreach ($specification in $specifications) {
-        $assets = @($Release.assets | Where-Object {
-                [string]$_.name -ceq $specification.Name
-            })
-        if ($assets.Count -ne 1) {
-            throw "GitHub latest-release metadata did not contain exactly one '$($specification.Name)' asset."
-        }
-
-        $asset = $assets[0]
-        $assetBytes = 0L
-        $digestMatch = [regex]::Match(
-            [string]$asset.digest,
-            '^sha256:([0-9a-fA-F]{64})$'
-        )
-        $expectedUrl = "https://github.com/M2Team/NanaZip/releases/download/$tag/$($specification.Name)"
-        if ($asset.state -cne 'uploaded' -or
-            -not $digestMatch.Success -or
-            -not [long]::TryParse([string]$asset.size, [ref]$assetBytes) -or
-            $assetBytes -lt 1 -or $assetBytes -gt 1GB -or
-            [string]$asset.browser_download_url -cne $expectedUrl) {
-            throw "GitHub's '$($specification.Name)' asset is not a complete canonical upload with a SHA-256 digest and a size of at most 1 GB."
-        }
-
-        $apiHash = $digestMatch.Groups[1].Value.ToLowerInvariant()
-
-        $resolved += [pscustomobject]@{
-            Tag     = $tag
-            Name    = $specification.Name
-            Uri     = [uri]$expectedUrl
-            Sha256  = $apiHash
-            Size    = $assetBytes
-        }
-    }
-
-    return $resolved
-}
-
 function Invoke-AtlasArchiveDownload {
     param(
         [Parameter(Mandatory = $true)][uri[]]$Uris,
@@ -470,15 +441,25 @@ function Invoke-AtlasArchiveDownload {
     # Each download verifies the same pinned bytes before returning. The pinned
     # downloader removes its own partial file on failure. Never retry installation.
     if (Test-Path -LiteralPath $Destination) { throw "Download destination already exists: $Destination" }
+    # The limit covers the whole transfer, so scale it with the file: allow for
+    # 32 KB/s from each source, between 1 and 15 minutes.
+    $maximumSeconds = [int][Math]::Min(900, [Math]::Max(60, [Math]::Ceiling($ExpectedBytes / 32KB)))
     $failures = New-Object 'Collections.Generic.List[string]'
     foreach ($uri in $Uris) {
         try {
             Write-AtlasLog -Message "Downloading archive-app asset from $uri."
             return Invoke-AtlasPinnedDownload -Uri $uri -Destination $Destination `
-                -Sha256 $Sha256 -ExpectedBytes $ExpectedBytes -MaximumSeconds 60
+                -Sha256 $Sha256 -ExpectedBytes $ExpectedBytes -MaximumSeconds $maximumSeconds
         }
         catch {
-            $detail = "$uri : $($_.Exception.Message)"
+            $reason = $_.Exception.Message
+            for ($exception = $_.Exception; $null -ne $exception; $exception = $exception.InnerException) {
+                if ($exception -is [OperationCanceledException]) {
+                    $reason = "the download didn't finish within its $maximumSeconds-second limit."
+                    break
+                }
+            }
+            $detail = "$uri : $reason"
             $failures.Add($detail)
             Write-AtlasLog -Level Warning -Message "Archive-app download failed: $detail"
         }
@@ -998,39 +979,15 @@ function Install-AtlasNanaZip {
     }
 }
 
-function Get-AtlasParsedUninstallString {
-    # This is intentionally not a general uninstall-command parser. Accept only
-    # the two exact 7-Zip values that resolve to the caller-supplied protected
-    # Uninstall.exe path, then provide our own fixed argv array.
-    param(
-        [Parameter(Mandatory = $true)][string]$UninstallString,
-        [Parameter(Mandatory = $true)][string]$ExpectedFilePath
-    )
-
-    if ([string]::IsNullOrWhiteSpace($ExpectedFilePath) -or
-        $ExpectedFilePath.IndexOf([char]0) -ge 0 -or
-        $ExpectedFilePath -cnotmatch '^[A-Za-z]:[\\/]') {
-        throw 'The expected 7-Zip uninstaller must be an explicit absolute local drive path.'
-    }
-    if ($ExpectedFilePath.Substring(2).Contains(':')) {
-        throw 'The expected 7-Zip uninstaller cannot address an alternate data stream.'
-    }
-    $expectedPath = [IO.Path]::GetFullPath($ExpectedFilePath)
-
-    $quotedPath = '"' + $expectedPath + '"'
-    if (-not $UninstallString.Equals($quotedPath, [StringComparison]::Ordinal) -and
-        -not $UninstallString.Equals(($quotedPath + ' /S'), [StringComparison]::Ordinal)) {
-        return $null
-    }
-
-    return [pscustomobject]@{
-        FilePath     = $expectedPath
-        ArgumentList = [string[]]@('/S')
-    }
-}
-
 function Install-AtlasArchiveTool {
     param([Parameter(Mandatory = $true)][string]$TempDir)
+
+    # The install engine runs without a desktop, so nobody could answer a question
+    # about replacing 7-Zip. Keep the archive tool the user already chose.
+    if (Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\7-Zip') {
+        Write-AtlasLog -Message '7-Zip is installed, so Atlas keeps it and skips NanaZip.'
+        return
+    }
 
     try {
         $dismCommands = Get-AtlasDismProvisioningCommands
@@ -1045,75 +1002,17 @@ function Install-AtlasArchiveTool {
         return
     }
 
-    $sevenZipRegistry = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\7-Zip'
-    $replaceSevenZip = Test-Path -LiteralPath $sevenZipRegistry
-    if ($replaceSevenZip) {
-        $message = @'
-Would you like to uninstall 7-Zip and replace it with NanaZip?
-
-NanaZip is a fork of 7-Zip with an updated user interface and extra features.
-'@
-        if ((Read-MessageBox -Title 'Installing NanaZip - Atlas' -Body $message -Icon Question) -ne 'Yes') {
-            Write-Host 'Keeping existing 7-Zip installation.'
-            return
-        }
-    }
-
-    $nanaZipInstalled = Install-AtlasNanaZipFromStore -DismCommands $dismCommands
-    if (-not $nanaZipInstalled) {
+    if (-not (Install-AtlasNanaZipFromStore -DismCommands $dismCommands)) {
         try {
             $assets = @(Get-AtlasPinnedNanaZipReleaseAssets)
         }
         catch {
             throw "NanaZip release integrity could not be established. $($_.Exception.Message)"
         }
-        $nanaZipInstalled = Install-AtlasNanaZip `
+        $null = Install-AtlasNanaZip `
             -TempDir $TempDir `
             -Assets $assets `
             -DismCommands $dismCommands
-    }
-    if (-not $nanaZipInstalled -or -not $replaceSevenZip) {
-        return
-    }
-
-    try {
-            $uninstallProperty = Get-ItemProperty `
-                -Path $sevenZipRegistry `
-                -Name 'QuietUninstallString' `
-                -ErrorAction Stop
-        $expectedUninstaller = [IO.Path]::Combine(
-            [Environment]::GetFolderPath('ProgramFiles'),
-            '7-Zip',
-            'Uninstall.exe'
-        )
-        $parsedUninstall = Get-AtlasParsedUninstallString `
-            -UninstallString ([string]$uninstallProperty.QuietUninstallString) `
-            -ExpectedFilePath $expectedUninstaller
-        if ($null -eq $parsedUninstall) {
-            throw 'The 7-Zip QuietUninstallString does not use the supported exact format.'
-        }
-        $protectedUninstaller = Resolve-AtlasProtectedExecutionPath `
-            -Path $parsedUninstall.FilePath `
-            -PathType Leaf `
-            -Description 'The expected 7-Zip uninstaller'
-        if (-not $protectedUninstaller.Equals(
-                $expectedUninstaller,
-                [StringComparison]::OrdinalIgnoreCase
-            )) {
-            throw 'The protected 7-Zip uninstaller did not resolve to the expected installation path.'
-        }
-        Start-AtlasSoftwareInstaller `
-            -FilePath $protectedUninstaller `
-            -ArgumentList ([string[]]$parsedUninstall.ArgumentList) `
-            -Description '7-Zip removal'
-        if (Test-Path -LiteralPath $sevenZipRegistry) {
-            throw 'The 7-Zip uninstaller returned success but its machine uninstall record remains.'
-        }
-    }
-    catch {
-        $message = "NanaZip is installed, but 7-Zip cleanup failed; no rollback was attempted. $($_.Exception.Message)"
-        Write-AtlasLog -Level Warning -Message $message
-        throw $message
     }
 }
 

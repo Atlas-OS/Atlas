@@ -316,7 +316,7 @@ window size and a scroll offset; `-Desktop` adds the before-desktop bar.
 | Screen | States |
 | --- | --- |
 | Home | `home` |
-| Files | `files`, `files-checked`, `checking`, `not-elevated`, `failed`, `release-unknown`, `release-unlisted`, `package-unsupported` |
+| Files | `files`, `files-empty`, `files-checked`, `checking`, `not-elevated`, `failed`, `release-unknown`, `release-unlisted`, `package-unsupported` |
 | Windows setup | `windows`, `account-empty`, `account-invalid`, `network-drivers` |
 | Your choices | `choices`, `choices-unsupported`, `before`, `before-desktop` |
 | Review and Create | `review`, `review-before`, `progress`, `progress-network`, `build-failed`, `package-changed`, `cancelled`, `complete` |

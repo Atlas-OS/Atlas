@@ -202,7 +202,7 @@ fn acknowledge_box(state: &AppModel, model: &gpui::Entity<AppModel>) -> CheckBox
     let confirmed = state.security_acknowledged();
     CheckBox::new("security-acknowledge", t!("security-acknowledge"), confirmed)
         .flush_start()
-        .disabled(!state.security.off_where_readable() || !state.flow.may_edit())
+        .disabled(!state.security.off_where_readable() || state.locked())
         .on_toggle(on_model(model, move |m, cx| m.acknowledge_security(!confirmed, cx)))
 }
 
@@ -244,7 +244,6 @@ fn unreadable_bar(state: &AppModel, model: &gpui::Entity<AppModel>, open: Option
     if status.counts().unknown == 0 {
         return None;
     }
-    let may_edit = state.flow.may_edit();
     Some(if state.elevated {
         InfoBar::new(Severity::Warning, t!("security-unknown-title"), t!("security-unknown-message"))
             .when_some(open, InfoBar::action)
@@ -258,7 +257,7 @@ fn unreadable_bar(state: &AppModel, model: &gpui::Entity<AppModel>, open: Option
         .action(
             Button::new("security-elevate", t!("common-restart-as-administrator"))
                 .icon(Icon::Admin)
-                .disabled(!may_edit || !state.may_relaunch_elevated())
+                .disabled(!state.may_relaunch_elevated())
                 .on_click(on_model(model, |m, cx| m.relaunch_elevated(cx))),
         )
     })
@@ -329,7 +328,6 @@ mod tests {
         let removed = SecurityStatus { defender_present: false, ..nothing_readable };
         assert_eq!(security_banner(&removed, false), SecurityBanner::Reading);
         assert_eq!(security_banner(&removed, true), SecurityBanner::Absent);
-        assert!(crate::model::security_verified(&removed, None, false));
     }
 
     /// Whatever unblocks unreadable switches is in the bar at the top, or

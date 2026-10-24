@@ -6,13 +6,7 @@ function Invoke-AtlasStoreFixer {
         throw "Required StoreFixer executable is missing: '$storeFixer'."
     }
 
-    if ($Toggle.Silent) {
-        Invoke-AtlasToggleNativeCommand -FilePath $storeFixer -ArgumentList ([string[]]@('silent', '-wait')) `
-            -AllowedExitCodes ([int[]]@(0)) | Out-Null
-        return
-    }
-
-    Write-AtlasStep -Text 'Running StoreFixer. This can take a few minutes...'
-    Invoke-AtlasToggleNativeCommand -FilePath $storeFixer -ArgumentList ([string[]]@('-wait')) `
+    # The TrustedInstaller broker always runs this silently.
+    Invoke-AtlasToggleNativeCommand -FilePath $storeFixer -ArgumentList ([string[]]@('silent', '-wait')) `
         -AllowedExitCodes ([int[]]@(0)) | Out-Null
 }

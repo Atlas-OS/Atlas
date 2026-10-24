@@ -30,7 +30,6 @@ function Get-AtlasInstallCheckpointAction {
         NotificationDisable = @{ Path = 'Install\Tasks\Set-NotificationState.ps1'; Args = @{ Mode = 'Disable' } }
         InitializePath = @{ Path = 'Install\Tasks\Initialize-AtlasPath.ps1'; Args = @{} }
         InstallingUserSetup = @{ Path = 'Install\Tasks\Invoke-AtlasInstallingUserSetup.ps1'; Args = @{} }
-        OemBranding = @{ Path = 'Install\Tasks\Set-OemInformation.ps1'; Args = @{} }
         WindowsTransition = @{ Path = 'Install\Tasks\Complete-AtlasWindowsTransition.ps1'; Args = @{} }
         NotificationRestore = @{ Path = 'Install\Tasks\Set-NotificationState.ps1'; Args = @{ Mode = 'Enable' } }
         DefaultHiveUnload = @{ Path = 'Install\Tasks\Set-AtlasDefaultUserHive.ps1'; Args = @{ State = 'Unloaded' } }

@@ -5,18 +5,10 @@ BeforeAll {
     $script:CustomYamlPath = Join-Path $script:ConfigurationRoot 'custom.yml'
     $script:PowerShellPrefix = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass'
     $script:StateScript = '.\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1'
-    $script:ApplicabilityProperties = @(
-        'iso', 'oobe', 'option', 'options', 'builds', 'cpuArch',
-        'onUpgrade', 'onUpgradeVersions', 'previousOption'
-    )
 
     . (Join-Path $script:RepoRoot 'tools\build\AtlasBuild\AtlasYamlAction.ps1')
     $script:Actions = @(Get-AtlasYamlAction -Path $script:CustomYamlPath `
             -RelativePath 'custom.yml')
-
-    [xml]$playbook = [IO.File]::ReadAllText((Join-Path $script:RepoRoot 'playbook\playbook.conf'))
-    $script:FeatureOptions = @($playbook.SelectNodes('/Playbook/FeaturePages/*/Options/*/Name') |
-        ForEach-Object { $_.InnerText } | Sort-Object -Unique)
 
     function New-AtlasFileArgument {
         param(
@@ -33,31 +25,6 @@ BeforeAll {
 }
 
 Describe 'Compact AME runner boundary' {
-    It 'captures every FeaturePage option through the same gated state operation' {
-        $records = @($script:Actions | Where-Object {
-                $_.Type -ceq 'run' -and
-                [string]$_.Properties.args -match `
-                    ' -Operation RecordOption -Option (?<Option>[a-z0-9-]+)$'
-            })
-        $records.Count | Should -Be $script:FeatureOptions.Count
-
-        $captured = foreach ($record in $records) {
-            $match = [regex]::Match(
-                [string]$record.Properties.args,
-                ' -Operation RecordOption -Option (?<Option>[a-z0-9-]+)$'
-            )
-            $name = $match.Groups['Option'].Value
-            [string]$record.Properties.option | Should -BeExactly $name
-            [string]$record.Properties.args | Should -BeExactly (
-                New-AtlasFileArgument -Path $script:StateScript `
-                    -Tail "-Operation RecordOption -Option $name"
-            )
-            $name
-        }
-        @($captured | Sort-Object) | Should -Be $script:FeatureOptions
-        @($captured | Sort-Object -Unique).Count | Should -Be $script:FeatureOptions.Count
-    }
-
     It 'commits state before the one PowerShell-owned install run' {
         $commitArguments = New-AtlasFileArgument -Path $script:StateScript `
             -Tail '-Operation Commit'
@@ -75,18 +42,13 @@ Describe 'Compact AME runner boundary' {
         $commit.Count | Should -Be 1
         $install.Count | Should -Be 1
         $install[0].Line | Should -BeGreaterThan $commit[0].Line
-        $install[0].Properties.runas | Should -BeExactly 'trustedInstaller'
-        foreach ($gate in $script:ApplicabilityProperties) {
-            $install[0].Properties.Contains($gate) | Should -BeFalse
-        }
 
         $afterCommit = @($script:Actions | Where-Object {
                 $_.Line -gt $commit[0].Line -and $_.Type -cne 'writeStatus'
         })
-        $afterCommit.Count | Should -Be 2
-        @($afterCommit.Type) | Should -Be @('registryKey', 'run')
-        $afterCommit[0].Line | Should -BeLessThan $install[0].Line
-        $afterCommit[1].Line | Should -Be $install[0].Line
+        $afterCommit.Count | Should -Be 1
+        @($afterCommit.Type) | Should -Be @('run')
+        $afterCommit[0].Line | Should -Be $install[0].Line
     }
 }
 

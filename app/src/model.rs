@@ -36,10 +36,6 @@ pub use preferences::{ProtectionReminder, ReminderReason};
 pub use restart::{OwedRestart, RestartConfirmation, RestartCountdown, RestartKind, RestartProblem};
 pub use transition::{RestoreStatus, StopQuestion};
 
-// The Install page's tests check the Windows Security rule directly.
-#[cfg(test)]
-pub use checks::security_verified;
-
 use std::collections::BTreeSet;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -161,6 +157,9 @@ pub struct AppModel {
     pub preparation: services::preparation::State,
     pub preparation_progress: Option<services::preparation::Progress>,
     pub preparation_error: Option<String>,
+    /// The last preparation run failed because Atlas Manager runs from a
+    /// linked folder (see `recovery_app::SourceLinked`).
+    pub preparation_source_linked: bool,
     pub preparation_job: Option<PathBuf>,
     /// When preparation asked for a restart (RFC 3339); saved in the draft
     /// so the next start resumes after it.
@@ -192,6 +191,9 @@ pub struct AppModel {
     /// The user accepted Microsoft's licence terms for the version Atlas
     /// moves Windows to, in this flow.
     pub windows_terms_accepted: bool,
+    /// The user went on past the warning that Windows here looks used, in
+    /// this flow, so it stays away after Atlas's own restart.
+    pub used_windows_accepted: bool,
     /// This flow started Your choices from the installed Atlas's choices; the
     /// user's changes since then stand.
     recorded_choices_applied: bool,
@@ -284,6 +286,9 @@ pub struct AppModel {
     /// The identity of the flow this window is running, written into its
     /// draft so only this window saves or abandons it.
     flow_id: Option<String>,
+    /// A draft write that failed and that no later write has made up for yet
+    /// (see `drafts::UnsavedDraft`).
+    unsaved_draft: Option<drafts::UnsavedDraft>,
     /// The one writer of settings.json: ordered transactions on a thread of
     /// their own, each against the document as it is on disk.
     store: settings::Store,
@@ -357,8 +362,9 @@ impl AppModel {
         cx.notify();
     }
 
-    /// `language_override` comes from `--language` and outranks the setting
-    /// (review and testing only).
+    /// `language_override` comes from `--language`; `Environment::from_process`
+    /// falls back to `ATLAS_LANGUAGE`. It outranks the setting (review and
+    /// testing only).
     pub fn new(language_override: Option<String>, cx: &mut Context<Self>) -> Self {
         Self::with_environment(Environment::from_process(language_override), cx)
     }
@@ -382,6 +388,7 @@ impl AppModel {
             preparation: Default::default(),
             preparation_progress: None,
             preparation_error: None,
+            preparation_source_linked: false,
             preparation_job: None,
             preparation_restart_at: None,
             preparation_problem: None,
@@ -402,6 +409,7 @@ impl AppModel {
             update_access: None,
             windows_transition_declined: false,
             windows_terms_accepted: false,
+            used_windows_accepted: false,
             recorded_choices_applied: false,
             store_outcome_seen: None,
             offer_wait: None,
@@ -449,6 +457,7 @@ impl AppModel {
             session: None,
             own_session: None,
             flow_id: None,
+            unsaved_draft: None,
             store,
             attempt: InstallAttempt::default(),
             restart_timer: None,
@@ -480,7 +489,8 @@ impl AppModel {
 
     /// An install, an ISO or USB job, Windows preparation or putting back
     /// Windows Update settings is running; nothing that feeds the install
-    /// may change.
+    /// may change. Model actions that change anything feeding the install
+    /// refuse on this; `Flow::may_edit` is only the flow's part of it.
     pub fn locked(&self) -> bool {
         self.flow.locked()
             || self.iso_busy

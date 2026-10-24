@@ -129,6 +129,8 @@ Describe 'Explicit enable state scope' {
     }
     It 'preserves Find My Device when its separate change is declined' {
         Enable-AtlasLocation -Toggle ([pscustomobject]@{ Silent = $false })
+        Should -Invoke Set-AtlasLocationMachineState -Times 1 -Exactly -ParameterFilter { $State -ceq 'Enable' }
+        Should -Invoke Read-AtlasYesNo -Times 1 -Exactly
         Should -Not -Invoke Remove-AtlasRegistryValue
         Should -Not -Invoke Set-AtlasRegistryValue
         Should -Not -Invoke Set-AtlasSettingsPageVisibility
@@ -137,9 +139,21 @@ Describe 'Explicit enable state scope' {
     It 'unlocks only the two Atlas Find My Device restrictions after acceptance' {
         Mock Read-AtlasYesNo { $true }
         Enable-AtlasLocation -Toggle ([pscustomobject]@{ Silent = $false })
+        Should -Invoke Set-AtlasLocationMachineState -Times 1 -Exactly -ParameterFilter { $State -ceq 'Enable' }
         Should -Invoke Remove-AtlasRegistryValue -Times 2 -Exactly -ParameterFilter {
             $Path -eq 'HKLM:\SOFTWARE\Policies\Microsoft\FindMyDevice' -and $Name -in @('AllowFindMyDevice','LocationSyncEnabled')
         }
+        Should -Invoke Set-AtlasSettingsPageVisibility -Times 1 -Exactly -ParameterFilter {
+            $Operation -eq 'unhide' -and $Page -eq 'findmydevice'
+        }
         Should -Not -Invoke Set-AtlasRegistryValue
+    }
+    It 'never asks about Find My Device in a silent or upgrade re-apply' {
+        Mock Read-AtlasYesNo { throw 'Silent re-apply must not prompt.' }
+        Enable-AtlasLocation -Toggle ([pscustomobject]@{ Silent = $true })
+        Should -Invoke Set-AtlasLocationMachineState -Times 1 -Exactly -ParameterFilter { $State -ceq 'Enable' }
+        Should -Invoke Read-AtlasYesNo -Times 0 -Exactly
+        Should -Not -Invoke Remove-AtlasRegistryValue
+        Should -Not -Invoke Set-AtlasSettingsPageVisibility
     }
 }

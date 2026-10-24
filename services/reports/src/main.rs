@@ -47,6 +47,28 @@ async fn main() {
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
+    .with_graceful_shutdown(stop_requested())
     .await
     .expect("Server stopped");
+}
+
+/// Completes on SIGTERM or Ctrl+C. In a container the service is the first
+/// process, which gets no default action for SIGTERM, so without a handler a
+/// stop waits out the grace period and is then killed mid-request. Once this
+/// completes, no new connections are accepted and requests in progress finish.
+async fn stop_requested() {
+    #[cfg(unix)]
+    let terminate = async {
+        use tokio::signal::unix::{SignalKind, signal};
+        signal(SignalKind::terminate())
+            .expect("Cannot handle SIGTERM")
+            .recv()
+            .await;
+    };
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+    tokio::select! {
+        _ = tokio::signal::ctrl_c() => {}
+        () = terminate => {}
+    }
 }

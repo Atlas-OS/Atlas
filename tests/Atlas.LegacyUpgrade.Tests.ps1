@@ -53,8 +53,18 @@ Describe 'Legacy registry reader on Windows PowerShell' {
         $ast = [Management.Automation.Language.Parser]::ParseFile($taskPath, [ref]$tokens, [ref]$errors)
         $reader = $ast.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Read-AtlasLegacyRegistryValue' }, $true)
         . ([scriptblock]::Create($reader.Extent.Text))
+        # The task reads the installing user's hive through HKEY_USERS; this user's
+        # own loaded hive stands in for it.
+        $script:userSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+        $script:userKey = 'Software\AtlasRewriteTest\LegacyReader'
+        $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($script:userKey)
+        try { $key.SetValue('Choice', 1, [Microsoft.Win32.RegistryValueKind]::DWord) }
+        finally { $key.Dispose() }
     }
-    It 'reads an existing machine value without changing the registry' {
+    AfterAll {
+        [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree($script:userKey, $false)
+    }
+    It 'reads an existing machine value' {
         $result = Read-AtlasLegacyRegistryValue -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'ProductName'
         $result.KeyExists | Should -BeTrue
         $result.Exists | Should -BeTrue
@@ -69,6 +79,26 @@ Describe 'Legacy registry reader on Windows PowerShell' {
     }
     It 'rejects registry roots outside the migration scope' {
         Read-AtlasLegacyRegistryValue -Path 'HKU\OtherUser' -Name 'Value' | Should -BeNullOrEmpty
+    }
+    It 'reads a user value from the installing user hive' {
+        $path = 'HKCU:\' + $script:userKey
+        $result = Read-AtlasLegacyRegistryValue -Path $path -Name 'Choice' -UserSid $script:userSid
+        $result.KeyExists | Should -BeTrue
+        $result.Exists | Should -BeTrue
+        $result.Kind | Should -BeExactly 'DWord'
+        $result.Value | Should -BeOfType [int]
+        $result.Value | Should -Be 1
+        $result = Read-AtlasLegacyRegistryValue -Path $path -Name 'Missing' -UserSid $script:userSid
+        $result.KeyExists | Should -BeTrue
+        $result.Exists | Should -BeFalse
+        (Read-AtlasLegacyRegistryValue -Path "$path\Missing" -Name 'Choice' -UserSid $script:userSid).KeyExists |
+            Should -BeFalse
+    }
+    It 'does not fall back to the process user hive' {
+        $path = 'HKCU:\' + $script:userKey
+        (Read-AtlasLegacyRegistryValue -Path $path -Name 'Choice' -UserSid 'S-1-5-21-1-2-3-1001').KeyExists |
+            Should -BeFalse
+        Read-AtlasLegacyRegistryValue -Path $path -Name 'Choice' | Should -BeNullOrEmpty
     }
 }
 
@@ -91,8 +121,10 @@ Describe 'Partial legacy choice capture' {
             @{ Name = $Name; States = $states }
         }
         Mock Test-AtlasArchMatch { $true }
-        Mock Get-ItemPropertyValue { '01234567-0123-0123-0123-012345678901' }
         Mock Read-AtlasLegacyRegistryValue {
+            if ($Name -eq 'ActivePowerScheme') {
+                return @{ KeyExists = $true; Exists = $true; Kind = 'String'; Value = '01234567-0123-0123-0123-012345678901' }
+            }
             if ($Name -in @('Missing', 'Ambiguous', 'Start_TrackDocs', 'ACSettingIndex')) {
                 return @{ KeyExists = $true; Exists = $true; Kind = 'DWord'; Value = 1 }
             }
@@ -129,8 +161,18 @@ Describe 'Partial legacy choice capture' {
         Import-AtlasLegacyChoices -Context $script:ChoiceContext
         $script:CapturedChoices.ContainsKey('Missing') | Should -BeFalse
     }
+    It 'captures an unrecorded Sleep choice from the active power plan' {
+        Mock Get-AtlasToggleStateRecords { @{ Existing = 0; RecentItems = 0 } }
+        Import-AtlasLegacyChoices -Context $script:ChoiceContext
+        $script:CapturedChoices.Sleep | Should -Be 1
+        Should -Invoke Read-AtlasLegacyRegistryValue -Times 1 -ParameterFilter {
+            $Name -eq 'ACSettingIndex' -and
+            $Path -like '*\01234567-0123-0123-0123-012345678901\238c9fa8-0aad-41ed-83f4-97be242c8f20\abfc2519-3608-4c2a-94ea-171b0ed546ab'
+        }
+    }
     It 'tolerates an absent active power plan when capturing missing choices' {
         Mock Get-AtlasToggleStateRecords { @{ Existing = 0; RecentItems = 0 } }
+        Mock Read-AtlasLegacyRegistryValue { @{ KeyExists = $true; Exists = $false; Value = $null } } -ParameterFilter { $Name -eq 'ActivePowerScheme' }
         { Import-AtlasLegacyChoices -Context $script:ChoiceContext } | Should -Not -Throw
         $script:CapturedChoices.ContainsKey('Sleep') | Should -BeFalse
     }

@@ -2,6 +2,12 @@ readme:
 - changed-files:
   - any-glob-to-any-file: '**/README.md'
 
+docs:
+- changed-files:
+  - any-glob-to-any-file:
+    - docs/**/*
+    - app/docs/**/*
+
 actions:
 - changed-files:
   - any-glob-to-any-file:
@@ -47,9 +53,20 @@ build tooling:
 - changed-files:
   - any-glob-to-any-file:
     - tools/**/*
+    - app/tools/**/*
     - build.cmd
     - build.sh
 
 tests:
 - changed-files:
   - any-glob-to-any-file: tests/**/*
+
+# Atlas Manager and the report service
+
+app:
+- changed-files:
+  - any-glob-to-any-file: app/**/*
+
+reports service:
+- changed-files:
+  - any-glob-to-any-file: services/**/*

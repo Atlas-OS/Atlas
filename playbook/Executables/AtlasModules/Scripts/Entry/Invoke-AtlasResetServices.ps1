@@ -67,6 +67,7 @@ if (-not $Silent) {
     }
 }
 
+$detailsPath = $null
 try {
     if (-not (Test-AtlasAdmin)) {
         $context = Get-AtlasContext
@@ -80,16 +81,27 @@ try {
             Write-AtlasStep -Text 'Asking for administrator permission...'
         }
         try {
-            $elevatedProcess = Start-Process -FilePath $powershellPath -ArgumentList $argumentString `
-                -Verb RunAs -Wait -PassThru
+            # Process.Start, not Start-Process: in Windows PowerShell 5.1 Start-Process hides
+            # a declined prompt's Win32Exception behind an InvalidOperationException.
+            $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+            $startInfo.FileName = $powershellPath
+            $startInfo.Arguments = $argumentString
+            $startInfo.WorkingDirectory = [Environment]::GetFolderPath('System')
+            $startInfo.UseShellExecute = $true
+            $startInfo.Verb = 'runas'
+            $elevatedProcess = [Diagnostics.Process]::Start($startInfo)
+            $elevatedProcess.WaitForExit()
         }
-        catch [ComponentModel.Win32Exception] {
-            if ($_.Exception.NativeErrorCode -eq 1223) {
+        catch [Management.Automation.MethodInvocationException] {
+            $cause = $_.Exception.InnerException
+            if ($cause -is [ComponentModel.Win32Exception] -and $cause.NativeErrorCode -eq 1223) {
                 throw 'The administrator permission prompt was cancelled, so nothing was changed.'
             }
             throw
         }
         if ($elevatedProcess.ExitCode -ne 0) {
+            # The elevated run logged its reason to the machine log, not this user's.
+            $detailsPath = Join-Path -Path $context.LogsPath -ChildPath 'install\atlas-install.log'
             throw "The elevated service reset exited with code $($elevatedProcess.ExitCode)."
         }
     }
@@ -103,11 +115,14 @@ try {
     }
 }
 catch {
+    # Log before a -Silent rethrow too: that run is often the elevated half of an
+    # interactive one, whose window closes as soon as it exits.
+    Write-AtlasLog -Level Error -Message "Resetting services failed: $($_.Exception.Message)" -ErrorRecord $_ -NoConsole:(-not $Silent)
     if ($Silent) {
         throw
     }
-    Write-AtlasLog -Level Error -Message "Resetting services failed: $($_.Exception.Message)" -ErrorRecord $_ -NoConsole
-    Write-AtlasNotApplied -Title $title -Reason $_.Exception.Message -DetailsPath (Get-AtlasInstallLogPath)
+    if ($null -eq $detailsPath) { $detailsPath = Get-AtlasInstallLogPath }
+    Write-AtlasNotApplied -Title $title -Reason $_.Exception.Message -DetailsPath $detailsPath
     Wait-AtlasExit
     exit 1
 }

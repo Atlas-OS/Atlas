@@ -327,15 +327,15 @@ function Start-AtlasInstallState {
     return Invoke-AtlasInstallStateLocked {
         $directory = [IO.Path]::GetDirectoryName($resolvedPath)
         $abandonedPath = Join-Path -Path $directory -ChildPath 'abandoned.json'
-        $existing = $null
 
         # Completion removes transient work. Any later retry or older-RC recovery must
         # restore this invariant before option capture or Always checkpoints use it.
         [void][IO.Directory]::CreateDirectory((Join-Path -Path $directory -ChildPath 'work'))
 
         # A failed Fresh transaction may have been archived by an older RC when AME
-        # reclassified the partially modified machine as Reapply. Recover that exact
-        # Fresh step position so the remaining Fresh-only phases are not silently lost.
+        # reclassified the partially modified machine as Reapply. Restore it as the
+        # active state so the reclassified-retry recovery below resumes that exact
+        # Fresh step position and the remaining Fresh-only phases are not lost.
         if (-not [IO.File]::Exists($resolvedPath) -and
             $installMode -ceq 'Reapply' -and
             [IO.File]::Exists($abandonedPath)) {
@@ -344,15 +344,8 @@ function Start-AtlasInstallState {
                 $abandoned.status -ceq 'Running' -and
                 $abandoned.mode -ceq 'Fresh' -and
                 -not [string]::IsNullOrWhiteSpace([string]$abandoned.lastError)) {
-                $existing = $abandoned
-                $existing.status = 'Capturing'
-                $existing.userSid = $null
-                $existing.userSessionId = $null
-                $existing.captureNonce = $CaptureNonce
-                $existing.lastError = $null
-                Write-AtlasInstallStateFile -Path $resolvedPath -State $existing
+                Write-AtlasInstallStateFile -Path $resolvedPath -State $abandoned
                 [IO.File]::Delete($abandonedPath)
-                return $existing
             }
         }
         $existing = Get-AtlasInstallStateUnlocked -StatePath $resolvedPath
@@ -364,11 +357,17 @@ function Start-AtlasInstallState {
                 )) {
                 throw "An install state for target '$($existing.targetVersion)' is already active."
             }
+            $changed = $false
             if ($existing.mode -cne $installMode -or
                 [bool]$existing.isOobe -ne $oobeValue) {
+                # A capture with completed steps is a recovered run whose capture was
+                # interrupted before Commit, so the next retry recovers it again.
                 $canRecoverFailedRun = (
                     $existing.status -ceq 'Running' -and
                     -not [string]::IsNullOrWhiteSpace([string]$existing.lastError)
+                ) -or (
+                    $existing.status -ceq 'Capturing' -and
+                    @($existing.completedSteps).Count -gt 0
                 )
                 if (-not $canRecoverFailedRun) {
                     throw "An active $($existing.mode) install state does not match the requested $installMode mode and OOBE scope."
@@ -376,22 +375,31 @@ function Start-AtlasInstallState {
 
                 # AME can classify a retry differently after a partial install has
                 # changed product state (for example Fresh -> Reapply). Resume the
-                # original plan, options and completed steps; only refresh
-                # the interactive identity before resuming.
+                # original plan and completed steps; only refresh the interactive
+                # identity before resuming.
                 $existing.status = 'Capturing'
                 $existing.userSid = $null
                 $existing.userSessionId = $null
                 $existing.captureNonce = $CaptureNonce
                 $existing.lastError = $null
-                Write-AtlasInstallStateFile -Path $resolvedPath -State $existing `
-                    -CreateBackup
+                $changed = $true
             }
-            if ($null -ne $existing) {
-                if (@('Capturing', 'Running') -contains $existing.status) {
-                    return $existing
-                }
-                throw "Install state '$resolvedPath' is not active."
+            # AME records options one at a time, so a capture that starts again records
+            # them afresh instead of adding this run's choices to an interrupted run's.
+            # Completed steps hold a run to its original options.
+            if ($existing.status -ceq 'Capturing' -and
+                @($existing.completedSteps).Count -eq 0 -and
+                @($existing.options).Count -gt 0) {
+                $existing.options = @()
+                $changed = $true
             }
+            if ($changed) {
+                Write-AtlasInstallStateFile -Path $resolvedPath -State $existing -CreateBackup
+            }
+            if (@('Capturing', 'Running') -contains $existing.status) {
+                return $existing
+            }
+            throw "Install state '$resolvedPath' is not active."
         }
 
         $state = [pscustomobject][ordered]@{

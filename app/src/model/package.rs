@@ -143,6 +143,21 @@ impl AppModel {
         self.playbook.as_ref().map(|p| &p.manifest).unwrap_or(&self.builtin_manifest)
     }
 
+    /// Gives every radio page of [`AppModel::manifest`] that has no choice its
+    /// default, including a page shown only once another option is ticked:
+    /// [`AppModel::effective_options`] leaves that page's choice out until
+    /// then, and the page then opens with its default chosen instead of none.
+    pub(super) fn fill_radio_defaults(&mut self) {
+        let manifest = self.playbook.as_ref().map_or(&self.builtin_manifest, |p| &p.manifest);
+        for page in manifest.pages.iter().filter(|page| page.kind == PageKind::Radio) {
+            if !page.options.iter().any(|o| self.options.contains(&o.name))
+                && let Some(default) = page.options.iter().find(|o| o.default)
+            {
+                self.options.insert(default.name.clone());
+            }
+        }
+    }
+
     /// A release newer than what is installed, if the check has run.
     pub fn update_available(&self) -> Option<&Release> {
         let release = self.release.release()?;
@@ -242,12 +257,7 @@ impl AppModel {
     /// Downloads the latest Atlas package (or reuses a verified cached copy)
     /// and unpacks it so it can be installed.
     pub fn acquire_latest(&mut self, cx: &mut Context<Self>) {
-        if self.bundled()
-            || self.locked()
-            || self.acquisition.is_busy()
-            || !self.flow.may_edit()
-            || !self.can_download_latest()
-        {
+        if self.bundled() || self.locked() || self.acquisition.is_busy() || !self.can_download_latest() {
             return;
         }
         // `can_download_latest` is false until the release is known.
@@ -377,7 +387,7 @@ impl AppModel {
     pub fn load_bundled_package(&mut self, cx: &mut Context<Self>) {
         #[cfg(feature = "embedded-playbook")]
         {
-            if self.recovering || self.locked() || self.acquisition.is_busy() || !self.flow.may_edit() {
+            if self.recovering || self.locked() || self.acquisition.is_busy() {
                 return;
             }
             let paths = self.env.paths.clone();
@@ -420,7 +430,7 @@ impl AppModel {
     /// package is being unpacked. A download under way gives way to a
     /// chosen file.
     pub fn may_choose_playbook(&self) -> bool {
-        !self.locked() && self.flow.may_edit() && !matches!(self.acquisition, Acquisition::Extracting { .. })
+        !self.locked() && !matches!(self.acquisition, Acquisition::Extracting { .. })
     }
 
     /// Lets the user pick an .apbx they already have. A download under way
@@ -438,24 +448,40 @@ impl AppModel {
         cx.spawn(async move |this, cx| {
             let Ok(Ok(Some(paths))) = receiver.await else { return };
             let Some(path) = paths.into_iter().next() else { return };
-            this.update(cx, |this, cx| {
-                // The chosen file replaces whatever was still being prepared.
-                if this.acquisition.is_busy() && !this.locked() && this.flow.may_edit() {
-                    this.cancel_acquisition();
-                }
-                this.load_playbook_file(path, cx)
-            })
-            .ok();
+            this.update(cx, |this, cx| this.open_chosen_playbook(path, cx)).ok();
         })
         .detach();
     }
 
+    /// Opens the file chosen in "Open package file" in place of whatever
+    /// was still being prepared, even a download that began unpacking while
+    /// the dialog was open.
+    pub(super) fn open_chosen_playbook(&mut self, path: PathBuf, cx: &mut Context<Self>) {
+        if self.acquisition.is_busy() && !self.locked() {
+            self.cancel_acquisition();
+        }
+        self.load_playbook_file(path, cx);
+    }
+
     /// Unpacks an .apbx the user already has (file dialog, `--playbook`, or
-    /// "Open with" on the package).
+    /// "Open with" on the package). A download under way gives way to it.
     pub fn load_playbook_file(&mut self, path: PathBuf, cx: &mut Context<Self>) {
-        log::info!("Opening package: {}", path.display());
-        if self.locked() || self.acquisition.is_busy() || !self.flow.may_edit() {
+        let refused = if self.locked() {
+            Some("an install, an ISO job, preparation or a put-back is running")
+        } else if matches!(self.acquisition, Acquisition::Extracting { .. }) {
+            Some("another package is still unpacking")
+        } else {
+            None
+        };
+        if let Some(reason) = refused {
+            log::warn!("Not opening package {}: {reason}", path.display());
             return;
+        }
+        log::info!("Opening package: {}", path.display());
+        // Get ready may have begun downloading the latest release by itself
+        // before a package given at launch got here.
+        if matches!(self.acquisition, Acquisition::Downloading { .. }) {
+            self.cancel_acquisition();
         }
         let playbooks = self.env.paths.playbooks();
         self.acquisition = Acquisition::Extracting { done: 0, total: 0 };
@@ -526,21 +552,10 @@ impl AppModel {
         }
         match result {
             Ok((dir, manifest, origin, archive)) => {
-                // Keep the user's choices that still exist; fill the rest with defaults.
+                // Keep the user's choices that still exist; the rest get defaults below.
                 let valid: BTreeSet<String> =
                     manifest.pages.iter().flat_map(|p| p.options.iter().map(|o| o.name.clone())).collect();
-                let mut options: BTreeSet<String> =
-                    self.options.iter().filter(|o| valid.contains(*o)).cloned().collect();
-                for page in &manifest.pages {
-                    let has_choice = page.options.iter().any(|o| options.contains(&o.name));
-                    if page.kind == PageKind::Radio
-                        && !has_choice
-                        && let Some(default) = page.options.iter().find(|o| o.default)
-                    {
-                        options.insert(default.name.clone());
-                    }
-                }
-                self.options = options;
+                self.options.retain(|o| valid.contains(o));
                 if let Some(saved) = self.iso_initial_options.take() {
                     if iso::validate_options(&manifest, &saved).is_ok() {
                         self.options = saved.into_iter().collect();
@@ -556,6 +571,7 @@ impl AppModel {
                     playbook::identity(&dir)
                 );
                 self.playbook = Some(PlaybookSource { dir, manifest, origin, archive });
+                self.fill_radio_defaults();
                 self.acquisition = Acquisition::Idle;
                 // Supported builds may differ between packages.
                 if self.flow.active {

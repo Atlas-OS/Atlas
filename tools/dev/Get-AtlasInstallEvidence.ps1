@@ -67,7 +67,7 @@ function Add-InstallLogDirectory {
 [void]$report.AppendLine("PowerShell $($PSVersionTable.PSVersion); language mode $($ExecutionContext.SessionState.LanguageMode)")
 Add-EvidenceFile (Join-Path $AppRoot 'session.json')
 Add-EvidenceFile (Join-Path $stateRoot 'state.json')
-foreach ($name in @('active.json', 'active.json.bak', 'completed.json', 'abandoned.json')) {
+foreach ($name in @('active.json', 'active.json.bak', 'abandoned.json', 'last.json')) {
     Add-EvidenceFile (Join-Path $stateRoot "Install\$name")
 }
 Add-InstallLogDirectory (Join-Path $WindowsRoot 'AtlasModules\Logs\install')

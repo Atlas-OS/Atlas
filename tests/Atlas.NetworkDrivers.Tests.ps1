@@ -4,15 +4,17 @@ BeforeAll {
 }
 
 Describe 'ISO network driver selection' {
-    It 'deduplicates physical adapter packages and excludes unrelated or inbox drivers' {
+    It 'collects adapters that share a driver package once and excludes unrelated or inbox drivers' {
         Mock Get-NetAdapter { @(
             [pscustomobject]@{ InterfaceType=71; PnPDeviceID='PCI\WIFI' },
-            [pscustomobject]@{ InterfaceType=71; PnPDeviceID='PCI\WIFI' },
-            [pscustomobject]@{ InterfaceType=6; PnPDeviceID='PCI\LAN' }
+            [pscustomobject]@{ InterfaceType=6; PnPDeviceID='PCI\LAN1' },
+            [pscustomobject]@{ InterfaceType=6; PnPDeviceID='PCI\LAN2' }
         ) }
+        # Windows lists a driver per device, so two adapters on one package give two rows.
         Mock Get-CimInstance { @(
             [pscustomobject]@{ DeviceID='PCI\WIFI'; InfName='oem7.inf'; IsSigned=$true; DeviceName='Wi-Fi'; DriverProviderName='Vendor'; DriverVersion='1.2.3' },
-            [pscustomobject]@{ DeviceID='PCI\LAN'; InfName='netinbox.inf'; IsSigned=$true },
+            [pscustomobject]@{ DeviceID='PCI\LAN1'; InfName='oem7.inf'; IsSigned=$true; DeviceName='Ethernet'; DriverProviderName='Vendor'; DriverVersion='1.2.3' },
+            [pscustomobject]@{ DeviceID='PCI\LAN2'; InfName='netinbox.inf'; IsSigned=$true },
             [pscustomobject]@{ DeviceID='ROOT\VPN'; InfName='oem8.inf'; IsSigned=$true }
         ) }
         $packages = @(Get-AtlasNetworkPackages)

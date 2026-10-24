@@ -172,15 +172,3 @@ function Set-AtlasTelemetryPackageState {
         Write-AtlasLog -Message 'Removed the NoTelemetry package.'
     }
 }
-
-function Remove-AtlasTelemetryComponents {
-    <#
-    .SYNOPSIS
-        Interactive combination of the menu and the package change, for callers that
-        own an interactive console.
-    #>
-    param()
-
-    $choice = Read-AtlasTelemetryPackageChoice
-    Set-AtlasTelemetryPackageState -State $(if ($choice -ceq 'Add') { 'Installed' } else { 'Removed' })
-}

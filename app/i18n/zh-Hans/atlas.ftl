@@ -67,6 +67,7 @@ window-close-message = 安装会在后台继续进行。重新打开 Atlas 即�
 # Instead of window-close-message when the installation restarts the PC afterwards: only an
 # open Atlas window restarts it, so closing the window cancels that.
 window-close-message-restart = 安装会在后台继续进行，但 Atlas 关闭期间，电脑不会自动重启。重新打开 Atlas 即可查看进度和结果。安装完成前请保持电脑开机。
+# 关闭窗口时显示的每个对话框中的安全选项，包括创建 ISO 和 U 盘、更新以及为更新开启 Windows 更新时的对话框。
 window-close-keep = 保持打开
 window-close-close = 关闭窗口
 # 在最后检查期间、安装程序启动之前关闭窗口时显示的对话框；按钮为 window-close-keep 和 window-close-close。
@@ -85,7 +86,7 @@ window-close-restart-close = 关闭但不重启
 # window-close-keep, common-open-windows-security and window-close-close.
 window-close-protection-title = 要在防护关闭的状态下关闭 Atlas 吗？
 window-close-protection-message = Windows 安全中心的部分防护仍处于关闭状态：{ $switches }。如果你不打算完成 Atlas 的安装，请在关闭前将其重新开启。如果你要完成安装，重新打开 Atlas 后即可继续设置。
-# 选择 Atlas 安装包 (.apbx) 时文件选择器的标题。
+# 选择 Atlas 安装包 (.apbx) 的文件选择器中“打开”按钮的标签，用于“准备”步骤和 ISO 页面。这是按钮标签，请保持简短。
 file-dialog-open-package = 打开 Atlas 安装包 (.apbx)
 # Windows 在重启通知中显示的消息。
 shutdown-comment = Atlas 已安装。Windows 即将重启以完成设置。
@@ -755,7 +756,8 @@ iso-failed-package-changed = 检查文件后，Atlas 安装包已更改。请选
 iso-diagnostics = 打开日志文件夹
 iso-close-title = ISO 仍在创建中
 iso-close-message = 请保持此窗口打开，直到创建或取消完成。取消操作会等待当前步骤可以安全停止后再执行。
-iso-keep-open = 保持打开
+# Atlas 从其他页面更新 Windows 或还原 Windows 更新设置期间，显示在 ISO 和 U 盘页面上。完成前，这两个页面上的控件不可用。
+iso-locked = Atlas 正在处理 Windows 更新。完成后即可在此继续。
 prepare-title = 更新 Windows 和商店应用
 prepare-description = 安装前，Atlas 会更新 Windows、Microsoft Store 和你的商店应用。已打开的商店应用（例如记事本、画图或 Windows 终端）可能会在更新时关闭，因此请先保存其中的工作。电脑也可能需要重启。
 prepare-complete = Atlas 未发现其他需要安装的 Windows 或商店更新。
@@ -841,6 +843,7 @@ desktop-setup-exit = 在 Windows 中继续
 usb-title = 创建安装 U 盘
 usb-existing = 使用现有 ISO 创建 U 盘
 usb-description = 将 ISO 写入 U 盘，以便用它重新安装 Windows。使用 Atlas 创建的 ISO 可以同时安装 Atlas。
+# U 盘和 ISO 页面上打开 ISO 文件选择器的按钮，也是该选择器中“打开”按钮的标签。
 usb-choose-iso = 选择 ISO
 usb-drive = USB 驱动器
 # $min 和 $max 为格式化后的数字（文本），单位分别为 GB 和 TB。
@@ -919,6 +922,7 @@ prepare-continue = 继续更新
 prepare-saving-restart = 正在保存你的选择，并设置在 Windows 重新启动后打开 Atlas…
 prepare-restart-save-failed = 无法保存你的选择。请在重新启动前重试。
 prepare-restart-registration-failed = 你的选择已保存，但 Atlas 无法设置为在重启后重新打开。请重试，或自行重启电脑，并在登录后打开 Atlas。
+prepare-restart-source-linked = 你的选择已保存，但 Atlas Manager 位于链接文件夹中时，Atlas 无法设置为在重启后重新打开。请关闭 Atlas，并将 Atlas Manager 移到这台电脑上的本地文件夹。然后从那里打开它，或自行重启电脑，并在登录后从那里打开它。
 prepare-restart-failed = Atlas 无法重启电脑。请重试，或从“开始”菜单重启。你的选择已保存，登录后 Atlas 会重新打开。
 diagnostics-export = 导出诊断信息
 diagnostics-exporting = 正在收集诊断信息…
@@ -959,12 +963,14 @@ prepare-failed-store-timeout = 商店应用尚未完成更新。请在 Microsoft
 prepare-failed-store-passes = Microsoft Store 不断提供新的更新。请在 Microsoft Store 中完成剩余的更新，然后重试。
 prepare-failed-manual-updates = 部分更新需要在 Windows 更新中完成。请打开 Windows 更新，完成这些更新，然后重试。
 prepare-failed-windows-passes = Windows 更新不断提供新的更新。请在 Windows 更新中完成剩余的更新，然后重试。
+prepare-failed-source-linked = Atlas Manager 位于链接文件夹中。请关闭 Atlas，将 Atlas Manager 移到这台电脑上的本地文件夹，然后从那里打开它。
 prepare-error-code = 错误代码：{ $code }
 prepare-open-store = 打开 Microsoft Store
 
 check-user-account = 用户账户
 detail-user-account-ok = UAC 已启用，你的账户已准备好进行安装。
 detail-user-account-not-ready = 请启用用户账户控制 (UAC)，重启电脑后再试。如果你使用的是内置 Administrator 账户，请使用另一个管理员账户登录。
+detail-user-account-work-or-school = 无法从工作或学校账户 (Microsoft Entra ID) 安装 Atlas。请使用本地账户或 Microsoft 账户登录，然后重试。
 detail-user-account-unknown = Atlas 无法检查你的用户账户。请在安装前重新检查。Windows 报告：{ $error }
 
 footer-prepare-required = 请完成 Windows 和商店应用的更新以继续
@@ -1118,6 +1124,7 @@ stop-update-before = Atlas 会还原它更改过的 Windows 更新设置。Windo
 stop-update-after = 你的电脑会保留 Windows 11 版本 { $release }。Atlas 会还原它更改过的 Windows 更新设置。
 stop-update-access = Atlas 会还原它更改过的 Windows 更新设置。Windows 已安装的更新会保留。
 stop-update-keep = 继续更新
+# 为更新而开启 Windows 更新期间关闭窗口时显示的对话框；按钮为 window-close-keep 和 window-close-put-back。
 window-close-update-access-title = 要关闭 Atlas 吗？
 window-close-update-access-message = 关闭前，Atlas 会还原它更改过的 Windows 更新设置。你可以稍后从“主页”重新开始更新。
 window-close-put-back = 还原并关闭
