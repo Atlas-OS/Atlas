@@ -6,8 +6,8 @@ use std::time::Duration;
 use gpui::Context;
 
 use super::drafts::draft_launched;
-use super::package::bundled_holds;
-use super::{AppModel, Generation, Notice, Origin, Page, PlaybookSource, Step};
+use super::package::{bundled_holds, unpacked_origin};
+use super::{AppModel, Generation, Notice, Page, PlaybookSource, Step};
 use crate::services::session::{self, Inspection, LaunchLock, SessionPaths, SessionRecord};
 use crate::services::settings::{self, InstallDraft};
 use crate::services::{installer, playbook, preparation, system};
@@ -119,8 +119,8 @@ impl AppModel {
                     Ok(manifest) => {
                         // The file it came from, for ISO creation, while it's still there.
                         let archive = draft.package_archive.filter(|archive| archive.is_file());
-                        self.playbook =
-                            Some(PlaybookSource { dir, manifest, origin: Origin::Unpacked, archive });
+                        let origin = unpacked_origin(&dir);
+                        self.playbook = Some(PlaybookSource { dir, manifest, origin, archive });
                     }
                     Err(error) => log::warn!("could not resume the unpacked package: {error:#}"),
                 }
@@ -296,7 +296,7 @@ impl AppModel {
             self.playbook = Some(PlaybookSource {
                 dir: record.request.playbook_dir.clone(),
                 manifest,
-                origin: Origin::Unpacked,
+                origin: unpacked_origin(&record.request.playbook_dir),
                 archive: None,
             });
         }

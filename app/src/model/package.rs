@@ -126,6 +126,12 @@ pub(super) fn bundled_holds(dir: &Path) -> bool {
     }
 }
 
+/// Where a package unpacked earlier came from: a tester build's own package
+/// still says it came with the build after a relaunch or restart.
+pub(super) fn unpacked_origin(dir: &Path) -> Origin {
+    if bundled_holds(dir) { Origin::Bundled } else { Origin::Unpacked }
+}
+
 impl AppModel {
     /// Whether `release` could finish the unfinished install, if one is waiting.
     fn release_finishes_resume(&self, release: &Release) -> bool {

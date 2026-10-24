@@ -389,7 +389,8 @@ mod download {
 #[cfg(feature = "embedded-playbook")]
 mod bundled {
     use crate::model::test_harness::{
-        act, fixture, marking_package, new_model, read, release, run_model_test, save_draft, wait_for,
+        act, fixture, marking_package, new_model, read, release, run_model_test, save_draft, settle,
+        wait_for, wait_on_disk,
     };
     use crate::model::{Acquisition, Environment, Origin, ReleaseCheck, Step};
     use crate::services::settings::InstallDraft;
@@ -434,6 +435,32 @@ mod bundled {
                 m.acquire_latest(cx);
                 m.download_latest(cx);
                 assert!(matches!(m.acquisition, Acquisition::Idle), "no download started");
+            });
+        });
+    }
+
+    /// Reopened after a restart, Get ready still says the package came with
+    /// this test build.
+    #[test]
+    fn the_bundled_package_is_still_the_bundled_one_after_a_relaunch() {
+        run_model_test(async move |mut cx| {
+            let (_temp, env) = tester_fixture("bundled-relaunch");
+            let model = new_model(&mut cx, env.clone());
+            wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+            act(&mut cx, &model, |m, cx| m.begin_install(cx));
+            wait_for(&cx, &model, "the bundled package", |m| m.playbook.is_some()).await;
+            wait_on_disk(&cx, &env, "the draft naming it", |s| {
+                s.draft.as_ref().is_some_and(|draft| draft.playbook_dir.is_some())
+            })
+            .await;
+            settle(&cx, &model).await;
+
+            let reopened = new_model(&mut cx, env);
+            wait_for(&cx, &reopened, "the resumed package", |m| m.playbook.is_some()).await;
+            read(&cx, &reopened, |m| {
+                let book = m.playbook.as_ref().unwrap();
+                assert!(embedded::holds(&book.dir));
+                assert!(matches!(book.origin, Origin::Bundled), "{:?}", book.origin);
             });
         });
     }
