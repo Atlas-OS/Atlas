@@ -550,10 +550,12 @@ Describe 'Set-AtlasDeviceState' {
 Describe 'Get-AtlasPnpDeviceParentId' {
     BeforeEach {
         # Invoke-CimMethod binds -InputObject only to a CIM instance. The PnpDevice type
-        # data that adds InstanceId isn't loaded here.
+        # data adds InstanceId once a test has loaded that module, and only then.
         $script:radio = New-CimInstance -ClassName Win32_PnPEntity -Namespace root/cimv2 -ClientOnly `
             -Property @{ DeviceID = 'USB\VID_8087&PID_0026\BT1' }
-        Add-Member -InputObject $script:radio -NotePropertyName InstanceId -NotePropertyValue $script:radio.DeviceID -Force
+        if ($null -eq $script:radio.PSObject.Properties['InstanceId']) {
+            Add-Member -InputObject $script:radio -NotePropertyName InstanceId -NotePropertyValue $script:radio.DeviceID
+        }
     }
 
     It 'returns the parent instance ID that GetDeviceProperties reports' {

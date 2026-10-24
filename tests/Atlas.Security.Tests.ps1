@@ -464,6 +464,18 @@ exit 5
 }
 
 Describe 'Repair-AtlasWindowsTempPermissions' {
+    BeforeAll {
+        # What each rule grants, not the SDDL text: on CI's runner, signed in as the
+        # built-in Administrator, a descendant's inherited rule came back marked explicit
+        # with the same access. A write that reached descendants would change the grants.
+        function Get-AccessGrant([string]$Path) {
+            @((Get-Acl -LiteralPath $Path).Access | ForEach-Object {
+                    '{0}|{1}|{2}|{3}|{4}' -f $_.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value,
+                    [int]$_.FileSystemRights, $_.AccessControlType, $_.InheritanceFlags, $_.PropagationFlags
+                } | Sort-Object)
+        }
+    }
+
     BeforeEach {
         Mock Write-AtlasLog -ModuleName Atlas.Security
     }
@@ -497,7 +509,7 @@ Describe 'Repair-AtlasWindowsTempPermissions' {
             $subdirectory.FullName
             (New-Item -ItemType File -Path (Join-Path $subdirectory.FullName 'nested.txt') -Force).FullName
         )
-        $descendantSddl = @($descendants | ForEach-Object { (Get-Acl -LiteralPath $_).Sddl })
+        $descendantGrants = @($descendants | ForEach-Object { , (Get-AccessGrant $_) })
 
         InModuleScope Atlas.Security { Set-AtlasWindowsTempRootAcl -Path $p } -Parameters @{ p = $target.FullName }
 
@@ -519,8 +531,7 @@ Describe 'Repair-AtlasWindowsTempPermissions' {
         # Descendants keep their own DACLs: rewriting them would be the privileged walk of a
         # user-writable tree that the repair avoids. The repair is also idempotent.
         foreach ($index in 0..($descendants.Count - 1)) {
-            (Get-Acl -LiteralPath $descendants[$index]).Sddl |
-                Should -BeExactly $descendantSddl[$index] -Because $descendants[$index]
+            Get-AccessGrant $descendants[$index] | Should -Be $descendantGrants[$index] -Because $descendants[$index]
         }
         { InModuleScope Atlas.Security { Set-AtlasWindowsTempRootAcl -Path $p } -Parameters @{ p = $target.FullName } } |
             Should -Not -Throw
