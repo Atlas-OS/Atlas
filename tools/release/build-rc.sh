@@ -4,6 +4,10 @@
 # Nothing is tagged or published; the maintainer posts the ZIP by hand.
 #
 #   tools/release/build-rc.sh --rc N [--allow-dirty]
+#       [--toolbox AtlasToolbox-Setup.exe --toolbox-version X.Y.Z]
+#
+# --toolbox bundles that Toolbox installer in the package, so the candidate installs it
+# instead of the latest Toolbox release on GitHub (tools/release/Add-BundledToolbox.ps1).
 #
 # Output: artifacts/rc/<version>-rc.N/ with the ZIP, the APBX and SHA256SUMS.txt.
 # A failed run leaves a previous candidate in place.
@@ -11,14 +15,23 @@ set -euo pipefail
 
 rc=''
 allow_dirty=0
+toolbox=''
+toolbox_version=''
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --rc) rc="${2:-}"; shift 2 ;;
         --allow-dirty) allow_dirty=1; shift ;;
+        --toolbox) toolbox="${2:-}"; shift 2 ;;
+        --toolbox-version) toolbox_version="${2:-}"; shift 2 ;;
         *) echo "Unknown argument: $1" >&2; exit 2 ;;
     esac
 done
 [[ "$rc" =~ ^[1-9][0-9]*$ ]] || { echo 'Pass --rc N with a positive integer.' >&2; exit 2; }
+if [[ -n "$toolbox" || -n "$toolbox_version" ]]; then
+    [[ -f "$toolbox" ]] || { echo 'Pass --toolbox with the Toolbox installer file.' >&2; exit 2; }
+    [[ "$toolbox_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Pass --toolbox-version X.Y.Z with --toolbox.' >&2; exit 2; }
+    toolbox="$(cd -- "$(dirname -- "$toolbox")" && pwd -P)/$(basename -- "$toolbox")"
+fi
 
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 if [[ "$root" == *' '* ]]; then
@@ -73,6 +86,15 @@ if [[ $dirty -eq 0 ]]; then
     mkdir -p "$work/source"
     git archive --format=tar HEAD playbook | tar -x -C "$work/source"
     source_playbook="$work/source/playbook"
+elif [[ -n "$toolbox" ]]; then
+    # The bundled Toolbox goes into a copy, never the checkout.
+    mkdir -p "$work/source"
+    cp -a "$root/playbook" "$work/source/"
+    source_playbook="$work/source/playbook"
+fi
+if [[ -n "$toolbox" ]]; then
+    pwsh -NoProfile -File tools/release/Add-BundledToolbox.ps1 -PlaybookPath "$source_playbook" \
+        -Installer "$toolbox" -Version "$toolbox_version"
 fi
 apbx_name="Atlas v$rc_id.apbx"
 pwsh -NoProfile -File tools/build/Build-Playbook.ps1 -PlaybookPath "$source_playbook" \
@@ -103,7 +125,12 @@ cp "$work/$apbx_name" "$stage/"
 cp LICENSE "$stage/LICENSE.txt"
 cp app/licenses/THIRD-PARTY-NOTICES.txt "$stage/"
 cp app/vendor/gpui-pre/LICENSE-APACHE "$stage/GPUI-LICENSE-APACHE.txt"
-sed -e "s/@RC_ID@/$rc_id/g" -e "s/@COMMIT@/$commit/g" tools/release/README-RC.txt >"$stage/README-RC.txt"
+toolbox_note='/@TOOLBOX_NOTE@/d'
+if [[ -n "$toolbox" ]]; then
+    toolbox_note="s|@TOOLBOX_NOTE@|- The package also carries AtlasOS Toolbox $toolbox_version. Installing the\\n  Toolbox, from Your choices or the Atlas folder, uses that copy instead of\\n  the latest Toolbox release on GitHub.|"
+fi
+sed -e "s/@RC_ID@/$rc_id/g" -e "s/@COMMIT@/$commit/g" -e "$toolbox_note" \
+    tools/release/README-RC.txt >"$stage/README-RC.txt"
 zip_name="AtlasManager-$rc_id-windows-x64.zip"
 (cd "$stage" && 7z a -tzip -bso0 -bsp0 "../$zip_name" .)
 

@@ -14,6 +14,7 @@ What this is
   list does not know is accepted. Insider builds are still refused.
 - The .apbx beside it is the same Atlas package, byte for byte, for people
   who use the alternative installer, AME Wizard, which calls it a playbook.
+@TOOLBOX_NOTE@
 
 Before you start
 - Windows 11 25H2 (build 26200) and 26H2 (build 26300) are accepted.

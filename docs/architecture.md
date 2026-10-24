@@ -315,7 +315,7 @@ rejected.
 | ShellRefresh | Refresh the exact installing user's shell outside OOBE |
 | Environment | Apply environment and runtime configuration |
 | Features | Apply Windows capabilities and optional features; clean the component store on fresh installs only, before the Components phase installs the Atlas packages (see below); keep the Atlas packages' repair source |
-| Software | Install selected utilities and browsers. Toolbox resolves the latest stable release at install time, not a version pinned in the Atlas package. |
+| Software | Install selected utilities and browsers. Toolbox resolves the latest stable release at install time, not a version pinned in the Atlas package; only a release candidate built with `--toolbox` carries its Toolbox in `AtlasModules\Bundled\Toolbox` and installs that instead. |
 | Services | Back up Windows services, then apply and record the File Sharing, Location and Indexing defaults as the machine part of those toggles |
 | Components | Apply machine component and browser cleanup, and the Defender choice. Keeping Defender uninstalls the `Z-Atlas-NoDefender-Package` CBS package if it is present; a failed removal fails the install rather than report success on a PC with no antivirus. |
 | AppxSupport | Apply installed/provisioned AppX changes and exact-user cache work |

@@ -78,6 +78,7 @@ Describe 'Atlas Toolbox latest-channel integrity contract' {
             Sha256 = 'a' * 64
             Size    = 123456
         }
+        Mock Get-AtlasBundledToolbox
         Mock Get-AtlasLatestGitHubReleaseAsset { $latestAsset }
         Mock Test-AtlasToolboxInstallation { $true } -ParameterFilter {
             $ExpectedVersion -ceq '1.2.3'
@@ -201,6 +202,84 @@ Describe 'Atlas Toolbox latest-channel integrity contract' {
         } | Should -Throw '*not a normal non-empty file*'
     }
 
+}
+
+Describe 'A Toolbox installer bundled with a release candidate' {
+    BeforeEach {
+        $script:BundleRoot = Join-Path $TestDrive "bundle-$([guid]::NewGuid().ToString('N'))"
+        [void](New-Item -Path $script:BundleRoot -ItemType Directory -Force)
+        $script:InstallerBytes = [byte[]](77, 90, 1, 2, 3)
+        $script:InstallerPath = Join-Path $script:BundleRoot 'AtlasToolbox-Setup.exe'
+        [IO.File]::WriteAllBytes($script:InstallerPath, $script:InstallerBytes)
+        $script:InstallerHash = (Get-FileHash -LiteralPath $script:InstallerPath -Algorithm SHA256).Hash
+
+        function Set-BundleManifest {
+            param([object]$Manifest)
+            [IO.File]::WriteAllText((Join-Path $script:BundleRoot 'AtlasToolbox-Setup.json'), ($Manifest | ConvertTo-Json))
+        }
+    }
+
+    It 'is absent without a manifest, so Atlas asks GitHub' {
+        Get-AtlasBundledToolbox -Root $script:BundleRoot | Should -BeNullOrEmpty
+    }
+
+    It 'reads its version, SHA-256 and size from the manifest' {
+        Set-BundleManifest @{ version = '0.2.0'; sha256 = $script:InstallerHash.ToLowerInvariant(); size = 5 }
+        $bundled = Get-AtlasBundledToolbox -Root $script:BundleRoot
+        $bundled.Version | Should -BeExactly '0.2.0'
+        $bundled.Sha256 | Should -BeExactly $script:InstallerHash
+        $bundled.Size | Should -Be 5
+        $bundled.Path | Should -BeExactly $script:InstallerPath
+    }
+
+    It 'rejects <Case>' -ForEach @(
+        @{ Case = 'a manifest without a SHA-256'; Manifest = @{ version = '0.2.0'; size = 5 }; Removed = $false; Message = '*needs a version, a SHA-256 and a size*' }
+        @{ Case = 'a manifest with a release-candidate version'; Manifest = @{ version = '0.2.0-rc.1'; sha256 = ('a' * 64); size = 5 }; Removed = $false; Message = '*needs a version*' }
+        @{ Case = 'a manifest whose installer is missing'; Manifest = @{ version = '0.2.0'; sha256 = ('a' * 64); size = 5 }; Removed = $true; Message = '*installer is missing*' }
+    ) {
+        Set-BundleManifest $Manifest
+        if ($Removed) { Remove-Item -LiteralPath $script:InstallerPath }
+        { Get-AtlasBundledToolbox -Root $script:BundleRoot } | Should -Throw $Message
+    }
+
+    Context 'Installing it' {
+        BeforeEach {
+            $script:Staging = Join-Path $TestDrive "staging-$([guid]::NewGuid().ToString('N'))"
+            $script:Installed = $false
+            Mock Get-AtlasLatestGitHubReleaseAsset { throw 'A bundled Toolbox must not ask GitHub.' }
+            Mock Invoke-AtlasPinnedDownload { throw 'A bundled Toolbox must not be downloaded.' }
+            Mock Test-AtlasToolboxInstallation { $script:Installed } -ParameterFilter { $ExpectedVersion -ceq '0.2.0' }
+            Mock New-AtlasProtectedStagingDirectory { [void](New-Item -Path $script:Staging -ItemType Directory); $script:Staging }
+            Mock Invoke-AtlasContainedProcess {
+                [IO.File]::ReadAllBytes($FilePath) | Should -Be $script:InstallerBytes
+                $script:Installed = $true
+                [pscustomobject]@{ ExitCodeUInt32 = 0 }
+            }
+            Mock Write-AtlasStep
+        }
+
+        It 'runs the checked copy in protected staging' {
+            Mock Get-AtlasBundledToolbox {
+                [pscustomobject]@{ Version = '0.2.0'; Sha256 = $script:InstallerHash; Size = 5; Path = $script:InstallerPath }
+            }
+
+            Install-AtlasToolboxPackage
+
+            Should -Invoke Invoke-AtlasContainedProcess -Times 1 -Exactly -ParameterFilter {
+                $FilePath -eq (Join-Path $script:Staging 'toolbox.exe') -and '/verysilent' -in $ArgumentList
+            }
+            Should -Invoke Get-AtlasLatestGitHubReleaseAsset -Times 0 -Exactly
+        }
+
+        It "refuses a copy that doesn't match its manifest" {
+            Mock Get-AtlasBundledToolbox {
+                [pscustomobject]@{ Version = '0.2.0'; Sha256 = ('A' * 64); Size = 5; Path = $script:InstallerPath }
+            }
+
+            { Install-AtlasToolboxPackage } | Should -Throw "*doesn't match its manifest*"
+            Should -Invoke Invoke-AtlasContainedProcess -Times 0 -Exactly
+        }
+    }
 }
 
 Describe 'Shared download boundary' {

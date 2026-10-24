@@ -18,6 +18,7 @@ run from any directory:
 
 ```
 tools/release/build-rc.sh --rc N [--allow-dirty]
+    [--toolbox AtlasToolbox-Setup.exe --toolbox-version X.Y.Z]
 ```
 
 `build-rc.sh` stops before building anything if the `[package]` version in
@@ -30,13 +31,22 @@ tools/release/build-rc.sh --rc N [--allow-dirty]
    in the checkout stay out, and `tools/build/Test-Apbx.ps1` verifies it against
    that export. With `--allow-dirty` and uncommitted changes, both use the
    working tree.
+
+   With `--toolbox`, `tools/release/Add-BundledToolbox.ps1` first puts that
+   Toolbox installer and a manifest of its version, SHA-256 and size in
+   `Executables\AtlasModules\Bundled\Toolbox` of the export (a copy of the
+   working tree when it has changes). Installing the Toolbox, from Your choices
+   or the Atlas folder, then uses that copy instead of the latest release on
+   GitHub. Use it when the candidate needs a Toolbox that isn't published yet;
+   releases never carry one. `README-RC.txt` names the bundled version.
 2. After `tools/Export-DependencyNotices.ps1 -Check` confirms the third-party
    notices are current, `cargo xwin build --release --locked --target x86_64-pc-windows-msvc
    --features embedded-playbook` compiles the app with a static C runtime.
 3. `AtlasManager-<rc id>-windows-x64.zip` gets the executable, the same package as
    a standalone file (for AME Wizard users), `LICENSE.txt`,
    `THIRD-PARTY-NOTICES.txt`, `GPUI-LICENSE-APACHE.txt` and `README-RC.txt`
-   (`tools/release/README-RC.txt` with the RC id and commit filled in).
+   (`tools/release/README-RC.txt` with the RC id, the commit and any bundled
+   Toolbox filled in).
 4. `SHA256SUMS.txt` lists the ZIP, the package and the executable in the release
    workflow's format.
 5. The finished working directory moves to `artifacts/rc/<version>-rc.N/` in one

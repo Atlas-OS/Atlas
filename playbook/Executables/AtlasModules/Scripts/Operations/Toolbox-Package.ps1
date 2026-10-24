@@ -1,4 +1,43 @@
-# Shared latest-channel Toolbox acquisition and installation.
+# Shared Toolbox acquisition and installation: the latest release on GitHub, or the
+# installer a release candidate carries.
+
+function Get-AtlasBundledToolbox {
+    <#
+    .SYNOPSIS
+        The Toolbox installer bundled with this Atlas package, or $null when there is
+        none. Release candidates carry the Toolbox they were tested with, because the
+        release they need may not be published yet; releases install the latest one
+        from GitHub. The files sit in AtlasModules, which only administrators can change.
+    #>
+    [CmdletBinding()]
+    param(
+        [string]$Root = [IO.Path]::Combine(
+            (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)), 'Bundled', 'Toolbox')
+    )
+
+    $manifestPath = [IO.Path]::Combine($Root, 'AtlasToolbox-Setup.json')
+    if (-not [IO.File]::Exists($manifestPath)) {
+        return $null
+    }
+    $manifest = Get-Content -LiteralPath $manifestPath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+    $version = [string]$manifest.version
+    $sha256 = [string]$manifest.sha256
+    $size = $manifest.size -as [long]
+    if ($version -notmatch '^[0-9]+\.[0-9]+\.[0-9]+$' -or $sha256 -notmatch '^[0-9A-Fa-f]{64}$' -or
+        $null -eq $size -or $size -le 0) {
+        throw "The bundled Toolbox manifest at '$manifestPath' needs a version, a SHA-256 and a size."
+    }
+    $installerPath = [IO.Path]::Combine($Root, 'AtlasToolbox-Setup.exe')
+    if (-not [IO.File]::Exists($installerPath)) {
+        throw "The bundled Toolbox installer is missing at '$installerPath'."
+    }
+    [pscustomobject]@{
+        Version = $version
+        Sha256  = $sha256.ToUpperInvariant()
+        Size    = $size
+        Path    = $installerPath
+    }
+}
 
 function Test-AtlasToolboxInstallation {
     [CmdletBinding()]
@@ -57,12 +96,20 @@ function Install-AtlasToolboxPackage {
     # Toolbox tracks its latest stable release so its updates don't need an Atlas
     # release. It is unsigned: trust rests on the pinned Atlas-OS owner and repository
     # IDs, and GitHub's per-asset SHA-256 and size tie the download to that release.
-    $toolboxRelease = Get-AtlasLatestGitHubReleaseAsset `
-        -Owner 'Atlas-OS' `
-        -Repository 'atlas-toolbox' `
-        -AssetName 'AtlasToolbox-Setup.exe' `
-        -ExpectedRepositoryId 929016610 `
-        -ExpectedOwnerId 78708182
+    # A bundled installer is held to its manifest's SHA-256 and size the same way.
+    $bundledToolbox = Get-AtlasBundledToolbox
+    $bundled = $null -ne $bundledToolbox
+    $toolboxRelease = if ($bundled) {
+        $bundledToolbox
+    }
+    else {
+        Get-AtlasLatestGitHubReleaseAsset `
+            -Owner 'Atlas-OS' `
+            -Repository 'atlas-toolbox' `
+            -AssetName 'AtlasToolbox-Setup.exe' `
+            -ExpectedRepositoryId 929016610 `
+            -ExpectedOwnerId 78708182
+    }
 
     if (Test-AtlasToolboxInstallation -ExpectedVersion $toolboxRelease.Version) {
         Write-AtlasNote -Text "AtlasOS Toolbox $($toolboxRelease.Version) is already installed."
@@ -74,14 +121,25 @@ function Install-AtlasToolboxPackage {
     try {
         $tempDirectory = New-AtlasProtectedStagingDirectory
         $toolboxPath = Join-Path -Path $tempDirectory -ChildPath 'toolbox.exe'
-        Write-AtlasStep -Text "Downloading AtlasOS Toolbox $($toolboxRelease.Version)..."
-        Invoke-AtlasPinnedDownload `
-            -Uri $toolboxRelease.Uri `
-            -Destination $toolboxPath `
-            -Sha256 $toolboxRelease.Sha256 `
-            -ExpectedBytes $toolboxRelease.Size | Out-Null
+        if ($bundled) {
+            # The copy that runs is the one checked, so nothing can change it in between.
+            [IO.File]::Copy($toolboxRelease.Path, $toolboxPath)
+            $copied = Get-Item -LiteralPath $toolboxPath -Force -ErrorAction Stop
+            $copiedHash = (Get-FileHash -LiteralPath $toolboxPath -Algorithm SHA256 -ErrorAction Stop).Hash
+            if ($copied.Length -ne $toolboxRelease.Size -or $copiedHash -cne $toolboxRelease.Sha256) {
+                throw "The bundled Toolbox installer doesn't match its manifest (SHA-256 $copiedHash, $($copied.Length) bytes)."
+            }
+        }
+        else {
+            Write-AtlasStep -Text "Downloading AtlasOS Toolbox $($toolboxRelease.Version)..."
+            Invoke-AtlasPinnedDownload `
+                -Uri $toolboxRelease.Uri `
+                -Destination $toolboxPath `
+                -Sha256 $toolboxRelease.Sha256 `
+                -ExpectedBytes $toolboxRelease.Size | Out-Null
+        }
 
-        Write-AtlasStep -Text 'Installing AtlasOS Toolbox...'
+        Write-AtlasStep -Text "Installing AtlasOS Toolbox $($toolboxRelease.Version)..."
         $originalTemp = [Environment]::GetEnvironmentVariable('TEMP', 'Process')
         $originalTmp = [Environment]::GetEnvironmentVariable('TMP', 'Process')
         try {

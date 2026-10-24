@@ -669,6 +669,39 @@ exit 37
 
 }
 
+Describe 'A release candidate''s bundled Toolbox' {
+    BeforeAll {
+        $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
+        $script:AddBundledToolbox = Join-Path $repoRoot 'tools\release\Add-BundledToolbox.ps1'
+        $script:CheckoutPlaybook = Join-Path $repoRoot 'playbook'
+        . (Join-Path $repoRoot 'playbook\Executables\AtlasModules\Scripts\Operations\Toolbox-Package.ps1')
+    }
+
+    It 'adds an installer and manifest that Atlas installs from' {
+        $playbook = Join-Path $TestDrive 'staged\playbook'
+        New-Item -Path $playbook -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $playbook 'playbook.conf') -Value '<Playbook />'
+        $installer = Join-Path $TestDrive 'AtlasToolbox-Setup.exe'
+        [IO.File]::WriteAllBytes($installer, [byte[]](1, 2, 3, 4))
+
+        & $script:AddBundledToolbox -PlaybookPath $playbook -Installer $installer -Version '0.2.0' 6>$null
+
+        $bundled = Get-AtlasBundledToolbox -Root (Join-Path $playbook 'Executables\AtlasModules\Bundled\Toolbox')
+        $bundled.Version | Should -BeExactly '0.2.0'
+        $bundled.Size | Should -Be 4
+        $bundled.Sha256 | Should -BeExactly (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash
+        [IO.File]::ReadAllBytes($bundled.Path) | Should -Be ([byte[]](1, 2, 3, 4))
+    }
+
+    It "refuses the checkout's own playbook folder, which releases build from" {
+        $installer = Join-Path $TestDrive 'AtlasToolbox-Setup.exe'
+        [IO.File]::WriteAllBytes($installer, [byte[]](1))
+        { & $script:AddBundledToolbox -PlaybookPath $script:CheckoutPlaybook -Installer $installer -Version '0.2.0' } |
+            Should -Throw '*staged copy*'
+        Join-Path $script:CheckoutPlaybook 'Executables\AtlasModules\Bundled' | Should -Not -Exist
+    }
+}
+
 Describe 'Package version coherence' {
     BeforeAll {
         $script:repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath

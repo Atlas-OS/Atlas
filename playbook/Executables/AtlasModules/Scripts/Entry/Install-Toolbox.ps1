@@ -46,17 +46,25 @@ if (-not [IO.File]::Exists($trustBootstrap)) {
 $title = 'Install AtlasOS Toolbox'
 $coreManifest = [IO.Path]::Combine($scriptsRoot, 'Modules', 'Atlas.Core', 'Atlas.Core.psd1')
 Import-Module -Name $coreManifest -ErrorAction Stop
+$packageHelper = [IO.Path]::Combine($scriptsRoot, 'Operations', 'Toolbox-Package.ps1')
+$explanation = 'Downloads and installs the latest AtlasOS Toolbox release from GitHub.'
+if ([IO.File]::Exists($packageHelper)) {
+    . $packageHelper
+    # A damaged manifest is reported by the install below.
+    $bundledToolbox = try { Get-AtlasBundledToolbox } catch { $null }
+    if ($null -ne $bundledToolbox) {
+        $explanation = "Installs AtlasOS Toolbox $($bundledToolbox.Version), which comes with this Atlas test build."
+    }
+}
 if (-not $Silent) {
     Set-AtlasLogConsoleStyle -Style Interactive
-    Write-AtlasTitle -Text $title -Explanation 'Downloads and installs the latest AtlasOS Toolbox release from GitHub.'
+    Write-AtlasTitle -Text $title -Explanation $explanation
 }
 
 try {
-    $packageHelper = [IO.Path]::Combine($scriptsRoot, 'Operations', 'Toolbox-Package.ps1')
     if (-not [IO.File]::Exists($packageHelper)) {
         throw "The protected Toolbox package helper is missing at '$packageHelper'."
     }
-    . $packageHelper
     Install-AtlasToolboxPackage
 
     if (-not $Silent) {
