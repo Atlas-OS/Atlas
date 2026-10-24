@@ -1141,6 +1141,7 @@ prepare-failed-feature-failed = Windows はバージョン { $release } をイ�
 prepare-check-again = もう一度確認
 prepare-keep-version = バージョン { $current } を維持
 stop-update-title = Atlas { $version } への更新を停止しますか?
+stop-update-title-windows = Windows の更新を停止しますか?
 stop-update-before = Atlas は変更した Windows Update の設定を元に戻します。Windows がすでにインストールした更新プログラムはそのまま残り、PC は Windows 11 バージョン { $current } のままです。
 stop-update-after = PC は Windows 11 バージョン { $release } のままです。Atlas は変更した Windows Update の設定を元に戻します。
 stop-update-access = Atlas は変更した Windows Update の設定を元に戻します。Windows がすでにインストールした更新プログラムはそのまま残ります。

@@ -215,8 +215,8 @@ impl InstallPage {
                 // Windows Update settings changed for the update are put back
                 // on the way out; the user is told first.
                 if let Some(question) = model.read(cx).stop_question() {
-                    let version = model.read(cx).manifest().version.clone();
-                    ask_to_stop_updating(&model, question, &version, window, cx);
+                    let title = stop_title(model.read(cx));
+                    ask_to_stop_updating(&model, question, &title, window, cx);
                     return;
                 }
                 model.update(cx, |m, cx| {
@@ -276,16 +276,25 @@ impl InstallPage {
     }
 }
 
+/// The stop question's title: an update names the Atlas it updates to; a
+/// first install or reinstall is only updating Windows so far.
+fn stop_title(state: &AppModel) -> String {
+    if state.updates_atlas() {
+        t!("stop-update-title", version = &state.manifest().version)
+    } else {
+        t!("stop-update-title-windows")
+    }
+}
+
 /// Asks before leaving the flow with Windows Update settings changed: Stop
 /// updating puts them back, then leaves; Keep updating stays.
 fn ask_to_stop_updating(
     model: &Entity<AppModel>,
     question: StopQuestion,
-    version: &str,
+    title: &str,
     window: &mut Window,
     cx: &mut App,
 ) {
-    let title = t!("stop-update-title", version = version);
     let message = match question {
         StopQuestion::Access => t!("stop-update-access"),
         StopQuestion::BeforeMove { current } => t!("stop-update-before", current = current),
@@ -293,7 +302,7 @@ fn ask_to_stop_updating(
     };
     let (keep, stop) = (t!("stop-update-keep"), t!("prepare-stop"));
     let answer =
-        window.prompt(PromptLevel::Warning, &title, Some(&message), &[keep.as_str(), stop.as_str()], cx);
+        window.prompt(PromptLevel::Warning, title, Some(&message), &[keep.as_str(), stop.as_str()], cx);
     let model = model.clone();
     cx.spawn(async move |cx| {
         if answer.await == Ok(1) {

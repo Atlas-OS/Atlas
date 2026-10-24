@@ -1171,6 +1171,7 @@ prepare-failed-feature-failed = Windows, संस्करण { $release } इ�
 prepare-check-again = दोबारा जाँचें
 prepare-keep-version = संस्करण { $current } रखें
 stop-update-title = Atlas { $version } पर अपडेट करना रोकें?
+stop-update-title-windows = Windows अपडेट करना रोकें?
 stop-update-before = Atlas, Windows Update की वे सेटिंग्स पहले जैसी कर देगा, जो उसने बदली थीं। Windows जो अपडेट पहले ही इंस्टॉल कर चुका है, वे इंस्टॉल रहेंगे, और आपके PC पर Windows 11, संस्करण { $current } बना रहेगा।
 stop-update-after = आपके PC पर Windows 11, संस्करण { $release } बना रहेगा। Atlas, Windows Update की वे सेटिंग्स पहले जैसी कर देगा, जो उसने बदली थीं।
 stop-update-access = Atlas, Windows Update की वे सेटिंग्स पहले जैसी कर देगा, जो उसने बदली थीं। Windows जो अपडेट पहले ही इंस्टॉल कर चुका है, वे इंस्टॉल रहेंगे।

@@ -358,12 +358,12 @@ impl InstallPage {
         let stop = (not_offered && state.offer_rechecks_active()).then(|| {
             let model = self.model.clone();
             Button::new("prepare-stop-waiting", t!("prepare-stop")).on_click(move |_, window, cx| {
-                let (question, version) = {
+                let (question, title) = {
                     let state = model.read(cx);
-                    (state.stop_question(), state.manifest().version.clone())
+                    (state.stop_question(), super::stop_title(state))
                 };
                 if let Some(question) = question {
-                    super::ask_to_stop_updating(&model, question, &version, window, cx);
+                    super::ask_to_stop_updating(&model, question, &title, window, cx);
                 }
             })
         });

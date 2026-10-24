@@ -1145,6 +1145,7 @@ prepare-failed-feature-failed = Windows n’a pas pu installer la version { $rel
 prepare-check-again = Vérifier à nouveau
 prepare-keep-version = Conserver la version { $current }
 stop-update-title = Arrêter la mise à jour vers Atlas { $version } ?
+stop-update-title-windows = Arrêter la mise à jour de Windows ?
 stop-update-before = Atlas rétablit les paramètres Windows Update qu’il a modifiés. Les mises à jour déjà installées par Windows le restent, et votre PC conserve Windows 11, version { $current }.
 stop-update-after = Votre PC conserve Windows 11, version { $release }. Atlas rétablit les paramètres Windows Update qu’il a modifiés.
 stop-update-access = Atlas rétablit les paramètres Windows Update qu’il a modifiés. Les mises à jour déjà installées par Windows le restent.

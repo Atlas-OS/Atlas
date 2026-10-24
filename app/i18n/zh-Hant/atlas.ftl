@@ -1127,6 +1127,7 @@ prepare-failed-feature-failed = Windows 無法安裝版本 { $release }。您的
 prepare-check-again = 再次檢查
 prepare-keep-version = 保留版本 { $current }
 stop-update-title = 要停止更新至 Atlas { $version } 嗎？
+stop-update-title-windows = 要停止更新 Windows 嗎？
 stop-update-before = Atlas 會還原它變更的 Windows Update 設定。Windows 已安裝的更新會保留，您的電腦會維持在 Windows 11 版本 { $current }。
 stop-update-after = 您的電腦會維持在 Windows 11 版本 { $release }。Atlas 會還原它變更的 Windows Update 設定。
 stop-update-access = Atlas 會還原它變更的 Windows Update 設定。Windows 已安裝的更新會保留。

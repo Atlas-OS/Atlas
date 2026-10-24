@@ -165,6 +165,13 @@ impl AppModel {
         }
     }
 
+    /// Whether this flow updates an installed Atlas to another version, not
+    /// installing it for the first time or again.
+    pub fn updates_atlas(&self) -> bool {
+        matches!(&self.install_identity,
+            Ok(InstallIdentity::Installed(version)) if *version != self.manifest().version)
+    }
+
     /// The version an unfinished install was installing, if one is waiting.
     pub fn resume_target(&self) -> Option<&str> {
         match &self.install_identity {

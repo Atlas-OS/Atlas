@@ -1198,6 +1198,7 @@ prepare-check-again = Volver a comprobar
 prepare-keep-version = Conservar la versión { $current }
 # Pregunta antes de abandonar la actualización con la configuración de Windows Update cambiada.
 stop-update-title = ¿Dejar de actualizar a Atlas { $version }?
+stop-update-title-windows = ¿Dejar de actualizar Windows?
 stop-update-before = Atlas restaurará la configuración de Windows Update que cambió. Las actualizaciones que Windows ya instaló seguirán instaladas, y su PC conservará Windows 11, versión { $current }.
 stop-update-after = Su PC conservará Windows 11, versión { $release }. Atlas restaurará la configuración de Windows Update que cambió.
 stop-update-access = Atlas restaurará la configuración de Windows Update que cambió. Las actualizaciones que Windows ya instaló seguirán instaladas.

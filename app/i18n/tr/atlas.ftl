@@ -1179,6 +1179,7 @@ prepare-failed-feature-failed = Windows, { $release } sürümünü yükleyemedi.
 prepare-check-again = Yeniden denetle
 prepare-keep-version = { $current } sürümünde kal
 stop-update-title = Atlas { $version } sürümüne güncelleştirme durdurulsun mu?
+stop-update-title-windows = Windows güncelleştirmesi durdurulsun mu?
 stop-update-before = Atlas, değiştirdiği Windows Update ayarlarını geri yükler. Windows'un zaten yüklediği güncelleştirmeler yüklü kalır ve bilgisayarınız Windows 11 { $current } sürümünde kalır.
 stop-update-after = Bilgisayarınız Windows 11 { $release } sürümünde kalır. Atlas, değiştirdiği Windows Update ayarlarını geri yükler.
 stop-update-access = Atlas, değiştirdiği Windows Update ayarlarını geri yükler. Windows'un zaten yüklediği güncelleştirmeler yüklü kalır.

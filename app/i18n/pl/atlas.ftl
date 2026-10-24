@@ -1190,6 +1190,7 @@ prepare-failed-feature-failed = Windows nie mógł zainstalować wersji { $relea
 prepare-check-again = Sprawdź ponownie
 prepare-keep-version = Zachowaj wersję { $current }
 stop-update-title = Zatrzymać aktualizację do Atlasa { $version }?
+stop-update-title-windows = Zatrzymać aktualizację systemu Windows?
 stop-update-before = Atlas przywróci zmienione przez siebie ustawienia Windows Update. Aktualizacje już zainstalowane przez Windows pozostaną zainstalowane, a komputer zachowa Windows 11 w wersji { $current }.
 stop-update-after = Komputer zachowa Windows 11 w wersji { $release }. Atlas przywróci zmienione przez siebie ustawienia Windows Update.
 stop-update-access = Atlas przywróci zmienione przez siebie ustawienia Windows Update. Aktualizacje już zainstalowane przez Windows pozostaną zainstalowane.

@@ -1188,6 +1188,7 @@ prepare-failed-feature-failed = Windows не удалось установить
 prepare-check-again = Проверить снова
 prepare-keep-version = Оставить версию { $current }
 stop-update-title = Остановить обновление до Atlas { $version }?
+stop-update-title-windows = Остановить обновление Windows?
 stop-update-before = Atlas вернёт изменённые им параметры Центра обновления Windows. Уже установленные обновления Windows останутся, а на ПК сохранится Windows 11 версии { $current }.
 stop-update-after = На ПК останется Windows 11 версии { $release }. Atlas вернёт изменённые им параметры Центра обновления Windows.
 stop-update-access = Atlas вернёт изменённые им параметры Центра обновления Windows. Уже установленные обновления Windows останутся.

@@ -148,6 +148,26 @@ fn a_newer_installed_version_is_judged_by_the_package_not_the_built_in_manifest(
     });
 }
 
+/// Asking to stop updating names Atlas only in an update from another
+/// installed version; a first install or a reinstall has updated only Windows.
+#[test]
+fn only_an_installed_other_version_is_an_atlas_update() {
+    run_model_test(|mut cx| async move {
+        use atlas_state::InstallIdentity::{Fresh, Installed};
+        let (_temp, machine, env) = fixture("updates-atlas");
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        let current = read(&cx, &model, |m| m.manifest().version.clone());
+        for (identity, updates) in
+            [(Fresh, false), (Installed("0.5.0".into()), true), (Installed(current), false)]
+        {
+            *machine.identity.lock().unwrap() = Some(identity.clone());
+            act(&mut cx, &model, |m, _| m.refresh_atlas_state());
+            assert_eq!(read(&cx, &model, AppModel::updates_atlas), updates, "{identity:?}");
+        }
+    });
+}
+
 /// A tester build installs only its bundled package, so the built-in
 /// manifest is the package and nothing is left for later.
 #[test]

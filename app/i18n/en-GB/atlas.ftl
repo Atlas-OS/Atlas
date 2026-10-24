@@ -1329,6 +1329,8 @@ prepare-keep-version = Keep version { $current }
 
 # Asked before leaving the update with Windows Update settings changed.
 stop-update-title = Stop updating to Atlas { $version }?
+# stop-update-title for a first install or a reinstall, which so far has only updated Windows.
+stop-update-title-windows = Stop updating Windows?
 stop-update-before = Atlas puts back the Windows Update settings it changed. Updates Windows already installed stay installed, and your PC keeps Windows 11, version { $current }.
 stop-update-after = Your PC keeps Windows 11, version { $release }. Atlas puts back the Windows Update settings it changed.
 stop-update-access = Atlas puts back the Windows Update settings it changed. Updates Windows already installed stay installed.

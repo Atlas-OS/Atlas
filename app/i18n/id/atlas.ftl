@@ -1146,6 +1146,7 @@ prepare-failed-feature-failed = Windows tidak dapat menginstal versi { $release 
 prepare-check-again = Periksa lagi
 prepare-keep-version = Pertahankan versi { $current }
 stop-update-title = Hentikan pembaruan ke Atlas { $version }?
+stop-update-title-windows = Hentikan pembaruan Windows?
 stop-update-before = Atlas akan mengembalikan pengaturan Windows Update yang diubahnya. Pembaruan yang sudah diinstal Windows tetap terinstal, dan PC Anda tetap menggunakan Windows 11, versi { $current }.
 stop-update-after = PC Anda tetap menggunakan Windows 11, versi { $release }. Atlas akan mengembalikan pengaturan Windows Update yang diubahnya.
 stop-update-access = Atlas akan mengembalikan pengaturan Windows Update yang diubahnya. Pembaruan yang sudah diinstal Windows tetap terinstal.
