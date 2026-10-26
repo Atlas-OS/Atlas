@@ -319,7 +319,8 @@ try {
         $playbookTempPath = Get-PlaybookTempPath
         $tempPlaybookConfPath = Join-Path -Path $playbookTempPath -ChildPath 'playbook.conf'
         $pattern = [string]::Join('|', $playbookConfPatternTokens)
-        Get-Content -Path 'playbook.conf' -Encoding UTF8 | Where-Object { $_ -notmatch $pattern } | Set-Content -Path $tempPlaybookConfPath -Encoding UTF8
+        $stagedLines = @(Get-Content -Path 'playbook.conf' -Encoding UTF8 | Where-Object { $_ -notmatch $pattern })
+        [System.IO.File]::WriteAllLines($tempPlaybookConfPath, $stagedLines, (New-Object System.Text.UTF8Encoding $false))
         $stagedPlaybookConf = Test-Path -LiteralPath $tempPlaybookConfPath
     }
 
