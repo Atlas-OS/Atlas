@@ -579,6 +579,22 @@ Describe 'Store items an earlier round left failed' {
     }
 }
 
+Describe 'A Store call that fails' {
+    It 'ends with the Store''s own error and code, not the task''s wrapper' {
+        Mock Write-PreparationState {}
+        # 0x803FB112: a Store that can't update itself, as on one RC10 tester's PC.
+        $cause = [Runtime.InteropServices.COMException]::new('The Store needs an update it cannot install.', 0x803FB112)
+        $failure = $null
+        try { Wait-PreparationStoreTask ([Threading.Tasks.Task]::FromException($cause)) }
+        catch { $failure = $_.Exception }
+
+        $failure | Should -BeOfType ([Runtime.InteropServices.COMException])
+        $detail = Get-PreparationFailureDetail $failure
+        $detail.failureMessage | Should -BeExactly 'The Store needs an update it cannot install.'
+        $detail.errorCode | Should -BeExactly '0x803FB112'
+    }
+}
+
 Describe 'Windows installation results requiring restart' {
     BeforeAll {
         function New-FixtureUpdate([string]$Title, [switch]$Interactive, [int]$Impact = 0) {

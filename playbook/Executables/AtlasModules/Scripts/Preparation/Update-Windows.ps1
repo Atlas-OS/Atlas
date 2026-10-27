@@ -816,13 +816,29 @@ function Wait-PreparationStoreCall($Operation, [type]$ResultType) {
     $asTask = [System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object {
         $_.Name -eq 'AsTask' -and $_.IsGenericMethod -and $_.GetGenericArguments().Count -eq 1 -and $_.GetParameters().Count -eq 1
     } | Select-Object -First 1
-    $task = $asTask.MakeGenericMethod($ResultType).Invoke($null, @($Operation))
+    return (Wait-PreparationStoreTask $asTask.MakeGenericMethod($ResultType).Invoke($null, @($Operation)))
+}
+
+# A failed Store call ends with the Store's own error. The task wraps it twice, as
+# "Exception calling Wait" around "One or more errors occurred.", which says nothing.
+function Wait-PreparationStoreTask([Threading.Tasks.Task]$Task) {
     $deadline = [DateTime]::UtcNow.AddMinutes(3)
-    while (-not $task.Wait(2000)) {
-        Write-PreparationState running store-search
-        if ([DateTime]::UtcNow -gt $deadline) { throw 'Microsoft Store did not answer.' }
+    try {
+        while (-not $Task.Wait(2000)) {
+            Write-PreparationState running store-search
+            if ([DateTime]::UtcNow -gt $deadline) { throw 'Microsoft Store did not answer.' }
+        }
+        return $Task.Result
     }
-    return $task.Result
+    catch {
+        $cause = $_.Exception
+        while ($null -ne $cause.InnerException -and ($cause -is [AggregateException] -or
+                $cause -is [Management.Automation.MethodInvocationException] -or
+                $cause -is [Management.Automation.GetValueInvocationException])) {
+            $cause = $cause.InnerException
+        }
+        throw $cause
+    }
 }
 
 function Wait-PreparationStoreSearch($Operation) {
