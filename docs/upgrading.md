@@ -53,6 +53,30 @@ the tweak `qol/disable-store-auto-updates`), so those apps stay at their version
 person updates them in Microsoft Store (**Library** > **Get updates**). The Atlas install itself
 doesn't need them.
 
+## Windows' component store
+
+Windows installs updates into its component store (WinSxS). When the store is damaged, updates
+fail, often with `0x80073712` (`ERROR_SXS_COMPONENT_STORE_CORRUPT`). Get ready repairs it at
+most once per run with `DISM /Online /Cleanup-Image /RestoreHealth`, which takes replacement
+files from Windows Update
+([repairing a Windows image](https://learn.microsoft.com/windows-hardware/manufacture/desktop/repair-a-windows-image)):
+
+- Before the run's first search, when Windows already records damage (`/CheckHealth` reads
+  `Repairable`). PCs with Atlas packages installed are skipped: the packages by themselves make
+  the store read as repairable, and a repair doesn't change that (see
+  [the component store](architecture.md#the-component-store-and-the-atlas-packages)).
+- When an update fails with `0x80073712`. The updates that failed get another try afterwards.
+
+While DISM runs, the update card says Windows is being repaired first, which can take half an
+hour or more. DISM reports no progress Get ready can read, and like Windows Update's own work it
+isn't stopped: **Stop updating** waits for it to finish. If the repair leaves a restart, Get
+ready restarts before it searches.
+
+When Windows reads the store as `NonRepairable`, Get ready stops before any update with
+`component-store-unrepairable`. When an update still fails with `0x80073712` after the repair,
+Get ready stops with that code. Both offer **Create an Atlas ISO** for reinstalling Windows.
+The health Windows reads, the repair's exit code and the health afterwards go to `updates.log`.
+
 ## Microsoft Store
 
 PCs that ran Atlas straight over Windows from older media often have a Microsoft Store too old

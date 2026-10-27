@@ -903,6 +903,7 @@ prepare-cancelled = A atualização foi interrompida. Algumas atualizações pod
 prepare-windows-search = Buscando atualizações do Windows…
 prepare-windows-download = Baixando atualizações do Windows…
 prepare-windows-install = Instalando atualizações do Windows…
+prepare-windows-repair = Reparando o Windows primeiro, porque ele informa danos que podem impedir a instalação de atualizações. Isso pode levar meia hora ou mais.
 prepare-store-search = Verificando a Microsoft Store…
 prepare-store-install = Atualizando a Microsoft Store e seus apps…
 prepare-stop-description = As atualizações serão interrompidas quando a etapa atual terminar. Mantenha o Atlas aberto até lá.
@@ -1089,6 +1090,8 @@ prepare-report-delayed = O Windows não informa o progresso há { $seconds } s. 
 prepare-affected-app = o aplicativo afetado
 prepare-app-in-use = Feche { $app } e tente novamente. O Windows não consegue atualizá-lo enquanto ele estiver aberto. Se você não encontrar a janela, feche-o pelo Gerenciador de Tarefas. Se ainda falhar, reinicie o PC e tente novamente antes de abrir { $app }.
 prepare-install-busy = Outra instalação ou uma reinicialização necessária está bloqueando as atualizações. Aguarde as outras instalações terminarem, reinicie o PC se o Windows pedir e tente novamente.
+prepare-failed-component-store = O Windows informa danos no repositório de componentes que impedem a instalação de atualizações, e o Atlas não conseguiu repará-los. Reinicie o PC e depois escolha Tentar novamente. Se as atualizações continuarem falhando, faça backup dos seus arquivos e reinstale o Windows com uma ISO com o Atlas.
+prepare-failed-component-store-unrepairable = O Windows informa danos no repositório de componentes que ele não consegue reparar, então não consegue instalar atualizações. Faça backup dos seus arquivos e depois reinstale o Windows com uma ISO com o Atlas.
 # Causes the update worker names. The worker's own English message is shown below as a detail.
 prepare-failed-session-owner = O Atlas está sendo executado com uma conta diferente da que você usou para entrar no Windows. Entre no Windows com uma conta de administrador, abra o Atlas nessa conta e tente novamente.
 prepare-failed-store-missing = A Microsoft Store não está configurada para sua conta. Abra a Microsoft Store uma vez ou, se ela não estiver instalada, reinstale-a. Depois, tente novamente.

@@ -786,6 +786,7 @@ prepare-cancelled = 更新已停止，部分更新可能已经安装。请选择
 prepare-windows-search = 正在检查 Windows 更新…
 prepare-windows-download = 正在下载 Windows 更新…
 prepare-windows-install = 正在安装 Windows 更新…
+prepare-windows-repair = 正在先修复 Windows。Windows 报告存在可能导致更新无法安装的损坏。这可能需要半小时或更长时间。
 prepare-store-search = 正在检查 Microsoft Store…
 prepare-store-install = 正在更新 Microsoft Store 及其应用…
 prepare-stop-description = Atlas 会在当前步骤完成后停止更新。在此之前，请保持 Atlas 打开。
@@ -954,6 +955,8 @@ prepare-report-delayed = Windows 已有 { $seconds } 秒未报告进度。更新
 prepare-affected-app = 受影响的应用
 prepare-app-in-use = 请关闭 { $app }，然后重试。应用处于打开状态时，Windows 无法更新它。如果找不到它的窗口，请在任务管理器中关闭它。如果仍然失败，请重启电脑，并在打开 { $app } 之前重试。
 prepare-install-busy = 其他安装或待完成的重启阻止了更新。请等待其他安装完成，如果 Windows 要求重启，请重启电脑，然后重试。
+prepare-failed-component-store = Windows 报告其组件存储已损坏，导致无法安装更新，且 Atlas 未能修复。请重启电脑，然后选择“重试”。如果更新仍然失败，请备份文件，然后使用 Atlas ISO 重新安装 Windows。
+prepare-failed-component-store-unrepairable = Windows 报告其组件存储已损坏且无法修复，因此无法安装更新。请备份文件，然后使用 Atlas ISO 重新安装 Windows。
 # 更新进程报告的原因。进程自己的英文消息会作为详细信息显示在下方。
 prepare-failed-session-owner = Atlas 正在以与当前 Windows 登录账户不同的账户运行。请使用管理员账户登录 Windows，从该账户打开 Atlas，然后重试。
 prepare-failed-store-missing = 你的账户尚未设置好 Microsoft Store。请打开一次 Microsoft Store（如果找不到，请重新安装），然后重试。

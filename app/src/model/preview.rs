@@ -137,6 +137,39 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
                 }
             })),
         ),
+        // Windows' component store: repaired before updates, an update that still
+        // failed on it, and damage Windows can't repair.
+        "components-repairing" => (
+            State::Running { stage: Stage::WindowsRepair, completed: 0, total: 0 },
+            true,
+            Some(json!({
+                "schema": 1, "status": "running", "stage": "windows-repair", "completed": 0, "total": 0,
+                "activity": { "elapsedSeconds": 754, "unchangedSeconds": 750 }
+            })),
+        ),
+        "components-damaged" | "components-unrepairable" => {
+            let (stage, activity) = if preview == "components-damaged" {
+                (
+                    "windows-install",
+                    json!({
+                        "failureMessage": "Windows could not install every update: 4. See updates.log.",
+                        "errorCode": "0x80073712"
+                    }),
+                )
+            } else {
+                (
+                    "windows-search",
+                    json!({
+                        "failureMessage": "Windows reports that its component store is damaged beyond repair.",
+                        "reason": "component-store-unrepairable"
+                    }),
+                )
+            };
+            let report = json!({
+                "schema": 1, "status": "failed", "stage": stage, "completed": 0, "total": 0, "activity": activity
+            });
+            (State::Failed, true, Some(report))
+        }
         "network" => (State::Network, false, None),
         "network-limited" => (
             State::Network,

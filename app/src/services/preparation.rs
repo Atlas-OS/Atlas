@@ -38,6 +38,9 @@ pub enum Stage {
     WindowsSearch,
     WindowsDownload,
     WindowsInstall,
+    /// Repairing Windows' component store, which reports no progress:
+    /// before updates when Windows records damage, or after one failed on it.
+    WindowsRepair,
     StoreSearch,
     /// Microsoft Store or App Installer updating itself, before the apps.
     StoreSelfUpdate,

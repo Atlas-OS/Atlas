@@ -350,6 +350,9 @@ repairable. So:
   and goes on with a repairable store. Whether Windows moved is decided after the restart,
   as for any move. A check that can't run is logged with its error and the move goes on too;
   only a store Windows can't repair stops the move with `feature-servicing`.
+- For the same reason, Get ready's repair before updates leaves PCs with Atlas packages
+  alone. It still repairs their store when an update fails with `0x80073712` (see
+  [Windows' component store](upgrading.md#windows-component-store)).
 
 Windows's own scheduled store cleanup can do the same on any PC with the packages.
 

@@ -793,6 +793,7 @@ prepare-cancelled = 更新已停止。部分更新可能已經安裝。請選擇
 prepare-windows-search = 正在檢查 Windows 更新…
 prepare-windows-download = 正在下載 Windows 更新…
 prepare-windows-install = 正在安裝 Windows 更新…
+prepare-windows-repair = 正在先修復 Windows。Windows 回報有可能導致更新無法安裝的損毀。這可能需要半小時或更久。
 prepare-store-search = 正在檢查 Microsoft Store…
 prepare-store-install = 正在更新 Microsoft Store 及其應用程式…
 prepare-stop-description = Atlas 會在目前步驟完成後停止。在那之前，請保持 Atlas 開啟。
@@ -963,6 +964,8 @@ prepare-report-delayed = Windows 已有 { $seconds } 秒未回報進度。更新
 prepare-affected-app = 受影響的應用程式
 prepare-app-in-use = 請關閉 { $app }，然後再試一次。應用程式開啟時，Windows 無法更新它。如果找不到它的視窗，請在工作管理員中將其關閉。如果仍然失敗，請重新啟動電腦，並在開啟 { $app } 之前再試一次。
 prepare-install-busy = 其他安裝或必要的重新啟動正在阻擋更新。請等待其他安裝完成；如果 Windows 要求重新啟動，請重新啟動電腦，然後再試一次。
+prepare-failed-component-store = Windows 回報其元件存放區已損毀，導致無法安裝更新，且 Atlas 無法修復。請重新啟動電腦，然後選擇「再試一次」。如果更新仍然失敗，請備份您的檔案，並使用 Atlas ISO 重新安裝 Windows。
+prepare-failed-component-store-unrepairable = Windows 回報其元件存放區已損毀且無法修復，因此無法安裝更新。請備份您的檔案，然後使用 Atlas ISO 重新安裝 Windows。
 # Causes the update worker names. The worker's own English message is shown below as a detail.
 prepare-failed-session-owner = Atlas 執行時使用的帳戶與登入 Windows 的帳戶不同。請使用系統管理員帳戶登入 Windows，從該帳戶開啟 Atlas，然後再試一次。
 prepare-failed-store-missing = 您的帳戶尚未設定 Microsoft Store。請開啟一次 Microsoft Store；如果找不到它，請重新安裝，然後再試一次。

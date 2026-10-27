@@ -1,6 +1,10 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     . (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Preparation\Update-Windows.ps1') -JobPath $TestDrive -FunctionsOnly
+    # No test reads this PC's component store or starts DISM.
+    $script:ComponentHealth = 'Healthy'
+    function Get-AtlasTransitionImageHealth { if ($script:ComponentHealth -eq 'Throws') { throw 'DISM is unavailable' }; $script:ComponentHealth }
+    function Invoke-PreparationRestoreHealth { throw 'A test started DISM without standing in for it.' }
 }
 
 Describe 'Signed-in preparation ownership' {
@@ -772,6 +776,128 @@ Describe 'Windows installation results requiring restart' {
         $script:installer | Add-Member ScriptMethod Install { throw 'Install must not run' } -Force
         Invoke-PreparationWindows | Should -Be 'reboot'
         Should -Invoke Invoke-PreparationWindowsOperation -Times 0 -Exactly -ParameterFilter { $Kind -eq 'Install' }
+    }
+}
+
+Describe 'A damaged component store' {
+    BeforeAll {
+        # An install whose one update ended with $HResult; 0 is success.
+        function New-InstallResult([int]$HResult) {
+            $code = if ($HResult -eq 0) { 2 } else { 4 }
+            $result = [pscustomobject]@{ ResultCode = $code; RebootRequired = $false; HResult = 0; Update = [pscustomobject]@{ ResultCode = $code; HResult = $HResult } }
+            $result | Add-Member ScriptMethod GetUpdateResult { $this.Update }
+            $result
+        }
+    }
+    BeforeEach {
+        $script:PreparationComponentChecked = $false
+        $script:PreparationComponentRepairRun = $false
+        $script:ComponentHealth = 'Healthy'
+        $script:Restart = $false
+        # What the run did, in order, and the installs still to come.
+        $script:Steps = [Collections.Generic.List[string]]::new()
+        $script:Installs = [Collections.Generic.Queue[object]]::new()
+        Remove-Item -LiteralPath (Join-Path $JobPath 'updates.log') -ErrorAction SilentlyContinue
+        Mock Assert-PreparationContinue {}
+        Mock Test-PreparationRestart { $script:Restart }
+        Mock Test-PreparationNetwork { $true }
+        Mock Write-PreparationState { if ($Stage -eq 'windows-repair') { $script:Steps.Add('repair stage') } }
+        Mock Get-AtlasInstalledAtlasPackage { @() }
+        Mock Invoke-PreparationRestoreHealth { $script:Steps.Add('repair'); $script:ComponentHealth = 'Healthy'; 0 }
+        Mock Find-PreparationWindowsUpdate {
+            $script:Steps.Add('search')
+            if ($script:Installs.Count -gt 0) {
+                [pscustomobject]@{
+                    Title = 'Fixture update'; EulaAccepted = $true; Identity = [pscustomobject]@{ UpdateID = 'fixture' }
+                    InstallationBehavior = [pscustomobject]@{ CanRequestUserInput = $false; Impact = 0 }
+                }
+            }
+        }
+        Mock Invoke-PreparationWindowsOperation {
+            if ($Kind -eq 'Download') { return [pscustomobject]@{ ResultCode = 2; HResult = 0 } }
+            $script:Steps.Add('install')
+            $script:Installs.Dequeue()
+        }
+        $script:RepairInstaller = [pscustomobject]@{ Updates = $null; ForceQuiet = $false; AllowSourcePrompts = $true; RebootRequiredBeforeInstallation = $false }
+        $script:RepairSession = [pscustomobject]@{ ClientApplicationID = '' }
+        $script:RepairSession | Add-Member ScriptMethod CreateUpdateInstaller { $script:RepairInstaller }
+        $script:RepairSession | Add-Member ScriptMethod CreateUpdateDownloader { [pscustomobject]@{ Updates = $null } }
+        Mock New-Object {
+            if ($ComObject -eq 'Microsoft.Update.Session') { return $script:RepairSession }
+            if ($ComObject -eq 'Microsoft.Update.UpdateColl') {
+                $collection = [pscustomobject]@{ Count = 0; Queued = [Collections.ArrayList]::new() }
+                $collection | Add-Member ScriptMethod Add { param($Update); [void]$this.Queued.Add($Update); $this.Count++ }
+                $collection | Add-Member ScriptMethod Item { param($Index); $this.Queued[$Index] }
+                return $collection
+            }
+            throw 'Unexpected provider'
+        }
+    }
+    It 'repairs damage Windows records before the first search, once a run' {
+        $script:ComponentHealth = 'Repairable'
+        Invoke-PreparationWindows | Should -Be 'complete'
+        Invoke-PreparationWindows | Should -Be 'complete'
+        @($script:Steps) | Should -Be @('repair stage', 'repair', 'search', 'search')
+        $log = Get-Content (Join-Path $JobPath 'updates.log') -Raw
+        $log | Should -Match 'Component store: Windows records damage to it; repairing it with DISM RestoreHealth'
+        $log | Should -Match 'Component store: the repair ended with 0x00000000; Windows now records it as Healthy'
+    }
+    It 'leaves a store alone that Windows records as <Health>' -TestCases @(
+        @{ Health = 'Healthy'; Logged = '^$' }
+        @{ Health = 'Throws'; Logged = 'its health could not be read \(0x[0-9A-F]{8}\): DISM is unavailable' }
+    ) {
+        param($Health, $Logged)
+        $script:ComponentHealth = $Health
+        Invoke-PreparationWindows | Should -Be 'complete'
+        Should -Invoke Invoke-PreparationRestoreHealth -Times 0 -Exactly
+        [string](Get-Content (Join-Path $JobPath 'updates.log') -Raw -ErrorAction SilentlyContinue) | Should -Match $Logged
+    }
+    It 'leaves a repairable store alone on a PC with Atlas packages, which keep it reading so' {
+        $script:ComponentHealth = 'Repairable'
+        Mock Get-AtlasInstalledAtlasPackage { 'Z-Atlas-NoTelemetry-Package~31bf3856ad364e35~amd64~~5.0.0.0' }
+        Invoke-PreparationWindows | Should -Be 'complete'
+        Should -Invoke Invoke-PreparationRestoreHealth -Times 0 -Exactly
+        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'repairable, with Atlas packages installed \(Z-Atlas-NoTelemetry-Package[^)]*\); left as it is'
+    }
+    It 'stops before any search when Windows records damage it can''t repair' {
+        $script:ComponentHealth = 'NonRepairable'
+        $thrown = $null
+        try { Invoke-PreparationWindows } catch { $thrown = $_.Exception }
+        (Get-PreparationFailureDetail $thrown).reason | Should -BeExactly 'component-store-unrepairable'
+        @($script:Steps) | Should -BeNullOrEmpty
+    }
+    It 'restarts first when the repair leaves a restart' {
+        $script:ComponentHealth = 'Repairable'
+        Mock Invoke-PreparationRestoreHealth { $script:Steps.Add('repair'); $script:Restart = $true; 0 }
+        Invoke-PreparationWindows | Should -Be 'reboot'
+        @($script:Steps) | Should -Not -Contain 'search'
+    }
+    It 'goes on to the updates when the repair can''t run' {
+        $script:ComponentHealth = 'Repairable'
+        Mock Invoke-PreparationRestoreHealth { throw 'Dism.exe is missing' }
+        Invoke-PreparationWindows | Should -Be 'complete'
+        @($script:Steps) | Should -Be @('repair stage', 'search')
+        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'the repair could not run: Dism\.exe is missing'
+    }
+    It 'repairs the store when an update fails on it, then tries that update again even after its retry' {
+        foreach ($code in @(-1, $script:ComponentStoreCorrupt, 0)) { $script:Installs.Enqueue((New-InstallResult $code)) }
+        Invoke-PreparationWindows | Should -Be 'complete'
+        @($script:Steps) | Should -Be @('search', 'install', 'search', 'install', 'repair stage', 'repair', 'search', 'install', 'search')
+        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match '1 update\(s\) failed on it \(0x80073712\); repairing it'
+    }
+    It 'reports an update that still fails on the store after the repair, with its code' {
+        foreach ($code in @($script:ComponentStoreCorrupt, $script:ComponentStoreCorrupt)) { $script:Installs.Enqueue((New-InstallResult $code)) }
+        $thrown = $null
+        try { Invoke-PreparationWindows } catch { $thrown = $_.Exception }
+        (Get-PreparationFailureDetail $thrown).errorCode | Should -BeExactly '0x80073712'
+        Should -Invoke Invoke-PreparationRestoreHealth -Times 1 -Exactly
+        @($script:Steps | Where-Object { $_ -eq 'install' }).Count | Should -Be 2
+    }
+    It 'repairs once a run, also when an update then fails on the store' {
+        $script:ComponentHealth = 'Repairable'
+        foreach ($code in @($script:ComponentStoreCorrupt, $script:ComponentStoreCorrupt)) { $script:Installs.Enqueue((New-InstallResult $code)) }
+        try { Invoke-PreparationWindows } catch { $null = $_ }
+        Should -Invoke Invoke-PreparationRestoreHealth -Times 1 -Exactly
     }
 }
 

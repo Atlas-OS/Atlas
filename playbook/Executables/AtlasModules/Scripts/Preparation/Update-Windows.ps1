@@ -53,6 +53,13 @@ $script:UpgradesCategory = '3689BDC8-B205-4AF4-8D4A-A63924C5E9D5'
 # device already has a driver at least as good. Windows Update offers that driver
 # again, and it fails the same way every time.
 $script:DriverNotNeeded = -2147024637
+# ERROR_SXS_COMPONENT_STORE_CORRUPT (0x80073712): an update failed because the
+# component store, which Windows installs updates into, is damaged.
+$script:ComponentStoreCorrupt = -2147010798
+# A run reads the component store's health once and repairs it at most once:
+# a repair can take half an hour.
+$script:PreparationComponentChecked = $false
+$script:PreparationComponentRepairRun = $false
 # Searches that end with errors, and the wait between them, before preparation stops.
 $script:PreparationSearchAttempts = 3
 $script:PreparationSearchRetrySeconds = 30
@@ -532,6 +539,71 @@ function Select-PreparationNewestUpdate($Updates) {
     }
 }
 
+function Write-PreparationComponentEvidence([string]$Text) {
+    Write-PreparationLog "Component store: $Text"
+    Write-AtlasTransitionEvidence "component store: $Text"
+}
+
+# Windows's own record of its component store: Healthy, Repairable or
+# NonRepairable. Unknown when it can't be read, which is no evidence of damage.
+function Get-PreparationComponentHealth {
+    try { return [string](Get-AtlasTransitionImageHealth) }
+    catch {
+        Write-PreparationComponentEvidence ('its health could not be read (0x{0:X8}): {1}' -f $_.Exception.HResult, $_.Exception.Message)
+        return 'Unknown'
+    }
+}
+
+# Before a run's first search, damage Windows has already recorded is repaired,
+# as updates fail on it. Not on a PC with Atlas packages: those alone make the
+# store read as repairable, and a repair doesn't clear that (see "The component
+# store and the Atlas packages" in docs/architecture.md). Damage Windows can't
+# repair stops the run. Returns whether a repair ran.
+function Repair-PreparationRecordedDamage {
+    if ($script:PreparationComponentChecked) { return $false }
+    $script:PreparationComponentChecked = $true
+    $health = Get-PreparationComponentHealth
+    if ($health -eq 'NonRepairable') {
+        Write-PreparationComponentEvidence 'Windows records damage it can''t repair'
+        throw (New-PreparationFailure 'Windows reports that its component store is damaged beyond repair.' 'component-store-unrepairable')
+    }
+    if ($health -ne 'Repairable') { return $false }
+    $packages = @(Get-AtlasInstalledAtlasPackage)
+    if ($packages.Count -gt 0) {
+        Write-PreparationComponentEvidence "repairable, with Atlas packages installed ($($packages -join ', ')); left as it is"
+        return $false
+    }
+    return (Invoke-PreparationComponentRepair 'Windows records damage to it')
+}
+
+# Repairs the store once a run; returns whether the repair ran.
+function Invoke-PreparationComponentRepair([string]$Why) {
+    if ($script:PreparationComponentRepairRun) { return $false }
+    $script:PreparationComponentRepairRun = $true
+    Write-PreparationComponentEvidence "$Why; repairing it with DISM RestoreHealth"
+    Write-PreparationState running windows-repair
+    try { $exit = '0x{0:X8}' -f (Invoke-PreparationRestoreHealth) }
+    catch {
+        Write-PreparationComponentEvidence "the repair could not run: $($_.Exception.Message)"
+        return $true
+    }
+    Write-PreparationComponentEvidence "the repair ended with $exit; Windows now records it as $(Get-PreparationComponentHealth)"
+    return $true
+}
+
+# DISM's RestoreHealth, which repairs the store from Windows Update. It reports
+# no progress Atlas can read and, like Windows Update's own work, is never
+# stopped: a stop waits for its end. Returns DISM's exit code.
+function Invoke-PreparationRestoreHealth {
+    $dism = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'Dism.exe')
+    $process = Start-Process -FilePath $dism -ArgumentList '/Online /Cleanup-Image /RestoreHealth /NoRestart' -WindowStyle Hidden -PassThru
+    # Holding the handle keeps the exit code, which is otherwise lost when the
+    # process ends before it is read.
+    $null = $process.Handle
+    while (-not $process.WaitForExit(2000)) { Write-PreparationState running windows-repair }
+    return $process.ExitCode
+}
+
 function Invoke-PreparationWindows {
     $retried = @{}
     # Updates this run installed successfully, and drivers it found the device
@@ -542,6 +614,8 @@ function Invoke-PreparationWindows {
         Assert-PreparationContinue
         if (Test-PreparationRestart) { return 'reboot' }
         if (-not (Test-PreparationNetwork)) { throw (New-Object System.Net.NetworkInformation.NetworkInformationException) }
+        # The repair can leave a restart for Windows to finish it.
+        if ($pass -eq 0 -and (Repair-PreparationRecordedDamage) -and (Test-PreparationRestart)) { return 'reboot' }
         Write-PreparationState running windows-search
         $session = New-Object -ComObject Microsoft.Update.Session
         $session.ClientApplicationID = 'Atlas preparation'
@@ -614,6 +688,12 @@ function Invoke-PreparationWindows {
         # A pass whose only failures were drivers the device doesn't need is done,
         # and the next search leaves them out.
         if ([int]$installed.ResultCode -ne $script:UpdateSucceeded -and ($failed.Count -gt 0 -or $unneededDrivers -eq 0)) {
+            # Updates that failed on a damaged component store get another try
+            # once it's repaired, even if they've had one.
+            $damaged = @($failed | Where-Object { $_.HResult -eq $script:ComponentStoreCorrupt })
+            if ($damaged.Count -gt 0 -and (Invoke-PreparationComponentRepair "$($damaged.Count) update(s) failed on it (0x80073712)")) {
+                foreach ($entry in $damaged) { $retried.Remove($entry.Id) }
+            }
             Register-PreparationRetry $failed $installed $retried "Windows could not install every update: $($installed.ResultCode). See updates.log."
         }
     }

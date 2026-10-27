@@ -829,6 +829,7 @@ prepare-cancelled = अपडेट करना रुक गया है। �
 prepare-windows-search = Windows अपडेट जाँचे जा रहे हैं…
 prepare-windows-download = Windows अपडेट डाउनलोड हो रहे हैं…
 prepare-windows-install = Windows अपडेट इंस्टॉल हो रहे हैं…
+prepare-windows-repair = पहले Windows ठीक किया जा रहा है, क्योंकि उसके अनुसार उसमें ऐसी ख़राबी है जो अपडेट इंस्टॉल होने से रोक सकती है। इसमें आधा घंटा या उससे ज़्यादा लग सकता है।
 prepare-store-search = Microsoft Store की जाँच हो रही है…
 prepare-store-install = Microsoft Store और उसके ऐप अपडेट हो रहे हैं…
 prepare-stop-description = मौजूदा चरण पूरा होने के बाद Atlas अपडेट करना रोक देगा। तब तक Atlas खुला रखें।
@@ -998,6 +999,8 @@ prepare-report-delayed = Windows ने { $seconds } सेकंड से प�
 prepare-affected-app = प्रभावित ऐप
 prepare-app-in-use = { $app } बंद करें, फिर कोशिश करें। जब तक यह खुला है, Windows इसे अपडेट नहीं कर सकता। अगर इसकी विंडो नहीं मिल रही, तो इसे कार्य प्रबंधक से बंद करें। अगर फिर भी विफल हो, तो अपना PC रीस्टार्ट करें और { $app } खोलने से पहले फिर कोशिश करें।
 prepare-install-busy = कोई दूसरा इंस्टॉलेशन या ज़रूरी रीस्टार्ट अपडेट रोक रहा है। दूसरे इंस्टॉलेशन पूरे होने दें, अगर Windows कहे तो अपना PC रीस्टार्ट करें, फिर कोशिश करें।
+prepare-failed-component-store = Windows के अनुसार उसका कंपोनेंट स्टोर ख़राब है, जिससे अपडेट इंस्टॉल नहीं हो पा रहे, और Atlas उसे ठीक नहीं कर सका। अपना PC रीस्टार्ट करें, फिर “फिर कोशिश करें” चुनें। अगर अपडेट फिर भी विफल हों, तो अपनी फ़ाइलों का बैकअप लें और Atlas ISO से Windows दोबारा इंस्टॉल करें।
+prepare-failed-component-store-unrepairable = Windows के अनुसार उसका कंपोनेंट स्टोर ख़राब है और वह इसे ठीक नहीं कर सकता, इसलिए वह अपडेट इंस्टॉल नहीं कर सकता। अपनी फ़ाइलों का बैकअप लें, फिर Atlas ISO से Windows दोबारा इंस्टॉल करें।
 # Causes the update worker names. The worker's own English message is shown below as a detail.
 prepare-failed-session-owner = Atlas उस खाते से अलग खाते में चल रहा है, जिससे Windows में साइन इन किया गया है। व्यवस्थापक खाते से Windows में साइन इन करें, उसी खाते से Atlas खोलें, फिर कोशिश करें।
 prepare-failed-store-missing = आपके खाते के लिए Microsoft Store सेट अप नहीं है। Microsoft Store एक बार खोलें, या अगर वह मौजूद नहीं है तो उसे दोबारा इंस्टॉल करें, फिर कोशिश करें।

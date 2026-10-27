@@ -833,6 +833,7 @@ prepare-cancelled = Güncelleme durdu. Bazı güncellemeler yüklenmiş olabilir
 prepare-windows-search = Windows güncellemeleri denetleniyor…
 prepare-windows-download = Windows güncellemeleri indiriliyor…
 prepare-windows-install = Windows güncellemeleri yükleniyor…
+prepare-windows-repair = Önce Windows onarılıyor, çünkü Windows güncelleştirmelerin yüklenmesini engelleyebilecek bir hasar bildiriyor. Bu yarım saat veya daha uzun sürebilir.
 prepare-store-search = Microsoft Store denetleniyor…
 prepare-store-install = Microsoft Store ve uygulamaları güncelleniyor…
 prepare-stop-description = Atlas, geçerli adım bittikten sonra durur. O zamana kadar Atlas’ı açık tutun.
@@ -1004,6 +1005,8 @@ prepare-report-delayed = Windows { $seconds } sn boyunca ilerleme bildirmedi. G�
 prepare-affected-app = etkilenen uygulamayı
 prepare-app-in-use = Önce { $app } ve pencerelerini kapatın, ardından tekrar deneyin. Uygulama açıkken Windows onu güncelleyemez. Penceresini bulamıyorsanız uygulamayı Görev Yöneticisi’nden kapatın. Yine başarısız olursa bilgisayarınızı yeniden başlatın ve uygulamayı açmadan önce tekrar deneyin.
 prepare-install-busy = Başka bir kurulum veya gerekli bir yeniden başlatma güncellemeleri engelliyor. Diğer kurulumların bitmesini bekleyin, Windows isterse bilgisayarınızı yeniden başlatın, ardından tekrar deneyin.
+prepare-failed-component-store = Windows, bileşen deposunda güncelleştirmelerin yüklenmesini engelleyen bir hasar bildiriyor ve Atlas bunu onaramadı. Bilgisayarınızı yeniden başlatın, ardından Yeniden dene'yi seçin. Güncelleştirmeler yine başarısız olursa dosyalarınızı yedekleyin ve Windows'u bir Atlas ISO'suyla yeniden yükleyin.
+prepare-failed-component-store-unrepairable = Windows, bileşen deposunda onaramadığı bir hasar bildiriyor, bu yüzden güncelleştirmeleri yükleyemiyor. Dosyalarınızı yedekleyin, ardından Windows'u bir Atlas ISO'suyla yeniden yükleyin.
 # Causes the update worker names. The worker's own English message is shown below as a detail.
 prepare-failed-session-owner = Atlas, Windows’ta oturum açmış hesaptan farklı bir hesapla çalışıyor. Windows’ta bir yönetici hesabıyla oturum açın, Atlas’ı o hesaptan açın ve tekrar deneyin.
 prepare-failed-store-missing = Microsoft Store hesabınız için ayarlanmamış. Microsoft Store’u bir kez açın veya eksikse yeniden yükleyin, ardından tekrar deneyin.

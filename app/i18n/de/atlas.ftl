@@ -827,6 +827,7 @@ prepare-cancelled = Die Aktualisierung wurde angehalten. Einige Updates wurden m
 prepare-windows-search = Windows Update wird geprüft…
 prepare-windows-download = Windows-Updates werden heruntergeladen…
 prepare-windows-install = Windows-Updates werden installiert…
+prepare-windows-repair = Zuerst wird Windows repariert, weil es Schäden meldet, die die Installation von Updates verhindern können. Das kann eine halbe Stunde oder länger dauern.
 prepare-store-search = Microsoft Store wird geprüft…
 prepare-store-install = Microsoft Store und seine Apps werden aktualisiert…
 prepare-stop-description = Atlas hält an, sobald der aktuelle Schritt abgeschlossen ist. Lassen Sie Atlas bis dahin geöffnet.
@@ -996,6 +997,8 @@ prepare-report-delayed = Windows hat seit { $seconds } Sek. keinen Fortschritt g
 prepare-affected-app = die betroffene App
 prepare-app-in-use = Schließen Sie { $app } und versuchen Sie es dann erneut. Windows kann die App nicht aktualisieren, solange sie geöffnet ist. Wenn Sie ihr Fenster nicht finden, beenden Sie sie im Task-Manager. Wenn es weiterhin fehlschlägt, starten Sie Ihren PC neu und versuchen Sie es erneut, bevor Sie { $app } öffnen.
 prepare-install-busy = Eine andere Installation oder ein erforderlicher Neustart blockiert Updates. Warten Sie, bis andere Installationen abgeschlossen sind, starten Sie Ihren PC neu, wenn Windows Sie dazu auffordert, und versuchen Sie es dann erneut.
+prepare-failed-component-store = Windows meldet Schäden an seinem Komponentenspeicher, die die Installation von Updates verhindern, und Atlas konnte sie nicht reparieren. Starten Sie Ihren PC neu und wählen Sie dann „Erneut versuchen“. Wenn Updates weiterhin fehlschlagen, sichern Sie Ihre Dateien und installieren Sie Windows mit einer Atlas-ISO neu.
+prepare-failed-component-store-unrepairable = Windows meldet Schäden an seinem Komponentenspeicher, die es nicht reparieren kann, und kann deshalb keine Updates installieren. Sichern Sie Ihre Dateien und installieren Sie Windows dann mit einer Atlas-ISO neu.
 # Causes the update worker names. The worker's own English message is shown below as a detail.
 prepare-failed-session-owner = Atlas läuft unter einem anderen Konto als dem, das bei Windows angemeldet ist. Melden Sie sich mit einem Administratorkonto bei Windows an, öffnen Sie Atlas unter diesem Konto und versuchen Sie es dann erneut.
 prepare-failed-store-missing = Der Microsoft Store ist für Ihr Konto nicht eingerichtet. Öffnen Sie den Microsoft Store einmal oder installieren Sie ihn neu, falls er fehlt. Versuchen Sie es dann erneut.

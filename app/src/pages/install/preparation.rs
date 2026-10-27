@@ -201,6 +201,7 @@ impl InstallPage {
                 Stage::WindowsSearch | Stage::Verify => t!("prepare-windows-search"),
                 Stage::WindowsDownload => t!("prepare-windows-download"),
                 Stage::WindowsInstall => t!("prepare-windows-install"),
+                Stage::WindowsRepair => t!("prepare-windows-repair"),
                 Stage::StoreSearch => t!("prepare-store-search"),
                 Stage::StoreSelfUpdate => t!("prepare-store-self-update"),
                 Stage::StoreInstall => t!("prepare-store-install"),
@@ -230,7 +231,12 @@ impl InstallPage {
                     t!("prepare-open-store"),
                     "ms-windows-store://downloadsandupdates",
                 )),
-                Some(Stage::WindowsSearch | Stage::WindowsDownload | Stage::WindowsInstall) => Some((
+                Some(
+                    Stage::WindowsSearch
+                    | Stage::WindowsDownload
+                    | Stage::WindowsInstall
+                    | Stage::WindowsRepair,
+                ) => Some((
                     "prepare-open-windows-update",
                     t!("check-fix-windows-update"),
                     links::WINDOWS_UPDATE,
@@ -342,8 +348,9 @@ impl InstallPage {
             Button::new("prepare-keep-version", t!("prepare-keep-version", current = current.as_str()))
                 .on_click(on_model(&self.model, |m, cx| m.keep_windows_version(true, cx)))
         });
-        // A Store Atlas can't repair leaves reinstalling Windows.
-        let iso = (matches!(reason, Some("feature-hardware")) || not_offered || store_repair_failed)
+        // A Store or component store Atlas can't repair leaves reinstalling Windows.
+        let reinstall = store_repair_failed || failure.is_some_and(describe::component_store_damaged);
+        let iso = (matches!(reason, Some("feature-hardware")) || not_offered || reinstall)
             .then(|| state.can_navigate(Page::Iso))
             .filter(|offered| *offered)
             .map(|_| {
@@ -633,11 +640,20 @@ fn waiting_for_offer(progress: &Progress) -> bool {
     progress.activity.waiting.as_deref() == Some("feature-offer")
 }
 
+/// A repair of Windows' component store reports no progress at all, which
+/// its stage says, so it never looks stuck while its reports keep coming.
+fn repairing(progress: &Progress) -> bool {
+    progress.stage == Stage::WindowsRepair
+}
+
 fn stall(progress: &Progress, now: u64) -> Option<Stall> {
     let age = progress.report_age(now);
     if age >= REPORT_DELAYED_SECONDS {
         Some(Stall::Silent(age))
-    } else if progress.activity.unchanged_seconds >= UNCHANGED_SECONDS && !waiting_for_offer(progress) {
+    } else if progress.activity.unchanged_seconds >= UNCHANGED_SECONDS
+        && !waiting_for_offer(progress)
+        && !repairing(progress)
+    {
         Some(Stall::Unchanged(progress.activity.unchanged_seconds))
     } else {
         None
@@ -701,6 +717,7 @@ fn running_details(
         Some(Stall::Silent(seconds)) => Some(t!("prepare-report-delayed", seconds = seconds)),
         Some(Stall::Unchanged(seconds)) => Some(t!("prepare-progress-unchanged", minutes = seconds / 60)),
         None if waiting_for_offer(progress) => Some(t!("prepare-waiting-offer", release = release)),
+        None if repairing(progress) => None,
         None if activity.percent.is_none() => Some(t!("prepare-progress-waiting")),
         None => None,
     };
@@ -763,5 +780,19 @@ mod tests {
         );
         progress.activity.waiting = None;
         assert_eq!(stall(&progress, 1001), Some(Stall::Unchanged(300)));
+    }
+
+    #[test]
+    fn a_component_store_repair_without_progress_is_not_a_stall() {
+        let progress: Progress = serde_json::from_value(serde_json::json!({
+            "schema": 1, "status": "running", "stage": "windows-repair", "completed": 0, "total": 0,
+            "updatedAt": 1000, "activity": { "unchangedSeconds": 1200 }
+        }))
+        .unwrap();
+        assert_eq!(stall(&progress, 1001), None, "reports keep coming while DISM works");
+        assert_eq!(
+            stall(&progress, 1000 + REPORT_DELAYED_SECONDS),
+            Some(Stall::Silent(REPORT_DELAYED_SECONDS))
+        );
     }
 }

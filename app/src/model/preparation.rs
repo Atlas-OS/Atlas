@@ -386,6 +386,7 @@ fn does_work(stage: Stage) -> bool {
     match stage {
         Stage::WindowsDownload
         | Stage::WindowsInstall
+        | Stage::WindowsRepair
         | Stage::StoreSelfUpdate
         | Stage::StoreInstall
         | Stage::StoreRepair => true,

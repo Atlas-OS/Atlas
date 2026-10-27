@@ -67,6 +67,22 @@ const ERROR_PACKAGES_IN_USE: &str = "0x80073D02";
 /// Windows Update refused to start while another install or a required
 /// restart is pending.
 const WU_E_INSTALL_NOT_ALLOWED: &str = "0x80240016";
+/// Windows found its component store damaged, so no update can install.
+const ERROR_SXS_COMPONENT_STORE_CORRUPT: &str = "0x80073712";
+/// The cause the worker names when Windows records damage to its component
+/// store that it can't repair.
+const COMPONENT_STORE_UNREPAIRABLE: &str = "component-store-unrepairable";
+
+/// Updates can't install because Windows' component store is damaged: one
+/// failed on it after Atlas's repair, or Windows records damage it can't
+/// repair. A reinstall fixes what Windows' own repair doesn't.
+pub fn component_store_damaged(failure: &Activity) -> bool {
+    failure.reason.as_deref() == Some(COMPONENT_STORE_UNREPAIRABLE)
+        || failure
+            .error_code
+            .as_deref()
+            .is_some_and(|code| code.eq_ignore_ascii_case(ERROR_SXS_COMPONENT_STORE_CORRUPT))
+}
 
 /// What to do about a preparation run that failed. `failure` is the
 /// worker's own report, if it wrote one; `has_error` says the app recorded
@@ -82,6 +98,9 @@ pub fn preparation_failure(failure: Option<&Activity>, has_error: bool) -> Strin
             t!("prepare-app-in-use", app = app)
         }
         Some(code) if code.eq_ignore_ascii_case(WU_E_INSTALL_NOT_ALLOWED) => t!("prepare-install-busy"),
+        Some(code) if code.eq_ignore_ascii_case(ERROR_SXS_COMPONENT_STORE_CORRUPT) => {
+            t!("prepare-failed-component-store")
+        }
         _ => failure
             .reason
             .as_deref()
@@ -101,6 +120,7 @@ pub fn preparation_failure_reason(id: &str) -> Option<String> {
         "store-timeout" => t!("prepare-failed-store-timeout"),
         "store-passes" => t!("prepare-failed-store-passes"),
         "store-repair-failed" => t!("prepare-failed-store-repair-failed"),
+        COMPONENT_STORE_UNREPAIRABLE => t!("prepare-failed-component-store-unrepairable"),
         "manual-updates" => t!("prepare-failed-manual-updates"),
         "windows-passes" => t!("prepare-failed-windows-passes"),
         _ => return None,
@@ -965,6 +985,18 @@ mod tests {
             );
             let busy = activity(Some(WU_E_INSTALL_NOT_ALLOWED), None);
             assert_eq!(preparation_failure(Some(&busy), false), t!("prepare-install-busy"));
+            // As one RC10 tester's .NET update failed on a fresh install.
+            let damaged = activity(Some("0x80073712"), None);
+            assert!(component_store_damaged(&damaged));
+            assert_eq!(preparation_failure(Some(&damaged), false), t!("prepare-failed-component-store"));
+            // Damage Windows records and can't repair stops a run before any update.
+            let unrepairable = activity(None, Some(COMPONENT_STORE_UNREPAIRABLE));
+            assert!(component_store_damaged(&unrepairable));
+            assert_eq!(
+                preparation_failure(Some(&unrepairable), false),
+                t!("prepare-failed-component-store-unrepairable")
+            );
+            assert!(!component_store_damaged(&activity(Some("0x80070005"), Some("store-timeout"))));
             let battery = activity(None, Some("store-paused-battery"));
             assert_eq!(preparation_failure(Some(&battery), false), t!("prepare-failed-store-battery"));
             let unknown = activity(Some("0x80070005"), Some("a-newer-cause"));

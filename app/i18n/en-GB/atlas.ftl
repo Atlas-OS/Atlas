@@ -903,6 +903,12 @@ prepare-unconfirmed-title = Couldn't confirm the update result
 prepare-affected-app = the affected app
 prepare-app-in-use = Close { $app }, then try again. Windows can't update it while it's open. If you can't find its window, close it in Task Manager. If it still fails, restart your PC and try again before you open { $app }.
 prepare-install-busy = Another installation or a required restart is blocking updates. Let other installations finish, restart your PC if Windows asks you to, then try again.
+# Updates failed with 0x80073712, and Atlas's own repair of the component store (DISM) didn't
+# fix it. "Try again" is common-try-again; the Atlas ISO is iso-open, the button beside it.
+prepare-failed-component-store = Windows reports damage to its component store that stops updates from installing, and Atlas couldn't repair it. Restart your PC, then choose Try again. If updates still fail, back up your files and reinstall Windows with an Atlas ISO.
+# Windows records damage to its component store that it can't repair, so Atlas stops before
+# any update. The Atlas ISO is iso-open, the button beside it.
+prepare-failed-component-store-unrepairable = Windows reports damage to its component store that it can't repair, which stops updates from installing. Back up your files, then reinstall Windows with an Atlas ISO.
 # Causes the update worker names. The worker's own English message is shown below as a detail.
 prepare-failed-session-owner = Atlas is running as a different account from the one signed in to Windows. Sign in to Windows with an administrator account, open Atlas from that account, then try again.
 prepare-failed-store-missing = Microsoft Store isn't set up for your account. Open Microsoft Store once, or reinstall it if it's missing, then try again.
@@ -930,6 +936,9 @@ prepare-progress-unchanged = No progress for { $minutes } min. Large updates can
 prepare-report-delayed = Windows hasn't reported progress for { $seconds } s. Updates may still be running, so keep Atlas open.
 prepare-windows-download = Downloading Windows updates…
 prepare-windows-install = Installing Windows updates…
+# Shown while DISM repairs Windows' component store, before updates or after one failed on it.
+# DISM reports no progress, so no percentage shows with it.
+prepare-windows-repair = Repairing Windows first, because it reports damage that can stop updates from installing. This can take half an hour or more.
 prepare-store-search = Checking Microsoft Store…
 prepare-store-install = Updating Microsoft Store and its apps…
 prepare-stop-description = Atlas stops after the current step finishes. Keep Atlas open until then.

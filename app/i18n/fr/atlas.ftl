@@ -809,6 +809,7 @@ prepare-cancelled = Les mises à jour ont été arrêtées. Certaines ont peut-�
 prepare-windows-search = Recherche de mises à jour Windows…
 prepare-windows-download = Téléchargement des mises à jour Windows…
 prepare-windows-install = Installation des mises à jour Windows…
+prepare-windows-repair = Réparation préalable de Windows, qui signale des dommages pouvant empêcher l’installation des mises à jour. Cela peut prendre une demi-heure ou plus.
 prepare-store-search = Vérification du Microsoft Store…
 prepare-store-install = Mise à jour du Microsoft Store et de ses applications…
 prepare-stop-description = Atlas s’arrête une fois l’opération en cours terminée. Gardez Atlas ouvert jusque-là.
@@ -976,6 +977,8 @@ prepare-report-delayed = Windows n’a signalé aucune progression depuis { $sec
 prepare-affected-app = l’application concernée
 prepare-app-in-use = Fermez { $app }, puis réessayez. Windows ne peut pas mettre à jour cette application tant qu’elle est ouverte. Si vous ne trouvez pas sa fenêtre, fermez l’application dans le Gestionnaire des tâches. Si l’échec persiste, redémarrez votre PC et réessayez avant d’ouvrir { $app }.
 prepare-install-busy = Une autre installation ou un redémarrage requis bloque les mises à jour. Attendez la fin des autres installations, redémarrez votre PC si Windows vous le demande, puis réessayez.
+prepare-failed-component-store = Windows signale que son magasin de composants est endommagé, ce qui empêche l’installation des mises à jour, et Atlas n’a pas pu le réparer. Redémarrez votre PC, puis choisissez Réessayer. Si les mises à jour échouent encore, sauvegardez vos fichiers et réinstallez Windows avec une ISO Atlas.
+prepare-failed-component-store-unrepairable = Windows signale que son magasin de composants est endommagé et qu’il ne peut pas le réparer, si bien qu’il ne peut pas installer de mises à jour. Sauvegardez vos fichiers, puis réinstallez Windows avec une ISO Atlas.
 # Causes signalées par le processus de mise à jour. Son propre message en anglais est affiché en dessous comme détail.
 prepare-failed-session-owner = Atlas s’exécute sous un autre compte que celui connecté à Windows. Connectez-vous à Windows avec un compte administrateur, ouvrez Atlas depuis ce compte, puis réessayez.
 prepare-failed-store-missing = Le Microsoft Store n’est pas configuré pour votre compte. Ouvrez le Microsoft Store une fois, ou réinstallez-le s’il est absent, puis réessayez.

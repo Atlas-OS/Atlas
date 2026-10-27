@@ -806,6 +806,7 @@ prepare-cancelled = Pembaruan dihentikan. Beberapa pembaruan mungkin sudah terin
 prepare-windows-search = Memeriksa pembaruan Windows…
 prepare-windows-download = Mengunduh pembaruan Windows…
 prepare-windows-install = Menginstal pembaruan Windows…
+prepare-windows-repair = Memperbaiki Windows terlebih dahulu, karena Windows melaporkan kerusakan yang dapat mencegah pembaruan terinstal. Ini dapat memerlukan waktu setengah jam atau lebih.
 prepare-store-search = Memeriksa Microsoft Store…
 prepare-store-install = Memperbarui Microsoft Store dan aplikasinya…
 prepare-stop-description = Atlas akan berhenti setelah langkah saat ini selesai. Biarkan Atlas tetap terbuka sampai saat itu.
@@ -975,6 +976,8 @@ prepare-report-delayed = Windows belum melaporkan kemajuan selama { $seconds } d
 prepare-affected-app = aplikasi terkait
 prepare-app-in-use = Tutup { $app }, lalu coba lagi. Windows tidak dapat memperbaruinya saat aplikasi tersebut terbuka. Jika Anda tidak dapat menemukan jendelanya, tutup aplikasi melalui Pengelola Tugas. Jika masih gagal, mulai ulang PC Anda dan coba lagi sebelum membuka { $app }.
 prepare-install-busy = Penginstalan lain atau mulai ulang yang diperlukan menghalangi pembaruan. Tunggu hingga penginstalan lain selesai, mulai ulang PC Anda jika Windows memintanya, lalu coba lagi.
+prepare-failed-component-store = Windows melaporkan kerusakan pada penyimpanan komponennya yang mencegah pembaruan terinstal, dan Atlas tidak dapat memperbaikinya. Mulai ulang PC Anda, lalu pilih Coba lagi. Jika pembaruan masih gagal, cadangkan file Anda dan instal ulang Windows dengan ISO Atlas.
+prepare-failed-component-store-unrepairable = Windows melaporkan kerusakan pada penyimpanan komponennya yang tidak dapat diperbaiki, sehingga tidak dapat menginstal pembaruan. Cadangkan file Anda, lalu instal ulang Windows dengan ISO Atlas.
 # Causes the update worker names. The worker's own English message is shown below as a detail.
 prepare-failed-session-owner = Atlas berjalan dengan akun yang berbeda dari akun yang masuk ke Windows. Masuk ke Windows dengan akun administrator, buka Atlas dari akun tersebut, lalu coba lagi.
 prepare-failed-store-missing = Microsoft Store belum disiapkan untuk akun Anda. Buka Microsoft Store sekali, atau instal ulang jika tidak ada, lalu coba lagi.

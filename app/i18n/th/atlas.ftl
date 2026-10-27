@@ -815,6 +815,7 @@ prepare-cancelled = หยุดการอัปเดตแล้ว กา�
 prepare-windows-search = กำลังตรวจหาการอัปเดต Windows…
 prepare-windows-download = กำลังดาวน์โหลดการอัปเดต Windows…
 prepare-windows-install = กำลังติดตั้งการอัปเดต Windows…
+prepare-windows-repair = กำลังซ่อมแซม Windows ก่อน เนื่องจาก Windows รายงานความเสียหายที่อาจทำให้ติดตั้งการอัปเดตไม่ได้ ขั้นตอนนี้อาจใช้เวลาครึ่งชั่วโมงหรือนานกว่านั้น
 prepare-store-search = กำลังตรวจสอบ Microsoft Store…
 prepare-store-install = กำลังอัปเดต Microsoft Store และแอป…
 prepare-stop-description = Atlas จะหยุดหลังจากขั้นตอนปัจจุบันเสร็จ เปิด Atlas ไว้จนถึงตอนนั้น
@@ -984,6 +985,8 @@ prepare-report-delayed = Windows ไม่ได้รายงานควา�
 prepare-affected-app = แอปที่มีปัญหา
 prepare-app-in-use = ปิด { $app } แล้วลองอีกครั้ง Windows อัปเดตแอปนี้ไม่ได้ขณะที่แอปเปิดอยู่ หากไม่พบหน้าต่างของแอป ให้ปิดแอปในตัวจัดการงาน หากยังไม่สำเร็จ ให้รีสตาร์ตพีซีแล้วลองอีกครั้งก่อนเปิด { $app }
 prepare-install-busy = การติดตั้งอื่นหรือการรีสตาร์ตที่จำเป็นกำลังขัดขวางการอัปเดต รอให้การติดตั้งอื่นเสร็จ รีสตาร์ตพีซีหาก Windows ขอให้รีสตาร์ต แล้วลองอีกครั้ง
+prepare-failed-component-store = Windows รายงานว่าที่เก็บคอมโพเนนต์ของ Windows เสียหายจนติดตั้งการอัปเดตไม่ได้ และ Atlas ซ่อมแซมไม่สำเร็จ รีสตาร์ตพีซี แล้วเลือก ลองอีกครั้ง หากการอัปเดตยังล้มเหลว ให้สำรองไฟล์ของคุณแล้วติดตั้ง Windows ใหม่ด้วย ISO พร้อม Atlas
+prepare-failed-component-store-unrepairable = Windows รายงานว่าที่เก็บคอมโพเนนต์ของ Windows เสียหายและซ่อมแซมไม่ได้ จึงติดตั้งการอัปเดตไม่ได้ ให้สำรองไฟล์ของคุณ แล้วติดตั้ง Windows ใหม่ด้วย ISO พร้อม Atlas
 # Causes the update worker names. The worker's own English message is shown below as a detail.
 prepare-failed-session-owner = Atlas กำลังทำงานด้วยบัญชีอื่นที่ไม่ใช่บัญชีที่เข้าสู่ระบบ Windows อยู่ เข้าสู่ระบบ Windows ด้วยบัญชีผู้ดูแลระบบ แล้วเปิด Atlas จากบัญชีนั้น จากนั้นลองอีกครั้ง
 prepare-failed-store-missing = Microsoft Store ยังไม่ได้ตั้งค่าสำหรับบัญชีของคุณ เปิด Microsoft Store สักครั้ง หรือติดตั้งใหม่หากไม่มีแอปนี้ แล้วลองอีกครั้ง

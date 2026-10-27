@@ -804,6 +804,7 @@ prepare-cancelled = 更新を停止しました。一部の更新プログラム
 prepare-windows-search = Windows の更新を確認しています…
 prepare-windows-download = Windows の更新プログラムをダウンロードしています…
 prepare-windows-install = Windows の更新プログラムをインストールしています…
+prepare-windows-repair = 先に Windows を修復しています。更新プログラムのインストールを妨げる可能性のある破損があると Windows が報告しています。30 分以上かかることがあります。
 prepare-store-search = Microsoft Store を確認しています…
 prepare-store-install = Microsoft Store とアプリを更新しています…
 prepare-stop-description = 現在の手順が完了すると、Atlas は更新を停止します。それまで Atlas を開いたままにしてください。
@@ -973,6 +974,8 @@ prepare-report-delayed = { $seconds } 秒間、Windows から進捗が報告さ�
 prepare-affected-app = 対象のアプリ
 prepare-app-in-use = { $app } を閉じてから、再試行してください。開いている間は、Windows がこのアプリを更新できません。ウィンドウが見つからない場合は、タスク マネージャーで終了してください。それでも失敗する場合は、PC を再起動し、{ $app } を開く前に再試行してください。
 prepare-install-busy = 別のインストールまたは必要な再起動により、更新がブロックされています。他のインストールが終わるのを待ち、Windows から再起動を求められた場合は PC を再起動してから、再試行してください。
+prepare-failed-component-store = Windows のコンポーネント ストアに更新プログラムのインストールを妨げる破損があると Windows が報告しており、Atlas では修復できませんでした。PC を再起動してから、「再試行」を選んでください。それでも更新に失敗する場合は、ファイルをバックアップしてから、Atlas ISO で Windows を再インストールしてください。
+prepare-failed-component-store-unrepairable = Windows のコンポーネント ストアに修復できない破損があると Windows が報告しているため、更新プログラムをインストールできません。ファイルをバックアップしてから、Atlas ISO で Windows を再インストールしてください。
 # Causes the update worker names. The worker's own English message is shown below as a detail.
 prepare-failed-session-owner = Atlas は、Windows にサインインしているアカウントとは別のアカウントで実行されています。管理者アカウントで Windows にサインインし、そのアカウントから Atlas を開いてから、再試行してください。
 prepare-failed-store-missing = お使いのアカウントでは Microsoft Store がセットアップされていません。Microsoft Store を一度開くか、見つからない場合は再インストールしてから、再試行してください。

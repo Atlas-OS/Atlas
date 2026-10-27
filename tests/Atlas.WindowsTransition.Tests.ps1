@@ -126,6 +126,7 @@ BeforeAll {
     }
     function Get-AtlasTransitionFreeSpace { $script:FreeBytes }
     function Get-AtlasTransitionImageHealth { if ($script:Health -eq 'Throws') { throw 'DISM is unavailable' }; $script:Health }
+    function Invoke-PreparationRestoreHealth { throw 'A test started DISM without standing in for it.' }
 
     # The pin writer uses the registry cmdlets; HKLM paths go to the double too.
     function ConvertTo-FakePath([string]$Path) { $Path -replace '^HKLM:\\', '' }
