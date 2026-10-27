@@ -1184,7 +1184,7 @@ prepare-store-updated = Versi Microsoft Store sudah usang, jadi Atlas memperbaru
 prepare-store-bootstrapped = Microsoft Store tidak dapat memperbarui dirinya sendiri, jadi Atlas menginstal App Installer dan Microsoft Store terbaru dari Microsoft.
 prepare-store-repaired = Microsoft Store tidak berfungsi, jadi Atlas memperbaikinya.
 prepare-store-skipped-removed = Microsoft Store dinonaktifkan di PC ini, jadi Atlas melewati pembaruan aplikasi Store.
-prepare-failed-store-repair-failed = Microsoft Store tidak berfungsi, dan Atlas tidak dapat memperbaikinya. Pilih Perbaiki Microsoft Store untuk mencoba lagi. Jika masih tidak berfungsi, pilih Kirim laporan.
+prepare-failed-store-repair-failed = Microsoft Store tidak dapat menginstal atau memperbarui aplikasi di PC ini, dan Atlas tidak dapat memperbaikinya. Atlas memerlukannya berfungsi, karena menginstal Atlas saat Store rusak dapat membuat Store dan aplikasinya tetap rusak. Pilih Perbaiki Microsoft Store untuk mencoba lagi. Jika masih tidak berfungsi, cadangkan file Anda dan instal ulang Windows dengan ISO Atlas, atau pilih Kirim laporan.
 prepare-repair-store = Perbaiki Microsoft Store
 
 screen-keyboard-title = Bahasa keyboard

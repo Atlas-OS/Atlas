@@ -1240,7 +1240,7 @@ prepare-store-bootstrapped = Microsoft Store อัปเดตตัวเอ�
 prepare-store-repaired = Microsoft Store ไม่ทำงาน Atlas จึงซ่อมแซมให้แล้ว
 prepare-store-skipped-removed = Microsoft Store ถูกปิดไว้บนพีซีเครื่องนี้ Atlas จึงข้ามการอัปเดตแอปจาก Store
 # "Repair Microsoft Store" is prepare-repair-store; "Send a report" is report-title.
-prepare-failed-store-repair-failed = Microsoft Store ไม่ทำงาน และ Atlas ซ่อมแซมไม่ได้ เลือก ซ่อมแซม Microsoft Store เพื่อลองอีกครั้ง หากยังไม่ได้ผล ให้เลือก ส่งรายงาน
+prepare-failed-store-repair-failed = Microsoft Store ติดตั้งหรืออัปเดตแอปในพีซีเครื่องนี้ไม่ได้ และ Atlas ซ่อมแซมไม่ได้ Atlas ต้องให้ Store ทำงานได้ เพราะการติดตั้ง Atlas ขณะที่ Store เสียอาจทำให้ Store และแอปของ Store เสียต่อไป เลือก ซ่อมแซม Microsoft Store เพื่อลองอีกครั้ง หากยังไม่ได้ผล ให้สำรองไฟล์ของคุณแล้วติดตั้ง Windows ใหม่ด้วย ISO พร้อม Atlas หรือเลือก ส่งรายงาน
 prepare-repair-store = ซ่อมแซม Microsoft Store
 
 screen-keyboard-title = ภาษาของแป้นพิมพ์

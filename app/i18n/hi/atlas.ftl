@@ -1209,7 +1209,7 @@ prepare-store-updated = Microsoft Store पुराना था, इसलि�
 prepare-store-bootstrapped = Microsoft Store ख़ुद को अपडेट नहीं कर सका, इसलिए Atlas ने Microsoft से नवीनतम App Installer और Microsoft Store इंस्टॉल किए।
 prepare-store-repaired = Microsoft Store काम नहीं कर रहा था, इसलिए Atlas ने उसे ठीक कर दिया।
 prepare-store-skipped-removed = इस PC पर Microsoft Store बंद है, इसलिए Atlas ने Store ऐप के अपडेट छोड़ दिए।
-prepare-failed-store-repair-failed = Microsoft Store काम नहीं कर रहा है, और Atlas उसे ठीक नहीं कर सका। फिर कोशिश करने के लिए “Microsoft Store ठीक करें” चुनें। अगर यह फिर भी काम न करे, तो “रिपोर्ट भेजें” चुनें।
+prepare-failed-store-repair-failed = Microsoft Store इस PC पर ऐप्स इंस्टॉल या अपडेट नहीं कर पा रहा है, और Atlas उसे ठीक नहीं कर सका। Atlas के लिए इसका काम करना ज़रूरी है, क्योंकि Store ख़राब होने पर Atlas इंस्टॉल करने से Store और उसके ऐप्स ख़राब रह सकते हैं। फिर कोशिश करने के लिए “Microsoft Store ठीक करें” चुनें। अगर यह फिर भी काम न करे, तो अपनी फ़ाइलों का बैकअप लें और Atlas ISO से Windows दोबारा इंस्टॉल करें, या “रिपोर्ट भेजें” चुनें।
 prepare-repair-store = Microsoft Store ठीक करें
 
 screen-keyboard-title = कीबोर्ड की भाषाएँ

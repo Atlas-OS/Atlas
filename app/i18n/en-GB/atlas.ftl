@@ -1385,8 +1385,9 @@ prepare-store-updated = Microsoft Store was out of date, so Atlas updated it bef
 prepare-store-bootstrapped = Microsoft Store couldn't update itself, so Atlas installed the latest App Installer and Microsoft Store from Microsoft.
 prepare-store-repaired = Microsoft Store wasn't working, so Atlas repaired it.
 prepare-store-skipped-removed = Microsoft Store is turned off on this PC, so Atlas skipped Store app updates.
-# "Repair Microsoft Store" is prepare-repair-store; "Send a report" is report-title.
-prepare-failed-store-repair-failed = Microsoft Store isn't working, and Atlas couldn't repair it. Choose Repair Microsoft Store to try again. If it still doesn't work, choose Send a report.
+# "Repair Microsoft Store" is prepare-repair-store; "Send a report" is report-title. The Atlas
+# ISO is iso-open, a button beside them.
+prepare-failed-store-repair-failed = Microsoft Store can't install or update apps on this PC, and Atlas couldn't repair it. Atlas needs it working, because installing Atlas while it's broken can leave the Store and its apps broken. Choose Repair Microsoft Store to try again. If it still doesn't work, back up your files and reinstall Windows with an Atlas ISO, or choose Send a report.
 prepare-repair-store = Repair Microsoft Store
 
 screen-keyboard-title = Keyboard languages

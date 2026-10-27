@@ -1368,7 +1368,7 @@ prepare-store-bootstrapped = A Microsoft Store não conseguiu se atualizar, ent�
 prepare-store-repaired = A Microsoft Store não estava funcionando, então o Atlas a reparou.
 prepare-store-skipped-removed = A Microsoft Store está desativada neste PC, então o Atlas pulou as atualizações dos apps da Store.
 # "Reparar a Microsoft Store" is prepare-repair-store; "Enviar um relato" is report-title.
-prepare-failed-store-repair-failed = A Microsoft Store não está funcionando, e o Atlas não conseguiu repará-la. Escolha Reparar a Microsoft Store para tentar novamente. Se ainda não funcionar, escolha Enviar um relato.
+prepare-failed-store-repair-failed = A Microsoft Store não consegue instalar nem atualizar apps neste PC, e o Atlas não conseguiu repará-la. O Atlas precisa dela funcionando, porque instalar o Atlas com ela com defeito pode deixar a Store e os apps dela com defeito. Escolha Reparar a Microsoft Store para tentar novamente. Se ainda não funcionar, faça backup dos seus arquivos e reinstale o Windows com uma ISO com o Atlas, ou escolha Enviar um relato.
 prepare-repair-store = Reparar a Microsoft Store
 
 screen-keyboard-title = Idiomas do teclado

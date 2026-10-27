@@ -1224,7 +1224,7 @@ prepare-store-updated = Версия Microsoft Store была устаревше
 prepare-store-bootstrapped = Microsoft Store не удалось обновиться самостоятельно, поэтому Atlas установил последние версии «Установщика приложений» и Microsoft Store напрямую от Microsoft.
 prepare-store-repaired = Microsoft Store не работал, поэтому Atlas исправил его.
 prepare-store-skipped-removed = Microsoft Store на этом ПК отключён, поэтому Atlas пропустил обновление приложений Store.
-prepare-failed-store-repair-failed = Microsoft Store не работает, и Atlas не удалось его исправить. Чтобы повторить попытку, нажмите «Исправить Microsoft Store». Если он по-прежнему не работает, нажмите «Отправить отчёт».
+prepare-failed-store-repair-failed = Microsoft Store не может устанавливать и обновлять приложения на этом ПК, и Atlas не удалось его исправить. Atlas нужен работающий Store, потому что установка Atlas при неисправном Store может оставить Store и его приложения неработоспособными. Чтобы повторить попытку, нажмите «Исправить Microsoft Store». Если он по-прежнему не работает, создайте резервную копию файлов и переустановите Windows с помощью ISO-образа с Atlas или нажмите «Отправить отчёт».
 prepare-repair-store = Исправить Microsoft Store
 
 screen-keyboard-title = Языки клавиатуры

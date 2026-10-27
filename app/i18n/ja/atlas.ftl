@@ -1179,7 +1179,7 @@ prepare-store-updated = Microsoft Store が最新ではなかったため、Atla
 prepare-store-bootstrapped = Microsoft Store が自身を更新できなかったため、Atlas は Microsoft から最新のアプリ インストーラーと Microsoft Store をインストールしました。
 prepare-store-repaired = Microsoft Store が動作していなかったため、Atlas が修復しました。
 prepare-store-skipped-removed = この PC では Microsoft Store がオフになっているため、Atlas は Store アプリの更新をスキップしました。
-prepare-failed-store-repair-failed = Microsoft Store が動作せず、Atlas は修復できませんでした。もう一度試すには、「Microsoft Store を修復」を選んでください。それでも動作しない場合は、「レポートを送信」を選んでください。
+prepare-failed-store-repair-failed = Microsoft Store がこの PC でアプリのインストールや更新を行えず、Atlas は修復できませんでした。Store が壊れた状態で Atlas をインストールすると、Store とそのアプリが壊れたままになる可能性があるため、Atlas には Store が正常に動作している必要があります。もう一度試すには、「Microsoft Store を修復」を選んでください。それでも動作しない場合は、ファイルをバックアップしてから Atlas ISO で Windows を再インストールするか、「レポートを送信」を選んでください。
 prepare-repair-store = Microsoft Store を修復
 
 screen-keyboard-title = キーボードの言語

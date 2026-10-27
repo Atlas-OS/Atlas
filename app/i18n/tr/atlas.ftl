@@ -1218,7 +1218,7 @@ prepare-store-updated = Microsoft Store güncel değildi, bu yüzden Atlas onu u
 prepare-store-bootstrapped = Microsoft Store kendini güncelleştiremedi, bu yüzden Atlas en son Uygulama Yükleyicisi'ni ve Microsoft Store'u Microsoft'tan yükledi.
 prepare-store-repaired = Microsoft Store çalışmıyordu, bu yüzden Atlas onu onardı.
 prepare-store-skipped-removed = Microsoft Store bu bilgisayarda kapalı, bu yüzden Atlas Store uygulaması güncelleştirmelerini atladı.
-prepare-failed-store-repair-failed = Microsoft Store çalışmıyor ve Atlas onu onaramadı. Yeniden denemek için Microsoft Store'u onar'ı seçin. Yine çalışmazsa Rapor gönder'i seçin.
+prepare-failed-store-repair-failed = Microsoft Store bu bilgisayarda uygulama yükleyemiyor veya güncelleştiremiyor ve Atlas onu onaramadı. Atlas'ın çalışan bir Store'a ihtiyacı var, çünkü Store bozukken Atlas'ı yüklemek Store'u ve uygulamalarını bozuk bırakabilir. Yeniden denemek için Microsoft Store'u onar'ı seçin. Yine çalışmazsa dosyalarınızı yedekleyin ve Windows'u bir Atlas ISO'suyla yeniden yükleyin ya da Rapor gönder'i seçin.
 prepare-repair-store = Microsoft Store'u onar
 
 screen-keyboard-title = Klavye dilleri

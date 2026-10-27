@@ -342,7 +342,8 @@ impl InstallPage {
             Button::new("prepare-keep-version", t!("prepare-keep-version", current = current.as_str()))
                 .on_click(on_model(&self.model, |m, cx| m.keep_windows_version(true, cx)))
         });
-        let iso = (matches!(reason, Some("feature-hardware")) || not_offered)
+        // A Store Atlas can't repair leaves reinstalling Windows.
+        let iso = (matches!(reason, Some("feature-hardware")) || not_offered || store_repair_failed)
             .then(|| state.can_navigate(Page::Iso))
             .filter(|offered| *offered)
             .map(|_| {
