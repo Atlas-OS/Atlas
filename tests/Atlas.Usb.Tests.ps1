@@ -147,6 +147,7 @@ Describe 'USB formatting interruption points' {
         }
         Mock Clear-Disk { $script:Operations.Add('clear') }
         Mock Initialize-Disk { $script:Operations.Add('initialize') }
+        Mock Set-Disk { $script:Operations.Add('convert') }
         Mock New-Partition {
             $script:Operations.Add('partition')
             [Microsoft.Management.Infrastructure.CimInstance]::new('MSFT_Partition', 'root/Microsoft/Windows/Storage')
@@ -205,6 +206,22 @@ Describe 'USB formatting interruption points' {
             { Format-AtlasUsb ([pscustomobject]@{number=42}) 16GB } | Should -Throw $Message
             ($script:Operations -join ',') | Should -Be 'initialize'
             Should -Invoke Format-Volume -Times 0 -Exactly
+        }
+    }
+    Context 'removable media, which Clear-Disk leaves initialized' {
+        It 'partitions a <Style> drive after clearing it, without initializing it again' -ForEach @(
+            @{Style='MBR'; Value=1; Expected='clear,partition,format'},
+            @{Style='GPT'; Value=2; Expected='clear,convert,partition,format'}
+        ) {
+            # A USB flash drive Rufus or Windows setup partitioned, as one RC10 tester's was.
+            Mock Assert-AtlasUsbIdentity {
+                $disk = [Microsoft.Management.Infrastructure.CimInstance]::new('MSFT_Disk', 'root/Microsoft/Windows/Storage')
+                $disk.CimInstanceProperties.Add([Microsoft.Management.Infrastructure.CimProperty]::Create('PartitionStyle', [uint16]$Value, [Microsoft.Management.Infrastructure.CimFlags]::None))
+                $disk
+            }
+            (Format-AtlasUsb ([pscustomobject]@{number=42}) 16GB).DriveLetter | Should -Be 'Z'
+            ($script:Operations -join ',') | Should -Be $Expected
+            Should -Invoke Initialize-Disk -Times 0 -Exactly
         }
     }
 }

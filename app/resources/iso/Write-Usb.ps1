@@ -149,7 +149,14 @@ function Format-AtlasUsb {
         Assert-AtlasUsbContinue
         $disk = Assert-AtlasUsbIdentity $ExpectedDrive
     }
-    Initialize-Disk -InputObject $disk -PartitionStyle MBR
+    # Clear-Disk leaves a fixed disk RAW, but removable media, as most USB flash
+    # drives report themselves, keep their partition style, which Initialize-Disk refuses.
+    if ($disk.PartitionStyle -eq 'GPT') {
+        Set-Disk -InputObject $disk -PartitionStyle MBR
+    }
+    elseif ($disk.PartitionStyle -ne 'MBR') {
+        Initialize-Disk -InputObject $disk -PartitionStyle MBR
+    }
     Assert-AtlasUsbContinue
     $disk = Assert-AtlasUsbIdentity $ExpectedDrive
     $partition = New-Partition -InputObject $disk -Size $Capacity -AssignDriveLetter -IsActive
