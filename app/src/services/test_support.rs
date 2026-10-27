@@ -48,6 +48,11 @@ impl TestKey {
         let key = CURRENT_USER.create(&path).expect("create a test key under HKCU");
         Self { path, key }
     }
+
+    /// Its path under HKCU, for code that opens keys by path.
+    pub fn path(&self) -> &str {
+        &self.path
+    }
 }
 
 impl Drop for TestKey {

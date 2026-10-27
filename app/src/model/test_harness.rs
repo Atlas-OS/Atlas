@@ -215,6 +215,8 @@ pub(crate) struct Machine {
     pub(super) armed: Arc<Mutex<u32>>,
     /// The other people signed in; `None` reads as a failure to list them.
     pub(super) others: Arc<Mutex<Option<Vec<String>>>>,
+    /// Times the model showed a hidden Virus & threat protection page.
+    pub(super) virus_page_shown: Arc<Mutex<u32>>,
 }
 
 impl Machine {
@@ -226,6 +228,7 @@ impl Machine {
             state: Arc::new(Mutex::new(None)),
             armed: Arc::new(Mutex::new(0)),
             others: Arc::new(Mutex::new(Some(Vec::new()))),
+            virus_page_shown: Arc::new(Mutex::new(0)),
         }
     }
 
@@ -240,10 +243,15 @@ impl Machine {
         let state = self.state.clone();
         let armed = self.armed.clone();
         let others = self.others.clone();
+        let virus_page_shown = self.virus_page_shown.clone();
         Adapters {
             register_preparation_resume: Arc::new(|| Ok(())),
             is_elevated: Arc::new(|| true),
             read_security: Arc::new(move || *security.lock().unwrap()),
+            show_hidden_virus_page: Arc::new(move || {
+                *virus_page_shown.lock().unwrap() += 1;
+                Ok(true)
+            }),
             read_install_identity: Arc::new(move || {
                 identity.lock().unwrap().clone().ok_or_else(|| anyhow::anyhow!("unreadable identity"))
             }),

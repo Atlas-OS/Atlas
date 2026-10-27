@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 use gpui::Context;
 
 use super::{Acquisition, AppModel, InstallBlock, Page, Preflight, Step};
+use crate::services::atlas_state::InstallIdentity;
 use crate::services::preparation::State as Preparation;
 use crate::services::requirements::{CheckContext, CheckDetail, CheckId, CheckResult, Verdict};
 use crate::services::security::SecurityStatus;
@@ -419,6 +420,27 @@ impl AppModel {
             self.acknowledged.remove(&id);
         }
         cx.notify();
+    }
+
+    /// Before Windows Security opens: Atlas 0.5's Defender remover hid the
+    /// Virus & threat protection page with a policy, and Defender can come back
+    /// through its own updates while the page stays hidden. Updating from 0.5
+    /// shows the page again, so its switches can be turned off.
+    pub fn show_hidden_virus_page(&mut self) {
+        let from_0_5 = matches!(&self.install_identity,
+            Ok(InstallIdentity::Installed(version)) if version.starts_with("0.5"));
+        if !from_0_5 || !self.elevated {
+            return;
+        }
+        match (self.env.adapters.show_hidden_virus_page)() {
+            Ok(true) => {
+                log::info!("Showed Windows Security's Virus & threat protection page, which Atlas 0.5 hid")
+            }
+            Ok(false) => {}
+            Err(error) => {
+                log::warn!("couldn't show Windows Security's Virus & threat protection page: {error:#}")
+            }
+        }
     }
 
     /// Goes on past the warning that Windows here looks used, for the rest of

@@ -9,6 +9,41 @@ const DEFENDER: &str = r"SOFTWARE\Microsoft\Windows Defender";
 /// Atlas removes the Defender service together with Defender; a PC where an
 /// earlier install did so has no switches to turn off.
 const WINDEFEND_SERVICE: &str = r"SYSTEM\CurrentControlSet\Services\WinDefend";
+/// Atlas 0.5.0's Defender remover set `UILockdown` here, which hides the
+/// Virus & threat protection page that holds the switches. Defender can come
+/// back through its own updates while the page stays hidden.
+const VIRUS_PAGE_POLICY: &str =
+    r"SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Virus and threat protection";
+
+/// Windows Security, which reads the policy only when it starts.
+const WINDOWS_SECURITY_APP: &str = "SecHealthUI.exe";
+
+/// Shows the Virus & threat protection page again if a policy hides it, and
+/// says whether one did. A Windows Security already open keeps the page
+/// hidden, so it is closed, to open again on the page. Atlas 0.6 never hides
+/// that page.
+pub fn show_hidden_virus_page() -> anyhow::Result<bool> {
+    let shown = show_hidden_page_at(LOCAL_MACHINE, VIRUS_PAGE_POLICY)?;
+    if shown {
+        match super::system::end_session_processes(WINDOWS_SECURITY_APP) {
+            Ok(0) => {}
+            Ok(_) => log::info!("closed Windows Security, which keeps the page hidden until it starts again"),
+            Err(error) => {
+                log::warn!("couldn't close Windows Security, which keeps the page hidden: {error:#}")
+            }
+        }
+    }
+    Ok(shown)
+}
+
+fn show_hidden_page_at(root: &Key, path: &str) -> anyhow::Result<bool> {
+    let hidden =
+        root.open(path).ok().and_then(|key| dword(&key, "UILockdown")).is_some_and(|value| value != 0);
+    if hidden {
+        super::registry::remove_value(&root.create(path)?, "UILockdown")?;
+    }
+    Ok(hidden)
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Switch {
@@ -311,6 +346,21 @@ mod tests {
         assert_eq!(dword(&test.key, "Large"), None);
         assert_eq!(dword(&test.key, "Text"), None);
         assert_eq!(dword(&test.key, "Missing"), None);
+    }
+
+    #[test]
+    fn a_hidden_virus_page_is_shown_again_and_nothing_else_changes() {
+        let test = crate::services::test_support::TestKey::new("security-page");
+        let path = test.path();
+        assert!(!show_hidden_page_at(windows_registry::CURRENT_USER, path).unwrap(), "no policy");
+        test.key.set_u32("UILockdown", 0).unwrap();
+        assert!(!show_hidden_page_at(windows_registry::CURRENT_USER, path).unwrap(), "shown already");
+        assert_eq!(dword(&test.key, "UILockdown"), Some(0), "a page that shows is left alone");
+        test.key.set_u32("UILockdown", 1).unwrap();
+        test.key.set_u32("Other", 1).unwrap();
+        assert!(show_hidden_page_at(windows_registry::CURRENT_USER, path).unwrap());
+        assert_eq!(dword(&test.key, "UILockdown"), None);
+        assert_eq!(dword(&test.key, "Other"), Some(1));
     }
 
     #[test]

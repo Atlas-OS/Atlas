@@ -12,7 +12,7 @@ use crate::services::atlas_state::{self, AtlasState, InstallIdentity};
 use crate::services::preparation::{self, Drivers, Operation, PreparationRequest, Progress, State};
 use crate::services::releases::{self, Release};
 use crate::services::requirements::{self, CheckContext, CheckId, CheckResult};
-use crate::services::security::SecurityStatus;
+use crate::services::security::{self, SecurityStatus};
 use crate::services::session::{self, SessionPaths};
 use crate::services::settings::{self, AppPaths};
 use crate::services::system::SystemInfo;
@@ -31,6 +31,9 @@ pub type RunPreparation = dyn Fn(&Path, &PreparationRequest, Arc<AtomicBool>, Bo
 pub struct Adapters {
     pub is_elevated: Arc<dyn Fn() -> bool + Send + Sync>,
     pub read_security: Arc<dyn Fn() -> SecurityStatus + Send + Sync>,
+    /// Shows Windows Security's Virus & threat protection page again if a
+    /// policy hides it; says whether one did.
+    pub show_hidden_virus_page: Arc<dyn Fn() -> anyhow::Result<bool> + Send + Sync>,
     pub read_install_identity: Arc<dyn Fn() -> anyhow::Result<InstallIdentity> + Send + Sync>,
     pub read_atlas_state: Arc<dyn Fn() -> anyhow::Result<Option<AtlasState>> + Send + Sync>,
     pub run_check: Arc<dyn Fn(CheckId, &CheckContext) -> CheckResult + Send + Sync>,
@@ -65,6 +68,7 @@ impl Adapters {
         Self {
             is_elevated: Arc::new(system::is_elevated),
             read_security: Arc::new(SecurityStatus::read),
+            show_hidden_virus_page: Arc::new(security::show_hidden_virus_page),
             read_install_identity: Arc::new(atlas_state::read_install_identity),
             read_atlas_state: Arc::new(atlas_state::read),
             run_check: Arc::new(requirements::run),

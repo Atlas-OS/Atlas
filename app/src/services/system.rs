@@ -32,7 +32,8 @@ use windows::Win32::System::RemoteDesktop::{
 use windows::Win32::System::SystemInformation::GetTickCount64;
 use windows::Win32::System::Threading::{
     CREATE_NO_WINDOW, GetCurrentProcess, GetExitCodeProcess, GetProcessTimes, OpenProcess, OpenProcessToken,
-    PROCESS_QUERY_LIMITED_INFORMATION,
+    PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SYNCHRONIZE, PROCESS_TERMINATE, TerminateProcess,
+    WaitForSingleObject,
 };
 use windows::Win32::UI::Accessibility::{HCF_HIGHCONTRASTON, HIGHCONTRASTW};
 use windows::Win32::UI::Shell::ShellExecuteW;
@@ -460,6 +461,25 @@ fn open_error_means_ended(code: Option<WIN32_ERROR>, elsewhere: impl FnOnce() ->
 /// process. `None` when Windows doesn't say: the list can't be read, lacks
 /// the PID, or names no account where the sessions match.
 fn process_is_elsewhere(pid: u32) -> Option<bool> {
+    with_session_processes(|processes| {
+        let find = |id: u32| processes.iter().find(|process| process.ProcessId == id);
+        find(std::process::id()).zip(find(pid)).and_then(|(own, other)| {
+            if own.SessionId != other.SessionId {
+                Some(true)
+            } else if own.pUserSid.is_invalid() || other.pUserSid.is_invalid() {
+                None
+            } else {
+                // SAFETY: both SIDs live in the list until it is freed.
+                Some(unsafe { EqualSid(own.pUserSid, other.pUserSid) }.is_err())
+            }
+        })
+    })?
+}
+
+/// What `read` makes of the list Remote Desktop Services keeps of every
+/// session's processes, which is read in place and then freed. `None` when
+/// the list can't be read.
+fn with_session_processes<T>(read: impl FnOnce(&[WTS_PROCESS_INFO_EXW]) -> T) -> Option<T> {
     /// WTS_ANY_SESSION: every session's processes.
     const ANY_SESSION: u32 = 0xFFFF_FFFE;
     let mut level = 1u32;
@@ -479,20 +499,43 @@ fn process_is_elsewhere(pid: u32) -> Option<bool> {
         if list.is_null() {
             return None;
         }
-        let processes = std::slice::from_raw_parts(list.0 as *const WTS_PROCESS_INFO_EXW, count as usize);
-        let find = |id: u32| processes.iter().find(|process| process.ProcessId == id);
-        let answer = find(std::process::id()).zip(find(pid)).and_then(|(own, other)| {
-            if own.SessionId != other.SessionId {
-                Some(true)
-            } else if own.pUserSid.is_invalid() || other.pUserSid.is_invalid() {
-                None
-            } else {
-                Some(EqualSid(own.pUserSid, other.pUserSid).is_err())
-            }
-        });
+        let answer = read(std::slice::from_raw_parts(list.0 as *const WTS_PROCESS_INFO_EXW, count as usize));
         let _ = WTSFreeMemoryExW(WTSTypeProcessInfoLevel1, list.0 as *const _, count);
-        answer
+        Some(answer)
     }
+}
+
+/// Ends this session's processes whose image is `image`, such as an app that
+/// keeps what it read when it started, and waits up to five seconds for each
+/// to end. Returns how many it ended.
+pub fn end_session_processes(image: &str) -> Result<usize> {
+    let ids: Vec<u32> = with_session_processes(|processes| {
+        let session =
+            processes.iter().find(|process| process.ProcessId == std::process::id()).map(|own| own.SessionId);
+        processes
+            .iter()
+            .filter(|process| {
+                Some(process.SessionId) == session
+                    && !process.pProcessName.is_null()
+                    // SAFETY: the name lives in the list until it is freed.
+                    && unsafe { process.pProcessName.to_string() }.is_ok_and(|name| name.eq_ignore_ascii_case(image))
+            })
+            .map(|process| process.ProcessId)
+            .collect()
+    })
+    .context("list the session's processes")?;
+    let mut ended = 0;
+    for pid in ids {
+        let Ok(handle) = (unsafe { OpenProcess(PROCESS_TERMINATE | PROCESS_SYNCHRONIZE, false, pid) }) else {
+            continue;
+        };
+        let process = ProcessHandle(handle);
+        if unsafe { TerminateProcess(process.0, 1) }.is_ok() {
+            unsafe { WaitForSingleObject(process.0, 5000) };
+            ended += 1;
+        }
+    }
+    Ok(ended)
 }
 
 /// Whether the process with this PID and creation time is still running.
@@ -818,6 +861,28 @@ mod tests {
             if ProcessHandle::open(4).is_ok() { Liveness::Alive } else { Liveness::Ended },
             "refused or not, its own start time is the only way it counts as running"
         );
+    }
+
+    #[test]
+    fn ending_an_app_ends_only_its_own_processes_and_waits_for_them() {
+        // A copy of cmd.exe under a name nothing else on the PC has, waiting
+        // for input that never comes.
+        let image = format!("atlas-end-{}.exe", std::process::id());
+        let folder = std::env::temp_dir().join(image.trim_end_matches(".exe"));
+        std::fs::create_dir_all(&folder).unwrap();
+        let system = std::env::var_os("SystemRoot").expect("SystemRoot");
+        let copy = folder.join(&image);
+        std::fs::copy(PathBuf::from(system).join(r"System32\cmd.exe"), &copy).unwrap();
+        let mut child = std::process::Command::new(&copy)
+            .args(["/d", "/k"])
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::null())
+            .spawn()
+            .expect("start the copy");
+        assert_eq!(end_session_processes(&image).unwrap(), 1);
+        assert!(child.try_wait().unwrap().is_some(), "it has ended once the call returns");
+        assert_eq!(end_session_processes(&image).unwrap(), 0, "nothing else has that name");
+        let _ = std::fs::remove_dir_all(&folder);
     }
 
     #[test]

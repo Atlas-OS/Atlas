@@ -420,3 +420,28 @@ fn the_install_command_says_so_only_when_windows_security_was_confirmed_by_hand(
         }
     });
 }
+
+/// Atlas 0.5's Defender remover hid the Virus & threat protection page. Only
+/// an update from 0.5 shows it again; other PCs' policies are left alone.
+#[test]
+fn only_an_update_from_0_5_shows_the_virus_page_it_hid() {
+    run_model_test(|mut cx| async move {
+        let (_temp, machine, env) = fixture("virus-page");
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        let current = read(&cx, &model, |m| m.manifest().version.clone());
+        for (identity, shown) in [
+            (InstallIdentity::Fresh, 0),
+            (InstallIdentity::Installed(current), 0),
+            (InstallIdentity::Installed("0.5.0-hotfix".into()), 1),
+        ] {
+            *machine.virus_page_shown.lock().unwrap() = 0;
+            *machine.identity.lock().unwrap() = Some(identity.clone());
+            act(&mut cx, &model, |m, _| {
+                m.refresh_atlas_state();
+                m.show_hidden_virus_page();
+            });
+            assert_eq!(*machine.virus_page_shown.lock().unwrap(), shown, "{identity:?}");
+        }
+    });
+}

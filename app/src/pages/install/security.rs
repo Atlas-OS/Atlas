@@ -25,9 +25,15 @@ impl InstallPage {
         let counts = status.counts();
         let fresh = state.security_fresh();
         let open_security = || {
+            let model = model.clone();
             Button::new("open-security", t!("common-open-windows-security"))
                 .icon(Icon::Shield)
                 .opens(links::WINDOWS_SECURITY_PROTECTION)
+                // An Atlas 0.5 policy can hide the page the switches are on.
+                .on_click(move |_, _, cx| {
+                    model.update(cx, |m, _| m.show_hidden_virus_page());
+                    cx.open_url(links::WINDOWS_SECURITY_PROTECTION);
+                })
         };
 
         let kind = security_banner(&status, fresh);
