@@ -1,4 +1,4 @@
-name: Create and Validate Atlas Playbook
+name: Build and Release Atlas Playbook
 
 on:
   push:
@@ -20,16 +20,28 @@ env:
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      # Needed by the "Commit and push changes" step when CAB packages are regenerated.
+      # That step is restricted to the upstream repository, so a fork never pushes.
+      contents: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || github.ref }}
-          token: ${{ secrets.RUNNER_SECRET }}
 
       - name: Validate YAML files
-        run: 'yamllint -d "{extends: relaxed, rules: {empty-lines: disable, line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable, new-lines: {type: platform}}}" .'
+        run: |
+          if (-not (Get-Command yamllint -ErrorAction SilentlyContinue)) {
+              Write-Output "yamllint not found, installing..."
+              python -m pip install --quiet yamllint
+          }
+          if (Get-Command yamllint -ErrorAction SilentlyContinue) {
+              yamllint -d "{extends: relaxed, rules: {empty-lines: disable, line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable, new-lines: {type: platform}}}" .
+          } else {
+              python -m yamllint -d "{extends: relaxed, rules: {empty-lines: disable, line-length: disable, new-line-at-end-of-file: disable, trailing-spaces: disable, new-lines: {type: platform}}}" .
+          }
 
       - name: Get changed files
         id: changed-files
@@ -111,32 +123,87 @@ jobs:
         working-directory: ..\sxsc
         if: env.runSxsc == 'true'
 
+      # Only the upstream repository commits regenerated CABs back to itself.
+      # Forks still build the packages (they end up in the .apbx) but never push.
       - name: Commit and push changes
+        if: env.runSxsc == 'true' && github.repository == 'Atlas-OS/Atlas'
         run: |
           git config --local user.email "141822421+atlasos-admin@users.noreply.github.com"
           git config --local user.name "atlasos-admin"
           git add -A
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) {
+              Write-Output "No package changes to commit."
+              exit 0
+          }
           git commit -m "feat: auto-update CAB packages ($($env:GITHUB_SHA.Substring(0, 8)))"
           git push
         working-directory: src\playbook\Executables\AtlasModules\Packages
-        if: env.runSxsc == 'true'
 
-      - name: Create playbook (ZIP/APBX password is malte)
+      - name: Build release playbook
         id: create-pb
         if: ${{ !startsWith(github.ref, 'refs/heads/na-') }}
         run: |
-          echo "Making a renamed password protected (malte) ZIP of playbook files..."
-          $pbName = "Atlas Playbook $($env:GITHUB_SHA.Substring(0,8))"
-          & ..\dependencies\local-build.ps1 -ReplaceOldPlaybook -AddLiveLog -Removals Verification, WinverRequirement -FileName $pbName
-          echo "Move the .apbx playbook into 'Release ZIP' to be released as an artifact with the additional files..."
-          Move-Item "$pbName.apbx" "../release-zip"
+          $conf = ([xml](Get-Content "playbook.conf" -Raw)).Playbook
+          $version = $conf.Version
+          $pbName = "Atlas-v$version"
+          Write-Output "Building release playbook '$pbName' (no live log, build gate kept)..."
+
+          Get-ChildItem "..\release-zip" -Filter *.apbx -File -ErrorAction SilentlyContinue |
+              ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force }
+          # ProductCode is Atlas's signed identity. A fork that keeps it is reported by AME as a
+          # tampered/malicious playbook, so it is stripped here. WinverRequirement is deliberately
+          # NOT removed - SupportedBuilds must stay so the build gate (incl. 26H2) is enforced.
+          & ..\dependencies\local-build.ps1 -ReplaceOldPlaybook -DontOpenPbLocation -Removals Verification -FileName $pbName
+          if (!(Test-Path "$pbName.apbx")) { throw "Build did not produce '$pbName.apbx'" }
+
+          Move-Item "$pbName.apbx" "../release-zip" -Force
         working-directory: src\playbook
 
-      - name: Upload artifact
+      - name: Create GitHub release
+        if: ${{ steps.create-pb.outcome == 'success' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $conf = ([xml](Get-Content "src/playbook/playbook.conf" -Raw)).Playbook
+          $version = $conf.Version
+          $builds = ($conf.SupportedBuilds.string -join ', ')
+          $tag = "v$version"
+          $files = @(Get-ChildItem "src/release-zip" -File | ForEach-Object { $_.FullName })
+
+          Write-Output "Publishing release '$tag' with $($files.Count) file(s)..."
+
+          gh release view $tag --json tagName 2>$null | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+              $notes = @(
+                  "Automated release build of Atlas $tag.",
+                  "",
+                  "- Playbook version: $version",
+                  "- Supported Windows builds: $builds",
+                  "- Commit: $($env:GITHUB_SHA)",
+                  "- Archive password: malte",
+                  "",
+                  "> Unofficial build. It is not signed by Ameliorated, so AME Wizard lists it as an",
+                  "> unverified playbook. ProductCode is stripped for that reason - keeping it makes",
+                  "> AME report the build as a tampered Atlas playbook."
+              ) -join [Environment]::NewLine
+              gh release create $tag --title "Atlas $tag" --notes $notes
+              if ($LASTEXITCODE -ne 0) { throw "Could not create release '$tag'." }
+          } else {
+              Write-Output "Release '$tag' already exists, updating its assets."
+          }
+
+          foreach ($f in $files) {
+              gh release upload $tag $f --clobber
+              if ($LASTEXITCODE -ne 0) { throw "Could not upload '$f' to release '$tag'." }
+          }
+          Write-Output "Release '$tag' published."
+
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
-        if: ${{ steps.create-pb.outcome != 'skipped' }}
+        if: ${{ steps.create-pb.outcome == 'success' }}
         with:
-          name: Atlas Playbook
+          name: Atlas Release Build
           path: |
             src/release-zip/*
           if-no-files-found: error
