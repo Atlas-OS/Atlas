@@ -33,6 +33,9 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 $script:PreparationClock = [Diagnostics.Stopwatch]::StartNew()
+# Local time, as event log queries take it: the AppX deployment events a failed
+# Store item leads to are read from here on.
+$script:PreparationStartedAt = [DateTime]::Now
 $script:PreparationLastChange = 0L
 $script:PreparationLastProgress = ''
 # Restart markers seen by the last Test-PreparationRestart, so the app can name one
@@ -220,12 +223,15 @@ function Test-PreparationRestart {
     return $blocking.Count -gt 0
 }
 
-function Test-PreparationUpdate($Update) {
-    # Feature upgrades can leave the builds supported by the chosen Atlas package.
-    # Optional previews are not a prerequisite for installing Atlas.
-    if ($Update.BrowseOnly) { return $false }
-    if ($DriverMode -eq 'manual' -and [int]$Update.Type -eq $script:DriverUpdate) { return $false }
-    return -not (Test-PreparationUpgradeCategory $Update)
+# Why a pass leaves an offer out, for the log, or '' when it installs it.
+# Feature upgrades can leave the builds supported by the chosen Atlas package;
+# a move to another release finds its own. Optional previews are not a
+# prerequisite for installing Atlas.
+function Get-PreparationUpdateExclusion($Update) {
+    if ($Update.BrowseOnly) { return 'an optional preview (browse-only), which installing Atlas doesn''t need' }
+    if ($DriverMode -eq 'manual' -and [int]$Update.Type -eq $script:DriverUpdate) { return 'a driver, and drivers are left to the user (Install drivers myself)' }
+    if (Test-PreparationUpgradeCategory $Update) { return 'a feature update, which only a move to another Windows release installs, through its own search' }
+    return ''
 }
 
 # Must equal Get-AtlasRecoveryFileSecurity in app/resources/prepare/Stage-App.ps1;
@@ -784,7 +790,11 @@ function Invoke-PreparationSearch($Session, [string]$Criteria, [switch]$IncludeS
 function Find-PreparationWindowsUpdate($Session) {
     $handled = Get-PreparationReofferedKey
     foreach ($update in @(Invoke-PreparationSearch $Session "IsInstalled=0 and IsHidden=0 and BrowseOnly=0 and DeploymentAction='Installation'")) {
-        if (-not (Test-PreparationUpdate $update)) { continue }
+        $excluded = Get-PreparationUpdateExclusion $update
+        if ($excluded) {
+            Write-PreparationLog "Left '$($update.Title)': $excluded."
+            continue
+        }
         if ($handled.Contains((Get-PreparationUpdateKey $update))) {
             Write-PreparationLog "Left '$($update.Title)': Windows offers it again, and an earlier pass recorded it as done."
             continue
@@ -1083,6 +1093,20 @@ $script:PreparationWingetRepository = 'microsoft/winget-cli'
 $script:PreparationWingetRepositoryId = 197275130
 $script:PreparationWingetOwnerId = 6154722
 $script:PreparationMicrosoftPublisher = 'CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US'
+# Win32 errors 15600 to 15699 (0x80073CF0 to 0x80073D53): Windows refused to
+# deploy a package. The Store reports most as 0x80073CF9, the install failed;
+# the AppX deployment log's events 401 and 404 say why, as in 0x80070490.
+$script:DeploymentErrorFirst = -2147009296
+$script:DeploymentErrorLast = -2147009197
+$script:PreparationDeploymentLog = 'Microsoft-Windows-AppXDeploymentServer/Operational'
+# How much of that log updates.log takes: a failing Store retries and logs the
+# same failure each time, so each text is written once a run, cut at a length,
+# at most a few for each package each time an item fails, and only so many a run.
+$script:PreparationDeploymentPerPackage = 4
+$script:PreparationDeploymentLimit = 24
+$script:PreparationDeploymentLength = 1500
+$script:PreparationDeploymentSeen = [Collections.Generic.HashSet[string]]::new()
+$script:PreparationDeploymentWritten = 0
 
 function Write-PreparationStoreEvidence([string]$Text) {
     Write-PreparationLog "Microsoft Store: $Text"
@@ -1113,20 +1137,99 @@ function Get-PreparationPackageVersion {
 }
 
 # Each Store item a pass waited for: its family, its product id, the version
-# this user had before and has now, and how it ended.
+# this user had before and has now, and how it ended, with the Store's code for
+# an error. Items Windows refused to deploy are followed by what the AppX
+# deployment log says.
 function Write-PreparationStoreItem($Items, [hashtable]$Before) {
+    $refused = @()
     try {
         $after = Get-PreparationPackageVersion
         foreach ($item in @($Items)) {
             $family = [string]$item.PackageFamilyName
-            $state = try { [string]$item.GetCurrentStatus().InstallState } catch { 'unreadable' }
+            $state = try { $status = $item.GetCurrentStatus(); [string]$status.InstallState } catch { 'unreadable' }
+            $code = 0
+            if ($state -eq 'Error') {
+                $errorCode = $status.PSObject.Properties['ErrorCode']
+                if ($null -ne $errorCode -and $null -ne $errorCode.Value) { $code = [int]$errorCode.Value.HResult }
+            }
             $from = if ($Before.ContainsKey($family)) { $Before[$family] } else { 'none' }
             $to = if ($after.ContainsKey($family)) { $after[$family] } else { 'none' }
             $product = if ([string]$item.ProductId) { " ($($item.ProductId))" } else { '' }
-            Write-PreparationStoreEvidence "item $family$product`: $from -> $to, $state"
+            $ended = if ($code -ne 0) { '{0}, 0x{1:X8}' -f $state, $code } else { $state }
+            Write-PreparationStoreEvidence "item $family$product`: $from -> $to, $ended"
+            if ($code -ge $script:DeploymentErrorFirst -and $code -le $script:DeploymentErrorLast) { $refused += '{0} (0x{1:X8})' -f $family, $code }
         }
     }
     catch { Write-PreparationStoreEvidence "the Store items could not be listed: $($_.Exception.Message)" }
+    if ($refused.Count -gt 0) { Write-PreparationDeploymentEvent $refused }
+}
+
+# The AppX deployment log's events 401 (a deployment step failed, with that
+# step's own error) and 404 (the deployment failed) since this run started,
+# under the package each names, in updates.log; windows-transition.log only
+# notes them. Reading the log never fails the run: what can't be read is logged
+# instead.
+function Write-PreparationDeploymentEvent([string[]]$Refused) {
+    $intro = "$($Refused -join ', ') failed to deploy; the AppX deployment log since this run started"
+    try {
+        try {
+            $filter = @{ LogName = $script:PreparationDeploymentLog; Id = @(401, 404); StartTime = $script:PreparationStartedAt }
+            $events = @(Get-WinEvent -FilterHashtable $filter -MaxEvents 500 -ErrorAction Stop)
+        }
+        catch {
+            # Get-WinEvent reports a query that matches nothing as an error.
+            if ([string]$_.FullyQualifiedErrorId -notlike 'NoMatchingEventsFound*') { throw }
+            $events = @()
+        }
+        # Newest first, as Get-WinEvent returns them, so each package keeps its
+        # newest; they are written oldest first, as they happened.
+        $packages = [ordered]@{}
+        # Each text counts once here, but only what is written joins the run's
+        # seen texts, so a later failure can still write what a limit left out.
+        $counted = [Collections.Generic.HashSet[string]]::new()
+        $kept = 0
+        $left = 0
+        foreach ($entry in $events) {
+            $text = ([string]$entry.Message -replace '\s+', ' ').Trim()
+            if (-not $text) {
+                # Windows PowerShell can't always render a provider's text; the
+                # event's own values still carry the package and the error.
+                $values = $entry.PSObject.Properties['Properties']
+                $text = 'no text; values: ' + $(if ($null -ne $values) { @($values.Value | ForEach-Object { [string]$_.Value }) -join '; ' } else { 'none' })
+            }
+            $key = "$($entry.Id) $text"
+            if ($script:PreparationDeploymentSeen.Contains($key) -or -not $counted.Add($key)) { continue }
+            # A package full name: name, version, architecture, resource id, publisher id.
+            $named = [regex]::Match($text, '\b[A-Za-z0-9][A-Za-z0-9.-]*_\d+(\.\d+){3}_[A-Za-z0-9]+_[^\s_]*_[a-z0-9]{13}\b')
+            $package = if ($named.Success) { $named.Value } else { 'no package named' }
+            if (-not $packages.Contains($package)) { $packages[$package] = [Collections.Generic.List[string]]::new() }
+            if ($packages[$package].Count -ge $script:PreparationDeploymentPerPackage -or
+                $script:PreparationDeploymentWritten + $kept -ge $script:PreparationDeploymentLimit) {
+                $left++
+                continue
+            }
+            [void]$script:PreparationDeploymentSeen.Add($key)
+            if ($text.Length -gt $script:PreparationDeploymentLength) { $text = $text.Substring(0, $script:PreparationDeploymentLength) + '...' }
+            $packages[$package].Insert(0, ('event {0} at {1:yyyy-MM-dd HH:mm:ss}: {2}' -f $entry.Id, $entry.TimeCreated, $text))
+            $kept++
+        }
+        if ($kept -eq 0) {
+            # Each package's first new event is kept unless the run's limit is reached.
+            if ($left) { Write-PreparationStoreEvidence "$intro has $left more event(s) 401 or 404, left out: updates.log already has the $script:PreparationDeploymentLimit deployment events a run takes" }
+            else { Write-PreparationStoreEvidence "$intro has no event 401 or 404 that updates.log doesn't have already" }
+            return
+        }
+        Write-PreparationLog "Microsoft Store: $intro says:"
+        foreach ($package in $packages.Keys) {
+            foreach ($line in $packages[$package]) { Write-PreparationLog "Microsoft Store: deployment of $package, $line" }
+        }
+        $script:PreparationDeploymentWritten += $kept
+        Write-AtlasTransitionEvidence "store: $intro has $kept new event(s) 401 or 404; updates.log has them"
+        if ($left) {
+            Write-PreparationStoreEvidence "$left more deployment event(s) left out: updates.log takes the newest $script:PreparationDeploymentPerPackage for each package each time an item fails, and $script:PreparationDeploymentLimit a run"
+        }
+    }
+    catch { Write-PreparationStoreEvidence "$intro couldn't be read: $($_.Exception.Message)" }
 }
 
 # What became of the items an earlier round left in Error or Canceled. The fresh
@@ -1470,31 +1573,47 @@ function Save-PreparationReleaseAsset($Release, [string]$Name, [string]$Folder) 
     return $path
 }
 
-# App Installer staged or provisioned on this PC in a newer version than this
-# user has: registering it needs no download. Returns whether it did.
+# App Installer staged on this PC, or installed for another account, in a newer
+# version than this user has: registering it needs no download. Only package
+# versions are compared: Get-AppxPackage -AllUsers lists staged copies too,
+# while the provisioned list gives a bundle's version, such as 2026.115.2221.0,
+# which is always above App Installer's own 1.x. Returns whether this user's
+# version rose, so that when registering changes nothing it is downloaded.
 function Register-PreparationNewerAppInstaller {
-    $mine = @(Get-AppxPackage -Name Microsoft.DesktopAppInstaller -ErrorAction SilentlyContinue | Sort-Object { [version]$_.Version } -Descending) | Select-Object -First 1
-    $current = if ($null -ne $mine) { [version]$mine.Version } else { $null }
-    $versions = @(Get-AppxPackage -AllUsers -Name Microsoft.DesktopAppInstaller -ErrorAction SilentlyContinue | ForEach-Object { [version]$_.Version })
-    try {
-        $versions += @(Get-AppxProvisionedPackage -Online -ErrorAction Stop | Where-Object { [string]$_.DisplayName -eq 'Microsoft.DesktopAppInstaller' } | ForEach-Object { [version]$_.Version })
-    }
-    catch { Write-PreparationStoreEvidence "provisioned packages could not be read: $($_.Exception.Message)" }
-    $newest = @($versions | Sort-Object -Descending) | Select-Object -First 1
-    if ($null -eq $newest -or ($null -ne $current -and $current -ge $newest)) {
-        Write-PreparationStoreEvidence "App Installer: this user has $(if ($current) { $current } else { 'none' }), and this PC has nothing newer"
+    $mine = { @(Get-AppxPackage -Name Microsoft.DesktopAppInstaller -ErrorAction SilentlyContinue |
+                Where-Object { [string]$_.PackageFamilyName -ceq $script:PreparationAppInstallerFamily } |
+                ForEach-Object { [version]$_.Version } | Sort-Object -Descending) | Select-Object -First 1 }
+    $current = & $mine
+    $had = if ($null -ne $current) { $current } else { 'none' }
+    $newest = @(Get-AppxPackage -AllUsers -Name Microsoft.DesktopAppInstaller -ErrorAction SilentlyContinue |
+            Where-Object { [string]$_.PackageFamilyName -ceq $script:PreparationAppInstallerFamily } |
+            Sort-Object { [version]$_.Version } -Descending) | Select-Object -First 1
+    if ($null -eq $newest -or ($null -ne $current -and $current -ge [version]$newest.Version)) {
+        Write-PreparationStoreEvidence "App Installer: this user has $had, and this PC has nothing newer"
         return $false
     }
+    # Where the copy is: staged, or which accounts have it, by SID only, as an
+    # account's name would reach reports. Not being able to say leaves it out.
+    $where = try {
+        @($newest.PackageUserInformation | Where-Object { $null -ne $_ } | ForEach-Object { '{0}: {1}' -f $_.UserSecurityId.Sid, $_.InstallState }) -join '; '
+    }
+    catch { '' }
+    Write-PreparationStoreEvidence "App Installer: this user has $had; this PC has $($newest.Version), $($newest.PackageFullName)$(if ($where) { " ($where)" }); registering it"
     Add-AppxPackage -RegisterByFamilyName -MainPackage $script:PreparationAppInstallerFamily -ErrorAction Stop
-    $now = @(Get-AppxPackage -Name Microsoft.DesktopAppInstaller -ErrorAction SilentlyContinue | Sort-Object { [version]$_.Version } -Descending) | Select-Object -First 1
-    Write-PreparationStoreEvidence "App Installer: registered the copy this PC has, $(if ($current) { $current } else { 'none' }) -> $(if ($now) { $now.Version } else { 'none' })"
+    $now = & $mine
+    if ($null -eq $now -or ($null -ne $current -and $now -le $current)) {
+        Write-PreparationStoreEvidence "App Installer: registering the copy this PC has changed nothing; this user has $(if ($null -ne $now) { $now } else { 'none' })"
+        return $false
+    }
+    Write-PreparationStoreEvidence "App Installer: registered the copy this PC has, $had -> $now"
     return $true
 }
 
-# App Installer: the newer copy this PC has, or else one with the frameworks
-# winget-cli's release says it needs, from Microsoft's own release; then
-# Microsoft Store itself from the Store's catalogue through winget. Downloads go
-# to this job's folder, which only administrators can change.
+# App Installer: the newer copy this PC has, when registering it raises this
+# user's version, or else one with the frameworks winget-cli's release says it
+# needs, from Microsoft's own release; then Microsoft Store itself from the
+# Store's catalogue through winget. Downloads go to this job's folder, which
+# only administrators can change.
 function Install-PreparationStoreFromMicrosoft {
     $winget = $null
     try {

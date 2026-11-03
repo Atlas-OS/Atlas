@@ -479,37 +479,131 @@ Describe 'Microsoft Store before the Store apps' {
         Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'wsreset -i exited 0'
     }
 
-    It 'registers the newer App Installer this PC has for the user before downloading one' {
-        $script:Registered = $false
-        Mock Get-AppxPackage {
-            if ($AllUsers) { return @([pscustomobject]@{ Version = '1.26.509.0' }, [pscustomobject]@{ Version = '1.26.509.0' }) }
-            if ($script:Registered) { return [pscustomobject]@{ Version = '2025.926.104.0' } }
-            return [pscustomobject]@{ Version = '1.26.509.0' }
+    Context 'App Installer for the bootstrap' {
+        BeforeAll {
+            function New-AppInstallerPackage([string]$Version, $Users = @(), [string]$Family = 'Microsoft.DesktopAppInstaller_8wekyb3d8bbwe') {
+                [pscustomobject]@{
+                    Version = $Version; PackageFamilyName = $Family; PackageUserInformation = $Users
+                    PackageFullName = "Microsoft.DesktopAppInstaller_${Version}_x64__$($Family.Substring($Family.LastIndexOf('_') + 1))"
+                }
+            }
+            function New-PackageUser([string]$Sid, [string]$Username, [string]$State) {
+                [pscustomobject]@{ UserSecurityId = [pscustomobject]@{ Sid = $Sid; Username = $Username }; InstallState = $State }
+            }
         }
-        Mock Get-AppxProvisionedPackage { @([pscustomobject]@{ DisplayName = 'Microsoft.DesktopAppInstaller'; Version = '2025.926.104.0' }) }
-        Mock Add-AppxPackage { $script:Registered = $true }
-        Mock Get-PreparationWingetPath { 'C:\Program Files\WindowsApps\winget.exe' }
-        Mock Save-PreparationAppInstaller {}
-        Mock Assert-PreparationWingetStoreSource {}
-        Mock Invoke-PreparationStoreProcess { 0 }
-        Install-PreparationStoreFromMicrosoft | Should -BeTrue
-        Should -Invoke Add-AppxPackage -Times 1 -Exactly -ParameterFilter { $RegisterByFamilyName -and $MainPackage -eq 'Microsoft.DesktopAppInstaller_8wekyb3d8bbwe' }
-        Should -Invoke Save-PreparationAppInstaller -Times 0 -Exactly
-        Should -Invoke Invoke-PreparationStoreProcess -Times 1 -Exactly -ParameterFilter { $Arguments -like '*--id 9WZDNCRFJBMP --source msstore*' }
-        $script:PreparationStoreDownloaded | Should -BeFalse
-        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'registered the copy this PC has, 1\.26\.509\.0 -> 2025\.926\.104\.0'
-    }
+        BeforeEach {
+            # This user's App Installer, and the newest any account has or the PC has staged.
+            $script:UserVersion = '1.27.459.0'
+            $script:StagedVersion = '1.27.459.0'
+            $script:RegisteredVersion = $null
+            $script:UsersUnreadable = $false
+            # Another publisher's package of the same name, for this user or another account.
+            $script:Foreign = @{ User = @(); AllUsers = @() }
+            Mock Get-AppxPackage {
+                if ($AllUsers) {
+                    # An entry without its account stands for one the worker's strict mode can't read.
+                    $users = if ($script:UsersUnreadable) { @([pscustomobject]@{ InstallState = 'Staged' }) }
+                    else { @((New-PackageUser 'S-1-5-18' 'S-1-5-18' 'Staged'), (New-PackageUser 'S-1-5-21-1-2-3-1002' 'DESKTOP-PC\Alice' 'Installed')) }
+                    return @((New-AppInstallerPackage '1.27.459.0' @(New-PackageUser 'S-1-5-21-1-2-3-1001' 'DESKTOP-PC\Owner' 'Installed')),
+                        (New-AppInstallerPackage $script:StagedVersion $users)) + $script:Foreign.AllUsers
+                }
+                @(if ($script:UserVersion) { New-AppInstallerPackage $script:UserVersion }) + $script:Foreign.User
+            }
+            # The provisioned bundle's version, never App Installer's own.
+            Mock Get-AppxProvisionedPackage { @([pscustomobject]@{ DisplayName = 'Microsoft.DesktopAppInstaller'; Version = '2026.115.2221.0'; PackageName = 'Microsoft.DesktopAppInstaller_2026.115.2221.0_neutral_~_8wekyb3d8bbwe' }) }
+            Mock Add-AppxPackage { if ($script:RegisteredVersion) { $script:UserVersion = $script:RegisteredVersion } }
+            Mock Get-PreparationWingetPath { 'C:\Program Files\WindowsApps\winget.exe' }
+            Mock Save-PreparationAppInstaller {}
+            Mock Assert-PreparationWingetStoreSource {}
+            Mock Invoke-PreparationStoreProcess { 0 }
+        }
 
-    It 'downloads App Installer when this PC has nothing newer than the user' {
-        Mock Get-AppxPackage { [pscustomobject]@{ Version = '2025.926.104.0' } }
-        Mock Get-AppxProvisionedPackage { @([pscustomobject]@{ DisplayName = 'Microsoft.DesktopAppInstaller'; Version = '2025.926.104.0' }) }
-        Mock Add-AppxPackage { throw 'must not register' }
-        Mock Get-PreparationWingetPath { 'C:\Program Files\WindowsApps\winget.exe' }
-        Mock Save-PreparationAppInstaller {}
-        Mock Assert-PreparationWingetStoreSource {}
-        Mock Invoke-PreparationStoreProcess { 0 }
-        Install-PreparationStoreFromMicrosoft | Should -BeTrue
-        Should -Invoke Save-PreparationAppInstaller -Times 1 -Exactly
+        It 'downloads App Installer when only the provisioned bundle''s version is higher than the user''s' {
+            Install-PreparationStoreFromMicrosoft | Should -BeTrue
+            Should -Invoke Add-AppxPackage -Times 0 -Exactly
+            Should -Invoke Save-PreparationAppInstaller -Times 1 -Exactly
+            Should -Invoke Invoke-PreparationStoreProcess -Times 1 -Exactly -ParameterFilter { $Arguments -like '*--id 9WZDNCRFJBMP --source msstore*' }
+            Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'this user has 1\.27\.459\.0, and this PC has nothing newer'
+        }
+
+        It 'downloads App Installer when registering the newer copy this PC has leaves the user''s version as it was' {
+            $script:StagedVersion = '1.28.220.0'
+            Install-PreparationStoreFromMicrosoft | Should -BeTrue
+            Should -Invoke Add-AppxPackage -Times 1 -Exactly -ParameterFilter { $RegisterByFamilyName -and $MainPackage -eq 'Microsoft.DesktopAppInstaller_8wekyb3d8bbwe' }
+            Should -Invoke Save-PreparationAppInstaller -Times 1 -Exactly
+            Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'registering the copy this PC has changed nothing; this user has 1\.27\.459\.0'
+        }
+
+        It 'registers a newer App Installer staged on this PC for the user, says where it was by SID only, and downloads nothing' {
+            $script:StagedVersion = '1.28.220.0'
+            $script:RegisteredVersion = '1.28.220.0'
+            Install-PreparationStoreFromMicrosoft | Should -BeTrue
+            Should -Invoke Add-AppxPackage -Times 1 -Exactly -ParameterFilter { $RegisterByFamilyName -and $MainPackage -eq 'Microsoft.DesktopAppInstaller_8wekyb3d8bbwe' }
+            Should -Invoke Save-PreparationAppInstaller -Times 0 -Exactly
+            Should -Invoke Invoke-PreparationStoreProcess -Times 1 -Exactly -ParameterFilter { $Arguments -like '*--id 9WZDNCRFJBMP --source msstore*' }
+            $script:PreparationStoreDownloaded | Should -BeFalse
+            $log = Get-Content (Join-Path $JobPath 'updates.log') -Raw
+            $log | Should -Match 'this PC has 1\.28\.220\.0, Microsoft\.DesktopAppInstaller_1\.28\.220\.0_x64__8wekyb3d8bbwe \(S-1-5-18: Staged; S-1-5-21-1-2-3-1002: Installed\); registering it'
+            $log | Should -Match 'registered the copy this PC has, 1\.27\.459\.0 -> 1\.28\.220\.0'
+            $log | Should -Not -Match 'Alice' -Because 'account names would reach reports'
+        }
+
+        It 'still registers the newer copy when its accounts can''t be read' {
+            $script:StagedVersion = '1.28.220.0'
+            $script:RegisteredVersion = '1.28.220.0'
+            $script:UsersUnreadable = $true
+            Install-PreparationStoreFromMicrosoft | Should -BeTrue
+            Should -Invoke Add-AppxPackage -Times 1 -Exactly
+            Should -Invoke Save-PreparationAppInstaller -Times 0 -Exactly
+            Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'this PC has 1\.28\.220\.0, Microsoft\.DesktopAppInstaller_1\.28\.220\.0_x64__8wekyb3d8bbwe; registering it'
+        }
+
+        It 'registers the newer copy for a user who has no App Installer, and downloads nothing' {
+            $script:UserVersion = $null
+            $script:StagedVersion = '1.28.220.0'
+            $script:RegisteredVersion = '1.28.220.0'
+            Install-PreparationStoreFromMicrosoft | Should -BeTrue
+            Should -Invoke Add-AppxPackage -Times 1 -Exactly
+            Should -Invoke Save-PreparationAppInstaller -Times 0 -Exactly
+            $log = Get-Content (Join-Path $JobPath 'updates.log') -Raw
+            $log | Should -Match 'App Installer: this user has none; this PC has 1\.28\.220\.0'
+            $log | Should -Match 'registered the copy this PC has, none -> 1\.28\.220\.0'
+        }
+
+        It 'downloads App Installer when registering leaves a user who had none still without it' {
+            $script:UserVersion = $null
+            $script:StagedVersion = '1.28.220.0'
+            Install-PreparationStoreFromMicrosoft | Should -BeTrue
+            Should -Invoke Add-AppxPackage -Times 1 -Exactly
+            Should -Invoke Save-PreparationAppInstaller -Times 1 -Exactly
+            Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'registering the copy this PC has changed nothing; this user has none'
+        }
+
+        It 'ignores a newer package of that name from another publisher that another account has' {
+            $script:Foreign.AllUsers = @(New-AppInstallerPackage '9.0.0.0' @(New-PackageUser 'S-1-5-21-1-2-3-1002' 'DESKTOP-PC\Alice' 'Installed') 'Microsoft.DesktopAppInstaller_a1b2c3d4e5f6g')
+            Install-PreparationStoreFromMicrosoft | Should -BeTrue
+            Should -Invoke Add-AppxPackage -Times 0 -Exactly
+            Should -Invoke Save-PreparationAppInstaller -Times 1 -Exactly
+            Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'this user has 1\.27\.459\.0, and this PC has nothing newer'
+        }
+
+        It 'ignores a newer package of that name from another publisher that this user has' {
+            $script:Foreign.User = @(New-AppInstallerPackage '9.0.0.0' @() 'Microsoft.DesktopAppInstaller_a1b2c3d4e5f6g')
+            $script:StagedVersion = '1.28.220.0'
+            $script:RegisteredVersion = '1.28.220.0'
+            Install-PreparationStoreFromMicrosoft | Should -BeTrue
+            Should -Invoke Add-AppxPackage -Times 1 -Exactly
+            Should -Invoke Save-PreparationAppInstaller -Times 0 -Exactly
+            Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'registered the copy this PC has, 1\.27\.459\.0 -> 1\.28\.220\.0'
+        }
+
+        It 'downloads App Installer when this PC has nothing newer than the user' {
+            $script:UserVersion = '1.28.220.0'
+            $script:StagedVersion = '1.28.220.0'
+            Install-PreparationStoreFromMicrosoft | Should -BeTrue
+            Should -Invoke Add-AppxPackage -Times 0 -Exactly
+            Should -Invoke Save-PreparationAppInstaller -Times 1 -Exactly
+        }
     }
 
     It 'names each Store item with its product id, versions and how it ended' {
@@ -580,6 +674,160 @@ Describe 'Store items an earlier round left failed' {
         { Invoke-PreparationStore } | Should -Throw '*Microsoft.Xbox.TCUI_8wekyb3d8bbwe, Error*'
         Get-Content (Join-Path $JobPath 'updates.log') -Raw |
             Should -Match 'item Microsoft\.Xbox\.TCUI_8wekyb3d8bbwe: offered again after it ended Error; updating it again'
+    }
+}
+
+Describe 'Store items Windows refused to deploy' {
+    BeforeAll {
+        function New-StoreItem([string]$Family, [string]$Product, $ErrorCode) {
+            $item = [pscustomobject]@{ PackageFamilyName = $Family; ProductId = $Product; Status = [pscustomobject]@{ InstallState = 'Error'; ErrorCode = $ErrorCode } }
+            $item | Add-Member ScriptMethod GetCurrentStatus { $this.Status }
+            return $item
+        }
+        function New-DeploymentEvent([int]$Id, [string]$Message, [int]$MinutesAgo) {
+            [pscustomobject]@{ Id = $Id; TimeCreated = [DateTime]::Now.AddMinutes(-$MinutesAgo); Message = $Message }
+        }
+        function Get-DeploymentLine { @(Get-Content (Join-Path $JobPath 'updates.log') | Where-Object { $_ -like 'Microsoft Store: deployment of *' }) }
+        # 0x80073CF9, the install failed, as the Store reports most deployment failures.
+        $script:InstallFailed = [Runtime.InteropServices.COMException]::new('Install failed. Please contact your software vendor.', -2147009287)
+        $script:Calculator = 'Microsoft.WindowsCalculator_11.2509.1.0_x64__8wekyb3d8bbwe'
+        $script:Overlay = 'Microsoft.XboxGamingOverlay_7.326.10141.0_neutral_~_8wekyb3d8bbwe'
+    }
+    BeforeEach {
+        Remove-Item -LiteralPath (Join-Path $JobPath 'updates.log') -ErrorAction SilentlyContinue
+        $script:PreparationDeploymentSeen.Clear()
+        $script:PreparationDeploymentWritten = 0
+        Mock Get-PreparationPackageVersion { @{ 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' = '11.2508.4.0' } }
+        # Newest first, as Get-WinEvent returns them; a failing Store logs the
+        # same failure again on every retry.
+        $script:Events = @(
+            (New-DeploymentEvent 404 "AppX Deployment operation failed for package $script:Calculator with error 0x80073CF9. The specific error text for this failure is: Deployment Stage operation with target volume C: on Package $script:Calculator from: (a15291e6f81eeb6b) failed with error 0x80070490." 1)
+            (New-DeploymentEvent 401 "Deployment Stage operation with target volume C: on Package $script:Calculator from: (a15291e6f81eeb6b) failed with error 0x80070490.`r`nSee http://go.microsoft.com/fwlink/?LinkId=235160 for help diagnosing app deployment issues." 2)
+            (New-DeploymentEvent 404 "AppX Deployment operation failed for package $script:Overlay with error 0x80073CF9. The specific error text for this failure is: Deployment Stage operation with target volume C: on Package $script:Overlay from: (c0ffee) failed with error 0x80070490." 3)
+            (New-DeploymentEvent 404 "AppX Deployment operation failed for package $script:Calculator with error 0x80073CF9. The specific error text for this failure is: Deployment Stage operation with target volume C: on Package $script:Calculator from: (a15291e6f81eeb6b) failed with error 0x80070490." 4)
+        )
+        Mock Get-WinEvent { $script:Events }
+    }
+
+    It 'follows the item with the deployment log''s events since the run started, under each package' {
+        $script:AtlasTransitionEvidencePath = Join-Path $TestDrive 'deployment-evidence.log'
+        Remove-Item -LiteralPath $script:AtlasTransitionEvidencePath -ErrorAction SilentlyContinue
+        try { Write-PreparationStoreItem @(New-StoreItem 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' '9WZDNCRFHVN5' $script:InstallFailed) @{ 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' = '11.2508.4.0' } }
+        finally { $script:AtlasTransitionEvidencePath = $null }
+        # The move's own log notes them and leaves the text to updates.log.
+        $evidence = Get-Content (Join-Path $TestDrive 'deployment-evidence.log') -Raw
+        $evidence | Should -Match 'store: Microsoft\.WindowsCalculator_8wekyb3d8bbwe \(0x80073CF9\) failed to deploy; the AppX deployment log since this run started has 3 new event\(s\) 401 or 404; updates\.log has them'
+        $evidence | Should -Not -Match 'says:|deployment of '
+        Should -Invoke Get-WinEvent -Times 1 -Exactly -ParameterFilter {
+            $FilterHashtable[0].LogName -eq 'Microsoft-Windows-AppXDeploymentServer/Operational' -and
+            (@($FilterHashtable[0].Id) -join ',') -eq '401,404' -and $FilterHashtable[0].StartTime -eq $script:PreparationStartedAt
+        }
+        $log = Get-Content (Join-Path $JobPath 'updates.log') -Raw
+        $log | Should -Match 'item Microsoft\.WindowsCalculator_8wekyb3d8bbwe \(9WZDNCRFHVN5\): 11\.2508\.4\.0 -> 11\.2508\.4\.0, Error, 0x80073CF9'
+        $log | Should -Match 'Microsoft\.WindowsCalculator_8wekyb3d8bbwe \(0x80073CF9\) failed to deploy; the AppX deployment log since this run started says:'
+        $lines = Get-DeploymentLine
+        # The repeated 404 is written once; each package's events oldest first.
+        $lines.Count | Should -Be 3
+        $lines[0] | Should -Match "^Microsoft Store: deployment of $([regex]::Escape($script:Calculator)), event 401 at .+: Deployment Stage operation .+ failed with error 0x80070490\. See http://go\.microsoft\.com/fwlink/\?LinkId=235160 for help diagnosing app deployment issues\.$"
+        $lines[1] | Should -Match "^Microsoft Store: deployment of $([regex]::Escape($script:Calculator)), event 404 at .+: AppX Deployment operation failed .+ with error 0x80073CF9\. .+ failed with error 0x80070490\.$"
+        $lines[2] | Should -Match "^Microsoft Store: deployment of $([regex]::Escape($script:Overlay)), event 404 "
+    }
+
+    It 'writes each event once a run' {
+        $item = New-StoreItem 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' '9WZDNCRFHVN5' $script:InstallFailed
+        Write-PreparationStoreItem @($item) @{}
+        Write-PreparationStoreItem @($item) @{}
+        (Get-DeploymentLine).Count | Should -Be 3
+        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match "since this run started has no event 401 or 404 that updates\.log doesn't have already"
+    }
+
+    It 'keeps the newest few for each package and only so many a run' {
+        $script:Events = @(1..6 | ForEach-Object { New-DeploymentEvent 401 "Deployment Stage operation with target volume C: on Package $script:Calculator from: (attempt $_) failed with error 0x80070490." $_ })
+        Write-PreparationStoreItem @(New-StoreItem 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' '9WZDNCRFHVN5' $script:InstallFailed) @{}
+        $lines = Get-DeploymentLine
+        $lines.Count | Should -Be $script:PreparationDeploymentPerPackage
+        $lines[0] | Should -Match '\(attempt 4\)'
+        $lines[-1] | Should -Match '\(attempt 1\)'
+        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match '2 more deployment event\(s\) left out'
+
+        Remove-Item -LiteralPath (Join-Path $JobPath 'updates.log')
+        $script:PreparationDeploymentSeen.Clear()
+        $script:PreparationDeploymentWritten = $script:PreparationDeploymentLimit - 1
+        Write-PreparationStoreItem @(New-StoreItem 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' '9WZDNCRFHVN5' $script:InstallFailed) @{}
+        @(Get-DeploymentLine).Count | Should -Be 1
+        $script:PreparationDeploymentWritten | Should -Be $script:PreparationDeploymentLimit
+    }
+
+    It 'writes what a limit left out when a later item fails' {
+        $script:Events = @(1..6 | ForEach-Object { New-DeploymentEvent 401 "Deployment Stage operation with target volume C: on Package $script:Calculator from: (attempt $_) failed with error 0x80070490." $_ })
+        $item = New-StoreItem 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' '9WZDNCRFHVN5' $script:InstallFailed
+        Write-PreparationStoreItem @($item) @{}
+        Write-PreparationStoreItem @($item) @{}
+        $lines = Get-DeploymentLine
+        $lines.Count | Should -Be 6
+        $lines[4] | Should -Match '\(attempt 6\)'
+        $lines[5] | Should -Match '\(attempt 5\)'
+        $script:PreparationDeploymentWritten | Should -Be 6
+        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Not -Match "doesn't have already"
+    }
+
+    It 'says how many the run''s limit left out once it is reached' {
+        $script:PreparationDeploymentWritten = $script:PreparationDeploymentLimit
+        Write-PreparationStoreItem @(New-StoreItem 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' '9WZDNCRFHVN5' $script:InstallFailed) @{}
+        @(Get-DeploymentLine).Count | Should -Be 0
+        # The repeated 404 counts once.
+        Get-Content (Join-Path $JobPath 'updates.log') -Raw |
+            Should -Match "since this run started has 3 more event\(s\) 401 or 404, left out: updates\.log already has the $($script:PreparationDeploymentLimit) deployment events a run takes"
+    }
+
+    It 'cuts each event''s text at a length' {
+        $long = "Deployment Stage operation with target volume C: on Package $script:Calculator from: (a15291e6f81eeb6b) failed with error 0x80070490. " + ('x' * 2000)
+        $script:Events = @(New-DeploymentEvent 401 $long 1)
+        Write-PreparationStoreItem @(New-StoreItem 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' '9WZDNCRFHVN5' $script:InstallFailed) @{}
+        $written = [regex]::Match(@(Get-DeploymentLine)[0], 'event 401 at \d{4}-\d\d-\d\d \d\d:\d\d:\d\d: (.*)$')
+        $written.Success | Should -BeTrue
+        $written.Groups[1].Value | Should -BeExactly ($long.Substring(0, $script:PreparationDeploymentLength) + '...')
+    }
+
+    It 'writes an event''s own values when Windows has no text for it' {
+        $values = @('Windows cannot install package', $script:Calculator, -2147024784) | ForEach-Object { [pscustomobject]@{ Value = $_ } }
+        $script:Events = @([pscustomobject]@{ Id = 404; TimeCreated = [DateTime]::Now; Message = $null; Properties = $values })
+        Write-PreparationStoreItem @(New-StoreItem 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' '9WZDNCRFHVN5' $script:InstallFailed) @{}
+        @(Get-DeploymentLine)[0] | Should -Match "deployment of $([regex]::Escape($script:Calculator)), event 404 at .+: no text; values: Windows cannot install package; $([regex]::Escape($script:Calculator)); -2147024784$"
+    }
+
+    It 'never fails the run when the log can''t be read, and says so' {
+        Mock Get-WinEvent { throw 'The RPC server is unavailable.' }
+        { Write-PreparationStoreItem @(New-StoreItem 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' '9WZDNCRFHVN5' $script:InstallFailed) @{} } | Should -Not -Throw
+        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match "since this run started couldn't be read: The RPC server is unavailable\."
+    }
+
+    It 'says when the log has nothing since the run started' {
+        Mock Get-WinEvent {
+            throw [Management.Automation.ErrorRecord]::new([Exception]::new('No events were found that match the specified selection criteria.'),
+                'NoMatchingEventsFound,Microsoft.PowerShell.Commands.GetWinEventCommand', 'ObjectNotFound', $null)
+        }
+        Write-PreparationStoreItem @(New-StoreItem 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' '9WZDNCRFHVN5' $script:InstallFailed) @{}
+        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match "since this run started has no event 401 or 404 that updates\.log doesn't have already"
+    }
+
+    It 'reads the log for each AppX deployment error: <Case>' -TestCases @(
+        @{ Case = 'the first, 0x80073CF0'; Code = 0x80073CF0 }
+        @{ Case = 'the last, 0x80073D53'; Code = 0x80073D53 }
+    ) {
+        Write-PreparationStoreItem @(New-StoreItem 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' '9WZDNCRFHVN5' ([Runtime.InteropServices.COMException]::new('Deployment failed.', $Code))) @{}
+        Should -Invoke Get-WinEvent -Times 1 -Exactly
+    }
+
+    It 'leaves the log alone for an error that isn''t a deployment error: <Case>' -TestCases @(
+        @{ Case = 'the Store''s own'; Code = 0x803FB112 }
+        @{ Case = 'just below the range, 0x80073CEF'; Code = 0x80073CEF }
+        @{ Case = 'just above the range, 0x80073D54'; Code = 0x80073D54 }
+        @{ Case = 'no code'; Code = $null }
+    ) {
+        $errorCode = if ($null -ne $Code) { [Runtime.InteropServices.COMException]::new('The Store failed.', $Code) }
+        Write-PreparationStoreItem @(New-StoreItem 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' '9WZDNCRFHVN5' $errorCode) @{}
+        Should -Invoke Get-WinEvent -Times 0 -Exactly
     }
 }
 
@@ -1025,7 +1273,7 @@ Describe 'The install''s own check after an update was offered again' {
         $other.Identity = [pscustomobject]@{ UpdateID = 'other'; RevisionNumber = 1 }
         $script:searchResult = @((New-ReofferedUpdate), $other)
         Mock Invoke-PreparationSearch { $script:searchResult }
-        Mock Test-PreparationUpdate { $true }
+        Mock Get-PreparationUpdateExclusion { '' }
         $found = @(Find-PreparationWindowsUpdate ([pscustomobject]@{}))
         @($found.Title) | Should -Be @('Another update')
     }
@@ -1197,17 +1445,39 @@ Describe 'Windows preparation prerequisites' {
         $script:PreparationNetworkReason | Should -Be 'offline'
     }
     It 'includes recommended updates but excludes optional previews and feature upgrades' {
-        Test-PreparationUpdate ([pscustomobject]@{ BrowseOnly = $false; Categories = @() }) | Should -BeTrue
-        Test-PreparationUpdate ([pscustomobject]@{ BrowseOnly = $true; Categories = @() }) | Should -BeFalse
-        Test-PreparationUpdate ([pscustomobject]@{ BrowseOnly = $false; Categories = @([pscustomobject]@{ CategoryID = '3689bdc8-b205-4af4-8d4a-a63924c5e9d5' }) }) | Should -BeFalse
+        Get-PreparationUpdateExclusion ([pscustomobject]@{ BrowseOnly = $false; Categories = @() }) | Should -BeExactly ''
+        Get-PreparationUpdateExclusion ([pscustomobject]@{ BrowseOnly = $true; Categories = @() }) | Should -Match 'optional preview'
+        Get-PreparationUpdateExclusion ([pscustomobject]@{ BrowseOnly = $false; Categories = @([pscustomobject]@{ CategoryID = '3689bdc8-b205-4af4-8d4a-a63924c5e9d5' }) }) | Should -Match 'feature update'
     }
     It 'excludes drivers in manual mode while retaining Windows software updates' {
         $previousMode = $DriverMode
         try {
             $DriverMode = 'manual'
-            Test-PreparationUpdate ([pscustomobject]@{ BrowseOnly = $false; Type = 2; Categories = @() }) | Should -BeFalse
-            Test-PreparationUpdate ([pscustomobject]@{ BrowseOnly = $false; Type = 1; Categories = @() }) | Should -BeTrue
+            Get-PreparationUpdateExclusion ([pscustomobject]@{ BrowseOnly = $false; Type = 2; Categories = @() }) | Should -Match 'Install drivers myself'
+            Get-PreparationUpdateExclusion ([pscustomobject]@{ BrowseOnly = $false; Type = 1; Categories = @() }) | Should -BeExactly ''
         } finally { $DriverMode = $previousMode }
+    }
+    It 'logs each offer it leaves out of a pass, and why' {
+        Mock Read-PreparationReoffered {}
+        Remove-Item -LiteralPath (Join-Path $JobPath 'updates.log') -ErrorAction SilentlyContinue
+        $script:searchResult = @(
+            [pscustomobject]@{ Title = '2026-10 Cumulative Update Preview for Windows 11 (KB5124011)'; BrowseOnly = $true; Type = 1; Categories = @() }
+            [pscustomobject]@{ Title = 'Windows 11, version 26H2'; BrowseOnly = $false; Type = 1; Categories = @([pscustomobject]@{ CategoryID = '3689BDC8-B205-4AF4-8D4A-A63924C5E9D5' }) }
+            [pscustomobject]@{ Title = 'Intel Corporation - Display - 32.0.101.6881'; BrowseOnly = $false; Type = 2; Categories = @() }
+            [pscustomobject]@{ Title = '2026-10 Cumulative Update for Windows 11 (KB5124010)'; BrowseOnly = $false; Type = 1; Categories = @(); Identity = [pscustomobject]@{ UpdateID = 'cumulative'; RevisionNumber = 1 } }
+        )
+        Mock Invoke-PreparationSearch { $script:searchResult }
+        $previousMode = $DriverMode
+        try {
+            $DriverMode = 'manual'
+            $found = @(Find-PreparationWindowsUpdate ([pscustomobject]@{}))
+        } finally { $DriverMode = $previousMode }
+        @($found.Title) | Should -Be @('2026-10 Cumulative Update for Windows 11 (KB5124010)')
+        $log = Get-Content (Join-Path $JobPath 'updates.log') -Raw
+        $log | Should -Match "Left '2026-10 Cumulative Update Preview for Windows 11 \(KB5124011\)': an optional preview \(browse-only\), which installing Atlas doesn't need\."
+        $log | Should -Match "Left 'Windows 11, version 26H2': a feature update, which only a move to another Windows release installs, through its own search\."
+        $log | Should -Match "Left 'Intel Corporation - Display - 32\.0\.101\.6881': a driver, and drivers are left to the user \(Install drivers myself\)\."
+        $log | Should -Not -Match 'Left ''2026-10 Cumulative Update for Windows 11'
     }
     It 'does not search Windows Update when the network is unavailable or restricted' {
         Mock Test-PreparationRestart { $false }
