@@ -32,7 +32,7 @@ foreach ($domainModule in @(
 
 Export-ModuleMember -Function @(
     'Save-AtlasAppxSnapshot', 'Set-AtlasAppxDeprovisioned',
-    'Get-AtlasAppxRemovalDefinition', 'Invoke-AtlasAppxRemovalPlan',
+    'Get-AtlasAppxRemovalDefinition', 'Invoke-AtlasAppxRemovalPlan', 'Get-AtlasAppxProvisionedFamily',
     'Clear-AtlasAppxCache', 'Invoke-AtlasUserAppxCacheCleanup',
     'Remove-AtlasPhoneLinkAppx',
     'Install-AtlasGameBar'

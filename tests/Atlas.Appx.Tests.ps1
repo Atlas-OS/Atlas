@@ -3,12 +3,14 @@ BeforeAll {
     Import-Module -Name (Join-Path -Path $script:AtlasTestModulesRoot -ChildPath 'Atlas.Core\Atlas.Core.psd1') -Force
     Import-Module -Name (Join-Path -Path $script:AtlasTestModulesRoot -ChildPath 'Atlas.Appx\Atlas.Appx.psd1') -Force
 
-    $script:testRoot = 'HKCU:\Software\AtlasRewriteTest'
+    # A key of its own: other test files share and delete AtlasRewriteTest, and may run
+    # at the same time.
+    $script:testRoot = "HKCU:\Software\AtlasAppxTest-$([guid]::NewGuid().ToString('N'))"
     $script:deprovisionedKey = "$script:testRoot\Deprovisioned"
 }
 
 AfterAll {
-    Remove-Item -Path 'HKCU:\Software\AtlasRewriteTest' -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path $script:testRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 Describe 'Get-AtlasAppxRemovedPackage' {
@@ -66,6 +68,65 @@ Describe 'Set-AtlasAppxDeprovisioned' {
 
         { Set-AtlasAppxDeprovisioned -SnapshotPath $missingSnapshot -DeprovisionedKeyPath $script:deprovisionedKey } |
             Should -Throw -ExpectedMessage '*was not found*'
+    }
+
+    It 'also registers matched families that are still listed, so a feature update cannot bring them back' {
+        $snapshotPath = Join-Path -Path $TestDrive -ChildPath 'AtlasPackagesOld.txt'
+        Set-Content -LiteralPath $snapshotPath -Value @('Pkg.Removed_abc', 'Pkg.StaleAccount_abc', 'Pkg.Kept_abc')
+
+        Set-AtlasAppxDeprovisioned -SnapshotPath $snapshotPath `
+            -DeprovisionedKeyPath $script:deprovisionedKey `
+            -CurrentPackages @('Pkg.StaleAccount_abc', 'Pkg.Kept_abc') `
+            -MatchedFamilies @('Pkg.StaleAccount_abc', 'Pkg.ProvisionedOnly_abc', 'pkg.removed_ABC')
+
+        Test-Path -LiteralPath "$script:deprovisionedKey\Pkg.Removed_abc" | Should -BeTrue
+        Test-Path -LiteralPath "$script:deprovisionedKey\Pkg.StaleAccount_abc" | Should -BeTrue
+        Test-Path -LiteralPath "$script:deprovisionedKey\Pkg.ProvisionedOnly_abc" | Should -BeTrue
+        Test-Path -LiteralPath "$script:deprovisionedKey\Pkg.Kept_abc" | Should -BeFalse
+        # A family both removed and matched is registered and logged once.
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Message -like '*Pkg.Removed_abc*' -or $Message -like '*pkg.removed_ABC*'
+        }
+    }
+
+    It 'registers by default the provisioned family a removal plan matched, once' {
+        Mock Test-AtlasOption -ModuleName Atlas.Appx -MockWith { $true }
+        Mock Get-AtlasAppxRemovalAccount -ModuleName Atlas.Appx -MockWith {
+            [pscustomobject]@{ Sid = 'S-1-5-21-1000-1000-1000-1001'; Description = 'the installing user'; Absence = $null }
+        }
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith { @() }
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith {
+            $script:testDeprovisionProvisionedCalls++
+            if ($script:testDeprovisionProvisionedCalls -eq 1) {
+                return @([pscustomobject]@{
+                        DisplayName = 'Contoso.Provisioned'; PackageName = 'Contoso.Provisioned_1.0.0.0_neutral__abc123'
+                    })
+            }
+            return @()
+        }
+        Mock Remove-AppxProvisionedPackage -ModuleName Atlas.Appx
+        $script:testDeprovisionProvisionedCalls = 0
+        Invoke-AtlasAppxRemovalPlan -Definition @(
+            [pscustomobject]@{ Name = 'Contoso.Provisioned*'; Option = $null; IgnoreErrors = $false }
+        )
+
+        $snapshotPath = Join-Path -Path $TestDrive -ChildPath 'AtlasPackagesOld.txt'
+        Set-Content -LiteralPath $snapshotPath -Value @('Pkg.Kept_abc')
+        Set-AtlasAppxDeprovisioned -SnapshotPath $snapshotPath `
+            -DeprovisionedKeyPath $script:deprovisionedKey `
+            -CurrentPackages @('Pkg.Kept_abc')
+
+        Test-Path -LiteralPath "$script:deprovisionedKey\Contoso.Provisioned_abc123" | Should -BeTrue
+        Test-Path -LiteralPath "$script:deprovisionedKey\Pkg.Kept_abc" | Should -BeFalse
+
+        # The matched families are spent: a later run that matched nothing adds none.
+        Remove-Item -LiteralPath "$script:deprovisionedKey\Contoso.Provisioned_abc123" -Recurse -Force
+        Set-Content -LiteralPath $snapshotPath -Value @('Pkg.Kept_abc')
+        Set-AtlasAppxDeprovisioned -SnapshotPath $snapshotPath `
+            -DeprovisionedKeyPath $script:deprovisionedKey `
+            -CurrentPackages @('Pkg.Kept_abc')
+
+        Test-Path -LiteralPath "$script:deprovisionedKey\Contoso.Provisioned_abc123" | Should -BeFalse
     }
 }
 
@@ -535,6 +596,50 @@ Describe 'Save-AtlasAppxSnapshot' {
             $AllUsers -and "$PackageTypeFilter" -match 'Bundle' -and "$PackageTypeFilter" -match 'Main'
         }
     }
+
+    It 'keeps the snapshot with the install''s work during an install, which file replacement leaves alone: install state <Backed>' -TestCases @(
+        @{ Backed = $true; Expected = 'C:\Windows\AtlasOS\Install\work\AtlasPackagesOld.txt' }
+        @{ Backed = $false; Expected = 'C:\Windows\AtlasModules\AtlasPackagesOld.txt' }
+    ) {
+        param($Backed, $Expected)
+        $context = [pscustomobject]@{ WinDir = 'C:\Windows'; AtlasModulesPath = 'C:\Windows\AtlasModules'; IsInstallStateBacked = $Backed }
+        Mock Get-AtlasContext -ModuleName Atlas.Appx -MockWith { $context }.GetNewClosure()
+        InModuleScope Atlas.Appx { Get-AtlasAppxSnapshotPath } | Should -BeExactly $Expected
+    }
+
+    It 'deprovisions on a resumed install what an interrupted attempt removed after its snapshot' {
+        Mock Write-AtlasLog -ModuleName Atlas.Appx
+        Mock Get-AtlasContext -ModuleName Atlas.Appx { [pscustomobject]@{ IsInstallStateBacked = $true } }
+        Mock Get-AppxPackage -ModuleName Atlas.Appx { [pscustomobject]@{ PackageFamilyName = 'Contoso.Kept_abc' } }
+        Remove-Item -Path $script:testRoot -Recurse -Force -ErrorAction SilentlyContinue
+        $snapshotPath = Join-Path -Path $TestDrive -ChildPath "resumed-$([guid]::NewGuid().ToString('N'))\AtlasPackagesOld.txt"
+        $null = New-Item -Path (Split-Path -Parent $snapshotPath) -ItemType Directory
+        # The attempt's snapshot, taken before it removed Snipping Tool and stopped.
+        Set-Content -LiteralPath $snapshotPath -Value @('Contoso.Kept_abc', 'Microsoft.ScreenSketch_8wekyb3d8bbwe')
+
+        Save-AtlasAppxSnapshot -Path $snapshotPath
+        @(Get-Content -LiteralPath $snapshotPath) | Should -Be @('Contoso.Kept_abc', 'Microsoft.ScreenSketch_8wekyb3d8bbwe')
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Message -like "*keeping the families an interrupted attempt's snapshot listed that are gone now: Microsoft.ScreenSketch_8wekyb3d8bbwe."
+        }
+
+        Set-AtlasAppxDeprovisioned -SnapshotPath $snapshotPath -DeprovisionedKeyPath $script:deprovisionedKey `
+            -CurrentPackages @('Contoso.Kept_abc') -MatchedFamilies @()
+        Test-Path -LiteralPath "$script:deprovisionedKey\Microsoft.ScreenSketch_8wekyb3d8bbwe" | Should -BeTrue
+        Test-Path -LiteralPath "$script:deprovisionedKey\Contoso.Kept_abc" | Should -BeFalse
+    }
+
+    It 'replaces a snapshot left outside an install' {
+        Mock Write-AtlasLog -ModuleName Atlas.Appx
+        Mock Get-AtlasContext -ModuleName Atlas.Appx { [pscustomobject]@{ IsInstallStateBacked = $false } }
+        Mock Get-AppxPackage -ModuleName Atlas.Appx { [pscustomobject]@{ PackageFamilyName = 'Contoso.Kept_abc' } }
+        $snapshotPath = Join-Path -Path $TestDrive -ChildPath "toggle-$([guid]::NewGuid().ToString('N'))\AtlasPackagesOld.txt"
+        $null = New-Item -Path (Split-Path -Parent $snapshotPath) -ItemType Directory
+        Set-Content -LiteralPath $snapshotPath -Value @('Contoso.Kept_abc', 'Contoso.LongGone_abc')
+
+        Save-AtlasAppxSnapshot -Path $snapshotPath
+        @(Get-Content -LiteralPath $snapshotPath) | Should -Be @('Contoso.Kept_abc')
+    }
 }
 
 Describe 'AppX removal policy' {
@@ -623,12 +728,151 @@ Describe 'Package-family identity matching' {
                     }) -Name 'MSTeams*') | Should -BeTrue
         }
     }
+
+    It 'lists the families Windows provisions once each, from DISM''s package names' {
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith {
+            [pscustomobject]@{ DisplayName = 'Microsoft.ScreenSketch'; PackageName = 'Microsoft.ScreenSketch_2022.2307.52.0_neutral_~_8wekyb3d8bbwe' }
+            [pscustomobject]@{ DisplayName = 'Microsoft.ScreenSketch'; PackageName = 'Microsoft.ScreenSketch_2022.2308.1.0_neutral_~_8wekyb3d8bbwe' }
+            [pscustomobject]@{ DisplayName = 'MSTeams'; PackageName = 'MSTeams_1.0.0.0_x64__8wekyb3d8bbwe' }
+            [pscustomobject]@{ DisplayName = 'Unnamed'; PackageName = 'not-a-package-name' }
+        }
+
+        @(Get-AtlasAppxProvisionedFamily) | Should -Be @('Microsoft.ScreenSketch_8wekyb3d8bbwe', 'MSTeams_8wekyb3d8bbwe')
+    }
+
+    It 'throws when what Windows provisions can''t be read' {
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith { throw 'DISM is busy' }
+
+        { Get-AtlasAppxProvisionedFamily } | Should -Throw 'DISM is busy'
+    }
+}
+
+Describe 'Get-AtlasAppxRemovalAccount' {
+    It 'returns <Expected> for <Case>' -TestCases @(
+        @{
+            Case = 'an install with a recorded user'; Expected = 'the recorded SID'
+            State = @{ IsInstallStateBacked = $true; IsOobe = $false; InteractiveUserSid = 'S-1-5-21-1000-1000-1000-1001' }
+            Sid = 'S-1-5-21-1000-1000-1000-1001'; Absence = $null
+        }
+        @{
+            Case = 'an install during OOBE'; Expected = 'no account'
+            State = @{ IsInstallStateBacked = $true; IsOobe = $true; InteractiveUserSid = 'S-1-5-21-1000-1000-1000-1001' }
+            Sid = $null; Absence = "During OOBE there's no installing user to check it against"
+        }
+        @{
+            Case = 'an install that recorded no user'; Expected = 'no account'
+            State = @{ IsInstallStateBacked = $true; IsOobe = $false; InteractiveUserSid = $null }
+            Sid = $null; Absence = 'The install recorded no installing user to check it against'
+        }
+    ) {
+        $context = [pscustomobject]$State
+        Mock Get-AtlasContext -ModuleName Atlas.Appx -MockWith { $context }.GetNewClosure()
+
+        $actual = InModuleScope Atlas.Appx { Get-AtlasAppxRemovalAccount }
+
+        $actual.Sid | Should -Be $Sid
+        $actual.Description | Should -Be 'the installing user'
+        $actual.Absence | Should -Be $Absence
+    }
+
+    It 'uses the account running a toggle outside an install' {
+        $context = [pscustomobject]@{ IsInstallStateBacked = $false; IsOobe = $false; InteractiveUserSid = $null }
+        Mock Get-AtlasContext -ModuleName Atlas.Appx -MockWith { $context }.GetNewClosure()
+
+        $actual = InModuleScope Atlas.Appx { Get-AtlasAppxRemovalAccount }
+
+        $actual.Sid | Should -Be ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value)
+        $actual.Description | Should -Be 'this account'
+    }
+
+    It 'rejects an install-state user SID that <Case>, as the cache cleanup does' -TestCases @(
+        @{ Case = 'is not a SID'; Value = 'not-a-sid'; Expected = '*AppX removal user SID is not a valid SID.' }
+        @{ Case = 'is SYSTEM'; Value = 'S-1-5-18'; Expected = '*AppX removal user SID is not a canonical user account SID.' }
+    ) {
+        $context = [pscustomobject]@{ IsInstallStateBacked = $true; IsOobe = $false; InteractiveUserSid = $Value }
+        Mock Get-AtlasContext -ModuleName Atlas.Appx -MockWith { $context }.GetNewClosure()
+
+        { InModuleScope Atlas.Appx { Get-AtlasAppxRemovalAccount } } |
+            Should -Throw -ExpectedMessage $Expected
+    }
+}
+
+Describe 'Get-AtlasAppxRegistrationKind' {
+    # The states Get-AppxPackage -AllUsers reports, with the suffix it adds to a
+    # registration whose removal Windows has accepted.
+    It 'classifies <State> as <Kind>' -TestCases @(
+        @{ State = 'Installed'; Kind = 'Installed' }
+        @{ State = 'Paused'; Kind = 'Installed' }
+        @{ State = ''; Kind = 'Installed' }
+        @{ State = 'Installed(pending removal)'; Kind = 'PendingRemoval' }
+        @{ State = 'Staged'; Kind = 'NotInstalled' }
+        @{ State = 'NotInstalled'; Kind = 'NotInstalled' }
+        @{ State = 'Staged(pending removal)'; Kind = 'NotInstalled' }
+        @{ State = 'NotInstalled(pending removal)'; Kind = 'NotInstalled' }
+    ) {
+        InModuleScope Atlas.Appx -Parameters @{ State = $State } {
+            param($State)
+            Get-AtlasAppxRegistrationKind -InstallState $State
+        } | Should -Be $Kind
+    }
+}
+
+Describe 'Get-AtlasAppxParentInstalledPackage' {
+    It 'keeps a Main package whose version no bundle of its family has, when there are several' {
+        InModuleScope Atlas.Appx {
+            $packages = @(
+                [pscustomobject]@{ Name = 'D.App'; PackageFamilyName = 'D.App_abc'; PackageFullName = 'D.App_1.0_neutral_~_abc'; Version = '1.0'; IsBundle = $true }
+                [pscustomobject]@{ Name = 'D.App'; PackageFamilyName = 'D.App_abc'; PackageFullName = 'D.App_1.0_x64__abc'; Version = '1.0'; IsBundle = $false }
+                [pscustomobject]@{ Name = 'D.App'; PackageFamilyName = 'D.App_abc'; PackageFullName = 'D.App_2.0_neutral_~_abc'; Version = '2.0'; IsBundle = $true }
+                [pscustomobject]@{ Name = 'D.App'; PackageFamilyName = 'D.App_abc'; PackageFullName = 'D.App_3.0_x64__abc'; Version = '3.0'; IsBundle = $false }
+            )
+
+            @(Get-AtlasAppxParentInstalledPackage -Package $packages).PackageFullName | Should -Be @(
+                'D.App_1.0_neutral_~_abc', 'D.App_2.0_neutral_~_abc', 'D.App_3.0_x64__abc'
+            )
+        }
+    }
+
+    It 'gives a Main package to its family''s only bundle, whatever their versions' {
+        # Calculator's 2021.x bundle holds an 11.x app.
+        InModuleScope Atlas.Appx {
+            $packages = @(
+                [pscustomobject]@{
+                    Name = 'Microsoft.WindowsCalculator'; PackageFamilyName = 'Microsoft.WindowsCalculator_8wekyb3d8bbwe'
+                    PackageFullName = 'Microsoft.WindowsCalculator_2021.2607.0.0_neutral_~_8wekyb3d8bbwe'; Version = '2021.2607.0.0'; IsBundle = $true
+                }
+                [pscustomobject]@{
+                    Name = 'Microsoft.WindowsCalculator'; PackageFamilyName = 'Microsoft.WindowsCalculator_8wekyb3d8bbwe'
+                    PackageFullName = 'Microsoft.WindowsCalculator_11.2607.0.0_x64__8wekyb3d8bbwe'; Version = '11.2607.0.0'; IsBundle = $false
+                }
+            )
+
+            @(Get-AtlasAppxParentInstalledPackage -Package $packages).PackageFullName |
+                Should -Be 'Microsoft.WindowsCalculator_2021.2607.0.0_neutral_~_8wekyb3d8bbwe'
+        }
+    }
 }
 
 Describe 'Invoke-AtlasAppxRemovalPlan' {
+    BeforeAll {
+        $script:installingSid = 'S-1-5-21-1000-1000-1000-1001'
+        $script:otherSid = 'S-1-5-21-1000-1000-1000-1000'
+
+        function New-TestRegistration {
+            param([string]$Sid, [string]$State = 'Installed', [string]$UserName = $Sid)
+            [pscustomobject]@{
+                UserSecurityId = [pscustomobject]@{ Sid = $Sid; Username = $UserName }
+                InstallState   = $State
+            }
+        }
+    }
+
     BeforeEach {
         Mock Write-AtlasLog -ModuleName Atlas.Appx
         Mock Test-AtlasOption -ModuleName Atlas.Appx -MockWith { $true }
+        Mock Start-Sleep -ModuleName Atlas.Appx
+        $account = [pscustomobject]@{ Sid = $script:installingSid; Description = 'the installing user'; Absence = $null }
+        Mock Get-AtlasAppxRemovalAccount -ModuleName Atlas.Appx -MockWith { $account }.GetNewClosure()
     }
 
     It 'removes installed registrations for all users before removing provisioning' {
@@ -730,6 +974,7 @@ Describe 'Invoke-AtlasAppxRemovalPlan' {
         $definition = [pscustomobject]@{ Name = 'Optional.App*'; Option = $null; IgnoreErrors = $true }
         $installed = [pscustomobject]@{
             Name = 'Optional.App'; PackageFamilyName = 'Optional.App_abc'; PackageFullName = 'Optional.App_1.0_x64__abc'
+            PackageUserInformation = @(New-TestRegistration -Sid $script:installingSid)
         }
         Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith { @($installed) }
         Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith { @() }
@@ -737,7 +982,7 @@ Describe 'Invoke-AtlasAppxRemovalPlan' {
 
         { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } | Should -Not -Throw
 
-        Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly
+        Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter { $AllUsers }
         Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
             $Level -ne 'Warning' -and $Level -ne 'Error' -and
             $Message -like "*'Optional.App_1.0_x64__abc'; deferring to final inventory: access denied"
@@ -756,7 +1001,10 @@ Describe 'Invoke-AtlasAppxRemovalPlan' {
             [pscustomobject]@{ Name = 'Required.Two*'; Option = $null; IgnoreErrors = $false }
         )
         $installed = @(
-            [pscustomobject]@{ Name = 'Required.One'; PackageFullName = 'Required.One_1.0_x64__abc' }
+            [pscustomobject]@{
+                Name = 'Required.One'; PackageFullName = 'Required.One_1.0_x64__abc'
+                PackageUserInformation = @(New-TestRegistration -Sid $script:installingSid)
+            }
         )
         $provisioned = @(
             [pscustomobject]@{ DisplayName = 'Required.Two'; PackageName = 'Required.Two_1.0_neutral__abc' }
@@ -766,11 +1014,24 @@ Describe 'Invoke-AtlasAppxRemovalPlan' {
         Mock Remove-AppxPackage -ModuleName Atlas.Appx -MockWith { throw "failed $Package" }
         Mock Remove-AppxProvisionedPackage -ModuleName Atlas.Appx -MockWith { throw "failed $PackageName" }
 
-        { Invoke-AtlasAppxRemovalPlan -Definition $definitions } |
-            Should -Throw -ExpectedMessage '*Required.One*Required.Two*'
+        $thrown = $null
+        try { Invoke-AtlasAppxRemovalPlan -Definition $definitions } catch { $thrown = $_.Exception.Message }
 
-        Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly
+        $thrown | Should -Be (
+            "AppX removal completed with 2 required failure(s): Required.One*: 'Required.One_1.0_x64__abc' is still " +
+            "installed for the installing user ($script:installingSid). | Required.Two*: Still provisioned for new " +
+            "accounts: 'Required.Two_1.0_neutral__abc'. An app still installed for you can be uninstalled in " +
+            'Settings > Apps before you try again.'
+        )
+        Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter { $AllUsers }
         Should -Invoke Remove-AppxProvisionedPackage -ModuleName Atlas.Appx -Times 1 -Exactly
+        # Atlas Manager names the apps from these lines.
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Error' -and $Message -like "AppX removal failed for 'Required.One*': *"
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Error' -and $Message -like "AppX removal failed for 'Required.Two*': *"
+        }
     }
 
     It 'accepts a provisioned-package error when final inventory confirms removal' {
@@ -793,17 +1054,388 @@ Describe 'Invoke-AtlasAppxRemovalPlan' {
         Should -Invoke Remove-AppxProvisionedPackage -ModuleName Atlas.Appx -Times 1 -Exactly
     }
 
-    It 'fails when a cmdlet reports success but a required package remains installed' {
+    It 'fails when a cmdlet reports success but a required package remains installed for the installing user' {
         $definition = [pscustomobject]@{ Name = 'Stubborn.App*'; Option = $null; IgnoreErrors = $false }
         $installed = [pscustomobject]@{
             Name = 'Stubborn.App'; PackageFamilyName = 'Stubborn.App_abc'; PackageFullName = 'Stubborn.App_1.0_x64__abc'
+            Status = 'Ok'; IsPartiallyStaged = $false; NonRemovable = $false; SignatureKind = 'Store'
+            PackageUserInformation = @(
+                New-TestRegistration -Sid $script:otherSid
+                New-TestRegistration -Sid $script:installingSid -UserName 'InstallingUser'
+            )
         }
         Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith { @($installed) }
         Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith { @() }
         Mock Remove-AppxPackage -ModuleName Atlas.Appx
 
         { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } |
-            Should -Throw -ExpectedMessage '*Stubborn.App*: 1 installed package(s) remain registered*'
+            Should -Throw -ExpectedMessage (
+                "AppX removal completed with 1 required failure(s): Stubborn.App*: 'Stubborn.App_1.0_x64__abc' " +
+                "is still installed for the installing user ($script:installingSid). An app still installed for " +
+                'you can be uninstalled in Settings > Apps before you try again.'
+            )
+
+        # One more removal for each account it is installed for, then a second look.
+        Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Package -eq 'Stubborn.App_1.0_x64__abc' -and $User -eq $script:installingSid
+        }
+        Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Package -eq 'Stubborn.App_1.0_x64__abc' -and $User -eq $script:otherSid
+        }
+        Should -Invoke Start-Sleep -ModuleName Atlas.Appx -Times 1 -Exactly
+        Should -Invoke Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -Times 3 -Exactly
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Level -ne 'Warning' -and $Level -ne 'Error' -and
+            $Message -eq (
+                "AppX package 'Stubborn.App_1.0_x64__abc' for 'Stubborn.App*' is still registered: Status=Ok, " +
+                'IsPartiallyStaged=False, NonRemovable=False, SignatureKind=Store; accounts: ' +
+                "$($script:otherSid): Installed; $($script:installingSid) (InstallingUser): Installed."
+            )
+        }
+    }
+
+    It 'warns and continues when a leftover is held only by other accounts, SYSTEM or deleted accounts' {
+        $definition = [pscustomobject]@{ Name = 'MSTeams*'; Option = $null; IgnoreErrors = $false }
+        $deletedSid = 'S-1-5-21-1000-1000-1000-1003'
+        $pendingSid = 'S-1-5-21-1000-1000-1000-1004'
+        $installed = [pscustomobject]@{
+            Name = 'MSTeams'; PackageFamilyName = 'MSTeams_8wekyb3d8bbwe'
+            PackageFullName = 'MSTeams_26260.1717.5229.7049_x64__8wekyb3d8bbwe'
+            PackageUserInformation = @(
+                New-TestRegistration -Sid $script:otherSid
+                New-TestRegistration -Sid 'S-1-5-18'
+                New-TestRegistration -Sid $deletedSid -UserName ''
+                New-TestRegistration -Sid ''
+                New-TestRegistration -Sid $pendingSid -State 'Installed(pending removal)'
+                New-TestRegistration -Sid $script:installingSid -State 'Staged'
+            )
+        }
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith { @($installed) }
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith { @() }
+        Mock Remove-AppxPackage -ModuleName Atlas.Appx -MockWith {
+            if ($User) { throw 'The user is not found.' }
+        }
+
+        { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } | Should -Not -Throw
+
+        Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $User -eq $script:otherSid
+        }
+        Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $User -eq 'S-1-5-18'
+        }
+        Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $User -eq 'S-1-5-21-1000-1000-1000-1003'
+        }
+        # Only installed registrations of a known account get the extra removal: not the
+        # staged one, the pending removal or the entry without a SID.
+        Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 4 -Exactly
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and $Message -eq (
+                "AppX package 'MSTeams_26260.1717.5229.7049_x64__8wekyb3d8bbwe' for 'MSTeams*' is still registered, " +
+                "but not installed for the installing user ($($script:otherSid): Installed; S-1-5-18: Installed; " +
+                "$($deletedSid): Installed; (unknown account): Installed; $($pendingSid): Installed(pending removal); " +
+                "$($script:installingSid): Staged), so Atlas continues."
+            )
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Level -ne 'Warning' -and
+            $Message -like "Removing AppX package 'MSTeams_26260.1717.5229.7049_x64__8wekyb3d8bbwe' for account '$($script:otherSid)' reported an error: The user is not found."
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 0 -Exactly -ParameterFilter { $Level -eq 'Error' }
+    }
+
+    It 'warns and continues when a leftover is staged with no account registration' {
+        $definition = [pscustomobject]@{ Name = 'Staged.App*'; Option = $null; IgnoreErrors = $false }
+        $installed = [pscustomobject]@{
+            Name = 'Staged.App'; PackageFamilyName = 'Staged.App_abc'; PackageFullName = 'Staged.App_1.0_x64__abc'
+            IsPartiallyStaged = $true
+        }
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith { @($installed) }
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith { @() }
+        Mock Remove-AppxPackage -ModuleName Atlas.Appx
+
+        { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } | Should -Not -Throw
+
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and
+            $Message -like "AppX package 'Staged.App_1.0_x64__abc'*not installed for the installing user (no account has it registered)*"
+        }
+    }
+
+    It 'fails when a required family stays provisioned, naming the package' {
+        $definition = [pscustomobject]@{ Name = 'Provisioned.App*'; Option = $null; IgnoreErrors = $false }
+        $provisioned = [pscustomobject]@{
+            DisplayName = 'Provisioned.App'; PackageName = 'Provisioned.App_1.0_neutral__abc'
+        }
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith { @() }
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith { @($provisioned) }
+        Mock Remove-AppxProvisionedPackage -ModuleName Atlas.Appx
+
+        { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } |
+            Should -Throw -ExpectedMessage (
+                "*Provisioned.App*: Still provisioned for new accounts: 'Provisioned.App_1.0_neutral__abc'.*"
+            )
+        Should -Invoke Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -Times 3 -Exactly
+    }
+
+    It 'without an installing user, fails on a provisioned leftover and only warns on the rest' {
+        Mock Get-AtlasAppxRemovalAccount -ModuleName Atlas.Appx -MockWith {
+            [pscustomobject]@{
+                Sid = $null; Description = 'the installing user'
+                Absence = "During OOBE there's no installing user to check it against"
+            }
+        }
+        $definitions = @(
+            [pscustomobject]@{ Name = 'Installed.App*'; Option = $null; IgnoreErrors = $false }
+            [pscustomobject]@{ Name = 'Provisioned.App*'; Option = $null; IgnoreErrors = $false }
+        )
+        $installed = [pscustomobject]@{
+            Name = 'Installed.App'; PackageFamilyName = 'Installed.App_abc'; PackageFullName = 'Installed.App_1.0_x64__abc'
+            PackageUserInformation = @(New-TestRegistration -Sid $script:installingSid)
+        }
+        $provisioned = [pscustomobject]@{
+            DisplayName = 'Provisioned.App'; PackageName = 'Provisioned.App_1.0_neutral__abc'
+        }
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith { @($installed) }
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith { @($provisioned) }
+        Mock Remove-AppxPackage -ModuleName Atlas.Appx
+        Mock Remove-AppxProvisionedPackage -ModuleName Atlas.Appx
+
+        $thrown = $null
+        try { Invoke-AtlasAppxRemovalPlan -Definition $definitions } catch { $thrown = $_.Exception.Message }
+
+        # Nobody can uninstall a provisioned package in Settings, so no such advice.
+        $thrown | Should -Be "AppX removal completed with 1 required failure(s): Provisioned.App*: Still provisioned for new accounts: 'Provisioned.App_1.0_neutral__abc'."
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and $Message -eq (
+                "AppX package 'Installed.App_1.0_x64__abc' for 'Installed.App*' is still registered " +
+                "($($script:installingSid): Installed). During OOBE there's no installing user to check it against, " +
+                'so Atlas continues.'
+            )
+        }
+    }
+
+    It 'warns and continues when the installing user''s registration is <Case>' -TestCases @(
+        @{
+            Case = 'pending removal'; State = 'Installed(pending removal)'
+            Expected = "but Windows finishes removing it for the installing user when the app closes or the account signs out (S-1-5-21-1000-1000-1000-1001: Installed(pending removal)), so Atlas continues."
+        }
+        @{
+            Case = 'staged and pending removal'; State = 'Staged(pending removal)'
+            Expected = 'but not installed for the installing user (S-1-5-21-1000-1000-1000-1001: Staged(pending removal)), so Atlas continues.'
+        }
+    ) {
+        $definition = [pscustomobject]@{ Name = 'MSTeams*'; Option = $null; IgnoreErrors = $false }
+        $installed = [pscustomobject]@{
+            Name = 'MSTeams'; PackageFamilyName = 'MSTeams_8wekyb3d8bbwe'
+            PackageFullName = 'MSTeams_26260.1717.5229.7049_x64__8wekyb3d8bbwe'
+            PackageUserInformation = @(New-TestRegistration -Sid $script:installingSid -State $State)
+        }
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith { @($installed) }.GetNewClosure()
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith { @() }
+        Mock Remove-AppxPackage -ModuleName Atlas.Appx
+
+        { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } | Should -Not -Throw
+
+        # Windows already accepted the removal, so removing it again changes nothing.
+        Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 0 -Exactly -ParameterFilter { $User }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and $Message -eq (
+                "AppX package 'MSTeams_26260.1717.5229.7049_x64__8wekyb3d8bbwe' for 'MSTeams*' is still registered, $Expected"
+            )
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 0 -Exactly -ParameterFilter { $Level -eq 'Error' }
+    }
+
+    It 'names the account running a toggle as this account' {
+        $account = [pscustomobject]@{ Sid = $script:installingSid; Description = 'this account'; Absence = $null }
+        Mock Get-AtlasAppxRemovalAccount -ModuleName Atlas.Appx -MockWith { $account }.GetNewClosure()
+        $definition = [pscustomobject]@{ Name = 'Microsoft.Copilot*'; Option = $null; IgnoreErrors = $false }
+        $installed = [pscustomobject]@{
+            Name = 'Microsoft.Copilot'; PackageFamilyName = 'Microsoft.Copilot_8wekyb3d8bbwe'
+            PackageFullName = 'Microsoft.Copilot_1.0_x64__8wekyb3d8bbwe'
+            PackageUserInformation = @(New-TestRegistration -Sid $script:installingSid)
+        }
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith { @($installed) }
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith { @() }
+        Mock Remove-AppxPackage -ModuleName Atlas.Appx
+
+        { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } |
+            Should -Throw -ExpectedMessage "*'Microsoft.Copilot_1.0_x64__8wekyb3d8bbwe' is still installed for this account ($script:installingSid).*"
+    }
+
+    It 'judges each bundle version by its own registrations when an account is on another version' {
+        $definition = [pscustomobject]@{ Name = 'D.App*'; Option = $null; IgnoreErrors = $false }
+        $installed = @(
+            [pscustomobject]@{
+                Name = 'D.App'; PackageFamilyName = 'D.App_abc'; PackageFullName = 'D.App_1.0_neutral_~_abc'; Version = '1.0'; IsBundle = $true
+            }
+            [pscustomobject]@{
+                Name = 'D.App'; PackageFamilyName = 'D.App_abc'; PackageFullName = 'D.App_1.0_x64__abc'; Version = '1.0'; IsBundle = $false
+                PackageUserInformation = @(New-TestRegistration -Sid 'S-1-5-18' -State 'Staged')
+            }
+            [pscustomobject]@{
+                Name = 'D.App'; PackageFamilyName = 'D.App_abc'; PackageFullName = 'D.App_2.0_neutral_~_abc'; Version = '2.0'; IsBundle = $true
+            }
+            [pscustomobject]@{
+                Name = 'D.App'; PackageFamilyName = 'D.App_abc'; PackageFullName = 'D.App_2.0_x64__abc'; Version = '2.0'; IsBundle = $false
+                PackageUserInformation = @(New-TestRegistration -Sid $script:installingSid)
+            }
+        )
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith { $installed }
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith { @() }
+        Mock Remove-AppxPackage -ModuleName Atlas.Appx
+
+        $thrown = $null
+        try { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } catch { $thrown = $_.Exception.Message }
+
+        $thrown | Should -BeLike (
+            "AppX removal completed with 1 required failure(s): D.App*: 'D.App_2.0_neutral_~_abc' is still " +
+            "installed for the installing user ($script:installingSid).*"
+        )
+        Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter { $User }
+        Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Package -eq 'D.App_2.0_neutral_~_abc' -and $User -eq $script:installingSid
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and $Message -eq (
+                "AppX package 'D.App_1.0_neutral_~_abc' for 'D.App*' is still registered, but not installed " +
+                'for the installing user (S-1-5-18: Staged), so Atlas continues.'
+            )
+        }
+    }
+
+    It 'fails when the second inventory cannot be read, still naming what the first found' {
+        $definition = [pscustomobject]@{ Name = 'Stubborn.App*'; Option = $null; IgnoreErrors = $false }
+        $installed = [pscustomobject]@{
+            Name = 'Stubborn.App'; PackageFamilyName = 'Stubborn.App_abc'; PackageFullName = 'Stubborn.App_1.0_x64__abc'
+            PackageUserInformation = @(New-TestRegistration -Sid $script:installingSid)
+        }
+        $script:testFailingInventoryCalls = 0
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith {
+            $script:testFailingInventoryCalls++
+            if ($script:testFailingInventoryCalls -le 2) { return @($installed) }
+            throw 'The service is busy'
+        }
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith { @() }
+        Mock Remove-AppxPackage -ModuleName Atlas.Appx
+
+        $thrown = $null
+        try { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } catch { $thrown = $_.Exception.Message }
+
+        $thrown | Should -BeLike (
+            'AppX removal completed with 2 required failure(s): Installed-package verification failed: The service is busy. | ' +
+            "Stubborn.App*: 'Stubborn.App_1.0_x64__abc' is still installed for the installing user*"
+        )
+    }
+
+    It 'accepts a removal when only the first look again failed to read the inventory' {
+        $definition = [pscustomobject]@{ Name = 'Slow.App*'; Option = $null; IgnoreErrors = $false }
+        $installed = [pscustomobject]@{
+            Name = 'Slow.App'; PackageFamilyName = 'Slow.App_abc'; PackageFullName = 'Slow.App_1.0_x64__abc'
+            PackageUserInformation = @(New-TestRegistration -Sid $script:installingSid)
+        }
+        $script:testTransientInventoryCalls = 0
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith {
+            $script:testTransientInventoryCalls++
+            if ($script:testTransientInventoryCalls -eq 1) { return @($installed) }
+            if ($script:testTransientInventoryCalls -eq 2) { throw 'The service is busy' }
+            return @()
+        }
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith { @() }
+        Mock Remove-AppxPackage -ModuleName Atlas.Appx
+
+        { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } | Should -Not -Throw
+
+        Should -Invoke Start-Sleep -ModuleName Atlas.Appx -Times 1 -Exactly
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and $Message -eq 'Installed-package verification failed: The service is busy. Atlas looks again shortly.'
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 0 -Exactly -ParameterFilter { $Level -eq 'Error' }
+    }
+
+    It 'counts a bundle and its Main child as one leftover' {
+        $definition = [pscustomobject]@{ Name = 'Microsoft.Windows.DevHome*'; Option = $null; IgnoreErrors = $false }
+        $bundle = [pscustomobject]@{
+            Name = 'Microsoft.Windows.DevHome'; PackageFamilyName = 'Microsoft.Windows.DevHome_8wekyb3d8bbwe'
+            PackageFullName = 'Microsoft.Windows.DevHome_2024.401.618.0_neutral_~_8wekyb3d8bbwe'; IsBundle = $true
+        }
+        $main = [pscustomobject]@{
+            Name = 'Microsoft.Windows.DevHome'; PackageFamilyName = 'Microsoft.Windows.DevHome_8wekyb3d8bbwe'
+            PackageFullName = 'Microsoft.Windows.DevHome_2024.401.618.0_x64__8wekyb3d8bbwe'; IsBundle = $false
+            PackageUserInformation = @(New-TestRegistration -Sid $script:installingSid)
+        }
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith { @($bundle, $main) }
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith { @() }
+        Mock Remove-AppxPackage -ModuleName Atlas.Appx
+
+        $thrown = $null
+        try { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } catch { $thrown = $_.Exception.Message }
+
+        # The child's registration decides for its bundle, and the message names the bundle.
+        $thrown | Should -BeLike (
+            "AppX removal completed with 1 required failure(s): Microsoft.Windows.DevHome*: " +
+            "'Microsoft.Windows.DevHome_2024.401.618.0_neutral_~_8wekyb3d8bbwe' is still installed for the installing user*"
+        )
+        Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Package -eq 'Microsoft.Windows.DevHome_2024.401.618.0_neutral_~_8wekyb3d8bbwe' -and $User -eq $script:installingSid
+        }
+        # Both packages are still described in the log.
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 2 -Exactly -ParameterFilter {
+            $Level -ne 'Warning' -and $Level -ne 'Error' -and $Message -like "AppX package 'Microsoft.Windows.DevHome_*' for '*' is still registered: *"
+        }
+    }
+
+    It 'accepts a removal that shows in the second inventory' {
+        $definition = [pscustomobject]@{ Name = 'Slow.App*'; Option = $null; IgnoreErrors = $false }
+        $installed = [pscustomobject]@{
+            Name = 'Slow.App'; PackageFamilyName = 'Slow.App_abc'; PackageFullName = 'Slow.App_1.0_x64__abc'
+            PackageUserInformation = @(New-TestRegistration -Sid $script:installingSid)
+        }
+        $script:testSlowInventoryCalls = 0
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith {
+            $script:testSlowInventoryCalls++
+            if ($script:testSlowInventoryCalls -le 2) { return @($installed) }
+            return @()
+        }
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith { @() }
+        Mock Remove-AppxPackage -ModuleName Atlas.Appx
+
+        { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } | Should -Not -Throw
+
+        Should -Invoke Start-Sleep -ModuleName Atlas.Appx -Times 1 -Exactly
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 0 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -or $Level -eq 'Error'
+        }
+    }
+
+    It 'does not wait or remove again when nothing is left' {
+        $definition = [pscustomobject]@{ Name = 'Gone.App*'; Option = $null; IgnoreErrors = $false }
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith { @() }
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith { @() }
+        Mock Remove-AppxPackage -ModuleName Atlas.Appx
+
+        Invoke-AtlasAppxRemovalPlan -Definition @($definition)
+
+        Should -Invoke Start-Sleep -ModuleName Atlas.Appx -Times 0 -Exactly
+        Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 0 -Exactly
+    }
+
+    It 'never removes a NonRemovable leftover again for each account' {
+        $definition = [pscustomobject]@{ Name = 'System.App*'; Option = $null; IgnoreErrors = $true }
+        $installed = [pscustomobject]@{
+            Name = 'System.App'; PackageFamilyName = 'System.App_abc'; PackageFullName = 'System.App_1.0_neutral__abc'
+            NonRemovable = $true
+            PackageUserInformation = @(New-TestRegistration -Sid $script:installingSid)
+        }
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith { @($installed) }
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith { @() }
+        Mock Remove-AppxPackage -ModuleName Atlas.Appx
+
+        { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } | Should -Not -Throw
+
+        Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 0 -Exactly -ParameterFilter { $User }
     }
 }
 
