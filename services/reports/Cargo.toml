@@ -14,7 +14,7 @@ serde_json = "1"
 rusqlite = { version = "0.39", features = ["bundled"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 ring = "0.17"
-zip = { version = "8.6", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+zip = { version = "9.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 futures-util = "0.3"
 fs2 = "0.4"
 tower = { version = "0.5", features = ["util"] }
