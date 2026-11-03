@@ -27,6 +27,13 @@ Idle and Sleep choices to the restored plan (see [How it works](#how-it-works)).
 never runs `powercfg /restoredefaultschemes`, which would delete the machine's current
 plans and their settings.
 
+Upgrades and same-version reinstalls preserve an active Atlas plan even when an old
+toggle record incorrectly says Enable. The installer repairs that record before
+replay, and the Windows transition snapshot carries the corrected Disable choice.
+Check Atlas Health reads the actual active scheme for both states. For Disable it
+also verifies the four AC settings below, reporting missing or unreadable settings
+as drift rather than treating the recorded toggle alone as evidence of success.
+
 ## AC settings
 
 The Atlas plan ("Atlas Power Scheme", `11111111-1111-1111-1111-111111111111`) changes

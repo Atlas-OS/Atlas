@@ -1,0 +1,10 @@
+[
+  { "name": "active Atlas overrides stale Enable", "active": "11111111-1111-1111-1111-111111111111", "record": 1, "expected": 0 },
+  { "name": "active Atlas supplies a missing record", "active": "11111111-1111-1111-1111-111111111111", "record": null, "expected": 0 },
+  { "name": "active Atlas keeps Disable", "active": "11111111-1111-1111-1111-111111111111", "record": 0, "expected": 0 },
+  { "name": "Balanced keeps an explicit Enable", "active": "381b4222-f694-41f0-9685-ff5bb260df2e", "record": 1, "expected": 1 },
+  { "name": "Balanced does not erase a recorded Atlas choice", "active": "381b4222-f694-41f0-9685-ff5bb260df2e", "record": 0, "expected": 0 },
+  { "name": "custom plan keeps its record", "active": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", "record": 1, "expected": 1 },
+  { "name": "unreadable plan keeps its record", "active": null, "record": 1, "expected": 1 },
+  { "name": "Balanced does not invent a missing choice", "active": "381b4222-f694-41f0-9685-ff5bb260df2e", "record": null, "expected": null }
+]
