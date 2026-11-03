@@ -74,7 +74,7 @@ jobs:
 
       - name: Cache Cargo registry and build output
         # gh api repos/Swatinem/rust-cache/commits/v2 --jq '.sha'
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           workspaces: app
           cache-workspace-crates: true
