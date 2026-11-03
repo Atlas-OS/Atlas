@@ -16,13 +16,18 @@
          any unfinished install transaction and the last completed one, with their
          completed steps.
       3. The toggle state registry store.
-      4. Drift, from AtlasModules\Scripts\Entry\Test-AtlasHealth.ps1.
+      4. Drift, from AtlasModules\Scripts\Entry\Test-AtlasHealth.ps1, stopped after
+         25 seconds so the sections after it still have time.
       5. Spot checks: Edge, Defender, Atlas CBS packages, Atlas folders, appearance.
       6. Services and drivers, with their startup types.
-      7. Installed applications and AppX packages.
+      7. Installed applications and AppX packages, including every package Atlas
+         removes that any account still has: with each account's install state when
+         elevated, otherwise with the accounts the AppX store's registry lists.
       8. Scheduled tasks.
       9. Startup entries and pending-reboot state.
-     10. Event log errors and warnings since the install (the newest 5,000 per log).
+     10. Event log errors and warnings since the install (the newest 5,000 per log);
+         for AppX deployment, errors, then warnings and information over the
+         install, with the events that name a package Atlas removes.
      11. The tail of the Atlas install logs and this account's user-setup transcript.
      12. Windows version transition: what Atlas Manager changed to move Windows to
          another release, whether Windows rebuilt itself during the move, Windows
@@ -85,6 +90,9 @@ $script:EventListCount = $EventCount
 # Newest events read per log. Limits the time the event section takes on a machine
 # with a long history since the install.
 $script:EventReadLimit = 5000
+# The health check can take longer than Atlas Manager's whole collection deadline on a
+# slow machine, which used to lose every section after it.
+$script:HealthCheckSeconds = 25
 $script:Summary = New-Object System.Collections.Generic.List[string]
 $script:PartialReport = $PartialPath
 $script:Utf8 = New-Object System.Text.UTF8Encoding($false)
@@ -220,6 +228,262 @@ function Get-InstallTransactionLine {
     }
 }
 
+function Get-EventWindow {
+    <#
+    .SYNOPSIS
+        When event log queries begin, and why: the start of an unfinished install, half
+        an hour before the recorded install, or this boot. End is when the install's
+        own AppX activity is over, or $null while it may still be going on.
+    #>
+    $activePath = Join-Path -Path $atlasState -ChildPath 'Install\active.json'
+    if (Test-Path -LiteralPath $activePath -PathType Leaf) {
+        # The install state is replaced in place, which keeps the creation time of its
+        # first write: when this install began.
+        return [pscustomobject]@{
+            Start = (Get-Item -LiteralPath $activePath).CreationTime
+            End   = $null
+            Basis = 'the start of the unfinished install'
+        }
+    }
+    if ($script:InstalledAt) {
+        # Windows finishes some removals at the restart and sign-in after the install.
+        return [pscustomobject]@{
+            Start = $script:InstalledAt.AddMinutes(-30)
+            End   = $script:InstalledAt.AddHours(1)
+            Basis = 'half an hour before the install finished'
+        }
+    }
+    return [pscustomobject]@{
+        Start = (Get-CimInstance -ClassName Win32_OperatingSystem).LastBootUpTime
+        End   = $null
+        Basis = 'this boot; no install time is recorded'
+    }
+}
+
+function Get-AppxRemovalPattern {
+    <#
+    .SYNOPSIS
+        The package-family patterns the installed Atlas removes, each with the option
+        that gates it and whether Atlas only warns when it stays, read from its AppX
+        module's source without running it. Empty when Atlas isn't installed.
+    #>
+    param([Parameter(Mandatory = $true)][string]$ModulesPath)
+
+    $domain = Join-Path -Path $ModulesPath -ChildPath 'Scripts\Modules\Atlas.Appx\Domain'
+    $patterns = New-Object System.Collections.Generic.List[object]
+    $seen = New-Object System.Collections.Generic.HashSet[string]([StringComparer]::OrdinalIgnoreCase)
+    foreach ($file in 'Removal.ps1', 'PhoneLink.ps1') {
+        $path = Join-Path -Path $domain -ChildPath $file
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { continue }
+        $ast = [Management.Automation.Language.Parser]::ParseFile($path, [ref]$null, [ref]$null)
+        # Each removal definition is a hashtable literal with Name, Option and
+        # IgnoreErrors keys.
+        $tables = $ast.FindAll({ param($node) $node -is [Management.Automation.Language.HashtableAst] }, $true)
+        foreach ($table in $tables) {
+            $values = @{}
+            foreach ($pair in $table.KeyValuePairs) {
+                $expression = if ($pair.Item2 -is [Management.Automation.Language.PipelineAst]) { $pair.Item2.GetPureExpression() } else { $null }
+                $values[$pair.Item1.Extent.Text.Trim("'", '"')] = $expression
+            }
+            if (-not $values.ContainsKey('IgnoreErrors') -or
+                $values['Name'] -isnot [Management.Automation.Language.StringConstantExpressionAst] -or
+                -not $seen.Add($values['Name'].Value)) {
+                continue
+            }
+            $option = $values['Option']
+            $ignoreErrors = $values['IgnoreErrors']
+            $patterns.Add([pscustomobject]@{
+                    Pattern      = $values['Name'].Value
+                    Option       = if ($option -is [Management.Automation.Language.StringConstantExpressionAst]) { $option.Value } else { $null }
+                    # The AppX phase only warns when Phone Link stays.
+                    IgnoreErrors = $file -eq 'PhoneLink.ps1' -or
+                    ($ignoreErrors -is [Management.Automation.Language.VariableExpressionAst] -and
+                        $ignoreErrors.VariablePath.UserPath -eq 'true')
+                })
+        }
+    }
+    return $patterns.ToArray()
+}
+
+function Get-RecordedInstallOption {
+    <#
+    .SYNOPSIS
+        The options chosen for an unfinished install, otherwise for the last one, and
+        the file they came from; $null when neither records any.
+    #>
+    foreach ($path in @((Join-Path -Path $atlasState -ChildPath 'Install\active.json'), (Join-Path -Path $atlasState -ChildPath 'state.json'))) {
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { continue }
+        try {
+            $document = [IO.File]::ReadAllText($path) | ConvertFrom-Json
+        }
+        catch { continue }
+        if ($document -is [Management.Automation.PSCustomObject] -and $null -ne $document.PSObject.Properties['options']) {
+            return [pscustomobject]@{ Options = @($document.options | ForEach-Object { [string]$_ }); Source = [IO.Path]::GetFileName($path) }
+        }
+    }
+    return $null
+}
+
+function Test-AppxPatternMatch {
+    <#
+    .SYNOPSIS
+        Whether a package's name, family name or full name matches a removal pattern,
+        as the AppX module matches them. Exact patterns name a family, Name_PublisherId.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][AllowNull()][AllowEmptyString()][AllowEmptyCollection()][string[]]$Identity,
+        [Parameter(Mandatory = $true)][AllowEmptyCollection()][string[]]$Pattern
+    )
+
+    $candidates = New-Object System.Collections.Generic.List[string]
+    foreach ($name in @($Identity | Where-Object { $_ })) {
+        $candidates.Add($name)
+        # A full or provisioned name is Name_Version_Architecture_ResourceId_PublisherId.
+        $segments = @($name -split '_')
+        $candidates.Add($segments[0])
+        if ($segments.Count -ge 5) { $candidates.Add(('{0}_{1}' -f $segments[0], $segments[-1])) }
+    }
+    foreach ($candidate in $candidates) {
+        foreach ($item in $Pattern) {
+            if ($candidate -like $item) { return $true }
+        }
+    }
+    return $false
+}
+
+function Get-AppxAllUserStorePackage {
+    <#
+    .SYNOPSIS
+        Each package matching a removal pattern in the AppX store's registry, with the
+        accounts it is listed for. Any account can read it, unlike Get-AppxPackage
+        -AllUsers, though it has no install states. Present is whether an account or
+        new accounts still get it, with its files on disk.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][AllowEmptyCollection()][string[]]$Pattern,
+        # Overridable for tests.
+        [Microsoft.Win32.RegistryKey]$Hive = [Microsoft.Win32.Registry]::LocalMachine,
+        [string]$Store = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore'
+    )
+
+    $root = $Hive.OpenSubKey($Store, $false)
+    if ($null -eq $root) {
+        throw "The AppX store is missing: $($Hive.Name)\$Store"
+    }
+    $found = [ordered]@{}
+    try {
+        # An account's key lists the packages registered to it, and Applications the
+        # provisioned ones; EndOfLife and Deleted\EndOfLife list, per account, removals
+        # Windows hasn't finished, and Staged lists staged packages.
+        $places = New-Object System.Collections.Generic.List[object]
+        foreach ($name in @($root.GetSubKeyNames() | Where-Object { $_ -like 'S-1-*' })) {
+            $places.Add([pscustomobject]@{ Key = $name; Text = "listed for $name"; Counts = $true })
+        }
+        foreach ($endOfLife in 'EndOfLife', 'Deleted\EndOfLife') {
+            $key = $root.OpenSubKey($endOfLife, $false)
+            if ($null -eq $key) { continue }
+            try {
+                foreach ($name in $key.GetSubKeyNames()) {
+                    $places.Add([pscustomobject]@{ Key = "$endOfLife\$name"; Text = "removal pending for $name ($endOfLife)"; Counts = $false })
+                }
+            }
+            finally { $key.Dispose() }
+        }
+        $places.Add([pscustomobject]@{ Key = 'Staged'; Text = 'staged'; Counts = $false })
+        $places.Add([pscustomobject]@{ Key = 'Applications'; Text = 'provisioned for new accounts'; Counts = $true })
+        foreach ($place in $places) {
+            $key = $root.OpenSubKey($place.Key, $false)
+            if ($null -eq $key) { continue }
+            try {
+                foreach ($package in @($key.GetSubKeyNames() | Sort-Object)) {
+                    if (-not (Test-AppxPatternMatch -Identity $package -Pattern $Pattern)) { continue }
+                    # Windows leaves entries behind for packages long gone, so an entry
+                    # counts only while the manifest it points to is on disk.
+                    $path = $null
+                    $entry = $key.OpenSubKey($package, $false)
+                    if ($null -ne $entry) {
+                        try { $path = [string]$entry.GetValue('Path') }
+                        finally { $entry.Dispose() }
+                    }
+                    $onDisk = $null
+                    if ($path) {
+                        try { $onDisk = [IO.File]::Exists($path) -or [IO.Directory]::Exists($path) }
+                        catch { $onDisk = $null }
+                    }
+                    $note = if ($onDisk -eq $true) { '' } elseif ($onDisk -eq $false) { ' (stale: its files are gone)' } else { ' (no path recorded)' }
+                    if (-not $found.Contains($package)) {
+                        $found[$package] = [pscustomobject]@{ Places = New-Object System.Collections.Generic.List[string]; Present = $false }
+                    }
+                    $found[$package].Places.Add("$($place.Text)$note")
+                    if ($place.Counts -and $onDisk -eq $true) { $found[$package].Present = $true }
+                }
+            }
+            finally { $key.Dispose() }
+        }
+    }
+    finally { $root.Dispose() }
+    foreach ($package in $found.Keys) {
+        [pscustomobject]@{ Package = $package; Places = $found[$package].Places.ToArray(); Present = $found[$package].Present }
+    }
+}
+
+function Get-AtlasServicingPackageLine {
+    <#
+    .SYNOPSIS
+        The Atlas servicing packages, read from the servicing registry, which any account
+        can read, unlike DISM.
+    #>
+    param(
+        # Overridable for tests.
+        [Microsoft.Win32.RegistryKey]$Hive = [Microsoft.Win32.Registry]::LocalMachine,
+        [string]$Packages = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\Packages'
+    )
+
+    $stateNames = @{
+        0 = 'Absent'; 5 = 'Uninstall Pending'; 16 = 'Resolving'; 32 = 'Resolved'; 48 = 'Staging'; 64 = 'Staged'
+        80 = 'Superseded'; 96 = 'Install Pending'; 101 = 'Partially Installed'; 112 = 'Installed'; 128 = 'Permanent'
+    }
+    $root = $Hive.OpenSubKey($Packages, $false)
+    if ($null -eq $root) {
+        return "(the servicing package store is missing: $($Hive.Name)\$Packages)"
+    }
+    try {
+        $names = @($root.GetSubKeyNames() | Where-Object { $_ -like 'Z-Atlas-*' } | Sort-Object)
+        if ($names.Count -eq 0) {
+            return 'none installed'
+        }
+        foreach ($name in $names) {
+            $key = $root.OpenSubKey($name, $false)
+            if ($null -eq $key) {
+                "$name [unreadable]"
+                continue
+            }
+            try {
+                $state = $key.GetValue('CurrentState')
+                $stateText = if ($null -eq $state) { 'no CurrentState' }
+                elseif ($stateNames.ContainsKey([int]$state)) { "$($stateNames[[int]$state]), $state" }
+                else { "state $state" }
+                # A FILETIME split into two DWORDs, which the registry returns signed.
+                $high = $key.GetValue('InstallTimeHigh')
+                $low = $key.GetValue('InstallTimeLow')
+                $installedAt = '(unknown)'
+                if ($null -ne $high -and $null -ne $low) {
+                    try {
+                        $fileTime = (([long]$high -band 0xFFFFFFFFL) -shl 32) -bor ([long]$low -band 0xFFFFFFFFL)
+                        $installedAt = [DateTime]::FromFileTimeUtc($fileTime).ToString('u')
+                    }
+                    catch { $installedAt = "(unreadable: $high/$low)" }
+                }
+                "$name [$stateText]"
+                "  installed $installedAt by $($key.GetValue('InstallUser')) through $($key.GetValue('InstallClient'))"
+                "  from $($key.GetValue('InstallLocation'))"
+            }
+            finally { $key.Dispose() }
+        }
+    }
+    finally { $root.Dispose() }
+}
+
 # Event log queries start at the install time; without it, they start at this boot.
 $script:InstalledAt = $null
 $statePath = Join-Path -Path $atlasState -ChildPath 'state.json'
@@ -353,18 +617,49 @@ Add-Section -Title '4. Health check: every recorded toggle and applicable tweak,
     }
 
     $powerShell = Join-Path -Path ([Environment]::SystemDirectory) -ChildPath 'WindowsPowerShell\v1.0\powershell.exe'
-    # Windows PowerShell turns redirected native stderr into error records, which the
-    # report's Stop preference would make fatal. The health check writes to stderr
-    # exactly when it cannot run, so keep that as output and let the exit code decide.
-    $previousErrorActionPreference = $ErrorActionPreference
+    # A process rather than a native call, so the check can be stopped at its time
+    # limit. It shares this console, so its output uses this console's encoding. The
+    # check writes to stderr exactly when it cannot run, so that is kept as output and
+    # the exit code decides.
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = $powerShell
+    $startInfo.Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$healthScript`""
+    $startInfo.UseShellExecute = $false
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $startInfo.StandardOutputEncoding = [Console]::OutputEncoding
+    $startInfo.StandardErrorEncoding = [Console]::OutputEncoding
+    $process = [Diagnostics.Process]::Start($startInfo)
     try {
-        $ErrorActionPreference = 'Continue'
-        $output = & $powerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $healthScript 2>&1 |
-            ForEach-Object { "$_" }
-        $exitCode = $LASTEXITCODE
+        # Both streams are read while waiting, so a full pipe can't stall the check.
+        $standardOutput = $process.StandardOutput.ReadToEndAsync()
+        $standardError = $process.StandardError.ReadToEndAsync()
+        $finished = $process.WaitForExit($script:HealthCheckSeconds * 1000)
+        if (-not $finished) {
+            # Kill throws when the check ends on its own between the wait and the stop.
+            try { $process.Kill() } catch [InvalidOperationException] { $finished = $true }
+            [void]$process.WaitForExit(5000)
+        }
+        $output = @()
+        foreach ($stream in @($standardOutput, $standardError)) {
+            # A process the check started could keep a pipe open after it is stopped.
+            if ($stream.Wait(2000)) {
+                $text = $stream.Result.TrimEnd("`r", "`n")
+                if ($text) { $output += @($text -split "`r?`n") }
+            }
+        }
+        if (-not $finished) {
+            Add-Summary "Health check: stopped after $script:HealthCheckSeconds seconds without a result, so drift was not verified."
+            return @($output) + @(
+                ''
+                "The health check didn't finish within $script:HealthCheckSeconds seconds, so it was stopped and drift was not verified."
+                'To see it, run AtlasModules\Scripts\Entry\Test-AtlasHealth.ps1 from an elevated Windows PowerShell prompt.'
+            )
+        }
+        $exitCode = $process.ExitCode
     }
     finally {
-        $ErrorActionPreference = $previousErrorActionPreference
+        $process.Dispose()
     }
     $meaning = switch ($exitCode) {
         0 { 'no drift' }
@@ -436,16 +731,10 @@ Add-Section -Title '5. Spot checks (imperative work the drift check cannot verif
     $lines += ''
     $lines += '-- Atlas CBS packages --'
     try {
-        $packages = @(Get-WindowsPackage -Online -ErrorAction Stop | Where-Object { $_.PackageName -like '*Atlas*' })
-        if ($packages.Count -eq 0) {
-            $lines += 'none installed'
-        }
-        foreach ($package in $packages) {
-            $lines += "$($package.PackageName) [$($package.PackageState)]"
-        }
+        $lines += @(Get-AtlasServicingPackageLine)
     }
     catch {
-        $lines += "CBS package query failed: $($_.Exception.Message)"
+        $lines += "CBS package read failed: $($_.Exception.Message)"
     }
 
     $lines += ''
@@ -576,6 +865,7 @@ Add-Section -Title '7. Installed applications and AppX packages' -Collector {
     }
 
     $lines += ''
+    $provisioned = $null
     try {
         $provisioned = @(Get-AppxProvisionedPackage -Online -ErrorAction Stop | Sort-Object -Property DisplayName)
         $lines += "-- Provisioned AppX packages: $($provisioned.Count) --"
@@ -585,6 +875,95 @@ Add-Section -Title '7. Installed applications and AppX packages' -Collector {
     }
     catch {
         $lines += "Provisioned AppX query failed (needs elevation): $($_.Exception.Message)"
+    }
+
+    # Every package on the installed Atlas's removal list that any account still has,
+    # with each account's install state: what decides whether a removal failed.
+    $lines += ''
+    $definitions = @(Get-AppxRemovalPattern -ModulesPath $atlasModules)
+    if ($definitions.Count -eq 0) {
+        $lines += "-- AppX packages Atlas removes: no removal list under '$atlasModules' --"
+        return $lines
+    }
+    # A family gated by an option that wasn't chosen was kept on purpose.
+    $recorded = Get-RecordedInstallOption
+    $chosen = if ($recorded) { @($recorded.Options) } else { @() }
+    $applied = @($definitions | Where-Object { -not $_.Option -or $chosen -contains $_.Option })
+    $notChosen = @($definitions | Where-Object { $_.Option -and $chosen -notcontains $_.Option })
+    $patterns = @($applied | ForEach-Object { $_.Pattern })
+    # Atlas only warns when one of the others stays, so they don't count as leftovers
+    # in the summary.
+    $required = @($applied | Where-Object { -not $_.IgnoreErrors } | ForEach-Object { $_.Pattern })
+    $lines += "-- AppX packages Atlas removes, still registered for any account ($($patterns.Count) patterns) --"
+    if ($notChosen.Count -gt 0) {
+        $from = if ($recorded) { "in $($recorded.Source)" } else { '(no install options are recorded)' }
+        $lines += "Not checked, as their option wasn't chosen $from`: $(($notChosen | ForEach-Object { "$($_.Pattern) ($($_.Option))" }) -join ', ')"
+    }
+    $registrationsKnown = $true
+    try {
+        $registered = @(Get-AppxPackage -AllUsers -PackageTypeFilter Bundle, Main -ErrorAction Stop)
+    }
+    catch {
+        $lines += "All-users AppX query failed (needs elevation), so this lists only this account's packages, without their accounts: $(($_.Exception.Message -replace '\s+', ' ').Trim())"
+        $registrationsKnown = $false
+        $registered = @(Get-AppxPackage -PackageTypeFilter Bundle, Main -ErrorAction SilentlyContinue)
+    }
+    $leftovers = @($registered | Where-Object {
+            Test-AppxPatternMatch -Identity @($_.Name, $_.PackageFamilyName) -Pattern $patterns
+        } | Sort-Object -Property PackageFullName)
+    $stillProvisioned = @()
+    if ($null -ne $provisioned) {
+        $stillProvisioned = @($provisioned | Where-Object {
+                Test-AppxPatternMatch -Identity @($_.DisplayName, $_.PackageName) -Pattern $patterns
+            })
+    }
+    if ($leftovers.Count -eq 0 -and $stillProvisioned.Count -eq 0) {
+        $lines += 'none'
+    }
+    $warnOnly = ' (Atlas only warns when this one stays)'
+    foreach ($package in $leftovers) {
+        $isRequired = Test-AppxPatternMatch -Identity @($package.Name, $package.PackageFamilyName) -Pattern $required
+        $lines += "Registered: $($package.PackageFullName)$(if (-not $isRequired) { $warnOnly })"
+        $lines += "  status=$($package.Status); bundle=$($package.IsBundle); partially staged=$($package.IsPartiallyStaged); non-removable=$($package.NonRemovable); signature=$($package.SignatureKind)"
+        if (-not $registrationsKnown) { continue }
+        $registrations = @($package.PackageUserInformation)
+        if ($registrations.Count -eq 0) {
+            $lines += '  User registration: none'
+        }
+        foreach ($registration in $registrations) {
+            $lines += "  User registration: $($registration.UserSecurityId.Sid) [$($registration.UserSecurityId.Username)]: $($registration.InstallState)"
+        }
+    }
+    foreach ($package in $stillProvisioned) {
+        $isRequired = Test-AppxPatternMatch -Identity @($package.DisplayName, $package.PackageName) -Pattern $required
+        $lines += "Provisioned: $($package.PackageName)$(if (-not $isRequired) { $warnOnly })"
+    }
+    $requiredRegistered = @($leftovers | Where-Object { Test-AppxPatternMatch -Identity @($_.Name, $_.PackageFamilyName) -Pattern $required }).Count
+    $requiredProvisioned = @($stillProvisioned | Where-Object { Test-AppxPatternMatch -Identity @($_.DisplayName, $_.PackageName) -Pattern $required }).Count
+
+    # Without elevation, the registry still shows which accounts have each package,
+    # including the other accounts and removals Windows hasn't finished.
+    $requiredStored = 0
+    if (-not $registrationsKnown -or $null -eq $provisioned) {
+        $lines += ''
+        $lines += "-- The same packages in the AppX store's registry, for every account (no install states without elevation) --"
+        try {
+            $stored = @(Get-AppxAllUserStorePackage -Pattern $patterns)
+            if ($stored.Count -eq 0) { $lines += 'none' }
+            foreach ($entry in $stored) {
+                $isRequired = Test-AppxPatternMatch -Identity $entry.Package -Pattern $required
+                $lines += "$($entry.Package)$(if (-not $isRequired) { $warnOnly }): $($entry.Places -join '; ')"
+            }
+            $requiredStored = @($stored | Where-Object { $_.Present -and (Test-AppxPatternMatch -Identity $_.Package -Pattern $required) }).Count
+            if ($requiredStored -gt 0) {
+                Add-Summary "AppX packages Atlas removes: $requiredStored still listed, with their files, in the AppX store's registry; section 7 lists the accounts each is listed for."
+            }
+        }
+        catch { $lines += "AppX store read failed: $($_.Exception.Message)" }
+    }
+    # The registry's list is the fuller one when it was read.
+    if ($requiredStored -eq 0 -and $requiredRegistered + $requiredProvisioned -gt 0) {
+        Add-Summary "AppX packages Atlas removes: $requiredRegistered still registered and $requiredProvisioned still provisioned; section 7 lists each with its accounts."
     }
     $lines
 }
@@ -646,21 +1025,20 @@ Add-Section -Title '9. Startup entries and pending reboot' -Collector {
 }
 
 Add-Section -Title '10. Event log errors and warnings since the install' -Collector {
-    $since = if ($script:InstalledAt) {
-        $script:InstalledAt.AddMinutes(-30)
-    }
-    else {
-        (Get-CimInstance -ClassName Win32_OperatingSystem).LastBootUpTime
-    }
+    $window = Get-EventWindow
+    $since = $window.Start
     $lines = @()
-    $lines += "Window: since $since (critical, error and warning; errors only for AppX deployment)"
+    $lines += "Window: since $since, $($window.Basis) (critical, error and warning; errors only for AppX deployment, with its warnings and information over the install)"
+    $appxLog = 'Microsoft-Windows-AppXDeploymentServer/Operational'
+    $appxErrors = @()
 
     # A failed Store app update reports only 0x80073CF9 (the install failed); the AppX
-    # deployment log says why. Its warnings are routine, so only errors are read.
+    # deployment log says why. Its warnings are routine, so only its errors are read
+    # over the whole window.
     foreach ($source in @(
-            @{ LogName = 'System'; Level = 1, 2, 3 }
-            @{ LogName = 'Application'; Level = 1, 2, 3 }
-            @{ LogName = 'Microsoft-Windows-AppXDeploymentServer/Operational'; Level = 1, 2 }
+            @{ LogName = 'System'; Level = 1, 2, 3; Kinds = 'errors and warnings' }
+            @{ LogName = 'Application'; Level = 1, 2, 3; Kinds = 'errors and warnings' }
+            @{ LogName = $appxLog; Level = 1, 2; Kinds = 'errors' }
         )) {
         $logName = $source.LogName
         $lines += ''
@@ -687,7 +1065,7 @@ Add-Section -Title '10. Event log errors and warnings since the install' -Collec
         }
         $errorCount = @($events | Where-Object { $_.Level -le 2 }).Count
         if ($capped) {
-            Add-Summary "$logName log: $errorCount error or critical event(s) among the newest $script:EventReadLimit errors and warnings, back to $oldestRead; older events since $since were not read."
+            Add-Summary "$logName log: $errorCount error or critical event(s) among the newest $script:EventReadLimit $($source.Kinds), back to $oldestRead; older events since $since were not read."
         }
         elseif ($errorCount -gt 0) {
             Add-Summary "$logName log: $errorCount error or critical event(s) in the collection window beginning $since."
@@ -714,7 +1092,62 @@ Add-Section -Title '10. Event log errors and warnings since the install' -Collec
             $lines += ('    {0:yyyy-MM-dd HH:mm:ss} {1,-9} x{2,-4} {3}/{4}: {5}' -f `
                     $entry.TimeCreated, $entry.LevelDisplayName, $item.Count, $entry.ProviderName, $entry.Id, $message)
         }
+
+        if ($logName -eq $appxLog) { $appxErrors = $events }
     }
+
+    # A removal that leaves a package behind logs no error, so the AppX deployment
+    # log's warnings and information are read too, over the install only: they are
+    # many, and later ones would push the install's out of the read limit.
+    $lines += ''
+    $until = if ($window.End) { " until $($window.End)" } else { '' }
+    $lines += "-- $appxLog, warnings and information over the install$until --"
+    $details = @()
+    try {
+        $filter = @{ LogName = $appxLog; Level = 3, 4; StartTime = $since }
+        if ($window.End) { $filter.EndTime = $window.End }
+        $details = @(Get-WinEvent -FilterHashtable $filter -MaxEvents $script:EventReadLimit -ErrorAction Stop)
+        $lines += "  Total: $($details.Count)"
+        if ($details.Count -ge $script:EventReadLimit) {
+            $lines += "  (only the newest $script:EventReadLimit were read, back to $($details[-1].TimeCreated))"
+            Add-Summary "$appxLog log: only the newest $script:EventReadLimit warnings and information over the install were read, back to $($details[-1].TimeCreated)."
+        }
+    }
+    catch {
+        $lines += "  (no matching events, or the log could not be read: $($_.Exception.Message))"
+    }
+
+    # Grouping hides which package each deployment event was about, so the events
+    # naming a package Atlas removes are listed one by one. They are matched on the
+    # event's data, where Windows records the package's full name as it is.
+    try {
+        $recorded = Get-RecordedInstallOption
+        $chosen = if ($recorded) { @($recorded.Options) } else { @() }
+        $names = @(Get-AppxRemovalPattern -ModulesPath $atlasModules |
+                Where-Object { -not $_.Option -or $chosen -contains $_.Option } |
+                ForEach-Object { ($_.Pattern -split '[_*]')[0] } |
+                Where-Object { $_ } | Select-Object -Unique)
+        if ($names.Count -gt 0) {
+            $named = @(@($appxErrors) + @($details) | Where-Object {
+                    $dataProperty = $_.PSObject.Properties['Properties']
+                    $data = if ($null -ne $dataProperty -and $null -ne $dataProperty.Value) {
+                        (@($dataProperty.Value) | ForEach-Object { [string]$_.Value }) -join ' '
+                    }
+                    else { [string]$_.Message }
+                    @($names | Where-Object { $data.IndexOf($_, [StringComparison]::OrdinalIgnoreCase) -ge 0 }).Count -gt 0
+                } | Sort-Object -Property TimeCreated -Descending | Select-Object -First $script:EventListCount)
+            $lines += ''
+            $lines += "  Events that name a package Atlas removes (newest $($named.Count), up to $script:EventListCount):"
+            foreach ($entry in $named) {
+                $message = ([string]$entry.Message -replace '\s+', ' ').Trim()
+                if ($message.Length -gt 400) {
+                    $message = $message.Substring(0, 400) + '...'
+                }
+                $lines += ('    {0:yyyy-MM-dd HH:mm:ss} {1,-11} {2}: {3}' -f $entry.TimeCreated, $entry.LevelDisplayName, $entry.Id, $message)
+            }
+        }
+    }
+    catch { $lines += "  (events naming removed packages could not be listed: $($_.Exception.Message))" }
     $lines
 }
 
@@ -847,16 +1280,8 @@ Add-Section -Title '12. Windows version transition' -Collector {
         $lines += "  task WindowsUpdate\$taskName state=$(if ($task) { $task.State } else { 'missing' })"
     }
     $lines += '-- Atlas servicing packages --'
-    $packages = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\Packages'
-    $root = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($packages, $false)
-    if ($null -ne $root) {
-        try {
-            foreach ($name in @($root.GetSubKeyNames() | Where-Object { $_ -like 'Z-Atlas-*' } | Sort-Object)) {
-                $lines += "  $name state=$(Get-RegistryValueOrNull -Path "HKLM:\$packages\$name" -Name 'CurrentState')"
-            }
-        }
-        finally { $root.Dispose() }
-    }
+    try { $lines += @(Get-AtlasServicingPackageLine | ForEach-Object { "  $_" }) }
+    catch { $lines += "(servicing packages unreadable: $($_.Exception.Message))" }
     $lines += '-- Windows Update history (newest 30) --'
     try {
         $searcher = (New-Object -ComObject Microsoft.Update.Session).CreateUpdateSearcher()
