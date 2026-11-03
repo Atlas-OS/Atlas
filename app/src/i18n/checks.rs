@@ -57,6 +57,27 @@ struct MessageInfo {
     /// The parsed value, for comparing an overlay message with the source.
     /// Comments are not part of it.
     value: String,
+    /// The value has words of its own, outside its placeholders; a template
+    /// such as `{ $heading }. { $question }` has none to translate.
+    has_words: bool,
+}
+
+fn has_words(pattern: &Pattern<&str>) -> bool {
+    pattern.elements.iter().any(|element| match element {
+        PatternElement::TextElement { value } => value.chars().any(char::is_alphabetic),
+        PatternElement::Placeable { expression } => expression_has_words(expression),
+    })
+}
+
+fn expression_has_words(expression: &Expression<&str>) -> bool {
+    match expression {
+        Expression::Select { variants, .. } => variants.iter().any(|variant| has_words(&variant.value)),
+        Expression::Inline(InlineExpression::StringLiteral { value }) => {
+            value.chars().any(char::is_alphabetic)
+        }
+        Expression::Inline(InlineExpression::Placeable { expression }) => expression_has_words(expression),
+        Expression::Inline(_) => false,
+    }
 }
 
 fn collect_pattern(pattern: &Pattern<&str>, info: &mut MessageInfo) {
@@ -176,6 +197,7 @@ fn parse_text(tag: &str, ftl: &str) -> Result<Parsed, Vec<String>> {
                 let mut info = MessageInfo::default();
                 if let Some(value) = &message.value {
                     info.value = format!("{value:?}");
+                    info.has_words = has_words(value);
                     collect_pattern(value, &mut info);
                     info.always_shown = info
                         .variables
@@ -588,9 +610,9 @@ fn catalog_checks_every_language_is_complete_and_formats_on_its_own() {
     assert!(problems.is_empty(), "catalog problems:\n{}", problems.join("\n"));
 }
 
-/// Proper nouns, shared words ("Options" in French) and pure-placeholder
-/// templates legitimately match English; an untranslated file matches on
-/// hundreds.
+/// Proper nouns and shared words ("Options" in French) legitimately match
+/// English, and pure-placeholder templates can't differ, so they don't
+/// count; an untranslated file matches on hundreds.
 fn untranslated(locale: &'static Locale, source: &Parsed) -> Vec<String> {
     let english = catalog::Catalog::new(&[catalog::source()]);
     let own = catalog::Catalog::new(&[locale]);
@@ -599,7 +621,8 @@ fn untranslated(locale: &'static Locale, source: &Parsed) -> Vec<String> {
         .iter()
         .filter(|(id, info)| {
             let args = sample_args(info, 3);
-            !id.starts_with("playbook-option-browser-")
+            info.has_words
+                && !id.starts_with("playbook-option-browser-")
                 && !matches!(id.as_str(), "app-name" | "home-github" | "home-discord" | "list-separator")
                 && own.format(id, &args) == english.format(id, &args)
         })
@@ -753,6 +776,20 @@ fn the_gate_rejects_an_overlay_message_that_copies_the_source() {
     // A spelling difference is what the overlay is for.
     let problems = validate("en-US", american.ftl, false, &source);
     assert!(problems.is_empty(), "{problems:?}");
+}
+
+#[test]
+fn only_messages_with_words_count_as_left_in_english() {
+    let parsed = parse_text(
+        "en-GB",
+        "template = { $heading }. { $question }\nstep = Step { $n }\nquoted = { \"Atlas\" }\n\
+         count = { $n ->\n    [one] one item\n   *[other] { $n } items\n}\n",
+    )
+    .unwrap();
+    assert!(!parsed.messages["template"].has_words, "nothing in it to translate");
+    for id in ["step", "quoted", "count"] {
+        assert!(parsed.messages[id].has_words, "{id}");
+    }
 }
 
 #[test]
