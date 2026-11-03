@@ -52,7 +52,11 @@ fn script_call(request: &InstallRequest) -> Result<String> {
     let script = playbook::front_door(&request.playbook_dir);
     let options = request.options.iter().map(|o| ps_quote(o)).collect::<Vec<_>>().join(",");
     let confirmed = if request.windows_security_confirmed { " -WindowsSecurityConfirmed" } else { "" };
-    Ok(format!("& {} -Option @({options}) -Unattended{confirmed}", ps_quote(&plain_path(&script))))
+    let choose_again = if request.choose_again { " -ChooseAgain" } else { "" };
+    Ok(format!(
+        "& {} -Option @({options}) -Unattended{confirmed}{choose_again}",
+        ps_quote(&plain_path(&script))
+    ))
 }
 
 /// What the child runs. It first waits for the go-ahead file, which the app
@@ -113,6 +117,7 @@ mod tests {
             options: vec!["defender-enable".into(), "mitigations-default".into()],
             restart: true,
             windows_security_confirmed: false,
+            choose_again: false,
         };
         // What is shown is what the child runs, and Atlas owns the restart.
         assert_eq!(
@@ -120,11 +125,24 @@ mod tests {
             r#"powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "& 'C:\Users\O''Brien\AtlasOS\App\Playbooks\0.6.0\Executables\AtlasModules\Scripts\Entry\Install-Atlas.ps1' -Option @('defender-enable','mitigations-default') -Unattended""#
         );
         // Only a confirmation the user gave reaches the front door.
-        let confirmed = InstallRequest { windows_security_confirmed: true, ..request };
+        let confirmed = InstallRequest { windows_security_confirmed: true, ..request.clone() };
         assert!(
             command_line(&confirmed).unwrap().ends_with(r#" -Unattended -WindowsSecurityConfirmed""#),
             "{}",
             command_line(&confirmed).unwrap()
+        );
+        // Only choosing again asks the front door to apply every choice again.
+        let again = InstallRequest { choose_again: true, ..request };
+        assert!(
+            command_line(&again).unwrap().ends_with(r#" -Unattended -ChooseAgain""#),
+            "{}",
+            command_line(&again).unwrap()
+        );
+        let both = InstallRequest { windows_security_confirmed: true, ..again };
+        assert!(
+            command_line(&both).unwrap().ends_with(r#" -Unattended -WindowsSecurityConfirmed -ChooseAgain""#),
+            "{}",
+            command_line(&both).unwrap()
         );
         // Every character PowerShell reads as a single quote is doubled.
         assert_eq!(
@@ -135,7 +153,8 @@ mod tests {
 
     /// Windows PowerShell refuses a parameter the script doesn't declare
     /// before the front door runs, so each one a launch can pass, the
-    /// confirmation included, must be in the real script's parameter block.
+    /// confirmation and choosing again included, must be in the real
+    /// script's parameter block.
     #[test]
     fn the_front_door_declares_the_parameters_every_launch_passes() {
         let block = crate::services::test_support::front_door_parts().1;
@@ -144,13 +163,29 @@ mod tests {
             options: vec!["defender-enable".into()],
             restart: true,
             windows_security_confirmed: true,
+            choose_again: true,
         };
         let call = script_call(&request).unwrap();
         let passed: Vec<&str> = call.split(' ').filter_map(|word| word.strip_prefix('-')).collect();
-        assert_eq!(passed, ["Option", "Unattended", "WindowsSecurityConfirmed"], "{call}");
+        assert_eq!(passed, ["Option", "Unattended", "WindowsSecurityConfirmed", "ChooseAgain"], "{call}");
         assert!(block.contains("[string[]]$Option"), "{block}");
         for switch in &passed[1..] {
             assert!(block.contains(&format!("[switch]${switch}")), "{block}");
         }
+    }
+
+    /// A session record an earlier build wrote has no `chooseAgain`, and its
+    /// install kept the choices.
+    #[test]
+    fn a_request_from_an_earlier_build_kept_the_choices() {
+        let earlier: InstallRequest = serde_json::from_value(serde_json::json!({
+            "playbookDir": r"C:\Atlas", "options": ["defender-enable"], "restart": true,
+        }))
+        .unwrap();
+        assert!(!earlier.choose_again && !earlier.windows_security_confirmed);
+        let request = InstallRequest { choose_again: true, ..earlier };
+        let json = serde_json::to_value(&request).unwrap();
+        assert_eq!(json["chooseAgain"], true);
+        assert_eq!(serde_json::from_value::<InstallRequest>(json).unwrap(), request);
     }
 }

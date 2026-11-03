@@ -459,7 +459,8 @@ playbook-page-browser-brave-description = Wybierz przeglądarkę do zainstalowan
 security-banner-reading-title = Sprawdzanie Zabezpieczeń Windows
 security-banner-reading-message = Atlas sprawdza cztery poniższe przełączniki ochrony.
 security-banner-off-title = Cztery przełączniki ochrony są wyłączone
-# Shown instead of the switch list when an earlier Atlas install removed Microsoft Defender.
+# Shown instead of the switch list when Microsoft Defender isn't on this PC and the user
+# chose to remove it.
 security-banner-absent-title = Microsoft Defender nie jest zainstalowany na tym komputerze
 security-banner-absent-message = W tym kroku nie ma nic do wyłączenia. Wybierz Dalej.
 security-banner-off-message = Wybierz Dalej, aby przejrzeć konfigurację i zainstalować Atlas.
@@ -526,9 +527,16 @@ outcome-preparation-stale-resumed = Atlas nie mógł potwierdzić, że Windows i
 outcome-failed-preflight = Instalacja zatrzymała się, zanim cokolwiek zmieniono. Możesz spróbować ponownie. Jeśli znów się zatrzyma, wybierz Wyślij zgłoszenie.
 outcome-failed-staging = Instalacja zatrzymała się podczas przygotowywania plików, zanim cokolwiek zmieniono w Windows. Możesz spróbować ponownie. Jeśli znów się zatrzyma, wybierz Wyślij zgłoszenie.
 outcome-failed-applying = Część zmian mogła już zostać wprowadzona. Możesz spróbować ponownie. Jeśli na tym poprzestaniesz, włącz ponownie w Zabezpieczeniach Windows wyłączone wcześniej funkcje ochrony, o ile są nadal dostępne.
+outcome-failed-applying-defender-removed = Część zmian mogła już zostać wprowadzona. Możesz spróbować ponownie. Jeśli instalacja znów się zatrzyma, wybierz Wyślij zgłoszenie.
 outcome-failed-resumed = Ta próba została przerwana na wczesnym etapie, ale wcześniejsza próba zaczęła już wprowadzać zmiany. Możesz spróbować ponownie. Jeśli na tym poprzestaniesz, włącz ponownie w Zabezpieczeniach Windows wyłączone wcześniej funkcje ochrony, o ile są nadal dostępne.
+outcome-failed-resumed-defender-removed = Ta próba została przerwana na wczesnym etapie, ale wcześniejsza próba zaczęła już wprowadzać zmiany. Możesz spróbować ponownie. Jeśli instalacja znów się zatrzyma, wybierz Wyślij zgłoszenie.
+outcome-failed-repeated = Ta próba zatrzymała się na tym samym błędzie co poprzednia, a część zmian mogła już zostać wprowadzona. Ponowna próba bez zmieniania czegokolwiek raczej nie pomoże. Wybierz Wyślij zgłoszenie, aby zespół Atlasa mógł znaleźć przyczynę. Jeśli na tym poprzestaniesz, włącz ponownie w Zabezpieczeniach Windows wyłączone wcześniej funkcje ochrony, o ile są nadal dostępne.
+outcome-failed-repeated-defender-removed = Ta próba zatrzymała się na tym samym błędzie co poprzednia, a część zmian mogła już zostać wprowadzona. Ponowna próba bez zmieniania czegokolwiek raczej nie pomoże. Wybierz Wyślij zgłoszenie, aby zespół Atlasa mógł znaleźć przyczynę.
+outcome-failed-repeated-apps = Windows nadal nie usunął aplikacji { $apps }, więc ta próba zatrzymała się na tym samym błędzie co poprzednia. Część zmian mogła już zostać wprowadzona. Ponowna próba bez zmieniania czegokolwiek raczej nie pomoże. Wybierz Wyślij zgłoszenie, aby zespół Atlasa mógł znaleźć przyczynę. Jeśli na tym poprzestaniesz, włącz ponownie w Zabezpieczeniach Windows wyłączone wcześniej funkcje ochrony, o ile są nadal dostępne.
+outcome-failed-repeated-apps-defender-removed = Windows nadal nie usunął aplikacji { $apps }, więc ta próba zatrzymała się na tym samym błędzie co poprzednia. Część zmian mogła już zostać wprowadzona. Ponowna próba bez zmieniania czegokolwiek raczej nie pomoże. Wybierz Wyślij zgłoszenie, aby zespół Atlasa mógł znaleźć przyczynę.
 outcome-not-started = Instalator nie uruchomił się na czas. Nie wprowadzono żadnych zmian. Możesz spróbować ponownie.
 outcome-lost = Instalator zatrzymał się bez zgłoszenia wyniku, a część zmian mogła już zostać wprowadzona. Możesz spróbować ponownie. Jeśli na tym poprzestaniesz, włącz ponownie w Zabezpieczeniach Windows wyłączone wcześniej funkcje ochrony, o ile są nadal dostępne.
+outcome-lost-defender-removed = Instalator zatrzymał się bez zgłoszenia wyniku, a część zmian mogła już zostać wprowadzona. Możesz spróbować ponownie. Jeśli znów się zatrzyma, wybierz Wyślij zgłoszenie.
 restart-now-message = Windows uruchamia się ponownie, aby dokończyć konfigurację Atlasa.
 restart-countdown =
     { $seconds ->
@@ -645,9 +653,9 @@ installed-security-message = Microsoft Defender został zachowany, ale niektóre
 installed-defender-removed-title = Microsoft Defender został usunięty
 installed-defender-removed-message = Komputer nie będzie mieć ochrony antywirusowej, dopóki nie zainstalujesz innej aplikacji antywirusowej. Usunięto też SmartScreen, więc Windows nie będzie Cię ostrzegać przed otwarciem nierozpoznanych aplikacji lub pobranych plików.
 # Home and the "Atlas is installed" window, after an installation that kept Microsoft Defender,
-# when it is missing. Its title is security-banner-absent-title; "Report a problem" is
-# home-report-problem, its button.
-installed-defender-missing-message = Wybrano zachowanie Microsoft Defender, ale nie ma go na tym komputerze. Jeśli nie używasz innej aplikacji antywirusowej, zainstaluj taką aplikację, aby chronić komputer. Jeśli Defender nie został usunięty przez Ciebie, wybierz Zgłoś problem.
+# when it is missing and no Atlas package removed it. Its title is security-banner-missing-title;
+# "Report a problem" is home-report-problem, its button.
+installed-defender-missing-message = Wybrano zachowanie Microsoft Defender, ale nie ma go na tym komputerze, a Atlas go nie usunął. Jeśli nie używasz innej aplikacji antywirusowej, zainstaluj taką aplikację, aby chronić komputer. Jeśli Defender nie został usunięty przez Ciebie, wybierz Zgłoś problem.
 
 ## Ustawienia
 
@@ -1213,10 +1221,44 @@ mode-rebase = Ponowna instalacja po aktualizacji Windows
 history-mode-rebase = ponowna instalacja po aktualizacji Windows
 ready-rebase-title = Windows zainstalował się ponownie podczas aktualizacji
 ready-rebase-message = Windows 11 w wersji { $release } zastąpił Windows, który był na tym komputerze, więc części zmian Atlasa już nie ma. Atlas { $version } przywróci je zgodnie z opcjami wybranymi dla Atlasa { $previous }.
-upgrade-choices-title = Opcje z Atlasa { $previous }
-upgrade-choices-detail = Atlas przyjął za punkt wyjścia to, co Atlas { $previous } skonfigurował na tym komputerze. Aktualizacja zachowuje skutki tych opcji, więc odznaczenie tutaj dodatku nie cofnie jego działania. Aby później zmienić którąś z opcji, skorzystaj z folderu Atlas lub Ustawień Windows.
+update-path-update-title = Jak chcesz zaktualizować Atlas do wersji { $version }?
+update-path-reinstall-title = Jak chcesz ponownie zainstalować Atlas { $version }?
+update-path-keep = Zachowaj moje opcje
+update-path-keep-detail = Atlas zachowa każdą opcję tak, jak jest teraz ustawiona na tym komputerze, i żadnej nie zmieni. To szybszy sposób.
+update-path-choose = Wybierz ponownie
+update-path-choose-detail = Przejdź ponownie przez wszystkie opcje, zaczynając od obecnej konfiguracji tego komputera. Atlas zastosuje każdą z nich tak jak przy pierwszej instalacji. Twoje aplikacje, pliki, menu Start, pasek zadań i motyw pozostaną bez zmian, podobnie jak ustawienia zmienione przez Ciebie w folderze Atlas, których te opcje nie obejmują.
+update-path-now-title = Obecne opcje na tym komputerze
+update-path-unknown = Atlas nie może tego odczytać z komputera, więc zapyta Cię o to
+update-path-differs = Zapis Atlasa z ostatniej instalacji nie zgadza się ze stanem tego komputera w przypadku tych opcji: { $choices }. Lista pokazuje obecny stan komputera.
+keep-choices-title = Zachowujesz swoje opcje
+keep-choices-partial = Atlas zachowa obecny stan tego komputera. Tych opcji nie może odczytać z komputera, więc je wybierz: { $missing }
+choose-again-title = Wybierasz ponownie
+choose-again-detail = Każda opcja jest wstępnie ustawiona zgodnie z obecną konfiguracją tego komputera. Atlas zastosuje Twój wybór podczas instalacji.
+option-now = Obecnie na tym komputerze
+change-defender-enable = Atlas przywróci Microsoft Defender. Po ponownym uruchomieniu włącz jego ochronę w Zabezpieczeniach Windows.
+change-mitigations-default = Atlas ponownie włączy zabezpieczenia procesora zgodnie z ustawieniami domyślnymi Windows. Zmiana zacznie obowiązywać po ponownym uruchomieniu.
+change-mitigations-all-on = Wszystkie zabezpieczenia procesora są teraz włączone. Jeśli je zachowasz, wszystkie pozostaną włączone.
+change-auto-updates-default = Atlas znów pozwoli Windows automatycznie instalować aktualizacje.
+change-hibernation-on = Atlas ponownie włączy hibernację.
+change-power-saving-on = Atlas ponownie włączy oszczędzanie energii i przywróci poprzedni plan zasilania, a jeśli go nie ma, plan Zrównoważony.
+change-core-isolation-on = Atlas ponownie włączy zabezpieczenia oparte na wirtualizacji (VBS), chyba że steruje nimi zasada na tym komputerze. Zmiana zacznie obowiązywać po ponownym uruchomieniu.
+change-remove-snipping-tool = Usuwa Narzędzie Wycinanie dla wszystkich użytkowników tego komputera. Atlas nie będzie mógł go później przywrócić, ale możesz zainstalować je ponownie z Microsoft Store.
+fixed-uninstall-edge = Przeglądarka Microsoft Edge jest już usunięta, a aktualizacja Atlasa nie może jej przywrócić. Aby zainstalować ją ponownie, użyj Install or Remove Edge w folderze Atlas.
+fixed-installed = Aplikacja { $app } jest zainstalowana. Atlas nie odinstalowuje aplikacji. Aby ją usunąć, otwórz stronę Zainstalowane aplikacje w Ustawieniach Windows.
+browser-also = Przeglądarka { $installed } pozostanie zainstalowana, a Atlas zainstaluje dodatkowo { $browser }.
+summary-update-path = Sposób aktualizacji
+step-heading-update-path-a11y = { $heading }. { $question }
+security-banner-removed-title = Atlas usunął Microsoft Defender z tego komputera
+security-banner-restore-title = Atlas przywróci Microsoft Defender podczas tej instalacji
+security-banner-restore-message = Defender jeszcze nie działa, więc w tym kroku nie ma nic do wyłączenia. Po ponownym uruchomieniu włącz jego ochronę w Zabezpieczeniach Windows. Wybierz Dalej.
+security-banner-missing-title = Brak Microsoft Defender
+security-banner-missing-message = Atlas go nie usunął, więc nie może go przywrócić. Możesz kontynuować, ale komputer nie będzie mieć ochrony antywirusowej, dopóki nie zainstalujesz innej aplikacji antywirusowej lub nie naprawisz Windows.
+installed-defender-not-restored-title = Microsoft Defender jest nadal usunięty
+installed-defender-not-restored-message = Wybrano zachowanie Microsoft Defender, ale wcześniejsza aktualizacja Atlasa go nie przywróciła, więc komputer nie ma ochrony antywirusowej. Aby przywrócić Defender, zaktualizuj Atlas lub zainstaluj go ponownie i zaznacz Wybierz ponownie. Możesz też otworzyć 7. Security > Defender w folderze Atlas na pulpicie, uruchomić Toggle Defender, wybrać Enable Windows Defender i uruchomić komputer ponownie.
+choices-not-applied-title = Niektóre opcje nie zostały zastosowane
+choices-not-applied-message = W przypadku tych opcji Atlas zapisał obecny stan komputera: { $choices }. Przyczynę znajdziesz w dzienniku instalacji.
 rebase-choices-title = Opcje z Atlasa { $previous }
-rebase-choices-detail = Atlas używa opcji wybranych dla Atlasa { $previous }, więc nie ma tu nic do wyboru. Możesz je później zmienić w folderze Atlas.
+rebase-choices-detail = Atlas używa opcji wybranych dla Atlasa { $previous }, więc nie ma tu nic do wyboru. Aby je potem zmienić, wybierz Zainstaluj Atlas ponownie, a następnie zaznacz Wybierz ponownie.
 rebase-choices-partial = Atlas używa opcji wybranych dla Atlasa { $previous }. Nie udało się odnaleźć tych opcji, więc je sprawdź: { $missing }
 restart-other-title = Ktoś inny jest zalogowany na tym komputerze
 restart-others-title = Inne osoby są zalogowane na tym komputerze

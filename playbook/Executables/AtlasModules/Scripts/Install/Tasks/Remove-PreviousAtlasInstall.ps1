@@ -33,6 +33,7 @@ foreach ($childName in @('AtlasDesktop', 'AtlasModules')) {
     $backupNames = @('winServices.reg', 'atlasServices.reg')
     $otherPath = Join-Path $resolvedTarget 'Other'
     $backups = @()
+    $kept = @()
     if ($childName -eq 'AtlasModules' -and (Test-Path -LiteralPath $otherPath -PathType Container)) {
         $other = Get-Item -LiteralPath $otherPath -Force
         if ($other.Attributes -band [IO.FileAttributes]::ReparsePoint) {
@@ -42,22 +43,34 @@ foreach ($childName in @('AtlasDesktop', 'AtlasModules')) {
             -not $_.PSIsContainer -and $backupNames -contains $_.Name -and
             -not ($_.Attributes -band [IO.FileAttributes]::ReparsePoint)
         })
+        if ($backups.Count -gt 0) { $kept += $otherPath }
     }
-    if ($backups.Count -eq 0) {
+    # The logs are the evidence of earlier installs and of this one, which has been
+    # writing to them since it began; the new files never bring any.
+    $logsPath = Join-Path $resolvedTarget 'Logs'
+    if ($childName -eq 'AtlasModules' -and (Test-Path -LiteralPath $logsPath -PathType Container)) {
+        $logs = Get-Item -LiteralPath $logsPath -Force
+        if ($logs.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            throw "Refusing to keep Atlas's logs through a reparse point at '$logsPath'."
+        }
+        $kept += $logsPath
+    }
+    if ($kept.Count -eq 0) {
         Remove-Item -LiteralPath $resolvedTarget -Force -Recurse -ErrorAction Stop
         continue
     }
 
-    # Keep backups in place across interruption; the new files merge into
-    # these directories without carrying forward any old executable scripts.
+    # Keep these in place across interruption; the new files merge into these
+    # directories without carrying forward any old executable scripts.
     foreach ($item in Get-ChildItem -LiteralPath $resolvedTarget -Force) {
-        if ($item.FullName -eq $otherPath) { continue }
+        if ($kept -contains $item.FullName) { continue }
         $resolvedItem = (Resolve-Path -LiteralPath $item.FullName).ProviderPath
         if (-not $resolvedItem.StartsWith($resolvedTarget + '\', [StringComparison]::OrdinalIgnoreCase)) {
             throw "Refusing to remove unexpected Atlas path '$resolvedItem'."
         }
         Remove-Item -LiteralPath $resolvedItem -Force -Recurse -ErrorAction Stop
     }
+    if ($backups.Count -eq 0) { continue }
     foreach ($item in Get-ChildItem -LiteralPath $otherPath -Force) {
         if ($backups.FullName -contains $item.FullName) { continue }
         $resolvedItem = (Resolve-Path -LiteralPath $item.FullName).ProviderPath

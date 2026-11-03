@@ -25,7 +25,7 @@ Export-ModuleMember -Function @(
     'Initialize-AtlasNativeType',
     'Get-AtlasContext', 'Test-AtlasOption',
     'Write-AtlasLog', 'Start-AtlasPhase', 'Stop-AtlasPhase',
-    'Set-AtlasLogConsoleStyle', 'Get-AtlasLogConsoleStyle', 'Get-AtlasInstallLogPath',
+    'Set-AtlasLogConsoleStyle', 'Get-AtlasLogConsoleStyle', 'Get-AtlasInstallLogPath', 'Invoke-AtlasInstallLogRetention',
     'Test-AtlasAdmin', 'Test-AtlasSystem', 'Test-AtlasTrustedInstaller', 'Assert-AtlasPrivilege', 'Invoke-AtlasTrustedInstaller', 'Invoke-AtlasAsUser', 'Get-AtlasUserSessionHelperStage', 'Get-AtlasUserProcessCommandLine',
     'ConvertTo-AtlasWindowsArgumentString', 'Invoke-AtlasHiddenProcess',
     'Write-AtlasTitle', 'Write-AtlasBlankLine', 'Write-AtlasNote', 'Write-AtlasStep', 'Write-AtlasWarning',

@@ -1,0 +1,878 @@
+[
+  {
+    "name": "A release-candidate record the PC contradicts: Defender still removed, updates on, every processor protection on, VBS off",
+    "base": [
+      "auto-updates-disable",
+      "defender-enable",
+      "disable-power-saving",
+      "install-toolbox",
+      "keyboard-single",
+      "mitigations-disable",
+      "uninstall-edge"
+    ],
+    "packages": [
+      "Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0",
+      "Z-Atlas-NoTelemetry-Package~31bf3856ad364e35~amd64~~5.0.0.0"
+    ],
+    "facts": {
+      "toggles": [
+        {
+          "name": "AutomaticUpdates",
+          "state": 1
+        },
+        {
+          "name": "Mitigations",
+          "state": 2
+        },
+        {
+          "name": "PowerSaving",
+          "state": 0
+        },
+        {
+          "name": "VbsState",
+          "state": 0
+        }
+      ],
+      "edge": false,
+      "toolbox": true,
+      "coreIsolationOff": true,
+      "defender": false,
+      "defenderPackage": "Installed"
+    },
+    "afterInstall": false,
+    "options": [
+      "auto-updates-default",
+      "defender-disable",
+      "disable-core-isolation",
+      "disable-power-saving",
+      "install-toolbox",
+      "keyboard-single",
+      "mitigations-default",
+      "uninstall-edge"
+    ]
+  },
+  {
+    "name": "The same record, read again after an install that kept the choices",
+    "base": [
+      "auto-updates-disable",
+      "defender-enable",
+      "disable-power-saving",
+      "install-toolbox",
+      "keyboard-single",
+      "mitigations-disable",
+      "uninstall-edge"
+    ],
+    "packages": [
+      "Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0",
+      "Z-Atlas-NoTelemetry-Package~31bf3856ad364e35~amd64~~5.0.0.0"
+    ],
+    "facts": {
+      "toggles": [
+        {
+          "name": "AutomaticUpdates",
+          "state": 1
+        },
+        {
+          "name": "Mitigations",
+          "state": 2
+        },
+        {
+          "name": "PowerSaving",
+          "state": 0
+        },
+        {
+          "name": "VbsState",
+          "state": 0
+        }
+      ],
+      "edge": false,
+      "toolbox": true,
+      "coreIsolationOff": true,
+      "defender": false,
+      "defenderPackage": "Installed"
+    },
+    "afterInstall": true,
+    "options": [
+      "auto-updates-default",
+      "defender-disable",
+      "disable-core-isolation",
+      "disable-power-saving",
+      "install-toolbox",
+      "keyboard-single",
+      "mitigations-default",
+      "uninstall-edge"
+    ]
+  },
+  {
+    "name": "Keyboard shortcuts off keeps a recorded single layout, whatever the layout count",
+    "base": [
+      "keyboard-single"
+    ],
+    "packages": [],
+    "facts": {
+      "toggles": [
+        {
+          "name": "KeyboardShortcuts",
+          "state": 0
+        }
+      ],
+      "keyboardLayouts": 3
+    },
+    "afterInstall": false,
+    "options": [
+      "keyboard-single"
+    ]
+  },
+  {
+    "name": "Alt+Shift off without a record keeps a recorded language selector",
+    "base": [
+      "keyboard-selector"
+    ],
+    "packages": [],
+    "facts": {
+      "toggles": [],
+      "languageHotkey": "3",
+      "keyboardLayouts": 1
+    },
+    "afterInstall": false,
+    "options": [
+      "keyboard-selector"
+    ]
+  },
+  {
+    "name": "Keyboard shortcuts off over recorded shortcuts picks by the layout count",
+    "base": [
+      "keyboard-shortcuts"
+    ],
+    "packages": [],
+    "facts": {
+      "toggles": [
+        {
+          "name": "KeyboardShortcuts",
+          "state": 0
+        }
+      ],
+      "keyboardLayouts": 1
+    },
+    "afterInstall": false,
+    "options": [
+      "keyboard-single"
+    ]
+  },
+  {
+    "name": "Keyboard shortcuts off over recorded shortcuts, with the layout count not read, gives the language selector",
+    "base": [
+      "keyboard-shortcuts"
+    ],
+    "packages": [],
+    "facts": {
+      "toggles": [
+        {
+          "name": "KeyboardShortcuts",
+          "state": 0
+        }
+      ]
+    },
+    "afterInstall": false,
+    "options": [
+      "keyboard-selector"
+    ]
+  },
+  {
+    "name": "Keyboard shortcuts on replaces a recorded language selector, whatever Alt+Shift is",
+    "base": [
+      "keyboard-selector"
+    ],
+    "packages": [],
+    "facts": {
+      "toggles": [
+        {
+          "name": "KeyboardShortcuts",
+          "state": 1
+        }
+      ],
+      "languageHotkey": "3",
+      "keyboardLayouts": 2
+    },
+    "afterInstall": false,
+    "options": [
+      "keyboard-shortcuts"
+    ]
+  },
+  {
+    "name": "eclean passes through, because nothing on the PC shows it",
+    "base": [
+      "defender-enable",
+      "install-eclean"
+    ],
+    "packages": [
+      "Z-Atlas-NoTelemetry-Package~31bf3856ad364e35~amd64~~5.0.0.0"
+    ],
+    "facts": {
+      "edge": true,
+      "defender": true
+    },
+    "afterInstall": true,
+    "options": [
+      "defender-enable",
+      "install-eclean"
+    ]
+  },
+  {
+    "name": "Nothing read keeps every recorded choice",
+    "base": [
+      "defender-disable",
+      "mitigations-disable",
+      "auto-updates-disable",
+      "keyboard-single",
+      "disable-hibernation",
+      "disable-power-saving",
+      "disable-core-isolation",
+      "remove-snipping-tool",
+      "uninstall-edge",
+      "install-another-browser",
+      "browser-firefox",
+      "install-toolbox",
+      "install-eclean"
+    ],
+    "packages": [],
+    "facts": {},
+    "afterInstall": false,
+    "options": [
+      "defender-disable",
+      "mitigations-disable",
+      "auto-updates-disable",
+      "keyboard-single",
+      "disable-hibernation",
+      "disable-power-saving",
+      "disable-core-isolation",
+      "remove-snipping-tool",
+      "uninstall-edge",
+      "install-another-browser",
+      "browser-firefox",
+      "install-toolbox",
+      "install-eclean"
+    ]
+  },
+  {
+    "name": "Nothing read after the install keeps every requested choice",
+    "base": [
+      "defender-disable",
+      "mitigations-disable",
+      "auto-updates-disable",
+      "keyboard-single",
+      "disable-hibernation",
+      "disable-power-saving",
+      "disable-core-isolation",
+      "remove-snipping-tool",
+      "uninstall-edge",
+      "install-another-browser",
+      "browser-firefox",
+      "install-toolbox",
+      "install-eclean"
+    ],
+    "packages": [],
+    "facts": {},
+    "afterInstall": true,
+    "options": [
+      "defender-disable",
+      "mitigations-disable",
+      "auto-updates-disable",
+      "keyboard-single",
+      "disable-hibernation",
+      "disable-power-saving",
+      "disable-core-isolation",
+      "remove-snipping-tool",
+      "uninstall-edge",
+      "install-another-browser",
+      "browser-firefox",
+      "install-toolbox",
+      "install-eclean"
+    ]
+  },
+  {
+    "name": "A browser the PC doesn't name stays chosen before the install",
+    "base": [
+      "install-another-browser",
+      "browser-firefox"
+    ],
+    "packages": [],
+    "facts": {
+      "browser": null,
+      "browsers": []
+    },
+    "afterInstall": false,
+    "options": [
+      "install-another-browser",
+      "browser-firefox"
+    ]
+  },
+  {
+    "name": "A browser the PC doesn't name is dropped after the install when it isn't there",
+    "base": [
+      "install-another-browser",
+      "browser-firefox"
+    ],
+    "packages": [],
+    "facts": {
+      "browser": null,
+      "browsers": []
+    },
+    "afterInstall": true,
+    "options": []
+  },
+  {
+    "name": "A browser the PC doesn't name stays after the install when it is there",
+    "base": [
+      "install-another-browser",
+      "browser-firefox"
+    ],
+    "packages": [],
+    "facts": {
+      "browser": null,
+      "browsers": [
+        "browser-brave",
+        "browser-firefox"
+      ]
+    },
+    "afterInstall": true,
+    "options": [
+      "install-another-browser",
+      "browser-firefox"
+    ]
+  },
+  {
+    "name": "A browser the PC names replaces a recorded one that isn't there",
+    "base": [
+      "install-another-browser",
+      "browser-firefox"
+    ],
+    "packages": [],
+    "facts": {
+      "browser": "Brave",
+      "browsers": [
+        "browser-brave"
+      ]
+    },
+    "afterInstall": false,
+    "options": [
+      "install-another-browser",
+      "browser-brave"
+    ]
+  },
+  {
+    "name": "A recorded browser that is there stays, whatever browser the PC names",
+    "base": [
+      "install-another-browser",
+      "browser-firefox"
+    ],
+    "packages": [],
+    "facts": {
+      "browser": "Brave",
+      "browsers": [
+        "browser-brave",
+        "browser-firefox"
+      ]
+    },
+    "afterInstall": false,
+    "options": [
+      "install-another-browser",
+      "browser-firefox"
+    ]
+  },
+  {
+    "name": "A browser chosen again stays after the install that added it, whatever browser the PC names",
+    "base": [
+      "install-another-browser",
+      "browser-firefox"
+    ],
+    "packages": [],
+    "facts": {
+      "browser": "Brave",
+      "browsers": [
+        "browser-brave",
+        "browser-firefox"
+      ]
+    },
+    "afterInstall": true,
+    "options": [
+      "install-another-browser",
+      "browser-firefox"
+    ]
+  },
+  {
+    "name": "An empty browser name names no browser on an install with a record, so one installed by hand isn't a choice",
+    "base": [
+      "defender-enable",
+      "keyboard-single"
+    ],
+    "packages": [],
+    "facts": {
+      "browser": "",
+      "browsers": [
+        "browser-chrome"
+      ],
+      "defender": true
+    },
+    "afterInstall": false,
+    "options": [
+      "defender-enable",
+      "keyboard-single"
+    ]
+  },
+  {
+    "name": "An empty browser name names no browser after the install either",
+    "base": [
+      "defender-enable",
+      "keyboard-single"
+    ],
+    "packages": [],
+    "facts": {
+      "browser": "",
+      "browsers": [
+        "browser-chrome"
+      ],
+      "defender": true
+    },
+    "afterInstall": true,
+    "options": [
+      "defender-enable",
+      "keyboard-single"
+    ]
+  },
+  {
+    "name": "LibreWolf, which Atlas 0.5.0 records as an empty name, stays after the update that kept it",
+    "base": [
+      "install-another-browser",
+      "browser-librewolf"
+    ],
+    "packages": [],
+    "facts": {
+      "browser": "",
+      "browsers": [
+        "browser-librewolf"
+      ]
+    },
+    "afterInstall": true,
+    "options": [
+      "install-another-browser",
+      "browser-librewolf"
+    ]
+  },
+  {
+    "name": "A browser the taskbar pin record names that someone uninstalled isn't chosen before the install",
+    "base": [
+      "defender-enable"
+    ],
+    "packages": [],
+    "facts": {
+      "browser": "Brave",
+      "browsers": [],
+      "defender": true
+    },
+    "afterInstall": false,
+    "options": [
+      "defender-enable"
+    ]
+  },
+  {
+    "name": "A browser the taskbar pin record names that someone uninstalled isn't recorded after the install",
+    "base": [
+      "defender-enable"
+    ],
+    "packages": [],
+    "facts": {
+      "browser": "Brave",
+      "browsers": [],
+      "defender": true
+    },
+    "afterInstall": true,
+    "options": [
+      "defender-enable"
+    ]
+  },
+  {
+    "name": "A chosen browser someone uninstalled stays chosen before the install, which puts it back",
+    "base": [
+      "install-another-browser",
+      "browser-brave"
+    ],
+    "packages": [],
+    "facts": {
+      "browser": "Brave",
+      "browsers": []
+    },
+    "afterInstall": false,
+    "options": [
+      "install-another-browser",
+      "browser-brave"
+    ]
+  },
+  {
+    "name": "A chosen browser the install didn't put back is dropped after it, though the taskbar pin record names it",
+    "base": [
+      "install-another-browser",
+      "browser-brave"
+    ],
+    "packages": [],
+    "facts": {
+      "browser": "Brave",
+      "browsers": []
+    },
+    "afterInstall": true,
+    "options": []
+  },
+  {
+    "name": "The Toolbox installer's record without its program shows no Toolbox before the install",
+    "base": [],
+    "packages": [],
+    "facts": {
+      "toolboxRecord": true,
+      "toolboxProgram": false
+    },
+    "afterInstall": false,
+    "options": []
+  },
+  {
+    "name": "The Toolbox installer's record without its program shows no Toolbox after the install",
+    "base": [],
+    "packages": [],
+    "facts": {
+      "toolboxRecord": true,
+      "toolboxProgram": false
+    },
+    "afterInstall": true,
+    "options": []
+  },
+  {
+    "name": "The Toolbox installer's record beside its program shows a Toolbox",
+    "base": [],
+    "packages": [],
+    "facts": {
+      "toolboxRecord": true,
+      "toolboxProgram": true
+    },
+    "afterInstall": false,
+    "options": [
+      "install-toolbox"
+    ]
+  },
+  {
+    "name": "A Toolbox that isn't there stays chosen before the install, which puts it back",
+    "base": [
+      "install-toolbox"
+    ],
+    "packages": [],
+    "facts": {
+      "toolbox": false
+    },
+    "afterInstall": false,
+    "options": [
+      "install-toolbox"
+    ]
+  },
+  {
+    "name": "A Toolbox that was uninstalled is dropped after the install",
+    "base": [
+      "install-toolbox"
+    ],
+    "packages": [],
+    "facts": {
+      "toolbox": false
+    },
+    "afterInstall": true,
+    "options": []
+  },
+  {
+    "name": "An installed Toolbox counts as chosen",
+    "base": [],
+    "packages": [],
+    "facts": {
+      "toolbox": true
+    },
+    "afterInstall": false,
+    "options": [
+      "install-toolbox"
+    ]
+  },
+  {
+    "name": "The NoDefender package installed replaces a recorded choice to keep Defender, without its name in the packages",
+    "base": [
+      "defender-enable"
+    ],
+    "packages": [
+      "Z-Atlas-NoTelemetry-Package~31bf3856ad364e35~amd64~~5.0.0.0"
+    ],
+    "facts": {
+      "defender": false,
+      "defenderPackage": "Installed"
+    },
+    "afterInstall": false,
+    "options": [
+      "defender-disable"
+    ]
+  },
+  {
+    "name": "Defender removed at the restart counts as removed after the install",
+    "base": [
+      "defender-disable"
+    ],
+    "packages": [
+      "Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0",
+      "Z-Atlas-NoTelemetry-Package~31bf3856ad364e35~amd64~~5.0.0.0"
+    ],
+    "facts": {
+      "defender": true,
+      "defenderPackage": "InstallPending"
+    },
+    "afterInstall": true,
+    "options": [
+      "defender-disable"
+    ]
+  },
+  {
+    "name": "A NoDefender package waiting for the restart doesn't count before an install",
+    "base": [
+      "defender-disable"
+    ],
+    "packages": [
+      "Z-Atlas-NoTelemetry-Package~31bf3856ad364e35~amd64~~5.0.0.0"
+    ],
+    "facts": {
+      "defender": true,
+      "defenderPackage": "InstallPending"
+    },
+    "afterInstall": false,
+    "options": [
+      "defender-enable"
+    ]
+  },
+  {
+    "name": "Defender back at the restart counts as kept after the install",
+    "base": [
+      "defender-enable"
+    ],
+    "packages": [
+      "Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0",
+      "Z-Atlas-NoTelemetry-Package~31bf3856ad364e35~amd64~~5.0.0.0"
+    ],
+    "facts": {
+      "defender": false,
+      "defenderPackage": "UninstallPending"
+    },
+    "afterInstall": true,
+    "options": [
+      "defender-enable"
+    ]
+  },
+  {
+    "name": "Defender missing without an Atlas package keeps the choice to keep it",
+    "base": [
+      "defender-enable"
+    ],
+    "packages": [],
+    "facts": {
+      "defender": false
+    },
+    "afterInstall": true,
+    "options": [
+      "defender-enable"
+    ]
+  },
+  {
+    "name": "Defender there without an Atlas package replaces a recorded removal",
+    "base": [
+      "defender-disable"
+    ],
+    "packages": [],
+    "facts": {
+      "defender": true
+    },
+    "afterInstall": false,
+    "options": [
+      "defender-enable"
+    ]
+  },
+  {
+    "name": "The checkboxes the PC shows follow it",
+    "base": [
+      "disable-hibernation",
+      "remove-snipping-tool",
+      "uninstall-edge"
+    ],
+    "packages": [],
+    "facts": {
+      "toggles": [
+        {
+          "name": "Hibernation",
+          "state": 1
+        },
+        {
+          "name": "PowerSaving",
+          "state": 0
+        }
+      ],
+      "edge": true,
+      "appx": [
+        "Microsoft.ScreenSketch_8wekyb3d8bbwe",
+        "Microsoft.WindowsCalculator_8wekyb3d8bbwe"
+      ],
+      "coreIsolationOff": true
+    },
+    "afterInstall": false,
+    "options": [
+      "disable-power-saving",
+      "disable-core-isolation"
+    ]
+  },
+  {
+    "name": "The checkboxes the PC shows cleared are cleared",
+    "base": [
+      "disable-power-saving",
+      "disable-core-isolation"
+    ],
+    "packages": [],
+    "facts": {
+      "toggles": [
+        {
+          "name": "PowerSaving",
+          "state": 1
+        }
+      ],
+      "coreIsolationOff": false
+    },
+    "afterInstall": false,
+    "options": []
+  },
+  {
+    "name": "Snipping Tool missing from every account's apps ticks its removal",
+    "base": [],
+    "packages": [],
+    "facts": {
+      "appx": [
+        "Microsoft.WindowsCalculator_8wekyb3d8bbwe",
+        "Microsoft.Paint_8wekyb3d8bbwe"
+      ]
+    },
+    "afterInstall": false,
+    "options": [
+      "remove-snipping-tool"
+    ]
+  },
+  {
+    "name": "Snipping Tool left staged, or registered only to SYSTEM or an account that no longer exists, counts as removed after the install",
+    "base": [
+      "remove-snipping-tool"
+    ],
+    "packages": [],
+    "facts": {
+      "profiles": [
+        "S-1-5-21-1000-2000-3000-1001",
+        "S-1-5-21-1000-2000-3000-1002"
+      ],
+      "appxPackages": [
+        {
+          "family": "Microsoft.ScreenSketch_8wekyb3d8bbwe",
+          "users": [
+            {
+              "sid": "S-1-5-18",
+              "state": "Installed"
+            },
+            {
+              "sid": "S-1-5-21-1000-2000-3000-1001",
+              "state": "Staged"
+            },
+            {
+              "sid": "S-1-5-21-1000-2000-3000-1009",
+              "state": "Installed"
+            }
+          ]
+        },
+        {
+          "family": "Microsoft.WindowsCalculator_8wekyb3d8bbwe",
+          "users": [
+            {
+              "sid": "S-1-5-21-1000-2000-3000-1001",
+              "state": "Installed"
+            }
+          ]
+        }
+      ]
+    },
+    "afterInstall": true,
+    "options": [
+      "remove-snipping-tool"
+    ]
+  },
+  {
+    "name": "Snipping Tool that Windows removes once the account signs out counts as removed after the install",
+    "base": [
+      "remove-snipping-tool"
+    ],
+    "packages": [],
+    "facts": {
+      "profiles": [
+        "S-1-5-21-1000-2000-3000-1001"
+      ],
+      "appxPackages": [
+        {
+          "family": "Microsoft.ScreenSketch_8wekyb3d8bbwe",
+          "users": [
+            {
+              "sid": "S-1-5-21-1000-2000-3000-1001",
+              "state": "Installed(pending removal)"
+            }
+          ]
+        },
+        {
+          "family": "Microsoft.WindowsCalculator_8wekyb3d8bbwe",
+          "users": [
+            {
+              "sid": "S-1-5-21-1000-2000-3000-1001",
+              "state": "Installed"
+            }
+          ]
+        }
+      ]
+    },
+    "afterInstall": true,
+    "options": [
+      "remove-snipping-tool"
+    ]
+  },
+  {
+    "name": "Snipping Tool still installed for another account of this PC counts as kept after the install",
+    "base": [
+      "remove-snipping-tool"
+    ],
+    "packages": [],
+    "facts": {
+      "profiles": [
+        "S-1-5-21-1000-2000-3000-1001",
+        "S-1-5-21-1000-2000-3000-1002"
+      ],
+      "appxPackages": [
+        {
+          "family": "Microsoft.ScreenSketch_8wekyb3d8bbwe",
+          "users": [
+            {
+              "sid": "S-1-5-21-1000-2000-3000-1002",
+              "state": "Installed"
+            }
+          ]
+        },
+        {
+          "family": "Microsoft.WindowsCalculator_8wekyb3d8bbwe",
+          "users": [
+            {
+              "sid": "S-1-5-21-1000-2000-3000-1001",
+              "state": "Installed"
+            }
+          ]
+        }
+      ]
+    },
+    "afterInstall": true,
+    "options": []
+  }
+]

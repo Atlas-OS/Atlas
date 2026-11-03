@@ -449,7 +449,8 @@ playbook-page-browser-brave-description = インストールするブラウザ�
 security-banner-reading-title = Windows セキュリティを確認しています
 security-banner-reading-message = Atlas が下の 4 つの保護スイッチを確認しています。
 security-banner-off-title = 4 つの保護スイッチはすべてオフです
-# Shown instead of the switch list when an earlier Atlas install removed Microsoft Defender.
+# Shown instead of the switch list when Microsoft Defender isn't on this PC and the user
+# chose to remove it.
 security-banner-absent-title = この PC に Microsoft Defender はインストールされていません
 security-banner-absent-message = この手順でオフにするものはありません。「続行」を選んでください。
 security-banner-off-message = 「続行」を選んで、セットアップ内容を確認し、Atlas をインストールしてください。
@@ -504,9 +505,16 @@ outcome-preparation-stale-resumed = Windows と Store アプリが最新の状�
 outcome-failed-preflight = 変更を加える前にインストールが停止しました。もう一度試すことができます。再び停止する場合は、「レポートを送信」を選んでください。
 outcome-failed-staging = ファイルの準備中、Windows を変更する前にインストールが停止しました。もう一度試すことができます。再び停止する場合は、「レポートを送信」を選んでください。
 outcome-failed-applying = 一部の変更はすでに適用されている可能性があります。もう一度試すことができます。ここで中止する場合は、オフにした保護のうちまだ利用できるものを Windows セキュリティでオンに戻してください。
+outcome-failed-applying-defender-removed = 一部の変更はすでに適用されている可能性があります。もう一度試すことができます。インストールが再び停止する場合は、「レポートを送信」を選んでください。
 outcome-failed-resumed = 今回の試行は途中で停止しましたが、以前の試行ですでに変更の適用が始まっています。もう一度試すことができます。ここで中止する場合は、オフにした保護のうちまだ利用できるものを Windows セキュリティでオンに戻してください。
+outcome-failed-resumed-defender-removed = 今回の試行は途中で停止しましたが、以前の試行ですでに変更の適用が始まっています。もう一度試すことができます。インストールが再び停止する場合は、「レポートを送信」を選んでください。
+outcome-failed-repeated = 今回の試行は前回と同じエラーで停止しました。一部の変更はすでに適用されている可能性があります。何も変えずにもう一度試しても解決する可能性は低いです。Atlas チームが原因を調べられるように、「レポートを送信」を選んでください。ここで中止する場合は、オフにした保護のうちまだ利用できるものを Windows セキュリティでオンに戻してください。
+outcome-failed-repeated-defender-removed = 今回の試行は前回と同じエラーで停止しました。一部の変更はすでに適用されている可能性があります。何も変えずにもう一度試しても解決する可能性は低いです。Atlas チームが原因を調べられるように、「レポートを送信」を選んでください。
+outcome-failed-repeated-apps = Windows が依然として { $apps } を削除しなかったため、今回の試行は前回と同じエラーで停止しました。一部の変更はすでに適用されている可能性があります。何も変えずにもう一度試しても解決する可能性は低いです。Atlas チームが原因を調べられるように、「レポートを送信」を選んでください。ここで中止する場合は、オフにした保護のうちまだ利用できるものを Windows セキュリティでオンに戻してください。
+outcome-failed-repeated-apps-defender-removed = Windows が依然として { $apps } を削除しなかったため、今回の試行は前回と同じエラーで停止しました。一部の変更はすでに適用されている可能性があります。何も変えずにもう一度試しても解決する可能性は低いです。Atlas チームが原因を調べられるように、「レポートを送信」を選んでください。
 outcome-not-started = インストーラーが時間内に起動しませんでした。インストールによる変更はありません。もう一度試すことができます。
 outcome-lost = インストーラーは結果を報告せずに停止しました。一部の変更はすでに適用されている可能性があります。もう一度試すことができます。ここで中止する場合は、オフにした保護のうちまだ利用できるものを Windows セキュリティでオンに戻してください。
+outcome-lost-defender-removed = インストーラーは結果を報告せずに停止しました。一部の変更はすでに適用されている可能性があります。もう一度試すことができます。再び停止する場合は、「レポートを送信」を選んでください。
 restart-now-message = Atlas のセットアップを完了するため、Windows を再起動しています。
 # Japanese has no plural forms; the same wording serves every count.
 restart-countdown = Atlas のセットアップを完了するため、{ $seconds } 秒後に Windows を再起動します。先に作業を保存するには、「後で再起動」を選んでください。
@@ -603,9 +611,9 @@ installed-security-message = Microsoft Defender を残しましたが、その�
 installed-defender-removed-title = Microsoft Defender は削除されました
 installed-defender-removed-message = 別のウイルス対策アプリをインストールするまで、PC はウイルス対策による保護を受けられません。SmartScreen も削除されたため、認識されないアプリやダウンロードしたファイルを開く前に、Windows が警告することはありません。
 # Home and the "Atlas is installed" window, after an installation that kept Microsoft Defender,
-# when it is missing. Its title is security-banner-absent-title; "Report a problem" is
-# home-report-problem, its button.
-installed-defender-missing-message = Microsoft Defender を残すことを選びましたが、Defender が見つかりません。他のウイルス対策アプリを使っていない場合は、ウイルス対策アプリをインストールして PC を保護してください。Defender をご自身で削除していない場合は、「問題を報告」を選んでください。
+# when it is missing and no Atlas package removed it. Its title is security-banner-missing-title;
+# "Report a problem" is home-report-problem, its button.
+installed-defender-missing-message = Microsoft Defender を残すことを選びましたが、Defender が見つかりません。Atlas が削除したものではありません。他のウイルス対策アプリを使っていない場合は、ウイルス対策アプリをインストールして PC を保護してください。Defender をご自身で削除していない場合は、「問題を報告」を選んでください。
 
 ## 設定
 
@@ -1166,10 +1174,44 @@ mode-rebase = Windows の更新後の再インストール
 history-mode-rebase = Windows 更新後の再インストール
 ready-rebase-title = 更新時に Windows が再インストールされました
 ready-rebase-message = Windows 11 バージョン { $release } がこの PC の以前の Windows を置き換えたため、Atlas の変更の一部が失われています。Atlas { $version } は、Atlas { $previous } での選択内容に従って、それらを適用し直します。
-upgrade-choices-title = Atlas { $previous } からの選択内容
-upgrade-choices-detail = Atlas は、Atlas { $previous } がこの PC に設定した内容を出発点にしています。更新しても、それらの選択による変更はそのまま残るため、ここで追加オプションのチェックを外しても元には戻りません。後で変更するには、Atlas フォルダーか Windows の設定を使用してください。
+update-path-update-title = Atlas { $version } にどのように更新しますか?
+update-path-reinstall-title = Atlas { $version } をどのように再インストールしますか?
+update-path-keep = 選択内容を維持する
+update-path-keep-detail = Atlas は、すべての選択をこの PC の現在の設定のまま維持し、どれも変更しません。こちらのほうが早く完了します。
+update-path-choose = 選択をやり直す
+update-path-choose-detail = この PC の現在の設定を出発点に、すべての選択をもう一度行います。Atlas は新規インストールと同じように各選択を適用します。アプリ、ファイル、スタート メニュー、タスク バー、テーマはそのまま残ります。Atlas フォルダーで変更した設定のうち、これらの選択に含まれないものもそのまま残ります。
+update-path-now-title = この PC の現在の選択内容
+update-path-unknown = PC から判断できないため、Atlas がお尋ねします
+update-path-differs = { $choices } について、前回のインストールに関する Atlas の記録がこの PC と一致しません。この一覧には、PC の現在の設定が表示されています。
+keep-choices-title = 選択内容の維持
+keep-choices-partial = Atlas はこの PC の現在の設定を維持します。次の項目は PC から判断できないため、選んでください: { $missing }
+choose-again-title = 選択のやり直し
+choose-again-detail = 各選択では、最初にこの PC の現在の設定が選択されています。選んだ内容は、インストール中に Atlas が適用します。
+option-now = この PC の現在の設定
+change-defender-enable = Atlas は Microsoft Defender を復元します。再起動後に、Windows セキュリティで Defender の保護をオンにしてください。
+change-mitigations-default = Atlas はプロセッサの保護を Windows の既定どおりにオンに戻します。再起動後に有効になります。
+change-mitigations-all-on = 現在、プロセッサの保護はすべてオンになっています。保護を維持すると、すべてオンのままになります。
+change-auto-updates-default = Atlas は、Windows が更新プログラムを再び自動的にインストールするようにします。
+change-hibernation-on = Atlas は休止状態をオンに戻します。
+change-power-saving-on = Atlas は省電力機能をオンに戻し、以前の電源プランに戻します。以前の電源プランがない場合は「バランス」にします。
+change-core-isolation-on = Atlas は仮想化ベースのセキュリティ (VBS) をオンに戻します。ただし、この PC のポリシーで管理されている場合は変更しません。再起動後に有効になります。
+change-remove-snipping-tool = この PC のすべてのユーザーから Snipping Tool を削除します。Atlas では後から元に戻せませんが、Microsoft Store から再インストールできます。
+fixed-uninstall-edge = Microsoft Edge はすでに削除されており、Atlas を更新しても元に戻りません。再インストールするには、Atlas フォルダーにある「Install or Remove Edge」を使用してください。
+fixed-installed = { $app } はインストール済みです。Atlas はアプリをアンインストールしません。削除するには、Windows の「設定」で「インストールされているアプリ」を開いてください。
+browser-also = { $installed } はそのまま残り、Atlas が { $browser } もインストールします。
+summary-update-path = Atlas の更新方法
+step-heading-update-path-a11y = { $heading }。{ $question }
+security-banner-removed-title = この PC の Microsoft Defender は Atlas によって削除されています
+security-banner-restore-title = このインストールで Atlas が Microsoft Defender を復元します
+security-banner-restore-message = Defender はまだ実行されていないため、この手順でオフにするものはありません。再起動後に、Windows セキュリティで Defender の保護をオンにしてください。「続行」を選んでください。
+security-banner-missing-title = Microsoft Defender が見つかりません
+security-banner-missing-message = Atlas が削除したものではないため、Atlas では復元できません。続行できますが、別のウイルス対策アプリをインストールするか Windows を修復するまで、PC はウイルス対策による保護を受けられません。
+installed-defender-not-restored-title = Microsoft Defender は削除されたままです
+installed-defender-not-restored-message = Microsoft Defender を残すことを選びましたが、以前の Atlas の更新で復元されなかったため、PC はウイルス対策による保護を受けていません。復元するには、Atlas を更新または再インストールして「選択をやり直す」を選択してください。または、デスクトップの Atlas フォルダーで「7. Security」>「Defender」を開き、「Toggle Defender」を実行して「Enable Windows Defender」を選んでから、PC を再起動してください。
+choices-not-applied-title = 一部の選択が反映されませんでした
+choices-not-applied-message = { $choices } について、Atlas はこの PC の現在の設定を記録しました。理由はインストール ログで確認できます。
 rebase-choices-title = Atlas { $previous } からの選択内容
-rebase-choices-detail = Atlas は Atlas { $previous } での選択内容を使用するため、ここで選ぶものはありません。後で Atlas フォルダーから変更できます。
+rebase-choices-detail = Atlas は Atlas { $previous } での選択内容を使用するため、ここで選ぶものはありません。後で変更するには、「Atlas を再インストール」を選んでから、「選択をやり直す」を選択してください。
 rebase-choices-partial = Atlas は Atlas { $previous } での選択内容を使用します。次の項目は見つからなかったため、確認してください: { $missing }
 restart-other-title = この PC に別のユーザーがサインインしています
 restart-others-title = この PC に他のユーザーが複数サインインしています
@@ -1186,11 +1228,11 @@ prepare-failed-store-repair-failed = Microsoft Store がこの PC でアプリ�
 prepare-repair-store = Microsoft Store を修復
 
 screen-keyboard-title = キーボードの言語
-screen-keyboard-question = 複数のキーボード言語を使いますか？
-playbook-option-keyboard-shortcuts = はい、キーボードショートカットで切り替えます
-playbook-option-keyboard-selector = はい、タスクバーの選択メニューを使います
-playbook-option-keyboard-single = いいえ、配列は1つだけです
-consequence-keyboard-shortcuts = Alt+Shiftで言語、Ctrl+Shiftで配列を切り替えます。
-consequence-keyboard-selector = ゲーム中の誤操作を防ぐため、Alt+ShiftとCtrl+Shiftを無効にします。
+screen-keyboard-question = 複数のキーボード言語を使いますか?
+playbook-option-keyboard-shortcuts = はい、キーボード ショートカットで切り替える
+playbook-option-keyboard-selector = はい、タスク バーの選択メニューで切り替える
+playbook-option-keyboard-single = いいえ、1 つのキーボード レイアウトだけを使う
+consequence-keyboard-shortcuts = Alt+Shift で言語を、Ctrl+Shift でキーボード レイアウトを切り替えます。
+consequence-keyboard-selector = ゲーム中に誤って切り替わらないよう、Alt+Shift と Ctrl+Shift をオフにします。
 playbook-page-keyboard-shortcuts-description = キーボード言語の切り替え方法を選んでください。
 consequence-keyboard-single = { consequence-keyboard-selector }

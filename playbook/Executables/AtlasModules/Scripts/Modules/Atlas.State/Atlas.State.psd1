@@ -3,7 +3,7 @@
     ModuleVersion     = '1.0.0'
     GUID              = '8c1f6d2e-4b7a-4e39-9d5c-1a2f3b4c5d6e'
     Author            = 'AtlasOS'
-    Description       = 'The Atlas machine state document: installed version, install history, selected options and the recorded AtlasDesktop toggle states.'
+    Description       = 'The Atlas machine state document: installed version, install history, what the PC has for each install choice and the recorded AtlasDesktop toggle states.'
     PowerShellVersion = '5.1'
     FunctionsToExport = @(
         'Get-AtlasStatePath'
@@ -11,6 +11,7 @@
         'Update-AtlasState'
         'Set-AtlasStateInstall'
         'Set-AtlasStateToggle'
+        'Set-AtlasStateChoice'
         'Sync-AtlasStateToggles'
     )
     CmdletsToExport   = @()

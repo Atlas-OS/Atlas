@@ -435,7 +435,8 @@ playbook-page-browser-brave-description = 选择要安装的浏览器。Atlas �
 security-banner-reading-title = 正在检查 Windows 安全中心
 security-banner-reading-message = Atlas 正在检查下方的四个防护开关。
 security-banner-off-title = 四个防护开关均已关闭
-# Shown instead of the switch list when an earlier Atlas install removed Microsoft Defender.
+# Shown instead of the switch list when Microsoft Defender isn't on this PC and the user
+# chose to remove it.
 security-banner-absent-title = 这台电脑未安装 Microsoft Defender
 security-banner-absent-message = 此步骤中没有需要关闭的项目。请选择“继续”。
 security-banner-off-message = 请选择“继续”，核对设置并安装 Atlas。
@@ -490,9 +491,16 @@ outcome-preparation-stale-resumed = Atlas 无法确认 Windows 和商店应用�
 outcome-failed-preflight = 安装在更改任何内容之前已停止。你可以重试。如果再次停止，请选择“发送报告”。
 outcome-failed-staging = 安装在准备文件时停止，尚未更改 Windows。你可以重试。如果再次停止，请选择“发送报告”。
 outcome-failed-applying = 部分更改可能已经生效。你可以重试。如果你不再继续，请在 Windows 安全中心重新开启你之前关闭的防护（如果它们仍然存在）。
+outcome-failed-applying-defender-removed = 部分更改可能已经生效。你可以重试。如果安装再次停止，请选择“发送报告”。
 outcome-failed-resumed = 本次尝试提前停止，但之前的尝试已经开始进行更改。你可以重试。如果你不再继续，请在 Windows 安全中心重新开启你之前关闭的防护（如果它们仍然存在）。
+outcome-failed-resumed-defender-removed = 本次尝试提前停止，但之前的尝试已经开始进行更改。你可以重试。如果安装再次停止，请选择“发送报告”。
+outcome-failed-repeated = 本次尝试因与上次相同的错误而停止，部分更改可能已经生效。不做任何调整就重试，很可能还是无济于事。请选择“发送报告”，以便 Atlas 团队查明原因。如果你不再继续，请在 Windows 安全中心重新开启你之前关闭的防护（如果它们仍然存在）。
+outcome-failed-repeated-defender-removed = 本次尝试因与上次相同的错误而停止，部分更改可能已经生效。不做任何调整就重试，很可能还是无济于事。请选择“发送报告”，以便 Atlas 团队查明原因。
+outcome-failed-repeated-apps = Windows 仍然没有移除 { $apps }，因此本次尝试因与上次相同的错误而停止。部分更改可能已经生效。不做任何调整就重试，很可能还是无济于事。请选择“发送报告”，以便 Atlas 团队查明原因。如果你不再继续，请在 Windows 安全中心重新开启你之前关闭的防护（如果它们仍然存在）。
+outcome-failed-repeated-apps-defender-removed = Windows 仍然没有移除 { $apps }，因此本次尝试因与上次相同的错误而停止。部分更改可能已经生效。不做任何调整就重试，很可能还是无济于事。请选择“发送报告”，以便 Atlas 团队查明原因。
 outcome-not-started = 安装程序未能及时启动。未进行任何安装更改。你可以重试。
 outcome-lost = 安装程序未报告结果就停止了，部分更改可能已经生效。你可以重试。如果你不再继续，请在 Windows 安全中心重新开启你之前关闭的防护（如果它们仍然存在）。
+outcome-lost-defender-removed = 安装程序未报告结果就停止了，部分更改可能已经生效。你可以重试。如果再次停止，请选择“发送报告”。
 restart-now-message = Windows 正在重启，以完成 Atlas 的设置。
 # 中文不区分单复数，因此不需要选择表达式。
 restart-countdown = Windows 将在 { $seconds } 秒后重启，以完成 Atlas 的设置。要先保存工作，请选择“稍后重启”。
@@ -589,9 +597,9 @@ installed-security-message = 你保留了 Microsoft Defender，但它的部分�
 installed-defender-removed-title = 已移除 Microsoft Defender
 installed-defender-removed-message = 在你安装其他防病毒软件之前，电脑将没有防病毒保护。SmartScreen 也已被移除，因此打开无法识别的应用或下载的文件前，Windows 不会发出警告。
 # Home and the "Atlas is installed" window, after an installation that kept Microsoft Defender,
-# when it is missing. Its title is security-banner-absent-title; "Report a problem" is
-# home-report-problem, its button.
-installed-defender-missing-message = 你选择了保留 Microsoft Defender，但这台电脑上找不到它。如果你没有使用其他防病毒软件，请安装一款防病毒软件来保护电脑。如果 Defender 不是你自己移除的，请选择“报告问题”。
+# when it is missing and no Atlas package removed it. Its title is security-banner-missing-title;
+# "Report a problem" is home-report-problem, its button.
+installed-defender-missing-message = 你选择了保留 Microsoft Defender，但这台电脑上找不到它，而且它不是 Atlas 移除的。如果你没有使用其他防病毒软件，请安装一款防病毒软件来保护电脑。如果 Defender 不是你自己移除的，请选择“报告问题”。
 
 ## 设置
 
@@ -1142,10 +1150,44 @@ mode-rebase = Windows 更新后重新安装
 history-mode-rebase = Windows 更新后重新安装
 ready-rebase-title = Windows 在更新时重新安装了自身
 ready-rebase-message = Windows 11 版本 { $release } 替换了这台电脑原有的 Windows，因此 Atlas 的部分更改已丢失。Atlas { $version } 会按你为 Atlas { $previous } 做出的选择重新应用这些更改。
-upgrade-choices-title = 你在 Atlas { $previous } 中的选择
-upgrade-choices-detail = Atlas 以 Atlas { $previous } 在这台电脑上的设置为起点。更新会保留这些选择已产生的效果，因此在此处取消勾选某个附加项并不会撤销它。之后若要更改，请使用 Atlas 文件夹或 Windows 设置。
+update-path-update-title = 你想如何更新到 Atlas { $version }？
+update-path-reinstall-title = 你想如何重新安装 Atlas { $version }？
+update-path-keep = 保留我的选择
+update-path-keep-detail = Atlas 会按这台电脑的当前设置保留每一项选择，不做任何更改。这种方式更快。
+update-path-choose = 重新选择
+update-path-choose-detail = 以这台电脑的当前设置为起点，重新完成每一项选择。Atlas 会像首次安装时一样应用每一项选择。你的应用、文件、“开始”菜单、任务栏和主题都保持不变；你在 Atlas 文件夹中更改过、但不在这些选择范围内的设置也会保留。
+update-path-now-title = 你在这台电脑上的当前选择
+update-path-unknown = Atlas 无法从你的电脑判断此项，因此会询问你
+update-path-differs = 在 Atlas 对你上次安装的记录中，{ $choices } 与这台电脑不符。此列表显示的是这台电脑的当前设置。
+keep-choices-title = 保留你的选择
+keep-choices-partial = Atlas 会保留这台电脑的当前设置。以下项目无法从你的电脑判断，请自行选择：{ $missing }
+choose-again-title = 正在重新选择
+choose-again-detail = 每一项选择都以这台电脑的当前设置为起点。Atlas 会在安装过程中应用你的选择。
+option-now = 这台电脑的当前设置
+change-defender-enable = Atlas 会恢复 Microsoft Defender。重启后，请在 Windows 安全中心开启它的防护。
+change-mitigations-default = Atlas 会按 Windows 默认设置重新开启处理器防护。重启后生效。
+change-mitigations-all-on = 目前所有处理器防护均已开启。保留防护会让它们全部保持开启。
+change-auto-updates-default = Atlas 会让 Windows 重新自动安装更新。
+change-hibernation-on = Atlas 会重新开启休眠。
+change-power-saving-on = Atlas 会重新开启节能功能，并恢复你之前的电源计划；如果没有，则改用“平衡”。
+change-core-isolation-on = Atlas 会重新开启基于虚拟化的安全性 (VBS)，除非这台电脑上有策略控制此项。重启后生效。
+change-remove-snipping-tool = 为这台电脑上的所有用户卸载截图工具。Atlas 之后无法恢复它，但你可以从 Microsoft Store 重新安装。
+fixed-uninstall-edge = Microsoft Edge 已被卸载，更新 Atlas 无法恢复它。要重新安装，请使用 Atlas 文件夹中的“Install or Remove Edge”。
+fixed-installed = { $app } 已安装。Atlas 不会卸载应用；如需卸载，请前往 Windows 设置中的“已安装的应用”。
+browser-also = { $installed } 会保留，Atlas 还会安装 { $browser }。
+summary-update-path = Atlas 更新方式
+step-heading-update-path-a11y = { $heading }。{ $question }
+security-banner-removed-title = Atlas 已从这台电脑移除 Microsoft Defender
+security-banner-restore-title = Atlas 将在本次安装中恢复 Microsoft Defender
+security-banner-restore-message = Defender 尚未运行，因此此步骤中没有需要关闭的项目。重启后，请在 Windows 安全中心开启它的防护。请选择“继续”。
+security-banner-missing-title = 找不到 Microsoft Defender
+security-banner-missing-message = Microsoft Defender 不是 Atlas 移除的，因此 Atlas 无法恢复它。你可以继续，但在你安装其他防病毒软件或修复 Windows 之前，电脑将没有防病毒保护。
+installed-defender-not-restored-title = Microsoft Defender 仍未恢复
+installed-defender-not-restored-message = 你选择了保留 Microsoft Defender，但之前的 Atlas 更新没有恢复它，因此你的电脑目前没有防病毒保护。要恢复它，请更新或重新安装 Atlas 并选中“重新选择”；或者打开桌面上 Atlas 文件夹中的“7. Security”>“Defender”，运行“Toggle Defender”，选择“Enable Windows Defender”，然后重启电脑。
+choices-not-applied-title = 部分选择未生效
+choices-not-applied-message = 对于 { $choices }，Atlas 记录了这台电脑的当前设置。安装日志中说明了原因。
 rebase-choices-title = 你在 Atlas { $previous } 中的选择
-rebase-choices-detail = Atlas 会沿用你为 Atlas { $previous } 做出的选择，因此此处无需选择。之后你可以在 Atlas 文件夹中更改它们。
+rebase-choices-detail = Atlas 会沿用你为 Atlas { $previous } 做出的选择，因此此处无需选择。之后如需更改，请选择“重新安装 Atlas”，然后选中“重新选择”。
 rebase-choices-partial = Atlas 会沿用你为 Atlas { $previous } 做出的选择。以下选择未能找到，请检查：{ $missing }
 restart-other-title = 另一位用户已登录这台电脑
 restart-others-title = 其他用户已登录这台电脑

@@ -8,6 +8,7 @@
 ## Optional choices
 consequence-defender-disable = Also removes SmartScreen. Your PC won't have antivirus protection until you install another antivirus app, and Windows won't warn you before you open unrecognized apps or downloads.
 installed-defender-removed-message = Your PC won't have antivirus protection until you install another antivirus app. SmartScreen was removed too, so Windows won't warn you before you open unrecognized apps or downloads.
+change-core-isolation-on = Atlas turns virtualization-based security (VBS) back on, unless a policy on this PC controls it. This takes effect after the restart.
 
 ## Shared and settings
 settings-theme-contrast-note = Atlas is using the colors from your Windows contrast theme.

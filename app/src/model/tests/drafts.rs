@@ -31,6 +31,7 @@ fn a_draft_is_the_launching_one_by_id_or_by_the_old_shape() {
             options: vec!["defender-enable".into()],
             restart: false,
             windows_security_confirmed: false,
+            choose_again: false,
         },
     };
     let by_id =
@@ -57,6 +58,17 @@ fn a_draft_is_the_launching_one_by_id_or_by_the_old_shape() {
     assert!(!draft_launched(&old_earlier_step, &record));
     assert!(!draft_launched(&old_other_choices, &record));
     assert!(!draft_launched(&current_unlaunched, &record));
+    // A draft that says how the update treats the choices launched only an
+    // install that treated them so; one from before it said so, either.
+    let keeping = InstallDraft { update_path: Some("keep".into()), ..old_shape.clone() };
+    let choosing = InstallDraft { update_path: Some("choose-again".into()), ..old_shape.clone() };
+    let chose_again = SessionRecord {
+        request: InstallRequest { choose_again: true, ..record.request.clone() },
+        ..record.clone()
+    };
+    assert!(draft_launched(&keeping, &record) && !draft_launched(&keeping, &chose_again));
+    assert!(draft_launched(&choosing, &chose_again) && !draft_launched(&choosing, &record));
+    assert!(draft_launched(&old_shape, &chose_again));
     // Ownership of the draft slot.
     assert!(draft_owned_by(&None, Some("me")));
     assert!(draft_owned_by(&Some(old_shape.clone()), Some("me")), "a draft without an owner is anyone's");

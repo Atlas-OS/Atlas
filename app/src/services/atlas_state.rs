@@ -10,7 +10,7 @@ use serde::Deserialize;
 use super::{files, registry};
 
 /// How an install was done, from the state document's `mode`.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum InstallMode {
     Fresh,
     Upgrade,
@@ -18,6 +18,7 @@ pub enum InstallMode {
     /// Atlas put back on a Windows that rebuilt itself while Atlas Manager
     /// moved it to a newer release.
     Rebase,
+    #[default]
     Unknown,
 }
 
@@ -54,6 +55,12 @@ pub struct HistoryEntry {
     pub version: Option<String>,
     pub mode: Option<String>,
     pub completed_at: Option<String>,
+    /// The options of each choice this install tried to apply that the PC
+    /// didn't have as asked once it had run, as its completion read them: the
+    /// ones it asked for and the ones it recorded instead. `None` when the
+    /// completion couldn't read the PC, or came before it said.
+    #[serde(default)]
+    pub not_applied: Option<Vec<String>>,
 }
 
 impl AtlasState {
@@ -125,10 +132,34 @@ fn read_at(path: &Path) -> Result<Option<AtlasState>> {
 pub enum InstallIdentity {
     Fresh,
     Installed(String),
-    /// An unfinished install of this version, with the options it was
-    /// started with once its plan is running or any of its steps has
-    /// completed: from then on the install keeps those options.
-    Resume(String, Option<Vec<String>>),
+    /// An unfinished install of this version, and what it began with.
+    Resume(String, Unfinished),
+}
+
+/// What an unfinished install began with.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Unfinished {
+    /// The options it was started with, once its plan is running or any of
+    /// its steps has completed: from then on the install keeps them.
+    pub held: Option<Vec<String>>,
+    /// It goes through every choice again (`-ChooseAgain`) rather than
+    /// keeping them as the PC had them. Held with the options; until then a
+    /// capture that starts again takes the request's.
+    pub choose_again: bool,
+    /// How it installs, which a capture that starts again keeps too, as the
+    /// front door reads it from the same record.
+    pub mode: InstallMode,
+}
+
+/// How active.json records `-ChooseAgain`, as the install state checks it. A
+/// record from before it has none, which keeps the choices.
+fn choose_again(choices: Option<&serde_json::Value>) -> Option<bool> {
+    match choices {
+        None => Some(false),
+        Some(choices) if choices == "Keep" => Some(false),
+        Some(choices) if choices == "ChooseAgain" => Some(true),
+        Some(_) => None,
+    }
 }
 
 impl InstallIdentity {
@@ -186,20 +217,22 @@ fn read_identity_at(
             .as_str()
             .filter(|s| !s.trim().is_empty())
             .with_context(|| invalid("targetVersion"))?;
-        anyhow::ensure!(InstallMode::parse(doc["mode"].as_str()) != InstallMode::Unknown, invalid("mode"));
+        let mode = InstallMode::parse(doc["mode"].as_str());
+        anyhow::ensure!(mode != InstallMode::Unknown, invalid("mode"));
         let status = doc["status"]
             .as_str()
             .filter(|status| ["Capturing", "Running"].contains(status))
             .with_context(|| invalid("status"))?;
+        let choose_again = choose_again(doc.get("choices")).with_context(|| invalid("choices"))?;
         // The same test Set-AtlasInstallOptions uses to hold a resume to its
         // original options.
         let held =
             status == "Running" || doc["completedSteps"].as_array().is_some_and(|steps| !steps.is_empty());
-        let options = held
+        let held = held
             .then(|| serde_json::from_value::<Vec<String>>(doc["options"].clone()))
             .transpose()
             .context("read original Atlas installation choices")?;
-        return Ok(InstallIdentity::Resume(target.to_owned(), options));
+        return Ok(InstallIdentity::Resume(target.to_owned(), Unfinished { held, choose_again, mode }));
     }
     let state = read_at(path)?;
     let version =
@@ -269,8 +302,8 @@ mod tests {
             assert!(!InstallIdentity::Installed(version.into()).allows(&manifest));
         }
         assert!(InstallIdentity::Fresh.allows(&manifest));
-        assert!(InstallIdentity::Resume("0.6.0".into(), None).allows(&manifest));
-        assert!(!InstallIdentity::Resume("0.5.0".into(), None).allows(&manifest));
+        assert!(InstallIdentity::Resume("0.6.0".into(), Unfinished::default()).allows(&manifest));
+        assert!(!InstallIdentity::Resume("0.5.0".into(), Unfinished::default()).allows(&manifest));
     }
 
     /// Start-AtlasInstallState writes active.json, so every mode it accepts
@@ -300,10 +333,43 @@ mod tests {
         for mode in modes.iter().flat_map(|mode| [mode.to_string(), mode.to_ascii_lowercase()]) {
             let parsed = InstallMode::parse(Some(&mode));
             assert!(format!("{parsed:?}").eq_ignore_ascii_case(&mode), "{mode} reads as {parsed:?}");
-            assert_eq!(identity(&mode).unwrap(), InstallIdentity::Resume("0.6.0".into(), None), "{mode}");
+            assert_eq!(
+                identity(&mode).unwrap(),
+                InstallIdentity::Resume("0.6.0".into(), Unfinished { mode: parsed, ..Unfinished::default() }),
+                "{mode}"
+            );
         }
         assert_eq!(InstallMode::parse(Some("Repair")), InstallMode::Unknown);
         assert!(identity("Repair").is_err());
+    }
+
+    /// Start-AtlasInstallState records its `-Choices` in active.json, so each
+    /// value it accepts must be one the app reads, and nothing else may be.
+    #[test]
+    fn every_choice_the_install_state_records_is_one_the_app_reads() {
+        let module = include_str!(
+            "../../../playbook/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/Atlas.InstallState.psm1"
+        );
+        let start =
+            &module[module.find("function Start-AtlasInstallState").expect("Start-AtlasInstallState")..];
+        let before = &start[..start.find("[string]$Choices").expect("its -Choices parameter")];
+        let list =
+            &before[before.rfind("[ValidateSet(").expect("its choices list") + "[ValidateSet(".len()..];
+        let values: Vec<&str> =
+            list[..list.find(')').unwrap()].split(',').map(|value| value.trim().trim_matches('\'')).collect();
+        assert_eq!(values, ["Keep", "ChooseAgain"]);
+        for value in &values {
+            assert_eq!(
+                choose_again(Some(&serde_json::json!(value))),
+                Some(*value == "ChooseAgain"),
+                "{value}"
+            );
+        }
+        assert_eq!(
+            choose_again(Some(&serde_json::json!("keep"))),
+            None,
+            "the install state compares exactly"
+        );
     }
 
     #[test]
@@ -338,7 +404,10 @@ mod tests {
         let no_files = || -> Result<bool> { panic!("must not look for Atlas's files") };
         assert_eq!(
             read_identity_at(&state, no_legacy, no_files).unwrap(),
-            InstallIdentity::Resume("0.6.0".into(), None)
+            InstallIdentity::Resume(
+                "0.6.0".into(),
+                Unfinished { mode: InstallMode::Fresh, ..Unfinished::default() }
+            )
         );
         std::fs::remove_file(&active).unwrap();
         assert_eq!(
@@ -391,7 +460,14 @@ mod tests {
                         result.unwrap(),
                         InstallIdentity::Resume(
                             "0.6.0".into(),
-                            Some(vec!["auto-updates-disable".into(), "disable-power-saving".into()])
+                            Unfinished {
+                                held: Some(vec![
+                                    "auto-updates-disable".into(),
+                                    "disable-power-saving".into()
+                                ]),
+                                choose_again: false,
+                                mode: InstallMode::Fresh,
+                            }
                         ),
                         "{status}"
                     );
@@ -403,9 +479,66 @@ mod tests {
         // Until then the choices can still change, whatever they were.
         assert_eq!(
             read("Capturing", serde_json::json!([]), &serde_json::Value::Null).unwrap(),
-            InstallIdentity::Resume("0.6.0".into(), None)
+            InstallIdentity::Resume(
+                "0.6.0".into(),
+                Unfinished { mode: InstallMode::Fresh, ..Unfinished::default() }
+            )
         );
         assert!(read("Completed", serde_json::json!(["Features"]), &serde_json::json!([])).is_err());
+    }
+
+    /// An unfinished install says whether it chose again, held or not. A
+    /// record from before the choice existed keeps the choices, and one the
+    /// install state would refuse is refused here too.
+    #[test]
+    fn an_unfinished_install_says_whether_it_chose_again() {
+        let temp = super::super::test_support::TempDir::new("resume-choose-again");
+        let state = temp.path().join("state.json");
+        let active = temp.path().join("Install/active.json");
+        std::fs::create_dir_all(active.parent().unwrap()).unwrap();
+        let read = |status: &str, choices: Option<serde_json::Value>| {
+            let mut doc = serde_json::json!({
+                "schemaVersion": 1, "targetVersion": "0.6.0", "mode": "Reapply", "status": status,
+                "completedSteps": [], "options": ["defender-enable"],
+            });
+            if let Some(choices) = choices {
+                doc["choices"] = choices;
+            }
+            std::fs::write(&active, doc.to_string()).unwrap();
+            read_identity_at(&state, || panic!("must use active state"), || panic!("must use active state"))
+        };
+        let held = |choose_again| {
+            InstallIdentity::Resume(
+                "0.6.0".into(),
+                Unfinished {
+                    held: Some(vec!["defender-enable".into()]),
+                    choose_again,
+                    mode: InstallMode::Reapply,
+                },
+            )
+        };
+        assert_eq!(read("Running", None).unwrap(), held(false), "a record from before -ChooseAgain");
+        assert_eq!(read("Running", Some("Keep".into())).unwrap(), held(false));
+        assert_eq!(read("Running", Some("ChooseAgain".into())).unwrap(), held(true));
+        // Until a step has run, nothing is held, but the way it began is still read.
+        let unheld = |choose_again| {
+            InstallIdentity::Resume(
+                "0.6.0".into(),
+                Unfinished { held: None, choose_again, mode: InstallMode::Reapply },
+            )
+        };
+        assert_eq!(read("Capturing", Some("ChooseAgain".into())).unwrap(), unheld(true));
+        assert_eq!(read("Capturing", Some("Keep".into())).unwrap(), unheld(false));
+        assert_eq!(read("Capturing", None).unwrap(), unheld(false));
+        for invalid in [
+            serde_json::Value::Null,
+            serde_json::json!("chooseagain"),
+            serde_json::json!(true),
+            serde_json::json!(["Keep"]),
+        ] {
+            assert!(read("Running", Some(invalid.clone())).is_err(), "{invalid}");
+            assert!(read("Capturing", Some(invalid.clone())).is_err(), "{invalid}");
+        }
     }
 
     /// Capture writes state.json before the install has finished; only a

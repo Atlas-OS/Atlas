@@ -9,12 +9,13 @@ use gpui::{
 
 use super::{InstallPage, LOG_IDS, LOG_LINES_SHOWN, details_toggle, go_to_ready_button, start_over_button};
 use crate::i18n::describe;
-use crate::model::{AppModel, ElevationProblem, Preflight, RunState, Step};
+use crate::model::{AppModel, ElevationProblem, Preflight, RunState, ScreenKind, Step, UpdatePath};
 use crate::pages::{
     ListEntry, card_body, caution_caption, detail_row, detail_row_with_action, detail_text, log_actions,
     on_model, plain_list, step_card_header,
 };
-use crate::services::installer::{self, InstallOutcome, Phase};
+use crate::services::installer::{self, InstallOutcome};
+use crate::services::playbook::{FeatureOption, Manifest};
 use crate::services::requirements::{CheckId, Verdict};
 use crate::services::system::links;
 use crate::t;
@@ -33,10 +34,9 @@ impl InstallPage {
         // The current result comes first, so it is never hidden below the
         // summary at small window sizes, with what helps right under it.
         if let RunState::Finished(outcome) = run {
-            // A retry of an install an earlier attempt began applying.
-            let resumed = state.original_options().is_some();
+            let facts = state.attempt_facts();
             let severity = if outcome == InstallOutcome::Lost { Severity::Warning } else { Severity::Error };
-            let advice = outcome.advice(state.attempt.phase, resumed);
+            let advice = outcome.advice(&facts);
             // The installer's own words for what went wrong, untranslated.
             let message = match state.attempt.last_error() {
                 Some(error) => t!("install-source-details", problem = advice, error = error),
@@ -56,17 +56,13 @@ impl InstallPage {
                 }
             });
             let back_to_ready = outcome.needs_preparation() || outcome == InstallOutcome::Failed(2);
-            // An installer that stopped without a result may have changed
-            // things, so its message says how to turn protection back on.
-            let protections =
-                state.attempt.phase >= Phase::Applying || resumed || outcome == InstallOutcome::Lost;
             let actions = div()
                 .flex()
                 .flex_wrap()
                 .gap(px(8.))
                 .children(relaunch)
                 .when(back_to_ready, |this| this.child(go_to_ready_button("result-back-ready", &model)))
-                .when(protections, |this| {
+                .when(state.result_offers_windows_security(), |this| {
                     this.child(
                         Button::new("result-open-security", t!("common-open-windows-security"))
                             .icon(Icon::Shield)
@@ -74,7 +70,7 @@ impl InstallPage {
                     )
                 });
             let elevation = state.elevation_error.as_ref().filter(|_| !state.elevated).map(|e| e.text());
-            let bar = InfoBar::new(severity, outcome.heading(resumed), message)
+            let bar = InfoBar::new(severity, outcome.heading(facts.resumed), message)
                 .id("install-result")
                 .focus_handle(result_focus)
                 .action(actions);
@@ -367,64 +363,57 @@ impl InstallPage {
         details
     }
 
-    /// One row per Options screen with a Change link at its trailing edge;
-    /// Continue from there returns here. A resumed install's choices are
-    /// fixed, so its rows have no link. Choices that reduce protection, or
-    /// delete the user's data, carry a caution.
+    /// One row per choice with a Change link at its trailing edge (see
+    /// [`open_change`]). An update or reinstall first says how it treats the
+    /// choices. Keeping them, only that row has a link: every other choice is
+    /// as this PC has it, and its link leads through any the PC can't show.
+    /// A resumed install's choices are fixed, so its rows have no link.
+    /// Choices that reduce protection, or delete the user's data, carry a
+    /// caution.
     fn choice_rows(&self, cx: &App) -> Vec<AnyElement> {
-        let theme = cx.theme();
         let model = self.model.clone();
         let state = self.model.read(cx);
         let manifest = state.manifest();
         let options = state.effective_options();
+        let editable = state.flow.may_edit();
         let mut rows = Vec::new();
-        for (index, screen) in state.option_screens().into_iter().enumerate() {
-            let chosen: Vec<ListEntry> = screen
-                .pages
-                .iter()
-                .filter_map(|&page_index| manifest.pages.get(page_index))
-                .filter(|page| page.depends_on.as_ref().is_none_or(|dependency| options.contains(dependency)))
-                .flat_map(|page| page.options.iter())
-                .filter(|option| options.contains(&option.name))
-                .map(|option| ListEntry::install_option(&option.name, &option.text, state.before_desktop))
-                .collect();
-            let title = screen.kind.title();
-            let key = format!("choice-{index}");
-            let change = state.locked_options().is_none().then(|| {
-                Button::new(("change-choice", index), t!("common-change"))
+        for (index, row) in choice_row_plan(state).into_iter().enumerate() {
+            let (key, title) = if row.kind == ScreenKind::UpdatePath {
+                ("choice-path".to_owned(), t!("summary-update-path"))
+            } else {
+                (format!("choice-{index}"), row.kind.title())
+            };
+            let kind = row.kind;
+            let action = row.change.map(|screen| {
+                Button::new(("change-choice", screen), t!("common-change"))
                     .hyperlink()
                     .compact()
                     .aria_label(t!("summary-change-a11y", title = title.as_str()))
-                    .disabled(!state.flow.may_edit())
-                    .on_click(on_model(&model, move |m, cx| m.edit_options(index, cx)))
+                    .disabled(!editable)
+                    .on_click(on_model(&model, move |m, cx| open_change(m, kind, screen, cx)))
+                    .into_any_element()
             });
-            let value: AnyElement = if screen.required {
-                let (text, caution) = match chosen.into_iter().next() {
-                    Some(ListEntry { text, caution }) => (text, caution),
-                    None => (t!("summary-not-chosen"), None),
+            let value = if row.kind == ScreenKind::UpdatePath {
+                let path = match path_taken(state) {
+                    UpdatePath::Keep => t!("update-path-keep"),
+                    UpdatePath::ChooseAgain => t!("update-path-choose"),
                 };
-                div()
-                    .flex()
-                    .flex_col()
-                    .gap(px(2.))
-                    .min_w_0()
-                    .child(detail_text(&key, text))
-                    .when_some(caution, |this, caution| {
-                        this.child(caution_caption(cx, detail_text(&format!("{key}-caution"), caution)))
-                    })
-                    .into_any_element()
-            } else if chosen.is_empty() {
-                div()
-                    .text_color(theme.text_secondary)
-                    .child(detail_text(&key, t!("common-none")))
-                    .into_any_element()
+                detail_text(&key, path).into_any_element()
             } else {
-                plain_list(cx, ("choices", index), &title, chosen).w_full().into_any_element()
+                let chosen = chosen_on(manifest, &row.pages, &options, |option| {
+                    ListEntry::install_option(&option.name, &option.text, state.before_desktop)
+                });
+                choice_value(
+                    cx,
+                    &key,
+                    ("choices", index),
+                    &title,
+                    row.required,
+                    chosen,
+                    t!("summary-not-chosen"),
+                )
             };
-            rows.push(
-                detail_row_with_action(cx, &key, title, value, change.map(IntoElement::into_any_element))
-                    .into_any_element(),
-            );
+            rows.push(detail_row_with_action(cx, &key, title, value, action).into_any_element());
         }
         rows
     }
@@ -432,6 +421,135 @@ impl InstallPage {
     fn log_view(&mut self, cx: &mut Context<Self>) -> AnyElement {
         let state = self.model.read(cx);
         self.log.render(LOG_IDS, 280., LOG_LINES_SHOWN, &state.attempt, cx)
+    }
+}
+
+/// A row of the summary's choices: the screen whose choices it lists, or
+/// how an update or reinstall treats them ([`ScreenKind::UpdatePath`]), and
+/// the screen of Your choices its Change link opens, if it has one.
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct ChoiceRow {
+    kind: ScreenKind,
+    pages: Vec<usize>,
+    required: bool,
+    change: Option<usize>,
+}
+
+/// The summary's rows of choices. An update or reinstall says first how it
+/// treats them, with a link to its first screen; an unfinished install that
+/// chose again says so too, without one, as it can't change. Then one row
+/// per choice: keeping the choices, each is as this PC has it, so it has no
+/// link; choosing again, each links to its screen after the first one. A
+/// first install links each to its screen, unless its choices are fixed. An
+/// unfinished update that will keep them links only the ones it asks.
+fn choice_row_plan(state: &AppModel) -> Vec<ChoiceRow> {
+    let update = state.update_choices().is_some();
+    let choosing_again = state.choosing_again();
+    let mut rows = Vec::new();
+    if state.unfinished_choices().is_some_and(|choices| !choices.complete()) {
+        let asked = state.option_screens();
+        rows.extend(state.choice_screens().into_iter().map(|screen| ChoiceRow {
+            change: asked.iter().position(|shown| shown.pages == screen.pages),
+            kind: screen.kind,
+            pages: screen.pages,
+            required: screen.required,
+        }));
+        return rows;
+    }
+    if update || choosing_again {
+        rows.push(ChoiceRow {
+            kind: ScreenKind::UpdatePath,
+            pages: Vec::new(),
+            required: false,
+            change: update.then_some(0),
+        });
+    }
+    let (screens, first, links) = if update {
+        (state.choice_screens(), 1, choosing_again)
+    } else {
+        (state.option_screens(), 0, state.locked_options().is_none())
+    };
+    rows.extend(screens.into_iter().enumerate().map(|(index, screen)| ChoiceRow {
+        kind: screen.kind,
+        pages: screen.pages,
+        required: screen.required,
+        change: links.then_some(first + index),
+    }));
+    rows
+}
+
+/// Follows the Change link of the summary's row of `kind`, which opens
+/// `screen` of Your choices. How Atlas updates goes through Your choices
+/// again from its first screen, as its answer decides which screens follow:
+/// every one when choosing again, and those this PC can't show when keeping
+/// the choices. Continue from any other row's screen comes back here.
+fn open_change(m: &mut AppModel, kind: ScreenKind, screen: usize, cx: &mut gpui::Context<AppModel>) {
+    if kind == ScreenKind::UpdatePath {
+        m.set_step(Step::Options, cx);
+    } else {
+        m.edit_options(screen, cx);
+    }
+}
+
+/// How the summary says the install treats the choices: as this flow chose,
+/// or, for an unfinished install, as it began.
+fn path_taken(state: &AppModel) -> UpdatePath {
+    if state.choosing_again() { UpdatePath::ChooseAgain } else { UpdatePath::Keep }
+}
+
+/// The options among `options` that the screen showing `pages` has chosen,
+/// each as `entry` lists it. A page shown only once another option is
+/// chosen counts only then.
+pub(super) fn chosen_on<T>(
+    manifest: &Manifest,
+    pages: &[usize],
+    options: &[String],
+    entry: impl Fn(&FeatureOption) -> T,
+) -> Vec<T> {
+    pages
+        .iter()
+        .filter_map(|&page_index| manifest.pages.get(page_index))
+        .filter(|page| page.depends_on.as_ref().is_none_or(|dependency| options.contains(dependency)))
+        .flat_map(|page| page.options.iter())
+        .filter(|option| options.contains(&option.name))
+        .map(entry)
+        .collect()
+}
+
+/// A row's value in a list of choices, keyed like its row: a required
+/// choice's answer, with its caution, or `unmade` when there is none; or the
+/// extras chosen, in list `list`, or None.
+pub(super) fn choice_value(
+    cx: &App,
+    key: &str,
+    list: (&'static str, usize),
+    title: &str,
+    required: bool,
+    chosen: Vec<ListEntry>,
+    unmade: String,
+) -> AnyElement {
+    if required {
+        let (text, caution) = match chosen.into_iter().next() {
+            Some(ListEntry { text, caution }) => (text, caution),
+            None => (unmade, None),
+        };
+        div()
+            .flex()
+            .flex_col()
+            .gap(px(2.))
+            .min_w_0()
+            .child(detail_text(key, text))
+            .when_some(caution, |this, caution| {
+                this.child(caution_caption(cx, detail_text(&format!("{key}-caution"), caution)))
+            })
+            .into_any_element()
+    } else if chosen.is_empty() {
+        div()
+            .text_color(cx.theme().text_secondary)
+            .child(detail_text(key, t!("common-none")))
+            .into_any_element()
+    } else {
+        plain_list(cx, list, title, chosen).w_full().into_any_element()
     }
 }
 
@@ -471,7 +589,149 @@ fn preflight_action(problem: &Preflight, state: &AppModel, model: &gpui::Entity<
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::test_harness::run_model_test;
+    use crate::pages::testing::{NO_TELEMETRY, installed_model, records};
+    use crate::services::atlas_state::{InstallIdentity, InstallMode, Unfinished};
+    use crate::services::legacy_choices::Facts;
     use crate::services::requirements::CheckDetail;
+    use crate::services::test_support::TempDir;
+
+    /// The rows' kinds and the screen each Change link opens.
+    fn plan(m: &AppModel) -> Vec<(ScreenKind, Option<usize>)> {
+        choice_row_plan(m).into_iter().map(|row| (row.kind, row.change)).collect()
+    }
+
+    /// An update or reinstall says first how it treats the choices. Keeping
+    /// them, only that row can be changed, as every other choice is the
+    /// PC's; choosing again, each row opens its own screen after the first.
+    #[test]
+    fn the_summary_says_how_atlas_updates_and_links_only_what_can_change() {
+        use ScreenKind::{Defender, Extras, Keyboard, Mitigations, Updates};
+        run_model_test(|mut cx| async move {
+            let temp = TempDir::new("summary-rows");
+            let pc = Facts {
+                packages: vec![NO_TELEMETRY.into()],
+                toggles: records(&[("Mitigations", 1), ("AutomaticUpdates", 0), ("KeyboardShortcuts", 1)]),
+                ..Facts::default()
+            };
+            let model = installed_model(&mut cx, &temp, Some(&["defender-enable"]), pc);
+            model.update(&mut cx, |m, _| {
+                let choices = [Defender, Mitigations, Updates, Keyboard, Extras];
+                assert!(m.update_choices().unwrap().complete());
+                let keeping: Vec<_> = std::iter::once((ScreenKind::UpdatePath, Some(0)))
+                    .chain(choices.iter().map(|kind| (*kind, None)))
+                    .collect();
+                assert_eq!(plan(m), keeping);
+                m.update_path = UpdatePath::ChooseAgain;
+                let choosing: Vec<_> = std::iter::once((ScreenKind::UpdatePath, Some(0)))
+                    .chain(choices.iter().enumerate().map(|(index, kind)| (*kind, Some(index + 1))))
+                    .collect();
+                assert_eq!(plan(m), choosing);
+                // An option screen per row, Change opening the one its row lists.
+                let screens = m.option_screens();
+                for (kind, change) in plan(m) {
+                    assert_eq!(screens[change.unwrap()].kind, kind);
+                }
+
+                // A first install has no such row, and links every choice.
+                m.install_identity = Ok(InstallIdentity::Fresh);
+                let first: Vec<_> =
+                    choices.iter().enumerate().map(|(index, kind)| (*kind, Some(index))).collect();
+                assert_eq!(plan(m), first);
+                // An unfinished install that chose again says so, and nothing can change.
+                let unfinished = Unfinished {
+                    held: Some(vec!["defender-enable".into()]),
+                    choose_again: true,
+                    mode: InstallMode::Reapply,
+                };
+                m.install_identity = Ok(InstallIdentity::Resume("0.6.0".into(), unfinished));
+                m.update_path = UpdatePath::Keep;
+                let resumed: Vec<_> = std::iter::once((ScreenKind::UpdatePath, None))
+                    .chain(choices.iter().map(|kind| (*kind, None)))
+                    .collect();
+                assert_eq!(plan(m), resumed);
+                assert_eq!(path_taken(m), UpdatePath::ChooseAgain, "as it began, whatever this flow has");
+                m.install_identity = Ok(InstallIdentity::Installed("0.6.0".into()));
+                assert_eq!(path_taken(m), UpdatePath::Keep);
+            });
+        });
+    }
+
+    /// An unfinished update that will keep the choices, with nothing held
+    /// yet, lists every one as keeping them does and links only the one this
+    /// PC can't show; with every one shown, none.
+    #[test]
+    fn an_unfinished_update_that_keeps_the_choices_links_only_what_it_asks() {
+        use ScreenKind::{Defender, Extras, Keyboard, Mitigations, Updates};
+        run_model_test(|mut cx| async move {
+            let temp = TempDir::new("summary-unfinished-keep");
+            let pc = Facts {
+                packages: vec![NO_TELEMETRY.into()],
+                toggles: records(&[("AutomaticUpdates", 0), ("KeyboardShortcuts", 1)]),
+                ..Facts::default()
+            };
+            let model = installed_model(&mut cx, &temp, Some(&["defender-enable"]), pc);
+            model.update(&mut cx, |m, _| {
+                let unfinished = Unfinished { held: None, choose_again: false, mode: InstallMode::Upgrade };
+                m.install_identity = Ok(InstallIdentity::Resume("0.6.0".into(), unfinished));
+                assert_eq!(
+                    plan(m),
+                    [
+                        (Defender, None),
+                        (Mitigations, Some(0)),
+                        (Updates, None),
+                        (Keyboard, None),
+                        (Extras, None)
+                    ]
+                );
+                m.pc_facts.toggles.insert("Mitigations".into(), 1);
+                let none: Vec<_> = [Defender, Mitigations, Updates, Keyboard, Extras]
+                    .iter()
+                    .map(|kind| (*kind, None))
+                    .collect();
+                assert_eq!(plan(m), none, "nothing to ask");
+            });
+        });
+    }
+
+    /// How Atlas updates leads through Your choices again from its first
+    /// screen, so neither the screens choosing again opens nor the one
+    /// keeping the choices still asks is skipped on the way back to the
+    /// summary. Any other row's screen returns straight there.
+    #[test]
+    fn changing_how_atlas_updates_goes_through_the_screens_its_answer_leads_to() {
+        run_model_test(|mut cx| async move {
+            let temp = TempDir::new("summary-path-change");
+            // No record of processor protections, so keeping the choices asks it.
+            let pc = Facts {
+                packages: vec![NO_TELEMETRY.into()],
+                toggles: records(&[("AutomaticUpdates", 0), ("KeyboardShortcuts", 1)]),
+                ..Facts::default()
+            };
+            let model = installed_model(&mut cx, &temp, Some(&["defender-enable"]), pc);
+            model.update(&mut cx, |m, cx| {
+                let at = |m: &AppModel| (m.flow.step, m.option_screens()[m.current_option_screen()].kind);
+                assert_eq!(m.update_choices().unwrap().missing, [ScreenKind::Mitigations]);
+                m.flow.resume(Step::Install).unwrap();
+                open_change(m, ScreenKind::UpdatePath, 0, cx);
+                assert_eq!(at(m), (Step::Options, ScreenKind::UpdatePath));
+                m.next_step(cx);
+                assert_eq!(at(m), (Step::Options, ScreenKind::Mitigations), "what keeping still asks");
+
+                m.flow.resume(Step::Install).unwrap();
+                open_change(m, ScreenKind::UpdatePath, 0, cx);
+                m.set_update_path(UpdatePath::ChooseAgain, cx);
+                m.next_step(cx);
+                assert_eq!(at(m), (Step::Options, ScreenKind::Defender), "every screen, choosing again");
+
+                m.flow.resume(Step::Install).unwrap();
+                open_change(m, ScreenKind::Mitigations, 2, cx);
+                assert_eq!(at(m), (Step::Options, ScreenKind::Mitigations));
+                m.next_step(cx);
+                assert!(m.flow.step > Step::Options, "back towards the summary: {:?}", m.flow.step);
+            });
+        });
+    }
 
     /// Install Atlas is the retry for a launch that failed or was busy, so
     /// the bar doesn't send the user back to Get ready, which can't help.

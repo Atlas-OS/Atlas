@@ -107,13 +107,14 @@ BeforeAll {
     function Get-AtlasTransitionCarry([string[]]$AtlasPackages) { ConvertTo-AtlasTransitionCarry (New-Atlas050Fact) $AtlasPackages }
     function Get-AtlasToggleStateRecords { $script:ToggleRecords.Clone() }
     function Set-AtlasToggleState([string]$Name, [int]$State) { $script:Writes.Add("toggle $Name $State"); $script:ToggleRecords[$Name] = $State }
+    function Repair-AtlasToolboxRecord([string]$InstalledVersion) { $script:Writes.Add("repair $InstalledVersion") }
     # What Atlas 0.5.0 leaves that the record keeps: its markers, the toggle records
     # its choices wrote, Edge and Snipping Tool removed, OneDrive gone.
     function New-Atlas050Fact {
         [pscustomobject]@{
             State = $null; LegacyVersions = @('0.5.0')
             Toggles = @(
-                [pscustomobject]@{ name = 'Mitigations'; state = 2 }
+                [pscustomobject]@{ name = 'Mitigations'; state = 2; path = 'Enable All Mitigations.cmd' }
                 [pscustomobject]@{ name = 'AutomaticUpdates'; state = 0 }
                 [pscustomobject]@{ name = 'Hibernation'; state = 0 }
                 [pscustomobject]@{ name = 'PowerSaving'; state = 1 }
@@ -159,7 +160,7 @@ BeforeAll {
         if ($values.Count -eq 0) { return $null }
         return [pscustomobject]$values
     }
-    foreach ($double in @('Get-AtlasTransitionValue', 'Get-AtlasTransitionSubKeyName', 'Set-AtlasTransitionValue', 'Remove-AtlasTransitionValue', 'Set-AtlasTransitionServiceStart', 'Set-AtlasTransitionTask', 'New-ItemProperty', 'Write-AtlasTransitionCopy', 'Remove-AtlasTransitionCopy', 'Set-AtlasToggleState')) {
+    foreach ($double in @('Get-AtlasTransitionValue', 'Get-AtlasTransitionSubKeyName', 'Set-AtlasTransitionValue', 'Remove-AtlasTransitionValue', 'Set-AtlasTransitionServiceStart', 'Set-AtlasTransitionTask', 'New-ItemProperty', 'Write-AtlasTransitionCopy', 'Remove-AtlasTransitionCopy', 'Set-AtlasToggleState', 'Repair-AtlasToolboxRecord')) {
         if ((Get-Command -Name $double -CommandType Function).ScriptBlock.ToString() -notmatch 'script:(Registry|Writes|Tasks)|Set-AtlasTransitionValue') {
             throw "$double is not the in-memory double; no test may reach the live registry."
         }
@@ -240,6 +241,25 @@ BeforeAll {
             $script:Installer
         }
         return $session
+    }
+}
+
+Describe 'Power-saving choice before a Windows move' {
+    BeforeEach { Reset-Machine }
+    It 'preserves the real power choice: <name>' -ForEach @(
+        (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'fixtures\windows-transition\power-saving-records.json') -Raw | ConvertFrom-Json) |
+            ForEach-Object { @{ name = $_.name; active = $_.active; record = $_.record; expected = $_.expected } }
+    ) {
+        if ($null -ne $active) { Set-Fake 'SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes' ActivePowerScheme String $active }
+        if ($null -ne $record) { Set-Fake 'SOFTWARE\AtlasOS\Services\PowerSaving' state DWord ([int64]$record) }
+        $records = @(Get-AtlasTransitionToggleRecord | Where-Object name -eq PowerSaving)
+        if ($null -eq $expected) { $records | Should -HaveCount 0 }
+        else { $records | Should -HaveCount 1; $records[0].state | Should -Be $expected }
+        $script:Writes.Count | Should -Be 0
+        $facts = New-Atlas050Fact
+        $facts.Toggles = @(Get-AtlasTransitionToggleRecord)
+        $options = @(Get-AtlasTransitionObservedOption $facts @())
+        ($options -ccontains 'disable-power-saving') | Should -Be ($null -ne $expected -and $expected -eq 0)
     }
 }
 
@@ -1758,6 +1778,50 @@ Describe 'What the record keeps of the Atlas install' {
         Test-AtlasTransitionCarry $carry | Should -BeTrue
     }
 
+    It 'leaves out a Mitigations choice only the old Toolbox recorded, so a Rebase neither holds the update to it nor puts it back' {
+        $facts = New-Atlas050Fact
+        $facts.Toggles = @([pscustomobject]@{ name = 'Mitigations'; state = 2 }, [pscustomobject]@{ name = 'AutomaticUpdates'; state = 0 })
+        $carry = ConvertTo-AtlasTransitionCarry $facts @()
+        @($carry.options | Where-Object { $_ -like 'mitigations-*' }) | Should -BeNullOrEmpty
+        @($carry.toggles | ForEach-Object { $_.name }) | Should -Be @('AutomaticUpdates')
+        Test-AtlasTransitionCarry $carry | Should -BeTrue
+
+        # The launcher that applied it decides, whatever the Toolbox wrote over it since.
+        $facts.Toggles = @([pscustomobject]@{ name = 'Mitigations'; state = 2; path = 'Disable All Mitigations.cmd' })
+        $carry = ConvertTo-AtlasTransitionCarry $facts @()
+        @($carry.options) | Should -Contain 'mitigations-disable'
+        @($carry.toggles)[0].state | Should -Be 0
+        @($carry.toggles)[0].path | Should -BeExactly 'Disable All Mitigations.cmd'
+        Test-AtlasTransitionCarry $carry | Should -BeTrue
+        @($facts.Toggles)[0].state | Should -Be 2 -Because 'the facts it was given stay as they were'
+    }
+
+    # toolbox-records.json, which the update's Capture and Atlas Manager are tested
+    # on too, each record read from the PC as the record of a move reads it. It
+    # repairs only the ones the launcher table names; the Rebase repairs the rest
+    # when it puts them back. A path that names no file isn't kept in the record, so
+    # that case is the Capture's alone.
+    It 'keeps a shared Toolbox record as the update''s Capture leaves it: <name>' -ForEach @(
+        (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'fixtures\windows-transition\toolbox-records.json') -Raw | ConvertFrom-Json) |
+            Where-Object { $null -eq $_.path -or ($_.path -split '[\\/]')[-1] } |
+            ForEach-Object { @{ name = $_.name; version = $_.version; record = $_.key; state = $_.state; path = $_.path; result = $_.result } }
+    ) {
+        Set-Fake "SOFTWARE\AtlasOS\Services\$record" state DWord ([int64]$state)
+        if ($null -ne $path) { Set-Fake "SOFTWARE\AtlasOS\Services\$record" path String $path }
+        $facts = New-Atlas050Fact
+        $facts.Toggles = @(Get-AtlasTransitionToggleRecord)
+        if ([version]$version -lt [version]'0.6') { $facts.LegacyVersions = @($version) }
+        else {
+            $facts.LegacyVersions = @()
+            $facts.State = [pscustomobject]@{ installedVersion = $version; options = @() }
+        }
+        $carry = ConvertTo-AtlasTransitionCarry $facts @()
+        $kept = @($carry.toggles | ForEach-Object { "$($_.name)=$($_.state)" }) -join ','
+        if (@(Get-AtlasToolboxLauncherRule | ForEach-Object { $_.Name }) -cnotcontains $record) { $kept | Should -BeExactly "$record=$state" -Because $name }
+        elseif ($null -eq $result) { $kept | Should -BeNullOrEmpty -Because $name }
+        else { $kept | Should -BeExactly "$($result.key)=$($result.state)" -Because $name }
+    }
+
     It 'keeps Defender and Edge when they were there, and asks again when no record shows a choice' {
         $facts = New-Atlas050Fact
         $facts.Edge = $true
@@ -1790,6 +1854,10 @@ Describe 'What the record keeps of the Atlas install' {
         @(ConvertTo-AtlasTransitionCarry $facts @()).options | Should -Contain 'browser-librewolf'
         $facts.Browsers = @('browser-librewolf', 'browser-firefox')
         @((ConvertTo-AtlasTransitionCarry $facts @()).options | Where-Object { $_ -like '*browser*' }) | Should -BeNullOrEmpty
+        # Atlas 0.6 writes the empty name for no browser chosen.
+        $facts.State = [pscustomobject]@{ installedVersion = '0.6.0'; options = @('defender-enable') }
+        $facts.Browsers = @('browser-chrome')
+        @((ConvertTo-AtlasTransitionCarry $facts @()).options | Where-Object { $_ -like '*browser*' }) | Should -BeNullOrEmpty
     }
 
     It 'reads core isolation from the values Atlas 0.5.0 and Windows leave: <name>' -ForEach @(
@@ -1803,13 +1871,29 @@ Describe 'What the record keeps of the Atlas install' {
         Test-AtlasTransitionCoreIsolationOff | Should -Be ([bool]$off)
     }
 
-    It 'takes a recorded install''s options as they are' {
+    It 'takes a recorded install''s options, with what the PC shows over the choices an earlier install never applied' {
         $facts = New-Atlas050Fact
-        $facts.State = [pscustomobject]@{ installedVersion = '0.6.0'; options = @('defender-enable', 'mitigations-disable', 'auto-updates-default') }
-        $carry = ConvertTo-AtlasTransitionCarry $facts @()
+        $facts.State = [pscustomobject]@{ installedVersion = '0.6.0'; options = @('defender-enable', 'mitigations-disable', 'auto-updates-default', 'install-eclean') }
+        $facts.Toggles = @([pscustomobject]@{ name = 'Mitigations'; state = 2 })
+        $facts.Edge = $true
+        $facts.Appx = @()
+        $facts.Toolbox = $false
+        $facts.CoreIsolationOff = $false
+        $facts.Browser = $null
+        $carry = ConvertTo-AtlasTransitionCarry $facts @('Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0', 'Z-Atlas-NoTelemetry-Package~31bf3856ad364e35~amd64~~5.0.0.0')
         $carry.atlasVersion | Should -BeExactly '0.6.0'
         $carry.optionSource | Should -BeExactly 'recorded'
-        @($carry.options) | Should -Be @('defender-enable', 'mitigations-disable', 'auto-updates-default')
+        @($carry.options) | Should -Be @('auto-updates-default', 'install-eclean', 'defender-disable', 'mitigations-default')
+        Test-AtlasTransitionCarry $carry | Should -BeTrue
+    }
+
+    It 'keeps the recorded choices the PC doesn''t show, a kept Defender missing without an Atlas package among them' {
+        $facts = [pscustomobject]@{
+            State = [pscustomobject]@{ installedVersion = '0.6.0-rc11'; options = @('defender-enable', 'keyboard-single', 'uninstall-edge', 'install-eclean') }
+            LegacyVersions = @(); Toggles = @(); Browser = $null; AtlasModules = $true; Edge = $false; OneDrive = $false; Defender = $false
+            Appx = @(); Toolbox = $false; CoreIsolationOff = $false; Browsers = @()
+        }
+        @((ConvertTo-AtlasTransitionCarry $facts @()).options) | Should -Be @('defender-enable', 'keyboard-single', 'install-eclean', 'uninstall-edge')
     }
 
     It 'accepts the record of a rebuilt Windows the app reads too, and gives the Atlas install its version and choices' {
@@ -1827,14 +1911,23 @@ Describe 'What the record keeps of the Atlas install' {
         @($cases).Count | Should -BeGreaterThan 0
         foreach ($case in @($cases)) {
             $optional = { param($Name) $property = $case.facts.PSObject.Properties[$Name]; if ($null -ne $property) { $property.Value } }
+            # A case that didn't read the WinDefend service key leaves defender out.
             $facts = [pscustomobject]@{
                 State = $null; LegacyVersions = @('0.5.0'); Toggles = @($case.facts.toggles)
-                Browser = $case.facts.browser; AtlasModules = $true; Edge = $case.facts.edge; OneDrive = $false; Defender = $true
+                Browser = $case.facts.browser; AtlasModules = $true; Edge = $case.facts.edge; OneDrive = $false; Defender = & $optional 'defender'
                 Appx = @($case.facts.appx); Toolbox = $case.facts.toolbox; CoreIsolationOff = $case.facts.coreIsolationOff; Browsers = @($case.facts.browsers)
                 LanguageHotkey = & $optional 'languageHotkey'; KeyboardLayouts = [int](& $optional 'keyboardLayouts')
             }
-            $carry = ConvertTo-AtlasTransitionCarry $facts @($case.packages)
-            (@($carry.options) -join ',') | Should -BeExactly (@($case.options) -join ',') -Because $case.name
+            # The cases' records name no launcher, so the record of a move would
+            # first leave out the Mitigations one as the old Toolbox's; the
+            # Toolbox records have cases of their own (toolbox-records.json).
+            (@(Get-AtlasTransitionObservedOption $facts @($case.packages)) -join ',') | Should -BeExactly (@($case.options) -join ',') -Because $case.name
+            # With nothing recorded, the merge gives the same options, except that an
+            # empty browser name, Atlas 0.5.0's LibreWolf, names no browser on an
+            # install with a record.
+            $expected = @($case.options)
+            if ('' -ceq $case.facts.browser) { $expected = @($expected | Where-Object { $_ -notlike 'browser-*' -and $_ -cne 'install-another-browser' }) }
+            (@(Merge-AtlasObservedOption @() $facts @($case.packages)) -join ',') | Should -BeExactly ($expected -join ',') -Because "$($case.name), merged over nothing"
         }
     }
 
@@ -1908,6 +2001,314 @@ Describe 'What the record keeps of the Atlas install' {
         (Read-Journal).carry.atlasVersion | Should -BeExactly '0.5.0'
         Invoke-PreparationTransition | Should -Be 'reboot'
         Should -Invoke Get-AtlasTransitionCarry -Times 1 -Exactly
+    }
+}
+
+Describe 'What the PC shows over recorded choices' {
+    # merged-options.json, which Atlas Manager's tests read too. Each case has:
+    #   base          the options recorded or requested
+    #   packages      the Atlas packages at CurrentState 112 and, after the install,
+    #                 those waiting for the restart as well
+    #   facts         what the PC shows, named as in observed-options.json, with
+    #                 defender (whether the WinDefend service key exists) and
+    #                 defenderPackage (Installed, InstallPending or UninstallPending);
+    #                 a fact left out, or null, wasn't read. Unlike there, an empty
+    #                 browser name names no browser. In place of toolbox, a case may
+    #                 give toolboxRecord and toolboxProgram (the Toolbox installer's
+    #                 key and AtlasToolbox.exe); in place of appx, profiles (the
+    #                 accounts in Windows's profile list) and appxPackages, each a
+    #                 family with the sid and InstallState of every account
+    #                 Get-AppxPackage -AllUsers lists for it. Atlas Manager reads only
+    #                 its own account's apps, so only cases after the install do.
+    #   afterInstall  whether the install has just changed the PC
+    #   options       the merged options, in any order
+    BeforeAll {
+        # A case's facts as the machine facts give them, read by the same rules.
+        function ConvertTo-CaseFact($Facts) {
+            $facts = $Facts.PSObject.Copy()
+            if ($null -ne $facts.PSObject.Properties['toolboxRecord']) {
+                $toolbox = Test-AtlasTransitionToolboxInstalled ([bool]$facts.toolboxRecord) ([bool]$facts.toolboxProgram)
+                $facts | Add-Member -NotePropertyName toolbox -NotePropertyValue $toolbox -Force
+            }
+            if ($null -ne $facts.PSObject.Properties['appxPackages']) {
+                $packages = @(foreach ($package in @($facts.appxPackages)) {
+                        $users = @(foreach ($user in @($package.users)) {
+                                [pscustomobject]@{ UserSecurityId = [pscustomobject]@{ Sid = [string]$user.sid }; InstallState = [string]$user.state }
+                            })
+                        [pscustomobject]@{ PackageFamilyName = [string]$package.family; PackageUserInformation = $users }
+                    })
+                $facts | Add-Member -NotePropertyName appx -NotePropertyValue @(Select-AtlasTransitionInstalledAppx $packages @($facts.profiles)) -Force
+            }
+            return $facts
+        }
+    }
+
+    It 'merges as the app does for the shared case: <name>' -ForEach @(
+        (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'fixtures\windows-transition\merged-options.json') -Raw | ConvertFrom-Json) |
+            ForEach-Object { @{ name = $_.name; base = $_.base; facts = $_.facts; packages = $_.packages; afterInstall = $_.afterInstall; options = $_.options } }
+    ) {
+        $merged = @(Merge-AtlasObservedOption @($base) (ConvertTo-CaseFact $facts) @($packages) -AfterInstall:([bool]$afterInstall))
+        (@($merged | Sort-Object) -join ',') | Should -BeExactly (@($options | Sort-Object) -join ',')
+        @($merged | Select-Object -Unique).Count | Should -Be $merged.Count
+    }
+
+    It 'names only options the Atlas package declares, and reads every choice group it declares' {
+        $playbook = [xml][IO.File]::ReadAllText((Join-Path $script:AtlasTestRepoRoot 'playbook\playbook.conf'))
+        $declared = @($playbook.Playbook.FeaturePages.SelectNodes('*/Options/*/Name') | ForEach-Object { [string]$_.InnerText })
+        $declared | Should -Contain 'install-eclean'
+        foreach ($file in @('merged-options.json', 'observed-options.json')) {
+            foreach ($case in @(Get-Content -LiteralPath (Join-Path $PSScriptRoot "fixtures\windows-transition\$file") -Raw | ConvertFrom-Json)) {
+                $named = @($case.options)
+                if ($null -ne $case.PSObject.Properties['base']) { $named += @($case.base) }
+                foreach ($option in $named) { $declared | Should -Contain $option -Because "$file, $($case.name)" }
+            }
+        }
+        # A renamed option would otherwise leave its choice unread.
+        foreach ($pattern in @((Get-AtlasTransitionChoiceGroup).Values | ForEach-Object { $_ })) {
+            @($declared | Where-Object { $_ -like $pattern }) | Should -Not -BeNullOrEmpty -Because $pattern
+        }
+    }
+
+    It 'keeps a choice added later, which nothing on the PC shows' {
+        @(Merge-AtlasObservedOption @('defender-enable', 'a-later-choice') ([pscustomobject]@{ Defender = $true }) @()) |
+            Should -Be @('a-later-choice', 'defender-enable')
+    }
+
+    It 'reads facts given as a hashtable as it reads them given as an object' {
+        $facts = @{ Toggles = @(@{ name = 'Mitigations'; state = 1 }); Edge = $true; DefenderPackage = 'Installed'; Browser = $null }
+        $base = @('defender-enable', 'mitigations-disable', 'uninstall-edge', 'install-eclean')
+        $expected = @('install-eclean', 'defender-disable', 'mitigations-default')
+        @(Merge-AtlasObservedOption $base $facts @()) | Should -Be $expected
+        @(Merge-AtlasObservedOption $base ([pscustomobject]$facts) @()) | Should -Be $expected
+        @(Merge-AtlasObservedOption @('install-another-browser', 'browser-firefox') @{ Browsers = $null; Defender = $true } @() -AfterInstall) |
+            Should -Be @('install-another-browser', 'browser-firefox', 'defender-enable') -Because 'a null fact was not read'
+    }
+
+    It 'keeps the options it doesn''t replace first, in their order, and repeats none' {
+        $facts = [pscustomobject]@{ Toggles = @([pscustomobject]@{ name = 'Mitigations'; state = 1 }) }
+        @(Merge-AtlasObservedOption @('install-eclean', 'keyboard-single', 'install-eclean', 'mitigations-disable') $facts @()) |
+            Should -Be @('install-eclean', 'keyboard-single', 'mitigations-default')
+    }
+
+    It 'counts a pending NoDefender package by its state after the install, whatever packages it is given' {
+        $pending = [pscustomobject]@{ Defender = $true; DefenderPackage = 'InstallPending' }
+        @(Merge-AtlasObservedOption @('defender-enable') $pending @() -AfterInstall) | Should -Be @('defender-disable')
+        $restored = [pscustomobject]@{ Defender = $false; DefenderPackage = 'UninstallPending' }
+        @(Merge-AtlasObservedOption @('defender-disable') $restored @('Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0') -AfterInstall) |
+            Should -Be @('defender-enable')
+        @(Merge-AtlasObservedOption @('defender-disable') $restored @('Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0')) |
+            Should -Be @('defender-disable') -Because 'before an install only an installed package counts'
+    }
+}
+
+Describe 'Where Atlas''s NoDefender package stands' {
+    BeforeAll {
+        $script:CbsPackages = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\Packages'
+        $script:NoDefender = "$script:CbsPackages\Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0"
+    }
+    BeforeEach { Reset-Machine }
+
+    It 'reads <State> from CurrentState <Value>' -ForEach @(
+        @{ Value = 112; State = 'Installed' }
+        @{ Value = 96; State = 'InstallPending' }
+        @{ Value = 5; State = 'UninstallPending' }
+    ) {
+        Set-Fake $script:NoDefender CurrentState DWord $Value
+        Get-AtlasTransitionDefenderPackageState | Should -BeExactly $State
+        $script:Writes.Count | Should -Be 0
+    }
+
+    It 'reads nothing without the package in one of those states' {
+        Get-AtlasTransitionDefenderPackageState | Should -BeNullOrEmpty
+        Set-Fake "$script:CbsPackages\Z-Atlas-NoTelemetry-Package~31bf3856ad364e35~amd64~~5.0.0.0" CurrentState DWord 112
+        Get-AtlasTransitionDefenderPackageState | Should -BeNullOrEmpty -Because 'only the NoDefender package removes Defender'
+        Set-Fake $script:NoDefender CurrentState DWord 80
+        Get-AtlasTransitionDefenderPackageState | Should -BeNullOrEmpty -Because 'a superseded package is neither installed nor pending'
+        Set-Fake $script:NoDefender CurrentState String '112'
+        Get-AtlasTransitionDefenderPackageState | Should -BeNullOrEmpty -Because 'servicing writes CurrentState as a DWORD'
+    }
+
+    It 'counts first the state that leaves Defender removed after the restart, when Windows lists several versions' {
+        Set-Fake $script:NoDefender CurrentState DWord 5
+        Set-Fake "$script:CbsPackages\Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~6.0.0.0" CurrentState DWord 96
+        Get-AtlasTransitionDefenderPackageState | Should -BeExactly 'InstallPending'
+        Set-Fake "$script:CbsPackages\Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~7.0.0.0" CurrentState DWord 112
+        Get-AtlasTransitionDefenderPackageState | Should -BeExactly 'Installed'
+    }
+}
+
+Describe 'An account''s keyboard settings' {
+    BeforeAll {
+        function Set-TestHiveValue([string]$Sid, [string]$Path, [string]$Name, $Value, [Microsoft.Win32.RegistryValueKind]$Kind) {
+            $key = $script:Users.CreateSubKey("$Sid\$Path")
+            try { $key.SetValue($Name, $Value, $Kind) }
+            finally { $key.Dispose() }
+        }
+    }
+    BeforeEach {
+        # A key under the test account's own hive stands in for HKU, with a hive
+        # per SID beneath it.
+        $script:UsersPath = "Software\AtlasRewriteTest\KeyboardHives-$([guid]::NewGuid().ToString('N'))"
+        $script:Users = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($script:UsersPath)
+        Mock Get-AtlasTransitionUsersRoot { $script:Users }
+    }
+    AfterEach {
+        $script:Users.Dispose()
+        [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree($script:UsersPath, $false)
+    }
+
+    It 'reads Alt+Shift and the layouts from the hive of the account it names' {
+        $sid = 'S-1-5-21-111-222-333-1001'
+        Set-TestHiveValue $sid 'Keyboard Layout\Toggle' 'Language Hotkey' '3 ' String
+        Set-TestHiveValue $sid 'Keyboard Layout\Preload' '1' '00000809' String
+        Set-TestHiveValue $sid 'Keyboard Layout\Preload' '2' '00000415' String
+        Set-TestHiveValue 'S-1-5-21-111-222-333-1002' 'Keyboard Layout\Toggle' 'Language Hotkey' '1' String
+        Get-AtlasTransitionLanguageHotkey -UserSid $sid | Should -BeExactly '3'
+        Get-AtlasTransitionKeyboardLayoutCount -UserSid $sid | Should -Be 2
+        Get-AtlasTransitionLanguageHotkey -UserSid 'S-1-5-21-111-222-333-1002' | Should -BeExactly '1'
+        Get-AtlasTransitionKeyboardLayoutCount -UserSid 'S-1-5-21-111-222-333-1002' | Should -Be 0
+    }
+
+    It 'reads Alt+Shift stored as the number Atlas 0.5.0 wrote' {
+        Set-TestHiveValue 'S-1-5-21-111-222-333-1001' 'Keyboard Layout\Toggle' 'Language Hotkey' 3 DWord
+        Get-AtlasTransitionLanguageHotkey -UserSid 'S-1-5-21-111-222-333-1001' | Should -BeExactly '3'
+    }
+
+    It 'reads nothing for an account whose hive isn''t loaded' {
+        Get-AtlasTransitionLanguageHotkey -UserSid 'S-1-5-21-111-222-333-1003' | Should -BeNullOrEmpty
+        Get-AtlasTransitionKeyboardLayoutCount -UserSid 'S-1-5-21-111-222-333-1003' | Should -Be 0
+    }
+
+    It 'reads the account running it, never another hive, without a SID' {
+        $null = Get-AtlasTransitionLanguageHotkey
+        $null = Get-AtlasTransitionKeyboardLayoutCount
+        Should -Invoke Get-AtlasTransitionUsersRoot -Times 0 -Exactly
+    }
+
+    It 'refuses a SID that would reach another key' {
+        { Get-AtlasTransitionLanguageHotkey -UserSid 'S-1-5-21-111-222-333-1001\..\Software' } | Should -Throw '*not an account SID*'
+        { Get-AtlasTransitionKeyboardLayoutCount -UserSid 'Software' } | Should -Throw '*not an account SID*'
+        Should -Invoke Get-AtlasTransitionUsersRoot -Times 0 -Exactly
+    }
+}
+
+Describe 'What the machine facts read' {
+    BeforeEach {
+        Reset-Machine
+        Mock Get-AtlasTransitionStateDocument { $null }
+        Mock Test-AtlasTransitionPath { $false }
+        Mock Test-AtlasTransitionOneDrive { $false }
+        Mock Get-AtlasTransitionBrowser { }
+        Mock Get-AtlasTransitionAppxName { @('Microsoft.Paint_8wekyb3d8bbwe') }
+        Mock Get-AtlasTransitionLanguageHotkey { "hotkey of $UserSid" }
+        Mock Get-AtlasTransitionKeyboardLayoutCount { if ($UserSid) { 2 } else { 1 } }
+        Set-Fake 'SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\Packages\Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0' CurrentState DWord 96
+    }
+
+    It 'reads the keyboard settings of the account it names, and where the NoDefender package stands' {
+        $facts = Get-AtlasTransitionMachineFact -UserSid 'S-1-5-21-111-222-333-1001'
+        $facts.LanguageHotkey | Should -BeExactly 'hotkey of S-1-5-21-111-222-333-1001'
+        $facts.KeyboardLayouts | Should -Be 2
+        $facts.DefenderPackage | Should -BeExactly 'InstallPending'
+        @($facts.Appx) | Should -Be @('Microsoft.Paint_8wekyb3d8bbwe')
+        (Get-AtlasTransitionMachineFact).KeyboardLayouts | Should -Be 1 -Because 'without a SID the account running it counts'
+    }
+
+    It 'reads neither the apps nor a user''s keyboard settings with -MachineOnly' {
+        Set-Fake 'SOFTWARE\AtlasOS\Services\KeyboardShortcuts' state DWord 0
+        $facts = Get-AtlasTransitionMachineFact -MachineOnly
+        @($facts.Appx) | Should -BeNullOrEmpty
+        $facts.LanguageHotkey | Should -BeNullOrEmpty
+        $facts.KeyboardLayouts | Should -BeNullOrEmpty
+        $facts.DefenderPackage | Should -BeExactly 'InstallPending'
+        Should -Invoke Get-AtlasTransitionAppxName -Times 0 -Exactly
+        Should -Invoke Get-AtlasTransitionLanguageHotkey -Times 0 -Exactly
+        Should -Invoke Get-AtlasTransitionKeyboardLayoutCount -Times 0 -Exactly
+        # A layout count nobody read doesn't pick a single layout.
+        $merged = @(Merge-AtlasObservedOption @('keyboard-shortcuts', 'remove-snipping-tool') $facts @())
+        $merged | Should -Contain 'keyboard-selector'
+        $merged | Should -Not -Contain 'keyboard-single'
+        $merged | Should -Contain 'remove-snipping-tool' -Because 'an app list nobody read keeps the choice'
+    }
+
+    It 'counts the Toolbox only with its program, not by the installer''s record an uninstall leaves' {
+        Set-Fake 'SOFTWARE\AtlasOS\Toolbox' Version String '0.1.13'
+        (Get-AtlasTransitionMachineFact -MachineOnly).Toolbox | Should -BeFalse
+        @(Merge-AtlasObservedOption @() (Get-AtlasTransitionMachineFact -MachineOnly) @()) | Should -Not -Contain 'install-toolbox'
+        Mock Test-AtlasTransitionPath { $Path -ceq [IO.Path]::Combine([Environment]::GetFolderPath('ProgramFiles'), 'Atlas Toolbox\AtlasToolbox.exe') }
+        (Get-AtlasTransitionMachineFact -MachineOnly).Toolbox | Should -BeTrue
+        $script:Registry.Remove('SOFTWARE\AtlasOS\Toolbox|Version')
+        (Get-AtlasTransitionMachineFact -MachineOnly).Toolbox | Should -BeFalse
+    }
+
+    It 'reads only Atlas''s NoDefender package, by its name and a tilde, as the install reads it' {
+        $packages = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\Packages'
+        Set-Fake "$packages\Z-Atlas-NoDefender-PackageExtra~31bf3856ad364e35~amd64~~5.0.0.0" CurrentState DWord 112
+        Get-AtlasTransitionDefenderPackageState | Should -BeExactly 'InstallPending'
+    }
+}
+
+Describe 'Which apps count as installed' {
+    BeforeAll {
+        $script:Me = 'S-1-5-21-1000-2000-3000-1001'
+        $script:Other = 'S-1-5-21-1000-2000-3000-1002'
+        function New-TestPackage([string]$Family, [hashtable]$Users) {
+            [pscustomobject]@{
+                PackageFamilyName      = $Family
+                PackageUserInformation = @(foreach ($sid in $Users.Keys) {
+                        [pscustomobject]@{ UserSecurityId = [pscustomobject]@{ Sid = $sid; Username = 'someone' }; InstallState = $Users[$sid] }
+                    })
+            }
+        }
+    }
+
+    It 'lists a family only where an account in the profile list has it installed' {
+        Mock Get-AtlasTransitionProfileSid { $script:Me; $script:Other }
+        Mock Get-AppxPackage {
+            New-TestPackage 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' @{ $script:Me = 'Installed' }
+            New-TestPackage 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' @{ $script:Other = 'Installed' }
+            New-TestPackage 'Microsoft.Paint_8wekyb3d8bbwe' @{ 'S-1-5-18' = 'Installed'; $script:Other = 'Installed' }
+            New-TestPackage 'Microsoft.ScreenSketch_8wekyb3d8bbwe' @{ 'S-1-5-18' = 'Installed'; $script:Me = 'Staged'; 'S-1-5-21-1000-2000-3000-1009' = 'Installed' }
+            New-TestPackage 'Microsoft.BingWeather_8wekyb3d8bbwe' @{ $script:Me = 'Installed(pending removal)' }
+            [pscustomobject]@{ PackageFamilyName = 'Microsoft.Todos_8wekyb3d8bbwe' }
+        }
+        @(Get-AtlasTransitionAppxName) | Should -Be @('Microsoft.Paint_8wekyb3d8bbwe', 'Microsoft.WindowsCalculator_8wekyb3d8bbwe')
+        Should -Invoke Get-AppxPackage -Times 1 -Exactly -ParameterFilter { $AllUsers }
+        # A removal that left Snipping Tool only where nobody can open it counts as done.
+        @(Merge-AtlasObservedOption @('remove-snipping-tool') ([pscustomobject]@{ Appx = @(Get-AtlasTransitionAppxName) }) @() -AfterInstall) |
+            Should -Be @('remove-snipping-tool')
+    }
+
+    It 'counts every account in the profile list, a work or school one too, and none of the system''s' {
+        Reset-Machine
+        $script:Work = 'S-1-12-1-1111-2222-3333-4444'
+        foreach ($sid in @('S-1-5-18', 'S-1-5-19', 'S-1-5-20', $script:Me, "$script:Me.bak", $script:Work)) {
+            Set-Fake "SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\$sid" ProfileImagePath ExpandString "C:\Users\$sid"
+        }
+        @(Get-AtlasTransitionProfileSid | Sort-Object) | Should -Be @($script:Work, $script:Me)
+        # Snipping Tool kept by the work account is still on this PC.
+        Mock Get-AppxPackage {
+            New-TestPackage 'Microsoft.ScreenSketch_8wekyb3d8bbwe' @{ $script:Work = 'Installed'; $script:Me = 'Staged' }
+            New-TestPackage 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' @{ $script:Me = 'Installed' }
+        }
+        @(Get-AtlasTransitionAppxName) | Should -Be @('Microsoft.ScreenSketch_8wekyb3d8bbwe', 'Microsoft.WindowsCalculator_8wekyb3d8bbwe')
+    }
+
+    It 'lists none, which reads as not listed, when the apps can''t be read' {
+        Mock Get-AtlasTransitionProfileSid { $script:Me }
+        Mock Get-AppxPackage { throw 'access denied' }
+        @(Get-AtlasTransitionAppxName) | Should -BeNullOrEmpty
+    }
+
+    It 'reads an account''s registration as Atlas.Appx does' {
+        $ast = [Management.Automation.Language.Parser]::ParseFile(
+            (Join-Path $script:AtlasTestModulesRoot 'Atlas.Appx\Domain\Removal.ps1'), [ref]$null, [ref]$null)
+        $kind = $ast.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -ceq 'Get-AtlasAppxRegistrationKind' }, $true)
+        . ([scriptblock]::Create($kind.Extent.Text))
+        foreach ($state in @('Installed', 'installed', 'Staged', 'NotInstalled', 'Staged(pending removal)', 'Installed(pending removal)',
+                'Installed (pending removal)', 'Paused', 'Modified', '', ' Installed ')) {
+            Test-AtlasTransitionAppxInstalled $state | Should -Be ((Get-AtlasAppxRegistrationKind -InstallState $state) -ceq 'Installed') -Because "'$state'"
+        }
     }
 }
 
@@ -2029,6 +2430,19 @@ Describe 'Putting Atlas back on a rebuilt Windows' {
         (Get-Fake 'SOFTWARE\AtlasOS\Services\LockScreen' path).Data | Should -BeExactly 'Hide Lock Screen.cmd'
         $carry.toggles = @([pscustomobject]@{ name = 'LockScreen'; state = 1; path = '..\..\Windows\evil.ps1' })
         Test-AtlasTransitionCarry $carry | Should -BeFalse
+    }
+
+    It 'reads the records it brought back as Atlas 0.6 means them, launcher names and all' {
+        Mock Repair-AtlasToolboxRecord { $script:Writes.Add("repair $InstalledVersion"); "Removed the old Atlas Toolbox's 'SearchIndexing' record." }
+        $carry = ConvertTo-AtlasTransitionCarry (New-Atlas050Fact) @()
+        $lines = @(Restore-AtlasRebaseChoice $carry)
+        $lines | Should -Contain "Removed the old Atlas Toolbox's 'SearchIndexing' record."
+        $script:Writes.IndexOf('repair 0.5.0') | Should -BeGreaterThan $script:Writes.IndexOf('set SOFTWARE\AtlasOS\Services\Mitigations|path')
+        # Records Windows kept, or some an attempt stopped part way put back, too:
+        # the ones it has repaired already stay as they are.
+        $script:ToggleRecords = @{ FileSharing = 1 }
+        $null = @(Restore-AtlasRebaseChoice $carry)
+        Should -Invoke Repair-AtlasToolboxRecord -Times 2 -Exactly -ParameterFilter { $InstalledVersion -ceq '0.5.0' }
     }
 
     It 'keeps only the file name of the launcher that wrote a record' {

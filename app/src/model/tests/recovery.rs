@@ -5,10 +5,11 @@ use std::time::Duration;
 
 use crate::model::recovery::StartupInspection;
 use crate::model::test_harness::{
-    act, completed_session, fixture, marking_package, model_as_started, new_model, read, run_model_test,
-    save_draft, settle, wait_for, wait_for_release, wait_on_disk,
+    act, completed_session, completed_state, fixture, marking_package, model_as_started, new_model, read,
+    run_model_test, save_draft, settle, wait_for, wait_for_release, wait_on_disk,
 };
-use crate::model::{InstallBlock, Notice, Page, RunState, Step};
+use crate::model::{InstallBlock, Notice, Page, RunState, Step, UpdatePath};
+use crate::services::atlas_state::InstallIdentity;
 use crate::services::installer::{InstallOutcome, Phase};
 use crate::services::playbook;
 use crate::services::session::{self, LaunchLock};
@@ -133,6 +134,40 @@ fn a_success_found_on_reopening_shows_its_result_and_clears_its_draft() {
     });
 }
 
+/// A success found after the restart it asked for is closed out at once, as
+/// the "Atlas is installed" window covers it, but that window still says
+/// what the install couldn't apply, as Atlas recorded it.
+#[test]
+fn a_success_found_after_its_restart_still_says_what_it_recorded_otherwise() {
+    run_model_test(async move |mut cx| {
+        let (temp, machine, env) = fixture("model-recovered-after-restart");
+        let mut state = completed_state("0.6.0");
+        state.options = vec!["defender-disable".into()];
+        state.history = vec![
+            serde_json::from_value(serde_json::json!({
+                "version": "0.6.0", "mode": "Fresh", "completedAt": "2026-09-30T20:06:21.9690173+00:00",
+                "notApplied": ["defender-disable", "defender-enable"],
+            }))
+            .unwrap(),
+        ];
+        *machine.state.lock().unwrap() = Some(state);
+        let (package, _) = marking_package(&temp, 0);
+        let mut record = completed_session(&env, &package, true);
+        // Started long before Windows last started.
+        record.started_at = "2000-01-01T00:00:00Z".into();
+        session::save(&env.paths.session(), &record).unwrap();
+
+        let model = new_model(&mut cx, env.clone());
+        wait_for_release(&cx, &env, "the finished install to be closed out").await;
+        read(&cx, &model, |m| {
+            assert!(m.session.is_none() && !m.install_in_progress(), "nothing left to follow");
+            let not_applied = ["defender-disable".to_owned(), "defender-enable".to_owned()];
+            assert_eq!(m.choices_not_applied(), Some(&not_applied[..]));
+        });
+        settle(&cx, &model).await;
+    });
+}
+
 #[test]
 fn a_failure_found_on_reopening_runs_the_checks_its_retry_needs() {
     run_model_test(async move |mut cx| {
@@ -182,6 +217,32 @@ fn a_failure_found_on_reopening_runs_the_checks_its_retry_needs() {
         .await;
         assert!(marker.exists(), "the retry ran the front door");
         assert_eq!(read(&cx, &model, |m| m.flow.run), RunState::Finished(InstallOutcome::Failed(1)));
+    });
+}
+
+/// A failure found on reopening that chose again is retried choosing again,
+/// whether or not the draft that launched it is still there: its record
+/// says how it treated the choices.
+#[test]
+fn a_recovered_failure_that_chose_again_is_retried_choosing_again() {
+    run_model_test(async move |mut cx| {
+        let (temp, machine, env) = fixture("model-recovered-choose-again");
+        *machine.identity.lock().unwrap() = Some(InstallIdentity::Installed("0.6.0".into()));
+        *machine.state.lock().unwrap() = Some(completed_state("0.6.0"));
+        let (package, _) = marking_package(&temp, 1);
+        let mut record = completed_session(&env, &package, false);
+        record.request.choose_again = true;
+        session::save(&env.paths.session(), &record).unwrap();
+
+        let model = model_as_started(&mut cx, env);
+        wait_for(&cx, &model, "the recovered failure", |m| matches!(m.flow.run, RunState::Finished(_))).await;
+        read(&cx, &model, |m| {
+            assert_eq!(m.flow.run, RunState::Finished(InstallOutcome::Failed(1)));
+            assert_eq!(m.update_path, UpdatePath::ChooseAgain);
+            assert!(!m.showing_recorded_install(), "a retry builds its own request");
+            assert!(m.install_request().unwrap().choose_again);
+        });
+        settle(&cx, &model).await;
     });
 }
 

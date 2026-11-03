@@ -25,6 +25,7 @@ function Disable-AtlasDefenderToggle {
 
     Import-AtlasModule -Name Atlas.Security
     Set-AtlasDefenderState -State Disable -Silent:$Toggle.Silent
+    Set-AtlasDefenderToggleChoice -Option 'defender-disable'
 }
 
 function Enable-AtlasDefenderToggle {
@@ -32,4 +33,20 @@ function Enable-AtlasDefenderToggle {
 
     Import-AtlasModule -Name Atlas.Security
     Set-AtlasDefenderState -State Enable -Silent:$Toggle.Silent
+    Set-AtlasDefenderToggleChoice -Option 'defender-enable'
+}
+
+function Set-AtlasDefenderToggleChoice {
+    param([string]$Option)
+
+    # The Defender install choice now describes this change, which takes effect at the
+    # restart the toggle asks for. Defender has already changed, so a record that
+    # can't be written is a warning; the next install records what the PC has.
+    Import-AtlasModule -Name Atlas.State
+    try {
+        $null = Set-AtlasStateChoice -Option $Option
+    }
+    catch {
+        Write-AtlasLog -Level Warning -Message "Couldn't record '$Option' in the Atlas state document: $($_.Exception.Message)" -ErrorRecord $_
+    }
 }

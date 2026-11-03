@@ -96,6 +96,7 @@ fn multiple_options_reach_windows_powershell_as_an_array() {
         options: vec!["defender-enable".into(), "mitigations-default".into(), "auto-updates-disable".into()],
         restart: true,
         windows_security_confirmed: false,
+        choose_again: false,
     };
     let (record, lines, outcome) = run(request.clone(), &paths);
     assert_eq!(outcome, InstallOutcome::Succeeded, "{lines:?}");
@@ -125,6 +126,7 @@ fn exit_codes_and_stderr_come_back_and_output_survives_bad_bytes() {
         options: vec!["defender-enable".into()],
         restart: true,
         windows_security_confirmed: false,
+        choose_again: false,
     };
     let (record, lines, outcome) = run(request, &paths);
     assert_eq!(outcome, InstallOutcome::Failed(1), "{lines:?}");
@@ -149,6 +151,7 @@ fn an_error_that_escapes_the_front_door_is_still_a_failure() {
         options: vec!["defender-enable".into()],
         restart: false,
         windows_security_confirmed: false,
+        choose_again: false,
     };
     let (record, lines, outcome) = run(request, &paths);
     assert_eq!(outcome, InstallOutcome::Failed(1), "{lines:?}");
@@ -171,6 +174,7 @@ fn a_finished_session_can_be_reattached_from_its_record() {
         options: vec!["defender-enable".into()],
         restart: false,
         windows_security_confirmed: false,
+        choose_again: false,
     };
     let (record, _, outcome) = run(request, &paths);
     assert_eq!(outcome, InstallOutcome::Failed(2));
@@ -272,6 +276,7 @@ fn a_missing_front_door_is_refused_before_anything_starts() {
         options: vec!["defender-enable".into()],
         restart: false,
         windows_security_confirmed: false,
+        choose_again: false,
     };
     assert!(start(request, &paths).is_err());
     assert!(session::load(&paths).unwrap().is_none());
@@ -295,6 +300,7 @@ fn a_running_install_refuses_a_second_start_and_hands_back_its_record() {
         options: vec!["defender-enable".into()],
         restart: false,
         windows_security_confirmed: false,
+        choose_again: false,
     };
     let (first, events) = start(request.clone(), &paths).unwrap();
     assert!(first.is_alive());
@@ -336,6 +342,7 @@ fn a_held_launch_lock_refuses_a_start() {
         options: vec!["defender-enable".into()],
         restart: false,
         windows_security_confirmed: false,
+        choose_again: false,
     };
     let error = launch(session::new_id(), request, &paths, Duration::from_millis(100)).unwrap_err();
     assert!(format!("{error:#}").contains("another Atlas window"), "{error:#}");
@@ -373,6 +380,7 @@ fn a_completed_session_replays_the_whole_log() {
             options: vec![],
             restart: false,
             windows_security_confirmed: false,
+            choose_again: false,
         },
     };
     let mut events = reattach(&record, &temp.path().join("atlas-install.log"));
@@ -411,6 +419,7 @@ fn the_machine_log_is_followed_from_the_installs_own_offset() {
             options: vec![],
             restart: false,
             windows_security_confirmed: false,
+            choose_again: false,
         },
     };
     fs::write(&record.log_path, "session line\n").unwrap();
@@ -464,6 +473,7 @@ fn marking_stub(root: &Path, body: &str) -> (InstallRequest, PathBuf) {
             options: vec!["defender-enable".into()],
             restart: false,
             windows_security_confirmed: false,
+            choose_again: false,
         },
         marker,
     )
@@ -485,6 +495,7 @@ fn abandoned_and_unreadable_records_do_not_own_anything() {
             options: vec![],
             restart: false,
             windows_security_confirmed: false,
+            choose_again: false,
         },
     };
     session::save(&paths, &pending).unwrap();
@@ -500,6 +511,7 @@ fn abandoned_and_unreadable_records_do_not_own_anything() {
         options: vec!["defender-enable".into()],
         restart: false,
         windows_security_confirmed: false,
+        choose_again: false,
     };
 
     // Another process holds the record open without read sharing: its owner
@@ -543,6 +555,7 @@ fn record_publication_failures_never_reach_the_front_door() {
             options: vec!["defender-enable".into()],
             restart: false,
             windows_security_confirmed: false,
+            choose_again: false,
         };
         FAIL_AT.with(|fail| fail.set(Some(point)));
         LAST_SPAWNED.with(|last| last.set((0, 0)));
@@ -589,6 +602,7 @@ fn a_launch_follows_its_own_machine_log_from_where_it_began() {
         options: vec!["defender-enable".into()],
         restart: false,
         windows_security_confirmed: false,
+        choose_again: false,
     };
     let (_, lines, outcome) = run(request, &paths);
     assert_eq!(outcome, InstallOutcome::Succeeded, "{lines:?}");

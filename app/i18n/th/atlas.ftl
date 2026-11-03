@@ -456,7 +456,8 @@ playbook-page-browser-brave-description = เลือกเบราว์เ�
 security-banner-reading-title = กำลังตรวจสอบความปลอดภัยของ Windows
 security-banner-reading-message = Atlas กำลังตรวจสอบสวิตช์การป้องกันทั้งสี่รายการด้านล่าง
 security-banner-off-title = สวิตช์การป้องกันทั้งสี่รายการปิดอยู่
-# Shown instead of the switch list when an earlier Atlas install removed Microsoft Defender.
+# Shown instead of the switch list when Microsoft Defender isn't on this PC and the user
+# chose to remove it.
 security-banner-absent-title = พีซีเครื่องนี้ไม่ได้ติดตั้ง Microsoft Defender ไว้
 security-banner-absent-message = ไม่มีสิ่งใดต้องปิดในขั้นตอนนี้ เลือก ดำเนินการต่อ
 security-banner-off-message = เลือก ดำเนินการต่อ เพื่อตรวจทานการตั้งค่าและติดตั้ง Atlas
@@ -514,9 +515,16 @@ outcome-preparation-stale-resumed = Atlas ยืนยันไม่ได้�
 outcome-failed-preflight = การติดตั้งหยุดลงก่อนที่จะเปลี่ยนแปลงสิ่งใด คุณลองอีกครั้งได้ หากหยุดลงอีก ให้เลือก ส่งรายงาน
 outcome-failed-staging = การติดตั้งหยุดลงระหว่างเตรียมไฟล์ ก่อนที่จะเปลี่ยนแปลง Windows คุณลองอีกครั้งได้ หากหยุดลงอีก ให้เลือก ส่งรายงาน
 outcome-failed-applying = อาจมีการเปลี่ยนแปลงบางอย่างเกิดขึ้นแล้ว คุณลองอีกครั้งได้ หากคุณจะหยุดไว้เพียงเท่านี้ ให้กลับไปเปิดการป้องกันที่ปิดไว้ในแอป ความปลอดภัยของ Windows อีกครั้ง หากการป้องกันเหล่านั้นยังมีอยู่
+outcome-failed-applying-defender-removed = อาจมีการเปลี่ยนแปลงบางอย่างเกิดขึ้นแล้ว คุณลองอีกครั้งได้ หากการติดตั้งหยุดลงอีก ให้เลือก ส่งรายงาน
 outcome-failed-resumed = การติดตั้งรอบนี้หยุดลงตั้งแต่ช่วงต้น แต่การติดตั้งรอบก่อนได้เริ่มทำการเปลี่ยนแปลงไปแล้ว คุณลองอีกครั้งได้ หากคุณจะหยุดไว้เพียงเท่านี้ ให้กลับไปเปิดการป้องกันที่ปิดไว้ในแอป ความปลอดภัยของ Windows อีกครั้ง หากการป้องกันเหล่านั้นยังมีอยู่
+outcome-failed-resumed-defender-removed = การติดตั้งรอบนี้หยุดลงตั้งแต่ช่วงต้น แต่การติดตั้งรอบก่อนได้เริ่มทำการเปลี่ยนแปลงไปแล้ว คุณลองอีกครั้งได้ หากการติดตั้งหยุดลงอีก ให้เลือก ส่งรายงาน
+outcome-failed-repeated = การติดตั้งรอบนี้หยุดลงด้วยข้อผิดพลาดเดียวกับรอบก่อน และอาจมีการเปลี่ยนแปลงบางอย่างเกิดขึ้นแล้ว การลองอีกครั้งโดยไม่เปลี่ยนแปลงสิ่งใดไม่น่าจะช่วยได้ เลือก ส่งรายงาน เพื่อให้ทีม Atlas หาสาเหตุได้ หากคุณจะหยุดไว้เพียงเท่านี้ ให้กลับไปเปิดการป้องกันที่ปิดไว้ในแอป ความปลอดภัยของ Windows อีกครั้ง หากการป้องกันเหล่านั้นยังมีอยู่
+outcome-failed-repeated-defender-removed = การติดตั้งรอบนี้หยุดลงด้วยข้อผิดพลาดเดียวกับรอบก่อน และอาจมีการเปลี่ยนแปลงบางอย่างเกิดขึ้นแล้ว การลองอีกครั้งโดยไม่เปลี่ยนแปลงสิ่งใดไม่น่าจะช่วยได้ เลือก ส่งรายงาน เพื่อให้ทีม Atlas หาสาเหตุได้
+outcome-failed-repeated-apps = Windows ยังคงไม่นำ { $apps } ออก การติดตั้งรอบนี้จึงหยุดลงด้วยข้อผิดพลาดเดียวกับรอบก่อน อาจมีการเปลี่ยนแปลงบางอย่างเกิดขึ้นแล้ว การลองอีกครั้งโดยไม่เปลี่ยนแปลงสิ่งใดไม่น่าจะช่วยได้ เลือก ส่งรายงาน เพื่อให้ทีม Atlas หาสาเหตุได้ หากคุณจะหยุดไว้เพียงเท่านี้ ให้กลับไปเปิดการป้องกันที่ปิดไว้ในแอป ความปลอดภัยของ Windows อีกครั้ง หากการป้องกันเหล่านั้นยังมีอยู่
+outcome-failed-repeated-apps-defender-removed = Windows ยังคงไม่นำ { $apps } ออก การติดตั้งรอบนี้จึงหยุดลงด้วยข้อผิดพลาดเดียวกับรอบก่อน อาจมีการเปลี่ยนแปลงบางอย่างเกิดขึ้นแล้ว การลองอีกครั้งโดยไม่เปลี่ยนแปลงสิ่งใดไม่น่าจะช่วยได้ เลือก ส่งรายงาน เพื่อให้ทีม Atlas หาสาเหตุได้
 outcome-not-started = ตัวติดตั้งไม่เริ่มทำงานภายในเวลาที่กำหนด ยังไม่มีการเปลี่ยนแปลงใด ๆ คุณลองอีกครั้งได้
 outcome-lost = ตัวติดตั้งหยุดทำงานโดยไม่ได้รายงานผล และอาจมีการเปลี่ยนแปลงบางอย่างเกิดขึ้นแล้ว คุณลองอีกครั้งได้ หากคุณจะหยุดไว้เพียงเท่านี้ ให้กลับไปเปิดการป้องกันที่ปิดไว้ในแอป ความปลอดภัยของ Windows อีกครั้ง หากการป้องกันเหล่านั้นยังมีอยู่
+outcome-lost-defender-removed = ตัวติดตั้งหยุดทำงานโดยไม่ได้รายงานผล และอาจมีการเปลี่ยนแปลงบางอย่างเกิดขึ้นแล้ว คุณลองอีกครั้งได้ หากหยุดทำงานอีก ให้เลือก ส่งรายงาน
 restart-now-message = Windows กำลังรีสตาร์ตเพื่อตั้งค่า Atlas ให้เสร็จสมบูรณ์
 restart-countdown = Windows จะรีสตาร์ตในอีก { $seconds } วินาทีเพื่อตั้งค่า Atlas ให้เสร็จสมบูรณ์ หากต้องการบันทึกงานก่อน ให้เลือก รีสตาร์ตภายหลัง
 restart-stopped = ยกเลิกการรีสตาร์ตอัตโนมัติแล้ว บันทึกงานของคุณ แล้วรีสตาร์ตพีซีเพื่อตั้งค่า Atlas ให้เสร็จสมบูรณ์
@@ -609,9 +617,9 @@ installed-security-message = คุณเก็บ Microsoft Defender ไว้ 
 installed-defender-removed-title = นำ Microsoft Defender ออกแล้ว
 installed-defender-removed-message = พีซีของคุณจะไม่มีการป้องกันไวรัสจนกว่าคุณจะติดตั้งแอปป้องกันไวรัสอื่น และ SmartScreen ถูกนำออกไปด้วย Windows จึงจะไม่เตือนคุณก่อนเปิดแอปหรือไฟล์ดาวน์โหลดที่ไม่รู้จัก
 # Home and the "Atlas is installed" window, after an installation that kept Microsoft Defender,
-# when it is missing. Its title is security-banner-absent-title; "Report a problem" is
-# home-report-problem, its button.
-installed-defender-missing-message = คุณเลือกเก็บ Microsoft Defender ไว้ แต่ไม่พบ Microsoft Defender ในพีซีเครื่องนี้ หากคุณไม่ได้ใช้แอปป้องกันไวรัสอื่น ให้ติดตั้งแอปป้องกันไวรัสเพื่อปกป้องพีซีของคุณ หากคุณไม่ได้นำ Defender ออกเอง ให้เลือก รายงานปัญหา
+# when it is missing and no Atlas package removed it. Its title is security-banner-missing-title;
+# "Report a problem" is home-report-problem, its button.
+installed-defender-missing-message = คุณเลือกเก็บ Microsoft Defender ไว้ แต่ไม่พบ Microsoft Defender ในพีซีเครื่องนี้ และ Atlas ไม่ได้เป็นผู้นำออก หากคุณไม่ได้ใช้แอปป้องกันไวรัสอื่น ให้ติดตั้งแอปป้องกันไวรัสเพื่อปกป้องพีซีของคุณ หากคุณไม่ได้นำ Defender ออกเอง ให้เลือก รายงานปัญหา
 
 ## Settings
 
@@ -1220,11 +1228,44 @@ history-mode-rebase = ติดตั้งซ้ำหลังอัปเด�
 ready-rebase-title = Windows ติดตั้งตัวเองใหม่ระหว่างอัปเดต
 # $previous is the Atlas version the PC had before.
 ready-rebase-message = Windows 11 เวอร์ชัน { $release } เข้ามาแทนที่ Windows เดิมของพีซีเครื่องนี้ การเปลี่ยนแปลงบางอย่างของ Atlas จึงหายไป Atlas { $version } จะนำการเปลี่ยนแปลงเหล่านั้นกลับมา โดยใช้ตัวเลือกที่คุณเลือกไว้สำหรับ Atlas { $previous }
-# Your choices on an update, started from what the installed Atlas chose.
-upgrade-choices-title = ตัวเลือกของคุณจาก Atlas { $previous }
-upgrade-choices-detail = Atlas เริ่มจากสิ่งที่ Atlas { $previous } ตั้งค่าไว้บนพีซีเครื่องนี้ การอัปเดตจะคงผลของตัวเลือกเหล่านั้นไว้ การยกเลิกการเลือกรายการเพิ่มเติมที่นี่จึงไม่ได้ย้อนผลนั้นกลับ หากต้องการเปลี่ยนในภายหลัง ให้ใช้โฟลเดอร์ Atlas หรือการตั้งค่า Windows
+update-path-update-title = ต้องการอัปเดตเป็น Atlas { $version } อย่างไร
+update-path-reinstall-title = ต้องการติดตั้ง Atlas { $version } ใหม่อย่างไร
+update-path-keep = คงตัวเลือกเดิมไว้
+update-path-keep-detail = Atlas จะคงทุกตัวเลือกไว้ตามที่พีซีเครื่องนี้ใช้อยู่ตอนนี้ โดยไม่เปลี่ยนตัวเลือกใดเลย วิธีนี้เร็วกว่า
+update-path-choose = เลือกใหม่
+update-path-choose-detail = เลือกทุกตัวเลือกอีกครั้ง โดยเริ่มจากการตั้งค่าที่พีซีเครื่องนี้ใช้อยู่ตอนนี้ Atlas จะนำแต่ละตัวเลือกไปใช้เหมือนการติดตั้งครั้งแรก แอป ไฟล์ เมนูเริ่ม แถบงาน และธีมของคุณจะยังเหมือนเดิม รวมถึงการตั้งค่าที่คุณเปลี่ยนไว้ผ่านโฟลเดอร์ Atlas ซึ่งตัวเลือกเหล่านี้ไม่ครอบคลุม
+update-path-now-title = ตัวเลือกของคุณที่ใช้อยู่ในพีซีเครื่องนี้
+update-path-unknown = Atlas ระบุข้อนี้จากพีซีของคุณไม่ได้ จึงจะถามคุณ
+update-path-differs = ข้อมูลที่ Atlas บันทึกไว้จากการติดตั้งครั้งล่าสุดไม่ตรงกับพีซีเครื่องนี้ในส่วนของ { $choices } รายการด้านล่างแสดงสิ่งที่พีซีเครื่องนี้ใช้อยู่ตอนนี้
+keep-choices-title = คงตัวเลือกเดิมไว้
+keep-choices-partial = Atlas จะคงสิ่งที่พีซีเครื่องนี้ใช้อยู่ตอนนี้ไว้ แต่ระบุรายการต่อไปนี้จากพีซีของคุณไม่ได้ จึงขอให้คุณเลือกเอง: { $missing }
+choose-again-title = เลือกใหม่
+choose-again-detail = แต่ละตัวเลือกเริ่มจากการตั้งค่าที่พีซีเครื่องนี้ใช้อยู่ตอนนี้ Atlas จะนำสิ่งที่คุณเลือกไปใช้ระหว่างการติดตั้ง
+option-now = ใช้อยู่ในพีซีเครื่องนี้
+change-defender-enable = Atlas จะนำ Microsoft Defender กลับมา หลังรีสตาร์ต ให้เปิดการป้องกันของ Defender ในแอป ความปลอดภัยของ Windows
+change-mitigations-default = Atlas จะเปิดการป้องกันตัวประมวลผลอีกครั้งตามค่าเริ่มต้นของ Windows โดยจะมีผลหลังรีสตาร์ต
+change-mitigations-all-on = ตอนนี้การป้องกันตัวประมวลผลเปิดอยู่ทุกรายการ หากเก็บการป้องกันไว้ ทุกรายการจะยังเปิดอยู่
+change-auto-updates-default = Atlas จะให้ Windows ติดตั้งการอัปเดตโดยอัตโนมัติอีกครั้ง
+change-hibernation-on = Atlas จะเปิดไฮเบอร์เนตอีกครั้ง
+change-power-saving-on = Atlas จะเปิดการประหยัดพลังงานอีกครั้ง และกลับไปใช้แผนการใช้พลังงานเดิมของคุณ หรือใช้แผน สมดุล หากไม่มีแผนเดิม
+change-core-isolation-on = Atlas จะเปิดความปลอดภัยที่ใช้การจำลองเสมือน (VBS) อีกครั้ง เว้นแต่จะมีนโยบายในพีซีเครื่องนี้ควบคุมอยู่ โดยจะมีผลหลังรีสตาร์ต
+change-remove-snipping-tool = นำเครื่องมือสนิปออกสำหรับผู้ใช้ทุกคนในพีซีเครื่องนี้ Atlas จะนำกลับมาภายหลังไม่ได้ แต่คุณติดตั้งอีกครั้งได้จาก Microsoft Store
+fixed-uninstall-edge = Microsoft Edge ถูกนำออกไปแล้ว และการอัปเดต Atlas จะนำกลับมาไม่ได้ หากต้องการติดตั้งอีกครั้ง ให้ใช้ Install or Remove Edge ในโฟลเดอร์ Atlas
+fixed-installed = ติดตั้ง { $app } ไว้แล้ว Atlas ไม่ถอนการติดตั้งแอป หากต้องการนำออก ให้ไปที่หน้า แอปที่ติดตั้ง ในการตั้งค่า Windows
+browser-also = { $installed } จะยังติดตั้งอยู่ และ Atlas จะติดตั้ง { $browser } ให้ด้วย
+summary-update-path = วิธีอัปเดต Atlas
+step-heading-update-path-a11y = { $heading }, { $question }
+security-banner-removed-title = Atlas นำ Microsoft Defender ออกจากพีซีเครื่องนี้แล้ว
+security-banner-restore-title = Atlas จะนำ Microsoft Defender กลับมาในการติดตั้งครั้งนี้
+security-banner-restore-message = Defender ยังไม่ทำงาน จึงไม่มีสิ่งใดต้องปิดในขั้นตอนนี้ หลังรีสตาร์ต ให้เปิดการป้องกันของ Defender ในแอป ความปลอดภัยของ Windows เลือก ดำเนินการต่อ
+security-banner-missing-title = ไม่พบ Microsoft Defender
+security-banner-missing-message = Atlas ไม่ได้เป็นผู้นำ Defender ออก จึงนำกลับมาไม่ได้ คุณดำเนินการต่อได้ แต่พีซีของคุณจะไม่มีโปรแกรมป้องกันไวรัสจนกว่าคุณจะติดตั้งแอปป้องกันไวรัสอื่นหรือซ่อมแซม Windows
+installed-defender-not-restored-title = Microsoft Defender ยังคงถูกนำออกอยู่
+installed-defender-not-restored-message = คุณเลือกเก็บ Microsoft Defender ไว้ แต่การอัปเดต Atlas ครั้งก่อนไม่ได้นำ Defender กลับมา พีซีของคุณจึงไม่มีโปรแกรมป้องกันไวรัส หากต้องการนำกลับมา ให้อัปเดตหรือติดตั้ง Atlas ใหม่ แล้วเลือกวิธี เลือกใหม่ หรือเปิด 7. Security > Defender ในโฟลเดอร์ Atlas บนเดสก์ท็อปของคุณ เรียกใช้ Toggle Defender เลือก Enable Windows Defender แล้วรีสตาร์ตพีซี
+choices-not-applied-title = ตัวเลือกบางรายการไม่มีผล
+choices-not-applied-message = Atlas บันทึกค่าที่พีซีเครื่องนี้ใช้อยู่ตอนนี้สำหรับ { $choices } ดูสาเหตุได้ในบันทึกการติดตั้ง
 rebase-choices-title = ตัวเลือกของคุณจาก Atlas { $previous }
-rebase-choices-detail = Atlas ใช้ตัวเลือกที่คุณเลือกไว้สำหรับ Atlas { $previous } จึงไม่มีอะไรให้เลือกที่นี่ คุณเปลี่ยนตัวเลือกเหล่านี้ได้ภายหลังในโฟลเดอร์ Atlas
+rebase-choices-detail = Atlas ใช้ตัวเลือกที่คุณเลือกไว้สำหรับ Atlas { $previous } จึงไม่มีอะไรให้เลือกที่นี่ หากต้องการเปลี่ยนภายหลัง ให้เลือก ติดตั้ง Atlas ใหม่ แล้วเลือกวิธี เลือกใหม่
 # $missing lists the choices, such as "Microsoft Defender, Mitigations".
 rebase-choices-partial = Atlas ใช้ตัวเลือกที่คุณเลือกไว้สำหรับ Atlas { $previous } แต่หาตัวเลือกต่อไปนี้ไม่พบ จึงควรตรวจดู: { $missing }
 # Asked before any restart Atlas makes while other people are signed in to the PC.

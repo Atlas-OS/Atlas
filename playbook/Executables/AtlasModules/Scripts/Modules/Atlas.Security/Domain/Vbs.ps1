@@ -97,6 +97,74 @@ function Get-AtlasVbsPolicyConflict {
     return [string[]]$conflicts.ToArray()
 }
 
+function Get-AtlasVbsLock {
+    <#
+    .SYNOPSIS
+        Reads the two UEFI lock values. Locked is true when either protects the
+        current state; a value other than 0 or 1 is refused rather than guessed.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$DeviceGuardPath
+    )
+
+    $hvciPath = Join-Path -Path $DeviceGuardPath -ChildPath $script:AtlasVbsHvciRelativePath
+    $deviceGuardLock = Get-AtlasVbsDwordState -Path $DeviceGuardPath -Name 'Locked'
+    $hvciLock = Get-AtlasVbsDwordState -Path $hvciPath -Name 'Locked'
+    foreach ($lock in @($deviceGuardLock, $hvciLock)) {
+        if ($lock.Exists -and [int]$lock.Value -notin @(0, 1)) {
+            throw 'A VBS lock value has an unsupported value; refusing to guess its semantics.'
+        }
+    }
+
+    return [pscustomobject]@{
+        DeviceGuard = $deviceGuardLock
+        Hvci        = $hvciLock
+        Locked      = ($deviceGuardLock.Exists -and [int]$deviceGuardLock.Value -eq 1) -or
+            ($hvciLock.Exists -and [int]$hvciLock.Value -eq 1)
+    }
+}
+
+function Test-AtlasVbsChange {
+    <#
+    .SYNOPSIS
+        Says why Set-AtlasVbsConfiguration would leave VBS as it is for the requested
+        state, or returns $null when it can make the change: policy that overrides it,
+        a UEFI lock for Disable, or a value it can't read safely. Enable keeps an
+        existing lock, so only policy stops it. Reads only.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('Enable', 'Disable')]
+        [string]$State,
+
+        # Tests point these at a scratch key.
+        [ValidateNotNullOrEmpty()]
+        [string]$DeviceGuardPath = $script:AtlasVbsDeviceGuardPath,
+
+        [ValidateNotNullOrEmpty()]
+        [string]$PolicyPath = $script:AtlasVbsPolicyPath
+    )
+
+    # Callers decide what to do instead of the change, so a value that would make it
+    # fail is a reason, not an error. Policy is checked first, as the change does.
+    try {
+        $conflicts = @(Get-AtlasVbsPolicyConflict -State $State -PolicyPath $PolicyPath)
+        if ($conflicts.Count -gt 0) {
+            return "policy under '$PolicyPath' controls it ($($conflicts -join ', '))"
+        }
+        $locks = Get-AtlasVbsLock -DeviceGuardPath $DeviceGuardPath
+    }
+    catch {
+        return "one of its settings can't be read safely ($($_.Exception.Message.TrimEnd('.')))"
+    }
+    if ($State -ceq 'Disable' -and $locks.Locked) {
+        return "a UEFI lock protects it, and a registry change can't turn it off"
+    }
+    return $null
+}
+
 function Set-AtlasVbsConfiguration {
     <#
     .SYNOPSIS
@@ -110,8 +178,9 @@ function Set-AtlasVbsConfiguration {
         [ValidateSet('Enable', 'Disable')]
         [string]$State,
 
-        # Log a warning and change nothing when policy overrides the requested state,
-        # instead of failing. Installs use it so a PC's own policy can't stop them.
+        # Log a warning and change nothing when policy overrides the requested state, or
+        # a UEFI lock stops a disable, instead of failing. Installs use it so a PC's own
+        # policy or firmware can't stop them.
         [switch]$SkipWhenPolicyConflicts,
 
         # Tests point these at a scratch key.
@@ -132,20 +201,16 @@ function Set-AtlasVbsConfiguration {
     }
 
     $hvciPath = Join-Path -Path $DeviceGuardPath -ChildPath $script:AtlasVbsHvciRelativePath
-    $deviceGuardLock = Get-AtlasVbsDwordState -Path $DeviceGuardPath -Name 'Locked'
-    $hvciLock = Get-AtlasVbsDwordState -Path $hvciPath -Name 'Locked'
-    foreach ($lock in @($deviceGuardLock, $hvciLock)) {
-        if ($lock.Exists -and [int]$lock.Value -notin @(0, 1)) {
-            throw 'A VBS lock value has an unsupported value; refusing to guess its semantics.'
-        }
+    $locks = Get-AtlasVbsLock -DeviceGuardPath $DeviceGuardPath
+    if ($State -ceq 'Disable' -and $locks.Locked) {
+        $message = 'VBS or memory integrity is protected by UEFI lock and cannot be disabled by a registry-only action.'
+        if (-not $SkipWhenPolicyConflicts) { throw $message }
+        Write-AtlasLog -Level Warning -Message "VBS and memory integrity not configured to disable. $message"
+        return
     }
 
-    if ($State -ceq 'Disable' -and
-        (($deviceGuardLock.Exists -and [int]$deviceGuardLock.Value -eq 1) -or
-            ($hvciLock.Exists -and [int]$hvciLock.Value -eq 1))) {
-        throw 'VBS or memory integrity is protected by UEFI lock and cannot be disabled by a registry-only action.'
-    }
-
+    $deviceGuardLock = $locks.DeviceGuard
+    $hvciLock = $locks.Hvci
     $entries = if ($State -ceq 'Enable') {
         @(
             @{ Path = $DeviceGuardPath; Name = 'RequirePlatformSecurityFeatures'; Type = 'DWord'; Data = 1 }

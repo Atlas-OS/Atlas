@@ -157,7 +157,7 @@ neither holds anything back.
 
 | Variable | Shows |
 | --- | --- |
-| `ATLAS_PREPARATION_PREVIEW=<state>` | The install flow with a stand-in package. Get ready: `idle`, `busy`, `stopping`, `download`, `complete`, `resume`, `resumed`, `cancelled`, `failed`, `failed-battery`, `unconfirmed`, `reboot`, `reboot-others` (Restart now asking first because other people are signed in), `restart-persists`, `network`, `network-limited`, `previous-worker`, `ineligible`, `pending-updates`, `checks-blocked`, `checks-warnings`. Microsoft Store itself: `store-updating`, `store-repairing`, `store-updated`, `store-bootstrapped`, `store-repaired`, `store-skipped-removed`, `store-repair-failed`. Windows' component store: `components-repairing`, `components-damaged` (an update still failed on it), `components-unrepairable`. Moving Windows to 26H2: `windows-required`, `windows-ready`, `windows-choice`, `windows-keep`, `windows-blockers`, `windows-running`, `windows-waiting`, `windows-restart`, `windows-commit-failed`, `windows-resumed`, `windows-not-offered`, `windows-not-offered-25h2`, `windows-not-offered-ended`, `windows-hardware`, `windows-rolled-back`, `windows-disk-space`, `windows-blocked`, `windows-components-lost`, `windows-managed`, `windows-failed`; after Windows reinstalled itself during the move, `windows-rebuilt`, and Your choices with every choice kept (`options-rebase`) or one missing (`options-rebase-partial`); an update from Atlas 0.5.0 starting from the extras the PC shows (`options-upgrade`). Home: `home-24h2-pro`, `home-25h2`, `home-24h2-home`, `home-23h2`, `home-update-access`, `home-update-access-after`, `home-not-offered`, `home-update-access-unreadable`, `home-put-back-failed`, and Restart now asking first because someone else is signed in (`home-restart-others`). The completion window: `installed-update-off`. Windows Security: `security-on`, `security-off`, `security-readable-off`, `security-unreadable`, `security-absent`. Install: `install-ready`, `install-refused`, `install-busy`. |
+| `ATLAS_PREPARATION_PREVIEW=<state>` | The install flow with a stand-in package. Get ready: `idle`, `busy`, `stopping`, `download`, `complete`, `resume`, `resumed`, `cancelled`, `failed`, `failed-battery`, `unconfirmed`, `reboot`, `reboot-others` (Restart now asking first because other people are signed in), `restart-persists`, `network`, `network-limited`, `previous-worker`, `ineligible`, `pending-updates`, `checks-blocked`, `checks-warnings`. Microsoft Store itself: `store-updating`, `store-repairing`, `store-updated`, `store-bootstrapped`, `store-repaired`, `store-skipped-removed`, `store-repair-failed`. Windows' component store: `components-repairing`, `components-damaged` (an update still failed on it), `components-unrepairable`. Moving Windows to 26H2: `windows-required`, `windows-ready`, `windows-choice`, `windows-keep`, `windows-blockers`, `windows-running`, `windows-waiting`, `windows-restart`, `windows-commit-failed`, `windows-resumed`, `windows-not-offered`, `windows-not-offered-25h2`, `windows-not-offered-ended`, `windows-hardware`, `windows-rolled-back`, `windows-disk-space`, `windows-blocked`, `windows-components-lost`, `windows-managed`, `windows-failed`; after Windows reinstalled itself during the move, `windows-rebuilt`, and Your choices with every choice kept (`options-rebase`) or one missing (`options-rebase-partial`). Updating or reinstalling the installed Atlas: the first screen, from Atlas 0.5.0 (`options-update-path`); Keep my choices asking the one choice the PC can't show (`options-keep-partial`); and Choose again on a reinstall over a record the PC contradicts, with its first screen saying so (`options-choose-again`), what each answer changes on the Defender and processor protections screens (`options-choose-again-defender`, `options-choose-again-mitigations`), and the extras an update can't undo, a second browser and cleared boxes that turn features back on (`options-choose-again-fixed`). Home: `home-24h2-pro`, `home-25h2`, `home-24h2-home`, `home-23h2`, `home-update-access`, `home-update-access-after`, `home-not-offered`, `home-update-access-unreadable`, `home-put-back-failed`, Restart now asking first because someone else is signed in (`home-restart-others`), Microsoft Defender still removed though Atlas's record kept it (`home-defender-not-restored`), and missing with no Atlas package to blame (`home-defender-missing`). The completion window: `installed-update-off`, and a choice the installation couldn't apply (`installed-choices-not-applied`). Windows Security: `security-on`, `security-off`, `security-readable-off`, `security-unreadable`, and with Microsoft Defender gone, `security-absent` (the user chose to remove it), `security-defender-removed` (Atlas removed it and it stays removed), `security-defender-restore` (Choose again brings it back) and `security-defender-missing` (kept, but Atlas didn't remove it). Install: `install-ready`, `install-refused`, `install-busy`, `install-choose-again`. |
 | `ATLAS_SECURITY_PREVIEW=<reading>` | Every Windows Security reading as `on`, `off`, `some-off` (Tamper Protection and Cloud-delivered protection off), `unreadable` or `absent` (Defender removed), for the reminders on Home and the completion window. |
 | `ATLAS_REPORT_PREVIEW=<state>` | Send a report as `invalid`, `collecting`, `ready`, `prepare-failed`, `waiting`, `sending`, `sent`, `failed`, `busy`, `outdated` or `diagnostics`. Nothing is collected, and Send fails without connecting. |
 | `ATLAS_REVIEW_OTHER_SESSIONS=<names>` | Debug builds: the account names, separated by commas, that Atlas reads as signed in besides you, so the question before a restart can be reviewed on a PC nobody else uses. |
@@ -302,7 +302,9 @@ tools/            release build, notices, measurement and review scripts
   and says when an edition or version can't take the package at all. If Windows
   reinstalls itself instead of switching the new version on, Get ready says so and
   Your choices uses the choices recorded before the move, asking only for one
-  nothing recorded ([Rebase](../docs/upgrading.md#rebase)). The checks keep
+  nothing recorded ([Rebase](../docs/upgrading.md#rebase)). Such an install always
+  keeps those choices; to change them, choose **Reinstall Atlas** afterwards, then
+  **Choose again**. The checks keep
   their order while they run; then the ones that need attention come first and
   the passed ones fold into "N checks passed" behind **Show details**. A failed
   check offers the Windows Settings page that fixes it, such as **Open installed
@@ -314,12 +316,30 @@ tools/            release build, notices, measurement and review scripts
   summary lists the choices, with a caution mark on risky ones and Change
   links; the installation files, Windows, activation and the installation
   command (with Copy) are behind **Show details**.
+- Updating or reinstalling the installed Atlas, Your choices first asks
+  **Keep my choices** or **Choose again**, and lists the choices this PC has
+  now, with what the PC shows winning over Atlas's record
+  (`src/model/rebase.rs`, `src/services/legacy_choices.rs`). Keeping them locks
+  every choice and asks only a required one the PC can't show. Choosing again
+  opens every screen from what the PC has, marks the answer it has now, says
+  under an answer what it changes, and fixes what an update can't undo: Edge
+  already removed, and a Toolbox or browser Atlas installed. The summary's
+  first row, **How Atlas updates**, gives the answer. An unfinished install has
+  no first screen and goes on as it began, with the Windows Security bar
+  following its recorded mode and update path. An unfinished update that began
+  keeping the choices and hasn't started its plan holds them to what the PC
+  shows, as Keep my choices does.
+  [Keep my choices or Choose again](../docs/upgrading.md#keep-my-choices-or-choose-again)
+  covers what each does.
 - Windows Security is read once a second from the registry values AME Wizard
   reads: Tamper Protection, real-time protection, cloud-delivered
   protection and sample submission. One message bar says what is left to do.
   An unreadable switch shows as unreadable, never on or off; an elevated user
   can confirm it by hand, with the bar's check box, after checking Windows
-  Security.
+  Security. Without Defender there is nothing to turn off, and the bar says
+  what happens to it: it stays removed, this install brings it back, or it is
+  missing and Atlas can't bring it back, a warning that doesn't stop the
+  install.
 - Protection is never left off silently. Closing the window during a setup
   while a switch reads off asks first and offers Windows Security. Cancelling
   the setup leaves a reminder on Home, naming the switches still off, that
@@ -329,7 +349,13 @@ tools/            release build, notices, measurement and review scripts
   a dismissible reminder while any is off, or a warning if Defender is missing;
   "You're all set" appears only when every switch reads on. After an install
   that removed Defender, the completion window says the PC has no antivirus
-  until another is installed.
+  until another is installed. When Atlas's record kept Defender but Atlas's
+  package still removes it, Home and the completion window say it is still
+  removed and how to bring it back.
+- The completion window names each choice the install tried to apply and the
+  PC doesn't have as asked, from the `notApplied` list its completion wrote to
+  the install's history entry in `state.json`, with **Open log file**
+  ([what Atlas records](../docs/upgrading.md#what-atlas-records)).
 
 System checks cover `playbook.conf`'s requirements and the front door's own
 (`src/services/requirements/`):
@@ -356,7 +382,8 @@ starts.
 - The app runs `Install-Atlas.ps1 -Option @(...) -Unattended` through
   `powershell.exe -Command` (so the option list arrives as a real array) with
   UTF-8 output, adding `-WindowsSecurityConfirmed` when the user confirmed by
-  hand the Windows Security switches Atlas couldn't read. The front door then
+  hand the Windows Security switches Atlas couldn't read, and `-ChooseAgain` when
+  the install chooses again. The front door then
   accepts those unreadable switches but still blocks any switch that reads on.
   The child logs to `...\App\Logs`; `...\App\session.json` records the process
   and log.
@@ -373,7 +400,11 @@ starts.
   failed install returns to the Install step with **Try again**. One bar says
   what happened, quoting the installer's last error line, with the next action
   beside it (**Relaunch as administrator** when Atlas lacks permission) and
-  diagnostics under it; the log is behind **Show details**.
+  diagnostics under it; the log is behind **Show details**. A retry that stops on
+  the same error as the attempt before it says another try is unlikely to help
+  and points to **Send a report**, naming the apps when Windows still wouldn't
+  remove them. Once Defender is gone, the bar no longer says to turn protection
+  back on.
 
 ### Restart and completion
 

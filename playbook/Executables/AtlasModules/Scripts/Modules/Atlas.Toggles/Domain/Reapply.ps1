@@ -164,14 +164,21 @@ function Test-AtlasToggleReplayApplicable {
 function Invoke-AtlasToggleReapply {
     <#
     .SYNOPSIS
-        Replays the machine work of every recorded state from the installed definitions.
+        Replays the machine work of every recorded state from the installed definitions,
+        except the toggles -Exclude names.
     #>
     param(
         [ValidateNotNullOrEmpty()]
         [string]$StateRoot = $script:AtlasToggleDefaultStateRoot,
 
         # Overridable for tests; defaults to the installed Toggles directory.
-        [string]$TogglesRoot
+        [string]$TogglesRoot,
+
+        # Toggles this install has just set to the states chosen for it, as the Choices
+        # step does when an update chooses again. Their records stay as they are,
+        # unreplayed, and still reach the state document.
+        [AllowEmptyCollection()]
+        [string[]]$Exclude = @()
     )
 
     Assert-AtlasPrivilege -TrustedInstaller
@@ -191,6 +198,11 @@ function Invoke-AtlasToggleReapply {
 
     foreach ($subkey in $replayOrder) {
         $name = [string]$subkey.PSChildName
+        # A key without a state holds only metadata, so this install didn't apply it.
+        if ($Exclude -icontains $name -and @($subkey.GetValueNames()) -icontains 'state') {
+            Write-AtlasLog -Message "Toggle '$name' was applied by this installation's choices, so it isn't replayed."
+            continue
+        }
 
         try {
             Repair-AtlasLegacyContextMenuState -Key $subkey

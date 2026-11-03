@@ -544,6 +544,7 @@ mod tests {
                 options: vec![],
                 restart: false,
                 windows_security_confirmed: false,
+                choose_again: false,
             },
         };
         let unknown = || system::Liveness::Unknown("open process 4: access denied".into());

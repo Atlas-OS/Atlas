@@ -215,6 +215,49 @@ Describe 'Released legacy elevation migration' {
         $harness.State.Writes.Count | Should -Be 0
     }
 
+    It 'removes the records old Toolbox builds kept where Atlas never reads them, and keeps every other key' {
+        $harness = Get-TestLegacyHarness
+        $dword = { param($Value) Get-TestLegacyValue DWord $Value }
+        $text = { param($Value) Get-TestLegacyValue String $Value }
+        $keys = [ordered]@{
+            # Toolbox v0.1.10, missing the backslash.
+            ServicesContextMenuTerminals = @{ state = & $dword 0 }
+            ServicesMitigations = @{ state = & $dword 2 }
+            ServicesShortcutIcon = @{ state = & $dword 0 }
+            ServicesSystemRestore = @{ path = & $text 'C:\Windows\AtlasDesktop\3. General Configuration\System Restore\Enable System Restore (default).cmd' }
+            ServicesToolbox = @{ lang = & $text 'en_us'; AppWidth = & $text '1250'; AppHeight = & $text '850' }
+            # Toolbox v0.1.1 to v0.1.9, directly under AtlasOS.
+            Mitigations = @{ state = & $dword 2 }
+            recall = @{ state = & $dword 0; path = & $text 'C:\Windows\AtlasDesktop\3. General Configuration\AI Features\Microsoft Copilot\Disable Recall.cmd' }
+            FeatureUpdateDeferrals = @{ state = & $dword 1 }
+            # Kept: the Toolbox installer's record, Atlas's own keys, Atlas 0.5.0's
+            # deferral record, and a Toolbox name holding someone else's value.
+            Toolbox = @{ Version = & $text '0.1.13'; lang = & $text 'en_us' }
+            SetupOptions = @{ browser = & $text 'Brave' }
+            ServicesFeatureUpdateDeferrals = @{ state = & $dword 1; days = & $dword 30 }
+            Location = @{ state = & $dword 0; note = & $text 'mine' }
+        }
+        $harness.State.Registry['Machine|SOFTWARE\AtlasOS'] = Get-TestLegacyKey -SubKeys (@($keys.Keys) + 'Services')
+        foreach ($name in $keys.Keys) {
+            $harness.State.Registry["Machine|SOFTWARE\AtlasOS\$name"] = Get-TestLegacyKey -Values $keys[$name]
+        }
+        $harness.State.Registry['Machine|SOFTWARE\AtlasOS\Services'] = Get-TestLegacyKey -SubKeys Mitigations
+
+        $result = Invoke-TestLegacyMigration $harness Machine
+
+        $result.RemovedCount | Should -Be 8
+        $result.RetainedCount | Should -Be 1
+        @($harness.State.RemovedTrees | ForEach-Object { $_ -replace '^Machine\|SOFTWARE\\AtlasOS\\', '' }) | Should -Be @(
+            @($keys.Keys)[0..7])
+        foreach ($kept in @('Toolbox', 'SetupOptions', 'ServicesFeatureUpdateDeferrals', 'Location', 'Services')) {
+            $harness.State.Registry.ContainsKey("Machine|SOFTWARE\AtlasOS\$kept") | Should -BeTrue -Because $kept
+        }
+        $harness.State.ReadKeys | Should -Not -Contain 'Machine|SOFTWARE\AtlasOS\Toolbox' -Because 'the installer''s record is never read'
+
+        $again = Invoke-TestLegacyMigration $harness Machine
+        $again.RemovedCount | Should -Be 0
+    }
+
     It 'rejects a missing or mismatched current-user identity before registry access' {
         $harness = Get-TestLegacyHarness -IdentitySid $script:OtherSid
 

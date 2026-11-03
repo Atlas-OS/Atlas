@@ -9,6 +9,7 @@ use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 
 use crate::services::atlas_state::{self, AtlasState, InstallIdentity};
+use crate::services::legacy_choices::{self, Facts};
 use crate::services::preparation::{self, Drivers, Operation, PreparationRequest, Progress, State};
 use crate::services::releases::{self, Release};
 use crate::services::requirements::{self, CheckContext, CheckId, CheckResult};
@@ -56,8 +57,8 @@ pub struct Adapters {
     /// A short worker operation (commit, put back) for the settings at the
     /// given path; run on a worker thread.
     pub run_operation: Arc<dyn Fn(&Path, Operation) -> anyhow::Result<()> + Send + Sync>,
-    /// The install options an Atlas without a state document shows on the PC.
-    pub read_legacy_choices: Arc<dyn Fn() -> Vec<String> + Send + Sync>,
+    /// What this PC shows of the install choices Atlas made on it.
+    pub read_pc_facts: Arc<dyn Fn() -> Facts + Send + Sync>,
     /// The other people signed in to this PC, whose apps a restart closes.
     pub read_other_sessions: Arc<dyn Fn() -> anyhow::Result<Vec<String>> + Send + Sync>,
 }
@@ -86,7 +87,7 @@ impl Adapters {
             }),
             read_update_access: Arc::new(update_access::read),
             run_operation: Arc::new(preparation::run_operation),
-            read_legacy_choices: Arc::new(crate::services::legacy_choices::read),
+            read_pc_facts: Arc::new(legacy_choices::read),
             read_other_sessions: Arc::new(crate::services::signed_in::others),
         }
     }

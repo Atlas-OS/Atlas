@@ -249,6 +249,9 @@ step-heading = Step { $number } of { $total }: { $title }
 step-heading-choice-a11y = { $heading }. { $progress }: { $question }
 # The same on the optional extras screen; $progress is options-progress-extras.
 step-heading-extras-a11y = { $heading }. { $progress }
+# The same on the first screen of an update or reinstall; $question is update-path-update-title
+# or update-path-reinstall-title.
+step-heading-update-path-a11y = { $heading }. { $question }
 
 ## Step 1: Get ready
 
@@ -452,6 +455,62 @@ consequence-mitigations-disable = Also turns off Exploit protection for apps, su
 consequence-auto-updates-disable = Open Windows Update regularly to install updates. Update notifications stay on.
 consequence-auto-updates-default = Windows will install updates automatically, including security fixes.
 
+## Step 2 on an update or reinstall of the installed Atlas
+
+# The first screen of Your choices when updating the installed Atlas. $version is the Atlas
+# version being installed, such as 0.6.1.
+update-path-update-title = How do you want to update to Atlas { $version }?
+# The same screen when installing again the Atlas version this PC already has.
+update-path-reinstall-title = How do you want to reinstall Atlas { $version }?
+# The two answers on that screen, each with the detail line under it. Other messages
+# name the answers too, so keep each the same everywhere.
+update-path-keep = Keep my choices
+update-path-keep-detail = Atlas keeps every choice as this PC has it now and changes none of them. This is the quicker way.
+update-path-choose = Choose again
+update-path-choose-detail = Go through every choice again, starting from how this PC is set up now. Atlas applies each one as a new installation would. Your apps, files, Start menu, taskbar and theme stay as they are, and so do settings you changed in the Atlas folder that these choices don't cover.
+# Heading of the list under the two answers: one row per choice, as this PC has it now.
+update-path-now-title = Your choices on this PC now
+# The value of a row in that list for a choice nothing on the PC shows. Keep my choices
+# then asks it.
+update-path-unknown = Atlas can't tell this from your PC, so it asks you
+# Above that list. $choices lists choice names, such as "Microsoft Defender and Processor
+# protections", joined with list-and.
+update-path-differs = Atlas's record of your last installation doesn't match this PC for { $choices }. This list shows what the PC has now.
+# A bar on the screens Keep my choices still asks. $missing lists their names, such as
+# "Keyboard languages", joined with list-and.
+keep-choices-title = Keeping your choices
+keep-choices-partial = Atlas keeps what this PC has now. It can't tell these from your PC, so choose them: { $missing }
+# A bar on every screen after the first one once Choose again is selected.
+choose-again-title = Choosing again
+choose-again-detail = Each choice starts from how this PC is set up now. Atlas applies what you choose during the installation.
+# A short tag, on a line of its own, under the answer this PC has now, on the screens of
+# Choose again.
+option-now = On this PC now
+# Under an answer on a screen of Choose again, instead of what it usually means, when
+# choosing it changes this PC.
+change-defender-enable = Atlas brings Microsoft Defender back. After the restart, turn its protection on in Windows Security.
+change-mitigations-default = Atlas turns processor protections back on, as Windows sets them. This takes effect after the restart.
+# Under Keep processor protections when every protection is turned on: Atlas leaves them
+# all on rather than going back to the Windows defaults.
+change-mitigations-all-on = All processor protections are turned on now. Keeping protections leaves them all on.
+change-auto-updates-default = Atlas lets Windows install updates automatically again.
+# Under Turn off hibernation, Turn off power saving and Turn off VBS when the box is cleared
+# while this PC has them off.
+change-hibernation-on = Atlas turns hibernation back on.
+change-power-saving-on = Atlas turns power saving back on and goes back to your earlier power plan, or to Balanced if there isn't one.
+change-core-isolation-on = Atlas turns virtualisation-based security (VBS) back on, unless a policy on this PC controls it. This takes effect after the restart.
+# Under Remove Snipping Tool when it's ticked while this PC still has the app.
+change-remove-snipping-tool = Removes Snipping Tool for everyone on this PC. Atlas can't put it back later, but you can install it again from Microsoft Store.
+# Under a box Choose again shows ticked and can't clear, saying why. Install or Remove Edge
+# is a file name in the Atlas folder, in English on every PC.
+fixed-uninstall-edge = Microsoft Edge is already removed, and updating Atlas can't put it back. To install it again, use Install or Remove Edge in the Atlas folder.
+# The same for an app Atlas installed. $app is its name, such as Atlas Toolbox or Brave.
+# "Installed apps" is the page of that name in Windows Settings.
+fixed-installed = { $app } is installed. Atlas doesn't uninstall apps; to remove it, go to Installed apps in Windows Settings.
+# Under the browser chosen when another browser Atlas offers is already installed.
+# $installed and $browser are browser names, such as Brave and Firefox.
+browser-also = { $installed } stays installed, and Atlas installs { $browser } as well.
+
 ## Atlas package text
 ## The Atlas package carries its own English text for each option. These
 ## UI labels and explanations are used only when the package text matches
@@ -486,9 +545,22 @@ playbook-page-browser-brave-description = Choose a browser to install. Atlas won
 security-banner-reading-title = Checking Windows Security
 security-banner-reading-message = Atlas is checking the four protection switches below.
 security-banner-off-title = The four protection switches are off
-# Shown instead of the switch list when an earlier Atlas install removed Microsoft Defender.
+# Shown instead of the switch list when Microsoft Defender isn't on this PC and the user
+# chose to remove it.
 security-banner-absent-title = Microsoft Defender isn't installed on this PC
 security-banner-absent-message = There's nothing to turn off on this step. Choose Continue.
+# Instead of security-banner-absent-title when Atlas's own package removed Microsoft Defender
+# and it stays removed. Its message is security-banner-absent-message.
+security-banner-removed-title = Atlas removed Microsoft Defender from this PC
+# When Atlas's own package removed Microsoft Defender and this installation brings it back.
+# "Continue" is common-next.
+security-banner-restore-title = Atlas brings Microsoft Defender back in this installation
+security-banner-restore-message = Defender isn't running yet, so there's nothing to turn off on this step. After the restart, turn its protection on in Windows Security. Choose Continue.
+# A warning that doesn't stop the step: the user chose to keep Microsoft Defender, but it
+# isn't on this PC and Atlas didn't remove it. Home and the "Atlas is installed" window use
+# the same title.
+security-banner-missing-title = Microsoft Defender is missing
+security-banner-missing-message = Atlas didn't remove it, so it can't bring it back. You can continue, but your PC has no antivirus until you install another antivirus app or repair Windows.
 security-banner-off-message = Choose Continue to review your setup and install Atlas.
 
 security-banner-on-title = Turn off antivirus protection in Windows Security
@@ -542,9 +614,24 @@ outcome-preparation-stale-resumed = Atlas couldn't confirm that Windows and Stor
 outcome-failed-preflight = Installation stopped before changing anything. You can try again. If it stops again, choose Send a report.
 outcome-failed-staging = Installation stopped while preparing files, before changing Windows. You can try again. If it stops again, choose Send a report.
 outcome-failed-applying = Some changes may already have been made. You can try again. If you stop here, turn the protections you turned off back on in Windows Security, if they're still available.
+# The -defender-removed variants replace the advice to turn protections back on once Microsoft
+# Defender has been removed, so there's nothing to turn back on. "Send a report" is report-title, in
+# the diagnostics under the bar.
+outcome-failed-applying-defender-removed = Some changes may already have been made. You can try again. If installation stops again, choose Send a report.
 outcome-failed-resumed = This attempt stopped early, but an earlier attempt already started making changes. You can try again. If you stop here, turn the protections you turned off back on in Windows Security, if they're still available.
+outcome-failed-resumed-defender-removed = This attempt stopped early, but an earlier attempt already started making changes. You can try again. If installation stops again, choose Send a report.
+# The -repeated variants follow a retry of an installation already part-way through that stopped
+# with the same error as the attempt before it, so they point to a report rather than another try.
+# "Send a report" is report-title.
+outcome-failed-repeated = This attempt stopped with the same error as the one before it, and some changes may already have been made. Trying again without changing anything is unlikely to help. Choose Send a report so the Atlas team can find the cause. If you stop here, turn the protections you turned off back on in Windows Security, if they're still available.
+outcome-failed-repeated-defender-removed = This attempt stopped with the same error as the one before it, and some changes may already have been made. Trying again without changing anything is unlikely to help. Choose Send a report so the Atlas team can find the cause.
+# $apps holds the package names Windows gives the apps, such as MSTeams (text), joined with list-and.
+outcome-failed-repeated-apps = Windows still wouldn't remove { $apps }, so this attempt stopped with the same error as the one before it. Some changes may already have been made. Trying again without changing anything is unlikely to help. Choose Send a report so the Atlas team can find the cause. If you stop here, turn the protections you turned off back on in Windows Security, if they're still available.
+outcome-failed-repeated-apps-defender-removed = Windows still wouldn't remove { $apps }, so this attempt stopped with the same error as the one before it. Some changes may already have been made. Trying again without changing anything is unlikely to help. Choose Send a report so the Atlas team can find the cause.
 outcome-not-started = The installer didn't start in time. No installation changes were made. You can try again.
 outcome-lost = The installer stopped without reporting a result, and some changes may already have been made. You can try again. If you stop here, turn the protections you turned off back on in Windows Security, if they're still available.
+# Instead of outcome-lost once Defender is gone, as for the -defender-removed variants above.
+outcome-lost-defender-removed = The installer stopped without reporting a result, and some changes may already have been made. You can try again. If it stops again, choose Send a report.
 restart-now-message = Windows is restarting to finish setting up Atlas.
 # "Restart later" is restart-dont-now, the button under it.
 restart-countdown =
@@ -615,6 +702,9 @@ summary-command-unavailable = Couldn't prepare the installation command. Details
 summary-not-chosen = No choice made yet
 # Accessible name of a Change link. $title is a screen-*-title message.
 summary-change-a11y = Change { $title }
+# The summary's first row on an update or reinstall. Its value is update-path-keep or
+# update-path-choose.
+summary-update-path = How Atlas updates
 footer-still-checking = Preparing for installation
 
 footer-fix-items = Fix the items in PC checks to continue
@@ -670,9 +760,20 @@ installed-defender-removed-title = Microsoft Defender was removed
 # After an installation that removed Microsoft Defender (and SmartScreen with it).
 installed-defender-removed-message = Your PC won't have antivirus protection until you install another antivirus app. SmartScreen was removed too, so Windows won't warn you before you open unrecognised apps or downloads.
 # Home and the "Atlas is installed" window, after an installation that kept Microsoft Defender,
-# when it is missing. Its title is security-banner-absent-title; "Report a problem" is
-# home-report-problem, its button.
-installed-defender-missing-message = You chose to keep Microsoft Defender, but it's missing. If you don't use another antivirus app, install one to protect your PC. If you didn't remove Defender yourself, choose Report a problem.
+# when it is missing and no Atlas package removed it. Its title is security-banner-missing-title;
+# "Report a problem" is home-report-problem, its button.
+installed-defender-missing-message = You chose to keep Microsoft Defender, but it's missing, and Atlas didn't remove it. If you don't use another antivirus app, install one to protect your PC. If you didn't remove Defender yourself, choose Report a problem.
+# Home and the "Atlas is installed" window, when Atlas's record kept Microsoft Defender but
+# Atlas's own package still removes it. "Choose again" is update-path-choose. 7. Security,
+# Defender and Toggle Defender are folder and file names in the Atlas folder, and Enable
+# Windows Defender is an answer Toggle Defender offers; all of them are in English on every PC.
+installed-defender-not-restored-title = Microsoft Defender is still removed
+installed-defender-not-restored-message = You chose to keep Microsoft Defender, but an earlier Atlas update didn't bring it back, so your PC has no antivirus. To bring it back, update or reinstall Atlas and select Choose again, or open 7. Security > Defender in the Atlas folder on your desktop, run Toggle Defender, choose Enable Windows Defender and restart your PC.
+# The "Atlas is installed" window, when what the installation recorded for some choices isn't
+# what was chosen. $choices lists their names, such as "Microsoft Defender", joined with
+# list-and. "Open log file" is common-open-log-file, its button.
+choices-not-applied-title = Some choices didn't take effect
+choices-not-applied-message = Atlas recorded what this PC has now for { $choices }. The installation log says why.
 
 ## Settings
 
@@ -1372,11 +1473,10 @@ history-mode-rebase = reinstall after a Windows update
 ready-rebase-title = Windows reinstalled itself while it updated
 # $previous is the Atlas version the PC had before.
 ready-rebase-message = Windows 11, version { $release } replaced the Windows this PC had, so some of Atlas's changes are gone. Atlas { $version } puts them back, with the choices you made for Atlas { $previous }.
-# Your choices on an update, started from what the installed Atlas chose.
-upgrade-choices-title = Your choices from Atlas { $previous }
-upgrade-choices-detail = Atlas started from what Atlas { $previous } set up on this PC. Updating keeps what those choices did, so clearing an extra here doesn't undo it. To change one later, use the Atlas folder or Windows Settings.
+# Your choices after Windows reinstalled itself during a move, which put the choices of the
+# Atlas it had back. "Reinstall Atlas" is home-reinstall; "Choose again" is update-path-choose.
 rebase-choices-title = Your choices from Atlas { $previous }
-rebase-choices-detail = Atlas uses the choices you made for Atlas { $previous }, so there's nothing to choose here. You can change them in the Atlas folder later.
+rebase-choices-detail = Atlas uses the choices you made for Atlas { $previous }, so there's nothing to choose here. To change them afterwards, choose Reinstall Atlas, then select Choose again.
 # $missing lists the choices, such as "Microsoft Defender, Mitigations".
 rebase-choices-partial = Atlas uses the choices you made for Atlas { $previous }. It couldn't find these, so check them: { $missing }
 # Asked before any restart Atlas makes while other people are signed in to the PC.

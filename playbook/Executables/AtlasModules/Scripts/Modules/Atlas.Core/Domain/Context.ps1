@@ -59,7 +59,8 @@ function Get-AtlasContext {
         Returns cached information about the machine and the current install run.
     .OUTPUTS
         PSCustomObject with filesystem paths, Windows facts and the recorded install
-        mode, option set, target version and interactive-user identity.
+        mode, option set, update path (Choices, IsChoosingAgain), target version and
+        interactive-user identity.
     #>
     param(
         [switch]$Refresh,
@@ -133,10 +134,20 @@ function Get-AtlasContext {
     $interactiveUserSessionId = $null
     $transactionId = $null
     $options = @()
+    # How this install treats the choices the PC has. An install state written before
+    # the update path existed, and every context outside an install, keeps them.
+    $choices = 'Keep'
     if ($isInstallStateBacked) {
         $mode = [string]$installState.mode
         if ($mode -cnotin @('Fresh', 'Upgrade', 'Reapply', 'Rebase')) {
             throw "The Atlas install-state mode '$mode' is invalid."
+        }
+        $storedChoices = $installState.PSObject.Properties['choices']
+        if ($null -ne $storedChoices) {
+            $choices = [string]$storedChoices.Value
+            if ($choices -cnotin @('Keep', 'ChooseAgain')) {
+                throw "The Atlas install-state choices value '$choices' is invalid."
+            }
         }
         $targetVersion = [string]$installState.targetVersion
         $interactiveUserSid = if ([string]::IsNullOrWhiteSpace([string]$installState.userSid)) {
@@ -227,6 +238,10 @@ function Get-AtlasContext {
         InteractiveUserSessionId = $interactiveUserSessionId
         TransactionId            = $transactionId
         Options                  = $options
+        Choices                  = $choices
+        # Only an update applies changed choices: a first installation applies every
+        # choice anyway, and a Rebase keeps the ones it had.
+        IsChoosingAgain          = $isInstallStateBacked -and $choices -ceq 'ChooseAgain' -and $mode -cin @('Upgrade', 'Reapply')
     }
 
     return $script:AtlasContext

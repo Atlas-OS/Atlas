@@ -57,7 +57,8 @@ companion `Script` shares its definition's basename. Do not rename them to Pasca
 ```
 
 `ParentModes` describes install-plan reachability: `Fresh`, `Upgrade`, or both. A Rebase
-install reaches what `Upgrade` reaches. It does
+install reaches what `Upgrade` reaches. A Reapply, a reinstall of the same version, reaches
+the categories' `Upgrade` route but not the standalone `Upgrade` step. It does
 not replace `OnUpgrade`. For example, an `OnUpgrade = 'Only'` definition under a
 fresh-only category is unreachable and fails validation. A definition file must appear
 exactly once across `Categories`, `Standalone`, and `Disabled`. To disable one, remove
@@ -74,10 +75,10 @@ explicit point, after the live-HKCU pass.
 | --- | --- | --- |
 | `Name` | string (required) | Display name, used in logs. |
 | `Description` | string | What the tweak does and why. |
-| `Option` | string | Only apply when the user selected this FeaturePage option. Known values: `auto-updates-default`, `auto-updates-disable`, `browser-brave`, `browser-chrome`, `browser-firefox`, `browser-librewolf`, `defender-disable`, `defender-enable`, `disable-core-isolation`, `disable-hibernation`, `disable-power-saving`, `install-another-browser`, `install-toolbox`, `install-eclean`, `keyboard-shortcuts`, `keyboard-selector`, `keyboard-single`, `mitigations-default`, `mitigations-disable`, `remove-snipping-tool`, `uninstall-edge`. |
+| `Option` | string | Only apply when the user selected this FeaturePage option. Known values: `auto-updates-default`, `auto-updates-disable`, `browser-brave`, `browser-chrome`, `browser-firefox`, `browser-librewolf`, `defender-disable`, `defender-enable`, `disable-core-isolation`, `disable-hibernation`, `disable-power-saving`, `install-another-browser`, `install-toolbox`, `install-eclean`, `keyboard-shortcuts`, `keyboard-selector`, `keyboard-single`, `mitigations-default`, `mitigations-disable`, `remove-snipping-tool`, `uninstall-edge`. A cleared box or a default answer has no tweak of its own: when an update chooses again, the Choices step applies it, undoing Atlas's earlier Disable where Atlas recorded one ([Choose again](../../../../../docs/upgrading.md#choose-again)). |
 | `Arch` | `'X64'` or `'ARM64'` | Only apply on this architecture. |
 | `MinBuild` / `MaxBuild` | integer | Only apply on this Windows build range (inclusive). Maps the old YAML `builds: ['>=22000']` (`MinBuild = 22000`) and `builds: ['<22000']` (`MaxBuild = 21999`). Not enforced when the build number can't be read. |
-| `OnUpgrade` | `'Both'` (default), `'Skip'` or `'Only'` | `Skip` = fresh installs only, `Only` = upgrade installs only, `Both` = either mode when the install plan reaches this tweak. `ParentModes` still limits the category or standalone route; this key does not add work to Reapply. |
+| `OnUpgrade` | `'Both'` (default), `'Skip'` or `'Only'` | `Skip` = fresh installs only, `Only` = upgrade installs only, `Both` = either mode when the install plan reaches this tweak. A reinstall of the same version (Reapply) counts as an upgrade here: it runs the tweak categories too. `ParentModes` still limits the category or standalone route. |
 | `OnRebase` | `'Run'` | Only with `OnUpgrade = 'Skip'`. A Rebase install, which puts Atlas back on a Windows that rebuilt itself while Atlas Manager moved it to a newer release, runs this fresh-install tweak too. Leave it out of tweaks that would overwrite the user's own layout, theme, file associations or settings. |
 | `Oobe` | bool | When `$false`, the tweak is skipped during OOBE installs. |
 | `RunAs` | `'User'` | Runs the companion `Script` as the exact install-state-bound, non-elevated user via `Invoke-AtlasAsUser`; other keys keep their own execution context. Requires `Oobe = $false`, a first-login path for the eventual user, and a successful `-ExpectedUserSid` token check. Elevated user companions are unsupported; shell work must use the session-filtered refresh helper. |

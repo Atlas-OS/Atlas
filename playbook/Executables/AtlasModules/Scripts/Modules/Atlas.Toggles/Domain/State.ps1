@@ -299,9 +299,12 @@ function Set-AtlasToggleState {
     New-ItemProperty -LiteralPath $keyPath -Name 'state' -Value $State -PropertyType DWord -Force | Out-Null
 
     # The registry tree is the write store the Toolbox app still reads; the machine
-    # state document mirrors it for every other reader.
+    # state document mirrors it for every other reader. A choice toggle run between
+    # installs also keeps its install choice in step there; during an install,
+    # completion records what the PC has.
     if ($productionStateRoot) {
-        $null = Set-AtlasStateToggle -Name $Name -State $State
+        $activeInstall = [IO.Path]::Combine([IO.Path]::GetDirectoryName((Get-AtlasStatePath)), 'Install', 'active.json')
+        $null = Set-AtlasStateToggle -Name $Name -State $State -SyncChoice:(-not [IO.File]::Exists($activeInstall))
     }
 }
 

@@ -25,8 +25,22 @@ foreach ($folderName in @('AtlasModules', 'AtlasDesktop')) {
     if (-not (Test-Path -LiteralPath $source -PathType Container)) {
         throw "Required Atlas folder '$source' is missing."
     }
+    if ($folderName -cne 'AtlasModules') {
+        Copy-Item -LiteralPath $source -Destination $windowsPath -Force -Recurse -ErrorAction Stop
+        continue
+    }
 
-    Copy-Item -LiteralPath $source -Destination $windowsPath -Force -Recurse -ErrorAction Stop
+    # The staged Logs folder holds only this run's capture and session logs, still
+    # being written; copied over the machine's, it would replace the logs earlier
+    # installs and this one keep there with partial copies.
+    $destination = Join-Path -Path $windowsPath -ChildPath $folderName
+    if (-not (Test-Path -LiteralPath $destination -PathType Container)) {
+        New-Item -Path $destination -ItemType Directory -Force -ErrorAction Stop | Out-Null
+    }
+    foreach ($item in Get-ChildItem -LiteralPath $source -Force -ErrorAction Stop) {
+        if ($item.Name -eq 'Logs') { continue }
+        Copy-Item -LiteralPath $item.FullName -Destination $destination -Force -Recurse -ErrorAction Stop
+    }
 }
 
 $themesSourceRoot = Join-Path -Path $executablesRoot -ChildPath 'Themes'

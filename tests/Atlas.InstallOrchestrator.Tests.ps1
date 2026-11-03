@@ -136,28 +136,145 @@ Export-ModuleMember -Function Start-AtlasPhase,Stop-AtlasPhase
     }
 
     It 'runs every planned phase step from an existing phase script and plans every phase script' {
-        $steps = foreach ($mode in 'Fresh', 'Upgrade', 'Reapply', 'Rebase') {
-            foreach ($isOobe in $false, $true) {
-                Get-AtlasInstallPlan -Mode $mode -IsOobe $isOobe |
-                    Where-Object { -not $_.Key.StartsWith('Checkpoint/', [StringComparison]::Ordinal) }
+        $dispatch = {
+            param([object[]]$Steps)
+            $ran = New-Object 'Collections.Generic.List[string]'
+            $runner = { param($Path) $ran.Add($Path) }.GetNewClosure()
+            foreach ($step in @($Steps | Where-Object { -not $_.Key.StartsWith('Checkpoint/', [StringComparison]::Ordinal) })) {
+                Invoke-AtlasInstallAction -Step $step -ScriptsRoot $script:AtlasTestScriptsRoot `
+                    -SourceScriptsRoot $script:AtlasTestScriptsRoot -ScriptRunner $runner `
+                    -PhaseStarter {} -PhaseStopper {}
             }
+            @($ran | Sort-Object -Unique)
         }
-        $ran = New-Object 'Collections.Generic.List[string]'
-        $runner = { param($Path) $ran.Add($Path) }.GetNewClosure()
-        foreach ($step in $steps) {
-            Invoke-AtlasInstallAction -Step $step -ScriptsRoot $script:AtlasTestScriptsRoot `
-                -SourceScriptsRoot $script:AtlasTestScriptsRoot -ScriptRunner $runner `
-                -PhaseStarter {} -PhaseStopper {}
-        }
+        $kept = @(& $dispatch @(foreach ($mode in 'Fresh', 'Upgrade', 'Reapply', 'Rebase') {
+                    foreach ($isOobe in $false, $true) { Get-AtlasInstallPlan -Mode $mode -IsOobe $isOobe }
+                }))
+        $chosenAgain = @(& $dispatch @(foreach ($mode in 'Upgrade', 'Reapply') { Get-AtlasInstallPlan -Mode $mode -IsOobe $false -ChooseAgain $true }))
 
-        $planned = @($ran | Sort-Object -Unique)
-        foreach ($path in $planned) {
+        foreach ($path in @($kept + $chosenAgain)) {
             $path | Should -Exist
         }
         $onDisk = @(Get-ChildItem -LiteralPath (Join-Path $script:AtlasTestScriptsRoot 'Install\Phases') `
                 -Filter 'Invoke-*Phase.ps1' -File | ForEach-Object FullName)
         foreach ($path in $onDisk) {
-            $planned | Should -Contain $path -Because 'a phase script no plan reaches never runs'
+            @($kept + $chosenAgain) | Should -Contain $path -Because 'a phase script no plan reaches never runs'
+        }
+    }
+
+    It 'dispatches the Choices step to its own phase script' {
+        $installed = Join-Path $TestDrive 'installed\Scripts'
+        $calls = New-Object Collections.Generic.List[object]
+        $events = New-Object Collections.Generic.List[string]
+        $runner = { param($Path, $Parameters) $calls.Add([pscustomobject]@{ Path = $Path; Parameters = $Parameters }) }.GetNewClosure()
+        $starter = { param($Phase, $Category) $events.Add("start:$Phase|$Category") }.GetNewClosure()
+        $step = @(Get-AtlasInstallPlan -Mode Reapply -IsOobe $false -ChooseAgain $true | Where-Object Key -ceq 'Choices')
+        $step.Count | Should -Be 1
+
+        Invoke-AtlasInstallAction -Step $step[0] -ScriptsRoot $installed -SourceScriptsRoot (Join-Path $TestDrive 'source\Scripts') `
+            -ScriptRunner $runner -PhaseStarter $starter -PhaseStopper {}
+
+        $calls.Count | Should -Be 1
+        $calls[0].Path | Should -Be ([IO.Path]::Combine([IO.Path]::GetFullPath($installed), 'Install\Phases\Invoke-ChoicesPhase.ps1'))
+        @($calls[0].Parameters.Keys) | Should -HaveCount 0
+        $events.ToArray() | Should -Be @('start:Choices|')
+    }
+
+    It 'builds the plan with the update path the install state recorded' {
+        # The Run body itself can't run here, so check the call it makes.
+        $ast = [Management.Automation.Language.Parser]::ParseFile((Join-Path $script:AtlasTestScriptsRoot 'Entry\Invoke-AtlasInstall.ps1'), [ref]$null, [ref]$null)
+        $call = @($ast.FindAll({ param($node) $node -is [Management.Automation.Language.CommandAst] -and $node.GetCommandName() -eq 'Get-AtlasInstallPlan' }, $true))
+        $call.Count | Should -Be 1
+        $call[0].Extent.Text | Should -Match '-ChooseAgain\s+\([^)]*\$choices\.Value -ceq ''ChooseAgain''\)'
+    }
+
+    Context 'completion' {
+        BeforeAll {
+            # Stand-ins for the install-state module's commands, so they can be mocked here.
+            function Get-AtlasRecordedOption { param($State) throw "Unmocked recorded options for $State" }
+            function Complete-AtlasInstallState {
+                param([string[]]$RequiredSteps, [string]$FlagsPath, [string[]]$RecordedOptions, [string[]]$NotApplied)
+                throw "Unmocked completion of $RequiredSteps in $FlagsPath with $RecordedOptions, not applied $NotApplied"
+            }
+        }
+        BeforeEach {
+            $script:Messages = New-Object 'Collections.Generic.List[string]'
+            Mock Write-AtlasLog { $script:Messages.Add("$Level|$Message") }
+            Mock Complete-AtlasInstallState { [pscustomobject]@{ status = 'Completed' } }
+            $script:RunState = [pscustomobject]@{ status = 'Running'; options = @('defender-enable'); userSid = 'S-1-5-21-1-2-3-1001' }
+        }
+
+        It 'records what the PC has and what it couldn''t apply, and logs each choice recorded otherwise' {
+            Mock Get-AtlasRecordedOption {
+                [pscustomobject]@{
+                    Options = @('defender-disable')
+                    Changes = @([pscustomobject]@{ Message = "Recorded 'defender-disable' for Microsoft Defender instead of the requested 'defender-enable': Atlas's NoDefender package is installed." })
+                    NotApplied = @('defender-disable', 'defender-enable')
+                    Warnings = @("Couldn't list this PC's apps, so the requested choice is recorded for Remove Snipping Tool.")
+                }
+            }
+            (Complete-AtlasInstallRun -State $script:RunState -RequiredSteps @('Defaults') -FlagsPath 'C:\Flags').status | Should -Be 'Completed'
+
+            Should -Invoke Get-AtlasRecordedOption -Times 1 -Exactly -ParameterFilter { $State.userSid -eq 'S-1-5-21-1-2-3-1001' }
+            Should -Invoke Complete-AtlasInstallState -Times 1 -Exactly -ParameterFilter {
+                @($RecordedOptions) -join ',' -eq 'defender-disable' -and @($NotApplied) -join ',' -eq 'defender-disable,defender-enable' -and
+                @($RequiredSteps) -join ',' -eq 'Defaults' -and $FlagsPath -eq 'C:\Flags'
+            }
+            $script:Messages.ToArray() | Should -Be @(
+                "Warning|Couldn't list this PC's apps, so the requested choice is recorded for Remove Snipping Tool."
+                "Info|Recorded 'defender-disable' for Microsoft Defender instead of the requested 'defender-enable': Atlas's NoDefender package is installed."
+            )
+        }
+
+        It 'records the request, with a warning, when the PC can''t be read' {
+            Mock Get-AtlasRecordedOption { throw 'module missing' }
+            Complete-AtlasInstallRun -State $script:RunState -RequiredSteps @() -FlagsPath 'C:\Flags' | Out-Null
+
+            Should -Invoke Complete-AtlasInstallState -Times 1 -Exactly -ParameterFilter { $null -eq $RecordedOptions -and $null -eq $NotApplied }
+            $script:Messages.ToArray() | Should -Be @("Warning|Couldn't read what this PC shows, so the requested choices are recorded: module missing")
+        }
+
+        It 'says nothing of what took effect when the readers found nothing to read' {
+            Mock Get-AtlasRecordedOption {
+                [pscustomobject]@{ Options = @('defender-enable'); Changes = @(); NotApplied = $null; Warnings = @("Couldn't read what this PC shows, so the requested choices are recorded: denied") }
+            }
+            Complete-AtlasInstallRun -State $script:RunState -RequiredSteps @() -FlagsPath 'C:\Flags' | Out-Null
+
+            Should -Invoke Complete-AtlasInstallState -Times 1 -Exactly -ParameterFilter {
+                @($RecordedOptions) -join ',' -eq 'defender-enable' -and $null -eq $NotApplied
+            }
+        }
+
+        It 'records that nothing it tried is missing when it read the PC and found none' {
+            Mock Get-AtlasRecordedOption { [pscustomobject]@{ Options = @('defender-enable'); Changes = @(); NotApplied = @(); Warnings = @() } }
+            Complete-AtlasInstallRun -State $script:RunState -RequiredSteps @() -FlagsPath 'C:\Flags' | Out-Null
+
+            Should -Invoke Complete-AtlasInstallState -Times 1 -Exactly -ParameterFilter { $null -ne $NotApplied -and @($NotApplied).Count -eq 0 }
+        }
+
+        It 'completes the plan through the run''s completion, which records what the PC has' {
+            Mock Get-AtlasRecordedOption { [pscustomobject]@{ Options = @('defender-disable'); Changes = @(); NotApplied = @(); Warnings = @() } }
+            $invoker = New-AtlasInstallCompleteInvoker -State $script:RunState -FlagsPath 'C:\Flags'
+            (& $invoker @('Defaults')).status | Should -Be 'Completed'
+
+            Should -Invoke Get-AtlasRecordedOption -Times 1 -Exactly -ParameterFilter { $State.userSid -eq 'S-1-5-21-1-2-3-1001' }
+            Should -Invoke Complete-AtlasInstallState -Times 1 -Exactly -ParameterFilter {
+                @($RecordedOptions) -join ',' -eq 'defender-disable' -and @($RequiredSteps) -join ',' -eq 'Defaults' -and $FlagsPath -eq 'C:\Flags'
+            }
+        }
+
+        It 'gives the plan that completion for the install state it runs' {
+            # The Run body itself can't run here, so check the calls it makes.
+            $ast = [Management.Automation.Language.Parser]::ParseFile((Join-Path $script:AtlasTestScriptsRoot 'Entry\Invoke-AtlasInstall.ps1'), [ref]$null, [ref]$null)
+            $built = @($ast.FindAll({ param($node) $node -is [Management.Automation.Language.CommandAst] -and $node.GetCommandName() -eq 'New-AtlasInstallCompleteInvoker' }, $true))
+            $built.Count | Should -Be 1
+            $built[0].Parent.Parent.Extent.Text | Should -BeExactly '$completeInvoker = New-AtlasInstallCompleteInvoker -State $state -FlagsPath $installFlagsPath'
+            $core = @($ast.FindAll({ param($node) $node -is [Management.Automation.Language.CommandAst] -and $node.GetCommandName() -eq 'Invoke-AtlasInstallPlanCore' }, $true) |
+                    Where-Object { $_.Extent.StartOffset -gt $built[0].Extent.StartOffset })
+            $core.Count | Should -Be 1
+            $core[0].Extent.Text | Should -Match '-CompleteInvoker \$completeInvoker\b'
+            @($ast.FindAll({ param($node) $node -is [Management.Automation.Language.AssignmentStatementAst] -and $node.Left.Extent.Text -eq '$completeInvoker' }, $true)) |
+                Should -HaveCount 1
         }
     }
 

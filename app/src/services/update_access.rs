@@ -314,6 +314,18 @@ pub struct Carry {
     /// Microsoft Edge was installed before Windows moved. A Rebase then
     /// leaves it, whatever the choices say.
     pub edge: bool,
+    /// The toggle records it kept.
+    pub toggles: Vec<CarryToggle>,
+}
+
+/// A toggle record the record of a move kept: its name and state, and the
+/// file name of the Atlas 0.5 launcher that wrote it, when one did.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize)]
+#[serde(default)]
+pub struct CarryToggle {
+    pub name: String,
+    pub state: u32,
+    pub path: Option<String>,
 }
 
 /// The open record: what kind of change it is, where it stands, and its
@@ -732,6 +744,16 @@ mod tests {
         assert_eq!(carry.atlas_version.as_deref(), Some("0.5.0"));
         assert_eq!(carry.option_source, "observed");
         assert!(carry.options.iter().any(|option| option == "defender-disable"));
+        assert_eq!(
+            carry.toggles.iter().find(|record| record.name == "Mitigations"),
+            Some(&CarryToggle {
+                name: "Mitigations".into(),
+                state: 2,
+                path: Some("Enable All Mitigations.cmd".into())
+            }),
+            "with the launcher that wrote it"
+        );
+        assert!(carry.toggles.iter().any(|record| record.name == "Hibernation" && record.path.is_none()));
         assert_eq!(rebuilt.rebuild.as_ref().map(|r| r.signals.len()), Some(4));
 
         let in_place = fixture("journal-rebuilt.json").replacen("\"rebuilt\":true", "\"rebuilt\":false", 1);

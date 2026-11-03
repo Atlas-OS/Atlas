@@ -8,11 +8,12 @@
 //! passed through as text arguments and never translated or reformatted.
 
 use crate::model::{
-    AcquireProblem, ElevationProblem, InstallBlock, Notice, Preflight, ProtectionReminder, ReminderReason,
-    RestartProblem, ScreenKind,
+    AcquireProblem, ElevationProblem, FixedChoice, InstallBlock, Notice, Preflight, ProtectionReminder,
+    ReminderReason, RestartProblem, ScreenKind,
 };
 use crate::services::atlas_state::InstallMode;
 use crate::services::installer::{InstallOutcome, Phase};
+use crate::services::legacy_choices::Facts;
 use crate::services::playbook::FeaturePage;
 use crate::services::preparation::{Activity, waits_for_offer};
 use crate::services::reports::SendProblem;
@@ -407,6 +408,42 @@ pub fn security_summary(counts: &SwitchCounts) -> String {
     }
 }
 
+/// Why Microsoft Defender isn't on this PC, so the Windows Security step has
+/// no switches to turn off. Only Atlas's NoDefender package counts as Atlas
+/// having removed it; none of them stops the step.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DefenderAbsence {
+    /// Atlas's package removed it, and this installation brings it back.
+    Restore,
+    /// Atlas's package removed it, and it stays removed.
+    Removed,
+    /// Atlas didn't remove it, and the user chose to keep it, which Atlas
+    /// can't do.
+    Missing,
+    /// Atlas didn't remove it, and the user chose to remove it.
+    Absent,
+}
+
+impl DefenderAbsence {
+    /// The step's bar: its title, then its message.
+    pub fn banner(self) -> (String, String) {
+        match self {
+            DefenderAbsence::Restore => {
+                (t!("security-banner-restore-title"), t!("security-banner-restore-message"))
+            }
+            DefenderAbsence::Removed => {
+                (t!("security-banner-removed-title"), t!("security-banner-absent-message"))
+            }
+            DefenderAbsence::Missing => {
+                (t!("security-banner-missing-title"), t!("security-banner-missing-message"))
+            }
+            DefenderAbsence::Absent => {
+                (t!("security-banner-absent-title"), t!("security-banner-absent-message"))
+            }
+        }
+    }
+}
+
 impl ProtectionReminder {
     /// What to turn back on, naming the switches as Windows Security does,
     /// or that Defender is missing.
@@ -434,6 +471,23 @@ pub fn report_failure(problem: SendProblem) -> String {
     }
 }
 
+/// What a finished attempt's advice depends on besides its outcome.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct AttemptFacts {
+    /// How far the install got.
+    pub phase: Phase,
+    /// A retry of an install an earlier attempt already began applying:
+    /// stopping early no longer means nothing changed.
+    pub resumed: bool,
+    /// It stopped on the error the attempt before it stopped on.
+    pub repeated: bool,
+    /// There are no Defender protections left to turn back on (see
+    /// [`AppModel::defender_removed`](crate::model::AppModel::defender_removed)).
+    pub defender_removed: bool,
+    /// The apps Windows wouldn't remove, as the installer names them.
+    pub unremoved_apps: Vec<String>,
+}
+
 impl InstallOutcome {
     pub fn title(self) -> String {
         match self {
@@ -452,11 +506,11 @@ impl InstallOutcome {
         }
     }
 
-    /// What the user should do next, given how far the install got.
-    /// `resumed` is a retry of an install an earlier attempt already began
-    /// applying: stopping early no longer means nothing changed.
-    pub fn advice(self, phase: Phase, resumed: bool) -> String {
-        let early = phase < Phase::Applying;
+    /// What the user should do next, given how far the install got and what
+    /// else is known about the attempt (see [`AttemptFacts`]).
+    pub fn advice(self, facts: &AttemptFacts) -> String {
+        let (resumed, removed) = (facts.resumed, facts.defender_removed);
+        let early = facts.phase < Phase::Applying;
         match self {
             InstallOutcome::Succeeded => t!("restart-needed"),
             InstallOutcome::Failed(2) if resumed && early => t!("outcome-requirements-resumed"),
@@ -465,17 +519,45 @@ impl InstallOutcome {
             InstallOutcome::Failed(3) => t!("outcome-not-elevated"),
             outcome if outcome.needs_preparation() && resumed => t!("outcome-preparation-stale-resumed"),
             outcome if outcome.needs_preparation() => t!("outcome-preparation-stale"),
+            // The same error again: another identical attempt won't get further.
+            InstallOutcome::Failed(_) if facts.repeated => repeated_failure(facts),
             InstallOutcome::Failed(_) | InstallOutcome::NotStarted if resumed && early => {
-                t!("outcome-failed-resumed")
+                if removed {
+                    t!("outcome-failed-resumed-defender-removed")
+                } else {
+                    t!("outcome-failed-resumed")
+                }
             }
-            InstallOutcome::Failed(_) => match phase {
+            InstallOutcome::Failed(_) => match facts.phase {
                 Phase::Preflight => t!("outcome-failed-preflight"),
                 Phase::Staging => t!("outcome-failed-staging"),
+                Phase::Applying | Phase::Done if removed => t!("outcome-failed-applying-defender-removed"),
                 Phase::Applying | Phase::Done => t!("outcome-failed-applying"),
             },
             InstallOutcome::NotStarted => t!("outcome-not-started"),
+            InstallOutcome::Lost if removed => t!("outcome-lost-defender-removed"),
             InstallOutcome::Lost => t!("outcome-lost"),
         }
+    }
+}
+
+/// A failure on the error the attempt before stopped on: it names the apps
+/// Windows wouldn't remove, when that was the error, and leads to a report
+/// rather than another try.
+fn repeated_failure(facts: &AttemptFacts) -> String {
+    let removed = facts.defender_removed;
+    if facts.unremoved_apps.is_empty() {
+        return if removed {
+            t!("outcome-failed-repeated-defender-removed")
+        } else {
+            t!("outcome-failed-repeated")
+        };
+    }
+    let apps = join_and(&facts.unremoved_apps);
+    if removed {
+        t!("outcome-failed-repeated-apps-defender-removed", apps = apps)
+    } else {
+        t!("outcome-failed-repeated-apps", apps = apps)
     }
 }
 
@@ -507,6 +589,7 @@ impl ScreenKind {
     /// Short name, for the summary ("Microsoft Defender").
     pub fn title(self) -> String {
         match self {
+            ScreenKind::UpdatePath => t!("step-options"),
             ScreenKind::Defender => t!("screen-defender-title"),
             ScreenKind::Mitigations => t!("screen-mitigations-title"),
             ScreenKind::Updates => t!("screen-updates-title"),
@@ -530,7 +613,7 @@ impl ScreenKind {
             // Its title is already the generic question; wrapping it would
             // read "Choose an option for Choose an option". The extras screen
             // asks no one question: each page on it has its own title.
-            ScreenKind::ChooseOne | ScreenKind::Extras => self.title(),
+            ScreenKind::UpdatePath | ScreenKind::ChooseOne | ScreenKind::Extras => self.title(),
             other => t!("screen-generic-question", title = other.title()),
         }
     }
@@ -545,7 +628,7 @@ impl ScreenKind {
             ScreenKind::Power => t!("learn-more-power"),
             ScreenKind::Apps => t!("learn-more-apps"),
             ScreenKind::OptionalApps => t!("learn-more-eclean"),
-            ScreenKind::ChooseOne | ScreenKind::Extras => t!("learn-more-generic"),
+            ScreenKind::UpdatePath | ScreenKind::ChooseOne | ScreenKind::Extras => t!("learn-more-generic"),
         }
     }
 }
@@ -629,6 +712,60 @@ pub fn known_install_consequence(name: &str, package_text: &str, before_desktop:
 pub fn known_data_caution(name: &str, package_text: &str) -> Option<String> {
     (name == "uninstall-edge" && recognised(&format!("playbook-option-{name}"), package_text))
         .then(|| t!("caution-uninstall-edge"))
+}
+
+/// The line under `name` while choosing again, said instead of what the
+/// option usually means, when the answer changes this PC, as the update's
+/// Choices step applies it: Defender back where Atlas's package removed it,
+/// a toggle Atlas recorded off, or VBS the PC shows off, turned back on,
+/// Snipping Tool removed for good. `chosen` is whether the answer is chosen: always for a radio
+/// option, which is an answer of its own; for a check box, whether it's
+/// ticked. `facts` is what the PC shows, as the update reads it. Only while
+/// the package text is the wording this app knows.
+pub fn change_line(name: &str, package_text: &str, chosen: bool, facts: &Facts) -> Option<String> {
+    if !recognised(&format!("playbook-option-{name}"), package_text) {
+        return None;
+    }
+    let record = |toggle: &str| facts.toggles.get(toggle).copied();
+    Some(match name {
+        "defender-enable" if facts.defender_package_installed() => t!("change-defender-enable"),
+        // Every protection on stays on: Atlas never lowers them to Windows' default.
+        "mitigations-default" if record("Mitigations") == Some(2) => t!("change-mitigations-all-on"),
+        "mitigations-default" if record("Mitigations") == Some(0) => t!("change-mitigations-default"),
+        "auto-updates-default" if record("AutomaticUpdates") == Some(0) => t!("change-auto-updates-default"),
+        // Without Atlas's record of turning them off, clearing them changes nothing.
+        "disable-hibernation" if !chosen && record("Hibernation") == Some(0) => t!("change-hibernation-on"),
+        "disable-power-saving" if !chosen && record("PowerSaving") == Some(0) => t!("change-power-saving-on"),
+        // VBS goes by what the PC shows where it could be read: a record
+        // outlasts a change Windows Security or another tool made since.
+        "disable-core-isolation"
+            if !chosen && facts.core_isolation_off.unwrap_or(record("VbsState") == Some(0)) =>
+        {
+            t!("change-core-isolation-on")
+        }
+        "remove-snipping-tool" if chosen && facts.snipping_tool_removed() != Some(true) => {
+            t!("change-remove-snipping-tool")
+        }
+        _ => return None,
+    })
+}
+
+/// The Atlas Toolbox's name, which is the same in every language.
+const TOOLBOX: &str = "Atlas Toolbox";
+
+/// Why an update can't change an option, for the box Your choices shows
+/// ticked and disabled. `label` names an option, such as a browser. Keeping
+/// the choices fixes options only on screens it doesn't show, so it has no
+/// words.
+pub fn fixed_reason(fixed: &FixedChoice, label: impl Fn(&str) -> String) -> Option<String> {
+    match fixed {
+        FixedChoice::Kept => None,
+        FixedChoice::EdgeRemoved => Some(t!("fixed-uninstall-edge")),
+        FixedChoice::Installed(name) if name == "install-toolbox" => {
+            Some(t!("fixed-installed", app = TOOLBOX))
+        }
+        FixedChoice::Installed(name) => Some(t!("fixed-installed", app = label(name))),
+    }
 }
 
 /// The one line playbook.conf repeats on every checkbox page. Only this
@@ -898,6 +1035,7 @@ mod tests {
     #[test]
     fn install_advice_follows_outcome_phase_and_resume() {
         use InstallOutcome::{Failed, Lost, NotStarted};
+        let facts = |phase, resumed| AttemptFacts { phase, resumed, ..AttemptFacts::default() };
         english(|| {
             let table = [
                 (Failed(1), Phase::Preflight, false, "outcome-failed-preflight"),
@@ -919,7 +1057,7 @@ mod tests {
             ];
             for (outcome, phase, resumed, id) in table {
                 assert_eq!(
-                    outcome.advice(phase, resumed),
+                    outcome.advice(&facts(phase, resumed)),
                     crate::i18n::text(id, &[]),
                     "{outcome:?} {phase:?} resumed: {resumed}"
                 );
@@ -927,9 +1065,9 @@ mod tests {
             // Out-of-date preparation sends the user back to Get ready, whose
             // button then reads prepare-start; other failures don't.
             let button = t!("prepare-start");
-            assert!(Failed(5).advice(Phase::Staging, false).contains(&button));
-            assert!(Failed(5).advice(Phase::Staging, true).contains(&button));
-            assert!(!Failed(1).advice(Phase::Staging, false).contains(&button));
+            assert!(Failed(5).advice(&facts(Phase::Staging, false)).contains(&button));
+            assert!(Failed(5).advice(&facts(Phase::Staging, true)).contains(&button));
+            assert!(!Failed(1).advice(&facts(Phase::Staging, false)).contains(&button));
             // An unconfirmed result is not called a failure.
             assert_eq!(Lost.title(), t!("outcome-lost-title"));
             assert_ne!(Lost.title(), Failed(1).title());
@@ -939,7 +1077,7 @@ mod tests {
             assert_eq!(Failed(1).heading(false), t!("outcome-failed-title"));
             // Neither names a button that may be unavailable.
             for outcome in [NotStarted, Lost] {
-                assert!(!outcome.advice(Phase::Preflight, false).contains(&t!("common-try-again")));
+                assert!(!outcome.advice(&facts(Phase::Preflight, false)).contains(&t!("common-try-again")));
             }
             // A launch refused on a retry changed nothing itself, but an earlier attempt did.
             let error = "the log could not be created";
@@ -949,6 +1087,119 @@ mod tests {
                 refused.text(&SystemInfo::default(), true),
                 t!("preflight-refused-resumed", error = error)
             );
+        });
+    }
+
+    /// A retry that stops on the error the one before it stopped on doesn't
+    /// invite a third identical try: it names the apps Windows kept, when
+    /// that was the error, and points to a report. Outcomes with a remedy of
+    /// their own keep it.
+    #[test]
+    fn a_failure_that_repeats_points_to_a_report_and_names_the_apps_windows_kept() {
+        use InstallOutcome::Failed;
+        let repeated = |phase, apps: &[&str]| AttemptFacts {
+            phase,
+            resumed: true,
+            repeated: true,
+            unremoved_apps: apps.iter().map(|app| app.to_string()).collect(),
+            ..AttemptFacts::default()
+        };
+        english(|| {
+            let report = t!("report-title");
+            let general = Failed(1).advice(&repeated(Phase::Applying, &[]));
+            assert_eq!(general, t!("outcome-failed-repeated"));
+            let one = Failed(1).advice(&repeated(Phase::Applying, &["MSTeams"]));
+            assert_eq!(one, t!("outcome-failed-repeated-apps", apps = "MSTeams"));
+            let two = Failed(1).advice(&repeated(Phase::Applying, &["MSTeams", "Microsoft.Copilot"]));
+            assert!(two.contains("MSTeams and Microsoft.Copilot"), "{two}");
+            for advice in [&general, &one, &two] {
+                assert!(advice.contains(&report), "{advice}");
+                assert!(!advice.contains("You can try again"), "{advice}");
+                assert!(advice.contains("Windows Security"), "Defender is still there: {advice}");
+            }
+            // However early it stopped, the same error again is still a repeat.
+            assert_eq!(Failed(1).advice(&repeated(Phase::Staging, &[])), general);
+            // What a requirement, permission or preparation needs fixing is said as before.
+            assert_eq!(
+                Failed(2).advice(&repeated(Phase::Preflight, &[])),
+                t!("outcome-requirements-resumed")
+            );
+            assert_eq!(
+                Failed(3).advice(&repeated(Phase::Preflight, &[])),
+                t!("outcome-not-elevated-resumed")
+            );
+            assert_eq!(
+                Failed(5).advice(&repeated(Phase::Staging, &[])),
+                t!("outcome-preparation-stale-resumed")
+            );
+            // A failure that is not a repeat still invites a retry.
+            let first = AttemptFacts { repeated: false, ..repeated(Phase::Applying, &["MSTeams"]) };
+            assert_eq!(Failed(1).advice(&first), t!("outcome-failed-applying"));
+        });
+    }
+
+    /// Once Defender has no protections left to turn back on, no advice says
+    /// to turn them back on, whatever the outcome; while it has, a failure
+    /// that changed things does.
+    #[test]
+    fn no_advice_says_to_turn_protection_back_on_once_defender_is_removed() {
+        use InstallOutcome::{Failed, Lost, NotStarted, Succeeded};
+        english(|| {
+            let security = "Windows Security";
+            for outcome in [Succeeded, Failed(1), Failed(2), Failed(3), Failed(5), NotStarted, Lost] {
+                for phase in [Phase::Preflight, Phase::Staging, Phase::Applying, Phase::Done] {
+                    for (resumed, repeated, apps) in [
+                        (false, false, vec![]),
+                        (true, false, vec![]),
+                        (true, true, vec![]),
+                        (true, true, vec!["MSTeams".into()]),
+                    ] {
+                        let facts = AttemptFacts {
+                            phase,
+                            resumed,
+                            repeated,
+                            defender_removed: true,
+                            unremoved_apps: apps,
+                        };
+                        let advice = outcome.advice(&facts);
+                        assert!(!advice.contains(security), "{outcome:?} {facts:?}: {advice}");
+                    }
+                }
+            }
+            let removed = |phase, resumed| AttemptFacts {
+                phase,
+                resumed,
+                defender_removed: true,
+                ..AttemptFacts::default()
+            };
+            assert_eq!(
+                Failed(1).advice(&removed(Phase::Applying, false)),
+                t!("outcome-failed-applying-defender-removed")
+            );
+            assert_eq!(
+                Failed(1).advice(&removed(Phase::Staging, true)),
+                t!("outcome-failed-resumed-defender-removed")
+            );
+            assert_eq!(Lost.advice(&removed(Phase::Applying, true)), t!("outcome-lost-defender-removed"));
+            let repeated = AttemptFacts { repeated: true, ..removed(Phase::Applying, true) };
+            assert_eq!(Failed(1).advice(&repeated), t!("outcome-failed-repeated-defender-removed"));
+            let kept = AttemptFacts { unremoved_apps: vec!["MSTeams".into()], ..repeated };
+            assert_eq!(
+                Failed(1).advice(&kept),
+                t!("outcome-failed-repeated-apps-defender-removed", apps = "MSTeams")
+            );
+            // Each one that stops offering protections still says what to do.
+            for advice in [
+                t!("outcome-failed-applying-defender-removed"),
+                t!("outcome-failed-resumed-defender-removed"),
+                t!("outcome-lost-defender-removed"),
+            ] {
+                assert!(advice.contains(&t!("report-title")), "{advice}");
+            }
+            let present = AttemptFacts { phase: Phase::Applying, ..AttemptFacts::default() };
+            for outcome in [Failed(1), Lost] {
+                assert!(outcome.advice(&present).contains(security), "{outcome:?}");
+            }
         });
     }
 
@@ -1228,6 +1479,111 @@ mod tests {
                 assert!(option_consequence(&option.name).is_some(), "no consequence for {}", option.name);
             }
         }
+    }
+
+    /// Choosing again, an answer that changes this PC says what the update
+    /// does there, as its Choices step applies it; one that leaves the PC as
+    /// it is, or meets a record Atlas never wrote, says nothing new.
+    #[test]
+    fn choosing_again_says_what_an_answer_changes_on_this_pc() {
+        let text = |name: &str| playbook_source(&format!("playbook-option-{name}")).unwrap();
+        let line = |name: &str, chosen: bool, facts: &Facts| change_line(name, text(name), chosen, facts);
+        let records = |records: &[(&str, u32)]| Facts {
+            toggles: records.iter().map(|(name, state)| ((*name).to_owned(), *state)).collect(),
+            ..Facts::default()
+        };
+        let words = |id: &str| Some(crate::i18n::text(id, &[]));
+        english(|| {
+            let removed = Facts {
+                packages: vec!["Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0".into()],
+                ..Facts::default()
+            };
+            assert_eq!(line("defender-enable", true, &removed), words("change-defender-enable"));
+            assert_eq!(line("defender-enable", true, &Facts::default()), None, "no Atlas package removed it");
+            assert_eq!(line("defender-disable", true, &removed), None);
+            // A package that reworded the option keeps its own meaning.
+            assert_eq!(change_line("defender-enable", "Keep Defender on", true, &removed), None);
+
+            let protections = |state| records(&[("Mitigations", state)]);
+            assert_eq!(
+                line("mitigations-default", true, &protections(0)),
+                words("change-mitigations-default")
+            );
+            assert_eq!(
+                line("mitigations-default", true, &protections(2)),
+                words("change-mitigations-all-on")
+            );
+            assert_eq!(line("mitigations-default", true, &protections(1)), None, "already Windows' default");
+            assert_eq!(
+                line("mitigations-default", true, &Facts::default()),
+                None,
+                "no record, nothing applied"
+            );
+            assert_eq!(line("mitigations-disable", true, &protections(2)), None);
+            let updates = |state| records(&[("AutomaticUpdates", state)]);
+            assert_eq!(line("auto-updates-default", true, &updates(0)), words("change-auto-updates-default"));
+            assert_eq!(line("auto-updates-default", true, &updates(1)), None);
+
+            // A box cleared over Atlas's record turns the feature back on;
+            // ticked, or with no record, it changes nothing.
+            for (name, toggle, message) in [
+                ("disable-hibernation", "Hibernation", "change-hibernation-on"),
+                ("disable-power-saving", "PowerSaving", "change-power-saving-on"),
+                ("disable-core-isolation", "VbsState", "change-core-isolation-on"),
+            ] {
+                let off = records(&[(toggle, 0)]);
+                assert_eq!(line(name, false, &off), words(message), "{name}");
+                assert_eq!(line(name, true, &off), None, "{name}");
+                assert_eq!(line(name, false, &records(&[(toggle, 1)])), None, "{name}");
+                assert_eq!(line(name, false, &Facts::default()), None, "{name}");
+            }
+            // VBS off whatever turned it off; on, whatever Atlas recorded.
+            let vbs =
+                |off, record: &[(&str, u32)]| Facts { core_isolation_off: Some(off), ..records(record) };
+            let on_again = words("change-core-isolation-on");
+            assert_eq!(line("disable-core-isolation", false, &vbs(true, &[])), on_again);
+            assert_eq!(line("disable-core-isolation", false, &vbs(true, &[("VbsState", 1)])), on_again);
+            assert_eq!(
+                line("disable-core-isolation", false, &vbs(false, &[("VbsState", 0)])),
+                None,
+                "already on"
+            );
+            assert_eq!(line("disable-core-isolation", true, &vbs(true, &[])), None);
+
+            // Removing Snipping Tool can't be undone, wherever it's still there.
+            let apps = |families: &[&str]| Facts {
+                appx: families.iter().map(|family| (*family).to_owned()).collect(),
+                ..Facts::default()
+            };
+            let present =
+                apps(&["Microsoft.ScreenSketch_8wekyb3d8bbwe", "Microsoft.WindowsCalculator_8wekyb3d8bbwe"]);
+            let gone = apps(&["Microsoft.WindowsCalculator_8wekyb3d8bbwe"]);
+            assert_eq!(line("remove-snipping-tool", true, &present), words("change-remove-snipping-tool"));
+            assert_eq!(
+                line("remove-snipping-tool", true, &Facts::default()),
+                words("change-remove-snipping-tool")
+            );
+            assert_eq!(line("remove-snipping-tool", true, &gone), None);
+            assert_eq!(line("remove-snipping-tool", false, &present), None);
+            assert_eq!(line("install-eclean", true, &present), None);
+        });
+    }
+
+    /// What an update can't undo says so, naming what is installed.
+    #[test]
+    fn a_fixed_choice_says_why_an_update_cannot_change_it() {
+        let label =
+            |name: &str| option_label(name, playbook_source(&format!("playbook-option-{name}")).unwrap());
+        english(|| {
+            assert_eq!(fixed_reason(&FixedChoice::EdgeRemoved, label), Some(t!("fixed-uninstall-edge")));
+            assert_eq!(
+                fixed_reason(&FixedChoice::Installed("install-toolbox".into()), label),
+                Some(t!("fixed-installed", app = "Atlas Toolbox"))
+            );
+            let brave = fixed_reason(&FixedChoice::Installed("browser-brave".into()), label).unwrap();
+            assert!(brave.starts_with("Brave is installed."), "{brave}");
+            assert_eq!(fixed_reason(&FixedChoice::Kept, label), None);
+        });
     }
 
     #[test]

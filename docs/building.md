@@ -126,8 +126,11 @@ design and the checks still owed on Windows.
 
 A tester build never checks GitHub, downloads, or opens another Atlas package. On first
 use it writes its bundled package to the app's Downloads folder and unpacks it through the
-ordinary package cache. Testers reinstall Windows between candidates; installed candidates
-are not upgraded.
+ordinary package cache. Every candidate of a release has the same version, so moving to the
+next one is a reinstall: on Home, **Reinstall Atlas**, then **Keep my choices**, which runs
+the new build's tweak fixes with the choices kept, or **Choose again**, which also applies
+each choice that differs from the PC
+([Keep my choices or Choose again](upgrading.md#keep-my-choices-or-choose-again)).
 
 ### Production shader export
 

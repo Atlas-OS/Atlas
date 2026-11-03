@@ -1,6 +1,9 @@
 //! The readiness checks and the Windows Security gate, up to the final
-//! decision taken just before the install starts.
+//! decision taken just before the install starts, and what the PC shows of
+//! Microsoft Defender and the install choices, which the gate and the pages
+//! around it put into words, up to what a finished install recorded.
 
+use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -8,7 +11,9 @@ use std::time::{Duration, Instant};
 use gpui::Context;
 
 use super::{Acquisition, AppModel, InstallBlock, Page, Preflight, Step};
-use crate::services::atlas_state::InstallIdentity;
+use crate::i18n::describe::DefenderAbsence;
+use crate::services::atlas_state::{InstallIdentity, InstallMode};
+use crate::services::legacy_choices::Facts;
 use crate::services::preparation::State as Preparation;
 use crate::services::requirements::{CheckContext, CheckDetail, CheckId, CheckResult, Verdict};
 use crate::services::security::SecurityStatus;
@@ -450,6 +455,86 @@ impl AppModel {
         self.save_draft(cx);
         cx.notify();
     }
+
+    /// Why Microsoft Defender isn't on this PC, for the Windows Security
+    /// step's bar, from the choice this installation makes and whether
+    /// Atlas's NoDefender package is installed. Keeping the choices on an
+    /// update leaves Defender as the PC has it; a first install, a Rebase and
+    /// choosing again apply the choice. An unfinished install goes on as its
+    /// record says it began, as the front door reads it: keeping the choices
+    /// on an update leaves Defender removed even where the options it holds
+    /// keep Defender, as a capture by an earlier release or another tool
+    /// left them while Atlas's package still removes it.
+    pub fn defender_absence(&self) -> DefenderAbsence {
+        let keeps = self.effective_options().iter().any(|option| option == "defender-enable");
+        let applied = match &self.install_identity {
+            Ok(InstallIdentity::Resume(_, unfinished)) => {
+                unfinished.choose_again || matches!(unfinished.mode, InstallMode::Fresh | InstallMode::Rebase)
+            }
+            _ => self.update_choices().is_none() || self.choosing_again(),
+        };
+        match (self.pc_facts.defender_package_installed(), keeps) {
+            (true, true) if applied => DefenderAbsence::Restore,
+            (true, _) => DefenderAbsence::Removed,
+            (false, true) => DefenderAbsence::Missing,
+            (false, false) => DefenderAbsence::Absent,
+        }
+    }
+
+    /// What this PC shows of the install choices, as an update or reinstall
+    /// reads it, for what Your choices says each answer changes.
+    pub fn choice_facts(&self) -> Cow<'_, Facts> {
+        self.update_facts()
+    }
+
+    /// Whether Home and the "Atlas is installed" window warn that Microsoft
+    /// Defender is still removed though Atlas's record kept it (see
+    /// [`AppModel::defender_not_restored`]), until the warning is dismissed
+    /// for this install. Not while an install runs or waits for Done: one
+    /// that chose again may be bringing Defender back.
+    pub fn defender_not_restored_shown(&self) -> bool {
+        let installed_at = self.installed().and_then(|state| state.installed_at.as_ref());
+        self.defender_not_restored()
+            && !self.install_in_progress()
+            && self.settings.defender_not_restored_dismissed.as_ref() != installed_at
+    }
+
+    /// Dismisses that warning for good for the recorded install. The warning
+    /// that a kept Defender is missing is dismissed apart: it shows once
+    /// Atlas's package is gone, as when Toggle Defender took it off and
+    /// Defender still didn't come back, which is what its report is for.
+    pub fn dismiss_defender_not_restored(&mut self, cx: &mut Context<Self>) {
+        let Some(installed_at) = self.installed().and_then(|state| state.installed_at.clone()) else {
+            return;
+        };
+        self.settings.defender_not_restored_dismissed = Some(installed_at.clone());
+        self.persist_preference(move |doc| doc.defender_not_restored_dismissed = Some(installed_at), cx);
+        cx.notify();
+    }
+
+    /// What the install the "Atlas is installed" window is about tried to
+    /// apply and didn't get, as its completion recorded it (the options of
+    /// each such choice): the install this window followed, or the one
+    /// startup found finished after the restart it asked for, which recovery
+    /// has closed out since. A choice recorded otherwise only because the
+    /// install had nothing to do for it, such as VBS already off on a first
+    /// install that left its box clear, isn't among them.
+    pub fn choices_not_applied(&self) -> Option<&[String]> {
+        self.session.as_ref().or(self.finished_session.as_ref())?;
+        self.installed()?.history.last()?.not_applied.as_deref()
+    }
+
+    /// Opens the log of that install: the one this window followed as
+    /// Open log file does on the Install step, or else the machine's copy,
+    /// which a finished install's plan wrote to, while it's there.
+    pub fn reveal_install_log(&self, cx: &mut Context<Self>) {
+        if self.session.is_some() {
+            self.reveal_log(cx);
+        } else if let Some(record) = &self.finished_session {
+            let machine = &self.session_paths.machine_log;
+            cx.reveal_path(if machine.exists() { machine } else { &record.log_path });
+        }
+    }
 }
 
 /// Whether a check still stands in the way: a blocking result the user has
@@ -467,7 +552,9 @@ pub fn security_verified(
     confirmation: Option<SecurityStatus>,
     elevated: bool,
 ) -> bool {
-    // No Defender, no switches: an earlier Atlas install removed it.
+    // No Defender, no switches to turn off, whatever took it away and
+    // whatever the choices ask: the step's bar says which (see
+    // `AppModel::defender_absence`), and none of its cases stops the install.
     !status.defender_present || status.all_off() || confirmed_by_hand(status, confirmation, elevated)
 }
 

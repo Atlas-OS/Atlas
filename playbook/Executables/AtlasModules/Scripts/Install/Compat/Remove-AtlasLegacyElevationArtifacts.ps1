@@ -4,8 +4,9 @@
 .DESCRIPTION
     Machine scope removes the released RunAsTI terminal registrations and terminal
     state, and converts the released registry-file verb to the UAC-backed
-    Administrator command. CurrentUser scope removes only the released volatile
-    RunAsTI value after verifying the current token against ExpectedUserSid.
+    Administrator command. It also removes the records old Atlas Toolbox builds
+    kept where Atlas never reads them. CurrentUser scope removes only the released
+    volatile RunAsTI value after verifying the current token against ExpectedUserSid.
 
     Development-only SendTo and NSudo variants are intentionally not migration
     contracts. Customized registry entries are retained.
@@ -27,6 +28,24 @@ $script:AtlasLegacyTerminalCommands = @{
     OpenPSAdmin = 'PowerShell.exe -win 1 -nop -c iex((10..40|%%{(gp ''Registry::HKCR\TermsRunAsTI'' $_ -ea 0).$_})-join[char]10); # --%% cmd /k pushd "%V"'
     OpenPSAdmin0 = 'PowerShell.exe -win 1 -nop -c iex((10..40|%%{(gp ''Registry::HKCR\TermsRunAsTI'' $_ -ea 0).$_})-join[char]10); # --%% PowerShell.exe -noexit -command Set-Location -literalPath ''%V'''
 }
+
+# The names Atlas Toolbox 0.1.x kept its records under. Builds v0.1.1 to v0.1.9 put
+# them directly under HKLM\SOFTWARE\AtlasOS, and v0.1.10 under 'Services<Name>',
+# missing the backslash; only later builds wrote Services\<Name>, the toggle store
+# Atlas reads. Names the Toolbox only read are left out.
+$script:AtlasLegacyToolboxRecordNames = @(
+    'AdvancedBootOptions', 'Animation', 'AppIconsThumbnail', 'AppStoreArchiving', 'AutomaticFolderDiscovery',
+    'AutomaticRepair', 'AutomaticUpdates', 'BackgroundApps', 'Bluetooth', 'BootLogo', 'CompactView',
+    'ContextMenuTerminals', 'CpuIdle', 'CPUIdleContextMenu', 'DeliveryOptimisation', 'EdgeSwipe',
+    'ExtractContextMenu', 'FaultTolerantHeap', 'FileSharing', 'Gallery', 'GiveAccessToMenu', 'Hibernation',
+    'HideAppBrowserControl', 'HightestMode', 'KernelParameters', 'LanmanWorkstation', 'Location', 'LockScreen',
+    'MicrosoftCopilot', 'MicrosoftStore', 'Mitigations', 'NetworkDiscovery', 'NetworkNavigationPane', 'NewBootMenu',
+    'NVidiaDisplayContainer', 'NVidiaDisplayContainerContextMenu', 'OldContextMenu', 'PhoneLink', 'PowerSaving',
+    'Printing', 'QuickAccess', 'recall', 'RecentItems', 'RemovableDrivesInSidebar', 'RunWithPriority', 'SafeMode',
+    'SearchIndexing', 'SecurityHealthTray', 'ShortcutIcon', 'ShortcutText', 'Sleep', 'SnapLayouts',
+    'SpinningAnimations', 'StaticIp', 'SuperFetch', 'SystemRestore', 'TakeOwnership', 'ToggleWindowsUpdates',
+    'UpdateNotifications', 'VbsState', 'VerboseStatusMessage', 'WebSearch', 'Widgets', 'WindowsSpotlight'
+)
 
 # Decoded REG_SZ values from the TermsRunAsTI script included in 0.4.x and 0.5.x.
 $script:AtlasReleasedTermsData = @'
@@ -209,6 +228,19 @@ function Test-AtlasReleasedVolatileValue {
     return $code -ceq $expected -or $code -ceq $alternate
 }
 
+function Test-AtlasLegacyToolboxKey {
+    # Only values the old Toolbox wrote there, each of the kind it wrote, and no
+    # subkeys: anything else is someone's own and stays.
+    param($Key, [hashtable]$Kinds)
+
+    if (-not $Key.Exists -or @($Key.SubKeys).Count -ne 0) { return $false }
+    foreach ($name in $Key.Values.Keys) {
+        if (-not $Kinds.ContainsKey([string]$name) -or
+            [string]$Key.Values[$name].Kind -cne [string]$Kinds[[string]$name]) { return $false }
+    }
+    return $true
+}
+
 function Invoke-AtlasLegacyElevationMigrationCore {
     [CmdletBinding()]
     param(
@@ -348,6 +380,32 @@ function Invoke-AtlasLegacyElevationMigrationCore {
     elseif ($state.Exists) {
         $retained++
         Write-Warning "Customized terminal state 'HKLM\$statePath' was retained."
+    }
+
+    # The old Toolbox's records outside the toggle store. Its terminal menu record
+    # directly under AtlasOS is the terminal state above. Its v0.1.10 settings
+    # (Services\Toolbox since) go too, and AtlasOS\Toolbox stays: it is the
+    # Toolbox installer's own record. Its Windows Update deferral buttons wrote
+    # directly under AtlasOS.
+    $record = @{ state = 'DWord'; path = 'String' }
+    $toolboxKeys = @{ ServicesToolbox = @{ lang = 'String'; AppWidth = 'String'; AppHeight = 'String' } }
+    foreach ($name in $script:AtlasLegacyToolboxRecordNames) {
+        if ($name -cne 'ContextMenuTerminals') { $toolboxKeys[$name] = $record }
+        $toolboxKeys["Services$name"] = $record
+    }
+    foreach ($name in @('FeatureUpdateDeferrals', 'QualityUpdateDeferrals')) { $toolboxKeys[$name] = $record }
+    $atlas = & $RegistryReader 'Machine' 'SOFTWARE\AtlasOS'
+    foreach ($name in @($atlas.SubKeys | Where-Object { $toolboxKeys.ContainsKey([string]$_) })) {
+        $toolboxPath = "SOFTWARE\AtlasOS\$name"
+        $toolbox = & $RegistryReader 'Machine' $toolboxPath
+        if (Test-AtlasLegacyToolboxKey -Key $toolbox -Kinds $toolboxKeys[[string]$name]) {
+            [void](& $RegistryTreeRemover 'Machine' $toolboxPath)
+            $removed++
+        }
+        elseif ($toolbox.Exists) {
+            $retained++
+            Write-Warning "Customized old Atlas Toolbox record 'HKLM\$toolboxPath' was retained."
+        }
     }
 
     return [pscustomobject]@{ RemovedCount = $removed; MigratedCount = $migrated;

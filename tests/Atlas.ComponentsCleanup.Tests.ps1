@@ -92,7 +92,13 @@ BeforeAll {
         $script:RegistryWrites = [Collections.Generic.List[pscustomobject]]::new()
         $script:OneDriveRemovalError = $null
         $script:CbsUninstallFailed = @()
-        $script:CbsUninstallUnmatched = @()
+        $script:CbsUninstallCalls = 0
+        # A PC Atlas has never touched: Defender present and no Atlas package.
+        $script:PackageStates = @{}
+        $script:DefenderPresent = $true
+        $script:CoreServiceCalls = [Collections.Generic.List[string]]::new()
+        # The phase's steps in the order they ran, across the doubles.
+        $script:Events = [Collections.Generic.List[string]]::new()
     }
 
     function Assert-AtlasPrivilege {
@@ -118,6 +124,7 @@ BeforeAll {
                 FilePath     = $FilePath
                 ArgumentList = @($ArgumentList)
             })
+        $script:Events.Add('EdgeRemoval')
     }
     function Invoke-AtlasAsUser {
         param($FilePath, $Arguments)
@@ -129,7 +136,21 @@ BeforeAll {
     }
     # Stands in for the Rebase record reader the phase loads, so a test can mock it.
     function Get-AtlasWindowsTransitionRebase { }
+    # Stand in for the readers Set-AtlasDefenderChoice.ps1 brings, which the phase loads;
+    # each test's mocks answer from $script:PackageStates and $script:DefenderPresent.
+    function Get-AtlasServicingPackageState { param($Name) }
+    function Test-AtlasDefenderServicePresent { }
+    function Set-AtlasDefenderCoreService {
+        param($State)
+        $script:CoreServiceCalls.Add([string]$State)
+        $script:Events.Add("CoreService:$State")
+    }
+    function Test-AtlasDefenderCoreServiceRemoved {
+        $script:Events.Add('CoreServiceRead')
+        return $true
+    }
     function Remove-AtlasOneDrive {
+        $script:Events.Add('OneDrive')
         if ($null -ne $script:OneDriveRemovalError) {
             throw $script:OneDriveRemovalError
         }
@@ -153,13 +174,16 @@ BeforeAll {
     function Install-AtlasCbsPackage {
         param($Packages, [switch]$NonInteractive)
         $script:CbsInstallCalls.Add(@($Packages))
+        $script:Events.Add("Install:$(@($Packages) -join '+')")
     }
     function Uninstall-AtlasCbsPackage {
         param($Packages)
+        $script:CbsUninstallCalls++
+        $script:Events.Add("Uninstall:$(@($Packages) -join '+')")
         return [pscustomobject]@{
             RemovedPackages   = @()
             FailedPackages    = @($script:CbsUninstallFailed)
-            UnmatchedPatterns = @($script:CbsUninstallUnmatched)
+            UnmatchedPatterns = @()
         }
     }
     function New-ScheduledTaskSettingsSet {
@@ -206,6 +230,7 @@ BeforeAll {
                 Name      = $Name
                 Value     = $Value
             })
+        $script:Events.Add("SetValue:$Name")
     }
     function Remove-ItemProperty {
         param($LiteralPath, $Path, $Name, [switch]$Force, $ErrorAction)
@@ -214,6 +239,7 @@ BeforeAll {
                 Path      = if ($LiteralPath) { $LiteralPath } else { $Path }
                 Name      = $Name
             })
+        $script:Events.Add("RemoveValue:$Name")
     }
 
     function Invoke-ComponentsPhaseUnderTest {
@@ -227,7 +253,8 @@ AfterAll {
             'Assert-AtlasPrivilege', 'Import-Module', 'Test-AtlasOption', 'Get-AtlasContext'
             'ConvertTo-AtlasWindowsArgumentString', 'Invoke-AtlasHiddenProcess'
             'Invoke-AtlasAsUser', 'Remove-AtlasOneDrive', 'Write-AtlasLog', 'Get-AtlasWindowsTransitionRebase'
-            'Stop-AtlasService', 'Set-AtlasServiceStartup', 'Remove-AtlasScheduledTask'
+            'Get-AtlasServicingPackageState', 'Test-AtlasDefenderServicePresent', 'Set-AtlasDefenderCoreService'
+            'Test-AtlasDefenderCoreServiceRemoved', 'Stop-AtlasService', 'Set-AtlasServiceStartup', 'Remove-AtlasScheduledTask'
             'Install-AtlasCbsPackage', 'Uninstall-AtlasCbsPackage'
             'New-ScheduledTaskSettingsSet', 'New-ScheduledTaskTrigger'
             'New-ScheduledTaskPrincipal', 'New-ScheduledTaskAction', 'Register-ScheduledTask'
@@ -243,49 +270,129 @@ AfterAll {
 Describe 'Components phase deferred and exact-user cleanup behavior' {
     BeforeEach {
         Reset-PhaseRecording
+        # The phase must never read this PC's own servicing packages or Defender.
+        Mock Get-AtlasServicingPackageState { $script:PackageStates[$Name] }
+        Mock Test-AtlasDefenderServicePresent { $script:DefenderPresent }
     }
 
     It 'fails the install when Defender could not be restored for a keep choice' {
         $script:PhaseOptions = @('defender-enable')
+        $script:PackageStates['Z-Atlas-NoDefender-Package'] = 'Installed'
         $script:CbsUninstallFailed = @('Z-Atlas-NoDefender-Package~amd64~~1.0.0.0')
 
         { Invoke-ComponentsPhaseUnderTest } | Should -Throw "*Microsoft Defender couldn't be restored*"
         # The telemetry package still goes in first.
         @($script:CbsInstallCalls | Where-Object { $_ -contains '*Z-Atlas-NoTelemetry-Package*' }).Count | Should -Be 1
+        # The core service goes back while Defender is still removed.
+        @($script:Events | Where-Object { $_ -like 'CoreService:*' -or $_ -like 'Uninstall:*' }) |
+            Should -Be @('CoreService:Restored', 'Uninstall:*Z-Atlas-NoDefender-Package*')
     }
 
     It 'keeps Defender quietly when there was no removal package to take off' {
         $script:PhaseOptions = @('defender-enable')
-        # What Uninstall-AtlasCbsPackage returns on a PC Atlas never removed Defender from.
-        $script:CbsUninstallUnmatched = @('*Z-Atlas-NoDefender-Package*')
 
         { Invoke-ComponentsPhaseUnderTest } | Should -Not -Throw
         @($script:CbsInstallCalls | Where-Object { $_ -contains '*Z-Atlas-NoTelemetry-Package*' }).Count | Should -Be 1
         @($script:LogCalls | Where-Object { $_.Level -eq 'Warning' }).Count | Should -Be 0
+        $script:CoreServiceCalls | Should -BeNullOrEmpty
+        $script:CbsUninstallCalls | Should -Be 0
     }
 
-    It 'defers MDCoreSvc disable to a SYSTEM task that records state before self-deleting' {
+    It 'sets the core service up for removal on a PC Atlas already removed Defender from, whatever it reads' {
+        $script:PhaseOptions = @('defender-disable')
+        $script:PackageStates['Z-Atlas-NoDefender-Package'] = 'Installed'
+        $script:PackageStates['Z-Atlas-NoTelemetry-Package'] = 'Installed'
+
+        Invoke-ComponentsPhaseUnderTest
+
+        @($script:Events | Where-Object { $_ -like 'Install:*' -or $_ -like 'CoreService*' }) | Should -Be @('CoreService:Removed')
+    }
+
+    It 'removes Defender with both packages, then turns its core service off at the next startup' {
         $script:PhaseOptions = @('defender-disable')
 
         Invoke-ComponentsPhaseUnderTest
 
-        @($script:RegisteredTasks).Count | Should -Be 1
-        $task = $script:RegisteredTasks[0]
-        $task.Principal.UserId | Should -BeExactly 'SYSTEM'
-        $task.Action.Execute | Should -BeExactly 'cmd'
+        @($script:Events | Where-Object { $_ -like 'Install:*' -or $_ -like 'CoreService:*' }) | Should -Be @(
+            'Install:*Z-Atlas-NoDefender-Package*+*Z-Atlas-NoTelemetry-Package*'
+            'CoreService:Removed'
+        )
+        $script:CbsUninstallCalls | Should -Be 0
+    }
 
-        $argument = [string]$task.Action.Argument
-        $regAddIndex = $argument.IndexOf(
-            'reg add "HKLM\SYSTEM\CurrentControlSet\Services\MDCoreSvc"',
-            [StringComparison]::Ordinal
+    It 'puts NoTelemetry back on a Rebase whose rebuilt Windows lost it, with either Defender choice: <Option>' -ForEach @(
+        @{ Option = 'defender-enable'; Installs = @('Install:*Z-Atlas-NoTelemetry-Package*'); Core = @() }
+        @{ Option = 'defender-disable'; Installs = @('Install:*Z-Atlas-NoDefender-Package*+*Z-Atlas-NoTelemetry-Package*'); Core = @('Removed') }
+    ) {
+        $script:PhaseOptions = @($Option)
+        $script:PhaseContext = [pscustomobject]@{ IsOobe = $true; IsRebase = $true; InteractiveUserSid = $null }
+        Mock Get-AtlasWindowsTransitionRebase { [pscustomobject]@{ Carry = [pscustomobject]@{ edge = $false; oneDrive = $false } } }
+
+        Invoke-ComponentsPhaseUnderTest
+
+        @($script:Events | Where-Object { $_ -like 'Install:*' }) | Should -Be $Installs
+        @($script:CoreServiceCalls) | Should -Be $Core
+    }
+
+    It 'never installs a servicing package that is already installed' {
+        $script:PhaseOptions = @('defender-disable')
+        $script:PackageStates['Z-Atlas-NoTelemetry-Package'] = 'Installed'
+
+        Invoke-ComponentsPhaseUnderTest
+
+        @($script:Events | Where-Object { $_ -like 'Install:*' }) | Should -Be @('Install:*Z-Atlas-NoDefender-Package*')
+        @($script:CoreServiceCalls) | Should -Be @('Removed')
+    }
+
+    It 'warns, and still installs NoTelemetry, when Defender is missing and no Atlas package removed it' {
+        $script:PhaseOptions = @('defender-enable')
+        $script:DefenderPresent = $false
+
+        { Invoke-ComponentsPhaseUnderTest } | Should -Not -Throw
+
+        @($script:LogCalls | Where-Object {
+                $_.Level -eq 'Warning' -and
+                $_.Message -ceq "Microsoft Defender isn't on this PC and no Atlas package removed it, so Atlas can't bring it back."
+            }).Count | Should -Be 1
+        @($script:Events | Where-Object { $_ -like 'Install:*' }) | Should -Be @('Install:*Z-Atlas-NoTelemetry-Package*')
+        $script:CbsUninstallCalls | Should -Be 0
+    }
+
+    It 'keeps the order of Edge, Security Center, Smart App Control, OneDrive, Defender and Teams' {
+        $script:PhaseOptions = @('uninstall-edge', 'defender-disable')
+
+        Invoke-ComponentsPhaseUnderTest
+
+        $order = @('EdgeRemoval', 'RemoveValue:SecurityHealth', 'SetValue:VerifiedAndReputablePolicyState',
+            'OneDrive', 'Install:*Z-Atlas-NoDefender-Package*+*Z-Atlas-NoTelemetry-Package*', 'CoreService:Removed',
+            'SetValue:ConfigureChatAutoInstall')
+        @($script:Events | Where-Object { $order -contains $_ }) | Should -Be $order
+    }
+
+    It 'keeps Edge''s elevation service off and deprovisions both Edge families when it removes Edge' {
+        $script:PhaseOptions = @('uninstall-edge')
+        Mock Set-AtlasServiceStartup { }
+
+        Invoke-ComponentsPhaseUnderTest
+
+        Should -Invoke Set-AtlasServiceStartup -Times 1 -Exactly -ParameterFilter {
+            $Name -ceq 'MicrosoftEdgeElevationService' -and $StartupType -eq 4 -and $AllowMissing
+        }
+        @($script:RegistryWrites | Where-Object { $_.Operation -eq 'NewItem' -and $_.Path -like '*\Deprovisioned\*' } |
+                ForEach-Object { Split-Path -Leaf $_.Path }) | Should -Be @(
+            'Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe'
+            'Microsoft.MicrosoftEdge_8wekyb3d8bbwe'
         )
-        $deleteIndex = $argument.IndexOf(
-            "schtasks /delete /tn `"$($task.TaskName)`"",
-            [StringComparison]::Ordinal
-        )
-        $regAddIndex | Should -BeGreaterThan -1
-        $deleteIndex | Should -BeGreaterThan $regAddIndex
-        $argument.Substring($regAddIndex, $deleteIndex - $regAddIndex) | Should -Match '&&'
+    }
+
+    It 'leaves Edge alone when it isn''t chosen' {
+        Mock Set-AtlasServiceStartup { }
+
+        Invoke-ComponentsPhaseUnderTest
+
+        @($script:HiddenProcessCalls).Count | Should -Be 0
+        Should -Invoke Set-AtlasServiceStartup -Times 0 -Exactly
+        @($script:RegistryWrites | Where-Object { $_.Path -like '*\Deprovisioned\*' }).Count | Should -Be 0
     }
 
     It 'dispatches OneDrive profile cleanup through the exact-user launcher' {

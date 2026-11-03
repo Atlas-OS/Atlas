@@ -4,7 +4,7 @@
 use gpui::{AnyElement, App, IntoElement, ParentElement, Role, Styled, div, prelude::*, px};
 
 use super::{InstallPage, elevation_problem};
-use crate::i18n::describe;
+use crate::i18n::describe::{self, DefenderAbsence};
 use crate::model::AppModel;
 use crate::pages::{on_model, step_card_header};
 use crate::services::security::{Protection, SecurityStatus, Switch};
@@ -44,12 +44,11 @@ impl InstallPage {
                 t!("security-banner-reading-title"),
                 t!("security-banner-reading-message"),
             ),
-            // Informational, not a success: no antivirus isn't the step done well.
-            SecurityBanner::Absent => InfoBar::new(
-                Severity::Informational,
-                t!("security-banner-absent-title"),
-                t!("security-banner-absent-message"),
-            ),
+            SecurityBanner::Absent => {
+                let absence = state.defender_absence();
+                let (title, message) = absence.banner();
+                InfoBar::new(absence_severity(absence), title, message)
+            }
             SecurityBanner::AllOff => InfoBar::new(
                 Severity::Success,
                 t!("security-banner-off-title"),
@@ -201,6 +200,14 @@ impl InstallPage {
     }
 }
 
+/// How the bar without Microsoft Defender reads: informational, not a
+/// success, as no antivirus isn't the step done well. A Defender the user
+/// keeps but Atlas can't bring back is a warning, though it doesn't stop the
+/// step either.
+fn absence_severity(absence: DefenderAbsence) -> Severity {
+    if absence == DefenderAbsence::Missing { Severity::Warning } else { Severity::Informational }
+}
+
 /// The confirmation of switches Atlas couldn't read, which unblocks the
 /// step once every readable switch is off. It lines up with the bar's text
 /// and buttons.
@@ -274,7 +281,8 @@ fn unreadable_bar(state: &AppModel, model: &gpui::Entity<AppModel>, open: Option
 enum SecurityBanner {
     /// The first reading has not arrived yet.
     Reading,
-    /// The Defender service is gone (an earlier Atlas install removed it).
+    /// The Defender service isn't on this PC, so there are no switches; the
+    /// model says why (see `AppModel::defender_absence`).
     Absent,
     /// All four switches read off.
     AllOff,
@@ -330,10 +338,138 @@ mod tests {
         // No switch could be read: the instructions to turn them off come
         // first, not a confirmation of switches nobody has turned off.
         assert_eq!(security_banner(&nothing_readable, true), SecurityBanner::TurnOff);
-        // Defender removed by an earlier install: nothing to read, nothing to turn off.
+        // Defender not on the PC: nothing to read, nothing to turn off.
         let removed = SecurityStatus { defender_present: false, ..nothing_readable };
         assert_eq!(security_banner(&removed, false), SecurityBanner::Reading);
         assert_eq!(security_banner(&removed, true), SecurityBanner::Absent);
+    }
+
+    /// Without Defender the bar says why from what was checked: Atlas's own
+    /// package, and whether this installation keeps Defender and applies
+    /// that. Only a Defender kept that Atlas can't bring back is a warning.
+    #[test]
+    fn the_bar_without_defender_says_why_from_what_was_checked() {
+        use crate::model::UpdatePath;
+        use crate::model::test_harness::run_model_test;
+        use crate::pages::testing::{NO_DEFENDER, NO_TELEMETRY, installed_model, rebuilt};
+        use crate::services::atlas_state::{InstallIdentity, InstallMode, Unfinished};
+        use crate::services::legacy_choices::Facts;
+        use crate::services::test_support::TempDir;
+        run_model_test(|mut cx| async move {
+            let temp = TempDir::new("defender-absence");
+            let removed = Facts {
+                packages: vec![NO_DEFENDER.into(), NO_TELEMETRY.into()],
+                defender: Some(false),
+                ..Facts::default()
+            };
+            let model = installed_model(&mut cx, &temp, Some(&["defender-enable"]), removed);
+            model.update(&mut cx, |m, cx| {
+                let keep = |m: &mut AppModel, keep: bool| {
+                    let (on, off) = if keep {
+                        ("defender-enable", "defender-disable")
+                    } else {
+                        ("defender-disable", "defender-enable")
+                    };
+                    m.options.remove(off);
+                    m.options.insert(on.into());
+                };
+                // Keeping the choices keeps what the PC has: Defender removed.
+                assert_eq!(m.defender_absence(), DefenderAbsence::Removed);
+                // Choosing again to keep it brings it back.
+                m.update_path = UpdatePath::ChooseAgain;
+                m.set_update_path(UpdatePath::Keep, cx);
+                m.set_update_path(UpdatePath::ChooseAgain, cx);
+                assert_eq!(m.defender_absence(), DefenderAbsence::Removed, "the PC's answer, removed");
+                keep(m, true);
+                assert_eq!(m.defender_absence(), DefenderAbsence::Restore);
+                // A first install applies the choice too.
+                m.install_identity = Ok(InstallIdentity::Fresh);
+                assert_eq!(m.defender_absence(), DefenderAbsence::Restore);
+                keep(m, false);
+                assert_eq!(m.defender_absence(), DefenderAbsence::Removed);
+                keep(m, true);
+
+                // An unfinished install goes on as its record says it began:
+                // a first install or a Rebase applies the choice it holds, and
+                // so does an update that chose again.
+                let resume = |held: Option<&[&str]>, choose_again, mode| {
+                    let held = held.map(|options| options.iter().map(|o| (*o).to_owned()).collect());
+                    Ok(InstallIdentity::Resume("0.6.0".into(), Unfinished { held, choose_again, mode }))
+                };
+                let kept =
+                    ["defender-enable", "mitigations-default", "auto-updates-default", "keyboard-shortcuts"];
+                for mode in [InstallMode::Fresh, InstallMode::Rebase] {
+                    m.install_identity = resume(Some(&kept[..]), false, mode);
+                    assert_eq!(m.defender_absence(), DefenderAbsence::Restore, "{mode:?}");
+                }
+                m.install_identity = resume(Some(&kept[..]), true, InstallMode::Reapply);
+                assert_eq!(m.defender_absence(), DefenderAbsence::Restore);
+                // An update keeping the choices that a release candidate
+                // captured with Defender kept, its record naming no way, so
+                // keeping them: nothing in it brings Defender back.
+                m.install_identity = resume(Some(&kept[..]), false, InstallMode::Upgrade);
+                assert_eq!(m.defender_absence(), DefenderAbsence::Removed, "as the front door warns");
+                m.install_identity =
+                    resume(Some(&["defender-disable", "mitigations-default"][..]), false, InstallMode::Fresh);
+                assert_eq!(m.defender_absence(), DefenderAbsence::Removed);
+                // One that hasn't run a step is captured again: keeping the
+                // choices takes Defender from the PC, choosing again applies it.
+                m.install_identity = resume(None, false, InstallMode::Reapply);
+                assert_eq!(m.defender_absence(), DefenderAbsence::Removed, "captured again, keeping");
+                m.install_identity = resume(None, true, InstallMode::Reapply);
+                assert_eq!(m.defender_absence(), DefenderAbsence::Restore);
+                // Putting Atlas back after Windows rebuilt itself applies the choices it kept.
+                m.update_access = Some(rebuilt(&kept));
+                m.install_identity = Ok(InstallIdentity::Installed("0.5.0".into()));
+                assert_eq!(m.defender_absence(), DefenderAbsence::Restore);
+                m.install_identity = resume(None, false, InstallMode::Rebase);
+                assert_eq!(m.defender_absence(), DefenderAbsence::Restore, "a Rebase captured again");
+                m.update_access = None;
+                m.install_identity = Ok(InstallIdentity::Fresh);
+                keep(m, false);
+
+                // No Atlas package removed it.
+                m.pc_facts =
+                    Facts { packages: vec![NO_TELEMETRY.into()], defender: Some(false), ..Facts::default() };
+                assert_eq!(m.defender_absence(), DefenderAbsence::Absent);
+                keep(m, true);
+                assert_eq!(m.defender_absence(), DefenderAbsence::Missing);
+            });
+        });
+        crate::i18n::testing::english(|| {
+            let banners: Vec<(String, String)> = [
+                DefenderAbsence::Restore,
+                DefenderAbsence::Removed,
+                DefenderAbsence::Missing,
+                DefenderAbsence::Absent,
+            ]
+            .map(DefenderAbsence::banner)
+            .to_vec();
+            let severities = [
+                DefenderAbsence::Restore,
+                DefenderAbsence::Removed,
+                DefenderAbsence::Missing,
+                DefenderAbsence::Absent,
+            ]
+            .map(absence_severity);
+            assert_eq!(
+                severities,
+                [
+                    Severity::Informational,
+                    Severity::Informational,
+                    Severity::Warning,
+                    Severity::Informational
+                ]
+            );
+            let titles: std::collections::BTreeSet<&String> =
+                banners.iter().map(|(title, _)| title).collect();
+            assert_eq!(titles.len(), 4, "each says why in its own words: {banners:?}");
+            // Only where Atlas's package removed it does the bar say Atlas did.
+            for (title, message) in &banners[2..] {
+                assert!(!title.contains("Atlas removed") && !message.contains("Atlas removed"), "{title}");
+            }
+            assert!(banners[1].0.contains("Atlas removed"));
+        });
     }
 
     /// Whatever unblocks unreadable switches is in the bar at the top, or

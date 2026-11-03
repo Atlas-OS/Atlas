@@ -9,7 +9,7 @@ use futures::StreamExt;
 use gpui::Context;
 
 use super::drafts::DraftWrite;
-use super::{AppModel, RestartKind, Step, preview};
+use super::{AppModel, RestartKind, Step, UpdatePath, preview};
 use crate::services::preparation::{
     self, Drivers, Operation, PreparationRequest, RestartProblem, Stage, State, Status, StoreOutcome,
 };
@@ -233,7 +233,7 @@ impl AppModel {
     }
 
     /// Microsoft Store couldn't be repaired: Get ready offers the repairs
-    /// again, and a report.
+    /// again, a report, and creating an Atlas ISO to reinstall Windows with.
     pub fn store_repair_failed(&self) -> bool {
         self.preparation == State::Failed
             && self
@@ -353,6 +353,7 @@ impl AppModel {
         self.windows_terms_accepted = draft.windows_terms_accepted;
         self.used_windows_accepted = draft.used_windows_accepted;
         self.recorded_choices_applied = draft.recorded_choices_applied;
+        self.update_path = draft.update_path.as_deref().and_then(UpdatePath::from_id).unwrap_or_default();
         self.store_outcome_seen = draft.store_outcome.as_deref().and_then(StoreOutcome::from_id);
         self.preparation_restart_at = draft.preparation_restart_at.clone();
         if self.preparation_restart_at.is_some() {

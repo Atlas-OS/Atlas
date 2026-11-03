@@ -43,6 +43,11 @@ pub struct InstallRequest {
     /// on still stops it. Records from earlier builds lack it.
     #[serde(default)]
     pub windows_security_confirmed: bool,
+    /// An update or reinstall goes through every choice again and applies
+    /// each one (`-ChooseAgain`), rather than keeping them as the PC has
+    /// them. Records from earlier builds lack it, and kept them.
+    #[serde(default)]
+    pub choose_again: bool,
 }
 
 #[derive(Clone, Debug)]

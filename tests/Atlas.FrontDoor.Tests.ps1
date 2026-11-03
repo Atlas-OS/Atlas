@@ -22,9 +22,9 @@ BeforeAll {
             $function.Extent.Text
         }
     }
-    foreach ($text in @(Get-ScriptFunctionText -Path $script:SessionScript -Names 'Read-AtlasInstallRequest', 'Assert-AtlasInstallOptionSet') +
-        @(Get-ScriptFunctionText -Path $script:FrontDoorScript -Names 'Get-AtlasDeclaredRequirement', 'Test-AtlasDefenderPresent', 'Get-AtlasDefenderSwitch', 'Test-AtlasDefenderPrepared', 'Invoke-AtlasPreparationCheck', 'Test-AtlasPreparationCurrent', 'Get-AtlasPowerStatus', 'Test-AtlasPowerConnected', 'Test-AtlasUserAccountReady', 'Test-AtlasInstallRequirement', 'Copy-AtlasPayloadToStaging', 'Get-AtlasRestartComment', 'New-AtlasProtectedStagingRoot', 'New-AtlasFrontDoorDirectorySecurity', 'Remove-AtlasStagedPackage', 'Remove-AtlasEarlierStagedPackage', 'Invoke-AtlasInstallPhase') +
-        @(Get-ScriptFunctionText -Path $script:StateScript -Names 'Find-AtlasInstallUserMarker')) {
+    foreach ($text in @(Get-ScriptFunctionText -Path $script:SessionScript -Names 'Read-AtlasInstallRequest', 'Assert-AtlasInstallOptionSet', 'Invoke-AtlasInstallCapture') +
+        @(Get-ScriptFunctionText -Path $script:FrontDoorScript -Names 'Get-AtlasDeclaredRequirement', 'Test-AtlasDefenderPresent', 'Get-AtlasDefenderSwitch', 'Test-AtlasDefenderPrepared', 'Invoke-AtlasPreparationCheck', 'Test-AtlasPreparationCurrent', 'Get-AtlasPowerStatus', 'Test-AtlasPowerConnected', 'Test-AtlasUserAccountReady', 'Test-AtlasInstallRequirement', 'Copy-AtlasPayloadToStaging', 'Get-AtlasRestartComment', 'New-AtlasProtectedStagingRoot', 'New-AtlasFrontDoorDirectorySecurity', 'Remove-AtlasStagedPackage', 'Remove-AtlasEarlierStagedPackage', 'Invoke-AtlasInstallPhase', 'New-AtlasInstallRequest', 'Format-AtlasTakenChoice', 'Get-AtlasInstallProbe', 'Read-AtlasCapturedOption') +
+        @(Get-ScriptFunctionText -Path $script:StateScript -Names 'Find-AtlasInstallUserMarker', 'Start-AtlasWizardInstallState')) {
         . ([scriptblock]::Create($text))
     }
     $script:Groups = @(Get-AtlasPlaybookOption -PlaybookPath $script:PlaybookPath)
@@ -255,7 +255,9 @@ Describe 'Install request validation' {
         $payload = Join-Path $TestDrive 'payload'
         New-Item -Path $payload -ItemType Directory -Force | Out-Null
         Set-Content -LiteralPath (Join-Path $payload 'request.json') -Value '{"options":["defender-enable"]}'
-        @(Read-AtlasInstallRequest -PayloadRoot $payload) | Should -Be @('defender-enable')
+        $request = Read-AtlasInstallRequest -PayloadRoot $payload
+        @($request.Options) | Should -Be @('defender-enable')
+        $request.Choices | Should -BeExactly 'Keep' -Because 'a request without the field keeps the choices'
 
         Set-Content -LiteralPath (Join-Path $payload 'request.json') -Value '{"options":[],"mode":"Fresh"}'
         { Read-AtlasInstallRequest -PayloadRoot $payload } | Should -Throw "*unknown field 'mode'*"
@@ -265,12 +267,305 @@ Describe 'Install request validation' {
         # Valid JSON on both sides of the 64 KiB limit, so only the size check can refuse it.
         $atLimit = '{"options":["' + ('a' * (65536 - 16)) + '"]}'
         [IO.File]::WriteAllText((Join-Path $payload 'request.json'), $atLimit)
-        @(Read-AtlasInstallRequest -PayloadRoot $payload) | Should -HaveCount 1
+        @((Read-AtlasInstallRequest -PayloadRoot $payload).Options) | Should -HaveCount 1
         [IO.File]::WriteAllText((Join-Path $payload 'request.json'), $atLimit.Replace('"a', '"aa'))
         { Read-AtlasInstallRequest -PayloadRoot $payload } | Should -Throw '*exceeds its size limit*'
 
         Remove-Item -LiteralPath (Join-Path $payload 'request.json')
         { Read-AtlasInstallRequest -PayloadRoot $payload } | Should -Throw '*missing*'
+    }
+
+    It 'reads how an update treats the choices, accepting only Keep and ChooseAgain' {
+        $payload = Join-Path $TestDrive 'choices-payload'
+        New-Item -Path $payload -ItemType Directory -Force | Out-Null
+        foreach ($choices in @('Keep', 'ChooseAgain')) {
+            Set-Content -LiteralPath (Join-Path $payload 'request.json') -Value "{""options"":[""defender-enable""],""choices"":""$choices""}"
+            (Read-AtlasInstallRequest -PayloadRoot $payload).Choices | Should -BeExactly $choices
+        }
+        foreach ($value in @('"chooseagain"', '"Rebase"', '""', 'null', 'true', '["Keep"]')) {
+            Set-Content -LiteralPath (Join-Path $payload 'request.json') -Value "{""options"":[],""choices"":$value}"
+            { Read-AtlasInstallRequest -PayloadRoot $payload } | Should -Throw "*choices must be 'Keep' or 'ChooseAgain'*" -Because $value
+        }
+    }
+
+    It 'writes the request Capture reads, ChooseAgain only with -ChooseAgain' {
+        $payload = Join-Path $TestDrive 'written-payload'
+        New-Item -Path $payload -ItemType Directory -Force | Out-Null
+        foreach ($case in @(@{ ChooseAgain = $false; Choices = 'Keep' }, @{ ChooseAgain = $true; Choices = 'ChooseAgain' })) {
+            [IO.File]::WriteAllText((Join-Path $payload 'request.json'), (New-AtlasInstallRequest -Option @('mitigations-default', 'defender-enable', 'defender-enable') -ChooseAgain:$case.ChooseAgain))
+            $request = Read-AtlasInstallRequest -PayloadRoot $payload
+            @($request.Options) | Should -Be @('defender-enable', 'mitigations-default')
+            $request.Choices | Should -BeExactly $case.Choices
+        }
+        # One option is still an array.
+        New-AtlasInstallRequest -Option 'defender-enable' | Should -BeExactly '{"options":["defender-enable"],"choices":"Keep"}'
+    }
+
+    It 'names each choice Capture took from the PC, and nothing when it took none' {
+        Format-AtlasTakenChoice -Requested @('defender-enable', 'disable-hibernation', 'mitigations-disable') `
+            -Recorded @('defender-disable', 'mitigations-default') |
+            Should -BeExactly 'Choices taken from this PC instead of the request: defender-disable (Microsoft Defender), mitigations-default (Processor protections), disable-hibernation left out (Turn off hibernation).'
+        # A repeated option is the same request.
+        Format-AtlasTakenChoice -Requested @('defender-enable', 'defender-enable') -Recorded @('defender-enable') | Should -BeNullOrEmpty
+    }
+
+    Context 'after Capture' {
+        BeforeEach {
+            Mock Write-Warning {}
+        }
+
+        It 'names the choices Capture took from the PC and the options a resume must give' {
+            Mock Get-AtlasInstallState { [pscustomobject]@{ options = @('defender-disable', 'mitigations-default') } }
+            $captured = Read-AtlasCapturedOption -Option @('defender-enable', 'mitigations-default')
+            $captured.Line | Should -BeExactly 'Choices taken from this PC instead of the request: defender-disable (Microsoft Defender).'
+            @($captured.ResumeOptions) | Should -Be @('defender-disable', 'mitigations-default')
+        }
+
+        It 'gives nothing when Capture recorded the request' {
+            Mock Get-AtlasInstallState { [pscustomobject]@{ options = @('mitigations-default', 'defender-enable') } }
+            $captured = Read-AtlasCapturedOption -Option @('defender-enable', 'mitigations-default')
+            $captured.Line | Should -BeNullOrEmpty
+            $null -eq $captured.ResumeOptions | Should -BeTrue
+        }
+
+        It 'only warns when the recorded choices can''t be read' {
+            Mock Get-AtlasInstallState { throw 'state locked' }
+            $captured = Read-AtlasCapturedOption -Option @('defender-enable')
+            $captured.Line | Should -BeNullOrEmpty
+            $null -eq $captured.ResumeOptions | Should -BeTrue
+            Should -Invoke Write-Warning -Times 1 -Exactly -ParameterFilter { $Message -eq "The recorded choices couldn't be read: state locked" }
+        }
+    }
+}
+
+Describe 'Front door probe before the requirements' {
+    BeforeAll {
+        # Defined by WindowsTransition.ps1, which the front door loads.
+        function Get-AtlasInstalledAtlasPackage { throw 'Unmocked package read' }
+        $script:Probe = @{ TargetVersion = '0.6.0'; WindowsPath = 'C:\Windows'; Option = @('defender-enable', 'mitigations-default') }
+    }
+    BeforeEach {
+        Mock Resolve-AtlasInstallMode { 'Upgrade' }
+        Mock Resolve-AtlasInstallChoices { [pscustomobject]@{ Choices = $Requested; Summary = ''; Note = $null; ResumedOptions = $null } }
+        Mock Get-AtlasInstalledAtlasPackage { 'Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0' }
+    }
+
+    It 'reads the mode, the way this installation treats the choices and Atlas''s packages' {
+        $probe = Get-AtlasInstallProbe @script:Probe -ChooseAgain
+        $probe.Mode | Should -BeExactly 'Upgrade'
+        $probe.Choices | Should -BeExactly 'ChooseAgain'
+        @($probe.AtlasPackages) | Should -Be @('Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0')
+        $null -eq $probe.ResumeOptions | Should -BeTrue
+        Should -Invoke Resolve-AtlasInstallChoices -Times 1 -Exactly -ParameterFilter { $Mode -eq 'Upgrade' -and $Requested -eq 'ChooseAgain' -and $TargetVersion -eq '0.6.0' }
+    }
+
+    It 'takes the way an unfinished installation began, not the switch' {
+        Mock Resolve-AtlasInstallChoices { [pscustomobject]@{ Choices = 'Keep'; Summary = ''; Note = 'Continuing'; ResumedOptions = @('mitigations-default', 'defender-enable') } }
+        $probe = Get-AtlasInstallProbe @script:Probe -ChooseAgain
+        $probe.Choices | Should -BeExactly 'Keep'
+        $null -eq $probe.ResumeOptions | Should -BeTrue -Because 'the options given are the ones it began with'
+    }
+
+    It 'names the options an unfinished installation began with when they aren''t the ones given' {
+        Mock Resolve-AtlasInstallChoices { [pscustomobject]@{ Choices = 'Keep'; Summary = ''; Note = $null; ResumedOptions = @('defender-disable', 'mitigations-default') } }
+        @((Get-AtlasInstallProbe @script:Probe).ResumeOptions) | Should -Be @('defender-disable', 'mitigations-default')
+    }
+
+    It 'leaves out what it can''t read, and still reads the rest: <Case>' -TestCases @(
+        @{ Case = 'no mode'; Failing = 'Resolve-AtlasInstallMode'; Mode = $null; Choices = $null; Packages = $true }
+        @{ Case = 'a refused way'; Failing = 'Resolve-AtlasInstallChoices'; Mode = 'Upgrade'; Choices = $null; Packages = $true }
+        @{ Case = 'no packages'; Failing = 'Get-AtlasInstalledAtlasPackage'; Mode = 'Upgrade'; Choices = 'Keep'; Packages = $false }
+    ) {
+        param($Case, $Failing, $Mode, $Choices, $Packages)
+        Mock $Failing { throw 'unreadable' }
+        $probe = Get-AtlasInstallProbe @script:Probe
+        $probe.Mode | Should -Be $Mode -Because $Case
+        $probe.Choices | Should -Be $Choices -Because $Case
+        ($null -ne $probe.AtlasPackages) | Should -Be $Packages -Because $Case
+    }
+
+    It 'tells no packages apart from packages it couldn''t read' {
+        Mock Get-AtlasInstalledAtlasPackage { }
+        $probe = Get-AtlasInstallProbe @script:Probe
+        $null -eq $probe.AtlasPackages | Should -BeFalse
+        @($probe.AtlasPackages) | Should -HaveCount 0
+    }
+}
+
+Describe 'Install capture' {
+    BeforeAll {
+        $script:Target = Get-AtlasPlaybookVersion -PlaybookPath $script:PlaybookPath
+        $script:Asked = @('auto-updates-disable', 'defender-enable', 'keyboard-shortcuts', 'mitigations-default')
+        # What the PC shows: Atlas's NoDefender package is installed.
+        $script:Shown = @('auto-updates-disable', 'defender-disable', 'keyboard-shortcuts', 'mitigations-default')
+        function Write-AtlasSessionLog { param([string]$Message) $script:SessionLines.Add($Message) }
+        function Invoke-TestCapture {
+            param([string]$Choices)
+            $payload = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+            New-Item -Path $payload -ItemType Directory -Force | Out-Null
+            [IO.File]::WriteAllText((Join-Path $payload 'request.json'), (@{ options = $script:Asked; choices = $Choices } | ConvertTo-Json -Compress))
+            Invoke-AtlasInstallCapture -PlaybookPath $script:PlaybookPath -PayloadRoot $payload
+        }
+        function ConvertTo-TestCall {
+            param([string[]]$Calls)
+            @($Calls | ForEach-Object { $_.Replace('<asked>', ($script:Asked -join ',')).Replace('<shown>', ($script:Shown -join ',')) })
+        }
+    }
+    BeforeEach {
+        $script:SessionLines = New-Object 'Collections.Generic.List[string]'
+        $script:CaptureCalls = New-Object 'Collections.Generic.List[string]'
+        $script:ActiveState = $null
+        $script:CaptureMode = 'Upgrade'
+        $script:KeptOptions = $script:Shown
+        # The real Resolve-AtlasInstallChoices reads this.
+        Mock Get-AtlasInstallState -ModuleName Atlas.InstallState { $script:ActiveState }
+        Mock Resolve-AtlasInstallMode { $script:CaptureMode }
+        Mock Get-AtlasInstalledVersion { '0.5.0' }
+        Mock Repair-AtlasToolboxRecord {
+            $script:CaptureCalls.Add("Repair:$InstalledVersion")
+            "Removed the 'Mitigations' record (state 2): only the old Atlas Toolbox wrote it, and its choices never reached this PC."
+        }
+        Mock Resolve-AtlasKeptOption {
+            $script:CaptureCalls.Add("Kept:$(@($Requested) -join ',')")
+            [pscustomobject]@{
+                Options  = $script:KeptOptions
+                Changes  = @([pscustomobject]@{ Message = "Kept 'defender-disable' for Microsoft Defender instead of the requested 'defender-enable'." })
+                Warnings = @('A reading failed.')
+            }
+        }
+        Mock Start-AtlasInstallState { $script:CaptureCalls.Add("Start:${Mode}:$Choices"); [pscustomobject]@{} }
+        Mock Set-AtlasInstallOptions { $script:CaptureCalls.Add("Options:$(@($Options) -join ',')") }
+    }
+
+    It 'captures <Case>' -TestCases @(
+        @{ Case = 'an upgrade keeping the choices, migrating the old records before reading the PC'; Mode = 'Upgrade'; Choices = 'Keep'
+            Calls = @('Repair:0.5.0', 'Kept:<asked>', 'Start:Upgrade:Keep', 'Options:<shown>'); Summary = 'Upgrade, keeping your choices'; Recorded = 'shown' }
+        @{ Case = 'an upgrade choosing again'; Mode = 'Upgrade'; Choices = 'ChooseAgain'
+            Calls = @('Repair:0.5.0', 'Start:Upgrade:ChooseAgain', 'Options:<asked>'); Summary = 'Upgrade, choosing again'; Recorded = 'asked' }
+        @{ Case = 'a reinstall keeping the choices'; Mode = 'Reapply'; Choices = 'Keep'
+            Calls = @('Repair:0.5.0', 'Kept:<asked>', 'Start:Reapply:Keep', 'Options:<shown>'); Summary = 'Reapply, keeping your choices'; Recorded = 'shown' }
+        @{ Case = 'a reinstall choosing again'; Mode = 'Reapply'; Choices = 'ChooseAgain'
+            Calls = @('Repair:0.5.0', 'Start:Reapply:ChooseAgain', 'Options:<asked>'); Summary = 'Reapply, choosing again'; Recorded = 'asked' }
+        @{ Case = 'a Rebase, whose choices the PC no longer shows'; Mode = 'Rebase'; Choices = 'Keep'
+            Calls = @('Repair:0.5.0', 'Start:Rebase:Keep', 'Options:<asked>'); Summary = 'Rebase, keeping your choices'; Recorded = 'asked' }
+        @{ Case = 'a first installation asked to choose again'; Mode = 'Fresh'; Choices = 'ChooseAgain'
+            Calls = @('Start:Fresh:Keep', 'Options:<asked>'); Summary = 'Fresh'; Recorded = 'asked' }
+    ) {
+        param($Case, $Mode, $Choices, $Calls, $Summary, $Recorded)
+        $script:CaptureMode = $Mode
+        $message = Invoke-TestCapture -Choices $Choices
+
+        $script:CaptureCalls.ToArray() | Should -Be (ConvertTo-TestCall $Calls) -Because $Case
+        $script:SessionLines[0] | Should -BeExactly "Install mode: $Summary."
+        $options = if ($Recorded -eq 'shown') { $script:Shown } else { $script:Asked }
+        $message | Should -BeExactly "Atlas install state ready for $Mode of $script:Target with options: $($options -join ', ')."
+        if ($Calls -contains 'Repair:0.5.0') {
+            $script:SessionLines | Should -Contain "Removed the 'Mitigations' record (state 2): only the old Atlas Toolbox wrote it, and its choices never reached this PC."
+        }
+        if ($Calls -contains 'Kept:<asked>') {
+            $script:SessionLines | Should -Contain 'WARNING: A reading failed.'
+            $script:SessionLines | Should -Contain "Kept 'defender-disable' for Microsoft Defender instead of the requested 'defender-enable'."
+        }
+        if ($Mode -eq 'Fresh') {
+            $script:SessionLines | Should -Contain 'A first installation applies every choice, so -ChooseAgain changes nothing.'
+        }
+    }
+
+    It 'refuses to choose again on a Rebase before it changes anything' {
+        $script:CaptureMode = 'Rebase'
+        { Invoke-TestCapture -Choices ChooseAgain } | Should -Throw '*Run it again without -ChooseAgain*'
+        $script:CaptureCalls.ToArray() | Should -HaveCount 0
+    }
+
+    It 'continues a run whose steps began as it began, without migrating or reading the PC again: <Case>' -TestCases @(
+        @{ Case = 'an upgrade from Atlas 0.5.0 that keeps the choices'; Mode = 'Upgrade'; Began = 'Keep'; Asked = 'Keep'; Note = $null }
+        @{ Case = 'a reinstall that began choosing again'; Mode = 'Reapply'; Began = 'ChooseAgain'; Asked = 'Keep'
+            Note = "Continuing the unfinished installation as it began, choosing again; its choices can't change now." }
+    ) {
+        param($Case, $Mode, $Began, $Asked, $Note)
+        $script:CaptureMode = $Mode
+        $script:ActiveState = [pscustomobject]@{
+            targetVersion = $script:Target; status = 'Running'; mode = $Mode; completedSteps = @('Environment', 'LegacyChoices')
+            options = $script:Asked; choices = $Began
+        }
+        Invoke-TestCapture -Choices $Asked | Out-Null
+
+        $script:CaptureCalls.ToArray() | Should -Be (ConvertTo-TestCall @("Start:${Mode}:$Began", 'Options:<asked>')) -Because $Case
+        Should -Invoke Repair-AtlasToolboxRecord -Times 0 -Exactly
+        Should -Invoke Resolve-AtlasKeptOption -Times 0 -Exactly
+        if ($Note) { $script:SessionLines | Should -Contain $Note }
+    }
+
+    It 'is what the Capture phase runs' {
+        $ast = [Management.Automation.Language.Parser]::ParseFile($script:SessionScript, [ref]$null, [ref]$null)
+        $switch = $ast.Find({ param($node) $node -is [Management.Automation.Language.SwitchStatementAst] }, $true)
+        $capture = @($switch.Clauses | Where-Object { $_.Item1.Extent.Text -ceq "'Capture'" })
+        $capture.Count | Should -Be 1
+        @($capture[0].Item2.Statements)[0].Extent.Text |
+            Should -BeExactly '$message = Invoke-AtlasInstallCapture -PlaybookPath $playbookPath -PayloadRoot $payloadRoot'
+    }
+
+    It 'checks the choices taken from the PC against the package before recording them' {
+        $script:CaptureMode = 'Reapply'
+        $script:KeptOptions = @('auto-updates-disable', 'defender-disable', 'defender-enable', 'keyboard-shortcuts', 'mitigations-default')
+        { Invoke-TestCapture -Choices Keep } | Should -Throw '*Exactly one of defender-*'
+        Should -Invoke Start-AtlasInstallState -Times 0 -Exactly
+    }
+}
+
+Describe 'AME Wizard''s start of an install' {
+    BeforeAll {
+        $script:Target = Get-AtlasPlaybookVersion -PlaybookPath $script:PlaybookPath
+        $script:Repaired = "Removed the 'Mitigations' record (state 2): only the old Atlas Toolbox wrote it, and its choices never reached this PC."
+    }
+    BeforeEach {
+        $script:WizardCalls = New-Object 'Collections.Generic.List[string]'
+        $script:ActiveState = $null
+        # The real Resolve-AtlasInstallChoices reads this.
+        Mock Get-AtlasInstallState -ModuleName Atlas.InstallState { $script:ActiveState }
+        Mock Get-AtlasPlaybookVersion { $script:Target }
+        Mock Get-AtlasInstalledVersion { '0.5.0' }
+        Mock Repair-AtlasToolboxRecord { $script:WizardCalls.Add("Repair:$InstalledVersion"); $script:Repaired }
+        Mock Start-AtlasInstallState { $script:WizardCalls.Add("Start:$Mode"); [pscustomobject]@{ mode = $Mode; isOobe = $IsOobe } }
+    }
+
+    It 'repairs records before an AME <Mode>, as Capture does' -TestCases @(
+        @{ Mode = 'Upgrade' }, @{ Mode = 'Reapply' }
+    ) {
+        param($Mode)
+        $lines = @(Start-AtlasWizardInstallState -Mode $Mode -IsOobe $true)
+
+        $script:WizardCalls.ToArray() | Should -Be @("Start:$Mode", 'Repair:0.5.0')
+        $lines | Should -Be @($script:Repaired, "Atlas install state ready for $Mode (OOBE=True).")
+    }
+
+    It 'leaves the records alone for <Case>' -TestCases @(
+        @{ Case = 'a first installation'; Mode = 'Fresh'; Active = $null }
+        @{ Case = 'an update whose steps began, which has rewritten them already'; Mode = 'Upgrade'
+            Active = @{ status = 'Running'; mode = 'Upgrade'; completedSteps = @('Checkpoint/LegacyChoices'); options = @('defender-enable') } }
+        @{ Case = 'an update stopped after its first steps'; Mode = 'Upgrade'
+            Active = @{ status = 'Capturing'; mode = 'Upgrade'; completedSteps = @('Checkpoint/DefaultHiveLoad'); options = @('defender-enable') } }
+    ) {
+        param($Case, $Mode, $Active)
+        if ($null -ne $Active) { $script:ActiveState = [pscustomobject]($Active + @{ targetVersion = $script:Target }) }
+        $lines = @(Start-AtlasWizardInstallState -Mode $Mode -IsOobe $false)
+
+        Should -Invoke Repair-AtlasToolboxRecord -Times 0 -Exactly -Because $Case
+        $lines | Should -Be @("Atlas install state ready for $Mode (OOBE=False).")
+    }
+
+    It 'changes no record when another install holds the PC' {
+        Mock Start-AtlasInstallState { throw "An install state for target '0.6.1' is already active." }
+        { Start-AtlasWizardInstallState -Mode Upgrade -IsOobe $false } | Should -Throw '*already active*'
+        Should -Invoke Repair-AtlasToolboxRecord -Times 0 -Exactly
+    }
+
+    It 'is what Begin runs' {
+        $ast = [Management.Automation.Language.Parser]::ParseFile($script:StateScript, [ref]$null, [ref]$null)
+        $switch = $ast.Find({ param($node) $node -is [Management.Automation.Language.SwitchStatementAst] }, $true)
+        $begin = @($switch.Clauses | Where-Object { $_.Item1.Extent.Text -ceq "'Begin'" })
+        $begin.Count | Should -Be 1
+        @($begin[0].Item2.Statements)[-1].Extent.Text | Should -BeExactly 'Start-AtlasWizardInstallState -Mode $Mode -IsOobe ([bool]$Oobe)'
     }
 }
 
@@ -573,14 +868,59 @@ Describe 'Front door requirements and staging' {
         @(Get-AtlasDeclaredRequirement -Playbook $manifest) | Should -Be @('NoAntivirus', 'PluggedIn')
     }
 
-    It 'passes the Windows Security requirement when an earlier install removed Defender' {
-        Mock Test-Path { $false }
-        Mock Test-AtlasDefenderPresent { $false }
-        Mock Get-AtlasDefenderSwitch { throw "Cannot find path 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Features' because it does not exist." }
-        $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('DefenderToggled') | Where-Object Name -eq 'Windows Security'
-        $result.Passed | Should -BeTrue
-        $result.Detail | Should -Match 'not installed'
-        Should -Invoke Get-AtlasDefenderSwitch -Times 0
+    Context 'Windows Security without Microsoft Defender' {
+        BeforeAll {
+            $script:NoDefender = 'Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0'
+            $script:NoTelemetry = 'Z-Atlas-NoTelemetry-Package~31bf3856ad364e35~amd64~~5.0.0.0'
+        }
+        BeforeEach {
+            Mock Test-Path { $false }
+            Mock Test-AtlasDefenderPresent { $false }
+            # The switches belong to the Defender service, so they are never read without it.
+            Mock Get-AtlasDefenderSwitch { throw "Cannot find path 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Features' because it does not exist." }
+        }
+
+        It 'says truthfully what this installation does with it: <Case>' -TestCases @(
+            @{ Case = 'restored on a fresh installation'; Packages = @('NoDefender'); Option = 'defender-enable'; Mode = 'Fresh'; ChooseAgain = $false
+                Passed = $true; Blocking = $true; Detail = "Microsoft Defender was removed by Atlas's NoDefender package; this installation takes that package off, so Defender is back after the restart. There is nothing to turn off now" }
+            @{ Case = 'restored on a Rebase'; Packages = @('NoDefender', 'NoTelemetry'); Option = 'defender-enable'; Mode = 'Rebase'; ChooseAgain = $false
+                Passed = $true; Blocking = $true; Detail = "Microsoft Defender was removed by Atlas's NoDefender package; this installation takes that package off*" }
+            @{ Case = 'restored choosing again'; Packages = @('NoDefender'); Option = 'defender-enable'; Mode = 'Reapply'; ChooseAgain = $true
+                Passed = $true; Blocking = $true; Detail = "Microsoft Defender was removed by Atlas's NoDefender package; this installation takes that package off*" }
+            @{ Case = 'kept removed, keeping the choices'; Packages = @('NoDefender'); Option = 'defender-enable'; Mode = 'Upgrade'; ChooseAgain = $false
+                Passed = $false; Blocking = $false; Detail = "Microsoft Defender was removed by Atlas's NoDefender package, and keeping your choices leaves it removed, so this installation records it as removed. To bring it back, run again with -ChooseAgain, or use Toggle Defender in the Atlas folder afterwards" }
+            @{ Case = 'removed, as chosen'; Packages = @('NoDefender'); Option = 'defender-disable'; Mode = 'Reapply'; ChooseAgain = $false
+                Passed = $true; Blocking = $true; Detail = "Microsoft Defender was removed by Atlas's NoDefender package, so there is nothing to turn off" }
+            @{ Case = 'missing, though kept'; Packages = @('NoTelemetry'); Option = 'defender-enable'; Mode = 'Reapply'; ChooseAgain = $true
+                Passed = $false; Blocking = $false; Detail = "Microsoft Defender isn't on this PC, and no Atlas package removed it, so this installation can't bring it back. Install another antivirus app, or repair Windows to get Defender back" }
+            @{ Case = 'missing on a fresh installation'; Packages = @(); Option = 'defender-enable'; Mode = 'Fresh'; ChooseAgain = $false
+                Passed = $false; Blocking = $false; Detail = "Microsoft Defender isn't on this PC, and no Atlas package removed it*" }
+            @{ Case = 'missing, and removal chosen'; Packages = @(); Option = 'defender-disable'; Mode = 'Fresh'; ChooseAgain = $false
+                Passed = $true; Blocking = $true; Detail = "Microsoft Defender isn't on this PC, so there is nothing to turn off" }
+            # The mode couldn't be probed, so nothing is said about this installation.
+            @{ Case = 'removed by Atlas, mode unknown'; Packages = @('NoDefender'); Option = 'defender-enable'; Mode = $null; ChooseAgain = $false
+                Passed = $true; Blocking = $true; Detail = "Microsoft Defender was removed by Atlas's NoDefender package, so there is nothing to turn off" }
+            @{ Case = 'missing, mode unknown'; Packages = @(); Option = 'defender-enable'; Mode = $null; ChooseAgain = $true
+                Passed = $true; Blocking = $true; Detail = "Microsoft Defender isn't on this PC, so there is nothing to turn off" }
+            # Nor when Atlas's packages couldn't be read.
+            @{ Case = 'missing, packages unread'; Packages = $null; Option = 'defender-enable'; Mode = 'Upgrade'; ChooseAgain = $false
+                Passed = $true; Blocking = $true; Detail = "Microsoft Defender isn't on this PC, so there is nothing to turn off" }
+        ) {
+            param($Case, $Packages, $Option, $Mode, $ChooseAgain, $Passed, $Blocking, $Detail)
+            $installed = $null
+            if ($null -ne $Packages) {
+                $installed = @($Packages | ForEach-Object { if ($_ -eq 'NoDefender') { $script:NoDefender } else { $script:NoTelemetry } })
+            }
+            $result = Get-TestRequirement -Name 'Windows Security' -Arguments @{
+                DeclaredRequirements = @('DefenderToggled'); Option = @($Option, 'mitigations-default'); Mode = $Mode
+                ChooseAgain = $ChooseAgain; AtlasPackages = $installed
+            }
+            $result.Passed | Should -Be $Passed -Because $Case
+            $result.Blocking | Should -Be $Blocking -Because $Case
+            $result.Detail | Should -BeLike $Detail -Because $Case
+            $result.Detail | Should -Not -BeLike '*earlier Atlas install*'
+            Should -Invoke Get-AtlasDefenderSwitch -Times 0
+        }
     }
 
     Context 'the Windows Security switches' {
@@ -875,13 +1215,49 @@ Describe 'Front door phase failures' {
         Mock Invoke-AtlasTrustedInstaller { throw "'powershell.exe' exited with disallowed code 1. Output: the end of the phase log" }
         $payload = 'C:\Windows\AtlasOS\Staging\0123\Executables'
         $thrown = $null
-        try { Invoke-AtlasInstallPhase -Phase $Phase -PayloadRoot $payload -TimeoutSeconds 60 }
+        try { Invoke-AtlasInstallPhase -Phase $Phase -PayloadRoot $payload -TimeoutSeconds 60 -MachineLogRoot (Join-Path $TestDrive 'no-machine-logs') }
         catch { $thrown = $_.Exception.Message }
         $thrown | Should -BeLike $Message
         $thrown | Should -BeLike "*disallowed code 1. Output: the end of the phase log The full log is '$payload\AtlasModules\Logs\$Log'. Re-run this script with the same options to $Next"
         Should -Invoke Invoke-AtlasTrustedInstaller -Times 1 -Exactly -ParameterFilter {
             $Operation -eq 'Install' -and $InstallPhase -eq $Phase -and $PayloadRoot -eq $payload -and $TimeoutSeconds -eq 60
         }
+    }
+
+    It 'names the copy of the phase log the machine keeps, never an older one' {
+        $logs = Join-Path $TestDrive "machine-logs-$([guid]::NewGuid().ToString('N'))"
+        New-Item -Path $logs -ItemType Directory -Force | Out-Null
+        $older = Join-Path $logs '20260101-000000-install-run.log'
+        Set-Content -LiteralPath $older -Value 'an earlier install'
+        [IO.File]::SetLastWriteTimeUtc($older, [DateTime]::UtcNow.AddHours(-1))
+        $script:CopyPath = Join-Path $logs '20261031-120000-install-run.log'
+        Mock Invoke-AtlasTrustedInstaller { Set-Content -LiteralPath $script:CopyPath -Value 'this run'; throw 'phase failed.' }
+
+        { Invoke-AtlasInstallPhase -Phase Run -PayloadRoot 'C:\Staging\Executables' -TimeoutSeconds 60 -MachineLogRoot $logs } |
+            Should -Throw "The install plan failed: phase failed. The full log is '$script:CopyPath'. Re-run this script with the same options to resume."
+
+        # A phase that left no copy of its own names the staged log, not an earlier install's.
+        Remove-Item -LiteralPath $script:CopyPath
+        Mock Invoke-AtlasTrustedInstaller { throw 'phase failed.' }
+        { Invoke-AtlasInstallPhase -Phase Run -PayloadRoot 'C:\Staging\Executables' -TimeoutSeconds 60 -MachineLogRoot $logs } |
+            Should -Throw "*The full log is 'C:\Staging\Executables\AtlasModules\Logs\install-run.log'.*"
+    }
+
+    It 'says how to resume: <Case>' -TestCases @(
+        @{ Case = 'choosing again'; Phase = 'Run'; Arguments = @{ ChooseAgain = $true }; Next = 'Re-run this script with the same options and -ChooseAgain to resume.' }
+        @{ Case = 'with the choices taken from the PC'; Phase = 'Run'; Arguments = @{ ResumeOptions = @('defender-disable', 'mitigations-default') }
+            Next = 'Re-run this script with the options it recorded, -Option defender-disable,mitigations-default, to resume.' }
+        # An unfinished installation's option lock refuses the options given.
+        @{ Case = 'with the options an unfinished installation started with'; Phase = 'Capture'; Arguments = @{ ResumeOptions = @('defender-disable', 'mitigations-default') }
+            Next = 'Re-run this script with the options it started with, -Option defender-disable,mitigations-default, to try again.' }
+    ) {
+        param($Case, $Phase, $Arguments, $Next)
+        Mock Invoke-AtlasTrustedInstaller { throw 'phase failed.' }
+        $call = @{ Phase = $Phase; PayloadRoot = 'C:\Staging\Executables'; TimeoutSeconds = 60; MachineLogRoot = (Join-Path $TestDrive 'none') } + $Arguments
+        $thrown = $null
+        try { Invoke-AtlasInstallPhase @call }
+        catch { $thrown = $_.Exception.Message }
+        $thrown | Should -BeLike "*. $Next" -Because $Case
     }
 
     It 'returns nothing when the broker succeeds' {
@@ -907,17 +1283,92 @@ Describe 'Front door script body' {
             }
             return $false
         }
+        function Get-BodyCommandCall {
+            param([string]$Name)
+            @(Get-ScriptCommandCall -Ast $script:FrontDoorAst -Name $Name | Where-Object { -not (Test-InScriptFunction -Ast $_) })
+        }
+        # The text a call gives a parameter, as -Name:value or -Name value.
+        function Get-CallArgument {
+            param([Management.Automation.Language.CommandAst]$Call, [string]$Parameter)
+            $elements = @($Call.CommandElements)
+            for ($index = 0; $index -lt $elements.Count; $index++) {
+                $element = $elements[$index]
+                if ($element -isnot [Management.Automation.Language.CommandParameterAst] -or $element.ParameterName -ne $Parameter) { continue }
+                if ($null -ne $element.Argument) { return $element.Argument.Extent.Text }
+                return $elements[$index + 1].Extent.Text
+            }
+            return $null
+        }
+        # The variable a call's result is assigned to.
+        function Get-CallTarget {
+            param([Management.Automation.Language.CommandAst]$Call)
+            $assignment = $Call.Parent.Parent
+            if ($assignment -is [Management.Automation.Language.AssignmentStatementAst]) { return $assignment.Left.Extent.Text }
+            return $null
+        }
     }
 
-    It 'forwards -WindowsSecurityConfirmed to the requirement check' {
-        $calls = @(Get-ScriptCommandCall -Ast $script:FrontDoorAst -Name 'Test-AtlasInstallRequirement' | Where-Object { -not (Test-InScriptFunction -Ast $_) })
-        $calls.Count | Should -Be 1
-        $parameter = @($calls[0].CommandElements | Where-Object {
-                $_ -is [Management.Automation.Language.CommandParameterAst] -and $_.ParameterName -eq 'WindowsSecurityConfirmed'
+    It 'probes before the requirements and words Windows Security from the probe, not the switch' {
+        $probe = @(Get-BodyCommandCall 'Get-AtlasInstallProbe')
+        $requirements = @(Get-BodyCommandCall 'Test-AtlasInstallRequirement')
+        $probe.Count | Should -Be 1
+        $requirements.Count | Should -Be 1
+        Get-CallTarget $probe[0] | Should -BeExactly '$probe'
+        $probe[0].Extent.StartOffset | Should -BeLessThan $requirements[0].Extent.StartOffset
+        Get-CallArgument $requirements[0] 'Mode' | Should -BeExactly '$probe.Mode'
+        Get-CallArgument $requirements[0] 'AtlasPackages' | Should -BeExactly '$probe.AtlasPackages'
+        Get-CallArgument $requirements[0] 'ChooseAgain' | Should -BeExactly "(`$probe.Choices -ceq 'ChooseAgain')"
+    }
+
+    It 'resolves the update path before anything is copied, and names it' {
+        $path = @(Get-BodyCommandCall 'Resolve-AtlasInstallChoices')
+        $path.Count | Should -Be 1
+        Get-CallTarget $path[0] | Should -BeExactly '$updatePath'
+        $path[0].Extent.StartOffset | Should -BeLessThan @(Get-BodyCommandCall 'New-AtlasProtectedStagingRoot')[0].Extent.StartOffset
+        @(Get-BodyCommandCall 'Write-AtlasInstallStep' | Where-Object { $_.CommandElements[1].Extent.Text -ceq '"Install mode: $($updatePath.Summary)."' }) |
+            Should -HaveCount 1
+    }
+
+    It 'tells each phase''s retry the options it must give' {
+        $phases = @(Get-BodyCommandCall 'Invoke-AtlasInstallPhase')
+        $capture = @($phases | Where-Object { (Get-CallArgument $_ 'Phase') -ceq 'Capture' })
+        $run = @($phases | Where-Object { (Get-CallArgument $_ 'Phase') -ceq 'Run' })
+        $capture.Count | Should -Be 1
+        $run.Count | Should -Be 1
+        Get-CallArgument $capture[0] 'ResumeOptions' | Should -BeExactly '$probe.ResumeOptions'
+        Get-CallArgument $run[0] 'ResumeOptions' | Should -BeExactly '$captured.ResumeOptions'
+        $read = @(Get-BodyCommandCall 'Read-AtlasCapturedOption')
+        $read.Count | Should -Be 1
+        Get-CallTarget $read[0] | Should -BeExactly '$captured'
+        $read[0].Extent.StartOffset | Should -BeGreaterThan $capture[0].Extent.StartOffset
+        $read[0].Extent.StartOffset | Should -BeLessThan $run[0].Extent.StartOffset
+        @(Get-BodyCommandCall 'Write-AtlasInstallStep' | Where-Object { $_.CommandElements[1].Extent.Text -ceq '$captured.Line' }) |
+            Should -HaveCount 1
+    }
+
+    It 'forwards -<Switch> to <Command>' -TestCases @(
+        @{ Switch = 'WindowsSecurityConfirmed'; Command = 'Test-AtlasInstallRequirement'; Forwarded = 1 }
+        @{ Switch = 'ChooseAgain'; Command = 'Get-AtlasInstallProbe'; Forwarded = 1 }
+        @{ Switch = 'ChooseAgain'; Command = 'New-AtlasInstallRequest'; Forwarded = 1 }
+        # Only the Run phase is resumed, so only its failure says to choose again.
+        @{ Switch = 'ChooseAgain'; Command = 'Invoke-AtlasInstallPhase'; Forwarded = 1 }
+    ) {
+        param($Switch, $Command, $Forwarded)
+        $commands = @(Get-ScriptCommandCall -Ast $script:FrontDoorAst -Name $Command | Where-Object { -not (Test-InScriptFunction -Ast $_) })
+        $forwarding = @($commands | Where-Object {
+                $parameter = @($_.CommandElements | Where-Object {
+                        $_ -is [Management.Automation.Language.CommandParameterAst] -and $_.ParameterName -eq $Switch
+                    })
+                $parameter.Count -eq 1 -and $parameter[0].Argument -is [Management.Automation.Language.VariableExpressionAst] -and
+                    $parameter[0].Argument.VariablePath.UserPath -eq $Switch
             })
+        $forwarding.Count | Should -Be $Forwarded
+    }
+
+    It 'declares -ChooseAgain as a switch' {
+        $parameter = @($script:FrontDoorAst.ParamBlock.Parameters | Where-Object { $_.Name.VariablePath.UserPath -eq 'ChooseAgain' })
         $parameter.Count | Should -Be 1
-        $parameter[0].Argument | Should -BeOfType [Management.Automation.Language.VariableExpressionAst]
-        $parameter[0].Argument.VariablePath.UserPath | Should -Be 'WindowsSecurityConfirmed'
+        $parameter[0].StaticType | Should -Be ([switch])
     }
 
     It 'strips the staging copy before exit 5 and in the catch before the broker starts' {

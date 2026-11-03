@@ -12,16 +12,19 @@ use serde_json::json;
 
 use super::{
     AppModel, Origin, Page, PlaybookSource, Preflight, ReleaseCheck, RestartConfirmation, RestartKind,
-    RestoreStatus, Step,
+    RestoreStatus, Step, UpdatePath,
 };
-use crate::services::atlas_state::InstallIdentity;
+use crate::services::atlas_state::{InstallIdentity, InstallMode, Unfinished};
+use crate::services::installer::InstallRequest;
+use crate::services::legacy_choices::Facts;
 use crate::services::preparation::{RestartProblem, Stage, State};
 use crate::services::releases::Release;
 use crate::services::requirements::{CheckDetail, CheckId, CheckResult, Verdict};
 use crate::services::security::{SecurityStatus, Switch};
+use crate::services::session::SessionRecord;
 use crate::services::system::SystemInfo;
 use crate::services::update_access::{
-    Blocker, BlockerKind, Carry, Rebuild, UpdateAccess, parse_journal, parse_last_result,
+    Blocker, BlockerKind, Carry, CarryToggle, Rebuild, UpdateAccess, parse_journal, parse_last_result,
 };
 use crate::services::{iso, settings};
 
@@ -46,6 +49,10 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
     }
     if preview == "installed-update-off" {
         apply_installed(model);
+        return;
+    }
+    if preview == "installed-choices-not-applied" {
+        apply_not_applied(model);
         return;
     }
     let step = match preview {
@@ -223,7 +230,9 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
     match preview {
         "resume" => {
             let options = iso::default_options(model.manifest());
-            model.install_identity = Ok(InstallIdentity::Resume("0.6.0".into(), Some(options)));
+            let unfinished =
+                Unfinished { held: Some(options), choose_again: false, mode: InstallMode::Fresh };
+            model.install_identity = Ok(InstallIdentity::Resume("0.6.0".into(), unfinished));
         }
         "ineligible" => model.install_identity = Ok(InstallIdentity::Installed("0.3.2".into())),
         // Restart now was chosen with two other people signed in.
@@ -320,8 +329,24 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
     if let Some(state) = preview.strip_prefix("options-") {
         apply_rebase(model, state);
     }
+    if let Some(state) = preview.strip_prefix("security-defender-") {
+        apply_defender(model, state);
+    }
+    if preview == "security-absent" {
+        // Defender gone without Atlas's package, as the user chose to remove it.
+        model.options.remove("defender-enable");
+        model.options.insert("defender-disable".into());
+    }
+    if preview == "install-choose-again" {
+        apply_contradicted(model, UpdatePath::ChooseAgain);
+    }
     if let Some(reading) = security_reading(preview) {
         model.env.adapters.read_security = Arc::new(move || reading);
+        // Nothing reads Windows Security until the flow moves, so the step
+        // opens on the stand-in reading, which stays fresh until then.
+        model.security = reading;
+        model.security_read_at =
+            Some(std::time::Instant::now() + std::time::Duration::from_secs(24 * 60 * 60));
     }
     if preview == "install-refused" {
         model.preflight_problem = Some(Preflight::Refused {
@@ -402,7 +427,8 @@ fn record(kind: &str, phase: &str) -> UpdateAccess {
 }
 
 /// The record of a move during which Windows reinstalled itself, keeping an
-/// Atlas 0.5.0 install whose choices showed `options`.
+/// Atlas 0.5.0 install whose choices showed `options`, with the record its
+/// launcher left for keeping Windows' default processor protections.
 fn record_rebuilt(options: &[&str]) -> UpdateAccess {
     let mut access = record("transition", "on-target");
     if let Some(journal) = access.journal.as_mut() {
@@ -412,11 +438,17 @@ fn record_rebuilt(options: &[&str]) -> UpdateAccess {
                 .map(str::to_owned)
                 .to_vec(),
         });
+        let launcher = CarryToggle {
+            name: "Mitigations".into(),
+            state: 1,
+            path: Some("Set Windows Default Mitigations.cmd".into()),
+        };
         journal.carry = Some(Carry {
             atlas_version: Some("0.5.0".into()),
             options: options.iter().map(|option| (*option).to_owned()).collect(),
             option_source: "observed".into(),
             edge: false,
+            toggles: options.contains(&"mitigations-default").then_some(launcher).into_iter().collect(),
         });
     }
     access
@@ -432,29 +464,11 @@ fn on_rebuilt_windows(model: &mut AppModel) {
 }
 
 /// Your choices after Windows reinstalled itself: every choice kept, or the
-/// mitigations choice missing.
+/// mitigations choice missing. Or an update or reinstall of the installed
+/// Atlas (see [`apply_update`]).
 fn apply_rebase(model: &mut AppModel, state: &str) {
     on_rebuilt_windows(model);
-    if state == "upgrade" {
-        // An update from Atlas 0.5.0 with its default extras, on the extras screen.
-        model.update_access = Some(UpdateAccess::default());
-        model.legacy_choices = [
-            "defender-enable",
-            "mitigations-default",
-            "auto-updates-disable",
-            "disable-hibernation",
-            "disable-power-saving",
-            "uninstall-edge",
-            "remove-snipping-tool",
-            "disable-core-isolation",
-            "install-toolbox",
-            "install-another-browser",
-            "browser-brave",
-        ]
-        .map(str::to_owned)
-        .to_vec();
-        model.apply_recorded_choices();
-        model.option_screen = model.option_screens().len().saturating_sub(1);
+    if apply_update(model, state) {
         return;
     }
     let mut options =
@@ -464,6 +478,165 @@ fn apply_rebase(model: &mut AppModel, state: &str) {
     }
     model.update_access = Some(record_rebuilt(&options));
     model.apply_recorded_choices();
+}
+
+const NO_DEFENDER: &str = "Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0";
+const NO_TELEMETRY: &str = "Z-Atlas-NoTelemetry-Package~31bf3856ad364e35~amd64~~5.0.0.0";
+
+/// Toggle records, by name.
+fn records(records: &[(&str, u32)]) -> std::collections::HashMap<String, u32> {
+    records.iter().map(|(name, state)| ((*name).to_owned(), *state)).collect()
+}
+
+/// Your choices on an update or reinstall, for the `options-` previews it
+/// names; whether `state` was one of them. From Atlas 0.5.0: the first
+/// screen, whose list can't tell the keyboard choice (`update-path`), or
+/// keeping the choices where only the old Toolbox recorded processor
+/// protections, so that screen is asked (`keep-partial`). Reinstalling over
+/// a record the PC contradicts, choosing again: the first screen with the
+/// line that says so (`choose-again`), the Defender and processor
+/// protections screens with what each answer changes
+/// (`choose-again-defender`, `choose-again-mitigations`), and the extras with
+/// what an update can't undo, another browser beside the one installed and
+/// cleared boxes that turn Windows features back on (`choose-again-fixed`).
+fn apply_update(model: &mut AppModel, state: &str) -> bool {
+    match state {
+        "update-path" => {
+            model.atlas = Ok(None);
+            model.update_access = Some(UpdateAccess::default());
+            model.pc_facts = Facts {
+                packages: vec![NO_TELEMETRY.into()],
+                toggles: records(&[
+                    ("Mitigations", 1),
+                    ("AutomaticUpdates", 0),
+                    ("Hibernation", 0),
+                    ("PowerSaving", 0),
+                ]),
+                launchers: [("Mitigations".to_owned(), "Set Windows Default Mitigations.cmd".to_owned())]
+                    .into(),
+                browser: Some("Brave".into()),
+                edge: Some(false),
+                appx: vec!["Microsoft.WindowsCalculator_8wekyb3d8bbwe".into()],
+                toolbox: Some(true),
+                toolbox_program: Some(true),
+                core_isolation_off: Some(true),
+                browsers: Some(vec!["browser-brave".into()]),
+                ..Facts::default()
+            };
+            model.apply_recorded_choices();
+        }
+        "keep-partial" => {
+            model.atlas = Ok(None);
+            model.update_access = Some(UpdateAccess::default());
+            // The old Toolbox's own record, without a launcher's name beside it.
+            model.pc_facts = Facts {
+                packages: vec![NO_TELEMETRY.into()],
+                toggles: records(&[("Mitigations", 2), ("AutomaticUpdates", 0)]),
+                edge: Some(true),
+                language_hotkey: Some("1".into()),
+                ..Facts::default()
+            };
+            model.apply_recorded_choices();
+            model.option_screen = 1;
+        }
+        "choose-again" => apply_contradicted(model, UpdatePath::ChooseAgain),
+        "choose-again-defender" | "choose-again-mitigations" => {
+            apply_contradicted(model, UpdatePath::ChooseAgain);
+            model.option_screen = if state == "choose-again-defender" { 1 } else { 2 };
+        }
+        "choose-again-fixed" => {
+            apply_contradicted(model, UpdatePath::ChooseAgain);
+            model.pc_facts.browser = Some("Brave".into());
+            model.pc_facts.browsers = Some(vec!["browser-brave".into()]);
+            model.recorded_choices_applied = false;
+            model.apply_recorded_choices();
+            for (name, ticked) in [
+                ("browser-brave", false),
+                ("browser-firefox", true),
+                ("remove-snipping-tool", true),
+                ("disable-power-saving", false),
+                ("disable-core-isolation", false),
+            ] {
+                if ticked {
+                    model.options.insert(name.into());
+                } else {
+                    model.options.remove(name);
+                }
+            }
+            model.option_screen = model.option_screens().len().saturating_sub(1);
+        }
+        _ => return false,
+    }
+    true
+}
+
+/// A reinstall of Atlas 0.6.0 over a record this PC contradicts, as an
+/// earlier release candidate left it: Defender kept while Atlas's NoDefender
+/// package still removes it, Windows Update and processor protections
+/// recorded off while their toggles turned them back on, every protection
+/// on, and VBS off without its option. `path` is how this flow treats it.
+fn apply_contradicted(model: &mut AppModel, path: UpdatePath) {
+    model.system = windows_pc(26300, "26H2", "Professional");
+    model.install_identity = Ok(InstallIdentity::Installed("0.6.0".into()));
+    model.atlas = serde_json::from_value(json!({
+        "schemaVersion": 1, "installedVersion": "0.6.0", "installedAt": "2026-10-27T18:00:00+00:00",
+        "mode": "Reapply", "options": [
+            "auto-updates-disable", "defender-enable", "disable-power-saving", "install-toolbox",
+            "keyboard-single", "mitigations-disable", "uninstall-edge"
+        ]
+    }))
+    .map(Some)
+    .map_err(|error| error.to_string());
+    model.update_access = Some(UpdateAccess::default());
+    model.pc_facts = Facts {
+        packages: vec![NO_DEFENDER.into(), NO_TELEMETRY.into()],
+        toggles: records(&[("AutomaticUpdates", 1), ("Mitigations", 2), ("PowerSaving", 0), ("VbsState", 0)]),
+        edge: Some(false),
+        appx: vec![
+            "Microsoft.ScreenSketch_8wekyb3d8bbwe".into(),
+            "Microsoft.WindowsCalculator_8wekyb3d8bbwe".into(),
+        ],
+        toolbox: Some(true),
+        toolbox_program: Some(true),
+        core_isolation_off: Some(true),
+        browsers: Some(Vec::new()),
+        defender: Some(false),
+        ..Facts::default()
+    };
+    model.update_path = path;
+    model.recorded_choices_applied = false;
+    model.apply_recorded_choices();
+}
+
+/// Windows Security with Microsoft Defender gone, for the `security-defender-`
+/// previews: Atlas's package removed it and choosing again brings it back
+/// (`restore`), or keeping the choices leaves it removed (`removed`); or no
+/// Atlas package removed it, but the record keeps it (`missing`).
+fn apply_defender(model: &mut AppModel, state: &str) {
+    match state {
+        "restore" | "removed" => {
+            let path = if state == "restore" { UpdatePath::ChooseAgain } else { UpdatePath::Keep };
+            apply_contradicted(model, path);
+            if state == "restore" {
+                model.options.remove("defender-disable");
+                model.options.insert("defender-enable".into());
+            }
+        }
+        _ => {
+            model.system = windows_pc(26300, "26H2", "Professional");
+            model.install_identity = Ok(InstallIdentity::Installed("0.6.0".into()));
+            model.atlas = serde_json::from_value(json!({
+                "schemaVersion": 1, "installedVersion": "0.6.0", "installedAt": "2026-10-27T18:00:00+00:00",
+                "mode": "Upgrade", "options": ["defender-enable", "mitigations-default", "auto-updates-disable", "keyboard-shortcuts"]
+            }))
+            .map(Some)
+            .map_err(|error| error.to_string());
+            model.update_access = Some(UpdateAccess::default());
+            model.pc_facts =
+                Facts { packages: vec![NO_TELEMETRY.into()], defender: Some(false), ..Facts::default() };
+            model.apply_recorded_choices();
+        }
+    }
 }
 
 /// Windows Update off and paused by the user's own Atlas choices.
@@ -586,6 +759,30 @@ fn apply_home(model: &mut AppModel, state: &str) {
         model.restore_status =
             RestoreStatus::Failed("feature-install-active: An Atlas install is unfinished; its closing step puts the settings back.".into());
     }
+    if let Some(defender) = state.strip_prefix("defender-") {
+        // Atlas 0.6.0, recorded as keeping Microsoft Defender, which is gone:
+        // Atlas's package still removes it (`not-restored`), or nothing Atlas
+        // did removed it (`missing`).
+        model.install_identity = Ok(InstallIdentity::Installed("0.6.0".into()));
+        model.atlas = serde_json::from_value(json!({
+            "schemaVersion": 1, "installedVersion": "0.6.0", "installedAt": "2026-10-27T18:00:00+00:00",
+            "mode": "Upgrade", "options": ["defender-enable", "mitigations-default", "auto-updates-disable", "keyboard-shortcuts"]
+        }))
+        .map(Some)
+        .map_err(|error| error.to_string());
+        let mut packages = vec![NO_TELEMETRY.to_owned()];
+        if defender == "not-restored" {
+            packages.insert(0, NO_DEFENDER.into());
+        }
+        model.pc_facts = Facts { packages, defender: Some(false), ..Facts::default() };
+        model.protection = Some(SecurityStatus {
+            tamper_protection: Switch::Unknown,
+            real_time_protection: Switch::Unknown,
+            cloud_delivered: Switch::Unknown,
+            sample_submission: Switch::Unknown,
+            defender_present: false,
+        });
+    }
     model.elevated = true;
     model.page = Page::Home;
 }
@@ -613,6 +810,48 @@ fn apply_installed(model: &mut AppModel) {
     model.page = Page::Installed;
 }
 
+/// The "Atlas is installed" window after choosing again asked to turn VBS
+/// off, which a policy on the PC kept on, so the install recorded it on and
+/// that it couldn't apply the choice. As after the install's restart,
+/// startup has closed the install out and kept what it asked for; its log
+/// says why.
+fn apply_not_applied(model: &mut AppModel) {
+    model.system = windows_pc(26300, "26H2", "Professional");
+    let requested = ["defender-enable", "mitigations-default", "auto-updates-disable", "keyboard-shortcuts"];
+    model.atlas = serde_json::from_value(json!({
+        "schemaVersion": 1, "installedVersion": "0.6.0", "installedAt": "2026-10-31T12:30:00+00:00",
+        "mode": "Reapply", "options": requested,
+        "history": [{
+            "version": "0.6.0", "mode": "Reapply", "completedAt": "2026-10-31T12:30:00+00:00",
+            "notApplied": ["disable-core-isolation"]
+        }]
+    }))
+    .map(Some)
+    .map_err(|error| error.to_string());
+    model.install_identity = Ok(InstallIdentity::Installed("0.6.0".into()));
+    model.pc_facts = Facts { packages: vec![NO_TELEMETRY.into()], ..Facts::default() };
+    let mut options: Vec<String> = requested.iter().map(|option| (*option).to_owned()).collect();
+    options.push("disable-core-isolation".into());
+    let log = std::env::temp_dir().join("install-preview.log");
+    model.finished_session = Some(SessionRecord {
+        id: "preview".into(),
+        pid: 0,
+        process_start: 0,
+        started_at: "2026-10-31T12:00:00Z".into(),
+        exit_path: log.with_extension("exit"),
+        log_path: log,
+        request: InstallRequest {
+            playbook_dir: std::env::temp_dir(),
+            options,
+            restart: true,
+            windows_security_confirmed: false,
+            choose_again: true,
+        },
+    });
+    model.update_access = Some(UpdateAccess::default());
+    model.page = Page::Installed;
+}
+
 /// The Windows Security reading a security or install preview shows.
 fn security_reading(preview: &str) -> Option<SecurityStatus> {
     let all = |switch| SecurityStatus {
@@ -626,8 +865,13 @@ fn security_reading(preview: &str) -> Option<SecurityStatus> {
         "security-on" => SecurityStatus { tamper_protection: Switch::Off, ..all(Switch::On) },
         "security-readable-off" => SecurityStatus { sample_submission: Switch::Unknown, ..all(Switch::Off) },
         "security-unreadable" => all(Switch::Unknown),
-        "security-absent" => SecurityStatus { defender_present: false, ..all(Switch::Unknown) },
-        "security-off" | "install-ready" | "install-refused" | "install-busy" => all(Switch::Off),
+        "security-absent"
+        | "security-defender-restore"
+        | "security-defender-removed"
+        | "security-defender-missing" => SecurityStatus { defender_present: false, ..all(Switch::Unknown) },
+        "security-off" | "install-ready" | "install-refused" | "install-busy" | "install-choose-again" => {
+            all(Switch::Off)
+        }
         _ => return None,
     })
 }
@@ -646,4 +890,98 @@ pub(super) fn passing(id: CheckId) -> CheckResult {
         CheckId::Activation => CheckDetail::ActivationOk,
     };
     CheckResult { id, verdict: Verdict::Pass, detail }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::i18n::describe::DefenderAbsence;
+    use crate::model::ScreenKind;
+    use crate::model::test_harness::{fixture, new_model, run_model_test};
+
+    /// Each review fixture of an update or reinstall opens on the state its
+    /// name says, so a capture shows what it is listed for.
+    #[test]
+    fn the_update_fixtures_open_on_the_state_they_are_named_for() {
+        run_model_test(|mut cx| async move {
+            let (_temp, _, env) = fixture("preview-update");
+            let mut shown = |preview: &str, check: &dyn Fn(&AppModel)| {
+                let model = new_model(&mut cx, env.clone());
+                model.update(&mut cx, |m, _| {
+                    apply(m, preview);
+                    check(m);
+                });
+            };
+            let screen = |m: &AppModel| m.option_screens()[m.current_option_screen()].kind;
+            shown("options-update-path", &|m| {
+                assert_eq!((screen(m), m.update_path), (ScreenKind::UpdatePath, UpdatePath::Keep));
+                let update = m.update_choices().unwrap();
+                assert!(!update.reinstall && update.missing == [ScreenKind::Keyboard], "{update:?}");
+            });
+            shown("options-keep-partial", &|m| {
+                let kinds: Vec<ScreenKind> = m.option_screens().iter().map(|screen| screen.kind).collect();
+                assert_eq!(kinds, [ScreenKind::UpdatePath, ScreenKind::Mitigations]);
+                assert_eq!(screen(m), ScreenKind::Mitigations);
+            });
+            shown("options-choose-again", &|m| {
+                assert_eq!(screen(m), ScreenKind::UpdatePath);
+                assert!(m.choosing_again());
+                let update = m.update_choices().unwrap();
+                assert!(update.reinstall);
+                assert_eq!(
+                    update.differs,
+                    [ScreenKind::Defender, ScreenKind::Mitigations, ScreenKind::Updates, ScreenKind::Power]
+                );
+            });
+            shown("options-choose-again-defender", &|m| {
+                assert_eq!(screen(m), ScreenKind::Defender);
+                assert!(m.options.contains("defender-disable"), "as the PC has it");
+            });
+            shown("options-choose-again-mitigations", &|m| {
+                assert_eq!(screen(m), ScreenKind::Mitigations);
+                assert_eq!(m.choice_facts().toggles.get("Mitigations"), Some(&2), "every protection on");
+            });
+            shown("options-choose-again-fixed", &|m| {
+                assert_eq!(screen(m), ScreenKind::Extras);
+                for name in ["uninstall-edge", "install-toolbox", "install-another-browser"] {
+                    assert!(m.fixed_option(name).is_some(), "{name}");
+                }
+                for (name, ticked) in [
+                    ("browser-firefox", true),
+                    ("remove-snipping-tool", true),
+                    ("disable-power-saving", false),
+                ] {
+                    assert_eq!(m.effective_options().iter().any(|o| o == name), ticked, "{name}");
+                }
+            });
+            for (preview, absence) in [
+                ("security-defender-restore", DefenderAbsence::Restore),
+                ("security-defender-removed", DefenderAbsence::Removed),
+                ("security-defender-missing", DefenderAbsence::Missing),
+                ("security-absent", DefenderAbsence::Absent),
+            ] {
+                shown(preview, &|m| {
+                    assert_eq!(m.flow.step, Step::Security);
+                    assert_eq!(m.defender_absence(), absence, "{preview}");
+                });
+            }
+            shown("install-choose-again", &|m| {
+                assert_eq!(m.flow.step, Step::Install);
+                assert!(m.install_request().unwrap().choose_again);
+            });
+            shown("home-defender-not-restored", &|m| {
+                assert!(m.page == Page::Home && m.defender_not_restored_shown());
+            });
+            shown("home-defender-missing", &|m| {
+                assert!(m.protection_reminder().is_some_and(|reminder| reminder.missing));
+                assert!(!m.defender_not_restored_shown());
+            });
+            shown("installed-choices-not-applied", &|m| {
+                assert_eq!(m.page, Page::Installed);
+                assert!(m.session.is_none(), "closed out, as after the restart");
+                assert_eq!(m.choices_not_applied(), Some(&["disable-core-isolation".to_owned()][..]));
+                assert!(!m.installed().unwrap().options.iter().any(|o| o == "disable-core-isolation"));
+            });
+        });
+    }
 }

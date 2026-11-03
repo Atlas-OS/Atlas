@@ -64,6 +64,67 @@ function Get-AtlasInstallLogPath {
     }
 }
 
+function Invoke-AtlasInstallLogRetention {
+    <#
+    .SYNOPSIS
+        Keeps the machine's install log folder bounded now that its logs survive
+        updates: moves atlas-install.log or warnings-summary.log past 16 MB aside as
+        *.previous.log, replacing the one before, and deletes timestamped logs older
+        than 90 days, apart from the newest 200, so the last installs' logs stay
+        however long ago they ran.
+    #>
+    param(
+        [string]$Path = [IO.Path]::Combine([Environment]::GetFolderPath('Windows'), 'AtlasModules', 'Logs', 'install'),
+        [long]$RotateBytes = 16MB,
+        [int]$MaximumAgeDays = 90,
+        [int]$KeepNewest = 200,
+        [DateTime]$Now = [DateTime]::UtcNow
+    )
+
+    if (-not [IO.Directory]::Exists($Path)) {
+        return
+    }
+    if (([IO.File]::GetAttributes($Path) -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "Refusing to tidy Atlas's install logs through a reparse point at '$Path'."
+    }
+
+    foreach ($name in @('atlas-install.log', 'warnings-summary.log')) {
+        $log = [IO.FileInfo]::new([IO.Path]::Combine($Path, $name))
+        if (-not $log.Exists -or $log.Length -le $RotateBytes) { continue }
+        # Other processes append under this lock, so none writes half a line into
+        # the file being moved.
+        $mutex = New-Object System.Threading.Mutex($false, 'Global\AtlasInstallLog')
+        $acquired = $false
+        try {
+            try { $acquired = $mutex.WaitOne(5000) }
+            catch [System.Threading.AbandonedMutexException] { $acquired = $true }
+            if (-not $acquired) { throw "Timed out waiting for the Atlas install log lock to move '$name' aside." }
+            $previous = [IO.Path]::Combine($Path, [IO.Path]::GetFileNameWithoutExtension($name) + '.previous.log')
+            if ([IO.File]::Exists($previous)) { [IO.File]::Delete($previous) }
+            [IO.File]::Move($log.FullName, $previous)
+        }
+        finally {
+            if ($acquired) { $mutex.ReleaseMutex() }
+            $mutex.Dispose()
+        }
+    }
+
+    # Phase transcripts and the session copies both begin with their time.
+    $timestamped = @([IO.DirectoryInfo]::new($Path).GetFiles('*.log') |
+            Where-Object { $_.Name -match '^\d{8}-\d{6}-.+\.log$' } |
+            Sort-Object -Property LastWriteTimeUtc -Descending)
+    $cutoff = $Now.ToUniversalTime().AddDays(-$MaximumAgeDays)
+    $kept = @()
+    foreach ($file in @($timestamped | Select-Object -Skip $KeepNewest)) {
+        if ($file.LastWriteTimeUtc -ge $cutoff) { continue }
+        try { $file.Delete() }
+        catch { $kept += "$($file.Name) ($($_.Exception.Message))" }
+    }
+    if ($kept.Count -gt 0) {
+        throw "Old install logs couldn't be deleted: $($kept -join '; ')"
+    }
+}
+
 function Write-AtlasLogFile {
     param(
         [Parameter(Mandatory = $true)][string]$FileName,

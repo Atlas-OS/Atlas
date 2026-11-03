@@ -704,14 +704,53 @@ pub fn caution_caption(cx: &App, text: impl IntoElement) -> Div {
 /// page, or the option toggled on a checkbox page.
 pub type OptionChoice = Rc<dyn Fn(&str, &mut App)>;
 
+/// What [`option_page_card`] says under one option. ISO creation and a first
+/// install say what it means; choosing again on an update also says what it
+/// changes on this PC, which answer the PC has, and why an option an update
+/// can't undo is fixed.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct OptionNote {
+    /// What choosing it means.
+    pub consequence: Option<String>,
+    /// What choosing it changes on this PC, said instead of what it means.
+    pub change: Option<String>,
+    /// This PC has it now.
+    pub now: bool,
+    /// Why it can't be changed; its box is disabled.
+    pub fixed: Option<String>,
+}
+
+impl From<Option<String>> for OptionNote {
+    fn from(consequence: Option<String>) -> Self {
+        Self { consequence, ..Self::default() }
+    }
+}
+
+impl OptionNote {
+    /// The text under the option: why it is fixed, or else what it changes
+    /// or means, after the tag that says the PC has it. A fixed option says
+    /// that itself.
+    fn description(&self) -> Option<String> {
+        let line = self.fixed.clone().or_else(|| self.change.clone()).or_else(|| self.consequence.clone());
+        if !self.now || self.fixed.is_some() {
+            return line;
+        }
+        let tag = t!("option-now");
+        Some(match line {
+            Some(line) => format!("{tag}\n{line}"),
+            None => tag,
+        })
+    }
+}
+
 /// One page of the Atlas package's choices as a card, as the install flow
 /// and ISO creation both show it: the header (the question, or the page's
 /// title), a divider, the page's description, the choices with what each
-/// means, and its "Learn more" link. `id` prefixes the element ids;
-/// `consequence` words what an option means; `on_choose` gets the option's
-/// name; `images` is the unpacked package, for the browser logos.
+/// means, and its "Learn more" link. `id` prefixes the element ids; `note`
+/// says what goes under an option (see [`OptionNote`]); `on_choose` gets the
+/// option's name; `images` is the unpacked package, for the browser logos.
 #[allow(clippy::too_many_arguments)]
-pub fn option_page_card(
+pub fn option_page_card<N: Into<OptionNote>>(
     cx: &mut App,
     id: &str,
     page_index: usize,
@@ -720,7 +759,7 @@ pub fn option_page_card(
     selected: impl Fn(&str) -> bool,
     disabled: bool,
     focus: &mut FocusHandles,
-    consequence: impl Fn(&FeatureOption) -> Option<String>,
+    note: impl Fn(&FeatureOption) -> N,
     on_choose: OptionChoice,
     images: Option<&Path>,
 ) -> AnyElement {
@@ -753,7 +792,7 @@ pub fn option_page_card(
                     {
                         item = item.image(path);
                     }
-                    if let Some(text) = consequence(option) {
+                    if let Some(text) = note(option).into().description() {
                         item = item.description(text);
                     }
                     item
@@ -794,10 +833,13 @@ pub fn option_page_card(
                     "install-eclean" => checkbox.image("brand/eclean.png"),
                     _ => checkbox,
                 });
-                if let Some(text) = consequence(option) {
+                let note = note(option).into();
+                if let Some(text) = note.description() {
                     checkbox = checkbox.description(text);
                 }
-                group = group.child(checkbox.disabled(disabled).on_toggle(move |_, _, cx| choose(&name, cx)));
+                let fixed = note.fixed.is_some();
+                group = group
+                    .child(checkbox.disabled(disabled || fixed).on_toggle(move |_, _, cx| choose(&name, cx)));
             }
             body = body.child(group);
         }
@@ -984,11 +1026,112 @@ pub fn plain_list(cx: &App, id: impl Into<ElementId>, label: &str, entries: Vec<
         }))
 }
 
+/// Builds the model the page tests read: what the PC has and the built-in
+/// package, set as the model would have read them.
+#[cfg(test)]
+pub(crate) mod testing {
+    use gpui::{AsyncApp, Entity};
+
+    use crate::model::test_harness::{Machine, all_off, new_model};
+    use crate::model::{AppModel, Origin, PlaybookSource};
+    use crate::services::atlas_state::{AtlasState, InstallIdentity};
+    use crate::services::legacy_choices::Facts;
+    use crate::services::playbook::Manifest;
+    use crate::services::test_support::TempDir;
+    use crate::services::update_access::{Carry, Rebuild, UpdateAccess, parse_journal};
+
+    /// Atlas's NoDefender servicing package, installed.
+    pub(crate) const NO_DEFENDER: &str = "Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0";
+    pub(crate) const NO_TELEMETRY: &str = "Z-Atlas-NoTelemetry-Package~31bf3856ad364e35~amd64~~5.0.0.0";
+
+    /// A completed install of `version` whose record says it chose `options`.
+    pub(crate) fn recorded(version: &str, options: &[&str]) -> AtlasState {
+        serde_json::from_value(serde_json::json!({
+            "schemaVersion": 1, "installedVersion": version, "installedAt": "2026-10-30T18:00:00+00:00",
+            "mode": "Reapply", "options": options,
+        }))
+        .unwrap()
+    }
+
+    /// Toggle records, by name.
+    pub(crate) fn records(records: &[(&str, u32)]) -> std::collections::HashMap<String, u32> {
+        records.iter().map(|(name, state)| ((*name).to_owned(), *state)).collect()
+    }
+
+    /// The record of a move to 26H2 during which Windows reinstalled itself,
+    /// keeping an Atlas 0.5.0 install whose choices showed `options`. It kept
+    /// no toggle records, so no Mitigations choice stands.
+    pub(crate) fn rebuilt(options: &[&str]) -> UpdateAccess {
+        let journal = serde_json::json!({
+            "schema": 1, "kind": "transition", "phase": "on-target",
+            "source": { "build": 26100, "ubr": 9550, "displayVersion": "24H2", "editionId": "Professional" },
+            "target": { "release": "26H2", "build": 26300, "kb": "5121794" },
+            "createdAt": "2026-10-01T15:41:43Z",
+        });
+        let mut journal = parse_journal(&journal.to_string()).unwrap();
+        journal.rebuild = Some(Rebuild { rebuilt: true, signals: vec!["packages-missing".into()] });
+        journal.carry = Some(Carry {
+            atlas_version: Some("0.5.0".into()),
+            options: options.iter().map(|option| (*option).to_owned()).collect(),
+            option_source: "observed".into(),
+            edge: false,
+            toggles: Vec::new(),
+        });
+        UpdateAccess { journal: Some(journal), ..UpdateAccess::default() }
+    }
+
+    /// A model on a PC with Atlas 0.6.0 installed, whose record says it
+    /// chose `options` (none: no record), and which shows `facts`.
+    pub(crate) fn installed_model(
+        cx: &mut AsyncApp,
+        temp: &TempDir,
+        options: Option<&[&str]>,
+        facts: Facts,
+    ) -> Entity<AppModel> {
+        let model = new_model(cx, Machine::new(all_off()).environment(temp.path()));
+        model.update(cx, |m, _| {
+            m.install_identity = Ok(InstallIdentity::Installed("0.6.0".into()));
+            m.atlas = Ok(options.map(|options| recorded("0.6.0", options)));
+            m.pc_facts = facts;
+            m.playbook = Some(PlaybookSource {
+                dir: temp.path().to_path_buf(),
+                manifest: Manifest::builtin(),
+                origin: Origin::Unpacked,
+                archive: None,
+            });
+        });
+        model
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     const VISIT: u64 = 3;
+
+    /// The tag goes on a line of its own above what the option means or
+    /// changes; a fixed option says why it's fixed, which says the PC has it.
+    #[test]
+    fn an_option_on_this_pc_is_tagged_above_its_line() {
+        crate::i18n::testing::english(|| {
+            let tag = t!("option-now");
+            let note = |now, fixed: Option<&str>, change: Option<&str>| OptionNote {
+                consequence: Some("means".into()),
+                change: change.map(str::to_owned),
+                now,
+                fixed: fixed.map(str::to_owned),
+            };
+            assert_eq!(OptionNote::from(Some("means".to_owned())).description().as_deref(), Some("means"));
+            assert_eq!(OptionNote::default().description(), None);
+            assert_eq!(note(false, None, Some("changes")).description().as_deref(), Some("changes"));
+            assert_eq!(note(true, None, None).description(), Some(format!("{tag}\nmeans")));
+            assert_eq!(note(true, None, Some("changes")).description(), Some(format!("{tag}\nchanges")));
+            assert_eq!(note(true, Some("fixed"), Some("changes")).description().as_deref(), Some("fixed"));
+            let alone = OptionNote { now: true, ..OptionNote::default() };
+            assert_eq!(alone.description(), Some(tag));
+        });
+    }
 
     fn drawn(busy: bool) -> (bool, u64, RunState) {
         (busy, VISIT, RunState::Idle)

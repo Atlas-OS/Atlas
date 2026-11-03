@@ -1,4 +1,4 @@
-# Atlas.Security domain: Windows Defender package state.
+# Atlas.Security domain: Windows Defender package state and its core service.
 #
 # Defender is removed and restored through the NoDefender CBS package. The package
 # transaction itself stays in the interactive package installer entry script, run in a
@@ -7,6 +7,8 @@
 
 $script:AtlasDefenderPackagePattern = '*Z-Atlas-NoDefender-Package*'
 $script:AtlasDefenderDocumentationUrl = 'https://docs.atlasos.net/docs/atlas-configuration/security/#defender'
+$script:AtlasDefenderCoreServicePath = 'HKLM:\SYSTEM\CurrentControlSet\Services\MDCoreSvc'
+$script:AtlasDefenderCoreTaskName = 'AtlasDisableMDCoreSvc'
 
 function Get-AtlasDefenderPackageNames {
     return @(Get-WindowsPackage -Online -ErrorAction Stop |
@@ -28,6 +30,89 @@ function Get-AtlasDefenderState {
         return 'Enabled'
     }
     return 'Disabled'
+}
+
+function Set-AtlasDefenderCoreService {
+    <#
+    .SYNOPSIS
+        Keeps Microsoft Defender Core Service (MDCoreSvc) in step with Defender. Removed
+        turns the service off at the next startup; Restored, run before the NoDefender
+        package comes off, puts back the automatic start Windows gives it.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('Removed', 'Restored')]
+        [string]$State,
+
+        # Tests point this at a scratch key.
+        [ValidateNotNullOrEmpty()]
+        [string]$ServicePath = $script:AtlasDefenderCoreServicePath
+    )
+
+    if ($State -ceq 'Removed') {
+        # MDCoreSvc survives the NoDefender package but its binary is removed with
+        # Defender, so SCM fails it 0x80070002 (event 7023) on every boot. The Start
+        # value can't be changed now: Defender Tamper Protection is still enforced at the
+        # kernel level until the restart and denies the write even as TrustedInstaller.
+        # A one-shot startup task writes it after the restart, once Defender is gone.
+        $mdCoreArgs = "/c reg add `"HKLM\SYSTEM\CurrentControlSet\Services\MDCoreSvc`" " `
+            + "/v Start /t REG_DWORD /d 4 /f > nul && " `
+            + "schtasks /delete /tn `"$script:AtlasDefenderCoreTaskName`" /f > nul"
+        $mdCoreTask = @{
+            'TaskName'  = $script:AtlasDefenderCoreTaskName
+            'Settings'  = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+            'Trigger'   = New-ScheduledTaskTrigger -AtStartup
+            'Principal' = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+            'Force'     = $true
+            'Action'    = New-ScheduledTaskAction -Execute 'cmd' -Argument $mdCoreArgs
+        }
+        Register-ScheduledTask @mdCoreTask | Out-Null
+        Write-AtlasLog -Message 'Microsoft Defender Core Service is turned off at the next startup.'
+        return
+    }
+
+    # A removal that hasn't restarted yet would otherwise turn the service off after
+    # Defender is back.
+    Remove-AtlasScheduledTask -Path "\$script:AtlasDefenderCoreTaskName" -IgnoreMissing
+    # Written while Defender is still removed, so Tamper Protection can't refuse it.
+    $service = Get-Item -LiteralPath $ServicePath -ErrorAction SilentlyContinue
+    if ($null -eq $service -or @($service.GetValueNames()) -notcontains 'Start') {
+        return
+    }
+    if ($service.GetValueKind('Start') -eq [Microsoft.Win32.RegistryValueKind]::DWord -and
+        [int]$service.GetValue('Start') -eq 4) {
+        Set-AtlasRegistryValue -Path $ServicePath -Name 'Start' -Type DWord -Data 2
+        Write-AtlasLog -Message 'Microsoft Defender Core Service starts automatically again.'
+    }
+}
+
+function Test-AtlasDefenderCoreServiceRemoved {
+    <#
+    .SYNOPSIS
+        Whether Set-AtlasDefenderCoreService -State Removed has nothing left to do: the
+        service's Start reads 4, Atlas's task turns it off at the next startup, or this
+        Windows has no such service. Reads only.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        # Tests point this at a scratch key.
+        [ValidateNotNullOrEmpty()]
+        [string]$ServicePath = $script:AtlasDefenderCoreServicePath
+    )
+
+    $service = Get-Item -LiteralPath $ServicePath -ErrorAction SilentlyContinue
+    if ($null -eq $service) {
+        return $true
+    }
+    if (@($service.GetValueNames()) -contains 'Start' -and
+        $service.GetValueKind('Start') -eq [Microsoft.Win32.RegistryValueKind]::DWord -and
+        [int]$service.GetValue('Start') -eq 4) {
+        return $true
+    }
+    # A disabled task never runs, so only an enabled one is on its way.
+    return (Get-AtlasScheduledTaskState -Path "\$script:AtlasDefenderCoreTaskName") -ceq 'Enabled'
 }
 
 function Get-AtlasDefenderPackageInstaller {
@@ -217,10 +302,16 @@ function Set-AtlasDefenderState {
         Write-AtlasStep -Text $step
     }
 
+    if ($State -ceq 'Enable') {
+        Set-AtlasDefenderCoreService -State Restored
+    }
     $exitCode = Invoke-AtlasDefenderPackageInstaller -Operation $operation -Installer $installer `
         -NoInteraction:$Silent
     if ($null -eq $exitCode -or [int]$exitCode -ne 0) {
         throw "$failure failed with exit code $exitCode."
+    }
+    if ($State -ceq 'Disable') {
+        Set-AtlasDefenderCoreService -State Removed
     }
     Write-AtlasLog -Message "Windows Defender ${State} requested through the NoDefender package ($operation)."
 }

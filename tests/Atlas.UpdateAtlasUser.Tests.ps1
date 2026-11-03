@@ -3,6 +3,8 @@ BeforeAll {
     $script:PowerShell51 = Join-Path $PSHOME 'powershell.exe'
     $script:CurrentSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
     $script:SandboxSubKey = 'Software\AtlasRewriteTestUpdateAtlasUser'
+    # What Invoke-AtlasInstallingUserSetup stamps for a reinstall of 0.6.0.
+    $script:ReinstallStamp = '0.6.0+3f2504e0-4f89-41d3-9a0c-0305e82c3301'
 
     # Copies Update-AtlasUser.ps1 and the real bootstrap into a fixture tree with stub
     # modules that log each call. The entry's two Atlas keys are pointed at the sandbox,
@@ -136,7 +138,7 @@ Describe 'User upgrade entry' {
 
     It 'migrates every manifest category for an eligible account at logon' {
         $fixture = New-UpdateUserFixture
-        Set-ItemProperty -LiteralPath $fixture.EligiblePath -Name $script:CurrentSid -Value 1 -Type DWord
+        Set-ItemProperty -LiteralPath $fixture.EligiblePath -Name $script:CurrentSid -Value '0.6.0' -Type String
         Set-ItemProperty -LiteralPath $fixture.MarkerPath -Name UpgradeVersion -Value '0.5.0' -Type String
 
         $result = Invoke-UpdateUserFixture -Fixture $fixture
@@ -148,11 +150,203 @@ Describe 'User upgrade entry' {
         (Get-ItemProperty -LiteralPath $fixture.MarkerPath).UpgradeVersion | Should -BeExactly '0.6.0'
     }
 
+    It 'runs once at logon for a reinstall of the same version, and records its stamp' {
+        $fixture = New-UpdateUserFixture
+        Set-ItemProperty -LiteralPath $fixture.EligiblePath -Name $script:CurrentSid -Value $script:ReinstallStamp -Type String
+        Set-ItemProperty -LiteralPath $fixture.MarkerPath -Name UpgradeVersion -Value '0.6.0' -Type String
+
+        $result = Invoke-UpdateUserFixture -Fixture $fixture
+
+        $result.ExitCode | Should -Be 0 -Because $result.Output
+        @($result.Calls -like 'Category:*') | Should -Be @('Category:privacy:CurrentUser', 'Category:qol:CurrentUser')
+        $result.Calls | Should -Contain 'ToggleReapply'
+        (Get-ItemProperty -LiteralPath $fixture.MarkerPath).UpgradeVersion | Should -BeExactly $script:ReinstallStamp
+    }
+
+    It 'doesn''t run again at logon for the stamp it recorded' {
+        $fixture = New-UpdateUserFixture
+        Set-ItemProperty -LiteralPath $fixture.EligiblePath -Name $script:CurrentSid -Value $script:ReinstallStamp -Type String
+        Set-ItemProperty -LiteralPath $fixture.MarkerPath -Name UpgradeVersion -Value $script:ReinstallStamp -Type String
+
+        $result = Invoke-UpdateUserFixture -Fixture $fixture
+
+        $result.ExitCode | Should -Be 0 -Because $result.Output
+        @($result.Calls -like 'Category:*') | Should -HaveCount 0
+        $result.Calls | Should -Not -Contain 'ToggleReapply'
+    }
+
+    It 'records the installing user''s own stamp, so its next logon doesn''t run again' {
+        $fixture = New-UpdateUserFixture
+        Set-ItemProperty -LiteralPath $fixture.EligiblePath -Name $script:CurrentSid -Value $script:ReinstallStamp -Type String
+        Set-ItemProperty -LiteralPath $fixture.MarkerPath -Name UpgradeVersion -Value '0.6.0' -Type String
+
+        $install = Invoke-UpdateUserFixture -Fixture $fixture -Arguments @('-ExpectedUserSid', $script:CurrentSid)
+        Remove-Item -LiteralPath $fixture.CallLog
+        $logon = Invoke-UpdateUserFixture -Fixture $fixture
+
+        $install.ExitCode | Should -Be 0 -Because $install.Output
+        $install.Calls | Should -Contain 'ToggleReapply'
+        (Get-ItemProperty -LiteralPath $fixture.MarkerPath).UpgradeVersion | Should -BeExactly $script:ReinstallStamp
+        $logon.ExitCode | Should -Be 0 -Because $logon.Output
+        $logon.Calls | Should -Not -Contain 'ToggleReapply'
+    }
+
+    It 'takes an eligibility value that isn''t text as the installed version' {
+        $fixture = New-UpdateUserFixture
+        Set-ItemProperty -LiteralPath $fixture.EligiblePath -Name $script:CurrentSid -Value 1 -Type DWord
+        Set-ItemProperty -LiteralPath $fixture.MarkerPath -Name UpgradeVersion -Value '0.6.0' -Type String
+
+        $result = Invoke-UpdateUserFixture -Fixture $fixture
+
+        $result.ExitCode | Should -Be 0 -Because $result.Output
+        $result.Calls | Should -Not -Contain 'ToggleReapply'
+    }
+
     It 'pins module resolution before a user module can shadow a core cmdlet' {
         $fixture = New-UpdateUserFixture
         $result = Invoke-UpdateUserFixture -Fixture $fixture -Arguments @('-ExpectedUserSid', $script:CurrentSid)
 
         $result.Output | Should -Not -Match 'SHADOWED'
         $result.Calls | Should -Contain 'Join-Path:Microsoft.PowerShell.Management'
+    }
+}
+
+Describe 'Set-AtlasUpgradeUserStamp' {
+    BeforeAll {
+        . (Join-Path $script:AtlasTestScriptsRoot 'Install\Tasks\Set-AtlasUpgradeUsers.ps1')
+    }
+
+    AfterAll {
+        Microsoft.PowerShell.Management\Remove-Item -LiteralPath 'Function:\Set-AtlasUpgradeUserStamp' -ErrorAction SilentlyContinue
+    }
+
+    It 'stamps every person''s account in the profile list and drops the stamps an earlier install left' {
+        $root = "HKCU:\$script:SandboxSubKey\Stamp-$([guid]::NewGuid().ToString('N'))"
+        $profiles = "$root\ProfileList"
+        foreach ($sid in 'S-1-5-18', 'S-1-5-21-1-2-3-1001', 'S-1-5-21-1-2-3-1001.bak', 'S-1-12-1-4-5-6-7') {
+            New-Item -Path "$profiles\$sid" -Force | Out-Null
+        }
+        $eligible = "$root\UpgradeUsers"
+        New-Item -Path $eligible -Force | Out-Null
+        New-ItemProperty -LiteralPath $eligible -Name 'S-1-5-21-9-9-9-9' -Value '0.6.0' -PropertyType String | Out-Null
+
+        Set-AtlasUpgradeUserStamp -Value $script:ReinstallStamp -Path $eligible -ProfileListPath $profiles
+
+        $key = Get-Item -LiteralPath $eligible
+        $names = @($key.GetValueNames())
+        $names | Should -HaveCount 2
+        foreach ($sid in 'S-1-5-21-1-2-3-1001', 'S-1-12-1-4-5-6-7') {
+            $names | Should -Contain $sid
+            $key.GetValueKind($sid) | Should -Be ([Microsoft.Win32.RegistryValueKind]::String)
+            $key.GetValue($sid) | Should -BeExactly $script:ReinstallStamp
+        }
+    }
+}
+
+Describe 'Install-time stamps' {
+    BeforeAll {
+        $script:TransactionId = '3f2504e0-4f89-41d3-9a0c-0305e82c3301'
+
+        # Copies the installing user's setup into a fixture tree whose Atlas.Core,
+        # stamp helper and failure reader only log, so a run changes nothing here.
+        function New-InstallingUserSetupFixture {
+            $root = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+            $tasks = Join-Path $root 'Scripts\Install\Tasks'
+            $core = Join-Path $root 'Scripts\Modules\Atlas.Core'
+            $entry = Join-Path $root 'Scripts\Entry'
+            New-Item -ItemType Directory -Path $tasks, $core, $entry -Force | Out-Null
+            Copy-Item -LiteralPath (Join-Path $script:AtlasTestScriptsRoot 'Install\Tasks\Invoke-AtlasInstallingUserSetup.ps1') -Destination $tasks
+            Set-Content -LiteralPath (Join-Path $tasks 'Get-AtlasUserFailureDetail.ps1') -Value 'function Get-AtlasUserFailureDetail { param($UserSid, $TranscriptPattern, $NotBefore) '''' }'
+            Set-Content -LiteralPath (Join-Path $tasks 'Set-AtlasUpgradeUsers.ps1') -Value @'
+function Set-AtlasUpgradeUserStamp {
+    param([string]$Value)
+    Add-Content -LiteralPath $env:ATLAS_TEST_CALL_LOG -Value "Stamp:$Value"
+}
+'@
+            foreach ($name in 'Update-AtlasUser.ps1', 'Initialize-NewUser.ps1') {
+                Set-Content -LiteralPath (Join-Path $entry $name) -Value '# Stands in for the account setup entry.'
+            }
+            Set-Content -LiteralPath (Join-Path $core 'Atlas.Core.psd1') -Value "@{ RootModule = 'Atlas.Core.psm1'; ModuleVersion = '1.0.0' }"
+            Set-Content -LiteralPath (Join-Path $core 'Atlas.Core.psm1') -Value @"
+function Assert-AtlasPrivilege { param([switch]`$TrustedInstaller) }
+function Get-AtlasContext {
+    param([switch]`$Refresh)
+    [pscustomobject]@{
+        IsInstallStateBacked = `$true; IsOobe = `$false; IsUpgrade = `$env:ATLAS_TEST_MODE -cne 'Fresh'
+        Mode = `$env:ATLAS_TEST_MODE; InteractiveUserSid = 'S-1-5-21-1000-2000-3000-1001'
+        TargetVersion = '0.6.0'; TransactionId = '$script:TransactionId'
+    }
+}
+function Invoke-AtlasAsUser {
+    param(`$FilePath, `$Arguments, `$TimeoutSeconds)
+    Add-Content -LiteralPath `$env:ATLAS_TEST_CALL_LOG -Value "AsUser:`$Arguments"
+    return 0
+}
+"@
+            return [pscustomobject]@{ Script = Join-Path $tasks 'Invoke-AtlasInstallingUserSetup.ps1'; CallLog = Join-Path $root 'calls.log' }
+        }
+
+        function Invoke-InstallingUserSetupFixture {
+            param($Fixture, [string]$Mode)
+            $previousPreference = $ErrorActionPreference
+            try {
+                $env:ATLAS_TEST_CALL_LOG = $Fixture.CallLog
+                $env:ATLAS_TEST_MODE = $Mode
+                $ErrorActionPreference = 'Continue'
+                $output = & $script:PowerShell51 -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $Fixture.Script 2>&1
+                [pscustomobject]@{
+                    ExitCode = $LASTEXITCODE
+                    Output   = ($output | Out-String)
+                    Calls    = @(if (Test-Path -LiteralPath $Fixture.CallLog) { Get-Content -LiteralPath $Fixture.CallLog })
+                }
+            }
+            finally {
+                Remove-Item -Path Env:\ATLAS_TEST_CALL_LOG, Env:\ATLAS_TEST_MODE -ErrorAction SilentlyContinue
+                $ErrorActionPreference = $previousPreference
+            }
+        }
+    }
+
+    It 'stamps every account with a reinstall''s version and transaction before setting the installing user up' {
+        $result = Invoke-InstallingUserSetupFixture -Fixture (New-InstallingUserSetupFixture) -Mode 'Reapply'
+
+        $result.ExitCode | Should -Be 0 -Because $result.Output
+        $result.Calls | Should -HaveCount 2
+        $result.Calls[0] | Should -BeExactly "Stamp:0.6.0+$script:TransactionId"
+        $result.Calls[1] | Should -BeLike 'AsUser:*\Entry\Update-AtlasUser.ps1*-ExpectedUserSid*'
+    }
+
+    It 'leaves the stamps to LegacyChoices on <Mode>' -ForEach @(
+        @{ Mode = 'Upgrade' }
+        @{ Mode = 'Rebase' }
+        @{ Mode = 'Fresh' }
+    ) {
+        $result = Invoke-InstallingUserSetupFixture -Fixture (New-InstallingUserSetupFixture) -Mode $Mode
+
+        $result.ExitCode | Should -Be 0 -Because $result.Output
+        @($result.Calls -like 'Stamp:*') | Should -HaveCount 0
+        @($result.Calls -like 'AsUser:*') | Should -HaveCount 1
+    }
+
+    It 'stamps an update with its version before LegacyChoices reads the old choices' {
+        $path = Join-Path $script:AtlasTestScriptsRoot 'Install\Tasks\Import-AtlasLegacyChoices.ps1'
+        $tokens = $null
+        $errors = $null
+        $ast = [Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$errors)
+        $calls = @($ast.EndBlock.Statements | ForEach-Object {
+                $_.FindAll({ param($node) $node -is [Management.Automation.Language.CommandAst] }, $true)
+            })
+        $stamp = @($calls | Where-Object { $_.GetCommandName() -ceq 'Set-AtlasUpgradeUserStamp' })
+        $import = @($calls | Where-Object { $_.GetCommandName() -ceq 'Import-AtlasLegacyChoices' })
+        $helper = @($calls | Where-Object {
+                $_.InvocationOperator -eq [Management.Automation.Language.TokenKind]::Dot -and $_.Extent.Text -like '*Set-AtlasUpgradeUsers.ps1*'
+            })
+
+        $stamp | Should -HaveCount 1
+        $stamp[0].Extent.Text | Should -BeLike '*-Value*$context.TargetVersion*'
+        $import | Should -HaveCount 1
+        $stamp[0].Extent.StartOffset | Should -BeLessThan $import[0].Extent.StartOffset
+        $helper | Should -HaveCount 1
+        $ast.Extent.Text | Should -Not -Match 'SOFTWARE\\AtlasOS\\UpgradeUsers' -Because 'the stamp helper owns that key'
     }
 }

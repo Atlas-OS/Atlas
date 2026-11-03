@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use gpui::Context;
 
 use super::install::disarm_completion;
-use super::{Acquisition, AppModel, ElevationProblem, Page, RestoreStatus, RunState, Step};
+use super::{Acquisition, AppModel, ElevationProblem, Page, RestoreStatus, RunState, Step, UpdatePath};
 use crate::services::iso;
 use crate::services::settings::{self, InstallDraft};
 
@@ -274,6 +274,7 @@ impl AppModel {
         self.windows_transition_declined = false;
         self.used_windows_accepted = false;
         self.recorded_choices_applied = false;
+        self.update_path = UpdatePath::Keep;
         self.store_outcome_seen = None;
         // So does a preparation that finished, failed or stopped; a restart it
         // asked for, or made, is kept.

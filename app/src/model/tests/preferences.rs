@@ -8,6 +8,7 @@ use crate::model::test_harness::{
 };
 use crate::model::{Page, ReminderReason, Step};
 use crate::services::atlas_state::AtlasState;
+use crate::services::legacy_choices::Facts;
 use crate::services::security::{Protection, SecurityStatus, Switch};
 use crate::services::settings::{AppSettings, LanguagePreference, save_to};
 
@@ -195,6 +196,115 @@ fn a_kept_defender_that_is_missing_is_a_warning_once_the_restart_is_done() {
         });
         assert!(read(&cx, &left, |m| m.protection_reminder().is_none()));
         settle(&cx, &left).await;
+    });
+}
+
+/// A record that kept Microsoft Defender while Atlas's NoDefender package
+/// still removes it is a choice an update recorded without applying, not
+/// Defender gone missing: what the PC shows, Defender removed, counts, so
+/// there's no missing-Defender warning. Without that package it is one.
+#[test]
+fn defender_kept_by_the_record_but_still_removed_by_atlas_is_not_missing() {
+    run_model_test(|mut cx| async move {
+        let (_temp, machine, env) = fixture("protection-not-restored");
+        *machine.state.lock().unwrap() = Some(recorded("2026-09-30T20:06:21+00:00", &["defender-enable"]));
+        *machine.facts.lock().unwrap() = Facts {
+            packages: vec!["Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0".into()],
+            defender: Some(false),
+            ..Facts::default()
+        };
+        machine.set_security(SecurityStatus { defender_present: false, ..all_off() });
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        read(&cx, &model, |m| {
+            assert!(m.defender_not_restored());
+            assert_eq!(m.installed_options(), ["defender-disable"]);
+            assert!(!m.kept_defender_recorded());
+            assert!(m.protection_reminder().is_none() && !m.protection_reading_pending());
+        });
+
+        *machine.facts.lock().unwrap() = Facts { defender: Some(false), ..Facts::default() };
+        act(&mut cx, &model, |m, cx| {
+            m.refresh_atlas_state();
+            m.refresh_protection(cx);
+        });
+        wait_for(&cx, &model, "the missing-Defender warning", |m| {
+            m.protection_reminder().is_some_and(|reminder| reminder.missing)
+        })
+        .await;
+        read(&cx, &model, |m| {
+            assert!(!m.defender_not_restored());
+            assert_eq!(m.installed_options(), ["defender-enable"]);
+        });
+        settle(&cx, &model).await;
+    });
+}
+
+/// Home's warning that Microsoft Defender is still removed shows until it is
+/// dismissed for the install it warns about, also after a relaunch; the
+/// dismissal hides the bar, not what the PC has, and a later install that
+/// records the same warns again. It steps aside while an install runs, and
+/// its dismissal leaves the warning that a kept Defender is missing alone.
+#[test]
+fn the_still_removed_warning_is_dismissed_for_the_install_it_warns_about() {
+    run_model_test(|mut cx| async move {
+        let (_temp, machine, env) = fixture("protection-not-restored-dismissed");
+        let first = "2026-09-30T20:06:21+00:00";
+        let removed = || Facts {
+            packages: vec!["Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0".into()],
+            defender: Some(false),
+            ..Facts::default()
+        };
+        *machine.state.lock().unwrap() = Some(recorded(first, &["defender-enable"]));
+        *machine.facts.lock().unwrap() = removed();
+        machine.set_security(SecurityStatus { defender_present: false, ..all_off() });
+        let model = new_model(&mut cx, env.clone());
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        assert!(read(&cx, &model, |m| m.defender_not_restored_shown()));
+        // Choosing again may be bringing it back.
+        act(&mut cx, &model, |m, _| {
+            m.flow.attach_running().unwrap();
+            assert!(!m.defender_not_restored_shown(), "not while an install runs");
+            m.flow = Default::default();
+        });
+        act(&mut cx, &model, |m, cx| m.dismiss_defender_not_restored(cx));
+        read(&cx, &model, |m| {
+            assert!(!m.defender_not_restored_shown());
+            assert!(m.defender_not_restored(), "Defender is still removed");
+        });
+        wait_on_disk(&cx, &env, "the dismissal", |s| {
+            s.defender_not_restored_dismissed.as_deref() == Some(first)
+                && s.defender_missing_dismissed.is_none()
+        })
+        .await;
+
+        // Toggle Defender took Atlas's package off, and Defender still didn't
+        // come back: the warning with its report shows for the same install,
+        // here and after a relaunch.
+        let relaunched = new_model(&mut cx, env.clone());
+        wait_for(&cx, &relaunched, "startup recovery", |m| !m.recovering).await;
+        assert!(!read(&cx, &relaunched, |m| m.defender_not_restored_shown()), "dismissed for good");
+        *machine.facts.lock().unwrap() = Facts { defender: Some(false), ..Facts::default() };
+        for window in [&model, &relaunched] {
+            act(&mut cx, window, |m, cx| {
+                m.refresh_atlas_state();
+                m.refresh_protection(cx);
+            });
+            wait_for(&cx, window, "the missing-Defender warning", |m| {
+                m.protection_reminder().is_some_and(|reminder| reminder.missing)
+            })
+            .await;
+        }
+        *machine.facts.lock().unwrap() = removed();
+        *machine.state.lock().unwrap() = Some(recorded("2026-10-31T10:00:00+00:00", &["defender-enable"]));
+        act(&mut cx, &relaunched, |m, _| m.refresh_atlas_state());
+        assert!(read(&cx, &relaunched, |m| m.defender_not_restored_shown()), "a later install warns again");
+        // A record that says what the PC has, Defender removed, warns of nothing.
+        *machine.state.lock().unwrap() = Some(recorded(first, &["defender-disable"]));
+        act(&mut cx, &relaunched, |m, _| m.refresh_atlas_state());
+        assert!(!read(&cx, &relaunched, |m| m.defender_not_restored_shown()));
+        settle(&cx, &model).await;
+        settle(&cx, &relaunched).await;
     });
 }
 

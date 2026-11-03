@@ -85,6 +85,7 @@ package's `Executables` folder:
 | `-Option` | FeaturePage options from `playbook.conf`, one per required group (Defender, mitigations, automatic updates, keyboard language switching). `Get-AtlasPlaybookOption` (Atlas.InstallState) lists them. |
 | `-Unattended` | No prompts, including the confirmation after warnings. Requirements still apply. |
 | `-WindowsSecurityConfirmed` | The user checked Windows Security by hand: switches whose values are missing or unrecognised don't block, but any that reads on still does. Atlas Manager passes it when the user confirmed the reading of its final check. |
+| `-ChooseAgain` | On an update or reinstall, applies the `-Option` choices wherever the PC differs from them. Without it, an update keeps the choices the PC has ([Keep my choices or Choose again](upgrading.md#keep-my-choices-or-choose-again)). A Rebase refuses it, and a first installation ignores it. Atlas Manager passes it for **Choose again**. |
 | `-Restart` | Restarts Windows ten seconds after a successful install. `-RestartComment` sets the notice text. |
 | `-KeepStaging` | Keeps this run's staging copy whole, whatever the outcome. |
 
@@ -115,6 +116,21 @@ another release and Windows hasn't reached it, or while its record of the Window
 settings it changed (`HKLM\SOFTWARE\AtlasOS\WindowsTransition`) can't be read. It checks
 the Windows build before it resolves the install mode, so a Windows version Atlas doesn't
 support is reported as such.
+
+Without the Defender service there are no Windows Security switches, so `DefenderToggled`
+doesn't block. Its detail says what this installation does with the missing Defender, from
+the mode, the update path and whether Atlas's NoDefender package is installed:
+
+- Atlas's package removed it and the options keep Defender: a Fresh, Rebase or
+  `-ChooseAgain` installation takes the package off, so Defender is back after the restart.
+  An update that keeps the choices leaves it removed and records it as removed, as a warning.
+- Nothing Atlas installed removed it and the options keep Defender: a warning that this
+  installation can't bring it back.
+- Otherwise, or when Atlas's packages or the mode can't be read, the detail says only that
+  there is nothing to turn off.
+
+A warning doesn't stop the installation, but without `-Unattended` the front door asks
+whether to continue.
 
 ### Preparation check
 
@@ -166,16 +182,25 @@ and [`IInstallationResult::RebootRequired`](https://github.com/MicrosoftDocs/sdk
 
 ### How the front door works
 
-1. It copies the package's files to a new directory under `C:\Windows\AtlasOS\Staging`
-   that only SYSTEM and Administrators can write (the access list is set at creation),
-   with the options in `request.json`.
+1. It resolves the install mode and the update path, prints them (`Install mode: Upgrade,
+   keeping your choices.`) and refuses a Rebase asked to choose again before anything is
+   copied. It then copies the package's files to a new directory under
+   `C:\Windows\AtlasOS\Staging` that only SYSTEM and Administrators can write (the access
+   list is set at creation), with `request.json`: the `options`, and `choices`, `Keep` or
+   `ChooseAgain`.
 2. **Capture.** The TrustedInstaller broker's `Install` operation runs
-   `Install\Invoke-AtlasInstallSession.ps1`, which validates the request against the
-   option groups in `playbook.conf`, picks Fresh, Upgrade, Reapply or Rebase from the
-   machine state document and Atlas Manager's record of a Windows move, begins the install
-   state and records the options.
+   `Install\Invoke-AtlasInstallSession.ps1`. It picks Fresh, Upgrade, Reapply or Rebase from
+   the machine state document and Atlas Manager's record of a Windows move, and the update
+   path with `Resolve-AtlasInstallChoices`, then validates the request against the option
+   groups in `playbook.conf`. On an Upgrade or Rebase from before 0.6 it first repairs the
+   toggle records an older Atlas and Atlas Toolbox left, and on an Upgrade or Reapply that
+   keeps the choices it takes each choice the machine shows from the PC
+   ([upgrading](upgrading.md#keep-my-choices)). A run whose plan has started does neither
+   again. Then it begins the install state and records the options. The front door names
+   any choice it took from the PC.
 3. The front door publishes the installing user's marker from its own session.
-4. **Run.** A second `Install` call commits the state and runs
+4. **Run.** A second `Install` call tidies the machine's install logs
+   ([diagnostics](diagnostics.md#how-it-works)), commits the state and runs
    `Entry\Invoke-AtlasInstall.ps1 -Run`. A rerun resumes from the install state, in a new
    staging copy. A run that the preparation check refuses, or that stops before Capture,
    keeps only its `request.json`, `Preparation` folder and `Executables\AtlasModules\Logs`
@@ -190,10 +215,11 @@ tree for toggles.
   that predate the state document are identified by their OEM version marker
   (`Atlas Playbook vX.Y.Z`). An Atlas installation with no recognisable version is
   refused, not treated as an upgrade source.
-- An interrupted capture replaces its whole choice set. Once a run starts, retries keep the
-  original choices and completed steps.
-- The front door rejects changed choices. AME's incremental capture rejects added choices
-  but keeps earlier ones a retry omits.
+- An interrupted capture replaces its whole choice set and its update path. Once a run
+  starts, retries keep the original choices, update path and completed steps
+  (`Continuing the unfinished installation as it began, ...`).
+- The front door rejects changed choices, naming the ones the run started with. AME's
+  incremental capture rejects added choices but keeps earlier ones a retry omits.
 
 ## The health check
 
@@ -234,6 +260,13 @@ AME task includes, and contains no feature workflow.
   TrustedInstaller process.
 - The front door reuses the marker, Commit and `-Run`, but captures mode and options from
   one validated request.
+- AME Wizard never chooses again: Begin records the `Keep` update path, so the Choices step
+  never runs. On an Upgrade from before 0.6 whose plan hasn't started, Begin repairs the
+  toggle records an older Atlas and Atlas Toolbox left, as the front door's Capture does
+  ([upgrading](upgrading.md#records-from-before-atlas-06)). Its FeaturePage options are
+  captured as given, without Capture's taking of choices from the PC. Completion still
+  records what the PC has, as for every install
+  ([upgrading](upgrading.md#what-atlas-records)).
 
 ## One plan and one orchestrator
 
@@ -257,25 +290,39 @@ is the only ordered install table.
 | Services | Fresh, Rebase | Included | Once |
 | Components | Fresh, Rebase | Included | Once |
 | AppxSupport | Fresh, Rebase | Included | Once |
+| Choices | Upgrade and Reapply, only when choosing again | Excluded | Once |
 | Defaults | All | Included | Once |
 | Tweak: qol/appearance/atlas-theme-upgrade | Upgrade, Rebase | Included | Once |
-| Tweaks: networking, performance, privacy, qol, security, debloat, scripts, misc | Fresh, Upgrade, Rebase | Included | Once |
+| Tweaks: networking, performance, privacy, qol, security, debloat, scripts, misc | All | Included | Once |
 | Tweak: scripts/set-power-settings | Fresh | Included | Once |
 | WindowsTransition | All | Included | Once |
-| InstallingUserSetup | Fresh, Upgrade, Rebase | Excluded | Once |
+| InstallingUserSetup | All | Excluded | Once |
 | NotificationRestore | All | Included | Always |
 | DefaultHiveUnload | All | Included | Always |
 
-All means Fresh, Upgrade, Reapply and Rebase. Reapply gets only the common work. Rebase
-puts Atlas back on a Windows that rebuilt itself while Atlas Manager moved it to a newer
-release: the Upgrade plan, plus the fresh-install phases the rebuild undid, with the choices
-recorded before the move ([upgrading](upgrading.md#rebase)).
+All means Fresh, Upgrade, Reapply and Rebase. Reapply, a reinstall of the installed
+version, gets the common work, the tweak categories and the installing user's setup, so a
+new build's fixes reach it. Rebase puts Atlas back on a Windows that rebuilt itself while
+Atlas Manager moved it to a newer release: the Upgrade plan, plus the fresh-install phases
+the rebuild undid, with the choices recorded before the move
+([upgrading](upgrading.md#rebase)).
+
+A step runs in the modes its `Modes` list names. `Get-AtlasInstallPlan -ChooseAgain`, which
+the orchestrator passes when the install state's `choices` is `ChooseAgain`, also runs a
+step in the modes its `ChooseAgainModes` list names. Only Choices has any, and no mode in
+its `Modes`, so it runs only when an update or reinstall chooses again
+([upgrading](upgrading.md#choose-again)). Fresh and Rebase plans are the same either way.
 
 - LegacyChoices registers existing user profiles for logon migration. If no toggle states
   are recorded, it adopts the choices existing settings uniquely identify
   ([upgrading.md](upgrading.md)).
-- On an upgrade, InstallingUserSetup migrates the installing user's settings without
-  resetting their desktop layout.
+- Choices comes after LegacyChoices and Software, so the old choices are read and a newly
+  chosen browser is installed first, and before Defaults and the tweak categories, so they
+  apply the records it writes.
+- On an upgrade or reinstall, InstallingUserSetup migrates the installing user's settings
+  without resetting their desktop layout. On a reinstall it first stamps every account for
+  the sign-in migration, with the version and the transaction ID, so other accounts get the
+  same changes once.
 - WindowsTransition puts back the Windows Update settings Atlas Manager turned on to
   update Windows, after Defaults has replayed recorded choices and Tweaks/qol has written
   the feature-update pin. Settings a recorded toggle owns are left to the replay. A
@@ -284,7 +331,8 @@ recorded before the move ([upgrading](upgrading.md#rebase)).
 - Fresh OOBE has no installing user, so live-user registry work, ShellRefresh and
   InstallingUserSetup are excluded; machine and default-user tweak parts still apply.
   Instead, the default profile gets the first-logon RunOnce entry, and Initialize-NewUser
-  does the session-bound work as each user at first sign-in.
+  does the session-bound work as each user at first sign-in. No OOBE plan has Choices,
+  which needs the installing user too.
 
 [Entry\Invoke-AtlasInstall.ps1](../playbook/Executables/AtlasModules/Scripts/Entry/Invoke-AtlasInstall.ps1)
 reads the committed state and dispatches four fixed record kinds:
@@ -311,16 +359,42 @@ rejected.
 
 | Phase | Main responsibility |
 | --- | --- |
-| PreInstall | Remove obsolete Atlas elevation artifacts (Install\Compat) and run limited machine and user cleanup |
+| PreInstall | Remove obsolete Atlas elevation artifacts and the old Atlas Toolbox's records outside the toggle store (Install\Compat), and run limited machine and user cleanup |
 | ShellRefresh | Refresh the exact installing user's shell outside OOBE |
 | Environment | Apply environment and runtime configuration |
 | Features | Apply Windows capabilities and optional features; clean the component store on fresh installs only, before the Components phase installs the Atlas packages (see below); keep the Atlas packages' repair source |
 | Software | Install selected utilities and browsers. Toolbox resolves the latest stable release at install time, not a version pinned in the Atlas package; only a release candidate built with `--toolbox` carries its Toolbox in `AtlasModules\Bundled\Toolbox` and installs that instead. |
 | Services | Back up Windows services, then apply and record the File Sharing, Location and Indexing defaults as the machine part of those toggles |
-| Components | Apply machine component and browser cleanup, and the Defender choice. Keeping Defender uninstalls the `Z-Atlas-NoDefender-Package` CBS package if it is present; a failed removal fails the install rather than report success on a PC with no antivirus. |
-| AppxSupport | Apply installed/provisioned AppX changes and exact-user cache work |
-| Defaults | Initialize the toggle state store on fresh installs; replay recorded toggles on upgrades and reapplies |
+| Components | Apply machine component and browser cleanup, and the Defender choice through `Set-AtlasDefenderChoice`, which the Choices phase shares. An Atlas CBS package isn't installed again while CBS shows it installed or waiting for a restart to install. Keeping Defender uninstalls the `Z-Atlas-NoDefender-Package` CBS package if it is present; a failed removal, or a NoDefender package still waiting for a restart to install, fails the install rather than report success on a PC with no antivirus. |
+| AppxSupport | Apply installed/provisioned AppX changes and exact-user cache work (see [AppX removals](#appx-removals)) |
+| Choices | Choosing again only: apply each install choice that differs from the PC (Defender, Edge, the AppX families a choice removes, then the six choice toggles), and record the toggles it set in `work\choices.json` ([upgrading](upgrading.md#choose-again)) |
+| Defaults | Initialize the toggle state store on fresh installs; replay recorded toggles on upgrades and reapplies, leaving out the toggles the Choices phase set in this install |
 | Tweaks | Apply one declarative category, or one standalone tweak, in explicit machine, current-user and default-user scopes |
+
+### AppX removals
+
+`Invoke-AtlasAppxRemovalPlan` (Atlas.Appx) removes each package family for every account
+and from the provisioned packages. The cmdlets' results don't decide whether it worked:
+`Remove-AppxPackage -AllUsers` can report success and leave a package registered to another
+account, SYSTEM or an account that no longer exists, and running it again doesn't change
+that. So the plan reads both inventories again afterwards. Before it judges what is left, it
+removes each leftover once more for every account it is still installed for, and looks
+again a few seconds later.
+
+- A package still installed for the installing user, or still provisioned for new
+  accounts, fails the removal. The error says an app still installed for the user can be
+  uninstalled in Settings > Apps before trying again.
+- A package left only for other accounts, SYSTEM or no account, or one whose removal
+  Windows finishes when the app closes or the account signs out, is a warning that names
+  the package and its accounts.
+- During OOBE there is no installing user to check against, so a package that is still
+  registered is a warning. One still provisioned still fails.
+- Families marked `IgnoreErrors`, such as Edge's and the Widgets packages, only warn.
+
+`Set-AtlasAppxDeprovisioned` then registers every removed family, and every family the
+plan matched, under the AppX `Deprovisioned` key, so a feature update doesn't bring them
+back. During an install its snapshot is in `Install\work`, so a resumed step keeps the
+families an interrupted attempt removed.
 
 ### The component store and the Atlas packages
 
@@ -365,22 +439,26 @@ keeps one size-limited JSON document under a global named mutex.
 | --- | --- |
 | C:\Windows\AtlasOS\Install\active.json | Active Capturing or Running install |
 | C:\Windows\AtlasOS\Install\active.json.bak | Last valid state, used for simple recovery |
-| C:\Windows\AtlasOS\Install\work | Small temporary data owned by the active install |
+| C:\Windows\AtlasOS\Install\work | Small temporary data owned by the active install, such as the AppX snapshot and the Choices step's `choices.json` |
 | C:\Windows\AtlasOS\Install\last.json | Completed diagnostic record |
 
 The active document is the complete resume model; there are no parallel phase records or
 operator reconciliation states. It holds the schema and target versions, transaction ID,
-status, mode, OOBE state, options, installing-user SID and session, capture nonce,
-completed steps and last error.
+status, mode, OOBE state, options, update path (`choices`: `Keep` or `ChooseAgain`),
+installing-user SID and session, capture nonce, completed steps and last error. A document
+without `choices`, written before the update path existed, keeps the choices.
 
 1. **Begin** creates Capturing state. A retry reuses it when the target version, mode
    and OOBE scope match. A conflicting Begin is rejected unless the active run is
    Running and recorded a failure, or is a capture with completed steps that such a
    retry left before Commit: Atlas then keeps its mode, OOBE scope and completed steps,
-   returns it to Capturing and captures the installing user again. A Reapply
+   returns it to Capturing and captures the installing user again. Any other conflict
+   names the unfinished installation and how to finish it. A Reapply
    Begin also recovers a failed Fresh run that an earlier release candidate archived as
    abandoned.json. A capture that starts again with no completed steps records its
-   options afresh; once a step has completed, the run keeps its original options.
+   options and update path afresh; once a step has completed, the run keeps its original
+   options and update path. `Resolve-AtlasInstallChoices` refuses to choose again on a
+   Rebase, which puts back the choices the PC had before Windows rebuilt itself.
 2. **Capture** adds options and the user. A retry may refresh only the same user's
    session ID; a different SID is rejected until a failed run is captured again.
 3. **Commit** sets Running. Later AME calls cannot reclassify the mode or OOBE state;
@@ -388,9 +466,13 @@ completed steps and last error.
    describes.
 4. **Steps.** Success adds the key to completedSteps; failure records the error and leaves
    the key incomplete.
-5. **Completion** requires every applicable key. It replaces the installed flags with the
-   applicable `Upgrade.flag`, `Interactive.flag` and `option-*.flag`, writes last.json,
-   and removes active.json, its backup and the work directory.
+5. **Completion** requires every applicable key. It first reads what the PC has for each
+   install choice (`Get-AtlasRecordedOption`), and which of the choices the plan tried to
+   apply the PC doesn't have as asked. It then replaces the installed flags with the
+   applicable `Upgrade.flag`, `Interactive.flag` and the `option-*.flag` of those choices,
+   records both in the state document, writes last.json, with the request in `options` and
+   what was recorded in `recordedOptions`, and removes active.json, its backup and the work
+   directory.
 
 The flags keep the post-install compatibility contract; they never drive the plan. Writes
 go to a temporary file that replaces the document. A malformed document with a valid
@@ -459,18 +541,32 @@ per-user path.
 `C:\Windows\AtlasOS\state.json`
 ([Atlas.State](../playbook/Executables/AtlasModules/Scripts/Modules/Atlas.State/Atlas.State.psm1))
 holds everything Atlas knows about an installed machine: version, the mode that produced
-it, install history, options and recorded AtlasDesktop toggle states.
+it, install history, what the PC has for each install choice and recorded AtlasDesktop
+toggle states.
 
-- Install completion writes the install facts. The toggle engine mirrors each recorded
-  toggle state, and rebuilds that view when the Defaults phase initializes or replays the
-  store.
+- Install completion writes the install facts. Its options describe the PC: completion
+  reads it again once the plan has run, and records each choice the PC shows as the PC
+  has it, not as requested. The install's `history` entry adds `notApplied`, the options
+  of each choice the plan tried to apply that the PC doesn't have as asked, which Atlas
+  Manager's completion window reads. A completion that couldn't read the PC leaves it
+  out ([upgrading](upgrading.md#what-atlas-records)).
+- The toggle engine mirrors each recorded toggle state, and rebuilds that view when the
+  Defaults phase initializes or replays the store. A toggle's `updatedAt` says when it was
+  set to that state, so a replay that keeps the state doesn't move it.
+- Between installs, the six choice toggles (Mitigations, AutomaticUpdates,
+  KeyboardShortcuts, Hibernation, PowerSaving, VbsState) set the install choice their
+  state stands for in the same write, and Toggle Defender and Install or Remove Edge set
+  theirs (`Set-AtlasStateChoice`); Install or Remove Edge also keeps
+  `option-uninstall-edge.flag` in step. None of them sets a choice while
+  `Install\active.json` exists, or before an install has completed.
 - Writes take a global mutex and replace the file atomically. Reads are schema-checked,
   so a malformed document is an error, not trusted input.
 - A recorded state means Atlas applied that choice's machine work and queued its user work
   for first sign-in. Fresh installs seed nothing from launcher defaults; `(default)`
   labels are not evidence of applied work.
 - Existing records are always replayed, because the store cannot tell a default seeded by
-  an earlier build from a user's choice.
+  an earlier build from a user's choice. The one exception is a choice toggle the Choices
+  phase has just set when an update chooses again: Defaults leaves it out of the replay.
 - `Get-AtlasContext` (post-install mode, options and version), the health check, support
   bundles and the Toolbox app read this file. `AtlasModules\Flags` and the registry toggle tree are still written for the
   consumers in [compatibility.md](compatibility.md); no Atlas code prefers them.

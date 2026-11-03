@@ -5,6 +5,7 @@ Set-StrictMode -Version 3.0
 foreach ($dependencyManifest in @(
     '..\Atlas.Core\Atlas.Core.psd1'
     '..\Atlas.Registry\Atlas.Registry.psd1'
+    '..\Atlas.TasksProcs\Atlas.TasksProcs.psd1'
 )) {
     $manifestPath = Join-Path -Path $PSScriptRoot -ChildPath $dependencyManifest
     if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
@@ -30,6 +31,7 @@ foreach ($domainModule in @(
 
 Export-ModuleMember -Function @(
     'Get-AtlasDefenderState', 'Set-AtlasDefenderState', 'Read-AtlasDefenderStateChoice',
-    'Get-AtlasVbsConfiguration', 'Set-AtlasVbsConfiguration',
+    'Set-AtlasDefenderCoreService', 'Test-AtlasDefenderCoreServiceRemoved',
+    'Get-AtlasVbsConfiguration', 'Set-AtlasVbsConfiguration', 'Test-AtlasVbsChange',
     'Repair-AtlasWindowsTempPermissions'
 )

@@ -91,6 +91,26 @@ lists that file as `included: NUL bytes removed`.
   policies, services and tasks, the Atlas servicing packages, update history, the ends of
   `CBS.log` and `DISM.log`, the Setup and Windows Update event channels and pending file
   renames.
+- For an update or reinstall, the `Install mode:` line of the Capture log
+  (`install-capture.log`) says which way it took, such as
+  `Install mode: Upgrade, keeping your choices.` or
+  `Install mode: Reapply, choosing again.` Lines for the toggle records an Atlas before
+  0.6 left come next, then a `Kept ...` line for each choice Capture took from the PC.
+  AME Wizard's Begin prints the same repair lines in AME's own output, and a Rebase writes
+  them to `atlas-install.log` for the records it puts back. A record of the old Toolbox's
+  that PreInstall left because it holds more than the Toolbox wrote gets a
+  `Customized old Atlas Toolbox record ... was retained.` warning. In `atlas-install.log`,
+  the Choices step logs each choice as `Applied choice ...`,
+  `Choice ... already matches this PC.` or `Choice ... is already recorded as ...`. When
+  it can't read which apps Windows provisions for new accounts, it warns
+  `Couldn't list the apps Windows provisions for new accounts, so the app removal looks for the chosen ones itself: ...`.
+  Completion logs a `Recorded ...` line for each choice it recorded otherwise than requested
+  ([upgrading](upgrading.md#keep-my-choices-or-choose-again)).
+- For an install that stopped while removing apps, the machine report's applications
+  section lists every package Atlas removes that is still registered or provisioned.
+  Collected elevated, it gives each account's install state; otherwise, the accounts
+  the AppX store's registry lists the package for. The event section lists the AppX
+  deployment events over the install that name those packages.
 - A completed ZIP does not mean the operation succeeded; check collection errors and
   the operation's own result.
 - Files captured during a running operation are snapshots, not a consistent
@@ -120,9 +140,14 @@ The exporter is `app/src/services/diagnostics.rs`; redaction rules are in
   crashes, forced termination and disk-write failures may leave no final message.
   There is no automatic crash upload or full dump collection.
 - **Machine report:** collected before the bulk of the files, with a 60-second
-  deadline. Each finished section is written to `report/machine-report.partial.txt`,
-  so a timed-out collector keeps them and `collectorError` names the section it was
-  in. A failed collector does not discard other logs.
+  deadline. The health check inside it is stopped after 25 seconds, so a slow check
+  can't use up the deadline. Each finished section is written to
+  `report/machine-report.partial.txt`, so a timed-out collector keeps them and
+  `collectorError` names the section it was in. A failed collector does not discard
+  other logs. Event log sections start when an unfinished install began, or half an
+  hour before the last install finished. AppX deployment warnings and information are
+  read only over the install, up to an hour after it finished. Atlas servicing
+  packages are read from the registry, so they are listed without elevation.
 - **Media jobs:** each ISO check, ISO build and USB operation keeps its worker logs,
   request and error in a job folder under `%ProgramFiles%\Atlas Setup Recovery\Media`,
   which only administrators can change. Starting a job removes other jobs older than
@@ -133,6 +158,16 @@ The exporter is `app/src/services/diagnostics.rs`; redaction rules are in
 - **Installation:** TrustedInstaller install phases write startup, completion and
   exception details (including stack/position) to the staging copy's
   `Executables\AtlasModules\Logs\install-capture.log` and `install-run.log`; the
-  broker relays the end of the phase's log, up to a size limit, on failure. These cover
-  bootstrap and module-loading exceptions, but process termination or script parse
-  failures may leave none.
+  broker relays the end of the phase's log, up to a size limit, on failure. A successful
+  install removes its staging copy, so each phase also leaves a copy of its log, whether it
+  succeeds or fails, in `%windir%\AtlasModules\Logs\install` as
+  `<UTC yyyyMMdd-HHmmss>-install-capture.log` or `-install-run.log`. A failed phase's
+  message names that copy. These cover bootstrap and module-loading exceptions, but
+  process termination or script parse failures may leave none.
+- **Machine install logs:** `%windir%\AtlasModules\Logs` survives updates and resumes. An
+  update keeps the folder when it replaces the rest of `AtlasModules`, and doesn't copy
+  the staging copy's logs over it. Before each run, `atlas-install.log` or
+  `warnings-summary.log` past 16 MB moves aside as `atlas-install.previous.log` or
+  `warnings-summary.previous.log`, replacing the one before, and timestamped logs older
+  than 90 days are deleted, apart from the newest 200. A failure there is only a warning in
+  the run's log.

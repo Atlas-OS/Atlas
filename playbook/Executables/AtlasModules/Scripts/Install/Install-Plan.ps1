@@ -12,7 +12,11 @@ function Get-AtlasInstallPlan {
         [ValidateSet('Fresh', 'Upgrade', 'Reapply', 'Rebase')]
         [string]$Mode,
 
-        [bool]$IsOobe = $false
+        [bool]$IsOobe = $false,
+
+        # The update chooses again (the install state's choices), so a step also runs
+        # in the modes its ChooseAgainModes list.
+        [bool]$ChooseAgain = $false
     )
 
     # Rebase: the Upgrade plan plus the fresh-install work a Windows that rebuilt
@@ -85,6 +89,15 @@ function Get-AtlasInstallPlan {
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
+            # Choosing again only: applies each choice that differs from the PC. After
+            # LegacyChoices and Software, so the old choices are read and a newly
+            # chosen browser is installed first. Before Defaults and the tweak
+            # categories, so the replay and the tweaks that keep a recorded choice
+            # apply the records it writes, never one the user just turned down.
+            Key = 'Choices'; Modes = @(); ChooseAgainModes = @('Upgrade', 'Reapply'); Oobe = 'NonOobe'
+            Replay = 'Once'
+        }
+        [pscustomobject][ordered]@{
             Key = 'Defaults'; Modes = $allModes; Oobe = 'Any'
             Replay = 'Once'
         }
@@ -92,36 +105,38 @@ function Get-AtlasInstallPlan {
             Key = 'Tweak/qol/appearance/atlas-theme-upgrade'; Modes = @('Upgrade', 'Rebase'); Oobe = 'Any'
             Replay = 'Once'
         }
+        # A reinstall of the same version runs the tweak categories too, so the fixes
+        # a new build brings arrive; recorded choices still win over their defaults.
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/networking'; Modes = @('Fresh', 'Upgrade', 'Rebase'); Oobe = 'Any'
+            Key = 'Tweaks/networking'; Modes = $allModes; Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/performance'; Modes = @('Fresh', 'Upgrade', 'Rebase'); Oobe = 'Any'
+            Key = 'Tweaks/performance'; Modes = $allModes; Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/privacy'; Modes = @('Fresh', 'Upgrade', 'Rebase'); Oobe = 'Any'
+            Key = 'Tweaks/privacy'; Modes = $allModes; Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/qol'; Modes = @('Fresh', 'Upgrade', 'Rebase'); Oobe = 'Any'
+            Key = 'Tweaks/qol'; Modes = $allModes; Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/security'; Modes = @('Fresh', 'Upgrade', 'Rebase'); Oobe = 'Any'
+            Key = 'Tweaks/security'; Modes = $allModes; Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/debloat'; Modes = @('Fresh', 'Upgrade', 'Rebase'); Oobe = 'Any'
+            Key = 'Tweaks/debloat'; Modes = $allModes; Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/scripts'; Modes = @('Fresh', 'Upgrade', 'Rebase'); Oobe = 'Any'
+            Key = 'Tweaks/scripts'; Modes = $allModes; Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Tweaks/misc'; Modes = @('Fresh', 'Upgrade', 'Rebase'); Oobe = 'Any'
+            Key = 'Tweaks/misc'; Modes = $allModes; Oobe = 'Any'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
@@ -135,7 +150,8 @@ function Get-AtlasInstallPlan {
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
-            Key = 'Checkpoint/InstallingUserSetup'; Modes = @('Fresh', 'Upgrade', 'Rebase'); Oobe = 'NonOobe'
+            # On a reinstall too, so the installing user's own settings follow the tweaks.
+            Key = 'Checkpoint/InstallingUserSetup'; Modes = $allModes; Oobe = 'NonOobe'
             Replay = 'Once'
         }
         [pscustomobject][ordered]@{
@@ -148,8 +164,15 @@ function Get-AtlasInstallPlan {
         }
     )
 
+    foreach ($step in $steps) {
+        if ($null -eq $step.PSObject.Properties['ChooseAgainModes']) {
+            $step | Add-Member -NotePropertyName ChooseAgainModes -NotePropertyValue @()
+        }
+    }
+
     $plan = foreach ($step in $steps) {
-        if ($step.Modes -cnotcontains $Mode) {
+        if ($step.Modes -cnotcontains $Mode -and
+            -not ($ChooseAgain -and $step.ChooseAgainModes -ccontains $Mode)) {
             continue
         }
         if ($IsOobe -and $step.Oobe -ceq 'NonOobe') {

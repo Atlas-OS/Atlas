@@ -30,7 +30,7 @@ pub use checks::{ReadyHelp, ReadyStatus};
 pub use elevation::ElevationProblem;
 pub use eligibility::InstallBlock;
 pub use install::{InstallAttempt, Preflight};
-pub use options::ScreenKind;
+pub use options::{FixedChoice, ScreenKind, UpdatePath};
 pub use package::{AcquireProblem, Acquisition, Origin, PlaybookSource, ReleaseCheck};
 pub use preferences::{ProtectionReminder, ReminderReason};
 pub use restart::{OwedRestart, RestartConfirmation, RestartCountdown, RestartKind, RestartProblem};
@@ -48,6 +48,7 @@ pub use crate::environment::Environment;
 pub use crate::flow::{Flow, RunState, Step};
 use crate::i18n::{self, Localization};
 use crate::services::atlas_state::{self, AtlasState};
+use crate::services::legacy_choices::Facts;
 use crate::services::playbook::{self, Manifest};
 use crate::services::requirements::{CheckId, CheckResult};
 use crate::services::security::SecurityStatus;
@@ -197,6 +198,9 @@ pub struct AppModel {
     /// This flow started Your choices from the installed Atlas's choices; the
     /// user's changes since then stand.
     recorded_choices_applied: bool,
+    /// How this flow updates or reinstalls the installed Atlas: keeping its
+    /// choices, or choosing again. Saved in the draft.
+    pub update_path: UpdatePath,
     /// What updating in this flow did about Microsoft Store itself, kept
     /// across a run that ended in a restart.
     store_outcome_seen: Option<services::preparation::StoreOutcome>,
@@ -210,9 +214,9 @@ pub struct AppModel {
     offer_waiting_since: Option<std::time::Instant>,
     /// This window has looked for an offer it found missing before it opened.
     offer_reopen_checked: bool,
-    /// The install options an Atlas without a state document shows on the PC,
-    /// read with the installation state.
-    pub legacy_choices: Vec<String>,
+    /// What this PC shows of the install choices Atlas made on it, read with
+    /// the installation state.
+    pub pc_facts: Facts,
     pub restore_status: RestoreStatus,
     pub elevated: bool,
     pub atlas: Result<Option<AtlasState>, String>,
@@ -280,6 +284,11 @@ pub struct AppModel {
 
     /// The running or most recently finished install.
     pub session: Option<SessionRecord>,
+    /// The install startup found finished once Windows had restarted for it,
+    /// which recovery closes out: the "Atlas is installed" window this launch
+    /// opens for it still says which choices didn't take effect, and opens
+    /// its log.
+    pub finished_session: Option<SessionRecord>,
     /// The session this window itself started, if any; its draft is cleared
     /// when that install succeeds and no other.
     own_session: Option<String>,
@@ -397,7 +406,7 @@ impl AppModel {
             driver_default: (env.adapters.read_driver_default)(),
             install_identity: (env.adapters.read_install_identity)().map_err(|e| format!("{e:#}")),
             atlas: (env.adapters.read_atlas_state)().map_err(|e| format!("{e:#}")),
-            legacy_choices: (env.adapters.read_legacy_choices)(),
+            pc_facts: (env.adapters.read_pc_facts)(),
             env,
             page: Page::Home,
             page_visit: 0,
@@ -411,6 +420,7 @@ impl AppModel {
             windows_terms_accepted: false,
             used_windows_accepted: false,
             recorded_choices_applied: false,
+            update_path: UpdatePath::Keep,
             store_outcome_seen: None,
             offer_wait: None,
             offer_wait_generation: Generation::default(),
@@ -455,6 +465,7 @@ impl AppModel {
             preflight_epoch: 0,
             launching: false,
             session: None,
+            finished_session: None,
             own_session: None,
             flow_id: None,
             unsaved_draft: None,

@@ -8,6 +8,8 @@
     the service backups made before Atlas first changed the services are copied back
     from there. The recorded choices come from Atlas Manager's record of the move
     when the registry that held them is gone; existing records are never replaced.
+    Those of an Atlas before 0.6 are then read as Atlas 0.6 means them, as an
+    update's Capture reads the records it finds.
 #>
 [CmdletBinding()]
 param()
@@ -18,6 +20,7 @@ Assert-AtlasPrivilege -TrustedInstaller
 $scriptsRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 . (Join-Path $scriptsRoot 'Preparation\WindowsTransition.ps1')
 Import-Module -Name (Join-Path $scriptsRoot 'Modules\Atlas.Toggles\Atlas.Toggles.psd1') -Force -ErrorAction Stop
+Import-Module -Name (Join-Path $scriptsRoot 'Modules\Atlas.InstallState\Atlas.InstallState.psd1') -Force -DisableNameChecking -ErrorAction Stop
 
 $rebase = Get-AtlasWindowsTransitionRebase
 if ($null -eq $rebase) {

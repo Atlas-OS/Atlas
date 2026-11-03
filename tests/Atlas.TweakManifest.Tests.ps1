@@ -153,11 +153,14 @@ Describe 'Tweak manifest execution graph' {
             'playbook\Executables\AtlasModules\Scripts\Install\Install-Plan.ps1')
         $freshKeys = @((Get-AtlasInstallPlan -Mode Fresh -IsOobe $false).Key)
         $upgradeKeys = @((Get-AtlasInstallPlan -Mode Upgrade -IsOobe $false).Key)
+        # A reinstall runs them as an update, which is what 'Upgrade' stands for here.
+        $reapplyKeys = @((Get-AtlasInstallPlan -Mode Reapply -IsOobe $false).Key)
 
         foreach ($category in @($manifest.Categories)) {
             @($category.ParentModes) | Should -Be @('Fresh', 'Upgrade')
             $freshKeys | Should -Contain "Tweaks/$($category.Name)"
             $upgradeKeys | Should -Contain "Tweaks/$($category.Name)"
+            $reapplyKeys | Should -Contain "Tweaks/$($category.Name)"
         }
     }
 

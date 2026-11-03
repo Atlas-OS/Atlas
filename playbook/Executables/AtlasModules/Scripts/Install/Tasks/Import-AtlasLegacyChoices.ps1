@@ -120,11 +120,6 @@ $context = Get-AtlasContext -Refresh
 if (-not $context.IsUpgrade) { return }
 Import-Module (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'Modules\Atlas.Toggles\Atlas.Toggles.psd1') -ErrorAction Stop
 
-$eligiblePath = 'HKLM:\SOFTWARE\AtlasOS\UpgradeUsers'
-$null = New-Item -Path $eligiblePath -Force
-foreach ($legacyProfile in Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList') {
-    if ($legacyProfile.PSChildName -match '^S-1-(5-21|12-1)-\d+-\d+-\d+-\d+$') {
-        New-ItemProperty -LiteralPath $eligiblePath -Name $legacyProfile.PSChildName -Value ([string]$context.TargetVersion) -PropertyType String -Force | Out-Null
-    }
-}
+. (Join-Path $PSScriptRoot 'Set-AtlasUpgradeUsers.ps1')
+Set-AtlasUpgradeUserStamp -Value ([string]$context.TargetVersion)
 Import-AtlasLegacyChoices -Context $context

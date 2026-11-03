@@ -261,6 +261,11 @@ Describe 'Toggle definition loading and validation' {
             Should -Throw "*No toggle definition named 'Missing'*"
     }
 
+    It 'finds a definition by its name in other letter case, and loads it under its own' {
+        $definition = Get-AtlasToggleDefinition -Name 'goodtoggle' -TogglesRoot $TogglesRoot
+        $definition.Name | Should -BeExactly 'GoodToggle'
+    }
+
     It 'reports every problem of a tree through Test-AtlasToggleDefinition' {
         $problems = @(Test-AtlasToggleDefinition -Path $TogglesRoot)
 
@@ -601,6 +606,15 @@ Describe 'Replay of recorded states' {
         (Get-AtlasToggleState -Name 'SplitToggle' -StateRoot $StateRoot).State | Should -Be 0
     }
 
+    It 'replays a record named in other letter case as its toggle''s choice, not as a stale one' {
+        Set-AtlasToggleState -Name 'splittoggle' -State 1 -StateRoot $StateRoot
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReplayRoot
+
+        Get-Content (Join-Path $script:ReplayWork 'machine.txt') | Should -Be 'SplitToggle:On:1:silent=True'
+        (Get-AtlasToggleState -Name 'SplitToggle' -StateRoot $StateRoot).State | Should -Be 1
+    }
+
     It 'skips an old CPU idle disable choice on SMT and continues replaying other choices' {
         Mock Get-CimInstance -ModuleName Atlas.Toggles {
             @(
@@ -816,6 +830,66 @@ Describe 'Replay of recorded states' {
         Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ShippedTogglesRoot
 
         $script:replayed | Should -Be @('PowerSaving', 'CpuIdle', 'Sleep')
+    }
+
+    It 'leaves out the toggles -Exclude names, keeping their records for the state document' {
+        Mock Sync-AtlasToggleStateDocument -ModuleName Atlas.Toggles
+        Set-AtlasToggleState -Name 'FailingToggle' -State 1 -StateRoot $StateRoot
+        Set-AtlasToggleState -Name 'SplitToggle' -State 1 -StateRoot $StateRoot
+
+        { Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReplayRoot -Exclude 'failingtoggle' } |
+            Should -Not -Throw
+
+        (Get-AtlasToggleState -Name 'FailingToggle' -StateRoot $StateRoot).State | Should -Be 1
+        Get-Content (Join-Path $script:ReplayWork 'machine.txt') | Should -Be 'SplitToggle:On:1:silent=True'
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            $Message -eq "Toggle 'FailingToggle' was applied by this installation's choices, so it isn't replayed."
+        }
+        Should -Invoke Sync-AtlasToggleStateDocument -ModuleName Atlas.Toggles -Times 1 -Exactly
+    }
+
+    It 'doesn''t claim an excluded key that holds only metadata was applied' {
+        $metadataPath = Join-Path $StateRoot 'PowerSaving'
+        New-Item -Path $metadataPath -Force | Out-Null
+        New-ItemProperty -LiteralPath $metadataPath -Name PreviousPowerSchemeGuid `
+            -Value '381b4222-f694-41f0-9685-ff5bb260df2e' -PropertyType String -Force | Out-Null
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ReplayRoot -Exclude 'PowerSaving'
+
+        (Get-ItemProperty -LiteralPath $metadataPath).PreviousPowerSchemeGuid | Should -Be '381b4222-f694-41f0-9685-ff5bb260df2e'
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 0 -Exactly -ParameterFilter {
+            $Message -like '*was applied by this installation*'
+        }
+    }
+
+    It 'replays e9d7a85f''s records when keeping choices, and leaves out only what the Choices step set when choosing again: <Case>' -ForEach @(
+        # All processor protections on and automatic updates on, while the options said
+        # to turn both off.
+        @{ Case = 'keeping them'; Mitigations = 2; AutomaticUpdates = 1; Exclude = @(); Replayed = @('CpuIdle=Enable', 'Mitigations=Enable'); AutoUpdatesReplays = 1 }
+        # The Choices step set both to Disable and recorded that it did.
+        @{ Case = 'choosing again'; Mitigations = 0; AutomaticUpdates = 0; Exclude = @('Mitigations', 'AutomaticUpdates'); Replayed = @('CpuIdle=Enable'); AutoUpdatesReplays = 0 }
+        # Windows default chosen over all on matches, so the Choices step left it to the
+        # replay, which keeps every protection on.
+        @{ Case = 'choosing again with processor protections left all on'; Mitigations = 2; AutomaticUpdates = 0; Exclude = @('AutomaticUpdates'); Replayed = @('CpuIdle=Enable', 'Mitigations=Enable'); AutoUpdatesReplays = 0 }
+    ) {
+        $script:replayed = [Collections.Generic.List[string]]::new()
+        Mock Invoke-AtlasToggleFunction -ModuleName Atlas.Toggles {
+            if ($Label -eq 'machine action') { $script:replayed.Add("$($Toggle.Name)=$($Toggle.State)") }
+            $true
+        }
+        # CpuIdle is no install choice and replays either way.
+        Set-AtlasToggleState -Name Mitigations -State $Mitigations -StateRoot $StateRoot
+        Set-AtlasToggleState -Name AutomaticUpdates -State $AutomaticUpdates -StateRoot $StateRoot
+        Set-AtlasToggleState -Name CpuIdle -State 1 -StateRoot $StateRoot
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ShippedTogglesRoot -Exclude $Exclude
+
+        @($script:replayed | Sort-Object) | Should -Be $Replayed
+        Should -Invoke Invoke-AtlasRegistryEntries -ModuleName Atlas.Toggles -Times $AutoUpdatesReplays -Exactly -ParameterFilter {
+            @($Entries | Where-Object { $_.Name -eq 'AUOptions' }).Count -gt 0
+        }
+        (Get-AtlasToggleState -Name Mitigations -StateRoot $StateRoot).State | Should -Be $Mitigations
+        (Get-AtlasToggleState -Name AutomaticUpdates -StateRoot $StateRoot).State | Should -Be $AutomaticUpdates
     }
 }
 
@@ -1710,6 +1784,55 @@ Describe 'Local Group Policy declarations in toggle schemas' {
         $problems = @(Test-AtlasToggleDefinition -Path $root)
         if ($Valid) { $problems.Count | Should -Be 0 }
         else { ($problems.Problem -join '; ') | Should -Match 'UseGroupPolicy' }
+    }
+}
+
+Describe 'Power-plan verification' {
+    It 'reports Balanced instead of the recorded Atlas plan through the normal health check' {
+        Mock Get-AtlasPowerPlanValue -ModuleName Atlas.Toggles { '381b4222-f694-41f0-9685-ff5bb260df2e' }
+        $root = 'HKCU:\Software\AtlasRewriteTest\PowerPlanHealth'
+        try {
+            Set-AtlasToggleState -Name PowerSaving -State 0 -StateRoot $root
+            $drift = @(Test-AtlasToggleDrift -Scope Machine -StateRoot $root -TogglesRoot $script:ShippedTogglesRoot)
+            $drift | Should -HaveCount 1
+            $drift[0].Kind | Should -Be PowerPlan
+            $drift[0].Reason | Should -BeLike '*not active*'
+        }
+        finally { Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue }
+    }
+
+    It 'reports the active Atlas plan beside a stale Enable record' {
+        Mock Get-AtlasPowerPlanValue -ModuleName Atlas.Toggles { '11111111-1111-1111-1111-111111111111' }
+        $drift = @(& (Get-Module Atlas.Toggles) { Test-AtlasPowerPlanDrift -StateName Enable })
+        $drift | Should -HaveCount 1
+        $drift[0].Reason | Should -BeLike '*recorded as enabled*'
+    }
+
+    It 'accepts the active Atlas plan only when its four AC values match' {
+        Mock Get-AtlasPowerPlanValue -ModuleName Atlas.Toggles { 0 }
+        Mock Get-AtlasPowerPlanValue -ModuleName Atlas.Toggles { '11111111-1111-1111-1111-111111111111' } -ParameterFilter { $Name -eq 'ActivePowerScheme' }
+        Mock Get-AtlasPowerPlanValue -ModuleName Atlas.Toggles { 200 } -ParameterFilter { $Path -like '*4d2b0152-7d5c-498b-88e2-34345392a2c5' }
+        @(& (Get-Module Atlas.Toggles) { Test-AtlasPowerPlanDrift -StateName Disable }) | Should -HaveCount 0
+    }
+
+    It 'reports an incorrect AC value even when the Atlas plan is active' {
+        Mock Get-AtlasPowerPlanValue -ModuleName Atlas.Toggles { 0 }
+        Mock Get-AtlasPowerPlanValue -ModuleName Atlas.Toggles { '11111111-1111-1111-1111-111111111111' } -ParameterFilter { $Name -eq 'ActivePowerScheme' }
+        $drift = @(& (Get-Module Atlas.Toggles) { Test-AtlasPowerPlanDrift -StateName Disable })
+        $drift | Should -HaveCount 1
+        $drift[0].Target | Should -BeLike '*4d2b0152-7d5c-498b-88e2-34345392a2c5'
+    }
+
+    It 'reports an unreadable plan instead of declaring it healthy' {
+        Mock Get-AtlasPowerPlanValue -ModuleName Atlas.Toggles { throw 'access denied' }
+        $drift = @(& (Get-Module Atlas.Toggles) { Test-AtlasPowerPlanDrift -StateName Disable })
+        $drift | Should -HaveCount 1
+        $drift[0].Reason | Should -BeLike '*verification failed*access denied*'
+    }
+
+    It 'does not require Balanced when power saving is enabled on a custom plan' {
+        Mock Get-AtlasPowerPlanValue -ModuleName Atlas.Toggles { 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' }
+        @(& (Get-Module Atlas.Toggles) { Test-AtlasPowerPlanDrift -StateName Enable }) | Should -HaveCount 0
     }
 }
 

@@ -14,6 +14,10 @@ $modulesRoot = Join-Path -Path $scriptsRoot -ChildPath 'Modules'
 Import-Module -Name (Join-Path $modulesRoot 'Atlas.Services\Atlas.Services.psd1') -Force -ErrorAction Stop
 Import-Module -Name (Join-Path $modulesRoot 'Atlas.TasksProcs\Atlas.TasksProcs.psd1') -Force -ErrorAction Stop
 Import-Module -Name (Join-Path $modulesRoot 'Atlas.Software\Atlas.Software.psd1') -Force -ErrorAction Stop
+Import-Module -Name (Join-Path $modulesRoot 'Atlas.Security\Atlas.Security.psd1') -Force -ErrorAction Stop
+# Shared with the Choices phase, which applies the same choices on a Choose again update.
+. (Join-Path $scriptsRoot 'Install\Tasks\Set-AtlasDefenderChoice.ps1')
+. (Join-Path $scriptsRoot 'Install\Tasks\Invoke-AtlasEdgeRemoval.ps1')
 
 $powerShellExe = [IO.Path]::Combine(
     [Environment]::SystemDirectory,
@@ -37,41 +41,8 @@ if ((Get-AtlasContext).IsRebase) {
 }
 $removeEdge = (Test-AtlasOption -Name 'uninstall-edge') -and -not $keepEdge
 
-# Edge's machine removal runs under this TrustedInstaller token; the installing user's
-# leftovers are cleaned in their own process, which is skipped during OOBE.
 if ($removeEdge) {
-    $context = Get-AtlasContext
-    $removeEdgeScript = Join-Path -Path $scriptsRoot -ChildPath 'Operations\Remove-Edge.ps1'
-    Invoke-AtlasHiddenProcess -FilePath $powerShellExe -ArgumentList @(
-        '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
-        '-File', $removeEdgeScript,
-        '-UninstallEdge', '-NonInteractive', '-MachineContext'
-    ) -Wait | Out-Null
-
-    if (-not $context.IsOobe) {
-        $interactiveUserSid = [string]$context.InteractiveUserSid
-        if ([string]::IsNullOrWhiteSpace($interactiveUserSid)) {
-            throw 'Edge current-user cleanup requires the install-state user SID.'
-        }
-        $userCleanupScript = Join-Path -Path $scriptsRoot `
-            -ChildPath 'Operations\Remove-EdgeCurrentUserData.ps1'
-        $userArguments = ConvertTo-AtlasWindowsArgumentString -ArgumentList ([string[]]@(
-            '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
-            '-File', $userCleanupScript,
-            '-ExpectedUserSid', $interactiveUserSid
-        ))
-        $edgeCleanupStarted = [datetime]::UtcNow
-        $userExitCode = Invoke-AtlasAsUser -FilePath $powerShellExe -Arguments $userArguments
-        if ($userExitCode -ne 0) {
-            # Machine removal completed. Optional user-owned leftovers must not block
-            # the remaining install phases; the child still refuses unsafe paths or identities.
-            . (Join-Path $scriptsRoot 'Install\Tasks\Get-AtlasUserFailureDetail.ps1')
-            $failureDetail = Get-AtlasUserFailureDetail -UserSid $interactiveUserSid `
-                -TranscriptPattern '*-edge-cleanup-*.log' -NotBefore $edgeCleanupStarted
-            Write-AtlasLog -Level Warning -Message `
-                "Exact-user Edge leftover cleanup exited with code $userExitCode; continuing installation.$failureDetail"
-        }
-    }
+    Invoke-AtlasEdgeRemoval -ScriptsRoot $scriptsRoot -Context (Get-AtlasContext)
 }
 
 Remove-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' -Name 'SecurityHealth' -Force -ErrorAction SilentlyContinue
@@ -82,25 +53,6 @@ if (-not (Test-Path -LiteralPath $ciPolicyKey)) {
     New-Item -Path $ciPolicyKey -Force | Out-Null
 }
 Set-ItemProperty -LiteralPath $ciPolicyKey -Name 'VerifiedAndReputablePolicyState' -Value 0 -Type DWord -Force
-
-if ($removeEdge) {
-    # Remove-Edge.ps1 already stopped and disabled Edge's services; this keeps them off if one is left.
-    foreach ($service in @('MicrosoftEdgeElevationService')) {
-        # Edge service names vary across supported package/build combinations.
-        Set-AtlasServiceStartup -Name $service -StartupType 4 -AllowMissing
-    }
-
-    # Keep the shared EdgeUpdate services and tasks for WebView2. This block handles
-    # browser services and deprovision keys. The checked AppxSupport phase removes Edge's
-    # installed and provisioned packages afterward.
-
-    foreach ($deprovisionKey in @(
-        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe'
-        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge_8wekyb3d8bbwe'
-    )) {
-        New-Item -Path $deprovisionKey -Force | Out-Null
-    }
-}
 
 # Windows keeps the inbox OneDriveSetup.exe; Atlas doesn't strip it at component level.
 # Uninstall and machine cleanup run here as TrustedInstaller; HKCU and profile leftovers
@@ -153,43 +105,14 @@ if (-not $oneDriveContext.IsOobe -and -not $keepOneDrive) {
 
 # Windows components and Telemetry (CBS packages)
 # Install-AtlasCbsPackage throws on failure after registering the Safe Mode retry
-# fallback, making this ordered step fail so the orchestrator returns nonzero.
+# fallback, making this ordered step fail so the orchestrator returns nonzero. A
+# Rebase is a first installation too: the Windows that rebuilt itself lost Atlas's
+# packages, so both choices put NoTelemetry back as a Fresh install does.
 if (Test-AtlasOption -Name 'defender-disable') {
-    Install-AtlasCbsPackage -Packages @(
-        '*Z-Atlas-NoDefender-Package*',
-        '*Z-Atlas-NoTelemetry-Package*'
-    ) -NonInteractive | Out-Null
-
-    # MDCoreSvc (Defender Core Service) survives the NoDefender package but its binary is
-    # removed with Defender, so SCM fails it 0x80070002 (event 7023) on every boot. The
-    # Start value can't be changed here: Defender Tamper Protection is still enforced at
-    # the kernel level through this phase and denies the write even as TrustedInstaller.
-    # Defer it to a one-shot startup task that runs after the install reboot, once Defender
-    # is fully gone and the write succeeds.
-    $mdCoreTaskName = 'AtlasDisableMDCoreSvc'
-    $mdCoreArgs = "/c reg add `"HKLM\SYSTEM\CurrentControlSet\Services\MDCoreSvc`" " `
-        + "/v Start /t REG_DWORD /d 4 /f > nul && " `
-        + "schtasks /delete /tn `"$mdCoreTaskName`" /f > nul"
-    $mdCoreTask = @{
-        'TaskName'  = $mdCoreTaskName
-        'Settings'  = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-        'Trigger'   = New-ScheduledTaskTrigger -AtStartup
-        'Principal' = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
-        'Force'     = $true
-        'Action'    = New-ScheduledTaskAction -Execute 'cmd' -Argument $mdCoreArgs
-    }
-    Register-ScheduledTask @mdCoreTask | Out-Null
+    $null = Set-AtlasDefenderChoice -State Disable -Fresh
 }
 if (Test-AtlasOption -Name 'defender-enable') {
-    # Keeping Defender after an earlier Atlas install removed it means taking its
-    # removal package off again. No match is the usual case on a fresh PC; a removal
-    # that failed must fail the install, or Atlas would report success to a user who
-    # chose to keep Defender and has no antivirus.
-    $restore = Uninstall-AtlasCbsPackage -Packages @('*Z-Atlas-NoDefender-Package*')
-    Install-AtlasCbsPackage -Packages @('*Z-Atlas-NoTelemetry-Package*') -NonInteractive | Out-Null
-    if (@($restore.FailedPackages).Count -gt 0) {
-        throw "Microsoft Defender couldn't be restored: $(@($restore.FailedPackages) -join ', ')"
-    }
+    $null = Set-AtlasDefenderChoice -State Enable -Fresh
 }
 
 # Prevent Teams chat from being reinstalled. This key is TrustedInstaller-protected,

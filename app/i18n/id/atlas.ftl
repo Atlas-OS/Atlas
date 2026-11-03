@@ -450,7 +450,8 @@ playbook-page-browser-brave-description = Pilih browser untuk diinstal. Atlas ti
 security-banner-reading-title = Memeriksa Keamanan Windows
 security-banner-reading-message = Atlas sedang memeriksa empat pengaturan perlindungan di bawah.
 security-banner-off-title = Keempat pengaturan perlindungan sudah nonaktif
-# Shown instead of the switch list when an earlier Atlas install removed Microsoft Defender.
+# Shown instead of the switch list when Microsoft Defender isn't on this PC and the user
+# chose to remove it.
 security-banner-absent-title = Microsoft Defender tidak terinstal di PC ini
 security-banner-absent-message = Tidak ada yang perlu dinonaktifkan di langkah ini. Pilih Lanjutkan.
 security-banner-off-message = Pilih Lanjutkan untuk meninjau penyiapan Anda dan menginstal Atlas.
@@ -508,9 +509,16 @@ outcome-preparation-stale-resumed = Atlas tidak dapat memastikan bahwa Windows d
 outcome-failed-preflight = Penginstalan berhenti sebelum mengubah apa pun. Anda dapat mencoba lagi. Jika berhenti lagi, pilih Kirim laporan.
 outcome-failed-staging = Penginstalan berhenti saat menyiapkan file, sebelum mengubah Windows. Anda dapat mencoba lagi. Jika berhenti lagi, pilih Kirim laporan.
 outcome-failed-applying = Sebagian perubahan mungkin sudah diterapkan. Anda dapat mencoba lagi. Jika Anda berhenti di sini, aktifkan kembali perlindungan yang tadi Anda nonaktifkan di Keamanan Windows, jika masih tersedia.
+outcome-failed-applying-defender-removed = Sebagian perubahan mungkin sudah diterapkan. Anda dapat mencoba lagi. Jika penginstalan berhenti lagi, pilih Kirim laporan.
 outcome-failed-resumed = Upaya ini berhenti lebih awal, tetapi upaya sebelumnya sudah mulai membuat perubahan. Anda dapat mencoba lagi. Jika Anda berhenti di sini, aktifkan kembali perlindungan yang tadi Anda nonaktifkan di Keamanan Windows, jika masih tersedia.
+outcome-failed-resumed-defender-removed = Upaya ini berhenti lebih awal, tetapi upaya sebelumnya sudah mulai membuat perubahan. Anda dapat mencoba lagi. Jika penginstalan berhenti lagi, pilih Kirim laporan.
+outcome-failed-repeated = Upaya ini berhenti dengan kesalahan yang sama seperti upaya sebelumnya, dan sebagian perubahan mungkin sudah diterapkan. Mencoba lagi tanpa mengubah apa pun kemungkinan besar tidak akan membantu. Pilih Kirim laporan agar tim Atlas dapat menemukan penyebabnya. Jika Anda berhenti di sini, aktifkan kembali perlindungan yang tadi Anda nonaktifkan di Keamanan Windows, jika masih tersedia.
+outcome-failed-repeated-defender-removed = Upaya ini berhenti dengan kesalahan yang sama seperti upaya sebelumnya, dan sebagian perubahan mungkin sudah diterapkan. Mencoba lagi tanpa mengubah apa pun kemungkinan besar tidak akan membantu. Pilih Kirim laporan agar tim Atlas dapat menemukan penyebabnya.
+outcome-failed-repeated-apps = Windows tetap tidak menghapus { $apps }, jadi upaya ini berhenti dengan kesalahan yang sama seperti upaya sebelumnya. Sebagian perubahan mungkin sudah diterapkan. Mencoba lagi tanpa mengubah apa pun kemungkinan besar tidak akan membantu. Pilih Kirim laporan agar tim Atlas dapat menemukan penyebabnya. Jika Anda berhenti di sini, aktifkan kembali perlindungan yang tadi Anda nonaktifkan di Keamanan Windows, jika masih tersedia.
+outcome-failed-repeated-apps-defender-removed = Windows tetap tidak menghapus { $apps }, jadi upaya ini berhenti dengan kesalahan yang sama seperti upaya sebelumnya. Sebagian perubahan mungkin sudah diterapkan. Mencoba lagi tanpa mengubah apa pun kemungkinan besar tidak akan membantu. Pilih Kirim laporan agar tim Atlas dapat menemukan penyebabnya.
 outcome-not-started = Penginstal tidak dimulai tepat waktu. Penginstalan belum mengubah apa pun. Anda dapat mencoba lagi.
 outcome-lost = Penginstal berhenti tanpa melaporkan hasil, dan sebagian perubahan mungkin sudah diterapkan. Anda dapat mencoba lagi. Jika Anda berhenti di sini, aktifkan kembali perlindungan yang tadi Anda nonaktifkan di Keamanan Windows, jika masih tersedia.
+outcome-lost-defender-removed = Penginstal berhenti tanpa melaporkan hasil, dan sebagian perubahan mungkin sudah diterapkan. Anda dapat mencoba lagi. Jika berhenti lagi, pilih Kirim laporan.
 restart-now-message = Windows sedang dimulai ulang untuk menyelesaikan penyiapan Atlas.
 # Indonesian has no plural forms; one wording covers every count.
 restart-countdown = Windows akan dimulai ulang dalam { $seconds } detik untuk menyelesaikan penyiapan Atlas. Untuk menyimpan pekerjaan Anda terlebih dahulu, pilih Mulai ulang nanti.
@@ -607,9 +615,9 @@ installed-security-message = Anda mempertahankan Microsoft Defender, tetapi seba
 installed-defender-removed-title = Microsoft Defender telah dihapus
 installed-defender-removed-message = PC Anda tidak akan memiliki perlindungan antivirus sampai Anda menginstal aplikasi antivirus lain. SmartScreen juga telah dihapus, jadi Windows tidak akan memperingatkan Anda sebelum Anda membuka aplikasi atau unduhan yang tidak dikenal.
 # Home and the "Atlas is installed" window, after an installation that kept Microsoft Defender,
-# when it is missing. Its title is security-banner-absent-title; "Report a problem" is
-# home-report-problem, its button.
-installed-defender-missing-message = Anda memilih untuk mempertahankan Microsoft Defender, tetapi Defender tidak ditemukan. Jika Anda tidak menggunakan aplikasi antivirus lain, instal aplikasi antivirus untuk melindungi PC Anda. Jika Anda tidak menghapus Defender sendiri, pilih Laporkan masalah.
+# when it is missing and no Atlas package removed it. Its title is security-banner-missing-title;
+# "Report a problem" is home-report-problem, its button.
+installed-defender-missing-message = Anda memilih untuk mempertahankan Microsoft Defender, tetapi Defender tidak ditemukan, dan Atlas tidak menghapusnya. Jika Anda tidak menggunakan aplikasi antivirus lain, instal aplikasi antivirus untuk melindungi PC Anda. Jika Anda tidak menghapus Defender sendiri, pilih Laporkan masalah.
 
 ## Settings
 
@@ -1171,10 +1179,44 @@ mode-rebase = Penginstalan ulang setelah pembaruan Windows
 history-mode-rebase = penginstalan ulang setelah pembaruan Windows
 ready-rebase-title = Windows menginstal ulang dirinya sendiri saat diperbarui
 ready-rebase-message = Windows 11, versi { $release } menggantikan Windows yang sebelumnya ada di PC ini, sehingga sebagian perubahan Atlas hilang. Atlas { $version } akan menerapkannya kembali dengan pilihan yang Anda buat untuk Atlas { $previous }.
-upgrade-choices-title = Pilihan Anda dari Atlas { $previous }
-upgrade-choices-detail = Atlas memulai dari apa yang disiapkan Atlas { $previous } di PC ini. Pembaruan mempertahankan hasil pilihan tersebut, jadi menghapus centang pada tambahan opsional di sini tidak membatalkannya. Untuk mengubahnya nanti, gunakan folder Atlas atau Pengaturan Windows.
+update-path-update-title = Bagaimana Anda ingin memperbarui ke Atlas { $version }?
+update-path-reinstall-title = Bagaimana Anda ingin menginstal ulang Atlas { $version }?
+update-path-keep = Pertahankan pilihan saya
+update-path-keep-detail = Atlas mempertahankan setiap pilihan sesuai kondisi PC ini sekarang dan tidak mengubah satu pun. Ini cara yang lebih cepat.
+update-path-choose = Pilih ulang
+update-path-choose-detail = Tentukan lagi setiap pilihan, dimulai dari kondisi PC ini sekarang. Atlas menerapkan setiap pilihan seperti pada penginstalan baru. Aplikasi, file, menu Mulai, taskbar, dan tema Anda tetap seperti semula, begitu juga pengaturan yang Anda ubah di folder Atlas yang tidak tercakup oleh pilihan ini.
+update-path-now-title = Pilihan Anda di PC ini sekarang
+update-path-unknown = Atlas tidak dapat mengetahuinya dari PC Anda, jadi Atlas akan menanyakannya
+update-path-differs = Catatan Atlas tentang penginstalan terakhir Anda tidak cocok dengan PC ini untuk { $choices }. Daftar ini menunjukkan kondisi PC sekarang.
+keep-choices-title = Mempertahankan pilihan Anda
+keep-choices-partial = Atlas mempertahankan kondisi PC ini sekarang. Atlas tidak dapat mengetahui pilihan berikut dari PC Anda, jadi tentukan sendiri: { $missing }
+choose-again-title = Memilih ulang
+choose-again-detail = Setiap pilihan dimulai dari kondisi PC ini sekarang. Atlas menerapkan pilihan Anda selama penginstalan.
+option-now = Di PC ini sekarang
+change-defender-enable = Atlas mengembalikan Microsoft Defender. Setelah PC dimulai ulang, aktifkan perlindungannya di Keamanan Windows.
+change-mitigations-default = Atlas mengaktifkan kembali perlindungan prosesor sesuai pengaturan bawaan Windows. Perubahan ini berlaku setelah PC dimulai ulang.
+change-mitigations-all-on = Semua perlindungan prosesor sedang aktif. Jika Anda mempertahankan perlindungan, semuanya tetap aktif.
+change-auto-updates-default = Atlas kembali mengizinkan Windows menginstal pembaruan secara otomatis.
+change-hibernation-on = Atlas mengaktifkan kembali hibernasi.
+change-power-saving-on = Atlas mengaktifkan kembali penghematan daya dan kembali ke rencana daya Anda sebelumnya, atau ke rencana Seimbang jika tidak ada.
+change-core-isolation-on = Atlas mengaktifkan kembali keamanan berbasis virtualisasi (VBS), kecuali jika kebijakan di PC ini mengendalikannya. Perubahan ini berlaku setelah PC dimulai ulang.
+change-remove-snipping-tool = Menghapus Snipping Tool untuk semua pengguna PC ini. Atlas tidak dapat mengembalikannya nanti, tetapi Anda dapat menginstalnya lagi dari Microsoft Store.
+fixed-uninstall-edge = Microsoft Edge sudah dihapus, dan pembaruan Atlas tidak dapat mengembalikannya. Untuk menginstalnya lagi, gunakan Install or Remove Edge di folder Atlas.
+fixed-installed = { $app } sudah terinstal. Atlas tidak menghapus instalan aplikasi; untuk menghapusnya, buka Aplikasi yang diinstal di Pengaturan Windows.
+browser-also = { $installed } tetap terinstal, dan Atlas juga menginstal { $browser }.
+summary-update-path = Metode pembaruan
+step-heading-update-path-a11y = { $heading }. { $question }
+security-banner-removed-title = Atlas telah menghapus Microsoft Defender dari PC ini
+security-banner-restore-title = Atlas mengembalikan Microsoft Defender dalam penginstalan ini
+security-banner-restore-message = Defender belum berjalan, jadi tidak ada yang perlu dinonaktifkan di langkah ini. Setelah PC dimulai ulang, aktifkan perlindungannya di Keamanan Windows. Pilih Lanjutkan.
+security-banner-missing-title = Microsoft Defender tidak ditemukan
+security-banner-missing-message = Atlas tidak menghapusnya, jadi Atlas tidak dapat mengembalikannya. Anda dapat melanjutkan, tetapi PC Anda tidak memiliki antivirus sampai Anda menginstal aplikasi antivirus lain atau memperbaiki Windows.
+installed-defender-not-restored-title = Microsoft Defender masih terhapus
+installed-defender-not-restored-message = Anda memilih untuk mempertahankan Microsoft Defender, tetapi pembaruan Atlas sebelumnya tidak mengembalikannya, jadi PC Anda tidak memiliki antivirus. Untuk mengembalikannya, perbarui atau instal ulang Atlas lalu pilih opsi Pilih ulang, atau buka 7. Security > Defender di folder Atlas pada desktop Anda, jalankan Toggle Defender, pilih Enable Windows Defender, lalu mulai ulang PC Anda.
+choices-not-applied-title = Beberapa pilihan tidak diterapkan
+choices-not-applied-message = Atlas mencatat kondisi PC ini sekarang untuk { $choices }. Alasannya ada di log penginstalan.
 rebase-choices-title = Pilihan Anda dari Atlas { $previous }
-rebase-choices-detail = Atlas menggunakan pilihan yang Anda buat untuk Atlas { $previous }, jadi tidak ada yang perlu dipilih di sini. Anda dapat mengubahnya nanti di folder Atlas.
+rebase-choices-detail = Atlas menggunakan pilihan yang Anda buat untuk Atlas { $previous }, jadi tidak ada yang perlu dipilih di sini. Untuk mengubahnya nanti, pilih Instal ulang Atlas, lalu pilih opsi Pilih ulang.
 rebase-choices-partial = Atlas menggunakan pilihan yang Anda buat untuk Atlas { $previous }. Atlas tidak dapat menemukan pilihan berikut, jadi periksa pilihan tersebut: { $missing }
 restart-other-title = Pengguna lain sedang masuk di PC ini
 restart-others-title = Beberapa pengguna lain sedang masuk di PC ini

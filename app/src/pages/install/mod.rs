@@ -511,28 +511,10 @@ fn reveal_focus(handle: &FocusHandle, window: &mut Window, cx: &mut App) {
 }
 
 impl InstallPage {
-    /// The step heading's accessible name on a screen of Your choices: the
-    /// step, then which choice and its question, or the optional extras.
+    /// The step heading's accessible name on a screen of Your choices (see
+    /// [`options::choice_heading_name`]).
     fn choice_heading_name(&self, heading: &str, cx: &App) -> Option<String> {
-        let state = self.model.read(cx);
-        let screens = state.option_screens();
-        let current = state.current_option_screen();
-        let screen = screens.get(current)?;
-        let (number, total) = (current + 1, screens.len());
-        Some(if screen.required {
-            t!(
-                "step-heading-choice-a11y",
-                heading = heading,
-                progress = t!("options-progress", number = number, total = total),
-                question = screen.kind.question()
-            )
-        } else {
-            t!(
-                "step-heading-extras-a11y",
-                heading = heading,
-                progress = t!("options-progress-extras", number = number, total = total)
-            )
-        })
+        options::choice_heading_name(self.model.read(cx), heading)
     }
 }
 

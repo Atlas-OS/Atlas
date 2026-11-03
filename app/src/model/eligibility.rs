@@ -117,7 +117,7 @@ impl AppModel {
         match &self.install_identity {
             Err(_) => Some(InstallBlock::Unknown),
             Ok(InstallIdentity::Fresh) => None,
-            Ok(InstallIdentity::Resume(target, options)) => {
+            Ok(InstallIdentity::Resume(target, unfinished)) => {
                 // Install-Atlas.ps1 refuses any other version until this one
                 // finishes. Before a package is chosen, the release on offer
                 // is the one Get ready would download.
@@ -138,7 +138,8 @@ impl AppModel {
                 }
                 // The original choices are judged against the target's own package.
                 let invalid = !provisional
-                    && options
+                    && unfinished
+                        .held
                         .as_ref()
                         .is_some_and(|options| iso::validate_resumed_options(manifest, options).is_err());
                 invalid.then_some(InstallBlock::Unknown)
@@ -160,7 +161,7 @@ impl AppModel {
 
     pub fn original_options(&self) -> Option<&[String]> {
         match &self.install_identity {
-            Ok(InstallIdentity::Resume(_, Some(options))) => Some(options),
+            Ok(InstallIdentity::Resume(_, unfinished)) => unfinished.held.as_deref(),
             _ => None,
         }
     }
@@ -191,7 +192,7 @@ impl AppModel {
         self.refresh_update_access();
         self.atlas = (self.env.adapters.read_atlas_state)().map_err(|e| format!("{e:#}"));
         self.install_identity = (self.env.adapters.read_install_identity)().map_err(|e| format!("{e:#}"));
-        self.legacy_choices = (self.env.adapters.read_legacy_choices)();
+        self.pc_facts = (self.env.adapters.read_pc_facts)();
         if let Err(error) = &self.install_identity {
             log::warn!("could not establish Atlas installation eligibility: {error}");
         }

@@ -77,6 +77,44 @@ Describe 'Get-AtlasContext install state' {
         }
     }
 
+    It 'reads the update path from the install state: <Choices> on <Mode>' -TestCases @(
+        @{ Mode = 'Upgrade'; Choices = 'ChooseAgain'; Expected = 'ChooseAgain'; ChoosingAgain = $true }
+        @{ Mode = 'Reapply'; Choices = 'ChooseAgain'; Expected = 'ChooseAgain'; ChoosingAgain = $true }
+        @{ Mode = 'Reapply'; Choices = 'Keep'; Expected = 'Keep'; ChoosingAgain = $false }
+        # A first installation applies every choice and a Rebase keeps them, whatever is stored.
+        @{ Mode = 'Fresh'; Choices = 'ChooseAgain'; Expected = 'ChooseAgain'; ChoosingAgain = $false }
+        @{ Mode = 'Rebase'; Choices = 'ChooseAgain'; Expected = 'ChooseAgain'; ChoosingAgain = $false }
+        # An install state written before the path existed.
+        @{ Mode = 'Upgrade'; Choices = $null; Expected = 'Keep'; ChoosingAgain = $false }
+    ) {
+        param($Mode, $Choices, $Expected, $ChoosingAgain)
+        $state = [ordered]@{
+            mode = $Mode; isOobe = $false; targetVersion = '0.6.0'; userSid = $null; userSessionId = $null
+            transactionId = '31f30158-28ea-4e0c-86b5-d8f3e33b81f5'; options = @()
+        }
+        if ($null -ne $Choices) { $state.choices = $Choices }
+        $state = [pscustomobject]$state
+        $context = Get-AtlasContext -Refresh -WindowsPath (Join-Path $TestDrive 'Windows') `
+            -StateReader { $state }.GetNewClosure() -WindowsBuildReader { 26200 }
+        $context.Choices | Should -BeExactly $Expected
+        $context.IsChoosingAgain | Should -Be $ChoosingAgain
+    }
+
+    It 'refuses an update path it doesn''t know' {
+        $state = [pscustomobject]@{ mode = 'Upgrade'; isOobe = $false; targetVersion = '0.6.0'; userSid = $null; userSessionId = $null; transactionId = 'x'; options = @(); choices = 'Sometimes' }
+        $reader = { $state }.GetNewClosure()
+        { Get-AtlasContext -Refresh -WindowsPath (Join-Path $TestDrive 'Windows') -StateReader $reader -WindowsBuildReader { 26200 } } |
+            Should -Throw "*choices value 'Sometimes' is invalid*"
+    }
+
+    It 'never chooses again outside an install' {
+        $document = [pscustomobject]@{ installedVersion = '0.6.0'; mode = 'Reapply'; isOobe = $false; options = @(); history = @() }
+        $context = Get-AtlasContext -Refresh -WindowsPath (Join-Path $TestDrive 'Windows') -StateReader { $null } `
+            -DocumentReader { $document }.GetNewClosure() -WindowsBuildReader { 26200 }
+        $context.Choices | Should -BeExactly 'Keep'
+        $context.IsChoosingAgain | Should -BeFalse
+    }
+
     It 'uses published completion flags after active state is archived' {
         $windowsPath = Join-Path -Path $TestDrive -ChildPath 'FlagBackedWindows'
         $flagsPath = Join-Path -Path $windowsPath -ChildPath 'AtlasModules\Flags'

@@ -89,6 +89,10 @@ pub struct InstallDraft {
     /// Your choices started from the installed Atlas's choices; the user's
     /// changes since stand.
     pub recorded_choices_applied: bool,
+    /// Whether the install keeps the installed Atlas's choices (`keep`) or
+    /// goes through them again (`choose-again`). Drafts from earlier builds
+    /// lack it, and keep them.
+    pub update_path: Option<String>,
     /// What an earlier run in this flow did about Microsoft Store itself,
     /// by the worker's id, so Get ready still says it after a restart.
     pub store_outcome: Option<String>,
@@ -111,6 +115,10 @@ pub struct AppSettings {
     /// The `installedAt` of the recorded install, kept with Microsoft
     /// Defender, whose warning that Defender is missing the user dismissed.
     pub defender_missing_dismissed: Option<String>,
+    /// The `installedAt` of the recorded install, kept with Microsoft
+    /// Defender, whose warning that Atlas's NoDefender package still removes
+    /// Defender the user dismissed.
+    pub defender_not_restored_dismissed: Option<String>,
     /// A flow was left with Windows Security protection off, so the reminder
     /// to turn it back on shows again after a relaunch.
     pub protection_reminder_pending: bool,
@@ -127,6 +135,7 @@ impl Default for AppSettings {
             dismissed_preview_notices: Vec::new(),
             protection_reminder_dismissed: None,
             defender_missing_dismissed: None,
+            defender_not_restored_dismissed: None,
             protection_reminder_pending: false,
         }
     }
@@ -384,6 +393,7 @@ mod tests {
             dismissed_preview_notices: vec![],
             protection_reminder_dismissed: Some("2026-09-30T20:06:21.9690173+00:00".into()),
             defender_missing_dismissed: Some("2026-09-30T20:06:21.9690173+00:00".into()),
+            defender_not_restored_dismissed: Some("2026-09-30T20:06:21.9690173+00:00".into()),
             protection_reminder_pending: true,
             drivers: Some(super::super::preparation::Drivers::Manual),
             theme: ThemePreference::Dark,
@@ -403,6 +413,7 @@ mod tests {
                 windows_terms_accepted: true,
                 used_windows_accepted: true,
                 recorded_choices_applied: true,
+                update_path: Some("choose-again".into()),
                 store_outcome: Some("store-repaired".into()),
             }),
         };

@@ -6,7 +6,7 @@ use std::sync::Arc;
 use gpui::AsyncApp;
 
 use crate::model::test_harness::{
-    Machine, act, completed_state, fixture, marking_package, new_model, package_of, read, release,
+    Machine, act, completed_state, fixture, held, marking_package, new_model, package_of, read, release,
     run_model_test, settle, wait_for, walk_to_install,
 };
 use crate::model::{Acquisition, AppModel, Environment, InstallBlock, Page, ReleaseCheck, RunState, Step};
@@ -19,7 +19,7 @@ fn resume_uses_protected_choices_even_when_the_local_draft_is_missing_or_changed
         let options = crate::services::iso::default_options(&playbook::Manifest::builtin());
         let saved = options.clone();
         env.adapters.read_install_identity =
-            Arc::new(move || Ok(atlas_state::InstallIdentity::Resume("0.6.0".into(), Some(saved.clone()))));
+            Arc::new(move || Ok(atlas_state::InstallIdentity::Resume("0.6.0".into(), held(saved.clone()))));
         let model = new_model(&mut cx, env);
         wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
         act(&mut cx, &model, |m, cx| {
@@ -51,7 +51,7 @@ fn an_unfinished_install_from_before_a_required_page_still_resumes() {
             .filter(|name| !keyboard.contains(&name.as_str()))
             .collect();
         *machine.identity.lock().unwrap() =
-            Some(atlas_state::InstallIdentity::Resume(manifest.version.clone(), Some(saved.clone())));
+            Some(atlas_state::InstallIdentity::Resume(manifest.version.clone(), held(saved.clone())));
         let model = new_model(&mut cx, env);
         wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
         read(&cx, &model, |m| {
@@ -61,7 +61,7 @@ fn an_unfinished_install_from_before_a_required_page_still_resumes() {
         // A choice the package doesn't offer still can't be resumed.
         let unknown = [saved.clone(), vec!["shell-command".into()]].concat();
         *machine.identity.lock().unwrap() =
-            Some(atlas_state::InstallIdentity::Resume(manifest.version.clone(), Some(unknown)));
+            Some(atlas_state::InstallIdentity::Resume(manifest.version.clone(), held(unknown)));
         act(&mut cx, &model, |m, _| m.refresh_atlas_state());
         assert_eq!(read(&cx, &model, AppModel::install_block), Some(InstallBlock::Unknown));
     });
@@ -179,7 +179,7 @@ fn a_tester_build_judges_the_install_identity_against_its_bundled_package() {
         wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
         for identity in [
             atlas_state::InstallIdentity::Installed("0.6.1".into()),
-            atlas_state::InstallIdentity::Resume("0.5.9".into(), None),
+            atlas_state::InstallIdentity::Resume("0.5.9".into(), Default::default()),
         ] {
             *machine.identity.lock().unwrap() = Some(identity.clone());
             act(&mut cx, &model, |m, cx| m.begin_install(cx));
@@ -202,7 +202,7 @@ fn an_unfinished_install_of_another_version_waits_for_its_own_package() {
         // Choices the built-in manifest can't take; only the target's package judges them.
         let saved = vec!["defender-enable".to_owned()];
         *machine.identity.lock().unwrap() =
-            Some(atlas_state::InstallIdentity::Resume("0.6.1".into(), Some(saved.clone())));
+            Some(atlas_state::InstallIdentity::Resume("0.6.1".into(), held(saved.clone())));
         let (other, marker) = marking_package(&temp, 0);
         let own = package_of(&temp, "0.6.1");
         let model = new_model(&mut cx, env.clone());
@@ -289,7 +289,7 @@ fn home_offers_no_update_that_this_pc_cannot_start() {
         assert_eq!(offered(&machine, Installed("0.5.0".into()), &mut cx).as_deref(), Some("0.6.0"));
         // An unfinished install of 0.5.0 is finished, not updated.
         *machine.state.lock().unwrap() = Some(completed_state("0.4.1"));
-        assert_eq!(offered(&machine, Resume("0.5.0".into(), None), &mut cx), None);
+        assert_eq!(offered(&machine, Resume("0.5.0".into(), Default::default()), &mut cx), None);
     });
 }
 

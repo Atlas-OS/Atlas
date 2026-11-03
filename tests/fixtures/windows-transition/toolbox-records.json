@@ -1,0 +1,218 @@
+[
+  {
+    "name": "Mitigations the old Toolbox wrote by itself when it started without a record",
+    "version": "0.5.0",
+    "key": "Mitigations",
+    "state": 2,
+    "path": null,
+    "result": null
+  },
+  {
+    "name": "Mitigations the old Toolbox set to its Enable all, which never reached the PC",
+    "version": "0.5.0",
+    "key": "Mitigations",
+    "state": 1,
+    "path": null,
+    "result": null
+  },
+  {
+    "name": "Mitigations the old Toolbox set to its Disable on Atlas 0.4.1, which never reached the PC",
+    "version": "0.4.1",
+    "key": "Mitigations",
+    "state": 0,
+    "path": null,
+    "result": null
+  },
+  {
+    "name": "Mitigations the Toolbox wrote over after Atlas 0.5's Windows default launcher",
+    "version": "0.5.0",
+    "key": "Mitigations",
+    "state": 2,
+    "path": "C:\\Windows\\AtlasDesktop\\7. Security\\Mitigations\\Set Windows Default Mitigations.cmd",
+    "result": { "key": "Mitigations", "state": 1 }
+  },
+  {
+    "name": "Mitigations the Toolbox wrote over after Atlas 0.5's Enable all launcher",
+    "version": "0.5.0",
+    "key": "Mitigations",
+    "state": 1,
+    "path": "C:\\Windows\\AtlasDesktop\\7. Security\\Mitigations\\Enable All Mitigations.cmd",
+    "result": { "key": "Mitigations", "state": 2 }
+  },
+  {
+    "name": "Mitigations the Toolbox wrote over after Atlas 0.5's Disable launcher",
+    "version": "0.5.0",
+    "key": "Mitigations",
+    "state": 2,
+    "path": "C:\\Windows\\AtlasDesktop\\7. Security\\Mitigations\\Disable All Mitigations.cmd",
+    "result": { "key": "Mitigations", "state": 0 }
+  },
+  {
+    "name": "Mitigations as Atlas 0.5's launcher left it",
+    "version": "0.5.0",
+    "key": "Mitigations",
+    "state": 0,
+    "path": "C:\\Windows\\AtlasDesktop\\7. Security\\Mitigations\\Disable All Mitigations.cmd",
+    "result": { "key": "Mitigations", "state": 0 }
+  },
+  {
+    "name": "A launcher's file name in other letter case",
+    "version": "0.5.0",
+    "key": "Mitigations",
+    "state": 2,
+    "path": "C:\\Windows\\AtlasDesktop\\7. Security\\Mitigations\\set windows default mitigations.cmd",
+    "result": { "key": "Mitigations", "state": 1 }
+  },
+  {
+    "name": "A launcher the rule doesn't know leaves the record as it is",
+    "version": "0.5.0",
+    "key": "Mitigations",
+    "state": 0,
+    "path": "C:\\Windows\\AtlasDesktop\\7. Security\\Mitigations\\Mitigations.cmd",
+    "result": { "key": "Mitigations", "state": 0 }
+  },
+  {
+    "name": "A path that names no file is still a path, which the Toolbox never wrote",
+    "version": "0.5.0",
+    "key": "Mitigations",
+    "state": 2,
+    "path": "C:\\Windows\\AtlasDesktop\\7. Security\\Mitigations\\",
+    "result": { "key": "Mitigations", "state": 2 }
+  },
+  {
+    "name": "Atlas 0.6's own Mitigations record has no path and means what it says",
+    "version": "0.6.0",
+    "key": "Mitigations",
+    "state": 2,
+    "path": null,
+    "result": { "key": "Mitigations", "state": 2 }
+  },
+  {
+    "name": "Shortcut icon the old Toolbox wrote by itself when it started without a record",
+    "version": "0.5.0",
+    "key": "ShortcutIcon",
+    "state": 0,
+    "path": null,
+    "result": null
+  },
+  {
+    "name": "Shortcut icon the Toolbox wrote over after Atlas 0.5's Classic launcher",
+    "version": "0.5.0",
+    "key": "ShortcutIcon",
+    "state": 0,
+    "path": "C:\\Windows\\AtlasDesktop\\4. Interface Tweaks\\Shortcut Icon\\Classic.cmd",
+    "result": { "key": "ShortcutIcon", "state": 1 }
+  },
+  {
+    "name": "Shortcut icon the Toolbox wrote over after Atlas 0.5's None launcher",
+    "version": "0.5.0",
+    "key": "ShortcutIcon",
+    "state": 0,
+    "path": "C:\\Windows\\AtlasDesktop\\4. Interface Tweaks\\Shortcut Icon\\None (security risk).cmd",
+    "result": { "key": "ShortcutIcon", "state": 2 }
+  },
+  {
+    "name": "Shortcut icon with a launcher the rule doesn't know",
+    "version": "0.5.0",
+    "key": "ShortcutIcon",
+    "state": 1,
+    "path": "C:\\Windows\\AtlasDesktop\\4. Interface Tweaks\\Shortcut Icon\\Some Other Launcher.cmd",
+    "result": { "key": "ShortcutIcon", "state": 1 }
+  },
+  {
+    "name": "The old Toolbox's Enable File Sharing, which wrote 0 and never ran",
+    "version": "0.5.0",
+    "key": "FileSharing",
+    "state": 0,
+    "path": "C:\\Windows\\AtlasDesktop\\3. General Configuration\\File Sharing\\Enable File Sharing.cmd",
+    "result": null
+  },
+  {
+    "name": "File sharing turned off",
+    "version": "0.5.0",
+    "key": "FileSharing",
+    "state": 0,
+    "path": "C:\\Windows\\AtlasDesktop\\3. General Configuration\\File Sharing\\Disable File Sharing (default).cmd",
+    "result": { "key": "FileSharing", "state": 0 }
+  },
+  {
+    "name": "File sharing turned on by Atlas 0.5's launcher",
+    "version": "0.5.0",
+    "key": "FileSharing",
+    "state": 1,
+    "path": "C:\\Windows\\AtlasDesktop\\3. General Configuration\\File Sharing\\Enable File Sharing.cmd",
+    "result": { "key": "FileSharing", "state": 1 }
+  },
+  {
+    "name": "The pair only the old Toolbox writes, left as it is from 0.6 on",
+    "version": "0.6.0",
+    "key": "FileSharing",
+    "state": 0,
+    "path": "C:\\Windows\\AtlasDesktop\\3. General Configuration\\File Sharing\\Enable File Sharing.cmd",
+    "result": { "key": "FileSharing", "state": 0 }
+  },
+  {
+    "name": "A Recall record the old Toolbox named in other letter case",
+    "version": "0.5.0",
+    "key": "recall",
+    "state": 0,
+    "path": null,
+    "result": { "key": "Recall", "state": 0 }
+  },
+  {
+    "name": "The old Toolbox's app icons on thumbnails, under Atlas's name",
+    "version": "0.5.0",
+    "key": "AppIconsThumbnail",
+    "state": 1,
+    "path": null,
+    "result": { "key": "AppIconThumbnail", "state": 1 }
+  },
+  {
+    "name": "The old Toolbox's highest mode, under Atlas's name",
+    "version": "0.5.0",
+    "key": "HightestMode",
+    "state": 0,
+    "path": null,
+    "result": { "key": "HighestMode", "state": 0 }
+  },
+  {
+    "name": "The old Toolbox's search indexing record, never copied",
+    "version": "0.5.0",
+    "key": "SearchIndexing",
+    "state": 0,
+    "path": null,
+    "result": null
+  },
+  {
+    "name": "Hibernation, which the Toolbox records as the label chosen",
+    "version": "0.5.0",
+    "key": "Hibernation",
+    "state": 0,
+    "path": "C:\\Windows\\AtlasDesktop\\3. General Configuration\\Power\\Hibernation\\Disable Hibernation (default).cmd",
+    "result": { "key": "Hibernation", "state": 0 }
+  },
+  {
+    "name": "Power saving under the Toolbox's swapped launcher name",
+    "version": "0.5.0",
+    "key": "PowerSaving",
+    "state": 0,
+    "path": "C:\\Windows\\AtlasDesktop\\3. General Configuration\\Power\\Power-saving\\Default Power-saving (default).cmd",
+    "result": { "key": "PowerSaving", "state": 0 }
+  },
+  {
+    "name": "The Give access to menu, which the Toolbox records as the label chosen",
+    "version": "0.5.0",
+    "key": "GiveAccessToMenu",
+    "state": 0,
+    "path": "C:\\Windows\\AtlasDesktop\\3. General Configuration\\File Sharing\\Give Access To Menu\\Disable Give Access To Menu.cmd",
+    "result": { "key": "GiveAccessToMenu", "state": 0 }
+  },
+  {
+    "name": "A terminal menu record with a launcher's path, left to the legacy choices step",
+    "version": "0.5.0",
+    "key": "ContextMenuTerminals",
+    "state": 2,
+    "path": "C:\\Windows\\AtlasDesktop\\4. Interface Tweaks\\Context Menus\\Terminals\\Add Terminals.cmd",
+    "result": { "key": "ContextMenuTerminals", "state": 2 }
+  }
+]

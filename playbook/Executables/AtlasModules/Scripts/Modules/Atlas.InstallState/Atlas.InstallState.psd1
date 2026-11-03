@@ -19,7 +19,13 @@
         'Get-AtlasPlaybookVersion'
         'Get-AtlasPlaybookOption'
         'Get-AtlasPlaybookSupportedBuild'
+        'Get-AtlasInstalledVersion'
         'Resolve-AtlasInstallMode'
+        'Resolve-AtlasInstallChoices'
+        'Compare-AtlasInstallOption'
+        'Resolve-AtlasKeptOption'
+        'Get-AtlasRecordedOption'
+        'Repair-AtlasToolboxRecord'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

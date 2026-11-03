@@ -33,6 +33,14 @@ if ($userSid -notmatch '^S-\d-\d+(?:-\d+)+$') {
 
 . (Join-Path $PSScriptRoot 'Get-AtlasUserFailureDetail.ps1')
 
+# A reinstall of the same version reaches the other accounts too, at their next sign-in:
+# Update-AtlasUser runs once for each stamp, and an update's LegacyChoices step stamps
+# only a new version. Stamped first, so the installing user's own pass records it.
+if ($context.Mode -ceq 'Reapply') {
+    . (Join-Path $PSScriptRoot 'Set-AtlasUpgradeUsers.ps1')
+    Set-AtlasUpgradeUserStamp -Value ('{0}+{1}' -f $context.TargetVersion, $context.TransactionId)
+}
+
 $userEntry = if ($context.IsUpgrade) { 'Update-AtlasUser.ps1' } else { 'Initialize-NewUser.ps1' }
 $userSetupScript = [IO.Path]::Combine($scriptsRoot, 'Entry', $userEntry)
 $powerShellPath = [IO.Path]::Combine(

@@ -1,10 +1,12 @@
 # Atlas.State - the machine state document.
 #
 # C:\Windows\AtlasOS\state.json is the one document that describes what Atlas has done to
-# this machine: the installed version, how it got there, the options that were selected,
-# and the current AtlasDesktop toggle choices. Install completion writes the install
-# facts; the toggle engine mirrors every recorded toggle state into it. Post-install
-# tools, the health check, support bundles and the Toolbox app read this document.
+# this machine: the installed version, how it got there, what the PC has for each install
+# choice, and the current AtlasDesktop toggle choices. Install completion writes the
+# install facts; the toggle engine mirrors every recorded toggle state into it, and the
+# toggles that change an install choice keep that choice in step between installs.
+# Post-install tools, the health check, support bundles and the Toolbox app read this
+# document.
 #
 # Writes take one global mutex and replace the file atomically. The document is size-limited
 # and schema-checked on every read so a malformed file is reported, never trusted.
@@ -25,6 +27,31 @@ $script:AtlasStateFields = @(
     'options', 'history', 'toggles'
 )
 $script:AtlasStateNamePattern = '^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$'
+
+# The install choices that can change between installs, grouped as playbook.conf groups
+# them: a radio group holds exactly one of its options, and a checkbox stands alone.
+$script:AtlasStateRadioChoices = @{
+    Defender         = @('defender-enable', 'defender-disable')
+    Mitigations      = @('mitigations-default', 'mitigations-disable')
+    AutomaticUpdates = @('auto-updates-disable', 'auto-updates-default')
+    Keyboard         = @('keyboard-shortcuts', 'keyboard-selector', 'keyboard-single')
+}
+$script:AtlasStateCheckboxChoices = @(
+    'disable-hibernation', 'disable-power-saving', 'disable-core-isolation', 'uninstall-edge'
+)
+
+# The choice toggles: the install choice each recorded state stands for.
+$script:AtlasStateToggleRadioChoices = @{
+    Mitigations       = @{ 0 = 'mitigations-disable'; 1 = 'mitigations-default'; 2 = 'mitigations-default' }
+    AutomaticUpdates  = @{ 0 = 'auto-updates-disable'; 1 = 'auto-updates-default' }
+    KeyboardShortcuts = @{ 0 = 'keyboard-selector'; 1 = 'keyboard-shortcuts' }
+}
+# Disable (0) ticks these and Enable (1) clears them.
+$script:AtlasStateToggleCheckboxChoices = @{
+    Hibernation = 'disable-hibernation'
+    PowerSaving = 'disable-power-saving'
+    VbsState    = 'disable-core-isolation'
+}
 
 function Get-AtlasStatePath {
     <#
@@ -216,6 +243,91 @@ function Update-AtlasState {
     }
 }
 
+function Merge-AtlasStateChoice {
+    <#
+    .SYNOPSIS
+        Returns the options with one install choice set. A radio option takes the place
+        of its group's chosen option; a checkbox is added at the end, or removed with
+        -Absent. The other options keep their order.
+    #>
+    param(
+        [string[]]$Options = @(),
+        [Parameter(Mandatory = $true)][string]$Option,
+        [switch]$Absent
+    )
+
+    $group = $null
+    foreach ($radio in $script:AtlasStateRadioChoices.Values) {
+        if ($radio -ccontains $Option) { $group = $radio }
+    }
+    if ($null -ne $group) {
+        if ($Absent) {
+            throw "Install choice '$Option' is one answer of several, so it can't be cleared; set another answer instead."
+        }
+        $placed = $false
+        foreach ($existing in @($Options)) {
+            if ($group -cnotcontains $existing) {
+                $existing
+            }
+            elseif (-not $placed) {
+                $Option
+                $placed = $true
+            }
+        }
+        if (-not $placed) { $Option }
+        return
+    }
+
+    if ($script:AtlasStateCheckboxChoices -cnotcontains $Option) {
+        throw "'$Option' isn't an install choice Atlas keeps in step between installs."
+    }
+    if ($Absent) {
+        return @($Options | Where-Object { $_ -cne $Option })
+    }
+    $Options
+    if (@($Options) -cnotcontains $Option) { $Option }
+}
+
+function Merge-AtlasStateToggleChoice {
+    <#
+    .SYNOPSIS
+        Returns the options with the install choice a choice toggle's recorded state
+        stands for. Any other toggle or state leaves them as they are.
+    #>
+    param(
+        [string[]]$Options = @(),
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][int]$State
+    )
+
+    if ($script:AtlasStateToggleCheckboxChoices.ContainsKey($Name) -and $State -in @(0, 1)) {
+        return Merge-AtlasStateChoice -Options $Options -Option $script:AtlasStateToggleCheckboxChoices[$Name] -Absent:($State -eq 1)
+    }
+    if (-not $script:AtlasStateToggleRadioChoices.ContainsKey($Name) -or
+        -not $script:AtlasStateToggleRadioChoices[$Name].ContainsKey($State)) {
+        return $Options
+    }
+    $option = [string]$script:AtlasStateToggleRadioChoices[$Name][$State]
+    # Keyboard selector and single turn the shortcuts off alike, so the one already
+    # chosen stays.
+    if ($option -ceq 'keyboard-selector' -and @($Options | Where-Object { $_ -cin @('keyboard-selector', 'keyboard-single') }).Count -gt 0) {
+        return $Options
+    }
+    return Merge-AtlasStateChoice -Options $Options -Option $option
+}
+
+function Get-AtlasStateToggleStamp {
+    # A record keeps its time while its state stays the same, so updatedAt says when
+    # the toggle was set to that state and a replay doesn't move it.
+    param($Existing, [int]$State, [string]$Now)
+
+    if ($null -ne $Existing -and [int]$Existing.Value.state -eq $State -and
+        $null -ne $Existing.Value.PSObject.Properties['updatedAt']) {
+        return [string]$Existing.Value.updatedAt
+    }
+    return $Now
+}
+
 function Set-AtlasStateInstall {
     <#
     .SYNOPSIS
@@ -224,15 +336,38 @@ function Set-AtlasStateInstall {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)][object]$InstallState,
-        [string]$Path
+        [string]$Path,
+
+        # What the PC has for each install choice, when completion has read it. Without
+        # it, or with $null, the install state's requested options are recorded; an
+        # empty set records none.
+        [string[]]$Options,
+
+        # The options of each choice the install tried to apply that the PC doesn't
+        # have as requested, when completion has read it, kept in this install's history
+        # entry as notApplied. Without it, or with $null, the entry has none.
+        [string[]]$NotApplied
     )
 
     $completedAt = [DateTimeOffset]::UtcNow.ToString('o')
     $version = [string]$InstallState.targetVersion
     $mode = [string]$InstallState.mode
     $isOobe = [bool]$InstallState.isOobe
-    $options = @($InstallState.options | ForEach-Object { [string]$_ })
+    $recordedOptions = @($InstallState.options | ForEach-Object { [string]$_ })
+    # $null too, so a caller can pass on an optional set it never received.
+    if ($null -ne $Options) {
+        $recordedOptions = @($Options)
+    }
     $transactionId = [string]$InstallState.transactionId
+    $entry = [ordered]@{
+        version       = $version
+        mode          = $mode
+        completedAt   = $completedAt
+        transactionId = $transactionId
+    }
+    if ($null -ne $NotApplied) {
+        $entry.notApplied = @($NotApplied)
+    }
 
     return Update-AtlasState -Path $Path -Action {
         param($state)
@@ -241,20 +376,17 @@ function Set-AtlasStateInstall {
         $state.mode = $mode
         $state.isOobe = $isOobe
         $state.isInteractive = -not $isOobe
-        $state.options = $options
-        $state.history = @($state.history) + @([pscustomobject][ordered]@{
-                version       = $version
-                mode          = $mode
-                completedAt   = $completedAt
-                transactionId = $transactionId
-            })
+        $state.options = @($recordedOptions)
+        $state.history = @($state.history) + @([pscustomobject]$entry)
     }.GetNewClosure()
 }
 
 function Set-AtlasStateToggle {
     <#
     .SYNOPSIS
-        Mirrors one recorded toggle state into the document.
+        Mirrors one recorded toggle state into the document. With -SyncChoice, a choice
+        toggle also sets the install choice its state stands for, in the same write,
+        once an install has completed.
     #>
     [CmdletBinding()]
     param(
@@ -263,20 +395,79 @@ function Set-AtlasStateToggle {
         [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$', Options = [Text.RegularExpressions.RegexOptions]::None)]
         [string]$Name,
         [Parameter(Mandatory = $true)][int]$State,
-        [string]$Path
+        [string]$Path,
+
+        # Only between installs: during one, completion records what the PC has.
+        [switch]$SyncChoice
     )
 
     $updatedAt = [DateTimeOffset]::UtcNow.ToString('o')
+    # A closure doesn't see this module's own functions, so it calls them through these.
+    $stamp = ${function:Get-AtlasStateToggleStamp}
+    $mergeChoice = ${function:Merge-AtlasStateToggleChoice}
     return Update-AtlasState -Path $Path -Action {
         param($document)
-        $record = [pscustomobject][ordered]@{ state = $State; updatedAt = $updatedAt }
-        if ($null -ne $document.toggles.PSObject.Properties[$Name]) {
+        $existing = $document.toggles.PSObject.Properties[$Name]
+        $record = [pscustomobject][ordered]@{
+            state     = $State
+            updatedAt = (& $stamp -Existing $existing -State $State -Now $updatedAt)
+        }
+        if ($null -ne $existing) {
             $document.toggles.$Name = $record
         }
         else {
             $document.toggles | Add-Member -NotePropertyName $Name -NotePropertyValue $record
         }
+        if ($SyncChoice -and -not [string]::IsNullOrWhiteSpace([string]$document.installedVersion)) {
+            $document.options = @(& $mergeChoice -Options @($document.options) -Name $Name -State $State)
+        }
     }.GetNewClosure()
+}
+
+function Set-AtlasStateChoice {
+    <#
+    .SYNOPSIS
+        Sets one install choice in the document after a change made outside an install,
+        such as Toggle Defender's: a radio option replaces its group's, and a checkbox is
+        ticked, or cleared with -Absent. Returns the document, or nothing when there is
+        no completed install to describe.
+    .DESCRIPTION
+        Does nothing while an install is active (Install\active.json beside the
+        document), whose completion records what the PC has, or before an install has
+        completed.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$', Options = [Text.RegularExpressions.RegexOptions]::None)]
+        [string]$Option,
+
+        [switch]$Absent,
+
+        [string]$Path
+    )
+
+    # Refused before the lock, so a wrong choice never waits for it.
+    $null = Merge-AtlasStateChoice -Option $Option -Absent:$Absent
+    $resolvedPath = Get-AtlasStatePath -Path $Path
+    $activePath = [IO.Path]::Combine([IO.Path]::GetDirectoryName($resolvedPath), 'Install', 'active.json')
+    return Invoke-AtlasStateLocked {
+        # Checked under the lock: completion writes the document before it removes
+        # active.json, so a choice is never set over an install's record.
+        if ([IO.File]::Exists($activePath)) {
+            return
+        }
+        $current = Read-AtlasStateFile -Path $resolvedPath
+        if ($null -eq $current -or [string]::IsNullOrWhiteSpace([string]$current.installedVersion)) {
+            return
+        }
+        $options = @(Merge-AtlasStateChoice -Options @($current.options) -Option $Option -Absent:$Absent)
+        if (($options -join "`n") -cne (@($current.options) -join "`n")) {
+            $current.options = $options
+            Write-AtlasStateFile -Path $resolvedPath -State $current
+        }
+        return $current
+    }
 }
 
 function Sync-AtlasStateToggles {
@@ -297,16 +488,16 @@ function Sync-AtlasStateToggles {
         }
     }
     $updatedAt = [DateTimeOffset]::UtcNow.ToString('o')
+    $stamp = ${function:Get-AtlasStateToggleStamp}
     return Update-AtlasState -Path $Path -Action {
         param($document)
         $toggles = [ordered]@{}
         foreach ($name in @($Records.Keys | Sort-Object)) {
             $existing = $document.toggles.PSObject.Properties[[string]$name]
-            $stamp = $updatedAt
-            if ($null -ne $existing -and [int]$existing.Value.state -eq [int]$Records[$name]) {
-                $stamp = [string]$existing.Value.updatedAt
+            $toggles[[string]$name] = [pscustomobject][ordered]@{
+                state     = [int]$Records[$name]
+                updatedAt = (& $stamp -Existing $existing -State ([int]$Records[$name]) -Now $updatedAt)
             }
-            $toggles[[string]$name] = [pscustomobject][ordered]@{ state = [int]$Records[$name]; updatedAt = $stamp }
         }
         $document.toggles = [pscustomobject]$toggles
     }.GetNewClosure()
@@ -314,5 +505,5 @@ function Sync-AtlasStateToggles {
 
 Export-ModuleMember -Function @(
     'Get-AtlasStatePath', 'Get-AtlasState', 'Update-AtlasState',
-    'Set-AtlasStateInstall', 'Set-AtlasStateToggle', 'Sync-AtlasStateToggles'
+    'Set-AtlasStateInstall', 'Set-AtlasStateToggle', 'Set-AtlasStateChoice', 'Sync-AtlasStateToggles'
 )

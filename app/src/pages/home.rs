@@ -366,6 +366,9 @@ impl HomePage {
         if let Some(reminder) = protection_reminder_bar(model, state, "home", accent, &self.headline_focus) {
             body.push(reminder.into_any_element());
         }
+        if let Some(bar) = defender_not_restored_bar(model, state, "home", &self.headline_focus) {
+            body.push(bar.into_any_element());
+        }
         if let Some(error) = &state.elevation_error {
             body.push(
                 InfoBar::new(Severity::Warning, t!("home-elevation-title"), error.text())
@@ -813,7 +816,9 @@ fn setup_card_view(state: &AppModel, window: &Window, cx: &App) -> Option<AnyEle
         state.atlas.is_err(),
     ) {
         SetupCard::Recorded(installed) => {
-            let options = recorded_options(state, &installed.options);
+            // As this PC has them: an earlier update may have recorded a
+            // choice it never applied.
+            let options = recorded_options(state, &state.installed_options());
             let history: Vec<String> = installed
                 .history
                 .iter()
@@ -1070,12 +1075,13 @@ pub(super) fn protection_reminder_bar(
         }
     });
     let bar = if reminder.missing {
-        // No antivirus where the user chose to keep one: Atlas may have
-        // failed to bring Defender back, so it offers a report. Only those
-        // who didn't remove it themselves need one, so it's never the accent.
+        // No antivirus where the user chose to keep one, and no Atlas package
+        // removed it: something Atlas doesn't know about did, so it offers a
+        // report. Only those who didn't remove it themselves need one, so
+        // it's never the accent.
         InfoBar::new(
             Severity::Warning,
-            t!("security-banner-absent-title"),
+            t!("security-banner-missing-title"),
             t!("installed-defender-missing-message"),
         )
         .action(
@@ -1098,6 +1104,37 @@ pub(super) fn protection_reminder_bar(
         )
     };
     Some(bar.id(id("security-reminder")).close_button(dismiss))
+}
+
+/// The warning, for Home and the "Atlas is installed" window, that Microsoft
+/// Defender is still removed: Atlas's record kept it, but an earlier update
+/// left Atlas's NoDefender package installed. It says how to bring Defender
+/// back, and offers no report, as Atlas knows why. `key` prefixes its
+/// element ids; focus goes to `return_focus` once Dismiss has taken it away.
+pub(super) fn defender_not_restored_bar(
+    model: &Entity<AppModel>,
+    state: &AppModel,
+    key: &str,
+    return_focus: &FocusHandle,
+) -> Option<InfoBar> {
+    if !state.defender_not_restored_shown() {
+        return None;
+    }
+    let id = |name: &str| ElementId::Name(format!("{key}-{name}").into());
+    let (dismiss_model, back) = (model.clone(), return_focus.clone());
+    let dismiss = dismiss_button(id("not-restored-dismiss"), move |_, window, cx| {
+        dismiss_model.update(cx, |m, cx| m.dismiss_defender_not_restored(cx));
+        window.focus(&back, cx);
+    });
+    Some(
+        InfoBar::new(
+            Severity::Warning,
+            t!("installed-defender-not-restored-title"),
+            t!("installed-defender-not-restored-message"),
+        )
+        .id(id("defender-not-restored"))
+        .close_button(dismiss),
+    )
 }
 
 #[cfg(test)]

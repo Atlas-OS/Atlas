@@ -505,7 +505,8 @@ fn stopping_before_the_move_puts_the_settings_back_once_and_never_during_an_unfi
         // An unfinished Atlas install puts them back itself. The record is
         // still open here, so only the install keeps Put back from running.
         assert!(read(&cx, &model, AppModel::may_restore_update_access), "the record is still open");
-        *scene.machine.identity.lock().unwrap() = Some(InstallIdentity::Resume("0.6.0".into(), None));
+        *scene.machine.identity.lock().unwrap() =
+            Some(InstallIdentity::Resume("0.6.0".into(), Default::default()));
         act(&mut cx, &model, |m, _| m.refresh_atlas_state());
         assert!(!read(&cx, &model, AppModel::may_restore_update_access));
         act(&mut cx, &model, |m, cx| m.restore_update_access(cx));
@@ -1138,7 +1139,8 @@ mod offer_wait {
     fn a_wait_that_runs_out_during_an_unfinished_install_stops_looking() {
         run_model_test(|mut cx| async move {
             let mut scene = scene_waiting("offer-wait-install-active", 40, 120);
-            *scene.machine.identity.lock().unwrap() = Some(InstallIdentity::Resume("0.6.0".into(), None));
+            *scene.machine.identity.lock().unwrap() =
+                Some(InstallIdentity::Resume("0.6.0".into(), Default::default()));
             offering_after(&mut scene, usize::MAX);
             let model = start_waiting(&mut cx, &scene).await;
             wait_for(&cx, &model, "the first look to find nothing", |m| m.offer_rechecks_active()).await;
@@ -1161,7 +1163,8 @@ mod offer_wait {
     fn a_wait_ended_by_its_timer_during_an_unfinished_install_redraws_get_ready() {
         run_model_test(|mut cx| async move {
             let mut scene = scene_waiting("offer-wait-install-refused", 40, 300);
-            *scene.machine.identity.lock().unwrap() = Some(InstallIdentity::Resume("0.6.0".into(), None));
+            *scene.machine.identity.lock().unwrap() =
+                Some(InstallIdentity::Resume("0.6.0".into(), Default::default()));
             offering_after(&mut scene, usize::MAX);
             let looked = scene.requests.clone();
             scene.env.adapters.run_check = Arc::new(move |id, context| match id {

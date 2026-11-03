@@ -15,6 +15,7 @@ use super::{AppModel, Environment, Page, Step};
 use crate::environment::Adapters;
 use crate::services::atlas_state::{self, AtlasState};
 use crate::services::installer::{self, InstallEvent, InstallRequest};
+use crate::services::legacy_choices::Facts;
 use crate::services::playbook;
 use crate::services::releases::{self, Release};
 use crate::services::requirements::{CheckContext, CheckId};
@@ -210,6 +211,8 @@ pub(crate) struct Machine {
     security: Arc<Mutex<SecurityStatus>>,
     pub(super) identity: Arc<Mutex<Option<atlas_state::InstallIdentity>>>,
     pub(super) state: Arc<Mutex<Option<AtlasState>>>,
+    /// What the PC shows of Atlas's choices; by default, nothing read.
+    pub(super) facts: Arc<Mutex<Facts>>,
     pub(super) scheduled: Arc<Mutex<u32>>,
     /// Completion windows armed for installs that started.
     pub(super) armed: Arc<Mutex<u32>>,
@@ -226,6 +229,7 @@ impl Machine {
             scheduled: Arc::new(Mutex::new(0)),
             identity: Arc::new(Mutex::new(Some(atlas_state::InstallIdentity::Fresh))),
             state: Arc::new(Mutex::new(None)),
+            facts: Arc::new(Mutex::new(Facts::default())),
             armed: Arc::new(Mutex::new(0)),
             others: Arc::new(Mutex::new(Some(Vec::new()))),
             virus_page_shown: Arc::new(Mutex::new(0)),
@@ -241,6 +245,7 @@ impl Machine {
         let scheduled = self.scheduled.clone();
         let identity = self.identity.clone();
         let state = self.state.clone();
+        let facts = self.facts.clone();
         let armed = self.armed.clone();
         let others = self.others.clone();
         let virus_page_shown = self.virus_page_shown.clone();
@@ -274,7 +279,7 @@ impl Machine {
             }),
             read_update_access: Arc::new(|| Ok(Default::default())),
             run_operation: Arc::new(|_, operation| anyhow::bail!("no worker in tests: {operation:?}")),
-            read_legacy_choices: Arc::new(Vec::new),
+            read_pc_facts: Arc::new(move || facts.lock().unwrap().clone()),
             read_other_sessions: Arc::new(move || {
                 others.lock().unwrap().clone().ok_or_else(|| anyhow::anyhow!("sessions unreadable"))
             }),
@@ -326,6 +331,7 @@ pub(super) fn completed_session(env: &Environment, package: &Path, restart: bool
         options: vec!["defender-enable".into()],
         restart,
         windows_security_confirmed: false,
+        choose_again: false,
     };
     let (record, mut events) = installer::start(request, &env.paths.session()).expect("start the stub");
     futures::executor::block_on(async {
@@ -336,6 +342,15 @@ pub(super) fn completed_session(env: &Environment, package: &Path, restart: bool
         }
     });
     record
+}
+
+/// An unfinished first install, holding `options` once a step has run.
+pub(super) fn held(options: Vec<String>) -> atlas_state::Unfinished {
+    atlas_state::Unfinished {
+        held: Some(options),
+        choose_again: false,
+        mode: atlas_state::InstallMode::Fresh,
+    }
 }
 
 pub(super) fn save_draft(env: &Environment, draft: InstallDraft) {

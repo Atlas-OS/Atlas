@@ -12,6 +12,7 @@ use super::checks::preflight_decision;
 use super::drafts::DraftWrite;
 use super::package::bundled_holds;
 use super::{AppModel, CloseGuard, RestartCountdown, RestartProblem, RunState, preview};
+use crate::i18n::describe;
 use crate::services::installer::{self, InstallEvent, InstallOutcome, InstallRequest, Phase};
 use crate::services::iso;
 use crate::services::preparation::State as PreparationState;
@@ -55,7 +56,8 @@ pub enum Preflight {
 }
 
 /// State of one install attempt, reset as a whole so nothing from an earlier
-/// attempt shows under a later result.
+/// attempt shows under a later result. Only the error it stopped on, which is
+/// never shown, carries over (see `earlier_error`).
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct InstallAttempt {
     /// The tail of the install log; the whole log is in the session's `log_path`.
@@ -83,11 +85,21 @@ pub struct InstallAttempt {
     /// Counts the restarts that didn't happen, refused or not acted on, so
     /// the view can announce each one, even one like the last.
     pub restart_epoch: u64,
+    /// The error the attempt before this one stopped on, when this one
+    /// retries an install already part-way through. It tells a failure that
+    /// repeats from a new one, so it outlives a refused start, leaving the
+    /// result for another step and leaving the flow; not a restart of the app.
+    pub earlier_error: Option<String>,
 }
 
 impl InstallAttempt {
+    /// Starts a new attempt, holding on to the error this one stopped on, or
+    /// to the one it held if it never ran, such as a start the final checks
+    /// refused.
     pub fn reset(&mut self) {
-        *self = Self::default();
+        let earlier =
+            if self.log_total > 0 { self.last_error().map(str::to_owned) } else { self.earlier_error.take() };
+        *self = Self { earlier_error: earlier, ..Self::default() };
     }
 
     /// Appends output to the tail kept in memory, reads the phase from it,
@@ -125,19 +137,76 @@ impl InstallAttempt {
     }
 
     /// The last error the installer logged, as it wrote it after its
-    /// `[ERROR]` tag, for a failure message's details. Only the lines still
-    /// held in memory are searched.
+    /// `[ERROR]` tag but without the script position it may add, for a
+    /// failure message's details. Only the lines still held in memory are
+    /// searched.
     pub fn last_error(&self) -> Option<&str> {
         self.log.iter().rev().find_map(|line| {
             let (_, error) = line.split_once(ERROR_TAG)?;
-            let error = error.trim();
+            let error = without_position(error.trim());
             (!error.is_empty()).then_some(error)
         })
+    }
+
+    /// This attempt stopped on the error the attempt before it stopped on,
+    /// so trying the same again is unlikely to get any further.
+    pub fn repeated(&self) -> bool {
+        self.earlier_error.as_deref().is_some_and(|earlier| self.last_error() == Some(earlier))
+    }
+
+    /// The apps Windows wouldn't remove in this attempt, each once, named as
+    /// the installer names them: a package family, without its wildcard.
+    pub fn unremoved_apps(&self) -> Vec<String> {
+        let mut apps: Vec<String> = Vec::new();
+        for line in &self.log {
+            let name = line
+                .split_once(ERROR_TAG)
+                .and_then(|(_, error)| error.trim_start().strip_prefix(APP_NOT_REMOVED))
+                .and_then(|rest| rest.split_once('\''))
+                .map(|(name, _)| name.trim_end_matches('*'));
+            if let Some(name) = name.filter(|name| !name.is_empty())
+                && !apps.iter().any(|app| app == name)
+            {
+                apps.push(name.to_owned());
+            }
+        }
+        apps
     }
 }
 
 /// How the installer marks an error line in its log.
 const ERROR_TAG: &str = "[ERROR]";
+/// How the installer's error line for an app Windows wouldn't remove starts,
+/// before the app's quoted name.
+const APP_NOT_REMOVED: &str = "AppX removal failed for '";
+/// What Atlas's log puts between an error and the script position it came
+/// from. Errors that collect several failures join them with it too.
+const POSITION_SEPARATOR: &str = " | ";
+/// What starts each line of code a script position quotes, once the log has
+/// put the position on one line.
+const QUOTED_CODE: &str = " + ";
+
+/// `error` without the script position Atlas's log appends to an error it
+/// caught (" | At C:\...\Phase.ps1:86 char:5 + throw ... + ~~~"), which is
+/// for the log, not the user. The position is told from a joined failure by
+/// its shape: a first line that ends with the script line and column however
+/// Windows PowerShell words it in the PC's language, then the code it quotes
+/// after " + ". An error PowerShell knows no position for leaves only the
+/// separator, which goes too.
+fn without_position(error: &str) -> &str {
+    if let Some(error) = error.strip_suffix(POSITION_SEPARATOR.trim_end()) {
+        return error.trim_end();
+    }
+    let position = error.match_indices(POSITION_SEPARATOR).map(|(at, _)| at).find(|&at| {
+        let rest = &error[at + POSITION_SEPARATOR.len()..];
+        rest.split_once(QUOTED_CODE).is_some_and(|(first_line, _)| {
+            !first_line.contains(POSITION_SEPARATOR)
+                && first_line.ends_with(|c: char| c.is_ascii_digit())
+                && first_line.split(':').skip(1).any(|part| part.starts_with(|c: char| c.is_ascii_digit()))
+        })
+    });
+    position.map_or(error, |at| error[..at].trim_end())
+}
 
 impl AppModel {
     /// What closing the window now would interrupt.
@@ -174,6 +243,45 @@ impl AppModel {
         }
         super::ProtectionReminder::from_reading(super::ReminderReason::LeftFlow, &self.security)
             .filter(|reminder| !reminder.unreadable && !reminder.missing)
+    }
+
+    /// A failed install leaves no protection to turn back on: Defender is
+    /// gone, or Atlas's package that removes it is installed and no switch
+    /// reads off. Defender can come back through its own updates while Atlas
+    /// 0.5's package stays installed, so the package alone isn't enough.
+    pub fn defender_removed(&self) -> bool {
+        !self.security.defender_present || (self.defender_package_installed() && !self.security.any_off())
+    }
+
+    /// Atlas's NoDefender servicing package is installed, as the PC read
+    /// again whenever an attempt ends shows it: only once Windows has
+    /// installed it.
+    pub fn defender_package_installed(&self) -> bool {
+        self.pc_facts.defender_package_installed()
+    }
+
+    /// What the result on screen bases its advice on, besides its outcome.
+    pub fn attempt_facts(&self) -> describe::AttemptFacts {
+        describe::AttemptFacts {
+            phase: self.attempt.phase,
+            // A retry of an install an earlier attempt began applying.
+            resumed: self.original_options().is_some(),
+            repeated: self.attempt.repeated(),
+            defender_removed: self.defender_removed(),
+            unremoved_apps: self.attempt.unremoved_apps(),
+        }
+    }
+
+    /// The failed result offers Open Windows Security: the installer may
+    /// have changed things once protection was off, and Defender is still
+    /// there for the user to turn it back on.
+    pub fn result_offers_windows_security(&self) -> bool {
+        let RunState::Finished(outcome) = self.flow.run else { return false };
+        !outcome.is_success()
+            && !self.defender_removed()
+            && (self.attempt.phase >= Phase::Applying
+                || self.original_options().is_some()
+                || outcome == InstallOutcome::Lost)
     }
 
     /// The launch is on its worker and has not answered. Closing now would
@@ -221,6 +329,7 @@ impl AppModel {
             options: self.effective_options(),
             restart: self.settings.restart_after_install,
             windows_security_confirmed: self.security_confirmed_by_hand(),
+            choose_again: self.choosing_again(),
         })
     }
 
@@ -267,11 +376,18 @@ impl AppModel {
             self.refuse_install(Preflight::InvalidOptions { error: format!("{error:#}") }, cx);
             return;
         }
+        let resumed = self.original_options().is_some();
         if self.flow.start_preparing().is_err() {
             return;
         }
         self.preflight_problem = None;
         self.clear_session(cx);
+        // Only a retry of an install already part-way through is told it
+        // repeats: one that stopped before changing anything already says to
+        // send a report if it stops again.
+        if !resumed {
+            self.attempt.earlier_error = None;
+        }
         self.sync_security_watch(cx);
         cx.notify();
 
@@ -604,7 +720,7 @@ fn log_to_reveal<'a>(
 mod tests {
     use std::path::Path;
 
-    use super::{InstallAttempt, LOG_KEEP, LOG_KEEP_BYTES, log_to_reveal};
+    use super::{InstallAttempt, LOG_KEEP, LOG_KEEP_BYTES, log_to_reveal, without_position};
     use crate::services::installer::Phase;
 
     #[test]
@@ -648,6 +764,115 @@ mod tests {
         assert_eq!(attempt.last_error(), Some("Atlas install stopped at step 18 of 40 (Browser)."));
         attempt.reset();
         assert_eq!(attempt.last_error(), None);
+    }
+
+    /// The failure as the installer logged it after a phase threw, the
+    /// position Atlas's log appends included.
+    const APPX_FAILURE: &str = concat!(
+        "[2026-10-28T16:26:05.2903365Z] [2026-10-28 17:26:05] [-] [ERROR] The AppX removal plan failed after ",
+        "cleanup: AppX removal completed with 1 required failure(s): MSTeams*: 1 installed package(s) remain ",
+        "registered. | At C:\\Windows\\AtlasModules\\Scripts\\Install\\Phases\\Invoke-AppxSupportPhase.ps1:86 ",
+        "char:5 +     throw \"The AppX removal plan failed after cleanup: $($requiredFai ... +     ~~~~~~~~~~~~"
+    );
+    const APPX_ERROR: &str = "The AppX removal plan failed after cleanup: AppX removal completed with 1 required failure(s): MSTeams*: 1 installed package(s) remain registered.";
+
+    /// The details show what failed, not where in which script: the
+    /// position Atlas's log appends is dropped, in any language Windows
+    /// PowerShell words it in, while failures an error joins with the same
+    /// separator stay.
+    #[test]
+    fn the_details_leave_out_the_script_position_the_log_appends() {
+        // The engine still appends the position this way.
+        let logging = include_str!(
+            "../../../playbook/Executables/AtlasModules/Scripts/Modules/Atlas.Core/Domain/Logging.ps1"
+        );
+        assert!(logging.contains(
+            r#"$line += " | $($ErrorRecord.InvocationInfo.PositionMessage -replace '\r?\n', ' ')""#
+        ));
+        let mut attempt = InstallAttempt::default();
+        attempt.push_lines(vec![APPX_FAILURE.into()]);
+        assert_eq!(attempt.last_error(), Some(APPX_ERROR));
+        for (error, shown) in [
+            (APPX_ERROR, APPX_ERROR),
+            // Failures joined by the error itself, and a quoted line holding a pipeline.
+            (
+                "Plan failed: MSTeams*: 1 remain. | Clearing AppX caches failed: code 5 | At C:\\A\\Phase.ps1:86 char:5 +     Get-X | Out-Null +     ~~~~",
+                "Plan failed: MSTeams*: 1 remain. | Clearing AppX caches failed: code 5",
+            ),
+            ("Step failed | In C:\\A\\Phase.ps1:86 Zeichen:5 +     throw $x +     ~~~~~~~~", "Step failed"),
+            (
+                "Step failed | Au caractère C:\\A\\Phase.ps1:86 : 5 +     throw $x +     ~~~~~~~~",
+                "Step failed",
+            ),
+            ("Step failed | At line:1 char:1 + throw 'x' + ~~~~~~~~~", "Step failed"),
+            // An error PowerShell knows no position for.
+            ("Step failed |", "Step failed"),
+            // Nothing that reads as a position is taken for one.
+            ("Copy failed | 2 files left", "Copy failed | 2 files left"),
+            ("Copy failed | code: 0x80070005", "Copy failed | code: 0x80070005"),
+            ("Copy failed | timed out after 00:05:00", "Copy failed | timed out after 00:05:00"),
+            ("Copy failed | D:1", "Copy failed | D:1"),
+            ("Copy failed | code: 5 + 1 retry", "Copy failed | code: 5 + 1 retry"),
+        ] {
+            assert_eq!(without_position(error), shown, "{error}");
+        }
+    }
+
+    #[test]
+    fn the_apps_windows_would_not_remove_are_named_once_without_their_wildcard() {
+        // The engine still words the failure this way.
+        let removal = include_str!(
+            "../../../playbook/Executables/AtlasModules/Scripts/Modules/Atlas.Appx/Domain/Removal.ps1"
+        );
+        assert!(removal.contains(r#"Write-AtlasLog -Level Error -Message "AppX removal failed for '$($Definition.Name)': $Message""#));
+        let mut attempt = InstallAttempt::default();
+        assert!(attempt.unremoved_apps().is_empty());
+        attempt.push_lines(vec![
+            "[2026-10-28 17:26:02] [-] [WARNING] Ignoring AppX removal failure for 'Microsoft.Edge.GameAssist*': 1 installed package(s) remain registered.".into(),
+            // The front door's copy of the plan's output, then the machine log's.
+            "[2026-10-28T16:26:02.6762625Z] [2026-10-28 17:26:02] [-] [ERROR] AppX removal failed for 'MSTeams*': 1 installed package(s) remain registered.".into(),
+            "[2026-10-28 17:26:02] [-] [ERROR] AppX removal failed for 'MSTeams*': 1 installed package(s) remain registered.".into(),
+            "[2026-10-28 17:26:03] [-] [ERROR] AppX removal failed for 'Ink.Handwriting.Main.Store.en-US1.0': 1 provisioned package(s) remain.".into(),
+            APPX_FAILURE.into(),
+        ]);
+        assert_eq!(attempt.unremoved_apps(), ["MSTeams", "Ink.Handwriting.Main.Store.en-US1.0"]);
+    }
+
+    /// A repeat is the same error as the attempt before, after its position
+    /// is dropped; another error, or none, is not.
+    #[test]
+    fn only_the_same_error_again_is_a_repeat() {
+        let attempt = |earlier: Option<&str>, line: &str| {
+            let mut attempt =
+                InstallAttempt { earlier_error: earlier.map(str::to_owned), ..Default::default() };
+            attempt.push_lines(vec![line.to_owned()]);
+            attempt
+        };
+        assert!(attempt(Some(APPX_ERROR), APPX_FAILURE).repeated());
+        assert!(!attempt(None, APPX_FAILURE).repeated(), "no attempt before it");
+        let other = "[2026-10-28 17:26:05] [-] [ERROR] Removing Microsoft Edge failed: the file is in use.";
+        assert!(!attempt(Some(APPX_ERROR), other).repeated(), "a new error");
+        assert!(!attempt(Some(APPX_ERROR), "[Atlas] Running the install plan").repeated(), "no error");
+    }
+
+    /// A new attempt keeps nothing of the one before but the error it
+    /// stopped on: what the next one is compared with. One that never ran
+    /// passes on the error it held, and one that ran without an error leaves
+    /// nothing to compare with.
+    #[test]
+    fn a_new_attempt_keeps_only_the_error_the_one_before_stopped_on() {
+        let mut attempt = InstallAttempt::default();
+        attempt.push_lines(vec!["[Atlas] Running the install plan".into(), APPX_FAILURE.into()]);
+        attempt.reset();
+        assert_eq!(attempt.earlier_error.as_deref(), Some(APPX_ERROR));
+        assert_eq!(attempt.last_error(), None);
+        assert!(!attempt.repeated(), "nothing has stopped yet");
+        assert!(attempt.log.is_empty() && attempt.phase == Phase::Preflight);
+        attempt.reset();
+        assert_eq!(attempt.earlier_error.as_deref(), Some(APPX_ERROR), "a start refused before it ran");
+        attempt.push_lines(vec!["[Atlas] Running the install plan".into()]);
+        attempt.reset();
+        assert_eq!(attempt.earlier_error, None, "an attempt that stopped without an error");
     }
 
     #[test]

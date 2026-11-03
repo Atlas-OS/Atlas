@@ -77,8 +77,12 @@ function Find-AtlasToggleDefinitionFile {
         throw "Toggle definitions root '$root' does not exist."
     }
 
+    # Without regard to case, as the registry names a record: an older Atlas or the
+    # old Toolbox may have written one in other letter case, and it is still that
+    # toggle's choice. Ordinal, so no culture's letters stand in for ASCII ones;
+    # Test-AtlasToggleDefinition refuses two names that differ only in case.
     $files = @(Get-ChildItem -LiteralPath $root -Recurse -File -Filter "$Name.psd1" -ErrorAction Stop |
-        Where-Object { $_.BaseName -ceq $Name })
+        Where-Object { [string]::Equals($_.BaseName, $Name, [StringComparison]::OrdinalIgnoreCase) })
     if ($files.Count -eq 0) {
         # Tagged so replay can tell a definition Atlas no longer includes from other failures.
         $missing = [System.Management.Automation.RuntimeException]::new("No toggle definition named '$Name' was found under '$root'.")

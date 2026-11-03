@@ -7,7 +7,7 @@ use gpui::Context;
 
 use super::drafts::draft_launched;
 use super::package::{bundled_holds, unpacked_origin};
-use super::{AppModel, Generation, Notice, Page, PlaybookSource, Step};
+use super::{AppModel, Generation, Notice, Page, PlaybookSource, Step, UpdatePath};
 use crate::services::session::{self, Inspection, LaunchLock, SessionPaths, SessionRecord};
 use crate::services::settings::{self, InstallDraft};
 use crate::services::{installer, playbook, preparation, system};
@@ -212,6 +212,7 @@ impl AppModel {
                 // Succeeded and Windows has restarted since: the completion
                 // window covers it, so close it out, then resume any other draft.
                 self.refresh_atlas_state();
+                self.finished_session = Some(record.clone());
                 self.finalize_completed(
                     record,
                     |this, remaining, cx| {
@@ -301,6 +302,9 @@ impl AppModel {
             });
         }
         self.options = record.request.options.iter().cloned().collect();
+        // And how it treated the installed Atlas's choices, for a retry.
+        self.update_path =
+            if record.request.choose_again { UpdatePath::ChooseAgain } else { UpdatePath::Keep };
         let events = installer::reattach(&record, &self.session_paths.machine_log);
         self.follow_session(record, events, cx);
         self.attempt.recovered = ended;

@@ -1,14 +1,14 @@
 //! Closing while an install starts or runs, arming the completion window,
-//! and a launch refused because another window took the setup over or the
-//! choices don't fit the package.
+//! a launch refused because another window took the setup over or the
+//! choices don't fit the package, and a retry that fails the same way.
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::environment::RestartTiming;
 use crate::model::test_harness::{
-    PATIENCE, act, fixture, gated_package, marking_package, new_model, passing, read, run_model_test, settle,
-    wait_for, wait_on_disk, wait_until, walk_to_install,
+    PATIENCE, act, fixture, gated_package, held, marking_package, new_model, passing, read, run_model_test,
+    settle, wait_for, wait_on_disk, wait_until, walk_to_install,
 };
 use crate::model::{AppModel, CloseGuard, Environment, Preflight, RunState};
 use crate::services::requirements::{CheckContext, CheckId};
@@ -271,7 +271,7 @@ fn a_resumed_install_starts_without_an_answer_to_a_page_added_since() {
             assert_eq!(m.flow.run, RunState::Idle, "a fresh install answers every page");
             assert!(matches!(m.preflight_problem, Some(Preflight::InvalidOptions { .. })));
         });
-        *machine.identity.lock().unwrap() = Some(InstallIdentity::Resume("0.6.0".into(), Some(saved)));
+        *machine.identity.lock().unwrap() = Some(InstallIdentity::Resume("0.6.0".into(), held(saved)));
         act(&mut cx, &model, |m, cx| {
             m.start_install(cx);
             assert_eq!(m.flow.run, RunState::Preparing, "the resumed install goes on to the final checks");
@@ -279,6 +279,129 @@ fn a_resumed_install_starts_without_an_answer_to_a_page_added_since() {
         });
         wait_for(&cx, &model, "the install to finish", |m| matches!(m.flow.run, RunState::Finished(_))).await;
         assert!(marker.exists(), "the front door ran");
+        settle(&cx, &model).await;
+    });
+}
+
+/// A retry of an unfinished install that stops on the error the attempt
+/// before it stopped on is told apart from a new failure, past a visit to
+/// another step and a retry the final checks refused. A fresh install that
+/// fails twice is not, as its own advice already leads to a report. The
+/// result names the app Windows kept, and offers Windows Security while a
+/// switch reads off, even with Atlas's package that removes Defender
+/// installed; once there is nothing left to turn back on, it doesn't.
+#[test]
+fn a_retry_that_stops_on_the_same_error_is_told_apart_even_past_a_refusal() {
+    run_model_test(async move |mut cx| {
+        use crate::model::Step;
+        use crate::model::test_harness::all_off;
+        use crate::services::atlas_state::InstallIdentity;
+        use crate::services::legacy_choices::Facts;
+        use crate::services::security::{SecurityStatus, Switch};
+        use crate::services::test_support::apbx;
+        // What the result on screen says to do.
+        let advice = |m: &AppModel| match m.flow.run {
+            RunState::Finished(outcome) => outcome.advice(&m.attempt_facts()),
+            run => panic!("no result: {run:?}"),
+        };
+        let (temp, machine, env) = fixture("model-repeated-failure");
+        let body = concat!(
+            "Write-Host '[Atlas] Running the install plan as TrustedInstaller. This takes several minutes...'\r\n",
+            "Write-Host '[2026-10-28 17:26:02] [-] [ERROR] AppX removal failed for ''MSTeams*'': 1 installed package(s) remain registered.'\r\n",
+            "Write-Host '[2026-10-28 17:26:05] [-] [ERROR] The AppX removal plan failed after cleanup: MSTeams*: 1 installed package(s) remain registered. | At C:\\Phases\\Invoke-AppxSupportPhase.ps1:86 char:5 +     throw +     ~~~~~'\r\n",
+            "exit 1"
+        );
+        let error =
+            "The AppX removal plan failed after cleanup: MSTeams*: 1 installed package(s) remain registered.";
+        let package = apbx::write(&temp.path().join("package.apbx"), &apbx::with_front_door("0.6.0", body));
+        let model = new_model(&mut cx, env);
+        walk_to_install(&mut cx, &model, &package).await;
+        act(&mut cx, &model, |m, cx| m.next_step(cx));
+
+        // A fresh install has nothing to repeat, even when it fails the same way twice.
+        for failure in ["the first failure", "the fresh install's second failure"] {
+            wait_for(&cx, &model, "the install to be possible", AppModel::can_install).await;
+            act(&mut cx, &model, |m, cx| m.start_install(cx));
+            wait_for(&cx, &model, failure, |m| matches!(m.flow.run, RunState::Finished(_))).await;
+            read(&cx, &model, |m| {
+                assert_eq!(m.attempt.last_error(), Some(error), "without the script position");
+                assert!(!m.attempt.repeated(), "{failure}");
+                assert_eq!(m.attempt.unremoved_apps(), ["MSTeams"]);
+                assert!(!m.defender_removed());
+                assert_eq!(advice(m), crate::t!("outcome-failed-applying"), "{failure}");
+                assert!(m.result_offers_windows_security());
+            });
+        }
+        // The installer now holds the install to the choices it began with.
+        let options = read(&cx, &model, |m| m.session.as_ref().unwrap().request.options.clone());
+        *machine.identity.lock().unwrap() = Some(InstallIdentity::Resume("0.6.0".into(), held(options)));
+
+        // Leaving the result for another step and coming back starts a new attempt.
+        act(&mut cx, &model, |m, cx| {
+            m.set_step(Step::Security, cx);
+            m.next_step(cx);
+        });
+        read(&cx, &model, |m| {
+            assert_eq!((m.flow.step, m.flow.run), (Step::Install, RunState::Idle));
+            assert!(m.session.is_none() && m.attempt.log.is_empty(), "the result is gone");
+            assert_eq!(m.attempt.earlier_error.as_deref(), Some(error), "kept past another step");
+        });
+
+        // Protection turned back on refuses the retry at the final checks.
+        machine.set_security(SecurityStatus { real_time_protection: Switch::On, ..all_off() });
+        act(&mut cx, &model, |m, cx| m.start_install(cx));
+        wait_for(&cx, &model, "the refusal", |m| {
+            m.flow.run == RunState::Idle && m.preflight_problem.is_some()
+        })
+        .await;
+        read(&cx, &model, |m| {
+            assert!(matches!(m.preflight_problem, Some(Preflight::Changed { .. })));
+            assert_eq!(m.attempt.earlier_error.as_deref(), Some(error), "kept past the refusal");
+        });
+
+        // Atlas 0.5's package that removes Defender is installed, but Defender
+        // came back through its updates, and its switches read off.
+        *machine.facts.lock().unwrap() = Facts {
+            packages: vec!["Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~0.5.0.0".into()],
+            ..Facts::default()
+        };
+        machine.set_security(all_off());
+        wait_for(&cx, &model, "the install to be possible again", AppModel::can_install).await;
+        act(&mut cx, &model, |m, cx| m.start_install(cx));
+        wait_for(&cx, &model, "the repeated failure", |m| matches!(m.flow.run, RunState::Finished(_))).await;
+        read(&cx, &model, |m| {
+            assert!(m.attempt.repeated(), "the same error again");
+            assert_eq!(m.attempt.unremoved_apps(), ["MSTeams"]);
+            assert!(!m.defender_removed(), "its switches are off");
+            assert_eq!(advice(m), crate::t!("outcome-failed-repeated-apps", apps = "MSTeams"));
+            assert!(m.result_offers_windows_security());
+        });
+
+        // With that package and every switch back on, or with Defender gone,
+        // there is nothing left to turn back on.
+        let all_on = SecurityStatus {
+            tamper_protection: Switch::On,
+            real_time_protection: Switch::On,
+            cloud_delivered: Switch::On,
+            sample_submission: Switch::On,
+            defender_present: true,
+        };
+        for (status, what) in [
+            (all_on, "every switch on"),
+            (SecurityStatus { defender_present: false, ..all_off() }, "no Defender"),
+        ] {
+            machine.set_security(status);
+            wait_for(&cx, &model, what, |m| m.security == status).await;
+            read(&cx, &model, |m| {
+                assert!(m.defender_removed(), "{what}");
+                assert_eq!(
+                    advice(m),
+                    crate::t!("outcome-failed-repeated-apps-defender-removed", apps = "MSTeams"),
+                    "{what}"
+                );
+                assert!(!m.result_offers_windows_security(), "{what}");
+            });
+        }
         settle(&cx, &model).await;
     });
 }

@@ -6,6 +6,7 @@
 
         .\AtlasModules\Scripts\Entry\Install-Atlas.ps1 -Option defender-enable,
             mitigations-default, auto-updates-disable, keyboard-shortcuts [-Option ...] [-Unattended]
+            [-ChooseAgain]
             [-Restart]
             [-RestartComment <text>]
 
@@ -30,6 +31,14 @@
     whose registry value is missing or unrecognised doesn't block. A switch that reads
     on still does. Atlas Manager passes it when the user confirmed, by hand, the
     reading its final check took.
+.PARAMETER ChooseAgain
+    On an update or a reinstall, applies the choices given with -Option as a new
+    installation would, wherever this PC differs from them. Without it, the update
+    keeps the choices this PC has, and records what the PC shows instead of any
+    choice given that differs. A first installation applies every choice anyway.
+    After Windows reinstalled itself while Atlas Manager moved it to a newer version,
+    the installation refuses it: run it without -ChooseAgain first, then reinstall
+    Atlas with it.
 .PARAMETER Restart
     Restarts Windows ten seconds after a successful install.
 .PARAMETER RestartComment
@@ -57,6 +66,8 @@ param(
     [switch]$Unattended,
 
     [switch]$WindowsSecurityConfirmed,
+
+    [switch]$ChooseAgain,
 
     # Refused: Store preparation is per user, so setup must run as the signed-in user.
     [switch]$WindowsSetup,
@@ -110,8 +121,8 @@ function Get-AtlasDeclaredRequirement([xml]$Playbook) {
 }
 
 function Test-AtlasDefenderPresent {
-    # Atlas removes the Defender service together with Defender; a PC where an
-    # earlier install did so has no switches to turn off.
+    # Windows Security's switches belong to the Defender service, so a PC without it
+    # has none to turn off, whatever removed it.
     return [bool](Test-Path -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Services\WinDefend')
 }
 
@@ -285,7 +296,15 @@ function Test-AtlasInstallRequirement {
         [AllowEmptyString()][string]$InstallationType,
         [string[]]$DeclaredRequirements = @(),
         [Security.Principal.SecurityIdentifier]$AccountSid = [Security.Principal.WindowsIdentity]::GetCurrent().User,
-        [switch]$WindowsSecurityConfirmed
+        [switch]$WindowsSecurityConfirmed,
+        # What decides the Windows Security detail on a PC without Defender: the
+        # options, whether this installation chooses again, the probed install mode
+        # (empty when it couldn't be probed) and the Atlas packages installed
+        # (Get-AtlasInstalledAtlasPackage; $null when they couldn't be read).
+        [string[]]$Option = @(),
+        [switch]$ChooseAgain,
+        [string]$Mode,
+        [AllowNull()][string[]]$AtlasPackages
     )
 
     $results = @()
@@ -419,6 +438,7 @@ function Test-AtlasInstallRequirement {
 
     if ($DeclaredRequirements -contains 'DefenderToggled') {
         $defenderPassed = $false
+        $defenderBlocking = $true
         $defenderDetail = 'turn off the four Windows Security switches shown by Atlas before installation'
         try {
             if (Test-AtlasDefenderPresent) {
@@ -444,12 +464,38 @@ function Test-AtlasInstallRequirement {
                 }
             }
             else {
+                # Only Atlas's NoDefender package shows that Atlas removed Defender, and
+                # only a plan that applies the Defender choice can bring it back. Two
+                # outcomes the user may not expect warn without stopping the install;
+                # without the packages read, neither can be told.
+                $packagesRead = $null -ne $AtlasPackages
+                $removedByAtlas = @($AtlasPackages | Where-Object { $_ -like 'Z-Atlas-NoDefender-Package*' }).Count -gt 0
+                $keep = @($Option) -ccontains 'defender-enable'
+                $restores = $Mode -cin @('Fresh', 'Rebase') -or ($ChooseAgain -and $Mode -cin @('Upgrade', 'Reapply'))
                 $defenderPassed = $true
-                $defenderDetail = 'Microsoft Defender is not installed on this PC; an earlier Atlas install removed it, so there is nothing to turn off'
+                if ($removedByAtlas -and $keep -and $restores) {
+                    $defenderDetail = "Microsoft Defender was removed by Atlas's NoDefender package; this installation takes that package off, so Defender is back after the restart. There is nothing to turn off now"
+                }
+                elseif ($removedByAtlas -and $keep -and $Mode -cin @('Upgrade', 'Reapply')) {
+                    $defenderPassed = $false
+                    $defenderBlocking = $false
+                    $defenderDetail = "Microsoft Defender was removed by Atlas's NoDefender package, and keeping your choices leaves it removed, so this installation records it as removed. To bring it back, run again with -ChooseAgain, or use Toggle Defender in the Atlas folder afterwards"
+                }
+                elseif ($removedByAtlas) {
+                    $defenderDetail = "Microsoft Defender was removed by Atlas's NoDefender package, so there is nothing to turn off"
+                }
+                elseif ($keep -and $packagesRead -and -not [string]::IsNullOrWhiteSpace($Mode)) {
+                    $defenderPassed = $false
+                    $defenderBlocking = $false
+                    $defenderDetail = "Microsoft Defender isn't on this PC, and no Atlas package removed it, so this installation can't bring it back. Install another antivirus app, or repair Windows to get Defender back"
+                }
+                else {
+                    $defenderDetail = "Microsoft Defender isn't on this PC, so there is nothing to turn off"
+                }
             }
         }
         catch { $defenderDetail = "Windows Security could not be checked: $($_.Exception.Message)" }
-        $results += [pscustomobject]@{ Name='Windows Security'; Passed=$defenderPassed; Blocking=$true; Detail=$defenderDetail }
+        $results += [pscustomobject]@{ Name='Windows Security'; Passed=$defenderPassed; Blocking=$defenderBlocking; Detail=$defenderDetail }
     }
 
     return $results
@@ -642,28 +688,153 @@ function Remove-AtlasEarlierStagedPackage {
     }
 }
 
+function New-AtlasInstallRequest {
+    <#
+    .SYNOPSIS
+        The text of request.json, which Capture reads: the options, and how an update
+        treats the choices the PC has.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string[]]$Option,
+        [switch]$ChooseAgain
+    )
+
+    $request = [pscustomobject][ordered]@{
+        options = @($Option | Sort-Object -Unique)
+        choices = if ($ChooseAgain) { 'ChooseAgain' } else { 'Keep' }
+    }
+    return $request | ConvertTo-Json -Compress
+}
+
+function Format-AtlasTakenChoice {
+    <#
+    .SYNOPSIS
+        The line naming each choice Capture took from the PC instead of the request,
+        or $null when it recorded the request as given.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string[]]$Requested,
+        [Parameter(Mandatory = $true)][AllowEmptyCollection()][string[]]$Recorded
+    )
+
+    $taken = @(Compare-AtlasInstallOption -Requested @($Requested | Sort-Object -Unique) -Recorded $Recorded)
+    if ($taken.Count -eq 0) { return $null }
+    $names = @($taken | ForEach-Object {
+            $chosen = if (@($_.Options).Count -gt 0) { @($_.Options) -join ', ' } else { "$(@($_.Requested) -join ', ') left out" }
+            "$chosen ($($_.Label))"
+        })
+    return "Choices taken from this PC instead of the request: $($names -join ', ')."
+}
+
+function Get-AtlasInstallProbe {
+    <#
+    .SYNOPSIS
+        Read before the requirements, so the Windows Security check can say what this
+        installation does with a missing Defender: the install mode, how it treats the
+        choices (an unfinished installation keeps the way it began), and Atlas's
+        packages. Each is $null when it can't be read, so no reading stops the check;
+        the mode that counts is resolved after the requirements. ResumeOptions holds
+        the options an unfinished installation began with when they aren't the ones
+        given, as Capture then refuses any others.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$TargetVersion,
+        [Parameter(Mandatory = $true)][string]$WindowsPath,
+        [Parameter(Mandatory = $true)][string[]]$Option,
+        [switch]$ChooseAgain
+    )
+
+    $probe = [pscustomobject]@{ Mode = $null; Choices = $null; AtlasPackages = $null; ResumeOptions = $null }
+    try { $probe.Mode = Resolve-AtlasInstallMode -TargetVersion $TargetVersion -WindowsPath $WindowsPath }
+    catch { $null = $_ }
+    if ($null -ne $probe.Mode) {
+        $requested = if ($ChooseAgain) { 'ChooseAgain' } else { 'Keep' }
+        try {
+            $updatePath = Resolve-AtlasInstallChoices -TargetVersion $TargetVersion -Mode $probe.Mode -Requested $requested
+            $probe.Choices = $updatePath.Choices
+            $began = $updatePath.ResumedOptions
+            if ($null -ne $began -and (@($began | Sort-Object -Unique) -join ',') -cne (@($Option | Sort-Object -Unique) -join ',')) {
+                $probe.ResumeOptions = @($began)
+            }
+        }
+        catch { $null = $_ }
+    }
+    try { $probe.AtlasPackages = @(Get-AtlasInstalledAtlasPackage) }
+    catch { $null = $_ }
+    return $probe
+}
+
+function Read-AtlasCapturedOption {
+    <#
+    .SYNOPSIS
+        After Capture: Line names each choice it took from the PC instead of the
+        request, and ResumeOptions the options a resume must then give, both $null
+        when it recorded the request. Only a line on screen, so a failed read warns
+        and doesn't stop the install.
+    #>
+    param([Parameter(Mandatory = $true)][string[]]$Option)
+
+    $captured = [pscustomobject]@{ Line = $null; ResumeOptions = $null }
+    try {
+        $state = Get-AtlasInstallState
+        if ($null -ne $state) {
+            $recorded = @($state.options | ForEach-Object { [string]$_ })
+            $captured.Line = Format-AtlasTakenChoice -Requested $Option -Recorded $recorded
+            if ($captured.Line) { $captured.ResumeOptions = $recorded }
+        }
+    }
+    catch { Write-Warning -WarningAction Continue -Message "The recorded choices couldn't be read: $($_.Exception.Message)" }
+    return $captured
+}
+
 function Invoke-AtlasInstallPhase {
     <#
     .SYNOPSIS
         Runs one install phase through the TrustedInstaller broker. A failure keeps the
-        broker's message, which ends with the phase log, and puts what to do next last
-        so it stays on screen.
+        broker's message, which ends with the phase log, names the phase's full log,
+        and puts what to do next last so it stays on screen.
+    .PARAMETER ChooseAgain
+        The install was asked to choose again, so a resume must ask too.
+    .PARAMETER ResumeOptions
+        The options a retry must give when they aren't the ones given: for Capture,
+        those an unfinished install began with; for Run, those Capture recorded.
+    .PARAMETER MachineLogRoot
+        Where the phase leaves a copy of its log, which outlives this staging copy.
     #>
     param(
         [Parameter(Mandatory = $true)][ValidateSet('Capture', 'Run')][string]$Phase,
         [Parameter(Mandatory = $true)][string]$PayloadRoot,
-        [Parameter(Mandatory = $true)][int]$TimeoutSeconds
+        [Parameter(Mandatory = $true)][int]$TimeoutSeconds,
+        [switch]$ChooseAgain,
+        [string[]]$ResumeOptions,
+        [string]$MachineLogRoot = [IO.Path]::Combine([Environment]::GetFolderPath('Windows'), 'AtlasModules', 'Logs', 'install')
     )
 
+    # The copy's name begins with its time, so only one written since the phase began is its own.
+    $started = [DateTime]::UtcNow.AddSeconds(-2)
     try {
         $null = Invoke-AtlasTrustedInstaller -Operation Install -InstallPhase $Phase -PayloadRoot $PayloadRoot -TimeoutSeconds $TimeoutSeconds
     }
     catch {
-        $log = [IO.Path]::Combine($PayloadRoot, 'AtlasModules', 'Logs', "install-$($Phase.ToLowerInvariant()).log")
+        $failure = $_.Exception.Message
+        $name = "install-$($Phase.ToLowerInvariant()).log"
+        $log = [IO.Path]::Combine($PayloadRoot, 'AtlasModules', 'Logs', $name)
+        $copy = @(Get-ChildItem -LiteralPath $MachineLogRoot -Filter "*-$name" -File -ErrorAction SilentlyContinue |
+                Where-Object { $_.LastWriteTimeUtc -ge $started } | Sort-Object -Property LastWriteTimeUtc -Descending)
+        if ($copy.Count -gt 0) { $log = $copy[0].FullName }
         if ($Phase -eq 'Capture') {
-            throw "Install capture failed: $($_.Exception.Message) The full log is '$log'. Re-run this script with the same options to try again."
+            $next = if ($ResumeOptions) {
+                "Re-run this script with the options it started with, -Option $($ResumeOptions -join ','), to try again."
+            }
+            else { 'Re-run this script with the same options to try again.' }
+            throw "Install capture failed: $failure The full log is '$log'. $next"
         }
-        throw "The install plan failed: $($_.Exception.Message) The full log is '$log'. Re-run this script with the same options to resume."
+        $next = if ($ResumeOptions) {
+            "Re-run this script with the options it recorded, -Option $($ResumeOptions -join ','), to resume."
+        }
+        elseif ($ChooseAgain) { 'Re-run this script with the same options and -ChooseAgain to resume.' }
+        else { 'Re-run this script with the same options to resume.' }
+        throw "The install plan failed: $failure The full log is '$log'. $next"
     }
 }
 
@@ -695,12 +866,14 @@ try {
 
     $windowsVersion = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction Stop
     [xml]$playbookDocument = [IO.File]::ReadAllText($playbookPath)
+    $probe = Get-AtlasInstallProbe -TargetVersion $targetVersion -WindowsPath $windowsPath -Option $Option -ChooseAgain:$ChooseAgain
     $requirements = @(Test-AtlasInstallRequirement -SupportedBuilds (Get-AtlasPlaybookSupportedBuild -PlaybookPath $playbookPath) `
             -WindowsBuild ([int]$context.WindowsBuild) -EditionId ([string]$windowsVersion.EditionID) `
             -WindowsRevision ([int]$windowsVersion.UBR) -BuildLabEx ([string]$windowsVersion.BuildLabEx) `
             -InstallationType ([string]$windowsVersion.InstallationType) `
             -DeclaredRequirements @(Get-AtlasDeclaredRequirement -Playbook $playbookDocument) `
-            -WindowsSecurityConfirmed:$WindowsSecurityConfirmed)
+            -WindowsSecurityConfirmed:$WindowsSecurityConfirmed `
+            -Option $Option -ChooseAgain:($probe.Choices -ceq 'ChooseAgain') -Mode $probe.Mode -AtlasPackages $probe.AtlasPackages)
     $requirements += Test-AtlasWindowsUpdateInProgress -WindowsBuild ([int]$context.WindowsBuild)
     $blocked = $false
     foreach ($requirement in $requirements) {
@@ -728,7 +901,12 @@ try {
     # After the requirements, so a Windows version Atlas does not support is
     # reported as such rather than as an Atlas version it cannot update.
     $mode = Resolve-AtlasInstallMode -TargetVersion $targetVersion -WindowsPath $windowsPath
-    Write-AtlasInstallStep "Install mode: $mode."
+    $requestedChoices = if ($ChooseAgain) { 'ChooseAgain' } else { 'Keep' }
+    # Capture decides again; this refuses a Rebase asked to choose again before
+    # anything is copied.
+    $updatePath = Resolve-AtlasInstallChoices -TargetVersion $targetVersion -Mode $mode -Requested $requestedChoices
+    Write-AtlasInstallStep "Install mode: $($updatePath.Summary)."
+    if ($updatePath.Note) { Write-AtlasInstallStep $updatePath.Note }
 
     Write-AtlasInstallStep 'Copying Atlas''s files to a protected folder...'
     $stagingRoot = New-AtlasProtectedStagingRoot -WindowsPath $windowsPath
@@ -739,18 +917,22 @@ try {
         if (-not $KeepStaging) { Remove-AtlasStagedPackage -StagingRoot $stagingRoot }
         exit 5
     }
-    $request = [pscustomobject]@{ options = @($Option | Sort-Object -Unique) }
-    [IO.File]::WriteAllText((Join-Path -Path $payloadRoot -ChildPath 'request.json'), ($request | ConvertTo-Json -Compress), (New-Object Text.UTF8Encoding($false)))
+    [IO.File]::WriteAllText((Join-Path -Path $payloadRoot -ChildPath 'request.json'), (New-AtlasInstallRequest -Option $Option -ChooseAgain:$ChooseAgain), (New-Object Text.UTF8Encoding($false)))
 
     Write-AtlasInstallStep 'Capturing the install state as TrustedInstaller...'
     $brokerStarted = $true
-    Invoke-AtlasInstallPhase -Phase Capture -PayloadRoot $payloadRoot -TimeoutSeconds 300
+    Invoke-AtlasInstallPhase -Phase Capture -PayloadRoot $payloadRoot -TimeoutSeconds 300 -ResumeOptions $probe.ResumeOptions
+
+    # An update that keeps the choices records the ones this PC shows, and a resume
+    # must give those.
+    $captured = Read-AtlasCapturedOption -Option $Option
+    if ($captured.Line) { Write-AtlasInstallStep $captured.Line }
 
     Write-AtlasInstallStep 'Publishing the installing user...'
     & (Join-Path -Path $payloadRoot -ChildPath 'AtlasModules\Scripts\Entry\Publish-AtlasInstallUser.ps1') | Out-Null
 
     Write-AtlasInstallStep 'Running the install plan as TrustedInstaller. This takes several minutes...'
-    Invoke-AtlasInstallPhase -Phase Run -PayloadRoot $payloadRoot -TimeoutSeconds 7200
+    Invoke-AtlasInstallPhase -Phase Run -PayloadRoot $payloadRoot -TimeoutSeconds 7200 -ChooseAgain:$ChooseAgain -ResumeOptions $captured.ResumeOptions
 
     Remove-AtlasEarlierStagedPackage -StagingRoot $stagingRoot
     if (-not $KeepStaging) {

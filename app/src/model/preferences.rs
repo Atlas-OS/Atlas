@@ -105,16 +105,26 @@ impl AppModel {
     }
 
     /// The `installedAt` of a recorded install that kept Microsoft Defender,
-    /// whatever was dismissed.
+    /// as this PC shows its choices, whatever was dismissed. Atlas's
+    /// NoDefender package installed shows it removed, whatever the record
+    /// says, so Defender missing then is no surprise to warn about.
     pub(super) fn kept_defender(&self) -> Option<String> {
-        let installed = self.installed()?;
-        let installed_at = installed.installed_at.clone()?;
-        installed.options.iter().any(|option| option == "defender-enable").then_some(installed_at)
+        let installed_at = self.installed()?.installed_at.clone()?;
+        self.installed_options().iter().any(|option| option == "defender-enable").then_some(installed_at)
     }
 
-    /// Whether the recorded install kept Microsoft Defender.
+    /// Whether the installed Atlas keeps Microsoft Defender, as this PC shows
+    /// its choices.
     pub fn kept_defender_recorded(&self) -> bool {
         self.kept_defender().is_some()
+    }
+
+    /// Atlas's record says the installed Atlas kept Microsoft Defender, but
+    /// Atlas's NoDefender package still removes it: an earlier update
+    /// recorded the choice without applying it.
+    pub fn defender_not_restored(&self) -> bool {
+        self.installed().is_some_and(|state| state.options.iter().any(|option| option == "defender-enable"))
+            && self.pc_facts.defender_package_installed()
     }
 
     /// Whether a dismissal of the reminder of `kind` (missing Defender, or

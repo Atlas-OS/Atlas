@@ -107,6 +107,35 @@ function Find-AtlasInstallUserMarker {
     return $markers[0]
 }
 
+function Start-AtlasWizardInstallState {
+    <#
+    .SYNOPSIS
+        Begins the install state for AME Wizard, and returns a line for each record
+        it changed and the line that says what it began. An update from an Atlas
+        older than 0.6 first rewrites the toggle records it left, as Atlas
+        Manager's Capture does, and once: a run whose steps began has already
+        rewritten them, and its legacy choices step has since removed the launcher
+        paths the rules go by.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$Mode,
+        [bool]$IsOobe
+    )
+
+    $targetVersion = Get-AtlasPlaybookVersion
+    $held = $null -ne (Resolve-AtlasInstallChoices -TargetVersion $targetVersion -Mode $Mode).ResumedOptions
+    # Begun first, so a run another install holds stops before a record changes.
+    $state = Start-AtlasInstallState `
+        -TargetVersion $targetVersion `
+        -Mode $Mode `
+        -IsOobe $IsOobe `
+        -CaptureNonce ([guid]::NewGuid().ToString('D'))
+    if (-not $held -and [string]$state.mode -cin @('Upgrade', 'Reapply')) {
+        @(Repair-AtlasToolboxRecord -InstalledVersion (Get-AtlasInstalledVersion))
+    }
+    "Atlas install state ready for $($state.mode) (OOBE=$($state.isOobe))."
+}
+
 switch ($Operation) {
     'Begin' {
         if ([string]::IsNullOrWhiteSpace($Mode)) {
@@ -119,12 +148,7 @@ switch ($Operation) {
         # where the front door would refuse or choose a Rebase.
         . (Join-Path -Path $scriptsRoot -ChildPath 'Preparation\WindowsTransition.ps1')
         Assert-AtlasWindowsTransitionAllowsAme -WindowsBuild ([int](Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name CurrentBuildNumber).CurrentBuildNumber)
-        $state = Start-AtlasInstallState `
-            -TargetVersion (Get-AtlasPlaybookVersion) `
-            -Mode $Mode `
-            -IsOobe ([bool]$Oobe) `
-            -CaptureNonce ([guid]::NewGuid().ToString('D'))
-        Write-Output "Atlas install state ready for $($state.mode) (OOBE=$($state.isOobe))."
+        Start-AtlasWizardInstallState -Mode $Mode -IsOobe ([bool]$Oobe)
     }
     'RecordOption' {
         if ([string]::IsNullOrWhiteSpace($Option)) {

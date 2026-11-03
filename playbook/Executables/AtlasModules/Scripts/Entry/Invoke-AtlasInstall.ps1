@@ -92,7 +92,7 @@ function Invoke-AtlasInstallAction {
 
     $phaseTargets = @(
         'PreInstall', 'ShellRefresh', 'Environment', 'Features', 'Software',
-        'Services', 'Components', 'AppxSupport', 'Defaults'
+        'Services', 'Components', 'AppxSupport', 'Choices', 'Defaults'
     )
     $tweakTargets = @(
         'networking', 'performance', 'privacy', 'qol',
@@ -303,6 +303,61 @@ function Write-AtlasInstallMessage {
     else { Write-Output $Message }
 }
 
+function Complete-AtlasInstallRun {
+    <#
+    .SYNOPSIS
+        Completes the install state, recording what the PC has for each install
+        choice now the plan has run, and which of the choices the plan tried to
+        apply the PC doesn't have, and logs each choice recorded otherwise than
+        requested. A PC that can't be read records the request, with a warning.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][object]$State,
+        [Parameter(Mandatory = $true)][AllowEmptyCollection()][string[]]$RequiredSteps,
+        [Parameter(Mandatory = $true)][string]$FlagsPath
+    )
+
+    # Read before completion takes the install-state lock: the readers list every
+    # account's apps, which takes a while.
+    $completion = @{ RequiredSteps = $RequiredSteps; FlagsPath = $FlagsPath }
+    try {
+        $recorded = Get-AtlasRecordedOption -State $State
+        foreach ($warning in @($recorded.Warnings)) {
+            Write-AtlasInstallMessage -Level Warning -Message $warning
+        }
+        foreach ($change in @($recorded.Changes)) {
+            Write-AtlasInstallMessage -Message ([string]$change.Message)
+        }
+        $completion.RecordedOptions = [string[]]@($recorded.Options)
+        if ($null -ne $recorded.NotApplied) {
+            $completion.NotApplied = [string[]]@($recorded.NotApplied)
+        }
+    }
+    catch {
+        Write-AtlasInstallMessage -Level Warning -Message "Couldn't read what this PC shows, so the requested choices are recorded: $($_.Exception.Message)"
+    }
+    return Complete-AtlasInstallState @completion
+}
+
+function New-AtlasInstallCompleteInvoker {
+    <#
+    .SYNOPSIS
+        The plan's completion callback, which completes this state through
+        Complete-AtlasInstallRun, so the record says what the PC has.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][object]$State,
+        [Parameter(Mandatory = $true)][string]$FlagsPath
+    )
+
+    # The closure's dynamic module can't resolve this script's functions by name.
+    $completeRun = ${function:Complete-AtlasInstallRun}
+    return {
+        param($RequiredSteps)
+        & $completeRun -State $State -RequiredSteps $RequiredSteps -FlagsPath $FlagsPath
+    }.GetNewClosure()
+}
+
 function New-AtlasInstallAnnouncedAction {
     param(
         [Parameter(Mandatory = $true)][string]$Name,
@@ -347,8 +402,11 @@ try {
     if ($null -eq $state) {
         throw 'No committed Atlas install state is active.'
     }
+    # An install state written before the update path existed keeps the choices.
+    $choices = $state.PSObject.Properties['choices']
     $plan = @(Get-AtlasInstallPlan -Mode ([string]$state.mode) `
-            -IsOobe ([bool]$state.isOobe))
+            -IsOobe ([bool]$state.isOobe) `
+            -ChooseAgain ($null -ne $choices -and [string]$choices.Value -ceq 'ChooseAgain'))
     $installedScriptsRoot = [IO.Path]::Combine(
         [Environment]::GetFolderPath('Windows'),
         'AtlasModules',
@@ -373,11 +431,7 @@ try {
         }
         return $step
     }
-    $completeInvoker = {
-        param($RequiredSteps)
-        Complete-AtlasInstallState -RequiredSteps $RequiredSteps `
-            -FlagsPath $installFlagsPath
-    }.GetNewClosure()
+    $completeInvoker = New-AtlasInstallCompleteInvoker -State $state -FlagsPath $installFlagsPath
     $scriptRunner = {
         param($Path, $Parameters)
         if (-not [IO.File]::Exists($Path)) {

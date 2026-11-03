@@ -20,6 +20,7 @@
         'Set-AtlasLogConsoleStyle'
         'Get-AtlasLogConsoleStyle'
         'Get-AtlasInstallLogPath'
+        'Invoke-AtlasInstallLogRetention'
         # Privilege
         'Test-AtlasAdmin'
         'Test-AtlasSystem'

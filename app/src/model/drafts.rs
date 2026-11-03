@@ -3,7 +3,7 @@
 
 use gpui::Context;
 
-use super::{AppModel, Notice, Step};
+use super::{AppModel, Notice, Step, UpdatePath};
 use crate::services::session::SessionRecord;
 use crate::services::settings::{AppSettings, InstallDraft};
 
@@ -46,6 +46,13 @@ impl AppModel {
             windows_terms_accepted: self.windows_terms_accepted,
             used_windows_accepted: self.used_windows_accepted,
             recorded_choices_applied: self.recorded_choices_applied,
+            // What the install would be asked, so the draft that launched one
+            // names how it ran.
+            update_path: Some(
+                if self.choosing_again() { UpdatePath::ChooseAgain } else { UpdatePath::Keep }
+                    .id()
+                    .to_owned(),
+            ),
             store_outcome: self.store_outcome_seen.map(|outcome| outcome.id().to_owned()),
         })
     }
@@ -150,6 +157,7 @@ impl AppModel {
             dismissed_preview_notices,
             protection_reminder_dismissed,
             defender_missing_dismissed,
+            defender_not_restored_dismissed,
             protection_reminder_pending,
         } = self.settings.clone();
         let draft = self.current_draft();
@@ -172,6 +180,9 @@ impl AppModel {
                 }
                 if defender_missing_dismissed.is_some() {
                     doc.defender_missing_dismissed = defender_missing_dismissed;
+                }
+                if defender_not_restored_dismissed.is_some() {
+                    doc.defender_not_restored_dismissed = defender_not_restored_dismissed;
                 }
                 doc.protection_reminder_pending = protection_reminder_pending;
                 write_draft(doc, draft, unsaved)
@@ -336,13 +347,15 @@ pub fn draft_owned_by(on_disk: &Option<InstallDraft>, flow: Option<&str>) -> boo
 /// Whether `draft` launched `record`: it names the record's session. A draft
 /// that names no session counts only if it has no owner and stood at the
 /// Install step for the record's package, with every option the record ran
-/// among its choices.
+/// among its choices and, once drafts said so, the same update path.
 pub fn draft_launched(draft: &InstallDraft, record: &SessionRecord) -> bool {
     if draft.session.is_some() {
         return draft.session.as_deref() == Some(record.id.as_str());
     }
+    let chose_again = |path: &str| UpdatePath::from_id(path) == Some(UpdatePath::ChooseAgain);
     draft.flow.is_none()
         && draft.step == Step::Install.name()
         && draft.playbook_dir.as_deref() == Some(record.request.playbook_dir.as_path())
         && record.request.options.iter().all(|option| draft.options.contains(option))
+        && draft.update_path.as_deref().is_none_or(|path| chose_again(path) == record.request.choose_again)
 }

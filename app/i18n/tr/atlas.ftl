@@ -463,7 +463,8 @@ playbook-page-browser-brave-description = Yüklenecek bir tarayıcı seçin. Atl
 security-banner-reading-title = Windows Güvenliği denetleniyor
 security-banner-reading-message = Atlas aşağıdaki dört koruma anahtarını denetliyor.
 security-banner-off-title = Dört koruma anahtarı da kapalı
-# Shown instead of the switch list when an earlier Atlas install removed Microsoft Defender.
+# Shown instead of the switch list when Microsoft Defender isn't on this PC and the user
+# chose to remove it.
 security-banner-absent-title = Microsoft Defender bu bilgisayarda yüklü değil
 security-banner-absent-message = Bu adımda kapatılacak bir şey yok. Devam et'i seçin.
 security-banner-off-message = Kurulumunuzu gözden geçirmek ve Atlas'ı kurmak için Devam et'i seçin.
@@ -518,9 +519,16 @@ outcome-preparation-stale-resumed = Atlas, Windows ve Store uygulamalarının g�
 outcome-failed-preflight = Kurulum, hiçbir şey değiştirilmeden durdu. Yeniden deneyebilirsiniz. Yine durursa Rapor gönder'i seçin.
 outcome-failed-staging = Kurulum, dosyalar hazırlanırken ve Windows değiştirilmeden önce durdu. Yeniden deneyebilirsiniz. Yine durursa Rapor gönder'i seçin.
 outcome-failed-applying = Bazı değişiklikler yapılmış olabilir. Yeniden deneyebilirsiniz. Burada duracaksanız, kapattığınız korumaları hâlâ mevcutsa Windows Güvenliği'nde yeniden açın.
+outcome-failed-applying-defender-removed = Bazı değişiklikler yapılmış olabilir. Yeniden deneyebilirsiniz. Kurulum yine durursa Rapor gönder'i seçin.
 outcome-failed-resumed = Bu deneme erken durdu, ancak önceki bir deneme değişiklik yapmaya zaten başlamıştı. Yeniden deneyebilirsiniz. Burada duracaksanız, kapattığınız korumaları hâlâ mevcutsa Windows Güvenliği'nde yeniden açın.
+outcome-failed-resumed-defender-removed = Bu deneme erken durdu, ancak önceki bir deneme değişiklik yapmaya zaten başlamıştı. Yeniden deneyebilirsiniz. Kurulum yine durursa Rapor gönder'i seçin.
+outcome-failed-repeated = Bu deneme öncekiyle aynı hatayla durdu ve bazı değişiklikler yapılmış olabilir. Hiçbir şeyi değiştirmeden yeniden denemenin işe yaraması pek olası değil. Atlas ekibinin nedeni bulabilmesi için Rapor gönder'i seçin. Burada duracaksanız, kapattığınız korumaları hâlâ mevcutsa Windows Güvenliği'nde yeniden açın.
+outcome-failed-repeated-defender-removed = Bu deneme öncekiyle aynı hatayla durdu ve bazı değişiklikler yapılmış olabilir. Hiçbir şeyi değiştirmeden yeniden denemenin işe yaraması pek olası değil. Atlas ekibinin nedeni bulabilmesi için Rapor gönder'i seçin.
+outcome-failed-repeated-apps = Windows şunları yine kaldırmadı: { $apps }. Bu nedenle bu deneme de öncekiyle aynı hatayla durdu. Bazı değişiklikler yapılmış olabilir. Hiçbir şeyi değiştirmeden yeniden denemenin işe yaraması pek olası değil. Atlas ekibinin nedeni bulabilmesi için Rapor gönder'i seçin. Burada duracaksanız, kapattığınız korumaları hâlâ mevcutsa Windows Güvenliği'nde yeniden açın.
+outcome-failed-repeated-apps-defender-removed = Windows şunları yine kaldırmadı: { $apps }. Bu nedenle bu deneme de öncekiyle aynı hatayla durdu. Bazı değişiklikler yapılmış olabilir. Hiçbir şeyi değiştirmeden yeniden denemenin işe yaraması pek olası değil. Atlas ekibinin nedeni bulabilmesi için Rapor gönder'i seçin.
 outcome-not-started = Yükleyici zamanında başlamadı. Kurulum hiçbir değişiklik yapmadı. Yeniden deneyebilirsiniz.
 outcome-lost = Yükleyici bir sonuç bildirmeden durdu ve bazı değişiklikler yapılmış olabilir. Yeniden deneyebilirsiniz. Burada duracaksanız, kapattığınız korumaları hâlâ mevcutsa Windows Güvenliği'nde yeniden açın.
+outcome-lost-defender-removed = Yükleyici bir sonuç bildirmeden durdu ve bazı değişiklikler yapılmış olabilir. Yeniden deneyebilirsiniz. Yine durursa Rapor gönder'i seçin.
 restart-now-message = Atlas kurulumunu tamamlamak için Windows yeniden başlatılıyor.
 restart-countdown =
     { $seconds ->
@@ -629,9 +637,9 @@ installed-security-message = Microsoft Defender'ı tuttunuz, ancak bazı korumal
 installed-defender-removed-title = Microsoft Defender kaldırıldı
 installed-defender-removed-message = Başka bir virüsten koruma uygulaması yükleyene kadar bilgisayarınızda virüsten koruma olmaz. SmartScreen de kaldırıldı, bu yüzden Windows, tanınmayan uygulamaları veya indirilen dosyaları açmadan önce sizi uyarmaz.
 # Home and the "Atlas is installed" window, after an installation that kept Microsoft Defender,
-# when it is missing. Its title is security-banner-absent-title; "Report a problem" is
-# home-report-problem, its button.
-installed-defender-missing-message = Microsoft Defender'ı tutmayı seçtiniz, ancak Defender bilgisayarınızda yok. Başka bir virüsten koruma uygulaması kullanmıyorsanız bilgisayarınızı korumak için bir tane yükleyin. Defender'ı kendiniz kaldırmadıysanız Sorun bildir'i seçin.
+# when it is missing and no Atlas package removed it. Its title is security-banner-missing-title;
+# "Report a problem" is home-report-problem, its button.
+installed-defender-missing-message = Microsoft Defender'ı tutmayı seçtiniz, ancak Defender bilgisayarınızda yok ve onu Atlas kaldırmadı. Başka bir virüsten koruma uygulaması kullanmıyorsanız bilgisayarınızı korumak için bir tane yükleyin. Defender'ı kendiniz kaldırmadıysanız Sorun bildir'i seçin.
 
 ## Settings
 
@@ -1204,10 +1212,44 @@ mode-rebase = Windows güncelleştirmesinden sonra yeniden kurulum
 history-mode-rebase = Windows güncelleştirmesinden sonra yeniden kurulum
 ready-rebase-title = Windows güncelleştirme sırasında kendini yeniden yükledi
 ready-rebase-message = Windows 11 { $release } sürümü bu bilgisayardaki önceki Windows'un yerini aldı, bu yüzden Atlas'ın bazı değişiklikleri kayboldu. Atlas { $version }, Atlas { $previous } için yaptığınız seçimlerle bunları yeniden uygular.
-upgrade-choices-title = Atlas { $previous } sürümündeki seçimleriniz
-upgrade-choices-detail = Atlas, Atlas { $previous } sürümünün bu bilgisayarda ayarladıklarından yola çıktı. Güncelleştirme bu seçimlerin yaptıklarını korur, bu yüzden burada bir ek özelliğin işaretini kaldırmak onu geri almaz. Birini daha sonra değiştirmek için Atlas klasörünü veya Windows Ayarları'nı kullanın.
+update-path-update-title = Atlas { $version } sürümüne nasıl güncelleştirmek istersiniz?
+update-path-reinstall-title = Atlas { $version } sürümünü nasıl yeniden kurmak istersiniz?
+update-path-keep = Seçimlerimi koru
+update-path-keep-detail = Atlas her seçimi bu bilgisayardaki şu anki hâliyle korur ve hiçbirini değiştirmez. Bu daha hızlı yoldur.
+update-path-choose = Yeniden seç
+update-path-choose-detail = Bu bilgisayarın şu anki durumundan başlayarak her seçimi yeniden yapın. Atlas her birini yeni bir kurulumdaki gibi uygular. Uygulamalarınız, dosyalarınız, Başlat menüsü, görev çubuğu ve temanız olduğu gibi kalır; Atlas klasöründe değiştirdiğiniz ve bu seçimlerin kapsamadığı ayarlar da öyle.
+update-path-now-title = Bu bilgisayardaki mevcut seçimleriniz
+update-path-unknown = Atlas bunu bilgisayarınızdan anlayamıyor, bu yüzden size soracak
+update-path-differs = Atlas'ın son kurulumunuzla ilgili kaydı şu seçimlerde bu bilgisayarla eşleşmiyor: { $choices }. Bu liste bilgisayarın şu anki durumunu gösterir.
+keep-choices-title = Seçimleriniz korunuyor
+keep-choices-partial = Atlas bu bilgisayarın şu anki durumunu korur. Şunları bilgisayarınızdan anlayamıyor, bu yüzden bunları siz seçin: { $missing }
+choose-again-title = Yeniden seçiyorsunuz
+choose-again-detail = Her seçim bu bilgisayarın şu anki durumundan başlar. Atlas seçtiklerinizi kurulum sırasında uygular.
+option-now = Şu anda bu bilgisayarda
+change-defender-enable = Atlas, Microsoft Defender'ı geri getirir. Bilgisayarınız yeniden başladıktan sonra korumasını Windows Güvenliği'nde açın.
+change-mitigations-default = Atlas, işlemci korumalarını Windows'un varsayılan ayarlarıyla yeniden açar. Bu değişiklik, bilgisayarınız yeniden başladıktan sonra geçerli olur.
+change-mitigations-all-on = Şu anda tüm işlemci korumaları açık. Korumaları tutarsanız hepsi açık kalır.
+change-auto-updates-default = Atlas, Windows'un güncelleştirmeleri yeniden otomatik olarak yüklemesine izin verir.
+change-hibernation-on = Atlas hazırda bekletmeyi yeniden açar.
+change-power-saving-on = Atlas güç tasarrufunu yeniden açar ve önceki güç planınıza, önceki bir plan yoksa Dengeli plana geri döner.
+change-core-isolation-on = Atlas, sanallaştırma tabanlı güvenliği (VBS) yeniden açar; ancak bu bilgisayarda bir ilke bunu denetliyorsa açmaz. Bu değişiklik, bilgisayarınız yeniden başladıktan sonra geçerli olur.
+change-remove-snipping-tool = Ekran Alıntısı Aracı'nı bu bilgisayardaki herkes için kaldırır. Atlas onu daha sonra geri getiremez, ancak Microsoft Store'dan yeniden yükleyebilirsiniz.
+fixed-uninstall-edge = Microsoft Edge zaten kaldırılmış ve Atlas'ı güncelleştirmek onu geri getiremez. Yeniden yüklemek için Atlas klasöründeki Install or Remove Edge dosyasını kullanın.
+fixed-installed = { $app } yüklü. Atlas uygulamaları kaldırmaz; bu uygulamayı kaldırmak için Windows Ayarları'ndaki Yüklü uygulamalar sayfasını açın.
+browser-also = { $installed } yüklü kalır ve Atlas ayrıca { $browser } tarayıcısını yükler.
+summary-update-path = Güncelleştirme yöntemi
+step-heading-update-path-a11y = { $heading }. { $question }
+security-banner-removed-title = Atlas, Microsoft Defender'ı bu bilgisayardan kaldırdı
+security-banner-restore-title = Atlas bu kurulumda Microsoft Defender'ı geri getiriyor
+security-banner-restore-message = Defender henüz çalışmıyor, bu yüzden bu adımda kapatılacak bir şey yok. Bilgisayarınız yeniden başladıktan sonra korumasını Windows Güvenliği'nde açın. Devam et'i seçin.
+security-banner-missing-title = Microsoft Defender bulunamadı
+security-banner-missing-message = Atlas onu kaldırmadı, bu yüzden geri getiremez. Devam edebilirsiniz, ancak başka bir virüsten koruma uygulaması yükleyene veya Windows'u onarana kadar bilgisayarınızda virüsten koruma olmaz.
+installed-defender-not-restored-title = Microsoft Defender hâlâ kaldırılmış durumda
+installed-defender-not-restored-message = Microsoft Defender'ı tutmayı seçtiniz, ancak önceki bir Atlas güncelleştirmesi onu geri getirmedi, bu yüzden bilgisayarınızda virüsten koruma yok. Geri getirmek için Atlas'ı güncelleştirin veya yeniden kurun ve Yeniden seç seçeneğini belirleyin. Ya da masaüstünüzdeki Atlas klasöründe 7. Security > Defender klasörünü açın, Toggle Defender dosyasını çalıştırın, Enable Windows Defender seçeneğini belirleyin ve bilgisayarınızı yeniden başlatın.
+choices-not-applied-title = Bazı seçimler uygulanmadı
+choices-not-applied-message = Atlas şu seçimler için bu bilgisayarın şu anki durumunu kaydetti: { $choices }. Nedenini kurulum günlüğünde bulabilirsiniz.
 rebase-choices-title = Atlas { $previous } sürümündeki seçimleriniz
-rebase-choices-detail = Atlas, Atlas { $previous } için yaptığınız seçimleri kullanır, bu yüzden burada seçilecek bir şey yok. Bunları daha sonra Atlas klasöründen değiştirebilirsiniz.
+rebase-choices-detail = Atlas, Atlas { $previous } için yaptığınız seçimleri kullanır, bu yüzden burada seçilecek bir şey yok. Bunları sonradan değiştirmek için Atlas'ı yeniden kur'u seçin, ardından Yeniden seç seçeneğini belirleyin.
 rebase-choices-partial = Atlas, Atlas { $previous } için yaptığınız seçimleri kullanır. Şunları bulamadı, bu yüzden bunları denetleyin: { $missing }
 restart-other-title = Bu bilgisayarda başka biri oturum açmış
 restart-others-title = Bu bilgisayarda başka kişiler oturum açmış
