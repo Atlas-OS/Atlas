@@ -21,9 +21,23 @@ function Set-AtlasStartPinnedFolderPolicy {
         'AllowPinnedFolderPersonalFolder'
     )
 
-    $instances = @(Get-CimInstance -Namespace $namespace -ClassName $className `
-            -Filter "ParentID='$parentId' and InstanceID='$instanceId'" `
-            -ErrorAction Stop)
+    try {
+        $instances = @(Get-CimInstance -Namespace $namespace -ClassName $className `
+                -Filter "ParentID='$parentId' and InstanceID='$instanceId'" `
+                -ErrorAction Stop)
+    }
+    catch {
+        Write-Warning "Start policy CSP query failed: $($_.Exception.Message). Applying registry fallback."
+        $policyManagerPath = 'HKLM:\SOFTWARE\Microsoft\PolicyManager\current\device\Start'
+        if (-not (Test-Path -LiteralPath $policyManagerPath)) {
+            New-Item -Path $policyManagerPath -Force -ErrorAction SilentlyContinue | Out-Null
+        }
+        foreach ($name in $folderProperties) {
+            Set-ItemProperty -Path $policyManagerPath -Name $name -Value 0 -Type DWord -ErrorAction SilentlyContinue
+        }
+        return
+    }
+
     if ($instances.Count -gt 1) {
         throw "The Start policy CSP returned more than one configuration instance."
     }
@@ -36,15 +50,41 @@ function Set-AtlasStartPinnedFolderPolicy {
         foreach ($name in $folderProperties) {
             $properties[$name] = 0
         }
-        $instance = New-CimInstance -Namespace $namespace -ClassName $className `
-            -Property $properties -ErrorAction Stop
+        try {
+            $instance = New-CimInstance -Namespace $namespace -ClassName $className `
+                -Property $properties -ErrorAction Stop
+        }
+        catch {
+            Write-Warning "Start pinned-folder policy via MDM bridge was not supported on this build: $($_.Exception.Message). Applying registry fallback."
+            $policyManagerPath = 'HKLM:\SOFTWARE\Microsoft\PolicyManager\current\device\Start'
+            if (-not (Test-Path -LiteralPath $policyManagerPath)) {
+                New-Item -Path $policyManagerPath -Force -ErrorAction SilentlyContinue | Out-Null
+            }
+            foreach ($name in $folderProperties) {
+                Set-ItemProperty -Path $policyManagerPath -Name $name -Value 0 -Type DWord -ErrorAction SilentlyContinue
+            }
+            return
+        }
     }
     else {
         $instance = $instances[0]
         foreach ($name in $folderProperties) {
             $instance.CimInstanceProperties[$name].Value = 0
         }
-        $instance = Set-CimInstance -CimInstance $instance -PassThru -ErrorAction Stop
+        try {
+            $instance = Set-CimInstance -CimInstance $instance -PassThru -ErrorAction Stop
+        }
+        catch {
+            Write-Warning "Start pinned-folder policy update via MDM bridge was not supported on this build: $($_.Exception.Message). Applying registry fallback."
+            $policyManagerPath = 'HKLM:\SOFTWARE\Microsoft\PolicyManager\current\device\Start'
+            if (-not (Test-Path -LiteralPath $policyManagerPath)) {
+                New-Item -Path $policyManagerPath -Force -ErrorAction SilentlyContinue | Out-Null
+            }
+            foreach ($name in $folderProperties) {
+                Set-ItemProperty -Path $policyManagerPath -Name $name -Value 0 -Type DWord -ErrorAction SilentlyContinue
+            }
+            return
+        }
     }
 
     foreach ($name in $folderProperties) {
