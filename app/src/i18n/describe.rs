@@ -1236,7 +1236,7 @@ mod tests {
             );
             let busy = activity(Some(WU_E_INSTALL_NOT_ALLOWED), None);
             assert_eq!(preparation_failure(Some(&busy), false), t!("prepare-install-busy"));
-            // As one RC10 tester's .NET update failed on a fresh install.
+            // A damaged component store, which can stop any update, even on a fresh install.
             let damaged = activity(Some("0x80073712"), None);
             assert!(component_store_damaged(&damaged));
             assert_eq!(preparation_failure(Some(&damaged), false), t!("prepare-failed-component-store"));

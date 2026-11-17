@@ -273,8 +273,12 @@ pub fn run(id: CheckId, ctx: &CheckContext) -> CheckResult {
             Err(error) => (Verdict::Unknown, D::ActivationUnknown { error: format!("{error:#}") }),
         },
     };
-    if verdict == Verdict::Unknown {
-        log::warn!("check {id:?} could not run: {detail:?}");
+    // Checks run when asked, not on a timer, so the log keeps every result that held
+    // the install back.
+    match verdict {
+        Verdict::Unknown => log::warn!("check {id:?} could not run: {detail:?}"),
+        Verdict::Fail => log::info!("check {id:?} failed: {detail:?}"),
+        _ => {}
     }
     CheckResult { id, verdict, detail }
 }

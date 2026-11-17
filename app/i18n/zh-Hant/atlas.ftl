@@ -991,7 +991,7 @@ check-user-account = 使用者帳戶
 detail-user-account-ok = UAC 已啟用，您的帳戶已準備好進行安裝。
 detail-user-account-not-ready = 請啟用使用者帳戶控制（UAC），重新啟動電腦後再試。如果您使用的是內建 Administrator 帳戶，請使用另一個系統管理員帳戶登入。
 detail-user-account-work-or-school = 無法從公司或學校帳戶（Microsoft Entra ID）安裝 Atlas。請使用本機帳戶或 Microsoft 帳戶登入，然後再試一次。
-detail-user-account-unknown = Atlas 無法檢查您的使用者帳戶。請在安裝前重新檢查。Windows 回報：{ $error }
+detail-user-account-unknown = Atlas 無法檢查您的使用者帳戶。請重新啟動電腦，然後重新開啟 Atlas 並再次檢查。如果持續發生這種情況，請選擇「傳送報告」。Windows 回報：{ $error }
 
 footer-prepare-required = 請先完成 Windows 和市集應用程式的更新再繼續
 footer-prepare-stopping = 目前步驟完成後即會停止更新…

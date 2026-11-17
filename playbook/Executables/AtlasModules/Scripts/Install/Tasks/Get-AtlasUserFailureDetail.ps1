@@ -43,3 +43,56 @@ function Get-AtlasUserFailureDetail {
     }
 }
 
+function Get-AtlasUserLogError {
+    <#
+    .SYNOPSIS
+        Returns the newest error a user's own Atlas log recorded since NotBefore, so a
+        failed user pass names the change that failed instead of only an exit code.
+        Write-AtlasLog keeps a non-elevated account's log in that account's profile.
+    #>
+    param(
+        # Empty adds nothing, so a missing account never replaces the failure.
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyString()]
+        [string]$UserSid,
+
+        # The log's times are local and to the second.
+        [datetime]$NotBefore = [datetime]::MinValue
+    )
+
+    if ([string]::IsNullOrWhiteSpace($UserSid)) {
+        return ''
+    }
+    try {
+        $profileKey = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\$UserSid"
+        $profilePath = (Get-ItemProperty -LiteralPath $profileKey -Name 'ProfileImagePath' -ErrorAction Stop).ProfileImagePath
+        $profilePath = [Environment]::ExpandEnvironmentVariables([string]$profilePath)
+        $log = [IO.Path]::Combine($profilePath, 'AppData', 'Local', 'AtlasOS', 'Logs', 'install', 'atlas-install.log')
+        if (-not [IO.File]::Exists($log)) {
+            return ''
+        }
+
+        if ($NotBefore.Kind -eq [DateTimeKind]::Utc) { $NotBefore = $NotBefore.ToLocalTime() }
+        $since = $NotBefore.AddTicks(-($NotBefore.Ticks % [TimeSpan]::TicksPerSecond))
+        $pattern = '^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] \[[^\]]*\] \[ERROR\] (.+)$'
+        $newest = ''
+        foreach ($line in @(Get-Content -LiteralPath $log -Tail 200 -Encoding UTF8 -ErrorAction Stop)) {
+            $match = [regex]::Match([string]$line, $pattern)
+            if (-not $match.Success) { continue }
+            $written = [datetime]::ParseExact($match.Groups[1].Value, 'yyyy-MM-dd HH:mm:ss', [Globalization.CultureInfo]::InvariantCulture)
+            if ($written -ge $since) {
+                # Without the script position Write-AtlasLog appends after ' | '.
+                $newest = $match.Groups[2].Value -replace ' \| At .*$', ''
+            }
+        }
+        if ($newest -eq '') {
+            return ''
+        }
+        return " $newest"
+    }
+    catch {
+        # Diagnostics must never replace the failure they are describing.
+        return ''
+    }
+}
+

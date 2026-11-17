@@ -134,9 +134,12 @@ pub fn is_elevated() -> bool {
 /// enough: UAC turned back on takes effect only after a restart, and until
 /// then an administrator has no limited token to run the user's part with.
 pub fn user_account_ready() -> Result<bool> {
-    let enabled = LOCAL_MACHINE
-        .open(r"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System")?
-        .get_u32("EnableLUA")?;
+    let enabled = match LOCAL_MACHINE.open(r"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System") {
+        Ok(key) => enable_lua(&key)?,
+        // No policy key at all: every UAC setting has its default.
+        Err(error) if error.code().0 == super::registry::NOT_FOUND => 1,
+        Err(error) => return Err(error).context("open the UAC policy key"),
+    };
     unsafe {
         let mut token = HANDLE::default();
         OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token)?;
@@ -162,6 +165,17 @@ pub fn user_account_ready() -> Result<bool> {
         })();
         let _ = CloseHandle(token);
         result
+    }
+}
+
+/// EnableLUA as Windows applies it. PCs tweaked beyond Atlas can be missing
+/// the value, and Windows then uses its default, 1. The token check still
+/// decides whether UAC is in effect, so only an unreadable value is an error.
+fn enable_lua(key: &windows_registry::Key) -> Result<u32> {
+    match key.get_u32("EnableLUA") {
+        Ok(value) => Ok(value),
+        Err(error) if error.code().0 == super::registry::NOT_FOUND => Ok(1),
+        Err(error) => Err(error).context("read EnableLUA"),
     }
 }
 
@@ -776,6 +790,18 @@ mod tests {
         assert!(!user_account_token_ready(0, TokenElevationTypeFull, true));
         assert!(!user_account_token_ready(2, TokenElevationTypeFull, true));
         assert!(!user_account_token_ready(1, TOKEN_ELEVATION_TYPE(0), false));
+    }
+
+    /// Only an unreadable value fails the check; a missing one is the default.
+    #[test]
+    fn a_missing_enable_lua_is_the_windows_default() {
+        let test = crate::services::test_support::TestKey::new("uac-policy");
+        assert_eq!(enable_lua(&test.key).unwrap(), 1, "a missing value is Windows' default");
+        test.key.set_u32("EnableLUA", 0).unwrap();
+        assert_eq!(enable_lua(&test.key).unwrap(), 0);
+        // A value Windows can't read as a number is still a failed check.
+        test.key.set_string("EnableLUA", "1").unwrap();
+        assert!(enable_lua(&test.key).is_err());
     }
 
     /// The install plan acts only for local accounts and Microsoft accounts,

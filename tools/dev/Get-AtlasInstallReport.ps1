@@ -1293,6 +1293,15 @@ Add-Section -Title '12. Windows version transition' -Collector {
         }
     }
     catch { $lines += "(history unavailable: $($_.Exception.Message))" }
+    # The servicing logs' tails are read first: the store check below writes to both
+    # and would push out what the failed Atlas or Windows run left there.
+    $logTails = foreach ($log in @(
+            @{ Path = (Join-Path -Path $windir -ChildPath 'Logs\CBS\CBS.log'); Lines = 300 }
+            @{ Path = (Join-Path -Path $windir -ChildPath 'Logs\DISM\dism.log'); Lines = 200 }
+        )) {
+        try { Get-FileTail -Path $log.Path -Count $log.Lines }
+        catch { "(unreadable: $($log.Path): $($_.Exception.Message))" }
+    }
     # The component store's state and what Windows's newest full store check found.
     try { $lines += "Component store: $((Repair-WindowsImage -Online -CheckHealth -ErrorAction Stop).ImageHealthState)" }
     catch { $lines += ("Component store: (check failed, 0x{0:X8}: {1})" -f $_.Exception.HResult, $_.Exception.Message) }
@@ -1316,13 +1325,7 @@ Add-Section -Title '12. Windows version transition' -Collector {
         }
     }
     catch { $lines += "Newest store check: (unreadable: $($_.Exception.Message))" }
-    foreach ($log in @(
-            @{ Path = (Join-Path -Path $windir -ChildPath 'Logs\CBS\CBS.log'); Lines = 300 }
-            @{ Path = (Join-Path -Path $windir -ChildPath 'Logs\DISM\dism.log'); Lines = 200 }
-        )) {
-        try { $lines += Get-FileTail -Path $log.Path -Count $log.Lines }
-        catch { $lines += "(unreadable: $($log.Path): $($_.Exception.Message))" }
-    }
+    $lines += @($logTails)
     foreach ($logName in @('Microsoft-Windows-WindowsUpdateClient/Operational', 'Setup')) {
         $lines += "-- $logName (newest $script:EventListCount) --"
         try {

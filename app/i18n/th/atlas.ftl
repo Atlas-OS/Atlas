@@ -1012,7 +1012,7 @@ check-user-account = บัญชีผู้ใช้
 detail-user-account-ok = เปิดใช้งาน UAC แล้ว และบัญชีของคุณพร้อมสำหรับการติดตั้ง
 detail-user-account-not-ready = เปิดการควบคุมบัญชีผู้ใช้ (UAC) รีสตาร์ตพีซี แล้วลองอีกครั้ง หากคุณใช้บัญชี Administrator ที่มีมาในระบบ ให้เข้าสู่ระบบด้วยบัญชีผู้ดูแลระบบอื่น
 detail-user-account-work-or-school = ไม่สามารถติดตั้ง Atlas จากบัญชีที่ทำงานหรือโรงเรียน (Microsoft Entra ID) ได้ เข้าสู่ระบบด้วยบัญชีภายในเครื่องหรือบัญชี Microsoft แล้วลองอีกครั้ง
-detail-user-account-unknown = Atlas ตรวจสอบบัญชีผู้ใช้ของคุณไม่ได้ ตรวจสอบอีกครั้งก่อนติดตั้ง รายละเอียดจาก Windows: { $error }
+detail-user-account-unknown = Atlas ตรวจสอบบัญชีผู้ใช้ของคุณไม่ได้ รีสตาร์ตพีซี จากนั้นเปิด Atlas อีกครั้งแล้วตรวจสอบใหม่ หากยังเป็นเช่นนี้อยู่ ให้เลือก ส่งรายงาน รายละเอียดจาก Windows: { $error }
 
 footer-prepare-required = อัปเดต Windows และแอปจาก Store ให้เสร็จเพื่อดำเนินการต่อ
 footer-prepare-stopping = กำลังจะหยุดอัปเดตหลังจากขั้นตอนปัจจุบันเสร็จ…

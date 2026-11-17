@@ -1003,7 +1003,7 @@ check-user-account = Akun pengguna
 detail-user-account-ok = UAC aktif dan akun Anda siap untuk penginstalan.
 detail-user-account-not-ready = Aktifkan Kontrol Akun Pengguna (UAC), mulai ulang PC, lalu coba lagi. Jika Anda menggunakan akun Administrator bawaan, masuk dengan akun administrator lain.
 detail-user-account-work-or-school = Atlas tidak dapat diinstal dari akun kerja atau sekolah (Microsoft Entra ID). Masuk dengan akun lokal atau akun Microsoft, lalu coba lagi.
-detail-user-account-unknown = Atlas tidak dapat memeriksa akun pengguna Anda. Periksa lagi sebelum menginstal. Windows melaporkan: { $error }
+detail-user-account-unknown = Atlas tidak dapat memeriksa akun pengguna Anda. Mulai ulang PC, lalu buka kembali Atlas dan periksa lagi. Jika ini terus terjadi, pilih Kirim laporan. Windows melaporkan: { $error }
 
 footer-prepare-required = Selesaikan pembaruan Windows dan aplikasi Store untuk melanjutkan
 footer-prepare-stopping = Menghentikan pembaruan setelah langkah saat ini…

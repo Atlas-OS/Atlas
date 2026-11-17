@@ -621,6 +621,20 @@ exit $fixture.exitCode
         # send the user back to preparation rather than report a failed install.
         Test-AtlasPreparationCurrent -PayloadRoot $payload -JobPath $job | Should -Be $Passes
     }
+
+    It 'names the reason a failed check recorded' {
+        $payload = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        $workerRoot = Join-Path $payload 'AtlasModules\Scripts\Preparation'
+        [void][IO.Directory]::CreateDirectory($workerRoot)
+        Set-Content -LiteralPath (Join-Path $workerRoot 'Update-Windows.ps1') -Value @'
+param([string]$JobPath, [switch]$VerifyOnly)
+@{ schema = 1; status = 'failed'; activity = @{ failureMessage = 'Another Atlas preparation is running.' } } |
+    ConvertTo-Json | Set-Content -LiteralPath (Join-Path $JobPath 'state.json')
+exit 1
+'@
+        { Invoke-AtlasPreparationCheck -PayloadRoot $payload -JobPath (Join-Path $payload 'Verification') } |
+            Should -Throw '*The check reported: Another Atlas preparation is running.*'
+    }
 }
 
 Describe 'User account policy preflight' {
@@ -630,7 +644,7 @@ Describe 'User account policy preflight' {
         Test-AtlasUserAccountReady | Should -BeFalse
         Should -Invoke Initialize-AtlasNativeType -Times 0 -Exactly
         Should -Invoke Get-ItemProperty -Times 1 -Exactly -ParameterFilter {
-            $LiteralPath -eq 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -and $Name -eq 'EnableLUA'
+            $LiteralPath -eq 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
         }
     }
 
@@ -638,6 +652,22 @@ Describe 'User account policy preflight' {
         Mock Get-ItemProperty { Write-Error 'UAC policy access denied' }
         $ready = try { Test-AtlasUserAccountReady } catch { $false }
         $ready | Should -BeFalse
+    }
+
+    # PCs tweaked beyond Atlas can be missing the policy value. Windows then uses its
+    # default, so the user token check decides.
+    It 'leaves a missing EnableLUA <Case> to the user token check' -ForEach @(
+        @{ Case = 'value'; Missing = 'value' }
+        @{ Case = 'policy key'; Missing = 'key' }
+    ) {
+        if ($Missing -eq 'value') {
+            Mock Get-ItemProperty { [pscustomobject]@{ PromptOnSecureDesktop = 0 } }
+        }
+        else {
+            Mock Get-ItemProperty { throw [System.Management.Automation.ItemNotFoundException]::new('Cannot find path') }
+        }
+        Mock Initialize-AtlasNativeType { throw 'user token check reached' }
+        { Test-AtlasUserAccountReady } | Should -Throw '*user token check reached*'
     }
 }
 

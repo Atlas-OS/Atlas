@@ -1222,7 +1222,7 @@ check-user-account = User account
 detail-user-account-ok = UAC is enabled and your account is ready for installation.
 detail-user-account-not-ready = Turn on User Account Control (UAC), restart your PC, then try again. If you use the built-in Administrator account, sign in with another administrator account.
 detail-user-account-work-or-school = Atlas can't be installed from a work or school (Microsoft Entra ID) account. Sign in with a local account or a Microsoft account, then try again.
-detail-user-account-unknown = Atlas couldn't check your user account. Check again before installing. Windows reported: { $error }
+detail-user-account-unknown = Atlas couldn't check your user account. Restart your PC, then reopen Atlas and check again. If this keeps happening, choose Send a report. Windows reported: { $error }
 
 footer-prepare-required = Finish updating Windows and Store apps to continue
 footer-prepare-stopping = Stopping updates after the current step…

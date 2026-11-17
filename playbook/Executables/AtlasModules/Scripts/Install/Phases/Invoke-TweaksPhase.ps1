@@ -34,6 +34,7 @@ $scriptsRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
 $modulesRoot = Join-Path -Path $scriptsRoot -ChildPath 'Modules'
 Import-Module -Name (Join-Path $modulesRoot 'Atlas.Registry\Atlas.Registry.psd1') -Force -ErrorAction Stop
 Import-Module -Name (Join-Path $modulesRoot 'Atlas.Tweaks\Atlas.Tweaks.psd1') -Force -ErrorAction Stop
+. (Join-Path $scriptsRoot 'Install\Tasks\Get-AtlasUserFailureDetail.ps1')
 
 function Invoke-AtlasTweakUserScript {
     param(
@@ -50,10 +51,13 @@ function Invoke-AtlasTweakUserScript {
         '-File', $Path
     ) + $ArgumentList
     $arguments = ConvertTo-AtlasWindowsArgumentString -ArgumentList $hostArguments
+    $started = Get-Date
     $exitCode = Invoke-AtlasAsUser -FilePath $script:powerShellPath `
         -Arguments $arguments -WorkingDirectory ([string]$context.WinDir)
     if ($exitCode -ne 0) {
-        throw "$Description exited with code $exitCode."
+        # The child logs why in the user's own log; name it here so the install's
+        # error says which change failed.
+        throw "$Description exited with code $exitCode.$(Get-AtlasUserLogError -UserSid ([string]$context.InteractiveUserSid) -NotBefore $started)"
     }
 }
 

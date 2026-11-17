@@ -982,7 +982,7 @@ check-user-account = 用户账户
 detail-user-account-ok = UAC 已启用，你的账户已准备好进行安装。
 detail-user-account-not-ready = 请启用用户账户控制 (UAC)，重启电脑后再试。如果你使用的是内置 Administrator 账户，请使用另一个管理员账户登录。
 detail-user-account-work-or-school = 无法从工作或学校账户 (Microsoft Entra ID) 安装 Atlas。请使用本地账户或 Microsoft 账户登录，然后重试。
-detail-user-account-unknown = Atlas 无法检查你的用户账户。请在安装前重新检查。Windows 报告：{ $error }
+detail-user-account-unknown = Atlas 无法检查你的用户账户。请重启电脑，然后重新打开 Atlas 并重新检查。如果此问题持续出现，请选择“发送报告”。Windows 报告：{ $error }
 
 footer-prepare-required = 请完成 Windows 和商店应用的更新以继续
 footer-prepare-stopping = 将在当前步骤完成后停止更新…

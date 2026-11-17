@@ -1,8 +1,8 @@
 # Features phase.
 # Windows optional-feature work via DISM: enable DirectPlay, remove the Steps Recorder
-# capability (fresh installs only), clean the component store while that is safe, and
-# keep the Atlas packages' repair source. Runs as TrustedInstaller and requires online
-# component sources.
+# capability (fresh installs only), clean the component store while that is safe (a
+# failure there only warns), and keep the Atlas packages' repair source. Runs as
+# TrustedInstaller and requires online component sources.
 Assert-AtlasPrivilege -TrustedInstaller
 
 $context = Get-AtlasContext
@@ -23,11 +23,27 @@ function Get-AtlasDismExitDisposition {
     return 'Failure'
 }
 
+function Get-AtlasDismOutputDetail {
+    # What DISM said, without its banner and progress bars: the bars differ on every
+    # run, so the same failure would never read the same twice.
+    param([object[]]$Output = @())
+
+    $lines = foreach ($line in @($Output)) {
+        $text = ([string]$line).Trim()
+        if ($text -eq '' -or $text -match '^\[[=\s\d.%]*\]$' -or
+            $text -match '^(Deployment Image Servicing and Management tool|Version:|Image Version:)') { continue }
+        $text
+    }
+    return (@($lines) -join ' ')
+}
+
 function Invoke-AtlasDism {
     param(
         [Parameter(Mandatory = $true)][string[]]$Arguments,
         [Parameter(Mandatory = $true)][string]$Description,
-        [int[]]$DeferredExitCode = @()
+        [int[]]$DeferredExitCode = @(),
+        # Work the install can do without: a failure is a warning instead of a stop.
+        [switch]$Optional
     )
 
     Write-AtlasLog -Message "DISM: $Description"
@@ -43,8 +59,12 @@ function Invoke-AtlasDism {
         return
     }
     if ($disposition -ceq 'Failure') {
-        $detail = (@($output) | ForEach-Object { "$_" }) -join ' '
-        throw "DISM '$Description' failed with exit code $exitCode. Output: $detail"
+        $detail = Get-AtlasDismOutputDetail -Output $output
+        if ($Optional) {
+            Write-AtlasLog -Level Warning -Message "DISM '$Description' failed with exit code $exitCode; continuing without it. $detail"
+            return
+        }
+        throw "DISM '$Description' failed with exit code $exitCode. $detail"
     }
 }
 
@@ -97,6 +117,8 @@ $atlasPackages = @(Get-AtlasInstalledAtlasPackage)
 
 # A fresh install cleans the store here, before the Components phase installs the
 # Atlas packages. It must never run after them: see Get-AtlasComponentCleanupBlocker.
+# The cleanup only frees space, and Windows can refuse it on PCs whose servicing has
+# been changed, so a failure is a warning and the install carries on.
 $cleanupBlocker = Get-AtlasComponentCleanupBlocker -IsUpgrade ([bool]$context.IsUpgrade) -AtlasPackages $atlasPackages
 if ($cleanupBlocker) {
     Write-AtlasLog -Message "Skipped cleaning the component store: $cleanupBlocker."
@@ -104,7 +126,7 @@ if ($cleanupBlocker) {
 else {
     Invoke-AtlasDism -Description 'Cleaning the component store' -Arguments @(
         '/Online', '/Cleanup-Image', '/StartComponentCleanup'
-    ) -DeferredExitCode @(-2146498554) # 0x800f0806: pending operations
+    ) -DeferredExitCode @(-2146498554) -Optional # 0x800f0806: pending operations
 }
 
 Write-AtlasLog -Message "Atlas packages' repair source: $(Update-AtlasCbsRepairSource -AtlasPackages $atlasPackages)."

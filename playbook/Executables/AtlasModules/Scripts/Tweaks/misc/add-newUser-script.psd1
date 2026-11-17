@@ -9,8 +9,9 @@
         # console. %windir% needs ExpandString (REG_EXPAND_SZ) so Windows expands it
         # when it reads this RunOnce value.
         @{ Path = 'HKU\Atlas_DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce'; Name = 'RunScript'; Type = 'ExpandString'; Data = '"%windir%\System32\wscript.exe" "%windir%\AtlasModules\Scripts\Entry\Invoke-InitializeNewUserHidden.vbs"' }
-        @{ Path = 'HKU\Atlas_DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'; Name = 'SearchboxTaskbarMode'; Type = 'DWord'; Data = 1 }
-        @{ Path = 'HKU\Atlas_DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'; Name = 'SearchboxTaskbarModeCache'; Type = 'DWord'; Data = 1 }
+        # Windows can refuse the search box values even here; new accounts then keep its default.
+        @{ Path = 'HKU\Atlas_DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'; Name = 'SearchboxTaskbarMode'; Type = 'DWord'; Data = 1; AllowOsProtected = $true }
+        @{ Path = 'HKU\Atlas_DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'; Name = 'SearchboxTaskbarModeCache'; Type = 'DWord'; Data = 1; AllowOsProtected = $true }
     )
     # Completion state lives only in each user's HKCU hive. The companion revokes Users
     # write access on the old machine marker, without reading it, and on the install logs.

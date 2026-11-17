@@ -213,7 +213,7 @@ Describe 'USB formatting interruption points' {
             @{Style='MBR'; Value=1; Expected='clear,partition,format'},
             @{Style='GPT'; Value=2; Expected='clear,convert,partition,format'}
         ) {
-            # A USB flash drive Rufus or Windows setup partitioned, as one RC10 tester's was.
+            # A USB flash drive another tool, such as Rufus or Windows setup, already partitioned.
             Mock Assert-AtlasUsbIdentity {
                 $disk = [Microsoft.Management.Infrastructure.CimInstance]::new('MSFT_Disk', 'root/Microsoft/Windows/Storage')
                 $disk.CimInstanceProperties.Add([Microsoft.Management.Infrastructure.CimProperty]::Create('PartitionStyle', [uint16]$Value, [Microsoft.Management.Infrastructure.CimFlags]::None))

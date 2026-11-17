@@ -18,7 +18,7 @@ BeforeAll {
         -Value $definition.Body.GetScriptBlock()
 
     Import-Module (Join-Path $PSHOME 'Modules\Dism\Dism.psd1') -ErrorAction Stop
-    foreach ($name in @('Invoke-AtlasDism', 'Remove-AtlasStepsRecorder', 'Enable-AtlasDirectPlay')) {
+    foreach ($name in @('Get-AtlasDismOutputDetail', 'Invoke-AtlasDism', 'Remove-AtlasStepsRecorder', 'Enable-AtlasDirectPlay')) {
         $function = $script:featuresAst.Find({
             param($node)
             $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name
@@ -47,7 +47,7 @@ BeforeAll {
 
 AfterAll {
     Remove-Item Function:\Get-AtlasDismExitDisposition -ErrorAction SilentlyContinue
-    Remove-Item Function:\Invoke-AtlasDism,Function:\Remove-AtlasStepsRecorder -ErrorAction SilentlyContinue
+    Remove-Item Function:\Get-AtlasDismOutputDetail,Function:\Invoke-AtlasDism,Function:\Remove-AtlasStepsRecorder -ErrorAction SilentlyContinue
     Remove-Item Function:\Enable-AtlasDirectPlay -ErrorAction SilentlyContinue
 }
 
@@ -128,7 +128,7 @@ Describe 'Features DISM outcomes' {
         Get-AtlasDismExitDisposition -ExitCode 87 | Should -BeExactly 'Failure'
     }
 
-    It 'defers pending operations only for component-store cleanup' {
+    It 'defers pending operations, and lets a failure pass, only for component-store cleanup' {
         Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ State = 'Disabled' } }
         Mock Dism\Get-WindowsCapability { [pscustomobject]@{ Name = 'App.StepsRecorder~~~~0.0.1.0'; State = 'Installed' } }
         Mock Invoke-AtlasDism {}
@@ -142,10 +142,51 @@ Describe 'Features DISM outcomes' {
         Should -Invoke Invoke-AtlasDism -Times 3 -Exactly
         Should -Invoke Invoke-AtlasDism -Times 1 -Exactly -ParameterFilter {
             $Description -ceq 'Cleaning the component store' -and "$DeferredExitCode" -ceq '-2146498554' -and
-            $Arguments -contains '/StartComponentCleanup'
+            $Arguments -contains '/StartComponentCleanup' -and [bool]$Optional
         }
         Should -Invoke Invoke-AtlasDism -Times 0 -Exactly -ParameterFilter {
-            $Description -cne 'Cleaning the component store' -and $null -ne $DeferredExitCode
+            $Description -cne 'Cleaning the component store' -and ($null -ne $DeferredExitCode -or [bool]$Optional)
+        }
+    }
+}
+
+Describe 'A failed DISM run' {
+    BeforeAll {
+        # Stands in for dism.exe: its banner, progress bars and an access-denied error.
+        $script:fakeDism = Join-Path $TestDrive 'dism.cmd'
+        Set-Content -LiteralPath $script:fakeDism -Encoding Ascii -Value @(
+            '@echo off'
+            'echo.'
+            'echo Deployment Image Servicing and Management tool'
+            'echo Version: 10.0.26100.9549'
+            'echo.'
+            'echo Image Version: 10.0.26300.9974'
+            'echo.'
+            'echo [==                         4.9%%                           ]'
+            'echo [===========================93.2%%======================    ]'
+            'echo Error: 5'
+            'echo.'
+            'echo Access is denied.'
+            'exit /b 5'
+        )
+    }
+
+    BeforeEach {
+        Mock Write-AtlasLog {}
+    }
+
+    It 'stops the install with what DISM said, without its banner or progress' {
+        $dism = $script:fakeDism
+        { Invoke-AtlasDism -Description 'Enabling DirectPlay' -Arguments @('/Online') } |
+            Should -Throw -ExpectedMessage "DISM 'Enabling DirectPlay' failed with exit code 5. Error: 5 Access is denied."
+    }
+
+    It 'warns and carries on when the work is optional' {
+        $dism = $script:fakeDism
+        Invoke-AtlasDism -Description 'Cleaning the component store' -Arguments @('/Online') -Optional
+        Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
+            $Level -ceq 'Warning' -and
+            $Message -ceq "DISM 'Cleaning the component store' failed with exit code 5; continuing without it. Error: 5 Access is denied."
         }
     }
 }

@@ -288,4 +288,33 @@ Describe 'Exact-user operation failure reporting' {
         Get-AtlasUserFailureDetail -UserSid 'S-1-5-21-1-2-3-1001' -TranscriptPattern '*-new-user-setup-*.log' |
             Should -Match 'transcript could not be read: profile list unavailable'
     }
+
+    It 'names the newest error from this run in the user''s own install log' {
+        $profileRoot = Join-Path $TestDrive 'LogProfile'
+        $logs = Join-Path $profileRoot 'AppData\Local\AtlasOS\Logs\install'
+        New-Item -Path $logs -ItemType Directory -Force | Out-Null
+        $started = Get-Date -Year 2026 -Month 11 -Day 2 -Hour 22 -Minute 15 -Second 0 -Millisecond 500
+        Set-Content -LiteralPath (Join-Path $logs 'atlas-install.log') -Encoding UTF8 -Value @(
+            "[2026-11-02 22:10:00] [-] [ERROR] An earlier run's failure."
+            "[2026-11-02 22:15:00] [-] [INFO] Applying tweak 'Configure Search on the Taskbar'."
+            "[2026-11-02 22:15:04] [-] [WARNING] Windows denied the value operation for 'IsAADCloudSearchEnabled'. Continuing without it."
+            "[2026-11-02 22:15:04] [-] [ERROR] Installing-user category 'privacy' failed: Windows denied the value operation for 'SearchboxTaskbarMode'. | At C:\Windows\AtlasModules\Scripts\Install\Tasks\Invoke-AtlasInstallingUserRegistry.ps1:75 char:5"
+        )
+        Mock Get-ItemProperty { [pscustomobject]@{ ProfileImagePath = $profileRoot } }
+
+        Get-AtlasUserLogError -UserSid 'S-1-5-21-1-2-3-1001' -NotBefore $started |
+            Should -BeExactly " Installing-user category 'privacy' failed: Windows denied the value operation for 'SearchboxTaskbarMode'."
+        Get-AtlasUserLogError -UserSid 'S-1-5-21-1-2-3-1001' -NotBefore $started.AddMinutes(1) | Should -BeNullOrEmpty
+    }
+
+    It 'adds nothing when the user''s log is missing or unreadable' {
+        $profileRoot = Join-Path $TestDrive 'NoLogProfile'
+        New-Item -Path $profileRoot -ItemType Directory -Force | Out-Null
+        Mock Get-ItemProperty { [pscustomobject]@{ ProfileImagePath = $profileRoot } }
+        Get-AtlasUserLogError -UserSid 'S-1-5-21-1-2-3-1001' | Should -BeNullOrEmpty
+
+        Mock Get-ItemProperty { throw 'profile list unavailable' }
+        Get-AtlasUserLogError -UserSid 'S-1-5-21-1-2-3-1001' | Should -BeNullOrEmpty
+        Get-AtlasUserLogError -UserSid '' | Should -BeNullOrEmpty
+    }
 }

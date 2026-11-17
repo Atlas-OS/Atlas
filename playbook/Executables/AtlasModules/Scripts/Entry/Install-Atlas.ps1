@@ -237,7 +237,12 @@ function Invoke-AtlasPreparationCheck([string]$PayloadRoot, [string]$JobPath) {
     $powershell = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
     & $powershell -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $worker -JobPath $JobPath -VerifyOnly `
         > (Join-Path $JobPath 'worker.log')
-    if ($LASTEXITCODE -ne 0) { throw "Preparation verification failed. Finish Windows and Store updates in Atlas, then retry. See '$JobPath'." }
+    if ($LASTEXITCODE -ne 0) {
+        # The worker records why it stopped; a check can stop for reasons other than updates.
+        $reason = try { [string](Get-Content -LiteralPath (Join-Path $JobPath 'state.json') -Raw -ErrorAction Stop | ConvertFrom-Json).activity.failureMessage } catch { '' }
+        $detail = if ($reason) { " The check reported: $reason" } else { '' }
+        throw "Preparation verification failed. Finish Windows and Store updates in Atlas, then retry.$detail See '$JobPath'."
+    }
     $result = Get-Content -LiteralPath (Join-Path $JobPath 'state.json') -Raw -ErrorAction Stop | ConvertFrom-Json
     if ($result.schema -ne 1 -or $result.status -cne 'complete' -or
         $result.userSid -cne [Security.Principal.WindowsIdentity]::GetCurrent().User.Value) {
@@ -274,8 +279,14 @@ function Test-AtlasPowerConnected {
 }
 
 function Test-AtlasUserAccountReady {
-    $policy = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name EnableLUA -ErrorAction Stop
-    if ($policy.EnableLUA -ne 1) { return $false }
+    # PCs tweaked beyond Atlas can be missing EnableLUA, and Windows then uses its
+    # default, 1. The token check below decides whether UAC is in effect; a policy
+    # that can't be read still fails.
+    try { $policy = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -ErrorAction Stop }
+    catch [System.Management.Automation.ItemNotFoundException] { $policy = $null }
+    $enableLua = 1
+    if ($null -ne $policy -and $policy.PSObject.Properties.Name -contains 'EnableLUA') { $enableLua = $policy.EnableLUA }
+    if ($enableLua -ne 1) { return $false }
     Initialize-AtlasNativeType
     [Atlas.Native.UserProcess]::ValidateCurrentUserMediumToken()
     return $true

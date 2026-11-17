@@ -2321,7 +2321,10 @@ try {
     if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Administrator access is required.' }
     Assert-PreparationUser
     $mutex = New-Object Threading.Mutex($false, 'Global\AtlasOS.WindowsPreparation')
-    try { $owned = $mutex.WaitOne(0) } catch [Threading.AbandonedMutexException] { $owned = $true }
+    # A check waits briefly for another run to finish instead of failing: two Atlas
+    # runs, such as an install started while another one checks, can overlap.
+    $lockWait = if ($VerifyOnly) { 120000 } else { 0 }
+    try { $owned = $mutex.WaitOne($lockWait) } catch [Threading.AbandonedMutexException] { $owned = $true }
     if (-not $owned) { throw 'Another Atlas preparation is running.' }
     Write-PreparationState running verify
     if ($VerifyOnly) {

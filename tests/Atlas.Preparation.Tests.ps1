@@ -834,7 +834,7 @@ Describe 'Store items Windows refused to deploy' {
 Describe 'A Store call that fails' {
     It 'ends with the Store''s own error and code, not the task''s wrapper' {
         Mock Write-PreparationState {}
-        # 0x803FB112: a Store that can't update itself, as on one RC10 tester's PC.
+        # 0x803FB112: a Store that can't update itself.
         $cause = [Runtime.InteropServices.COMException]::new('The Store needs an update it cannot install.', 0x803FB112)
         $failure = $null
         try { Wait-PreparationStoreTask ([Threading.Tasks.Task]::FromException($cause)) }

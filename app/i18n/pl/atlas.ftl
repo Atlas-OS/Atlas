@@ -1042,7 +1042,7 @@ check-user-account = Konto użytkownika
 detail-user-account-ok = Kontrola konta użytkownika jest włączona, a konto jest gotowe do instalacji.
 detail-user-account-not-ready = Włącz kontrolę konta użytkownika (UAC), uruchom ponownie komputer i spróbuj jeszcze raz. Jeśli używasz wbudowanego konta Administrator, zaloguj się na inne konto administratora.
 detail-user-account-work-or-school = Atlasa nie można zainstalować z konta służbowego lub szkolnego (Microsoft Entra ID). Zaloguj się na konto lokalne lub konto Microsoft i spróbuj ponownie.
-detail-user-account-unknown = Atlas nie mógł sprawdzić konta użytkownika. Sprawdź ponownie przed instalacją. Komunikat systemu Windows: { $error }
+detail-user-account-unknown = Atlas nie mógł sprawdzić konta użytkownika. Uruchom komputer ponownie, a potem otwórz Atlas i sprawdź ponownie. Jeśli to się powtarza, wybierz Wyślij zgłoszenie. Komunikat systemu Windows: { $error }
 
 footer-prepare-required = Dokończ aktualizowanie Windows i aplikacji ze sklepu, aby kontynuować
 footer-prepare-stopping = Zatrzymywanie aktualizacji po bieżącym etapie…

@@ -1026,7 +1026,7 @@ check-user-account = उपयोगकर्ता खाता
 detail-user-account-ok = UAC चालू है और आपका खाता इंस्टॉलेशन के लिए तैयार है।
 detail-user-account-not-ready = उपयोगकर्ता खाता नियंत्रण (UAC) चालू करें, अपना PC रीस्टार्ट करें और फिर कोशिश करें। अगर आप अंतर्निहित Administrator खाते का इस्तेमाल करते हैं, तो किसी दूसरे व्यवस्थापक खाते से साइन इन करें।
 detail-user-account-work-or-school = Atlas को कार्य या विद्यालय खाते (Microsoft Entra ID) से इंस्टॉल नहीं किया जा सकता। किसी स्थानीय खाते या Microsoft खाते से साइन इन करें, फिर कोशिश करें।
-detail-user-account-unknown = Atlas आपके उपयोगकर्ता खाते की जाँच नहीं कर सका। इंस्टॉल करने से पहले फिर से जाँच करें। Windows ने बताया: { $error }
+detail-user-account-unknown = Atlas आपके उपयोगकर्ता खाते की जाँच नहीं कर सका। अपना PC रीस्टार्ट करें, फिर Atlas दोबारा खोलकर फिर से जाँचें। अगर ऐसा बार-बार हो, तो “रिपोर्ट भेजें” चुनें। Windows ने बताया: { $error }
 
 footer-prepare-required = जारी रखने के लिए Windows और Store ऐप अपडेट करना पूरा करें
 footer-prepare-stopping = मौजूदा चरण पूरा होते ही अपडेट रुक जाएँगे…

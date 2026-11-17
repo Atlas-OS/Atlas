@@ -1032,7 +1032,7 @@ check-user-account = Kullanıcı hesabı
 detail-user-account-ok = UAC açık ve hesabınız kuruluma hazır.
 detail-user-account-not-ready = Kullanıcı Hesabı Denetimi’ni (UAC) açın, bilgisayarınızı yeniden başlatın ve tekrar deneyin. Yerleşik Administrator hesabını kullanıyorsanız başka bir yönetici hesabıyla oturum açın.
 detail-user-account-work-or-school = Atlas, iş veya okul hesabından (Microsoft Entra ID) kurulamaz. Yerel bir hesapla veya Microsoft hesabıyla oturum açın, ardından tekrar deneyin.
-detail-user-account-unknown = Atlas kullanıcı hesabınızı denetleyemedi. Kurulumdan önce tekrar denetleyin. Windows bildirimi: { $error }
+detail-user-account-unknown = Atlas kullanıcı hesabınızı denetleyemedi. Bilgisayarınızı yeniden başlatın, ardından Atlas'ı yeniden açıp yeniden denetleyin. Bu durum devam ederse Rapor gönder'i seçin. Windows bildirimi: { $error }
 
 footer-prepare-required = Devam etmek için Windows ve Store uygulamalarını güncellemeyi bitirin
 footer-prepare-stopping = Güncellemeler geçerli adımdan sonra durduruluyor…

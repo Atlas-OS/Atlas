@@ -158,9 +158,10 @@ Describe 'First-logon search preferences' {
         Mock Test-Path { $true }
         Mock Set-ItemProperty {}
         Mock Write-AtlasLog -ModuleName Atlas.Registry {}
+        # Windows can refuse both keys; no test writes this account's own values.
         Mock Invoke-AtlasRegistryTargetOperation -ModuleName Atlas.Registry {
             throw $script:searchRefusal
-        } -ParameterFilter { $Path -eq 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings' }
+        } -ParameterFilter { $Path -in @('HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search', 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings') }
         # Keep this PC's own Atlas choices out of the default case.
         Mock Get-ItemProperty { $null } -ParameterFilter { $Path -eq 'HKLM:\SOFTWARE\AtlasOS\Services\WebSearch' }
     }
@@ -178,16 +179,13 @@ Describe 'First-logon search preferences' {
         Set-SearchTaskbarMode
 
         # The cache mirrors the mode, so it takes the definition's mode too.
-        Should -Invoke Set-ItemProperty -Times 2 -Exactly -ParameterFilter {
-            $Path -eq 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' -and
-            $Name -in @('SearchboxTaskbarMode', 'SearchboxTaskbarModeCache') -and
-            $Value -eq $script:webSearchState.Mode
-        }
-        Should -Invoke Set-ItemProperty -Times 2 -Exactly
+        Should -Invoke Set-ItemProperty -Times 0 -Exactly
         Should -Invoke Invoke-AtlasRegistryEntries -Times 1 -Exactly -ParameterFilter {
             $written = @($Entries | ForEach-Object { '{0}={1}' -f $_.Name, $_.Data } | Sort-Object)
-            $expected = @($script:webSearchState.Settings | ForEach-Object { '{0}={1}' -f $_.Name, $_.Data } | Sort-Object)
-            $expected.Count -gt 0 -and ($written -join ';') -ceq ($expected -join ';')
+            $expected = @(@($script:webSearchState.Settings | ForEach-Object { '{0}={1}' -f $_.Name, $_.Data }) +
+                @('SearchboxTaskbarMode', 'SearchboxTaskbarModeCache' | ForEach-Object { '{0}={1}' -f $_, $script:webSearchState.Mode }) | Sort-Object)
+            $script:webSearchState.Settings.Count -gt 0 -and ($written -join ';') -ceq ($expected -join ';') -and
+            @($Entries | Where-Object { -not $_.AllowOsProtected }).Count -eq 0
         }
     }
 
@@ -203,14 +201,11 @@ Describe 'First-logon search preferences' {
 
         Set-SearchTaskbarMode
 
-        Should -Invoke Set-ItemProperty -Times 2 -Exactly -ParameterFilter {
-            $Name -in @('SearchboxTaskbarMode', 'SearchboxTaskbarModeCache') -and
-            $Value -eq $script:webSearchState.Mode
-        }
         # Every value written is the default state's own value for it.
         Should -Invoke Invoke-AtlasRegistryEntries -Times 1 -Exactly -ParameterFilter {
-            $expected = @($script:webSearchState.Settings | ForEach-Object { '{0}={1}' -f $_.Name, $_.Data })
-            @($Entries).Count -eq 4 -and
+            $expected = @(@($script:webSearchState.Settings | ForEach-Object { '{0}={1}' -f $_.Name, $_.Data }) +
+                @('SearchboxTaskbarMode', 'SearchboxTaskbarModeCache' | ForEach-Object { '{0}={1}' -f $_, $script:webSearchState.Mode }))
+            @($Entries).Count -eq 6 -and
             @($Entries | Where-Object { $expected -notcontains ('{0}={1}' -f $_.Name, $_.Data) }).Count -eq 0
         }
     }
@@ -231,14 +226,15 @@ Describe 'First-logon search preferences' {
                 }, $true)).Count | Should -Be 0
     }
 
-    It 'finishes search finalization when Windows refuses its optional preferences' {
+    It 'finishes search finalization when Windows refuses the search box and its optional preferences' {
         { Set-SearchTaskbarMode } | Should -Not -Throw
-        Should -Invoke Set-ItemProperty -Times 2 -Exactly -ParameterFilter {
-            $Path -eq 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' -and
-            $Name -in @('SearchboxTaskbarMode', 'SearchboxTaskbarModeCache') -and $Value -eq 1
-        }
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Registry -Times 4 -Exactly -ParameterFilter {
+        Should -Invoke Set-ItemProperty -Times 0 -Exactly
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Registry -Times 6 -Exactly -ParameterFilter {
             $Level -eq 'Warning' -and $Message -match 'Continuing without'
+        }
+        # The search box mode and its cache were both tried, and both refusals let it carry on.
+        Should -Invoke Invoke-AtlasRegistryTargetOperation -ModuleName Atlas.Registry -Times 2 -Exactly -ParameterFilter {
+            $Path -eq 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
         }
     }
 

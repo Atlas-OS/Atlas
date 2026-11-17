@@ -1001,7 +1001,7 @@ check-user-account = ユーザー アカウント
 detail-user-account-ok = UAC が有効で、アカウントのインストール準備が整っています。
 detail-user-account-not-ready = ユーザー アカウント制御 (UAC) を有効にし、PC を再起動してから、もう一度お試しください。組み込みの Administrator アカウントを使用している場合は、別の管理者アカウントでサインインしてください。
 detail-user-account-work-or-school = 職場または学校アカウント (Microsoft Entra ID) からは Atlas をインストールできません。ローカル アカウントまたは Microsoft アカウントでサインインしてから、再試行してください。
-detail-user-account-unknown = Atlas はユーザー アカウントを確認できませんでした。インストール前に再確認してください。Windows の報告: { $error }
+detail-user-account-unknown = Atlas はユーザー アカウントを確認できませんでした。PC を再起動し、Atlas を開き直してからもう一度確認してください。この状態が続く場合は、「レポートを送信」を選んでください。Windows の報告: { $error }
 
 footer-prepare-required = 続行するには、Windows と Store アプリの更新を完了してください
 footer-prepare-stopping = 現在の手順の完了後に更新を停止します…

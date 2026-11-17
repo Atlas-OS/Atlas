@@ -370,8 +370,8 @@ Describe 'Set-AtlasDeviceState' {
     }
 
     It 'treats whatever the provider echoes as success' {
-        # The inbox cmdlets echo the device object at most; the RFCOMM entity below
-        # is what a real PC returned when the result was mistaken for an integer.
+        # The inbox cmdlets echo the device object at most, such as the RFCOMM entity
+        # below, which must never be read as an exit code.
         Mock Set-AtlasPnpDeviceState -ModuleName Atlas.Hardware {
             New-PnpDevice -FriendlyName 'Bluetooth Device (RFCOMM Protocol TDI)' -InstanceId 'BTH\MS_RFCOMM\9&123F897D&0&0'
         }

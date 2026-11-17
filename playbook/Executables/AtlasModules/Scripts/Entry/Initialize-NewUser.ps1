@@ -122,9 +122,11 @@ function Set-SearchTaskbarMode {
         }
     }
 
-    Set-ItemProperty -Path $searchPath -Name SearchboxTaskbarMode -Value $mode -Type DWord -Force
-    Set-ItemProperty -Path $searchPath -Name SearchboxTaskbarModeCache -Value $mode -Type DWord -Force
-    # Keep finalization running when Windows refuses an individual preference.
+    $entries = @(foreach ($name in @('SearchboxTaskbarMode', 'SearchboxTaskbarModeCache')) {
+            @{ Path = $searchPath; Name = $name; Type = 'DWord'; Data = $mode; AllowOsProtected = $true }
+        }) + @($entries)
+    # Keep finalization running when Windows refuses an individual preference, the
+    # search box values included.
     Invoke-AtlasRegistryEntries -Entries $entries -Scope CurrentUser -IsArm64 $false
 }
 

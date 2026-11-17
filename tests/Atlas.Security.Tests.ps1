@@ -154,7 +154,7 @@ Describe 'Set-AtlasVbsConfiguration' {
     }
 
     It 'disables when policy already turns VBS off, as guides for disabling VBS leave it' {
-        # The values an RC7 tester's PC had from such a guide.
+        # The values such a guide leaves.
         Set-TestDword -Path $script:policyPath -Name 'EnableVirtualizationBasedSecurity' -Value 0
         Set-TestDword -Path $script:policyPath -Name 'HVCIMATRequired' -Value 0
         Set-TestDword -Path $script:policyPath -Name 'LsaCfgFlags' -Value 0
