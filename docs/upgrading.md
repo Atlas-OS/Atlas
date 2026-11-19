@@ -194,7 +194,12 @@ after each step that changed something:
    `winget install --id 9WZDNCRFJBMP --source msstore`.
 3. StoreFixer, through Atlas 0.6's own **Fix MS Store Issues**, which runs it as
    TrustedInstaller. A PC with an older Atlas has no safe way to start it, so this step is left
-   out there.
+   out there. **Fix MS Store Issues** first looks for rows in `StateRepository-Deployment.srd`
+   whose package `StateRepository-Machine.srd` no longer lists, which Atlas 0.4 and 0.5's app
+   removal could leave. Staging matches a new package's files against them and fails with
+   `0x80070490`, so every install that shares a file with a removed app fails. When there are
+   such rows, it saves the database beside itself as `*.atlas-backup-<time>`, removes only
+   those rows and skips StoreFixer; otherwise StoreFixer runs as before.
 
 The first step after which the Store works ends the repairs, and the card says what was done.
 If none helps, Get ready stops with `store-repair-failed` and offers **Repair Microsoft Store**,
