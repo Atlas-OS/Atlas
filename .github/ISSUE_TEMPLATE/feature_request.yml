@@ -10,7 +10,7 @@ body:
     label: Before you continue
     description: Make sure you meet these criteria. If you don't, the maintainers may close and lock your issue.
     options:
-    - label: "I agree to follow Atlas's [Code of Conduct](https://github.com/Atlas-OS/.github/blob/main/profile/CODE_OF_CONDUCT.md)"
+    - label: "I agree to follow Atlas's [Code of Conduct](https://github.com/Atlas-OS/.github/blob/main/CODE_OF_CONDUCT.md)"
       required: true
     - label: "I have searched the [issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) and this request hasn't been made already"
       required: true

@@ -3,6 +3,11 @@
 Atlas Manager is the Windows 11 desktop app that installs and updates Atlas, creates Atlas ISOs and USB drives, and sends diagnostics and reports to the Atlas team.
 This guide is for contributors who build, test or review it; user documentation lives on the [Atlas documentation site](https://atlasos.net/docs/).
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../docs/images/atlas-manager-get-ready-dark.png">
+  <img src="../docs/images/atlas-manager-get-ready-light.png" alt="Atlas Manager's Get ready step, with the PC checks passed and the installation files ready" width="720">
+</picture>
+
 ## Requirements
 
 - Windows 11, build 22621 or later, which the window's Mica backdrop needs.

@@ -33,6 +33,7 @@ The binary inventory is a review requirement: a listed hash doesn't establish th
 - Local copies of upstream documentation, and copies of an earlier tree kept to compare against during review.
 
 Keep captures in `screenshots/`, `app/screenshots/` or an ignored output folder; source icons and images stay tracked.
+Screenshots that a document shows are documentation, not captures: they live in `docs/images/`.
 Don't ignore every `.json`, `.xml`, `.png`, `.zip`, `.dll` or `.exe`: some are source files or part of the Atlas package.
 Ignore rules don't untrack committed files, so inspect the proposed commit and every new binary.
 Never delete a file only because it's untracked.

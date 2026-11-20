@@ -6,7 +6,7 @@
   <a href="https://github.com/Atlas-OS/Atlas/graphs/contributors"><img alt="Contributors" src="https://img.shields.io/github/contributors/atlas-os/atlas?style=for-the-badge&color=1A91FF" /></a>
   <a href="https://github.com/Atlas-OS/Atlas/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/atlas-os/atlas?style=for-the-badge&color=1A91FF" /></a>
   <a href="https://github.com/Atlas-OS/Atlas/actions/workflows/build.yml"><img alt="Build Atlas package workflow status" src="https://img.shields.io/github/actions/workflow/status/atlas-os/atlas/build.yml?branch=main&style=for-the-badge&logo=github&label=Build" /></a>
-  <a href="https://github.com/Atlas-OS/.github/blob/main/profile/CODE_OF_CONDUCT.md"><img alt="Code of Conduct" src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg?style=for-the-badge&color=1A91FF" /></a>
+  <a href="https://github.com/Atlas-OS/.github/blob/main/CODE_OF_CONDUCT.md"><img alt="Code of Conduct" src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg?style=for-the-badge&color=1A91FF" /></a>
 </p>
 <p align="center">An open and lightweight modification to Windows, designed to optimise performance, privacy and usability.</p>
 
@@ -18,6 +18,13 @@
   <a href="https://discord.atlasos.net">☎️ Discord</a>
   •
   <a href="https://github.com/Atlas-OS/Atlas/discussions">💬 Discussions</a>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/atlas-manager-get-ready-dark.png">
+    <img src="docs/images/atlas-manager-get-ready-light.png" alt="Atlas Manager's Get ready step, with the PC checks passed and the installation files ready" width="720">
+  </picture>
 </p>
 
 ## Install Atlas

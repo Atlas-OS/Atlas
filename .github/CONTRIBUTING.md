@@ -138,4 +138,4 @@ If you include third-party code, keep its licence and notices, and list any bina
 
 ## Code of Conduct
 
-Everyone who takes part in Atlas follows the [Atlas Code of Conduct](https://github.com/Atlas-OS/.github/blob/main/profile/CODE_OF_CONDUCT.md).
+Everyone who takes part in Atlas follows the [Atlas Code of Conduct](https://github.com/Atlas-OS/.github/blob/main/CODE_OF_CONDUCT.md).
