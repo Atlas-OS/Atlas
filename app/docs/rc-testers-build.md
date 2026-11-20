@@ -88,14 +88,14 @@ Compared with the stable build, a tester build:
   by the package's digest), and does not resume a draft or recovered session
   that names another package;
 - creates ISOs and USBs from the bundled package only;
-- never consults Microsoft's Windows release page, which the stable build uses
-  for update revisions the bundled release catalog does not list.
+- doesn't consult Microsoft's Windows release page for an ISO.
 
-A tester build must not depend on a live page, so an unlisted revision of a
-supported build (26200 or 26300) on a release branch counts as a public release
-(`src/services/windows_release.rs`); Insider branches and other builds still
-fail. An ISO carries no branch name, so an unlisted image revision passes only
-if it is newer than every catalogued revision of its build.
+For this PC, a tester build checks a revision the bundled release catalog
+doesn't list on Microsoft's page, as the installer does
+(`src/services/windows_release.rs`). Get ready then refuses a Release Preview
+build that the installer would refuse, instead of passing it. An ISO carries no
+branch name, so an unlisted image revision passes only if it is newer than
+every catalogued revision of its build.
 
 ## Where the RC id appears
 

@@ -369,4 +369,20 @@ Describe 'Invoke-AtlasServiceEntries' {
         { Invoke-AtlasServiceEntries -Entries @() } | Should -Not -Throw
         Should -Invoke Set-AtlasServiceStartup -ModuleName Atlas.Services -Times 0 -Exactly
     }
+
+    It 'names Windows'' own reason when a service won''t start' {
+        # Start-Service's message names only the service; the reason is its innermost cause.
+        Mock Start-Service -ModuleName Atlas.Services -MockWith {
+            $reason = [ComponentModel.Win32Exception]::new(1058, 'The service is disabled.')
+            $inner = [InvalidOperationException]::new("Cannot start service w32time on computer '.'.", $reason)
+            throw [InvalidOperationException]::new("Service 'Windows Time (w32time)' cannot be started due to the following error: Cannot start service w32time on computer '.'.", $inner)
+        }
+
+        { Invoke-AtlasServiceEntries -Entries @(@{ Name = 'w32time'; Operation = 'Start' }) } |
+            Should -Throw "Service 'Windows Time (w32time)' cannot be started*The service is disabled."
+        Invoke-AtlasServiceEntries -Entries @(@{ Name = 'w32time'; Operation = 'Start'; IgnoreErrors = $true })
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Services -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and $Message -like "Ignored service entry failure (service: 'w32time'):*The service is disabled."
+        }
+    }
 }

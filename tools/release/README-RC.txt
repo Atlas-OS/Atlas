@@ -8,10 +8,9 @@ What this is
   not check GitHub for Atlas releases or open other Atlas packages. Setup
   still downloads Windows/Store updates and selected software from their
   sources.
-- The normal build may consult Microsoft's Windows release page when your
-  Windows update revision is newer than the list built into the app. This
-  build never contacts that page: a public revision of build 26200 or 26300 that the
-  list does not know is accepted. Insider builds are still refused.
+- When your Windows update revision isn't in the list built into the app,
+  Atlas Manager checks Microsoft's Windows release page, as the normal build
+  does. Release Preview and Insider builds are refused.
 - The .apbx beside it is the same Atlas package, byte for byte, for people
   who use the alternative installer, AME Wizard, which calls it a playbook.
 @TOOLBOX_NOTE@

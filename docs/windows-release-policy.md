@@ -43,8 +43,8 @@ boot an ARM device.
 
 ## Online lookup
 
-Snapshot versions are checked offline. In stable builds, an unknown version triggers
-a size- and time-limited HTTPS request for the Markdown form of
+Snapshot versions are checked offline. For the running system, an unknown version
+triggers a size- and time-limited HTTPS request for the Markdown form of
 [Microsoft's Windows 11 release information](https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information):
 
 - Only the matching 25H2 and 26H2 General Availability tables are accepted.
@@ -55,14 +55,14 @@ a size- and time-limited HTTPS request for the Markdown form of
 - Successful lookups are cached in memory only (the app keeps them 15 minutes), never
   in a persistent trust file.
 
-Tester builds never make this request:
+Every build checks the running system this way, tester builds too, because
+`Install-Atlas.ps1` always does. Get ready and the installer then agree on an unlisted
+revision, such as a Release Preview build.
 
-- **Running system:** an unlisted revision of a supported build on a release branch is
-  accepted.
-- **ISO:** an image has no BuildLabEx to show its branch, so ISO inspection calls
-  `Get-AtlasWindowsReleaseStatus -NoRefresh`. It accepts an unlisted revision only if
-  it is newer than every listed revision of that build. Older unlisted revisions,
-  such as pre-release flights, stay `Unknown`.
+Tester builds don't make this request for an ISO. An image has no BuildLabEx to show
+its branch, so ISO inspection calls `Get-AtlasWindowsReleaseStatus -NoRefresh`. It
+accepts an unlisted revision only if it is newer than every listed revision of that
+build. Older unlisted revisions, such as pre-release flights, stay `Unknown`.
 
 ## What the check does not prove
 

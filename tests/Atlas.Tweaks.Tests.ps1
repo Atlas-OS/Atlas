@@ -977,3 +977,16 @@ Describe 'Registry verification exclusions in tweak schemas' {
         else { ($problems.Problem -join '; ') | Should -Match 'non-empty reason string' }
     }
 }
+
+Describe 'Configure Time Servers' {
+    # PCs tweaked beyond Atlas can have Windows Time disabled; the tweak must still finish.
+    It 'never stops the install when Windows Time can''t start or reload' {
+        $path = Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Tweaks\misc\config-time.psd1'
+        @(Test-AtlasTweakSchema -Path $path).Count | Should -Be 0
+        $tweak = Import-PowerShellDataFile -LiteralPath $path
+        @($tweak.Services | Where-Object { -not $_.IgnoreErrors }).Count | Should -Be 0
+        @($tweak.Run | Where-Object { -not $_.IgnoreErrors }).Count | Should -Be 0
+        # The servers themselves are registry values, which need no running service.
+        @($tweak.Registry | Where-Object Name -eq 'NtpServer').Count | Should -Be 1
+    }
+}

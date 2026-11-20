@@ -69,19 +69,20 @@ fn preview_branch(build_lab: &str) -> bool {
     build_lab.to_ascii_lowercase().split(['.', '_', '-']).any(|part| part == "prerelease")
 }
 
-/// Whether an unlisted revision may be checked on Microsoft's release page.
-/// Tester builds never depend on a live page, here or for an ISO; stable
-/// builds keep an unlisted revision Unknown until the page lists it.
+/// Whether an ISO's unlisted revision may be checked on Microsoft's release
+/// page. Tester builds don't depend on a live page for an ISO. This PC is
+/// always checked on it, as the installer checks it, so Get ready and the
+/// installer can't disagree about it.
 pub(crate) const REFRESH_ONLINE: bool = !cfg!(feature = "embedded-playbook");
 
-/// With no `refresh` (tester builds), an unlisted revision of a supported
-/// build on a release branch counts as released: the bundled list only ages,
-/// so it is most likely a newer cumulative update.
+/// A revision the bundled list doesn't have is looked up on Microsoft's page:
+/// it is Unlisted when the page leaves it out, and Unknown when the page
+/// can't be read.
 fn classify_with(
     version: &str,
     build_lab: &str,
     known: &HashSet<String>,
-    refresh: Option<impl FnOnce() -> Result<HashSet<String>>>,
+    refresh: impl FnOnce() -> Result<HashSet<String>>,
 ) -> Status {
     if preview_branch(build_lab) {
         return Status::Preview;
@@ -89,11 +90,10 @@ fn classify_with(
     if known.contains(version) {
         return Status::Released;
     }
-    match refresh.map(|refresh| refresh()) {
-        Some(Ok(versions)) if versions.contains(version) => Status::Released,
-        Some(Ok(_)) => Status::Unlisted,
-        Some(Err(_)) => Status::Unknown,
-        None => Status::Released,
+    match refresh() {
+        Ok(versions) if versions.contains(version) => Status::Released,
+        Ok(_) => Status::Unlisted,
+        Err(_) => Status::Unknown,
     }
 }
 
@@ -101,12 +101,7 @@ pub fn classify(build: u32, revision: u32, build_lab: &str) -> Status {
     if !BUILD_FAMILIES.iter().any(|family| family.0 == build) || revision == 0 {
         return Status::Unknown;
     }
-    classify_with(
-        &format!("10.0.{build}.{revision}"),
-        build_lab,
-        snapshot(),
-        REFRESH_ONLINE.then_some(latest),
-    )
+    classify_with(&format!("10.0.{build}.{revision}"), build_lab, snapshot(), latest)
 }
 
 struct CachedReleases {
@@ -493,7 +488,7 @@ mod tests {
     fn public_releases_include_promoted_insider_builds_and_public_optional_updates() {
         let no_network: Refresh = || panic!("known releases need no network");
         for version in ["10.0.26200.6584", "10.0.26200.7309", "10.0.26200.9278"] {
-            assert_eq!(classify_with(version, "ge_release", snapshot(), Some(no_network)), Status::Released);
+            assert_eq!(classify_with(version, "ge_release", snapshot(), no_network), Status::Released);
         }
     }
 
@@ -504,42 +499,31 @@ mod tests {
         let known = HashSet::from(["10.0.26300.9711".to_owned()]);
         let version = "10.0.26200.9999";
         assert_eq!(
-            classify_with(version, "ge_release", &known, Some(|| Ok(HashSet::from([version.into()])))),
+            classify_with(version, "ge_release", &known, || Ok(HashSet::from([version.into()]))),
             Status::Released
         );
         for version in ["10.0.26200.5074", "10.0.26200.5551", version] {
             assert_eq!(
-                classify_with(version, "ge_release", &known, Some(|| anyhow::bail!("offline"))),
+                classify_with(version, "ge_release", &known, || anyhow::bail!("offline")),
                 Status::Unknown
             );
         }
         // Read, but left out: a Release Preview build or one not listed yet.
-        for version in ["10.0.26200.5551", "10.0.26300.9807"] {
+        // Every build checks this, a tester build too, as the installer does.
+        for version in ["10.0.26200.5551", "10.0.26300.9807", "10.0.26300.10066"] {
             assert_eq!(
-                classify_with(
-                    version,
-                    "ge_release",
-                    &known,
-                    Some(|| Ok(HashSet::from(["10.0.26300.9711".into()])))
-                ),
+                classify_with(version, "ge_release", &known, || Ok(HashSet::from(
+                    ["10.0.26300.9711".into()]
+                ))),
                 Status::Unlisted
             );
         }
-    }
-
-    #[test]
-    fn without_a_live_lookup_unlisted_ga_revisions_pass_but_insider_branches_still_fail() {
-        let offline = None::<Refresh>;
-        assert_eq!(classify_with("10.0.26200.9999", "ge_release", snapshot(), offline), Status::Released);
+        // An Insider branch is refused before any lookup.
+        let no_network: Refresh = || panic!("an Insider branch needs no network");
         assert_eq!(
-            classify_with("10.0.26200.9999", "26200.1.amd64fre.rs_prerelease.250101", snapshot(), offline),
+            classify_with("10.0.26200.9999", "26200.1.amd64fre.rs_prerelease.250101", &known, no_network),
             Status::Preview
         );
-        // A tester build never reaches Microsoft's page; the build gate alone still applies.
-        if !REFRESH_ONLINE {
-            assert_eq!(classify(26200, 65535, "ge_release"), Status::Released);
-            assert_eq!(classify(26100, 65535, "ge_release"), Status::Unknown);
-        }
     }
 
     #[test]

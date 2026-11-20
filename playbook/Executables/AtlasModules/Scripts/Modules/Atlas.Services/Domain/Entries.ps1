@@ -55,13 +55,35 @@ function Invoke-AtlasServiceEntries {
             }
         }
         catch {
+            $message = Get-AtlasServiceFailureMessage -Exception $_.Exception
             if ($ignoreErrors) {
-                Write-AtlasLog -Message "Ignored service entry failure (service: '$entryName'): $($_.Exception.Message)" -Level Warning
+                Write-AtlasLog -Message "Ignored service entry failure (service: '$entryName'): $message" -Level Warning
                 continue
+            }
+            if ($message -cne $_.Exception.Message) {
+                throw (New-Object System.InvalidOperationException($message, $_.Exception))
             }
             throw
         }
     }
+}
+
+function Get-AtlasServiceFailureMessage {
+    <#
+    .SYNOPSIS
+        A service failure with Windows' own reason. Start-Service and Stop-Service name
+        only the service; why Windows refused (for example that the service is disabled)
+        is the innermost exception.
+    #>
+    param([Parameter(Mandatory = $true)][Exception]$Exception)
+
+    $cause = $Exception
+    while ($null -ne $cause.InnerException) { $cause = $cause.InnerException }
+    $reason = ([string]$cause.Message).Trim()
+    if ([object]::ReferenceEquals($cause, $Exception) -or $reason -eq '' -or $Exception.Message.Contains($reason)) {
+        return $Exception.Message
+    }
+    return "$($Exception.Message) $reason"
 }
 
 function Test-AtlasServiceEntries {

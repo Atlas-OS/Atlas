@@ -137,14 +137,21 @@ impl InstallAttempt {
     }
 
     /// The last error the installer logged, as it wrote it after its
-    /// `[ERROR]` tag but without the script position it may add, for a
-    /// failure message's details. Only the lines still held in memory are
-    /// searched.
+    /// `[ERROR]` tag but without the script position it may add, or the
+    /// last requirement it refused, for a failure message's details. Only
+    /// the lines still held in memory are searched.
     pub fn last_error(&self) -> Option<&str> {
         self.log.iter().rev().find_map(|line| {
-            let (_, error) = line.split_once(ERROR_TAG)?;
-            let error = without_position(error.trim());
-            (!error.is_empty()).then_some(error)
+            if let Some((_, error)) = line.split_once(ERROR_TAG) {
+                let error = without_position(error.trim());
+                return (!error.is_empty()).then_some(error);
+            }
+            // The installer can judge a requirement differently from Get ready,
+            // which then shows it as met; its own reason says what to fix.
+            line.trim_start()
+                .strip_prefix(REQUIREMENT_FAILED)
+                .map(str::trim)
+                .filter(|error| !error.is_empty())
         })
     }
 
@@ -176,6 +183,8 @@ impl InstallAttempt {
 
 /// How the installer marks an error line in its log.
 const ERROR_TAG: &str = "[ERROR]";
+/// How the installer lists a requirement it refused, before its name and reason.
+const REQUIREMENT_FAILED: &str = "[Atlas] FAIL ";
 /// How the installer's error line for an app Windows wouldn't remove starts,
 /// before the app's quoted name.
 const APP_NOT_REMOVED: &str = "AppX removal failed for '";
@@ -764,6 +773,25 @@ mod tests {
         assert_eq!(attempt.last_error(), Some("Atlas install stopped at step 18 of 40 (Browser)."));
         attempt.reset();
         assert_eq!(attempt.last_error(), None);
+    }
+
+    /// A requirement Get ready passed but the installer refused is named, so
+    /// the result says what to fix instead of sending the user round again.
+    #[test]
+    fn a_refused_requirement_is_named_as_the_installer_judged_it() {
+        let mut attempt = InstallAttempt::default();
+        attempt.push_lines(vec![
+            "[Atlas] OK   Windows build (build 26300; supported: 26200, 26300)".into(),
+            "[Atlas] FAIL Windows release (build 26300.10066 is not in Microsoft's list of public Windows 11 releases)"
+                .into(),
+            "[Atlas] OK   User account (UAC is enabled and the account has a normal user token.)".into(),
+        ]);
+        assert_eq!(
+            attempt.last_error(),
+            Some(
+                "Windows release (build 26300.10066 is not in Microsoft's list of public Windows 11 releases)"
+            )
+        );
     }
 
     /// The failure as the installer logged it after a phase threw, the

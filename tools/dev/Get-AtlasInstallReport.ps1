@@ -108,14 +108,16 @@ if ($script:PartialReport) {
         ), $script:Utf8)
 }
 
+# A NUL read from a registry value or event text would make Atlas Manager take the
+# report for UTF-16 without a byte order mark and leave it out of the diagnostics.
 function Add-Line {
     param([string]$Text = '')
-    $report.Add($Text)
+    $report.Add($Text.Replace("`0", ''))
 }
 
 function Add-Summary {
     param([Parameter(Mandatory = $true)][string]$Text)
-    $script:Summary.Add($Text)
+    $script:Summary.Add($Text.Replace("`0", ''))
 }
 
 function Add-Section {

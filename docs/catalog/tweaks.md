@@ -229,7 +229,7 @@ Install modes: Fresh, Upgrade.
 
 | Tweak | Description | Gates | Work |
 | --- | --- | --- | --- |
-| `config-time`<br>Configure Time Servers | Configures time servers to be more reliable and accurate than the defaults |  | services 1, run 3 |
+| `config-time`<br>Configure Time Servers | Configures time servers to be more reliable and accurate than the defaults |  | registry 2, services 1, run 2 |
 | `delete-windows-specific-files`<br>Delete Windows-version Specific Tweaks | Removes AtlasDesktop tweak scripts that do not apply to this machine (currently: Open-Shell Start Menu items on ARM64). Only touches Atlas's own desktop folder, never Windows files. | Arch=ARM64, OnUpgrade=Skip | Script `delete-windows-specific-files.ps1` |
 | `rebuild-perf-counters`<br>Rebuild Performance Counters | Manually rebuilds performance counters to ensure that there is no issues with them |  | run 3 |
 | `make-measuresleep-admin`<br>Make MeasureSleep run as admin | It requires admin |  | Script `make-measuresleep-admin.ps1` |

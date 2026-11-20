@@ -12,10 +12,10 @@
     }
   ],
   "sourceUrl": "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information",
-  "sourceCommit": "f366cc818ab2aa05af44561657da401727e0bab1",
-  "sourceSha256": "237F9E4071458E43D533B2B3C41CEA7B56D5DAC65480CEC2D15BDCB48CE1E1DE",
-  "updatedAt": "2026-10-13T21:41:00.0000000Z",
-  "asOfDate": "2026-10-15",
+  "sourceCommit": "9d88a931a38868f9281d68f56fddfd585164fe0d",
+  "sourceSha256": "E84416C6D6A8EE4944148B1DA073E3FE18B95BB5969EBBD74BBE132912C881E1",
+  "updatedAt": "2026-11-19T20:23:00.0000000Z",
+  "asOfDate": "2026-11-20",
   "releases": [
     {
       "version": "10.0.26200.6584",
@@ -210,6 +210,30 @@
       "kb": "KB5127648"
     },
     {
+      "version": "10.0.26200.9725",
+      "availableDate": "2026-10-26",
+      "updateType": "2026-10 OOB",
+      "kb": "KB5134133"
+    },
+    {
+      "version": "10.0.26200.9818",
+      "availableDate": "2026-10-28",
+      "updateType": "2026-10 D",
+      "kb": "KB5127936"
+    },
+    {
+      "version": "10.0.26200.9974",
+      "availableDate": "2026-11-10",
+      "updateType": "2026-11 B",
+      "kb": "KB5132061"
+    },
+    {
+      "version": "10.0.26200.10075",
+      "availableDate": "2026-11-19",
+      "updateType": "2026-11 D",
+      "kb": "KB5132057"
+    },
+    {
       "version": "10.0.26300.9457",
       "availableDate": "2026-09-29",
       "updateType": "",
@@ -226,6 +250,30 @@
       "availableDate": "2026-10-13",
       "updateType": "2026-10 B",
       "kb": "KB5127648"
+    },
+    {
+      "version": "10.0.26300.9725",
+      "availableDate": "2026-10-26",
+      "updateType": "2026-10 OOB",
+      "kb": "KB5134133"
+    },
+    {
+      "version": "10.0.26300.9818",
+      "availableDate": "2026-10-28",
+      "updateType": "2026-10 D",
+      "kb": "KB5127936"
+    },
+    {
+      "version": "10.0.26300.9974",
+      "availableDate": "2026-11-10",
+      "updateType": "2026-11 B",
+      "kb": "KB5132061"
+    },
+    {
+      "version": "10.0.26300.10075",
+      "availableDate": "2026-11-19",
+      "updateType": "2026-11 D",
+      "kb": "KB5132057"
     }
   ]
 }
