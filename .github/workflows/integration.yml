@@ -8,10 +8,15 @@ name: Integration (lab VM)
 # run it. Register a runner with the labels below and set the repository variables and
 # secret to enable the job. The job is skipped while ATLAS_LAB_VM is unset.
 #
+# The front door runs in the lab account's signed-in session, through a one-time
+# scheduled task, so take a standard checkpoint while that account is signed in, with
+# Windows Update and Microsoft Store up to date. tools/lab/Invoke-AtlasLabRun.ps1 lists
+# every prerequisite.
+#
 # Runner labels: self-hosted, windows, hyperv
-# Variables: ATLAS_LAB_VM (VM name), ATLAS_LAB_CHECKPOINT (clean checkpoint name),
-#   ATLAS_LAB_USER (a local administrator account in the guest other than the built-in
-#   Administrator, which Atlas refuses)
+# Variables: ATLAS_LAB_VM (VM name), ATLAS_LAB_CHECKPOINT (checkpoint name),
+#   ATLAS_LAB_USER (the local administrator account the checkpoint is signed in as,
+#   other than the built-in Administrator, which Atlas refuses)
 # Secrets: ATLAS_LAB_PASSWORD (that account's password)
 
 on:
@@ -53,7 +58,7 @@ jobs:
           if (-not $env:ATLAS_LAB_CHECKPOINT) { $missing += 'the ATLAS_LAB_CHECKPOINT variable' }
           if ($env:ATLAS_LAB_PASSWORD_SET -ne 'true') { $missing += 'the ATLAS_LAB_PASSWORD secret' }
           if ($missing.Count -gt 0) {
-              throw "Set $($missing -join ', ') to run the lab. ATLAS_LAB_USER is a local administrator account in the guest other than the built-in Administrator, which Atlas refuses."
+              throw "Set $($missing -join ', ') to run the lab. ATLAS_LAB_USER is the local administrator account the checkpoint is signed in as, other than the built-in Administrator, which Atlas refuses."
           }
 
       - name: Checkout code
@@ -86,9 +91,17 @@ jobs:
           $secure = ConvertTo-SecureString -String $env:ATLAS_LAB_PASSWORD -AsPlainText -Force
           $credential = New-Object System.Management.Automation.PSCredential($env:ATLAS_LAB_USER, $secure)
           $package = Get-Item -LiteralPath $env:ATLAS_LAB_PACKAGE -ErrorAction Stop
-          & tools/lab/Invoke-AtlasLabRun.ps1 -VMName $env:ATLAS_LAB_VM -CheckpointName $env:ATLAS_LAB_CHECKPOINT `
-              -Credential $credential -PackagePath $package.FullName -Option ($env:LAB_OPTIONS -split ',') `
-              -OutputPath 'lab-output/run'
+          $options = @($env:LAB_OPTIONS -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+          $lab = @{
+              VMName         = $env:ATLAS_LAB_VM
+              CheckpointName = $env:ATLAS_LAB_CHECKPOINT
+              Credential     = $credential
+              PackagePath    = $package.FullName
+              OutputPath     = 'lab-output/run'
+          }
+          # Without options, the lab run installs its recommended set.
+          if ($options.Count -gt 0) { $lab.Option = $options }
+          & tools/lab/Invoke-AtlasLabRun.ps1 @lab
           if ($LASTEXITCODE -ne 0) { throw "Lab run failed with exit code $LASTEXITCODE." }
 
       - name: Upload lab output

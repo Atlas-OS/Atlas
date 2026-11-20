@@ -21,14 +21,14 @@ Each release also needs the evidence in the [release verification matrix](releas
 
 | Profile | Settings (`.github/linters/`) | Scope |
 | --- | --- | --- |
-| Windows PowerShell | `PSScriptAnalyzerSettings.Payload.psd1` | `package/**` and `app/resources/**`, which run on users' PCs under Windows PowerShell 5.1. Adds `PSUseCompatibleSyntax` for 5.1 and 7.4. |
-| Strict | `PSScriptAnalyzerSettings.psd1` | `tools/**`, `tests/**`, and Atlas Manager's release and notice tooling and its tests |
+| Windows PowerShell | `PSScriptAnalyzerSettings.Package.psd1` | `package/**` and `app/resources/**`, which run on users' PCs under Windows PowerShell 5.1. Adds `PSUseCompatibleSyntax` for 5.1 and 7.4, and `PSProvideCommentHelp` for exported functions. |
+| Strict | `PSScriptAnalyzerSettings.psd1` | `tools/**`, `tests/**`, and Atlas Manager's release, notice and screenshot tooling and its tests |
 
 ```powershell
 Get-ChildItem package,app/resources -Recurse -Include *.ps1,*.psm1 |
-    Invoke-ScriptAnalyzer -Settings .github/linters/PSScriptAnalyzerSettings.Payload.psd1
+    Invoke-ScriptAnalyzer -Settings .github/linters/PSScriptAnalyzerSettings.Package.psd1
 
-Get-ChildItem tools,tests,app/tools/Build-Release.ps1,app/tools/Export-DependencyNotices.ps1,app/tools/tests -Recurse -Include *.ps1,*.psm1 |
+Get-ChildItem tools,tests,app/tools/Build-Release.ps1,app/tools/Export-DependencyNotices.ps1,app/tools/Update-ReadmeScreenshots.ps1,app/tools/tests -Recurse -Include *.ps1,*.psm1 |
     Invoke-ScriptAnalyzer -Settings .github/linters/PSScriptAnalyzerSettings.psd1
 ```
 
@@ -133,39 +133,92 @@ They cover:
 
 The checks above never apply Atlas configuration.
 A Hyper-V lab VM covers what only a real install can: the front door, the TrustedInstaller broker, the plan phases, sign-in replay and the health check.
+`tools/lab/Invoke-AtlasLabRun.ps1` runs one install on a Hyper-V VM on your own PC, and `.github/workflows/integration.yml` runs the same script on a self-hosted runner.
+The script's help (`Get-Help tools/lab/Invoke-AtlasLabRun.ps1 -Full`) gives every detail.
+The lab doesn't cover launcher interactions or updates from earlier releases; use the [release checks](#release-checks) and the [verification matrix](release-verification-matrix.md) for those.
 
-Prepare the VM before the first run:
+### Preparing the VM
 
-1. Install a supported Windows release and finish Windows setup.
-2. Sign in with an ordinary administrator account.
-   Don't use the built-in Administrator: the front door refuses it, because it needs a standard user token alongside the administrator one.
+The host needs Hyper-V with its PowerShell module, PowerShell 7, and 7-Zip or NanaZip to extract the package.
+Run the script from an elevated prompt, or as a member of the Hyper-V Administrators group.
+
+Prepare the VM once, then take the checkpoint that every run starts from:
+
+1. Install a Windows release that `supportedBuilds` in `package/atlas.json` lists, finish Windows setup, and give the VM internet access.
+2. Sign in with a local administrator account other than the built-in Administrator.
+   The front door refuses the built-in Administrator, because it needs a standard user token alongside the administrator one.
 3. Install updates until Windows Update and the Microsoft Store report nothing pending.
    Restart if Windows asks, and sign in again with the same account.
-4. Take the checkpoint while that account is signed in.
+4. Turn off the four Windows Security protection switches, and leave out any other antivirus app, as the package's requirements demand.
+5. Take a standard checkpoint while that account is signed in.
+   A production checkpoint starts the VM at the sign-in screen, so the run stops unless the account signs in automatically.
 
-Then build a full package and run the lab:
+When Windows Update or the Microsoft Store offers something new, the front door exits 5 and the run stops.
+Install the updates in the VM, then take the checkpoint again.
+
+### Running the lab
+
+Build a full package, then run the lab against the VM:
 
 ```powershell
 pwsh tools/build/Build-Package.ps1 -FileName 'Atlas Lab' -ReplaceExisting -NoExplorer
 pwsh tools/lab/Invoke-AtlasLabRun.ps1 -VMName AtlasLab -CheckpointName clean `
-    -Credential (Get-Credential) -PackagePath "package\Atlas Lab.atlaspkg"
+    -Credential (Get-Credential AtlasLab) -PackagePath 'package\Atlas Lab.atlaspkg'
 ```
 
-Give `-Credential` the account the checkpoint is signed in as.
 The lab needs a full build: a `-LocalTest` build has an empty `supportedBuilds`, so the front door refuses it.
 
-Each run restores the checkpoint and copies the Atlas package in over PowerShell Direct.
-It then installs Atlas unattended through `Scripts\Entry\Install-Atlas.ps1`, restarts the VM and runs `Scripts\Entry\Test-AtlasHealth.ps1 -Json`.
-The install log, the health report, the `Compare-SystemState` before-and-after diff and the Atlas logs go to `lab-output\`.
-The script header lists the steps and the host requirements.
+| Parameter | Meaning |
+| --- | --- |
+| `-VMName` | The Hyper-V VM. |
+| `-CheckpointName` | The checkpoint each run restores. |
+| `-Credential` | The administrator account that's signed in at the checkpoint, which PowerShell Direct and the front door use. |
+| `-PackagePath` | A full `.atlaspkg` build. |
+| `-ArchiveKey` | The package's ZIP password: `atlasos` by default, or an empty string for a `-NoPassword` build. |
+| `-ExtractedRoot` | An extracted package to install instead of `-PackagePath`. |
+| `-Option` | The option ids to install with; the recommended set by default. |
+| `-OutputPath` | Where the results go; `lab-output\<timestamp>` by default. |
+| `-BootTimeoutSeconds` | How long to wait for the VM, and for the account's session, after each start; 600 by default. |
+| `-InstallTimeoutSeconds` | How long the front door may run before the lab stops it; 7200 by default. |
+| `-Keep` | Leave the VM running after the run instead of turning it off. |
 
-The run fails if the install exits nonzero, a fresh install reports drift, or the VM doesn't come back.
+Each run:
+
+1. restores the checkpoint, starts the VM and waits for the account's interactive session;
+2. copies the package into the VM over PowerShell Direct, and records the registry, services and scheduled tasks with `Compare-SystemState`;
+3. runs `Scripts\Entry\Install-Atlas.ps1` unattended in the account's interactive session;
+4. restarts the VM, runs `Scripts\Entry\Test-AtlasHealth.ps1 -Json`, and compares a second record with the first;
+5. collects the results and turns the VM off.
+
+Step 4 is skipped when the front door stops before it installs anything.
+
+PowerShell Direct runs commands in session 0, which the front door refuses, because preparing Windows and the Microsoft Store and installing Atlas belong to the signed-in account's session.
+So the run registers a one-time scheduled task for the account, which Windows runs elevated in that account's interactive session, as Atlas Manager runs the front door.
+The run removes the task once it has the result.
+
+### What the lab reports
+
+The run writes these files to the output folder:
+
+| File | Contents |
+| --- | --- |
+| `lab-run.log` | The lab run's own log. |
+| `install.log` | The front door's output. |
+| `install-session.json` | The account and session the front door ran in, and whether it ran elevated. |
+| `install-result.json` | The front door's exit code. |
+| `health.json` | The health check's report. |
+| `baseline.json`, `candidate.json` and `state-diff.txt` | The records from before and after the install, and their differences. |
+| `Logs\` and `state.json` | The Atlas logs and the state document from the VM. |
+
+The script prints each step as it goes, and ends with its exit code and the output folder:
 
 | Exit code | Meaning |
 | --- | --- |
-| 0 | Verified. |
-| 1 | The install or the verification failed. |
-| 2 | Lab setup failed. |
+| 0 | Atlas installed and the health check found no drift. |
+| 1 | The front door failed or didn't finish in time, or the health check reported drift or couldn't run. |
+| 2 | Lab setup failed, including a VM that doesn't meet the prerequisites, so the front door exited 3 (not elevated) or 5 (updates pending). |
+
+### Running the lab in CI
 
 `.github/workflows/integration.yml` runs the lab on manual dispatch.
 It needs a prepared checkpoint and a self-hosted runner labelled `self-hosted`, `windows` and `hyperv`; the repository provides neither.
@@ -174,10 +227,8 @@ It needs a prepared checkpoint and a self-hosted runner labelled `self-hosted`, 
 | --- | --- | --- |
 | `ATLAS_LAB_VM` | Variable | VM name; the job is skipped when it's unset. |
 | `ATLAS_LAB_CHECKPOINT` | Variable | Checkpoint name. |
-| `ATLAS_LAB_USER` | Variable | The administrator account the checkpoint is signed in as. Set it: the built-in Administrator doesn't work. |
+| `ATLAS_LAB_USER` | Variable | The local administrator account the checkpoint is signed in as, other than the built-in Administrator. |
 | `ATLAS_LAB_PASSWORD` | Secret | That account's password. |
-
-The lab run doesn't cover launcher interactions or updates from earlier releases; use the [release checks](#release-checks) and the [verification matrix](release-verification-matrix.md).
 
 ### Collecting a report by hand
 
