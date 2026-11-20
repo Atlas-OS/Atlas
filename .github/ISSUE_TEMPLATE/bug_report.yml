@@ -1,6 +1,5 @@
 name: Bug report
-description: Create a bug report to help us improve Atlas.
-title: "[BUG] - "
+description: Report a problem with Atlas or Atlas Manager.
 
 labels:
 - bug
@@ -8,73 +7,88 @@ labels:
 body:
 - type: checkboxes
   attributes:
-    label: Before continuing...
-    description: Please ensure you meet the following criteria. If not, the maintainers reserve the right to close and lock your issue.
+    label: Before you continue
+    description: Make sure you meet these criteria. If you don't, the maintainers may close and lock your issue.
     options:
-    - label: "I agree to follow Atlas' [Code of Conduct](https://github.com/Atlas-OS/.github/blob/main/profile/CODE_OF_CONDUCT.md)"
+    - label: "I agree to follow Atlas's [Code of Conduct](https://github.com/Atlas-OS/.github/blob/main/profile/CODE_OF_CONDUCT.md)"
       required: true
-    - label: "I have searched our [issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) to verify that the issue hasn't been reported already"
+    - label: "I have searched the [issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) and this issue hasn't been reported already"
       required: true
-    - label: "I have searched the [Atlas documentation](https://docs.atlasos.net) beforehand for a solution"
+    - label: "I have searched the [Atlas documentation](https://atlasos.net/docs/) for a solution"
       required: true
-    - label: "I am on the latest version of Atlas, and didn't do an unsupported upgrade"
+    - label: "I'm on the latest Atlas release, installed or updated on a [supported Windows release](https://atlasos.net/docs/install/requirements/)"
       required: true
 
 - type: textarea
   attributes:
     label: Description
-    description: A short description of the bug.
+    description: Describe the bug in a sentence or two.
   validations:
     required: true
 
 - type: textarea
   attributes:
     label: Steps to reproduce
-    description: The steps required to reproduce this bug (add screenshots if applicable).
+    description: List the steps that make the bug happen. Add screenshots if they help.
     placeholder: |
-      1. [First step] (Screenshot 1)
-      2. [Second step] (Screenshot 2)
-      3. [And so on...] (Screenshot X)
+      1. First step
+      2. Second step
+      3. And so on
   validations:
     required: true
 
 - type: textarea
   attributes:
-    label: Expected behavior
-    description: What you expect to happen (add screenshots if applicable).
+    label: Expected behaviour
+    description: What you expected to happen.
   validations:
     required: true
 
 - type: textarea
   attributes:
-    label: Actual behavior
-    description: What actually happened (add screenshots if applicable).
+    label: Actual behaviour
+    description: What happened instead. Add screenshots if they help.
   validations:
     required: true
 
-- type: dropdown
+- type: input
   attributes:
-    label: Atlas Version
-    description: Run winver to see your Windows version.
-    options:
-    - Atlas v0.6.0 for Windows 11 25H2
-    - Atlas v0.6.0 for Windows 11 26H2
+    label: Atlas version
+    description: >-
+      The heading of Atlas Manager's home page shows "Atlas" followed by the installed version.
+      Windows also records it: run `winver` and look for "Atlas Playbook" followed by the version.
+      For a problem in Atlas Manager itself, also give the version shown beside **Atlas Manager** under **Settings** > **About**.
+  validations:
+    required: true
+
+- type: input
+  attributes:
+    label: Windows version
+    description: In Windows, open **Settings** > **System** > **About**, and copy the edition, version and OS build under **Windows specifications**.
   validations:
     required: true
 
 - type: textarea
   attributes:
-    label: Desktop information
-    description: Your hardware specification is needed for us to define the problem.
+    label: Hardware
+    description: Your PC's main components help us find problems that only some hardware has.
     placeholder: |
-      - Processor [include brand and specs]
-      - RAM [include size and generation]
-      - Storage [include size, brand, and type]
-      - GPU [include brand, specs, driver version]
+      - Processor: brand and model
+      - Memory: size
+      - Storage: size, brand and type
+      - Graphics: brand, model and driver version
   validations:
     required: true
 
 - type: textarea
   attributes:
-    label: Additional content
-    description: Anything you want to add. To include diagnostics, open Atlas Manager's Settings, choose **Export diagnostics** under Help and feedback, then **Show in folder**, and attach the ZIP.
+    label: Diagnostics
+    description: >-
+      In Atlas Manager, open **Settings** with the gear button in the title bar, choose **Export diagnostics** under **Help and feedback**, then **Show in folder**, and attach the ZIP here.
+      Atlas removes your user name, PC name and email addresses from it.
+      To send diagnostics privately instead, choose **Send a report** in the same place, and paste the report reference here.
+
+- type: textarea
+  attributes:
+    label: Additional context
+    description: Anything else that might help, such as what you've already tried.

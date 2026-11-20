@@ -1,6 +1,5 @@
 name: Feature request
-description: Create a feature request to help us improve Atlas.
-title: "[FEATURE] - "
+description: Suggest a feature or change for Atlas or Atlas Manager.
 
 labels:
 - enhancement
@@ -8,51 +7,46 @@ labels:
 body:
 - type: checkboxes
   attributes:
-    label: Before continuing...
-    description: Please ensure you meet the following criteria. If not, the maintainers reserve the right to close and lock your issue.
+    label: Before you continue
+    description: Make sure you meet these criteria. If you don't, the maintainers may close and lock your issue.
     options:
-    - label: "I agree to follow Atlas' [Code of Conduct](https://github.com/Atlas-OS/.github/blob/main/profile/CODE_OF_CONDUCT.md)"
+    - label: "I agree to follow Atlas's [Code of Conduct](https://github.com/Atlas-OS/.github/blob/main/profile/CODE_OF_CONDUCT.md)"
       required: true
-    - label: "I have searched our [issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) to verify that the issue hasn't been reported already"
+    - label: "I have searched the [issue tracker](https://github.com/Atlas-OS/Atlas/issues?q=is%3Aissue) and this request hasn't been made already"
       required: true
-    - label: "I have searched the [Atlas documentation](https://docs.atlasos.net) beforehand for a solution"
-      required: true
-    - label: "I am on the latest version of Atlas, and didn't do an unsupported upgrade"
+    - label: "I have searched the [Atlas documentation](https://atlasos.net/docs/) for a solution"
       required: true
 
 - type: dropdown
   attributes:
-    label: What is your feature request regarding to?
+    label: What is the request about?
     options:
     - Atlas
-    - Other (submit it in https://github.com/Atlas-OS/Atlas/discussions)
+    - Atlas Manager
+    - Something else (post it in https://github.com/Atlas-OS/Atlas/discussions/categories/suggestions instead)
   validations:
     required: true
 
 - type: textarea
   attributes:
-    label: Is your feature request related to a problem? Please describe.
-    placeholder: |
-      e.g. I always wanted Atlas to...
+    label: What problem would it solve?
+    placeholder: For example, I always wanted Atlas to…
   validations:
     required: true
 
 - type: textarea
   attributes:
-    label: Describe the solution you would like.
-    placeholder: |
-      e.g. I would like Atlas to add...
+    label: Describe the solution you'd like
+    placeholder: For example, I'd like Atlas to add…
   validations:
     required: true
 
 - type: textarea
   attributes:
-    label: Describe alternatives you have considered.
-    description: If you have found a temporary fix, list it here.
-  validations:
-    required: true
+    label: Alternatives you've considered
+    description: Other solutions you've thought of, or a workaround you use for now.
 
 - type: textarea
   attributes:
-    label: Additional context.
-    description: Add any other context or screenshots about the feature request here.
+    label: Additional context
+    description: Add any other context or screenshots about the request.

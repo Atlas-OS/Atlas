@@ -1,74 +1,64 @@
 # Writing for Atlas
 
-Atlas should help someone make an informed choice without requiring them
-to know how Windows works. Use a calm, friendly voice. Be direct about
-security, installation failures and restarts.
+This guide sets the voice and conventions for the text in Atlas Manager's interface: labels, messages, explanations and accessible names.
+It's for anyone who writes or reviews that text in the English source catalog, `i18n/en-GB/atlas.ftl`.
+Documentation, READMEs and code comments follow the [writing style](../../docs/style.md), which shares the terms below.
+
+Atlas should help someone make an informed choice without requiring them to know how Windows works.
+Use a calm, friendly voice.
+Be direct about security, installation failures and restarts.
 
 ## Copy conventions
 
-- Address the person as "you" and their computer as "your PC". Use "Atlas"
-  for actions the app performs, and "Windows" for actions Windows performs.
-- Use sentence case. Give headings and labels no final full stop; write
-  explanatory text as complete sentences.
-- Keep familiar controls short: Back, Continue, Cancel, Done. Name a
-  consequential action explicitly: Remove Microsoft Defender, Install
-  Atlas, Restart now. "Relaunch" refers to this app; "restart" refers to
-  the PC.
-- Introduce technical terms in context. The Atlas package is the `.apbx`
-  file containing Atlas's setup instructions and files. Processor
-  protections are also called security mitigations. Keep actual Windows
-  switch names so people can find them in Windows Security.
-- Explain both choices before selection. Explain optional changes beside
-  their checkboxes, including power, compatibility and security tradeoffs.
-  A checked checkbox names the action that will happen, even when that
-  action turns a Windows feature off.
-- State what the app knows. Four Defender switches being off does not mean
-  every Windows security feature is off. No pending updates does not prove
-  Windows is fully up to date. An unreadable setting is not an off setting.
-- Describe what failed, whether changes may have been made, and what to do
-  next. Retain raw diagnostics for troubleshooting. Never promise that a
-  partial installation made no changes or that a retry will succeed.
-- Explain restart timing and remind people to save their work. Avoid
-  unsupported claims about performance gains or how soon setup will finish.
+- Address the person as "you" and their computer as "your PC".
+  Use "Atlas" for actions the app performs, and "Windows" for actions Windows performs.
+- Use sentence case.
+  Give headings and labels no final full stop, and write explanatory text as complete sentences.
+- Keep familiar controls short: Back, Continue, Cancel, Done.
+  Name a consequential action explicitly: Remove Microsoft Defender, Install Atlas, Restart now.
+- "Relaunch" refers to this app, and "restart" refers to the PC.
+- Introduce technical terms in context.
+  The Atlas package is the `.apbx` file that holds Atlas's setup instructions and files.
+  Processor protections are also called security mitigations.
+  Keep Windows' own switch names, so people can find them in Windows Security.
+- Explain both answers before the person chooses.
+  Explain optional changes beside their check boxes, including power, compatibility and security trade-offs.
+  A selected check box names the action that will happen, even when that action turns a Windows feature off.
+- State only what the app knows.
+  The protection switches being off doesn't mean every Windows security feature is off.
+  No pending updates doesn't prove Windows is fully up to date.
+  An unreadable setting isn't an off setting.
+- Describe what failed, whether changes may have been made, and what to do next.
+  Keep raw diagnostics for troubleshooting.
+  Never promise that a partial installation made no changes, or that a retry will succeed.
+- Explain when a restart happens, and remind people to save their work.
+  Don't claim performance gains or say how soon setup will finish.
 - Preserve product names, file paths, versions, variables and plural rules.
-  English UK is the source; English US overrides spelling differences.
-- Use one name for one thing. In running text, the selections made in
-  the Your choices step are "choices", the ISO modes included. Summary
-  cards list them in an "Options" row, and the ISO review in an "Atlas
-  choices" row, kept apart from the step name on purpose. "Settings" is the
-  app's own page. The `.apbx` file is "the Atlas package", or "the package"
-  once that's clear; use "playbook" only when talking about AME Wizard, which
-  uses that term. The steps are Get ready, Your choices, Windows Security and
-  Install; the ISO steps are Files, Windows setup, Your choices and Review.
-  "Windows setup" is otherwise Windows' own installer. When text tells people
-  to choose a control, use its exact label.
-- The four protection switches are turned off and turned back on, never
-  paused or disabled. Name each as Windows Security does.
-- Name the help actions as the app labels them: Export diagnostics saves a
-  ZIP, Open log folder shows the raw logs of an update, ISO or USB job, and
-  Send a report goes privately to the Atlas team. Report a problem on Home
-  opens Send a report. Privacy text never claims more than the export
-  removes: the user name, PC name, email addresses and known passwords or
-  keys.
-- English copy uses contractions (can't, isn't, couldn't) and straight
-  apostrophes.
+  English (United Kingdom) is the source, and English (United States) overrides only spelling differences.
+- Use contractions (can't, isn't, couldn't) and straight apostrophes in English copy.
 
-## Package compatibility
+## Names
 
-Edit displayed option labels and descriptions in `i18n/en-GB/atlas.ftl`.
-Do not edit `i18n/playbook-source.ftl` just to change interface wording.
-That file records the exact package text the app understands. Labels,
-page descriptions and option explanations keep their compatibility guards;
-unrecognised package wording is shown as supplied, without an app-authored
-option explanation that might no longer apply.
+Use one name for one thing.
 
-When the actual package changes an option, review its implementation and
-every affected translation before updating the baseline. Machine option
-identifiers, defaults and the installer command are independent of UI copy.
+- In running text, the selections made in the **Your choices** step are "choices", the ISO modes included.
+  Summary cards list them in an "Options" row, and the ISO review in an "Atlas choices" row, kept apart from the step name on purpose.
+- "Settings" is the app's own page.
+- The `.apbx` file is "the Atlas package", or "the package" once that's clear.
+  Interface text never calls it a playbook.
+- The install steps are **Get ready**, **Your choices**, **Windows Security** and **Install**.
+  The ISO steps are **Files**, **Windows setup**, **Your choices** and **Review**.
+  "Windows setup" otherwise means Windows' own installer.
+- When text tells people to choose a control, use its exact label.
+- On first mention, the four switches Atlas asks people to turn off are "the four Windows Security protection switches"; after that, "the protection switches".
+  They're turned off and turned back on, never paused or disabled.
+  Name each one as Windows Security does.
+- Name the help actions as the app labels them.
+  **Export diagnostics** saves a ZIP, **Open log folder** shows the raw logs of an update, ISO or USB job, and **Send a report** goes privately to the Atlas team.
+  **Report a problem** on Home opens **Send a report**.
+- Privacy text never claims more than the export removes: the user name, PC name, email addresses and known passwords or keys.
 
-## Translation review
+## Translations
 
-Follow the [locale conventions and open terminology questions](translating.md).
-Non-English catalogs remain previews until a native speaker reviews them. Check
-long explanations at the minimum 700 × 520 window size and test accessible names
-as well as visible labels. See [language checks](i18n.md#review-and-test-hooks).
+[Languages](i18n.md) covers how package text stays recognisable and how translations are reviewed.
+[Translation guidance](translating.md) records each language's terms.

@@ -69,6 +69,24 @@ if [[ "$cargo_version" != "$version" ]]; then
     echo "app/Cargo.toml is at ${cargo_version:-no version} but playbook/playbook.conf is at $version; bump both." >&2
     exit 1
 fi
+# Joins the <string> entries of one playbook.conf list as "a, b and c" for README-RC.txt.
+conf_list() {
+    local -a items
+    local pattern='^[[:alnum:] .+-]+$' list i
+    mapfile -t items < <(tr -d '\r\n' <playbook/playbook.conf | grep -o "<$1>.*</$1>" |
+        grep -o '<string>[^<]*</string>' | sed -e 's/<[^>]*>//g' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+    if [[ ${#items[@]} -eq 0 || ! "${items[*]}" =~ $pattern ]]; then
+        echo "Cannot read the <$1> list from playbook/playbook.conf." >&2
+        exit 1
+    fi
+    list="${items[0]}"
+    for ((i = 1; i < ${#items[@]}; i++)); do
+        if ((i == ${#items[@]} - 1)); then list+=" and ${items[i]}"; else list+=", ${items[i]}"; fi
+    done
+    printf '%s' "$list"
+}
+supported_builds="$(conf_list SupportedBuilds)"
+upgradable_from="$(conf_list UpgradableFrom)"
 rc_id="$version-rc.$rc"
 final="$root/artifacts/rc/$rc_id"
 work="$root/artifacts/rc/.$rc_id.building"
@@ -129,8 +147,13 @@ toolbox_note='/@TOOLBOX_NOTE@/d'
 if [[ -n "$toolbox" ]]; then
     toolbox_note="s|@TOOLBOX_NOTE@|- The package also carries AtlasOS Toolbox $toolbox_version. Installing the\\n  Toolbox, from Your choices or the Atlas folder, uses that copy instead of\\n  the latest Toolbox release on GitHub.|"
 fi
-sed -e "s/@RC_ID@/$rc_id/g" -e "s/@COMMIT@/$commit/g" -e "$toolbox_note" \
+sed -e "s/@RC_ID@/$rc_id/g" -e "s/@COMMIT@/$commit/g" -e "s/@SUPPORTED_BUILDS@/$supported_builds/g" \
+    -e "s/@UPGRADABLE_FROM@/$upgradable_from/g" -e "$toolbox_note" \
     tools/release/README-RC.txt >"$stage/README-RC.txt"
+if grep -q '@[A-Z_][A-Z_]*@' "$stage/README-RC.txt"; then
+    echo 'README-RC.txt has a placeholder that build-rc.sh does not fill in.' >&2
+    exit 1
+fi
 zip_name="AtlasManager-$rc_id-windows-x64.zip"
 (cd "$stage" && 7z a -tzip -bso0 -bsp0 "../$zip_name" .)
 

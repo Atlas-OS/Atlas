@@ -1,32 +1,48 @@
-## Security Policy
+# Security policy
 
-Atlas aims to balance security, performance and usability.
+If you find a security vulnerability in Atlas, report it privately so the Atlas team can fix it before the details are public.
+This page explains how to report it, what to include and what Atlas covers.
 
-### Reporting a vulnerability
+## Report a vulnerability
 
-If you discover a severe or exploitable security flaw in Atlas, please report it privately through [GitHub private vulnerability reporting](https://github.com/Atlas-OS/Atlas/security/advisories/new). **Do not open a public GitHub issue for exploitable problems** — Atlas performs deep, TrustedInstaller-level system modification, so public-by-default disclosure puts users at risk before a fix can be released.
+Report a vulnerability through [GitHub private vulnerability reporting](https://github.com/Atlas-OS/Atlas/security/advisories/new).
+If you don't have a GitHub account, email [contact@atlasos.net](mailto:contact@atlasos.net).
 
-If you do not have a GitHub account, contact the team privately on our [Discord server](https://discord.atlasos.net) instead.
+> [!IMPORTANT]
+> Don't open a public issue or discussion for a vulnerability that someone could exploit.
+> Atlas makes system changes as TrustedInstaller, so public disclosure puts users at risk before a fix is out.
 
-### Scope
+## What to include
 
-Atlas is responsible for everything it releases and builds from this repository:
+- The affected component, such as Atlas Manager or a script in the Atlas package, and its version.
+- The steps to reproduce the problem, with any proof of concept.
+- The impact: what an attacker could do, and what access they need first.
+
+## What happens next
+
+The Atlas team reviews your report privately, and may ask you for more detail through the same report or email thread.
+If the team confirms the vulnerability, it works on a fix and publishes a security advisory when the fix is released.
+Keep the details private until then.
+
+## Scope
+
+Atlas covers everything it releases and builds from this repository:
 
 - Atlas Manager, the desktop app under [`app/`](../app/)
 - The reports service and its MCP server under [`services/`](../services/)
-- The AME Wizard configuration (YAML) under [`playbook/Configuration/`](../playbook/Configuration/)
-- The `Atlas.*` PowerShell framework and Atlas's other files under [`playbook/Executables/`](../playbook/Executables/) (see [`docs/architecture.md`](../docs/architecture.md) for the layout)
-- The binaries included in the Atlas package, listed in [`playbook/Executables/AtlasModules/README.md`](../playbook/Executables/AtlasModules/README.md)
+- The `Atlas.*` PowerShell framework and Atlas's other files under [`playbook/Executables/`](../playbook/Executables/) (the [architecture](../docs/architecture.md) explains the layout)
+- The binaries in the Atlas package, listed in the [binary inventory](../playbook/Executables/AtlasModules/README.md)
 - The build tooling under [`tools/`](../tools/)
 
-For flaws in [AME Wizard](https://amelabs.net) itself, please contact AME Labs via their [website](https://amelabs.net).
+Atlas runs on Windows, so some issues are Microsoft's to fix.
+If a vulnerability also affects the latest unmodified Windows, report it to Microsoft through the [Microsoft Security Response Center](https://www.microsoft.com/en-us/msrc/faqs-report-an-issue).
 
-Atlas runs on Windows, so some issues are Microsoft's to fix. If a vulnerability also affects the latest unmodified Windows, report it to Microsoft through the [Microsoft Security Response Center](https://www.microsoft.com/en-us/msrc/faqs-report-an-issue).
+## Hardening ideas
 
-### Non-security hardening ideas
+For hardening ideas, and security weaknesses that nobody could exploit, open a regular issue or pull request.
+Suggestions should keep the balance between security, performance and usability.
 
-For hardening ideas and other security improvements that aren't exploitable, open a regular GitHub issue or pull request. Suggestions should keep the balance between security, performance and usability.
+## Supported versions
 
-### Supported versions
-
-Only the latest Atlas release is supported. Older versions do not receive security fixes; please upgrade to the current release before reporting.
+Only the latest Atlas release receives security fixes.
+Update to the latest release, and check that the problem is still there, before you report it.

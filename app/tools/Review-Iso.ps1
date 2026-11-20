@@ -2,7 +2,7 @@
 param(
     [string]$Language = 'en-GB',
     # The ISO and USB preview states of pages/iso.rs and pages/usb.rs, and the preparation states
-    # listed in docs/iso-creation.md. Set ATLAS_PREPARATION_PREVIEW directly for the others.
+    # listed in docs/review-tools.md. Set ATLAS_PREPARATION_PREVIEW directly for the others.
     [ValidateSet('home','files','files-empty','files-checked','checking','not-elevated','windows','account-empty','account-invalid','choices','choices-unsupported','before','before-desktop',
         'review','review-before','progress','progress-network','failed','build-failed','package-changed','cancelled','release-unknown','release-unlisted','package-unsupported','complete',
         'prepare-idle','prepare-busy','prepare-stopping','prepare-download','prepare-complete','prepare-resume','prepare-failed','prepare-failed-battery','prepare-unconfirmed',

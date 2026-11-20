@@ -1,21 +1,20 @@
 # Translation guidance
 
-Use these conventions when editing the Fluent catalogs. All non-English translations
-remain previews and need native-speaker review. The Windows labels below are working
-choices; check the open terminology questions against a localized Windows installation
-before marking a catalog reviewed. See [language implementation](i18n.md) for
-catalog checks and [writing guidance](writing.md) for shared copy conventions.
+This page sets the terms, Windows names and conventions for each language in Atlas Manager's Fluent catalogs, for translators and the native speakers who review their work.
+For how languages are implemented and how the catalog checks work, see [Languages in Atlas Manager](i18n.md); for the copy conventions every language shares, see the [app writing guide](writing.md).
+
+Every non-English catalog is a preview until a native speaker reviews it.
+Before you mark a catalog reviewed, check its Windows names and open questions against localised Windows.
 
 ## Atlas package and step names
 
-The `.apbx` file is the Atlas package in every language, shortened once it's
-clear. "Playbook" appears only where a string explains AME Wizard's name for it;
-the `playbook-*` message ids, `i18n/playbook-source.ftl` and the
-`embedded-playbook` feature keep their names. The ISO flow's third step reuses
-the install flow's Your choices (`step-options`).
+The `.apbx` file is the Atlas package in every language, shortened once it's clear.
+Interface text never says "playbook" in any language.
+The `playbook-*` message ids, `i18n/playbook-source.ftl` and the `embedded-playbook` feature keep their names.
+The ISO flow's third step reuses **Your choices** (`step-options`) from the install flow.
 
 | Locale | Atlas package, then its short form | Install steps (`step-*`) | ISO steps 1, 2 and 4 (`iso-review-files`, `iso-step-windows`, `iso-step-review`) |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | de | Atlas-Paket, Paket; the file is the Paketdatei | Vorbereiten, Ihre Auswahl, Windows-Sicherheit, Installieren | Dateien, Windows-Einrichtung, Überprüfung |
 | es | paquete de Atlas, el paquete | Preparación, Sus preferencias, Seguridad de Windows, Instalación | Archivos, Instalación de Windows, Revisión |
 | fr | package Atlas (masculine), le package | Préparation, Vos choix, Sécurité Windows, Installation | Fichiers, Installation de Windows, Récapitulatif |
@@ -32,260 +31,425 @@ the install flow's Your choices (`step-options`).
 
 ## Windows feature names
 
-The features Atlas turns off are named as each language's Windows shows them,
-in `consequence-mitigations-disable` (Exploit protection, Control Flow Guard)
-and `playbook-page-defender-enable-description` (the other three). Names not
-yet confirmed on a localized Windows are in the
-[questions for native reviewers](#questions-for-native-reviewers).
+Name the features Atlas turns off as Windows shows them in your language.
+They appear in `consequence-mitigations-disable` (Exploit protection, Control Flow Guard) and `playbook-page-defender-enable-description` (the other three).
+Each row has the weakest status of any name in it:
 
-| Locale | Exploit protection | Control Flow Guard | Smart App Control | Enhanced Phishing Protection | Find my device |
-|---|---|---|---|---|---|
-| de | Exploit-Schutz | Ablaufsteuerungsschutz (CFG) | Intelligente App-Steuerung | Erweiterter Phishingschutz | „Mein Gerät suchen“ |
-| es | Protección contra vulnerabilidades | Protección de flujo de control (CFG) | Control inteligente de aplicaciones | Protección mejorada contra suplantación de identidad | Encontrar mi dispositivo |
-| fr | Exploit Protection (English, as French Windows shows it) | Protection du flux de contrôle (CFG) | Contrôle intelligent des applications | Protection renforcée contre l’hameçonnage | Localiser mon appareil |
-| pt-BR | Proteção contra vulnerabilidades | Proteção de fluxo de controle (CFG) | Controle Inteligente de Aplicativos | Proteção aprimorada contra phishing | Localizar meu dispositivo |
-| pl | Ochrona przed lukami w zabezpieczeniach | Ochrona przepływu sterowania (CFG) | Inteligentna kontrola aplikacji | Rozszerzona ochrona przed wyłudzaniem informacji | Znajdź moje urządzenie |
-| ru | защита от эксплойтов | защита потока управления (CFG) | «Интеллектуальное управление приложениями» | «Расширенная защита от фишинга» | «Поиск устройства» |
-| tr | Açıktan yararlanma koruması | Denetim akışı koruması (CFG) | Akıllı Uygulama Denetimi | Gelişmiş Kimlik Avı Koruması | Cihazımı bul |
-| zh-Hans | Exploit Protection (English, as Chinese Windows shows it) | 控制流保护 (CFG) | 智能应用控制 | 增强型网络钓鱼防护 | 查找我的设备 |
-| zh-Hant | 惡意探索保護 | 控制流程防護（CFG） | 智慧型應用程式控制 | 增強式網路釣魚保護 (the Group Policy name) | 尋找我的裝置 |
-| ja | Exploit Protection (Latin letters, as Japanese Windows shows it) | 制御フロー ガード | スマート アプリ コントロール | 拡張フィッシング保護 | デバイスの検索 |
-| id | Perlindungan eksploitasi | Control Flow Guard (English) | Kontrol Aplikasi Pintar | Perlindungan pengelabuan (the switch's own label) | Temukan perangkat saya |
-| th | การป้องกัน Exploit | Control Flow Guard (English) | การควบคุมแอปแบบอัจฉริยะ | การป้องกันฟิชชิ่งขั้นสูง | ค้นหาอุปกรณ์ของฉัน |
-| hi | शोषण से सुरक्षा | नियंत्रण प्रवाह गार्ड (CFG) | स्मार्ट ऐप नियंत्रण | उन्नत फ़िशिंग सुरक्षा | मेरा डिवाइस ढूँढें |
+| Status | Meaning |
+| --- | --- |
+| Confirmed in localised Windows | The name matches what Windows shows in that language, and no open question disputes it. |
+| Microsoft documentation | Microsoft's localised pages use the name, but it isn't confirmed on screen. |
+| Reasoned, unconfirmed | The name has no source, hasn't been checked, or differs from Microsoft's pages and isn't confirmed. |
+
+Each locale's open questions, under [Locale conventions](#locale-conventions), name the features still in doubt and list the candidates.
+
+| Locale | Exploit protection | Control Flow Guard | Smart App Control | Enhanced Phishing Protection | Find my device | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| de | Exploit-Schutz | Ablaufsteuerungsschutz (CFG) | Intelligente App-Steuerung | Erweiterter Phishingschutz | „Mein Gerät suchen“ | Reasoned, unconfirmed |
+| es | Protección contra vulnerabilidades | Protección de flujo de control (CFG) | Control inteligente de aplicaciones | Protección mejorada contra suplantación de identidad | Encontrar mi dispositivo | Microsoft documentation |
+| fr | Exploit Protection (English, as French Windows shows it) | Protection du flux de contrôle (CFG) | Contrôle intelligent des applications | Protection renforcée contre l’hameçonnage | Localiser mon appareil | Microsoft documentation |
+| pt-BR | Proteção contra vulnerabilidades | Proteção de fluxo de controle (CFG) | Controle Inteligente de Aplicativos | Proteção aprimorada contra phishing | Localizar meu dispositivo | Microsoft documentation |
+| pl | Ochrona przed lukami w zabezpieczeniach | Ochrona przepływu sterowania (CFG) | Inteligentna kontrola aplikacji | Rozszerzona ochrona przed wyłudzaniem informacji | Znajdź moje urządzenie | Reasoned, unconfirmed |
+| ru | защита от эксплойтов | защита потока управления (CFG) | «Интеллектуальное управление приложениями» | «Расширенная защита от фишинга» | «Поиск устройства» | Reasoned, unconfirmed |
+| tr | Açıktan yararlanma koruması | Denetim akışı koruması (CFG) | Akıllı Uygulama Denetimi | Gelişmiş Kimlik Avı Koruması | Cihazımı bul | Reasoned, unconfirmed |
+| zh-Hans | Exploit Protection (English) | 控制流保护 (CFG) | 智能应用控制 | 增强型网络钓鱼防护 | 查找我的设备 | Reasoned, unconfirmed |
+| zh-Hant | 惡意探索保護 | 控制流程防護（CFG） | 智慧型應用程式控制 | 增強式網路釣魚保護 (the Group Policy name) | 尋找我的裝置 | Reasoned, unconfirmed |
+| ja | Exploit Protection (Latin letters, as Japanese Windows shows it) | 制御フロー ガード | スマート アプリ コントロール | 拡張フィッシング保護 | デバイスの検索 | Microsoft documentation |
+| id | Perlindungan eksploitasi | Control Flow Guard (English) | Kontrol Aplikasi Pintar | Perlindungan pengelabuan (the switch's own label) | Temukan perangkat saya | Reasoned, unconfirmed |
+| th | การป้องกัน Exploit | Control Flow Guard (English) | การควบคุมแอปแบบอัจฉริยะ | การป้องกันฟิชชิ่งขั้นสูง | ค้นหาอุปกรณ์ของฉัน | Reasoned, unconfirmed |
+| hi | शोषण से सुरक्षा | नियंत्रण प्रवाह गार्ड (CFG) | स्मार्ट ऐप नियंत्रण | उन्नत फ़िशिंग सुरक्षा | मेरा डिवाइस ढूँढें | Reasoned, unconfirmed |
+
+## Protection switch names
+
+Name the four Windows Security protection switches (`protection-tamper`, `protection-realtime`, `protection-cloud` and `protection-samples`) as Windows shows them in your language.
+The settings page is the **Virus & threat protection settings** page that holds them, named in `security-list-title`.
+Status works as it does for [Windows feature names](#windows-feature-names), and each locale's open questions say which names are disputed.
+
+| Locale | Tamper Protection | Real-time protection | Cloud-delivered protection | Automatic sample submission | Settings page | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| de | Manipulationsschutz | Echtzeitschutz | Cloudbasierter Schutz | Automatische Übermittlung von Beispielen | Einstellungen für Viren- & Bedrohungsschutz | Reasoned, unconfirmed |
+| es | Protección contra alteraciones | Protección en tiempo real | Protección basada en la nube | Envío automático de muestras | Configuración de antivirus y protección contra amenazas | Microsoft documentation |
+| fr | Protection contre les falsifications | Protection en temps réel | Protection dans le cloud | Envoi automatique d’un échantillon | Paramètres de protection contre les virus et menaces | Microsoft documentation |
+| pt-BR | Proteção contra violações | Proteção em tempo real | Proteção fornecida pela nuvem | Envio automático de amostra | Configurações de proteção contra vírus e ameaças | Microsoft documentation |
+| pl | Ochrona przed naruszeniami | Ochrona w czasie rzeczywistym | Ochrona dostarczana z chmury | Automatyczne przesyłanie próbek | Ustawienia ochrony przed wirusami i zagrożeniami | Reasoned, unconfirmed |
+| ru | Защита от подделки | Защита в режиме реального времени | Облачная защита | Автоматическая отправка образцов | Параметры защиты от вирусов и других угроз | Reasoned, unconfirmed |
+| tr | Kurcalama Koruması | Gerçek zamanlı koruma | Bulut tabanlı koruma | Otomatik örnek gönderimi | Virüs ve tehdit koruması ayarları | Microsoft documentation |
+| zh-Hans | 篡改防护 | 实时保护 | 云提供的保护 | 自动提交样本 | “病毒和威胁防护”设置 | Microsoft documentation |
+| zh-Hant | 竄改防護 | 即時保護 | 雲端提供的保護 | 自動提交範例 | 病毒與威脅防護設定 | Microsoft documentation |
+| ja | 改ざん防止 | リアルタイム保護 | クラウド提供の保護 | サンプルの自動送信 | ウイルスと脅威の防止の設定 | Reasoned, unconfirmed |
+| id | Proteksi Kerusakan | Perlindungan real-time | Perlindungan yang dikirimkan cloud | Pengiriman sampel otomatis | Pengaturan perlindungan virus & ancaman | Reasoned, unconfirmed |
+| th | การป้องกันการแก้ไขข้อมูลโดยประสงค์ร้าย | การป้องกันแบบเรียลไทม์ | การป้องกันบนระบบคลาวด์ | การส่งตัวอย่างโดยอัตโนมัติ | การตั้งค่าการป้องกันไวรัสและภัยคุกคาม | Microsoft documentation |
+| hi | छेड़छाड़ से सुरक्षा | रीयल-टाइम सुरक्षा | क्लाउड-आधारित सुरक्षा | स्वचालित नमूना सबमिशन | वायरस और ख़तरे से सुरक्षा सेटिंग्स | Reasoned, unconfirmed |
 
 ## Locale conventions
 
-These hold in every language:
+These rules hold in every language:
 
-- Name a control by its exact label in your catalog, quoted as your language
-  quotes labels.
-- `list-and` joins the last two items of a list, and `$a` may already hold
-  several items joined with `list-separator`. Chinese joins with 和 and
-  Japanese with 、, without spaces.
-- **Report a problem** (`home-report-problem`) opens the in-app Send a report
-  page, so its label names no website.
-- Where your language uses one word for both, keep the four flow steps apart
-  from the stages of updating or of creating an ISO.
+- Name a control by its exact label in your catalog, quoted as your language quotes labels.
+- `list-and` joins the last two items of a list, and `$a` may already hold several items joined with `list-separator`.
+- **Report a problem** (`home-report-problem`) opens the in-app **Send a report** page, so its label names no website.
+- Where your language uses one word for both, keep the four flow steps apart from the stages of updating or of creating an ISO.
 
-Each language's own choices:
+Each locale's section starts with a one-row table of its main choices, then bullets with the rest of its conventions, then its open questions for native reviewers.
+The relaunch column gives the verb for reopening Atlas, then the one for restarting the PC.
+The switch names column gives the locale's collective term for the protection switches, or links to their Windows names where the locale has no such term.
 
-- **de** — Sie; "Ihr PC"; buttons infinitive, Windows names kept
-  (Zurück, Weiter, Abbrechen, Fertig); app relaunch "als Administrator
-  ausführen", PC "neu starten"; „…“ quotes for quoted button and step
-  names; step 2 "Ihre Auswahl". Windows names: Manipulationsschutz,
-  Echtzeitschutz, Cloudbasierter Schutz, Automatische Übermittlung von
-  Beispielen; "Einstellungen für Viren- & Bedrohungsschutz". Sources:
-  support.microsoft.com de-de Windows Security page; learn.microsoft.com
-  de-de tamper/cloud pages (machine-translated, weighed accordingly); seven
-  human-written German how-tos quoting the four toggles.
-  - Processor protections are "Prozessorschutz", never "Prozessorsicherheit";
-    security mitigations are "Mitigationen". "Protokollordner öffnen", "Updates
-    anhalten". "Diagnose-ZIP" in titles, "Diagnose-ZIP-Datei" in body text.
-    "Antivirensoftware" for an app, "Virenschutz" for the protection.
-    "Startmenü" is the Start menu and "Boot-Menü" the firmware menu, kept
-    apart. "No installation changes were made" is "Die Installation hat nichts
-    geändert".
-- **es** — implicit usted, "su PC"/"el equipo"; international vocabulary
-  (agregar, quitar, administrar, aplicación); "volver a abrir" for the app,
-  "reiniciar" for the PC; ¿…? questions; step 2 "Sus preferencias". Windows
-  names: Protección contra alteraciones, Protección en tiempo real,
-  Protección basada en la nube, Envío automático de muestras;
-  "Configuración de antivirus y protección contra amenazas". Sources: the
-  es-ES/es-MX support page (uses "proporcionada desde la nube"), learn
-  es-es walkthrough and a third-party UI guide (both "basada en la nube").
-  - "su PC" with a possessive, "el equipo" where an adjective must agree;
-    never "equipo" (the PC) and "equipo de Atlas" (the team) in one sentence.
-    "Abrir la carpeta de registros"; "Detener actualizaciones" pairs with
-    "Continuar actualizaciones". "Protecciones del procesador". Cards are
-    named exactly ("Comprobaciones del equipo", "Archivos de instalación",
-    "Actualizar Windows y las apps de la Store"); running text says
-    "aplicaciones de la Store". "Unsupported" is "no cuenta con soporte",
-    since "no es compatible" means incompatible. Titles say "No se pudo…";
-    "Internet" is capitalised; "en cuanto…", not the Spain-only "nada más" +
-    infinitive.
-- **fr** — vous; U+00A0 before `: ; ? !` and `%` and inside « »; typographic
-  apostrophe; infinitive buttons; "relancer" = app, "redémarrer" = PC;
-  the switches are "paramètres de protection"; step 2 "Vos choix"; "la
-  build". Windows names: Protection contre les falsifications, Protection
-  en temps réel, Protection dans le cloud, Envoi automatique d’un
-  échantillon; "Paramètres de protection contre les virus et menaces".
-  Sources: fr-fr support pages (Windows Security overview and malware
-  troubleshooting, which disagree on the cloud label), learn fr-fr tamper
-  pages (MT), French UI guides.
-  - « étape » means only the four flow steps; an update stage is
-    « opération ». « ce PC » is always the PC running Atlas; the one being
-    reinstalled is « ce même PC » or « le PC à réinstaller ». Cards are named
-    bare (« Vérifications du PC »), except the infinitive « Mettre à jour
-    Windows et les applications du Store », which goes in « ». « Ouvrir le
-    dossier des journaux », « Arrêter les mises à jour ». The data is « les
-    diagnostics », the file « ZIP de diagnostic ». Stage statuses are
-    feminine, like the stepper's (« en cours », « non commencée »).
-- **pt-BR** — você (implicit), "o Atlas"/"o Windows" with article, "seu
-  PC"; infinitive buttons; "reabrir" = app, "reiniciar" = PC; the switches
-  are "as quatro proteções"; state words match Windows' invariant
-  Ativado/Desativado; "à etapa Preparação"; step 2 "Suas escolhas"; also
-  serves pt-PT, so neutral forms where they exist. Windows names: Proteção
-  contra violações, Proteção em tempo real, Proteção fornecida pela nuvem,
-  Envio automático de amostra; "Configurações de proteção contra vírus e
-  ameaças". Sources: pt-br support page (human-localized, differs on two
-  switches), learn pt-br (MT), Brazilian press describing the live UI.
-  - A check that passes "é aprovada", not "passa". Cards: "em Verificações do
-    PC", "no cartão Atualizar o Windows e os apps da Store". "Proteções do
-    processador". "Abrir pasta de logs", "Parar atualizações". Test build
-    "versão de teste", release build "versão oficial", package builds "versão
-    completa do pacote" and "versão LocalTest". Stage states agree with
-    "etapa" ("em andamento", "não iniciada", "concluída"). Plurals are `one`
-    and `other`, and `one` covers 0.
-- **pl** — second person (Twój/Ci capitalised); "Atlas" declined (Atlasa,
-  Atlasie, Atlasem), "Zabezpieczenia Windows" declined, Windows and Defender
-  not; "otwórz Atlas ponownie" = app, "uruchom ponownie" = PC; all four
-  plural categories on every count; step 2 "Opcje" ("wybory" also means
-  elections). Windows names: Ochrona przed naruszeniami, Ochrona w czasie
-  rzeczywistym, Ochrona dostarczana z chmury, Automatyczne przesyłanie
-  próbek; "Ustawienia ochrony przed wirusami i zagrożeniami". Sources: pl-pl
-  support pages, learn pl-pl (MT, inconsistent on cloud), Polish tech sites
-  quoting the UI.
-  - "krok" only for the four flow steps; update and ISO stages are "etap".
-    Cards are "w sekcji <title>", never "karta", which reads as a tab
-    ("w sekcji Sprawdzanie komputera"). Radio options are "zaznacz", buttons
-    "wybierz". Metered and unmetered are "taryfowe" and "nietaryfowe", not
-    "bez ustawionego limitu" (the separate data limit). Statuses shared by
-    steps and stages are impersonal ("ukończono", "nie rozpoczęto"). Never
-    the reader's gendered past tense: "wybrano", "Jeśli korzystasz już z
-    Windows". "Otwórz folder dzienników", "Zatrzymaj aktualizowanie"; security
-    mitigations "środki zaradcze"; AI "sztuczna inteligencja".
-- **ru** — вы (lower case); "ПК"; imperative buttons; «…» guillemets;
-  "перезапустить" = app, "перезагрузить" = PC; the user's choices are
-  "настройки", the app's Settings page "параметры"; all four plural
-  categories (regression test keeps 1/21/101 минута). Windows names: Защита
-  от подделки, Защита в режиме реального времени, Облачная защита,
-  Автоматическая отправка образцов; "Параметры защиты от вирусов и других
-  угроз"; toggle states Вкл./Откл. Sources: ru-ru support and learn pages.
-  - A control is quoted with its exact label (нажмите «Повторить попытку»);
-    a quote inside a label uses „…“ («Открыть „Безопасность Windows“»).
-    Get ready's cards are «раздел «…»»; update stages are «этап», flow steps
-    «шаг». «этот ПК» is only the PC running Atlas; the one being reinstalled
-    is «тот ПК». Always «ПК», never «компьютер». First-person rows avoid the
-    gendered past tense («Я даю согласие…», «Когда я…»). "Microsoft account"
-    is «учётная запись Майкрософт»; SmartScreen stays in Latin letters.
-    «Открыть папку журналов», «Остановить обновление».
-- **tr** — siz; suffixes on proper nouns with an apostrophe (Atlas'ı,
-  Windows'u); never a suffix on a variable (a noun follows it instead:
-  "{ $version } sürümünü"); "yeniden aç" = app, "yeniden başlat" = PC; step
-  2 "Seçimleriniz". Windows names: Kurcalama Koruması, Gerçek zamanlı
-  koruma, Bulut tabanlı koruma, Otomatik örnek gönderimi; "Virüs ve tehdit
-  koruması ayarları". Sources: tr-tr support page (human-localized), learn
-  tr-tr (MT), a Microsoft Q&A answer using "Değişiklik Koruması".
-  - A control is named by its label, then an apostrophe, its suffix and
-    "seçin" ("Yeniden dene'yi seçin", "Atlas'ı kur'u seçin"); a radio option
-    takes "… seçeneğini belirleyin". Card titles are noun phrases so text can
-    name them: the update card is "Windows ve Store güncellemeleri" ("…
-    kartında"). "kur" installs Atlas; "yükle" installs updates, apps, drivers
-    and Windows. "denetle", not "kontrol et". Build is "derleme",
-    diagnostics "tanılama verileri". "No installation changes were made" is
-    "Kurulum hiçbir değişiklik yapmadı", never "Bilgisayarınızda…".
-    Mitigations are "güvenlik risk azaltmaları"; privacy text's "kept" is
-    "kaldırılmaz". "Günlük klasörünü aç", "Güncellemeyi durdur".
-- **zh-Hans** — 你 (as Windows 11 zh-CN), 电脑; full-width punctuation with
-  a space between Chinese and Latin/digits, half-width brackets for
-  Latin-only asides; 重新打开 = app, 重启 = PC; 移除 for Defender (permanent),
-  关闭 and 重新开启 for the four switches; step 2 "你的选择". Windows names:
-  篡改防护, 实时保护, 云提供的保护, 自动提交样本; “病毒和威胁防护”设置.
-  Sources: zh-cn support and learn pages.
-  - 安装文件 means prepared files, never the .apbx. Processor protections are
-    处理器防护, replacing 处理器安全. Review is 核对 in the install summary and
-    检查 in the ISO, USB and report flows. The USB is U 盘 in titles and USB
-    驱动器 in lists and the erase text; erasing is 清空 in titles and buttons,
-    永久删除 in body text. Edge bookmarks are 收藏夹. Windows setup the program
-    is Windows 安装程序, OOBE Windows 初始设置. 打开日志文件夹, 停止更新.
-- **zh-Hant** — 您; Taiwan glossary (設定, 系統管理員, 檔案, 資料夾, 網路,
-  組建, 佈景主題); full-width punctuation; 重新開啟 Atlas = app, 重新啟動 =
-  PC; step 2 "您的選擇". Windows names: 竄改防護, 即時保護, 雲端提供的保護,
-  自動提交範例; 病毒與威脅防護設定. Sources: zh-tw support page (MT,
-  inconsistent), learn zh-tw human-translated cloud page, 2021 and 2026
-  Taiwanese guides with screenshots.
-  - Full-width brackets even around Latin-only text: （.apbx）, （UAC）.
-    Processor protections are 處理器防護, replacing 處理器安全性; security
-    mitigations 安全性緩和措施. Erasing is 清除 throughout. Edge's
-    「我的最愛」 is always quoted. Store apps are 市集應用程式. Controls named
-    in text take 「」: 開啟記錄資料夾, 停止更新, 回報問題, 傳送報告, 說明與意見反應.
-- **ja** — です・ます; noun-stop buttons (完了, 今すぐ再起動); half-width
-  space between Japanese and Latin and inside katakana compounds; 。、 with
-  half-width ( ) and ": " as Microsoft Japanese UI does; 管理者として再実行
-  = app, 再起動 = PC; step 2 "設定の選択". Windows names: 改ざん防止,
-  リアルタイム保護, クラウド提供の保護, サンプルの自動送信;
-  ウイルスと脅威の防止の設定. Sources: an OEM (dynabook) Windows 11 support
-  page and a 2026 Japanese article describing the live UI; the ja-jp
-  support page is machine-translated and disagrees.
-  - The counter is 件 for updates and 個 for switches. The USB list's Refresh
-    is 一覧を更新, because bare 更新 means "update" here. "Antivirus app" is
-    ウイルス対策アプリ; ソフト only where the English says "software". Edge
-    bookmarks are お気に入り. Status words are 進行中, 失敗, 未開始 and 完了,
-    and stage names end in 〜中. ログ フォルダーを開く, 更新を停止.
-- **id** — Anda; formal-neutral register; "jalankan ulang" = app, "mulai
-  ulang" = PC, "buka kembali" after a restart; the switches are
-  "pengaturan (perlindungan)"; only `other` plurals; step 2 "Pilihan Anda".
-  Windows names: Proteksi Kerusakan, Perlindungan real-time, Perlindungan
-  yang dikirimkan cloud, Pengiriman sampel otomatis; "Pengaturan
-  perlindungan virus & ancaman". Sources: id-id support and learn pages,
-  all machine-translated and mutually inconsistent; a community tutorial
-  title for the tamper label.
-  - "penginstalan" is the Atlas install, "instalasi Windows" a Windows
-    installation. "No installation changes were made" is "Penginstalan belum
-    mengubah apa pun", never a claim about the whole PC. "Hubungkan", not
-    "Sambungkan"; "file", not "berkas"; "Setelah itu," rather than a sentence
-    starting with "Lalu". "Buka file paket", "Buka folder log", "Hentikan
-    pembaruan", "Bantuan dan masukan"; "needs attention" is "perlu
-    diperhatikan".
-- **th** — คุณ; no sentence-final full stops, a space between clauses and
-  around Latin/digits; classifiers instead of plurals; รีสตาร์ต = PC, เปิด
-  Atlas ใหม่ = app; "แอป ความปลอดภัยของ Windows" when the app is opened;
-  step 2 "ตัวเลือกของคุณ". Windows names: การป้องกันการแก้ไขข้อมูลโดยประสงค์ร้าย,
-  การป้องกันแบบเรียลไทม์, การป้องกันบนระบบคลาวด์, การส่งตัวอย่างโดยอัตโนมัติ;
-  การตั้งค่าการป้องกันไวรัสและภัยคุกคาม. Sources: th-th support pages
-  (Windows Security, turn off Defender, device security, Windows Update,
-  activation, power, Snipping Tool); learn th-th pages served English.
-  - Diagnostics are ข้อมูลการวินิจฉัย. Review is ตรวจทาน; ตรวจสอบ is checking
-    and verifying. Restart is only รีสตาร์ต, never รีสตาร์ท or เริ่มระบบใหม่.
-    Build is บิลด์ (รุ่น is an edition or release), Beta เบต้า, Ethernet
-    อีเทอร์เน็ต; Wi-Fi stays Latin. No โปรด; question titles have no "?".
-    Controls named in text have a space either side; cards are ในการ์ด
-    <label>.
-- **hi** — आप with respectful imperatives; danda as the only sentence
-  terminator; Microsoft-style loanwords in Devanagari (इंस्टॉल, अपडेट,
-  सेटिंग्स, फ़ाइल) with nukta applied consistently; "दोबारा खोलें" = app,
-  "रीस्टार्ट करें" = PC; step 2 "आपके विकल्प", the decision caption "पसंद".
-  Windows names: छेड़छाड़ से सुरक्षा, रीयल-टाइम सुरक्षा, क्लाउड-आधारित सुरक्षा,
-  स्वचालित नमूना सबमिशन; वायरस और ख़तरे से सुरक्षा सेटिंग्स. Sources: none in
-  Hindi; every Microsoft hi-in page fetched was served in English and the
-  review PC has no Hindi language pack, so these five names are reasoned,
-  not confirmed.
-  - The Atlas package, ISO and USB are masculine (नया ISO); USB ड्राइव and ISO
-    फ़ाइल are feminine. Diagnostics are डायग्नोस्टिक्स (masculine plural),
-    never निदान. "PC" stays Latin, never पीसी; इंस्टॉलेशन, not स्थापना;
-    रीस्टार्ट, not पुनः आरंभ; "फिर कोशिश करें"; अगर, not यदि. Card titles and
-    labels go in “ ”, except the step तैयारी. First-person text stays
-    gender-neutral (मेरी कोशिश थी कि…, "X ख़ुद इंस्टॉल करें").
+### German (`de`)
 
-## Questions for native reviewers
+| Register | App relaunch vs PC restart | Quotes | Step 2 | Switch names |
+| --- | --- | --- | --- | --- |
+| Sie, with "Ihr PC" | "als Administrator ausführen" (app), "neu starten" (PC) | „…“ around quoted button and step names | "Ihre Auswahl" | See [protection switch names](#protection-switch-names) |
 
-Terminology that could not be settled without a localized Windows 11 build
-in front of a reviewer (Microsoft's own localized pages are machine
-translated for several languages and disagree with each other):
+- Buttons are infinitives, and buttons that Windows also uses keep their Windows names (Zurück, Weiter, Abbrechen, Fertig).
+- Processor protections are "Prozessorschutz", never "Prozessorsicherheit".
+- Security mitigations are "Mitigationen".
+- **Open log folder** is "Protokollordner öffnen", and **Stop updating** is "Updates anhalten".
+- Use "Diagnose-ZIP" in titles and "Diagnose-ZIP-Datei" in body text.
+- "Antivirensoftware" is an app, and "Virenschutz" is the protection.
+- Keep "Startmenü" (the Start menu) apart from "Boot-Menü" (the firmware menu).
+- "No installation changes were made" is "Die Installation hat nichts geändert".
 
-| Locale | Keys | Reason |
-|---|---|---|
-| de | protection-cloud, protection-samples, security-list-title, prepare-description, playbook-page-defender-enable-description, consequence-mitigations-disable, playbook-page-mitigations-default-description, consequence-defender-disable | Human-written sources say "Cloudbasierter Schutz"; Microsoft prose says "Über/In der Cloud bereitgestellter Schutz" and "Automatische Beispielübermittlung". Start shows "Terminal", not "Windows-Terminal". Whether "Intelligente App-Steuerung" and "Erweiterter Phishingschutz" keep their capitals mid-sentence, and the exact CFG label on the Exploit-Schutz page. "Mitigationen" vs Microsoft's "Entschärfungen" or "Risikominderungen"; SmartScreen's own dialog says "unbekannte App", the catalog "nicht erkannte Apps". |
-| es | protection-cloud, security-list-title, playbook-page-defender-enable-description, prepare-description | Support page says "proporcionada desde la nube"; learn walkthrough and UI guides say "basada en la nube". Usted vs tú: Microsoft consumer pages use tú. Enhanced Phishing Protection: Microsoft's es-es page is machine-translated and adds "(phishing)". "Terminal Windows". |
-| fr | protection-cloud, security-list-title, playbook-page-defender-enable-description, prepare-description | "Protection dans le cloud" (troubleshooting page, UI guides) vs "Protection fournie par le cloud" (overview page); "et" vs "&". « Protection renforcée contre l’hameçonnage » (learn fr-fr, MT) vs the section's « Protection contre l’hameçonnage ». Start shows « Terminal », not « Terminal Windows ». |
-| pt-BR | protection-tamper casing, protection-cloud, playbook-page-defender-enable-description, detail-windows-preview, detail-windows-release-unknown, detail-windows-release-unlisted, iso-release-unlisted | Press quotes "Proteção contra Violações" capitalised; support page says "adulterações" and "na nuvem". Enhanced Phishing Protection: "aprimorada" (Windows 11 security book) vs "avançada" (business page), low priority. "build" vs "compilação": three strings say "build", four "compilação"; settle on a pt-BR install. |
-| pl | protection-cloud, consequence-mitigations-disable, playbook-page-defender-enable-description, check-fix-apps, prepare-description | Microsoft pages disagree (chmurowa / w chmurze / untranslated); "dostarczana z chmury" rests on third-party quotations. Exploit protection: Microsoft pages say "Ochrona przed exploitami", "ochrona przed programami wykorzystującymi luki" or leave it in English. Enhanced Phishing Protection: no Microsoft source has "Rozszerzona…"; the switch is "Ochrona przed wyłudzaniem informacji" and the business page says "Ulepszona…". Smart App Control: one older page says "Kontrola aplikacji inteligentnej". Find my device, Installed apps, Notepad and Windows Terminal are unchecked. |
-| ru | protection-tamper, security-list-title, security-switch-off, consequence-mitigations-disable, playbook-page-defender-enable-description, usb-title (and the other флешка strings), iso-step-review | "Защита от подделки" (UI quotations) vs "Защита от незаконного изменения" (docs); page heading with "и других угроз"; "Откл." toggle word. Exploit protection, CFG, Smart App Control and Enhanced Phishing Protection («Расширенная» or «Улучшенная») are unchecked. «флешка» vs Microsoft's «USB-накопитель». «Проверка» for Review is also the Checking status; «Сводка» if testers mix them up. |
-| tr | protection-tamper casing, security-list-title, Fast Startup, consequence-mitigations-disable, playbook-page-defender-enable-description, the update noun, apostrophes | "Kurcalama koruması/Koruması" vs a moderator's "Değişiklik Koruması"; "ve" vs "&"; "Hızlı Başlatma/başlatma". CFG may be "koruyucusu"; casing of "Gelişmiş Kimlik Avı Koruması". "güncelleştirme" (Microsoft's term, on Home, PC checks and Your choices) vs "güncelleme" (Get ready's update card); pick one for the whole catalog. The catalog mixes ' and ’ by section; pick one. |
-| zh-Hans | security-list-title, protection-samples, protection-cloud, consequence-mitigations-disable, playbook-page-defender-enable-description | Quotation marks in the page title; 样本 vs 示例; 云提供的保护 vs 云保护. "Exploit Protection" left in English and 控制流保护 (CFG) to confirm on a zh-CN build. The Windows Security switch reads 网络钓鱼防护, not 增强型网络钓鱼防护. |
-| zh-Hant | protection-samples, protection-tamper (Windows 10), consequence-mitigations-disable, playbook-page-defender-enable-description, iso-network-inbox, iso-step-review, usb-review, report-review | 自動提交範例 / 提交自動樣本 / 自動提交樣本; older builds wrote 防竄改保護. 惡意探索保護, 控制流程防護, 智慧型應用程式控制, 增強式網路釣魚保護 (the switch reads 網路釣魚保護), 尋找我的裝置 and 網路介面卡 need a zh-TW build. Review is 檢閱 in the ISO flow but 檢查 for the USB and the report ZIP. The Release Preview channel stays Latin in detail-windows-release-unlisted and iso-release-unlisted: a Taiwanese guide's screenshots say 版本預覽通道, while Microsoft's zh-tw pages mix 發行預覽, 版本預覽 and Release Preview. |
-| ja | protection-cloud, protection-samples, security-list-title, playbook-page-defender-enable-description | Live-UI sources vs the machine-translated ja-jp support page; also 再実行 vs 開き直す for relaunch. 拡張フィッシング保護 is the title of Microsoft's Japanese docs page; other docs say 強化されたフィッシング保護, and the switch reads フィッシング対策. The Release Preview channel stays Latin in detail-windows-release-unlisted and iso-release-unlisted; Microsoft's machine-translated ja-jp Insider pages write リリース プレビュー as if it were the Settings label, so check a ja-JP build. |
-| id | protection-tamper, protection-cloud, security-list-title, Fast Startup, consequence-mitigations-disable, playbook-page-defender-enable-description, prepare-description, check-fix-apps, list-and | All Microsoft id-ID pages are MT and give eight renderings of Tamper Protection between them. Perlindungan eksploitasi, Perlindungan pengelabuan, Temukan perangkat saya and Aplikasi yang diinstal are unconfirmed; Control Flow Guard, Notepad, Paint and Windows Terminal stay English until confirmed (Kontrol Aplikasi Pintar is confirmed by the id-ID Smart App Control FAQ). `list-and` gives "A, B dan C", but PUEBI and CLDR want "A, B, dan C", which needs a separate message for the last of three or more. |
-| th | protection-tamper, protection-cloud, security-list-title, memory integrity, Fast Startup, playbook-page-defender-enable-description, prepare-description, check-fix-apps, sign-in | Only MT support pages available; "และ" vs "&"; ความสมบูรณ์ vs ความถูกต้อง ของหน่วยความจำ. Only ฟิชชิ่ง in การป้องกันฟิชชิ่งขั้นสูง is confirmed. Whether Notepad, Paint and Windows Terminal show in Thai; แอปที่ติดตั้ง. Microsoft's Thai pages say ลงชื่อเข้าใช้ for "sign in"; the catalog says เข้าสู่ระบบ. |
-| hi | all four protection-*, security-list-title, Windows Update vs Windows अपडेट, Start button name, Snipping Tool, consequence-mitigations-disable, playbook-page-defender-enable-description, prepare-description, check-fix-apps, consequence-disable-hibernation, consequence-disable-core-isolation | No Hindi Microsoft text could be fetched and Hindi Windows coverage is partial; a Hindi PC may show some switches in English. Every feature name in the table above is reasoned, as are कार्य प्रबंधक, नोटपैड/पेंट/Windows टर्मिनल, the folder names and इंस्टॉल किए गए ऐप्स; शोषण usually means the exploitation of people. "मेमोरी अखंडता (Memory integrity)" and "तेज़ स्टार्टअप (Fast Startup)" keep English in brackets until confirmed. The nukta is applied to क़ only in मुताबिक़; pick one rule. |
+#### Open questions
+
+- `protection-cloud`, `protection-samples`, `security-list-title`: does Windows show "Cloudbasierter Schutz" and "Automatische Übermittlung von Beispielen", or Microsoft's wording, "Über/In der Cloud bereitgestellter Schutz" and "Automatische Beispielübermittlung"?
+  Check the page title, "Einstellungen für Viren- & Bedrohungsschutz", at the same time.
+- `prepare-description`: Start shows "Terminal", not "Windows-Terminal"; which name should the text use?
+- `playbook-page-defender-enable-description`: do "Intelligente App-Steuerung" and "Erweiterter Phishingschutz" keep their capitals mid-sentence?
+- `consequence-mitigations-disable`: what's the exact Control Flow Guard label on the Exploit-Schutz page?
+- `playbook-page-mitigations-default-description`: "Mitigationen", or Microsoft's "Entschärfungen" or "Risikominderungen"?
+- `consequence-defender-disable`: SmartScreen's own dialog says "unbekannte App", but the catalog says "nicht erkannte Apps"; which should it say?
+
+### Spanish (`es`)
+
+| Register | App relaunch vs PC restart | Quotes | Step 2 | Switch names |
+| --- | --- | --- | --- | --- |
+| Implicit usted | "volver a abrir" (app), "reiniciar" (PC) | None around labels | "Sus preferencias" | See [protection switch names](#protection-switch-names) |
+
+- Use international vocabulary: agregar, quitar, administrar, aplicación.
+- Wrap questions in `¿…?`.
+- Use "su PC" with a possessive, and "el equipo" where an adjective must agree.
+- Never use "equipo" (the PC) and "equipo de Atlas" (the team) in one sentence.
+- **Open log folder** is "Abrir la carpeta de registros".
+- **Stop updating**, "Detener actualizaciones", pairs with **Continue updates**, "Continuar actualizaciones".
+- Processor protections are "Protecciones del procesador".
+- Name cards exactly ("Comprobaciones del equipo", "Archivos de instalación", "Actualizar Windows y las apps de la Store"), but running text says "aplicaciones de la Store".
+- "Unsupported" is "no cuenta con soporte", because "no es compatible" means incompatible.
+- Titles say "No se pudo…".
+- "Internet" is capitalised.
+- Use "en cuanto…", not the Spain-only "nada más" + infinitive.
+
+#### Open questions
+
+- `protection-cloud`, `security-list-title`: is the cloud switch "basada en la nube" or "proporcionada desde la nube"?
+  Check the page title at the same time.
+- Whole catalog: usted or tú?
+  Microsoft's consumer pages use tú.
+- `playbook-page-defender-enable-description`: should Enhanced Phishing Protection add "(phishing)", as Microsoft's machine-translated Spanish page does?
+- `prepare-description`: is the app "Terminal Windows" in Spanish Windows?
+
+### French (`fr`)
+
+| Register | App relaunch vs PC restart | Quotes | Step 2 | Switch names |
+| --- | --- | --- | --- | --- |
+| vous | "relancer" (app), "redémarrer" (PC) | « » with U+00A0 inside | "Vos choix" | "paramètres de protection" |
+
+- Put U+00A0 before `: ; ? !` and `%`.
+- Use the typographic apostrophe.
+- Buttons are infinitives.
+- Build is feminine: "la build".
+- « étape » means only the four flow steps; an update stage is « opération ».
+- « ce PC » is always the PC running Atlas; the one being reinstalled is « ce même PC » or « le PC à réinstaller ».
+- Cards are named bare (« Vérifications du PC »), except the infinitive « Mettre à jour Windows et les applications du Store », which goes in « ».
+- **Open log folder** is « Ouvrir le dossier des journaux », and **Stop updating** is « Arrêter les mises à jour ».
+- The data is « les diagnostics », and the file is « ZIP de diagnostic ».
+- Stage statuses are feminine, like the stepper's (« en cours », « non commencée »).
+
+#### Open questions
+
+- `protection-cloud`: "Protection dans le cloud" or "Protection fournie par le cloud"?
+  Microsoft's pages use both.
+- `security-list-title`: "et" or "&"?
+- `playbook-page-defender-enable-description`: is Enhanced Phishing Protection « Protection renforcée contre l’hameçonnage », or the section's own title, « Protection contre l’hameçonnage »?
+- `prepare-description`: Start shows « Terminal », not « Terminal Windows »; which name should the text use?
+
+### Brazilian Portuguese (`pt-BR`)
+
+| Register | App relaunch vs PC restart | Quotes | Step 2 | Switch names |
+| --- | --- | --- | --- | --- |
+| Implicit você, with "seu PC" | "reabrir" (app), "reiniciar" (PC) | None around labels | "Suas escolhas" | "as quatro proteções" |
+
+- "o Atlas" and "o Windows" take the article.
+- Buttons are infinitives.
+- The switch states (`security-switch-on`, `security-switch-off`) match Windows' invariant Ativado/Desativado.
+- Refer to a step as in "à etapa Preparação".
+- The catalog also serves pt-PT, so use neutral forms where they exist.
+- A check that passes "é aprovada", not "passa".
+- Name cards as in "em Verificações do PC" and "no cartão Atualizar o Windows e os apps da Store".
+- Processor protections are "Proteções do processador".
+- **Open log folder** is "Abrir pasta de logs", and **Stop updating** is "Parar atualizações".
+- A test build is "versão de teste", and a release build is "versão oficial".
+- Package builds are "versão completa do pacote" and "versão LocalTest".
+- Stage states agree with "etapa" ("em andamento", "não iniciada", "concluída").
+- Plurals are `one` and `other`, and `one` covers 0.
+
+#### Open questions
+
+- `protection-tamper`, `protection-cloud`: is Tamper Protection "Proteção contra violações", "Proteção contra Violações" or a form with "adulterações", and is the cloud switch "fornecida pela nuvem" or "na nuvem"?
+- `playbook-page-defender-enable-description`: is Enhanced Phishing Protection "aprimorada" or "avançada"?
+  Microsoft's pages use both; this is low priority.
+- `detail-windows-preview`, `detail-windows-release-unknown`, `detail-windows-release-unlisted`, `iso-release-unlisted`: "build" or "compilação"?
+  Three strings say "build" and four say "compilação"; check which one Brazilian Windows uses, then use it in all of them.
+
+### Polish (`pl`)
+
+| Register | App relaunch vs PC restart | Quotes | Step 2 | Switch names |
+| --- | --- | --- | --- | --- |
+| Second person, with Twój and Ci capitalised | "otwórz Atlas ponownie" (app), "uruchom ponownie" (PC) | None around labels | "Opcje", because "wybory" also means elections | See [protection switch names](#protection-switch-names) |
+
+- "Atlas" is declined (Atlasa, Atlasie, Atlasem), and so is "Zabezpieczenia Windows"; Windows and Defender aren't.
+- Use all four plural categories on every count.
+- "krok" is only for the four flow steps; update and ISO stages are "etap".
+- Cards are `w sekcji <title>` ("w sekcji Sprawdzanie komputera"), never "karta", which reads as a tab.
+- Radio options take "zaznacz", and buttons take "wybierz".
+- Metered and unmetered are "taryfowe" and "nietaryfowe", not "bez ustawionego limitu", which is the separate data limit.
+- Statuses shared by steps and stages are impersonal ("ukończono", "nie rozpoczęto").
+- Never use the reader's gendered past tense: "wybrano", "Jeśli korzystasz już z Windows".
+- **Open log folder** is "Otwórz folder dzienników", and **Stop updating** is "Zatrzymaj aktualizowanie".
+- Security mitigations are "środki zaradcze".
+- AI is "sztuczna inteligencja".
+
+#### Open questions
+
+- `protection-cloud`: is the cloud switch "Ochrona dostarczana z chmury", or one of the forms Microsoft's pages use: "chmurowa", "w chmurze" or the English name?
+- `consequence-mitigations-disable`: is Exploit protection "Ochrona przed lukami w zabezpieczeniach", or one of Microsoft's forms: "Ochrona przed exploitami", "ochrona przed programami wykorzystującymi luki" or the English name?
+- `playbook-page-defender-enable-description`: is Enhanced Phishing Protection "Rozszerzona…", "Ulepszona…" or the switch's own label, "Ochrona przed wyłudzaniem informacji"?
+  No Microsoft page uses "Rozszerzona…".
+- `playbook-page-defender-enable-description`: is Smart App Control "Inteligentna kontrola aplikacji", or "Kontrola aplikacji inteligentnej" as one older Microsoft page has it?
+- `playbook-page-defender-enable-description`, `check-fix-apps`, `prepare-description`: do Find my device ("Znajdź moje urządzenie"), Installed apps, Notepad and Windows Terminal match Polish Windows?
+  None of them has been checked.
+
+### Russian (`ru`)
+
+| Register | App relaunch vs PC restart | Quotes | Step 2 | Switch names |
+| --- | --- | --- | --- | --- |
+| вы (lower case) | "перезапустить" (app), "перезагрузить" (PC) | «…», with „…“ for a quote inside a label («Открыть „Безопасность Windows“») | "Ваш выбор" | See [protection switch names](#protection-switch-names) |
+
+- Buttons are imperatives.
+- The user's choices are "настройки", and the app's Settings page is "параметры".
+- Use all four plural categories; a regression test keeps 1/21/101 минута.
+- The switch states (`security-switch-on`, `security-switch-off`) are Вкл./Откл.
+- Quote a control with its exact label (нажмите «Повторить попытку»).
+- Cards on the **Get ready** page are «раздел «…»».
+- Update stages are «этап», and flow steps are «шаг».
+- «этот ПК» is only the PC running Atlas; the one being reinstalled is «тот ПК».
+- Always «ПК», never «компьютер».
+- First-person rows avoid the gendered past tense («Я даю согласие…», «Когда я…»).
+- "Microsoft account" is «учётная запись Майкрософт».
+- SmartScreen stays in Latin letters.
+- **Open log folder** is «Открыть папку журналов», and **Stop updating** is «Остановить обновление».
+
+#### Open questions
+
+- `protection-tamper`: is Tamper Protection "Защита от подделки", as quoted from the interface, or "Защита от незаконного изменения", as Microsoft's documentation says?
+- `security-list-title`: does the page heading include "и других угроз"?
+- `security-switch-off`: is the off state "Откл."?
+- `consequence-mitigations-disable`, `playbook-page-defender-enable-description`: do Exploit protection, Control Flow Guard and Smart App Control match Russian Windows, and is Enhanced Phishing Protection «Расширенная» or «Улучшенная»?
+  None of the four has been checked.
+- `usb-title` and the other флешка strings: «флешка», or Microsoft's «USB-накопитель»?
+- `iso-step-review`: «Проверка» for Review is also the Checking status; should Review be «Сводка»?
+  Switch to it if testers mix the two up.
+
+### Turkish (`tr`)
+
+| Register | App relaunch vs PC restart | Quotes | Step 2 | Switch names |
+| --- | --- | --- | --- | --- |
+| siz | "yeniden aç" (app), "yeniden başlat" (PC) | None around labels | "Seçimleriniz" | See [protection switch names](#protection-switch-names) |
+
+- Suffixes on proper nouns follow an apostrophe (Atlas'ı, Windows'u).
+- Never put a suffix on a variable; a noun follows it instead: "{ $version } sürümünü".
+- Name a control by its label, then an apostrophe, its suffix and "seçin" ("Yeniden dene'yi seçin", "Atlas'ı kur'u seçin").
+- A radio option takes "… seçeneğini belirleyin".
+- Card titles are noun phrases so text can name them: the update card is "Windows ve Store güncellemeleri" ("… kartında").
+- "kur" installs Atlas; "yükle" installs updates, apps, drivers and Windows.
+- Use "denetle", not "kontrol et".
+- Build is "derleme", and diagnostics are "tanılama verileri".
+- "No installation changes were made" is "Kurulum hiçbir değişiklik yapmadı", never "Bilgisayarınızda…".
+- Mitigations are "güvenlik risk azaltmaları".
+- In privacy text, "kept" is "kaldırılmaz".
+- **Open log folder** is "Günlük klasörünü aç", and **Stop updating** is "Güncellemeyi durdur".
+
+#### Open questions
+
+- `protection-tamper`: "Kurcalama Koruması", "Kurcalama koruması" or "Değişiklik Koruması"?
+- `security-list-title`: "ve" or "&"?
+- Fast Startup (`consequence-disable-hibernation`): "Hızlı Başlatma" or "Hızlı başlatma"?
+- `consequence-mitigations-disable`: does Control Flow Guard end in "koruması" or "koruyucusu"?
+- `playbook-page-defender-enable-description`: how is "Gelişmiş Kimlik Avı Koruması" capitalised?
+- Whole catalog: "güncelleştirme", Microsoft's term, appears on the home page, in PC checks and on the **Your choices** page, but the update card on the **Get ready** page says "güncelleme".
+  Which should the whole catalog use?
+- Whole catalog: the catalog mixes ' and ’ by section; which should it use throughout?
+
+### Simplified Chinese (`zh-Hans`)
+
+| Register | App relaunch vs PC restart | Quotes | Step 2 | Switch names |
+| --- | --- | --- | --- | --- |
+| 你, as in Windows 11 zh-CN, and 电脑 for the PC | 重新打开 (app), 重启 (PC) | “…” | "你的选择" | 关闭 and 重新开启 |
+
+- Punctuation is full-width.
+- Put a space between Chinese and Latin letters or digits.
+- Latin-only asides take half-width brackets.
+- `list-and` joins with 和, without spaces.
+- Removing Defender is 移除, because it's permanent.
+- 安装文件 means prepared files, never the .apbx.
+- Processor protections are 处理器防护, not 处理器安全.
+- Review is 核对 in the install summary and 检查 in the ISO, USB and report flows.
+- The USB is U 盘 in titles, and USB 驱动器 in lists and the erase text.
+- Erasing is 清空 in titles and buttons, and 永久删除 in body text.
+- Edge bookmarks are 收藏夹.
+- Windows setup, the program, is Windows 安装程序, and OOBE is Windows 初始设置.
+- **Open log folder** is 打开日志文件夹, and **Stop updating** is 停止更新.
+
+#### Open questions
+
+- `security-list-title`: should the page title keep its quotation marks, as in “病毒和威胁防护”设置?
+- `protection-samples`: 样本 or 示例?
+- `protection-cloud`: 云提供的保护 or 云保护?
+- `consequence-mitigations-disable`: does Chinese Windows show "Exploit Protection" in English, and is Control Flow Guard 控制流保护 (CFG)?
+- `playbook-page-defender-enable-description`: Enhanced Phishing Protection is 增强型网络钓鱼防护, but the Windows Security switch reads 网络钓鱼防护; which should the text use?
+
+### Traditional Chinese (`zh-Hant`)
+
+| Register | App relaunch vs PC restart | Quotes | Step 2 | Switch names |
+| --- | --- | --- | --- | --- |
+| 您 | 重新開啟 Atlas (app), 重新啟動 (PC) | 「」 around controls named in text | "您的選擇" | See [protection switch names](#protection-switch-names) |
+
+- Use the Taiwan glossary: 設定, 系統管理員, 檔案, 資料夾, 網路, 組建, 佈景主題.
+- Punctuation is full-width.
+- Brackets are full-width even around Latin-only text: （.apbx）, （UAC）.
+- `list-and` joins with 和, without spaces.
+- Processor protections are 處理器防護, not 處理器安全性.
+- Security mitigations are 安全性緩和措施.
+- Erasing is 清除 throughout.
+- Edge's 「我的最愛」 is always quoted.
+- Store apps are 市集應用程式.
+- Controls named in text include **Open log folder** (開啟記錄資料夾), **Stop updating** (停止更新), **Report a problem** (回報問題), **Send a report** (傳送報告) and **Help and feedback** (說明與意見反應).
+
+#### Open questions
+
+- `protection-samples`: 自動提交範例, 提交自動樣本 or 自動提交樣本?
+- `protection-tamper`: older Windows 10 builds use 防竄改保護 rather than 竄改防護; which should the text use?
+- `consequence-mitigations-disable`, `playbook-page-defender-enable-description`, `iso-network-inbox`: do 惡意探索保護, 控制流程防護, 智慧型應用程式控制, 增強式網路釣魚保護, 尋找我的裝置 and 網路介面卡 match Taiwanese Windows?
+  The Enhanced Phishing Protection switch itself reads 網路釣魚保護.
+- `iso-step-review`, `usb-review`, `report-review`: Review is 檢閱 in the ISO flow but 檢查 for the USB and the report ZIP; should they match?
+- `detail-windows-release-unlisted`, `iso-release-unlisted`: should the Release Preview channel stay in Latin letters, or become 版本預覽通道, 發行預覽 or 版本預覽?
+  Taiwanese Windows shows 版本預覽通道 in screenshots, while Microsoft's pages mix 發行預覽, 版本預覽 and Release Preview.
+
+### Japanese (`ja`)
+
+| Register | App relaunch vs PC restart | Quotes | Step 2 | Switch names |
+| --- | --- | --- | --- | --- |
+| です・ます | 管理者として再実行 (app), 再起動 (PC) | 「」 | "設定の選択" | See [protection switch names](#protection-switch-names) |
+
+- Buttons end in a noun (完了, 今すぐ再起動).
+- Put a half-width space between Japanese and Latin text, and inside katakana compounds.
+- Use 。 and 、 with half-width ( ) and ": ", as Microsoft's Japanese UI does.
+- `list-and` joins with 、, without spaces.
+- The counter is 件 for updates and 個 for switches.
+- The USB list's **Refresh** is 一覧を更新, because bare 更新 means "update" here.
+- "Antivirus app" is ウイルス対策アプリ; use ソフト only where the English says "software".
+- Edge bookmarks are お気に入り.
+- Status words are 進行中, 失敗, 未開始 and 完了, and stage names end in 〜中.
+- **Open log folder** is ログ フォルダーを開く, and **Stop updating** is 更新を停止.
+
+#### Open questions
+
+- `protection-cloud`, `protection-samples`, `security-list-title`: do クラウド提供の保護, サンプルの自動送信 and ウイルスと脅威の防止の設定 match Japanese Windows?
+  Microsoft's machine-translated Japanese support page words them differently.
+- Relaunching Atlas: 再実行 or 開き直す?
+- `playbook-page-defender-enable-description`: is Enhanced Phishing Protection 拡張フィッシング保護 or 強化されたフィッシング保護, as different Microsoft pages call it, or フィッシング対策, as the switch reads?
+  拡張フィッシング保護 is the title of Microsoft's Japanese documentation page.
+- `detail-windows-release-unlisted`, `iso-release-unlisted`: should the Release Preview channel stay in Latin letters, or does Japanese Windows show リリース プレビュー in Settings, as Microsoft's machine-translated Japanese Insider pages suggest?
+
+### Indonesian (`id`)
+
+| Register | App relaunch vs PC restart | Quotes | Step 2 | Switch names |
+| --- | --- | --- | --- | --- |
+| Anda, formal-neutral | "jalankan ulang" (app), "mulai ulang" (PC), "buka kembali" after a restart | None around labels | "Pilihan Anda" | "pengaturan (perlindungan)" |
+
+- Plurals use only `other`.
+- "penginstalan" is the Atlas install, and "instalasi Windows" is a Windows installation.
+- "No installation changes were made" is "Penginstalan belum mengubah apa pun", never a claim about the whole PC.
+- Use "Hubungkan", not "Sambungkan".
+- Use "file", not "berkas".
+- Use "Setelah itu," rather than a sentence starting with "Lalu".
+- **Open package file** is "Buka file paket", **Open log folder** is "Buka folder log", **Stop updating** is "Hentikan pembaruan" and **Help and feedback** is "Bantuan dan masukan".
+- "needs attention" is "perlu diperhatikan".
+
+#### Open questions
+
+- `protection-tamper`, `protection-cloud`, `security-list-title`: does Indonesian Windows show "Proteksi Kerusakan", "Perlindungan yang dikirimkan cloud" and "Pengaturan perlindungan virus & ancaman"?
+  Microsoft's machine-translated pages disagree with each other and give eight renderings of Tamper Protection between them.
+- Fast Startup (`consequence-disable-hibernation`): what does Indonesian Windows call it?
+- `consequence-mitigations-disable`, `playbook-page-defender-enable-description`, `check-fix-apps`: do Perlindungan eksploitasi, Perlindungan pengelabuan, Temukan perangkat saya and Aplikasi yang diinstal match Indonesian Windows?
+  Kontrol Aplikasi Pintar matches Microsoft's Indonesian Smart App Control FAQ.
+- `consequence-mitigations-disable`, `prepare-description`: Control Flow Guard, Notepad, Paint and Windows Terminal stay in English until confirmed; what does Indonesian Windows call them?
+- `list-and`: should lists of three or more read "A, B, dan C", as PUEBI and CLDR want, rather than "A, B dan C"?
+  That needs a separate message for the last of three or more.
+
+### Thai (`th`)
+
+| Register | App relaunch vs PC restart | Quotes | Step 2 | Switch names |
+| --- | --- | --- | --- | --- |
+| คุณ | เปิด Atlas ใหม่ (app), รีสตาร์ต (PC) | None; a control named in text has a space either side | "ตัวเลือกของคุณ" | See [protection switch names](#protection-switch-names) |
+
+- Sentences have no final full stop.
+- Put a space between clauses and around Latin letters or digits.
+- Use classifiers instead of plurals.
+- Call Windows Security "แอป ความปลอดภัยของ Windows" where the app is opened.
+- Diagnostics are ข้อมูลการวินิจฉัย.
+- Review is ตรวจทาน; ตรวจสอบ is checking and verifying.
+- Restart is only รีสตาร์ต, never รีสตาร์ท or เริ่มระบบใหม่.
+- Build is บิลด์; รุ่น is an edition or release.
+- Beta is เบต้า and Ethernet is อีเทอร์เน็ต; Wi-Fi stays Latin.
+- Don't use โปรด.
+- Question titles have no "?".
+- Cards are `ในการ์ด <label>`.
+
+#### Open questions
+
+- `protection-tamper`, `protection-cloud`, `security-list-title`: do การป้องกันการแก้ไขข้อมูลโดยประสงค์ร้าย and การป้องกันบนระบบคลาวด์ match Thai Windows, and does the page title use "และ" or "&"?
+- Memory integrity (`consequence-disable-core-isolation`): ความสมบูรณ์ or ความถูกต้อง ของหน่วยความจำ?
+- Fast Startup (`consequence-disable-hibernation`): what does Thai Windows call it?
+- `playbook-page-defender-enable-description`: only ฟิชชิ่ง in การป้องกันฟิชชิ่งขั้นสูง is confirmed; does Thai Windows word the rest of the name the same way?
+- `prepare-description`, `check-fix-apps`: do Notepad, Paint and Windows Terminal show in Thai, and is Installed apps แอปที่ติดตั้ง?
+- Sign-in strings: Microsoft's Thai pages say ลงชื่อเข้าใช้ for "sign in", but the catalog says เข้าสู่ระบบ; which should it use?
+
+### Hindi (`hi`)
+
+| Register | App relaunch vs PC restart | Quotes | Step 2 | Switch names |
+| --- | --- | --- | --- | --- |
+| आप, with respectful imperatives | "दोबारा खोलें" (app), "रीस्टार्ट करें" (PC) | “ ” around card titles and labels, except the step तैयारी | "आपके विकल्प" | See [protection switch names](#protection-switch-names) |
+
+- The danda is the only sentence terminator.
+- Loanwords follow Microsoft's style in Devanagari (इंस्टॉल, अपडेट, सेटिंग्स, फ़ाइल), with the nukta applied consistently.
+- The decision caption is "पसंद".
+- The Atlas package, ISO and USB are masculine (नया ISO); USB ड्राइव and ISO फ़ाइल are feminine.
+- Diagnostics are डायग्नोस्टिक्स (masculine plural), never निदान.
+- "PC" stays Latin, never पीसी.
+- Use इंस्टॉलेशन, not स्थापना.
+- Use रीस्टार्ट, not पुनः आरंभ.
+- **Try again** is "फिर कोशिश करें".
+- Use अगर, not यदि.
+- First-person text stays gender-neutral (मेरी कोशिश थी कि…, "X ख़ुद इंस्टॉल करें").
+
+#### Open questions
+
+- `protection-tamper`, `protection-realtime`, `protection-cloud`, `protection-samples`, `security-list-title`: do these five names match Hindi Windows?
+  Hindi Windows coverage is partial, so a Hindi PC may show some switches in English.
+- Windows Update, the Start button and Snipping Tool: does Hindi Windows say Windows Update or Windows अपडेट, and what does it call the Start button and Snipping Tool?
+- `consequence-mitigations-disable`, `playbook-page-defender-enable-description`: does Hindi Windows use the feature names in the table?
+  All of them are reasoned, and शोषण usually means the exploitation of people.
+- `prepare-description`, `check-fix-apps`: do कार्य प्रबंधक, नोटपैड/पेंट/Windows टर्मिनल, the folder names and इंस्टॉल किए गए ऐप्स match Hindi Windows?
+  All of them are reasoned.
+- `consequence-disable-core-isolation`, `consequence-disable-hibernation`: "मेमोरी अखंडता (Memory integrity)" and "तेज़ स्टार्टअप (Fast Startup)" keep English in brackets until confirmed; can they drop it?
+- Whole catalog: the nukta is applied to क़ only in मुताबिक़; which rule should the catalog follow?
