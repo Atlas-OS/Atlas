@@ -1004,7 +1004,7 @@ Elevation: Admin
 
 ### FixMSStoreIssues (no state record)
 
-Fixes Microsoft Store issues by running StoreFixer. Records no state.
+Fixes Microsoft Store issues: removes AppX deployment rows left by packages that are no longer registered, or runs StoreFixer when there are none. Records no state.
 
 Elevation: TrustedInstaller
 

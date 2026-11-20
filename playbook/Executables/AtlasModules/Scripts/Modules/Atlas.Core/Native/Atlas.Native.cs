@@ -1807,6 +1807,228 @@ namespace Atlas.Native
         }
     }
 
+    // ----- AppX deployment database orphans -----
+    // PowerShell consumer: Toggles\Troubleshooting\FixMSStoreIssues.ps1 (Repair-AtlasAppRepositoryOrphan)
+    // StateRepository-Deployment.srd keeps each package's files, manifest and source URIs
+    // under the package's row id in StateRepository-Machine.srd. Atlas 0.4 and 0.5 removed
+    // packages with AME's !appx action, which could drop the Machine row and leave these.
+    // Staging hashes a new package's files against File.Digest, and a match that belongs to
+    // a missing package fails the Evaluated state with 0x80070490 (0x80073CF9 in the Store).
+    // Both databases are SQLite, opened through the copy Windows ships as winsqlite3.dll.
+    public sealed class AppRepositoryOrphanCount
+    {
+        public long Packages;
+        public long Files;
+        public long Manifests;
+        public long SourceUris;
+        public long LiveFiles;
+        public long Total { get { return Files + Manifests + SourceUris; } }
+    }
+
+    public static class AppRepositoryOrphans
+    {
+        private const int SqliteOk = 0;
+        private const int SqliteRow = 100;
+        private const int OpenReadOnly = 0x00000001;
+        private const int OpenReadWrite = 0x00000002;
+
+        // The Machine package ids are copied into a temp table, so the Deployment database
+        // is the only one held while rows are counted or removed.
+        private const string LivePackagesSql =
+            "ATTACH DATABASE '{0}' AS machine; " +
+            "CREATE TEMP TABLE live AS SELECT _PackageID AS id FROM machine.Package; " +
+            "DETACH DATABASE machine;";
+        private const string CountSql =
+            "SELECT (SELECT count(*) FROM temp.live), " +
+            "(SELECT count(*) FROM File WHERE Package NOT IN (SELECT id FROM temp.live)), " +
+            "(SELECT count(*) FROM AppxManifest WHERE Package NOT IN (SELECT id FROM temp.live)), " +
+            "(SELECT count(*) FROM PackageSourceUri WHERE Package NOT IN (SELECT id FROM temp.live)), " +
+            "(SELECT count(*) FROM File WHERE Package IN (SELECT id FROM temp.live));";
+        private const string DeleteSql =
+            "DELETE FROM File WHERE Package NOT IN (SELECT id FROM temp.live); " +
+            "DELETE FROM AppxManifest WHERE Package NOT IN (SELECT id FROM temp.live); " +
+            "DELETE FROM PackageSourceUri WHERE Package NOT IN (SELECT id FROM temp.live);";
+
+        [DllImport("winsqlite3.dll", EntryPoint = "sqlite3_open_v2", CallingConvention = CallingConvention.StdCall)]
+        private static extern int Open(byte[] fileName, out IntPtr db, int flags, IntPtr vfs);
+
+        [DllImport("winsqlite3.dll", EntryPoint = "sqlite3_close_v2", CallingConvention = CallingConvention.StdCall)]
+        private static extern int Close(IntPtr db);
+
+        [DllImport("winsqlite3.dll", EntryPoint = "sqlite3_busy_timeout", CallingConvention = CallingConvention.StdCall)]
+        private static extern int BusyTimeout(IntPtr db, int milliseconds);
+
+        [DllImport("winsqlite3.dll", EntryPoint = "sqlite3_exec", CallingConvention = CallingConvention.StdCall)]
+        private static extern int Exec(IntPtr db, byte[] sql, IntPtr callback, IntPtr argument, IntPtr errorMessage);
+
+        [DllImport("winsqlite3.dll", EntryPoint = "sqlite3_prepare_v2", CallingConvention = CallingConvention.StdCall)]
+        private static extern int Prepare(IntPtr db, byte[] sql, int length, out IntPtr statement, IntPtr tail);
+
+        [DllImport("winsqlite3.dll", EntryPoint = "sqlite3_step", CallingConvention = CallingConvention.StdCall)]
+        private static extern int Step(IntPtr statement);
+
+        [DllImport("winsqlite3.dll", EntryPoint = "sqlite3_column_int64", CallingConvention = CallingConvention.StdCall)]
+        private static extern long ColumnInt64(IntPtr statement, int column);
+
+        [DllImport("winsqlite3.dll", EntryPoint = "sqlite3_column_text", CallingConvention = CallingConvention.StdCall)]
+        private static extern IntPtr ColumnText(IntPtr statement, int column);
+
+        [DllImport("winsqlite3.dll", EntryPoint = "sqlite3_finalize", CallingConvention = CallingConvention.StdCall)]
+        private static extern int FinalizeStatement(IntPtr statement);
+
+        [DllImport("winsqlite3.dll", EntryPoint = "sqlite3_errmsg", CallingConvention = CallingConvention.StdCall)]
+        private static extern IntPtr ErrorMessage(IntPtr db);
+
+        public static AppRepositoryOrphanCount Count(string deploymentPath, string machinePath)
+        {
+            IntPtr db = OpenDatabase(deploymentPath, OpenReadOnly);
+            try
+            {
+                LoadLivePackages(db, machinePath);
+                return ReadCount(db);
+            }
+            finally
+            {
+                Close(db);
+            }
+        }
+
+        // Returns what was removed. Refuses, changing nothing, when the Machine database
+        // lists no packages or more files are orphaned than kept, because then it does not
+        // describe the packages the Deployment database belongs to.
+        public static AppRepositoryOrphanCount Remove(string deploymentPath, string machinePath)
+        {
+            IntPtr db = OpenDatabase(deploymentPath, OpenReadWrite);
+            try
+            {
+                LoadLivePackages(db, machinePath);
+                Run(db, "BEGIN IMMEDIATE;");
+                AppRepositoryOrphanCount count = ReadCount(db);
+                if (count.Packages == 0 || count.Files > count.LiveFiles)
+                {
+                    Run(db, "ROLLBACK;");
+                    throw new InvalidOperationException("The AppX package database lists " + count.Packages +
+                        " packages and " + count.LiveFiles + " of their files against " + count.Files +
+                        " orphaned files, so no rows were removed.");
+                }
+                Run(db, DeleteSql);
+                string check = ReadText(db, "PRAGMA quick_check;");
+                if (!String.Equals(check, "ok", StringComparison.Ordinal))
+                {
+                    Run(db, "ROLLBACK;");
+                    throw new InvalidOperationException("The AppX deployment database failed its check after removing orphaned rows (" +
+                        check + "), so the removal was rolled back.");
+                }
+                Run(db, "COMMIT;");
+                Run(db, "PRAGMA wal_checkpoint(TRUNCATE);");
+                return count;
+            }
+            finally
+            {
+                Close(db);
+            }
+        }
+
+        private static IntPtr OpenDatabase(string path, int flags)
+        {
+            if (String.IsNullOrEmpty(path) || !Path.IsPathRooted(path))
+                throw new ArgumentException("A full database path is required.", "path");
+            if (!File.Exists(path))
+                throw new FileNotFoundException("The AppX database is missing.", path);
+            IntPtr db;
+            int result = Open(Utf8(path), out db, flags, IntPtr.Zero);
+            if (result != SqliteOk)
+            {
+                string message = db == IntPtr.Zero ? "out of memory" : LastError(db);
+                Close(db);
+                throw new InvalidOperationException("Opening '" + path + "' failed: " + message + " (SQLite " + result + ").");
+            }
+            BusyTimeout(db, 5000);
+            return db;
+        }
+
+        private static void LoadLivePackages(IntPtr db, string machinePath)
+        {
+            if (String.IsNullOrEmpty(machinePath) || !Path.IsPathRooted(machinePath) || !File.Exists(machinePath))
+                throw new FileNotFoundException("The AppX machine database is missing.", machinePath);
+            Run(db, String.Format(LivePackagesSql, machinePath.Replace("'", "''")));
+        }
+
+        private static AppRepositoryOrphanCount ReadCount(IntPtr db)
+        {
+            IntPtr statement = PrepareStatement(db, CountSql);
+            try
+            {
+                if (Step(statement) != SqliteRow)
+                    throw new InvalidOperationException("Counting orphaned AppX rows failed: " + LastError(db) + ".");
+                AppRepositoryOrphanCount count = new AppRepositoryOrphanCount();
+                count.Packages = ColumnInt64(statement, 0);
+                count.Files = ColumnInt64(statement, 1);
+                count.Manifests = ColumnInt64(statement, 2);
+                count.SourceUris = ColumnInt64(statement, 3);
+                count.LiveFiles = ColumnInt64(statement, 4);
+                return count;
+            }
+            finally
+            {
+                FinalizeStatement(statement);
+            }
+        }
+
+        private static string ReadText(IntPtr db, string sql)
+        {
+            IntPtr statement = PrepareStatement(db, sql);
+            try
+            {
+                if (Step(statement) != SqliteRow)
+                    throw new InvalidOperationException("'" + sql + "' returned no row: " + LastError(db) + ".");
+                return Utf8String(ColumnText(statement, 0));
+            }
+            finally
+            {
+                FinalizeStatement(statement);
+            }
+        }
+
+        private static IntPtr PrepareStatement(IntPtr db, string sql)
+        {
+            IntPtr statement;
+            int result = Prepare(db, Utf8(sql), -1, out statement, IntPtr.Zero);
+            if (result != SqliteOk)
+                throw new InvalidOperationException("Preparing '" + sql + "' failed: " + LastError(db) + " (SQLite " + result + ").");
+            return statement;
+        }
+
+        private static void Run(IntPtr db, string sql)
+        {
+            int result = Exec(db, Utf8(sql), IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+            if (result != SqliteOk)
+                throw new InvalidOperationException("'" + sql + "' failed: " + LastError(db) + " (SQLite " + result + ").");
+        }
+
+        private static string LastError(IntPtr db)
+        {
+            return Utf8String(ErrorMessage(db));
+        }
+
+        private static byte[] Utf8(string value)
+        {
+            return Encoding.UTF8.GetBytes(value + "\0");
+        }
+
+        private static string Utf8String(IntPtr value)
+        {
+            if (value == IntPtr.Zero)
+                return String.Empty;
+            int length = 0;
+            while (Marshal.ReadByte(value, length) != 0)
+                length++;
+            byte[] bytes = new byte[length];
+            Marshal.Copy(value, bytes, 0, length);
+            return Encoding.UTF8.GetString(bytes);
+        }
+    }
+
     // ----- Windows TEMP root DACL -----
     // PowerShell consumer: Atlas.Security\Domain\Permissions.ps1 (Set-AtlasWindowsTempRootAcl)
     // SetFileSecurity writes this one directory's DACL. The managed SetAccessControl goes
