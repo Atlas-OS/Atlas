@@ -2,6 +2,9 @@
 .SYNOPSIS
     Replaces the installed Atlas files with those from the extracted package.
 .DESCRIPTION
+    The install plan's PayloadReplacement checkpoint runs it as TrustedInstaller from
+    the extracted package, on every attempt in every install mode.
+
     The committed install state decides whether an existing installation must be
     stopped and removed. Replacement is blocked while a CBS retry is armed, so the
     recovery command can't be deleted underneath Safe Mode. A retry that was never
@@ -28,7 +31,7 @@ function Resolve-AtlasPayloadReplacementPlan {
     [CmdletBinding()]
     param([Parameter(Mandatory = $true)][psobject]$InstallState)
 
-    foreach ($property in @('status', 'mode', 'isOobe')) {
+    foreach ($property in @('status', 'mode')) {
         if ($null -eq $InstallState.PSObject.Properties[$property]) {
             throw "Install state is missing required '$property' field."
         }
@@ -39,9 +42,6 @@ function Resolve-AtlasPayloadReplacementPlan {
     if (@('Fresh', 'Upgrade', 'Reapply', 'Rebase') -cnotcontains [string]$InstallState.mode) {
         throw "Replacing Atlas's files does not support install mode '$($InstallState.mode)'."
     }
-    if ($InstallState.isOobe -isnot [bool]) {
-        throw 'Install state isOobe must be a Boolean.'
-    }
 
     $hasInstalledPayload = [string]$InstallState.mode -cne 'Fresh'
     $completedSteps = @()
@@ -51,7 +51,7 @@ function Resolve-AtlasPayloadReplacementPlan {
     return [pscustomobject][ordered]@{
         Mode                   = [string]$InstallState.mode
         StopInstalledPayload   = $hasInstalledPayload
-        RemoveInstalledPayload = $hasInstalledPayload -and -not [bool]$InstallState.isOobe
+        RemoveInstalledPayload = $hasInstalledPayload
         ChoicesReplayed        = $completedSteps -icontains 'Defaults'
     }
 }

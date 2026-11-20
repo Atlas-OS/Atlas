@@ -6,8 +6,7 @@
 ### "Windows" and "Microsoft Defender" are never declined, while "Zabezpieczenia
 ### Windows" declines like an ordinary noun phrase (w Zabezpieczeniach Windows); "otwórz Atlas ponownie" means relaunching
 ### this app, "uruchom ponownie" always means restarting the PC or Windows. The .apbx
-### file is "pakiet Atlasa" ("plik pakietu" for the file itself); "playbook" stays
-### only where a string explains that AME Wizard calls it that.
+### file is "pakiet Atlasa" ("plik pakietu" for the file itself).
 
 ## Wspólne
 
@@ -147,9 +146,6 @@ home-show-full-notes = Pokaż pełne informacje o wydaniu
 home-your-install = Twoja instalacja Atlasa
 # Atlas is installed, but without the record Atlas Manager keeps (older versions didn't write one).
 home-install-unrecorded = Na tym komputerze nie ma zapisu o tym, jak zainstalowano Atlas, więc nie można wyświetlić wybranych opcji ani historii instalacji.
-# Row label: how Atlas was set up.
-home-set-up = Sposób instalacji
-home-set-up-during-oobe = Podczas konfiguracji Windows
 home-history = Historia instalacji
 # One history row. $version is text, $mode one of the history-mode-* messages, $date a formatted date and time.
 home-history-entry = Atlas { $version } · { $mode } · { $date }
@@ -314,7 +310,7 @@ package-from-file = Atlas { $version } został wczytany z pliku { $file } i jest
 package-unpacked = Atlas { $version } jest gotowy do instalacji.
 package-none-yet = Nie wybrano plików instalacyjnych
 acquire-no-asset = Atlas { $version } nie ma pliku pakietu do pobrania. Aby kontynuować, otwórz zapisany pakiet Atlasa (.apbx).
-acquire-unsupported = Ta aplikacja instaluje Atlas w wersji 0.6.0 i nowszych. Aby zainstalować Atlas { $version }, użyj AME Wizard.
+acquire-unsupported = Ta aplikacja instaluje Atlas w wersji 0.6.0 i nowszych.
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = W Atlasie { $version } brakuje plików, których ta aplikacja potrzebuje, aby go zainstalować. Pobierz go ponownie albo otwórz inny pakiet Atlasa (.apbx).
 acquire-failed = Nie udało się przygotować plików instalacyjnych. Spróbuj pobrać je ponownie albo otwórz inny pakiet Atlasa (.apbx). Szczegóły: { $error }

@@ -1,3 +1,5 @@
+# Dot-sourced, as TrustedInstaller, by the phases and tasks that start a process as the
+# installing user, so a failure names its reason.
 function Get-AtlasUserFailureDetail {
     <#
     .SYNOPSIS

@@ -10,7 +10,6 @@
         'Get-AtlasInstallState'
         'Get-AtlasInstallWorkRoot'
         'Start-AtlasInstallState'
-        'Add-AtlasInstallOption'
         'Set-AtlasInstallOptions'
         'Set-AtlasInstallUser'
         'Commit-AtlasInstallState'

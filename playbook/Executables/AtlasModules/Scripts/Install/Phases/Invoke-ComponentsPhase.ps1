@@ -1,9 +1,9 @@
-# Components phase.
+# Components phase, on a first installation and a Rebase.
 # Removes Windows components: the Security Center startup item, Smart App Control,
 # Microsoft Edge (option gated), OneDrive, the Teams chat auto-install policy and the
-# CBS component packages (option gated). Runs as TrustedInstaller; child-script and
-# CBS package failures throw to the one-shot orchestrator, which returns the install's
-# single nonzero status to the custom.yml shim.
+# CBS component packages (option gated). Runs as TrustedInstaller. Child-script and
+# CBS package failures throw to the install plan, which fails the Run phase with a
+# single nonzero exit code.
 #
 # Not handled here: Edge's installed/provisioned package-family removal (the AppxSupport phase).
 
@@ -76,7 +76,7 @@ catch {
 }
 
 $oneDriveContext = Get-AtlasContext
-if (-not $oneDriveContext.IsOobe -and -not $keepOneDrive) {
+if (-not $keepOneDrive) {
     $interactiveUserSid = [string]$oneDriveContext.InteractiveUserSid
     if ([string]::IsNullOrWhiteSpace($interactiveUserSid)) {
         throw 'OneDrive current-user cleanup requires the install-state user SID.'
@@ -116,8 +116,7 @@ if (Test-AtlasOption -Name 'defender-enable') {
 }
 
 # Prevent Teams chat from being reinstalled. This key is TrustedInstaller-protected,
-# which is why the write belongs in this phase rather than the AppX snapshot phase
-# or an AME !registryValue action.
+# which is why the write belongs in this phase rather than the AppX snapshot phase.
 $communicationsKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Communications'
 if (-not (Test-Path -LiteralPath $communicationsKey)) {
     New-Item -Path $communicationsKey -Force | Out-Null

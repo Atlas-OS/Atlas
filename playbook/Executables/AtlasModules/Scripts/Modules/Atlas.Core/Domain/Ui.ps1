@@ -1,6 +1,6 @@
 # Atlas.Core domain: console presentation.
 #
-# One vocabulary for every interactive Atlas surface: the toggle engine, companion
+# One vocabulary for every interactive Atlas script: the toggle engine, companion
 # functions, nested helpers and the hand-written entry scripts. Each line carries its
 # meaning in words (Warning:, Error:, Next step:, Done:) so colour is only a hint and a
 # transcript reads the same as the window. See docs/console-presentation.md.

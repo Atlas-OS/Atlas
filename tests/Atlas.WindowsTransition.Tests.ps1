@@ -1679,23 +1679,6 @@ Describe 'Install and toggle guards while Windows Update is turned on' {
         $lost.Detail | Should -Match 'Atlas packages are gone'
     }
 
-    It 'lets AME Wizard install only after a move finished in place on its target' {
-        [void](Save-AtlasWindowsTransitionSnapshot -Kind access -Source ([pscustomobject]@{ build = 26200 }) -Target $null -UserSid 'S')
-        { Assert-AtlasWindowsTransitionAllowsAme -WindowsBuild 26200 } | Should -Not -Throw
-        Reset-Machine
-        [void](Save-AtlasWindowsTransitionSnapshot -Kind transition -Source ([pscustomobject]@{ build = 26100 }) `
-                -Target ([pscustomobject]@{ release = '26H2'; build = 26300; kb = '5121794' }) -UserSid 'S')
-        { Assert-AtlasWindowsTransitionAllowsAme -WindowsBuild 26100 } | Should -Throw '*Finish the move in Atlas Manager*'
-        { Assert-AtlasWindowsTransitionAllowsAme -WindowsBuild 26300 } | Should -Throw '*Finish the move*' -Because 'how Windows moved is not known yet'
-        $journal = Read-AtlasWindowsTransition
-        $journal | Add-Member -NotePropertyName rebuild -NotePropertyValue ([pscustomobject]@{ rebuilt = $true; signals = @('windows-old'); checkedAt = '2026-10-02T00:00:00Z' }) -Force
-        Write-AtlasWindowsTransition $journal
-        { Assert-AtlasWindowsTransitionAllowsAme -WindowsBuild 26300 } | Should -Throw '*Finish the move*' -Because 'only Atlas Manager puts Atlas back with a Rebase'
-        $journal.rebuild.rebuilt = $false
-        Write-AtlasWindowsTransition $journal
-        Mock Get-AtlasInstalledAtlasPackage { @() }
-        { Assert-AtlasWindowsTransitionAllowsAme -WindowsBuild 26300 } | Should -Not -Throw
-    }
 
     It 'allows a plain update''s record and blocks an unreadable one' {
         [void](Save-AtlasWindowsTransitionSnapshot -Kind access -Source ([pscustomobject]@{ build = 26200 }) -Target $null -UserSid 'S')
@@ -1720,14 +1703,11 @@ Describe 'Install and toggle guards while Windows Update is turned on' {
 Describe 'The install''s closing step' {
     BeforeAll { . (Join-Path $script:AtlasTestScriptsRoot 'Install\Install-Plan.ps1') }
 
-    It 'runs in <Mode> (OOBE <Oobe>) after the choices are replayed and the pin is written' -TestCases @(
-        @{ Mode = 'Fresh'; Oobe = $false }, @{ Mode = 'Fresh'; Oobe = $true }
-        @{ Mode = 'Upgrade'; Oobe = $false }, @{ Mode = 'Upgrade'; Oobe = $true }
-        @{ Mode = 'Reapply'; Oobe = $false }, @{ Mode = 'Reapply'; Oobe = $true }
-        @{ Mode = 'Rebase'; Oobe = $false }, @{ Mode = 'Rebase'; Oobe = $true }
+    It 'runs in <Mode> after the choices are replayed and the pin is written' -TestCases @(
+        @{ Mode = 'Fresh' }, @{ Mode = 'Upgrade' }, @{ Mode = 'Reapply' }, @{ Mode = 'Rebase' }
     ) {
-        param($Mode, $Oobe)
-        $keys = @((Get-AtlasInstallPlan -Mode $Mode -IsOobe $Oobe).Key)
+        param($Mode)
+        $keys = @((Get-AtlasInstallPlan -Mode $Mode).Key)
         $index = [array]::IndexOf($keys, 'Checkpoint/WindowsTransition')
         $index | Should -BeGreaterThan ([array]::IndexOf($keys, 'Defaults'))
         if ($keys -contains 'Tweaks/qol') { $index | Should -BeGreaterThan ([array]::IndexOf($keys, 'Tweaks/qol')) }
@@ -2475,13 +2455,12 @@ Describe 'The Rebase install plan' {
         Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Tweaks\Atlas.Tweaks.psd1') -Force -DisableNameChecking
     }
 
-    It 'is the Upgrade plan plus the fresh-install phases a rebuilt Windows undid, OOBE <Oobe>' -TestCases @(@{ Oobe = $false }, @{ Oobe = $true }) {
-        param($Oobe)
-        $upgrade = @((Get-AtlasInstallPlan -Mode Upgrade -IsOobe $Oobe).Key)
-        $rebase = @((Get-AtlasInstallPlan -Mode Rebase -IsOobe $Oobe).Key)
+    It 'is the Upgrade plan plus the fresh-install phases a rebuilt Windows undid' {
+        $upgrade = @((Get-AtlasInstallPlan -Mode Upgrade).Key)
+        $rebase = @((Get-AtlasInstallPlan -Mode Rebase).Key)
         @($rebase | Where-Object { $upgrade -notcontains $_ }) | Should -Be @('Checkpoint/RebaseRecovery', 'Services', 'Components', 'AppxSupport')
         @($upgrade | Where-Object { $rebase -notcontains $_ }) | Should -BeNullOrEmpty
-        $fresh = @((Get-AtlasInstallPlan -Mode Fresh -IsOobe $Oobe).Key)
+        $fresh = @((Get-AtlasInstallPlan -Mode Fresh).Key)
         @($fresh | Where-Object { $rebase -notcontains $_ }) | Should -Be @('Tweak/qol/set-hidden-settings-pages', 'Tweak/scripts/set-power-settings') -Because 'a rebuild keeps the user''s settings pages and power plan'
         [array]::IndexOf($rebase, 'Checkpoint/RebaseRecovery') | Should -BeLessThan ([array]::IndexOf($rebase, 'Checkpoint/LegacyChoices'))
         [array]::IndexOf($rebase, 'Checkpoint/RebaseRecovery') | Should -BeGreaterThan ([array]::IndexOf($rebase, 'Checkpoint/PayloadReplacement'))
@@ -2497,9 +2476,9 @@ Describe 'The Rebase install plan' {
             if ($tweak['OnUpgrade'] -ne 'Skip') { continue }
             $slug = $file.FullName.Substring((Join-Path $script:AtlasTestScriptsRoot 'Tweaks').Length + 1).Replace('\', '/') -replace '\.psd1$', ''
             $fresh += $slug
-            $context = [pscustomobject]@{ IsUpgrade = $true; IsRebase = $true; IsOobe = $false; IsArm64 = $true; WindowsBuild = 26300; IsInstallStateBacked = $true; Options = @() }
+            $context = [pscustomobject]@{ IsUpgrade = $true; IsRebase = $true; IsArm64 = $true; WindowsBuild = 26300; IsInstallStateBacked = $true; Options = @() }
             if (Test-AtlasTweakApplicable -Tweak $tweak -Context $context) { $rebase += $slug }
-            $upgrade = [pscustomobject]@{ IsUpgrade = $true; IsRebase = $false; IsOobe = $false; IsArm64 = $true; WindowsBuild = 26300; IsInstallStateBacked = $true; Options = @() }
+            $upgrade = [pscustomobject]@{ IsUpgrade = $true; IsRebase = $false; IsArm64 = $true; WindowsBuild = 26300; IsInstallStateBacked = $true; Options = @() }
             Test-AtlasTweakApplicable -Tweak $tweak -Context $upgrade | Should -BeFalse -Because "$slug stays fresh-only on a plain upgrade"
         }
         @($rebase | Sort-Object) | Should -Be @('misc/delete-windows-specific-files', 'scripts/backup-services', 'scripts/disable-pnp', 'scripts/set-profile-pictures')

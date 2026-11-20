@@ -1,4 +1,4 @@
-// Atlas.Native - the complete native (C#) surface of Atlas.
+// Atlas.Native: all of Atlas's native (C#) code.
 //
 // Every runtime-compiled type Atlas uses lives in this one file. It is
 // compiled exactly once per PowerShell process by Initialize-AtlasNativeType
@@ -80,7 +80,7 @@ namespace Atlas.Native
     // Windows Search COM contracts, in SDK SearchAPI.h vtable order.
     // https://learn.microsoft.com/windows/win32/search/-search-3x-wds-extidx-csm-scoperules
     // Only the methods used by SearchScope are called; opaque unused interfaces and
-    // PROPVARIANT values stay IntPtr so no additional interop surface is needed.
+    // PROPVARIANT values stay IntPtr so no additional interop types are needed.
     [ComImport, Guid("AB310581-AC80-11D1-8DF3-00C04FB6EF69"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     internal interface ISearchManager {
         void GetIndexerVersionStr(out IntPtr value);

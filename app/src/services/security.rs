@@ -1,7 +1,8 @@
 //! Live view of the four Windows Security switches that must be off before
-//! Atlas installs, read from the registry values behind the "Virus & threat
-//! protection settings" page. AME Wizard reads the same values, so the app
-//! and AME Wizard agree on whether a PC is ready.
+//! Atlas installs, read from the values Windows keeps under
+//! `HKLM\SOFTWARE\Microsoft\Windows Defender` for the "Virus & threat
+//! protection settings" page. The front door's check reads the same values
+//! by the same rules, so the app and the install agree on whether a PC is ready.
 
 use windows_registry::{Key, LOCAL_MACHINE};
 

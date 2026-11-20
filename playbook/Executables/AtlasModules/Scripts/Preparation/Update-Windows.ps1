@@ -1,5 +1,35 @@
-# Brings Windows and Store apps up to date before Atlas changes Windows. Windows
-# Update and Store work is never killed; cancellation waits for the active operation.
+<#
+.SYNOPSIS
+    Brings Windows and Store apps up to date before Atlas changes Windows, and moves
+    Windows to a newer release when asked.
+.DESCRIPTION
+    Atlas Manager runs this script elevated, as the signed-in user, from a protected job
+    folder. The front door runs it with -VerifyOnly before an install starts. Progress
+    and the outcome go to state.json in the job folder, and the log to updates.log.
+    Windows Update and Store work is never killed; cancellation waits for the active
+    operation.
+.PARAMETER JobPath
+    The job folder, which holds state.json, updates.log, the cancel file and the
+    DriverPolicy.reg a driver choice applies.
+.PARAMETER FunctionsOnly
+    Defines the functions and returns, so tests can load them.
+.PARAMETER VerifyOnly
+    Only checks that Windows and Microsoft Store have no updates left, and changes nothing.
+.PARAMETER DriverMode
+    preserve keeps the PC's driver policy; automatic and manual apply the job folder's
+    DriverPolicy.reg.
+.PARAMETER TargetBuild
+    The build of the release -WindowsTarget names.
+.PARAMETER SourceBuilds
+    The builds the move may start from.
+.PARAMETER CommitFeatureUpdate
+    Commits an installed feature update once, just before Atlas restarts Windows.
+.PARAMETER RestoreWindowsUpdate
+    Puts back the Windows Update settings an unfinished update changed.
+.NOTES
+    Exit codes: 0 when the run ended as state.json records it (complete, restart needed,
+    no network or stopped), 1 when it failed.
+#>
 [CmdletBinding()]
 param([Parameter(Mandatory)][string]$JobPath, [switch]$FunctionsOnly, [switch]$VerifyOnly,
     # Set by the app's protected job: 'cancel' always exists and stopping means it is
@@ -563,7 +593,7 @@ function Get-PreparationComponentHealth {
 # Before a run's first search, damage Windows has already recorded is repaired,
 # as updates fail on it. Not on a PC with Atlas packages: those alone make the
 # store read as repairable, and a repair doesn't clear that (see "The component
-# store and the Atlas packages" in docs/architecture.md). Damage Windows can't
+# store and the Atlas packages" in docs/preparation.md). Damage Windows can't
 # repair stops the run. Returns whether a repair ran.
 function Repair-PreparationRecordedDamage {
     if ($script:PreparationComponentChecked) { return $false }

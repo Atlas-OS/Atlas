@@ -46,7 +46,7 @@ Describe 'Independent Explorer Network choice' {
         Mock -ModuleName Atlas.Registry Get-AtlasRegistryValueState {
             [pscustomobject]@{ KeyExists = $true; ValueExists = $true; Kind = 'DWord'; Data = 0 }
         }
-        $context = [pscustomobject]@{ IsArm64 = $false; WindowsBuild = 26200; IsUpgrade = $false; IsOobe = $false; Options = @() }
+        $context = [pscustomobject]@{ IsArm64 = $false; WindowsBuild = 26200; IsUpgrade = $false; Options = @() }
         @(Test-AtlasTweak -Path $path -RegistryScope CurrentUser -Context $context).Count | Should -Be 0
         $drift = @(Test-AtlasTweak -Path $path -RegistryScope CurrentUser -Context $context -RecordedToggleStates @{ NetworkNavigationPane = 1 })
         $drift.Count | Should -Be 1

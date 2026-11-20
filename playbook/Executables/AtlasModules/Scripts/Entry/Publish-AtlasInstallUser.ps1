@@ -1,3 +1,15 @@
+<#
+.SYNOPSIS
+    Publishes the installing user's identity for the TrustedInstaller Run phase.
+.DESCRIPTION
+    Entry\Install-Atlas.ps1 runs this script in its own process, as the signed-in
+    user, between the Capture and Run phases. It writes the capture's
+    nonce, the user's SID and the Windows session to HKCU\Software\AtlasOS\InstallSession
+    and reads them back. The Run phase binds the user whose loaded hive carries that
+    nonce, then removes the marker.
+.NOTES
+    Throws on any failure, so the front door stops with its install-failure exit code.
+#>
 [CmdletBinding()]
 param()
 
@@ -15,9 +27,6 @@ Import-Module -Name $stateManifest -Force -DisableNameChecking -ErrorAction Stop
 $state = Get-AtlasInstallState
 if ($null -eq $state) {
     throw 'No active Atlas install state is available to publish the install user.'
-}
-if ([bool]$state.isOobe) {
-    throw 'OOBE installs do not publish an interactive-user marker.'
 }
 $nonce = [string]$state.captureNonce
 if ($nonce -notmatch '^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$') {

@@ -25,7 +25,7 @@
   },
   {
     "label": "Build Atlas package (Release Candidate)",
-    "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File \"${ZED_WORKTREE_ROOT}/tools/build/Build-Playbook.ps1\" -FileName \"Atlas RC\" -ReplaceOldPlaybook -Removals Verification",
+    "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File \"${ZED_WORKTREE_ROOT}/tools/build/Build-Playbook.ps1\" -FileName \"Atlas RC\" -ReplaceOldPlaybook",
     "cwd": "${ZED_WORKTREE_ROOT}/playbook",
     "reveal": "always",
     "hide": "on_success",

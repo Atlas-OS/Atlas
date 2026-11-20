@@ -1,6 +1,10 @@
 <#
 .SYNOPSIS
-    Captures existing profiles and recognizable pre-state-store Atlas choices.
+    Captures existing profiles and the recognisable choices of an Atlas that predates
+    the toggle state store.
+.DESCRIPTION
+    The install plan's LegacyChoices checkpoint runs it as TrustedInstaller on an update
+    or a Rebase, before any phase reads the choices.
 #>
 param([switch]$LibraryOnly)
 

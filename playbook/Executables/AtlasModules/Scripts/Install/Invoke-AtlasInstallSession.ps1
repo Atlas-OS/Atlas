@@ -23,6 +23,8 @@
     Each phase leaves a copy of its log under the machine's Logs\install folder,
     whether it succeeds or fails, because this staging copy goes once an install
     succeeds and only administrators can read it.
+.PARAMETER Phase
+    Capture or Run, as described above.
 .NOTES
     Exit codes: 0 success, 1 failure, 2 wrong privilege.
 #>
@@ -211,6 +213,111 @@ function Invoke-AtlasInstallCapture {
     return "Atlas install state ready for $mode of $targetVersion with options: $($options -join ', ')."
 }
 
+function Find-AtlasInstallUserMarker {
+    <#
+    .SYNOPSIS
+        Returns the Sid and SessionId of the one loaded user hive whose
+        Software\AtlasOS\InstallSession marker carries this capture's nonce. The
+        front door publishes that marker from the installing user's own session.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Nonce,
+
+        [Microsoft.Win32.RegistryKey]$UsersRoot = [Microsoft.Win32.Registry]::Users
+    )
+
+    $markers = New-Object 'Collections.Generic.List[object]'
+    # Work or school (Microsoft Entra ID) accounts load as S-1-12-1 hives. The
+    # install plan can't act for them, so a marker there is only named.
+    $entraHives = New-Object 'Collections.Generic.List[string]'
+    foreach ($hiveName in $UsersRoot.GetSubKeyNames()) {
+        $entra = $hiveName -match '^S-1-12-1-(?:\d+-){3}\d+$'
+        if (-not $entra -and $hiveName -notmatch '^S-1-5-21-(?:\d+-){3}\d+$') {
+            continue
+        }
+        $marker = $UsersRoot.OpenSubKey(
+            "$hiveName\Software\AtlasOS\InstallSession",
+            $false
+        )
+        if ($null -eq $marker) {
+            continue
+        }
+        try {
+            $markerNonce = [string]$marker.GetValue('Nonce', $null)
+            if ($markerNonce -cne $Nonce) {
+                continue
+            }
+            if ($entra) {
+                $entraHives.Add($hiveName)
+                continue
+            }
+            $claimedSid = [string]$marker.GetValue('UserSid', $null)
+            $sessionId = $marker.GetValue('SessionId', $null)
+            if ($claimedSid -cne $hiveName -or
+                $sessionId -isnot [int] -or
+                [int]$sessionId -lt 1) {
+                throw "Install-user marker in '$hiveName' is invalid."
+            }
+            $markers.Add([pscustomobject]@{
+                    Sid       = $hiveName
+                    SessionId = [int]$sessionId
+                })
+        }
+        finally {
+            $marker.Dispose()
+        }
+    }
+
+    if ($markers.Count -eq 0 -and $entraHives.Count -gt 0) {
+        throw ("The install was started from a work or school (Microsoft Entra ID) account ($($entraHives -join ', ')). " +
+            "Atlas can't be installed from such an account; sign in with a local account or a Microsoft account, then try again.")
+    }
+    if ($markers.Count -ne 1) {
+        throw "Expected one current-user install marker for nonce '$Nonce'; found $($markers.Count)."
+    }
+    return $markers[0]
+}
+
+function Invoke-AtlasInstallCommit {
+    <#
+    .SYNOPSIS
+        Binds the installing user the front door published, commits the captured
+        install state, then removes that user's marker. A marker that can't be
+        removed only warns, because the state is already committed.
+    #>
+    param([Microsoft.Win32.RegistryKey]$UsersRoot = [Microsoft.Win32.Registry]::Users)
+
+    $state = Get-AtlasInstallState
+    if ($null -eq $state) {
+        throw 'No active Atlas install state exists to commit.'
+    }
+    $installUser = Find-AtlasInstallUserMarker -Nonce ([string]$state.captureNonce) -UsersRoot $UsersRoot
+    Set-AtlasInstallUser -UserSid $installUser.Sid -UserSessionId $installUser.SessionId | Out-Null
+    Commit-AtlasInstallState | Out-Null
+
+    try {
+        $sidRoot = $UsersRoot.OpenSubKey($installUser.Sid, $true)
+        if ($null -eq $sidRoot) {
+            throw "User registry hive '$($installUser.Sid)' is unavailable."
+        }
+        try {
+            $sidRoot.DeleteSubKeyTree('Software\AtlasOS\InstallSession', $false)
+        }
+        finally {
+            $sidRoot.Dispose()
+        }
+    }
+    catch {
+        Write-Warning -WarningAction Continue -Message (
+            'Atlas install state was committed, but its current-user ' +
+            "marker could not be removed: $($_.Exception.Message)"
+        )
+    }
+    Write-Output 'Atlas install state committed.'
+}
+
 try {
     # The native TrustedInstaller child has no inherited console or standard handles.
     # Persist failures before bootstrap/module loading, then let the broker relay them.
@@ -239,8 +346,7 @@ try {
             # with a whole line.
             try { Invoke-AtlasInstallLogRetention }
             catch { Write-AtlasSessionLog "WARNING: The install logs couldn't be tidied: $($_.Exception.Message)" }
-            $captureScript = Join-Path -Path $scriptsRoot -ChildPath 'Entry\Initialize-AtlasInstallState.ps1'
-            & $captureScript -Operation Commit
+            Invoke-AtlasInstallCommit
             $installScript = Join-Path -Path $scriptsRoot -ChildPath 'Entry\Invoke-AtlasInstall.ps1'
             & $installScript -Run *>&1 | ForEach-Object {
                 Write-AtlasSessionLog ([string]$_)

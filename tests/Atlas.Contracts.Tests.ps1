@@ -3,7 +3,6 @@ BeforeAll {
     $script:PlaybookRoot = Join-Path $script:AtlasTestRepoRoot 'playbook'
     $script:ModulesRoot = $script:AtlasTestModulesRoot
     $script:TweaksRoot = Join-Path $script:AtlasTestScriptsRoot 'Tweaks'
-    $script:ConfigurationRoot = Join-Path $script:PlaybookRoot 'Configuration'
     $script:PlaybookConf = Join-Path $script:PlaybookRoot 'playbook.conf'
 
     Import-Module -Name (Join-Path $script:ModulesRoot 'Atlas.Tweaks\Atlas.Tweaks.psd1') -Force
@@ -14,61 +13,17 @@ BeforeAll {
     $script:FeatureOptions = @($playbook.SelectNodes(
             '/Playbook/FeaturePages/*/Options/*/Name'
         ) | ForEach-Object { $_.InnerText } | Sort-Object -Unique)
-
-    . (Join-Path $script:AtlasTestRepoRoot 'tools\build\AtlasBuild\AtlasYamlAction.ps1')
-    $script:CustomActions = @(Get-AtlasYamlAction `
-            -Path (Join-Path $script:ConfigurationRoot 'custom.yml') `
-            -RelativePath 'custom.yml')
 }
 
 Describe 'Atlas option handoff contract' {
-    It 'keeps FeaturePage, front-door, state, YAML, and tweak option sets identical' {
-        $recordActions = @($script:CustomActions | Where-Object {
-                $_.Type -ceq 'run' -and
-                [string]$_.Properties.args -match `
-                    ' -Operation RecordOption -Option (?<Option>[a-z0-9-]+)$'
-            })
-        $yamlOptions = foreach ($action in $recordActions) {
-            $match = [regex]::Match(
-                [string]$action.Properties.args,
-                ' -Operation RecordOption -Option (?<Option>[a-z0-9-]+)$'
-            )
-            $name = $match.Groups['Option'].Value
-            [string]$action.Properties.option | Should -BeExactly $name
-            $name
-        }
-
-        $statePath = Join-Path $script:PlaybookRoot `
-            'Executables\AtlasModules\Scripts\Entry\Initialize-AtlasInstallState.ps1'
-        $tokens = $null
-        $parseErrors = $null
-        $stateAst = [Management.Automation.Language.Parser]::ParseFile(
-            $statePath,
-            [ref]$tokens,
-            [ref]$parseErrors
-        )
-        $parseErrors | Should -BeNullOrEmpty
-        $optionParameter = @($stateAst.ParamBlock.Parameters | Where-Object {
-                $_.Name.VariablePath.UserPath -ceq 'Option'
-            })
-        $optionParameter.Count | Should -Be 1
-        $optionValidateSet = @($optionParameter[0].Attributes | Where-Object {
-                $_.TypeName.FullName -ceq 'ValidateSet'
-            })
-        $optionValidateSet.Count | Should -Be 1
-        $stateOptions = @($optionValidateSet[0].PositionalArguments | ForEach-Object {
-                [string]$_.SafeGetValue()
-            } | Sort-Object -Unique)
-
+    It 'keeps the FeaturePage, front-door and tweak option sets identical' {
         $tweakOptions = @(InModuleScope Atlas.Tweaks {
                 $script:AtlasKnownOptions
             } | Sort-Object -Unique)
         $frontDoorOptions = @(Get-AtlasPlaybookOption -PlaybookPath $script:PlaybookConf |
                 ForEach-Object { $_.Options } | Sort-Object -Unique)
 
-        @($yamlOptions | Sort-Object -Unique) | Should -Be $script:FeatureOptions
-        $recordActions.Count | Should -Be $script:FeatureOptions.Count
-        $stateOptions | Should -Be $script:FeatureOptions
+        $script:FeatureOptions | Should -Not -BeNullOrEmpty
         $tweakOptions | Should -Be $script:FeatureOptions
         $frontDoorOptions | Should -Be $script:FeatureOptions
     }

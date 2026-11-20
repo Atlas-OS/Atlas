@@ -1,7 +1,7 @@
 # Atlas.Core domain: logging and phase lifecycle.
 #
 # The orchestrator, helpers running as the installing user and other privilege
-# levels can all write these files. A named mutex serializes their appends.
+# levels can all write these files. A named mutex serialises their appends.
 
 $script:AtlasCurrentPhase = $null
 $script:AtlasTranscriptActive = $false
@@ -67,11 +67,12 @@ function Get-AtlasInstallLogPath {
 function Invoke-AtlasInstallLogRetention {
     <#
     .SYNOPSIS
-        Keeps the machine's install log folder bounded now that its logs survive
-        updates: moves atlas-install.log or warnings-summary.log past 16 MB aside as
-        *.previous.log, replacing the one before, and deletes timestamped logs older
-        than 90 days, apart from the newest 200, so the last installs' logs stay
-        however long ago they ran.
+        Limits the size of the machine's install log folder, whose logs survive updates.
+    .DESCRIPTION
+        Moves atlas-install.log or warnings-summary.log aside as *.previous.log once it
+        is larger than 16 MiB, replacing the one moved aside before. Deletes timestamped
+        logs older than 90 days, except the newest 200, so the last installs' logs stay
+        however long ago they ran. The parameters change these thresholds.
     #>
     param(
         [string]$Path = [IO.Path]::Combine([Environment]::GetFolderPath('Windows'), 'AtlasModules', 'Logs', 'install'),
@@ -149,8 +150,8 @@ function Write-AtlasLogFile {
             $acquired = $true
         }
 
-        # Losing append serialization beats losing the log line, so a lock timeout
-        # degrades to an unserialized append with a warning.
+        # Losing append serialisation beats losing the log line, so a lock timeout
+        # degrades to an unserialised append with a warning.
         if (-not $acquired) {
             Write-Warning "Timed out acquiring the Atlas install log lock; appending to '$FileName' without serialization." `
                 -WarningAction Continue
@@ -255,7 +256,7 @@ function Start-AtlasPhase {
 
     $context = Get-AtlasContext
     $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
-    Write-AtlasLog -Message "Phase started (user: $($identity.Name), sid: $($identity.User.Value), arm64: $($context.IsArm64), build: $($context.WindowsBuild), upgrade: $($context.IsUpgrade), oobe: $($context.IsOobe))"
+    Write-AtlasLog -Message "Phase started (user: $($identity.Name), sid: $($identity.User.Value), arm64: $($context.IsArm64), build: $($context.WindowsBuild), upgrade: $($context.IsUpgrade))"
 }
 
 function Stop-AtlasPhase {

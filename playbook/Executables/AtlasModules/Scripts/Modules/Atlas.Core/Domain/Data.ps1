@@ -21,8 +21,8 @@ function Import-AtlasModule {
     .SYNOPSIS
         Imports a sibling Atlas module by name from its exact manifest beside Atlas.Core,
         so callers never depend on PSModulePath or an ambient module with the same name.
-        An already-loaded module is reused; nested forced imports would unload the
-        command surface of a long-running caller in Windows PowerShell 5.1.
+        An already-loaded module is reused: in Windows PowerShell 5.1, nested forced
+        imports would unload commands that a long-running caller still uses.
     #>
     param(
         [Parameter(Mandatory = $true)]

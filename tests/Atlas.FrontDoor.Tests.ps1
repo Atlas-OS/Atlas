@@ -7,7 +7,6 @@ BeforeAll {
     $script:PlaybookPath = Join-Path $script:AtlasTestRepoRoot 'playbook\playbook.conf'
     $script:SessionScript = Join-Path $script:AtlasTestScriptsRoot 'Install\Invoke-AtlasInstallSession.ps1'
     $script:FrontDoorScript = Join-Path $script:AtlasTestScriptsRoot 'Entry\Install-Atlas.ps1'
-    $script:StateScript = Join-Path $script:AtlasTestScriptsRoot 'Entry\Initialize-AtlasInstallState.ps1'
     $script:SecurityCases = Join-Path $script:AtlasTestRepoRoot 'tests\fixtures\front-door\windows-security.json'
     $script:PowerShell51 = Join-Path $PSHOME 'powershell.exe'
 
@@ -22,9 +21,8 @@ BeforeAll {
             $function.Extent.Text
         }
     }
-    foreach ($text in @(Get-ScriptFunctionText -Path $script:SessionScript -Names 'Read-AtlasInstallRequest', 'Assert-AtlasInstallOptionSet', 'Invoke-AtlasInstallCapture') +
-        @(Get-ScriptFunctionText -Path $script:FrontDoorScript -Names 'Get-AtlasDeclaredRequirement', 'Test-AtlasDefenderPresent', 'Get-AtlasDefenderSwitch', 'Test-AtlasDefenderPrepared', 'Invoke-AtlasPreparationCheck', 'Test-AtlasPreparationCurrent', 'Get-AtlasPowerStatus', 'Test-AtlasPowerConnected', 'Test-AtlasUserAccountReady', 'Test-AtlasInstallRequirement', 'Copy-AtlasPayloadToStaging', 'Get-AtlasRestartComment', 'New-AtlasProtectedStagingRoot', 'New-AtlasFrontDoorDirectorySecurity', 'Remove-AtlasStagedPackage', 'Remove-AtlasEarlierStagedPackage', 'Invoke-AtlasInstallPhase', 'New-AtlasInstallRequest', 'Format-AtlasTakenChoice', 'Get-AtlasInstallProbe', 'Read-AtlasCapturedOption') +
-        @(Get-ScriptFunctionText -Path $script:StateScript -Names 'Find-AtlasInstallUserMarker', 'Start-AtlasWizardInstallState')) {
+    foreach ($text in @(Get-ScriptFunctionText -Path $script:SessionScript -Names 'Read-AtlasInstallRequest', 'Assert-AtlasInstallOptionSet', 'Invoke-AtlasInstallCapture', 'Find-AtlasInstallUserMarker', 'Invoke-AtlasInstallCommit') +
+        @(Get-ScriptFunctionText -Path $script:FrontDoorScript -Names 'Get-AtlasDeclaredRequirement', 'Test-AtlasDefenderPresent', 'Get-AtlasDefenderSwitch', 'Test-AtlasDefenderPrepared', 'Invoke-AtlasPreparationCheck', 'Test-AtlasPreparationCurrent', 'Get-AtlasPowerStatus', 'Test-AtlasPowerConnected', 'Test-AtlasUserAccountReady', 'Test-AtlasInstallRequirement', 'Copy-AtlasPayloadToStaging', 'Get-AtlasRestartComment', 'New-AtlasProtectedStagingRoot', 'New-AtlasFrontDoorDirectorySecurity', 'Remove-AtlasStagedPackage', 'Remove-AtlasEarlierStagedPackage', 'Invoke-AtlasInstallPhase', 'New-AtlasInstallRequest', 'Format-AtlasTakenChoice', 'Get-AtlasInstallProbe', 'Read-AtlasCapturedOption')) {
         . ([scriptblock]::Create($text))
     }
     $script:Groups = @(Get-AtlasPlaybookOption -PlaybookPath $script:PlaybookPath)
@@ -42,7 +40,7 @@ BeforeAll {
 
 Describe 'Protected front-door staging' {
     It 'pins module resolution before entry imports: <Entry>' -TestCases @(
-        @{ Entry = 'Initialize-AtlasInstallState.ps1'; Arguments = @('-Operation', 'RecordOption'); Module = 'Atlas.InstallState' }
+
         @{ Entry = 'Publish-AtlasInstallUser.ps1'; Arguments = @(); Module = 'Atlas.InstallState' }
         @{ Entry = 'Invoke-AtlasResetServices.ps1'; Arguments = @('-Silent'); Module = 'Atlas.Core' }
         @{ Entry = 'Invoke-AtlasTrustedInstallerBroker.ps1'; Arguments = @('-Operation', 'ResetServices', '-RestoreSource', 'ToggleDefaults'); Module = 'Atlas.Core' }
@@ -178,7 +176,7 @@ Describe 'Resolve-AtlasInstallMode' {
     ) {
         param($Version)
         $windows = Join-Path $TestDrive 'Unsupported'
-        $install = [pscustomobject]@{ targetVersion = $Version; mode = 'Fresh'; isOobe = $false; options = @(); transactionId = 'x' }
+        $install = [pscustomobject]@{ targetVersion = $Version; mode = 'Fresh'; options = @(); transactionId = 'x' }
         Set-AtlasStateInstall -InstallState $install -Path (Join-Path $windows 'AtlasOS\state.json') | Out-Null
         { Resolve-AtlasInstallMode -TargetVersion '0.6.0' -WindowsPath $windows } | Should -Throw '*not a declared upgrade source*'
     }
@@ -187,7 +185,7 @@ Describe 'Resolve-AtlasInstallMode' {
         New-Item -Path $windows -ItemType Directory -Force | Out-Null
         Resolve-AtlasInstallMode -TargetVersion '0.6.0' -WindowsPath $windows | Should -Be 'Fresh'
 
-        $install = [pscustomobject]@{ targetVersion = '0.5.0'; mode = 'Fresh'; isOobe = $false; options = @(); transactionId = 'x' }
+        $install = [pscustomobject]@{ targetVersion = '0.5.0'; mode = 'Fresh'; options = @(); transactionId = 'x' }
         Set-AtlasStateInstall -InstallState $install -Path (Join-Path $windows 'AtlasOS\state.json') | Out-Null
         Resolve-AtlasInstallMode -TargetVersion '0.6.0' -WindowsPath $windows | Should -Be 'Upgrade'
         Resolve-AtlasInstallMode -TargetVersion '0.5.0' -WindowsPath $windows | Should -Be 'Reapply'
@@ -510,62 +508,6 @@ Describe 'Install capture' {
         $script:KeptOptions = @('auto-updates-disable', 'defender-disable', 'defender-enable', 'keyboard-shortcuts', 'mitigations-default')
         { Invoke-TestCapture -Choices Keep } | Should -Throw '*Exactly one of defender-*'
         Should -Invoke Start-AtlasInstallState -Times 0 -Exactly
-    }
-}
-
-Describe 'AME Wizard''s start of an install' {
-    BeforeAll {
-        $script:Target = Get-AtlasPlaybookVersion -PlaybookPath $script:PlaybookPath
-        $script:Repaired = "Removed the 'Mitigations' record (state 2): only the old Atlas Toolbox wrote it, and its choices never reached this PC."
-    }
-    BeforeEach {
-        $script:WizardCalls = New-Object 'Collections.Generic.List[string]'
-        $script:ActiveState = $null
-        # The real Resolve-AtlasInstallChoices reads this.
-        Mock Get-AtlasInstallState -ModuleName Atlas.InstallState { $script:ActiveState }
-        Mock Get-AtlasPlaybookVersion { $script:Target }
-        Mock Get-AtlasInstalledVersion { '0.5.0' }
-        Mock Repair-AtlasToolboxRecord { $script:WizardCalls.Add("Repair:$InstalledVersion"); $script:Repaired }
-        Mock Start-AtlasInstallState { $script:WizardCalls.Add("Start:$Mode"); [pscustomobject]@{ mode = $Mode; isOobe = $IsOobe } }
-    }
-
-    It 'repairs records before an AME <Mode>, as Capture does' -TestCases @(
-        @{ Mode = 'Upgrade' }, @{ Mode = 'Reapply' }
-    ) {
-        param($Mode)
-        $lines = @(Start-AtlasWizardInstallState -Mode $Mode -IsOobe $true)
-
-        $script:WizardCalls.ToArray() | Should -Be @("Start:$Mode", 'Repair:0.5.0')
-        $lines | Should -Be @($script:Repaired, "Atlas install state ready for $Mode (OOBE=True).")
-    }
-
-    It 'leaves the records alone for <Case>' -TestCases @(
-        @{ Case = 'a first installation'; Mode = 'Fresh'; Active = $null }
-        @{ Case = 'an update whose steps began, which has rewritten them already'; Mode = 'Upgrade'
-            Active = @{ status = 'Running'; mode = 'Upgrade'; completedSteps = @('Checkpoint/LegacyChoices'); options = @('defender-enable') } }
-        @{ Case = 'an update stopped after its first steps'; Mode = 'Upgrade'
-            Active = @{ status = 'Capturing'; mode = 'Upgrade'; completedSteps = @('Checkpoint/DefaultHiveLoad'); options = @('defender-enable') } }
-    ) {
-        param($Case, $Mode, $Active)
-        if ($null -ne $Active) { $script:ActiveState = [pscustomobject]($Active + @{ targetVersion = $script:Target }) }
-        $lines = @(Start-AtlasWizardInstallState -Mode $Mode -IsOobe $false)
-
-        Should -Invoke Repair-AtlasToolboxRecord -Times 0 -Exactly -Because $Case
-        $lines | Should -Be @("Atlas install state ready for $Mode (OOBE=False).")
-    }
-
-    It 'changes no record when another install holds the PC' {
-        Mock Start-AtlasInstallState { throw "An install state for target '0.6.1' is already active." }
-        { Start-AtlasWizardInstallState -Mode Upgrade -IsOobe $false } | Should -Throw '*already active*'
-        Should -Invoke Repair-AtlasToolboxRecord -Times 0 -Exactly
-    }
-
-    It 'is what Begin runs' {
-        $ast = [Management.Automation.Language.Parser]::ParseFile($script:StateScript, [ref]$null, [ref]$null)
-        $switch = $ast.Find({ param($node) $node -is [Management.Automation.Language.SwitchStatementAst] }, $true)
-        $begin = @($switch.Clauses | Where-Object { $_.Item1.Extent.Text -ceq "'Begin'" })
-        $begin.Count | Should -Be 1
-        @($begin[0].Item2.Statements)[-1].Extent.Text | Should -BeExactly 'Start-AtlasWizardInstallState -Mode $Mode -IsOobe ([bool]$Oobe)'
     }
 }
 
@@ -1012,8 +954,19 @@ Describe 'Front door requirements and staging' {
         }
     }
 
-    It 'rejects an unknown declared requirement instead of silently bypassing it' {
-        { Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('FutureRequirement') } | Should -Throw '*cannot verify*'
+    It 'rejects a declared requirement it can''t verify instead of silently bypassing it: <Requirement>' -TestCases @(
+        @{ Requirement = 'FutureRequirement' }, @{ Requirement = 'Internet' }, @{ Requirement = 'NoPendingUpdates' }
+    ) {
+        param($Requirement)
+        $declared = @($Requirement)
+        { Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements $declared } | Should -Throw '*cannot verify*'
+    }
+
+    It 'verifies every requirement the package declares' {
+        [xml]$manifest = [IO.File]::ReadAllText($script:PlaybookPath)
+        $declared = @(Get-AtlasDeclaredRequirement -Playbook $manifest)
+        $declared | Should -Not -BeNullOrEmpty
+        { Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements $declared } | Should -Not -Throw
     }
 
     It 'blocks preview, unlisted and unverifiable Windows releases independently of the base build' -TestCases @(
@@ -1176,6 +1129,65 @@ Describe 'Install-user marker' {
         $found = Find-AtlasInstallUserMarker -Nonce $script:Nonce -UsersRoot $script:Users
         $found.Sid | Should -Be 'S-1-5-21-111-222-333-1001'
         $found.SessionId | Should -Be 1
+    }
+
+    Context 'Run phase commit' {
+        BeforeEach {
+            $script:CommitCalls = New-Object 'Collections.Generic.List[string]'
+            Mock Get-AtlasInstallState { [pscustomobject]@{ status = 'Capturing'; captureNonce = $script:Nonce } }
+            Mock Set-AtlasInstallUser { $script:CommitCalls.Add("User:$UserSid/$UserSessionId") }
+            Mock Commit-AtlasInstallState { $script:CommitCalls.Add('Commit') }
+        }
+
+        It 'binds the marker''s user, commits the state, then removes the marker' {
+            New-TestMarker -Sid 'S-1-5-21-111-222-333-1001'
+            $streams = @(Invoke-AtlasInstallCommit -UsersRoot $script:Users 3>&1)
+
+            $script:CommitCalls.ToArray() | Should -Be @('User:S-1-5-21-111-222-333-1001/1', 'Commit')
+            @($streams | Where-Object { $_ -is [Management.Automation.WarningRecord] }) | Should -HaveCount 0
+            @($streams | Where-Object { $_ -is [string] }) | Should -Be @('Atlas install state committed.')
+            $script:Users.OpenSubKey('S-1-5-21-111-222-333-1001\Software\AtlasOS\InstallSession') | Should -BeNullOrEmpty
+        }
+
+        It 'refuses to commit without exactly one marker for the capture' {
+            { Invoke-AtlasInstallCommit -UsersRoot $script:Users } | Should -Throw "*Expected one current-user install marker for nonce '$script:Nonce'; found 0.*"
+            $script:CommitCalls.Count | Should -Be 0
+        }
+
+        It 'refuses to commit when no install state is active' {
+            Mock Get-AtlasInstallState { $null }
+            { Invoke-AtlasInstallCommit -UsersRoot $script:Users } | Should -Throw '*No active Atlas install state exists to commit.*'
+            $script:CommitCalls.Count | Should -Be 0
+        }
+
+        It 'only warns when the committed state''s marker can''t be removed' {
+            New-TestMarker -Sid 'S-1-5-21-111-222-333-1001'
+            # A hive that unloads after the marker is read can no longer be opened.
+            Mock Commit-AtlasInstallState {
+                $script:CommitCalls.Add('Commit')
+                $script:Users.DeleteSubKeyTree('S-1-5-21-111-222-333-1001')
+            }
+            $streams = @(Invoke-AtlasInstallCommit -UsersRoot $script:Users 3>&1)
+
+            $script:CommitCalls.ToArray() | Should -Be @('User:S-1-5-21-111-222-333-1001/1', 'Commit')
+            @($streams | Where-Object { $_ -is [string] }) | Should -Be @('Atlas install state committed.')
+            $warnings = @($streams | Where-Object { $_ -is [Management.Automation.WarningRecord] })
+            $warnings | Should -HaveCount 1
+            $warnings[0].Message | Should -BeLike "*committed, but its current-user marker could not be removed: User registry hive 'S-1-5-21-111-222-333-1001' is unavailable.*"
+        }
+
+        It 'is what the Run phase does before it runs the install plan' {
+            $ast = [Management.Automation.Language.Parser]::ParseFile($script:SessionScript, [ref]$null, [ref]$null)
+            $switch = $ast.Find({ param($node) $node -is [Management.Automation.Language.SwitchStatementAst] }, $true)
+            $run = @($switch.Clauses | Where-Object { $_.Item1.Extent.Text -ceq "'Run'" })
+            $run.Count | Should -Be 1
+            $statements = @($run[0].Item2.Statements | ForEach-Object { $_.Extent.Text })
+            $commit = [array]::IndexOf($statements, 'Invoke-AtlasInstallCommit')
+            $commit | Should -BeGreaterOrEqual 0
+            $plan = @(for ($index = 0; $index -lt $statements.Count; $index++) { if ($statements[$index] -like '& $installScript -Run*') { $index } })
+            $plan | Should -HaveCount 1
+            $commit | Should -BeLessThan $plan[0]
+        }
     }
 }
 

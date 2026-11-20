@@ -1,6 +1,10 @@
 <#
 .SYNOPSIS
     Dispatches install-time account setup from TrustedInstaller to the bound user.
+.DESCRIPTION
+    The install plan's InstallingUserSetup checkpoint runs it as TrustedInstaller in
+    every install mode, after the tweaks. It starts Initialize-NewUser.ps1, or
+    Update-AtlasUser.ps1 on an update, in the installing user's own process.
 #>
 [CmdletBinding()]
 param()
@@ -22,8 +26,8 @@ Import-Module -Name $coreManifest -Force -ErrorAction Stop
 
 Assert-AtlasPrivilege -TrustedInstaller
 $context = Get-AtlasContext -Refresh
-if (-not $context.IsInstallStateBacked -or $context.IsOobe) {
-    throw 'Installing-user setup requires a non-OOBE active Atlas install state.'
+if (-not $context.IsInstallStateBacked) {
+    throw 'Installing-user setup requires an active Atlas install state.'
 }
 
 $userSid = [string]$context.InteractiveUserSid

@@ -55,7 +55,7 @@ impl std::fmt::Display for Unsupported {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Atlas {} predates this app and has no front door script; install it with AME Wizard, or use Atlas {FIRST_FRONT_DOOR_VERSION} or newer here",
+            "Atlas {} predates the front door script this app runs; this app installs Atlas {FIRST_FRONT_DOOR_VERSION} and later",
             self.version
         )
     }

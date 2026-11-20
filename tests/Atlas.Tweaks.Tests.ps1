@@ -11,7 +11,6 @@ BeforeAll {
         param(
             [bool]$IsArm64 = $false,
             [bool]$IsUpgrade = $false,
-            [bool]$IsOobe = $false,
             [int]$WindowsBuild = 26100,
             [bool]$IsInstallStateBacked = $false,
             [string]$InteractiveUserSid = 'S-1-5-21-1-2-3-1001'
@@ -25,7 +24,6 @@ BeforeAll {
             IsArm64          = $IsArm64
             WindowsBuild     = $WindowsBuild
             IsUpgrade        = $IsUpgrade
-            IsOobe           = $IsOobe
             IsInstallStateBacked = $IsInstallStateBacked
             InteractiveUserSid = $InteractiveUserSid
         }
@@ -49,7 +47,6 @@ Describe 'Test-AtlasTweakSchema' {
     Option         = 'defender-disable'
     Arch           = 'X64'
     OnUpgrade      = 'Both'
-    Oobe           = $false
     MinBuild       = 22000
     MaxBuild       = 26200
     Registry       = @(
@@ -81,20 +78,21 @@ Describe 'Test-AtlasTweakSchema' {
         $problems | Should -BeNullOrEmpty
     }
 
-    It 'allows an OOBE tweak to defer its live-user refresh' {
-        $tweakFile = Join-Path -Path $TestDrive -ChildPath 'oobe-refresh.psd1'
+    It 'reports Oobe as an unknown top-level key' {
+        $companion = Join-Path -Path $TestDrive -ChildPath 'oobe-companion.ps1'
+        Set-Content -Path $companion -Value 'Write-Output "companion"'
+        $tweakFile = Join-Path -Path $TestDrive -ChildPath 'oobe-gate.psd1'
         @'
 @{
-    Name = 'OOBE default-profile setting'
-    Oobe = $true
-    Registry = @(
-        @{ Path = 'HKCU\Software\Test'; Name = 'Value'; Type = 'DWord'; Data = 1 }
-    )
-    PostUserRegistryRefresh = 'ExplorerRefresh'
+    Name   = 'Per-user companion'
+    Oobe   = $false
+    RunAs  = 'User'
+    Script = 'oobe-companion.ps1'
 }
 '@ | Set-Content -Path $tweakFile
 
-        @(Test-AtlasTweakSchema -Path $tweakFile) | Should -BeNullOrEmpty
+        $problems = @(Test-AtlasTweakSchema -Path $tweakFile)
+        @($problems | ForEach-Object { $_.Problem }) | Should -Be @("Unknown top-level key 'Oobe'.")
     }
 
     It 'reports problems for an invalid tweak' {
@@ -105,7 +103,6 @@ Describe 'Test-AtlasTweakSchema' {
     Option      = 'not-a-real-option'
     Arch        = 'X86'
     OnUpgrade   = 'Sometimes'
-    Oobe        = $true
     RunAs       = 'UserElevated'
     MinBuild    = 'notanumber'
     Bogus       = $true
@@ -297,7 +294,7 @@ Describe 'Test-AtlasTweakApplicable' {
         Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; Arch = 'X64' } | Should -BeFalse
     }
 
-    # A missing OnUpgrade means Both, matching the legacy YAML semantics.
+    # A missing OnUpgrade means Both.
     It 'gates OnUpgrade <Label>: fresh <Fresh>, upgrade <Upgrade>, Rebase <Rebase>' -ForEach @(
         @{ Label = 'missing'; Gates = @{}; Fresh = $true; Upgrade = $true; Rebase = $true }
         @{ Label = 'Both'; Gates = @{ OnUpgrade = 'Both' }; Fresh = $true; Upgrade = $true; Rebase = $true }
@@ -312,15 +309,6 @@ Describe 'Test-AtlasTweakApplicable' {
         Test-AtlasTweakApplicable -Tweak $tweak -Context (New-TestContextMock) | Should -Be $Fresh
         Test-AtlasTweakApplicable -Tweak $tweak -Context (New-TestContextMock -IsUpgrade $true) | Should -Be $Upgrade
         Test-AtlasTweakApplicable -Tweak $tweak -Context $rebaseContext | Should -Be $Rebase
-    }
-
-    It 'skips Oobe = $false tweaks during OOBE only' {
-        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; Oobe = $false } | Should -BeTrue
-
-        Mock -CommandName Get-AtlasContext -ModuleName Atlas.Tweaks -MockWith { New-TestContextMock -IsOobe $true }
-        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; Oobe = $false } | Should -BeFalse
-        Test-AtlasTweakApplicable -Tweak @{ Name = 'T'; Oobe = $true } | Should -BeTrue
-        Test-AtlasTweakApplicable -Tweak @{ Name = 'T' } | Should -BeTrue
     }
 
     It 'gates on MinBuild inclusively (legacy builds: [>=N])' {
@@ -504,7 +492,7 @@ Describe 'Invoke-AtlasTweak' {
 
         $explicitContext = [pscustomobject]@{
             WinDir = 'C:\Windows'; AtlasModulesPath = 'C:\Windows\AtlasModules'
-            IsArm64 = $false; WindowsBuild = 26100; IsUpgrade = $false; IsOobe = $false
+            IsArm64 = $false; WindowsBuild = 26100; IsUpgrade = $false
             IsInstallStateBacked = $true; Options = @('selected-option')
         }
         Invoke-AtlasTweak -Path $tweakFile -RegistryScope CurrentUser `
@@ -529,7 +517,6 @@ Describe 'Invoke-AtlasTweak' {
         @'
 @{
     Name   = 'RunAs Tweak'
-    Oobe   = $false
     RunAs  = 'User'
     Script = 'runas.ps1'
 }
@@ -891,11 +878,11 @@ Describe 'Get-AtlasTweakManifest and Invoke-AtlasTweakCategory' {
 }
 '@ | Set-Content -Path (Join-Path $script:tweaksRoot 'tweaks.manifest.psd1')
 
-        '@{ Name = ''First''; Oobe = $false; PostUserRegistryRefresh = ''ExplorerRefresh'' }' |
+        '@{ Name = ''First''; PostUserRegistryRefresh = ''ExplorerRefresh'' }' |
             Set-Content -Path (Join-Path $script:tweaksRoot 'testing\first-tweak.psd1')
-        '@{ Name = ''Upgrade''; Oobe = $false; OnUpgrade = ''Only''; PostUserRegistryRefresh = ''SearchShellRefresh'' }' |
+        '@{ Name = ''Upgrade''; OnUpgrade = ''Only''; PostUserRegistryRefresh = ''SearchShellRefresh'' }' |
             Set-Content -Path (Join-Path $script:tweaksRoot 'testing\sub\second-tweak.psd1')
-        '@{ Name = ''Duplicate''; Oobe = $false; PostUserRegistryRefresh = ''ExplorerRefresh'' }' |
+        '@{ Name = ''Duplicate''; PostUserRegistryRefresh = ''ExplorerRefresh'' }' |
             Set-Content -Path (Join-Path $script:tweaksRoot 'testing\third-tweak.psd1')
 
         $fresh = @(Get-AtlasTweakCategoryPostUserRegistryRefresh -Name testing `

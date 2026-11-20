@@ -1,6 +1,9 @@
 <#
 .SYNOPSIS
-    Reconciles the Atlas default-profile registry hive mount for install/resume.
+    Reconciles Atlas's mount of the default-profile registry hive for an install or a resume.
+.DESCRIPTION
+    The install plan's DefaultHiveLoad and DefaultHiveUnload checkpoints run it as
+    TrustedInstaller, at the start and the end of every install attempt.
 #>
 [CmdletBinding()]
 param(

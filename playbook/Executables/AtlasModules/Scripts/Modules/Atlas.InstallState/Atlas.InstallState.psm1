@@ -1,7 +1,7 @@
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
     'PSUseShouldProcessForStateChangingFunctions',
     '',
-    Justification = 'These commands are explicit install-state transitions; WhatIf would break their durability contract.'
+    Justification = 'These commands are explicit install-state transitions; a -WhatIf run would skip writes that later transitions rely on.'
 )]
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
     'PSUseApprovedVerbs',
@@ -31,7 +31,6 @@ $script:AtlasInstallStateFields = @(
     'transactionId'
     'status'
     'mode'
-    'isOobe'
     'options'
     'userSid'
     'userSessionId'
@@ -119,9 +118,6 @@ function Assert-AtlasInstallStateDocument {
     if (@('Fresh', 'Upgrade', 'Reapply', 'Rebase') -notcontains $State.mode) {
         throw "Install state has an invalid mode '$($State.mode)'."
     }
-    if ($State.isOobe -isnot [bool]) {
-        throw 'Install state isOobe must be a Boolean.'
-    }
     if ($State.options -isnot [Array]) {
         throw 'Install state options must be an array.'
     }
@@ -192,6 +188,11 @@ function Read-AtlasInstallStateFile {
         throw "Install state '$Path' is malformed: $($_.Exception.Message)"
     }
 
+    # Install states that older Atlas releases wrote carry isOobe. Nothing reads it,
+    # so it goes here and the next write leaves it out.
+    if ($null -ne $state -and $null -ne $state.PSObject.Properties['isOobe']) {
+        $state.PSObject.Properties.Remove('isOobe')
+    }
     Assert-AtlasInstallStateDocument -State $state
     return $state
 }
@@ -334,7 +335,6 @@ function Start-AtlasInstallState {
         # How an update treats the choices the PC has (Resolve-AtlasInstallChoices).
         [ValidateSet('Keep', 'ChooseAgain')]
         [string]$Choices = 'Keep',
-        [bool]$IsOobe = $false,
         [string]$CaptureNonce = ([Guid]::NewGuid().ToString('D')),
         [string]$StatePath
     )
@@ -347,20 +347,20 @@ function Start-AtlasInstallState {
     }
     $installMode = $Mode
     $installChoices = $Choices
-    $oobeValue = $IsOobe
     $resolvedPath = Resolve-AtlasInstallStatePath -StatePath $StatePath
     return Invoke-AtlasInstallStateLocked {
         $directory = [IO.Path]::GetDirectoryName($resolvedPath)
         $abandonedPath = Join-Path -Path $directory -ChildPath 'abandoned.json'
 
-        # Completion removes transient work. Any later retry or older-RC recovery must
-        # restore this invariant before option capture or Always checkpoints use it.
+        # Completion removes the transient work folder. A retry, or the recovery of a run
+        # an older release candidate archived, recreates it before option capture or the
+        # Always checkpoints use it.
         [void][IO.Directory]::CreateDirectory((Join-Path -Path $directory -ChildPath 'work'))
 
-        # A failed Fresh transaction may have been archived by an older RC when AME
-        # reclassified the partially modified machine as Reapply. Restore it as the
-        # active state so the reclassified-retry recovery below resumes that exact
-        # Fresh step position and the remaining Fresh-only phases are not lost.
+        # An older release candidate could archive a failed Fresh run as abandoned.json
+        # once the partly changed PC read as a Reapply. It becomes the active state
+        # again, so the recovery below resumes that Fresh run where it stopped and its
+        # remaining Fresh-only steps still run.
         if (-not [IO.File]::Exists($resolvedPath) -and
             $installMode -ceq 'Reapply' -and
             [IO.File]::Exists($abandonedPath)) {
@@ -383,8 +383,7 @@ function Start-AtlasInstallState {
                 throw "An install state for target '$($existing.targetVersion)' is already active."
             }
             $changed = $false
-            if ($existing.mode -cne $installMode -or
-                [bool]$existing.isOobe -ne $oobeValue) {
+            if ($existing.mode -cne $installMode) {
                 # A capture with completed steps is a recovered run whose capture was
                 # interrupted before Commit, so the next retry recovers it again.
                 $canRecoverFailedRun = (
@@ -395,18 +394,16 @@ function Start-AtlasInstallState {
                     @($existing.completedSteps).Count -gt 0
                 )
                 if (-not $canRecoverFailedRun) {
-                    $began = if ([bool]$existing.isOobe) { ', begun during Windows setup,' } else { '' }
                     $article = if ($installMode -cmatch '^[AEIOU]') { 'an' } else { 'a' }
-                    $requested = if ($oobeValue) { ' during Windows setup' } else { '' }
-                    throw ("An unfinished Atlas $($existing.mode) installation of $($existing.targetVersion)$began is waiting to finish, " +
-                        "so $article $installMode installation$requested can't start. Finish it first: in Atlas Manager, choose " +
+                    throw ("An unfinished Atlas $($existing.mode) installation of $($existing.targetVersion) is waiting to finish, " +
+                        "so $article $installMode installation can't start. Finish it first: in Atlas Manager, choose " +
                         "Finish installing Atlas $($existing.targetVersion), or run Install-Atlas.ps1 again with the options it started with.")
                 }
 
-                # AME can classify a retry differently after a partial install has
-                # changed product state (for example Fresh -> Reapply). Resume the
-                # original plan and completed steps; only refresh the interactive
-                # identity before resuming.
+                # A retry can read as another mode once a partial install has changed
+                # the PC, as when a restored Fresh run meets a Reapply. It resumes the
+                # original plan and completed steps; only the installing user is bound
+                # again.
                 $existing.status = 'Capturing'
                 $existing.userSid = $null
                 $existing.userSessionId = $null
@@ -414,9 +411,8 @@ function Start-AtlasInstallState {
                 $existing.lastError = $null
                 $changed = $true
             }
-            # AME records options one at a time, so a capture that starts again records
-            # them afresh instead of adding this run's choices to an interrupted run's.
-            # Completed steps hold a run to its original options.
+            # A capture that starts again records its own options, never adding to an
+            # interrupted capture's. Completed steps hold a run to its original options.
             if ($existing.status -ceq 'Capturing' -and
                 @($existing.completedSteps).Count -eq 0 -and
                 @($existing.options).Count -gt 0) {
@@ -451,7 +447,6 @@ function Start-AtlasInstallState {
             transactionId = [Guid]::NewGuid().ToString('D')
             status         = 'Capturing'
             mode           = $installMode
-            isOobe         = $oobeValue
             options        = @()
             choices        = $installChoices
             userSid        = $null
@@ -492,37 +487,6 @@ function Set-AtlasInstallOptions {
         if ($state.status -cne 'Capturing') { throw "Options cannot be set while install state is '$($state.status)'." }
         $state.options = @($Options)
         Write-AtlasInstallStateFile -Path $resolvedPath -State $state -CreateBackup
-        return $state
-    }
-}
-
-function Add-AtlasInstallOption {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)][string]$Name,
-        [string]$StatePath
-    )
-
-    Assert-AtlasInstallName -Value $Name -Label 'option name'
-    $resolvedPath = Resolve-AtlasInstallStatePath -StatePath $StatePath
-    return Invoke-AtlasInstallStateLocked {
-        $state = Get-AtlasInstallStateUnlocked -StatePath $resolvedPath
-        if ($null -eq $state) {
-            throw 'No Atlas install state is active.'
-        }
-        if ($state.status -eq 'Running' -or @($state.completedSteps).Count -gt 0) {
-            if (@($state.options) -inotcontains $Name) {
-                throw (Get-AtlasInstallOptionLockMessage -State $state)
-            }
-            return $state
-        }
-        if ($state.status -ne 'Capturing') {
-            throw "Options cannot be added while install state is '$($state.status)'."
-        }
-        if (@($state.options) -inotcontains $Name) {
-            $state.options = @($state.options) + $Name
-            Write-AtlasInstallStateFile -Path $resolvedPath -State $state -CreateBackup
-        }
         return $state
     }
 }
@@ -696,9 +660,7 @@ function Publish-AtlasInstallFlagSet {
     if (@('Upgrade', 'Rebase') -ccontains [string]$State.mode) {
         $names += 'Upgrade.flag'
     }
-    if (-not [bool]$State.isOobe) {
-        $names += 'Interactive.flag'
-    }
+    $names += 'Interactive.flag'
     $published = if ($null -ne $Options) { @($Options) } else { @($State.options) }
     foreach ($option in $published) {
         if ([string]$option -cnotmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$') {
@@ -1264,8 +1226,8 @@ function Get-AtlasRecordedOption {
     try {
         $packages = @(Get-AtlasInstalledAtlasPackage)
         $facts = Get-AtlasTransitionMachineFact -UserSid $userSid
-        # An install during Windows setup has no user, and this process's own
-        # keyboard settings are nobody's choice.
+        # Without an installing user, this process's own keyboard settings are
+        # nobody's choice.
         if (-not $userSid) {
             $facts.LanguageHotkey = $null
             $facts.KeyboardLayouts = $null
@@ -1584,7 +1546,6 @@ Export-ModuleMember -Function @(
     'Get-AtlasInstallState'
     'Get-AtlasInstallWorkRoot'
     'Start-AtlasInstallState'
-    'Add-AtlasInstallOption'
     'Set-AtlasInstallOptions'
     'Set-AtlasInstallUser'
     'Commit-AtlasInstallState'

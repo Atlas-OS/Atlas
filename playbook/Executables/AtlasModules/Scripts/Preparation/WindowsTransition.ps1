@@ -889,7 +889,7 @@ function Get-AtlasTransitionKeyboardLayoutCount([string]$UserSid) {
 }
 
 # What Atlas 0.5.0's "Disable Core Isolation" (ConfigVBS.ps1 -DisableAllVBS)
-# leaves under Control\DeviceGuard, not the policy path: virtualization-based
+# leaves under Control\DeviceGuard, not the policy path: virtualisation-based
 # security set off, and memory integrity off where Windows had its key. Without
 # that key the script's write of it failed and only the first value was set, so
 # memory integrity may be absent, but not on. Turning memory integrity off in
@@ -1549,20 +1549,6 @@ function Complete-AtlasWindowsTransition([string]$Root = (Get-AtlasWindowsTransi
     "Windows Update settings put back: $(@($result.restored) -join ', ')"
     if (@($result.owned).Count -gt 0) { "Left as the replayed choices set them: $(@($result.owned) -join ', ')" }
     if (@($result.changed).Count -gt 0) { "Left because they changed since: $(@($result.changed) -join ', ')" }
-}
-
-# An install through AME Wizard, which can't put Atlas back with a Rebase, waits
-# until a move to a newer Windows release has finished in place on its target build.
-# Windows Update turned on for plain updates is put back by the install's last step.
-function Assert-AtlasWindowsTransitionAllowsAme([int]$WindowsBuild, [string]$Root = (Get-AtlasWindowsTransitionRoot)) {
-    $open = Test-AtlasWindowsTransitionOpen $Root
-    if ($null -eq $open) { return }
-    if (-not $open.Readable) {
-        throw "Atlas Manager's record of the Windows Update settings it changed can't be read: $($open.Error) Open Atlas Manager to continue."
-    }
-    if ($open.Kind -eq 'transition' -and ($WindowsBuild -ne $open.TargetBuild -or $open.Rebuild -ne 'in-place')) {
-        throw 'Atlas Manager is moving this PC to a newer Windows release. Finish the move in Atlas Manager, which then installs Atlas.'
-    }
 }
 
 # Toggling Windows Update or its pause by hand while Atlas has it turned on for an

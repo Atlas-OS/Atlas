@@ -7,7 +7,7 @@ BeforeAll {
         param([string[]]$Options = @())
 
         $install = [pscustomobject]@{
-            targetVersion = '0.6.0'; mode = 'Fresh'; isOobe = $false
+            targetVersion = '0.6.0'; mode = 'Fresh'
             options = $Options; transactionId = '11111111-1111-4111-8111-111111111111'
         }
         Set-AtlasStateInstall -InstallState $install -Path $script:DocumentPath | Out-Null
@@ -28,7 +28,7 @@ Describe 'Machine state document' {
         Get-AtlasState -Path $script:DocumentPath | Should -BeNullOrEmpty
 
         $fresh = [pscustomobject]@{
-            targetVersion = '0.6.0'; mode = 'Fresh'; isOobe = $false
+            targetVersion = '0.6.0'; mode = 'Fresh'
             options = @('defender-enable', 'browser-brave'); transactionId = '11111111-1111-4111-8111-111111111111'
         }
         Set-AtlasStateInstall -InstallState $fresh -Path $script:DocumentPath | Out-Null
@@ -36,21 +36,40 @@ Describe 'Machine state document' {
         $document = Get-AtlasState -Path $script:DocumentPath
         $document.installedVersion | Should -Be '0.6.0'
         $document.mode | Should -Be 'Fresh'
+        $document.isOobe | Should -BeFalse
         $document.isInteractive | Should -BeTrue
         @($document.options) | Should -Be @('defender-enable', 'browser-brave')
         @($document.history).Count | Should -Be 1
 
         $upgrade = [pscustomobject]@{
-            targetVersion = '0.7.0'; mode = 'Upgrade'; isOobe = $true
+            targetVersion = '0.7.0'; mode = 'Upgrade'
             options = @('defender-disable'); transactionId = '22222222-2222-4222-8222-222222222222'
         }
         Set-AtlasStateInstall -InstallState $upgrade -Path $script:DocumentPath | Out-Null
 
         $document = Get-AtlasState -Path $script:DocumentPath
         $document.installedVersion | Should -Be '0.7.0'
-        $document.isOobe | Should -BeTrue
-        $document.isInteractive | Should -BeFalse
         @($document.history | ForEach-Object { $_.version }) | Should -Be @('0.6.0', '0.7.0')
+    }
+
+    It 'records every completed install as one from a signed-in session, over what an older release recorded' {
+        # Older Atlas releases could install during Windows setup and record it so.
+        [void][IO.Directory]::CreateDirectory((Split-Path $script:DocumentPath -Parent))
+        [IO.File]::WriteAllText($script:DocumentPath, (@{
+                    schemaVersion = 1; installedVersion = '0.5.0'; installedAt = '2025-01-01T00:00:00.0000000+00:00'
+                    mode = 'Fresh'; isOobe = $true; isInteractive = $false; options = @(); history = @(); toggles = @{}
+                } | ConvertTo-Json -Depth 4))
+        (Get-AtlasState -Path $script:DocumentPath).isOobe | Should -BeTrue
+
+        $upgrade = [pscustomobject]@{
+            targetVersion = '0.6.0'; mode = 'Upgrade'
+            options = @('defender-enable'); transactionId = '22222222-2222-4222-8222-222222222222'
+        }
+        Set-AtlasStateInstall -InstallState $upgrade -Path $script:DocumentPath | Out-Null
+
+        $document = Get-AtlasState -Path $script:DocumentPath
+        $document.isOobe | Should -BeFalse
+        $document.isInteractive | Should -BeTrue
     }
 
     It 'records the options completion read from the PC instead of the requested ones: <Case>' -ForEach @(
@@ -59,7 +78,7 @@ Describe 'Machine state document' {
         @{ Case = 'none'; Options = @() }
     ) {
         $install = [pscustomobject]@{
-            targetVersion = '0.6.1'; mode = 'Reapply'; isOobe = $false
+            targetVersion = '0.6.1'; mode = 'Reapply'
             options = @('defender-enable', 'mitigations-disable'); transactionId = '33333333-3333-4333-8333-333333333333'
         }
         Set-AtlasStateInstall -InstallState $install -Options $Options -Path $script:DocumentPath | Out-Null
@@ -75,7 +94,7 @@ Describe 'Machine state document' {
         @{ Case = 'an unset [string[]]'; Typed = $true }
     ) {
         $install = [pscustomobject]@{
-            targetVersion = '0.6.1'; mode = 'Reapply'; isOobe = $false
+            targetVersion = '0.6.1'; mode = 'Reapply'
             options = @('defender-enable', 'mitigations-disable'); transactionId = '33333333-3333-4333-8333-333333333333'
         }
         # How a completion with no -RecordedOptions of its own would forward it.

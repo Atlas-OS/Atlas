@@ -25,9 +25,9 @@ function Get-AtlasTweakEntryValue {
 function Get-AtlasTweakUserSid {
     param([Parameter(Mandatory = $true)][object]$Context)
 
-    if (-not $Context.IsInstallStateBacked -or $Context.IsOobe -or
+    if (-not $Context.IsInstallStateBacked -or
         [string]::IsNullOrWhiteSpace([string]$Context.InteractiveUserSid)) {
-        throw 'RunAs=User requires a non-OOBE install-state user SID.'
+        throw 'RunAs=User requires an install-state user SID.'
     }
     try {
         return (New-Object Security.Principal.SecurityIdentifier(
@@ -226,7 +226,7 @@ function Invoke-AtlasTweak {
         Loads a tweak .psd1, checks its gates and applies its keys in order: Registry,
         Services, ScheduledTasks, Toggle, Run, RemovePaths, then the companion Script.
         Every required sub-step failure is fatal; individual entries may opt into
-        reviewed best-effort behavior with IgnoreErrors.
+        reviewed best-effort behaviour with IgnoreErrors.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -326,10 +326,6 @@ function Invoke-AtlasTweak {
         }
         if ($runAs -cne 'User') {
             throw "Tweak '$tweakName' has unsupported companion RunAs '$runAs'."
-        }
-        if ($Context.IsOobe) {
-            Write-AtlasLog -Message "Skipping tweak '$tweakName' RunAs=User companion during OOBE."
-            return
         }
 
         $expectedUserSid = Get-AtlasTweakUserSid -Context $Context

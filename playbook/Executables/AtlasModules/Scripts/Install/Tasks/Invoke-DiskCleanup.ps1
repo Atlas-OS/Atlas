@@ -1,3 +1,11 @@
+<#
+.SYNOPSIS
+    Cleans temporary files, old Windows data and restore points early in an install.
+.DESCRIPTION
+    The pre-install phase runs it twice: as TrustedInstaller with -Scope Machine, and in
+    the installing user's own process with -Scope CurrentUser for that user's TEMP folder.
+    Machine cleanup is skipped when another Windows installation is found on any drive.
+#>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
@@ -50,9 +58,6 @@ function Invoke-AtlasTempCleanup {
     }
 
     foreach ($entry in @([IO.Directory]::GetFileSystemEntries($Path))) {
-        if ([IO.Path]::GetFileName($entry) -ceq 'AME') {
-            continue
-        }
         try {
             Invoke-AtlasCleanupEntryRemoval -Path $entry
         }

@@ -6,18 +6,11 @@ BeforeAll {
 Describe 'NanaZip Store installation' {
     BeforeEach {
         Mock Write-AtlasLog -ModuleName Atlas.Software
-        Mock Get-AtlasContext -ModuleName Atlas.Software { [pscustomobject]@{ IsOobe = $false } }
         Mock Get-AtlasNanaZipStoreJournal -ModuleName Atlas.Software { [pscustomobject]@{ Pending = $false } }
         Mock Set-AtlasNanaZipStorePending -ModuleName Atlas.Software
         Mock Start-Sleep -ModuleName Atlas.Software
     }
 
-    It 'falls back before any Store request during OOBE' {
-        Mock Get-AtlasContext -ModuleName Atlas.Software { [pscustomobject]@{ IsOobe = $true } }
-        Mock New-AtlasNanaZipStoreManager -ModuleName Atlas.Software { throw 'must not activate Store' }
-        InModuleScope Atlas.Software { Install-AtlasNanaZipFromStore -DismCommands @{} | Should -BeFalse }
-        Should -Invoke New-AtlasNanaZipStoreManager -ModuleName Atlas.Software -Times 0 -Exactly
-    }
 
     It 'falls back when Store cannot activate and there is no pending request' {
         Mock New-AtlasNanaZipStoreManager -ModuleName Atlas.Software { throw 'Store unavailable' }
@@ -213,7 +206,6 @@ Describe 'Stalled NanaZip cancellation before download fallback' {
     }
     It 'falls back after timeout only once cancellation is confirmed' {
         InModuleScope Atlas.Software {
-            Mock Get-AtlasContext { [pscustomobject]@{ IsOobe=$false } }
             Mock Get-AtlasNanaZipStoreJournal { [pscustomobject]@{ Pending=$false } }
             Mock New-AtlasNanaZipStoreManager { [pscustomobject]@{ CanInstallForAllUsers=$true } }
             Mock Get-AtlasNanaZipStoreItems { [pscustomobject]@{ ProductId='9N8G7TSCL18R' } }

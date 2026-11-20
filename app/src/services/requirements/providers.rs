@@ -33,9 +33,10 @@ static ACTIVATION_QUERY: Bounded<Vec<String>> = Bounded::new("the licensing quer
 const UPGRADES_CATEGORY: &str = "3689bdc8-b205-4af4-8d4a-a63924c5e9d5";
 
 /// Titles of updates that are available or downloaded but not installed.
-/// The search is the one AME Wizard runs, so the app and AME Wizard agree
-/// on whether a PC is ready. It reads the local cache only, so Microsoft's
-/// servers are not contacted. Runs on a fresh thread in COM's
+/// The search uses the criteria of the Atlas package's `Update-Windows.ps1`,
+/// whose verification the front door runs before installing, so Get ready
+/// and the install agree on whether a PC is ready. It reads the local cache
+/// only, so Microsoft's servers aren't contacted. Runs on a fresh thread in COM's
 /// multithreaded apartment, whatever the caller's thread uses: in a
 /// single-threaded apartment without a message pump, slow providers return
 /// nothing.

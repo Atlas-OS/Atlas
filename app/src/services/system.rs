@@ -215,8 +215,8 @@ pub fn user_has_account_sid() -> Result<bool> {
 }
 
 /// S-1-5-21-a-b-c-rid: an account domain's three parts and the account's
-/// RID. `Initialize-AtlasInstallState.ps1` finds the installing user's hive
-/// by the same shape.
+/// RID. `Install/Invoke-AtlasInstallSession.ps1` finds the installing user's
+/// hive by the same shape.
 fn account_sid(authority: SID_IDENTIFIER_AUTHORITY, parts: &[u32]) -> bool {
     authority == SECURITY_NT_AUTHORITY && matches!(parts, [21, _, _, _, _])
 }
@@ -724,7 +724,7 @@ pub mod links {
     pub const NETWORK: &str = "ms-settings:network";
     pub const POWER: &str = "ms-settings:powersleep";
     pub const ACTIVATION: &str = "ms-settings:activation";
-    pub const DOCS: &str = "https://docs.atlasos.net/";
+    pub const DOCS: &str = "https://atlasos.net/docs/";
     pub const GITHUB: &str = "https://github.com/Atlas-OS/Atlas";
     pub const RELEASES: &str = "https://github.com/Atlas-OS/Atlas/releases";
     pub const DISCORD: &str = "https://discord.atlasos.net/";

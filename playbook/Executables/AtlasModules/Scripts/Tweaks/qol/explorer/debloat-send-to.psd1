@@ -1,8 +1,7 @@
 @{
     OnUpgrade   = 'Skip'
     Name        = 'Debloat Send-To Context Menu'
-    Description = 'Removes commonly un-used items from the Send-To context menu in Explorer'
-    Oobe        = $false
+    Description = 'Hides rarely used entries in the Send to menu for the install user.'
     Script      = 'debloat-send-to.ps1'
     RunAs       = 'User'
 }

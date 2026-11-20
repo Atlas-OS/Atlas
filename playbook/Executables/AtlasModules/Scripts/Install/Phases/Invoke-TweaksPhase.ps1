@@ -1,6 +1,7 @@
-# Applies declarative tweaks in ordered scopes: machine work and the narrowly allowed
-# live-user policy roots as TrustedInstaller, ordinary HKCU work as the exact installing
-# user, then the default hive.
+# Tweaks phase: applies declarative tweaks in ordered scopes. Machine work and the
+# narrowly allowed live-user policy roots run as TrustedInstaller, ordinary HKCU work as
+# the exact installing user, then the default hive. The install plan runs it once for
+# each tweak category, and once for each Standalone tweak it places.
 #
 # -Category applies one manifest category. -Slug applies one Standalone manifest tweak
 # that the install plan places outside the category order; such a tweak may declare only
@@ -25,9 +26,8 @@ if (-not $context.IsInstallStateBacked) {
 if ([string]::IsNullOrWhiteSpace([string]$context.TransactionId)) {
     throw 'Tweaks phase requires the Atlas transaction id.'
 }
-if (-not $context.IsOobe -and
-    [string]::IsNullOrWhiteSpace([string]$context.InteractiveUserSid)) {
-    throw 'Non-OOBE tweaks require the install-state user SID.'
+if ([string]::IsNullOrWhiteSpace([string]$context.InteractiveUserSid)) {
+    throw 'Tweaks require the install-state user SID.'
 }
 
 $scriptsRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
@@ -67,50 +67,48 @@ function Invoke-AtlasTweakCategoryPasses {
     # Companion scripts execute in this machine pass. RegistryScope keeps HKCU out of it.
     Invoke-AtlasTweakCategory -Name $Name -RegistryScope Machine
 
-    if (-not $context.IsOobe) {
-        $optionSnapshot = [string[]]@($context.Options)
-        $optionsJson = ConvertTo-Json -Compress -InputObject $optionSnapshot
-        $optionsBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($optionsJson))
+    $optionSnapshot = [string[]]@($context.Options)
+    $optionsJson = ConvertTo-Json -Compress -InputObject $optionSnapshot
+    $optionsBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($optionsJson))
 
-        $policyArguments = [string[]]@(
-            '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
-            '-File', (Join-Path $scriptsRoot 'Install\Tasks\Invoke-AtlasInstallingUserPolicyRegistry.ps1'),
-            '-Category', $Name,
-            '-ExpectedUserSid', [string]$context.InteractiveUserSid,
-            '-TransactionId', [string]$context.TransactionId,
-            '-OptionsBase64', $optionsBase64,
-            '-WindowsBuild', [string]$context.WindowsBuild
-        )
-        if ($context.IsUpgrade) { $policyArguments += '-IsUpgrade' }
-        if ($context.IsRebase) { $policyArguments += '-IsRebase' }
-        if ($context.IsArm64) { $policyArguments += '-IsArm64' }
-        Invoke-AtlasHiddenProcess -FilePath $script:powerShellPath -ArgumentList $policyArguments -Wait | Out-Null
+    $policyArguments = [string[]]@(
+        '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+        '-File', (Join-Path $scriptsRoot 'Install\Tasks\Invoke-AtlasInstallingUserPolicyRegistry.ps1'),
+        '-Category', $Name,
+        '-ExpectedUserSid', [string]$context.InteractiveUserSid,
+        '-TransactionId', [string]$context.TransactionId,
+        '-OptionsBase64', $optionsBase64,
+        '-WindowsBuild', [string]$context.WindowsBuild
+    )
+    if ($context.IsUpgrade) { $policyArguments += '-IsUpgrade' }
+    if ($context.IsRebase) { $policyArguments += '-IsRebase' }
+    if ($context.IsArm64) { $policyArguments += '-IsArm64' }
+    Invoke-AtlasHiddenProcess -FilePath $script:powerShellPath -ArgumentList $policyArguments -Wait | Out-Null
 
-        $registryArguments = @(
-            '-Category', $Name,
-            '-ExpectedUserSid', [string]$context.InteractiveUserSid,
-            '-OptionsBase64', $optionsBase64,
-            '-WindowsBuild', [string]$context.WindowsBuild
-        )
-        if ($context.IsUpgrade) { $registryArguments += '-IsUpgrade' }
-        if ($context.IsRebase) { $registryArguments += '-IsRebase' }
-        if ($context.IsArm64) { $registryArguments += '-IsArm64' }
+    $registryArguments = @(
+        '-Category', $Name,
+        '-ExpectedUserSid', [string]$context.InteractiveUserSid,
+        '-OptionsBase64', $optionsBase64,
+        '-WindowsBuild', [string]$context.WindowsBuild
+    )
+    if ($context.IsUpgrade) { $registryArguments += '-IsUpgrade' }
+    if ($context.IsRebase) { $registryArguments += '-IsRebase' }
+    if ($context.IsArm64) { $registryArguments += '-IsArm64' }
 
+    Invoke-AtlasTweakUserScript `
+        -Path (Join-Path $scriptsRoot 'Install\Tasks\Invoke-AtlasInstallingUserRegistry.ps1') `
+        -ArgumentList $registryArguments `
+        -Description "Installing-user registry category '$Name'"
+
+    $refreshOperations = @(Get-AtlasTweakCategoryPostUserRegistryRefresh -Name $Name -Context $context)
+    foreach ($operation in $refreshOperations) {
         Invoke-AtlasTweakUserScript `
-            -Path (Join-Path $scriptsRoot 'Install\Tasks\Invoke-AtlasInstallingUserRegistry.ps1') `
-            -ArgumentList $registryArguments `
-            -Description "Installing-user registry category '$Name'"
-
-        $refreshOperations = @(Get-AtlasTweakCategoryPostUserRegistryRefresh -Name $Name -Context $context)
-        foreach ($operation in $refreshOperations) {
-            Invoke-AtlasTweakUserScript `
-                -Path (Join-Path $scriptsRoot 'Operations\Invoke-AtlasUserShellRefresh.ps1') `
-                -ArgumentList @(
-                    '-Operation', [string]$operation,
-                    '-ExpectedUserSid', [string]$context.InteractiveUserSid
-                ) `
-                -Description "Post-registry shell refresh '$operation' for '$Name'"
-        }
+            -Path (Join-Path $scriptsRoot 'Operations\Invoke-AtlasUserShellRefresh.ps1') `
+            -ArgumentList @(
+                '-Operation', [string]$operation,
+                '-ExpectedUserSid', [string]$context.InteractiveUserSid
+            ) `
+            -Description "Post-registry shell refresh '$operation' for '$Name'"
     }
 
     # Default-user data is applied only after any live-user work succeeds.
@@ -146,7 +144,7 @@ function Invoke-AtlasStandaloneTweakPasses {
 }
 
 $script:powerShellPath = Join-Path -Path ([string]$context.WinDir) -ChildPath 'System32\WindowsPowerShell\v1.0\powershell.exe'
-if (-not $context.IsOobe -and -not (Test-Path -LiteralPath $script:powerShellPath -PathType Leaf)) {
+if (-not (Test-Path -LiteralPath $script:powerShellPath -PathType Leaf)) {
     throw "Windows PowerShell is missing at '$script:powerShellPath'."
 }
 

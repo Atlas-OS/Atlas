@@ -1,12 +1,12 @@
-# Shell refresh phase. TrustedInstaller only orchestrates: stopping the shell and
-# starting Explorer run as the installing user, in that user's Windows session, so
-# other console or remote sessions are never affected.
+# Shell refresh phase, in every install mode after pre-install. TrustedInstaller only
+# orchestrates: stopping the shell and starting Explorer run as the installing user, in
+# that user's Windows session, so other console or remote sessions are never affected.
 
 Assert-AtlasPrivilege -TrustedInstaller
 
 $context = Get-AtlasContext -Refresh
-if (-not $context.IsInstallStateBacked -or $context.IsOobe) {
-    throw 'Shell refresh requires a non-OOBE active Atlas install state.'
+if (-not $context.IsInstallStateBacked) {
+    throw 'Shell refresh requires an active Atlas install state.'
 }
 $interactiveUserSid = [string]$context.InteractiveUserSid
 if ([string]::IsNullOrWhiteSpace($interactiveUserSid)) {

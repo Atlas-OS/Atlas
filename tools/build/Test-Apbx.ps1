@@ -3,8 +3,16 @@
     Verifies a built .apbx package: archive integrity, exact file parity, safe
     paths, expected root layout, metadata, and a stamped OEM version.
 .DESCRIPTION
-    The strongest end-to-end signal available without installing the package on a live
-    Windows install. Exits 0 when all checks pass, 1 otherwise.
+    Checks what can be checked without installing the package.
+.PARAMETER Path
+    The .apbx file to verify.
+.PARAMETER Password
+    The archive password. Pass an empty string for an archive built with -NoPassword.
+.PARAMETER PlaybookPath
+    The package source folder the archive must match file for file. The default is the
+    repository's playbook/ folder.
+.NOTES
+    Exit codes: 0 when every check passes, 1 otherwise.
 #>
 #requires -Version 7.0
 # The apbx archive password is public by design (documented in README.md); it exists so
@@ -70,18 +78,6 @@ function ConvertFrom-SevenZipTechnicalList {
     return $records.ToArray()
 }
 
-function Get-AtlasConfigurationByteContract {
-    param([Parameter(Mandatory = $true)][string]$ConfigurationRoot)
-
-    $root = (Resolve-Path -LiteralPath $ConfigurationRoot).ProviderPath
-    Get-ChildItem -LiteralPath $root -Filter '*.yml' -File -Recurse |
-        Sort-Object FullName |
-        ForEach-Object {
-            $relativePath = $_.FullName.Substring($root.Length + 1) -replace '\\', '/'
-            $content = [Convert]::ToBase64String([IO.File]::ReadAllBytes($_.FullName))
-            '{0}:{1}|{2}' -f $relativePath.Length, $relativePath, $content
-        }
-}
 
 if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
     Write-Host "FAIL: apbx not found at '$Path'." -ForegroundColor Red
@@ -107,7 +103,7 @@ catch {
 }
 
 # 2. Root layout: only expected entries at the archive root, no leaked tooling.
-$expectedRootDirs = @('Configuration', 'Executables', 'Images')
+$expectedRootDirs = @('Executables', 'Images')
 $expectedRootFiles = @('playbook.conf', 'playbook.png')
 
 $listOutput = Invoke-SevenZip -SevenZipPath $sevenZipPath -ArgumentList (@('l', '-ba', '-slt') + $passwordArgs + @($Path)) -ErrorContext 'Archive listing'
@@ -149,7 +145,7 @@ else {
         Write-Pass "Archive root layout ($($rootEntries -join ', '))."
     }
 
-    foreach ($required in @('playbook.conf', 'Configuration', 'Executables')) {
+    foreach ($required in @('playbook.conf', 'Executables')) {
         if ($rootEntries -notcontains $required) {
             Add-Failure "Required root entry missing: $required"
         }
@@ -165,8 +161,8 @@ else {
 }
 
 # 3. Exact file-list parity: every source file must appear exactly once, and no
-# untracked/stale file may hide below an otherwise allowed root directory. Staged dev-build
-# overrides intentionally change content but never the path set, so path parity applies to
+# untracked or stale file may hide below an otherwise allowed root directory. Staged
+# test-build overrides change content but never the path set, so path parity applies to
 # both release and local-test builds.
 if (-not (Test-Path -LiteralPath $PlaybookPath -PathType Container)) {
     Add-Failure "Source playbook/ folder not found at '$PlaybookPath'; file parity could not be checked."
@@ -198,7 +194,7 @@ else {
     }
 }
 
-# 4-6. Extract and verify generated configuration, metadata, and the OEM stamp.
+# 4-5. Extract and verify the metadata and the OEM stamp.
 if (-not $canExtractArchive) {
     Add-Failure (
         'Archive extraction was blocked because integrity, path safety, uniqueness, and ' +
@@ -212,71 +208,12 @@ else {
     $extractArgs = @('e', "-o$extractDir", '-y', '-r', '-bso0', '-bsp0') + $passwordArgs + @($Path, 'playbook.conf', 'Set-OemInformation.ps1')
     Invoke-SevenZip -SevenZipPath $sevenZipPath -ArgumentList $extractArgs -ErrorContext 'Extracting verification files' | Out-Null
 
-    # 4. The archive's generated configuration must retain the reviewed runner boundary.
-    # Extract with paths preserved so every configuration byte, including custom.yml, can
-    # be compared with the source. Content-removal profiles are not valid install plans.
-    try {
-        $configurationPaths = @($entryPaths | Where-Object {
-                $_ -match '^Configuration/.+\.yml$'
-            })
-        if ($configurationPaths.Count -eq 0) {
-            throw 'Archive listing contains no YAML configuration files.'
-        }
-        $configurationExtractArgs = @(
-            'x', "-o$extractDir", '-y', '-r', '-bso0', '-bsp0'
-        ) + $passwordArgs + @($Path) + $configurationPaths
-        Invoke-SevenZip -SevenZipPath $sevenZipPath -ArgumentList $configurationExtractArgs `
-            -ErrorContext 'Extracting runner configuration' | Out-Null
-
-        $extractedConfigurationRoot = Join-Path -Path $extractDir -ChildPath 'Configuration'
-        $runnerSummary = Assert-AtlasConfigurationRunnerBoundary `
-            -ConfigurationRoot $extractedConfigurationRoot
-        Write-Pass (
-            'Archive runner boundary ({0} actions, {1} checked PowerShell runs).' -f `
-                $runnerSummary.Actions, $runnerSummary.Runs
-        )
-        Write-Warning (
-            'The YAML contract cannot authenticate the inherited process environment: ' +
-            'RunAction expands %SystemRoot% before launch, and managed-runtime startup, ' +
-            'profiling, JIT, and AppDomain variables act before script entry. The upstream ' +
-            'AME runner must construct the complete trusted environment before process creation.'
-        )
-
-        $sourceConfigurationRoot = Join-Path -Path $PlaybookPath -ChildPath 'Configuration'
-        $sourceConfigurationContract = @(Get-AtlasConfigurationByteContract `
-                -ConfigurationRoot $sourceConfigurationRoot)
-        $archiveConfigurationContract = @(Get-AtlasConfigurationByteContract `
-                -ConfigurationRoot $extractedConfigurationRoot)
-        $configurationDifference = @(Compare-Object `
-                -ReferenceObject $sourceConfigurationContract `
-                -DifferenceObject $archiveConfigurationContract `
-                -CaseSensitive)
-        if ($configurationDifference.Count -gt 0) {
-            $firstDifference = $configurationDifference[0]
-            throw (
-                'Archive configuration differs from the reviewed source configuration: ' +
-                "[$($firstDifference.SideIndicator)] $($firstDifference.InputObject)"
-            )
-        }
-        Write-Pass 'Every archive configuration byte matches the reviewed source.'
-    }
-    catch {
-        Add-Failure "Archive runner-boundary validation failed: $($_.Exception.Message)"
-    }
-
-    # 5. playbook.conf parses and carries consistent version metadata.
+    # 4. playbook.conf parses and carries a valid version.
     $confPath = Join-Path -Path $extractDir -ChildPath 'playbook.conf'
     if (Test-Path -LiteralPath $confPath -PathType Leaf) {
         try {
             $versionInfo = Get-PlaybookVersion -PlaybookConfPath $confPath
             Write-Pass "playbook.conf parses (version $($versionInfo.Version))."
-
-            if ($versionInfo.Title -notmatch [regex]::Escape("v$($versionInfo.Version)")) {
-                Add-Failure "playbook.conf <Title> '$($versionInfo.Title)' does not contain 'v$($versionInfo.Version)'."
-            }
-            else {
-                Write-Pass 'playbook.conf Title/Version consistency.'
-            }
         }
         catch {
             Add-Failure "playbook.conf validation failed: $($_.Exception.Message)"
@@ -286,7 +223,7 @@ else {
         Add-Failure 'playbook.conf could not be extracted from the archive.'
     }
 
-    # 6. OEM version placeholder must be stamped out by the build.
+    # 5. The build must stamp the version over the OEM placeholder.
     $oemPath = Join-Path -Path $extractDir -ChildPath 'Set-OemInformation.ps1'
     if (Test-Path -LiteralPath $oemPath -PathType Leaf) {
         $oemContent = Get-Content -Path $oemPath -Raw

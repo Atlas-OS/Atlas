@@ -1,7 +1,7 @@
 # Atlas.Tweaks domain: tweak schema validation (used by CI and locally before builds).
 
 $script:AtlasTweakTopLevelKeys = @(
-    'Name', 'Description', 'Option', 'Arch', 'OnUpgrade', 'OnRebase', 'Oobe', 'RunAs', 'MinBuild', 'MaxBuild',
+    'Name', 'Description', 'Option', 'Arch', 'OnUpgrade', 'OnRebase', 'RunAs', 'MinBuild', 'MaxBuild',
     'Registry', 'PostUserRegistryRefresh', 'Services', 'ScheduledTasks', 'Toggle', 'Run', 'RemovePaths', 'Script'
 )
 
@@ -126,9 +126,6 @@ function Test-AtlasTweakFileSchema {
         Add-Problem -Problem "'OnRebase' must be 'Run', on a tweak with OnUpgrade = 'Skip'."
     }
 
-    if ($tweak.ContainsKey('Oobe') -and -not ($tweak['Oobe'] -is [bool])) {
-        Add-Problem -Problem "'Oobe' must be a boolean."
-    }
 
     foreach ($buildKey in @('MinBuild', 'MaxBuild')) {
         if ($tweak.ContainsKey($buildKey)) {
@@ -145,10 +142,6 @@ function Test-AtlasTweakFileSchema {
         }
         if (-not $tweak.ContainsKey('Script')) {
             Add-Problem -Problem "'RunAs' only applies to the 'Script' key, but no 'Script' is present."
-        }
-        if ($tweak['RunAs'] -ceq 'User' -and
-            (-not $tweak.ContainsKey('Oobe') -or $tweak['Oobe'] -ne $false)) {
-            Add-Problem -Problem "'RunAs=User' companion tweaks require 'Oobe = `$false' and an explicit first-login path."
         }
     }
 

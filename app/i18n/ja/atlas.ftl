@@ -13,7 +13,6 @@
 ###   Windows) is 再起動. Never swap them.
 ### - "Atlas package" (the .apbx file) is "Atlas パッケージ", shortened to
 ###   "パッケージ" once it's clear; "package file" is パッケージ ファイル.
-###   AME Wizard's own name for it appears only where a string explains that.
 
 ## 共通
 
@@ -155,9 +154,6 @@ home-show-full-notes = リリース ノートをすべて表示
 home-your-install = Atlas のインストール情報
 # Atlas is installed, but without the record Atlas Manager keeps (older versions didn't write one).
 home-install-unrecorded = この PC には Atlas のインストール方法の記録がないため、選択内容とインストール履歴を表示できません。
-# Row label: how Atlas was set up.
-home-set-up = セットアップ方法
-home-set-up-during-oobe = Windows のセットアップ中
 home-history = インストール履歴
 # One history row. $version is text, $mode one of the history-mode-* messages, $date a formatted date and time.
 home-history-entry = Atlas { $version } · { $mode } · { $date }
@@ -307,7 +303,7 @@ package-from-file = Atlas { $version } を { $file } から読み込みました
 package-unpacked = Atlas { $version } のインストール準備ができています。
 package-none-yet = インストール ファイルが選択されていません
 acquire-no-asset = Atlas { $version } にはダウンロードできるパッケージ ファイルがありません。続行するには、保存済みの Atlas パッケージ (.apbx) を開いてください。
-acquire-unsupported = このアプリでインストールできるのは Atlas 0.6.0 以降です。Atlas { $version } をインストールするには、代わりに AME Wizard を使ってください。
+acquire-unsupported = このアプリでインストールできるのは Atlas 0.6.0 以降です。
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = Atlas { $version } には、このアプリでのインストールに必要なファイルが含まれていません。もう一度ダウンロードするか、別の Atlas パッケージ (.apbx) を開いてください。
 acquire-failed = インストール ファイルを準備できませんでした。もう一度ダウンロードするか、別の Atlas パッケージ (.apbx) を開いてください。詳細: { $error }

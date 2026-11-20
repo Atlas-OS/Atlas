@@ -272,7 +272,7 @@ function Assert-AtlasPrivilege { param([switch]`$TrustedInstaller) }
 function Get-AtlasContext {
     param([switch]`$Refresh)
     [pscustomobject]@{
-        IsInstallStateBacked = `$true; IsOobe = `$false; IsUpgrade = `$env:ATLAS_TEST_MODE -cne 'Fresh'
+        IsInstallStateBacked = `$true; IsUpgrade = `$env:ATLAS_TEST_MODE -cne 'Fresh'
         Mode = `$env:ATLAS_TEST_MODE; InteractiveUserSid = 'S-1-5-21-1000-2000-3000-1001'
         TargetVersion = '0.6.0'; TransactionId = '$script:TransactionId'
     }

@@ -299,7 +299,7 @@ fn without_padding(text: &str) -> Option<String> {
 /// Matches an account, computer or domain name where it stands on its own:
 /// with no word character beside it at either end. `\b` says that only for
 /// an end that is itself a word character; beside punctuation, as at the end
-/// of `Jack!`, it would demand a word character instead. `\B` says it there,
+/// of `Robin!`, it would demand a word character instead. `\B` says it there,
 /// and like `\b` consumes no character, so two occurrences one character
 /// apart both match.
 fn identity(name: &str) -> Regex {
@@ -448,11 +448,14 @@ mod tests {
 
     #[test]
     fn names_that_begin_or_end_with_punctuation_are_aliased_where_they_stand_alone() {
-        let mut redactor = Redactor::with(&["Jack!", "(Desk)", "Al"].map(String::from), Vec::new());
+        let mut redactor = Redactor::with(&["Robin!", "(Desk)", "Al"].map(String::from), Vec::new());
         let result = redactor.text(
-            "Jack! signed in on (Desk). 'Jack!' then Jack!,Jack! and at the end Jack!\nAlready Al.\nPC=(DESK)\n",
+            "Robin! signed in on (Desk). 'Robin!' then Robin!,Robin! and at the end Robin!\nAlready Al.\nPC=(DESK)\n",
         );
-        assert!(!result.contains("Jack") && !result.contains("Desk") && !result.contains("DESK"), "{result}");
+        assert!(
+            !result.contains("Robin") && !result.contains("Desk") && !result.contains("DESK"),
+            "{result}"
+        );
         assert_eq!(result.matches("anonymous-1").count(), 5, "{result}");
         assert!(result.contains("on anonymous-2. 'anonymous-1'"), "{result}");
         assert!(result.contains("PC=anonymous-2\n"), "{result}");

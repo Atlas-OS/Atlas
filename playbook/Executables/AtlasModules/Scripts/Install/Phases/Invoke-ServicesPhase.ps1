@@ -4,11 +4,11 @@
 # minimal. Each default is the machine part of the corresponding toggle, applied and
 # recorded through the toggle engine so the install and the launcher share one
 # implementation and upgrade replay sees the same record a user's choice would leave.
-# The committed install plan admits this phase for Fresh and Rebase installs; it runs
-# as TrustedInstaller. A Rebase keeps every recorded choice for the Defaults phase to
-# replay and applies a default only where nothing was recorded. Generic Windows service and driver startup values stay at their OS
-# defaults; optional product behavior is configured through documented policy or
-# feature-specific interfaces.
+# The install plan runs this phase on Fresh and Rebase installs, as TrustedInstaller.
+# A Rebase keeps every recorded choice for the Defaults phase to replay. It applies a
+# default only where nothing was recorded. Generic Windows service and driver startup
+# values stay at their Windows defaults. Optional product behaviour is configured
+# through documented policy or feature-specific interfaces.
 
 Assert-AtlasPrivilege -TrustedInstaller
 

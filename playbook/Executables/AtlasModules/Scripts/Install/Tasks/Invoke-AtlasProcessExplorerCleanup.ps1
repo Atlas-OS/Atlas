@@ -1,4 +1,6 @@
-# Fixed installer-only cleanup; no user profile work and no toggle-state mutation.
+# Uninstalls Process Explorer in its own process for Stop-ProcessExplorerUpgrade.ps1, which
+# runs it as TrustedInstaller before the installed Atlas files are replaced. It does no
+# user profile work and changes no toggle record.
 $ErrorActionPreference = 'Stop'
 $scriptsRoot = [IO.Path]::GetFullPath([IO.Path]::Combine($PSScriptRoot, '..', '..'))
 . ([IO.Path]::Combine($scriptsRoot, 'Initialize-AtlasPowerShell.ps1'))

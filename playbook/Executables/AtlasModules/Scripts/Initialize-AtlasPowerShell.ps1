@@ -1,7 +1,7 @@
 # Atlas PowerShell bootstrap.
 #
 # Every Atlas process entry point dot-sources this file before it invokes any
-# autoloadable command. It establishes the protected module-resolution boundary:
+# autoloadable command. It limits module resolution to protected folders:
 #
 #   1. PSModulePath is replaced with the Atlas module tree beside this file followed by
 #      the inbox Windows PowerShell module root, so inherited per-user module paths can

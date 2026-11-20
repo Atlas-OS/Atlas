@@ -385,7 +385,6 @@ Describe 'Install-state-bound AppX cache launcher' {
         Set-Content -LiteralPath $script:testCacheScript -Value 'test script'
         $script:launcherContext = [pscustomobject]@{
             IsInstallStateBacked = $true
-            IsOobe             = $false
             InteractiveUserSid = $script:launcherSid
             WinDir             = $script:testWindows
             AtlasModulesPath   = $script:testModules
@@ -440,6 +439,8 @@ Describe 'Install-state-bound AppX cache launcher' {
                 $Wait -eq $true -and
                 $TimeoutSeconds -eq 900
             }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly `
+            -ParameterFilter { $Message -eq 'Cleared AppxSupport AppX caches for the install-state-bound user.' }
     }
 
     It 'rejects a non-SYSTEM production caller before reading install state' {
@@ -454,19 +455,6 @@ Describe 'Install-state-bound AppX cache launcher' {
         Should -Invoke Invoke-AtlasAsUser -ModuleName Atlas.Appx -Times 0 -Exactly
     }
 
-    It 'skips user launch during OOBE while allowing machine AppX work to continue' {
-        $oobeContext = [pscustomobject]@{ IsInstallStateBacked = $true; IsOobe = $true }
-        Mock Test-AtlasSystem -ModuleName Atlas.Appx -MockWith { $true }
-        Mock Get-AtlasContext -ModuleName Atlas.Appx -MockWith { $oobeContext }
-        Mock Invoke-AtlasAsUser -ModuleName Atlas.Appx
-        Mock Write-AtlasLog -ModuleName Atlas.Appx
-
-        Invoke-AtlasUserAppxCacheCleanup -Mode AppxSupport
-
-        Should -Invoke Invoke-AtlasAsUser -ModuleName Atlas.Appx -Times 0 -Exactly
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly `
-            -ParameterFilter { $Message -eq 'Skipped AppxSupport AppX user cache cleanup during OOBE.' }
-    }
 
     It 'rejects a context that is not backed by active install state' {
         $script:launcherContext.IsInstallStateBacked = $false
@@ -523,7 +511,6 @@ Describe 'Install-state-bound AppX cache launcher' {
         }
         $context = [pscustomobject]@{
             IsInstallStateBacked = $true
-            IsOobe             = $false
             InteractiveUserSid = $script:launcherSid
             WinDir             = $junctionWindows
             AtlasModulesPath   = $junctionModules
@@ -752,17 +739,12 @@ Describe 'Get-AtlasAppxRemovalAccount' {
     It 'returns <Expected> for <Case>' -TestCases @(
         @{
             Case = 'an install with a recorded user'; Expected = 'the recorded SID'
-            State = @{ IsInstallStateBacked = $true; IsOobe = $false; InteractiveUserSid = 'S-1-5-21-1000-1000-1000-1001' }
+            State = @{ IsInstallStateBacked = $true; InteractiveUserSid = 'S-1-5-21-1000-1000-1000-1001' }
             Sid = 'S-1-5-21-1000-1000-1000-1001'; Absence = $null
         }
         @{
-            Case = 'an install during OOBE'; Expected = 'no account'
-            State = @{ IsInstallStateBacked = $true; IsOobe = $true; InteractiveUserSid = 'S-1-5-21-1000-1000-1000-1001' }
-            Sid = $null; Absence = "During OOBE there's no installing user to check it against"
-        }
-        @{
             Case = 'an install that recorded no user'; Expected = 'no account'
-            State = @{ IsInstallStateBacked = $true; IsOobe = $false; InteractiveUserSid = $null }
+            State = @{ IsInstallStateBacked = $true; InteractiveUserSid = $null }
             Sid = $null; Absence = 'The install recorded no installing user to check it against'
         }
     ) {
@@ -777,7 +759,7 @@ Describe 'Get-AtlasAppxRemovalAccount' {
     }
 
     It 'uses the account running a toggle outside an install' {
-        $context = [pscustomobject]@{ IsInstallStateBacked = $false; IsOobe = $false; InteractiveUserSid = $null }
+        $context = [pscustomobject]@{ IsInstallStateBacked = $false; InteractiveUserSid = $null }
         Mock Get-AtlasContext -ModuleName Atlas.Appx -MockWith { $context }.GetNewClosure()
 
         $actual = InModuleScope Atlas.Appx { Get-AtlasAppxRemovalAccount }
@@ -790,7 +772,7 @@ Describe 'Get-AtlasAppxRemovalAccount' {
         @{ Case = 'is not a SID'; Value = 'not-a-sid'; Expected = '*AppX removal user SID is not a valid SID.' }
         @{ Case = 'is SYSTEM'; Value = 'S-1-5-18'; Expected = '*AppX removal user SID is not a canonical user account SID.' }
     ) {
-        $context = [pscustomobject]@{ IsInstallStateBacked = $true; IsOobe = $false; InteractiveUserSid = $Value }
+        $context = [pscustomobject]@{ IsInstallStateBacked = $true; InteractiveUserSid = $Value }
         Mock Get-AtlasContext -ModuleName Atlas.Appx -MockWith { $context }.GetNewClosure()
 
         { InModuleScope Atlas.Appx { Get-AtlasAppxRemovalAccount } } |
@@ -1184,7 +1166,7 @@ Describe 'Invoke-AtlasAppxRemovalPlan' {
         Mock Get-AtlasAppxRemovalAccount -ModuleName Atlas.Appx -MockWith {
             [pscustomobject]@{
                 Sid = $null; Description = 'the installing user'
-                Absence = "During OOBE there's no installing user to check it against"
+                Absence = "The install recorded no installing user to check it against"
             }
         }
         $definitions = @(
@@ -1211,7 +1193,7 @@ Describe 'Invoke-AtlasAppxRemovalPlan' {
         Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
             $Level -eq 'Warning' -and $Message -eq (
                 "AppX package 'Installed.App_1.0_x64__abc' for 'Installed.App*' is still registered " +
-                "($($script:installingSid): Installed). During OOBE there's no installing user to check it against, " +
+                "($($script:installingSid): Installed). The install recorded no installing user to check it against, " +
                 'so Atlas continues.'
             )
         }

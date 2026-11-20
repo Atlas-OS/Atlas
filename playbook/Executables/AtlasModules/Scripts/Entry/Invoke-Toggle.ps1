@@ -4,7 +4,7 @@
 .DESCRIPTION
     Every generated AtlasDesktop and Toolbox launcher is a two-line stub that calls the
     shared body Invoke-AtlasToggleLauncher.cmd beside this script, which anchors to the
-    protected command host, sanitizes the environment, validates the flag grammar and
+    protected command host, sanitises the environment, validates the flag grammar and
     then runs:
 
         powershell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File
@@ -12,7 +12,7 @@
             -Name <SettingName> [-State <State>] -LauncherPath "<stub path>"
             [<canonical launcher flags>]
 
-    Remaining arguments carry the launcher flag surface: /silent (and /quiet),
+    Remaining arguments carry the launcher flags: /silent (and /quiet),
     /justcontext and /noAction, with either / or - prefixes, case-insensitive.
 
     An interactive run presents itself through the Atlas.Core console vocabulary
@@ -47,7 +47,7 @@ if (-not [IO.File]::Exists($trustBootstrap)) {
 
 Set-StrictMode -Version 3.0
 
-# Normalize canonical flags supplied by a generated launcher or a direct caller.
+# Normalise canonical flags supplied by a generated launcher or a direct caller.
 $silent = $false
 $justContext = $false
 $noExplorerRestart = $false

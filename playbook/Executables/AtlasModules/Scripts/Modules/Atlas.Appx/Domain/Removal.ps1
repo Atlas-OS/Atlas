@@ -279,7 +279,7 @@ function Get-AtlasAppxParentInstalledPackage {
 
     # Get-AppxPackage returns both a bundle and its architecture-specific Main child
     # when Bundle,Main is requested. Remove-AppxPackage -AllUsers must act on the
-    # parent bundle; attempting the child afterward produces a false failure.
+    # parent bundle; attempting the child afterwards produces a false failure.
     $bundles = @($Package | Where-Object { Test-AtlasAppxBundle -Package $_ })
     foreach ($item in $Package) {
         if ((Test-AtlasAppxBundle -Package $item) -or
@@ -356,12 +356,6 @@ function Get-AtlasAppxRemovalAccount {
     $context = Get-AtlasContext
     if ([bool]$context.IsInstallStateBacked) {
         $description = 'the installing user'
-        if ([bool]$context.IsOobe) {
-            return [pscustomobject]@{
-                Sid = $null; Description = $description
-                Absence = "During OOBE there's no installing user to check it against"
-            }
-        }
         if ([string]::IsNullOrWhiteSpace([string]$context.InteractiveUserSid)) {
             return [pscustomobject]@{
                 Sid = $null; Description = $description
@@ -748,7 +742,7 @@ function Invoke-AtlasAppxRemovalPlan {
         provisioned packages for future users, then verifies both inventories.
     .DESCRIPTION
         All definitions are attempted in order. Command failures remain visible, but
-        the fresh inventories taken afterward determine whether a required removal
+        the fresh inventories taken afterwards determine whether a required removal
         actually failed: a package still installed for the installing user, or still
         provisioned. A package left only for other accounts, SYSTEM or no account, or
         whose removal Windows finishes at sign-out, is a warning. Definitions marked

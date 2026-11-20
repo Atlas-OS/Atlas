@@ -1,3 +1,11 @@
+<#
+.SYNOPSIS
+    Removes the installed AtlasModules and AtlasDesktop folders before the new files are
+    copied, keeping the service backups and the logs.
+.DESCRIPTION
+    Invoke-AtlasPayloadReplacement.ps1 runs it as TrustedInstaller on an update, a
+    reinstall or a Rebase.
+#>
 [CmdletBinding()]
 param()
 
@@ -29,7 +37,7 @@ foreach ($childName in @('AtlasDesktop', 'AtlasModules')) {
     }
 
     # These files describe this device before Atlas changed its services. They
-    # cannot be recreated from the already optimized installation.
+    # cannot be recreated from the already optimised installation.
     $backupNames = @('winServices.reg', 'atlasServices.reg')
     $otherPath = Join-Path $resolvedTarget 'Other'
     $backups = @()

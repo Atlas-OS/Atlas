@@ -20,7 +20,7 @@ Describe 'Atlas install orchestrator' {
         }.GetNewClosure()
         $commit = { if ($Failure -eq 'Commit') { throw 'commit failed' } }.GetNewClosure()
         $parameters = @{
-            State = [pscustomobject]@{ status = 'Running'; isOobe = $true }
+            State = [pscustomobject]@{ status = 'Running'; userSid = 'S-1-5-21-1-2-3-1001' }
             Plan = @(
                 [pscustomobject]@{ Key = 'Environment'; Replay = 'Once' }
                 [pscustomobject]@{ Key = 'Features'; Replay = 'Once' }
@@ -101,7 +101,7 @@ Export-ModuleMember -Function Start-AtlasPhase,Stop-AtlasPhase
 
     It 'maps every planned checkpoint to a task script that accepts its arguments' {
         $keys = foreach ($mode in 'Fresh', 'Upgrade', 'Reapply', 'Rebase') {
-            foreach ($isOobe in $false, $true) { (Get-AtlasInstallPlan -Mode $mode -IsOobe $isOobe).Key }
+            (Get-AtlasInstallPlan -Mode $mode).Key
         }
         $targets = @($keys | Where-Object { $_.StartsWith('Checkpoint/', [StringComparison]::Ordinal) } |
                 ForEach-Object { $_.Substring('Checkpoint/'.Length) } | Sort-Object -Unique)
@@ -148,9 +148,9 @@ Export-ModuleMember -Function Start-AtlasPhase,Stop-AtlasPhase
             @($ran | Sort-Object -Unique)
         }
         $kept = @(& $dispatch @(foreach ($mode in 'Fresh', 'Upgrade', 'Reapply', 'Rebase') {
-                    foreach ($isOobe in $false, $true) { Get-AtlasInstallPlan -Mode $mode -IsOobe $isOobe }
+                    Get-AtlasInstallPlan -Mode $mode
                 }))
-        $chosenAgain = @(& $dispatch @(foreach ($mode in 'Upgrade', 'Reapply') { Get-AtlasInstallPlan -Mode $mode -IsOobe $false -ChooseAgain $true }))
+        $chosenAgain = @(& $dispatch @(foreach ($mode in 'Upgrade', 'Reapply') { Get-AtlasInstallPlan -Mode $mode -ChooseAgain $true }))
 
         foreach ($path in @($kept + $chosenAgain)) {
             $path | Should -Exist
@@ -168,7 +168,7 @@ Export-ModuleMember -Function Start-AtlasPhase,Stop-AtlasPhase
         $events = New-Object Collections.Generic.List[string]
         $runner = { param($Path, $Parameters) $calls.Add([pscustomobject]@{ Path = $Path; Parameters = $Parameters }) }.GetNewClosure()
         $starter = { param($Phase, $Category) $events.Add("start:$Phase|$Category") }.GetNewClosure()
-        $step = @(Get-AtlasInstallPlan -Mode Reapply -IsOobe $false -ChooseAgain $true | Where-Object Key -ceq 'Choices')
+        $step = @(Get-AtlasInstallPlan -Mode Reapply -ChooseAgain $true | Where-Object Key -ceq 'Choices')
         $step.Count | Should -Be 1
 
         Invoke-AtlasInstallAction -Step $step[0] -ScriptsRoot $installed -SourceScriptsRoot (Join-Path $TestDrive 'source\Scripts') `
@@ -290,7 +290,7 @@ Export-ModuleMember -Function Start-AtlasPhase,Stop-AtlasPhase
             [pscustomobject]@{ Key = 'Features'; Replay = 'Once' }
         )
         $state = [pscustomobject]@{
-            status = 'Running'; isOobe = $false; userSid = 'S-1-5-21-1-2-3-1001'
+            status = 'Running'; userSid = 'S-1-5-21-1-2-3-1001'
         }
         $stepInvoker = {
             param($Name, $Mode, $Action)
@@ -339,7 +339,7 @@ Export-ModuleMember -Function Start-AtlasPhase,Stop-AtlasPhase
     It 'unloads a default hive created by this invocation when a later step fails' {
         $calls = New-Object Collections.Generic.List[string]
         $state = [pscustomobject]@{
-            status = 'Running'; isOobe = $false; userSid = 'S-1-5-21-1-2-3-1001'
+            status = 'Running'; userSid = 'S-1-5-21-1-2-3-1001'
         }
         $plan = @(
             [pscustomobject]@{ Key = 'Checkpoint/DefaultHiveLoad'; Replay = 'Always' }
@@ -378,7 +378,7 @@ Export-ModuleMember -Function Start-AtlasPhase,Stop-AtlasPhase
     It 'does not unload a default hive when this invocation did not load it' {
         $calls = New-Object Collections.Generic.List[string]
         $state = [pscustomobject]@{
-            status = 'Running'; isOobe = $false; userSid = 'S-1-5-21-1-2-3-1001'
+            status = 'Running'; userSid = 'S-1-5-21-1-2-3-1001'
         }
         $plan = @(
             [pscustomobject]@{ Key = 'Checkpoint/DefaultHiveLoad'; Replay = 'Always' }
@@ -407,7 +407,7 @@ Export-ModuleMember -Function Start-AtlasPhase,Stop-AtlasPhase
         $calls = New-Object Collections.Generic.List[string]
         $unloadState = @{ Calls = 0 }
         $state = [pscustomobject]@{
-            status = 'Running'; isOobe = $true; userSid = $null
+            status = 'Running'; userSid = 'S-1-5-21-1-2-3-1001'
         }
         $plan = @(
             [pscustomobject]@{ Key = 'Checkpoint/DefaultHiveLoad'; Replay = 'Always' }
@@ -462,7 +462,7 @@ Export-ModuleMember -Function Start-AtlasPhase,Stop-AtlasPhase
 
     It 'rejects an uncommitted state before invoking a step' {
         $state = [pscustomobject]@{
-            status = 'Capturing'; isOobe = $true; userSid = $null
+            status = 'Capturing'; userSid = $null
         }
         {
             Invoke-AtlasInstallPlanCore -State $state -Plan @() `
@@ -473,9 +473,9 @@ Export-ModuleMember -Function Start-AtlasPhase,Stop-AtlasPhase
         } | Should -Throw '*must be committed and Running*'
     }
 
-    It 'requires the captured user for a non-OOBE install' {
+    It 'requires the captured user' {
         $state = [pscustomobject]@{
-            status = 'Running'; isOobe = $false; userSid = $null
+            status = 'Running'; userSid = $null
         }
         {
             Invoke-AtlasInstallPlanCore -State $state -Plan @() `

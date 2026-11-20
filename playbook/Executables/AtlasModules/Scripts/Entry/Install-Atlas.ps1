@@ -1,8 +1,9 @@
 <#
 .SYNOPSIS
-    Installs Atlas from an extracted Atlas package without AME Wizard.
+    The front door: installs Atlas from an extracted Atlas package.
 .DESCRIPTION
-    Run from an elevated Windows PowerShell 5.1 prompt inside the extracted package:
+    Atlas Manager runs this script elevated. To run it directly when testing, use an
+    elevated Windows PowerShell 5.1 prompt inside the extracted package:
 
         .\AtlasModules\Scripts\Entry\Install-Atlas.ps1 -Option defender-enable,
             mitigations-default, auto-updates-disable, keyboard-shortcuts [-Option ...] [-Unattended]
@@ -15,7 +16,7 @@
     records the requested options there, and hands the install to the TrustedInstaller
     broker in two phases: Capture (begin the install state and record options), then,
     after this process publishes the installing user's identity, Run (commit and execute
-    the complete install plan). AME drives the same plan, state and identity model.
+    the complete install plan).
 
     Live Windows Update and Microsoft Store checks must confirm preparation is complete
     before the install plan starts.
@@ -320,7 +321,7 @@ function Test-AtlasInstallRequirement {
 
     $results = @()
     foreach ($requirement in $DeclaredRequirements) {
-        if ($requirement -notin @('NoAntivirus','PluggedIn','Internet','NoPendingUpdates','DefenderToggled')) {
+        if ($requirement -notin @('NoAntivirus', 'PluggedIn', 'DefenderToggled')) {
             throw "Direct installation cannot verify the package requirement '$requirement'."
         }
     }

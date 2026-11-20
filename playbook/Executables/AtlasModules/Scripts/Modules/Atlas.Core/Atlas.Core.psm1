@@ -1,4 +1,4 @@
-# Atlas.Core - core framework module.
+# Atlas.Core: core framework module.
 $domainRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Domain'
 
 foreach ($domainModule in @(

@@ -1,8 +1,6 @@
 #requires -Version 7.0
 Set-StrictMode -Version 3.0
 
-. (Join-Path -Path $PSScriptRoot -ChildPath 'AtlasYamlAction.ps1')
-
 $script:IsWindowsPlatform = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
     [System.Runtime.InteropServices.OSPlatform]::Windows)
 
@@ -408,9 +406,9 @@ function Invoke-SevenZip {
 function Get-PlaybookVersion {
     <#
     .SYNOPSIS
-        Parses playbook.conf and returns version metadata.
+        Parses playbook.conf and returns its version.
     .OUTPUTS
-        PSCustomObject with Version, Title, IsDev and VersionLabel (e.g. "v0.5.1 (dev)").
+        PSCustomObject with Version and VersionLabel, the version with a leading "v".
     #>
     param(
         [Parameter(Mandatory = $true)][string]$PlaybookConfPath
@@ -431,17 +429,9 @@ function Get-PlaybookVersion {
         throw "Invalid version format '$($playbookNode.Version)' in '$PlaybookConfPath'."
     }
 
-    $isDev = $playbookNode.Title -match '\(dev\)'
-    $versionLabel = "v$($playbookNode.Version)"
-    if ($isDev) {
-        $versionLabel += ' (dev)'
-    }
-
     return [pscustomobject]@{
         Version      = $playbookNode.Version
-        Title        = $playbookNode.Title
-        IsDev        = $isDev
-        VersionLabel = $versionLabel
+        VersionLabel = "v$($playbookNode.Version)"
     }
 }
 
@@ -488,10 +478,10 @@ function Get-AvailableArchiveName {
 function Get-AtlasPlaybookPayloadPath {
     <#
     .SYNOPSIS
-        Returns the normalized relative path of every file that belongs in an APBX.
+        Returns the normalised relative path of every file that belongs in an APBX.
     .DESCRIPTION
         The playbook/ directory defines what an APBX contains. Generated APBX files and their
-        recognized interrupted-build/publication artifacts are the only files excluded
+        recognised interrupted-build/publication artifacts are the only files excluded
         by New-Apbx.
     #>
     param(
@@ -501,7 +491,7 @@ function Get-AtlasPlaybookPayloadPath {
 
     $resolvedRoot = (Resolve-Path -LiteralPath $PlaybookPath).ProviderPath
     if (-not (Test-Path -LiteralPath (Join-Path -Path $resolvedRoot -ChildPath 'playbook.conf') -PathType Leaf)) {
-        throw "playbook.conf not found in '$resolvedRoot' - not an Atlas package source folder."
+        throw "playbook.conf not found in '$resolvedRoot'; it isn't an Atlas package source folder."
     }
 
     return @(Get-ChildItem -LiteralPath $resolvedRoot -File -Recurse |
@@ -573,7 +563,7 @@ function New-StagedPlaybookConf {
     <#
     .SYNOPSIS
         Writes a copy of playbook.conf with the requested requirement lines stripped.
-        Used for dev builds so they install on unsupported/unverified machines.
+        Used for test builds so they install on PCs the requirements would refuse.
     .OUTPUTS
         $true when a staged copy was written to DestinationPath.
     #>
@@ -581,22 +571,17 @@ function New-StagedPlaybookConf {
         [Parameter(Mandatory = $true)][string]$PlaybookConfPath,
         [Parameter(Mandatory = $true)][string]$DestinationPath,
         [switch]$RemoveRequirements,
-        [switch]$RemoveWinverRequirement,
-        [switch]$RemoveVerification
+        [switch]$RemoveWinverRequirement
     )
 
-    $patternTokens = @()
-    if ($RemoveRequirements) { $patternTokens += '<Requirement>' }
-    if ($RemoveVerification) { $patternTokens += '<ProductCode>' }
-
-    if ($patternTokens.Count -eq 0 -and -not $RemoveWinverRequirement) {
+    if (-not $RemoveRequirements -and -not $RemoveWinverRequirement) {
         return $false
     }
 
     Set-ParentDirectory -Path $DestinationPath
-    $pattern = if ($patternTokens.Count -gt 0) { [string]::Join('|', $patternTokens) } else { $null }
+    $pattern = if ($RemoveRequirements) { '<Requirement>' } else { $null }
     # <SupportedBuilds> goes as a whole block: its <string> entries share their tag
-    # with <UpgradableFrom>, which dev builds keep.
+    # with <UpgradableFrom>, which test builds keep.
     $insideSupportedBuilds = $false
     $stagedLines = foreach ($line in Get-Content -Path $PlaybookConfPath -Encoding UTF8) {
         if ($RemoveWinverRequirement -and $line -match '<SupportedBuilds>') {
@@ -654,7 +639,7 @@ function New-Apbx {
     <#
     .SYNOPSIS
         Packages the playbook/ directory into a renamed, optionally password-protected ZIP
-        (.apbx) understood by AME Wizard, applying dev-build staging overrides on top.
+        (.apbx), with the test-build staging overrides applied on top.
     .OUTPUTS
         Full path of the built .apbx file.
     #>
@@ -664,17 +649,14 @@ function New-Apbx {
         [string]$FileName = 'Atlas Test',
         [switch]$RemoveRequirements,
         [switch]$RemoveWinverRequirement,
-        [switch]$RemoveVerification,
         [switch]$NoPassword,
         [switch]$ReplaceOldPlaybook
     )
 
     $PlaybookPath = (Resolve-Path -LiteralPath $PlaybookPath).ProviderPath
     if (-not (Test-Path -LiteralPath (Join-Path -Path $PlaybookPath -ChildPath 'playbook.conf') -PathType Leaf)) {
-        throw "playbook.conf not found in '$PlaybookPath' - not an Atlas package source folder."
+        throw "playbook.conf not found in '$PlaybookPath'; it isn't an Atlas package source folder."
     }
-    Assert-AtlasConfigurationRunnerBoundary `
-        -ConfigurationRoot (Join-Path -Path $PlaybookPath -ChildPath 'Configuration') | Out-Null
 
     if (-not $OutputDirectory) {
         $OutputDirectory = $PlaybookPath
@@ -720,8 +702,7 @@ function New-Apbx {
             -PlaybookConfPath (Join-Path -Path $PlaybookPath -ChildPath 'playbook.conf') `
             -DestinationPath (Join-Path -Path $stagingPath -ChildPath 'playbook.conf') `
             -RemoveRequirements:$RemoveRequirements `
-            -RemoveWinverRequirement:$RemoveWinverRequirement `
-            -RemoveVerification:$RemoveVerification
+            -RemoveWinverRequirement:$RemoveWinverRequirement
 
         $oemScriptRelativePath = 'Executables\AtlasModules\Scripts\Install\Tasks\Set-OemInformation.ps1'
         $stagedOemScript = $false

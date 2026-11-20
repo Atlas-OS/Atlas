@@ -1,15 +1,15 @@
-# Choices phase.
-# Choosing again on an update (Upgrade or Reapply): applies each install choice where
-# this PC differs from it, as a first installation would, and nothing else, so a resumed
-# or repeated run redoes only what still differs. In order: Microsoft Defender,
-# Microsoft Edge, the AppX families a choice removes, then the choice toggles
-# (Choices.ps1). It records the toggles it set, which Defaults, running next, leaves out
-# of its replay; the others are replayed as when keeping choices.
+# Choices phase, only on an update (Upgrade or Reapply) that chooses again.
+# Applies each install choice where this PC differs from it, as a first installation
+# would, and nothing else. A resumed or repeated run therefore redoes only what still
+# differs. In order: Microsoft Defender, Microsoft Edge, the AppX families a choice
+# removes, then the choice toggles (Choices.ps1). It records the toggles it set.
+# Defaults runs next and leaves those out of its replay; it replays the others as when
+# keeping choices.
 #
 # Runs as TrustedInstaller. A servicing failure throws at once, as on a first
-# installation, once Install-AtlasCbsPackage has armed the Safe Mode retry, and so does
-# Edge's removal, as in Components. Toggle and AppX failures are collected, so every
-# other choice is still applied, then thrown together.
+# installation, once Install-AtlasCbsPackage has armed the Safe Mode retry. A failed
+# Edge removal throws at once too, as in Components. Toggle and AppX failures are
+# collected so every other choice is still applied. They're thrown together at the end.
 #
 # Not handled here: what an update never repeats (Atlas's other AppX removals, Phone
 # Link, OneDrive, Smart App Control), and the Atlas toggles no install choice owns,
@@ -72,11 +72,11 @@ if ($defender.Count -eq 1) {
 }
 
 # Microsoft Edge and the AppX families a choice removes, removed as a first installation
-# removes them: for the accounts of this PC that have them installed, as completion reads
-# them, and for new accounts while Windows still provisions them, which a feature update
-# would also bring back. One left only staged, or registered to SYSTEM or a removed
-# account, is no removal to make on its own. An update can't put them back, so a cleared
-# box changes nothing.
+# removes them. They go for the accounts of this PC that have them installed, as
+# completion reads them. They also go for new accounts while Windows still provisions
+# them, since a feature update would bring them back. A family left only staged, or
+# registered to SYSTEM or a removed account, isn't a removal to make on its own. An
+# update can't put them back, so a cleared box changes nothing.
 $installedFamilies = @($facts.Appx | Where-Object { $_ })
 # Read only when a chosen family isn't installed for anyone, as it takes a while.
 $provisioned = $null

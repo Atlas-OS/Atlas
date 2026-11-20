@@ -12,8 +12,6 @@
         'Get-AvailableArchiveName'
         'Get-AtlasPlaybookPayloadPath'
         'Compare-AtlasPayloadPath'
-        'Get-AtlasYamlAction'
-        'Assert-AtlasConfigurationRunnerBoundary'
         'New-StagedPlaybookConf'
         'Set-OemVersionStamp'
         'New-Apbx'

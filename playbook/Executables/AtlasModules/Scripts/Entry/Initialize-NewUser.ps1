@@ -81,7 +81,7 @@ function Set-SetupMarker {
 }
 
 # First-logon windows close with the session, so retain warnings in a per-user log.
-# The delayed search finalizer is intentionally silent and does not need a second
+# The delayed search finaliser is intentionally silent and does not need a second
 # transcript containing only its process header.
 if (-not $FinalizeSearch) {
     try {
@@ -108,7 +108,7 @@ function Set-SearchTaskbarMode {
 
     # Follow a recorded 'Enable Web Search' choice, which the replay has applied: the
     # search box with highlights, and none of the cloud-search values it removed. The
-    # delayed finalizer doesn't load Atlas.Toggles, so read the record directly.
+    # delayed finaliser doesn't load Atlas.Toggles, so read the record directly.
     $webSearch = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\AtlasOS\Services\WebSearch' -Name state `
             -ErrorAction SilentlyContinue).state
     if ($webSearch -is [int] -and $webSearch -eq 1) {
@@ -125,7 +125,7 @@ function Set-SearchTaskbarMode {
     $entries = @(foreach ($name in @('SearchboxTaskbarMode', 'SearchboxTaskbarModeCache')) {
             @{ Path = $searchPath; Name = $name; Type = 'DWord'; Data = $mode; AllowOsProtected = $true }
         }) + @($entries)
-    # Keep finalization running when Windows refuses an individual preference, the
+    # Keep finalisation running when Windows refuses an individual preference, the
     # search box values included.
     Invoke-AtlasRegistryEntries -Entries $entries -Scope CurrentUser -IsArm64 $false
 }

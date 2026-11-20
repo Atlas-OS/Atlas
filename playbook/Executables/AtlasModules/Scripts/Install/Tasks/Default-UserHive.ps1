@@ -1,3 +1,5 @@
+# Loads and unloads Atlas's mount of the default user's registry hive.
+# Set-AtlasDefaultUserHive.ps1 dot-sources it as TrustedInstaller.
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
     'PSUseShouldProcessForStateChangingFunctions',
     '',

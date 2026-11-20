@@ -1,6 +1,9 @@
 <#
 .SYNOPSIS
     Applies one tweak category's HKCU entries as the exact installing user.
+.DESCRIPTION
+    The tweaks phase runs it in the installing user's own process, without
+    elevation, for each tweak category after the protected policy pass.
 #>
 [CmdletBinding()]
 param(
@@ -67,7 +70,6 @@ $context = [pscustomobject]@{
     WindowsBuild         = $WindowsBuild
     IsUpgrade            = [bool]$IsUpgrade
     IsRebase             = [bool]$IsRebase
-    IsOobe               = $false
     IsInstallStateBacked = $true
     Options              = $options
 }

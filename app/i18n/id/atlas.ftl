@@ -159,9 +159,6 @@ home-show-full-notes = Tampilkan semua catatan rilis
 home-your-install = Penyiapan Atlas Anda
 # Atlas is installed, but without the record Atlas Manager keeps (older versions didn't write one).
 home-install-unrecorded = PC ini tidak memiliki catatan tentang cara Atlas diinstal, sehingga pilihan dan riwayat penginstalan Anda tidak dapat ditampilkan.
-# Row label: how Atlas was set up.
-home-set-up = Metode penyiapan
-home-set-up-during-oobe = Saat penyiapan Windows
 home-history = Riwayat penginstalan
 # One history row. $version is text, $mode one of the history-mode-* messages, $date a formatted date and time.
 home-history-entry = Atlas { $version } · { $mode } · { $date }
@@ -309,7 +306,7 @@ package-from-file = Atlas { $version } telah dimuat dari { $file } dan siap diin
 package-unpacked = Atlas { $version } siap diinstal.
 package-none-yet = Belum ada file penginstalan yang dipilih
 acquire-no-asset = Atlas { $version } tidak memiliki file paket yang dapat diunduh. Buka paket Atlas (.apbx) yang tersimpan untuk melanjutkan.
-acquire-unsupported = Aplikasi ini dapat menginstal Atlas 0.6.0 dan yang lebih baru. Untuk menginstal Atlas { $version }, gunakan AME Wizard.
+acquire-unsupported = Aplikasi ini dapat menginstal Atlas 0.6.0 dan yang lebih baru.
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = Atlas { $version } tidak berisi file yang diperlukan aplikasi ini untuk menginstalnya. Unduh lagi, atau buka paket Atlas (.apbx) lain.
 acquire-failed = Tidak dapat menyiapkan file penginstalan. Coba unduh lagi, atau buka paket Atlas (.apbx) lain. Detail: { $error }

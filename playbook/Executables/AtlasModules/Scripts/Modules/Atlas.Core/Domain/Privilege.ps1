@@ -167,7 +167,7 @@ function Invoke-AtlasTrustedInstaller {
             $argumentList.Add($RestoreSource)
         }
         'Install' {
-            # $InstallPhase and $PayloadRoot were checked and normalized above.
+            # $InstallPhase and $PayloadRoot were checked and normalised above.
             $argumentList.Add('-InstallPhase')
             $argumentList.Add($InstallPhase)
             $argumentList.Add('-PayloadRoot')

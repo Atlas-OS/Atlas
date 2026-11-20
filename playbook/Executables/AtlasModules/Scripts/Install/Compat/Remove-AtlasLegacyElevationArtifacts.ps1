@@ -9,7 +9,7 @@
     volatile RunAsTI value after verifying the current token against ExpectedUserSid.
 
     Development-only SendTo and NSudo variants are intentionally not migration
-    contracts. Customized registry entries are retained.
+    contracts. Customised registry entries are retained.
 #>
 
 [CmdletBinding()]

@@ -151,10 +151,10 @@ Describe 'Tweak manifest execution graph' {
         $manifest = Get-AtlasTweakManifest -Path $script:shippedManifestPath
         . (Join-Path $script:repositoryRoot `
             'playbook\Executables\AtlasModules\Scripts\Install\Install-Plan.ps1')
-        $freshKeys = @((Get-AtlasInstallPlan -Mode Fresh -IsOobe $false).Key)
-        $upgradeKeys = @((Get-AtlasInstallPlan -Mode Upgrade -IsOobe $false).Key)
+        $freshKeys = @((Get-AtlasInstallPlan -Mode Fresh).Key)
+        $upgradeKeys = @((Get-AtlasInstallPlan -Mode Upgrade).Key)
         # A reinstall runs them as an update, which is what 'Upgrade' stands for here.
-        $reapplyKeys = @((Get-AtlasInstallPlan -Mode Reapply -IsOobe $false).Key)
+        $reapplyKeys = @((Get-AtlasInstallPlan -Mode Reapply).Key)
 
         foreach ($category in @($manifest.Categories)) {
             @($category.ParentModes) | Should -Be @('Fresh', 'Upgrade')
@@ -178,7 +178,7 @@ Describe 'Tweak manifest execution graph' {
         foreach ($entry in @($manifest.Standalone)) {
             $slug = [string]$entry.Slug
             foreach ($mode in @('Fresh', 'Upgrade', 'Reapply')) {
-                $keys = @((Get-AtlasInstallPlan -Mode $mode -IsOobe $false).Key)
+                $keys = @((Get-AtlasInstallPlan -Mode $mode).Key)
                 $expected = if (@($entry.ParentModes) -ccontains $mode) { 1 } else { 0 }
                 @($keys | Where-Object { $_ -ceq "Tweak/$slug" }).Count |
                     Should -Be $expected -Because "'$slug' routes through modes $(@($entry.ParentModes) -join ',')"

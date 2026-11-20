@@ -34,6 +34,9 @@ impl InstallMode {
     }
 }
 
+/// The parts of `state.json` the app shows. Unknown fields are ignored, so
+/// documents written by older or newer Atlas releases, with fields this app
+/// doesn't read, still load.
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AtlasState {
@@ -41,8 +44,6 @@ pub struct AtlasState {
     pub installed_version: Option<String>,
     pub installed_at: Option<String>,
     pub mode: Option<String>,
-    #[serde(default)]
-    pub is_oobe: bool,
     #[serde(default)]
     pub options: Vec<String>,
     #[serde(default)]
@@ -558,5 +559,19 @@ mod tests {
             .unwrap();
             assert_eq!(state.has_completed_install(), installed, "{version:?} {timestamp:?}");
         }
+    }
+
+    /// Records written by older releases carry fields the app no longer
+    /// reads, such as `isOobe` and `isInteractive`; they still load.
+    #[test]
+    fn a_state_with_fields_the_app_does_not_read_still_loads() {
+        let state: AtlasState = serde_json::from_value(serde_json::json!({
+            "schemaVersion": 1, "installedVersion": "0.6.0", "installedAt": "2026-09-07T14:00:00Z",
+            "mode": "Fresh", "isOobe": true, "isInteractive": false, "options": ["defender-enable"],
+        }))
+        .unwrap();
+        assert!(state.has_completed_install());
+        assert_eq!(state.install_mode(), InstallMode::Fresh);
+        assert_eq!(state.options, ["defender-enable"]);
     }
 }

@@ -2,9 +2,9 @@
 #
 # While installation is active, mode, identity, and FeaturePage options come from
 # Atlas.InstallState. After successful completion archives that state, the machine
-# state document (C:\Windows\AtlasOS\state.json, Atlas.State) carries the installed
-# version, mode and options. The Upgrade, Interactive and option flags remain only as
-# a fallback for machines installed before the document existed.
+# state document (%windir%\AtlasOS\state.json, Atlas.State) carries the installed
+# version, mode and options. The Upgrade and option flags remain only as a fallback
+# for machines installed before the document existed.
 
 $script:AtlasContext = $null
 
@@ -65,20 +65,18 @@ function Get-AtlasContext {
     param(
         [switch]$Refresh,
 
-        # Read-only seams keep context behavior deterministic in Pester without touching
-        # the host registry or canonical Windows transaction store.
+        # Read-only stand-ins keep context behaviour deterministic in Pester without
+        # touching the host registry or canonical Windows transaction store.
         [string]$WindowsPath,
         [scriptblock]$StateReader,
         [scriptblock]$DocumentReader,
-        [scriptblock]$WindowsBuildReader,
-        [scriptblock]$OobeReader
+        [scriptblock]$WindowsBuildReader
     )
 
     $usingReadSeam = $PSBoundParameters.ContainsKey('WindowsPath') -or
         $PSBoundParameters.ContainsKey('StateReader') -or
         $PSBoundParameters.ContainsKey('DocumentReader') -or
-        $PSBoundParameters.ContainsKey('WindowsBuildReader') -or
-        $PSBoundParameters.ContainsKey('OobeReader')
+        $PSBoundParameters.ContainsKey('WindowsBuildReader')
     if ($script:AtlasContext -and -not $Refresh -and -not $usingReadSeam) {
         return $script:AtlasContext
     }
@@ -189,35 +187,6 @@ function Get-AtlasContext {
         Test-Path -LiteralPath (Join-Path -Path $flagsPath -ChildPath 'Upgrade.flag') -PathType Leaf
     }
 
-    $isOobe = if ($isInstallStateBacked) {
-        [bool]$installState.isOobe
-    }
-    elseif ($isDocumentBacked) {
-        [bool]$document.isOobe
-    }
-    else {
-        # Completion writes Interactive.flag for normal installs. Its absence can mean
-        # OOBE or a machine installed before the flag existed, so consult the live
-        # setup indicator only when context comes from flags.
-        $flagBackedOobe = $false
-        if (-not (Test-Path -LiteralPath (Join-Path -Path $flagsPath -ChildPath 'Interactive.flag') -PathType Leaf)) {
-            try {
-                $oobeInProgress = if ($null -ne $OobeReader) {
-                    & $OobeReader
-                }
-                else {
-                    (Get-ItemProperty -Path 'HKLM:\SYSTEM\Setup' -Name 'OOBEInProgress' `
-                        -ErrorAction Stop).OOBEInProgress
-                }
-                $flagBackedOobe = ($oobeInProgress -eq 1)
-            }
-            catch {
-                $flagBackedOobe = $false
-            }
-        }
-        $flagBackedOobe
-    }
-
     $script:AtlasContext = [pscustomobject]@{
         WinDir             = $winDir
         AtlasModulesPath   = $atlasModulesPath
@@ -227,7 +196,6 @@ function Get-AtlasContext {
         WindowsBuild       = $windowsBuild
         IsUpgrade          = $isUpgrade
         IsRebase           = $isInstallStateBacked -and $mode -ceq 'Rebase'
-        IsOobe             = $isOobe
         IsInstallStateBacked     = $isInstallStateBacked
         IsStateDocumentBacked    = $isDocumentBacked
         StateDocumentPath        = $documentPath
@@ -250,9 +218,9 @@ function Get-AtlasContext {
 function Test-AtlasOption {
     <#
     .SYNOPSIS
-        Returns whether the active install state contains an AME Wizard FeaturePage
-        option. After completion, reads the machine state document, or the published
-        option flag on a machine installed before the document existed.
+        Returns whether the active install state contains a FeaturePage option from
+        playbook.conf. After completion, reads the machine state document, or the
+        published option flag on a machine installed before the document existed.
     #>
     param(
         [Parameter(Mandatory = $true)]

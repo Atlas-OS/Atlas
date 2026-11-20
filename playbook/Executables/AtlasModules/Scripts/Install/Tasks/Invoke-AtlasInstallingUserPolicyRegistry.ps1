@@ -1,6 +1,9 @@
 <#
 .SYNOPSIS
     Applies only Windows-protected HKCU policy entries to the exact installing user.
+.DESCRIPTION
+    The tweaks phase runs it as TrustedInstaller for each tweak category, after the
+    machine pass and before the installing user's own HKCU pass.
 #>
 [CmdletBinding()]
 param(
@@ -67,7 +70,6 @@ $context = [pscustomobject]@{
     WindowsBuild         = $WindowsBuild
     IsUpgrade            = [bool]$IsUpgrade
     IsRebase             = [bool]$IsRebase
-    IsOobe               = $false
     IsInstallStateBacked = $true
     Options              = $options
 }

@@ -1,7 +1,7 @@
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
     'PSReviewUnusedParameter',
     '',
-    Justification = 'The environment-phase harness stubs declare the parameter surface of the commands they shadow.'
+    Justification = 'The environment-phase harness stubs declare the same parameters as the commands they shadow.'
 )]
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
     'PSAvoidOverwritingBuiltInCmdlets',
@@ -180,7 +180,7 @@ Describe 'Environment phase execution policy gate' {
     }
 
     It 'sets RemoteSigned for a fresh install' {
-        $context = [pscustomobject]@{ IsUpgrade = $false; IsOobe = $false }
+        $context = [pscustomobject]@{ IsUpgrade = $false }
 
         {
             Invoke-AtlasEnvironmentPhaseForTest -Path $script:phasePath -Context $context `
@@ -198,7 +198,7 @@ Describe 'Environment phase execution policy gate' {
     }
 
     It 'preserves the existing policy during an upgrade' {
-        $context = [pscustomobject]@{ IsUpgrade = $true; IsOobe = $false }
+        $context = [pscustomobject]@{ IsUpgrade = $true }
 
         {
             Invoke-AtlasEnvironmentPhaseForTest -Path $script:phasePath -Context $context `

@@ -1,3 +1,5 @@
+# Adds AtlasModules, its Tools and its Scripts folders to the machine PATH. The install
+# plan's InitializePath checkpoint runs it as TrustedInstaller in every install mode.
 $trustBootstrap = [IO.Path]::GetFullPath([IO.Path]::Combine(
         $PSScriptRoot,
         '..',

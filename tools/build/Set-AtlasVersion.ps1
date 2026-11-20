@@ -1,16 +1,21 @@
 <#
 .SYNOPSIS
-    Bumps the Atlas package version in playbook.conf: sets <Version>, rewrites <Title>
-    to "Atlas v<Version>" (preserving a "(dev)" suffix), and moves the previous version
-    into <UpgradableFrom>, retaining an explicit list of supported sources. Also rewrites
-    every onUpgradeVersions entry in Configuration/custom.yml to the new version so the
-    upgrade-only actions stay bound to the released version, sets the same version in
-    app/Cargo.toml and the atlas-app entry in app/Cargo.lock, which the --locked app
-    builds need, and in the "Atlas v<Version> for Windows 11" options of the bug report
-    template.
+    Bumps the Atlas package version in playbook.conf and Atlas Manager.
 .DESCRIPTION
+    In playbook.conf, sets <Version> and adds the previous version to <UpgradableFrom>,
+    keeping the sources already listed. Sets the same version in app/Cargo.toml and in
+    the atlas-app entry of app/Cargo.lock, which the --locked app builds need.
+
     When playbook.conf already has the version, it's left as it is and only the other
     files that disagree with it are brought in line.
+.PARAMETER Version
+    The new version, as major.minor.patch.
+.PARAMETER PlaybookConfPath
+    The playbook.conf to bump. The default is the repository's.
+.PARAMETER CargoTomlPath
+    Atlas Manager's Cargo.toml. The default is app/Cargo.toml in the same repository.
+.PARAMETER CargoLockPath
+    Atlas Manager's Cargo.lock. The default is app/Cargo.lock in the same repository.
 .EXAMPLE
     tools/build/Set-AtlasVersion.ps1 -Version 0.6.0
 #>
@@ -24,13 +29,9 @@ Param(
 
     [string]$PlaybookConfPath,
 
-    [string]$CustomYmlPath,
-
     [string]$CargoTomlPath,
 
-    [string]$CargoLockPath,
-
-    [string]$BugReportTemplatePath
+    [string]$CargoLockPath
 )
 
 Set-StrictMode -Version 3.0
@@ -41,12 +42,6 @@ if (-not $PlaybookConfPath) {
 }
 $PlaybookConfPath = (Resolve-Path -LiteralPath $PlaybookConfPath).ProviderPath
 
-if (-not $CustomYmlPath) {
-    $CustomYmlPath = Join-Path -Path (Split-Path -Path $PlaybookConfPath -Parent) `
-        -ChildPath 'Configuration\custom.yml'
-}
-$CustomYmlPath = (Resolve-Path -LiteralPath $CustomYmlPath).ProviderPath
-
 $repositoryRoot = Split-Path -Path (Split-Path -Path $PlaybookConfPath -Parent) -Parent
 if (-not $CargoTomlPath) {
     $CargoTomlPath = Join-Path -Path $repositoryRoot -ChildPath 'app\Cargo.toml'
@@ -56,10 +51,6 @@ if (-not $CargoLockPath) {
     $CargoLockPath = Join-Path -Path $repositoryRoot -ChildPath 'app\Cargo.lock'
 }
 $CargoLockPath = (Resolve-Path -LiteralPath $CargoLockPath).ProviderPath
-if (-not $BugReportTemplatePath) {
-    $BugReportTemplatePath = Join-Path -Path $repositoryRoot -ChildPath '.github\ISSUE_TEMPLATE\bug_report.yml'
-}
-$BugReportTemplatePath = (Resolve-Path -LiteralPath $BugReportTemplatePath).ProviderPath
 
 $lines = Get-Content -LiteralPath $PlaybookConfPath -Encoding UTF8
 
@@ -86,19 +77,13 @@ if ($bumpConf) {
         elseif ($line -match '<UpgradableFrom>\s*[^<]+?\s*</UpgradableFrom>') {
             $line -replace '(<UpgradableFrom>\s*)[^<]+?(\s*</UpgradableFrom>)', "`${1}$currentVersion`${2}"
         }
-        elseif ($line -match '<Title>\s*[^<]*?\s*</Title>') {
-            # Keep everything before "v<number>" (e.g. "Atlas ") and any trailing " (dev)".
-            $suffix = ''
-            if ($line -match '\(dev\)') { $suffix = ' (dev)' }
-            $line -replace '(<Title>\s*).*?(\s*</Title>)', "`${1}Atlas v$Version$suffix`${2}"
-        }
         else {
             $line
         }
     }
 
-    # AME accepts both one source version and a string list. Keep the reviewed
-    # legacy sources when adding the release being superseded.
+    # <UpgradableFrom> holds either one version as its text or a list of <string>
+    # sources. A list keeps its sources when the superseded release is added.
     $updatedText = $updated -join [Environment]::NewLine
     $arrayPattern = '(?s)(<UpgradableFrom>)(?=\s*<string>)(.*?)(\s*</UpgradableFrom>)'
     $arrayMatch = [regex]::Match($updatedText, $arrayPattern)
@@ -114,14 +99,6 @@ if ($bumpConf) {
     }
     $updated = $updatedText -split '\r?\n'
 }
-
-$customYmlText = [IO.File]::ReadAllText($CustomYmlPath)
-$onUpgradePattern = '(onUpgradeVersions:\s*\[)[^\]]*(\])'
-$onUpgradeMatches = [regex]::Matches($customYmlText, $onUpgradePattern)
-if ($onUpgradeMatches.Count -eq 0) {
-    throw "Could not find any onUpgradeVersions entries in '$CustomYmlPath'."
-}
-$updatedCustomYml = [regex]::Replace($customYmlText, $onUpgradePattern, "`${1}'$Version'`${2}")
 
 # The first line that starts with a version key is the [package] one: dependencies
 # only use inline version keys.
@@ -139,19 +116,9 @@ if (-not [regex]::IsMatch($cargoLockText, $cargoLockPattern)) {
 }
 $updatedCargoLock = [regex]::Replace($cargoLockText, $cargoLockPattern, "`${1}$Version`${2}")
 
-$templateText = [IO.File]::ReadAllText($BugReportTemplatePath)
-$templatePattern = '(?m)^([ \t]*- Atlas v)\d+\.\d+\.\d+( for Windows 11 )'
-$templateMatches = [regex]::Matches($templateText, $templatePattern)
-if ($templateMatches.Count -eq 0) {
-    throw "Could not find any 'Atlas v<version> for Windows 11' options in '$BugReportTemplatePath'."
-}
-$updatedTemplate = [regex]::Replace($templateText, $templatePattern, "`${1}$Version`${2}")
-
 $pending = @(
-    if ($updatedCustomYml -cne $customYmlText) { 'custom.yml' }
     if ($updatedCargoToml -cne $cargoTomlText) { 'Cargo.toml' }
     if ($updatedCargoLock -cne $cargoLockText) { 'Cargo.lock' }
-    if ($updatedTemplate -cne $templateText) { 'bug_report.yml' }
 )
 if (-not $bumpConf) {
     if ($pending.Count -eq 0) {
@@ -166,11 +133,6 @@ if ($bumpConf -and $PSCmdlet.ShouldProcess($PlaybookConfPath, "Set version to $V
     Write-Host "playbook.conf version: $currentVersion -> $Version (previous version added to upgrade sources)." -ForegroundColor Green
 }
 
-if ($pending -contains 'custom.yml' -and $PSCmdlet.ShouldProcess($CustomYmlPath, "Set every onUpgradeVersions entry to $Version")) {
-    [IO.File]::WriteAllText($CustomYmlPath, $updatedCustomYml, [Text.UTF8Encoding]::new($false))
-    Write-Host "custom.yml: $($onUpgradeMatches.Count) onUpgradeVersions entries set to $Version." -ForegroundColor Green
-}
-
 if ($pending -contains 'Cargo.toml' -and $PSCmdlet.ShouldProcess($CargoTomlPath, "Set the package version to $Version")) {
     [IO.File]::WriteAllText($CargoTomlPath, $updatedCargoToml, [Text.UTF8Encoding]::new($false))
     Write-Host "Cargo.toml: package version set to $Version." -ForegroundColor Green
@@ -179,9 +141,4 @@ if ($pending -contains 'Cargo.toml' -and $PSCmdlet.ShouldProcess($CargoTomlPath,
 if ($pending -contains 'Cargo.lock' -and $PSCmdlet.ShouldProcess($CargoLockPath, "Set the atlas-app version to $Version")) {
     [IO.File]::WriteAllText($CargoLockPath, $updatedCargoLock, [Text.UTF8Encoding]::new($false))
     Write-Host "Cargo.lock: atlas-app version set to $Version." -ForegroundColor Green
-}
-
-if ($pending -contains 'bug_report.yml' -and $PSCmdlet.ShouldProcess($BugReportTemplatePath, "Set every Atlas version option to $Version")) {
-    [IO.File]::WriteAllText($BugReportTemplatePath, $updatedTemplate, [Text.UTF8Encoding]::new($false))
-    Write-Host "bug_report.yml: $($templateMatches.Count) Atlas version options set to $Version." -ForegroundColor Green
 }

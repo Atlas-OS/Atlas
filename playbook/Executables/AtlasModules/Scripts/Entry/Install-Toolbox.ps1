@@ -4,8 +4,8 @@ param([switch]$Silent)
 $ErrorActionPreference = 'Stop'
 
 # The .cmd compatibility launcher passes only its first token through a process
-# environment slot. Normalize it here, then clear it before any elevated child
-# is created; no caller-supplied command text crosses the UAC boundary.
+# environment slot. Normalise it here and clear it before any elevated child is
+# created, so no caller-supplied command text reaches an elevated process.
 $launcherArgument = [Environment]::GetEnvironmentVariable(
     'AtlasLauncherArgument',
     [EnvironmentVariableTarget]::Process

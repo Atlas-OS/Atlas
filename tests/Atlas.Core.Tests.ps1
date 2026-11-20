@@ -15,6 +15,8 @@ Describe 'Get-AtlasContext install state' {
         $windowsPath = Join-Path -Path $TestDrive -ChildPath 'Windows'
         [void][IO.Directory]::CreateDirectory($windowsPath)
         $transactionId = '31f30158-28ea-4e0c-86b5-d8f3e33b81f5'
+        # Install states that older Atlas releases wrote also carry isOobe, which the
+        # context ignores.
         $state = [pscustomobject]@{
             mode          = 'Upgrade'
             isOobe        = $true
@@ -41,7 +43,7 @@ Describe 'Get-AtlasContext install state' {
         $context.IsInstallStateBacked | Should -BeTrue
         $context.Mode | Should -BeExactly 'Upgrade'
         $context.IsUpgrade | Should -BeTrue
-        $context.IsOobe | Should -BeTrue
+        $context.PSObject.Properties['IsOobe'] | Should -BeNullOrEmpty
         $context.TargetVersion | Should -BeExactly '0.5.1'
         $context.InteractiveUserSid | Should -BeExactly 'S-1-5-21-1-2-3-1001'
         $context.InteractiveUserSessionId | Should -Be 7
@@ -63,7 +65,7 @@ Describe 'Get-AtlasContext install state' {
             $before = Get-Module -Name Atlas.InstallState
 
             $context = Get-AtlasContext -Refresh -WindowsPath $windowsPath `
-                -WindowsBuildReader { 26200 } -OobeReader { 0 }
+                -WindowsBuildReader { 26200 }
 
             $context.IsInstallStateBacked | Should -BeTrue
             $context.TransactionId | Should -BeExactly ([string]$started.transactionId)
@@ -89,7 +91,7 @@ Describe 'Get-AtlasContext install state' {
     ) {
         param($Mode, $Choices, $Expected, $ChoosingAgain)
         $state = [ordered]@{
-            mode = $Mode; isOobe = $false; targetVersion = '0.6.0'; userSid = $null; userSessionId = $null
+            mode = $Mode; targetVersion = '0.6.0'; userSid = $null; userSessionId = $null
             transactionId = '31f30158-28ea-4e0c-86b5-d8f3e33b81f5'; options = @()
         }
         if ($null -ne $Choices) { $state.choices = $Choices }
@@ -101,14 +103,14 @@ Describe 'Get-AtlasContext install state' {
     }
 
     It 'refuses an update path it doesn''t know' {
-        $state = [pscustomobject]@{ mode = 'Upgrade'; isOobe = $false; targetVersion = '0.6.0'; userSid = $null; userSessionId = $null; transactionId = 'x'; options = @(); choices = 'Sometimes' }
+        $state = [pscustomobject]@{ mode = 'Upgrade'; targetVersion = '0.6.0'; userSid = $null; userSessionId = $null; transactionId = 'x'; options = @(); choices = 'Sometimes' }
         $reader = { $state }.GetNewClosure()
         { Get-AtlasContext -Refresh -WindowsPath (Join-Path $TestDrive 'Windows') -StateReader $reader -WindowsBuildReader { 26200 } } |
             Should -Throw "*choices value 'Sometimes' is invalid*"
     }
 
     It 'never chooses again outside an install' {
-        $document = [pscustomobject]@{ installedVersion = '0.6.0'; mode = 'Reapply'; isOobe = $false; options = @(); history = @() }
+        $document = [pscustomobject]@{ installedVersion = '0.6.0'; mode = 'Reapply'; options = @(); history = @() }
         $context = Get-AtlasContext -Refresh -WindowsPath (Join-Path $TestDrive 'Windows') -StateReader { $null } `
             -DocumentReader { $document }.GetNewClosure() -WindowsBuildReader { 26200 }
         $context.Choices | Should -BeExactly 'Keep'
@@ -123,13 +125,12 @@ Describe 'Get-AtlasContext install state' {
         [IO.File]::WriteAllText((Join-Path $flagsPath 'option-browser-firefox.flag'), '')
 
         $context = Get-AtlasContext -Refresh -WindowsPath $windowsPath `
-            -StateReader { $null } -DocumentReader { $null } -WindowsBuildReader { 19045 } -OobeReader { 1 }
+            -StateReader { $null } -DocumentReader { $null } -WindowsBuildReader { 19045 }
 
         $context.IsInstallStateBacked | Should -BeFalse
         $context.IsStateDocumentBacked | Should -BeFalse
         $context.Mode | Should -BeExactly 'Legacy'
         $context.IsUpgrade | Should -BeTrue
-        $context.IsOobe | Should -BeTrue
         $context.TargetVersion | Should -BeNullOrEmpty
         $context.InteractiveUserSid | Should -BeNullOrEmpty
         $context.InteractiveUserSessionId | Should -BeNullOrEmpty
@@ -165,7 +166,7 @@ Describe 'Write-AtlasLog fallback' {
         $windowsPath = Join-Path -Path $TestDrive -ChildPath 'LoadedContextWindows'
         [void][IO.Directory]::CreateDirectory($windowsPath)
         Get-AtlasContext -Refresh -WindowsPath $windowsPath -StateReader { $null } `
-            -DocumentReader { $null } -WindowsBuildReader { 26100 } -OobeReader { 0 } | Out-Null
+            -DocumentReader { $null } -WindowsBuildReader { 26100 } | Out-Null
         try {
             Mock Test-AtlasAdmin { $true } -ModuleName Atlas.Core
             Mock Get-AtlasContext { throw 'Elevated logging must not reload the context' } -ModuleName Atlas.Core
@@ -247,7 +248,7 @@ Describe 'Invoke-AtlasTrustedInstaller' {
         } -ModuleName Atlas.Core
     }
 
-    It 'exports only the closed operation API and has no raw command surface' {
+    It 'exports only the closed operation API and takes no raw command parameters' {
         $command = Get-Command Invoke-AtlasTrustedInstaller
         $command.Parameters.Keys | Should -Contain 'Operation'
         foreach ($forbidden in @(
@@ -462,7 +463,7 @@ Describe 'Get-AtlasContext machine state document' {
         $context.InstalledVersion | Should -Be '0.6.0'
         $context.Mode | Should -BeExactly 'Upgrade'
         $context.IsUpgrade | Should -BeTrue
-        $context.IsOobe | Should -BeFalse
+        $context.PSObject.Properties['IsOobe'] | Should -BeNullOrEmpty
         @($context.Options) | Should -Be @('defender-enable')
         $context.StateDocumentPath | Should -Be (Join-Path $windowsPath 'AtlasOS\state.json')
     }

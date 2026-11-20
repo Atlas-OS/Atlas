@@ -1,3 +1,6 @@
+# Names the boot entry and the OEM model after this Atlas version, which the build stamps
+# over AtlasVersionUndefined. The misc tweak category's config-oem-information companion
+# runs it as TrustedInstaller.
 $ErrorActionPreference = 'Stop'
 
 $version = 'AtlasVersionUndefined'

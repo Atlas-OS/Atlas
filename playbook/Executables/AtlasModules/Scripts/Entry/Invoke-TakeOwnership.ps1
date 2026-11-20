@@ -4,7 +4,7 @@
 
 .DESCRIPTION
     The target path remains a native-process argument. It is never included in
-    cmd.exe or PowerShell source, including across the UAC boundary.
+    cmd.exe or PowerShell source, including in the elevated process.
 #>
 [CmdletBinding()]
 param(
@@ -138,7 +138,7 @@ if (-not $isAdministrator) {
 function Get-AtlasTakeOwnershipYesChoice {
     <#
     .SYNOPSIS
-        Returns the localized Yes letter that takeown.exe /d expects, read from the
+        Returns the localised Yes letter that takeown.exe /d expects, read from the
         [Y,N]? prompt choice.exe prints.
     #>
     param(

@@ -13,26 +13,21 @@ BeforeAll {
     function New-TestInstallState {
         param(
             [ValidateSet('Fresh', 'Upgrade', 'Reapply', 'Rebase')][string]$Mode,
-            [bool]$IsOobe = $false,
             [string]$Status = 'Running'
         )
-        [pscustomobject]@{ status = $Status; mode = $Mode; isOobe = $IsOobe }
+        [pscustomobject]@{ status = $Status; mode = $Mode }
     }
 }
 
 Describe 'Atlas file replacement plan' {
-    It 'maps <Mode> OOBE=<IsOobe> to stop=<Stop> remove=<Remove>' -TestCases @(
-        @{ Mode = 'Fresh'; IsOobe = $false; Stop = $false; Remove = $false }
-        @{ Mode = 'Fresh'; IsOobe = $true; Stop = $false; Remove = $false }
-        @{ Mode = 'Upgrade'; IsOobe = $false; Stop = $true; Remove = $true }
-        @{ Mode = 'Upgrade'; IsOobe = $true; Stop = $true; Remove = $false }
-        @{ Mode = 'Reapply'; IsOobe = $false; Stop = $true; Remove = $true }
-        @{ Mode = 'Reapply'; IsOobe = $true; Stop = $true; Remove = $false }
-        @{ Mode = 'Rebase'; IsOobe = $false; Stop = $true; Remove = $true }
-        @{ Mode = 'Rebase'; IsOobe = $true; Stop = $true; Remove = $false }
+    It 'maps <Mode> to stop=<Stop> remove=<Remove>' -TestCases @(
+        @{ Mode = 'Fresh'; Stop = $false; Remove = $false }
+        @{ Mode = 'Upgrade'; Stop = $true; Remove = $true }
+        @{ Mode = 'Reapply'; Stop = $true; Remove = $true }
+        @{ Mode = 'Rebase'; Stop = $true; Remove = $true }
     ) {
         $plan = Resolve-AtlasPayloadReplacementPlan `
-            -InstallState (New-TestInstallState -Mode $Mode -IsOobe $IsOobe)
+            -InstallState (New-TestInstallState -Mode $Mode)
         $plan.Mode | Should -BeExactly $Mode
         $plan.StopInstalledPayload | Should -Be $Stop
         $plan.RemoveInstalledPayload | Should -Be $Remove
@@ -44,10 +39,11 @@ Describe 'Atlas file replacement plan' {
             Should -Throw -ExpectedMessage '*requires a Running install state*'
     }
 
-    It 'requires a typed OOBE decision' {
-        $state = [pscustomobject]@{ status = 'Running'; mode = 'Fresh'; isOobe = 'false' }
-        { Resolve-AtlasPayloadReplacementPlan -InstallState $state } |
-            Should -Throw -ExpectedMessage '*isOobe must be a Boolean*'
+    It 'ignores the isOobe field an install state from an older release carries' {
+        $state = [pscustomobject]@{ status = 'Running'; mode = 'Reapply'; isOobe = $true }
+        $plan = Resolve-AtlasPayloadReplacementPlan -InstallState $state
+        $plan.StopInstalledPayload | Should -BeTrue
+        $plan.RemoveInstalledPayload | Should -BeTrue
     }
 }
 
@@ -82,12 +78,6 @@ Describe 'Atlas file replacement sequencing' {
         @($script:Events) | Should -Be @('CBS', 'Stop', 'ProcessExplorer', 'Remove', 'Copy', 'Verify')
     }
 
-    It 'does not remove the old files during an OOBE reapply' {
-        $plan = Resolve-AtlasPayloadReplacementPlan `
-            -InstallState (New-TestInstallState -Mode Reapply -IsOobe $true)
-        Invoke-AtlasPayloadReplacementCore -Plan $plan
-        @($script:Events) | Should -Be @('CBS', 'Stop', 'ProcessExplorer', 'Copy', 'Verify')
-    }
 
     It 'blocks every mutation while CBS retry is pending' {
         Mock Assert-AtlasPayloadReplacementAllowed {
@@ -123,7 +113,7 @@ Describe 'Atlas file replacement sequencing' {
     ) {
         param($Case, $Steps, $Enabled, $Expected)
         $script:ProcessExplorerChoiceEnabled = $Enabled
-        $state = [pscustomobject]@{ status = 'Running'; mode = 'Upgrade'; isOobe = $false; completedSteps = $Steps }
+        $state = [pscustomobject]@{ status = 'Running'; mode = 'Upgrade'; completedSteps = $Steps }
         Invoke-AtlasPayloadReplacementCore -Plan (Resolve-AtlasPayloadReplacementPlan -InstallState $state)
         @($script:Events) | Should -Be $Expected -Because $Case
     }

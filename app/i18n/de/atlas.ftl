@@ -11,11 +11,10 @@
 ###   Übermittlung von Beispielen, Einstellungen für Viren- & Bedrohungsschutz).
 ### - Product names stay as they are: Atlas, Windows, Microsoft Defender,
 ###   Windows-Sicherheit, Windows Update, GitHub, Discord, Atlas Toolbox,
-###   AME Wizard, Snipping Tool, LocalTest. German quotation marks („ “) mark
+###   Snipping Tool, LocalTest. German quotation marks („ “) mark
 ###   button and step names quoted inside sentences.
 ### - The .apbx file is the "Atlas-Paket" ("Paket" once that is clear; its file
-###   is the "Paketdatei"). "Playbook" only where a text explains that AME
-###   Wizard calls it that.
+###   is the "Paketdatei").
 ### - Plural categories: one, other.
 
 ## Shared
@@ -156,9 +155,6 @@ home-show-full-notes = Alle Versionshinweise anzeigen
 home-your-install = Ihre Atlas-Installation
 # Atlas is installed, but without the record Atlas Manager keeps (older versions didn't write one).
 home-install-unrecorded = Auf diesem PC ist nicht erfasst, wie Atlas installiert wurde. Ihre Auswahl und der Installationsverlauf können daher nicht angezeigt werden.
-# Row label: how Atlas was set up.
-home-set-up = Eingerichtet
-home-set-up-during-oobe = Während der Windows-Ersteinrichtung
 home-history = Installationsverlauf
 # One history row. $version is text, $mode one of the history-mode-* messages, $date a formatted date and time.
 home-history-entry = Atlas { $version } · { $mode } · { $date }
@@ -317,7 +313,7 @@ package-from-file = Atlas { $version } wurde aus { $file } geladen und ist berei
 package-unpacked = Atlas { $version } ist bereit zur Installation.
 package-none-yet = Keine Installationsdateien ausgewählt
 acquire-no-asset = Für Atlas { $version } gibt es keine Paketdatei zum Herunterladen. Öffnen Sie ein gespeichertes Atlas-Paket (.apbx), um fortzufahren.
-acquire-unsupported = Diese App kann Atlas 0.6.0 und neuer installieren. Verwenden Sie für Atlas { $version } stattdessen den AME Wizard.
+acquire-unsupported = Diese App kann Atlas 0.6.0 und neuer installieren.
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = In Atlas { $version } fehlen Dateien, die diese App zur Installation benötigt. Laden Sie es erneut herunter oder öffnen Sie ein anderes Atlas-Paket (.apbx).
 acquire-failed = Die Installationsdateien konnten nicht vorbereitet werden. Laden Sie sie erneut herunter oder öffnen Sie ein anderes Atlas-Paket (.apbx). Details: { $error }

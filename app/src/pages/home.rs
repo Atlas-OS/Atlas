@@ -859,14 +859,6 @@ fn setup_card_view(state: &AppModel, window: &Window, cx: &App) -> Option<AnyEle
                                 t!("common-options"),
                                 options_value(cx, "options", "home-options", options),
                             ))
-                            .when(installed.is_oobe, |this| {
-                                this.child(detail_row(
-                                    cx,
-                                    "set-up",
-                                    t!("home-set-up"),
-                                    detail_text("set-up", t!("home-set-up-during-oobe")),
-                                ))
-                            })
                             // A single entry is this install, already described above.
                             .when(history.len() > 1, |this| {
                                 this.child(detail_row(

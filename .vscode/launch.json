@@ -29,7 +29,7 @@
       "type": "PowerShell",
       "request": "launch",
       "name": "Build Atlas package (Release Candidate)",
-      "script": "& \"$(Join-Path '${workspaceFolder}' 'tools/build/Build-Playbook.ps1')\" -FileName 'Atlas RC' -ReplaceOldPlaybook -Removals Verification",
+      "script": "& \"$(Join-Path '${workspaceFolder}' 'tools/build/Build-Playbook.ps1')\" -FileName 'Atlas RC' -ReplaceOldPlaybook",
       "cwd": "${workspaceFolder}/playbook",
       "args": []
     }

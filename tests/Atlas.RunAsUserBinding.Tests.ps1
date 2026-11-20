@@ -19,13 +19,11 @@ BeforeAll {
     function New-TestUserContext {
         param(
             [string]$Sid = 'S-1-5-21-111-222-333-1001',
-            [object]$SessionId = 7,
-            [bool]$IsOobe = $false
+            [object]$SessionId = 7
         )
 
         [pscustomobject]@{
             WinDir                      = $script:WindowsPath
-            IsOobe                     = $IsOobe
             InteractiveUserSid          = $Sid
             InteractiveUserSessionId    = $SessionId
         }
@@ -81,7 +79,7 @@ Describe 'Atlas installing-user process boundary' {
         $calls[0].TimeoutMilliseconds | Should -Be 900000
     }
 
-    It 'preserves the serialized child arguments in the Windows command line' {
+    It 'preserves the serialised child arguments in the Windows command line' {
         $calls = New-Object Collections.Generic.List[object]
         $arguments = '-NoLogo -File "C:\Atlas Files\setup.ps1" "one two"'
 
@@ -91,14 +89,6 @@ Describe 'Atlas installing-user process boundary' {
             ('"{0}" {1}' -f $script:PowerShellPath, $arguments)
     }
 
-    It 'skips the launch during OOBE' {
-        $calls = New-Object Collections.Generic.List[object]
-        $context = New-TestUserContext -Sid '' -SessionId $null -IsOobe $true
-
-        Invoke-TestUserProcess -Context $context -Calls $calls | Should -Be 0
-
-        $calls.Count | Should -Be 0
-    }
 
     It 'rejects missing or invalid captured identity before launch' -TestCases @(
         @{ Sid = 'S-1-5-18'; Session = 7; Message = '*interactive account SID*' }
@@ -158,7 +148,7 @@ Describe 'Atlas installing-user process boundary' {
         { [Atlas.Native.UserProcess]::ValidateMediumIdentity(3, 0x1000, $false) } |
             Should -Throw -ExpectedMessage '*medium integrity*'
         # Disabling UAC (or enabling it without a restart) leaves an admin with
-        # an unlinked high-integrity token. Preserve the boundary and give recovery steps.
+        # an unlinked high-integrity token. Refuse it and give recovery steps.
         { [Atlas.Native.UserProcess]::ValidateMediumIdentity(1, 0x3000, $true) } |
             Should -Throw -ExpectedMessage '*Enable User Account Control (UAC), restart Windows*'
         { [Atlas.Native.UserProcess]::ValidateMediumIdentity(3, 0x2000, $true) } |

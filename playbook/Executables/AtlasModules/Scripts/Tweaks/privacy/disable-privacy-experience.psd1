@@ -1,6 +1,6 @@
 @{
     Name        = 'Disable OOBE Privacy Experience'
-    Description = 'Disables the OOBE (Out of Box Experience) privacy configuration that you might see on updates not to override current settings'
+    Description = 'Stops Windows showing its privacy settings screen after an update, so that screen can''t change the settings Atlas applied.'
     Registry    = @(
         @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\OOBE'; Name = 'DisablePrivacyExperience'; Type = 'DWord'; Data = 1 }
     )

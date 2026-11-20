@@ -160,9 +160,6 @@ home-show-full-notes = Mostrar todas as notas da versão
 home-your-install = Sua instalação do Atlas
 # Atlas is installed, but without the record Atlas Manager keeps (older versions didn't write one).
 home-install-unrecorded = Este PC não tem registro de como o Atlas foi instalado, então não é possível mostrar suas escolhas nem o histórico de instalações.
-# Row label: how Atlas was set up.
-home-set-up = Método de configuração
-home-set-up-during-oobe = Durante a configuração do Windows
 home-history = Histórico de instalações
 # One history row. $version is text, $mode one of the history-mode-* messages, $date a formatted date and time.
 home-history-entry = Atlas { $version } · { $mode } · { $date }
@@ -326,7 +323,7 @@ package-from-file = O Atlas { $version } foi carregado de { $file } e está pron
 package-unpacked = O Atlas { $version } está pronto para instalar.
 package-none-yet = Nenhum arquivo de instalação selecionado
 acquire-no-asset = O Atlas { $version } não tem um arquivo de pacote para baixar. Abra um pacote do Atlas (.apbx) salvo no PC para continuar.
-acquire-unsupported = Este app instala o Atlas 0.6.0 ou mais recente. Para instalar o Atlas { $version }, use o AME Wizard.
+acquire-unsupported = Este app instala o Atlas 0.6.0 ou mais recente.
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = O Atlas { $version } não inclui alguns arquivos de que este app precisa para instalá-lo. Baixe-o novamente ou abra outro pacote do Atlas (.apbx).
 acquire-failed = Não foi possível preparar os arquivos de instalação. Tente baixar novamente ou abra outro pacote do Atlas (.apbx). Detalhes: { $error }

@@ -1,5 +1,5 @@
-# Defaults phase.
-# Fresh installs initialize the toggle state store. Applying a toggle records its choice;
+# Defaults phase, in every install mode.
+# Fresh installs initialise the toggle state store. Applying a toggle records its choice;
 # default launcher labels alone do not create state. Upgrades and reapplies migrate the
 # existing tree and re-apply known states from installed definitions, except the choice
 # toggles the Choices step has just set when an update chooses again.
@@ -12,9 +12,10 @@ Import-Module -Name (Join-Path $modulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') 
 
 $context = Get-AtlasContext
 if ($context.IsUpgrade) {
-    # Choosing again, the Choices step has just applied the choice toggles whose records
-    # differed from the choices, and recorded which, so replaying those would only repeat
-    # it. The ones that already matched replay as when keeping choices.
+    # When an update chooses again, the Choices step has just applied the choice toggles
+    # whose records differed from the choices. It recorded which, and replaying those
+    # would only repeat its work. The ones that already matched replay as when keeping
+    # choices.
     $exclude = @()
     if ($context.IsChoosingAgain) {
         . (Join-Path (Split-Path -Parent $PSScriptRoot) 'Tasks\Choices.ps1')

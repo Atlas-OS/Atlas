@@ -2,7 +2,7 @@
 #
 # A Windows process receives one command-line string, not an argv array. PowerShell
 # 5.1 and 7 also join Start-Process -ArgumentList values without preserving where
-# each one starts and ends. Keep argv as strings until this file serializes it with
+# each one starts and ends. Keep argv as strings until this file serialises it with
 # the Windows C runtime rules, then launch the caller's explicit executable directly.
 
 function ConvertTo-AtlasQuotedWindowsArgument {
@@ -57,7 +57,7 @@ function ConvertTo-AtlasQuotedWindowsArgument {
 function ConvertTo-AtlasWindowsArgumentString {
     <#
     .SYNOPSIS
-        Serializes exact argv elements for a Windows CreateProcess command line.
+        Serialises exact argv elements for a Windows CreateProcess command line.
     #>
     [OutputType([string])]
     param(

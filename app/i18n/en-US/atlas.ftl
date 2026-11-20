@@ -19,7 +19,7 @@ settings-licences-failed = Couldn't open the license notices. Try again, or find
 ## System checks
 detail-activation-no-licence = Windows didn't report a license. You can continue; Atlas won't change your activation status.
 
-## Playbook options
+## Atlas package options
 playbook-option-disable-core-isolation = Turn off virtualization-based security (VBS)
 
 ## Install result

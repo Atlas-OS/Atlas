@@ -1,6 +1,6 @@
 @echo off
 rem This file is called from Atlas launchers after they have anchored themselves to
-rem the protected Windows command host. Keep it free of setlocal: the sanitized
+rem the protected Windows command host. Keep it free of setlocal: the sanitised
 rem environment must remain in the caller before Windows PowerShell starts.
 if not defined AtlasWindowsRoot exit /b 1
 

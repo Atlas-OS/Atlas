@@ -3,8 +3,8 @@
     Restores Atlas service defaults through the typed TrustedInstaller broker.
 .DESCRIPTION
     The broker always applies the closed Atlas service-default plan first. An optional
-    fixed Windows or Atlas snapshot is imported afterward. No command text, path, or
-    caller-authored registry data crosses the privileged boundary.
+    fixed Windows or Atlas snapshot is imported afterwards. No command text, path or
+    caller-authored registry data reaches the TrustedInstaller process.
 
     Interactive runs present themselves through the Atlas.Core console vocabulary and
     own the single exit pause; -Silent keeps the one-line output its callers capture.

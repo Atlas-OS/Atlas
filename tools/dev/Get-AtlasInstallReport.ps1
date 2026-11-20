@@ -24,7 +24,7 @@
          removes that any account still has: with each account's install state when
          elevated, otherwise with the accounts the AppX store's registry lists.
       8. Scheduled tasks.
-      9. Startup entries and pending-reboot state.
+      9. Startup entries and pending-restart state.
      10. Event log errors and warnings since the install (the newest 5,000 per log);
          for AppX deployment, errors, then warnings and information over the
          install, with the events that name a package Atlas removes.
@@ -36,6 +36,9 @@
 
     Every section is independent. One that cannot be collected records why, and the
     report still completes.
+
+    Atlas Manager runs this script with -OutputPath and -PartialPath when it exports
+    diagnostics.
 .PARAMETER OutputPath
     Where to write the report. Defaults to a timestamped file on the current user's
     Desktop.
@@ -57,6 +60,9 @@
     Run it from an elevated Windows PowerShell prompt, as the account that installed
     Atlas. Elevation makes every machine read succeed, and the per-user checks are only
     meaningful for that account.
+
+    Exit codes: 0 the report was written, 1 it could not be written. A section that
+    fails is recorded in the report and doesn't change the exit code.
 #>
 [CmdletBinding()]
 param(
@@ -90,8 +96,8 @@ $script:EventListCount = $EventCount
 # Newest events read per log. Limits the time the event section takes on a machine
 # with a long history since the install.
 $script:EventReadLimit = 5000
-# The health check can take longer than Atlas Manager's whole collection deadline on a
-# slow machine, which used to lose every section after it.
+# On a slow machine the health check alone can outlast Atlas Manager's deadline for the
+# whole collection. Stopping it here leaves time for the sections after it.
 $script:HealthCheckSeconds = 25
 $script:Summary = New-Object System.Collections.Generic.List[string]
 $script:PartialReport = $PartialPath
@@ -220,7 +226,7 @@ function Get-InstallTransactionLine {
 
     '{0,-20}: {1}' -f [IO.Path]::GetFileName($Path), $Path
     "  status            : $($Transaction.status)"
-    "  targetVersion     : $($Transaction.targetVersion)  mode $($Transaction.mode)  oobe $($Transaction.isOobe)"
+    "  targetVersion     : $($Transaction.targetVersion)  mode $($Transaction.mode)"
     "  transactionId     : $($Transaction.transactionId)"
     "  options           : $(@($Transaction.options) -join ', ')"
     "  lastError         : $(if ($Transaction.lastError) { $Transaction.lastError } else { '(none)' })"
@@ -533,7 +539,7 @@ Add-Section -Title '2. Atlas install state' -Collector {
         $lines += "state.json          : $statePath"
         $lines += "  installedVersion  : $($state.installedVersion)"
         $lines += "  installedAt       : $($state.installedAt)"
-        $lines += "  mode              : $($state.mode)  (oobe=$($state.isOobe), interactive=$($state.isInteractive))"
+        $lines += "  mode              : $($state.mode)  (interactive=$($state.isInteractive))"
         $lines += "  options           : $(@($state.options) -join ', ')"
         $lines += '  history           :'
         foreach ($entry in @($state.history)) {

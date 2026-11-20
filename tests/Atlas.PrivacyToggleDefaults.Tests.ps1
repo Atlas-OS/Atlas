@@ -9,7 +9,7 @@ Describe 'Applied toggle defaults' {
     It 'applies and records the three privacy defaults through the toggle engine' {
         Mock -ModuleName Atlas.Tweaks Invoke-AtlasToggleMachineState {}
         Mock -ModuleName Atlas.Tweaks Write-AtlasLog {}
-        $context = [pscustomobject]@{ IsUpgrade = $false; IsOobe = $false; IsArm64 = $false; WindowsBuild = 26200 }
+        $context = [pscustomobject]@{ IsUpgrade = $false; IsArm64 = $false; WindowsBuild = 26200 }
         $root = Join-Path $script:AtlasTestScriptsRoot 'Tweaks'
         $manifest = Get-AtlasTweakManifest -Path (Join-Path $root 'tweaks.manifest.psd1')
         @($manifest.Categories | Where-Object Name -eq 'privacy').Tweaks | Should -Contain 'apply-privacy-toggle-defaults'

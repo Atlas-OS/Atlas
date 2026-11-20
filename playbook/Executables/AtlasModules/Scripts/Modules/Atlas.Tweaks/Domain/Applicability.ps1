@@ -1,4 +1,4 @@
-# Atlas.Tweaks domain: tweak gating (Option / Arch / OnUpgrade / OnRebase / Oobe / MinBuild / MaxBuild).
+# Atlas.Tweaks domain: tweak gating (Option / Arch / OnUpgrade / OnRebase / MinBuild / MaxBuild).
 
 function Get-AtlasTweakSkipReason {
     <#
@@ -58,9 +58,6 @@ function Get-AtlasTweakSkipReason {
         return 'runs only on upgrade installs'
     }
 
-    if ($Tweak.ContainsKey('Oobe') -and $Tweak['Oobe'] -eq $false -and $context.IsOobe) {
-        return 'skipped during OOBE installs'
-    }
 
     # Windows build gating (inclusive). A build of 0 means the number could not be read;
     # the gate is then not enforced rather than silently skipping every gated tweak.
@@ -80,7 +77,7 @@ function Test-AtlasTweakApplicable {
     <#
     .SYNOPSIS
         Returns whether a tweak (loaded from its .psd1) applies to the current install
-        context, evaluating its Option, Arch, OnUpgrade/OnRebase, Oobe and MinBuild/MaxBuild gates.
+        context, evaluating its Option, Arch, OnUpgrade/OnRebase and MinBuild/MaxBuild gates.
     #>
     param(
         [Parameter(Mandatory = $true)]

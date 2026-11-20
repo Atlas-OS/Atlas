@@ -112,8 +112,8 @@ try {
                     throw "Install does not accept '-$parameterName'."
                 }
             }
-            # The native launcher re-validates the staging root, its DACL and the session
-            # script; this check only rejects obviously wrong input before that boundary.
+            # The native launcher validates the staging root, its DACL and the session
+            # script again. This check only rejects obviously wrong input before then.
             $stagingRoot = [IO.Path]::GetFullPath([IO.Path]::Combine([Environment]::GetFolderPath('Windows'), 'AtlasOS', 'Staging'))
             $resolvedPayloadRoot = [IO.Path]::GetFullPath($PayloadRoot)
             if (-not $resolvedPayloadRoot.StartsWith($stagingRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
@@ -132,8 +132,8 @@ try {
         }
     }
 
-    # The native process boundary is private to Atlas.Core. Invoke it in that
-    # module's session state after validating the broker's closed operation schema.
+    # The native launcher is private to Atlas.Core. It runs in that module's session
+    # state once the request matches the broker's closed set of operations.
     $result = & $coreModule {
         param($RequestParameters)
         Invoke-AtlasTrustedInstallerNativeOperation @RequestParameters

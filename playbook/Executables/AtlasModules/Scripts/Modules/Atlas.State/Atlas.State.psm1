@@ -1,6 +1,6 @@
-# Atlas.State - the machine state document.
+# Atlas.State: the machine state document.
 #
-# C:\Windows\AtlasOS\state.json is the one document that describes what Atlas has done to
+# %windir%\AtlasOS\state.json is the one document that describes what Atlas has done to
 # this machine: the installed version, how it got there, what the PC has for each install
 # choice, and the current AtlasDesktop toggle choices. Install completion writes the
 # install facts; the toggle engine mirrors every recorded toggle state into it, and the
@@ -13,7 +13,7 @@
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
     'PSUseShouldProcessForStateChangingFunctions',
     '',
-    Justification = 'These commands are explicit state-document transitions; WhatIf would break their durability contract.'
+    Justification = 'These commands are explicit state-document transitions; a -WhatIf run would skip writes that later transitions rely on.'
 )]
 param()
 
@@ -352,7 +352,6 @@ function Set-AtlasStateInstall {
     $completedAt = [DateTimeOffset]::UtcNow.ToString('o')
     $version = [string]$InstallState.targetVersion
     $mode = [string]$InstallState.mode
-    $isOobe = [bool]$InstallState.isOobe
     $recordedOptions = @($InstallState.options | ForEach-Object { [string]$_ })
     # $null too, so a caller can pass on an optional set it never received.
     if ($null -ne $Options) {
@@ -374,8 +373,10 @@ function Set-AtlasStateInstall {
         $state.installedVersion = $version
         $state.installedAt = $completedAt
         $state.mode = $mode
-        $state.isOobe = $isOobe
-        $state.isInteractive = -not $isOobe
+        # Schema 1 keeps both for its readers. Atlas installs only from a signed-in
+        # session, so a completed install is never one during Windows setup.
+        $state.isOobe = $false
+        $state.isInteractive = $true
         $state.options = @($recordedOptions)
         $state.history = @($state.history) + @([pscustomobject]$entry)
     }.GetNewClosure()

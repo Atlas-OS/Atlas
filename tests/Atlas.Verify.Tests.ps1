@@ -17,7 +17,6 @@ BeforeAll {
             IsArm64              = $IsArm64
             WindowsBuild         = $WindowsBuild
             IsUpgrade            = $false
-            IsOobe               = $false
             IsInstallStateBacked = $true
             Options              = @()
         }
@@ -162,7 +161,7 @@ Describe 'Test-AtlasScheduledTaskEntries' {
         @($drift.Expected) | Should -Be @('Disabled', 'Enabled')
     }
 
-    It 'reads the enabled property without localized status text' -ForEach @(
+    It 'reads the enabled property without localised status text' -ForEach @(
         @{ Enabled = $true; Expected = 'Enabled' }
         @{ Enabled = $false; Expected = 'Disabled' }
     ) {

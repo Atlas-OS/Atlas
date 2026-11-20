@@ -23,22 +23,23 @@ Describe 'Atlas disk cleanup scope' {
             Should -Throw '*must not accept a user SID*'
     }
 
-    It 'removes ordinary TEMP entries literally and retains the AME working directory' {
+    It 'removes TEMP entries literally, including an AME folder that older releases left' {
         $temp = Join-Path $TestDrive 'Temp'
+        # AME Wizard, which installed older Atlas releases, worked from TEMP\AME.
         $ame = Join-Path $temp 'AME'
         $nested = Join-Path $temp 'ordinary\nested'
         [void][IO.Directory]::CreateDirectory($ame)
         [void][IO.Directory]::CreateDirectory($nested)
-        [IO.File]::WriteAllText((Join-Path $ame 'keep.txt'), 'keep')
+        [IO.File]::WriteAllText((Join-Path $ame 'leftover.txt'), 'leftover')
         $readOnlyFile = Join-Path $nested 'remove.txt'
         [IO.File]::WriteAllText($readOnlyFile, 'remove')
         [IO.File]::SetAttributes($readOnlyFile, [IO.FileAttributes]::ReadOnly)
 
         Invoke-AtlasTempCleanup -Path $temp
 
-        [IO.Directory]::Exists($ame) | Should -BeTrue
-        [IO.File]::Exists((Join-Path $ame 'keep.txt')) | Should -BeTrue
+        [IO.Directory]::Exists($ame) | Should -BeFalse
         [IO.Directory]::Exists((Join-Path $temp 'ordinary')) | Should -BeFalse
+        [IO.Directory]::Exists($temp) | Should -BeTrue
     }
 
     It 'deletes a directory junction without traversing or deleting its target' {

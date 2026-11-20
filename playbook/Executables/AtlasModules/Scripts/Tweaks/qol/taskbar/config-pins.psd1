@@ -1,6 +1,6 @@
 @{
     Name        = 'Configure Taskbar Pins'
-    Description  = 'Configures taskbar pins for QoL: the browser first (if any), then File Explorer.'
+    Description  = 'Pins your browser, if you have one, and then File Explorer to the taskbar.'
     OnUpgrade   = 'Skip'
     Registry    = @(
         # The engine applies HKCU in separate passes for the signed-in user and the
@@ -13,7 +13,7 @@
         @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'; Name = 'MailPin'; Type = 'DWord'; Data = 0; IgnoreErrors = $true; SkipVerification = 'Explorer rewrites Taskband pin bookkeeping after applying the initial pin configuration.' }
         @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'; Name = 'CopilotPWAPin'; Type = 'DWord'; Data = 0; IgnoreErrors = $true; SkipVerification = 'Explorer rewrites Taskband pin bookkeeping after applying the initial pin configuration.' }
     )
-    # The chosen browser and the oobe-only pin application need per-option logic that a
+    # The chosen browser needs per-option logic that a
     # single Option gate cannot express.
     Script       = 'config-pins.ps1'
 }

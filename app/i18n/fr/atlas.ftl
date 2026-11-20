@@ -4,9 +4,8 @@
 ### « : ; ? ! » et à l'intérieur des guillemets « » ; apostrophe typographique (’) ;
 ### boutons à l'infinitif ; titres et libellés sans point final ; « relancer »
 ### désigne l'application Atlas, « redémarrer » désigne le PC ou Windows.
-### Le fichier .apbx est le « package Atlas » (masculin), puis « le package » ;
-### « playbook » seulement là où un texte explique le terme d'AME Wizard. Les
-### interrupteurs de Sécurité Windows sont des « paramètres de protection ».
+### Le fichier .apbx est le « package Atlas » (masculin), puis « le package ».
+### Les interrupteurs de Sécurité Windows sont des « paramètres de protection ».
 
 ## Partagé
 
@@ -140,9 +139,6 @@ home-show-full-notes = Afficher toutes les notes de version
 home-your-install = Votre configuration Atlas
 # Atlas est installé, mais sans l'enregistrement que tient Atlas Manager (les anciennes versions n'en écrivaient pas).
 home-install-unrecorded = Ce PC ne conserve aucune trace de la façon dont Atlas a été installé. Vos choix et l’historique des installations ne peuvent donc pas être affichés.
-# Libellé de ligne : comment Atlas a été mis en place.
-home-set-up = Méthode de configuration
-home-set-up-during-oobe = Pendant l’installation de Windows
 home-history = Historique des installations
 # Une ligne d'historique. $version est du texte, $mode l'un des messages history-mode-*, $date une date et heure formatées.
 home-history-entry = Atlas { $version } · { $mode } · { $date }
@@ -300,7 +296,7 @@ package-from-file = Atlas { $version } a été chargé depuis { $file } et est p
 package-unpacked = Atlas { $version } est prêt à être installé.
 package-none-yet = Aucun fichier d’installation sélectionné
 acquire-no-asset = Atlas { $version } ne propose aucun fichier de package à télécharger. Ouvrez un package Atlas (.apbx) déjà enregistré pour continuer.
-acquire-unsupported = Cette application installe Atlas 0.6.0 et versions ultérieures. Pour installer Atlas { $version }, utilisez plutôt AME Wizard.
+acquire-unsupported = Cette application installe Atlas 0.6.0 et versions ultérieures.
 # Un package assez récent pour inclure le script d'installation que pilote cette application, mais qui ne le contient pas.
 acquire-incomplete = Il manque à Atlas { $version } des fichiers dont cette application a besoin pour l’installer. Téléchargez-le à nouveau ou ouvrez un autre package Atlas (.apbx).
 acquire-failed = Impossible de préparer les fichiers d’installation. Réessayez le téléchargement ou ouvrez un autre package Atlas (.apbx). Détails : { $error }

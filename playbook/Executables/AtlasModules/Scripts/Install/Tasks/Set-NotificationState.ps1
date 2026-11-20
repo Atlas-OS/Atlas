@@ -1,3 +1,10 @@
+<#
+.SYNOPSIS
+    Turns toast notifications off while Atlas installs, then puts the policy back as it was.
+.DESCRIPTION
+    The install plan's NotificationDisable and NotificationRestore checkpoints run it as
+    TrustedInstaller, at the start and the end of every install attempt.
+#>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]

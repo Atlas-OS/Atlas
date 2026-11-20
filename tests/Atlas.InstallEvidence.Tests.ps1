@@ -20,7 +20,12 @@ Describe 'Early TrustedInstaller install evidence' {
             Set-Content (Join-Path $scripts "Modules\$name\$name.psd1") "@{ RootModule = '$name.psm1'; ModuleVersion = '1.0.0' }"
             Set-Content (Join-Path $scripts "Modules\$name\$name.psm1") 'function Assert-AtlasPrivilege { param([switch]$TrustedInstaller) }'
         }
-        Set-Content (Join-Path $scripts 'Entry\Initialize-AtlasInstallState.ps1') 'param($Operation)'
+        # The commit binds a user marker from this PC's loaded hives. This test is about
+        # the plan's evidence, so the copy commits nothing.
+        $session = [IO.File]::ReadAllText($entry)
+        $commit = [regex]::new('(?m)^(\s*)Invoke-AtlasInstallCommit\s*$')
+        $commit.Matches($session).Count | Should -Be 1
+        [IO.File]::WriteAllText($entry, $commit.Replace($session, '$1Write-Output ''Atlas install state committed.'''), [Text.UTF8Encoding]::new($false))
         Set-Content (Join-Path $scripts 'Entry\Invoke-AtlasInstall.ps1') @'
 param([switch]$Run)
 Write-Host 'Visual C++ Runtime fixture failed with exit code 1638.'

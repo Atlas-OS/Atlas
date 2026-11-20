@@ -539,12 +539,6 @@ function Invoke-AtlasUserAppxCacheCleanupCore {
     if ($Context.IsInstallStateBacked -isnot [bool] -or -not [bool]$Context.IsInstallStateBacked) {
         throw 'AppX user cache cleanup requires active Atlas install state.'
     }
-    if ($Context.IsOobe -isnot [bool]) {
-        throw 'The install state has an invalid OOBE value for AppX cache cleanup.'
-    }
-    if ([bool]$Context.IsOobe) {
-        return 0
-    }
 
     $expectedSid = ConvertTo-AtlasAppxCacheSid -Value ([string]$Context.InteractiveUserSid) `
         -Label 'Install-state AppX cache user SID'
@@ -620,10 +614,6 @@ function Invoke-AtlasUserAppxCacheCleanup {
     }
     [void](Invoke-AtlasUserAppxCacheCleanupCore -Context $context -Mode $Mode `
             -Launcher $launcher)
-    if ([bool]$context.IsOobe) {
-        Write-AtlasLog -Message "Skipped $Mode AppX user cache cleanup during OOBE."
-        return
-    }
     if ($Mode -ceq 'AppxQuiesce') {
         Write-AtlasLog -Message 'Quiesced AppX package processes for the install-state-bound user.'
     }

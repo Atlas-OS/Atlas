@@ -2,9 +2,12 @@
 .SYNOPSIS
     Runs the committed Atlas install plan in one TrustedInstaller process.
 .DESCRIPTION
-    Without -Run this file only defines its small dispatch surface. That keeps the
-    behavior testable without changing the host. custom.yml invokes it with -Run.
-
+    Install\Invoke-AtlasInstallSession.ps1 runs this script with -Run in its Run phase,
+    once it has committed the captured install state. Without -Run, the script only
+    defines its functions, so tests can load them without changing the PC.
+.PARAMETER Run
+    Runs the install plan of the active install state.
+.NOTES
     Exit codes: 0 success, 1 install failure, 2 wrong privilege.
 #>
 [CmdletBinding()]
@@ -188,9 +191,8 @@ function Invoke-AtlasInstallPlanCore {
     if ([string]$State.status -cne 'Running') {
         throw "Atlas install state must be committed and Running, not '$($State.status)'."
     }
-    if (-not [bool]$State.isOobe -and
-        [string]::IsNullOrWhiteSpace([string]$State.userSid)) {
-        throw 'A non-OOBE Atlas install requires its captured user SID.'
+    if ([string]::IsNullOrWhiteSpace([string]$State.userSid)) {
+        throw 'An Atlas install requires its captured user SID.'
     }
 
     $scriptsRoot = [IO.Path]::GetFullPath($SourceScriptsRoot)
@@ -405,7 +407,6 @@ try {
     # An install state written before the update path existed keeps the choices.
     $choices = $state.PSObject.Properties['choices']
     $plan = @(Get-AtlasInstallPlan -Mode ([string]$state.mode) `
-            -IsOobe ([bool]$state.isOobe) `
             -ChooseAgain ($null -ne $choices -and [string]$choices.Value -ceq 'ChooseAgain'))
     $installedScriptsRoot = [IO.Path]::Combine(
         [Environment]::GetFolderPath('Windows'),

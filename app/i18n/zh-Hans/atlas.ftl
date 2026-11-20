@@ -144,9 +144,6 @@ home-show-full-notes = 显示全部发行说明
 home-your-install = Atlas 安装详情
 # 已安装 Atlas，但没有 Atlas Manager 保存的安装记录（旧版本不会写入此记录）。
 home-install-unrecorded = 这台电脑上没有 Atlas 安装方式的记录，因此无法显示你的选择和安装历史记录。
-# 行标签：Atlas 是如何安装的。
-home-set-up = 安装方式
-home-set-up-during-oobe = 在 Windows 初始设置期间
 home-history = 安装历史记录
 # 一行历史记录。$version 为文本，$mode 为 history-mode-* 消息之一，$date 为格式化后的日期和时间。
 home-history-entry = Atlas { $version } · { $mode } · { $date }
@@ -294,7 +291,7 @@ package-from-file = Atlas { $version } 已从 { $file } 加载，可以安装。
 package-unpacked = Atlas { $version } 已就绪，可以安装。
 package-none-yet = 尚未选择安装文件
 acquire-no-asset = Atlas { $version } 没有可下载的安装包。请打开已保存的 Atlas 安装包 (.apbx) 以继续。
-acquire-unsupported = 此应用只能安装 Atlas 0.6.0 及更高版本。要安装 Atlas { $version }，请改用 AME Wizard。
+acquire-unsupported = 此应用只能安装 Atlas 0.6.0 及更高版本。
 # 安装包足够新，本应包含此应用驱动的安装脚本，但缺少该脚本。
 acquire-incomplete = Atlas { $version } 缺少此应用安装所需的文件。请重新下载，或打开其他 Atlas 安装包 (.apbx)。
 acquire-failed = 无法准备安装文件。请重新下载，或打开其他 Atlas 安装包 (.apbx)。详细信息：{ $error }

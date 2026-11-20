@@ -123,12 +123,8 @@ function Stop-AtlasNanaZipStoreInstall {
 
 function Install-AtlasNanaZipFromStore {
     param($DismCommands)
-    # Store is not ready during OOBE. The verified offline-provisioning path is
-    # still available there, as well as when Store activation/entitlement fails.
-    if ((Get-AtlasContext).IsOobe) {
-        Write-AtlasLog -Message 'Skipping NanaZip Store installation during OOBE.'
-        return $false
-    }
+    # Returns $false when Store activation or entitlement fails, so the caller
+    # provisions NanaZip from the pinned, verified downloads instead.
     $journal = Get-AtlasNanaZipStoreJournal
     try {
         $manager = New-AtlasNanaZipStoreManager
@@ -192,7 +188,7 @@ function Install-AtlasNanaZipFromStore {
         Write-AtlasLog -Level Warning -Message 'Confirmed NanaZip Store cancellation; using verified downloads.'
         return $false
     }
-    # Failed/canceled jobs are terminal. Clear only NanaZip's queue record and
+    # Failed or cancelled jobs are terminal. Clear only NanaZip's queue record and
     # confirm it is gone before starting the pinned GitHub/SourceForge fallback.
     $manager.Cancel($script:AtlasNanaZipStoreProductId)
     for ($attempt = 0; $attempt -lt 25; $attempt++) {

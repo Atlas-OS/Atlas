@@ -60,12 +60,19 @@ use crate::services::{self, desktop_setup, diagnostics, iso};
 
 use navigation::PendingStart;
 
+/// The page the window shows. One page shows at a time; the install steps
+/// are part of [`Page::Install`] and tracked by [`Flow`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Page {
+    /// Installed version, release notes and the way into the install flow.
     Home,
+    /// ISO creation and the Windows installation USB.
     Iso,
+    /// The install flow's four steps.
     Install,
+    /// The app's own settings, help and feedback, and About.
     Settings,
+    /// Send a report.
     Report,
     /// The completion window, opened by the completion Run entry after the
     /// install's restart (see `session::completion_after_restart`).
@@ -98,8 +105,14 @@ pub enum Notice {
     SessionUnreadable { error: String, record: PathBuf },
 }
 
+/// What the model tells the shell beyond a redraw: changes the shell applies
+/// to the window itself. Pages don't subscribe; they re-render on
+/// `cx.notify()`.
 pub enum ModelEvent {
+    /// The theme setting or the Ease of Access preferences it follows changed.
     ThemeChanged,
+    /// The language showing changed; the shell copies it into the GPUI global
+    /// and redraws every window.
     LanguageChanged,
     /// Something the user waited for while the window may be behind others
     /// has happened, such as Windows Update offering the new release.
@@ -146,6 +159,17 @@ pub enum CloseGuard {
     ProtectionOff,
 }
 
+/// All of the app's state and the background tasks that feed it, in one GPUI
+/// entity. Pages are thin views over it, and it notifies them when it changes.
+///
+/// Invariants its methods keep:
+/// - Anything that feeds an install (package, options, install settings)
+///   changes only while [`AppModel::locked`] is false.
+/// - The install flow moves only through [`Flow`]'s methods.
+/// - Each kind of background task carries a generation; starting a newer one
+///   makes older results stale, so a late result never lands in newer state.
+/// - Interface text is never stored. The model holds values and causes, with
+///   raw diagnostics as text, and `i18n::describe` words them at render time.
 pub struct AppModel {
     pub diagnostics_busy: bool,
     pub diagnostics_result: Option<Result<PathBuf, String>>,

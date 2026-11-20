@@ -1,4 +1,4 @@
-# Atlas.Core domain: the single loader for the Atlas native (C#) surface.
+# Atlas.Core domain: the single loader for Atlas's native (C#) code.
 #
 # Every runtime-compiled type Atlas uses lives in Atlas.Core\Native\Atlas.Native.cs.
 # This file owns Atlas's only Add-Type compile, so a high-integrity host
@@ -111,7 +111,7 @@ function Test-AtlasNativeAssembly {
 function Initialize-AtlasNativeType {
     <#
     .SYNOPSIS
-        Loads the complete Atlas native surface once per PowerShell process: a signed
+        Loads all of Atlas's native code once per PowerShell process: a signed
         prebuilt Atlas.Native.dll when one sits beside the source (built by
         tools\native\Build-AtlasNative.ps1), otherwise the source compiled in place.
     #>

@@ -165,9 +165,6 @@ home-show-full-notes = แสดงบันทึกประจำรุ่น
 home-your-install = การตั้งค่า Atlas ของคุณ
 # Atlas is installed, but without the record Atlas Manager keeps (older versions didn't write one).
 home-install-unrecorded = พีซีเครื่องนี้ไม่มีบันทึกว่าติดตั้ง Atlas ไว้อย่างไร จึงแสดงตัวเลือกและประวัติการติดตั้งของคุณไม่ได้
-# Row label: how Atlas was set up.
-home-set-up = วิธีการตั้งค่า
-home-set-up-during-oobe = ระหว่างการตั้งค่า Windows
 home-history = ประวัติการติดตั้ง
 # One history row. $version is text, $mode one of the history-mode-* messages, $date a formatted date and time.
 home-history-entry = Atlas { $version } · { $mode } · { $date }
@@ -313,7 +310,7 @@ package-from-file = โหลด Atlas { $version } จาก { $file } แล�
 package-unpacked = Atlas { $version } พร้อมติดตั้งแล้ว
 package-none-yet = ยังไม่ได้เลือกไฟล์ติดตั้ง
 acquire-no-asset = Atlas { $version } ไม่มีไฟล์แพ็กเกจให้ดาวน์โหลด เปิดแพ็กเกจ Atlas (.apbx) ที่บันทึกไว้เพื่อดำเนินการต่อ
-acquire-unsupported = แอปนี้ติดตั้งได้เฉพาะ Atlas 0.6.0 ขึ้นไป หากต้องการติดตั้ง Atlas { $version } ให้ใช้ AME Wizard แทน
+acquire-unsupported = แอปนี้ติดตั้งได้เฉพาะ Atlas 0.6.0 ขึ้นไป
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = Atlas { $version } ขาดไฟล์ที่แอปนี้ต้องใช้ในการติดตั้ง ดาวน์โหลดอีกครั้ง หรือเปิดแพ็กเกจ Atlas (.apbx) อีกไฟล์หนึ่ง
 acquire-failed = เตรียมไฟล์ติดตั้งไม่ได้ ลองดาวน์โหลดอีกครั้ง หรือเปิดแพ็กเกจ Atlas (.apbx) อีกไฟล์หนึ่ง รายละเอียด: { $error }

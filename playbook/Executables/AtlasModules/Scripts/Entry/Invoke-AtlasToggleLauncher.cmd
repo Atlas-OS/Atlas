@@ -13,7 +13,7 @@ rem this file as the process exit code, including negative values.
 rem
 rem Accepted flags are /silent, /quiet, /justcontext and /noaction, with either a
 rem / or - prefix, case-insensitive. Anything else exits 87 before Windows PowerShell
-rem starts, so no unvalidated token ever crosses the PowerShell boundary.
+rem starts, so no unvalidated token ever reaches PowerShell.
 verify other 2>nul
 setlocal EnableExtensions DisableDelayedExpansion
 if errorlevel 1 exit /b 1

@@ -1,7 +1,7 @@
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
     'PSReviewUnusedParameter',
     '',
-    Justification = 'The phase doubles declare the parameter surface of the commands they stand in for.'
+    Justification = 'The phase doubles declare the same parameters as the commands they stand in for.'
 )]
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
     'PSAvoidOverwritingBuiltInCmdlets',
@@ -50,7 +50,7 @@ BeforeAll {
     function Reset-ChoicesPc {
         param([string[]]$Options = @())
         $script:Context = [pscustomobject]@{
-            IsChoosingAgain = $true; IsOobe = $false; Mode = 'Reapply'; IsUpgrade = $true
+            IsChoosingAgain = $true; Mode = 'Reapply'; IsUpgrade = $true
             InteractiveUserSid = $script:UserSid; Options = @($Options)
             WinDir = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
             TransactionId = [guid]::NewGuid().ToString('D')

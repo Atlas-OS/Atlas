@@ -22,8 +22,7 @@
 ### - "Relaunch" (the Atlas Manager) is "दोबारा खोलें"; "restart" (the PC or
 ###   Windows) is "रीस्टार्ट करें". Keep the two apart.
 ### - The .apbx file is the "Atlas package": "Atlas पैकेज", then "पैकेज" once
-###   it is clear (masculine: "साथ में दिया गया Atlas पैकेज"). Use प्लेबुक only
-###   where a string explains that AME Wizard calls it a playbook. The
+###   it is clear (masculine: "साथ में दिया गया Atlas पैकेज"). The
 ###   selections made in the Your choices step are "विकल्प" everywhere, the ISO
 ###   modes included, never "सेटिंग"/"सेटिंग्स": those name the app's own
 ###   Settings page and Windows settings.
@@ -166,9 +165,6 @@ home-show-full-notes = पूरे रिलीज़ नोट्स दिख
 home-your-install = आपका Atlas सेटअप
 # Atlas is installed, but without the record Atlas Manager keeps (older versions didn't write one).
 home-install-unrecorded = इस PC पर इस बात का कोई रिकॉर्ड नहीं है कि Atlas कैसे इंस्टॉल किया गया था, इसलिए आपके विकल्प और इंस्टॉलेशन इतिहास नहीं दिखाए जा सकते।
-# Row label: how Atlas was set up.
-home-set-up = सेटअप का तरीका
-home-set-up-during-oobe = Windows सेटअप के दौरान
 home-history = इंस्टॉलेशन इतिहास
 # One history row. $version is text, $mode one of the history-mode-* messages, $date a formatted date and time.
 home-history-entry = Atlas { $version } · { $mode } · { $date }
@@ -327,7 +323,7 @@ package-from-file = Atlas { $version }, { $file } से लोड हो गय
 package-unpacked = Atlas { $version } इंस्टॉल के लिए तैयार है।
 package-none-yet = कोई इंस्टॉलेशन फ़ाइल नहीं चुनी गई
 acquire-no-asset = Atlas { $version } के लिए डाउनलोड करने योग्य कोई पैकेज फ़ाइल नहीं है। जारी रखने के लिए सहेजा हुआ Atlas पैकेज (.apbx) खोलें।
-acquire-unsupported = यह ऐप Atlas 0.6.0 और उसके बाद के संस्करण इंस्टॉल कर सकता है। Atlas { $version } इंस्टॉल करने के लिए इसकी जगह AME Wizard इस्तेमाल करें।
+acquire-unsupported = यह ऐप Atlas 0.6.0 और उसके बाद के संस्करण इंस्टॉल कर सकता है।
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = Atlas { $version } में वे फ़ाइलें नहीं हैं, जिनकी ज़रूरत इस ऐप को इसे इंस्टॉल करने के लिए है। इसे दोबारा डाउनलोड करें, या कोई दूसरा Atlas पैकेज (.apbx) खोलें।
 acquire-failed = इंस्टॉलेशन फ़ाइलें तैयार नहीं हो सकीं। दोबारा डाउनलोड करके देखें, या कोई दूसरा Atlas पैकेज (.apbx) खोलें। विवरण: { $error }

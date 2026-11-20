@@ -18,29 +18,13 @@ Describe 'Get-PlaybookVersion' {
         $conf = Join-Path $TestDrive 'playbook.conf'
         @'
 <Playbook>
-    <Title>Atlas v0.5.1</Title>
     <Version>0.5.1</Version>
 </Playbook>
 '@ | Set-Content -Path $conf -Encoding UTF8
 
         $result = Get-PlaybookVersion -PlaybookConfPath $conf
         $result.Version | Should -Be '0.5.1'
-        $result.IsDev | Should -BeFalse
         $result.VersionLabel | Should -Be 'v0.5.1'
-    }
-
-    It 'marks dev builds from the title' {
-        $conf = Join-Path $TestDrive 'playbook.conf'
-        @'
-<Playbook>
-    <Title>Atlas v0.6.0 (dev)</Title>
-    <Version>0.6.0</Version>
-</Playbook>
-'@ | Set-Content -Path $conf -Encoding UTF8
-
-        $result = Get-PlaybookVersion -PlaybookConfPath $conf
-        $result.IsDev | Should -BeTrue
-        $result.VersionLabel | Should -Be 'v0.6.0 (dev)'
     }
 
     It 'throws on <Case>' -TestCases @(
@@ -49,7 +33,7 @@ Describe 'Get-PlaybookVersion' {
     ) {
         $conf = Join-Path $TestDrive "$([guid]::NewGuid().ToString('N')).conf"
         if ($Version) {
-            "<Playbook><Title>Atlas</Title><Version>$Version</Version></Playbook>" |
+            "<Playbook><Version>$Version</Version></Playbook>" |
                 Set-Content -Path $conf -Encoding UTF8
         }
 
@@ -84,7 +68,6 @@ Describe 'New-StagedPlaybookConf' {
         $script:sourceConf = Join-Path $TestDrive 'playbook.conf'
         @'
 <Playbook>
-    <Title>Atlas v0.5.1</Title>
     <Version>0.5.1</Version>
     <SupportedBuilds>
         <!-- 25H2 -->
@@ -97,10 +80,10 @@ Describe 'New-StagedPlaybookConf' {
         <string>0.5.0</string>
     </UpgradableFrom>
     <Requirements>
-        <Requirement>Internet</Requirement>
+        <Requirement>NoAntivirus</Requirement>
         <Requirement>PluggedIn</Requirement>
     </Requirements>
-    <ProductCode>64</ProductCode>
+    <EstimatedMinutes>15</EstimatedMinutes>
 </Playbook>
 '@ | Set-Content -Path $script:sourceConf -Encoding UTF8
         $script:stagedConf = Join-Path $TestDrive 'staged\playbook.conf'
@@ -115,7 +98,6 @@ Describe 'New-StagedPlaybookConf' {
     It '-<Switch> removes only <Removed>' -ForEach @(
         @{ Switch = 'RemoveRequirements'; Removed = '/Playbook/Requirements/Requirement' }
         @{ Switch = 'RemoveWinverRequirement'; Removed = '/Playbook/SupportedBuilds' }
-        @{ Switch = 'RemoveVerification'; Removed = '/Playbook/ProductCode' }
     ) {
         $removal = @{ $Switch = $true }
         New-StagedPlaybookConf -PlaybookConfPath $sourceConf -DestinationPath $stagedConf @removal | Should -BeTrue
@@ -127,119 +109,10 @@ Describe 'New-StagedPlaybookConf' {
     It 'leaves the rest of the committed playbook.conf, upgrade sources included, as it is' {
         $committedConf = Join-Path $PSScriptRoot '..\playbook\playbook.conf'
         New-StagedPlaybookConf -PlaybookConfPath $committedConf -DestinationPath $stagedConf `
-            -RemoveRequirements -RemoveWinverRequirement -RemoveVerification | Should -BeTrue
+            -RemoveRequirements -RemoveWinverRequirement | Should -BeTrue
 
         Get-PlaybookConfXml -Path $stagedConf | Should -BeExactly (Get-PlaybookConfXml -Path $committedConf `
-                -RemoveXPath '/Playbook/Requirements/Requirement', '/Playbook/SupportedBuilds', '/Playbook/ProductCode')
-    }
-}
-
-Describe 'Atlas configuration build boundary' {
-    BeforeAll {
-        $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
-        $script:BuildBoundarySourceConfiguration = Join-Path $repoRoot 'playbook\Configuration'
-
-        function Copy-AtlasConfiguration {
-            param([Parameter(Mandatory = $true)][string]$Destination)
-
-            Copy-Item -LiteralPath $script:BuildBoundarySourceConfiguration `
-                -Destination $Destination -Recurse
-            return $Destination
-        }
-    }
-
-    It 'accepts the committed runner configuration' {
-        { Assert-AtlasConfigurationRunnerBoundary -ConfigurationRoot $script:BuildBoundarySourceConfiguration } |
-            Should -Not -Throw
-    }
-
-    It 'rejects currentUserElevated even when every other run field is canonical' {
-        $fixture = Copy-AtlasConfiguration `
-            -Destination (Join-Path $TestDrive 'current-user-elevated')
-        $customYml = Join-Path $fixture 'custom.yml'
-        $content = [IO.File]::ReadAllText($customYml)
-        $content = [regex]::new('runas: trustedInstaller').Replace(
-            $content,
-            'runas: currentUserElevated',
-            1
-        )
-        [IO.File]::WriteAllText($customYml, $content, [Text.UTF8Encoding]::new($false))
-
-        { Assert-AtlasConfigurationRunnerBoundary -ConfigurationRoot $fixture } |
-            Should -Throw -ExpectedMessage "*unsupported runas 'currentUserElevated'*"
-    }
-
-    It 'rejects Command mode, because every privileged runner uses a direct script file' {
-        $fixture = Copy-AtlasConfiguration `
-            -Destination (Join-Path $TestDrive 'command-mode')
-        $customYml = Join-Path $fixture 'custom.yml'
-        $content = [IO.File]::ReadAllText($customYml)
-        $content = [regex]::new(' -File ').Replace($content, ' -Command ', 1)
-        [IO.File]::WriteAllText($customYml, $content, [Text.UTF8Encoding]::new($false))
-
-        { Assert-AtlasConfigurationRunnerBoundary -ConfigurationRoot $fixture } |
-            Should -Throw -ExpectedMessage '*!run must use direct File mode*'
-    }
-
-    It 'rejects abbreviated Command mode even when its command text contains a File decoy' {
-        $fixture = Copy-AtlasConfiguration `
-            -Destination (Join-Path $TestDrive 'abbreviated-command-mode')
-        $customYml = Join-Path $fixture 'custom.yml'
-        $content = [IO.File]::ReadAllText($customYml)
-        $content = [regex]::new('-File "[^"]+"').Replace(
-            $content,
-            '-C "Write-Output 1; # -File decoy"',
-            1
-        )
-        [IO.File]::WriteAllText($customYml, $content, [Text.UTF8Encoding]::new($false))
-
-        { Assert-AtlasConfigurationRunnerBoundary -ConfigurationRoot $fixture } |
-            Should -Throw -ExpectedMessage '*!run must use direct File mode*'
-    }
-
-    It 'rejects an unreviewed .yaml configuration variant before packaging' {
-        $fixture = Copy-AtlasConfiguration `
-            -Destination (Join-Path $TestDrive 'alternate-extension')
-        'actions: []' | Set-Content -LiteralPath (Join-Path $fixture 'extra.yaml') -Encoding UTF8
-
-        { Assert-AtlasConfigurationRunnerBoundary -ConfigurationRoot $fixture } |
-            Should -Throw -ExpectedMessage '*unreviewed YAML filename variants*extra.yaml*'
-    }
-
-    It 'rejects every AME task action' {
-        $fixture = Copy-AtlasConfiguration `
-            -Destination (Join-Path $TestDrive 'task-action')
-        $customYml = Join-Path $fixture 'custom.yml'
-        $content = [IO.File]::ReadAllText($customYml) -replace `
-            '(?m)^actions:\s*$',
-            "actions:`n  - !task: {path: 'atlas\start.yml'}"
-        [IO.File]::WriteAllText($customYml, $content, [Text.UTF8Encoding]::new($false))
-
-        { Assert-AtlasConfigurationRunnerBoundary -ConfigurationRoot $fixture } |
-            Should -Throw -ExpectedMessage '*must contain zero AME !task actions*'
-    }
-
-    It 'rejects any AME registry action' {
-        $fixture = Copy-AtlasConfiguration `
-            -Destination (Join-Path $TestDrive 'registry-action')
-        $customYml = Join-Path $fixture 'custom.yml'
-        $content = [IO.File]::ReadAllText($customYml) -replace `
-            '(?m)^actions:\s*$',
-            "actions:`n  - !registryKey: {path: 'HKLM\SYSTEM\ControlSet001\Services\WdBoot', operation: delete}"
-        [IO.File]::WriteAllText($customYml, $content, [Text.UTF8Encoding]::new($false))
-
-        { Assert-AtlasConfigurationRunnerBoundary -ConfigurationRoot $fixture } |
-            Should -Throw -ExpectedMessage '*unsupported action type*'
-    }
-
-    It 'requires custom.yml at the configuration root' {
-        $fixture = Copy-AtlasConfiguration -Destination (Join-Path $TestDrive 'nested-custom')
-        $nested = Join-Path $fixture 'nested'
-        New-Item -ItemType Directory -Path $nested | Out-Null
-        Move-Item -LiteralPath (Join-Path $fixture 'custom.yml') -Destination $nested
-
-        { Assert-AtlasConfigurationRunnerBoundary -ConfigurationRoot $fixture } |
-            Should -Throw -ExpectedMessage '*exactly one reviewed custom.yml*'
+                -RemoveXPath '/Playbook/Requirements/Requirement', '/Playbook/SupportedBuilds')
     }
 }
 
@@ -285,11 +158,8 @@ Describe 'Atomic APBX publication' {
         $playbook = Join-Path $TestDrive 'playbook'
         $output = Join-Path $TestDrive 'output'
         New-Item -ItemType Directory -Path $playbook, $output -Force | Out-Null
-        '<Playbook><Title>Atlas v0.6.0</Title><Version>0.6.0</Version></Playbook>' |
+        '<Playbook><Version>0.6.0</Version></Playbook>' |
             Set-Content -LiteralPath (Join-Path $playbook 'playbook.conf') -Encoding UTF8
-        Mock Assert-AtlasConfigurationRunnerBoundary {
-            [pscustomobject]@{ Files = 1; Actions = 32; Runs = 30 }
-        } -ModuleName AtlasBuild
         Mock Resolve-SevenZip { 'mock-7z.exe' } -ModuleName AtlasBuild
         Mock Invoke-AtlasApbxVerifier { } -ModuleName AtlasBuild
     }
@@ -527,10 +397,10 @@ Describe 'Atomic APBX publication' {
 Describe 'APBX file path contracts' {
     It 'enumerates every source file except generated APBX outputs' {
         $playbook = Join-Path $TestDrive 'playbook'
-        New-Item -Path (Join-Path $playbook 'Configuration') -ItemType Directory -Force | Out-Null
+        New-Item -Path (Join-Path $playbook 'Images') -ItemType Directory -Force | Out-Null
         New-Item -Path (Join-Path $playbook 'Executables\Nested') -ItemType Directory -Force | Out-Null
         '<Playbook />' | Set-Content -Path (Join-Path $playbook 'playbook.conf') -Encoding UTF8
-        'actions: []' | Set-Content -Path (Join-Path $playbook 'Configuration\custom.yml') -Encoding UTF8
+        'image' | Set-Content -Path (Join-Path $playbook 'Images\browser.png') -Encoding UTF8
         'payload' | Set-Content -Path (Join-Path $playbook 'Executables\Nested\tool.txt') -Encoding UTF8
         'generated' | Set-Content -Path (Join-Path $playbook 'Atlas Test.apbx') -Encoding UTF8
         'interrupted' | Set-Content -Path (Join-Path $playbook 'Atlas Test.apbx.tmp') -Encoding UTF8
@@ -542,16 +412,16 @@ Describe 'APBX file path contracts' {
             -Encoding UTF8
 
         @(Get-AtlasPlaybookPayloadPath -PlaybookPath $playbook) | Should -Be @(
-            'Configuration/custom.yml'
             'Executables/Nested/tool.txt'
+            'Images/browser.png'
             'playbook.conf'
         )
     }
 
     It 'reports missing, unexpected, and duplicate archive paths independently' {
         $result = Compare-AtlasPayloadPath `
-            -ExpectedPath @('Configuration/custom.yml', 'Executables/tool.ps1') `
-            -ActualPath @('Configuration\custom.yml', 'Executables/stale.ps1', 'Executables/stale.ps1')
+            -ExpectedPath @('Images/browser.png', 'Executables/tool.ps1') `
+            -ActualPath @('Images\browser.png', 'Executables/stale.ps1', 'Executables/stale.ps1')
 
         $result.Matches | Should -BeFalse
         $result.Missing | Should -Be @('Executables/tool.ps1')
@@ -575,7 +445,7 @@ Describe 'APBX verifier extraction gate' {
     It 'never invokes 7-Zip extraction after <Case> is listed' -ForEach @(
         @{ Case = 'a parent-traversal directory'; Directories = @('../outside'); Failure = 'rooted or parent-traversal paths: \.\./outside' }
         @{ Case = 'a rooted directory'; Directories = @('C:/outside'); Failure = 'rooted or parent-traversal paths: C:/outside' }
-        @{ Case = 'a duplicate directory'; Directories = @('Configuration', 'Configuration'); Failure = 'duplicate entry paths: Configuration' }
+        @{ Case = 'a duplicate directory'; Directories = @('Images', 'Images'); Failure = 'duplicate entry paths: Images' }
     ) -Skip:(-not $IsWindows) {
         $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
         $fakeBin = Join-Path $TestDrive 'fake-bin'
@@ -714,19 +584,8 @@ Describe 'Package version coherence' {
             $match.Groups[1].Value
         }
 
-        function Get-OnUpgradeVersion {
-            param([Parameter(Mandatory = $true)][string]$Path)
-            $entries = foreach ($listMatch in [regex]::Matches(
-                    [IO.File]::ReadAllText($Path), 'onUpgradeVersions:\s*\[([^\]]*)\]')) {
-                foreach ($entry in $listMatch.Groups[1].Value -split ',') {
-                    $entry.Trim().Trim("'").Trim('"')
-                }
-            }
-            @($entries)
-        }
-
-        # The upgrade sources in either form AME accepts: <string> values, or one version as the
-        # element text. Whitespace nodes aren't loaded, so text() only matches the second form.
+        # The upgrade sources in either form playbook.conf allows: <string> values, or one version
+        # as the element text. Whitespace nodes aren't loaded, so text() only matches the second form.
         function Get-UpgradeSource {
             param([Parameter(Mandatory = $true)][string]$Path)
             $conf = [Xml.XmlDocument]::new()
@@ -760,14 +619,8 @@ Describe 'Package version coherence' {
                 "[[package]]`nname = `"atlas-app`"`nversion = `"$AppVersion`"`n"
         }
 
-        function Get-BugReportOption {
-            param([Parameter(Mandatory = $true)][string]$Path)
-            @([regex]::Matches([IO.File]::ReadAllText($Path), '(?m)^\s*- (Atlas v\S+ for Windows 11 \S+?)\s*$') |
-                    ForEach-Object { $_.Groups[1].Value })
-        }
-
-        # Laid out like the repository, so the script finds the app files and the bug report
-        # template from the conf path and never falls back to the real ones.
+        # Laid out like the repository, so the script finds the app files from the conf path
+        # and never falls back to the real ones.
         function New-VersionFixture {
             param(
                 [Parameter(Mandatory = $true)][string]$Name,
@@ -775,33 +628,25 @@ Describe 'Package version coherence' {
                 [string]$AppVersion = '0.6.0'
             )
             $fixture = Join-Path $TestDrive $Name
-            $templates = Join-Path $fixture '.github\ISSUE_TEMPLATE'
-            New-Item -Path (Join-Path $fixture 'playbook\Configuration'), (Join-Path $fixture 'app'), $templates `
+            New-Item -Path (Join-Path $fixture 'playbook'), (Join-Path $fixture 'app') `
                 -ItemType Directory -Force | Out-Null
             $conf = Join-Path $fixture 'playbook\playbook.conf'
-            "<Playbook>`n    <Title>Atlas v0.6.0</Title>`n    <Version>0.6.0</Version>`n    $UpgradableFrom`n</Playbook>" |
+            "<Playbook>`n    <Version>0.6.0</Version>`n    $UpgradableFrom`n</Playbook>" |
                 Set-Content -LiteralPath $conf -Encoding UTF8
-            "onUpgradeVersions: ['0.6.0']" |
-                Set-Content -LiteralPath (Join-Path $fixture 'playbook\Configuration\custom.yml') -Encoding UTF8
             [IO.File]::WriteAllText((Join-Path $fixture 'app\Cargo.toml'),
                 "[package]`nname = `"atlas-app`"`nversion = `"$AppVersion`"`n")
             [IO.File]::WriteAllText((Join-Path $fixture 'app\Cargo.lock'), (New-CargoLockFixture -AppVersion $AppVersion))
-            [IO.File]::WriteAllText((Join-Path $templates 'bug_report.yml'),
-                "    options:`n    - Atlas v0.6.0 for Windows 11 25H2`n    - Atlas v0.6.0 for Windows 11 26H2`n")
             $conf
         }
     }
 
-    It 'keeps every custom.yml onUpgradeVersions entry equal to the playbook.conf version' {
-        $confVersion = Get-ConfVersion -Path (Join-Path $script:repoRoot 'playbook\playbook.conf')
-        $entries = Get-OnUpgradeVersion -Path `
-            (Join-Path $script:repoRoot 'playbook\Configuration\custom.yml')
-
-        $entries.Count | Should -BeGreaterThan 0
-        foreach ($entry in $entries) {
-            $entry | Should -Be $confVersion `
-                -Because 'Set-AtlasVersion.ps1 must keep custom.yml upgrade actions bound to the released version'
-        }
+    It 'declares only what Atlas Manager and the front door read in the committed playbook.conf' {
+        $conf = [Xml.XmlDocument]::new()
+        $conf.Load((Join-Path $script:repoRoot 'playbook\playbook.conf'))
+        @($conf.DocumentElement.ChildNodes | Where-Object NodeType -eq 'Element' | ForEach-Object LocalName) |
+            Should -Be @('Version', 'SupportedBuilds', 'UpgradableFrom', 'Requirements', 'EstimatedMinutes', 'FeaturePages')
+        @($conf.SelectNodes('/Playbook/Requirements/Requirement') | ForEach-Object InnerText) |
+            Should -Be @('DefenderToggled', 'NoAntivirus', 'PluggedIn') -Because 'the front door refuses a requirement it cannot check'
     }
 
     It 'keeps the app/Cargo.toml package version equal to the playbook.conf version' {
@@ -811,52 +656,27 @@ Describe 'Package version coherence' {
             Should -BeExactly $confVersion -Because 'Set-AtlasVersion.ps1 must keep the app at the released version'
     }
 
-    It 'offers a bug report option for each supported Windows release of the playbook.conf version' {
-        $confVersion = Get-ConfVersion -Path (Join-Path $script:repoRoot 'playbook\playbook.conf')
-        $releasesPath = Join-Path $script:repoRoot `
-            'playbook\Executables\AtlasModules\Scripts\Compatibility\windows-releases.json'
-        $releases = @((Get-Content -Raw -LiteralPath $releasesPath | ConvertFrom-Json).supportedReleases.release)
-        $options = Get-BugReportOption -Path (Join-Path $script:repoRoot '.github\ISSUE_TEMPLATE\bug_report.yml')
-
-        $releases.Count | Should -BeGreaterThan 0
-        ($options -join '|') | Should -BeExactly (@($releases | ForEach-Object {
-                    "Atlas v$confVersion for Windows 11 $_" }) -join '|') `
-            -Because 'the bug report must offer exactly the Windows releases this Atlas version supports'
-    }
-
-    It 'bumps the committed playbook.conf, custom.yml, app version and bug report template and appends the superseded version' {
+    It 'bumps the committed playbook.conf and app version and appends the superseded version' {
         $fixture = Join-Path $TestDrive 'version-fixture'
-        New-Item -Path (Join-Path $fixture 'playbook\Configuration'), (Join-Path $fixture 'app'),
-            (Join-Path $fixture '.github\ISSUE_TEMPLATE') -ItemType Directory -Force | Out-Null
+        New-Item -Path (Join-Path $fixture 'playbook'), (Join-Path $fixture 'app') -ItemType Directory -Force | Out-Null
         $conf = Join-Path $fixture 'playbook\playbook.conf'
-        $customYml = Join-Path $fixture 'playbook\Configuration\custom.yml'
         $cargoToml = Join-Path $fixture 'app\Cargo.toml'
         $cargoLock = Join-Path $fixture 'app\Cargo.lock'
-        $template = Join-Path $fixture '.github\ISSUE_TEMPLATE\bug_report.yml'
         Copy-Item -LiteralPath (Join-Path $script:repoRoot 'playbook\playbook.conf') `
             -Destination $conf
-        Copy-Item -LiteralPath (Join-Path $script:repoRoot 'playbook\Configuration\custom.yml') `
-            -Destination $customYml
         Copy-Item -LiteralPath (Join-Path $script:repoRoot 'app\Cargo.toml') -Destination $cargoToml
         [IO.File]::WriteAllText($cargoLock, (New-CargoLockFixture))
-        Copy-Item -LiteralPath (Join-Path $script:repoRoot '.github\ISSUE_TEMPLATE\bug_report.yml') -Destination $template
 
         $originalVersion = Get-ConfVersion -Path $conf
         $originalSources = @(Get-UpgradeSource -Path $conf)
         $originalSources.Count | Should -BeGreaterThan 0
         $originalManifest = [IO.File]::ReadAllLines($cargoToml)
-        $originalOptions = @(Get-BugReportOption -Path $template)
-        $originalOptions.Count | Should -BeGreaterThan 0
         $bumpVersion = '9.9.9'
 
         & $script:setVersionScript -Version $bumpVersion -PlaybookConfPath $conf | Out-Null
         Get-ConfVersion -Path $conf | Should -Be $bumpVersion
-        [IO.File]::ReadAllText($conf) | Should -Match ([regex]::Escape("Atlas v$bumpVersion"))
         (Get-UpgradeSource -Path $conf) -join ',' |
             Should -BeExactly ((@($originalSources) + $originalVersion) -join ',')
-        $bumpedEntries = Get-OnUpgradeVersion -Path $customYml
-        $bumpedEntries.Count | Should -BeGreaterThan 0
-        foreach ($entry in $bumpedEntries) { $entry | Should -Be $bumpVersion }
 
         # Only the [package] version line changes; dependency versions stay as they are.
         Get-CargoPackageVersion -Path $cargoToml | Should -BeExactly $bumpVersion
@@ -868,10 +688,6 @@ Describe 'Package version coherence' {
         $changedLines -join '|' | Should -BeExactly "version = `"$bumpVersion`""
         Get-CargoLockVersion -Path $cargoLock -Name 'atlas-app' | Should -BeExactly $bumpVersion
         Get-CargoLockVersion -Path $cargoLock -Name 'anyhow' | Should -BeExactly '1.0.0'
-
-        # Every option moves to the new version and keeps its Windows release.
-        (Get-BugReportOption -Path $template) -join '|' | Should -BeExactly (@($originalOptions |
-                    ForEach-Object { $_ -replace '^Atlas v\S+', "Atlas v$bumpVersion" }) -join '|')
     }
 
     It 'leaves UpgradableFrom as <Expected> for <Case>' -ForEach @(
@@ -887,8 +703,6 @@ Describe 'Package version coherence' {
         (Get-UpgradeSource -Path $conf) -join ',' | Should -BeExactly $Expected
         Get-CargoPackageVersion -Path (Join-Path $fixture 'app\Cargo.toml') | Should -BeExactly $Version
         Get-CargoLockVersion -Path (Join-Path $fixture 'app\Cargo.lock') -Name 'atlas-app' | Should -BeExactly $Version
-        @(Get-BugReportOption -Path (Join-Path $fixture '.github\ISSUE_TEMPLATE\bug_report.yml')) -join '|' |
-            Should -BeExactly "Atlas v$Version for Windows 11 25H2|Atlas v$Version for Windows 11 26H2"
     }
 
     It 'brings drifted app files in line when playbook.conf already has the version' {
@@ -908,7 +722,7 @@ Describe 'Package version coherence' {
         $fixture = Split-Path (Split-Path $conf -Parent) -Parent
         $files = @(Get-ChildItem -LiteralPath $fixture -Recurse -File -Force)
         $before = @($files | ForEach-Object { [Convert]::ToBase64String([IO.File]::ReadAllBytes($_.FullName)) })
-        $files.Count | Should -Be 5
+        $files.Count | Should -Be 3
 
         & $script:setVersionScript -Version '0.6.0' -PlaybookConfPath $conf -WarningVariable warnings -WarningAction SilentlyContinue | Out-Null
         @($files | ForEach-Object { [Convert]::ToBase64String([IO.File]::ReadAllBytes($_.FullName)) }) | Should -Be $before
@@ -916,15 +730,13 @@ Describe 'Package version coherence' {
     }
 
     It 'changes nothing when <Case>' -ForEach @(
-        @{ Case = 'the version lacks a number'; Version = '0.7'; LockText = $null; TemplateText = $null; Message = "*parameter 'Version'*" }
-        @{ Case = 'Cargo.lock has no atlas-app entry'; Version = '0.7.0'; LockText = "version = 4`n"; TemplateText = $null; Message = '*atlas-app entry*' }
-        @{ Case = 'the bug report template has no Atlas version option'; Version = '0.7.0'; LockText = $null; TemplateText = "    options:`n    - Other`n"; Message = "*'Atlas v<version> for Windows 11' options*" }
+        @{ Case = 'the version lacks a number'; Version = '0.7'; LockText = $null; Message = "*parameter 'Version'*" }
+        @{ Case = 'Cargo.lock has no atlas-app entry'; Version = '0.7.0'; LockText = "version = 4`n"; Message = '*atlas-app entry*' }
     ) {
         $conf = New-VersionFixture -Name ($Case -replace '\W', '-') -UpgradableFrom '<UpgradableFrom>0.5.0</UpgradableFrom>'
         $fixture = Split-Path (Split-Path $conf -Parent) -Parent
         $app = Join-Path $fixture 'app'
         if ($LockText) { [IO.File]::WriteAllText((Join-Path $app 'Cargo.lock'), $LockText) }
-        if ($TemplateText) { [IO.File]::WriteAllText((Join-Path $fixture '.github\ISSUE_TEMPLATE\bug_report.yml'), $TemplateText) }
 
         { & $script:setVersionScript -Version $Version -PlaybookConfPath $conf } |
             Should -Throw -ExpectedMessage $Message

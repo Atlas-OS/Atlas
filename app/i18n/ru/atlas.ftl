@@ -148,9 +148,6 @@ home-show-full-notes = Показать все заметки о выпуске
 home-your-install = Ваша установка Atlas
 # Atlas is installed, but without the record Atlas Manager keeps (older versions didn't write one).
 home-install-unrecorded = На этом ПК нет записи о том, как был установлен Atlas, поэтому нельзя показать выбранные настройки и историю установок.
-# Row label: how Atlas was set up.
-home-set-up = Способ настройки
-home-set-up-during-oobe = При первоначальной настройке Windows
 home-history = История установок
 # One history row. $version is text, $mode one of the history-mode-* messages, $date a formatted date and time.
 home-history-entry = Atlas { $version } · { $mode } · { $date }
@@ -315,7 +312,7 @@ package-from-file = Atlas { $version } загружен из { $file } и гот
 package-unpacked = Atlas { $version } готов к установке.
 package-none-yet = Установочные файлы не выбраны
 acquire-no-asset = Для Atlas { $version } нет файла пакета для скачивания. Чтобы продолжить, откройте сохранённый пакет Atlas (.apbx).
-acquire-unsupported = Это приложение устанавливает Atlas 0.6.0 и новее. Чтобы установить Atlas { $version }, используйте AME Wizard.
+acquire-unsupported = Это приложение устанавливает Atlas 0.6.0 и новее.
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = В Atlas { $version } отсутствуют файлы, которые нужны этому приложению для установки. Скачайте его снова или откройте другой пакет Atlas (.apbx).
 acquire-failed = Не удалось подготовить установочные файлы. Попробуйте скачать их снова или откройте другой пакет Atlas (.apbx). Подробности: { $error }

@@ -1,4 +1,4 @@
-# Software phase.
+# Software phase, in every install mode.
 # Installs machine-wide initial utilities and the selected browser and apps. Runs as
 # TrustedInstaller; downloads happen here at install time.
 # Every selected component is attempted. Optional app failures are warnings;
@@ -30,8 +30,8 @@ if (Test-AtlasOption -Name 'install-eclean') {
     $requestedComponents.Add('Eclean')
 }
 
-# Browsers ('browser-*' options are only set when 'install-another-browser' was picked;
-# AME Wizard resolves that dependency before the option flags are written)
+# Browsers. A 'browser-*' option is only set with 'install-another-browser': the
+# capture refuses an option whose page depends on one the request didn't choose.
 if (Test-AtlasOption -Name 'browser-brave') {
     $requestedComponents.Add('Brave')
 }
@@ -52,7 +52,7 @@ foreach ($component in $requestedComponents) {
             throw "The '$component' installer reported an unsuccessful outcome."
         }
 
-        if ($component -ceq 'LibreWolf' -and -not $context.IsOobe) {
+        if ($component -ceq 'LibreWolf') {
             $interactiveUserSid = [string]$context.InteractiveUserSid
             if ([string]::IsNullOrWhiteSpace($interactiveUserSid)) {
                 throw 'LibreWolf user integration requires the install-state user SID.'

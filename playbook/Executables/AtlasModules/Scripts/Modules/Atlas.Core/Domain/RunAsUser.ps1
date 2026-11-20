@@ -60,12 +60,6 @@ function Invoke-AtlasBoundUserProcess {
         throw 'Get-AtlasContext must return exactly one install context.'
     }
     $context = $contexts[0]
-    if ($context.IsOobe -isnot [bool]) {
-        throw 'The install context does not contain a valid OOBE state.'
-    }
-    if ([bool]$context.IsOobe) {
-        return 0
-    }
     if (-not $Wait) {
         throw 'Detached installing-user processes are not supported.'
     }
@@ -131,7 +125,7 @@ function Invoke-AtlasAsUser {
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
         'PSUseShouldProcessForStateChangingFunctions', '',
-        Justification = 'This function is the explicit user-process execution boundary.'
+        Justification = 'This function is the one place that starts a process as the installing user.'
     )]
     param(
         [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$FilePath,

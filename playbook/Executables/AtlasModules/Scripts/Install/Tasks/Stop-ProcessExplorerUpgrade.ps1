@@ -1,3 +1,6 @@
+# Uninstalls Process Explorer before the installed Atlas files are replaced, and keeps an
+# enabled ProcessExplorer record. Invoke-AtlasPayloadReplacement.ps1 runs it as
+# TrustedInstaller on an update, a reinstall or a Rebase.
 $trustBootstrap = [IO.Path]::GetFullPath([IO.Path]::Combine(
         $PSScriptRoot, '..', '..', 'Initialize-AtlasPowerShell.ps1'
     ))

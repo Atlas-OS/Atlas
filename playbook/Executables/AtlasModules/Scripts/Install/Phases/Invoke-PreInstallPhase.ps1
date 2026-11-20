@@ -1,4 +1,6 @@
-# Pre-install phase: remove obsolete Atlas elevation artifacts and start best-effort cleanup.
+# Pre-install phase: removes obsolete Atlas elevation artifacts and starts best-effort
+# cleanup. Runs as TrustedInstaller in every install mode, once Atlas's files are in
+# place; the installing user's half of each step runs in that user's own process.
 
 Assert-AtlasPrivilege -TrustedInstaller
 
@@ -6,9 +8,8 @@ $context = Get-AtlasContext -Refresh
 if (-not $context.IsInstallStateBacked) {
     throw 'Pre-install requires active Atlas install state.'
 }
-if (-not $context.IsOobe -and
-    [string]::IsNullOrWhiteSpace([string]$context.InteractiveUserSid)) {
-    throw 'Pre-install requires the install-state user outside OOBE.'
+if ([string]::IsNullOrWhiteSpace([string]$context.InteractiveUserSid)) {
+    throw 'Pre-install requires the install-state user.'
 }
 
 $scriptsRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
@@ -33,27 +34,23 @@ function Invoke-AtlasPreInstallUserScript {
     }
 }
 
-# This migration is required so upgrades do not retain the old RunAsTI surface.
+# Required, so an update doesn't keep the old RunAsTI elevation entry points.
 $legacyMigration = Join-Path $scriptsRoot 'Install\Compat\Remove-AtlasLegacyElevationArtifacts.ps1'
 if (-not [IO.File]::Exists($legacyMigration)) {
     throw "Required legacy elevation migration is missing at '$legacyMigration'."
 }
 & $legacyMigration -Scope Machine | Out-Null
-if (-not $context.IsOobe) {
-    Invoke-AtlasPreInstallUserScript -Path $legacyMigration `
-        -Arguments ('-Scope CurrentUser -ExpectedUserSid "{0}"' -f $context.InteractiveUserSid) `
-        -Description 'Current-user legacy elevation migration'
-}
+Invoke-AtlasPreInstallUserScript -Path $legacyMigration `
+    -Arguments ('-Scope CurrentUser -ExpectedUserSid "{0}"' -f $context.InteractiveUserSid) `
+    -Description 'Current-user legacy elevation migration'
 
 # Cleanup is useful but must not turn an otherwise valid install into a failure.
 try {
     $diskCleanup = Join-Path $scriptsRoot 'Install\Tasks\Invoke-DiskCleanup.ps1'
     & $diskCleanup -Scope Machine
-    if (-not $context.IsOobe) {
-        Invoke-AtlasPreInstallUserScript -Path $diskCleanup `
-            -Arguments ('-Scope CurrentUser -ExpectedUserSid "{0}"' -f $context.InteractiveUserSid) `
-            -Description 'Current-user TEMP cleanup'
-    }
+    Invoke-AtlasPreInstallUserScript -Path $diskCleanup `
+        -Arguments ('-Scope CurrentUser -ExpectedUserSid "{0}"' -f $context.InteractiveUserSid) `
+        -Description 'Current-user TEMP cleanup'
 }
 catch {
     Write-AtlasLog -Level Warning -Message "Disk cleanup failed: $($_.Exception.Message)"

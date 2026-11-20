@@ -50,43 +50,41 @@ Describe 'Atlas.InstallState lifecycle' {
         @((Get-AtlasInstallState -StatePath $path).options) | Should -Be @('defender-enable')
     }
 
-    It 'records an interrupted AME capture afresh instead of merging its options' {
+    It 'starts an interrupted capture again with none of its options' {
         $path = New-TestInstallStatePath
         Start-TestInstallState -Path $path | Out-Null
-        Add-AtlasInstallOption -StatePath $path -Name 'defender-disable' | Out-Null
-        Add-AtlasInstallOption -StatePath $path -Name 'uninstall-edge' | Out-Null
-        Start-TestInstallState -Path $path | Out-Null
-        Add-AtlasInstallOption -StatePath $path -Name 'defender-enable' | Out-Null
-        Commit-AtlasInstallState -StatePath $path | Out-Null
+        Set-AtlasInstallOptions -StatePath $path -Options @('defender-disable', 'uninstall-edge') | Out-Null
 
-        @((Get-AtlasInstallState -StatePath $path).options) | Should -Be @('defender-enable')
+        $restarted = Start-TestInstallState -Path $path
+        @($restarted.options).Count | Should -Be 0
+        @((Get-AtlasInstallState -StatePath $path).options).Count | Should -Be 0
     }
 
-    It 'records options afresh when AME reclassifies a failed run that completed no steps' {
+    It 'records options afresh when a retry reads as another mode after a failed run that completed no steps' {
         $path = New-TestInstallStatePath
         Start-TestInstallState -Path $path | Out-Null
-        Add-AtlasInstallOption -StatePath $path -Name 'defender-disable' | Out-Null
+        Set-AtlasInstallOptions -StatePath $path -Options @('defender-disable') | Out-Null
         Commit-AtlasInstallState -StatePath $path | Out-Null
         { Invoke-AtlasInstallStep -StatePath $path -Name 'Features' -Action { throw 'failure' } } | Should -Throw '*failure*'
 
         $retry = Start-AtlasInstallState -StatePath $path -TargetVersion '0.6.0' -Mode Reapply
         $retry.mode | Should -BeExactly 'Fresh'
         @($retry.options).Count | Should -Be 0
-        Add-AtlasInstallOption -StatePath $path -Name 'defender-enable' | Out-Null
+        Set-AtlasInstallOptions -StatePath $path -Options @('defender-enable') | Out-Null
         @((Get-AtlasInstallState -StatePath $path).options) | Should -Be @('defender-enable')
     }
 
     It 'keeps a committed run''s options on a same-mode retry that completed no steps' {
         $path = New-TestInstallStatePath
         Start-TestInstallState -Path $path | Out-Null
-        Add-AtlasInstallOption -StatePath $path -Name 'defender-enable' | Out-Null
+        Set-AtlasInstallOptions -StatePath $path -Options @('defender-enable') | Out-Null
         Commit-AtlasInstallState -StatePath $path | Out-Null
         { Invoke-AtlasInstallStep -StatePath $path -Name 'Features' -Action { throw 'failure' } } | Should -Throw '*failure*'
 
         $retry = Start-TestInstallState -Path $path
         $retry.status | Should -BeExactly 'Running'
         @($retry.options) | Should -Be @('defender-enable')
-        Add-AtlasInstallOption -StatePath $path -Name 'defender-enable' | Out-Null
+        Set-AtlasInstallOptions -StatePath $path -Options @('defender-enable') | Out-Null
         @((Get-AtlasInstallState -StatePath $path).options) | Should -Be @('defender-enable')
     }
 
@@ -101,8 +99,6 @@ Describe 'Atlas.InstallState lifecycle' {
         # The refusal names the options to run again with.
         $refusal = "This installation already started with other choices, and the steps it finished won't run again. Run it again with the choices it started with: defender-enable."
         { Set-AtlasInstallOptions -StatePath $path -Options @('defender-disable') } | Should -Throw -ExpectedMessage $refusal
-        { Add-AtlasInstallOption -StatePath $path -Name 'defender-disable' } | Should -Throw -ExpectedMessage $refusal
-        Add-AtlasInstallOption -StatePath $path -Name 'defender-enable' | Out-Null
         Set-AtlasInstallOptions -StatePath $path -Options @('defender-enable') | Out-Null
         $state = Get-AtlasInstallState -StatePath $path
         @($state.options) | Should -Be @('defender-enable')
@@ -118,12 +114,12 @@ Describe 'Atlas.InstallState lifecycle' {
     It 'starts a capturing state and creates its work directory' {
         $path = New-TestInstallStatePath
         $state = Start-AtlasInstallState -StatePath $path -TargetVersion '0.6.0' `
-            -Mode Upgrade -IsOobe $true -CaptureNonce 'nonce-1'
+            -Mode Upgrade -CaptureNonce 'nonce-1'
 
         $state.schemaVersion | Should -Be 1
         $state.status | Should -BeExactly 'Capturing'
         $state.mode | Should -BeExactly 'Upgrade'
-        $state.isOobe | Should -BeTrue
+        $state.PSObject.Properties['isOobe'] | Should -BeNullOrEmpty
         $state.options.Count | Should -Be 0
         $state.completedSteps.Count | Should -Be 0
         Test-Path -LiteralPath (Join-Path (Split-Path $path -Parent) 'work') | Should -BeTrue
@@ -134,10 +130,9 @@ Describe 'Atlas.InstallState lifecycle' {
         $first = Start-TestInstallState -Path $path -Status Running
 
         $retry = Start-AtlasInstallState -StatePath $path -TargetVersion '0.6.0' `
-            -Mode Fresh -IsOobe $false -CaptureNonce 'replacement'
+            -Mode Fresh -CaptureNonce 'replacement'
         $retry.transactionId | Should -BeExactly $first.transactionId
         $retry.mode | Should -BeExactly 'Fresh'
-        $retry.isOobe | Should -BeFalse
         $retry.captureNonce | Should -BeExactly 'capture-test'
 
         {
@@ -152,10 +147,6 @@ Describe 'Atlas.InstallState lifecycle' {
         } | Should -Throw -ExpectedMessage ("An unfinished Atlas Fresh installation of 0.6.0 is waiting to finish, so a Reapply installation can't start. " +
             'Finish it first: in Atlas Manager, choose Finish installing Atlas 0.6.0, or run Install-Atlas.ps1 again with the options it started with.')
 
-        {
-            Start-AtlasInstallState -StatePath $path -TargetVersion '0.6.0' `
-                -Mode Fresh -IsOobe $true -CaptureNonce 'other'
-        } | Should -Throw -ExpectedMessage "An unfinished Atlas Fresh installation of 0.6.0 is waiting to finish, so a Fresh installation during Windows setup can't start.*"
 
         {
             Start-AtlasInstallState -StatePath $path -TargetVersion '0.6.0' `
@@ -163,18 +154,24 @@ Describe 'Atlas.InstallState lifecycle' {
         } | Should -Throw -ExpectedMessage '*, so an Upgrade installation can''t start.*'
     }
 
-    It 'names an unfinished installation begun during Windows setup in its refusal' {
-        $path = New-TestInstallStatePath
-        Start-AtlasInstallState -StatePath $path -TargetVersion '0.6.0' -Mode Fresh -IsOobe $true | Out-Null
-        Commit-AtlasInstallState -StatePath $path | Out-Null
-        { Start-AtlasInstallState -StatePath $path -TargetVersion '0.6.0' -Mode Fresh } |
-            Should -Throw -ExpectedMessage "An unfinished Atlas Fresh installation of 0.6.0, begun during Windows setup, is waiting to finish, so a Fresh installation can't start.*"
-    }
-
-    It 'resumes the original plan when AME reclassifies a recorded failed run' {
+    It 'loads an install state an older release wrote with isOobe, and leaves it out of the next write' {
         $path = New-TestInstallStatePath
         Start-TestInstallState -Path $path | Out-Null
-        Add-AtlasInstallOption -StatePath $path -Name 'browser-brave' | Out-Null
+        $older = [IO.File]::ReadAllText($path) | ConvertFrom-Json
+        $older | Add-Member -NotePropertyName isOobe -NotePropertyValue $true
+        [IO.File]::WriteAllText($path, ($older | ConvertTo-Json -Compress))
+
+        (Get-AtlasInstallState -StatePath $path).PSObject.Properties['isOobe'] | Should -BeNullOrEmpty
+        Set-AtlasInstallOptions -StatePath $path -Options @('defender-enable') | Out-Null
+        $written = [IO.File]::ReadAllText($path) | ConvertFrom-Json
+        $written.PSObject.Properties['isOobe'] | Should -BeNullOrEmpty
+        @($written.options) | Should -Be @('defender-enable')
+    }
+
+    It 'resumes the original plan when a retry reads as another mode after a recorded failed run' {
+        $path = New-TestInstallStatePath
+        Start-TestInstallState -Path $path | Out-Null
+        Set-AtlasInstallOptions -StatePath $path -Options @('browser-brave') | Out-Null
         $first = Commit-AtlasInstallState -StatePath $path
         $workRoot = Join-Path (Split-Path $path -Parent) 'work'
         [IO.File]::WriteAllText((Join-Path $workRoot 'partial.txt'), 'partial')
@@ -198,10 +195,10 @@ Describe 'Atlas.InstallState lifecycle' {
         Test-Path -LiteralPath (Join-Path (Split-Path $path -Parent) 'abandoned.json') | Should -BeFalse
     }
 
-    It 'resumes a reclassified retry again when its capture was interrupted before Commit' {
+    It 'resumes a retry that read as another mode again when its capture was interrupted before Commit' {
         $path = New-TestInstallStatePath
         Start-TestInstallState -Path $path | Out-Null
-        Add-AtlasInstallOption -StatePath $path -Name 'browser-brave' | Out-Null
+        Set-AtlasInstallOptions -StatePath $path -Options @('browser-brave') | Out-Null
         $first = Commit-AtlasInstallState -StatePath $path
         Invoke-AtlasInstallStep -StatePath $path -Name 'Features' -Action { } | Out-Null
         { Invoke-AtlasInstallStep -StatePath $path -Name 'Tweaks' -Action { throw 'install failed' } } |
@@ -219,16 +216,16 @@ Describe 'Atlas.InstallState lifecycle' {
         @($retry.completedSteps) | Should -Be @('Features')
     }
 
-    It 'recovers an older RC abandoned Fresh transaction on a Reapply retry' {
+    It 'recovers a failed Fresh run that an older release candidate archived, on a Reapply retry' {
         $path = New-TestInstallStatePath
         Start-TestInstallState -Path $path | Out-Null
-        Add-AtlasInstallOption -StatePath $path -Name 'browser-brave' | Out-Null
+        Set-AtlasInstallOptions -StatePath $path -Options @('browser-brave') | Out-Null
         $first = Commit-AtlasInstallState -StatePath $path
         Invoke-AtlasInstallStep -StatePath $path -Name 'Features' -Action { } | Out-Null
         {
             Invoke-AtlasInstallStep -StatePath $path -Name 'Tweaks/privacy' `
-                -Action { throw 'older RC failure' }
-        } | Should -Throw '*older RC failure*'
+                -Action { throw 'archived failure' }
+        } | Should -Throw '*archived failure*'
 
         $directory = Split-Path $path -Parent
         Move-Item -LiteralPath $path -Destination (Join-Path $directory 'abandoned.json')
@@ -247,20 +244,6 @@ Describe 'Atlas.InstallState lifecycle' {
         Test-Path -LiteralPath (Join-Path $directory 'work') -PathType Container | Should -BeTrue
     }
 
-    It 'records each selected option once only during capture' {
-        $path = New-TestInstallStatePath
-        Start-TestInstallState -Path $path | Out-Null
-        Add-AtlasInstallOption -StatePath $path -Name 'browser-brave' | Out-Null
-        Add-AtlasInstallOption -StatePath $path -Name 'BROWSER-BRAVE' | Out-Null
-
-        $state = Get-AtlasInstallState -StatePath $path
-        $state.options.Count | Should -Be 1
-        $state.options[0] | Should -BeExactly 'browser-brave'
-
-        Commit-AtlasInstallState -StatePath $path | Out-Null
-        { Add-AtlasInstallOption -StatePath $path -Name 'install-toolbox' } | Should -Throw '*Run it again with the choices it started with: browser-brave.'
-        (Get-AtlasInstallState -StatePath $path).options | Should -Not -Contain 'install-toolbox'
-    }
 
     It 'binds one install user and can refresh only that user session' {
         $path = New-TestInstallStatePath
@@ -281,7 +264,7 @@ Describe 'Atlas.InstallState lifecycle' {
     It 'commits capture once without replacing captured values' {
         $path = New-TestInstallStatePath
         Start-TestInstallState -Path $path | Out-Null
-        Add-AtlasInstallOption -StatePath $path -Name 'defender-enable' | Out-Null
+        Set-AtlasInstallOptions -StatePath $path -Options @('defender-enable') | Out-Null
         $first = Commit-AtlasInstallState -StatePath $path
         $second = Commit-AtlasInstallState -StatePath $path
 
@@ -327,7 +310,7 @@ Describe 'Atlas.InstallState update path' {
         (Get-AtlasInstallState -StatePath $path).choices | Should -BeExactly 'ChooseAgain'
     }
 
-    It 'keeps the path when AME reclassifies a failed run that completed steps' {
+    It 'keeps the path when a retry reads as another mode after a failed run that completed steps' {
         $path = New-TestInstallStatePath
         Start-AtlasInstallState -StatePath $path -TargetVersion '0.6.0' -Mode Upgrade -Choices ChooseAgain | Out-Null
         Commit-AtlasInstallState -StatePath $path | Out-Null
@@ -531,7 +514,7 @@ Describe 'Atlas.InstallState persistence' {
     It 'recovers a valid backup when the active document is malformed' {
         $path = New-TestInstallStatePath
         Start-TestInstallState -Path $path | Out-Null
-        Add-AtlasInstallOption -StatePath $path -Name 'browser-brave' | Out-Null
+        Set-AtlasInstallOptions -StatePath $path -Options @('browser-brave') | Out-Null
         [IO.File]::WriteAllText($path, '{broken')
 
         $recovered = Get-AtlasInstallState -StatePath $path
@@ -547,7 +530,7 @@ Describe 'Atlas.InstallState persistence' {
         $documentPath = Join-Path -Path $root -ChildPath 'AtlasOS\state.json'
         $flagsPath = Join-Path (Split-Path $path -Parent) 'published-flags'
         Start-TestInstallState -Path $path | Out-Null
-        Add-AtlasInstallOption -StatePath $path -Name 'install-toolbox' | Out-Null
+        Set-AtlasInstallOptions -StatePath $path -Options @('install-toolbox') | Out-Null
         Commit-AtlasInstallState -StatePath $path | Out-Null
         Invoke-AtlasInstallStep -StatePath $path -Name 'Apply/Tweaks' -Action { } | Out-Null
         $workFile = Join-Path (Split-Path $path -Parent) 'work\partial.txt'
@@ -651,13 +634,13 @@ Describe 'Atlas.InstallState choices taken from the PC' {
             [pscustomobject]@{ name = $Name; state = $State }
         }
         $script:NoDefenderPackage = 'Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0'
-        # The PC of the report that led to this: an update that never took Defender
-        # back, and records that disagree with the options.
-        $script:ReportFacts = @{
+        # A PC whose update never brought Defender back and whose records disagree
+        # with the requested options.
+        $script:DriftedFacts = @{
             DefenderPackage = 'Installed'; Defender = $false; Edge = $true; Toolbox = $true; CoreIsolationOff = $true
             Toggles = @((New-TestToggle AutomaticUpdates 1), (New-TestToggle Mitigations 2), (New-TestToggle VbsState 0), (New-TestToggle PowerSaving 0))
         }
-        $script:ReportRequest = @('auto-updates-disable', 'defender-enable', 'disable-power-saving', 'install-toolbox', 'keyboard-single', 'mitigations-disable', 'uninstall-edge')
+        $script:DriftedRequest = @('auto-updates-disable', 'defender-enable', 'disable-power-saving', 'install-toolbox', 'keyboard-single', 'mitigations-disable', 'uninstall-edge')
     }
 
     Context 'Compare-AtlasInstallOption' {
@@ -680,13 +663,13 @@ Describe 'Atlas.InstallState choices taken from the PC' {
 
     Context 'Resolve-AtlasKeptOption at Capture' {
         BeforeEach {
-            $script:Facts = New-TestFact $script:ReportFacts
+            $script:Facts = New-TestFact $script:DriftedFacts
             Mock Get-AtlasTransitionMachineFact -ModuleName Atlas.InstallState { $script:Facts }
             Mock Get-AtlasInstalledAtlasPackage -ModuleName Atlas.InstallState { $script:NoDefenderPackage }
         }
 
         It 'keeps what the PC shows, from machine evidence only, and says why for each choice' {
-            $kept = Resolve-AtlasKeptOption -Requested $script:ReportRequest
+            $kept = Resolve-AtlasKeptOption -Requested $script:DriftedRequest
 
             @($kept.Options | Sort-Object) | Should -Be @('auto-updates-default', 'defender-disable', 'disable-core-isolation',
                 'disable-power-saving', 'install-toolbox', 'keyboard-single', 'mitigations-default')
@@ -727,8 +710,8 @@ Describe 'Atlas.InstallState choices taken from the PC' {
 
         It 'keeps the request, with a warning, when the PC can''t be read' {
             Mock Get-AtlasTransitionMachineFact -ModuleName Atlas.InstallState { throw 'registry access denied' }
-            $kept = Resolve-AtlasKeptOption -Requested $script:ReportRequest
-            @($kept.Options) | Should -Be $script:ReportRequest
+            $kept = Resolve-AtlasKeptOption -Requested $script:DriftedRequest
+            @($kept.Options) | Should -Be $script:DriftedRequest
             @($kept.Changes) | Should -HaveCount 0
             @($kept.Warnings) | Should -Be @("Couldn't read what this PC shows, so the requested choices are kept: registry access denied")
         }
@@ -736,10 +719,10 @@ Describe 'Atlas.InstallState choices taken from the PC' {
 
     Context 'Get-AtlasRecordedOption at completion' {
         BeforeEach {
-            $script:Facts = New-TestFact ($script:ReportFacts + @{ Appx = @('Microsoft.WindowsCalculator_8wekyb3d8bbwe'); KeyboardLayouts = 2; LanguageHotkey = '3' })
+            $script:Facts = New-TestFact ($script:DriftedFacts + @{ Appx = @('Microsoft.WindowsCalculator_8wekyb3d8bbwe'); KeyboardLayouts = 2; LanguageHotkey = '3' })
             Mock Get-AtlasTransitionMachineFact -ModuleName Atlas.InstallState { $script:Facts }
             Mock Get-AtlasInstalledAtlasPackage -ModuleName Atlas.InstallState { $script:NoDefenderPackage }
-            $script:State = [pscustomobject]@{ options = $script:ReportRequest; userSid = 'S-1-5-21-1-2-3-1001' }
+            $script:State = [pscustomobject]@{ options = $script:DriftedRequest; userSid = 'S-1-5-21-1-2-3-1001' }
         }
 
         It 'records what the PC has after the plan, read for the installing user with every account''s apps' {
@@ -777,7 +760,7 @@ Describe 'Atlas.InstallState choices taken from the PC' {
         It 'records the request, with a warning, when the PC can''t be read at all' {
             Mock Get-AtlasTransitionMachineFact -ModuleName Atlas.InstallState { throw 'registry access denied' }
             $recorded = Get-AtlasRecordedOption -State $script:State
-            @($recorded.Options) | Should -Be $script:ReportRequest
+            @($recorded.Options) | Should -Be $script:DriftedRequest
             @($recorded.Warnings) | Should -Be @("Couldn't read what this PC shows, so the requested choices are recorded: registry access denied")
         }
 

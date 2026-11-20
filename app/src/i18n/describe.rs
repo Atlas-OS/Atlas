@@ -864,7 +864,7 @@ impl AcquireProblem {
     pub fn text(&self, bundled: bool) -> String {
         match self {
             AcquireProblem::NoPlaybookAsset { version } => t!("acquire-no-asset", version = version),
-            AcquireProblem::Unsupported { version } => t!("acquire-unsupported", version = version),
+            AcquireProblem::Unsupported { .. } => t!("acquire-unsupported"),
             AcquireProblem::Incomplete { version } if bundled => {
                 let error = crate::services::playbook::Incomplete { version: version.clone() }.to_string();
                 t!("acquire-failed-bundled", error = error)

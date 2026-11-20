@@ -16,7 +16,7 @@ function Invoke-AtlasEdgeRemoval {
         [ValidateNotNullOrEmpty()]
         [string]$ScriptsRoot,
 
-        # The install context: IsOobe and the installing user's InteractiveUserSid.
+        # The install context, for the installing user's InteractiveUserSid.
         [Parameter(Mandatory = $true)]
         [ValidateNotNull()]
         [object]$Context
@@ -30,7 +30,7 @@ function Invoke-AtlasEdgeRemoval {
     )
 
     # Edge's machine removal runs under this TrustedInstaller token; the installing user's
-    # leftovers are cleaned in their own process, which is skipped during OOBE.
+    # leftovers are cleaned in their own process.
     $removeEdgeScript = Join-Path -Path $ScriptsRoot -ChildPath 'Operations\Remove-Edge.ps1'
     Invoke-AtlasHiddenProcess -FilePath $powerShellExe -ArgumentList @(
         '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
@@ -38,29 +38,27 @@ function Invoke-AtlasEdgeRemoval {
         '-UninstallEdge', '-NonInteractive', '-MachineContext'
     ) -Wait | Out-Null
 
-    if (-not $Context.IsOobe) {
-        $interactiveUserSid = [string]$Context.InteractiveUserSid
-        if ([string]::IsNullOrWhiteSpace($interactiveUserSid)) {
-            throw 'Edge current-user cleanup requires the install-state user SID.'
-        }
-        $userCleanupScript = Join-Path -Path $ScriptsRoot `
-            -ChildPath 'Operations\Remove-EdgeCurrentUserData.ps1'
-        $userArguments = ConvertTo-AtlasWindowsArgumentString -ArgumentList ([string[]]@(
-            '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
-            '-File', $userCleanupScript,
-            '-ExpectedUserSid', $interactiveUserSid
-        ))
-        $edgeCleanupStarted = [datetime]::UtcNow
-        $userExitCode = Invoke-AtlasAsUser -FilePath $powerShellExe -Arguments $userArguments
-        if ($userExitCode -ne 0) {
-            # Machine removal completed. Optional user-owned leftovers must not block
-            # the remaining install phases; the child still refuses unsafe paths or identities.
-            . (Join-Path $ScriptsRoot 'Install\Tasks\Get-AtlasUserFailureDetail.ps1')
-            $failureDetail = Get-AtlasUserFailureDetail -UserSid $interactiveUserSid `
-                -TranscriptPattern '*-edge-cleanup-*.log' -NotBefore $edgeCleanupStarted
-            Write-AtlasLog -Level Warning -Message `
-                "Exact-user Edge leftover cleanup exited with code $userExitCode; continuing installation.$failureDetail"
-        }
+    $interactiveUserSid = [string]$Context.InteractiveUserSid
+    if ([string]::IsNullOrWhiteSpace($interactiveUserSid)) {
+        throw 'Edge current-user cleanup requires the install-state user SID.'
+    }
+    $userCleanupScript = Join-Path -Path $ScriptsRoot `
+        -ChildPath 'Operations\Remove-EdgeCurrentUserData.ps1'
+    $userArguments = ConvertTo-AtlasWindowsArgumentString -ArgumentList ([string[]]@(
+        '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+        '-File', $userCleanupScript,
+        '-ExpectedUserSid', $interactiveUserSid
+    ))
+    $edgeCleanupStarted = [datetime]::UtcNow
+    $userExitCode = Invoke-AtlasAsUser -FilePath $powerShellExe -Arguments $userArguments
+    if ($userExitCode -ne 0) {
+        # Machine removal completed. Optional user-owned leftovers must not block
+        # the remaining install phases; the child still refuses unsafe paths or identities.
+        . (Join-Path $ScriptsRoot 'Install\Tasks\Get-AtlasUserFailureDetail.ps1')
+        $failureDetail = Get-AtlasUserFailureDetail -UserSid $interactiveUserSid `
+            -TranscriptPattern '*-edge-cleanup-*.log' -NotBefore $edgeCleanupStarted
+        Write-AtlasLog -Level Warning -Message `
+            "Exact-user Edge leftover cleanup exited with code $userExitCode; continuing installation.$failureDetail"
     }
 
     # Remove-Edge.ps1 already stopped and disabled Edge's services; this keeps them off if one is left.
@@ -71,7 +69,7 @@ function Invoke-AtlasEdgeRemoval {
 
     # Keep the shared EdgeUpdate services and tasks for WebView2. This block handles
     # browser services and deprovision keys. The checked AppX removal takes Edge's
-    # installed and provisioned packages off afterward.
+    # installed and provisioned packages off afterwards.
 
     foreach ($deprovisionKey in @(
         'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore\Deprovisioned\Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe'

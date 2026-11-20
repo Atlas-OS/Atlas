@@ -124,9 +124,9 @@ struct SetupCapability {
 }
 
 /// Whether the package can set Windows up from media (the configured and
-/// before-desktop modes). Only its iso-setup.json counts: a version number,
-/// or the SupportsISO flag in playbook.conf (an AME Wizard setting), is not
-/// enough.
+/// before-desktop modes). Only its iso-setup.json counts: a version number
+/// or a flag in playbook.conf isn't enough, because only the setup scripts
+/// that file describes can finish setup at first sign-in.
 pub fn supports_setup(package: &Path) -> bool {
     fs::read_to_string(package.join(SETUP_CAPABILITY))
         .ok()

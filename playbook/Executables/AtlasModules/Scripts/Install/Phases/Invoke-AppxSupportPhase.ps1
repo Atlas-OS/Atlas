@@ -15,7 +15,7 @@ Assert-AtlasPrivilege -TrustedInstaller
 $modulesRoot = Join-Path -Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) -ChildPath 'Modules'
 Import-Module -Name (Join-Path $modulesRoot 'Atlas.Appx\Atlas.Appx.psd1') -Force -ErrorAction Stop
 
-# Get current AppX packages to deprovision removed ones afterward. A failed snapshot is
+# Get current AppX packages to deprovision removed ones afterwards. A failed snapshot is
 # fatal before mutation because cleanup could not safely determine what Atlas removed.
 Save-AtlasAppxSnapshot
 

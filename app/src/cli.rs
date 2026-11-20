@@ -50,8 +50,8 @@ pub fn parse(args: impl IntoIterator<Item = OsString>) -> Launch {
 }
 
 /// Where the window opens: `--page`, `--step`, `--playbook`, `--language` and
-/// `--just-installed`, or a bare `.apbx` path from "Open with". app/README.md
-/// lists the values.
+/// `--just-installed`, or a bare `.apbx` path from "Open with".
+/// app/docs/review-tools.md lists the values.
 fn start_at(args: &[OsString]) -> StartAt {
     let text = |arg: Option<&OsString>| arg.and_then(|arg| arg.to_str()).map(str::to_owned);
     let mut start = StartAt::default();

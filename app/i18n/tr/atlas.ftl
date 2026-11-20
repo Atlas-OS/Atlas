@@ -159,9 +159,6 @@ home-show-full-notes = Tüm sürüm notlarını göster
 home-your-install = Atlas kurulumunuz
 # Atlas is installed, but without the record Atlas Manager keeps (older versions didn't write one).
 home-install-unrecorded = Bu bilgisayarda Atlas'ın nasıl kurulduğuna dair bir kayıt yok, bu yüzden seçimleriniz ve kurulum geçmişi gösterilemiyor.
-# Row label: how Atlas was set up.
-home-set-up = Kurulum yöntemi
-home-set-up-during-oobe = Windows kurulumu sırasında
 home-history = Kurulum geçmişi
 # One history row. $version is text, $mode one of the history-mode-* messages, $date a formatted date and time.
 home-history-entry = Atlas { $version } · { $mode } · { $date }
@@ -320,7 +317,7 @@ package-from-file = Atlas { $version }, { $file } dosyasından yüklendi ve kuru
 package-unpacked = Atlas { $version } kuruluma hazır.
 package-none-yet = Kurulum dosyası seçilmedi
 acquire-no-asset = Atlas { $version } sürümü için indirilebilecek bir paket dosyası yok. Devam etmek için kayıtlı bir Atlas paketi (.apbx) açın.
-acquire-unsupported = Bu uygulama Atlas 0.6.0 ve sonraki sürümleri kurabilir. Atlas { $version } sürümünü kurmak için AME Wizard'ı kullanın.
+acquire-unsupported = Bu uygulama Atlas 0.6.0 ve sonraki sürümleri kurabilir.
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = Atlas { $version } sürümünde bu uygulamanın kurulum için ihtiyaç duyduğu dosyalar eksik. Sürümü yeniden indirin veya başka bir Atlas paketi (.apbx) açın.
 acquire-failed = Kurulum dosyaları hazırlanamadı. Yeniden indirmeyi deneyin veya başka bir Atlas paketi (.apbx) açın. Ayrıntılar: { $error }
