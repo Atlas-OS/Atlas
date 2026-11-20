@@ -1,32 +1,32 @@
 [
   {
     "label": "Build Atlas package (Test)",
-    "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File \"${ZED_WORKTREE_ROOT}/tools/build/Build-Playbook.ps1\" -LocalTest",
-    "cwd": "${ZED_WORKTREE_ROOT}/playbook",
+    "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File \"${ZED_WORKTREE_ROOT}/tools/build/Build-Package.ps1\" -LocalTest",
+    "cwd": "${ZED_WORKTREE_ROOT}/package",
     "reveal": "always",
     "hide": "on_success",
     "shell": "system"
   },
   {
     "label": "Build Atlas package (Test w/o requirement gates)",
-    "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File \"${ZED_WORKTREE_ROOT}/tools/build/Build-Playbook.ps1\" -LocalTest -Removals Requirements",
-    "cwd": "${ZED_WORKTREE_ROOT}/playbook",
+    "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File \"${ZED_WORKTREE_ROOT}/tools/build/Build-Package.ps1\" -LocalTest -Removals Requirements",
+    "cwd": "${ZED_WORKTREE_ROOT}/package",
     "reveal": "always",
     "hide": "on_success",
     "shell": "system"
   },
   {
     "label": "Build Atlas package (Release)",
-    "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File \"${ZED_WORKTREE_ROOT}/tools/build/Build-Playbook.ps1\" -FileName \"Atlas Release\"",
-    "cwd": "${ZED_WORKTREE_ROOT}/playbook",
+    "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File \"${ZED_WORKTREE_ROOT}/tools/build/Build-Package.ps1\" -FileName \"Atlas Release\"",
+    "cwd": "${ZED_WORKTREE_ROOT}/package",
     "reveal": "always",
     "hide": "on_success",
     "shell": "system"
   },
   {
     "label": "Build Atlas package (Release Candidate)",
-    "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File \"${ZED_WORKTREE_ROOT}/tools/build/Build-Playbook.ps1\" -FileName \"Atlas RC\" -ReplaceOldPlaybook",
-    "cwd": "${ZED_WORKTREE_ROOT}/playbook",
+    "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File \"${ZED_WORKTREE_ROOT}/tools/build/Build-Package.ps1\" -FileName \"Atlas RC\" -ReplaceExisting",
+    "cwd": "${ZED_WORKTREE_ROOT}/package",
     "reveal": "always",
     "hide": "on_success",
     "shell": "system"

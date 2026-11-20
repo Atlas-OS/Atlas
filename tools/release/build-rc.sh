@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds one release-candidate ZIP for testers on Linux: the production APBX,
+# Builds one release-candidate ZIP for testers on Linux: the production Atlas package,
 # the Atlas Manager executable that carries it, notices and a tester note.
 # Nothing is tagged or published; the maintainer posts the ZIP by hand.
 #
@@ -9,7 +9,7 @@
 # --toolbox bundles that Toolbox installer in the package, so the candidate installs it
 # instead of the latest Toolbox release on GitHub (tools/release/Add-BundledToolbox.ps1).
 #
-# Output: artifacts/rc/<version>-rc.N/ with the ZIP, the APBX and SHA256SUMS.txt.
+# Output: artifacts/rc/<version>-rc.N/ with the ZIP, the .atlaspkg and SHA256SUMS.txt.
 # A failed run leaves a previous candidate in place.
 set -euo pipefail
 
@@ -61,32 +61,48 @@ commit="$(git rev-parse --short HEAD)"
 if [[ $dirty -eq 1 ]]; then
     commit+='-dirty'
 fi
-version="$(sed -n 's/.*<Version>\([^<]*\)<\/Version>.*/\1/p' playbook/playbook.conf | head -1)"
-[[ -n "$version" ]] || { echo 'Cannot read <Version> from playbook/playbook.conf.' >&2; exit 1; }
+# PowerShell, which the build needs anyway, reads the manifest: one line each for the
+# version, the supported builds and the versions this one updates. The lists come as
+# "a, b and c" for README-RC.txt, and every value is checked to be safe in a sed replacement.
+manifest="$(pwsh -NoProfile -NonInteractive -Command '
+    $ErrorActionPreference = "Stop"
+    $manifest = Get-Content -LiteralPath "package/atlas.json" -Raw | ConvertFrom-Json
+    function Join-Item([string[]]$Item) {
+        if ($Item.Count -eq 0) { throw "atlas.json has an empty list." }
+        if ($Item.Count -eq 1) { return $Item[0] }
+        return ($Item[0..($Item.Count - 2)] -join ", ") + " and " + $Item[-1]
+    }
+    $versionPattern = "^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$"
+    $version = [string]$manifest.version
+    if ($version -cnotmatch $versionPattern) { throw "atlas.json has no valid version." }
+    $builds = @($manifest.supportedBuilds | ForEach-Object {
+            if ("$($_.build)" -cnotmatch "^[0-9]+$" -or "$($_.release)" -cnotmatch "^[0-9A-Za-z.]+$") {
+                throw "atlas.json has a supportedBuilds entry without a numeric build and a release name."
+            }
+            "$($_.build) ($($_.release))"
+        })
+    $sources = @($manifest.updatableFrom | ForEach-Object {
+            if ("$_" -cnotmatch $versionPattern) { throw "atlas.json has an updatableFrom entry that is not a version." }
+            "$_"
+        })
+    $version
+    Join-Item $builds
+    Join-Item $sources
+')" || { echo 'Cannot read version, supportedBuilds and updatableFrom from package/atlas.json.' >&2; exit 1; }
+mapfile -t manifest_fields <<<"${manifest//$'\r'/}"
+if [[ ${#manifest_fields[@]} -ne 3 ]]; then
+    echo 'Cannot read version, supportedBuilds and updatableFrom from package/atlas.json.' >&2
+    exit 1
+fi
+version="${manifest_fields[0]}"
+supported_builds="${manifest_fields[1]}"
+updatable_from="${manifest_fields[2]}"
 # build.rs refuses a mismatch too, but only after the Atlas package is built and verified.
 cargo_version="$(sed -n '/^\[package\]/,/^\[/s/^version *= *"\([^"]*\)".*/\1/p' app/Cargo.toml | head -1)"
 if [[ "$cargo_version" != "$version" ]]; then
-    echo "app/Cargo.toml is at ${cargo_version:-no version} but playbook/playbook.conf is at $version; bump both." >&2
+    echo "app/Cargo.toml is at ${cargo_version:-no version} but package/atlas.json is at $version; bump both." >&2
     exit 1
 fi
-# Joins the <string> entries of one playbook.conf list as "a, b and c" for README-RC.txt.
-conf_list() {
-    local -a items
-    local pattern='^[[:alnum:] .+-]+$' list i
-    mapfile -t items < <(tr -d '\r\n' <playbook/playbook.conf | grep -o "<$1>.*</$1>" |
-        grep -o '<string>[^<]*</string>' | sed -e 's/<[^>]*>//g' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-    if [[ ${#items[@]} -eq 0 || ! "${items[*]}" =~ $pattern ]]; then
-        echo "Cannot read the <$1> list from playbook/playbook.conf." >&2
-        exit 1
-    fi
-    list="${items[0]}"
-    for ((i = 1; i < ${#items[@]}; i++)); do
-        if ((i == ${#items[@]} - 1)); then list+=" and ${items[i]}"; else list+=", ${items[i]}"; fi
-    done
-    printf '%s' "$list"
-}
-supported_builds="$(conf_list SupportedBuilds)"
-upgradable_from="$(conf_list UpgradableFrom)"
 rc_id="$version-rc.$rc"
 final="$root/artifacts/rc/$rc_id"
 work="$root/artifacts/rc/.$rc_id.building"
@@ -97,49 +113,49 @@ trap 'rm -rf "$work"' EXIT
 echo "== Atlas $rc_id from $commit"
 
 # 1. The production Atlas package. The build packs every file in the folder it's given, so a
-#    committed tree builds from an export of the commit's playbook/: untracked or ignored
+#    committed tree builds from an export of the commit's package/: untracked or ignored
 #    files in the checkout would otherwise reach testers and still pass verification.
-source_playbook="$root/playbook"
+source_package="$root/package"
 if [[ $dirty -eq 0 ]]; then
     mkdir -p "$work/source"
-    git archive --format=tar HEAD playbook | tar -x -C "$work/source"
-    source_playbook="$work/source/playbook"
+    git archive --format=tar HEAD package | tar -x -C "$work/source"
+    source_package="$work/source/package"
 elif [[ -n "$toolbox" ]]; then
     # The bundled Toolbox goes into a copy, never the checkout.
     mkdir -p "$work/source"
-    cp -a "$root/playbook" "$work/source/"
-    source_playbook="$work/source/playbook"
+    cp -a "$root/package" "$work/source/"
+    source_package="$work/source/package"
 fi
 if [[ -n "$toolbox" ]]; then
-    pwsh -NoProfile -File tools/release/Add-BundledToolbox.ps1 -PlaybookPath "$source_playbook" \
+    pwsh -NoProfile -File tools/release/Add-BundledToolbox.ps1 -PackagePath "$source_package" \
         -Installer "$toolbox" -Version "$toolbox_version"
 fi
-apbx_name="Atlas v$rc_id.apbx"
-pwsh -NoProfile -File tools/build/Build-Playbook.ps1 -PlaybookPath "$source_playbook" \
-    -FileName "Atlas v$rc_id" -OutputPath "$work" -ReplaceOldPlaybook -DontOpenPbLocation
-pwsh -NoProfile -File tools/build/Test-Apbx.ps1 -Path "$work/$apbx_name" -PlaybookPath "$source_playbook"
+package_name="Atlas-v$rc_id.atlaspkg"
+pwsh -NoProfile -File tools/build/Build-Package.ps1 -PackagePath "$source_package" \
+    -FileName "Atlas-v$rc_id" -OutputPath "$work" -ReplaceExisting -NoExplorer
+pwsh -NoProfile -File tools/build/Test-Package.ps1 -Path "$work/$package_name" -PackagePath "$source_package"
 
 # 2. The executable that carries exactly those bytes.
 export XWIN_CACHE_DIR="$root/artifacts/xwin"
 export XWIN_ACCEPT_LICENSE=1
 export XWIN_SDK_VERSION="${XWIN_SDK_VERSION:-10.0.26100}"
 export XWIN_CRT_VERSION="${XWIN_CRT_VERSION:-14.44.17.14}"
-export ATLAS_EMBED_APBX="$work/$apbx_name"
+export ATLAS_EMBED_PACKAGE="$work/$package_name"
 export ATLAS_RC_ID="$rc_id"
 (
     cd app
     pwsh -NoProfile -File tools/Export-DependencyNotices.ps1 -Check
     CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS='-C target-feature=+crt-static' \
-        cargo xwin build --release --locked --target x86_64-pc-windows-msvc --features embedded-playbook
+        cargo xwin build --release --locked --target x86_64-pc-windows-msvc --features embedded-package
 )
 exe="app/target/x86_64-pc-windows-msvc/release/AtlasManager.exe"
 [[ -f "$exe" ]] || { echo "Missing $exe" >&2; exit 1; }
 
-# 3. The ZIP: executable, standalone APBX, notices and the tester note.
+# 3. The ZIP: executable, standalone Atlas package, notices and the tester note.
 stage="$work/zip"
 mkdir -p "$stage"
 cp "$exe" "$stage/AtlasManager.exe"
-cp "$work/$apbx_name" "$stage/"
+cp "$work/$package_name" "$stage/"
 cp LICENSE "$stage/LICENSE.txt"
 cp app/licenses/THIRD-PARTY-NOTICES.txt "$stage/"
 cp app/vendor/gpui-pre/LICENSE-APACHE "$stage/GPUI-LICENSE-APACHE.txt"
@@ -148,7 +164,7 @@ if [[ -n "$toolbox" ]]; then
     toolbox_note="s|@TOOLBOX_NOTE@|- The package also carries AtlasOS Toolbox $toolbox_version. Installing the\\n  Toolbox, from Your choices or the Atlas folder, uses that copy instead of\\n  the latest Toolbox release on GitHub.|"
 fi
 sed -e "s/@RC_ID@/$rc_id/g" -e "s/@COMMIT@/$commit/g" -e "s/@SUPPORTED_BUILDS@/$supported_builds/g" \
-    -e "s/@UPGRADABLE_FROM@/$upgradable_from/g" -e "$toolbox_note" \
+    -e "s/@UPDATABLE_FROM@/$updatable_from/g" -e "$toolbox_note" \
     tools/release/README-RC.txt >"$stage/README-RC.txt"
 if grep -q '@[A-Z_][A-Z_]*@' "$stage/README-RC.txt"; then
     echo 'README-RC.txt has a placeholder that build-rc.sh does not fill in.' >&2
@@ -161,7 +177,7 @@ zip_name="AtlasManager-$rc_id-windows-x64.zip"
 (
     cd "$work"
     cp "zip/AtlasManager.exe" "AtlasManager.exe"
-    sha256sum "$zip_name" "$apbx_name" "AtlasManager.exe" | tee SHA256SUMS.txt
+    sha256sum "$zip_name" "$package_name" "AtlasManager.exe" | tee SHA256SUMS.txt
     rm -f "AtlasManager.exe"
     rm -rf zip source
 )

@@ -20,11 +20,11 @@ tools/release/setup-linux.sh
 tools/release/build-rc.sh --rc <n>
 ```
 
-The output goes to `artifacts/rc/<version>-rc.<n>/`, with the ZIP, the `.apbx` and `SHA256SUMS.txt`.
-`<version>` comes from `<Version>` in `playbook/playbook.conf`, which must match the `[package]` version in `app/Cargo.toml`.
+The output goes to `artifacts/rc/<version>-rc.<n>/`, with the ZIP, the `.atlaspkg` file and `SHA256SUMS.txt`.
+`<version>` comes from `version` in `package/atlas.json`, which must match the `[package]` version in `app/Cargo.toml`.
 Nothing is tagged or published; you post the ZIP and its checksum lines by hand.
 
-`build-rc.sh` builds a committed tree from an export of the commit's `playbook/`, so untracked and ignored files stay out.
+`build-rc.sh` builds a committed tree from an export of the commit's `package/`, so untracked and ignored files stay out.
 It refuses uncommitted changes unless you pass `--allow-dirty`.
 It then builds from the working tree, and the recorded commit ends in `-dirty`, so the candidate isn't publishable.
 
@@ -36,10 +36,10 @@ When a candidate needs a Toolbox release that isn't published yet, pass the inst
 tools/release/build-rc.sh --rc <n> --toolbox <path>/AtlasToolbox-Setup.exe --toolbox-version <x.y.z>
 ```
 
-`build-rc.sh` then runs `Add-BundledToolbox.ps1` on its staged copy of `playbook/`.
+`build-rc.sh` then runs `Add-BundledToolbox.ps1` on its staged copy of `package/`.
 The script writes the installer to `Executables/AtlasModules/Bundled/Toolbox/AtlasToolbox-Setup.exe`, with `AtlasToolbox-Setup.json` beside it recording the version, SHA-256 and size.
 Atlas installs that copy instead of the latest Toolbox release on GitHub, and checks the version afterwards.
-The script refuses to write into the checkout's own `playbook/` folder, and releases carry no bundled Toolbox.
+The script refuses to write into the checkout's own `package/` folder, and releases carry no bundled Toolbox.
 
 ## Tester notice placeholders
 
@@ -49,8 +49,8 @@ The script refuses to write into the checkout's own `playbook/` folder, and rele
 | --- | --- |
 | `@RC_ID@` | The candidate id, `<version>-rc.<n>`. |
 | `@COMMIT@` | The short source commit, ending in `-dirty` for a build with uncommitted changes. |
-| `@SUPPORTED_BUILDS@` | The `<SupportedBuilds>` entries in `playbook/playbook.conf`, as "a, b and c". |
-| `@UPGRADABLE_FROM@` | The `<UpgradableFrom>` entries in `playbook/playbook.conf`, as "a, b and c". |
+| `@SUPPORTED_BUILDS@` | The `supportedBuilds` entries in `package/atlas.json`, each as `<build> (<release>)`, joined as "a, b and c". |
+| `@UPDATABLE_FROM@` | The `updatableFrom` versions in `package/atlas.json`, as "a, b and c". |
 | `@TOOLBOX_NOTE@` | A line naming the bundled Toolbox version, or nothing when there's no `--toolbox`. |
 
 The build stops if the finished notice still holds a placeholder, so add a substitution to `build-rc.sh` with any new one.

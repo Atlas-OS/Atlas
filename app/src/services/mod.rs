@@ -12,7 +12,7 @@ pub mod iso;
 pub mod legacy_choices;
 pub mod licenses;
 pub mod locale;
-pub mod playbook;
+pub mod package;
 mod powershell;
 pub mod preparation;
 pub mod recovery_app;

@@ -11,7 +11,7 @@ use std::sync::atomic::Ordering;
 use serde_json::json;
 
 use super::{
-    AppModel, Origin, Page, PlaybookSource, Preflight, ReleaseCheck, RestartConfirmation, RestartKind,
+    AppModel, Origin, PackageSource, Page, Preflight, ReleaseCheck, RestartConfirmation, RestartKind,
     RestoreStatus, Step, UpdatePath,
 };
 use crate::services::atlas_state::{InstallIdentity, InstallMode, Unfinished};
@@ -319,7 +319,7 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
     // An unpacked package, except where the preview is about not having one.
     if !matches!(preview, "idle" | "ineligible") {
         let manifest = model.builtin_manifest.clone();
-        model.playbook = Some(PlaybookSource {
+        model.package = Some(PackageSource {
             dir: std::env::temp_dir(),
             manifest,
             origin: Origin::Unpacked,
@@ -841,7 +841,7 @@ fn apply_not_applied(model: &mut AppModel) {
         exit_path: log.with_extension("exit"),
         log_path: log,
         request: InstallRequest {
-            playbook_dir: std::env::temp_dir(),
+            package_dir: std::env::temp_dir(),
             options,
             restart: true,
             windows_security_confirmed: false,

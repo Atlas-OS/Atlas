@@ -13,7 +13,7 @@ It's for maintainers who change which Windows components the packages replace, o
 The NoDefender package covers Microsoft Defender, SmartScreen and their related components.
 The NoTelemetry package covers telemetry, compatibility appraisal and feedback components.
 Each config names its package and lists the Windows components it updates, with the architecture and version of each, and any registry values an update sets.
-The built CABs live in `playbook/Executables/AtlasModules/Packages`.
+The built CABs live in `package/Executables/AtlasModules/Packages`.
 
 ## How CI builds candidate CABs
 
@@ -42,9 +42,9 @@ Atlas pins each CAB's SHA-256 in `Atlas-CbsHashes.psd1` instead, and refuses to 
 
 1. Download the `Atlas-CAB-candidates-<commit>` artifact, and check each CAB against its `SHA256SUMS.txt`.
 2. Test the `Atlas-CI-<commit>` artifact from the same run, which is built with those CABs, on a disposable VM of each architecture you changed.
-3. Replace the CABs in `playbook/Executables/AtlasModules/Packages`.
-4. Regenerate `playbook/Executables/AtlasModules/Packages/Atlas-CbsHashes.psd1` with the command in its header comment.
-5. Update the SHA-256 values in the CBS component packages section of the [binary inventory](../../playbook/Executables/AtlasModules/README.md).
+3. Replace the CABs in `package/Executables/AtlasModules/Packages`.
+4. Regenerate `package/Executables/AtlasModules/Packages/Atlas-CbsHashes.psd1` with the command in its header comment.
+5. Update the SHA-256 values in the CBS component packages section of the [binary inventory](../../package/Executables/AtlasModules/README.md).
 6. Run `tests/Atlas.PayloadLayout.Tests.ps1`, which fails if `Atlas-CbsHashes.psd1` and the CABs in the folder differ.
 
 Commit the CABs, `Atlas-CbsHashes.psd1` and the binary inventory together, so the tests pass at every commit.

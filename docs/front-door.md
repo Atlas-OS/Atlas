@@ -11,7 +11,7 @@ For how the front door fits with the TrustedInstaller broker and the install pla
 
 ## How Atlas Manager runs it
 
-Atlas Manager extracts the Atlas package, then starts Windows PowerShell 5.1 elevated with `-Command`.
+Atlas Manager extracts the [Atlas package](package-format.md), then starts Windows PowerShell 5.1 elevated with `-Command`.
 It uses `-Command` because `-File` passes every argument as one string, and the option list must arrive as an array.
 
 ```powershell
@@ -29,7 +29,7 @@ See [Lab VM verification](testing.md#lab-vm-verification).
 To run it by hand:
 
 1. Build the Atlas package, for example with `-NoPassword` so you can extract it with any archive tool (see [Build options](building.md#build-options)).
-   A `-LocalTest` build leaves out `SupportedBuilds`, so the front door refuses it.
+   A `-LocalTest` build has an empty `supportedBuilds`, so the front door refuses it.
 2. Bring Windows and Microsoft Store apps up to date, or let Atlas Manager's **Get ready** page do it.
    The front door checks this and exits with code 5 when anything is outstanding.
 3. Open Windows PowerShell 5.1 as administrator, signed in as the account Atlas is for.
@@ -45,7 +45,7 @@ The front door makes the same changes as an install from Atlas Manager, so use a
 
 | Parameter | Effect |
 | --- | --- |
-| `-Option` | Required. The option names from `FeaturePages` in `playbook.conf`, lower case, letters, digits and hyphens only. |
+| `-Option` | Required. The option ids from `choices` in `atlas.json`, lower case, letters, digits and hyphens only. |
 | `-Unattended` | Doesn't ask before continuing after warnings. Blocking requirements still apply. |
 | `-WindowsSecurityConfirmed` | You checked in Windows Security that all four protection switches are off. A switch that can't be read then doesn't block, but one that reads on still does. |
 | `-ChooseAgain` | On an update or a reinstall, applies the `-Option` choices wherever the PC differs from them. Without it, the install keeps the choices the PC has. |
@@ -54,12 +54,12 @@ The front door makes the same changes as an install from Atlas Manager, so use a
 | `-KeepStaging` | Keeps this run's staging copy whole, whatever the outcome. |
 | `-WindowsSetup` | Refused. Microsoft Store preparation belongs to a signed-in user, so the front door must run in that user's session. |
 
-`-Option` needs exactly one option from each radio group: Microsoft Defender, processor protections, automatic updates and keyboard languages.
+`-Option` needs exactly one option from each `single` choice: Microsoft Defender, processor protections, automatic updates and keyboard languages.
 It needs exactly one browser when it includes `install-another-browser`, and refuses a browser without it.
-Options that `playbook.conf` doesn't declare are refused.
-Capture checks the options, so a wrong one fails the run with exit code 1 after the preparation check.
+Options that `atlas.json` doesn't declare are refused.
+Capture checks the options against the rules in [Choices](package-format.md#choices), so a wrong one fails the run with exit code 1 after the preparation check.
 
-To list each group's options, read `FeaturePages` in `playbook/playbook.conf`, or call `Get-AtlasPlaybookOption` from the `Atlas.InstallState` module.
+To list each choice's options, read `choices` in `package/atlas.json`, or call `Get-AtlasPackageChoice` from the `Atlas.InstallState` module.
 
 `-ChooseAgain` has no effect on a first installation, and the front door says so.
 A Rebase refuses it before anything is copied, because a Rebase first puts back the choices the PC had before Windows rebuilt itself.
@@ -88,7 +88,7 @@ A check that can't run counts as failed.
 | Check | Fails when |
 | --- | --- |
 | `Windows edition` | Windows isn't a client installation, or it's Home, LTSC, IoT LTSC or Server. |
-| `Windows build` | The build isn't in `SupportedBuilds`. The detail says when Atlas Manager can move Windows to a supported release first. |
+| `Windows build` | The build isn't in `supportedBuilds`. The detail says when Atlas Manager can move Windows to a supported release first. |
 | `Windows release` | The release catalog doesn't list the build and revision as released (see [Windows release eligibility](windows-release-policy.md)). |
 | `User account` | User Account Control is off, the account has no normal non-elevated token, or it's a work or school (Microsoft Entra ID) account. |
 | `No pending reboot` | The servicing stack or Windows Update has set its restart flag. |
@@ -106,10 +106,10 @@ Some details of these checks:
 - Pending file replacements without either restart flag don't block.
   An update can queue some, such as printer drivers, without asking for a restart, and apps such as Xbox Gaming Services queue one at every restart.
 - An antivirus registration whose signed program is gone is the leftover of an uninstall, so the check ignores it.
-- `Plugged in` and `No third-party antivirus` block only when `playbook.conf` declares `PluggedIn` and `NoAntivirus`.
+- `Plugged in` and `No third-party antivirus` each block only when the manifest's `requirements` lists their id, `plugged-in` or `no-third-party-antivirus`.
   Otherwise their failure is a warning.
-- `Windows Security` runs only when `playbook.conf` declares `DefenderToggled`.
-  The front door refuses a package that declares a requirement it can't check.
+- `Windows Security` runs only when `requirements` lists `windows-security-off`.
+  The front door refuses a package that lists a requirement it doesn't recognise (see [Requirements](package-format.md#requirements)).
 - The last check also fails while Atlas Manager hasn't yet checked how Windows moved, and when Atlas packages are gone after a feature update without Windows having reinstalled itself.
   See [Moving Windows to a newer release](windows-transition.md).
 
@@ -130,10 +130,10 @@ It decides from the mode, the update path and whether Atlas's NoDefender package
 
 ## What the front door does
 
-1. It checks that it's elevated, reads the target version from `playbook.conf` and runs the requirement checks.
+1. It checks that it's elevated, reads the target version from `atlas.json` and runs the requirement checks.
 2. It resolves the install mode and the update path and prints them, for example `Install mode: Upgrade, keeping your choices.`
-   It refuses an installed Atlas version that `UpgradableFrom` doesn't list, and Atlas files whose version it can't establish.
-3. It copies `playbook.conf` and the `Executables` folder into a new folder under `%windir%\AtlasOS\Staging`.
+   It refuses an installed Atlas version that `updatableFrom` doesn't list, and Atlas files whose version it can't establish.
+3. It copies `atlas.json` and the `Executables` folder into a new folder under `%windir%\AtlasOS\Staging`.
    The folder gets an access list at creation that lets only SYSTEM and Administrators write.
    The copy refuses symbolic links and junctions in the extracted package.
 4. It runs the preparation check from the staging copy (see [The check before the install](preparation.md#the-check-before-the-install)).

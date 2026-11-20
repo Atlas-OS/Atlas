@@ -641,10 +641,10 @@ Describe 'AppX removal policy' {
         @($definitions | Where-Object Option -eq 'remove-snipping-tool').Name |
             Should -Be @('Microsoft.ScreenSketch*')
 
-        [xml]$playbook = [IO.File]::ReadAllText((Join-Path $script:AtlasTestRepoRoot 'playbook\playbook.conf'))
-        $featureOptions = @($playbook.SelectNodes('/Playbook/FeaturePages/*/Options/*/Name') | ForEach-Object { $_.InnerText })
+        $manifest = [IO.File]::ReadAllText((Join-Path $script:AtlasTestRepoRoot 'package\atlas.json')) | ConvertFrom-Json
+        $manifestOptions = @(@($manifest.choices) | ForEach-Object { @($_.options) } | ForEach-Object { [string]$_.id })
         foreach ($option in @($definitions | Where-Object Option | ForEach-Object Option)) {
-            $option | Should -BeIn $featureOptions
+            $option | Should -BeIn $manifestOptions
         }
 
         # Ordered: WebExperience must be removed before the runtime it depends on.

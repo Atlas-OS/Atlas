@@ -61,9 +61,9 @@ Controls that restore removed features may need an internet connection.
 
 You can inspect Atlas before you install it and check its changes afterwards.
 
-- The Atlas package (`.apbx`) is a password-protected ZIP file that you can open with the password `malte`.
-  Most of it is PowerShell and data.
-- The [binary inventory](playbook/Executables/AtlasModules/README.md) lists every executable in the Atlas package, with its source and licence.
+- The Atlas package (`.atlaspkg`) is a password-protected ZIP file that you can open with the password `atlasos`.
+  Most of it is PowerShell and data, and the [package format](docs/package-format.md) describes its layout.
+- The [binary inventory](package/Executables/AtlasModules/README.md) lists every executable in the Atlas package, with its source and licence.
 - After installing, `AtlasDesktop\9. Troubleshooting\Check Atlas Health.cmd` reports what Atlas installed and what has changed since, without changing anything.
 - The [toggle catalog](docs/catalog/toggles.md) and [install tweak catalog](docs/catalog/tweaks.md) list every AtlasDesktop toggle and install tweak.
 - [Atlas Manager's source code](app/) is in this repository.

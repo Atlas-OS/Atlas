@@ -1,5 +1,7 @@
-//! The Atlas package: reading playbook.conf (what the install offers and
-//! requires) and unpacking an .apbx so the front door script can run it.
+//! The Atlas package: reading its manifest, `atlas.json` (what the install
+//! offers and requires), and unpacking an `.atlaspkg` file so the front door
+//! script can run it. docs/package-format.md, from the repository root,
+//! defines the format.
 //!
 //! Unpacking is transactional and the result immutable. The archive is
 //! written to a private staging directory under the package cache,
@@ -11,7 +13,7 @@
 //! unpacks later. Identical content is recognised and reused, while it still
 //! holds every file it was unpacked with.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
@@ -25,14 +27,24 @@ use super::releases::sha256_file;
 
 /// The archive password is public by design; it only stops antivirus engines
 /// from scanning the scripts inside the package before they are staged.
-pub(crate) const APBX_PASSWORD: &str = "malte";
+pub(crate) const PACKAGE_PASSWORD: &str = "atlasos";
 
-/// The install time playbook.conf claims when it gives none.
+/// The extension of every Atlas package file, which releases publish as
+/// `Atlas-v<version>.atlaspkg`.
+pub const EXTENSION: &str = "atlaspkg";
+
+/// The manifest at the root of every package.
+const MANIFEST_FILE: &str = "atlas.json";
+
+/// The manifest format this app reads.
+const SCHEMA_VERSION: u32 = 1;
+
+/// The install time a manifest claims when it gives none.
 const DEFAULT_ESTIMATED_MINUTES: u32 = 15;
 
-/// The playbook.conf in this repository, used to describe options
-/// before any release has been downloaded.
-const BUILTIN_CONF: &str = include_str!("../../../playbook/playbook.conf");
+/// The manifest in this repository, used to describe options before any
+/// release has been downloaded.
+const BUILTIN_MANIFEST: &str = include_str!("../../../package/atlas.json");
 
 /// The first Atlas release that includes the front door script this app drives.
 pub const FIRST_FRONT_DOOR_VERSION: &str = "0.6.0";
@@ -81,6 +93,42 @@ impl std::fmt::Display for Incomplete {
 }
 
 impl std::error::Error for Incomplete {}
+
+/// The file isn't an Atlas package this app opens: it has another extension,
+/// or it's an AME Wizard package (`.apbx`) from an Atlas release before 0.6,
+/// under any name. Typed so the UI can explain it in the user's language.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NotAPackage {
+    /// The file's name, without its folder.
+    pub file: String,
+}
+
+impl std::fmt::Display for NotAPackage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} isn't an Atlas package: this app installs Atlas {FIRST_FRONT_DOOR_VERSION} and later from .{EXTENSION} files",
+            self.file
+        )
+    }
+}
+
+impl std::error::Error for NotAPackage {}
+
+impl NotAPackage {
+    fn of(path: &Path) -> Self {
+        Self { file: super::releases::file_name(path) }
+    }
+}
+
+/// Refuses a file whose extension isn't `.atlaspkg` before anything reads it.
+pub fn check_file_name(path: &Path) -> Result<()> {
+    if path.extension().is_some_and(|extension| extension.eq_ignore_ascii_case(EXTENSION)) {
+        Ok(())
+    } else {
+        Err(NotAPackage::of(path).into())
+    }
+}
 
 const STAGING_PREFIX: &str = ".staging-";
 /// Written into every published directory: which archive it came from.
@@ -151,46 +199,64 @@ fn first_missing<'a>(dir: &Path, files: &'a BTreeMap<String, u64>) -> Option<&'a
         .map(|(name, _)| name.as_str())
 }
 
+/// What a package's manifest declares, checked.
 #[derive(Clone, Debug)]
 pub struct Manifest {
     pub version: String,
-    pub upgradable_from: Vec<String>,
+    /// The Atlas versions this package can update in place.
+    pub updatable_from: Vec<String>,
     pub supported_builds: Vec<u32>,
+    /// The checks the front door runs before it installs, by id, such as
+    /// `plugged-in`.
+    pub requirements: Vec<String>,
     pub estimated_minutes: u32,
-    pub pages: Vec<FeaturePage>,
+    /// The questions an install asks, in the order they're asked.
+    pub choices: Vec<Choice>,
 }
 
+/// One question an install asks.
 #[derive(Clone, Debug)]
-pub struct FeaturePage {
-    pub kind: PageKind,
+pub struct Choice {
+    /// A stable name for the question, such as `defender`.
+    pub id: String,
+    pub kind: ChoiceKind,
+    /// The manifest's English text about the question; empty when it has none.
     pub description: String,
-    pub learn_more: Option<Link>,
-    /// Only shown when this option name is selected elsewhere.
+    /// An `https://` link to documentation about the question.
+    pub learn_more: Option<String>,
+    /// Only asked when this option is chosen elsewhere.
     pub depends_on: Option<String>,
-    pub options: Vec<FeatureOption>,
+    pub options: Vec<ChoiceOption>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum PageKind {
+/// How many options a [`Choice`] takes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ChoiceKind {
     /// Exactly one option; `default` names the preselected one.
-    Radio,
-    /// Any number of options.
-    Checkbox,
+    Single,
+    /// Any number of options, including none.
+    Multiple,
 }
 
+/// One answer to a [`Choice`].
 #[derive(Clone, Debug)]
-pub struct FeatureOption {
-    pub name: String,
-    pub text: String,
+pub struct ChoiceOption {
+    /// The option's id, as install records and the front door know it.
+    pub id: String,
+    /// The manifest's English label, shown when this app has none of its own.
+    pub label: String,
+    /// The stem of a PNG in the package's `Images` folder.
     pub image: Option<String>,
+    /// The option a single choice starts with.
     pub default: bool,
 }
 
-impl FeatureOption {
+impl ChoiceOption {
     /// Optional artwork belongs to the unpacked package, never the executable.
     pub fn image_path(&self, package: &Path) -> Option<PathBuf> {
         let name = self.image.as_deref()?;
-        // FileName is a stem in Images, not an arbitrary path or URL.
+        // A stem in Images, not an arbitrary path or URL.
         if name.is_empty() || !name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_') {
             return None;
         }
@@ -199,59 +265,54 @@ impl FeatureOption {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct Link {
-    pub url: String,
-}
-
 impl Manifest {
     pub fn builtin() -> Manifest {
-        parse(BUILTIN_CONF).expect("the repository playbook.conf parses")
+        parse(BUILTIN_MANIFEST).expect("the repository's package/atlas.json parses")
     }
 
-    /// Option names selected by default, in page order.
+    /// Option ids selected by default, in choice order.
     pub fn default_options(&self) -> Vec<String> {
-        self.pages
+        self.choices
             .iter()
-            .flat_map(|page| page.options.iter().filter(|o| o.default).map(|o| o.name.clone()))
+            .flat_map(|choice| choice.options.iter().filter(|o| o.default).map(|o| o.id.clone()))
             .collect()
     }
 
-    /// The label the user saw for an option name, if this manifest knows it.
-    pub fn option_label(&self, name: &str) -> Option<&str> {
-        self.pages
+    /// The manifest's label for an option id, if this manifest declares it.
+    pub fn option_label(&self, id: &str) -> Option<&str> {
+        self.choices
             .iter()
-            .flat_map(|page| page.options.iter())
-            .find(|option| option.name == name)
-            .map(|option| option.text.as_str())
+            .flat_map(|choice| choice.options.iter())
+            .find(|option| option.id == id)
+            .map(|option| option.label.as_str())
     }
 }
 
-/// Orders `pages` (indexes into `all`) so a page shown only when an option is
-/// chosen comes straight after the page that offers that option: the browser
-/// picker follows the apps that ask to "choose one below". A page whose
-/// option is on no page in `pages` keeps its place, as do pages that depend
-/// on each other in a loop.
-pub fn follow_parents(all: &[FeaturePage], pages: Vec<usize>) -> Vec<usize> {
+/// Orders `choices` (indexes into `all`) so a choice asked only when an
+/// option is chosen comes straight after the choice that offers that option:
+/// the browser picker follows the apps that ask to "choose one below". A
+/// choice whose option is offered by no choice in `choices` keeps its place,
+/// as do choices that depend on each other in a loop.
+pub fn follow_parents(all: &[Choice], choices: Vec<usize>) -> Vec<usize> {
     let parent = |index: usize| {
         let option = all[index].depends_on.as_ref()?;
-        pages.iter().copied().find(|&candidate| {
-            candidate != index && all[candidate].options.iter().any(|offered| &offered.name == option)
+        choices.iter().copied().find(|&candidate| {
+            candidate != index && all[candidate].options.iter().any(|offered| &offered.id == option)
         })
     };
-    let mut ordered = Vec::with_capacity(pages.len());
-    for &index in pages.iter().filter(|&&index| parent(index).is_none()) {
-        place_with_children(index, &pages, &parent, &mut ordered);
+    let mut ordered = Vec::with_capacity(choices.len());
+    for &index in choices.iter().filter(|&&index| parent(index).is_none()) {
+        place_with_children(index, &choices, &parent, &mut ordered);
     }
-    let rest: Vec<usize> = pages.iter().copied().filter(|index| !ordered.contains(index)).collect();
+    let rest: Vec<usize> = choices.iter().copied().filter(|index| !ordered.contains(index)).collect();
     ordered.extend(rest);
     ordered
 }
 
-/// Appends `index`, then the pages that depend on it, each followed by its own.
+/// Appends `index`, then the choices that depend on it, each followed by its own.
 fn place_with_children(
     index: usize,
-    pages: &[usize],
+    choices: &[usize],
     parent: &dyn Fn(usize) -> Option<usize>,
     out: &mut Vec<usize>,
 ) {
@@ -259,106 +320,129 @@ fn place_with_children(
         return;
     }
     out.push(index);
-    for &child in pages.iter().filter(|&&child| parent(child) == Some(index)) {
-        place_with_children(child, pages, parent, out);
+    for &child in choices.iter().filter(|&&child| parent(child) == Some(index)) {
+        place_with_children(child, choices, parent, out);
     }
 }
 
 /// The manifest of an already unpacked package directory.
 pub fn read_manifest(dir: &Path) -> Result<Manifest> {
-    let text = fs::read_to_string(dir.join("playbook.conf"))
-        .with_context(|| format!("read {}", dir.join("playbook.conf").display()))?;
+    let path = dir.join(MANIFEST_FILE);
+    let text = fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
     parse(&text)
 }
 
-pub fn parse(xml: &str) -> Result<Manifest> {
-    let xml = xml.trim_start_matches('\u{feff}');
-    let doc = roxmltree::Document::parse(xml).context("parse playbook.conf")?;
-    let root = doc.root_element();
-    let text_of = |name: &str| -> String {
-        root.children()
-            .find(|n| n.has_tag_name(name))
-            .and_then(|n| n.text())
-            .unwrap_or_default()
-            .trim()
-            .to_owned()
-    };
-
-    // The `<string>` items of a list element such as `<SupportedBuilds>`.
-    let strings = |tag: &str| {
-        root.children()
-            .find(|n| n.has_tag_name(tag))
-            .into_iter()
-            .flat_map(|list| list.children().filter(|n| n.has_tag_name("string")))
-            .filter_map(|n| n.text())
-            .map(str::trim)
-    };
-    let pages = root
-        .children()
-        .find(|n| n.has_tag_name("FeaturePages"))
-        .map(|node| node.children().filter(|n| n.is_element()).filter_map(parse_page).collect())
-        .unwrap_or_default();
-
-    Ok(Manifest {
-        version: text_of("Version"),
-        upgradable_from: strings("UpgradableFrom").map(str::to_owned).collect(),
-        supported_builds: strings("SupportedBuilds").filter_map(|build| build.parse().ok()).collect(),
-        estimated_minutes: text_of("EstimatedMinutes").parse().unwrap_or(DEFAULT_ESTIMATED_MINUTES),
-        pages,
-    })
+/// `atlas.json` as it's written, before [`parse`] checks it. Fields this app
+/// doesn't use are ignored, so a later format that only adds fields still reads.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ManifestFile {
+    schema_version: u32,
+    version: String,
+    #[serde(default)]
+    supported_builds: Vec<SupportedBuild>,
+    #[serde(default)]
+    updatable_from: Vec<String>,
+    #[serde(default)]
+    requirements: Vec<String>,
+    estimated_minutes: Option<u32>,
+    #[serde(default)]
+    choices: Vec<ChoiceFile>,
 }
 
-fn parse_page(node: roxmltree::Node) -> Option<FeaturePage> {
-    let kind = match node.tag_name().name() {
-        "RadioPage" | "RadioImagePage" => PageKind::Radio,
-        "CheckboxPage" => PageKind::Checkbox,
-        _ => return None,
-    };
-    let default = node.attribute("DefaultOption").unwrap_or_default();
-    let options = node
-        .children()
-        .find(|n| n.has_tag_name("Options"))
-        .map(|options| {
-            options
-                .children()
-                .filter(|n| n.is_element())
-                .filter_map(|option| {
-                    let child_text = |name: &str| {
-                        option
-                            .children()
-                            .find(|n| n.has_tag_name(name))
-                            .and_then(|n| n.text())
-                            .map(|t| t.trim().to_owned())
-                    };
-                    let name = child_text("Name")?;
-                    Some(FeatureOption {
-                        default: name == default,
-                        text: child_text("Text").unwrap_or_else(|| name.clone()),
-                        image: child_text("FileName"),
-                        name,
-                    })
+/// Only `build` is checked; `release` names it for readers.
+#[derive(Deserialize)]
+struct SupportedBuild {
+    build: u32,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ChoiceFile {
+    id: String,
+    kind: ChoiceKind,
+    default: Option<String>,
+    depends_on: Option<String>,
+    description: Option<String>,
+    learn_more: Option<String>,
+    options: Vec<OptionFile>,
+}
+
+#[derive(Deserialize)]
+struct OptionFile {
+    id: String,
+    label: String,
+    image: Option<String>,
+}
+
+/// Reads and checks a manifest: the format is the one this app reads, every
+/// choice and option id is declared once, every choice has options, and
+/// every single choice names one of its own options as its default.
+pub fn parse(json: &str) -> Result<Manifest> {
+    let file: ManifestFile =
+        serde_json::from_str(json.trim_start_matches('\u{feff}')).context("read atlas.json")?;
+    anyhow::ensure!(
+        file.schema_version == SCHEMA_VERSION,
+        "atlas.json has format {}, and this app reads format {SCHEMA_VERSION}",
+        file.schema_version
+    );
+    let mut choice_ids = BTreeSet::new();
+    let mut option_ids = BTreeSet::new();
+    let mut choices = Vec::with_capacity(file.choices.len());
+    for choice in file.choices {
+        let id = choice.id;
+        anyhow::ensure!(choice_ids.insert(id.clone()), "atlas.json declares the choice {id:?} twice");
+        anyhow::ensure!(!choice.options.is_empty(), "the choice {id:?} in atlas.json has no options");
+        for option in &choice.options {
+            anyhow::ensure!(
+                option_ids.insert(option.id.clone()),
+                "atlas.json declares the option {:?} twice",
+                option.id
+            );
+        }
+        let default = match choice.kind {
+            ChoiceKind::Single => {
+                let default = choice
+                    .default
+                    .with_context(|| format!("the choice {id:?} in atlas.json has no default"))?;
+                anyhow::ensure!(
+                    choice.options.iter().any(|option| option.id == default),
+                    "the choice {id:?} in atlas.json defaults to {default:?}, which isn't one of its options"
+                );
+                Some(default)
+            }
+            ChoiceKind::Multiple => None,
+        };
+        choices.push(Choice {
+            id,
+            kind: choice.kind,
+            description: choice.description.unwrap_or_default(),
+            learn_more: choice.learn_more.filter(|url| url.starts_with("https://")),
+            depends_on: choice.depends_on,
+            options: choice
+                .options
+                .into_iter()
+                .map(|option| ChoiceOption {
+                    default: default.as_deref() == Some(option.id.as_str()),
+                    id: option.id,
+                    label: option.label,
+                    image: option.image,
                 })
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-    if options.is_empty() {
-        return None;
+                .collect(),
+        });
     }
-    let learn_more = node
-        .children()
-        .find(|n| n.has_tag_name("BottomLine"))
-        .and_then(|n| Some(Link { url: n.attribute("Link")?.to_owned() }));
-    Some(FeaturePage {
-        kind,
-        description: node.attribute("Description").unwrap_or_default().to_owned(),
-        learn_more,
-        depends_on: node.attribute("DependsOn").map(str::to_owned),
-        options,
+    Ok(Manifest {
+        version: file.version.trim().to_owned(),
+        updatable_from: file.updatable_from,
+        supported_builds: file.supported_builds.into_iter().map(|build| build.build).collect(),
+        requirements: file.requirements,
+        estimated_minutes: file.estimated_minutes.unwrap_or(DEFAULT_ESTIMATED_MINUTES),
+        choices,
     })
 }
 
 /// Checks that a package version can name a cache directory: the same shape
-/// `Get-AtlasPlaybookVersion` accepts (`major.minor.patch` with an optional
+/// `Get-AtlasPackageVersion` accepts (`major.minor.patch` with an optional
 /// `-suffix` of letters, digits, dots and dashes), which rules out empty,
 /// relative, rooted and separator-bearing values.
 pub fn validate_version(version: &str) -> Result<&str> {
@@ -386,7 +470,7 @@ pub fn validate_version(version: &str) -> Result<&str> {
 }
 
 /// The front door script inside an extracted package. The package keeps
-/// `playbook.conf` at its root and Atlas's files under `Executables`; the
+/// `atlas.json` at its root and Atlas's files under `Executables`; the
 /// script finds the root from its own location.
 pub fn front_door(dir: &Path) -> PathBuf {
     dir.join("Executables").join("AtlasModules").join("Scripts").join("Entry").join("Install-Atlas.ps1")
@@ -404,10 +488,11 @@ pub fn plain_path(path: PathBuf) -> PathBuf {
 }
 
 pub fn is_extracted(dir: &Path) -> bool {
-    dir.join("playbook.conf").is_file() && front_door(dir).is_file()
+    dir.join(MANIFEST_FILE).is_file() && front_door(dir).is_file()
 }
 
-/// Unpacks an .apbx beneath `root`, a directory this app owns. The package is
+/// Unpacks an `.atlaspkg` file beneath `root`, a directory this app owns.
+/// Any other file is refused with [`NotAPackage`] before it's read. The package is
 /// written and validated in a private staging directory first, then
 /// published as `<root>/<version>_<digest>`. That directory is never written
 /// again: an archive with the same content is recognised by its digest and
@@ -420,24 +505,32 @@ pub fn is_extracted(dir: &Path) -> bool {
 /// install record may still point at one, and removing it would defeat the
 /// identity scheme.
 pub fn extract_into(
-    apbx: &Path,
+    package: &Path,
     root: &Path,
     mut progress: impl FnMut(usize, usize),
 ) -> Result<(PathBuf, Manifest)> {
-    let file = fs::File::open(apbx).with_context(|| format!("open {}", apbx.display()))?;
+    check_file_name(package)?;
+    let file = fs::File::open(package).with_context(|| format!("open {}", package.display()))?;
     let mut archive = zip::ZipArchive::new(file).context("read the package archive")?;
 
     // Read the manifest first so the target directory carries the real version.
     let manifest = {
+        // An AME Wizard package keeps its manifest in playbook.conf instead,
+        // whatever the file is called.
+        if archive.index_for_name(MANIFEST_FILE).is_none()
+            && archive.index_for_name("playbook.conf").is_some()
+        {
+            return Err(NotAPackage::of(package).into());
+        }
         let mut entry = archive
-            .by_name_decrypt("playbook.conf", APBX_PASSWORD.as_bytes())
-            .context("the package has no playbook.conf")?;
+            .by_name_decrypt(MANIFEST_FILE, PACKAGE_PASSWORD.as_bytes())
+            .context("the package has no readable atlas.json")?;
         let mut text = String::new();
-        entry.read_to_string(&mut text).context("read playbook.conf")?;
+        entry.read_to_string(&mut text).context("read atlas.json")?;
         parse(&text)?
     };
     let version = validate_version(&manifest.version)?.to_owned();
-    let identity = PackageIdentity { version: version.clone(), sha256: sha256_file(apbx)? };
+    let identity = PackageIdentity { version: version.clone(), sha256: sha256_file(package)? };
 
     fs::create_dir_all(root).with_context(|| format!("create {}", root.display()))?;
     let root = plain_path(root.canonicalize().with_context(|| format!("resolve {}", root.display()))?);
@@ -521,7 +614,7 @@ fn extract_entries<R: Read + std::io::Seek>(
     let mut files = BTreeMap::new();
     for index in 0..total {
         let mut entry = archive
-            .by_index_decrypt(index, APBX_PASSWORD.as_bytes())
+            .by_index_decrypt(index, PACKAGE_PASSWORD.as_bytes())
             .with_context(|| format!("read entry {index}"))?;
         let Some(relative) = entry.enclosed_name() else {
             anyhow::bail!("the package contains an unsafe path: {}", entry.name());
@@ -712,14 +805,14 @@ fn sweep_leftovers(root: &Path) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::services::test_support::{TempDir, apbx};
+    use crate::services::test_support::{TempDir, package};
 
     #[test]
     fn browser_artwork_is_optional_and_resolved_from_the_package() {
         let temp = TempDir::new("browser-artwork");
         let manifest = Manifest::builtin();
         let brave =
-            manifest.pages.iter().flat_map(|p| &p.options).find(|o| o.name == "browser-brave").unwrap();
+            manifest.choices.iter().flat_map(|c| &c.options).find(|o| o.id == "browser-brave").unwrap();
         assert_eq!(brave.image.as_deref(), Some("brave"));
         assert_eq!(brave.image_path(temp.path()), None);
         fs::create_dir(temp.path().join("Images")).unwrap();
@@ -733,15 +826,16 @@ mod tests {
         }
     }
 
-    fn page(option: &str, depends_on: Option<&str>) -> FeaturePage {
-        FeaturePage {
-            kind: PageKind::Checkbox,
+    fn choice(option: &str, depends_on: Option<&str>) -> Choice {
+        Choice {
+            id: format!("{option}-choice"),
+            kind: ChoiceKind::Multiple,
             description: String::new(),
             learn_more: None,
             depends_on: depends_on.map(str::to_owned),
-            options: vec![FeatureOption {
-                name: option.into(),
-                text: option.into(),
+            options: vec![ChoiceOption {
+                id: option.into(),
+                label: option.into(),
                 image: None,
                 default: false,
             }],
@@ -749,19 +843,110 @@ mod tests {
     }
 
     #[test]
-    fn dependent_pages_follow_their_parents_in_manifest_order() {
-        let pages = [
-            page("a", None),
-            page("b-child", Some("a")),
-            page("c", None),
-            page("d-grandchild", Some("b-child")),
-            page("e-child", Some("a")),
-            page("f-elsewhere", Some("not-on-these-pages")),
+    fn dependent_choices_follow_their_parents_in_manifest_order() {
+        let choices = [
+            choice("a", None),
+            choice("b-child", Some("a")),
+            choice("c", None),
+            choice("d-grandchild", Some("b-child")),
+            choice("e-child", Some("a")),
+            choice("f-elsewhere", Some("not-on-these-choices")),
         ];
-        assert_eq!(follow_parents(&pages, (0..6).collect()), [0, 1, 3, 4, 2, 5]);
-        // Pages that depend on each other keep their manifest order, after the rest.
-        let looped = [page("x", Some("y")), page("y", Some("x")), page("z", None)];
+        assert_eq!(follow_parents(&choices, (0..6).collect()), [0, 1, 3, 4, 2, 5]);
+        // Choices that depend on each other keep their manifest order, after the rest.
+        let looped = [choice("x", Some("y")), choice("y", Some("x")), choice("z", None)];
         assert_eq!(follow_parents(&looped, vec![0, 1, 2]), [2, 0, 1]);
+    }
+
+    /// The repository's manifest reads as docs/package-format.md describes it.
+    #[test]
+    fn the_builtin_manifest_declares_every_field_the_app_reads() {
+        let manifest = Manifest::builtin();
+        assert_eq!(
+            manifest.version,
+            env!("CARGO_PKG_VERSION"),
+            "app/Cargo.toml and package/atlas.json agree"
+        );
+        assert!(!manifest.supported_builds.is_empty() && !manifest.updatable_from.is_empty());
+        assert!(!manifest.requirements.is_empty());
+        let defender = &manifest.choices[0];
+        assert_eq!((defender.id.as_str(), defender.kind), ("defender", ChoiceKind::Single));
+        assert!(!defender.description.is_empty());
+        assert!(defender.learn_more.as_deref().is_some_and(|url| url.starts_with("https://")));
+        assert_eq!(manifest.default_options().first().map(String::as_str), Some("defender-enable"));
+        let browser = manifest.choices.iter().find(|choice| choice.id == "browser").unwrap();
+        assert_eq!(browser.depends_on.as_deref(), Some("install-another-browser"));
+        for choice in manifest.choices.iter().filter(|choice| choice.kind == ChoiceKind::Multiple) {
+            assert!(choice.options.iter().all(|option| !option.default), "{}", choice.id);
+        }
+    }
+
+    #[test]
+    fn a_manifest_that_breaks_the_format_is_refused() {
+        let manifest = |choices: &str| {
+            format!(
+                r#"{{"schemaVersion": 1, "version": "0.6.0", "supportedBuilds": [], "choices": [{choices}]}}"#
+            )
+        };
+        let single = r#"{"id": "a", "kind": "single", "default": "a-one", "options": [{"id": "a-one", "label": "One"}]}"#;
+        let parsed = parse(&manifest(single)).unwrap();
+        assert_eq!(parsed.default_options(), ["a-one"]);
+        assert_eq!(parsed.estimated_minutes, DEFAULT_ESTIMATED_MINUTES);
+        // A byte order mark and fields this app doesn't read are accepted.
+        assert!(
+            parse(
+                &format!("\u{feff}{}", manifest(single)).replace("\"choices\"", "\"later\": 1, \"choices\"")
+            )
+            .is_ok()
+        );
+        for (broken, words) in [
+            (manifest(single).replace("\"schemaVersion\": 1", "\"schemaVersion\": 2"), "format 2"),
+            (manifest(&single.replace(r#""default": "a-one", "#, "")), "no default"),
+            (
+                manifest(&single.replace(r#""default": "a-one""#, r#""default": "b""#)),
+                "isn't one of its options",
+            ),
+            (manifest(&format!("{single}, {single}")), "choice \"a\" twice"),
+            (manifest(r#"{"id": "b", "kind": "multiple", "options": []}"#), "no options"),
+            (
+                manifest(&format!(r#"{single}, {}"#, single.replace(r#""id": "a","#, r#""id": "b","#))),
+                "option \"a-one\" twice",
+            ),
+            (manifest(&single.replace("single", "radio")), "atlas.json"),
+            (r#"<Playbook><Version>0.6.0</Version></Playbook>"#.to_owned(), "atlas.json"),
+        ] {
+            let error = format!("{:#}", parse(&broken).unwrap_err());
+            assert!(error.contains(words), "{broken}: {error}");
+        }
+        // A link that isn't https:// is not offered.
+        let link = single.replace(r#""kind""#, r#""learnMore": "http://example.com", "kind""#);
+        assert_eq!(parse(&manifest(&link)).unwrap().choices[0].learn_more, None);
+    }
+
+    /// Any file but an `.atlaspkg`, and an AME Wizard package under any name,
+    /// is refused before anything is unpacked.
+    #[test]
+    fn only_atlas_packages_are_opened() {
+        let temp = TempDir::new("package-kinds");
+        let root = temp.path().join("Packages");
+        for name in ["Atlas.apbx", "Atlas.zip", "Atlas", "Atlas.atlaspkg.apbx"] {
+            let file = package::write(&temp.path().join(name), &package::valid("0.6.0"));
+            let error = extract_into(&file, &root, |_, _| {}).unwrap_err();
+            assert_eq!(
+                error.downcast_ref::<NotAPackage>(),
+                Some(&NotAPackage { file: name.into() }),
+                "{name}"
+            );
+        }
+        let upper = package::write(&temp.path().join("Atlas.ATLASPKG"), &package::valid("0.6.0"));
+        assert!(extract_into(&upper, &root, |_, _| {}).is_ok(), "the extension is matched in any case");
+        let renamed = package::write(&temp.path().join("renamed.atlaspkg"), &package::ame_wizard("0.5.0"));
+        let error = extract_into(&renamed, &root, |_, _| {}).unwrap_err();
+        assert_eq!(
+            error.downcast_ref::<NotAPackage>(),
+            Some(&NotAPackage { file: "renamed.atlaspkg".into() })
+        );
+        assert!(package::leftovers(&root).is_empty());
     }
 
     #[test]
@@ -810,9 +995,9 @@ mod tests {
 
     #[test]
     fn a_valid_package_is_published_under_its_version_and_digest() {
-        let temp = TempDir::new("playbook-valid");
-        let package = apbx::write(&temp.path().join("valid.apbx"), &apbx::valid("0.6.0"));
-        let root = temp.path().join("Playbooks");
+        let temp = TempDir::new("package-valid");
+        let package = package::write(&temp.path().join("valid.atlaspkg"), &package::valid("0.6.0"));
+        let root = temp.path().join("Packages");
         let mut seen = Vec::new();
         let (dir, manifest) = extract_into(&package, &root, |done, total| seen.push((done, total))).unwrap();
         // Progress once per entry, ending at the total.
@@ -824,23 +1009,23 @@ mod tests {
         assert_eq!(dir, plain_path(root.canonicalize().unwrap()).join(format!("0.6.0_{}", &digest[..16])));
         assert!(is_extracted(&dir));
         assert_eq!(identity(&dir), Some(PackageIdentity { version: "0.6.0".into(), sha256: digest }));
-        assert!(apbx::leftovers(&root).is_empty());
+        assert!(package::leftovers(&root).is_empty());
     }
 
     #[test]
     fn an_escaping_version_never_touches_anything_outside_the_cache() {
-        let temp = TempDir::new("playbook-escape");
-        let root = temp.path().join("Playbooks");
+        let temp = TempDir::new("package-escape");
+        let root = temp.path().join("Packages");
         let outside = temp.path().join("unrelated");
         fs::create_dir_all(&outside).unwrap();
         fs::write(outside.join("keep.txt"), "keep").unwrap();
         for version in ["", "..", "..\\..\\unrelated", &outside.display().to_string()] {
-            let package = apbx::write(&temp.path().join("escape.apbx"), &apbx::valid(version));
+            let package = package::write(&temp.path().join("escape.atlaspkg"), &package::valid(version));
             let error = extract_into(&package, &root, |_, _| {}).unwrap_err();
             assert!(error.to_string().contains("version"), "{version:?}: {error:#}");
         }
         assert!(outside.join("keep.txt").is_file());
-        assert!(apbx::leftovers(&root).is_empty());
+        assert!(package::leftovers(&root).is_empty());
     }
 
     #[test]
@@ -856,46 +1041,51 @@ mod tests {
 
     #[test]
     fn failed_extractions_keep_the_previous_package_and_leave_nothing_behind() {
-        let temp = TempDir::new("playbook-replace");
-        let root = temp.path().join("Playbooks");
-        let good = apbx::write(&temp.path().join("good.apbx"), &apbx::valid("0.6.0"));
+        let temp = TempDir::new("package-replace");
+        let root = temp.path().join("Packages");
+        let good = package::write(&temp.path().join("good.atlaspkg"), &package::valid("0.6.0"));
         let (dir, _) = extract_into(&good, &root, |_, _| {}).unwrap();
         let marker = front_door(&dir);
         let before = fs::read(&marker).unwrap();
 
         // No front door: fails validation after extraction. An older package
         // predates it; a current one is incomplete.
-        let old = apbx::write(&temp.path().join("old.apbx"), &apbx::without_front_door("0.5.0"));
+        let old = package::write(&temp.path().join("old.atlaspkg"), &package::without_front_door("0.5.0"));
         let error = extract_into(&old, &root, |_, _| {}).unwrap_err();
         assert_eq!(error.downcast_ref::<Unsupported>(), Some(&Unsupported { version: "0.5.0".into() }));
         for version in ["0.6.0", "0.6.1"] {
-            let damaged = apbx::write(&temp.path().join("damaged.apbx"), &apbx::without_front_door(version));
+            let damaged =
+                package::write(&temp.path().join("damaged.atlaspkg"), &package::without_front_door(version));
             let error = extract_into(&damaged, &root, |_, _| {}).unwrap_err();
             assert_eq!(error.downcast_ref::<Incomplete>(), Some(&Incomplete { version: version.into() }));
         }
         // Traversal entry: fails during extraction.
-        let unsafe_entry =
-            apbx::write(&temp.path().join("unsafe.apbx"), &apbx::with_entry("0.6.0", "../escape.txt"));
+        let unsafe_entry = package::write(
+            &temp.path().join("unsafe.atlaspkg"),
+            &package::with_entry("0.6.0", "../escape.txt"),
+        );
         assert!(extract_into(&unsafe_entry, &root, |_, _| {}).is_err());
         // Corrupt data: fails mid-copy.
-        let corrupt = apbx::write(&temp.path().join("corrupt.apbx"), &apbx::corrupted("0.6.0"));
+        let corrupt = package::write(&temp.path().join("corrupt.atlaspkg"), &package::corrupted("0.6.0"));
         assert!(extract_into(&corrupt, &root, |_, _| {}).is_err());
 
         assert_eq!(fs::read(&marker).unwrap(), before, "the previous package must survive");
         assert!(!temp.path().join("escape.txt").exists());
-        assert!(apbx::leftovers(&root).is_empty());
+        assert!(package::leftovers(&root).is_empty());
     }
 
     /// Two windows can each prepare "0.6.0"; neither may change what the
     /// other has read and is about to run.
     #[test]
     fn different_content_of_the_same_version_never_shares_a_directory() {
-        let temp = TempDir::new("playbook-same");
-        let root = temp.path().join("Playbooks");
-        let first = apbx::write(&temp.path().join("a.apbx"), &apbx::valid_with_builds("0.6.0", &[26200]));
+        let temp = TempDir::new("package-same");
+        let root = temp.path().join("Packages");
+        let first =
+            package::write(&temp.path().join("a.atlaspkg"), &package::valid_with_builds("0.6.0", &[26200]));
         let (dir_a, manifest_a) = extract_into(&first, &root, |_, _| {}).unwrap();
         let door_a = fs::read(front_door(&dir_a)).unwrap();
-        let second = apbx::write(&temp.path().join("b.apbx"), &apbx::valid_with_builds("0.6.0", &[99999]));
+        let second =
+            package::write(&temp.path().join("b.atlaspkg"), &package::valid_with_builds("0.6.0", &[99999]));
         let (dir_b, manifest_b) = extract_into(&second, &root, |_, _| {}).unwrap();
         assert_ne!(dir_a, dir_b, "same version, different bytes: different directories");
         assert_eq!(manifest_a.supported_builds, vec![26200]);
@@ -903,7 +1093,7 @@ mod tests {
         // What A read still describes what is at A's path.
         assert_eq!(read_manifest(&dir_a).unwrap().supported_builds, vec![26200]);
         assert_eq!(fs::read(front_door(&dir_a)).unwrap(), door_a);
-        assert!(apbx::leftovers(&root).is_empty());
+        assert!(package::leftovers(&root).is_empty());
 
         // The same bytes again are recognised and reused, not re-unpacked.
         fs::write(dir_a.join("marker.txt"), "still here").unwrap();
@@ -927,7 +1117,7 @@ mod tests {
         assert!(is_extracted(&dir_b2));
         assert!(dir_b.join("remnant.txt").is_file(), "the occupied path is left as it was");
         assert_eq!(extract_into(&second, &root, |_, _| {}).unwrap().0, dir_b2);
-        assert!(apbx::leftovers(&root).is_empty());
+        assert!(package::leftovers(&root).is_empty());
     }
 
     /// Security software can quarantine one script from a published copy.
@@ -935,14 +1125,14 @@ mod tests {
     /// under the next name, and the damaged copy is left as it is.
     #[test]
     fn a_published_copy_that_lost_or_changed_a_file_is_unpacked_again() {
-        let temp = TempDir::new("playbook-damaged");
-        let root = temp.path().join("Playbooks");
-        let package = apbx::write(&temp.path().join("a.apbx"), &apbx::valid("0.6.0"));
+        let temp = TempDir::new("package-damaged");
+        let root = temp.path().join("Packages");
+        let package = package::write(&temp.path().join("a.atlaspkg"), &package::valid("0.6.0"));
         let (dir, _) = extract_into(&package, &root, |_, _| {}).unwrap();
         assert!(intact(&dir));
         let files = record(&dir).unwrap().files;
         assert_eq!(files.len(), 3, "every file is recorded: {files:?}");
-        assert_eq!(files[apbx::FRONT_DOOR], fs::metadata(front_door(&dir)).unwrap().len());
+        assert_eq!(files[package::FRONT_DOOR], fs::metadata(front_door(&dir)).unwrap().len());
 
         let script = dir.join("Executables/AtlasModules/Scripts/Initialize-AtlasPowerShell.ps1");
         fs::remove_file(&script).unwrap();
@@ -960,16 +1150,16 @@ mod tests {
             extract_into(&package, &root, |_, _| {}).unwrap().0,
             PathBuf::from(format!("{}-3", dir.display()))
         );
-        assert!(apbx::leftovers(&root).is_empty());
+        assert!(package::leftovers(&root).is_empty());
     }
 
     /// A directory published before files were recorded can't be checked,
     /// so it is not reused or resumed; its archive is unpacked again.
     #[test]
     fn a_copy_without_a_file_record_is_not_trusted() {
-        let temp = TempDir::new("playbook-unrecorded");
-        let root = temp.path().join("Playbooks");
-        let package = apbx::write(&temp.path().join("a.apbx"), &apbx::valid("0.6.0"));
+        let temp = TempDir::new("package-unrecorded");
+        let root = temp.path().join("Packages");
+        let package = package::write(&temp.path().join("a.atlaspkg"), &package::valid("0.6.0"));
         let (dir, _) = extract_into(&package, &root, |_, _| {}).unwrap();
         let recorded = identity(&dir).unwrap();
         fs::write(dir.join(IDENTITY_FILE), serde_json::to_string(&recorded).unwrap()).unwrap();
@@ -984,9 +1174,9 @@ mod tests {
     /// empty directory) is never replaced, whatever `rename` would do.
     #[test]
     fn an_occupied_publication_name_is_left_untouched_and_the_next_used() {
-        let temp = TempDir::new("playbook-occupied");
-        let root = temp.path().join("Playbooks");
-        let package = apbx::write(&temp.path().join("a.apbx"), &apbx::valid("0.6.0"));
+        let temp = TempDir::new("package-occupied");
+        let root = temp.path().join("Packages");
+        let package = package::write(&temp.path().join("a.atlaspkg"), &package::valid("0.6.0"));
         let digest = sha256_file(&package).unwrap();
         let name = format!("0.6.0_{}", &digest[..16]);
         fs::create_dir_all(&root).unwrap();
@@ -998,9 +1188,9 @@ mod tests {
         assert!(is_extracted(&published));
 
         // An empty directory is not a package either, and stays empty.
-        let temp = TempDir::new("playbook-occupied-dir");
-        let root = temp.path().join("Playbooks");
-        let package = apbx::write(&temp.path().join("a.apbx"), &apbx::valid("0.6.0"));
+        let temp = TempDir::new("package-occupied-dir");
+        let root = temp.path().join("Packages");
+        let package = package::write(&temp.path().join("a.atlaspkg"), &package::valid("0.6.0"));
         // A fresh archive carries fresh timestamps, so its digest and name differ.
         let name = format!("0.6.0_{}", &sha256_file(&package).unwrap()[..16]);
         fs::create_dir_all(root.join(&name)).unwrap();
@@ -1016,7 +1206,7 @@ mod tests {
         fs::write(&file, "x").unwrap();
         assert!(matches!(move_without_replacing(&staging, &file), Err(Occupied)));
         assert!(staging.is_dir(), "a refused move leaves the source in place");
-        assert!(apbx::leftovers(&root).is_empty());
+        assert!(package::leftovers(&root).is_empty());
     }
 
     /// Two extractors of the same archive both pass the reuse check before
@@ -1024,9 +1214,9 @@ mod tests {
     /// not replace it.
     #[test]
     fn a_concurrent_extractor_of_the_same_bytes_reuses_the_winner_and_replaces_nothing() {
-        let temp = TempDir::new("playbook-concurrent");
-        let root = temp.path().join("Playbooks");
-        let package = apbx::write(&temp.path().join("a.apbx"), &apbx::valid("0.6.0"));
+        let temp = TempDir::new("package-concurrent");
+        let root = temp.path().join("Packages");
+        let package = package::write(&temp.path().join("a.atlaspkg"), &package::valid("0.6.0"));
         // The second extractor's staging, prepared before the first publishes.
         let scratch = temp.path().join("Scratch");
         let (staged, _) = extract_into(&package, &scratch, |_, _| {}).unwrap();
@@ -1045,14 +1235,14 @@ mod tests {
         assert!(winner.join("in-use.txt").is_file(), "nothing in the winner's directory was replaced");
         assert_eq!(fs::metadata(front_door(&winner)).unwrap().modified().unwrap(), door_before);
         assert!(!staging.exists(), "only the loser's private staging goes");
-        assert!(apbx::leftovers(&root).is_empty());
+        assert!(package::leftovers(&root).is_empty());
     }
 
     #[test]
     fn a_move_refused_by_an_open_handle_is_retried_rather_than_called_occupied() {
-        let temp = TempDir::new("playbook-locked");
-        let package = apbx::write(&temp.path().join("valid.apbx"), &apbx::valid("0.6.0"));
-        let root = temp.path().join("Playbooks");
+        let temp = TempDir::new("package-locked");
+        let package = package::write(&temp.path().join("valid.atlaspkg"), &package::valid("0.6.0"));
+        let root = temp.path().join("Packages");
         fs::create_dir_all(&root).unwrap();
         let staging = create_unique_dir(&root, &format!("{STAGING_PREFIX}0.6.0-")).unwrap();
         // A tree that would publish, with one of its files held open the way a
@@ -1083,9 +1273,9 @@ mod tests {
         assert_eq!(plain_path(PathBuf::from(r"C:\Users\x")), PathBuf::from(r"C:\Users\x"));
         assert_eq!(plain_path(PathBuf::from(r"\\server\share")), PathBuf::from(r"\\server\share"));
         // What PowerShell receives must not start with the prefix.
-        let temp = TempDir::new("playbook-plain");
-        let package = apbx::write(&temp.path().join("valid.apbx"), &apbx::valid("0.6.0"));
-        let (dir, _) = extract_into(&package, &temp.path().join("Playbooks"), |_, _| {}).unwrap();
+        let temp = TempDir::new("package-plain");
+        let package = package::write(&temp.path().join("valid.atlaspkg"), &package::valid("0.6.0"));
+        let (dir, _) = extract_into(&package, &temp.path().join("Packages"), |_, _| {}).unwrap();
         assert!(!dir.to_string_lossy().starts_with(r"\\?\"), "{}", dir.display());
     }
 }

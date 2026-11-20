@@ -2,7 +2,7 @@ BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
     $migrationPath = Join-Path $repositoryRoot `
-        'playbook\Executables\AtlasModules\Scripts\Install\Compat\Remove-AtlasLegacyElevationArtifacts.ps1'
+        'package\Executables\AtlasModules\Scripts\Install\Compat\Remove-AtlasLegacyElevationArtifacts.ps1'
     . $migrationPath
 
     $script:UserSid = 'S-1-5-21-100-200-300-1001'

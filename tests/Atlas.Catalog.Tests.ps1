@@ -3,15 +3,15 @@ BeforeAll {
     $script:repoRoot = $script:AtlasTestRepoRoot
     $script:ToolsHost = $script:AtlasTestToolsHost
     $script:CatalogTool = Join-Path $script:repoRoot 'tools\dev\Export-AtlasCatalog.ps1'
-    $script:CatalogPath = Join-Path $script:repoRoot 'playbook\Executables\AtlasModules\Toggles\catalog.json'
-    $script:TogglesRoot = Join-Path $script:repoRoot 'playbook\Executables\AtlasModules\Toggles'
+    $script:CatalogPath = Join-Path $script:repoRoot 'package\Executables\AtlasModules\Toggles\catalog.json'
+    $script:TogglesRoot = Join-Path $script:repoRoot 'package\Executables\AtlasModules\Toggles'
 }
 
 Describe 'Tweak catalog routes' {
     BeforeEach {
         $script:fixtureRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
-        $script:fixtureTweaks = Join-Path $script:fixtureRoot 'playbook\Executables\AtlasModules\Scripts\Tweaks'
-        $toggleDirectory = Join-Path $script:fixtureRoot 'playbook\Executables\AtlasModules\Toggles\General'
+        $script:fixtureTweaks = Join-Path $script:fixtureRoot 'package\Executables\AtlasModules\Scripts\Tweaks'
+        $toggleDirectory = Join-Path $script:fixtureRoot 'package\Executables\AtlasModules\Toggles\General'
         New-Item -ItemType Directory -Path $toggleDirectory -Force | Out-Null
         New-Item -ItemType Directory -Path (Join-Path $script:fixtureTweaks 'example') -Force | Out-Null
         "@{ Name = 'Fixture'; States = @(@{ Name = 'Disable'; StateValue = 0 }) }" |
@@ -41,7 +41,7 @@ Describe 'Tweak catalog routes' {
                 Set-Content -LiteralPath (Join-Path $script:fixtureTweaks "example\$name.ps1")
         }
         # The generator reads each step's install modes from the install plan.
-        $planDirectory = Join-Path $script:fixtureRoot 'playbook\Executables\AtlasModules\Scripts\Install'
+        $planDirectory = Join-Path $script:fixtureRoot 'package\Executables\AtlasModules\Scripts\Install'
         New-Item -ItemType Directory -Path $planDirectory -Force | Out-Null
         @'
 function Get-AtlasInstallPlan {
@@ -101,7 +101,7 @@ function Get-AtlasInstallPlan {
         $LASTEXITCODE | Should -Be 1
         ($output -join "`n") | Should -Match "Manifest entry 'example/standalone' has no definition"
         $script:fixtureDoc | Should -Not -Exist
-        Join-Path $script:fixtureRoot 'playbook\Executables\AtlasModules\Toggles\catalog.json' | Should -Not -Exist
+        Join-Path $script:fixtureRoot 'package\Executables\AtlasModules\Toggles\catalog.json' | Should -Not -Exist
     }
 }
 

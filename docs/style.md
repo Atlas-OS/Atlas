@@ -24,7 +24,7 @@ Documentation should stay true from one release to the next.
   Avoid "new", "now", "currently", "recently", "no longer", "soon" and "will" for product behaviour.
 - Name a version only when the version is the fact, such as a compatibility limit ("Atlas Manager installs Atlas 0.6.0 and later") or records left by older releases.
 - Don't copy lists of supported Windows builds or Atlas versions into prose.
-  Link to the source of truth: the [supported releases](windows-release-policy.md#supported-releases) table, or `SupportedBuilds` and `UpgradableFrom` in `playbook/playbook.conf`.
+  Link to the source of truth: the [supported releases](windows-release-policy.md#supported-releases) table, or `supportedBuilds` and `updatableFrom` in `package/atlas.json`.
 - Keep test results, release status and dates out of documentation.
   They belong in release notes, pull requests and the record each release keeps against the [release verification matrix](release-verification-matrix.md).
 - Use placeholders in examples that would otherwise go stale: `<version>`, `<n>`, `<yyyy-MM-dd>`.
@@ -45,7 +45,7 @@ Mention AME Wizard only where older Atlas releases, which it installed, left rec
 | --- | --- |
 | Atlas package | playbook (except fixed names), payload |
 | Atlas Manager, then "the app" | the Atlas app, the desktop app, the standalone executable |
-| update (one Atlas release to a newer one) | upgrade, except in fixed names such as `UpgradableFrom` and the Upgrade mode |
+| update (one Atlas release to a newer one) | upgrade, except in fixed names such as the Upgrade mode |
 | move Windows to a newer release; feature update | "the move" as an undefined noun |
 | restart | reboot |
 | sign in (verb), sign-in (noun) | log on, logon, login |

@@ -10,8 +10,8 @@ Both take `-Validate`, which compares the expected output with the files on disk
 
 | Script | Purpose | Documentation |
 | --- | --- | --- |
-| `New-ToggleLaunchers.ps1` | Generates the AtlasDesktop and Toolbox `.cmd` launcher stubs from the toggle definitions. | [Atlas toggle definitions](../../playbook/Executables/AtlasModules/Toggles/README.md) |
-| `Export-AtlasCatalog.ps1` | Generates `playbook/Executables/AtlasModules/Toggles/catalog.json` and `docs/catalog/` from the toggle definitions and the tweak manifest. | [Atlas architecture](../../docs/architecture.md) |
+| `New-ToggleLaunchers.ps1` | Generates the AtlasDesktop and Toolbox `.cmd` launcher stubs from the toggle definitions. | [Atlas toggle definitions](../../package/Executables/AtlasModules/Toggles/README.md) |
+| `Export-AtlasCatalog.ps1` | Generates `package/Executables/AtlasModules/Toggles/catalog.json` and `docs/catalog/` from the toggle definitions and the tweak manifest. | [Atlas architecture](../../docs/architecture.md) |
 
 ```powershell
 pwsh tools/dev/New-ToggleLaunchers.ps1

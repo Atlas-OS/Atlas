@@ -432,11 +432,11 @@ impl Render for SettingsPage {
 
 /// The bundled Atlas package's digest on a tester build; empty elsewhere.
 fn bundled_digest() -> String {
-    #[cfg(feature = "embedded-playbook")]
+    #[cfg(feature = "embedded-package")]
     {
         crate::services::embedded::sha256().to_owned()
     }
-    #[cfg(not(feature = "embedded-playbook"))]
+    #[cfg(not(feature = "embedded-package"))]
     {
         String::new()
     }

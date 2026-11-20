@@ -19,11 +19,11 @@ app/vendor/gpui-pre-windows/prebuilt/shaders_bytes.rs whitespace=-blank-at-eol
 *.reg  -text
 *.sh   eol=lf
 # Generated catalogs are validated against deterministic LF output.
-playbook/Executables/AtlasModules/Toggles/catalog.json text eol=lf
+package/Executables/AtlasModules/Toggles/catalog.json text eol=lf
 docs/catalog/*.md text eol=lf
 
 # Binary files
-*.apbx binary
+*.atlaspkg binary
 *.cab  binary
 *.zip  binary
 *.dll  binary

@@ -1,5 +1,5 @@
 fn main() {
-    let rc_id = embedded_playbook();
+    let rc_id = embedded_package();
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
         println!("cargo:rerun-if-changed=resources/atlas.rc");
         println!("cargo:rerun-if-changed=resources/atlas.ico");
@@ -31,44 +31,50 @@ fn main() {
     }
 }
 
-/// With the `embedded-playbook` feature, bakes the APBX named by
-/// `ATLAS_EMBED_APBX` and the id in `ATLAS_RC_ID` into the executable and
+/// With the `embedded-package` feature, bakes the Atlas package named by
+/// `ATLAS_EMBED_PACKAGE` and the id in `ATLAS_RC_ID` into the executable and
 /// returns the id. Either missing fails the build: a tester build must never
 /// quietly become a stable one.
-fn embedded_playbook() -> Option<String> {
-    std::env::var_os("CARGO_FEATURE_EMBEDDED_PLAYBOOK")?;
-    println!("cargo:rerun-if-env-changed=ATLAS_EMBED_APBX");
+fn embedded_package() -> Option<String> {
+    std::env::var_os("CARGO_FEATURE_EMBEDDED_PACKAGE")?;
+    println!("cargo:rerun-if-env-changed=ATLAS_EMBED_PACKAGE");
     println!("cargo:rerun-if-env-changed=ATLAS_RC_ID");
     let rc_id = std::env::var("ATLAS_RC_ID").ok().filter(|id| !id.trim().is_empty());
     let Some(rc_id) = rc_id else {
-        panic!("embedded-playbook builds need ATLAS_RC_ID, for example 0.6.0-rc.1")
+        panic!("embedded-package builds need ATLAS_RC_ID, for example 0.6.0-rc.1")
     };
     let valid = rc_id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'.' || b == b'-');
     assert!(valid, "ATLAS_RC_ID {rc_id:?} may only contain letters, digits, dots and dashes");
-    // The release scripts take the id from playbook.conf; the version resource's
+    // The release scripts take the id from package/atlas.json; the version resource's
     // numbers, Settings and diagnostics take Cargo's version. A bump that missed
     // one would give the executable two versions.
     let version = std::env::var("CARGO_PKG_VERSION").expect("package version");
     assert!(
         rc_id.starts_with(&format!("{version}-rc.")),
         "ATLAS_RC_ID {rc_id:?} must start with {version}-rc., the version in app/Cargo.toml; \
-         bump app/Cargo.toml (and app/Cargo.lock) with playbook/playbook.conf"
+         bump app/Cargo.toml (and app/Cargo.lock) with package/atlas.json"
     );
-    let apbx = std::env::var_os("ATLAS_EMBED_APBX")
+    let package = std::env::var_os("ATLAS_EMBED_PACKAGE")
         .map(std::path::PathBuf::from)
         .and_then(|path| path.canonicalize().ok())
         .filter(|path| path.is_file());
-    let Some(apbx) = apbx else {
-        panic!("embedded-playbook builds need ATLAS_EMBED_APBX to name a readable .apbx")
+    let Some(package) = package else {
+        panic!("embedded-package builds need ATLAS_EMBED_PACKAGE to name a readable Atlas package")
     };
-    println!("cargo:rerun-if-changed={}", apbx.display());
+    let extension = package.extension().unwrap_or_default();
+    assert!(
+        extension.eq_ignore_ascii_case("atlaspkg"),
+        "ATLAS_EMBED_PACKAGE must name an Atlas package (.atlaspkg), not {}",
+        package.display()
+    );
+    println!("cargo:rerun-if-changed={}", package.display());
     let root = std::path::Path::new(&std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("..");
     println!("cargo:rerun-if-changed={}", root.join(".git/HEAD").display());
     println!("cargo:rerun-if-changed={}", root.join(".git/index").display());
     println!("cargo:rustc-env=ATLAS_SOURCE_COMMIT={}", source_commit(&root));
     let generated = format!(
-        "pub const RC_ID: &str = {rc_id:?};\npub static APBX: &[u8] = include_bytes!({:?});\n",
-        apbx.to_string_lossy().replace('\\', "/")
+        "pub const RC_ID: &str = {rc_id:?};\npub static PACKAGE: &[u8] = include_bytes!({:?});\n",
+        package.to_string_lossy().replace('\\', "/")
     );
     let out = std::path::Path::new(&std::env::var("OUT_DIR").unwrap()).join("embedded.rs");
     std::fs::write(&out, generated).expect("write the embedded package binding");

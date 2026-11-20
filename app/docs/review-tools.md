@@ -14,12 +14,12 @@ It's for contributors who check layout, copy, translations and accessibility wit
 | `--page <page>` | Opens `home`, `iso`, `install`, `settings`, `report` or `installed`. |
 | `--step <step>` | Opens an install step: `ready`, `options`, `security` or `install`. |
 | `--just-installed` | Opens the completion window that follows the install's restart. |
-| `--playbook <file.apbx>` | Unpacks a local Atlas package on launch; a bare `.apbx` path, as "Open with" passes, does the same. |
+| `--package <file.atlaspkg>` | Unpacks a local Atlas package on launch; a bare `.atlaspkg` path, as "Open with" passes, does the same, and a bare `.apbx` path opens the Install page to explain that it isn't an Atlas package. |
 | `--language <tag>` | Uses one of the available languages, or `qps-ploc` for the pseudo-locale, whatever the setting says. |
 | `--export-diagnostics` | Saves a diagnostics ZIP without opening the window. |
 | `--licenses [<new-file>]` | Opens a text copy of the licence notices, or saves one to a new file. |
 
-[Tester builds](rc-testers-build.md) ignore `--playbook` and `.apbx` arguments.
+[Tester builds](rc-testers-build.md) ignore `--package` and package path arguments.
 
 ## Environment variables
 

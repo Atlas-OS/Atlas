@@ -8,7 +8,7 @@ BeforeAll {
     $script:ToolsHost = $script:AtlasTestToolsHost
 
     $script:StateRoot = 'HKCU:\Software\AtlasRewriteTest\Services'
-    $script:ShippedTogglesRoot = Join-Path $script:repoRoot 'playbook\Executables\AtlasModules\Toggles'
+    $script:ShippedTogglesRoot = Join-Path $script:repoRoot 'package\Executables\AtlasModules\Toggles'
 
     # Writes a definition (and optional companion) into a scratch toggles tree.
     function New-TestToggle {
@@ -1586,7 +1586,7 @@ Describe 'Invoke-AtlasTogglePostAction' {
 Describe 'Generated launchers' {
     BeforeAll {
         $script:GeneratorScript = Join-Path $script:repoRoot 'tools\dev\New-ToggleLaunchers.ps1'
-        $script:LauncherBody = Join-Path $script:repoRoot 'playbook\Executables\AtlasModules\Scripts\Entry\Invoke-AtlasToggleLauncher.cmd'
+        $script:LauncherBody = Join-Path $script:repoRoot 'package\Executables\AtlasModules\Scripts\Entry\Invoke-AtlasToggleLauncher.cmd'
     }
 
     It 'match their definitions exactly' {
@@ -1656,13 +1656,13 @@ Describe 'Generated launchers' {
         )
 
         foreach ($case in $cases) {
-            $shipped = @(Get-Content -LiteralPath (Join-Path $script:repoRoot "playbook\Executables\AtlasDesktop\$($case.Path)"))
+            $shipped = @(Get-Content -LiteralPath (Join-Path $script:repoRoot "package\Executables\AtlasDesktop\$($case.Path)"))
             $shipped.Count | Should -Be 2
             $call = [regex]::Match($shipped[1], '^call "([^"]+)" ')
             $call.Success | Should -BeTrue -Because $shipped[1]
             $target = $call.Groups[1].Value
             $target.StartsWith($installedModules, [StringComparison]::Ordinal) | Should -BeTrue -Because $target
-            (Join-Path $script:repoRoot "playbook\Executables\AtlasModules\$($target.Substring($installedModules.Length))") |
+            (Join-Path $script:repoRoot "package\Executables\AtlasModules\$($target.Substring($installedModules.Length))") |
                 Should -Be $script:LauncherBody
             [IO.File]::WriteAllText($stub, (($shipped[0], ($shipped[1] -replace '^call "[^"]+"', "call `"$body`"")) -join "`r`n") + "`r`n", [Text.Encoding]::ASCII)
 

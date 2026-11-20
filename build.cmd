@@ -10,7 +10,7 @@ if errorlevel 1 (
     goto :finish
 )
 
-pwsh -NoProfile -ExecutionPolicy Bypass -File "%cd%\tools\build\Build-Playbook.ps1" -LocalTest
+pwsh -NoProfile -ExecutionPolicy Bypass -File "%cd%\tools\build\Build-Package.ps1" -LocalTest
 set "buildExit=%errorlevel%"
 if not "%buildExit%"=="0" if "%~1"=="" pause
 

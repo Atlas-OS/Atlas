@@ -3,7 +3,8 @@
 This guide takes a maintainer from a version bump to a published Atlas release.
 It assumes you can build on Windows as [Building the Atlas package](building.md) describes, and that you can push tags to the repository.
 
-A release is a GitHub release with four files: `Atlas-v<version>.apbx`, `Atlas-v<version>.zip`, `AtlasManager.exe` and `SHA256SUMS.txt`.
+A release is a GitHub release with three files: `AtlasManager.exe`, `Atlas-v<version>.atlaspkg` and `SHA256SUMS.txt`.
+The [package format](package-format.md) describes the `.atlaspkg` file.
 Atlas Manager offers the newest published release to every user, so publishing is the last step, after the evidence is in.
 
 ## Steps
@@ -15,10 +16,10 @@ Atlas Manager offers the newest published release to every user, so publishing i
    pwsh tools/build/Set-AtlasVersion.ps1 -Version <version>
    ```
 
-   It sets `<Version>` in `playbook/playbook.conf`, adds the previous version to `<UpgradableFrom>`, and sets the same version in `app/Cargo.toml` and `app/Cargo.lock`.
-   If `playbook.conf` already has the version, the script only brings the other files in line with it.
-   Tester builds and the release workflow both stop when Atlas Manager's version and `playbook.conf` disagree.
-   Review `SupportedBuilds` and `UpgradableFrom` in the diff.
+   It sets `version` in `package/atlas.json`, adds the previous version to `updatableFrom`, and sets the same version in `app/Cargo.toml` and `app/Cargo.lock`.
+   If `atlas.json` already has the version, the script only brings the other files in line with it.
+   Tester builds and the release workflow both stop when Atlas Manager's version and `atlas.json` disagree.
+   Review `supportedBuilds` and `updatableFrom` in the diff.
    If the [release catalog](windows-release-policy.md#updating-the-catalog) is behind Microsoft's page, refresh it in the same branch.
    Open the release pull request with these changes; it's where you record the evidence.
 
@@ -26,19 +27,19 @@ Atlas Manager offers the newest published release to every user, so publishing i
    Build the Atlas package with every eligibility gate, then the stable Atlas Manager:
 
    ```powershell
-   pwsh -NoProfile -File tools/build/Build-Playbook.ps1 -FileName 'Atlas v<version>' -DontOpenPbLocation
+   pwsh -NoProfile -File tools/build/Build-Package.ps1 -FileName 'Atlas-v<version>' -NoExplorer
    pwsh -NoProfile -File app/tools/Build-Release.ps1
    ```
 
-   The package goes to `playbook/` and Atlas Manager to `app/target/x86_64-pc-windows-msvc/release/AtlasManager.exe`.
+   The package goes to `package/` and Atlas Manager to `app/target/x86_64-pc-windows-msvc/release/AtlasManager.exe`.
    Don't use `-LocalTest` or `-Removals` for a release: both strip the checks that refuse unsupported PCs.
    To give testers a candidate, build a [tester build](building.md#tester-builds) from the same commit instead.
 
 3. **Verify the package.**
-   `Test-Apbx.ps1` checks the archive against the source tree and exits 1 if any check fails:
+   `Test-Package.ps1` checks the archive against the source tree and exits 1 if any check fails:
 
    ```powershell
-   pwsh -NoProfile -File tools/build/Test-Apbx.ps1 -Path 'playbook/Atlas v<version>.apbx'
+   pwsh -NoProfile -File tools/build/Test-Package.ps1 -Path 'package/Atlas-v<version>.atlaspkg'
    ```
 
    [Verifying a build](building.md#verifying-a-build) lists what it checks.
@@ -65,9 +66,9 @@ Atlas Manager offers the newest published release to every user, so publishing i
    ```
 
    The tag starts `.github/workflows/release.yml`.
-   It stops unless the tag is `v<major>.<minor>.<patch>` and matches `<Version>` in `playbook.conf`, and unless `AtlasManager.exe` reports the same version.
-   It builds the stable Atlas Manager and the Atlas package, verifies the package with `Test-Apbx.ps1`, and writes `SHA256SUMS.txt`.
-   It then attests the three files and creates a draft release through the `release` environment, which must set the variable `ATLAS_RELEASE_ENABLED` to `true`.
+   It stops unless the tag is `v<major>.<minor>.<patch>` and matches `version` in `package/atlas.json`, and unless `AtlasManager.exe` reports the same version.
+   It builds the stable Atlas Manager and the Atlas package, verifies the package with `Test-Package.ps1`, and writes `SHA256SUMS.txt`.
+   It then attests the package and `AtlasManager.exe` and creates a draft release through the `release` environment, which must set the variable `ATLAS_RELEASE_ENABLED` to `true`.
 
 8. **Publish.**
    Download the draft's files and check each one against `SHA256SUMS.txt` and its attestation:
@@ -77,7 +78,7 @@ Atlas Manager offers the newest published release to every user, so publishing i
    ```
 
    The release workflow builds the files again from the tag, so they aren't byte for byte the files your VM runs used.
-   Repeat the fresh install from the matrix with the draft's `AtlasManager.exe`, using **Open package file** on the **Get ready** page to open the draft's `.apbx`.
+   Repeat the fresh install from the matrix with the draft's `AtlasManager.exe`, using **Open package file** on the **Get ready** page to open the draft's `.atlaspkg`.
    Add the hashes to the release pull request.
    Write the release notes, then publish the draft.
 

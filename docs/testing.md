@@ -21,11 +21,11 @@ Each release also needs the evidence in the [release verification matrix](releas
 
 | Profile | Settings (`.github/linters/`) | Scope |
 | --- | --- | --- |
-| Windows PowerShell | `PSScriptAnalyzerSettings.Payload.psd1` | `playbook/**` and `app/resources/**`, which run on users' PCs under Windows PowerShell 5.1. Adds `PSUseCompatibleSyntax` for 5.1 and 7.4. |
+| Windows PowerShell | `PSScriptAnalyzerSettings.Payload.psd1` | `package/**` and `app/resources/**`, which run on users' PCs under Windows PowerShell 5.1. Adds `PSUseCompatibleSyntax` for 5.1 and 7.4. |
 | Strict | `PSScriptAnalyzerSettings.psd1` | `tools/**`, `tests/**`, and Atlas Manager's release and notice tooling and its tests |
 
 ```powershell
-Get-ChildItem playbook,app/resources -Recurse -Include *.ps1,*.psm1 |
+Get-ChildItem package,app/resources -Recurse -Include *.ps1,*.psm1 |
     Invoke-ScriptAnalyzer -Settings .github/linters/PSScriptAnalyzerSettings.Payload.psd1
 
 Get-ChildItem tools,tests,app/tools/Build-Release.ps1,app/tools/Export-DependencyNotices.ps1,app/tools/tests -Recurse -Include *.ps1,*.psm1 |
@@ -37,7 +37,7 @@ CI fails on any Error or Warning.
 ## Windows PowerShell 5.1 parse gate
 
 Users' PCs run Windows PowerShell 5.1.
-CI parses every `.ps1`, `.psm1` and `.psd1` under `playbook` and `app/resources` with `[System.Management.Automation.Language.Parser]` in `powershell.exe`, to catch syntax that only PowerShell 7 accepts.
+CI parses every `.ps1`, `.psm1` and `.psd1` under `package` and `app/resources` with `[System.Management.Automation.Language.Parser]` in `powershell.exe`, to catch syntax that only PowerShell 7 accepts.
 
 ## Pester unit tests
 
@@ -76,7 +76,7 @@ To review console wording before a VM run, `tools\dev\Show-AtlasConsoleDemo.ps1`
 
 ## Package verification
 
-`tools/build/Test-Apbx.ps1 -Path "<file>.apbx"` verifies a built package, including exact file-path parity with the source.
+`tools/build/Test-Package.ps1 -Path "<file>.atlaspkg"` verifies a built package, including exact file-path parity with the source.
 [Verifying a build](building.md#verifying-a-build) lists its checks.
 It's the strongest end-to-end check short of installing Atlas.
 
@@ -100,12 +100,12 @@ cargo test
 ```
 
 `.github/workflows/app.yml` builds `app/` against its lockfile on `windows-latest`.
-It checks formatting, and runs Clippy (warnings as errors) and `cargo test`, both without features and with `--features embedded-playbook`, the [tester build](building.md#tester-builds).
+It checks formatting, and runs Clippy (warnings as errors) and `cargo test`, both without features and with `--features embedded-package`, the [tester build](building.md#tester-builds).
 
 The tests install nothing and change no settings.
 They cover:
 
-- package version containment and transactional extraction, with synthetic `.apbx` files;
+- package version containment and transactional extraction, with synthetic `.atlaspkg` files;
 - the Windows PowerShell launch, using the real `powershell.exe` and stub scripts: option arrays, exit codes, non-UTF-8 output and session reattach;
 - release ordering and download verification;
 - install-flow transitions and locking, and settings persistence and recovery;
@@ -146,13 +146,13 @@ Prepare the VM before the first run:
 Then build a full package and run the lab:
 
 ```powershell
-pwsh tools/build/Build-Playbook.ps1 -FileName 'Atlas Lab' -ReplaceOldPlaybook -DontOpenPbLocation
+pwsh tools/build/Build-Package.ps1 -FileName 'Atlas Lab' -ReplaceExisting -NoExplorer
 pwsh tools/lab/Invoke-AtlasLabRun.ps1 -VMName AtlasLab -CheckpointName clean `
-    -Credential (Get-Credential) -PlaybookPath "playbook\Atlas Lab.apbx"
+    -Credential (Get-Credential) -PackagePath "package\Atlas Lab.atlaspkg"
 ```
 
 Give `-Credential` the account the checkpoint is signed in as.
-The lab needs a full build: a `-LocalTest` build leaves out `<SupportedBuilds>`, so the front door refuses it.
+The lab needs a full build: a `-LocalTest` build has an empty `supportedBuilds`, so the front door refuses it.
 
 Each run restores the checkpoint and copies the Atlas package in over PowerShell Direct.
 It then installs Atlas unattended through `Scripts\Entry\Install-Atlas.ps1`, restarts the VM and runs `Scripts\Entry\Test-AtlasHealth.ps1 -Json`.

@@ -5,7 +5,7 @@ BeforeAll {
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
 
     $script:StateRoot = 'HKCU:\Software\AtlasRewriteTest\PowerSavingPlanChoices'
-    $togglesRoot = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles'
+    $togglesRoot = Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toggles'
     $script:PowerSaving = Get-AtlasToggleDefinition -Name PowerSaving -TogglesRoot $togglesRoot
     $script:PlanDefinitions = @{}
     foreach ($name in @('CpuIdle', 'Sleep')) {

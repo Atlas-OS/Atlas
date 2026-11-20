@@ -4,7 +4,7 @@ BeforeAll {
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Shell\Atlas.Shell.psd1') -Force
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
 
-    $togglesRoot = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles'
+    $togglesRoot = Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toggles'
     $script:SendTo = Get-AtlasToggleDefinition -Name SendToContextMenu -TogglesRoot $togglesRoot
 
     # Runs the companion as the engine does (dot-sourced into the module scope under

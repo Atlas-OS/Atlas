@@ -8,7 +8,7 @@ It's for contributors and maintainers, and links to a reference page for each pa
 | Term | Meaning |
 | --- | --- |
 | Fresh | The first install of Atlas on a Windows installation. |
-| Upgrade | An update from an older Atlas version that `UpgradableFrom` in `playbook.conf` lists. |
+| Upgrade | An update from an older Atlas version that `updatableFrom` in the [package manifest](package-format.md#the-manifest) lists. |
 | Reapply | A reinstall of the installed version, so that a new build's fixes reach the PC. |
 | Rebase | Putting Atlas back after Windows rebuilt itself while Atlas Manager moved it to a newer release. |
 | Keep my choices, Choose again | The two update paths. An update either keeps every choice as the PC has it, or applies new answers wherever the PC differs. |
@@ -19,19 +19,19 @@ It's for contributors and maintainers, and links to a reference page for each pa
 | **Get ready** page | Atlas Manager's first install step: the PC checks and the Windows and Microsoft Store updates. |
 | Preparation | The updates and repairs the **Get ready** page runs through the preparation worker, `Preparation/Update-Windows.ps1`. |
 
-Script paths on this page are relative to `playbook/Executables/AtlasModules/Scripts`.
+Script paths on this page are relative to `package/Executables/AtlasModules/Scripts`.
 
 ## What runs where
 
 Atlas Manager is the only way to install Atlas, and every install takes the same path.
 
-1. **Atlas Manager** checks the PC, downloads and extracts the Atlas package and asks for your choices.
+1. **Atlas Manager** checks the PC, downloads and extracts the [Atlas package](package-format.md) and asks for your choices.
    On the **Get ready** page it runs preparation, and moves Windows to a newer release when the package needs it.
 2. **The front door** runs elevated, as you.
    It checks the requirements, resolves the install mode, copies the package to a protected staging folder and runs a last preparation check.
 3. **The broker** starts a TrustedInstaller process through native code.
    For an install, it runs `Install/Invoke-AtlasInstallSession.ps1` from the staging copy, once for each phase.
-4. **Capture** decides the mode and the update path, checks the options against `playbook.conf` and begins the install state.
+4. **Capture** decides the mode and the update path, checks the options against the package manifest, `atlas.json`, and begins the install state.
 5. Between the phases, the front door publishes your user marker from your own session.
 6. **Run** binds you as the installing user, commits the state and starts the orchestrator, `Entry/Invoke-AtlasInstall.ps1 -Run`, which works through the install plan.
 7. **Completion** reads the PC, records what it has in the machine state document and closes the install state.
@@ -85,8 +85,9 @@ These pages describe each part:
 The script tree is organised by who starts a file.
 
 ```text
-playbook/
-├─ playbook.conf                     version, supported builds, update sources, requirements, option pages
+package/
+├─ atlas.json                        the manifest: version, supported builds, update sources, requirements, choices
+├─ Images/                           artwork for options, such as browser logos
 └─ Executables/
    ├─ AtlasDesktop/                  the Atlas folder's launchers, mostly generated two-line .cmd stubs
    ├─ AtlasModules/
@@ -112,12 +113,11 @@ playbook/
 app/                                 Atlas Manager (Rust, GPUI); see app/README.md
 services/                            the Atlas reports service and its MCP server
 tools/
-├─ build/                            AtlasBuild, Build-Playbook, Test-Apbx, Set-AtlasVersion (PowerShell 7)
+├─ build/                            AtlasBuild, Build-Package, Test-Package, Set-AtlasVersion (PowerShell 7)
 ├─ dev/                              New-ToggleLaunchers, Export-AtlasCatalog, Compare-SystemState, Install-DevProfile
 ├─ lab/                              Invoke-AtlasLabRun: install and verify on a Hyper-V VM (PowerShell 7)
 ├─ native/                           Build-AtlasNative: a deterministic, signable build of Atlas.Native.cs
 ├─ release/                          the Linux cross-build setup and tester bundles
-├─ release-zip/                      extra files packed beside the package in the release ZIP
 ├─ sxsc/                             CBS package sources
 └─ timer/                            source build of the timer utilities in the Atlas package
 tests/                               Pester 5 suites; the Windows PowerShell tests run under 5.1
@@ -125,13 +125,14 @@ docs/
 ```
 
 The installed tree is `%windir%\AtlasModules`.
-`tools/build/AtlasBuild` packs everything under `playbook/` into the Atlas package, apart from generated packages and known build artifacts.
+`tools/build/AtlasBuild` packs everything under `package/` into the Atlas package, apart from generated packages and known build artifacts.
+The [package format](package-format.md) defines the archive and its manifest.
 The verifier compares source and archive paths and rejects missing, extra or changed files (see [Building the Atlas package](building.md)).
-The SxS CABs built from `tools/sxsc` are reviewed before they're committed under `playbook/`, and their CBS package versions don't follow the Atlas version.
+The SxS CABs built from `tools/sxsc` are reviewed before they're committed under `package/`, and their CBS package versions don't follow the Atlas version.
 
 ## One plan and one orchestrator
 
-[`Install/Install-Plan.ps1`](../playbook/Executables/AtlasModules/Scripts/Install/Install-Plan.ps1) holds the only ordered install table.
+[`Install/Install-Plan.ps1`](../package/Executables/AtlasModules/Scripts/Install/Install-Plan.ps1) holds the only ordered install table.
 
 | Step | Modes | Replay |
 | --- | --- | --- |
@@ -175,7 +176,7 @@ The orderings matter:
   It puts back only the Windows Update settings nothing else owns (see [Putting Windows Update settings back](windows-transition.md#putting-windows-update-settings-back)).
 - LegacyChoices and, on a reinstall, InstallingUserSetup stamp the other accounts for their sign-in migration (see [Sign-in migration stamps](install-state.md#sign-in-migration-stamps)).
 
-The orchestrator, [`Entry/Invoke-AtlasInstall.ps1`](../playbook/Executables/AtlasModules/Scripts/Entry/Invoke-AtlasInstall.ps1), dispatches four fixed kinds of key and rejects any other.
+The orchestrator, [`Entry/Invoke-AtlasInstall.ps1`](../package/Executables/AtlasModules/Scripts/Entry/Invoke-AtlasInstall.ps1), dispatches four fixed kinds of key and rejects any other.
 
 | Kind | Key | Runs |
 | --- | --- | --- |
@@ -231,7 +232,7 @@ Its snapshot is in `Install\work`, so a resumed step keeps the families an inter
 
 ### The bootstrap and paths
 
-Every process entry point dot-sources [`Initialize-AtlasPowerShell.ps1`](../playbook/Executables/AtlasModules/Scripts/Initialize-AtlasPowerShell.ps1) before any command PowerShell could autoload.
+Every process entry point dot-sources [`Initialize-AtlasPowerShell.ps1`](../package/Executables/AtlasModules/Scripts/Initialize-AtlasPowerShell.ps1) before any command PowerShell could autoload.
 It sets `PSModulePath` to the Atlas module tree and the inbox module root, then imports the four inbox modules Atlas uses from their exact manifests.
 A module on a user's path therefore can't replace an Atlas or Microsoft module, or a command such as `Join-Path`.
 
@@ -268,7 +269,7 @@ Restore writes the value back, or removes it, and checks it before deleting the 
 
 ### Native code
 
-Every P/Invoke and COM declaration lives in [`Atlas.Core/Native/Atlas.Native.cs`](../playbook/Executables/AtlasModules/Scripts/Modules/Atlas.Core/Native/Atlas.Native.cs).
+Every P/Invoke and COM declaration lives in [`Atlas.Core/Native/Atlas.Native.cs`](../package/Executables/AtlasModules/Scripts/Modules/Atlas.Core/Native/Atlas.Native.cs).
 `Initialize-AtlasNativeType` loads it once per process, and callers don't call `Add-Type` themselves.
 A prebuilt `Atlas.Native.dll` is used only when its Authenticode signature is valid, and releases include none because the project has no code-signing certificate.
 Elevated and SYSTEM processes compile the source in a new folder whose access list admits only SYSTEM and Administrators.
@@ -308,7 +309,7 @@ Each setting and helper has one implementation, in a module under `Modules/Atlas
 ## Tweaks, toggles and verification
 
 Install tweaks and Atlas folder toggles are data-only definitions that call the module functions.
-Their schemas are in [the tweak schema](../playbook/Executables/AtlasModules/Scripts/Tweaks/README.md) and [the toggle schema](../playbook/Executables/AtlasModules/Toggles/README.md).
+Their schemas are in [the tweak schema](../package/Executables/AtlasModules/Scripts/Tweaks/README.md) and [the toggle schema](../package/Executables/AtlasModules/Toggles/README.md).
 A tweak's `Toggle` key applies and records the machine part of a toggle state during the install, so the install and the launcher share one implementation.
 `tools/dev/Export-AtlasCatalog.ps1` generates `Toggles\catalog.json`, the contract for Atlas Toolbox, and the [toggle and tweak references](catalog/toggles.md), and CI checks that they match the definitions.
 
@@ -336,7 +337,7 @@ Apply and verify share one vocabulary, so every `Registry`, `Services` and `Sche
 `Test-AtlasToggleState`, `Test-AtlasToggleDrift`, `Test-AtlasTweak` and `Test-AtlasTweakCategory` build on them, honouring each tweak's applicability conditions.
 Companion functions and `Run` entries aren't checked.
 
-[`Entry/Test-AtlasHealth.ps1`](../playbook/Executables/AtlasModules/Scripts/Entry/Test-AtlasHealth.ps1), the launcher `9. Troubleshooting\Check Atlas Health.cmd`, checks every recorded toggle state and applicable tweak, in machine scope and the calling user's `HKCU`.
+[`Entry/Test-AtlasHealth.ps1`](../package/Executables/AtlasModules/Scripts/Entry/Test-AtlasHealth.ps1), the launcher `9. Troubleshooting\Check Atlas Health.cmd`, checks every recorded toggle state and applicable tweak, in machine scope and the calling user's `HKCU`.
 It changes nothing and prints a report, or JSON with `-Json`.
 It exits with 0 when it finds no drift, 1 when it does, and 2 when Atlas isn't installed or the check couldn't run.
 
@@ -350,7 +351,7 @@ Atlas leaves Windows's Gather scope records, its `CurrentPolicies` cache and Sea
 
 ### Registry entry options
 
-The [tweak schema](../playbook/Executables/AtlasModules/Scripts/Tweaks/README.md#registry-entries) defines the options. These notes add how the code uses them.
+The [tweak schema](../package/Executables/AtlasModules/Scripts/Tweaks/README.md#registry-entries) defines the options. These notes add how the code uses them.
 
 - `SkipVerification` is for values that only start transient Windows state, and verbose verification explains each entry it skips.
 - `AllowOsProtected` applies only when the key opens and Windows refuses the value for every caller, TrustedInstaller included.
@@ -394,12 +395,12 @@ The TrustedInstaller process has no standard handles, so its targets log their f
 
 ### Safe Mode and CBS retry
 
-[`Operations/SafeMode.ps1`](../playbook/Executables/AtlasModules/Scripts/Operations/SafeMode.ps1) has four operations: Minimal, Networking, CommandPrompt and Exit.
+[`Operations/SafeMode.ps1`](../package/Executables/AtlasModules/Scripts/Operations/SafeMode.ps1) has four operations: Minimal, Networking, CommandPrompt and Exit.
 It changes only boot configuration, through the System32 `bcdedit.exe`.
 CommandPrompt sets `safeboot minimal` and `safebootalternateshell yes`, so Safe Mode starts Command Prompt while normal starts keep their shell.
 Earlier Atlas builds set the Winlogon shell to `cmd.exe` and saved the original in `%windir%\AtlasOS\Recovery\SafeMode.json`, and every operation puts that shell back and deletes the file.
 
-[`Operations/CbsRetry.ps1`](../playbook/Executables/AtlasModules/Scripts/Operations/CbsRetry.ps1) recovers failed CBS packages:
+[`Operations/CbsRetry.ps1`](../package/Executables/AtlasModules/Scripts/Operations/CbsRetry.ps1) recovers failed CBS packages:
 
 1. Atlas records the packages' full paths in `%windir%\AtlasOS\Recovery\CbsRetry.json`, in the Pending state.
 2. Setting CommandPrompt Safe Mode arms the retry.

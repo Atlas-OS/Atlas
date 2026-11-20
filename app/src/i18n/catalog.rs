@@ -448,6 +448,14 @@ impl Catalog {
         errors.is_empty().then(|| text.into_owned())
     }
 
+    /// Whether any language in the chain has the message. The English source
+    /// ends every chain, so this is whether the app has the message at all.
+    pub fn has(&self, id: &str) -> bool {
+        self.bundles
+            .iter()
+            .any(|layer| layer.bundle.get_message(id).is_some_and(|message| message.value().is_some()))
+    }
+
     /// Formats a message's value in the first language that formats it
     /// cleanly. The catalog tests keep every language formatting on its own,
     /// so if none can, the caller passed the wrong arguments: show the first

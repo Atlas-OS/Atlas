@@ -92,7 +92,7 @@ No compatibility switch restores the old per-device changes.
 
 ## How it works
 
-`Set-AtlasPowerSavingState` in `playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Hardware\Domain\Power.ps1` implements both states.
+`Set-AtlasPowerSavingState` in `package/Executables/AtlasModules/Scripts/Modules/Atlas.Hardware/Domain/Power.ps1` implements both states.
 
 - **Both states** require the Windows Balanced plan (`381b4222-f694-41f0-9685-ff5bb260df2e`).
   They hold the machine-wide `Global\AtlasOS.PowerSaving.Transaction.v1` mutex for the whole transaction, so concurrent launches can't interleave rollback state with plan changes.

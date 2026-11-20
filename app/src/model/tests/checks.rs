@@ -8,11 +8,11 @@ use crate::model::test_harness::{
     three_off_one_unreadable, wait_for, walk_to_install,
 };
 use crate::model::{
-    AcquireProblem, Acquisition, Origin, PlaybookSource, Preflight, ReadyHelp, ReadyStatus, RunState, Step,
+    AcquireProblem, Acquisition, Origin, PackageSource, Preflight, ReadyHelp, ReadyStatus, RunState, Step,
 };
 use crate::services::atlas_state::InstallIdentity;
 use crate::services::installer::{self, InstallOutcome, Phase};
-use crate::services::playbook::Manifest;
+use crate::services::package::Manifest;
 use crate::services::preparation::{Stage, State};
 use crate::services::requirements::{CheckDetail, CheckId, CheckResult, Verdict};
 use crate::services::security::{SecurityStatus, Switch};
@@ -52,8 +52,8 @@ fn pending_restart() -> CheckResult {
 }
 
 /// An unpacked package, as far as Get ready is concerned.
-fn package() -> PlaybookSource {
-    PlaybookSource {
+fn package() -> PackageSource {
+    PackageSource {
         dir: std::env::temp_dir(),
         manifest: Manifest::builtin(),
         origin: Origin::Unpacked,
@@ -72,7 +72,7 @@ fn updates_wait_for_the_update_step_before_they_block() {
         let model = new_model(&mut cx, env);
         wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
         act(&mut cx, &model, |m, _| {
-            m.playbook = Some(package());
+            m.package = Some(package());
             m.preparation = State::Idle;
             m.checks = checks_with(vec![pending_updates(), pending_restart()]);
             for (_, result) in &m.checks {
@@ -117,7 +117,7 @@ fn get_ready_reports_the_most_urgent_status() {
             m.acquisition = Acquisition::Failed(AcquireProblem::Stalled);
             assert_eq!(m.ready_help(), Some(ReadyHelp::Package));
             m.acquisition = Acquisition::Idle;
-            m.playbook = Some(package());
+            m.package = Some(package());
             assert_eq!(m.ready_status(), Some(ReadyStatus::Ready));
             assert!(m.step_satisfied(Step::Ready));
             m.checks =

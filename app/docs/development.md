@@ -46,16 +46,16 @@ cargo test --locked
 
 ### Tester-build checks
 
-CI also runs Clippy and the tests with the `embedded-playbook` feature, which compiles an Atlas package into the executable.
+CI also runs Clippy and the tests with the `embedded-package` feature, which compiles an Atlas package into the executable.
 To run them locally, build a LocalTest package and point the build at it.
 A LocalTest package is an Atlas package built with `-LocalTest`, which leaves out the supported-build and product-code checks so tests can unpack it anywhere.
 
 ```powershell
-pwsh -NoProfile -File ..\tools\build\Build-Playbook.ps1 -LocalTest
-$env:ATLAS_EMBED_APBX = (Resolve-Path '..\playbook\Atlas Test.apbx').Path
+pwsh -NoProfile -File ..\tools\build\Build-Package.ps1 -LocalTest
+$env:ATLAS_EMBED_PACKAGE = (Resolve-Path '..\package\Atlas Test.atlaspkg').Path
 $env:ATLAS_RC_ID = '<version>-rc.1'
-cargo clippy --locked --all-targets --features embedded-playbook -- -D warnings
-cargo test --locked --features embedded-playbook
+cargo clippy --locked --all-targets --features embedded-package -- -D warnings
+cargo test --locked --features embedded-package
 ```
 
 `ATLAS_RC_ID` must start with the `[package]` version in `app/Cargo.toml`.
@@ -76,7 +76,7 @@ It then builds `target/x86_64-pc-windows-msvc/release/AtlasManager.exe` with a s
 | Parameters | Builds |
 | --- | --- |
 | None | The stable executable. |
-| `-RcId <id> -EmbedApbx <path>` | A tester build, with `ATLAS_RC_ID` and `ATLAS_EMBED_APBX` set and `--features embedded-playbook` added. |
+| `-RcId <id> -EmbedPackage <path>` | A tester build, with `ATLAS_RC_ID` and `ATLAS_EMBED_PACKAGE` set and `--features embedded-package` added. |
 | `-Json` | The stable executable, with Cargo's JSON diagnostics. |
 
 ### Tester builds
@@ -85,7 +85,7 @@ A tester build carries one Atlas package inside the executable and installs noth
 Its RC id (release-candidate id), such as `<version>-rc.<n>`, labels the build for testers, and `build.rs` fails unless both variables are set.
 
 ```powershell
-pwsh -NoProfile -File tools/Build-Release.ps1 -RcId <version>-rc.<n> -EmbedApbx "..\playbook\Atlas v<version>-rc.<n>.apbx"
+pwsh -NoProfile -File tools/Build-Release.ps1 -RcId <version>-rc.<n> -EmbedPackage "..\package\Atlas-v<version>-rc.<n>.atlaspkg"
 ```
 
 This builds the executable only, for local checks.
@@ -100,13 +100,13 @@ On Linux, `../tools/release/build-rc.sh` produces the tester ZIP.
 ## CI
 
 `.github/workflows/app.yml` runs on changes under `app/`, and on changes to the files outside it that the app or its tests compile in or read.
-Those include `playbook.conf`, the front door, the diagnostics collector and the shared test fixtures, and the workflow's path filter lists them all.
+Those include `package/atlas.json`, the front door, the diagnostics collector and the shared test fixtures, and the workflow's path filter lists them all.
 
 The workflow:
 
 1. checks formatting;
 2. runs Clippy, with warnings as errors, and the tests;
-3. builds a LocalTest Atlas package, and runs Clippy and the tests again with `--features embedded-playbook`;
+3. builds a LocalTest Atlas package, and runs Clippy and the tests again with `--features embedded-package`;
 4. builds the release executable and saves it, with the licence notices, as `atlas-manager-windows-x64`;
 5. exports the production shader bytecode and saves it as `atlas-gpui-shaders`.
 

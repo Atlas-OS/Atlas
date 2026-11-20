@@ -16,13 +16,12 @@ use crate::environment::Adapters;
 use crate::services::atlas_state::{self, AtlasState};
 use crate::services::installer::{self, InstallEvent, InstallRequest};
 use crate::services::legacy_choices::Facts;
-use crate::services::playbook;
 use crate::services::releases::{self, Release};
 use crate::services::requirements::{CheckContext, CheckId};
 use crate::services::security::{SecurityStatus, Switch};
 use crate::services::session::{self, SessionRecord};
 use crate::services::settings::{self, AppSettings, InstallDraft, save_to};
-use crate::services::test_support::{TempDir, apbx};
+use crate::services::test_support::{TempDir, package};
 
 /// How long a test waits for the model to reach a state before failing.
 pub(super) const PATIENCE: Duration = Duration::from_secs(30);
@@ -152,8 +151,8 @@ pub(super) async fn walk_to_install(cx: &mut AsyncApp, model: &Entity<AppModel>,
         m.preparation = crate::services::preparation::State::Ready;
     });
     assert!(read(cx, model, |m| m.flow.active && m.flow.step == Step::Ready && m.page == Page::Install));
-    act(cx, model, |m, cx| m.load_playbook_file(package.to_path_buf(), cx));
-    wait_for(cx, model, "the package and the checks", |m| m.playbook.is_some() && m.checks_complete()).await;
+    act(cx, model, |m, cx| m.load_package_file(package.to_path_buf(), cx));
+    wait_for(cx, model, "the package and the checks", |m| m.package.is_some() && m.checks_complete()).await;
     assert!(read(cx, model, |m| m.ready_to_continue()));
     act(cx, model, |m, cx| m.next_step(cx));
     assert_eq!(read(cx, model, |m| m.flow.step), Step::Options);
@@ -304,13 +303,14 @@ pub(super) fn marking_package(temp: &TempDir, code: i32) -> (PathBuf, PathBuf) {
         "Write-Host '[Atlas] Running the install plan as TrustedInstaller. This takes several minutes...'\r\nSet-Content -LiteralPath {} -Value 'ran'\r\nexit {code}",
         ps_literal(&marker)
     );
-    let package = apbx::write(&temp.path().join("package.apbx"), &apbx::with_front_door("0.6.0", &body));
+    let package =
+        package::write(&temp.path().join("package.atlaspkg"), &package::with_front_door("0.6.0", &body));
     (package, marker)
 }
 
 /// A package of `version` that is never launched.
 pub(super) fn package_of(temp: &TempDir, version: &str) -> PathBuf {
-    apbx::write(&temp.path().join(format!("package-{version}.apbx")), &apbx::valid(version))
+    package::write(&temp.path().join(format!("package-{version}.atlaspkg")), &package::valid(version))
 }
 
 /// A package whose front door waits until `gate` exists, then succeeds.
@@ -319,15 +319,15 @@ pub(super) fn gated_package(temp: &TempDir, gate: &Path) -> PathBuf {
         "while (-not (Test-Path -LiteralPath {})) {{ Start-Sleep -Milliseconds 50 }}\r\nexit 0",
         ps_literal(gate)
     );
-    apbx::write(&temp.path().join("gated.apbx"), &apbx::with_front_door("0.6.0", &body))
+    package::write(&temp.path().join("gated.atlaspkg"), &package::with_front_door("0.6.0", &body))
 }
 
 /// Runs the stub installer to completion outside any model, leaving the
 /// record, log and exit file a reopened app would find.
 pub(super) fn completed_session(env: &Environment, package: &Path, restart: bool) -> SessionRecord {
-    let (dir, _) = playbook::extract_into(package, &env.paths.playbooks(), |_, _| {}).unwrap();
+    let (dir, _) = crate::services::package::extract_into(package, &env.paths.packages(), |_, _| {}).unwrap();
     let request = InstallRequest {
-        playbook_dir: dir,
+        package_dir: dir,
         options: vec!["defender-enable".into()],
         restart,
         windows_security_confirmed: false,

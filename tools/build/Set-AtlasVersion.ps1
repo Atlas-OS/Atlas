@@ -1,23 +1,25 @@
 <#
 .SYNOPSIS
-    Bumps the Atlas package version in playbook.conf and Atlas Manager.
+    Bumps the Atlas package version in atlas.json and Atlas Manager.
 .DESCRIPTION
-    In playbook.conf, sets <Version> and adds the previous version to <UpgradableFrom>,
-    keeping the sources already listed. Sets the same version in app/Cargo.toml and in
-    the atlas-app entry of app/Cargo.lock, which the --locked app builds need.
+    In atlas.json, sets version and adds the previous version to updatableFrom, keeping
+    the versions already listed. Sets the same version in app/Cargo.toml and in the
+    atlas-app entry of app/Cargo.lock, which the --locked app builds need.
 
-    When playbook.conf already has the version, it's left as it is and only the other
+    When atlas.json already has the version, it's left as it is and only the other
     files that disagree with it are brought in line.
 .PARAMETER Version
     The new version, as major.minor.patch.
-.PARAMETER PlaybookConfPath
-    The playbook.conf to bump. The default is the repository's.
+.PARAMETER ManifestPath
+    The atlas.json to bump. The default is the repository's package/atlas.json.
 .PARAMETER CargoTomlPath
     Atlas Manager's Cargo.toml. The default is app/Cargo.toml in the same repository.
 .PARAMETER CargoLockPath
     Atlas Manager's Cargo.lock. The default is app/Cargo.lock in the same repository.
 .EXAMPLE
     tools/build/Set-AtlasVersion.ps1 -Version 0.6.0
+.NOTES
+    Exit codes: 0 when every file has the version, 1 when a file can't be read or bumped.
 #>
 #requires -Version 7.0
 [CmdletBinding(SupportsShouldProcess = $true)]
@@ -27,7 +29,7 @@ Param(
     [ValidatePattern('^(0|[1-9]\d*)(\.(0|[1-9]\d*)){2}$')]
     [string]$Version,
 
-    [string]$PlaybookConfPath,
+    [string]$ManifestPath,
 
     [string]$CargoTomlPath,
 
@@ -37,12 +39,14 @@ Param(
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 
-if (-not $PlaybookConfPath) {
-    $PlaybookConfPath = Join-Path -Path $PSScriptRoot -ChildPath '..\..\playbook\playbook.conf'
-}
-$PlaybookConfPath = (Resolve-Path -LiteralPath $PlaybookConfPath).ProviderPath
+Import-Module (Join-Path -Path $PSScriptRoot -ChildPath 'AtlasBuild\AtlasBuild.psd1') -Force
 
-$repositoryRoot = Split-Path -Path (Split-Path -Path $PlaybookConfPath -Parent) -Parent
+if (-not $ManifestPath) {
+    $ManifestPath = Join-Path -Path $PSScriptRoot -ChildPath '..\..\package\atlas.json'
+}
+$ManifestPath = (Resolve-Path -LiteralPath $ManifestPath).ProviderPath
+
+$repositoryRoot = Split-Path -Path (Split-Path -Path $ManifestPath -Parent) -Parent
 if (-not $CargoTomlPath) {
     $CargoTomlPath = Join-Path -Path $repositoryRoot -ChildPath 'app\Cargo.toml'
 }
@@ -52,52 +56,22 @@ if (-not $CargoLockPath) {
 }
 $CargoLockPath = (Resolve-Path -LiteralPath $CargoLockPath).ProviderPath
 
-$lines = Get-Content -LiteralPath $PlaybookConfPath -Encoding UTF8
+$currentVersion = (Get-AtlasPackageVersion -ManifestPath $ManifestPath).Version
 
-$currentVersion = $null
-foreach ($line in $lines) {
-    if ($line -match '<Version>\s*(?<v>[^<]+?)\s*</Version>') {
-        $currentVersion = $Matches['v']
-        break
+# A manifest already at the version stays byte for byte as it is.
+$bumpManifest = $currentVersion -cne $Version
+if ($bumpManifest) {
+    $manifest = [System.Text.Json.Nodes.JsonNode]::Parse([IO.File]::ReadAllText($ManifestPath))
+    $sources = $manifest['updatableFrom']
+    if ($sources -isnot [System.Text.Json.Nodes.JsonArray]) {
+        throw "updatableFrom in '$ManifestPath' isn't an array of versions."
     }
-}
-
-if (-not $currentVersion) {
-    throw "Could not find a <Version> element in '$PlaybookConfPath'."
-}
-
-# A conf already at the version stays as it is: rewriting a single UpgradableFrom
-# source would replace it with the version itself.
-$bumpConf = $currentVersion -ne $Version
-if ($bumpConf) {
-    $updated = foreach ($line in $lines) {
-        if ($line -match '<Version>\s*[^<]+?\s*</Version>') {
-            $line -replace '(<Version>\s*)[^<]+?(\s*</Version>)', "`${1}$Version`${2}"
-        }
-        elseif ($line -match '<UpgradableFrom>\s*[^<]+?\s*</UpgradableFrom>') {
-            $line -replace '(<UpgradableFrom>\s*)[^<]+?(\s*</UpgradableFrom>)', "`${1}$currentVersion`${2}"
-        }
-        else {
-            $line
-        }
+    $listed = @(foreach ($source in $sources) { "$source" })
+    if ($listed -cnotcontains $currentVersion) {
+        $sources.Add([System.Text.Json.Nodes.JsonValue]::Create($currentVersion))
     }
-
-    # <UpgradableFrom> holds either one version as its text or a list of <string>
-    # sources. A list keeps its sources when the superseded release is added.
-    $updatedText = $updated -join [Environment]::NewLine
-    $arrayPattern = '(?s)(<UpgradableFrom>)(?=\s*<string>)(.*?)(\s*</UpgradableFrom>)'
-    $arrayMatch = [regex]::Match($updatedText, $arrayPattern)
-    if ($arrayMatch.Success) {
-        $sourceVersions = @([regex]::Matches($arrayMatch.Groups[2].Value, '<string>\s*([^<]+?)\s*</string>') | ForEach-Object { $_.Groups[1].Value })
-        if ($sourceVersions -cnotcontains $currentVersion) {
-            $indentMatch = [regex]::Match($arrayMatch.Groups[2].Value, '(?:\r?\n)([ \t]*)<string>')
-            $indent = if ($indentMatch.Success) { $indentMatch.Groups[1].Value } else { "`t`t`t" }
-            $replacement = $arrayMatch.Groups[1].Value + $arrayMatch.Groups[2].Value.TrimEnd() +
-                [Environment]::NewLine + $indent + '<string>' + $currentVersion + '</string>' + $arrayMatch.Groups[3].Value
-            $updatedText = $updatedText.Remove($arrayMatch.Index, $arrayMatch.Length).Insert($arrayMatch.Index, $replacement)
-        }
-    }
-    $updated = $updatedText -split '\r?\n'
+    $manifest['version'] = [System.Text.Json.Nodes.JsonValue]::Create($Version)
+    $updatedManifest = ConvertTo-AtlasManifestJson -Manifest $manifest
 }
 
 # The first line that starts with a version key is the [package] one: dependencies
@@ -120,25 +94,26 @@ $pending = @(
     if ($updatedCargoToml -cne $cargoTomlText) { 'Cargo.toml' }
     if ($updatedCargoLock -cne $cargoLockText) { 'Cargo.lock' }
 )
-if (-not $bumpConf) {
+if (-not $bumpManifest) {
     if ($pending.Count -eq 0) {
-        Write-Warning "playbook.conf is already at version $Version, and so is every other file; nothing to do."
+        Write-Warning "atlas.json is already at version $Version, and so is every other file; nothing to do."
         return
     }
-    Write-Warning "playbook.conf is already at version $Version; bringing $($pending -join ', ') in line with it."
+    Write-Warning "atlas.json is already at version $Version; bringing $($pending -join ', ') in line with it."
 }
 
-if ($bumpConf -and $PSCmdlet.ShouldProcess($PlaybookConfPath, "Set version to $Version (was $currentVersion)")) {
-    Set-Content -LiteralPath $PlaybookConfPath -Value $updated -Encoding UTF8
-    Write-Host "playbook.conf version: $currentVersion -> $Version (previous version added to upgrade sources)." -ForegroundColor Green
+$utf8NoBom = [Text.UTF8Encoding]::new($false)
+if ($bumpManifest -and $PSCmdlet.ShouldProcess($ManifestPath, "Set version to $Version (was $currentVersion)")) {
+    [IO.File]::WriteAllText($ManifestPath, $updatedManifest, $utf8NoBom)
+    Write-Host "atlas.json version: $currentVersion -> $Version (previous version added to updatableFrom)." -ForegroundColor Green
 }
 
 if ($pending -contains 'Cargo.toml' -and $PSCmdlet.ShouldProcess($CargoTomlPath, "Set the package version to $Version")) {
-    [IO.File]::WriteAllText($CargoTomlPath, $updatedCargoToml, [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText($CargoTomlPath, $updatedCargoToml, $utf8NoBom)
     Write-Host "Cargo.toml: package version set to $Version." -ForegroundColor Green
 }
 
 if ($pending -contains 'Cargo.lock' -and $PSCmdlet.ShouldProcess($CargoLockPath, "Set the atlas-app version to $Version")) {
-    [IO.File]::WriteAllText($CargoLockPath, $updatedCargoLock, [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText($CargoLockPath, $updatedCargoLock, $utf8NoBom)
     Write-Host "Cargo.lock: atlas-app version set to $Version." -ForegroundColor Green
 }

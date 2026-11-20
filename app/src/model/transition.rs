@@ -192,7 +192,7 @@ impl AppModel {
     /// Why Home can't start the flow on this Windows, for the package Home
     /// would offer. Once a package is loaded, Get ready's checks decide.
     pub fn windows_block(&self) -> Option<WindowsBlock> {
-        if self.playbook.is_some() {
+        if self.package.is_some() {
             return None;
         }
         windows_release::windows_block(&self.system, &self.manifest().supported_builds, self.before_desktop)

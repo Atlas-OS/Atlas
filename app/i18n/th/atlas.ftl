@@ -13,7 +13,7 @@
 ### - Values marked "text" (versions, build numbers, file names, paths,
 ###   error details) are inserted as they are and must not be translated.
 ### - "Atlas", "AtlasOS", "Windows", "Defender", "SmartScreen", "GitHub" are
-###   product names. The Atlas package (.apbx) is "แพ็กเกจ Atlas", or
+###   product names. The Atlas package (.atlaspkg) is "แพ็กเกจ Atlas", or
 ###   "แพ็กเกจ" once it is clear.
 ###   Windows features use the names Thai Windows shows: the app is
 ###   "ความปลอดภัยของ Windows" (written "แอป ความปลอดภัยของ Windows" when it is
@@ -105,9 +105,9 @@ window-close-restart-close = ปิดโดยไม่รีสตาร์ต
 # window-close-keep, common-open-windows-security and window-close-close.
 window-close-protection-title = ปิด Atlas ขณะที่การป้องกันยังปิดอยู่หรือไม่
 window-close-protection-message = การป้องกันบางรายการในแอป ความปลอดภัยของ Windows ยังปิดอยู่: { $switches } หากคุณจะไม่ติดตั้ง Atlas ต่อให้เสร็จ ให้เปิดการป้องกันเหล่านี้อีกครั้งก่อนปิด หากจะติดตั้งต่อ Atlas จะตั้งค่าต่อจากเดิมเมื่อคุณเปิด Atlas อีกครั้ง
-# The Open button of the file picker for an Atlas package (.apbx) file, on Get ready and the
+# The Open button of the file picker for an Atlas package (.atlaspkg) file, on Get ready and the
 # ISO page. It's a button label, so keep it short.
-file-dialog-open-package = เปิดแพ็กเกจ Atlas (.apbx)
+file-dialog-open-package = เปิดแพ็กเกจ Atlas (.atlaspkg)
 # Message Windows shows in its restart notification.
 shutdown-comment = ติดตั้ง Atlas แล้ว กำลังรีสตาร์ต Windows เพื่อตั้งค่าให้เสร็จสมบูรณ์
 # Message Windows shows in its restart notification when "Get ready" restarts
@@ -246,7 +246,7 @@ ready-banner-busy-message = Atlas กำลังตรวจสอบพีซ�
 ready-banner-blocked-title = พีซีของคุณยังไม่พร้อม
 ready-banner-blocked-message = แก้ไขรายการที่ทำเครื่องหมายไว้ในการ์ด การตรวจสอบพีซี แล้วเลือก ตรวจสอบอีกครั้ง
 ready-banner-no-package-title = ดาวน์โหลด Atlas เพื่อดำเนินการต่อ
-ready-banner-no-package-message = ดาวน์โหลด Atlas ในการ์ด ไฟล์ติดตั้ง หรือเลือก เปิดไฟล์แพ็กเกจ หากคุณมีแพ็กเกจ Atlas (.apbx) อยู่แล้ว
+ready-banner-no-package-message = ดาวน์โหลด Atlas ในการ์ด ไฟล์ติดตั้ง หรือเลือก เปิดไฟล์แพ็กเกจ หากคุณมีแพ็กเกจ Atlas (.atlaspkg) อยู่แล้ว
 # Tester build: the bundled Atlas package couldn't be unpacked.
 ready-banner-no-package-bundled-title = เตรียมแพ็กเกจ Atlas ที่มาพร้อมกันเพื่อดำเนินการต่อ
 ready-banner-no-package-bundled-message = แพ็กเกจ Atlas ที่มาพร้อมรุ่นทดสอบนี้ยังไม่พร้อม ตรวจดูการ์ด ไฟล์ติดตั้ง
@@ -285,10 +285,10 @@ package-unpacking = กำลังแตกไฟล์
 package-looking = กำลังตรวจหา Atlas เวอร์ชันล่าสุด
 # Tester build: the bundled Atlas package is being unpacked, nothing is downloaded.
 package-looking-bundled = กำลังเตรียมแพ็กเกจ Atlas ที่มาพร้อมกัน
-package-none = ดาวน์โหลด Atlas เพื่อรับไฟล์ติดตั้ง หากคุณมีแพ็กเกจ Atlas (.apbx) อยู่แล้ว ให้เปิดแพ็กเกจนั้นแทน
+package-none = ดาวน์โหลด Atlas เพื่อรับไฟล์ติดตั้ง หากคุณมีแพ็กเกจ Atlas (.atlaspkg) อยู่แล้ว ให้เปิดแพ็กเกจนั้นแทน
 # The GitHub release check failed. "Download latest version" is package-download-newest,
 # the button offered in this state; it checks again.
-package-release-failed = Atlas ตรวจหาเวอร์ชันล่าสุดไม่ได้ ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต แล้วเลือก ดาวน์โหลดเวอร์ชันล่าสุด หรือเปิดแพ็กเกจ Atlas (.apbx) ที่บันทึกไว้
+package-release-failed = Atlas ตรวจหาเวอร์ชันล่าสุดไม่ได้ ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต แล้วเลือก ดาวน์โหลดเวอร์ชันล่าสุด หรือเปิดแพ็กเกจ Atlas (.atlaspkg) ที่บันทึกไว้
 # Short status words beside the card title.
 package-status-downloading = กำลังดาวน์โหลด
 package-status-unpacking = กำลังแตกไฟล์
@@ -309,13 +309,15 @@ package-from-release = ดาวน์โหลด Atlas { $version } จาก 
 package-from-file = โหลด Atlas { $version } จาก { $file } แล้ว พร้อมติดตั้ง
 package-unpacked = Atlas { $version } พร้อมติดตั้งแล้ว
 package-none-yet = ยังไม่ได้เลือกไฟล์ติดตั้ง
-acquire-no-asset = Atlas { $version } ไม่มีไฟล์แพ็กเกจให้ดาวน์โหลด เปิดแพ็กเกจ Atlas (.apbx) ที่บันทึกไว้เพื่อดำเนินการต่อ
-acquire-unsupported = แอปนี้ติดตั้งได้เฉพาะ Atlas 0.6.0 ขึ้นไป
+acquire-no-asset = Atlas { $version } ไม่มีไฟล์แพ็กเกจให้ดาวน์โหลด เปิดแพ็กเกจ Atlas (.atlaspkg) ที่บันทึกไว้เพื่อดำเนินการต่อ
+# Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
+# .apbx file from an Atlas release before 0.6.
+acquire-unsupported = แอปนี้ติดตั้งได้เฉพาะ Atlas 0.6.0 ขึ้นไปจากแพ็กเกจ Atlas (.atlaspkg)
 # A package new enough to include the installer script that this app drives, but without it.
-acquire-incomplete = Atlas { $version } ขาดไฟล์ที่แอปนี้ต้องใช้ในการติดตั้ง ดาวน์โหลดอีกครั้ง หรือเปิดแพ็กเกจ Atlas (.apbx) อีกไฟล์หนึ่ง
-acquire-failed = เตรียมไฟล์ติดตั้งไม่ได้ ลองดาวน์โหลดอีกครั้ง หรือเปิดแพ็กเกจ Atlas (.apbx) อีกไฟล์หนึ่ง รายละเอียด: { $error }
+acquire-incomplete = Atlas { $version } ขาดไฟล์ที่แอปนี้ต้องใช้ในการติดตั้ง ดาวน์โหลดอีกครั้ง หรือเปิดแพ็กเกจ Atlas (.atlaspkg) อีกไฟล์หนึ่ง
+acquire-failed = เตรียมไฟล์ติดตั้งไม่ได้ ลองดาวน์โหลดอีกครั้ง หรือเปิดแพ็กเกจ Atlas (.atlaspkg) อีกไฟล์หนึ่ง รายละเอียด: { $error }
 # The download received nothing for a minute and was stopped.
-acquire-stalled = การดาวน์โหลดหยุดตอบสนอง ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต แล้วดาวน์โหลดอีกครั้ง หรือเปิดแพ็กเกจ Atlas (.apbx) ที่บันทึกไว้
+acquire-stalled = การดาวน์โหลดหยุดตอบสนอง ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต แล้วดาวน์โหลดอีกครั้ง หรือเปิดแพ็กเกจ Atlas (.atlaspkg) ที่บันทึกไว้
 # Tester build: the bundled Atlas package couldn't be unpacked. Try again is the only control offered.
 acquire-failed-bundled = เตรียมแพ็กเกจ Atlas ที่มาพร้อมกันไม่ได้ เลือก ลองอีกครั้ง รายละเอียด: { $error }
 
@@ -419,34 +421,34 @@ consequence-auto-updates-disable = เปิด Windows Update เป็นป�
 consequence-auto-updates-default = Windows จะติดตั้งการอัปเดตโดยอัตโนมัติ รวมถึงการแก้ไขด้านความปลอดภัย
 
 ## Atlas package text
-## The Atlas package carries its own English text for each option. These
-## UI labels and explanations are used only when the package text matches
-## i18n/playbook-source.ftl. A future package with different wording keeps
-## its own text instead of receiving a potentially outdated description.
+## Labels and descriptions for the Atlas package's options and choices, by
+## their ids in the package's atlas.json. The app shows these in place of the
+## package's own English text; an option or choice that a newer package adds,
+## which has no message here, shows the package's English.
 
-playbook-option-defender-enable = เก็บ Microsoft Defender ไว้ (แนะนำ)
-playbook-option-defender-disable = นำ Microsoft Defender ออก
-playbook-option-mitigations-default = เก็บการป้องกันตัวประมวลผลไว้ (แนะนำ)
-playbook-option-mitigations-disable = ปิดการป้องกันตัวประมวลผล
-playbook-option-auto-updates-disable = ติดตั้งการอัปเดตเอง
-playbook-option-auto-updates-default = ติดตั้งการอัปเดตโดยอัตโนมัติ
-playbook-option-disable-hibernation = ปิดไฮเบอร์เนต
-playbook-option-disable-power-saving = ปิดการประหยัดพลังงาน
-playbook-option-disable-core-isolation = ปิดความปลอดภัยที่ใช้การจำลองเสมือน (VBS)
+package-option-defender-enable = เก็บ Microsoft Defender ไว้ (แนะนำ)
+package-option-defender-disable = นำ Microsoft Defender ออก
+package-option-mitigations-default = เก็บการป้องกันตัวประมวลผลไว้ (แนะนำ)
+package-option-mitigations-disable = ปิดการป้องกันตัวประมวลผล
+package-option-auto-updates-disable = ติดตั้งการอัปเดตเอง
+package-option-auto-updates-default = ติดตั้งการอัปเดตโดยอัตโนมัติ
+package-option-disable-hibernation = ปิดไฮเบอร์เนต
+package-option-disable-power-saving = ปิดการประหยัดพลังงาน
+package-option-disable-core-isolation = ปิดความปลอดภัยที่ใช้การจำลองเสมือน (VBS)
 # Thai Windows localizes Snipping Tool as "เครื่องมือสนิป".
-playbook-option-remove-snipping-tool = นำเครื่องมือสนิปออก
-playbook-option-uninstall-edge = นำ Microsoft Edge ออก
-playbook-option-install-another-browser = ติดตั้งเบราว์เซอร์
-playbook-option-install-toolbox = ติดตั้ง Atlas Toolbox
-playbook-option-install-eclean = ติดตั้ง eclean
-playbook-option-browser-brave = Brave
-playbook-option-browser-librewolf = LibreWolf
-playbook-option-browser-firefox = Firefox
-playbook-option-browser-chrome = Chrome
-playbook-page-defender-enable-description = Microsoft Defender คือโปรแกรมป้องกันไวรัสที่มาพร้อมกับ Windows ให้นำออกเฉพาะเมื่อคุณเข้าใจความเสี่ยงและวางแผนจะใช้แอปป้องกันไวรัสอื่น ไม่ว่าคุณจะเลือกแบบใด Atlas จะปิด การควบคุมแอปแบบอัจฉริยะ การป้องกันฟิชชิ่งขั้นสูง และ ค้นหาอุปกรณ์ของฉัน
-playbook-page-mitigations-default-description = การป้องกันเหล่านี้ หรือที่เรียกว่ามาตรการลดความเสี่ยงด้านความปลอดภัย ช่วยรับมือกับข้อบกพร่องของตัวประมวลผล เช่น Spectre และ Meltdown รวมถึงการโจมตีที่อาศัยบั๊กในแอป แนะนำให้ใช้ค่าเริ่มต้นของ Windows
-playbook-page-auto-updates-disable-description = การอัปเดต Windows มีการแก้ไขด้านความปลอดภัยรวมอยู่ด้วย คุณจะให้ Windows ติดตั้งการอัปเดตโดยอัตโนมัติหรือติดตั้งเองก็ได้ ไม่ว่าจะเลือกแบบใด Atlas จะคง Windows ไว้ที่เวอร์ชันปัจจุบัน ซึ่งจะได้รับการแก้ไขด้านความปลอดภัยจนกว่า Microsoft จะสิ้นสุดการสนับสนุนเวอร์ชันนั้นเท่านั้น นอกจากนี้ Atlas ยังปิดการอัปเดตอัตโนมัติสำหรับแอปจาก Microsoft Store ด้วย จึงควรอัปเดตแอปเหล่านั้นใน Microsoft Store
-playbook-page-browser-brave-description = เลือกเบราว์เซอร์ที่ต้องการติดตั้ง โดย Atlas จะไม่เปลี่ยนการตั้งค่าเบราว์เซอร์ของคุณ
+package-option-remove-snipping-tool = นำเครื่องมือสนิปออก
+package-option-uninstall-edge = นำ Microsoft Edge ออก
+package-option-install-another-browser = ติดตั้งเบราว์เซอร์
+package-option-install-toolbox = ติดตั้ง Atlas Toolbox
+package-option-install-eclean = ติดตั้ง eclean
+package-option-browser-brave = Brave
+package-option-browser-librewolf = LibreWolf
+package-option-browser-firefox = Firefox
+package-option-browser-chrome = Chrome
+package-choice-defender-description = Microsoft Defender คือโปรแกรมป้องกันไวรัสที่มาพร้อมกับ Windows ให้นำออกเฉพาะเมื่อคุณเข้าใจความเสี่ยงและวางแผนจะใช้แอปป้องกันไวรัสอื่น ไม่ว่าคุณจะเลือกแบบใด Atlas จะปิด การควบคุมแอปแบบอัจฉริยะ การป้องกันฟิชชิ่งขั้นสูง และ ค้นหาอุปกรณ์ของฉัน
+package-choice-mitigations-description = การป้องกันเหล่านี้ หรือที่เรียกว่ามาตรการลดความเสี่ยงด้านความปลอดภัย ช่วยรับมือกับข้อบกพร่องของตัวประมวลผล เช่น Spectre และ Meltdown รวมถึงการโจมตีที่อาศัยบั๊กในแอป แนะนำให้ใช้ค่าเริ่มต้นของ Windows
+package-choice-auto-updates-description = การอัปเดต Windows มีการแก้ไขด้านความปลอดภัยรวมอยู่ด้วย คุณจะให้ Windows ติดตั้งการอัปเดตโดยอัตโนมัติหรือติดตั้งเองก็ได้ ไม่ว่าจะเลือกแบบใด Atlas จะคง Windows ไว้ที่เวอร์ชันปัจจุบัน ซึ่งจะได้รับการแก้ไขด้านความปลอดภัยจนกว่า Microsoft จะสิ้นสุดการสนับสนุนเวอร์ชันนั้นเท่านั้น นอกจากนี้ Atlas ยังปิดการอัปเดตอัตโนมัติสำหรับแอปจาก Microsoft Store ด้วย จึงควรอัปเดตแอปเหล่านั้นใน Microsoft Store
+package-choice-browser-description = เลือกเบราว์เซอร์ที่ต้องการติดตั้ง โดย Atlas จะไม่เปลี่ยนการตั้งค่าเบราว์เซอร์ของคุณ
 
 ## Step 3: Windows Security
 
@@ -551,7 +553,7 @@ output-problem-title = อ่านความคืบหน้าการต
 output-problem-message = Atlas อ่านบันทึกไม่ได้ แต่ไม่ได้หมายความว่าการติดตั้งหยุดลง เปิดพีซีไว้ แล้วลองเปิดไฟล์บันทึก รายละเอียด: { $error }
 install-elevate-title = Atlas ต้องได้รับสิทธิ์จึงจะติดตั้งได้
 install-no-package-title = เลือกไฟล์ติดตั้งก่อน
-install-no-package-message = กลับไปที่ เตรียมความพร้อม เพื่อดาวน์โหลด Atlas หรือเปิดแพ็กเกจ Atlas (.apbx) ที่บันทึกไว้
+install-no-package-message = กลับไปที่ เตรียมความพร้อม เพื่อดาวน์โหลด Atlas หรือเปิดแพ็กเกจ Atlas (.atlaspkg) ที่บันทึกไว้
 # Tester build variant of install-no-package-message.
 install-no-package-bundled-message = กลับไปที่ เตรียมความพร้อม เพื่อเตรียมแพ็กเกจ Atlas ที่มาพร้อมรุ่นทดสอบนี้
 # Step 4 when step 1 is incomplete for this session (checks or Windows updates), with go-to-ready as the button.
@@ -695,7 +697,7 @@ iso-title = สร้าง ISO พร้อม Atlas
 iso-beta = เบต้า
 iso-beta-description = ทดสอบ ISO ในเครื่องเสมือนก่อนนำไปใช้บนพีซี และสำรองไฟล์ก่อนติดตั้ง Windows
 iso-admin-description = Atlas ต้องได้รับสิทธิ์ผู้ดูแลระบบเพื่ออ่าน ISO ของ Windows และสร้าง ISO ใหม่ เลือก เปิด Atlas ใหม่ในฐานะผู้ดูแลระบบ แล้วเลือก ใช่ เมื่อ Windows ถาม
-iso-files-description = Atlas จะคัดลอก ISO ของ Windows 11 แล้วเพิ่ม Atlas ลงไป เพื่อใช้ติดตั้ง Windows ใหม่ เลือก ISO ของ Windows 11 ที่ดาวน์โหลดจาก Microsoft ดาวน์โหลดแพ็กเกจ Atlas ล่าสุดหรือเลือกแพ็กเกจที่คุณมีอยู่แล้ว (.apbx) จากนั้นเลือกตำแหน่งที่จะบันทึก ISO ใหม่
+iso-files-description = Atlas จะคัดลอก ISO ของ Windows 11 แล้วเพิ่ม Atlas ลงไป เพื่อใช้ติดตั้ง Windows ใหม่ เลือก ISO ของ Windows 11 ที่ดาวน์โหลดจาก Microsoft ดาวน์โหลดแพ็กเกจ Atlas ล่าสุดหรือเลือกแพ็กเกจที่คุณมีอยู่แล้ว (.atlaspkg) จากนั้นเลือกตำแหน่งที่จะบันทึก ISO ใหม่
 # Tester build: no package picker.
 iso-files-description-bundled = Atlas จะคัดลอก ISO ของ Windows 11 แล้วเพิ่มแพ็กเกจ Atlas ที่มาพร้อมรุ่นทดสอบนี้ลงไป เลือก ISO ของ Windows 11 ที่ดาวน์โหลดจาก Microsoft จากนั้นเลือกตำแหน่งที่จะบันทึก ISO ใหม่
 iso-source = ISO ของ Windows
@@ -934,7 +936,7 @@ install-source-unsupported = อัปเดต Atlas { $source } เป็น {
 # Before a package is chosen, so the version on offer isn't known yet.
 install-source-unsupported-any = อัปเดต Atlas { $source } โดยตรงไม่ได้ หากต้องการใช้เวอร์ชันที่ใหม่กว่า ให้สำรองไฟล์ของคุณแล้วติดตั้ง Windows ใหม่
 # "Open package file" is package-open-file. $folder is a folder path (text).
-install-source-resume = การติดตั้ง Atlas { $target } ยังไม่เสร็จ และมีเพียงแพ็กเกจ Atlas { $target } เท่านั้นที่ติดตั้งต่อให้เสร็จได้ เลือก เปิดไฟล์แพ็กเกจ แล้วเลือกแพ็กเกจ Atlas นั้น (.apbx) หาก Atlas ดาวน์โหลดไว้ ไฟล์จะอยู่ใน { $folder }
+install-source-resume = การติดตั้ง Atlas { $target } ยังไม่เสร็จ และมีเพียงแพ็กเกจ Atlas { $target } เท่านั้นที่ติดตั้งต่อให้เสร็จได้ เลือก เปิดไฟล์แพ็กเกจ แล้วเลือกแพ็กเกจ Atlas นั้น (.atlaspkg) หาก Atlas ดาวน์โหลดไว้ ไฟล์จะอยู่ใน { $folder }
 # Tester build: only the bundled Atlas package can be installed.
 install-source-resume-bundled = การติดตั้ง Atlas { $target } ยังไม่เสร็จ รุ่นทดสอบนี้ติดตั้งได้เฉพาะแพ็กเกจ Atlas ที่มาพร้อมกัน จึงต้องติดตั้งให้เสร็จด้วยแพ็กเกจ Atlas { $target } ใน Atlas Manager รุ่นเผยแพร่
 install-source-unknown = Atlas ยืนยันไม่ได้ว่ามีอะไรติดตั้งอยู่แล้วบนพีซีเครื่องนี้ จึงจะยังไม่ติดตั้งสิ่งใดในตอนนี้ เลือก ส่งรายงาน เพื่อให้ทีม Atlas ช่วยเหลือ
@@ -969,7 +971,7 @@ diagnostics-failed-title = ส่งออกข้อมูลการวิ�
 # $error is the raw error (text).
 diagnostics-failed = ตรวจดูว่าพีซีของคุณมีพื้นที่ดิสก์ว่างเพียงพอ แล้วลองอีกครั้ง รายละเอียด: { $error }
 
-## Tester builds (embedded-playbook feature)
+## Tester builds (embedded-package feature)
 
 # A bar at the top of the content on a release-candidate build.
 rc-banner = Atlas { $release } รุ่นทดสอบ แอปนี้ติดตั้งเฉพาะแพ็กเกจ Atlas ที่มาพร้อมกันเท่านั้น
@@ -1286,10 +1288,10 @@ prepare-repair-store = ซ่อมแซม Microsoft Store
 
 screen-keyboard-title = ภาษาของแป้นพิมพ์
 screen-keyboard-question = คุณใช้แป้นพิมพ์หลายภาษาหรือไม่?
-playbook-option-keyboard-shortcuts = ใช่ ใช้แป้นพิมพ์ลัด
-playbook-option-keyboard-selector = ใช่ ใช้ตัวเลือกบนแถบงาน
-playbook-option-keyboard-single = ไม่ ใช้รูปแบบแป้นพิมพ์เดียว
+package-option-keyboard-shortcuts = ใช่ ใช้แป้นพิมพ์ลัด
+package-option-keyboard-selector = ใช่ ใช้ตัวเลือกบนแถบงาน
+package-option-keyboard-single = ไม่ ใช้รูปแบบแป้นพิมพ์เดียว
 consequence-keyboard-shortcuts = Alt+Shift สลับภาษา ส่วน Ctrl+Shift สลับรูปแบบแป้นพิมพ์
 consequence-keyboard-selector = ปิด Alt+Shift และ Ctrl+Shift เพื่อป้องกันการสลับโดยไม่ตั้งใจขณะเล่นเกม
-playbook-page-keyboard-shortcuts-description = เลือกวิธีสลับภาษาของแป้นพิมพ์
+package-choice-keyboard-description = เลือกวิธีสลับภาษาของแป้นพิมพ์
 consequence-keyboard-single = { consequence-keyboard-selector }

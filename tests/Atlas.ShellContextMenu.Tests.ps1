@@ -13,7 +13,7 @@ param()
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
-    $script:executablesRoot = Join-Path $script:repositoryRoot 'playbook\Executables'
+    $script:executablesRoot = Join-Path $script:repositoryRoot 'package\Executables'
     $script:terminalHandler = Join-Path $script:executablesRoot `
         'AtlasModules\Scripts\Entry\Open-TerminalHere.ps1'
     $script:takeOwnershipHandler = Join-Path $script:executablesRoot `
@@ -82,7 +82,7 @@ param([string]$Terminal, [string]$Verb, [string]$Path, [string]$TargetType, [str
 
 Describe 'Terminal context-menu .reg files' {
     BeforeDiscovery {
-        $root = (Resolve-Path (Join-Path $PSScriptRoot '..\playbook\Executables')).ProviderPath
+        $root = (Resolve-Path (Join-Path $PSScriptRoot '..\package\Executables')).ProviderPath
         $script:terminalPayloadCases = @(
             @{
                 Name = 'Scripts enabled'

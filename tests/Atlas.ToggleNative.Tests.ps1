@@ -1,7 +1,7 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-    $modulesRoot = Join-Path $repoRoot 'playbook\Executables\AtlasModules\Scripts\Modules'
+    $modulesRoot = Join-Path $repoRoot 'package\Executables\AtlasModules\Scripts\Modules'
 
     Import-Module (Join-Path $modulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
     Import-Module (Join-Path $modulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force

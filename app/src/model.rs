@@ -31,7 +31,7 @@ pub use elevation::ElevationProblem;
 pub use eligibility::InstallBlock;
 pub use install::{InstallAttempt, Preflight};
 pub use options::{FixedChoice, ScreenKind, UpdatePath};
-pub use package::{AcquireProblem, Acquisition, Origin, PlaybookSource, ReleaseCheck};
+pub use package::{AcquireProblem, Acquisition, Origin, PackageSource, ReleaseCheck};
 pub use preferences::{ProtectionReminder, ReminderReason};
 pub use restart::{OwedRestart, RestartConfirmation, RestartCountdown, RestartKind, RestartProblem};
 pub use transition::{RestoreStatus, StopQuestion};
@@ -49,7 +49,7 @@ pub use crate::flow::{Flow, RunState, Step};
 use crate::i18n::{self, Localization};
 use crate::services::atlas_state::{self, AtlasState};
 use crate::services::legacy_choices::Facts;
-use crate::services::playbook::{self, Manifest};
+use crate::services::package::Manifest;
 use crate::services::requirements::{CheckId, CheckResult};
 use crate::services::security::SecurityStatus;
 use crate::services::session::{SessionPaths, SessionRecord};
@@ -272,7 +272,7 @@ pub struct AppModel {
     acquisition_cancel: Arc<AtomicBool>,
     /// When the running download last received data.
     download_heard: Instant,
-    pub playbook: Option<PlaybookSource>,
+    pub package: Option<PackageSource>,
     /// Download was chosen while the release check ran or had failed: the
     /// check, when it ends, starts the download wherever it was chosen.
     download_requested: bool,
@@ -368,9 +368,9 @@ impl AppModel {
         self.diagnostics_result = None;
         let root = self.env.paths.root.clone();
         let package = self
-            .playbook
+            .package
             .as_ref()
-            .and_then(|book| playbook::identity(&book.dir))
+            .and_then(|source| crate::services::package::identity(&source.dir))
             .and_then(|identity| serde_json::to_value(identity).ok());
         log::info!("Diagnostic export requested");
         cx.spawn(async move |this, cx| {
@@ -469,7 +469,7 @@ impl AppModel {
             acquisition_generation: Generation::default(),
             acquisition_cancel: Arc::new(AtomicBool::new(false)),
             download_heard: Instant::now(),
-            playbook: None,
+            package: None,
             download_requested: false,
             builtin_manifest,
             security: SecurityStatus::default(),

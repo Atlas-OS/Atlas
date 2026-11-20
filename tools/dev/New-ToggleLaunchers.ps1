@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     Generates the AtlasDesktop and Toolbox .cmd launcher stubs from the data-only toggle
-    definitions (*.psd1) under playbook\Executables\AtlasModules\Toggles.
+    definitions (*.psd1) under package\Executables\AtlasModules\Toggles.
 .DESCRIPTION
     Every toggle state that declares a 'Launcher' (AtlasDesktop-relative path) gets a
     two-line CRLF .cmd stub that calls the shared launcher body
@@ -34,12 +34,12 @@ if (-not $RepoRoot) {
     $RepoRoot = (Resolve-Path -LiteralPath (Join-Path -Path $PSScriptRoot -ChildPath '..\..')).Path
 }
 
-$togglesRoot = Join-Path -Path $RepoRoot -ChildPath 'playbook\Executables\AtlasModules\Toggles'
-$desktopRoot = Join-Path -Path $RepoRoot -ChildPath 'playbook\Executables\AtlasDesktop'
+$togglesRoot = Join-Path -Path $RepoRoot -ChildPath 'package\Executables\AtlasModules\Toggles'
+$desktopRoot = Join-Path -Path $RepoRoot -ChildPath 'package\Executables\AtlasDesktop'
 # Toolbox releases before 0.2.0 open a few .cmd files under this tree by hard-coded path
 # (docs/compatibility.md lists them). Only those toggles declare a 'ToolboxLauncher'
 # (Toolbox-relative path) and get a stub generated under this root.
-$toolboxRoot = Join-Path -Path $RepoRoot -ChildPath 'playbook\Executables\AtlasModules\Toolbox'
+$toolboxRoot = Join-Path -Path $RepoRoot -ChildPath 'package\Executables\AtlasModules\Toolbox'
 # The only launchers no toggle describes; docs/architecture.md gives each one's reason.
 $handWrittenLaunchers = @(
     'Install AtlasOS Toolbox.cmd'

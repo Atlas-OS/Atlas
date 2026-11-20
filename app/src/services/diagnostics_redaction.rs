@@ -349,7 +349,7 @@ mod tests {
 
     #[test]
     fn removes_credentials_without_losing_failure_context() {
-        let source = r#"{"password":"two words","nested":{"apiKey":"top-secret"},"error":"Access denied (0x80070005) at C:\\Users\\Sample Person\\AppData\\Local\\AtlasOS\\Logs\\install.log","build":"26200.9278","model":"Samsung SSD 980","transactionId":"test-job-42","options":["disable-defender"],"url":"https://user:secret@example.org/Atlas.apbx?sig=secret-value&version=1","email":"test@example.net"}"#;
+        let source = r#"{"password":"two words","nested":{"apiKey":"top-secret"},"error":"Access denied (0x80070005) at C:\\Users\\Sample Person\\AppData\\Local\\AtlasOS\\Logs\\install.log","build":"26200.9278","model":"Samsung SSD 980","transactionId":"test-job-42","options":["disable-defender"],"url":"https://user:secret@example.org/Atlas.atlaspkg?sig=secret-value&version=1","email":"test@example.net"}"#;
         let result = String::from_utf8(nameless().file(source.as_bytes()).unwrap().bytes).unwrap();
         for secret in
             ["two words", "top-secret", "Sample Person", "user:secret", "secret-value", "test@example.net"]
@@ -366,7 +366,7 @@ mod tests {
             "Samsung SSD 980",
             "test-job-42",
             "disable-defender",
-            "example.org/Atlas.apbx",
+            "example.org/Atlas.atlaspkg",
             "version=1",
         ] {
             assert!(result.contains(evidence), "lost {evidence}");
@@ -375,7 +375,7 @@ mod tests {
 
     #[test]
     fn preserves_relationships_and_system_accounts_in_utf16_logs() {
-        let source = "C:\\Users\\Alice\\AppData\\Local\\AtlasOS error\nC:\\Users\\Bob\\AppData\\Local\\AtlasOS error\nC:\\Users\\Alice\\Downloads\\Atlas.apbx\nS-1-5-18 S-1-5-32-544 S-1-5-21-111-222-333-1001\npassword='a secret' HRESULT=0x80070005\n";
+        let source = "C:\\Users\\Alice\\AppData\\Local\\AtlasOS error\nC:\\Users\\Bob\\AppData\\Local\\AtlasOS error\nC:\\Users\\Alice\\Downloads\\Atlas.atlaspkg\nS-1-5-18 S-1-5-32-544 S-1-5-21-111-222-333-1001\npassword='a secret' HRESULT=0x80070005\n";
         let bytes: Vec<u8> =
             [0xff, 0xfe].into_iter().chain(source.encode_utf16().flat_map(u16::to_le_bytes)).collect();
         let mut redactor = nameless();
@@ -543,13 +543,13 @@ mod tests {
         let mut redactor = Redactor::with(&names, Vec::new());
         let result = redactor.text(
             "User account Jane signed in\nAtlas Manager 0.6.0 started\nERROR module=Atlas.Install\n\
-             https://example.org/Atlas.apbx\n%LOCALAPPDATA%\\AtlasOS\\App\nC:\\Users\\Atlas\\AppData\n",
+             https://example.org/Atlas.atlaspkg\n%LOCALAPPDATA%\\AtlasOS\\App\nC:\\Users\\Atlas\\AppData\n",
         );
         assert!(result.contains("User account anonymous-1 signed in\n"), "{result}");
         for evidence in [
             "Atlas Manager 0.6.0 started",
             "module=Atlas.Install",
-            "example.org/Atlas.apbx",
+            "example.org/Atlas.atlaspkg",
             "\\AtlasOS\\App",
         ] {
             assert!(result.contains(evidence), "lost {evidence}: {result}");

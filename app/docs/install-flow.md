@@ -45,7 +45,7 @@ The **Update Windows to version …** button then moves Windows before anything 
 
 ### System checks
 
-The checks cover the requirements in `playbook.conf` and the front door's own (`src/services/requirements/`).
+The checks cover the requirements the package's manifest, `atlas.json`, lists and the front door's own (`src/services/requirements/`).
 
 | Check | Detail |
 | --- | --- |

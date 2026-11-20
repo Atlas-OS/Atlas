@@ -136,7 +136,7 @@ impl AppModel {
     pub fn ready_to_continue(&self) -> bool {
         self.install_block().is_none()
             && self.preparation.ready()
-            && self.playbook.is_some()
+            && self.package.is_some()
             && !self.acquisition.is_busy()
             && self.blocking_checks_complete()
             && !self.checks_blocking()
@@ -166,7 +166,7 @@ impl AppModel {
             ReadyStatus::Busy
         } else if self.checks_blocking() {
             ReadyStatus::Blocked
-        } else if self.playbook.is_none() {
+        } else if self.package.is_none() {
             ReadyStatus::NoPackage
         } else if !self.preparation.ready() {
             match self.preparation {

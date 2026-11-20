@@ -7,7 +7,7 @@ BeforeAll {
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
     $script:repoRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..')).Path
     $script:scriptsRoot = Join-Path -Path $script:repoRoot `
-        -ChildPath 'playbook\Executables\AtlasModules\Scripts'
+        -ChildPath 'package\Executables\AtlasModules\Scripts'
     $script:internalResetPath = Join-Path -Path $script:scriptsRoot `
         -ChildPath 'Entry\Restore-AtlasServiceDefaults.ps1'
     $script:publicResetPath = Join-Path -Path $script:scriptsRoot `

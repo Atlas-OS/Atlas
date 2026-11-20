@@ -3,7 +3,7 @@ BeforeAll {
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Search\Atlas.Search.psd1') -Force
-    $script:indexRoot = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles'
+    $script:indexRoot = Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toggles'
 }
 Describe 'Interactive indexing across the TrustedInstaller boundary' {
     BeforeEach {

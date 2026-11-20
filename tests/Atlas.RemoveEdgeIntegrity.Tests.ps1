@@ -2,7 +2,7 @@ BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $repoRoot = Split-Path -Parent $PSScriptRoot
     $removeEdgePath = Join-Path -Path $repoRoot `
-        -ChildPath 'playbook\Executables\AtlasModules\Scripts\Operations\Remove-Edge.ps1'
+        -ChildPath 'package\Executables\AtlasModules\Scripts\Operations\Remove-Edge.ps1'
 
     $tokens = $null
     $errors = $null

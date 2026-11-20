@@ -30,8 +30,8 @@ Atlas covers everything it releases and builds from this repository:
 
 - Atlas Manager, the desktop app under [`app/`](../app/)
 - The reports service and its MCP server under [`services/`](../services/)
-- The `Atlas.*` PowerShell framework and Atlas's other files under [`playbook/Executables/`](../playbook/Executables/) (the [architecture](../docs/architecture.md) explains the layout)
-- The binaries in the Atlas package, listed in the [binary inventory](../playbook/Executables/AtlasModules/README.md)
+- The `Atlas.*` PowerShell framework and Atlas's other files under [`package/Executables/`](../package/Executables/) (the [architecture](../docs/architecture.md) explains the layout)
+- The binaries in the Atlas package, listed in the [binary inventory](../package/Executables/AtlasModules/README.md)
 - The build tooling under [`tools/`](../tools/)
 
 Atlas runs on Windows, so some issues are Microsoft's to fix.

@@ -332,9 +332,9 @@ impl AppModel {
         {
             return Some(session.request.clone());
         }
-        let source = self.playbook.as_ref()?;
+        let source = self.package.as_ref()?;
         Some(InstallRequest {
-            playbook_dir: source.dir.clone(),
+            package_dir: source.dir.clone(),
             options: self.effective_options(),
             restart: self.settings.restart_after_install,
             windows_security_confirmed: self.security_confirmed_by_hand(),
@@ -357,11 +357,11 @@ impl AppModel {
             return;
         }
         self.refresh_atlas_state();
-        if self.bundled() && !self.playbook.as_ref().is_some_and(|book| bundled_holds(&book.dir)) {
+        if self.bundled() && !self.package.as_ref().is_some_and(|book| bundled_holds(&book.dir)) {
             // A recovered session can describe another package. It can be
             // looked at, not run: only the bundled package installs.
             log::warn!("The loaded package is not the bundled one; loading the bundled package instead");
-            self.playbook = None;
+            self.package = None;
             self.load_bundled_package(cx);
             cx.notify();
             return;
@@ -812,7 +812,7 @@ mod tests {
     fn the_details_leave_out_the_script_position_the_log_appends() {
         // The engine still appends the position this way.
         let logging = include_str!(
-            "../../../playbook/Executables/AtlasModules/Scripts/Modules/Atlas.Core/Domain/Logging.ps1"
+            "../../../package/Executables/AtlasModules/Scripts/Modules/Atlas.Core/Domain/Logging.ps1"
         );
         assert!(logging.contains(
             r#"$line += " | $($ErrorRecord.InvocationInfo.PositionMessage -replace '\r?\n', ' ')""#
@@ -850,7 +850,7 @@ mod tests {
     fn the_apps_windows_would_not_remove_are_named_once_without_their_wildcard() {
         // The engine still words the failure this way.
         let removal = include_str!(
-            "../../../playbook/Executables/AtlasModules/Scripts/Modules/Atlas.Appx/Domain/Removal.ps1"
+            "../../../package/Executables/AtlasModules/Scripts/Modules/Atlas.Appx/Domain/Removal.ps1"
         );
         assert!(removal.contains(r#"Write-AtlasLog -Level Error -Message "AppX removal failed for '$($Definition.Name)': $Message""#));
         let mut attempt = InstallAttempt::default();

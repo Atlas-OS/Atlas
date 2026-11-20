@@ -21,7 +21,7 @@ use super::{
 use crate::i18n::{describe, fmt};
 use crate::model::{Acquisition, AppModel, Page, ReleaseCheck, ScreenKind};
 use crate::services::iso::{self, Architecture, FailureReason, ImageInfo, Mode, Stage, UsernameProblem};
-use crate::services::playbook::{self, Manifest, PageKind};
+use crate::services::package::{self, ChoiceKind, Manifest};
 use crate::services::preparation::Drivers;
 use crate::services::{settings, system};
 use crate::t;
@@ -194,7 +194,7 @@ fn account_error(name: &str) -> Option<String> {
 /// The manifest's pages in the install flow's order: a page shown only when
 /// an option is chosen comes straight after the page that offers it.
 fn page_order(manifest: &Manifest) -> Vec<usize> {
-    playbook::follow_parents(&manifest.pages, (0..manifest.pages.len()).collect())
+    package::follow_parents(&manifest.choices, (0..manifest.choices.len()).collect())
 }
 
 /// A new ISO in `folder` that overwrites nothing: Atlas-Windows.iso, then
@@ -326,7 +326,7 @@ impl IsoPage {
         self.source = Some(PathBuf::from(r"C:\Downloads\Windows11_25H2_English_x64.iso"));
         // A first-time user who never handled the Atlas package: the field is empty.
         if state != "files-empty" {
-            self.archive = Some(PathBuf::from(r"C:\Downloads\Atlas.apbx"));
+            self.archive = Some(PathBuf::from(r"C:\Downloads\Atlas.atlaspkg"));
         }
         self.output = Some(PathBuf::from(r"C:\Users\Atlas\Downloads\Atlas-Windows.iso"));
         let name = match state {
@@ -354,9 +354,8 @@ impl IsoPage {
                 architecture: Architecture::X64,
             });
         }
-        let manifest = crate::services::playbook::parse(include_str!("../../../playbook/playbook.conf"))
-            .ok()
-            .map(Rc::new);
+        let manifest =
+            crate::services::package::parse(include_str!("../../../package/atlas.json")).ok().map(Rc::new);
         self.options = manifest.as_deref().map(iso::default_options).unwrap_or_default();
         // A review that carries a choice that reduces protection, to show its caution.
         if state == "review-before" {
@@ -427,7 +426,7 @@ impl IsoPage {
         let (archive, for_this_pc, on_page, busy, bundled) = {
             let state = model.read(cx);
             (
-                state.playbook.as_ref().and_then(|package| package.archive.clone()),
+                state.package.as_ref().and_then(|package| package.archive.clone()),
                 state.iso_for_this_pc,
                 state.page == Page::Iso,
                 state.iso_busy,
@@ -1237,21 +1236,21 @@ impl IsoPage {
             && let Some(manifest) = self.manifest.clone()
         {
             for page_index in page_order(&manifest) {
-                let page = &manifest.pages[page_index];
+                let page = &manifest.choices[page_index];
                 if page.depends_on.as_ref().is_some_and(|name| !self.options.contains(name)) {
                     continue;
                 }
                 // Titled as in the install flow: a top-level choice as a question.
-                let kind = ScreenKind::of_page(page);
-                let header = if page.kind == PageKind::Radio && page.depends_on.is_none() {
+                let kind = ScreenKind::of_choice(page);
+                let header = if page.kind == ChoiceKind::Single && page.depends_on.is_none() {
                     kind.question()
                 } else {
                     kind.title()
                 };
                 let chosen = self.options.clone();
                 let entity = cx.entity();
-                let radio = page.kind == PageKind::Radio;
-                let names: Vec<String> = page.options.iter().map(|o| o.name.clone()).collect();
+                let radio = page.kind == ChoiceKind::Single;
+                let names: Vec<String> = page.options.iter().map(|o| o.id.clone()).collect();
                 body.push(option_page_card(
                     cx,
                     "iso-option",
@@ -1261,7 +1260,7 @@ impl IsoPage {
                     move |name| chosen.iter().any(|option| option == name),
                     false,
                     &mut self.focus,
-                    |option| describe::known_option_consequence(&option.name, &option.text),
+                    |option| describe::option_consequence(&option.id),
                     Rc::new(move |name: &str, cx: &mut App| {
                         let name = name.to_owned();
                         let names = names.clone();
@@ -1288,14 +1287,14 @@ impl IsoPage {
 
     fn clean_options(&mut self) {
         if let Some(manifest) = &self.manifest {
-            for page in &manifest.pages {
+            for page in &manifest.choices {
                 if page.depends_on.as_ref().is_some_and(|n| !self.options.contains(n)) {
-                    self.options.retain(|n| !page.options.iter().any(|o| &o.name == n));
-                } else if page.kind == PageKind::Radio
-                    && !page.options.iter().any(|o| self.options.contains(&o.name))
+                    self.options.retain(|n| !page.options.iter().any(|o| &o.id == n));
+                } else if page.kind == ChoiceKind::Single
+                    && !page.options.iter().any(|o| self.options.contains(&o.id))
                     && let Some(default) = page.options.iter().find(|o| o.default)
                 {
-                    self.options.push(default.name.clone());
+                    self.options.push(default.id.clone());
                 }
             }
         }
@@ -1310,18 +1309,18 @@ impl IsoPage {
         let secondary = cx.theme().text_secondary;
         page_order(manifest)
             .into_iter()
-            .map(|index| (index, &manifest.pages[index]))
+            .map(|index| (index, &manifest.choices[index]))
             .filter(|(_, page)| page.depends_on.as_ref().is_none_or(|name| self.options.contains(name)))
             .map(|(index, page)| {
-                let title = ScreenKind::of_page(page).title();
+                let title = ScreenKind::of_choice(page).title();
                 let key = format!("iso-choice-{index}");
                 let chosen: Vec<ListEntry> = page
                     .options
                     .iter()
-                    .filter(|option| self.options.contains(&option.name))
-                    .map(|option| ListEntry::option(&option.name, &option.text))
+                    .filter(|option| self.options.contains(&option.id))
+                    .map(|option| ListEntry::option(&option.id, &option.label))
                     .collect();
-                let value = if page.kind == PageKind::Radio {
+                let value = if page.kind == ChoiceKind::Single {
                     let (text, caution) = match chosen.into_iter().next() {
                         Some(ListEntry { text, caution }) => (text, caution),
                         None => (t!("summary-not-chosen"), None),
@@ -2016,7 +2015,7 @@ mod tests {
         let manifest = Manifest::builtin();
         let kinds: Vec<ScreenKind> = page_order(&manifest)
             .into_iter()
-            .map(|index| ScreenKind::of_page(&manifest.pages[index]))
+            .map(|index| ScreenKind::of_choice(&manifest.choices[index]))
             .collect();
         let apps = kinds.iter().position(|kind| *kind == ScreenKind::Apps).unwrap();
         assert_eq!(kinds[apps + 1], ScreenKind::Browser);

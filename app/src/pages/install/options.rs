@@ -12,7 +12,7 @@ use super::summary::{choice_value, chosen_on};
 use crate::i18n::describe;
 use crate::model::{AppModel, FixedChoice, ScreenKind, UpdatePath};
 use crate::pages::{ListEntry, OptionNote, card_body, detail_row, option_page_card, step_card_header};
-use crate::services::playbook::PageKind;
+use crate::services::package::ChoiceKind;
 use crate::t;
 use crate::theme::ActiveTheme;
 use crate::ui::{InfoBar, RadioGroup, RadioItem, Severity, Typography, a11y_text, card};
@@ -32,7 +32,7 @@ impl InstallPage {
                 !state.locked() && state.locked_options().is_none(),
                 screens,
                 current,
-                state.playbook.as_ref().map(|package| package.dir.clone()),
+                state.package.as_ref().map(|package| package.dir.clone()),
                 notes,
             )
         };
@@ -71,12 +71,12 @@ impl InstallPage {
         );
 
         for &page_index in &screen.pages {
-            let page = &manifest.pages[page_index];
+            let page = &manifest.choices[page_index];
             if page.depends_on.as_ref().is_some_and(|dependency| !options.contains(dependency)) {
                 continue;
             }
             let header =
-                if screen.required { screen.kind.question() } else { ScreenKind::of_page(page).title() };
+                if screen.required { screen.kind.question() } else { ScreenKind::of_choice(page).title() };
             let model = model.clone();
             let chosen = options.clone();
             cards.push(option_page_card(
@@ -88,7 +88,7 @@ impl InstallPage {
                 move |name| chosen.contains(name),
                 !may_edit,
                 &mut self.focus,
-                |option| notes.get(&option.name).cloned().unwrap_or_default(),
+                |option| notes.get(&option.id).cloned().unwrap_or_default(),
                 Rc::new(move |name: &str, cx: &mut gpui::App| {
                     let name = name.to_owned();
                     model.update(cx, |m, cx| m.choose_option(page_index, &name, cx))
@@ -196,7 +196,7 @@ fn now_rows(state: &AppModel, kept: &[String]) -> Vec<NowRow> {
         .map(|screen| NowRow {
             kind: screen.kind,
             required: screen.required,
-            chosen: chosen_on(manifest, &screen.pages, kept, |option| option.name.clone()),
+            chosen: chosen_on(manifest, &screen.pages, kept, |option| option.id.clone()),
         })
         .collect()
 }
@@ -351,25 +351,19 @@ fn option_notes(state: &AppModel, pages: &[usize]) -> HashMap<String, OptionNote
     let chosen = |name: &str| options.iter().any(|option| option == name);
     let choosing_again = state.update_choices().filter(|_| state.update_path == UpdatePath::ChooseAgain);
     let facts = state.choice_facts();
-    let label = |name: &str| {
-        state.option_text(name).map_or_else(|| name.to_owned(), |text| describe::option_label(name, text))
-    };
+    let label = |id: &str| describe::option_label(id, state.option_text(id).unwrap_or(id));
     let kept_browser = match state.fixed_option("install-another-browser") {
         Some(FixedChoice::Installed(browser)) if choosing_again.is_some() => Some(browser),
         _ => None,
     };
     let mut notes = HashMap::new();
-    for page in pages.iter().filter_map(|&index| manifest.pages.get(index)) {
+    for page in pages.iter().filter_map(|&index| manifest.choices.get(index)) {
         for option in &page.options {
-            let name = option.name.as_str();
-            let mut note = OptionNote::from(describe::known_install_consequence(
-                name,
-                &option.text,
-                state.before_desktop,
-            ));
+            let name = option.id.as_str();
+            let mut note = OptionNote::from(describe::install_consequence(name, state.before_desktop));
             if let Some(update) = &choosing_again {
-                let answered = page.kind == PageKind::Radio || chosen(name);
-                note.change = describe::change_line(name, &option.text, answered, &facts);
+                let answered = page.kind == ChoiceKind::Single || chosen(name);
+                note.change = describe::change_line(name, answered, &facts);
                 note.now = update.kept.iter().any(|kept| kept == name);
                 note.fixed = state.fixed_option(name).and_then(|fixed| describe::fixed_reason(&fixed, label));
                 if let Some(installed) = kept_browser.as_deref()
@@ -381,7 +375,7 @@ fn option_notes(state: &AppModel, pages: &[usize]) -> HashMap<String, OptionNote
                         Some(t!("browser-also", installed = label(installed), browser = label(name)));
                 }
             }
-            notes.insert(option.name.clone(), note);
+            notes.insert(option.id.clone(), note);
         }
     }
     notes
@@ -418,7 +412,7 @@ mod tests {
     }
 
     fn page_of(m: &AppModel, option: &str) -> usize {
-        m.manifest().pages.iter().position(|page| page.options.iter().any(|o| o.name == option)).unwrap()
+        m.manifest().choices.iter().position(|page| page.options.iter().any(|o| o.id == option)).unwrap()
     }
 
     fn line(id: &str) -> Option<String> {
@@ -437,7 +431,7 @@ mod tests {
             let record =
                 ["defender-enable", "mitigations-default", "auto-updates-disable", "keyboard-shortcuts"];
             let model = installed_model(&mut cx, &temp, Some(&record), removed_pc());
-            let all = |m: &AppModel| (0..m.manifest().pages.len()).collect::<Vec<_>>();
+            let all = |m: &AppModel| (0..m.manifest().choices.len()).collect::<Vec<_>>();
             model.update(&mut cx, |m, cx| {
                 m.update_path = UpdatePath::ChooseAgain;
                 m.set_update_path(UpdatePath::Keep, cx);

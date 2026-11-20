@@ -10,13 +10,13 @@ use crate::model::test_harness::{
     run_model_test, settle, wait_for, walk_to_install,
 };
 use crate::model::{Acquisition, AppModel, Environment, InstallBlock, Page, ReleaseCheck, RunState, Step};
-use crate::services::{atlas_state, playbook};
+use crate::services::{atlas_state, package};
 
 #[test]
 fn resume_uses_protected_choices_even_when_the_local_draft_is_missing_or_changed() {
     run_model_test(|mut cx| async move {
         let (_temp, _, mut env) = fixture("resume-options");
-        let options = crate::services::iso::default_options(&playbook::Manifest::builtin());
+        let options = crate::services::iso::default_options(&package::Manifest::builtin());
         let saved = options.clone();
         env.adapters.read_install_identity =
             Arc::new(move || Ok(atlas_state::InstallIdentity::Resume("0.6.0".into(), held(saved.clone()))));
@@ -43,7 +43,7 @@ fn an_unfinished_install_from_before_a_required_page_still_resumes() {
         let (_temp, machine, env) = fixture("resume-added-page");
         // The bundled package judges the choices, as Get ready's would.
         let env = Environment { embedded_startup: true, ..env };
-        let manifest = playbook::Manifest::builtin();
+        let manifest = package::Manifest::builtin();
         let keyboard = ["keyboard-shortcuts", "keyboard-selector", "keyboard-single"];
         assert!(keyboard.iter().all(|name| manifest.option_label(name).is_some()));
         let saved: Vec<String> = crate::services::iso::default_options(&manifest)
@@ -127,8 +127,8 @@ fn a_newer_installed_version_is_judged_by_the_package_not_the_built_in_manifest(
         act(&mut cx, &model, |m, cx| m.begin_install(cx));
         assert!(read(&cx, &model, |m| m.flow.active && m.page == Page::Install));
         // The 0.6.0 package doesn't accept 0.6.1: refused at Get ready, and never launched.
-        act(&mut cx, &model, |m, cx| m.load_playbook_file(package, cx));
-        wait_for(&cx, &model, "the package and the checks", |m| m.playbook.is_some() && m.checks_complete())
+        act(&mut cx, &model, |m, cx| m.load_package_file(package, cx));
+        wait_for(&cx, &model, "the package and the checks", |m| m.package.is_some() && m.checks_complete())
             .await;
         read(&cx, &model, |m| {
             assert_eq!(
@@ -238,9 +238,9 @@ fn an_unfinished_install_of_another_version_waits_for_its_own_package() {
         // A package of another version is refused and never launched.
         act(&mut cx, &model, |m, cx| {
             m.release = ReleaseCheck::Failed;
-            m.load_playbook_file(other, cx);
+            m.load_package_file(other, cx);
         });
-        wait_for(&cx, &model, "the other package", |m| m.playbook.is_some() && m.checks_complete()).await;
+        wait_for(&cx, &model, "the other package", |m| m.package.is_some() && m.checks_complete()).await;
         assert_eq!(read(&cx, &model, AppModel::install_block), Some(waiting));
         act(&mut cx, &model, |m, cx| {
             m.flow.step = Step::Install;
@@ -250,9 +250,9 @@ fn an_unfinished_install_of_another_version_waits_for_its_own_package() {
         assert!(!marker.exists());
 
         // Its own package finishes it, with the original choices.
-        act(&mut cx, &model, |m, cx| m.load_playbook_file(own, cx));
+        act(&mut cx, &model, |m, cx| m.load_package_file(own, cx));
         wait_for(&cx, &model, "its own package", |m| {
-            m.playbook.as_ref().is_some_and(|book| book.manifest.version == "0.6.1") && m.checks_complete()
+            m.package.as_ref().is_some_and(|book| book.manifest.version == "0.6.1") && m.checks_complete()
         })
         .await;
         read(&cx, &model, |m| {

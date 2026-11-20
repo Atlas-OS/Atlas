@@ -4,7 +4,7 @@
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\target\iso-validation'))
 $resource = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\resources\iso'))
-$compatibility = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\playbook\Executables\AtlasModules\Scripts\Compatibility'))
+$compatibility = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\package\Executables\AtlasModules\Scripts\Compatibility'))
 $exitFile = Join-Path $root 'exit-code.txt'
 # A previous successful build must not look like the result of a running one.
 if (Test-Path -LiteralPath $exitFile) { Remove-Item -LiteralPath $exitFile -Force }
@@ -17,7 +17,7 @@ foreach ($name in @('Windows-Release.ps1', 'windows-releases.json')) {
 Copy-Item -LiteralPath (Join-Path $compatibility '..\Preparation\RegistryFile.ps1') -Destination (Join-Path $root 'RegistryFile.ps1') -Force
 $request = [IO.File]::ReadAllText((Join-Path $root 'request.json')) | ConvertFrom-Json
 $policyName = if ($request.drivers -eq 'manual') { 'Disable' } else { 'Enable' }
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot "..\..\playbook\Executables\AtlasDesktop\2. Drivers\Drivers from Windows Update\$policyName Drivers from Windows Update.reg") -Destination (Join-Path $root 'DriverPolicy.reg') -Force
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot "..\..\package\Executables\AtlasDesktop\2. Drivers\Drivers from Windows Update\$policyName Drivers from Windows Update.reg") -Destination (Join-Path $root 'DriverPolicy.reg') -Force
 # The media carries the notices the app itself includes. The app exports them
 # only to a new file, so remove a copy left by an earlier run first.
 $notices = Join-Path $root 'THIRD-PARTY-NOTICES.txt'

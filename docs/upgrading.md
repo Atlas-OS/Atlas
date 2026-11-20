@@ -5,11 +5,11 @@ For the records Atlas keeps behind this, see [Install state and records](install
 
 ## Supported update paths
 
-Atlas Manager updates Atlas from the versions listed in `UpgradableFrom` in [`playbook/playbook.conf`](../playbook/playbook.conf).
+Atlas Manager updates Atlas from the versions listed in `updatableFrom` in [`package/atlas.json`](../package/atlas.json), the [package manifest](package-format.md#the-manifest).
 Atlas 0.5.0-hotfix records itself as 0.5.0, so it updates as 0.5.0.
 Any other installed version needs a fresh installation of Windows, and so does an Atlas whose version Atlas can't read.
 
-`UpgradableFrom` says which versions Atlas Manager accepts, and the [release verification matrix](release-verification-matrix.md) says what a release verifies.
+`updatableFrom` says which versions Atlas Manager accepts, and the [release verification matrix](release-verification-matrix.md) says what a release verifies.
 
 Your Windows release is a separate requirement.
 The PC must run one of the [supported releases](windows-release-policy.md#supported-releases).

@@ -27,10 +27,10 @@ param(
     [Parameter(Mandatory, ParameterSetName = 'Refresh')][switch]$Refresh,
     [datetime]$AsOfDate = [datetime]::UtcNow.Date,
     [ValidateSet(26200,26300)][int[]]$Build = @(26200,26300),
-    [string]$OutputPath = (Join-Path $PSScriptRoot '../../playbook/Executables/AtlasModules/Scripts/Compatibility/windows-releases.json')
+    [string]$OutputPath = (Join-Path $PSScriptRoot '../../package/Executables/AtlasModules/Scripts/Compatibility/windows-releases.json')
 )
 $ErrorActionPreference = 'Stop'
-. (Join-Path $PSScriptRoot '../../playbook/Executables/AtlasModules/Scripts/Compatibility/Windows-Release.ps1')
+. (Join-Path $PSScriptRoot '../../package/Executables/AtlasModules/Scripts/Compatibility/Windows-Release.ps1')
 $markdown = if ($Refresh) { Get-AtlasWindowsReleaseMarkdown } else { [IO.File]::ReadAllText((Resolve-Path -LiteralPath $MarkdownPath).Path) }
 $builds = @($Build | Sort-Object -Unique)
 $releases = @(foreach ($buildNumber in $builds) { ConvertFrom-AtlasWindowsReleaseMarkdown -Markdown $markdown -AsOfDate $AsOfDate -Build $buildNumber })

@@ -49,8 +49,9 @@ pub fn parse(args: impl IntoIterator<Item = OsString>) -> Launch {
     })
 }
 
-/// Where the window opens: `--page`, `--step`, `--playbook`, `--language` and
-/// `--just-installed`, or a bare `.apbx` path from "Open with".
+/// Where the window opens: `--page`, `--step`, `--package`, `--language` and
+/// `--just-installed`, or a bare package path from "Open with". An `.apbx`
+/// path counts too, so the Install page can explain why it can't open one.
 /// app/docs/review-tools.md lists the values.
 fn start_at(args: &[OsString]) -> StartAt {
     let text = |arg: Option<&OsString>| arg.and_then(|arg| arg.to_str()).map(str::to_owned);
@@ -60,25 +61,29 @@ fn start_at(args: &[OsString]) -> StartAt {
         match arg.to_str() {
             Some("--page") => start.page = text(args.next()).as_deref().and_then(Page::parse),
             Some("--step") => start.step = text(args.next()).as_deref().and_then(Step::parse),
-            Some("--playbook") => start.playbook = args.next().map(PathBuf::from),
+            Some("--package") => start.package = args.next().map(PathBuf::from),
             Some("--language") => start.language = text(args.next()),
             // Atlas's new-user script opens this for accounts set up after the install.
             Some("--just-installed") => start.page = Some(Page::Installed),
-            _ if arg.to_string_lossy().to_ascii_lowercase().ends_with(".apbx") => {
-                start.playbook = Some(PathBuf::from(arg));
-            }
+            _ if is_package_path(arg) => start.package = Some(PathBuf::from(arg)),
             _ => {}
         }
     }
-    if start.playbook.is_some() && start.page.is_none() {
+    if start.package.is_some() && start.page.is_none() {
         start.page = Some(Page::Install);
     }
-    if cfg!(feature = "embedded-playbook")
-        && let Some(path) = start.playbook.take()
+    if cfg!(feature = "embedded-package")
+        && let Some(path) = start.package.take()
     {
         log::info!("Ignoring {}: this tester build installs only its bundled Atlas package", path.display());
     }
     start
+}
+
+/// A path "Open with" passes: an Atlas package, or an AME Wizard package.
+fn is_package_path(arg: &OsString) -> bool {
+    let extension = std::path::Path::new(arg).extension().unwrap_or_default();
+    [crate::services::package::EXTENSION, "apbx"].iter().any(|known| extension.eq_ignore_ascii_case(known))
 }
 
 #[cfg(test)]
@@ -90,7 +95,7 @@ mod tests {
     fn an_argument_that_is_not_unicode_neither_stops_the_launch_nor_loses_its_path() {
         // An unpaired surrogate: a valid Windows file name that is not valid Unicode.
         let mut name = OsString::from_wide(&[0xD800]);
-        name.push(" Atlas.apbx");
+        name.push(" Atlas.atlaspkg");
         let Launch::Licenses(Some(path)) = parse([OsString::from("--licenses"), name.clone()]) else {
             panic!("--licenses with a file");
         };
@@ -99,8 +104,31 @@ mod tests {
             panic!("a window launch");
         };
         assert!(launch.setup);
-        if !cfg!(feature = "embedded-playbook") {
-            assert_eq!(launch.start.playbook.as_deref().map(|path| path.as_os_str()), Some(name.as_os_str()));
+        if !cfg!(feature = "embedded-package") {
+            assert_eq!(launch.start.package.as_deref().map(|path| path.as_os_str()), Some(name.as_os_str()));
+        }
+    }
+
+    /// "Open with" passes a bare path: an Atlas package opens on the Install
+    /// page, as does an AME Wizard package, which that page then refuses.
+    #[test]
+    fn a_bare_package_path_opens_the_install_page() {
+        let start = |args: &[&str]| start_at(&args.iter().map(OsString::from).collect::<Vec<_>>());
+        for path in
+            [r"C:\Downloads\Atlas-v0.6.0.atlaspkg", r"C:\Downloads\ATLAS.ATLASPKG", r"C:\Old\Atlas.apbx"]
+        {
+            let opened = start(&[path]);
+            if !cfg!(feature = "embedded-package") {
+                assert_eq!(opened.package.as_deref(), Some(std::path::Path::new(path)), "{path}");
+                assert!(matches!(opened.page, Some(Page::Install)), "{path}");
+            }
+        }
+        for path in [r"C:\Downloads\Atlas.zip", r"C:\Downloads\atlaspkg"] {
+            assert!(start(&[path]).package.is_none(), "{path}");
+        }
+        let flagged = start(&["--package", r"C:\Downloads\Atlas.zip"]);
+        if !cfg!(feature = "embedded-package") {
+            assert_eq!(flagged.package.as_deref(), Some(std::path::Path::new(r"C:\Downloads\Atlas.zip")));
         }
     }
 }

@@ -17,12 +17,12 @@ fn an_unpacking_package_never_lands_under_a_running_install() {
         act(&mut cx, &model, |m, cx| m.begin_install(cx));
         let options = read(&cx, &model, |m| m.options.clone());
         act(&mut cx, &model, |m, cx| {
-            m.load_playbook_file(package.clone(), cx);
+            m.load_package_file(package.clone(), cx);
             m.flow.attach_running().unwrap();
         });
         wait_for(&cx, &model, "the extraction to end", |m| !m.acquisition.is_busy()).await;
         read(&cx, &model, |m| {
-            assert!(m.playbook.is_none());
+            assert!(m.package.is_none());
             assert_eq!(m.options, options);
         });
     });
@@ -41,14 +41,14 @@ fn open_package_file_is_enabled_except_while_unpacking_or_preparing() {
         wait_for(&cx, &model, "the checks", AppModel::checks_complete).await;
         act(&mut cx, &model, |m, _| {
             m.acquisition = Acquisition::Downloading { received: 1, total: 2 };
-            assert!(m.may_choose_playbook(), "while a download runs");
+            assert!(m.may_choose_package(), "while a download runs");
             m.preparation = State::Running { stage: Stage::StoreInstall, completed: 0, total: 1 };
-            assert!(!m.may_choose_playbook(), "not while preparation holds the flow");
+            assert!(!m.may_choose_package(), "not while preparation holds the flow");
             m.preparation = State::Ready;
             m.acquisition = Acquisition::Extracting { done: 0, total: 1 };
-            assert!(!m.may_choose_playbook(), "not while a package unpacks");
+            assert!(!m.may_choose_package(), "not while a package unpacks");
             m.acquisition = Acquisition::Idle;
-            assert!(m.may_choose_playbook());
+            assert!(m.may_choose_package());
         });
         settle(&cx, &model).await;
     });
@@ -70,15 +70,15 @@ fn a_chosen_file_replaces_a_download_under_way() {
         ] {
             let what = format!("{busy:?}");
             act(&mut cx, &model, |m, cx| {
-                m.playbook = None;
+                m.package = None;
                 m.acquisition = busy;
-                m.open_chosen_playbook(package.clone(), cx);
+                m.open_chosen_package(package.clone(), cx);
                 // The chosen file starts unpacking from nothing.
                 assert!(matches!(m.acquisition, Acquisition::Extracting { done: 0, total: 0 }), "{what}");
             });
             wait_for(&cx, &model, "the chosen file", |m| !m.acquisition.is_busy()).await;
             read(&cx, &model, |m| {
-                let origin = &m.playbook.as_ref().expect("the chosen file is loaded").origin;
+                let origin = &m.package.as_ref().expect("the chosen file is loaded").origin;
                 assert!(matches!(origin, Origin::LocalFile(path) if *path == package), "{what}");
                 assert!(matches!(m.acquisition, Acquisition::Idle), "{what}");
             });
@@ -87,9 +87,36 @@ fn a_chosen_file_replaces_a_download_under_way() {
     });
 }
 
+/// A file that isn't an Atlas package, such as an AME Wizard package from an
+/// Atlas release before 0.6, is refused with an explanation and unpacks
+/// nothing; the same bytes named as a package then open.
+#[test]
+fn a_file_that_is_not_an_atlas_package_is_refused() {
+    run_model_test(async move |mut cx| {
+        use crate::model::AcquireProblem;
+        let (temp, _, env) = fixture("model-not-a-package");
+        let (package, _) = marking_package(&temp, 0);
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        act(&mut cx, &model, |m, cx| m.begin_install(cx));
+        for name in ["Atlas.apbx", "Atlas.zip"] {
+            let other = temp.path().join(name);
+            std::fs::copy(&package, &other).unwrap();
+            act(&mut cx, &model, |m, cx| m.load_package_file(other.clone(), cx));
+            wait_for(&cx, &model, "the refusal", |m| !m.acquisition.is_busy()).await;
+            read(&cx, &model, |m| {
+                assert!(matches!(m.acquisition, Acquisition::Failed(AcquireProblem::NotAPackage)), "{name}");
+                assert!(m.package.is_none(), "{name}");
+            });
+        }
+        act(&mut cx, &model, |m, cx| m.load_package_file(package.clone(), cx));
+        wait_for(&cx, &model, "the package", |m| m.package.is_some()).await;
+        settle(&cx, &model).await;
+    });
+}
 /// A release build takes its package from GitHub, so these need a binary
 /// without a built-in package.
-#[cfg(not(feature = "embedded-playbook"))]
+#[cfg(not(feature = "embedded-package"))]
 mod download {
     use std::sync::{Arc, Mutex};
     use std::time::{Duration, Instant};
@@ -99,8 +126,8 @@ mod download {
         wait_until,
     };
     use crate::model::{AcquireProblem, Acquisition, AppModel, Origin, Page, ReleaseCheck};
-    use crate::services::playbook::Manifest;
-    use crate::services::test_support::apbx;
+    use crate::services::package::Manifest;
+    use crate::services::test_support::package;
     use crate::services::{iso, releases};
 
     /// Download after a failed release check, as the ISO page offers it with
@@ -115,7 +142,7 @@ mod download {
             wait_for(&cx, &model, "the failed release check", |m| matches!(m.release, ReleaseCheck::Failed))
                 .await;
             read(&cx, &model, |m| {
-                assert!(!m.flow.active && m.playbook.is_none());
+                assert!(!m.flow.active && m.package.is_none());
                 assert!(matches!(m.acquisition, Acquisition::Idle), "nothing is known to download yet");
             });
             let fetches = Arc::new(Mutex::new(0));
@@ -133,7 +160,7 @@ mod download {
             // the check ends. This release has no package, which ends the
             // attempt without a transfer.
             wait_for(&cx, &model, "the download to be attempted", |m| {
-                matches!(&m.acquisition, Acquisition::Failed(AcquireProblem::NoPlaybookAsset { version }) if version == "9.9.9")
+                matches!(&m.acquisition, Acquisition::Failed(AcquireProblem::NoPackageAsset { version }) if version == "9.9.9")
             })
             .await;
             assert!(!read(&cx, &model, AppModel::download_pending));
@@ -189,9 +216,9 @@ mod download {
                 let _ = server_gives_up.recv_timeout(PATIENCE);
             });
             let asset = releases::Asset {
-                name: "Atlas.apbx".into(),
+                name: "Atlas.atlaspkg".into(),
                 size: 1_000_000,
-                browser_download_url: format!("http://127.0.0.1:{port}/Atlas.apbx"),
+                browser_download_url: format!("http://127.0.0.1:{port}/Atlas.atlaspkg"),
                 ..Default::default()
             };
             env.adapters.fetch_release = Arc::new(move || Ok(release("9.9.9", vec![asset.clone()])));
@@ -253,9 +280,9 @@ mod download {
                 }
             });
             let asset = releases::Asset {
-                name: "Atlas.apbx".into(),
+                name: "Atlas.atlaspkg".into(),
                 size,
-                browser_download_url: format!("http://127.0.0.1:{port}/Atlas.apbx"),
+                browser_download_url: format!("http://127.0.0.1:{port}/Atlas.atlaspkg"),
                 ..Default::default()
             };
             env.adapters.fetch_release = Arc::new(move || Ok(release("9.9.9", vec![asset.clone()])));
@@ -280,12 +307,12 @@ mod download {
                 assert!(Instant::now() < deadline, "the cancelled transfer ran on");
                 cx.background_executor().timer(Duration::from_millis(25)).await;
             }
-            assert!(read(&cx, &model, |m| matches!(m.acquisition, Acquisition::Idle) && m.playbook.is_none()));
+            assert!(read(&cx, &model, |m| matches!(m.acquisition, Acquisition::Idle) && m.package.is_none()));
             settle(&cx, &model).await;
         });
     }
 
-    /// A package given at launch ("Open with" or `--playbook`) replaces the
+    /// A package given at launch ("Open with" or `--package`) replaces the
     /// download Get ready began by itself, rather than being dropped.
     #[test]
     fn a_package_given_at_launch_replaces_a_download_under_way() {
@@ -294,9 +321,9 @@ mod download {
             let (package, _) = marking_package(&temp, 0);
             // A closed port: the download gets nowhere.
             let asset = releases::Asset {
-                name: "Atlas.apbx".into(),
+                name: "Atlas.atlaspkg".into(),
                 size: 1,
-                browser_download_url: "http://127.0.0.1:9/Atlas.apbx".into(),
+                browser_download_url: "http://127.0.0.1:9/Atlas.atlaspkg".into(),
                 ..Default::default()
             };
             let model = new_model(&mut cx, env);
@@ -306,9 +333,9 @@ mod download {
                 m.release = ReleaseCheck::Ready { release: release("9.9.9", vec![asset]) };
                 m.apply_start(Some(Page::Install), None, Some(package.clone()), cx);
             });
-            wait_for(&cx, &model, "the package given at launch", |m| m.playbook.is_some()).await;
+            wait_for(&cx, &model, "the package given at launch", |m| m.package.is_some()).await;
             read(&cx, &model, |m| {
-                let book = m.playbook.as_ref().unwrap();
+                let book = m.package.as_ref().unwrap();
                 assert!(matches!(&book.origin, Origin::LocalFile(path) if *path == package));
             });
             settle(&cx, &model).await;
@@ -323,9 +350,9 @@ mod download {
             let (_temp, _, env) = fixture("model-download-retry");
             // A closed port: the download fails at once.
             let asset = releases::Asset {
-                name: "Atlas.apbx".into(),
+                name: "Atlas.atlaspkg".into(),
                 size: 1,
-                browser_download_url: "http://127.0.0.1:9/Atlas.apbx".into(),
+                browser_download_url: "http://127.0.0.1:9/Atlas.atlaspkg".into(),
                 ..Default::default()
             };
             let model = new_model(&mut cx, env);
@@ -352,26 +379,26 @@ mod download {
     fn staged_iso_options_keep_the_browser_pickers_default() {
         run_model_test(async move |mut cx| {
             let (temp, _, env) = fixture("model-staged-browser");
-            // A package with the repository's own pages.
-            let mut contents = apbx::valid("0.6.0");
+            // A package with the repository's own choices.
+            let mut contents = package::valid("0.6.0");
             contents.entries[0].data =
-                include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../playbook/playbook.conf")).to_vec();
-            let package = apbx::write(&temp.path().join("package.apbx"), &contents);
+                include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../package/atlas.json")).to_vec();
+            let package = package::write(&temp.path().join("package.atlaspkg"), &contents);
             let model = new_model(&mut cx, env);
             wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
             act(&mut cx, &model, |m, cx| {
                 m.begin_install(cx);
                 m.iso_initial_options = Some(iso::default_options(&Manifest::builtin()));
-                m.load_playbook_file(package.clone(), cx);
+                m.load_package_file(package.clone(), cx);
             });
-            wait_for(&cx, &model, "the package", |m| m.playbook.is_some()).await;
+            wait_for(&cx, &model, "the package", |m| m.package.is_some()).await;
             act(&mut cx, &model, |m, cx| {
                 assert!(m.options.contains("browser-brave"), "kept, though not in effect");
                 let page = m
                     .manifest()
-                    .pages
+                    .choices
                     .iter()
-                    .position(|page| page.options.iter().any(|o| o.name == "install-another-browser"))
+                    .position(|page| page.options.iter().any(|o| o.id == "install-another-browser"))
                     .unwrap();
                 m.choose_option(page, "install-another-browser", cx);
             });
@@ -386,7 +413,7 @@ mod download {
 
 /// A tester build: the bundled package is the only one, and GitHub is
 /// never asked. These need a binary that carries one.
-#[cfg(feature = "embedded-playbook")]
+#[cfg(feature = "embedded-package")]
 mod bundled {
     use crate::model::test_harness::{
         act, fixture, marking_package, new_model, read, release, run_model_test, save_draft, settle,
@@ -395,7 +422,7 @@ mod bundled {
     use crate::model::{Acquisition, Environment, Origin, ReleaseCheck, Step};
     use crate::services::settings::InstallDraft;
     use crate::services::test_support::TempDir;
-    use crate::services::{embedded, playbook, releases};
+    use crate::services::{embedded, package, releases};
 
     fn tester_fixture(name: &str) -> (TempDir, Environment) {
         let (temp, _, env) = fixture(name);
@@ -409,14 +436,15 @@ mod bundled {
             let model = new_model(&mut cx, env.clone());
             wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
             act(&mut cx, &model, |m, cx| m.begin_install(cx));
-            wait_for(&cx, &model, "the bundled package", |m| m.playbook.is_some()).await;
+            wait_for(&cx, &model, "the bundled package", |m| m.package.is_some()).await;
             read(&cx, &model, |m| {
-                let book = m.playbook.as_ref().unwrap();
+                let book = m.package.as_ref().unwrap();
                 assert!(embedded::holds(&book.dir), "the loaded package is the embedded archive");
                 assert!(matches!(book.origin, Origin::Bundled));
                 assert!(matches!(m.release, ReleaseCheck::NotChecked));
             });
-            let archive = env.paths.downloads().join(format!("Atlas-{}.apbx", embedded::rc_id().unwrap()));
+            let archive =
+                env.paths.downloads().join(format!("Atlas-{}.atlaspkg", embedded::rc_id().unwrap()));
             assert_eq!(releases::sha256_file(&archive).unwrap(), embedded::sha256());
 
             // The explicit actions are inert too, not merely hidden, even once
@@ -426,9 +454,9 @@ mod bundled {
                 assert!(matches!(m.release, ReleaseCheck::NotChecked), "no release check ran");
                 // A closed port, so a download started by mistake fails fast.
                 let asset = releases::Asset {
-                    name: "Atlas.apbx".into(),
+                    name: "Atlas.atlaspkg".into(),
                     size: 1,
-                    browser_download_url: "http://127.0.0.1:9/Atlas.apbx".into(),
+                    browser_download_url: "http://127.0.0.1:9/Atlas.atlaspkg".into(),
                     ..Default::default()
                 };
                 m.release = ReleaseCheck::Ready { release: release("v9.9.9", vec![asset]) };
@@ -448,17 +476,17 @@ mod bundled {
             let model = new_model(&mut cx, env.clone());
             wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
             act(&mut cx, &model, |m, cx| m.begin_install(cx));
-            wait_for(&cx, &model, "the bundled package", |m| m.playbook.is_some()).await;
+            wait_for(&cx, &model, "the bundled package", |m| m.package.is_some()).await;
             wait_on_disk(&cx, &env, "the draft naming it", |s| {
-                s.draft.as_ref().is_some_and(|draft| draft.playbook_dir.is_some())
+                s.draft.as_ref().is_some_and(|draft| draft.package_dir.is_some())
             })
             .await;
             settle(&cx, &model).await;
 
             let reopened = new_model(&mut cx, env);
-            wait_for(&cx, &reopened, "the resumed package", |m| m.playbook.is_some()).await;
+            wait_for(&cx, &reopened, "the resumed package", |m| m.package.is_some()).await;
             read(&cx, &reopened, |m| {
-                let book = m.playbook.as_ref().unwrap();
+                let book = m.package.as_ref().unwrap();
                 assert!(embedded::holds(&book.dir));
                 assert!(matches!(book.origin, Origin::Bundled), "{:?}", book.origin);
             });
@@ -470,24 +498,24 @@ mod bundled {
         run_model_test(async move |mut cx| {
             let (temp, env) = tester_fixture("bundled-foreign-draft");
             let (package, _) = marking_package(&temp, 0);
-            let (foreign, _) = playbook::extract_into(&package, &env.paths.playbooks(), |_, _| {}).unwrap();
+            let (foreign, _) = package::extract_into(&package, &env.paths.packages(), |_, _| {}).unwrap();
             save_draft(
                 &env,
                 InstallDraft {
                     step: "ready".into(),
-                    playbook_dir: Some(foreign.clone()),
+                    package_dir: Some(foreign.clone()),
                     flow: Some("other-window".into()),
                     ..InstallDraft::default()
                 },
             );
             let model = new_model(&mut cx, env);
             wait_for(&cx, &model, "the bundled package", |m| {
-                m.playbook.as_ref().is_some_and(|book| embedded::holds(&book.dir))
+                m.package.as_ref().is_some_and(|book| embedded::holds(&book.dir))
             })
             .await;
             read(&cx, &model, |m| {
                 assert!(m.flow.active && m.flow.step == Step::Ready, "the draft's step is resumed");
-                assert_ne!(m.playbook.as_ref().unwrap().dir, foreign, "the foreign package is not adopted");
+                assert_ne!(m.package.as_ref().unwrap().dir, foreign, "the foreign package is not adopted");
             });
         });
     }

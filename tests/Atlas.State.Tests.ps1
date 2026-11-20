@@ -325,7 +325,7 @@ Describe 'Toggles that keep install choices in step' {
     BeforeAll {
         Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
         Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
-        $script:TogglesRoot = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles'
+        $script:TogglesRoot = Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toggles'
         $script:StateRoot = 'HKCU:\Software\AtlasRewriteTest\StateChoiceSync'
     }
 

@@ -65,10 +65,12 @@ pub struct InstallDraft {
     /// Step name as `Step::parse` understands it.
     pub step: String,
     pub options: Vec<String>,
-    /// An already unpacked package, if one was ready.
-    pub playbook_dir: Option<PathBuf>,
-    /// The Atlas package file (.apbx) it was unpacked from, downloaded or
-    /// opened, so ISO creation can offer it after a relaunch.
+    /// An already unpacked package, if one was ready. Drafts from earlier
+    /// builds name it `playbookDir`.
+    #[serde(alias = "playbookDir")]
+    pub package_dir: Option<PathBuf>,
+    /// The Atlas package file (`.atlaspkg`) it was unpacked from, downloaded
+    /// or opened, so ISO creation can offer it after a relaunch.
     pub package_archive: Option<PathBuf>,
     /// Which options screen was showing (see `AppModel::option_screens`).
     pub option_screen: usize,
@@ -197,9 +199,9 @@ impl AppPaths {
         self.root.join("settings.json")
     }
 
-    /// Extracted packages, one directory each.
-    pub fn playbooks(&self) -> PathBuf {
-        self.root.join("Playbooks")
+    /// Unpacked packages, one directory each.
+    pub fn packages(&self) -> PathBuf {
+        self.root.join("Packages")
     }
 
     /// Downloaded packages with their verification records.
@@ -402,8 +404,8 @@ mod tests {
             draft: Some(InstallDraft {
                 step: "options".into(),
                 options: vec!["defender-enable".into()],
-                playbook_dir: Some(PathBuf::from(r"C:\Playbooks\0.6.0")),
-                package_archive: Some(PathBuf::from(r"C:\Downloads\Atlas.apbx")),
+                package_dir: Some(PathBuf::from(r"C:\Packages\0.6.0")),
+                package_archive: Some(PathBuf::from(r"C:\Downloads\Atlas.atlaspkg")),
                 option_screen: 2,
                 session: Some("20260905-120000-1234-abc".into()),
                 flow: Some("flow-1".into()),
@@ -600,5 +602,19 @@ mod tests {
         drop(holder);
         assert_eq!(std::fs::read(&path).unwrap(), before, "the document is untouched");
         assert_eq!(load_from(&path).settings.draft, Some(draft));
+    }
+
+    /// A draft an earlier build saved names its unpacked package
+    /// `playbookDir`; it still resumes, and is saved again as `packageDir`.
+    #[test]
+    fn a_draft_from_an_earlier_build_keeps_its_package() {
+        let draft: InstallDraft = serde_json::from_value(
+            serde_json::json!({ "step": "options", "playbookDir": r"C:\P\0.6.0_abc" }),
+        )
+        .unwrap();
+        assert_eq!(draft.package_dir, Some(PathBuf::from(r"C:\P\0.6.0_abc")));
+        let saved = serde_json::to_value(&draft).unwrap();
+        assert_eq!(saved["packageDir"], r"C:\P\0.6.0_abc");
+        assert!(saved.get("playbookDir").is_none());
     }
 }

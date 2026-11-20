@@ -6,11 +6,11 @@
 ### - Windows 功能名称与简体中文版 Windows 保持一致，尤其是“病毒和威胁防护”设置
 ###   页中的四个开关：篡改防护、实时保护、云提供的保护、自动提交样本。
 ### - 中文与拉丁字母、数字之间留一个空格；中文语境使用全角标点，仅含拉丁字母的
-###   括注（如 (.apbx)、(VBS)）使用半角括号并前后留空格。
+###   括注（如 (.atlaspkg)、(VBS)）使用半角括号并前后留空格。
 ### - 标记为“文本”的值（版本、内部版本号、路径、文件名、错误信息）原样插入，不翻译。
 ### - 中文只有 other 一种复数类别，不使用 [one]；允许精确数字分支 [1]、[2]。
-### - .apbx 文件统称“Atlas 安装包”，上下文明确时可简称“安装包”；“安装文件”指准备好的文件（如“安装文件”卡片中的文件），
-###   不用来指 .apbx 文件本身。
+### - .atlaspkg 文件统称“Atlas 安装包”，上下文明确时可简称“安装包”；“安装文件”指准备好的文件（如“安装文件”卡片中的文件），
+###   不用来指 .atlaspkg 文件本身。
 
 ## 共享
 
@@ -86,8 +86,8 @@ window-close-restart-close = 关闭但不重启
 # window-close-keep, common-open-windows-security and window-close-close.
 window-close-protection-title = 要在防护关闭的状态下关闭 Atlas 吗？
 window-close-protection-message = Windows 安全中心的部分防护仍处于关闭状态：{ $switches }。如果你不打算完成 Atlas 的安装，请在关闭前将其重新开启。如果你要完成安装，重新打开 Atlas 后即可继续设置。
-# 选择 Atlas 安装包 (.apbx) 的文件选择器中“打开”按钮的标签，用于“准备”步骤和 ISO 页面。这是按钮标签，请保持简短。
-file-dialog-open-package = 打开 Atlas 安装包 (.apbx)
+# 选择 Atlas 安装包 (.atlaspkg) 的文件选择器中“打开”按钮的标签，用于“准备”步骤和 ISO 页面。这是按钮标签，请保持简短。
+file-dialog-open-package = 打开 Atlas 安装包 (.atlaspkg)
 # Windows 在重启通知中显示的消息。
 shutdown-comment = Atlas 已安装。Windows 即将重启以完成设置。
 # “准备”步骤为完成 Windows 更新的安装而重启时，Windows 在重启通知中显示的消息。
@@ -226,7 +226,7 @@ ready-banner-busy-message = Atlas 正在检查你的电脑并准备安装文件�
 ready-banner-blocked-title = 电脑尚未准备就绪
 ready-banner-blocked-message = 请处理“电脑检查”中标出的项目，然后选择“重新检查”。
 ready-banner-no-package-title = 下载 Atlas 以继续
-ready-banner-no-package-message = 请在“安装文件”中下载 Atlas；如果你已有 Atlas 安装包 (.apbx)，请选择“打开安装包文件”。
+ready-banner-no-package-message = 请在“安装文件”中下载 Atlas；如果你已有 Atlas 安装包 (.atlaspkg)，请选择“打开安装包文件”。
 # 测试版：内置的 Atlas 安装包无法解压。
 ready-banner-no-package-bundled-title = 准备内置的 Atlas 安装包以继续
 ready-banner-no-package-bundled-message = 此测试版内置的 Atlas 安装包尚未就绪。请查看“安装文件”卡片。
@@ -267,9 +267,9 @@ package-unpacking = 正在解压
 package-looking = 正在检查 Atlas 的最新版本。
 # 测试版：正在解压内置的 Atlas 安装包，不需要下载。
 package-looking-bundled = 正在准备内置的 Atlas 安装包。
-package-none = 下载 Atlas 以获取安装文件。如果你已有 Atlas 安装包 (.apbx)，也可以直接打开它。
+package-none = 下载 Atlas 以获取安装文件。如果你已有 Atlas 安装包 (.atlaspkg)，也可以直接打开它。
 # GitHub 发布版本检查失败。“下载最新版本”即 package-download-newest，是此状态下提供的按钮，它会重新检查。
-package-release-failed = Atlas 无法检查最新版本。请检查 Internet 连接，然后选择“下载最新版本”，或打开已保存的 Atlas 安装包 (.apbx)。
+package-release-failed = Atlas 无法检查最新版本。请检查 Internet 连接，然后选择“下载最新版本”，或打开已保存的 Atlas 安装包 (.atlaspkg)。
 # 卡片标题旁边的简短状态词。
 package-status-downloading = 正在下载
 package-status-unpacking = 正在解压
@@ -290,13 +290,15 @@ package-from-release = Atlas { $version } 已从 GitHub 下载，可以安装。
 package-from-file = Atlas { $version } 已从 { $file } 加载，可以安装。
 package-unpacked = Atlas { $version } 已就绪，可以安装。
 package-none-yet = 尚未选择安装文件
-acquire-no-asset = Atlas { $version } 没有可下载的安装包。请打开已保存的 Atlas 安装包 (.apbx) 以继续。
-acquire-unsupported = 此应用只能安装 Atlas 0.6.0 及更高版本。
+acquire-no-asset = Atlas { $version } 没有可下载的安装包。请打开已保存的 Atlas 安装包 (.atlaspkg) 以继续。
+# Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
+# .apbx file from an Atlas release before 0.6.
+acquire-unsupported = 此应用只能通过 Atlas 安装包 (.atlaspkg) 安装 Atlas 0.6.0 及更高版本。
 # 安装包足够新，本应包含此应用驱动的安装脚本，但缺少该脚本。
-acquire-incomplete = Atlas { $version } 缺少此应用安装所需的文件。请重新下载，或打开其他 Atlas 安装包 (.apbx)。
-acquire-failed = 无法准备安装文件。请重新下载，或打开其他 Atlas 安装包 (.apbx)。详细信息：{ $error }
+acquire-incomplete = Atlas { $version } 缺少此应用安装所需的文件。请重新下载，或打开其他 Atlas 安装包 (.atlaspkg)。
+acquire-failed = 无法准备安装文件。请重新下载，或打开其他 Atlas 安装包 (.atlaspkg)。详细信息：{ $error }
 # 下载在一分钟内未收到任何数据，已被停止。
-acquire-stalled = 下载已停止响应。请检查 Internet 连接，然后重新下载，或打开已保存的 Atlas 安装包 (.apbx)。
+acquire-stalled = 下载已停止响应。请检查 Internet 连接，然后重新下载，或打开已保存的 Atlas 安装包 (.atlaspkg)。
 # 测试版：内置的 Atlas 安装包无法解压。“重试”是唯一提供的操作。
 acquire-failed-bundled = 无法准备内置的 Atlas 安装包。请选择“重试”。详细信息：{ $error }
 
@@ -400,32 +402,32 @@ consequence-auto-updates-disable = 请定期打开 Windows 更新来安装更新
 consequence-auto-updates-default = Windows 会自动安装更新，包括安全修复。
 
 ## Atlas 安装包文本
-## Atlas 安装包为每个选项自带英文文本。只有当安装包中的文本与
-## i18n/playbook-source.ftl 完全一致时才使用下面的界面标签和说明。将来措辞不同的
-## 安装包会显示自己的文字，而不是可能已过时的说明。
+## Atlas 安装包中各选项和问题的标签与说明，按安装包 atlas.json 中的 ID 对应。
+## 应用会用这些文字代替安装包自带的英文；较新的安装包新增的选项或问题
+## 在这里没有对应消息时，显示安装包自带的英文。
 
-playbook-option-defender-enable = 保留 Microsoft Defender（推荐）
-playbook-option-defender-disable = 移除 Microsoft Defender
-playbook-option-mitigations-default = 保留处理器防护（推荐）
-playbook-option-mitigations-disable = 关闭处理器防护
-playbook-option-auto-updates-disable = 由我自行安装更新
-playbook-option-auto-updates-default = 自动安装更新
-playbook-option-disable-hibernation = 关闭休眠
-playbook-option-disable-power-saving = 关闭节能功能
-playbook-option-disable-core-isolation = 关闭基于虚拟化的安全性 (VBS)
-playbook-option-remove-snipping-tool = 卸载截图工具
-playbook-option-uninstall-edge = 卸载 Microsoft Edge
-playbook-option-install-another-browser = 安装浏览器
-playbook-option-install-toolbox = 安装 Atlas Toolbox
-playbook-option-install-eclean = 安装 eclean
-playbook-option-browser-brave = Brave
-playbook-option-browser-librewolf = LibreWolf
-playbook-option-browser-firefox = Firefox
-playbook-option-browser-chrome = Chrome
-playbook-page-defender-enable-description = Microsoft Defender 是 Windows 内置的防病毒软件。只有在你了解风险并打算使用其他防病毒软件时，才应将其移除。无论你如何选择，Atlas 都会关闭“智能应用控制”“增强型网络钓鱼防护”和“查找我的设备”。
-playbook-page-mitigations-default-description = 这些防护也称为安全缓解措施，可帮助抵御 Spectre 和 Meltdown 等处理器漏洞，以及利用应用缺陷发起的攻击。建议保留 Windows 默认设置。
-playbook-page-auto-updates-disable-description = Windows 更新包含安全修复。你可以让 Windows 自动安装更新，也可以自行安装。无论哪种方式，Atlas 都会让 Windows 保持在当前版本，而该版本只会在 Microsoft 终止支持之前获得安全修复。Atlas 还会关闭 Microsoft Store 应用的自动更新，因此请在 Microsoft Store 中更新这些应用。
-playbook-page-browser-brave-description = 选择要安装的浏览器。Atlas 不会更改你的浏览器设置。
+package-option-defender-enable = 保留 Microsoft Defender（推荐）
+package-option-defender-disable = 移除 Microsoft Defender
+package-option-mitigations-default = 保留处理器防护（推荐）
+package-option-mitigations-disable = 关闭处理器防护
+package-option-auto-updates-disable = 由我自行安装更新
+package-option-auto-updates-default = 自动安装更新
+package-option-disable-hibernation = 关闭休眠
+package-option-disable-power-saving = 关闭节能功能
+package-option-disable-core-isolation = 关闭基于虚拟化的安全性 (VBS)
+package-option-remove-snipping-tool = 卸载截图工具
+package-option-uninstall-edge = 卸载 Microsoft Edge
+package-option-install-another-browser = 安装浏览器
+package-option-install-toolbox = 安装 Atlas Toolbox
+package-option-install-eclean = 安装 eclean
+package-option-browser-brave = Brave
+package-option-browser-librewolf = LibreWolf
+package-option-browser-firefox = Firefox
+package-option-browser-chrome = Chrome
+package-choice-defender-description = Microsoft Defender 是 Windows 内置的防病毒软件。只有在你了解风险并打算使用其他防病毒软件时，才应将其移除。无论你如何选择，Atlas 都会关闭“智能应用控制”“增强型网络钓鱼防护”和“查找我的设备”。
+package-choice-mitigations-description = 这些防护也称为安全缓解措施，可帮助抵御 Spectre 和 Meltdown 等处理器漏洞，以及利用应用缺陷发起的攻击。建议保留 Windows 默认设置。
+package-choice-auto-updates-description = Windows 更新包含安全修复。你可以让 Windows 自动安装更新，也可以自行安装。无论哪种方式，Atlas 都会让 Windows 保持在当前版本，而该版本只会在 Microsoft 终止支持之前获得安全修复。Atlas 还会关闭 Microsoft Store 应用的自动更新，因此请在 Microsoft Store 中更新这些应用。
+package-choice-browser-description = 选择要安装的浏览器。Atlas 不会更改你的浏览器设置。
 
 ## 第 3 步：Windows 安全中心
 
@@ -528,7 +530,7 @@ output-problem-title = 无法读取安装进度
 output-problem-message = Atlas 无法读取日志，但这并不表示安装已停止。请保持电脑开机，并尝试打开日志文件。详细信息：{ $error }
 install-elevate-title = Atlas 需要权限才能安装
 install-no-package-title = 请先选择安装文件
-install-no-package-message = 请返回“准备”步骤下载 Atlas，或打开已保存的 Atlas 安装包 (.apbx)。
+install-no-package-message = 请返回“准备”步骤下载 Atlas，或打开已保存的 Atlas 安装包 (.atlaspkg)。
 # install-no-package-message 的测试版变体。
 install-no-package-bundled-message = 请返回“准备”步骤，准备此测试版内置的 Atlas 安装包。
 # 本次会话中第 1 步（检查或 Windows 更新）未完成时的第 4 步，按钮为 go-to-ready。
@@ -672,7 +674,7 @@ iso-title = 创建 Atlas ISO
 iso-beta = 测试版
 iso-beta-description = 在电脑上使用前，请先在虚拟机中测试 ISO。安装 Windows 前，请备份文件。
 iso-admin-description = Atlas 需要管理员权限才能读取你的 Windows ISO 并创建新的 ISO。请选择“以管理员身份重新打开”，然后在 Windows 询问时选择“是”。
-iso-files-description = Atlas 会复制一份 Windows 11 ISO 并在其中加入 Atlas，用于重新安装 Windows。请选择从 Microsoft 下载的 Windows 11 ISO，下载最新的 Atlas 安装包或选择已有的安装包 (.apbx)，然后选择新 ISO 的保存位置。
+iso-files-description = Atlas 会复制一份 Windows 11 ISO 并在其中加入 Atlas，用于重新安装 Windows。请选择从 Microsoft 下载的 Windows 11 ISO，下载最新的 Atlas 安装包或选择已有的安装包 (.atlaspkg)，然后选择新 ISO 的保存位置。
 # 测试版：没有安装包选择器。
 iso-files-description-bundled = Atlas 会复制一份 Windows 11 ISO，并在其中加入此测试版内置的 Atlas 安装包。请选择从 Microsoft 下载的 Windows 11 ISO，然后选择新 ISO 的保存位置。
 iso-source = Windows ISO
@@ -904,7 +906,7 @@ install-source-unsupported = Atlas { $source } 无法直接更新到 { $target }
 # 尚未选择安装包，因此还不知道可用的版本。
 install-source-unsupported-any = Atlas { $source } 无法直接更新。要使用较新的版本，请备份文件并重新安装 Windows。
 # “打开安装包文件”即 package-open-file。$folder 为文件夹路径（文本）。
-install-source-resume = Atlas { $target } 的安装未完成，只有 Atlas { $target } 安装包才能完成该安装。请选择“打开安装包文件”，然后选择该 Atlas 安装包 (.apbx)。如果它是由 Atlas 下载的，则位于 { $folder } 中。
+install-source-resume = Atlas { $target } 的安装未完成，只有 Atlas { $target } 安装包才能完成该安装。请选择“打开安装包文件”，然后选择该 Atlas 安装包 (.atlaspkg)。如果它是由 Atlas 下载的，则位于 { $folder } 中。
 # 测试版：只能安装内置的 Atlas 安装包。
 install-source-resume-bundled = Atlas { $target } 的安装未完成。此测试版只能安装其内置的 Atlas 安装包，因此请在 Atlas Manager 正式版中使用 Atlas { $target } 安装包完成该安装。
 install-source-unknown = Atlas 无法确认这台电脑上已安装了什么，因此暂时不会安装任何内容。请选择“发送报告”，以便 Atlas 团队提供帮助。
@@ -939,7 +941,7 @@ diagnostics-failed-title = 无法导出诊断信息
 # $error 为原始错误（文本）。
 diagnostics-failed = 请确认电脑有足够的可用磁盘空间，然后重试。详细信息：{ $error }
 
-## Tester builds (embedded-playbook feature)
+## Tester builds (embedded-package feature)
 
 # One line of chrome under the title bar on a release-candidate build.
 rc-banner = Atlas { $release } 测试版。此应用只安装内置的 Atlas 安装包。
@@ -1202,10 +1204,10 @@ prepare-repair-store = 修复 Microsoft Store
 
 screen-keyboard-title = 键盘语言
 screen-keyboard-question = 你使用多种键盘语言吗？
-playbook-option-keyboard-shortcuts = 是，使用键盘快捷键
-playbook-option-keyboard-selector = 是，使用任务栏选择器
-playbook-option-keyboard-single = 否，只使用一种键盘布局
+package-option-keyboard-shortcuts = 是，使用键盘快捷键
+package-option-keyboard-selector = 是，使用任务栏选择器
+package-option-keyboard-single = 否，只使用一种键盘布局
 consequence-keyboard-shortcuts = Alt+Shift 切换语言；Ctrl+Shift 切换布局。
 consequence-keyboard-selector = 关闭 Alt+Shift 和 Ctrl+Shift，避免游戏时意外切换。
-playbook-page-keyboard-shortcuts-description = 选择切换键盘语言的方式。
+package-choice-keyboard-description = 选择切换键盘语言的方式。
 consequence-keyboard-single = { consequence-keyboard-selector }

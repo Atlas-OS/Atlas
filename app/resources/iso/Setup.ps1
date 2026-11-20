@@ -128,7 +128,7 @@ if ($config.mode -eq 'before-desktop') {
     }
 }
 $runOnce = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce'
-$command = '"' + (Join-Path $root 'AtlasManager.exe') + '" --setup --playbook "' + (Join-Path $root 'Atlas.apbx') + '"'
+$command = '"' + (Join-Path $root 'AtlasManager.exe') + '" --setup --package "' + (Join-Path $root 'Atlas.atlaspkg') + '"'
 if ($config.mode -ne 'before-desktop') {
     # Keep any commands already queued for this account's next sign-in.
     if (-not (Test-Path -LiteralPath $runOnce)) { New-Item -Path $runOnce -Force | Out-Null }

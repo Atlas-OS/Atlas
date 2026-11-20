@@ -231,31 +231,45 @@ fn a_resumed_install_starts_without_an_answer_to_a_page_added_since() {
         use crate::model::Step;
         use crate::model::test_harness::ps_literal;
         use crate::services::atlas_state::InstallIdentity;
-        use crate::services::test_support::apbx;
+        use crate::services::test_support::package;
         let (temp, machine, env) = fixture("model-resumed-choices");
         let marker = temp.path().join("front-door-ran.txt");
         let body = format!("Set-Content -LiteralPath {} -Value 'ran'\r\nexit 0", ps_literal(&marker));
-        let mut contents = apbx::with_front_door("0.6.0", &body);
-        // A second required question, the keyboard page's kind.
-        contents.entries[0].data = concat!(
-            "<Playbook><Version>0.6.0</Version><SupportedBuilds><string>26100</string></SupportedBuilds>",
-            "<FeaturePages><RadioPage DefaultOption=\"defender-enable\"><Options>",
-            "<RadioOption><Name>defender-enable</Name><Text>Keep Defender</Text></RadioOption>",
-            "<RadioOption><Name>defender-disable</Name><Text>Remove Defender</Text></RadioOption>",
-            "</Options></RadioPage><RadioPage DefaultOption=\"keyboard-single\"><Options>",
-            "<RadioOption><Name>keyboard-single</Name><Text>One layout</Text></RadioOption>",
-            "<RadioOption><Name>keyboard-selector</Name><Text>Layout selector</Text></RadioOption>",
-            "</Options></RadioPage></FeaturePages></Playbook>"
+        let mut contents = package::with_front_door("0.6.0", &body);
+        // A second required question, the keyboard choice.
+        contents.entries[0].data = package::manifest_with_choices(
+            "0.6.0",
+            &[serde_json::json!({ "build": 26100 })],
+            serde_json::json!([
+                {
+                    "id": "defender",
+                    "kind": "single",
+                    "default": "defender-enable",
+                    "options": [
+                        { "id": "defender-enable", "label": "Keep Defender" },
+                        { "id": "defender-disable", "label": "Remove Defender" },
+                    ],
+                },
+                {
+                    "id": "keyboard",
+                    "kind": "single",
+                    "default": "keyboard-single",
+                    "options": [
+                        { "id": "keyboard-single", "label": "One layout" },
+                        { "id": "keyboard-selector", "label": "Layout selector" },
+                    ],
+                },
+            ]),
         )
         .into();
-        let package = apbx::write(&temp.path().join("package.apbx"), &contents);
+        let package = package::write(&temp.path().join("package.atlaspkg"), &contents);
         let model = new_model(&mut cx, env);
         act(&mut cx, &model, |m, cx| {
             m.begin_install(cx);
             m.preparation = crate::services::preparation::State::Ready;
         });
-        act(&mut cx, &model, |m, cx| m.load_playbook_file(package, cx));
-        wait_for(&cx, &model, "the package and the checks", |m| m.playbook.is_some() && m.checks_complete())
+        act(&mut cx, &model, |m, cx| m.load_package_file(package, cx));
+        wait_for(&cx, &model, "the package and the checks", |m| m.package.is_some() && m.checks_complete())
             .await;
         for _ in 0..3 {
             act(&mut cx, &model, |m, cx| m.next_step(cx));
@@ -298,7 +312,7 @@ fn a_retry_that_stops_on_the_same_error_is_told_apart_even_past_a_refusal() {
         use crate::services::atlas_state::InstallIdentity;
         use crate::services::legacy_choices::Facts;
         use crate::services::security::{SecurityStatus, Switch};
-        use crate::services::test_support::apbx;
+        use crate::services::test_support::package;
         // What the result on screen says to do.
         let advice = |m: &AppModel| match m.flow.run {
             RunState::Finished(outcome) => outcome.advice(&m.attempt_facts()),
@@ -313,7 +327,8 @@ fn a_retry_that_stops_on_the_same_error_is_told_apart_even_past_a_refusal() {
         );
         let error =
             "The AppX removal plan failed after cleanup: MSTeams*: 1 installed package(s) remain registered.";
-        let package = apbx::write(&temp.path().join("package.apbx"), &apbx::with_front_door("0.6.0", body));
+        let package =
+            package::write(&temp.path().join("package.atlaspkg"), &package::with_front_door("0.6.0", body));
         let model = new_model(&mut cx, env);
         walk_to_install(&mut cx, &model, &package).await;
         act(&mut cx, &model, |m, cx| m.next_step(cx));

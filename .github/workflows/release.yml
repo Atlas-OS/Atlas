@@ -31,7 +31,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Check the tag against playbook.conf
+      - name: Check the tag against atlas.json
         # Any v* tag starts this workflow, so a malformed or early tag must fail before the
         # app build rather than after it.
         shell: pwsh
@@ -46,10 +46,10 @@ jobs:
               throw "Release tag '$tag' is not a canonical stable semantic version."
           }
 
-          $conf = [xml](Get-Content -LiteralPath 'playbook\playbook.conf' -Raw)
-          $version = [string]$conf.Playbook.Version
+          $manifest = Get-Content -LiteralPath 'package\atlas.json' -Raw | ConvertFrom-Json
+          $version = [string]$manifest.version
           if ($tag -cne "v$version") {
-              throw "Tag '$tag' does not match playbook.conf version 'v$version'."
+              throw "Tag '$tag' does not match atlas.json version 'v$version'."
           }
 
       - name: Install the Rust toolchain
@@ -67,7 +67,7 @@ jobs:
         shell: pwsh
         run: ./tools/Build-Release.ps1
 
-      - name: Build, verify, and hash the release bundle
+      - name: Build, verify, and hash the release files
         shell: pwsh
         env:
           ATLAS_TAG: ${{ github.ref_name }}
@@ -80,42 +80,32 @@ jobs:
               throw "Release tag '$tag' is not a canonical stable semantic version."
           }
 
-          $conf = [xml](Get-Content -LiteralPath 'playbook\playbook.conf' -Raw)
-          $version = [string]$conf.Playbook.Version
+          $manifest = Get-Content -LiteralPath 'package\atlas.json' -Raw | ConvertFrom-Json
+          $version = [string]$manifest.version
           if ($tag -cne "v$version") {
-              throw "Tag '$tag' does not match playbook.conf version 'v$version'."
+              throw "Tag '$tag' does not match atlas.json version 'v$version'."
           }
 
           # The app takes its version (About, diagnostics, file properties) from app/Cargo.toml.
           $exe = Get-Item -LiteralPath 'app\target\x86_64-pc-windows-msvc\release\AtlasManager.exe' -ErrorAction Stop
           if ($exe.VersionInfo.ProductVersion -cne $version) {
-              throw "AtlasManager.exe is version '$($exe.VersionInfo.ProductVersion)', not playbook.conf's '$version'."
+              throw "AtlasManager.exe is version '$($exe.VersionInfo.ProductVersion)', not atlas.json's '$version'."
           }
-
-          $playbookName = "Atlas $tag"
-          & .\tools\build\Build-Playbook.ps1 -FileName $playbookName -DontOpenPbLocation
-          $apbx = Get-Item -LiteralPath "playbook\$playbookName.apbx" -ErrorAction Stop
-          & .\tools\build\Test-Apbx.ps1 -Path $apbx.FullName
-
-          $bundle = Join-Path $env:RUNNER_TEMP 'atlas-release'
-          $zipContents = Join-Path $env:RUNNER_TEMP 'atlas-release-zip'
-          New-Item -Path $bundle -ItemType Directory -Force | Out-Null
-          New-Item -Path $zipContents -ItemType Directory -Force | Out-Null
 
           # GitHub turns spaces in asset names into dots, which would leave SHA256SUMS.txt
           # naming files the release doesn't have.
-          $assetName = "Atlas-$tag"
-          $apbxCopy = Copy-Item -LiteralPath $apbx.FullName -Destination (Join-Path $bundle "$assetName.apbx") -PassThru -Force
-          Copy-Item -LiteralPath $apbx.FullName -Destination $zipContents -Force
-          Get-ChildItem -LiteralPath 'tools\release-zip' -File |
-              Copy-Item -Destination $zipContents -Force
+          $packageName = "Atlas-$tag"
+          & .\tools\build\Build-Package.ps1 -FileName $packageName -NoExplorer
+          $package = Get-Item -LiteralPath "package\$packageName.atlaspkg" -ErrorAction Stop
+          & .\tools\build\Test-Package.ps1 -Path $package.FullName
+          if ($LASTEXITCODE -ne 0) { throw 'The Atlas package failed verification.' }
+
+          $bundle = Join-Path $env:RUNNER_TEMP 'atlas-release'
+          New-Item -Path $bundle -ItemType Directory -Force | Out-Null
+          $packageCopy = Copy-Item -LiteralPath $package.FullName -Destination $bundle -PassThru -Force
           $exeCopy = Copy-Item -LiteralPath $exe.FullName -Destination $bundle -PassThru -Force
 
-          $zip = Join-Path $bundle "$assetName.zip"
-          Compress-Archive -Path (Join-Path $zipContents '*') -DestinationPath $zip -Force
-          $zipFile = Get-Item -LiteralPath $zip -ErrorAction Stop
-
-          $releaseFiles = @($apbxCopy, $zipFile, $exeCopy) | Sort-Object Name
+          $releaseFiles = @($packageCopy, $exeCopy) | Sort-Object Name
           $hashLines = @($releaseFiles | ForEach-Object {
                   $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
                   "$hash  $($_.Name)"
@@ -154,15 +144,10 @@ jobs:
           path: ${{ runner.temp }}/atlas-release
           digest-mismatch: error
 
-      - name: Attest the verified APBX
+      - name: Attest the verified Atlas package
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
-          subject-path: ${{ runner.temp }}/atlas-release/*.apbx
-
-      - name: Attest the release ZIP
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
-        with:
-          subject-path: ${{ runner.temp }}/atlas-release/*.zip
+          subject-path: ${{ runner.temp }}/atlas-release/*.atlaspkg
 
       - name: Attest Atlas Manager
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
@@ -212,19 +197,15 @@ jobs:
 
           $bundle = Join-Path $env:RUNNER_TEMP 'atlas-release'
           $hashFile = Get-Item -LiteralPath (Join-Path $bundle 'SHA256SUMS.txt') -ErrorAction Stop
-          $apbxFiles = @(Get-ChildItem -LiteralPath $bundle -Filter '*.apbx' -File)
-          $zipFiles = @(Get-ChildItem -LiteralPath $bundle -Filter '*.zip' -File)
-          $exeFiles = @(Get-ChildItem -LiteralPath $bundle -Filter '*.exe' -File)
-          if ($apbxFiles.Count -ne 1 -or $zipFiles.Count -ne 1 -or $exeFiles.Count -ne 1) {
-              throw 'The promotion bundle must contain exactly one APBX, one ZIP and one executable.'
+          $otherFiles = @(Get-ChildItem -LiteralPath $bundle -File -Force |
+              Where-Object Name -cnotin "Atlas-$tag.atlaspkg", 'AtlasManager.exe', 'SHA256SUMS.txt')
+          if ($otherFiles.Count -gt 0) {
+              throw "The promotion bundle holds files the release doesn't publish: $($otherFiles.Name -join ', ')."
           }
-          if ($apbxFiles[0].Name -cne "Atlas-$tag.apbx" -or
-              $zipFiles[0].Name -cne "Atlas-$tag.zip" -or
-              $exeFiles[0].Name -cne 'AtlasManager.exe') {
-              throw 'The promotion bundle filenames do not match the release tag.'
-          }
+          $packageFile = Get-Item -LiteralPath (Join-Path $bundle "Atlas-$tag.atlaspkg") -ErrorAction Stop
+          $exeFile = Get-Item -LiteralPath (Join-Path $bundle 'AtlasManager.exe') -ErrorAction Stop
 
-          $expectedNames = @($apbxFiles[0].Name, $zipFiles[0].Name, $exeFiles[0].Name) | Sort-Object
+          $expectedNames = @($packageFile.Name, $exeFile.Name) | Sort-Object
           $manifestNames = [Collections.Generic.List[string]]::new()
           foreach ($line in [IO.File]::ReadAllLines($hashFile.FullName, [Text.Encoding]::ASCII)) {
               if ($line -cnotmatch '^(?<Hash>[0-9a-f]{64})  (?<Name>[^\\/]+)$') {
@@ -244,7 +225,7 @@ jobs:
           }
           if ([string]::Join('|', @($manifestNames | Sort-Object)) -cne
               [string]::Join('|', $expectedNames)) {
-              throw 'SHA256SUMS.txt does not bind exactly the APBX, the release ZIP and AtlasManager.exe.'
+              throw 'SHA256SUMS.txt does not bind exactly the Atlas package and AtlasManager.exe.'
           }
 
       - name: Create a draft release
@@ -257,12 +238,11 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $tag = $env:ATLAS_TAG
           $bundle = Join-Path $env:RUNNER_TEMP 'atlas-release'
-          $apbx = Get-Item -LiteralPath (Join-Path $bundle "Atlas-$tag.apbx") -ErrorAction Stop
-          $zip = Get-Item -LiteralPath (Join-Path $bundle "Atlas-$tag.zip") -ErrorAction Stop
           $exe = Get-Item -LiteralPath (Join-Path $bundle 'AtlasManager.exe') -ErrorAction Stop
+          $package = Get-Item -LiteralPath (Join-Path $bundle "Atlas-$tag.atlaspkg") -ErrorAction Stop
           $hashes = Get-Item -LiteralPath (Join-Path $bundle 'SHA256SUMS.txt') -ErrorAction Stop
           & gh release create $tag --draft --verify-tag --title "Atlas $tag" `
-              $apbx.FullName $zip.FullName $exe.FullName $hashes.FullName
+              $exe.FullName $package.FullName $hashes.FullName
           if ($LASTEXITCODE -ne 0) {
               throw "Creating the draft release for '$tag' failed."
           }

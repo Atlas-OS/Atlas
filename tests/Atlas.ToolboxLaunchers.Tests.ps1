@@ -19,7 +19,7 @@ BeforeDiscovery {
 
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $script:ToolboxRoot = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toolbox'
+    $script:ToolboxRoot = Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toolbox'
 }
 
 Describe 'Paths kept for Toolbox releases before 0.2.0' {

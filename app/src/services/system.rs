@@ -254,16 +254,16 @@ pub fn relaunch_elevated() -> Result<()> {
     shell_execute("runas", &exe.to_string_lossy())
 }
 
-/// Relaunches elevated on the install page, with `--playbook` if given. A
+/// Relaunches elevated on the install page, with `--package` if given. A
 /// quote or a trailing backslash would end the quoted argument early, so such
 /// a path is refused.
-pub fn relaunch_setup_elevated(playbook: Option<&std::path::Path>) -> Result<()> {
+pub fn relaunch_setup_elevated(package: Option<&std::path::Path>) -> Result<()> {
     let exe = std::env::current_exe()?;
     let mut args = String::from("--page install");
-    if let Some(path) = playbook {
+    if let Some(path) = package {
         let path = path.to_string_lossy();
         anyhow::ensure!(!path.contains('"') && !path.ends_with('\\'), "invalid package path");
-        args.push_str(&format!(" --playbook \"{path}\""));
+        args.push_str(&format!(" --package \"{path}\""));
     }
     shell_execute_with_args("runas", &exe.to_string_lossy(), &args)
 }
@@ -762,7 +762,7 @@ mod tests {
             .map(|id| id.trim().trim_matches('\''))
             .collect();
         let direct =
-            include_str!("../../../playbook/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1");
+            include_str!("../../../package/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1");
         let direct_line =
             direct.lines().find(|line| line.contains("$EditionId -notlike 'Core*'")).expect("direct gate");
         let direct_list = &direct_line[direct_line.find("'^(").expect("direct list") + 3..];

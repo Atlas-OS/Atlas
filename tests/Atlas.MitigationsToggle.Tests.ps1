@@ -2,7 +2,7 @@ BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
-    $script:togglesRoot = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles'
+    $script:togglesRoot = Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toggles'
 }
 
 # The machine work runs in the silent TrustedInstaller broker, so the warning before

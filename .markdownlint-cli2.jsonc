@@ -39,7 +39,7 @@
     "artifacts/**",
     "tmp/**",
     ".github/pull_request_template.md",
-    "playbook/Executables/AtlasDesktop/6. Advanced Configuration/Toggle Windows Updates/README.md"
+    "package/Executables/AtlasDesktop/6. Advanced Configuration/Toggle Windows Updates/README.md"
   ],
   "gitignore": true,
   "noProgress": true

@@ -99,9 +99,9 @@ window-close-restart-close = Tutup tanpa memulai ulang
 # window-close-keep, common-open-windows-security and window-close-close.
 window-close-protection-title = Tutup Atlas saat perlindungan masih nonaktif?
 window-close-protection-message = Beberapa perlindungan di Keamanan Windows masih nonaktif: { $switches }. Jika Anda tidak akan menyelesaikan penginstalan Atlas, aktifkan kembali perlindungan tersebut sebelum menutup Atlas. Jika Anda akan menyelesaikannya, Atlas akan melanjutkan penyiapan Anda saat dibuka lagi.
-# The Open button of the file picker for an Atlas package (.apbx) file, on Get ready and the
+# The Open button of the file picker for an Atlas package (.atlaspkg) file, on Get ready and the
 # ISO page. It's a button label, so keep it short.
-file-dialog-open-package = Buka paket Atlas (.apbx)
+file-dialog-open-package = Buka paket Atlas (.atlaspkg)
 # Message Windows shows in its restart notification.
 shutdown-comment = Atlas sudah terinstal. Windows dimulai ulang untuk menyelesaikan penyiapan.
 # Message Windows shows in its restart notification when "Get ready" restarts
@@ -241,7 +241,7 @@ ready-banner-busy-message = Atlas sedang memeriksa PC Anda dan menyiapkan file p
 ready-banner-blocked-title = PC Anda belum siap
 ready-banner-blocked-message = Atasi item yang ditandai di Pemeriksaan PC, lalu pilih Periksa lagi.
 ready-banner-no-package-title = Unduh Atlas untuk melanjutkan
-ready-banner-no-package-message = Unduh Atlas di File penginstalan, atau pilih Buka file paket jika Anda sudah memiliki paket Atlas (.apbx).
+ready-banner-no-package-message = Unduh Atlas di File penginstalan, atau pilih Buka file paket jika Anda sudah memiliki paket Atlas (.atlaspkg).
 # Tester build: the bundled Atlas package couldn't be unpacked.
 ready-banner-no-package-bundled-title = Siapkan paket Atlas bawaan untuk melanjutkan
 ready-banner-no-package-bundled-message = Paket Atlas bawaan versi uji ini belum siap. Periksa kartu File penginstalan.
@@ -281,10 +281,10 @@ package-unpacking = Mengekstrak
 package-looking = Memeriksa versi Atlas terbaru.
 # Tester build: the bundled Atlas package is being unpacked, nothing is downloaded.
 package-looking-bundled = Menyiapkan paket Atlas bawaan.
-package-none = Unduh Atlas untuk mendapatkan file penginstalan. Jika Anda sudah memiliki paket Atlas (.apbx), buka paket tersebut.
+package-none = Unduh Atlas untuk mendapatkan file penginstalan. Jika Anda sudah memiliki paket Atlas (.atlaspkg), buka paket tersebut.
 # The GitHub release check failed. "Download latest version" is package-download-newest,
 # the button offered in this state; it checks again.
-package-release-failed = Atlas tidak dapat memeriksa versi terbaru. Periksa koneksi internet Anda, lalu pilih Unduh versi terbaru, atau buka paket Atlas (.apbx) yang tersimpan.
+package-release-failed = Atlas tidak dapat memeriksa versi terbaru. Periksa koneksi internet Anda, lalu pilih Unduh versi terbaru, atau buka paket Atlas (.atlaspkg) yang tersimpan.
 # Short status words beside the card title.
 package-status-downloading = Mengunduh
 package-status-unpacking = Mengekstrak
@@ -305,13 +305,15 @@ package-from-release = Atlas { $version } telah diunduh dari GitHub dan siap dii
 package-from-file = Atlas { $version } telah dimuat dari { $file } dan siap diinstal.
 package-unpacked = Atlas { $version } siap diinstal.
 package-none-yet = Belum ada file penginstalan yang dipilih
-acquire-no-asset = Atlas { $version } tidak memiliki file paket yang dapat diunduh. Buka paket Atlas (.apbx) yang tersimpan untuk melanjutkan.
-acquire-unsupported = Aplikasi ini dapat menginstal Atlas 0.6.0 dan yang lebih baru.
+acquire-no-asset = Atlas { $version } tidak memiliki file paket yang dapat diunduh. Buka paket Atlas (.atlaspkg) yang tersimpan untuk melanjutkan.
+# Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
+# .apbx file from an Atlas release before 0.6.
+acquire-unsupported = Aplikasi ini dapat menginstal Atlas 0.6.0 dan yang lebih baru dari paket Atlas (.atlaspkg).
 # A package new enough to include the installer script that this app drives, but without it.
-acquire-incomplete = Atlas { $version } tidak berisi file yang diperlukan aplikasi ini untuk menginstalnya. Unduh lagi, atau buka paket Atlas (.apbx) lain.
-acquire-failed = Tidak dapat menyiapkan file penginstalan. Coba unduh lagi, atau buka paket Atlas (.apbx) lain. Detail: { $error }
+acquire-incomplete = Atlas { $version } tidak berisi file yang diperlukan aplikasi ini untuk menginstalnya. Unduh lagi, atau buka paket Atlas (.atlaspkg) lain.
+acquire-failed = Tidak dapat menyiapkan file penginstalan. Coba unduh lagi, atau buka paket Atlas (.atlaspkg) lain. Detail: { $error }
 # The download received nothing for a minute and was stopped.
-acquire-stalled = Unduhan berhenti merespons. Periksa koneksi internet Anda, lalu unduh lagi, atau buka paket Atlas (.apbx) yang tersimpan.
+acquire-stalled = Unduhan berhenti merespons. Periksa koneksi internet Anda, lalu unduh lagi, atau buka paket Atlas (.atlaspkg) yang tersimpan.
 # Tester build: the bundled Atlas package couldn't be unpacked. Try again is the only control offered.
 acquire-failed-bundled = Tidak dapat menyiapkan paket Atlas bawaan. Pilih Coba lagi. Detail: { $error }
 
@@ -414,33 +416,33 @@ consequence-auto-updates-disable = Buka Windows Update secara rutin untuk mengin
 consequence-auto-updates-default = Windows akan menginstal pembaruan secara otomatis, termasuk perbaikan keamanan.
 
 ## Atlas package text
-## The Atlas package carries its own English text for each option. These
-## UI labels and explanations are used only when the package text matches
-## i18n/playbook-source.ftl. A future package with different wording keeps
-## its own text instead of receiving a potentially outdated description.
+## Labels and descriptions for the Atlas package's options and choices, by
+## their ids in the package's atlas.json. The app shows these in place of the
+## package's own English text; an option or choice that a newer package adds,
+## which has no message here, shows the package's English.
 
-playbook-option-defender-enable = Pertahankan Microsoft Defender (disarankan)
-playbook-option-defender-disable = Hapus Microsoft Defender
-playbook-option-mitigations-default = Pertahankan perlindungan prosesor (disarankan)
-playbook-option-mitigations-disable = Nonaktifkan perlindungan prosesor
-playbook-option-auto-updates-disable = Instal pembaruan sendiri
-playbook-option-auto-updates-default = Instal pembaruan secara otomatis
-playbook-option-disable-hibernation = Nonaktifkan hibernasi
-playbook-option-disable-power-saving = Nonaktifkan penghematan daya
-playbook-option-disable-core-isolation = Nonaktifkan keamanan berbasis virtualisasi (VBS)
-playbook-option-remove-snipping-tool = Hapus Snipping Tool
-playbook-option-uninstall-edge = Hapus Microsoft Edge
-playbook-option-install-another-browser = Instal browser
-playbook-option-install-toolbox = Instal Atlas Toolbox
-playbook-option-install-eclean = Instal eclean
-playbook-option-browser-brave = Brave
-playbook-option-browser-librewolf = LibreWolf
-playbook-option-browser-firefox = Firefox
-playbook-option-browser-chrome = Chrome
-playbook-page-defender-enable-description = Microsoft Defender adalah antivirus bawaan Windows. Hapus hanya jika Anda memahami risikonya dan berencana menggunakan aplikasi antivirus lain. Apa pun pilihan Anda, Atlas menonaktifkan Kontrol Aplikasi Pintar, Perlindungan pengelabuan, dan Temukan perangkat saya.
-playbook-page-mitigations-default-description = Perlindungan ini, yang juga disebut mitigasi keamanan, membantu melindungi dari celah keamanan prosesor, seperti Spectre dan Meltdown, serta dari serangan yang memanfaatkan bug dalam aplikasi. Sebaiknya pertahankan pengaturan bawaan Windows.
-playbook-page-auto-updates-disable-description = Pembaruan Windows mencakup perbaikan keamanan. Anda dapat membiarkan Windows menginstalnya secara otomatis atau menginstalnya sendiri. Apa pun pilihan Anda, Atlas mempertahankan Windows pada versinya saat ini, yang menerima perbaikan keamanan hanya sampai Microsoft mengakhiri dukungan untuk versi tersebut. Atlas juga menonaktifkan pembaruan otomatis untuk aplikasi Microsoft Store, jadi perbarui aplikasi tersebut di Microsoft Store.
-playbook-page-browser-brave-description = Pilih browser untuk diinstal. Atlas tidak akan mengubah pengaturan browser Anda.
+package-option-defender-enable = Pertahankan Microsoft Defender (disarankan)
+package-option-defender-disable = Hapus Microsoft Defender
+package-option-mitigations-default = Pertahankan perlindungan prosesor (disarankan)
+package-option-mitigations-disable = Nonaktifkan perlindungan prosesor
+package-option-auto-updates-disable = Instal pembaruan sendiri
+package-option-auto-updates-default = Instal pembaruan secara otomatis
+package-option-disable-hibernation = Nonaktifkan hibernasi
+package-option-disable-power-saving = Nonaktifkan penghematan daya
+package-option-disable-core-isolation = Nonaktifkan keamanan berbasis virtualisasi (VBS)
+package-option-remove-snipping-tool = Hapus Snipping Tool
+package-option-uninstall-edge = Hapus Microsoft Edge
+package-option-install-another-browser = Instal browser
+package-option-install-toolbox = Instal Atlas Toolbox
+package-option-install-eclean = Instal eclean
+package-option-browser-brave = Brave
+package-option-browser-librewolf = LibreWolf
+package-option-browser-firefox = Firefox
+package-option-browser-chrome = Chrome
+package-choice-defender-description = Microsoft Defender adalah antivirus bawaan Windows. Hapus hanya jika Anda memahami risikonya dan berencana menggunakan aplikasi antivirus lain. Apa pun pilihan Anda, Atlas menonaktifkan Kontrol Aplikasi Pintar, Perlindungan pengelabuan, dan Temukan perangkat saya.
+package-choice-mitigations-description = Perlindungan ini, yang juga disebut mitigasi keamanan, membantu melindungi dari celah keamanan prosesor, seperti Spectre dan Meltdown, serta dari serangan yang memanfaatkan bug dalam aplikasi. Sebaiknya pertahankan pengaturan bawaan Windows.
+package-choice-auto-updates-description = Pembaruan Windows mencakup perbaikan keamanan. Anda dapat membiarkan Windows menginstalnya secara otomatis atau menginstalnya sendiri. Apa pun pilihan Anda, Atlas mempertahankan Windows pada versinya saat ini, yang menerima perbaikan keamanan hanya sampai Microsoft mengakhiri dukungan untuk versi tersebut. Atlas juga menonaktifkan pembaruan otomatis untuk aplikasi Microsoft Store, jadi perbarui aplikasi tersebut di Microsoft Store.
+package-choice-browser-description = Pilih browser untuk diinstal. Atlas tidak akan mengubah pengaturan browser Anda.
 
 ## Step 3: Windows Security
 
@@ -546,7 +548,7 @@ output-problem-title = Kemajuan penginstalan tidak dapat dibaca
 output-problem-message = Atlas tidak dapat membaca log. Ini tidak berarti penginstalan berhenti. Biarkan PC tetap menyala dan coba buka file log. Detail: { $error }
 install-elevate-title = Atlas memerlukan izin untuk menginstal
 install-no-package-title = Pilih file penginstalan terlebih dahulu
-install-no-package-message = Kembali ke Persiapan untuk mengunduh Atlas atau membuka paket Atlas (.apbx) yang tersimpan.
+install-no-package-message = Kembali ke Persiapan untuk mengunduh Atlas atau membuka paket Atlas (.atlaspkg) yang tersimpan.
 # Tester build variant of install-no-package-message.
 install-no-package-bundled-message = Kembali ke Persiapan untuk menyiapkan paket Atlas bawaan versi uji ini.
 # Step 4 when step 1 is incomplete for this session (checks or Windows updates), with go-to-ready as the button.
@@ -689,7 +691,7 @@ iso-title = Buat ISO Atlas
 iso-beta = Beta
 iso-beta-description = Uji ISO di mesin virtual sebelum menggunakannya di PC. Cadangkan file Anda sebelum menginstal Windows.
 iso-admin-description = Atlas memerlukan izin administrator untuk membaca ISO Windows Anda dan membuat ISO baru. Pilih Jalankan ulang sebagai administrator, lalu pilih Ya saat Windows meminta izin.
-iso-files-description = Atlas membuat salinan ISO Windows 11 yang sudah berisi Atlas, untuk menginstal ulang Windows. Pilih ISO Windows 11 yang diunduh dari Microsoft, unduh paket Atlas terbaru atau pilih paket yang sudah Anda miliki (.apbx), lalu pilih lokasi untuk menyimpan ISO baru.
+iso-files-description = Atlas membuat salinan ISO Windows 11 yang sudah berisi Atlas, untuk menginstal ulang Windows. Pilih ISO Windows 11 yang diunduh dari Microsoft, unduh paket Atlas terbaru atau pilih paket yang sudah Anda miliki (.atlaspkg), lalu pilih lokasi untuk menyimpan ISO baru.
 # Tester build: no package picker.
 iso-files-description-bundled = Atlas membuat salinan ISO Windows 11 yang sudah berisi paket Atlas bawaan versi uji ini. Pilih ISO Windows 11 yang diunduh dari Microsoft, lalu pilih lokasi untuk menyimpan ISO baru.
 iso-source = ISO Windows
@@ -925,7 +927,7 @@ install-source-unsupported = Atlas { $source } tidak dapat diperbarui langsung k
 # Before a package is chosen, so the version on offer isn't known yet.
 install-source-unsupported-any = Atlas { $source } tidak dapat diperbarui langsung. Untuk menggunakan versi yang lebih baru, cadangkan file Anda dan instal ulang Windows.
 # "Open package file" is package-open-file. $folder is a folder path (text).
-install-source-resume = Penginstalan Atlas { $target } tidak selesai, dan hanya paket Atlas { $target } yang dapat menyelesaikannya. Pilih Buka file paket, lalu pilih paket Atlas tersebut (.apbx). Jika Atlas mengunduhnya, paket tersebut ada di { $folder }.
+install-source-resume = Penginstalan Atlas { $target } tidak selesai, dan hanya paket Atlas { $target } yang dapat menyelesaikannya. Pilih Buka file paket, lalu pilih paket Atlas tersebut (.atlaspkg). Jika Atlas mengunduhnya, paket tersebut ada di { $folder }.
 # Tester build: only the bundled Atlas package can be installed.
 install-source-resume-bundled = Penginstalan Atlas { $target } tidak selesai. Versi uji ini hanya dapat menginstal paket Atlas bawaannya, jadi selesaikan penginstalan tersebut dengan paket Atlas { $target } di versi rilis Atlas Manager.
 install-source-unknown = Atlas tidak dapat memastikan apa yang sudah terinstal di PC ini, jadi Atlas tidak akan menginstal apa pun untuk saat ini. Pilih Kirim laporan agar tim Atlas dapat membantu.
@@ -960,7 +962,7 @@ diagnostics-failed-title = Tidak dapat mengekspor diagnostik
 # $error is the raw error (text).
 diagnostics-failed = Pastikan PC Anda memiliki ruang disk kosong, lalu coba lagi. Detail: { $error }
 
-## Tester builds (embedded-playbook feature)
+## Tester builds (embedded-package feature)
 
 # One line of chrome under the title bar on a release-candidate build.
 rc-banner = Versi uji Atlas { $release }. Aplikasi ini hanya menginstal paket Atlas bawaan.
@@ -1231,10 +1233,10 @@ prepare-repair-store = Perbaiki Microsoft Store
 
 screen-keyboard-title = Bahasa keyboard
 screen-keyboard-question = Apakah Anda menggunakan beberapa bahasa keyboard?
-playbook-option-keyboard-shortcuts = Ya, dengan pintasan keyboard
-playbook-option-keyboard-selector = Ya, dengan pemilih di taskbar
-playbook-option-keyboard-single = Tidak, saya hanya menggunakan satu tata letak
+package-option-keyboard-shortcuts = Ya, dengan pintasan keyboard
+package-option-keyboard-selector = Ya, dengan pemilih di taskbar
+package-option-keyboard-single = Tidak, saya hanya menggunakan satu tata letak
 consequence-keyboard-shortcuts = Alt+Shift mengganti bahasa; Ctrl+Shift mengganti tata letak.
 consequence-keyboard-selector = Nonaktifkan Alt+Shift dan Ctrl+Shift agar tidak berganti tanpa sengaja saat bermain.
-playbook-page-keyboard-shortcuts-description = Pilih cara mengganti bahasa keyboard.
+package-choice-keyboard-description = Pilih cara mengganti bahasa keyboard.
 consequence-keyboard-single = { consequence-keyboard-selector }

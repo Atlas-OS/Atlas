@@ -2,7 +2,7 @@
 # Build a portable executable for clean Windows installations. An explicit target
 # keeps crt-static away from host build scripts and proc-macro DLLs.
 #
-# Without parameters this is the stable executable. -RcId and -EmbedApbx together
+# Without parameters this is the stable executable. -RcId and -EmbedPackage together
 # build the tester variant that carries one Atlas package (the same environment and
 # feature ../../tools/release/build-rc.sh uses); see docs/rc-testers-build.md.
 [CmdletBinding()]
@@ -10,25 +10,25 @@ param(
     [switch]$Json,
     # The candidate id shown to testers, for example 0.6.0-rc.1.
     [string]$RcId,
-    # The .apbx to bake into the executable.
-    [string]$EmbedApbx
+    # The Atlas package (.atlaspkg) to bake into the executable.
+    [string]$EmbedPackage
 )
 
 $ErrorActionPreference = 'Stop'
-if ([string]::IsNullOrWhiteSpace($RcId) -ne [string]::IsNullOrWhiteSpace($EmbedApbx)) {
-    throw 'Pass -RcId and -EmbedApbx together (a tester build), or neither (the stable build).'
+if ([string]::IsNullOrWhiteSpace($RcId) -ne [string]::IsNullOrWhiteSpace($EmbedPackage)) {
+    throw 'Pass -RcId and -EmbedPackage together (a tester build), or neither (the stable build).'
 }
 $tester = -not [string]::IsNullOrWhiteSpace($RcId)
 if ($tester) {
     # Resolve before changing directory: the path is relative to the caller.
-    if (-not (Test-Path -LiteralPath $EmbedApbx -PathType Leaf)) { throw "-EmbedApbx does not name a file: $EmbedApbx" }
-    $EmbedApbx = (Resolve-Path -LiteralPath $EmbedApbx).ProviderPath
+    if (-not (Test-Path -LiteralPath $EmbedPackage -PathType Leaf)) { throw "-EmbedPackage does not name a file: $EmbedPackage" }
+    $EmbedPackage = (Resolve-Path -LiteralPath $EmbedPackage).ProviderPath
 }
 
 $previous = @{
     CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS = $env:CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS
     CARGO_INCREMENTAL = $env:CARGO_INCREMENTAL
-    ATLAS_EMBED_APBX = $env:ATLAS_EMBED_APBX
+    ATLAS_EMBED_PACKAGE = $env:ATLAS_EMBED_PACKAGE
     ATLAS_RC_ID = $env:ATLAS_RC_ID
 }
 Push-Location (Split-Path -Parent $PSScriptRoot)
@@ -39,9 +39,9 @@ try {
     $env:CARGO_INCREMENTAL = '0'
     $buildArguments = @('build', '--release', '--locked', '--target', 'x86_64-pc-windows-msvc')
     if ($tester) {
-        $env:ATLAS_EMBED_APBX = $EmbedApbx
+        $env:ATLAS_EMBED_PACKAGE = $EmbedPackage
         $env:ATLAS_RC_ID = $RcId
-        $buildArguments += @('--features', 'embedded-playbook')
+        $buildArguments += @('--features', 'embedded-package')
     }
     if ($Json) { $buildArguments += '--message-format=json-render-diagnostics' }
     cargo @buildArguments

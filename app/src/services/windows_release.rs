@@ -17,7 +17,7 @@ const SOURCE_URL: &str =
     "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information";
 /// The bundled list of public releases, shared with the PowerShell side.
 pub(super) const CATALOG: &str =
-    include_str!("../../../playbook/Executables/AtlasModules/Scripts/Compatibility/windows-releases.json");
+    include_str!("../../../package/Executables/AtlasModules/Scripts/Compatibility/windows-releases.json");
 /// How long a reading of Microsoft's page is reused.
 const CACHE_FOR: Duration = Duration::from_secs(15 * 60);
 
@@ -73,7 +73,7 @@ fn preview_branch(build_lab: &str) -> bool {
 /// page. Tester builds don't depend on a live page for an ISO. This PC is
 /// always checked on it, as the installer checks it, so Get ready and the
 /// installer can't disagree about it.
-pub(crate) const REFRESH_ONLINE: bool = !cfg!(feature = "embedded-playbook");
+pub(crate) const REFRESH_ONLINE: bool = !cfg!(feature = "embedded-package");
 
 /// A revision the bundled list doesn't have is looked up on Microsoft's page:
 /// it is Unlisted when the page leaves it out, and Unknown when the page

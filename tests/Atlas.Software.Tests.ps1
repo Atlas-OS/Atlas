@@ -1,6 +1,6 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
+    $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\package\Executables\AtlasModules\Scripts\Modules'
     function New-AtlasTestNanaZipBundle {
         param(
             [Parameter(Mandatory = $true)][string]$Path,

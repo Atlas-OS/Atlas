@@ -1,6 +1,6 @@
 [package]
 name = "atlas-app"
-# Equal to <Version> in playbook/playbook.conf; tools/build/Set-AtlasVersion.ps1 bumps both.
+# Equal to "version" in package/atlas.json; tools/build/Set-AtlasVersion.ps1 bumps both.
 # Tester builds and the tag release fail when they differ.
 version = "0.6.0"
 edition = "2024"
@@ -33,7 +33,6 @@ ureq = { version = "3", features = ["json"] }
 # Read encrypted/deflated Atlas packages without also building the Zopfli encoder.
 zip = { version = "8.6", default-features = false, features = ["deflate-flate2-zlib-rs", "aes-crypto"] }
 image = { version = "0.25", default-features = false, features = ["png"] }
-roxmltree = "0.21"
 ring = "0.17"
 regex = "1.13"
 fluent-bundle = "0.16"
@@ -69,9 +68,9 @@ windows = { version = "0.62", features = [
 
 [features]
 # A tester build that carries one Atlas package and installs nothing else. The
-# release script sets ATLAS_EMBED_APBX and ATLAS_RC_ID; see docs/rc-testers-build.md
+# release script sets ATLAS_EMBED_PACKAGE and ATLAS_RC_ID; see docs/rc-testers-build.md
 # (app/docs/rc-testers-build.md from the repository root).
-embedded-playbook = []
+embedded-package = []
 
 [dev-dependencies]
 icu_segmenter = { version = "2.2.0", default-features = false, features = ["compiled_data"] }

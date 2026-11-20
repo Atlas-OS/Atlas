@@ -9,7 +9,7 @@ BeforeAll {
     $script:custom = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
     $script:powerCfg = 'C:\Windows\System32\powercfg.exe'
 
-    $togglesRoot = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles'
+    $togglesRoot = Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toggles'
     $script:PowerSaving = Get-AtlasToggleDefinition -Name PowerSaving -TogglesRoot $togglesRoot
     $script:Bluetooth = Get-AtlasToggleDefinition -Name Bluetooth -TogglesRoot $togglesRoot
     $script:PowerTweakScript = Join-Path $script:AtlasTestScriptsRoot 'Tweaks\scripts\set-power-settings.ps1'

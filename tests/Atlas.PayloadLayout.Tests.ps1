@@ -1,6 +1,6 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $script:executablesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables'
+    $script:executablesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\package\Executables'
 }
 
 Describe 'Paired registry assets stay in lockstep' {

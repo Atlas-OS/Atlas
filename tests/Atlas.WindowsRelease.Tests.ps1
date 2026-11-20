@@ -1,6 +1,6 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $script:policy = Join-Path $PSScriptRoot '../playbook/Executables/AtlasModules/Scripts/Compatibility/Windows-Release.ps1'
+    $script:policy = Join-Path $PSScriptRoot '../package/Executables/AtlasModules/Scripts/Compatibility/Windows-Release.ps1'
     . $policy
     function New-ReleaseMarkdownFixture {
         param([string]$Version = '26200.9999', [string]$Date = '2025-09-30')

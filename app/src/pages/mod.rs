@@ -34,7 +34,7 @@ use gpui::{
 
 use crate::i18n::describe;
 use crate::model::{AppModel, InstallAttempt, Page, RunState, ScreenKind};
-use crate::services::playbook::{FeatureOption, FeaturePage, PageKind};
+use crate::services::package::{Choice, ChoiceKind, ChoiceOption};
 use crate::services::preparation::Drivers;
 use crate::t;
 use crate::theme::ActiveTheme;
@@ -638,41 +638,32 @@ impl ListEntry {
         Self { text: text.into(), caution: None }
     }
 
-    /// An option of the Atlas package, by its name and the package's own text.
-    pub fn option(name: &str, package_text: &str) -> Self {
-        Self { text: describe::option_label(name, package_text), caution: caution(name, package_text) }
+    /// An option of the Atlas package, by its id and the manifest's label.
+    pub fn option(id: &str, label: &str) -> Self {
+        Self { text: describe::option_label(id, label), caution: caution(id) }
     }
 
     /// An option as the install on this PC will apply it: as [`Self::option`],
     /// and removing Microsoft Edge also says it deletes the user's Edge data,
     /// which an install before the desktop exists has none of.
-    pub fn install_option(name: &str, package_text: &str, before_desktop: bool) -> Self {
-        let mut entry = Self::option(name, package_text);
+    pub fn install_option(id: &str, label: &str, before_desktop: bool) -> Self {
+        let mut entry = Self::option(id, label);
         if entry.caution.is_none() && !before_desktop {
-            entry.caution = describe::known_data_caution(name, package_text);
+            entry.caution = describe::data_caution(id);
         }
         entry
     }
 }
 
-/// What choosing `name` means, when it reduces protection and its text is
-/// the wording this app knows.
-fn caution(name: &str, package_text: &str) -> Option<String> {
-    REDUCES_PROTECTION
-        .contains(&name)
-        .then(|| describe::known_option_consequence(name, package_text))
-        .flatten()
+/// What choosing option `id` means, when it reduces protection.
+fn caution(id: &str) -> Option<String> {
+    REDUCES_PROTECTION.contains(&id).then(|| describe::option_consequence(id)).flatten()
 }
 
-/// The options an install recorded, as this app labels them.
-pub fn recorded_options(state: &AppModel, names: &[String]) -> Vec<ListEntry> {
-    names
-        .iter()
-        .map(|name| match state.option_text(name) {
-            Some(text) => ListEntry::option(name, text),
-            None => ListEntry::new(name.as_str()),
-        })
-        .collect()
+/// The options an install recorded, as this app labels them: by the app's
+/// own label, the manifest's, or else the id itself.
+pub fn recorded_options(state: &AppModel, ids: &[String]) -> Vec<ListEntry> {
+    ids.iter().map(|id| ListEntry::option(id, state.option_text(id).unwrap_or(id))).collect()
 }
 
 /// The options of an install as a list, or "None" when there are none.
@@ -700,8 +691,8 @@ pub fn caution_caption(cx: &App, text: impl IntoElement) -> Div {
         .child(div().flex_1().min_w_0().child(text))
 }
 
-/// How [`option_page_card`] reports a choice: the option chosen on a radio
-/// page, or the option toggled on a checkbox page.
+/// How [`option_page_card`] reports an answer: the option chosen for a
+/// single choice, or the option toggled for a multiple one.
 pub type OptionChoice = Rc<dyn Fn(&str, &mut App)>;
 
 /// What [`option_page_card`] says under one option. ISO creation and a first
@@ -743,48 +734,48 @@ impl OptionNote {
     }
 }
 
-/// One page of the Atlas package's choices as a card, as the install flow
-/// and ISO creation both show it: the header (the question, or the page's
-/// title), a divider, the page's description, the choices with what each
-/// means, and its "Learn more" link. `id` prefixes the element ids; `note`
-/// says what goes under an option (see [`OptionNote`]); `on_choose` gets the
-/// option's name; `images` is the unpacked package, for the browser logos.
+/// One of the Atlas package's choices as a card, as the install flow and ISO
+/// creation both show it: the header (the question, or the choice's title),
+/// a divider, the choice's description, its options with what each means,
+/// and its "Learn more" link. `id` prefixes the element ids; `note` says
+/// what goes under an option (see [`OptionNote`]); `on_choose` gets the
+/// option's id; `images` is the unpacked package, for the browser logos.
 #[allow(clippy::too_many_arguments)]
 pub fn option_page_card<N: Into<OptionNote>>(
     cx: &mut App,
     id: &str,
     page_index: usize,
-    page: &FeaturePage,
+    choice: &Choice,
     header: String,
     selected: impl Fn(&str) -> bool,
     disabled: bool,
     focus: &mut FocusHandles,
-    note: impl Fn(&FeatureOption) -> N,
+    note: impl Fn(&ChoiceOption) -> N,
     on_choose: OptionChoice,
     images: Option<&Path>,
 ) -> AnyElement {
     let theme = cx.theme().clone();
-    let kind = ScreenKind::of_page(page);
+    let kind = ScreenKind::of_choice(choice);
     let title = kind.title();
     let mut body = card_body().gap(px(2.));
-    if let Some(description) = describe::page_description(page) {
+    if let Some(description) = describe::choice_description(choice) {
         body =
             body.child(div().type_body().text_color(theme.text_secondary).pb(px(4.)).child(a11y_text(
                 ElementId::Name(format!("{id}-description-{page_index}").into()),
                 description,
             )));
     }
-    match page.kind {
-        PageKind::Radio => {
-            let items: Vec<RadioItem> = page
+    match choice.kind {
+        ChoiceKind::Single => {
+            let items: Vec<RadioItem> = choice
                 .options
                 .iter()
                 .map(|option| {
-                    let key = format!("{id}-{page_index}-{}", option.name);
+                    let key = format!("{id}-{page_index}-{}", option.id);
                     let handle = focus.get(&key, cx);
                     let mut item = RadioItem::new(
                         ElementId::Name(key.into()),
-                        describe::option_label(&option.name, &option.text),
+                        describe::option_label(&option.id, &option.label),
                         handle,
                     );
                     if kind == ScreenKind::Browser
@@ -798,7 +789,7 @@ pub fn option_page_card<N: Into<OptionNote>>(
                     item
                 })
                 .collect();
-            let names: Vec<String> = page.options.iter().map(|o| o.name.clone()).collect();
+            let names: Vec<String> = choice.options.iter().map(|o| o.id.clone()).collect();
             let chosen = names.iter().position(|name| selected(name));
             body = body.child(
                 RadioGroup::new(ElementId::Name(format!("{id}-group-{page_index}").into()), header.clone())
@@ -812,7 +803,7 @@ pub fn option_page_card<N: Into<OptionNote>>(
                     }),
             );
         }
-        PageKind::Checkbox => {
+        ChoiceKind::Multiple => {
             let mut group = div()
                 .id(ElementId::Name(format!("{id}-group-{page_index}").into()))
                 .role(Role::Group)
@@ -820,15 +811,15 @@ pub fn option_page_card<N: Into<OptionNote>>(
                 .flex()
                 .flex_col()
                 .gap(px(2.));
-            for option in &page.options {
-                let name = option.name.clone();
+            for option in &choice.options {
+                let name = option.id.clone();
                 let choose = on_choose.clone();
                 let mut checkbox = CheckBox::new(
-                    ElementId::Name(format!("{id}-{page_index}-{}", option.name).into()),
-                    describe::option_label(&option.name, &option.text),
-                    selected(&option.name),
+                    ElementId::Name(format!("{id}-{page_index}-{}", option.id).into()),
+                    describe::option_label(&option.id, &option.label),
+                    selected(&option.id),
                 )
-                .map(|checkbox| match option.name.as_str() {
+                .map(|checkbox| match option.id.as_str() {
                     "install-toolbox" => checkbox.image("brand/toolbox.png"),
                     "install-eclean" => checkbox.image("brand/eclean.png"),
                     _ => checkbox,
@@ -844,14 +835,14 @@ pub fn option_page_card<N: Into<OptionNote>>(
             body = body.child(group);
         }
     }
-    if let Some(link) = &page.learn_more {
+    if let Some(link) = &choice.learn_more {
         body = body.child(
             div().flex().pt(px(6.)).child(
                 Button::new(ElementId::Name(format!("{id}-learn-{page_index}").into()), kind.learn_more())
                     .hyperlink()
                     .compact()
                     .trailing_icon(Icon::OpenInNewWindow)
-                    .opens(link.url.clone()),
+                    .opens(link.clone()),
             ),
         );
     }
@@ -1033,10 +1024,10 @@ pub(crate) mod testing {
     use gpui::{AsyncApp, Entity};
 
     use crate::model::test_harness::{Machine, all_off, new_model};
-    use crate::model::{AppModel, Origin, PlaybookSource};
+    use crate::model::{AppModel, Origin, PackageSource};
     use crate::services::atlas_state::{AtlasState, InstallIdentity};
     use crate::services::legacy_choices::Facts;
-    use crate::services::playbook::Manifest;
+    use crate::services::package::Manifest;
     use crate::services::test_support::TempDir;
     use crate::services::update_access::{Carry, Rebuild, UpdateAccess, parse_journal};
 
@@ -1093,7 +1084,7 @@ pub(crate) mod testing {
             m.install_identity = Ok(InstallIdentity::Installed("0.6.0".into()));
             m.atlas = Ok(options.map(|options| recorded("0.6.0", options)));
             m.pc_facts = facts;
-            m.playbook = Some(PlaybookSource {
+            m.package = Some(PackageSource {
                 dir: temp.path().to_path_buf(),
                 manifest: Manifest::builtin(),
                 origin: Origin::Unpacked,
@@ -1185,16 +1176,21 @@ mod tests {
     #[test]
     fn only_choices_that_reduce_protection_carry_a_caution() {
         crate::i18n::testing::english(|| {
-            let manifest = crate::services::playbook::Manifest::builtin();
+            let manifest = crate::services::package::Manifest::builtin();
             let mut cautions = Vec::new();
-            for option in manifest.pages.iter().flat_map(|page| &page.options) {
-                if ListEntry::option(&option.name, &option.text).caution.is_some() {
-                    cautions.push(option.name.as_str());
+            for option in manifest.choices.iter().flat_map(|choice| &choice.options) {
+                if ListEntry::option(&option.id, &option.label).caution.is_some() {
+                    cautions.push(option.id.as_str());
                 }
             }
             assert_eq!(cautions, REDUCES_PROTECTION);
-            // Wording this app doesn't know is shown as the package has it, with no caption.
-            assert_eq!(ListEntry::option("defender-disable", "Pause Defender").caution, None);
+            // The id decides, whatever the manifest's English says; an id this app
+            // doesn't know is shown as the manifest has it, with no caption.
+            let known = ListEntry::option("defender-disable", "Pause Defender");
+            assert_eq!(known.text, t!("package-option-defender-disable"));
+            assert!(known.caution.is_some());
+            let unknown = ListEntry::option("pause-defender", "Pause Defender");
+            assert_eq!((unknown.text.as_str(), unknown.caution), ("Pause Defender", None));
         });
     }
 

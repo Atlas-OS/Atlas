@@ -11,20 +11,21 @@
             [-Restart]
             [-RestartComment <text>]
 
-    The script checks the machine against playbook.conf, copies the extracted files
-    into a protected staging folder that only Administrators and SYSTEM can write,
-    records the requested options there, and hands the install to the TrustedInstaller
-    broker in two phases: Capture (begin the install state and record options), then,
-    after this process publishes the installing user's identity, Run (commit and execute
-    the complete install plan).
+    The script checks the machine against atlas.json, the package manifest, copies
+    the extracted files into a protected staging folder that only Administrators and
+    SYSTEM can write, records the requested options there, and hands the install to
+    the TrustedInstaller broker in two phases: Capture (begin the install state and
+    record options), then, after this process publishes the installing user's
+    identity, Run (commit and execute the complete install plan).
 
     Live Windows Update and Microsoft Store checks must confirm preparation is complete
     before the install plan starts.
 .PARAMETER Option
-    FeaturePage option names from playbook.conf. Every required group (Defender,
-    mitigations, automatic updates, keyboard language switching) needs exactly one
-    choice; Get-AtlasPlaybookOption in the Atlas.InstallState module lists each
-    group's options.
+    Option ids from the choices in atlas.json. Every single choice that's asked
+    (Defender, mitigations, automatic updates, keyboard language switching, and the
+    browser when install-another-browser is given) needs exactly one option, and an
+    option of a choice that isn't asked is refused; Get-AtlasPackageChoice in the
+    Atlas.InstallState module lists each choice's options.
 .PARAMETER Unattended
     Never prompts; blocking requirements still apply.
 .PARAMETER WindowsSecurityConfirmed
@@ -114,10 +115,24 @@ function Get-AtlasPowerStatus {
     return [System.Windows.Forms.SystemInformation]::PowerStatus
 }
 
-function Get-AtlasDeclaredRequirement([xml]$Playbook) {
-    # Development packages may deliberately omit the Requirements element.
-    foreach ($node in $Playbook.SelectNodes('/Playbook/Requirements/Requirement')) {
-        $node.InnerText
+function Get-AtlasDeclaredRequirement {
+    <#
+    .SYNOPSIS
+        The requirement ids the manifest lists. A development package may leave out
+        requirements; Test-AtlasInstallRequirement refuses an id it doesn't recognise.
+    #>
+    param([Parameter(Mandatory = $true)]$Manifest)
+
+    $property = $Manifest.PSObject.Properties['requirements']
+    if ($null -eq $property) { return }
+    if ($property.Value -isnot [array]) {
+        throw "The package manifest's 'requirements' must be a list of requirement ids."
+    }
+    foreach ($requirement in @($property.Value)) {
+        if ($requirement -isnot [string]) {
+            throw "The package manifest lists a requirement that isn't an id: $(ConvertTo-Json -InputObject $requirement -Compress)."
+        }
+        $requirement
     }
 }
 
@@ -320,9 +335,11 @@ function Test-AtlasInstallRequirement {
     )
 
     $results = @()
+    # The manifest's requirement ids, each mapped to one check below. The build, edition,
+    # account and restart checks run whatever the manifest lists.
     foreach ($requirement in $DeclaredRequirements) {
-        if ($requirement -notin @('NoAntivirus', 'PluggedIn', 'DefenderToggled')) {
-            throw "Direct installation cannot verify the package requirement '$requirement'."
+        if ($requirement -cnotin @('windows-security-off', 'no-third-party-antivirus', 'plugged-in')) {
+            throw "The package requires '$requirement', a check this installer doesn't recognise, so it can't install the package."
         }
     }
     $results += [pscustomobject]@{
@@ -410,7 +427,7 @@ function Test-AtlasInstallRequirement {
         $powerDetail = "power status could not be checked: $($_.Exception.Message)"
     }
     $results += [pscustomobject]@{
-        Name = 'Plugged in'; Passed = $powerConnected; Blocking = $DeclaredRequirements -contains 'PluggedIn'
+        Name = 'Plugged in'; Passed = $powerConnected; Blocking = $DeclaredRequirements -ccontains 'plugged-in'
         Detail = $powerDetail
     }
 
@@ -444,11 +461,11 @@ function Test-AtlasInstallRequirement {
     }
     $results += [pscustomobject]@{
         Name = 'No third-party antivirus'; Passed = $antivirusChecked -and $thirdPartyAv.Count -eq 0
-        Blocking = $DeclaredRequirements -contains 'NoAntivirus'
+        Blocking = $DeclaredRequirements -ccontains 'no-third-party-antivirus'
         Detail = $antivirusDetail
     }
 
-    if ($DeclaredRequirements -contains 'DefenderToggled') {
+    if ($DeclaredRequirements -ccontains 'windows-security-off') {
         $defenderPassed = $false
         $defenderBlocking = $true
         $defenderDetail = 'turn off the four Windows Security switches shown by Atlas before installation'
@@ -639,7 +656,7 @@ function New-AtlasProtectedStagingRoot {
 function Copy-AtlasPayloadToStaging {
     <#
     .SYNOPSIS
-        Copies the extracted package (playbook.conf and the Executables tree) into the
+        Copies the extracted package (atlas.json and the Executables tree) into the
         staging folder, refusing links and junctions so none can redirect the copy.
     #>
     param(
@@ -654,7 +671,7 @@ function Copy-AtlasPayloadToStaging {
             throw "The extracted package contains a link or junction (a reparse point that redirects) at '$($item.FullName)'; refusing to copy it."
         }
     }
-    Copy-Item -LiteralPath (Join-Path -Path $ExtractedRoot -ChildPath 'playbook.conf') -Destination (Join-Path -Path $StagingRoot -ChildPath 'playbook.conf') -Force
+    Copy-Item -LiteralPath (Join-Path -Path $ExtractedRoot -ChildPath 'atlas.json') -Destination (Join-Path -Path $StagingRoot -ChildPath 'atlas.json') -Force
     Copy-Item -LiteralPath (Join-Path -Path $ExtractedRoot -ChildPath 'Executables') -Destination (Join-Path -Path $StagingRoot -ChildPath 'Executables') -Recurse -Force
     return Join-Path -Path $StagingRoot -ChildPath 'Executables'
 }
@@ -667,7 +684,10 @@ function Remove-AtlasStagedPackage {
     #>
     param([Parameter(Mandatory = $true)][string]$StagingRoot)
 
-    Remove-Item -LiteralPath ([IO.Path]::Combine($StagingRoot, 'playbook.conf')) -Force -ErrorAction SilentlyContinue
+    # A copy that an earlier build made holds playbook.conf where atlas.json sits.
+    foreach ($manifest in @('atlas.json', 'playbook.conf')) {
+        Remove-Item -LiteralPath ([IO.Path]::Combine($StagingRoot, $manifest)) -Force -ErrorAction SilentlyContinue
+    }
     foreach ($item in @(Get-ChildItem -LiteralPath ([IO.Path]::Combine($StagingRoot, 'Executables')) -Force -ErrorAction SilentlyContinue)) {
         if ($item.Name -eq 'request.json') { continue }
         if ($item.Name -eq 'AtlasModules' -and $item.PSIsContainer) {
@@ -865,11 +885,11 @@ try {
         throw 'WindowsSetup cannot verify per-user Microsoft Store preparation. Finish setup and run Atlas as the signed-in user.'
     }
 
-    # The extracted package root holds playbook.conf; this script sits under
+    # The extracted package root holds atlas.json; this script sits under
     # Executables\AtlasModules\Scripts\Entry.
     $extractedRoot = [IO.Path]::GetFullPath([IO.Path]::Combine($scriptsRoot, '..', '..', '..'))
-    $playbookPath = Join-Path -Path $extractedRoot -ChildPath 'playbook.conf'
-    $targetVersion = Get-AtlasPlaybookVersion -PlaybookPath $playbookPath
+    $manifestPath = Join-Path -Path $extractedRoot -ChildPath 'atlas.json'
+    $targetVersion = Get-AtlasPackageVersion -ManifestPath $manifestPath
     $windowsPath = [Environment]::GetFolderPath('Windows')
     $context = Get-AtlasContext -Refresh
 
@@ -877,13 +897,13 @@ try {
     . (Join-Path -Path $scriptsRoot -ChildPath 'Preparation\WindowsTransition.ps1')
 
     $windowsVersion = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction Stop
-    [xml]$playbookDocument = [IO.File]::ReadAllText($playbookPath)
+    $manifest = Get-AtlasPackageManifest -ManifestPath $manifestPath
     $probe = Get-AtlasInstallProbe -TargetVersion $targetVersion -WindowsPath $windowsPath -Option $Option -ChooseAgain:$ChooseAgain
-    $requirements = @(Test-AtlasInstallRequirement -SupportedBuilds (Get-AtlasPlaybookSupportedBuild -PlaybookPath $playbookPath) `
+    $requirements = @(Test-AtlasInstallRequirement -SupportedBuilds (Get-AtlasPackageSupportedBuild -ManifestPath $manifestPath) `
             -WindowsBuild ([int]$context.WindowsBuild) -EditionId ([string]$windowsVersion.EditionID) `
             -WindowsRevision ([int]$windowsVersion.UBR) -BuildLabEx ([string]$windowsVersion.BuildLabEx) `
             -InstallationType ([string]$windowsVersion.InstallationType) `
-            -DeclaredRequirements @(Get-AtlasDeclaredRequirement -Playbook $playbookDocument) `
+            -DeclaredRequirements @(Get-AtlasDeclaredRequirement -Manifest $manifest) `
             -WindowsSecurityConfirmed:$WindowsSecurityConfirmed `
             -Option $Option -ChooseAgain:($probe.Choices -ceq 'ChooseAgain') -Mode $probe.Mode -AtlasPackages $probe.AtlasPackages)
     $requirements += Test-AtlasWindowsUpdateInProgress -WindowsBuild ([int]$context.WindowsBuild)

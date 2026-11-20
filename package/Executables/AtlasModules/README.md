@@ -3,10 +3,10 @@
 This file lists every executable, archive and Windows component package in the Atlas package, with its SHA-256 hash, source and licence.
 It's for reviewers who verify those binaries and for maintainers who replace one.
 
-Every `.exe`, `.dll`, `.cab` and `.zip` file under `playbook/Executables` has an entry here.
+Every `.exe`, `.dll`, `.cab` and `.zip` file under `package/Executables` has an entry here.
 No test checks this, so compare the list with the files whenever you add, replace or remove a binary.
 
-Paths start at `playbook/Executables`.
+Paths start at `package/Executables`.
 Hashes are upper-case SHA-256, as `Get-FileHash` prints them; on Linux, upper-case the output of `sha256sum`.
 
 On an installed PC, `%windir%\AtlasModules\LICENSE` holds the Atlas project licence.
@@ -82,7 +82,7 @@ Third-party components keep their own licences, listed with each entry.
 
 ## Replace a binary
 
-1. Replace the file under `playbook/Executables`.
+1. Replace the file under `package/Executables`.
    For a CAB, verify it against the CI candidate artifact it came from.
 2. Hash it and update its entry here: path, SHA-256, version and source.
 
@@ -97,6 +97,6 @@ Third-party components keep their own licences, listed with each entry.
 5. Compare this inventory with the binaries in the package, since no test does.
 
    ```powershell
-   Get-ChildItem -LiteralPath playbook/Executables -Recurse -File -Include *.exe, *.dll, *.cab, *.zip |
+   Get-ChildItem -LiteralPath package/Executables -Recurse -File -Include *.exe, *.dll, *.cab, *.zip |
        Get-FileHash -Algorithm SHA256
    ```

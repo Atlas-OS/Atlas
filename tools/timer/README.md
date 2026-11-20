@@ -38,7 +38,7 @@ The script:
 6. Writes `build-manifest.json`, and `corresponding-source.zip` with the contents of `source`.
 
 The manifest records the compiler version and SHA-256, the toolset, the SDK, the compiler flags, the inputs, and the SHA-256 of every source file and executable.
-The script doesn't change files under `playbook/`.
+The script doesn't change files under `package/`.
 
 > [!WARNING]
 > The script doesn't run the utilities, and you shouldn't run them on your development PC to check a build.
@@ -53,7 +53,7 @@ The script doesn't change files under `playbook/`.
 - It measures the delta against the requested sleep duration instead of a fixed 1 ms.
 
 `SetTimerResolution.patch` rejects a resolution of zero or less before the native call.
-Valid arguments work as they do upstream, so the scheduled task in `playbook/Executables/AtlasModules/Other/Force Timer Resolution.xml` keeps running `SetTimerResolution --resolution 5060 --no-console`.
+Valid arguments work as they do upstream, so the scheduled task in `package/Executables/AtlasModules/Other/Force Timer Resolution.xml` keeps running `SetTimerResolution --resolution 5060 --no-console`.
 
 ## Accept a build
 
@@ -63,12 +63,12 @@ Valid arguments work as they do upstream, so the scheduled task in `playbook/Exe
 
    | Build output | Destination |
    | --- | --- |
-   | `SetTimerResolution.exe` | `playbook/Executables/AtlasModules/Tools/SetTimerResolution.exe` |
-   | `MeasureSleep.exe` | `playbook/Executables/AtlasDesktop/3. General Configuration/Timer Resolution/! MeasureSleep.exe` |
-   | `corresponding-source.zip` | `playbook/Executables/AtlasModules/Sources/TimerResolution-source.zip` |
+   | `SetTimerResolution.exe` | `package/Executables/AtlasModules/Tools/SetTimerResolution.exe` |
+   | `MeasureSleep.exe` | `package/Executables/AtlasDesktop/3. General Configuration/Timer Resolution/! MeasureSleep.exe` |
+   | `corresponding-source.zip` | `package/Executables/AtlasModules/Sources/TimerResolution-source.zip` |
 
 4. Replace `accepted-build.json` with the new `build-manifest.json`.
-5. Update the SHA-256 values in the [binary inventory](../../playbook/Executables/AtlasModules/README.md).
+5. Update the SHA-256 values in the [binary inventory](../../package/Executables/AtlasModules/README.md).
 6. Run `tests/Atlas.TimerProvenance.Tests.ps1` in Windows PowerShell 5.1, as [Testing](../../docs/testing.md) describes.
 
 The test checks three things:

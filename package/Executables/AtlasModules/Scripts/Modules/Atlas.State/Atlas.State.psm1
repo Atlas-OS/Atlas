@@ -28,8 +28,9 @@ $script:AtlasStateFields = @(
 )
 $script:AtlasStateNamePattern = '^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$'
 
-# The install choices that can change between installs, grouped as playbook.conf groups
-# them: a radio group holds exactly one of its options, and a checkbox stands alone.
+# The install choices that can change between installs, grouped as atlas.json groups
+# them: a single choice holds exactly one of its options, and each option of a multiple
+# choice stands alone.
 $script:AtlasStateRadioChoices = @{
     Defender         = @('defender-enable', 'defender-disable')
     Mitigations      = @('mitigations-default', 'mitigations-disable')

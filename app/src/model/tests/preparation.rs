@@ -11,12 +11,11 @@ use crate::model::test_harness::{
 };
 use crate::model::{AppModel, RunState, Step};
 use crate::services::installer::InstallOutcome;
-use crate::services::playbook;
 use crate::services::preparation::{Drivers, RestartProblem, State, StoreOutcome};
 use crate::services::recovery_app::SourceLinked;
 use crate::services::requirements::CheckId;
 use crate::services::settings::{self, InstallDraft};
-use crate::services::test_support::apbx;
+use crate::services::test_support::package;
 
 #[test]
 fn incomplete_preparation_blocks_install_even_when_checks_pass() {
@@ -47,7 +46,7 @@ fn preparation_arms_recovery_without_requesting_shutdown_and_restores_choices() 
         env.adapters.register_preparation_resume = Arc::new(move || {
             let draft = settings::load_from(&path).settings.draft.unwrap();
             assert!(draft.preparation_restart_at.is_some(), "save must precede registration");
-            assert!(draft.playbook_dir.is_some());
+            assert!(draft.package_dir.is_some());
             *count.lock().unwrap() += 1;
             Ok(())
         });
@@ -245,13 +244,14 @@ fn a_resumed_draft_keeps_a_finished_preparation() {
     run_model_test(async move |mut cx| {
         let (temp, _, env) = fixture("model-draft-preparation-ready");
         let (package, _) = marking_package(&temp, 0);
-        let (dir, _) = playbook::extract_into(&package, &env.paths.playbooks(), |_, _| {}).unwrap();
+        let (dir, _) =
+            crate::services::package::extract_into(&package, &env.paths.packages(), |_, _| {}).unwrap();
         save_draft(
             &env,
             InstallDraft {
                 step: "install".into(),
                 options: vec!["defender-enable".into()],
-                playbook_dir: Some(dir),
+                package_dir: Some(dir),
                 flow: Some("earlier-window".into()),
                 preparation_ready: true,
                 ..InstallDraft::default()
@@ -296,7 +296,8 @@ fn an_install_that_finds_preparation_out_of_date_offers_it_again() {
             "Write-Host '[Atlas] Copying Atlas''s files to a protected folder...'\r\nexit ([int](Get-Content -LiteralPath {}))",
             ps_literal(&code)
         );
-        let package = apbx::write(&temp.path().join("package.apbx"), &apbx::with_front_door("0.6.0", &body));
+        let package =
+            package::write(&temp.path().join("package.atlaspkg"), &package::with_front_door("0.6.0", &body));
         let model = new_model(&mut cx, env.clone());
         walk_to_install(&mut cx, &model, &package).await;
         act(&mut cx, &model, |m, cx| m.next_step(cx));
@@ -336,8 +337,8 @@ fn checking_again_after_a_finished_preparation_stops_vouching_for_it() {
             m.begin_install(cx);
             m.preparation = State::Ready;
         });
-        act(&mut cx, &model, |m, cx| m.load_playbook_file(package, cx));
-        wait_for(&cx, &model, "the package and the checks", |m| m.playbook.is_some() && m.checks_complete())
+        act(&mut cx, &model, |m, cx| m.load_package_file(package, cx));
+        wait_for(&cx, &model, "the package and the checks", |m| m.package.is_some() && m.checks_complete())
             .await;
         wait_on_disk(&cx, &env, "a draft with the finished preparation", |s| {
             s.draft.as_ref().is_some_and(|draft| draft.preparation_ready)
@@ -411,7 +412,7 @@ fn a_draft_resumed_after_done_prepares_windows_for_itself() {
             &env,
             InstallDraft {
                 step: "ready".into(),
-                playbook_dir: Some(record.request.playbook_dir.clone()),
+                package_dir: Some(record.request.package_dir.clone()),
                 flow: Some("second-window".into()),
                 ..InstallDraft::default()
             },
@@ -489,8 +490,8 @@ fn what_updating_did_about_microsoft_store_is_said_after_a_restart() {
         let model = new_model(&mut cx, env.clone());
         wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
         act(&mut cx, &model, |m, cx| m.begin_install(cx));
-        act(&mut cx, &model, |m, cx| m.load_playbook_file(package.clone(), cx));
-        wait_for(&cx, &model, "the package and the checks", |m| m.playbook.is_some() && m.checks_complete())
+        act(&mut cx, &model, |m, cx| m.load_package_file(package.clone(), cx));
+        wait_for(&cx, &model, "the package and the checks", |m| m.package.is_some() && m.checks_complete())
             .await;
         let runs = Arc::new(Mutex::new(0));
         let restart = serde_json::json!({
@@ -536,8 +537,8 @@ fn get_ready_says_what_it_did_about_microsoft_store() {
         let model = new_model(&mut cx, env);
         wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
         act(&mut cx, &model, |m, cx| m.begin_install(cx));
-        act(&mut cx, &model, |m, cx| m.load_playbook_file(package.clone(), cx));
-        wait_for(&cx, &model, "the package and the checks", |m| m.playbook.is_some() && m.checks_complete())
+        act(&mut cx, &model, |m, cx| m.load_package_file(package.clone(), cx));
+        wait_for(&cx, &model, "the package and the checks", |m| m.package.is_some() && m.checks_complete())
             .await;
         let runs = Arc::new(Mutex::new(0));
 

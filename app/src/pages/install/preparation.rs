@@ -282,7 +282,7 @@ impl InstallPage {
         // package, and while updating is what's left, or something to retry.
         let accent = enabled
             && action.moves_on()
-            && (action != PrepareAction::Start || state.playbook.is_some())
+            && (action != PrepareAction::Start || state.package.is_some())
             && state.preparation != State::Ready;
         let label = match action {
             PrepareAction::Start if moving => t!("prepare-start-transition", release = release.as_str()),

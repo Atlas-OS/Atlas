@@ -13,7 +13,7 @@ Record release evidence against the exact file hashes, as the [release verificat
 - The patched crates under `app/vendor/`: GPUI, and AccessKit's Windows adapter `accesskit_windows`.
   Each keeps its licence texts and an `ATLAS-PATCH.md` that names the upstream version and explains the local changes, so reviewers can check them against upstream.
   Never replace them with build output.
-- The Atlas package source, the declared third-party files the package includes with their licence and provenance inventory, and the generated launchers and catalogs the product uses.
+- The Atlas package source under `package/`, as the [package format](package-format.md) defines it, the declared third-party files the package includes with their licence and provenance inventory, and the generated launchers and catalogs the product uses.
 - Source, lockfiles and deployment examples for the reports service and its MCP server under `services/`.
 - Behavioural tests, CI definitions, portable editor configuration, and lasting architecture, build, testing, compatibility and translation guidance.
 
@@ -24,7 +24,7 @@ The binary inventory is a review requirement: a listed hash doesn't establish th
 
 - `app/target/`, `target/` under `services/`, `artifacts/`, `lab-output/`, `tests/results/` and `testResults.xml`.
 - A local reports service's `data/` (database and received reports) and `web/`.
-- Built `.apbx` packages, replacement and temporary archives, release ZIPs, executables, PDBs, and native DLL output that isn't in the package's declared binary inventory.
+- Built `.atlaspkg` packages, replacement and temporary archives, tester bundles, executables, PDBs, and native DLL output that isn't in the package's declared binary inventory.
 - Windows ISOs, extracted media, WIM, ESD and SWM files, and mounted image contents.
 - VM disks, differencing disks, checkpoints, saved state and exported VMs.
 - Credentials, `.env` files with secrets, signing private keys, certificates that contain private keys, access tokens and user-specific application state.
@@ -44,7 +44,7 @@ Never delete a file only because it's untracked.
 Before the release pull request is merged:
 
 1. Group the changes by install behaviour, media safety, Atlas Manager behaviour, packaging and documentation, and review each group against the previous release.
-2. Check that the [automated checks](testing.md) pass and the package passes `Test-Apbx.ps1`, built with every eligibility gate.
+2. Check that the [automated checks](testing.md) pass and the package passes `Test-Package.ps1`, built with every eligibility gate.
 3. Include the project licence and the required dependency notices with Atlas Manager.
    Before publishing executables, resolve any missing binary provenance and audit dependency licence obligations.
 4. Inspect the rendered interface and complete the [verification matrix](release-verification-matrix.md).

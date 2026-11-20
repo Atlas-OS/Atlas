@@ -207,8 +207,8 @@ try {
     if ($request.mode -notin @('interactive', 'configured', 'before-desktop')) { throw 'Unknown setup mode.' }
     if ($request.copyNetworkDrivers -and -not $request.reinstallThisPc) { throw 'Network driver copying is only available when reinstalling this PC.' }
     if ($request.updateNetworkDrivers -and -not $request.copyNetworkDrivers) { throw 'Network driver updates require network driver copying.' }
-    [xml]$packageManifest = Get-Content -LiteralPath (Join-Path $request.package 'playbook.conf') -Raw
-    $packageVersion = [version]([string]$packageManifest.Playbook.Version -replace '-.*$', '')
+    $packageManifest = Get-Content -LiteralPath (Join-Path $request.package 'atlas.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+    $packageVersion = [version]([string]$packageManifest.version -replace '-.*$', '')
     if ($packageVersion -lt [version]'0.6.0') { throw 'ISO creation requires Atlas 0.6.0 or newer.' }
     Assert-PlainTree $request.package
     if ($request.mode -ne 'interactive') {
@@ -252,11 +252,11 @@ try {
     $atlasIso = 'sources\$OEM$\$$\AtlasISO'
     $target = Join-Path $media $atlasIso
     [void][IO.Directory]::CreateDirectory($target)
-    $payload = [ordered]@{ 'AtlasManager.exe' = $request.app; 'Atlas.apbx' = $request.archive }
+    $payload = [ordered]@{ 'AtlasManager.exe' = $request.app; 'Atlas.atlaspkg' = $request.archive }
     foreach ($name in @('Setup.ps1', 'Desktop.ps1', 'Desktop-Policy.ps1', 'RegistryFile.ps1', 'THIRD-PARTY-NOTICES.txt', 'DriverPolicy.reg')) {
         $payload[$name] = Join-Path $job $name
     }
-    # The app installs from Atlas.apbx. The unpacked package stays off the media:
+    # The app installs from Atlas.atlaspkg. The unpacked package stays off the media:
     # its deepest launchers pass MAX_PATH under a workspace in the user's folders.
     foreach ($name in $payload.Keys) { Copy-Item -LiteralPath $payload[$name] -Destination (Join-Path $target $name) }
     $username = [string]$request.username

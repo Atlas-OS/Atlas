@@ -14,7 +14,7 @@ Insider, Canary, Dev, Beta and Release Preview builds can change the components,
 | Windows 11 25H2 | `26200` | Supported |
 | Windows 11 26H2 | `26300` | Supported |
 
-**Supported** means the build is in `SupportedBuilds` in `playbook/playbook.conf` and in the release catalog's `supportedReleases`, so Atlas installs on that build's public revisions and builds ISOs from them.
+**Supported** means the build is in `supportedBuilds` in `package/atlas.json` (see the [package format](package-format.md#the-manifest)) and in the release catalog's `supportedReleases`, so Atlas installs on that build's public revisions and builds ISOs from them.
 Atlas Manager can move a PC on an earlier release to a supported one first ([Moving Windows to a newer release](windows-transition.md)).
 
 The build number alone isn't enough: Insider flights have used these numbers too.
@@ -86,8 +86,8 @@ Keep requiring official Windows media.
 
 ## Updating the catalog
 
-Atlas Manager, the ISO worker and the front door, `Install-Atlas.ps1`, share the reviewed [`windows-releases.json`](../playbook/Executables/AtlasModules/Scripts/Compatibility/windows-releases.json) catalog.
-Atlas Manager checks it in [`windows_release.rs`](../app/src/services/windows_release.rs); PowerShell callers use [`Windows-Release.ps1`](../playbook/Executables/AtlasModules/Scripts/Compatibility/Windows-Release.ps1).
+Atlas Manager, the ISO worker and the front door, `Install-Atlas.ps1`, share the reviewed [`windows-releases.json`](../package/Executables/AtlasModules/Scripts/Compatibility/windows-releases.json) catalog.
+Atlas Manager checks it in [`windows_release.rs`](../app/src/services/windows_release.rs); PowerShell callers use [`Windows-Release.ps1`](../package/Executables/AtlasModules/Scripts/Compatibility/Windows-Release.ps1).
 Keep their parsers and classification fixtures consistent when changing the policy.
 
 From the repository root in PowerShell 7:

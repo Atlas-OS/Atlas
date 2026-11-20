@@ -10,7 +10,7 @@ on:
       - "app/Cargo.toml"
       - "build.cmd"
       - "LICENSE"
-      - "playbook/**"
+      - "package/**"
       - "tools/**"
       - "tests/**"
       - "docs/catalog/**"
@@ -25,7 +25,7 @@ on:
       - "app/Cargo.toml"
       - "build.cmd"
       - "LICENSE"
-      - "playbook/**"
+      - "package/**"
       - "tools/**"
       - "tests/**"
       - "docs/catalog/**"
@@ -57,7 +57,7 @@ jobs:
         shell: powershell
         run: |
           $failed = $false
-          Get-ChildItem -Path 'playbook','app/resources' -Recurse -Include '*.ps1','*.psm1','*.psd1' | ForEach-Object {
+          Get-ChildItem -Path 'package','app/resources' -Recurse -Include '*.ps1','*.psm1','*.psd1' | ForEach-Object {
               $tokens = $null
               $errors = $null
               [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors) | Out-Null

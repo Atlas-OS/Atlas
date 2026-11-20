@@ -21,36 +21,36 @@ actions:
 
 # Atlas package
 
-playbook:
+package:
 - changed-files:
-  - any-glob-to-any-file: playbook/**/*
+  - any-glob-to-any-file: package/**/*
 
 appx:
 - changed-files:
   - any-glob-to-any-file:
-    - playbook/Executables/AtlasModules/Scripts/Install/Phases/Invoke-AppxSupportPhase.ps1
-    - playbook/Executables/AtlasModules/Scripts/Modules/Atlas.Appx/**/*
+    - package/Executables/AtlasModules/Scripts/Install/Phases/Invoke-AppxSupportPhase.ps1
+    - package/Executables/AtlasModules/Scripts/Modules/Atlas.Appx/**/*
 
 components:
 - changed-files:
-  - any-glob-to-any-file: playbook/Executables/AtlasModules/Scripts/Install/Phases/Invoke-ComponentsPhase.ps1
+  - any-glob-to-any-file: package/Executables/AtlasModules/Scripts/Install/Phases/Invoke-ComponentsPhase.ps1
 
 services:
 - changed-files:
   - any-glob-to-any-file:
-    - playbook/Executables/AtlasModules/Scripts/Install/Phases/Invoke-ServicesPhase.ps1
-    - playbook/Executables/AtlasModules/Scripts/Modules/Atlas.Services/**/*
+    - package/Executables/AtlasModules/Scripts/Install/Phases/Invoke-ServicesPhase.ps1
+    - package/Executables/AtlasModules/Scripts/Modules/Atlas.Services/**/*
 
 tweaks:
 - changed-files:
   - any-glob-to-any-file:
-    - playbook/Executables/AtlasModules/Scripts/Install/Phases/Invoke-TweaksPhase.ps1
-    - playbook/Executables/AtlasModules/Scripts/Modules/Atlas.Tweaks/**/*
-    - playbook/Executables/AtlasModules/Scripts/Tweaks/**/*
+    - package/Executables/AtlasModules/Scripts/Install/Phases/Invoke-TweaksPhase.ps1
+    - package/Executables/AtlasModules/Scripts/Modules/Atlas.Tweaks/**/*
+    - package/Executables/AtlasModules/Scripts/Tweaks/**/*
 
 desktop folder:
 - changed-files:
-  - any-glob-to-any-file: playbook/Executables/AtlasDesktop/**/*
+  - any-glob-to-any-file: package/Executables/AtlasDesktop/**/*
 
 build tooling:
 - changed-files:

@@ -27,7 +27,7 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path -Path $PSScriptRoot -ChildPath '..\..')).Path
-$coreManifest = Join-Path -Path $repoRoot -ChildPath 'playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Core\Atlas.Core.psd1'
+$coreManifest = Join-Path -Path $repoRoot -ChildPath 'package\Executables\AtlasModules\Scripts\Modules\Atlas.Core\Atlas.Core.psd1'
 $core = Import-Module -Name $coreManifest -Force -PassThru
 
 # Scripted answers replace the keyboard; the prompt text is still printed so the

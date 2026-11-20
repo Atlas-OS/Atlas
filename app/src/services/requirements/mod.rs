@@ -1,6 +1,8 @@
-//! The system checks that gate an install: the same requirements the Atlas
-//! package declares in playbook.conf, evaluated with the same rules as
-//! `Entry\Install-Atlas.ps1` where the script has an opinion.
+//! The system checks that gate an install: the requirements the Atlas
+//! package lists in its manifest (`no-third-party-antivirus` and
+//! `plugged-in`; the Windows Security step covers `windows-security-off`)
+//! and the ones the front door always checks, evaluated with the same rules
+//! as `Entry\Install-Atlas.ps1` where the script has an opinion.
 
 mod bounded;
 mod providers;
@@ -331,6 +333,31 @@ mod tests {
 
     fn result(id: CheckId, verdict: Verdict) -> CheckResult {
         CheckResult { id, verdict, detail: CheckDetail::InternetOk }
+    }
+
+    /// The check that evaluates a manifest requirement before the front door
+    /// does, by the requirement's id; `None` for one the Windows Security step
+    /// evaluates, or one this app doesn't know.
+    fn check_for(requirement: &str) -> Option<CheckId> {
+        match requirement {
+            "no-third-party-antivirus" => Some(CheckId::ThirdPartyAntivirus),
+            "plugged-in" => Some(CheckId::Power),
+            _ => None,
+        }
+    }
+
+    /// Every requirement the built-in manifest lists stops an install here
+    /// too, so Get ready never sends on an install the front door refuses.
+    #[test]
+    fn every_requirement_the_package_lists_has_a_blocking_check_or_step() {
+        let requirements = crate::services::package::Manifest::builtin().requirements;
+        assert!(!requirements.is_empty());
+        for requirement in &requirements {
+            match check_for(requirement) {
+                Some(id) => assert!(id.blocking(), "{requirement}: {id:?} only warns"),
+                None => assert_eq!(requirement, "windows-security-off", "no check evaluates {requirement}"),
+            }
+        }
     }
 
     #[test]

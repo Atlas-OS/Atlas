@@ -2,9 +2,9 @@ BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:RepoRoot = Split-Path -Parent $PSScriptRoot
     $script:PackagePath = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Operations\Toolbox-Package.ps1'
+        'package\Executables\AtlasModules\Scripts\Operations\Toolbox-Package.ps1'
     $script:DownloadModulePath = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Download\Atlas.Download.psd1'
+        'package\Executables\AtlasModules\Scripts\Modules\Atlas.Download\Atlas.Download.psd1'
 
     Import-Module -Name $script:DownloadModulePath -Force
     . $script:PackagePath

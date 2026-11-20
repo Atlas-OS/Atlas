@@ -4,7 +4,7 @@ BeforeAll {
 
 Describe 'Preparation module boundary' {
     It '<Entry> resolves Appx from the inbox despite an inherited shadow module' -TestCases @(
-        @{ Entry = 'playbook\Executables\AtlasModules\Scripts\Preparation\Update-Windows.ps1'; Staging = $false }
+        @{ Entry = 'package\Executables\AtlasModules\Scripts\Preparation\Update-Windows.ps1'; Staging = $false }
         @{ Entry = 'app\resources\prepare\Stage-App.ps1'; Staging = $true }
     ) {
         param($Entry, $Staging)

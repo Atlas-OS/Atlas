@@ -1,6 +1,6 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
+    $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\package\Executables\AtlasModules\Scripts\Modules'
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Core\Atlas.Core.psd1') -Force
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Registry\Atlas.Registry.psd1') -Force
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Tweaks\Atlas.Tweaks.psd1') -Force
@@ -186,7 +186,7 @@ Describe 'Test-AtlasTweakSchema' {
 
 Describe 'Included tweak definitions' {
     BeforeAll {
-        $script:shippedTweaksRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Tweaks')).Path
+        $script:shippedTweaksRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\package\Executables\AtlasModules\Scripts\Tweaks')).Path
     }
 
     It 'every included tweak passes schema validation' {
@@ -201,7 +201,7 @@ Describe 'Included tweak definitions' {
     # and companions match it case-sensitively.
     It 'names an installed toggle state in every Toggle entry' {
         Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1')
-        $togglesRoot = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles'
+        $togglesRoot = Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toggles'
         $references = @(Get-ChildItem -LiteralPath $script:shippedTweaksRoot -Filter '*.psd1' -File -Recurse |
                 Where-Object Name -cne 'tweaks.manifest.psd1' |
                 ForEach-Object {
@@ -367,7 +367,7 @@ Describe 'Invoke-AtlasTweak' {
         Mock Get-AtlasToggleState -ModuleName Atlas.Tweaks { $null }
         Mock Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks
 
-        Invoke-AtlasTweak -Path (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Tweaks\qol\set-keyboard-switching.psd1')
+        Invoke-AtlasTweak -Path (Join-Path $PSScriptRoot '..\package\Executables\AtlasModules\Scripts\Tweaks\qol\set-keyboard-switching.psd1')
 
         Should -Invoke Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks -Times 1 -Exactly `
             -ParameterFilter { $Name -ceq 'KeyboardShortcuts' -and $State -ceq $Expected }
@@ -387,7 +387,7 @@ Describe 'Invoke-AtlasTweak' {
         Mock Get-AtlasToggleState -ModuleName Atlas.Tweaks { [pscustomobject]@{ Name = 'KeyboardShortcuts'; State = 1 } }
         Mock Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks
 
-        Invoke-AtlasTweak -Path (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Tweaks\qol\set-keyboard-switching.psd1')
+        Invoke-AtlasTweak -Path (Join-Path $PSScriptRoot '..\package\Executables\AtlasModules\Scripts\Tweaks\qol\set-keyboard-switching.psd1')
 
         Should -Invoke Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks -Times 1 -Exactly `
             -ParameterFilter { $Name -ceq 'KeyboardShortcuts' -and $State -ceq $Expected }
@@ -410,7 +410,7 @@ Describe 'Invoke-AtlasTweak' {
         Mock Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks
         Mock Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks
 
-        Invoke-AtlasTweak -Path (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Tweaks\scripts\disable-mitigations.psd1')
+        Invoke-AtlasTweak -Path (Join-Path $PSScriptRoot '..\package\Executables\AtlasModules\Scripts\Tweaks\scripts\disable-mitigations.psd1')
 
         Should -Invoke Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks -Times 1 -Exactly `
             -ParameterFilter { $Name -ceq 'Mitigations' -and $State -ceq $Expected }
@@ -426,7 +426,7 @@ Describe 'Invoke-AtlasTweak' {
         Mock Import-AtlasModule -ModuleName Atlas.Tweaks
         Mock Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks
 
-        Invoke-AtlasTweak -Path (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Tweaks\qol\set-keyboard-switching.psd1')
+        Invoke-AtlasTweak -Path (Join-Path $PSScriptRoot '..\package\Executables\AtlasModules\Scripts\Tweaks\qol\set-keyboard-switching.psd1')
 
         Should -Invoke Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks -Times 0 -Exactly
     }
@@ -439,7 +439,7 @@ Describe 'Invoke-AtlasTweak' {
         }
         Mock Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks
 
-        { Invoke-AtlasTweak -Path (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Tweaks\qol\set-keyboard-switching.psd1') } |
+        { Invoke-AtlasTweak -Path (Join-Path $PSScriptRoot '..\package\Executables\AtlasModules\Scripts\Tweaks\qol\set-keyboard-switching.psd1') } |
             Should -Throw '*exactly one keyboard*'
 
         Should -Invoke Invoke-AtlasToggleMachineState -ModuleName Atlas.Tweaks -Times 0 -Exactly
@@ -968,7 +968,7 @@ Describe 'Registry verification exclusions in tweak schemas' {
 Describe 'Configure Time Servers' {
     # PCs tweaked beyond Atlas can have Windows Time disabled; the tweak must still finish.
     It 'never stops the install when Windows Time can''t start or reload' {
-        $path = Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Tweaks\misc\config-time.psd1'
+        $path = Join-Path $PSScriptRoot '..\package\Executables\AtlasModules\Scripts\Tweaks\misc\config-time.psd1'
         @(Test-AtlasTweakSchema -Path $path).Count | Should -Be 0
         $tweak = Import-PowerShellDataFile -LiteralPath $path
         @($tweak.Services | Where-Object { -not $_.IgnoreErrors }).Count | Should -Be 0

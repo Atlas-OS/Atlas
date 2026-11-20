@@ -653,7 +653,7 @@ Describe 'Atlas 0.5.0 with Windows Update off, paused and delayed' {
 
 Describe 'Owners of the lifted settings' {
     It 'only lifts what the owner toggle''s own states write' {
-        $toggles = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles'
+        $toggles = Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toggles'
         $pause = Import-PowerShellDataFile -LiteralPath (Join-Path $toggles 'General\PauseUpdates.psd1')
         $paused = @(($pause.States | Where-Object Name -eq 'Enable').Registry | ForEach-Object { "$($_.Path -replace '^HKLM:\\', '')\$($_.Name)" })
         @(Get-AtlasWindowsTransitionItem | Where-Object Owner -eq 'PauseUpdates').Count | Should -BeGreaterThan 0
@@ -2033,8 +2033,8 @@ Describe 'What the PC shows over recorded choices' {
     }
 
     It 'names only options the Atlas package declares, and reads every choice group it declares' {
-        $playbook = [xml][IO.File]::ReadAllText((Join-Path $script:AtlasTestRepoRoot 'playbook\playbook.conf'))
-        $declared = @($playbook.Playbook.FeaturePages.SelectNodes('*/Options/*/Name') | ForEach-Object { [string]$_.InnerText })
+        $manifest = [IO.File]::ReadAllText((Join-Path $script:AtlasTestRepoRoot 'package\atlas.json')) | ConvertFrom-Json
+        $declared = @(@($manifest.choices) | ForEach-Object { @($_.options) } | ForEach-Object { [string]$_.id })
         $declared | Should -Contain 'install-eclean'
         foreach ($file in @('merged-options.json', 'observed-options.json')) {
             foreach ($case in @(Get-Content -LiteralPath (Join-Path $PSScriptRoot "fixtures\windows-transition\$file") -Raw | ConvertFrom-Json)) {
@@ -2219,6 +2219,20 @@ Describe 'What the machine facts read' {
         (Get-AtlasTransitionMachineFact -MachineOnly).Toolbox | Should -BeTrue
         $script:Registry.Remove('SOFTWARE\AtlasOS\Toolbox|Version')
         (Get-AtlasTransitionMachineFact -MachineOnly).Toolbox | Should -BeFalse
+    }
+
+    It 'reads the Atlas version from either form of the OEM markers: <Model>' -TestCases @(
+        @{ Model = 'Atlas v0.6.0'; Organization = 'Atlas v0.6.0'; Versions = '0.6.0' }
+        @{ Model = 'Atlas Playbook v0.5.0'; Organization = 'Atlas Playbook v0.5.0'; Versions = '0.5.0' }
+        @{ Model = 'Atlas Playbook 0.4.1'; Organization = 'atlas playbook V0.4.1'; Versions = '0.4.1' }
+        @{ Model = 'Atlas v0.6.0'; Organization = 'Atlas Playbook v0.5.0'; Versions = '0.5.0,0.6.0' }
+        @{ Model = 'Atlas Toolbox v0.2.0'; Organization = 'Contoso'; Versions = '' }
+    ) {
+        param($Model, $Organization, $Versions)
+        Set-Fake 'SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation' Model String $Model
+        Set-Fake 'SOFTWARE\Microsoft\Windows NT\CurrentVersion' RegisteredOrganization String $Organization
+        (@(Get-AtlasTransitionLegacyVersion | Sort-Object -Unique) -join ',') | Should -BeExactly $Versions
+        (@((Get-AtlasTransitionMachineFact -MachineOnly).LegacyVersions) -join ',') | Should -BeExactly $Versions
     }
 
     It 'reads only Atlas''s NoDefender package, by its name and a tilde, as the install reads it' {

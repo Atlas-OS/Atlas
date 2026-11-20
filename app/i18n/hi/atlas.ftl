@@ -21,7 +21,7 @@
 ### - Buttons are short and end in the respectful imperative (करें, खोलें).
 ### - "Relaunch" (the Atlas Manager) is "दोबारा खोलें"; "restart" (the PC or
 ###   Windows) is "रीस्टार्ट करें". Keep the two apart.
-### - The .apbx file is the "Atlas package": "Atlas पैकेज", then "पैकेज" once
+### - The .atlaspkg file is the "Atlas package": "Atlas पैकेज", then "पैकेज" once
 ###   it is clear (masculine: "साथ में दिया गया Atlas पैकेज"). The
 ###   selections made in the Your choices step are "विकल्प" everywhere, the ISO
 ###   modes included, never "सेटिंग"/"सेटिंग्स": those name the app's own
@@ -105,9 +105,9 @@ window-close-restart-close = रीस्टार्ट किए बिना 
 # window-close-keep, common-open-windows-security and window-close-close.
 window-close-protection-title = सुरक्षा बंद है, फिर भी Atlas बंद करें?
 window-close-protection-message = Windows सुरक्षा में कुछ सुरक्षा सुविधाएँ अभी भी बंद हैं: { $switches }। अगर आप Atlas इंस्टॉल करना पूरा नहीं करने वाले हैं, तो Atlas बंद करने से पहले इन्हें फिर से चालू करें। अगर करने वाले हैं, तो Atlas दोबारा खोलने पर वह आपका सेटअप जारी रखेगा।
-# The Open button of the file picker for an Atlas package (.apbx) file, on Get ready and the
+# The Open button of the file picker for an Atlas package (.atlaspkg) file, on Get ready and the
 # ISO page. It's a button label, so keep it short.
-file-dialog-open-package = Atlas पैकेज (.apbx) खोलें
+file-dialog-open-package = Atlas पैकेज (.atlaspkg) खोलें
 # Message Windows shows in its restart notification.
 shutdown-comment = Atlas इंस्टॉल हो गया है। सेटअप पूरा करने के लिए Windows रीस्टार्ट हो रहा है।
 # Message Windows shows in its restart notification when "Get ready" restarts
@@ -250,7 +250,7 @@ ready-banner-busy-message = Atlas आपके PC की जाँच कर र
 ready-banner-blocked-title = आपका PC अभी तैयार नहीं है
 ready-banner-blocked-message = “PC की जाँच” में चिह्नित समस्याएँ ठीक करें, फिर “दोबारा जाँचें” चुनें।
 ready-banner-no-package-title = जारी रखने के लिए Atlas डाउनलोड करें
-ready-banner-no-package-message = “इंस्टॉलेशन फ़ाइलें” में Atlas डाउनलोड करें, या अगर आपके पास पहले से Atlas पैकेज (.apbx) है, तो “पैकेज फ़ाइल खोलें” चुनें।
+ready-banner-no-package-message = “इंस्टॉलेशन फ़ाइलें” में Atlas डाउनलोड करें, या अगर आपके पास पहले से Atlas पैकेज (.atlaspkg) है, तो “पैकेज फ़ाइल खोलें” चुनें।
 # Tester build: the bundled Atlas package couldn't be unpacked.
 ready-banner-no-package-bundled-title = जारी रखने के लिए साथ में दिया गया Atlas पैकेज तैयार करें
 ready-banner-no-package-bundled-message = इस परीक्षण बिल्ड के साथ दिया गया Atlas पैकेज अभी तैयार नहीं है। “इंस्टॉलेशन फ़ाइलें” कार्ड देखें।
@@ -298,10 +298,10 @@ package-unpacking = फ़ाइलें निकाली जा रही �
 package-looking = Atlas के नवीनतम संस्करण की जाँच हो रही है।
 # Tester build: the bundled Atlas package is being unpacked, nothing is downloaded.
 package-looking-bundled = साथ में दिया गया Atlas पैकेज तैयार किया जा रहा है।
-package-none = इंस्टॉलेशन फ़ाइलें पाने के लिए Atlas डाउनलोड करें। अगर आपके पास पहले से Atlas पैकेज (.apbx) है, तो उसे खोलें।
+package-none = इंस्टॉलेशन फ़ाइलें पाने के लिए Atlas डाउनलोड करें। अगर आपके पास पहले से Atlas पैकेज (.atlaspkg) है, तो उसे खोलें।
 # The GitHub release check failed. "नवीनतम संस्करण डाउनलोड करें" is package-download-newest,
 # the button offered in this state; it checks again.
-package-release-failed = Atlas नवीनतम संस्करण की जाँच नहीं कर सका। अपना इंटरनेट कनेक्शन जाँचें, फिर “नवीनतम संस्करण डाउनलोड करें” चुनें, या सहेजा हुआ Atlas पैकेज (.apbx) खोलें।
+package-release-failed = Atlas नवीनतम संस्करण की जाँच नहीं कर सका। अपना इंटरनेट कनेक्शन जाँचें, फिर “नवीनतम संस्करण डाउनलोड करें” चुनें, या सहेजा हुआ Atlas पैकेज (.atlaspkg) खोलें।
 # Short status words beside the card title.
 package-status-downloading = डाउनलोड हो रही हैं
 package-status-unpacking = निकाली जा रही हैं
@@ -322,13 +322,15 @@ package-from-release = Atlas { $version } GitHub से डाउनलोड �
 package-from-file = Atlas { $version }, { $file } से लोड हो गया है और इंस्टॉल के लिए तैयार है।
 package-unpacked = Atlas { $version } इंस्टॉल के लिए तैयार है।
 package-none-yet = कोई इंस्टॉलेशन फ़ाइल नहीं चुनी गई
-acquire-no-asset = Atlas { $version } के लिए डाउनलोड करने योग्य कोई पैकेज फ़ाइल नहीं है। जारी रखने के लिए सहेजा हुआ Atlas पैकेज (.apbx) खोलें।
-acquire-unsupported = यह ऐप Atlas 0.6.0 और उसके बाद के संस्करण इंस्टॉल कर सकता है।
+acquire-no-asset = Atlas { $version } के लिए डाउनलोड करने योग्य कोई पैकेज फ़ाइल नहीं है। जारी रखने के लिए सहेजा हुआ Atlas पैकेज (.atlaspkg) खोलें।
+# Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
+# .apbx file from an Atlas release before 0.6.
+acquire-unsupported = यह ऐप Atlas पैकेज (.atlaspkg) से Atlas 0.6.0 और उसके बाद के संस्करण इंस्टॉल कर सकता है।
 # A package new enough to include the installer script that this app drives, but without it.
-acquire-incomplete = Atlas { $version } में वे फ़ाइलें नहीं हैं, जिनकी ज़रूरत इस ऐप को इसे इंस्टॉल करने के लिए है। इसे दोबारा डाउनलोड करें, या कोई दूसरा Atlas पैकेज (.apbx) खोलें।
-acquire-failed = इंस्टॉलेशन फ़ाइलें तैयार नहीं हो सकीं। दोबारा डाउनलोड करके देखें, या कोई दूसरा Atlas पैकेज (.apbx) खोलें। विवरण: { $error }
+acquire-incomplete = Atlas { $version } में वे फ़ाइलें नहीं हैं, जिनकी ज़रूरत इस ऐप को इसे इंस्टॉल करने के लिए है। इसे दोबारा डाउनलोड करें, या कोई दूसरा Atlas पैकेज (.atlaspkg) खोलें।
+acquire-failed = इंस्टॉलेशन फ़ाइलें तैयार नहीं हो सकीं। दोबारा डाउनलोड करके देखें, या कोई दूसरा Atlas पैकेज (.atlaspkg) खोलें। विवरण: { $error }
 # The download received nothing for a minute and was stopped.
-acquire-stalled = डाउनलोड ने प्रतिक्रिया देना बंद कर दिया। अपना इंटरनेट कनेक्शन जाँचें, फिर दोबारा डाउनलोड करें, या सहेजा हुआ Atlas पैकेज (.apbx) खोलें।
+acquire-stalled = डाउनलोड ने प्रतिक्रिया देना बंद कर दिया। अपना इंटरनेट कनेक्शन जाँचें, फिर दोबारा डाउनलोड करें, या सहेजा हुआ Atlas पैकेज (.atlaspkg) खोलें।
 # Tester build: the bundled Atlas package couldn't be unpacked. Try again is the only control offered.
 acquire-failed-bundled = साथ में दिया गया Atlas पैकेज तैयार नहीं हो सका। “फिर कोशिश करें” चुनें। विवरण: { $error }
 
@@ -432,33 +434,33 @@ consequence-auto-updates-disable = नियमित रूप से Windows U
 consequence-auto-updates-default = Windows अपडेट अपने-आप इंस्टॉल करेगा, जिनमें सुरक्षा सुधार भी शामिल हैं।
 
 ## Atlas package text
-## The Atlas package carries its own English text for each option. These
-## UI labels and explanations are used only when the package text matches
-## i18n/playbook-source.ftl. A future package with different wording keeps
-## its own text instead of receiving a potentially outdated description.
+## Labels and descriptions for the Atlas package's options and choices, by
+## their ids in the package's atlas.json. The app shows these in place of the
+## package's own English text; an option or choice that a newer package adds,
+## which has no message here, shows the package's English.
 
-playbook-option-defender-enable = Microsoft Defender रखें (सुझाया गया)
-playbook-option-defender-disable = Microsoft Defender हटाएँ
-playbook-option-mitigations-default = प्रोसेसर सुरक्षा बनाए रखें (सुझाया गया)
-playbook-option-mitigations-disable = प्रोसेसर सुरक्षा बंद करें
-playbook-option-auto-updates-disable = अपडेट ख़ुद इंस्टॉल करें
-playbook-option-auto-updates-default = अपडेट अपने-आप इंस्टॉल करें
-playbook-option-disable-hibernation = हाइबरनेशन बंद करें
-playbook-option-disable-power-saving = पावर सेविंग बंद करें
-playbook-option-disable-core-isolation = वर्चुअलाइज़ेशन-आधारित सुरक्षा (VBS) बंद करें
-playbook-option-remove-snipping-tool = Snipping Tool हटाएँ
-playbook-option-uninstall-edge = Microsoft Edge हटाएँ
-playbook-option-install-another-browser = कोई ब्राउज़र इंस्टॉल करें
-playbook-option-install-toolbox = Atlas Toolbox इंस्टॉल करें
-playbook-option-install-eclean = eclean इंस्टॉल करें
-playbook-option-browser-brave = Brave
-playbook-option-browser-librewolf = LibreWolf
-playbook-option-browser-firefox = Firefox
-playbook-option-browser-chrome = Chrome
-playbook-page-defender-enable-description = Microsoft Defender, Windows में पहले से मौजूद एंटीवायरस है। इसे तभी हटाएँ, जब आप इसके जोखिम समझते हों और कोई दूसरा एंटीवायरस ऐप इस्तेमाल करने वाले हों। आप जो भी चुनें, Atlas ये सुविधाएँ बंद कर देता है: स्मार्ट ऐप नियंत्रण, उन्नत फ़िशिंग सुरक्षा और मेरा डिवाइस ढूँढें।
-playbook-page-mitigations-default-description = ये सुरक्षा उपाय, जिन्हें सुरक्षा मिटिगेशन भी कहा जाता है, Spectre और Meltdown जैसी प्रोसेसर की ख़ामियों से और ऐप्स के बग का फ़ायदा उठाने वाले हमलों से बचाने में मदद करते हैं। Windows की डिफ़ॉल्ट सेटिंग्स बनाए रखने का सुझाव दिया जाता है।
-playbook-page-auto-updates-disable-description = Windows अपडेट में सुरक्षा सुधार शामिल होते हैं। आप चाहें तो Windows उन्हें अपने-आप इंस्टॉल कर सकता है, या आप उन्हें ख़ुद इंस्टॉल कर सकते हैं। दोनों ही स्थितियों में Atlas, Windows को उसके मौजूदा संस्करण पर बनाए रखता है, जिसे सुरक्षा सुधार तभी तक मिलते हैं, जब तक Microsoft उसका समर्थन बंद नहीं कर देता। Atlas, Microsoft Store ऐप्स के अपने-आप होने वाले अपडेट भी बंद कर देता है, इसलिए उन्हें Microsoft Store में अपडेट करें।
-playbook-page-browser-brave-description = इंस्टॉल करने के लिए कोई ब्राउज़र चुनें। Atlas आपकी ब्राउज़र सेटिंग्स नहीं बदलेगा।
+package-option-defender-enable = Microsoft Defender रखें (सुझाया गया)
+package-option-defender-disable = Microsoft Defender हटाएँ
+package-option-mitigations-default = प्रोसेसर सुरक्षा बनाए रखें (सुझाया गया)
+package-option-mitigations-disable = प्रोसेसर सुरक्षा बंद करें
+package-option-auto-updates-disable = अपडेट ख़ुद इंस्टॉल करें
+package-option-auto-updates-default = अपडेट अपने-आप इंस्टॉल करें
+package-option-disable-hibernation = हाइबरनेशन बंद करें
+package-option-disable-power-saving = पावर सेविंग बंद करें
+package-option-disable-core-isolation = वर्चुअलाइज़ेशन-आधारित सुरक्षा (VBS) बंद करें
+package-option-remove-snipping-tool = Snipping Tool हटाएँ
+package-option-uninstall-edge = Microsoft Edge हटाएँ
+package-option-install-another-browser = कोई ब्राउज़र इंस्टॉल करें
+package-option-install-toolbox = Atlas Toolbox इंस्टॉल करें
+package-option-install-eclean = eclean इंस्टॉल करें
+package-option-browser-brave = Brave
+package-option-browser-librewolf = LibreWolf
+package-option-browser-firefox = Firefox
+package-option-browser-chrome = Chrome
+package-choice-defender-description = Microsoft Defender, Windows में पहले से मौजूद एंटीवायरस है। इसे तभी हटाएँ, जब आप इसके जोखिम समझते हों और कोई दूसरा एंटीवायरस ऐप इस्तेमाल करने वाले हों। आप जो भी चुनें, Atlas ये सुविधाएँ बंद कर देता है: स्मार्ट ऐप नियंत्रण, उन्नत फ़िशिंग सुरक्षा और मेरा डिवाइस ढूँढें।
+package-choice-mitigations-description = ये सुरक्षा उपाय, जिन्हें सुरक्षा मिटिगेशन भी कहा जाता है, Spectre और Meltdown जैसी प्रोसेसर की ख़ामियों से और ऐप्स के बग का फ़ायदा उठाने वाले हमलों से बचाने में मदद करते हैं। Windows की डिफ़ॉल्ट सेटिंग्स बनाए रखने का सुझाव दिया जाता है।
+package-choice-auto-updates-description = Windows अपडेट में सुरक्षा सुधार शामिल होते हैं। आप चाहें तो Windows उन्हें अपने-आप इंस्टॉल कर सकता है, या आप उन्हें ख़ुद इंस्टॉल कर सकते हैं। दोनों ही स्थितियों में Atlas, Windows को उसके मौजूदा संस्करण पर बनाए रखता है, जिसे सुरक्षा सुधार तभी तक मिलते हैं, जब तक Microsoft उसका समर्थन बंद नहीं कर देता। Atlas, Microsoft Store ऐप्स के अपने-आप होने वाले अपडेट भी बंद कर देता है, इसलिए उन्हें Microsoft Store में अपडेट करें।
+package-choice-browser-description = इंस्टॉल करने के लिए कोई ब्राउज़र चुनें। Atlas आपकी ब्राउज़र सेटिंग्स नहीं बदलेगा।
 
 ## Step 3: Windows Security
 
@@ -561,7 +563,7 @@ output-problem-title = इंस्टॉलेशन की प्रगति 
 output-problem-message = Atlas लॉग नहीं पढ़ सका। इसका मतलब यह नहीं कि इंस्टॉलेशन रुक गया है। अपना PC चालू रखें और लॉग फ़ाइल खोलकर देखें। विवरण: { $error }
 install-elevate-title = इंस्टॉल करने के लिए Atlas को अनुमति चाहिए
 install-no-package-title = पहले अपनी इंस्टॉलेशन फ़ाइलें चुनें
-install-no-package-message = Atlas डाउनलोड करने या सहेजा हुआ Atlas पैकेज (.apbx) खोलने के लिए तैयारी पर वापस जाएँ।
+install-no-package-message = Atlas डाउनलोड करने या सहेजा हुआ Atlas पैकेज (.atlaspkg) खोलने के लिए तैयारी पर वापस जाएँ।
 # Tester build variant of install-no-package-message.
 install-no-package-bundled-message = इस परीक्षण बिल्ड के साथ दिया गया Atlas पैकेज तैयार करने के लिए तैयारी पर वापस जाएँ।
 # Step 4 when step 1 is incomplete for this session (checks or Windows updates), with go-to-ready as the button.
@@ -709,7 +711,7 @@ iso-title = Atlas ISO बनाएँ
 iso-beta = बीटा
 iso-beta-description = PC पर इस्तेमाल करने से पहले ISO को वर्चुअल मशीन में जाँचें। Windows इंस्टॉल करने से पहले अपनी फ़ाइलों का बैकअप लें।
 iso-admin-description = आपका Windows ISO पढ़ने और नया ISO बनाने के लिए Atlas को व्यवस्थापक की अनुमति चाहिए। “व्यवस्थापक के रूप में दोबारा खोलें” चुनें, फिर जब Windows पूछे, तो “हाँ” चुनें।
-iso-files-description = Atlas, Windows 11 ISO की एक कॉपी बनाकर उसमें Atlas जोड़ता है, ताकि आप Windows दोबारा इंस्टॉल कर सकें। Microsoft से डाउनलोड किया गया Windows 11 ISO चुनें, नवीनतम Atlas पैकेज डाउनलोड करें या पहले से मौजूद पैकेज (.apbx) चुनें, फिर चुनें कि नया ISO कहाँ सहेजना है।
+iso-files-description = Atlas, Windows 11 ISO की एक कॉपी बनाकर उसमें Atlas जोड़ता है, ताकि आप Windows दोबारा इंस्टॉल कर सकें। Microsoft से डाउनलोड किया गया Windows 11 ISO चुनें, नवीनतम Atlas पैकेज डाउनलोड करें या पहले से मौजूद पैकेज (.atlaspkg) चुनें, फिर चुनें कि नया ISO कहाँ सहेजना है।
 # Tester build: no package picker.
 iso-files-description-bundled = Atlas, Windows 11 ISO की एक कॉपी बनाकर उसमें इस परीक्षण बिल्ड के साथ दिया गया Atlas पैकेज जोड़ता है। Microsoft से डाउनलोड किया गया Windows 11 ISO चुनें, फिर चुनें कि नया ISO कहाँ सहेजना है।
 iso-source = Windows ISO
@@ -947,7 +949,7 @@ install-source-unsupported = Atlas { $source } को सीधे { $target } �
 # Before a package is chosen, so the version on offer isn't known yet.
 install-source-unsupported-any = Atlas { $source } को सीधे अपडेट नहीं किया जा सकता। नए संस्करण का इस्तेमाल करने के लिए अपनी फ़ाइलों का बैकअप लें और Windows दोबारा इंस्टॉल करें।
 # "पैकेज फ़ाइल खोलें" is package-open-file. $folder is a folder path (text).
-install-source-resume = Atlas { $target } का एक इंस्टॉलेशन पूरा नहीं हुआ, और इसे केवल Atlas { $target } का पैकेज ही पूरा कर सकता है। “पैकेज फ़ाइल खोलें” चुनें और वही Atlas पैकेज (.apbx) चुनें। अगर Atlas ने इसे डाउनलोड किया था, तो यह { $folder } में है।
+install-source-resume = Atlas { $target } का एक इंस्टॉलेशन पूरा नहीं हुआ, और इसे केवल Atlas { $target } का पैकेज ही पूरा कर सकता है। “पैकेज फ़ाइल खोलें” चुनें और वही Atlas पैकेज (.atlaspkg) चुनें। अगर Atlas ने इसे डाउनलोड किया था, तो यह { $folder } में है।
 # Tester build: only the bundled Atlas package can be installed.
 install-source-resume-bundled = Atlas { $target } का एक इंस्टॉलेशन पूरा नहीं हुआ। यह परीक्षण बिल्ड केवल अपने साथ दिया गया Atlas पैकेज इंस्टॉल कर सकता है, इसलिए वह इंस्टॉलेशन Atlas Manager के रिलीज़ बिल्ड में Atlas { $target } के पैकेज से पूरा करें।
 install-source-unknown = Atlas पुष्टि नहीं कर सका कि इस PC पर पहले से क्या इंस्टॉल है, इसलिए वह फ़िलहाल कुछ भी इंस्टॉल नहीं करेगा। “रिपोर्ट भेजें” चुनें, ताकि Atlas टीम मदद कर सके।
@@ -982,7 +984,7 @@ diagnostics-failed-title = डायग्नोस्टिक्स निर�
 # $error is the raw error (text).
 diagnostics-failed = जाँचें कि आपके PC में ख़ाली डिस्क स्पेस है, फिर कोशिश करें। विवरण: { $error }
 
-## Tester builds (embedded-playbook feature)
+## Tester builds (embedded-package feature)
 
 # One line of chrome under the title bar on a release-candidate build.
 rc-banner = Atlas { $release } परीक्षण बिल्ड। यह ऐप केवल साथ में दिया गया Atlas पैकेज इंस्टॉल करता है।
@@ -1255,10 +1257,10 @@ prepare-repair-store = Microsoft Store ठीक करें
 
 screen-keyboard-title = कीबोर्ड की भाषाएँ
 screen-keyboard-question = क्या आप कीबोर्ड की कई भाषाएँ इस्तेमाल करते हैं?
-playbook-option-keyboard-shortcuts = हाँ, कीबोर्ड शॉर्टकट से
-playbook-option-keyboard-selector = हाँ, टास्कबार के चयनकर्ता से
-playbook-option-keyboard-single = नहीं, मैं एक ही कीबोर्ड लेआउट इस्तेमाल करता हूँ
+package-option-keyboard-shortcuts = हाँ, कीबोर्ड शॉर्टकट से
+package-option-keyboard-selector = हाँ, टास्कबार के चयनकर्ता से
+package-option-keyboard-single = नहीं, मैं एक ही कीबोर्ड लेआउट इस्तेमाल करता हूँ
 consequence-keyboard-shortcuts = Alt+Shift से भाषा और Ctrl+Shift से लेआउट बदलता है।
 consequence-keyboard-selector = गेम खेलते समय गलती से बदलाव रोकने के लिए Alt+Shift और Ctrl+Shift बंद करें।
-playbook-page-keyboard-shortcuts-description = चुनें कि कीबोर्ड की भाषा कैसे बदलनी है।
+package-choice-keyboard-description = चुनें कि कीबोर्ड की भाषा कैसे बदलनी है।
 consequence-keyboard-single = { consequence-keyboard-selector }

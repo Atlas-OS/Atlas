@@ -765,73 +765,189 @@ function Complete-AtlasInstallState {
     }
 }
 
-function Get-AtlasPlaybookDocument {
+function Get-AtlasPackageManifest {
     <#
     .SYNOPSIS
-        Loads playbook.conf from an explicit path or from the package this module is part of.
+        Loads atlas.json, the package manifest, from an explicit path or from the package
+        this module is part of, and checks that it's a JSON object of schema version 1.
+        The readers below check the fields they return.
     #>
-    param([string]$PlaybookPath)
+    param([string]$ManifestPath)
 
-    if ([string]::IsNullOrWhiteSpace($PlaybookPath)) {
-        # Modules\Atlas.InstallState -> Modules -> Scripts -> AtlasModules -> Executables -> playbook
-        $PlaybookPath = [IO.Path]::GetFullPath((Join-Path -Path $PSScriptRoot -ChildPath '..\..\..\..\..\playbook.conf'))
+    if ([string]::IsNullOrWhiteSpace($ManifestPath)) {
+        # Modules\Atlas.InstallState -> Modules -> Scripts -> AtlasModules -> Executables -> package root
+        $ManifestPath = [IO.Path]::GetFullPath((Join-Path -Path $PSScriptRoot -ChildPath '..\..\..\..\..\atlas.json'))
     }
-    if (-not [IO.File]::Exists($PlaybookPath)) {
-        throw "Atlas playbook.conf was not found at '$PlaybookPath'."
+    if (-not [IO.File]::Exists($ManifestPath)) {
+        throw "The Atlas package manifest (atlas.json) was not found at '$ManifestPath'."
     }
-    [xml]$playbook = [IO.File]::ReadAllText($PlaybookPath)
-    return $playbook.Playbook
+    $text = [IO.File]::ReadAllText($ManifestPath)
+    if ([string]::IsNullOrWhiteSpace($text)) {
+        throw "The Atlas package manifest '$ManifestPath' is empty."
+    }
+    try {
+        # Windows PowerShell 5.1 returns a top-level JSON list as one array, which the
+        # object check below refuses.
+        $manifest = ConvertFrom-Json -InputObject $text -ErrorAction Stop
+    }
+    catch {
+        throw "The Atlas package manifest '$ManifestPath' isn't valid JSON: $($_.Exception.Message)"
+    }
+    if ($manifest -isnot [Management.Automation.PSCustomObject]) {
+        throw "The Atlas package manifest '$ManifestPath' must be a JSON object."
+    }
+    $schema = $manifest.PSObject.Properties['schemaVersion']
+    if ($null -eq $schema -or -not (Test-AtlasManifestInteger -Value $schema.Value) -or $schema.Value -ne 1) {
+        $found = if ($null -eq $schema) { 'none' } else { "'$($schema.Value)'" }
+        throw "The Atlas package manifest '$ManifestPath' has schema version $found; this installer reads version 1."
+    }
+    return $manifest
 }
 
-function Get-AtlasPlaybookVersion {
+function Test-AtlasManifestInteger {
+    <#
+    .SYNOPSIS
+        Whether a value ConvertFrom-Json returned is a JSON whole number. Windows
+        PowerShell 5.1 gives [int], or [long] beyond its range; a fraction is [decimal].
+    #>
+    param([AllowNull()]$Value)
+    return ($Value -is [int] -or $Value -is [long])
+}
+
+function Get-AtlasPackageVersion {
     <#
     .SYNOPSIS
         Returns the package's own version, validated as a semantic version string.
     #>
-    param([string]$PlaybookPath)
+    param([string]$ManifestPath)
 
-    $version = [string](Get-AtlasPlaybookDocument -PlaybookPath $PlaybookPath).Version
-    if ($version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') {
-        throw "Atlas target version '$version' is invalid."
+    $property = (Get-AtlasPackageManifest -ManifestPath $ManifestPath).PSObject.Properties['version']
+    $version = if ($null -ne $property -and $property.Value -is [string]) { $property.Value } else { '' }
+    if ($version -cnotmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') {
+        throw "The Atlas package version '$version' is invalid."
     }
     return $version
 }
 
-function Get-AtlasPlaybookOption {
+function Get-AtlasPackageChoice {
     <#
     .SYNOPSIS
-        Returns the FeaturePage option groups declared by playbook.conf: each group's
-        option names, whether exactly one must be chosen, and the default.
+        Returns the choices atlas.json declares, in order, one object for each: Id, its
+        option ids (Options), whether exactly one of them must be chosen (ExactlyOne, for
+        kind single), Default, and the option it depends on (DependsOn), or $null.
+    .DESCRIPTION
+        Refuses a manifest that breaks the format: a choice without an id or a known
+        kind, an option id repeated or outside the letters, digits and dashes the front
+        door accepts, a single choice whose default isn't one of its options, or a
+        dependsOn that names no option of another choice.
     #>
-    param([string]$PlaybookPath)
+    param([string]$ManifestPath)
 
-    $document = Get-AtlasPlaybookDocument -PlaybookPath $PlaybookPath
-    $groups = @()
-    foreach ($page in @($document.FeaturePages.ChildNodes | Where-Object { $_.NodeType -eq 'Element' })) {
-        $names = @($page.SelectNodes('Options/*/Name') | ForEach-Object { [string]$_.InnerText })
-        $isRadio = $page.LocalName -like 'Radio*'
-        $default = if ($null -ne $page.Attributes['DefaultOption']) { [string]$page.Attributes['DefaultOption'].Value } else { $null }
-        $dependsOn = if ($null -ne $page.Attributes['DependsOn']) { [string]$page.Attributes['DependsOn'].Value } else { $null }
-        $groups += [pscustomobject][ordered]@{
-            Page       = [string]$page.LocalName
-            Options    = $names
-            ExactlyOne = $isRadio
+    $manifest = Get-AtlasPackageManifest -ManifestPath $ManifestPath
+    $property = $manifest.PSObject.Properties['choices']
+    if ($null -eq $property -or $property.Value -isnot [array]) {
+        throw "The package manifest's 'choices' must be a list."
+    }
+    $choiceIds = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
+    $optionIds = New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
+    $choices = @()
+    foreach ($entry in @($property.Value)) {
+        if ($entry -isnot [Management.Automation.PSCustomObject]) {
+            throw "Each of the package manifest's choices must be an object."
+        }
+        $fields = $entry.PSObject.Properties
+        $id = if ($null -ne $fields['id'] -and $fields['id'].Value -is [string]) { $fields['id'].Value } else { '' }
+        if ([string]::IsNullOrWhiteSpace($id)) {
+            throw "A choice in the package manifest has no id."
+        }
+        if (-not $choiceIds.Add($id)) {
+            throw "The package manifest declares the choice '$id' twice."
+        }
+        $kind = if ($null -ne $fields['kind']) { [string]$fields['kind'].Value } else { '' }
+        if ($kind -cnotin @('single', 'multiple')) {
+            throw "The choice '$id' has kind '$kind'; it must be 'single' or 'multiple'."
+        }
+        if ($null -eq $fields['options'] -or $fields['options'].Value -isnot [array] -or @($fields['options'].Value).Count -eq 0) {
+            throw "The choice '$id' declares no options."
+        }
+        $options = @(foreach ($option in @($fields['options'].Value)) {
+                $optionId = if ($option -is [Management.Automation.PSCustomObject] -and $null -ne $option.PSObject.Properties['id']) {
+                    [string]$option.PSObject.Properties['id'].Value
+                }
+                else { '' }
+                if ($optionId -cnotmatch '^[a-z0-9-]+$') {
+                    throw "The choice '$id' has an option whose id '$optionId' isn't made of lowercase letters, digits and dashes."
+                }
+                if (-not $optionIds.Add($optionId)) {
+                    throw "The package manifest declares the option '$optionId' twice."
+                }
+                $optionId
+            })
+        $default = $null
+        if ($kind -ceq 'single') {
+            $default = if ($null -ne $fields['default'] -and $fields['default'].Value -is [string]) { $fields['default'].Value } else { $null }
+            if ($null -eq $default -or $options -cnotcontains $default) {
+                throw "The single choice '$id' needs a default that is one of its options, not '$default'."
+            }
+        }
+        $dependsOn = $null
+        if ($null -ne $fields['dependsOn']) {
+            $dependsOn = $fields['dependsOn'].Value
+            if ($dependsOn -isnot [string] -or [string]::IsNullOrWhiteSpace($dependsOn) -or $options -ccontains $dependsOn) {
+                throw "The choice '$id' must depend on an option of another choice, not '$dependsOn'."
+            }
+        }
+        $choices += [pscustomobject][ordered]@{
+            Id         = $id
+            Options    = $options
+            ExactlyOne = $kind -ceq 'single'
             Default    = $default
             DependsOn  = $dependsOn
         }
     }
-    return $groups
+    foreach ($choice in $choices) {
+        if ($null -ne $choice.DependsOn -and -not $optionIds.Contains($choice.DependsOn)) {
+            throw "The choice '$($choice.Id)' depends on '$($choice.DependsOn)', which no choice in the package manifest offers."
+        }
+    }
+    return $choices
 }
 
-function Get-AtlasPlaybookSupportedBuild {
+function Get-AtlasPackageSupportedBuild {
     <#
     .SYNOPSIS
-        Returns the Windows build numbers playbook.conf declares as supported.
+        Returns the Windows build numbers atlas.json declares as supported.
     #>
-    param([string]$PlaybookPath)
+    param([string]$ManifestPath)
 
-    $document = Get-AtlasPlaybookDocument -PlaybookPath $PlaybookPath
-    return @($document.SupportedBuilds.string | ForEach-Object { [int]$_ })
+    $manifest = Get-AtlasPackageManifest -ManifestPath $ManifestPath
+    $property = $manifest.PSObject.Properties['supportedBuilds']
+    if ($null -eq $property -or $property.Value -isnot [array] -or @($property.Value).Count -eq 0) {
+        throw "The package manifest declares no supported Windows builds."
+    }
+    return @(foreach ($entry in @($property.Value)) {
+            $build = if ($entry -is [Management.Automation.PSCustomObject]) { $entry.PSObject.Properties['build'] } else { $null }
+            if ($null -eq $build -or -not (Test-AtlasManifestInteger -Value $build.Value) -or $build.Value -le 0 -or $build.Value -gt [int]::MaxValue) {
+                throw "Each supported build in the package manifest needs a whole-number 'build', not $(ConvertTo-Json -InputObject $entry -Compress)."
+            }
+            [int]$build.Value
+        })
+}
+
+function Get-AtlasPackageUpdatableFrom {
+    <#
+    .SYNOPSIS
+        Returns the Atlas versions atlas.json says this package can update in place.
+    #>
+    param([string]$ManifestPath)
+
+    $manifest = Get-AtlasPackageManifest -ManifestPath $ManifestPath
+    $property = $manifest.PSObject.Properties['updatableFrom']
+    if ($null -eq $property) { return @() }
+    if ($property.Value -isnot [array] -or @($property.Value | Where-Object { $_ -isnot [string] }).Count -gt 0) {
+        throw "The package manifest's 'updatableFrom' must be a list of Atlas versions."
+    }
+    return @($property.Value)
 }
 
 function Get-AtlasInstalledVersion {
@@ -864,9 +980,7 @@ function Get-AtlasInstalledVersion {
                 @{ Path = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'; Name = 'RegisteredOrganization' }
             )) {
             $value = Get-ItemProperty -LiteralPath $marker.Path -Name $marker.Name -ErrorAction SilentlyContinue
-            if ($null -ne $value -and [string]$value.($marker.Name) -match '^Atlas Playbook v?(\d+\.\d+\.\d+)$') {
-                $Matches[1]
-            }
+            if ($null -ne $value) { ConvertFrom-AtlasVersionMarker -Value ([string]$value.($marker.Name)) }
         }) | Sort-Object -Unique
         if (@($legacyVersions).Count -gt 1) { throw 'Installed Atlas version markers disagree.' }
         if (@($legacyVersions).Count -eq 1) { $installedVersion = [string]@($legacyVersions)[0] }
@@ -885,7 +999,8 @@ function Resolve-AtlasInstallMode {
     .SYNOPSIS
         Decides whether an install of the target version is Fresh, an Upgrade, or a
         Reapply of the same version, from active install state, the machine state
-        document or legacy OEM version markers. Upgrades must be declared in playbook.conf.
+        document or legacy OEM version markers. An update needs the installed version
+        in the manifest's updatableFrom.
         Rebase puts an installed Atlas back on a Windows that rebuilt itself while
         Atlas Manager moved it to a newer release; the version can then come from
         that move's record when the markers are gone.
@@ -893,7 +1008,7 @@ function Resolve-AtlasInstallMode {
     param(
         [Parameter(Mandatory = $true)][string]$TargetVersion,
         [string]$WindowsPath,
-        [string]$PlaybookPath
+        [string]$ManifestPath
     )
 
     if ([string]::IsNullOrWhiteSpace($WindowsPath)) {
@@ -915,8 +1030,7 @@ function Resolve-AtlasInstallMode {
             if ($null -ne $rebase) { return 'Rebase' }
             return 'Reapply'
         }
-        $playbook = Get-AtlasPlaybookDocument -PlaybookPath $PlaybookPath
-        if (@($playbook.UpgradableFrom.string) -cnotcontains $installedVersion) {
+        if (@(Get-AtlasPackageUpdatableFrom -ManifestPath $ManifestPath) -cnotcontains $installedVersion) {
             throw "Atlas $installedVersion is not a declared upgrade source for $TargetVersion. A fresh Windows installation is required."
         }
         if ($null -ne $rebase) { return 'Rebase' }
@@ -1551,9 +1665,10 @@ Export-ModuleMember -Function @(
     'Commit-AtlasInstallState'
     'Invoke-AtlasInstallStep'
     'Complete-AtlasInstallState'
-    'Get-AtlasPlaybookVersion'
-    'Get-AtlasPlaybookOption'
-    'Get-AtlasPlaybookSupportedBuild'
+    'Get-AtlasPackageManifest'
+    'Get-AtlasPackageVersion'
+    'Get-AtlasPackageChoice'
+    'Get-AtlasPackageSupportedBuild'
     'Get-AtlasInstalledVersion'
     'Resolve-AtlasInstallMode'
     'Resolve-AtlasInstallChoices'

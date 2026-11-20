@@ -192,7 +192,7 @@ function Invoke-AtlasBoundedHttpGet {
     $handler.SslProtocols = [Security.Authentication.SslProtocols]::None
     $client = New-Object Net.Http.HttpClient($handler)
     $client.Timeout = [Threading.Timeout]::InfiniteTimeSpan
-    $client.DefaultRequestHeaders.UserAgent.ParseAdd('AtlasOS-Playbook')
+    $client.DefaultRequestHeaders.UserAgent.ParseAdd('AtlasOS-Package')
     if ($GitHubApi) {
         $client.DefaultRequestHeaders.Accept.ParseAdd('application/vnd.github+json')
         $client.DefaultRequestHeaders.Add('X-GitHub-Api-Version', '2022-11-28')

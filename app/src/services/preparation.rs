@@ -21,15 +21,15 @@ use super::{files, recovery_app, registry};
 /// The worker script, embedded so the app and the worker it drives always
 /// agree on the journal and the failure causes it names.
 pub(crate) const WORKER: &str =
-    include_str!("../../../playbook/Executables/AtlasModules/Scripts/Preparation/Update-Windows.ps1");
+    include_str!("../../../package/Executables/AtlasModules/Scripts/Preparation/Update-Windows.ps1");
 /// The functions-only library the worker dot-sources for moving Windows to
 /// another release and putting back the Windows Update settings it changed.
 pub(crate) const LIBRARY: &str =
-    include_str!("../../../playbook/Executables/AtlasModules/Scripts/Preparation/WindowsTransition.ps1");
+    include_str!("../../../package/Executables/AtlasModules/Scripts/Preparation/WindowsTransition.ps1");
 /// The functions-only library that applies the drivers choice, shared by the
 /// worker and ISO setup.
 pub(crate) const REGISTRY_LIBRARY: &str =
-    include_str!("../../../playbook/Executables/AtlasModules/Scripts/Preparation/RegistryFile.ps1");
+    include_str!("../../../package/Executables/AtlasModules/Scripts/Preparation/RegistryFile.ps1");
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -252,10 +252,10 @@ impl Drivers {
     pub fn policy(self) -> &'static [u8] {
         match self {
             Self::Automatic => include_bytes!(
-                "../../../playbook/Executables/AtlasDesktop/2. Drivers/Drivers from Windows Update/Enable Drivers from Windows Update.reg"
+                "../../../package/Executables/AtlasDesktop/2. Drivers/Drivers from Windows Update/Enable Drivers from Windows Update.reg"
             ),
             Self::Manual => include_bytes!(
-                "../../../playbook/Executables/AtlasDesktop/2. Drivers/Drivers from Windows Update/Disable Drivers from Windows Update.reg"
+                "../../../package/Executables/AtlasDesktop/2. Drivers/Drivers from Windows Update/Disable Drivers from Windows Update.reg"
             ),
         }
     }

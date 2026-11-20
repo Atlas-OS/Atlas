@@ -14,7 +14,7 @@ This page is for people who create Atlas media; [ISO internals](iso-internals.md
 | Windows release | A [supported Windows 11 release](../../docs/windows-release-policy.md#supported-releases), for the source ISO and for every PC Atlas installs on. |
 | Source ISO | Unmodified Windows 11 client media, all x64 or all ARM64, whose full version Microsoft lists as generally available. |
 | Editions | At least one edition besides Home and the known LTSC editions. |
-| Atlas package | Atlas 0.6.0 or later, as an `.apbx` file. |
+| Atlas package | Atlas 0.6.0 or later, as an `.atlaspkg` file. |
 | Administrator access | Without it, the page offers only **Relaunch as administrator**. |
 | Free space | A new file on a local NTFS or ReFS volume with about 5 × the source ISO, plus 2 × the unpacked package, plus 4 GiB free. |
 | Account name | A name for the local account that Windows setup creates. |
@@ -22,7 +22,7 @@ This page is for people who create Atlas media; [ISO internals](iso-internals.md
 
 - Atlas refuses media that has its own answer file or a `$OEM$` folder, rather than merge it with unknown setup instructions.
 - Saving Atlas choices in the ISO needs a package that declares ISO setup support in `Executables\AtlasModules\Scripts\Install\iso-setup.json`.
-- The PC checks, the ISO edition filter and the USB writer all read the supported builds from `SupportedBuilds` in `playbook.conf`.
+- The PC checks, the ISO edition filter and the USB writer all read the supported builds from `supportedBuilds` in the package's `atlas.json`.
 
 Updating an installed Atlas also needs a supported Windows release, and Atlas Manager moves Windows to one first where it can ([Moving Windows to a newer release](../../docs/windows-transition.md)).
 Where it can't, it points to this page, with a reminder to back up first.

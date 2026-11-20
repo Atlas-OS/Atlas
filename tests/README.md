@@ -10,7 +10,7 @@ Name each test file `Atlas.<Area>.Tests.ps1`, after the module, script or behavi
 
 | File | Host | Covers |
 | --- | --- | --- |
-| `Atlas.<Area>.Tests.ps1` | Windows PowerShell 5.1 | Scripts and modules under `playbook/`, which run on users' PCs |
+| `Atlas.<Area>.Tests.ps1` | Windows PowerShell 5.1 | Scripts and modules under `package/`, which run on users' PCs |
 | `AtlasBuild.Tests.ps1` | PowerShell 7 | The build tools under `tools/build` |
 
 ## The test host
@@ -25,7 +25,7 @@ BeforeAll { . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1') }
 It does the following:
 
 - Stops the run unless the host is Windows PowerShell 5.1.
-- Sets `PSModulePath` to the inbox modules, the Atlas modules under `playbook/Executables/AtlasModules/Scripts/Modules` and the module folder that holds Pester, so a module on a per-user path can't shadow them.
+- Sets `PSModulePath` to the inbox modules, the Atlas modules under `package/Executables/AtlasModules/Scripts/Modules` and the module folder that holds Pester, so a module on a per-user path can't shadow them.
 - Imports the inbox Management, Utility and Security modules from their exact manifests.
 - Defines paths that tests use: `$script:AtlasTestRepoRoot`, `$script:AtlasTestScriptsRoot` and `$script:AtlasTestModulesRoot`.
 - Finds PowerShell 7 as `$script:AtlasTestToolsHost`, for tests that run the generators under `tools/dev`.

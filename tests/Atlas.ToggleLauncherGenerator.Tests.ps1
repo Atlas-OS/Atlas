@@ -6,9 +6,9 @@ BeforeAll {
     # hand-written launcher the generator must leave alone.
     function New-LauncherFixture {
         $root = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
-        $toggles = Join-Path $root 'playbook\Executables\AtlasModules\Toggles\Troubleshooting'
-        $desktop = Join-Path $root 'playbook\Executables\AtlasDesktop'
-        $toolbox = Join-Path $root 'playbook\Executables\AtlasModules\Toolbox'
+        $toggles = Join-Path $root 'package\Executables\AtlasModules\Toggles\Troubleshooting'
+        $desktop = Join-Path $root 'package\Executables\AtlasDesktop'
+        $toolbox = Join-Path $root 'package\Executables\AtlasModules\Toolbox'
         New-Item -Path $toggles, (Join-Path $desktop '9. Troubleshooting'), $toolbox -ItemType Directory -Force | Out-Null
         $definition = "@{ Name = 'Repair'; States = @(@{ Name = 'Run'; Launcher = '9. Troubleshooting\Fix Visual C++ Errors.cmd' }) }"
         [IO.File]::WriteAllText((Join-Path $toggles 'Repair.psd1'), $definition, [Text.UTF8Encoding]::new($false))
@@ -33,7 +33,7 @@ Describe 'Launcher generator' {
         $root = New-LauncherFixture
         $generated = Invoke-LauncherGenerator -Root $root
         $generated.ExitCode | Should -Be 0 -Because $generated.Output
-        Join-Path $root 'playbook\Executables\AtlasDesktop\9. Troubleshooting\Fix Visual C++ Errors.cmd' |
+        Join-Path $root 'package\Executables\AtlasDesktop\9. Troubleshooting\Fix Visual C++ Errors.cmd' |
             Should -Exist
 
         $validated = Invoke-LauncherGenerator -Root $root -Validate
@@ -41,8 +41,8 @@ Describe 'Launcher generator' {
     }
 
     It 'rejects a hand-written launcher that is not listed: <Tree>' -ForEach @(
-        @{ Tree = 'AtlasDesktop'; Relative = 'playbook\Executables\AtlasDesktop\Extra.cmd' }
-        @{ Tree = 'Toolbox'; Relative = 'playbook\Executables\AtlasModules\Toolbox\Scripts\Extra.cmd' }
+        @{ Tree = 'AtlasDesktop'; Relative = 'package\Executables\AtlasDesktop\Extra.cmd' }
+        @{ Tree = 'Toolbox'; Relative = 'package\Executables\AtlasModules\Toolbox\Scripts\Extra.cmd' }
     ) {
         $root = New-LauncherFixture
         (Invoke-LauncherGenerator -Root $root).ExitCode | Should -Be 0

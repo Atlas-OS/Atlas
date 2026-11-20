@@ -35,7 +35,7 @@ Describe 'Search privacy on Windows that refuses per-user preferences' {
             $entries = $definition.Registry
             $expectedMode = 1
         } else {
-            $definition = Import-PowerShellDataFile (Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles\General\WebSearch.psd1')
+            $definition = Import-PowerShellDataFile (Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toggles\General\WebSearch.psd1')
             $stateName = if ($Route -eq 'Enable Web Search') { 'Enable' } else { 'Disable' }
             $entries = @($definition.States | Where-Object Name -eq $stateName)[0].Registry
             $expectedMode = if ($stateName -eq 'Enable') { 2 } else { 1 }
@@ -68,7 +68,7 @@ Describe 'Search privacy on Windows that refuses per-user preferences' {
         if ($Route -eq 'Privacy tweak') {
             $entries = (Import-PowerShellDataFile (Join-Path $script:AtlasTestScriptsRoot 'Tweaks\privacy\search-settings.psd1')).Registry
         } else {
-            $definition = Import-PowerShellDataFile (Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles\General\WebSearch.psd1')
+            $definition = Import-PowerShellDataFile (Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toggles\General\WebSearch.psd1')
             $stateName = if ($Route -eq 'Enable Web Search') { 'Enable' } else { 'Disable' }
             $entries = @($definition.States | Where-Object Name -eq $stateName)[0].Registry
         }

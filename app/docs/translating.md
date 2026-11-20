@@ -8,9 +8,8 @@ Before you mark a catalog reviewed, check its Windows names and open questions a
 
 ## Atlas package and step names
 
-The `.apbx` file is the Atlas package in every language, shortened once it's clear.
+The `.atlaspkg` file is the Atlas package in every language, shortened once it's clear.
 Interface text never says "playbook" in any language.
-The `playbook-*` message ids, `i18n/playbook-source.ftl` and the `embedded-playbook` feature keep their names.
 The ISO flow's third step reuses **Your choices** (`step-options`) from the install flow.
 
 | Locale | Atlas package, then its short form | Install steps (`step-*`) | ISO steps 1, 2 and 4 (`iso-review-files`, `iso-step-windows`, `iso-step-review`) |
@@ -32,7 +31,7 @@ The ISO flow's third step reuses **Your choices** (`step-options`) from the inst
 ## Windows feature names
 
 Name the features Atlas turns off as Windows shows them in your language.
-They appear in `consequence-mitigations-disable` (Exploit protection, Control Flow Guard) and `playbook-page-defender-enable-description` (the other three).
+They appear in `consequence-mitigations-disable` (Exploit protection, Control Flow Guard) and `package-choice-defender-description` (the other three).
 Each row has the weakest status of any name in it:
 
 | Status | Meaning |
@@ -114,9 +113,9 @@ The switch names column gives the locale's collective term for the protection sw
 - `protection-cloud`, `protection-samples`, `security-list-title`: does Windows show "Cloudbasierter Schutz" and "Automatische Übermittlung von Beispielen", or Microsoft's wording, "Über/In der Cloud bereitgestellter Schutz" and "Automatische Beispielübermittlung"?
   Check the page title, "Einstellungen für Viren- & Bedrohungsschutz", at the same time.
 - `prepare-description`: Start shows "Terminal", not "Windows-Terminal"; which name should the text use?
-- `playbook-page-defender-enable-description`: do "Intelligente App-Steuerung" and "Erweiterter Phishingschutz" keep their capitals mid-sentence?
+- `package-choice-defender-description`: do "Intelligente App-Steuerung" and "Erweiterter Phishingschutz" keep their capitals mid-sentence?
 - `consequence-mitigations-disable`: what's the exact Control Flow Guard label on the Exploit-Schutz page?
-- `playbook-page-mitigations-default-description`: "Mitigationen", or Microsoft's "Entschärfungen" or "Risikominderungen"?
+- `package-choice-mitigations-description`: "Mitigationen", or Microsoft's "Entschärfungen" or "Risikominderungen"?
 - `consequence-defender-disable`: SmartScreen's own dialog says "unbekannte App", but the catalog says "nicht erkannte Apps"; which should it say?
 
 ### Spanish (`es`)
@@ -144,7 +143,7 @@ The switch names column gives the locale's collective term for the protection sw
   Check the page title at the same time.
 - Whole catalog: usted or tú?
   Microsoft's consumer pages use tú.
-- `playbook-page-defender-enable-description`: should Enhanced Phishing Protection add "(phishing)", as Microsoft's machine-translated Spanish page does?
+- `package-choice-defender-description`: should Enhanced Phishing Protection add "(phishing)", as Microsoft's machine-translated Spanish page does?
 - `prepare-description`: is the app "Terminal Windows" in Spanish Windows?
 
 ### French (`fr`)
@@ -169,7 +168,7 @@ The switch names column gives the locale's collective term for the protection sw
 - `protection-cloud`: "Protection dans le cloud" or "Protection fournie par le cloud"?
   Microsoft's pages use both.
 - `security-list-title`: "et" or "&"?
-- `playbook-page-defender-enable-description`: is Enhanced Phishing Protection « Protection renforcée contre l’hameçonnage », or the section's own title, « Protection contre l’hameçonnage »?
+- `package-choice-defender-description`: is Enhanced Phishing Protection « Protection renforcée contre l’hameçonnage », or the section's own title, « Protection contre l’hameçonnage »?
 - `prepare-description`: Start shows « Terminal », not « Terminal Windows »; which name should the text use?
 
 ### Brazilian Portuguese (`pt-BR`)
@@ -195,7 +194,7 @@ The switch names column gives the locale's collective term for the protection sw
 #### Open questions
 
 - `protection-tamper`, `protection-cloud`: is Tamper Protection "Proteção contra violações", "Proteção contra Violações" or a form with "adulterações", and is the cloud switch "fornecida pela nuvem" or "na nuvem"?
-- `playbook-page-defender-enable-description`: is Enhanced Phishing Protection "aprimorada" or "avançada"?
+- `package-choice-defender-description`: is Enhanced Phishing Protection "aprimorada" or "avançada"?
   Microsoft's pages use both; this is low priority.
 - `detail-windows-preview`, `detail-windows-release-unknown`, `detail-windows-release-unlisted`, `iso-release-unlisted`: "build" or "compilação"?
   Three strings say "build" and four say "compilação"; check which one Brazilian Windows uses, then use it in all of them.
@@ -222,10 +221,10 @@ The switch names column gives the locale's collective term for the protection sw
 
 - `protection-cloud`: is the cloud switch "Ochrona dostarczana z chmury", or one of the forms Microsoft's pages use: "chmurowa", "w chmurze" or the English name?
 - `consequence-mitigations-disable`: is Exploit protection "Ochrona przed lukami w zabezpieczeniach", or one of Microsoft's forms: "Ochrona przed exploitami", "ochrona przed programami wykorzystującymi luki" or the English name?
-- `playbook-page-defender-enable-description`: is Enhanced Phishing Protection "Rozszerzona…", "Ulepszona…" or the switch's own label, "Ochrona przed wyłudzaniem informacji"?
+- `package-choice-defender-description`: is Enhanced Phishing Protection "Rozszerzona…", "Ulepszona…" or the switch's own label, "Ochrona przed wyłudzaniem informacji"?
   No Microsoft page uses "Rozszerzona…".
-- `playbook-page-defender-enable-description`: is Smart App Control "Inteligentna kontrola aplikacji", or "Kontrola aplikacji inteligentnej" as one older Microsoft page has it?
-- `playbook-page-defender-enable-description`, `check-fix-apps`, `prepare-description`: do Find my device ("Znajdź moje urządzenie"), Installed apps, Notepad and Windows Terminal match Polish Windows?
+- `package-choice-defender-description`: is Smart App Control "Inteligentna kontrola aplikacji", or "Kontrola aplikacji inteligentnej" as one older Microsoft page has it?
+- `package-choice-defender-description`, `check-fix-apps`, `prepare-description`: do Find my device ("Znajdź moje urządzenie"), Installed apps, Notepad and Windows Terminal match Polish Windows?
   None of them has been checked.
 
 ### Russian (`ru`)
@@ -253,7 +252,7 @@ The switch names column gives the locale's collective term for the protection sw
 - `protection-tamper`: is Tamper Protection "Защита от подделки", as quoted from the interface, or "Защита от незаконного изменения", as Microsoft's documentation says?
 - `security-list-title`: does the page heading include "и других угроз"?
 - `security-switch-off`: is the off state "Откл."?
-- `consequence-mitigations-disable`, `playbook-page-defender-enable-description`: do Exploit protection, Control Flow Guard and Smart App Control match Russian Windows, and is Enhanced Phishing Protection «Расширенная» or «Улучшенная»?
+- `consequence-mitigations-disable`, `package-choice-defender-description`: do Exploit protection, Control Flow Guard and Smart App Control match Russian Windows, and is Enhanced Phishing Protection «Расширенная» or «Улучшенная»?
   None of the four has been checked.
 - `usb-title` and the other флешка strings: «флешка», or Microsoft's «USB-накопитель»?
 - `iso-step-review`: «Проверка» for Review is also the Checking status; should Review be «Сводка»?
@@ -284,7 +283,7 @@ The switch names column gives the locale's collective term for the protection sw
 - `security-list-title`: "ve" or "&"?
 - Fast Startup (`consequence-disable-hibernation`): "Hızlı Başlatma" or "Hızlı başlatma"?
 - `consequence-mitigations-disable`: does Control Flow Guard end in "koruması" or "koruyucusu"?
-- `playbook-page-defender-enable-description`: how is "Gelişmiş Kimlik Avı Koruması" capitalised?
+- `package-choice-defender-description`: how is "Gelişmiş Kimlik Avı Koruması" capitalised?
 - Whole catalog: "güncelleştirme", Microsoft's term, appears on the home page, in PC checks and on the **Your choices** page, but the update card on the **Get ready** page says "güncelleme".
   Which should the whole catalog use?
 - Whole catalog: the catalog mixes ' and ’ by section; which should it use throughout?
@@ -300,7 +299,7 @@ The switch names column gives the locale's collective term for the protection sw
 - Latin-only asides take half-width brackets.
 - `list-and` joins with 和, without spaces.
 - Removing Defender is 移除, because it's permanent.
-- 安装文件 means prepared files, never the .apbx.
+- 安装文件 means prepared files, never the .atlaspkg file.
 - Processor protections are 处理器防护, not 处理器安全.
 - Review is 核对 in the install summary and 检查 in the ISO, USB and report flows.
 - The USB is U 盘 in titles, and USB 驱动器 in lists and the erase text.
@@ -315,7 +314,7 @@ The switch names column gives the locale's collective term for the protection sw
 - `protection-samples`: 样本 or 示例?
 - `protection-cloud`: 云提供的保护 or 云保护?
 - `consequence-mitigations-disable`: does Chinese Windows show "Exploit Protection" in English, and is Control Flow Guard 控制流保护 (CFG)?
-- `playbook-page-defender-enable-description`: Enhanced Phishing Protection is 增强型网络钓鱼防护, but the Windows Security switch reads 网络钓鱼防护; which should the text use?
+- `package-choice-defender-description`: Enhanced Phishing Protection is 增强型网络钓鱼防护, but the Windows Security switch reads 网络钓鱼防护; which should the text use?
 
 ### Traditional Chinese (`zh-Hant`)
 
@@ -325,7 +324,7 @@ The switch names column gives the locale's collective term for the protection sw
 
 - Use the Taiwan glossary: 設定, 系統管理員, 檔案, 資料夾, 網路, 組建, 佈景主題.
 - Punctuation is full-width.
-- Brackets are full-width even around Latin-only text: （.apbx）, （UAC）.
+- Brackets are full-width even around Latin-only text: （.atlaspkg）, （UAC）.
 - `list-and` joins with 和, without spaces.
 - Processor protections are 處理器防護, not 處理器安全性.
 - Security mitigations are 安全性緩和措施.
@@ -338,7 +337,7 @@ The switch names column gives the locale's collective term for the protection sw
 
 - `protection-samples`: 自動提交範例, 提交自動樣本 or 自動提交樣本?
 - `protection-tamper`: older Windows 10 builds use 防竄改保護 rather than 竄改防護; which should the text use?
-- `consequence-mitigations-disable`, `playbook-page-defender-enable-description`, `iso-network-inbox`: do 惡意探索保護, 控制流程防護, 智慧型應用程式控制, 增強式網路釣魚保護, 尋找我的裝置 and 網路介面卡 match Taiwanese Windows?
+- `consequence-mitigations-disable`, `package-choice-defender-description`, `iso-network-inbox`: do 惡意探索保護, 控制流程防護, 智慧型應用程式控制, 增強式網路釣魚保護, 尋找我的裝置 and 網路介面卡 match Taiwanese Windows?
   The Enhanced Phishing Protection switch itself reads 網路釣魚保護.
 - `iso-step-review`, `usb-review`, `report-review`: Review is 檢閱 in the ISO flow but 檢查 for the USB and the report ZIP; should they match?
 - `detail-windows-release-unlisted`, `iso-release-unlisted`: should the Release Preview channel stay in Latin letters, or become 版本預覽通道, 發行預覽 or 版本預覽?
@@ -366,7 +365,7 @@ The switch names column gives the locale's collective term for the protection sw
 - `protection-cloud`, `protection-samples`, `security-list-title`: do クラウド提供の保護, サンプルの自動送信 and ウイルスと脅威の防止の設定 match Japanese Windows?
   Microsoft's machine-translated Japanese support page words them differently.
 - Relaunching Atlas: 再実行 or 開き直す?
-- `playbook-page-defender-enable-description`: is Enhanced Phishing Protection 拡張フィッシング保護 or 強化されたフィッシング保護, as different Microsoft pages call it, or フィッシング対策, as the switch reads?
+- `package-choice-defender-description`: is Enhanced Phishing Protection 拡張フィッシング保護 or 強化されたフィッシング保護, as different Microsoft pages call it, or フィッシング対策, as the switch reads?
   拡張フィッシング保護 is the title of Microsoft's Japanese documentation page.
 - `detail-windows-release-unlisted`, `iso-release-unlisted`: should the Release Preview channel stay in Latin letters, or does Japanese Windows show リリース プレビュー in Settings, as Microsoft's machine-translated Japanese Insider pages suggest?
 
@@ -390,7 +389,7 @@ The switch names column gives the locale's collective term for the protection sw
 - `protection-tamper`, `protection-cloud`, `security-list-title`: does Indonesian Windows show "Proteksi Kerusakan", "Perlindungan yang dikirimkan cloud" and "Pengaturan perlindungan virus & ancaman"?
   Microsoft's machine-translated pages disagree with each other and give eight renderings of Tamper Protection between them.
 - Fast Startup (`consequence-disable-hibernation`): what does Indonesian Windows call it?
-- `consequence-mitigations-disable`, `playbook-page-defender-enable-description`, `check-fix-apps`: do Perlindungan eksploitasi, Perlindungan pengelabuan, Temukan perangkat saya and Aplikasi yang diinstal match Indonesian Windows?
+- `consequence-mitigations-disable`, `package-choice-defender-description`, `check-fix-apps`: do Perlindungan eksploitasi, Perlindungan pengelabuan, Temukan perangkat saya and Aplikasi yang diinstal match Indonesian Windows?
   Kontrol Aplikasi Pintar matches Microsoft's Indonesian Smart App Control FAQ.
 - `consequence-mitigations-disable`, `prepare-description`: Control Flow Guard, Notepad, Paint and Windows Terminal stay in English until confirmed; what does Indonesian Windows call them?
 - `list-and`: should lists of three or more read "A, B, dan C", as PUEBI and CLDR want, rather than "A, B dan C"?
@@ -420,7 +419,7 @@ The switch names column gives the locale's collective term for the protection sw
 - `protection-tamper`, `protection-cloud`, `security-list-title`: do การป้องกันการแก้ไขข้อมูลโดยประสงค์ร้าย and การป้องกันบนระบบคลาวด์ match Thai Windows, and does the page title use "และ" or "&"?
 - Memory integrity (`consequence-disable-core-isolation`): ความสมบูรณ์ or ความถูกต้อง ของหน่วยความจำ?
 - Fast Startup (`consequence-disable-hibernation`): what does Thai Windows call it?
-- `playbook-page-defender-enable-description`: only ฟิชชิ่ง in การป้องกันฟิชชิ่งขั้นสูง is confirmed; does Thai Windows word the rest of the name the same way?
+- `package-choice-defender-description`: only ฟิชชิ่ง in การป้องกันฟิชชิ่งขั้นสูง is confirmed; does Thai Windows word the rest of the name the same way?
 - `prepare-description`, `check-fix-apps`: do Notepad, Paint and Windows Terminal show in Thai, and is Installed apps แอปที่ติดตั้ง?
 - Sign-in strings: Microsoft's Thai pages say ลงชื่อเข้าใช้ for "sign in", but the catalog says เข้าสู่ระบบ; which should it use?
 
@@ -447,7 +446,7 @@ The switch names column gives the locale's collective term for the protection sw
 - `protection-tamper`, `protection-realtime`, `protection-cloud`, `protection-samples`, `security-list-title`: do these five names match Hindi Windows?
   Hindi Windows coverage is partial, so a Hindi PC may show some switches in English.
 - Windows Update, the Start button and Snipping Tool: does Hindi Windows say Windows Update or Windows अपडेट, and what does it call the Start button and Snipping Tool?
-- `consequence-mitigations-disable`, `playbook-page-defender-enable-description`: does Hindi Windows use the feature names in the table?
+- `consequence-mitigations-disable`, `package-choice-defender-description`: does Hindi Windows use the feature names in the table?
   All of them are reasoned, and शोषण usually means the exploitation of people.
 - `prepare-description`, `check-fix-apps`: do कार्य प्रबंधक, नोटपैड/पेंट/Windows टर्मिनल, the folder names and इंस्टॉल किए गए ऐप्स match Hindi Windows?
   All of them are reasoned.

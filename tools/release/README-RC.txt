@@ -11,14 +11,14 @@ What this is
 - When your Windows update revision isn't in the list built into the app,
   Atlas Manager checks Microsoft's Windows release page, as the normal build
   does. Release Preview and Insider builds are refused.
-- The .apbx beside it is the same Atlas package as a separate file, byte for
-  byte. You don't need it to install.
+- The .atlaspkg file beside it is the same Atlas package as a separate file,
+  byte for byte. You don't need it to install.
 @TOOLBOX_NOTE@
 
 Before you start
 - Atlas installs on Windows 11 builds @SUPPORTED_BUILDS@. To see your build,
   run winver.
-- This candidate can update Atlas @UPGRADABLE_FROM@. If Windows needs a newer
+- This candidate can update Atlas @UPDATABLE_FROM@. If Windows needs a newer
   release first, Atlas Manager moves it through Windows Update, then installs
   this candidate. Windows Update can take from a minute to a couple of hours
   to offer the release; Atlas Manager shows how long it has been waiting.
@@ -55,5 +55,5 @@ Reporting problems
 - Say which candidate you used (@RC_ID@ appears under the title bar and in
   Settings > About), what you did, and what you expected.
 
-Checksums for this ZIP, AtlasManager.exe and the .apbx are posted with it as
-SHA256SUMS.txt.
+Checksums for this ZIP, AtlasManager.exe and the .atlaspkg file are posted with
+it as SHA256SUMS.txt.

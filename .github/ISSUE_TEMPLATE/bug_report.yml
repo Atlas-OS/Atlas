@@ -56,7 +56,7 @@ body:
     label: Atlas version
     description: >-
       The heading of Atlas Manager's home page shows "Atlas" followed by the installed version.
-      Windows also records it: run `winver` and look for "Atlas Playbook" followed by the version.
+      Windows also records it: run `winver` and look for "Atlas v" followed by the version, or "Atlas Playbook v" on releases before 0.6.
       For a problem in Atlas Manager itself, also give the version shown beside **Atlas Manager** under **Settings** > **About**.
   validations:
     required: true

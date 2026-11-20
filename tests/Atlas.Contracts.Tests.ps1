@@ -1,34 +1,34 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $script:PlaybookRoot = Join-Path $script:AtlasTestRepoRoot 'playbook'
+    $script:PackageRoot = Join-Path $script:AtlasTestRepoRoot 'package'
     $script:ModulesRoot = $script:AtlasTestModulesRoot
     $script:TweaksRoot = Join-Path $script:AtlasTestScriptsRoot 'Tweaks'
-    $script:PlaybookConf = Join-Path $script:PlaybookRoot 'playbook.conf'
+    $script:ManifestPath = Join-Path $script:PackageRoot 'atlas.json'
 
     Import-Module -Name (Join-Path $script:ModulesRoot 'Atlas.Tweaks\Atlas.Tweaks.psd1') -Force
     Import-Module -Name (Join-Path $script:ModulesRoot 'Atlas.InstallState\Atlas.InstallState.psd1') `
         -Force -DisableNameChecking
 
-    [xml]$playbook = [IO.File]::ReadAllText($script:PlaybookConf)
-    $script:FeatureOptions = @($playbook.SelectNodes(
-            '/Playbook/FeaturePages/*/Options/*/Name'
-        ) | ForEach-Object { $_.InnerText } | Sort-Object -Unique)
+    # Read straight from the JSON, so the reader under test isn't its own reference.
+    $manifest = [IO.File]::ReadAllText($script:ManifestPath) | ConvertFrom-Json
+    $script:ManifestOptions = @(@($manifest.choices) | ForEach-Object { @($_.options) } |
+            ForEach-Object { [string]$_.id } | Sort-Object -Unique)
 }
 
 Describe 'Atlas option handoff contract' {
-    It 'keeps the FeaturePage, front-door and tweak option sets identical' {
+    It 'keeps the manifest, front-door and tweak option sets identical' {
         $tweakOptions = @(InModuleScope Atlas.Tweaks {
                 $script:AtlasKnownOptions
             } | Sort-Object -Unique)
-        $frontDoorOptions = @(Get-AtlasPlaybookOption -PlaybookPath $script:PlaybookConf |
+        $frontDoorOptions = @(Get-AtlasPackageChoice -ManifestPath $script:ManifestPath |
                 ForEach-Object { $_.Options } | Sort-Object -Unique)
 
-        $script:FeatureOptions | Should -Not -BeNullOrEmpty
-        $tweakOptions | Should -Be $script:FeatureOptions
-        $frontDoorOptions | Should -Be $script:FeatureOptions
+        $script:ManifestOptions | Should -Not -BeNullOrEmpty
+        $tweakOptions | Should -Be $script:ManifestOptions
+        $frontDoorOptions | Should -Be $script:ManifestOptions
     }
 
-    It 'uses only declared FeaturePage options in tweak data and option checks' {
+    It 'uses only options the manifest declares in tweak data and option checks' {
         $referencedOptions = [System.Collections.Generic.List[string]]::new()
 
         Get-ChildItem -LiteralPath $script:TweaksRoot -Filter '*.psd1' -File -Recurse |
@@ -41,7 +41,7 @@ Describe 'Atlas option handoff contract' {
             }
 
         $literalCallPattern = 'Test-AtlasOption\s+-Name\s+[''"]([^''"]+)[''"]'
-        Get-ChildItem -LiteralPath $script:PlaybookRoot `
+        Get-ChildItem -LiteralPath $script:PackageRoot `
             -Include '*.ps1','*.psm1' -File -Recurse |
             Select-String -Pattern $literalCallPattern -AllMatches |
             ForEach-Object {
@@ -51,14 +51,14 @@ Describe 'Atlas option handoff contract' {
             }
 
         $unknown = @($referencedOptions | Sort-Object -Unique |
-            Where-Object { $script:FeatureOptions -notcontains $_ })
+            Where-Object { $script:ManifestOptions -notcontains $_ })
         $unknown | Should -BeNullOrEmpty
     }
 }
 
 Describe 'Atlas module import contracts' {
     BeforeDiscovery {
-        $modulesRoot = Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\playbook')).ProviderPath 'Executables\AtlasModules\Scripts\Modules'
+        $modulesRoot = Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\package')).ProviderPath 'Executables\AtlasModules\Scripts\Modules'
         $script:PayloadManifests = @(Get-ChildItem -LiteralPath $modulesRoot -Filter 'Atlas.*.psd1' -File -Recurse |
             ForEach-Object { @{ Name = $_.BaseName; FullName = $_.FullName; ModulesRoot = $modulesRoot } })
     }
@@ -148,7 +148,7 @@ Describe 'Atlas variable definition contract' {
         $scopedDrives = @('env', 'using', 'script', 'global', 'local', 'private', 'variable', 'function')
 
         $undefined = @()
-        $payloadScripts = @(Get-ChildItem -LiteralPath $script:PlaybookRoot -Recurse -File |
+        $payloadScripts = @(Get-ChildItem -LiteralPath $script:PackageRoot -Recurse -File |
                 Where-Object { $_.Extension -cin @('.ps1', '.psm1') })
         foreach ($file in $payloadScripts) {
             $tokens = $null

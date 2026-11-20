@@ -171,8 +171,8 @@ impl Environment {
         Self {
             paths: AppPaths::from_process(),
             // A tester build installs only its bundled package, so it never checks for releases.
-            check_updates: !cfg!(feature = "embedded-playbook"),
-            embedded_startup: cfg!(feature = "embedded-playbook"),
+            check_updates: !cfg!(feature = "embedded-package"),
+            embedded_startup: cfg!(feature = "embedded-package"),
             language_override: language_override.or_else(|| std::env::var(crate::i18n::LANGUAGE_ENV).ok()),
             restart: RestartTiming::default(),
             offer_recheck: OfferRecheckTiming::default(),

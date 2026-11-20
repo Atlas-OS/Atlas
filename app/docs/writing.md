@@ -18,7 +18,7 @@ Be direct about security, installation failures and restarts.
   Name a consequential action explicitly: Remove Microsoft Defender, Install Atlas, Restart now.
 - "Relaunch" refers to this app, and "restart" refers to the PC.
 - Introduce technical terms in context.
-  The Atlas package is the `.apbx` file that holds Atlas's setup instructions and files.
+  The Atlas package is the `.atlaspkg` file that holds Atlas's setup instructions and files.
   Processor protections are also called security mitigations.
   Keep Windows' own switch names, so people can find them in Windows Security.
 - Explain both answers before the person chooses.
@@ -44,7 +44,7 @@ Use one name for one thing.
 - In running text, the selections made in the **Your choices** step are "choices", the ISO modes included.
   Summary cards list them in an "Options" row, and the ISO review in an "Atlas choices" row, kept apart from the step name on purpose.
 - "Settings" is the app's own page.
-- The `.apbx` file is "the Atlas package", or "the package" once that's clear.
+- The `.atlaspkg` file is "the Atlas package", or "the package" once that's clear.
   Interface text never calls it a playbook.
 - The install steps are **Get ready**, **Your choices**, **Windows Security** and **Install**.
   The ISO steps are **Files**, **Windows setup**, **Your choices** and **Review**.
@@ -60,5 +60,5 @@ Use one name for one thing.
 
 ## Translations
 
-[Languages](i18n.md) covers how package text stays recognisable and how translations are reviewed.
+[Languages](i18n.md) covers how the app words the Atlas package's options and choices, and how translations are reviewed.
 [Translation guidance](translating.md) records each language's terms.

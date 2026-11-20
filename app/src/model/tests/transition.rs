@@ -18,7 +18,7 @@ use crate::services::preparation::{Drivers, PreparationRequest, Progress, Restar
 use crate::services::requirements::{self, CheckDetail, CheckId, CheckResult, Verdict};
 use crate::services::settings::{self, InstallDraft};
 use crate::services::system::SystemInfo;
-use crate::services::test_support::{TempDir, apbx};
+use crate::services::test_support::{TempDir, package};
 use crate::services::update_access::{Blocker, BlockerKind, UpdateAccess, parse_journal};
 use crate::services::windows_release::WindowsBlock;
 
@@ -87,8 +87,10 @@ fn scene(name: &str, system: SystemInfo) -> Scene {
         log.lock().unwrap().push(format!("{operation:?}"));
         Ok(())
     });
-    let package =
-        apbx::write(&temp.path().join("package.apbx"), &apbx::valid_with_builds("0.6.0", &[26200, 26300]));
+    let package = package::write(
+        &temp.path().join("package.atlaspkg"),
+        &package::valid_with_builds("0.6.0", &[26200, 26300]),
+    );
     Scene { _temp: temp, machine, env, calls, requests, access, package }
 }
 
@@ -134,8 +136,8 @@ async fn to_get_ready(cx: &mut AsyncApp, model: &Entity<AppModel>, package: &std
         m.begin_install(cx);
     });
     assert!(read(cx, model, |m| m.flow.active && m.flow.step == Step::Ready), "the flow begins");
-    act(cx, model, |m, cx| m.load_playbook_file(package.to_path_buf(), cx));
-    wait_for(cx, model, "the package and the checks", |m| m.playbook.is_some() && m.checks_complete()).await;
+    act(cx, model, |m, cx| m.load_package_file(package.to_path_buf(), cx));
+    wait_for(cx, model, "the package and the checks", |m| m.package.is_some() && m.checks_complete()).await;
 }
 
 fn set_check(model: &mut AppModel, id: CheckId, verdict: Verdict, detail: CheckDetail) {
@@ -300,13 +302,13 @@ fn reopened_before_the_restart_the_version_change_is_still_committed() {
         let scene = scene("transition-commit-reopened", system(26100, "24H2", "Professional"));
         *scene.access.lock().unwrap() = record("transition", "installed");
         let (dir, _) =
-            crate::services::playbook::extract_into(&scene.package, &scene.env.paths.playbooks(), |_, _| {})
+            crate::services::package::extract_into(&scene.package, &scene.env.paths.packages(), |_, _| {})
                 .unwrap();
         crate::model::test_harness::save_draft(
             &scene.env,
             InstallDraft {
                 step: "ready".into(),
-                playbook_dir: Some(dir),
+                package_dir: Some(dir),
                 preparation_restart_at: Some(chrono::Utc::now().to_rfc3339()),
                 windows_terms_accepted: true,
                 flow: Some("earlier-window".into()),
@@ -335,13 +337,13 @@ fn after_the_restart_the_flow_resumes_on_26h2_and_is_ready_to_continue() {
         *scene.access.lock().unwrap() = record("transition", "installed");
         scene.worker(report("complete", &[], None), State::Ready);
         let (dir, _) =
-            crate::services::playbook::extract_into(&scene.package, &scene.env.paths.playbooks(), |_, _| {})
+            crate::services::package::extract_into(&scene.package, &scene.env.paths.packages(), |_, _| {})
                 .unwrap();
         crate::model::test_harness::save_draft(
             &scene.env,
             InstallDraft {
                 step: "ready".into(),
-                playbook_dir: Some(dir),
+                package_dir: Some(dir),
                 preparation_restart_at: Some("2001-01-01T00:00:00Z".into()),
                 windows_terms_accepted: true,
                 flow: Some("earlier-window".into()),
@@ -1236,7 +1238,7 @@ mod offer_wait {
                 m.begin_install(cx);
                 m.windows_terms_accepted = true;
             });
-            act(&mut cx, &model, |m, cx| m.load_playbook_file(scene.package.clone(), cx));
+            act(&mut cx, &model, |m, cx| m.load_package_file(scene.package.clone(), cx));
             wait_until(&cx, "one look by itself", || !scene.requests.lock().unwrap().is_empty()).await;
             let request = scene.requests.lock().unwrap()[0].clone();
             assert!(request.transition.unwrap().offer_only);
@@ -1280,7 +1282,7 @@ mod offer_wait {
                 m.begin_install(cx);
                 m.windows_terms_accepted = true;
             });
-            act(&mut cx, &model, |m, cx| m.load_playbook_file(scene.package.clone(), cx));
+            act(&mut cx, &model, |m, cx| m.load_package_file(scene.package.clone(), cx));
             wait_until(&cx, "one look by itself", || !scene.requests.lock().unwrap().is_empty()).await;
             let request = scene.requests.lock().unwrap()[0].clone();
             assert!(!request.transition.unwrap().offer_only, "a full run installs the monthly update");

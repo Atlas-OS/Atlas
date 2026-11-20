@@ -1,11 +1,11 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:repositoryRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..')).Path
-    $script:modulesRoot = Join-Path -Path $script:repositoryRoot -ChildPath 'playbook\Executables\AtlasModules\Scripts\Modules'
+    $script:modulesRoot = Join-Path -Path $script:repositoryRoot -ChildPath 'package\Executables\AtlasModules\Scripts\Modules'
     Import-Module -Name (Join-Path -Path $script:modulesRoot -ChildPath 'Atlas.Core\Atlas.Core.psd1') -Force
     Import-Module -Name (Join-Path -Path $script:modulesRoot -ChildPath 'Atlas.Tweaks\Atlas.Tweaks.psd1') -Force
 
-    $script:shippedTweaksRoot = Join-Path -Path $script:repositoryRoot -ChildPath 'playbook\Executables\AtlasModules\Scripts\Tweaks'
+    $script:shippedTweaksRoot = Join-Path -Path $script:repositoryRoot -ChildPath 'package\Executables\AtlasModules\Scripts\Tweaks'
     $script:shippedManifestPath = Join-Path -Path $script:shippedTweaksRoot -ChildPath 'tweaks.manifest.psd1'
 
     function New-TweakManifestFixture {
@@ -150,7 +150,7 @@ Describe 'Tweak manifest execution graph' {
     It 'keeps category parent modes aligned with fresh and upgrade plans' {
         $manifest = Get-AtlasTweakManifest -Path $script:shippedManifestPath
         . (Join-Path $script:repositoryRoot `
-            'playbook\Executables\AtlasModules\Scripts\Install\Install-Plan.ps1')
+            'package\Executables\AtlasModules\Scripts\Install\Install-Plan.ps1')
         $freshKeys = @((Get-AtlasInstallPlan -Mode Fresh).Key)
         $upgradeKeys = @((Get-AtlasInstallPlan -Mode Upgrade).Key)
         # A reinstall runs them as an update, which is what 'Upgrade' stands for here.
@@ -167,14 +167,14 @@ Describe 'Tweak manifest execution graph' {
     It 'keeps every standalone classification aligned with its PowerShell route' {
         $manifest = Get-AtlasTweakManifest -Path $script:shippedManifestPath
         $orchestrator = Join-Path $script:repositoryRoot `
-            'playbook\Executables\AtlasModules\Scripts\Entry\Invoke-AtlasInstall.ps1'
+            'package\Executables\AtlasModules\Scripts\Entry\Invoke-AtlasInstall.ps1'
         . $orchestrator
 
         # Every standalone slug is a 'Tweak/<slug>' plan step in exactly the modes its
         # manifest route declares, and the orchestrator dispatches it to the Tweaks phase.
         @($manifest.Standalone).Count | Should -BeGreaterThan 0
         . (Join-Path $script:repositoryRoot `
-                'playbook\Executables\AtlasModules\Scripts\Install\Install-Plan.ps1')
+                'package\Executables\AtlasModules\Scripts\Install\Install-Plan.ps1')
         foreach ($entry in @($manifest.Standalone)) {
             $slug = [string]$entry.Slug
             foreach ($mode in @('Fresh', 'Upgrade', 'Reapply')) {

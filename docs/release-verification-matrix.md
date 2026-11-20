@@ -22,14 +22,14 @@ Keep VM disks, checkpoints, transcripts, screenshots and machine paths out of Gi
 
 ## Required evidence
 
-The supported Windows releases are those in `SupportedBuilds` in `playbook/playbook.conf`, listed in the [supported releases](windows-release-policy.md#supported-releases) table.
-The Atlas versions a release updates are those in `UpgradableFrom` in the same file.
+The supported Windows releases are those in `supportedBuilds` in `package/atlas.json`, listed in the [supported releases](windows-release-policy.md#supported-releases) table.
+The Atlas versions a release updates are those in `updatableFrom` in the same file.
 
 | Area | What must hold | Evidence |
 | --- | --- | --- |
 | Fresh install | Get ready, the install, the restart and the health check complete on each supported release. | A VM run from a clean checkpoint on each supported release, then at least one physical PC. |
 | Customised baseline | Atlas installs over a Windows installation that already has user changes. | A VM run from a checkpoint with common user changes in place. |
-| Updates | Choices and backups are kept when updating from each version in `UpgradableFrom`. | A VM run for each source version with **Keep my choices**, one with **Choose again**, and a reinstall of the same version. |
+| Updates | Choices and backups are kept when updating from each version in `updatableFrom`. | A VM run for each source version with **Keep my choices**, one with **Choose again**, and a reinstall of the same version. |
 | Windows transition | Atlas Manager moves Windows to a supported release, then installs or updates Atlas. | A VM run from each Windows release Atlas Manager offers to move ([Moving Windows to a newer release](windows-transition.md)). |
 | User lifecycle | The installing user, another existing profile and a new profile get the intended settings. | First sign-in of each profile, a retry after a failed migration, and the settings protected policies keep. |
 | Preparation | Windows, the Microsoft Store and installed Store apps are up to date before Atlas changes anything. | A provider failure, going offline and reconnecting, a pending restart, and a retry with each driver choice. |

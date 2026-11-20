@@ -113,7 +113,7 @@ impl AppModel {
     /// the built-in manifest describes.
     fn identity_block(&self) -> Option<InstallBlock> {
         let manifest = self.manifest();
-        let provisional = self.playbook.is_none() && !self.bundled();
+        let provisional = self.package.is_none() && !self.bundled();
         match &self.install_identity {
             Err(_) => Some(InstallBlock::Unknown),
             Ok(InstallIdentity::Fresh) => None,

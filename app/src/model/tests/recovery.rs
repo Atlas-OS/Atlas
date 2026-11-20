@@ -11,7 +11,7 @@ use crate::model::test_harness::{
 use crate::model::{InstallBlock, Notice, Page, RunState, Step, UpdatePath};
 use crate::services::atlas_state::InstallIdentity;
 use crate::services::installer::{InstallOutcome, Phase};
-use crate::services::playbook;
+use crate::services::package;
 use crate::services::session::{self, LaunchLock};
 use crate::services::settings::InstallDraft;
 
@@ -103,7 +103,7 @@ fn a_success_found_on_reopening_shows_its_result_and_clears_its_draft() {
             InstallDraft {
                 step: "install".into(),
                 options: vec!["defender-enable".into()],
-                playbook_dir: Some(record.request.playbook_dir.clone()),
+                package_dir: Some(record.request.package_dir.clone()),
                 session: Some(record.id.clone()),
                 flow: Some("launcher".into()),
                 ..InstallDraft::default()
@@ -182,7 +182,7 @@ fn a_failure_found_on_reopening_runs_the_checks_its_retry_needs() {
             InstallDraft {
                 step: "install".into(),
                 options: record.request.options.clone(),
-                playbook_dir: Some(record.request.playbook_dir.clone()),
+                package_dir: Some(record.request.package_dir.clone()),
                 session: Some(record.id.clone()),
                 flow: Some("failed-install-launcher".into()),
                 // An install only launches once Windows is prepared.
@@ -198,7 +198,7 @@ fn a_failure_found_on_reopening_runs_the_checks_its_retry_needs() {
             assert_eq!(m.flow_id.as_deref(), Some("failed-install-launcher"));
             assert!(m.preparation.ready(), "the launching draft's finished preparation is kept");
             assert_eq!(m.flow.step, Step::Install);
-            assert!(m.playbook.is_some(), "the recorded package is picked up");
+            assert!(m.package.is_some(), "the recorded package is picked up");
             assert!(!m.checks.is_empty(), "the readiness checks the retry depends on were started");
             assert!(m.attempt.phase >= Phase::Applying, "the replayed log set the phase");
         });
@@ -260,7 +260,7 @@ fn a_recovered_failure_is_not_ready_on_a_draft_that_does_not_vouch_for_it() {
                 InstallDraft {
                     step: "install".into(),
                     options: record.request.options.clone(),
-                    playbook_dir: Some(record.request.playbook_dir.clone()),
+                    package_dir: Some(record.request.package_dir.clone()),
                     session: Some(if launcher { record.id.clone() } else { "another-install".into() }),
                     flow: Some("some-flow".into()),
                     preparation_ready: prepared,
@@ -291,14 +291,14 @@ fn a_draft_whose_package_lost_a_file_resumes_without_it() {
     run_model_test(async move |mut cx| {
         let (temp, _, env) = fixture("model-draft-damaged-package");
         let (package, _) = marking_package(&temp, 0);
-        let (dir, _) = playbook::extract_into(&package, &env.paths.playbooks(), |_, _| {}).unwrap();
+        let (dir, _) = package::extract_into(&package, &env.paths.packages(), |_, _| {}).unwrap();
         std::fs::remove_file(dir.join("Executables/AtlasModules/Scripts/Initialize-AtlasPowerShell.ps1"))
             .unwrap();
         save_draft(
             &env,
             InstallDraft {
                 step: "ready".into(),
-                playbook_dir: Some(dir.clone()),
+                package_dir: Some(dir.clone()),
                 flow: Some("saved-flow".into()),
                 ..InstallDraft::default()
             },
@@ -307,14 +307,14 @@ fn a_draft_whose_package_lost_a_file_resumes_without_it() {
         wait_for(&cx, &model, "the draft", |m| !m.recovering && m.flow.active).await;
         read(&cx, &model, |m| {
             assert_eq!(m.flow_id.as_deref(), Some("saved-flow"), "the draft itself is resumed");
-            assert!(m.playbook.is_none(), "the damaged copy is not");
+            assert!(m.package.is_none(), "the damaged copy is not");
         });
-        act(&mut cx, &model, |m, cx| m.load_playbook_file(package.clone(), cx));
-        wait_for(&cx, &model, "the package", |m| m.playbook.is_some()).await;
+        act(&mut cx, &model, |m, cx| m.load_package_file(package.clone(), cx));
+        wait_for(&cx, &model, "the package", |m| m.package.is_some()).await;
         read(&cx, &model, |m| {
-            let book = m.playbook.as_ref().unwrap();
+            let book = m.package.as_ref().unwrap();
             assert_ne!(book.dir, dir);
-            assert!(playbook::intact(&book.dir));
+            assert!(package::intact(&book.dir));
         });
         settle(&cx, &model).await;
     });
@@ -327,7 +327,7 @@ fn a_draft_whose_package_lost_a_file_resumes_without_it() {
 fn a_resumed_draft_keeps_the_browser_pickers_default() {
     run_model_test(async move |mut cx| {
         let (_temp, _, env) = fixture("model-draft-browser-default");
-        let options = crate::services::iso::default_options(&playbook::Manifest::builtin());
+        let options = crate::services::iso::default_options(&package::Manifest::builtin());
         assert!(!options.iter().any(|o| o.starts_with("browser-")));
         save_draft(
             &env,
@@ -344,9 +344,9 @@ fn a_resumed_draft_keeps_the_browser_pickers_default() {
             assert!(m.options.contains("browser-brave"), "kept, though not in effect");
             let page = m
                 .manifest()
-                .pages
+                .choices
                 .iter()
-                .position(|page| page.options.iter().any(|o| o.name == "install-another-browser"))
+                .position(|page| page.options.iter().any(|o| o.id == "install-another-browser"))
                 .unwrap();
             m.choose_option(page, "install-another-browser", cx);
         });

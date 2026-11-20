@@ -21,7 +21,7 @@ To report a security vulnerability, follow the [security policy](SECURITY.md) in
 | Tool | Needed for |
 | --- | --- |
 | PowerShell 7 (`pwsh`) | The build tools, the build tests and linting |
-| 7-Zip or NanaZip on `PATH` | Creating the `.apbx` archive |
+| 7-Zip or NanaZip on `PATH` | Creating the `.atlaspkg` archive |
 | Windows PowerShell 5.1, built into Windows | The Windows PowerShell tests |
 | Pester and PSScriptAnalyzer, at the versions in the [testing guide](../docs/testing.md) | Tests and linting (the Pester 3 built into Windows is too old) |
 | rustup and the Visual Studio build tools | Atlas Manager, as the [Atlas Manager guide](../app/README.md) describes |
@@ -31,8 +31,8 @@ To report a security vulnerability, follow the [security policy](SECURITY.md) in
 Build a test Atlas package and verify it from the repository root:
 
 ```powershell
-./build.cmd                                                       # build playbook/Atlas Test.apbx
-pwsh tools/build/Test-Apbx.ps1 -Path "playbook/Atlas Test.apbx"   # verify it
+./build.cmd                                                              # build package/Atlas Test.atlaspkg
+pwsh tools/build/Test-Package.ps1 -Path "package/Atlas Test.atlaspkg"   # verify it
 ```
 
 On Linux or macOS, run `./build.sh` instead of `./build.cmd`.
@@ -56,10 +56,10 @@ cargo test --locked
 | Path | What it holds |
 | --- | --- |
 | `app/` | Atlas Manager, the Rust desktop app ([Atlas Manager guide](../app/README.md)) |
-| `playbook/playbook.conf` | Atlas package metadata, including `SupportedBuilds` and `UpgradableFrom` |
-| `playbook/Executables/AtlasDesktop/` | The AtlasDesktop folder's launchers, mostly generated |
-| `playbook/Executables/AtlasModules/Scripts/` | The Windows PowerShell that runs on users' PCs |
-| `playbook/Executables/AtlasModules/Toggles/` | Data-only AtlasDesktop toggle definitions and their companions |
+| `package/atlas.json` | The Atlas package manifest, including `supportedBuilds` and `updatableFrom` ([package format](../docs/package-format.md)) |
+| `package/Executables/AtlasDesktop/` | The AtlasDesktop folder's launchers, mostly generated |
+| `package/Executables/AtlasModules/Scripts/` | The Windows PowerShell that runs on users' PCs |
+| `package/Executables/AtlasModules/Toggles/` | Data-only AtlasDesktop toggle definitions and their companions |
 | `services/` | The Atlas reports service and its MCP server |
 | `tools/` | Build, development, lab and release tooling, in PowerShell 7 |
 | `tests/` | Pester suites |
@@ -80,12 +80,12 @@ The [architecture](../docs/architecture.md) explains how an install runs.
 
 ## Common tasks
 
-- **Add or change a tweak:** edit the relevant `.psd1` under `playbook/Executables/AtlasModules/Scripts/Tweaks` (schema in that folder's `README.md`) and its entry in `tweaks.manifest.psd1`.
+- **Add or change a tweak:** edit the relevant `.psd1` under `package/Executables/AtlasModules/Scripts/Tweaks` (schema in that folder's `README.md`) and its entry in `tweaks.manifest.psd1`.
   To turn a tweak off, remove it from `Categories` or `Standalone`, and add its full slug and a reason to `Disabled`.
   Every definition in the Atlas package must be classified exactly once.
-- **Add or change an AtlasDesktop toggle:** edit the data-only definition `playbook/Executables/AtlasModules/Toggles/<Group>/<Name>.psd1` (schema in that folder's `README.md`).
+- **Add or change an AtlasDesktop toggle:** edit the data-only definition `package/Executables/AtlasModules/Toggles/<Group>/<Name>.psd1` (schema in that folder's `README.md`).
   Imperative work goes in the function-only companion `<Name>.ps1` beside it.
-  Validate with `Test-AtlasToggleDefinition -Path playbook/Executables/AtlasModules/Toggles` from the `Atlas.Toggles` module, and regenerate the launchers with `pwsh tools/dev/New-ToggleLaunchers.ps1`.
+  Validate with `Test-AtlasToggleDefinition -Path package/Executables/AtlasModules/Toggles` from the `Atlas.Toggles` module, and regenerate the launchers with `pwsh tools/dev/New-ToggleLaunchers.ps1`.
 - **Regenerate the catalog after definition changes:** run `pwsh tools/dev/Export-AtlasCatalog.ps1` for the JSON and Markdown references.
   Both generators support `-Validate`, which checks for drift without writing files.
 - **Share one implementation between the install and a toggle:** give the install tweak a `Toggle = @(@{ Name; State })` entry instead of duplicating the toggle's machine work.
@@ -122,7 +122,7 @@ Before you ask for a review, check that:
 - Changes to what Atlas does to a PC have been installed on a disposable VM, as the [testing guide](../docs/testing.md) describes.
 - The documentation that describes the behaviour you changed is up to date.
 - After changing tweak or toggle definitions, you've run both generators, and then run them again with `-Validate`.
-- Scripts under `playbook/` and `app/resources/` use Windows PowerShell 5.1 syntax, because they run on users' PCs.
+- Scripts under `package/` and `app/resources/` use Windows PowerShell 5.1 syntax, because they run on users' PCs.
   The CI parse gate rejects PowerShell 7-only syntax there.
 
 ## Style
@@ -134,7 +134,7 @@ Atlas Manager's interface copy follows the [app writing guide](../app/docs/writi
 
 Atlas is licensed under the [GNU General Public License v3.0](../LICENSE).
 By contributing, you agree that your contributions are licensed under the same licence.
-If you include third-party code, keep its licence and notices, and list any binary in the [binary inventory](../playbook/Executables/AtlasModules/README.md).
+If you include third-party code, keep its licence and notices, and list any binary in the [binary inventory](../package/Executables/AtlasModules/README.md).
 
 ## Code of Conduct
 

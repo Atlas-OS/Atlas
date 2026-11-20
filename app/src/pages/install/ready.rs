@@ -305,7 +305,7 @@ impl InstallPage {
                         .compact()
                         .icon(Icon::Admin)
                         // The next task once there is a package: everything after it waits for it.
-                        .when(enabled && state.playbook.is_some(), Button::accent)
+                        .when(enabled && state.package.is_some(), Button::accent)
                         .disabled(!enabled)
                         .on_click(on_model(&model, |m, cx| m.relaunch_elevated(cx)))
                         .into_any_element(),
@@ -535,7 +535,7 @@ impl InstallPage {
         let release = state.release.release().cloned();
         let bundled = state.bundled();
 
-        let (line, light, light_label) = match (&state.acquisition, &state.playbook) {
+        let (line, light, light_label) = match (&state.acquisition, &state.package) {
             (Acquisition::Downloading { received, total }, _) => (
                 t!(
                     "package-downloading",
@@ -590,8 +590,8 @@ impl InstallPage {
         let downloading = matches!(state.acquisition, Acquisition::Downloading { .. });
         // Getting the files is the first task: its button is the accent one
         // until there is a package.
-        let first_task = state.playbook.is_none();
-        let download_label = match (&release, &state.playbook) {
+        let first_task = state.package.is_none();
+        let download_label = match (&release, &state.package) {
             (Some(r), Some(p)) if p.manifest.version == r.version() => t!("package-download-again"),
             (Some(r), _) => t!("package-download-version", version = r.version()),
             (None, _) => t!("package-download-newest"),
@@ -661,8 +661,8 @@ impl InstallPage {
                                     Button::new("source-local", t!("package-open-file"))
                                         .icon(Icon::Folder)
                                         // A running download gives way to a chosen file.
-                                        .disabled(!state.may_choose_playbook())
-                                        .on_click(on_model(&model, |m, cx| m.choose_local_playbook(cx))),
+                                        .disabled(!state.may_choose_package())
+                                        .on_click(on_model(&model, |m, cx| m.choose_local_package(cx))),
                                 )
                             }),
                     ),

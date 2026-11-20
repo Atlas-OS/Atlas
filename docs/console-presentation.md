@@ -90,14 +90,14 @@ A presentation change must not alter exit codes, state recording, caller identit
 ### Launcher flags
 
 A presentation change must also keep the launcher flags working.
-The shared launcher body, `Scripts\Entry\Invoke-AtlasToggleLauncher.cmd`, accepts them with a `/` or `-` prefix, in any case, and [`Invoke-Toggle.ps1`](../playbook/Executables/AtlasModules/Scripts/Entry/Invoke-Toggle.ps1) passes them to the engine:
+The shared launcher body, `Scripts\Entry\Invoke-AtlasToggleLauncher.cmd`, accepts them with a `/` or `-` prefix, in any case, and [`Invoke-Toggle.ps1`](../package/Executables/AtlasModules/Scripts/Entry/Invoke-Toggle.ps1) passes them to the engine:
 
 - `/silent` (or `/quiet`) runs without prompts and keeps the full log echo its caller captures.
   Upgrade replay, first sign-in replay and the service defaults reset run this way.
 - `/justcontext` runs only the state's `ContextAction`; it applies no other work and records nothing.
 - `/noaction` skips the File Explorer restart that `Reboot = 'RestartExplorer'` would run.
 
-[The toggle definition guide](../playbook/Executables/AtlasModules/Toggles/README.md) describes how companions see these flags in `$Toggle`.
+[The toggle definition guide](../package/Executables/AtlasModules/Toggles/README.md) describes how companions see these flags in `$Toggle`.
 
 ## Wording
 

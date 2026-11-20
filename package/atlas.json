@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "version": "0.6.0",
+  "supportedBuilds": [
+    {
+      "build": 26200,
+      "release": "25H2"
+    },
+    {
+      "build": 26300,
+      "release": "26H2"
+    }
+  ],
+  "updatableFrom": [
+    "0.4.1",
+    "0.5.0"
+  ],
+  "requirements": [
+    "windows-security-off",
+    "no-third-party-antivirus",
+    "plugged-in"
+  ],
+  "estimatedMinutes": 15,
+  "choices": [
+    {
+      "id": "defender",
+      "kind": "single",
+      "default": "defender-enable",
+      "description": "Microsoft Defender is the antivirus built into Windows. Remove it only if you understand the risks and plan to use another antivirus app. Whichever you choose, Atlas turns off Smart App Control, Enhanced Phishing Protection and Find my device.",
+      "learnMore": "https://atlasos.net/docs/atlas-configuration/security/#defender",
+      "options": [
+        {
+          "id": "defender-enable",
+          "label": "Keep Microsoft Defender (recommended)"
+        },
+        {
+          "id": "defender-disable",
+          "label": "Remove Microsoft Defender"
+        }
+      ]
+    },
+    {
+      "id": "mitigations",
+      "kind": "single",
+      "default": "mitigations-default",
+      "description": "These protections, also called security mitigations, help defend against processor flaws, such as Spectre and Meltdown, and against attacks that exploit bugs in apps. Keeping the Windows defaults is recommended.",
+      "learnMore": "https://atlasos.net/docs/atlas-configuration/security/#mitigations",
+      "options": [
+        {
+          "id": "mitigations-default",
+          "label": "Keep processor protections (recommended)"
+        },
+        {
+          "id": "mitigations-disable",
+          "label": "Turn off processor protections"
+        }
+      ]
+    },
+    {
+      "id": "auto-updates",
+      "kind": "single",
+      "default": "auto-updates-disable",
+      "description": "Windows updates include security fixes. You can have Windows install them automatically or install them yourself. Either way, Atlas keeps Windows on its current version, which gets security fixes only until Microsoft ends support for it. Atlas also turns off automatic updates for Microsoft Store apps, so update them in Microsoft Store.",
+      "learnMore": "https://atlasos.net/docs/atlas-configuration/settings/#automatic-windows-updates",
+      "options": [
+        {
+          "id": "auto-updates-disable",
+          "label": "Install updates myself"
+        },
+        {
+          "id": "auto-updates-default",
+          "label": "Install updates automatically"
+        }
+      ]
+    },
+    {
+      "id": "keyboard",
+      "kind": "single",
+      "default": "keyboard-shortcuts",
+      "description": "Choose how you switch keyboard languages.",
+      "options": [
+        {
+          "id": "keyboard-shortcuts",
+          "label": "Yes, with keyboard shortcuts"
+        },
+        {
+          "id": "keyboard-selector",
+          "label": "Yes, with the taskbar selector"
+        },
+        {
+          "id": "keyboard-single",
+          "label": "No, I use one keyboard layout"
+        }
+      ]
+    },
+    {
+      "id": "system",
+      "kind": "multiple",
+      "learnMore": "https://atlasos.net/docs/atlas-configuration/settings/",
+      "options": [
+        {
+          "id": "disable-hibernation",
+          "label": "Turn off hibernation"
+        },
+        {
+          "id": "disable-power-saving",
+          "label": "Turn off power saving"
+        },
+        {
+          "id": "disable-core-isolation",
+          "label": "Turn off virtualisation-based security (VBS)"
+        }
+      ]
+    },
+    {
+      "id": "apps",
+      "kind": "multiple",
+      "learnMore": "https://atlasos.net/docs/atlas-configuration/settings/",
+      "options": [
+        {
+          "id": "remove-snipping-tool",
+          "label": "Remove Snipping Tool"
+        },
+        {
+          "id": "uninstall-edge",
+          "label": "Remove Microsoft Edge"
+        },
+        {
+          "id": "install-another-browser",
+          "label": "Install a browser"
+        }
+      ]
+    },
+    {
+      "id": "extras",
+      "kind": "multiple",
+      "learnMore": "https://eclean.gg/atlasos/",
+      "options": [
+        {
+          "id": "install-toolbox",
+          "label": "Install Atlas Toolbox"
+        },
+        {
+          "id": "install-eclean",
+          "label": "Install eclean"
+        }
+      ]
+    },
+    {
+      "id": "browser",
+      "kind": "single",
+      "default": "browser-brave",
+      "dependsOn": "install-another-browser",
+      "description": "Choose a browser to install. Atlas won't change your browser settings.",
+      "learnMore": "https://atlasos.net/docs/essential-setup/software/browsers/",
+      "options": [
+        {
+          "id": "browser-brave",
+          "label": "Brave",
+          "image": "brave"
+        },
+        {
+          "id": "browser-librewolf",
+          "label": "LibreWolf",
+          "image": "librewolf"
+        },
+        {
+          "id": "browser-firefox",
+          "label": "Firefox",
+          "image": "firefox"
+        },
+        {
+          "id": "browser-chrome",
+          "label": "Chrome",
+          "image": "chrome"
+        }
+      ]
+    }
+  ]
+}

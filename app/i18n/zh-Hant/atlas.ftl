@@ -6,7 +6,7 @@
 ### numbers. "重新開啟 Atlas" is reopening the app (and 重新開啟 also turns a
 ### protection back on); "重新啟動" is only restarting the PC / Windows. Chinese has only the "other" plural
 ### category; exact [1]/[2] variants are allowed.
-### The .apbx file is the "Atlas 套件" (套件 alone once that is clear); the
+### The .atlaspkg file is the "Atlas 套件" (套件 alone once that is clear); the
 ### installation files card is 安裝檔案. Controls named in text are quoted
 ### with 「」 using their exact label from this catalog.
 
@@ -90,9 +90,9 @@ window-close-restart-close = 關閉但不重新啟動
 # window-close-keep, common-open-windows-security and window-close-close.
 window-close-protection-title = 要在防護關閉的狀態下關閉 Atlas 嗎？
 window-close-protection-message = Windows 安全性中仍有部分防護處於關閉狀態：{ $switches }。如果您不打算完成 Atlas 的安裝，請在關閉前重新開啟這些防護。如果您會完成安裝，再次開啟 Atlas 時，它會繼續您的設定。
-# The Open button of the file picker for an Atlas package (.apbx) file, on Get ready and the
+# The Open button of the file picker for an Atlas package (.atlaspkg) file, on Get ready and the
 # ISO page. It's a button label, so keep it short.
-file-dialog-open-package = 開啟 Atlas 套件（.apbx）
+file-dialog-open-package = 開啟 Atlas 套件（.atlaspkg）
 # Message Windows shows in its restart notification.
 shutdown-comment = Atlas 已安裝完成。Windows 即將重新啟動以完成設定。
 # Message Windows shows in its restart notification when "Get ready" restarts
@@ -231,7 +231,7 @@ ready-banner-busy-message = Atlas 正在檢查您的電腦並準備安裝檔案�
 ready-banner-blocked-title = 您的電腦尚未準備就緒
 ready-banner-blocked-message = 請處理「電腦檢查」中標示的項目，然後選擇「再次檢查」。
 ready-banner-no-package-title = 請先下載 Atlas
-ready-banner-no-package-message = 請在「安裝檔案」中下載 Atlas；如果您已有 Atlas 套件（.apbx），請選擇「開啟套件檔案」。
+ready-banner-no-package-message = 請在「安裝檔案」中下載 Atlas；如果您已有 Atlas 套件（.atlaspkg），請選擇「開啟套件檔案」。
 # Tester build: the bundled Atlas package couldn't be unpacked.
 ready-banner-no-package-bundled-title = 請準備內建的 Atlas 套件以繼續
 ready-banner-no-package-bundled-message = 此測試版內建的 Atlas 套件尚未就緒。請查看「安裝檔案」卡片。
@@ -271,10 +271,10 @@ package-unpacking = 正在解壓縮
 package-looking = 正在查詢最新的 Atlas 版本。
 # Tester build: the bundled Atlas package is being unpacked, nothing is downloaded.
 package-looking-bundled = 正在準備內建的 Atlas 套件。
-package-none = 請下載 Atlas 以取得安裝檔案。如果您已有 Atlas 套件（.apbx），也可以直接開啟它。
+package-none = 請下載 Atlas 以取得安裝檔案。如果您已有 Atlas 套件（.atlaspkg），也可以直接開啟它。
 # The GitHub release check failed. "Download latest version" is package-download-newest,
 # the button offered in this state; it checks again.
-package-release-failed = Atlas 無法查詢最新版本。請檢查網際網路連線，然後選擇「下載最新版本」，或開啟已儲存的 Atlas 套件（.apbx）。
+package-release-failed = Atlas 無法查詢最新版本。請檢查網際網路連線，然後選擇「下載最新版本」，或開啟已儲存的 Atlas 套件（.atlaspkg）。
 # Short status words beside the card title.
 package-status-downloading = 下載中
 package-status-unpacking = 解壓縮中
@@ -295,13 +295,15 @@ package-from-release = 已從 GitHub 下載 Atlas { $version }，可以安裝。
 package-from-file = 已從 { $file } 載入 Atlas { $version }，可以安裝。
 package-unpacked = Atlas { $version } 已可安裝。
 package-none-yet = 尚未選擇安裝檔案
-acquire-no-asset = Atlas { $version } 沒有可下載的套件檔案。請開啟已儲存的 Atlas 套件（.apbx）以繼續。
-acquire-unsupported = 這個應用程式可安裝 Atlas 0.6.0 及更新版本。
+acquire-no-asset = Atlas { $version } 沒有可下載的套件檔案。請開啟已儲存的 Atlas 套件（.atlaspkg）以繼續。
+# Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
+# .apbx file from an Atlas release before 0.6.
+acquire-unsupported = 這個應用程式可透過 Atlas 套件（.atlaspkg）安裝 Atlas 0.6.0 及更新版本。
 # A package new enough to include the installer script that this app drives, but without it.
-acquire-incomplete = Atlas { $version } 缺少這個應用程式進行安裝所需的檔案。請重新下載，或開啟其他 Atlas 套件（.apbx）。
-acquire-failed = 無法準備安裝檔案。請重新下載，或開啟其他 Atlas 套件（.apbx）。詳細資料：{ $error }
+acquire-incomplete = Atlas { $version } 缺少這個應用程式進行安裝所需的檔案。請重新下載，或開啟其他 Atlas 套件（.atlaspkg）。
+acquire-failed = 無法準備安裝檔案。請重新下載，或開啟其他 Atlas 套件（.atlaspkg）。詳細資料：{ $error }
 # The download received nothing for a minute and was stopped.
-acquire-stalled = 下載已停止回應。請檢查網際網路連線，然後重新下載，或開啟已儲存的 Atlas 套件（.apbx）。
+acquire-stalled = 下載已停止回應。請檢查網際網路連線，然後重新下載，或開啟已儲存的 Atlas 套件（.atlaspkg）。
 # Tester build: the bundled Atlas package couldn't be unpacked. Try again is the only control offered.
 acquire-failed-bundled = 無法準備內建的 Atlas 套件。請選擇「再試一次」。詳細資料：{ $error }
 
@@ -405,33 +407,33 @@ consequence-auto-updates-disable = 請定期開啟 Windows Update 安裝更新�
 consequence-auto-updates-default = Windows 會自動安裝更新，包括安全性修正。
 
 ## Atlas package text
-## The Atlas package carries its own English text for each option. These
-## UI labels and explanations are used only when the package text matches
-## i18n/playbook-source.ftl. A future package with different wording keeps
-## its own text instead of receiving a potentially outdated description.
+## Labels and descriptions for the Atlas package's options and choices, by
+## their ids in the package's atlas.json. The app shows these in place of the
+## package's own English text; an option or choice that a newer package adds,
+## which has no message here, shows the package's English.
 
-playbook-option-defender-enable = 保留 Microsoft Defender（建議）
-playbook-option-defender-disable = 移除 Microsoft Defender
-playbook-option-mitigations-default = 保留處理器防護（建議）
-playbook-option-mitigations-disable = 關閉處理器防護
-playbook-option-auto-updates-disable = 自行安裝更新
-playbook-option-auto-updates-default = 自動安裝更新
-playbook-option-disable-hibernation = 關閉休眠
-playbook-option-disable-power-saving = 關閉省電功能
-playbook-option-disable-core-isolation = 關閉虛擬化型安全性（VBS）
-playbook-option-remove-snipping-tool = 移除剪取工具
-playbook-option-uninstall-edge = 移除 Microsoft Edge
-playbook-option-install-another-browser = 安裝瀏覽器
-playbook-option-install-toolbox = 安裝 Atlas Toolbox
-playbook-option-install-eclean = 安裝 eclean
-playbook-option-browser-brave = Brave
-playbook-option-browser-librewolf = LibreWolf
-playbook-option-browser-firefox = Firefox
-playbook-option-browser-chrome = Chrome
-playbook-page-defender-enable-description = Microsoft Defender 是 Windows 內建的防毒軟體。只有在您了解風險，並打算使用其他防毒應用程式時，才移除它。無論您選擇哪一項，Atlas 都會關閉「智慧型應用程式控制」、「增強式網路釣魚保護」和「尋找我的裝置」。
-playbook-page-mitigations-default-description = 這些防護（也稱為安全性緩和措施）有助於抵禦 Spectre 和 Meltdown 等處理器漏洞，以及利用應用程式錯誤的攻擊。建議保留 Windows 的預設值。
-playbook-page-auto-updates-disable-description = Windows 更新包含安全性修正。您可以讓 Windows 自動安裝更新，或自行安裝。無論選擇哪一種，Atlas 都會讓 Windows 維持在目前的版本，而該版本只會在 Microsoft 終止支援前收到安全性修正。Atlas 也會關閉 Microsoft Store 應用程式的自動更新，因此請在 Microsoft Store 中更新這些應用程式。
-playbook-page-browser-brave-description = 選擇要安裝的瀏覽器。Atlas 不會變更您的瀏覽器設定。
+package-option-defender-enable = 保留 Microsoft Defender（建議）
+package-option-defender-disable = 移除 Microsoft Defender
+package-option-mitigations-default = 保留處理器防護（建議）
+package-option-mitigations-disable = 關閉處理器防護
+package-option-auto-updates-disable = 自行安裝更新
+package-option-auto-updates-default = 自動安裝更新
+package-option-disable-hibernation = 關閉休眠
+package-option-disable-power-saving = 關閉省電功能
+package-option-disable-core-isolation = 關閉虛擬化型安全性（VBS）
+package-option-remove-snipping-tool = 移除剪取工具
+package-option-uninstall-edge = 移除 Microsoft Edge
+package-option-install-another-browser = 安裝瀏覽器
+package-option-install-toolbox = 安裝 Atlas Toolbox
+package-option-install-eclean = 安裝 eclean
+package-option-browser-brave = Brave
+package-option-browser-librewolf = LibreWolf
+package-option-browser-firefox = Firefox
+package-option-browser-chrome = Chrome
+package-choice-defender-description = Microsoft Defender 是 Windows 內建的防毒軟體。只有在您了解風險，並打算使用其他防毒應用程式時，才移除它。無論您選擇哪一項，Atlas 都會關閉「智慧型應用程式控制」、「增強式網路釣魚保護」和「尋找我的裝置」。
+package-choice-mitigations-description = 這些防護（也稱為安全性緩和措施）有助於抵禦 Spectre 和 Meltdown 等處理器漏洞，以及利用應用程式錯誤的攻擊。建議保留 Windows 的預設值。
+package-choice-auto-updates-description = Windows 更新包含安全性修正。您可以讓 Windows 自動安裝更新，或自行安裝。無論選擇哪一種，Atlas 都會讓 Windows 維持在目前的版本，而該版本只會在 Microsoft 終止支援前收到安全性修正。Atlas 也會關閉 Microsoft Store 應用程式的自動更新，因此請在 Microsoft Store 中更新這些應用程式。
+package-choice-browser-description = 選擇要安裝的瀏覽器。Atlas 不會變更您的瀏覽器設定。
 
 ## Step 3: Windows Security
 
@@ -533,7 +535,7 @@ output-problem-title = 無法讀取安裝進度
 output-problem-message = Atlas 無法讀取記錄，但這不代表安裝已停止。請讓電腦保持開機，並嘗試開啟記錄檔。詳細資料：{ $error }
 install-elevate-title = Atlas 需要權限才能安裝
 install-no-package-title = 請先選擇安裝檔案
-install-no-package-message = 請返回「準備」下載 Atlas，或開啟已儲存的 Atlas 套件（.apbx）。
+install-no-package-message = 請返回「準備」下載 Atlas，或開啟已儲存的 Atlas 套件（.atlaspkg）。
 # Tester build variant of install-no-package-message.
 install-no-package-bundled-message = 請返回「準備」，準備此測試版內建的 Atlas 套件。
 # Step 4 when step 1 is incomplete for this session (checks or Windows updates), with go-to-ready as the button.
@@ -674,7 +676,7 @@ iso-title = 建立 Atlas ISO
 iso-beta = 測試版
 iso-beta-description = 在電腦上使用前，請先在虛擬機器中測試 ISO。安裝 Windows 前，請備份檔案。
 iso-admin-description = Atlas 需要系統管理員權限，才能讀取您的 Windows ISO 並建立新的 ISO。請選擇「以系統管理員身分重新開啟 Atlas」，然後在 Windows 詢問時選擇「是」。
-iso-files-description = Atlas 會複製一份 Windows 11 ISO 並加入 Atlas，用來重新安裝 Windows。請選擇從 Microsoft 下載的 Windows 11 ISO，下載最新的 Atlas 套件或選擇您已有的套件（.apbx），然後選擇新 ISO 的儲存位置。
+iso-files-description = Atlas 會複製一份 Windows 11 ISO 並加入 Atlas，用來重新安裝 Windows。請選擇從 Microsoft 下載的 Windows 11 ISO，下載最新的 Atlas 套件或選擇您已有的套件（.atlaspkg），然後選擇新 ISO 的儲存位置。
 # Tester build: no package picker.
 iso-files-description-bundled = Atlas 會複製一份 Windows 11 ISO，並加入此測試版內建的 Atlas 套件。請選擇從 Microsoft 下載的 Windows 11 ISO，然後選擇新 ISO 的儲存位置。
 iso-source = Windows ISO
@@ -912,7 +914,7 @@ install-source-unsupported = Atlas { $source } 無法直接更新至 { $target }
 # Before a package is chosen, so the version on offer isn't known yet.
 install-source-unsupported-any = Atlas { $source } 無法直接更新。若要使用較新的版本，請備份您的檔案並重新安裝 Windows。
 # "Open package file" is package-open-file. $folder is a folder path (text).
-install-source-resume = Atlas { $target } 的安裝尚未完成，只有 Atlas { $target } 套件才能完成這次安裝。請選擇「開啟套件檔案」並選取該 Atlas 套件（.apbx）。如果是由 Atlas 下載的，它位於 { $folder }。
+install-source-resume = Atlas { $target } 的安裝尚未完成，只有 Atlas { $target } 套件才能完成這次安裝。請選擇「開啟套件檔案」並選取該 Atlas 套件（.atlaspkg）。如果是由 Atlas 下載的，它位於 { $folder }。
 # Tester build: only the bundled Atlas package can be installed.
 install-source-resume-bundled = Atlas { $target } 的安裝尚未完成。此測試版只能安裝其內建的 Atlas 套件，因此請在正式版 Atlas Manager 中使用 Atlas { $target } 套件完成該安裝。
 install-source-unknown = Atlas 無法確認這台電腦上已安裝的內容，因此目前不會安裝任何項目。請選擇「傳送報告」，讓 Atlas 團隊協助您。
@@ -948,7 +950,7 @@ diagnostics-failed-title = 無法匯出診斷資訊
 # $error is the raw error (text).
 diagnostics-failed = 請確認電腦有足夠的可用磁碟空間，然後再試一次。詳細資料：{ $error }
 
-## Tester builds (embedded-playbook feature)
+## Tester builds (embedded-package feature)
 
 # One line of chrome under the title bar on a release-candidate build.
 rc-banner = Atlas { $release } 測試版。此應用程式只會安裝內建的 Atlas 套件。
@@ -1210,10 +1212,10 @@ prepare-repair-store = 修復 Microsoft Store
 
 screen-keyboard-title = 鍵盤語言
 screen-keyboard-question = 您使用多種鍵盤語言嗎？
-playbook-option-keyboard-shortcuts = 是，使用鍵盤快捷鍵
-playbook-option-keyboard-selector = 是，使用工作列選擇器
-playbook-option-keyboard-single = 否，只使用一種鍵盤配置
+package-option-keyboard-shortcuts = 是，使用鍵盤快捷鍵
+package-option-keyboard-selector = 是，使用工作列選擇器
+package-option-keyboard-single = 否，只使用一種鍵盤配置
 consequence-keyboard-shortcuts = Alt+Shift 切換語言；Ctrl+Shift 切換配置。
 consequence-keyboard-selector = 關閉 Alt+Shift 和 Ctrl+Shift，避免遊戲時意外切換。
-playbook-page-keyboard-shortcuts-description = 選擇切換鍵盤語言的方式。
+package-choice-keyboard-description = 選擇切換鍵盤語言的方式。
 consequence-keyboard-single = { consequence-keyboard-selector }

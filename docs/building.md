@@ -1,13 +1,13 @@
 # Building the Atlas package
 
-This page is for contributors and maintainers who build the Atlas package (`.apbx`), verify it, or cross-build Atlas Manager from Linux.
-[Releasing Atlas](releasing.md) puts these builds in order for a release.
+This page is for contributors and maintainers who build the Atlas package (`.atlaspkg`), verify it, or cross-build Atlas Manager from Linux.
+The [package format](package-format.md) defines the archive and its manifest, and [Releasing Atlas](releasing.md) puts these builds in order for a release.
 
 ## Prerequisites
 
 - **PowerShell 7** (`pwsh`) for the build tools under `tools/build`.
   The scripts that run on users' PCs target Windows PowerShell 5.1.
-- **7-Zip or NanaZip** on `PATH` (`7z`, `7zz`, or the installed 7-Zip) to create the `.apbx` archive.
+- **7-Zip or NanaZip** on `PATH` (`7z`, `7zz`, or the installed 7-Zip) to create the `.atlaspkg` archive.
 
 ## Quick start
 
@@ -15,14 +15,14 @@ From the repository root, run one of these:
 
 ```powershell
 .\build.cmd
-pwsh -NoProfile -File tools/build/Build-Playbook.ps1 -LocalTest
+pwsh -NoProfile -File tools/build/Build-Package.ps1 -LocalTest
 ```
 
 ```sh
 ./build.sh
 ```
 
-Each writes `playbook/Atlas Test.apbx`.
+Each writes `package/Atlas Test.atlaspkg`.
 You can also double-click `build.cmd`.
 The wrappers need `pwsh` and return the build's exit code, so scripts and CI can call them.
 They pause when a build fails.
@@ -34,41 +34,41 @@ VS Code (`.vscode/launch.json`) and Zed (`.zed/tasks.json`) include `Build Atlas
 
 | Parameter | Meaning |
 | --- | --- |
-| `-LocalTest` | The wrappers' profile: `-ReplaceOldPlaybook`, `-DontOpenPbLocation` and the `WinverRequirement` removal. |
-| `-FileName <name>` | Output name (default `Atlas Test`). |
-| `-ReplaceOldPlaybook` | Replace an existing archive, only after the new one passes verification. |
-| `-DontOpenPbLocation` | Don't open File Explorer at the built file (CI uses this). |
-| `-NoPassword` | Build without the `malte` ZIP password. |
-| `-PlaybookPath` / `-OutputPath` | Override the package source or output folder (defaults follow the repository layout). |
-| `-Removals <list>` | Strip eligibility gates for development builds (values below). |
+| `-LocalTest` | The wrappers' profile: `-ReplaceExisting`, `-NoExplorer` and the `SupportedBuilds` removal. |
+| `-FileName <name>` | Output name (default `Atlas Test`), written as `package/<name>.atlaspkg`. |
+| `-ReplaceExisting` | Replace an existing archive, only after the new one passes verification. |
+| `-NoExplorer` | Don't open File Explorer at the built file (CI uses this). |
+| `-NoPassword` | Build without the `atlasos` ZIP password. |
+| `-PackagePath` / `-OutputPath` | Override the package source or output folder (defaults follow the repository layout). |
+| `-Removals <list>` | Empty eligibility lists for development builds (values below). |
 
 `pwsh -File` doesn't turn commas into an array, so pass `-Removals` from a PowerShell 7 session:
 
 ```powershell
-& ./tools/build/Build-Playbook.ps1 -Removals @('Requirements', 'WinverRequirement') -DontOpenPbLocation
+& ./tools/build/Build-Package.ps1 -Removals @('Requirements', 'SupportedBuilds') -NoExplorer
 ```
 
-| `-Removals` value | Strips from `playbook.conf` |
+| `-Removals` value | Empties in `atlas.json` |
 | --- | --- |
-| `Requirements` | `<Requirement>` pre-flight gates |
-| `WinverRequirement` | `<SupportedBuilds>` |
+| `Requirements` | The `requirements` pre-flight checks |
+| `SupportedBuilds` | `supportedBuilds` |
 
 > [!WARNING]
-> The front door refuses a package without `<SupportedBuilds>`, so `-LocalTest` builds and builds with the `WinverRequirement` removal can't install Atlas.
+> The front door refuses a package whose `supportedBuilds` is empty, so `-LocalTest` builds and builds with the `SupportedBuilds` removal can't install Atlas.
 > Use them for archive checks only, and build releases with every gate.
 
 ## Verifying a build
 
-`tools/build/Test-Apbx.ps1 -Path "<file>.apbx"` exits 0 when every check passes, and 1 otherwise.
+`tools/build/Test-Package.ps1 -Path "<file>.atlaspkg"` exits 0 when every check passes, and 1 otherwise.
 It checks:
 
-- archive integrity and the password;
+- archive integrity, and that every file is encrypted with AES-256 under the password (check a `-NoPassword` build with `Test-Package.ps1 -NoPassword`);
 - that no entry has a rooted or traversal path, and no entry appears twice;
-- exact file-path parity with the source `playbook/` tree, the root layout and the tooling exclusions;
-- that `playbook.conf` parses and its title carries its version;
+- exact file-path parity with the source `package/` tree, the root layout and the tooling exclusions;
+- that `atlas.json` is a valid [manifest](package-format.md#the-manifest);
 - that the build stamped the Atlas version into the OEM information script.
 
-Use `-PlaybookPath` for a source tree other than `playbook/`.
+Use `-PackagePath` for a source tree other than `package/`.
 The builder verifies its temporary archive before publishing it, so a failed build leaves an existing archive unchanged.
 CI also runs the verifier on its own.
 
@@ -142,16 +142,16 @@ tools/release/build-rc.sh --rc <n> [--allow-dirty] [--toolbox <installer> --tool
 
 | Option | Meaning |
 | --- | --- |
-| `--rc <n>` | The candidate number, a positive integer. The candidate ID is `<version>-rc.<n>`, with the version from `playbook.conf`. |
+| `--rc <n>` | The candidate number, a positive integer. The candidate ID is `<version>-rc.<n>`, with the version from `package/atlas.json`. |
 | `--allow-dirty` | Build even with uncommitted changes to tracked files. The candidate then can't be published. |
 | `--toolbox <installer>` | Put that AtlasOS Toolbox installer in the package, so installing the Toolbox uses it instead of the latest Toolbox release on GitHub. Use it when the candidate needs a Toolbox that isn't published. |
 | `--toolbox-version <x.y.z>` | The version of the installer `--toolbox` names. Required with `--toolbox`. |
 
-The script stops before building anything if the `[package]` version in `app/Cargo.toml` differs from `playbook.conf`'s.
+The script stops before building anything if the `[package]` version in `app/Cargo.toml` differs from the one in `package/atlas.json`.
 Otherwise it builds:
 
-1. the production Atlas package, with every eligibility gate, built from the commit's `playbook/` rather than the working tree, and verified with `Test-Apbx.ps1`;
-2. `AtlasManager.exe` built with the `embedded-playbook` feature, carrying exactly that package;
+1. the production Atlas package, with every eligibility gate, built from the commit's `package/` rather than the working tree, and verified with `Test-Package.ps1`;
+2. `AtlasManager.exe` built with the `embedded-package` feature, carrying exactly that package;
 3. a ZIP of both, the licence notices and a tester note, `README-RC.txt`, which names any bundled Toolbox version.
 
 Output goes to `artifacts/rc/<version>-rc.<n>/`, with `SHA256SUMS.txt` beside the ZIP.
@@ -183,12 +183,12 @@ The script header lists the options and exit codes.
 ## CI and release builds
 
 The ordinary build workflow, `.github/workflows/build.yml`, produces short-lived review artifacts and publishes nothing.
-It builds a CI package without `<SupportedBuilds>` (the `WinverRequirement` removal), so that package can't install Atlas.
-SxS CAB candidates are separate artifacts; review them before committing them under `playbook/`.
+It builds a CI package with an empty `supportedBuilds` (the `SupportedBuilds` removal), so that package can't install Atlas.
+SxS CAB candidates are separate artifacts; review them before committing them under `package/`.
 
 A `v<version>` tag starts the release workflow, `.github/workflows/release.yml`.
-It builds and verifies the Atlas package, the release ZIP and the stable `AtlasManager.exe`, records their hashes, attests them and creates a draft release.
-The release files are `Atlas-v<version>.apbx`, `Atlas-v<version>.zip` and `AtlasManager.exe`.
+It builds and verifies the Atlas package and the stable `AtlasManager.exe`, records their hashes, attests them and creates a draft release.
+The release files are `AtlasManager.exe`, `Atlas-v<version>.atlaspkg` and `SHA256SUMS.txt`.
 Their names have no spaces, because GitHub renames asset files that do, and `SHA256SUMS.txt` would then name files the release doesn't have.
 [Releasing Atlas](releasing.md) covers the version bump, the tag and publishing.
 

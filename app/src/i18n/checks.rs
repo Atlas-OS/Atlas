@@ -14,7 +14,7 @@
 //!   counts plus every exact numeric variant it declares;
 //! - an English overlay (en-US) holds only messages that differ from the
 //!   source, so a later source edit can't be hidden behind a stale copy;
-//! - the `playbook-*` translations match the options the built-in manifest
+//! - the `package-*` translations match the options the built-in manifest
 //!   declares;
 //! - mutation tests prove the gate rejects a broken reference (in a
 //!   translation or the source, including one hidden in an unsampled
@@ -520,26 +520,28 @@ fn validate(tag: &str, ftl: &str, pseudo: bool, source: &Parsed) -> Vec<String> 
     problems
 }
 
-/// The `playbook-*` messages the built-in manifest calls for: option
-/// labels for every option, and a description for every page whose
-/// description is not the shared boilerplate. Each needs UI copy and a
-/// separate exact-text baseline for the runtime guard.
-fn playbook_inventory() -> BTreeMap<String, String> {
-    let manifest = crate::services::playbook::Manifest::builtin();
-    let mut expected = BTreeMap::new();
-    for page in &manifest.pages {
-        for option in &page.options {
-            expected.insert(format!("playbook-option-{}", option.name), option.text.trim().to_owned());
+/// The messages this app shows for the built-in manifest's ids, which pages
+/// format by id rather than through `t!`: a label for every option
+/// (`package-option-<id>`), and a description for every choice
+/// (`package-choice-<id>-description`) the manifest describes.
+fn package_inventory() -> BTreeSet<String> {
+    let manifest = crate::services::package::Manifest::builtin();
+    let mut expected = BTreeSet::new();
+    for choice in &manifest.choices {
+        for option in &choice.options {
+            expected.insert(format!("package-option-{}", option.id));
         }
-        let description = page.description.trim();
-        if !description.is_empty() && !super::describe::is_page_boilerplate(description) {
-            let first = page.options.first().map(|option| option.name.as_str()).unwrap_or_default();
-            expected.insert(format!("playbook-page-{first}-description"), description.to_owned());
+        if !choice.description.trim().is_empty() {
+            expected.insert(format!("package-choice-{}-description", choice.id));
         }
     }
     expected
 }
 
+/// Whether a message is keyed by a manifest id.
+fn is_package_text(id: &str) -> bool {
+    id.starts_with("package-option-") || id.starts_with("package-choice-")
+}
 #[test]
 fn catalog_checks_source_covers_every_message_the_app_uses() {
     let source = parse(catalog::source());
@@ -559,12 +561,9 @@ fn catalog_checks_source_covers_every_message_the_app_uses() {
         );
         used.insert(id);
     }
-    let inventory = playbook_inventory();
-    let unused: Vec<&String> = source
-        .messages
-        .keys()
-        .filter(|id| !used.contains(id.as_str()) && !inventory.contains_key(*id))
-        .collect();
+    let inventory = package_inventory();
+    let unused: Vec<&String> =
+        source.messages.keys().filter(|id| !used.contains(id.as_str()) && !inventory.contains(*id)).collect();
     assert!(unused.is_empty(), "messages in en-GB that nothing uses: {unused:?}");
     for (id, info) in &source.messages {
         assert!(
@@ -575,26 +574,26 @@ fn catalog_checks_source_covers_every_message_the_app_uses() {
     }
 }
 
+/// Every option and described choice of the built-in manifest has app copy,
+/// so no language falls back to the manifest's English for them, and every
+/// message keyed by a manifest id names an option or choice the manifest has.
 #[test]
-fn catalog_checks_playbook_text_matches_the_builtin_manifest() {
+fn catalog_checks_package_text_covers_the_builtin_manifest() {
     let english = catalog::Catalog::new(&[catalog::source()]);
-    let inventory = playbook_inventory();
-    for (id, text) in &inventory {
+    let inventory = package_inventory();
+    for id in &inventory {
         assert!(english.plain(catalog::SOURCE_TAG, id).is_some(), "{id}: missing UI copy");
-        assert_eq!(
-            super::describe::playbook_source(id),
-            Some(text.as_str()),
-            "{id}: the guard baseline must carry the manifest's exact text"
-        );
     }
-    for id in parse(catalog::source()).messages.keys().filter(|id| id.starts_with("playbook-")) {
+    let manifest = crate::services::package::Manifest::builtin();
+    let choices: BTreeSet<String> =
+        manifest.choices.iter().map(|choice| format!("package-choice-{}-description", choice.id)).collect();
+    for id in parse(catalog::source()).messages.keys().filter(|id| is_package_text(id)) {
         assert!(
-            inventory.contains_key(id),
-            "{id}: no option or page in the built-in manifest uses this message"
+            inventory.contains(id) || choices.contains(id),
+            "{id}: no option or choice in the built-in manifest uses this message"
         );
     }
 }
-
 #[test]
 fn catalog_checks_every_language_is_complete_and_formats_on_its_own() {
     let source = parse(catalog::source());
@@ -622,7 +621,7 @@ fn untranslated(locale: &'static Locale, source: &Parsed) -> Vec<String> {
         .filter(|(id, info)| {
             let args = sample_args(info, 3);
             info.has_words
-                && !id.starts_with("playbook-option-browser-")
+                && !id.starts_with("package-option-browser-")
                 && !matches!(id.as_str(), "app-name" | "home-github" | "home-discord" | "list-separator")
                 && own.format(id, &args) == english.format(id, &args)
         })

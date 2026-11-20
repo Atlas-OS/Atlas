@@ -1,5 +1,5 @@
 @{
-    # Profile for the scripts that run on users' PCs (playbook/**, app/resources/**)
+    # Profile for the scripts that run on users' PCs (package/**, app/resources/**)
     # under Windows PowerShell 5.1. Tooling and tests use the stricter
     # PSScriptAnalyzerSettings.psd1.
     Severity = @('Error', 'Warning')

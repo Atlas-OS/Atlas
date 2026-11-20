@@ -41,7 +41,7 @@ src/
                   and the shared stepper and footer
   services/       Windows-facing code with no UI dependency: system, atlas_state,
                   security, requirements, windows_release, windows_installation,
-                  releases, playbook, embedded, preparation, recovery_app,
+                  releases, package, embedded, preparation, recovery_app,
                   installer, session, settings, registry, locale, iso, usb, desktop_setup,
                   diagnostics (and its redaction), reports, licenses
 resources/        icon and version resource; iso/ (ISO, USB and destination
@@ -78,10 +78,11 @@ Each adapter is a plain function, such as reading Windows Security or scheduling
 - The GitHub releases API supplies the latest release.
   Versions compare as Atlas tags them, so `0.5.0-hotfix` is newer than `0.5.0`.
 - Downloads go to `%LOCALAPPDATA%\AtlasOS\App\Downloads`, and the app trusts one only once it matches the asset's size and published digest.
-- Packages unpack through a private staging directory into an immutable `...\App\Playbooks\<version>_<digest>` folder (`src/services/playbook.rs`).
+- The release's Atlas package is the file with the `.atlaspkg` extension, an encrypted ZIP whose manifest is `atlas.json` ([package format](../../docs/package-format.md)).
+- Packages unpack through a private staging directory into an immutable `...\App\Packages\<version>_<digest>` folder (`src/services/package.rs`).
   A bad package never replaces a good one, and two packages that both claim the same version never share a folder.
 - Atlas Manager installs only packages that include the front door, `Entry\Install-Atlas.ps1`: Atlas 0.6.0 and later.
-  It refuses older packages and says which versions it installs.
+  It refuses older packages and any other kind of file, and says which versions it installs.
 
 The front door is the script in the Atlas package that Atlas Manager runs to install Atlas ([the front door](../../docs/front-door.md)).
 [The install flow](install-flow.md) covers how the app runs it.
@@ -92,6 +93,6 @@ The front door is the script in the Atlas package that Atlas Manager runs to ins
 - The model tests in `src/model/tests/` run the real model in headless GPUI with controlled adapters for elevation, Windows Security, the checks and restart commands, and a real Windows PowerShell child running a stub front door.
   They cover the final security decision, recovering installs that finished while the app was closed, retrying a recovered failure and the restart countdown's timer ownership.
 - The catalog gate in `src/i18n/checks.rs` checks every catalog and every `t!` call ([languages](i18n.md)).
-- With `--features embedded-playbook`, the tests also unpack a bundled LocalTest Atlas package into a temporary folder ([development](development.md#ci)).
+- With `--features embedded-package`, the tests also unpack a bundled LocalTest Atlas package into a temporary folder ([development](development.md#ci)).
 
 [Development](development.md) covers how to run them.

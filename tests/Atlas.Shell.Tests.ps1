@@ -513,7 +513,7 @@ Describe 'Set-AtlasStartLayout' {
 
     It 'accepts the included Start layout' {
         Mock Get-AtlasStartLayoutPath -ModuleName Atlas.Shell {
-            Join-Path -Path $script:AtlasTestRepoRoot -ChildPath 'playbook\Executables\AtlasModules\Other\StartLayout.json'
+            Join-Path -Path $script:AtlasTestRepoRoot -ChildPath 'package\Executables\AtlasModules\Other\StartLayout.json'
         }
 
         { Set-AtlasStartLayout } | Should -Not -Throw

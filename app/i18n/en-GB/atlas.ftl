@@ -100,9 +100,9 @@ window-close-restart-close = Close without restarting
 # window-close-keep, common-open-windows-security and window-close-close.
 window-close-protection-title = Close Atlas with protection turned off?
 window-close-protection-message = Some protection in Windows Security is still off: { $switches }. If you're not going to finish installing Atlas, turn it back on before you close. If you are, Atlas continues your setup when you open it again.
-# The Open button of the file picker for an Atlas package (.apbx) file, on Get ready and the
+# The Open button of the file picker for an Atlas package (.atlaspkg) file, on Get ready and the
 # ISO page. It's a button label, so keep it short.
-file-dialog-open-package = Open an Atlas package (.apbx)
+file-dialog-open-package = Open an Atlas package (.atlaspkg)
 # Message Windows shows in its restart notification.
 shutdown-comment = Atlas is installed. Restarting Windows to finish setup.
 # Message Windows shows in its restart notification when "Get ready" restarts
@@ -258,7 +258,7 @@ ready-banner-blocked-title = Your PC isn't ready yet
 ready-banner-blocked-message = Fix the items marked in PC checks, then choose Check again.
 ready-banner-no-package-title = Download Atlas to continue
 # "Installation files" is package-title, the first card; "Open package file" is package-open-file.
-ready-banner-no-package-message = Download Atlas in Installation files, or choose Open package file if you already have an Atlas package (.apbx).
+ready-banner-no-package-message = Download Atlas in Installation files, or choose Open package file if you already have an Atlas package (.atlaspkg).
 # Tester build: the bundled Atlas package couldn't be unpacked.
 ready-banner-no-package-bundled-title = Prepare the bundled Atlas package to continue
 ready-banner-no-package-bundled-message = The Atlas package bundled with this test build isn't ready yet. Check the Installation files card.
@@ -311,10 +311,10 @@ package-unpacking = Unpacking
 package-looking = Checking for the latest Atlas version.
 # Tester build: the bundled Atlas package is being unpacked, nothing is downloaded.
 package-looking-bundled = Preparing the bundled Atlas package.
-package-none = Download Atlas to get the installation files. If you already have an Atlas package (.apbx), open it instead.
+package-none = Download Atlas to get the installation files. If you already have an Atlas package (.atlaspkg), open it instead.
 # The GitHub release check failed. "Download latest version" is package-download-newest,
 # the button offered in this state; it checks again.
-package-release-failed = Atlas couldn't check for the latest version. Check your internet connection, then choose Download latest version, or open a saved Atlas package (.apbx).
+package-release-failed = Atlas couldn't check for the latest version. Check your internet connection, then choose Download latest version, or open a saved Atlas package (.atlaspkg).
 # Short status words beside the card title.
 package-status-downloading = Downloading
 package-status-unpacking = Unpacking
@@ -335,13 +335,15 @@ package-from-release = Atlas { $version } downloaded from GitHub and ready to in
 package-from-file = Atlas { $version } loaded from { $file } and ready to install.
 package-unpacked = Atlas { $version } is ready to install.
 package-none-yet = No installation files selected
-acquire-no-asset = Atlas { $version } has no package file to download. Open a saved Atlas package (.apbx) to continue.
-acquire-unsupported = This app can install Atlas 0.6.0 and later.
+acquire-no-asset = Atlas { $version } has no package file to download. Open a saved Atlas package (.atlaspkg) to continue.
+# Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
+# .apbx file from an Atlas release before 0.6.
+acquire-unsupported = This app can install Atlas 0.6.0 and later, from Atlas packages (.atlaspkg).
 # A package new enough to include the installer script that this app drives, but without it.
-acquire-incomplete = Atlas { $version } is missing files this app needs to install it. Download it again, or open another Atlas package (.apbx).
-acquire-failed = Couldn't prepare the installation files. Try downloading again, or open another Atlas package (.apbx). Details: { $error }
+acquire-incomplete = Atlas { $version } is missing files this app needs to install it. Download it again, or open another Atlas package (.atlaspkg).
+acquire-failed = Couldn't prepare the installation files. Try downloading again, or open another Atlas package (.atlaspkg). Details: { $error }
 # The download received nothing for a minute and was stopped.
-acquire-stalled = The download stopped responding. Check your internet connection, then download again, or open a saved Atlas package (.apbx).
+acquire-stalled = The download stopped responding. Check your internet connection, then download again, or open a saved Atlas package (.atlaspkg).
 # Tester build: the bundled Atlas package couldn't be unpacked. Try again is the only control offered.
 acquire-failed-bundled = Couldn't prepare the bundled Atlas package. Choose Try again. Details: { $error }
 
@@ -509,33 +511,33 @@ fixed-installed = { $app } is installed. Atlas doesn't uninstall apps; to remove
 browser-also = { $installed } stays installed, and Atlas installs { $browser } as well.
 
 ## Atlas package text
-## The Atlas package carries its own English text for each option. These
-## UI labels and explanations are used only when the package text matches
-## i18n/playbook-source.ftl. A future package with different wording keeps
-## its own text instead of receiving a potentially outdated description.
+## Labels and descriptions for the Atlas package's options and choices, by
+## their ids in the package's atlas.json. The app shows these in place of the
+## package's own English text; an option or choice that a newer package adds,
+## which has no message here, shows the package's English.
 
-playbook-option-defender-enable = Keep Microsoft Defender (recommended)
-playbook-option-defender-disable = Remove Microsoft Defender
-playbook-option-mitigations-default = Keep processor protections (recommended)
-playbook-option-mitigations-disable = Turn off processor protections
-playbook-option-auto-updates-disable = Install updates myself
-playbook-option-auto-updates-default = Install updates automatically
-playbook-option-disable-hibernation = Turn off hibernation
-playbook-option-disable-power-saving = Turn off power saving
-playbook-option-disable-core-isolation = Turn off virtualisation-based security (VBS)
-playbook-option-remove-snipping-tool = Remove Snipping Tool
-playbook-option-uninstall-edge = Remove Microsoft Edge
-playbook-option-install-another-browser = Install a browser
-playbook-option-install-toolbox = Install Atlas Toolbox
-playbook-option-install-eclean = Install eclean
-playbook-option-browser-brave = Brave
-playbook-option-browser-librewolf = LibreWolf
-playbook-option-browser-firefox = Firefox
-playbook-option-browser-chrome = Chrome
-playbook-page-defender-enable-description = Microsoft Defender is the antivirus built into Windows. Remove it only if you understand the risks and plan to use another antivirus app. Whichever you choose, Atlas turns off Smart App Control, Enhanced Phishing Protection and Find my device.
-playbook-page-mitigations-default-description = These protections, also called security mitigations, help defend against processor flaws, such as Spectre and Meltdown, and against attacks that exploit bugs in apps. Keeping the Windows defaults is recommended.
-playbook-page-auto-updates-disable-description = Windows updates include security fixes. You can have Windows install them automatically or install them yourself. Either way, Atlas keeps Windows on its current version, which gets security fixes only until Microsoft ends support for it. Atlas also turns off automatic updates for Microsoft Store apps, so update them in Microsoft Store.
-playbook-page-browser-brave-description = Choose a browser to install. Atlas won't change your browser settings.
+package-option-defender-enable = Keep Microsoft Defender (recommended)
+package-option-defender-disable = Remove Microsoft Defender
+package-option-mitigations-default = Keep processor protections (recommended)
+package-option-mitigations-disable = Turn off processor protections
+package-option-auto-updates-disable = Install updates myself
+package-option-auto-updates-default = Install updates automatically
+package-option-disable-hibernation = Turn off hibernation
+package-option-disable-power-saving = Turn off power saving
+package-option-disable-core-isolation = Turn off virtualisation-based security (VBS)
+package-option-remove-snipping-tool = Remove Snipping Tool
+package-option-uninstall-edge = Remove Microsoft Edge
+package-option-install-another-browser = Install a browser
+package-option-install-toolbox = Install Atlas Toolbox
+package-option-install-eclean = Install eclean
+package-option-browser-brave = Brave
+package-option-browser-librewolf = LibreWolf
+package-option-browser-firefox = Firefox
+package-option-browser-chrome = Chrome
+package-choice-defender-description = Microsoft Defender is the antivirus built into Windows. Remove it only if you understand the risks and plan to use another antivirus app. Whichever you choose, Atlas turns off Smart App Control, Enhanced Phishing Protection and Find my device.
+package-choice-mitigations-description = These protections, also called security mitigations, help defend against processor flaws, such as Spectre and Meltdown, and against attacks that exploit bugs in apps. Keeping the Windows defaults is recommended.
+package-choice-auto-updates-description = Windows updates include security fixes. You can have Windows install them automatically or install them yourself. Either way, Atlas keeps Windows on its current version, which gets security fixes only until Microsoft ends support for it. Atlas also turns off automatic updates for Microsoft Store apps, so update them in Microsoft Store.
+package-choice-browser-description = Choose a browser to install. Atlas won't change your browser settings.
 
 ## Step 3: Windows Security
 
@@ -669,7 +671,7 @@ output-problem-title = Couldn't read installation progress
 output-problem-message = Atlas couldn't read the log. This doesn't mean installation has stopped. Keep your PC on and try opening the log file. Details: { $error }
 install-elevate-title = Atlas needs permission to install
 install-no-package-title = Choose your installation files first
-install-no-package-message = Return to Get ready to download Atlas or open a saved Atlas package (.apbx).
+install-no-package-message = Return to Get ready to download Atlas or open a saved Atlas package (.atlaspkg).
 # Tester build variant of install-no-package-message.
 install-no-package-bundled-message = Return to Get ready to prepare the Atlas package bundled with this test build.
 # Step 4 when step 1 is incomplete for this session (checks or Windows updates), with go-to-ready as the button.
@@ -857,7 +859,7 @@ iso-beta = Beta
 iso-beta-description = Try the ISO in a virtual machine before using it on a PC. Back up your files before installing Windows.
 # "Relaunch as administrator" is common-restart-as-administrator.
 iso-admin-description = Atlas needs administrator permission to read your Windows ISO and create the new one. Choose Relaunch as administrator, then choose Yes when Windows asks.
-iso-files-description = Atlas makes a copy of a Windows 11 ISO with Atlas added, for reinstalling Windows. Choose a Windows 11 ISO downloaded from Microsoft, download the latest Atlas package or choose one you already have (.apbx), then choose where to save the new ISO.
+iso-files-description = Atlas makes a copy of a Windows 11 ISO with Atlas added, for reinstalling Windows. Choose a Windows 11 ISO downloaded from Microsoft, download the latest Atlas package or choose one you already have (.atlaspkg), then choose where to save the new ISO.
 # Tester build: no package picker.
 iso-files-description-bundled = Atlas makes a copy of a Windows 11 ISO with the Atlas package bundled with this test build added. Choose a Windows 11 ISO downloaded from Microsoft, then choose where to save the new ISO.
 iso-source = Windows ISO
@@ -1161,7 +1163,7 @@ install-source-unsupported = Atlas { $source } can't be updated to { $target } d
 # Before a package is chosen, so the version on offer isn't known yet.
 install-source-unsupported-any = Atlas { $source } can't be updated directly. To use a newer version, back up your files and reinstall Windows.
 # "Open package file" is package-open-file. $folder is a folder path (text).
-install-source-resume = An installation of Atlas { $target } didn't finish, and only the Atlas { $target } package can finish it. Choose Open package file and select that Atlas package (.apbx). If Atlas downloaded it, it's in { $folder }.
+install-source-resume = An installation of Atlas { $target } didn't finish, and only the Atlas { $target } package can finish it. Choose Open package file and select that Atlas package (.atlaspkg). If Atlas downloaded it, it's in { $folder }.
 # Tester build: only the bundled Atlas package can be installed.
 install-source-resume-bundled = An installation of Atlas { $target } didn't finish. This test build can only install its bundled Atlas package, so finish that installation with the Atlas { $target } package in a release build of Atlas Manager.
 # "Send a report" is report-title, a button offered with this message.
@@ -1204,7 +1206,7 @@ diagnostics-failed-title = Couldn't export diagnostics
 # $error is the raw error (text).
 diagnostics-failed = Check that your PC has free disk space, then try again. Details: { $error }
 
-## Tester builds (embedded-playbook feature)
+## Tester builds (embedded-package feature)
 
 # A bar at the top of the content on a release-candidate build.
 rc-banner = Atlas { $release } test build. This app installs only the bundled Atlas package.
@@ -1498,10 +1500,10 @@ prepare-repair-store = Repair Microsoft Store
 
 screen-keyboard-title = Keyboard languages
 screen-keyboard-question = Do you use multiple keyboard languages?
-playbook-option-keyboard-shortcuts = Yes, with keyboard shortcuts
-playbook-option-keyboard-selector = Yes, with the taskbar selector
-playbook-option-keyboard-single = No, I use one keyboard layout
+package-option-keyboard-shortcuts = Yes, with keyboard shortcuts
+package-option-keyboard-selector = Yes, with the taskbar selector
+package-option-keyboard-single = No, I use one keyboard layout
 consequence-keyboard-shortcuts = Alt+Shift switches languages; Ctrl+Shift switches layouts.
 consequence-keyboard-selector = Turn off Alt+Shift and Ctrl+Shift to avoid accidental switches while gaming.
-playbook-page-keyboard-shortcuts-description = Choose how you switch keyboard languages.
+package-choice-keyboard-description = Choose how you switch keyboard languages.
 consequence-keyboard-single = { consequence-keyboard-selector }

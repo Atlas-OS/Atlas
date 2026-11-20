@@ -1,6 +1,7 @@
 # Names the boot entry and the OEM model after this Atlas version, which the build stamps
-# over AtlasVersionUndefined. The misc tweak category's config-oem-information companion
-# runs it as TrustedInstaller.
+# over AtlasVersionUndefined as v<version>. Windows shows the model and the registered
+# organisation, 'Atlas v<version>', in winver and Settings. The misc tweak category's
+# config-oem-information companion runs it as TrustedInstaller.
 $ErrorActionPreference = 'Stop'
 
 $version = 'AtlasVersionUndefined'
@@ -18,7 +19,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Output 'Setting other versioned OEM information...'
-$reportedVersion = "Atlas Playbook $version"
+$reportedVersion = "Atlas $version"
 Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation' `
     -Name 'Model' -Value $reportedVersion -Type String -Force -ErrorAction Stop
 Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' `

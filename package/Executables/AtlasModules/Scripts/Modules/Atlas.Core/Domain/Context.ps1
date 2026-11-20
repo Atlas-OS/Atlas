@@ -1,10 +1,11 @@
 # Atlas.Core domain: active install state and post-install machine state context.
 #
-# While installation is active, mode, identity, and FeaturePage options come from
-# Atlas.InstallState. After successful completion archives that state, the machine
-# state document (%windir%\AtlasOS\state.json, Atlas.State) carries the installed
-# version, mode and options. The Upgrade and option flags remain only as a fallback
-# for machines installed before the document existed.
+# While installation is active, mode, identity, and the options chosen for the
+# package's choices come from Atlas.InstallState. After successful completion
+# archives that state, the machine state document (%windir%\AtlasOS\state.json,
+# Atlas.State) carries the installed version, mode and options. The Upgrade and
+# option flags remain only as a fallback for machines installed before the document
+# existed.
 
 $script:AtlasContext = $null
 
@@ -218,9 +219,9 @@ function Get-AtlasContext {
 function Test-AtlasOption {
     <#
     .SYNOPSIS
-        Returns whether the active install state contains a FeaturePage option from
-        playbook.conf. After completion, reads the machine state document, or the
-        published option flag on a machine installed before the document existed.
+        Returns whether the active install state contains an option, by the id the
+        package manifest gives it. After completion, reads the machine state document,
+        or the published option flag on a machine installed before the document existed.
     #>
     param(
         [Parameter(Mandatory = $true)]

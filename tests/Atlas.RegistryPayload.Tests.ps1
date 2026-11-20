@@ -1,8 +1,8 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $script:playbookRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\playbook')).ProviderPath
-    $script:executablesRoot = Join-Path -Path $script:playbookRoot -ChildPath 'Executables'
-    $script:registryFiles = @(Get-ChildItem -LiteralPath $script:playbookRoot -Filter '*.reg' -File -Recurse)
+    $script:packageRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\package')).ProviderPath
+    $script:executablesRoot = Join-Path -Path $script:packageRoot -ChildPath 'Executables'
+    $script:registryFiles = @(Get-ChildItem -LiteralPath $script:packageRoot -Filter '*.reg' -File -Recurse)
     $script:strictUtf16Le = [System.Text.Encoding]::GetEncoding(
         1200,
         [System.Text.EncoderFallback]::ExceptionFallback,
@@ -112,7 +112,7 @@ BeforeAll {
 
 Describe 'Registry file format' {
     BeforeDiscovery {
-        $discoveryRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\playbook')).ProviderPath
+        $discoveryRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\package')).ProviderPath
         $script:registryPayloadCases = @(
             Get-ChildItem -LiteralPath $discoveryRoot -Filter '*.reg' -File -Recurse | ForEach-Object {
                 @{

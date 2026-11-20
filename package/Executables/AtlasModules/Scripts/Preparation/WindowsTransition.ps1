@@ -627,12 +627,19 @@ function Get-AtlasTransitionStateDocument {
     }
 }
 
+# The version an OEM model or registered organisation value names. Atlas writes
+# 'Atlas v<version>' to both; releases before Atlas 0.6 wrote 'Atlas Playbook v<version>'.
+# Returns nothing for any other value. The install state module reads the markers with it too.
+function ConvertFrom-AtlasVersionMarker([string]$Value) {
+    if ($Value -match '^Atlas (?:Playbook )?v?(\d+\.\d+\.\d+)$') { $Matches[1] }
+}
+
 function Get-AtlasTransitionLegacyVersion {
     foreach ($marker in @(
             @('SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation', 'Model'),
             @('SOFTWARE\Microsoft\Windows NT\CurrentVersion', 'RegisteredOrganization'))) {
         $value = Get-AtlasTransitionValue $marker[0] $marker[1]
-        if ($value.Present -and [string]$value.Data -match '^Atlas Playbook v?(\d+\.\d+\.\d+)$') { $Matches[1] }
+        if ($value.Present) { ConvertFrom-AtlasVersionMarker ([string]$value.Data) }
     }
 }
 

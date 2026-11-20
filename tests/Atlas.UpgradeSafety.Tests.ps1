@@ -4,9 +4,9 @@ BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:RepoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).ProviderPath
     $script:ReplacementScript = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Install\Tasks\Invoke-AtlasPayloadReplacement.ps1'
+        'package\Executables\AtlasModules\Scripts\Install\Tasks\Invoke-AtlasPayloadReplacement.ps1'
     $cbsRetryScript = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Operations\CbsRetry.ps1'
+        'package\Executables\AtlasModules\Scripts\Operations\CbsRetry.ps1'
     . $cbsRetryScript -LibraryOnly
     . $script:ReplacementScript -LibraryOnly
 
@@ -284,7 +284,7 @@ Describe 'CBS retry file replacement gate with retry state on disk' {
 
 Describe 'Install session logs kept with the machine''s' {
     BeforeAll {
-        $script:SessionScript = Join-Path $script:RepoRoot 'playbook\Executables\AtlasModules\Scripts\Install\Invoke-AtlasInstallSession.ps1'
+        $script:SessionScript = Join-Path $script:RepoRoot 'package\Executables\AtlasModules\Scripts\Install\Invoke-AtlasInstallSession.ps1'
         $script:SessionAst = [Management.Automation.Language.Parser]::ParseFile($script:SessionScript, [ref]$null, [ref]$null)
         foreach ($name in @('Write-AtlasSessionLog', 'Save-AtlasSessionLog')) {
             $function = $script:SessionAst.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name }, $true)
@@ -387,7 +387,7 @@ Describe 'Install session logs kept with the machine''s' {
 
 Describe 'Install log retention' {
     BeforeAll {
-        Import-Module (Join-Path $script:RepoRoot 'playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Core\Atlas.Core.psd1') -Force
+        Import-Module (Join-Path $script:RepoRoot 'package\Executables\AtlasModules\Scripts\Modules\Atlas.Core\Atlas.Core.psd1') -Force
         $script:Now = [DateTime]::new(2026, 10, 31, 12, 0, 0, [DateTimeKind]::Utc)
         function New-TestLog {
             param([string]$Root, [string]$Name, [int]$AgeDays, [string]$Text = 'x')

@@ -42,8 +42,8 @@ const NOTICES_MAX_SHARE: f32 = 0.4;
 pub struct StartAt {
     pub page: Option<Page>,
     pub step: Option<Step>,
-    /// An .apbx to unpack on launch.
-    pub playbook: Option<PathBuf>,
+    /// A package file to unpack on launch.
+    pub package: Option<PathBuf>,
     /// A language tag that outranks the setting (`--language`), for review.
     pub language: Option<String>,
 }
@@ -78,7 +78,7 @@ impl Shell {
     pub fn new(start: StartAt, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let language = start.language.clone();
         let model = cx.new(|cx| AppModel::new(language, cx));
-        model.update(cx, |model, cx| model.apply_start(start.page, start.step, start.playbook, cx));
+        model.update(cx, |model, cx| model.apply_start(start.page, start.step, start.package, cx));
         let system_appearance = Appearance::from_window(window.appearance());
         {
             let (theme, localization) = {

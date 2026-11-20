@@ -2,7 +2,7 @@ BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
     $script:ScriptsRoot = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts'
+        'package\Executables\AtlasModules\Scripts'
     $script:PreviousInstallScript = Join-Path $script:ScriptsRoot `
         'Install\Tasks\Remove-PreviousAtlasInstall.ps1'
     $script:VersionSpecificScript = Join-Path $script:ScriptsRoot `

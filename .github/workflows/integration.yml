@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
     inputs:
       options:
-        description: "Comma-separated FeaturePage options for the install"
+        description: "Comma-separated option ids from atlas.json for the install"
         required: false
         default: "defender-enable,mitigations-default,auto-updates-default,keyboard-shortcuts"
         type: string
@@ -67,10 +67,10 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $output = Join-Path $env:RUNNER_TEMP ('atlas-lab-' + [guid]::NewGuid().ToString('N'))
           New-Item -Path $output -ItemType Directory -ErrorAction Stop | Out-Null
-          & tools/build/Build-Playbook.ps1 -FileName 'Atlas Lab' `
-              -OutputPath $output -DontOpenPbLocation
-          $apbx = Get-Item -LiteralPath (Join-Path $output 'Atlas Lab.apbx') -ErrorAction Stop
-          "ATLAS_LAB_PLAYBOOK=$($apbx.FullName)" |
+          & tools/build/Build-Package.ps1 -FileName 'Atlas Lab' `
+              -OutputPath $output -NoExplorer
+          $package = Get-Item -LiteralPath (Join-Path $output 'Atlas Lab.atlaspkg') -ErrorAction Stop
+          "ATLAS_LAB_PACKAGE=$($package.FullName)" |
               Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Install on the lab VM and verify
@@ -85,9 +85,9 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $secure = ConvertTo-SecureString -String $env:ATLAS_LAB_PASSWORD -AsPlainText -Force
           $credential = New-Object System.Management.Automation.PSCredential($env:ATLAS_LAB_USER, $secure)
-          $apbx = Get-Item -LiteralPath $env:ATLAS_LAB_PLAYBOOK -ErrorAction Stop
+          $package = Get-Item -LiteralPath $env:ATLAS_LAB_PACKAGE -ErrorAction Stop
           & tools/lab/Invoke-AtlasLabRun.ps1 -VMName $env:ATLAS_LAB_VM -CheckpointName $env:ATLAS_LAB_CHECKPOINT `
-              -Credential $credential -PlaybookPath $apbx.FullName -Option ($env:LAB_OPTIONS -split ',') `
+              -Credential $credential -PackagePath $package.FullName -Option ($env:LAB_OPTIONS -split ',') `
               -OutputPath 'lab-output/run'
           if ($LASTEXITCODE -ne 0) { throw "Lab run failed with exit code $LASTEXITCODE." }
 

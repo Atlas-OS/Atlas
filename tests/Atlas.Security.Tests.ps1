@@ -10,7 +10,7 @@ BeforeAll {
     $script:hvciPath = "$script:deviceGuardPath\Scenarios\HypervisorEnforcedCodeIntegrity"
     $script:policyPath = "$script:testRoot\Policies\DeviceGuard"
 
-    $togglesRoot = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles'
+    $togglesRoot = Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toggles'
     $script:ToggleDefender = Get-AtlasToggleDefinition -Name ToggleDefender -TogglesRoot $togglesRoot
     $script:FixErrors2502and2503 = Get-AtlasToggleDefinition -Name FixErrors2502and2503 -TogglesRoot $togglesRoot
     $script:VbsState = Get-AtlasToggleDefinition -Name VbsState -TogglesRoot $togglesRoot

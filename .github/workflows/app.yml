@@ -9,12 +9,14 @@ on:
   push:
     paths:
       - "app/**"
-      - "playbook/playbook.conf"
-      - "playbook/Executables/AtlasModules/Scripts/Preparation/**"
-      - "playbook/Executables/AtlasModules/Scripts/Compatibility/**"
-      - "playbook/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1"
-      - "playbook/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/**"
-      - "playbook/Executables/AtlasDesktop/2. Drivers/Drivers from Windows Update/*.reg"
+      - "package/atlas.json"
+      - "package/Executables/AtlasModules/Scripts/Preparation/**"
+      - "package/Executables/AtlasModules/Scripts/Compatibility/**"
+      - "package/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1"
+      - "package/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/**"
+      - "package/Executables/AtlasModules/Scripts/Modules/Atlas.Core/Domain/Logging.ps1"
+      - "package/Executables/AtlasModules/Scripts/Modules/Atlas.Appx/Domain/Removal.ps1"
+      - "package/Executables/AtlasDesktop/2. Drivers/Drivers from Windows Update/*.reg"
       - "tools/dev/Get-AtlasInstallReport.ps1"
       - "tools/build/**"
       - "tests/fixtures/**"
@@ -24,12 +26,14 @@ on:
   pull_request:
     paths:
       - "app/**"
-      - "playbook/playbook.conf"
-      - "playbook/Executables/AtlasModules/Scripts/Preparation/**"
-      - "playbook/Executables/AtlasModules/Scripts/Compatibility/**"
-      - "playbook/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1"
-      - "playbook/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/**"
-      - "playbook/Executables/AtlasDesktop/2. Drivers/Drivers from Windows Update/*.reg"
+      - "package/atlas.json"
+      - "package/Executables/AtlasModules/Scripts/Preparation/**"
+      - "package/Executables/AtlasModules/Scripts/Compatibility/**"
+      - "package/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1"
+      - "package/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/**"
+      - "package/Executables/AtlasModules/Scripts/Modules/Atlas.Core/Domain/Logging.ps1"
+      - "package/Executables/AtlasModules/Scripts/Modules/Atlas.Appx/Domain/Removal.ps1"
+      - "package/Executables/AtlasDesktop/2. Drivers/Drivers from Windows Update/*.reg"
       - "tools/dev/Get-AtlasInstallReport.ps1"
       - "tools/build/**"
       - "tests/fixtures/**"
@@ -90,14 +94,14 @@ jobs:
         run: cargo test --locked -- --nocapture
 
       - name: Build a LocalTest Atlas package for the tester-build checks
-        # The embedded-playbook feature compiles one APBX into the test binary.
+        # The embedded-package feature compiles one Atlas package into the test binary.
         # Tests never install it; they only unpack it into a temporary root.
         working-directory: ${{ github.workspace }}
-        run: ./tools/build/Build-Playbook.ps1 -LocalTest
+        run: ./tools/build/Build-Package.ps1 -LocalTest
 
-      - name: Clippy and test the tester build (embedded-playbook)
+      - name: Clippy and test the tester build (embedded-package)
         env:
-          ATLAS_EMBED_APBX: ${{ github.workspace }}/playbook/Atlas Test.apbx
+          ATLAS_EMBED_PACKAGE: ${{ github.workspace }}/package/Atlas Test.atlaspkg
         # The step's status is the last native exit code, so a Clippy failure must stop it here.
         run: |
           # build.rs requires the id to name app/Cargo.toml's version and a candidate number
@@ -105,9 +109,9 @@ jobs:
           $metadata = cargo metadata --no-deps --format-version 1 --locked | ConvertFrom-Json
           $version = $metadata.packages.Where({ $_.name -eq 'atlas-app' })[0].version
           $env:ATLAS_RC_ID = "$version-rc.1"
-          cargo clippy --locked --all-targets --features embedded-playbook -- -D warnings
+          cargo clippy --locked --all-targets --features embedded-package -- -D warnings
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cargo test --locked --features embedded-playbook -- --nocapture
+          cargo test --locked --features embedded-package -- --nocapture
 
       - name: Build production executable
         run: ./tools/Build-Release.ps1

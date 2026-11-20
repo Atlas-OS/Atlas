@@ -4,7 +4,7 @@ BeforeAll {
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.State\Atlas.State.psd1') -Force
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.InstallState\Atlas.InstallState.psd1') -Force -DisableNameChecking
 
-    $script:PlaybookPath = Join-Path $script:AtlasTestRepoRoot 'playbook\playbook.conf'
+    $script:ManifestPath = Join-Path $script:AtlasTestRepoRoot 'package\atlas.json'
     $script:SessionScript = Join-Path $script:AtlasTestScriptsRoot 'Install\Invoke-AtlasInstallSession.ps1'
     $script:FrontDoorScript = Join-Path $script:AtlasTestScriptsRoot 'Entry\Install-Atlas.ps1'
     $script:SecurityCases = Join-Path $script:AtlasTestRepoRoot 'tests\fixtures\front-door\windows-security.json'
@@ -25,7 +25,7 @@ BeforeAll {
         @(Get-ScriptFunctionText -Path $script:FrontDoorScript -Names 'Get-AtlasDeclaredRequirement', 'Test-AtlasDefenderPresent', 'Get-AtlasDefenderSwitch', 'Test-AtlasDefenderPrepared', 'Invoke-AtlasPreparationCheck', 'Test-AtlasPreparationCurrent', 'Get-AtlasPowerStatus', 'Test-AtlasPowerConnected', 'Test-AtlasUserAccountReady', 'Test-AtlasInstallRequirement', 'Copy-AtlasPayloadToStaging', 'Get-AtlasRestartComment', 'New-AtlasProtectedStagingRoot', 'New-AtlasFrontDoorDirectorySecurity', 'Remove-AtlasStagedPackage', 'Remove-AtlasEarlierStagedPackage', 'Invoke-AtlasInstallPhase', 'New-AtlasInstallRequest', 'Format-AtlasTakenChoice', 'Get-AtlasInstallProbe', 'Read-AtlasCapturedOption')) {
         . ([scriptblock]::Create($text))
     }
-    $script:Groups = @(Get-AtlasPlaybookOption -PlaybookPath $script:PlaybookPath)
+    $script:Groups = @(Get-AtlasPackageChoice -ManifestPath $script:ManifestPath)
     function Get-AtlasWindowsReleaseStatus { param($Version, $BuildLabEx) throw "Unmocked release query: $Version $BuildLabEx" }
     # The requirement checks default to this process's account. These tests check a
     # local account's; a test about another account type passes -AccountSid itself.
@@ -35,6 +35,38 @@ BeforeAll {
         param([string]$Name, [hashtable]$Arguments = @{})
         Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client @Arguments |
             Where-Object Name -eq $Name
+    }
+
+    # Writes a small atlas.json with three choices, after Change edits it, and returns its path.
+    function New-TestManifest {
+        param([scriptblock]$Change = {})
+        $manifest = [ordered]@{
+            schemaVersion    = 1
+            version          = '1.2.3-rc.1'
+            supportedBuilds  = @([ordered]@{ build = 26200; release = '25H2' }, [ordered]@{ build = 26300; release = '26H2' })
+            updatableFrom    = @('1.2.2')
+            requirements     = @('plugged-in')
+            estimatedMinutes = 15
+            choices          = @(
+                [ordered]@{
+                    id = 'radio'; kind = 'single'; default = 'radio-b'; description = 'Text the reader skips.'
+                    learnMore = 'https://atlasos.net/docs/'
+                    options = @([ordered]@{ id = 'radio-a'; label = 'A' }, [ordered]@{ id = 'radio-b'; label = 'B' })
+                }
+                [ordered]@{
+                    id = 'check'; kind = 'multiple'
+                    options = @([ordered]@{ id = 'check-c'; label = 'C' }, [ordered]@{ id = 'check-d'; label = 'D' })
+                }
+                [ordered]@{
+                    id = 'image'; kind = 'single'; default = 'image-e'; dependsOn = 'check-d'
+                    options = @([ordered]@{ id = 'image-e'; label = 'E'; image = 'e' }, [ordered]@{ id = 'image-f'; label = 'F'; image = 'f' })
+                }
+            )
+        }
+        & $Change $manifest
+        $path = Join-Path $TestDrive "manifest-$([guid]::NewGuid().ToString('N')).json"
+        [IO.File]::WriteAllText($path, (ConvertTo-Json -InputObject $manifest -Depth 8), (New-Object Text.UTF8Encoding($false)))
+        return $path
     }
 }
 
@@ -98,53 +130,97 @@ throw 'Stopped before install-state access.'
     }
 }
 Describe 'Package manifest readers' {
-    It 'read the version, supported builds and option groups from playbook.conf' {
-        $fixture = Join-Path $TestDrive 'readers-playbook.conf'
-        Set-Content -LiteralPath $fixture -Value @'
-<Playbook>
-	<Version>1.2.3-rc.1</Version>
-	<SupportedBuilds>
-		<!-- A comment between builds, as the real file has. -->
-		<string>26200</string>
-		<string>26300</string>
-	</SupportedBuilds>
-	<FeaturePages>
-		<RadioPage IsRequired="true" DefaultOption="radio-b">
-			<TopLine Text="Page text the reader skips."/>
-			<Options>
-				<RadioOption><Text>A</Text><Name>radio-a</Name></RadioOption>
-				<RadioOption><Text>B</Text><Name>radio-b</Name></RadioOption>
-			</Options>
-		</RadioPage>
-		<CheckboxPage>
-			<Options>
-				<CheckboxOption><Text>C</Text><Name>check-c</Name></CheckboxOption>
-				<CheckboxOption><Text>D</Text><Name>check-d</Name></CheckboxOption>
-			</Options>
-		</CheckboxPage>
-		<!-- A comment between pages. -->
-		<RadioImagePage DependsOn="check-d" DefaultOption="image-e">
-			<Options>
-				<RadioImageOption><Text>E</Text><Name>image-e</Name><FileName>e</FileName></RadioImageOption>
-				<RadioImageOption><Text>F</Text><Name>image-f</Name><FileName>f</FileName></RadioImageOption>
-			</Options>
-		</RadioImagePage>
-	</FeaturePages>
-</Playbook>
-'@
-        Get-AtlasPlaybookVersion -PlaybookPath $fixture | Should -BeExactly '1.2.3-rc.1'
-        @(Get-AtlasPlaybookSupportedBuild -PlaybookPath $fixture) | Should -Be @(26200, 26300)
+    It 'read the version, supported builds and choices from atlas.json' {
+        $fixture = New-TestManifest
+        Get-AtlasPackageVersion -ManifestPath $fixture | Should -BeExactly '1.2.3-rc.1'
+        @(Get-AtlasPackageSupportedBuild -ManifestPath $fixture) | Should -Be @(26200, 26300)
 
-        $groups = @(Get-AtlasPlaybookOption -PlaybookPath $fixture)
-        $groups | Should -HaveCount 3
-        @($groups[0].Options) | Should -Be @('radio-a', 'radio-b')
-        @($groups[1].Options) | Should -Be @('check-c', 'check-d')
-        @($groups[2].Options) | Should -Be @('image-e', 'image-f')
-        @($groups.ExactlyOne) | Should -Be @($true, $false, $true)
-        $groups[0].DependsOn | Should -BeNullOrEmpty
-        $groups[1].DependsOn | Should -BeNullOrEmpty
-        $groups[2].DependsOn | Should -BeExactly 'check-d'
-        $groups[0].Default | Should -BeExactly 'radio-b'
+        $choices = @(Get-AtlasPackageChoice -ManifestPath $fixture)
+        $choices | Should -HaveCount 3
+        @($choices.Id) | Should -Be @('radio', 'check', 'image')
+        @($choices[0].Options) | Should -Be @('radio-a', 'radio-b')
+        @($choices[1].Options) | Should -Be @('check-c', 'check-d')
+        @($choices[2].Options) | Should -Be @('image-e', 'image-f')
+        @($choices.ExactlyOne) | Should -Be @($true, $false, $true)
+        $choices[0].DependsOn | Should -BeNullOrEmpty
+        $choices[1].DependsOn | Should -BeNullOrEmpty
+        $choices[2].DependsOn | Should -BeExactly 'check-d'
+        $choices[0].Default | Should -BeExactly 'radio-b'
+        $choices[1].Default | Should -BeNullOrEmpty
+        $choices[2].Default | Should -BeExactly 'image-e'
+    }
+
+    It 'read one supported build and a choice with one option as lists' {
+        $fixture = New-TestManifest {
+            param($Manifest)
+            $Manifest.supportedBuilds = @([ordered]@{ build = 26200; release = '25H2' })
+            $Manifest.choices = @([ordered]@{ id = 'only'; kind = 'multiple'; options = @([ordered]@{ id = 'only-a'; label = 'A' }) })
+        }
+        @(Get-AtlasPackageSupportedBuild -ManifestPath $fixture) | Should -Be @(26200)
+        $choices = @(Get-AtlasPackageChoice -ManifestPath $fixture)
+        $choices | Should -HaveCount 1
+        @($choices[0].Options) | Should -Be @('only-a')
+    }
+
+    It 'read the repository''s manifest' {
+        Get-AtlasPackageVersion -ManifestPath $script:ManifestPath | Should -Match '^\d+\.\d+\.\d+'
+        @(Get-AtlasPackageSupportedBuild -ManifestPath $script:ManifestPath) | Should -Not -BeNullOrEmpty
+        @($script:Groups | Where-Object ExactlyOne | Where-Object { $_.Options -cnotcontains $_.Default }) | Should -BeNullOrEmpty
+    }
+
+    It 'refuse a manifest that breaks the format: <Case>' -TestCases @(
+        @{ Case = 'a newer schema'; Reader = 'Get-AtlasPackageVersion'; Message = "*schema version '2'; this installer reads version 1*"
+            Change = { param($Manifest) $Manifest.schemaVersion = 2 } }
+        @{ Case = 'no schema version'; Reader = 'Get-AtlasPackageVersion'; Message = '*schema version none*'
+            Change = { param($Manifest) $Manifest.Remove('schemaVersion') } }
+        @{ Case = 'a version without three numbers'; Reader = 'Get-AtlasPackageVersion'; Message = "*version '1.2' is invalid*"
+            Change = { param($Manifest) $Manifest.version = '1.2' } }
+        @{ Case = 'a build given as text'; Reader = 'Get-AtlasPackageSupportedBuild'; Message = "*whole-number 'build'*"
+            Change = { param($Manifest) $Manifest.supportedBuilds[0].build = '26200' } }
+        @{ Case = 'no supported builds'; Reader = 'Get-AtlasPackageSupportedBuild'; Message = '*no supported Windows builds*'
+            Change = { param($Manifest) $Manifest.supportedBuilds = @() } }
+        @{ Case = 'a single choice without a default'; Reader = 'Get-AtlasPackageChoice'; Message = "*single choice 'radio' needs a default*"
+            Change = { param($Manifest) $Manifest.choices[0].Remove('default') } }
+        @{ Case = 'a default that isn''t one of its options'; Reader = 'Get-AtlasPackageChoice'; Message = "*single choice 'radio' needs a default*'check-c'*"
+            Change = { param($Manifest) $Manifest.choices[0].default = 'check-c' } }
+        @{ Case = 'an unknown kind'; Reader = 'Get-AtlasPackageChoice'; Message = "*kind 'checkbox'*"
+            Change = { param($Manifest) $Manifest.choices[1].kind = 'checkbox' } }
+        @{ Case = 'a choice without an id'; Reader = 'Get-AtlasPackageChoice'; Message = '*has no id*'
+            Change = { param($Manifest) $Manifest.choices[1].Remove('id') } }
+        @{ Case = 'a choice without options'; Reader = 'Get-AtlasPackageChoice'; Message = "*'check' declares no options*"
+            Change = { param($Manifest) $Manifest.choices[1].options = @() } }
+        @{ Case = 'an option in two choices'; Reader = 'Get-AtlasPackageChoice'; Message = "*option 'radio-a' twice*"
+            Change = { param($Manifest) $Manifest.choices[1].options[0].id = 'radio-a' } }
+        @{ Case = 'an option id the front door can''t take'; Reader = 'Get-AtlasPackageChoice'; Message = "*'Check C' isn't made of lowercase letters*"
+            Change = { param($Manifest) $Manifest.choices[1].options[0].id = 'Check C' } }
+        @{ Case = 'a dependsOn that no choice offers'; Reader = 'Get-AtlasPackageChoice'; Message = "*depends on 'check-x', which no choice*"
+            Change = { param($Manifest) $Manifest.choices[2].dependsOn = 'check-x' } }
+        @{ Case = 'a dependsOn on its own option'; Reader = 'Get-AtlasPackageChoice'; Message = "*'image' must depend on an option of another choice*"
+            Change = { param($Manifest) $Manifest.choices[2].dependsOn = 'image-f' } }
+        @{ Case = 'updatableFrom given as text'; Reader = 'Get-AtlasPackageUpdatableFrom'; Message = "*'updatableFrom' must be a list*"
+            Change = { param($Manifest) $Manifest.updatableFrom = '1.2.2' } }
+    ) {
+        param($Case, $Reader, $Message, $Change)
+        $fixture = New-TestManifest $Change
+        $script:ReaderCall = @{ Reader = $Reader; Path = $fixture }
+        { InModuleScope Atlas.InstallState -Parameters $script:ReaderCall { param($Reader, $Path) & $Reader -ManifestPath $Path } } |
+            Should -Throw $Message -Because $Case
+    }
+
+    It 'refuse a file that isn''t a manifest object: <Case>' -TestCases @(
+        @{ Case = 'XML'; Text = '<Playbook><Version>0.6.0</Version></Playbook>'; Message = '*isn''t valid JSON*' }
+        @{ Case = 'empty'; Text = "`r`n"; Message = '*is empty*' }
+        @{ Case = 'a JSON list'; Text = '[{"schemaVersion":1,"version":"0.6.0"}]'; Message = '*must be a JSON object*' }
+    ) {
+        param($Case, $Text, $Message)
+        $fixture = Join-Path $TestDrive 'not-a-manifest.json'
+        [IO.File]::WriteAllText($fixture, $Text)
+        { Get-AtlasPackageVersion -ManifestPath $fixture } | Should -Throw $Message -Because $Case
+    }
+
+    It 'names the manifest it couldn''t find' {
+        $missing = Join-Path $TestDrive 'missing\atlas.json'
+        { Get-AtlasPackageVersion -ManifestPath $missing } | Should -Throw "*manifest (atlas.json) was not found at '$missing'*"
     }
 }
 
@@ -162,13 +238,32 @@ Describe 'Resolve-AtlasInstallMode' {
         Resolve-AtlasInstallMode -TargetVersion '0.6.0' -WindowsPath $windows | Should -Be 'Fresh'
         { Resolve-AtlasInstallMode -TargetVersion '0.7.0' -WindowsPath $windows } | Should -Throw '*already active*'
     }
-    It 'accepts declared legacy OEM versions' -TestCases @(
-        @{ Version = '0.4.1' }, @{ Version = '0.5.0' }
+    It 'accepts declared versions the OEM markers name: <Marker>' -TestCases @(
+        @{ Marker = 'Atlas Playbook 0.4.1' }, @{ Marker = 'Atlas Playbook v0.5.0' }, @{ Marker = 'Atlas v0.5.0' }
     ) {
-        param($Version)
-        $script:LegacyVersion = $Version
-        Mock Get-ItemProperty -ModuleName Atlas.InstallState { [pscustomobject]@{ Model = "Atlas Playbook $script:LegacyVersion"; RegisteredOrganization = "Atlas Playbook $script:LegacyVersion" } }
+        param($Marker)
+        $script:LegacyMarker = $Marker
+        Mock Get-ItemProperty -ModuleName Atlas.InstallState { [pscustomobject]@{ Model = $script:LegacyMarker; RegisteredOrganization = $script:LegacyMarker } }
         Resolve-AtlasInstallMode -TargetVersion '0.6.0' -WindowsPath (Join-Path $TestDrive 'Legacy') | Should -Be 'Upgrade'
+    }
+
+    It 'reads the installed version from either form of the OEM markers: <Case>' -TestCases @(
+        @{ Case = 'the form Atlas writes'; Model = 'Atlas v0.6.0'; Organization = 'Atlas v0.6.0'; Version = '0.6.0' }
+        @{ Case = 'the form releases before 0.6 wrote'; Model = 'Atlas Playbook v0.5.0'; Organization = 'Atlas Playbook v0.5.0'; Version = '0.5.0' }
+        @{ Case = 'without the v, in any case'; Model = 'Atlas Playbook 0.4.1'; Organization = 'atlas playbook V0.4.1'; Version = '0.4.1' }
+        @{ Case = 'one of each form, agreeing'; Model = 'Atlas v0.5.0'; Organization = 'Atlas Playbook v0.5.0'; Version = '0.5.0' }
+        @{ Case = 'only one marker'; Model = 'Atlas v0.6.0'; Organization = 'Contoso'; Version = '0.6.0' }
+        @{ Case = 'neither form'; Model = 'Atlas Toolbox v0.2.0'; Organization = 'Atlas 0.6'; Version = $null }
+    ) {
+        param($Case, $Model, $Organization, $Version)
+        $script:Markers = [pscustomobject]@{ Model = $Model; RegisteredOrganization = $Organization }
+        Mock Get-ItemProperty -ModuleName Atlas.InstallState { $script:Markers }
+        Get-AtlasInstalledVersion -WindowsPath (Join-Path $TestDrive 'Markers') -Rebase $null | Should -Be $Version -Because $Case
+    }
+
+    It 'refuses markers that name different versions, whichever form each has' {
+        Mock Get-ItemProperty -ModuleName Atlas.InstallState { [pscustomobject]@{ Model = 'Atlas v0.6.0'; RegisteredOrganization = 'Atlas Playbook v0.5.0' } }
+        { Get-AtlasInstalledVersion -WindowsPath (Join-Path $TestDrive 'Markers') -Rebase $null } | Should -Throw '*markers disagree*'
     }
 
     It 'rejects undeclared recorded source versions' -TestCases @(
@@ -236,6 +331,20 @@ Describe 'Install request validation' {
             Should -Throw '*Exactly one of keyboard-*'
         { Assert-AtlasInstallOptionSet -Options ($good + 'browser-firefox') -Groups $script:Groups } |
             Should -Throw '*Exactly one of browser-*'
+    }
+
+    It 'applies the format''s choice rules to any manifest' {
+        $choices = @(Get-AtlasPackageChoice -ManifestPath (New-TestManifest))
+        # A multiple choice takes any number of its options, including none.
+        @(Assert-AtlasInstallOptionSet -Options @('radio-a') -Groups $choices) | Should -Be @('radio-a')
+        @(Assert-AtlasInstallOptionSet -Options @('radio-b', 'check-c', 'check-d', 'image-f') -Groups $choices) |
+            Should -Be @('radio-b', 'check-c', 'check-d', 'image-f')
+        # Every single choice that's asked takes exactly one option.
+        { Assert-AtlasInstallOptionSet -Options @('check-c') -Groups $choices } | Should -Throw '*Exactly one of radio-a, radio-b must be selected*'
+        { Assert-AtlasInstallOptionSet -Options @('radio-a', 'check-d') -Groups $choices } | Should -Throw '*Exactly one of image-e, image-f must be selected*'
+        # A choice whose dependsOn option isn't chosen isn't asked, so its options are refused.
+        { Assert-AtlasInstallOptionSet -Options @('radio-a', 'image-e') -Groups $choices } | Should -Throw "*Options image-e require 'check-d'*"
+        { Assert-AtlasInstallOptionSet -Options @('radio-a', 'browser-brave') -Groups $choices } | Should -Throw "*'browser-brave' is not declared by the package manifest*"
     }
 
     It 'resumes an install begun before a required group with the options it began with' {
@@ -392,7 +501,7 @@ Describe 'Front door probe before the requirements' {
 
 Describe 'Install capture' {
     BeforeAll {
-        $script:Target = Get-AtlasPlaybookVersion -PlaybookPath $script:PlaybookPath
+        $script:Target = Get-AtlasPackageVersion -ManifestPath $script:ManifestPath
         $script:Asked = @('auto-updates-disable', 'defender-enable', 'keyboard-shortcuts', 'mitigations-default')
         # What the PC shows: Atlas's NoDefender package is installed.
         $script:Shown = @('auto-updates-disable', 'defender-disable', 'keyboard-shortcuts', 'mitigations-default')
@@ -402,7 +511,7 @@ Describe 'Install capture' {
             $payload = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
             New-Item -Path $payload -ItemType Directory -Force | Out-Null
             [IO.File]::WriteAllText((Join-Path $payload 'request.json'), (@{ options = $script:Asked; choices = $Choices } | ConvertTo-Json -Compress))
-            Invoke-AtlasInstallCapture -PlaybookPath $script:PlaybookPath -PayloadRoot $payload
+            Invoke-AtlasInstallCapture -ManifestPath $script:ManifestPath -PayloadRoot $payload
         }
         function ConvertTo-TestCall {
             param([string[]]$Calls)
@@ -500,7 +609,7 @@ Describe 'Install capture' {
         $capture = @($switch.Clauses | Where-Object { $_.Item1.Extent.Text -ceq "'Capture'" })
         $capture.Count | Should -Be 1
         @($capture[0].Item2.Statements)[0].Extent.Text |
-            Should -BeExactly '$message = Invoke-AtlasInstallCapture -PlaybookPath $playbookPath -PayloadRoot $payloadRoot'
+            Should -BeExactly '$message = Invoke-AtlasInstallCapture -ManifestPath $manifestPath -PayloadRoot $payloadRoot'
     }
 
     It 'checks the choices taken from the PC against the package before recording them' {
@@ -758,7 +867,7 @@ Describe 'Front door requirements and staging' {
         Mock Test-AtlasPowerConnected { $false }
         Mock Get-CimInstance { @([pscustomobject]@{ displayName = 'Contoso Shield' }) }
 
-        $results = @(Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 22631 -EditionId Professional -InstallationType Client -DeclaredRequirements @('NoAntivirus', 'PluggedIn'))
+        $results = @(Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 22631 -EditionId Professional -InstallationType Client -DeclaredRequirements @('no-third-party-antivirus', 'plugged-in'))
         ($results | Where-Object { $_.Name -eq 'Windows build' }).Passed | Should -BeFalse
         ($results | Where-Object { $_.Name -eq 'Windows build' }).Blocking | Should -BeTrue
         @($results | Where-Object { -not $_.Passed -and $_.Blocking }).Count | Should -Be 4
@@ -767,7 +876,7 @@ Describe 'Front door requirements and staging' {
         Mock Test-Path { $false }
         Mock Test-AtlasPowerConnected { $true }
         Mock Get-CimInstance { @() }
-        $results = @(Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('NoAntivirus', 'PluggedIn'))
+        $results = @(Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('no-third-party-antivirus', 'plugged-in'))
         @($results | Where-Object { -not $_.Passed }).Count | Should -Be 0
     }
 
@@ -775,7 +884,7 @@ Describe 'Front door requirements and staging' {
         Mock Test-Path { $false }
         Mock Get-CimInstance { throw 'provider unavailable' }
         Mock Test-AtlasPowerConnected { throw 'power unknown' }
-        $results = @(Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('NoAntivirus', 'PluggedIn'))
+        $results = @(Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('no-third-party-antivirus', 'plugged-in'))
         foreach ($name in @('Plugged in', 'No third-party antivirus')) {
             $result = $results | Where-Object Name -eq $name
             $result.Passed | Should -BeFalse
@@ -787,13 +896,13 @@ Describe 'Front door requirements and staging' {
     It 'ignores an antivirus registration whose executable is gone' {
         Mock Test-Path { $false }
         Mock Get-CimInstance { @([pscustomobject]@{ displayName = 'Malwarebytes'; pathToSignedProductExe = 'C:\Program Files\Malwarebytes\Anti-Malware\mbam.exe' }) }
-        $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('NoAntivirus') | Where-Object Name -eq 'No third-party antivirus'
+        $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('no-third-party-antivirus') | Where-Object Name -eq 'No third-party antivirus'
         $result.Passed | Should -BeTrue
         $result.Detail | Should -Match 'leftover registration for Malwarebytes'
 
         # The same registration with its executable present is an installed product.
         Mock Test-Path { $LiteralPath -like '*mbam.exe' }
-        $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('NoAntivirus') | Where-Object Name -eq 'No third-party antivirus'
+        $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('no-third-party-antivirus') | Where-Object Name -eq 'No third-party antivirus'
         $result.Passed | Should -BeFalse
         $result.Detail | Should -Match 'found: Malwarebytes'
     }
@@ -807,7 +916,7 @@ Describe 'Front door requirements and staging' {
                 [pscustomobject]@{ displayName = 'Contoso'; pathToSignedProductExe = '%ProgramFiles%\Contoso\av.exe' }
             )
         }
-        $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('NoAntivirus') | Where-Object Name -eq 'No third-party antivirus'
+        $result = Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @('no-third-party-antivirus') | Where-Object Name -eq 'No third-party antivirus'
         $result.Passed | Should -BeFalse
         $result.Detail | Should -Match 'found: Contoso Link, Contoso'
     }
@@ -820,10 +929,10 @@ Describe 'Front door requirements and staging' {
         @($results | Where-Object { -not $_.Passed -and -not $_.Blocking }).Count | Should -Be 2
     }
 
-    It 'accepts a development manifest without Requirements while retaining platform and reboot gates' {
+    It 'accepts a development manifest without requirements while retaining platform and reboot gates' {
         Set-StrictMode -Version 3.0
-        [xml]$manifest = '<Playbook><Version>0.6.0</Version><SupportedBuilds><string>26200</string></SupportedBuilds></Playbook>'
-        $declared = @(Get-AtlasDeclaredRequirement -Playbook $manifest)
+        $manifest = ConvertFrom-Json -InputObject '{"schemaVersion":1,"version":"0.6.0","supportedBuilds":[{"build":26200}]}'
+        $declared = @(Get-AtlasDeclaredRequirement -Manifest $manifest)
         $declared | Should -HaveCount 0
         Mock Test-Path { $true }
         $results = @(Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26100 -EditionId Core -InstallationType Client -DeclaredRequirements $declared)
@@ -834,10 +943,36 @@ Describe 'Front door requirements and staging' {
         }
     }
 
-    It 'reads declared prerequisite names from a production manifest' {
+    It 'reads declared requirement ids from a production manifest' {
         Set-StrictMode -Version 3.0
-        [xml]$manifest = '<Playbook><Requirements><Requirement>NoAntivirus</Requirement><Requirement>PluggedIn</Requirement></Requirements></Playbook>'
-        @(Get-AtlasDeclaredRequirement -Playbook $manifest) | Should -Be @('NoAntivirus', 'PluggedIn')
+        $manifest = ConvertFrom-Json -InputObject '{"requirements":["no-third-party-antivirus","plugged-in"]}'
+        @(Get-AtlasDeclaredRequirement -Manifest $manifest) | Should -Be @('no-third-party-antivirus', 'plugged-in')
+        $one = ConvertFrom-Json -InputObject '{"requirements":["plugged-in"]}'
+        @(Get-AtlasDeclaredRequirement -Manifest $one) | Should -Be @('plugged-in')
+    }
+
+    It 'refuses requirements that aren''t a list of ids: <Json>' -TestCases @(
+        @{ Json = '{"requirements":"plugged-in"}'; Message = "*'requirements' must be a list of requirement ids*" }
+        @{ Json = '{"requirements":["plugged-in",1]}'; Message = '*a requirement that isn''t an id: 1*' }
+    ) {
+        param($Json, $Message)
+        $manifest = ConvertFrom-Json -InputObject $Json
+        { Get-AtlasDeclaredRequirement -Manifest $manifest } | Should -Throw $Message
+    }
+
+    It 'maps each requirement id to its check, and blocks only on the ids declared: <Requirement>' -TestCases @(
+        @{ Requirement = 'plugged-in'; Name = 'Plugged in' }
+        @{ Requirement = 'no-third-party-antivirus'; Name = 'No third-party antivirus' }
+        @{ Requirement = 'windows-security-off'; Name = 'Windows Security' }
+    ) {
+        param($Requirement, $Name)
+        Mock Test-Path { $false }
+        Mock Test-AtlasPowerConnected { $false }
+        Mock Get-CimInstance { @([pscustomobject]@{ displayName = 'Contoso Shield' }) }
+        Mock Test-AtlasDefenderPresent { $true }
+        Mock Get-AtlasDefenderSwitch { [pscustomobject][ordered]@{ RealTimeProtection = 'On'; CloudDelivered = 'Off'; SampleSubmission = 'Off'; TamperProtection = 'Off' } }
+        $results = @(Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements @($Requirement))
+        @($results | Where-Object { -not $_.Passed -and $_.Blocking } | ForEach-Object Name) | Should -Be @($Name)
     }
 
     Context 'Windows Security without Microsoft Defender' {
@@ -884,7 +1019,7 @@ Describe 'Front door requirements and staging' {
                 $installed = @($Packages | ForEach-Object { if ($_ -eq 'NoDefender') { $script:NoDefender } else { $script:NoTelemetry } })
             }
             $result = Get-TestRequirement -Name 'Windows Security' -Arguments @{
-                DeclaredRequirements = @('DefenderToggled'); Option = @($Option, 'mitigations-default'); Mode = $Mode
+                DeclaredRequirements = @('windows-security-off'); Option = @($Option, 'mitigations-default'); Mode = $Mode
                 ChooseAgain = $ChooseAgain; AtlasPackages = $installed
             }
             $result.Passed | Should -Be $Passed -Because $Case
@@ -903,12 +1038,12 @@ Describe 'Front door requirements and staging' {
 
         It 'accepts switches it could not read only once the user confirmed them' {
             Mock Get-AtlasDefenderSwitch { [pscustomobject][ordered]@{ RealTimeProtection = 'Off'; CloudDelivered = 'Off'; SampleSubmission = 'Unknown'; TamperProtection = 'Off' } }
-            $refused = Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('DefenderToggled') }
+            $refused = Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('windows-security-off') }
             $refused.Passed | Should -BeFalse
             $refused.Blocking | Should -BeTrue
             $refused.Detail | Should -BeLike "*couldn't be read: automatic sample submission*-WindowsSecurityConfirmed*"
 
-            $confirmed = Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('DefenderToggled'); WindowsSecurityConfirmed = $true }
+            $confirmed = Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('windows-security-off'); WindowsSecurityConfirmed = $true }
             $confirmed.Passed | Should -BeTrue
             $confirmed.Detail | Should -BeLike '*confirmed*automatic sample submission'
         }
@@ -924,47 +1059,50 @@ Describe 'Front door requirements and staging' {
             $reading.Reasons.SampleSubmission | Should -Be 'SpyNet\SubmitSamplesConsent missing'
             Mock Get-AtlasDefenderSwitch { $reading }
 
-            $refused = Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('DefenderToggled') }
+            $refused = Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('windows-security-off') }
             $refused.Passed | Should -BeFalse
             $refused.Detail | Should -BeLike "*couldn't be read: automatic sample submission (SpyNet\SubmitSamplesConsent missing).*"
 
-            $confirmed = Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('DefenderToggled'); WindowsSecurityConfirmed = $true }
+            $confirmed = Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('windows-security-off'); WindowsSecurityConfirmed = $true }
             $confirmed.Passed | Should -BeTrue
             $confirmed.Detail | Should -BeLike '*confirmed*: automatic sample submission (SpyNet\SubmitSamplesConsent missing)'
         }
 
         It 'still blocks a switch that reads on when the user confirmed the rest' {
             Mock Get-AtlasDefenderSwitch { [pscustomobject][ordered]@{ RealTimeProtection = 'Off'; CloudDelivered = 'On'; SampleSubmission = 'Unknown'; TamperProtection = 'Unknown' } }
-            $result = Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('DefenderToggled'); WindowsSecurityConfirmed = $true }
+            $result = Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('windows-security-off'); WindowsSecurityConfirmed = $true }
             $result.Passed | Should -BeFalse
             $result.Detail | Should -BeLike "*on: cloud-delivered protection; couldn't be read: automatic sample submission, Tamper Protection"
         }
 
         It 'passes every switch off without asking for confirmation' {
             Mock Get-AtlasDefenderSwitch { [pscustomobject][ordered]@{ RealTimeProtection = 'Off'; CloudDelivered = 'Off'; SampleSubmission = 'Off'; TamperProtection = 'Off' } }
-            (Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('DefenderToggled') }).Passed | Should -BeTrue
+            (Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('windows-security-off') }).Passed | Should -BeTrue
         }
 
         It 'fails closed when reading the switches throws, confirmed or not' {
             Mock Get-AtlasDefenderSwitch { throw 'Access denied' }
-            $result = Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('DefenderToggled'); WindowsSecurityConfirmed = $true }
+            $result = Get-TestRequirement -Name 'Windows Security' -Arguments @{ DeclaredRequirements = @('windows-security-off'); WindowsSecurityConfirmed = $true }
             $result.Passed | Should -BeFalse
             $result.Blocking | Should -BeTrue
             $result.Detail | Should -BeLike '*could not be checked: Access denied'
         }
     }
 
-    It 'rejects a declared requirement it can''t verify instead of silently bypassing it: <Requirement>' -TestCases @(
-        @{ Requirement = 'FutureRequirement' }, @{ Requirement = 'Internet' }, @{ Requirement = 'NoPendingUpdates' }
+    It 'refuses a requirement id it doesn''t recognise instead of silently bypassing it: <Requirement>' -TestCases @(
+        @{ Requirement = 'future-requirement' }, @{ Requirement = 'internet' }, @{ Requirement = 'PluggedIn' }
+        @{ Requirement = 'DefenderToggled' }, @{ Requirement = 'Plugged-In' }
     ) {
         param($Requirement)
-        $declared = @($Requirement)
-        { Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements $declared } | Should -Throw '*cannot verify*'
+        Mock Test-Path { $false }
+        $declared = @('plugged-in', $Requirement)
+        { Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements $declared } |
+            Should -Throw "*requires '$Requirement', a check this installer doesn't recognise*"
     }
 
     It 'verifies every requirement the package declares' {
-        [xml]$manifest = [IO.File]::ReadAllText($script:PlaybookPath)
-        $declared = @(Get-AtlasDeclaredRequirement -Playbook $manifest)
+        $manifest = Get-AtlasPackageManifest -ManifestPath $script:ManifestPath
+        $declared = @(Get-AtlasDeclaredRequirement -Manifest $manifest)
         $declared | Should -Not -BeNullOrEmpty
         { Test-AtlasInstallRequirement -SupportedBuilds @(26200) -WindowsBuild 26200 -EditionId Professional -InstallationType Client -DeclaredRequirements $declared } | Should -Not -Throw
     }
@@ -1027,17 +1165,17 @@ Describe 'Front door requirements and staging' {
         $result.Blocking | Should -BeTrue
     }
 
-    It 'copies playbook.conf and the Executables tree and refuses a package containing a reparse point' {
+    It 'copies atlas.json and the Executables tree and refuses a package containing a reparse point' {
         $extracted = Join-Path $TestDrive 'extracted'
         New-Item -Path (Join-Path $extracted 'Executables\AtlasModules') -ItemType Directory -Force | Out-Null
-        Set-Content -LiteralPath (Join-Path $extracted 'playbook.conf') -Value '<Playbook/>'
+        Set-Content -LiteralPath (Join-Path $extracted 'atlas.json') -Value '{"schemaVersion":1}'
         Set-Content -LiteralPath (Join-Path $extracted 'Executables\AtlasModules\x.txt') -Value 'x'
         $staging = Join-Path $TestDrive 'staging'
         New-Item -Path $staging -ItemType Directory -Force | Out-Null
 
         $payloadRoot = Copy-AtlasPayloadToStaging -ExtractedRoot $extracted -StagingRoot $staging
         $payloadRoot | Should -Be (Join-Path $staging 'Executables')
-        Join-Path $staging 'playbook.conf' | Should -Exist
+        Join-Path $staging 'atlas.json' | Should -Exist
         Join-Path $payloadRoot 'AtlasModules\x.txt' | Should -Exist
 
         $junctionTarget = Join-Path $TestDrive 'elsewhere'
@@ -1195,7 +1333,9 @@ Describe 'Front door staging copies' {
     BeforeAll {
         function New-TestStagingCopy {
             param([string]$Root)
+            # A copy an earlier build made holds playbook.conf as its manifest.
             foreach ($file in @(
+                    'atlas.json'
                     'playbook.conf'
                     'Executables\request.json'
                     'Executables\AtlasModules\Logs\install-run.log'
@@ -1405,6 +1545,18 @@ Describe 'Front door script body' {
                     $parameter[0].Argument.VariablePath.UserPath -eq $Switch
             })
         $forwarding.Count | Should -Be $Forwarded
+    }
+
+    It 'reads atlas.json at the extracted package root and checks the requirements it lists' {
+        $assignment = $script:FrontDoorAst.Find({
+                param($node)
+                $node -is [Management.Automation.Language.AssignmentStatementAst] -and $node.Left.Extent.Text -ceq '$manifestPath'
+            }, $true)
+        $assignment.Right.Extent.Text | Should -BeExactly "Join-Path -Path `$extractedRoot -ChildPath 'atlas.json'"
+        $declared = @(Get-BodyCommandCall 'Get-AtlasDeclaredRequirement')
+        $declared.Count | Should -Be 1
+        Get-CallArgument $declared[0] 'Manifest' | Should -BeExactly '$manifest'
+        Get-CallTarget @(Get-BodyCommandCall 'Get-AtlasPackageManifest')[0] | Should -BeExactly '$manifest'
     }
 
     It 'declares -ChooseAgain as a switch' {

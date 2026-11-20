@@ -13,7 +13,7 @@ use gpui::{Context, PathPromptOptions};
 
 use super::{AppModel, Generation, Step};
 use crate::services::iso;
-use crate::services::playbook::{self, Manifest, PageKind};
+use crate::services::package::{self, ChoiceKind, Manifest};
 use crate::services::releases::{self, Release};
 use crate::t;
 
@@ -45,10 +45,13 @@ pub enum Acquisition {
 /// Why the package could not be made ready. Worded when rendered.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AcquireProblem {
-    /// The release has no .apbx asset.
-    NoPlaybookAsset { version: String },
+    /// The release has no `.atlaspkg` file.
+    NoPackageAsset { version: String },
     /// The package is older than the first one this app can install.
     Unsupported { version: String },
+    /// The file isn't an Atlas package: another kind of file, or an AME
+    /// Wizard package from an Atlas release before 0.6.
+    NotAPackage,
     /// The package is recent enough to include `Install-Atlas.ps1` but does not.
     Incomplete { version: String },
     /// The download stopped receiving data.
@@ -74,20 +77,20 @@ pub enum Origin {
 }
 
 /// A prepared package: an immutable directory whose name carries the
-/// package's version and content digest (see [`playbook::extract_into`]),
+/// package's version and content digest (see [`package::extract_into`]),
 /// so the manifest read from it describes the files that will run.
 #[derive(Clone, Debug)]
-pub struct PlaybookSource {
+pub struct PackageSource {
     pub dir: PathBuf,
     pub manifest: Manifest,
     pub origin: Origin,
-    /// The Atlas package file (.apbx) it was unpacked from: the download, or
+    /// The Atlas package file (`.atlaspkg`) it was unpacked from: the download, or
     /// the file opened. ISO creation offers it, so a first-time user who
     /// never handled the file can still make an ISO from it.
     pub archive: Option<PathBuf>,
 }
 
-impl PlaybookSource {
+impl PackageSource {
     /// Where the package came from, in the current language.
     pub fn describe(&self) -> String {
         match &self.origin {
@@ -115,11 +118,11 @@ const PROGRESS_HEARTBEAT: Duration = Duration::from_secs(1);
 /// Whether an unpacked directory holds the Atlas package built into this
 /// tester build. Never true in other builds.
 pub(super) fn bundled_holds(dir: &Path) -> bool {
-    #[cfg(feature = "embedded-playbook")]
+    #[cfg(feature = "embedded-package")]
     {
         crate::services::embedded::holds(dir)
     }
-    #[cfg(not(feature = "embedded-playbook"))]
+    #[cfg(not(feature = "embedded-package"))]
     {
         let _ = dir;
         false
@@ -146,20 +149,20 @@ impl AppModel {
     /// The manifest that describes the install: the loaded package's, or the
     /// one built into this app until a package is available.
     pub fn manifest(&self) -> &Manifest {
-        self.playbook.as_ref().map(|p| &p.manifest).unwrap_or(&self.builtin_manifest)
+        self.package.as_ref().map(|p| &p.manifest).unwrap_or(&self.builtin_manifest)
     }
 
-    /// Gives every radio page of [`AppModel::manifest`] that has no choice its
-    /// default, including a page shown only once another option is ticked:
-    /// [`AppModel::effective_options`] leaves that page's choice out until
-    /// then, and the page then opens with its default chosen instead of none.
+    /// Gives every single choice of [`AppModel::manifest`] that has no answer
+    /// its default, including a choice asked only once another option is
+    /// ticked: [`AppModel::effective_options`] leaves that choice's answer out
+    /// until then, and its page then opens with its default chosen instead of none.
     pub(super) fn fill_radio_defaults(&mut self) {
-        let manifest = self.playbook.as_ref().map_or(&self.builtin_manifest, |p| &p.manifest);
-        for page in manifest.pages.iter().filter(|page| page.kind == PageKind::Radio) {
-            if !page.options.iter().any(|o| self.options.contains(&o.name))
-                && let Some(default) = page.options.iter().find(|o| o.default)
+        let manifest = self.package.as_ref().map_or(&self.builtin_manifest, |p| &p.manifest);
+        for choice in manifest.choices.iter().filter(|choice| choice.kind == ChoiceKind::Single) {
+            if !choice.options.iter().any(|o| self.options.contains(&o.id))
+                && let Some(default) = choice.options.iter().find(|o| o.default)
             {
-                self.options.insert(default.name.clone());
+                self.options.insert(default.id.clone());
             }
         }
     }
@@ -179,13 +182,13 @@ impl AppModel {
             return None;
         }
         self.update_available().filter(|release| {
-            self.release_finishes_resume(release) && !playbook::predates_front_door(release.version())
+            self.release_finishes_resume(release) && !package::predates_front_door(release.version())
         })
     }
 
     /// The latest release is older than the first one this app can install.
     pub fn latest_predates_app(&self) -> bool {
-        self.release.release().is_some_and(|release| playbook::predates_front_door(release.version()))
+        self.release.release().is_some_and(|release| package::predates_front_door(release.version()))
     }
 
     /// Avoid replacing a loaded preview package with an older public
@@ -193,7 +196,7 @@ impl AppModel {
     pub fn can_download_latest(&self) -> bool {
         self.release.release().is_some_and(|release| {
             self.release_finishes_resume(release)
-                && self.playbook.as_ref().is_none_or(|package| {
+                && self.package.as_ref().is_none_or(|package| {
                     !releases::compare_versions(release.version(), &package.manifest.version).is_lt()
                 })
         })
@@ -204,7 +207,7 @@ impl AppModel {
     /// an unfinished install rules out.
     pub fn offers_download(&self) -> bool {
         self.can_download_latest()
-            || (self.playbook.is_none()
+            || (self.package.is_none()
                 && self.release.release().is_none_or(|release| self.release_finishes_resume(release)))
     }
 
@@ -234,7 +237,7 @@ impl AppModel {
                 // The flow may have started before the release was known, or
                 // a Download chosen elsewhere waited for the check.
                 let requested = std::mem::take(&mut this.download_requested);
-                if (this.flow.active && this.flow.step == Step::Ready && this.playbook.is_none()) || requested
+                if (this.flow.active && this.flow.step == Step::Ready && this.package.is_none()) || requested
                 {
                     this.acquire_latest(cx);
                 }
@@ -275,16 +278,15 @@ impl AppModel {
             cx.notify();
             return;
         }
-        let Some(asset) = release.playbook_asset().cloned() else {
-            self.acquisition = Acquisition::Failed(AcquireProblem::NoPlaybookAsset {
-                version: release.version().to_owned(),
-            });
+        let Some(asset) = release.package_asset().cloned() else {
+            self.acquisition =
+                Acquisition::Failed(AcquireProblem::NoPackageAsset { version: release.version().to_owned() });
             cx.notify();
             return;
         };
         let version = release.version().to_owned();
         let downloads = self.env.paths.downloads();
-        let playbooks = self.env.paths.playbooks();
+        let packages = self.env.paths.packages();
         self.acquisition = Acquisition::Downloading { received: 0, total: asset.size };
         let generation = self.acquisition_generation.next();
         let cancel = Arc::new(AtomicBool::new(false));
@@ -313,7 +315,7 @@ impl AppModel {
                     }
                 };
                 anyhow::ensure!(!cancelled(), "the download was cancelled");
-                extract_reporting(&path, &playbooks, &tx).map(|(dir, manifest)| (dir, manifest, path))
+                extract_reporting(&path, &packages, &tx).map(|(dir, manifest)| (dir, manifest, path))
             });
             while let Some(progress) = rx.next().await {
                 this.update(cx, |this, cx| {
@@ -391,7 +393,7 @@ impl AppModel {
     /// for startup recovery, which retries this once it knows nothing else
     /// is running. A no-op in other builds.
     pub fn load_bundled_package(&mut self, cx: &mut Context<Self>) {
-        #[cfg(feature = "embedded-playbook")]
+        #[cfg(feature = "embedded-package")]
         {
             if self.recovering || self.locked() || self.acquisition.is_busy() {
                 return;
@@ -413,7 +415,7 @@ impl AppModel {
                     match result {
                         Ok(path) => {
                             this.acquisition = Acquisition::Idle;
-                            this.load_playbook_file(path, cx);
+                            this.load_package_file(path, cx);
                         }
                         Err(error) => {
                             log::error!("Could not write the bundled package: {error:#}");
@@ -426,7 +428,7 @@ impl AppModel {
                 .ok();
             }));
         }
-        #[cfg(not(feature = "embedded-playbook"))]
+        #[cfg(not(feature = "embedded-package"))]
         {
             let _ = cx;
         }
@@ -435,14 +437,14 @@ impl AppModel {
     /// Whether "Open package file" can act: the flow may change and no
     /// package is being unpacked. A download under way gives way to a
     /// chosen file.
-    pub fn may_choose_playbook(&self) -> bool {
+    pub fn may_choose_package(&self) -> bool {
         !self.locked() && !matches!(self.acquisition, Acquisition::Extracting { .. })
     }
 
-    /// Lets the user pick an .apbx they already have. A download under way
+    /// Lets the user pick a package file they already have. A download under way
     /// carries on until a file is actually chosen, then gives way to it.
-    pub fn choose_local_playbook(&mut self, cx: &mut Context<Self>) {
-        if !self.may_choose_playbook() {
+    pub fn choose_local_package(&mut self, cx: &mut Context<Self>) {
+        if !self.may_choose_package() {
             return;
         }
         let receiver = cx.prompt_for_paths(PathPromptOptions {
@@ -454,7 +456,7 @@ impl AppModel {
         cx.spawn(async move |this, cx| {
             let Ok(Ok(Some(paths))) = receiver.await else { return };
             let Some(path) = paths.into_iter().next() else { return };
-            this.update(cx, |this, cx| this.open_chosen_playbook(path, cx)).ok();
+            this.update(cx, |this, cx| this.open_chosen_package(path, cx)).ok();
         })
         .detach();
     }
@@ -462,16 +464,17 @@ impl AppModel {
     /// Opens the file chosen in "Open package file" in place of whatever
     /// was still being prepared, even a download that began unpacking while
     /// the dialog was open.
-    pub(super) fn open_chosen_playbook(&mut self, path: PathBuf, cx: &mut Context<Self>) {
+    pub(super) fn open_chosen_package(&mut self, path: PathBuf, cx: &mut Context<Self>) {
         if self.acquisition.is_busy() && !self.locked() {
             self.cancel_acquisition();
         }
-        self.load_playbook_file(path, cx);
+        self.load_package_file(path, cx);
     }
 
-    /// Unpacks an .apbx the user already has (file dialog, `--playbook`, or
-    /// "Open with" on the package). A download under way gives way to it.
-    pub fn load_playbook_file(&mut self, path: PathBuf, cx: &mut Context<Self>) {
+    /// Unpacks a package file the user already has (file dialog, `--package`,
+    /// or "Open with" on the package). A download under way gives way to it.
+    /// Any file but an `.atlaspkg` is refused with an explanation.
+    pub fn load_package_file(&mut self, path: PathBuf, cx: &mut Context<Self>) {
         let refused = if self.locked() {
             Some("an install, an ISO job, preparation or a put-back is running")
         } else if matches!(self.acquisition, Acquisition::Extracting { .. }) {
@@ -489,7 +492,7 @@ impl AppModel {
         if matches!(self.acquisition, Acquisition::Downloading { .. }) {
             self.cancel_acquisition();
         }
-        let playbooks = self.env.paths.playbooks();
+        let packages = self.env.paths.packages();
         self.acquisition = Acquisition::Extracting { done: 0, total: 0 };
         let generation = self.acquisition_generation.next();
         cx.notify();
@@ -497,7 +500,7 @@ impl AppModel {
             let (tx, mut rx) = futures::channel::mpsc::unbounded::<Progress>();
             let source = path.clone();
             let task =
-                cx.background_executor().spawn(async move { extract_reporting(&source, &playbooks, &tx) });
+                cx.background_executor().spawn(async move { extract_reporting(&source, &packages, &tx) });
             while let Some(Progress::Extract(done, total)) = rx.next().await {
                 this.update(cx, |this, cx| {
                     if this.acquisition_generation != generation {
@@ -560,7 +563,7 @@ impl AppModel {
             Ok((dir, manifest, origin, archive)) => {
                 // Keep the user's choices that still exist; the rest get defaults below.
                 let valid: BTreeSet<String> =
-                    manifest.pages.iter().flat_map(|p| p.options.iter().map(|o| o.name.clone())).collect();
+                    manifest.choices.iter().flat_map(|c| c.options.iter().map(|o| o.id.clone())).collect();
                 self.options.retain(|o| valid.contains(o));
                 if let Some(saved) = self.iso_initial_options.take() {
                     if iso::validate_options(&manifest, &saved).is_ok() {
@@ -572,11 +575,12 @@ impl AppModel {
                     }
                 }
                 log::info!(
-                    "Package ready: version={}; identity={:?}",
+                    "Package ready: version={}; requirements={:?}; identity={:?}",
                     manifest.version,
-                    playbook::identity(&dir)
+                    manifest.requirements,
+                    package::identity(&dir)
                 );
-                self.playbook = Some(PlaybookSource { dir, manifest, origin, archive });
+                self.package = Some(PackageSource { dir, manifest, origin, archive });
                 self.fill_radio_defaults();
                 self.acquisition = Acquisition::Idle;
                 // Supported builds may differ between packages.
@@ -590,10 +594,12 @@ impl AppModel {
             }
             Err(error) => {
                 log::error!("Package acquisition failed: {error:#}");
-                let problem = if let Some(unsupported) = error.downcast_ref::<playbook::Unsupported>() {
+                let problem = if let Some(unsupported) = error.downcast_ref::<package::Unsupported>() {
                     AcquireProblem::Unsupported { version: unsupported.version.clone() }
-                } else if let Some(incomplete) = error.downcast_ref::<playbook::Incomplete>() {
+                } else if let Some(incomplete) = error.downcast_ref::<package::Incomplete>() {
                     AcquireProblem::Incomplete { version: incomplete.version.clone() }
+                } else if error.is::<package::NotAPackage>() {
+                    AcquireProblem::NotAPackage
                 } else {
                     AcquireProblem::Other { error: format!("{error:#}") }
                 };
@@ -604,15 +610,15 @@ impl AppModel {
     }
 }
 
-/// Unpacks the package at `path` under `playbooks`, sending its progress on
+/// Unpacks the package at `path` under `packages`, sending its progress on
 /// `tx` once per whole percent.
 fn extract_reporting(
     path: &Path,
-    playbooks: &Path,
+    packages: &Path,
     tx: &UnboundedSender<Progress>,
 ) -> anyhow::Result<(PathBuf, Manifest)> {
     let mut last_percent = usize::MAX;
-    playbook::extract_into(path, playbooks, |done, total| {
+    package::extract_into(path, packages, |done, total| {
         let percent = done * 100 / total.max(1);
         if percent != last_percent {
             last_percent = percent;

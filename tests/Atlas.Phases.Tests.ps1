@@ -12,7 +12,7 @@ param()
 
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $script:atlasModulesRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules')).Path
+    $script:atlasModulesRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\package\Executables\AtlasModules')).Path
     $script:phasesRoot = Join-Path -Path $script:atlasModulesRoot -ChildPath 'Scripts\Install\Phases'
 
     function Get-AtlasPhaseAst {
@@ -119,7 +119,7 @@ BeforeAll {
 
 Describe 'Install phase scripts' {
     BeforeDiscovery {
-        $phasesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Install\Phases'
+        $phasesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\package\Executables\AtlasModules\Scripts\Install\Phases'
         $script:phaseFiles = Get-ChildItem -Path $phasesRoot -Filter 'Invoke-*Phase.ps1' -File
     }
 

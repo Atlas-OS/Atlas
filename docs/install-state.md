@@ -160,7 +160,7 @@ They don't decide what the plan does, and every Atlas reader uses `state.json` f
 ## Toggle records
 
 The toggle engine records each applied state under `HKLM\SOFTWARE\AtlasOS\Services\<Name>`, as the DWORD `state`, once the state's machine work has completed.
-The [toggle schema](../playbook/Executables/AtlasModules/Toggles/README.md#state-record-and-replay) has the full recording and replay rules.
+The [toggle schema](../package/Executables/AtlasModules/Toggles/README.md#state-record-and-replay) has the full recording and replay rules.
 
 - A recorded state means Atlas applied that choice's machine work and queued its user work for each account's first sign-in.
 - A fresh install seeds nothing from launcher defaults, so a `(default)` label isn't evidence of applied work.

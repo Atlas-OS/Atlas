@@ -114,16 +114,16 @@ fn main() {
         start.page = Some(model::Page::Install);
         let paths = services::settings::AppPaths::from_process();
         // A tester build unpacks its bundled package once the flow is Ready.
-        if !cfg!(feature = "embedded-playbook")
+        if !cfg!(feature = "embedded-package")
             && services::settings::read_from(&paths.settings()).settings.draft.is_none()
         {
-            // Installation media stages Atlas.apbx beside AtlasManager.exe.
-            start.playbook =
-                std::env::current_exe().ok().and_then(|p| p.parent().map(|p| p.join("Atlas.apbx")));
+            // Installation media stages Atlas.atlaspkg beside AtlasManager.exe.
+            start.package =
+                std::env::current_exe().ok().and_then(|p| p.parent().map(|p| p.join("Atlas.atlaspkg")));
         }
         if services::atlas_state::read().ok().flatten().is_some_and(|state| state.has_completed_install()) {
             start.page = Some(model::Page::Installed);
-            start.playbook = None;
+            start.package = None;
         }
     }
     if (launch.setup || launch.after_preparation_restart) && !services::system::is_elevated() {
@@ -131,7 +131,7 @@ fn main() {
             // Let asynchronous draft recovery choose the page and package.
             services::system::relaunch_elevated()
         } else {
-            services::system::relaunch_setup_elevated(start.playbook.as_deref())
+            services::system::relaunch_setup_elevated(start.package.as_deref())
         };
         match launched {
             // The elevated copy decides for itself; this launch opens no

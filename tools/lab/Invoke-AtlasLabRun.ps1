@@ -26,19 +26,18 @@
     Checkpoint to restore before the run.
 .PARAMETER Credential
     Local administrator credential inside the guest.
-.PARAMETER PlaybookPath
-    An .apbx built by tools\build\Build-Playbook.ps1 without -LocalTest: LocalTest builds
-    leave out <SupportedBuilds>, so the front door refuses them. Extracted locally with
-    7-Zip.
+.PARAMETER PackagePath
+    An .atlaspkg built by tools\build\Build-Package.ps1 without -LocalTest: LocalTest builds
+    list no supportedBuilds, so the front door refuses them. Extracted locally with 7-Zip.
 .PARAMETER ArchiveKey
-    The ZIP password the package was built with. Build-Playbook.ps1 uses the published
-    password 'malte', the default here; pass an empty string for a build made with
+    The ZIP password the package was built with. Build-Package.ps1 uses the public
+    password 'atlasos', the default here; pass an empty string for a build made with
     -NoPassword.
 .PARAMETER ExtractedRoot
-    An already extracted package root (contains playbook.conf and Executables). Either
-    this or -PlaybookPath is required.
+    An already extracted package root (contains atlas.json and Executables). Either
+    this or -PackagePath is required.
 .PARAMETER Option
-    FeaturePage options passed to the front door. Defaults to the recommended set.
+    The option ids from atlas.json passed to the front door. Defaults to the recommended set.
 .PARAMETER OutputPath
     Directory for logs, reports and dumps. Defaults to lab-output\<timestamp>.
 .PARAMETER BootTimeoutSeconds
@@ -51,7 +50,7 @@
     Exit codes: 0 verified, 1 install or verification failed, 2 lab setup failed.
 #>
 #Requires -Version 7.0
-[CmdletBinding(DefaultParameterSetName = 'Apbx')]
+[CmdletBinding(DefaultParameterSetName = 'Package')]
 param(
     [Parameter(Mandatory = $true)]
     [ValidateNotNullOrEmpty()]
@@ -64,13 +63,13 @@ param(
     [Parameter(Mandatory = $true)]
     [pscredential]$Credential,
 
-    [Parameter(Mandatory = $true, ParameterSetName = 'Apbx')]
+    [Parameter(Mandatory = $true, ParameterSetName = 'Package')]
     [ValidateNotNullOrEmpty()]
-    [string]$PlaybookPath,
+    [string]$PackagePath,
 
-    [Parameter(ParameterSetName = 'Apbx')]
+    [Parameter(ParameterSetName = 'Package')]
     [AllowEmptyString()]
-    [string]$ArchiveKey = 'malte',
+    [string]$ArchiveKey = 'atlasos',
 
     [Parameter(Mandatory = $true, ParameterSetName = 'Extracted')]
     [ValidateNotNullOrEmpty()]
@@ -108,10 +107,10 @@ function Write-LabStep {
     Write-Host "[lab] $Message"
 }
 
-function Expand-Playbook {
+function Expand-AtlasPackage {
     <#
     .SYNOPSIS
-        Extracts an .apbx (a password-protected ZIP) with 7-Zip into a temp directory.
+        Extracts an .atlaspkg (an encrypted ZIP) with 7-Zip into a temp directory.
     #>
     param([Parameter(Mandatory = $true)][string]$Path, [AllowEmptyString()][string]$Key)
 
@@ -221,19 +220,20 @@ $session = $null
 $extractedTemp = $null
 try {
     # Before the VM is touched, so a missing tool or a wrong package fails in seconds.
-    if ($PSCmdlet.ParameterSetName -eq 'Apbx') {
-        Write-LabStep "Extracting '$PlaybookPath'."
-        $extractedTemp = Expand-Playbook -Path $PlaybookPath -Key $ArchiveKey
+    if ($PSCmdlet.ParameterSetName -eq 'Package') {
+        Write-LabStep "Extracting '$PackagePath'."
+        $extractedTemp = Expand-AtlasPackage -Path $PackagePath -Key $ArchiveKey
         $ExtractedRoot = $extractedTemp
     }
-    foreach ($required in 'playbook.conf', 'Executables\AtlasModules\Scripts\Entry\Install-Atlas.ps1') {
+    foreach ($required in 'atlas.json', 'Executables\AtlasModules\Scripts\Entry\Install-Atlas.ps1') {
         if (-not (Test-Path -LiteralPath (Join-Path -Path $ExtractedRoot -ChildPath $required) -PathType Leaf)) {
             throw "'$ExtractedRoot' is not an extracted Atlas package: '$required' is missing."
         }
     }
-    $playbookConf = [xml](Get-Content -LiteralPath (Join-Path -Path $ExtractedRoot -ChildPath 'playbook.conf') -Raw -Encoding UTF8)
-    if ($null -eq $playbookConf.Playbook.SelectSingleNode('SupportedBuilds')) {
-        throw "'$ExtractedRoot' is a LocalTest build: its playbook.conf has no <SupportedBuilds>, so the front door would refuse it. Build the package without -LocalTest."
+    $manifest = Get-Content -LiteralPath (Join-Path -Path $ExtractedRoot -ChildPath 'atlas.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+    $supportedBuilds = $manifest.PSObject.Properties['supportedBuilds']
+    if ($null -eq $supportedBuilds -or @($supportedBuilds.Value).Count -eq 0) {
+        throw "'$ExtractedRoot' is a LocalTest build: its atlas.json lists no supportedBuilds, so the front door would refuse it. Build the package without -LocalTest."
     }
 
     Write-LabStep "Restoring '$VMName' to checkpoint '$CheckpointName'."
@@ -250,7 +250,7 @@ try {
         if (Test-Path -LiteralPath $using:guestRoot) { Remove-Item -LiteralPath $using:guestRoot -Recurse -Force }
         New-Item -Path $using:guestRoot -ItemType Directory -Force | Out-Null
     }
-    Copy-Item -Path $ExtractedRoot -Destination (Join-Path -Path $guestRoot -ChildPath 'playbook') -ToSession $session -Recurse
+    Copy-Item -Path $ExtractedRoot -Destination (Join-Path -Path $guestRoot -ChildPath 'package') -ToSession $session -Recurse
     Copy-Item -Path $compareTool -Destination (Join-Path -Path $guestRoot -ChildPath 'Compare-SystemState.ps1') -ToSession $session
 
     Write-LabStep 'Taking the baseline state dump.'
@@ -262,7 +262,7 @@ try {
     Write-LabStep "Installing Atlas with options: $($Option -join ', ')."
     $install = Invoke-GuestPowerShell -Session $session -TimeoutSeconds $InstallTimeoutSeconds `
         -Command (Get-FrontDoorCommand -Option $Option `
-            -ScriptPath "$guestRoot\playbook\Executables\AtlasModules\Scripts\Entry\Install-Atlas.ps1")
+            -ScriptPath "$guestRoot\package\Executables\AtlasModules\Scripts\Entry\Install-Atlas.ps1")
     $install.Output | Set-Content -LiteralPath (Join-Path -Path $OutputPath -ChildPath 'install.log')
     if ($install.ExitCode -ne 0) {
         Write-LabStep "Install exited with code $($install.ExitCode); see install.log."

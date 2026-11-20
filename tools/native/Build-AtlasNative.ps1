@@ -56,7 +56,7 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path -Path $PSScriptRoot -ChildPath '..\..')).Path
-$sourcePath = Join-Path -Path $repoRoot -ChildPath 'playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Core\Native\Atlas.Native.cs'
+$sourcePath = Join-Path -Path $repoRoot -ChildPath 'package\Executables\AtlasModules\Scripts\Modules\Atlas.Core\Native\Atlas.Native.cs'
 if (-not $OutputPath) {
     $OutputPath = Join-Path -Path $repoRoot -ChildPath 'artifacts\native'
 }

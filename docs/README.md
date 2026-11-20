@@ -13,6 +13,7 @@ User guides live on the [Atlas documentation site](https://atlasos.net/docs/), a
 ## How Atlas works
 
 - [Architecture](architecture.md): how the Atlas package, its scripts and Atlas Manager fit together.
+- [Atlas package format](package-format.md): the `.atlaspkg` file Atlas Manager installs, its manifest and the rules for choices.
 - [The front door](front-door.md): how Atlas Manager starts an install through `Install-Atlas.ps1`, and the install modes.
 - [Install state](install-state.md): what Atlas records about an install and how an interrupted install resumes.
 - [Preparation](preparation.md): how Atlas Manager brings Windows and Microsoft Store apps up to date before Atlas changes anything.

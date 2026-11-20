@@ -16,9 +16,10 @@
 
     request.json is a size-limited document:
     { "options": [ "<option>", ... ], "choices": "Keep" | "ChooseAgain" }. Every option
-    must be declared by playbook.conf, every required option group must be satisfied,
-    and nothing else is accepted. The broker has already verified that this script and
-    its staging root are owned and writable only by trusted principals.
+    must be declared by atlas.json, the package manifest staged beside Executables;
+    every single choice that's asked needs exactly one option, and no option may
+    belong to a choice that isn't asked. The broker has already verified that this
+    script and its staging root are owned and writable only by trusted principals.
 
     Each phase leaves a copy of its log under the machine's Logs\install folder,
     whether it succeeds or fails, because this staging copy goes once an install
@@ -120,10 +121,12 @@ function Read-AtlasInstallRequest {
 function Assert-AtlasInstallOptionSet {
     <#
     .SYNOPSIS
-        Rejects unknown options and unsatisfied option groups; returns the option set.
+        Rejects unknown options and unsatisfied choices; returns the option set.
+    .PARAMETER Groups
+        The package's choices, from Get-AtlasPackageChoice.
     .PARAMETER ResumedOptions
         The options of the unfinished install this request resumes. A resume must
-        keep them, so a required group added to the package after they were
+        keep them, so a single choice added to the package after they were
         recorded may stay unchosen when they chose nothing in it; its steps then
         change nothing.
     #>
@@ -136,7 +139,7 @@ function Assert-AtlasInstallOptionSet {
     $known = @($Groups | ForEach-Object { $_.Options })
     foreach ($option in $Options) {
         if ($known -cnotcontains $option) {
-            throw "Option '$option' is not declared by playbook.conf."
+            throw "Option '$option' is not declared by the package manifest."
         }
     }
     if (@($Options | Sort-Object -Unique).Count -ne $Options.Count) {
@@ -144,6 +147,7 @@ function Assert-AtlasInstallOptionSet {
     }
     foreach ($group in $Groups) {
         $chosen = @($Options | Where-Object { $group.Options -ccontains $_ })
+        # A choice whose dependsOn option isn't chosen isn't asked, so none of its options count.
         if (-not [string]::IsNullOrWhiteSpace([string]$group.DependsOn) -and $Options -cnotcontains [string]$group.DependsOn) {
             if ($chosen.Count -gt 0) {
                 throw "Options $($chosen -join ', ') require '$($group.DependsOn)'."
@@ -170,13 +174,13 @@ function Invoke-AtlasInstallCapture {
         to it again.
     #>
     param(
-        [Parameter(Mandatory = $true)][string]$PlaybookPath,
+        [Parameter(Mandatory = $true)][string]$ManifestPath,
         [Parameter(Mandatory = $true)][string]$PayloadRoot
     )
 
-    $targetVersion = Get-AtlasPlaybookVersion -PlaybookPath $PlaybookPath
+    $targetVersion = Get-AtlasPackageVersion -ManifestPath $ManifestPath
     $request = Read-AtlasInstallRequest -PayloadRoot $PayloadRoot
-    $groups = @(Get-AtlasPlaybookOption -PlaybookPath $PlaybookPath)
+    $groups = @(Get-AtlasPackageChoice -ManifestPath $ManifestPath)
     $mode = Resolve-AtlasInstallMode -TargetVersion $targetVersion
     # Refuses -ChooseAgain on a Rebase before anything changes.
     $updatePath = Resolve-AtlasInstallChoices -TargetVersion $targetVersion -Mode $mode -Requested $request.Choices
@@ -333,11 +337,11 @@ try {
     Assert-AtlasPrivilege -TrustedInstaller
 
     $payloadRoot = [IO.Path]::GetFullPath([IO.Path]::Combine($scriptsRoot, '..', '..'))
-    $playbookPath = [IO.Path]::Combine($payloadRoot, '..', 'playbook.conf')
+    $manifestPath = [IO.Path]::Combine($payloadRoot, '..', 'atlas.json')
 
     switch ($Phase) {
         'Capture' {
-            $message = Invoke-AtlasInstallCapture -PlaybookPath $playbookPath -PayloadRoot $payloadRoot
+            $message = Invoke-AtlasInstallCapture -ManifestPath $manifestPath -PayloadRoot $payloadRoot
             Write-AtlasSessionLog $message
             Write-Output $message
         }
