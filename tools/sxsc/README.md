@@ -45,6 +45,6 @@ Atlas pins each CAB's SHA-256 in `Atlas-CbsHashes.psd1` instead, and refuses to 
 3. Replace the CABs in `package/Executables/AtlasModules/Packages`.
 4. Regenerate `package/Executables/AtlasModules/Packages/Atlas-CbsHashes.psd1` with the command in its header comment.
 5. Update the SHA-256 values in the CBS component packages section of the [binary inventory](../../package/Executables/AtlasModules/README.md).
-6. Run `tests/Atlas.PayloadLayout.Tests.ps1`, which fails if `Atlas-CbsHashes.psd1` and the CABs in the folder differ.
+6. Run `tests/Atlas.PackageLayout.Tests.ps1`, which fails if `Atlas-CbsHashes.psd1` and the CABs in the folder differ.
 
 Commit the CABs, `Atlas-CbsHashes.psd1` and the binary inventory together, so the tests pass at every commit.

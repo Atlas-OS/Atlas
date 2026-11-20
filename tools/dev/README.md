@@ -24,7 +24,6 @@ pwsh tools/dev/Export-AtlasCatalog.ps1
 | --- | --- | --- |
 | `Compare-SystemState.ps1` | Dumps registry, service and scheduled task state to JSON, and compares two dumps. | [Testing](../../docs/testing.md) |
 | `Get-AtlasInstallReport.ps1` | Writes a read-only text report of an installed PC; Atlas Manager runs it for diagnostics exports. | [Testing](../../docs/testing.md) |
-| `Get-AtlasInstallEvidence.ps1` | Collects Atlas state and the newest staging requests into a log that diagnostics exports include, without rerunning the install. | [Reporting problems](../../docs/diagnostics.md) |
 | `Start-AtlasPcaTrace.ps1` | Disables `PcaPatchDbTask` on an installed Atlas VM and turns on task history, to trace whether the task is turned back on after a restart. | [Testing](../../docs/testing.md) |
 | `Show-AtlasConsoleDemo.ps1` | Renders the Atlas console vocabulary and four sample launcher flows without changing the PC. | [Console presentation](../../docs/console-presentation.md) |
 | `Update-WindowsReleaseCatalog.ps1` | Regenerates the Windows release catalog, `Scripts/Compatibility/windows-releases.json`, from Microsoft's release information. | [Windows release eligibility](../../docs/windows-release-policy.md) |

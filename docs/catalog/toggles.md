@@ -162,7 +162,7 @@ Shows the current boot configuration from `bcdedit /enum {current}`.
 
 | State | Value | Launcher | Restart | Work |
 | --- | --- | --- | --- | --- |
-| View |  | `6. Advanced Configuration\Boot Configuration\View Current Values.cmd` | None | MachineAction `Show-AtlasBootValues` |
+| View | | `6. Advanced Configuration\Boot Configuration\View Current Values.cmd` | None | MachineAction `Show-AtlasBootValues` |
 
 ## General
 
@@ -440,8 +440,8 @@ Adds or removes an Atlas scheduled task that keeps the global timer resolution h
 
 | State | Value | Launcher | Restart | Work |
 | --- | --- | --- | --- | --- |
-| Disable |  | `3. General Configuration\Timer Resolution\Disable timer resolution (default).cmd` | None | Registry 1, MachineAction `Unregister-AtlasTimerResolutionTask` |
-| Enable |  | `3. General Configuration\Timer Resolution\Enable timer resolution.cmd` | Recommend | Registry 1, MachineAction `Register-AtlasTimerResolutionTask` |
+| Disable | | `3. General Configuration\Timer Resolution\Disable timer resolution (default).cmd` | None | Registry 1, MachineAction `Unregister-AtlasTimerResolutionTask` |
+| Enable | | `3. General Configuration\Timer Resolution\Enable timer resolution.cmd` | Recommend | Registry 1, MachineAction `Register-AtlasTimerResolutionTask` |
 
 ### UpdateDrivers
 
@@ -452,7 +452,7 @@ Finds driver updates on Microsoft Update and installs the ones you choose.
 
 | State | Value | Launcher | Restart | Work |
 | --- | --- | --- | --- | --- |
-| Run |  | `2. Drivers\Run Update Drivers.cmd` | None | MachineAction `Invoke-AtlasDriverUpdate` |
+| Run | | `2. Drivers\Run Update Drivers.cmd` | None | MachineAction `Invoke-AtlasDriverUpdate` |
 
 ### UpdateNotifications
 
@@ -729,7 +729,7 @@ Restarts File Explorer for the signed-in user.
 
 | State | Value | Launcher | Restart | Work |
 | --- | --- | --- | --- | --- |
-| Run |  | `4. Interface Tweaks\Restart Explorer.cmd` | RestartExplorer | Action `Show-AtlasRestartExplorerMessage` |
+| Run | | `4. Interface Tweaks\Restart Explorer.cmd` | RestartExplorer | Action `Show-AtlasRestartExplorerMessage` |
 
 ### RunWithPriority
 
@@ -752,7 +752,7 @@ With /silent, it applies the Atlas defaults without asking.
 
 | State | Value | Launcher | Restart | Work |
 | --- | --- | --- | --- | --- |
-| Debloat |  | `4. Interface Tweaks\Context Menus\Send To\Debloat Send To Context Menu.cmd` | None | Action `Invoke-AtlasSendToContextMenuChooser` |
+| Debloat | | `4. Interface Tweaks\Context Menus\Send To\Debloat Send To Context Menu.cmd` | None | Action `Invoke-AtlasSendToContextMenuChooser` |
 
 ### ShortcutIcon
 
@@ -821,7 +821,7 @@ Shows the current Virtualisation-Based Security configuration.
 
 | State | Value | Launcher | Restart | Work |
 | --- | --- | --- | --- | --- |
-| Run |  | `7. Security\Core Isolation (VBS)\Current Configuration.cmd` | None | Action `Show-AtlasVbsConfiguration` |
+| Run | | `7. Security\Core Isolation (VBS)\Current Configuration.cmd` | None | Action `Show-AtlasVbsConfiguration` |
 
 ### FaultTolerantHeap
 
@@ -878,7 +878,7 @@ Removes or restores Windows Defender through the Atlas NoDefender package.
 
 | State | Value | Launcher | Restart | Work |
 | --- | --- | --- | --- | --- |
-| Run |  | `7. Security\Defender\Toggle Defender.cmd` | Prompt | MachineAction `Invoke-AtlasDefenderToggle` |
+| Run | | `7. Security\Defender\Toggle Defender.cmd` | Prompt | MachineAction `Invoke-AtlasDefenderToggle` |
 
 ### VbsState
 
@@ -1013,7 +1013,7 @@ Opens the Atlas software picker.
 
 | State | Value | Launcher | Restart | Work |
 | --- | --- | --- | --- | --- |
-| Run |  | `1. Software\Install Software.cmd` | None | Action `Invoke-AtlasSoftwarePicker` |
+| Run | | `1. Software\Install Software.cmd` | None | Action `Invoke-AtlasSoftwarePicker` |
 
 ### RemoveEdge
 
@@ -1024,7 +1024,7 @@ Installs or removes Microsoft Edge through an interactive helper in an administr
 
 | State | Value | Launcher | Restart | Work |
 | --- | --- | --- | --- | --- |
-| Run |  | `1. Software\Install or Remove Edge.cmd` | None | MachineAction `Invoke-AtlasEdgeRemover` |
+| Run | | `1. Software\Install or Remove Edge.cmd` | None | MachineAction `Invoke-AtlasEdgeRemover` |
 
 ### RemovePythonStorePrompt
 
@@ -1036,7 +1036,7 @@ Installed Python versions stay as they are.
 
 | State | Value | Launcher | Restart | Work |
 | --- | --- | --- | --- | --- |
-| Run |  | `1. Software\Remove Python Store Prompt.cmd` | None | Action `Remove-AtlasPythonStoreAlias` |
+| Run | | `1. Software\Remove Python Store Prompt.cmd` | None | Action `Remove-AtlasPythonStoreAlias` |
 
 ## Troubleshooting
 
@@ -1050,7 +1050,7 @@ It changes nothing.
 
 | State | Value | Launcher | Restart | Work |
 | --- | --- | --- | --- | --- |
-| Run |  | `9. Troubleshooting\Check Atlas Health.cmd` | None | MachineAction `Show-AtlasHealthReport` |
+| Run | | `9. Troubleshooting\Check Atlas Health.cmd` | None | MachineAction `Show-AtlasHealthReport` |
 
 ### DefaultAtlasNetwork
 
@@ -1073,7 +1073,7 @@ Fixes installer errors 2502 and 2503 by resetting the permissions of the Windows
 
 | State | Value | Launcher | Restart | Work |
 | --- | --- | --- | --- | --- |
-| Run |  | `9. Troubleshooting\Fix Errors 2502 and 2503.cmd` | None | MachineAction `Invoke-AtlasWindowsTempPermissionsRepair` |
+| Run | | `9. Troubleshooting\Fix Errors 2502 and 2503.cmd` | None | MachineAction `Invoke-AtlasWindowsTempPermissionsRepair` |
 
 ### FixExplorerRuntimeError
 
@@ -1084,7 +1084,7 @@ Fixes blank Microsoft Visual C++ Runtime Library errors in File Explorer by remo
 
 | State | Value | Launcher | Restart | Work |
 | --- | --- | --- | --- | --- |
-| Run |  | `9. Troubleshooting\Fix File Explorer Visual C++ Runtime Error.cmd` | RestartExplorer | Registry 3 |
+| Run | | `9. Troubleshooting\Fix File Explorer Visual C++ Runtime Error.cmd` | RestartExplorer | Registry 3 |
 
 ### FixMSStoreIssues
 
@@ -1095,7 +1095,7 @@ Fixes common Microsoft Store problems by running StoreFixer.
 
 | State | Value | Launcher | Restart | Work |
 | --- | --- | --- | --- | --- |
-| Run |  | `9. Troubleshooting\Fix MS Store Issues.cmd` | None | MachineAction `Invoke-AtlasStoreFixer` |
+| Run | | `9. Troubleshooting\Fix MS Store Issues.cmd` | None | MachineAction `Invoke-AtlasStoreFixer` |
 
 ### RepairWindowsComponents
 
@@ -1111,7 +1111,7 @@ Repairs Windows components and system files with DISM RestoreHealth and SFC.
 
 | State | Value | Launcher | Restart | Work |
 | --- | --- | --- | --- | --- |
-| Run |  | `9. Troubleshooting\Repair Windows Components.cmd` | Recommend | MachineAction `Repair-AtlasWindowsComponents` |
+| Run | | `9. Troubleshooting\Repair Windows Components.cmd` | Recommend | MachineAction `Repair-AtlasWindowsComponents` |
 
 ### SafeMode
 
@@ -1122,10 +1122,10 @@ Sets Windows to start in safe mode, with networking or with the command prompt, 
 
 | State | Value | Launcher | Restart | Work |
 | --- | --- | --- | --- | --- |
-| Minimal |  | `9. Troubleshooting\Safe Mode\Safe Mode.cmd` | Recommend | MachineAction `Set-AtlasSafeModeBoot` |
-| CommandPrompt |  | `9. Troubleshooting\Safe Mode\Safe Mode with Command Prompt.cmd` | Recommend | MachineAction `Set-AtlasSafeModeBoot` |
-| Networking |  | `9. Troubleshooting\Safe Mode\Safe Mode with Networking.cmd` | Recommend | MachineAction `Set-AtlasSafeModeBoot` |
-| Exit |  | `9. Troubleshooting\Safe Mode\Exit Safe Mode.cmd` | Recommend | MachineAction `Set-AtlasSafeModeBoot` |
+| Minimal | | `9. Troubleshooting\Safe Mode\Safe Mode.cmd` | Recommend | MachineAction `Set-AtlasSafeModeBoot` |
+| CommandPrompt | | `9. Troubleshooting\Safe Mode\Safe Mode with Command Prompt.cmd` | Recommend | MachineAction `Set-AtlasSafeModeBoot` |
+| Networking | | `9. Troubleshooting\Safe Mode\Safe Mode with Networking.cmd` | Recommend | MachineAction `Set-AtlasSafeModeBoot` |
+| Exit | | `9. Troubleshooting\Safe Mode\Exit Safe Mode.cmd` | Recommend | MachineAction `Set-AtlasSafeModeBoot` |
 
 ### TelemetryComponents
 
@@ -1136,4 +1136,4 @@ Adds or removes the Atlas NoTelemetry package, which removes Windows telemetry c
 
 | State | Value | Launcher | Restart | Work |
 | --- | --- | --- | --- | --- |
-| Run |  | `9. Troubleshooting\Telemetry Components.cmd` | Prompt | MachineAction `Invoke-AtlasTelemetryComponentsMenu` |
+| Run | | `9. Troubleshooting\Telemetry Components.cmd` | Prompt | MachineAction `Invoke-AtlasTelemetryComponentsMenu` |

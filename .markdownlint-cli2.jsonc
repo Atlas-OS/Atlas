@@ -19,8 +19,8 @@
     "MD041": true,
     "MD046": { "style": "fenced" },
     "MD048": { "style": "backtick" },
-    // docs/style.md doesn't set the spacing around table pipes.
-    "MD060": false
+    // Tables use one space either side of each pipe, as docs/style.md shows.
+    "MD060": { "style": "compact" }
   },
   "globs": [
     "**/*.md",

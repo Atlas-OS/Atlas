@@ -1,9 +1,11 @@
-# Files kept for compatibility
+# Compatibility code and files
 
-Atlas keeps a few files only because something outside this repository, or an older Atlas install, still opens them by path.
+Atlas keeps a few files, and some code, only because something outside this repository, an older Atlas install or an earlier Atlas Manager still depends on them.
 This page is for contributors.
-Each entry names the consumer that pins the file and the condition under which it can go.
+Each entry names what depends on it and the condition under which it can go.
 Check the consumers, the packaging and the update path again before you remove any of them.
+
+## Files
 
 File paths are relative to `%windir%\AtlasModules`, where the Atlas package installs them.
 
@@ -20,16 +22,31 @@ File paths are relative to `%windir%\AtlasModules`, where the Atlas package inst
 Tests hold these contracts in place:
 
 - `tests/Atlas.ToolboxLaunchers.Tests.ps1` pins each Toolbox launcher path, with the toggle and state it runs.
-- `tests/Atlas.PayloadLayout.Tests.ps1` checks that each `SecurityHealthTray` pair stays identical.
+- `tests/Atlas.PackageLayout.Tests.ps1` checks that each `SecurityHealthTray` pair stays identical.
 
-## Rules for these files
+How Atlas replays the toggle records in that store, and why it replays every record, is described in [Toggle records](install-state.md#toggle-records).
+
+## Code
+
+This code reads or cleans up what earlier releases left on a PC.
+Paths are relative to the repository root.
+
+| Code | What it handles | Remove when |
+| --- | --- | --- |
+| The `playbookDir` alias of `package_dir` in `InstallDraft` (`app/src/services/settings.rs`) and `InstallRequest` (`app/src/services/installer/mod.rs`) | Saved drafts and install session records that release candidates of 0.6.0 wrote, which name the unpacked package `playbookDir` | Release candidates of 0.6.0 are no longer supported |
+| `prune_legacy_jobs` in `app/src/services/iso.rs`, run when ISO or USB creation starts | ISO jobs that release candidates of 0.6.0 kept in the `ISO` folder of Atlas Manager's app data, which it prunes and then removes | Same as above |
+| `remove_old_cache` in `app/src/services/package.rs`, which Atlas Manager runs at start-up when no install or preparation is running | Packages that release candidates of 0.6.0 unpacked in the `Playbooks` folder of its app data, which nothing reads | Same as above |
+| The `ISO` and `Preparation` folders that diagnostics collect from Atlas Manager's app data, in `app/src/services/diagnostics.rs` | ISO and preparation jobs that release candidates of 0.6.0 kept there | Same as above |
+| `Remove-AtlasStagedPackage` deleting `playbook.conf`, in `package/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1` | Staging copies that release candidates of 0.6.0 made, which hold `playbook.conf` where `atlas.json` sits | Same as above |
+| The `abandoned.json` recovery in `Start-AtlasInstallState`, in `package/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/` | A failed Fresh run that a release candidate of 0.6.0 archived as `%windir%\AtlasOS\Install\abandoned.json`, which a Reapply of the same version resumes | Same as above |
+| The `Atlas Playbook v<version>` form that `ConvertFrom-AtlasVersionMarker` (`package/Executables/AtlasModules/Scripts/Preparation/WindowsTransition.ps1`) and `marker_version` (`app/src/services/atlas_state.rs`) accept | The version marker that releases before Atlas 0.6 wrote, as [the package format](package-format.md#the-version-recorded-in-windows) describes | `updatableFrom` in `package/atlas.json` no longer lists any release before 0.6 |
+
+## Rules
 
 - A file kept for compatibility isn't the implementation.
   It forwards to, or is generated from, the one implementation under `Scripts\` or `Toggles\`.
 - Each Toolbox launcher is a stub that `tools/dev/New-ToggleLaunchers.ps1` generates from its toggle's `ToolboxLauncher` declaration.
   Declare one only for a path that a Toolbox release before 0.2.0 opens.
 - Every entry names its consumer and its removal condition on this page.
-  Adding a compatibility file without both blocks the review.
-- When `updatableFrom` changes, revisit every row that mentions a version it no longer lists.
-
-How Atlas replays the toggle records in that store, and why it replays every record, is described in [Toggle records](install-state.md#toggle-records).
+  Adding compatibility code or a compatibility file without both blocks the review.
+- When `updatableFrom` changes, revisit every entry that mentions a version it no longer lists.

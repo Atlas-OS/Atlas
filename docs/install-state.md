@@ -154,7 +154,7 @@ Completion replaces every file in `%windir%\AtlasModules\Flags` with:
 - `Interactive.flag`;
 - `option-<name>.flag` for each recorded option.
 
-The flags keep a contract for readers older than the state document, listed in [Files kept for compatibility](compatibility.md).
+The flags keep a contract for readers older than the state document, listed in [Compatibility code and files](compatibility.md#files).
 They don't decide what the plan does, and every Atlas reader uses `state.json` first.
 
 ## Toggle records

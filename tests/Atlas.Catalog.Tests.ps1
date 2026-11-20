@@ -64,7 +64,8 @@ function Get-AtlasInstallPlan {
         $markdown | Should -Match '## example\n\nInstall modes: Fresh\.'
         $markdown | Should -Match 'Only with option `fixture-option`'
         $markdown | Should -Match 'Registry 1, Script `category.ps1`, PostUserRegistryRefresh `ExplorerRefresh`'
-        $markdown | Should -Match '## Standalone tweaks[\s\S]+`example/standalone`<br>Standalone fixture \| +\| Upgrade and Rebase \| +\| Script `standalone.ps1` \|'
+        # Empty cells hold one space, as markdownlint's compact table style (MD060) requires.
+        $markdown | Should -Match '## Standalone tweaks[\s\S]+`example/standalone`<br>Standalone fixture \| \| Upgrade and Rebase \| \| Script `standalone.ps1` \|'
         $markdown | Should -Match '## Disabled definitions[\s\S]+`example/disabled` \| Keep for comparison \\\| not installed\.'
         @($markdown -split "`n" | Where-Object { $_ -match '^\| `' }).Count | Should -Be 3
 

@@ -151,6 +151,17 @@ function ConvertTo-MarkdownCell {
     return ([string]$Value -replace '\|', '\|' -replace '\r?\n', ' ').Trim()
 }
 
+# One table row in markdownlint's compact style (MD060), which the hand-written docs use
+# too: one space on each side of a cell's content, and a single space in an empty cell.
+function ConvertTo-MarkdownRow {
+    param([Parameter(Mandatory = $true)][AllowNull()][AllowEmptyString()][string[]]$Cell)
+
+    $padded = foreach ($value in $Cell) {
+        if ([string]::IsNullOrEmpty($value)) { ' ' } else { " $value " }
+    }
+    return '|' + (@($padded) -join '|') + '|'
+}
+
 # The install plan decides which modes run each step; read it rather than restate it.
 # Returns step key -> the modes whose plan contains that step, in plan order.
 function Get-InstallPlanRoute {
@@ -451,7 +462,13 @@ function ConvertTo-ToggleMarkdown {
                     if ($state.work.$key) { $work += "$key ``$($state.work.$key)``" }
                 }
                 $launcherCell = if ($state.launcher) { "``$($state.launcher)``" } elseif ($state.PSObject.Properties['menuLabel'] -and $state.menuLabel) { "Menu: $($state.menuLabel)" } else { '' }
-                $lines.Add("| $($state.name) | $(ConvertTo-MarkdownCell -Value $state.stateValue) | $launcherCell | $($state.reboot) | $(ConvertTo-MarkdownCell -Value ($work -join ', ')) |")
+                $lines.Add((ConvertTo-MarkdownRow -Cell @(
+                            $state.name
+                            (ConvertTo-MarkdownCell -Value $state.stateValue)
+                            $launcherCell
+                            $state.reboot
+                            (ConvertTo-MarkdownCell -Value ($work -join ', '))
+                        )))
             }
             $lines.Add('')
         }
@@ -474,7 +491,7 @@ function ConvertTo-TweakMarkdownRow {
     if ($WithModes) { $cells += (Join-WordList -Words $RouteModes) }
     $cells += (ConvertTo-MarkdownCell -Value ($conditions -join '; '))
     $cells += (ConvertTo-MarkdownCell -Value ($Tweak.work -join ', '))
-    return "| $($cells -join ' | ') |"
+    return (ConvertTo-MarkdownRow -Cell $cells)
 }
 
 function ConvertTo-TweakMarkdown {
@@ -537,7 +554,7 @@ function ConvertTo-TweakMarkdown {
     $lines.Add('| Tweak | Reason |')
     $lines.Add('| --- | --- |')
     foreach ($entry in $Catalog.disabled) {
-        $lines.Add("| ``$($entry['Slug'])`` | $(ConvertTo-MarkdownCell -Value $entry['Reason']) |")
+        $lines.Add((ConvertTo-MarkdownRow -Cell @("``$($entry['Slug'])``", (ConvertTo-MarkdownCell -Value $entry['Reason']))))
     }
     $lines.Add('')
     return ($lines -join "`n")

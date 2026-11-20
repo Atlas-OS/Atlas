@@ -76,7 +76,7 @@ The scripts are organised by who invokes them:
 
 The [architecture](../docs/architecture.md) explains how an install runs.
 [The front door](../docs/front-door.md) describes `Install-Atlas.ps1`, the script Atlas Manager runs, and how to run it when testing.
-[Compatibility](../docs/compatibility.md) lists every file kept for an external consumer, with its removal condition.
+[Compatibility code and files](../docs/compatibility.md) lists every file and piece of code kept for an older install or an external consumer, with its removal condition.
 
 ## Common tasks
 

@@ -17,7 +17,7 @@ User guides live on the [Atlas documentation site](https://atlasos.net/docs/), a
 - [The front door](front-door.md): how Atlas Manager starts an install through `Install-Atlas.ps1`, and the install modes.
 - [Install state](install-state.md): what Atlas records about an install and how an interrupted install resumes.
 - [Preparation](preparation.md): how Atlas Manager brings Windows and Microsoft Store apps up to date before Atlas changes anything.
-- [Files kept for compatibility](compatibility.md): files Atlas keeps only because older installs or other programs address them by path.
+- [Compatibility code and files](compatibility.md): the files and code Atlas keeps only for older installs, earlier releases and other programs, and when each can go.
 - [Power-saving policy](power-saving-policy.md): what the **Turn off power saving** choice changes and what it leaves alone.
 - [Service and driver startup policy](services-startup-policy.md): why Atlas leaves service startup values at Windows defaults, and the exceptions.
 - [Console presentation](console-presentation.md): how Atlas launchers and helpers word and format what they print.

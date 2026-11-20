@@ -391,7 +391,7 @@ Tools that need TrustedInstaller after the install use the same native broker, w
 
 The caller gets the target's exit code, and diagnostics go to standard error.
 The TrustedInstaller process has no standard handles, so its targets log their failure reason, and the broker relays the session log for Install.
-`Scripts\RunAsTI.cmd` is a stub that refuses to run, kept for old shortcuts (see [Files kept for compatibility](compatibility.md)).
+`Scripts\RunAsTI.cmd` is a stub that refuses to run, kept for old shortcuts (see [Compatibility code and files](compatibility.md#files)).
 
 ### Safe Mode and CBS retry
 
