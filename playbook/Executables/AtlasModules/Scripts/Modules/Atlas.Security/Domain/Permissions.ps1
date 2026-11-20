@@ -16,25 +16,25 @@ function Get-AtlasWindowsTempAccessRuleSpecs {
 
     return @(
         [pscustomobject]@{
-            Sid         = 'S-1-5-18'
+            Sid         = 'S-1-5-18' # SYSTEM
             Rights      = [Security.AccessControl.FileSystemRights]::FullControl
             Inheritance = $inheritContainersAndObjects
             Propagation = $noPropagation
         }
         [pscustomobject]@{
-            Sid         = 'S-1-5-32-544'
+            Sid         = 'S-1-5-32-544' # Administrators
             Rights      = [Security.AccessControl.FileSystemRights]::FullControl
             Inheritance = $inheritContainersAndObjects
             Propagation = $noPropagation
         }
         [pscustomobject]@{
-            Sid         = 'S-1-3-0'
+            Sid         = 'S-1-3-0' # CREATOR OWNER
             Rights      = [Security.AccessControl.FileSystemRights]::FullControl
             Inheritance = $inheritContainersAndObjects
             Propagation = $inheritOnly
         }
         [pscustomobject]@{
-            Sid         = 'S-1-5-32-545'
+            Sid         = 'S-1-5-32-545' # Users
             Rights      = (
                 [Security.AccessControl.FileSystemRights]::Synchronize -bor
                 [Security.AccessControl.FileSystemRights]::WriteData -bor

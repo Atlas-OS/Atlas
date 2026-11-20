@@ -21,7 +21,7 @@
         # Checked native command invocation and BCD element removal for companion functions
         'Invoke-AtlasToggleNativeCommand'
         'Remove-AtlasToggleBcdValue'
-        # State-store initialization and replay
+        # State-store initialisation and replay
         'Initialize-AtlasToggleStateStore'
         'Invoke-AtlasToggleReapply'
         'Invoke-AtlasToggleUserReapply'

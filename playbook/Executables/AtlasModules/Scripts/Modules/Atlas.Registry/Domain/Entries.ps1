@@ -1,7 +1,11 @@
 # Atlas.Registry domain: declarative registry entry application (tweak Registry arrays).
 
-# Merge only explicitly selected bits; reject unexpected formats instead of resetting preferences.
 function Merge-AtlasRegistryMaskedData {
+    <#
+    .SYNOPSIS
+        Merges only the bits an entry's Mask selects into the current value, and
+        rejects an unexpected format rather than resetting the user's other preferences.
+    #>
     param([Parameter(Mandatory = $true)][hashtable]$Entry, [object]$Current)
     if ($Entry.ContainsKey('Operation') -and $Entry.Operation -cne 'Set') { throw 'Mask requires a Set entry.' }
     if ($Entry.ContainsKey('UseGroupPolicy') -and $Entry.UseGroupPolicy) { throw 'Mask cannot use Group Policy.' }
@@ -55,6 +59,14 @@ function Test-AtlasArchMatch {
 }
 
 function Get-AtlasRegistryEntryTargetScope {
+    <#
+    .SYNOPSIS
+        Classifies a registry path by whose data it changes: Machine, CurrentUser,
+        ProtectedCurrentUser (the HKCU policy roots the user can't write),
+        DefaultUser (the Atlas default-user hive) or ExplicitUserHive.
+    .PARAMETER Path
+        The registry path, in any form ConvertTo-AtlasRegistryPathInfo accepts.
+    #>
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -106,6 +118,10 @@ function Test-AtlasRegistryEntryInScope {
 }
 
 function Get-AtlasRegistryEntryOperation {
+    <#
+    .SYNOPSIS
+        Returns an entry's Operation, or 'Set' when it doesn't declare one.
+    #>
     param([Parameter(Mandatory = $true)][hashtable]$Entry)
 
     if ($Entry.ContainsKey('Operation') -and $Entry['Operation']) {
@@ -214,7 +230,7 @@ function Invoke-AtlasRegistryEntries {
                             if ($current.Kind -cne $entry.Type) {
                                 if ($entry.Type -ceq 'String' -and $current.Kind -ceq 'DWord' -and
                                     $entry.ContainsKey('MigrateDwordToString') -and $entry.MigrateDwordToString -eq $true) {
-                                    # Legacy Atlas used DWORD for selected decimal flag strings.
+                                    # Older Atlas releases stored some decimal flag strings as DWORDs.
                                     # Keep all 32 bits, including values returned as signed Int32.
                                     $flags = [BitConverter]::ToUInt32([BitConverter]::GetBytes([int]$currentData), 0)
                                     $currentData = $flags.ToString([Globalization.CultureInfo]::InvariantCulture)
@@ -263,6 +279,21 @@ function Invoke-AtlasRegistryEntries {
 }
 
 function Set-AtlasMachineDwordPolicy {
+    <#
+    .SYNOPSIS
+        Sets a DWORD in the local Group Policy object, runs gpupdate, and throws unless
+        the registry then holds the value.
+    .DESCRIPTION
+        Writing the local GPO, rather than the registry alone, keeps the setting when
+        Group Policy refreshes and shows it in the Local Group Policy Editor. Requires
+        administrator rights.
+    .PARAMETER Path
+        An HKLM\Software\Policies key.
+    .PARAMETER Name
+        The value name.
+    .PARAMETER Data
+        The DWORD data.
+    #>
     param(
         [Parameter(Mandatory = $true)][string]$Path,
         [Parameter(Mandatory = $true)][string]$Name,
@@ -284,6 +315,11 @@ function Set-AtlasMachineDwordPolicy {
 }
 
 function Set-AtlasMachineDwordPolicyNative {
+    <#
+    .SYNOPSIS
+        Writes the value through IGroupPolicyObject in Atlas.Native; a separate function
+        so tests can replace it.
+    #>
     param([string]$SubKey, [string]$Name, [int]$Data)
     Initialize-AtlasNativeType
     [Atlas.Native.LocalMachinePolicy]::SetDword($SubKey, $Name, $Data)

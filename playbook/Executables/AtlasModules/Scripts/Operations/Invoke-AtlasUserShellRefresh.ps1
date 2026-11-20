@@ -1,6 +1,35 @@
 <#
 .SYNOPSIS
     Refreshes only the current medium user's shell in the current Windows session.
+.DESCRIPTION
+    Stops the shell processes the operation names in this process's own Windows session,
+    then waits for Windows to restart Explorer, starting it only if Windows doesn't.
+    Another session of the same account is left alone.
+
+    The install's shell refresh and tweaks phases start it in the installing user's
+    token with -ExpectedUserSid, and Clear-AtlasUserAppxCache.ps1 runs it that way with
+    the call operator. The toggle engine and the Install Open-Shell desktop launcher
+    start it in the signed-in user's session with -CurrentSession, which refuses an
+    elevated, SYSTEM or TrustedInstaller token.
+.PARAMETER ExpectedUserSid
+    The SID of the user the install recorded; the script stops if its token differs.
+.PARAMETER CurrentSession
+    Refreshes the shell of whoever runs it, which must be a non-elevated user.
+.PARAMETER Operation
+    Which processes to stop: ShellRefresh (the default), ExplorerRefresh,
+    SearchShellRefresh, StartMenuRefresh, ExplorerAndSettingsRefresh, or AppxQuiesce,
+    which stops Teams and Search so their packages can change.
+.NOTES
+    Exit codes name the stage that failed, as Atlas.Core's RunAsUser.ps1 reads them:
+    0   Done.
+    10  The bootstrap or a module import failed.
+    11  -CurrentSession was given an elevated, SYSTEM or TrustedInstaller token.
+    12  A process didn't stop.
+    13  Explorer couldn't be started.
+    14  Explorer didn't come back.
+    15  The token doesn't match ExpectedUserSid.
+    16  The process isn't in an interactive Windows session.
+    17  The operation isn't supported.
 #>
 [CmdletBinding(DefaultParameterSetName = 'InstallBound')]
 param(
@@ -116,7 +145,7 @@ $processNames = switch -CaseSensitive ($Operation) {
     default { throw "Unsupported user-session process operation '$Operation'." }
 }
 
-# Even if the same account has another disconnected or RDP logon, only this
+# Even if the same account has another disconnected or remote session, only this
 # helper's Windows session is refreshed.
 $failureStage = 'ProcessStop'
 Stop-AtlasProcess -Name $processNames -SessionId $sessionId `

@@ -1,5 +1,27 @@
-# Runs on the installed PC: as SYSTEM during specialize, as the new user at first
-# logon, and as SYSTEM from the desktop cleanup task (-RestoreDesktopPolicy).
+<#
+.SYNOPSIS
+    Prepares a PC installed from Atlas media: drivers during Windows Setup, then the
+    setup account at its first sign-in.
+.DESCRIPTION
+    Runs from %windir%\AtlasISO, where Windows Setup copies it from the media, with
+    -File. The Setup and first sign-in runs record their steps in setup.log in that
+    folder, because Windows keeps no output from these commands.
+      No switch: Windows Setup runs it as SYSTEM in the specialize pass. It protects
+        the setup folder, applies the ISO driver policy and installs this PC's
+        network drivers.
+      -FirstLogon: FirstLogonCommands runs it as the setup account. It turns off the
+        one-time automatic sign-in, makes Windows ask for a new password, queues
+        Atlas Manager or registers the before-desktop shell, then signs out.
+      -RestoreDesktopPolicy: the desktop cleanup task runs it as SYSTEM. It removes
+        the before-desktop shell from the setup account's policy.
+.PARAMETER FirstLogon
+    Prepares the setup account at its first sign-in.
+.PARAMETER RestoreDesktopPolicy
+    Removes the before-desktop shell policy for the setup account.
+.NOTES
+    Exit codes: 0 done, 1 failed or refused, such as for the wrong identity, location
+    or setup configuration.
+#>
 [CmdletBinding()]
 param([switch]$FirstLogon, [switch]$RestoreDesktopPolicy)
 Set-StrictMode -Version 3.0
@@ -38,6 +60,8 @@ if (-not $FirstLogon) {
     foreach ($item in @((Get-Item -LiteralPath $root -Force)) + @(Get-ChildItem -LiteralPath $root -Force -Recurse)) {
         if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Unexpected link in Atlas setup files.' }
     }
+    # Owned by SYSTEM (S-1-5-18); full control for SYSTEM and Administrators
+    # (S-1-5-32-544), read and execute for Users (S-1-5-32-545).
     $acl = New-Object Security.AccessControl.DirectorySecurity
     $acl.SetAccessRuleProtection($true, $false)
     $acl.SetOwner((New-Object Security.Principal.SecurityIdentifier('S-1-5-18')))
@@ -69,12 +93,12 @@ $principal = New-Object Security.Principal.WindowsPrincipal($identity)
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Account initialization requires administrator access.' }
 $account = Get-LocalUser -SID $identity.User
 if ($account.Name -ine [string]$config.username) { throw 'The setup account does not match the signed-in user.' }
-# Disable the bootstrap automatic logon before expiring the empty password.
+# Turn off the bootstrap automatic sign-in before expiring the empty password.
 $winlogon = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
 Set-ItemProperty -LiteralPath $winlogon -Name AutoAdminLogon -Value '0'
 Set-ItemProperty -LiteralPath $winlogon -Name AutoLogonCount -Value 0 -Type DWord
 Remove-ItemProperty -LiteralPath $winlogon -Name DefaultPassword -ErrorAction SilentlyContinue
-# A repeated first-logon run must not expire the password again.
+# A repeated first sign-in run must not expire the password again.
 if (Test-Path -LiteralPath (Join-Path $root 'account-ready')) { exit 0 }
 Set-LocalUser -SID $identity.User -PasswordNeverExpires $false
 & (Join-Path $env:WINDIR 'System32\net.exe') user $account.Name /logonpasswordchg:yes | Add-Content -LiteralPath $log -Encoding UTF8
@@ -88,7 +112,7 @@ if ($config.mode -eq 'before-desktop') {
     $policy = Get-Item -LiteralPath $shellKey
     try {
         if ($policy.GetValue('Shell')) {
-            # Windows keeps no output from first-logon commands, so setup.log is the only record.
+            # Windows keeps no output from first sign-in commands, so setup.log is the only record.
             'This account already has a custom Windows shell, so Atlas left it in place and did not register its setup shell.' | Add-Content -LiteralPath $log -Encoding UTF8
             throw 'A custom Windows shell is already configured.'
         }

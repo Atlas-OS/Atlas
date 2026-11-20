@@ -2,6 +2,25 @@
 .SYNOPSIS
     Dev/VM harness that dumps registry, service and scheduled-task state to JSON and
     compares two dumps, for triaging install differences between two systems.
+.DESCRIPTION
+    Dump mode writes every value under the registry roots, each service's Start value
+    and each scheduled task's state. Compare mode lists what the candidate dump added
+    (+), changed (~) and removed (-) relative to the baseline. It changes nothing on the
+    system; the lab run (tools\lab\Invoke-AtlasLabRun.ps1) uses it before and after an
+    install.
+.PARAMETER Mode
+    Dump or Compare.
+.PARAMETER OutputPath
+    Dump mode: the JSON file to write.
+.PARAMETER RegistryRoots
+    Dump mode: the registry keys to read recursively.
+.PARAMETER Baseline
+    Compare mode: the earlier dump.
+.PARAMETER Candidate
+    Compare mode: the later dump.
+.NOTES
+    Exit codes: 0 dump written or no differences, 1 differences found or the run
+    failed.
 .EXAMPLE
     .\Compare-SystemState.ps1 -Mode Dump -OutputPath baseline.json
     .\Compare-SystemState.ps1 -Mode Compare -Baseline baseline.json -Candidate candidate.json

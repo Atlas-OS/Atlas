@@ -1,3 +1,21 @@
+<#
+.SYNOPSIS
+    Finds and installs driver updates from Microsoft Update.
+.DESCRIPTION
+    Registers Microsoft Update with the Windows Update Agent, searches it for driver
+    updates the PC hasn't installed, and installs the ones the user picks in a window.
+
+    The UpdateDrivers toggle, behind the Run Update Drivers desktop shortcut, runs this
+    script in its elevated process with the call operator; a direct run must be elevated
+    too. The toggle owns the console and its closing pause.
+.PARAMETER Silent
+    Installs every driver update found, without the selection window, the progress
+    messages or the restart question.
+.NOTES
+    Exit codes:
+    0  The selected driver updates installed, or there was nothing to install.
+    1  The search, download or installation failed.
+#>
 [CmdletBinding()]
 param (
     [switch]$Silent
@@ -34,6 +52,8 @@ if ($loadedAtlasCore.Count -ne 1 -or
     throw "PowerShell did not load Atlas.Core from its protected adjacent manifest."
 }
 
+# The service ID Microsoft documents for opting the Windows Update Agent in to Microsoft
+# Update, which also offers drivers and other Microsoft products.
 $script:MicrosoftUpdateServiceId = '7971f918-a847-4430-9279-4a52d1efe18d'
 $script:WuaClientApplicationId = 'AtlasOS Driver Updater'
 
@@ -92,6 +112,7 @@ function Enable-MicrosoftUpdate {
         7,
         ''
     )
+    # UpdateServiceRegistrationState 3 is usrsRegistered.
     if ($null -eq $registration -or [int]$registration.RegistrationState -ne 3) {
         throw 'Microsoft Update did not reach the registered service state.'
     }
@@ -127,6 +148,7 @@ function Get-DriverUpdates {
     $searcher.ServiceID = $script:MicrosoftUpdateServiceId
 
     $searchResult = $searcher.Search("IsInstalled=0 and IsHidden=0 and Type='Driver'")
+    # OperationResultCode 2 is orcSucceeded.
     if ([int]$searchResult.ResultCode -ne 2) {
         throw "Windows Update Agent driver search returned result code $([int]$searchResult.ResultCode)."
     }
@@ -193,7 +215,8 @@ function Assert-WuaOperationSucceeded {
         [string]$Operation
     )
 
-    # OperationResultCode 2 is the only complete success. Code 3 is partial success.
+    # OperationResultCode 2 (orcSucceeded) is the only complete success; 3
+    # (orcSucceededWithErrors) is partial success.
     $resultCode = [int]$Result.ResultCode
     if ($resultCode -ne 2) {
         throw "Windows Update Agent $Operation returned result code $resultCode."

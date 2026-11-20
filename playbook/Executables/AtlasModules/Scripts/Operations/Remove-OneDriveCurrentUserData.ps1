@@ -1,6 +1,30 @@
 <#
 .SYNOPSIS
     Removes OneDrive registrations and safe leftovers for the exact install-state user.
+.DESCRIPTION
+    Stops this user's OneDrive setup and client, removes OneDrive's startup entries,
+    shell registrations and environment variable, points known folders that OneDrive
+    redirected back at the profile, then deletes the OneDrive cache, its Start menu
+    shortcut and a OneDrive folder that holds no files.
+
+    It runs in the user's own non-elevated token and session. The install's components
+    phase starts it with -DeferFileCleanup, because processes that used the shell can
+    keep OneDrive's DLL loaded until the restart; the startup entry this registers runs
+    it again with -AfterBootUtcTicks after that restart. First sign-in setup runs it for
+    accounts that sign in later. A transcript goes to
+    %LOCALAPPDATA%\AtlasOS\Logs\*-onedrive-cleanup-*.log.
+.PARAMETER ExpectedUserSid
+    The SID of the user the install recorded; the script stops if its token differs.
+.PARAMETER DeferFileCleanup
+    Cleans the registry now, and registers a startup entry that deletes the files after
+    the next restart.
+.PARAMETER AfterBootUtcTicks
+    The boot time, in UTC ticks, of the run that registered the startup entry. The files
+    are deleted only once Windows has restarted since then.
+.NOTES
+    Exit codes:
+    0  The cleanup completed, was scheduled, or is still waiting for the restart.
+    1  The token didn't match, a path check failed, or some items couldn't be removed.
 #>
 [CmdletBinding()]
 param(
@@ -182,6 +206,7 @@ function Register-AtlasOneDrivePostBootCleanup {
     }
     $command = '"{0}\System32\wscript.exe" "{1}" {2} {3}' -f `
         $windowsDirectory, $hiddenLauncher, $canonicalSid, $BootUtcTicks
+    # Microsoft documents a 260-character limit for a Run key command line.
     if ($command.Length -gt 260) {
         throw 'The deferred OneDrive cleanup command exceeds the Windows startup command limit.'
     }
@@ -212,13 +237,13 @@ if ($DeferFileCleanup -and $AfterBootUtcTicks -ne 0) {
 }
 if ($AfterBootUtcTicks -ne 0) {
     # Explorer can process startup entries again when Atlas refreshes the shell.
-    # Keep this transient entry until an actual reboot releases all installer DLLs.
+    # Keep this transient entry until an actual restart releases all installer DLLs.
     if ((Get-AtlasOneDriveBootUtcTicks) -le $AfterBootUtcTicks) {
         Write-Output 'OneDrive file cleanup is waiting for the installation reboot.'
         return
     }
     # Consume the entry before the one post-boot attempt; a failure remains in the
-    # transcript instead of retrying at every future logon.
+    # transcript instead of retrying at every future sign-in.
     Remove-ItemProperty -LiteralPath 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' `
         -Name AtlasOneDriveCleanup -ErrorAction Stop
 }
@@ -231,11 +256,11 @@ $oneDriveCache = Resolve-AtlasOneDriveUserDirectory -Root $localAppData `
 $oneDriveShortcut = Resolve-AtlasOneDriveUserDirectory -Root $roamingAppData `
     -ChildPath 'Microsoft\Windows\Start Menu\Programs\OneDrive.lnk'
 
-# Complete every identity and path-boundary check before the first mutation.
+# Complete every identity and path containment check before the first mutation.
 $processModule = Join-Path (Split-Path -Parent $PSScriptRoot) 'Modules\Atlas.TasksProcs\Atlas.TasksProcs.psd1'
 Import-Module -Name $processModule -ErrorAction Stop
 $sessionId = [Diagnostics.Process]::GetCurrentProcess().SessionId
-# First-logon setup can still be installing OneDrive when RunOnce starts. Stop
+# First sign-in setup can still be installing OneDrive when RunOnce starts. Stop
 # that producer before its children, then remove registrations it may have written.
 # This script is already bound to the exact non-elevated user and session; never
 # stop another session's client or invoke a user-writable uninstaller as SYSTEM.
@@ -261,6 +286,7 @@ foreach ($parent in @(
     }
 }
 
+# {018D5C66-...} is the OneDrive entry in the File Explorer navigation pane.
 foreach ($registryPath in @(
         'HKCU:\SOFTWARE\Classes\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}'
         'HKCU:\SOFTWARE\Classes\WOW6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}'
@@ -282,6 +308,9 @@ $shellFolderKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey(
 )
 if ($null -ne $shellFolderKey) {
     try {
+        # {F42EE2D3-...} and {0DDD015D-...} are FOLDERID_LocalDocuments and
+        # FOLDERID_LocalPictures; Personal and My Pictures name the same folders. Each is
+        # reset only while it points into OneDrive.
         foreach ($entry in @(
                 @{ Name = '{F42EE2D3-909F-4907-8871-4C22FC0BF756}'; Data = '%USERPROFILE%\Documents' }
                 @{ Name = 'Personal'; Data = '%USERPROFILE%\Documents' }

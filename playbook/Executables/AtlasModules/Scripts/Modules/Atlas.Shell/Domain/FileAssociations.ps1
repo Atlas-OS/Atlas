@@ -30,6 +30,7 @@ function Assert-AtlasFileAssociationUser {
             }
         }
 
+        # LocalSystem, LocalService, NetworkService, and per-service SIDs (S-1-5-80-*).
         if ($sid -in @('S-1-5-18', 'S-1-5-19', 'S-1-5-20') -or $sid -like 'S-1-5-80-*') {
             throw "File associations must not run as service identity '$sid'."
         }
@@ -125,6 +126,8 @@ function Get-AtlasArchiveAssociationChange {
         }
     }
 
+    # 7-Zip reads ContextMenu as a bit mask of the menu items it shows; 1073746726
+    # (0x40001326) is the set Atlas chooses.
     if ($changes.Count -gt 0) {
         $changes.Add((New-AtlasFileAssociationChange `
             -Path 'SOFTWARE\7-Zip\Options' `

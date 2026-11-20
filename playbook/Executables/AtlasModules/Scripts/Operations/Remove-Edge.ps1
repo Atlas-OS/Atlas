@@ -9,6 +9,10 @@
 	EdgeUpdate and the WebView2 runtime stay, as Windows and other apps share them. Edge's AppX packages
 	are removed by the Atlas install's AppxSupport phase, not here. Can also install Edge or WebView2 from Microsoft.
 
+	The install's Edge removal starts it with -MachineContext. The RemoveEdge toggle runs it with
+	-Embedded in its elevated window, and the Widgets toggle and Test-EdgeState.cmd start it to install
+	Edge or WebView2. Run directly without parameters, it relaunches itself elevated and shows the menu.
+
 	.PARAMETER UninstallEdge
 	Removes Edge, leaving the Edge user data.
 
@@ -29,6 +33,19 @@
 	.PARAMETER Embedded
 	The Atlas toggle engine hosts this script in its own window: it has printed the
 	heading and owns the exit pause, so neither is printed here.
+
+	.NOTES
+	Exit codes:
+	0    Done. A removal that leaves some Edge files behind still exits 0, after a warning.
+	1    The script refused to run (wrong account or parameters), or Edge has no download for this PC.
+	4    The Microsoft Edge release list couldn't be downloaded.
+	5    The Edge release information couldn't be used.
+	6    The Edge installer couldn't be downloaded and verified.
+	7    Windows Installer is missing, or the installer left no log.
+	8    The installer log doesn't report a successful installation.
+	9    The WebView2 runtime couldn't be downloaded, verified or installed.
+	10   The Edge installer failed or was stopped.
+	404  microsoft.com couldn't be reached.
 
 	.LINK
 	https://github.com/he3als/EdgeRemover
@@ -290,8 +307,11 @@ function Invoke-MicrosoftWebViewDownload {
 }
 
 function Remove-EdgePath {
-    # Take ownership, grant Administrators full control, then delete - with a cmd 'rd'
-    # retry for trees the provider can't remove.
+    <#
+    .SYNOPSIS
+        Takes ownership of a path, grants Administrators full control, then deletes it,
+        with a cmd 'rd' retry for trees the provider can't remove.
+    #>
     param([Parameter(Mandatory = $true)][string]$Path)
 
     if (-not (Test-Path -LiteralPath $Path)) {
@@ -337,7 +357,7 @@ function KillEdgeProcesses {
         @(Get-Process | Where-Object {
             $processPath = $_.Path
             # Never the WebView2 Runtime (by name or install path): the shell hosts it on
-            # 24H2/25H2 and we don't uninstall it, so killing it drops the live session.
+            # 24H2/25H2 and Atlas keeps it, so killing it drops the live session.
             $isWebView = ($_.Name -eq 'msedgewebview2') -or ($processPath -like '*\Microsoft\EdgeWebView\*')
             (-not $isWebView) -and (
                 (@($edgePathPatterns | Where-Object { $processPath -like $_ }).Count -gt 0) -or
@@ -351,9 +371,10 @@ function KillEdgeProcesses {
 
 function Wait-EdgeUninstallerProcesses {
     <#
-        Give Edge's detached uninstallers a short opportunity to complete, then
-        stop and verify any that remain. Waiting for the uninstallers without a
-        bound can reach RestartManager and sign out the live user on 24H2/25H2.
+    .SYNOPSIS
+        Gives Edge's detached uninstallers a short time to complete, then stops and
+        verifies any that remain. Waiting for the uninstallers without a time limit can
+        reach Restart Manager and sign out the live user on 24H2/25H2.
     #>
     [CmdletBinding()]
     param(
@@ -426,9 +447,10 @@ function Wait-EdgeUninstallerProcesses {
 
 function Invoke-EdgeUninstallers {
     <#
-        Kick off Edge's own uninstallers detached. A synchronous system-level
-        --force-uninstall can reach RestartManager and sign out the live user on
-        24H2/25H2, so the launched processes get only a limited launch window and are
+    .SYNOPSIS
+        Starts Edge's own uninstallers detached. A synchronous system-level
+        --force-uninstall can reach Restart Manager and sign out the live user on
+        24H2/25H2, so the launched processes get only a short launch window and are
         confirmed stopped before direct file deletion begins.
     #>
     param(
@@ -508,10 +530,16 @@ function Remove-EdgeRegistryKey {
 }
 
 function Remove-EdgeRegistration {
-    # Edge leaves shell registration behind after its binaries are gone: dead protocol
-    # handlers (microsoft-edge:), App Paths\msedge.exe, a binary-less Apps-list Uninstall
-    # row, StartMenuInternet and the Edge Stable client registration. The updater is
-    # shared with WebView2: never remove its parent tree or COM registration.
+    <#
+    .SYNOPSIS
+        Removes the shell registration Edge leaves behind after its binaries are gone:
+        dead protocol handlers (microsoft-edge:), App Paths\msedge.exe, a binary-less
+        Apps-list Uninstall row, StartMenuInternet and the Edge Stable client
+        registration. The updater is shared with WebView2: never remove its parent tree
+        or COM registration.
+    #>
+    # {56EB18F8-...} is Edge Stable's EdgeUpdate app ID; {9459C573-...} is Edge's Active
+    # Setup component, which runs Edge's per-user setup at an account's first sign-in.
     $edgeKeys = @(
         'HKLM\SOFTWARE\Microsoft\Edge'
         'HKLM\SOFTWARE\Microsoft\EdgeUpdate\Clients\{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}'
@@ -809,6 +837,7 @@ function InstallWebView {
 
 # -MachineContext is the install-time path: TrustedInstaller removes only the browser,
 # and Remove-EdgeCurrentUserData.ps1 cleans the installing user's data separately.
+# S-1-5-18 is LocalSystem, the user SID of a TrustedInstaller token too.
 $currentUserSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 if ($currentUserSid -eq 'S-1-5-18') {
     if (-not $MachineContext) {

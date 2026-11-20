@@ -1,4 +1,8 @@
 # Atlas.Services domain: save and restore service/driver Start values.
+#
+# A backup is a .reg file with one Start DWORD per service, so it can also be read and
+# imported by hand. Microsoft Defender's services are left out: the Defender choice
+# manages them, and a service restore must not change them.
 
 $script:AtlasServicesBackupHeader = 'Windows Registry Editor Version 5.00'
 $script:AtlasServicesBackupExcludedNames = @(
@@ -116,6 +120,16 @@ function Read-AtlasServicesBackup {
 }
 
 function Restore-AtlasServicesBackup {
+    <#
+    .SYNOPSIS
+        Restores every Start value in a services backup, and returns the file path and
+        the counts of restored and missing services.
+    .DESCRIPTION
+        The whole file is checked before anything changes. Services that no longer
+        exist on the PC are skipped and counted as missing.
+    .PARAMETER FilePath
+        The backup file, as written by Export-AtlasServicesBackup.
+    #>
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -141,6 +155,17 @@ function Restore-AtlasServicesBackup {
 }
 
 function Export-AtlasServicesBackup {
+    <#
+    .SYNOPSIS
+        Saves the Start value of every service and driver to a .reg backup, unless a
+        valid backup already exists there.
+    .DESCRIPTION
+        An existing file is kept, after checking it, so the first backup of a PC's
+        Windows defaults survives later runs. A new file is written to a temporary
+        name, checked, then moved into place, so a partial file never takes its name.
+    .PARAMETER FilePath
+        The backup file; by default Other\winServices.reg under AtlasModules.
+    #>
     param(
         [ValidateNotNullOrEmpty()]
         [string]$FilePath = (Join-Path -Path (Get-AtlasContext).AtlasModulesPath `

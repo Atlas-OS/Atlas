@@ -1,4 +1,4 @@
-# Atlas.Shortcuts - shortcut (.lnk) creation module.
+# Atlas.Shortcuts: shortcut (.lnk) creation module.
 # Atlas.Native types come from Atlas.Core, which owns Atlas's only C# compile.
 $coreManifest = Join-Path -Path $PSScriptRoot -ChildPath '..\Atlas.Core\Atlas.Core.psd1'
 if (-not (Test-Path -LiteralPath $coreManifest -PathType Leaf)) {
@@ -8,6 +8,12 @@ if (-not (Test-Path -LiteralPath $coreManifest -PathType Leaf)) {
 Import-Module -Name $coreManifest -ErrorAction Stop
 
 function Set-AtlasShortcutAppUserModelId {
+    <#
+    .SYNOPSIS
+        Writes System.AppUserModel.ID into a shortcut's property store, which
+        WScript.Shell can't set, so the taskbar and notifications group the program
+        under that ID.
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)][string]$Path,
@@ -23,6 +29,11 @@ function Set-AtlasShortcutAppUserModelId {
 }
 
 function Resolve-AtlasShortcutPath {
+    <#
+    .SYNOPSIS
+        Returns the full form of a drive or UNC path, and throws if it's relative or,
+        unless AllowMissing is set, doesn't exist as the requested type.
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
@@ -72,6 +83,26 @@ function Resolve-AtlasShortcutPath {
 }
 
 function New-AtlasShortcut {
+    <#
+    .SYNOPSIS
+        Creates or replaces a .lnk shortcut and checks that the file exists afterwards.
+    .PARAMETER Source
+        The fully qualified path of the existing file or folder the shortcut opens.
+    .PARAMETER Destination
+        The fully qualified path of the .lnk file. Its folder must exist.
+    .PARAMETER WorkingDir
+        The folder to start in; by default the folder that holds Source.
+    .PARAMETER Arguments
+        The command-line arguments passed to Source.
+    .PARAMETER Icon
+        The icon location, as 'path,index'.
+    .PARAMETER AppUserModelId
+        An AppUserModelID to store in the shortcut. Windows allows at most 128
+        characters and no spaces.
+        https://learn.microsoft.com/windows/win32/shell/appids
+    .PARAMETER IfExist
+        Replaces the shortcut only when it already exists, and otherwise does nothing.
+    #>
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         [Parameter(Mandatory = $true)]
@@ -146,7 +177,6 @@ function New-AtlasShortcut {
             $shortcut.IconLocation = $Icon
         }
         $shortcut.Save()
-
     }
     finally {
         if ($null -ne $shortcut -and

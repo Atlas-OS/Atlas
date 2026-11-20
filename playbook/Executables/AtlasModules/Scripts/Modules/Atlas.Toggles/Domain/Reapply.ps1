@@ -97,6 +97,11 @@ function Resolve-AtlasToggleReplayRecord {
 }
 
 function Remove-AtlasToggleReplayRecord {
+    <#
+    .SYNOPSIS
+        Clears a stale record's state and launcher path, and its key once nothing else
+        is left in it.
+    #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
         'PSUseShouldProcessForStateChangingFunctions',
         '',

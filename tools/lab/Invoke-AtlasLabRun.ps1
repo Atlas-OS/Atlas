@@ -9,7 +9,7 @@
          PowerShell Direct and take a baseline dump of registry, services and tasks.
       3. Run the Atlas front door (Scripts\Entry\Install-Atlas.ps1) unattended with the
          requested options, from Windows PowerShell 5.1 inside the guest.
-      4. Reboot, run the health check (Scripts\Entry\Test-AtlasHealth.ps1 -Json), take a
+      4. Restart, run the health check (Scripts\Entry\Test-AtlasHealth.ps1 -Json), take a
          second dump and diff it against the baseline.
       5. Collect the Atlas logs, the health report and the state diff into -OutputPath.
 
@@ -31,8 +31,9 @@
     leave out <SupportedBuilds>, so the front door refuses them. Extracted locally with
     7-Zip.
 .PARAMETER ArchiveKey
-    The zip key the package was built with. AME Wizard playbooks all use the same
-    published key; pass an empty string for a build made with -NoPassword.
+    The ZIP password the package was built with. Build-Playbook.ps1 uses the published
+    password 'malte', the default here; pass an empty string for a build made with
+    -NoPassword.
 .PARAMETER ExtractedRoot
     An already extracted package root (contains playbook.conf and Executables). Either
     this or -PlaybookPath is required.
@@ -40,6 +41,10 @@
     FeaturePage options passed to the front door. Defaults to the recommended set.
 .PARAMETER OutputPath
     Directory for logs, reports and dumps. Defaults to lab-output\<timestamp>.
+.PARAMETER BootTimeoutSeconds
+    How long to wait for the guest to accept a PowerShell Direct session after each start.
+.PARAMETER InstallTimeoutSeconds
+    How long the front door may run before the lab run stops.
 .PARAMETER Keep
     Leave the VM running after the run instead of turning it off.
 .NOTES
@@ -106,7 +111,7 @@ function Write-LabStep {
 function Expand-Playbook {
     <#
     .SYNOPSIS
-        Extracts an .apbx (a keyed zip) with 7-Zip into a temp directory.
+        Extracts an .apbx (a password-protected ZIP) with 7-Zip into a temp directory.
     #>
     param([Parameter(Mandatory = $true)][string]$Path, [AllowEmptyString()][string]$Key)
 

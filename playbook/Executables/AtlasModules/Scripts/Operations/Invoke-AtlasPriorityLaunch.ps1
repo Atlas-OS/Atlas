@@ -1,6 +1,29 @@
-# Creates the selected executable suspended, sets its priority, and only then
-# resumes it. Realtime, and any executable that needs administrator rights, go
-# through UAC to the fixed installed handler.
+<#
+.SYNOPSIS
+    Starts an executable with the chosen priority class.
+.DESCRIPTION
+    The RunWithPriority toggle adds Run with priority entries to the context menu of
+    executables; they start this script in a hidden window as the signed-in user. It
+    creates the selected executable suspended, sets its priority, and only then resumes it.
+
+    Realtime, and any executable that needs administrator rights, go through UAC to this
+    same script at its installed path, started again with -Elevated. Declining the UAC
+    prompt isn't a failure. Any other failure is shown in a message box, because the
+    window is hidden.
+
+    Dot-sourcing the script only defines its functions.
+.PARAMETER Priority
+    The priority class: Low, BelowNormal, Normal, AboveNormal, High or Realtime.
+.PARAMETER TargetPath
+    The absolute path of the executable (an .exe file) to start, on a local drive.
+.PARAMETER Elevated
+    Marks the run that UAC started. It requires an administrator token and the installed
+    script path.
+.NOTES
+    Exit codes:
+    0  The executable started, or the user declined the UAC prompt.
+    1  The executable didn't start.
+#>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
@@ -54,6 +77,8 @@ function Get-AtlasPriorityClass {
         [string]$Name
     )
 
+    # The *_PRIORITY_CLASS process creation flags that CreateProcess and SetPriorityClass
+    # take: IDLE, BELOW_NORMAL, NORMAL, ABOVE_NORMAL, HIGH and REALTIME.
     switch ($Name) {
         'Low' { return [uint32]0x00000040 }
         'BelowNormal' { return [uint32]0x00004000 }
@@ -310,7 +335,7 @@ function Invoke-AtlasPriorityLaunch {
     }
     . $trustBootstrap
 
-    # Atlas.Core owns the single protected compile of the Atlas native surface. It
+    # Atlas.Core owns the single protected compile of Atlas's native (C#) types. It
     # only defines functions, so it imports cleanly in this medium-integrity host.
     $coreManifest = [IO.Path]::Combine(
         $scriptsRoot, 'Modules', 'Atlas.Core', 'Atlas.Core.psd1'

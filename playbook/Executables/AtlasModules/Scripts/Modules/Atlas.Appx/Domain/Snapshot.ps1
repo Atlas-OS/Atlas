@@ -6,12 +6,17 @@
 # under the Deprovisioned key so Windows Update doesn't reinstall it. Families the
 # plan matched are registered too: one still listed for another account, or still
 # provisioned, never leaves the inventory, so the comparison alone misses it.
-# https://learn.microsoft.com/en-us/windows/application-management/remove-provisioned-apps-during-update
+# https://learn.microsoft.com/windows/application-management/remove-provisioned-apps-during-update
 
 function Get-AtlasAppxSnapshotPath {
-    # During an install the snapshot lives with the install's own work, which file
-    # replacement leaves alone and only completion removes, so a resumed AppX step
-    # finds the snapshot its interrupted attempt saved (Save-AtlasAppxSnapshot).
+    <#
+    .SYNOPSIS
+        Returns the path of the AppX package snapshot.
+    .DESCRIPTION
+        During an install the snapshot lives with the install's own work, which file
+        replacement leaves alone and only completion removes, so a resumed AppX step
+        finds the snapshot its interrupted attempt saved (Save-AtlasAppxSnapshot).
+    #>
     $context = Get-AtlasContext
     if ($context.IsInstallStateBacked) {
         return Join-Path -Path $context.WinDir -ChildPath 'AtlasOS\Install\work\AtlasPackagesOld.txt'

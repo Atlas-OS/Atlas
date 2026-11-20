@@ -160,9 +160,8 @@ function Set-AtlasPnpDeviceState {
         error; success produces no output.
     .NOTES
         Enable-/Disable-PnpDevice report a failed Win32_PnPEntity method through the
-        error stream. -PassThru only echoes the device object, which an earlier
-        version mistook for a result code and then failed to cast on every PC that
-        actually had a Bluetooth device.
+        error stream. -PassThru only echoes the device object and carries no result
+        code, so success is the absence of an error.
     #>
     param(
         [Parameter(Mandatory = $true)]

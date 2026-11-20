@@ -1,8 +1,8 @@
 # Atlas.Appx domain: Phone Link removal.
 #
-# Removing Microsoft.YourPhone with AME Wizard caused issues with Cross Device
-# Experience Host installing, so it remains a separate, best-effort package-family
-# plan that uses the AppX and DISM cmdlets directly.
+# Removing Microsoft.YourPhone in the same plan as the other packages can stop Cross
+# Device Experience Host from installing, so Phone Link has its own removal plan. The
+# install runs it after the main plan and treats a failure as a warning.
 
 function Remove-AtlasPhoneLinkAppx {
     <#

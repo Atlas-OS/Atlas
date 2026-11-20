@@ -1,6 +1,22 @@
 <#
 .SYNOPSIS
     Removes Edge registrations and data for the exact install-state interactive user.
+.DESCRIPTION
+    Removes the user's Edge protocol and file registrations, startup entries that point
+    at a missing Edge, the Edge profile folder under LocalAppData and Edge shortcuts.
+    Every path is checked to stay inside its known folder, without reparse points,
+    before anything changes.
+
+    It runs in the user's own token: the install's Edge removal starts it after the
+    TrustedInstaller machine removal (Remove-Edge.ps1 -MachineContext), and first sign-in
+    setup runs it for accounts that sign in later. A transcript goes to
+    %LOCALAPPDATA%\AtlasOS\Logs\*-edge-cleanup-*.log.
+.PARAMETER ExpectedUserSid
+    The SID of the user the install recorded; the script stops if its token differs.
+.NOTES
+    Exit codes:
+    0  The cleanup completed.
+    1  The token didn't match ExpectedUserSid, a path check failed, or a removal failed.
 #>
 [CmdletBinding()]
 param(
@@ -393,7 +409,7 @@ try {
     Write-Output 'Edge current-user cleanup completed.'
 }
 catch {
-    # Record the failure before closing the transcript; an unhandled error is displayed afterward.
+    # Record the failure before closing the transcript; an unhandled error is displayed afterwards.
     Write-Host ("ERROR: {0}`n{1}" -f $_.Exception.Message, $_.ScriptStackTrace)
     throw
 }

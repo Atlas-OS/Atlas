@@ -1,11 +1,25 @@
 <#
 .SYNOPSIS
-    Collect missing early-install evidence for RC3 without rerunning installation.
+    Collects early-install evidence into Atlas Manager's Logs directory without
+    rerunning the installation.
 .DESCRIPTION
-    Reads Atlas state and the ten newest staging requests. Writes one local log in
-    Atlas Manager's Logs directory so Export diagnostics includes and redacts it,
-    even in RC3. Does not execute staged scripts or change installation state.
-    Run in elevated Windows PowerShell as the account that attempted installation.
+    Use it when a diagnostics export lacks the install records, such as an export
+    that stopped at its entry limit. It reads the Atlas state document, the install
+    transaction records, the install logs and the ten newest staging requests with
+    their logs. It doesn't run staged scripts or change installation state.
+
+    It writes one log in Atlas Manager's Logs directory, so Export diagnostics
+    includes and redacts it. Run it in elevated Windows PowerShell as the account
+    that attempted the installation.
+.PARAMETER WindowsRoot
+    The Windows directory whose AtlasOS and AtlasModules folders are read. Defaults
+    to this PC's %windir%.
+.PARAMETER AppRoot
+    Atlas Manager's data directory, which receives the log. Defaults to
+    ATLAS_APP_DATA, or %LOCALAPPDATA%\AtlasOS\App.
+.NOTES
+    Exit codes: 0 the log was saved, 1 it could not be saved. A file that can't be
+    read is recorded in the log and doesn't change the exit code.
 #>
 [CmdletBinding()]
 param(
@@ -52,8 +66,8 @@ function Add-InstallLogDirectory {
     param([string]$Path)
     try {
         Assert-EvidencePath $Path
-        # RC3 writes atlas-install.log and transcripts here, rather than the new
-        # install-capture.log/install-run.log files beside this directory.
+        # Older Atlas releases write atlas-install.log and transcripts here; Atlas
+        # writes install-capture.log and install-run.log beside this directory.
         Add-EvidenceFile (Join-Path $Path 'atlas-install.log')
         $files = @(Get-ChildItem -LiteralPath $Path -File -Filter '*.log' -Force |
             Where-Object Name -ne 'atlas-install.log' |

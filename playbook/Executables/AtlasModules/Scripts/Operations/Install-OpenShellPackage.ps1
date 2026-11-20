@@ -1,3 +1,14 @@
+<#
+.SYNOPSIS
+    Downloads and installs the pinned Open-Shell release with only its Start Menu.
+.DESCRIPTION
+    Downloads the pinned installer into protected staging, extracts the MSI for this
+    PC's architecture, checks both against pinned SHA-256 values and sizes, and installs
+    the StartMenu feature with Windows Installer.
+
+    Install-OpenShell.ps1 runs it with the call operator in its elevated process. It
+    returns an object with Version and RebootRequired, and throws on any failure.
+#>
 [CmdletBinding()]
 param()
 
@@ -110,6 +121,7 @@ try {
         -Hidden `
         -NoWindow
     $processExitCode = [uint32]$processResult.ExitCodeUInt32
+    # 3010 is ERROR_SUCCESS_REBOOT_REQUIRED: installed, pending a restart.
     if ($processExitCode -notin @(0, 3010)) {
         throw "Open-Shell installation failed with exit code $processExitCode."
     }

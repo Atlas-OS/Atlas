@@ -1,8 +1,21 @@
-# Remove ads from the 'Accounts' page in Immersive Control Panel
+<#
+.SYNOPSIS
+    Removes the ads from the Accounts page in Settings.
+.DESCRIPTION
+    Finds the feature (velocity) IDs that the Accounts page's wsxpack lists in its
+    SettingsExtensions.json, disables each one with the bundled ViVeTool, and hides the
+    'Microsoft account' page (ms-settings:account) that Settings shows once they're
+    disabled. The changes take effect from the next restart.
 
-# Find feature/velocity IDs to disable for the 'Accounts' page
-# After disabling each one, there's a 'Microsoft account' page that appears (ms-settings:account)
-# It can be hidden by using SettingsPageVisibility
+    The install's 'Modify Client.CBS' tweak runs it as TrustedInstaller in a child
+    Windows PowerShell, and ignores its exit code: the wsxpack layout varies with the
+    servicing state, and the change is cosmetic.
+.NOTES
+    Exit codes:
+    0  The feature IDs were disabled.
+    1  No SettingsExtensions.json or feature IDs were found, the page couldn't be hidden,
+       or ViVeTool is missing.
+#>
 
 $windir = [Environment]::GetFolderPath('Windows')
 $settingsExtensions = (Get-ChildItem "$windir\SystemApps" -Recurse).FullName | Where-Object { $_ -like '*wsxpacks\Account\SettingsExtensions.json*' }
@@ -47,9 +60,9 @@ if ($ids.Count -le 0) {
     exit 1
 }
 
-# Hide 'Microsoft account' page in Settings that appears
-# Not set in the actual YAML in case no velocity IDs were found
-# If the velocity IDs aren't set, then the account page disappears
+# Disabling the velocity IDs makes Settings show a separate 'Microsoft account' page.
+# It's hidden here rather than in the tweak definition, because without disabled IDs
+# that page isn't there to hide.
 & "$windir\AtlasModules\Scripts\Entry\Set-SettingsPageVisibilityLauncher.cmd" /hide account
 if ($LASTEXITCODE -ne 0) {
     throw "Hiding the Microsoft account Settings page failed with exit code $LASTEXITCODE."
@@ -65,7 +78,7 @@ if ($arm) {
     $viveZip = $viveZip | Where-Object { $_ -notmatch '-ARM64CLR' }
 }
 
-# Extract & setup ViVeTool
+# Extract and set up ViVeTool
 if ($viveZip) {
     $viveFolder = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "AtlasViVeTool"
     if (Test-Path -Path $viveFolder) {
@@ -81,7 +94,7 @@ if (!(Get-Command 'vivetool' -EA 0)) {
     throw "ViVeTool EXE not found in ZIP!"
 }
 
-# Applies next reboot
+# Feature configuration changes take effect from the next restart.
 foreach ($id in $($ids | Sort-Object -Unique)) {
     Write-Output "Disabling feature ID $id..."
     ViVeTool.exe /disable /id:$id | Out-Null

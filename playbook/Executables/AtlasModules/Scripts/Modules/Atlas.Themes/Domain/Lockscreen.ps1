@@ -1,4 +1,16 @@
+# Atlas.Themes domain: the lock screen image. Runs as the signed-in user, from the
+# per-user setup at first sign-in, because the WinRT LockScreen API sets the image
+# for the calling user.
+
 function Set-AtlasLockscreenImage {
+    <#
+    .SYNOPSIS
+        Sets the current user's lock screen image through the WinRT LockScreen API.
+    .DESCRIPTION
+        Hands the API a temporary copy of the image and removes the copy afterwards.
+    .PARAMETER Path
+        The image file; by default the Atlas dark lock screen image under AtlasModules.
+    #>
     param (
         [ValidateNotNullOrEmpty()]
         [string]$Path = "$([Environment]::GetFolderPath('Windows'))\AtlasModules\Wallpapers\lockscreen_dark.png"

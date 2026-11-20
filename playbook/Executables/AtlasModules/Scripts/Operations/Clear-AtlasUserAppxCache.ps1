@@ -1,6 +1,21 @@
 <#
 .SYNOPSIS
     Runs one fixed AppX session/cache operation for the exact install-state user.
+.DESCRIPTION
+    Atlas.Appx starts it during the install in the installing user's non-elevated token.
+    It first stops the user's processes that hold the packages, through
+    Invoke-AtlasUserShellRefresh.ps1, then clears that user's AppX caches for the mode.
+.PARAMETER Mode
+    AppxQuiesce only stops Teams and Search. AppxSupport also clears the package caches of
+    Client.CBS, Windows Search and Windows Security. StartMenu restarts the Start menu
+    and clears its package cache.
+.PARAMETER ExpectedUserSid
+    The SID of the user the install recorded; the script stops if its token differs.
+.NOTES
+    Exit codes:
+    0       Done.
+    1       The cache cleanup failed, or a helper file is missing.
+    10-17   Invoke-AtlasUserShellRefresh.ps1 failed; the code names its stage.
 #>
 [CmdletBinding()]
 param(
@@ -35,7 +50,7 @@ $sessionOperation = switch -CaseSensitive ($Mode) {
 }
 
 # The helper reports failure only through its exit code. Run with &, its exit
-# ends just the helper, so pass the code on as this process's exit code.
+# ends only the helper, so pass the code on as this process's exit code.
 $global:LASTEXITCODE = 0
 & $sessionProcessHelper -Operation $sessionOperation -ExpectedUserSid $ExpectedUserSid
 if ($LASTEXITCODE -ne 0) {

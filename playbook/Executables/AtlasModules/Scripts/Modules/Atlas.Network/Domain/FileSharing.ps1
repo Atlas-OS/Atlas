@@ -3,8 +3,11 @@
 # driver and Network Discovery; Disable removes them, forces Public network profiles,
 # disables the sharing firewall groups and removes the Sharing context menu.
 
+# Client for Microsoft Networks, File and Printer Sharing for Microsoft Networks, and the
+# Link-Layer Topology Discovery mapper I/O driver and responder.
 $script:AtlasFileSharingBindingComponents = @('ms_msclient', 'ms_server', 'ms_lltdio', 'ms_rspndr')
 $script:AtlasFileSharingNetBtInterfacesRoot = 'HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces'
+# The Sharing shell extension behind the 'Give access to' context menu.
 $script:AtlasFileSharingContextMenuClsid = '{f81e9010-6ea4-11ce-a7ff-00aa003ca9f6}'
 $script:AtlasFileSharingContextMenuKeys = @(
     'Registry::HKEY_CLASSES_ROOT\*\shellex\ContextMenuHandlers\Sharing'
@@ -29,6 +32,8 @@ function Get-AtlasFileSharingFirewallRule {
         Returns the Private-profile rules of the File and Printer Sharing and Network
         Discovery groups.
     #>
+    # The group resource strings identify the two groups in any display language; the
+    # English display names cover rules created without them.
     @(Get-NetFirewallRule -ErrorAction Stop | Where-Object {
             ($_.Group -in @('@FirewallAPI.dll,-28502', '@FirewallAPI.dll,-32752') -or
                 $_.DisplayGroup -in @('File and Printer Sharing', 'Network Discovery')) -and
@@ -205,6 +210,7 @@ function Enable-AtlasFileSharing {
     }
     Set-AtlasFileSharingAdapterBinding -Enabled $true
     Set-AtlasFileSharingNetBiosOption -Option 1 -InterfacesRoot $NetBtInterfacesRoot
+    # Start value 1 is System: NetBT is a kernel driver that loads during kernel initialisation.
     Set-AtlasServiceStartup -Name 'NetBT' -StartupType 1 -ServicesRoot $ServicesRoot
 
     # Network Discovery owns the rest of the service dependency chain, including SMB.
@@ -265,6 +271,7 @@ function Disable-AtlasFileSharing {
     }
     Set-AtlasFileSharingAdapterBinding -Enabled $false
     Set-AtlasFileSharingNetBiosOption -Option 2 -InterfacesRoot $NetBtInterfacesRoot
+    # Start value 4 is Disabled.
     Set-AtlasServiceStartup -Name 'NetBT' -StartupType 4 -ServicesRoot $ServicesRoot
 
     foreach ($networkProfile in @(Get-NetConnectionProfile -ErrorAction Stop)) {

@@ -37,8 +37,9 @@ function Invoke-AtlasLocationServiceState {
         [string]$Status
     )
 
-    # A registry-only Start write can leave SCM treating the service as disabled
-    # when Start follows immediately (1058). Update its configuration through SCM.
+    # A registry-only Start write can leave SCM treating the service as disabled when
+    # Start follows immediately (1058, ERROR_SERVICE_DISABLED). Update its configuration
+    # through SCM.
     $startup = switch ($StartupType) {
         2 { 'Automatic' }
         3 { 'Manual' }

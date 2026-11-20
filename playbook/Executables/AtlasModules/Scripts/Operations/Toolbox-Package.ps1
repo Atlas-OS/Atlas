@@ -1,13 +1,14 @@
 # Shared Toolbox acquisition and installation: the latest release on GitHub, or the
-# installer a release candidate carries.
+# installer an Atlas test build carries. Install-Toolbox.ps1 and the install's software
+# step dot-source it; both run elevated.
 
 function Get-AtlasBundledToolbox {
     <#
     .SYNOPSIS
         The Toolbox installer bundled with this Atlas package, or $null when there is
-        none. Release candidates carry the Toolbox they were tested with, because the
-        release they need may not be published yet; releases install the latest one
-        from GitHub. The files sit in AtlasModules, which only administrators can change.
+        none. A test build carries the Toolbox it was tested with, because the release
+        it needs may not be published yet; releases install the latest one from GitHub.
+        The files sit in AtlasModules, which only administrators can change.
     #>
     [CmdletBinding()]
     param(

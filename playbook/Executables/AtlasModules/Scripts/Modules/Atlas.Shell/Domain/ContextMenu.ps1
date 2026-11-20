@@ -22,6 +22,7 @@ function ConvertTo-AtlasShellWindowsArgument {
     # Apply the CommandLineToArgvW/CRT quoting rules even when quoting would be
     # optional. In particular, a trailing backslash must be doubled before the
     # closing quote so a drive root such as C:\ remains one unchanged argv item.
+    # [char]34 is the double quote and [char]92 the backslash.
     $builder = [Text.StringBuilder]::new()
     [void]$builder.Append([char]34)
     $backslashCount = 0
@@ -69,7 +70,8 @@ function Get-AtlasTakeOwnershipArgumentPlan {
     )
 
     $takeOwnArguments = @('/f', $TargetPath)
-    # /l keeps icacls on a link itself instead of following its destination.
+    # S-1-3-4 is the well-known OWNER RIGHTS SID, so the grant follows whoever owns each
+    # item. /l keeps icacls on a link itself instead of following its destination.
     $icaclsArguments = @($TargetPath, '/grant', '*S-1-3-4:F', '/t', '/c', '/l')
 
     if ($TargetType -ne 'File') {

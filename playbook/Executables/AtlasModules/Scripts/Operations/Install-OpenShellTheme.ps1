@@ -1,3 +1,14 @@
+<#
+.SYNOPSIS
+    Installs the pinned Fluent Metro theme files into Open-Shell's Skins folder.
+.DESCRIPTION
+    Downloads the pinned Fluent Metro release into protected staging, checks the archive
+    and each theme file against pinned SHA-256 values and sizes, and publishes the files
+    to %ProgramFiles%\Open-Shell\Skins as one transaction (OpenShell-ThemeTransaction.ps1).
+
+    Install-OpenShell.ps1 runs it with the call operator in its elevated process, after
+    Install-OpenShellPackage.ps1. It throws on any failure.
+#>
 [CmdletBinding()]
 param()
 

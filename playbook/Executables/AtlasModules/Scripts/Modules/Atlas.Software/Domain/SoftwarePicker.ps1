@@ -231,6 +231,7 @@ function Show-AtlasSoftwarePicker {
     $form.MaximizeBox = $false
     $form.MinimizeBox = $false
     $form.Size = New-Object System.Drawing.Size(600, 210)
+    # AutoSizeMode 0 is GrowAndShrink; SizeGripStyle 2 is Hide.
     $form.AutoSizeMode = 0
     $form.KeyPreview = $true
     $form.SizeGripStyle = 2

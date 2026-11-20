@@ -6,6 +6,8 @@
 # Balanced when it is gone) and deletes the Atlas scheme. Every powercfg call is
 # exit-code checked and the final active scheme is verified.
 
+# The Atlas scheme's GUID is fixed so Atlas can always find, replace and verify its own plan.
+# 381b4222-f694-41f0-9685-ff5bb260df2e is the Windows Balanced scheme (SCHEME_BALANCED).
 $script:AtlasPowerScheme = '11111111-1111-1111-1111-111111111111'
 $script:BalancedPowerScheme = '381b4222-f694-41f0-9685-ff5bb260df2e'
 $script:PowerStateSubKey = 'SOFTWARE\AtlasOS\Services\PowerSaving'
@@ -93,11 +95,16 @@ function Get-AtlasPowerSchemeInventory {
             -Output (Invoke-AtlasPowerCfg -FilePath $PowerCfgPath -ArgumentList @('/l')))
 }
 
-# Modern Standby PCs list only Balanced and plans copied from it, but an unlisted
-# plan, such as the Ultimate Performance copy older Atlas versions made, still
-# holds its GUID: /duplicatescheme then refuses it. Windows keeps each plan as a
-# key under User\PowerSchemes.
 function Test-AtlasPowerSchemeStored {
+    <#
+    .SYNOPSIS
+        Returns whether Windows stores a power plan with the given GUID, listed or not.
+    .DESCRIPTION
+        Modern Standby PCs list only Balanced and plans copied from it, but an unlisted
+        plan, such as the Ultimate Performance copy older Atlas versions made, still
+        holds its GUID: /duplicatescheme then refuses it. Windows keeps each plan as a
+        key under User\PowerSchemes.
+    #>
     param([Parameter(Mandatory = $true)][string]$SchemeGuid)
 
     $scheme = ConvertTo-AtlasPowerSchemeGuid -Value $SchemeGuid
@@ -263,6 +270,10 @@ function Invoke-AtlasPowerSavingState {
                     'Atlas AC power policy with documented Windows settings.'
                 ))
 
+        # Subgroup GUID, setting GUID, AC value; docs/power-saving-policy.md lists each one:
+        # Hard disk > NVMe NOPPME off; Processor power management > Allow Throttle States
+        # off; Display > Turn off display after never; Processor power management >
+        # Processor performance time check interval 200 ms.
         foreach ($setting in @(
                 @('0012ee47-9041-4b5d-9b77-535fba8b1442', 'fc7372b6-ab2d-43ee-8797-15e9841f2cca', '0'),
                 @('54533251-82be-4824-96c1-47b60b740d00', '3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb', '0'),
@@ -319,7 +330,7 @@ function Set-AtlasPowerSavingState {
     .SYNOPSIS
         Applies the Atlas AC power policy (Mode Atlas) or restores the previously
         active power plan and removes the Atlas plan (Mode Default). Requires
-        Administrator rights; concurrent Atlas power operations are serialized.
+        Administrator rights; concurrent Atlas power operations are serialised.
     #>
     [CmdletBinding()]
     param(

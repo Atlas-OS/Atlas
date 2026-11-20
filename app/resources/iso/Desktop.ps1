@@ -1,4 +1,26 @@
-# Opens Atlas before presenting the desktop. Never runs on the ISO host.
+<#
+.SYNOPSIS
+    Opens Atlas Manager before the desktop on a PC installed from Atlas media.
+.DESCRIPTION
+    Never runs on the PC that built the ISO. In before-desktop mode, Setup.ps1 registers
+    this script as the setup account's Windows shell, so it runs at that account's
+    sign-in from %windir%\AtlasISO. It relaunches itself without a console, waits for
+    the account preparation to finish, starts Atlas Manager elevated and then starts
+    Explorer behind it.
+
+    When Atlas Manager exits, the desktop cleanup task removes the shell policy, so the
+    next sign-in opens the normal desktop. When Atlas Manager closes for a restart it
+    asked for, the policy stays for the next sign-in. Every failure is appended to
+    %LOCALAPPDATA%\Atlas-desktop-recovery.log and still leaves Explorer running.
+.PARAMETER RestoreDesktop
+    Removes the shell policy through the cleanup task and starts Explorer; for recovery
+    by hand.
+.PARAMETER Detached
+    Marks the relaunch without a console.
+.NOTES
+    Windows starts it as a shell and reads no exit code, so failures go to the recovery
+    log instead.
+#>
 [CmdletBinding()]
 param([switch]$RestoreDesktop, [switch]$Detached)
 Set-StrictMode -Version 3.0
@@ -26,6 +48,7 @@ function Restore-AtlasDesktop {
     try {
         if (-not (& $readOwned)) { return }
         Request-AtlasDesktopCleanup ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value)
+        # Starting the task doesn't wait for it, so poll until SYSTEM has removed the policy.
         $deadline = [DateTime]::UtcNow.AddSeconds(15)
         do {
             Start-Sleep -Milliseconds 200
@@ -100,6 +123,8 @@ try {
     $intent = Get-ItemProperty -LiteralPath $state -ErrorAction SilentlyContinue
     if ($intent -and $intent.PSObject.Properties['RestartRequested']) {
         $requested = [DateTimeOffset]::FromUnixTimeSeconds([long]$intent.RestartRequested)
+        # Atlas Manager records the time right before it asks Windows to restart. A
+        # request older than two minutes is a restart that didn't happen.
         if (([DateTimeOffset]::UtcNow - $requested).TotalSeconds -lt 120) {
             # Windows closes the app before shutting down. Keep the shell policy
             # until the next sign-in instead of mistaking this for a user exit.

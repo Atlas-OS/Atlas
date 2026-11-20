@@ -281,6 +281,7 @@ function Get-AtlasVbsConfiguration {
         throw "Expected exactly one Win32_DeviceGuard instance, but received $($instances.Count)."
     }
 
+    # The Win32_DeviceGuard values the article in the header documents.
     $instance = $instances[0]
     $statusMap = @{
         0 = 'Disabled'

@@ -1,9 +1,13 @@
 # Atlas.Software domain: install-time software downloads.
 
 function Get-AtlasSoftwareComponentMap {
-    # Component -> installer function. 'SevenZip' maps to the archive-tool installer,
-    # which installs NanaZip unless 7-Zip is already installed. Keep the legacy
-    # component name for callers.
+    <#
+    .SYNOPSIS
+        Maps each software component name to its installer function.
+    .DESCRIPTION
+        'SevenZip' maps to the archive-tool installer, which installs NanaZip unless
+        7-Zip is already installed. Callers still pass the name 'SevenZip', so it stays.
+    #>
     return @{
         SevenZip  = 'Install-AtlasArchiveTool'
         VCRedist  = 'Install-AtlasVisualCppRuntimes'
@@ -442,7 +446,7 @@ function Invoke-AtlasArchiveDownload {
     # downloader removes its own partial file on failure. Never retry installation.
     if (Test-Path -LiteralPath $Destination) { throw "Download destination already exists: $Destination" }
     # The limit covers the whole transfer, so scale it with the file: allow for
-    # 32 KB/s from each source, between 1 and 15 minutes.
+    # 32 KiB/s from each source, between 1 and 15 minutes.
     $maximumSeconds = [int][Math]::Min(900, [Math]::Max(60, [Math]::Ceiling($ExpectedBytes / 32KB)))
     $failures = New-Object 'Collections.Generic.List[string]'
     foreach ($uri in $Uris) {
@@ -547,6 +551,8 @@ function Assert-AtlasNanaZipBundleIdentity {
                 $_.NodeType -eq [Xml.XmlNodeType]::Element -and
                 $_.LocalName -ceq 'Identity'
             })
+        # NanaZip's Microsoft Store identity: the package name and the publisher ID
+        # the Store assigned to its developer account.
         if ($identities.Count -ne 1 -or
             $identities[0].GetAttribute('Name') -cne '40174MouriNaruto.NanaZip' -or
             $identities[0].GetAttribute('Publisher') -cne 'CN=E310A153-74A9-4D81-800B-857A8D58408A' -or
@@ -571,6 +577,8 @@ function Get-AtlasDismProvisioningCommands {
     $resolvedManifest = Resolve-AtlasProtectedExecutionPath `
         -Path $manifestPath -PathType Leaf -Description 'The inbox DISM module manifest'
     $modules = @(Import-Module -Name $resolvedManifest -Force -PassThru -ErrorAction Stop)
+    # The GUID in the inbox Dism.psd1, so a module with the same name but other code
+    # isn't accepted.
     $expectedGuid = [guid]'389c464d-8b8d-48e9-aafe-6d8a590d6798'
     $expectedBase = [IO.Path]::GetFullPath((Split-Path -Parent $resolvedManifest)).TrimEnd('\')
     if ($modules.Count -ne 1 -or $modules[0].Name -cne 'Dism' -or
@@ -677,6 +685,7 @@ function Install-AtlasChromeBrowser {
     Invoke-AtlasSoftwareDownload -Uri "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise$chromeArch.msi" -Destination $installerPath -Description 'Google Chrome'
     Assert-AtlasFileSignature -Path $installerPath -ExpectedSubjectCn 'Google LLC' -Description 'Google Chrome'
     $msiExecPath = Join-Path -Path ([Environment]::GetFolderPath('System')) -ChildPath 'msiexec.exe'
+    # 3010 is ERROR_SUCCESS_REBOOT_REQUIRED: installed, and complete after a restart.
     Start-AtlasSoftwareInstaller `
         -FilePath $msiExecPath `
         -ArgumentList @('/i', $installerPath, '/qn', '/norestart') `
@@ -704,9 +713,8 @@ function Install-AtlasLibreWolfBrowser {
         -Description 'the latest LibreWolf setup'
 
     # Microsoft's independent winget-pkgs review must attest the exact Codeberg
-    # release bytes. LibreWolf's official page additionally identifies OSSign as
-    # the verified Windows publisher. A sibling checksum from the download host
-    # would not establish either independent boundary.
+    # release bytes, and LibreWolf's official page names OSSign as its verified
+    # Windows publisher. A checksum from the same host would prove neither.
     Assert-AtlasFileHash `
         -Path $outputLibrewolf `
         -ExpectedSha256 $librewolfRelease.Sha256 `
@@ -759,7 +767,8 @@ function Test-AtlasVisualCppRuntimeCurrent {
     )
 
     # Compare against the signed package we actually downloaded, not a fixed
-    # minimum that would prevent future runtime updates.
+    # minimum that would prevent future runtime updates. The 2015 and later runtimes
+    # all have major version 14 and register under VisualStudio\14.0.
     $requiredVersion = $null
     try {
         $packageVersion = [string](Get-Item -LiteralPath $InstallerPath -ErrorAction Stop).VersionInfo.ProductVersion
@@ -799,6 +808,9 @@ function Install-AtlasVisualCppRuntimes {
     $logRoot = Join-Path ([Environment]::GetFolderPath('Windows')) ('AtlasOS\Install\Diagnostics\vcredist-' + [guid]::NewGuid().ToString('N'))
     [void][IO.Directory]::CreateDirectory($logRoot)
     Write-AtlasLog -Message "Visual C++ installer logs: $logRoot"
+    # The 2005 packages are extracted with the IExpress switches /c (extract only),
+    # /q (quiet) and /t:<folder>, and their MSIs installed directly. Exit code 3010
+    # is ERROR_SUCCESS_REBOOT_REQUIRED, a success that completes after a restart.
     $legacyArgs = @('/q', '/norestart')
     $modernArgs = @('/install', '/quiet', '/norestart')
     $vcredists = @(
@@ -1023,6 +1035,8 @@ function Install-AtlasDirectXRuntime {
     $extractPath = Join-Path -Path $TempDir -ChildPath 'directx'
     Invoke-AtlasSoftwareDownload -Uri 'https://download.microsoft.com/download/8/4/A/84A35BF1-DAFE-4AE8-82AF-AD2AE20B6B14/directx_Jun2010_redist.exe' -Destination $installerPath -Description 'legacy DirectX runtimes'
     # Fixed June 2010 URL: the file can never change, so pin its hash in addition to the signature.
+    # The package is extracted with /q /c /t:<folder> (quiet, extract only, target), then
+    # dxsetup.exe installs the runtimes.
     Assert-AtlasFileHash -Path $installerPath -ExpectedSha256 '053f76dcbb28802e23341b6a787e3b0791c0fa5c8d4d011b1044172dbf89c73b' -Description 'legacy DirectX runtimes'
     Assert-AtlasFileSignature -Path $installerPath -ExpectedSubjectCn 'Microsoft Corporation' -Description 'legacy DirectX runtimes'
     Start-AtlasSoftwareInstaller `

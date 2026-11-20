@@ -4,6 +4,7 @@
 # PCI network adapter class key. Windows mode resets the IP, TCP and Winsock stacks
 # and reinstalls every present network device.
 
+# The Net device setup class (GUID_DEVCLASS_NET), which holds every network adapter's driver key.
 $script:AtlasNetworkClassGuid = '{4d36e972-e325-11ce-bfc1-08002be10318}'
 $script:AtlasNetworkSettingNames = @(
     'AutoDisableGigabit'
@@ -254,6 +255,7 @@ function Invoke-AtlasWindowsNetworkDefault {
             ($command.Arguments -join ' '), $result.ExitCode, ($outputLines -join ' | '))
     }
 
+    # pnputil exits with 3010 (ERROR_SUCCESS_REBOOT_REQUIRED) when the change finishes after a restart.
     foreach ($instanceId in $deviceIds) {
         Invoke-AtlasHiddenProcess `
             -FilePath $pnpUtilPath `

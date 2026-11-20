@@ -1,13 +1,19 @@
 <#
 .SYNOPSIS
-    Prepares an installed Atlas VM to trace PcaPatchDbTask re-enablement across reboot.
+    Prepares an installed Atlas PC or VM to trace what re-enables PcaPatchDbTask
+    across a restart.
 .DESCRIPTION
-    Run elevated inside the affected VM. Enables Task Scheduler operational history,
-    disables only PcaPatchDbTask, verifies its immediate state, and saves a transcript.
-    Does not reboot. After reboot, collect Get-AtlasInstallReport.ps1 -RcDiagnostics.
-    Task history remains enabled for collection; the transcript records its old state.
+    Run it elevated on the Atlas installation where the task comes back enabled. It
+    enables Task Scheduler operational history, disables only PcaPatchDbTask, checks
+    that the task stayed disabled, and saves a transcript. It doesn't restart Windows.
+    After the restart, collect Get-AtlasInstallReport.ps1 -RcDiagnostics.
+
+    Task history stays enabled for that collection. The transcript records whether it
+    was enabled before and, if it wasn't, the command that turns it off again.
 .PARAMETER OutputDirectory
     Directory for the timestamped trace transcript. Defaults to this account's Desktop.
+.NOTES
+    Exit codes: 0 prepared, 1 not elevated, Atlas not installed, or a step failed.
 #>
 [CmdletBinding()]
 param(

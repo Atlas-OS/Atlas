@@ -1,3 +1,27 @@
+<#
+.SYNOPSIS
+    Retries, or gives up, the CBS packages Windows refused outside Safe Mode.
+.DESCRIPTION
+    When Windows refuses a component (CBS) package, Atlas can record it in
+    %windir%\AtlasOS\Recovery\CbsRetry.json and set Windows to start in Safe Mode with
+    Command Prompt. At that prompt, an administrator runs Invoke-AtlasCbsRetry.cmd, which
+    starts this script with -Recover or -Discard. Recover hands the packages to the
+    TrustedInstaller broker's CbsRetry operation, which runs this script again with
+    -Recover under the TrustedInstaller token to install them.
+
+    The install, Install-AtlasPackage.ps1, SafeMode.ps1 and Atlas.Software dot-source it
+    with -LibraryOnly to arm, read or clear the retry.
+.PARAMETER Recover
+    Installs the armed packages again. Windows starts normally from the next restart.
+.PARAMETER Discard
+    Gives up the retry: leaves Safe Mode and removes the retry state.
+.PARAMETER LibraryOnly
+    Only defines the functions, for callers that dot-source the script.
+.NOTES
+    Exit codes:
+    0  The packages installed, the retry was given up, or no retry was waiting.
+    1  The retry failed, or neither -Recover nor -Discard was given.
+#>
 [CmdletBinding()]
 param(
     [switch]$Recover,
@@ -208,8 +232,12 @@ function Invoke-AtlasCbsRetrySafeMode {
 }
 
 function Resolve-AtlasCbsRetryInstaller {
-    # Servicing needs a TrustedInstaller token. Checking it before Safe Mode or the state
-    # changes keeps a retry started with any other token armed, so it can run again.
+    <#
+    .SYNOPSIS
+        Returns Install-AtlasCbsPackage once the TrustedInstaller token is confirmed.
+        Servicing needs that token. Checking it before Safe Mode or the state changes
+        keeps a retry started with any other token armed, so it can run again.
+    #>
     $command = Get-Command Install-AtlasCbsPackage -CommandType Function -ErrorAction SilentlyContinue
     if ($null -eq $command) {
         $modulePath = Join-Path ([Environment]::GetFolderPath('Windows')) `
@@ -332,9 +360,13 @@ function Clear-AtlasUnarmedCbsRetry {
 }
 
 function Test-AtlasCbsRetryInstallUnfinished {
-    # An install that arms the retry ends at its components step, so the rest of it
-    # still has to run. Only whether its state file exists: reading it, as
-    # Get-AtlasContext does, can throw on damaged state after the retry has worked.
+    <#
+    .SYNOPSIS
+        Whether an install is still unfinished. An install that arms the retry ends at
+        its components step, so the rest of it still has to run. Only whether its state
+        file exists: reading it, as Get-AtlasContext does, can throw on damaged state
+        after the retry has worked.
+    #>
     [IO.File]::Exists((Join-Path ([Environment]::GetFolderPath('Windows')) 'AtlasOS\Install\active.json'))
 }
 

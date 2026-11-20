@@ -24,6 +24,7 @@ function Disable-AtlasStoreSearchRecommendations {
         New-Item -Path $storeDb -ItemType File -Force | Out-Null
     }
 
+    # S-1-1-0 is the well-known SID of Everyone; the leading * tells icacls it's a SID.
     $icaclsPath = Join-Path -Path ([Environment]::SystemDirectory) -ChildPath 'icacls.exe'
     Invoke-AtlasHiddenProcess -FilePath $icaclsPath `
         -ArgumentList @($storeDb, '/deny', '*S-1-1-0:F') -Wait | Out-Null

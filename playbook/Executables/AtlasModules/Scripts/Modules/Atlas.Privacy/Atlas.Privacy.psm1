@@ -1,4 +1,4 @@
-# Atlas.Privacy - location, telemetry-log and telemetry-component configuration module.
+# Atlas.Privacy: location, telemetry-log and telemetry-component configuration module.
 Set-StrictMode -Version 3.0
 
 # No -Force: a nested forced import unloads the caller's copy in Windows PowerShell 5.1.

@@ -14,14 +14,23 @@ if (-not [IO.File]::Exists($cbsRetryHelper) -or
 . $cbsRetryHelper -LibraryOnly
 
 function Get-AtlasCbsArchitecture {
-    # A wrong-architecture CAB breaks servicing, so use the strict CIM check from
-    # Installers.ps1, never PROCESSOR_ARCHITECTURE.
+    <#
+    .SYNOPSIS
+        Returns the CBS architecture name of the PC: 'arm64' or 'amd64'.
+    .DESCRIPTION
+        A wrong-architecture CAB breaks servicing, so this uses the strict CIM check
+        from Installers.ps1, never PROCESSOR_ARCHITECTURE.
+    #>
     if (Test-AtlasSoftwareArm64) { return 'arm64' }
     return 'amd64'
 }
 
 function Initialize-AtlasCbsEnvironment {
-    # DISM/servicing can misbehave under TrustedInstaller with a minimal PATH.
+    <#
+    .SYNOPSIS
+        Puts the Windows system folders at the front of PATH, because DISM and
+        servicing can misbehave under TrustedInstaller with a minimal PATH.
+    #>
     $windir = [Environment]::GetFolderPath('Windows')
     $sys32 = [Environment]::GetFolderPath('System')
     $env:Path = "$windir;$sys32;$sys32\Wbem;$sys32\WindowsPowerShell\v1.0;" + $env:Path
@@ -116,9 +125,9 @@ $script:AtlasCbsExpectedHashes = $null
 function Get-AtlasCbsExpectedHashes {
     <#
     .SYNOPSIS
-        Loads Atlas-CbsHashes.psd1 (the SHA256 of every included CAB) from the packages
+        Loads Atlas-CbsHashes.psd1 (the SHA-256 of every included CAB) from the packages
         folder. The CAB signing cert is regenerated on every build, so its thumbprint is
-        not stable and cannot be pinned - the content hash is what we verify against.
+        not stable and cannot be pinned; the content hash is what we verify against.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -194,6 +203,7 @@ function Install-AtlasCbsCab {
     }
 
     Write-Host '[INFO] Adding package...'
+    # -LogLevel 1 writes only errors to the DISM log.
     try {
         Add-WindowsPackage -Online -PackagePath $CabPath -NoRestart -IgnoreCheck -LogLevel 1 *>$null
     }

@@ -1,3 +1,6 @@
+# Atlas.Toggles domain: checked native commands for toggle companion functions, which call
+# them under whichever identity their toggle runs as.
+
 function Invoke-AtlasToggleNativeCommand {
     <#
     .SYNOPSIS

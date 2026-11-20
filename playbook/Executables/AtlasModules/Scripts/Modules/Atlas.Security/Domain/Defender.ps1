@@ -6,7 +6,7 @@
 # same whether Atlas or a user launches it.
 
 $script:AtlasDefenderPackagePattern = '*Z-Atlas-NoDefender-Package*'
-$script:AtlasDefenderDocumentationUrl = 'https://docs.atlasos.net/docs/atlas-configuration/security/#defender'
+$script:AtlasDefenderDocumentationUrl = 'https://atlasos.net/docs/atlas-configuration/security/#defender'
 $script:AtlasDefenderCoreServicePath = 'HKLM:\SYSTEM\CurrentControlSet\Services\MDCoreSvc'
 $script:AtlasDefenderCoreTaskName = 'AtlasDisableMDCoreSvc'
 

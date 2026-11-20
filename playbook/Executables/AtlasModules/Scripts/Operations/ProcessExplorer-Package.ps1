@@ -1,5 +1,8 @@
 # Installs Process Explorer and tracks the integrations Atlas creates: its
 # executable, ownership record, Start menu shortcut and Task Manager IFEO value.
+# A function library: the ProcessExplorer toggle dot-sources it in its elevated process,
+# and the install's file replacement and cleanup tasks dot-source it as administrator or
+# TrustedInstaller.
 
 $downloadModule = Join-Path (Split-Path -Parent $PSScriptRoot) 'Modules\Atlas.Download\Atlas.Download.psd1'
 if (-not [IO.File]::Exists($downloadModule)) {

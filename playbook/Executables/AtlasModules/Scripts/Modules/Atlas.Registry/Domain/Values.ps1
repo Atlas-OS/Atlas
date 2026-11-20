@@ -160,9 +160,9 @@ function Set-AtlasRegistryValue {
 
         [object]$Data,
 
-        # Where a definition permits a value-level access denial, the refusal
-        # is a logged warning instead of a failure; the
-        # Atlas health check still reports the value as drift.
+        # Where a definition permits a value-level access denial, the refusal is a
+        # logged warning instead of a failure; the Atlas health check still reports
+        # the value as drift.
         [switch]$AllowOsProtected
     )
 

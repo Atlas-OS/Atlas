@@ -1,18 +1,22 @@
 <#
 .SYNOPSIS
-    Renders the Atlas console vocabulary and four representative launcher flows
+    Renders the Atlas console vocabulary and five representative launcher flows
     without touching the machine.
 .DESCRIPTION
     Imports the Atlas.Core module, feeds scripted answers to its prompts and
     prints exactly what a user would see for: a simple declarative toggle, a
-    multi-question flow, a failure, and a manual Settings hand-over. Nothing is applied,
+    multi-question flow, a failure, a manual Settings hand-over and a menu toggle
+    given an invalid answer first. Nothing is applied,
     elevated, recorded or logged to the shared install log; the only side effect is
     console output. Run it under Windows PowerShell 5.1, the runtime Atlas uses on users' PCs:
 
         powershell -NoProfile -File tools\dev\Show-AtlasConsoleDemo.ps1
 
-    Pass -NoColor to see the plain-text rendering a transcript or a monochrome
-    console produces.
+.PARAMETER NoColor
+    Shows the plain-text rendering a transcript or a monochrome console produces.
+.NOTES
+    Exit codes: 0 rendered, 1 the Atlas.Core module could not be loaded or a prompt
+    failed.
 #>
 [CmdletBinding()]
 param(

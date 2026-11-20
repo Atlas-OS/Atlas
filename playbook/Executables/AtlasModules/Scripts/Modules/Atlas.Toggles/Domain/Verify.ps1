@@ -14,6 +14,8 @@ function Get-AtlasPowerPlanValue {
 
 function Test-AtlasPowerPlanDrift {
     param([string]$StateName)
+    # The Atlas plan's fixed GUID and, below, its four AC settings must match what
+    # Set-AtlasPowerSavingState (Atlas.Hardware) applies.
     $root = 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes'
     $atlas = '11111111-1111-1111-1111-111111111111'
     $issue = {

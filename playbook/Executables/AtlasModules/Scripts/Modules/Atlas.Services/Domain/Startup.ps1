@@ -1,7 +1,14 @@
 # Atlas.Services domain: service and driver startup configuration.
 # Start values: 0 = Boot, 1 = System, 2 = Automatic, 3 = Manual, 4 = Disabled.
+# https://learn.microsoft.com/windows-hardware/drivers/install/inf-addservice-directive
 
 function Assert-AtlasServiceRegistryName {
+    <#
+    .SYNOPSIS
+        Throws unless a name can only address one key directly under Services: no path
+        separators, no ']' (it would end a .reg section), no control characters, and
+        at most 256 characters, the service name limit.
+    #>
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -20,6 +27,26 @@ function Assert-AtlasServiceRegistryName {
 }
 
 function Set-AtlasServiceStartup {
+    <#
+    .SYNOPSIS
+        Sets the Start value of a service or driver and checks that it kept it.
+    .DESCRIPTION
+        Writes the Start value in the service's registry key, because Set-Service can't
+        change protected services or drivers, then reads it back, because a
+        tamper-protected service can silently discard the write. A running service
+        keeps running. A missing service is skipped when disabling, since it can't
+        run anyway.
+    .PARAMETER Name
+        The service or driver key name under HKLM\SYSTEM\CurrentControlSet\Services.
+    .PARAMETER StartupType
+        The Start value: 0 Boot, 1 System, 2 Automatic, 3 Manual or 4 Disabled.
+    .PARAMETER AllowMissing
+        Logs and skips a missing service instead of throwing.
+    .PARAMETER PassThru
+        Returns an object with Name, Applied and StartupType.
+    .PARAMETER ServicesRoot
+        The Services key to change. Tests pass an isolated registry root.
+    #>
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -32,7 +59,6 @@ function Set-AtlasServiceStartup {
         [switch]$AllowMissing,
         [switch]$PassThru,
 
-        # Tests can supply an isolated registry root.
         [ValidateNotNullOrEmpty()]
         [string]$ServicesRoot = 'HKLM:\SYSTEM\CurrentControlSet\Services'
     )
@@ -99,6 +125,13 @@ function Set-AtlasServiceStartup {
 }
 
 function Stop-AtlasService {
+    <#
+    .SYNOPSIS
+        Stops a service and the services that depend on it, logging a warning instead
+        of failing when it can't.
+    .PARAMETER Name
+        The service name.
+    #>
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]

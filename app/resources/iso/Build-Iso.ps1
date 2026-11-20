@@ -1,4 +1,25 @@
-# Host-side image worker. Never runs an Atlas package or writes host setup keys.
+<#
+.SYNOPSIS
+    Checks a Windows ISO and builds Atlas installation media from it.
+.DESCRIPTION
+    The host-side image worker. It never runs an Atlas package or writes the host's
+    setup keys. Atlas Manager stages it in a protected media job folder (see
+    Stage-App.ps1) and runs it elevated with -File; app\tools\Run-IsoValidation.ps1
+    runs it the same way outside the app.
+
+    It writes lines for the app on standard output: ATLAS_STAGE for each stage,
+    ATLAS_ERROR with a typed failure reason, ATLAS_RESULT with the ISO's editions, size
+    and architecture, and ATLAS_NOTE when this PC has no network drivers to copy. A file
+    named cancel in the job folder stops the build at the next stage.
+.PARAMETER RequestFile
+    The request.json Atlas Manager writes in the job folder: the source ISO, the output
+    path, the Atlas package and app to add, and the setup choices.
+.PARAMETER Operation
+    Inspect checks the ISO and reports what it contains. Build also writes the new ISO.
+.NOTES
+    Exit codes: 0 inspected or built, 1 failed or cancelled (the error is on standard
+    error).
+#>
 [CmdletBinding()]
 param([Parameter(Mandatory)][string]$RequestFile, [ValidateSet('Inspect', 'Build')][string]$Operation)
 # This elevated worker must never autoload a module from an inherited user path.
@@ -175,6 +196,7 @@ try {
         if (-not (Test-Path -LiteralPath (Join-Path $root $relative) -PathType Leaf)) { Fail 'windows-unsupported' "Windows $architecture boot file missing: $relative" }
     }
     if ($request.copyNetworkDrivers) {
+        # Win32_Processor reports architecture with the same codes as DISM.
         $hostArchitectures = @(Get-CimInstance Win32_Processor | Select-Object -ExpandProperty Architecture -Unique)
         if ($hostArchitectures.Count -ne 1 -or [int]$hostArchitectures[0] -ne [int]$supportedEditions[0].Architecture) {
             Fail 'network-architecture' 'Network drivers cannot be copied between x64 and ARM64. Choose media for this PC or turn off network driver copying.'
@@ -196,7 +218,8 @@ try {
     $id = [guid]::NewGuid().ToString('N')
     $work = Join-Path $parent ".atlas-iso-$id"
     $partial = Join-Path $parent ".atlas-iso-$id.partial"
-    # The elevated worker creates the private tree with its final ACL atomically.
+    # The elevated worker creates the private tree with its final ACL atomically:
+    # full control for SYSTEM (S-1-5-18) and Administrators (S-1-5-32-544) only.
     $acl = New-Object Security.AccessControl.DirectorySecurity
     $acl.SetAccessRuleProtection($true, $false)
     foreach ($sid in @('S-1-5-18', 'S-1-5-32-544')) {
@@ -241,6 +264,8 @@ try {
     if ($request.drivers -notin @('automatic','manual')) { throw 'Choose an automatic or manual driver policy.' }
     $config = @{ schema = 2; mode = $request.mode; options = @($request.options); username = $username; drivers = $request.drivers }
     [IO.File]::WriteAllText((Join-Path $target 'setup.json'), ($config | ConvertTo-Json -Compress), (New-Object Text.UTF8Encoding($false)))
+    # ProtectYourPC answers the OOBE Express settings question, so OOBE doesn't ask it;
+    # 3 is Microsoft's documented value for automatic protection turned off.
     $answer = @'
 <?xml version="1.0" encoding="utf-8"?>
 <unattend xmlns="urn:schemas-microsoft-com:unattend">

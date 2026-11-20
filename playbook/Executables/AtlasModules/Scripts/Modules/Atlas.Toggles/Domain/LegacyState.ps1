@@ -1,7 +1,15 @@
-# Only known legacy records are translated. Paths identify old launchers as data;
-# they are never opened or executed. Current records have no launcher path.
+# Atlas.Toggles domain: toggle records that older Atlas launchers and the Toolbox left.
+#
+# The state-store step of an install and upgrade replay translate them, as TrustedInstaller,
+# before any record is replayed. Only known legacy records are translated. Paths identify
+# old launchers as data; they are never opened or executed. Current records have no
+# launcher path.
 
 function Get-AtlasLegacyToggleObservedState {
+    <#
+    .SYNOPSIS
+        Returns the state a legacy toggle's live setting shows, or $null when it can't tell.
+    #>
     param([Parameter(Mandatory = $true)][string]$Name)
 
     $base = [Microsoft.Win32.Registry]::LocalMachine
@@ -66,6 +74,11 @@ function Get-AtlasLegacyToggleObservedState {
 }
 
 function Repair-AtlasLegacyToggleState {
+    <#
+    .SYNOPSIS
+        Corrects a legacy record whose launcher file name names a different choice from
+        its state value.
+    #>
     param([Parameter(Mandatory = $true)]$Key)
 
     $value = $Key.GetValue('state', $null)
@@ -109,6 +122,11 @@ function Repair-AtlasLegacyToggleState {
 }
 
 function Repair-AtlasLegacyToggleAlias {
+    <#
+    .SYNOPSIS
+        Moves records that older launchers wrote under the wrong toggle name
+        (VerboseStatusMessage, AutomaticUpdates) to the toggle they belong to.
+    #>
     param([Parameter(Mandatory = $true)][string]$StateRoot)
 
     foreach ($name in @('VerboseStatusMessage', 'AutomaticUpdates')) {

@@ -1,6 +1,7 @@
 <#
 .SYNOPSIS
-    Compiles the Atlas native surface (Atlas.Native.cs) into Atlas.Native.dll.
+    Compiles Atlas's native code (Atlas.Native.cs, the C# types Atlas loads into
+    Windows PowerShell) into Atlas.Native.dll.
 .DESCRIPTION
     Atlas compiles Scripts\Modules\Atlas.Core\Native\Atlas.Native.cs at runtime with
     Add-Type, once per process, through a protected compiler directory. This tool builds
@@ -16,8 +17,8 @@
     but its output is not reproducible and must not be released.
 
     Without -SignCertificateThumbprint the DLL is left unsigned and Atlas keeps
-    compiling from source. Releasing a DLL requires a code-signing certificate that the
-    project does not have yet; this tool is the complete build step for when it does.
+    compiling from source. Releasing a DLL requires a code-signing certificate; with
+    one, this tool is the complete build step.
 .PARAMETER OutputPath
     Directory for Atlas.Native.dll and Atlas.Native.dll.sha256. Defaults to
     artifacts\native under the repository root.
@@ -113,6 +114,8 @@ $hashPath = "$dllPath.sha256"
 Remove-Item -LiteralPath $dllPath, $hashPath -Force -ErrorAction SilentlyContinue
 
 $references = Get-FrameworkReference | ForEach-Object { "/reference:$_" }
+# C# 5 is the newest language the .NET Framework compiler behind Add-Type accepts, so
+# both builds take the same source.
 $arguments = @(
     '/nologo'
     '/target:library'

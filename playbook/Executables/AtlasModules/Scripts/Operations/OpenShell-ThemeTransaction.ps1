@@ -1,4 +1,6 @@
-# Transactional publication for the pinned Open-Shell theme files.
+# Transactional publication for the pinned Open-Shell theme files: every file is
+# checked, replaced with a backup, and rolled back together if any step fails.
+# Install-OpenShellTheme.ps1 dot-sources it in Install-OpenShell.ps1's elevated process.
 
 function Get-AtlasOpenShellThemeFileSha256 {
     [CmdletBinding()]

@@ -37,6 +37,7 @@ function New-AtlasToggleStateAcl {
     # Keep the state readable by ordinary launcher processes, but writable only by the
     # privileged identities that apply Atlas and its TrustedInstaller-only toggles.
     $rules = @(
+        # LocalSystem, Administrators, NT SERVICE\TrustedInstaller and Users.
         @{ Sid = 'S-1-5-18'; Rights = [System.Security.AccessControl.RegistryRights]::FullControl }
         @{ Sid = 'S-1-5-32-544'; Rights = [System.Security.AccessControl.RegistryRights]::FullControl }
         @{ Sid = 'S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464'; Rights = [System.Security.AccessControl.RegistryRights]::FullControl }
@@ -160,10 +161,15 @@ function Remove-AtlasToggleLegacyPath {
 }
 
 function Repair-AtlasLegacyContextMenuState {
+    <#
+    .SYNOPSIS
+        Corrects the OldContextMenu record that Atlas 0.5 launchers left.
+    .DESCRIPTION
+        Both 0.5 launchers wrote state 0. The file name distinguishes their intent;
+        the stored path is never executed.
+    #>
     param([Parameter(Mandatory = $true)]$Key)
 
-    # Both 0.5 launchers wrote state 0. The filename distinguishes their intent;
-    # the stored path is never executed.
     if ($Key.PSChildName -eq 'OldContextMenu' -and
         $Key.GetValue('state', $null) -eq 0 -and
         $Key.GetValueKind('state') -eq [Microsoft.Win32.RegistryValueKind]::DWord -and
@@ -177,10 +183,15 @@ function Repair-AtlasLegacyContextMenuState {
 }
 
 function Repair-AtlasLegacyVerboseMessagesState {
+    <#
+    .SYNOPSIS
+        Corrects the VerboseMessages record that the Atlas 0.5 disable launcher left.
+    .DESCRIPTION
+        That launcher wrote state 1. Its file name identifies the disabled choice; the
+        stored path is inspected as data and never executed.
+    #>
     param([Parameter(Mandatory = $true)]$Key)
 
-    # The 0.5 disable launcher wrote state 1. Its filename identifies the disabled
-    # choice; the stored path is inspected as data and never executed.
     if ($Key.PSChildName -eq 'VerboseMessages' -and
         $Key.GetValue('state', $null) -eq 1 -and
         $Key.GetValueKind('state') -eq [Microsoft.Win32.RegistryValueKind]::DWord -and

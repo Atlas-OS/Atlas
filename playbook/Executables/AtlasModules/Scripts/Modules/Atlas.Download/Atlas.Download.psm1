@@ -1,7 +1,7 @@
-# Atlas.Download - size-limited HTTPS downloads, protected staging, contained native
-# execution, GitHub release resolution, and trusted WinGet resolution for elevated
-# Atlas callers. Entry points establish the protected module boundary before
-# importing this module; it does not alter the process environment itself.
+# Atlas.Download: size-limited HTTPS downloads, protected staging, contained native
+# execution, GitHub release resolution and trusted WinGet resolution for elevated
+# Atlas callers. Entry points set up the protected module path before importing this
+# module; it doesn't change the process environment itself.
 
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Scope = 'Function', Target = 'New-AtlasProtectedStagingAcl')]
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Scope = 'Function', Target = 'New-AtlasDirectoryWithSecurity')]
@@ -20,7 +20,17 @@ if (-not (Test-Path -LiteralPath $coreManifest -PathType Leaf)) {
 # No -Force: a nested forced import unloads the caller's copy in Windows PowerShell 5.1.
 Import-Module -Name $coreManifest -ErrorAction Stop
 
+# The accounts allowed to write protected staging and execution paths: LocalSystem
+# (S-1-5-18), BUILTIN\Administrators (S-1-5-32-544) and NT SERVICE\TrustedInstaller
+# (S-1-5-80-956008885-...), a service SID that Windows derives from the service name.
+# https://learn.microsoft.com/windows-server/identity/ad-ds/manage/understand-security-identifiers
+
 function New-AtlasProtectedStagingAcl {
+    <#
+    .SYNOPSIS
+        Builds the staging directory security: owned by Administrators, inheritance
+        blocked, and full control for the three privileged accounts only.
+    #>
     $administrators = New-Object Security.Principal.SecurityIdentifier('S-1-5-32-544')
     $security = New-Object Security.AccessControl.DirectorySecurity
     $security.SetOwner($administrators)
@@ -46,6 +56,16 @@ function New-AtlasProtectedStagingAcl {
 }
 
 function Test-AtlasProtectedStagingAcl {
+    <#
+    .SYNOPSIS
+        Returns whether a directory's security matches the protected staging ACL exactly.
+    .DESCRIPTION
+        The ACL must be owned by Administrators, block inheritance, and hold exactly one
+        explicit full-control Allow rule for each privileged account, so no other
+        account can plant or change files that elevated Atlas code later runs.
+    .PARAMETER Acl
+        The directory security to check, usually from Get-Acl.
+    #>
     param(
         [Parameter(Mandatory = $true)]
         [Security.AccessControl.DirectorySecurity]$Acl
@@ -74,6 +94,14 @@ function Test-AtlasProtectedStagingAcl {
 }
 
 function New-AtlasDirectoryWithSecurity {
+    <#
+    .SYNOPSIS
+        Creates a directory with its security applied at creation, so it never exists
+        with inherited permissions.
+    .DESCRIPTION
+        .NET Framework has Directory.CreateDirectory(string, DirectorySecurity); .NET
+        (PowerShell 7) moved it to FileSystemAclExtensions.Create, so both are tried.
+    #>
     param(
         [Parameter(Mandatory = $true)][string]$Path,
         [Parameter(Mandatory = $true)]
@@ -97,6 +125,14 @@ function New-AtlasDirectoryWithSecurity {
 }
 
 function New-AtlasProtectedStagingDirectory {
+    <#
+    .SYNOPSIS
+        Creates a uniquely named staging directory under %ProgramData% that only the
+        privileged accounts can write, and returns its full path.
+    .DESCRIPTION
+        Throws, after removing the directory, if it didn't keep the protected ACL.
+        The caller owns the directory and removes it when finished.
+    #>
     $root = [Environment]::GetFolderPath('CommonApplicationData')
     if (-not [IO.Directory]::Exists($root)) {
         throw "The common application-data directory '$root' is unavailable."
@@ -112,6 +148,29 @@ function New-AtlasProtectedStagingDirectory {
 }
 
 function Invoke-AtlasBoundedHttpGet {
+    <#
+    .SYNOPSIS
+        Streams an HTTPS GET into OutputStream, failing past MaximumBytes or
+        MaximumSeconds, and returns the number of bytes written.
+    .DESCRIPTION
+        Rejects URIs that aren't HTTPS or that carry user information, any non-success
+        status, and a redirect that leaves HTTPS. The deadline covers the whole
+        transfer, not each read.
+    .PARAMETER Uri
+        The HTTPS address to download.
+    .PARAMETER OutputStream
+        The writable stream that receives the response body. The caller disposes it.
+    .PARAMETER MaximumBytes
+        The most bytes accepted, checked against Content-Length and while reading.
+    .PARAMETER MaximumSeconds
+        The time allowed for the whole request, from sending it to the last byte.
+    .PARAMETER ExpectedBytes
+        Exact length required, or -1 for any.
+    .PARAMETER AllowRedirect
+        Follows up to five HTTPS redirects. Without it, any redirect fails.
+    .PARAMETER GitHubApi
+        Sends the Accept and X-GitHub-Api-Version headers the GitHub REST API expects.
+    #>
     param(
         [Parameter(Mandatory = $true)][uri]$Uri,
         [Parameter(Mandatory = $true)][IO.Stream]$OutputStream,
@@ -190,6 +249,24 @@ function Invoke-AtlasBoundedHttpGet {
 }
 
 function Invoke-AtlasPinnedDownload {
+    <#
+    .SYNOPSIS
+        Downloads a file whose exact size and SHA-256 are known in advance, and returns
+        its full path.
+    .DESCRIPTION
+        Creates Destination as a new file, so an existing file is never overwritten.
+        On any failure, including a size or hash mismatch, the partial file is removed.
+    .PARAMETER Uri
+        The HTTPS address to download. HTTPS redirects are followed.
+    .PARAMETER Destination
+        The file to create. It must not exist; its parent directory must.
+    .PARAMETER Sha256
+        The expected SHA-256 as 64 hexadecimal characters, in either case.
+    .PARAMETER ExpectedBytes
+        The exact file length, which is also the download limit.
+    .PARAMETER MaximumSeconds
+        The time allowed for the whole download.
+    #>
     param(
         [Parameter(Mandatory = $true)][uri]$Uri,
         [Parameter(Mandatory = $true)][string]$Destination,
@@ -239,6 +316,17 @@ function Invoke-AtlasPinnedDownload {
 }
 
 function Test-AtlasProtectedExecutionAcl {
+    <#
+    .SYNOPSIS
+        Returns whether only the privileged accounts can change a file or directory
+        that elevated code will run or read.
+    .DESCRIPTION
+        The owner must be a privileged account, the ACL must be in canonical order, and
+        no Allow rule, explicit or inherited, may give another account Modify,
+        ChangePermissions or TakeOwnership.
+    .PARAMETER Acl
+        The file or directory security to check, usually from Get-Acl.
+    #>
     param(
         [Parameter(Mandatory = $true)]
         [Security.AccessControl.FileSystemSecurity]$Acl
@@ -267,6 +355,21 @@ function Test-AtlasProtectedExecutionAcl {
 }
 
 function Resolve-AtlasProtectedExecutionPath {
+    <#
+    .SYNOPSIS
+        Returns the full path of an existing local file or directory that is safe to
+        pass to process creation, or throws.
+    .DESCRIPTION
+        Accepts only an absolute drive path. Rejects NUL characters, alternate data
+        streams, reparse points (symbolic links and junctions), empty files, and an
+        item of the other type.
+    .PARAMETER Path
+        The absolute drive path to check.
+    .PARAMETER PathType
+        Leaf for a non-empty file, or Container for a directory.
+    .PARAMETER Description
+        Names the path in error messages, for example 'The executable'.
+    #>
     param(
         [Parameter(Mandatory = $true)][string]$Path,
         [Parameter(Mandatory = $true)]
@@ -292,6 +395,11 @@ function Resolve-AtlasProtectedExecutionPath {
 }
 
 function ConvertTo-AtlasDownloadProcessArgument {
+    <#
+    .SYNOPSIS
+        Quotes one argument so CommandLineToArgvW and the C runtime parse it back
+        unchanged: backslashes are doubled only before a quote.
+    #>
     param([Parameter(Mandatory = $true)][AllowEmptyString()][string]$Argument)
 
     if ($Argument.IndexOf([char]0) -ge 0) { throw 'A process argument cannot contain NUL.' }
@@ -317,6 +425,17 @@ function ConvertTo-AtlasDownloadProcessArgument {
 }
 
 function Test-AtlasContainedProcessContainmentUnconfirmed {
+    <#
+    .SYNOPSIS
+        Returns whether an exception from Invoke-AtlasContainedProcess means the
+        process tree may still be running.
+    .DESCRIPTION
+        Atlas.Native marks the exception, or one it wraps, when it couldn't confirm
+        that the job object terminated every process. Callers then keep the staging
+        directory rather than delete files a live process may still use.
+    .PARAMETER Exception
+        The caught exception; its inner exceptions are checked too.
+    #>
     param([Parameter(Mandatory = $true)][Exception]$Exception)
 
     for ($current = $Exception; $null -ne $current; $current = $current.InnerException) {
@@ -329,6 +448,31 @@ function Test-AtlasContainedProcessContainmentUnconfirmed {
 }
 
 function Invoke-AtlasContainedProcess {
+    <#
+    .SYNOPSIS
+        Runs an executable inside a job object and waits for its whole process tree,
+        returning an object whose ExitCodeUInt32 is the root process's exit code.
+    .DESCRIPTION
+        The process starts suspended and joins a kill-on-close job before it runs, so
+        every process it starts belongs to the job. The call returns when the root has
+        exited and the job is empty. Past TimeoutSeconds, the job is terminated and the
+        call throws. Check a failure with Test-AtlasContainedProcessContainmentUnconfirmed
+        before deleting files the process used.
+    .PARAMETER FilePath
+        The absolute path of the executable, checked by Resolve-AtlasProtectedExecutionPath.
+    .PARAMETER ArgumentList
+        Up to 128 arguments, each quoted for the Windows command-line parser.
+    .PARAMETER WorkingDirectory
+        The absolute path of an existing directory to start in.
+    .PARAMETER Description
+        Names the process in error messages.
+    .PARAMETER TimeoutSeconds
+        The time allowed for the whole process tree; 30 minutes by default.
+    .PARAMETER Hidden
+        Starts the process with its window hidden (SW_HIDE).
+    .PARAMETER NoWindow
+        Starts a console process without a console window (CREATE_NO_WINDOW).
+    #>
     param(
         [Parameter(Mandatory = $true)][string]$FilePath,
         [AllowEmptyCollection()][string[]]$ArgumentList = @(),
@@ -340,6 +484,8 @@ function Invoke-AtlasContainedProcess {
     )
 
     if ($ArgumentList.Count -gt 128) { throw 'At most 128 process arguments are supported.' }
+    # CreateProcessW accepts a command line of at most 32,767 characters, including
+    # the terminating NUL.
     $executable = Resolve-AtlasProtectedExecutionPath `
         -Path $FilePath -PathType Leaf -Description 'The executable'
     $working = Resolve-AtlasProtectedExecutionPath `
@@ -376,6 +522,15 @@ function Invoke-AtlasContainedProcess {
 }
 
 function Resolve-AtlasGitHubRepositoryMetadata {
+    <#
+    .SYNOPSIS
+        Checks GitHub repository metadata against the expected numeric repository and
+        owner IDs, and throws if it doesn't match.
+    .DESCRIPTION
+        Numeric IDs survive renames and can't be taken over by a new account with the
+        same name, so a renamed or re-registered repository fails the check. Private
+        and archived repositories fail too.
+    #>
     param(
         [Parameter(Mandatory = $true)]$RepositoryMetadata,
         [Parameter(Mandatory = $true)][string]$Owner,
@@ -404,6 +559,18 @@ function Resolve-AtlasGitHubRepositoryMetadata {
 }
 
 function Invoke-AtlasGitHubApiJson {
+    <#
+    .SYNOPSIS
+        Fetches one GitHub REST API document of at most 1 MiB within 30 seconds and
+        returns it parsed from JSON.
+    .DESCRIPTION
+        Only https://api.github.com addresses without a port, query or fragment are
+        accepted, and redirects are refused. The body must be valid UTF-8.
+    .PARAMETER Uri
+        The GitHub REST API address.
+    .PARAMETER Description
+        Names the document in error messages.
+    #>
     param(
         [Parameter(Mandatory = $true)][uri]$Uri,
         [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$Description
@@ -426,6 +593,15 @@ function Invoke-AtlasGitHubApiJson {
 }
 
 function Resolve-AtlasGitHubReleaseAssetMetadata {
+    <#
+    .SYNOPSIS
+        Picks one named asset from GitHub release metadata and returns its tag,
+        version, download address, SHA-256, size and asset ID.
+    .DESCRIPTION
+        The release must be a published, non-prerelease vX.Y.Z tag. The asset must be
+        fully uploaded, at most 1 GiB, carry GitHub's sha256 digest, and have the
+        canonical download address for the repository and tag.
+    #>
     param(
         [Parameter(Mandatory = $true)]$Release,
         [Parameter(Mandatory = $true)][string]$Owner,
@@ -465,6 +641,24 @@ function Resolve-AtlasGitHubReleaseAssetMetadata {
 }
 
 function Get-AtlasLatestGitHubReleaseAsset {
+    <#
+    .SYNOPSIS
+        Resolves a named asset of a repository's latest stable GitHub release, after
+        checking the repository's identity.
+    .DESCRIPTION
+        Returns the Tag, Version, Uri, Sha256, Size and AssetId to pass to
+        Invoke-AtlasPinnedDownload, so the download is checked against GitHub's digest.
+    .PARAMETER Owner
+        The repository owner's login.
+    .PARAMETER Repository
+        The repository name.
+    .PARAMETER AssetName
+        The exact, case-sensitive asset file name.
+    .PARAMETER ExpectedRepositoryId
+        GitHub's numeric repository ID, which a rename or re-registration doesn't keep.
+    .PARAMETER ExpectedOwnerId
+        GitHub's numeric account ID of the owner.
+    #>
     param(
         [Parameter(Mandatory = $true)][string]$Owner,
         [Parameter(Mandatory = $true)][string]$Repository,
@@ -486,6 +680,17 @@ function Get-AtlasLatestGitHubReleaseAsset {
 }
 
 function Get-AtlasTrustedWingetPath {
+    <#
+    .SYNOPSIS
+        Returns the path of a Microsoft-signed winget.exe from an installed Desktop App
+        Installer, or throws.
+    .DESCRIPTION
+        Ignores PATH and the per-user execution alias. A candidate package must have
+        Microsoft's family name, publisher and Store signature and be installed under
+        %ProgramFiles%\WindowsApps; its winget.exe must be a normal file with a valid
+        Authenticode signature from Microsoft Corporation. The newest match wins.
+        Administrators also consider other accounts' registrations.
+    #>
     if (-not [Environment]::Is64BitProcess) {
         throw 'The trusted WinGet resolver requires a 64-bit PowerShell host.'
     }
@@ -545,6 +750,11 @@ function Get-AtlasTrustedWingetPath {
 }
 
 function Test-AtlasCanonicalWingetSource {
+    <#
+    .SYNOPSIS
+        Returns whether an exported WinGet source matches Microsoft's default
+        registration of that source: type, address, identifier and trust level.
+    #>
     param(
         [Parameter(Mandatory = $true)][psobject]$Source,
         [Parameter(Mandatory = $true)]
@@ -570,6 +780,17 @@ function Test-AtlasCanonicalWingetSource {
 }
 
 function Assert-AtlasTrustedWingetSource {
+    <#
+    .SYNOPSIS
+        Throws unless a WinGet source still has Microsoft's default registration.
+    .DESCRIPTION
+        Runs 'winget source export' and compares the result, so a source that was
+        replaced or pointed at another address isn't used to install software.
+    .PARAMETER WingetPath
+        The winget.exe to run, from Get-AtlasTrustedWingetPath.
+    .PARAMETER Name
+        The source to check: winget or msstore.
+    #>
     param(
         [Parameter(Mandatory = $true)][string]$WingetPath,
         [Parameter(Mandatory = $true)]

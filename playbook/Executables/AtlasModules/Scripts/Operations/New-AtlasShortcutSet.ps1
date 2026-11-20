@@ -1,3 +1,14 @@
+<#
+.SYNOPSIS
+    Creates the Atlas folder shortcut and the services restore shortcut.
+.DESCRIPTION
+    Puts the Atlas shortcut on the Default User profile's desktop, so new accounts get it,
+    and in the common Start menu. It also links "Set services to defaults" into the
+    Services folder of the Atlas desktop folder.
+
+    The install's 'Create Shortcuts' tweak runs it with the call operator as
+    TrustedInstaller. It throws on failure.
+#>
 $windir = [Environment]::GetFolderPath('Windows')
 . (Join-Path -Path $windir -ChildPath 'AtlasModules\Scripts\Initialize-AtlasPowerShell.ps1')
 

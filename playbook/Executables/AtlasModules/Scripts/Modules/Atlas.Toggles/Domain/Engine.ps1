@@ -5,7 +5,7 @@
 # declared elevation and is recorded, user work runs in the launching user's own
 # non-elevated process, and an Elevation = 'None' toggle runs everything locally.
 #
-# The launcher never elevates - the engine does. Companion functions run under strict
+# The launcher never elevates; the engine does. Companion functions run under strict
 # mode with terminating errors, so a failed action can never be recorded as applied.
 
 # Keep these in file-name sort order: Invoke-AtlasServiceDefaultsReset compares them
@@ -77,10 +77,14 @@ function Resolve-AtlasToggleStateName {
 }
 
 function Start-AtlasToggleAdminRelaunch {
+    <#
+    .SYNOPSIS
+        Starts the elevated toggle child through the UAC prompt and waits for it to exit.
+    #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
         'PSUseShouldProcessForStateChangingFunctions',
         '',
-        Justification = 'This private boundary always launches the fixed, user-confirmed elevated toggle child.'
+        Justification = 'This private helper always launches the fixed, user-confirmed elevated toggle child.'
     )]
     [CmdletBinding()]
     param(
@@ -121,7 +125,7 @@ function Get-AtlasToggleRelaunchArgumentList {
     .SYNOPSIS
         Reconstructs the Invoke-Toggle.ps1 argument list used to relaunch the current
         invocation in an elevated context. Returns plain argv elements;
-        Start-AtlasToggleAdminRelaunch serializes them into the command line.
+        Start-AtlasToggleAdminRelaunch serialises them into the command line.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -204,6 +208,7 @@ function Invoke-AtlasToggleElevatedChild {
         $adminProcess = Start-AtlasToggleAdminRelaunch -FilePath $powershellPath -ArgumentList $ArgumentList
     }
     catch [ComponentModel.Win32Exception] {
+        # 1223 is ERROR_CANCELLED: the user declined the UAC prompt.
         if ($_.Exception.NativeErrorCode -eq 1223) {
             if ($UserWorkApplied) {
                 $cancelled = [InvalidOperationException]::new(
@@ -411,6 +416,7 @@ function Get-AtlasToggleUserCallerBinding {
         $identity.Dispose()
     }
     $sidObject = New-Object Security.Principal.SecurityIdentifier($sid)
+    # S-1-5-18, -19 and -20 are LocalSystem, LocalService and NetworkService.
     if (-not $sidObject.IsAccountSid() -or $sid -cne $sidObject.Value -or
         $sid -in @('S-1-5-18', 'S-1-5-19', 'S-1-5-20')) {
         throw "Toggle user-work token SID '$sid' is not a canonical account SID."
@@ -592,7 +598,7 @@ function Invoke-AtlasToggleInProcess {
     .SYNOPSIS
         Runs one scope of one state in the current process: optional preamble and
         ContextAction, the scoped work, the state record (machine scope only) and the
-        reboot or shell-refresh follow-up.
+        restart or shell-refresh follow-up.
     .DESCRIPTION
         When a state also has user work, the machine scope returns after recording so
         the non-elevated caller can finish with the user scope and the follow-up.
@@ -851,7 +857,7 @@ function Invoke-AtlasToggle {
         Applies a toggle state: resolves the definition, runs its machine work under
         the declared elevation (relaunching through UAC or the TrustedInstaller broker
         when needed), records the state only after that work completes, runs its user
-        work in the launching user's own process, and handles the reboot or
+        work in the launching user's own process, and handles the restart or
         Explorer-refresh follow-up.
     #>
     [CmdletBinding()]
@@ -988,7 +994,7 @@ function Invoke-AtlasToggle {
 
     if ($work.User) {
         # The user part must run under the launching user's own medium token, so the
-        # machine part goes to a privileged child and this process finishes afterward.
+        # machine part goes to a privileged child and this process finishes afterwards.
         if ($isTrustedInstaller -or $isSystem -or $isAdmin) {
             throw "Toggle '$Name' has per-user work and must be launched from a non-elevated user process so that work cannot inherit an elevated token."
         }

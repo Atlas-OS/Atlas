@@ -32,6 +32,7 @@ function Add-AtlasMusicVideosToHome {
         A missing shell folder is logged and skipped rather than failing setup.
     #>
     $shell = Get-AtlasShellApplication
+    # The shell folder CLSID of File Explorer Home (Quick access).
     $homeNamespace = $shell.Namespace('shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}')
     if ($null -eq $homeNamespace) {
         throw 'Could not open the File Explorer Home namespace.'

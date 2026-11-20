@@ -147,6 +147,7 @@ function Assert-AtlasSendToUser {
             throw 'The Send-To process token has no user SID.'
         }
         $actualSid = $identity.User.Value
+        # LocalSystem, LocalService and NetworkService.
         if (-not $identity.User.IsAccountSid() -or
             $actualSid -in @('S-1-5-18', 'S-1-5-19', 'S-1-5-20')) {
             throw "Send-To requires a user account token, not '$actualSid'."

@@ -70,9 +70,12 @@ function Get-AtlasRegistryCurrentTokenSid {
         -Label 'Current process token SID'
 }
 
-# The install context, after checking it is install-state backed and belongs to the
-# expected transaction.
 function Get-AtlasActiveRegistryTransaction {
+    <#
+    .SYNOPSIS
+        Returns the install context, after checking that it's backed by install state
+        and belongs to the expected transaction.
+    #>
     param(
         [Parameter(Mandatory = $true)][string]$Mode,
         [AllowEmptyString()][string]$TransactionId

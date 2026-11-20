@@ -1,4 +1,4 @@
-# Atlas.Registry - registry engine module.
+# Atlas.Registry: registry engine module.
 Set-StrictMode -Version 3.0
 
 $coreManifest = Join-Path -Path $PSScriptRoot -ChildPath '..\Atlas.Core\Atlas.Core.psd1'

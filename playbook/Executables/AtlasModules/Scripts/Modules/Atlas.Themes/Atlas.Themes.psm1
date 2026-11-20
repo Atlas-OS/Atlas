@@ -1,4 +1,4 @@
-# Atlas.Themes - theme and lock screen image module.
+# Atlas.Themes: theme and lock screen image module.
 Set-StrictMode -Version 3.0
 
 # Atlas.Native types come from Atlas.Core, which owns Atlas's only C# compile.

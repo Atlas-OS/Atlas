@@ -1,6 +1,11 @@
 # Whether a Windows build is a public release. This says nothing about whether the
 # installation or media is genuine. Dot-sourcing only defines functions; the network
 # is used only when the bundled catalog cannot decide.
+#
+# Install-Atlas.ps1 dot-sources it elevated to check the running Windows before an
+# install, and Atlas Manager's elevated ISO worker (Build-Iso.ps1) checks the chosen media
+# with it. tools/dev/Update-WindowsReleaseCatalog.ps1 uses it to refresh
+# windows-releases.json.
 function ConvertFrom-AtlasWindowsReleaseMarkdown {
     [CmdletBinding()]
     param(
@@ -145,6 +150,6 @@ function Get-AtlasWindowsReleaseStatus {
         # page doesn't list yet.
         return 'Unlisted'
     } catch { Write-Verbose "Windows release information is unavailable: $_" }
-    # Neither missing enrollment indicators nor a failed lookup proves an Insider build.
+    # Neither missing enrolment indicators nor a failed lookup proves an Insider build.
     'Unknown'
 }

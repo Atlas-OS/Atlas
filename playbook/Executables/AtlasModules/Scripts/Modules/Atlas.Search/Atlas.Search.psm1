@@ -1,4 +1,4 @@
-# Atlas.Search - Windows Search indexing configuration module.
+# Atlas.Search: Windows Search indexing configuration module.
 Set-StrictMode -Version 3.0
 
 $coreManifest = Join-Path -Path $PSScriptRoot -ChildPath '..\Atlas.Core\Atlas.Core.psd1'

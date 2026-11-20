@@ -1,4 +1,4 @@
-# Atlas.TasksProcs - scheduled task and process helper module.
+# Atlas.TasksProcs: scheduled task and process helper module.
 Set-StrictMode -Version 3.0
 
 $coreManifestPath = Join-Path $PSScriptRoot '..\Atlas.Core\Atlas.Core.psd1'

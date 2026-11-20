@@ -168,6 +168,17 @@ function Wait-AtlasExplorerShellRecovery {
 }
 
 function Stop-AtlasProcessUnderRoot {
+    <#
+    .SYNOPSIS
+        Force-stops every process whose executable lies under one of the given folders,
+        waiting up to five seconds for each to exit, so the files there can be
+        replaced. Processes that can't be read or stopped are skipped.
+    .PARAMETER RootsLower
+        The folders, in any case. Each is made absolute and given a trailing
+        backslash, so C:\Atlas doesn't match C:\AtlasOther.
+    .PARAMETER SessionId
+        Limits the stop to processes in this Windows session.
+    #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
         'PSUseShouldProcessForStateChangingFunctions', '',
         Justification = 'This internal cleanup helper is called from a non-interactive install phase.'

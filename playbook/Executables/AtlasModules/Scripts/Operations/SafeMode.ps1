@@ -1,3 +1,18 @@
+<#
+.SYNOPSIS
+    Sets the Safe Mode that Windows starts in from the next restart, or leaves it.
+.DESCRIPTION
+    Changes the safeboot and safebootalternateshell values of the current boot entry
+    with bcdedit. The SafeMode toggle runs this script with the call operator in its
+    elevated process, so a failure is a terminating error, not an exit code. While a CBS
+    retry is waiting, only Exit is allowed.
+
+    CbsRetry.ps1 dot-sources it with -LibraryOnly.
+.PARAMETER Mode
+    Minimal, Networking or CommandPrompt for that Safe Mode, or Exit to start normally.
+.PARAMETER LibraryOnly
+    Only defines the functions, for callers that dot-source the script.
+#>
 [CmdletBinding()]
 param(
     [ValidateSet('Minimal', 'Networking', 'CommandPrompt', 'Exit')]

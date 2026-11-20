@@ -1,11 +1,24 @@
-# Shows a native Action Center toast under an "Atlas" sender name. Registers a minimal
-# AppUserModelId under HKCU the first time it runs - the same technique BurntToast uses
-# for unpackaged scripts - since Windows won't attribute a toast to "Atlas" without one.
+<#
+.SYNOPSIS
+    Shows a native toast from the sender "Atlas".
+.DESCRIPTION
+    Windows attributes a toast from an unpackaged script only to a registered
+    AppUserModelId, so the first run registers a minimal one under HKCU.
+
+    Atlas scripts run this with the call operator in the signed-in user's own process:
+    first sign-in setup and Open Terminal Here. It reports a failure as an error, not
+    as an exit code.
+.PARAMETER Title
+    The first line of the toast.
+.PARAMETER Message
+    The second line of the toast.
+.PARAMETER Persistent
+    Keeps the toast on screen until the user dismisses it, for a notice the user may
+    only see when they come back to the PC, such as the end of an install.
+#>
 param(
     [Parameter(Mandatory = $true)][string]$Title,
     [Parameter(Mandatory = $true)][string]$Message,
-    # Keep the toast on screen until the user dismisses it, for a notice the
-    # user may only see when they come back to the PC (the install finished).
     [switch]$Persistent
 )
 
@@ -23,8 +36,8 @@ if ($hasIcon) {
 }
 
 # Pre-grant the urgent-scenario (Focus Assist bypass) permission Windows would otherwise
-# ask the user for the first time this AppId sends a toast - same value it writes itself
-# once someone clicks "Yes" on that prompt.
+# ask the user for the first time this AppId sends a toast. Windows writes the same value
+# itself once someone clicks "Yes" on that prompt.
 $notifSettingsPath = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings\$appId"
 if (-not (Test-Path -LiteralPath $notifSettingsPath)) {
     $null = New-Item -Path $notifSettingsPath -Force
@@ -39,7 +52,7 @@ $logoNode = if ($hasIcon) { "<image placement=`"appLogoOverride`" hint-crop=`"no
 $escapedTitle = [System.Security.SecurityElement]::Escape($Title)
 $escapedMessage = [System.Security.SecurityElement]::Escape($Message)
 
-# scenario="urgent" is the documented way to break through Focus Assist/Do Not Disturb -
+# scenario="urgent" is the documented way to break through Focus Assist/Do Not Disturb,
 # reserved for one-off, non-repeating notices like this rather than routine notifications.
 # scenario="reminder" keeps the toast on screen until it is dismissed; it needs an action,
 # and the system "dismiss" one closes it without launching anything.

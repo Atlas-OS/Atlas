@@ -8,6 +8,16 @@
     The updater task deliberately uses the user's interactive, non-elevated token.
     LibreWolf WinUpdater can move into the user's AppData when it cannot update the
     machine installation, so it must never run with highest privileges.
+
+    The install's software phase starts it in the installing user's token after it
+    installs LibreWolf, and first sign-in setup runs it for accounts that sign in later.
+    Without LibreWolf in Program Files it does nothing.
+.PARAMETER ExpectedUserSid
+    The SID of the user the install recorded; the script stops if its token differs.
+.NOTES
+    Exit codes:
+    0  Done, or LibreWolf isn't installed.
+    1  The token didn't match ExpectedUserSid, or the shortcut or task couldn't be created.
 #>
 [CmdletBinding()]
 param(
@@ -126,7 +136,7 @@ function New-AtlasLibreWolfUpdaterTaskXml {
         $definition.Principal.LogonType = 3
         $definition.Principal.RunLevel = 0
 
-        # TASK_TRIGGER_LOGON = 9. Check after logon and every four hours thereafter.
+        # TASK_TRIGGER_LOGON = 9. Check after sign-in and every four hours thereafter.
         $trigger = $definition.Triggers.Create(9)
         $trigger.UserId = $UserSid
         $trigger.Delay = 'PT1M'

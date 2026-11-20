@@ -2,10 +2,14 @@
 #
 # schtasks.exe is used instead of the ScheduledTasks CIM cmdlets because it behaves
 # consistently under TrustedInstaller and against protected Microsoft tasks. The
-# scheduler COM API checks existence and enabled state without localized text parsing.
+# scheduler COM API checks existence and enabled state without localised text parsing.
 
 function Get-AtlasSchtasksPath {
-    # Fixed System32 location so PATH resolution can never select another binary.
+    <#
+    .SYNOPSIS
+        Returns the fixed System32 path of schtasks.exe, so PATH resolution can never
+        select another binary.
+    #>
     return Join-Path -Path ([Environment]::GetFolderPath('Windows')) `
         -ChildPath 'System32\schtasks.exe'
 }
@@ -141,15 +145,23 @@ function Invoke-AtlasBestEffortScheduledTaskEnd {
 }
 
 function Stop-AtlasScheduledTaskUnderRoot {
+    <#
+    .SYNOPSIS
+        Stops running scheduled tasks whose program lies under one of the given
+        folders, so the files there can be replaced. Every failure is ignored.
+    .PARAMETER RootsLower
+        The folders, in any case; they're normalised as Stop-AtlasProcessUnderRoot
+        does.
+    .PARAMETER EndTaskName
+        Tasks also ended with schtasks /End, because the CIM-based stop can fail under
+        TrustedInstaller in session 0. Defaults to the Atlas timer resolution task,
+        whose running executable blocks replacing Atlas's files.
+    #>
     param(
-        # Roots in any case, normalized here as Stop-AtlasProcessUnderRoot does.
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [string[]]$RootsLower,
 
-        # Named tasks additionally ended via schtasks /End, because the CIM-based stop
-        # can fail under TrustedInstaller in session 0. Defaults to the Atlas timer
-        # resolution task, whose running executable blocks replacing Atlas's files.
         [string[]]$EndTaskName = @('Force Timer Resolution', '\Force Timer Resolution')
     )
 
@@ -310,6 +322,7 @@ function Get-AtlasScheduledTaskState {
         catch {
             $cause = $_.Exception
             while ($null -ne $cause.InnerException) { $cause = $cause.InnerException }
+            # 0x80070002 ERROR_FILE_NOT_FOUND and 0x80070003 ERROR_PATH_NOT_FOUND.
             if ($cause.HResult -in @(-2147024894, -2147024893)) {
                 return 'Missing'
             }

@@ -9,7 +9,8 @@ $script:AtlasIndexPathRoots = @{
 $script:AtlasIndexPolicyRoots = @(
     $script:AtlasIndexPathRoots.Include
     $script:AtlasIndexPathRoots.Exclude
-    # Remove the inactive policy lists written by earlier RCs when selecting a preset.
+    # Older Atlas versions could write these inactive policy lists; selecting a preset
+    # removes them.
     'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Windows Search\DefaultIndexedPaths'
     'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Windows Search\DefaultExcludedPaths'
 )
@@ -17,7 +18,7 @@ $script:AtlasIndexPolicyRoots = @(
 function ConvertTo-AtlasIndexPath {
     <#
     .SYNOPSIS
-        Normalizes a fully qualified drive or UNC path for an index entry, rejecting
+        Normalises a fully qualified drive or UNC path for an index entry, rejecting
         relative, root-relative, incomplete UNC and wildcard candidates.
     #>
     param(
@@ -49,7 +50,7 @@ function Add-AtlasIndexPath {
     .SYNOPSIS
         Stages a file URL while Search is stopped. Start commits the complete preset
         through the Crawl Scope Manager and verifies the effective result. Search
-        owns the materialized Gather and CurrentPolicies keys.
+        owns the materialised Gather and CurrentPolicies keys.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -133,7 +134,8 @@ function Complete-AtlasIndexScope {
 }
 
 function Get-AtlasIndexScopeState {
-    <# .SYNOPSIS
+    <#
+    .SYNOPSIS
         Reads effective inclusion for file paths without changing Search configuration.
     #>
     param([Parameter(Mandatory = $true)][string[]]$Path)

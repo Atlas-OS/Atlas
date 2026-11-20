@@ -6,14 +6,19 @@ function Get-UserPath {
     .SYNOPSIS
         Resolves a known folder (default: the desktop) for the default or current user
         via SHGetKnownFolderPath.
+        https://learn.microsoft.com/windows/win32/api/shlobj_core/nf-shlobj_core-shgetknownfolderpath
+    .PARAMETER FolderID
+        The KNOWNFOLDERID; the default is FOLDERID_Desktop.
+        https://learn.microsoft.com/windows/win32/shell/knownfolderid
+    .PARAMETER Token
+        The user: -1 for the Default User profile (the default), 0 for the current user.
+    .PARAMETER Flags
+        KNOWN_FOLDER_FLAG values; the default 0x00008000 is KF_FLAG_CREATE, which
+        creates the folder if it doesn't exist.
     #>
     param(
-        # https://learn.microsoft.com/windows/win32/shell/knownfolderid
         [string]$FolderID = 'B4BFCC3A-DB2C-424C-B029-7FE99A87C641',
-        # Default user
-        # 0 is the current user
         [System.IntPtr]$Token = -1,
-        # Create folder if it doesn't exist
         [int]$Flags = 0x00008000
     )
 

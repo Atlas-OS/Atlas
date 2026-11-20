@@ -1,4 +1,4 @@
-# Atlas.Network - network adapter defaults and File Sharing configuration module.
+# Atlas.Network: network adapter defaults and File Sharing configuration module.
 Set-StrictMode -Version 3.0
 
 # No -Force: a nested forced import unloads the caller's copy in Windows PowerShell 5.1.

@@ -1,4 +1,4 @@
-# Atlas.Toggles domain: definition loading, normalization and validation.
+# Atlas.Toggles domain: definition loading, normalisation and validation.
 #
 # A toggle is one data-only definition, AtlasModules\Toggles\<Group>\<Name>.psd1, plus an
 # optional companion script beside it that contains only functions. Definitions are
@@ -134,7 +134,7 @@ function Get-AtlasToggleCompanionFunctionNames {
 function ConvertTo-AtlasToggleDefinition {
     <#
     .SYNOPSIS
-        Normalizes raw data-file content into the in-memory definition the engine uses:
+        Normalises raw data-file content into the in-memory definition the engine uses:
         an ordered dictionary of states keyed by state name, plus SourcePath, ScriptPath
         and the parsed companion function list.
     #>
@@ -297,7 +297,7 @@ function Test-AtlasToggleRecordsState {
 function Get-AtlasToggleDefinitionProblems {
     <#
     .SYNOPSIS
-        Validates one normalized definition and returns a list of problem strings;
+        Validates one normalised definition and returns a list of problem strings;
         an empty list means the definition is well formed.
     #>
     param(
@@ -536,7 +536,7 @@ function Get-AtlasToggleDefinitionProblems {
 function Import-AtlasToggleDefinitionFile {
     <#
     .SYNOPSIS
-        Loads, normalizes and validates one definition file; throws on the first problem.
+        Loads, normalises and validates one definition file; throws on the first problem.
     #>
     param(
         [Parameter(Mandatory = $true)]

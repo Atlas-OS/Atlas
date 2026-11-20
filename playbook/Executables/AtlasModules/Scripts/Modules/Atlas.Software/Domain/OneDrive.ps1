@@ -60,9 +60,9 @@ function Remove-AtlasOneDrive {
 
     # Never fall back to a privileged WinGet uninstall here. WinGet correlates
     # against per-user ARP records, whose uninstall command is writable by that
-    # user; executing it from this elevated phase would cross an unsafe trust
-    # boundary. The protected inbox setup binaries above are the only executable
-    # uninstall authority.
+    # user; running it from this elevated phase would run that user's command as
+    # administrator. The protected inbox setup binaries above are the only programs
+    # this phase runs to uninstall OneDrive.
     if (-not $setupFound) {
         Write-AtlasLog -Level Warning -Message 'Protected OneDriveSetup.exe was not found; skipping executable uninstall and continuing declarative cleanup.'
     }
@@ -82,6 +82,7 @@ function Remove-AtlasOneDrive {
         }
     }
 
+    # {018D5C66-...} is the OneDrive entry in the File Explorer navigation pane.
     Remove-AtlasOneDriveMachineRegistryItem -Path @(
         'HKLM:\SOFTWARE\Classes\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}'
         'HKLM:\SOFTWARE\Classes\WOW6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}'

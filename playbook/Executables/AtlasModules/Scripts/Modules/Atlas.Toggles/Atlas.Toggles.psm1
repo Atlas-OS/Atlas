@@ -1,4 +1,4 @@
-# Atlas.Toggles - user-facing toggle engine.
+# Atlas.Toggles: user-facing toggle engine.
 Set-StrictMode -Version 3.0
 
 # No -Force: a nested forced import unloads the caller's copy in Windows PowerShell 5.1.
