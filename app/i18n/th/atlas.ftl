@@ -247,6 +247,10 @@ ready-banner-blocked-title = พีซีของคุณยังไม่พ
 ready-banner-blocked-message = แก้ไขรายการที่ทำเครื่องหมายไว้ในการ์ด การตรวจสอบพีซี แล้วเลือก ตรวจสอบอีกครั้ง
 ready-banner-no-package-title = ดาวน์โหลด Atlas เพื่อดำเนินการต่อ
 ready-banner-no-package-message = ดาวน์โหลด Atlas ในการ์ด ไฟล์ติดตั้ง หรือเลือก เปิดไฟล์แพ็กเกจ หากคุณมีแพ็กเกจ Atlas (.atlaspkg) อยู่แล้ว
+# The package tried needs a newer Atlas Manager. The title is also the footer's hint then.
+ready-banner-manager-title = ดาวน์โหลด Atlas Manager เวอร์ชันที่ใหม่กว่าเพื่อดำเนินการต่อ
+# "Download Atlas Manager" is manager-download, the button in Installation files (package-title).
+ready-banner-manager-message = เลือก ดาวน์โหลด Atlas Manager ในการ์ด ไฟล์ติดตั้ง แล้วใช้เวอร์ชันใหม่แทนเวอร์ชันนี้
 # Tester build: the bundled Atlas package couldn't be unpacked.
 ready-banner-no-package-bundled-title = เตรียมแพ็กเกจ Atlas ที่มาพร้อมกันเพื่อดำเนินการต่อ
 ready-banner-no-package-bundled-message = แพ็กเกจ Atlas ที่มาพร้อมรุ่นทดสอบนี้ยังไม่พร้อม ตรวจดูการ์ด ไฟล์ติดตั้ง
@@ -320,6 +324,20 @@ acquire-failed = เตรียมไฟล์ติดตั้งไม่ไ
 acquire-stalled = การดาวน์โหลดหยุดตอบสนอง ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต แล้วดาวน์โหลดอีกครั้ง หรือเปิดแพ็กเกจ Atlas (.atlaspkg) ที่บันทึกไว้
 # Tester build: the bundled Atlas package couldn't be unpacked. Try again is the only control offered.
 acquire-failed-bundled = เตรียมแพ็กเกจ Atlas ที่มาพร้อมกันไม่ได้ เลือก ลองอีกครั้ง รายละเอียด: { $error }
+# The Atlas package asks for a newer Atlas Manager than this one. $version is the version it asks for,
+# such as 0.7.0. "Download Atlas Manager" is manager-download, the button beside the message.
+acquire-manager-outdated = แพ็กเกจ Atlas นี้ต้องใช้ Atlas Manager { $version } ขึ้นไป เลือก ดาวน์โหลด Atlas Manager แล้วใช้เวอร์ชันใหม่แทนเวอร์ชันนี้
+# The same, for a package that doesn't say which version it needs.
+acquire-manager-outdated-any = แพ็กเกจ Atlas นี้ต้องใช้ Atlas Manager เวอร์ชันที่ใหม่กว่า เลือก ดาวน์โหลด Atlas Manager แล้วใช้เวอร์ชันใหม่แทนเวอร์ชันนี้
+
+## Newer Atlas Manager
+
+# Opens the latest Atlas release on GitHub in the browser, where Atlas Manager is downloaded.
+manager-download = ดาวน์โหลด Atlas Manager
+# A note on Home and in Settings that a newer Atlas Manager has been released. $version is its
+# version, such as 0.7.0. The note doesn't stop anything; manager-download is its button.
+manager-update-title = มี Atlas Manager { $version } ให้ดาวน์โหลด
+manager-update-message = Atlas Manager อัปเดตตัวเองไม่ได้ ดาวน์โหลดเวอร์ชันใหม่ แล้วใช้แทนเวอร์ชันนี้
 
 ## System checks
 

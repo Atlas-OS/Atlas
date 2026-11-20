@@ -10,10 +10,12 @@ $script:PackageExtension = '.atlaspkg'
 # Atlas Manager stages them, and protects nothing.
 $script:PackagePassword = 'atlasos'
 $script:VersionPattern = '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?\z'
+# Atlas Manager versions are plain major.minor.patch.
+$script:ManagerVersionPattern = '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\z'
 $script:ImageStemPattern = '^[A-Za-z0-9_-]+\z'
 $script:ManifestFields = @(
-    'schemaVersion', 'version', 'supportedBuilds', 'updatableFrom', 'requirements',
-    'estimatedMinutes', 'choices'
+    'schemaVersion', 'version', 'minimumManagerVersion', 'supportedBuilds', 'updatableFrom',
+    'requirements', 'estimatedMinutes', 'choices'
 )
 $script:ChoiceFields = @('id', 'kind', 'default', 'dependsOn', 'description', 'learnMore', 'options')
 $script:OptionFields = @('id', 'label', 'image')
@@ -415,6 +417,26 @@ function Test-AtlasJsonStringList {
     }
 }
 
+function Compare-AtlasVersionCore {
+    # Compares the major.minor.patch numbers of two versions that match $script:VersionPattern
+    # and returns -1, 0 or 1. Any -suffix is ignored. BigInteger keeps numbers of any length.
+    param(
+        [Parameter(Mandatory = $true)][string]$Left,
+        [Parameter(Mandatory = $true)][string]$Right
+    )
+
+    $leftParts = ($Left -split '-', 2)[0] -split '\.'
+    $rightParts = ($Right -split '-', 2)[0] -split '\.'
+    for ($index = 0; $index -lt 3; $index++) {
+        $order = [System.Numerics.BigInteger]::Parse($leftParts[$index]).CompareTo(
+            [System.Numerics.BigInteger]::Parse($rightParts[$index]))
+        if ($order -ne 0) {
+            return [Math]::Sign($order)
+        }
+    }
+    return 0
+}
+
 #endregion
 
 function Resolve-SevenZip {
@@ -640,10 +662,26 @@ function Test-AtlasManifest {
             $problems.Add("schemaVersion must be 1, not $($top['schemaVersion'].GetRawText()).")
         }
 
+        $version = $null
         if ($top.ContainsKey('version')) {
             $version = Get-AtlasJsonString -Element $top['version']
             if ($null -eq $version -or $version -cnotmatch $script:VersionPattern) {
                 $problems.Add("version must be a string such as 1.2.3 or 1.2.3-rc.1, not $($top['version'].GetRawText()).")
+                $version = $null
+            }
+        }
+
+        if ($top.ContainsKey('minimumManagerVersion')) {
+            $managerVersion = Get-AtlasJsonString -Element $top['minimumManagerVersion']
+            if ($null -eq $managerVersion -or $managerVersion -cnotmatch $script:ManagerVersionPattern) {
+                $problems.Add(
+                    'minimumManagerVersion must be a string such as 1.2.3, not ' +
+                    "$($top['minimumManagerVersion'].GetRawText()).")
+            }
+            # Atlas Manager is released with the package version, so a package can't need a
+            # later Manager. A pre-release such as 0.7.0-rc.1 may need the 0.7.0 Manager.
+            elseif ($null -ne $version -and (Compare-AtlasVersionCore -Left $managerVersion -Right $version) -gt 0) {
+                $problems.Add("minimumManagerVersion '$managerVersion' is higher than version '$version'.")
             }
         }
 

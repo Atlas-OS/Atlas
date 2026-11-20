@@ -133,6 +133,7 @@ pub mod package {
         serde_json::json!({
             "schemaVersion": 1,
             "version": version,
+            "minimumManagerVersion": "0.6.0",
             "supportedBuilds": builds,
             "updatableFrom": [],
             "requirements": [],

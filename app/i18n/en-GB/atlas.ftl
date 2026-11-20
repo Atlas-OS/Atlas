@@ -259,6 +259,10 @@ ready-banner-blocked-message = Fix the items marked in PC checks, then choose Ch
 ready-banner-no-package-title = Download Atlas to continue
 # "Installation files" is package-title, the first card; "Open package file" is package-open-file.
 ready-banner-no-package-message = Download Atlas in Installation files, or choose Open package file if you already have an Atlas package (.atlaspkg).
+# The package tried needs a newer Atlas Manager. The title is also the footer's hint then.
+ready-banner-manager-title = Download a newer Atlas Manager to continue
+# "Download Atlas Manager" is manager-download, the button in Installation files (package-title).
+ready-banner-manager-message = Choose Download Atlas Manager in Installation files, then use the new version instead of this one.
 # Tester build: the bundled Atlas package couldn't be unpacked.
 ready-banner-no-package-bundled-title = Prepare the bundled Atlas package to continue
 ready-banner-no-package-bundled-message = The Atlas package bundled with this test build isn't ready yet. Check the Installation files card.
@@ -346,6 +350,20 @@ acquire-failed = Couldn't prepare the installation files. Try downloading again,
 acquire-stalled = The download stopped responding. Check your internet connection, then download again, or open a saved Atlas package (.atlaspkg).
 # Tester build: the bundled Atlas package couldn't be unpacked. Try again is the only control offered.
 acquire-failed-bundled = Couldn't prepare the bundled Atlas package. Choose Try again. Details: { $error }
+# The Atlas package asks for a newer Atlas Manager than this one. $version is the version it asks for,
+# such as 0.7.0. "Download Atlas Manager" is manager-download, the button beside the message.
+acquire-manager-outdated = This Atlas package needs Atlas Manager { $version } or later. Choose Download Atlas Manager, then use the new version instead of this one.
+# The same, for a package that doesn't say which version it needs.
+acquire-manager-outdated-any = This Atlas package needs a newer Atlas Manager. Choose Download Atlas Manager, then use the new version instead of this one.
+
+## Newer Atlas Manager
+
+# Opens the latest Atlas release on GitHub in the browser, where Atlas Manager is downloaded.
+manager-download = Download Atlas Manager
+# A note on Home and in Settings that a newer Atlas Manager has been released. $version is its
+# version, such as 0.7.0. The note doesn't stop anything; manager-download is its button.
+manager-update-title = Atlas Manager { $version } is available
+manager-update-message = Atlas Manager can't update itself. Download the new version and use it instead of this one.
 
 ## System checks
 

@@ -238,6 +238,10 @@ ready-banner-blocked-title = PC の準備がまだできていません
 ready-banner-blocked-message = 「PC の確認」で示された項目に対処してから、「もう一度確認」を選んでください。
 ready-banner-no-package-title = 続行するには Atlas をダウンロードしてください
 ready-banner-no-package-message = 「インストール ファイル」で Atlas をダウンロードするか、Atlas パッケージ (.atlaspkg) をお持ちの場合は「パッケージ ファイルを開く」を選んでください。
+# The package tried needs a newer Atlas Manager. The title is also the footer's hint then.
+ready-banner-manager-title = 続行するには新しい Atlas Manager をダウンロードしてください
+# "Download Atlas Manager" is manager-download, the button in Installation files (package-title).
+ready-banner-manager-message = 「インストール ファイル」で「Atlas Manager をダウンロード」を選んでから、このバージョンの代わりに新しいバージョンを使ってください。
 # Tester build: the bundled Atlas package couldn't be unpacked.
 ready-banner-no-package-bundled-title = 続行するには同梱の Atlas パッケージを準備してください
 ready-banner-no-package-bundled-message = このテスト ビルドに同梱された Atlas パッケージはまだ準備できていません。「インストール ファイル」カードを確認してください。
@@ -313,6 +317,20 @@ acquire-failed = インストール ファイルを準備できませんでし�
 acquire-stalled = ダウンロードが応答しなくなりました。インターネット接続を確認してからもう一度ダウンロードするか、保存済みの Atlas パッケージ (.atlaspkg) を開いてください。
 # Tester build: the bundled Atlas package couldn't be unpacked. Try again is the only control offered.
 acquire-failed-bundled = 同梱の Atlas パッケージを準備できませんでした。「再試行」を選んでください。詳細: { $error }
+# The Atlas package asks for a newer Atlas Manager than this one. $version is the version it asks for,
+# such as 0.7.0. "Download Atlas Manager" is manager-download, the button beside the message.
+acquire-manager-outdated = この Atlas パッケージには Atlas Manager { $version } 以降が必要です。「Atlas Manager をダウンロード」を選んでから、このバージョンの代わりに新しいバージョンを使ってください。
+# The same, for a package that doesn't say which version it needs.
+acquire-manager-outdated-any = この Atlas パッケージには新しいバージョンの Atlas Manager が必要です。「Atlas Manager をダウンロード」を選んでから、このバージョンの代わりに新しいバージョンを使ってください。
+
+## 新しい Atlas Manager
+
+# Opens the latest Atlas release on GitHub in the browser, where Atlas Manager is downloaded.
+manager-download = Atlas Manager をダウンロード
+# A note on Home and in Settings that a newer Atlas Manager has been released. $version is its
+# version, such as 0.7.0. The note doesn't stop anything; manager-download is its button.
+manager-update-title = Atlas Manager { $version } が利用可能です
+manager-update-message = Atlas Manager は自身を更新できません。新しいバージョンをダウンロードして、このバージョンの代わりに使ってください。
 
 ## システム チェック
 

@@ -114,6 +114,108 @@ fn a_file_that_is_not_an_atlas_package_is_refused() {
         settle(&cx, &model).await;
     });
 }
+/// A package that asks for a newer Atlas Manager, and one whose manifest is
+/// in a format only a newer Atlas Manager reads, are refused the same way:
+/// nothing is unpacked, and Get ready says which version to download when
+/// the package names one.
+#[test]
+fn a_package_for_a_newer_atlas_manager_is_refused() {
+    run_model_test(async move |mut cx| {
+        use crate::model::AcquireProblem;
+        use crate::services::test_support::package;
+        let (temp, _, env) = fixture("model-manager-outdated");
+        let manifest = |format: u32, minimum: &str| {
+            serde_json::json!({
+                "schemaVersion": format, "version": "99.0.0", "minimumManagerVersion": minimum, "choices": [],
+            })
+            .to_string()
+        };
+        let model = new_model(&mut cx, env.clone());
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        act(&mut cx, &model, |m, cx| m.begin_install(cx));
+        for (name, format, minimum, required) in [
+            ("newer-manager", 1, "99.0.0", Some("99.0.0")),
+            ("newer-format", 2, "99.0.0", Some("99.0.0")),
+            ("newer-format-unnamed", 2, "a later one", None),
+        ] {
+            let mut contents = package::valid("99.0.0");
+            contents.entries[0].data = manifest(format, minimum).into_bytes();
+            let file = package::write(&temp.path().join(format!("{name}.atlaspkg")), &contents);
+            act(&mut cx, &model, |m, cx| m.load_package_file(file.clone(), cx));
+            wait_for(&cx, &model, "the refusal", |m| !m.acquisition.is_busy()).await;
+            read(&cx, &model, |m| {
+                let expected = AcquireProblem::ManagerOutdated { required: required.map(str::to_owned) };
+                assert!(
+                    matches!(&m.acquisition, Acquisition::Failed(problem) if *problem == expected),
+                    "{name}: {:?}",
+                    m.acquisition
+                );
+                assert!(m.package.is_none(), "{name}");
+            });
+        }
+        let packages = env.paths.packages();
+        assert!(
+            std::fs::read_dir(&packages).map_or(true, |entries| entries.flatten().count() == 0),
+            "nothing was unpacked"
+        );
+        // Get ready's status says what to download, and offers no report:
+        // the remedy is known.
+        wait_for(&cx, &model, "the checks", AppModel::checks_complete).await;
+        read(&cx, &model, |m| {
+            assert_eq!(m.ready_status(), Some(crate::model::ReadyStatus::ManagerOutdated));
+            assert_eq!(m.ready_help(), None);
+        });
+        settle(&cx, &model).await;
+    });
+}
+
+/// Home and Settings note a newer Atlas Manager only once the release check
+/// has found a release newer than this one.
+#[test]
+fn a_newer_atlas_manager_is_noted_only_when_the_latest_release_is_newer() {
+    run_model_test(async move |mut cx| {
+        use crate::model::ReleaseCheck;
+        use crate::model::test_harness::release;
+        let (_temp, _, env) = fixture("model-manager-update");
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        act(&mut cx, &model, |m, _| {
+            assert_eq!(m.manager_update(), None, "no release check yet");
+            m.release = ReleaseCheck::Failed;
+            assert_eq!(m.manager_update(), None, "a failed check");
+            m.release = ReleaseCheck::Ready { release: release("v99.0.0", vec![]) };
+            assert_eq!(m.manager_update(), Some("99.0.0"), "newer, without its v");
+            m.release = ReleaseCheck::Ready { release: release("0.5.1", vec![]) };
+            assert_eq!(m.manager_update(), None, "older");
+            // A tester build counts the release of its own version as newer.
+            m.release = ReleaseCheck::Ready { release: release(env!("CARGO_PKG_VERSION"), vec![]) };
+            let tester = crate::services::embedded::rc_id().is_some();
+            assert_eq!(m.manager_update().is_some(), tester, "the same version");
+        });
+        settle(&cx, &model).await;
+    });
+}
+
+/// Packages that earlier versions unpacked under the old folder are never
+/// read, so a start with no install running removes that folder and only
+/// that folder.
+#[test]
+fn startup_removes_the_old_package_folder_when_nothing_is_running() {
+    run_model_test(async move |mut cx| {
+        let (_temp, _, env) = fixture("model-old-packages");
+        let old = env.paths.root.join("Playbooks");
+        std::fs::create_dir_all(old.join("0.6.0/Executables")).unwrap();
+        std::fs::write(old.join("0.6.0/atlas.json"), "{}").unwrap();
+        std::fs::create_dir_all(env.paths.downloads()).unwrap();
+        std::fs::write(env.paths.downloads().join("keep.txt"), "keep").unwrap();
+        let model = new_model(&mut cx, env.clone());
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        crate::model::test_harness::wait_until(&cx, "the old folder to go", || !old.exists()).await;
+        assert!(env.paths.downloads().join("keep.txt").is_file());
+        settle(&cx, &model).await;
+    });
+}
+
 /// A release build takes its package from GitHub, so these need a binary
 /// without a built-in package.
 #[cfg(not(feature = "embedded-package"))]

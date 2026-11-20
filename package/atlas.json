@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "version": "0.6.0",
+  "minimumManagerVersion": "0.6.0",
   "supportedBuilds": [
     {
       "build": 26200,

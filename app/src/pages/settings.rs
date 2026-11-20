@@ -5,7 +5,9 @@ use gpui::{
     Styled, Window, div, prelude::*, px, rems,
 };
 
-use super::{Diagnostics, card_body, card_header, detail_row, detail_text, page_frame, setting_row};
+use super::{
+    Diagnostics, card_body, card_header, detail_row, detail_text, manager_update_bar, page_frame, setting_row,
+};
 use crate::i18n::{self, Decision, Readiness, fmt};
 use crate::model::AppModel;
 use crate::services::settings::{LanguagePreference, ThemePreference, app_data_dir};
@@ -325,8 +327,11 @@ impl Render for SettingsPage {
                 Vec::new(),
             ));
 
+        let manager_update = manager_update_bar(state, "about");
         let about = card(cx).child(card_header(cx, "about", t!("settings-about"), None)).child(
             card_body()
+                // Above the version it supersedes.
+                .when_some(manager_update, |this, bar| this.child(bar))
                 .child(detail_row(
                     cx,
                     "app",

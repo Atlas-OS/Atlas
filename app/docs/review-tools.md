@@ -75,6 +75,7 @@ Preview states never update Windows, restart the PC, install Atlas, build media 
 | `network`, `network-limited` | No usable connection, and a limited one. |
 | `previous-worker` | Waiting for an update worker that's still running from earlier. |
 | `ineligible` | An installed Atlas that the package can't update. |
+| `manager-outdated` | **Installation files** refusing a package that needs a newer Atlas Manager, with **Download Atlas Manager**. |
 | `pending-updates` | Pending updates and a pending restart, which the update step handles. |
 | `checks-blocked` | Blocking checks, a check that couldn't run and advice, with updates waiting. |
 | `checks-warnings` | Checks that pass with notes. |
@@ -150,6 +151,7 @@ These states show Get ready on a PC that Atlas Manager [moves to a supported Win
 | `home-25h2` | The same on version 25H2, where moving Windows is optional. |
 | `home-24h2-home` | The same on Windows 11 Home, which the package doesn't support. |
 | `home-23h2` | A Windows version with no update path. |
+| `home-manager-update` | A release newer than this Atlas Manager, with the note that offers **Download Atlas Manager**; `--page settings` shows the same note in **About**. |
 | `home-update-access`, `home-update-access-after` | Atlas's record of the Windows Update settings it turned on, before and after Windows moved. |
 | `home-not-offered` | That record after Windows Update didn't offer the release. |
 | `home-update-access-unreadable` | A record Atlas can't read. |
@@ -199,7 +201,7 @@ It sets `ATLAS_ISO_PREVIEW`, and for `prepare-` states also `ATLAS_PREPARATION_P
 | Screen | States |
 | --- | --- |
 | Home | `home` |
-| Files | `files`, `files-empty`, `files-checked`, `checking`, `not-elevated`, `failed`, `release-unknown`, `release-unlisted`, `package-unsupported` |
+| Files | `files`, `files-empty`, `files-checked`, `checking`, `not-elevated`, `failed`, `release-unknown`, `release-unlisted`, `package-unsupported`, `manager-outdated` |
 | Windows setup | `windows`, `account-empty`, `account-invalid`, `network-drivers` |
 | Your choices | `choices`, `choices-unsupported`, `before`, `before-desktop` |
 | Review and Create | `review`, `review-before`, `progress`, `progress-network`, `build-failed`, `package-changed`, `cancelled`, `complete` |
@@ -218,6 +220,21 @@ Run these from `app/` while the app is open.
 | `tools\Review-Iso.ps1 -State <state>` | Captures an ISO, USB or preparation state ([ISO and USB](#iso-and-usb)). |
 
 For example, `tools\Get-AccessibilityTree.ps1 -Invoke 日本語` switches the language through the accessible action.
+
+## README screenshots
+
+`tools\Update-ReadmeScreenshots.ps1` saves the README's pictures of the **Get ready** page as `docs/images/atlas-manager-get-ready-light.png` and `atlas-manager-get-ready-dark.png`.
+It builds nothing and uses the existing debug build, `target\debug\AtlasManager.exe`, so run `cargo build --locked` first; without that build it stops with an error.
+
+For each theme, the script opens the debug build on the **Get ready** page in the `complete` preview state, in British English, with its own settings under `%TEMP%` and `ATLAS_REVIEW_NO_RESTART=1`.
+It sizes the window to 960 × 680, waits for it to draw, captures it with `tools\Capture-Window.ps1` and closes it, so a window appears for a few seconds each time.
+It clears every `ATLAS_` variable for the run and restores them afterwards.
+`-Theme light` or `-Theme dark` captures one theme.
+
+```powershell
+cargo build --locked
+.\tools\Update-ReadmeScreenshots.ps1
+```
 
 ## Language checks
 

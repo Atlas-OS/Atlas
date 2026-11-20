@@ -299,7 +299,7 @@ mod tests {
     #[test]
     fn declared_upgrade_sources_and_same_version_reapply_are_distinct_from_other_installs() {
         let manifest = super::super::package::parse(
-            r#"{"schemaVersion": 1, "version": "0.6.0", "updatableFrom": ["0.4.1", "0.5.0"]}"#,
+            r#"{"schemaVersion": 1, "version": "0.6.0", "minimumManagerVersion": "0.6.0", "updatableFrom": ["0.4.1", "0.5.0"]}"#,
         )
         .unwrap();
         for version in ["0.4.1", "0.5.0", "0.6.0"] {

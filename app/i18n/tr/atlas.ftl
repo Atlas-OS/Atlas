@@ -245,6 +245,10 @@ ready-banner-blocked-title = Bilgisayarınız henüz hazır değil
 ready-banner-blocked-message = Bilgisayar denetimlerinde işaretlenen sorunları giderin, ardından Yeniden denetle'yi seçin.
 ready-banner-no-package-title = Devam etmek için Atlas'ı indirin
 ready-banner-no-package-message = Atlas'ı Kurulum dosyaları kartından indirin veya bir Atlas paketiniz (.atlaspkg) varsa Paket dosyası aç'ı seçin.
+# The package tried needs a newer Atlas Manager. The title is also the footer's hint then.
+ready-banner-manager-title = Devam etmek için Atlas Manager'ın daha yeni bir sürümünü indirin
+# "Download Atlas Manager" is manager-download, the button in Installation files (package-title).
+ready-banner-manager-message = Kurulum dosyaları kartında Atlas Manager'ı indir'i seçin, ardından bu sürüm yerine yeni sürümü kullanın.
 # Tester build: the bundled Atlas package couldn't be unpacked.
 ready-banner-no-package-bundled-title = Devam etmek için birlikte gelen Atlas paketini hazırlayın
 ready-banner-no-package-bundled-message = Bu test sürümüyle gelen Atlas paketi henüz hazır değil. Kurulum dosyaları kartını denetleyin.
@@ -327,6 +331,20 @@ acquire-failed = Kurulum dosyaları hazırlanamadı. Yeniden indirmeyi deneyin v
 acquire-stalled = İndirme yanıt vermeyi durdurdu. İnternet bağlantınızı denetleyin, sonra yeniden indirin veya kayıtlı bir Atlas paketi (.atlaspkg) açın.
 # Tester build: the bundled Atlas package couldn't be unpacked. Try again is the only control offered.
 acquire-failed-bundled = Birlikte gelen Atlas paketi hazırlanamadı. Yeniden dene'yi seçin. Ayrıntılar: { $error }
+# The Atlas package asks for a newer Atlas Manager than this one. $version is the version it asks for,
+# such as 0.7.0. "Download Atlas Manager" is manager-download, the button beside the message.
+acquire-manager-outdated = Bu Atlas paketi için Atlas Manager { $version } sürümü veya sonrası gerekiyor. Atlas Manager'ı indir'i seçin, ardından bu sürüm yerine yeni sürümü kullanın.
+# The same, for a package that doesn't say which version it needs.
+acquire-manager-outdated-any = Bu Atlas paketi için Atlas Manager'ın daha yeni bir sürümü gerekiyor. Atlas Manager'ı indir'i seçin, ardından bu sürüm yerine yeni sürümü kullanın.
+
+## Newer Atlas Manager
+
+# Opens the latest Atlas release on GitHub in the browser, where Atlas Manager is downloaded.
+manager-download = Atlas Manager'ı indir
+# A note on Home and in Settings that a newer Atlas Manager has been released. $version is its
+# version, such as 0.7.0. The note doesn't stop anything; manager-download is its button.
+manager-update-title = Atlas Manager { $version } sürümü kullanılabilir
+manager-update-message = Atlas Manager kendini güncelleyemez. Yeni sürümü indirin ve bu sürüm yerine onu kullanın.
 
 ## System checks
 

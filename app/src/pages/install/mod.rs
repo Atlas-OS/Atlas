@@ -156,6 +156,8 @@ impl InstallPage {
                     (t!("footer-still-checking"), false)
                 } else if state.checks_blocking() {
                     (t!("footer-fix-items"), false)
+                } else if state.package.is_none() && state.package_needs_newer_manager() {
+                    (t!("ready-banner-manager-title"), false)
                 } else if state.package.is_none() && state.bundled() {
                     (t!("footer-need-package-bundled"), false)
                 } else if state.package.is_none() {

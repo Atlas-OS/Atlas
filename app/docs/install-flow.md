@@ -31,6 +31,10 @@ Get ready shows four cards under one status bar that names the next action: **In
 - The checks keep their order while they run.
   Then the ones that need attention come first, and the passed ones fold into "N checks passed" behind **Show details**.
 - A failed check offers the Windows Settings page that fixes it, such as **Open installed apps** for other antivirus software.
+- Atlas Manager refuses a package that needs a newer Atlas Manager before unpacking anything.
+  Such a package names a later `minimumManagerVersion` than this app, or uses a newer manifest format.
+  **Installation files** names the version it needs, when the package gives one, and offers **Download Atlas Manager**, which opens the latest release.
+  The status bar and the footer say to download a newer Atlas Manager, and no diagnostics panel shows, because the remedy is known ([Atlas Manager's own version](architecture.md#atlas-managers-own-version)).
 
 ### Moving Windows to a newer release
 
@@ -251,6 +255,7 @@ The job's record in `HKLM\SOFTWARE\AtlasOS\WindowsTransition` survives a lost dr
 - **Restart my PC automatically after installation** is a toggle switch, locked while updates, an install or a media job runs.
 - **Help and feedback** holds **Send a report** and **Export diagnostics**.
 - **About** shows the version, licence and links.
+  When the release check finds a newer Atlas Manager, it also shows a note with **Download Atlas Manager**, as Home does.
 - The note about the translucent background shows only while the background is opaque and no contrast theme is on.
 
 ### Help and feedback

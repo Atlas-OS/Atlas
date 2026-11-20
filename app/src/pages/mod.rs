@@ -58,6 +58,30 @@ pub fn on_model(
     move |_, _, cx| model.update(cx, |model, cx| action(model, cx))
 }
 
+/// The button that opens the latest release in the browser, where the
+/// newest Atlas Manager is downloaded. Atlas Manager can't update itself.
+pub(super) fn manager_download_button(id: impl Into<ElementId>) -> Button {
+    Button::new(id, t!("manager-download"))
+        .trailing_icon(Icon::OpenInNewWindow)
+        .opens(crate::services::system::links::LATEST_RELEASE)
+}
+
+/// The note, on Home and in Settings' About section, that a newer Atlas
+/// Manager has been released, with the button that downloads it. It holds
+/// nothing up. `key` prefixes its element ids.
+pub(super) fn manager_update_bar(state: &AppModel, key: &str) -> Option<InfoBar> {
+    let version = state.manager_update()?;
+    Some(
+        InfoBar::new(
+            Severity::Informational,
+            t!("manager-update-title", version = version),
+            t!("manager-update-message"),
+        )
+        .id(ElementId::Name(format!("{key}-manager-update").into()))
+        .action(manager_download_button(ElementId::Name(format!("{key}-manager-download").into()))),
+    )
+}
+
 /// The page's back arrow, if it has one: where it leads, and whether it can be
 /// used now. While navigation is blocked the arrow is drawn disabled rather
 /// than left out, so the title keeps its place.

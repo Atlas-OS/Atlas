@@ -59,12 +59,14 @@ With the feature on, `build.rs` fails if either variable is missing or invalid, 
 
 Compared with the stable build, a tester build:
 
-- never asks GitHub for releases or downloads a package (`Environment.check_updates` is false);
+- never asks GitHub for releases or downloads a package (`Environment.check_updates` is false), so it never says that a newer Atlas Manager is available;
 - has no package file picker, and ignores `--package` and package path arguments;
 - installs only its bundled package, which it writes once to the app's Downloads folder as `Atlas-<rc id>.atlaspkg` and unpacks through the normal package cache, keyed by the package's digest;
 - doesn't resume a draft or recovered session that names another package;
 - creates ISOs and USB drives from the bundled package only;
 - doesn't consult Microsoft's Windows release page for an ISO.
+
+A tester build counts as its base version when a package asks for a minimum Atlas Manager version (`minimumManagerVersion`), so a candidate for `<version>` opens every package that Atlas Manager `<version>` opens.
 
 For this PC, a tester build checks a revision that its bundled release catalog doesn't list on Microsoft's page, as the front door does (`src/services/windows_release.rs`).
 Get ready then refuses a Release Preview build that the front door would refuse, instead of passing it.

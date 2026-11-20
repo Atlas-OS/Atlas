@@ -23,6 +23,7 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
 use super::files::is_reparse_point;
+use super::manager_version::{self, ManagerVersion};
 use super::releases::sha256_file;
 
 /// The archive password is public by design; it only stops antivirus engines
@@ -93,6 +94,38 @@ impl std::fmt::Display for Incomplete {
 }
 
 impl std::error::Error for Incomplete {}
+
+/// The package needs a newer Atlas Manager than this one: its manifest asks
+/// for a later `minimumManagerVersion`, or is in a format only a newer
+/// Atlas Manager reads. Typed so the UI can say so in the user's language
+/// and offer the download.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ManagerOutdated {
+    /// The Atlas Manager version the package asks for, when it names one
+    /// that this app can read and doesn't meet.
+    pub required: Option<String>,
+    /// The manifest's format, when it's newer than the one this app reads.
+    pub format: Option<u32>,
+}
+
+impl std::fmt::Display for ManagerOutdated {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let current = ManagerVersion::current();
+        match &self.required {
+            Some(required) => write!(
+                f,
+                "the package needs Atlas Manager {required} or later, and this is Atlas Manager {current}"
+            )?,
+            None => write!(f, "the package needs a newer Atlas Manager than this one, {current}")?,
+        }
+        if let Some(format) = self.format {
+            write!(f, "; its atlas.json has format {format}, and this app reads format {SCHEMA_VERSION}")?;
+        }
+        Ok(())
+    }
+}
+
+impl std::error::Error for ManagerOutdated {}
 
 /// The file isn't an Atlas package this app opens: it has another extension,
 /// or it's an AME Wizard package (`.apbx`) from an Atlas release before 0.6,
@@ -332,13 +365,27 @@ pub fn read_manifest(dir: &Path) -> Result<Manifest> {
     parse(&text)
 }
 
-/// `atlas.json` as it's written, before [`parse`] checks it. Fields this app
-/// doesn't use are ignored, so a later format that only adds fields still reads.
+/// The fields [`parse`] reads before the rest: what a package asks of the
+/// Atlas Manager that opens it. A package for a newer Atlas Manager may
+/// change everything else, and is still refused for the right reason.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Requirement {
+    schema_version: u32,
+    #[serde(default)]
+    minimum_manager_version: Option<serde_json::Value>,
+}
+
+/// `atlas.json` as it's written, before [`parse`] checks it, once
+/// [`Requirement`] has checked its format. Fields this app doesn't use are
+/// ignored, so a later format that only adds fields still reads.
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ManifestFile {
-    schema_version: u32,
     version: String,
+    /// The oldest Atlas Manager that can install the package, as
+    /// `major.minor.patch`.
+    minimum_manager_version: String,
     #[serde(default)]
     supported_builds: Vec<SupportedBuild>,
     #[serde(default)]
@@ -375,16 +422,40 @@ struct OptionFile {
     image: Option<String>,
 }
 
-/// Reads and checks a manifest: the format is the one this app reads, every
-/// choice and option id is declared once, every choice has options, and
-/// every single choice names one of its own options as its default.
+/// Reads and checks a manifest: this Atlas Manager is one the package
+/// accepts, the format is the one this app reads, every choice and option id
+/// is declared once, every choice has options, and every single choice names
+/// one of its own options as its default. A package for a newer Atlas
+/// Manager is refused with [`ManagerOutdated`].
 pub fn parse(json: &str) -> Result<Manifest> {
-    let file: ManifestFile =
-        serde_json::from_str(json.trim_start_matches('\u{feff}')).context("read atlas.json")?;
+    parse_for(json, &ManagerVersion::current())
+}
+
+/// [`parse`], as the Atlas Manager `manager` would.
+fn parse_for(json: &str, manager: &ManagerVersion) -> Result<Manifest> {
+    let json = json.trim_start_matches('\u{feff}');
+    let requirement: Requirement = serde_json::from_str(json).context("read atlas.json")?;
+    let format = requirement.schema_version;
+    let newer_format = (format > SCHEMA_VERSION).then_some(format);
+    // Only a version this app can read, and doesn't meet, is named: a newer
+    // format may write it differently.
+    let required = requirement
+        .minimum_manager_version
+        .as_ref()
+        .and_then(serde_json::Value::as_str)
+        .filter(|text| manager_version::parse_plain(text).is_some_and(|minimum| !manager.meets(minimum)));
+    if required.is_some() || newer_format.is_some() {
+        return Err(ManagerOutdated { required: required.map(str::to_owned), format: newer_format }.into());
+    }
     anyhow::ensure!(
-        file.schema_version == SCHEMA_VERSION,
-        "atlas.json has format {}, and this app reads format {SCHEMA_VERSION}",
-        file.schema_version
+        format == SCHEMA_VERSION,
+        "atlas.json has format {format}, and this app reads format {SCHEMA_VERSION}"
+    );
+    let file: ManifestFile = serde_json::from_str(json).context("read atlas.json")?;
+    anyhow::ensure!(
+        manager_version::parse_plain(&file.minimum_manager_version).is_some(),
+        "atlas.json gives minimumManagerVersion {:?}, which isn't major.minor.patch",
+        file.minimum_manager_version
     );
     let mut choice_ids = BTreeSet::new();
     let mut option_ids = BTreeSet::new();
@@ -779,6 +850,47 @@ fn create_unique_dir(root: &Path, prefix: &str) -> Result<PathBuf> {
     anyhow::bail!("could not create a staging directory under {}", root.display())
 }
 
+/// The folder under the app data folder where earlier versions of Atlas
+/// Manager unpacked packages. Nothing reads what's in it.
+const OLD_CACHE: &str = "Playbooks";
+
+/// Removes [`OLD_CACHE`] from `app_data`, the app's own data folder, if it's
+/// there, and says whether it was. A junction or symbolic link inside it is
+/// removed itself and never followed, so nothing outside `app_data` is
+/// touched. Removal goes on past an entry it can't remove, then reports the
+/// first failure.
+pub fn remove_old_cache(app_data: &Path) -> std::io::Result<bool> {
+    let old = app_data.join(OLD_CACHE);
+    match fs::symlink_metadata(&old) {
+        Ok(_) => remove_tree(&old).map(|()| true),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error),
+    }
+}
+
+/// Removes `path` and, when it's a directory and not a link, everything in it.
+fn remove_tree(path: &Path) -> std::io::Result<()> {
+    use std::os::windows::fs::MetadataExt;
+    use windows::Win32::Storage::FileSystem::FILE_ATTRIBUTE_DIRECTORY;
+    let metadata = fs::symlink_metadata(path)?;
+    let directory = metadata.file_attributes() & FILE_ATTRIBUTE_DIRECTORY.0 != 0;
+    let mut first_error = None;
+    if directory && !is_reparse_point(&metadata) {
+        for entry in fs::read_dir(path)? {
+            if let Err(error) = entry.and_then(|entry| remove_tree(&entry.path())) {
+                first_error.get_or_insert(error);
+            }
+        }
+    }
+    // A directory link goes with RemoveDirectory, like an empty directory;
+    // what it points to stays.
+    let removed = if directory { fs::remove_dir(path) } else { fs::remove_file(path) };
+    match first_error {
+        Some(error) => Err(error),
+        None => removed,
+    }
+}
+
 /// Removes staging directories left by an interrupted run. Recent ones may
 /// belong to another running instance.
 fn sweep_leftovers(root: &Path) {
@@ -885,7 +997,7 @@ mod tests {
     fn a_manifest_that_breaks_the_format_is_refused() {
         let manifest = |choices: &str| {
             format!(
-                r#"{{"schemaVersion": 1, "version": "0.6.0", "supportedBuilds": [], "choices": [{choices}]}}"#
+                r#"{{"schemaVersion": 1, "version": "0.6.0", "minimumManagerVersion": "0.6.0", "supportedBuilds": [], "choices": [{choices}]}}"#
             )
         };
         let single = r#"{"id": "a", "kind": "single", "default": "a-one", "options": [{"id": "a-one", "label": "One"}]}"#;
@@ -900,7 +1012,18 @@ mod tests {
             .is_ok()
         );
         for (broken, words) in [
-            (manifest(single).replace("\"schemaVersion\": 1", "\"schemaVersion\": 2"), "format 2"),
+            (manifest(single).replace("\"schemaVersion\": 1", "\"schemaVersion\": 0"), "format 0"),
+            (manifest(single).replace(r#""minimumManagerVersion": "0.6.0", "#, ""), "minimumManagerVersion"),
+            (
+                manifest(single)
+                    .replace(r#""minimumManagerVersion": "0.6.0""#, r#""minimumManagerVersion": "0.6""#),
+                "major.minor.patch",
+            ),
+            (
+                manifest(single)
+                    .replace(r#""minimumManagerVersion": "0.6.0""#, r#""minimumManagerVersion": 6"#),
+                "expected a string",
+            ),
             (manifest(&single.replace(r#""default": "a-one", "#, "")), "no default"),
             (
                 manifest(&single.replace(r#""default": "a-one""#, r#""default": "b""#)),
@@ -921,6 +1044,88 @@ mod tests {
         // A link that isn't https:// is not offered.
         let link = single.replace(r#""kind""#, r#""learnMore": "http://example.com", "kind""#);
         assert_eq!(parse(&manifest(&link)).unwrap().choices[0].learn_more, None);
+    }
+
+    /// A manifest in the shape a later Atlas Manager might read: `format`,
+    /// the Atlas Manager it asks for (any JSON), and a choice this app
+    /// can't read.
+    fn later_manifest(format: u32, minimum: serde_json::Value) -> String {
+        serde_json::json!({
+            "schemaVersion": format,
+            "version": "0.7.0",
+            "minimumManagerVersion": minimum,
+            "choices": [{ "id": "speed", "kind": "slider", "range": [1, 10] }],
+        })
+        .to_string()
+    }
+
+    fn outdated(json: &str, manager: &ManagerVersion) -> Option<ManagerOutdated> {
+        parse_for(json, manager).unwrap_err().downcast_ref::<ManagerOutdated>().cloned()
+    }
+
+    #[test]
+    fn a_package_that_needs_a_newer_atlas_manager_is_refused() {
+        let manager = ManagerVersion::new("0.6.0", false);
+        // Before anything else in it is read, so a change this app can't
+        // read doesn't hide the reason.
+        assert_eq!(
+            outdated(&later_manifest(1, "0.7.0".into()), &manager),
+            Some(ManagerOutdated { required: Some("0.7.0".into()), format: None })
+        );
+        let error = parse_for(&later_manifest(1, "0.6.1".into()), &manager).unwrap_err();
+        assert!(error.to_string().contains("Atlas Manager 0.6.1 or later"), "{error:#}");
+        // The version this app is, or an earlier one, is met; a tester build
+        // meets what the release of its base version meets.
+        let current = |minimum: &str| {
+            let mut text = package::manifest("0.6.0", &[26300]);
+            text = text.replace(
+                r#""minimumManagerVersion":"0.6.0""#,
+                &format!(r#""minimumManagerVersion":"{minimum}""#),
+            );
+            assert!(text.contains(minimum), "{text}");
+            text
+        };
+        for minimum in ["0.6.0", "0.5.0", "0.0.1"] {
+            assert!(parse_for(&current(minimum), &manager).is_ok(), "{minimum}");
+            assert!(parse_for(&current(minimum), &ManagerVersion::new("0.6.0", true)).is_ok(), "{minimum}");
+        }
+        assert!(outdated(&current("0.6.1"), &ManagerVersion::new("0.6.0", true)).is_some());
+
+        // Nothing of such a package is unpacked.
+        let temp = TempDir::new("package-newer-manager");
+        let root = temp.path().join("Packages");
+        let mut contents = package::valid("0.7.0");
+        contents.entries[0].data = current("99.0.0").into_bytes();
+        let file = package::write(&temp.path().join("Atlas-v99.atlaspkg"), &contents);
+        let error = extract_into(&file, &root, |_, _| {}).unwrap_err();
+        assert_eq!(
+            error.downcast_ref::<ManagerOutdated>(),
+            Some(&ManagerOutdated { required: Some("99.0.0".into()), format: None })
+        );
+        assert!(fs::read_dir(&root).map_or(true, |mut entries| entries.next().is_none()), "nothing unpacked");
+    }
+
+    /// A manifest format newer than this app reads is refused as a package
+    /// that needs a newer Atlas Manager, naming the version when it can.
+    #[test]
+    fn a_newer_manifest_format_is_refused_the_same_way() {
+        let manager = ManagerVersion::new("0.6.0", false);
+        assert_eq!(
+            outdated(&later_manifest(2, "0.7.0".into()), &manager),
+            Some(ManagerOutdated { required: Some("0.7.0".into()), format: Some(2) })
+        );
+        // A minimum this app can't read, or one it already meets, isn't named.
+        for minimum in
+            [serde_json::json!({ "major": 1 }), "0.7".into(), "0.6.0".into(), serde_json::Value::Null]
+        {
+            assert_eq!(
+                outdated(&later_manifest(2, minimum.clone()), &manager),
+                Some(ManagerOutdated { required: None, format: Some(2) }),
+                "{minimum}"
+            );
+        }
+        let error = parse_for(&later_manifest(3, serde_json::Value::Null), &manager).unwrap_err();
+        assert!(error.to_string().contains("format 3"), "{error:#}");
     }
 
     /// Any file but an `.atlaspkg`, and an AME Wizard package under any name,
@@ -1264,6 +1469,51 @@ mod tests {
         let published = publisher.join().unwrap().unwrap();
         assert_eq!(published, expected);
         assert!(published.join("scanned.txt").is_file());
+    }
+
+    /// Creates a directory junction at `link` to `target`, as any user can.
+    fn junction(link: &Path, target: &Path) {
+        let status = std::process::Command::new("cmd")
+            .args(["/d", "/c", "mklink", "/J"])
+            .arg(link)
+            .arg(target)
+            .stdout(std::process::Stdio::null())
+            .status()
+            .unwrap();
+        assert!(status.success(), "create the junction {}", link.display());
+    }
+
+    /// The old package folder goes, with everything really in it, and
+    /// nothing else: not the current packages, and not what a junction
+    /// inside it, or the folder itself as a junction, points to.
+    #[test]
+    fn the_old_package_folder_is_removed_without_leaving_the_app_data_folder() {
+        let temp = TempDir::new("package-old-cache");
+        let app_data = temp.path().join("App");
+        let outside = temp.path().join("Outside");
+        fs::create_dir_all(outside.join("nested")).unwrap();
+        fs::write(outside.join("nested/keep.txt"), "keep").unwrap();
+        let current = package::write(&temp.path().join("a.atlaspkg"), &package::valid("0.6.0"));
+        let (published, _) = extract_into(&current, &app_data.join("Packages"), |_, _| {}).unwrap();
+
+        assert!(!remove_old_cache(&app_data).unwrap(), "nothing to remove");
+        let old = app_data.join(OLD_CACHE);
+        fs::create_dir_all(old.join("0.6.0/Executables/AtlasModules")).unwrap();
+        fs::write(old.join("0.6.0/atlas.json"), "{}").unwrap();
+        fs::write(old.join("0.6.0/Executables/AtlasModules/a.ps1"), "#").unwrap();
+        junction(&old.join("0.6.0").join("Executables").join("linked"), &outside);
+        assert!(old.join("0.6.0/Executables/linked/nested/keep.txt").is_file(), "the junction resolves");
+        assert!(remove_old_cache(&app_data).unwrap());
+        assert!(!old.exists());
+        assert!(outside.join("nested/keep.txt").is_file(), "what the junction points to stays");
+        assert!(intact(&published), "the current packages stay");
+
+        // The old folder itself a junction: only the link goes.
+        junction(&old, &outside);
+        assert!(remove_old_cache(&app_data).unwrap());
+        assert!(fs::symlink_metadata(&old).is_err());
+        assert!(outside.join("nested/keep.txt").is_file());
+        assert!(!remove_old_cache(&app_data).unwrap());
     }
 
     #[test]

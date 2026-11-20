@@ -19,11 +19,25 @@ Atlas Manager offers the newest published release to every user, so publishing i
    It sets `version` in `package/atlas.json`, adds the previous version to `updatableFrom`, and sets the same version in `app/Cargo.toml` and `app/Cargo.lock`.
    If `atlas.json` already has the version, the script only brings the other files in line with it.
    Tester builds and the release workflow both stop when Atlas Manager's version and `atlas.json` disagree.
-   Review `supportedBuilds` and `updatableFrom` in the diff.
+   Review `supportedBuilds` and `updatableFrom` in the diff, and check `minimumManagerVersion`, which the script leaves as it is.
+   Raise it by hand only when the package relies on something that only this release's Atlas Manager provides, as the [package format](package-format.md#atlas-manager-version) explains.
    If the [release catalog](windows-release-policy.md#updating-the-catalog) is behind Microsoft's page, refresh it in the same branch.
    Open the release pull request with these changes; it's where you record the evidence.
 
-2. **Build the release files.**
+2. **Refresh the README screenshots.**
+   If the **Get ready** page has changed since the last release, capture it again on the release branch.
+   The script builds nothing, so build the debug Atlas Manager first:
+
+   ```powershell
+   cd app
+   cargo build --locked
+   pwsh -NoProfile -File tools/Update-ReadmeScreenshots.ps1
+   ```
+
+   The script opens the debug build on the **Get ready** page in each theme and writes `docs/images/atlas-manager-get-ready-light.png` and `docs/images/atlas-manager-get-ready-dark.png`, which the READMEs show.
+   Add both images to the release pull request.
+
+3. **Build the release files.**
    Build the Atlas package with every eligibility gate, then the stable Atlas Manager:
 
    ```powershell
@@ -35,7 +49,7 @@ Atlas Manager offers the newest published release to every user, so publishing i
    Don't use `-LocalTest` or `-Removals` for a release: both strip the checks that refuse unsupported PCs.
    To give testers a candidate, build a [tester build](building.md#tester-builds) from the same commit instead.
 
-3. **Verify the package.**
+4. **Verify the package.**
    `Test-Package.ps1` checks the archive against the source tree and exits 1 if any check fails:
 
    ```powershell
@@ -44,20 +58,20 @@ Atlas Manager offers the newest published release to every user, so publishing i
 
    [Verifying a build](building.md#verifying-a-build) lists what it checks.
 
-4. **Run the checks.**
+5. **Run the checks.**
    Every check in the [testing guide](testing.md) must pass on the release commit: PSScriptAnalyzer, the Windows PowerShell 5.1 parse gate, both Pester suites, the generators with `-Validate`, and the Atlas Manager tests, formatting and Clippy.
    CI runs them on every push, so a green run on the commit you'll tag covers this step.
 
-5. **Run the VM and device checks.**
+6. **Run the VM and device checks.**
    Work through the [release verification matrix](release-verification-matrix.md) and the [release checks](testing.md#release-checks) for the areas the release changed.
-   Use the files from steps 2 and 3, or a tester build of the same commit, and start each run from a clean checkpoint.
+   Use the files from steps 3 and 4, or a tester build of the same commit, and start each run from a clean checkpoint.
 
-6. **Record the evidence.**
+7. **Record the evidence.**
    Add the results to the release pull request with the hashes of the files you tested, as the [matrix](release-verification-matrix.md#where-the-evidence-goes) describes.
    Before merging, check the proposed contents as [publication contents](publication.md#before-a-release) describes.
    A maintainer listed in `.github/CODEOWNERS` approves and merges the pull request.
 
-7. **Tag the release.**
+8. **Tag the release.**
    Tag the merged commit with `v` and the version, and push the tag:
 
    ```powershell
@@ -70,7 +84,7 @@ Atlas Manager offers the newest published release to every user, so publishing i
    It builds the stable Atlas Manager and the Atlas package, verifies the package with `Test-Package.ps1`, and writes `SHA256SUMS.txt`.
    It then attests the package and `AtlasManager.exe` and creates a draft release through the `release` environment, which must set the variable `ATLAS_RELEASE_ENABLED` to `true`.
 
-8. **Publish.**
+9. **Publish.**
    Download the draft's files and check each one against `SHA256SUMS.txt` and its attestation:
 
    ```powershell

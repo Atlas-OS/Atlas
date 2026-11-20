@@ -10,7 +10,7 @@ use windows::Win32::System::UpdateAgent::{IUpdateSession, UpdateSession, utDrive
 use windows::core::BSTR;
 use windows_registry::LOCAL_MACHINE;
 
-use super::bounded::Bounded;
+use super::deadline::Deadline;
 use super::wmi::{ComApartment, wmi_query, wmi_strings};
 use crate::services::preparation;
 use crate::services::registry::{key_present, pending_file_renames};
@@ -24,9 +24,9 @@ const UPDATE_SEARCH_DEADLINE: Duration = Duration::from_secs(60);
 const ANTIVIRUS_DEADLINE: Duration = Duration::from_secs(30);
 const ACTIVATION_DEADLINE: Duration = Duration::from_secs(50);
 
-static UPDATE_SEARCH: Bounded<Vec<String>> = Bounded::new("the Windows Update search");
-static ANTIVIRUS_QUERY: Bounded<Vec<Vec<Option<String>>>> = Bounded::new("the Security Center query");
-static ACTIVATION_QUERY: Bounded<Vec<String>> = Bounded::new("the licensing query");
+static UPDATE_SEARCH: Deadline<Vec<String>> = Deadline::new("the Windows Update search");
+static ANTIVIRUS_QUERY: Deadline<Vec<Vec<Option<String>>>> = Deadline::new("the Security Center query");
+static ACTIVATION_QUERY: Deadline<Vec<String>> = Deadline::new("the licensing query");
 
 /// The Windows Update category of feature upgrades: another Windows release,
 /// not a pending update.

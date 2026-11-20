@@ -12,7 +12,7 @@ use anyhow::Result;
 /// never reused: the next call takes a fresh reading. A blocking COM call
 /// cannot be cancelled, so a stalled worker lives until the provider answers
 /// or the process ends.
-pub(super) struct Bounded<T> {
+pub(super) struct Deadline<T> {
     name: &'static str,
     current: Mutex<Option<Arc<Job<T>>>>,
 }
@@ -44,7 +44,7 @@ impl std::fmt::Display for TimedOut {
 
 impl std::error::Error for TimedOut {}
 
-impl<T: Clone + Send + 'static> Bounded<T> {
+impl<T: Clone + Send + 'static> Deadline<T> {
     pub(super) const fn new(name: &'static str) -> Self {
         Self { name, current: Mutex::new(None) }
     }
@@ -108,7 +108,7 @@ mod tests {
     #[test]
     fn a_slow_provider_has_one_worker_and_a_deadline() {
         use std::sync::atomic::{AtomicUsize, Ordering};
-        static SLOW: Bounded<u32> = Bounded::new("a slow provider");
+        static SLOW: Deadline<u32> = Deadline::new("a slow provider");
         static STARTED: AtomicUsize = AtomicUsize::new(0);
         let work = || {
             STARTED.fetch_add(1, Ordering::SeqCst);
@@ -125,7 +125,7 @@ mod tests {
         assert_eq!(SLOW.run(Duration::from_secs(5), work).unwrap(), 7);
         assert_eq!(STARTED.load(Ordering::SeqCst), 2);
         // Errors are shared the same way.
-        static FAILING: Bounded<u32> = Bounded::new("a failing provider");
+        static FAILING: Deadline<u32> = Deadline::new("a failing provider");
         let failed = FAILING.run(Duration::from_secs(5), || anyhow::bail!("broken")).unwrap_err();
         assert!(failed.to_string().contains("broken"));
     }
@@ -137,7 +137,7 @@ mod tests {
     #[test]
     fn a_later_job_never_steals_the_result_from_earlier_waiters() {
         use std::sync::atomic::{AtomicUsize, Ordering};
-        static BUSY: Bounded<u32> = Bounded::new("a busy provider");
+        static BUSY: Deadline<u32> = Deadline::new("a busy provider");
         static TIMED_OUT: AtomicUsize = AtomicUsize::new(0);
         static ANSWERED: AtomicUsize = AtomicUsize::new(0);
         let threads: Vec<_> = (0..12)

@@ -232,6 +232,10 @@ ready-banner-blocked-title = 您的電腦尚未準備就緒
 ready-banner-blocked-message = 請處理「電腦檢查」中標示的項目，然後選擇「再次檢查」。
 ready-banner-no-package-title = 請先下載 Atlas
 ready-banner-no-package-message = 請在「安裝檔案」中下載 Atlas；如果您已有 Atlas 套件（.atlaspkg），請選擇「開啟套件檔案」。
+# The package tried needs a newer Atlas Manager. The title is also the footer's hint then.
+ready-banner-manager-title = 請先下載較新版本的 Atlas Manager
+# "Download Atlas Manager" is manager-download, the button in Installation files (package-title).
+ready-banner-manager-message = 請在「安裝檔案」中選擇「下載 Atlas Manager」，然後改用新版本取代目前的版本。
 # Tester build: the bundled Atlas package couldn't be unpacked.
 ready-banner-no-package-bundled-title = 請準備內建的 Atlas 套件以繼續
 ready-banner-no-package-bundled-message = 此測試版內建的 Atlas 套件尚未就緒。請查看「安裝檔案」卡片。
@@ -306,6 +310,20 @@ acquire-failed = 無法準備安裝檔案。請重新下載，或開啟其他 At
 acquire-stalled = 下載已停止回應。請檢查網際網路連線，然後重新下載，或開啟已儲存的 Atlas 套件（.atlaspkg）。
 # Tester build: the bundled Atlas package couldn't be unpacked. Try again is the only control offered.
 acquire-failed-bundled = 無法準備內建的 Atlas 套件。請選擇「再試一次」。詳細資料：{ $error }
+# The Atlas package asks for a newer Atlas Manager than this one. $version is the version it asks for,
+# such as 0.7.0. "Download Atlas Manager" is manager-download, the button beside the message.
+acquire-manager-outdated = 此 Atlas 套件需要 Atlas Manager { $version } 或更新版本。請選擇「下載 Atlas Manager」，然後改用新版本取代目前的版本。
+# The same, for a package that doesn't say which version it needs.
+acquire-manager-outdated-any = 此 Atlas 套件需要較新版本的 Atlas Manager。請選擇「下載 Atlas Manager」，然後改用新版本取代目前的版本。
+
+## Newer Atlas Manager
+
+# Opens the latest Atlas release on GitHub in the browser, where Atlas Manager is downloaded.
+manager-download = 下載 Atlas Manager
+# A note on Home and in Settings that a newer Atlas Manager has been released. $version is its
+# version, such as 0.7.0. The note doesn't stop anything; manager-download is its button.
+manager-update-title = Atlas Manager { $version } 已推出
+manager-update-message = Atlas Manager 無法自行更新。請下載新版本，並以它取代目前的版本。
 
 ## System checks
 

@@ -15,11 +15,11 @@ use gpui::{
 use super::usb::UsbPage;
 use super::{
     CommandBar, Diagnostics, ListEntry, PageTitle, StepStatus, Stepper, card_body, card_header_with_icon,
-    caution_caption, detail_row, detail_text, drivers_radio, focusable_heading, option_page_card, page_frame,
-    plain_list, step_card_header,
+    caution_caption, detail_row, detail_text, drivers_radio, focusable_heading, manager_download_button,
+    option_page_card, page_frame, plain_list, step_card_header,
 };
 use crate::i18n::{describe, fmt};
-use crate::model::{Acquisition, AppModel, Page, ReleaseCheck, ScreenKind};
+use crate::model::{AcquireProblem, Acquisition, AppModel, Page, ReleaseCheck, ScreenKind};
 use crate::services::iso::{self, Architecture, FailureReason, ImageInfo, Mode, Stage, UsernameProblem};
 use crate::services::package::{self, ChoiceKind, Manifest};
 use crate::services::preparation::Drivers;
@@ -244,6 +244,9 @@ pub struct IsoPage {
     /// Whether the build running, or last run, adds this PC's network drivers.
     network_build: bool,
     result: JobResult,
+    /// The Atlas Manager version the package asked for, when the last job
+    /// failed with [`FailureReason::ManagerOutdated`] and the package named one.
+    manager_required: Option<String>,
     job: Option<PathBuf>,
     task: Option<Task<()>>,
     scroll: ScrollHandle,
@@ -301,6 +304,7 @@ impl IsoPage {
             stage: Stage::Inspect,
             network_build: false,
             result: JobResult::None,
+            manager_required: None,
             job: None,
             task: None,
             scroll: ScrollHandle::new(),
@@ -392,9 +396,13 @@ impl IsoPage {
             "release-unlisted" => JobResult::Failed(Some(FailureReason::WindowsReleaseUnlisted)),
             "package-unsupported" => JobResult::Failed(Some(FailureReason::PackageUnsupported)),
             "package-changed" => JobResult::Failed(Some(FailureReason::PackageChanged)),
+            "manager-outdated" => JobResult::Failed(Some(FailureReason::ManagerOutdated)),
             "cancelled" => JobResult::Cancelled,
             _ => JobResult::None,
         };
+        if state == "manager-outdated" {
+            self.manager_required = Some(crate::services::manager_version::next_patch());
+        }
         if matches!(self.result, JobResult::Failed(_) | JobResult::Cancelled) {
             self.job = Some(settings::app_data_dir());
         }
@@ -701,7 +709,13 @@ impl IsoPage {
             }
             Err(_) if cancelled => self.result = JobResult::Cancelled,
             Err(error) => {
-                let reason = error.downcast_ref::<iso::Failure>().map(|failure| failure.reason);
+                // A package for a newer Atlas Manager says which version it needs.
+                let outdated = error.downcast_ref::<package::ManagerOutdated>();
+                self.manager_required = outdated.and_then(|outdated| outdated.required.clone());
+                let reason = match outdated {
+                    Some(_) => Some(FailureReason::ManagerOutdated),
+                    None => error.downcast_ref::<iso::Failure>().map(|failure| failure.reason),
+                };
                 if reason == Some(FailureReason::PackageChanged) {
                     // The check was of another package, so the files need
                     // checking again: Files offers Check files, not Continue.
@@ -769,18 +783,29 @@ impl IsoPage {
             .into_any_element()
     }
 
-    /// The bar a failed check or build leaves, with its log folder.
+    /// The bar a failed check or build leaves, with its log folder, and the
+    /// download a package for a newer Atlas Manager calls for.
     fn error_bar(&self, focus: &FocusHandle) -> AnyElement {
         let (title, message) = self.failure_text();
-        let mut bar =
-            InfoBar::new(Severity::Error, title, message).id("iso-error").focus_handle(focus.clone());
-        if let Some(job) = self.job.clone() {
-            bar = bar.action(
-                Button::new("iso-error-log", t!("iso-diagnostics"))
-                    .icon(Icon::Folder)
-                    .on_click(move |_, _, cx| cx.reveal_path(&job)),
-            );
-        }
+        let bar = InfoBar::new(Severity::Error, title, message).id("iso-error").focus_handle(focus.clone());
+        let outdated = self.result == JobResult::Failed(Some(FailureReason::ManagerOutdated));
+        let log = self.job.clone().map(|job| {
+            Button::new("iso-error-log", t!("iso-diagnostics"))
+                .icon(Icon::Folder)
+                .on_click(move |_, _, cx| cx.reveal_path(&job))
+        });
+        let bar = match (outdated, log) {
+            (false, None) => bar,
+            (false, Some(log)) => bar.action(log),
+            (true, log) => bar.action(
+                div()
+                    .flex()
+                    .flex_wrap()
+                    .gap(px(8.))
+                    .child(manager_download_button("iso-error-manager-download").accent())
+                    .when_some(log, |this, log| this.child(log)),
+            ),
+        };
         bar.into_any_element()
     }
 
@@ -810,7 +835,11 @@ impl IsoPage {
                     && self.job.is_some()
                     && !matches!(
                         reason,
-                        Some(FailureReason::PackageChanged | FailureReason::PackageUnsupported)
+                        Some(
+                            FailureReason::PackageChanged
+                                | FailureReason::PackageUnsupported
+                                | FailureReason::ManagerOutdated
+                        )
                     ) =>
             {
                 Some(self.stage)
@@ -1056,12 +1085,25 @@ impl IsoPage {
                         )
                     })
                     .child(
-                        div().flex().child(
-                            Button::new("iso-package-download", label)
-                                .icon(Icon::Download)
-                                .disabled(checking || state.locked())
-                                .on_click(move |_, _, cx| model.update(cx, |m, cx| m.download_latest(cx))),
-                        ),
+                        div()
+                            .flex()
+                            .flex_wrap()
+                            .gap(px(8.))
+                            .when(
+                                matches!(
+                                    acquisition,
+                                    Acquisition::Failed(AcquireProblem::ManagerOutdated { .. })
+                                ),
+                                |this| this.child(manager_download_button("iso-package-manager-download")),
+                            )
+                            .child(
+                                Button::new("iso-package-download", label)
+                                    .icon(Icon::Download)
+                                    .disabled(checking || state.locked())
+                                    .on_click(move |_, _, cx| {
+                                        model.update(cx, |m, cx| m.download_latest(cx))
+                                    }),
+                            ),
                     )
             }
         };
@@ -1818,7 +1860,7 @@ impl IsoPage {
             _ if checking => t!("iso-check-failed"),
             _ => t!("iso-failed"),
         };
-        if self.job.is_none() {
+        if self.job.is_none() && failure != Some(FailureReason::ManagerOutdated) {
             // Nothing ran: there are no diagnostics to point at.
             return (title, t!("iso-failed-unstaged"));
         }
@@ -1836,6 +1878,9 @@ impl IsoPage {
                 t!("iso-failed-package-unsupported", minimum = iso::MINIMUM_VERSION)
             }
             Some(FailureReason::PackageChanged) => t!("iso-failed-package-changed"),
+            Some(FailureReason::ManagerOutdated) => {
+                describe::manager_outdated(self.manager_required.as_deref())
+            }
             Some(FailureReason::Build) if self.stage == Stage::NetworkDrivers => t!("iso-network-failed"),
             Some(FailureReason::Check) | None if checking => t!("iso-check-failed-description"),
             Some(FailureReason::Check | FailureReason::Build) | None => t!("iso-failed-description"),

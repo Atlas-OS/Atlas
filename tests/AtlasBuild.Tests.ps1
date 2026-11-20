@@ -46,13 +46,14 @@ Describe 'Test-AtlasManifest' {
         # A small manifest that follows the format, which each case breaks in one place.
         function New-ManifestFixture {
             [ordered]@{
-                schemaVersion    = 1
-                version          = '0.6.0'
-                supportedBuilds  = @([ordered]@{ build = 26200; release = '25H2' })
-                updatableFrom    = @('0.5.0')
-                requirements     = @('windows-security-off', 'plugged-in')
-                estimatedMinutes = 15
-                choices          = @(
+                schemaVersion         = 1
+                version               = '0.6.0'
+                minimumManagerVersion = '0.6.0'
+                supportedBuilds       = @([ordered]@{ build = 26200; release = '25H2' })
+                updatableFrom         = @('0.5.0')
+                requirements          = @('windows-security-off', 'plugged-in')
+                estimatedMinutes      = 15
+                choices               = @(
                     [ordered]@{
                         id      = 'extras'
                         kind    = 'multiple'
@@ -90,6 +91,20 @@ Describe 'Test-AtlasManifest' {
         @(Test-AtlasManifest -Path $path -PackageFile $script:FixtureFiles) | Should -BeNullOrEmpty
     }
 
+    It 'accepts the minimum Manager version <Manager> for version <Version>' -ForEach @(
+        @{ Manager = '0.6.0'; Version = '0.6.0' }
+        @{ Manager = '0.9.0'; Version = '0.10.0' }
+        @{ Manager = '0.7.0'; Version = '0.7.0-rc.1' }
+        @{ Manager = '0.6.0'; Version = '1.0.0' }
+    ) {
+        $manifest = New-ManifestFixture
+        $manifest.version = $Version
+        $manifest.minimumManagerVersion = $Manager
+        $path = Write-ManifestFixture -Manifest $manifest
+
+        @(Test-AtlasManifest -Path $path -PackageFile $script:FixtureFiles) | Should -BeNullOrEmpty
+    }
+
     It 'returns nothing for the committed atlas.json and its images' {
         $package = Join-Path $PSScriptRoot '..\package'
         @(Test-AtlasManifest -Path (Join-Path $package 'atlas.json') -PackageFile @(Get-AtlasPackageFilePath -PackagePath $package)) |
@@ -99,6 +114,12 @@ Describe 'Test-AtlasManifest' {
     It 'reports <Case>' -ForEach @(
         @{ Case = 'another schema version'; Change = { param($m) $m.schemaVersion = 2 }; Problem = 'schemaVersion must be 1*' }
         @{ Case = 'a version without three numbers'; Change = { param($m) $m.version = '0.6' }; Problem = 'version must be a string*' }
+        @{ Case = 'a missing minimum Manager version'; Change = { param($m) $m.Remove('minimumManagerVersion') }; Problem = "atlas.json has no 'minimumManagerVersion'." }
+        @{ Case = 'a minimum Manager version with a suffix'; Change = { param($m) $m.minimumManagerVersion = '0.6.0-rc.1' }; Problem = 'minimumManagerVersion must be a string such as 1.2.3, not "0.6.0-rc.1".' }
+        @{ Case = 'a minimum Manager version without three numbers'; Change = { param($m) $m.minimumManagerVersion = '0.6' }; Problem = 'minimumManagerVersion must be a string such as 1.2.3*' }
+        @{ Case = 'a minimum Manager version written as a number'; Change = { param($m) $m.minimumManagerVersion = 6 }; Problem = 'minimumManagerVersion must be a string such as 1.2.3, not 6.' }
+        @{ Case = 'a minimum Manager version above the version'; Change = { param($m) $m.minimumManagerVersion = '0.6.1' }; Problem = "minimumManagerVersion '0.6.1' is higher than version '0.6.0'." }
+        @{ Case = 'a minimum Manager version above the version by number, not text'; Change = { param($m) $m.version = '0.9.0'; $m.minimumManagerVersion = '0.10.0' }; Problem = "minimumManagerVersion '0.10.0' is higher than version '0.9.0'." }
         @{ Case = 'a build written as a string'; Change = { param($m) $m.supportedBuilds[0].build = '26200' }; Problem = 'supportedBuilds`[0`].build must be a positive integer.' }
         @{ Case = 'a build with a fraction'; Change = { param($m) $m.supportedBuilds[0].build = 26200.5 }; Problem = 'supportedBuilds`[0`].build must be a positive integer.' }
         @{ Case = 'a build without a release name'; Change = { param($m) $m.supportedBuilds[0].Remove('release') }; Problem = 'supportedBuilds`[0`].release must name the release*' }
@@ -862,6 +883,8 @@ Describe 'Package version coherence' {
         $originalVersion = Get-ManifestVersion -Path $manifest
         $originalSources = @(Get-UpdateSource -Path $manifest)
         $originalSources.Count | Should -BeGreaterThan 0
+        $originalManagerVersion = ([IO.File]::ReadAllText($manifest) | ConvertFrom-Json).minimumManagerVersion
+        $originalManagerVersion | Should -Not -BeNullOrEmpty
         $originalLines = [IO.File]::ReadAllLines($manifest)
         $originalManifest = [IO.File]::ReadAllLines($cargoToml)
         $bumpVersion = '9.9.9'
@@ -883,6 +906,10 @@ Describe 'Package version coherence' {
                         "<=`"$($originalSources[-1])`""
                         "=>`"version`": `"$bumpVersion`","
                     ) | Sort-Object) -join '|')
+        # minimumManagerVersion changes only when a package needs a newer Atlas Manager.
+        ([IO.File]::ReadAllText($manifest) | ConvertFrom-Json).minimumManagerVersion |
+            Should -BeExactly $originalManagerVersion
+        @(Test-AtlasManifest -Path $manifest) | Should -BeNullOrEmpty
 
         # Only the [package] version line changes; dependency versions stay as they are.
         Get-CargoPackageVersion -Path $cargoToml | Should -BeExactly $bumpVersion

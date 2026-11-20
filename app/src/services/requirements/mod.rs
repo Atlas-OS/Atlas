@@ -4,7 +4,7 @@
 //! and the ones the front door always checks, evaluated with the same rules
 //! as `Entry\Install-Atlas.ps1` where the script has an opinion.
 
-mod bounded;
+mod deadline;
 mod providers;
 mod wmi;
 

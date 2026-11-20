@@ -815,6 +815,15 @@ impl InstallBlock {
     }
 }
 
+/// Why a package needs a newer Atlas Manager, naming the version it asks
+/// for when it names one; the Download Atlas Manager button goes beside it.
+pub fn manager_outdated(required: Option<&str>) -> String {
+    match required {
+        Some(version) => t!("acquire-manager-outdated", version = version),
+        None => t!("acquire-manager-outdated-any"),
+    }
+}
+
 impl AcquireProblem {
     /// `bundled` is a tester build, where the only remedy is Try again.
     pub fn text(&self, bundled: bool) -> String {
@@ -826,6 +835,7 @@ impl AcquireProblem {
                 t!("acquire-failed-bundled", error = error)
             }
             AcquireProblem::Incomplete { version } => t!("acquire-incomplete", version = version),
+            AcquireProblem::ManagerOutdated { required } => manager_outdated(required.as_deref()),
             AcquireProblem::Stalled => t!("acquire-stalled"),
             AcquireProblem::Other { error } if bundled => t!("acquire-failed-bundled", error = error),
             AcquireProblem::Other { error } => t!("acquire-failed", error = error),
@@ -1378,6 +1388,23 @@ mod tests {
             assert_ne!(incomplete.text(false), old.text(false));
             let retry = t!("common-try-again");
             assert!(incomplete.text(true).contains(&retry), "a tester build offers only Try again");
+        });
+    }
+
+    /// A package for a newer Atlas Manager names the version it needs, when
+    /// it gives one, and points to the button that downloads it.
+    #[test]
+    fn a_package_for_a_newer_atlas_manager_names_the_version_and_the_download() {
+        english(|| {
+            let named = AcquireProblem::ManagerOutdated { required: Some("0.7.0".into()) };
+            let unnamed = AcquireProblem::ManagerOutdated { required: None };
+            let download = t!("manager-download");
+            for bundled in [false, true] {
+                assert!(named.text(bundled).contains("0.7.0"));
+                assert!(named.text(bundled).contains(&download));
+                assert!(unnamed.text(bundled).contains(&download));
+            }
+            assert_ne!(named.text(false), unnamed.text(false));
         });
     }
 

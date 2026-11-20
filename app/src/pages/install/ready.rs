@@ -9,7 +9,9 @@ use std::sync::atomic::Ordering;
 
 use crate::i18n::fmt;
 use crate::model::{Acquisition, AppModel, InstallBlock, Page, ReadyHelp, ReadyStatus, ReleaseCheck};
-use crate::pages::{card_body, detail_text, drivers_radio, on_model, step_card_header};
+use crate::pages::{
+    card_body, detail_text, drivers_radio, manager_download_button, on_model, step_card_header,
+};
 use crate::services::atlas_state::InstallIdentity;
 use crate::services::requirements::{CheckId, CheckResult, Verdict};
 use crate::services::windows_release::TransitionNeed;
@@ -588,9 +590,11 @@ impl InstallPage {
         };
         let busy = state.acquisition.is_busy() || state.locked();
         let downloading = matches!(state.acquisition, Acquisition::Downloading { .. });
+        // The package needs a newer Atlas Manager: getting one is the way on.
+        let manager_outdated = state.package_needs_newer_manager();
         // Getting the files is the first task: its button is the accent one
         // until there is a package.
-        let first_task = state.package.is_none();
+        let first_task = state.package.is_none() && !manager_outdated;
         let download_label = match (&release, &state.package) {
             (Some(r), Some(p)) if p.manifest.version == r.version() => t!("package-download-again"),
             (Some(r), _) => t!("package-download-version", version = r.version()),
@@ -627,6 +631,9 @@ impl InstallPage {
                             .flex_wrap()
                             .gap(px(8.))
                             .pt(px(4.))
+                            .when(manager_outdated, |this| {
+                                this.child(manager_download_button("source-manager-download").accent())
+                            })
                             // A tester build offers its bundled package and nothing else.
                             .when(bundled && matches!(state.acquisition, Acquisition::Failed(_)), |this| {
                                 this.child(
@@ -736,6 +743,9 @@ fn status_bar(status: ReadyStatus, state: &AppModel) -> InfoBar {
         ),
         ReadyStatus::NoPackage => {
             (Severity::Warning, t!("ready-banner-no-package-title"), t!("ready-banner-no-package-message"))
+        }
+        ReadyStatus::ManagerOutdated => {
+            (Severity::Warning, t!("ready-banner-manager-title"), t!("ready-banner-manager-message"))
         }
         ReadyStatus::Updates => {
             (Severity::Informational, t!("ready-banner-updates-title"), t!("ready-banner-updates-message"))

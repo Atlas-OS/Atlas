@@ -35,11 +35,24 @@ It's UTF-8 JSON without a byte order mark.
 | --- | --- | --- |
 | `schemaVersion` | number | The manifest's format. This page describes version `1`. |
 | `version` | string | The Atlas version, as `major.minor.patch` with an optional `-suffix` of letters, digits, dots and dashes. |
+| `minimumManagerVersion` | string | The lowest Atlas Manager version that can install the package, as `major.minor.patch`. |
 | `supportedBuilds` | array | The Windows 11 releases the package installs on, each `{ "build": <number>, "release": "<name>" }`. Only `build` is checked; `release` names it for readers. |
 | `updatableFrom` | array of strings | The Atlas versions this package can update in place. |
 | `requirements` | array of strings | The checks the front door runs before it installs, from the table below. |
 | `estimatedMinutes` | number | How long an install usually takes, which Atlas Manager shows. |
 | `choices` | array | The questions an install asks, in the order Atlas Manager asks them. |
+
+### Atlas Manager version
+
+Every manifest must set `minimumManagerVersion`.
+Atlas Manager refuses a package whose `minimumManagerVersion` is newer than its own version, or whose `schemaVersion` is newer than the format it reads.
+It then offers to download the latest Atlas Manager.
+The front door checks only that the field is `major.minor.patch`, because Atlas Manager makes the comparison.
+
+Raise `minimumManagerVersion` only when the package relies on something that only a newer Atlas Manager provides.
+Raising it for any other reason turns away users whose Atlas Manager could install the package.
+
+Atlas Manager also shows a notice when a newer Atlas Manager is released, so users can update it before a package requires it.
 
 ### Requirements
 

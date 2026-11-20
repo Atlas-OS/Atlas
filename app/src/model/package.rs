@@ -13,6 +13,7 @@ use gpui::{Context, PathPromptOptions};
 
 use super::{AppModel, Generation, Step};
 use crate::services::iso;
+use crate::services::manager_version::ManagerVersion;
 use crate::services::package::{self, ChoiceKind, Manifest};
 use crate::services::releases::{self, Release};
 use crate::t;
@@ -54,6 +55,9 @@ pub enum AcquireProblem {
     NotAPackage,
     /// The package is recent enough to include `Install-Atlas.ps1` but does not.
     Incomplete { version: String },
+    /// The package needs a newer Atlas Manager: the version it asks for,
+    /// when it names one (see [`package::ManagerOutdated`]).
+    ManagerOutdated { required: Option<String> },
     /// The download stopped receiving data.
     Stalled,
     /// Anything else, with the raw error chain as a diagnostic.
@@ -184,6 +188,19 @@ impl AppModel {
         self.update_available().filter(|release| {
             self.release_finishes_resume(release) && !package::predates_front_door(release.version())
         })
+    }
+
+    /// The version of a newer Atlas Manager, when the latest release is
+    /// newer than this one. None until the release check has succeeded, and
+    /// never in a tester build, which doesn't check.
+    pub fn manager_update(&self) -> Option<&str> {
+        let release = self.release.release()?;
+        ManagerVersion::current().older_than(release.version()).then(|| release.version())
+    }
+
+    /// The last package tried needs a newer Atlas Manager than this one.
+    pub fn package_needs_newer_manager(&self) -> bool {
+        matches!(self.acquisition, Acquisition::Failed(AcquireProblem::ManagerOutdated { .. }))
     }
 
     /// The latest release is older than the first one this app can install.
@@ -600,6 +617,8 @@ impl AppModel {
                     AcquireProblem::Incomplete { version: incomplete.version.clone() }
                 } else if error.is::<package::NotAPackage>() {
                     AcquireProblem::NotAPackage
+                } else if let Some(outdated) = error.downcast_ref::<package::ManagerOutdated>() {
+                    AcquireProblem::ManagerOutdated { required: outdated.required.clone() }
                 } else {
                     AcquireProblem::Other { error: format!("{error:#}") }
                 };

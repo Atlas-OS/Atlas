@@ -227,6 +227,10 @@ ready-banner-blocked-title = 电脑尚未准备就绪
 ready-banner-blocked-message = 请处理“电脑检查”中标出的项目，然后选择“重新检查”。
 ready-banner-no-package-title = 下载 Atlas 以继续
 ready-banner-no-package-message = 请在“安装文件”中下载 Atlas；如果你已有 Atlas 安装包 (.atlaspkg)，请选择“打开安装包文件”。
+# The package tried needs a newer Atlas Manager. The title is also the footer's hint then.
+ready-banner-manager-title = 下载更新版本的 Atlas Manager 以继续
+# "Download Atlas Manager" is manager-download, the button in Installation files (package-title).
+ready-banner-manager-message = 请在“安装文件”中选择“下载 Atlas Manager”，然后使用新版本代替当前版本。
 # 测试版：内置的 Atlas 安装包无法解压。
 ready-banner-no-package-bundled-title = 准备内置的 Atlas 安装包以继续
 ready-banner-no-package-bundled-message = 此测试版内置的 Atlas 安装包尚未就绪。请查看“安装文件”卡片。
@@ -301,6 +305,20 @@ acquire-failed = 无法准备安装文件。请重新下载，或打开其他 At
 acquire-stalled = 下载已停止响应。请检查 Internet 连接，然后重新下载，或打开已保存的 Atlas 安装包 (.atlaspkg)。
 # 测试版：内置的 Atlas 安装包无法解压。“重试”是唯一提供的操作。
 acquire-failed-bundled = 无法准备内置的 Atlas 安装包。请选择“重试”。详细信息：{ $error }
+# The Atlas package asks for a newer Atlas Manager than this one. $version is the version it asks for,
+# such as 0.7.0. "Download Atlas Manager" is manager-download, the button beside the message.
+acquire-manager-outdated = 此 Atlas 安装包需要 Atlas Manager { $version } 或更高版本。请选择“下载 Atlas Manager”，然后使用新版本代替当前版本。
+# The same, for a package that doesn't say which version it needs.
+acquire-manager-outdated-any = 此 Atlas 安装包需要更新版本的 Atlas Manager。请选择“下载 Atlas Manager”，然后使用新版本代替当前版本。
+
+## 新版 Atlas Manager
+
+# Opens the latest Atlas release on GitHub in the browser, where Atlas Manager is downloaded.
+manager-download = 下载 Atlas Manager
+# A note on Home and in Settings that a newer Atlas Manager has been released. $version is its
+# version, such as 0.7.0. The note doesn't stop anything; manager-download is its button.
+manager-update-title = 新版本 Atlas Manager { $version } 已发布
+manager-update-message = Atlas Manager 无法自行更新。请下载新版本，并用它代替当前版本。
 
 ## 系统检查
 

@@ -41,7 +41,7 @@ src/
                   and the shared stepper and footer
   services/       Windows-facing code with no UI dependency: system, atlas_state,
                   security, requirements, windows_release, windows_installation,
-                  releases, package, embedded, preparation, recovery_app,
+                  releases, manager_version, package, embedded, preparation, recovery_app,
                   installer, session, settings, registry, locale, iso, usb, desktop_setup,
                   diagnostics (and its redaction), reports, licenses
 resources/        icon and version resource; iso/ (ISO, USB and destination
@@ -67,7 +67,7 @@ Pages are thin views over it, and it notifies them when it changes.
   Actions that change anything feeding an install refuse while it's true.
 - The model stores values and causes, never interface text.
   `src/i18n/describe.rs` words them at render time, so a language switch re-words everything on screen ([languages](i18n.md)).
-- The Windows Update, Security Center and licensing queries behind the checks time out instead of hanging, with at most one worker each (`Bounded` in `src/services/requirements/`).
+- The Windows Update, Security Center and licensing queries behind the checks time out instead of hanging, with at most one worker each (`Deadline` in `src/services/requirements/deadline.rs`).
 
 `src/environment.rs` holds what the model takes from its process: the app data paths, whether it checks GitHub, timings and the machine adapters.
 Each adapter is a plain function, such as reading Windows Security or scheduling a restart, so a test can substitute one without a trait for each service.
@@ -81,11 +81,27 @@ Each adapter is a plain function, such as reading Windows Security or scheduling
 - The release's Atlas package is the file with the `.atlaspkg` extension, an encrypted ZIP whose manifest is `atlas.json` ([package format](../../docs/package-format.md)).
 - Packages unpack through a private staging directory into an immutable `...\App\Packages\<version>_<digest>` folder (`src/services/package.rs`).
   A bad package never replaces a good one, and two packages that both claim the same version never share a folder.
+- Earlier versions of Atlas Manager unpacked packages into `...\App\Playbooks`, which nothing reads.
+  A start that finds no install or preparation running removes that folder on a worker and logs the result, without following any link inside it.
 - Atlas Manager installs only packages that include the front door, `Entry\Install-Atlas.ps1`: Atlas 0.6.0 and later.
   It refuses older packages and any other kind of file, and says which versions it installs.
 
 The front door is the script in the Atlas package that Atlas Manager runs to install Atlas ([the front door](../../docs/front-door.md)).
 [The install flow](install-flow.md) covers how the app runs it.
+
+### Atlas Manager's own version
+
+Atlas Manager's version is the version of the Atlas release it's published with, and Atlas Manager can't update itself (`src/services/manager_version.rs`).
+A tester build counts as its base version: a candidate for `<version>` is `<version>`.
+
+- `atlas.json` names the oldest Atlas Manager that can install the package in `minimumManagerVersion`.
+  The app reads that field and the manifest's format before anything else in the manifest.
+  When this Atlas Manager is older, or the format is newer than the one it reads, it refuses the package with `package::ManagerOutdated` and unpacks nothing.
+- The **Get ready** page and ISO creation then name the Atlas Manager version the package needs, when it names one.
+  They offer **Download Atlas Manager**, which opens the latest release on GitHub.
+- When the release check finds a release newer than this Atlas Manager, Home and **Settings** > **About** say that the newer Atlas Manager is available, with the same button.
+  The note holds nothing up, and doesn't show when the check fails or the versions are equal.
+  A tester build counts the release of its base version as newer, but it never checks for releases.
 
 ## Tests
 

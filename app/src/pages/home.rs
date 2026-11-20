@@ -8,8 +8,8 @@ use gpui::{
 
 use super::stepper::step_marker;
 use super::{
-    StepStatus, badge, card_body, card_header, detail_row, detail_text, focusable_heading, heading, on_model,
-    options_value, page_frame, recorded_options,
+    StepStatus, badge, card_body, card_header, detail_row, detail_text, focusable_heading, heading,
+    manager_update_bar, on_model, options_value, page_frame, recorded_options,
 };
 use crate::i18n::{describe, fmt};
 use crate::model::{AppModel, InstallBlock, Page, ReleaseCheck, RestoreStatus, Step};
@@ -277,8 +277,8 @@ impl HomePage {
     }
 
     /// The bars below the hero: a restart still owed, why no install can
-    /// start, a notice, the Windows Security reminder, a failed elevation and
-    /// an unreadable state.
+    /// start, a notice, the Windows Security reminder, a failed elevation, an
+    /// unreadable state and a newer Atlas Manager.
     fn notices(&self, state: &AppModel, diagnostics: Option<Div>) -> Vec<AnyElement> {
         let model = &self.model;
         let block = state.start_block();
@@ -395,6 +395,10 @@ impl HomePage {
                 .id("home-state-error")
                 .into_any_element(),
             );
+        }
+        // Last: a note that holds nothing up.
+        if let Some(bar) = manager_update_bar(state, "home") {
+            body.push(bar.into_any_element());
         }
         body
     }

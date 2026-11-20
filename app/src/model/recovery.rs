@@ -176,6 +176,12 @@ impl AppModel {
     ) {
         self.recovering = false;
         self.drop_left_start_page();
+        // An install or preparation could still be using a package unpacked
+        // by an earlier version, so the folder those went to waits for a start
+        // with neither running.
+        if matches!(found, StartupInspection::None) && matches!(running_preparation, Ok(None)) {
+            self.remove_old_package_cache(cx);
+        }
         if self.elevated {
             // Finished preparation jobs beyond the newest few are only
             // history; the protected folder can only be changed elevated.
@@ -264,6 +270,27 @@ impl AppModel {
             self.load_bundled_package(cx);
         }
         cx.notify();
+    }
+
+    /// Removes, on a worker, the folder under the app data folder where
+    /// earlier versions of Atlas Manager unpacked packages, which nothing
+    /// reads (see [`package::remove_old_cache`]), and logs what happened.
+    fn remove_old_package_cache(&self, cx: &mut Context<Self>) {
+        let root = self.env.paths.root.clone();
+        cx.background_executor()
+            .spawn(async move {
+                match package::remove_old_cache(&root) {
+                    Ok(true) => {
+                        log::info!("Removed the packages earlier versions unpacked under {}", root.display())
+                    }
+                    Ok(false) => {}
+                    Err(error) => log::warn!(
+                        "Could not remove all the packages earlier versions unpacked under {}: {error}",
+                        root.display()
+                    ),
+                }
+            })
+            .detach();
     }
 
     /// Follows a recorded install: its package, choices and output. `ended`

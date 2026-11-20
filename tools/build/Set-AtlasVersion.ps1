@@ -3,7 +3,10 @@
     Bumps the Atlas package version in atlas.json and Atlas Manager.
 .DESCRIPTION
     In atlas.json, sets version and adds the previous version to updatableFrom, keeping
-    the versions already listed. Sets the same version in app/Cargo.toml and in the
+    the versions already listed. Every other field keeps its value and the file keeps its
+    layout. That includes minimumManagerVersion: raise it by hand, and only when the
+    package needs something that only a newer Atlas Manager provides
+    (docs/package-format.md). Sets the same version in app/Cargo.toml and in the
     atlas-app entry of app/Cargo.lock, which the --locked app builds need.
 
     When atlas.json already has the version, it's left as it is and only the other

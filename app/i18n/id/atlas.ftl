@@ -242,6 +242,10 @@ ready-banner-blocked-title = PC Anda belum siap
 ready-banner-blocked-message = Atasi item yang ditandai di Pemeriksaan PC, lalu pilih Periksa lagi.
 ready-banner-no-package-title = Unduh Atlas untuk melanjutkan
 ready-banner-no-package-message = Unduh Atlas di File penginstalan, atau pilih Buka file paket jika Anda sudah memiliki paket Atlas (.atlaspkg).
+# The package tried needs a newer Atlas Manager. The title is also the footer's hint then.
+ready-banner-manager-title = Unduh Atlas Manager versi yang lebih baru untuk melanjutkan
+# "Download Atlas Manager" is manager-download, the button in Installation files (package-title).
+ready-banner-manager-message = Pilih Unduh Atlas Manager di File penginstalan. Setelah itu, gunakan versi baru sebagai pengganti versi ini.
 # Tester build: the bundled Atlas package couldn't be unpacked.
 ready-banner-no-package-bundled-title = Siapkan paket Atlas bawaan untuk melanjutkan
 ready-banner-no-package-bundled-message = Paket Atlas bawaan versi uji ini belum siap. Periksa kartu File penginstalan.
@@ -316,6 +320,20 @@ acquire-failed = Tidak dapat menyiapkan file penginstalan. Coba unduh lagi, atau
 acquire-stalled = Unduhan berhenti merespons. Periksa koneksi internet Anda, lalu unduh lagi, atau buka paket Atlas (.atlaspkg) yang tersimpan.
 # Tester build: the bundled Atlas package couldn't be unpacked. Try again is the only control offered.
 acquire-failed-bundled = Tidak dapat menyiapkan paket Atlas bawaan. Pilih Coba lagi. Detail: { $error }
+# The Atlas package asks for a newer Atlas Manager than this one. $version is the version it asks for,
+# such as 0.7.0. "Download Atlas Manager" is manager-download, the button beside the message.
+acquire-manager-outdated = Paket Atlas ini memerlukan Atlas Manager { $version } atau yang lebih baru. Pilih Unduh Atlas Manager. Setelah itu, gunakan versi baru sebagai pengganti versi ini.
+# The same, for a package that doesn't say which version it needs.
+acquire-manager-outdated-any = Paket Atlas ini memerlukan Atlas Manager versi yang lebih baru. Pilih Unduh Atlas Manager. Setelah itu, gunakan versi baru sebagai pengganti versi ini.
+
+## Newer Atlas Manager
+
+# Opens the latest Atlas release on GitHub in the browser, where Atlas Manager is downloaded.
+manager-download = Unduh Atlas Manager
+# A note on Home and in Settings that a newer Atlas Manager has been released. $version is its
+# version, such as 0.7.0. The note doesn't stop anything; manager-download is its button.
+manager-update-title = Atlas Manager { $version } tersedia
+manager-update-message = Atlas Manager tidak dapat memperbarui dirinya sendiri. Unduh versi baru dan gunakan sebagai pengganti versi ini.
 
 ## System checks
 

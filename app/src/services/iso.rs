@@ -409,6 +409,10 @@ pub enum FailureReason {
     /// The package is no longer the one the files were checked with.
     /// Decided by the app before the worker starts, so it has no marker.
     PackageChanged,
+    /// The Atlas package needs a newer Atlas Manager. The package's own
+    /// error ([`super::package::ManagerOutdated`]), which [`create`] passes
+    /// on, says so before the worker starts and names the version.
+    ManagerOutdated,
     /// Some other problem while checking the files.
     Check,
     /// Some other problem after the checks passed.
@@ -454,7 +458,8 @@ impl std::error::Error for Failure {}
 
 /// Types a package the app cannot use for ISO creation, so the page can say
 /// so instead of pointing at the diagnostics: one too old, or a file that
-/// isn't an Atlas package at all. Other errors pass through.
+/// isn't an Atlas package at all. Other errors pass through, a package for
+/// a newer Atlas Manager among them, which the page reads as it is.
 pub fn package_error(error: anyhow::Error) -> anyhow::Error {
     if error.is::<super::package::Unsupported>() || error.is::<super::package::NotAPackage>() {
         Failure::new(FailureReason::PackageUnsupported, format!("{error:#}")).into()
