@@ -1,0 +1,10 @@
+# docs/style.md: use -ise and -isation, such as organise and virtualisation.
+# Matching is case-sensitive, so capitalised Windows names such as Delivery Optimization
+# keep their spelling.
+extends: existence
+message: "Use the British -ise spelling of '%s'."
+link: https://github.com/Atlas-OS/Atlas/blob/main/docs/style.md#language
+level: warning
+ignorecase: false
+tokens:
+  - (?:organ|recogn|custom|optim|initial|normal|priorit|summar|serial|author|categor|minim|maxim|virtual)iz(?:e|es|ed|ing|ation|ations)

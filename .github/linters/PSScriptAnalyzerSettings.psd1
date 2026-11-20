@@ -5,7 +5,7 @@
     Severity = @('Error', 'Warning')
 
     ExcludeRules = @(
-        # Build scripts print progress/results intentionally with colors
+        # Build scripts print progress and results in colour intentionally
         'PSAvoidUsingWriteHost',
         # Internal tooling functions are not published cmdlets; ShouldProcess is not applicable
         'PSUseShouldProcessForStateChangingFunctions'

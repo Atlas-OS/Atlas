@@ -1,4 +1,6 @@
-name: Build Playbook
+name: Build Atlas package
+
+# Actions are pinned by SHA; Dependabot updates the SHA and its version comment together.
 
 on:
   push:
@@ -30,12 +32,12 @@ env:
 
 jobs:
   build:
+    name: Build the Atlas package
     runs-on: windows-latest
     timeout-minutes: 60
 
     steps:
       - name: Checkout code
-        # gh api repos/actions/checkout/commits/v7.0.0 --jq '.sha'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
@@ -53,7 +55,6 @@ jobs:
           "ATLAS_SOURCE_SHA=$sourceSha" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Set up pinned Python
-        # gh api repos/actions/setup-python/commits/v6.3.0 --jq '.sha'
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
@@ -287,7 +288,6 @@ jobs:
 
       - name: Upload review-only CAB candidates
         if: steps.sxsc-configs.outputs.run-sxsc == 'true'
-        # gh api repos/actions/upload-artifact/commits/v7.0.1 --jq '.sha'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: Atlas-CAB-candidates-${{ env.ATLAS_SOURCE_SHA }}
@@ -298,14 +298,13 @@ jobs:
 
       - name: Build and stage the CI Atlas package
         id: create-playbook
-        if: ${{ !startsWith(github.ref, 'refs/heads/na-') }}
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $shortSha = $env:ATLAS_SOURCE_SHA.Substring(0, 8)
-          $playbookName = "Atlas Playbook $shortSha"
+          $playbookName = "Atlas package $shortSha"
           & .\tools\build\Build-Playbook.ps1 -ReplaceOldPlaybook `
-              -Removals Verification, WinverRequirement -FileName $playbookName `
+              -Removals WinverRequirement -FileName $playbookName `
               -DontOpenPbLocation
 
           $apbx = Get-Item -LiteralPath "playbook\$playbookName.apbx" -ErrorAction Stop
@@ -320,7 +319,6 @@ jobs:
 
       - name: Upload the review-only CI Atlas package
         if: steps.create-playbook.outcome == 'success'
-        # gh api repos/actions/upload-artifact/commits/v7.0.1 --jq '.sha'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: Atlas-CI-${{ env.ATLAS_SOURCE_SHA }}

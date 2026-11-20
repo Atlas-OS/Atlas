@@ -1,0 +1,11 @@
+# docs/style.md: never use "ships", "shipped", "shipping" or "payload" in prose.
+extends: existence
+message: "Don't use '%s' in prose; say what Atlas installs, includes or sends instead."
+link: https://github.com/Atlas-OS/Atlas/blob/main/docs/style.md#words
+level: error
+ignorecase: true
+tokens:
+  - ships
+  - shipped
+  - shipping
+  - payloads?

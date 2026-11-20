@@ -1,0 +1,35 @@
+# lychee settings for links in Markdown. Pull requests and pushes check offline: links
+# between files in the repository and the headings their fragments point to. The weekly
+# run in .github/workflows/docs.yml also checks web links, passing --offline=false.
+
+offline = true
+include_fragments = "anchor-only"
+no_progress = true
+# Includes .github/, where the contributing guide and security policy live.
+hidden = true
+
+# Upstream documentation of vendored crates and licences, and local build output.
+exclude_path = [
+  "(^|/)app/vendor/",
+  "(^|/)app/licenses/supplemental/",
+  "(^|/)node_modules/",
+  "(^|/)target/",
+  "(^|/)artifacts/",
+  "(^|/)tmp/",
+]
+
+# Links to this PC, such as a local service in a setup guide.
+exclude_loopback = true
+
+exclude = [
+  # Chat invites refuse automated requests.
+  '^https?://([^/]+\.)?discord\.(gg|com)(/|$)',
+  '^https?://discord\.atlasos\.net(/|$)',
+  # Placeholder hosts in examples.
+  '^https?://([^/]+\.)?example\.(com|net|org)(/|$)',
+  '^https?://[^/]+\.(example|invalid|test)(/|$)',
+]
+
+# The documentation site builds its headings in the browser, so a fragment there can't be
+# checked. The page itself still is.
+remap = ['^(https://atlasos\.net/docs/[^#]*)#.*$ ${1}']

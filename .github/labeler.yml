@@ -7,6 +7,10 @@ docs:
   - any-glob-to-any-file:
     - docs/**/*
     - app/docs/**/*
+    - .markdownlint-cli2.jsonc
+    - lychee.toml
+    - .vale.ini
+    - .github/vale/**/*
 
 actions:
 - changed-files:
@@ -40,7 +44,6 @@ services:
 tweaks:
 - changed-files:
   - any-glob-to-any-file:
-    - playbook/Configuration/custom.yml
     - playbook/Executables/AtlasModules/Scripts/Install/Phases/Invoke-TweaksPhase.ps1
     - playbook/Executables/AtlasModules/Scripts/Modules/Atlas.Tweaks/**/*
     - playbook/Executables/AtlasModules/Scripts/Tweaks/**/*

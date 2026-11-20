@@ -1,5 +1,7 @@
 name: Desktop app
 
+# Actions are pinned by SHA; Dependabot updates the SHA and its version comment together.
+
 # The paths cover every file outside app/ that the app or its tests compile in or read
 # (the include_str!, include_bytes! and CARGO_MANIFEST_DIR paths in app/src) and the
 # package build the tester-build step runs. Changes to any of them must rebuild the app.
@@ -58,22 +60,19 @@ jobs:
 
     steps:
       - name: Checkout code
-        # gh api repos/actions/checkout/commits/v7.0.0 --jq '.sha'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Install the Rust toolchain
-        # The version comes from app/rust-toolchain.toml, so CI, releases and
-        # local builds compile with the same compiler.
-        # gh api repos/dtolnay/rust-toolchain/commits/stable --jq '.sha'
+        # Must match app/rust-toolchain.toml; installing it here saves a second download.
+        # The SHA is a commit on the action's stable branch, which Dependabot doesn't follow; update it by hand.
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: 1.98.1
           components: rustfmt, clippy
 
       - name: Cache Cargo registry and build output
-        # gh api repos/Swatinem/rust-cache/commits/v2 --jq '.sha'
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           workspaces: app
@@ -124,8 +123,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Save production executable and license notices
-        # gh api repos/actions/upload-artifact/commits/v7.0.1 --jq '.sha'
+      - name: Save production executable and licence notices
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: atlas-manager-windows-x64

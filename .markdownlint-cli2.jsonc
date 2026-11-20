@@ -1,0 +1,46 @@
+// markdownlint-cli2 settings for every Markdown file, matching docs/style.md.
+// Run `npx markdownlint-cli2` from the repository root to check the same files as CI.
+{
+  "config": {
+    "default": true,
+    // One sentence per line and no hard wrapping, so line length isn't limited.
+    "MD013": false,
+    "MD001": true,
+    "MD003": { "style": "atx" },
+    "MD004": { "style": "dash" },
+    "MD024": { "siblings_only": true },
+    // HTML is limited to what README banners and collapsible sections need.
+    "MD033": {
+      "allowed_elements": ["h1", "p", "a", "img", "picture", "source", "br", "details", "summary"]
+    },
+    "MD034": true,
+    "MD040": true,
+    // An HTML <h1> banner, as README.md opens with, counts as the first heading.
+    "MD041": true,
+    "MD046": { "style": "fenced" },
+    "MD048": { "style": "backtick" },
+    // docs/style.md doesn't set the spacing around table pipes.
+    "MD060": false
+  },
+  "globs": [
+    "**/*.md",
+    // Upstream documentation of vendored crates and licences stays as written; the
+    // notes Atlas keeps beside vendored code are checked.
+    "!app/vendor/**",
+    "!app/licenses/supplemental/**",
+    "app/vendor/*/ATLAS-PATCH.md",
+    "app/vendor/gpui-pre-windows/prebuilt/README.md"
+  ],
+  // The pull request template starts below the title GitHub supplies, and the Toggle
+  // Windows Updates README is plain text that users open in Notepad.
+  "ignores": [
+    "**/node_modules/**",
+    "**/target/**",
+    "artifacts/**",
+    "tmp/**",
+    ".github/pull_request_template.md",
+    "playbook/Executables/AtlasDesktop/6. Advanced Configuration/Toggle Windows Updates/README.md"
+  ],
+  "gitignore": true,
+  "noProgress": true
+}

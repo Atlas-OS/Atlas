@@ -1,0 +1,15 @@
+# docs/style.md: documentation describes how Atlas behaves, not when it changed or
+# what's left to do. .vale.ini applies this rule under docs/ only.
+extends: existence
+message: "'%s' dates the page; describe how Atlas behaves instead."
+link: https://github.com/Atlas-OS/Atlas/blob/main/docs/style.md#write-timeless-copy
+level: warning
+ignorecase: true
+tokens:
+  - release candidates?
+  - still needed
+  - still needs
+  - so far
+  - currently
+  - for now
+  - no longer

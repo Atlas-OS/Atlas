@@ -1,0 +1,23 @@
+# docs/style.md: write in British English. BritishIse.yml covers the -ise verbs.
+# Matching is case-sensitive, so capitalised names such as Security Center keep their
+# spelling.
+extends: substitution
+message: "Use the British spelling '%s' instead of '%s'."
+link: https://github.com/Atlas-OS/Atlas/blob/main/docs/style.md#language
+level: warning
+ignorecase: false
+swap:
+  behavior: behaviour
+  behaviors: behaviours
+  behavioral: behavioural
+  color: colour
+  colors: colours
+  colored: coloured
+  center: centre
+  centers: centres
+  centered: centred
+  canceled: cancelled
+  canceling: cancelling
+  labeled: labelled
+  labeling: labelling
+  modeling: modelling

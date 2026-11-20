@@ -1,15 +1,18 @@
 name: Integration (lab VM)
 
+# Actions are pinned by SHA; Dependabot updates the SHA and its version comment together.
+
 # Installs the built Atlas package on a Hyper-V lab VM and verifies the result with the
 # health check and a before/after state diff. This needs a self-hosted Windows runner
 # with Hyper-V, a prepared VM checkpoint and a guest credential; hosted runners cannot
 # run it. Register a runner with the labels below and set the repository variables and
-# secret to enable the job. Until then the workflow is manual-only and reports why.
+# secret to enable the job. The job is skipped while ATLAS_LAB_VM is unset.
 #
 # Runner labels: self-hosted, windows, hyperv
-# Variables: ATLAS_LAB_VM (VM name), ATLAS_LAB_CHECKPOINT (clean checkpoint name)
-# Secrets: ATLAS_LAB_PASSWORD (guest local administrator password)
-# Variable (optional): ATLAS_LAB_USER (defaults to Administrator)
+# Variables: ATLAS_LAB_VM (VM name), ATLAS_LAB_CHECKPOINT (clean checkpoint name),
+#   ATLAS_LAB_USER (a local administrator account in the guest other than the built-in
+#   Administrator, which Atlas refuses)
+# Secrets: ATLAS_LAB_PASSWORD (that account's password)
 
 on:
   workflow_dispatch:
@@ -29,14 +32,31 @@ concurrency:
 
 jobs:
   lab:
+    name: Install and verify on the lab VM
     # The job is skipped, not failed, when no lab runner has been configured.
     if: vars.ATLAS_LAB_VM != ''
     runs-on: [self-hosted, windows, hyperv]
     timeout-minutes: 180
 
     steps:
+      - name: Check the lab settings
+        # Before the build, so a missing setting fails in seconds.
+        shell: pwsh
+        env:
+          ATLAS_LAB_USER: ${{ vars.ATLAS_LAB_USER }}
+          ATLAS_LAB_CHECKPOINT: ${{ vars.ATLAS_LAB_CHECKPOINT }}
+          ATLAS_LAB_PASSWORD_SET: ${{ secrets.ATLAS_LAB_PASSWORD != '' }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $missing = @()
+          if (-not $env:ATLAS_LAB_USER) { $missing += 'the ATLAS_LAB_USER variable' }
+          if (-not $env:ATLAS_LAB_CHECKPOINT) { $missing += 'the ATLAS_LAB_CHECKPOINT variable' }
+          if ($env:ATLAS_LAB_PASSWORD_SET -ne 'true') { $missing += 'the ATLAS_LAB_PASSWORD secret' }
+          if ($missing.Count -gt 0) {
+              throw "Set $($missing -join ', ') to run the lab. ATLAS_LAB_USER is a local administrator account in the guest other than the built-in Administrator, which Atlas refuses."
+          }
+
       - name: Checkout code
-        # gh api repos/actions/checkout/commits/v7.0.0 --jq '.sha'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -63,9 +83,8 @@ jobs:
           LAB_OPTIONS: ${{ github.event.inputs.options }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $user = if ($env:ATLAS_LAB_USER) { $env:ATLAS_LAB_USER } else { 'Administrator' }
           $secure = ConvertTo-SecureString -String $env:ATLAS_LAB_PASSWORD -AsPlainText -Force
-          $credential = New-Object System.Management.Automation.PSCredential($user, $secure)
+          $credential = New-Object System.Management.Automation.PSCredential($env:ATLAS_LAB_USER, $secure)
           $apbx = Get-Item -LiteralPath $env:ATLAS_LAB_PLAYBOOK -ErrorAction Stop
           & tools/lab/Invoke-AtlasLabRun.ps1 -VMName $env:ATLAS_LAB_VM -CheckpointName $env:ATLAS_LAB_CHECKPOINT `
               -Credential $credential -PlaybookPath $apbx.FullName -Option ($env:LAB_OPTIONS -split ',') `
@@ -74,7 +93,6 @@ jobs:
 
       - name: Upload lab output
         if: always()
-        # gh api repos/actions/upload-artifact/commits/v7.0.1 --jq '.sha'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: lab-output

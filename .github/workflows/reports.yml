@@ -1,5 +1,7 @@
 name: Reports service
 
+# Actions are pinned by SHA; Dependabot updates the SHA and its version comment together.
+
 on:
   push:
     paths: ["services/reports/**", "services/reports-mcp/**", ".github/workflows/reports.yml"]
@@ -16,6 +18,7 @@ concurrency:
 
 jobs:
   check:
+    name: Check ${{ matrix.package }} (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
@@ -27,16 +30,25 @@ jobs:
       run:
         working-directory: services/${{ matrix.package }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - name: Install the Rust toolchain
+        # Must match services/reports/rust-toolchain.toml; installing it here saves a second
+        # download. reports-mcp has no toolchain file and builds with this one.
+        # The SHA is a commit on the action's stable branch, which Dependabot doesn't follow; update it by hand.
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: 1.98.1
           components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+      - name: Cache Cargo registry and build output
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           workspaces: services/${{ matrix.package }}
-      - run: cargo fmt --check
-      - run: cargo clippy --locked --all-targets -- -D warnings
-      - run: cargo test --locked
+      - name: Check formatting
+        run: cargo fmt --check
+      - name: Clippy (warnings are errors)
+        run: cargo clippy --locked --all-targets -- -D warnings
+      - name: Test
+        run: cargo test --locked

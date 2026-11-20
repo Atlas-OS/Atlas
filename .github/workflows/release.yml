@@ -1,5 +1,7 @@
 name: Release
 
+# Actions are pinned by SHA; Dependabot updates the SHA and its version comment together.
+
 on:
   push:
     tags:
@@ -15,6 +17,7 @@ concurrency:
 
 jobs:
   build:
+    name: Build and verify the release files
     if: github.repository == 'Atlas-OS/Atlas'
     runs-on: windows-latest
     # Room for a cold release build of the app.
@@ -24,7 +27,6 @@ jobs:
 
     steps:
       - name: Checkout the tagged source
-        # gh api repos/actions/checkout/commits/v7.0.0 --jq '.sha'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -51,8 +53,8 @@ jobs:
           }
 
       - name: Install the Rust toolchain
-        # The version comes from app/rust-toolchain.toml, as in app.yml.
-        # gh api repos/dtolnay/rust-toolchain/commits/stable --jq '.sha'
+        # Must match app/rust-toolchain.toml; installing it here saves a second download.
+        # The SHA is a commit on the action's stable branch, which Dependabot doesn't follow; update it by hand.
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: 1.98.1
@@ -125,7 +127,6 @@ jobs:
               Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Upload the release promotion bundle
-        # gh api repos/actions/upload-artifact/commits/v7.0.1 --jq '.sha'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: atlas-release-${{ github.sha }}
@@ -135,6 +136,7 @@ jobs:
           compression-level: 0
 
   attest-promotion:
+    name: Attest the release files
     if: github.repository == 'Atlas-OS/Atlas'
     needs: build
     runs-on: windows-latest
@@ -146,7 +148,6 @@ jobs:
 
     steps:
       - name: Download the exact promotion bundle
-        # gh api repos/actions/download-artifact/commits/v8.0.1 --jq '.sha'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: atlas-release-${{ github.sha }}
@@ -154,24 +155,22 @@ jobs:
           digest-mismatch: error
 
       - name: Attest the verified APBX
-        # gh api repos/actions/attest/commits/v4.1.1 --jq '.sha'
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: ${{ runner.temp }}/atlas-release/*.apbx
 
       - name: Attest the release ZIP
-        # gh api repos/actions/attest/commits/v4.1.1 --jq '.sha'
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: ${{ runner.temp }}/atlas-release/*.zip
 
       - name: Attest Atlas Manager
-        # gh api repos/actions/attest/commits/v4.1.1 --jq '.sha'
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: ${{ runner.temp }}/atlas-release/*.exe
 
   publish-draft:
+    name: Publish the draft release
     if: github.repository == 'Atlas-OS/Atlas'
     needs: attest-promotion
     runs-on: windows-latest
@@ -192,7 +191,6 @@ jobs:
           }
 
       - name: Download the exact promotion bundle
-        # gh api repos/actions/download-artifact/commits/v8.0.1 --jq '.sha'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: atlas-release-${{ github.sha }}

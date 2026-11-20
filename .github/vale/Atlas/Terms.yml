@@ -1,0 +1,19 @@
+# docs/style.md: the words table. "Log on" is matched only before "to" or "as", so
+# phrases such as "the full log on disk" pass.
+extends: substitution
+message: "Use '%s' instead of '%s'."
+link: https://github.com/Atlas-OS/Atlas/blob/main/docs/style.md#words
+level: warning
+ignorecase: true
+swap:
+  reboot: restart
+  reboots: restarts
+  rebooted: restarted
+  rebooting: restarting
+  logon: sign-in
+  log on to: sign in to
+  log on as: sign in as
+  logs on to: signs in to
+  logged on: signed in
+  checkbox: check box
+  checkboxes: check boxes

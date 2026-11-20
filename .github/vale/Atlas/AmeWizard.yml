@@ -1,0 +1,9 @@
+# docs/style.md: Atlas Manager is the only way to install Atlas. AME Wizard is named only
+# where older releases, which it installed, left records that Atlas still reads.
+extends: existence
+message: "Mention AME Wizard only for records that older releases left."
+link: https://github.com/Atlas-OS/Atlas/blob/main/docs/style.md#how-atlas-is-installed
+level: warning
+ignorecase: false
+tokens:
+  - AME Wizard

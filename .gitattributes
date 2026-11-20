@@ -1,4 +1,4 @@
-# Line ending normalization
+# Line ending normalisation
 *.ps1  eol=lf
 *.psm1 eol=lf
 *.psd1 eol=lf
@@ -14,8 +14,8 @@ app/vendor/gpui-pre-windows/prebuilt/shaders_bytes.rs whitespace=-blank-at-eol
 *.manifest eol=lf
 *.bat  eol=crlf
 *.cmd  eol=crlf
-# Registry Editor 5.00 payloads are UTF-16LE. Git's byte-oriented EOL filters
-# corrupt their two-byte code units, so preserve registry payload bytes exactly.
+# Registry Editor 5.00 files are UTF-16LE. Git's byte-oriented EOL filters
+# corrupt their two-byte code units, so preserve the bytes of .reg files exactly.
 *.reg  -text
 *.sh   eol=lf
 # Generated catalogs are validated against deterministic LF output.

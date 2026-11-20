@@ -1,14 +1,22 @@
 name: "Pull Request Labeler"
 
+# Actions are pinned by SHA; Dependabot updates the SHA and its version comment together.
+
+# pull_request_target runs in the base repository's context, so the labeler gets a write
+# token even for pull requests from forks. That's safe only because no job here checks
+# out or runs code from the pull request: the labeler reads .github/labeler.yml from the
+# base branch and the changed file list from the API.
 on:
-- pull_request_target
+  - pull_request_target
 
 jobs:
   filter:
+    name: Label the pull request
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
       pull-requests: write
-    runs-on: ubuntu-latest
     steps:
-    # gh api repos/actions/labeler/commits/v6.0.1 --jq '.sha'
-    - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
+      - name: Label by changed paths
+        uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0

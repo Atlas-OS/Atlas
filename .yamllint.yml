@@ -1,5 +1,5 @@
-# Relaxed profile: AME playbook YAML uses custom tags (!run, !registryKey, !task, !writeStatus...)
-# and legacy formatting that stricter rules would reject wholesale.
+# Relaxed profile: syntax errors, duplicate keys and CRLF line endings fail the check,
+# while formatting rules only warn.
 extends: relaxed
 
 rules:

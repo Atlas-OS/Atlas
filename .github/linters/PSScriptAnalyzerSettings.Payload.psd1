@@ -5,7 +5,7 @@
     Severity = @('Error', 'Warning')
 
     ExcludeRules = @(
-        # Atlas scripts use Write-Host intentionally for colored console output
+        # Atlas scripts use Write-Host intentionally for coloured console output
         'PSAvoidUsingWriteHost',
         # Positional parameters are common in short Atlas helper calls
         'PSAvoidUsingPositionalParameters',

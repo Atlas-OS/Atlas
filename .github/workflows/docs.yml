@@ -1,0 +1,116 @@
+name: Docs
+
+# Actions are pinned by SHA; Dependabot updates the SHA and its version comment together.
+
+# Checks Markdown against docs/style.md: markdownlint for structure, lychee for links and
+# Vale for wording. Web links can break without any change here, so a weekly run checks
+# them too.
+on:
+  push:
+    paths:
+      - "**/*.md"
+      - ".markdownlint-cli2.jsonc"
+      - "lychee.toml"
+      - ".vale.ini"
+      - ".github/vale/**"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    paths:
+      - "**/*.md"
+      - ".markdownlint-cli2.jsonc"
+      - "lychee.toml"
+      - ".vale.ini"
+      - ".github/vale/**"
+      - ".github/workflows/docs.yml"
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  markdownlint:
+    name: Markdown structure (markdownlint)
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Lint Markdown
+        # .markdownlint-cli2.jsonc adds the vendored-code exclusions and the rules.
+        uses: DavidAnson/markdownlint-cli2-action@696eb3f2509270d7b882d2aa68347bc676e7af34 # v25.0.0
+        with:
+          globs: "**/*.md"
+
+  links:
+    name: Links within the repository (lychee)
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check relative links and fragments
+        # lychee.toml keeps this run offline.
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          lycheeVersion: v0.24.2
+          args: --config lychee.toml './**/*.md'
+
+  prose:
+    name: Wording (Vale)
+    # reviewdog reports on the lines a pull request adds.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check wording against docs/style.md
+        # .vale.ini chooses the files and rules. Errors fail the job; warnings are
+        # annotations only.
+        uses: errata-ai/vale-action@518a9136acc6e6668ce7c00d367051e0941e87ff # v3.0.0
+        with:
+          version: 3.28.1
+          files: all
+          sync: false
+          fail_on_error: true
+
+  web-links:
+    name: Web links (lychee, weekly)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check every link, including web links
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          lycheeVersion: v0.24.2
+          args: --config lychee.toml --offline=false './**/*.md'
