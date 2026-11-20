@@ -667,6 +667,7 @@ Describe 'AppX removal policy' {
             'Microsoft.Edge.GameAssist*'
             'MicrosoftWindows.Client.WebExperience*'
             'Microsoft.WidgetsPlatformRuntime*'
+            'Ink.Handwriting.Main.Store*'
         )
     }
 

@@ -79,7 +79,9 @@ function Get-AtlasAppxRemovalDefinition {
         [pscustomobject]@{ Name = 'Microsoft.WindowsMaps*';                       Option = $null;                 IgnoreErrors = $false }
         [pscustomobject]@{ Name = 'Microsoft.WindowsSoundRecorder*';              Option = $null;                 IgnoreErrors = $false }
         [pscustomobject]@{ Name = 'Microsoft.StartExperiencesApp*';               Option = $null;                 IgnoreErrors = $false }
-        [pscustomobject]@{ Name = 'Ink.Handwriting.Main.Store.en-US1.0';           Option = $null;                 IgnoreErrors = $false }
+        # Every language's copy, not only en-US. A leftover only warns: Windows can keep
+        # a language's handwriting package provisioned, and it isn't worth a failed install.
+        [pscustomobject]@{ Name = 'Ink.Handwriting.Main.Store*';                  Option = $null;                 IgnoreErrors = $true }
     )
 }
 
