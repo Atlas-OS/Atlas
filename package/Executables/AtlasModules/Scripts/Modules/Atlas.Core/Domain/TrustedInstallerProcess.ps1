@@ -29,7 +29,7 @@ function Invoke-AtlasTrustedInstallerNativeOperation {
         [string]$RestoreSource,
         [ValidateSet('Capture', 'Run')]
         [string]$InstallPhase,
-        [string]$PayloadRoot
+        [string]$PackageRoot
     )
 
     Initialize-AtlasNativeType
@@ -45,7 +45,7 @@ function Invoke-AtlasTrustedInstallerNativeOperation {
     $request.MachineOnly = [bool]$MachineOnly
     $request.RestoreSource = $RestoreSource
     $request.InstallPhase = $InstallPhase
-    $request.PayloadRoot = $PayloadRoot
+    $request.PackageRoot = $PackageRoot
     $request.TimeoutMilliseconds = $TimeoutMilliseconds
 
     return [Atlas.Native.TrustedInstallerProcess]::LaunchNonInteractive($request)

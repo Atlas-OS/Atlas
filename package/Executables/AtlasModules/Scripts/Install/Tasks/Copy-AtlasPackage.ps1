@@ -2,7 +2,7 @@
 .SYNOPSIS
     Copies AtlasModules, AtlasDesktop and the themes from the extracted package into %windir%.
 .DESCRIPTION
-    Invoke-AtlasPayloadReplacement.ps1 runs it as TrustedInstaller on every install attempt.
+    Invoke-AtlasPackageReplacement.ps1 runs it as TrustedInstaller on every install attempt.
 #>
 [CmdletBinding()]
 param()

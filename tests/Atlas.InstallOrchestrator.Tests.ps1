@@ -127,7 +127,7 @@ Export-ModuleMember -Function Start-AtlasPhase,Stop-AtlasPhase
         $source = Join-Path $TestDrive 'source\Scripts'
         $installed = Join-Path $TestDrive 'installed\Scripts'
         (Get-AtlasInstallCheckpointAction -Target PayloadReplacement -ScriptsRoot $installed -SourceScriptsRoot $source).Path |
-            Should -Be ([IO.Path]::Combine([IO.Path]::GetFullPath($source), 'Install\Tasks\Invoke-AtlasPayloadReplacement.ps1'))
+            Should -Be ([IO.Path]::Combine([IO.Path]::GetFullPath($source), 'Install\Tasks\Invoke-AtlasPackageReplacement.ps1'))
         $installedRoot = [WildcardPattern]::Escape([IO.Path]::GetFullPath($installed))
         foreach ($target in @($targets | Where-Object { $_ -cne 'PayloadReplacement' })) {
             (Get-AtlasInstallCheckpointAction -Target $target -ScriptsRoot $installed -SourceScriptsRoot $source).Path |
@@ -318,7 +318,7 @@ Export-ModuleMember -Function Start-AtlasPhase,Stop-AtlasPhase
             ))
         $calls[1].Path | Should -Be ([IO.Path]::Combine(
                 [IO.Path]::GetFullPath($source),
-                'Install\Tasks\Invoke-AtlasPayloadReplacement.ps1'
+                'Install\Tasks\Invoke-AtlasPackageReplacement.ps1'
             ))
         $calls[2].Path | Should -Be ([IO.Path]::Combine(
                 [IO.Path]::GetFullPath($installed),

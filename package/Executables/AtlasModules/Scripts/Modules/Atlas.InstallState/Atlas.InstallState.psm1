@@ -43,6 +43,11 @@ $script:AtlasInstallStateFields = @(
 $script:AtlasInstallChoices = @('Keep', 'ChooseAgain')
 
 function Get-AtlasInstallStatePath {
+    <#
+    .SYNOPSIS
+        Returns the path of active.json, the install state, under RootPath or
+        %windir%\AtlasOS\Install.
+    #>
     [CmdletBinding()]
     param([string]$RootPath)
 
@@ -55,6 +60,11 @@ function Get-AtlasInstallStatePath {
 }
 
 function Get-AtlasInstallWorkRoot {
+    <#
+    .SYNOPSIS
+        Returns the install's work folder under RootPath or %windir%\AtlasOS\Install,
+        which holds files for one install and is removed when it completes.
+    #>
     [CmdletBinding()]
     param([string]$RootPath)
 
@@ -316,6 +326,11 @@ function Get-AtlasInstallStateUnlocked {
 }
 
 function Get-AtlasInstallState {
+    <#
+    .SYNOPSIS
+        Returns the active install state, restoring it from its backup when the main
+        file is missing or damaged, or $null when no install is active.
+    #>
     [CmdletBinding()]
     param([string]$StatePath)
 
@@ -326,6 +341,12 @@ function Get-AtlasInstallState {
 }
 
 function Start-AtlasInstallState {
+    <#
+    .SYNOPSIS
+        Begins capturing an install of TargetVersion, or returns the unfinished install
+        of that version so a retry resumes it. Refuses an unfinished install of another
+        version, or of another mode that hasn't failed.
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)][string]$TargetVersion,
@@ -470,6 +491,11 @@ function Get-AtlasInstallOptionLockMessage {
 }
 
 function Set-AtlasInstallOptions {
+    <#
+    .SYNOPSIS
+        Records the install's options while it's being captured. Once it runs, or any
+        step has completed, only the options it started with are accepted.
+    #>
     [CmdletBinding()]
     param([Parameter(Mandatory = $true)][AllowEmptyCollection()][string[]]$Options, [string]$StatePath)
 
@@ -492,6 +518,11 @@ function Set-AtlasInstallOptions {
 }
 
 function Set-AtlasInstallUser {
+    <#
+    .SYNOPSIS
+        Binds the install to the installing user's account SID and Windows session.
+        Refuses another account once one is bound.
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
@@ -536,6 +567,11 @@ function Set-AtlasInstallUser {
 }
 
 function Commit-AtlasInstallState {
+    <#
+    .SYNOPSIS
+        Ends the capture and marks the install Running, so its plan can start. An
+        install that's already Running is returned as it is.
+    #>
     [CmdletBinding()]
     param([string]$StatePath)
 
@@ -560,6 +596,11 @@ function Commit-AtlasInstallState {
 }
 
 function Invoke-AtlasInstallStep {
+    <#
+    .SYNOPSIS
+        Runs one install plan step and records it in completedSteps. A Once step that
+        already completed is skipped; a failure is recorded as lastError and rethrown.
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)][string]$Name,
@@ -681,6 +722,12 @@ function Publish-AtlasInstallFlagSet {
 }
 
 function Complete-AtlasInstallState {
+    <#
+    .SYNOPSIS
+        Finishes a Running install once its required steps have completed: publishes
+        the compatibility flags and the state document, keeps the record as last.json
+        and removes the active state.
+    #>
     [CmdletBinding()]
     param(
         [AllowEmptyCollection()][string[]]$RequiredSteps = @(),
@@ -770,7 +817,8 @@ function Get-AtlasPackageManifest {
     .SYNOPSIS
         Loads atlas.json, the package manifest, from an explicit path or from the package
         this module is part of, and checks that it's a JSON object of schema version 1.
-        The readers below check the fields they return.
+        The readers below check the fields they return. Only Atlas Manager compares
+        minimumManagerVersion, so this checks just its major.minor.patch shape.
     #>
     param([string]$ManifestPath)
 
@@ -800,6 +848,11 @@ function Get-AtlasPackageManifest {
     if ($null -eq $schema -or -not (Test-AtlasManifestInteger -Value $schema.Value) -or $schema.Value -ne 1) {
         $found = if ($null -eq $schema) { 'none' } else { "'$($schema.Value)'" }
         throw "The Atlas package manifest '$ManifestPath' has schema version $found; this installer reads version 1."
+    }
+    $managerVersion = $manifest.PSObject.Properties['minimumManagerVersion']
+    if ($null -ne $managerVersion -and
+        ($managerVersion.Value -isnot [string] -or $managerVersion.Value -cnotmatch '^[0-9]+\.[0-9]+\.[0-9]+\z')) {
+        throw "The Atlas package manifest '$ManifestPath' gives minimumManagerVersion $(ConvertTo-Json -InputObject $managerVersion.Value -Compress), which isn't major.minor.patch."
     }
     return $manifest
 }

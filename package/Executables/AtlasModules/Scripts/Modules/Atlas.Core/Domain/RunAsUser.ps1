@@ -5,6 +5,11 @@
 # or falls back to whichever account happens to be active.
 
 function Get-AtlasUserProcessCommandLine {
+    <#
+    .SYNOPSIS
+        Returns the command line for a process started as the installing user: the
+        quoted executable path, followed by the arguments as given.
+    #>
     param(
         [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$FilePath,
         [string]$Arguments = ''

@@ -3,7 +3,7 @@
     Removes the installed AtlasModules and AtlasDesktop folders before the new files are
     copied, keeping the service backups and the logs.
 .DESCRIPTION
-    Invoke-AtlasPayloadReplacement.ps1 runs it as TrustedInstaller on an update, a
+    Invoke-AtlasPackageReplacement.ps1 runs it as TrustedInstaller on an update, a
     reinstall or a Rebase.
 #>
 [CmdletBinding()]

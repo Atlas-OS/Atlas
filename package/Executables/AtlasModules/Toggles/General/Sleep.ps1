@@ -19,6 +19,8 @@ function Set-AtlasSleepState {
         default { throw "Sleep: unsupported state '$($Toggle.State)'." }
     }
 
+    # Only plugged-in (AC) values are written; battery (DC) values stay at the Windows
+    # defaults, as docs/power-saving-policy.md sets out for Atlas's power settings.
     $powercfg = Join-Path -Path $Toggle.WinDir -ChildPath 'System32\powercfg.exe'
     if (-not (Test-Path -LiteralPath $powercfg -PathType Leaf)) {
         throw "Sleep: powercfg.exe is missing at '$powercfg'."

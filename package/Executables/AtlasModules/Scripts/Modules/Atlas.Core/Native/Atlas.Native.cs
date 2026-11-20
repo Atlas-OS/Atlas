@@ -238,7 +238,7 @@ namespace Atlas.Native
         public bool MachineOnly { get; set; }
         public string RestoreSource { get; set; }
         public string InstallPhase { get; set; }
-        public string PayloadRoot { get; set; }
+        public string PackageRoot { get; set; }
         public int TimeoutMilliseconds { get; set; }
     }
 
@@ -680,7 +680,7 @@ namespace Atlas.Native
                 : RequireExactPath(request.AtlasModulesPath, expectedAtlasRoot, "AtlasModulesPath");
             string moduleRoot = atlasRoot;
             if (isInstall) {
-                moduleRoot = RequireProtectedStagingPayload(request.PayloadRoot, windowsDirectory);
+                moduleRoot = RequireProtectedStagingPackage(request.PackageRoot, windowsDirectory);
             }
             string workingDirectory = systemDirectory;
 
@@ -875,16 +875,16 @@ namespace Atlas.Native
             }
         }
 
-        static string RequireProtectedStagingPayload(string payloadRoot, string windowsDirectory) {
+        static string RequireProtectedStagingPackage(string packageRoot, string windowsDirectory) {
             // The front door stages the extracted package beneath the protected staging
             // root with a from-birth Administrators/SYSTEM-only DACL. Only such a copy may
             // run as TrustedInstaller; a user-writable extraction folder never can.
             string stagingRoot = Path.GetFullPath(Path.Combine(windowsDirectory, "AtlasOS", "Staging"));
-            string full = RequirePathBelow(payloadRoot, stagingRoot, "PayloadRoot");
-            if (!Directory.Exists(full)) throw new DirectoryNotFoundException("PayloadRoot '" + full + "' does not exist.");
+            string full = RequirePathBelow(packageRoot, stagingRoot, "PackageRoot");
+            if (!Directory.Exists(full)) throw new DirectoryNotFoundException("PackageRoot '" + full + "' does not exist.");
             ValidateFileSystemSecurity(new DirectoryInfo(full).GetAccessControl(AccessControlSections.Owner | AccessControlSections.Access), full);
             string modulesRoot = Path.Combine(full, "AtlasModules");
-            if (!Directory.Exists(modulesRoot)) throw new DirectoryNotFoundException("PayloadRoot '" + full + "' has no AtlasModules tree.");
+            if (!Directory.Exists(modulesRoot)) throw new DirectoryNotFoundException("PackageRoot '" + full + "' has no AtlasModules tree.");
             return modulesRoot;
         }
 
@@ -906,8 +906,8 @@ namespace Atlas.Native
             }
 
             if (String.Equals(request.Operation, "Toggle", StringComparison.Ordinal)) {
-                RequireBoundedScalar(request.ToggleName, "ToggleName", 128, false);
-                RequireBoundedScalar(request.ToggleState, "ToggleState", 128, false);
+                RequireLimitedScalar(request.ToggleName, "ToggleName", 128, false);
+                RequireLimitedScalar(request.ToggleState, "ToggleState", 128, false);
                 if (!request.Silent) {
                     throw new ArgumentException("The initial noninteractive Toggle operation requires Silent=true.");
                 }
@@ -1394,7 +1394,7 @@ namespace Atlas.Native
             }
         }
 
-        static void RequireBoundedScalar(string value, string name, int maxLength, bool allowEmpty) {
+        static void RequireLimitedScalar(string value, string name, int maxLength, bool allowEmpty) {
             if (value == null || (!allowEmpty && value.Length == 0)) throw new ArgumentException(name + " is required.", name);
             if (value.Length > maxLength) throw new ArgumentOutOfRangeException(name, name + " exceeds its length limit.");
             if (value.IndexOf('\0') >= 0 || value.IndexOf('\r') >= 0 || value.IndexOf('\n') >= 0) throw new ArgumentException(name + " contains a forbidden control character.", name);

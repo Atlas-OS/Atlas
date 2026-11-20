@@ -3,7 +3,7 @@
     Stops the processes and scheduled tasks that run from the installed Atlas folders, so
     their files can be replaced.
 .DESCRIPTION
-    Invoke-AtlasPayloadReplacement.ps1 runs it as TrustedInstaller on an update, a
+    Invoke-AtlasPackageReplacement.ps1 runs it as TrustedInstaller on an update, a
     reinstall or a Rebase.
 #>
 [CmdletBinding()]

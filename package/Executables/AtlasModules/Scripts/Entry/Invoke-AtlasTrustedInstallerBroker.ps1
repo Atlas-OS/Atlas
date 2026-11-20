@@ -27,7 +27,7 @@ param(
     [ValidateSet('Capture', 'Run')]
     [string]$InstallPhase,
 
-    [string]$PayloadRoot,
+    [string]$PackageRoot,
 
     [ValidateRange(1, 86400)]
     [int]$TimeoutSeconds = 900
@@ -42,8 +42,8 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 
 function Get-AtlasInstallFailureDetail {
-    param([string]$PayloadRoot, [string]$Phase)
-    $sessionLog = Join-Path $PayloadRoot "AtlasModules\Logs\install-$($Phase.ToLowerInvariant()).log"
+    param([string]$PackageRoot, [string]$Phase)
+    $sessionLog = Join-Path $PackageRoot "AtlasModules\Logs\install-$($Phase.ToLowerInvariant()).log"
     $logFile = Get-Item -LiteralPath $sessionLog -Force -ErrorAction Stop
     if (($logFile.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or $logFile.Length -gt 1048576) {
         throw 'The install session log is a reparse point or exceeds 1 MiB.'
@@ -96,7 +96,7 @@ try {
             if ([string]::IsNullOrWhiteSpace($RestoreSource)) {
                 throw 'ResetServices requires a typed -RestoreSource value.'
             }
-            foreach ($parameterName in @('Name', 'State', 'JustContext', 'NoExplorerRestart', 'MachineOnly', 'InstallPhase', 'PayloadRoot')) {
+            foreach ($parameterName in @('Name', 'State', 'JustContext', 'NoExplorerRestart', 'MachineOnly', 'InstallPhase', 'PackageRoot')) {
                 if ($PSBoundParameters.ContainsKey($parameterName)) {
                     throw "ResetServices does not accept '-$parameterName'."
                 }
@@ -104,8 +104,8 @@ try {
             $parameters.RestoreSource = $RestoreSource
         }
         'Install' {
-            if ([string]::IsNullOrWhiteSpace($InstallPhase) -or [string]::IsNullOrWhiteSpace($PayloadRoot)) {
-                throw 'Install requires typed -InstallPhase and -PayloadRoot values.'
+            if ([string]::IsNullOrWhiteSpace($InstallPhase) -or [string]::IsNullOrWhiteSpace($PackageRoot)) {
+                throw 'Install requires typed -InstallPhase and -PackageRoot values.'
             }
             foreach ($parameterName in @('Name', 'State', 'JustContext', 'NoExplorerRestart', 'MachineOnly', 'RestoreSource')) {
                 if ($PSBoundParameters.ContainsKey($parameterName)) {
@@ -115,16 +115,16 @@ try {
             # The native launcher validates the staging root, its DACL and the session
             # script again. This check only rejects obviously wrong input before then.
             $stagingRoot = [IO.Path]::GetFullPath([IO.Path]::Combine([Environment]::GetFolderPath('Windows'), 'AtlasOS', 'Staging'))
-            $resolvedPayloadRoot = [IO.Path]::GetFullPath($PayloadRoot)
-            if (-not $resolvedPayloadRoot.StartsWith($stagingRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
-                throw "Install PayloadRoot must be beneath the protected staging root '$stagingRoot'."
+            $resolvedPackageRoot = [IO.Path]::GetFullPath($PackageRoot)
+            if (-not $resolvedPackageRoot.StartsWith($stagingRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+                throw "Install PackageRoot must be beneath the protected staging root '$stagingRoot'."
             }
             $parameters.InstallPhase = $InstallPhase
-            $parameters.PayloadRoot = $resolvedPayloadRoot
+            $parameters.PackageRoot = $resolvedPackageRoot
         }
         'CbsRetry' {
             # The retry's packages come from its own state file, never from the caller.
-            foreach ($parameterName in @('Name', 'State', 'JustContext', 'NoExplorerRestart', 'MachineOnly', 'RestoreSource', 'InstallPhase', 'PayloadRoot')) {
+            foreach ($parameterName in @('Name', 'State', 'JustContext', 'NoExplorerRestart', 'MachineOnly', 'RestoreSource', 'InstallPhase', 'PackageRoot')) {
                 if ($PSBoundParameters.ContainsKey($parameterName)) {
                     throw "CbsRetry does not accept '-$parameterName'."
                 }
@@ -145,7 +145,7 @@ try {
     if ($signedExitCode -ne 0) {
         if ($Operation -ceq 'Install') {
             try {
-                [Console]::Error.WriteLine((Get-AtlasInstallFailureDetail -PayloadRoot $resolvedPayloadRoot -Phase $InstallPhase))
+                [Console]::Error.WriteLine((Get-AtlasInstallFailureDetail -PackageRoot $resolvedPackageRoot -Phase $InstallPhase))
             }
             catch {
                 [Console]::Error.WriteLine("Install $InstallPhase error details unavailable: $($_.Exception.Message)")

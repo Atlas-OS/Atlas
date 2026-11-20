@@ -1,7 +1,7 @@
 @{
     # Strict profile for build tooling (tools/**) and tests (tests/**), which run under
     # PowerShell 5.1 or 7 on developer machines and CI. The scripts that run on users' PCs
-    # use the more lenient PSScriptAnalyzerSettings.Payload.psd1.
+    # use the more lenient PSScriptAnalyzerSettings.Package.psd1.
     Severity = @('Error', 'Warning')
 
     ExcludeRules = @(

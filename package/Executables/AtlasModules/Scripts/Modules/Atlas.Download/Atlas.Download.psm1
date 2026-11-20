@@ -147,7 +147,7 @@ function New-AtlasProtectedStagingDirectory {
     return $directory.FullName
 }
 
-function Invoke-AtlasBoundedHttpGet {
+function Invoke-AtlasLimitedHttpGet {
     <#
     .SYNOPSIS
         Streams an HTTPS GET into OutputStream, failing past MaximumBytes or
@@ -293,7 +293,7 @@ function Invoke-AtlasPinnedDownload {
             [IO.FileShare]::None
         )
         try {
-            $bytes = Invoke-AtlasBoundedHttpGet -Uri $Uri -OutputStream $stream `
+            $bytes = Invoke-AtlasLimitedHttpGet -Uri $Uri -OutputStream $stream `
                 -MaximumBytes $ExpectedBytes -ExpectedBytes $ExpectedBytes `
                 -MaximumSeconds $MaximumSeconds -AllowRedirect
         }
@@ -582,7 +582,7 @@ function Invoke-AtlasGitHubApiJson {
     }
     $memory = New-Object IO.MemoryStream
     try {
-        [void](Invoke-AtlasBoundedHttpGet -Uri $Uri -OutputStream $memory `
+        [void](Invoke-AtlasLimitedHttpGet -Uri $Uri -OutputStream $memory `
                 -MaximumBytes 1048576 -MaximumSeconds 30 -GitHubApi)
         $utf8 = New-Object Text.UTF8Encoding($false, $true)
         return ($utf8.GetString($memory.ToArray()) | ConvertFrom-Json -ErrorAction Stop)
@@ -815,7 +815,7 @@ function Assert-AtlasTrustedWingetSource {
 
 Export-ModuleMember -Function @(
     'New-AtlasProtectedStagingDirectory', 'Test-AtlasProtectedStagingAcl',
-    'Invoke-AtlasBoundedHttpGet', 'Invoke-AtlasPinnedDownload',
+    'Invoke-AtlasLimitedHttpGet', 'Invoke-AtlasPinnedDownload',
     'Test-AtlasProtectedExecutionAcl', 'Resolve-AtlasProtectedExecutionPath',
     'Invoke-AtlasContainedProcess', 'Test-AtlasContainedProcessContainmentUnconfirmed',
     'Invoke-AtlasGitHubApiJson', 'Get-AtlasLatestGitHubReleaseAsset',

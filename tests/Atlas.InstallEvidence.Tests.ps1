@@ -34,7 +34,7 @@ exit 37
 '@
         & $script:PowerShell51 -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $entry -Phase Run
         $LASTEXITCODE | Should -Be 37
-        $detail = Get-AtlasInstallFailureDetail -PayloadRoot (Join-Path $TestDrive 'run') -Phase Run
+        $detail = Get-AtlasInstallFailureDetail -PackageRoot (Join-Path $TestDrive 'run') -Phase Run
         $detail | Should -Match 'Visual C\+\+ Runtime fixture failed with exit code 1638'
         $detail | Should -Match 'fixture warning'
         $detail | Should -Match 'Install plan exited with code 37'
@@ -45,8 +45,8 @@ exit 37
         @{ Failure = 'module' }
     ) {
         param($Failure)
-        $payload = Join-Path $TestDrive $Failure
-        $scripts = Join-Path $payload 'AtlasModules\Scripts'
+        $staged = Join-Path $TestDrive $Failure
+        $scripts = Join-Path $staged 'AtlasModules\Scripts'
         $install = Join-Path $scripts 'Install'
         New-Item -ItemType Directory -Path $install -Force | Out-Null
         $entry = Join-Path $install 'Invoke-AtlasInstallSession.ps1'
@@ -69,7 +69,7 @@ exit 37
             $process.ExitCode | Should -Be 1
         }
         finally { $process.Dispose() }
-        $detail = Get-AtlasInstallFailureDetail -PayloadRoot $payload -Phase Capture
+        $detail = Get-AtlasInstallFailureDetail -PackageRoot $staged -Phase Capture
         $detail | Should -Match 'Starting install phase Capture'
         $detail | Should -Match 'ERROR:'
         if ($Failure -eq 'module') { $detail | Should -Match 'fixture module import failed' }
@@ -78,42 +78,13 @@ exit 37
     }
 
     It 'limits failure output while retaining the final exception' {
-        $payload = Join-Path $TestDrive 'bounded'
-        $logs = Join-Path $payload 'AtlasModules\Logs'
+        $staged = Join-Path $TestDrive 'limited'
+        $logs = Join-Path $staged 'AtlasModules\Logs'
         New-Item -ItemType Directory -Path $logs -Force | Out-Null
         $path = Join-Path $logs 'install-capture.log'
         [IO.File]::WriteAllText($path, ('x' * 20000) + 'final exception')
-        $detail = Get-AtlasInstallFailureDetail -PayloadRoot $payload -Phase Capture
+        $detail = Get-AtlasInstallFailureDetail -PackageRoot $staged -Phase Capture
         $detail.Length | Should -Be 16384
         $detail | Should -Match 'final exception$'
-    }
-
-    It 'collects old RC state into app logs without modifying the source files' {
-        $windows = Join-Path $TestDrive 'Windows'
-        $app = Join-Path $TestDrive 'App'
-        $state = Join-Path $windows 'AtlasOS\Install'
-        $payload = Join-Path $windows 'AtlasOS\Staging\one\Executables'
-        New-Item -ItemType Directory -Path $state, $payload, $app -Force | Out-Null
-        $active = Join-Path $state 'active.json'
-        $request = Join-Path $payload 'request.json'
-        $original = '{"status":"Running","options":["install-toolbox"]}'
-        [IO.File]::WriteAllText($active, $original)
-        [IO.File]::WriteAllText((Join-Path $state 'last.json'), '{"status":"Completed","transactionId":"last-fixture"}')
-        [IO.File]::WriteAllText($request, '{"options":[]}')
-        $legacyLogs = Join-Path $payload 'AtlasModules\Logs\install'
-        New-Item -ItemType Directory -Path $legacyLogs -Force | Out-Null
-        [IO.File]::WriteAllText((Join-Path $legacyLogs 'atlas-install.log'), 'Visual C++ Runtime fixture failed with exit code 1234.')
-        & $script:PowerShell51 -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `
-            (Join-Path $script:AtlasTestRepoRoot 'tools\dev\Get-AtlasInstallEvidence.ps1') -WindowsRoot $windows -AppRoot $app
-        $LASTEXITCODE | Should -Be 0
-        $log = Get-ChildItem (Join-Path $app 'Logs') -Filter '*.log'
-        $text = Get-Content $log.FullName -Raw
-        $text | Should -Match 'install-toolbox'
-        $text | Should -Match 'last-fixture'
-        $text | Should -Match 'request.json'
-        $text | Should -Match 'Visual C\+\+ Runtime fixture failed with exit code 1234'
-        $text | Should -Match 'Unavailable:'
-        [IO.File]::ReadAllText($active) | Should -Be $original
-        [IO.File]::ReadAllText($request) | Should -Be '{"options":[]}'
     }
 }

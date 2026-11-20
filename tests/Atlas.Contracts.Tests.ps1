@@ -59,7 +59,7 @@ Describe 'Atlas option handoff contract' {
 Describe 'Atlas module import contracts' {
     BeforeDiscovery {
         $modulesRoot = Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\package')).ProviderPath 'Executables\AtlasModules\Scripts\Modules'
-        $script:PayloadManifests = @(Get-ChildItem -LiteralPath $modulesRoot -Filter 'Atlas.*.psd1' -File -Recurse |
+        $script:PackageManifests = @(Get-ChildItem -LiteralPath $modulesRoot -Filter 'Atlas.*.psd1' -File -Recurse |
             ForEach-Object { @{ Name = $_.BaseName; FullName = $_.FullName; ModulesRoot = $modulesRoot } })
     }
 
@@ -121,7 +121,7 @@ if ($missing.Count -gt 0 -or $unexpected.Count -gt 0) {
         }
     }
 
-    It '<Name> imports in a clean process with autoloading disabled and exact exports' -ForEach $PayloadManifests {
+    It '<Name> imports in a clean process with autoloading disabled and exact exports' -ForEach $PackageManifests {
         $output = & $script:CurrentPowerShell -NoProfile -ExecutionPolicy Bypass -File $script:ImportHarness `
             -ManifestPath $FullName -ModulesRoot $ModulesRoot 2>&1
 
@@ -148,9 +148,9 @@ Describe 'Atlas variable definition contract' {
         $scopedDrives = @('env', 'using', 'script', 'global', 'local', 'private', 'variable', 'function')
 
         $undefined = @()
-        $payloadScripts = @(Get-ChildItem -LiteralPath $script:PackageRoot -Recurse -File |
+        $packageScripts = @(Get-ChildItem -LiteralPath $script:PackageRoot -Recurse -File |
                 Where-Object { $_.Extension -cin @('.ps1', '.psm1') })
-        foreach ($file in $payloadScripts) {
+        foreach ($file in $packageScripts) {
             $tokens = $null
             $errors = $null
             $ast = [System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$tokens, [ref]$errors)

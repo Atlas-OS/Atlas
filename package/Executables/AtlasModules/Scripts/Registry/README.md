@@ -16,7 +16,7 @@ The toggle's companion script picks the file for the state and imports it with `
 
 Some files here also have a copy under `AtlasModules/Toolbox` for the standalone Atlas Toolbox flows.
 Edit both copies together, because each pair must stay byte-identical.
-`tests/Atlas.PayloadLayout.Tests.ps1` fails when a pair differs.
+`tests/Atlas.PackageLayout.Tests.ps1` fails when a pair differs.
 
 | Registry copy | Toolbox copy |
 | --- | --- |

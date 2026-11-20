@@ -267,7 +267,7 @@ Describe 'Invoke-AtlasTrustedInstaller' {
             Sort-Object)
         $expectedParameters = @(
             'Operation', 'Name', 'State', 'Silent', 'JustContext', 'NoExplorerRestart', 'MachineOnly',
-            'RestoreSource', 'InstallPhase', 'PayloadRoot', 'TimeoutSeconds'
+            'RestoreSource', 'InstallPhase', 'PackageRoot', 'TimeoutSeconds'
         ) | Sort-Object
         $operationParameters | Should -Be $expectedParameters
     }
@@ -292,7 +292,7 @@ Describe 'Invoke-AtlasTrustedInstaller' {
                 -MachineOnly } |
             Should -Throw -ExpectedMessage "*ResetServices does not accept*'-MachineOnly'*"
         { Invoke-AtlasTrustedInstaller -Operation Install -Name Test -InstallPhase Run `
-                -PayloadRoot 'C:\Windows\AtlasOS\Staging\candidate\Executables' } |
+                -PackageRoot 'C:\Windows\AtlasOS\Staging\candidate\Executables' } |
             Should -Throw -ExpectedMessage "*Install does not accept*'-Name'*"
         { Invoke-AtlasTrustedInstaller -Operation Toggle -Name Test -State Enable -InstallPhase Run } |
             Should -Throw -ExpectedMessage "*Toggle does not accept*'-InstallPhase'*"
@@ -321,10 +321,10 @@ Describe 'Invoke-AtlasTrustedInstaller' {
         @{ Phase = 'Capture' }
         @{ Phase = 'Run' }
     ) {
-        $payload = Join-Path ([Environment]::GetFolderPath('Windows')) 'AtlasOS\Staging\candidate\Executables'
-        $broker = Join-Path $payload 'AtlasModules\Scripts\Entry\Invoke-AtlasTrustedInstallerBroker.ps1'
+        $staged = Join-Path ([Environment]::GetFolderPath('Windows')) 'AtlasOS\Staging\candidate\Executables'
+        $broker = Join-Path $staged 'AtlasModules\Scripts\Entry\Invoke-AtlasTrustedInstallerBroker.ps1'
 
-        Invoke-AtlasTrustedInstaller -Operation Install -InstallPhase $Phase -PayloadRoot $payload | Out-Null
+        Invoke-AtlasTrustedInstaller -Operation Install -InstallPhase $Phase -PackageRoot $staged | Out-Null
 
         Should -Invoke Invoke-AtlasHiddenProcess -ModuleName Atlas.Core -Times 1 -Exactly `
             -ParameterFilter {
@@ -332,14 +332,14 @@ Describe 'Invoke-AtlasTrustedInstaller' {
                 $arguments[[array]::IndexOf($arguments, '-File') + 1] -eq $broker -and
                 $arguments[[array]::IndexOf($arguments, '-Operation') + 1] -ceq 'Install' -and
                 $arguments[[array]::IndexOf($arguments, '-InstallPhase') + 1] -ceq $Phase -and
-                $arguments[[array]::IndexOf($arguments, '-PayloadRoot') + 1] -eq $payload
+                $arguments[[array]::IndexOf($arguments, '-PackageRoot') + 1] -eq $staged
             }
     }
 
     It 'rejects install roots outside staging before starting a broker' {
-        foreach ($payload in @('relative', 'C:\Users\Public\payload',
-                'C:\Windows\AtlasOS\Staging-other\payload', 'C:\Windows\AtlasOS\Staging\..\payload')) {
-            { Invoke-AtlasTrustedInstaller -Operation Install -InstallPhase Capture -PayloadRoot $payload } | Should -Throw
+        foreach ($staged in @('relative', 'C:\Users\Public\staged',
+                'C:\Windows\AtlasOS\Staging-other\staged', 'C:\Windows\AtlasOS\Staging\..\staged')) {
+            { Invoke-AtlasTrustedInstaller -Operation Install -InstallPhase Capture -PackageRoot $staged } | Should -Throw
         }
         Should -Not -Invoke Invoke-AtlasHiddenProcess -ModuleName Atlas.Core
     }

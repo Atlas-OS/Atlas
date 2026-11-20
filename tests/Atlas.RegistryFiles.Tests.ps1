@@ -9,7 +9,7 @@ BeforeAll {
         [System.Text.DecoderFallback]::ExceptionFallback
     )
 
-    function Read-AtlasRegistryPayload {
+    function Read-AtlasRegistryFile {
         param(
             [Parameter(Mandatory)]
             [System.IO.FileInfo] $File
@@ -113,7 +113,7 @@ BeforeAll {
 Describe 'Registry file format' {
     BeforeDiscovery {
         $discoveryRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\package')).ProviderPath
-        $script:registryPayloadCases = @(
+        $script:registryFileCases = @(
             Get-ChildItem -LiteralPath $discoveryRoot -Filter '*.reg' -File -Recurse | ForEach-Object {
                 @{
                     Name = $_.FullName.Substring($discoveryRoot.Length + 1)
@@ -127,8 +127,8 @@ Describe 'Registry file format' {
         $script:registryFiles.Count | Should -BeGreaterThan 0
     }
 
-    It 'is valid UTF-16LE Registry Editor syntax without importing <Name>' -ForEach $registryPayloadCases {
-        $text = Read-AtlasRegistryPayload -File $File
+    It 'is valid UTF-16LE Registry Editor syntax without importing <Name>' -ForEach $registryFileCases {
+        $text = Read-AtlasRegistryFile -File $File
         { Assert-AtlasRegistrySyntax -Text $text -Path $File.FullName } | Should -Not -Throw
     }
 }
@@ -139,7 +139,7 @@ Describe 'Terminal .reg files' {
         @{ RelativePath = 'AtlasModules\Scripts\Registry\Terminals\minimal.reg'; WindowsTerminalAdmin = 0 }
     ) {
         $file = Get-Item -LiteralPath (Join-Path -Path $script:executablesRoot -ChildPath $RelativePath)
-        $text = Read-AtlasRegistryPayload -File $file
+        $text = Read-AtlasRegistryFile -File $file
 
         foreach ($classRoot in @(
                 'Directory\shell\AtlasTerminals',
@@ -168,7 +168,7 @@ Describe 'Terminal .reg files' {
     It 'removes every Atlas terminal tree and recreates none when disabled' {
         $file = Get-Item -LiteralPath (Join-Path -Path $script:executablesRoot `
                 -ChildPath 'AtlasModules\Scripts\Registry\Terminals\disabled.reg')
-        $text = Read-AtlasRegistryPayload -File $file
+        $text = Read-AtlasRegistryFile -File $file
 
         foreach ($classRoot in @(
                 'TermsRunAsTI',

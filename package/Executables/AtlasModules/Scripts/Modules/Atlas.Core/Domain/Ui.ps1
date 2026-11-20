@@ -133,6 +133,10 @@ function Write-AtlasTitle {
 }
 
 function Write-AtlasNote {
+    <#
+    .SYNOPSIS
+        Prints context the user needs before or after a change, as given.
+    #>
     param(
         [Parameter(Mandatory = $true)]
         [AllowEmptyString()]
@@ -157,6 +161,10 @@ function Write-AtlasStep {
 }
 
 function Write-AtlasWarning {
+    <#
+    .SYNOPSIS
+        Prints a concrete consequence of the change after "Warning: ", in yellow.
+    #>
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -167,6 +175,10 @@ function Write-AtlasWarning {
 }
 
 function Write-AtlasSuccess {
+    <#
+    .SYNOPSIS
+        Prints a verified fact the closing line doesn't already state, in green.
+    #>
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -177,6 +189,10 @@ function Write-AtlasSuccess {
 }
 
 function Write-AtlasFailure {
+    <#
+    .SYNOPSIS
+        Prints why something didn't happen after "Error: ", in red.
+    #>
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -232,6 +248,11 @@ function Write-AtlasManualStep {
 }
 
 function Write-AtlasRestartNotice {
+    <#
+    .SYNOPSIS
+        Prints the fixed sentence for a restart, sign-out or File Explorer restart, so
+        every launcher says the same thing.
+    #>
     param(
         [Parameter(Mandatory = $true)]
         [ValidateSet('Recommended', 'Required', 'SignOut', 'ExplorerRestarted', 'ExplorerRestartNeeded')]
@@ -284,10 +305,18 @@ function Write-AtlasNotApplied {
 }
 
 function Reset-AtlasRunOutcome {
+    <#
+    .SYNOPSIS
+        Starts a run's outcome at Applied, before its work reports anything.
+    #>
     $script:AtlasRunOutcome = 'Applied'
 }
 
 function Get-AtlasRunOutcome {
+    <#
+    .SYNOPSIS
+        Returns how the current run ended so far: Applied, Manual or Partial.
+    #>
     return $script:AtlasRunOutcome
 }
 

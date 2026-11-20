@@ -22,7 +22,7 @@ BeforeAll {
         }
     }
     foreach ($text in @(Get-ScriptFunctionText -Path $script:SessionScript -Names 'Read-AtlasInstallRequest', 'Assert-AtlasInstallOptionSet', 'Invoke-AtlasInstallCapture', 'Find-AtlasInstallUserMarker', 'Invoke-AtlasInstallCommit') +
-        @(Get-ScriptFunctionText -Path $script:FrontDoorScript -Names 'Get-AtlasDeclaredRequirement', 'Test-AtlasDefenderPresent', 'Get-AtlasDefenderSwitch', 'Test-AtlasDefenderPrepared', 'Invoke-AtlasPreparationCheck', 'Test-AtlasPreparationCurrent', 'Get-AtlasPowerStatus', 'Test-AtlasPowerConnected', 'Test-AtlasUserAccountReady', 'Test-AtlasInstallRequirement', 'Copy-AtlasPayloadToStaging', 'Get-AtlasRestartComment', 'New-AtlasProtectedStagingRoot', 'New-AtlasFrontDoorDirectorySecurity', 'Remove-AtlasStagedPackage', 'Remove-AtlasEarlierStagedPackage', 'Invoke-AtlasInstallPhase', 'New-AtlasInstallRequest', 'Format-AtlasTakenChoice', 'Get-AtlasInstallProbe', 'Read-AtlasCapturedOption')) {
+        @(Get-ScriptFunctionText -Path $script:FrontDoorScript -Names 'Get-AtlasDeclaredRequirement', 'Test-AtlasDefenderPresent', 'Get-AtlasDefenderSwitch', 'Test-AtlasDefenderPrepared', 'Invoke-AtlasPreparationCheck', 'Test-AtlasPreparationCurrent', 'Get-AtlasPowerStatus', 'Test-AtlasPowerConnected', 'Test-AtlasUserAccountReady', 'Test-AtlasInstallRequirement', 'Copy-AtlasPackageToStaging', 'Get-AtlasRestartComment', 'New-AtlasProtectedStagingRoot', 'New-AtlasFrontDoorDirectorySecurity', 'Remove-AtlasStagedPackage', 'Remove-AtlasEarlierStagedPackage', 'Invoke-AtlasInstallPhase', 'New-AtlasInstallRequest', 'Format-AtlasTakenChoice', 'Get-AtlasInstallProbe', 'Read-AtlasCapturedOption')) {
         . ([scriptblock]::Create($text))
     }
     $script:Groups = @(Get-AtlasPackageChoice -ManifestPath $script:ManifestPath)
@@ -41,13 +41,14 @@ BeforeAll {
     function New-TestManifest {
         param([scriptblock]$Change = {})
         $manifest = [ordered]@{
-            schemaVersion    = 1
-            version          = '1.2.3-rc.1'
-            supportedBuilds  = @([ordered]@{ build = 26200; release = '25H2' }, [ordered]@{ build = 26300; release = '26H2' })
-            updatableFrom    = @('1.2.2')
-            requirements     = @('plugged-in')
-            estimatedMinutes = 15
-            choices          = @(
+            schemaVersion         = 1
+            version               = '1.2.3-rc.1'
+            minimumManagerVersion = '1.2.0'
+            supportedBuilds       = @([ordered]@{ build = 26200; release = '25H2' }, [ordered]@{ build = 26300; release = '26H2' })
+            updatableFrom         = @('1.2.2')
+            requirements          = @('plugged-in')
+            estimatedMinutes      = 15
+            choices               = @(
                 [ordered]@{
                     id = 'radio'; kind = 'single'; default = 'radio-b'; description = 'Text the reader skips.'
                     learnMore = 'https://atlasos.net/docs/'
@@ -175,6 +176,12 @@ Describe 'Package manifest readers' {
             Change = { param($Manifest) $Manifest.Remove('schemaVersion') } }
         @{ Case = 'a version without three numbers'; Reader = 'Get-AtlasPackageVersion'; Message = "*version '1.2' is invalid*"
             Change = { param($Manifest) $Manifest.version = '1.2' } }
+        @{ Case = 'a minimum Atlas Manager version with a suffix'; Reader = 'Get-AtlasPackageChoice'; Message = '*minimumManagerVersion "1.2.0-rc.1", which isn''t major.minor.patch*'
+            Change = { param($Manifest) $Manifest.minimumManagerVersion = '1.2.0-rc.1' } }
+        @{ Case = 'a minimum Atlas Manager version without three numbers'; Reader = 'Get-AtlasPackageVersion'; Message = '*minimumManagerVersion "1.2", which isn''t major.minor.patch*'
+            Change = { param($Manifest) $Manifest.minimumManagerVersion = '1.2' } }
+        @{ Case = 'a minimum Atlas Manager version written as a number'; Reader = 'Get-AtlasPackageSupportedBuild'; Message = '*minimumManagerVersion 6, which isn''t major.minor.patch*'
+            Change = { param($Manifest) $Manifest.minimumManagerVersion = 6 } }
         @{ Case = 'a build given as text'; Reader = 'Get-AtlasPackageSupportedBuild'; Message = "*whole-number 'build'*"
             Change = { param($Manifest) $Manifest.supportedBuilds[0].build = '26200' } }
         @{ Case = 'no supported builds'; Reader = 'Get-AtlasPackageSupportedBuild'; Message = '*no supported Windows builds*'
@@ -359,48 +366,48 @@ Describe 'Install request validation' {
     }
 
     It 'reads only a size-limited request.json with an options array' {
-        $payload = Join-Path $TestDrive 'payload'
-        New-Item -Path $payload -ItemType Directory -Force | Out-Null
-        Set-Content -LiteralPath (Join-Path $payload 'request.json') -Value '{"options":["defender-enable"]}'
-        $request = Read-AtlasInstallRequest -PayloadRoot $payload
+        $staged = Join-Path $TestDrive 'staged'
+        New-Item -Path $staged -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $staged 'request.json') -Value '{"options":["defender-enable"]}'
+        $request = Read-AtlasInstallRequest -PackageRoot $staged
         @($request.Options) | Should -Be @('defender-enable')
         $request.Choices | Should -BeExactly 'Keep' -Because 'a request without the field keeps the choices'
 
-        Set-Content -LiteralPath (Join-Path $payload 'request.json') -Value '{"options":[],"mode":"Fresh"}'
-        { Read-AtlasInstallRequest -PayloadRoot $payload } | Should -Throw "*unknown field 'mode'*"
-        Set-Content -LiteralPath (Join-Path $payload 'request.json') -Value '{"options":[],"windowsSetup":true}'
-        { Read-AtlasInstallRequest -PayloadRoot $payload } | Should -Throw "*unknown field 'windowsSetup'*"
+        Set-Content -LiteralPath (Join-Path $staged 'request.json') -Value '{"options":[],"mode":"Fresh"}'
+        { Read-AtlasInstallRequest -PackageRoot $staged } | Should -Throw "*unknown field 'mode'*"
+        Set-Content -LiteralPath (Join-Path $staged 'request.json') -Value '{"options":[],"windowsSetup":true}'
+        { Read-AtlasInstallRequest -PackageRoot $staged } | Should -Throw "*unknown field 'windowsSetup'*"
 
         # Valid JSON on both sides of the 64 KiB limit, so only the size check can refuse it.
         $atLimit = '{"options":["' + ('a' * (65536 - 16)) + '"]}'
-        [IO.File]::WriteAllText((Join-Path $payload 'request.json'), $atLimit)
-        @((Read-AtlasInstallRequest -PayloadRoot $payload).Options) | Should -HaveCount 1
-        [IO.File]::WriteAllText((Join-Path $payload 'request.json'), $atLimit.Replace('"a', '"aa'))
-        { Read-AtlasInstallRequest -PayloadRoot $payload } | Should -Throw '*exceeds its size limit*'
+        [IO.File]::WriteAllText((Join-Path $staged 'request.json'), $atLimit)
+        @((Read-AtlasInstallRequest -PackageRoot $staged).Options) | Should -HaveCount 1
+        [IO.File]::WriteAllText((Join-Path $staged 'request.json'), $atLimit.Replace('"a', '"aa'))
+        { Read-AtlasInstallRequest -PackageRoot $staged } | Should -Throw '*exceeds its size limit*'
 
-        Remove-Item -LiteralPath (Join-Path $payload 'request.json')
-        { Read-AtlasInstallRequest -PayloadRoot $payload } | Should -Throw '*missing*'
+        Remove-Item -LiteralPath (Join-Path $staged 'request.json')
+        { Read-AtlasInstallRequest -PackageRoot $staged } | Should -Throw '*missing*'
     }
 
     It 'reads how an update treats the choices, accepting only Keep and ChooseAgain' {
-        $payload = Join-Path $TestDrive 'choices-payload'
-        New-Item -Path $payload -ItemType Directory -Force | Out-Null
+        $staged = Join-Path $TestDrive 'choices-staged'
+        New-Item -Path $staged -ItemType Directory -Force | Out-Null
         foreach ($choices in @('Keep', 'ChooseAgain')) {
-            Set-Content -LiteralPath (Join-Path $payload 'request.json') -Value "{""options"":[""defender-enable""],""choices"":""$choices""}"
-            (Read-AtlasInstallRequest -PayloadRoot $payload).Choices | Should -BeExactly $choices
+            Set-Content -LiteralPath (Join-Path $staged 'request.json') -Value "{""options"":[""defender-enable""],""choices"":""$choices""}"
+            (Read-AtlasInstallRequest -PackageRoot $staged).Choices | Should -BeExactly $choices
         }
         foreach ($value in @('"chooseagain"', '"Rebase"', '""', 'null', 'true', '["Keep"]')) {
-            Set-Content -LiteralPath (Join-Path $payload 'request.json') -Value "{""options"":[],""choices"":$value}"
-            { Read-AtlasInstallRequest -PayloadRoot $payload } | Should -Throw "*choices must be 'Keep' or 'ChooseAgain'*" -Because $value
+            Set-Content -LiteralPath (Join-Path $staged 'request.json') -Value "{""options"":[],""choices"":$value}"
+            { Read-AtlasInstallRequest -PackageRoot $staged } | Should -Throw "*choices must be 'Keep' or 'ChooseAgain'*" -Because $value
         }
     }
 
     It 'writes the request Capture reads, ChooseAgain only with -ChooseAgain' {
-        $payload = Join-Path $TestDrive 'written-payload'
-        New-Item -Path $payload -ItemType Directory -Force | Out-Null
+        $staged = Join-Path $TestDrive 'written-staged'
+        New-Item -Path $staged -ItemType Directory -Force | Out-Null
         foreach ($case in @(@{ ChooseAgain = $false; Choices = 'Keep' }, @{ ChooseAgain = $true; Choices = 'ChooseAgain' })) {
-            [IO.File]::WriteAllText((Join-Path $payload 'request.json'), (New-AtlasInstallRequest -Option @('mitigations-default', 'defender-enable', 'defender-enable') -ChooseAgain:$case.ChooseAgain))
-            $request = Read-AtlasInstallRequest -PayloadRoot $payload
+            [IO.File]::WriteAllText((Join-Path $staged 'request.json'), (New-AtlasInstallRequest -Option @('mitigations-default', 'defender-enable', 'defender-enable') -ChooseAgain:$case.ChooseAgain))
+            $request = Read-AtlasInstallRequest -PackageRoot $staged
             @($request.Options) | Should -Be @('defender-enable', 'mitigations-default')
             $request.Choices | Should -BeExactly $case.Choices
         }
@@ -508,10 +515,10 @@ Describe 'Install capture' {
         function Write-AtlasSessionLog { param([string]$Message) $script:SessionLines.Add($Message) }
         function Invoke-TestCapture {
             param([string]$Choices)
-            $payload = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
-            New-Item -Path $payload -ItemType Directory -Force | Out-Null
-            [IO.File]::WriteAllText((Join-Path $payload 'request.json'), (@{ options = $script:Asked; choices = $Choices } | ConvertTo-Json -Compress))
-            Invoke-AtlasInstallCapture -ManifestPath $script:ManifestPath -PayloadRoot $payload
+            $staged = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+            New-Item -Path $staged -ItemType Directory -Force | Out-Null
+            [IO.File]::WriteAllText((Join-Path $staged 'request.json'), (@{ options = $script:Asked; choices = $Choices } | ConvertTo-Json -Compress))
+            Invoke-AtlasInstallCapture -ManifestPath $script:ManifestPath -PackageRoot $staged
         }
         function ConvertTo-TestCall {
             param([string[]]$Calls)
@@ -609,7 +616,7 @@ Describe 'Install capture' {
         $capture = @($switch.Clauses | Where-Object { $_.Item1.Extent.Text -ceq "'Capture'" })
         $capture.Count | Should -Be 1
         @($capture[0].Item2.Statements)[0].Extent.Text |
-            Should -BeExactly '$message = Invoke-AtlasInstallCapture -ManifestPath $manifestPath -PayloadRoot $payloadRoot'
+            Should -BeExactly '$message = Invoke-AtlasInstallCapture -ManifestPath $manifestPath -PackageRoot $packageRoot'
     }
 
     It 'checks the choices taken from the PC against the package before recording them' {
@@ -648,8 +655,8 @@ Describe 'Front door provider completion' {
         @{ Status='complete'; ExitCode=0; WrongUser=$true; Passes=$false }
     ) {
         param($Status, $ExitCode, $WrongUser, $Passes)
-        $payload = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
-        $workerRoot = Join-Path $payload 'AtlasModules\Scripts\Preparation'
+        $staged = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        $workerRoot = Join-Path $staged 'AtlasModules\Scripts\Preparation'
         [void][IO.Directory]::CreateDirectory($workerRoot)
         @{ status=$Status; exitCode=$ExitCode; wrongUser=$WrongUser } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $workerRoot 'fixture.json')
         $stub = @'
@@ -661,21 +668,21 @@ $sid = if ($fixture.wrongUser) { 'S-1-5-18' } else { [Security.Principal.Windows
 exit $fixture.exitCode
 '@
         Set-Content -LiteralPath (Join-Path $workerRoot 'Update-Windows.ps1') -Value $stub
-        $job = Join-Path $payload 'Verification'
+        $job = Join-Path $staged 'Verification'
         if ($Passes) {
-            { Invoke-AtlasPreparationCheck -PayloadRoot $payload -JobPath $job } | Should -Not -Throw
+            { Invoke-AtlasPreparationCheck -PackageRoot $staged -JobPath $job } | Should -Not -Throw
         }
         else {
-            { Invoke-AtlasPreparationCheck -PayloadRoot $payload -JobPath $job } | Should -Throw
+            { Invoke-AtlasPreparationCheck -PackageRoot $staged -JobPath $job } | Should -Throw
         }
         # The entry exits with its own code when this is false, so the app can
         # send the user back to preparation rather than report a failed install.
-        Test-AtlasPreparationCurrent -PayloadRoot $payload -JobPath $job | Should -Be $Passes
+        Test-AtlasPreparationCurrent -PackageRoot $staged -JobPath $job | Should -Be $Passes
     }
 
     It 'names the reason a failed check recorded' {
-        $payload = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
-        $workerRoot = Join-Path $payload 'AtlasModules\Scripts\Preparation'
+        $staged = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        $workerRoot = Join-Path $staged 'AtlasModules\Scripts\Preparation'
         [void][IO.Directory]::CreateDirectory($workerRoot)
         Set-Content -LiteralPath (Join-Path $workerRoot 'Update-Windows.ps1') -Value @'
 param([string]$JobPath, [switch]$VerifyOnly)
@@ -683,7 +690,7 @@ param([string]$JobPath, [switch]$VerifyOnly)
     ConvertTo-Json | Set-Content -LiteralPath (Join-Path $JobPath 'state.json')
 exit 1
 '@
-        { Invoke-AtlasPreparationCheck -PayloadRoot $payload -JobPath (Join-Path $payload 'Verification') } |
+        { Invoke-AtlasPreparationCheck -PackageRoot $staged -JobPath (Join-Path $staged 'Verification') } |
             Should -Throw '*The check reported: Another Atlas preparation is running.*'
     }
 }
@@ -1173,10 +1180,10 @@ Describe 'Front door requirements and staging' {
         $staging = Join-Path $TestDrive 'staging'
         New-Item -Path $staging -ItemType Directory -Force | Out-Null
 
-        $payloadRoot = Copy-AtlasPayloadToStaging -ExtractedRoot $extracted -StagingRoot $staging
-        $payloadRoot | Should -Be (Join-Path $staging 'Executables')
+        $stagedRoot = Copy-AtlasPackageToStaging -ExtractedRoot $extracted -StagingRoot $staging
+        $stagedRoot | Should -Be (Join-Path $staging 'Executables')
         Join-Path $staging 'atlas.json' | Should -Exist
-        Join-Path $payloadRoot 'AtlasModules\x.txt' | Should -Exist
+        Join-Path $stagedRoot 'AtlasModules\x.txt' | Should -Exist
 
         $junctionTarget = Join-Path $TestDrive 'elsewhere'
         New-Item -Path $junctionTarget -ItemType Directory -Force | Out-Null
@@ -1187,7 +1194,7 @@ Describe 'Front door requirements and staging' {
             Set-ItResult -Skipped -Because 'this host cannot create junctions'
             return
         }
-        { Copy-AtlasPayloadToStaging -ExtractedRoot $extracted -StagingRoot (Join-Path $TestDrive 'staging2') } |
+        { Copy-AtlasPackageToStaging -ExtractedRoot $extracted -StagingRoot (Join-Path $TestDrive 'staging2') } |
             Should -Throw '*link or junction*'
     }
 
@@ -1208,11 +1215,11 @@ Describe 'Front door requirements and staging' {
             }
         }
         Mock Copy-Item {}
-        { Copy-AtlasPayloadToStaging -ExtractedRoot $extracted -StagingRoot $staging } | Should -Not -Throw
+        { Copy-AtlasPackageToStaging -ExtractedRoot $extracted -StagingRoot $staging } | Should -Not -Throw
         Should -Invoke Copy-Item -Times 2 -Exactly
 
         $script:ReparseLinkType = $LinkType
-        { Copy-AtlasPayloadToStaging -ExtractedRoot $extracted -StagingRoot $staging } | Should -Throw '*link or junction*'
+        { Copy-AtlasPackageToStaging -ExtractedRoot $extracted -StagingRoot $staging } | Should -Throw '*link or junction*'
         Should -Invoke Copy-Item -Times 2 -Exactly
     }
 }
@@ -1395,14 +1402,14 @@ Describe 'Front door phase failures' {
     ) {
         param($Phase, $Message, $Log, $Next)
         Mock Invoke-AtlasTrustedInstaller { throw "'powershell.exe' exited with disallowed code 1. Output: the end of the phase log" }
-        $payload = 'C:\Windows\AtlasOS\Staging\0123\Executables'
+        $staged = 'C:\Windows\AtlasOS\Staging\0123\Executables'
         $thrown = $null
-        try { Invoke-AtlasInstallPhase -Phase $Phase -PayloadRoot $payload -TimeoutSeconds 60 -MachineLogRoot (Join-Path $TestDrive 'no-machine-logs') }
+        try { Invoke-AtlasInstallPhase -Phase $Phase -PackageRoot $staged -TimeoutSeconds 60 -MachineLogRoot (Join-Path $TestDrive 'no-machine-logs') }
         catch { $thrown = $_.Exception.Message }
         $thrown | Should -BeLike $Message
-        $thrown | Should -BeLike "*disallowed code 1. Output: the end of the phase log The full log is '$payload\AtlasModules\Logs\$Log'. Re-run this script with the same options to $Next"
+        $thrown | Should -BeLike "*disallowed code 1. Output: the end of the phase log The full log is '$staged\AtlasModules\Logs\$Log'. Re-run this script with the same options to $Next"
         Should -Invoke Invoke-AtlasTrustedInstaller -Times 1 -Exactly -ParameterFilter {
-            $Operation -eq 'Install' -and $InstallPhase -eq $Phase -and $PayloadRoot -eq $payload -and $TimeoutSeconds -eq 60
+            $Operation -eq 'Install' -and $InstallPhase -eq $Phase -and $PackageRoot -eq $staged -and $TimeoutSeconds -eq 60
         }
     }
 
@@ -1415,13 +1422,13 @@ Describe 'Front door phase failures' {
         $script:CopyPath = Join-Path $logs '20261031-120000-install-run.log'
         Mock Invoke-AtlasTrustedInstaller { Set-Content -LiteralPath $script:CopyPath -Value 'this run'; throw 'phase failed.' }
 
-        { Invoke-AtlasInstallPhase -Phase Run -PayloadRoot 'C:\Staging\Executables' -TimeoutSeconds 60 -MachineLogRoot $logs } |
+        { Invoke-AtlasInstallPhase -Phase Run -PackageRoot 'C:\Staging\Executables' -TimeoutSeconds 60 -MachineLogRoot $logs } |
             Should -Throw "The install plan failed: phase failed. The full log is '$script:CopyPath'. Re-run this script with the same options to resume."
 
         # A phase that left no copy of its own names the staged log, not an earlier install's.
         Remove-Item -LiteralPath $script:CopyPath
         Mock Invoke-AtlasTrustedInstaller { throw 'phase failed.' }
-        { Invoke-AtlasInstallPhase -Phase Run -PayloadRoot 'C:\Staging\Executables' -TimeoutSeconds 60 -MachineLogRoot $logs } |
+        { Invoke-AtlasInstallPhase -Phase Run -PackageRoot 'C:\Staging\Executables' -TimeoutSeconds 60 -MachineLogRoot $logs } |
             Should -Throw "*The full log is 'C:\Staging\Executables\AtlasModules\Logs\install-run.log'.*"
     }
 
@@ -1435,7 +1442,7 @@ Describe 'Front door phase failures' {
     ) {
         param($Case, $Phase, $Arguments, $Next)
         Mock Invoke-AtlasTrustedInstaller { throw 'phase failed.' }
-        $call = @{ Phase = $Phase; PayloadRoot = 'C:\Staging\Executables'; TimeoutSeconds = 60; MachineLogRoot = (Join-Path $TestDrive 'none') } + $Arguments
+        $call = @{ Phase = $Phase; PackageRoot = 'C:\Staging\Executables'; TimeoutSeconds = 60; MachineLogRoot = (Join-Path $TestDrive 'none') } + $Arguments
         $thrown = $null
         try { Invoke-AtlasInstallPhase @call }
         catch { $thrown = $_.Exception.Message }
@@ -1444,7 +1451,7 @@ Describe 'Front door phase failures' {
 
     It 'returns nothing when the broker succeeds' {
         Mock Invoke-AtlasTrustedInstaller { [pscustomobject]@{ ExitCode = 0; StandardOutput = 'done'; StandardError = '' } }
-        Invoke-AtlasInstallPhase -Phase Run -PayloadRoot 'C:\Windows\AtlasOS\Staging\0123\Executables' -TimeoutSeconds 60 | Should -BeNullOrEmpty
+        Invoke-AtlasInstallPhase -Phase Run -PackageRoot 'C:\Windows\AtlasOS\Staging\0123\Executables' -TimeoutSeconds 60 | Should -BeNullOrEmpty
     }
 }
 

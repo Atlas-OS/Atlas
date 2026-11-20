@@ -27,7 +27,7 @@ function Get-AtlasInstallCheckpointAction {
 
     $definitions = @{
         DefaultHiveLoad = @{ Path = 'Install\Tasks\Set-AtlasDefaultUserHive.ps1'; Args = @{ State = 'Loaded' } }
-        PayloadReplacement = @{ Path = 'Install\Tasks\Invoke-AtlasPayloadReplacement.ps1'; Args = @{} }
+        PayloadReplacement = @{ Path = 'Install\Tasks\Invoke-AtlasPackageReplacement.ps1'; Args = @{} }
         LegacyChoices = @{ Path = 'Install\Tasks\Import-AtlasLegacyChoices.ps1'; Args = @{} }
         RebaseRecovery = @{ Path = 'Install\Tasks\Restore-AtlasRebaseState.ps1'; Args = @{} }
         NotificationDisable = @{ Path = 'Install\Tasks\Set-NotificationState.ps1'; Args = @{ Mode = 'Disable' } }

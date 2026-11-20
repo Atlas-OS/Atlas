@@ -84,7 +84,7 @@ function Invoke-AtlasSoftwareDownload {
             [IO.FileShare]::None
         )
         try {
-            $bytes = Invoke-AtlasBoundedHttpGet `
+            $bytes = Invoke-AtlasLimitedHttpGet `
                 -Uri $Uri `
                 -OutputStream $stream `
                 -MaximumBytes $MaximumBytes `
@@ -220,7 +220,7 @@ function Invoke-AtlasSoftwareApiJson {
 
     $memory = New-Object IO.MemoryStream
     try {
-        [void](Invoke-AtlasBoundedHttpGet `
+        [void](Invoke-AtlasLimitedHttpGet `
                 -Uri $Uri `
                 -OutputStream $memory `
                 -MaximumBytes 1048576 `

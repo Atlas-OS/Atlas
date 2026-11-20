@@ -8,7 +8,7 @@
     FunctionsToExport = @(
         'New-AtlasProtectedStagingDirectory'
         'Test-AtlasProtectedStagingAcl'
-        'Invoke-AtlasBoundedHttpGet'
+        'Invoke-AtlasLimitedHttpGet'
         'Invoke-AtlasPinnedDownload'
         'Test-AtlasProtectedExecutionAcl'
         'Resolve-AtlasProtectedExecutionPath'

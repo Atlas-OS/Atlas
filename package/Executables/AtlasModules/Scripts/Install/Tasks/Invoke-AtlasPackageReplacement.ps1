@@ -2,7 +2,7 @@
 .SYNOPSIS
     Replaces the installed Atlas files with those from the extracted package.
 .DESCRIPTION
-    The install plan's PayloadReplacement checkpoint runs it as TrustedInstaller from
+    The install plan's Checkpoint/PayloadReplacement step runs it as TrustedInstaller from
     the extracted package, on every attempt in every install mode.
 
     The committed install state decides whether an existing installation must be
@@ -27,7 +27,7 @@ if (-not [IO.File]::Exists($trustBootstrap)) {
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 
-function Resolve-AtlasPayloadReplacementPlan {
+function Resolve-AtlasPackageReplacementPlan {
     [CmdletBinding()]
     param([Parameter(Mandatory = $true)][psobject]$InstallState)
 
@@ -43,20 +43,20 @@ function Resolve-AtlasPayloadReplacementPlan {
         throw "Replacing Atlas's files does not support install mode '$($InstallState.mode)'."
     }
 
-    $hasInstalledPayload = [string]$InstallState.mode -cne 'Fresh'
+    $hasInstalledPackage = [string]$InstallState.mode -cne 'Fresh'
     $completedSteps = @()
     if ($null -ne $InstallState.PSObject.Properties['completedSteps']) {
         $completedSteps = @($InstallState.completedSteps)
     }
     return [pscustomobject][ordered]@{
         Mode                   = [string]$InstallState.mode
-        StopInstalledPayload   = $hasInstalledPayload
-        RemoveInstalledPayload = $hasInstalledPayload
+        StopInstalledPackage   = $hasInstalledPackage
+        RemoveInstalledPackage = $hasInstalledPackage
         ChoicesReplayed        = $completedSteps -icontains 'Defaults'
     }
 }
 
-function Assert-AtlasPayloadReplacementAllowed {
+function Assert-AtlasPackageReplacementAllowed {
     Remove-AtlasLegacyCbsRetryList
     Clear-AtlasUnarmedCbsRetry
     $retryState = Read-AtlasCbsRetryState
@@ -65,20 +65,20 @@ function Assert-AtlasPayloadReplacementAllowed {
     }
 }
 
-function Invoke-AtlasInstalledPayloadStop {
-    & $script:AtlasStopInstalledPayloadScript
+function Invoke-AtlasInstalledPackageStop {
+    & $script:AtlasStopInstalledPackageScript
 }
 
 function Invoke-AtlasProcessExplorerStop {
     & $script:AtlasStopProcessExplorerScript
 }
 
-function Invoke-AtlasInstalledPayloadRemove {
-    & $script:AtlasRemoveInstalledPayloadScript
+function Invoke-AtlasInstalledPackageRemove {
+    & $script:AtlasRemoveInstalledPackageScript
 }
 
-function Invoke-AtlasExtractedPayloadCopy {
-    & $script:AtlasCopyPayloadScript
+function Invoke-AtlasExtractedPackageCopy {
+    & $script:AtlasCopyPackageScript
 }
 
 function Test-AtlasProcessExplorerChoiceEnabled {
@@ -104,7 +104,7 @@ function Invoke-AtlasProcessExplorerRestore {
     Write-Output 'Reinstalled Process Explorer for the recorded ProcessExplorer choice.'
 }
 
-function Assert-AtlasPayloadInstalled {
+function Assert-AtlasPackageInstalled {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)][string]$ExtractedExecutablesRoot,
@@ -143,24 +143,24 @@ function Assert-AtlasPayloadInstalled {
     }
 }
 
-function Invoke-AtlasPayloadReplacementCore {
+function Invoke-AtlasPackageReplacementCore {
     [CmdletBinding()]
     param([Parameter(Mandatory = $true)][psobject]$Plan)
 
-    Assert-AtlasPayloadReplacementAllowed
+    Assert-AtlasPackageReplacementAllowed
     $restoreProcessExplorer = $false
-    if ([bool]$Plan.StopInstalledPayload) {
+    if ([bool]$Plan.StopInstalledPackage) {
         # The teardown below removes an enabled Process Explorer and Defaults puts it
         # back, but a resumed install skips Defaults once it has completed.
         $restoreProcessExplorer = [bool]$Plan.ChoicesReplayed -and (Test-AtlasProcessExplorerChoiceEnabled)
-        Invoke-AtlasInstalledPayloadStop
+        Invoke-AtlasInstalledPackageStop
         Invoke-AtlasProcessExplorerStop
     }
-    if ([bool]$Plan.RemoveInstalledPayload) {
-        Invoke-AtlasInstalledPayloadRemove
+    if ([bool]$Plan.RemoveInstalledPackage) {
+        Invoke-AtlasInstalledPackageRemove
     }
-    Invoke-AtlasExtractedPayloadCopy
-    Assert-AtlasPayloadInstalled -ExtractedExecutablesRoot $script:AtlasExtractedExecutablesRoot `
+    Invoke-AtlasExtractedPackageCopy
+    Assert-AtlasPackageInstalled -ExtractedExecutablesRoot $script:AtlasExtractedExecutablesRoot `
         -WindowsPath $script:AtlasWindowsPath
     if ($restoreProcessExplorer) {
         Invoke-AtlasProcessExplorerRestore
@@ -181,22 +181,22 @@ if ([string]::IsNullOrWhiteSpace($script:AtlasWindowsPath) -or
     throw "Windows directory '$($script:AtlasWindowsPath)' is not available."
 }
 
-$script:AtlasStopInstalledPayloadScript = Join-Path -Path $PSScriptRoot `
+$script:AtlasStopInstalledPackageScript = Join-Path -Path $PSScriptRoot `
     -ChildPath 'Stop-AtlasFolderProcess.ps1'
 $script:AtlasStopProcessExplorerScript = Join-Path -Path $PSScriptRoot `
     -ChildPath 'Stop-ProcessExplorerUpgrade.ps1'
-$script:AtlasRemoveInstalledPayloadScript = Join-Path -Path $PSScriptRoot `
+$script:AtlasRemoveInstalledPackageScript = Join-Path -Path $PSScriptRoot `
     -ChildPath 'Remove-PreviousAtlasInstall.ps1'
-$script:AtlasCopyPayloadScript = Join-Path -Path $PSScriptRoot -ChildPath 'Copy-AtlasPayload.ps1'
+$script:AtlasCopyPackageScript = Join-Path -Path $PSScriptRoot -ChildPath 'Copy-AtlasPackage.ps1'
 $cbsRetryScript = Join-Path -Path $scriptsRoot -ChildPath 'Operations\CbsRetry.ps1'
 $installStateManifest = Join-Path -Path $scriptsRoot `
     -ChildPath 'Modules\Atlas.InstallState\Atlas.InstallState.psd1'
 
 foreach ($requiredFile in @(
-        $script:AtlasStopInstalledPayloadScript,
+        $script:AtlasStopInstalledPackageScript,
         $script:AtlasStopProcessExplorerScript,
-        $script:AtlasRemoveInstalledPayloadScript,
-        $script:AtlasCopyPayloadScript,
+        $script:AtlasRemoveInstalledPackageScript,
+        $script:AtlasCopyPackageScript,
         $cbsRetryScript,
         $installStateManifest
     )) {
@@ -212,13 +212,13 @@ $installState = Get-AtlasInstallState
 if ($null -eq $installState) {
     throw 'No Atlas install state is active.'
 }
-$plan = Resolve-AtlasPayloadReplacementPlan -InstallState $installState
-Invoke-AtlasPayloadReplacementCore -Plan $plan
+$plan = Resolve-AtlasPackageReplacementPlan -InstallState $installState
+Invoke-AtlasPackageReplacementCore -Plan $plan
 
 # Removing the previous files took the Atlas packages' repair source with them. The
 # Features phase recreates it but runs once, so a retried install recreates it here,
 # and Windows never names a repair source that is gone.
-if ([bool]$plan.RemoveInstalledPayload) {
+if ([bool]$plan.RemoveInstalledPackage) {
     try {
         $installedScripts = [IO.Path]::Combine($script:AtlasWindowsPath, 'AtlasModules', 'Scripts')
         . ([IO.Path]::Combine($installedScripts, 'Preparation', 'WindowsTransition.ps1'))

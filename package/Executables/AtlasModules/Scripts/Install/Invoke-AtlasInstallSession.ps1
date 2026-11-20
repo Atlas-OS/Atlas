@@ -86,9 +86,9 @@ function Read-AtlasInstallRequest {
         Reads request.json: the options, and how an update treats the choices the PC
         has (Keep unless it says ChooseAgain).
     #>
-    param([Parameter(Mandatory = $true)][string]$PayloadRoot)
+    param([Parameter(Mandatory = $true)][string]$PackageRoot)
 
-    $requestPath = Join-Path -Path $PayloadRoot -ChildPath 'request.json'
+    $requestPath = Join-Path -Path $PackageRoot -ChildPath 'request.json'
     if (-not [IO.File]::Exists($requestPath)) {
         throw "The install request '$requestPath' is missing."
     }
@@ -175,11 +175,11 @@ function Invoke-AtlasInstallCapture {
     #>
     param(
         [Parameter(Mandatory = $true)][string]$ManifestPath,
-        [Parameter(Mandatory = $true)][string]$PayloadRoot
+        [Parameter(Mandatory = $true)][string]$PackageRoot
     )
 
     $targetVersion = Get-AtlasPackageVersion -ManifestPath $ManifestPath
-    $request = Read-AtlasInstallRequest -PayloadRoot $PayloadRoot
+    $request = Read-AtlasInstallRequest -PackageRoot $PackageRoot
     $groups = @(Get-AtlasPackageChoice -ManifestPath $ManifestPath)
     $mode = Resolve-AtlasInstallMode -TargetVersion $targetVersion
     # Refuses -ChooseAgain on a Rebase before anything changes.
@@ -336,12 +336,12 @@ try {
     Import-Module -Name (Join-Path -Path $scriptsRoot -ChildPath 'Modules\Atlas.InstallState\Atlas.InstallState.psd1') -Force -DisableNameChecking -ErrorAction Stop
     Assert-AtlasPrivilege -TrustedInstaller
 
-    $payloadRoot = [IO.Path]::GetFullPath([IO.Path]::Combine($scriptsRoot, '..', '..'))
-    $manifestPath = [IO.Path]::Combine($payloadRoot, '..', 'atlas.json')
+    $packageRoot = [IO.Path]::GetFullPath([IO.Path]::Combine($scriptsRoot, '..', '..'))
+    $manifestPath = [IO.Path]::Combine($packageRoot, '..', 'atlas.json')
 
     switch ($Phase) {
         'Capture' {
-            $message = Invoke-AtlasInstallCapture -ManifestPath $manifestPath -PayloadRoot $payloadRoot
+            $message = Invoke-AtlasInstallCapture -ManifestPath $manifestPath -PackageRoot $packageRoot
             Write-AtlasSessionLog $message
             Write-Output $message
         }

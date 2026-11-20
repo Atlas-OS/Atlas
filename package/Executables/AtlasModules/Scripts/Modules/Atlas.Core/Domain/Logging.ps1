@@ -12,6 +12,11 @@ $script:AtlasTranscriptActive = $false
 $script:AtlasLogConsoleStyle = 'Diagnostic'
 
 function Set-AtlasLogConsoleStyle {
+    <#
+    .SYNOPSIS
+        Chooses how log lines reach the console: Diagnostic echoes every line, and
+        Interactive keeps Info in the file and shows warnings and errors to the user.
+    #>
     param(
         [Parameter(Mandatory = $true)]
         [ValidateSet('Diagnostic', 'Interactive')]
@@ -22,6 +27,10 @@ function Set-AtlasLogConsoleStyle {
 }
 
 function Get-AtlasLogConsoleStyle {
+    <#
+    .SYNOPSIS
+        Returns the console style log lines use: Diagnostic or Interactive.
+    #>
     return $script:AtlasLogConsoleStyle
 }
 

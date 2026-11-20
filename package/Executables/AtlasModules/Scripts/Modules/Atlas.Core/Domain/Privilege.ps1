@@ -1,6 +1,10 @@
 # Atlas.Core domain: privilege identity and the closed TrustedInstaller operation API.
 
 function Test-AtlasAdmin {
+    <#
+    .SYNOPSIS
+        Whether this process runs with Administrator rights (an elevated token).
+    #>
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = New-Object Security.Principal.WindowsPrincipal($identity)
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -11,6 +15,11 @@ function Get-AtlasCurrentUserSid {
 }
 
 function Test-AtlasSystem {
+    <#
+    .SYNOPSIS
+        Whether this process runs as LocalSystem (S-1-5-18). Returns $false when the
+        identity can't be read.
+    #>
     try {
         return (Get-AtlasCurrentUserSid) -eq 'S-1-5-18'
     }
@@ -20,6 +29,12 @@ function Test-AtlasSystem {
 }
 
 function Test-AtlasTrustedInstaller {
+    <#
+    .SYNOPSIS
+        Whether this process holds a TrustedInstaller service token: SYSTEM, with the
+        TrustedInstaller SID enabled, at System integrity. Returns $false when the
+        token can't be read.
+    #>
     try {
         return [bool](Get-AtlasCurrentTokenEvidence).IsTrustedInstaller
     }
@@ -29,6 +44,11 @@ function Test-AtlasTrustedInstaller {
 }
 
 function Assert-AtlasPrivilege {
+    <#
+    .SYNOPSIS
+        Throws a [privilege] error naming the current identity unless this process
+        holds every privilege requested: Administrator, System or TrustedInstaller.
+    #>
     param(
         [switch]$Administrator,
         [switch]$System,
@@ -88,7 +108,7 @@ function Invoke-AtlasTrustedInstaller {
         [ValidateSet('Capture', 'Run')]
         [string]$InstallPhase,
 
-        [string]$PayloadRoot,
+        [string]$PackageRoot,
 
         [ValidateRange(1, 86400)]
         [int]$TimeoutSeconds = 900
@@ -97,12 +117,12 @@ function Invoke-AtlasTrustedInstaller {
     $operationParameterAllowlist = @{
         Toggle        = @('Name', 'State', 'Silent', 'JustContext', 'NoExplorerRestart', 'MachineOnly')
         ResetServices = @('RestoreSource')
-        Install       = @('InstallPhase', 'PayloadRoot')
+        Install       = @('InstallPhase', 'PackageRoot')
         CbsRetry      = @()
     }
     foreach ($operationParameter in @(
             'Name', 'State', 'Silent', 'JustContext', 'NoExplorerRestart', 'MachineOnly', 'RestoreSource',
-            'InstallPhase', 'PayloadRoot'
+            'InstallPhase', 'PackageRoot'
         )) {
         if ($PSBoundParameters.ContainsKey($operationParameter) -and
             $operationParameter -notin $operationParameterAllowlist[$Operation]) {
@@ -113,21 +133,21 @@ function Invoke-AtlasTrustedInstaller {
     $context = Get-AtlasContext
     $brokerModulesPath = $context.AtlasModulesPath
     if ($Operation -eq 'Install') {
-        if ([string]::IsNullOrWhiteSpace($InstallPhase) -or [string]::IsNullOrWhiteSpace($PayloadRoot)) {
-            throw 'Install requires typed -InstallPhase and -PayloadRoot values.'
+        if ([string]::IsNullOrWhiteSpace($InstallPhase) -or [string]::IsNullOrWhiteSpace($PackageRoot)) {
+            throw 'Install requires typed -InstallPhase and -PackageRoot values.'
         }
-        if (-not [IO.Path]::IsPathRooted($PayloadRoot)) {
-            throw 'Install requires an absolute -PayloadRoot.'
+        if (-not [IO.Path]::IsPathRooted($PackageRoot)) {
+            throw 'Install requires an absolute -PackageRoot.'
         }
-        $PayloadRoot = [IO.Path]::GetFullPath($PayloadRoot)
+        $PackageRoot = [IO.Path]::GetFullPath($PackageRoot)
         $stagingRoot = [IO.Path]::GetFullPath((Join-Path $context.WinDir 'AtlasOS\Staging'))
-        if (-not $PayloadRoot.StartsWith($stagingRoot + [IO.Path]::DirectorySeparatorChar,
+        if (-not $PackageRoot.StartsWith($stagingRoot + [IO.Path]::DirectorySeparatorChar,
                 [StringComparison]::OrdinalIgnoreCase)) {
-            throw "Install PayloadRoot must be beneath the protected staging root '$stagingRoot'."
+            throw "Install PackageRoot must be beneath the protected staging root '$stagingRoot'."
         }
         # A fresh installation has no installed broker yet. Use the broker included
         # with this protected candidate, including when upgrading an older installation.
-        $brokerModulesPath = Join-Path $PayloadRoot 'AtlasModules'
+        $brokerModulesPath = Join-Path $PackageRoot 'AtlasModules'
     }
 
     $argumentList = [Collections.Generic.List[string]]::new()
@@ -167,11 +187,11 @@ function Invoke-AtlasTrustedInstaller {
             $argumentList.Add($RestoreSource)
         }
         'Install' {
-            # $InstallPhase and $PayloadRoot were checked and normalised above.
+            # $InstallPhase and $PackageRoot were checked and normalised above.
             $argumentList.Add('-InstallPhase')
             $argumentList.Add($InstallPhase)
-            $argumentList.Add('-PayloadRoot')
-            $argumentList.Add($PayloadRoot)
+            $argumentList.Add('-PackageRoot')
+            $argumentList.Add($PackageRoot)
         }
     }
 

@@ -247,9 +247,9 @@ function Test-AtlasDefenderPrepared {
     return ($Confirmed -or $states -notcontains 'Unknown')
 }
 
-function Invoke-AtlasPreparationCheck([string]$PayloadRoot, [string]$JobPath) {
+function Invoke-AtlasPreparationCheck([string]$PackageRoot, [string]$JobPath) {
     [void][IO.Directory]::CreateDirectory($JobPath)
-    $worker = Join-Path $PayloadRoot 'AtlasModules\Scripts\Preparation\Update-Windows.ps1'
+    $worker = Join-Path $PackageRoot 'AtlasModules\Scripts\Preparation\Update-Windows.ps1'
     $powershell = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
     & $powershell -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $worker -JobPath $JobPath -VerifyOnly `
         > (Join-Path $JobPath 'worker.log')
@@ -266,14 +266,14 @@ function Invoke-AtlasPreparationCheck([string]$PayloadRoot, [string]$JobPath) {
     }
 }
 
-function Test-AtlasPreparationCurrent([string]$PayloadRoot, [string]$JobPath) {
+function Test-AtlasPreparationCurrent([string]$PackageRoot, [string]$JobPath) {
     <#
     .SYNOPSIS
         Whether live Windows and Store checks confirm preparation for the installing
         user. A refusal is reported on stderr so the caller can exit with its own code.
     #>
     try {
-        Invoke-AtlasPreparationCheck -PayloadRoot $PayloadRoot -JobPath $JobPath
+        Invoke-AtlasPreparationCheck -PackageRoot $PackageRoot -JobPath $JobPath
         return $true
     }
     catch {
@@ -648,12 +648,12 @@ function New-AtlasProtectedStagingRoot {
     if (-not [IO.Directory]::Exists($stagingRoot)) {
         [void][IO.Directory]::CreateDirectory($stagingRoot, $security)
     }
-    $payloadRoot = [IO.Path]::Combine($stagingRoot, [guid]::NewGuid().ToString('N'))
-    [void][IO.Directory]::CreateDirectory($payloadRoot, $security)
-    return $payloadRoot
+    $copyRoot = [IO.Path]::Combine($stagingRoot, [guid]::NewGuid().ToString('N'))
+    [void][IO.Directory]::CreateDirectory($copyRoot, $security)
+    return $copyRoot
 }
 
-function Copy-AtlasPayloadToStaging {
+function Copy-AtlasPackageToStaging {
     <#
     .SYNOPSIS
         Copies the extracted package (atlas.json and the Executables tree) into the
@@ -835,7 +835,7 @@ function Invoke-AtlasInstallPhase {
     #>
     param(
         [Parameter(Mandatory = $true)][ValidateSet('Capture', 'Run')][string]$Phase,
-        [Parameter(Mandatory = $true)][string]$PayloadRoot,
+        [Parameter(Mandatory = $true)][string]$PackageRoot,
         [Parameter(Mandatory = $true)][int]$TimeoutSeconds,
         [switch]$ChooseAgain,
         [string[]]$ResumeOptions,
@@ -845,12 +845,12 @@ function Invoke-AtlasInstallPhase {
     # The copy's name begins with its time, so only one written since the phase began is its own.
     $started = [DateTime]::UtcNow.AddSeconds(-2)
     try {
-        $null = Invoke-AtlasTrustedInstaller -Operation Install -InstallPhase $Phase -PayloadRoot $PayloadRoot -TimeoutSeconds $TimeoutSeconds
+        $null = Invoke-AtlasTrustedInstaller -Operation Install -InstallPhase $Phase -PackageRoot $PackageRoot -TimeoutSeconds $TimeoutSeconds
     }
     catch {
         $failure = $_.Exception.Message
         $name = "install-$($Phase.ToLowerInvariant()).log"
-        $log = [IO.Path]::Combine($PayloadRoot, 'AtlasModules', 'Logs', $name)
+        $log = [IO.Path]::Combine($PackageRoot, 'AtlasModules', 'Logs', $name)
         $copy = @(Get-ChildItem -LiteralPath $MachineLogRoot -Filter "*-$name" -File -ErrorAction SilentlyContinue |
                 Where-Object { $_.LastWriteTimeUtc -ge $started } | Sort-Object -Property LastWriteTimeUtc -Descending)
         if ($copy.Count -gt 0) { $log = $copy[0].FullName }
@@ -942,18 +942,18 @@ try {
 
     Write-AtlasInstallStep 'Copying Atlas''s files to a protected folder...'
     $stagingRoot = New-AtlasProtectedStagingRoot -WindowsPath $windowsPath
-    $payloadRoot = Copy-AtlasPayloadToStaging -ExtractedRoot $extractedRoot -StagingRoot $stagingRoot
+    $packageRoot = Copy-AtlasPackageToStaging -ExtractedRoot $extractedRoot -StagingRoot $stagingRoot
     Write-AtlasInstallStep 'Verifying Windows and Microsoft Store preparation for the signed-in user...'
     # A distinct exit code lets Atlas Manager send the user back to preparation.
-    if (-not (Test-AtlasPreparationCurrent -PayloadRoot $payloadRoot -JobPath (Join-Path $stagingRoot 'Preparation'))) {
+    if (-not (Test-AtlasPreparationCurrent -PackageRoot $packageRoot -JobPath (Join-Path $stagingRoot 'Preparation'))) {
         if (-not $KeepStaging) { Remove-AtlasStagedPackage -StagingRoot $stagingRoot }
         exit 5
     }
-    [IO.File]::WriteAllText((Join-Path -Path $payloadRoot -ChildPath 'request.json'), (New-AtlasInstallRequest -Option $Option -ChooseAgain:$ChooseAgain), (New-Object Text.UTF8Encoding($false)))
+    [IO.File]::WriteAllText((Join-Path -Path $packageRoot -ChildPath 'request.json'), (New-AtlasInstallRequest -Option $Option -ChooseAgain:$ChooseAgain), (New-Object Text.UTF8Encoding($false)))
 
     Write-AtlasInstallStep 'Capturing the install state as TrustedInstaller...'
     $brokerStarted = $true
-    Invoke-AtlasInstallPhase -Phase Capture -PayloadRoot $payloadRoot -TimeoutSeconds 300 -ResumeOptions $probe.ResumeOptions
+    Invoke-AtlasInstallPhase -Phase Capture -PackageRoot $packageRoot -TimeoutSeconds 300 -ResumeOptions $probe.ResumeOptions
 
     # An update that keeps the choices records the ones this PC shows, and a resume
     # must give those.
@@ -961,10 +961,10 @@ try {
     if ($captured.Line) { Write-AtlasInstallStep $captured.Line }
 
     Write-AtlasInstallStep 'Publishing the installing user...'
-    & (Join-Path -Path $payloadRoot -ChildPath 'AtlasModules\Scripts\Entry\Publish-AtlasInstallUser.ps1') | Out-Null
+    & (Join-Path -Path $packageRoot -ChildPath 'AtlasModules\Scripts\Entry\Publish-AtlasInstallUser.ps1') | Out-Null
 
     Write-AtlasInstallStep 'Running the install plan as TrustedInstaller. This takes several minutes...'
-    Invoke-AtlasInstallPhase -Phase Run -PayloadRoot $payloadRoot -TimeoutSeconds 7200 -ChooseAgain:$ChooseAgain -ResumeOptions $captured.ResumeOptions
+    Invoke-AtlasInstallPhase -Phase Run -PackageRoot $packageRoot -TimeoutSeconds 7200 -ChooseAgain:$ChooseAgain -ResumeOptions $captured.ResumeOptions
 
     Remove-AtlasEarlierStagedPackage -StagingRoot $stagingRoot
     if (-not $KeepStaging) {

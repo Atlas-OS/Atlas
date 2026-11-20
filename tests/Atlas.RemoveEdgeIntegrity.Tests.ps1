@@ -236,11 +236,11 @@ Describe 'Remove-Edge detached uninstaller launch window' {
 Describe 'Remove-Edge download boundaries' {
     It 'rejects an unsigned file as a Microsoft installer' {
         . $script:assertMicrosoftSignedInstaller
-        $payload = Join-Path -Path $TestDrive -ChildPath 'unsigned.exe'
-        [IO.File]::WriteAllText($payload, 'not an executable payload')
+        $installer = Join-Path -Path $TestDrive -ChildPath 'unsigned.exe'
+        [IO.File]::WriteAllText($installer, 'not an executable payload')
 
         {
-            Assert-MicrosoftSignedInstaller -Path $payload `
+            Assert-MicrosoftSignedInstaller -Path $installer `
                 -StagingDirectory $TestDrive -Description 'Test payload'
         } | Should -Throw '*not validly signed by Microsoft Corporation*'
     }

@@ -91,7 +91,7 @@ Third-party components keep their own licences, listed with each entry.
    ```
 
 3. For a CAB, regenerate `AtlasModules/Packages/Atlas-CbsHashes.psd1` with the command in its header.
-   The install refuses any CAB whose name or hash isn't in that file, and `tests/Atlas.PayloadLayout.Tests.ps1` fails when the file and the CABs differ.
+   The install refuses any CAB whose name or hash isn't in that file, and `tests/Atlas.PackageLayout.Tests.ps1` fails when the file and the CABs differ.
 4. For the timer tools, rebuild and accept the build as the [timer build recipe](../../../tools/timer/README.md) describes.
    `tests/Atlas.TimerProvenance.Tests.ps1` fails when the executables or the source archive differ from `tools/timer/accepted-build.json`.
 5. Compare this inventory with the binaries in the package, since no test does.

@@ -18,7 +18,7 @@ function Assert-AtlasPrivilege {
 }
 function Invoke-AtlasTrustedInstallerNativeOperation {
     param($Operation, $TimeoutMilliseconds, $Name, $State, $Silent, $JustContext,
-        $NoExplorerRestart, $MachineOnly, $RestoreSource, $InstallPhase, $PayloadRoot)
+        $NoExplorerRestart, $MachineOnly, $RestoreSource, $InstallPhase, $PackageRoot)
     $PSBoundParameters | ConvertTo-Json | Set-Content -LiteralPath $env:ATLAS_BROKER_TEST_RESULT
     [pscustomobject]@{ ExitCodeUInt32 = [uint32]$env:ATLAS_BROKER_TEST_EXIT }
 }
@@ -77,13 +77,13 @@ Describe 'TrustedInstaller broker private native dispatch' {
     }
 
     It 'dispatches an install request without writing to the real staging directory' {
-        $payloadRoot = Join-Path ([Environment]::GetFolderPath('Windows')) 'AtlasOS\Staging\BrokerTest\Executables'
+        $stagedRoot = Join-Path ([Environment]::GetFolderPath('Windows')) 'AtlasOS\Staging\BrokerTest\Executables'
         & $script:BrokerPowerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script:BrokerFixture `
-            -Operation Install -InstallPhase Capture -PayloadRoot $payloadRoot
+            -Operation Install -InstallPhase Capture -PackageRoot $stagedRoot
         $LASTEXITCODE | Should -Be 0
         $request = Get-Content -LiteralPath $env:ATLAS_BROKER_TEST_RESULT -Raw | ConvertFrom-Json
         $request.InstallPhase | Should -Be 'Capture'
-        $request.PayloadRoot | Should -Be $payloadRoot
+        $request.PackageRoot | Should -Be $stagedRoot
     }
 
     It 'rejects an undeclared toggle state before native dispatch' {
@@ -114,12 +114,12 @@ Describe 'TrustedInstaller broker private native dispatch' {
 
     It 'preserves an install failure when the child could not write a session log' {
         $env:ATLAS_BROKER_TEST_EXIT = '37'
-        $payloadRoot = Join-Path ([Environment]::GetFolderPath('Windows')) ('AtlasOS\Staging\' + [guid]::NewGuid().ToString('N') + '\Executables')
+        $stagedRoot = Join-Path ([Environment]::GetFolderPath('Windows')) ('AtlasOS\Staging\' + [guid]::NewGuid().ToString('N') + '\Executables')
         $previousPreference = $ErrorActionPreference
         $ErrorActionPreference = 'Continue'
         try {
             $output = & $script:BrokerPowerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script:BrokerFixture `
-                -Operation Install -InstallPhase Capture -PayloadRoot $payloadRoot 2>&1
+                -Operation Install -InstallPhase Capture -PackageRoot $stagedRoot 2>&1
         }
         finally { $ErrorActionPreference = $previousPreference }
         $LASTEXITCODE | Should -Be 37
@@ -141,7 +141,7 @@ Describe 'TrustedInstaller broker private native dispatch' {
     It 'rejects a CBS retry given -<Parameter> before native dispatch' -TestCases @(
         @{ Parameter = 'Name'; Arguments = @('-Name', 'Indexing') }
         @{ Parameter = 'RestoreSource'; Arguments = @('-RestoreSource', 'ToggleDefaults') }
-        @{ Parameter = 'PayloadRoot'; Arguments = @('-PayloadRoot', 'C:\x') }
+        @{ Parameter = 'PackageRoot'; Arguments = @('-PackageRoot', 'C:\x') }
     ) {
         $previousPreference = $ErrorActionPreference
         $ErrorActionPreference = 'Continue'
@@ -161,7 +161,7 @@ Describe 'TrustedInstaller broker private native dispatch' {
         @{ Label = 'a path that climbs out of it'; Relative = 'AtlasOS\Staging\..\x' }
     ) {
         # $TestDrive doesn't exist during discovery, so the first case builds its path here.
-        $payloadRoot = if ($Relative) {
+        $stagedRoot = if ($Relative) {
             Join-Path ([Environment]::GetFolderPath('Windows')) $Relative
         }
         else {
@@ -171,7 +171,7 @@ Describe 'TrustedInstaller broker private native dispatch' {
         $ErrorActionPreference = 'Continue'
         try {
             $output = & $script:BrokerPowerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script:BrokerFixture `
-                -Operation Install -InstallPhase Capture -PayloadRoot $payloadRoot 2>&1
+                -Operation Install -InstallPhase Capture -PackageRoot $stagedRoot 2>&1
         }
         finally { $ErrorActionPreference = $previousPreference }
         $LASTEXITCODE | Should -Be 1
@@ -182,12 +182,12 @@ Describe 'TrustedInstaller broker private native dispatch' {
     It 'refuses a caller without Administrator rights before native dispatch' {
         # The fixture's Atlas.Core refuses on request, so this holds on elevated hosts too.
         $env:ATLAS_BROKER_TEST_DENY_ADMIN = '1'
-        $payloadRoot = Join-Path ([Environment]::GetFolderPath('Windows')) 'AtlasOS\Staging\BrokerTest\Executables'
+        $stagedRoot = Join-Path ([Environment]::GetFolderPath('Windows')) 'AtlasOS\Staging\BrokerTest\Executables'
         $previousPreference = $ErrorActionPreference
         $ErrorActionPreference = 'Continue'
         try {
             $output = & $script:BrokerPowerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script:BrokerFixture `
-                -Operation Install -InstallPhase Capture -PayloadRoot $payloadRoot 2>&1
+                -Operation Install -InstallPhase Capture -PackageRoot $stagedRoot 2>&1
         }
         finally { $ErrorActionPreference = $previousPreference }
         $LASTEXITCODE | Should -Be 1

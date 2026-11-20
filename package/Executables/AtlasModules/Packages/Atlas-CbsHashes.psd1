@@ -4,7 +4,7 @@
 # pinned; the content hash is. REGENERATE THIS FILE WHENEVER THE CABS ARE REBUILT:
 #   Get-ChildItem *.cab | Sort-Object Name | ForEach-Object {
 #     "    '$($_.Name)' = '$((Get-FileHash $_ -Algorithm SHA256).Hash)'" }
-# A PayloadLayout test fails CI if this drifts from the CABs in this folder.
+# A PackageLayout test fails CI if this drifts from the CABs in this folder.
 @{
     'Z-Atlas-NoDefender-Package31bf3856ad364e35amd645.0.0.0.cab' = '6A8D1F8788277B425766FAD069A8192EDC33EEA2D6F7F9B061A42C941A21D2EC'
     'Z-Atlas-NoDefender-Package31bf3856ad364e35arm645.0.0.0.cab' = '39500FA6DF403F162C02A9C36D37D2C787BF459C05376872B9962FA649F4E081'

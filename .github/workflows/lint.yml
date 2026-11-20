@@ -8,6 +8,7 @@ on:
       - "app/resources/**"
       - "app/tools/Build-Release.ps1"
       - "app/tools/Export-DependencyNotices.ps1"
+      - "app/tools/Update-ReadmeScreenshots.ps1"
       - "app/tools/tests/**"
       - "package/**/*.ps1"
       - "package/**/*.psm1"
@@ -23,6 +24,7 @@ on:
       - "app/resources/**"
       - "app/tools/Build-Release.ps1"
       - "app/tools/Export-DependencyNotices.ps1"
+      - "app/tools/Update-ReadmeScreenshots.ps1"
       - "app/tools/tests/**"
       - "package/**/*.ps1"
       - "package/**/*.psm1"
@@ -63,7 +65,7 @@ jobs:
         shell: pwsh
         run: |
           Import-Module PSScriptAnalyzer -RequiredVersion 1.25.0
-          $settings = '.github/linters/PSScriptAnalyzerSettings.Payload.psd1'
+          $settings = '.github/linters/PSScriptAnalyzerSettings.Package.psd1'
           $results = Get-ChildItem -Path 'package','app/resources' -Recurse -Include '*.ps1','*.psm1' |
               Invoke-ScriptAnalyzer -Settings $settings
 
@@ -81,7 +83,7 @@ jobs:
           Import-Module PSScriptAnalyzer -RequiredVersion 1.25.0
           $settings = '.github/linters/PSScriptAnalyzerSettings.psd1'
           # A listed path that disappears fails the job instead of silently dropping out of lint.
-          $paths = @('tools', 'tests', 'app/tools/Build-Release.ps1', 'app/tools/Export-DependencyNotices.ps1', 'app/tools/tests')
+          $paths = @('tools', 'tests', 'app/tools/Build-Release.ps1', 'app/tools/Export-DependencyNotices.ps1', 'app/tools/Update-ReadmeScreenshots.ps1', 'app/tools/tests')
           $results = Get-ChildItem -Path $paths -Recurse -Include '*.ps1','*.psm1' |
               Invoke-ScriptAnalyzer -Settings $settings
 
