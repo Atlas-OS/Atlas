@@ -1596,7 +1596,7 @@ async fn archive_names_must_match_local_headers_without_unicode_overrides() {
     field.extend(crc32(b"logs/notes.txt").to_le_bytes());
     field.extend(b"../../evil.cmd");
     let mut options = zip::write::FileOptions::<zip::write::ExtendedFileOptions>::default();
-    options.add_extra_data(0x4242, &field, false).unwrap();
+    options.add_extra_field(0x4242, &field, false).unwrap();
     let mut zip = zip::ZipWriter::new(Cursor::new(Vec::new()));
     zip.start_file("manifest.json", zip::write::SimpleFileOptions::default())
         .unwrap();

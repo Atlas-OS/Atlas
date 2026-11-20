@@ -89,11 +89,18 @@ fn validate_inner(path: &Path) -> Result<Value, Refusal> {
     for index in 0..archive.len() {
         let mut entry = archive.by_index(index)?;
         let before = actual;
-        if has_name_override(entry.extra_data().unwrap_or_default()) {
+        // The central directory's fields, as the library decodes them; the local
+        // header's raw bytes are checked in local_entry_end.
+        if entry.extra_data_fields().any(|field| {
+            matches!(
+                field,
+                zip::ExtraField::UnicodePath(_) | zip::ExtraField::UnicodeComment(_)
+            )
+        }) {
             return Err("Unicode path or comment field".into());
         }
         spans.push((entry.header_start(), local_entry_end(&mut local, &entry)?));
-        let name = entry.name().to_owned();
+        let name = entry.name()?.into_owned();
         let kind = entry.unix_mode().unwrap_or(0) & 0o170000;
         if name.is_empty()
             || name.starts_with('/')
@@ -253,7 +260,7 @@ mod tests {
         let mut commented = zip::ZipWriter::new(Cursor::new(Vec::new()));
         let mut options = FullFileOptions::default();
         options
-            .add_extra_data(0x6375, [1, 0, 0, 0, 0, b'x'], true)
+            .add_extra_field(0x6375, [1, 0, 0, 0, 0, b'x'], true)
             .unwrap();
         commented.start_file("manifest.json", options).unwrap();
         commented.write_all(MANIFEST).unwrap();
