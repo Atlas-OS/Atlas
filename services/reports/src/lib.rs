@@ -25,16 +25,21 @@ use std::{
 };
 use tokio::sync::Semaphore;
 
+/// Largest diagnostics ZIP an upload may send, in bytes (64 MiB).
 pub const MAX_ZIP: u64 = 64 * 1024 * 1024;
 /// Version of the privacy notice that consent covers. The web form
 /// (atlas-reports-ui `api.ts`) and Atlas Manager (`app/src/services/reports.rs`)
 /// send the same value, so change all three with the notice text.
 pub const PRIVACY_VERSION: &str = "2026-10-01";
+/// Most reports kept at once. New reports are refused while the store is full.
 pub const MAX_REPORTS: i64 = 10_000;
 /// Days a report and its audit history are kept, as the privacy notice promises.
 pub const RETENTION_DAYS: i64 = 90;
+/// The review statuses a report can have.
 pub(crate) const STATUSES: [&str; 4] = ["new", "investigating", "resolved", "closed"];
+/// Seconds in an hour.
 pub(crate) const HOUR: i64 = 3_600;
+/// Seconds in a day.
 pub(crate) const DAY: i64 = 86_400;
 /// Seconds after a report is made that its diagnostics may still be uploaded.
 /// A report still waiting for them after that has expired: cleanup removes it,
@@ -56,9 +61,17 @@ const AGENT_AUDIT_ROWS: i64 = 10_000;
 /// Most entries of every other kind the audit log keeps.
 const AUDIT_ROWS: i64 = 50_000;
 
+/// The result of a handler: a value, or the refusal the sender sees.
 pub type ApiResult<T> = Result<T, ApiError>;
 
-pub struct ApiError(pub StatusCode, pub &'static str);
+/// A refusal, sent as `{"detail": …}` with its status code. The text is always
+/// fixed, so a response never carries an underlying error.
+pub struct ApiError(
+    /// The HTTP status of the response.
+    pub StatusCode,
+    /// The text sent as `detail`.
+    pub &'static str,
+);
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         (self.0, Json(json!({"detail": self.1}))).into_response()
@@ -108,15 +121,18 @@ fn log_failure(kind: &str, error: &dyn std::fmt::Display) {
     eprintln!("Report {kind} operation failed: {error}");
 }
 
+/// The current time in Unix seconds, or 0 if the clock reads earlier than 1970.
 pub fn now() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs() as i64
 }
+/// `bytes` as lower-case hexadecimal.
 pub fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
+/// The SHA-256 of `bytes` as lower-case hexadecimal.
 pub fn sha(bytes: &[u8]) -> String {
     hex(digest::digest(&digest::SHA256, bytes).as_ref())
 }
@@ -129,12 +145,16 @@ pub(crate) fn is_hex64(value: &str) -> bool {
 /// signature issued for one purpose is never accepted for another. Agent key
 /// signatures are stored, so changing their format revokes every key.
 pub(crate) mod claim {
+    /// Signed to let the sender of report `id`, made with `key_hash`, upload its
+    /// diagnostics.
     pub fn upload(id: &str, key_hash: &str) -> String {
         format!("upload:{id}:{key_hash}")
     }
+    /// Signed to make reviewer `user`'s CSRF token for UTC day `day`.
     pub fn csrf(user: &str, day: i64) -> String {
         format!("csrf:{user}:{day}")
     }
+    /// Signed to make the stored signature of agent key `token`.
     pub fn agent(token: &str) -> String {
         format!("agent:{token}")
     }
@@ -168,28 +188,48 @@ pub(crate) fn remove_if_present(path: &Path) -> std::io::Result<()> {
     }
 }
 
+/// The service's settings. `main.rs` reads them from the environment and
+/// [`create`] refuses invalid ones.
 pub struct Config {
+    /// Directory for the database and uploads (`ATLAS_REPORTS_DATA`).
     pub data: PathBuf,
+    /// Built website, served for every path the API doesn't use (`ATLAS_REPORTS_WEB`).
     pub web: PathBuf,
+    /// Public origin; requests for any other host are refused (`ATLAS_REPORTS_ORIGIN`).
     pub origin: String,
+    /// Secret the proxy sends as `x-atlas-gateway`. It's also the key that signs
+    /// upload tokens, CSRF tokens and agent keys (`ATLAS_REPORTS_GATEWAY_SECRET`).
     pub gateway_secret: String,
+    /// Reviewer usernames accepted in `remote-user` (`ATLAS_REPORTS_ADMINS`).
     pub admins: Vec<String>,
+    /// Addresses the proxy connects from (`ATLAS_REPORTS_PROXY_IPS`).
     pub proxy_ips: Vec<IpAddr>,
+    /// Space the upload folder may use, including partial and orphaned files
+    /// (`ATLAS_REPORTS_QUOTA_BYTES`).
     pub quota_bytes: u64,
 }
 
+/// State shared by every request: the settings, the database and the limits on
+/// work done at once.
 pub struct Store {
+    /// The validated settings.
     pub config: Config,
+    /// The SQLite database.
     pub db: Mutex<Connection>,
+    /// Upload slots. An upload that finds none free is asked to retry.
     pub uploads: Arc<Semaphore>,
     requests: Semaphore,
     key: hmac::Key,
 }
+/// The state each handler receives.
 pub type AppState = Arc<Store>;
 impl Store {
+    /// The HMAC-SHA-256 of `value` under the gateway secret, as lower-case hex.
     pub fn signature(&self, value: &str) -> String {
         hex(hmac::sign(&self.key, value.as_bytes()).as_ref())
     }
+    /// Whether `signature` is the [`signature`](Self::signature) of `value`,
+    /// compared in constant time.
     pub fn verify(&self, value: &str, signature: &str) -> bool {
         // Hex digits are ASCII, so the two-byte slices below never split a character.
         if !is_hex64(signature) {
@@ -211,6 +251,7 @@ impl Store {
         let tag = hmac::sign(&supplied, b"atlas-gateway");
         hmac::verify(&self.key, b"atlas-gateway", tag.as_ref()).is_ok()
     }
+    /// Where the diagnostics ZIP of report `id` is kept once committed.
     pub fn file(&self, id: uuid::Uuid) -> PathBuf {
         self.config.data.join("uploads").join(format!("{id}.zip"))
     }
@@ -231,6 +272,9 @@ impl Store {
         }
         Ok(bytes)
     }
+    /// Deletes reports past their retention or upload window, old rate buckets and
+    /// audit entries, and upload files that no ready report owns, then clears the
+    /// deleted text from the WAL. Runs at startup and every hour.
     pub fn prune(&self) -> ApiResult<()> {
         let mut db = self.db.lock().unwrap();
         let result = self.prune_locked(&mut db);
@@ -350,6 +394,8 @@ fn private_dir(path: &Path, symlink_error: &'static str) -> Result<(), StartupEr
     Ok(())
 }
 
+/// Opens the database in WAL mode with secure deletion, creating its tables if
+/// needed, and on Unix limits the file to the service account.
 fn open_database(path: &Path) -> Result<Connection, StartupError> {
     let db = Connection::open(path)?;
     #[cfg(unix)]
@@ -386,6 +432,9 @@ fn open_database(path: &Path) -> Result<Connection, StartupError> {
     Ok(db)
 }
 
+/// Checks `config`, prepares the data directory and database, and returns the
+/// router with the state it shares. The caller serves the router and calls
+/// [`Store::prune`] every hour.
 pub fn create(config: Config) -> Result<(Router, AppState), StartupError> {
     if let Some(reason) = invalid_setting(&config) {
         return Err(StartupError::Config(reason));
@@ -412,6 +461,8 @@ pub fn create(config: Config) -> Result<(Router, AppState), StartupError> {
     Ok((app, state))
 }
 
+/// Refuses other hosts and requests beyond MAX_REQUESTS at once, and adds the
+/// security headers to every response.
 async fn guard(State(state): State<AppState>, request: Request<Body>, next: Next) -> Response {
     // Serve only the configured host, so a DNS name rebound to this server
     // cannot reach the API.

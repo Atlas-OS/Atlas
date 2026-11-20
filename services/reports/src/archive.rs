@@ -1,3 +1,7 @@
+//! Validation of uploaded diagnostic ZIPs. Each archive is read in place and never
+//! extracted. It's accepted only when every member is a plain file or folder with a
+//! safe name, the sizes stay within the limits below, and the manifest says the
+//! contents were redacted.
 use crate::{ApiError, ApiResult};
 use axum::http::StatusCode;
 use serde_json::{Value, json};
@@ -9,12 +13,15 @@ use std::{
 };
 use uuid::Uuid;
 
+/// Most members an archive may have.
 const MAX_ENTRIES: usize = 2048;
+/// Longest member name, in bytes.
 const MAX_NAME: usize = 512;
 /// Expanded size of one member.
 const MAX_ENTRY_BYTES: u64 = 32 * 1024 * 1024;
 /// Expanded size of the whole archive.
 const MAX_EXPANDED_BYTES: u64 = 256 * 1024 * 1024;
+/// Largest `manifest.json`, which is read into memory.
 const MAX_MANIFEST_BYTES: u64 = 2 * 1024 * 1024;
 
 /// Why an archive was refused: a fixed reason, or the reading library's error.
@@ -72,6 +79,9 @@ fn local_entry_end(file: &mut File, entry: &zip::read::ZipFile<File>) -> Result<
     data.checked_add(entry.compressed_size())
         .ok_or_else(|| "Invalid member size".into())
 }
+/// Runs every check on the archive at `path` and returns the summary shown to
+/// reviewers: the Atlas Manager version (or tester-build ID), Windows build and
+/// edition from the manifest, each cut to 120 characters.
 fn validate_inner(path: &Path) -> Result<Value, Refusal> {
     let mut archive = zip::ZipArchive::new(File::open(path)?)?;
     let mut local = File::open(path)?;

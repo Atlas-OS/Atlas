@@ -1,3 +1,16 @@
+//! Starts the Atlas reports MCP server on standard input and output. Standard
+//! output carries only MCP messages; failures go to standard error as fixed text.
+//!
+//! Required settings:
+//!
+//! - `ATLAS_REPORTS_AGENT_TOKEN`: an access key from **Agent access** in the report dashboard.
+//! - `ATLAS_REPORTS_WORKSPACE`: an absolute path to a private folder for downloaded diagnostics.
+//!
+//! Optional setting, with its default:
+//!
+//! - `ATLAS_REPORTS_ORIGIN`: the reports service, `https://reports.atlasos.net`.
+//!
+//! A missing or invalid setting stops the server before it starts MCP.
 use atlas_reports_mcp::{
     ReportsServer,
     api::{Client, Config, DEFAULT_ORIGIN, Error},
