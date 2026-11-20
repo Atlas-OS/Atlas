@@ -1,6 +1,6 @@
 @{
     Name        = 'Disable LLMNR Protocol'
-    Description = 'Disables Link-Local Multicast Name Resolution (LLMNR), which is being superseded by mDNS and is a known credential-theft vector (LLMNR poisoning) on untrusted networks. Trade-off: plain \\PCNAME resolution on home LANs often relies on LLMNR (mDNS only covers .local), which is why the install plan does not apply this tweak.'
+    Description = 'Turns off Link-Local Multicast Name Resolution (LLMNR), which attackers can abuse to capture credentials on untrusted networks. Home networks often rely on it to find PCs by name, which is why the install doesn''t apply this tweak.'
     Registry    = @(
         # https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.DNSClient::Turn_Off_Multicast
         @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient'; Name = 'EnableMulticast'; Type = 'DWord'; Data = 0 }

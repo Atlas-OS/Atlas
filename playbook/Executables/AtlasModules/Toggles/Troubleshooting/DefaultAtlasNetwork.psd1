@@ -1,6 +1,7 @@
 @{
     Name        = 'DefaultAtlasNetwork'
-    Description = 'Network adapter reset. Enable applies Atlas defaults; Disable restores Windows defaults. Both states share the Atlas.Network Set-AtlasNetworkDefaults implementation.'
+    # Both states use Set-AtlasNetworkDefaults in Atlas.Network.
+    Description = 'Resets the network adapter settings: Enable applies the Atlas defaults and Disable restores the Windows defaults.'
     Elevation   = 'Admin'
     NoStateRecord = $true
     Script      = 'DefaultAtlasNetwork.ps1'

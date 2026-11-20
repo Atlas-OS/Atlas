@@ -1,6 +1,7 @@
 @{
     Name        = 'PhoneLink'
-    Description = 'Mobile Devices and Phone Link: the CDPSvc service, cross-device resume and the YourPhone app. The settings page is opened only for an interactive enable.'
+    # Only an interactive Enable opens the Settings page.
+    Description = 'Turns Mobile devices and Phone Link on or off: the CDPSvc service, cross-device resume and the Phone Link app. Enable then opens the Mobile devices page in Settings.'
     Elevation   = 'Admin'
     Script      = 'PhoneLink.ps1'
     States      = @(

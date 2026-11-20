@@ -1,6 +1,6 @@
 @{
     Name        = 'Home'
-    Description = 'Home item in the File Explorer navigation pane and its default launch target.'
+    Description = 'Shows or hides Home in the File Explorer navigation pane, and makes File Explorer open to Home or This PC.'
     Elevation   = 'Admin'
     States      = @(
         @{

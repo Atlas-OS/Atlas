@@ -1,8 +1,8 @@
 @{
     Name        = 'FSOGameBar'
-    Description = 'Fullscreen Optimizations (FSO) and Game Bar / Game DVR support. Machine changes run as TrustedInstaller; current-user changes run in the caller''s session.'
+    Description = 'Turns fullscreen optimisations (FSO), Game Bar and game recording on or off.'
     Elevation   = 'TrustedInstaller'
-    Warning     = 'Changes the Game Bar and Game DVR services and packages. While disabled, Game Bar shortcuts, game recording and fullscreen optimizations are unavailable.'
+    Warning     = 'Changes the Game Bar and Game DVR services and packages. While disabled, Game Bar shortcuts, game recording and fullscreen optimisations aren''t available.'
     Script      = 'FSOGameBar.ps1'
     States      = @(
         @{

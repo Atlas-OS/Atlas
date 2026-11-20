@@ -1,6 +1,9 @@
-# The menu and its consequences warning run in the interactive administrator process;
-# the chosen package operation crosses the silent TrustedInstaller broker as a fixed
-# internal state, the pattern Enable Search Indexing uses.
+# Companion for the ToggleDefender toggle: removes or restores Windows Defender through the
+# NoDefender package. Select-AtlasDefenderToggleState runs first, in the administrator window:
+# it shows the menu and its warning and picks an internal state, the same pattern as Enable
+# Search Indexing. That state's function then runs in the silent TrustedInstaller broker.
+# Nothing is recorded.
+
 function Select-AtlasDefenderToggleState {
     param($Toggle)
 

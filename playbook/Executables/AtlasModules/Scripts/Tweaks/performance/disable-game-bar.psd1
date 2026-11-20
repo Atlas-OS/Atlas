@@ -1,6 +1,6 @@
 @{
     Name        = 'Disable Game Bar'
-    Description = 'Disables XBOX Game Bar, which is known as a bloatware feature'
+    Description = 'Turns off Xbox Game Bar and game recording.'
     Registry    = @(
         # Disable Game Bar
         @{ Path = 'HKCU\System\GameConfigStore'; Name = 'GameDVR_Enabled'; Type = 'DWord'; Data = 0 }

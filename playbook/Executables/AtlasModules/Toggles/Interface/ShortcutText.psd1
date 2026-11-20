@@ -1,6 +1,6 @@
 @{
     Name        = 'ShortcutText'
-    Description = 'The " - Shortcut" text suffix on newly created shortcuts.'
+    Description = 'Turns the " - Shortcut" text added to the names of new shortcuts on or off.'
     Elevation   = 'Admin'
     States      = @(
         @{

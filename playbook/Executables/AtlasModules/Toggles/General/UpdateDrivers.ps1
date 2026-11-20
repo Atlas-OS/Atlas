@@ -1,3 +1,7 @@
+# Companion for the UpdateDrivers toggle: runs the Update-Drivers.ps1 helper, which installs
+# driver updates from Microsoft Update. Invoke-AtlasDriverUpdate runs as Administrator when
+# you run the launcher; nothing is recorded.
+
 function Invoke-AtlasDriverUpdate {
     param($Toggle)
 

@@ -1,6 +1,6 @@
 @{
     Name        = 'Add Power Plan File Association'
-    Description = 'Adds a file association for .pow files, so you can simply double click on it and import it'
+    Description = 'Lets you import a power plan by opening its .pow file and confirming the administrator prompt.'
     Registry    = @(
         @{ Path = 'HKCR\.pow'; Name = ''; Type = 'String'; Data = 'powerscheme' }
         @{ Path = 'HKCR\.pow'; Name = 'FriendlyTypeName'; Type = 'String'; Data = 'Power Scheme' }

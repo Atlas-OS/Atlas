@@ -1,3 +1,8 @@
+# Companion for the PowerSaving toggle: applies the Atlas power settings or restores the
+# earlier power plan. Invoke-AtlasPowerSavingToggle runs as Administrator when you run a
+# launcher, when the install applies your power-saving choice and when an update replays the
+# recorded state.
+
 function Invoke-AtlasPowerSavingToggle {
     param($Toggle)
 

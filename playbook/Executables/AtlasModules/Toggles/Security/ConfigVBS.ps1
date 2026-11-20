@@ -1,3 +1,7 @@
+# Companion for the ConfigVBS toggle: shows the current Virtualisation-Based Security
+# configuration. Show-AtlasVbsConfiguration runs in the launcher's own process, as you, when
+# you run the launcher; nothing is recorded.
+
 function Show-AtlasVbsConfiguration {
     param($Toggle)
 

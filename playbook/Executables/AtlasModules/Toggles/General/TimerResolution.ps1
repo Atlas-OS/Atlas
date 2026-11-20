@@ -1,3 +1,7 @@
+# Companion for the TimerResolution toggle: registers or removes the Atlas scheduled task that
+# keeps the timer resolution high. Its functions run as Administrator when you run a launcher;
+# nothing is recorded.
+
 function Import-AtlasTimerResolutionTaskModule {
     param($Toggle)
 

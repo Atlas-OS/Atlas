@@ -1,8 +1,8 @@
 @{
     Name        = 'Add Initialize-NewUser.ps1 script'
-    Description = 'Adds the Initialize-NewUser.ps1 script to RunOnce, which applies any tweaks that are dynamically generated on new user creation'
+    Description = 'Adds Initialize-NewUser.ps1 to RunOnce for new accounts, so each one gets the per-user Atlas settings at first sign-in.'
     Registry    = @(
-        # Default-user hive only: new accounts run Initialize-NewUser at first logon, and
+        # Default-user hive only: new accounts run Initialize-NewUser at first sign-in, and
         # the installing account runs Initialize-NewUser -FromInstall during the install as
         # itself, without elevation. wscript.exe and Invoke-InitializeNewUserHidden.vbs
         # show no window, where powershell.exe -WindowStyle Hidden still flashes its

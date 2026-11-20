@@ -1,6 +1,6 @@
 @{
     Name        = 'Disable Advertising ID'
-    Description = 'Disables Advertising ID for privacy'
+    Description = 'Turns off the advertising ID, so apps can''t use it to show you personalised adverts.'
     Registry    = @(
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo'; Name = 'Enabled'; Type = 'DWord'; Data = 0 }
         # Machine-scope variant listed in the 'Manage connections' doc, for completeness.

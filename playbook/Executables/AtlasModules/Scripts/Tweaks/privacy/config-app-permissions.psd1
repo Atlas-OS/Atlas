@@ -1,6 +1,6 @@
 @{
     Name        = 'Configure App Permissions'
-    Description = 'Configures default app permissions in Settings for the optimal privacy'
+    Description = 'Denies apps access to your location, account information, app diagnostics and generative AI by default. You can still allow each app in Settings.'
     Registry    = @(
         @{ Path = 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\appDiagnostics'; Name = 'Value'; Type = 'String'; Data = 'Deny' }
         @{ Path = 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location'; Name = 'Value'; Type = 'String'; Data = 'Deny'; VerifyWithToggle = @{ Name = 'Location'; State = 1; Type = 'String'; Data = 'Allow' } }

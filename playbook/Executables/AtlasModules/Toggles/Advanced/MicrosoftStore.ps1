@@ -1,3 +1,9 @@
+# Companion for the MicrosoftStore toggle: removes Microsoft Store for every user, or
+# registers it again for one account. Remove-AtlasMicrosoftStore runs as Administrator when
+# you run Disable and when an update replays the recorded state. Register-AtlasMicrosoftStore
+# runs in your own unelevated process when you run Enable, and is replayed for each new
+# account at first sign-in.
+
 function Remove-AtlasMicrosoftStore {
     param($Toggle)
 

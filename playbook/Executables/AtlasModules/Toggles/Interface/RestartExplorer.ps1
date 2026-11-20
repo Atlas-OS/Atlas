@@ -1,3 +1,7 @@
+# Companion for the RestartExplorer toggle. Show-AtlasRestartExplorerMessage runs in the
+# launcher's own process, as you, when you run the launcher; the engine restarts File Explorer
+# itself, and nothing is recorded.
+
 function Show-AtlasRestartExplorerMessage {
     param($Toggle)
 

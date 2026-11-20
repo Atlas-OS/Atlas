@@ -1,3 +1,7 @@
+# Companion for the TakeOwnership toggle: imports the .reg file that adds or removes Take
+# Ownership. Import-AtlasTakeOwnershipContextMenu runs as Administrator when you run a
+# launcher and when an update replays the recorded state.
+
 function Import-AtlasTakeOwnershipContextMenu {
     param($Toggle)
 

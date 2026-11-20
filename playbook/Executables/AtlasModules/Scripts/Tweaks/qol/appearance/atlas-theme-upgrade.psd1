@@ -1,7 +1,6 @@
 @{
     Name        = 'Refresh Theme On Upgrade'
-    Description  = 'On upgrades, keeps the Atlas theme as the default for new users. The
-ThemeFile policy enforces the theme at the next logon without any interactive shell COM.'
+    Description  = 'Keeps the Atlas theme as the default for new accounts when Atlas updates. The ThemeFile policy applies it at the next sign-in, without needing the user''s session during the install.'
     OnUpgrade   = 'Only'
     Registry    = @(
         # Set the Atlas theme as the default for new accounts (default-user hive, loaded

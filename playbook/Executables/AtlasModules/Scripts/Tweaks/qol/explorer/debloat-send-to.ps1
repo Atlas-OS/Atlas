@@ -1,4 +1,4 @@
-# Companion of debloat-send-to.psd1; runs as the exact install-state user.
+# Companion of debloat-send-to.psd1; runs as the install user.
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]

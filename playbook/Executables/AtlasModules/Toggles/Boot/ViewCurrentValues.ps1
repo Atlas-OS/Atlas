@@ -1,3 +1,7 @@
+# Companion for the ViewCurrentValues toggle: prints the current boot configuration with
+# bcdedit. Show-AtlasBootValues runs as Administrator when you run the launcher; nothing is
+# recorded.
+
 function Show-AtlasBootValues {
     param($Toggle)
 

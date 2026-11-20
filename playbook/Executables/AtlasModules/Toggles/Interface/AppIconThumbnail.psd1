@@ -1,6 +1,6 @@
 @{
     Name        = 'AppIconThumbnail'
-    Description = 'Application icon overlays on File Explorer thumbnails.'
+    Description = 'Shows or hides app icons on File Explorer thumbnails.'
     Elevation   = 'Admin'
     States      = @(
         @{

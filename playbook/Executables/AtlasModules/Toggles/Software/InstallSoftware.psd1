@@ -1,6 +1,6 @@
 @{
     Name          = 'InstallSoftware'
-    Description   = 'Opens the Atlas software picker. Records no state.'
+    Description   = 'Opens the Atlas software picker.'
     Elevation     = 'None'
     NoStateRecord = $true
     Script        = 'InstallSoftware.ps1'

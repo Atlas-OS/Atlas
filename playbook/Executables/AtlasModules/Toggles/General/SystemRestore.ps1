@@ -1,3 +1,7 @@
+# Companion for the SystemRestore toggle: turns on System Restore protection for the Windows
+# drive. Enable-AtlasWindowsVolumeProtection runs as Administrator when you run Enable and
+# when an update replays the recorded state.
+
 function Enable-AtlasWindowsVolumeProtection {
     param($Toggle)
 

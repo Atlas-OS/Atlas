@@ -1,6 +1,6 @@
 @{
     Name        = 'Gallery'
-    Description = 'Gallery item in the File Explorer navigation pane.'
+    Description = 'Shows or hides Gallery in the File Explorer navigation pane.'
     Elevation   = 'Admin'
     States      = @(
         @{

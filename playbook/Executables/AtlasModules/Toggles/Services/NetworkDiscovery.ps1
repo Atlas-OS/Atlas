@@ -1,3 +1,7 @@
+# Companion for the NetworkDiscovery toggle: turns on SMB and then the network discovery
+# services for Enable. Enable-AtlasNetworkDiscoveryServices runs as Administrator when you run
+# Enable, when File Sharing applies it and when an update replays the recorded state.
+
 function Enable-AtlasNetworkDiscoveryServices {
     param($Toggle)
 

@@ -1,6 +1,6 @@
 @{
     Name        = 'Disable Office Telemetry'
-    Description = 'Disables Microsoft Office telemetry for privacy'
+    Description = 'Turns off Microsoft Office telemetry and customer data collection.'
     Registry    = @(
         @{ Path = 'HKCU\Software\Policies\Microsoft\office\16.0\common'; Name = 'sendcustomerdata'; Type = 'DWord'; Data = 0 }
         @{ Path = 'HKCU\Software\Policies\Microsoft\office\common\clienttelemetry'; Name = 'sendtelemetry'; Type = 'DWord'; Data = 3 }

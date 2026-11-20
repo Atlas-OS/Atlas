@@ -1,6 +1,6 @@
 @{
     Name        = 'Recall'
-    Description = 'Recall and Windows AI data analysis through the DisableAIDataAnalysis policy.'
+    Description = 'Turns Recall and Windows AI data analysis on or off through the DisableAIDataAnalysis policy.'
     Elevation   = 'Admin'
     States      = @(
         @{

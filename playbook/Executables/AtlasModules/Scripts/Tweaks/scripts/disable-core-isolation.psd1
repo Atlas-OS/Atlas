@@ -1,6 +1,6 @@
 @{
     Name        = 'Disable Virtualization-Based Security'
-    Description = 'Disables VBS and Memory Integrity through Microsoft''s documented runtime registry controls. Credential Guard preferences, LSA protection, kernel stack protection preferences, and optional Windows features are preserved rather than guessed or removed.'
+    Description = 'Turns off Virtualisation-Based Security and Memory Integrity through Microsoft''s documented registry controls. Credential Guard, LSA protection, kernel stack protection and optional Windows features stay as they are.'
     Option      = 'disable-core-isolation'
     Script      = 'disable-core-isolation.ps1'
 }

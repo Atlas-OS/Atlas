@@ -1,6 +1,7 @@
 @{
     Name        = 'SecurityHealthTray'
-    Description = 'Windows Security (Defender) tray icon startup entry, applied from the included .reg files.'
+    # Each state imports its .reg file from Scripts\Registry\SecurityHealthTray.
+    Description = 'Adds or removes the Windows Security notification icon from startup.'
     Elevation   = 'Admin'
     Script      = 'SecurityHealthTray.ps1'
     States      = @(

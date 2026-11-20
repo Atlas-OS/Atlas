@@ -1,6 +1,6 @@
 @{
     Name        = 'Disable Automatic Updates for Apps in Store'
-    Description = 'Disables automatic updates for apps in Store so that the user has more control'
+    Description = 'Stops Microsoft Store updating apps automatically, so you choose when apps update.'
     Registry    = @(
         @{ Path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsStore\WindowsUpdate'; Name = 'AutoDownload'; Type = 'DWord'; Data = 2 }
     )

@@ -1,6 +1,6 @@
 @{
     Name        = 'AutomaticFolderDiscovery'
-    Description = 'Automatic folder type discovery in File Explorer.'
+    Description = 'Turns automatic folder type discovery in File Explorer on or off.'
     Elevation   = 'Admin'
     States      = @(
         @{

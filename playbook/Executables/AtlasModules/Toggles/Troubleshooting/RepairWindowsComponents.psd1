@@ -1,9 +1,9 @@
 @{
     Name          = 'RepairWindowsComponents'
-    Description   = 'Repairs Windows components and system files with DISM RestoreHealth and SFC. Records no state.'
+    Description   = 'Repairs Windows components and system files with DISM RestoreHealth and SFC.'
     Elevation     = 'Admin'
     NoStateRecord = $true
-    Warning       = 'Repairs corrupt Windows components and system files with DISM and SFC. It can take a long time and needs an Internet connection for missing files. Atlas settings are not reverted.'
+    Warning       = 'Repairs corrupt Windows components and system files with DISM and SFC. It can take a long time and needs an internet connection for missing files. Atlas settings stay as they are.'
     Script        = 'RepairWindowsComponents.ps1'
     States        = @(
         @{

@@ -1,6 +1,6 @@
 @{
     Name        = 'Disable MSRT telemetry'
-    Description = 'Disables MSRT''s (Malicious Software Removal Tool) telemetry features'
+    Description = 'Stops the Malicious Software Removal Tool reporting infection information and heartbeat data to Microsoft.'
     Registry    = @(
         # Disable MSRT telemetry
         @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\MRT'; Name = 'DontReportInfectionInformation'; Type = 'DWord'; Data = 1 }

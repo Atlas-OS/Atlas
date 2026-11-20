@@ -1,6 +1,6 @@
 @{
     Name        = 'ClickToDo'
-    Description = 'Click To Do through the Windows AI DisableClickToDo policy.'
+    Description = 'Turns Click To Do on or off through the DisableClickToDo Windows AI policy.'
     Elevation   = 'Admin'
     States      = @(
         @{

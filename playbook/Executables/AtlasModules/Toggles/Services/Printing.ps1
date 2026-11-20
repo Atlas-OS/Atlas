@@ -1,3 +1,8 @@
+# Companion for the Printing toggle: turns the printing services, the Windows printing
+# features and the Print context menu entries off or on. Set-AtlasPrintContextMenu runs first,
+# and alone with /justcontext; Set-AtlasPrintingMachineState runs after it. Both run as
+# Administrator when you run a launcher and when an update replays the recorded state.
+
 function Set-AtlasPrintContextMenu {
     param($Toggle)
 

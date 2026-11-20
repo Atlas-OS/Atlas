@@ -1,6 +1,8 @@
 @{
     Name        = 'Indexing'
-    Description = 'Windows Search Indexing (disabled, minimal or full). Each state delegates the machine work to the installed indexing helper, so manual invocation and upgrade replay use the same TrustedInstaller action.'
+    # Each state hands its machine work to the installed indexing helper, so a launcher and update
+    # replay run the same TrustedInstaller action.
+    Description = 'Sets Windows Search indexing to off, minimal or full.'
     Elevation   = 'TrustedInstaller'
     Script      = 'Indexing.ps1'
     States      = @(

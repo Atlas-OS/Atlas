@@ -1,6 +1,6 @@
 @{
     Name          = 'HighestMode'
-    Description   = 'Highest graphical mode for boot applications.'
+    Description   = 'Makes boot applications use the highest graphics mode the display supports.'
     Elevation     = 'Admin'
     Menu          = $true
     Launcher      = '6. Advanced Configuration\Boot Configuration\Behavior\Highest Mode.cmd'

@@ -1,6 +1,7 @@
 @{
     Name        = 'LockScreen'
-    Description = 'Windows lock screen. Enable shows it and verifies the blocking policy values are gone; Disable hides it.'
+    # Enable checks that the policy values that hide the lock screen are gone.
+    Description = 'Shows or hides the Windows lock screen.'
     Elevation   = 'Admin'
     Script      = 'LockScreen.ps1'
     States      = @(

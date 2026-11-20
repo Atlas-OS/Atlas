@@ -1,8 +1,8 @@
 @{
     Name        = 'LanmanWorkstation'
-    Description = 'Lanman Workstation and SMB services plus the SmbDirect feature.'
+    Description = 'Turns the Lanman Workstation and SMB client services and the SMB Direct feature on or off.'
     Elevation   = 'Admin'
-    Warning     = 'Changes the SMB client services. While disabled, this PC cannot open network shares, mapped drives or network printers.'
+    Warning     = 'Changes the SMB client services. While disabled, this PC can''t open network shares, mapped drives or network printers.'
     Script      = 'LanmanWorkstation.ps1'
     States      = @(
         @{

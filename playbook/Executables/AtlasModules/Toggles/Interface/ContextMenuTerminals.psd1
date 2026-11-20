@@ -1,6 +1,7 @@
 @{
     Name        = 'ContextMenuTerminals'
-    Description = 'The Terminals context menu: removed, full, or without Windows Terminal. Each state is applied from its .reg file under Scripts\Registry\Terminals.'
+    # Each state imports its .reg file from Scripts\Registry\Terminals.
+    Description = 'Removes the Terminals context menu, or adds it with or without Windows Terminal.'
     Elevation   = 'Admin'
     Script      = 'ContextMenuTerminals.ps1'
     States      = @(

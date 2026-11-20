@@ -1,6 +1,6 @@
 @{
     Name          = 'TimerResolution'
-    Description   = 'Global timer resolution: a scheduled task that forces a high timer resolution.'
+    Description   = 'Adds or removes an Atlas scheduled task that keeps the global timer resolution high.'
     Elevation     = 'Admin'
     NoStateRecord = $true
     Warning       = 'Changes the global timer request policy and an Atlas scheduled task. A forced high timer resolution can increase power use; any latency benefit depends on the workload.'

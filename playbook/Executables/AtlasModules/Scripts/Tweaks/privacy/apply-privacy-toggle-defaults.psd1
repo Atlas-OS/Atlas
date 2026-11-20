@@ -1,6 +1,6 @@
 @{
     Name        = 'Apply Privacy Toggle Defaults'
-    Description = 'Disables Phone Link, recent-item tracking, and web search through their toggle definitions, recording each applied choice for upgrade and user replay.'
+    Description = 'Turns off Phone Link, recent-item tracking and web search through their toggles, and records each choice so updates and new accounts keep it.'
     Toggle      = @(
         @{ Name = 'PhoneLink'; State = 'Disable' }
         @{ Name = 'RecentItems'; State = 'Disable' }

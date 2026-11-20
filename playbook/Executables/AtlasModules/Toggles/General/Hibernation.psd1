@@ -1,6 +1,6 @@
 @{
     Name        = 'Hibernation'
-    Description = 'Hibernation (powercfg /hibernate) and the Start flyout hibernate option.'
+    Description = 'Turns hibernation on or off with `powercfg /hibernate`, along with the Hibernate option in the Start power menu.'
     Elevation   = 'Admin'
     Script      = 'Hibernation.ps1'
     States      = @(

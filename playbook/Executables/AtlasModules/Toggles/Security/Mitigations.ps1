@@ -1,3 +1,9 @@
+# Companion for the Mitigations toggle: turns off all exploit and process mitigations,
+# restores the Windows defaults or turns them all on. The machine functions run in the silent
+# TrustedInstaller broker when you run a launcher, when the install applies Disable and when
+# an update replays the recorded state. Confirm-AtlasMitigationsEnable runs first, in the
+# administrator window, and confirms Enable after its warning.
+
 function Set-AtlasMitigationMask {
     # Fills both masks with one byte (0x11 turns every mitigation on, 0x22 off),
     # keeping the length Windows already uses (8 bytes when the value is absent).

@@ -2,9 +2,9 @@
     OnUpgrade   = 'Skip'
     OnRebase    = 'Run'
     Name        = 'Delete Windows-version Specific Tweaks'
-    Description = 'Removes AtlasDesktop tweak scripts that do not apply to this machine (currently: Open-Shell Start Menu items on ARM64). Only touches Atlas''s own desktop folder, never Windows files.'
-    # Delete ARM-specific files
-    # FTH files (which are also non-ARM) are deleted in its own tweak (performance\disable-fth)
+    Description = 'Removes the Open-Shell launchers from AtlasDesktop on ARM64, where they don''t apply. It only changes Atlas''s own desktop folder, never Windows files.'
+    # Delete files that don't apply on ARM64.
+    # performance\disable-fth removes the FTH files, which don't apply on ARM64 either.
     Arch        = 'ARM64'
     Script      = 'delete-windows-specific-files.ps1'
 }

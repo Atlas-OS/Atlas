@@ -1,3 +1,9 @@
+# Companion for the Bluetooth toggle: disables or enables every Bluetooth device and removes
+# or restores the Bluetooth Send to entry. The device functions run as Administrator when you
+# run a launcher and when an update replays the recorded state. The Send to functions run in
+# your own unelevated process afterwards, and is replayed for each new account at first
+# sign-in.
+
 function Disable-AtlasBluetoothDevices {
     param($Toggle)
 

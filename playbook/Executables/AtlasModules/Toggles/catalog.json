@@ -9,7 +9,7 @@
       "noStateRecord": false,
       "menu": false,
       "launcher": null,
-      "warning": "Disable removes Microsoft Store for every user on this PC. Enable restores it for your account only and may need an Internet connection.",
+      "warning": "Disable removes Microsoft Store for every user on this PC. Enable restores it for your account only and may need an internet connection.",
       "states": [
         {
           "name": "Disable",
@@ -88,12 +88,12 @@
     {
       "name": "ToggleWindowsUpdates",
       "group": "Advanced",
-      "description": "Windows Update services, scheduled tasks and policies through one menu launcher. Replay resolves the recorded state, so no SilentDefault is needed.",
+      "description": "Turns Windows Update on or off: its services, scheduled tasks, policies and Settings page.",
       "elevation": "TrustedInstaller",
       "noStateRecord": false,
       "menu": true,
       "launcher": "6. Advanced Configuration\\Toggle Windows Updates\\Toggle Windows Updates.cmd",
-      "warning": null,
+      "warning": "Disabling Windows Update also stops Microsoft Store and the Xbox app installing or updating apps and games. Enable usually turns updates back on, but it can fail. To stop updates for a while, use Pause Windows Updates in the General Configuration folder instead.",
       "states": [
         {
           "name": "Disable",
@@ -132,7 +132,7 @@
     {
       "name": "AdvancedBootOptions",
       "group": "Boot",
-      "description": "Always go to the advanced boot options on each boot.",
+      "description": "Shows the advanced boot options menu every time the PC starts.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": true,
@@ -176,7 +176,7 @@
     {
       "name": "AutomaticRepair",
       "group": "Boot",
-      "description": "Windows Automatic Repair at boot (bootstatuspolicy).",
+      "description": "Turns Automatic Repair on or off, which starts Windows recovery after failed starts.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": true,
@@ -220,7 +220,7 @@
     {
       "name": "BootLogo",
       "group": "Boot",
-      "description": "Windows boot logo.",
+      "description": "Shows or hides the Windows logo while the PC starts.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": true,
@@ -264,7 +264,7 @@
     {
       "name": "HighestMode",
       "group": "Boot",
-      "description": "Highest graphical mode for boot applications.",
+      "description": "Makes boot applications use the highest graphics mode the display supports.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": true,
@@ -308,7 +308,7 @@
     {
       "name": "KernelParameters",
       "group": "Boot",
-      "description": "Editing of kernel parameters on startup.",
+      "description": "Lets you edit kernel boot parameters from the boot menu at startup.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": true,
@@ -352,7 +352,7 @@
     {
       "name": "NewBootMenu",
       "group": "Boot",
-      "description": "New (Windows 8+) boot menu versus the legacy Windows 7 boot menu.",
+      "description": "Chooses the graphical boot menu or the legacy text boot menu, which appears before Windows starts loading.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": true,
@@ -396,7 +396,7 @@
     {
       "name": "SpinningAnimations",
       "group": "Boot",
-      "description": "Boot spinning animation.",
+      "description": "Shows or hides the spinning animation while Windows starts.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": true,
@@ -440,7 +440,7 @@
     {
       "name": "ViewCurrentValues",
       "group": "Boot",
-      "description": "Prints the current boot configuration (bcdedit /enum {current}); records no state.",
+      "description": "Shows the current boot configuration from `bcdedit /enum {current}`.",
       "elevation": "Admin",
       "noStateRecord": true,
       "menu": false,
@@ -468,7 +468,7 @@
     {
       "name": "AppStoreArchiving",
       "group": "General",
-      "description": "Microsoft Store automatic app archiving.",
+      "description": "Turns automatic archiving of rarely used Microsoft Store apps on or off.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -510,7 +510,7 @@
     {
       "name": "AutomaticUpdates",
       "group": "General",
-      "description": "Automatic Updates through the WindowsUpdate AU AUOptions policy.",
+      "description": "Turns automatic Windows updates on or off through the AUOptions Windows Update policy.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -552,7 +552,7 @@
     {
       "name": "BackgroundApps",
       "group": "General",
-      "description": "Per-user global background app access.",
+      "description": "Lets Store apps run in the background for your account, or stops them.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -594,7 +594,7 @@
     {
       "name": "ClickToDo",
       "group": "General",
-      "description": "Click To Do through the Windows AI DisableClickToDo policy.",
+      "description": "Turns Click To Do on or off through the DisableClickToDo Windows AI policy.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -636,7 +636,7 @@
     {
       "name": "Copilot",
       "group": "General",
-      "description": "Microsoft Copilot taskbar button, app and policy. Both states refresh Explorer so the taskbar updates. Copilot requires an installed Edge; on 24H2 it is delivered as a Store app installed through the trusted WinGet resolver.",
+      "description": "Turns Microsoft Copilot on or off: its taskbar button, app and policy. Copilot needs Microsoft Edge, and Enable installs the Copilot app from Microsoft Store through WinGet. Both states restart File Explorer so the taskbar updates.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -678,7 +678,7 @@
     {
       "name": "CpuIdle",
       "group": "General",
-      "description": "Processor idle-disable power setting. Disable Idle sets powercfg to 1; Enable Idle sets it to 0. On Hyper-Threading/SMT systems, manual disable requests are rejected and old disable records are skipped during upgrades without changing the power setting.",
+      "description": "Turns processor idle states on or off through the processor idle disable power setting. Disable Idle sets it to 1 and Enable Idle sets it to 0. On processors with Hyper-Threading or SMT, Atlas refuses Disable, and updates skip an earlier Disable record without changing the power setting.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -720,7 +720,7 @@
     {
       "name": "CpuIdleContextMenu",
       "group": "General",
-      "description": "CPU Idle desktop context menu (HKCR DesktopBackground shell entry). The Command values run the CPU Idle launchers interactively, so they can ask for administrator permission, and are stored as REG_SZ with %windir% intentionally left unexpanded.",
+      "description": "Adds or removes the CPU Idle entries in the desktop context menu, which run the CPU Idle launchers.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -762,7 +762,7 @@
     {
       "name": "DeliveryOptimisation",
       "group": "General",
-      "description": "Delivery Optimization through the DODownloadMode policy.",
+      "description": "Turns Delivery Optimization peer-to-peer downloads on or off through the DODownloadMode policy.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -804,7 +804,7 @@
     {
       "name": "FileSharing",
       "group": "General",
-      "description": "File Sharing (network discovery, SMB, NetBIOS bindings) through the same Operations helpers the fresh install uses; Enable optionally adds Network to the Explorer navigation pane.",
+      "description": "Turns file sharing on or off: network discovery, SMB and the NetBIOS bindings. Enable can also add Network to the File Explorer navigation pane.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -846,12 +846,12 @@
     {
       "name": "FSOGameBar",
       "group": "General",
-      "description": "Fullscreen Optimizations (FSO) and Game Bar / Game DVR support. Machine changes run as TrustedInstaller; current-user changes run in the caller's session.",
+      "description": "Turns fullscreen optimisations (FSO), Game Bar and game recording on or off.",
       "elevation": "TrustedInstaller",
       "noStateRecord": false,
       "menu": false,
       "launcher": null,
-      "warning": "Changes the Game Bar and Game DVR services and packages. While disabled, Game Bar shortcuts, game recording and fullscreen optimizations are unavailable.",
+      "warning": "Changes the Game Bar and Game DVR services and packages. While disabled, Game Bar shortcuts, game recording and fullscreen optimisations aren't available.",
       "states": [
         {
           "name": "Disable",
@@ -888,7 +888,7 @@
     {
       "name": "GiveAccessToMenu",
       "group": "General",
-      "description": "Give access to (Sharing) context menu entries.",
+      "description": "Shows or hides the Give access to entries in the context menu.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -930,7 +930,7 @@
     {
       "name": "Hibernation",
       "group": "General",
-      "description": "Hibernation (powercfg /hibernate) and the Start flyout hibernate option.",
+      "description": "Turns hibernation on or off with `powercfg /hibernate`, along with the Hibernate option in the Start power menu.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -972,7 +972,7 @@
     {
       "name": "Indexing",
       "group": "General",
-      "description": "Windows Search Indexing (disabled, minimal or full). Each state delegates the machine work to the installed indexing helper, so manual invocation and upgrade replay use the same TrustedInstaller action.",
+      "description": "Sets Windows Search indexing to off, minimal or full.",
       "elevation": "TrustedInstaller",
       "noStateRecord": false,
       "menu": false,
@@ -1029,7 +1029,7 @@
     {
       "name": "Location",
       "group": "General",
-      "description": "Location services (lfsvc / MapsBroker) and Find My Device. The Enable prompt to unlock Find My Device is interactive-only so silent/upgrade re-apply never hangs; in silent mode Find My Device is preserved.",
+      "description": "Turns location services (lfsvc and MapsBroker) and Find My Device on or off.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -1071,7 +1071,7 @@
     {
       "name": "NetworkNavigationPane",
       "group": "General",
-      "description": "Network item in the File Explorer navigation pane.",
+      "description": "Shows or hides Network in the File Explorer navigation pane.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -1113,12 +1113,12 @@
     {
       "name": "PauseUpdates",
       "group": "General",
-      "description": "Pause Windows Updates through the WindowsUpdate UX and UpdatePolicy pause dates. Enable pauses updates; Disable unpauses them. Enable also records a days value under the AtlasOS\\Services key, which some UI reads.",
+      "description": "Pauses or resumes Windows updates by setting the Windows Update pause dates. Enable pauses updates and Disable resumes them.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
       "launcher": null,
-      "warning": "Changes Windows Update policies. While updates are paused, security and driver updates do not install until you unpause them.",
+      "warning": "Changes Windows Update policies. While updates are paused, security and driver updates don't install until you unpause them.",
       "states": [
         {
           "name": "Enable",
@@ -1155,7 +1155,7 @@
     {
       "name": "PhoneLink",
       "group": "General",
-      "description": "Mobile Devices and Phone Link: the CDPSvc service, cross-device resume and the YourPhone app. The settings page is opened only for an interactive enable.",
+      "description": "Turns Mobile devices and Phone Link on or off: the CDPSvc service, cross-device resume and the Phone Link app. Enable then opens the Mobile devices page in Settings.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -1197,7 +1197,7 @@
     {
       "name": "PowerSaving",
       "group": "General",
-      "description": "Power-saving. Disable applies the documented Atlas AC power policy; Enable restores the prior power plan, or Balanced when none was saved. Both states use the same helper.",
+      "description": "Turns power saving on or off. Disable applies the Atlas power settings for when the PC is plugged in; Enable restores the earlier power plan, or Balanced when none was saved.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -1239,7 +1239,7 @@
     {
       "name": "Recall",
       "group": "General",
-      "description": "Recall and Windows AI data analysis through the DisableAIDataAnalysis policy.",
+      "description": "Turns Recall and Windows AI data analysis on or off through the DisableAIDataAnalysis policy.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -1281,7 +1281,7 @@
     {
       "name": "Sleep",
       "group": "General",
-      "description": "Sleep power-scheme settings, with an optional hibernation follow-up on an interactive disable.",
+      "description": "Turns sleep on or off in the current power plan. Disable also offers to turn off hibernation.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -1323,7 +1323,7 @@
     {
       "name": "SleepStudy",
       "group": "General",
-      "description": "Sleep Study diagnostic event logs and the Power Efficiency Diagnostics scheduled task.",
+      "description": "Turns the Sleep Study diagnostic logs and the Power Efficiency Diagnostics task on or off.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -1365,7 +1365,7 @@
     {
       "name": "SystemRestore",
       "group": "General",
-      "description": "System Restore policy. Enable also turns on protection for the Windows volume; it does not create a restore point or enable other volumes.",
+      "description": "Turns System Restore on or off through its policy. Enable also turns on protection for the Windows drive, but doesn't create a restore point or protect other drives.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -1407,7 +1407,7 @@
     {
       "name": "TimerResolution",
       "group": "General",
-      "description": "Global timer resolution: a scheduled task that forces a high timer resolution.",
+      "description": "Adds or removes an Atlas scheduled task that keeps the global timer resolution high.",
       "elevation": "Admin",
       "noStateRecord": true,
       "menu": false,
@@ -1449,7 +1449,7 @@
     {
       "name": "UpdateDrivers",
       "group": "General",
-      "description": "Run the Update Drivers helper. A plain action launcher that records no state.",
+      "description": "Finds driver updates on Microsoft Update and installs the ones you choose.",
       "elevation": "Admin",
       "noStateRecord": true,
       "menu": false,
@@ -1476,7 +1476,7 @@
     {
       "name": "UpdateNotifications",
       "group": "General",
-      "description": "Windows Update restart notifications.",
+      "description": "Shows or hides Windows Update restart notifications.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -1518,7 +1518,7 @@
     {
       "name": "WebSearch",
       "group": "General",
-      "description": "Web Search and Search Highlights. Explorer and SearchHost are refreshed unless the launcher was called with /noAction. Enable installs the Bing search provider through the trusted WinGet resolver and, with search indexing stopped, offers to enable indexing (a graphical-bug fix).",
+      "description": "Turns web search and search highlights on or off. Enable installs the Bing search provider through WinGet and, when search indexing is off, offers to turn it on.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -1560,7 +1560,7 @@
     {
       "name": "Widgets",
       "group": "General",
-      "description": "Widgets (News and Interests) feeds. The Edge/WebView helper and the ms-settings:taskbar page are gated to interactive mode so upgrade re-apply never blocks.",
+      "description": "Turns Widgets (News and Interests) on or off.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -1602,7 +1602,7 @@
     {
       "name": "WindowsSpotlight",
       "group": "General",
-      "description": "Windows Spotlight: lock screen, tips, suggestions and spotlight content. The HKLM CloudContent policy is machine work; the per-user values are user work.",
+      "description": "Turns Windows Spotlight on or off: lock screen images, tips, suggestions and Spotlight content.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -1644,12 +1644,12 @@
     {
       "name": "Workplace",
       "group": "General",
-      "description": "Workplace (Access work or school) settings page visibility. The page is opened interactively only.",
+      "description": "Shows or hides the Access work or school page in Settings.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
       "launcher": null,
-      "warning": "Hides or shows the Access work or school Settings page. While hidden, this PC cannot be joined to a work or school account from Settings.",
+      "warning": "Hides or shows the Access work or school page in Settings. While it's hidden, you can't join this PC to a work or school account from Settings.",
       "states": [
         {
           "name": "Disable",
@@ -1686,7 +1686,7 @@
     {
       "name": "Animation",
       "group": "Interface",
-      "description": "Visual effects and animations. Disable applies the Atlas minimal set; Enable restores the Windows defaults. Both states offer to sign out after the choice is recorded, so the changes apply.",
+      "description": "Chooses between the Atlas visual effects and the Windows defaults. Disable applies the Atlas set with fewer animations; Enable restores the Windows defaults. Both offer to sign out afterwards, which applies the change.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -1728,7 +1728,7 @@
     {
       "name": "AppIconThumbnail",
       "group": "Interface",
-      "description": "Application icon overlays on File Explorer thumbnails.",
+      "description": "Shows or hides app icons on File Explorer thumbnails.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -1770,7 +1770,7 @@
     {
       "name": "AutomaticFolderDiscovery",
       "group": "Interface",
-      "description": "Automatic folder type discovery in File Explorer.",
+      "description": "Turns automatic folder type discovery in File Explorer on or off.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -1812,7 +1812,7 @@
     {
       "name": "CompactView",
       "group": "Interface",
-      "description": "Compact view (reduced item spacing) in File Explorer.",
+      "description": "Turns compact view, with less space between items, on or off in File Explorer.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -1854,7 +1854,7 @@
     {
       "name": "ContextMenuTerminals",
       "group": "Interface",
-      "description": "The Terminals context menu: removed, full, or without Windows Terminal. Each state is applied from its .reg file under Scripts\\Registry\\Terminals.",
+      "description": "Removes the Terminals context menu, or adds it with or without Windows Terminal.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -1911,7 +1911,7 @@
     {
       "name": "EdgeSwipe",
       "group": "Interface",
-      "description": "Edge Swipe gesture on touch screens.",
+      "description": "Allows or blocks the edge swipe gestures on touch screens.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -1953,7 +1953,7 @@
     {
       "name": "ExtractContextMenu",
       "group": "Interface",
-      "description": "Extract entry in the file context menu, controlled by blocking or unblocking the archive shell extensions.",
+      "description": "Adds or removes Extract in the context menu of archives by unblocking or blocking the archive shell extensions.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -1995,7 +1995,7 @@
     {
       "name": "Gallery",
       "group": "Interface",
-      "description": "Gallery item in the File Explorer navigation pane.",
+      "description": "Shows or hides Gallery in the File Explorer navigation pane.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -2037,7 +2037,7 @@
     {
       "name": "Home",
       "group": "Interface",
-      "description": "Home item in the File Explorer navigation pane and its default launch target.",
+      "description": "Shows or hides Home in the File Explorer navigation pane, and makes File Explorer open to Home or This PC.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -2079,7 +2079,7 @@
     {
       "name": "KeyboardShortcuts",
       "group": "Interface",
-      "description": "Alt+Shift language switching and Ctrl+Shift keyboard-layout switching. Installed layouts, Windows+Space and IME shortcuts are unchanged.",
+      "description": "Turns the Alt+Shift input language and Ctrl+Shift keyboard layout shortcuts on or off. Installed layouts, Windows+Space and IME shortcuts stay as they are.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -2121,7 +2121,7 @@
     {
       "name": "LockScreen",
       "group": "Interface",
-      "description": "Windows lock screen. Enable shows it and verifies the blocking policy values are gone; Disable hides it.",
+      "description": "Shows or hides the Windows lock screen.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -2163,7 +2163,7 @@
     {
       "name": "ModernBatteryFlyout",
       "group": "Interface",
-      "description": "Modern or old (Windows 8-style) battery flyout.",
+      "description": "Chooses the modern battery flyout or the old Windows 8-style one.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -2205,7 +2205,7 @@
     {
       "name": "ModernDateTime",
       "group": "Interface",
-      "description": "Modern or old (Windows 8-style) date and time (tray clock) flyout.",
+      "description": "Chooses the modern date and time flyout on the taskbar clock or the old Windows 8-style one.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -2247,7 +2247,7 @@
     {
       "name": "ModernVolumeFlyout",
       "group": "Interface",
-      "description": "Modern or old (Windows 8-style) volume flyout.",
+      "description": "Chooses the modern volume flyout or the old Windows 8-style one.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -2289,7 +2289,7 @@
     {
       "name": "OldContextMenu",
       "group": "Interface",
-      "description": "Windows 11 file context menu: the old full menu or the new compact menu.",
+      "description": "Chooses the full classic context menu or the compact Windows 11 context menu.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -2331,7 +2331,7 @@
     {
       "name": "QuickAccess",
       "group": "Interface",
-      "description": "Quick Access in File Explorer (HubMode hides it).",
+      "description": "Shows or hides Quick Access in File Explorer.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -2373,7 +2373,7 @@
     {
       "name": "RecentItems",
       "group": "Interface",
-      "description": "Recent Items and app or document usage tracking. Enable removes restrictions so users can configure tracking; it preserves their tracking preferences rather than turning them on. Disable turns tracking off. Both states also hide or unhide the general privacy settings page and refresh Explorer and Settings.",
+      "description": "Locks or unlocks Recent Items and app and document tracking. Disable turns tracking off; Enable removes the restrictions so you can choose in Settings, keeping your own tracking preferences. Both also hide or show the General privacy page in Settings.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -2415,7 +2415,7 @@
     {
       "name": "RemovableDrivesInSidebar",
       "group": "Interface",
-      "description": "Removable drives in the File Explorer navigation pane.",
+      "description": "Shows or hides removable drives as separate entries in the File Explorer navigation pane.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -2457,7 +2457,7 @@
     {
       "name": "RestartExplorer",
       "group": "Interface",
-      "description": "Restarts File Explorer for the signed-in user; /noaction skips the restart. The engine performs and announces the restart through Reboot = RestartExplorer, so the action itself does nothing. Records no state.",
+      "description": "Restarts File Explorer for the signed-in user.",
       "elevation": "None",
       "noStateRecord": true,
       "menu": false,
@@ -2484,7 +2484,7 @@
     {
       "name": "RunWithPriority",
       "group": "Interface",
-      "description": "The Run with priority cascading entry in the .exe context menu.",
+      "description": "Adds or removes the Run with priority submenu in the context menu of programs (.exe files).",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -2526,7 +2526,7 @@
     {
       "name": "SendToContextMenu",
       "group": "Interface",
-      "description": "Hides or shows entries of the Explorer Send To context menu for the current user. Interactive by default; /silent applies the Atlas defaults. Runs in the user's own session and records no state.",
+      "description": "Lets you hide or show entries in the Send to menu for your account. With /silent, it applies the Atlas defaults without asking.",
       "elevation": "None",
       "noStateRecord": true,
       "menu": false,
@@ -2553,7 +2553,7 @@
     {
       "name": "ShortcutIcon",
       "group": "Interface",
-      "description": "Shortcut overlay icon: the default arrow, the classic arrow or none.",
+      "description": "Chooses the shortcut arrow overlay: the Windows default, the classic arrow or none.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -2610,7 +2610,7 @@
     {
       "name": "ShortcutText",
       "group": "Interface",
-      "description": "The \" - Shortcut\" text suffix on newly created shortcuts.",
+      "description": "Turns the \" - Shortcut\" text added to the names of new shortcuts on or off.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -2652,7 +2652,7 @@
     {
       "name": "SnapLayouts",
       "group": "Interface",
-      "description": "Snap Layouts: the Snap Assist flyout and bar.",
+      "description": "Turns Snap Layouts, the Snap Assist flyout and bar, on or off.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -2694,7 +2694,7 @@
     {
       "name": "TakeOwnership",
       "group": "Interface",
-      "description": "The Take Ownership context menu entries. Each state is applied from its .reg file under Scripts\\Registry\\TakeOwnership.",
+      "description": "Adds or removes Take Ownership in the context menu.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -2736,7 +2736,7 @@
     {
       "name": "VerboseMessages",
       "group": "Interface",
-      "description": "Verbose (detailed) startup and shutdown status messages.",
+      "description": "Turns detailed status messages at startup and shutdown on or off.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -2778,7 +2778,7 @@
     {
       "name": "ConfigVBS",
       "group": "Security",
-      "description": "Shows the current Virtualization-Based Security configuration once; records no state.",
+      "description": "Shows the current Virtualisation-Based Security configuration.",
       "elevation": "None",
       "noStateRecord": true,
       "menu": false,
@@ -2806,7 +2806,7 @@
     {
       "name": "FaultTolerantHeap",
       "group": "Security",
-      "description": "Fault Tolerant Heap (FTH) mitigation.",
+      "description": "Turns Fault Tolerant Heap (FTH) on or off, which applies mitigations to programs that crash repeatedly.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -2848,7 +2848,7 @@
     {
       "name": "HideAppBrowserControl",
       "group": "Security",
-      "description": "Visibility of the App and Browser Control page in Windows Security. Disable hides the page; Enable shows it.",
+      "description": "Shows or hides the App & browser control page in Windows Security. Disable hides the page; Enable shows it.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -2890,7 +2890,7 @@
     {
       "name": "Mitigations",
       "group": "Security",
-      "description": "Exploit and process mitigations: speculative-execution overrides, SEHOP, CFG, DEP (nx) and the kernel mitigation masks.",
+      "description": "Turns off all exploit and process mitigations, restores the Windows defaults, or turns them all on: speculative execution overrides, SEHOP, CFG, DEP and the kernel mitigation masks.",
       "elevation": "TrustedInstaller",
       "noStateRecord": false,
       "menu": false,
@@ -2947,7 +2947,7 @@
     {
       "name": "SecurityHealthTray",
       "group": "Security",
-      "description": "Windows Security (Defender) tray icon startup entry, applied from the included .reg files.",
+      "description": "Adds or removes the Windows Security notification icon from startup.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -2989,7 +2989,7 @@
     {
       "name": "ToggleDefender",
       "group": "Security",
-      "description": "Installs or uninstalls Windows Defender through the NoDefender CBS package helper. The menu runs in the administrator window and its choice crosses the silent TrustedInstaller broker as a fixed internal state; records no state.",
+      "description": "Removes or restores Windows Defender through the Atlas NoDefender package.",
       "elevation": "TrustedInstaller",
       "noStateRecord": true,
       "menu": false,
@@ -3017,7 +3017,7 @@
     {
       "name": "VbsState",
       "group": "Security",
-      "description": "Documented Virtualization-Based Security and memory-integrity configuration.",
+      "description": "Turns Virtualisation-Based Security and Memory Integrity on or off through Microsoft's documented settings.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -3059,7 +3059,7 @@
     {
       "name": "Bluetooth",
       "group": "Services",
-      "description": "Bluetooth drivers, services, devices, the Send To entry and the connectivity policy.",
+      "description": "Turns Bluetooth on or off: its drivers, services and devices, the Send to entry and the connectivity policy.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -3101,12 +3101,12 @@
     {
       "name": "LanmanWorkstation",
       "group": "Services",
-      "description": "Lanman Workstation and SMB services plus the SmbDirect feature.",
+      "description": "Turns the Lanman Workstation and SMB client services and the SMB Direct feature on or off.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
       "launcher": null,
-      "warning": "Changes the SMB client services. While disabled, this PC cannot open network shares, mapped drives or network printers.",
+      "warning": "Changes the SMB client services. While disabled, this PC can't open network shares, mapped drives or network printers.",
       "states": [
         {
           "name": "Disable",
@@ -3143,12 +3143,12 @@
     {
       "name": "NetworkDiscovery",
       "group": "Services",
-      "description": "Network Discovery services. Enable first enables SMB; network profiles and firewall discovery rules remain separate choices in Advanced sharing settings. Explorer visibility is controlled by Network Navigation Pane.",
+      "description": "Turns the network discovery services on or off. Enable turns on SMB first. Network profiles and the firewall discovery rules stay separate choices in Advanced sharing settings, and the Network Navigation Pane toggle controls whether File Explorer shows Network.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
       "launcher": null,
-      "warning": "Changes the network discovery services. While disabled, this PC cannot find or be found by other devices on the network.",
+      "warning": "Changes the network discovery services. While disabled, this PC can't find or be found by other devices on the network.",
       "states": [
         {
           "name": "Disable",
@@ -3185,7 +3185,7 @@
     {
       "name": "NVidiaDisplayContainer",
       "group": "Services",
-      "description": "NVIDIA Display Container LS service. Both states apply only while the service is installed, so a recorded state is dropped on upgrade once the driver is gone.",
+      "description": "Turns the NVIDIA Display Container LS service on or off. Both states apply only while the service is installed, so an update drops the recorded state once the driver is gone.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -3229,7 +3229,7 @@
     {
       "name": "NVidiaDisplayContainerContextMenu",
       "group": "Services",
-      "description": "Desktop context menu that enables or disables the NVIDIA Display Container LS service.",
+      "description": "Adds or removes a desktop context menu that turns the NVIDIA Display Container LS service on or off.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
@@ -3271,12 +3271,12 @@
     {
       "name": "Printing",
       "group": "Services",
-      "description": "Printing services, Windows features and the Print context menu entries. The context menu part can be run alone with /justcontext.",
+      "description": "Turns printing on or off: its services, Windows features and the Print context menu entries. Run the launcher with /justcontext to change only the context menu.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
       "launcher": null,
-      "warning": "Changes the printing services and Windows printing features. While disabled, printers, Print to PDF, XPS and the Print Management console do not work.",
+      "warning": "Changes the printing services and Windows printing features. While disabled, printers, Print to PDF, XPS and the Print Management console don't work.",
       "states": [
         {
           "name": "Disable",
@@ -3313,12 +3313,12 @@
     {
       "name": "SuperFetch",
       "group": "Services",
-      "description": "SuperFetch (SysMain) and ReadyBoost.",
+      "description": "Turns SuperFetch (SysMain) and ReadyBoost on or off.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,
       "launcher": null,
-      "warning": "Changes the SysMain and ReadyBoost services. While disabled, Windows no longer preloads frequently used apps, and ReadyBoost is unavailable.",
+      "warning": "Changes the SysMain and ReadyBoost services. While disabled, Windows doesn't preload frequently used apps, and ReadyBoost isn't available.",
       "states": [
         {
           "name": "Disable",
@@ -3356,7 +3356,7 @@
     {
       "name": "InstallSoftware",
       "group": "Software",
-      "description": "Opens the Atlas software picker. Records no state.",
+      "description": "Opens the Atlas software picker.",
       "elevation": "None",
       "noStateRecord": true,
       "menu": false,
@@ -3383,7 +3383,7 @@
     {
       "name": "RemoveEdge",
       "group": "Software",
-      "description": "Install or remove Microsoft Edge through its interactive helper, hosted in the administrator window the engine opens. Records no state.",
+      "description": "Installs or removes Microsoft Edge through an interactive helper in an administrator window.",
       "elevation": "Admin",
       "noStateRecord": true,
       "menu": false,
@@ -3410,7 +3410,7 @@
     {
       "name": "RemovePythonStorePrompt",
       "group": "Software",
-      "description": "Opens Advanced app settings for selecting App execution aliases and disabling only the App Installer Python Store prompts, preserving installed Python distributions. Requires user selection and records no state.",
+      "description": "Opens App execution aliases in Settings so you can turn off the App Installer prompts that offer Python from Microsoft Store. Installed Python versions stay as they are.",
       "elevation": "None",
       "noStateRecord": true,
       "menu": false,
@@ -3437,7 +3437,7 @@
     {
       "name": "AtlasHealth",
       "group": "Troubleshooting",
-      "description": "Reports what Atlas installed and which recorded toggle states or install tweaks have since drifted. Changes nothing and records no state.",
+      "description": "Reports what Atlas installed and which recorded toggle states or install tweaks have changed since. It changes nothing.",
       "elevation": "Admin",
       "noStateRecord": true,
       "menu": false,
@@ -3464,7 +3464,7 @@
     {
       "name": "DefaultAtlasNetwork",
       "group": "Troubleshooting",
-      "description": "Network adapter reset. Enable applies Atlas defaults; Disable restores Windows defaults. Both states share the Atlas.Network Set-AtlasNetworkDefaults implementation.",
+      "description": "Resets the network adapter settings: Enable applies the Atlas defaults and Disable restores the Windows defaults.",
       "elevation": "Admin",
       "noStateRecord": true,
       "menu": false,
@@ -3508,7 +3508,7 @@
     {
       "name": "FixErrors2502and2503",
       "group": "Troubleshooting",
-      "description": "Fixes installer errors 2502 and 2503 by resetting the Windows TEMP folder permissions. Records no state.",
+      "description": "Fixes installer errors 2502 and 2503 by resetting the permissions of the Windows TEMP folder.",
       "elevation": "TrustedInstaller",
       "noStateRecord": true,
       "menu": false,
@@ -3536,7 +3536,7 @@
     {
       "name": "FixExplorerRuntimeError",
       "group": "Troubleshooting",
-      "description": "Fixes blank Microsoft Visual C++ Runtime Library errors from File Explorer by removing the search redirect that older Atlas builds left. Records no state.",
+      "description": "Fixes blank Microsoft Visual C++ Runtime Library errors in File Explorer by removing the search redirect that older Atlas releases left.",
       "elevation": "Admin",
       "noStateRecord": true,
       "menu": false,
@@ -3563,7 +3563,7 @@
     {
       "name": "FixMSStoreIssues",
       "group": "Troubleshooting",
-      "description": "Fixes Microsoft Store issues by running StoreFixer. Records no state.",
+      "description": "Fixes common Microsoft Store problems by running StoreFixer.",
       "elevation": "TrustedInstaller",
       "noStateRecord": true,
       "menu": false,
@@ -3590,12 +3590,12 @@
     {
       "name": "RepairWindowsComponents",
       "group": "Troubleshooting",
-      "description": "Repairs Windows components and system files with DISM RestoreHealth and SFC. Records no state.",
+      "description": "Repairs Windows components and system files with DISM RestoreHealth and SFC.",
       "elevation": "Admin",
       "noStateRecord": true,
       "menu": false,
       "launcher": null,
-      "warning": "Repairs corrupt Windows components and system files with DISM and SFC. It can take a long time and needs an Internet connection for missing files. Atlas settings are not reverted.",
+      "warning": "Repairs corrupt Windows components and system files with DISM and SFC. It can take a long time and needs an internet connection for missing files. Atlas settings stay as they are.",
       "states": [
         {
           "name": "Run",
@@ -3618,7 +3618,7 @@
     {
       "name": "SafeMode",
       "group": "Troubleshooting",
-      "description": "Safe Mode boot configuration. Safe mode is a transient troubleshooting state, so it is never recorded: an upgrade replay must never boot the machine back into safe mode from a stale record.",
+      "description": "Sets Windows to start in safe mode, with networking or with the command prompt, or to start normally again.",
       "elevation": "Admin",
       "noStateRecord": true,
       "menu": false,
@@ -3690,7 +3690,7 @@
     {
       "name": "TelemetryComponents",
       "group": "Troubleshooting",
-      "description": "Adds or removes the Atlas NoTelemetry CBS package. The menu runs in the administrator window and its choice crosses the silent TrustedInstaller broker as a fixed internal state; records no state.",
+      "description": "Adds or removes the Atlas NoTelemetry package, which removes Windows telemetry components.",
       "elevation": "TrustedInstaller",
       "noStateRecord": true,
       "menu": false,

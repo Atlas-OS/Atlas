@@ -1,7 +1,7 @@
 @{
     Name        = 'Configure Boot Configuration'
-    Description = 'Configures the boot configuration (BCD) for QoL'
-    # https://learn.microsoft.com/en-us/windows-hardware/drivers/devtest/bcdedit--set
+    Description = 'Uses the legacy boot menu, which appears before Windows starts loading, and sets its timeout to 10 seconds.'
+    # https://learn.microsoft.com/windows-hardware/drivers/devtest/bcdedit--set
     Run         = @(
         @{ Exe = '{windir}\System32\bcdedit.exe'; Args = @('/timeout', '10') }
         # Faster as it doesn't boot into an OS

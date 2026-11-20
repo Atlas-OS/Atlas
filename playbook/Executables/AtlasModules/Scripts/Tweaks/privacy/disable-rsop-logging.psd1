@@ -1,6 +1,6 @@
 @{
     Name        = 'Disable Resultant Set of Policy (RSoP) Logging'
-    Description = 'Disables logging of Group Policy settings (RSoP) for privacy'
+    Description = 'Turns off Resultant Set of Policy logging, which records the Group Policy settings applied to the PC and its users.'
     Registry    = @(
         @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\System'; Name = 'RSoPLogging'; Type = 'DWord'; Data = 0 }
     )

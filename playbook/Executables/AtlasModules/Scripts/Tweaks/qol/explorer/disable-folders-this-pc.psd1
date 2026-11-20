@@ -1,8 +1,7 @@
 @{
     Name        = 'Hide Folders from This PC'
-    Description = 'Hides folders from ''This PC'' as they are also in Quick Access to reduce clutter and QoL'
-    # NOTE: intentionally not enabled (no reason recorded).
-    # Keep it commented out in the tweak manifest.
+    Description = 'Hides the user folders, such as Documents and Pictures, from This PC; they stay in Quick Access.'
+    # Listed under Disabled in tweaks.manifest.psd1, which records why.
     Registry    = @(
         @{ Path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions\{31C0DD25-9439-4F12-BF41-7FF4EDA38722}\PropertyBag'; Name = 'ThisPCPolicy'; Type = 'String'; Data = 'Hide' }
         @{ Path = 'HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions\{31C0DD25-9439-4F12-BF41-7FF4EDA38722}\PropertyBag'; Name = 'ThisPCPolicy'; Type = 'String'; Data = 'Hide' }

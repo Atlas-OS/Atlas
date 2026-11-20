@@ -1,8 +1,9 @@
 @{
     Name        = 'Workplace'
-    Description = 'Workplace (Access work or school) settings page visibility. The page is opened interactively only.'
+    # Only an interactive Enable opens the Settings page.
+    Description = 'Shows or hides the Access work or school page in Settings.'
     Elevation   = 'Admin'
-    Warning     = 'Hides or shows the Access work or school Settings page. While hidden, this PC cannot be joined to a work or school account from Settings.'
+    Warning     = 'Hides or shows the Access work or school page in Settings. While it''s hidden, you can''t join this PC to a work or school account from Settings.'
     Script      = 'Workplace.ps1'
     States      = @(
         @{

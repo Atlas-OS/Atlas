@@ -1,6 +1,7 @@
 @{
     Name        = 'FileSharing'
-    Description = 'File Sharing (network discovery, SMB, NetBIOS bindings) through the same Operations helpers the fresh install uses; Enable optionally adds Network to the Explorer navigation pane.'
+    # Both states use the same Atlas.Network helpers as the fresh install.
+    Description = 'Turns file sharing on or off: network discovery, SMB and the NetBIOS bindings. Enable can also add Network to the File Explorer navigation pane.'
     Elevation   = 'Admin'
     Script      = 'FileSharing.ps1'
     States      = @(

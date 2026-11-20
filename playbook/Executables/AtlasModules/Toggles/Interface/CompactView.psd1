@@ -1,6 +1,6 @@
 @{
     Name        = 'CompactView'
-    Description = 'Compact view (reduced item spacing) in File Explorer.'
+    Description = 'Turns compact view, with less space between items, on or off in File Explorer.'
     Elevation   = 'Admin'
     States      = @(
         @{

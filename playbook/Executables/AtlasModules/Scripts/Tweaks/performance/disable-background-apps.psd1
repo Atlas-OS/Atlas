@@ -1,10 +1,10 @@
 @{
     Name        = 'Disable Background Apps'
-    Description = 'Disables background apps so there''s minimal resources used in the background. Trade-off: Store-app background tasks stop (e.g. Mail/Calendar notifications, Phone Link); Windows 11 has no global Settings toggle for this, so re-enabling is per app.'
+    Description = 'Turns off background activity for Store apps, which saves memory and CPU time. Their background tasks stop too, such as Mail and Calendar notifications and Phone Link. Windows 11 Settings only allows apps again one at a time; the Background Apps launcher turns them all back on.'
     Registry    = @(
         # Deliberately the per-user preference, NOT the LetAppsRunInBackground=2 policy:
         # the policy force-deny removes the per-app override UI entirely and Microsoft
-        # warns it causes missed notifications/alarms. Do not "upgrade" this to the policy.
+        # warns it causes missed notifications and alarms. Keep the preference, not the policy.
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications'; Name = 'GlobalUserDisabled'; Type = 'DWord'; Data = 1 }
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'; Name = 'BackgroundAppGlobalToggle'; Type = 'DWord'; Data = 0; AllowOsProtected = $true }
     )

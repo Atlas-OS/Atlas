@@ -1,6 +1,6 @@
 @{
     Name        = 'Disable WU Nagging'
-    Description = 'Disables Windows Update from nagging you in any way possible, e.g. about restarting your computer.'
+    Description = 'Hides the Windows Update link that offers the Media Creation Tool for a newer Windows release.'
     Registry    = @(
         # Possibly unused on current Windows. Microsoft does not document this value.
         # Community source: https://www.thewindowsclub.com/disable-windows-creators-update-notice-windows-update

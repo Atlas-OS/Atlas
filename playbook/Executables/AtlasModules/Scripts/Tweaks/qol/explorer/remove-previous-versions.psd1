@@ -1,6 +1,6 @@
 @{
     Name        = 'Remove Previous Versions from Explorer'
-    Description = 'Removes previous versions from context menu and file''s properties, for QoL'
+    Description = 'Removes Previous Versions from the context menu and from file properties.'
     Registry    = @(
         @{ Path = 'HKCR\AllFilesystemObjects\shellex\PropertySheetHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}'; Operation = 'DeleteKey' }
         @{ Path = 'HKCR\CLSID\{450D8FBA-AD25-11D0-98A8-0800361B1103}\shellex\PropertySheetHandlers\{596AB062-B4D2-4215-9F74-E9109B0A8153}'; Operation = 'DeleteKey' }

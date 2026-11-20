@@ -1,3 +1,9 @@
+# Companion for the NVidiaDisplayContainer toggle: stops and disables the NVIDIA Display
+# Container LS service, or turns it back on. Set-AtlasNVidiaDisplayContainerState runs as
+# Administrator when you run a launcher and when an update replays the recorded state.
+# Test-AtlasNVidiaDisplayContainerInstalled decides during update replay whether the service
+# is still installed.
+
 function Test-AtlasNVidiaDisplayContainerInstalled {
     param($Toggle)
 

@@ -1,3 +1,9 @@
+# Companion for the RecentItems toggle: hides or shows the General privacy page in Settings
+# and explains the change. Set-AtlasRecentItemsSettingsPage runs as Administrator when you run
+# a launcher, when the install applies Disable and when an update replays the recorded state.
+# Show-AtlasRecentItemsMessage runs in your own unelevated process afterwards, and is replayed
+# for each new account at first sign-in.
+
 function Set-AtlasRecentItemsSettingsPage {
     param($Toggle)
 

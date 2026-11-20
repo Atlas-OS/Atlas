@@ -1,6 +1,6 @@
 @{
     Name        = 'OldContextMenu'
-    Description = 'Windows 11 file context menu: the old full menu or the new compact menu.'
+    Description = 'Chooses the full classic context menu or the compact Windows 11 context menu.'
     Elevation   = 'Admin'
     States      = @(
         @{

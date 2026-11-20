@@ -1,6 +1,6 @@
 @{
     Name          = 'RemoveEdge'
-    Description   = 'Install or remove Microsoft Edge through its interactive helper, hosted in the administrator window the engine opens. Records no state.'
+    Description   = 'Installs or removes Microsoft Edge through an interactive helper in an administrator window.'
     Elevation     = 'Admin'
     NoStateRecord = $true
     Script        = 'RemoveEdge.ps1'

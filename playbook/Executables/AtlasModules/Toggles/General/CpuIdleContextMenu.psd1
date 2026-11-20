@@ -1,6 +1,8 @@
 @{
     Name        = 'CpuIdleContextMenu'
-    Description = 'CPU Idle desktop context menu (HKCR DesktopBackground shell entry). The Command values run the CPU Idle launchers interactively, so they can ask for administrator permission, and are stored as REG_SZ with %windir% intentionally left unexpanded.'
+    # The Command values run the CPU Idle launchers interactively, so they can ask for administrator
+    # permission. They're REG_SZ values with %windir% left unexpanded on purpose.
+    Description = 'Adds or removes the CPU Idle entries in the desktop context menu, which run the CPU Idle launchers.'
     Elevation   = 'Admin'
     States      = @(
         @{

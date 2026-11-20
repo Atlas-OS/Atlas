@@ -1,9 +1,8 @@
 @{
     Name        = 'Disable Settings Sync'
-    Description = 'Disables the ''Windows Backup'' settings synchronization for QoL and privacy'
+    Description = 'Turns off settings sync in Windows Backup, so your theme, passwords, accessibility and other Windows settings aren''t uploaded to your Microsoft account.'
     Registry    = @(
-        # Policies don't disable the toggles in the UI, doesn't seem like much can be done about it
-        # Whole Settings page is hidden anyways
+        # The policies don't grey out the switches in Settings, so Atlas hides that page instead.
         @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\SettingSync'; Name = 'DisableSettingSync'; Type = 'DWord'; Data = 2 }
         @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\SettingSync'; Name = 'DisableSettingSyncUserOverride'; Type = 'DWord'; Data = 1 }
         @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\SettingSync'; Name = 'DisableSyncOnPaidNetwork'; Type = 'DWord'; Data = 1 }

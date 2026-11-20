@@ -1,6 +1,6 @@
 @{
     Name        = 'Sleep'
-    Description = 'Sleep power-scheme settings, with an optional hibernation follow-up on an interactive disable.'
+    Description = 'Turns sleep on or off in the current power plan. Disable also offers to turn off hibernation.'
     Elevation   = 'Admin'
     Script      = 'Sleep.ps1'
     States      = @(

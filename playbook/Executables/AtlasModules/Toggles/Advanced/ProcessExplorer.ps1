@@ -1,3 +1,9 @@
+# Companion for the ProcessExplorer toggle: installs Sysinternals Process Explorer in place of
+# Task Manager, or uninstalls it. The install and uninstall functions run as Administrator
+# when you run a launcher and when an update replays the recorded state.
+# Set-AtlasProcessExplorerUserPreference runs in your own unelevated process after Enable, and
+# is replayed for each new account at first sign-in.
+
 function Get-AtlasProcessExplorerHelperPath {
     # ProcessExplorer-Package.ps1 is a function library; each action dot-sources it
     # into its own scope before calling the package operations.

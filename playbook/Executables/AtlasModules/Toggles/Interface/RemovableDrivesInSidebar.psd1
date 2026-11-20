@@ -1,6 +1,6 @@
 @{
     Name        = 'RemovableDrivesInSidebar'
-    Description = 'Removable drives in the File Explorer navigation pane.'
+    Description = 'Shows or hides removable drives as separate entries in the File Explorer navigation pane.'
     Elevation   = 'Admin'
     States      = @(
         @{

@@ -1,6 +1,6 @@
 @{
     Name        = 'Bluetooth'
-    Description = 'Bluetooth drivers, services, devices, the Send To entry and the connectivity policy.'
+    Description = 'Turns Bluetooth on or off: its drivers, services and devices, the Send to entry and the connectivity policy.'
     Elevation   = 'Admin'
     Warning     = 'Changes the Bluetooth services and drivers and disables or enables every Bluetooth device. While disabled, Bluetooth devices stop working.'
     Script      = 'Bluetooth.ps1'

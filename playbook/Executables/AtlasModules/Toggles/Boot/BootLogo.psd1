@@ -1,6 +1,6 @@
 @{
     Name          = 'BootLogo'
-    Description   = 'Windows boot logo.'
+    Description   = 'Shows or hides the Windows logo while the PC starts.'
     Elevation     = 'Admin'
     Menu          = $true
     Launcher      = '6. Advanced Configuration\Boot Configuration\Appearance\Boot Logo.cmd'

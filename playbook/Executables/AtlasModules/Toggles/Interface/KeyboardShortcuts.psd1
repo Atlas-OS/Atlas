@@ -1,6 +1,6 @@
 @{
     Name        = 'KeyboardShortcuts'
-    Description = 'Alt+Shift language switching and Ctrl+Shift keyboard-layout switching. Installed layouts, Windows+Space and IME shortcuts are unchanged.'
+    Description = 'Turns the Alt+Shift input language and Ctrl+Shift keyboard layout shortcuts on or off. Installed layouts, Windows+Space and IME shortcuts stay as they are.'
     Elevation   = 'Admin'
     States      = @(
         @{

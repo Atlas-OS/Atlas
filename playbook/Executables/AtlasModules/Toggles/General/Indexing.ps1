@@ -1,3 +1,10 @@
+# Companion for the Indexing toggle: sets Windows Search indexing to off, minimal or full
+# through the installed indexing helper. Its machine functions run in the silent
+# TrustedInstaller broker when you run a launcher, when the install applies the toggle and
+# when an update replays the recorded state. Select-AtlasFullIndexingState runs first, in the
+# administrator window, and picks the internal state that carries your power mode choice to
+# the broker.
+
 function Disable-AtlasSearchIndexing {
     param($Toggle)
 

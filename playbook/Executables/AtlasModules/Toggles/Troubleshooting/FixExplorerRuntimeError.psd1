@@ -1,6 +1,6 @@
 @{
     Name          = 'FixExplorerRuntimeError'
-    Description   = 'Fixes blank Microsoft Visual C++ Runtime Library errors from File Explorer by removing the search redirect that older Atlas builds left. Records no state.'
+    Description   = 'Fixes blank Microsoft Visual C++ Runtime Library errors in File Explorer by removing the search redirect that older Atlas releases left.'
     Elevation     = 'Admin'
     NoStateRecord = $true
     States        = @(

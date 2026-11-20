@@ -1,6 +1,6 @@
 @{
     Name        = 'Open File Explorer to This PC'
-    Description = 'Configures File Explorer to open to This PC instead of Quick Access for QoL'
+    Description = 'Opens File Explorer to This PC instead of Quick Access.'
     Registry    = @(
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Name = 'LaunchTo'; Type = 'DWord'; Data = 1 }
     )

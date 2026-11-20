@@ -1,3 +1,7 @@
+# Companion for the Hibernation toggle: turns hibernation on or off with powercfg.
+# Set-AtlasHibernationPowerState runs as Administrator when you run a launcher, when the
+# install applies your hibernation choice and when an update replays the recorded state.
+
 function Set-AtlasHibernationPowerState {
     param($Toggle)
 

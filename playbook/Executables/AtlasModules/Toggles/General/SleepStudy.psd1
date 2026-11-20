@@ -1,6 +1,6 @@
 @{
     Name        = 'SleepStudy'
-    Description = 'Sleep Study diagnostic event logs and the Power Efficiency Diagnostics scheduled task.'
+    Description = 'Turns the Sleep Study diagnostic logs and the Power Efficiency Diagnostics task on or off.'
     Elevation   = 'Admin'
     Script      = 'SleepStudy.ps1'
     States      = @(

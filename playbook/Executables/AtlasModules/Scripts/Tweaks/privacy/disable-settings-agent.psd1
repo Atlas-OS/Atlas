@@ -1,9 +1,9 @@
 @{
     Name        = 'Disable Settings AI Agent'
-    Description = 'Disables the 25H2 AI agent in Settings (on-device model behind natural-language Settings search on Copilot+ PCs)'
+    Description = 'Turns off the AI agent in Settings, the on-device model behind natural-language search in Settings on Copilot+ PCs.'
     Registry    = @(
-        # Currently documented for Enterprise/Education; inert elsewhere but pre-staged.
-        # https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-windowsai#disablesettingsagent
+        # Documented for Enterprise and Education; set on every edition so it applies wherever Windows reads it.
+        # https://learn.microsoft.com/windows/client-management/mdm/policy-csp-windowsai#disablesettingsagent
         @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI'; Name = 'DisableSettingsAgent'; Type = 'DWord'; Data = 1 }
     )
 }

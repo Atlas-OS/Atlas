@@ -1,6 +1,8 @@
 @{
     Name          = 'TelemetryComponents'
-    Description   = 'Adds or removes the Atlas NoTelemetry CBS package. The menu runs in the administrator window and its choice crosses the silent TrustedInstaller broker as a fixed internal state; records no state.'
+    # The menu runs in the administrator window, and its choice reaches the silent TrustedInstaller
+    # broker as a fixed internal state.
+    Description   = 'Adds or removes the Atlas NoTelemetry package, which removes Windows telemetry components.'
     Elevation     = 'TrustedInstaller'
     NoStateRecord = $true
     Script        = 'TelemetryComponents.ps1'

@@ -1,3 +1,8 @@
+# Companion for the FixErrors2502and2503 toggle: resets the permissions of the Windows TEMP
+# folder. Show-AtlasWindowsTempRepairNote runs first, in the administrator window, to explain
+# the repair; Invoke-AtlasWindowsTempPermissionsRepair then runs in the silent
+# TrustedInstaller broker. Nothing is recorded.
+
 function Show-AtlasWindowsTempRepairNote {
     param($Toggle)
 

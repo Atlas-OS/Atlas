@@ -1,6 +1,7 @@
 @{
     Name          = 'AutomaticRepair'
-    Description   = 'Windows Automatic Repair at boot (bootstatuspolicy).'
+    # Automatic Repair is the bootstatuspolicy boot setting.
+    Description   = 'Turns Automatic Repair on or off, which starts Windows recovery after failed starts.'
     Elevation     = 'Admin'
     Menu          = $true
     Launcher      = '6. Advanced Configuration\Boot Configuration\Behavior\Automatic Repair.cmd'

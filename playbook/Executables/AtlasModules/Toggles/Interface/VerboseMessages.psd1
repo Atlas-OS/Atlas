@@ -1,6 +1,6 @@
 @{
     Name        = 'VerboseMessages'
-    Description = 'Verbose (detailed) startup and shutdown status messages.'
+    Description = 'Turns detailed status messages at startup and shutdown on or off.'
     Elevation   = 'Admin'
     States      = @(
         @{

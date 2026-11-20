@@ -1,3 +1,8 @@
+# Companion for the ToggleWindowsUpdates toggle: stops and disables the Windows Update
+# services and tasks and sets the policies that block updates, or lifts them all. Its
+# functions run in the silent TrustedInstaller broker when you choose a state from the menu
+# and when an update replays the recorded state.
+
 function Get-AtlasWindowsUpdateTaskPaths {
     return @(
         'Microsoft\Windows\WindowsUpdate\sih'

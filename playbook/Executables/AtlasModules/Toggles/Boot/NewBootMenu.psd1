@@ -1,6 +1,6 @@
 @{
     Name          = 'NewBootMenu'
-    Description   = 'New (Windows 8+) boot menu versus the legacy Windows 7 boot menu.'
+    Description   = 'Chooses the graphical boot menu or the legacy text boot menu, which appears before Windows starts loading.'
     Elevation     = 'Admin'
     Menu          = $true
     Launcher      = '6. Advanced Configuration\Boot Configuration\Appearance\New Boot Menu.cmd'

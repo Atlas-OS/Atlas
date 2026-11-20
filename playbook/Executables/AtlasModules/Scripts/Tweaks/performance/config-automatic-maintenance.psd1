@@ -1,6 +1,6 @@
 @{
     Name        = 'Configure Automatic Maintenance'
-    Description = 'Prevents Automatic Maintenance from waking the computer. Maintenance itself deliberately stays enabled - it drives auto-defrag/TRIM and more.'
+    Description = 'Stops Automatic Maintenance waking the PC. Maintenance itself stays on, because it runs drive optimisation (defragmentation and TRIM) and other upkeep.'
     Registry    = @(
         # Group Policy: Windows Components > Maintenance Scheduler >
         # Automatic Maintenance WakeUp Policy (msched.admx), set to Disabled.

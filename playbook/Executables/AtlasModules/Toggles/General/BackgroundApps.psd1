@@ -1,6 +1,6 @@
 @{
     Name        = 'BackgroundApps'
-    Description = 'Per-user global background app access.'
+    Description = 'Lets Store apps run in the background for your account, or stops them.'
     Elevation   = 'Admin'
     States      = @(
         @{

@@ -1,3 +1,7 @@
+# Companion for the ContextMenuTerminals toggle: imports the .reg file for the chosen
+# Terminals context menu. Import-AtlasTerminalsContextMenu runs as Administrator when you run
+# a launcher and when an update replays the recorded state.
+
 function Import-AtlasTerminalsContextMenu {
     param($Toggle)
 

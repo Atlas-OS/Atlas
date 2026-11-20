@@ -1,6 +1,6 @@
 @{
     Name          = 'Disable News and Interests'
-    Description   = 'Disables News and Interests on the taskbar for privacy (lots of third party connections) and QoL'
+    Description   = 'Turns off Widgets (News and Interests) and its third-party content through the Widgets toggle.'
     # The Widgets toggle owns the machine policy for this setting. Applying its Disable
     # state here records it too, so the install and the AtlasDesktop launcher share one
     # implementation and the recorded state matches the machine.

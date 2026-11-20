@@ -1,6 +1,6 @@
 @{
     Name        = 'FaultTolerantHeap'
-    Description = 'Fault Tolerant Heap (FTH) mitigation.'
+    Description = 'Turns Fault Tolerant Heap (FTH) on or off, which applies mitigations to programs that crash repeatedly.'
     Elevation   = 'Admin'
     States      = @(
         @{

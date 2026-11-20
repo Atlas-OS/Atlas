@@ -1,6 +1,8 @@
 @{
     Name          = 'ToggleDefender'
-    Description   = 'Installs or uninstalls Windows Defender through the NoDefender CBS package helper. The menu runs in the administrator window and its choice crosses the silent TrustedInstaller broker as a fixed internal state; records no state.'
+    # The menu runs in the administrator window, and its choice reaches the silent TrustedInstaller
+    # broker as a fixed internal state.
+    Description   = 'Removes or restores Windows Defender through the Atlas NoDefender package.'
     Elevation     = 'TrustedInstaller'
     NoStateRecord = $true
     Script        = 'ToggleDefender.ps1'

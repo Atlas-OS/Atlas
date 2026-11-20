@@ -1,8 +1,8 @@
 @{
     Name        = 'NetworkDiscovery'
-    Description = 'Network Discovery services. Enable first enables SMB; network profiles and firewall discovery rules remain separate choices in Advanced sharing settings. Explorer visibility is controlled by Network Navigation Pane.'
+    Description = 'Turns the network discovery services on or off. Enable turns on SMB first. Network profiles and the firewall discovery rules stay separate choices in Advanced sharing settings, and the Network Navigation Pane toggle controls whether File Explorer shows Network.'
     Elevation   = 'Admin'
-    Warning     = 'Changes the network discovery services. While disabled, this PC cannot find or be found by other devices on the network.'
+    Warning     = 'Changes the network discovery services. While disabled, this PC can''t find or be found by other devices on the network.'
     Script      = 'NetworkDiscovery.ps1'
     States      = @(
         @{

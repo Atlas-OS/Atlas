@@ -1,6 +1,6 @@
 @{
     Name        = 'Configure Search on the Taskbar'
-    Description = 'Configures search for the optimal usability and privacy, such as disabling online features to make it more minimal and snappy'
+    Description = 'Turns off web and cloud results, search history, location use and search highlights in Windows Search, and shows search as an icon on the taskbar.'
     Registry    = @(
         # Windows may refuse these preferences; the machine policy still blocks cloud search.
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings'; Name = 'IsAADCloudSearchEnabled'; Type = 'DWord'; Data = 0; AllowOsProtected = $true }
@@ -9,7 +9,7 @@
         # Policies
         # Search.admx / https://learn.microsoft.com/windows/client-management/mdm/policy-csp-search#allowcloudsearch
         @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'; Name = 'AllowCloudSearch'; Type = 'DWord'; Data = 0 }
-        # ConnectedSearchUseWeb is only honored on Enterprise/Education - kept as an extra layer there;
+        # Only Enterprise and Education honour ConnectedSearchUseWeb, so it's an extra layer there;
         # DisableSearchBoxSuggestions below is what disables web search on all editions.
         @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'; Name = 'ConnectedSearchUseWeb'; Type = 'DWord'; Data = 0 }
         @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search'; Name = 'AllowSearchToUseLocation'; Type = 'DWord'; Data = 0 }

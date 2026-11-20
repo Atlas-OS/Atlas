@@ -1,6 +1,8 @@
 @{
     Name        = 'Widgets'
-    Description = 'Widgets (News and Interests) feeds. The Edge/WebView helper and the ms-settings:taskbar page are gated to interactive mode so upgrade re-apply never blocks.'
+    # Enable runs the Edge and WebView helper and opens ms-settings:taskbar only in interactive runs,
+    # so update replay never waits on them.
+    Description = 'Turns Widgets (News and Interests) on or off.'
     Elevation   = 'Admin'
     Script      = 'Widgets.ps1'
     States      = @(

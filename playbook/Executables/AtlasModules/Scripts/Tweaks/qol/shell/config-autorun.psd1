@@ -1,6 +1,6 @@
 @{
     Name        = 'Disable AutoRun'
-    Description = 'Disables AutoRun, also known as AutoPlay, for optimal QoL'
+    Description = 'Turns off AutoPlay, so Windows takes no action when you connect a drive, phone or camera.'
     Registry    = @(
         @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers'; Name = 'DisableAutoplay'; Type = 'DWord'; Data = 1 }
         @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers\EventHandlersDefaultSelection\CameraAlternate'; Name = 'MSTakeNoAction'; Type = 'None' }

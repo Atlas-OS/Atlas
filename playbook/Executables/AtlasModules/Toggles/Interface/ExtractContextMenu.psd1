@@ -1,6 +1,6 @@
 @{
     Name        = 'ExtractContextMenu'
-    Description = 'Extract entry in the file context menu, controlled by blocking or unblocking the archive shell extensions.'
+    Description = 'Adds or removes Extract in the context menu of archives by unblocking or blocking the archive shell extensions.'
     Elevation   = 'Admin'
     States      = @(
         @{

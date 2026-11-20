@@ -1,6 +1,6 @@
 @{
     Name          = 'FixMSStoreIssues'
-    Description   = 'Fixes Microsoft Store issues by running StoreFixer. Records no state.'
+    Description   = 'Fixes common Microsoft Store problems by running StoreFixer.'
     Elevation     = 'TrustedInstaller'
     NoStateRecord = $true
     Script        = 'FixMSStoreIssues.ps1'

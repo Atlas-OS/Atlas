@@ -1,6 +1,6 @@
 @{
     Name        = 'SystemRestore'
-    Description = 'System Restore policy. Enable also turns on protection for the Windows volume; it does not create a restore point or enable other volumes.'
+    Description = 'Turns System Restore on or off through its policy. Enable also turns on protection for the Windows drive, but doesn''t create a restore point or protect other drives.'
     Elevation   = 'Admin'
     Script      = 'SystemRestore.ps1'
     States      = @(

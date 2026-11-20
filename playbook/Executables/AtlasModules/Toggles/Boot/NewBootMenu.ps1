@@ -1,3 +1,7 @@
+# Companion for the NewBootMenu toggle: sets bootmenupolicy to standard or legacy in the boot
+# configuration. Its functions run as Administrator when you choose a state from the menu and
+# when an update replays the recorded state.
+
 function Disable-AtlasNewBootMenu {
     param($Toggle)
 

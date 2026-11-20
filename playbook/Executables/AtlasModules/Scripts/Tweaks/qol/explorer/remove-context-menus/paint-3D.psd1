@@ -1,6 +1,6 @@
 @{
     Name        = 'Remove ''Edit with Paint 3D'' from Context Menu'
-    Description = 'Removes ''Edit with Paint 3D'' from context menu'
+    Description = 'Removes Edit with Paint 3D from the context menu.'
     Registry    = @(
         @{ Path = 'HKCR\SystemFileAssociations\.3mf\Shell\3D Edit'; Operation = 'DeleteKey' }
         @{ Path = 'HKCR\SystemFileAssociations\.bmp\Shell\3D Edit'; Operation = 'DeleteKey' }

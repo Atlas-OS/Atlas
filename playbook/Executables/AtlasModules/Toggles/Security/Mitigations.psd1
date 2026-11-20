@@ -1,6 +1,6 @@
 @{
     Name        = 'Mitigations'
-    Description = 'Exploit and process mitigations: speculative-execution overrides, SEHOP, CFG, DEP (nx) and the kernel mitigation masks.'
+    Description = 'Turns off all exploit and process mitigations, restores the Windows defaults, or turns them all on: speculative execution overrides, SEHOP, CFG, DEP and the kernel mitigation masks.'
     Elevation   = 'TrustedInstaller'
     Script      = 'Mitigations.ps1'
     States      = @(
@@ -10,6 +10,9 @@
             Launcher        = '7. Security\Mitigations\Disable All Mitigations.cmd'
             Reboot          = 'Recommend'
             Registry        = @(
+                # Microsoft documents FeatureSettingsOverride = 3 with FeatureSettingsOverrideMask = 3
+                # as turning off the mitigations for Spectre variant 2 (CVE-2017-5715) and Meltdown
+                # (CVE-2017-5754).
                 @{ Path = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management'; Name = 'FeatureSettingsOverride'; Type = 'DWord'; Data = 3 }
                 @{ Path = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management'; Name = 'FeatureSettingsOverrideMask'; Type = 'DWord'; Data = 3 }
                 @{ Path = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\kernel'; Name = 'DisableExceptionChainValidation'; Type = 'DWord'; Data = 1 }

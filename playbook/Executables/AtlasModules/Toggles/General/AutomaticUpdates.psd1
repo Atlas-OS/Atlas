@@ -1,6 +1,6 @@
 @{
     Name        = 'AutomaticUpdates'
-    Description = 'Automatic Updates through the WindowsUpdate AU AUOptions policy.'
+    Description = 'Turns automatic Windows updates on or off through the AUOptions Windows Update policy.'
     Elevation   = 'Admin'
     States      = @(
         @{

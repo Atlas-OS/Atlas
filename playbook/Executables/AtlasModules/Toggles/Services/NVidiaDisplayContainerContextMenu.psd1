@@ -1,6 +1,6 @@
 @{
     Name        = 'NVidiaDisplayContainerContextMenu'
-    Description = 'Desktop context menu that enables or disables the NVIDIA Display Container LS service.'
+    Description = 'Adds or removes a desktop context menu that turns the NVIDIA Display Container LS service on or off.'
     Elevation   = 'Admin'
     Warning     = 'Adds or removes a desktop context menu that stops or starts the NVIDIA Display Container LS service. Stopping it disables the NVIDIA Control Panel and most NVIDIA driver features.'
     Script      = 'NVidiaDisplayContainerContextMenu.ps1'

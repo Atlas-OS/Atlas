@@ -1,6 +1,6 @@
 @{
     Name          = 'AdvancedBootOptions'
-    Description   = 'Always go to the advanced boot options on each boot.'
+    Description   = 'Shows the advanced boot options menu every time the PC starts.'
     Elevation     = 'Admin'
     Menu          = $true
     Launcher      = '6. Advanced Configuration\Boot Configuration\Behavior\Always Go to Advanced Boot Options.cmd'

@@ -1,6 +1,6 @@
 @{
     Name        = 'Remove ''Printing'' from Context Menus'
-    Description = 'Removes printing from context menus as users normally print from apps anyways'
+    Description = 'Removes Print from file context menus; apps keep their own print commands.'
     Registry    = @(
         # This is the exact Printing/Disable ContextAction set. It intentionally does not
         # record the full Printing toggle state or change services, features, or Settings.

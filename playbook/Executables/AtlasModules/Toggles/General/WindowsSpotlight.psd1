@@ -1,6 +1,7 @@
 @{
     Name        = 'WindowsSpotlight'
-    Description = 'Windows Spotlight: lock screen, tips, suggestions and spotlight content. The HKLM CloudContent policy is machine work; the per-user values are user work.'
+    # The HKLM CloudContent policy is machine work; the per-user values are user work.
+    Description = 'Turns Windows Spotlight on or off: lock screen images, tips, suggestions and Spotlight content.'
     Elevation   = 'Admin'
     States      = @(
         @{

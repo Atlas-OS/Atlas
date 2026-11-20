@@ -1,6 +1,6 @@
 @{
     Name        = 'Disable Windows Feedback'
-    Description = 'Disables Windows Feedback for QoL'
+    Description = 'Stops Windows asking for feedback.'
     Registry    = @(
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Siuf\Rules'; Name = 'NumberOfSIUFInPeriod'; Type = 'DWord'; Data = 0 }
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Siuf\Rules'; Name = 'PeriodInNanoSeconds'; Operation = 'Delete' }

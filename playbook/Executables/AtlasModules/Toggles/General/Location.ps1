@@ -1,3 +1,9 @@
+# Companion for the Location toggle: turns location services and Find My Device on or off.
+# Disable-AtlasLocation and Enable-AtlasLocation run as Administrator when you run a launcher,
+# when the install applies the toggle and when an update replays the recorded state.
+# Show-AtlasLocationSettings runs in your own unelevated process after Enable, and is replayed
+# for each new account at first sign-in.
+
 function Disable-AtlasLocation {
     param($Toggle)
 
@@ -11,8 +17,8 @@ function Enable-AtlasLocation {
     Import-AtlasModule -Name Atlas.Privacy
     Set-AtlasLocationMachineState -State Enable
 
-    # The "Unlock Find My Device" prompt is interactive-only so silent/upgrade
-    # re-apply never hangs; in silent mode Find My Device is preserved.
+    # The Find My Device question is asked only in interactive runs, so a silent run or
+    # update replay never waits for an answer; silent runs leave Find My Device as it is.
     if (-not $Toggle.Silent) {
         Import-AtlasModule -Name Atlas.Shell
         $findMyDevice = 'HKLM:\SOFTWARE\Policies\Microsoft\FindMyDevice'

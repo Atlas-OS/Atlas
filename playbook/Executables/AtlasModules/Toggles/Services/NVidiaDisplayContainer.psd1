@@ -1,6 +1,6 @@
 @{
     Name        = 'NVidiaDisplayContainer'
-    Description = 'NVIDIA Display Container LS service. Both states apply only while the service is installed, so a recorded state is dropped on upgrade once the driver is gone.'
+    Description = 'Turns the NVIDIA Display Container LS service on or off. Both states apply only while the service is installed, so an update drops the recorded state once the driver is gone.'
     Elevation   = 'Admin'
     Warning     = 'Changes the NVIDIA Display Container LS service. While disabled, the NVIDIA Control Panel and most NVIDIA driver features stop working.'
     Script      = 'NVidiaDisplayContainer.ps1'

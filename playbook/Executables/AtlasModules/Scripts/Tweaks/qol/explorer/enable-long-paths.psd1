@@ -1,6 +1,6 @@
 @{
     Name        = 'Enable Long Paths'
-    Description = 'Disables the default path length limit.'
+    Description = 'Lets apps that support it use file paths longer than 260 characters.'
     Registry    = @(
         @{ Path = 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem'; Name = 'LongPathsEnabled'; Type = 'DWord'; Data = 1 }
     )

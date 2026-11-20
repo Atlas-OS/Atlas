@@ -1,3 +1,7 @@
+# Companion for the DefaultAtlasNetwork toggle: resets the network adapter settings to the
+# Atlas or Windows defaults. Set-AtlasNetworkDefaultState runs as Administrator when you run a
+# launcher and when the install applies the Atlas defaults; nothing is recorded.
+
 function Set-AtlasNetworkDefaultState {
     param($Toggle)
 

@@ -1,6 +1,6 @@
 @{
     Name        = 'Configure Windows Media Player'
-    Description = 'Configures Windows Media Player for the optimal privacy, security and usability. As a note, WMP is old, and you probably shouldn''t use it.'
+    Description = 'Turns off the Windows Media Player first-run wizard and usage tracking, and stops Windows Media DRM going online.'
     Registry    = @(
         # Prevent Windows Media DRM internet access
         @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\WMDRM'; Name = 'DisableOnline'; Type = 'DWord'; Data = 1 }

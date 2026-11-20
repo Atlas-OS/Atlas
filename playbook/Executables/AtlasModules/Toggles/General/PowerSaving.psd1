@@ -1,6 +1,6 @@
 @{
     Name        = 'PowerSaving'
-    Description = 'Power-saving. Disable applies the documented Atlas AC power policy; Enable restores the prior power plan, or Balanced when none was saved. Both states use the same helper.'
+    Description = 'Turns power saving on or off. Disable applies the Atlas power settings for when the PC is plugged in; Enable restores the earlier power plan, or Balanced when none was saved.'
     Elevation   = 'Admin'
     Script      = 'PowerSaving.ps1'
     States      = @(

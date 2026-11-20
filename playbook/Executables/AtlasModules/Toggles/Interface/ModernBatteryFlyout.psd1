@@ -1,6 +1,6 @@
 @{
     Name        = 'ModernBatteryFlyout'
-    Description = 'Modern or old (Windows 8-style) battery flyout.'
+    Description = 'Chooses the modern battery flyout or the old Windows 8-style one.'
     Elevation   = 'Admin'
     States      = @(
         @{

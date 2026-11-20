@@ -1,6 +1,6 @@
 @{
     Name        = 'Disable Commonly Annoying Features and Shortcuts'
-    Description = 'Disables commonly annoying features such as pressing shift 5 times for sticky keys.'
+    Description = 'Turns off the keyboard shortcuts for Sticky Keys, Filter Keys, Toggle Keys, Mouse Keys, High Contrast and Narrator, such as pressing Shift five times. Accessibility features you''ve turned on stay on.'
     Registry    = @(
         # Clear HOTKEYACTIVE (0x4) only, retaining enabled features and other flags.
         # Data supplies the existing Atlas fallback only when a value is absent.

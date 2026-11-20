@@ -1,6 +1,6 @@
 @{
     Name        = 'EdgeSwipe'
-    Description = 'Edge Swipe gesture on touch screens.'
+    Description = 'Allows or blocks the edge swipe gestures on touch screens.'
     Elevation   = 'Admin'
     States      = @(
         @{

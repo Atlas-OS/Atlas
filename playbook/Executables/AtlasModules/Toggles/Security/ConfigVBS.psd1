@@ -1,6 +1,6 @@
 @{
     Name          = 'ConfigVBS'
-    Description   = 'Shows the current Virtualization-Based Security configuration once; records no state.'
+    Description   = 'Shows the current Virtualisation-Based Security configuration.'
     Elevation     = 'None'
     NoStateRecord = $true
     Script        = 'ConfigVBS.ps1'

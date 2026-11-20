@@ -1,3 +1,7 @@
+# Companion for the RepairWindowsComponents toggle: repairs Windows components with DISM
+# RestoreHealth and system files with SFC. Repair-AtlasWindowsComponents runs as Administrator
+# when you run the launcher; nothing is recorded.
+
 function Repair-AtlasWindowsComponents {
     param($Toggle)
 

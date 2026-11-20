@@ -1,8 +1,7 @@
 @{
     Name        = 'Enable verbose startup, shutdown, logon, and logoff status messages'
-    Description = 'Enables verbose status messages so users can have more insight on exactly what''s happening on startup, shutdown, logon, and logoff'
-    # NOTE: intentionally not enabled (no reason recorded).
-    # Keep it commented out in the tweak manifest.
+    Description = 'Shows detailed status messages at startup, shutdown, sign-in and sign-out.'
+    # Listed under Disabled in tweaks.manifest.psd1, which records why.
     Registry    = @(
         @{ Path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'; Name = 'verbosestatus'; Type = 'DWord'; Data = 1 }
     )

@@ -1,3 +1,6 @@
+# Companion for the FixMSStoreIssues toggle: runs StoreFixer. Invoke-AtlasStoreFixer runs in
+# the silent TrustedInstaller broker when you run the launcher; nothing is recorded.
+
 function Invoke-AtlasStoreFixer {
     param($Toggle)
 

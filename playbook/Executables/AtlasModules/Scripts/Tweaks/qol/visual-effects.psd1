@@ -1,6 +1,6 @@
 @{
     Name        = 'Configure Visual Effects'
-    Description = 'Configures the visual effects in Windows for the optimal responsiveness, performance and QoL'
+    Description = 'Applies the Atlas visual effects: window and taskbar animations and Aero Peek are off, while font smoothing, thumbnails, window contents while dragging and selection effects stay on.'
     Registry    = @(
         @{ Path = 'HKCU\Control Panel\Desktop'; Name = 'FontSmoothing'; Type = 'String'; Data = '2' }
         @{ Path = 'HKCU\Control Panel\Desktop'; Name = 'UserPreferencesMask'; Mask = @(0x0E, 0x0C, 0x04, 0, 0x02, 0, 0, 0); Type = 'Binary'; Data = @(0x90, 0x12, 0x03, 0x80, 0x10, 0x00, 0x00, 0x00) }

@@ -1,6 +1,7 @@
 @{
     Name        = 'QuickAccess'
-    Description = 'Quick Access in File Explorer (HubMode hides it).'
+    # HubMode hides Quick Access.
+    Description = 'Shows or hides Quick Access in File Explorer.'
     Elevation   = 'Admin'
     States      = @(
         @{

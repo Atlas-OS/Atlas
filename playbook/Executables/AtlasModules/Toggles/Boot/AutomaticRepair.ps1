@@ -1,3 +1,7 @@
+# Companion for the AutomaticRepair toggle: sets bootstatuspolicy in the boot configuration.
+# Its functions run as Administrator when you choose a state from the menu and when an update
+# replays the recorded state.
+
 # bootstatuspolicy: https://learn.microsoft.com/windows-hardware/drivers/devtest/bcdedit--set#boot-settings
 
 function Disable-AtlasAutomaticRepair {

@@ -1,3 +1,7 @@
+# Companion for the InstallSoftware toggle: opens the Atlas software picker.
+# Invoke-AtlasSoftwarePicker runs in the launcher's own process, as you, when you run the
+# launcher; nothing is recorded.
+
 function Invoke-AtlasSoftwarePicker {
     param($Toggle)
 

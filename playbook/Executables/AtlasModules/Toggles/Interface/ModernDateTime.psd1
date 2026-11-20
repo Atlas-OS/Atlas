@@ -1,6 +1,6 @@
 @{
     Name        = 'ModernDateTime'
-    Description = 'Modern or old (Windows 8-style) date and time (tray clock) flyout.'
+    Description = 'Chooses the modern date and time flyout on the taskbar clock or the old Windows 8-style one.'
     Elevation   = 'Admin'
     States      = @(
         @{

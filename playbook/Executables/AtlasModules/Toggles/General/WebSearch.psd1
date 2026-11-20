@@ -1,6 +1,8 @@
 @{
     Name        = 'WebSearch'
-    Description = 'Web Search and Search Highlights. Explorer and SearchHost are refreshed unless the launcher was called with /noAction. Enable installs the Bing search provider through the trusted WinGet resolver and, with search indexing stopped, offers to enable indexing (a graphical-bug fix).'
+    # Enable offers indexing because Windows Search draws incorrectly without it. Both states refresh
+    # Explorer and SearchHost unless the launcher runs with /noAction.
+    Description = 'Turns web search and search highlights on or off. Enable installs the Bing search provider through WinGet and, when search indexing is off, offers to turn it on.'
     Elevation   = 'Admin'
     Script      = 'WebSearch.ps1'
     States      = @(

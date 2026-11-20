@@ -1,6 +1,6 @@
 @{
     Name        = 'Decrease Shutdown Time'
-    Description = 'Makes it so that Windows is less tolerable to hung apps, and tries to kill them as fast as possible on shutdown'
+    Description = 'Shortens how long Windows waits for unresponsive or closing apps at shutdown to 2 seconds.'
     Registry    = @(
         @{ Path = 'HKCU\Control Panel\Desktop'; Name = 'HungAppTimeout'; Type = 'String'; Data = '2000' }
         @{ Path = 'HKCU\Control Panel\Desktop'; Name = 'WaitToKillAppTimeOut'; Type = 'String'; Data = '2000' }

@@ -1,6 +1,6 @@
 @{
     Name        = 'Disable Input Telemetry'
-    Description = 'Disables text, ink and handwriting telemetry for privacy'
+    Description = 'Stops Windows collecting typing, inking and handwriting data, including typing insights and handwriting error reports.'
     Registry    = @(
         @{ Path = 'HKCU\SOFTWARE\Microsoft\InputPersonalization'; Name = 'RestrictImplicitInkCollection'; Type = 'DWord'; Data = 1 }
         @{ Path = 'HKCU\SOFTWARE\Microsoft\InputPersonalization'; Name = 'RestrictImplicitTextCollection'; Type = 'DWord'; Data = 1 }

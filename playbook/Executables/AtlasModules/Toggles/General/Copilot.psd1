@@ -1,6 +1,6 @@
 @{
     Name        = 'Copilot'
-    Description = 'Microsoft Copilot taskbar button, app and policy. Both states refresh Explorer so the taskbar updates. Copilot requires an installed Edge; on 24H2 it is delivered as a Store app installed through the trusted WinGet resolver.'
+    Description = 'Turns Microsoft Copilot on or off: its taskbar button, app and policy. Copilot needs Microsoft Edge, and Enable installs the Copilot app from Microsoft Store through WinGet. Both states restart File Explorer so the taskbar updates.'
     Elevation   = 'Admin'
     Script      = 'Copilot.ps1'
     States      = @(

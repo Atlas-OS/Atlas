@@ -1,3 +1,11 @@
+# Companion for the Copilot toggle: removes the Copilot app, or installs it from Microsoft
+# Store and brings back its taskbar button. Remove-AtlasCopilotApp and
+# Enable-AtlasCopilotMachine run as Administrator when you run a launcher and when an update
+# replays the recorded state. Enable-AtlasCopilotUser runs in your own unelevated process
+# after Enable, and is replayed for each new account at first sign-in.
+# Test-AtlasCopilotEdgeInstalled decides during update replay whether a recorded Enable still
+# applies.
+
 function Remove-AtlasCopilotApp {
     param($Toggle)
 

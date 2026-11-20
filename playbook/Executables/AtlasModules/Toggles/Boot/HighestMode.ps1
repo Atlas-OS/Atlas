@@ -1,3 +1,7 @@
+# Companion for the HighestMode toggle: sets or removes highestmode in the boot configuration.
+# Its functions run as Administrator when you choose a state from the menu and when an update
+# replays the recorded state.
+
 # highestmode: https://learn.microsoft.com/windows-hardware/drivers/devtest/bcdedit--set#display-settings
 
 function Disable-AtlasHighestMode {

@@ -1,6 +1,6 @@
 @{
     Name        = 'ModernVolumeFlyout'
-    Description = 'Modern or old (Windows 8-style) volume flyout.'
+    Description = 'Chooses the modern volume flyout or the old Windows 8-style one.'
     Elevation   = 'Admin'
     States      = @(
         @{

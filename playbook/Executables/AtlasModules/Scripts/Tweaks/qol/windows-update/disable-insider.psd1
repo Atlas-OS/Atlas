@@ -1,6 +1,6 @@
 @{
     Name        = 'Restrict Windows Insider'
-    Description = 'Forcefully restricts Windows Insider from being enabled to prevent extra data collection, tweaks being reverted and general instability.'
+    Description = 'Blocks Windows Insider Preview builds and hides the Windows Insider Program page in Settings, avoiding extra data collection, reverted settings and unstable builds.'
     Registry    = @(
         # Disable Windows Insider
         # https://admx.help/?Category=Windows_11_2022&Policy=Microsoft.Policies.WindowsUpdate::ManagePreviewBuilds

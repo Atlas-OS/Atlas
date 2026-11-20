@@ -1,9 +1,9 @@
 @{
     # Category order and per-tweak run order for the Tweaks install phase.
     # - Categories run in the order the one-shot install plan dispatches them.
-    # - ParentModes records the modes allowed by that plan route. Category steps are
-    #   available on fresh installs and upgrades. The manifest validator composes this
-    #   with each tweak's OnUpgrade gate and rejects unreachable enabled entries.
+    # - ParentModes names the Fresh and Upgrade routes the install plan gives each step.
+    #   Reapply and Rebase installs follow the categories' Upgrade route. The manifest validator
+    #   composes ParentModes with each tweak's OnUpgrade gate and rejects unreachable entries.
     # - Tweaks run top to bottom within a category; paths are relative to the
     #   category folder, without the .psd1 extension.
     # - To disable a tweak, remove its enabled entry and add its slug and reason to Disabled.
@@ -43,8 +43,8 @@
                 'disable-activity-feed'
                 'disable-app-launch-tracking'
                 'disable-lockscreen-camera'
-                # disable-experimentation removed: AllowExperimentation is a dead 1607-era MDM policy; the
-                # PolicyManager\current variant is known to block Known Issue Rollback fixes, and disabling
+                # No experimentation tweak: AllowExperimentation is an obsolete MDM policy, its
+                # PolicyManager\current variant can block Known Issue Rollback fixes, and disabling
                 # DiagTrack already cuts the experimentation delivery channel.
                 'disable-online-speech-recognition'
                 'disable-pca'
@@ -95,7 +95,7 @@
                 'disable-settings-tips'
                 'disable-spell-checking'
                 'disable-store-auto-updates'
-                # disable-store-search-recommendations moved into Initialize-NewUser: the deny-ACL
+                # Initialize-NewUser turns off Store search recommendations: the deny ACL
                 # on store.db must be applied per user profile, not in the SYSTEM install context.
                 'disable-touch-keyboard-features'
                 'disable-touch-visual-feedback'
@@ -113,7 +113,7 @@
                 'disable-auto-app-archival'
                 'add-sharing-settings-shortcut'
                 # atlas-theme sets lock-screen policy; the theme itself is applied by
-                # Initialize-NewUser at first logon (interactive shell COM).
+                # Initialize-NewUser at first sign-in (interactive shell COM).
                 'appearance/atlas-theme'
                 'appearance/disallow-theme-changes'
                 'windows-update/disable-nagging'
@@ -243,12 +243,12 @@
     # Definitions invoked outside a category route. ParentModes is the outer
     # orchestration reachability, not a replacement for the definition's OnUpgrade.
     Standalone = @(
-        # The fresh-only install plan applies this before the Features phase so later
+        # The install plan applies this on fresh installs only, before the Features phase, so later
         # tweaks cannot overwrite SettingsPageVisibility.
         @{ Slug = 'qol/set-hidden-settings-pages'; ParentModes = @('Fresh') }
-        # The fresh-only install plan applies this after every category.
+        # The install plan applies this on fresh installs only, after every category.
         @{ Slug = 'scripts/set-power-settings'; ParentModes = @('Fresh') }
-        # The upgrade-only install plan applies this as its own step right after the
+        # The install plan applies this on Upgrade and Rebase installs as its own step right after the
         # Defaults phase, while the default-user hive is still loaded.
         @{ Slug = 'qol/appearance/atlas-theme-upgrade'; ParentModes = @('Upgrade') }
     )
@@ -256,12 +256,12 @@
     # Every included definition must be enabled exactly once above or classified here.
     Disabled = @(
         # LLMNR handles single-label \\PCNAME lookups where router DNS has no record;
-        # mDNS's .local names do not replace that behavior.
-        @{ Slug = 'networking/disable-llmnr'; Reason = 'Preserves single-label home-LAN name resolution where router DNS does not register clients.' }
+        # mDNS's .local names don't replace that behaviour.
+        @{ Slug = 'networking/disable-llmnr'; Reason = 'Preserves single-label home-LAN name resolution where router DNS doesn''t register clients.' }
         # Users who want Game Bar removed can use the FSOGameBar toggle.
         @{ Slug = 'performance/disable-game-bar'; Reason = 'Game Bar capture and overlays remain supported, including Xbox app dependencies.' }
-        @{ Slug = 'qol/explorer/disable-folders-this-pc'; Reason = 'Intentionally disabled; the original rationale was not recorded.' }
-        @{ Slug = 'qol/startup-shutdown/enable-verbose-messages'; Reason = 'Intentionally disabled; the original rationale was not recorded.' }
-        @{ Slug = 'qol/startup-shutdown/force-end-shutdown-apps'; Reason = 'Disabled because forcibly ending applications confused users.' }
+        @{ Slug = 'qol/explorer/disable-folders-this-pc'; Reason = 'Kept for reference; Atlas leaves the user folders in This PC.' }
+        @{ Slug = 'qol/startup-shutdown/enable-verbose-messages'; Reason = 'Kept for reference; the Verbose Status Messages launcher turns these messages on.' }
+        @{ Slug = 'qol/startup-shutdown/force-end-shutdown-apps'; Reason = 'Closing apps without a prompt can lose unsaved work.' }
     )
 }

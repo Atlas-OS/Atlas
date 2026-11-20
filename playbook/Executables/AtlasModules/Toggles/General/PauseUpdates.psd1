@@ -1,8 +1,9 @@
 @{
     Name        = 'PauseUpdates'
-    Description = 'Pause Windows Updates through the WindowsUpdate UX and UpdatePolicy pause dates. Enable pauses updates; Disable unpauses them. Enable also records a days value under the AtlasOS\Services key, which some UI reads.'
+    # Enable also records a days value under the AtlasOS\Services\PauseUpdates key for other tools to read.
+    Description = 'Pauses or resumes Windows updates by setting the Windows Update pause dates. Enable pauses updates and Disable resumes them.'
     Elevation   = 'Admin'
-    Warning     = 'Changes Windows Update policies. While updates are paused, security and driver updates do not install until you unpause them.'
+    Warning     = 'Changes Windows Update policies. While updates are paused, security and driver updates don''t install until you unpause them.'
     States      = @(
         @{
             Name       = 'Enable'

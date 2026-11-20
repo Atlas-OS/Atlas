@@ -1,6 +1,6 @@
 @{
     Name          = 'FixErrors2502and2503'
-    Description   = 'Fixes installer errors 2502 and 2503 by resetting the Windows TEMP folder permissions. Records no state.'
+    Description   = 'Fixes installer errors 2502 and 2503 by resetting the permissions of the Windows TEMP folder.'
     Elevation     = 'TrustedInstaller'
     NoStateRecord = $true
     Script        = 'FixErrors2502and2503.ps1'

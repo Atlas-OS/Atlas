@@ -1,3 +1,7 @@
+# Companion for the SleepStudy toggle: turns the Sleep Study diagnostic event logs on or off.
+# Set-AtlasSleepStudyEventLogState runs as Administrator when you run a launcher and when an
+# update replays the recorded state.
+
 function Set-AtlasSleepStudyEventLogState {
     param($Toggle)
 

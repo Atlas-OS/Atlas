@@ -1,6 +1,7 @@
 @{
     Name        = 'TakeOwnership'
-    Description = 'The Take Ownership context menu entries. Each state is applied from its .reg file under Scripts\Registry\TakeOwnership.'
+    # Each state imports its .reg file from Scripts\Registry\TakeOwnership.
+    Description = 'Adds or removes Take Ownership in the context menu.'
     Elevation   = 'Admin'
     Script      = 'TakeOwnership.ps1'
     States      = @(

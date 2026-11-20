@@ -1,3 +1,7 @@
+# Companion for the RemoveEdge toggle: runs the interactive Remove-Edge.ps1 helper.
+# Invoke-AtlasEdgeRemover runs as Administrator, in the window the engine opens, when you run
+# the launcher; nothing is recorded.
+
 function Invoke-AtlasEdgeRemover {
     param($Toggle)
 

@@ -1,6 +1,8 @@
 @{
     Name          = 'SafeMode'
-    Description   = 'Safe Mode boot configuration. Safe mode is a transient troubleshooting state, so it is never recorded: an upgrade replay must never boot the machine back into safe mode from a stale record.'
+    # Safe mode is a passing troubleshooting state, so it's never recorded: update replay must never
+    # start the PC in safe mode from an old record.
+    Description   = 'Sets Windows to start in safe mode, with networking or with the command prompt, or to start normally again.'
     Elevation     = 'Admin'
     NoStateRecord = $true
     Script        = 'SafeMode.ps1'

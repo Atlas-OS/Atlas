@@ -1,3 +1,7 @@
+# Companion for the RunWithPriority toggle: adds the Run with priority submenu to the context
+# menu of programs. Add-AtlasRunWithPriorityContextMenu runs as Administrator when you run Add
+# and when an update replays the recorded state.
+
 function Add-AtlasRunWithPriorityContextMenu {
     param($Toggle)
 

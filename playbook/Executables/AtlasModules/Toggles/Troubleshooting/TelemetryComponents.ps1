@@ -1,5 +1,8 @@
-# The menu runs in the interactive administrator process; the chosen package
-# operation crosses the silent TrustedInstaller broker as a fixed internal state.
+# Companion for the TelemetryComponents toggle: adds or removes the Atlas NoTelemetry package.
+# Select-AtlasTelemetryComponentsState runs first, in the administrator window: it shows the
+# menu and picks an internal state. That state's function then runs in the silent
+# TrustedInstaller broker. Nothing is recorded.
+
 function Select-AtlasTelemetryComponentsState {
     param($Toggle)
 

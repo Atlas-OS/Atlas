@@ -1,6 +1,6 @@
 @{
     Name        = 'HideAppBrowserControl'
-    Description = 'Visibility of the App and Browser Control page in Windows Security. Disable hides the page; Enable shows it.'
+    Description = 'Shows or hides the App & browser control page in Windows Security. Disable hides the page; Enable shows it.'
     Elevation   = 'Admin'
     States      = @(
         @{

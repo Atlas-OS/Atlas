@@ -1,6 +1,6 @@
 @{
     Name        = 'CpuIdle'
-    Description = 'Processor idle-disable power setting. Disable Idle sets powercfg to 1; Enable Idle sets it to 0. On Hyper-Threading/SMT systems, manual disable requests are rejected and old disable records are skipped during upgrades without changing the power setting.'
+    Description = 'Turns processor idle states on or off through the processor idle disable power setting. Disable Idle sets it to 1 and Enable Idle sets it to 0. On processors with Hyper-Threading or SMT, Atlas refuses Disable, and updates skip an earlier Disable record without changing the power setting.'
     Elevation   = 'Admin'
     Script      = 'CpuIdle.ps1'
     States      = @(

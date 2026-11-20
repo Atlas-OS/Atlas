@@ -1,6 +1,6 @@
 @{
     Name        = 'Configure Content Delivery Manager'
-    Description = 'Configures Content Delivery Manager not to download applications like Candy Crush Soda and turns off suggested content (tips/tricks/facts/suggestions/ads) for QoL and privacy.'
+    Description = 'Stops Content Delivery Manager installing suggested apps, such as Candy Crush Soda Saga, and turns off suggested content, tips and adverts.'
     # Microsoft does not document these values; the links are community sources.
     Registry    = @(
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; Name = 'ContentDeliveryAllowed'; Type = 'DWord'; Data = 0 }
@@ -14,12 +14,7 @@
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; Name = 'PreInstalledAppsEnabled'; Type = 'DWord'; Data = 0 }
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; Name = 'PreInstalledAppsEverEnabled'; Type = 'DWord'; Data = 0 }
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; Name = 'SilentInstalledAppsEnabled'; Type = 'DWord'; Data = 0 }
-        # Commented as these removals would likely break re-enabling content
-        # Content would likely stay disabled anyways
-        # - !registryKey:
-        #   path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\Subscriptions'
-        # - !registryKey:
-        #   path: 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\SuggestedApps'
+        # The Subscriptions and SuggestedApps keys stay: deleting them could stop content being turned back on.
         # 'Show me notifications in the Settings app' in Windows 11
         @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\SystemSettings\AccountNotifications'; Name = 'EnableAccountNotifications'; Type = 'DWord'; Data = 0 }
         # Windows welcome experience

@@ -1,6 +1,6 @@
 @{
     Name        = 'Disable UAC Secure Desktop'
-    Description = 'Disables switching to the Secure Desktop when prompting for elevation, so UAC prompts no longer dim the screen. Trade-off: the secure desktop exists so non-admin software cannot spoof or interact with the prompt; without it, UAC dialogs render on the normal desktop where other applications can draw over them or read typed credentials.'
+    Description = 'Shows UAC prompts on the normal desktop instead of the secure desktop, so the screen doesn''t dim. The secure desktop stops other software spoofing or interacting with the prompt; without it, other apps can draw over UAC prompts or read what you type into them.'
     Registry    = @(
         @{ Path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'; Name = 'PromptOnSecureDesktop'; Type = 'DWord'; Data = 0 }
     )

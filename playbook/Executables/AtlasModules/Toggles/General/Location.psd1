@@ -1,6 +1,7 @@
 @{
     Name        = 'Location'
-    Description = 'Location services (lfsvc / MapsBroker) and Find My Device. The Enable prompt to unlock Find My Device is interactive-only so silent/upgrade re-apply never hangs; in silent mode Find My Device is preserved.'
+    # Enable-AtlasLocation asks about Find My Device only in interactive runs.
+    Description = 'Turns location services (lfsvc and MapsBroker) and Find My Device on or off.'
     Elevation   = 'Admin'
     Script      = 'Location.ps1'
     States      = @(

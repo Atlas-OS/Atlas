@@ -1,6 +1,6 @@
 @{
     Name        = 'RecentItems'
-    Description = 'Recent Items and app or document usage tracking. Enable removes restrictions so users can configure tracking; it preserves their tracking preferences rather than turning them on. Disable turns tracking off. Both states also hide or unhide the general privacy settings page and refresh Explorer and Settings.'
+    Description = 'Locks or unlocks Recent Items and app and document tracking. Disable turns tracking off; Enable removes the restrictions so you can choose in Settings, keeping your own tracking preferences. Both also hide or show the General privacy page in Settings.'
     Elevation   = 'Admin'
     Script      = 'RecentItems.ps1'
     States      = @(

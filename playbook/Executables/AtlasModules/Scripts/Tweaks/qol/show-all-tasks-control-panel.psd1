@@ -1,6 +1,6 @@
 @{
     Name        = 'Show All Tasks in Control Panel'
-    Description = 'Shows ''All Tasks'' in Control Panel (God Mode), so that people can easily access all settings for QoL'
+    Description = 'Adds All Tasks, also called God Mode, to Control Panel: one list of every Control Panel setting.'
     Registry    = @(
         @{ Path = 'HKCR\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}'; Name = ''; Type = 'String'; Data = 'All Tasks' }
         @{ Path = 'HKCR\CLSID\{D15ED2E1-C75B-443c-BD7C-FC03B2F08C17}'; Name = 'InfoTip'; Type = 'String'; Data = 'View list of all Control Panel tasks' }

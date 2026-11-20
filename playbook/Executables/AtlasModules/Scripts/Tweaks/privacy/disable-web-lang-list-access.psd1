@@ -1,6 +1,6 @@
 @{
     Name        = 'Disable Website Access to Language List'
-    Description = 'Disables websites accessing the Windows language list for the best privacy, as it is a common fingerprinting technique to identify a user by their languages'
+    Description = 'Stops websites reading your Windows language list, which sites can use to fingerprint you.'
     Registry    = @(
         @{ Path = 'HKCU\Control Panel\International\User Profile'; Name = 'HttpAcceptLanguageOptOut'; Type = 'DWord'; Data = 1 }
     )

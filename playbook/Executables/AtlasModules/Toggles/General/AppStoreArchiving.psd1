@@ -1,6 +1,6 @@
 @{
     Name        = 'AppStoreArchiving'
-    Description = 'Microsoft Store automatic app archiving.'
+    Description = 'Turns automatic archiving of rarely used Microsoft Store apps on or off.'
     Elevation   = 'Admin'
     States      = @(
         @{

@@ -1,53 +1,53 @@
 # Atlas toggle definitions
 
-A toggle is a post-install setting a user changes from the AtlasDesktop folder (or the
-Atlas Toolbox). Each toggle is one data-only definition, `Toggles\<Group>\<Name>.psd1`,
-plus an optional companion script `Toggles\<Group>\<Name>.ps1` beside it that contains
-only functions. Definitions are parsed with the restricted data-file parser, so no
-toggle code runs until the engine (`Atlas.Toggles`) invokes a named companion function.
+This folder holds the toggles: settings a user changes after the install from the AtlasDesktop folder or Atlas Toolbox.
+It's for contributors who add or change a toggle.
+The generated [toggle reference](../../../../docs/catalog/toggles.md) lists every toggle with its states and work.
 
-The definition declares a toggle's states with the same declarative vocabulary as the
-install tweaks (`Registry`, `Services`, `ScheduledTasks`) plus named functions for work
-that is genuinely imperative. The engine derives where each part runs from the
-declarations, so a definition never states its own privilege split:
+Each toggle is one data-only definition, `Toggles/<Group>/<Name>.psd1`, with an optional companion script beside it, `Toggles/<Group>/<Name>.ps1`, that holds only functions.
+Atlas loads definitions with `Import-AtlasDataFile`, which wraps the inbox `Import-PowerShellDataFile` and runs no code.
+No toggle code runs until the engine, `Atlas.Toggles`, calls a named companion function.
+
+## Where the work runs
+
+A definition declares its states with the same vocabulary as the install tweaks (`Registry`, `Services`, `ScheduledTasks`), plus named functions for work that has to be code.
+The engine works out where each part runs from those declarations, so a definition never states its own privilege split.
 
 | Work | Declared by | Runs as | Replayed |
 | --- | --- | --- | --- |
-| Machine | `HKLM` registry entries, `Services`, `ScheduledTasks`, `MachineAction` | the declared `Elevation` (Administrator or TrustedInstaller) | on upgrade, from the recorded state |
-| User | `HKCU` registry entries, `UserAction` | the launching user's own non-elevated process (after the machine part when there is one) | at each account's first sign-in |
-| Local | any registry entry and `Action` of an `Elevation = 'None'` toggle | the launcher process, unchanged | never (such toggles record no state) |
+| Machine | `HKLM` registry entries, `Services`, `ScheduledTasks`, `MachineAction` | The declared `Elevation`. | On update, from the recorded state. |
+| User | `HKCU` registry entries, `UserAction` | The launching user, without elevation. | At each new account's first sign-in. |
+| Local | Any registry entry and `Action` of an `Elevation = 'None'` toggle | The launcher process. | Never, because these toggles record no state. |
 
-A state that has user work must be launched from a non-elevated process, so that work
-can never inherit an elevated token. When the state also has machine work or a
-`ContextAction`, the engine runs the machine part in a UAC child (or through the
-TrustedInstaller broker), records the state there, then finishes the user part in the
-launching process. A state whose only work is per-user runs that work first, in the
-launching process; the privileged child then only records the choice, and the closing
-line waits for that record. A failed user step therefore never replaces an earlier
-recorded choice. A state with only machine work is elevated as a whole. A `/justcontext`
-run only runs the `ContextAction`; it applies no other work and records nothing.
+### Order of the machine and user parts
 
-Validate every definition without running any toggle code with
-`Test-AtlasToggleDefinition -Path <Toggles folder>` (CI runs it). Regenerate launchers with
-`pwsh tools\dev\New-ToggleLaunchers.ps1`; each launcher is a two-line stub that calls the
-shared `Scripts\Entry\Invoke-AtlasToggleLauncher.cmd`.
+A state with user work must start from an unelevated process, so that work never inherits an elevated token.
+When the state also has machine work or a `ContextAction`, the engine runs the machine part in a UAC child process, or through the TrustedInstaller broker, and records the state there.
+It then finishes the user part in the launching process.
+A state whose only work is per-user runs that work first, in the launching process.
+The elevated child then only records the choice, and the closing line waits for that record, so a failed user step never replaces an earlier recorded choice.
+A state with only machine work is elevated as a whole.
+A `/justcontext` run applies only the `ContextAction` and records nothing.
+
+## Validate and generate
+
+Validate every definition without running toggle code with `Test-AtlasToggleDefinition -Path <Toggles folder>`; CI runs it.
+Regenerate the launchers with `pwsh tools/dev/New-ToggleLaunchers.ps1`.
+Each launcher is a two-line stub that calls the shared `Scripts/Entry/Invoke-AtlasToggleLauncher.cmd`.
 
 ## Definition schema
 
-Two-state public toggles use `Disable` and `Enable` as their state identifiers (shown
-as Disabled and Enabled in a UI), with recorded values `0` and `1` respectively.
-Keep the feature being controlled clear in the description: enabling PauseUpdates
-pauses updates, while enabling RecentItems removes restrictions without overwriting
-the user's tracking preferences. Multi-choice states retain descriptive identifiers.
-Launcher filenames may remain descriptive for compatibility with existing callers;
-consumers should read the state identifier from `catalog.json`, not infer it from a
-filename. State records store numeric values, so renaming identifiers does not change
-existing recorded choices. Direct callers using old state identifiers must update.
+Two-state public toggles use `Disable` and `Enable` as their state names, recorded as `0` and `1`; a UI shows them as Disabled and Enabled.
+Multi-choice toggles use descriptive state names.
+Write the description so the controlled feature is clear: enabling PauseUpdates pauses updates, while enabling RecentItems removes restrictions without overwriting the user's tracking preferences.
+
+Consumers read state names from `catalog.json`, not from launcher file names, which can be more descriptive.
+State records store the numeric `StateValue`, so a recorded choice doesn't depend on the state name.
 
 ```powershell
 @{
     Name            = 'Bluetooth'            # required; must equal the file name
-    Description     = 'What it changes.'     # optional
+    Description     = 'What it changes.'     # optional; full sentences
     Elevation       = 'Admin'                # 'None' | 'Admin' | 'TrustedInstaller' (default None)
     Warning         = 'Shown and confirmed before an interactive run.'   # optional
     Menu            = $true                  # optional: one launcher with a numbered state picker
@@ -66,6 +66,7 @@ existing recorded choices. Direct callers using old state identifiers must updat
             Reboot           = 'Recommend'   # 'None' | 'Recommend' | 'Prompt' | 'RestartExplorer' | 'SignOut'
             ShellRefreshOperation = 'SearchShellRefresh'   # with RestartExplorer; default ExplorerRefresh
             NoStateRecord    = $true         # optional per-state variant
+            Internal         = $true         # optional: an implementation state with no launcher, left out of the catalog
             Registry         = @( @{ Path = 'HKLM:\...'; Name = 'Value'; Type = 'DWord'; Data = 0 } )
             Services         = @( @{ Name = 'bthserv'; StartupType = 4 } )
             ScheduledTasks   = @( @{ Path = '\Microsoft\Windows\X\Task'; Operation = 'Disable' } )
@@ -73,49 +74,45 @@ existing recorded choices. Direct callers using old state identifiers must updat
             UserAction       = 'Disable-AtlasBluetoothUser'      # companion function
             Action           = 'Invoke-AtlasX'                   # Elevation None only
             ContextAction    = 'Set-AtlasXContextMenu'           # runs first; /justcontext stops after it
-            ReplayApplicable = 'Test-AtlasXReplayApplicable'     # $false removes a stale record on upgrade
+            ReplayApplicable = 'Test-AtlasXReplayApplicable'     # $false removes a stale record on update
+            InteractiveState = 'Select-AtlasXState'              # TrustedInstaller only; see below
         }
     )
 }
 ```
 
-Rules the validator enforces:
+### Rules the validator enforces
 
-- `Name` equals the file name; state names are identifiers; a `StateValue` is an integer
-  unique within the toggle unless the toggle or state declares `NoStateRecord`.
-- Public non-menu states declare a `Launcher`; menu toggles declare one top-level
-  `Launcher` and optionally `SilentDefault`. Non-menu implementation states may instead
-  declare `Internal = $true` and `NoStateRecord = $true`, with no launcher. Internal
-  states are omitted from the public catalog.
-- `Registry`, `Services` and `ScheduledTasks` entries use the tweak entry keys
-  (`Registry` also accepts `SkipVerification`, a non-empty reason string for transient
-  entries that still apply but are excluded from drift checks; `Services` also accepts
-  `AllowMissing`; `Registry` also accepts `AllowOsProtected` for
-  values Windows refuses to write directly, and `UseGroupPolicy` for HKLM
-  `Software\Policies` DWORD Set entries that must persist in the local GPO).
-  `HKCU` entries are user work; protected
-  policy paths under `HKCU` are rejected because a medium-integrity process must not set
-  policy. Explicit `HKEY_USERS` hives are rejected.
-- Elevated toggles declare `MachineAction` and/or `UserAction`, never `Action`.
-  `Elevation = 'None'` toggles declare `Action` and/or `HKCU` registry entries, never
-  `Services`, `ScheduledTasks`, `MachineAction`, `UserAction`, `ReplayApplicable` or
-  machine registry paths, and must declare `NoStateRecord` because they cannot write the
-  protected state store.
-- Every function a state names must be defined in the companion script, and every
-  function the companion defines (including private helpers) is named `Verb-AtlasNoun`.
+- `Name` equals the file name, and state names are identifiers.
+- A `StateValue` is an integer, unique within the toggle, unless the toggle or state declares `NoStateRecord`.
+- Public non-menu states declare a `Launcher`.
+  Menu toggles declare one top-level `Launcher`, and optionally `SilentDefault`.
+- A non-menu implementation state can declare `Internal = $true` and `NoStateRecord = $true` instead of a launcher.
+  The catalog leaves internal states out.
+- `InteractiveState` belongs only on a public machine-only state of a TrustedInstaller toggle.
+- `Registry` entries take the [tweak registry keys](../Scripts/Tweaks/README.md#registry-entries) except `MigrateDwordToString` and `VerifyWithToggle`.
+  `Services` and `ScheduledTasks` entries take the same keys as in tweaks.
+- `HKCU` entries are user work.
+  Policy paths under `HKCU` are rejected, because a medium-integrity process must not set policy, and so are explicit `HKEY_USERS` hives.
+- Elevated toggles declare `MachineAction`, `UserAction` or both, never `Action`.
+- `Elevation = 'None'` toggles declare `Action`, `HKCU` registry entries or both, and must declare `NoStateRecord`, because they can't write the protected state store.
+  They can't declare `Services`, `ScheduledTasks`, `MachineAction`, `UserAction`, `ReplayApplicable` or machine registry paths.
+- Every function a state names is defined in the companion script, and every function the companion defines, private helpers included, is named `Verb-AtlasNoun`.
 
-Order within one scope is fixed: `Registry`, `Services`, `ScheduledTasks`, then the
-function. Put work in the companion only when that order, a prompt, a native command or a
-computed value makes the declarative form insufficient.
+Within one scope the order is fixed: `Registry`, `Services`, `ScheduledTasks`, then the function.
+Put work in the companion only when that order, a prompt, a native command or a computed value makes the declarative form insufficient.
 
 ## Companion scripts
 
-A companion contains nothing but function definitions. Each function takes one
-parameter, `$Toggle`, and runs under strict mode with terminating errors. `Atlas.Core`,
-`Atlas.Registry`, `Atlas.Services` and `Atlas.TasksProcs` are already imported; use
-`Import-AtlasModule -Name Atlas.Appx` (or `Atlas.Software`, `Atlas.Download`) for others.
+A companion contains one header comment, which says what it does, which identity runs it and when, followed by function definitions only.
+Each function takes one parameter, `$Toggle`, and runs under strict mode with terminating errors.
+`Atlas.Core`, `Atlas.Registry`, `Atlas.Services` and `Atlas.TasksProcs` are already imported; use `Import-AtlasModule -Name Atlas.Appx` (or `Atlas.Software`, `Atlas.Download`) for others.
 
 ```powershell
+# Companion for the Bluetooth toggle: disables or enables every Bluetooth device. Its machine
+# functions run as Administrator when you run a launcher and when an update replays the
+# recorded state.
+
 function Disable-AtlasBluetoothMachine {
     param($Toggle)
 
@@ -127,63 +124,60 @@ function Disable-AtlasBluetoothMachine {
 }
 ```
 
-`$Toggle` carries: `Name`, `State`, `StateValue`, `Silent`, `JustContext`,
-`NoExplorerRestart`, `ResetServices`, `StateRoot`, `LauncherPath`, `WinDir`,
-`AtlasModulesPath`, `ScriptsPath`, `ModulesPath`, `OperationsPath` and `WindowsBuild`.
-Only prompt when `-not $Toggle.Silent`; silent runs include upgrade replay, first
-sign-in replay and the closed service-defaults reset. Use `Invoke-AtlasToggleNativeCommand`
-for native executables so exit codes are checked. A function may apply another toggle's
-machine part with `Invoke-AtlasToggleMachineState -Name X -State Y -StateRoot $Toggle.StateRoot`.
+`$Toggle` carries `Name`, `State`, `StateValue`, `Silent`, `JustContext`, `NoExplorerRestart`, `ResetServices`, `StateRoot`, `LauncherPath`, `WinDir`, `AtlasModulesPath`, `ScriptsPath`, `ModulesPath`, `OperationsPath` and `WindowsBuild`.
+Only prompt when `-not $Toggle.Silent`.
+Silent runs include update replay, first sign-in replay and the service defaults reset.
+Use `Invoke-AtlasToggleNativeCommand` for native executables, so exit codes are checked.
+A function can apply another toggle's machine part with `Invoke-AtlasToggleMachineState -Name X -State Y -StateRoot $Toggle.StateRoot`.
 
-Everything a companion prints goes through the Atlas.Core console vocabulary
-([docs/console-presentation.md](../../../../docs/console-presentation.md)): `Write-AtlasStep`
-for slow work, `Read-AtlasYesNo` and `Read-AtlasChoice` for the questions a state already
-asks, `Write-AtlasNote`, `Write-AtlasWarning` and `Write-AtlasSuccess` for facts, and
-`Write-AtlasNextStep` or `Write-AtlasManualStep` when the user must continue elsewhere
-(the latter turns the closing line into `Not finished yet:`). The engine owns the
-heading, the definition's warning gate, the `Done:` line, the restart follow-up and the
-single exit pause, so a companion never prints "Finished" or pauses. It never signs out
-either: `Reboot = 'SignOut'` shows the sign-out notice after the closing line and asks
-"Sign out now?" (interactive runs only), by which time the choice is recorded. A
-companion that runs a script or helper checks its exit code and throws, so a helper that
-stopped early is reported as not applied. A companion that asks before restarting File
-Explorer calls `Invoke-AtlasToggleCurrentSessionShellRefresh -Operation ExplorerRefresh`
-and reports a failed refresh with `Write-AtlasPartial`, because its own change is
-already in place.
+### Console output
 
-A TrustedInstaller toggle's machine work always runs in the silent broker, so a prompt,
-warning or step in its `MachineAction` never reaches the user. A public machine-only
-TrustedInstaller state may instead name an `InteractiveState` companion function. The
-administrator process invokes it before handing the work to the silent TrustedInstaller
-broker. It must return exactly one existing machine-only state name; it must not return
-user or local work. Returning the state's own name confirms it, as Mitigations does
-after its warning. Use fixed internal states to carry a prompted choice into the
-broker, as Indexing does. Record the public choice only after that work succeeds.
-Silent replay skips the selector and applies the original recorded state, so its
-machine action must preserve any separately saved option without prompting.
+Everything a companion prints goes through the Atlas.Core console vocabulary described in [console presentation](../../../../docs/console-presentation.md):
+
+- `Write-AtlasStep` for slow work.
+- `Read-AtlasYesNo` and `Read-AtlasChoice` for the questions a state already asks.
+- `Write-AtlasNote`, `Write-AtlasWarning` and `Write-AtlasSuccess` for facts.
+- `Write-AtlasNextStep` or `Write-AtlasManualStep` when the user must continue elsewhere.
+  `Write-AtlasManualStep` turns the closing line into `Not finished yet:`.
+
+The engine owns the heading, the definition's warning gate, the `Done:` line, the restart follow-up and the single pause before the window closes.
+A companion never prints "Finished", pauses or signs out.
+`Reboot = 'SignOut'` shows the sign-out notice after the closing line and asks "Sign out now?" in interactive runs, by which time the choice is recorded.
+
+A companion that runs a script or helper checks its exit code and throws, so a helper that stopped early is reported as not applied.
+A companion that asks before restarting File Explorer calls `Invoke-AtlasToggleCurrentSessionShellRefresh -Operation ExplorerRefresh`.
+It reports a failed refresh with `Write-AtlasPartial`, because its own change is already in place.
+
+### TrustedInstaller toggles and interactive choices
+
+A TrustedInstaller toggle's machine work always runs in the silent broker, so a prompt, warning or step in its `MachineAction` never reaches the user.
+A public machine-only state of a TrustedInstaller toggle can name an `InteractiveState` companion function instead.
+The administrator process calls it before it hands the work to the broker.
+It must return exactly one existing machine-only state name, never one with user or local work.
+Returning the state's own name confirms it, as Mitigations does after its warning.
+Use fixed internal states to carry a prompted choice into the broker, as Indexing does, and record the public choice only after that work succeeds.
+Silent replay skips the selector and applies the original recorded state, so its machine action must keep any separately saved option without prompting.
 
 ## State record and replay
 
-Only the privileged machine process records state, and only after the machine part
-completes (for a user-only state, after the user part has succeeded). Upgrades replay
-every recorded state's machine part from the installed definition; records whose definition
-or state no longer exists are removed. First sign-in replays every recorded state's
-user part for the new account. Toggles that must never replay (safe mode, one-shot
-repairs, information views) declare `NoStateRecord`.
+Only the elevated machine process records state, and only after the machine part completes.
+A user-only state is recorded after its user part succeeds.
+Updates replay every recorded state's machine part from the installed definition, and remove records whose definition or state no longer exists.
+Each new account's first sign-in replays every recorded state's user part.
+Toggles that must never replay, such as safe mode, one-shot repairs and information views, declare `NoStateRecord`.
 
-Recorded states can be verified: `Test-AtlasToggleState` reads one state's `Registry`,
-`Services` and `ScheduledTasks` declarations back for a scope, and `Test-AtlasToggleDrift`
-does that for every recorded state, flagging records whose definition or value no longer
-exists. Companion functions are not verified. The health check launcher
-(`9. Troubleshooting\Check Atlas Health.cmd`) and the Defaults phase after an upgrade
-replay both use it.
+Recorded states can be verified.
+`Test-AtlasToggleState` reads one state's `Registry`, `Services` and `ScheduledTasks` declarations back for a scope.
+`Test-AtlasToggleDrift` does that for every recorded state, and flags records whose definition or value no longer exists.
+Companion functions aren't verified.
+The health check launcher (`9. Troubleshooting\Check Atlas Health.cmd`) and the Defaults phase after an update replay both use it.
 
-`catalog.json` beside this file is generated from the definitions by
-`tools\dev\Export-AtlasCatalog.ps1` and validated by CI; regenerate it after changing a
-definition. It is the machine-readable index consumers such as AtlasToolbox use.
+`catalog.json` beside this file is generated from the definitions by `tools/dev/Export-AtlasCatalog.ps1`, and CI checks it.
+Regenerate it after you change a definition.
+It's the machine-readable index that consumers such as Atlas Toolbox read.
 
 ## Install-time use
 
-Install tweaks apply a toggle's machine part and record it with the tweak `Toggle` key
-(`Toggle = @( @{ Name = 'AutomaticUpdates'; State = 'Disable' } )`), so the install and
-the AtlasDesktop launcher share one implementation.
+Install tweaks apply a toggle's machine part and record it with the tweak `Toggle` key, such as `Toggle = @( @{ Name = 'AutomaticUpdates'; State = 'Disable' } )`.
+The install and the AtlasDesktop launcher then share one implementation.
+On an update, a toggle that already has a recorded state gets that state instead.

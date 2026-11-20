@@ -1,6 +1,6 @@
 @{
     Name        = 'Disable Mitigations'
-    Description = 'Disables Windows exploit-protection mitigations when the user selected the option.'
+    Description = 'Turns off Windows exploit protection mitigations through the Mitigations toggle when you choose that in Atlas Manager.'
     Option      = 'mitigations-disable'
     # The Toggle key keeps a Mitigations launcher choice made since the install on an update.
     Toggle      = @(

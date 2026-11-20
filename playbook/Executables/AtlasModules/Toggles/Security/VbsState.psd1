@@ -1,6 +1,6 @@
 @{
     Name        = 'VbsState'
-    Description = 'Documented Virtualization-Based Security and memory-integrity configuration.'
+    Description = 'Turns Virtualisation-Based Security and Memory Integrity on or off through Microsoft''s documented settings.'
     Elevation   = 'Admin'
     Script      = 'VbsState.ps1'
     States      = @(

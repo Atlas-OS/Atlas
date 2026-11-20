@@ -1,6 +1,6 @@
 @{
     Name           = 'Configure Storage Sense'
-    Description    = 'Configures Storage Sense to automatically cleanup temporary files every month'
+    Description    = 'Turns on Storage Sense to delete temporary files every month. It leaves the Downloads folder, the Recycle Bin and OneDrive files alone.'
     Registry       = @(
         # Reference: https://gist.github.com/he3als/3d9dcf6e796aa920c24a98130165fb17
         # Enable Storage Sense
@@ -24,5 +24,5 @@
         # Enable cleaning temp files
         @{ Path = '\Microsoft\Windows\DiskCleanup\SilentCleanup'; Operation = 'Enable' }
     )
-    # There's also subkeys for OneDrive cleanup, but as OneDrive is uninstalled, they probably aren't relevant
+    # The OneDrive cleanup subkeys aren't set, because Atlas removes OneDrive.
 }

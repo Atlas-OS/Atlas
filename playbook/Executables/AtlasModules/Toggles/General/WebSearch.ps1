@@ -1,3 +1,9 @@
+# Companion for the WebSearch toggle: turns web search and search highlights on or off, and
+# installs the Bing search provider for Enable. The machine functions run as Administrator
+# when you run a launcher, when the install applies Disable and when an update replays the
+# recorded state. Enable-AtlasWebSearchUser runs in your own unelevated process after Enable,
+# and is replayed for each new account at first sign-in.
+
 function Disable-AtlasWebSearchMachine {
     param($Toggle)
 

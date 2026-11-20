@@ -208,7 +208,7 @@ function Invoke-AtlasAdministratorMergeTransition {
     }
     if (Test-AtlasMergeCanonical -Parent $parent -Command $command) { return }
 
-    # Revalidate the entire recognized starting shape immediately before mutation.
+    # Revalidate the entire recognised starting shape immediately before mutation.
     $freshParent = & $RegistryReader $script:AtlasMergeParentPath
     $freshCommand = & $RegistryReader $script:AtlasMergeCommandPath
     if (-not (Test-AtlasMergeSnapshotEqual -Left $parent -Right $freshParent) -or

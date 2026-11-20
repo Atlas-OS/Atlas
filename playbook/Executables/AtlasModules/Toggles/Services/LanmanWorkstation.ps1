@@ -1,3 +1,7 @@
+# Companion for the LanmanWorkstation toggle: turns the SMB Direct Windows feature off or on.
+# Its functions run as Administrator when you run a launcher and when an update replays the
+# recorded state.
+
 function Get-AtlasSmbDirectFeature {
     $feature = @(Dism\Get-WindowsOptionalFeature -Online -ErrorAction Stop |
         Where-Object { $_.FeatureName -ceq 'SmbDirect' })

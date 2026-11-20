@@ -1,6 +1,6 @@
 @{
     Name        = 'Configure Power Settings'
-    Description  = 'Disables Fast Startup and applies the selected power and hibernation choices after the category tweaks.'
+    Description  = 'Turns off Fast Startup and applies your power-saving and hibernation choices.'
     Registry    = @(
         # Disable Fast Startup.
         @{ Path = 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Power'; Name = 'HiberbootEnabled'; Type = 'DWord'; Data = 0 }

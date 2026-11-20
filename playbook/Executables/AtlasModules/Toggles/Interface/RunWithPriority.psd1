@@ -1,6 +1,6 @@
 @{
     Name        = 'RunWithPriority'
-    Description = 'The Run with priority cascading entry in the .exe context menu.'
+    Description = 'Adds or removes the Run with priority submenu in the context menu of programs (.exe files).'
     Elevation   = 'Admin'
     Script      = 'RunWithPriority.ps1'
     States      = @(

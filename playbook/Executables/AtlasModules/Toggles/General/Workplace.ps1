@@ -1,3 +1,7 @@
+# Companion for the Workplace toggle: hides or shows the Access work or school page in
+# Settings. Its functions run as Administrator when you run a launcher and when an update
+# replays the recorded state.
+
 function Hide-AtlasWorkplaceSettingsPage {
     param($Toggle)
 

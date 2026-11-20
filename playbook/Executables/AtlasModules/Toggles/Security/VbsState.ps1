@@ -1,3 +1,8 @@
+# Companion for the VbsState toggle: turns Virtualisation-Based Security and Memory Integrity
+# on or off. Set-AtlasVbsState runs as Administrator when you run a launcher and when an
+# update replays the recorded state. Test-AtlasVbsStateReplayApplicable decides during update
+# replay whether the recorded state still applies.
+
 function Set-AtlasVbsState {
     param($Toggle)
 

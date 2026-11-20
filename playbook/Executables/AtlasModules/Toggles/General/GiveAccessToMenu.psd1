@@ -1,6 +1,6 @@
 @{
     Name        = 'GiveAccessToMenu'
-    Description = 'Give access to (Sharing) context menu entries.'
+    Description = 'Shows or hides the Give access to entries in the context menu.'
     Elevation   = 'Admin'
     States      = @(
         @{

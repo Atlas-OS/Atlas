@@ -1,6 +1,6 @@
 @{
     Name          = 'ViewCurrentValues'
-    Description   = 'Prints the current boot configuration (bcdedit /enum {current}); records no state.'
+    Description   = 'Shows the current boot configuration from `bcdedit /enum {current}`.'
     Elevation     = 'Admin'
     NoStateRecord = $true
     Script        = 'ViewCurrentValues.ps1'

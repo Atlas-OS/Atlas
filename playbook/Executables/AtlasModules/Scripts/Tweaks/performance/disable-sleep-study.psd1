@@ -1,6 +1,6 @@
 @{
     Name           = 'Disable Modern Standby SleepStudy'
-    Description    = 'Disables Modern Standby''s SleepStudy feature, as it''s unnecessary logging that isn''t needed on boot'
+    Description    = 'Turns off the Sleep Study diagnostic logs and the Power Efficiency Diagnostics task, which record standby and power activity in the background.'
     ScheduledTasks = @(
         # This task is absent on systems that do not expose the relevant standby diagnostics.
         @{ Path = '\Microsoft\Windows\Power Efficiency Diagnostics\AnalyzeSystem'; IgnoreErrors = $true }

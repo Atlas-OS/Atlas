@@ -1,3 +1,7 @@
+# Companion for the SuperFetch toggle: turns SysMain and ReadyBoost off or on.
+# Set-AtlasSuperFetchMachineState runs as Administrator when you run a launcher and when an
+# update replays the recorded state.
+
 function Set-AtlasSuperFetchMachineState {
     param($Toggle)
 

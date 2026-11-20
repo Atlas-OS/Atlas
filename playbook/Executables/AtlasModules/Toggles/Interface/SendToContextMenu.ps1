@@ -1,3 +1,7 @@
+# Companion for the SendToContextMenu toggle: lets you choose which Send to entries to hide or
+# show for your account. Invoke-AtlasSendToContextMenuChooser runs in the launcher's own
+# process, as you, when you run the launcher; nothing is recorded.
+
 function Invoke-AtlasSendToContextMenuChooser {
     param($Toggle)
 

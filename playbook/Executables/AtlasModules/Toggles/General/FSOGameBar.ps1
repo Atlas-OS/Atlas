@@ -1,3 +1,9 @@
+# Companion for the FSOGameBar toggle: removes the Game Bar overlay package for every user, or
+# installs Game Bar again for one account. Remove-AtlasGameBarOverlayPackage runs in the
+# silent TrustedInstaller broker when you run Disable and when an update replays the recorded
+# state. Install-AtlasGameBarPackage runs in your own unelevated process when you run Enable,
+# and is replayed for each new account at first sign-in.
+
 function Remove-AtlasGameBarOverlayPackage {
     param($Toggle)
 

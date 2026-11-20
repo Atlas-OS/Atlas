@@ -1,6 +1,6 @@
 @{
     Name          = 'RemovePythonStorePrompt'
-    Description   = 'Opens Advanced app settings for selecting App execution aliases and disabling only the App Installer Python Store prompts, preserving installed Python distributions. Requires user selection and records no state.'
+    Description   = 'Opens App execution aliases in Settings so you can turn off the App Installer prompts that offer Python from Microsoft Store. Installed Python versions stay as they are.'
     Elevation     = 'None'
     NoStateRecord = $true
     Script        = 'RemovePythonStorePrompt.ps1'

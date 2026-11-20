@@ -1,3 +1,7 @@
+# Companion for the LockScreen toggle: checks after Enable that no policy value still hides
+# the lock screen. Assert-AtlasLockScreenPolicyRemoved runs as Administrator when you run
+# Enable and when an update replays the recorded state.
+
 function Assert-AtlasLockScreenPolicyRemoved {
     param($Toggle)
 

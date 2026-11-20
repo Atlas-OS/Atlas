@@ -1,3 +1,8 @@
+# Companion for the CpuIdle toggle: sets the processor idle disable power setting with
+# powercfg. Its functions run as Administrator when you run a launcher and when an update
+# replays the recorded state. Test-AtlasCpuIdleDisableSupported decides during update replay
+# whether a recorded Disable still applies.
+
 function Test-AtlasCpuIdleDisableSupported {
     param($Toggle)
 

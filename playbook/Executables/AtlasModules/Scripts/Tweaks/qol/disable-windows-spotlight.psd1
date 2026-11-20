@@ -1,9 +1,9 @@
 @{
     Name        = 'Disable Windows Spotlight'
-    Description = 'Windows Spotlight provides lockscreen messages like ''Like what you see?'', and are disabled for QoL and privacy'
+    Description = 'Turns off Windows Spotlight on the lock screen and desktop, including its tips and "Like what you see?" prompts.'
     Registry    = @(
-        # CloudContent spotlight policies are only enforced on Enterprise/Education -
-        # kept as an extra layer there; the ContentDeliveryManager values below are
+        # Only Enterprise and Education enforce the CloudContent spotlight policies, so
+        # they're an extra layer there; the ContentDeliveryManager values below are
         # what disables Spotlight on all editions.
         @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent'; Name = 'DisableWindowsSpotlightFeatures'; Type = 'DWord'; Data = 1 }
         @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent'; Name = 'DisableWindowsSpotlightWindowsWelcomeExperience'; Type = 'DWord'; Data = 1 }
@@ -11,7 +11,7 @@
         @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent'; Name = 'DisableWindowsSpotlightOnSettings'; Type = 'DWord'; Data = 1 }
         @{ Path = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent'; Name = 'DisableThirdPartySuggestions'; Type = 'DWord'; Data = 1 }
         # Spotlight lock screen, lock-screen fun facts/tips and desktop spotlight.
-        # Applied here (all installs) rather than in atlas-theme, which skips upgrades.
+        # Applied here, on every install, rather than in atlas-theme, which skips updates.
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; Name = 'RotatingLockScreenEnabled'; Type = 'DWord'; Data = 0 }
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; Name = 'RotatingLockScreenOverlayEnabled'; Type = 'DWord'; Data = 0 }
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'; Name = 'SubscribedContent-338387Enabled'; Type = 'DWord'; Data = 0 }

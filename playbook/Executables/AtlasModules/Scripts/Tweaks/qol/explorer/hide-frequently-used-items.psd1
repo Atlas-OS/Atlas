@@ -1,6 +1,6 @@
 @{
     Name        = 'Hide Recent Items'
-    Description = 'Hide recent items in Quick Access and other places for privacy and QoL'
+    Description = 'Stops Windows keeping and showing recent files and frequent folders in Quick Access, Start and jump lists, and clears recent documents when you sign out.'
     Registry    = @(
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer'; Name = 'ShowFrequent'; Type = 'DWord'; Data = 0 }
         @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer'; Name = 'ShowRecent'; Type = 'DWord'; Data = 0 }

@@ -1,6 +1,6 @@
 @{
     Name        = 'Set Unpinned Control Center Items'
-    Description = 'Disables unused control center items by default for QoL'
+    Description = 'Unpins rarely used buttons, such as Cast and Nearby Sharing, from Quick Settings.'
     Registry    = @(
         @{ Path = 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'; Name = 'Microsoft.QuickAction.Cast'; Type = 'None' }
         @{ Path = 'HKCU\Control Panel\Quick Actions\Control Center\Unpinned'; Name = 'Microsoft.QuickAction.NearShare'; Type = 'None' }

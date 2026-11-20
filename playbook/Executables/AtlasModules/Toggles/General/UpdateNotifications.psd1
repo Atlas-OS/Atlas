@@ -1,6 +1,6 @@
 @{
     Name        = 'UpdateNotifications'
-    Description = 'Windows Update restart notifications.'
+    Description = 'Shows or hides Windows Update restart notifications.'
     Elevation   = 'Admin'
     States      = @(
         @{

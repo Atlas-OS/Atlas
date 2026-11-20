@@ -1,6 +1,6 @@
 @{
     Name        = 'ShortcutIcon'
-    Description = 'Shortcut overlay icon: the default arrow, the classic arrow or none.'
+    Description = 'Chooses the shortcut arrow overlay: the Windows default, the classic arrow or none.'
     Elevation   = 'Admin'
     States      = @(
         @{

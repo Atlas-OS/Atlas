@@ -1,6 +1,6 @@
 @{
     Name          = 'UpdateDrivers'
-    Description   = 'Run the Update Drivers helper. A plain action launcher that records no state.'
+    Description   = 'Finds driver updates on Microsoft Update and installs the ones you choose.'
     Elevation     = 'Admin'
     NoStateRecord = $true
     Script        = 'UpdateDrivers.ps1'

@@ -40,6 +40,19 @@ Describe 'Tweak catalog routes' {
             "throw 'Catalog generation must not execute companion scripts.'" |
                 Set-Content -LiteralPath (Join-Path $script:fixtureTweaks "example\$name.ps1")
         }
+        # The generator reads each step's install modes from the install plan.
+        $planDirectory = Join-Path $script:fixtureRoot 'playbook\Executables\AtlasModules\Scripts\Install'
+        New-Item -ItemType Directory -Path $planDirectory -Force | Out-Null
+        @'
+function Get-AtlasInstallPlan {
+    param([string]$Mode)
+    $steps = @(
+        [pscustomobject]@{ Key = 'Tweaks/example'; Modes = @('Fresh') }
+        [pscustomobject]@{ Key = 'Tweak/example/standalone'; Modes = @('Upgrade', 'Rebase') }
+    )
+    @($steps | Where-Object { $_.Modes -ccontains $Mode })
+}
+'@ | Set-Content -LiteralPath (Join-Path $planDirectory 'Install-Plan.ps1')
         $script:fixtureDoc = Join-Path $script:fixtureRoot 'docs\catalog\tweaks.md'
     }
 
@@ -47,16 +60,30 @@ Describe 'Tweak catalog routes' {
         $output = & $script:ToolsHost -NoProfile -File $script:CatalogTool -RepoRoot $script:fixtureRoot 2>&1
         $LASTEXITCODE | Should -Be 0 -Because ($output -join "`n")
         $markdown = [IO.File]::ReadAllText($script:fixtureDoc)
-        $markdown | Should -Match 'Category tweaks: 1\. Standalone tweaks: 1\. Disabled definitions: 1\.'
+        $markdown | Should -Match '- Category tweaks: 1\n- Standalone tweaks: 1\n- Disabled definitions: 1\n'
         $markdown | Should -Match '## example\n\nInstall modes: Fresh\.'
-        $markdown | Should -Match 'Option=fixture-option'
-        $markdown | Should -Match 'registry 1, Script `category.ps1`, PostUserRegistryRefresh `ExplorerRefresh`'
-        $markdown | Should -Match '## Standalone tweaks[\s\S]+`example/standalone`[\s\S]+ParentModes=Upgrade, OnUpgrade=Only[\s\S]+Script `standalone.ps1`'
+        $markdown | Should -Match 'Only with option `fixture-option`'
+        $markdown | Should -Match 'Registry 1, Script `category.ps1`, PostUserRegistryRefresh `ExplorerRefresh`'
+        $markdown | Should -Match '## Standalone tweaks[\s\S]+`example/standalone`<br>Standalone fixture \| +\| Upgrade and Rebase \| +\| Script `standalone.ps1` \|'
         $markdown | Should -Match '## Disabled definitions[\s\S]+`example/disabled` \| Keep for comparison \\\| not installed\.'
         @($markdown -split "`n" | Where-Object { $_ -match '^\| `' }).Count | Should -Be 3
 
         $output = & $script:ToolsHost -NoProfile -File $script:CatalogTool -RepoRoot $script:fixtureRoot -Validate 2>&1
         $LASTEXITCODE | Should -Be 0 -Because ($output -join "`n")
+    }
+
+    It 'fails validation for a description that is not a full sentence or uses a banned word' {
+        $output = & $script:ToolsHost -NoProfile -File $script:CatalogTool -RepoRoot $script:fixtureRoot 2>&1
+        $LASTEXITCODE | Should -Be 0 -Because ($output -join "`n")
+        "@{ Name = 'Disabled fixture'; Description = 'disables it for QoL' }" |
+            Set-Content -LiteralPath (Join-Path $script:fixtureTweaks 'example\disabled.psd1')
+
+        $output = & $script:ToolsHost -NoProfile -File $script:CatalogTool -RepoRoot $script:fixtureRoot -Validate 2>&1
+        $LASTEXITCODE | Should -Be 1
+        $text = $output -join "`n"
+        $text | Should -Match 'disabled\.psd1 Description: start with a capital letter'
+        $text | Should -Match 'disabled\.psd1 Description: end with a single full stop'
+        $text | Should -Match "disabled\.psd1 Description: avoid 'QoL'"
     }
 
     It 'rejects a missing standalone definition before publishing any catalog output' {

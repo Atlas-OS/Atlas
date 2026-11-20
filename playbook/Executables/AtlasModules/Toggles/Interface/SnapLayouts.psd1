@@ -1,6 +1,6 @@
 @{
     Name        = 'SnapLayouts'
-    Description = 'Snap Layouts: the Snap Assist flyout and bar.'
+    Description = 'Turns Snap Layouts, the Snap Assist flyout and bar, on or off.'
     Elevation   = 'Admin'
     States      = @(
         @{

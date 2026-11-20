@@ -1,6 +1,6 @@
 @{
     Name        = 'DeliveryOptimisation'
-    Description = 'Delivery Optimization through the DODownloadMode policy.'
+    Description = 'Turns Delivery Optimization peer-to-peer downloads on or off through the DODownloadMode policy.'
     Elevation   = 'Admin'
     States      = @(
         @{

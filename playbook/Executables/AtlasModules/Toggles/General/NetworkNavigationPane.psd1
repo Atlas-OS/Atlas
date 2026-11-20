@@ -1,6 +1,6 @@
 @{
     Name        = 'NetworkNavigationPane'
-    Description = 'Network item in the File Explorer navigation pane.'
+    Description = 'Shows or hides Network in the File Explorer navigation pane.'
     Elevation   = 'Admin'
     States      = @(
         @{

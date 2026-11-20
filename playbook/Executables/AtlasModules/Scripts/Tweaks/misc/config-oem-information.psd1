@@ -1,6 +1,6 @@
 @{
     Name        = 'Configure OEM Information'
-    Description = 'Configures OEM information to contain the Atlas version and the Atlas Discord server'
+    Description = 'Sets the OEM information in Settings to show the Atlas version and the Atlas Discord server.'
     Registry    = @(
         @{ Path = 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'; Name = 'Manufacturer'; Type = 'String'; Data = 'Atlas Team' }
         @{ Path = 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation'; Name = 'SupportURL'; Type = 'String'; Data = 'https://discord.atlasos.net' }

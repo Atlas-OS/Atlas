@@ -1,6 +1,6 @@
 @{
     Name        = 'Modify Client.CBS'
-    Description  = 'Modifies components related to Client.CBS, the miscellaneous system package in Windows 10+.'
+    Description  = 'Updates Client.CBS, a Windows system package, to remove adverts from Settings pages. A failure here doesn''t stop the install.'
     # Run in a child PowerShell because Update-ClientCbs.ps1 uses `exit 1` for flow
     # control (missing wsxpack manifest or a failed CBS write), which would otherwise
     # terminate the whole Tweaks phase process. IgnoreErrors keeps those exits from

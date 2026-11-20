@@ -1,3 +1,9 @@
+# Companion for the PhoneLink toggle: turns the Phone Link service, cross-device resume and
+# app on or off. The machine functions run as Administrator when you run a launcher, when the
+# install applies Disable and when an update replays the recorded state.
+# Enable-AtlasPhoneLinkUser runs in your own unelevated process after Enable, and is replayed
+# for each new account at first sign-in.
+
 function Disable-AtlasPhoneLinkMachine {
     param($Toggle)
 

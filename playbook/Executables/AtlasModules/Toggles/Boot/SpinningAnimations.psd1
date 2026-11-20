@@ -1,6 +1,6 @@
 @{
     Name          = 'SpinningAnimations'
-    Description   = 'Boot spinning animation.'
+    Description   = 'Shows or hides the spinning animation while Windows starts.'
     Elevation     = 'Admin'
     Menu          = $true
     Launcher      = '6. Advanced Configuration\Boot Configuration\Appearance\Spinning Animation.cmd'

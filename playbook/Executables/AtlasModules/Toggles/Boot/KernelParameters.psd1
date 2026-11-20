@@ -1,6 +1,6 @@
 @{
     Name          = 'KernelParameters'
-    Description   = 'Editing of kernel parameters on startup.'
+    Description   = 'Lets you edit kernel boot parameters from the boot menu at startup.'
     Elevation     = 'Admin'
     Menu          = $true
     Launcher      = '6. Advanced Configuration\Boot Configuration\Behavior\Editing Kernel Parameters on Startup.cmd'

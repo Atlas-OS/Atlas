@@ -1,5 +1,5 @@
 @{
     Name        = 'Set Keyboard Language Switching'
-    Description = 'Applies the selected keyboard-switching method through the shared toggle.'
+    Description = 'Applies the keyboard language switching method chosen in Atlas Manager through the KeyboardShortcuts toggle.'
     Script      = 'set-keyboard-switching.ps1'
 }

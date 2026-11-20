@@ -1,3 +1,6 @@
+# Companion for the AtlasHealth toggle: runs the Atlas health report, Test-AtlasHealth.ps1.
+# Show-AtlasHealthReport runs as Administrator when you run the launcher; nothing is recorded.
+
 function Show-AtlasHealthReport {
     param($Toggle)
 

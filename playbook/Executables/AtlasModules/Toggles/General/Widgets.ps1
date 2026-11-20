@@ -1,3 +1,8 @@
+# Companion for the Widgets toggle: lifts the Widgets policies and installs the Widgets app
+# for Enable. Enable-AtlasWidgetsMachine runs as Administrator when you run Enable and when an
+# update replays the recorded state. Install-AtlasWidgetsUser runs in your own unelevated
+# process afterwards, and is replayed for each new account at first sign-in.
+
 function Enable-AtlasWidgetsMachine {
     param($Toggle)
 

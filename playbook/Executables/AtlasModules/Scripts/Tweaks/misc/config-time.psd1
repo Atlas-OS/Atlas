@@ -1,6 +1,6 @@
 @{
     Name        = 'Configure Time Servers'
-    Description = 'Configures time servers to be more reliable and accurate than the defaults'
+    Description = 'Uses the pool.ntp.org time servers, which are more reliable and accurate than the Windows default.'
     # The servers are plain registry values, so they apply even where Windows Time is
     # disabled. Starting the service and telling it to reload only warn on failure: PCs
     # tweaked beyond Atlas can have Windows Time turned off.

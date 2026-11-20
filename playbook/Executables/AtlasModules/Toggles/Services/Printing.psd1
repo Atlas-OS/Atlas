@@ -1,8 +1,8 @@
 @{
     Name        = 'Printing'
-    Description = 'Printing services, Windows features and the Print context menu entries. The context menu part can be run alone with /justcontext.'
+    Description = 'Turns printing on or off: its services, Windows features and the Print context menu entries. Run the launcher with /justcontext to change only the context menu.'
     Elevation   = 'Admin'
-    Warning     = 'Changes the printing services and Windows printing features. While disabled, printers, Print to PDF, XPS and the Print Management console do not work.'
+    Warning     = 'Changes the printing services and Windows printing features. While disabled, printers, Print to PDF, XPS and the Print Management console don''t work.'
     Script      = 'Printing.ps1'
     States      = @(
         @{

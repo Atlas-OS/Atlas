@@ -1,5 +1,5 @@
 # Companion of atlas-theme.psd1. Runs in the install engine (TrustedInstaller); the
-# interactive theme/lock-screen apply lives in Initialize-NewUser (first logon).
+# interactive theme/lock-screen apply lives in Initialize-NewUser (first sign-in).
 # Disables the rotating lock-screen "fun facts" for every provisioned account
 # (Enterprise/Education only). Dynamic subkeys under HKLM, so it can't be a static
 # Registry entry.

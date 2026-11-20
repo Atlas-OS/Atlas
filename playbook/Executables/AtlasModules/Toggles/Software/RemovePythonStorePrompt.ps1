@@ -1,3 +1,7 @@
+# Companion for the RemovePythonStorePrompt toggle: opens App execution aliases in Settings
+# for the Python prompts. Remove-AtlasPythonStoreAlias runs in the launcher's own process, as
+# you, when you run the launcher; nothing is recorded.
+
 function Remove-AtlasPythonStoreAlias {
     param($Toggle)
 

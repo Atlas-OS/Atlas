@@ -1,6 +1,11 @@
-# Fresh install and this toggle share the Atlas.Network File Sharing functions; the
-# engine owns the closing line, the restart prompt and records only the completed
-# machine transition.
+# Companion for the FileSharing toggle: applies file sharing through the Atlas.Network
+# functions the fresh install uses. Set-AtlasFileSharingMachineState runs as Administrator
+# when you run a launcher, when the install applies the toggle and when an update replays the
+# recorded state. Add-AtlasFileSharingNetworkNavigationPane runs in your own unelevated
+# process after Enable, and is replayed for each new account at first sign-in. The engine owns
+# the closing line and the restart prompt, and records the state only after the machine part
+# completes.
+
 function Set-AtlasFileSharingMachineState {
     param($Toggle)
 
@@ -21,7 +26,7 @@ function Set-AtlasFileSharingMachineState {
 function Add-AtlasFileSharingNetworkNavigationPane {
     param($Toggle)
 
-    # NetworkNavigationPane owns this independent choice and its first-login replay.
+    # NetworkNavigationPane owns this independent choice and its first sign-in replay.
     # Replaying FileSharing must not replace it or ask the question again.
     if ($Toggle.Silent -or
         -not (Read-AtlasYesNo -Question 'Add Network to the File Explorer navigation pane?')) {

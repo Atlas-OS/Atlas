@@ -1,3 +1,9 @@
+# Companion for the NVidiaDisplayContainerContextMenu toggle: adds the desktop context menu
+# that turns the NVIDIA Display Container LS service on or off.
+# Add-AtlasNVidiaContainerContextMenu runs as Administrator when you run Add and when an
+# update replays the recorded state. Test-AtlasNVidiaContainerContextMenuApplicable decides
+# during update replay whether the service is still installed.
+
 function Test-AtlasNVidiaContainerContextMenuApplicable {
     param($Toggle)
 

@@ -1,8 +1,8 @@
 @{
     Name        = 'SuperFetch'
-    Description = 'SuperFetch (SysMain) and ReadyBoost.'
+    Description = 'Turns SuperFetch (SysMain) and ReadyBoost on or off.'
     Elevation   = 'Admin'
-    Warning     = 'Changes the SysMain and ReadyBoost services. While disabled, Windows no longer preloads frequently used apps, and ReadyBoost is unavailable.'
+    Warning     = 'Changes the SysMain and ReadyBoost services. While disabled, Windows doesn''t preload frequently used apps, and ReadyBoost isn''t available.'
     Script      = 'SuperFetch.ps1'
     States      = @(
         @{
