@@ -133,7 +133,7 @@ Atlas Manager CI also uploads them as `atlas-gpui-shaders`.
 ## Tester builds
 
 A tester build is an `AtlasManager.exe` that carries one Atlas package and installs nothing else.
-Maintainers give tester builds to testers as release candidates.
+Maintainers distribute these builds for testing before publication.
 `tools/release/build-rc.sh` builds one tester bundle on Linux, with the toolchain from the [Linux desktop cross-build](#linux-desktop-cross-build):
 
 ```sh

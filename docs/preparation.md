@@ -49,7 +49,7 @@ The worker searches Windows Update online, downloads and installs what it finds,
 - When one pass offers several cumulative updates for the installed build, it installs only the newest.
   Installing an older one first can leave the newer one to install again after a restart.
 - Updates that can ask for input are installed last, silently.
-  One that still needs you stops the run with `manual-updates`, naming the updates to finish in Windows Settings.
+  An update that requires your input stops the run with `manual-updates`, naming the updates to finish in Windows Settings.
 - A run gives up with `windows-passes` when Windows still offers updates after eight passes.
 
 The worker stops waiting for two kinds of update:
@@ -150,7 +150,7 @@ It also offers **Create an Atlas ISO**, for reinstalling Windows when the Store 
 
 An app update that ends in `Error` or `Canceled` is cleared from the Store's queue, and the worker searches the Store again.
 If the Store offers the app again, the worker waits for it again and stops if it fails again.
-If the Store no longer offers it, the app is up to date, because a busy Store can report `Error` for an update it has already installed.
+If the update disappears from the Store, the app is up to date, because a busy Store can report `Error` for an update it has already installed.
 The log says which.
 
 A Store you removed on purpose stays removed.

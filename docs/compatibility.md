@@ -11,7 +11,7 @@ File paths are relative to `%windir%\AtlasModules`, where the Atlas package inst
 
 | Path | Pinned by | Remove when |
 | --- | --- | --- |
-| `Scripts\RunAsTI.cmd`, a stub that refuses to run | Shortcuts and context-menu commands that Atlas 0.5.x and earlier wrote | `updatableFrom` in `package/atlas.json` no longer lists any 0.5.x version |
+| `Scripts\RunAsTI.cmd`, a stub that refuses to run | Shortcuts and context-menu commands that Atlas 0.5.x and earlier wrote | `updatableFrom` in `package/atlas.json` contains no 0.5.x version |
 | `Scripts\Install\Compat\Remove-AtlasLegacyElevationArtifacts.ps1`, run by the PreInstall phase | Registry commands, tasks and shortcuts that Atlas 0.5.x elevation helpers left, and the records Atlas Toolbox 0.1.x wrote outside the toggle store | Same as above |
 | The `Toolbox\Scripts\` launchers: `toggleDefender.cmd`, `vbsCurrentConfig.cmd`, `viewBootValues.cmd`, `NVidia\{Disable,Enable}NVIDIADisplayContainerLS.cmd`, `SuperFetch\DisableSuperFetch.cmd`, `Troubleshooting\{Fix Errors 2502 and 2503,Repair Windows Components,Telemetry Components}.cmd` and `Troubleshooting\TroubleshootingNetwork\{AtlasDefault,WindowsDefault}.cmd` | Atlas Toolbox releases before 0.2.0, which run these by fixed path, and the NVIDIA pair also from the context menu those releases add. Toolbox 0.2.0 and later read `Toggles\catalog.json` and run toggles by name. | No supported Atlas install keeps a Toolbox release before 0.2.0 |
 | `Scripts\Registry\SecurityHealthTray\*.reg`, byte-identical to `Toolbox\Scripts\SecurityHealthTray\*.reg` | The same Toolbox path contract | Same as above |
@@ -33,13 +33,13 @@ Paths are relative to the repository root.
 
 | Code | What it handles | Remove when |
 | --- | --- | --- |
-| The `playbookDir` alias of `package_dir` in `InstallDraft` (`app/src/services/settings.rs`) and `InstallRequest` (`app/src/services/installer/mod.rs`) | Saved drafts and install session records that release candidates of 0.6.0 wrote, which name the unpacked package `playbookDir` | Release candidates of 0.6.0 are no longer supported |
-| `prune_legacy_jobs` in `app/src/services/iso.rs`, run when ISO or USB creation starts | ISO jobs that release candidates of 0.6.0 kept in the `ISO` folder of Atlas Manager's app data, which it prunes and then removes | Same as above |
-| `remove_old_cache` in `app/src/services/package.rs`, which Atlas Manager runs at start-up when no install or preparation is running | Packages that release candidates of 0.6.0 unpacked in the `Playbooks` folder of its app data, which nothing reads | Same as above |
-| The `ISO` and `Preparation` folders that diagnostics collect from Atlas Manager's app data, in `app/src/services/diagnostics.rs` | ISO and preparation jobs that release candidates of 0.6.0 kept there | Same as above |
-| `Remove-AtlasStagedPackage` deleting `playbook.conf`, in `package/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1` | Staging copies that release candidates of 0.6.0 made, which hold `playbook.conf` where `atlas.json` sits | Same as above |
-| The `abandoned.json` recovery in `Start-AtlasInstallState`, in `package/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/` | A failed Fresh run that a release candidate of 0.6.0 archived as `%windir%\AtlasOS\Install\abandoned.json`, which a Reapply of the same version resumes | Same as above |
-| The `Atlas Playbook v<version>` form that `ConvertFrom-AtlasVersionMarker` (`package/Executables/AtlasModules/Scripts/Preparation/WindowsTransition.ps1`) and `marker_version` (`app/src/services/atlas_state.rs`) accept | The version marker that releases before Atlas 0.6 wrote, as [the package format](package-format.md#the-version-recorded-in-windows) describes | `updatableFrom` in `package/atlas.json` no longer lists any release before 0.6 |
+| The `playbookDir` alias of `package_dir` in `InstallDraft` (`app/src/services/settings.rs`) and `InstallRequest` (`app/src/services/installer/mod.rs`) | Saved drafts and install session records that 0.6.0 test builds wrote, which name the unpacked package `playbookDir` | Support for the 0.6.0 test builds ends |
+| `prune_legacy_jobs` in `app/src/services/iso.rs`, run when ISO or USB creation starts | ISO jobs that 0.6.0 test builds kept in the `ISO` folder of Atlas Manager's app data, which it prunes and then removes | Same as above |
+| `remove_old_cache` in `app/src/services/package.rs`, which Atlas Manager runs at start-up when no install or preparation is running | Packages that 0.6.0 test builds unpacked in the `Playbooks` folder of its app data, which nothing reads | Same as above |
+| The `ISO` and `Preparation` folders that diagnostics collect from Atlas Manager's app data, in `app/src/services/diagnostics.rs` | ISO and preparation jobs that 0.6.0 test builds kept there | Same as above |
+| `Remove-AtlasStagedPackage` deleting `playbook.conf`, in `package/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1` | Staging copies that 0.6.0 test builds made, which hold `playbook.conf` where `atlas.json` sits | Same as above |
+| The `abandoned.json` recovery in `Start-AtlasInstallState`, in `package/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/` | A failed Fresh run that a 0.6.0 test build archived as `%windir%\AtlasOS\Install\abandoned.json`, which a Reapply of the same version resumes | Same as above |
+| The `Atlas Playbook v<version>` form that `ConvertFrom-AtlasVersionMarker` (`package/Executables/AtlasModules/Scripts/Preparation/WindowsTransition.ps1`) and `marker_version` (`app/src/services/atlas_state.rs`) accept | The version marker that releases before Atlas 0.6 wrote, as [the package format](package-format.md#the-version-recorded-in-windows) describes | `updatableFrom` in `package/atlas.json` contains only versions 0.6 and later |
 
 ## Rules
 
@@ -49,4 +49,4 @@ Paths are relative to the repository root.
   Declare one only for a path that a Toolbox release before 0.2.0 opens.
 - Every entry names its consumer and its removal condition on this page.
   Adding compatibility code or a compatibility file without both blocks the review.
-- When `updatableFrom` changes, revisit every entry that mentions a version it no longer lists.
+- When `updatableFrom` changes, revisit every entry that mentions a removed version.

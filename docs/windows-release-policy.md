@@ -68,7 +68,7 @@ Who looks a revision up depends on what is being checked:
 | An ISO's image, in a release build of Atlas Manager | Yes. |
 | An ISO's image, in a tester build | No. |
 
-A tester build is an Atlas Manager build that carries one Atlas package and installs nothing else, made so testers can check a release candidate ([Tester builds](../app/docs/rc-testers-build.md)).
+A tester build is an Atlas Manager build that carries one Atlas package and installs nothing else, so testers can verify that specific package ([Tester builds](../app/docs/rc-testers-build.md)).
 It checks the running system online because `Install-Atlas.ps1` always does, so Get ready and the install agree on an unlisted revision, such as a Release Preview build.
 
 For an ISO, a tester build calls `Get-AtlasWindowsReleaseStatus -NoRefresh`.

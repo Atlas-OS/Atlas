@@ -23,7 +23,7 @@ For what you see in Atlas Manager when you update, see [Updating Atlas](upgradin
 | `HKCU\SOFTWARE\AtlasOS\UserSetup` | An account's last completed migration, as `UpgradeVersion` |
 | `HKCU\Software\AtlasOS\InstallSession` | The installing user's marker, between Capture and Run |
 | `HKLM\SOFTWARE\AtlasOS\WindowsTransition` | Atlas Manager's record of the Windows Update settings it changed (see [Moving Windows to a newer release](windows-transition.md)) |
-| `HKLM\SOFTWARE\AtlasOS\Preparation` | Updates the **Get ready** page no longer waits for (see [Preparing Windows](preparation.md)) |
+| `HKLM\SOFTWARE\AtlasOS\Preparation` | Updates excluded from the **Get ready** checks (see [Preparing Windows](preparation.md)) |
 | `HKLM\SOFTWARE\AtlasOS\Toolbox` | The Atlas Toolbox installer's own record |
 
 ## The active install state
@@ -166,7 +166,7 @@ The [toggle schema](../package/Executables/AtlasModules/Toggles/README.md#state-
 - A fresh install seeds nothing from launcher defaults, so a `(default)` label isn't evidence of applied work.
 - An update or reinstall replays every existing record, because the store can't tell a default an earlier build seeded from a choice you made.
 - The one exception is a choice toggle that the Choices step set in the same install, which the Defaults step leaves out of its replay (see [choices.json](#choicesjson)).
-- After an update replays the records, the Defaults step checks them and logs any drift, which shows declarations a newer Windows build no longer honours.
+- After an update replays the records, the Defaults step checks them and logs any drift, which shows declarations a newer Windows build ignores.
 - The store never keeps executable paths.
 
 ## choices.json

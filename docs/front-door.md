@@ -157,7 +157,7 @@ Snipping Tool and eclean keep the request, and so does the keyboard choice unles
 
 Capture logs a line for each choice it takes, such as `Kept 'defender-disable' for Microsoft Defender instead of the requested 'defender-enable': Atlas's NoDefender package is installed. Run again with -ChooseAgain to change it.`
 A resume must then give the options Capture recorded.
-A Rebase isn't read from the PC, because a rebuilt Windows no longer shows its choices, so Atlas Manager's record of the feature update keeps them.
+A Rebase isn't read from the PC, because rebuilding Windows clears the previous choices, so Atlas Manager's record of the feature update keeps them.
 
 ### The user marker
 

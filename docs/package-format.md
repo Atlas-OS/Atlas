@@ -100,4 +100,4 @@ The [machine state document](install-state.md#the-machine-state-document) remain
 ## Compatibility
 
 Atlas Manager installs Atlas 0.6.0 and later.
-Earlier releases came as AME Wizard packages, which Atlas Manager doesn't open; it updates those installs with the current package instead, as [Updating Atlas](upgrading.md) describes.
+Earlier releases came as Playbook packages, which Atlas Manager doesn't open; it updates those installs with the current package instead, as [Updating Atlas](upgrading.md) describes.

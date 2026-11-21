@@ -1,5 +1,5 @@
 @{
-    Name        = 'Disable WU Auto-Reboot'
+    Name        = 'Disable automatic Windows Update restarts'
     Description = 'Stops Windows Update restarting the PC while someone is signed in, and waking it to install updates.'
     Registry    = @(
         # Stop Windows Update waking the PC to install updates. This is an AU-scoped

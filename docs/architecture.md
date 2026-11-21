@@ -207,7 +207,7 @@ It exits with 0 on success, 1 on an install failure and 2 on the wrong privilege
 | Tweaks | One tweak category, or one standalone tweak, in machine, current-user and default-user scopes |
 
 - Software installs the latest stable Atlas Toolbox release.
-  Only a release candidate built with `--toolbox` carries its own Toolbox, in `AtlasModules\Bundled\Toolbox`, and installs that instead.
+  Only a tester build made with `--toolbox` carries its own Toolbox, in `AtlasModules\Bundled\Toolbox`, and installs that instead.
 - Components doesn't install an Atlas CBS package again while servicing shows it installed or waiting for a restart.
   Keeping Defender takes off `Z-Atlas-NoDefender-Package`.
   A failed removal, or a NoDefender package still waiting for a restart, fails the install rather than report success on a PC with no antivirus.
@@ -333,7 +333,7 @@ The toggle engine and the console vocabulary in `Atlas.Core\Domain\Ui.ps1` own w
 ### Verification
 
 Apply and verify share one vocabulary, so every `Registry`, `Services` and `ScheduledTasks` declaration can be read back.
-`Test-AtlasRegistryEntries`, `Test-AtlasServiceEntries` and `Test-AtlasScheduledTaskEntries` return one drift record, with its reason, for each declaration that no longer holds.
+`Test-AtlasRegistryEntries`, `Test-AtlasServiceEntries` and `Test-AtlasScheduledTaskEntries` return one drift record, with its reason, for each declaration the PC does not match.
 `Test-AtlasToggleState`, `Test-AtlasToggleDrift`, `Test-AtlasTweak` and `Test-AtlasTweakCategory` build on them, honouring each tweak's applicability conditions.
 Companion functions and `Run` entries aren't checked.
 
