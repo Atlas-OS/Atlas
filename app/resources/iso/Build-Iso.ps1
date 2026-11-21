@@ -317,14 +317,21 @@ try {
     $namespace.AddNamespace('u', 'urn:schemas-microsoft-com:unattend')
     foreach ($node in $document.SelectNodes('//u:LocalAccount/u:Name | //u:AutoLogon/u:Username | //u:RegisteredOwner', $namespace)) { $node.InnerText = $username }
     $answer = $document.OuterXml
-    # Setup caches an answer file only if it has settings for the current pass, so
-    # the windowsPE section restates Setup's defaults: firewall on, key and edition
-    # still asked. The sources\ and Sysprep copies cover Setup's other search paths.
-    [IO.File]::WriteAllText((Join-Path $media 'autounattend.xml'), $answer, (New-Object Text.UTF8Encoding($false)))
-    [IO.File]::WriteAllText((Join-Path $media 'sources\autounattend.xml'), $answer, (New-Object Text.UTF8Encoding($false)))
-    $sysprep = Join-Path $media 'sources\$OEM$\$$\System32\Sysprep'
-    [void][IO.Directory]::CreateDirectory($sysprep)
-    [IO.File]::WriteAllText((Join-Path $sysprep 'unattend.xml'), $answer, (New-Object Text.UTF8Encoding($false)))
+    # An answer file in WinPE overrides the source's EI.cfg. Enterprise Evaluation
+    # relies on that file to select its keyless evaluation channel. On that media,
+    # deliver the answer to the installed OS for specialize and first sign-in.
+    $answerPaths = @('sources\$OEM$\$$\System32\Sysprep\unattend.xml')
+    if ($supportedEditions.Count -eq 1 -and $supportedEditions[0].EditionId -eq 'EnterpriseEval') {
+        $answerPaths += 'sources\$OEM$\$$\Panther\unattend.xml'
+    }
+    else {
+        $answerPaths += @('autounattend.xml', 'sources\autounattend.xml')
+    }
+    foreach ($relative in $answerPaths) {
+        $destination = Join-Path $media $relative
+        [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($destination))
+        [IO.File]::WriteAllText($destination, $answer, (New-Object Text.UTF8Encoding($false)))
+    }
     # This PC's network drivers come last, so each stage is reported once, in order.
     $networkIncluded = $false
     if ($request.copyNetworkDrivers) {
@@ -360,8 +367,9 @@ try {
         if ($checkVolumes.Count -ne 1) { throw 'Output volume is unreadable.' }
         $checkRoot = "$($checkVolumes[0].DriveLetter):\"
         # The staged image, not the source: it may be the filtered export.
-        $expected = @($imageRelative, 'autounattend.xml', 'sources\autounattend.xml', 'sources\$OEM$\$$\System32\Sysprep\unattend.xml', 'sources\boot.wim', 'efi\microsoft\boot\efisys.bin') + $bootFiles
+        $expected = @($imageRelative, 'sources\boot.wim', 'efi\microsoft\boot\efisys.bin') + $bootFiles
         $expected += @(@($payload.Keys) + 'setup.json' | ForEach-Object { Join-Path $atlasIso $_ })
+        $expected += $answerPaths
         if ($networkIncluded) {
             $expected += @(@(Get-ChildItem -LiteralPath $networkRoot -File -Force -Recurse) + @(Get-Item -LiteralPath (Join-Path $target 'network-drivers.json')) |
                 ForEach-Object { $_.FullName.Substring($media.Length + 1) })

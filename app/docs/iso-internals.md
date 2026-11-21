@@ -14,6 +14,7 @@ The code is in `src/services/iso.rs`, `resources/iso/Build-Iso.ps1` and `resourc
 - **Editions.** The exclusions match the destination edition check.
   The worker exports the supported editions, with DISM integrity checking, to a new WIM, and verifies their edition identities.
   Atlas sets no product key or image index, so firmware Home keys and volume licence media need their own boot checks; these settings say nothing about activation.
+  For single-edition Enterprise Evaluation media, Setup reads Microsoft's edition configuration in WinPE. Atlas delivers its answer file to the installed Windows Panther folder for the later setup passes.
 - **Staging.** The worker stages in a private, uniquely named folder beside the output.
   The app and its notices, the package, the destination scripts and the typed settings go in `sources\$OEM$\$$\AtlasISO`.
   Network drivers, if any, go in its `NetworkDrivers` folder, with `network-drivers.json` as their source report.

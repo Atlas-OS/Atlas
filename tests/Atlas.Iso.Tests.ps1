@@ -11,6 +11,9 @@ BeforeAll {
     $answerSteps = @($ast.FindAll({ param($n) $n -is [Management.Automation.Language.AssignmentStatementAst] -and $n.Left.Extent.Text -eq '$answer' }, $true))
     $start = $answerSteps[0].Extent.StartOffset
     $script:WriteAnswer = [scriptblock]::Create($ast.Extent.Text.Substring($start, $answerSteps[-1].Extent.EndOffset - $start))
+    $pathsStart = $ast.Find({ param($n) $n -is [Management.Automation.Language.AssignmentStatementAst] -and $n.Left.Extent.Text -eq '$answerPaths' }, $true)
+    $writeFiles = $ast.Find({ param($n) $n -is [Management.Automation.Language.ForEachStatementAst] -and $n.Condition.Extent.Text -eq '$answerPaths' }, $true)
+    $script:WriteAnswerFiles = [scriptblock]::Create($ast.Extent.Text.Substring($pathsStart.Extent.StartOffset, $writeFiles.Extent.EndOffset - $pathsStart.Extent.StartOffset))
     function New-TestAnswer([string]$architecture, [string]$username) {
         . $script:WriteAnswer
         [xml]$answer
@@ -49,6 +52,21 @@ Describe 'Native ISO mastering' {
         $specialize = @($script:Answer.unattend.settings | Where-Object pass -eq 'specialize')
         $specialize | Should -HaveCount 1
         $specialize[0].component.RunSynchronous.RunSynchronousCommand.Path | Should -Match 'AtlasISO\\Setup.ps1'
+    }
+    It 'stages the answer for the correct setup pass on <Edition> media' -ForEach @(
+        @{ Edition = 'EnterpriseEval'; AnswerInWinPE = $false }
+        @{ Edition = 'Professional'; AnswerInWinPE = $true }
+    ) {
+        $media = Join-Path $TestDrive $Edition
+        $supportedEditions = @([pscustomobject]@{ EditionId = $Edition })
+        $answer = $script:Answer.OuterXml
+        . $script:WriteAnswerFiles
+        Test-Path (Join-Path $media 'autounattend.xml') | Should -Be $AnswerInWinPE
+        Test-Path (Join-Path $media 'sources\autounattend.xml') | Should -Be $AnswerInWinPE
+        Test-Path (Join-Path $media 'sources\$OEM$\$$\Panther\unattend.xml') | Should -Be (!$AnswerInWinPE)
+        foreach ($relative in $answerPaths) {
+            [IO.File]::ReadAllText((Join-Path $media $relative)) | Should -BeExactly $answer
+        }
     }
     It 'names the account and matches the components to <Architecture> media' -ForEach @(
         @{ Architecture = 'x64'; Expected = 'amd64' }

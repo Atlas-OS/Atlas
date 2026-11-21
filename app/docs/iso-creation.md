@@ -43,7 +43,7 @@ The flow is independent of the install flow and its PC checks.
    An empty account name holds **Continue** with a hint, and an invalid one is marked on the field.
 3. **Your choices.** Choose the mode and, when choices are saved in the ISO, the Atlas options.
 4. **Review.** Check one card per earlier step, each with a **Change** link, and the editions the ISO includes.
-   Atlas sets no product key or image index, so Windows setup asks, and you choose an edition you're licensed for.
+   Atlas sets no product key or image index. If Windows Setup asks, choose an edition you're licensed for. Microsoft's single-edition Enterprise Evaluation ISO uses its own evaluation channel.
 5. **Create.** A checklist shows the build's stages: checking the source, copying Windows files, adding Atlas, preparing network drivers (only when the ISO includes them), writing the ISO, checking it and finishing up.
 
 - **Back** and **Continue** keep every value, and the stepper jumps to any step already reached once every step before it is complete.
