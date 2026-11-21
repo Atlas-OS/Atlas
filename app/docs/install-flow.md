@@ -18,6 +18,7 @@ Windows Security comes last, so protection is off for as short a time as possibl
 
 ## Starting the flow
 
+- On a PC without Atlas, Home recommends [creating an Atlas ISO](iso-creation.md). For Windows that has just been installed, Home also offers **Install Atlas**.
 - **Install Atlas** first relaunches the app elevated through User Account Control (UAC).
 - A draft in `settings.json` holds the step, the options and the unpacked package, so the elevated copy can resume.
   The app writes it atomically, a failed save stops the relaunch, and success or cancelling clears it.

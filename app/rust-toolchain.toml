@@ -2,5 +2,5 @@
 # so a build here, in CI and on a contributor's PC compiles the same code the
 # same way. Move it deliberately: run the full test suite on the new release.
 [toolchain]
-channel = "1.98.1"
+channel = "1.100.0"
 components = ["rustfmt", "clippy"]

@@ -668,6 +668,7 @@ settings-language-formats = Angka, tanggal, dan waktu mengikuti format regional 
 # right to left. $locale is the format's English name, for example "Arabic (Saudi Arabia)".
 settings-language-formats-numbers-only = Angka mengikuti format regional Windows Anda ({ $locale }). Tanggal dan waktu menggunakan format standar karena Atlas belum dapat menampilkan teks dari kanan ke kiri.
 settings-language-contribute = Bantu menerjemahkan Atlas di GitHub
+settings-usage-analytics = Bagikan layar yang dikunjungi, pembuatan ISO, dan hasil instalasi dengan Atlas
 settings-restart-label = Mulai ulang PC secara otomatis setelah penginstalan
 settings-restart-locked = Pengaturan ini dapat diubah setelah penginstalan selesai.
 settings-restart-description = Jika pengaturan ini aktif, PC Anda akan dimulai ulang dalam waktu satu menit setelah penginstalan selesai, sehingga aplikasi yang terbuka akan ditutup. Simpan pekerjaan Anda sebelum menginstal.
@@ -701,13 +702,13 @@ consequence-install-eclean = Alat perawatan dari tim di balik AtlasOS untuk menj
 
 # Introduction on the home page before Atlas is installed.
 home-intro = Atlas menyesuaikan Windows untuk mengurangi aktivitas latar belakang dan gangguan. Instal Atlas pada instalasi Windows yang bersih, sebelum Anda menambahkan aplikasi dan file Anda sendiri.
-## ISO creation (Beta)
+## ISO creation
 iso-home-title = Media instalasi Windows
 iso-home-description = Buat file instalasi Windows (ISO) yang menyertakan Atlas, lalu gunakan untuk menginstal ulang Windows di PC ini atau PC lain.
 iso-open = Buat ISO Atlas
 iso-title = Buat ISO Atlas
-iso-beta = Beta
-iso-beta-description = Uji ISO di mesin virtual sebelum menggunakannya di PC. Cadangkan file Anda sebelum menginstal Windows.
+iso-recommended = Disarankan
+iso-backup-advice = Uji ISO di mesin virtual sebelum menggunakannya di PC. Cadangkan file Anda sebelum menginstal Windows.
 iso-admin-description = Atlas memerlukan izin administrator untuk membaca ISO Windows Anda dan membuat ISO baru. Pilih Jalankan ulang sebagai administrator, lalu pilih Ya saat Windows meminta izin.
 iso-files-description = Atlas membuat salinan ISO Windows 11 yang sudah berisi Atlas, untuk menginstal ulang Windows. Pilih ISO Windows 11 yang diunduh dari Microsoft, unduh paket Atlas terbaru atau pilih paket yang sudah Anda miliki (.atlaspkg), lalu pilih lokasi untuk menyimpan ISO baru.
 # Tester build: no package picker.
@@ -776,7 +777,7 @@ iso-cancelling = Menunggu titik aman untuk membatalkan
 iso-cancelled = Pembuatan ISO dibatalkan
 iso-cancelled-description = ISO asli Anda tidak berubah. Jika ada file sementara yang tertinggal, pilih Buka folder log untuk melihat lokasinya.
 iso-complete = ISO Anda siap
-iso-complete-description = Pembuatan ISO masih dalam tahap beta, jadi uji ISO di mesin virtual terlebih dahulu. Setelah itu, pilih Buat USB instalasi, dan cadangkan file Anda sebelum menginstal ulang Windows.
+iso-complete-description = Setelah itu, pilih Buat USB instalasi, dan cadangkan file Anda sebelum menginstal ulang Windows.
 iso-open-folder = Tampilkan di folder
 iso-failed = Pembuatan ISO tidak dapat diselesaikan
 iso-failed-description = Pastikan file Anda masih berada di lokasi yang Anda pilih dan drive tujuan masih terhubung, lalu pilih Buat ISO. Jika terus gagal, pilih Kirim laporan.
@@ -884,7 +885,7 @@ iso-mode-desktop-description = Atlas menyimpan pilihan Anda dalam ISO. Setelah A
 desktop-setup-description = Selesaikan penyiapan PC Anda. Pilihan Atlas tersimpan; Anda dapat kembali ke Windows jika perlu.
 desktop-setup-exit = Lanjutkan di Windows
 
-# Windows installation USB (Beta)
+# Windows installation USB
 usb-title = Buat USB instalasi
 usb-existing = Buat USB dari ISO yang sudah ada
 usb-description = Salin ISO ke drive USB agar Anda dapat menginstal ulang Windows dari drive tersebut. Gunakan ISO yang dibuat oleh Atlas untuk sekaligus menginstal Atlas.

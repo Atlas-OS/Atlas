@@ -1,6 +1,6 @@
-# Atlas changes to accesskit_windows 0.34.0
+# Atlas changes to accesskit_windows 0.35.2
 
-This directory vendors the published `accesskit_windows` 0.34.0 crate from crates.io (upstream AccessKit commit `c88605b96d04431f9c3c792464a0f2f253480e94`, `platforms/windows`), with one change that reports heading levels.
+This directory vendors the published `accesskit_windows` 0.35.2 crate from crates.io (upstream AccessKit commit `f3026222559c7f5f46d8f25cb7404de68eb149f0`, `adapters/windows`), with one change that reports heading levels.
 Its MIT and Apache-2.0 licence texts are kept.
 The `[patch.crates-io]` entry in `app/Cargo.toml` pins this copy.
 

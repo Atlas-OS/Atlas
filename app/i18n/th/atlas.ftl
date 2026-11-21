@@ -673,6 +673,7 @@ settings-language-formats = ตัวเลข วันที่ และเ�
 # right to left. $locale is the format's English name, for example "Arabic (Saudi Arabia)".
 settings-language-formats-numbers-only = ตัวเลขจะเป็นไปตามรูปแบบภูมิภาคของ Windows ({ $locale }) ส่วนวันที่และเวลาจะใช้รูปแบบมาตรฐาน เนื่องจาก Atlas ยังแสดงข้อความที่เขียนจากขวาไปซ้ายไม่ได้
 settings-language-contribute = ช่วยแปล Atlas บน GitHub
+settings-usage-analytics = แชร์หน้าที่เปิด การสร้าง ISO และผลการติดตั้งกับ Atlas
 settings-restart-label = รีสตาร์ตพีซีของฉันโดยอัตโนมัติหลังติดตั้งเสร็จ
 settings-restart-locked = คุณเปลี่ยนการตั้งค่านี้ได้หลังการติดตั้งเสร็จ
 settings-restart-description = เมื่อเปิดการตั้งค่านี้ พีซีของคุณจะรีสตาร์ตภายในหนึ่งนาทีหลังติดตั้งเสร็จ ซึ่งจะปิดแอปที่เปิดอยู่ บันทึกงานของคุณก่อนติดตั้ง
@@ -707,13 +708,13 @@ consequence-install-eclean = เครื่องมือบำรุงรั
 # Introduction on the home page before Atlas is installed.
 home-intro = Atlas ปรับ Windows เพื่อลดการทำงานเบื้องหลังและสิ่งรบกวน ติดตั้ง Atlas บน Windows ที่ติดตั้งใหม่ทั้งหมด ก่อนที่คุณจะเพิ่มแอปและไฟล์ของคุณเอง
 
-## ISO creation (Beta)
+## ISO creation
 iso-home-title = สื่อการติดตั้ง Windows
 iso-home-description = สร้างไฟล์ติดตั้ง Windows (ISO) ที่มี Atlas อยู่ด้วย แล้วใช้ไฟล์นั้นติดตั้ง Windows ใหม่บนพีซีเครื่องนี้หรือเครื่องอื่น
 iso-open = สร้าง ISO พร้อม Atlas
 iso-title = สร้าง ISO พร้อม Atlas
-iso-beta = เบต้า
-iso-beta-description = ทดสอบ ISO ในเครื่องเสมือนก่อนนำไปใช้บนพีซี และสำรองไฟล์ก่อนติดตั้ง Windows
+iso-recommended = แนะนำ
+iso-backup-advice = ทดสอบ ISO ในเครื่องเสมือนก่อนนำไปใช้บนพีซี และสำรองไฟล์ก่อนติดตั้ง Windows
 iso-admin-description = Atlas ต้องได้รับสิทธิ์ผู้ดูแลระบบเพื่ออ่าน ISO ของ Windows และสร้าง ISO ใหม่ เลือก เปิด Atlas ใหม่ในฐานะผู้ดูแลระบบ แล้วเลือก ใช่ เมื่อ Windows ถาม
 iso-files-description = Atlas จะคัดลอก ISO ของ Windows 11 แล้วเพิ่ม Atlas ลงไป เพื่อใช้ติดตั้ง Windows ใหม่ เลือก ISO ของ Windows 11 ที่ดาวน์โหลดจาก Microsoft ดาวน์โหลดแพ็กเกจ Atlas ล่าสุดหรือเลือกแพ็กเกจที่คุณมีอยู่แล้ว (.atlaspkg) จากนั้นเลือกตำแหน่งที่จะบันทึก ISO ใหม่
 # Tester build: no package picker.
@@ -783,7 +784,7 @@ iso-cancelling = กำลังรอจุดที่ยกเลิกได
 iso-cancelled = ยกเลิกการสร้าง ISO แล้ว
 iso-cancelled-description = ISO ต้นฉบับของคุณไม่มีการเปลี่ยนแปลง หากมีไฟล์ชั่วคราวหลงเหลืออยู่ ให้เลือก เปิดโฟลเดอร์บันทึก เพื่อดูว่าไฟล์อยู่ที่ใด
 iso-complete = ISO พร้อมใช้งานแล้ว
-iso-complete-description = การสร้าง ISO ยังอยู่ในรุ่นเบต้า จึงควรทดสอบ ISO ในเครื่องเสมือนก่อน จากนั้นเลือก สร้าง USB ติดตั้ง Windows และสำรองไฟล์ของคุณก่อนติดตั้ง Windows ใหม่
+iso-complete-description = จากนั้นเลือก สร้าง USB ติดตั้ง Windows และสำรองไฟล์ของคุณก่อนติดตั้ง Windows ใหม่
 iso-open-folder = แสดงในโฟลเดอร์
 iso-failed = สร้าง ISO ไม่สำเร็จ
 iso-failed-description = ตรวจดูให้แน่ใจว่าไฟล์ของคุณยังอยู่ในตำแหน่งที่เลือกไว้ และไดรฟ์ที่จะบันทึกยังเชื่อมต่ออยู่ จากนั้นเลือก สร้าง ISO หากยังไม่สำเร็จ ให้เลือก ส่งรายงาน
@@ -893,7 +894,7 @@ iso-mode-desktop-description = Atlas จะบันทึกตัวเลื�
 desktop-setup-description = ตั้งค่าพีซีให้เสร็จ ตัวเลือก Atlas ของคุณบันทึกไว้แล้ว หากจำเป็น คุณสามารถกลับไปที่ Windows ได้
 desktop-setup-exit = ดำเนินการต่อใน Windows
 
-# Windows installation USB (Beta)
+# Windows installation USB
 usb-title = สร้าง USB ติดตั้ง Windows
 usb-existing = สร้าง USB จาก ISO ที่มีอยู่
 usb-description = นำ ISO ใส่ลงในไดรฟ์ USB เพื่อใช้ติดตั้ง Windows ใหม่ หากใช้ ISO ที่สร้างโดย Atlas จะติดตั้ง Atlas ไปพร้อมกันได้

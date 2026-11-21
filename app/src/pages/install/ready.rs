@@ -678,9 +678,8 @@ impl InstallPage {
     }
 }
 
-/// Where Microsoft publishes the licence terms of the Windows version a
-/// feature-update policy asks for, as the policy's own help names it.
-const WINDOWS_TERMS: &str = "https://aka.ms/WindowsTargetVersioninfo";
+/// Microsoft's licence terms by product, acquisition channel and language.
+const WINDOWS_TERMS: &str = "https://www.microsoft.com/useterms";
 
 /// What moving Windows keeps and changes, one line each, with a check mark.
 fn fact_list(facts: &[String], cx: &App) -> AnyElement {

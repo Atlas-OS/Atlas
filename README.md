@@ -6,7 +6,7 @@
   <a href="https://github.com/Atlas-OS/Atlas/graphs/contributors"><img alt="Contributors" src="https://img.shields.io/github/contributors/atlas-os/atlas?style=for-the-badge&color=1A91FF" /></a>
   <a href="https://github.com/Atlas-OS/Atlas/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/atlas-os/atlas?style=for-the-badge&color=1A91FF" /></a>
   <a href="https://github.com/Atlas-OS/Atlas/actions/workflows/build.yml"><img alt="Build Atlas package workflow status" src="https://img.shields.io/github/actions/workflow/status/atlas-os/atlas/build.yml?branch=main&style=for-the-badge&logo=github&label=Build" /></a>
-  <a href="https://github.com/Atlas-OS/.github/blob/main/CODE_OF_CONDUCT.md"><img alt="Code of Conduct" src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg?style=for-the-badge&color=1A91FF" /></a>
+  <a href="https://github.com/Atlas-OS/.github/blob/0507d2243681b7e1f5689ec1662f3bec8b4e994a/profile/CODE_OF_CONDUCT.md"><img alt="Code of Conduct" src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg?style=for-the-badge&color=1A91FF" /></a>
 </p>
 <p align="center">An open and lightweight modification to Windows, designed to optimise performance, privacy and usability.</p>
 
@@ -30,15 +30,12 @@
 ## Install Atlas
 
 1. Download `AtlasManager.exe` from the [latest release](https://github.com/Atlas-OS/Atlas/releases/latest).
-2. Run it.
-   Atlas Manager checks your PC, installs Windows and Microsoft Store updates, and asks for your choices.
-3. Atlas Manager installs Atlas and restarts your PC.
+2. For a first install, choose **Create an Atlas ISO**. Select an original Windows 11 ISO from Microsoft and choose your driver settings.
+3. Back up your files and reinstall Windows using the media you created. After sign-in, Atlas Manager guides you through updates and installing Atlas.
 
 Atlas needs a supported edition and release of Windows 11.
 Check the [requirements](https://atlasos.net/docs/install/requirements/) and the [supported Windows releases](docs/windows-release-policy.md#supported-releases) before you start.
-The [installation guide](https://atlasos.net/docs/install/manager/) walks through each step.
-
-Atlas Manager can also create an Atlas ISO and an installation USB (Beta).
+Follow the [ISO and USB guide](https://atlasos.net/docs/install/iso/) for each step. If you already have fresh Windows, follow [Install with Atlas Manager](https://atlasos.net/docs/install/manager/).
 
 ## What Atlas changes
 

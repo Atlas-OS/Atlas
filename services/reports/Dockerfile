@@ -1,4 +1,4 @@
-FROM rust:1.98.1-slim AS build
+FROM rust:1.100.0-slim AS build
 WORKDIR /build
 RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev && rm -rf /var/lib/apt/lists/*
 COPY Cargo.toml Cargo.lock ./

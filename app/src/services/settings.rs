@@ -108,6 +108,7 @@ pub struct AppSettings {
     pub language: LanguagePreference,
     /// Restart automatically when the install completes.
     pub restart_after_install: bool,
+    pub usage_analytics: bool,
     pub draft: Option<InstallDraft>,
     /// Language tags whose "preview translation" notice the user dismissed.
     pub dismissed_preview_notices: Vec<String>,
@@ -133,6 +134,7 @@ impl Default for AppSettings {
             theme: ThemePreference::System,
             language: LanguagePreference::System,
             restart_after_install: true,
+            usage_analytics: true,
             draft: None,
             dismissed_preview_notices: Vec::new(),
             protection_reminder_dismissed: None,
@@ -388,6 +390,15 @@ mod tests {
     use crate::services::test_support::TempDir;
 
     #[test]
+    fn analytics_defaults_on_and_respects_a_saved_opt_out() {
+        let legacy: AppSettings = serde_json::from_str("{}").unwrap();
+        let opted_out: AppSettings = serde_json::from_str(r#"{"usageAnalytics":false}"#).unwrap();
+        assert!(AppSettings::default().usage_analytics);
+        assert!(legacy.usage_analytics);
+        assert!(!opted_out.usage_analytics);
+    }
+
+    #[test]
     fn settings_round_trip_atomically() {
         let temp = TempDir::new("settings-roundtrip");
         let path = temp.path().join("nested").join("settings.json");
@@ -400,6 +411,7 @@ mod tests {
             drivers: Some(super::super::preparation::Drivers::Manual),
             theme: ThemePreference::Dark,
             language: LanguagePreference::Explicit("de".into()),
+            usage_analytics: true,
             restart_after_install: false,
             draft: Some(InstallDraft {
                 step: "options".into(),

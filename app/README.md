@@ -59,7 +59,7 @@ The script writes `target/x86_64-pc-windows-msvc/release/AtlasManager.exe`.
   Home shows the installed version and checks GitHub for newer releases.
   The install has four steps, **Get ready**, **Your choices**, **Windows Security** and **Install**, and ends by running the front door, `Entry\Install-Atlas.ps1`, the script in the Atlas package that installs Atlas.
 - **Creates media.**
-  **Create an Atlas ISO** builds Windows 11 installation media that applies Atlas after Windows setup, and can write it to a USB drive.
+  Home recommends **Create an Atlas ISO** for a first install. It builds Windows 11 installation media that applies Atlas after Windows setup, and can write it to a USB drive.
 - **Helps with problems.**
   **Export diagnostics** saves a ZIP for a bug report, and **Send a report** sends a message privately to the Atlas team.
 

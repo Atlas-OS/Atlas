@@ -73,6 +73,8 @@ pub struct InstallAttempt {
     /// ended, so whether Windows is about to restart is unknown and no
     /// countdown is shown for it.
     pub recovered: bool,
+    /// Only the launching window counts this attempt in usage analytics.
+    launched_here: bool,
     /// The countdown to the restart Atlas asks Windows for after a success.
     pub restart: Option<RestartCountdown>,
     /// Windows has been asked to restart (the countdown ended, or the user
@@ -556,9 +558,15 @@ impl AppModel {
         }
         match launch {
             Ok((record, events)) => {
+                crate::services::analytics::send(
+                    self.settings.usage_analytics,
+                    "Install started",
+                    "install/run",
+                );
                 self.set_record_problem(None);
                 self.flow.start_running().ok();
                 self.follow_session(record, events, cx);
+                self.attempt.launched_here = true;
             }
             Err(error) => match error.downcast::<installer::AlreadyRunning>() {
                 // Another instance's install is running (the launch lock saw
@@ -653,6 +661,10 @@ impl AppModel {
         log::info!("Installation outcome: {outcome:?}");
         if self.flow.finish(outcome).is_err() {
             return;
+        }
+        if self.attempt.launched_here {
+            let event = if outcome.is_success() { "Install completed" } else { "Install failed" };
+            crate::services::analytics::send(self.settings.usage_analytics, event, "install/run");
         }
         self.refresh_atlas_state();
         if outcome.is_success() {

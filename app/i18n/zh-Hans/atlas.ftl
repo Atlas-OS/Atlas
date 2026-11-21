@@ -650,6 +650,7 @@ settings-language-formats = 数字、日期和时间遵循你的 Windows 区域�
 # $locale 为该格式的英文名称，例如“Arabic (Saudi Arabia)”。
 settings-language-formats-numbers-only = 数字遵循你的 Windows 区域格式（{ $locale }）。由于 Atlas 暂时无法显示从右到左的文字，日期和时间使用标准格式。
 settings-language-contribute = 在 GitHub 上帮助翻译 Atlas
+settings-usage-analytics = 与 Atlas 分享访问的页面、ISO 创建情况及安装结果
 settings-restart-label = 安装完成后自动重启电脑
 settings-restart-locked = 安装完成后才能更改此设置。
 settings-restart-description = 开启此项后，电脑会在安装完成后一分钟内重启，这会关闭你打开的应用。请在安装前保存工作。
@@ -684,13 +685,13 @@ consequence-install-eclean = AtlasOS 团队打造的维护工具，帮助你在�
 # 主页上安装 Atlas 之前显示的简介。
 home-intro = Atlas 会调整 Windows，减少后台活动和干扰。请在全新安装 Windows 后、添加自己的应用和文件之前安装 Atlas。
 
-## ISO creation (Beta)
+## ISO creation
 iso-home-title = Windows 安装介质
 iso-home-description = 创建包含 Atlas 的 Windows 安装映像 (ISO)，然后用它在这台电脑或其他电脑上重新安装 Windows。
 iso-open = 创建 Atlas ISO
 iso-title = 创建 Atlas ISO
-iso-beta = 测试版
-iso-beta-description = 在电脑上使用前，请先在虚拟机中测试 ISO。安装 Windows 前，请备份文件。
+iso-recommended = 推荐
+iso-backup-advice = 在电脑上使用前，请先在虚拟机中测试 ISO。安装 Windows 前，请备份文件。
 iso-admin-description = Atlas 需要管理员权限才能读取你的 Windows ISO 并创建新的 ISO。请选择“以管理员身份重新打开”，然后在 Windows 询问时选择“是”。
 iso-files-description = Atlas 会复制一份 Windows 11 ISO 并在其中加入 Atlas，用于重新安装 Windows。请选择从 Microsoft 下载的 Windows 11 ISO，下载最新的 Atlas 安装包或选择已有的安装包 (.atlaspkg)，然后选择新 ISO 的保存位置。
 # 测试版：没有安装包选择器。
@@ -758,7 +759,7 @@ iso-cancelling = 正在等待安全的取消时机
 iso-cancelled = 已取消创建 ISO
 iso-cancelled-description = 原始 ISO 未被更改。如果留下了临时文件，请选择“打开日志文件夹”查看它们的位置。
 iso-complete = ISO 已准备就绪
-iso-complete-description = ISO 创建功能仍处于测试阶段，因此请先在虚拟机中测试此 ISO。然后选择“创建安装 U 盘”，并在重新安装 Windows 前备份文件。
+iso-complete-description = 然后选择“创建安装 U 盘”，并在重新安装 Windows 前备份文件。
 iso-open-folder = 在文件夹中显示
 iso-failed = 未能完成 ISO 创建
 iso-failed-description = 请确保文件仍在你选择的位置，并且保存位置所在的驱动器已连接，然后选择“创建 ISO”。如果仍然失败，请选择“发送报告”。
@@ -865,7 +866,7 @@ iso-mode-desktop-description = Atlas 会将你的选择保存到 ISO 中。登�
 desktop-setup-description = 请完成电脑设置。你的 Atlas 选择已保存，需要时可以返回 Windows。
 desktop-setup-exit = 在 Windows 中继续
 
-# Windows installation USB (Beta)
+# Windows installation USB
 usb-title = 创建安装 U 盘
 usb-existing = 使用现有 ISO 创建 U 盘
 usb-description = 将 ISO 写入 U 盘，以便用它重新安装 Windows。使用 Atlas 创建的 ISO 可以同时安装 Atlas。

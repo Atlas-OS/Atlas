@@ -153,6 +153,7 @@ impl AppModel {
             theme,
             language,
             restart_after_install,
+            usage_analytics,
             draft: _,
             dismissed_preview_notices,
             protection_reminder_dismissed,
@@ -167,6 +168,7 @@ impl AppModel {
                 doc.theme = theme;
                 doc.language = language;
                 doc.restart_after_install = restart_after_install;
+                doc.usage_analytics = usage_analytics;
                 if drivers.is_some() {
                     doc.drivers = drivers;
                 }

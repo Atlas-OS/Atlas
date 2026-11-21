@@ -690,6 +690,7 @@ settings-language-formats = Sayılar, tarihler ve saatler Windows bölgesel biç
 # right to left. $locale is the format's English name, for example "Arabic (Saudi Arabia)".
 settings-language-formats-numbers-only = Sayılar Windows bölgesel biçiminizi izler ({ $locale }). Atlas sağdan sola yazılan metni henüz gösteremediği için tarihler ve saatler standart bir biçimde gösterilir.
 settings-language-contribute = Atlas'ın çevirisine GitHub'da katkıda bulun
+settings-usage-analytics = Ziyaret edilen ekranları, ISO oluşturma işlemlerini ve kurulum sonuçlarını Atlas ile paylaş
 settings-restart-label = Kurulumdan sonra bilgisayarımı otomatik olarak yeniden başlat
 settings-restart-locked = Bunu kurulum bittikten sonra değiştirebilirsiniz.
 settings-restart-description = Bu ayar açıkken bilgisayarınız kurulum bittikten sonra bir dakika içinde yeniden başlar ve açık uygulamalarınız kapanır. Kurulumdan önce çalışmanızı kaydedin.
@@ -724,13 +725,13 @@ consequence-install-eclean = Kurulumdan sonra bilgisayarınızı düzenli tutmak
 # Introduction on the home page before Atlas is installed.
 home-intro = Atlas, arka plan etkinliğini ve dikkat dağıtan öğeleri azaltmak için Windows'ta ayarlamalar yapar. Atlas'ı, kendi uygulamalarınızı ve dosyalarınızı eklemeden önce temiz bir Windows kurulumuna kurun.
 
-## ISO creation (Beta)
+## ISO creation
 iso-home-title = Windows yükleme medyası
 iso-home-description = Atlas içeren bir Windows kurulum dosyası (ISO) oluşturun, ardından bu dosyayla Windows'u bu bilgisayara veya başka bir bilgisayara yeniden yükleyin.
 iso-open = Atlas ISO'su oluştur
 iso-title = Atlas ISO'su oluştur
-iso-beta = Beta
-iso-beta-description = ISO'yu bir bilgisayarda kullanmadan önce sanal makinede deneyin. Windows'u yüklemeden önce dosyalarınızı yedekleyin.
+iso-recommended = Önerilen
+iso-backup-advice = ISO'yu bir bilgisayarda kullanmadan önce sanal makinede deneyin. Windows'u yüklemeden önce dosyalarınızı yedekleyin.
 iso-admin-description = Atlas'ın Windows ISO'nuzu okuyup yenisini oluşturabilmesi için yönetici izni gerekiyor. Yönetici olarak yeniden aç'ı seçin, ardından Windows sorduğunda Evet'i seçin.
 iso-files-description = Atlas, Windows'u yeniden yükleyebilmeniz için bir Windows 11 ISO'sunun Atlas eklenmiş bir kopyasını oluşturur. Microsoft'tan indirilmiş bir Windows 11 ISO'su seçin, en son Atlas paketini indirin veya elinizdeki bir paketi (.atlaspkg) seçin, ardından yeni ISO'nun kaydedileceği yeri seçin.
 # Tester build: no package picker.
@@ -799,7 +800,7 @@ iso-cancelling = İptal için güvenli bir durma noktası bekleniyor
 iso-cancelled = ISO oluşturma iptal edildi
 iso-cancelled-description = Orijinal ISO'nuz değişmedi. Geride geçici dosyalar kaldıysa nerede olduklarını görmek için Günlük klasörünü aç'ı seçin.
 iso-complete = ISO'nuz hazır
-iso-complete-description = ISO oluşturma beta aşamasında olduğu için ISO’yu önce bir sanal makinede deneyin. Ardından Kurulum USB’si oluştur’u seçin ve Windows’u yeniden yüklemeden önce dosyalarınızı yedekleyin.
+iso-complete-description = Ardından Kurulum USB’si oluştur’u seçin ve Windows’u yeniden yüklemeden önce dosyalarınızı yedekleyin.
 iso-open-folder = Klasörde göster
 iso-failed = ISO oluşturma tamamlanamadı
 iso-failed-description = Dosyalarınızın hâlâ seçtiğiniz yerde olduğundan ve kaydettiğiniz sürücünün bağlı olduğundan emin olun, ardından ISO oluştur'u seçin. Sorun devam ederse Rapor gönder'i seçin.
@@ -913,7 +914,7 @@ iso-mode-desktop-description = Atlas seçimlerinizi ISO’ya kaydeder. Oturum a�
 desktop-setup-description = Bilgisayarınızın kurulumunu tamamlayın. Atlas seçimleriniz kaydedildi; gerekirse Windows’a dönebilirsiniz.
 desktop-setup-exit = Windows’ta devam et
 
-# Windows installation USB (Beta)
+# Windows installation USB
 usb-title = Kurulum USB’si oluştur
 usb-existing = Mevcut bir ISO’dan USB oluştur
 usb-description = Windows’u yeniden yükleyebilmeniz için bir ISO’yu USB sürücüsüne yazın. Atlas’ı aynı anda kurmak için Atlas ile oluşturulmuş bir ISO kullanın.

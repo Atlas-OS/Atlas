@@ -687,12 +687,13 @@ fn extract_entries<R: Read + std::io::Seek>(
         let mut entry = archive
             .by_index_decrypt(index, PACKAGE_PASSWORD.as_bytes())
             .with_context(|| format!("read entry {index}"))?;
+        let entry_name = entry.name().with_context(|| format!("decode entry {index} name"))?;
         let Some(relative) = entry.enclosed_name() else {
-            anyhow::bail!("the package contains an unsafe path: {}", entry.name());
+            anyhow::bail!("the package contains an unsafe path: {entry_name}");
         };
-        check_entry_components(&relative).with_context(|| format!("unsafe entry {}", entry.name()))?;
+        check_entry_components(&relative).with_context(|| format!("unsafe entry {entry_name}"))?;
         let path = staging.join(&relative);
-        anyhow::ensure!(path.starts_with(staging), "the package contains an unsafe path: {}", entry.name());
+        anyhow::ensure!(path.starts_with(staging), "the package contains an unsafe path: {entry_name}");
         if entry.is_dir() {
             fs::create_dir_all(&path)?;
         } else {

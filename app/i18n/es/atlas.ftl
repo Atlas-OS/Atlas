@@ -681,6 +681,7 @@ settings-language-formats = Los números, las fechas y las horas siguen el forma
 # izquierda. $locale es el nombre del formato en inglés, por ejemplo "Arabic (Saudi Arabia)".
 settings-language-formats-numbers-only = Los números siguen el formato regional de Windows ({ $locale }). Las fechas y las horas usan un formato estándar porque Atlas aún no puede mostrar texto de derecha a izquierda.
 settings-language-contribute = Ayudar a traducir Atlas en GitHub
+settings-usage-analytics = Compartir con Atlas las pantallas visitadas, las ISO creadas y los resultados de instalación
 settings-restart-label = Reiniciar mi PC automáticamente al terminar la instalación
 settings-restart-locked = Podrá cambiar esto cuando termine la instalación.
 settings-restart-description = Con esta opción activada, su PC se reinicia en menos de un minuto tras terminar la instalación, y se cierran las aplicaciones abiertas. Guarde su trabajo antes de instalar.
@@ -715,13 +716,13 @@ consequence-install-eclean = Una herramienta de mantenimiento creada por el equi
 # Introducción de la página de inicio antes de instalar Atlas.
 home-intro = Atlas ajusta Windows para reducir la actividad en segundo plano y las distracciones. Instale Atlas sobre una instalación limpia de Windows, antes de agregar sus propias aplicaciones y archivos.
 
-## ISO creation (Beta)
+## ISO creation
 iso-home-title = Medio de instalación de Windows
 iso-home-description = Cree un archivo de instalación de Windows (ISO) que incluya Atlas y úselo para reinstalar Windows en este equipo o en otro.
 iso-open = Crear una ISO con Atlas
 iso-title = Crear una ISO con Atlas
-iso-beta = Beta
-iso-beta-description = Pruebe la ISO en una máquina virtual antes de usarla en un equipo. Haga una copia de seguridad de sus archivos antes de instalar Windows.
+iso-recommended = Recomendado
+iso-backup-advice = Pruebe la ISO en una máquina virtual antes de usarla en un equipo. Haga una copia de seguridad de sus archivos antes de instalar Windows.
 iso-admin-description = Atlas necesita permisos de administrador para leer su ISO de Windows y crear la nueva. Elija Reabrir como administrador y, después, elija Sí cuando Windows pregunte.
 iso-files-description = Atlas crea una copia de una ISO de Windows 11 con Atlas incluido, para reinstalar Windows. Elija una ISO de Windows 11 descargada de Microsoft, descargue el paquete de Atlas más reciente o elija uno que ya tenga (.atlaspkg) y, después, elija dónde guardar la nueva ISO.
 # Versión de prueba: sin selector de paquete.
@@ -790,7 +791,7 @@ iso-cancelling = Esperando un punto seguro para cancelar
 iso-cancelled = Creación de la ISO cancelada
 iso-cancelled-description = Su ISO original no se ha modificado. Si quedaron archivos temporales, elija Abrir la carpeta de registros para ver dónde están.
 iso-complete = Su ISO está lista
-iso-complete-description = La creación de ISO está en versión beta, así que pruebe primero la ISO en una máquina virtual. Después, elija Crear USB de instalación y haga una copia de seguridad de sus archivos antes de reinstalar Windows.
+iso-complete-description = Después, elija Crear USB de instalación y haga una copia de seguridad de sus archivos antes de reinstalar Windows.
 iso-open-folder = Mostrar en la carpeta
 iso-failed = No se pudo terminar de crear la ISO
 iso-failed-description = Asegúrese de que sus archivos sigan donde los eligió y de que la unidad donde guarda la ISO esté conectada; después, elija Crear ISO. Si sigue fallando, elija Enviar un informe.
@@ -899,7 +900,7 @@ iso-mode-desktop-description = Atlas guarda sus preferencias en la ISO. Cuando i
 desktop-setup-description = Complete la configuración del equipo. Sus preferencias de Atlas están guardadas; puede volver a Windows si lo necesita.
 desktop-setup-exit = Continuar en Windows
 
-# Windows installation USB (Beta)
+# Windows installation USB
 usb-title = Crear USB de instalación
 usb-existing = Crear un USB a partir de una ISO existente
 usb-description = Copie una ISO en una unidad USB para poder reinstalar Windows desde ella. Use una ISO creada por Atlas para instalar Atlas al mismo tiempo.

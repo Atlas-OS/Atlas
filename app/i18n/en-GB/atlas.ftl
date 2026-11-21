@@ -833,6 +833,7 @@ settings-language-formats = Numbers, dates and times follow your Windows regiona
 # right to left. $locale is the format's English name, for example "Arabic (Saudi Arabia)".
 settings-language-formats-numbers-only = Numbers follow your Windows regional format ({ $locale }). Dates and times use a standard format because Atlas can't show right-to-left text yet.
 settings-language-contribute = Help translate Atlas
+settings-usage-analytics = Share screen visits, ISO builds and install outcomes with Atlas
 settings-restart-label = Restart my PC automatically after installation
 settings-restart-locked = You can change this after installation finishes.
 settings-restart-description = When this is on, your PC restarts within a minute after installation finishes, which closes your open apps. Save your work before you install.
@@ -868,13 +869,13 @@ consequence-install-eclean = A maintenance tool from the team behind AtlasOS, fo
 # Introduction on the home page before Atlas is installed.
 home-intro = Atlas adjusts Windows to reduce background activity and distractions. Install Atlas on a fresh installation of Windows, before you add your own apps and files.
 
-## ISO creation (Beta)
+## ISO creation
 iso-home-title = Windows installation media
 iso-home-description = Create a Windows installation file (ISO) that includes Atlas, then use it to reinstall Windows on this PC or another one.
 iso-open = Create an Atlas ISO
 iso-title = Create an Atlas ISO
-iso-beta = Beta
-iso-beta-description = Try the ISO in a virtual machine before using it on a PC. Back up your files before installing Windows.
+iso-recommended = Recommended
+iso-backup-advice = Try the ISO in a virtual machine before using it on a PC. Back up your files before installing Windows.
 # "Relaunch as administrator" is common-restart-as-administrator.
 iso-admin-description = Atlas needs administrator permission to read your Windows ISO and create the new one. Choose Relaunch as administrator, then choose Yes when Windows asks.
 iso-files-description = Atlas makes a copy of a Windows 11 ISO with Atlas added, for reinstalling Windows. Choose a Windows 11 ISO downloaded from Microsoft, download the latest Atlas package or choose one you already have (.atlaspkg), then choose where to save the new ISO.
@@ -952,7 +953,7 @@ iso-cancelled = ISO creation cancelled
 iso-cancelled-description = Your original ISO is unchanged. If any temporary files were left behind, choose Open log folder to see where they are.
 iso-complete = Your ISO is ready
 # "Create installation USB" is usb-title, the button below it.
-iso-complete-description = ISO creation is in beta, so test the ISO in a virtual machine first. Then choose Create installation USB, and back up your files before you reinstall Windows.
+iso-complete-description = Then choose Create installation USB, and back up your files before you reinstall Windows.
 iso-open-folder = Show in folder
 iso-failed = Couldn't finish creating the ISO
 # "Create ISO" is iso-create; "Send a report" is report-title.
@@ -1115,7 +1116,7 @@ iso-mode-desktop-description = Atlas saves your choices in the ISO. After you si
 desktop-setup-description = Finish setting up your PC. Your Atlas choices are saved; you can return to Windows if you need to.
 desktop-setup-exit = Continue in Windows
 
-# Windows installation USB (Beta)
+# Windows installation USB
 usb-title = Create installation USB
 usb-existing = Create a USB from an existing ISO
 usb-description = Put an ISO on a USB drive so you can reinstall Windows from it. Use an ISO created by Atlas to install Atlas at the same time.

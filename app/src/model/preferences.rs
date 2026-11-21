@@ -379,6 +379,12 @@ impl AppModel {
         }
     }
 
+    pub fn set_usage_analytics(&mut self, enabled: bool, cx: &mut Context<Self>) {
+        self.settings.usage_analytics = enabled;
+        self.persist_preference(move |doc| doc.usage_analytics = enabled, cx);
+        cx.notify();
+    }
+
     pub fn set_restart_after_install(&mut self, restart: bool, cx: &mut Context<Self>) {
         if self.locked() {
             return;

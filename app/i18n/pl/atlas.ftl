@@ -705,6 +705,7 @@ settings-language-formats = Liczby, daty i godziny są zgodne z formatem regiona
 # right to left. $locale is the format's English name, for example "Arabic (Saudi Arabia)".
 settings-language-formats-numbers-only = Liczby są zgodne z formatem regionalnym Windows ({ $locale }). Daty i godziny są wyświetlane w formacie standardowym, ponieważ Atlas nie może jeszcze wyświetlać tekstu pisanego od prawej do lewej.
 settings-language-contribute = Pomóż tłumaczyć Atlas w serwisie GitHub
+settings-usage-analytics = Udostępniaj Atlasowi odwiedzone ekrany, tworzenie ISO i wyniki instalacji
 settings-restart-label = Automatycznie uruchom komputer ponownie po instalacji
 settings-restart-locked = Możesz to zmienić po zakończeniu instalacji.
 settings-restart-description = Gdy ta opcja jest włączona, komputer uruchomi się ponownie w ciągu minuty od zakończenia instalacji, co zamknie otwarte aplikacje. Zapisz pracę przed instalacją.
@@ -739,13 +740,13 @@ consequence-install-eclean = Narzędzie do konserwacji od zespołu AtlasOS, któ
 # Introduction on the home page before Atlas is installed.
 home-intro = Atlas dostosowuje Windows, aby ograniczyć aktywność w tle i rozpraszające elementy. Zainstaluj Atlas na czystej instalacji Windows, zanim dodasz własne aplikacje i pliki.
 
-## ISO creation (Beta)
+## ISO creation
 iso-home-title = Nośnik instalacyjny Windows
 iso-home-description = Utwórz plik instalacyjny Windows (ISO) z Atlasem, a potem użyj go do ponownej instalacji Windows na tym lub innym komputerze.
 iso-open = Utwórz ISO z Atlasem
 iso-title = Utwórz ISO z Atlasem
-iso-beta = Beta
-iso-beta-description = Przetestuj obraz ISO na maszynie wirtualnej, zanim użyjesz go na komputerze. Przed instalacją Windows zrób kopię zapasową plików.
+iso-recommended = Zalecane
+iso-backup-advice = Przetestuj obraz ISO na maszynie wirtualnej, zanim użyjesz go na komputerze. Przed instalacją Windows zrób kopię zapasową plików.
 iso-admin-description = Atlas potrzebuje uprawnień administratora, aby odczytać obraz ISO Windows i utworzyć nowy. Wybierz Otwórz ponownie jako administrator, a potem wybierz Tak, gdy Windows zapyta.
 iso-files-description = Atlas tworzy kopię obrazu ISO Windows 11 z dodanym Atlasem, przeznaczoną do ponownej instalacji Windows. Wybierz obraz ISO Windows 11 pobrany od firmy Microsoft, pobierz najnowszy pakiet Atlasa lub wybierz posiadany już pakiet (.atlaspkg), a potem wskaż, gdzie zapisać nowy obraz ISO.
 # Tester build: no package picker.
@@ -814,7 +815,7 @@ iso-cancelling = Oczekiwanie na bezpieczne zatrzymanie
 iso-cancelled = Anulowano tworzenie ISO
 iso-cancelled-description = Oryginalny obraz ISO nie został zmieniony. Jeśli pozostały jakieś pliki tymczasowe, wybierz Otwórz folder dzienników, aby zobaczyć, gdzie się znajdują.
 iso-complete = Obraz ISO jest gotowy
-iso-complete-description = Tworzenie obrazów ISO jest w wersji beta, więc najpierw przetestuj obraz na maszynie wirtualnej. Potem wybierz Utwórz USB instalacyjne i zrób kopię zapasową plików, zanim zainstalujesz ponownie Windows.
+iso-complete-description = Potem wybierz Utwórz USB instalacyjne i zrób kopię zapasową plików, zanim zainstalujesz ponownie Windows.
 iso-open-folder = Pokaż w folderze
 iso-failed = Nie udało się utworzyć obrazu ISO
 iso-failed-description = Upewnij się, że wybrane pliki nadal są na swoim miejscu i dysk docelowy jest podłączony, a potem wybierz Utwórz ISO. Jeśli problem się powtarza, wybierz Wyślij zgłoszenie.
@@ -922,7 +923,7 @@ iso-mode-desktop-description = Atlas zapisze wybrane opcje w obrazie ISO. Po zal
 desktop-setup-description = Dokończ konfigurację komputera. Wybrane opcje Atlasa są zapisane; w razie potrzeby możesz wrócić do Windows.
 desktop-setup-exit = Kontynuuj w Windows
 
-# Windows installation USB (Beta)
+# Windows installation USB
 usb-title = Utwórz USB instalacyjne
 usb-existing = Utwórz USB z istniejącego obrazu ISO
 usb-description = Zapisz obraz ISO na dysku USB, aby zainstalować z niego ponownie Windows. Użyj obrazu ISO utworzonego przez Atlas, aby jednocześnie zainstalować Atlas.

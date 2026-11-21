@@ -1,4 +1,4 @@
-//! Break opportunities for scripts omitted by GPUI 0.3.3's word-character list.
+//! Break opportunities for Thai and Devanagari using ICU's dictionary segmenter.
 //! Other scripts deliberately retain upstream wrapping.
 
 pub(super) struct ComplexBreaks {

@@ -687,6 +687,7 @@ settings-language-formats = संख्याएँ, तारीख़ें �
 # right to left. $locale is the format's English name, for example "Arabic (Saudi Arabia)".
 settings-language-formats-numbers-only = संख्याएँ आपके Windows क्षेत्रीय प्रारूप ({ $locale }) के अनुसार दिखती हैं। तारीख़ें और समय एक मानक प्रारूप में दिखते हैं, क्योंकि Atlas अभी दाएँ से बाएँ लिखा जाने वाला टेक्स्ट नहीं दिखा सकता।
 settings-language-contribute = GitHub पर Atlas के अनुवाद में मदद करें
+settings-usage-analytics = देखी गई स्क्रीन, ISO निर्माण और इंस्टॉल के नतीजे Atlas के साथ साझा करें
 settings-restart-label = इंस्टॉलेशन के बाद मेरा PC अपने-आप रीस्टार्ट करें
 settings-restart-locked = इंस्टॉलेशन पूरा होने के बाद आप इसे बदल सकते हैं।
 settings-restart-description = यह चालू होने पर, इंस्टॉलेशन पूरा होने के एक मिनट के अंदर आपका PC रीस्टार्ट हो जाता है, जिससे आपके खुले ऐप बंद हो जाते हैं। इंस्टॉल करने से पहले अपना काम सहेजें।
@@ -721,13 +722,13 @@ consequence-install-eclean = AtlasOS की टीम का रखरखाव 
 # Introduction on the home page before Atlas is installed.
 home-intro = Atlas बैकग्राउंड गतिविधि और ध्यान भटकाने वाली चीज़ें कम करने के लिए Windows में बदलाव करता है। अपने ऐप और फ़ाइलें जोड़ने से पहले, Atlas को नए सिरे से इंस्टॉल किए गए Windows पर इंस्टॉल करें।
 
-## ISO creation (Beta)
+## ISO creation
 iso-home-title = Windows इंस्टॉलेशन मीडिया
 iso-home-description = Atlas वाली Windows इंस्टॉलेशन फ़ाइल (ISO) बनाएँ, फिर उससे इस PC या किसी दूसरे PC पर Windows दोबारा इंस्टॉल करें।
 iso-open = Atlas ISO बनाएँ
 iso-title = Atlas ISO बनाएँ
-iso-beta = बीटा
-iso-beta-description = PC पर इस्तेमाल करने से पहले ISO को वर्चुअल मशीन में जाँचें। Windows इंस्टॉल करने से पहले अपनी फ़ाइलों का बैकअप लें।
+iso-recommended = सुझाया गया
+iso-backup-advice = PC पर इस्तेमाल करने से पहले ISO को वर्चुअल मशीन में जाँचें। Windows इंस्टॉल करने से पहले अपनी फ़ाइलों का बैकअप लें।
 iso-admin-description = आपका Windows ISO पढ़ने और नया ISO बनाने के लिए Atlas को व्यवस्थापक की अनुमति चाहिए। “व्यवस्थापक के रूप में दोबारा खोलें” चुनें, फिर जब Windows पूछे, तो “हाँ” चुनें।
 iso-files-description = Atlas, Windows 11 ISO की एक कॉपी बनाकर उसमें Atlas जोड़ता है, ताकि आप Windows दोबारा इंस्टॉल कर सकें। Microsoft से डाउनलोड किया गया Windows 11 ISO चुनें, नवीनतम Atlas पैकेज डाउनलोड करें या पहले से मौजूद पैकेज (.atlaspkg) चुनें, फिर चुनें कि नया ISO कहाँ सहेजना है।
 # Tester build: no package picker.
@@ -796,7 +797,7 @@ iso-cancelling = रद्द करने के लिए सुरक्ष�
 iso-cancelled = ISO बनाना रद्द कर दिया गया
 iso-cancelled-description = आपके मूल ISO में कोई बदलाव नहीं हुआ है। अगर कुछ अस्थायी फ़ाइलें बची रह गई हों, तो वे कहाँ हैं, यह देखने के लिए “लॉग फ़ोल्डर खोलें” चुनें।
 iso-complete = आपका ISO तैयार है
-iso-complete-description = ISO बनाने की सुविधा अभी बीटा में है, इसलिए पहले ISO को वर्चुअल मशीन में जाँचें। फिर “इंस्टॉलेशन USB बनाएँ” चुनें, और Windows दोबारा इंस्टॉल करने से पहले अपनी फ़ाइलों का बैकअप लें।
+iso-complete-description = फिर “इंस्टॉलेशन USB बनाएँ” चुनें, और Windows दोबारा इंस्टॉल करने से पहले अपनी फ़ाइलों का बैकअप लें।
 iso-open-folder = फ़ोल्डर में दिखाएँ
 iso-failed = ISO बनाना पूरा नहीं हो सका
 iso-failed-description = पक्का करें कि आपकी फ़ाइलें अभी भी उसी जगह हैं, जहाँ से आपने उन्हें चुना था, और जिस ड्राइव पर आप सहेज रहे हैं, वह कनेक्ट है, फिर “ISO बनाएँ” चुनें। अगर यह बार-बार विफल हो, तो “रिपोर्ट भेजें” चुनें।
@@ -906,7 +907,7 @@ iso-mode-desktop-description = Atlas आपके विकल्प ISO मे�
 desktop-setup-description = अपने PC का सेटअप पूरा करें। Atlas के लिए आपके विकल्प सहेजे गए हैं; ज़रूरत पड़ने पर आप Windows पर लौट सकते हैं।
 desktop-setup-exit = Windows में जारी रखें
 
-# Windows installation USB (Beta)
+# Windows installation USB
 usb-title = इंस्टॉलेशन USB बनाएँ
 usb-existing = मौजूदा ISO से USB बनाएँ
 usb-description = किसी ISO को USB ड्राइव पर डालें, ताकि आप उससे Windows दोबारा इंस्टॉल कर सकें। Windows के साथ Atlas भी इंस्टॉल करने के लिए, Atlas से बनाया गया ISO इस्तेमाल करें।

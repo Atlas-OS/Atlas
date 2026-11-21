@@ -581,6 +581,18 @@ impl IsoPage {
         cx.notify();
     }
 
+    pub fn analytics_path(&self) -> &'static str {
+        if self.usb.is_some() {
+            return "iso/usb";
+        }
+        match self.step {
+            IsoStep::Files => "iso/files",
+            IsoStep::Windows => "iso/windows",
+            IsoStep::Choices => "iso/choices",
+            IsoStep::Review => "iso/review",
+        }
+    }
+
     fn gates(&self, cx: &App) -> Gates {
         Gates {
             checked: self.image.is_some(),
@@ -643,6 +655,13 @@ impl IsoPage {
             update_network_drivers,
         };
         self.model.update(cx, |m, cx| {
+            if !inspect {
+                crate::services::analytics::send(
+                    m.settings.usage_analytics,
+                    "ISO build started",
+                    "iso/review",
+                );
+            }
             m.iso_busy = true;
             m.iso_cancel.store(false, Ordering::Relaxed);
             cx.notify();
@@ -677,6 +696,18 @@ impl IsoPage {
                     this.job = None;
                 }
                 this.finish(inspect, cancelled, result);
+                if !inspect {
+                    let event = match this.result {
+                        JobResult::Complete => "ISO build completed",
+                        JobResult::Cancelled => "ISO build cancelled",
+                        _ => "ISO build failed",
+                    };
+                    crate::services::analytics::send(
+                        this.model.read(cx).settings.usage_analytics,
+                        event,
+                        "iso/review",
+                    );
+                }
                 cx.notify();
             })
             .ok();
@@ -1789,13 +1820,13 @@ impl Render for IsoPage {
             } else {
                 match self.step {
                     IsoStep::Files => {
-                        // The title's Beta badge says why. This bar gives the
+                        // This bar gives the
                         // safety advice once, where the flow starts, unless a
                         // result already holds the top of the page.
                         if !failed && !cancelled {
                             body.push(
-                                InfoBar::new(Severity::Informational, "", t!("iso-beta-description"))
-                                    .id("iso-beta")
+                                InfoBar::new(Severity::Informational, "", t!("iso-backup-advice"))
+                                    .id("iso-backup-advice")
                                     .into_any_element(),
                             );
                         }
@@ -1833,7 +1864,11 @@ impl Render for IsoPage {
         self.diagnostics.settle(&self.model, window, cx);
         page_frame(
             "iso-page",
-            Some(PageTitle { text: t!("iso-title").into(), badge: Some(t!("iso-beta").into()), back: None }),
+            Some(PageTitle {
+                text: t!("iso-title").into(),
+                badge: Some(t!("iso-recommended").into()),
+                back: None,
+            }),
             None,
             Some(&self.model),
             (&self.scroll, &self.scrollbar),

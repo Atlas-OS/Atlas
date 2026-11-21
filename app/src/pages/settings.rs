@@ -327,6 +327,24 @@ impl Render for SettingsPage {
                 Vec::new(),
             ));
 
+        let analytics_model = model.clone();
+        let analytics_label = t!("settings-usage-analytics");
+        let analytics_switch = ToggleSwitch::new(
+            "settings-analytics-switch",
+            analytics_label.clone(),
+            state.settings.usage_analytics,
+        )
+        .on_toggle(move |_, _, cx| {
+            analytics_model.update(cx, |m, cx| m.set_usage_analytics(!m.settings.usage_analytics, cx));
+        });
+        let analytics = setting_row(
+            cx,
+            "analytics",
+            analytics_label,
+            None,
+            analytics_switch.into_any_element(),
+            Vec::new(),
+        );
         let manager_update = manager_update_bar(state, "about");
         let about = card(cx).child(card_header(cx, "about", t!("settings-about"), None)).child(
             card_body()
@@ -425,6 +443,7 @@ impl Render for SettingsPage {
                     .child(appearance)
                     .child(language)
                     .child(install)
+                    .child(analytics)
                     .into_any_element(),
                 help.into_any_element(),
                 about.into_any_element(),

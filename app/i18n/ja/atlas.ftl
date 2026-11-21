@@ -663,6 +663,7 @@ settings-language-formats = 数値、日付、時刻は Windows の地域設定�
 # right to left. $locale is the format's English name, for example "Arabic (Saudi Arabia)".
 settings-language-formats-numbers-only = 数値は Windows の地域設定の形式 ({ $locale }) に従います。Atlas はまだ右から左に書くテキストを表示できないため、日付と時刻には標準の形式を使用します。
 settings-language-contribute = GitHub で Atlas の翻訳に協力する
+settings-usage-analytics = 表示した画面、ISO の作成、インストール結果を Atlas と共有する
 settings-restart-label = インストール後に PC を自動的に再起動する
 settings-restart-locked = この設定はインストールが終わってから変更できます。
 settings-restart-description = オンにすると、インストールの完了後 1 分以内に PC が再起動し、開いているアプリはすべて閉じられます。インストールする前に作業を保存してください。
@@ -697,13 +698,13 @@ consequence-install-eclean = セットアップ後の PC を整える、AtlasOS 
 # Introduction on the home page before Atlas is installed.
 home-intro = Atlas は Windows を調整して、バックグラウンドの動作や気を散らす要素を減らします。Windows を新規インストールしたら、ご自身のアプリやファイルを追加する前に Atlas をインストールしてください。
 
-## ISO creation (Beta)
+## ISO creation
 iso-home-title = Windows インストール メディア
 iso-home-description = Atlas を含む Windows のインストール ファイル (ISO) を作成して、この PC や別の PC での Windows の再インストールに使用できます。
 iso-open = Atlas ISO を作成
 iso-title = Atlas ISO を作成
-iso-beta = ベータ
-iso-beta-description = PC で使用する前に、仮想マシンで ISO をテストしてください。Windows のインストール前にファイルをバックアップしてください。
+iso-recommended = おすすめ
+iso-backup-advice = PC で使用する前に、仮想マシンで ISO をテストしてください。Windows のインストール前にファイルをバックアップしてください。
 iso-admin-description = Windows ISO を読み取って新しい ISO を作成するには、Atlas に管理者権限が必要です。「管理者として再実行」を選び、Windows で確認が表示されたら「はい」を選んでください。
 iso-files-description = Atlas は、Windows の再インストールに使えるよう、Atlas を追加した Windows 11 ISO のコピーを作成します。Microsoft からダウンロードした Windows 11 ISO を選び、最新の Atlas パッケージをダウンロードするかお持ちのパッケージ (.atlaspkg) を選んでから、新しい ISO の保存先を選んでください。
 # Tester build: no package picker.
@@ -773,7 +774,7 @@ iso-cancelling = 安全にキャンセルできる時点を待っています
 iso-cancelled = ISO の作成をキャンセルしました
 iso-cancelled-description = 元の ISO は変更されていません。一時ファイルが残っている場合は、「ログ フォルダーを開く」を選ぶと場所を確認できます。
 iso-complete = ISO が完成しました
-iso-complete-description = ISO の作成はベータ版のため、まず仮想マシンで ISO をテストしてください。その後、「インストール USB を作成」を選び、Windows を再インストールする前にファイルをバックアップしてください。
+iso-complete-description = その後、「インストール USB を作成」を選び、Windows を再インストールする前にファイルをバックアップしてください。
 iso-open-folder = フォルダーに表示
 iso-failed = ISO の作成を完了できませんでした
 iso-failed-description = ファイルが選択した場所にあり、保存先のドライブが接続されていることを確認してから、「ISO を作成」を選んでください。失敗が続く場合は、「レポートを送信」を選んでください。
@@ -881,7 +882,7 @@ iso-mode-desktop-description = Atlas は選択内容を ISO に保存します�
 desktop-setup-description = PC のセットアップを完了しましょう。Atlas の選択内容は保存されています。必要に応じて Windows に戻れます。
 desktop-setup-exit = Windows で続ける
 
-# Windows installation USB (Beta)
+# Windows installation USB
 usb-title = インストール USB を作成
 usb-existing = 既存の ISO から USB を作成
 usb-description = ISO を USB ドライブに書き込んで、その USB から Windows を再インストールできるようにします。Atlas も同時にインストールするには、Atlas で作成した ISO を使用してください。

@@ -7,7 +7,8 @@
 
 use accesskit::{Action, ActionData, ActionRequest, ScrollHint, VerticalOffset};
 use accesskit_consumer::{
-    Node, TextPosition as Position, TextRange as Range, Tree, TreeState, WeakTextRange as WeakRange,
+    NodeRef, TextPosition as Position, TextRange as Range, Tree, TreeState,
+    WeakTextRange as WeakRange,
 };
 use std::sync::{Arc, RwLock, Weak};
 use windows::{
@@ -28,7 +29,7 @@ fn upgrade_range<'a>(weak: &WeakRange, tree_state: &'a TreeState) -> Result<Rang
     }
 }
 
-fn upgrade_range_node<'a>(weak: &WeakRange, tree_state: &'a TreeState) -> Result<Node<'a>> {
+fn upgrade_range_node<'a>(weak: &WeakRange, tree_state: &'a TreeState) -> Result<NodeRef<'a>> {
     if let Some(node) = weak.upgrade_node(tree_state) {
         Ok(node)
     } else {
@@ -239,7 +240,7 @@ impl PlatformRange {
         self.with_tree_state_and_context(|state, _| f(state))
     }
 
-    fn upgrade_node<'a>(&self, tree_state: &'a TreeState) -> Result<Node<'a>> {
+    fn upgrade_node<'a>(&self, tree_state: &'a TreeState) -> Result<NodeRef<'a>> {
         let state = self.state.read().unwrap();
         upgrade_range_node(&state, tree_state)
     }

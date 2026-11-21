@@ -34,7 +34,7 @@ try {
     $fxc = Get-Item -LiteralPath $fxcPath
     $prebuilt = Join-Path $backend 'prebuilt'
     New-Item -ItemType Directory -Path $prebuilt -Force | Out-Null
-    $hashLines = foreach ($inputPath in @('src/shaders.hlsl', 'src/color_text_raster.hlsl', 'src/alpha_correction.hlsl')) {
+    $hashLines = foreach ($inputPath in @('src/shaders.hlsl', 'src/alpha_correction.hlsl')) {
         $hash = (Get-FileHash -LiteralPath (Join-Path $backend $inputPath) -Algorithm SHA256).Hash.ToLowerInvariant()
         "$hash  $inputPath"
     }
@@ -52,9 +52,8 @@ Linux builds check ``inputs.sha256``, then copy ``shaders_bytes.rs`` into their 
 - FXC SHA-256: ``$((Get-FileHash -LiteralPath $fxcPath -Algorithm SHA256).Hash.ToLowerInvariant())``
 - Profiles: ``vs_4_1`` and ``ps_4_1``, with optimisation level ``/O3``.
 - Flags: ``/T <profile> /E <entry> /Fh <header> /Vn <constant> /O3 <source>``.
-- ``shaders.hlsl``: vertex and fragment pairs for ``quad``, ``shadow``, ``path_rasterization``, ``path_sprite``, ``underline``, ``monochrome_sprite``, ``subpixel_sprite`` and ``polychrome_sprite``.
-- ``color_text_raster.hlsl``: ``emoji_rasterization_vertex`` and ``emoji_rasterization_fragment``.
-- Both sources include ``alpha_correction.hlsl``, so all three inputs are hashed.
+- ``shaders.hlsl``: vertex and fragment pairs for ``quad``, ``opaque_quad``, ``shadow``, ``path_tile``, ``underline``, ``monochrome_sprite``, ``subpixel_sprite`` and ``polychrome_sprite``.
+- The source includes ``alpha_correction.hlsl``. Both inputs are hashed.
 
 Regenerate these files on Windows after changing any input, entry point, profile, compiler or compiler flag.
 Without Windows, download the ``atlas-gpui-shaders`` artifact from the Desktop app workflow.

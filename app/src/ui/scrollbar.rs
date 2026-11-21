@@ -12,9 +12,9 @@ use std::rc::Rc;
 
 use gpui::{
     App, Bounds, DispatchPhase, Div, Element, ElementId, Global, GlobalElementId, Hitbox, HitboxBehavior,
-    InspectorElementId, InteractiveElement, IntoElement, LayoutId, MouseButton, MouseDownEvent,
-    MouseExitEvent, MouseMoveEvent, MouseUpEvent, ParentElement, Pixels, ScrollHandle, Stateful, Style,
-    Styled, Window, div, fill, point, px, relative, size,
+    InspectorElementId, InteractiveElement, LayoutId, MouseButton, MouseDownEvent, MouseExitEvent,
+    MouseMoveEvent, MouseUpEvent, ParentElement, Pixels, ScrollHandle, Stateful, Style, Styled, Window, div,
+    fill, point, px, relative, size,
 };
 
 use super::actions::{
@@ -185,14 +185,6 @@ pub fn keyboard_scrolling(element: Stateful<Div>, handle: &ScrollHandle) -> Stat
         .on_action(move |_: &ScrollToBottom, window, cx| bottom(window, cx))
         .on_action(move |_: &ScrollLogToTop, window, _| own_top(window))
         .on_action(move |_: &ScrollLogToBottom, window, _| own_bottom(window))
-}
-
-impl IntoElement for Scrollbar {
-    type Element = Self;
-
-    fn into_element(self) -> Self {
-        self
-    }
 }
 
 impl Element for Scrollbar {

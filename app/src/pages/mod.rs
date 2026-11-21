@@ -255,7 +255,7 @@ fn diagnostics_content(model: &Entity<AppModel>, result_focus: &FocusHandle, cx:
 /// A page's title, with an optional badge after it.
 pub struct PageTitle {
     pub text: SharedString,
-    /// Such as Beta: see [`badge`].
+    /// Such as Recommended: see [`badge`].
     pub badge: Option<SharedString>,
     /// A back arrow of the title's own, for a panel shown over its page: it
     /// goes back within the panel, or out of it, not off the page.
@@ -615,14 +615,11 @@ pub fn card_body() -> Div {
     div().flex().flex_col().gap(px(8.)).px(px(16.)).py(px(12.))
 }
 
-/// A pill naming a feature's status, such as Beta. It is reported as text, so
+/// A pill naming a feature's status, such as Recommended. It is reported as text, so
 /// screen readers read its words where they appear.
 pub fn badge(id: impl Into<ElementId>, text: impl Into<SharedString>, cx: &App) -> Stateful<Div> {
     let theme = cx.theme();
     let text = text.into();
-    // Violet on a tint of itself: apart from the accent and status colours, so
-    // the badge never reads as a control or a warning.
-    let violet: gpui::Hsla = gpui::rgb(if theme.is_dark() { 0xC4B5FD } else { 0x6941A5 }).into();
     div()
         .id(id)
         .role(Role::Label)
@@ -640,7 +637,7 @@ pub fn badge(id: impl Into<ElementId>, text: impl Into<SharedString>, cx: &App) 
             if theme.high_contrast {
                 this.text_color(theme.text_primary).border_1().border_color(theme.text_primary)
             } else {
-                this.text_color(violet).bg(violet.opacity(if theme.is_dark() { 0.12 } else { 0.10 }))
+                this.text_color(theme.success).bg(theme.success_fill)
             }
         })
         .child(CapCenteredText(text))

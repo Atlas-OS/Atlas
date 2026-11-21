@@ -1,4 +1,4 @@
-use crate::{App, PlatformDispatcher, PlatformScheduler};
+use crate::{ActivityGuard, App, PlatformDispatcher, PlatformScheduler};
 #[cfg(not(target_family = "wasm"))]
 use futures::channel::mpsc;
 use futures::prelude::*;
@@ -30,6 +30,23 @@ pub struct ForegroundExecutor {
     #[cfg(feature = "profiler")]
     foreground_runnables: Option<crate::profiler::journal::ForegroundRunnableCounter>,
     not_send: PhantomData<Rc<()>>,
+}
+
+/// A thread-safe handle for spawning `Send` futures on the main thread.
+#[derive(Clone)]
+pub struct SendForegroundExecutor {
+    inner: scheduler::SendLocalExecutor,
+}
+
+impl SendForegroundExecutor {
+    /// Enqueues a future to run on the main thread, even when submitted from another thread.
+    #[track_caller]
+    pub fn spawn<R>(&self, future: impl Future<Output = R> + Send + 'static) -> Task<R>
+    where
+        R: Send + 'static,
+    {
+        self.inner.spawn(future)
+    }
 }
 
 /// Extension trait for `Task<Result<T, E>>` that adds `detach_and_log_err` with an `&App` context.
@@ -91,25 +108,11 @@ impl BackgroundExecutor {
         self.inner.clone()
     }
 
-    /// Spawn a closure on a fresh session pinned to its own [`SchedulerLocalExecutor`].
-    /// The closure runs on a new OS thread under the platform scheduler, or on
-    /// the test scheduler's loop in tests.
+    /// Prevents App Nap-style throttling while the returned guard is held.
     ///
-    /// Prefer this over [`Self::spawn`] for futures whose polls need more stack
-    /// than shared background threads guarantee. Dedicated threads get the
-    /// standard library's default 2 MiB, while `spawn` polls futures on
-    /// whatever threads the platform dispatcher provides — on macOS those are
-    /// GCD workers whose stacks are fixed at 512 KiB by the kernel (see `PTH_DEFAULT_STACKSIZE` in
-    /// <https://github.com/apple-oss-distributions/libpthread/blob/42d026df5b07825070f60134b980a1ec2552dfee/kern/kern_internal.h#L154>),
-    /// the tightest background-stack budget of any platform.
-    #[track_caller]
-    pub fn spawn_dedicated<F, Fut>(&self, f: F) -> Task<Fut::Output>
-    where
-        F: FnOnce(SchedulerLocalExecutor) -> Fut + Send + 'static,
-        Fut: Future + 'static,
-        Fut::Output: Send + Sync + 'static,
-    {
-        self.inner.spawn_dedicated(f)
+    /// This does not prevent the system from entering idle sleep.
+    pub fn prevent_app_nap(&self, reason: &str) -> ActivityGuard {
+        self.dispatcher.prevent_app_nap(reason)
     }
 
     /// Enqueues the given future to be run to completion on a background thread.
@@ -295,6 +298,15 @@ impl BackgroundExecutor {
         self.dispatcher.is_main_thread()
     }
 
+    /// Whether this executor runs on the deterministic test scheduler.
+    ///
+    /// Available in every build. Use it, rather than `cfg(feature =
+    /// "test-support")`, for behavior that must differ under tests, so that
+    /// compiling `test-support` into an application doesn't change it.
+    pub fn is_test(&self) -> bool {
+        self.inner.is_test()
+    }
+
     #[doc(hidden)]
     pub fn dispatcher(&self) -> &Arc<dyn PlatformDispatcher> {
         &self.dispatcher
@@ -302,6 +314,13 @@ impl BackgroundExecutor {
 }
 
 impl ForegroundExecutor {
+    /// Creates a thread-safe handle that submits `Send` futures to this foreground executor.
+    pub fn to_send(&self) -> SendForegroundExecutor {
+        SendForegroundExecutor {
+            inner: self.inner.to_send(),
+        }
+    }
+
     /// Creates a new ForegroundExecutor from the given PlatformDispatcher.
     pub fn new(dispatcher: Arc<dyn PlatformDispatcher>) -> Self {
         #[cfg(any(test, feature = "test-support"))]
@@ -558,6 +577,25 @@ mod test {
 
         let app = App::new_app(platform, asset_source, http_client);
         (dispatcher, background_executor, app)
+    }
+
+    #[test]
+    fn send_foreground_executor_submits_from_worker() {
+        let dispatcher = TestDispatcher::new(0);
+        let foreground_executor = ForegroundExecutor::new(Arc::new(dispatcher.clone()));
+        let main_thread = std::thread::current().id();
+        let foreground_executor = foreground_executor.to_send();
+        let task = std::thread::spawn(move || {
+            foreground_executor.spawn(async move {
+                assert_eq!(std::thread::current().id(), main_thread);
+                42
+            })
+        })
+        .join()
+        .expect("worker must submit the foreground task");
+
+        dispatcher.run_until_parked();
+        assert_eq!(task.now_or_never(), Some(42));
     }
 
     #[test]

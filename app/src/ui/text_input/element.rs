@@ -100,14 +100,6 @@ fn split_runs(
     if runs.is_empty() { vec![run] } else { runs }
 }
 
-impl IntoElement for TextElement {
-    type Element = Self;
-
-    fn into_element(self) -> Self::Element {
-        self
-    }
-}
-
 impl Element for TextElement {
     type RequestLayoutState = ();
     type PrepaintState = PrepaintState;

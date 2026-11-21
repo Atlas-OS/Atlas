@@ -721,7 +721,13 @@ fn apply_home(model: &mut AppModel, state: &str) {
         "update-access-after" => windows_pc(26300, "26H2", "Professional"),
         _ => windows_pc(26100, "24H2", "Professional"),
     };
-    model.install_identity = Ok(InstallIdentity::Installed("0.5.0".into()));
+    model.install_identity = if state == "fresh" {
+        model.system = windows_pc(26200, "25H2", "Professional");
+        model.atlas = Ok(None);
+        Ok(InstallIdentity::Fresh)
+    } else {
+        Ok(InstallIdentity::Installed("0.5.0".into()))
+    };
     let version = if state == "manager-update" { next_patch() } else { "0.6.0".into() };
     model.release = ReleaseCheck::Ready {
         release: Release {

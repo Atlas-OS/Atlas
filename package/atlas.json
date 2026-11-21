@@ -79,6 +79,7 @@
       "kind": "single",
       "default": "keyboard-shortcuts",
       "description": "Choose how you switch keyboard languages.",
+      "learnMore": "https://atlasos.net/docs/atlas-configuration/tweaks/#keyboard-languages",
       "options": [
         {
           "id": "keyboard-shortcuts",
@@ -116,7 +117,7 @@
     {
       "id": "apps",
       "kind": "multiple",
-      "learnMore": "https://atlasos.net/docs/atlas-configuration/settings/",
+      "learnMore": "https://atlasos.net/docs/install/manager/#4-your-choices",
       "options": [
         {
           "id": "remove-snipping-tool",

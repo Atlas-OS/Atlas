@@ -1,6 +1,6 @@
-# Atlas changes to gpui-pre-windows 0.3.3
+# Atlas changes to gpui-pre-windows 0.3.13
 
-This directory vendors the published Apache-2.0 `gpui-pre-windows` 0.3.3 crate, from upstream Zed revision `5b055fa789a8b8d38ac951a6e0cde272f66b4495`, with the changes below.
+This directory vendors the published Apache-2.0 `gpui-pre-windows` 0.3.13 crate, from upstream Zed revision `125ca8672e928b19a62c2e4b761fb29fe2a34ae3`, with the changes below.
 The original `LICENSE-APACHE` is kept.
 Cargo patches this backend and [`gpui-pre`](../gpui-pre/ATLAS-PATCH.md) together, because the shader reads a background tag that `gpui-pre` defines.
 
@@ -60,8 +60,8 @@ Then:
 
 `build.rs` lets Linux cross-builds use the production bytecode committed in `prebuilt/`.
 Windows builds still compile with FXC, and warn if the result differs from `prebuilt/`.
-Linux builds check the hashes of all three HLSL inputs before they use the committed output.
+Linux builds check the hashes of both HLSL inputs before they use the committed output.
 
-After changing any of the three HLSL inputs, the compiler flags, the profiles or the entry points, run `app/tools/Export-ShaderBytes.ps1` on Windows and commit its output.
+After changing either HLSL input, the compiler flags, the profiles or the entry points, run `app/tools/Export-ShaderBytes.ps1` on Windows and commit its output.
 Without Windows, download the `atlas-gpui-shaders` artifact from the Desktop app workflow instead.
 The [precompiled shaders README](prebuilt/README.md) records the compiler that generated them.

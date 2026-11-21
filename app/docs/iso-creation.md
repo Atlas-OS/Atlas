@@ -1,4 +1,4 @@
-# Creating an Atlas ISO (Beta)
+# Creating an Atlas ISO
 
 Atlas Manager builds a Windows 11 installation ISO that applies Atlas after Windows setup, and writes that ISO, or an existing one, to a USB drive.
 This page is for people who create Atlas media; [ISO internals](iso-internals.md) explains how the workers build and check it.
@@ -30,9 +30,8 @@ That happens on a Windows version with no update path, on hardware below the Win
 
 ## Create an ISO
 
-Choose **Create an Atlas ISO** on Home.
+On a PC without Atlas, Home recommends **Create an Atlas ISO**. Choose it to start.
 The flow has four steps, **Files**, **Windows setup**, **Your choices** and **Review**, followed by **Create**.
-Its title carries a **Beta** badge, and **Files** shows the full Beta notice.
 The flow is independent of the install flow and its PC checks.
 
 1. **Files.** Choose the Windows ISO, the Atlas package and where to save the new ISO, then choose **Check files**.
@@ -109,7 +108,7 @@ Atlas never claims a backup that didn't happen.
 The driver-update choice in **Windows setup** works as it does in Get ready ([driver updates](install-flow.md#driver-updates)).
 The new PC applies it during Windows setup, before its first update scan.
 
-## Create a Windows installation USB (Beta)
+## Create a Windows installation USB
 
 **Create installation USB** is on the completed-ISO screen, and on the first ISO screen for an existing ISO.
 
@@ -128,7 +127,7 @@ The new PC applies it during Windows setup, before its first update scan.
 - A failure offers **Open log folder** and the diagnostics.
 
 The result is UEFI media for Windows 11 x64 or ARM64 on a supported build.
-This Beta doesn't support legacy BIOS boot or other operating systems.
+The USB writer doesn't support legacy BIOS boot or other operating systems.
 
 - The drive gets one active MBR FAT32 partition of up to 32 GB (decimal), and the rest stays unallocated, as the app says before erasing.
 - The media uses the ISO's signed UEFI boot files, and Atlas adds no bootloader.

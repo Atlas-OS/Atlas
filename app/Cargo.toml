@@ -19,8 +19,8 @@ path = "src/main.rs"
 [dependencies]
 # Atlas is Windows-only. Keep the Windows manifest and backend without
 # resolving the Linux, macOS and web platform trees or optional font discovery.
-gpui = { package = "gpui-pre", version = "0.3.3", default-features = false, features = ["windows-manifest"] }
-gpui_windows = { package = "gpui-pre-windows", version = "0.3.3", default-features = false }
+gpui = { package = "gpui-pre", version = "0.3.13", default-features = false, features = ["windows-manifest"] }
+gpui_windows = { package = "gpui-pre-windows", version = "0.3.13", default-features = false }
 
 anyhow = "1"
 futures = "0.3"
@@ -31,7 +31,7 @@ serde_json = "1"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 ureq = { version = "3", features = ["json"] }
 # Read encrypted/deflated Atlas packages without also building the Zopfli encoder.
-zip = { version = "8.6", default-features = false, features = ["deflate-flate2-zlib-rs", "aes-crypto"] }
+zip = { version = "9.8", default-features = false, features = ["deflate-flate2-zlib-rs", "aes-crypto"] }
 image = { version = "0.25", default-features = false, features = ["png"] }
 ring = "0.17"
 regex = "1.13"
@@ -73,7 +73,7 @@ windows = { version = "0.62", features = [
 embedded-package = []
 
 [dev-dependencies]
-icu_segmenter = { version = "2.2.0", default-features = false, features = ["compiled_data"] }
+icu_segmenter = { version = "2.4.0", default-features = false, features = ["compiled_data"] }
 fluent-syntax = "0.12"
 intl_pluralrules = "7"
 proc-macro2 = "1"

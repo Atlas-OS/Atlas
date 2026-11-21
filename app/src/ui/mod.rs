@@ -252,7 +252,7 @@ mod tests {
     use gpui::{Action, KeyContext, Keymap, Keystroke};
 
     /// The action the keymap picks for `key` with the given contexts, innermost last.
-    fn action_for(keymap: &Keymap, key: &str, contexts: &[&str]) -> Option<&'static str> {
+    fn action_for(keymap: &Keymap, key: &'static str, contexts: &[&str]) -> Option<&'static str> {
         let contexts: Vec<KeyContext> =
             contexts.iter().map(|name| KeyContext::parse(name).unwrap()).collect();
         let (bindings, _) = keymap.bindings_for_input(&[Keystroke::parse(key).unwrap()], &contexts);

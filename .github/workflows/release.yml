@@ -55,9 +55,9 @@ jobs:
       - name: Install the Rust toolchain
         # Must match app/rust-toolchain.toml; installing it here saves a second download.
         # The SHA is a commit on the action's stable branch, which Dependabot doesn't follow; update it by hand.
-        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+        uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
         with:
-          toolchain: 1.98.1
+          toolchain: 1.100.0
           components: rustfmt, clippy
 
       - name: Build the stable Atlas Manager

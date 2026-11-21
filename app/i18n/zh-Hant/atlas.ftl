@@ -652,6 +652,7 @@ settings-language-formats = 數字、日期與時間會依照您的 Windows 地�
 # right to left. $locale is the format's English name, for example "Arabic (Saudi Arabia)".
 settings-language-formats-numbers-only = 數字會依照您的 Windows 地區格式（{ $locale }）顯示。由於 Atlas 尚無法顯示由右至左的文字，日期與時間會使用標準格式。
 settings-language-contribute = 在 GitHub 協助翻譯 Atlas
+settings-usage-analytics = 與 Atlas 分享造訪的頁面、ISO 建立情形及安裝結果
 settings-restart-label = 安裝完成後自動重新啟動電腦
 settings-restart-locked = 安裝完成後才能變更這項設定。
 settings-restart-description = 開啟此設定後，電腦會在安裝完成後一分鐘內重新啟動，並關閉所有已開啟的應用程式。請在安裝前儲存您的工作。
@@ -686,13 +687,13 @@ consequence-install-eclean = AtlasOS 團隊打造的維護工具，協助您在�
 # Introduction on the home page before Atlas is installed.
 home-intro = Atlas 會調整 Windows，減少背景活動與干擾。請在全新安裝 Windows 後、加入您自己的應用程式和檔案之前安裝 Atlas。
 
-## ISO creation (Beta)
+## ISO creation
 iso-home-title = Windows 安裝媒體
 iso-home-description = 建立包含 Atlas 的 Windows 安裝檔（ISO），然後用它在這台電腦或其他電腦上重新安裝 Windows。
 iso-open = 建立 Atlas ISO
 iso-title = 建立 Atlas ISO
-iso-beta = 測試版
-iso-beta-description = 在電腦上使用前，請先在虛擬機器中測試 ISO。安裝 Windows 前，請備份檔案。
+iso-recommended = 建議
+iso-backup-advice = 在電腦上使用前，請先在虛擬機器中測試 ISO。安裝 Windows 前，請備份檔案。
 iso-admin-description = Atlas 需要系統管理員權限，才能讀取您的 Windows ISO 並建立新的 ISO。請選擇「以系統管理員身分重新開啟 Atlas」，然後在 Windows 詢問時選擇「是」。
 iso-files-description = Atlas 會複製一份 Windows 11 ISO 並加入 Atlas，用來重新安裝 Windows。請選擇從 Microsoft 下載的 Windows 11 ISO，下載最新的 Atlas 套件或選擇您已有的套件（.atlaspkg），然後選擇新 ISO 的儲存位置。
 # Tester build: no package picker.
@@ -761,7 +762,7 @@ iso-cancelling = 正在等待可安全取消的時機
 iso-cancelled = 已取消建立 ISO
 iso-cancelled-description = 您的原始 ISO 沒有任何變更。如果有遺留的暫存檔案，請選擇「開啟記錄資料夾」查看它們的位置。
 iso-complete = ISO 已準備就緒
-iso-complete-description = ISO 建立功能仍是測試版，因此請先在虛擬機器中測試此 ISO。接著選擇「建立安裝隨身碟」，並在重新安裝 Windows 前備份您的檔案。
+iso-complete-description = 接著選擇「建立安裝隨身碟」，並在重新安裝 Windows 前備份您的檔案。
 iso-open-folder = 在資料夾中顯示
 iso-failed = 無法完成 ISO 建立
 iso-failed-description = 請確認您的檔案仍在選取的位置，且要儲存到的磁碟機仍已連接，然後選擇「建立 ISO」。如果持續失敗，請選擇「傳送報告」。
@@ -871,7 +872,7 @@ iso-mode-desktop-description = Atlas 會將您的選擇儲存至 ISO。登入後
 desktop-setup-description = 請完成電腦設定。您的 Atlas 選擇已儲存，需要時可以返回 Windows。
 desktop-setup-exit = 在 Windows 中繼續
 
-# Windows installation USB (Beta)
+# Windows installation USB
 usb-title = 建立安裝隨身碟
 usb-existing = 使用現有 ISO 建立隨身碟
 usb-description = 將 ISO 寫入 USB 磁碟機，以便用它重新安裝 Windows。使用 Atlas 建立的 ISO，即可同時安裝 Atlas。

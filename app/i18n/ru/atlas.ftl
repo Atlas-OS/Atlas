@@ -703,6 +703,7 @@ settings-language-formats = Числа, даты и время отобража�
 # right to left. $locale is the format's English name, for example "Arabic (Saudi Arabia)".
 settings-language-formats-numbers-only = Числа отображаются в региональном формате Windows ({ $locale }). Даты и время показываются в стандартном формате, так как Atlas пока не может отображать текст справа налево.
 settings-language-contribute = Помочь с переводом Atlas на GitHub
+settings-usage-analytics = Отправлять Atlas сведения о посещённых экранах, создании ISO и результатах установки
 settings-restart-label = Автоматически перезагрузить ПК после установки
 settings-restart-locked = Это можно изменить после завершения установки.
 settings-restart-description = Если этот параметр включён, ПК перезагрузится в течение минуты после завершения установки, и все открытые приложения закроются. Сохраните работу перед установкой.
@@ -737,13 +738,13 @@ consequence-install-eclean = Инструмент обслуживания от 
 # Introduction on the home page before Atlas is installed.
 home-intro = Atlas настраивает Windows так, чтобы уменьшить фоновую активность и убрать отвлекающие элементы. Устанавливайте Atlas сразу после чистой установки Windows, до того как добавите свои приложения и файлы.
 
-## ISO creation (Beta)
+## ISO creation
 iso-home-title = Установочный носитель Windows
 iso-home-description = Создайте установочный файл Windows (ISO) с Atlas, а затем переустановите с его помощью Windows на этом или другом ПК.
 iso-open = Создать ISO с Atlas
 iso-title = Создать ISO с Atlas
-iso-beta = Бета
-iso-beta-description = Проверьте ISO-образ в виртуальной машине, прежде чем использовать его на ПК. Перед установкой Windows сделайте резервную копию файлов.
+iso-recommended = Рекомендуется
+iso-backup-advice = Проверьте ISO-образ в виртуальной машине, прежде чем использовать его на ПК. Перед установкой Windows сделайте резервную копию файлов.
 iso-admin-description = Чтобы прочитать ваш ISO-образ Windows и создать новый, Atlas нужны права администратора. Нажмите «Перезапустить от имени администратора», затем нажмите «Да», когда Windows запросит разрешение.
 iso-files-description = Atlas создаёт копию ISO-образа Windows 11 с добавленным Atlas для переустановки Windows. Выберите ISO-образ Windows 11, скачанный с сайта Microsoft, скачайте последний пакет Atlas или выберите уже имеющийся (.atlaspkg), затем укажите, где сохранить новый ISO-образ.
 # Tester build: no package picker.
@@ -812,7 +813,7 @@ iso-cancelling = Ожидание безопасной остановки
 iso-cancelled = Создание ISO отменено
 iso-cancelled-description = Исходный ISO-образ не изменён. Если остались временные файлы, нажмите «Открыть папку журналов», чтобы узнать, где они находятся.
 iso-complete = ISO-образ готов
-iso-complete-description = Создание ISO находится на этапе бета-тестирования, поэтому сначала проверьте образ в виртуальной машине. Затем нажмите «Создать установочную флешку» и перед переустановкой Windows создайте резервную копию файлов.
+iso-complete-description = Затем нажмите «Создать установочную флешку» и перед переустановкой Windows создайте резервную копию файлов.
 iso-open-folder = Показать в папке
 iso-failed = Не удалось завершить создание ISO
 iso-failed-description = Убедитесь, что файлы по-прежнему находятся там, где вы их выбрали, а диск для сохранения подключён, затем нажмите «Создать ISO». Если ошибка повторяется, нажмите «Отправить отчёт».
@@ -946,7 +947,7 @@ iso-mode-desktop-description = Atlas сохранит ваши настройк�
 desktop-setup-description = Завершите настройку ПК. Настройки Atlas сохранены; при необходимости можно вернуться в Windows.
 desktop-setup-exit = Продолжить в Windows
 
-# Windows installation USB (Beta)
+# Windows installation USB
 usb-title = Создать установочную флешку
 usb-existing = Создать флешку из готового ISO
 usb-description = Запишите ISO-образ на USB-накопитель, чтобы переустановить с него Windows. Чтобы одновременно установить Atlas, используйте ISO-образ, созданный в Atlas.

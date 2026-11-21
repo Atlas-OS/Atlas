@@ -685,6 +685,7 @@ settings-language-formats = Zahlen, Datum und Uhrzeit folgen Ihrem regionalen Fo
 # right to left. $locale is the format's English name, for example "Arabic (Saudi Arabia)".
 settings-language-formats-numbers-only = Zahlen folgen Ihrem regionalen Format in Windows ({ $locale }). Datum und Uhrzeit werden in einem Standardformat angezeigt, da Atlas noch keinen Text von rechts nach links darstellen kann.
 settings-language-contribute = Beim Übersetzen von Atlas auf GitHub helfen
+settings-usage-analytics = Seitenaufrufe, ISO-Erstellungen und Installationsergebnisse mit Atlas teilen
 settings-restart-label = PC nach der Installation automatisch neu starten
 settings-restart-locked = Sie können das ändern, sobald die Installation abgeschlossen ist.
 settings-restart-description = Wenn diese Option eingeschaltet ist, wird Ihr PC innerhalb einer Minute nach Abschluss der Installation neu gestartet. Dabei werden Ihre geöffneten Apps geschlossen. Speichern Sie Ihre Arbeit, bevor Sie installieren.
@@ -719,13 +720,13 @@ consequence-install-eclean = Ein Wartungstool vom Team hinter AtlasOS, mit dem S
 # Introduction on the home page before Atlas is installed.
 home-intro = Atlas passt Windows so an, dass weniger im Hintergrund läuft und weniger ablenkt. Installieren Sie Atlas direkt nach einer Neuinstallation von Windows, bevor Sie eigene Apps und Dateien hinzufügen.
 
-## ISO creation (Beta)
+## ISO creation
 iso-home-title = Windows-Installationsmedium
 iso-home-description = Erstellen Sie eine Windows-Installationsdatei (ISO) mit Atlas und installieren Sie damit Windows auf diesem oder einem anderen PC neu.
 iso-open = Atlas-ISO erstellen
 iso-title = Atlas-ISO erstellen
-iso-beta = Beta
-iso-beta-description = Testen Sie die ISO in einer virtuellen Maschine, bevor Sie sie auf einem PC verwenden. Sichern Sie Ihre Dateien, bevor Sie Windows installieren.
+iso-recommended = Empfohlen
+iso-backup-advice = Testen Sie die ISO in einer virtuellen Maschine, bevor Sie sie auf einem PC verwenden. Sichern Sie Ihre Dateien, bevor Sie Windows installieren.
 iso-admin-description = Atlas benötigt Administratorrechte, um Ihre Windows-ISO zu lesen und die neue zu erstellen. Wählen Sie „Als Administrator ausführen“ und dann „Ja“, wenn Windows nachfragt.
 iso-files-description = Atlas erstellt eine Kopie einer Windows-11-ISO und fügt Atlas hinzu, sodass Sie Windows damit neu installieren können. Wählen Sie eine von Microsoft heruntergeladene Windows-11-ISO, laden Sie das neueste Atlas-Paket herunter oder wählen Sie ein vorhandenes (.atlaspkg), und legen Sie dann fest, wo die neue ISO gespeichert wird.
 # Tester build: no package picker.
@@ -794,7 +795,7 @@ iso-cancelling = Warten auf einen sicheren Abbruchpunkt
 iso-cancelled = ISO-Erstellung abgebrochen
 iso-cancelled-description = Ihre ursprüngliche ISO ist unverändert. Falls temporäre Dateien zurückgeblieben sind, wählen Sie „Protokollordner öffnen“, um zu sehen, wo sie liegen.
 iso-complete = Ihre ISO ist fertig
-iso-complete-description = Die ISO-Erstellung ist in der Betaphase. Testen Sie die ISO daher zuerst in einer virtuellen Maschine. Wählen Sie dann „Installations-USB erstellen“ und sichern Sie Ihre Dateien, bevor Sie Windows neu installieren.
+iso-complete-description = Wählen Sie dann „Installations-USB erstellen“ und sichern Sie Ihre Dateien, bevor Sie Windows neu installieren.
 iso-open-folder = Im Ordner anzeigen
 iso-failed = ISO-Erstellung konnte nicht abgeschlossen werden
 iso-failed-description = Stellen Sie sicher, dass Ihre Dateien noch am gewählten Ort liegen und das Laufwerk, auf dem Sie speichern, angeschlossen ist, und wählen Sie dann „ISO erstellen“. Wenn es weiterhin fehlschlägt, wählen Sie „Bericht senden“.
@@ -904,7 +905,7 @@ iso-mode-desktop-description = Atlas speichert Ihre Auswahl in der ISO. Nach der
 desktop-setup-description = Schließen Sie die Einrichtung Ihres PCs ab. Ihre Atlas-Auswahl ist gespeichert. Bei Bedarf können Sie zu Windows wechseln.
 desktop-setup-exit = In Windows fortfahren
 
-# Windows installation USB (Beta)
+# Windows installation USB
 usb-title = Installations-USB erstellen
 usb-existing = USB aus einer vorhandenen ISO erstellen
 usb-description = Übertragen Sie eine ISO auf ein USB-Laufwerk, um Windows davon neu zu installieren. Verwenden Sie eine mit Atlas erstellte ISO, um Atlas gleich mit zu installieren.
