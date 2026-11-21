@@ -13,7 +13,7 @@ BeforeAll {
     $script:WriteAnswer = [scriptblock]::Create($ast.Extent.Text.Substring($start, $answerSteps[-1].Extent.EndOffset - $start))
     $pathsStart = $ast.Find({ param($n) $n -is [Management.Automation.Language.AssignmentStatementAst] -and $n.Left.Extent.Text -eq '$answerPaths' }, $true)
     $writeFiles = $ast.Find({ param($n) $n -is [Management.Automation.Language.ForEachStatementAst] -and $n.Condition.Extent.Text -eq '$answerPaths' }, $true)
-    $script:WriteAnswerFiles = [scriptblock]::Create($ast.Extent.Text.Substring($pathsStart.Extent.StartOffset, $writeFiles.Extent.EndOffset - $pathsStart.Extent.StartOffset))
+    $script:WriteAnswerFiles = [scriptblock]::Create("param(`$supportedEditions)`n" + $ast.Extent.Text.Substring($pathsStart.Extent.StartOffset, $writeFiles.Extent.EndOffset - $pathsStart.Extent.StartOffset))
     function New-TestAnswer([string]$architecture, [string]$username) {
         . $script:WriteAnswer
         [xml]$answer
@@ -58,9 +58,8 @@ Describe 'Native ISO mastering' {
         @{ Edition = 'Professional'; AnswerInWinPE = $true }
     ) {
         $media = Join-Path $TestDrive $Edition
-        $supportedEditions = @([pscustomobject]@{ EditionId = $Edition })
         $answer = $script:Answer.OuterXml
-        . $script:WriteAnswerFiles
+        . $script:WriteAnswerFiles @([pscustomobject]@{ EditionId = $Edition })
         Test-Path (Join-Path $media 'autounattend.xml') | Should -Be $AnswerInWinPE
         Test-Path (Join-Path $media 'sources\autounattend.xml') | Should -Be $AnswerInWinPE
         Test-Path (Join-Path $media 'sources\$OEM$\$$\Panther\unattend.xml') | Should -Be (!$AnswerInWinPE)
