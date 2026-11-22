@@ -887,9 +887,20 @@ function Invoke-AtlasToggle {
 
         # Set by the engine on the privileged child it launches for a state that also
         # has user work: apply and record only the machine part.
-        [switch]$MachineOnly
+        [switch]$MachineOnly,
+
+        # A brokered client runs each phase under the corresponding existing token.
+        [ValidateSet('Plan', 'User', 'Machine')]
+        [string]$Phase
     )
 
+    if ($Phase) {
+        if ([string]::IsNullOrWhiteSpace($State) -or $MachineOnly -or $JustContext -or $DeferPostAction -or $LauncherPath) {
+            throw 'A toggle phase requires an explicit state and cannot be combined with launcher or context options.'
+        }
+        $Silent = $true
+        $NoExplorerRestart = $true
+    }
     $definition = Get-AtlasToggleDefinition -Name $Name -TogglesRoot $TogglesRoot
 
     # A nested choice reports into the enclosing run's outcome; every other call is a
@@ -920,6 +931,19 @@ function Invoke-AtlasToggle {
         throw 'Deferring completion is supported only for a user-only choice with no reboot or context action.'
     }
 
+    $userBeforeRecord = -not $JustContext -and -not $work.Machine -and
+        -not $work.ProtectedUserRegistry -and
+        -not (Test-AtlasToggleStateHasKey -StateEntry $stateEntry -Key 'ContextAction')
+    if ($Phase) {
+        if ($elevation -ceq 'None' -or -not $work.User -or [bool]$stateEntry['Internal'] -or $stateName -cne $State) {
+            throw "Toggle phase requires a public elevated state with per-user work."
+        }
+        if ($Phase -eq 'Plan') {
+            if ($userBeforeRecord) { return 'User,Machine' }
+            return 'Machine,User'
+        }
+    }
+
     $isTrustedInstaller = Test-AtlasTrustedInstaller
     $isSystem = Test-AtlasSystem
     $isAdmin = Test-AtlasAdmin
@@ -936,8 +960,23 @@ function Invoke-AtlasToggle {
         SkipTitle    = $titleShown
     }
 
+    if ($Phase -eq 'User') {
+        if ($isTrustedInstaller -or $isSystem -or $isAdmin) {
+            throw 'The User phase requires the affected non-elevated user.'
+        }
+        $null = Get-AtlasToggleUserCallerBinding
+        Invoke-AtlasToggleInProcess @inProcess -Scope User -SkipPreamble -NoExplorerRestart -DeferPostAction
+        return
+    }
+    if ($Phase -eq 'Machine') {
+        if ($isSystem -or (-not $isAdmin -and -not $isTrustedInstaller)) {
+            throw 'The Machine phase requires the affected user''s elevated Administrator token.'
+        }
+        $MachineOnly = $true
+    }
+
     # First sign-in replay runs in the new account's own process: only user work applies.
-    if ($env:ATLAS_USER_CONTEXT -ceq '1') {
+    if (-not $Phase -and $env:ATLAS_USER_CONTEXT -ceq '1') {
         if ($work.User) {
             Invoke-AtlasToggleInProcess @inProcess -Scope User -SkipPreamble `
                 -NoExplorerRestart:$NoExplorerRestart -DeferPostAction:$DeferPostAction
@@ -1011,9 +1050,6 @@ function Invoke-AtlasToggle {
         # asking the existing machine child to record the choice. Otherwise a failed
         # app registration can replace a previously applied Disable with Enable.
         # Protected user policies and context actions still need the original order.
-        $userBeforeRecord = -not $JustContext -and -not $work.Machine -and
-            -not $work.ProtectedUserRegistry -and
-            -not (Test-AtlasToggleStateHasKey -StateEntry $stateEntry -Key 'ContextAction')
         if ($userBeforeRecord) {
             Invoke-AtlasToggleInProcess @inProcess -Scope User -SkipPreamble -NoExplorerRestart -DeferPostAction
             $actualBinding = Get-AtlasToggleUserCallerBinding

@@ -34,6 +34,9 @@ param(
 
     [switch]$MachineOnly,
 
+    [ValidateSet('Plan', 'User', 'Machine')]
+    [string]$Phase,
+
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$Rest
 )
@@ -48,7 +51,7 @@ if (-not [IO.File]::Exists($trustBootstrap)) {
 Set-StrictMode -Version 3.0
 
 # Normalise canonical flags supplied by a generated launcher or a direct caller.
-$silent = $false
+$silent = [bool]$Phase
 $justContext = $false
 $noExplorerRestart = $false
 foreach ($token in @($Rest)) {
@@ -100,6 +103,9 @@ try {
         JustContext       = $justContext
         NoExplorerRestart = $noExplorerRestart
         MachineOnly       = [bool]$MachineOnly
+    }
+    if ($Phase) {
+        $invokeParams['Phase'] = $Phase
     }
     if ($State) {
         $invokeParams['State'] = $State

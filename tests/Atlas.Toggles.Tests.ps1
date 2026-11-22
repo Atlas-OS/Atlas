@@ -1199,6 +1199,44 @@ Describe 'Invoke-AtlasToggle' {
             Mock Get-AtlasToggleUserCallerBinding -ModuleName Atlas.Toggles { [pscustomobject]@{ Sid = 'S-1-5-21-1-2-3-1001'; SessionId = 1 } }
         }
 
+        It 'plans both brokered phase orders without applying or recording anything' {
+            $common = @{ State = 'On'; Phase = 'Plan'; TogglesRoot = $script:TogglesRoot; StateRoot = $StateRoot }
+            Invoke-AtlasToggle -Name UserOnlyToggle @common | Should -BeExactly 'User,Machine'
+            Invoke-AtlasToggle -Name SplitToggle @common | Should -BeExactly 'Machine,User'
+            Test-Path (Join-Path $StateRoot 'UserOnlyToggle') | Should -BeFalse
+            Test-Path (Join-Path $env:AtlasToggleTestDir 'user.txt') | Should -BeFalse
+        }
+
+        It 'plans every shipped elevated state that declares per-user work' {
+            $catalog = Get-Content -Raw -LiteralPath (Join-Path $script:ShippedTogglesRoot 'catalog.json') | ConvertFrom-Json
+            $planned = 0
+            foreach ($toggle in $catalog.toggles) {
+                foreach ($state in $toggle.states) {
+                    if ($toggle.elevation -eq 'None' -or -not $state.work.user) { continue }
+                    $order = Invoke-AtlasToggle -Name $toggle.name -State $state.name -Phase Plan `
+                        -TogglesRoot $script:ShippedTogglesRoot -StateRoot $StateRoot
+                    @('User,Machine', 'Machine,User') | Should -Contain $order
+                    $planned++
+                }
+            }
+            $planned | Should -BeGreaterThan 0
+        }
+
+        It 'runs only the requested silent phase and leaves recording to the elevated caller' {
+            $common = @{ Name = 'SplitToggle'; State = 'On'; TogglesRoot = $script:TogglesRoot; StateRoot = $StateRoot }
+            Mock Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles { throw 'unexpected UAC' }
+            { Invoke-AtlasToggle @common -Phase Machine } | Should -Throw '*Administrator token*'
+            Mock Test-AtlasAdmin -ModuleName Atlas.Toggles { $true }
+            { Invoke-AtlasToggle @common -Phase User } | Should -Throw '*non-elevated user*'
+            Invoke-AtlasToggle @common -Phase Machine
+            Get-Marker 'machine' | Should -Match '^SplitToggle:On:1:silent=True'
+            Test-Path (Join-Path $env:AtlasToggleTestDir 'user.txt') | Should -BeFalse
+            Mock Test-AtlasAdmin -ModuleName Atlas.Toggles { $false }
+            Invoke-AtlasToggle @common -Phase User
+            Get-Marker 'user' | Should -Be 'SplitToggle:On'
+            (Get-AtlasToggleState -Name SplitToggle -StateRoot $StateRoot).State | Should -Be 1
+        }
+
         It 'does not dispatch a state record when a user-only action fails' {
             Set-AtlasToggleState -Name 'UserOnlyToggle' -State 0 -StateRoot $StateRoot
             Mock Invoke-AtlasToggleElevatedChild -ModuleName Atlas.Toggles

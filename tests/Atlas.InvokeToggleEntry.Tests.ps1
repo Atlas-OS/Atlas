@@ -70,12 +70,13 @@ function Invoke-AtlasToggle {
         [bool]$Silent,
         [bool]$JustContext,
         [bool]$NoExplorerRestart,
-        [bool]$MachineOnly
+        [bool]$MachineOnly,
+        [string]$Phase
     )
 
     switch ($Name) {
         'HarnessSuccess' {
-            Write-Output "harness applied '$Name' state '$State' silent=$Silent machineOnly=$MachineOnly"
+            Write-Output "harness applied '$Name' state '$State' silent=$Silent machineOnly=$MachineOnly phase=$Phase"
             return
         }
         'HarnessFailure' {
@@ -123,6 +124,12 @@ Describe 'Toggle CLI entry point exit and logging contract' {
 
         $result.ExitCode | Should -Be 0 -Because $result.Output
         $result.Output | Should -Match "harness applied 'HarnessSuccess' state 'On' silent=True machineOnly=True"
+    }
+
+    It 'passes an explicit brokered phase in silent mode' {
+        $result = Invoke-ToggleEntry -Arguments @('-Name', 'HarnessSuccess', '-State', 'On', '-Phase', 'User')
+        $result.ExitCode | Should -Be 0 -Because $result.Output
+        $result.Output | Should -Match 'silent=True machineOnly=False phase=User'
     }
 
     It 'exits nonzero and still emits the failure when the toggle throws silently' {

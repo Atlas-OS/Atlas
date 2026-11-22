@@ -102,6 +102,18 @@ State records store the numeric `StateValue`, so a recorded choice doesn't depen
 Within one scope the order is fixed: `Registry`, `Services`, `ScheduledTasks`, then the function.
 Put work in the companion only when that order, a prompt, a native command or a computed value makes the declarative form insufficient.
 
+## Silent clients with a privileged broker
+
+For an elevated toggle state with per-user work (`work.user` in the catalog), a client with its own privileged broker can call the installed `Scripts/Entry/Invoke-Toggle.ps1` with an explicit public `-Name`, `-State` and `-Phase`.
+Run `-Phase Plan` first. Its result is `User,Machine` when the user's work must succeed before Atlas records the choice, or `Machine,User` when the machine work comes first.
+
+Run those phases in order, waiting for a zero exit code before starting the next one.
+Use the affected user's non-elevated process for `User` and that same user's elevated Administrator token for `Machine`.
+The client must bind both calls to the same account and session and serialize changes to the same toggle.
+The machine phase uses Atlas's existing TrustedInstaller broker when the definition requires it and owns the state record.
+Both phases are silent. The client handles restart guidance from the catalog after both succeed.
+If the second phase fails, report the partial result. A completed first phase can already have changed the PC.
+
 ## Companion scripts
 
 A companion contains one header comment, which says what it does, which identity runs it and when, followed by function definitions only.
