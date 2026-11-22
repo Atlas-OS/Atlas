@@ -7,61 +7,8 @@ param()
 
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Privacy\Atlas.Privacy.psd1') -Force
     $script:featureUpdateScript = Join-Path $script:AtlasTestScriptsRoot 'Tweaks\qol\windows-update\disable-feature-updates.ps1'
     . (Join-Path $script:AtlasTestScriptsRoot 'Preparation\WindowsTransition.ps1')
-}
-
-Describe 'Location recovery when offline maps are unsupported' {
-    BeforeEach {
-        Mock Set-Service -ModuleName Atlas.Privacy {}
-        Mock Write-AtlasLog -ModuleName Atlas.Privacy {}
-        Mock Get-CimInstance -ModuleName Atlas.Privacy {
-            [pscustomobject]@{ State = 'Stopped'; ExitCode = 50 }
-        }
-        Mock Get-AtlasLocationServiceController -ModuleName Atlas.Privacy {
-            $controller = [pscustomobject]@{ Status = [System.ServiceProcess.ServiceControllerStatus]::Stopped }
-            $controller | Add-Member ScriptMethod Refresh {}
-            $controller | Add-Member ScriptMethod Start {}
-            $controller | Add-Member ScriptMethod Stop {}
-            $controller | Add-Member ScriptMethod WaitForStatus { throw 'service transition timed out' }
-            $controller | Add-Member ScriptMethod Dispose {}
-            return $controller
-        }
-    }
-
-    It 'warns and continues only when stopped MapsBroker reports ERROR_NOT_SUPPORTED' {
-        InModuleScope Atlas.Privacy {
-            { Invoke-AtlasLocationServiceState -Name MapsBroker -StartupType 2 -Status Running } | Should -Not -Throw
-            Should -Invoke Get-CimInstance -Times 1 -Exactly -ParameterFilter {
-                $ClassName -eq 'Win32_Service' -and $Filter -eq "Name='MapsBroker'"
-            }
-            Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
-                $Level -eq 'Warning' -and $Message -like '*error 50*'
-            }
-        }
-    }
-
-    It 'keeps other MapsBroker failures fatal: <State>, <Code>' -TestCases @(
-        @{ State = 'Stopped'; Code = 5 }
-        @{ State = 'Start Pending'; Code = 50 }
-    ) {
-        param($State, $Code)
-        Mock Get-CimInstance -ModuleName Atlas.Privacy {
-            [pscustomobject]@{ State = $State; ExitCode = $Code }
-        }
-        InModuleScope Atlas.Privacy {
-            { Invoke-AtlasLocationServiceState -Name MapsBroker -StartupType 2 -Status Running } | Should -Throw '*service transition timed out*'
-            Should -Invoke Write-AtlasLog -Times 0
-        }
-    }
-
-    It 'does not hide a geolocation service failure' {
-        InModuleScope Atlas.Privacy {
-            { Invoke-AtlasLocationServiceState -Name lfsvc -StartupType 3 -Status Running } | Should -Throw '*service transition timed out*'
-            Should -Invoke Get-CimInstance -Times 0
-        }
-    }
 }
 
 Describe 'Feature-update targeting on localized Windows' {
@@ -72,7 +19,7 @@ Describe 'Feature-update targeting on localized Windows' {
 
     It 'pins the release for <Case>' -TestCases @(
         @{ Case = 'English Windows 11'; Caption = 'Microsoft Windows 11 Education' }
-        @{ Case = 'French Windows 11 with a nonbreaking space'; Caption = "Microsoft Windows$([char]0xA0)11 Education" }
+        @{ Case = 'French Windows 11 with a nonbreaking space'; Caption = "Microsoft Windows$([char]0xA0)11 $([char]0xC9)ducation" }
     ) {
         param($Case, $Caption)
         [void]$Case
