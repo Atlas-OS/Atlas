@@ -940,6 +940,7 @@ usb-complete-title = USB พร้อมใช้งานแล้ว
 usb-close-title = ยังสร้าง USB อยู่
 # After erasing may have begun.
 usb-failed = ไดรฟ์อาจถูกล้างข้อมูลไปแล้ว จึงยังใช้ติดตั้ง Windows ไม่ได้ ตรวจดูให้แน่ใจว่าเชื่อมต่อไดรฟ์อยู่ แล้วเลือก ตรวจทาน USB เพื่อลองอีกครั้ง หากคุณถอดไดรฟ์แล้วเสียบกลับเข้าไป ให้เลือก รีเฟรช แล้วเลือกไดรฟ์นั้นอีกครั้งก่อน
+usb-failed-drive-unavailable = Windows ไม่สามารถเข้าถึงไดรฟ์ USB ได้ระหว่างการเขียน ไฟล์การติดตั้งยังไม่สมบูรณ์ เสียบไดรฟ์กลับเข้าไปหรือใช้ไดรฟ์ USB อื่น จากนั้นเลือก รีเฟรช เลือกไดรฟ์ แล้วเลือก ตรวจทาน USB
 # Before anything on the drive was changed: in general, then for the reasons the writer reports.
 usb-failed-unchanged = ไดรฟ์ USB ของคุณไม่มีการเปลี่ยนแปลง เลือก เปิดโฟลเดอร์บันทึก เพื่อดูสาเหตุ แล้วเลือก ตรวจทาน USB เพื่อลองอีกครั้ง
 usb-failed-iso = ใช้ ISO นี้สร้าง USB ติดตั้งไม่ได้ เลือก ISO ที่สร้างโดย Atlas หรือ ISO ของ Windows 11 จาก Microsoft ในเวอร์ชันที่ Atlas รองรับ ไดรฟ์ USB ของคุณไม่มีการเปลี่ยนแปลง
@@ -1312,7 +1313,7 @@ prepare-store-bootstrapped = Microsoft Store อัปเดตตัวเอ�
 prepare-store-repaired = Microsoft Store ไม่ทำงาน Atlas จึงซ่อมแซมให้แล้ว
 prepare-store-skipped-removed = Microsoft Store ถูกปิดไว้บนพีซีเครื่องนี้ Atlas จึงข้ามการอัปเดตแอปจาก Store
 # "Repair Microsoft Store" is prepare-repair-store; "Send a report" is report-title.
-prepare-failed-store-repair-failed = Microsoft Store ติดตั้งหรืออัปเดตแอปในพีซีเครื่องนี้ไม่ได้ และ Atlas ซ่อมแซมไม่ได้ Atlas ต้องให้ Store ทำงานได้ เพราะการติดตั้ง Atlas ขณะที่ Store เสียอาจทำให้ Store และแอปของ Store เสียต่อไป เลือก ซ่อมแซม Microsoft Store เพื่อลองอีกครั้ง หากยังไม่ได้ผล ให้สำรองไฟล์ของคุณแล้วติดตั้ง Windows ใหม่ด้วย ISO พร้อม Atlas หรือเลือก ส่งรายงาน
+prepare-failed-store-repair-failed = Atlas ซ่อมแซม Microsoft Store บนพีซีเครื่องนี้ไม่ได้ เลือก สร้าง ISO พร้อม Atlas เพื่อเตรียมติดตั้ง Windows ใหม่พร้อม Atlas สำรองไฟล์ของคุณก่อนติดตั้ง Windows ใหม่
 prepare-repair-store = ซ่อมแซม Microsoft Store
 
 screen-keyboard-title = ภาษาของแป้นพิมพ์

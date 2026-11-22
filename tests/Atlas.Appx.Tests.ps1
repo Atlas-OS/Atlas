@@ -1003,11 +1003,13 @@ Describe 'Invoke-AtlasAppxRemovalPlan' {
         $thrown | Should -Be (
             "AppX removal completed with 2 required failure(s): Required.One*: 'Required.One_1.0_x64__abc' is still " +
             "installed for the installing user ($script:installingSid). | Required.Two*: Still provisioned for new " +
-            "accounts: 'Required.Two_1.0_neutral__abc'. An app still installed for you can be uninstalled in " +
+            "accounts: 'Required.Two_1.0_neutral__abc' (Windows removal error: failed Required.Two_1.0_neutral__abc). " +
+            'An app still installed for you can be uninstalled in ' +
             'Settings > Apps before you try again.'
         )
         Should -Invoke Remove-AppxPackage -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter { $AllUsers }
-        Should -Invoke Remove-AppxProvisionedPackage -ModuleName Atlas.Appx -Times 1 -Exactly
+        Should -Invoke Remove-AppxProvisionedPackage -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter { $AllUsers }
+        Should -Invoke Remove-AppxProvisionedPackage -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter { -not $AllUsers }
         # Atlas Manager names the apps from these lines.
         Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
             $Level -eq 'Error' -and $Message -like "AppX removal failed for 'Required.One*': *"
@@ -1015,6 +1017,30 @@ Describe 'Invoke-AtlasAppxRemovalPlan' {
         Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
             $Level -eq 'Error' -and $Message -like "AppX removal failed for 'Required.Two*': *"
         }
+    }
+
+    It 'retries a failed provisioned removal once without AllUsers and verifies the result' {
+        $script:testProvisionedRemoved = $false
+        $definition = [pscustomobject]@{ Name = 'Orphaned.App*'; Option = $null; IgnoreErrors = $false }
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx -MockWith { @() }
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -MockWith {
+            if (-not $script:testProvisionedRemoved) {
+                [pscustomobject]@{
+                    DisplayName = 'Orphaned.App'; PackageName = 'Orphaned.App_1.0_neutral__abc'
+                }
+            }
+        }
+        Mock Remove-AppxProvisionedPackage -ModuleName Atlas.Appx -MockWith {
+            if ($AllUsers) { throw 'Path not found' }
+            $script:testProvisionedRemoved = $true
+        }
+
+        { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } | Should -Not -Throw
+        Should -Invoke Remove-AppxProvisionedPackage -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter { $AllUsers }
+        Should -Invoke Remove-AppxProvisionedPackage -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Online -and -not $AllUsers -and $PackageName -eq 'Orphaned.App_1.0_neutral__abc'
+        }
+        Should -Invoke Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx -Times 3 -Exactly
     }
 
     It 'accepts a provisioned-package error when final inventory confirms removal' {

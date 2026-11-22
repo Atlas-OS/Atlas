@@ -238,10 +238,27 @@ Describe 'Live preparation verification without installing updates' {
         Should -Invoke Find-PreparationWindowsUpdate -Times 2 -Exactly
         Should -Invoke Wait-PreparationStoreSearch -Times 1 -Exactly
     }
-    It 'blocks before Store if Windows offers required updates' {
-        Mock Find-PreparationWindowsUpdate { [pscustomobject]@{ Title='Required update' } }
+    It 'logs the offer and blocks before Store if Windows offers required updates' {
+        Mock Write-PreparationLog {}
+        Mock Find-PreparationWindowsUpdate {
+            [pscustomobject]@{ Title='Required update'; KBArticleIDs=@('5127694') }
+        }
         { Assert-PreparationCurrent } | Should -Throw '*Windows still offers*'
         Should -Invoke New-PreparationStoreManager -Times 0 -Exactly
+        Should -Invoke Write-PreparationLog -Times 1 -Exactly -ParameterFilter { $Text -like '*before the Store check*' }
+        Should -Invoke Write-PreparationLog -Times 1 -Exactly -ParameterFilter { $Text -eq 'Required update: Required update (KB: 5127694)' }
+    }
+
+    It 'logs a new offer that appears only after the Store check' {
+        $script:verificationSearches = 0
+        Mock Write-PreparationLog {}
+        Mock Find-PreparationWindowsUpdate {
+            $script:verificationSearches++
+            if ($script:verificationSearches -eq 2) { [pscustomobject]@{ Title='New offer' } }
+        }
+        { Assert-PreparationCurrent } | Should -Throw '*additional updates during verification*'
+        Should -Invoke Write-PreparationLog -Times 1 -Exactly -ParameterFilter { $Text -like '*after the Store check*' }
+        Should -Invoke Write-PreparationLog -Times 1 -Exactly -ParameterFilter { $Text -eq 'Required update: New offer' }
     }
     It 'does not treat an empty new Store search as completion while its queue is active' {
         $item = [pscustomobject]@{}
@@ -452,6 +469,22 @@ Describe 'Microsoft Store before the Store apps' {
         (Get-Content (Join-Path $JobPath 'updates.log') -Raw) | Should -Match 'storefixer failed: storefixer broke'
     }
 
+    It 'reports the HRESULT for the final Store failure message' {
+        Mock Update-PreparationStoreItself {
+            if ($script:Repairs.Count -eq 0) {
+                throw (New-PreparationFailure 'First package failure' 'store-update-failed' 0x80240008)
+            }
+            throw (New-PreparationFailure 'Final package failure' 'store-update-failed' 0x80073CF9)
+        }
+        Mock Invoke-PreparationStoreRepair { $script:Repairs.Add($Repair); $true }
+
+        try { Invoke-PreparationStoreStage } catch { $failure = $_.Exception }
+        $detail = Get-PreparationFailureDetail $failure
+        $detail.reason | Should -Be 'store-repair-failed'
+        $detail.failureMessage | Should -Match 'Final package failure'
+        $detail.errorCode | Should -Be '0x80073CF9'
+    }
+
     It 'goes through the repairs once per run' {
         Mock Update-PreparationStoreItself { throw (New-PreparationFailure 'Microsoft Store is not registered for this user.' 'store-missing') }
         { Invoke-PreparationStoreStage } | Should -Throw
@@ -537,6 +570,31 @@ Describe 'Microsoft Store before the Store apps' {
             Should -Invoke Save-PreparationAppInstaller -Times 1 -Exactly
             Should -Invoke Invoke-PreparationStoreProcess -Times 1 -Exactly -ParameterFilter { $Arguments -like '*--id 9WZDNCRFJBMP --source msstore*' }
             Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'this user has 1\.27\.459\.0, and this PC has nothing newer'
+        }
+
+        It 'continues with the signed installed winget when Windows refuses to downgrade App Installer' {
+            Mock Save-PreparationAppInstaller {
+                throw [Runtime.InteropServices.COMException]::new('A newer package is installed', 0x80073D06)
+            }
+
+            Install-PreparationStoreFromMicrosoft | Should -BeTrue
+            Should -Invoke Get-PreparationWingetPath -Times 1 -Exactly
+            Should -Invoke Assert-PreparationWingetStoreSource -Times 1 -Exactly
+            Should -Invoke Invoke-PreparationStoreProcess -Times 1 -Exactly -ParameterFilter {
+                $Arguments -like '*--id 9WZDNCRFJBMP --source msstore*'
+            }
+            $script:PreparationStoreDownloaded | Should -BeFalse
+            Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'trying the installed winget \(0x80073D06\)'
+        }
+
+        It 'still stops the bootstrap on an unrelated App Installer deployment failure' {
+            Mock Save-PreparationAppInstaller {
+                throw [Runtime.InteropServices.COMException]::new('App Installer deployment failed', 0x80073CF9)
+            }
+
+            { Install-PreparationStoreFromMicrosoft } | Should -Throw '*App Installer deployment failed*'
+            Should -Invoke Get-PreparationWingetPath -Times 0 -Exactly
+            Should -Invoke Invoke-PreparationStoreProcess -Times 0 -Exactly
         }
 
         It 'downloads App Installer when registering the newer copy this PC has leaves the user''s version as it was' {

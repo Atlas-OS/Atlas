@@ -661,7 +661,9 @@ function Resolve-AtlasAppxRemovalLeftover {
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNull()]
-        [psobject]$Account
+        [psobject]$Account,
+
+        [hashtable]$ProvisionedErrors = @{}
     )
 
     $userSid = [string]$Account.Sid
@@ -721,7 +723,10 @@ function Resolve-AtlasAppxRemovalLeftover {
         $provisionedNames = @($result.Provisioned | ForEach-Object {
                 $packageNameProperty = $_.PSObject.Properties['PackageName']
                 if ($packageNameProperty -and -not [string]::IsNullOrWhiteSpace([string]$packageNameProperty.Value)) {
-                    "'$($packageNameProperty.Value)'"
+                    $packageName = [string]$packageNameProperty.Value
+                    $detail = $ProvisionedErrors[$packageName]
+                    if ($detail) { "'$packageName' (Windows removal error: $detail)" }
+                    else { "'$packageName'" }
                 }
                 else {
                     "'$(Get-AtlasAppxPropertyText -Package $_ -Name DisplayName)'"
@@ -781,6 +786,7 @@ function Invoke-AtlasAppxRemovalPlan {
 
     $removedInstalled = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
     $removedProvisioned = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $provisionedErrors = @{}
 
     foreach ($item in $Definition) {
         foreach ($requiredProperty in @('Name', 'Option', 'IgnoreErrors')) {
@@ -854,8 +860,10 @@ function Invoke-AtlasAppxRemovalPlan {
                 Write-AtlasLog -Message "Removed provisioned AppX package '$packageName'."
             }
             catch {
+                $detail = ($_.Exception.Message -replace '\s+', ' ').Trim().TrimEnd('.')
+                $provisionedErrors[$packageName] = $detail
                 Write-AtlasLog -Message `
-                    "Provisioned AppX removal command reported an error for '$packageName'; deferring to final inventory: $($_.Exception.Message)"
+                    "Provisioned AppX removal command reported an error for '$packageName'; deferring to final inventory: $detail"
             }
         }
     }
@@ -873,6 +881,27 @@ function Invoke-AtlasAppxRemovalPlan {
             Write-AtlasLog -Level Warning -Message "$message Atlas looks again shortly."
         }
         Invoke-AtlasAppxPerUserRemoval -Leftover $leftovers
+        # Existing user registrations have their own removal path. When the
+        # all-users DISM call failed and provisioning remains, retry just the
+        # online image's provisioning, once for each matching package.
+        $retryProvisioned = foreach ($result in $leftovers) {
+            foreach ($package in $result.Provisioned) {
+                $name = Get-AtlasAppxPropertyText -Package $package -Name PackageName
+                if ($provisionedErrors.ContainsKey($name)) { $name }
+            }
+        }
+        foreach ($name in @($retryProvisioned | Sort-Object -Unique)) {
+            try {
+                Remove-AppxProvisionedPackage -PackageName $name -Online -ErrorAction Stop | Out-Null
+                $provisionedErrors.Remove($name)
+                Write-AtlasLog -Message "Retried provisioning-only removal for '$name' successfully."
+            }
+            catch {
+                $detail = ($_.Exception.Message -replace '\s+', ' ').Trim().TrimEnd('.')
+                $provisionedErrors[$name] = $detail
+                Write-AtlasLog -Message "Provisioning-only removal for '$name' reported an error: $detail"
+            }
+        }
         Start-Sleep -Seconds $script:AtlasAppxRemovalSettleSeconds
         $remaining = Read-AtlasAppxRemainingInventory -Previous $remaining
         $leftovers = @(Get-AtlasAppxRemovalLeftover -Definition $activeDefinitions.ToArray() `
@@ -883,7 +912,8 @@ function Invoke-AtlasAppxRemovalPlan {
         $failures.Add($message)
         Write-AtlasLog -Level Error -Message $message
     }
-    $installedForAccount = Resolve-AtlasAppxRemovalLeftover -Failures $failures -Leftover $leftovers -Account $account
+    $installedForAccount = Resolve-AtlasAppxRemovalLeftover -Failures $failures -Leftover $leftovers `
+        -Account $account -ProvisionedErrors $provisionedErrors
 
     if ($failures.Count -gt 0) {
         $message = "AppX removal completed with $($failures.Count) required failure(s): $($failures -join ' | ')"

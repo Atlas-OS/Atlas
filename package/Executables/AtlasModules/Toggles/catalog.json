@@ -46,7 +46,7 @@
     {
       "name": "ProcessExplorer",
       "group": "Advanced",
-      "description": "Replaces Task Manager with Sysinternals Process Explorer, or restores Task Manager.",
+      "description": "Replaces Task Manager with the latest Microsoft-signed Sysinternals Process Explorer, or restores Task Manager.",
       "elevation": "Admin",
       "noStateRecord": false,
       "menu": false,

@@ -125,7 +125,8 @@ function Set-AtlasLocationMachineState {
     }
 
     Invoke-AtlasLocationServiceState -Name lfsvc -StartupType 3 -Status Running
-    Invoke-AtlasLocationServiceState -Name MapsBroker -StartupType 2 -Status Running
+    # Windows starts Downloaded Maps Manager on demand for apps that use offline maps.
+    Set-Service -Name MapsBroker -StartupType Automatic -ErrorAction Stop
 
     # Find My Device stays locked unless the interactive public toggle opts in.
     Set-AtlasLocationSettingsPageVisibility -Operation unhide -Page privacy-location

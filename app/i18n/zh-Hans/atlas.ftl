@@ -911,6 +911,7 @@ usb-complete-title = U 盘已准备就绪
 usb-close-title = U 盘仍在创建中
 # 可能已开始清空驱动器之后。
 usb-failed = 驱动器可能已被清空，因此暂时无法用于安装 Windows。请确保它已连接，然后选择“检查 U 盘”重试。如果你重新连接过它，请先选择“刷新”，然后重新选择该驱动器。
+usb-failed-drive-unavailable = Windows 在写入过程中无法继续访问 U 盘。安装文件尚不完整。请重新连接此 U 盘或使用其他 U 盘，然后选择“刷新”，选中 U 盘，再选择“检查 U 盘”。
 # 驱动器尚未发生任何更改之前：先是一般情况，然后是写入进程报告的具体原因。
 usb-failed-unchanged = 你的 USB 驱动器未被更改。请选择“打开日志文件夹”查看失败原因，然后选择“检查 U 盘”重试。
 usb-failed-iso = 此 ISO 无法用于创建安装 U 盘。请选择由 Atlas 创建的 ISO，或从 Microsoft 获取的、Atlas 支持版本的 Windows 11 ISO。你的 USB 驱动器未被更改。
@@ -1228,7 +1229,7 @@ prepare-store-updated = Microsoft Store 版本已过时，因此 Atlas 在更新
 prepare-store-bootstrapped = Microsoft Store 无法自行更新，因此 Atlas 从 Microsoft 安装了最新的应用安装程序和 Microsoft Store。
 prepare-store-repaired = Microsoft Store 无法正常工作，因此 Atlas 已将其修复。
 prepare-store-skipped-removed = 这台电脑上的 Microsoft Store 已关闭，因此 Atlas 跳过了商店应用的更新。
-prepare-failed-store-repair-failed = Microsoft Store 无法在这台电脑上安装或更新应用，Atlas 也无法修复它。Atlas 需要 Microsoft Store 正常工作，因为在它损坏时安装 Atlas 可能会让 Microsoft Store 及其应用一直无法正常工作。请选择“修复 Microsoft Store”重试。如果仍然无法正常工作，请备份文件，然后使用 Atlas ISO 重新安装 Windows，或选择“发送报告”。
+prepare-failed-store-repair-failed = Atlas 无法修复这台电脑上的 Microsoft Store。请选择“创建 Atlas ISO”，为全新安装带有 Atlas 的 Windows 做准备。重新安装 Windows 前，请先备份文件。
 prepare-repair-store = 修复 Microsoft Store
 
 screen-keyboard-title = 键盘语言

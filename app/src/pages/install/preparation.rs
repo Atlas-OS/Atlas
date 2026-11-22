@@ -126,6 +126,7 @@ impl InstallPage {
         let reason = failure.and_then(|failure| failure.reason.as_deref()).filter(|_| outcome.is_some());
         let not_offered = failure.is_some_and(Activity::not_offered);
         let store_repair_failed = state.store_repair_failed();
+        let iso_recovery = store_repair_failed && state.can_navigate(Page::Iso);
         let restart_reasons = state
             .preparation_progress
             .as_ref()
@@ -281,6 +282,7 @@ impl InstallPage {
         // The current task's button is the accent one: once there is a
         // package, and while updating is what's left, or something to retry.
         let accent = enabled
+            && !iso_recovery
             && action.moves_on()
             && (action != PrepareAction::Start || state.package.is_some())
             && state.preparation != State::Ready;
@@ -351,11 +353,12 @@ impl InstallPage {
         });
         // A Store or component store Atlas can't repair leaves reinstalling Windows.
         let reinstall = store_repair_failed || failure.is_some_and(describe::component_store_damaged);
-        let iso = (matches!(reason, Some("feature-hardware")) || not_offered || reinstall)
+        let mut iso = (matches!(reason, Some("feature-hardware")) || not_offered || reinstall)
             .then(|| state.can_navigate(Page::Iso))
             .filter(|offered| *offered)
             .map(|_| {
                 Button::new("prepare-iso", t!("iso-open"))
+                    .when(iso_recovery, Button::accent)
                     .on_click(on_model(&self.model, |m, cx| m.navigate_iso_for_this_pc(cx)))
             });
         let put_back = (matches!(reason, Some("feature-build")) || put_back_failed.is_some()).then(|| {
@@ -376,10 +379,12 @@ impl InstallPage {
                 }
             })
         });
+        let recovery = if iso_recovery { iso.take() } else { None };
         let actions = div()
             .flex()
             .flex_wrap()
             .gap(px(8.))
+            .children(recovery)
             .when(state.preparation != State::WaitingExternal && !retry_useless, |row| row.child(main_button))
             .children(stop)
             .children(put_back)

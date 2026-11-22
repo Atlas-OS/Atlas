@@ -134,6 +134,7 @@ If the Store still can't update, the worker tries these repairs once per run, in
 2. **App Installer, then the Store through winget.**
    When the PC has a newer App Installer staged, or installed for another account, the worker registers that copy for you without a download.
    Otherwise, or when registering it changes nothing, it installs App Installer and its frameworks from the latest stable [winget-cli release](https://github.com/microsoft/winget-cli/releases).
+   If Windows refuses that release because a newer App Installer is on the PC, the worker uses the signed winget available to you.
    Then it installs the Store with `winget install --id 9WZDNCRFJBMP --source msstore`.
 3. **StoreFixer**, started through Atlas's own **Fix MS Store Issues**, which runs it as TrustedInstaller.
    A PC with an Atlas older than 0.6 has no safe way to start it, so the worker leaves this step out there.
@@ -143,8 +144,9 @@ The list of provisioned packages gives the bundle's version, such as 2026.115.22
 The winget-cli repository is checked by its GitHub IDs, and each file by the SHA-256 that GitHub records and by Microsoft's signature.
 
 The first repair after which the Store works ends the repairs, and the card says what was done.
-If none helps, the run stops with `store-repair-failed` and offers **Repair Microsoft Store**, which runs the repairs again.
-It also offers **Create an Atlas ISO**, for reinstalling Windows when the Store still can't be repaired, and **Send a report**.
+If none helps, the run stops with `store-repair-failed` and recommends **Create an Atlas ISO** for reinstalling Windows.
+Atlas reminds you to back up your files before reinstalling.
+**Repair Microsoft Store** runs the repairs again, and **Send a report** lets you tell the Atlas team what happened.
 
 ### Store app updates
 

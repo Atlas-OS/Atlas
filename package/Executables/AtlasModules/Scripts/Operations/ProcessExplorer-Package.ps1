@@ -10,24 +10,12 @@ if (-not [IO.File]::Exists($downloadModule)) {
 }
 Import-Module -Name $downloadModule -ErrorAction Stop
 
-$script:AtlasProcessExplorerVersion = '17.13'
 $script:AtlasProcessExplorerUri = 'https://download.sysinternals.com/files/ProcessExplorer.zip'
-$script:AtlasProcessExplorerArchiveSha256 = '678c540c306b73fa2354de8565c30c53f531de3cb0a989d056d603fa5f98ed6a'
-$script:AtlasProcessExplorerArchiveBytes = 3523482
 $script:AtlasProcessExplorerStateFileName = 'Atlas.ProcessExplorer.State.json'
-$script:AtlasProcessExplorerBinaries = @{
-    X86 = [pscustomobject]@{
-        ArchiveName = 'procexp.exe'
-        Sha256 = '6a26da49b2de1c70705918f8805192f7dfe43234c59a06a55145b35d46a8e660'
-    }
-    X64 = [pscustomobject]@{
-        ArchiveName = 'procexp64.exe'
-        Sha256 = '917b5d71f732bf5b5423cd212c004b2433a63e9dfe02a2a27ea421252c815690'
-    }
-    ARM64 = [pscustomobject]@{
-        ArchiveName = 'procexp64a.exe'
-        Sha256 = '3373e0461a8421c1c92c5b07c8b258ba09a722ebb1f082fd75f43c40ed8ef839'
-    }
+$script:AtlasProcessExplorerArchiveNames = @{
+    X86 = 'procexp.exe'
+    X64 = 'procexp64.exe'
+    ARM64 = 'procexp64a.exe'
 }
 
 function Get-AtlasProcessExplorerLayout {
@@ -51,16 +39,81 @@ function Get-AtlasProcessExplorerLayout {
     }
 }
 
-function Get-AtlasProcessExplorerBinary {
+function Get-AtlasProcessExplorerArchiveName {
     [CmdletBinding()]
     param(
         [string]$Architecture = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
     )
     $key = $Architecture.ToUpperInvariant()
-    if (-not $script:AtlasProcessExplorerBinaries.ContainsKey($key)) {
+    if (-not $script:AtlasProcessExplorerArchiveNames.ContainsKey($key)) {
         throw "Process Explorer does not support native architecture '$Architecture'."
     }
-    return $script:AtlasProcessExplorerBinaries[$key]
+    return $script:AtlasProcessExplorerArchiveNames[$key]
+}
+
+function Get-AtlasLatestProcessExplorerBinary {
+    param(
+        [Parameter(Mandatory = $true)][string]$StagingPath,
+        [Parameter(Mandatory = $true)][string]$ArchiveName
+    )
+
+    Add-Type -AssemblyName System.IO.Compression -ErrorAction Stop
+    $archiveStream = [IO.MemoryStream]::new()
+    $binaryPath = [IO.Path]::Combine($StagingPath, $ArchiveName)
+    try {
+        [void](Invoke-AtlasLimitedHttpGet -Uri $script:AtlasProcessExplorerUri -OutputStream $archiveStream `
+            -MaximumBytes 32MB -MaximumSeconds 60)
+        $archiveStream.Position = 0
+        $archive = [IO.Compression.ZipArchive]::new($archiveStream, [IO.Compression.ZipArchiveMode]::Read, $true)
+        try {
+            # Only publish the expected root entry to our own path, independent of other ZIP filenames.
+            $entries = @($archive.Entries | Where-Object { $_.FullName -ieq $ArchiveName })
+            if ($entries.Count -ne 1 -or $entries[0].Length -lt 1 -or $entries[0].Length -gt 32MB) {
+                throw "The Process Explorer archive does not contain one usable '$ArchiveName'."
+            }
+            $entry = $entries[0]
+            $inputStream = $entry.Open()
+            try {
+                $outputStream = [IO.File]::Open($binaryPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write)
+                try {
+                    $buffer = New-Object byte[] 65536
+                    [long]$written = 0
+                    while (($read = $inputStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                        $written += $read
+                        if ($written -gt $entry.Length) {
+                            throw "The Process Explorer archive entry '$ArchiveName' exceeded its declared length."
+                        }
+                        $outputStream.Write($buffer, 0, $read)
+                    }
+                    if ($written -ne $entry.Length) {
+                        throw "The Process Explorer archive entry '$ArchiveName' was incomplete."
+                    }
+                }
+                finally { $outputStream.Dispose() }
+            }
+            finally { $inputStream.Dispose() }
+        }
+        finally { $archive.Dispose() }
+    }
+    finally { $archiveStream.Dispose() }
+
+    $signature = Get-AuthenticodeSignature -LiteralPath $binaryPath -ErrorAction Stop
+    if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid -or
+        $null -eq $signature.SignerCertificate -or
+        $signature.SignerCertificate.Subject -notmatch '(^|,\s*)CN=Microsoft Corporation(,|$)') {
+        throw "The Process Explorer binary '$ArchiveName' is not validly signed by Microsoft."
+    }
+    $versionInfo = [Diagnostics.FileVersionInfo]::GetVersionInfo($binaryPath)
+    if ($versionInfo.OriginalFilename -ine 'procexp.exe' -or
+        $versionInfo.ProductName -ine 'Process Explorer' -or
+        $versionInfo.FileVersion -notmatch '^\d+(?:\.\d+){1,3}$') {
+        throw "The Microsoft-signed binary '$ArchiveName' does not identify as Process Explorer."
+    }
+    return [pscustomobject]@{
+        Path = $binaryPath
+        Version = $versionInfo.FileVersion
+        Sha256 = Get-AtlasProcessExplorerFileSha256 -Path $binaryPath
+    }
 }
 
 function Get-AtlasProcessExplorerFileSha256 {
@@ -428,6 +481,7 @@ function ConvertTo-AtlasProcessExplorerState {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)][string]$Architecture,
+        [Parameter(Mandatory = $true)][string]$PackageVersion,
         [Parameter(Mandatory = $true)][string]$InstalledBinarySha256,
         [Parameter(Mandatory = $true)][int]$PcwStart,
         [Parameter(Mandatory = $true)][bool]$DisablePcw,
@@ -446,7 +500,7 @@ function ConvertTo-AtlasProcessExplorerState {
 
     return [pscustomobject]@{
         SchemaVersion = 1
-        PackageVersion = $script:AtlasProcessExplorerVersion
+        PackageVersion = $PackageVersion
         Architecture = $Architecture.ToUpperInvariant()
         InstalledBinarySha256 = $InstalledBinarySha256.ToLowerInvariant()
         PcwChanged = $pcwChanged
@@ -478,7 +532,7 @@ function Install-AtlasProcessExplorerPackageCore {
     param([Parameter(Mandatory = $true)][bool]$DisablePcw)
     $layout = Get-AtlasProcessExplorerLayout
     $architecture = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToUpperInvariant()
-    $binary = Get-AtlasProcessExplorerBinary -Architecture $architecture
+    $archiveName = Get-AtlasProcessExplorerArchiveName -Architecture $architecture
     $existingState = Read-AtlasProcessExplorerState -StatePath $layout.StatePath -AllowMissing
     $debuggerBefore = Get-AtlasProcessExplorerDebugger -IfeoPath $layout.IfeoPath
     $shortcutTarget = Get-AtlasProcessExplorerShortcutTarget -Path $layout.ShortcutPath
@@ -488,54 +542,34 @@ function Install-AtlasProcessExplorerPackageCore {
     if ($DisablePcw -and $pcwBefore -in @(0, 1)) {
         throw 'Process Explorer cannot disable pcw while it is configured as a boot or system-start driver. Install without disabling pcw.'
     }
-    Assert-AtlasProcessExplorerInstallOwnership -Layout $layout `
-        -ExistingState $existingState -Debugger $debuggerBefore `
-        -ShortcutTarget $shortcutTarget -PcwStart $pcwBefore `
-        -ExpectedBinarySha256 $binary.Sha256
-
     $stagingPath = New-AtlasProtectedStagingDirectory
-    $binaryBefore = Get-AtlasProcessExplorerFileSnapshot -Path $layout.BinaryPath
-    $shortcutBefore = Get-AtlasProcessExplorerFileSnapshot -Path $layout.ShortcutPath
-    $stateBefore = Get-AtlasProcessExplorerFileSnapshot -Path $layout.StatePath
     $binaryTouched = $false
+    $stateTouched = $false
     $shortcutTouched = $false
     $debuggerTouched = $false
     $pcwTouched = $false
     try {
-        $sourceBinary = $null
-        if (-not [IO.File]::Exists($layout.BinaryPath) -or
+        $binary = Get-AtlasLatestProcessExplorerBinary -StagingPath $stagingPath -ArchiveName $archiveName
+        Assert-AtlasProcessExplorerInstallOwnership -Layout $layout `
+            -ExistingState $existingState -Debugger $debuggerBefore `
+            -ShortcutTarget $shortcutTarget -PcwStart $pcwBefore `
+            -ExpectedBinarySha256 $binary.Sha256
+
+        $binaryBefore = Get-AtlasProcessExplorerFileSnapshot -Path $layout.BinaryPath
+        $shortcutBefore = Get-AtlasProcessExplorerFileSnapshot -Path $layout.ShortcutPath
+        $stateBefore = Get-AtlasProcessExplorerFileSnapshot -Path $layout.StatePath
+        if (-not $binaryBefore.Exists -or
             (Get-AtlasProcessExplorerFileSha256 -Path $layout.BinaryPath) -ne $binary.Sha256) {
-            $archivePath = [IO.Path]::Combine($stagingPath, 'ProcessExplorer.zip')
-            Invoke-AtlasPinnedDownload -Uri $script:AtlasProcessExplorerUri `
-                -Destination $archivePath `
-                -Sha256 $script:AtlasProcessExplorerArchiveSha256 `
-                -ExpectedBytes $script:AtlasProcessExplorerArchiveBytes | Out-Null
-            $extractedPath = [IO.Path]::Combine($stagingPath, 'extracted')
-            Expand-Archive -LiteralPath $archivePath -DestinationPath $extractedPath -ErrorAction Stop
-            $sourceBinary = [IO.Path]::Combine($extractedPath, $binary.ArchiveName)
-            if (-not [IO.File]::Exists($sourceBinary)) {
-                throw "The '$architecture' Process Explorer binary is absent from the archive."
-            }
-            $sourceItem = Get-Item -LiteralPath $sourceBinary -Force -ErrorAction Stop
-            if ((Get-AtlasProcessExplorerFileSha256 -Path $sourceBinary) -ne $binary.Sha256 -or
-                $sourceItem.VersionInfo.FileVersion -ne $script:AtlasProcessExplorerVersion) {
-                throw "The '$architecture' Process Explorer binary failed its identity checks."
-            }
-            $signature = Get-AuthenticodeSignature -LiteralPath $sourceBinary
-            if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid -or
-                $null -eq $signature.SignerCertificate -or
-                $signature.SignerCertificate.Subject -notmatch '(^|,\s*)CN=Microsoft Corporation(,|$)') {
-                throw "The '$architecture' Process Explorer binary is not validly signed by Microsoft."
-            }
             Close-AtlasProcessExplorerPackageProcess -PackagePath $layout.PackagePath
             $binaryTouched = $true
-            Copy-AtlasProcessExplorerFile -Source $sourceBinary `
+            Copy-AtlasProcessExplorerFile -Source $binary.Path `
                 -Destination $layout.BinaryPath -ExpectedSha256 $binary.Sha256
         }
 
         $state = ConvertTo-AtlasProcessExplorerState -Architecture $architecture `
-            -InstalledBinarySha256 $binary.Sha256 -PcwStart $pcwBefore `
-            -DisablePcw $DisablePcw -ExistingState $existingState
+            -PackageVersion $binary.Version -InstalledBinarySha256 $binary.Sha256 `
+            -PcwStart $pcwBefore -DisablePcw $DisablePcw -ExistingState $existingState
+        $stateTouched = $true
         Write-AtlasProcessExplorerState -StatePath $layout.StatePath -State $state
 
         if (-not [IO.File]::Exists($layout.ShortcutPath)) {
@@ -587,8 +621,10 @@ function Install-AtlasProcessExplorerPackageCore {
         }
 
         if ($rollbackFailures.Count -eq 0) {
-            try { Restore-AtlasProcessExplorerFileSnapshot -Path $layout.StatePath -Snapshot $stateBefore }
-            catch { $rollbackFailures.Add("state: $($_.Exception.Message)") }
+            if ($stateTouched) {
+                try { Restore-AtlasProcessExplorerFileSnapshot -Path $layout.StatePath -Snapshot $stateBefore }
+                catch { $rollbackFailures.Add("state: $($_.Exception.Message)") }
+            }
             if ($rollbackFailures.Count -eq 0 -and $binaryTouched) {
                 try {
                     Restore-AtlasProcessExplorerFileSnapshot `

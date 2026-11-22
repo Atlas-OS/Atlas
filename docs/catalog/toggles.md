@@ -41,7 +41,7 @@ Removes Microsoft Store for all users or restores it for your account, downloadi
 
 ### ProcessExplorer
 
-Replaces Task Manager with Sysinternals Process Explorer, or restores Task Manager.
+Replaces Task Manager with the latest Microsoft-signed Sysinternals Process Explorer, or restores Task Manager.
 
 - Elevation: Admin
 

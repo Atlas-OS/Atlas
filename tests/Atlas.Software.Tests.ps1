@@ -683,6 +683,7 @@ Describe 'Start-AtlasSoftwareInstaller' {
         @{ ExitCode = 1; Codes = 'the default'; SuccessExitCode = $null; Failure = '*failed with exit code 1*' }
         # 1638 (another version installed) is only a success where a caller says so.
         @{ ExitCode = 1638; Codes = 'caller-supplied 0 and 3010'; SuccessExitCode = @(0, 3010); Failure = '*exit code 1638*' }
+        @{ ExitCode = 1638; Codes = 'the legacy runtime codes'; SuccessExitCode = @(0, 3010, 1638); Failure = $null }
         @{ ExitCode = 3010; Codes = 'caller-supplied 0 and 3010'; SuccessExitCode = @(0, 3010); Failure = $null }
     ) {
         InModuleScope Atlas.Software -Parameters @{ ExitCode = $ExitCode; SuccessExitCode = $SuccessExitCode; Failure = $Failure } {

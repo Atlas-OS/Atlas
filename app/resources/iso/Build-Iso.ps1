@@ -99,17 +99,73 @@ function Assert-BootCatalog([string]$Path, [ValidateSet('x64','arm64')][string]$
     }
     finally { $stream.Dispose() }
 }
-function Assert-Output {
-    if ([IO.Path]::GetExtension($request.output) -ine '.iso') { throw 'Output must end in .iso.' }
-    if (Test-Path -LiteralPath $request.output) { Fail 'output-exists' 'Output already exists. Choose a new filename.' }
-    $parent = Get-Item -LiteralPath ([IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($request.output)))
+function Get-AtlasIsoDestinationVolume([string]$Path) {
+    if (-not ('AtlasIsoDestinationVolume' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System.ComponentModel;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
+
+public sealed class AtlasIsoDestinationVolume {
+    public string FileSystem;
+    public ulong AvailableBytes;
+
+    [DllImport("kernel32.dll", CharSet=CharSet.Unicode, ExactSpelling=true, SetLastError=true)]
+    static extern bool GetVolumePathNameW(string path, StringBuilder root, uint size);
+
+    [DllImport("kernel32.dll", CharSet=CharSet.Unicode, ExactSpelling=true)]
+    static extern uint GetDriveTypeW(string root);
+
+    [DllImport("kernel32.dll", CharSet=CharSet.Unicode, ExactSpelling=true, SetLastError=true)]
+    static extern bool GetVolumeInformationW(string root, System.IntPtr label, uint labelSize,
+        System.IntPtr serial, System.IntPtr maxComponentLength, System.IntPtr flags,
+        StringBuilder fileSystem, uint fileSystemSize);
+
+    [DllImport("kernel32.dll", CharSet=CharSet.Unicode, ExactSpelling=true, SetLastError=true)]
+    static extern bool GetDiskFreeSpaceExW(string path, out ulong availableBytes,
+        System.IntPtr totalBytes, System.IntPtr freeBytes);
+
+    public static AtlasIsoDestinationVolume Read(string path) {
+        var root = new StringBuilder(32768);
+        if (!GetVolumePathNameW(path, root, (uint)root.Capacity))
+            throw new Win32Exception(Marshal.GetLastWin32Error());
+
+        string mount = root.ToString();
+        uint driveType = GetDriveTypeW(mount);
+        if (driveType <= 1 || driveType == 4) // Unknown, missing or remote
+            throw new IOException("The destination does not resolve to a local volume.");
+
+        var fileSystem = new StringBuilder(260);
+        if (!GetVolumeInformationW(mount, System.IntPtr.Zero, 0, System.IntPtr.Zero,
+            System.IntPtr.Zero, System.IntPtr.Zero, fileSystem, (uint)fileSystem.Capacity))
+            throw new Win32Exception(Marshal.GetLastWin32Error());
+
+        ulong availableBytes;
+        if (!GetDiskFreeSpaceExW(path, out availableBytes, System.IntPtr.Zero, System.IntPtr.Zero))
+            throw new Win32Exception(Marshal.GetLastWin32Error());
+        return new AtlasIsoDestinationVolume { FileSystem = fileSystem.ToString(), AvailableBytes = availableBytes };
+    }
+}
+'@
+    }
+    return [AtlasIsoDestinationVolume]::Read($Path)
+}
+function Assert-Output([string]$OutputPath, [string]$PackagePath, [string]$SourcePath) {
+    if ([IO.Path]::GetExtension($OutputPath) -ine '.iso') { throw 'Output must end in .iso.' }
+    if (Test-Path -LiteralPath $OutputPath) { Fail 'output-exists' 'Output already exists. Choose a new filename.' }
+    $parent = Get-Item -LiteralPath ([IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($OutputPath)))
     if ($parent.FullName.StartsWith('\\')) { Fail 'destination-filesystem' 'Choose a local NTFS or ReFS destination.' }
-    $volume = Get-Volume -FilePath $parent.FullName
-    if ($volume.FileSystem -notin @('NTFS', 'ReFS')) { Fail 'destination-filesystem' 'Choose an NTFS or ReFS destination for large installation files.' }
+    # Query the real mount point even for a directory reached through a junction.
+    try { $volume = Get-AtlasIsoDestinationVolume -Path $parent.FullName }
+    catch { Fail 'destination-filesystem' "Could not read the volume for '$($parent.FullName)': $($_.Exception.Message)" }
+    if ($volume.FileSystem -notin @('NTFS', 'ReFS')) {
+        Fail 'destination-filesystem' 'Choose an NTFS or ReFS destination for large installation files.'
+    }
     # Conservative budget: extracted media, output, package, plus scratch headroom.
-    $packageBytes = (Get-ChildItem -LiteralPath $request.package -File -Force -Recurse | Measure-Object Length -Sum).Sum
-    $required = 5 * (Get-Item -LiteralPath $source).Length + 2 * [long]$packageBytes + 4GB
-    if ($volume.SizeRemaining -lt $required) { Fail 'disk-space' "Not enough free space. Required: $required bytes." }
+    $packageBytes = (Get-ChildItem -LiteralPath $PackagePath -File -Force -Recurse | Measure-Object Length -Sum).Sum
+    $required = 5 * (Get-Item -LiteralPath $SourcePath).Length + 2 * [long]$packageBytes + 4GB
+    if ($volume.AvailableBytes -lt $required) { Fail 'disk-space' "Not enough free space. Required: $required bytes." }
     return $parent.FullName
 }
 function Get-AtlasMediaEditions([string]$ImagePath, [int[]]$SupportedBuilds, [switch]$OfflineReleaseCheck) {
@@ -237,7 +293,7 @@ try {
     Write-Stage inspect
     $source = (Get-Item -LiteralPath $request.source).FullName
     if ([IO.Path]::GetExtension($source) -ine '.iso') { throw 'Choose a Windows ISO file.' }
-    $parent = Assert-Output
+    $parent = Assert-Output -OutputPath $request.output -PackagePath $request.package -SourcePath $source
     $disk = Get-DiskImage -ImagePath $source
     if (-not $disk.Attached) {
         $disk = Mount-DiskImage -ImagePath $source -Access ReadOnly -PassThru
@@ -375,6 +431,7 @@ try {
       <RegisteredOwner>ATLAS_LOCAL_ACCOUNT</RegisteredOwner>
       <OOBE>
         <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
+        <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
         <HideEULAPage>false</HideEULAPage>
         <ProtectYourPC>3</ProtectYourPC>
       </OOBE>

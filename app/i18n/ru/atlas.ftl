@@ -993,6 +993,7 @@ usb-complete-title = Флешка готова
 usb-close-title = Создание флешки ещё продолжается
 # After erasing may have begun.
 usb-failed = Накопитель, возможно, уже стёрт, поэтому его пока нельзя использовать для установки Windows. Убедитесь, что он подключён, затем нажмите «Проверить выбор», чтобы повторить попытку. Если вы подключили его заново, сначала нажмите «Обновить» и снова выберите его.
+usb-failed-drive-unavailable = Windows потеряла доступ к USB-накопителю во время записи. Установочные файлы записаны не полностью. Подключите накопитель заново или используйте другой. Затем нажмите «Обновить», выберите накопитель и нажмите «Проверить выбор».
 # Before anything on the drive was changed: in general, then for the reasons the writer reports.
 usb-failed-unchanged = USB-накопитель не был изменён. Нажмите «Открыть папку журналов», чтобы узнать причину ошибки, затем нажмите «Проверить выбор», чтобы повторить попытку.
 usb-failed-iso = Этот ISO-образ нельзя использовать для создания установочной флешки. Выберите ISO-образ, созданный в Atlas, или ISO-образ Windows 11 от Microsoft той версии, которую поддерживает Atlas. USB-накопитель не был изменён.
@@ -1297,7 +1298,7 @@ prepare-store-updated = Версия Microsoft Store была устаревше
 prepare-store-bootstrapped = Microsoft Store не удалось обновиться самостоятельно, поэтому Atlas установил последние версии «Установщика приложений» и Microsoft Store напрямую от Microsoft.
 prepare-store-repaired = Microsoft Store не работал, поэтому Atlas исправил его.
 prepare-store-skipped-removed = Microsoft Store на этом ПК отключён, поэтому Atlas пропустил обновление приложений Store.
-prepare-failed-store-repair-failed = Microsoft Store не может устанавливать и обновлять приложения на этом ПК, и Atlas не удалось его исправить. Atlas нужен работающий Store, потому что установка Atlas при неисправном Store может оставить Store и его приложения неработоспособными. Чтобы повторить попытку, нажмите «Исправить Microsoft Store». Если он по-прежнему не работает, создайте резервную копию файлов и переустановите Windows с помощью ISO-образа с Atlas или нажмите «Отправить отчёт».
+prepare-failed-store-repair-failed = Atlas не удалось исправить Microsoft Store на этом компьютере. Нажмите «Создать ISO с Atlas», чтобы подготовить чистую установку Windows с Atlas. Создайте резервную копию файлов перед переустановкой Windows.
 prepare-repair-store = Исправить Microsoft Store
 
 screen-keyboard-title = Языки клавиатуры

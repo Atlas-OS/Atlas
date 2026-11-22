@@ -951,6 +951,7 @@ usb-complete-title = Ihr USB-Stick ist bereit
 usb-close-title = Der USB-Stick wird noch erstellt
 # After erasing may have begun.
 usb-failed = Das Laufwerk wurde möglicherweise bereits gelöscht und kann daher noch nicht zur Windows-Installation verwendet werden. Stellen Sie sicher, dass es angeschlossen ist, und wählen Sie dann „USB-Auswahl prüfen“, um es erneut zu versuchen. Wenn Sie es neu angeschlossen haben, wählen Sie zuerst „Aktualisieren“ und dann erneut das Laufwerk.
+usb-failed-drive-unavailable = Windows hat beim Schreiben den Zugriff auf das USB-Laufwerk verloren. Die Installationsdateien darauf sind unvollständig. Schließen Sie es erneut an oder verwenden Sie ein anderes USB-Laufwerk. Wählen Sie dann „Aktualisieren“, wählen Sie das Laufwerk aus und wählen Sie „USB-Auswahl prüfen“.
 # Before anything on the drive was changed: in general, then for the reasons the writer reports.
 usb-failed-unchanged = Ihr USB-Laufwerk wurde nicht verändert. Wählen Sie „Protokollordner öffnen“, um die Ursache zu sehen, und dann „USB-Auswahl prüfen“, um es erneut zu versuchen.
 usb-failed-iso = Mit dieser ISO kann kein Installations-USB erstellt werden. Wählen Sie eine mit Atlas erstellte ISO oder eine Windows-11-ISO von Microsoft für eine Version, die Atlas unterstützt. Ihr USB-Laufwerk wurde nicht verändert.
@@ -1318,7 +1319,7 @@ prepare-store-bootstrapped = Der Microsoft Store konnte sich nicht selbst aktual
 prepare-store-repaired = Der Microsoft Store funktionierte nicht, daher hat Atlas ihn repariert.
 prepare-store-skipped-removed = Der Microsoft Store ist auf diesem PC ausgeschaltet, daher hat Atlas die Updates für Store-Apps übersprungen.
 # „Microsoft Store reparieren“ is prepare-repair-store; „Bericht senden“ is report-title.
-prepare-failed-store-repair-failed = Der Microsoft Store kann auf diesem PC keine Apps installieren oder aktualisieren, und Atlas konnte ihn nicht reparieren. Atlas braucht einen funktionierenden Store, denn wenn Atlas installiert wird, während er defekt ist, können der Store und seine Apps defekt bleiben. Wählen Sie „Microsoft Store reparieren“, um es erneut zu versuchen. Wenn er weiterhin nicht funktioniert, sichern Sie Ihre Dateien und installieren Sie Windows mit einer Atlas-ISO neu, oder wählen Sie „Bericht senden“.
+prepare-failed-store-repair-failed = Atlas konnte den Microsoft Store auf diesem PC nicht reparieren. Wählen Sie „Atlas-ISO erstellen“, um eine Neuinstallation von Windows mit Atlas vorzubereiten. Sichern Sie Ihre Dateien, bevor Sie Windows neu installieren.
 prepare-repair-store = Microsoft Store reparieren
 
 screen-keyboard-title = Tastatursprachen

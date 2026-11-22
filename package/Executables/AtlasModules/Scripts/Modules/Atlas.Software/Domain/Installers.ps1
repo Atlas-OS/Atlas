@@ -832,6 +832,12 @@ function Install-AtlasVisualCppRuntimes {
 
     foreach ($entry in $vcredists) {
         $vcName = $entry.Name
+        $installSuccessCodes = @(0, 3010)
+        # The legacy 2005 and 2008 installers report ERROR_PRODUCT_VERSION when
+        # another version of their own runtime product is already registered.
+        if ($vcName -match '^(2005|2008)-') {
+            $installSuccessCodes += 1638
+        }
         Write-AtlasLog -Message "Preparing Visual C++ Runtime $vcName from $($entry.Uri)."
         $vcExePath = Join-Path -Path $TempDir -ChildPath "vcredist-$vcName.exe"
         Invoke-AtlasSoftwareDownload -Uri $entry.Uri -Destination $vcExePath -Description "Visual C++ Runtime $vcName"
@@ -880,7 +886,7 @@ function Install-AtlasVisualCppRuntimes {
                         -FilePath $msiExecPath `
                         -ArgumentList $msiArguments `
                         -Description "Visual C++ Runtime $vcName MSI" `
-                        -SuccessExitCode @(0, 3010))) {
+                        -SuccessExitCode $installSuccessCodes)) {
                     $failedInstallers.Add("$vcName MSI")
                 }
             }
@@ -894,7 +900,7 @@ function Install-AtlasVisualCppRuntimes {
                     -FilePath $vcExePath `
                     -ArgumentList ([string[]]$installerArguments) `
                     -Description "Visual C++ Runtime $vcName" `
-                    -SuccessExitCode @(0, 3010))) {
+                    -SuccessExitCode $installSuccessCodes)) {
                 $failedInstallers.Add($vcName)
             }
         }

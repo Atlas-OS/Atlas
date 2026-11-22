@@ -232,8 +232,8 @@ impl AppModel {
         (self.preparation == State::Ready).then_some(self.store_outcome_seen).flatten()
     }
 
-    /// Microsoft Store couldn't be repaired: Get ready offers the repairs
-    /// again, a report, and creating an Atlas ISO to reinstall Windows with.
+    /// Microsoft Store couldn't be repaired. Get ready recommends creating an
+    /// Atlas ISO to reinstall Windows and offers repair and diagnostics.
     pub fn store_repair_failed(&self) -> bool {
         self.preparation == State::Failed
             && self
