@@ -708,6 +708,7 @@ Describe 'Microsoft Store before the Store apps' {
 Describe 'Store items an earlier round left failed' {
     BeforeEach {
         Remove-Item -LiteralPath (Join-Path $JobPath 'updates.log') -ErrorAction SilentlyContinue
+        $script:PreparationStoreQueueRefreshed = $false
         $script:Offered = @()
         $failed = [pscustomobject]@{ PackageFamilyName = 'Microsoft.Xbox.TCUI_8wekyb3d8bbwe'; ProductId = '9NKNC0LD5NN6' }
         $failed | Add-Member ScriptMethod GetCurrentStatus { [pscustomobject]@{ InstallState = 'Error'; PercentComplete = 0; ErrorCode = $null } }
@@ -746,6 +747,67 @@ Describe 'Store items an earlier round left failed' {
         Get-Content (Join-Path $JobPath 'updates.log') -Raw |
             Should -Match 'item Microsoft\.Xbox\.TCUI_8wekyb3d8bbwe: offered again after it ended Error; updating it again'
     }
+
+    Context 'An installed app fails during the current pass' {
+        BeforeEach {
+            $script:FreshFailure = $script:StoreManager.AppInstallItems[0]
+            $script:FreshFailure.PackageFamilyName = 'Microsoft.Windows.Photos_8wekyb3d8bbwe'
+            $script:FreshFailure.ProductId = '9WZDNCRFJBH4'
+            $script:StoreManager.AppInstallItems = @()
+            $script:StoreSearches = 0
+            Mock Get-PreparationPackageVersion { @{ 'Microsoft.Windows.Photos_8wekyb3d8bbwe' = '2026.11090.22001.0' } }
+            Mock Wait-PreparationStoreSearch {
+                $script:StoreSearches++
+                if ($script:StoreSearches -eq 1) {
+                    $script:StoreManager.AppInstallItems = @($script:FreshFailure)
+                    $script:FreshFailure
+                } else { $script:Offered }
+            }
+        }
+
+        It 'waits for the queue to settle and only succeeds after a fresh search' {
+            Mock Start-Sleep { $script:StoreManager.AppInstallItems = @() }
+            { Invoke-PreparationStore } | Should -Not -Throw
+            Should -Invoke Start-Sleep -Times 1 -Exactly
+            Should -Invoke Wait-PreparationStoreSearch -Times 2 -Exactly
+            $log = Get-Content (Join-Path $JobPath 'updates.log') -Raw
+            $log | Should -Match '2026\.11090\.22001\.0 -> 2026\.11090\.22001\.0, Error'
+            $log | Should -Match 'waiting for the failed queue entry to settle, then searching again'
+        }
+
+        It 'bounds the wait and preserves the failure when the Store offers the failed update again' {
+            $script:Offered = @($script:FreshFailure)
+            { Invoke-PreparationStore } | Should -Throw '*Microsoft.Windows.Photos_8wekyb3d8bbwe, Error*'
+            Should -Invoke Start-Sleep -Times 30 -Exactly -ParameterFilter { $Seconds -eq 2 }
+            Should -Invoke Wait-PreparationStoreSearch -Times 2 -Exactly
+            $script:StoreManager.AppInstallItems.Count | Should -Be 0 -Because 'the failed queue record was cleared before the rescan'
+        }
+
+        It 'preserves an initial installation failure without waiting for a stale update' {
+            Mock Get-PreparationPackageVersion { @{} }
+            { Invoke-PreparationStore } | Should -Throw '*Microsoft.Windows.Photos_8wekyb3d8bbwe, Error*'
+            Should -Invoke Start-Sleep -Times 0 -Exactly
+            Should -Invoke Wait-PreparationStoreSearch -Times 1 -Exactly
+        }
+    }
+
+    It 'checks the live queue when the final search returns no new offers' {
+        $script:SecondQueueItem = $script:StoreManager.AppInstallItems[0]
+        $script:StoreManager.AppInstallItems = @()
+        $script:StoreSearches = 0
+        Mock Wait-PreparationStoreSearch {
+            $script:StoreSearches++
+            if ($script:StoreSearches -eq 1) {
+                $completed = [pscustomobject]@{ PackageFamilyName = 'Microsoft.Windows.Photos_8wekyb3d8bbwe'; ProductId = '9WZDNCRFJBH4' }
+                $completed | Add-Member ScriptMethod GetCurrentStatus { [pscustomobject]@{ InstallState = 'Completed' } }
+                $completed
+            }
+            if ($script:StoreSearches -eq 2) { $script:StoreManager.AppInstallItems = @($script:SecondQueueItem) }
+        }
+        { Invoke-PreparationStore } | Should -Not -Throw
+        Should -Invoke Wait-PreparationStoreSearch -Times 3 -Exactly
+        $script:StoreManager.AppInstallItems.Count | Should -Be 0
+    }
 }
 
 Describe 'Store items Windows refused to deploy' {
@@ -768,6 +830,7 @@ Describe 'Store items Windows refused to deploy' {
         Remove-Item -LiteralPath (Join-Path $JobPath 'updates.log') -ErrorAction SilentlyContinue
         $script:PreparationDeploymentSeen.Clear()
         $script:PreparationDeploymentWritten = 0
+        $script:PreparationStateRepositoryRead = $false
         Mock Get-PreparationPackageVersion { @{ 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' = '11.2508.4.0' } }
         # Newest first, as Get-WinEvent returns them; a failing Store logs the
         # same failure again on every retry.
@@ -778,6 +841,7 @@ Describe 'Store items Windows refused to deploy' {
             (New-DeploymentEvent 404 "AppX Deployment operation failed for package $script:Calculator with error 0x80073CF9. The specific error text for this failure is: Deployment Stage operation with target volume C: on Package $script:Calculator from: (a15291e6f81eeb6b) failed with error 0x80070490." 4)
         )
         Mock Get-WinEvent { $script:Events }
+        Mock Get-WinEvent {} -ParameterFilter { $FilterHashtable[0].LogName -eq 'Microsoft-Windows-StateRepository/Operational' }
     }
 
     It 'follows the item with the deployment log''s events since the run started, under each package' {
@@ -810,6 +874,22 @@ Describe 'Store items Windows refused to deploy' {
         Write-PreparationStoreItem @($item) @{}
         (Get-DeploymentLine).Count | Should -Be 3
         Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match "since this run started has no event 401 or 404 that updates\.log doesn't have already"
+    }
+
+    It 'collects related StateRepository errors once when staging reports a missing element' {
+        Mock Get-WinEvent {
+            New-DeploymentEvent 801 'StateRepository could not find a record for Microsoft.WindowsCalculator.' 1
+            New-DeploymentEvent 802 'Unrelated application event.' 1
+        } -ParameterFilter { $FilterHashtable[0].LogName -eq 'Microsoft-Windows-StateRepository/Operational' }
+        $item = New-StoreItem 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' '9WZDNCRFHVN5' $script:InstallFailed
+        Write-PreparationStoreItem @($item) @{}
+        Write-PreparationStoreItem @($item) @{}
+        Should -Invoke Get-WinEvent -Times 1 -Exactly -ParameterFilter {
+            $FilterHashtable[0].LogName -eq 'Microsoft-Windows-StateRepository/Operational' -and $FilterHashtable[0].Level -eq 2
+        }
+        $log = Get-Content (Join-Path $JobPath 'updates.log') -Raw
+        $log | Should -Match 'StateRepository event 801 .*Microsoft\.WindowsCalculator'
+        $log | Should -Not -Match 'Unrelated application event'
     }
 
     It 'keeps the newest few for each package and only so many a run' {
@@ -887,7 +967,9 @@ Describe 'Store items Windows refused to deploy' {
         @{ Case = 'the last, 0x80073D53'; Code = 0x80073D53 }
     ) {
         Write-PreparationStoreItem @(New-StoreItem 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' '9WZDNCRFHVN5' ([Runtime.InteropServices.COMException]::new('Deployment failed.', $Code))) @{}
-        Should -Invoke Get-WinEvent -Times 1 -Exactly
+        Should -Invoke Get-WinEvent -Times 1 -Exactly -ParameterFilter {
+            $FilterHashtable[0].LogName -eq 'Microsoft-Windows-AppXDeploymentServer/Operational'
+        }
     }
 
     It 'leaves the log alone for an error that isn''t a deployment error: <Case>' -TestCases @(

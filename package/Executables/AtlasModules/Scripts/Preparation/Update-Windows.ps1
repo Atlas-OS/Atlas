@@ -988,6 +988,21 @@ function New-PreparationStoreManager {
     return (Get-PreparationAppInstallManager)
 }
 
+# A failed update of an installed app can leave a stale record while the Store
+# finishes its work. Let it settle before the next pass clears a failed record.
+function Wait-PreparationStoreQueueRefresh($Manager, [string]$ProductId) {
+    if (-not $ProductId) { return }
+    for ($wait = 0; $wait -lt 30; $wait++) {
+        Assert-PreparationContinue
+        $failed = @($Manager.AppInstallItems | Where-Object {
+                $_.ProductId -eq $ProductId -and [string]$_.GetCurrentStatus().InstallState -in @('Error', 'Canceled')
+            })
+        if ($failed.Count -eq 0) { return }
+        Write-PreparationState running store-search
+        Start-Sleep -Seconds 2
+    }
+}
+
 function Invoke-PreparationStore {
     for ($pass = 0; $pass -lt $script:PreparationPasses; $pass++) {
         Assert-PreparationContinue
@@ -1015,6 +1030,7 @@ function Invoke-PreparationStore {
         $options = New-Object Windows.ApplicationModel.Store.Preview.InstallControl.AppUpdateOptions
         $options.AllowForcedAppRestart = $true
         $options.AutomaticallyDownloadAndInstallUpdateIfFound = $true
+        $before = Get-PreparationPackageVersion
         $operation = $manager.SearchForAllUpdatesAsync('', 'Atlas', $options)
         $items = @(Wait-PreparationStoreSearch $operation)
         # Include already active Store work so an empty new search cannot be
@@ -1024,7 +1040,7 @@ function Invoke-PreparationStore {
         if ($items.Count -eq 0) { return }
         $deadline = [DateTime]::UtcNow.AddMinutes(30)
         $restarted = @{}
-        $before = Get-PreparationPackageVersion
+        $refresh = $null
         try {
             do {
                 $complete = 0
@@ -1042,9 +1058,18 @@ function Invoke-PreparationStore {
                         continue
                     }
                     if ($state -in @('Error','Canceled','Paused','PausedLowBattery','PausedWiFiRecommended','PausedWiFiRequired')) {
-                        throw (New-PreparationStoreFailure $item.PackageFamilyName $state $status.ErrorCode)
+                        $family = [string]$item.PackageFamilyName
+                        $failure = New-PreparationStoreFailure $family $state $status.ErrorCode
+                        if (-not $script:PreparationStoreQueueRefreshed -and $pass -lt ($script:PreparationPasses - 1) -and
+                            $state -in @('Error', 'Canceled') -and $before.ContainsKey($family) -and
+                            -not $cleared.ContainsKey($family) -and $failure.Data['errorCode'] -notin @('0x80073D02', '0x80240016')) {
+                            $refresh = $item
+                            break
+                        }
+                        throw $failure
                     }
                 }
+                if ($null -ne $refresh) { break }
                 Write-PreparationState running store-install $complete $items.Count -Detail @{percent = [int][Math]::Floor($percent / $items.Count)}
                 if ($complete -lt $items.Count) {
                     if ([DateTime]::UtcNow -gt $deadline) { throw (New-PreparationFailure 'Store apps have not finished updating. Open Microsoft Store and resolve the remaining downloads.' 'store-timeout') }
@@ -1054,9 +1079,15 @@ function Invoke-PreparationStore {
         }
         finally { Write-PreparationStoreItem $items $before }
         Assert-PreparationContinue
+        if ($null -ne $refresh) {
+            $script:PreparationStoreQueueRefreshed = $true
+            Write-PreparationStoreEvidence "item $($refresh.PackageFamilyName): waiting for the failed queue entry to settle, then searching again"
+            Wait-PreparationStoreQueueRefresh $manager ([string]$refresh.ProductId)
+            continue
+        }
         # Updating Store itself can reveal more updates; search again before finishing.
         $again = @(Wait-PreparationStoreSearch ($manager.SearchForAllUpdatesAsync('', 'Atlas', $options)))
-        if (@($again | Where-Object { [string]$_.GetCurrentStatus().InstallState -ne 'Completed' }).Count -eq 0) { return }
+        if (@(@($again) + @($manager.AppInstallItems) | Where-Object { [string]$_.GetCurrentStatus().InstallState -ne 'Completed' }).Count -eq 0) { return }
     }
     throw (New-PreparationFailure "Microsoft Store still offers updates after $script:PreparationPasses passes." 'store-passes')
 }
@@ -1147,6 +1178,7 @@ $script:PreparationStoreRepairs = @('wsreset', 'bootstrap', 'storefixer')
 # copy this PC already had.
 $script:PreparationStoreDownloaded = $false
 $script:PreparationStoreRepairsRun = $false
+$script:PreparationStoreQueueRefreshed = $false
 # What happened to the Store in this run, for the app: store-updated,
 # store-bootstrapped, store-repaired or store-skipped-removed.
 $script:PreparationStoreOutcome = $null
@@ -1170,6 +1202,7 @@ $script:PreparationDeploymentLimit = 24
 $script:PreparationDeploymentLength = 1500
 $script:PreparationDeploymentSeen = [Collections.Generic.HashSet[string]]::new()
 $script:PreparationDeploymentWritten = 0
+$script:PreparationStateRepositoryRead = $false
 
 function Write-PreparationStoreEvidence([string]$Text) {
     Write-PreparationLog "Microsoft Store: $Text"
@@ -1227,11 +1260,39 @@ function Write-PreparationStoreItem($Items, [hashtable]$Before) {
     if ($refused.Count -gt 0) { Write-PreparationDeploymentEvent $refused }
 }
 
+# A missing element during staging can have more detail in StateRepository.
+# Keep only nearby errors relevant to the package or the same error code.
+function Write-PreparationStateRepositoryEvent([string]$Package, [datetime]$At) {
+    $script:PreparationStateRepositoryRead = $true
+    $start = $At.AddSeconds(-30)
+    if ($start -lt $script:PreparationStartedAt) { $start = $script:PreparationStartedAt }
+    $filter = @{
+        LogName = 'Microsoft-Windows-StateRepository/Operational'
+        Level = 2
+        StartTime = $start
+        EndTime = $At.AddSeconds(30)
+    }
+    try {
+        $packageName = [regex]::Escape(($Package -split '_')[0])
+        $events = @(Get-WinEvent -FilterHashtable $filter -MaxEvents 100 -ErrorAction Stop |
+                Where-Object Message -Match "$packageName|0x80070490|-2147023728" | Select-Object -First 5)
+        foreach ($entry in $events) {
+            $text = ([string]$entry.Message -replace '\s+', ' ').Trim()
+            if ($text.Length -gt $script:PreparationDeploymentLength) { $text = $text.Substring(0, $script:PreparationDeploymentLength) + '...' }
+            Write-PreparationLog ('Microsoft Store: StateRepository event {0} at {1:yyyy-MM-dd HH:mm:ss}: {2}' -f $entry.Id, $entry.TimeCreated, $text)
+        }
+    }
+    catch {
+        if ([string]$_.FullyQualifiedErrorId -notlike 'NoMatchingEventsFound*') {
+            Write-PreparationLog "Microsoft Store: StateRepository log couldn't be read: $($_.Exception.Message)"
+        }
+    }
+}
+
 # The AppX deployment log's events 401 (a deployment step failed, with that
 # step's own error) and 404 (the deployment failed) since this run started,
 # under the package each names, in updates.log; windows-transition.log only
-# notes them. Reading the log never fails the run: what can't be read is logged
-# instead.
+# notes them. A log read failure is recorded and does not stop the run.
 function Write-PreparationDeploymentEvent([string[]]$Refused) {
     $intro = "$($Refused -join ', ') failed to deploy; the AppX deployment log since this run started"
     try {
@@ -1252,6 +1313,7 @@ function Write-PreparationDeploymentEvent([string[]]$Refused) {
         $counted = [Collections.Generic.HashSet[string]]::new()
         $kept = 0
         $left = 0
+        $missing = $null
         foreach ($entry in $events) {
             $text = ([string]$entry.Message -replace '\s+', ' ').Trim()
             if (-not $text) {
@@ -1265,6 +1327,9 @@ function Write-PreparationDeploymentEvent([string[]]$Refused) {
             # A package full name: name, version, architecture, resource id, publisher id.
             $named = [regex]::Match($text, '\b[A-Za-z0-9][A-Za-z0-9.-]*_\d+(\.\d+){3}_[A-Za-z0-9]+_[^\s_]*_[a-z0-9]{13}\b')
             $package = if ($named.Success) { $named.Value } else { 'no package named' }
+            if ($null -eq $missing -and $named.Success -and $null -ne $entry.TimeCreated -and $text -match '0x80070490|-2147023728') {
+                $missing = @{ Package = $package; At = $entry.TimeCreated }
+            }
             if (-not $packages.Contains($package)) { $packages[$package] = [Collections.Generic.List[string]]::new() }
             if ($packages[$package].Count -ge $script:PreparationDeploymentPerPackage -or
                 $script:PreparationDeploymentWritten + $kept -ge $script:PreparationDeploymentLimit) {
@@ -1275,6 +1340,9 @@ function Write-PreparationDeploymentEvent([string[]]$Refused) {
             if ($text.Length -gt $script:PreparationDeploymentLength) { $text = $text.Substring(0, $script:PreparationDeploymentLength) + '...' }
             $packages[$package].Insert(0, ('event {0} at {1:yyyy-MM-dd HH:mm:ss}: {2}' -f $entry.Id, $entry.TimeCreated, $text))
             $kept++
+        }
+        if ($null -ne $missing -and -not $script:PreparationStateRepositoryRead) {
+            Write-PreparationStateRepositoryEvent @missing
         }
         if ($kept -eq 0) {
             # Each package's first new event is kept unless the run's limit is reached.

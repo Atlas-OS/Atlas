@@ -153,6 +153,7 @@ Atlas reminds you to back up your files before reinstalling.
 An app update that ends in `Error` or `Canceled` is cleared from the Store's queue, and the worker searches the Store again.
 If the Store offers the app again, the worker waits for it again and stops if it fails again.
 If the update disappears from the Store, the app is up to date, because a busy Store can report `Error` for an update it has already installed.
+If a newly failed update is for an installed app, the worker gives the queue up to a minute to settle and searches again before it starts repairs. It does this once per run.
 The log says which.
 
 A Store you removed on purpose stays removed.
@@ -223,12 +224,13 @@ A refused check ends the front door with exit code 5 (see [The front door](front
 
 Every step and its result go to `updates.log` in the job folder.
 The log lists the Store's packages and frameworks by version before and after.
-For each Store item the worker waited for, it gives the package family, the product ID, the versions before and after and how it ended.
+For each Store item the worker waited for, it gives the package family, the product ID, the installed versions before and after the attempt and how it ended.
 A failed item also gets the Store's error code.
 
 The Store reports most failed installs only as `0x80073CF9`.
 So when an item ends with an AppX deployment error, `updates.log` also gets the events 401 and 404 that the `Microsoft-Windows-AppXDeploymentServer/Operational` log recorded since the run started, under the package each names.
 They give the cause, such as `0x80070490`.
+For `0x80070490`, the worker also looks for nearby related StateRepository errors once per run and logs up to five.
 A log that can't be read is noted, and the run goes on.
 See [Log limits](diagnostics.md#log-limits) for how much of each log Atlas keeps.
 
