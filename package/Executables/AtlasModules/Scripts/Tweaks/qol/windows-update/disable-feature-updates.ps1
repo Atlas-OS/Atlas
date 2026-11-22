@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 . ([IO.Path]::Combine($PSScriptRoot, '..', '..', '..', 'Preparation', 'WindowsTransition.ps1'))
 
 $os = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop
-if ($os.Caption -notmatch 'Windows 11') {
+if ($os.Caption -notmatch 'Windows\s+11\b') {
     throw "Refusing to pin the feature-update target: OS caption '$($os.Caption)' is not Windows 11."
 }
 

@@ -65,7 +65,21 @@ function Invoke-AtlasLocationServiceState {
             else {
                 $service.Stop()
             }
-            $service.WaitForStatus($desiredStatus, [TimeSpan]::FromSeconds(30))
+            try {
+                $service.WaitForStatus($desiredStatus, [TimeSpan]::FromSeconds(30))
+            }
+            catch {
+                # Windows build 26300 can reject the retired offline-maps service
+                # with ERROR_NOT_SUPPORTED (50). Geolocation (lfsvc) remains required.
+                $maps = if ($Name -ceq 'MapsBroker' -and $Status -ceq 'Running') {
+                    Get-CimInstance Win32_Service -Filter "Name='MapsBroker'" -ErrorAction Stop
+                } else { $null }
+                if ($null -ne $maps -and $maps.State -eq 'Stopped' -and [uint32]$maps.ExitCode -eq 50) {
+                    Write-AtlasLog -Level Warning -Message 'MapsBroker is not supported by this Windows build (error 50); preserving geolocation and continuing without offline maps.'
+                    return
+                }
+                throw
+            }
         }
     }
     finally {
