@@ -203,7 +203,7 @@ public static class AtlasIsoLicense {
                         $digest = $candidateHash
                     }
                 } catch [ArgumentException] {
-                    # Unreadable terms stay in Windows Setup.
+                    Write-Verbose "Could not read the licence terms for $id. Windows Setup will display them."
                 } finally { $reader.Dispose() }
             }
         }
