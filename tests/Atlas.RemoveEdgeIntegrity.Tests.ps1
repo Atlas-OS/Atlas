@@ -3,6 +3,7 @@ BeforeAll {
     $repoRoot = Split-Path -Parent $PSScriptRoot
     $removeEdgePath = Join-Path -Path $repoRoot `
         -ChildPath 'package\Executables\AtlasModules\Scripts\Operations\Remove-Edge.ps1'
+    $script:edgeFileAssociations = Import-PowerShellDataFile -LiteralPath (Join-Path (Split-Path -Parent $removeEdgePath) 'EdgeFileAssociations.psd1')
 
     $tokens = $null
     $errors = $null
@@ -26,7 +27,7 @@ BeforeAll {
             'Wait-EdgeUninstallerProcesses',
             'Invoke-EdgeUninstallers',
             'Remove-EdgeRegistration',
-            'Remove-EdgeRegistryKey',
+            'Remove-EdgeRegistryEntry',
             'DisableEdgeBrowserServices',
             'KillEdgeProcesses'
         )) {
@@ -46,7 +47,7 @@ Describe 'Edge removal preserves shared WebView2 infrastructure' {
         # The extracted functions run under the strict mode Remove-Edge.ps1 sets.
         Set-StrictMode -Version 3.0
         . $script:edgeFunctions['Remove-EdgeRegistration']
-        . $script:edgeFunctions['Remove-EdgeRegistryKey']
+        . $script:edgeFunctions['Remove-EdgeRegistryEntry']
         . $script:edgeFunctions['DisableEdgeBrowserServices']
         . $script:edgeFunctions['KillEdgeProcesses']
         function Write-Status { param($Text, $Level) $null = $Text; $null = $Level }
@@ -67,13 +68,13 @@ Describe 'Edge removal preserves shared WebView2 infrastructure' {
                     }
                 }
             }
-            Mock Remove-EdgeRegistryKey {
+            Mock Remove-EdgeRegistryEntry {
                 $KeyPath.StartsWith('HKLM\SOFTWARE\') | Should -BeTrue
                 $relative = $KeyPath.Substring('HKLM\SOFTWARE\'.Length)
                 $target = "$scratchRoot\$RegistryView\$relative"
                 if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Recurse -Force }
             }
-            Remove-EdgeRegistration
+            Remove-EdgeRegistration -FileAssociations $script:edgeFileAssociations
             foreach ($view in '32', '64') {
                 foreach ($branch in 'Clients', 'ClientState', 'ClientStateMedium') {
                     Test-Path -LiteralPath "$scratchRoot\$view\Microsoft\EdgeUpdate\$branch\$edgeId" | Should -BeFalse
@@ -83,6 +84,42 @@ Describe 'Edge removal preserves shared WebView2 infrastructure' {
         }
         finally {
             Remove-Item -LiteralPath $scratchRoot -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'removes Edge file registrations from the intended hives in both registry views' -ForEach @(
+        @{ IsMachine = $true; ExpectedUserCalls = 0 }
+        @{ IsMachine = $false; ExpectedUserCalls = 2 }
+    ) {
+        Set-Variable -Name MachineContext -Value $IsMachine
+        Mock Remove-EdgeRegistryEntry
+
+        Remove-EdgeRegistration -FileAssociations $script:edgeFileAssociations
+
+        foreach ($view in '32', '64') {
+            Should -Invoke Remove-EdgeRegistryEntry -Times 1 -Exactly -ParameterFilter {
+                $RegistryView -eq $view -and $KeyPath -eq 'HKLM\SOFTWARE\Classes\MSEdgePDF' -and -not $ValueName
+            }
+            Should -Invoke Remove-EdgeRegistryEntry -Times 1 -Exactly -ParameterFilter {
+                $RegistryView -eq $view -and $KeyPath -eq 'HKLM\SOFTWARE\Classes\.pdf\OpenWithProgids' -and $ValueName -eq 'MSEdgePDF'
+            }
+            Should -Invoke Remove-EdgeRegistryEntry -Times 1 -Exactly -ParameterFilter {
+                $RegistryView -eq $view -and $KeyPath -eq 'HKLM\SOFTWARE\RegisteredApplications' -and $ValueName -eq 'Microsoft Edge'
+            }
+            foreach ($progId in 'MSEdgeHTM', 'MSEdgeMHT') {
+                Should -Invoke Remove-EdgeRegistryEntry -Times 1 -Exactly -ParameterFilter {
+                    $RegistryView -eq $view -and $KeyPath -eq 'HKLM\SOFTWARE\Classes\.mhtml\OpenWithProgids' -and $ValueName -eq $progId
+                }
+            }
+        }
+        Should -Invoke Remove-EdgeRegistryEntry -Times $ExpectedUserCalls -Exactly -ParameterFilter {
+            $KeyPath -eq 'HKCU\SOFTWARE\Classes\MSEdgePDF' -and -not $ValueName
+        }
+        Should -Invoke Remove-EdgeRegistryEntry -Times $ExpectedUserCalls -Exactly -ParameterFilter {
+            $KeyPath -eq 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.pdf\OpenWithProgids' -and $ValueName -eq 'MSEdgePDF'
+        }
+        Should -Invoke Remove-EdgeRegistryEntry -Times 0 -Exactly -ParameterFilter {
+            $KeyPath.EndsWith('\OpenWithProgids') -and -not $ValueName
         }
     }
 

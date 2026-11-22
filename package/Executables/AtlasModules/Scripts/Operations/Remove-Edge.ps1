@@ -521,12 +521,15 @@ function DisableEdgeBrowserServices {
     # EdgeUpdate services and tasks also service WebView2; keep them operational.
 }
 
-function Remove-EdgeRegistryKey {
+function Remove-EdgeRegistryEntry {
     param(
         [Parameter(Mandatory = $true)][string]$KeyPath,
-        [Parameter(Mandatory = $true)][ValidateSet('32', '64')][string]$RegistryView
+        [Parameter(Mandatory = $true)][ValidateSet('32', '64')][string]$RegistryView,
+        [string]$ValueName
     )
-    & "$sys32\reg.exe" delete $KeyPath /f "/reg:$RegistryView" *> $null
+    $arguments = @('delete', $KeyPath, '/f', "/reg:$RegistryView")
+    if ($ValueName) { $arguments += @('/v', $ValueName) }
+    & "$sys32\reg.exe" @arguments *> $null
 }
 
 function Remove-EdgeRegistration {
@@ -534,10 +537,12 @@ function Remove-EdgeRegistration {
     .SYNOPSIS
         Removes the shell registration Edge leaves behind after its binaries are gone:
         dead protocol handlers (microsoft-edge:), App Paths\msedge.exe, a binary-less
-        Apps-list Uninstall row, StartMenuInternet and the Edge Stable client
+        Apps-list Uninstall row, StartMenuInternet, file handlers and the Edge Stable client
         registration. The updater is shared with WebView2: never remove its parent tree
         or COM registration.
     #>
+    param([hashtable]$FileAssociations = (Microsoft.PowerShell.Utility\Import-PowerShellDataFile -LiteralPath (Join-Path $PSScriptRoot 'EdgeFileAssociations.psd1')))
+
     # {56EB18F8-...} is Edge Stable's EdgeUpdate app ID; {9459C573-...} is Edge's Active
     # Setup component, which runs Edge's per-user setup at an account's first sign-in.
     $edgeKeys = @(
@@ -556,17 +561,35 @@ function Remove-EdgeRegistration {
         'HKLM\SOFTWARE\Classes\microsoft-edge-holographic'
         'HKLM\SOFTWARE\Classes\MSEdgeHTM'
         'HKLM\SOFTWARE\Classes\MSEdgeMHT'
+        'HKLM\SOFTWARE\Classes\MSEdgePDF'
     )
+    $edgeValues = @{ 'HKLM\SOFTWARE\RegisteredApplications' = @('Microsoft Edge') }
+    $openWithRoots = @('HKLM\SOFTWARE\Classes')
     if (-not $MachineContext) {
         $edgeKeys += @(
             'HKCU\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\microsoft-edge'
             'HKCU\SOFTWARE\Classes\microsoft-edge'
+            'HKCU\SOFTWARE\Classes\microsoft-edge-holographic'
             'HKCU\SOFTWARE\Classes\MSEdgeHTM'
+            'HKCU\SOFTWARE\Classes\MSEdgeMHT'
+            'HKCU\SOFTWARE\Classes\MSEdgePDF'
         )
+        $edgeValues['HKCU\SOFTWARE\RegisteredApplications'] = @('Microsoft Edge')
+        $openWithRoots += @('HKCU\SOFTWARE\Classes', 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts')
     }
-    foreach ($edgeKey in $edgeKeys) {
-        foreach ($view in @('64', '32')) {
-            Remove-EdgeRegistryKey -KeyPath $edgeKey -RegistryView $view
+    foreach ($root in $openWithRoots) {
+        foreach ($association in $FileAssociations.GetEnumerator()) {
+            $edgeValues["$root\$($association.Key)\OpenWithProgids"] = $association.Value
+        }
+    }
+    foreach ($view in @('64', '32')) {
+        foreach ($edgeKey in $edgeKeys) {
+            Remove-EdgeRegistryEntry -KeyPath $edgeKey -RegistryView $view
+        }
+        foreach ($entry in $edgeValues.GetEnumerator()) {
+            foreach ($valueName in $entry.Value) {
+                Remove-EdgeRegistryEntry -KeyPath $entry.Key -ValueName $valueName -RegistryView $view
+            }
         }
     }
 }
