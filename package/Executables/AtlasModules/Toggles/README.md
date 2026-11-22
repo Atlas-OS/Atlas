@@ -109,7 +109,7 @@ Run `-Phase Plan` first. Its result is `User,Machine` when the user's work must 
 
 Run those phases in order, waiting for a zero exit code before starting the next one.
 Use the affected user's non-elevated process for `User` and that same user's elevated Administrator token for `Machine`.
-The client must bind both calls to the same account and session and serialize changes to the same toggle.
+The client must bind both calls to the same account and session and run one change at a time for each toggle.
 The machine phase uses Atlas's existing TrustedInstaller broker when the definition requires it and owns the state record.
 Both phases are silent. The client handles restart guidance from the catalog after both succeed.
 If the second phase fails, report the partial result. A completed first phase can already have changed the PC.
