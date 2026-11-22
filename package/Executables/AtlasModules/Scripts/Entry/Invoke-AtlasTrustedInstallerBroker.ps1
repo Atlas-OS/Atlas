@@ -142,6 +142,9 @@ try {
         [BitConverter]::GetBytes([uint32]$result.ExitCodeUInt32),
         0
     )
+    if ($result.LingeringProcessesTerminated) {
+        [Console]::WriteLine('The install plan finished successfully. Atlas closed leftover processes in the installer job after its final wait.')
+    }
     if ($signedExitCode -ne 0) {
         if ($Operation -ceq 'Install') {
             try {

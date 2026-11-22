@@ -1396,6 +1396,10 @@ Describe 'Front door staging copies' {
 }
 
 Describe 'Front door phase failures' {
+    BeforeAll {
+        function Write-AtlasInstallStep { param([string]$Message) [Console]::WriteLine($Message) }
+    }
+
     It 'keeps the broker''s message and ends with what to do next' -TestCases @(
         @{ Phase = 'Capture'; Message = 'Install capture failed: *'; Log = 'install-capture.log'; Next = 'try again.' }
         @{ Phase = 'Run'; Message = 'The install plan failed: *'; Log = 'install-run.log'; Next = 'resume.' }
@@ -1451,7 +1455,9 @@ Describe 'Front door phase failures' {
 
     It 'returns nothing when the broker succeeds' {
         Mock Invoke-AtlasTrustedInstaller { [pscustomobject]@{ ExitCode = 0; StandardOutput = 'done'; StandardError = '' } }
+        Mock Write-AtlasInstallStep {}
         Invoke-AtlasInstallPhase -Phase Run -PackageRoot 'C:\Windows\AtlasOS\Staging\0123\Executables' -TimeoutSeconds 60 | Should -BeNullOrEmpty
+        Should -Invoke Write-AtlasInstallStep -Times 1 -Exactly -ParameterFilter { $Message -eq 'done' }
     }
 }
 

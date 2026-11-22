@@ -191,6 +191,7 @@ Protection is never left off silently.
 
 ## Restart and completion
 
+- After the install plan exits successfully, Atlas waits up to two minutes for its installer process tree. It then closes leftover processes in that tree and confirms it has emptied before continuing.
 - **Restart my PC automatically after installation**, in Settings and the Install summary, is on by default.
   It asks Windows to restart when the countdown after a successful install ends, and the installing view says so while the install runs.
 - The countdown lasts 10 seconds, or 60 seconds when it starts with the window in the background, whose taskbar button then flashes until you return.
