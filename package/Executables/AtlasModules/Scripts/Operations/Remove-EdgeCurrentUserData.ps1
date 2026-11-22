@@ -291,6 +291,42 @@ if ([string]$actualSid -cne [string]$expectedSid) {
     throw "Edge-cleanup token SID '$actualSid' does not match install-state SID '$expectedSid'."
 }
 
+function Remove-AtlasEdgeUserRegistration {
+    param(
+        [string]$RegistryRoot = 'HKCU:\SOFTWARE',
+        [hashtable]$FileAssociations = (Microsoft.PowerShell.Utility\Import-PowerShellDataFile -LiteralPath (Join-Path $PSScriptRoot 'EdgeFileAssociations.psd1'))
+    )
+
+    foreach ($subKey in @(
+            'Microsoft\Windows\Shell\Associations\UrlAssociations\microsoft-edge'
+            'Classes\microsoft-edge'
+            'Classes\microsoft-edge-holographic'
+            'Classes\MSEdgeHTM'
+            'Classes\MSEdgeMHT'
+            'Classes\MSEdgePDF'
+        )) {
+        $path = Join-Path $RegistryRoot $subKey
+        if (Microsoft.PowerShell.Management\Test-Path -LiteralPath $path) {
+            Microsoft.PowerShell.Management\Remove-Item -LiteralPath $path -Recurse -Force
+        }
+    }
+
+    $edgeValues = @{ 'RegisteredApplications' = @('Microsoft Edge') }
+    foreach ($root in @('Classes', 'Microsoft\Windows\CurrentVersion\Explorer\FileExts')) {
+        foreach ($association in $FileAssociations.GetEnumerator()) {
+            $edgeValues["$root\$($association.Key)\OpenWithProgids"] = $association.Value
+        }
+    }
+    foreach ($entry in $edgeValues.GetEnumerator()) {
+        $path = Join-Path $RegistryRoot $entry.Key
+        foreach ($name in $entry.Value) {
+            if (Microsoft.PowerShell.Management\Get-ItemProperty -LiteralPath $path -Name $name -ErrorAction SilentlyContinue) {
+                Microsoft.PowerShell.Management\Remove-ItemProperty -LiteralPath $path -Name $name
+            }
+        }
+    }
+}
+
 function Invoke-AtlasEdgeUserCleanup {
     # Identity is checked before this operation or its transcript is started.
     $rawLocalAppDataPath = [Environment]::GetFolderPath('LocalApplicationData')
@@ -357,15 +393,7 @@ function Invoke-AtlasEdgeUserCleanup {
 
     # All identity, containment and reparse validation above must complete before the first
     # registry or filesystem mutation below.
-    foreach ($registryPath in @(
-            'HKCU:\SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\microsoft-edge'
-            'HKCU:\SOFTWARE\Classes\microsoft-edge'
-            'HKCU:\SOFTWARE\Classes\MSEdgeHTM'
-        )) {
-        if (Microsoft.PowerShell.Management\Test-Path -LiteralPath $registryPath) {
-            Microsoft.PowerShell.Management\Remove-Item -LiteralPath $registryPath -Recurse -Force
-        }
-    }
+    Remove-AtlasEdgeUserRegistration
 
     $removedAutoLaunchValues = @(Remove-AtlasOrphanedEdgeAutoLaunch)
     foreach ($removedAutoLaunchValue in $removedAutoLaunchValues) {

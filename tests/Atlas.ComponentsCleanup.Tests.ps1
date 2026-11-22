@@ -18,6 +18,7 @@ BeforeAll {
         -ChildPath 'Operations\Remove-OneDriveCurrentUserData.ps1'
     $script:edgeUserCleanup = Join-Path -Path $script:AtlasTestScriptsRoot `
         -ChildPath 'Operations\Remove-EdgeCurrentUserData.ps1'
+    $script:edgeFileAssociations = Import-PowerShellDataFile -LiteralPath (Join-Path (Split-Path -Parent $script:edgeUserCleanup) 'EdgeFileAssociations.psd1')
 
     $tokens = $null
     $errors = $null
@@ -62,6 +63,7 @@ BeforeAll {
     foreach ($functionName in @(
             'Get-AtlasEdgeExecutablePaths'
             'Remove-AtlasOrphanedEdgeAutoLaunch'
+            'Remove-AtlasEdgeUserRegistration'
             'Assert-AtlasUserPathBoundary'
         )) {
         $functionAst = @($script:edgeAst.FindAll({
@@ -259,7 +261,7 @@ AfterAll {
             'New-ScheduledTaskPrincipal', 'New-ScheduledTaskAction', 'Register-ScheduledTask'
             'Test-Path', 'New-Item', 'Set-ItemProperty', 'Remove-ItemProperty'
             'Get-AtlasEdgeExecutablePaths', 'Remove-AtlasOrphanedEdgeAutoLaunch'
-            'Assert-AtlasUserPathBoundary'
+            'Remove-AtlasEdgeUserRegistration', 'Assert-AtlasUserPathBoundary'
         )) {
         Microsoft.PowerShell.Management\Remove-Item -LiteralPath "Function:\$shadow" `
             -ErrorAction SilentlyContinue
@@ -727,6 +729,45 @@ Describe 'OneDrive exact-user cleanup boundary' {
         [IO.Directory]::Exists($tree) | Should -BeFalse
         # A tree that is already gone counts as removed.
         { Remove-AtlasOneDriveUserTree -Path $tree } | Should -Not -Throw
+    }
+}
+
+Describe 'Edge exact-user file registration cleanup' {
+    It 'removes only Edge from the PDF suggestions and preserves the chosen app' {
+        $root = 'HKCU:\Software\AtlasRewriteTest\EdgePdfRegistration'
+        $fileExt = "$root\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.pdf"
+        $openWithPaths = @("$root\Classes\.pdf\OpenWithProgids", "$fileExt\OpenWithProgids")
+        $mhtmlPath = "$root\Classes\.mhtml\OpenWithProgids"
+        try {
+            $null = Microsoft.PowerShell.Management\New-Item -Path "$root\Classes\MSEdgePDF", "$root\Classes\MSEdgeMHT", "$fileExt\UserChoice", "$root\RegisteredApplications", $mhtmlPath -Force
+            $null = New-ItemProperty -LiteralPath "$fileExt\UserChoice" -Name ProgId -Value 'HeliumPDF' -Force
+            $null = New-ItemProperty -LiteralPath "$root\RegisteredApplications" -Name 'Microsoft Edge' -Value 'Software\Edge\Capabilities' -Force
+            $null = New-ItemProperty -LiteralPath "$root\RegisteredApplications" -Name 'Helium' -Value 'Software\Helium\Capabilities' -Force
+            foreach ($path in $openWithPaths) {
+                $null = Microsoft.PowerShell.Management\New-Item -Path $path -Force
+                $null = New-ItemProperty -LiteralPath $path -Name 'MSEdgePDF' -Value '' -Force
+                $null = New-ItemProperty -LiteralPath $path -Name 'HeliumPDF' -Value '' -Force
+            }
+
+            foreach ($progId in 'MSEdgeHTM', 'MSEdgeMHT', 'OtherBrowser') {
+                $null = New-ItemProperty -LiteralPath $mhtmlPath -Name $progId -Value '' -Force
+            }
+
+            Remove-AtlasEdgeUserRegistration -RegistryRoot $root -FileAssociations $script:edgeFileAssociations
+            { Remove-AtlasEdgeUserRegistration -RegistryRoot $root -FileAssociations $script:edgeFileAssociations } | Should -Not -Throw
+
+            Microsoft.PowerShell.Management\Test-Path -LiteralPath "$root\Classes\MSEdgePDF" | Should -BeFalse
+            Microsoft.PowerShell.Management\Test-Path -LiteralPath "$root\Classes\MSEdgeMHT" | Should -BeFalse
+            foreach ($path in $openWithPaths) {
+                (Get-Item -LiteralPath $path).GetValueNames() | Should -Be @('HeliumPDF')
+            }
+            (Get-Item -LiteralPath "$root\RegisteredApplications").GetValueNames() | Should -Be @('Helium')
+            (Get-Item -LiteralPath $mhtmlPath).GetValueNames() | Should -Be @('OtherBrowser')
+            (Get-ItemProperty -LiteralPath "$fileExt\UserChoice" -Name ProgId).ProgId | Should -BeExactly 'HeliumPDF'
+        }
+        finally {
+            Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
 }
 
