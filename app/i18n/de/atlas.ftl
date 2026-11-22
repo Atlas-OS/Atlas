@@ -772,6 +772,9 @@ iso-step-review = Überprüfung
 iso-review-package = Atlas-Paket
 iso-review-output = Neue ISO
 iso-review-editions = Editionen
+iso-edition = Windows-Edition
+iso-edition-auto = Während der Windows-Installation auswählen
+iso-accept-terms = Ich akzeptiere die Microsoft-Software-Lizenzbedingungen für Windows
 iso-architecture-x64 = x64
 iso-architecture-arm64 = Arm64
 # A file size; $size is a formatted number (text). Megabytes below a gigabyte.
@@ -877,7 +880,8 @@ iso-account-empty = Geben Sie einen Namen für das lokale Konto ein, um fortzufa
 iso-account-invalid = Verwenden Sie bis zu 20 Zeichen, ohne Leerzeichen am Anfang oder Ende und ohne diese Zeichen: " / \ [ ] : ; | = , + * ? < > @
 iso-account-trailing-dot = Der Name darf nicht mit einem Punkt enden.
 iso-account-reserved = Windows verwendet diesen Namen für ein integriertes Konto. Wählen Sie einen anderen Namen.
-iso-privacy-defaults = Diese ISO überspringt bei der Windows-Einrichtung die Seiten für Lizenz, Microsoft-Konto und Datenschutz und schaltet die optionale Datenfreigabe und personalisierte Angebote aus.
+iso-terms-in-setup = Windows Setup fragt während der Installation nach deiner Zustimmung zu den Lizenzbedingungen.
+iso-privacy-defaults = Diese ISO überspringt bei der Windows-Einrichtung die Seiten für Microsoft-Konto und Datenschutz und schaltet die optionale Datenfreigabe und personalisierte Angebote aus.
 prepare-drivers = Wie sollen Treiber installiert werden?
 prepare-drivers-auto = Treiber über Windows Update beziehen
 prepare-drivers-auto-detail = Windows sucht passende Treiber für Ihre Hardware. Für die meisten PCs empfohlen.

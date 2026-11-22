@@ -215,6 +215,10 @@ fn free_output(folder: &Path, exists: impl Fn(&Path) -> bool) -> PathBuf {
 pub struct IsoPage {
     download: download::IsoDownload,
     editing_source: bool,
+    terms_folder: Option<PathBuf>,
+    editing_edition: bool,
+    edition: Option<String>,
+    accept_terms: bool,
     usb: Option<Entity<UsbPage>>,
     username: Entity<TextInput>,
     model: Entity<AppModel>,
@@ -286,6 +290,10 @@ impl IsoPage {
         let page = Self {
             download: Default::default(),
             editing_source: false,
+            terms_folder: None,
+            editing_edition: false,
+            edition: None,
+            accept_terms: false,
             usb: None,
             username,
             model,
@@ -361,10 +369,16 @@ impl IsoPage {
                 | "package-changed"
         ) {
             self.image = Some(ImageInfo {
+                edition_terms: vec!["0".repeat(64)],
                 editions: vec!["Windows 11 Pro".into()],
                 bytes: 6_500_000_000,
                 architecture: Architecture::X64,
             });
+        }
+        if state == "windows" {
+            let image = self.image.as_mut().unwrap();
+            image.editions.push("Windows 11 Education".into());
+            image.edition_terms.push("0".repeat(64));
         }
         if state == "files-empty" {
             self.source = None;
@@ -593,6 +607,9 @@ impl IsoPage {
     }
 
     fn invalidate(&mut self, cx: &mut Context<Self>) {
+        self.edition = None;
+        self.editing_edition = false;
+        self.accept_terms = false;
         self.image = None;
         self.result = JobResult::None;
         self.step = IsoStep::Files;
@@ -659,6 +676,9 @@ impl IsoPage {
         if inspect {
             // Checking again replaces the last result, so a failed check
             // cannot leave an earlier one to continue with.
+            self.edition = None;
+            self.editing_edition = false;
+            self.accept_terms = false;
             self.image = None;
         }
         self.stage = Stage::Inspect;
@@ -677,6 +697,12 @@ impl IsoPage {
             inspected_package: self.package.clone(),
             source,
             output,
+            edition: self.edition.clone(),
+            accepted_terms: self
+                .image
+                .as_ref()
+                .filter(|_| self.accept_terms)
+                .and_then(|img| img.terms(self.edition.as_deref()).map(str::to_owned)),
             mode: self.mode,
             options: self.options.clone(),
             drivers: self.drivers,
@@ -751,6 +777,7 @@ impl IsoPage {
     fn finish(&mut self, inspect: bool, cancelled: bool, result: anyhow::Result<iso::Created>) {
         match result {
             Ok(created) if inspect => {
+                self.terms_folder = self.job.clone();
                 self.image = created.image;
                 let same_package = self.package.as_ref() == Some(&created.package);
                 self.options = iso::options_after_inspection(&created.manifest, &self.options, same_package);
@@ -1007,7 +1034,11 @@ impl IsoPage {
             });
         // The review fixture shows the verified-release state without making a network request.
         #[cfg(debug_assertions)]
-        let is_latest = is_latest || self.preview.as_deref() == Some("files-empty");
+        let is_latest = is_latest
+            || matches!(
+                self.preview.as_deref(),
+                Some("files-empty" | "download-language" | "download-progress")
+            );
         let secondary = cx.theme().text_secondary;
         let package_name = if let Some(package) = selected_package {
             format!("Atlas {}", package.manifest.version)
@@ -1231,6 +1262,94 @@ impl IsoPage {
         Some(content.into_any_element())
     }
 
+    fn edition_and_terms(&self, cx: &mut Context<Self>) -> AnyElement {
+        use crate::ui::{ComboBox, ComboItem};
+        let mut body = card_body().gap(px(8.));
+        if let Some(image) = &self.image {
+            let automatic = t!("iso-edition-auto");
+            if image.editions.len() > 1 && self.editing_edition {
+                let items = std::iter::once(ComboItem::new(automatic))
+                    .chain(image.editions.iter().cloned().map(ComboItem::new));
+                let selected = image
+                    .editions
+                    .iter()
+                    .position(|name| Some(name) == self.edition.as_ref())
+                    .map_or(0, |i| i + 1);
+                let owner = cx.entity();
+                body = body.child(
+                    ComboBox::new("iso-edition-picker", t!("iso-edition"))
+                        .items(items)
+                        .selected(Some(selected))
+                        .on_select(move |index, _, cx| {
+                            owner.update(cx, |this, cx| {
+                                this.edition = index
+                                    .checked_sub(1)
+                                    .and_then(|i| this.image.as_ref()?.editions.get(i).cloned());
+                                this.editing_edition = false;
+                                this.accept_terms = false;
+                                cx.notify();
+                            });
+                        }),
+                );
+            } else {
+                let label = self
+                    .edition
+                    .clone()
+                    .or_else(|| (image.editions.len() == 1).then(|| image.editions[0].clone()))
+                    .unwrap_or(automatic);
+                body = body.child(
+                    div()
+                        .flex()
+                        .items_center()
+                        .gap(px(8.))
+                        .child(detail_text("iso-selected-edition", label))
+                        .when(image.editions.len() > 1, |row| {
+                            row.child(
+                                Button::new("iso-change-edition", t!("common-change"))
+                                    .compact()
+                                    .hyperlink()
+                                    .aria_label(t!("summary-change-a11y", title = t!("iso-edition")))
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        this.editing_edition = true;
+                                        cx.notify();
+                                    })),
+                            )
+                        }),
+                );
+            }
+            if let Some(hash) = image.terms(self.edition.as_deref()) {
+                let terms =
+                    self.terms_folder.as_ref().map(|dir| dir.join(format!("windows-terms-{hash}.txt")));
+                body = body
+                    .child(
+                        CheckBox::new("iso-accept-terms", t!("iso-accept-terms"), self.accept_terms)
+                            .on_toggle(cx.listener(|this, _, _, cx| {
+                                this.accept_terms = !this.accept_terms;
+                                cx.notify();
+                            })),
+                    )
+                    .child(
+                        div().flex().pl(px(32.)).child(
+                            Button::new("iso-read-terms", t!("windows-terms-link"))
+                                .compact()
+                                .hyperlink()
+                                .on_click(move |_, _, cx| {
+                                    if let Some(path) = &terms {
+                                        cx.open_url(&path.to_string_lossy());
+                                    }
+                                }),
+                        ),
+                    );
+            } else {
+                body = body.child(detail_text("iso-terms-in-setup", t!("iso-terms-in-setup")));
+            }
+        }
+        card(cx)
+            .child(step_card_header(cx, "iso-edition", t!("iso-edition"), None))
+            .child(body)
+            .into_any_element()
+    }
+
     /// Step 2: the Windows the ISO installs. The account, then the drivers,
     /// then the PC it's for and that PC's network drivers.
     fn windows_setup(&mut self, cx: &mut Context<Self>) -> Vec<AnyElement> {
@@ -1325,6 +1444,7 @@ impl IsoPage {
             }
         }
         vec![
+            self.edition_and_terms(cx),
             account,
             drivers,
             card(cx)
@@ -1556,9 +1676,18 @@ impl IsoPage {
                         cx,
                         "iso-editions",
                         &t!("iso-review-editions"),
-                        image.editions.iter().cloned().map(ListEntry::new).collect(),
+                        self.edition
+                            .as_ref()
+                            .map(std::slice::from_ref)
+                            .unwrap_or(&image.editions)
+                            .iter()
+                            .cloned()
+                            .map(ListEntry::new)
+                            .collect(),
                     ))
-                    .child(caption(detail_text("iso-edition-selection", t!("iso-edition-selection")))),
+                    .when(self.edition.is_none() && image.editions.len() > 1, |row| {
+                        row.child(caption(detail_text("iso-edition-selection", t!("iso-edition-selection"))))
+                    }),
             ));
         }
         if let Some(path) = &self.archive {
@@ -2273,6 +2402,7 @@ mod tests {
             let page = page(&mut cx, &temp);
             page.update(&mut cx, |page, cx| {
                 page.image = Some(ImageInfo {
+                    edition_terms: vec!["0".repeat(64)],
                     editions: vec!["Windows 11 Pro".into()],
                     bytes: 1,
                     architecture: Architecture::X64,
@@ -2312,6 +2442,7 @@ mod tests {
             let page = page(&mut cx, &temp);
             page.update(&mut cx, |page, cx| {
                 page.image = Some(ImageInfo {
+                    edition_terms: vec!["0".repeat(64)],
                     editions: vec!["Windows 11 Pro".into()],
                     bytes: 1,
                     architecture: Architecture::X64,

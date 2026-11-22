@@ -141,6 +141,75 @@ function Get-AtlasMediaEditions([string]$ImagePath, [int[]]$SupportedBuilds, [sw
         $info
     }
 }
+function Get-AtlasMediaTerms([string]$Image, [object[]]$Editions, [string]$Root, [string]$Job) {
+    if (-not ('AtlasIsoLicense' -as [type])) {
+        Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public static class AtlasIsoLicense {
+    [DllImport("wimgapi.dll", CharSet=CharSet.Unicode, ExactSpelling=true)]
+    static extern IntPtr WIMCreateFile(string path, uint access, uint disposition, uint flags, uint compression, out uint result);
+    [DllImport("wimgapi.dll", CharSet=CharSet.Unicode, ExactSpelling=true)]
+    static extern bool WIMSetTemporaryPath(IntPtr image, string path);
+    [DllImport("wimgapi.dll")] static extern IntPtr WIMLoadImage(IntPtr file, uint index);
+    [DllImport("wimgapi.dll", CharSet=CharSet.Unicode, ExactSpelling=true)]
+    static extern bool WIMExtractImagePath(IntPtr image, string source, string destination, uint flags);
+    [DllImport("wimgapi.dll")] static extern bool WIMCloseHandle(IntPtr handle);
+    public static bool Extract(string file, uint index, string source, string output, string temp) {
+        uint result;
+        IntPtr wim = WIMCreateFile(file, 0x80000000, 3, 0, 0, out result);
+        if (wim == IntPtr.Zero) return false;
+        try {
+            if (!WIMSetTemporaryPath(wim, temp)) return false;
+            IntPtr image = WIMLoadImage(wim, index);
+            if (image == IntPtr.Zero) return false;
+            try { return WIMExtractImagePath(image, source, output, 0); }
+            finally { WIMCloseHandle(image); }
+        } finally { WIMCloseHandle(wim); }
+    }
+}
+"@
+    }
+    $channel = '_Default'
+    $config = Join-Path $Root 'sources\ei.cfg'
+    if (Test-Path -LiteralPath $config) {
+        $ini = [IO.File]::ReadAllText($config)
+        if ($ini -match '(?im)^\[VL\]\s*1\s*$' -or $ini -match '(?im)^\[Channel\]\s*Volume\s*$') { $channel = 'Volume' }
+        elseif ($ini -match '(?im)^\[Channel\]\s*OEM\s*$') { $channel = 'OEM' }
+    }
+    foreach ($edition in $Editions) {
+        $digest = ''
+        $id = [string]$edition.EditionId
+        $languages = @($edition.Languages)
+        $lang = if ($edition.DefaultLanguageIndex -ge 0 -and $edition.DefaultLanguageIndex -lt $languages.Count) {
+            [string]$languages[$edition.DefaultLanguageIndex]
+        }
+        if ($id -ne 'EnterpriseEval' -and $id -match '^[a-zA-Z0-9]+$' -and $lang -match '^[a-zA-Z0-9-]+$') {
+            $inside = "\Windows\System32\$lang\Licenses\$channel\$id\license.rtf"
+            $file = Join-Path $Job ("license-" + [int]$edition.ImageIndex + '.rtf')
+            $baseEdition = if ($id.EndsWith('N')) { 'ProfessionalN' } else { 'Professional' }
+            # Business media can carry one shared volume agreement in the base Pro image.
+            if ([AtlasIsoLicense]::Extract($Image, $edition.ImageIndex, $inside, $file, $Job) -or
+                ($channel -eq 'Volume' -and [AtlasIsoLicense]::Extract($Image, $edition.ImageIndex, "\Windows\System32\$lang\Licenses\Volume\$baseEdition\license.rtf", $file, $Job)) -or
+                [AtlasIsoLicense]::Extract($Image, $edition.ImageIndex, '\Windows\System32\license.rtf', $file, $Job)) {
+                $candidateHash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
+                Add-Type -AssemblyName System.Windows.Forms
+                $reader = New-Object Windows.Forms.RichTextBox
+                try {
+                    $reader.LoadFile($file)
+                    $textFile = Join-Path $Job ("windows-terms-" + $candidateHash + '.txt')
+                    if (![string]::IsNullOrWhiteSpace($reader.Text)) {
+                        [IO.File]::WriteAllText($textFile, $reader.Text, [Text.Encoding]::UTF8)
+                        $digest = $candidateHash
+                    }
+                } catch [ArgumentException] {
+                    # Unreadable terms stay in Windows Setup.
+                } finally { $reader.Dispose() }
+            }
+        }
+        $digest
+    }
+}
 function Export-AtlasMediaEditions([string]$SourceImage, [string]$DestinationImage, [object[]]$Editions) {
     if (Test-Path -LiteralPath $DestinationImage) { throw 'The filtered Windows image already exists.' }
     if ($Editions.Count -eq 0) { Fail 'edition-unsupported' 'The ISO contains no supported Windows editions.' }
@@ -202,7 +271,20 @@ try {
             Fail 'network-architecture' 'Network drivers cannot be copied between x64 and ARM64. Choose media for this PC or turn off network driver copying.'
         }
     }
-    Write-Output ('ATLAS_RESULT:' + (@{ editions = $editions; bytes = (Get-Item -LiteralPath $source).Length; architecture = $architecture } | ConvertTo-Json -Compress))
+    $acceptedTerms = if ($request.PSObject.Properties['acceptedTerms']) { [string]$request.acceptedTerms }
+    $chosenEdition = if ($request.PSObject.Properties['edition']) { [string]$request.edition }
+    if ($chosenEdition) {
+        $supportedEditions = @($supportedEditions | Where-Object { $_.ImageName -ceq $chosenEdition })
+        if ($supportedEditions.Count -ne 1) { Fail 'edition-unsupported' 'The selected edition is no longer available. Check the ISO again.' }
+    }
+    $editionTerms = @()
+    if ($Operation -eq 'Inspect' -or $acceptedTerms) {
+        $editionTerms = @(Get-AtlasMediaTerms $images[0] $supportedEditions $root $job)
+    }
+    if ($acceptedTerms -and (@($editionTerms | Where-Object { $_ -cne $acceptedTerms }).Count -or !$editionTerms.Count)) {
+        throw 'The Windows licence terms changed. Check the files and review the terms again.'
+    }
+    Write-Output ('ATLAS_RESULT:' + (@{ editions = $editions; editionTerms = $editionTerms; bytes = (Get-Item -LiteralPath $source).Length; architecture = $architecture } | ConvertTo-Json -Compress))
     if ($Operation -eq 'Inspect') { exit 0 }
     if ($request.mode -notin @('interactive', 'configured', 'before-desktop')) { throw 'Unknown setup mode.' }
     if ($request.copyNetworkDrivers -and -not $request.reinstallThisPc) { throw 'Network driver copying is only available when reinstalling this PC.' }
@@ -272,7 +354,7 @@ try {
   <settings pass="windowsPE">
     <component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
       <EnableFirewall>true</EnableFirewall>
-      <UserData><ProductKey><WillShowUI>Always</WillShowUI></ProductKey></UserData>
+      <UserData><AcceptEula>false</AcceptEula><ProductKey><WillShowUI>Always</WillShowUI></ProductKey></UserData>
       <ImageInstall><OSImage><WillShowUI>Always</WillShowUI></OSImage></ImageInstall>
     </component>
   </settings>
@@ -293,7 +375,7 @@ try {
       <RegisteredOwner>ATLAS_LOCAL_ACCOUNT</RegisteredOwner>
       <OOBE>
         <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
-        <HideEULAPage>true</HideEULAPage>
+        <HideEULAPage>false</HideEULAPage>
         <ProtectYourPC>3</ProtectYourPC>
       </OOBE>
       <UserAccounts><LocalAccounts><LocalAccount xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" wcm:action="add">
@@ -316,6 +398,10 @@ try {
     $namespace = New-Object Xml.XmlNamespaceManager($document.NameTable)
     $namespace.AddNamespace('u', 'urn:schemas-microsoft-com:unattend')
     foreach ($node in $document.SelectNodes('//u:LocalAccount/u:Name | //u:AutoLogon/u:Username | //u:RegisteredOwner', $namespace)) { $node.InnerText = $username }
+    if ($acceptedTerms) {
+        $document.SelectSingleNode('//u:UserData/u:AcceptEula', $namespace).InnerText = 'true'
+        $document.SelectSingleNode('//u:OOBE/u:HideEULAPage', $namespace).InnerText = 'true'
+    }
     $answer = $document.OuterXml
     # An answer file in WinPE overrides the source's EI.cfg. Enterprise Evaluation
     # relies on that file to select its keyless evaluation channel. On that media,

@@ -35,11 +35,11 @@ The flow has four steps, **Files**, **Windows setup**, **Your choices** and **Re
 The flow is independent of the install flow and its PC checks.
 
 1. **Files.** Choose the Windows ISO, the Atlas package and where to save the new ISO, then choose **Check files**.
-   **Download Windows 11 from Microsoft** opens Microsoft's download page.
+   For a Microsoft download, choose a language. Manager uses this PC’s architecture by default. Choose **Change** to download for another architecture.
    Until you choose a name, Atlas suggests one beside the source ISO that no file has yet: `Atlas-Windows.iso`, then `Atlas-Windows (2).iso` and so on.
    After a successful check, the files card reads **Ready** and **Continue** replaces **Check files**.
    Choosing another file clears the check, and checking the same package again keeps the saved choices.
-2. **Windows setup.** Set the local account, driver updates, the target PC and network drivers.
+2. **Windows setup.** Choose an edition now or during Windows Setup. You can read the licence from the ISO and accept it here, or leave it for the person installing Windows. Then set the local account, driver updates, target PC and network drivers.
    An empty account name holds **Continue** with a hint, and an invalid one is marked on the field.
 3. **Your choices.** Choose the mode and, when choices are saved in the ISO, the Atlas options.
 4. **Review.** Check one card per earlier step, each with a **Change** link, and the editions the ISO includes.
@@ -55,7 +55,7 @@ The flow is independent of the install flow and its PC checks.
 ### Modes
 
 Atlas is applied after Windows setup and sign-in, not inside `install.wim`, because Store updates depend on the new user's registered apps.
-The ISO keeps its Windows editions unchanged, and Atlas adds its own files and an answer file beside them.
+The ISO includes the supported Windows editions by default. Pick an edition on the Windows setup step to include only that edition. Atlas places its own files and an answer file beside the Windows image.
 Every mode then runs the normal preparation, Windows Security and install steps, checks included, so the new PC needs internet access.
 
 | Mode | Atlas choices | When Atlas Manager opens |
@@ -77,7 +77,7 @@ Without `iso-setup.json` in the package, only the first mode is available.
 ### Local account
 
 The answer file creates this local administrator account.
-Windows asks for its password at the first sign-in, and the ISO skips Windows setup's licence, Microsoft account and privacy screens.
+Windows asks for its password at the first sign-in. The ISO skips the Microsoft account and privacy screens. Windows Setup shows the licence terms unless you accept them in Manager. Manager offers that choice when it can read the same terms for every edition you include. Enterprise Evaluation handles its own licence during Setup.
 
 A name can't:
 
@@ -141,7 +141,7 @@ It checks the drive's identity again before erasing and while writing, and reads
 
 1. **Windows setup** copies the Atlas files to `%windir%\AtlasISO`.
 2. In the `specialize` pass, which runs before the out-of-box experience (OOBE), setup applies the driver-update choice and installs the backed-up network drivers.
-3. During OOBE, Windows' first-run setup screens, the answer file creates the account through supported unattended settings and hides the licence and online-account screens.
+3. During OOBE, Windows' first-run setup screens, the answer file creates the account through supported unattended settings and hides the online-account screen.
    It also sets `ProtectYourPC=3`, which turns Express settings off and hides them, because Atlas's options hold the real security and update choices.
    The ISO's **Windows setup** step says so under the account name.
 4. One automatic sign-in turns off further automatic sign-ins, expires the empty password, registers Atlas Manager for the next sign-in and signs out.

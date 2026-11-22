@@ -774,6 +774,9 @@ iso-step-review = समीक्षा
 iso-review-package = Atlas पैकेज
 iso-review-output = नया ISO
 iso-review-editions = संस्करण
+iso-edition = Windows संस्करण
+iso-edition-auto = Windows सेटअप के दौरान चुनें
+iso-accept-terms = मैं Windows के लिए Microsoft सॉफ़्टवेयर लाइसेंस शर्तें स्वीकार करता हूँ
 iso-architecture-x64 = x64
 iso-architecture-arm64 = Arm64
 # A file size; $size is a formatted number (text). Megabytes below a gigabyte.
@@ -879,7 +882,8 @@ iso-account-empty = जारी रखने के लिए स्थान�
 iso-account-invalid = अधिकतम 20 अक्षर इस्तेमाल करें, शुरुआत या अंत में स्पेस न रखें, और इनमें से कोई चिह्न न रखें: " / \ [ ] : ; | = , + * ? < > @
 iso-account-trailing-dot = नाम के अंत में बिंदु (.) नहीं हो सकता।
 iso-account-reserved = Windows इस नाम का इस्तेमाल एक अंतर्निहित खाते के लिए करता है। कोई दूसरा नाम चुनें।
-iso-privacy-defaults = यह ISO, Windows सेटअप में लाइसेंस, Microsoft खाते और गोपनीयता वाली स्क्रीन छोड़ देता है। साथ ही, यह वैकल्पिक डेटा शेयरिंग और व्यक्तिगत ऑफ़र बंद कर देता है।
+iso-terms-in-setup = Windows सेटअप आपसे लाइसेंस की शर्तें स्वीकार करने को कहेगा।
+iso-privacy-defaults = यह ISO, Windows सेटअप में Microsoft खाते और गोपनीयता वाली स्क्रीन छोड़ देता है। साथ ही, यह वैकल्पिक डेटा शेयरिंग और व्यक्तिगत ऑफ़र बंद कर देता है।
 prepare-drivers = ड्राइवर कैसे इंस्टॉल करने हैं?
 prepare-drivers-auto = Windows Update से ड्राइवर प्राप्त करें
 prepare-drivers-auto-detail = Windows आपके हार्डवेयर के लिए ड्राइवर ढूँढेगा। अधिकांश PC के लिए यही सुझाव है।

@@ -790,6 +790,9 @@ iso-step-review = Проверка
 iso-review-package = Пакет Atlas
 iso-review-output = Новый ISO-образ
 iso-review-editions = Редакции
+iso-edition = Редакция Windows
+iso-edition-auto = Выбрать при установке Windows
+iso-accept-terms = Я принимаю условия лицензии Microsoft на использование Windows
 iso-architecture-x64 = x64
 iso-architecture-arm64 = Arm64
 # A file size; $size is a formatted number (text). Megabytes below a gigabyte.
@@ -919,7 +922,8 @@ iso-account-empty = Чтобы продолжить, введите имя ло�
 iso-account-invalid = Используйте не более 20 символов, без пробела в начале и в конце и без этих символов: " / \ [ ] : ; | = , + * ? < > @
 iso-account-trailing-dot = Имя не может заканчиваться точкой.
 iso-account-reserved = Windows использует это имя для встроенной учётной записи. Выберите другое имя.
-iso-privacy-defaults = Этот ISO-образ пропускает экраны лицензии, учётной записи Майкрософт и конфиденциальности в программе установки Windows, а также отключает необязательную отправку данных и персонализированные предложения.
+iso-terms-in-setup = Программа установки Windows предложит принять условия лицензии.
+iso-privacy-defaults = Этот ISO-образ пропускает экраны учётной записи Майкрософт и конфиденциальности в программе установки Windows, а также отключает необязательную отправку данных и персонализированные предложения.
 prepare-drivers = Как устанавливать драйверы?
 prepare-drivers-auto = Получать драйверы через Центр обновления Windows
 prepare-drivers-auto-detail = Windows найдёт драйверы для вашего оборудования. Рекомендуется для большинства ПК.

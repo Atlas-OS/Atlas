@@ -5,6 +5,7 @@ use std::sync::{Arc, atomic::AtomicBool};
 
 pub(super) struct IsoDownload {
     open: bool,
+    editing_arch: bool,
     arch: &'static str,
     languages: Vec<Language>,
     selected: Option<usize>,
@@ -18,7 +19,8 @@ impl Default for IsoDownload {
     fn default() -> Self {
         Self {
             open: false,
-            arch: if cfg!(target_arch = "aarch64") { "arm64" } else { "x64" },
+            editing_arch: false,
+            arch: if iso::host_architecture() == Architecture::Arm64 { "arm64" } else { "x64" },
             languages: Vec::new(),
             selected: None,
             loading: false,
@@ -62,6 +64,8 @@ impl IsoPage {
         }
         self.download.open = true;
         self.download.arch = arch;
+        let previous =
+            self.download.selected.and_then(|i| self.download.languages.get(i)).map(|l| l.label.clone());
         self.download.languages.clear();
         self.download.selected = None;
         self.download.loading = true;
@@ -73,7 +77,11 @@ impl IsoPage {
             this.update(cx, |this, cx| {
                 this.download.loading = false;
                 match result {
-                    Ok(list) => this.download.languages = list,
+                    Ok(list) => {
+                        this.download.selected =
+                            previous.as_ref().and_then(|name| list.iter().position(|l| &l.label == name));
+                        this.download.languages = list;
+                    }
                     Err(_) => this.download.load_failed = true,
                 }
                 cx.notify();
@@ -165,28 +173,7 @@ impl IsoPage {
                 )
                 .into_any_element();
         }
-        let mut panel = div()
-            .flex()
-            .flex_col()
-            .gap(px(8.))
-            .child(detail_text("iso-download-arch-label", t!("iso-download-arch")));
-        let owner = cx.weak_entity();
-        panel = panel.child(
-            ComboBox::new("iso-download-arch", t!("iso-download-arch"))
-                .items([
-                    ComboItem::new(t!("iso-architecture-x64")),
-                    ComboItem::new(t!("iso-architecture-arm64")),
-                ])
-                .selected(Some(usize::from(state.arch == "arm64")))
-                .disabled(locked || state.loading || state.busy())
-                .on_select(move |index, _, cx| {
-                    owner
-                        .update(cx, |this, cx| {
-                            this.load_languages(if index == 1 { "arm64" } else { "x64" }, cx)
-                        })
-                        .ok();
-                }),
-        );
+        let mut panel = div().flex().flex_col().gap(px(8.));
         let owner = cx.weak_entity();
         if !state.languages.is_empty() {
             panel = panel.child(detail_text("iso-download-language-label", t!("settings-language"))).child(
@@ -227,6 +214,47 @@ impl IsoPage {
                             WINDOWS_DOWNLOAD
                         }),
                 );
+        }
+        if state.editing_arch {
+            let owner = cx.weak_entity();
+            panel = panel.child(
+                ComboBox::new("iso-download-arch", t!("iso-download-arch"))
+                    .items([
+                        ComboItem::new(t!("iso-architecture-x64")),
+                        ComboItem::new(t!("iso-architecture-arm64")),
+                    ])
+                    .selected(Some(usize::from(state.arch == "arm64")))
+                    .disabled(locked || state.loading || state.busy())
+                    .on_select(move |index, _, cx| {
+                        owner
+                            .update(cx, |this, cx| {
+                                this.download.editing_arch = false;
+                                this.load_languages(if index == 1 { "arm64" } else { "x64" }, cx)
+                            })
+                            .ok();
+                    }),
+            );
+        } else {
+            let architecture =
+                if state.arch == "arm64" { t!("iso-architecture-arm64") } else { t!("iso-architecture-x64") };
+            panel = panel.child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(px(8.))
+                    .child(detail_text("iso-download-arch-label", architecture))
+                    .child(
+                        Button::new("iso-change-arch", t!("common-change"))
+                            .hyperlink()
+                            .compact()
+                            .aria_label(t!("summary-change-a11y", title = t!("iso-download-arch")))
+                            .disabled(locked || state.loading || state.busy())
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.download.editing_arch = true;
+                                cx.notify();
+                            })),
+                    ),
+            );
         }
         if state.busy() {
             let status = if let Some((done, total)) = state.progress {

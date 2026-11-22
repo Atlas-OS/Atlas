@@ -33,11 +33,18 @@ Describe 'Native ISO mastering' {
         $oobe = @($script:Answer.unattend.settings | Where-Object pass -eq 'oobeSystem')[0].component
         $oobe.OOBE.HideOnlineAccountScreens | Should -Be 'true'
         $oobe.OOBE.ProtectYourPC | Should -Be '3'
-        $oobe.OOBE.HideEULAPage | Should -Be 'true'
+        $oobe.OOBE.HideEULAPage | Should -Be 'false'
         $oobe.UserAccounts.LocalAccounts.LocalAccount.Group | Should -Be 'Administrators'
         $oobe.AutoLogon.LogonCount | Should -Be '1'
         $oobe.FirstLogonCommands.SynchronousCommand.CommandLine | Should -Match '-FirstLogon'
         @($oobe.FirstLogonCommands.SynchronousCommand) | Should -HaveCount 1
+    }
+    It 'only skips the Windows licence pages after explicit acceptance' {
+        $script:Answer.unattend.settings[0].component.UserData.AcceptEula | Should -Be 'false'
+        $acceptedTerms = 'verified-media'
+        $accepted = New-TestAnswer x64 'Atlas'
+        $accepted.unattend.settings[0].component.UserData.AcceptEula | Should -Be 'true'
+        ($accepted.unattend.settings | Where-Object pass -eq 'oobeSystem').component.OOBE.HideEULAPage | Should -Be 'true'
     }
     It 'makes the answer file discoverable in WinPE before the destination specialize pass' {
         # Without a valid current pass, Setup silently ignores the answer file.

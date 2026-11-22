@@ -777,6 +777,9 @@ iso-step-review = İnceleme
 iso-review-package = Atlas paketi
 iso-review-output = Yeni ISO
 iso-review-editions = Sürümler
+iso-edition = Windows sürümü
+iso-edition-auto = Windows kurulumu sırasında seç
+iso-accept-terms = Windows için Microsoft Yazılımı Lisans Koşullarını kabul ediyorum
 iso-architecture-x64 = x64
 iso-architecture-arm64 = Arm64
 # A file size; $size is a formatted number (text). Megabytes below a gigabyte.
@@ -886,7 +889,8 @@ iso-account-empty = Devam etmek için bir yerel hesap adı girin
 iso-account-invalid = En fazla 20 karakter kullanın. Başta veya sonda boşluk olmamalı ve şunların hiçbiri bulunmamalı: " / \ [ ] : ; | = , + * ? < > @
 iso-account-trailing-dot = Ad nokta ile bitemez.
 iso-account-reserved = Windows bu adı yerleşik bir hesap için kullanıyor. Başka bir ad seçin.
-iso-privacy-defaults = Bu ISO, Windows kurulumundaki lisans, Microsoft hesabı ve gizlilik ekranlarını atlar; isteğe bağlı veri paylaşımını ve kişiselleştirilmiş teklifleri kapatır.
+iso-terms-in-setup = Windows Kurulumu lisans koşullarını kabul etmenizi isteyecek.
+iso-privacy-defaults = Bu ISO, Windows kurulumundaki Microsoft hesabı ve gizlilik ekranlarını atlar; isteğe bağlı veri paylaşımını ve kişiselleştirilmiş teklifleri kapatır.
 prepare-drivers = Sürücüler nasıl yüklensin?
 prepare-drivers-auto = Sürücüleri Windows Update’ten al
 prepare-drivers-auto-detail = Windows, donanımınız için sürücüleri bulur. Çoğu bilgisayar için önerilir.

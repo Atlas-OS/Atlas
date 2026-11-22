@@ -751,6 +751,9 @@ iso-step-review = 確認
 iso-review-package = Atlas パッケージ
 iso-review-output = 新しい ISO
 iso-review-editions = エディション
+iso-edition = Windows エディション
+iso-edition-auto = Windows セットアップ時に選択
+iso-accept-terms = Windows のマイクロソフト ソフトウェア ライセンス条項に同意します
 iso-architecture-x64 = x64
 iso-architecture-arm64 = Arm64
 # A file size; $size is a formatted number (text). Megabytes below a gigabyte.
@@ -854,7 +857,8 @@ iso-account-empty = 続行するには、ローカル アカウント名を入�
 iso-account-invalid = 20 文字以内で入力してください。先頭と末尾には空白を使えません。また、次の記号は使えません: " / \ [ ] : ; | = , + * ? < > @
 iso-account-trailing-dot = 名前の末尾にピリオド (.) は使用できません。
 iso-account-reserved = この名前は Windows の組み込みアカウントで使用されています。別の名前を入力してください。
-iso-privacy-defaults = この ISO では、Windows のセットアップのライセンス、Microsoft アカウント、プライバシーの画面が省略され、任意のデータ共有と個人向けのおすすめがオフになります。
+iso-terms-in-setup = Windows セットアップでライセンス条項への同意を求められます。
+iso-privacy-defaults = この ISO では、Windows のセットアップのMicrosoft アカウント、プライバシーの画面が省略され、任意のデータ共有と個人向けのおすすめがオフになります。
 prepare-drivers = ドライバーのインストール方法
 prepare-drivers-auto = Windows Update から取得する
 prepare-drivers-auto-detail = Windows がハードウェアに適したドライバーを探します。通常はこちらをおすすめします。

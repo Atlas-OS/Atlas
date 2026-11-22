@@ -754,6 +754,9 @@ iso-step-review = Tinjau
 iso-review-package = Paket Atlas
 iso-review-output = ISO baru
 iso-review-editions = Edisi
+iso-edition = Edisi Windows
+iso-edition-auto = Pilih saat penyiapan Windows
+iso-accept-terms = Saya menerima Persyaratan Lisensi Perangkat Lunak Microsoft untuk Windows
 iso-architecture-x64 = x64
 iso-architecture-arm64 = Arm64
 # A file size; $size is a formatted number (text). Megabytes below a gigabyte.
@@ -857,7 +860,8 @@ iso-account-empty = Masukkan nama akun lokal untuk melanjutkan
 iso-account-invalid = Gunakan maksimal 20 karakter, tanpa spasi di awal atau akhir dan tanpa karakter berikut: " / \ [ ] : ; | = , + * ? < > @
 iso-account-trailing-dot = Nama tidak boleh diakhiri dengan titik.
 iso-account-reserved = Windows menggunakan nama ini untuk akun bawaan. Pilih nama lain.
-iso-privacy-defaults = ISO ini melewati layar lisensi, akun Microsoft, dan privasi dalam penyiapan Windows, serta menonaktifkan berbagi data opsional dan penawaran yang dipersonalisasi.
+iso-terms-in-setup = Penyiapan Windows akan meminta Anda menyetujui persyaratan lisensi.
+iso-privacy-defaults = ISO ini melewati layar akun Microsoft, dan privasi dalam penyiapan Windows, serta menonaktifkan berbagi data opsional dan penawaran yang dipersonalisasi.
 prepare-drivers = Bagaimana driver akan diinstal?
 prepare-drivers-auto = Dapatkan driver melalui Windows Update
 prepare-drivers-auto-detail = Windows mencari driver untuk perangkat keras Anda. Disarankan untuk sebagian besar PC.

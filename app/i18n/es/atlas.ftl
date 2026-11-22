@@ -768,6 +768,9 @@ iso-step-review = Revisión
 iso-review-package = Paquete de Atlas
 iso-review-output = Nueva ISO
 iso-review-editions = Ediciones
+iso-edition = Edición de Windows
+iso-edition-auto = Elegir durante la instalación de Windows
+iso-accept-terms = Acepto los Términos de licencia del software de Microsoft para Windows
 iso-architecture-x64 = x64
 iso-architecture-arm64 = Arm64
 # Un tamaño de archivo; $size es un número con formato (texto). Megabytes por debajo de un gigabyte.
@@ -872,7 +875,8 @@ iso-account-empty = Escriba un nombre de cuenta local para continuar
 iso-account-invalid = Use hasta 20 caracteres, sin espacios al principio ni al final y sin ninguno de estos: " / \ [ ] : ; | = , + * ? < > @
 iso-account-trailing-dot = El nombre no puede terminar en punto.
 iso-account-reserved = Windows usa este nombre para una cuenta integrada. Elija otro nombre.
-iso-privacy-defaults = Esta ISO omite las pantallas de licencia, cuenta Microsoft y privacidad de la instalación de Windows, y desactiva el envío opcional de datos y las ofertas personalizadas.
+iso-terms-in-setup = El programa de instalación de Windows te pedirá que aceptes los términos de licencia.
+iso-privacy-defaults = Esta ISO omite las pantallas de cuenta Microsoft y privacidad de la instalación de Windows, y desactiva el envío opcional de datos y las ofertas personalizadas.
 prepare-drivers = ¿Cómo desea instalar los controladores?
 prepare-drivers-auto = Obtener controladores mediante Windows Update
 prepare-drivers-auto-detail = Windows busca los controladores adecuados para su equipo. Recomendado para la mayoría de los equipos.

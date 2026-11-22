@@ -761,6 +761,9 @@ iso-step-review = ตรวจทาน
 iso-review-package = แพ็กเกจ Atlas
 iso-review-output = ISO ใหม่
 iso-review-editions = รุ่น
+iso-edition = รุ่นของ Windows
+iso-edition-auto = เลือกระหว่างการติดตั้ง Windows
+iso-accept-terms = ฉันยอมรับข้อกำหนดสิทธิ์การใช้งานซอฟต์แวร์ Microsoft สำหรับ Windows
 iso-architecture-x64 = x64
 iso-architecture-arm64 = Arm64
 # A file size; $size is a formatted number (text). Megabytes below a gigabyte.
@@ -866,7 +869,8 @@ iso-account-empty = ป้อนชื่อบัญชีภายในเค
 iso-account-invalid = ใช้ไม่เกิน 20 อักขระ โดยไม่มีช่องว่างที่ต้นหรือท้ายชื่อ และไม่มีอักขระต่อไปนี้: " / \ [ ] : ; | = , + * ? < > @
 iso-account-trailing-dot = ชื่อต้องไม่ลงท้ายด้วยจุด (.)
 iso-account-reserved = Windows ใช้ชื่อนี้สำหรับบัญชีที่มีมาในระบบ เลือกชื่ออื่น
-iso-privacy-defaults = ISO นี้จะข้ามหน้าจอสัญญาอนุญาต บัญชี Microsoft และความเป็นส่วนตัวระหว่างการตั้งค่า Windows และปิดการแชร์ข้อมูลเพิ่มเติมและข้อเสนอเฉพาะบุคคล
+iso-terms-in-setup = โปรแกรมติดตั้ง Windows จะขอให้คุณยอมรับข้อกำหนดสิทธิ์การใช้งาน
+iso-privacy-defaults = ISO นี้จะข้ามหน้าจอบัญชี Microsoft และความเป็นส่วนตัวระหว่างการตั้งค่า Windows และปิดการแชร์ข้อมูลเพิ่มเติมและข้อเสนอเฉพาะบุคคล
 prepare-drivers = ต้องการติดตั้งไดรเวอร์อย่างไร
 prepare-drivers-auto = รับไดรเวอร์ผ่าน Windows Update
 prepare-drivers-auto-detail = Windows จะค้นหาไดรเวอร์สำหรับฮาร์ดแวร์ของคุณ แนะนำสำหรับพีซีส่วนใหญ่

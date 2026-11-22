@@ -32,6 +32,8 @@ pub enum Mode {
 #[serde(rename_all = "camelCase")]
 pub struct Request {
     pub reinstall_this_pc: bool,
+    pub edition: Option<String>,
+    pub accepted_terms: Option<String>,
     pub copy_network_drivers: bool,
     pub update_network_drivers: bool,
     pub drivers: super::preparation::Drivers,
@@ -61,9 +63,30 @@ pub enum Architecture {
 #[serde(rename_all = "camelCase")]
 pub struct ImageInfo {
     pub editions: Vec<String>,
+    #[serde(default)]
+    pub edition_terms: Vec<String>,
     pub bytes: u64,
     #[serde(default)]
     pub architecture: Architecture,
+}
+
+impl ImageInfo {
+    /// A reusable ISO can carry consent only if every edition it offers has the same terms.
+    pub fn terms(&self, chosen: Option<&str>) -> Option<&str> {
+        if self.editions.len() != self.edition_terms.len() {
+            return None;
+        }
+        let hash = if let Some(name) = chosen {
+            &self.edition_terms[self.editions.iter().position(|edition| edition == name)?]
+        } else {
+            let first = self.edition_terms.first()?;
+            if self.edition_terms.iter().any(|terms| terms != first) {
+                return None;
+            }
+            first
+        };
+        (hash.len() == 64 && hash.bytes().all(|b| b.is_ascii_hexdigit())).then_some(hash)
+    }
 }
 
 /// What the image worker is doing, in the order a build does it. A check
@@ -595,6 +618,8 @@ pub struct CreateInput {
     pub drivers: super::preparation::Drivers,
     pub username: String,
     pub reinstall_this_pc: bool,
+    pub edition: Option<String>,
+    pub accepted_terms: Option<String>,
     pub copy_network_drivers: bool,
     pub update_network_drivers: bool,
 }
@@ -641,6 +666,8 @@ pub fn create(
         drivers,
         username,
         reinstall_this_pc,
+        edition,
+        accepted_terms,
         copy_network_drivers,
         update_network_drivers,
     } = input;
@@ -688,6 +715,8 @@ pub fn create(
         validate_options(&manifest, &options)?;
         let request = Request {
             reinstall_this_pc,
+            edition,
+            accepted_terms,
             copy_network_drivers,
             update_network_drivers,
             drivers,
@@ -759,6 +788,27 @@ mod tests {
     }
 
     #[test]
+    fn consent_applies_only_to_editions_with_the_reviewed_terms() {
+        let a = "a".repeat(64);
+        let b = "b".repeat(64);
+        let mut image = ImageInfo {
+            editions: vec!["Pro".into(), "Education".into()],
+            edition_terms: vec![a.clone(), b.clone()],
+            bytes: 1,
+            architecture: Architecture::X64,
+        };
+        assert_eq!(image.terms(None), None);
+        assert_eq!(image.terms(Some("Education")), Some(b.as_str()));
+        assert_eq!(image.terms(Some("Home")), None);
+        image.edition_terms[1] = a.clone();
+        assert_eq!(image.terms(None), Some(a.as_str()));
+        image.edition_terms[0] = String::new();
+        assert_eq!(image.terms(Some("Pro")), None);
+        image.edition_terms.clear();
+        assert_eq!(image.terms(None), None);
+    }
+
+    #[test]
     fn iso_support_begins_with_atlas_06() {
         for version in ["0.4.1", "0.5.0", "invalid"] {
             assert!(!supports_version(version));
@@ -771,6 +821,8 @@ mod tests {
     fn request(dir: &Path) -> Request {
         Request {
             reinstall_this_pc: false,
+            edition: None,
+            accepted_terms: None,
             copy_network_drivers: false,
             update_network_drivers: false,
             drivers: Default::default(),

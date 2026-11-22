@@ -739,6 +739,9 @@ iso-step-review = 檢閱
 iso-review-package = Atlas 套件
 iso-review-output = 新 ISO
 iso-review-editions = 版本
+iso-edition = Windows 版本
+iso-edition-auto = 在安裝 Windows 時選擇
+iso-accept-terms = 我接受 Windows 的 Microsoft 軟體授權條款
 iso-architecture-x64 = x64
 iso-architecture-arm64 = Arm64
 # A file size; $size is a formatted number (text). Megabytes below a gigabyte.
@@ -844,7 +847,8 @@ iso-account-empty = 請輸入本機帳戶名稱以繼續
 iso-account-invalid = 最多可使用 20 個字元，開頭和結尾不能有空格，也不能包含下列任何符號：" / \ [ ] : ; | = , + * ? < > @
 iso-account-trailing-dot = 名稱不能以句點「.」結尾。
 iso-account-reserved = Windows 已將此名稱用於內建帳戶。請選擇其他名稱。
-iso-privacy-defaults = 此 ISO 會略過 Windows 安裝程式中的授權、Microsoft 帳戶和隱私權畫面，並關閉選用的資料分享和個人化優惠。
+iso-terms-in-setup = Windows 安裝程式會請你接受授權條款。
+iso-privacy-defaults = 此 ISO 會略過 Windows 安裝程式中的Microsoft 帳戶和隱私權畫面，並關閉選用的資料分享和個人化優惠。
 prepare-drivers = 要如何安裝驅動程式？
 prepare-drivers-auto = 透過 Windows Update 取得驅動程式
 prepare-drivers-auto-detail = Windows 會為硬體尋找驅動程式。建議大多數電腦使用。
