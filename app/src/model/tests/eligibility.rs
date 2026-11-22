@@ -10,6 +10,7 @@ use crate::model::test_harness::{
     run_model_test, settle, wait_for, walk_to_install,
 };
 use crate::model::{Acquisition, AppModel, Environment, InstallBlock, Page, ReleaseCheck, RunState, Step};
+use crate::services::manager_version::next_patch;
 use crate::services::{atlas_state, package};
 
 #[test]
@@ -113,8 +114,10 @@ fn a_newer_installed_version_is_judged_by_the_package_not_the_built_in_manifest(
         let (package, marker) = marking_package(&temp, 0);
         let model = new_model(&mut cx, env);
         wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
-        for version in ["0.6.1", "0.6.0-hotfix"] {
-            *machine.identity.lock().unwrap() = Some(Installed(version.into()));
+        let newer = next_patch();
+        let hotfix = format!("{}-hotfix", package::Manifest::builtin().version);
+        for version in [&newer, &hotfix] {
+            *machine.identity.lock().unwrap() = Some(Installed(version.clone()));
             act(&mut cx, &model, |m, _| m.refresh_atlas_state());
             assert!(read(&cx, &model, |m| m.install_eligibility_problem().is_none()), "{version}");
         }
@@ -123,17 +126,17 @@ fn a_newer_installed_version_is_judged_by_the_package_not_the_built_in_manifest(
         act(&mut cx, &model, |m, cx| m.begin_install(cx));
         assert!(read(&cx, &model, |m| !m.flow.active && m.start_block().is_some()));
 
-        *machine.identity.lock().unwrap() = Some(Installed("0.6.1".into()));
+        *machine.identity.lock().unwrap() = Some(Installed(newer.clone()));
         act(&mut cx, &model, |m, cx| m.begin_install(cx));
         assert!(read(&cx, &model, |m| m.flow.active && m.page == Page::Install));
-        // The 0.6.0 package doesn't accept 0.6.1: refused at Get ready, and never launched.
+        // The fixture package can't update the newer installation.
         act(&mut cx, &model, |m, cx| m.load_package_file(package, cx));
         wait_for(&cx, &model, "the package and the checks", |m| m.package.is_some() && m.checks_complete())
             .await;
         read(&cx, &model, |m| {
             assert_eq!(
                 m.install_block(),
-                Some(InstallBlock::Unsupported { source: "0.6.1".into(), target: Some("0.6.0".into()) })
+                Some(InstallBlock::Unsupported { source: newer, target: Some("0.6.0".into()) })
             );
             assert!(!m.ready_to_continue());
         });
@@ -178,7 +181,7 @@ fn a_tester_build_judges_the_install_identity_against_its_bundled_package() {
         let model = new_model(&mut cx, env);
         wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
         for identity in [
-            atlas_state::InstallIdentity::Installed("0.6.1".into()),
+            atlas_state::InstallIdentity::Installed(next_patch()),
             atlas_state::InstallIdentity::Resume("0.5.9".into(), Default::default()),
         ] {
             *machine.identity.lock().unwrap() = Some(identity.clone());

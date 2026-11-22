@@ -1102,12 +1102,13 @@ pub(crate) mod testing {
     ) -> Entity<AppModel> {
         let model = new_model(cx, Machine::new(all_off()).environment(temp.path()));
         model.update(cx, |m, _| {
-            m.install_identity = Ok(InstallIdentity::Installed("0.6.0".into()));
-            m.atlas = Ok(options.map(|options| recorded("0.6.0", options)));
+            let manifest = Manifest::builtin();
+            m.install_identity = Ok(InstallIdentity::Installed(manifest.version.clone()));
+            m.atlas = Ok(options.map(|options| recorded(&manifest.version, options)));
             m.pc_facts = facts;
             m.package = Some(PackageSource {
                 dir: temp.path().to_path_buf(),
-                manifest: Manifest::builtin(),
+                manifest,
                 origin: Origin::Unpacked,
                 archive: None,
             });

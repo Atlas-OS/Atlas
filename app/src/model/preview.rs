@@ -233,7 +233,8 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
             let options = iso::default_options(model.manifest());
             let unfinished =
                 Unfinished { held: Some(options), choose_again: false, mode: InstallMode::Fresh };
-            model.install_identity = Ok(InstallIdentity::Resume("0.6.0".into(), unfinished));
+            model.install_identity =
+                Ok(InstallIdentity::Resume(model.manifest().version.clone(), unfinished));
         }
         "ineligible" => model.install_identity = Ok(InstallIdentity::Installed("0.3.2".into())),
         "manager-outdated" => {
@@ -575,16 +576,17 @@ fn apply_update(model: &mut AppModel, state: &str) -> bool {
     true
 }
 
-/// A reinstall of Atlas 0.6.0 over a record this PC contradicts, as an
+/// A reinstall of Atlas over a record this PC contradicts, as an
 /// earlier release candidate left it: Defender kept while Atlas's NoDefender
 /// package still removes it, Windows Update and processor protections
 /// recorded off while their toggles turned them back on, every protection
 /// on, and VBS off without its option. `path` is how this flow treats it.
 fn apply_contradicted(model: &mut AppModel, path: UpdatePath) {
     model.system = windows_pc(26300, "26H2", "Professional");
-    model.install_identity = Ok(InstallIdentity::Installed("0.6.0".into()));
+    let version = model.manifest().version.clone();
+    model.install_identity = Ok(InstallIdentity::Installed(version.clone()));
     model.atlas = serde_json::from_value(json!({
-        "schemaVersion": 1, "installedVersion": "0.6.0", "installedAt": "2026-10-27T18:00:00+00:00",
+        "schemaVersion": 1, "installedVersion": version, "installedAt": "2026-10-27T18:00:00+00:00",
         "mode": "Reapply", "options": [
             "auto-updates-disable", "defender-enable", "disable-power-saving", "install-toolbox",
             "keyboard-single", "mitigations-disable", "uninstall-edge"
