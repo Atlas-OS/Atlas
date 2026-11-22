@@ -842,6 +842,7 @@ iso-failed-edition = Ten obraz ISO nie zawiera żadnej obsługiwanej edycji Wind
 iso-failed-customised = Ten obraz ISO zawiera już niestandardowe pliki instalacyjne, takie jak autounattend.xml. Wybierz niezmodyfikowany obraz ISO Windows od firmy Microsoft.
 iso-failed-windows-unsupported = Ten obraz Windows nie jest obsługiwany przez pakiet Atlasa. Użyj niezmodyfikowanego 64-bitowego obrazu ISO Windows 11 w wersji obsługiwanej przez ten pakiet.
 iso-failed-network-architecture = Sterowniki sieciowe tego komputera nie pasują do architektury obrazu ISO. Wróć i wyłącz opcję Dołącz sterowniki sieciowe tego komputera albo wybierz obraz ISO przeznaczony dla tego komputera.
+iso-failed-manager-missing = Brakuje pliku Atlas Managera. Pobierz AtlasManager.exe do folderu lokalnego, takiego jak Pobrane, uruchom go stamtąd i spróbuj ponownie.
 iso-failed-unstaged = Atlas nie mógł przygotować folderu roboczego, więc nic nie zostało zmienione. Spróbuj ponownie. Jeśli problem się powtarza, wybierz Eksportuj diagnostykę i dołącz ją do zgłoszenia błędu.
 iso-failed-package-changed = Pakiet Atlasa zmienił się po sprawdzeniu plików. Wybierz Zmień obok sekcji Pliki, a potem wybierz Sprawdź pliki.
 iso-diagnostics = Otwórz folder dzienników

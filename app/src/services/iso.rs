@@ -426,6 +426,8 @@ pub enum FailureReason {
     IsoCustomised,
     /// Network drivers from this PC cannot go on media for another architecture.
     NetworkArchitecture,
+    /// The running Atlas Manager executable disappeared from its launch path.
+    ManagerMissing,
     /// The Atlas package is too old for ISO creation, or has no front door.
     /// Decided by the app before the worker starts, so it has no marker.
     PackageUnsupported,
@@ -454,6 +456,7 @@ impl FailureReason {
             "edition-unsupported" => Self::EditionUnsupported,
             "iso-customised" => Self::IsoCustomised,
             "network-architecture" => Self::NetworkArchitecture,
+            "manager-missing" => Self::ManagerMissing,
             _ => return None,
         })
     }

@@ -4,7 +4,7 @@ BeforeAll {
     $errors = $null
     $ast = [Management.Automation.Language.Parser]::ParseFile((Join-Path $script:IsoResources 'Build-Iso.ps1'), [ref]$null, [ref]$errors)
     if ($errors) { throw ($errors | Out-String) }
-    foreach ($name in @('Assert-BootCatalog', 'Get-AtlasIsoDestinationVolume', 'Assert-Output')) {
+    foreach ($name in @('Assert-BootCatalog', 'Get-AtlasIsoDestinationVolume', 'Assert-Output', 'Open-AtlasIsoManager')) {
         $function = $ast.Find({ param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name }, $true)
         . ([scriptblock]::Create($function.Extent.Text))
     }
@@ -32,6 +32,30 @@ BeforeAll {
     $script:Image = Join-Path $TestDrive 'test.iso'
     $script:Cancel = Join-Path $TestDrive 'cancel'
     & (Join-Path $script:IsoResources 'Master-Iso.ps1') -Media $script:Media -Output $script:Image -CancelFile $script:Cancel
+}
+
+Describe 'ISO Manager executable' {
+    It 'can add the same executable after its original path disappears' {
+        $source = Join-Path $TestDrive 'AtlasManager.exe'
+        $moved = Join-Path $TestDrive 'moved.exe'
+        [IO.File]::WriteAllText($source, 'original')
+
+        $stream = Open-AtlasIsoManager $source
+        try {
+            [IO.File]::Move($source, $moved)
+            [IO.File]::WriteAllText($source, 'replacement')
+            $reader = New-Object IO.StreamReader($stream)
+            try { $reader.ReadToEnd() | Should -BeExactly 'original' }
+            finally { $reader.Dispose() }
+        } finally { $stream.Dispose() }
+    }
+
+    It 'reports an executable that was already removed' -ForEach @(
+        @{ RelativePath = 'deleted.exe' }
+        @{ RelativePath = 'removed\AtlasManager.exe' }
+    ) {
+        { Open-AtlasIsoManager (Join-Path $TestDrive $RelativePath) } | Should -Throw 'manager-missing:*'
+    }
 }
 
 Describe 'ISO destination validation' {

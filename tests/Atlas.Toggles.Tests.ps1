@@ -519,6 +519,23 @@ Describe 'Replay of recorded states' {
         Remove-Item -LiteralPath $keyPath -Recurse -Force
     }
 
+    It 'replays boot menu policy <Policy> on the running Windows entry' -ForEach @(
+        @{ Policy = 'legacy'; State = 0 }
+        @{ Policy = 'standard'; State = 1 }
+    ) {
+        Mock Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles {
+            if ($ArgumentList[1] -eq '{default}') { throw 'The default entry does not support bootmenupolicy.' }
+        }
+        Set-AtlasToggleState -Name NewBootMenu -State $State -StateRoot $StateRoot
+
+        Invoke-AtlasToggleReapply -StateRoot $StateRoot -TogglesRoot $script:ShippedTogglesRoot
+
+        Should -Invoke Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            ($ArgumentList -join '|') -ceq "/set|{current}|bootmenupolicy|$Policy" -and
+            ($AllowedExitCodes -join ',') -ceq '0'
+        }
+    }
+
     BeforeAll {
         $script:ReplayRoot = Join-Path $TestDrive 'ReplayToggles'
         $script:ReplayWork = Join-Path $TestDrive 'ReplayWork'

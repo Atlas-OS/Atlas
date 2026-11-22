@@ -4,25 +4,28 @@ BeforeAll {
     $errors = $null
     $ast = [Management.Automation.Language.Parser]::ParseFile($script:UsbScript,[ref]$null,[ref]$errors)
     if ($errors) { throw ($errors | Out-String) }
-    foreach ($name in @('Fail','Read-AtlasUsbRequest','Get-AtlasUsbIdentity','Test-AtlasUsbDisk','Assert-AtlasUsbIdentity','Assert-AtlasUsbPaths','Assert-AtlasUsbContinue','Write-AtlasUsbProgress','Write-AtlasUsbFileChunk','Copy-AtlasUsbFile','Get-AtlasUsbDeviceHash','Test-AtlasUsbCopy','Get-AtlasUsbParentPath','Assert-AtlasUsbVolume','Get-AtlasUsbVolumeId','Get-AtlasUsbTargetRoot','Format-AtlasUsb','Get-AtlasUsbEjectTarget','Get-AtlasUsbMediaInfo')) {
+    foreach ($name in @('Fail','Read-AtlasUsbRequest','Get-AtlasUsbIdentity','Test-AtlasUsbDisk','Assert-AtlasUsbIdentity','Assert-AtlasUsbPaths','Assert-AtlasUsbContinue','Write-AtlasUsbProgress','Write-AtlasUsbFileBuffer','Copy-AtlasUsbFile','Get-AtlasUsbDeviceHash','Test-AtlasUsbCopy','Get-AtlasUsbParentPath','Assert-AtlasUsbVolume','Get-AtlasUsbVolumeId','Get-AtlasUsbTargetRoot','Format-AtlasUsb','Get-AtlasUsbEjectTarget','Get-AtlasUsbMediaInfo')) {
         $node = $ast.Find({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name},$true)
         . ([scriptblock]::Create($node.Extent.Text))
     }
 }
 
 Describe 'USB destination write errors' {
-    It 'reports a destination that became unavailable using HRESULT <Code>' -ForEach @(
-        @{ Code = 0x800701B1 }, @{ Code = 0x8007048F }
+    It 'reports a destination that became unavailable during write or flush using HRESULT <Code>' -ForEach @(
+        @{ Code = 0x800701B1 }, @{ Code = 0x80070456 }, @{ Code = 0x8007048F }
     ) {
         $stream = [pscustomobject]@{ Code = $Code }
         $stream | Add-Member ScriptMethod Write { throw [IO.IOException]::new('Translated device message', $this.Code) }
+        $stream | Add-Member ScriptMethod Flush { throw [IO.IOException]::new('Translated device message', $this.Code) }
         Mock Fail { throw "$Reason|$Message" }
 
-        { Write-AtlasUsbFileChunk -Stream $stream -Buffer ([byte[]]@(1)) -Count 1 -ToUsb } |
+        { Write-AtlasUsbFileBuffer -Stream $stream -Buffer ([byte[]]@(1)) -Count 1 -ToUsb } |
             Should -Throw 'drive-unavailable|*Translated device message*'
-        { Write-AtlasUsbFileChunk -Stream $stream -Buffer ([byte[]]@(1)) -Count 1 } |
+        { Write-AtlasUsbFileBuffer -Stream $stream -Flush -ToUsb } |
+            Should -Throw 'drive-unavailable|*Translated device message*'
+        { Write-AtlasUsbFileBuffer -Stream $stream -Flush } |
             Should -Throw '*Translated device message*'
-        Should -Invoke Fail -Times 1 -Exactly
+        Should -Invoke Fail -Times 2 -Exactly
     }
 
     It 'preserves a different destination write error' {
@@ -30,7 +33,7 @@ Describe 'USB destination write errors' {
         $stream | Add-Member ScriptMethod Write { throw [IO.IOException]::new('Disk full', 0x80070070) }
         Mock Fail { throw "$Reason|$Message" }
 
-        { Write-AtlasUsbFileChunk -Stream $stream -Buffer ([byte[]]@(1)) -Count 1 -ToUsb } |
+        { Write-AtlasUsbFileBuffer -Stream $stream -Buffer ([byte[]]@(1)) -Count 1 -ToUsb } |
             Should -Throw '*Disk full*'
         Should -Invoke Fail -Times 0 -Exactly
     }

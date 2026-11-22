@@ -790,6 +790,7 @@ iso-failed-edition = 此 ISO 不包含支援的 Windows 版本。不支援 Windo
 iso-failed-customised = 此 ISO 已包含自訂安裝檔案（例如 autounattend.xml）。請選擇 Microsoft 提供、未經修改的 Windows ISO。
 iso-failed-windows-unsupported = Atlas 套件不支援此 Windows 映像。請使用未經修改的 64 位元 Windows 11 ISO，且版本須為此套件所支援。
 iso-failed-network-architecture = 這台電腦的網路驅動程式與此 ISO 的架構不符。請返回並取消勾選「包含這台電腦的網路驅動程式」，或選擇適用於這台電腦的 ISO。
+iso-failed-manager-missing = 找不到 Atlas Manager 檔案。請將 AtlasManager.exe 下載到「下載」等本機資料夾，從該資料夾開啟後再試一次。
 iso-failed-unstaged = Atlas 無法準備其工作資料夾，因此沒有進行任何變更。請再試一次。如果仍然失敗，請選擇「匯出診斷資訊」並附在錯誤報告中。
 iso-failed-package-changed = 檢查檔案後，Atlas 套件已變更。請選擇「檔案」旁的「變更」，然後選擇「檢查檔案」。
 iso-diagnostics = 開啟記錄資料夾
