@@ -780,14 +780,16 @@ iso-home-description = Crie um arquivo de instalação do Windows (ISO) que incl
 iso-open = Criar uma ISO com o Atlas
 iso-title = Criar uma ISO com o Atlas
 iso-recommended = Recomendado
-iso-backup-advice = Faça backup dos seus arquivos antes de instalar o Windows.
 # "Relaunch as administrator" is common-restart-as-administrator.
 iso-admin-description = O Atlas precisa de permissão de administrador para ler sua ISO do Windows e criar a nova. Escolha Reabrir como administrador e, quando o Windows pedir, escolha Sim.
-iso-files-description = O Atlas faz uma cópia de uma ISO do Windows 11 com o Atlas incluído, para reinstalar o Windows. Escolha uma ISO do Windows 11 baixada da Microsoft, baixe o pacote do Atlas mais recente ou escolha um que você já tenha (.atlaspkg) e depois escolha onde salvar a nova ISO.
-# Tester build: no package picker.
-iso-files-description-bundled = O Atlas faz uma cópia de uma ISO do Windows 11 e adiciona a ela o pacote do Atlas incluído nesta versão de teste. Escolha uma ISO do Windows 11 baixada da Microsoft e depois escolha onde salvar a nova ISO.
 iso-source = ISO do Windows
 # Link under the Windows ISO field. It opens Microsoft's Windows 11 download page in the browser.
+iso-download-recommended = Baixar da Microsoft (recomendado)
+iso-source-question = De onde você quer obter o Windows?
+iso-use-local = Escolher um arquivo ISO
+iso-package-latest = Pacote mais recente do Atlas
+iso-package-unavailable = Escolha um pacote do Atlas para esta versão do Manager.
+iso-save-name = Salvar como { $name }
 iso-source-download = Baixar o Windows 11 da Microsoft
 iso-download-arch = Arquitetura
 iso-download-languages = Carregando idiomas…
@@ -796,12 +798,8 @@ iso-download-file-error = Não foi possível salvar a ISO. Verifique a conexão 
 iso-download-website = Abrir a página de downloads da Microsoft
 iso-download-progress = Baixando o Windows · { $received } de { $total }
 iso-download-starting = Preparando o download do Windows…
-# $minimum is the first Atlas version that can be used (text, such as 0.6.0).
-iso-package = Pacote do Atlas ({ $minimum } ou mais recente)
 iso-output = Salvar a nova ISO em
 iso-no-file = Nenhum arquivo selecionado
-iso-browse = Procurar
-iso-save-as = Salvar como
 # Accessible name of the Browse or Save as button beside a file field: $action is
 # that button's text and $field the field's label.
 iso-pick-a11y = { $action }: { $field }

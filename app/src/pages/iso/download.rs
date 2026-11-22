@@ -40,6 +40,9 @@ impl IsoDownload {
             self.progress = Some((2_400_000_000, 7_500_000_000));
         }
     }
+    pub(super) fn close_picker(&mut self) {
+        self.open = false;
+    }
     pub(super) fn busy(&self) -> bool {
         self.cancel.is_some()
     }
@@ -135,10 +138,7 @@ impl IsoPage {
                 this.download.progress = None;
                 match result {
                     Ok(Some(path)) => {
-                        this.source = Some(path);
-                        this.suggest_output();
-                        this.invalidate(cx);
-                        this.download.open = false;
+                        this.accept_source(path, cx);
                     }
                     Err(_) if !cancelled => this.download.transfer_failed = true,
                     _ => {}
@@ -152,13 +152,17 @@ impl IsoPage {
 
     pub(super) fn windows_download(&self, cx: &mut Context<Self>) -> AnyElement {
         let state = &self.download;
-        let locked = self.model.read(cx).locked() || self.preview.is_some();
+        let locked = self.model.read(cx).locked();
         if !state.open {
-            return Button::new("iso-source-download", t!("iso-source-download"))
-                .hyperlink()
-                .compact()
-                .disabled(locked)
-                .on_click(cx.listener(|this, _, _, cx| this.load_languages(this.download.arch, cx)))
+            return div()
+                .flex()
+                .child(
+                    Button::new("iso-source-download", t!("iso-download-recommended"))
+                        .accent()
+                        .icon(Icon::Download)
+                        .disabled(locked)
+                        .on_click(cx.listener(|this, _, _, cx| this.load_languages(this.download.arch, cx))),
+                )
                 .into_any_element();
         }
         let mut panel = div()

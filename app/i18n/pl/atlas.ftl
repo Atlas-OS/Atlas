@@ -746,12 +746,14 @@ iso-home-description = Utwórz plik instalacyjny Windows (ISO) z Atlasem, a pote
 iso-open = Utwórz ISO z Atlasem
 iso-title = Utwórz ISO z Atlasem
 iso-recommended = Zalecane
-iso-backup-advice = Przed instalacją Windows zrób kopię zapasową plików.
 iso-admin-description = Atlas potrzebuje uprawnień administratora, aby odczytać obraz ISO Windows i utworzyć nowy. Wybierz Otwórz ponownie jako administrator, a potem wybierz Tak, gdy Windows zapyta.
-iso-files-description = Atlas tworzy kopię obrazu ISO Windows 11 z dodanym Atlasem, przeznaczoną do ponownej instalacji Windows. Wybierz obraz ISO Windows 11 pobrany od firmy Microsoft, pobierz najnowszy pakiet Atlasa lub wybierz posiadany już pakiet (.atlaspkg), a potem wskaż, gdzie zapisać nowy obraz ISO.
-# Tester build: no package picker.
-iso-files-description-bundled = Atlas tworzy kopię obrazu ISO Windows 11 z dodanym pakietem Atlasa dołączonym do tej wersji testowej. Wybierz obraz ISO Windows 11 pobrany od firmy Microsoft, a potem wskaż, gdzie zapisać nowy obraz ISO.
 iso-source = Obraz ISO Windows
+iso-download-recommended = Pobierz z witryny Microsoft (zalecane)
+iso-source-question = Skąd chcesz pobrać system Windows?
+iso-use-local = Wybierz plik ISO
+iso-package-latest = Najnowszy pakiet Atlas
+iso-package-unavailable = Wybierz pakiet Atlas dla tej wersji aplikacji Manager.
+iso-save-name = Zapisz jako { $name }
 iso-source-download = Pobierz Windows 11 od firmy Microsoft
 iso-download-arch = Architektura
 iso-download-languages = Wczytywanie języków…
@@ -760,12 +762,8 @@ iso-download-file-error = Nie udało się zapisać ISO. Sprawdź połączenie i 
 iso-download-website = Otwórz stronę pobierania Microsoft
 iso-download-progress = Pobieranie systemu Windows · { $received } z { $total }
 iso-download-starting = Przygotowywanie pobierania systemu Windows…
-# $minimum is the first Atlas version that can be used (text, such as 0.6.0).
-iso-package = Pakiet Atlasa ({ $minimum } lub nowszy)
 iso-output = Zapisz nowy obraz ISO w
 iso-no-file = Nie wybrano pliku
-iso-browse = Przeglądaj
-iso-save-as = Zapisz jako
 # Accessible name of the Browse or Save as button beside a file field: $action is
 # that button's text and $field the field's label.
 iso-pick-a11y = { $action }: { $field }

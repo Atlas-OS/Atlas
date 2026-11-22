@@ -714,12 +714,14 @@ iso-home-description = สร้างไฟล์ติดตั้ง Windows 
 iso-open = สร้าง ISO พร้อม Atlas
 iso-title = สร้าง ISO พร้อม Atlas
 iso-recommended = แนะนำ
-iso-backup-advice = สำรองไฟล์ก่อนติดตั้ง Windows
 iso-admin-description = Atlas ต้องได้รับสิทธิ์ผู้ดูแลระบบเพื่ออ่าน ISO ของ Windows และสร้าง ISO ใหม่ เลือก เปิด Atlas ใหม่ในฐานะผู้ดูแลระบบ แล้วเลือก ใช่ เมื่อ Windows ถาม
-iso-files-description = Atlas จะคัดลอก ISO ของ Windows 11 แล้วเพิ่ม Atlas ลงไป เพื่อใช้ติดตั้ง Windows ใหม่ เลือก ISO ของ Windows 11 ที่ดาวน์โหลดจาก Microsoft ดาวน์โหลดแพ็กเกจ Atlas ล่าสุดหรือเลือกแพ็กเกจที่คุณมีอยู่แล้ว (.atlaspkg) จากนั้นเลือกตำแหน่งที่จะบันทึก ISO ใหม่
-# Tester build: no package picker.
-iso-files-description-bundled = Atlas จะคัดลอก ISO ของ Windows 11 แล้วเพิ่มแพ็กเกจ Atlas ที่มาพร้อมรุ่นทดสอบนี้ลงไป เลือก ISO ของ Windows 11 ที่ดาวน์โหลดจาก Microsoft จากนั้นเลือกตำแหน่งที่จะบันทึก ISO ใหม่
 iso-source = ISO ของ Windows
+iso-download-recommended = ดาวน์โหลดจาก Microsoft (แนะนำ)
+iso-source-question = คุณต้องการรับ Windows จากที่ใด
+iso-use-local = เลือกไฟล์ ISO
+iso-package-latest = แพ็กเกจ Atlas ล่าสุด
+iso-package-unavailable = เลือกแพ็กเกจ Atlas สำหรับ Manager เวอร์ชันนี้
+iso-save-name = บันทึกเป็น { $name }
 iso-source-download = ดาวน์โหลด Windows 11 จาก Microsoft
 iso-download-arch = สถาปัตยกรรม
 iso-download-languages = กำลังโหลดภาษา…
@@ -728,12 +730,8 @@ iso-download-file-error = บันทึก ISO ไม่สำเร็จ ต
 iso-download-website = เปิดหน้าดาวน์โหลดของ Microsoft
 iso-download-progress = กำลังดาวน์โหลด Windows · { $received } จาก { $total }
 iso-download-starting = กำลังเตรียมดาวน์โหลด Windows…
-# $minimum is the first Atlas version that can be used (text, such as 0.6.0).
-iso-package = แพ็กเกจ Atlas ({ $minimum } ขึ้นไป)
 iso-output = บันทึก ISO ใหม่ที่
 iso-no-file = ยังไม่ได้เลือกไฟล์
-iso-browse = เรียกดู
-iso-save-as = บันทึกเป็น
 # Accessible name of the Browse or Save as button beside a file field: $action is
 # that button's text and $field the field's label.
 iso-pick-a11y = { $action }: { $field }

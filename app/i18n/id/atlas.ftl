@@ -708,12 +708,14 @@ iso-home-description = Buat file instalasi Windows (ISO) yang menyertakan Atlas,
 iso-open = Buat ISO Atlas
 iso-title = Buat ISO Atlas
 iso-recommended = Disarankan
-iso-backup-advice = Cadangkan file Anda sebelum menginstal Windows.
 iso-admin-description = Atlas memerlukan izin administrator untuk membaca ISO Windows Anda dan membuat ISO baru. Pilih Jalankan ulang sebagai administrator, lalu pilih Ya saat Windows meminta izin.
-iso-files-description = Atlas membuat salinan ISO Windows 11 yang sudah berisi Atlas, untuk menginstal ulang Windows. Pilih ISO Windows 11 yang diunduh dari Microsoft, unduh paket Atlas terbaru atau pilih paket yang sudah Anda miliki (.atlaspkg), lalu pilih lokasi untuk menyimpan ISO baru.
-# Tester build: no package picker.
-iso-files-description-bundled = Atlas membuat salinan ISO Windows 11 yang sudah berisi paket Atlas bawaan versi uji ini. Pilih ISO Windows 11 yang diunduh dari Microsoft, lalu pilih lokasi untuk menyimpan ISO baru.
 iso-source = ISO Windows
+iso-download-recommended = Unduh dari Microsoft (disarankan)
+iso-source-question = Dari mana Anda ingin mendapatkan Windows?
+iso-use-local = Pilih file ISO
+iso-package-latest = Paket Atlas terbaru
+iso-package-unavailable = Pilih paket Atlas untuk versi Manager ini.
+iso-save-name = Simpan sebagai { $name }
 iso-source-download = Unduh Windows 11 dari Microsoft
 iso-download-arch = Arsitektur
 iso-download-languages = Memuat bahasa…
@@ -722,12 +724,8 @@ iso-download-file-error = ISO gagal disimpan. Periksa koneksi dan ruang kosong, 
 iso-download-website = Buka halaman unduhan Microsoft
 iso-download-progress = Mengunduh Windows · { $received } dari { $total }
 iso-download-starting = Menyiapkan unduhan Windows…
-# $minimum is the first Atlas version that can be used (text, such as 0.6.0).
-iso-package = Paket Atlas ({ $minimum } atau lebih baru)
 iso-output = Simpan ISO baru ke
 iso-no-file = Belum ada file yang dipilih
-iso-browse = Telusuri
-iso-save-as = Simpan sebagai
 # Accessible name of the Browse or Save as button beside a file field: $action is
 # that button's text and $field the field's label.
 iso-pick-a11y = { $action }: { $field }

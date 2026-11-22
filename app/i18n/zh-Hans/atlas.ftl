@@ -691,12 +691,14 @@ iso-home-description = 创建包含 Atlas 的 Windows 安装映像 (ISO)，然�
 iso-open = 创建 Atlas ISO
 iso-title = 创建 Atlas ISO
 iso-recommended = 推荐
-iso-backup-advice = 安装 Windows 前，请备份文件。
 iso-admin-description = Atlas 需要管理员权限才能读取你的 Windows ISO 并创建新的 ISO。请选择“以管理员身份重新打开”，然后在 Windows 询问时选择“是”。
-iso-files-description = Atlas 会复制一份 Windows 11 ISO 并在其中加入 Atlas，用于重新安装 Windows。请选择从 Microsoft 下载的 Windows 11 ISO，下载最新的 Atlas 安装包或选择已有的安装包 (.atlaspkg)，然后选择新 ISO 的保存位置。
-# 测试版：没有安装包选择器。
-iso-files-description-bundled = Atlas 会复制一份 Windows 11 ISO，并在其中加入此测试版内置的 Atlas 安装包。请选择从 Microsoft 下载的 Windows 11 ISO，然后选择新 ISO 的保存位置。
 iso-source = Windows ISO
+iso-download-recommended = 从微软下载（推荐）
+iso-source-question = 你想从哪里获取 Windows？
+iso-use-local = 选择 ISO 文件
+iso-package-latest = 最新的 Atlas 软件包
+iso-package-unavailable = 请选择适用于此版本 Manager 的 Atlas 软件包。
+iso-save-name = 另存为 { $name }
 iso-source-download = 从 Microsoft 下载 Windows 11
 iso-download-arch = 体系结构
 iso-download-languages = 正在加载语言…
@@ -705,12 +707,8 @@ iso-download-file-error = 无法保存 ISO。请检查网络连接和可用空�
 iso-download-website = 打开微软下载页面
 iso-download-progress = 正在下载 Windows · { $received } / { $total }
 iso-download-starting = 正在准备下载 Windows…
-# $minimum 为可使用的最低 Atlas 版本（文本，例如 0.6.0）。
-iso-package = Atlas 安装包（{ $minimum } 或更高版本）
 iso-output = 新 ISO 的保存位置
 iso-no-file = 尚未选择文件
-iso-browse = 浏览
-iso-save-as = 另存为
 # 文件字段旁“浏览”或“另存为”按钮的辅助功能名称：$action 为按钮文字，$field 为字段标签。
 iso-pick-a11y = { $action }：{ $field }
 iso-inspect = 检查文件

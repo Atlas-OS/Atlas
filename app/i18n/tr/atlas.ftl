@@ -731,12 +731,14 @@ iso-home-description = Atlas içeren bir Windows kurulum dosyası (ISO) oluştur
 iso-open = Atlas ISO'su oluştur
 iso-title = Atlas ISO'su oluştur
 iso-recommended = Önerilen
-iso-backup-advice = Windows'u yüklemeden önce dosyalarınızı yedekleyin.
 iso-admin-description = Atlas'ın Windows ISO'nuzu okuyup yenisini oluşturabilmesi için yönetici izni gerekiyor. Yönetici olarak yeniden aç'ı seçin, ardından Windows sorduğunda Evet'i seçin.
-iso-files-description = Atlas, Windows'u yeniden yükleyebilmeniz için bir Windows 11 ISO'sunun Atlas eklenmiş bir kopyasını oluşturur. Microsoft'tan indirilmiş bir Windows 11 ISO'su seçin, en son Atlas paketini indirin veya elinizdeki bir paketi (.atlaspkg) seçin, ardından yeni ISO'nun kaydedileceği yeri seçin.
-# Tester build: no package picker.
-iso-files-description-bundled = Atlas, bir Windows 11 ISO'sunun bu test sürümüyle gelen Atlas paketi eklenmiş bir kopyasını oluşturur. Microsoft'tan indirilmiş bir Windows 11 ISO'su seçin, ardından yeni ISO'nun kaydedileceği yeri seçin.
 iso-source = Windows ISO'su
+iso-download-recommended = Microsoft’tan indir (önerilen)
+iso-source-question = Windows’u nereden almak istersiniz?
+iso-use-local = ISO dosyası seç
+iso-package-latest = En son Atlas paketi
+iso-package-unavailable = Manager’ın bu sürümü için bir Atlas paketi seçin.
+iso-save-name = { $name } olarak kaydet
 iso-source-download = Windows 11'i Microsoft'tan indir
 iso-download-arch = Mimari
 iso-download-languages = Diller yükleniyor…
@@ -745,12 +747,8 @@ iso-download-file-error = ISO kaydedilemedi. Bağlantıyı ve boş alanı kontro
 iso-download-website = Microsoft indirme sayfasını aç
 iso-download-progress = Windows indiriliyor · { $received } / { $total }
 iso-download-starting = Windows indirmesi hazırlanıyor…
-# $minimum is the first Atlas version that can be used (text, such as 0.6.0).
-iso-package = Atlas paketi ({ $minimum } veya daha yeni)
 iso-output = Yeni ISO'nun kaydedileceği konum
 iso-no-file = Dosya seçilmedi
-iso-browse = Gözat
-iso-save-as = Farklı kaydet
 # Accessible name of the Browse or Save as button beside a file field: $action is
 # that button's text and $field the field's label.
 iso-pick-a11y = { $action }: { $field }

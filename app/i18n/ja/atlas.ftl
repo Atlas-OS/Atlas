@@ -704,12 +704,14 @@ iso-home-description = Atlas を含む Windows のインストール ファイ�
 iso-open = Atlas ISO を作成
 iso-title = Atlas ISO を作成
 iso-recommended = おすすめ
-iso-backup-advice = Windows のインストール前にファイルをバックアップしてください。
 iso-admin-description = Windows ISO を読み取って新しい ISO を作成するには、Atlas に管理者権限が必要です。「管理者として再実行」を選び、Windows で確認が表示されたら「はい」を選んでください。
-iso-files-description = Atlas は、Windows の再インストールに使えるよう、Atlas を追加した Windows 11 ISO のコピーを作成します。Microsoft からダウンロードした Windows 11 ISO を選び、最新の Atlas パッケージをダウンロードするかお持ちのパッケージ (.atlaspkg) を選んでから、新しい ISO の保存先を選んでください。
-# Tester build: no package picker.
-iso-files-description-bundled = Atlas は、このテスト ビルドに同梱された Atlas パッケージを Windows 11 ISO に追加したコピーを作成します。Microsoft からダウンロードした Windows 11 ISO を選んでから、新しい ISO の保存先を選んでください。
 iso-source = Windows ISO
+iso-download-recommended = Microsoft からダウンロード（推奨）
+iso-source-question = Windows はどこから入手しますか？
+iso-use-local = ISO ファイルを選ぶ
+iso-package-latest = 最新の Atlas パッケージ
+iso-package-unavailable = このバージョンの Manager に対応する Atlas パッケージを選んでください。
+iso-save-name = 保存名：{ $name }
 iso-source-download = Microsoft から Windows 11 をダウンロード
 iso-download-arch = アーキテクチャ
 iso-download-languages = 言語を読み込み中…
@@ -718,12 +720,8 @@ iso-download-file-error = ISO を保存できませんでした。接続と空�
 iso-download-website = Microsoft のダウンロードページを開く
 iso-download-progress = Windows をダウンロード中 · { $total } 中 { $received }
 iso-download-starting = Windows のダウンロードを準備中…
-# $minimum is the first Atlas version that can be used (text, such as 0.6.0).
-iso-package = Atlas パッケージ ({ $minimum } 以降)
 iso-output = 新しい ISO の保存先
 iso-no-file = ファイル未選択
-iso-browse = 参照
-iso-save-as = 名前を付けて保存
 # Accessible name of the Browse or Save as button beside a file field: $action is
 # that button's text and $field the field's label.
 iso-pick-a11y = { $action }: { $field }

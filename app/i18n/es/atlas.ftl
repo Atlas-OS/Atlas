@@ -722,12 +722,14 @@ iso-home-description = Cree un archivo de instalación de Windows (ISO) que incl
 iso-open = Crear una ISO con Atlas
 iso-title = Crear una ISO con Atlas
 iso-recommended = Recomendado
-iso-backup-advice = Haga una copia de seguridad de sus archivos antes de instalar Windows.
 iso-admin-description = Atlas necesita permisos de administrador para leer su ISO de Windows y crear la nueva. Elija Reabrir como administrador y, después, elija Sí cuando Windows pregunte.
-iso-files-description = Atlas crea una copia de una ISO de Windows 11 con Atlas incluido, para reinstalar Windows. Elija una ISO de Windows 11 descargada de Microsoft, descargue el paquete de Atlas más reciente o elija uno que ya tenga (.atlaspkg) y, después, elija dónde guardar la nueva ISO.
-# Versión de prueba: sin selector de paquete.
-iso-files-description-bundled = Atlas crea una copia de una ISO de Windows 11 con el paquete de Atlas incluido en esta versión de prueba. Elija una ISO de Windows 11 descargada de Microsoft y, después, elija dónde guardar la nueva ISO.
 iso-source = ISO de Windows
+iso-download-recommended = Descargar de Microsoft (recomendado)
+iso-source-question = ¿De dónde quieres obtener Windows?
+iso-use-local = Elegir un archivo ISO
+iso-package-latest = Último paquete de Atlas
+iso-package-unavailable = Elige un paquete de Atlas para esta versión de Manager.
+iso-save-name = Guardar como { $name }
 iso-source-download = Descargar Windows 11 de Microsoft
 iso-download-arch = Arquitectura
 iso-download-languages = Cargando idiomas…
@@ -736,12 +738,8 @@ iso-download-file-error = No se pudo guardar la ISO. Comprueba la conexión y el
 iso-download-website = Abrir la página de descargas de Microsoft
 iso-download-progress = Descargando Windows · { $received } de { $total }
 iso-download-starting = Preparando la descarga de Windows…
-# $minimum es la primera versión de Atlas que se puede usar (texto, como 0.6.0).
-iso-package = Paquete de Atlas ({ $minimum } o posterior)
 iso-output = Guardar la nueva ISO en
 iso-no-file = Ningún archivo seleccionado
-iso-browse = Examinar
-iso-save-as = Guardar como
 # Nombre accesible del botón Examinar o Guardar como junto a un campo de archivo: $action es
 # el texto de ese botón y $field la etiqueta del campo.
 iso-pick-a11y = { $action }: { $field }

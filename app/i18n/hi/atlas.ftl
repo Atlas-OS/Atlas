@@ -728,12 +728,14 @@ iso-home-description = Atlas वाली Windows इंस्टॉलेशन
 iso-open = Atlas ISO बनाएँ
 iso-title = Atlas ISO बनाएँ
 iso-recommended = सुझाया गया
-iso-backup-advice = Windows इंस्टॉल करने से पहले अपनी फ़ाइलों का बैकअप लें।
 iso-admin-description = आपका Windows ISO पढ़ने और नया ISO बनाने के लिए Atlas को व्यवस्थापक की अनुमति चाहिए। “व्यवस्थापक के रूप में दोबारा खोलें” चुनें, फिर जब Windows पूछे, तो “हाँ” चुनें।
-iso-files-description = Atlas, Windows 11 ISO की एक कॉपी बनाकर उसमें Atlas जोड़ता है, ताकि आप Windows दोबारा इंस्टॉल कर सकें। Microsoft से डाउनलोड किया गया Windows 11 ISO चुनें, नवीनतम Atlas पैकेज डाउनलोड करें या पहले से मौजूद पैकेज (.atlaspkg) चुनें, फिर चुनें कि नया ISO कहाँ सहेजना है।
-# Tester build: no package picker.
-iso-files-description-bundled = Atlas, Windows 11 ISO की एक कॉपी बनाकर उसमें इस परीक्षण बिल्ड के साथ दिया गया Atlas पैकेज जोड़ता है। Microsoft से डाउनलोड किया गया Windows 11 ISO चुनें, फिर चुनें कि नया ISO कहाँ सहेजना है।
 iso-source = Windows ISO
+iso-download-recommended = Microsoft से डाउनलोड करें (अनुशंसित)
+iso-source-question = आप Windows कहाँ से लेना चाहते हैं?
+iso-use-local = ISO फ़ाइल चुनें
+iso-package-latest = नवीनतम Atlas पैकेज
+iso-package-unavailable = Manager के इस संस्करण के लिए Atlas पैकेज चुनें।
+iso-save-name = { $name } के रूप में सहेजें
 iso-source-download = Microsoft से Windows 11 डाउनलोड करें
 iso-download-arch = आर्किटेक्चर
 iso-download-languages = भाषाएँ लोड हो रही हैं…
@@ -742,12 +744,8 @@ iso-download-file-error = ISO सहेजी नहीं जा सकी। �
 iso-download-website = Microsoft का डाउनलोड पेज खोलें
 iso-download-progress = Windows डाउनलोड हो रहा है · { $total } में से { $received }
 iso-download-starting = Windows डाउनलोड की तैयारी हो रही है…
-# $minimum is the first Atlas version that can be used (text, such as 0.6.0).
-iso-package = Atlas पैकेज ({ $minimum } या उससे नया)
 iso-output = नया ISO यहाँ सहेजें
 iso-no-file = कोई फ़ाइल नहीं चुनी गई
-iso-browse = ब्राउज़ करें
-iso-save-as = इस रूप में सहेजें
 # Accessible name of the Browse or Save as button beside a file field: $action is
 # that button's text and $field the field's label.
 iso-pick-a11y = { $action }: { $field }

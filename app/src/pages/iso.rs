@@ -214,6 +214,7 @@ fn free_output(folder: &Path, exists: impl Fn(&Path) -> bool) -> PathBuf {
 
 pub struct IsoPage {
     download: download::IsoDownload,
+    editing_source: bool,
     usb: Option<Entity<UsbPage>>,
     username: Entity<TextInput>,
     model: Entity<AppModel>,
@@ -284,6 +285,7 @@ impl IsoPage {
         .detach();
         let page = Self {
             download: Default::default(),
+            editing_source: false,
             usb: None,
             username,
             model,
@@ -333,7 +335,7 @@ impl IsoPage {
         self.preview_unelevated = state == "not-elevated";
         self.source = Some(PathBuf::from(r"C:\Downloads\Windows11_25H2_English_x64.iso"));
         // A first-time user who never handled the Atlas package: the field is empty.
-        if state != "files-empty" {
+        if !matches!(state, "files-empty" | "download-language" | "download-progress") {
             self.archive = Some(PathBuf::from(r"C:\Downloads\Atlas.atlaspkg"));
         }
         self.output = Some(PathBuf::from(r"C:\Users\Atlas\Downloads\Atlas-Windows.iso"));
@@ -363,6 +365,10 @@ impl IsoPage {
                 bytes: 6_500_000_000,
                 architecture: Architecture::X64,
             });
+        }
+        if state == "files-empty" {
+            self.source = None;
+            self.output = None;
         }
         if matches!(state, "download-language" | "download-progress") {
             self.source = None;
@@ -548,17 +554,31 @@ impl IsoPage {
             {
                 this.update(cx, |this, cx| {
                     if field == Field::Source {
-                        this.source = Some(path);
-                        this.suggest_output();
+                        this.accept_source(path, cx);
                     } else {
                         this.archive = Some(path);
+                        this.manifest = None;
+                        this.invalidate(cx);
                     }
-                    this.invalidate(cx);
                 })
                 .ok();
             }
         })
         .detach();
+    }
+
+    fn accept_source(&mut self, path: PathBuf, cx: &mut Context<Self>) {
+        self.source = Some(path);
+        self.editing_source = false;
+        self.download.close_picker();
+        self.suggest_output();
+        if self.archive.is_none()
+            && !self.model.read(cx).bundled()
+            && !self.model.read(cx).latest_predates_app()
+        {
+            self.model.update(cx, |m, cx| m.download_latest(cx));
+        }
+        self.invalidate(cx);
     }
 
     /// Puts the new ISO beside the source, under a name no file has yet,
@@ -964,72 +984,115 @@ impl IsoPage {
 
     /// Step 1: the Windows ISO, the Atlas package and where to save the new ISO.
     fn files(&self, checked: bool, cx: &mut Context<Self>) -> AnyElement {
-        let mut content = card_body().gap(px(14.));
-        let bundled = self.model.read(cx).bundled();
-        // On the rule `pick` refuses on: while any job holds the app.
-        let locked = self.model.read(cx).locked() || self.download.busy();
-        let fields = [
-            (Field::Source, t!("iso-source"), &self.source),
-            (Field::Package, t!("iso-package", minimum = iso::MINIMUM_VERSION), &self.archive),
-            (Field::Output, t!("iso-output"), &self.output),
-        ];
-        for (index, (field, label, path)) in fields.into_iter().enumerate() {
-            let heading =
-                div().type_body_strong().child(a11y_text(("iso-field-label", index), label.clone()));
-            if field == Field::Package && bundled {
-                content = content.child(
-                    div()
-                        .flex()
-                        .flex_col()
-                        .gap(px(6.))
-                        .child(heading)
-                        .child(detail_text("iso-path-1", t!("iso-package-bundled"))),
-                );
-                continue;
+        let state = self.model.read(cx);
+        let bundled = state.bundled();
+        let latest_predates_app = state.latest_predates_app();
+        let locked = state.locked() || self.download.busy();
+        let short_name = |path: &Path| path.file_name().unwrap_or_default().to_string_lossy().into_owned();
+        let selected_package =
+            state.package.as_ref().filter(|p| bundled || p.archive.as_ref() == self.archive.as_ref());
+        let package_name = if let Some(package) = selected_package {
+            format!("Atlas {}", package.manifest.version)
+        } else if let Some(manifest) = &self.manifest {
+            format!("Atlas {}", manifest.version)
+        } else if let Some(path) = &self.archive {
+            short_name(path)
+        } else if let Some(release) = state.release.release().filter(|_| !state.latest_predates_app()) {
+            format!("Atlas {}", release.version())
+        } else if bundled {
+            t!("iso-package-bundled")
+        } else {
+            t!("iso-package-latest")
+        };
+        let change = |field: Field, id: &'static str, label: String, cx: &mut Context<Self>| {
+            Button::new(id, t!("common-change"))
+                .compact()
+                .hyperlink()
+                .aria_label(t!("iso-pick-a11y", action = t!("common-change"), field = label))
+                .disabled(locked)
+                .on_click(cx.listener(move |this, _, _, cx| this.pick(field, cx)))
+        };
+        let mut windows = div()
+            .flex()
+            .flex_col()
+            .gap(px(8.))
+            .child(div().type_body_strong().child(a11y_text("iso-source-label", t!("iso-source"))));
+        if let Some(path) = &self.source
+            && !self.editing_source
+        {
+            windows = windows.child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(px(8.))
+                    .child(detail_text("iso-path-0", short_name(path)))
+                    .child(
+                        Button::new("iso-change-source", t!("common-change"))
+                            .compact()
+                            .hyperlink()
+                            .disabled(locked)
+                            .aria_label(t!(
+                                "iso-pick-a11y",
+                                action = t!("common-change"),
+                                field = t!("iso-source")
+                            ))
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.editing_source = true;
+                                cx.notify();
+                            })),
+                    ),
+            );
+        } else {
+            windows = windows.child(self.windows_download(cx)).child(
+                div().flex().child(
+                    Button::new("iso-source-local", t!("iso-use-local"))
+                        .compact()
+                        .hyperlink()
+                        .disabled(locked)
+                        .on_click(cx.listener(|this, _, _, cx| this.pick(Field::Source, cx))),
+                ),
+            );
+        }
+        if self.editing_source && !self.download.busy() {
+            windows = windows.child(div().flex().child(
+                Button::new("iso-keep-source", t!("common-cancel")).compact().on_click(cx.listener(
+                    |this, _, _, cx| {
+                        this.editing_source = false;
+                        this.download.close_picker();
+                        cx.notify();
+                    },
+                )),
+            ));
+        }
+        let mut content = card_body().gap(px(16.)).child(windows).child(
+            div()
+                .flex()
+                .items_center()
+                .gap(px(8.))
+                .pt(px(12.))
+                .border_t_1()
+                .border_color(cx.theme().divider)
+                .child(div().type_body_strong().child(a11y_text("iso-path-1", package_name)))
+                .when(!bundled, |row| {
+                    row.child(change(Field::Package, "iso-change-package", t!("package-title"), cx))
+                }),
+        );
+        if !bundled && self.archive.is_none() && self.source.is_some() {
+            if latest_predates_app {
+                content =
+                    content.child(detail_text("iso-package-unavailable", t!("iso-package-unavailable")));
+            } else {
+                content = content.children(self.package_download(cx));
             }
-            let action = if field == Field::Output { t!("iso-save-as") } else { t!("iso-browse") };
+        }
+        if let Some(path) = &self.output {
             content = content.child(
                 div()
                     .flex()
-                    .flex_col()
-                    .gap(px(6.))
-                    .child(heading)
-                    .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap(px(12.))
-                            .when(field == Field::Source && path.is_some(), |this| {
-                                this.child(TextMark::new(icon(Icon::Disc), false).natural_text())
-                            })
-                            .child(
-                                div().flex_1().min_w_0().child(detail_text(
-                                    &format!("iso-path-{index}"),
-                                    path.as_ref()
-                                        .map(|p| p.display().to_string())
-                                        .unwrap_or_else(|| t!("iso-no-file")),
-                                )),
-                            )
-                            .child(
-                                // Named with its field: three pickers would otherwise
-                                // all be "Browse" or "Save as".
-                                Button::new(("iso-pick", index), action.clone())
-                                    .aria_label(t!(
-                                        "iso-pick-a11y",
-                                        action = action.as_str(),
-                                        field = label.as_str()
-                                    ))
-                                    .icon(Icon::Folder)
-                                    .disabled(locked)
-                                    .on_click(cx.listener(move |this, _, _, cx| this.pick(field, cx))),
-                            ),
-                    )
-                    // Where to get the ISO the field asks for.
-                    .when(field == Field::Source, |this| this.child(self.windows_download(cx)))
-                    // A first-time user never handled the file: Atlas downloads it here.
-                    .when(field == Field::Package && path.is_none(), |this| {
-                        this.children(self.package_download(cx))
-                    }),
+                    .items_center()
+                    .gap(px(8.))
+                    .child(detail_text("iso-path-2", t!("iso-save-name", name = short_name(path))))
+                    .child(change(Field::Output, "iso-change-output", t!("iso-output"), cx)),
             );
         }
         // Checked files leave Continue as the only way on; this says why.
@@ -1617,7 +1680,7 @@ impl IsoPage {
                 .on_click(cx.listener(|this, _, _, cx| this.open_usb(this.output.clone(), cx)));
             return CommandBar::new().back(done).primary(usb).into_any_element();
         }
-        let locked = self.model.read(cx).locked() || self.download.busy();
+        let locked = self.model.read(cx).locked() || self.download.busy() || self.editing_source;
         let back = Button::new("iso-back", t!("common-back"))
             .disabled(self.step.previous().is_none() || locked)
             .on_click(cx.listener(|this, _, _, cx| {
@@ -1706,12 +1769,16 @@ impl Render for IsoPage {
             } else {
                 self.focus.get("iso-step-heading", cx)
             };
-            let title = t!(
-                "step-heading",
-                number = self.step.index() + 1,
-                total = IsoStep::ALL.len(),
-                title = self.step.title()
-            );
+            let title = if self.step == IsoStep::Files {
+                t!("iso-source-question")
+            } else {
+                t!(
+                    "step-heading",
+                    number = self.step.index() + 1,
+                    total = IsoStep::ALL.len(),
+                    title = self.step.title()
+                )
+            };
             body.push(
                 focusable_heading("iso-step-heading", 2, title, &heading_focus, cx)
                     .type_subtitle()
@@ -1821,28 +1888,6 @@ impl Render for IsoPage {
             } else {
                 match self.step {
                     IsoStep::Files => {
-                        // This bar gives the
-                        // safety advice once, where the flow starts, unless a
-                        // result already holds the top of the page.
-                        if !failed && !cancelled {
-                            body.push(
-                                InfoBar::new(Severity::Informational, "", t!("iso-backup-advice"))
-                                    .id("iso-backup-advice")
-                                    .into_any_element(),
-                            );
-                        }
-                        let bundled = self.model.read(cx).bundled();
-                        body.push(
-                            detail_text(
-                                "iso-files-description",
-                                if bundled {
-                                    t!("iso-files-description-bundled")
-                                } else {
-                                    t!("iso-files-description")
-                                },
-                            )
-                            .into_any_element(),
-                        );
                         body.push(self.files(gates.checked, cx));
                         body.push(
                             div()
@@ -1865,11 +1910,7 @@ impl Render for IsoPage {
         self.diagnostics.settle(&self.model, window, cx);
         page_frame(
             "iso-page",
-            Some(PageTitle {
-                text: t!("iso-title").into(),
-                badge: Some(t!("iso-recommended").into()),
-                back: None,
-            }),
+            Some(PageTitle { text: t!("iso-title").into(), badge: None, back: None }),
             None,
             Some(&self.model),
             (&self.scroll, &self.scrollbar),

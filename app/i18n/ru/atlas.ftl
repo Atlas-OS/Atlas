@@ -744,12 +744,14 @@ iso-home-description = Создайте установочный файл Window
 iso-open = Создать ISO с Atlas
 iso-title = Создать ISO с Atlas
 iso-recommended = Рекомендуется
-iso-backup-advice = Перед установкой Windows сделайте резервную копию файлов.
 iso-admin-description = Чтобы прочитать ваш ISO-образ Windows и создать новый, Atlas нужны права администратора. Нажмите «Перезапустить от имени администратора», затем нажмите «Да», когда Windows запросит разрешение.
-iso-files-description = Atlas создаёт копию ISO-образа Windows 11 с добавленным Atlas для переустановки Windows. Выберите ISO-образ Windows 11, скачанный с сайта Microsoft, скачайте последний пакет Atlas или выберите уже имеющийся (.atlaspkg), затем укажите, где сохранить новый ISO-образ.
-# Tester build: no package picker.
-iso-files-description-bundled = Atlas создаёт копию ISO-образа Windows 11 и добавляет в неё пакет Atlas, встроенный в эту тестовую сборку. Выберите ISO-образ Windows 11, скачанный с сайта Microsoft, затем укажите, где сохранить новый ISO-образ.
 iso-source = ISO-образ Windows
+iso-download-recommended = Скачать с сайта Microsoft (рекомендуется)
+iso-source-question = Откуда взять Windows?
+iso-use-local = Выбрать ISO-файл
+iso-package-latest = Последний пакет Atlas
+iso-package-unavailable = Выберите пакет Atlas для этой версии Manager.
+iso-save-name = Сохранить как { $name }
 iso-source-download = Скачать Windows 11 с сайта Microsoft
 iso-download-arch = Архитектура
 iso-download-languages = Загрузка списка языков…
@@ -758,12 +760,8 @@ iso-download-file-error = Не удалось сохранить ISO. Прове
 iso-download-website = Открыть страницу загрузки Microsoft
 iso-download-progress = Скачивание Windows · { $received } из { $total }
 iso-download-starting = Подготовка к скачиванию Windows…
-# $minimum is the first Atlas version that can be used (text, such as 0.6.0).
-iso-package = Пакет Atlas ({ $minimum } или новее)
 iso-output = Сохранить новый ISO-образ в
 iso-no-file = Файл не выбран
-iso-browse = Обзор
-iso-save-as = Сохранить как
 # Accessible name of the Browse or Save as button beside a file field: $action is
 # that button's text and $field the field's label.
 iso-pick-a11y = { $action }: { $field }
