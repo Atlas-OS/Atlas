@@ -333,7 +333,7 @@ impl InstallPage {
         let stalled = matches!(state.preparation, State::Running { .. })
             && state.preparation_progress.as_ref().is_some_and(|progress| stall(progress, now).is_some());
         // The job folder helps only where something may be wrong.
-        let log_folder = state
+        let mut log_folder = state
             .preparation_job
             .clone()
             .filter(|_| stalled || matches!(state.preparation, State::Failed | State::WaitingExternal))
@@ -341,6 +341,7 @@ impl InstallPage {
                 Button::new("prepare-log", t!("iso-diagnostics"))
                     .on_click(move |_, _, cx| cx.reveal_path(&job))
             });
+        let waiting_log = if not_offered { log_folder.take() } else { None };
         // What else an outcome of the move offers: keeping a version that may
         // stay, a fresh install from an Atlas ISO, or putting the settings back.
         let optional = state.windows_transition().is_some_and(|(_, need)| need == TransitionNeed::Optional);
@@ -402,7 +403,7 @@ impl InstallPage {
                 let code = failure
                     .and_then(|f| f.error_code.as_ref())
                     .map(|code| t!("prepare-error-code", code = code.clone()));
-                let has_details = detail.is_some() || code.is_some();
+                let has_details = detail.is_some() || code.is_some() || waiting_log.is_some();
                 let shown = self.show_preparation_details;
                 let details = has_details.then(|| {
                     div()
@@ -428,6 +429,9 @@ impl InstallPage {
                                     })
                                     .when_some(code, |this, code| {
                                         this.child(detail_text("preparation-error-code", code))
+                                    })
+                                    .when_some(waiting_log, |column, log| {
+                                        column.child(div().flex().child(log))
                                     }),
                             )
                         })
