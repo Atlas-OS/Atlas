@@ -99,6 +99,19 @@ Describe 'Protected preparation recovery journals' {
         [IO.File]::WriteAllText((Join-Path $JobPath 'cancel'), '')
         { Assert-PreparationContinue } | Should -Throw '*stopped*'
     }
+    It 'publishes progress after a reader releases the previous report' {
+        $PersistentCancellation = $false
+        $JobPath = Join-Path $TestDrive 'busy-report'
+        [void][IO.Directory]::CreateDirectory($JobPath)
+        Write-PreparationState running verify
+        $path = Join-Path $JobPath 'state.json'
+        $reader = [IO.File]::Open($path, 'Open', 'Read', 'Read')
+        Mock Start-Sleep { $reader.Dispose() }
+        try { Write-PreparationState complete verify } finally { $reader.Dispose() }
+        Should -Invoke Start-Sleep -Times 1 -Exactly
+        (Get-Content -LiteralPath $path -Raw | ConvertFrom-Json).status | Should -Be 'complete'
+        Test-Path (Join-Path $JobPath 'state.tmp') | Should -BeFalse
+    }
     It 'atomically writes recovery records and refuses an existing temporary file' {
         Set-Variable -Name PersistentCancellation -Value $true
         $JobPath = Join-Path $TestDrive 'persistent-state'

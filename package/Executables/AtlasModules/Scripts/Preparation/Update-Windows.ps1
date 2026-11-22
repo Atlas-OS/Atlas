@@ -301,19 +301,36 @@ function Write-PreparationState([string]$Status, [string]$Stage, [int]$Completed
     $path = Join-Path $JobPath 'state.json'
     $temporary = Join-Path $JobPath 'state.tmp'
     $encoding = New-Object Text.UTF8Encoding($false)
-    if ($PersistentCancellation) {
-        $stream = New-Object IO.FileStream($temporary, [IO.FileMode]::CreateNew, [Security.AccessControl.FileSystemRights]::Write, [IO.FileShare]::None, 4096, [IO.FileOptions]::None, (Get-PreparationStateSecurity))
-        try {
-            $bytes = $encoding.GetBytes($json)
-            $stream.Write($bytes, 0, $bytes.Length)
-            $stream.Flush($true)
-        } finally { $stream.Dispose() }
+    $ownsTemporary = $false
+    try {
+        if ($PersistentCancellation) {
+            $stream = New-Object IO.FileStream($temporary, [IO.FileMode]::CreateNew, [Security.AccessControl.FileSystemRights]::Write, [IO.FileShare]::None, 4096, [IO.FileOptions]::None, (Get-PreparationStateSecurity))
+            $ownsTemporary = $true
+            try {
+                $bytes = $encoding.GetBytes($json)
+                $stream.Write($bytes, 0, $bytes.Length)
+                $stream.Flush($true)
+            } finally { $stream.Dispose() }
+        }
+        else {
+            [IO.File]::WriteAllText($temporary, $json, $encoding)
+            $ownsTemporary = $true
+        }
+        # A reader may briefly hold the previous report without allowing replacement.
+        for ($attempt = 0; ; $attempt++) {
+            try {
+                if ([IO.File]::Exists($path)) { [IO.File]::Replace($temporary, $path, [NullString]::Value) }
+                else { [IO.File]::Move($temporary, $path) }
+                $ownsTemporary = $false
+                break
+            } catch [IO.IOException] {
+                if ($attempt -ge 20 -or ($_.Exception.HResult -band 0xffff) -notin 32, 33) { throw }
+                Start-Sleep -Milliseconds 100
+            }
+        }
+    } finally {
+        if ($ownsTemporary) { [IO.File]::Delete($temporary) }
     }
-    else {
-        [IO.File]::WriteAllText($temporary, $json, $encoding)
-    }
-    if ([IO.File]::Exists($path)) { [IO.File]::Replace($temporary, $path, [NullString]::Value) }
-    else { [IO.File]::Move($temporary, $path) }
     [Console]::WriteLine("ATLAS_PREP:$json")
 }
 
