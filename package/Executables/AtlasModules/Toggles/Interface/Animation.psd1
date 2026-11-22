@@ -1,0 +1,45 @@
+@{
+    Name        = 'Animation'
+    Description = 'Chooses between the Atlas visual effects and the Windows defaults. Disable applies the Atlas set with fewer animations; Enable restores the Windows defaults. Both offer to sign out afterwards, which applies the change.'
+    Elevation   = 'Admin'
+    States      = @(
+        @{
+            Name       = 'Disable'
+            StateValue = 0
+            Launcher   = '4. Interface Tweaks\Visual Effects (Animations)\Atlas Visual Effects (default).cmd'
+            Reboot     = 'SignOut'
+            Registry   = @(
+                @{ Path = 'HKCU:\Control Panel\Desktop'; Name = 'FontSmoothing'; Type = 'String'; Data = '2' }
+                @{ Path = 'HKCU:\Control Panel\Desktop'; Name = 'UserPreferencesMask'; Mask = @(0x0E, 0x0C, 0x04, 0, 0x02, 0, 0, 0); Type = 'Binary'; Data = @(0x90, 0x12, 0x03, 0x80, 0x10, 0x00, 0x00, 0x00) }
+                @{ Path = 'HKCU:\Control Panel\Desktop'; Name = 'DragFullWindows'; Type = 'String'; Data = '1' }
+                @{ Path = 'HKCU:\Control Panel\Desktop\WindowMetrics'; Name = 'MinAnimate'; Type = 'String'; Data = '0' }
+                @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Name = 'ListviewAlphaSelect'; Type = 'DWord'; Data = 1 }
+                @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Name = 'IconsOnly'; Type = 'DWord'; Data = 0 }
+                @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Name = 'TaskbarAnimations'; Type = 'DWord'; Data = 0 }
+                @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Name = 'ListviewShadow'; Type = 'DWord'; Data = 1 }
+                @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects'; Name = 'VisualFXSetting'; Type = 'DWord'; Data = 3 }
+                @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\DWM'; Name = 'EnableAeroPeek'; Type = 'DWord'; Data = 0 }
+                @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\DWM'; Name = 'AlwaysHibernateThumbnails'; Type = 'DWord'; Data = 0 }
+            )
+        }
+        @{
+            Name       = 'Enable'
+            StateValue = 1
+            Launcher   = '4. Interface Tweaks\Visual Effects (Animations)\Default Windows Visual Effects.cmd'
+            Reboot     = 'SignOut'
+            Registry   = @(
+                @{ Path = 'HKCU:\Control Panel\Desktop'; Name = 'FontSmoothing'; Type = 'String'; Data = '2' }
+                @{ Path = 'HKCU:\Control Panel\Desktop'; Name = 'UserPreferencesMask'; Mask = @(0x0E, 0x0C, 0x04, 0, 0x02, 0, 0, 0); Type = 'Binary'; Data = @(0x9E, 0x1E, 0x07, 0x80, 0x12, 0x00, 0x00, 0x00) }
+                @{ Path = 'HKCU:\Control Panel\Desktop'; Name = 'DragFullWindows'; Type = 'String'; Data = '1' }
+                @{ Path = 'HKCU:\Control Panel\Desktop\WindowMetrics'; Name = 'MinAnimate'; Type = 'String'; Data = '1' }
+                @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Name = 'ListviewAlphaSelect'; Type = 'DWord'; Data = 1 }
+                @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Name = 'IconsOnly'; Type = 'DWord'; Data = 0 }
+                @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Name = 'TaskbarAnimations'; Type = 'DWord'; Data = 1 }
+                @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Name = 'ListviewShadow'; Type = 'DWord'; Data = 1 }
+                @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects'; Name = 'VisualFXSetting'; Type = 'DWord'; Data = 0 }
+                @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\DWM'; Name = 'EnableAeroPeek'; Type = 'DWord'; Data = 1 }
+                @{ Path = 'HKCU:\SOFTWARE\Microsoft\Windows\DWM'; Name = 'AlwaysHibernateThumbnails'; Type = 'DWord'; Data = 1 }
+            )
+        }
+    )
+}

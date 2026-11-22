@@ -1,0 +1,378 @@
+<#
+.SYNOPSIS
+    TrustedInstaller half of the Atlas front door.
+.DESCRIPTION
+    Entry\Install-Atlas.ps1 stages the extracted package beneath the protected staging
+    root and asks the TrustedInstaller broker to run this script from that copy, twice:
+
+      -Phase Capture   Reads request.json beside the staged files, decides Fresh, Upgrade,
+                       Reapply or Rebase from the machine state document, begins the
+                       install state and records the validated options. An update that
+                       keeps the choices records them as the PC has them. The front
+                       door then publishes the installing user's marker from its own
+                       session.
+      -Phase Run       Binds the published user, commits the captured state and runs the
+                       complete install plan through Entry\Invoke-AtlasInstall.ps1.
+
+    request.json is a size-limited document:
+    { "options": [ "<option>", ... ], "choices": "Keep" | "ChooseAgain" }. Every option
+    must be declared by atlas.json, the package manifest staged beside Executables;
+    every single choice that's asked needs exactly one option, and no option may
+    belong to a choice that isn't asked. The broker has already verified that this
+    script and its staging root are owned and writable only by trusted principals.
+
+    Each phase leaves a copy of its log under the machine's Logs\install folder,
+    whether it succeeds or fails, because this staging copy goes once an install
+    succeeds and only administrators can read it.
+.PARAMETER Phase
+    Capture or Run, as described above.
+.NOTES
+    Exit codes: 0 success, 1 failure, 2 wrong privilege.
+#>
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)]
+    [ValidateSet('Capture', 'Run')]
+    [string]$Phase
+)
+
+$scriptsRoot = [IO.Path]::GetFullPath([IO.Path]::GetDirectoryName($PSScriptRoot))
+$bootstrap = [IO.Path]::Combine($scriptsRoot, 'Initialize-AtlasPowerShell.ps1')
+$sessionLog = [IO.Path]::Combine([IO.Path]::GetDirectoryName($scriptsRoot), 'Logs', "install-$($Phase.ToLowerInvariant()).log")
+
+function Write-AtlasSessionLog {
+    param([string]$Message)
+    [IO.File]::AppendAllText($sessionLog, "[$([DateTime]::UtcNow.ToString('o'))] $Message`r`n", [Text.UTF8Encoding]::new($false))
+}
+
+function Save-AtlasSessionLog {
+    <#
+    .SYNOPSIS
+        Copies this phase's log, as it stands, beside the machine's other install logs
+        as <UTC yyyyMMdd-HHmmss>-install-<phase>.log. Best effort: the phase's own
+        outcome is what gets reported, so a failed copy is only noted in the log.
+    #>
+    param(
+        [string]$LogPath = $sessionLog,
+        [string]$PhaseName = $Phase,
+        [string]$LogRoot = [IO.Path]::Combine([Environment]::GetFolderPath('Windows'), 'AtlasModules', 'Logs'),
+        [DateTime]$Now = [DateTime]::UtcNow
+    )
+
+    try {
+        if (-not [IO.File]::Exists($LogPath)) { return }
+        # A reparse point would send the copy wherever it points.
+        foreach ($folder in @($LogRoot, [IO.Path]::Combine($LogRoot, 'install'))) {
+            if ([IO.Directory]::Exists($folder) -and ([IO.File]::GetAttributes($folder) -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw "'$folder' is a reparse point."
+            }
+        }
+        $installLogs = [IO.Directory]::CreateDirectory([IO.Path]::Combine($LogRoot, 'install')).FullName
+        $copy = [IO.Path]::Combine($installLogs, ('{0:yyyyMMdd-HHmmss}-install-{1}.log' -f $Now.ToUniversalTime(), $PhaseName.ToLowerInvariant()))
+        [IO.File]::Copy($LogPath, $copy, $true)
+    }
+    catch {
+        try { Write-AtlasSessionLog "Couldn't copy this log to the machine's Logs folder: $($_.Exception.Message)" }
+        catch { $null = $_ }
+    }
+}
+
+Set-StrictMode -Version 3.0
+$ErrorActionPreference = 'Stop'
+
+function Read-AtlasInstallRequest {
+    <#
+    .SYNOPSIS
+        Reads request.json: the options, and how an update treats the choices the PC
+        has (Keep unless it says ChooseAgain).
+    #>
+    param([Parameter(Mandatory = $true)][string]$PackageRoot)
+
+    $requestPath = Join-Path -Path $PackageRoot -ChildPath 'request.json'
+    if (-not [IO.File]::Exists($requestPath)) {
+        throw "The install request '$requestPath' is missing."
+    }
+    if ((Get-Item -LiteralPath $requestPath).Length -gt 65536) {
+        throw 'The install request exceeds its size limit.'
+    }
+    $request = [IO.File]::ReadAllText($requestPath) | ConvertFrom-Json -ErrorAction Stop
+    foreach ($property in $request.PSObject.Properties) {
+        if ($property.Name -cnotin @('options', 'choices')) {
+            throw "The install request has an unknown field '$($property.Name)'."
+        }
+    }
+    if ($null -eq $request.PSObject.Properties['options']) {
+        throw "The install request declares no 'options'."
+    }
+    $choices = 'Keep'
+    $requestedChoices = $request.PSObject.Properties['choices']
+    if ($null -ne $requestedChoices) {
+        if ($requestedChoices.Value -isnot [string] -or $requestedChoices.Value -cnotin @('Keep', 'ChooseAgain')) {
+            throw "The install request's choices must be 'Keep' or 'ChooseAgain', not '$($requestedChoices.Value)'."
+        }
+        $choices = [string]$requestedChoices.Value
+    }
+    return [pscustomobject]@{
+        Options = @($request.options | ForEach-Object { [string]$_ })
+        Choices = $choices
+    }
+}
+
+function Assert-AtlasInstallOptionSet {
+    <#
+    .SYNOPSIS
+        Rejects unknown options and unsatisfied choices; returns the option set.
+    .PARAMETER Groups
+        The package's choices, from Get-AtlasPackageChoice.
+    .PARAMETER ResumedOptions
+        The options of the unfinished install this request resumes. A resume must
+        keep them, so a single choice added to the package after they were
+        recorded may stay unchosen when they chose nothing in it; its steps then
+        change nothing.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][AllowEmptyCollection()][string[]]$Options,
+        [Parameter(Mandatory = $true)][object[]]$Groups,
+        [AllowEmptyCollection()][string[]]$ResumedOptions
+    )
+
+    $known = @($Groups | ForEach-Object { $_.Options })
+    foreach ($option in $Options) {
+        if ($known -cnotcontains $option) {
+            throw "Option '$option' is not declared by the package manifest."
+        }
+    }
+    if (@($Options | Sort-Object -Unique).Count -ne $Options.Count) {
+        throw 'The install request repeats an option.'
+    }
+    foreach ($group in $Groups) {
+        $chosen = @($Options | Where-Object { $group.Options -ccontains $_ })
+        # A choice whose dependsOn option isn't chosen isn't asked, so none of its options count.
+        if (-not [string]::IsNullOrWhiteSpace([string]$group.DependsOn) -and $Options -cnotcontains [string]$group.DependsOn) {
+            if ($chosen.Count -gt 0) {
+                throw "Options $($chosen -join ', ') require '$($group.DependsOn)'."
+            }
+            continue
+        }
+        $addedSinceResumed = $chosen.Count -eq 0 -and $PSBoundParameters.ContainsKey('ResumedOptions') -and
+            -not @($ResumedOptions | Where-Object { $group.Options -ccontains $_ })
+        if ($group.ExactlyOne -and $chosen.Count -ne 1 -and -not $addedSinceResumed) {
+            throw "Exactly one of $($group.Options -join ', ') must be selected."
+        }
+    }
+    return $Options
+}
+
+function Invoke-AtlasInstallCapture {
+    <#
+    .SYNOPSIS
+        Begins the install state for request.json and records its options, logging
+        each decision, and returns the line that says what it captured. An update
+        from an Atlas older than 0.6 first rewrites the toggle records it left, and
+        an update that keeps the choices records the ones this PC shows. A run whose
+        steps began keeps the way and the options it began with, so neither happens
+        to it again.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$ManifestPath,
+        [Parameter(Mandatory = $true)][string]$PackageRoot
+    )
+
+    $targetVersion = Get-AtlasPackageVersion -ManifestPath $ManifestPath
+    $request = Read-AtlasInstallRequest -PackageRoot $PackageRoot
+    $groups = @(Get-AtlasPackageChoice -ManifestPath $ManifestPath)
+    $mode = Resolve-AtlasInstallMode -TargetVersion $targetVersion
+    # Refuses -ChooseAgain on a Rebase before anything changes.
+    $updatePath = Resolve-AtlasInstallChoices -TargetVersion $targetVersion -Mode $mode -Requested $request.Choices
+    Write-AtlasSessionLog "Install mode: $($updatePath.Summary)."
+    if ($updatePath.Note) { Write-AtlasSessionLog $updatePath.Note }
+    # Held to the options it began with, as Set-AtlasInstallOptions holds it.
+    $held = $null -ne $updatePath.ResumedOptions
+    $optionCheck = @{ Options = @($request.Options); Groups = $groups }
+    if ($held) {
+        $optionCheck.ResumedOptions = @($updatePath.ResumedOptions)
+    }
+    $options = Assert-AtlasInstallOptionSet @optionCheck
+
+    if (-not $held -and $mode -cin @('Upgrade', 'Reapply', 'Rebase')) {
+        # Before anything reads the records, and once: a run whose steps began
+        # has already rewritten them, and its legacy choices step has since
+        # removed the launcher paths these rules go by.
+        foreach ($line in @(Repair-AtlasToolboxRecord -InstalledVersion (Get-AtlasInstalledVersion))) {
+            Write-AtlasSessionLog $line
+        }
+    }
+    # A Rebase is never read from the PC: a rebuilt Windows no longer shows its
+    # choices, so the record of the move keeps them.
+    if (-not $held -and $updatePath.Choices -ceq 'Keep' -and $mode -cin @('Upgrade', 'Reapply')) {
+        $kept = Resolve-AtlasKeptOption -Requested $options
+        foreach ($warning in @($kept.Warnings)) { Write-AtlasSessionLog "WARNING: $warning" }
+        foreach ($change in @($kept.Changes)) { Write-AtlasSessionLog ([string]$change.Message) }
+        $options = Assert-AtlasInstallOptionSet -Options @($kept.Options) -Groups $groups
+    }
+
+    $null = Start-AtlasInstallState -TargetVersion $targetVersion -Mode $mode -Choices $updatePath.Choices `
+        -CaptureNonce ([guid]::NewGuid().ToString('D'))
+    Set-AtlasInstallOptions -Options $options | Out-Null
+    return "Atlas install state ready for $mode of $targetVersion with options: $($options -join ', ')."
+}
+
+function Find-AtlasInstallUserMarker {
+    <#
+    .SYNOPSIS
+        Returns the Sid and SessionId of the one loaded user hive whose
+        Software\AtlasOS\InstallSession marker carries this capture's nonce. The
+        front door publishes that marker from the installing user's own session.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Nonce,
+
+        [Microsoft.Win32.RegistryKey]$UsersRoot = [Microsoft.Win32.Registry]::Users
+    )
+
+    $markers = New-Object 'Collections.Generic.List[object]'
+    # Work or school (Microsoft Entra ID) accounts load as S-1-12-1 hives. The
+    # install plan can't act for them, so a marker there is only named.
+    $entraHives = New-Object 'Collections.Generic.List[string]'
+    foreach ($hiveName in $UsersRoot.GetSubKeyNames()) {
+        $entra = $hiveName -match '^S-1-12-1-(?:\d+-){3}\d+$'
+        if (-not $entra -and $hiveName -notmatch '^S-1-5-21-(?:\d+-){3}\d+$') {
+            continue
+        }
+        $marker = $UsersRoot.OpenSubKey(
+            "$hiveName\Software\AtlasOS\InstallSession",
+            $false
+        )
+        if ($null -eq $marker) {
+            continue
+        }
+        try {
+            $markerNonce = [string]$marker.GetValue('Nonce', $null)
+            if ($markerNonce -cne $Nonce) {
+                continue
+            }
+            if ($entra) {
+                $entraHives.Add($hiveName)
+                continue
+            }
+            $claimedSid = [string]$marker.GetValue('UserSid', $null)
+            $sessionId = $marker.GetValue('SessionId', $null)
+            if ($claimedSid -cne $hiveName -or
+                $sessionId -isnot [int] -or
+                [int]$sessionId -lt 1) {
+                throw "Install-user marker in '$hiveName' is invalid."
+            }
+            $markers.Add([pscustomobject]@{
+                    Sid       = $hiveName
+                    SessionId = [int]$sessionId
+                })
+        }
+        finally {
+            $marker.Dispose()
+        }
+    }
+
+    if ($markers.Count -eq 0 -and $entraHives.Count -gt 0) {
+        throw ("The install was started from a work or school (Microsoft Entra ID) account ($($entraHives -join ', ')). " +
+            "Atlas can't be installed from such an account; sign in with a local account or a Microsoft account, then try again.")
+    }
+    if ($markers.Count -ne 1) {
+        throw "Expected one current-user install marker for nonce '$Nonce'; found $($markers.Count)."
+    }
+    return $markers[0]
+}
+
+function Invoke-AtlasInstallCommit {
+    <#
+    .SYNOPSIS
+        Binds the installing user the front door published, commits the captured
+        install state, then removes that user's marker. A marker that can't be
+        removed only warns, because the state is already committed.
+    #>
+    param([Microsoft.Win32.RegistryKey]$UsersRoot = [Microsoft.Win32.Registry]::Users)
+
+    $state = Get-AtlasInstallState
+    if ($null -eq $state) {
+        throw 'No active Atlas install state exists to commit.'
+    }
+    $installUser = Find-AtlasInstallUserMarker -Nonce ([string]$state.captureNonce) -UsersRoot $UsersRoot
+    Set-AtlasInstallUser -UserSid $installUser.Sid -UserSessionId $installUser.SessionId | Out-Null
+    Commit-AtlasInstallState | Out-Null
+
+    try {
+        $sidRoot = $UsersRoot.OpenSubKey($installUser.Sid, $true)
+        if ($null -eq $sidRoot) {
+            throw "User registry hive '$($installUser.Sid)' is unavailable."
+        }
+        try {
+            $sidRoot.DeleteSubKeyTree('Software\AtlasOS\InstallSession', $false)
+        }
+        finally {
+            $sidRoot.Dispose()
+        }
+    }
+    catch {
+        Write-Warning -WarningAction Continue -Message (
+            'Atlas install state was committed, but its current-user ' +
+            "marker could not be removed: $($_.Exception.Message)"
+        )
+    }
+    Write-Output 'Atlas install state committed.'
+}
+
+try {
+    # The native TrustedInstaller child has no inherited console or standard handles.
+    # Persist failures before bootstrap/module loading, then let the broker relay them.
+    [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($sessionLog))
+    [IO.File]::WriteAllText($sessionLog, '', [Text.UTF8Encoding]::new($false))
+    Write-AtlasSessionLog "Starting install phase $Phase."
+    if (-not [IO.File]::Exists($bootstrap)) {
+        throw "The PowerShell bootstrap is missing at '$bootstrap'."
+    }
+    . $bootstrap
+    Import-Module -Name (Join-Path -Path $scriptsRoot -ChildPath 'Modules\Atlas.Core\Atlas.Core.psd1') -Force -ErrorAction Stop
+    Import-Module -Name (Join-Path -Path $scriptsRoot -ChildPath 'Modules\Atlas.InstallState\Atlas.InstallState.psd1') -Force -DisableNameChecking -ErrorAction Stop
+    Assert-AtlasPrivilege -TrustedInstaller
+
+    $packageRoot = [IO.Path]::GetFullPath([IO.Path]::Combine($scriptsRoot, '..', '..'))
+    $manifestPath = [IO.Path]::Combine($packageRoot, '..', 'atlas.json')
+
+    switch ($Phase) {
+        'Capture' {
+            $message = Invoke-AtlasInstallCapture -ManifestPath $manifestPath -PackageRoot $packageRoot
+            Write-AtlasSessionLog $message
+            Write-Output $message
+        }
+        'Run' {
+            # Before this run appends to the shared logs, so one moved aside ends
+            # with a whole line.
+            try { Invoke-AtlasInstallLogRetention }
+            catch { Write-AtlasSessionLog "WARNING: The install logs couldn't be tidied: $($_.Exception.Message)" }
+            Invoke-AtlasInstallCommit
+            $installScript = Join-Path -Path $scriptsRoot -ChildPath 'Entry\Invoke-AtlasInstall.ps1'
+            & $installScript -Run *>&1 | ForEach-Object {
+                Write-AtlasSessionLog ([string]$_)
+                Write-Output $_
+            }
+            $planExitCode = $LASTEXITCODE
+            Write-AtlasSessionLog "Install plan exited with code $planExitCode."
+            Save-AtlasSessionLog
+            exit $planExitCode
+        }
+    }
+    Save-AtlasSessionLog
+    exit 0
+}
+catch {
+    $failure = $_
+    $exitCode = if ($failure.Exception.Message -like '[[]privilege[]]*') { 2 } else { 1 }
+    try {
+        Write-AtlasSessionLog "ERROR: $($failure.Exception.ToString())`r`n$($failure.InvocationInfo.PositionMessage)`r`n$($failure.ScriptStackTrace)"
+    }
+    catch { [Console]::Error.WriteLine("Could not persist install failure: $($_.Exception.Message)") }
+    [Console]::Error.WriteLine($failure.Exception.Message)
+    Save-AtlasSessionLog
+    exit $exitCode
+}

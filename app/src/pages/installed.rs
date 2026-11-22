@@ -16,7 +16,7 @@ use super::{
 };
 use crate::i18n::{describe, fmt};
 use crate::model::{AppModel, ScreenKind};
-use crate::services::playbook::Manifest;
+use crate::services::package::Manifest;
 use crate::services::system::links;
 use crate::services::update_access::BlockerKind;
 use crate::t;
@@ -294,9 +294,9 @@ fn defender_removed_shown(state: &AppModel) -> bool {
 /// the PC has, and says in its log why that isn't what was asked.
 fn choices_not_applied(manifest: &Manifest, not_applied: &[String]) -> Vec<ScreenKind> {
     let mut kinds = Vec::new();
-    for page in &manifest.pages {
-        let kind = ScreenKind::of_page(page);
-        if page.options.iter().any(|option| not_applied.contains(&option.name)) && !kinds.contains(&kind) {
+    for page in &manifest.choices {
+        let kind = ScreenKind::of_choice(page);
+        if page.options.iter().any(|option| not_applied.contains(&option.id)) && !kinds.contains(&kind) {
             kinds.push(kind);
         }
     }
@@ -396,7 +396,7 @@ mod tests {
                     exit_path: log.with_extension("exit"),
                     log_path: log,
                     request: InstallRequest {
-                        playbook_dir: temp.path().to_path_buf(),
+                        package_dir: temp.path().to_path_buf(),
                         options: names(&["defender-enable"]),
                         restart: true,
                         windows_security_confirmed: false,

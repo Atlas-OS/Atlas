@@ -10,7 +10,7 @@ use windows::Win32::System::UpdateAgent::{IUpdateSession, UpdateSession, utDrive
 use windows::core::BSTR;
 use windows_registry::LOCAL_MACHINE;
 
-use super::bounded::Bounded;
+use super::deadline::Deadline;
 use super::wmi::{ComApartment, wmi_query, wmi_strings};
 use crate::services::preparation;
 use crate::services::registry::{key_present, pending_file_renames};
@@ -24,18 +24,19 @@ const UPDATE_SEARCH_DEADLINE: Duration = Duration::from_secs(60);
 const ANTIVIRUS_DEADLINE: Duration = Duration::from_secs(30);
 const ACTIVATION_DEADLINE: Duration = Duration::from_secs(50);
 
-static UPDATE_SEARCH: Bounded<Vec<String>> = Bounded::new("the Windows Update search");
-static ANTIVIRUS_QUERY: Bounded<Vec<Vec<Option<String>>>> = Bounded::new("the Security Center query");
-static ACTIVATION_QUERY: Bounded<Vec<String>> = Bounded::new("the licensing query");
+static UPDATE_SEARCH: Deadline<Vec<String>> = Deadline::new("the Windows Update search");
+static ANTIVIRUS_QUERY: Deadline<Vec<Vec<Option<String>>>> = Deadline::new("the Security Center query");
+static ACTIVATION_QUERY: Deadline<Vec<String>> = Deadline::new("the licensing query");
 
 /// The Windows Update category of feature upgrades: another Windows release,
 /// not a pending update.
 const UPGRADES_CATEGORY: &str = "3689bdc8-b205-4af4-8d4a-a63924c5e9d5";
 
 /// Titles of updates that are available or downloaded but not installed.
-/// The search is the one AME Wizard runs, so the app and AME Wizard agree
-/// on whether a PC is ready. It reads the local cache only, so Microsoft's
-/// servers are not contacted. Runs on a fresh thread in COM's
+/// The search uses the criteria of the Atlas package's `Update-Windows.ps1`,
+/// whose verification the front door runs before installing, so Get ready
+/// and the install agree on whether a PC is ready. It reads the local cache
+/// only, so Microsoft's servers aren't contacted. Runs on a fresh thread in COM's
 /// multithreaded apartment, whatever the caller's thread uses: in a
 /// single-threaded apartment without a message pump, slow providers return
 /// nothing.

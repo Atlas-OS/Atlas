@@ -1,6 +1,24 @@
-# Stages files for the app's elevated workers under Program Files\Atlas Setup
-# Recovery, which only SYSTEM and Administrators can change, so a process running
-# as the same user cannot swap a script or request before it is used.
+<#
+.SYNOPSIS
+    Stages files for Atlas Manager's elevated workers under Program Files\Atlas Setup
+    Recovery.
+.DESCRIPTION
+    Only SYSTEM and Administrators can change that folder, so a process running as the
+    same user can't swap a script or request before an elevated worker uses it.
+
+    Atlas Manager runs this script elevated, as the text of -Command, and writes one
+    JSON request to its standard input. The request's operation is one of:
+      preparation           stage the Windows and Store preparation job
+      media                 stage the files of an ISO or USB job
+      validate-preparation  check that a preparation job still has its protected files
+      executable            copy Atlas Manager itself, by content hash, for recovery
+    The answer is the staged path, as JSON on standard output.
+.PARAMETER FunctionsOnly
+    Defines the functions without reading a request; for tests and other scripts.
+.NOTES
+    Exit codes: 0 staged, 1 failed (the error is on standard error), 2 Atlas Manager
+    was started from a linked folder, which moving it fixes.
+#>
 param([switch]$FunctionsOnly)
 # This elevated worker must never autoload a module from an inherited user path.
 $env:PSModulePath = [IO.Path]::Combine($PSHOME, 'Modules')
@@ -13,7 +31,8 @@ $ErrorActionPreference = 'Stop'
 # user can fix by moving it, unlike a link on the protected side.
 $AtlasSourceLinkedExitCode = 2
 
-# SYSTEM and Administrators: full control. Users: read and execute (0x1200a9).
+# SYSTEM and Administrators: full control. Users: read and execute (0x1200a9). The
+# owner is Administrators, and P protects the DACL from inheritance.
 function Get-AtlasRecoverySecurity {
     $security = New-Object Security.AccessControl.DirectorySecurity
     $security.SetSecurityDescriptorSddlForm('O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1200a9;;;BU)')

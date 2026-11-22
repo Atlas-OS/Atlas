@@ -52,12 +52,19 @@ impl Step {
     }
 }
 
+/// Where the install itself stands: not started, in its final checks,
+/// running, or ended with an outcome. `Preparing` and `Running` lock the flow
+/// (see [`RunState::is_locked`]); only [`Flow`]'s methods move between states.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RunState {
+    /// Nothing has started, or an unsuccessful result was left behind.
     Idle,
     /// Final checks are running again just before the installer starts.
     Preparing,
+    /// The installer has launched and the app is following its session.
     Running,
+    /// The installer ended. A success ends the flow; anything else allows a
+    /// retry from the install step.
     Finished(InstallOutcome),
 }
 
@@ -98,10 +105,19 @@ pub enum Refusal {
     WrongState,
 }
 
+/// Where the user is in the install flow and whether an install is
+/// preparing, running or finished. Change it only through its methods, which
+/// refuse what a running install forbids and leave the flow unchanged when
+/// they do; only tests set its fields directly.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Flow {
+    /// The install flow is open. It stays open after a success until the user
+    /// leaves it.
     pub active: bool,
+    /// The step showing. The flow moves forward one step at a time, and
+    /// [`Flow::go_to`] only goes back.
     pub step: Step,
+    /// The install attempt on the install step.
     pub run: RunState,
 }
 

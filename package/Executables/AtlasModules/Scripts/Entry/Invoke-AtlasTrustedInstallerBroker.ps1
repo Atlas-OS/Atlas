@@ -1,0 +1,163 @@
+<#
+.SYNOPSIS
+    Elevated broker for the closed set of Atlas TrustedInstaller operations.
+.DESCRIPTION
+    Accepts only typed Atlas identifiers. The native launcher maps them to fixed scripts
+    beneath the installed AtlasModules tree and returns the target's exit code.
+#>
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)]
+    [ValidateSet('Toggle', 'ResetServices', 'Install', 'CbsRetry')]
+    [string]$Operation,
+
+    [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$', Options = [Text.RegularExpressions.RegexOptions]::None)]
+    [string]$Name,
+
+    [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$', Options = [Text.RegularExpressions.RegexOptions]::None)]
+    [string]$State,
+
+    [switch]$JustContext,
+    [switch]$NoExplorerRestart,
+    [switch]$MachineOnly,
+
+    [ValidateSet('ToggleDefaults', 'WindowsBackup', 'AtlasBackup')]
+    [string]$RestoreSource,
+
+    [ValidateSet('Capture', 'Run')]
+    [string]$InstallPhase,
+
+    [string]$PackageRoot,
+
+    [ValidateRange(1, 86400)]
+    [int]$TimeoutSeconds = 900
+)
+
+$scriptsRoot = [IO.Path]::GetFullPath([IO.Path]::GetDirectoryName($PSScriptRoot))
+$bootstrap = [IO.Path]::Combine($scriptsRoot, 'Initialize-AtlasPowerShell.ps1')
+if (-not [IO.File]::Exists($bootstrap)) { throw "The PowerShell bootstrap is missing at '$bootstrap'." }
+. $bootstrap
+
+Set-StrictMode -Version 3.0
+$ErrorActionPreference = 'Stop'
+
+function Get-AtlasInstallFailureDetail {
+    param([string]$PackageRoot, [string]$Phase)
+    $sessionLog = Join-Path $PackageRoot "AtlasModules\Logs\install-$($Phase.ToLowerInvariant()).log"
+    $logFile = Get-Item -LiteralPath $sessionLog -Force -ErrorAction Stop
+    if (($logFile.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or $logFile.Length -gt 1048576) {
+        throw 'The install session log is a reparse point or exceeds 1 MiB.'
+    }
+    $detail = [IO.File]::ReadAllText($sessionLog)
+    if ($detail.Length -gt 16384) { $detail = $detail.Substring($detail.Length - 16384) }
+    return $detail
+}
+
+try {
+    $atlasModulesPath = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
+    $coreManifest = Join-Path $atlasModulesPath 'Scripts\Modules\Atlas.Core\Atlas.Core.psd1'
+    $coreModule = Import-Module -Name $coreManifest -Force -PassThru -ErrorAction Stop
+    Assert-AtlasPrivilege -Administrator
+
+    $parameters = @{
+        Operation           = $Operation
+        TimeoutMilliseconds = $TimeoutSeconds * 1000
+    }
+    switch ($Operation) {
+        'Toggle' {
+            if ([string]::IsNullOrWhiteSpace($Name) -or [string]::IsNullOrWhiteSpace($State)) {
+                throw 'Toggle requires typed -Name and -State values.'
+            }
+            if ($PSBoundParameters.ContainsKey('RestoreSource')) {
+                throw "Toggle does not accept '-RestoreSource'."
+            }
+
+            $togglesManifest = Join-Path $atlasModulesPath `
+                'Scripts\Modules\Atlas.Toggles\Atlas.Toggles.psd1'
+            Import-Module -Name $togglesManifest -Force -ErrorAction Stop
+            $definition = Get-AtlasToggleDefinition -Name $Name
+            if (-not $definition.Contains('Elevation') -or
+                [string]$definition.Elevation -cne 'TrustedInstaller') {
+                throw "Toggle '$Name' is not declared for TrustedInstaller elevation."
+            }
+            $matchingStates = @($definition.States.Keys | Where-Object { [string]$_ -ceq $State })
+            if ($matchingStates.Count -ne 1) {
+                throw "Toggle '$Name' does not declare exact state '$State'."
+            }
+
+            $parameters.Name = $Name
+            $parameters.State = $State
+            $parameters.Silent = $true
+            $parameters.JustContext = [bool]$JustContext
+            $parameters.NoExplorerRestart = [bool]$NoExplorerRestart
+            $parameters.MachineOnly = [bool]$MachineOnly
+        }
+        'ResetServices' {
+            if ([string]::IsNullOrWhiteSpace($RestoreSource)) {
+                throw 'ResetServices requires a typed -RestoreSource value.'
+            }
+            foreach ($parameterName in @('Name', 'State', 'JustContext', 'NoExplorerRestart', 'MachineOnly', 'InstallPhase', 'PackageRoot')) {
+                if ($PSBoundParameters.ContainsKey($parameterName)) {
+                    throw "ResetServices does not accept '-$parameterName'."
+                }
+            }
+            $parameters.RestoreSource = $RestoreSource
+        }
+        'Install' {
+            if ([string]::IsNullOrWhiteSpace($InstallPhase) -or [string]::IsNullOrWhiteSpace($PackageRoot)) {
+                throw 'Install requires typed -InstallPhase and -PackageRoot values.'
+            }
+            foreach ($parameterName in @('Name', 'State', 'JustContext', 'NoExplorerRestart', 'MachineOnly', 'RestoreSource')) {
+                if ($PSBoundParameters.ContainsKey($parameterName)) {
+                    throw "Install does not accept '-$parameterName'."
+                }
+            }
+            # The native launcher validates the staging root, its DACL and the session
+            # script again. This check only rejects obviously wrong input before then.
+            $stagingRoot = [IO.Path]::GetFullPath([IO.Path]::Combine([Environment]::GetFolderPath('Windows'), 'AtlasOS', 'Staging'))
+            $resolvedPackageRoot = [IO.Path]::GetFullPath($PackageRoot)
+            if (-not $resolvedPackageRoot.StartsWith($stagingRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+                throw "Install PackageRoot must be beneath the protected staging root '$stagingRoot'."
+            }
+            $parameters.InstallPhase = $InstallPhase
+            $parameters.PackageRoot = $resolvedPackageRoot
+        }
+        'CbsRetry' {
+            # The retry's packages come from its own state file, never from the caller.
+            foreach ($parameterName in @('Name', 'State', 'JustContext', 'NoExplorerRestart', 'MachineOnly', 'RestoreSource', 'InstallPhase', 'PackageRoot')) {
+                if ($PSBoundParameters.ContainsKey($parameterName)) {
+                    throw "CbsRetry does not accept '-$parameterName'."
+                }
+            }
+        }
+    }
+
+    # The native launcher is private to Atlas.Core. It runs in that module's session
+    # state once the request matches the broker's closed set of operations.
+    $result = & $coreModule {
+        param($RequestParameters)
+        Invoke-AtlasTrustedInstallerNativeOperation @RequestParameters
+    } $parameters
+    $signedExitCode = [BitConverter]::ToInt32(
+        [BitConverter]::GetBytes([uint32]$result.ExitCodeUInt32),
+        0
+    )
+    if ($signedExitCode -ne 0) {
+        if ($Operation -ceq 'Install') {
+            try {
+                [Console]::Error.WriteLine((Get-AtlasInstallFailureDetail -PackageRoot $resolvedPackageRoot -Phase $InstallPhase))
+            }
+            catch {
+                [Console]::Error.WriteLine("Install $InstallPhase error details unavailable: $($_.Exception.Message)")
+            }
+        }
+        [Console]::Error.WriteLine(
+            "TrustedInstaller $Operation child exited with code $($result.ExitCodeUInt32)."
+        )
+    }
+    exit $signedExitCode
+}
+catch {
+    [Console]::Error.WriteLine($_.Exception.Message)
+    exit 1
+}

@@ -4,7 +4,7 @@
 // the LICENSE-MIT file), at your option.
 
 use accesskit::{ActionHandler, ActionRequest, Point};
-use accesskit_consumer::{NodeId, Tree};
+use accesskit_consumer::{FullNodeId, Tree};
 use hashbrown::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, atomic::AtomicBool};
@@ -35,7 +35,7 @@ pub(crate) struct Context {
     pub(crate) tree: RwLock<Tree>,
     pub(crate) action_handler: Arc<dyn ActionHandlerNoMut + Send + Sync>,
     pub(crate) is_placeholder: AtomicBool,
-    platform_nodes: Mutex<HashMap<NodeId, ComObject<PlatformNode>>>,
+    platform_nodes: Mutex<HashMap<FullNodeId, ComObject<PlatformNode>>>,
 }
 
 impl Debug for Context {
@@ -79,7 +79,7 @@ impl Context {
 
     pub(crate) fn get_or_create_platform_node(
         self: &Arc<Self>,
-        id: NodeId,
+        id: FullNodeId,
     ) -> ComObject<PlatformNode> {
         let mut platform_nodes = self.platform_nodes.lock().unwrap();
         if let Some(result) = platform_nodes.get(&id) {
@@ -91,7 +91,7 @@ impl Context {
         result
     }
 
-    pub(crate) fn remove_platform_node(&self, id: NodeId) {
+    pub(crate) fn remove_platform_node(&self, id: FullNodeId) {
         let mut platform_nodes = self.platform_nodes.lock().unwrap();
         platform_nodes.remove(&id);
     }

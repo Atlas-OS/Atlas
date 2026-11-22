@@ -33,6 +33,9 @@ pub enum ReadyStatus {
     Blocked,
     /// There are no installation files yet.
     NoPackage,
+    /// There are no installation files, and the package tried needs a newer
+    /// Atlas Manager.
+    ManagerOutdated,
     /// Only Windows and Store updates are left, and Check and install updates
     /// hasn't run yet.
     Updates,
@@ -136,7 +139,7 @@ impl AppModel {
     pub fn ready_to_continue(&self) -> bool {
         self.install_block().is_none()
             && self.preparation.ready()
-            && self.playbook.is_some()
+            && self.package.is_some()
             && !self.acquisition.is_busy()
             && self.blocking_checks_complete()
             && !self.checks_blocking()
@@ -166,7 +169,9 @@ impl AppModel {
             ReadyStatus::Busy
         } else if self.checks_blocking() {
             ReadyStatus::Blocked
-        } else if self.playbook.is_none() {
+        } else if self.package.is_none() && self.package_needs_newer_manager() {
+            ReadyStatus::ManagerOutdated
+        } else if self.package.is_none() {
             ReadyStatus::NoPackage
         } else if !self.preparation.ready() {
             match self.preparation {
@@ -214,7 +219,8 @@ impl AppModel {
             Some(ReadyHelp::Eligibility)
         } else if self.checks_blocking() {
             Some(ReadyHelp::Checks)
-        } else if matches!(self.acquisition, Acquisition::Failed(_)) {
+        } else if matches!(self.acquisition, Acquisition::Failed(_)) && !self.package_needs_newer_manager() {
+            // A package for a newer Atlas Manager says what to download instead.
             Some(ReadyHelp::Package)
         } else if matches!(self.preparation, Preparation::Failed | Preparation::RestartPersists { .. }) {
             Some(ReadyHelp::Preparation)
@@ -362,7 +368,7 @@ impl AppModel {
     /// Runs every check again. The previous batch's tasks are dropped and
     /// their late results ignored; a provider still busy on a worker is
     /// joined by the new batch rather than duplicated (see
-    /// `requirements::bounded`).
+    /// `requirements::deadline`).
     pub fn run_checks(&mut self, cx: &mut Context<Self>) {
         self.refresh_atlas_state();
         if self.locked() {

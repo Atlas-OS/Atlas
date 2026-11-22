@@ -37,8 +37,8 @@ impl AppModel {
             preparation_ready: self.preparation.ready(),
             step: self.flow.step.name().to_owned(),
             options: self.effective_options(),
-            playbook_dir: self.playbook.as_ref().map(|p| p.dir.clone()),
-            package_archive: self.playbook.as_ref().and_then(|p| p.archive.clone()),
+            package_dir: self.package.as_ref().map(|p| p.dir.clone()),
+            package_archive: self.package.as_ref().and_then(|p| p.archive.clone()),
             option_screen: self.option_screen,
             session: self.own_session.clone(),
             flow: self.flow_id.clone(),
@@ -153,6 +153,7 @@ impl AppModel {
             theme,
             language,
             restart_after_install,
+            usage_analytics,
             draft: _,
             dismissed_preview_notices,
             protection_reminder_dismissed,
@@ -167,6 +168,7 @@ impl AppModel {
                 doc.theme = theme;
                 doc.language = language;
                 doc.restart_after_install = restart_after_install;
+                doc.usage_analytics = usage_analytics;
                 if drivers.is_some() {
                     doc.drivers = drivers;
                 }
@@ -355,7 +357,7 @@ pub fn draft_launched(draft: &InstallDraft, record: &SessionRecord) -> bool {
     let chose_again = |path: &str| UpdatePath::from_id(path) == Some(UpdatePath::ChooseAgain);
     draft.flow.is_none()
         && draft.step == Step::Install.name()
-        && draft.playbook_dir.as_deref() == Some(record.request.playbook_dir.as_path())
+        && draft.package_dir.as_deref() == Some(record.request.package_dir.as_path())
         && record.request.options.iter().all(|option| draft.options.contains(option))
         && draft.update_path.as_deref().is_none_or(|path| chose_again(path) == record.request.choose_again)
 }

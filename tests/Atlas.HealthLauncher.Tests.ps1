@@ -3,7 +3,7 @@ BeforeAll {
     $script:HealthToggleManifest = Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1'
     Import-Module $script:HealthToggleManifest -Force
     $script:HealthModule = Get-Module Atlas.Toggles
-    $script:HealthCompanion = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles\Troubleshooting\AtlasHealth.ps1'
+    $script:HealthCompanion = Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toggles\Troubleshooting\AtlasHealth.ps1'
     $script:HealthScripts = Join-Path $TestDrive 'Health scripts with spaces'
     New-Item (Join-Path $script:HealthScripts 'Entry') -ItemType Directory -Force | Out-Null
     $script:HealthEntry = Join-Path $script:HealthScripts 'Entry\Test-AtlasHealth.ps1'

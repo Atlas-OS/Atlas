@@ -6,7 +6,7 @@ use std::path::Path;
 use anyhow::Result;
 
 use super::{InstallRequest, NOT_STARTED_EXIT_CODE};
-use crate::services::{playbook, powershell};
+use crate::services::{package, powershell};
 
 /// Whether `name` has the shape the front door accepts for an option
 /// (`^[a-z0-9-]+$`). Option names are spliced into a PowerShell array
@@ -42,14 +42,14 @@ pub(crate) fn ps_quote(text: &str) -> String {
 
 /// A path as Windows PowerShell 5.1 accepts it, without the `\\?\` prefix.
 fn plain_path(path: &Path) -> String {
-    playbook::plain_path(path.to_path_buf()).to_string_lossy().into_owned()
+    package::plain_path(path.to_path_buf()).to_string_lossy().into_owned()
 }
 
 /// The call to the front door, as a PowerShell statement. Atlas restarts
 /// Windows itself, so the front door is never asked to.
 fn script_call(request: &InstallRequest) -> Result<String> {
     validate_options(&request.options)?;
-    let script = playbook::front_door(&request.playbook_dir);
+    let script = package::front_door(&request.package_dir);
     let options = request.options.iter().map(|o| ps_quote(o)).collect::<Vec<_>>().join(",");
     let confirmed = if request.windows_security_confirmed { " -WindowsSecurityConfirmed" } else { "" };
     let choose_again = if request.choose_again { " -ChooseAgain" } else { "" };
@@ -113,7 +113,7 @@ mod tests {
     #[test]
     fn the_command_passes_a_real_array_and_quotes_paths() {
         let request = InstallRequest {
-            playbook_dir: PathBuf::from(r"C:\Users\O'Brien\AtlasOS\App\Playbooks\0.6.0"),
+            package_dir: PathBuf::from(r"C:\Users\O'Brien\AtlasOS\App\Packages\0.6.0"),
             options: vec!["defender-enable".into(), "mitigations-default".into()],
             restart: true,
             windows_security_confirmed: false,
@@ -122,7 +122,7 @@ mod tests {
         // What is shown is what the child runs, and Atlas owns the restart.
         assert_eq!(
             command_line(&request).unwrap(),
-            r#"powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "& 'C:\Users\O''Brien\AtlasOS\App\Playbooks\0.6.0\Executables\AtlasModules\Scripts\Entry\Install-Atlas.ps1' -Option @('defender-enable','mitigations-default') -Unattended""#
+            r#"powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "& 'C:\Users\O''Brien\AtlasOS\App\Packages\0.6.0\Executables\AtlasModules\Scripts\Entry\Install-Atlas.ps1' -Option @('defender-enable','mitigations-default') -Unattended""#
         );
         // Only a confirmation the user gave reaches the front door.
         let confirmed = InstallRequest { windows_security_confirmed: true, ..request.clone() };
@@ -159,7 +159,7 @@ mod tests {
     fn the_front_door_declares_the_parameters_every_launch_passes() {
         let block = crate::services::test_support::front_door_parts().1;
         let request = InstallRequest {
-            playbook_dir: PathBuf::from(r"C:\Atlas"),
+            package_dir: PathBuf::from(r"C:\Atlas"),
             options: vec!["defender-enable".into()],
             restart: true,
             windows_security_confirmed: true,

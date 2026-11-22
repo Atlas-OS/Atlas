@@ -15,7 +15,7 @@ use crate::services::installer::{InstallOutcome, InstallRequest};
 use crate::services::session::{self, SessionRecord};
 use crate::services::settings::{self, InstallDraft, ThemePreference};
 use crate::services::system;
-use crate::services::test_support::apbx;
+use crate::services::test_support::package;
 
 #[test]
 fn a_draft_is_the_launching_one_by_id_or_by_the_old_shape() {
@@ -27,7 +27,7 @@ fn a_draft_is_the_launching_one_by_id_or_by_the_old_shape() {
         log_path: PathBuf::new(),
         exit_path: PathBuf::new(),
         request: InstallRequest {
-            playbook_dir: PathBuf::from(r"C:\P\0.6.0_abc"),
+            package_dir: PathBuf::from(r"C:\P\0.6.0_abc"),
             options: vec!["defender-enable".into()],
             restart: false,
             windows_security_confirmed: false,
@@ -40,12 +40,12 @@ fn a_draft_is_the_launching_one_by_id_or_by_the_old_shape() {
         InstallDraft { session: Some("s2".into()), step: "install".into(), ..InstallDraft::default() };
     let old_shape = InstallDraft {
         step: "install".into(),
-        playbook_dir: Some(PathBuf::from(r"C:\P\0.6.0_abc")),
+        package_dir: Some(PathBuf::from(r"C:\P\0.6.0_abc")),
         options: vec!["defender-enable".into(), "extras".into()],
         ..InstallDraft::default()
     };
     let old_other_package =
-        InstallDraft { playbook_dir: Some(PathBuf::from(r"C:\P\0.6.0_def")), ..old_shape.clone() };
+        InstallDraft { package_dir: Some(PathBuf::from(r"C:\P\0.6.0_def")), ..old_shape.clone() };
     let old_earlier_step = InstallDraft { step: "options".into(), ..old_shape.clone() };
     let old_other_choices = InstallDraft { options: vec!["defender-disable".into()], ..old_shape.clone() };
     // A current flow that has an identity but has not launched is never the
@@ -88,7 +88,7 @@ fn a_draft_from_before_drafts_named_their_install_is_finished_with_it() {
         let old_shape = InstallDraft {
             step: "install".into(),
             options: vec!["defender-enable".into()],
-            playbook_dir: Some(record.request.playbook_dir.clone()),
+            package_dir: Some(record.request.package_dir.clone()),
             ..InstallDraft::default()
         };
         save_draft(&env, old_shape.clone());
@@ -106,10 +106,7 @@ fn a_draft_from_before_drafts_named_their_install_is_finished_with_it() {
         let (temp, _, env) = fixture("model-old-draft-same-boot");
         let (package, _) = marking_package(&temp, 0);
         let record = completed_session(&env, &package, false);
-        save_draft(
-            &env,
-            InstallDraft { playbook_dir: Some(record.request.playbook_dir.clone()), ..old_shape },
-        );
+        save_draft(&env, InstallDraft { package_dir: Some(record.request.package_dir.clone()), ..old_shape });
         let model = new_model(&mut cx, env.clone());
         wait_for(&cx, &model, "the recovered success", |m| matches!(m.flow.run, RunState::Finished(_))).await;
         assert_eq!(read(&cx, &model, |m| m.flow.run), RunState::Finished(InstallOutcome::Succeeded));
@@ -136,7 +133,8 @@ fn the_draft_names_its_install_before_the_front_door_runs() {
             seen = ps_literal(&seen),
             gate = ps_literal(&gate)
         );
-        let package = apbx::write(&temp.path().join("package.apbx"), &apbx::with_front_door("0.6.0", &body));
+        let package =
+            package::write(&temp.path().join("package.atlaspkg"), &package::with_front_door("0.6.0", &body));
         let model = new_model(&mut cx, env.clone());
         walk_to_install(&mut cx, &model, &package).await;
         act(&mut cx, &model, |m, cx| m.next_step(cx));
@@ -171,7 +169,7 @@ fn a_current_install_step_draft_for_the_same_package_survives_another_flows_succ
             let second_flow = InstallDraft {
                 step: "install".into(),
                 options: vec!["defender-disable".into()],
-                playbook_dir: Some(record.request.playbook_dir.clone()),
+                package_dir: Some(record.request.package_dir.clone()),
                 flow: Some("second-window".into()),
                 ..InstallDraft::default()
             };
@@ -323,7 +321,7 @@ fn a_completed_record_outlives_a_failed_draft_cleanup() {
             let launching = InstallDraft {
                 step: "install".into(),
                 options: vec!["defender-enable".into()],
-                playbook_dir: Some(record.request.playbook_dir.clone()),
+                package_dir: Some(record.request.package_dir.clone()),
                 session: Some(record.id.clone()),
                 flow: Some("launching-flow".into()),
                 ..InstallDraft::default()

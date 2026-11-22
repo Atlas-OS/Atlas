@@ -1,0 +1,3719 @@
+{
+  "schemaVersion": 1,
+  "toggles": [
+    {
+      "name": "MicrosoftStore",
+      "group": "Advanced",
+      "description": "Removes Microsoft Store for all users or restores it for your account, downloading its package from Microsoft when needed.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": "Disable removes Microsoft Store for every user on this PC. Enable restores it for your account only and may need an internet connection.",
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "6. Advanced Configuration\\Microsoft Store\\Disable Microsoft Store.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Remove-AtlasMicrosoftStore",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "6. Advanced Configuration\\Microsoft Store\\Enable Microsoft Store (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": "Register-AtlasMicrosoftStore",
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "ProcessExplorer",
+      "group": "Advanced",
+      "description": "Replaces Task Manager with Sysinternals Process Explorer, or restores Task Manager.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "6. Advanced Configuration\\Process Explorer\\Install Process Explorer.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Install-AtlasProcessExplorer",
+            "userAction": "Set-AtlasProcessExplorerUserPreference",
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "6. Advanced Configuration\\Process Explorer\\Uninstall Process Explorer.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Uninstall-AtlasProcessExplorer",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "ToggleWindowsUpdates",
+      "group": "Advanced",
+      "description": "Turns Windows Update on or off: its services, scheduled tasks, policies and Settings page.",
+      "elevation": "TrustedInstaller",
+      "noStateRecord": false,
+      "menu": true,
+      "launcher": "6. Advanced Configuration\\Toggle Windows Updates\\Toggle Windows Updates.cmd",
+      "warning": "Disabling Windows Update also stops Microsoft Store and the Xbox app installing or updating apps and games. Enable usually turns updates back on, but it can fail. To stop updates for a while, use Pause Windows Updates in the General Configuration folder instead.",
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": null,
+          "reboot": "Prompt",
+          "menuLabel": "Disable Windows Updates",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Disable-AtlasWindowsUpdates",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": null,
+          "reboot": "Prompt",
+          "menuLabel": "Enable Windows Updates",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Enable-AtlasWindowsUpdates",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "AdvancedBootOptions",
+      "group": "Boot",
+      "description": "Shows the advanced boot options menu every time the PC starts.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": true,
+      "launcher": "6. Advanced Configuration\\Boot Configuration\\Behavior\\Always Go to Advanced Boot Options.cmd",
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": null,
+          "reboot": "Recommend",
+          "menuLabel": "Disable always going to the advanced boot options (default)",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Disable-AtlasAdvancedBootOptions",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": null,
+          "reboot": "Recommend",
+          "menuLabel": "Enable always going to the advanced boot options",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Enable-AtlasAdvancedBootOptions",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "AutomaticRepair",
+      "group": "Boot",
+      "description": "Turns Automatic Repair on or off, which starts Windows recovery after failed starts.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": true,
+      "launcher": "6. Advanced Configuration\\Boot Configuration\\Behavior\\Automatic Repair.cmd",
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": null,
+          "reboot": "Recommend",
+          "menuLabel": "Disable automatic repair",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Disable-AtlasAutomaticRepair",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": null,
+          "reboot": "Recommend",
+          "menuLabel": "Enable automatic repair (default)",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Enable-AtlasAutomaticRepair",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "BootLogo",
+      "group": "Boot",
+      "description": "Shows or hides the Windows logo while the PC starts.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": true,
+      "launcher": "6. Advanced Configuration\\Boot Configuration\\Appearance\\Boot Logo.cmd",
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": null,
+          "reboot": "Recommend",
+          "menuLabel": "Disable the boot logo",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Disable-AtlasBootLogo",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": null,
+          "reboot": "Recommend",
+          "menuLabel": "Enable the boot logo (default)",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Enable-AtlasBootLogo",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "HighestMode",
+      "group": "Boot",
+      "description": "Makes boot applications use the highest graphics mode the display supports.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": true,
+      "launcher": "6. Advanced Configuration\\Boot Configuration\\Behavior\\Highest Mode.cmd",
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": null,
+          "reboot": "Recommend",
+          "menuLabel": "Disable (default)",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Disable-AtlasHighestMode",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": null,
+          "reboot": "Recommend",
+          "menuLabel": "Enable",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Enable-AtlasHighestMode",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "KernelParameters",
+      "group": "Boot",
+      "description": "Lets you edit kernel boot parameters from the boot menu at startup.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": true,
+      "launcher": "6. Advanced Configuration\\Boot Configuration\\Behavior\\Editing Kernel Parameters on Startup.cmd",
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": null,
+          "reboot": "Recommend",
+          "menuLabel": "Disable editing of kernel parameters on startup (default)",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Disable-AtlasKernelParameters",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": null,
+          "reboot": "Recommend",
+          "menuLabel": "Enable editing of kernel parameters on startup",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Enable-AtlasKernelParameters",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "NewBootMenu",
+      "group": "Boot",
+      "description": "Chooses the graphical boot menu or the legacy text boot menu, which appears before Windows starts loading.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": true,
+      "launcher": "6. Advanced Configuration\\Boot Configuration\\Appearance\\New Boot Menu.cmd",
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": null,
+          "reboot": "Recommend",
+          "menuLabel": "Disable the new boot menu (default)",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Disable-AtlasNewBootMenu",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": null,
+          "reboot": "Recommend",
+          "menuLabel": "Enable the new boot menu",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Enable-AtlasNewBootMenu",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "SpinningAnimations",
+      "group": "Boot",
+      "description": "Shows or hides the spinning animation while Windows starts.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": true,
+      "launcher": "6. Advanced Configuration\\Boot Configuration\\Appearance\\Spinning Animation.cmd",
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": null,
+          "reboot": "Recommend",
+          "menuLabel": "Disable the spinning animation",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Disable-AtlasSpinningAnimations",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": null,
+          "reboot": "Recommend",
+          "menuLabel": "Enable the spinning animation (default)",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Enable-AtlasSpinningAnimations",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "ViewCurrentValues",
+      "group": "Boot",
+      "description": "Shows the current boot configuration from `bcdedit /enum {current}`.",
+      "elevation": "Admin",
+      "noStateRecord": true,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "View",
+          "stateValue": null,
+          "launcher": "6. Advanced Configuration\\Boot Configuration\\View Current Values.cmd",
+          "reboot": "None",
+          "toolboxLauncher": "Scripts\\viewBootValues.cmd",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Show-AtlasBootValues",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "AppStoreArchiving",
+      "group": "General",
+      "description": "Turns automatic archiving of rarely used Microsoft Store apps on or off.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\Store App Archiving\\Disable Store App Archiving (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\Store App Archiving\\Enable Store App Archiving.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "AutomaticUpdates",
+      "group": "General",
+      "description": "Turns automatic Windows updates on or off through the AUOptions Windows Update policy.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\Automatic Updates\\Disable Automatic Updates (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\Automatic Updates\\Enable Automatic Updates.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "BackgroundApps",
+      "group": "General",
+      "description": "Lets Store apps run in the background for your account, or stops them.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\Background Apps\\Disable Background Apps (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 2,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\Background Apps\\Enable Background Apps.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 2,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "ClickToDo",
+      "group": "General",
+      "description": "Turns Click To Do on or off through the DisableClickToDo Windows AI policy.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\AI Features\\Click To Do\\Disable Click To Do (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\AI Features\\Click To Do\\Enable Click To Do.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "Copilot",
+      "group": "General",
+      "description": "Turns Microsoft Copilot on or off: its taskbar button, app and policy. Copilot needs Microsoft Edge, and Enable installs the Copilot app from Microsoft Store through WinGet. Both states restart File Explorer so the taskbar updates.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\AI Features\\Microsoft Copilot\\Disable Microsoft Copilot (default).cmd",
+          "reboot": "RestartExplorer",
+          "work": {
+            "registry": 2,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Remove-AtlasCopilotApp",
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\AI Features\\Microsoft Copilot\\Enable Microsoft Copilot.cmd",
+          "reboot": "RestartExplorer",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Enable-AtlasCopilotMachine",
+            "userAction": "Enable-AtlasCopilotUser",
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "CpuIdle",
+      "group": "General",
+      "description": "Turns processor idle states on or off through the processor idle disable power setting. Disable Idle sets it to 1 and Enable Idle sets it to 0. On processors with Hyper-Threading or SMT, Atlas refuses Disable, and updates skip an earlier Disable record without changing the power setting.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\CPU Idle\\Disable Idle.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Disable-AtlasCpuIdle",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\CPU Idle\\Enable Idle (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Enable-AtlasCpuIdle",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "CpuIdleContextMenu",
+      "group": "General",
+      "description": "Adds or removes the CPU Idle entries in the desktop context menu, which run the CPU Idle launchers.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\CPU Idle\\Desktop Context Menu\\Add Idle Toggle in Desktop Context Menu.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 12,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\CPU Idle\\Desktop Context Menu\\Remove Idle Toggle in Desktop Context Menu (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "DeliveryOptimisation",
+      "group": "General",
+      "description": "Turns Delivery Optimization peer-to-peer downloads on or off through the DODownloadMode policy.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\Delivery Optimization\\Disable Delivery Optimization (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\Delivery Optimization\\Enable Delivery Optimization.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "FileSharing",
+      "group": "General",
+      "description": "Turns file sharing on or off: network discovery, SMB and the NetBIOS bindings. Enable can also add Network to the File Explorer navigation pane.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\File Sharing\\Disable File Sharing (default).cmd",
+          "reboot": "Prompt",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasFileSharingMachineState",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\File Sharing\\Enable File Sharing.cmd",
+          "reboot": "Prompt",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasFileSharingMachineState",
+            "userAction": "Add-AtlasFileSharingNetworkNavigationPane",
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "FSOGameBar",
+      "group": "General",
+      "description": "Turns fullscreen optimisations (FSO), Game Bar and game recording on or off.",
+      "elevation": "TrustedInstaller",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": "Changes the Game Bar and Game DVR services and packages. While disabled, Game Bar shortcuts, game recording and fullscreen optimisations aren't available.",
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\FSO and Game Bar\\Disable FSO and Game Bar Support.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 15,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Remove-AtlasGameBarOverlayPackage",
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\FSO and Game Bar\\Enable FSO and Game Bar Support (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 15,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": "Install-AtlasGameBarPackage",
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "GiveAccessToMenu",
+      "group": "General",
+      "description": "Shows or hides the Give access to entries in the context menu.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\File Sharing\\Give Access To Menu\\Disable Give Access To Menu (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 6,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\File Sharing\\Give Access To Menu\\Enable Give Access To Menu.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 6,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "Hibernation",
+      "group": "General",
+      "description": "Turns hibernation on or off with `powercfg /hibernate`, along with the Hibernate option in the Start power menu.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\Hibernation\\Disable Hibernation (default).cmd",
+          "reboot": "Prompt",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasHibernationPowerState",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\Hibernation\\Enable Hibernation.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasHibernationPowerState",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "Indexing",
+      "group": "General",
+      "description": "Sets Windows Search indexing to off, minimal or full.",
+      "elevation": "TrustedInstaller",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\Search Indexing\\Disable Search Indexing.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Disable-AtlasSearchIndexing",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Minimal",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\Search Indexing\\Minimal Search Indexing (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasMinimalSearchIndexing",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 2,
+          "launcher": "3. General Configuration\\Search Indexing\\Enable Search Indexing.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Enable-AtlasSearchIndexing",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "Location",
+      "group": "General",
+      "description": "Turns location services (lfsvc and MapsBroker) and Find My Device on or off.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\Location\\Disable Location (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 2,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Disable-AtlasLocation",
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\Location\\Enable Location.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 2,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Enable-AtlasLocation",
+            "userAction": "Show-AtlasLocationSettings",
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "NetworkNavigationPane",
+      "group": "General",
+      "description": "Shows or hides Network in the File Explorer navigation pane.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\File Sharing\\Network Navigation Pane\\Disable Network Navigation Pane (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\File Sharing\\Network Navigation Pane\\Enable Network Navigation Pane.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "PauseUpdates",
+      "group": "General",
+      "description": "Pauses or resumes Windows updates by setting the Windows Update pause dates. Enable pauses updates and Disable resumes them.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": "Changes Windows Update policies. While updates are paused, security and driver updates don't install until you unpause them.",
+      "states": [
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\Pause Updates\\Pause Windows Updates.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 13,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\Pause Updates\\Unpause Windows Updates.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 15,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "PhoneLink",
+      "group": "General",
+      "description": "Turns Mobile devices and Phone Link on or off: the CDPSvc service, cross-device resume and the Phone Link app. Enable then opens the Mobile devices page in Settings.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\Mobile Devices (Phone Link)\\Disable Mobile Device Settings (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 7,
+            "services": 1,
+            "scheduledTasks": 0,
+            "machineAction": "Disable-AtlasPhoneLinkMachine",
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\Mobile Devices (Phone Link)\\Enable Mobile Device Settings.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 3,
+            "services": 1,
+            "scheduledTasks": 0,
+            "machineAction": "Enable-AtlasPhoneLinkMachine",
+            "userAction": "Enable-AtlasPhoneLinkUser",
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "PowerSaving",
+      "group": "General",
+      "description": "Turns power saving on or off. Disable applies the Atlas power settings for when the PC is plugged in; Enable restores the earlier power plan, or Balanced when none was saved.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\Power-saving\\Disable Power-saving.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Invoke-AtlasPowerSavingToggle",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\Power-saving\\Default Power-saving (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Invoke-AtlasPowerSavingToggle",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "Recall",
+      "group": "General",
+      "description": "Turns Recall and Windows AI data analysis on or off through the DisableAIDataAnalysis policy.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\AI Features\\Recall\\Disable Recall Support (default).cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 2,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\AI Features\\Recall\\Enable Recall Support.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 2,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sleep",
+      "group": "General",
+      "description": "Turns sleep on or off in the current power plan. Disable also offers to turn off hibernation.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\Sleep\\Disable Sleep.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasSleepState",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\Sleep\\Enable Sleep (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasSleepState",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "SleepStudy",
+      "group": "General",
+      "description": "Turns the Sleep Study diagnostic logs and the Power Efficiency Diagnostics task on or off.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\Sleep Study\\Disable Sleep Study (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 1,
+            "machineAction": "Set-AtlasSleepStudyEventLogState",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\Sleep Study\\Enable Sleep Study.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 1,
+            "machineAction": "Set-AtlasSleepStudyEventLogState",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "SystemRestore",
+      "group": "General",
+      "description": "Turns System Restore on or off through its policy. Enable also turns on protection for the Windows drive, but doesn't create a restore point or protect other drives.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\System Restore\\Disable System Restore.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\System Restore\\Enable System Restore (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Enable-AtlasWindowsVolumeProtection",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimerResolution",
+      "group": "General",
+      "description": "Adds or removes an Atlas scheduled task that keeps the global timer resolution high.",
+      "elevation": "Admin",
+      "noStateRecord": true,
+      "menu": false,
+      "launcher": null,
+      "warning": "Changes the global timer request policy and an Atlas scheduled task. A forced high timer resolution can increase power use; any latency benefit depends on the workload.",
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": null,
+          "launcher": "3. General Configuration\\Timer Resolution\\Disable timer resolution (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Unregister-AtlasTimerResolutionTask",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": null,
+          "launcher": "3. General Configuration\\Timer Resolution\\Enable timer resolution.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Register-AtlasTimerResolutionTask",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "UpdateDrivers",
+      "group": "General",
+      "description": "Finds driver updates on Microsoft Update and installs the ones you choose.",
+      "elevation": "Admin",
+      "noStateRecord": true,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Run",
+          "stateValue": null,
+          "launcher": "2. Drivers\\Run Update Drivers.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Invoke-AtlasDriverUpdate",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "UpdateNotifications",
+      "group": "General",
+      "description": "Shows or hides Windows Update restart notifications.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\Update Notifications\\Disable Update Notifications.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 4,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\Update Notifications\\Enable Update Notifications (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 4,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "WebSearch",
+      "group": "General",
+      "description": "Turns web search and search highlights on or off. Enable installs the Bing search provider through WinGet and, when search indexing is off, offers to turn it on.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\Web Search (includes Search Highlights)\\Disable Web Search (default).cmd",
+          "reboot": "RestartExplorer",
+          "work": {
+            "registry": 13,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Disable-AtlasWebSearchMachine",
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\Web Search (includes Search Highlights)\\Enable Web Search.cmd",
+          "reboot": "RestartExplorer",
+          "work": {
+            "registry": 12,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Enable-AtlasWebSearchMachine",
+            "userAction": "Enable-AtlasWebSearchUser",
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "Widgets",
+      "group": "General",
+      "description": "Turns Widgets (News and Interests) on or off.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\Widgets (News and Interests)\\Disable Widgets (default).cmd",
+          "reboot": "RestartExplorer",
+          "work": {
+            "registry": 3,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\Widgets (News and Interests)\\Enable Widgets.cmd",
+          "reboot": "RestartExplorer",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Enable-AtlasWidgetsMachine",
+            "userAction": "Install-AtlasWidgetsUser",
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "WindowsSpotlight",
+      "group": "General",
+      "description": "Turns Windows Spotlight on or off: lock screen images, tips, suggestions and Spotlight content.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\Windows Spotlight\\Disable Windows Spotlight (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 12,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\Windows Spotlight\\Enable Windows Spotlight.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 12,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "Workplace",
+      "group": "General",
+      "description": "Shows or hides the Access work or school page in Settings.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": "Hides or shows the Access work or school page in Settings. While it's hidden, you can't join this PC to a work or school account from Settings.",
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\Workplace\\Disable Workplace.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Hide-AtlasWorkplaceSettingsPage",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\Workplace\\Enable Workplace.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Show-AtlasWorkplaceSettingsPage",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "Animation",
+      "group": "Interface",
+      "description": "Chooses between the Atlas visual effects and the Windows defaults. Disable applies the Atlas set with fewer animations; Enable restores the Windows defaults. Both offer to sign out afterwards, which applies the change.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\Visual Effects (Animations)\\Atlas Visual Effects (default).cmd",
+          "reboot": "SignOut",
+          "work": {
+            "registry": 11,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\Visual Effects (Animations)\\Default Windows Visual Effects.cmd",
+          "reboot": "SignOut",
+          "work": {
+            "registry": 11,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "AppIconThumbnail",
+      "group": "Interface",
+      "description": "Shows or hides app icons on File Explorer thumbnails.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\File Explorer Customization\\App Icons on Thumbnails\\Disable App Icons on Thumbnails.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\File Explorer Customization\\App Icons on Thumbnails\\Enable App Icons on Thumbnails (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "AutomaticFolderDiscovery",
+      "group": "Interface",
+      "description": "Turns automatic folder type discovery in File Explorer on or off.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\File Explorer Customization\\Automatic Folder Discovery\\Disable Automatic Folder Discovery (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 2,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\File Explorer Customization\\Automatic Folder Discovery\\Enable Automatic Folder Discovery.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "CompactView",
+      "group": "Interface",
+      "description": "Turns compact view, with less space between items, on or off in File Explorer.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\File Explorer Customization\\Compact View\\Disable Compact View.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\File Explorer Customization\\Compact View\\Enable Compact View (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "ContextMenuTerminals",
+      "group": "Interface",
+      "description": "Removes the Terminals context menu, or adds it with or without Windows Terminal.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Remove",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\Context Menus\\Terminals\\Remove Terminals Context Menu (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Import-AtlasTerminalsContextMenu",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Add",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\Context Menus\\Terminals\\Add Terminals.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Import-AtlasTerminalsContextMenu",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "AddNoWindowsTerminal",
+          "stateValue": 2,
+          "launcher": "4. Interface Tweaks\\Context Menus\\Terminals\\Add Terminals (no Windows Terminal).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Import-AtlasTerminalsContextMenu",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "EdgeSwipe",
+      "group": "Interface",
+      "description": "Allows or blocks the edge swipe gestures on touch screens.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\Edge Swipe\\Allow Edge Swipe (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\Edge Swipe\\Disallow Edge Swipe.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "ExtractContextMenu",
+      "group": "Interface",
+      "description": "Adds or removes Extract in the context menu of archives by unblocking or blocking the archive shell extensions.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\Context Menus\\Extract\\Add Extract.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 4,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\Context Menus\\Extract\\Remove Extract (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 4,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "Gallery",
+      "group": "Interface",
+      "description": "Shows or hides Gallery in the File Explorer navigation pane.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\File Explorer Customization\\Gallery\\Disable Gallery (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\File Explorer Customization\\Gallery\\Enable Gallery.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "Home",
+      "group": "Interface",
+      "description": "Shows or hides Home in the File Explorer navigation pane, and makes File Explorer open to Home or This PC.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\File Explorer Customization\\Home\\Disable Home (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 3,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\File Explorer Customization\\Home\\Enable Home.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 3,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "KeyboardShortcuts",
+      "group": "Interface",
+      "description": "Turns the Alt+Shift input language and Ctrl+Shift keyboard layout shortcuts on or off. Installed layouts, Windows+Space and IME shortcuts stay as they are.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\Keyboard Languages\\Enable Language Shortcuts.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 3,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\Keyboard Languages\\Disable Language Shortcuts.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 3,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "LockScreen",
+      "group": "Interface",
+      "description": "Shows or hides the Windows lock screen.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\Lock Screen\\Show Lock Screen (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 2,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Assert-AtlasLockScreenPolicyRemoved",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\Lock Screen\\Hide Lock Screen.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 2,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "ModernBatteryFlyout",
+      "group": "Interface",
+      "description": "Chooses the modern battery flyout or the old Windows 8-style one.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\Old Flyouts\\Battery Flyout\\Modern Battery Flyout (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\Old Flyouts\\Battery Flyout\\Old Battery Flyout.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "ModernDateTime",
+      "group": "Interface",
+      "description": "Chooses the modern date and time flyout on the taskbar clock or the old Windows 8-style one.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\Old Flyouts\\Date and Time Flyout\\Modern Date and Time Flyout (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\Old Flyouts\\Date and Time Flyout\\Old Date and Time Flyout.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "ModernVolumeFlyout",
+      "group": "Interface",
+      "description": "Chooses the modern volume flyout or the old Windows 8-style one.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\Old Flyouts\\Volume Flyout\\Modern Volume Flyout (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\Old Flyouts\\Volume Flyout\\Old Volume Flyout.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "OldContextMenu",
+      "group": "Interface",
+      "description": "Chooses the full classic context menu or the compact Windows 11 context menu.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\Context Menus\\Windows 11\\Old Context Menu (default).cmd",
+          "reboot": "RestartExplorer",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\Context Menus\\Windows 11\\New Context Menu.cmd",
+          "reboot": "RestartExplorer",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "QuickAccess",
+      "group": "Interface",
+      "description": "Shows or hides Quick Access in File Explorer.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\File Explorer Customization\\Quick Access\\Remove Quick Access.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\File Explorer Customization\\Quick Access\\Show Quick Access (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "RecentItems",
+      "group": "Interface",
+      "description": "Locks or unlocks Recent Items and app and document tracking. Disable turns tracking off; Enable removes the restrictions so you can choose in Settings, keeping your own tracking preferences. Both also hide or show the General privacy page in Settings.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\Unlock Recent Items\\Disable Recent Items (default).cmd",
+          "reboot": "RestartExplorer",
+          "work": {
+            "registry": 9,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasRecentItemsSettingsPage",
+            "userAction": "Show-AtlasRecentItemsMessage",
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\Unlock Recent Items\\Unlock Recent Items.cmd",
+          "reboot": "RestartExplorer",
+          "work": {
+            "registry": 7,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasRecentItemsSettingsPage",
+            "userAction": "Show-AtlasRecentItemsMessage",
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "RemovableDrivesInSidebar",
+      "group": "Interface",
+      "description": "Shows or hides removable drives as separate entries in the File Explorer navigation pane.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\File Explorer Customization\\Removable Drives in Sidebar\\Disable Removable Drives in Sidebar (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 2,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\File Explorer Customization\\Removable Drives in Sidebar\\Enable Removable Drives in Sidebar.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 2,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "RestartExplorer",
+      "group": "Interface",
+      "description": "Restarts File Explorer for the signed-in user.",
+      "elevation": "None",
+      "noStateRecord": true,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Run",
+          "stateValue": null,
+          "launcher": "4. Interface Tweaks\\Restart Explorer.cmd",
+          "reboot": "RestartExplorer",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": "Show-AtlasRestartExplorerMessage",
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "RunWithPriority",
+      "group": "Interface",
+      "description": "Adds or removes the Run with priority submenu in the context menu of programs (.exe files).",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\Context Menus\\Run With Priority\\Add Run With Priority In Context Menu.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Add-AtlasRunWithPriorityContextMenu",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\Context Menus\\Run With Priority\\Remove Run With Priority In Context Menu (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "SendToContextMenu",
+      "group": "Interface",
+      "description": "Lets you hide or show entries in the Send to menu for your account. With /silent, it applies the Atlas defaults without asking.",
+      "elevation": "None",
+      "noStateRecord": true,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Debloat",
+          "stateValue": null,
+          "launcher": "4. Interface Tweaks\\Context Menus\\Send To\\Debloat Send To Context Menu.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": "Invoke-AtlasSendToContextMenuChooser",
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "ShortcutIcon",
+      "group": "Interface",
+      "description": "Chooses the shortcut arrow overlay: the Windows default, the classic arrow or none.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Default",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\Shortcut Icon\\Default Windows (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Classic",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\Shortcut Icon\\Classic.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "None",
+          "stateValue": 2,
+          "launcher": "4. Interface Tweaks\\Shortcut Icon\\None (security risk).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "ShortcutText",
+      "group": "Interface",
+      "description": "Turns the \" - Shortcut\" text added to the names of new shortcuts on or off.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\Shortcut Text\\Disable Shortcut Text (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\Shortcut Text\\Restore Shortcut Text.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "SnapLayouts",
+      "group": "Interface",
+      "description": "Turns Snap Layouts, the Snap Assist flyout and bar, on or off.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\Snap Layouts\\Enable Snap Layouts (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 2,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\Snap Layouts\\Disable Snap Layouts.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 2,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "TakeOwnership",
+      "group": "Interface",
+      "description": "Adds or removes Take Ownership in the context menu.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\Context Menus\\Take Ownership\\Remove Take Ownership to Context Menu (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Import-AtlasTakeOwnershipContextMenu",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\Context Menus\\Take Ownership\\Add Take Ownership to Context Menu.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Import-AtlasTakeOwnershipContextMenu",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "VerboseMessages",
+      "group": "Interface",
+      "description": "Turns detailed status messages at startup and shutdown on or off.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "4. Interface Tweaks\\Verbose Status Messages\\Disable Verbose Messages (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "4. Interface Tweaks\\Verbose Status Messages\\Enable Verbose Messages.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "ConfigVBS",
+      "group": "Security",
+      "description": "Shows the current Virtualisation-Based Security configuration.",
+      "elevation": "None",
+      "noStateRecord": true,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Run",
+          "stateValue": null,
+          "launcher": "7. Security\\Core Isolation (VBS)\\Current Configuration.cmd",
+          "reboot": "None",
+          "toolboxLauncher": "Scripts\\vbsCurrentConfig.cmd",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": "Show-AtlasVbsConfiguration",
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "FaultTolerantHeap",
+      "group": "Security",
+      "description": "Turns Fault Tolerant Heap (FTH) on or off, which applies mitigations to programs that crash repeatedly.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "7. Security\\Mitigations\\Fault Tolerant Heap\\Disable FTH (default).cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "7. Security\\Mitigations\\Fault Tolerant Heap\\Enable FTH.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "HideAppBrowserControl",
+      "group": "Security",
+      "description": "Shows or hides the App & browser control page in Windows Security. Disable hides the page; Enable shows it.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "7. Security\\Defender\\Hide App and Browser Control\\Hide App and Browser Control (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "7. Security\\Defender\\Hide App and Browser Control\\Show App and Browser Control.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "Mitigations",
+      "group": "Security",
+      "description": "Turns off all exploit and process mitigations, restores the Windows defaults, or turns them all on: speculative execution overrides, SEHOP, CFG, DEP and the kernel mitigation masks.",
+      "elevation": "TrustedInstaller",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "7. Security\\Mitigations\\Disable All Mitigations.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 4,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Disable-AtlasMitigations",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "WindowsDefault",
+          "stateValue": 1,
+          "launcher": "7. Security\\Mitigations\\Set Windows Default Mitigations.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 7,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasMitigationsWindowsDefault",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 2,
+          "launcher": "7. Security\\Mitigations\\Enable All Mitigations.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Enable-AtlasMitigations",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "SecurityHealthTray",
+      "group": "Security",
+      "description": "Adds or removes the Windows Security notification icon from startup.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "7. Security\\Defender\\Security Health Tray\\Remove Security Tray from Startup (default).cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasSecurityHealthTrayStartup",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "7. Security\\Defender\\Security Health Tray\\Add Security Tray to Startup.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasSecurityHealthTrayStartup",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "ToggleDefender",
+      "group": "Security",
+      "description": "Removes or restores Windows Defender through the Atlas NoDefender package.",
+      "elevation": "TrustedInstaller",
+      "noStateRecord": true,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Run",
+          "stateValue": null,
+          "launcher": "7. Security\\Defender\\Toggle Defender.cmd",
+          "reboot": "Prompt",
+          "toolboxLauncher": "Scripts\\toggleDefender.cmd",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Invoke-AtlasDefenderToggle",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "VbsState",
+      "group": "Security",
+      "description": "Turns Virtualisation-Based Security and Memory Integrity on or off through Microsoft's documented settings.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "7. Security\\Core Isolation (VBS)\\Disable VBS.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasVbsState",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "7. Security\\Core Isolation (VBS)\\Enable VBS.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasVbsState",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bluetooth",
+      "group": "Services",
+      "description": "Turns Bluetooth on or off: its drivers, services and devices, the Send to entry and the connectivity policy.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": "Changes the Bluetooth services and drivers and disables or enables every Bluetooth device. While disabled, Bluetooth devices stop working.",
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "6. Advanced Configuration\\Services\\Bluetooth\\Disable Bluetooth.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 1,
+            "services": 16,
+            "scheduledTasks": 0,
+            "machineAction": "Disable-AtlasBluetoothDevices",
+            "userAction": "Remove-AtlasBluetoothSendTo",
+            "action": null,
+            "user": true
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "6. Advanced Configuration\\Services\\Bluetooth\\Enable Bluetooth (default).cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 1,
+            "services": 16,
+            "scheduledTasks": 0,
+            "machineAction": "Enable-AtlasBluetoothDevices",
+            "userAction": "Set-AtlasBluetoothSendTo",
+            "action": null,
+            "user": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "LanmanWorkstation",
+      "group": "Services",
+      "description": "Turns the Lanman Workstation and SMB client services and the SMB Direct feature on or off.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": "Changes the SMB client services. While disabled, this PC can't open network shares, mapped drives or network printers.",
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "6. Advanced Configuration\\Services\\Lanman Workstation (SMB)\\Disable Lanman Workstation.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 0,
+            "services": 7,
+            "scheduledTasks": 0,
+            "machineAction": "Disable-AtlasSmbDirectFeature",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "6. Advanced Configuration\\Services\\Lanman Workstation (SMB)\\Enable Lanman Workstation (default).cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 0,
+            "services": 7,
+            "scheduledTasks": 0,
+            "machineAction": "Enable-AtlasSmbDirectFeature",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "NetworkDiscovery",
+      "group": "Services",
+      "description": "Turns the network discovery services on or off. Enable turns on SMB first. Network profiles and the firewall discovery rules stay separate choices in Advanced sharing settings, and the Network Navigation Pane toggle controls whether File Explorer shows Network.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": "Changes the network discovery services. While disabled, this PC can't find or be found by other devices on the network.",
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "6. Advanced Configuration\\Services\\Network Discovery\\Disable Network Discovery Services.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 0,
+            "services": 4,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "6. Advanced Configuration\\Services\\Network Discovery\\Enable Network Discovery Services (default).cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Enable-AtlasNetworkDiscoveryServices",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "NVidiaDisplayContainer",
+      "group": "Services",
+      "description": "Turns the NVIDIA Display Container LS service on or off. Both states apply only while the service is installed, so an update drops the recorded state once the driver is gone.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": "Changes the NVIDIA Display Container LS service. While disabled, the NVIDIA Control Panel and most NVIDIA driver features stop working.",
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "6. Advanced Configuration\\Services\\NVIDIA Display Container\\Disable NVIDIA Display Container LS.cmd",
+          "reboot": "None",
+          "toolboxLauncher": "Scripts\\NVidia\\DisableNVIDIADisplayContainerLS.cmd",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasNVidiaDisplayContainerState",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "6. Advanced Configuration\\Services\\NVIDIA Display Container\\Enable NVIDIA Display Container LS (default).cmd",
+          "reboot": "None",
+          "toolboxLauncher": "Scripts\\NVidia\\EnableNVIDIADisplayContainerLS.cmd",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasNVidiaDisplayContainerState",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "NVidiaDisplayContainerContextMenu",
+      "group": "Services",
+      "description": "Adds or removes a desktop context menu that turns the NVIDIA Display Container LS service on or off.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": "Adds or removes a desktop context menu that stops or starts the NVIDIA Display Container LS service. Stopping it disables the NVIDIA Control Panel and most NVIDIA driver features.",
+      "states": [
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "6. Advanced Configuration\\Services\\NVIDIA Display Container\\Context Menu\\Add Container Context Menu.cmd",
+          "reboot": "RestartExplorer",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Add-AtlasNVidiaContainerContextMenu",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "6. Advanced Configuration\\Services\\NVIDIA Display Container\\Context Menu\\Remove Container Context Menu (default).cmd",
+          "reboot": "RestartExplorer",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "Printing",
+      "group": "Services",
+      "description": "Turns printing on or off: its services, Windows features and the Print context menu entries. Run the launcher with /justcontext to change only the context menu.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": "Changes the printing services and Windows printing features. While disabled, printers, Print to PDF, XPS and the Print Management console don't work.",
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "6. Advanced Configuration\\Services\\Printing\\Disable Printing.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasPrintingMachineState",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "6. Advanced Configuration\\Services\\Printing\\Enable Printing (default).cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasPrintingMachineState",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "SuperFetch",
+      "group": "Services",
+      "description": "Turns SuperFetch (SysMain) and ReadyBoost on or off.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": "Changes the SysMain and ReadyBoost services. While disabled, Windows doesn't preload frequently used apps, and ReadyBoost isn't available.",
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "6. Advanced Configuration\\Services\\Superfetch\\Disable SuperFetch.cmd",
+          "reboot": "Recommend",
+          "toolboxLauncher": "Scripts\\SuperFetch\\DisableSuperFetch.cmd",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasSuperFetchMachineState",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "6. Advanced Configuration\\Services\\Superfetch\\Enable SuperFetch (default).cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasSuperFetchMachineState",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "InstallSoftware",
+      "group": "Software",
+      "description": "Opens the Atlas software picker.",
+      "elevation": "None",
+      "noStateRecord": true,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Run",
+          "stateValue": null,
+          "launcher": "1. Software\\Install Software.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": "Invoke-AtlasSoftwarePicker",
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "RemoveEdge",
+      "group": "Software",
+      "description": "Installs or removes Microsoft Edge through an interactive helper in an administrator window.",
+      "elevation": "Admin",
+      "noStateRecord": true,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Run",
+          "stateValue": null,
+          "launcher": "1. Software\\Install or Remove Edge.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Invoke-AtlasEdgeRemover",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "RemovePythonStorePrompt",
+      "group": "Software",
+      "description": "Opens App execution aliases in Settings so you can turn off the App Installer prompts that offer Python from Microsoft Store. Installed Python versions stay as they are.",
+      "elevation": "None",
+      "noStateRecord": true,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Run",
+          "stateValue": null,
+          "launcher": "1. Software\\Remove Python Store Prompt.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": "Remove-AtlasPythonStoreAlias",
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "AtlasHealth",
+      "group": "Troubleshooting",
+      "description": "Reports what Atlas installed and which recorded toggle states or install tweaks have changed since. It changes nothing.",
+      "elevation": "Admin",
+      "noStateRecord": true,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Run",
+          "stateValue": null,
+          "launcher": "9. Troubleshooting\\Check Atlas Health.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Show-AtlasHealthReport",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "DefaultAtlasNetwork",
+      "group": "Troubleshooting",
+      "description": "Resets the network adapter settings: Enable applies the Atlas defaults and Disable restores the Windows defaults.",
+      "elevation": "Admin",
+      "noStateRecord": true,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "9. Troubleshooting\\Network\\Reset Network to Atlas Default.cmd",
+          "reboot": "Recommend",
+          "toolboxLauncher": "Scripts\\Troubleshooting\\TroubleshootingNetwork\\AtlasDefault.cmd",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasNetworkDefaultState",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "9. Troubleshooting\\Network\\Reset Network to Windows Default.cmd",
+          "reboot": "Recommend",
+          "toolboxLauncher": "Scripts\\Troubleshooting\\TroubleshootingNetwork\\WindowsDefault.cmd",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasNetworkDefaultState",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "FixErrors2502and2503",
+      "group": "Troubleshooting",
+      "description": "Fixes installer errors 2502 and 2503 by resetting the permissions of the Windows TEMP folder.",
+      "elevation": "TrustedInstaller",
+      "noStateRecord": true,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Run",
+          "stateValue": null,
+          "launcher": "9. Troubleshooting\\Fix Errors 2502 and 2503.cmd",
+          "reboot": "None",
+          "toolboxLauncher": "Scripts\\Troubleshooting\\Fix Errors 2502 and 2503.cmd",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Invoke-AtlasWindowsTempPermissionsRepair",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "FixExplorerRuntimeError",
+      "group": "Troubleshooting",
+      "description": "Fixes blank Microsoft Visual C++ Runtime Library errors in File Explorer by removing the search redirect that older Atlas releases left.",
+      "elevation": "Admin",
+      "noStateRecord": true,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Run",
+          "stateValue": null,
+          "launcher": "9. Troubleshooting\\Fix File Explorer Visual C++ Runtime Error.cmd",
+          "reboot": "RestartExplorer",
+          "work": {
+            "registry": 3,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "FixMSStoreIssues",
+      "group": "Troubleshooting",
+      "description": "Fixes common Microsoft Store problems by running StoreFixer.",
+      "elevation": "TrustedInstaller",
+      "noStateRecord": true,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Run",
+          "stateValue": null,
+          "launcher": "9. Troubleshooting\\Fix MS Store Issues.cmd",
+          "reboot": "None",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Invoke-AtlasStoreFixer",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "RepairWindowsComponents",
+      "group": "Troubleshooting",
+      "description": "Repairs Windows components and system files with DISM RestoreHealth and SFC.",
+      "elevation": "Admin",
+      "noStateRecord": true,
+      "menu": false,
+      "launcher": null,
+      "warning": "Repairs corrupt Windows components and system files with DISM and SFC. It can take a long time and needs an internet connection for missing files. Atlas settings stay as they are.",
+      "states": [
+        {
+          "name": "Run",
+          "stateValue": null,
+          "launcher": "9. Troubleshooting\\Repair Windows Components.cmd",
+          "reboot": "Recommend",
+          "toolboxLauncher": "Scripts\\Troubleshooting\\Repair Windows Components.cmd",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Repair-AtlasWindowsComponents",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "SafeMode",
+      "group": "Troubleshooting",
+      "description": "Sets Windows to start in safe mode, with networking or with the command prompt, or to start normally again.",
+      "elevation": "Admin",
+      "noStateRecord": true,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Minimal",
+          "stateValue": null,
+          "launcher": "9. Troubleshooting\\Safe Mode\\Safe Mode.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasSafeModeBoot",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "CommandPrompt",
+          "stateValue": null,
+          "launcher": "9. Troubleshooting\\Safe Mode\\Safe Mode with Command Prompt.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasSafeModeBoot",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Networking",
+          "stateValue": null,
+          "launcher": "9. Troubleshooting\\Safe Mode\\Safe Mode with Networking.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasSafeModeBoot",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Exit",
+          "stateValue": null,
+          "launcher": "9. Troubleshooting\\Safe Mode\\Exit Safe Mode.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Set-AtlasSafeModeBoot",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "TelemetryComponents",
+      "group": "Troubleshooting",
+      "description": "Adds or removes the Atlas NoTelemetry package, which removes Windows telemetry components.",
+      "elevation": "TrustedInstaller",
+      "noStateRecord": true,
+      "menu": false,
+      "launcher": null,
+      "warning": null,
+      "states": [
+        {
+          "name": "Run",
+          "stateValue": null,
+          "launcher": "9. Troubleshooting\\Telemetry Components.cmd",
+          "reboot": "Prompt",
+          "toolboxLauncher": "Scripts\\Troubleshooting\\Telemetry Components.cmd",
+          "work": {
+            "registry": 0,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": "Invoke-AtlasTelemetryComponentsMenu",
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    }
+  ]
+}

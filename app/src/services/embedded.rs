@@ -1,20 +1,20 @@
 //! A tester build carries one Atlas package inside the executable and
 //! installs nothing else. The bytes are written to the downloads folder once
 //! and then go through the same extraction and caching as a downloaded
-//! package, so everything downstream sees an ordinary `.apbx` with an exact
+//! package, so everything downstream sees an ordinary `.atlaspkg` with an exact
 //! digest.
 //!
-//! Without the `embedded-playbook` feature this module only answers "no".
-#![cfg_attr(not(any(test, feature = "embedded-playbook")), allow(dead_code, unused_imports))]
+//! Without the `embedded-package` feature this module only answers "no".
+#![cfg_attr(not(any(test, feature = "embedded-package")), allow(dead_code, unused_imports))]
 
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 
-use super::playbook;
+use super::package;
 use super::releases::{partial_path, sha256_bytes, sha256_file, sweep_partials};
 
-#[cfg(feature = "embedded-playbook")]
+#[cfg(feature = "embedded-package")]
 mod built {
     include!(concat!(env!("OUT_DIR"), "/embedded.rs"));
     pub const SOURCE_COMMIT: &str = env!("ATLAS_SOURCE_COMMIT");
@@ -22,11 +22,11 @@ mod built {
 
 /// The release candidate id this build carries, such as `0.6.0-rc.1`.
 pub fn rc_id() -> Option<&'static str> {
-    #[cfg(feature = "embedded-playbook")]
+    #[cfg(feature = "embedded-package")]
     {
         Some(built::RC_ID)
     }
-    #[cfg(not(feature = "embedded-playbook"))]
+    #[cfg(not(feature = "embedded-package"))]
     {
         None
     }
@@ -34,38 +34,42 @@ pub fn rc_id() -> Option<&'static str> {
 
 /// The Git commit the tester build was made from, for About and diagnostics.
 pub fn source_commit() -> Option<&'static str> {
-    #[cfg(feature = "embedded-playbook")]
+    #[cfg(feature = "embedded-package")]
     {
         Some(built::SOURCE_COMMIT)
     }
-    #[cfg(not(feature = "embedded-playbook"))]
+    #[cfg(not(feature = "embedded-package"))]
     {
         None
     }
 }
 
 /// SHA-256 of the embedded archive, hashed once.
-#[cfg(feature = "embedded-playbook")]
+#[cfg(feature = "embedded-package")]
 pub fn sha256() -> &'static str {
     static HASH: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-    HASH.get_or_init(|| sha256_bytes(built::APBX))
+    HASH.get_or_init(|| sha256_bytes(built::PACKAGE))
 }
 
 /// Writes the embedded archive under the app's downloads and returns its path.
-#[cfg(feature = "embedded-playbook")]
+#[cfg(feature = "embedded-package")]
 pub fn materialize(paths: &super::settings::AppPaths) -> Result<PathBuf> {
-    materialize_into(&paths.downloads().join(format!("Atlas-{}.apbx", built::RC_ID)), built::APBX, sha256())
+    materialize_into(
+        &paths.downloads().join(format!("Atlas-{}.atlaspkg", built::RC_ID)),
+        built::PACKAGE,
+        sha256(),
+    )
 }
 
 /// Whether an unpacked package directory holds exactly the embedded archive.
-#[cfg(feature = "embedded-playbook")]
+#[cfg(feature = "embedded-package")]
 pub fn holds(dir: &Path) -> bool {
     package_matches(dir, sha256())
 }
 
 /// An unpacked directory was extracted from an archive with this digest.
 pub(crate) fn package_matches(dir: &Path, sha256: &str) -> bool {
-    playbook::identity(dir).is_some_and(|identity| identity.sha256.eq_ignore_ascii_case(sha256))
+    package::identity(dir).is_some_and(|identity| identity.sha256.eq_ignore_ascii_case(sha256))
 }
 
 /// Puts `bytes` at `destination` unless an identical file is already there.
@@ -103,14 +107,14 @@ pub(crate) fn materialize_into(destination: &Path, bytes: &[u8], sha256: &str) -
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::services::test_support::{TempDir, apbx};
+    use crate::services::test_support::{TempDir, package};
 
     const BYTES: &[u8] = b"not really an archive, but bytes are bytes";
 
     #[test]
     fn a_valid_cached_file_is_kept_and_a_corrupt_one_is_replaced() {
         let temp = TempDir::new("embedded-cache");
-        let destination = temp.path().join("Downloads/Atlas-test.apbx");
+        let destination = temp.path().join("Downloads/Atlas-test.atlaspkg");
         let digest = sha256_bytes(BYTES);
         assert_eq!(materialize_into(&destination, BYTES, &digest).unwrap(), destination);
         let written = std::fs::metadata(&destination).unwrap().modified().unwrap();
@@ -133,7 +137,7 @@ mod tests {
     #[test]
     fn concurrent_callers_end_with_one_valid_file() {
         let temp = TempDir::new("embedded-race");
-        let destination = temp.path().join("Atlas-race.apbx");
+        let destination = temp.path().join("Atlas-race.atlaspkg");
         let digest = sha256_bytes(BYTES);
         let workers: Vec<_> = (0..8)
             .map(|_| {
@@ -152,9 +156,11 @@ mod tests {
     #[test]
     fn a_package_matches_only_the_archive_it_was_unpacked_from() {
         let temp = TempDir::new("embedded-identity");
-        let package = apbx::write(&temp.path().join("package.apbx"), &apbx::valid("0.6.0"));
+        let package = package::write(&temp.path().join("package.atlaspkg"), &package::valid("0.6.0"));
         let digest = sha256_file(&package).unwrap();
-        let (dir, _) = playbook::extract_into(&package, &temp.path().join("Playbooks"), |_, _| {}).unwrap();
+        let (dir, _) =
+            crate::services::package::extract_into(&package, &temp.path().join("Packages"), |_, _| {})
+                .unwrap();
         assert!(package_matches(&dir, &digest));
         assert!(package_matches(&dir, &digest.to_uppercase()));
         assert!(!package_matches(&dir, &sha256_bytes(BYTES)));

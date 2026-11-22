@@ -42,7 +42,7 @@ Describe 'Driver update toggle' {
         Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
         Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
         $script:driverToggle = Get-AtlasToggleDefinition -Name UpdateDrivers `
-            -TogglesRoot (Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles')
+            -TogglesRoot (Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toggles')
 
         function Invoke-DriverUpdateAction {
             param([Parameter(Mandatory = $true)]$Toggle)

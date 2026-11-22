@@ -9,7 +9,9 @@ use std::sync::atomic::Ordering;
 
 use crate::i18n::fmt;
 use crate::model::{Acquisition, AppModel, InstallBlock, Page, ReadyHelp, ReadyStatus, ReleaseCheck};
-use crate::pages::{card_body, detail_text, drivers_radio, on_model, step_card_header};
+use crate::pages::{
+    card_body, detail_text, drivers_radio, manager_download_button, on_model, step_card_header,
+};
 use crate::services::atlas_state::InstallIdentity;
 use crate::services::requirements::{CheckId, CheckResult, Verdict};
 use crate::services::windows_release::TransitionNeed;
@@ -305,7 +307,7 @@ impl InstallPage {
                         .compact()
                         .icon(Icon::Admin)
                         // The next task once there is a package: everything after it waits for it.
-                        .when(enabled && state.playbook.is_some(), Button::accent)
+                        .when(enabled && state.package.is_some(), Button::accent)
                         .disabled(!enabled)
                         .on_click(on_model(&model, |m, cx| m.relaunch_elevated(cx)))
                         .into_any_element(),
@@ -535,7 +537,7 @@ impl InstallPage {
         let release = state.release.release().cloned();
         let bundled = state.bundled();
 
-        let (line, light, light_label) = match (&state.acquisition, &state.playbook) {
+        let (line, light, light_label) = match (&state.acquisition, &state.package) {
             (Acquisition::Downloading { received, total }, _) => (
                 t!(
                     "package-downloading",
@@ -588,10 +590,12 @@ impl InstallPage {
         };
         let busy = state.acquisition.is_busy() || state.locked();
         let downloading = matches!(state.acquisition, Acquisition::Downloading { .. });
+        // The package needs a newer Atlas Manager: getting one is the way on.
+        let manager_outdated = state.package_needs_newer_manager();
         // Getting the files is the first task: its button is the accent one
         // until there is a package.
-        let first_task = state.playbook.is_none();
-        let download_label = match (&release, &state.playbook) {
+        let first_task = state.package.is_none() && !manager_outdated;
+        let download_label = match (&release, &state.package) {
             (Some(r), Some(p)) if p.manifest.version == r.version() => t!("package-download-again"),
             (Some(r), _) => t!("package-download-version", version = r.version()),
             (None, _) => t!("package-download-newest"),
@@ -627,6 +631,9 @@ impl InstallPage {
                             .flex_wrap()
                             .gap(px(8.))
                             .pt(px(4.))
+                            .when(manager_outdated, |this| {
+                                this.child(manager_download_button("source-manager-download").accent())
+                            })
                             // A tester build offers its bundled package and nothing else.
                             .when(bundled && matches!(state.acquisition, Acquisition::Failed(_)), |this| {
                                 this.child(
@@ -661,8 +668,8 @@ impl InstallPage {
                                     Button::new("source-local", t!("package-open-file"))
                                         .icon(Icon::Folder)
                                         // A running download gives way to a chosen file.
-                                        .disabled(!state.may_choose_playbook())
-                                        .on_click(on_model(&model, |m, cx| m.choose_local_playbook(cx))),
+                                        .disabled(!state.may_choose_package())
+                                        .on_click(on_model(&model, |m, cx| m.choose_local_package(cx))),
                                 )
                             }),
                     ),
@@ -671,9 +678,8 @@ impl InstallPage {
     }
 }
 
-/// Where Microsoft publishes the licence terms of the Windows version a
-/// feature-update policy asks for, as the policy's own help names it.
-const WINDOWS_TERMS: &str = "https://aka.ms/WindowsTargetVersioninfo";
+/// Microsoft's licence terms by product, acquisition channel and language.
+const WINDOWS_TERMS: &str = "https://www.microsoft.com/useterms";
 
 /// What moving Windows keeps and changes, one line each, with a check mark.
 fn fact_list(facts: &[String], cx: &App) -> AnyElement {
@@ -736,6 +742,9 @@ fn status_bar(status: ReadyStatus, state: &AppModel) -> InfoBar {
         ),
         ReadyStatus::NoPackage => {
             (Severity::Warning, t!("ready-banner-no-package-title"), t!("ready-banner-no-package-message"))
+        }
+        ReadyStatus::ManagerOutdated => {
+            (Severity::Warning, t!("ready-banner-manager-title"), t!("ready-banner-manager-message"))
         }
         ReadyStatus::Updates => {
             (Severity::Informational, t!("ready-banner-updates-title"), t!("ready-banner-updates-message"))

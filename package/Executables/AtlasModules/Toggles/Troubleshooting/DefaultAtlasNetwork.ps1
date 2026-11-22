@@ -1,0 +1,19 @@
+# Companion for the DefaultAtlasNetwork toggle: resets the network adapter settings to the
+# Atlas or Windows defaults. Set-AtlasNetworkDefaultState runs as Administrator when you run a
+# launcher and when the install applies the Atlas defaults; nothing is recorded.
+
+function Set-AtlasNetworkDefaultState {
+    param($Toggle)
+
+    Import-AtlasModule -Name Atlas.Network
+    $mode = if ($Toggle.State -ceq 'Enable') { 'Atlas' } else { 'Windows' }
+    if (-not $Toggle.Silent) {
+        if ($mode -ceq 'Atlas') {
+            Write-AtlasStep -Text 'Applying the Atlas network adapter defaults...'
+        }
+        else {
+            Write-AtlasStep -Text 'Resetting the network stack and adapters to the Windows defaults. This can take a minute...'
+        }
+    }
+    [void](Set-AtlasNetworkDefaults -Mode $mode)
+}

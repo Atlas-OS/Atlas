@@ -1,8 +1,11 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Report an issue about the Atlas Documentation
-    url: https://github.com/Atlas-OS/docs/issues/
-    about: Report all documentation issues in our 'docs' repository issue tracker.
-  - name: Report a non-Atlas related issue
-    url: https://github.com/Atlas-OS/Atlas/discussions
-    about: Please report any issue that isn't about Atlas itself (website, Discord bot, etc.) in the 'Bug Report' section on GitHub Discussions.
+  - name: Report a security vulnerability
+    url: https://github.com/Atlas-OS/Atlas/security/advisories/new
+    about: Report vulnerabilities privately, as the security policy describes, instead of in a public issue.
+  - name: Report a documentation issue
+    url: https://github.com/Atlas-OS/website/issues
+    about: The Atlas documentation lives in the website repository, so report documentation issues there.
+  - name: Get help or report something other than Atlas
+    url: https://github.com/Atlas-OS/Atlas/discussions/categories/help-support
+    about: For questions, and for problems with the Discord server or anything else that isn't Atlas or Atlas Manager, post in Help & Support on GitHub Discussions.

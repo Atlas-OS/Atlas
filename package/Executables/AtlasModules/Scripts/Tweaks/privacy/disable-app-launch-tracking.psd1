@@ -1,0 +1,9 @@
+@{
+    Name        = 'Disable App Launch Tracking'
+    Description = 'Stops Windows tracking which apps you start, which it uses to rank Start and search results.'
+    Registry    = @(
+        # Microsoft does not document this value. Community source:
+        # https://www.tenforums.com/tutorials/82967-turn-off-app-launch-tracking-windows-10-a.html
+        @{ Path = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Name = 'Start_TrackProgs'; Type = 'DWord'; Data = 0 }
+    )
+}

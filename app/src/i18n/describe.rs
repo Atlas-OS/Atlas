@@ -14,7 +14,7 @@ use crate::model::{
 use crate::services::atlas_state::InstallMode;
 use crate::services::installer::{InstallOutcome, Phase};
 use crate::services::legacy_choices::Facts;
-use crate::services::playbook::FeaturePage;
+use crate::services::package::Choice;
 use crate::services::preparation::{Activity, waits_for_offer};
 use crate::services::reports::SendProblem;
 use crate::services::requirements::{CheckDetail, CheckId, CheckResult};
@@ -634,9 +634,9 @@ impl ScreenKind {
 }
 
 /// What choosing an option means for the PC, in one line, for the options
-/// this app knows. Unknown options rely on the package's own text.
-pub fn option_consequence(name: &str) -> Option<String> {
-    Some(match name {
+/// this app knows by id. Other options show only their label.
+pub fn option_consequence(id: &str) -> Option<String> {
+    Some(match id {
         "defender-enable" => t!("consequence-defender-enable"),
         "defender-disable" => t!("consequence-defender-disable"),
         "mitigations-default" => t!("consequence-mitigations-default"),
@@ -658,76 +658,48 @@ pub fn option_consequence(name: &str) -> Option<String> {
     })
 }
 
-/// The manifest's exact English text for a `playbook-*` message id: the
-/// baseline that decides whether app copy may replace package text. Never
-/// shown.
-pub(super) fn playbook_source(id: &str) -> Option<&'static str> {
-    include_str!("../../i18n/playbook-source.ftl").lines().find_map(|line| {
-        let (key, value) = line.split_once(" = ")?;
-        (key == id).then_some(value)
-    })
+/// App copy for a message keyed by a manifest id, in the current language,
+/// or `None` when this app has no such message: the id is one a newer
+/// package added.
+fn known(message: &str) -> Option<String> {
+    let catalog = super::current();
+    catalog.has(message).then(|| catalog.format(message, &[]))
 }
 
-/// Whether `package_text` is the wording this app knows for `id`.
-fn recognised(id: &str, package_text: &str) -> bool {
-    playbook_source(id).is_some_and(|source| source.trim() == package_text.trim())
-}
-
-/// Use app copy only for recognised package wording. A reworded or unknown
-/// option keeps its own text, in English as well as translated languages.
-fn guarded(id: &str, package_text: &str) -> String {
-    if recognised(id, package_text) {
-        super::current().format(id, &[])
-    } else {
-        package_text.trim().to_owned()
-    }
-}
-
-/// The label for an option, translated when this app knows it.
-pub fn option_label(name: &str, package_text: &str) -> String {
-    guarded(&format!("playbook-option-{name}"), package_text)
-}
-
-/// The consequence line for an option, only while its package text is the
-/// wording this app knows.
-pub fn known_option_consequence(name: &str, package_text: &str) -> Option<String> {
-    recognised(&format!("playbook-option-{name}"), package_text).then(|| option_consequence(name)).flatten()
+/// The label for an option: this app's own (`package-option-<id>`) for an
+/// id it knows, or else `label`, the manifest's English.
+pub fn option_label(id: &str, label: &str) -> String {
+    known(&format!("package-option-{id}")).unwrap_or_else(|| label.trim().to_owned())
 }
 
 /// What an option means for the install on this PC, which has the user's
 /// data: removing Microsoft Edge deletes its bookmarks, history and saved
 /// passwords here. Before the desktop exists (an ISO's setup) there is no
 /// data yet, so the general line applies, as on ISO creation's own pages.
-pub fn known_install_consequence(name: &str, package_text: &str, before_desktop: bool) -> Option<String> {
-    let recognised = recognised(&format!("playbook-option-{name}"), package_text);
-    match name {
-        "uninstall-edge" if recognised && !before_desktop => Some(t!("consequence-uninstall-edge-data")),
-        _ => known_option_consequence(name, package_text),
+pub fn install_consequence(id: &str, before_desktop: bool) -> Option<String> {
+    match id {
+        "uninstall-edge" if !before_desktop => Some(t!("consequence-uninstall-edge-data")),
+        _ => option_consequence(id),
     }
 }
 
 /// The caution a list of choices about to be applied to this PC shows under
-/// an option that deletes the user's data, when its text is the wording this
-/// app knows.
-pub fn known_data_caution(name: &str, package_text: &str) -> Option<String> {
-    (name == "uninstall-edge" && recognised(&format!("playbook-option-{name}"), package_text))
-        .then(|| t!("caution-uninstall-edge"))
+/// an option that deletes the user's data.
+pub fn data_caution(id: &str) -> Option<String> {
+    (id == "uninstall-edge").then(|| t!("caution-uninstall-edge"))
 }
 
-/// The line under `name` while choosing again, said instead of what the
+/// The line under option `id` while choosing again, said instead of what the
 /// option usually means, when the answer changes this PC, as the update's
 /// Choices step applies it: Defender back where Atlas's package removed it,
 /// a toggle Atlas recorded off, or VBS the PC shows off, turned back on,
-/// Snipping Tool removed for good. `chosen` is whether the answer is chosen: always for a radio
-/// option, which is an answer of its own; for a check box, whether it's
-/// ticked. `facts` is what the PC shows, as the update reads it. Only while
-/// the package text is the wording this app knows.
-pub fn change_line(name: &str, package_text: &str, chosen: bool, facts: &Facts) -> Option<String> {
-    if !recognised(&format!("playbook-option-{name}"), package_text) {
-        return None;
-    }
+/// Snipping Tool removed for good. `chosen` is whether the answer is chosen:
+/// always for an option of a single choice, which is an answer of its own;
+/// for a check box, whether it's ticked. `facts` is what the PC shows, as the
+/// update reads it.
+pub fn change_line(id: &str, chosen: bool, facts: &Facts) -> Option<String> {
     let record = |toggle: &str| facts.toggles.get(toggle).copied();
-    Some(match name {
+    Some(match id {
         "defender-enable" if facts.defender_package_installed() => t!("change-defender-enable"),
         // Every protection on stays on: Atlas never lowers them to Windows' default.
         "mitigations-default" if record("Mitigations") == Some(2) => t!("change-mitigations-all-on"),
@@ -768,29 +740,13 @@ pub fn fixed_reason(fixed: &FixedChoice, label: impl Fn(&str) -> String) -> Opti
     }
 }
 
-/// The one line playbook.conf repeats on every checkbox page. Only this
-/// exact text is hidden; a package that says anything else, however it
-/// starts, shows its own words.
-const PAGE_BOILERPLATE: &[&str] =
-    &["Select the options you would like to use, they can be changed in the Atlas folder later."];
-
-pub fn is_page_boilerplate(text: &str) -> bool {
-    PAGE_BOILERPLATE.contains(&text.trim())
+/// What a choice is about: this app's own description
+/// (`package-choice-<id>-description`) for a choice it describes, or else the
+/// manifest's English, if it has any.
+pub fn choice_description(choice: &Choice) -> Option<String> {
+    known(&format!("package-choice-{}-description", choice.id))
+        .or_else(|| Some(choice.description.trim().to_owned()).filter(|text| !text.is_empty()))
 }
-
-/// The package's own description of a page, translated when this app knows
-/// it, minus the boilerplate line every checkbox page repeats.
-///
-/// Option explanations are guarded separately by [`known_option_consequence`].
-pub fn page_description(page: &FeaturePage) -> Option<String> {
-    let text = page.description.trim();
-    if text.is_empty() || is_page_boilerplate(text) {
-        return None;
-    }
-    let first = page.options.first().map(|option| option.name.as_str()).unwrap_or_default();
-    Some(guarded(&format!("playbook-page-{first}-description"), text))
-}
-
 impl Notice {
     pub fn title(&self) -> String {
         match self {
@@ -859,17 +815,27 @@ impl InstallBlock {
     }
 }
 
+/// Why a package needs a newer Atlas Manager, naming the version it asks
+/// for when it names one; the Download Atlas Manager button goes beside it.
+pub fn manager_outdated(required: Option<&str>) -> String {
+    match required {
+        Some(version) => t!("acquire-manager-outdated", version = version),
+        None => t!("acquire-manager-outdated-any"),
+    }
+}
+
 impl AcquireProblem {
     /// `bundled` is a tester build, where the only remedy is Try again.
     pub fn text(&self, bundled: bool) -> String {
         match self {
-            AcquireProblem::NoPlaybookAsset { version } => t!("acquire-no-asset", version = version),
-            AcquireProblem::Unsupported { version } => t!("acquire-unsupported", version = version),
+            AcquireProblem::NoPackageAsset { version } => t!("acquire-no-asset", version = version),
+            AcquireProblem::Unsupported { .. } | AcquireProblem::NotAPackage => t!("acquire-unsupported"),
             AcquireProblem::Incomplete { version } if bundled => {
-                let error = crate::services::playbook::Incomplete { version: version.clone() }.to_string();
+                let error = crate::services::package::Incomplete { version: version.clone() }.to_string();
                 t!("acquire-failed-bundled", error = error)
             }
             AcquireProblem::Incomplete { version } => t!("acquire-incomplete", version = version),
+            AcquireProblem::ManagerOutdated { required } => manager_outdated(required.as_deref()),
             AcquireProblem::Stalled => t!("acquire-stalled"),
             AcquireProblem::Other { error } if bundled => t!("acquire-failed-bundled", error = error),
             AcquireProblem::Other { error } => t!("acquire-failed", error = error),
@@ -927,7 +893,7 @@ impl RestartProblem {
 mod tests {
     use super::*;
     use crate::i18n::testing::english;
-    use crate::services::playbook::{FeatureOption, PageKind};
+    use crate::services::package::{ChoiceKind, ChoiceOption};
     use crate::services::security::SwitchCounts;
 
     #[test]
@@ -949,7 +915,7 @@ mod tests {
         });
     }
 
-    /// An unrecognised required radio page is a ChooseOne screen. Its heading
+    /// An unrecognised required single choice is a ChooseOne screen. Its heading
     /// must not wrap its own title in the generic question.
     #[test]
     fn no_screen_question_repeats_its_own_title() {
@@ -1425,58 +1391,75 @@ mod tests {
         });
     }
 
+    /// A package for a newer Atlas Manager names the version it needs, when
+    /// it gives one, and points to the button that downloads it.
     #[test]
-    fn playbook_text_is_translated_only_when_it_matches_the_source() {
+    fn a_package_for_a_newer_atlas_manager_names_the_version_and_the_download() {
         english(|| {
-            let label = option_label("defender-disable", "Disable Defender");
-            assert_eq!(label, t!("playbook-option-defender-disable"));
-            assert_ne!(label, "Disable Defender");
-            assert!(known_option_consequence("defender-disable", "Disable Defender").is_some());
-            assert_eq!(known_option_consequence("defender-disable", "Pause Defender"), None);
-            assert_eq!(option_label("defender-disable", "Pause Defender"), "Pause Defender");
-            assert_eq!(known_option_consequence("future-option", "New behaviour"), None);
-        });
-        crate::i18n::testing::with_chain(&["pl"], || {
-            let translated = option_label("defender-enable", "Enable Defender (recommended)");
-            assert_ne!(translated, "Enable Defender (recommended)");
-            assert!(!translated.is_empty());
-            // A package that reworded the option keeps its own words.
-            assert_eq!(option_label("defender-enable", "Keep Defender on"), "Keep Defender on");
-            // An option this app does not know keeps its own words too.
-            assert_eq!(option_label("new-option", "Something new"), "Something new");
-            let mut page = FeaturePage {
-                kind: PageKind::Checkbox,
-                description:
-                    "Select the options you would like to use, they can be changed in the Atlas folder later."
-                        .into(),
-                learn_more: None,
-                depends_on: None,
-                options: vec![FeatureOption {
-                    name: "x".into(),
-                    text: "X".into(),
-                    image: None,
-                    default: false,
-                }],
-            };
-            assert_eq!(page_description(&page), None, "the exact boilerplate line is dropped");
-            // Anything else that merely starts the same way is the package's
-            // own text and must stay.
-            page.description = "Select the options below. This change removes Microsoft Edge.".into();
-            assert_eq!(
-                page_description(&page).as_deref(),
-                Some("Select the options below. This change removes Microsoft Edge.")
-            );
+            let named = AcquireProblem::ManagerOutdated { required: Some("0.7.0".into()) };
+            let unnamed = AcquireProblem::ManagerOutdated { required: None };
+            let download = t!("manager-download");
+            for bundled in [false, true] {
+                assert!(named.text(bundled).contains("0.7.0"));
+                assert!(named.text(bundled).contains(&download));
+                assert!(unnamed.text(bundled).contains(&download));
+            }
+            assert_ne!(named.text(false), unnamed.text(false));
         });
     }
 
+    /// Every option and choice this app knows by id gets its own words in
+    /// every language, whatever the manifest's English says; one it doesn't
+    /// know shows the manifest's English.
+    #[test]
+    fn package_text_is_the_app_s_own_for_every_id_it_knows() {
+        let choice = |id: &str, description: &str| Choice {
+            id: id.into(),
+            kind: ChoiceKind::Multiple,
+            description: description.into(),
+            learn_more: None,
+            depends_on: None,
+            options: vec![ChoiceOption { id: "x".into(), label: "X".into(), image: None, default: false }],
+        };
+        english(|| {
+            let label = option_label("defender-disable", "Pause Defender");
+            assert_eq!(label, t!("package-option-defender-disable"));
+            assert_eq!(option_label("future-option", " New behaviour "), "New behaviour");
+            assert!(option_consequence("defender-disable").is_some());
+            assert_eq!(option_consequence("future-option"), None);
+            assert_eq!(
+                choice_description(&choice("defender", "Older words")),
+                Some(t!("package-choice-defender-description"))
+            );
+            assert_eq!(choice_description(&choice("future", " New words ")).as_deref(), Some("New words"));
+            assert_eq!(choice_description(&choice("future", "")), None);
+            assert_eq!(
+                choice_description(&choice("system", "")),
+                None,
+                "a known choice without a description"
+            );
+        });
+        crate::i18n::testing::with_chain(&["pl"], || {
+            let translated = option_label("defender-enable", "Keep Microsoft Defender (recommended)");
+            assert_ne!(translated, "Keep Microsoft Defender (recommended)");
+            assert!(!translated.is_empty());
+            assert_eq!(option_label("defender-enable", "Keep Defender on"), translated);
+            // An option this app does not know keeps the manifest's words.
+            assert_eq!(option_label("new-option", "Something new"), "Something new");
+            let described = choice_description(&choice("browser", "Choose a browser to install.")).unwrap();
+            assert_ne!(described, "Choose a browser to install.");
+        });
+    }
     #[test]
     fn the_consequence_table_covers_every_required_builtin_option() {
-        let manifest = crate::services::playbook::Manifest::builtin();
-        for page in
-            manifest.pages.iter().filter(|page| page.kind == PageKind::Radio && page.depends_on.is_none())
+        let manifest = crate::services::package::Manifest::builtin();
+        for choice in manifest
+            .choices
+            .iter()
+            .filter(|choice| choice.kind == ChoiceKind::Single && choice.depends_on.is_none())
         {
-            for option in &page.options {
-                assert!(option_consequence(&option.name).is_some(), "no consequence for {}", option.name);
+            for option in &choice.options {
+                assert!(option_consequence(&option.id).is_some(), "no consequence for {}", option.id);
             }
         }
     }
@@ -1486,8 +1469,7 @@ mod tests {
     /// it is, or meets a record Atlas never wrote, says nothing new.
     #[test]
     fn choosing_again_says_what_an_answer_changes_on_this_pc() {
-        let text = |name: &str| playbook_source(&format!("playbook-option-{name}")).unwrap();
-        let line = |name: &str, chosen: bool, facts: &Facts| change_line(name, text(name), chosen, facts);
+        let line = change_line;
         let records = |records: &[(&str, u32)]| Facts {
             toggles: records.iter().map(|(name, state)| ((*name).to_owned(), *state)).collect(),
             ..Facts::default()
@@ -1501,8 +1483,6 @@ mod tests {
             assert_eq!(line("defender-enable", true, &removed), words("change-defender-enable"));
             assert_eq!(line("defender-enable", true, &Facts::default()), None, "no Atlas package removed it");
             assert_eq!(line("defender-disable", true, &removed), None);
-            // A package that reworded the option keeps its own meaning.
-            assert_eq!(change_line("defender-enable", "Keep Defender on", true, &removed), None);
 
             let protections = |state| records(&[("Mitigations", state)]);
             assert_eq!(
@@ -1572,8 +1552,8 @@ mod tests {
     /// What an update can't undo says so, naming what is installed.
     #[test]
     fn a_fixed_choice_says_why_an_update_cannot_change_it() {
-        let label =
-            |name: &str| option_label(name, playbook_source(&format!("playbook-option-{name}")).unwrap());
+        let manifest = crate::services::package::Manifest::builtin();
+        let label = |id: &str| option_label(id, manifest.option_label(id).unwrap());
         english(|| {
             assert_eq!(fixed_reason(&FixedChoice::EdgeRemoved, label), Some(t!("fixed-uninstall-edge")));
             assert_eq!(

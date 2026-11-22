@@ -1,3 +1,6 @@
+//! Client for the reports service's agent API. It checks every request and
+//! response against the service's limits, and saves diagnostics only inside the
+//! private workspace, verified against their SHA-256 and never extracted.
 use ring::digest;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -10,9 +13,11 @@ use std::{
 };
 use uuid::Uuid;
 
+/// The reports service used when `ATLAS_REPORTS_ORIGIN` isn't set.
 pub const DEFAULT_ORIGIN: &str = "https://reports.atlasos.net";
 /// The service's upload limit.
 pub const MAX_ZIP: u64 = 64 * 1024 * 1024;
+/// Largest JSON response read from the service.
 const MAX_JSON: u64 = 2 * 1024 * 1024;
 /// The service accepts at most 32 KiB of JSON per report or review, so no
 /// stored message or note can be longer.
@@ -28,25 +33,43 @@ const CREATED_SUFFIX: &str = ".created";
 /// here or in another server sharing the workspace is never this old.
 const ABANDONED: Duration = Duration::from_secs(24 * 60 * 60);
 
+/// Why a call failed. Each kind has fixed text, so no message carries a
+/// credential, a response body or report content.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
+    /// `ATLAS_REPORTS_ORIGIN` isn't a valid origin.
     Origin,
+    /// `ATLAS_REPORTS_AGENT_TOKEN` isn't shaped like an access key.
     Token,
+    /// `ATLAS_REPORTS_WORKSPACE` isn't an absolute path.
     WorkspacePath,
+    /// A report ID, status, offset or limit the service wouldn't accept.
     InvalidInput,
+    /// The service refused the access key.
     Unauthorized,
+    /// The report wasn't found; it may have expired or been deleted.
     NotFound,
+    /// The report has no diagnostics to download.
     NoDiagnostics,
+    /// The service or this server is handling too much at once.
     Busy,
+    /// The service couldn't be reached, or the connection failed.
     Network,
+    /// The service sent an unexpected status, redirect or body.
     InvalidResponse,
+    /// A response was larger than this server reads.
     TooLarge,
+    /// Downloaded diagnostics didn't match their size or SHA-256.
     Integrity,
+    /// The workspace, or a file in it, can't be used safely.
     Workspace,
+    /// The access key lacks the `reports:delete` scope.
     DeleteForbidden,
+    /// A deletion was asked for without `confirm: true`.
     Confirmation,
 }
 impl Error {
+    /// The fixed text shown to the MCP client and in startup failures.
     pub fn message(self) -> &'static str {
         match self {
             Self::Origin => {
@@ -89,12 +112,17 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {}
 type Result<T> = std::result::Result<T, Error>;
 
+/// The server's settings, read from the environment at startup.
 pub struct Config {
+    /// The reports service (`ATLAS_REPORTS_ORIGIN`).
     pub origin: String,
+    /// The access key (`ATLAS_REPORTS_AGENT_TOKEN`).
     pub token: String,
+    /// The private folder for downloaded diagnostics (`ATLAS_REPORTS_WORKSPACE`).
     pub workspace: PathBuf,
 }
 
+/// A checked connection to the agent API and the workspace it downloads into.
 pub struct Client {
     agent: ureq::Agent,
     origin: String,
@@ -103,35 +131,60 @@ pub struct Client {
     download_lock: Mutex<()>,
 }
 
+/// One report in a listing.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Preview {
+    /// The report's UUID.
     pub id: String,
+    /// When the report was made, in Unix seconds.
     pub created: i64,
+    /// `issue` or `suggestion`.
     pub category: String,
+    /// The Atlas version the sender gave.
     pub version: String,
+    /// Size of the diagnostics ZIP; 0 when the report has none.
     pub bytes: u64,
+    /// The review status.
     pub status: String,
+    /// Windows and Atlas Manager details read from the diagnostics.
     pub summary: Value,
+    /// The first 240 characters of the message.
     pub message_preview: String,
 }
+/// One page of reports, newest first.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Listing {
+    /// The reports on this page.
     pub reports: Vec<Preview>,
+    /// How many reports match the filter in all.
     pub total: u64,
+    /// How many reports were skipped before this page.
     pub offset: u32,
+    /// The page size asked for.
     pub limit: u32,
 }
+/// A report's full details, without the sender's contact details.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Report {
+    /// The report's UUID.
     pub id: String,
+    /// When the report was made, in Unix seconds.
     pub created: i64,
+    /// `issue` or `suggestion`.
     pub category: String,
+    /// The Atlas version the sender gave.
     pub version: String,
+    /// Size of the diagnostics ZIP; 0 when the report has none.
     pub bytes: u64,
+    /// The review status.
     pub status: String,
+    /// Windows and Atlas Manager details read from the diagnostics.
     pub summary: Value,
+    /// The sender's message.
     pub message: String,
+    /// Reviewers' investigation notes.
     pub notes: String,
+    /// SHA-256 of the diagnostics ZIP, or empty when there's none.
     pub digest: String,
 }
 #[derive(Deserialize)]
@@ -139,16 +192,24 @@ struct Detail {
     report: Report,
 }
 
+/// Where a report's diagnostics were saved.
 #[derive(Debug, Serialize)]
 pub struct Download {
+    /// The report's UUID.
     pub report_id: String,
+    /// The saved ZIP in the workspace.
     pub local_path: PathBuf,
+    /// Size of the ZIP.
     pub bytes: u64,
+    /// SHA-256 of the ZIP, as the service gave it and as checked here.
     pub sha256: String,
+    /// Whether an earlier download, checked again, was reused.
     pub cached: bool,
+    /// Always false: the archive is never extracted.
     pub extracted: bool,
 }
 
+/// Checks that `value` is a report UUID and returns it in lower case.
 pub fn report_id(value: &str) -> Result<String> {
     // Hyphenated form only; Uuid::parse_str also accepts braced, URN and simple forms.
     if value.len() != 36 {
@@ -171,6 +232,7 @@ pub fn pagination(status: Option<&str>, offset: u32, limit: u32) -> Result<()> {
 fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
+/// Maps a failed request to the error the MCP client sees.
 fn http_error(error: ureq::Error) -> Error {
     match error {
         ureq::Error::StatusCode(401 | 403) => Error::Unauthorized,
@@ -182,6 +244,8 @@ fn http_error(error: ureq::Error) -> Error {
         _ => Error::Network,
     }
 }
+/// Whether `value` is an `https://` origin, or an `http://` one on loopback,
+/// with no path, query, credentials or trailing slash.
 fn origin_valid(value: &str) -> bool {
     let Ok(uri) = value.parse::<ureq::http::Uri>() else {
         return false;
@@ -197,6 +261,8 @@ fn origin_valid(value: &str) -> bool {
         && !value.ends_with('/')
         && (uri.scheme_str() == Some("https") || (loopback && uri.scheme_str() == Some("http")))
 }
+/// Whether `path` is a regular file. A missing file is `false`; anything else
+/// there, such as a folder or symbolic link, can't be used safely.
 fn regular_file(path: &Path) -> Result<bool> {
     match fs::symlink_metadata(path) {
         Ok(metadata) if metadata.is_file() && !metadata.file_type().is_symlink() => Ok(true),
@@ -281,6 +347,8 @@ impl Drop for Temporary {
 }
 
 impl Client {
+    /// Checks `config`, creates the workspace if needed (on Unix, private to this
+    /// account), prunes it and prepares an HTTP agent that follows no redirects.
     pub fn new(config: Config) -> Result<Self> {
         if !origin_valid(&config.origin) {
             return Err(Error::Origin);
@@ -361,6 +429,8 @@ impl Client {
         }
         serde_json::from_slice(&bytes).map_err(|_| Error::InvalidResponse)
     }
+    /// Lists one page of reports, optionally of one status, and checks that the
+    /// response matches what was asked for.
     pub fn list(&self, status_filter: Option<&str>, offset: u32, limit: u32) -> Result<Listing> {
         pagination(status_filter, offset, limit)?;
         let mut path = format!("/api/agent/reports?offset={offset}&limit={limit}");
@@ -384,6 +454,7 @@ impl Client {
         }
         Ok(listing)
     }
+    /// Reads one report by UUID.
     pub fn get(&self, id: &str) -> Result<Report> {
         let id = report_id(id)?;
         let detail: Detail = self.json(&format!("/api/agent/reports/{id}"))?;
@@ -396,7 +467,7 @@ impl Client {
         }
         Ok(detail.report)
     }
-    /// Deletes one report and returns its normalized id.
+    /// Deletes one report and returns its normalised ID.
     pub fn delete(&self, id: &str, confirm: bool) -> Result<String> {
         if !confirm {
             return Err(Error::Confirmation);
@@ -419,6 +490,9 @@ impl Client {
         }
         Ok(id)
     }
+    /// Saves a report's diagnostics ZIP in the workspace as `{id}-{sha256}.zip`,
+    /// or reuses a copy saved earlier once it matches again, and records when the
+    /// report was made so that [`prune`] can delete the copy with it.
     pub fn download(&self, id: &str) -> Result<Download> {
         let id = report_id(id)?;
         // One download at a time: this limits disk use and stops two calls

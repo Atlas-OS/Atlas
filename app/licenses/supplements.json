@@ -1,30 +1,30 @@
 [
   {
     "package": "accesskit",
-    "version": "0.24.1",
-    "file": "supplemental/accesskit-0.24.1/LICENSE-APACHE",
-    "url": "https://raw.githubusercontent.com/AccessKit/accesskit/a55d3e1a18bb9ef0e4bccc9083fb13c3e0ad8969/LICENSE-APACHE",
+    "version": "0.25.2",
+    "file": "supplemental/accesskit-0.25.2/LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/AccessKit/accesskit/f3026222559c7f5f46d8f25cb7404de68eb149f0/LICENSE-APACHE",
     "sha256": "62C7A1E35F56406896D7AA7CA52D0CC0D272AC022B5D2796E7D6905DB8A3636A"
   },
   {
     "package": "accesskit",
-    "version": "0.24.1",
-    "file": "supplemental/accesskit-0.24.1/LICENSE-MIT",
-    "url": "https://raw.githubusercontent.com/AccessKit/accesskit/a55d3e1a18bb9ef0e4bccc9083fb13c3e0ad8969/LICENSE-MIT",
+    "version": "0.25.2",
+    "file": "supplemental/accesskit-0.25.2/LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/AccessKit/accesskit/f3026222559c7f5f46d8f25cb7404de68eb149f0/LICENSE-MIT",
     "sha256": "23F18E03DC49DF91622FE2A76176497404E46CED8A715D9D2B67A7446571CCA3"
   },
   {
     "package": "accesskit_consumer",
-    "version": "0.38.0",
-    "file": "supplemental/accesskit_consumer-0.38.0/LICENSE-APACHE",
-    "url": "https://raw.githubusercontent.com/AccessKit/accesskit/c88605b96d04431f9c3c792464a0f2f253480e94/LICENSE-APACHE",
+    "version": "0.39.2",
+    "file": "supplemental/accesskit_consumer-0.39.2/LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/AccessKit/accesskit/f3026222559c7f5f46d8f25cb7404de68eb149f0/LICENSE-APACHE",
     "sha256": "62C7A1E35F56406896D7AA7CA52D0CC0D272AC022B5D2796E7D6905DB8A3636A"
   },
   {
     "package": "accesskit_consumer",
-    "version": "0.38.0",
-    "file": "supplemental/accesskit_consumer-0.38.0/LICENSE-MIT",
-    "url": "https://raw.githubusercontent.com/AccessKit/accesskit/c88605b96d04431f9c3c792464a0f2f253480e94/LICENSE-MIT",
+    "version": "0.39.2",
+    "file": "supplemental/accesskit_consumer-0.39.2/LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/AccessKit/accesskit/f3026222559c7f5f46d8f25cb7404de68eb149f0/LICENSE-MIT",
     "sha256": "23F18E03DC49DF91622FE2A76176497404E46CED8A715D9D2B67A7446571CCA3"
   },
   {
@@ -113,16 +113,16 @@
   },
   {
     "package": "lyon_geom",
-    "version": "1.0.19",
-    "file": "supplemental/lyon_geom-1.0.19/LICENSE-APACHE",
-    "url": "https://raw.githubusercontent.com/nical/lyon/56219c95c658d4f39de7b190d98e57d5773ba241/LICENSE-APACHE",
+    "version": "1.0.20",
+    "file": "supplemental/lyon_geom-1.0.20/LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/nical/lyon/db98d26a1a90076a7a894262dcb51117eef643c8/LICENSE-APACHE",
     "sha256": "216486F29671A4262EFE32AF6D84A75BEF398127F8C5F369B5C8305983887A06"
   },
   {
     "package": "lyon_geom",
-    "version": "1.0.19",
-    "file": "supplemental/lyon_geom-1.0.19/LICENSE-MIT",
-    "url": "https://raw.githubusercontent.com/nical/lyon/56219c95c658d4f39de7b190d98e57d5773ba241/LICENSE-MIT",
+    "version": "1.0.20",
+    "file": "supplemental/lyon_geom-1.0.20/LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/nical/lyon/db98d26a1a90076a7a894262dcb51117eef643c8/LICENSE-MIT",
     "sha256": "80F275E90D799911ED3830A7F242A2EF5A4ADE2092FE0AA07BFB2D2CF2F2B95E"
   },
   {
@@ -227,9 +227,9 @@
   },
   {
     "package": "taffy",
-    "version": "0.13.0",
-    "file": "supplemental/taffy-0.13.0/LICENSE",
-    "url": "https://raw.githubusercontent.com/DioxusLabs/taffy/45a56299d366ddb383e593a1f0372158d00e8530/LICENSE",
+    "version": "0.15.1",
+    "file": "supplemental/taffy-0.15.1/LICENSE",
+    "url": "https://raw.githubusercontent.com/DioxusLabs/taffy/0064bd54cbe38bf1d8bcd6ec6ab0704d45fb048a/LICENSE",
     "sha256": "F97DAF1A0124413DCCF399A4E6626B4B74ACD05282F80B6D64AC82225650B77A"
   },
   {

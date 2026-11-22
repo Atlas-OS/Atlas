@@ -2,9 +2,9 @@ BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:RepoRoot = Split-Path -Parent $PSScriptRoot
     $script:PackagePath = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Operations\Toolbox-Package.ps1'
+        'package\Executables\AtlasModules\Scripts\Operations\Toolbox-Package.ps1'
     $script:DownloadModulePath = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Download\Atlas.Download.psd1'
+        'package\Executables\AtlasModules\Scripts\Modules\Atlas.Download\Atlas.Download.psd1'
 
     Import-Module -Name $script:DownloadModulePath -Force
     . $script:PackagePath
@@ -300,7 +300,7 @@ Describe 'Shared download boundary' {
         $hash = (Get-FileHash -InputStream ([IO.MemoryStream]::new($received)) -Algorithm SHA256).Hash
         # Invoke-AtlasPinnedDownload calls the HTTP helper inside Atlas.Download, so the
         # mock must live in the module.
-        Mock Invoke-AtlasBoundedHttpGet -ModuleName Atlas.Download -MockWith {
+        Mock Invoke-AtlasLimitedHttpGet -ModuleName Atlas.Download -MockWith {
             $OutputStream.Write($received, 0, $received.Length)
             return [long]$received.Length
         }
@@ -308,7 +308,7 @@ Describe 'Shared download boundary' {
         $result = Invoke-AtlasPinnedDownload -Uri 'https://example.test/download.bin' `
             -Destination $destination -Sha256 $hash -ExpectedBytes $received.Length
 
-        Should -Invoke Invoke-AtlasBoundedHttpGet -ModuleName Atlas.Download -Times 1 -Exactly `
+        Should -Invoke Invoke-AtlasLimitedHttpGet -ModuleName Atlas.Download -Times 1 -Exactly `
             -ParameterFilter { [string]$Uri -eq 'https://example.test/download.bin' }
         $result | Should -BeExactly $destination
         [IO.File]::ReadAllBytes($destination) | Should -Be $received
@@ -317,7 +317,7 @@ Describe 'Shared download boundary' {
     It 'deletes a download whose SHA-256 does not match' {
         $destination = Join-Path $TestDrive 'mismatched-download.bin'
         $received = [Text.Encoding]::UTF8.GetBytes('atlas download')
-        Mock Invoke-AtlasBoundedHttpGet -ModuleName Atlas.Download -MockWith {
+        Mock Invoke-AtlasLimitedHttpGet -ModuleName Atlas.Download -MockWith {
             $OutputStream.Write($received, 0, $received.Length)
             return [long]$received.Length
         }
@@ -335,7 +335,7 @@ Describe 'Shared download boundary' {
         $received = [Text.Encoding]::UTF8.GetBytes('atlas')
         # The hash matches the bytes received, so only the length check can reject them.
         $hash = (Get-FileHash -InputStream ([IO.MemoryStream]::new($received)) -Algorithm SHA256).Hash
-        Mock Invoke-AtlasBoundedHttpGet -ModuleName Atlas.Download -MockWith {
+        Mock Invoke-AtlasLimitedHttpGet -ModuleName Atlas.Download -MockWith {
             $OutputStream.Write($received, 0, $received.Length)
             return [long]$received.Length
         }

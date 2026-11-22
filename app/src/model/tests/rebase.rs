@@ -8,10 +8,10 @@ use std::collections::HashMap;
 use crate::model::test_harness::{
     act, fixture, held, new_model, read, run_model_test, settle, wait_for, wait_on_disk,
 };
-use crate::model::{AppModel, FixedChoice, Origin, PlaybookSource, ScreenKind, Step, UpdatePath};
+use crate::model::{AppModel, FixedChoice, Origin, PackageSource, ScreenKind, Step, UpdatePath};
 use crate::services::atlas_state::{AtlasState, InstallIdentity, InstallMode, Unfinished};
 use crate::services::legacy_choices::Facts;
-use crate::services::playbook::Manifest;
+use crate::services::package::Manifest;
 use crate::services::update_access::{CarryToggle, UpdateAccess, parse_journal};
 
 /// The record of a move after which Windows rebuilt itself, keeping an Atlas
@@ -57,9 +57,9 @@ fn every_kept_choice_is_used_and_none_is_asked_again() {
         act(&mut cx, &model, |m, cx| {
             let page = m
                 .manifest()
-                .pages
+                .choices
                 .iter()
-                .position(|page| page.options.iter().any(|o| o.name == "mitigations-disable"))
+                .position(|page| page.options.iter().any(|o| o.id == "mitigations-disable"))
                 .unwrap();
             let before = m.options.clone();
             m.choose_option(page, "mitigations-disable", cx);
@@ -181,9 +181,9 @@ fn a_choice_the_record_lacks_is_asked_again_and_the_rest_are_kept() {
         act(&mut cx, &model, |m, cx| {
             let page = m
                 .manifest()
-                .pages
+                .choices
                 .iter()
-                .position(|page| page.options.iter().any(|o| o.name == "mitigations-default"))
+                .position(|page| page.options.iter().any(|o| o.id == "mitigations-default"))
                 .unwrap();
             m.choose_option(page, "mitigations-default", cx);
             // Entering Your choices again keeps the user's change.
@@ -333,7 +333,7 @@ fn recorded(version: &str, options: &[&str]) -> AtlasState {
 }
 
 fn page_of(m: &AppModel, option: &str) -> usize {
-    m.manifest().pages.iter().position(|page| page.options.iter().any(|o| o.name == option)).unwrap()
+    m.manifest().choices.iter().position(|page| page.options.iter().any(|o| o.id == option)).unwrap()
 }
 
 fn sorted(options: &[impl AsRef<str>]) -> Vec<String> {
@@ -344,7 +344,7 @@ fn sorted(options: &[impl AsRef<str>]) -> Vec<String> {
 
 /// The built-in package, loaded, so the model can build its request.
 fn load_builtin(m: &mut AppModel, dir: &std::path::Path) {
-    m.playbook = Some(PlaybookSource {
+    m.package = Some(PackageSource {
         dir: dir.to_path_buf(),
         manifest: Manifest::builtin(),
         origin: Origin::Unpacked,

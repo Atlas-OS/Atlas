@@ -140,8 +140,14 @@ impl Default for OfferRecheckTiming {
     }
 }
 
+/// What [`crate::model::AppModel`] takes from its process: where its files
+/// live, whether it may use the network, timings and the machine adapters.
+/// The app builds it once with [`Environment::from_process`]. Model tests
+/// build an isolated one and replace the adapters they control, so they never
+/// need elevation, a restart or a particular Windows Security state.
 #[derive(Clone)]
 pub struct Environment {
+    /// The app data directory and the files in it (`ATLAS_APP_DATA` moves it).
     pub paths: AppPaths,
     /// Ask GitHub for the latest release at startup.
     pub check_updates: bool,
@@ -165,8 +171,8 @@ impl Environment {
         Self {
             paths: AppPaths::from_process(),
             // A tester build installs only its bundled package, so it never checks for releases.
-            check_updates: !cfg!(feature = "embedded-playbook"),
-            embedded_startup: cfg!(feature = "embedded-playbook"),
+            check_updates: !cfg!(feature = "embedded-package"),
+            embedded_startup: cfg!(feature = "embedded-package"),
             language_override: language_override.or_else(|| std::env::var(crate::i18n::LANGUAGE_ENV).ok()),
             restart: RestartTiming::default(),
             offer_recheck: OfferRecheckTiming::default(),

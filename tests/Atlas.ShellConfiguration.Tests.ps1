@@ -12,9 +12,9 @@ param()
 
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    Import-Module -Name (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Core\Atlas.Core.psd1') -Force
-    Import-Module -Name (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Registry\Atlas.Registry.psd1') -Force
-    Import-Module -Name (Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Toggles\Atlas.Toggles.psd1') -Force
+    Import-Module -Name (Join-Path $PSScriptRoot '..\package\Executables\AtlasModules\Scripts\Modules\Atlas.Core\Atlas.Core.psd1') -Force
+    Import-Module -Name (Join-Path $PSScriptRoot '..\package\Executables\AtlasModules\Scripts\Modules\Atlas.Registry\Atlas.Registry.psd1') -Force
+    Import-Module -Name (Join-Path $PSScriptRoot '..\package\Executables\AtlasModules\Scripts\Modules\Atlas.Toggles\Atlas.Toggles.psd1') -Force
     $script:searchRefusal = InModuleScope Atlas.Registry {
         New-AtlasRegistryValueRefusedRecord -ProviderPath 'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SearchSettings' `
             -Name IsAADCloudSearchEnabled -Cause ([UnauthorizedAccessException]::new('Access denied'))
@@ -41,7 +41,7 @@ BeforeAll {
     }
 
     $script:newUserScript = Resolve-Path (Join-Path $PSScriptRoot `
-            '..\playbook\Executables\AtlasModules\Scripts\Entry\Initialize-NewUser.ps1')
+            '..\package\Executables\AtlasModules\Scripts\Entry\Initialize-NewUser.ps1')
     Import-FunctionUnderTest -Path $script:newUserScript -Name Get-SetupMarker
     Import-FunctionUnderTest -Path $script:newUserScript -Name Set-SetupMarker
     Import-FunctionUnderTest -Path $script:newUserScript -Name Invoke-AtlasDesktopCommand
@@ -433,7 +433,7 @@ Describe 'First-logon preferences after Windows profile creation' {
 Describe 'Taskbar tweak install resilience' {
     It 'keeps live Taskband seed writes best-effort' {
         $definitionPath = Join-Path $PSScriptRoot `
-            '..\playbook\Executables\AtlasModules\Scripts\Tweaks\qol\taskbar\config-pins.psd1'
+            '..\package\Executables\AtlasModules\Scripts\Tweaks\qol\taskbar\config-pins.psd1'
         $definition = Import-PowerShellDataFile -LiteralPath $definitionPath
 
         @($definition.Registry).Count | Should -BeGreaterThan 0

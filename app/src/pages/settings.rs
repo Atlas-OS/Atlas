@@ -5,7 +5,9 @@ use gpui::{
     Styled, Window, div, prelude::*, px, rems,
 };
 
-use super::{Diagnostics, card_body, card_header, detail_row, detail_text, page_frame, setting_row};
+use super::{
+    Diagnostics, card_body, card_header, detail_row, detail_text, manager_update_bar, page_frame, setting_row,
+};
 use crate::i18n::{self, Decision, Readiness, fmt};
 use crate::model::AppModel;
 use crate::services::settings::{LanguagePreference, ThemePreference, app_data_dir};
@@ -325,8 +327,29 @@ impl Render for SettingsPage {
                 Vec::new(),
             ));
 
+        let analytics_model = model.clone();
+        let analytics_label = t!("settings-usage-analytics");
+        let analytics_switch = ToggleSwitch::new(
+            "settings-analytics-switch",
+            analytics_label.clone(),
+            state.settings.usage_analytics,
+        )
+        .on_toggle(move |_, _, cx| {
+            analytics_model.update(cx, |m, cx| m.set_usage_analytics(!m.settings.usage_analytics, cx));
+        });
+        let analytics = setting_row(
+            cx,
+            "analytics",
+            analytics_label,
+            None,
+            analytics_switch.into_any_element(),
+            Vec::new(),
+        );
+        let manager_update = manager_update_bar(state, "about");
         let about = card(cx).child(card_header(cx, "about", t!("settings-about"), None)).child(
             card_body()
+                // Above the version it supersedes.
+                .when_some(manager_update, |this, bar| this.child(bar))
                 .child(detail_row(
                     cx,
                     "app",
@@ -420,6 +443,7 @@ impl Render for SettingsPage {
                     .child(appearance)
                     .child(language)
                     .child(install)
+                    .child(analytics)
                     .into_any_element(),
                 help.into_any_element(),
                 about.into_any_element(),
@@ -432,11 +456,11 @@ impl Render for SettingsPage {
 
 /// The bundled Atlas package's digest on a tester build; empty elsewhere.
 fn bundled_digest() -> String {
-    #[cfg(feature = "embedded-playbook")]
+    #[cfg(feature = "embedded-package")]
     {
         crate::services::embedded::sha256().to_owned()
     }
-    #[cfg(not(feature = "embedded-playbook"))]
+    #[cfg(not(feature = "embedded-package"))]
     {
         String::new()
     }

@@ -12,7 +12,7 @@ param()
 
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $script:atlasModulesRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules')).Path
+    $script:atlasModulesRoot = (Resolve-Path (Join-Path -Path $PSScriptRoot -ChildPath '..\package\Executables\AtlasModules')).Path
     $script:phasesRoot = Join-Path -Path $script:atlasModulesRoot -ChildPath 'Scripts\Install\Phases'
 
     function Get-AtlasPhaseAst {
@@ -119,7 +119,7 @@ BeforeAll {
 
 Describe 'Install phase scripts' {
     BeforeDiscovery {
-        $phasesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Install\Phases'
+        $phasesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\package\Executables\AtlasModules\Scripts\Install\Phases'
         $script:phaseFiles = Get-ChildItem -Path $phasesRoot -Filter 'Invoke-*Phase.ps1' -File
     }
 
@@ -162,8 +162,7 @@ Describe 'Software phase outcome aggregation' {
     ) {
         $context = [pscustomobject]@{
             IsUpgrade = $IsUpgrade
-            IsOobe = $true
-            InteractiveUserSid = $null
+            InteractiveUserSid = 'S-1-5-21-1000-1001-1002-1003'
         }
         $outcome = if ($ThrowFailures) {
             [InvalidOperationException]::new('simulated optional app failure')
@@ -195,8 +194,7 @@ Describe 'Software phase outcome aggregation' {
     It 'attempts every selected component before throwing one aggregate for false and thrown outcomes' {
         $context = [pscustomobject]@{
             IsUpgrade = $false
-            IsOobe = $true
-            InteractiveUserSid = $null
+            InteractiveUserSid = 'S-1-5-21-1000-1001-1002-1003'
         }
         $options = @{
             'install-toolbox' = $true
@@ -236,6 +234,7 @@ Describe 'Software phase outcome aggregation' {
             'VCRedist', 'SevenZip', 'DirectX', 'Toolbox', 'Eclean',
             'Brave', 'Firefox', 'LibreWolf', 'Chrome'
         )
+        $script:userIntegrationState.Count | Should -Be 1
         $script:softwareLogs.Count | Should -Be 5
         @($script:softwareLogs | Where-Object {
                 $_.Message -match 'Optional legacy DirectX runtime was not installed; continuing'
@@ -245,7 +244,6 @@ Describe 'Software phase outcome aggregation' {
     It 'counts failed exact-user LibreWolf integration and still attempts later browsers' {
         $context = [pscustomobject]@{
             IsUpgrade = $true
-            IsOobe = $false
             InteractiveUserSid = 'S-1-5-21-1000-1001-1002-1003'
         }
         $options = @{

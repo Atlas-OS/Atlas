@@ -1,3 +1,6 @@
+//! HTTP routes: the public report intake under `/api/v1`, the reviewers' API under
+//! `/api/admin`, agent access under `/api/agent` (see `agent.rs`) and the website.
+//! Private routes act on a request only when [`trusted`] accepts it.
 use crate::{
     ApiError, ApiResult, AppState, DAY, HOUR, MAX_JSON, MAX_REPORTS, MAX_ZIP, PRIVACY_VERSION,
     RETENTION_DAYS, STATUSES, UPLOAD_HEADROOM, UPLOAD_WINDOW, archive, bump, claim, hex, is_hex64,
@@ -26,12 +29,19 @@ use tower::ServiceExt;
 use tower_http::services::{ServeDir, ServeFile};
 use uuid::Uuid;
 
+/// The value of header `name`, or an empty string when it's missing or holds
+/// anything other than visible ASCII.
 pub(crate) fn header<'a>(headers: &'a HeaderMap, name: &str) -> &'a str {
     headers
         .get(name)
         .and_then(|v| v.to_str().ok())
         .unwrap_or("")
 }
+/// Whether the request came from one of the configured proxies
+/// (`ATLAS_REPORTS_PROXY_IPS`) with the gateway secret in `x-atlas-gateway`.
+/// Only then are the headers the proxy forwards believed: `remote-user` for
+/// reviewers, and `cf-connecting-ip` or `x-forwarded-for` for the client address.
+/// A request without a known peer address is never trusted.
 pub(crate) fn trusted(state: &AppState, request: &Request) -> bool {
     let peer = request.extensions().get::<ConnectInfo<SocketAddr>>();
     let supplied = header(request.headers(), "x-atlas-gateway");
@@ -53,6 +63,10 @@ fn client_key(ip: IpAddr) -> String {
         IpAddr::V6(v6) => format!("{}/64", Ipv6Addr::from(u128::from(v6) & (!0u128 << 64))),
     }
 }
+/// Counts one `action` against the client's hourly `limit` and against a shared
+/// budget of 1000 accepted requests an hour for that action, refusing with 429
+/// once either is spent. The client is identified by its forwarded address only
+/// when the request is [`trusted`], and otherwise by the connecting peer.
 pub(crate) fn rate(state: &AppState, request: &Request, action: &str, limit: i64) -> ApiResult<()> {
     let peer = request
         .extensions()
@@ -103,6 +117,8 @@ pub(crate) fn rate(state: &AppState, request: &Request, action: &str, limit: i64
     bump(&db, &global)?;
     Ok(())
 }
+/// Admits trusted requests from configured reviewers. A request that changes
+/// anything also needs the service's own `Origin` and a current CSRF token.
 async fn admin_guard(State(state): State<AppState>, request: Request, next: Next) -> Response {
     let user = header(request.headers(), "remote-user");
     if !trusted(&state, &request) || !state.config.admins.iter().any(|u| u == user) {
@@ -126,6 +142,8 @@ async fn admin_guard(State(state): State<AppState>, request: Request, next: Next
     next.run(request).await
 }
 
+/// Builds every route of the service. [`crate::create`] wraps the result in the
+/// host check and the security headers.
 pub fn router(state: AppState) -> Router {
     let admin = Router::new()
         .route("/session", get(session))
@@ -195,6 +213,8 @@ async fn health(State(state): State<AppState>) -> ApiResult<Json<Value>> {
         .query_row("SELECT 1", [], |_| Ok(()))?;
     Ok(Json(json!({"status":"ok"})))
 }
+/// Reads an `application/json` body of at most MAX_JSON bytes, received within
+/// 15 seconds, into `T`.
 pub(crate) async fn read_json<T: serde::de::DeserializeOwned>(request: Request) -> ApiResult<T> {
     if header(request.headers(), "content-type")
         .split(';')
@@ -332,6 +352,8 @@ async fn submit(
     ))
 }
 
+/// An upload's temporary file, removed when dropped. Once the file has been
+/// renamed into place there's nothing left to remove.
 struct Temporary(std::path::PathBuf);
 impl Drop for Temporary {
     fn drop(&mut self) {

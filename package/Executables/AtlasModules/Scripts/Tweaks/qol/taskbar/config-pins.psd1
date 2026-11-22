@@ -1,0 +1,19 @@
+@{
+    Name        = 'Configure Taskbar Pins'
+    Description  = 'Pins your browser, if you have one, and then File Explorer to the taskbar.'
+    OnUpgrade   = 'Skip'
+    Registry    = @(
+        # The engine applies HKCU in separate passes for the signed-in user and the
+        # default-user hive; it never sends TrustedInstaller through a user's live hive.
+        # Explorer can briefly deny writes to its live Taskband key. These values are only
+        # a starting point: Initialize-NewUser sets and verifies the pins later, so a
+        # refused write here must not stop the installation.
+        @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'; Operation = 'AddKey'; IgnoreErrors = $true }
+        @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'; Name = 'FavoritesVersion'; Type = 'DWord'; Data = 3; IgnoreErrors = $true }
+        @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'; Name = 'MailPin'; Type = 'DWord'; Data = 0; IgnoreErrors = $true; SkipVerification = 'Explorer rewrites Taskband pin bookkeeping after applying the initial pin configuration.' }
+        @{ Path = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband\AuxilliaryPins'; Name = 'CopilotPWAPin'; Type = 'DWord'; Data = 0; IgnoreErrors = $true; SkipVerification = 'Explorer rewrites Taskband pin bookkeeping after applying the initial pin configuration.' }
+    )
+    # The chosen browser needs per-option logic that a
+    # single Option gate cannot express.
+    Script       = 'config-pins.ps1'
+}

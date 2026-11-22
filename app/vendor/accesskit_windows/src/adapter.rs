@@ -4,10 +4,9 @@
 // the LICENSE-MIT file), at your option.
 
 use accesskit::{
-    ActionHandler, ActivationHandler, Live, Node as NodeProvider, NodeId as LocalNodeId, Role,
-    Tree as TreeData, TreeId, TreeUpdate,
+    ActionHandler, ActivationHandler, Live, Node, NodeId, Role, TreeId, TreeInfo, TreeUpdate,
 };
-use accesskit_consumer::{FilterResult, Node, NodeId, Tree, TreeChangeHandler, TreeState};
+use accesskit_consumer::{FilterResult, FullNodeId, NodeRef, Tree, TreeChangeHandler, TreeState};
 use hashbrown::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
 use std::sync::{Arc, atomic::Ordering};
@@ -24,7 +23,7 @@ use crate::{
     window_handle::WindowHandle,
 };
 
-fn focus_event(context: &Arc<Context>, node_id: NodeId) -> QueuedEvent {
+fn focus_event(context: &Arc<Context>, node_id: FullNodeId) -> QueuedEvent {
     let platform_node = context.get_or_create_platform_node(node_id);
     let element: IRawElementProviderSimple = platform_node.into_interface();
     QueuedEvent::Simple {
@@ -36,8 +35,8 @@ fn focus_event(context: &Arc<Context>, node_id: NodeId) -> QueuedEvent {
 struct AdapterChangeHandler<'a> {
     context: &'a Arc<Context>,
     queue: Vec<QueuedEvent>,
-    text_changed: HashSet<NodeId>,
-    selection_changed: HashMap<NodeId, SelectionChanges>,
+    text_changed: HashSet<FullNodeId>,
+    selection_changed: HashMap<FullNodeId, SelectionChanges>,
 }
 
 impl<'a> AdapterChangeHandler<'a> {
@@ -52,7 +51,7 @@ impl<'a> AdapterChangeHandler<'a> {
 }
 
 impl AdapterChangeHandler<'_> {
-    fn insert_text_change_if_needed_parent(&mut self, node: Node) {
+    fn insert_text_change_if_needed_parent(&mut self, node: NodeRef) {
         if !node.supports_text_ranges() {
             return;
         }
@@ -75,7 +74,7 @@ impl AdapterChangeHandler<'_> {
         self.text_changed.insert(id);
     }
 
-    fn insert_text_change_if_needed(&mut self, node: &Node) {
+    fn insert_text_change_if_needed(&mut self, node: &NodeRef) {
         if node.role() != Role::TextRun {
             return;
         }
@@ -87,7 +86,7 @@ impl AdapterChangeHandler<'_> {
     fn element_for_possibly_removed_node(
         &self,
         tree_state: &TreeState,
-        id: NodeId,
+        id: FullNodeId,
     ) -> IRawElementProviderSimple {
         if tree_state.node_by_id(id).is_some() {
             self.context
@@ -98,7 +97,7 @@ impl AdapterChangeHandler<'_> {
         }
     }
 
-    fn handle_selection_state_change(&mut self, node: &Node, is_selected: bool) {
+    fn handle_selection_state_change(&mut self, node: &NodeRef, is_selected: bool) {
         // If `node` belongs to a selection container, then map the events with the
         // selection container as the key because |FinalizeSelectionEvents| needs to
         // determine whether or not there is only one element selected in order to
@@ -231,12 +230,12 @@ impl AdapterChangeHandler<'_> {
 }
 
 struct SelectionChanges {
-    added_items: HashSet<NodeId>,
-    removed_items: HashSet<NodeId>,
+    added_items: HashSet<FullNodeId>,
+    removed_items: HashSet<FullNodeId>,
 }
 
 impl TreeChangeHandler for AdapterChangeHandler<'_> {
-    fn node_added(&mut self, node: &Node) {
+    fn node_added(&mut self, node: &NodeRef) {
         self.insert_text_change_if_needed(node);
         if filter(node) != FilterResult::Include {
             return;
@@ -267,7 +266,7 @@ impl TreeChangeHandler for AdapterChangeHandler<'_> {
         }
     }
 
-    fn node_updated(&mut self, old_node: &Node, new_node: &Node) {
+    fn node_updated(&mut self, old_node: &NodeRef, new_node: &NodeRef) {
         if old_node.raw_value() != new_node.raw_value() {
             self.insert_text_change_if_needed(new_node);
         }
@@ -339,13 +338,13 @@ impl TreeChangeHandler for AdapterChangeHandler<'_> {
         }
     }
 
-    fn focus_moved(&mut self, _old_node: Option<&Node>, new_node: Option<&Node>) {
+    fn focus_moved(&mut self, _old_node: Option<&NodeRef>, new_node: Option<&NodeRef>) {
         if let Some(new_node) = new_node {
             self.queue.push(focus_event(self.context, new_node.id()));
         }
     }
 
-    fn node_removed(&mut self, node: &Node) {
+    fn node_removed(&mut self, node: &NodeRef) {
         self.insert_text_change_if_needed(node);
         self.context.remove_platform_node(node.id());
         if filter(node) != FilterResult::Include {
@@ -372,7 +371,7 @@ impl TreeChangeHandler for AdapterChangeHandler<'_> {
     // TODO: handle other events (#20)
 }
 
-const PLACEHOLDER_ROOT_ID: LocalNodeId = LocalNodeId(0);
+const PLACEHOLDER_ROOT_ID: NodeId = NodeId(0);
 
 enum State {
     Inactive {
@@ -565,8 +564,8 @@ impl Adapter {
                 None => {
                     let hwnd = *hwnd;
                     let placeholder_update = TreeUpdate {
-                        nodes: vec![(PLACEHOLDER_ROOT_ID, NodeProvider::new(Role::Window))],
-                        tree: Some(TreeData::new(PLACEHOLDER_ROOT_ID)),
+                        nodes: vec![(PLACEHOLDER_ROOT_ID, Node::new(Role::Window))],
+                        tree: Some(TreeInfo::new(PLACEHOLDER_ROOT_ID)),
                         tree_id: TreeId::ROOT,
                         focus: PLACEHOLDER_ROOT_ID,
                     };

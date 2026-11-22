@@ -5,7 +5,7 @@ BeforeAll {
     Import-Module (Join-Path $modulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
     Import-Module (Join-Path $modulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
 
-    $script:AtlasModulesPath = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules'
+    $script:AtlasModulesPath = Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules'
     $script:NVidiaServiceKey = 'HKLM:\SYSTEM\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem'
 }
 

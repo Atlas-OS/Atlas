@@ -2,7 +2,7 @@ BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
     $script:ScriptsRoot = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts'
+        'package\Executables\AtlasModules\Scripts'
     $script:PreviousInstallScript = Join-Path $script:ScriptsRoot `
         'Install\Tasks\Remove-PreviousAtlasInstall.ps1'
     $script:VersionSpecificScript = Join-Path $script:ScriptsRoot `
@@ -216,13 +216,13 @@ Describe 'Previous-install file removal' {
 
 Describe 'Atlas file copy' {
     BeforeAll {
-        # Copy-AtlasPayload.ps1 finds the staged files four levels above itself and
+        # Copy-AtlasPackage.ps1 finds the staged files four levels above itself and
         # the trust bootstrap two levels above, so the harness mirrors that layout.
-        $script:CopyScript = Join-Path $script:ScriptsRoot 'Install\Tasks\Copy-AtlasPayload.ps1'
+        $script:CopyScript = Join-Path $script:ScriptsRoot 'Install\Tasks\Copy-AtlasPackage.ps1'
         $script:Staged = Join-Path $TestDrive 'Staged\Executables'
         $tasks = Join-Path $script:Staged 'AtlasModules\Scripts\Install\Tasks'
         $null = New-Item -Path $tasks, (Join-Path $script:Staged 'AtlasDesktop\1. Software'), (Join-Path $script:Staged 'Themes'), (Join-Path $script:Staged 'AtlasModules\Logs') -ItemType Directory -Force
-        [IO.File]::WriteAllText((Join-Path $tasks 'Copy-AtlasPayload.ps1'), (ConvertTo-RehostedRemovalScript -Path $script:CopyScript))
+        [IO.File]::WriteAllText((Join-Path $tasks 'Copy-AtlasPackage.ps1'), (ConvertTo-RehostedRemovalScript -Path $script:CopyScript))
         Copy-Item -LiteralPath $script:TrustBootstrap -Destination (Join-Path $script:Staged 'AtlasModules\Scripts\Initialize-AtlasPowerShell.ps1')
         [IO.File]::WriteAllText((Join-Path $script:Staged 'AtlasModules\Logs\install-run.log'), 'the staged copy, still being written')
         [IO.File]::WriteAllText((Join-Path $script:Staged 'AtlasModules\Scripts\new.ps1'), 'new code')
@@ -240,7 +240,7 @@ Describe 'Atlas file copy' {
         try {
             $ErrorActionPreference = 'Continue'
             $output = & $script:PowerShell51 -NoProfile -NoLogo -NonInteractive -ExecutionPolicy Bypass `
-                -File (Join-Path $script:Staged 'AtlasModules\Scripts\Install\Tasks\Copy-AtlasPayload.ps1') 2>&1
+                -File (Join-Path $script:Staged 'AtlasModules\Scripts\Install\Tasks\Copy-AtlasPackage.ps1') 2>&1
             $exitCode = $LASTEXITCODE
         }
         finally {
@@ -261,7 +261,7 @@ Describe 'Atlas file copy' {
         $env:ATLAS_TEST_WINDIR = $windowsRoot
         try {
             & $script:PowerShell51 -NoProfile -NoLogo -NonInteractive -ExecutionPolicy Bypass `
-                -File (Join-Path $script:Staged 'AtlasModules\Scripts\Install\Tasks\Copy-AtlasPayload.ps1') 2>&1 | Out-Null
+                -File (Join-Path $script:Staged 'AtlasModules\Scripts\Install\Tasks\Copy-AtlasPackage.ps1') 2>&1 | Out-Null
             $LASTEXITCODE | Should -Be 0
         }
         finally { Remove-Item Env:\ATLAS_TEST_WINDIR -ErrorAction SilentlyContinue }

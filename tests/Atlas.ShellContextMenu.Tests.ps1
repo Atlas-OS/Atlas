@@ -13,12 +13,12 @@ param()
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
-    $script:executablesRoot = Join-Path $script:repositoryRoot 'playbook\Executables'
+    $script:executablesRoot = Join-Path $script:repositoryRoot 'package\Executables'
     $script:terminalHandler = Join-Path $script:executablesRoot `
         'AtlasModules\Scripts\Entry\Open-TerminalHere.ps1'
     $script:takeOwnershipHandler = Join-Path $script:executablesRoot `
         'AtlasModules\Scripts\Entry\Invoke-TakeOwnership.ps1'
-    $script:takeOwnershipPayload = Join-Path $script:executablesRoot `
+    $script:takeOwnershipRegistryFile = Join-Path $script:executablesRoot `
         'AtlasModules\Scripts\Registry\TakeOwnership\add.reg'
 
     Import-Module -Name (Join-Path $script:AtlasTestModulesRoot 'Atlas.Shell\Atlas.Shell.psd1') -Force
@@ -82,8 +82,8 @@ param([string]$Terminal, [string]$Verb, [string]$Path, [string]$TargetType, [str
 
 Describe 'Terminal context-menu .reg files' {
     BeforeDiscovery {
-        $root = (Resolve-Path (Join-Path $PSScriptRoot '..\playbook\Executables')).ProviderPath
-        $script:terminalPayloadCases = @(
+        $root = (Resolve-Path (Join-Path $PSScriptRoot '..\package\Executables')).ProviderPath
+        $script:terminalRegistryCases = @(
             @{
                 Name = 'Scripts enabled'
                 Path = Join-Path $root 'AtlasModules\Scripts\Registry\Terminals\enabled.reg'
@@ -97,7 +97,7 @@ Describe 'Terminal context-menu .reg files' {
         )
     }
 
-    It '<Name> routes each selected directory through the internal handler' -ForEach $terminalPayloadCases {
+    It '<Name> routes each selected directory through the internal handler' -ForEach $terminalRegistryCases {
         $commands = @(Get-ContextMenuCommand -Path $Path -SelectionToken '%V')
         $terminals = @('CommandPrompt', 'PowerShell')
         if ($IncludesWindowsTerminal) {
@@ -119,7 +119,7 @@ Describe 'Terminal context-menu .reg files' {
         }
     }
 
-    It '<Name> hands a drive root and a folder to the handler as rooted paths' -ForEach $terminalPayloadCases {
+    It '<Name> hands a drive root and a folder to the handler as rooted paths' -ForEach $terminalRegistryCases {
         $command = @(Get-ContextMenuCommand -Path $Path -SelectionToken '%V')[0]
         foreach ($selection in @([IO.Path]::GetPathRoot($env:SystemRoot), $env:SystemRoot)) {
             $bound = Invoke-ContextMenuCommandLine -RegistryLine $command -SelectionToken '%V' -Selection $selection
@@ -131,7 +131,7 @@ Describe 'Terminal context-menu .reg files' {
 
 Describe 'Take Ownership context-menu .reg files' {
     It 'routes files, directories, and drives through the internal handler' {
-        $commands = @(Get-ContextMenuCommand -Path $script:takeOwnershipPayload -SelectionToken '%1')
+        $commands = @(Get-ContextMenuCommand -Path $script:takeOwnershipRegistryFile -SelectionToken '%1')
 
         $commands.Count | Should -Be 6
         foreach ($command in $commands) {
@@ -147,7 +147,7 @@ Describe 'Take Ownership context-menu .reg files' {
     }
 
     It 'hands a drive root to the handler as a rooted path, followed by -Pause' {
-        $commands = @(Get-ContextMenuCommand -Path $script:takeOwnershipPayload -SelectionToken '%1' |
+        $commands = @(Get-ContextMenuCommand -Path $script:takeOwnershipRegistryFile -SelectionToken '%1' |
                 Where-Object { $_ -match ' -TargetType Drive ' })
         $driveRoot = [IO.Path]::GetPathRoot($env:SystemRoot)
 

@@ -11,10 +11,10 @@
 #![allow(non_upper_case_globals)]
 
 use accesskit::{
-    Action, ActionData, ActionRequest, AriaCurrent, HasPopup, Live, NodeId as LocalNodeId,
-    Orientation, Point, Role, SortDirection, Toggled, TreeId,
+    Action, ActionData, ActionRequest, AriaCurrent, HasPopup, Live, NodeId, Orientation, Point,
+    Role, SortDirection, Toggled, TreeId,
 };
-use accesskit_consumer::{FilterResult, Node, NodeId, Tree, TreeState};
+use accesskit_consumer::{FilterResult, FullNodeId, NodeRef, Tree, TreeState};
 use std::{
     fmt::Write,
     sync::{Arc, Weak, atomic::Ordering},
@@ -37,8 +37,8 @@ use crate::{
 
 const RUNTIME_ID_SIZE: usize = 5;
 
-fn runtime_id_from_node_id(id: NodeId) -> [i32; RUNTIME_ID_SIZE] {
-    static_assertions::assert_eq_size!(NodeId, u128);
+fn runtime_id_from_node_id(id: FullNodeId) -> [i32; RUNTIME_ID_SIZE] {
+    static_assertions::assert_eq_size!(FullNodeId, u128);
     let id: u128 = id.into();
     [
         UiaAppendRuntimeId as _,
@@ -50,7 +50,7 @@ fn runtime_id_from_node_id(id: NodeId) -> [i32; RUNTIME_ID_SIZE] {
 }
 
 pub(crate) struct NodeWrapper<'a> {
-    pub(crate) node: &'a Node<'a>,
+    pub(crate) node: &'a NodeRef<'a>,
     pub(crate) string_buffer: &'a mut Vec<u16>,
 }
 
@@ -554,7 +554,8 @@ impl NodeWrapper<'_> {
 
     fn automation_id(&mut self) -> Option<StrWrapper<'_>> {
         self.node
-            .author_id()
+            .html_id()
+            .or_else(|| self.node.author_id())
             .map(|s| StrWrapper::new(s, self.string_buffer))
     }
 
@@ -740,7 +741,7 @@ impl NodeWrapper<'_> {
     }
 
     fn is_password(&self) -> bool {
-        self.node.role() == Role::PasswordInput
+        self.node.is_password_input()
     }
 
     fn is_dialog(&self) -> bool {
@@ -819,11 +820,11 @@ fn enqueue_property_change(
 )]
 pub(crate) struct PlatformNode {
     pub(crate) context: Weak<Context>,
-    pub(crate) node_id: Option<NodeId>,
+    pub(crate) node_id: Option<FullNodeId>,
 }
 
 impl PlatformNode {
-    pub(crate) fn new(context: &Arc<Context>, node_id: NodeId) -> ComObject<Self> {
+    pub(crate) fn new(context: &Arc<Context>, node_id: FullNodeId) -> ComObject<Self> {
         Self {
             context: Arc::downgrade(context),
             node_id: Some(node_id),
@@ -859,7 +860,7 @@ impl PlatformNode {
         f(&tree, &context)
     }
 
-    fn node<'a>(&self, tree: &'a Tree) -> Result<Node<'a>> {
+    fn node<'a>(&self, tree: &'a Tree) -> Result<NodeRef<'a>> {
         let state = tree.state();
         if let Some(id) = self.node_id {
             if let Some(node) = state.node_by_id(id) {
@@ -872,7 +873,7 @@ impl PlatformNode {
         }
     }
 
-    fn node_with_location<'a>(&self, tree: &'a Tree) -> Result<(Node<'a>, LocalNodeId, TreeId)> {
+    fn node_with_location<'a>(&self, tree: &'a Tree) -> Result<(NodeRef<'a>, NodeId, TreeId)> {
         let node = self.node(tree)?;
         let (local_id, tree_id) = tree
             .state()
@@ -883,7 +884,7 @@ impl PlatformNode {
 
     fn resolve_with_context<F, T>(&self, f: F) -> Result<T>
     where
-        for<'a> F: FnOnce(Node<'a>, &Arc<Context>) -> Result<T>,
+        for<'a> F: FnOnce(NodeRef<'a>, &Arc<Context>) -> Result<T>,
     {
         self.with_tree_and_context(|tree, context| {
             let node = self.node(tree)?;
@@ -893,7 +894,7 @@ impl PlatformNode {
 
     fn resolve_with_tree_state_and_context<F, T>(&self, f: F) -> Result<T>
     where
-        for<'a> F: FnOnce(Node<'a>, &TreeState, &Arc<Context>) -> Result<T>,
+        for<'a> F: FnOnce(NodeRef<'a>, &TreeState, &Arc<Context>) -> Result<T>,
     {
         self.with_tree_and_context(|tree, context| {
             let node = self.node(tree)?;
@@ -903,14 +904,14 @@ impl PlatformNode {
 
     fn resolve<F, T>(&self, f: F) -> Result<T>
     where
-        for<'a> F: FnOnce(Node<'a>) -> Result<T>,
+        for<'a> F: FnOnce(NodeRef<'a>) -> Result<T>,
     {
         self.resolve_with_context(|node, _| f(node))
     }
 
     fn resolve_with_context_for_text_pattern<F, T>(&self, f: F) -> Result<T>
     where
-        for<'a> F: FnOnce(Node<'a>, &Arc<Context>) -> Result<T>,
+        for<'a> F: FnOnce(NodeRef<'a>, &Arc<Context>) -> Result<T>,
     {
         self.with_tree_and_context(|tree, context| {
             let node = self.node(tree)?;
@@ -924,14 +925,14 @@ impl PlatformNode {
 
     fn resolve_for_text_pattern<F, T>(&self, f: F) -> Result<T>
     where
-        for<'a> F: FnOnce(Node<'a>) -> Result<T>,
+        for<'a> F: FnOnce(NodeRef<'a>) -> Result<T>,
     {
         self.resolve_with_context_for_text_pattern(|node, _| f(node))
     }
 
     fn do_complex_action<F>(&self, f: F) -> Result<()>
     where
-        for<'a> F: FnOnce(Node<'a>, LocalNodeId, TreeId) -> Result<Option<ActionRequest>>,
+        for<'a> F: FnOnce(NodeRef<'a>, NodeId, TreeId) -> Result<Option<ActionRequest>>,
     {
         let context = self.upgrade_context()?;
         if context.is_placeholder.load(Ordering::SeqCst) {

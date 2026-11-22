@@ -8,7 +8,7 @@ BeforeAll {
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Download\Atlas.Download.psd1') -Force
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
 
-    $togglesRoot = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles'
+    $togglesRoot = Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toggles'
     $script:copilot = Get-AtlasToggleDefinition -Name Copilot -TogglesRoot $togglesRoot
     $script:widgets = Get-AtlasToggleDefinition -Name Widgets -TogglesRoot $togglesRoot
 

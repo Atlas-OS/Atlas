@@ -3,6 +3,8 @@
 // version, with the RC number as the fourth numeric component on a tester build.
 1 ICON "@ICON@"
 
+// FILETYPE 1 is VFT_APP. 040904B0 and the Translation pair 0x0409, 1200 mean
+// US English strings in Unicode (code page 1200).
 1 VERSIONINFO
 FILEVERSION @NUMERIC_VERSION@
 PRODUCTVERSION @NUMERIC_VERSION@

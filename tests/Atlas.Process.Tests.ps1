@@ -1,7 +1,7 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $modulesRoot = Join-Path -Path $PSScriptRoot `
-        -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
+        -ChildPath '..\package\Executables\AtlasModules\Scripts\Modules'
     $coreManifest = Join-Path -Path $modulesRoot -ChildPath 'Atlas.Core\Atlas.Core.psd1'
     Import-Module -Name $coreManifest -Force -ErrorAction Stop
 

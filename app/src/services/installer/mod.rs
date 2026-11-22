@@ -22,7 +22,7 @@ use futures::channel::mpsc::{Receiver, channel};
 use serde::{Deserialize, Serialize};
 
 use super::session::{self, Inspection, LaunchLock, SessionPaths, SessionRecord};
-use super::{playbook, powershell, system};
+use super::{package, powershell, system};
 #[cfg(test)]
 pub(crate) use command::ps_quote;
 use command::wrapper_command;
@@ -33,7 +33,10 @@ use follow::{EVENT_BACKLOG, follow};
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InstallRequest {
-    pub playbook_dir: PathBuf,
+    /// The unpacked package to install. Records from earlier builds name it
+    /// `playbookDir`.
+    #[serde(alias = "playbookDir")]
+    pub package_dir: PathBuf,
     pub options: Vec<String>,
     /// Restart Windows once the install succeeds. Atlas restarts it itself;
     /// the front door is never asked to.
@@ -207,10 +210,10 @@ fn launch(
     paths: &SessionPaths,
     lock_wait: Duration,
 ) -> Result<(SessionRecord, Receiver<InstallEvent>)> {
-    let script = playbook::front_door(&request.playbook_dir);
+    let script = package::front_door(&request.package_dir);
     log::info!(
         "Installation session {id} requested; package={:?}; options={:?}",
-        playbook::identity(&request.playbook_dir),
+        package::identity(&request.package_dir),
         request.options
     );
     anyhow::ensure!(script.is_file(), "{} is missing", script.display());
@@ -251,7 +254,7 @@ fn launch(
     let spawned = powershell::command()
         .arg("-Command")
         .arg(&command)
-        .current_dir(&record.request.playbook_dir)
+        .current_dir(&record.request.package_dir)
         .stdin(Stdio::null())
         .stdout(Stdio::from(log))
         .stderr(Stdio::from(log_err))

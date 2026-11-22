@@ -273,7 +273,7 @@ fn is_iso_job(name: &str) -> bool {
 /// request.json and AtlasModules/Logs are visited, so it cannot use up the
 /// entry limit. `parent` is the archive name of the folder holding `child`.
 fn skips_staged_files(parent: &str, child: &str) -> bool {
-    let Some(relative) = parent.strip_prefix("playbook/state/Staging/") else { return false };
+    let Some(relative) = parent.strip_prefix("atlas/state/Staging/") else { return false };
     let parts: Vec<_> = relative.split('/').collect();
     let child = child.to_ascii_lowercase();
     match parts[..] {
@@ -497,16 +497,16 @@ fn wait_collector(mut child: std::process::Child, log: &Path, deadline: Duration
 /// are reported instead of aborting the rest of the export.
 pub fn export(root: &Path, package: Option<Value>) -> Result<PathBuf> {
     let saved = super::settings::read_from(&super::settings::AppPaths::under(root).settings());
-    let package_directory = saved.settings.draft.and_then(|draft| draft.playbook_dir).or_else(|| {
+    let package_directory = saved.settings.draft.and_then(|draft| draft.package_dir).or_else(|| {
         super::session::load(&super::session::SessionPaths::under(root))
             .ok()
             .flatten()
-            .map(|session| session.request.playbook_dir)
+            .map(|session| session.request.package_dir)
     });
     let package = package.or_else(|| {
         package_directory
             .as_ref()
-            .and_then(|path| super::playbook::identity(path))
+            .and_then(|path| super::package::identity(path))
             .and_then(|identity| serde_json::to_value(identity).ok())
     });
     let exports = root.join("Diagnostics");
@@ -568,7 +568,7 @@ impl Archive<'_> {
         bundle.text("READ-ME.txt", README_TEXT.as_bytes())?;
         bundle.collect(self.working, "report", 0)?;
         if let Some(path) = self.package_directory {
-            bundle.collect(&path.join("Executables/AtlasModules/Logs"), "playbook/staged-logs", 0)?;
+            bundle.collect(&path.join("Executables/AtlasModules/Logs"), "atlas/staged-logs", 0)?;
         }
         bundle.text("BUG-REPORT.txt", BUG_REPORT_TEXT.as_bytes())?;
         // app/Preparation is where the 0.6.0 release candidates kept preparation
@@ -596,8 +596,8 @@ impl Archive<'_> {
             bundle.collect(&local.join("Atlas-desktop-recovery.log"), "user/desktop-recovery.log", 0)?;
         }
         if let Some(windows) = self.windows {
-            bundle.collect(&windows.join("AtlasModules/Logs"), "playbook/logs", 0)?;
-            bundle.collect(&windows.join("AtlasOS"), "playbook/state", 0)?;
+            bundle.collect(&windows.join("AtlasModules/Logs"), "atlas/logs", 0)?;
+            bundle.collect(&windows.join("AtlasOS"), "atlas/state", 0)?;
             bundle.collect(&windows.join("AtlasISO/setup.log"), "iso/setup.log", 0)?;
             bundle.collect(&windows.join("AtlasISO/network-drivers.json"), "iso/network-drivers.json", 0)?;
         }
@@ -795,7 +795,7 @@ mod tests {
         fs::write(state.join("Install/active.json"), "install state").unwrap();
         let target = temp.path().join("test.zip");
         let mut bundle = bundle(&target);
-        bundle.collect(&state, "playbook/state", 0).unwrap();
+        bundle.collect(&state, "atlas/state", 0).unwrap();
         assert!(bundle.files < 20);
         bundle.zip.finish().unwrap();
         let mut zip = zip::ZipArchive::new(File::open(target).unwrap()).unwrap();
@@ -804,10 +804,10 @@ mod tests {
             "Staging/one/Executables/request.json",
             "Staging/one/Executables/AtlasModules/Logs/install-capture.log",
         ] {
-            assert!(zip.by_name(&format!("playbook/state/{name}")).is_ok());
+            assert!(zip.by_name(&format!("atlas/state/{name}")).is_ok());
         }
         assert!(
-            zip.by_name("playbook/state/Staging/one/Executables/AtlasModules/Scripts/catalog.json").is_err()
+            zip.by_name("atlas/state/Staging/one/Executables/AtlasModules/Scripts/catalog.json").is_err()
         );
     }
 

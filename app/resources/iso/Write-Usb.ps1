@@ -1,6 +1,27 @@
-# Elevated USB worker: lists, writes and ejects. The media boots from the ISO's own
-# Microsoft-signed UEFI files; a WIM over 4 GB is split for FAT32.
-# Request values are data; a disk number alone never authorizes a write.
+<#
+.SYNOPSIS
+    Lists eligible USB drives, writes Windows installation media to one, and ejects it.
+.DESCRIPTION
+    The elevated USB worker. The media boots from the ISO's own Microsoft-signed UEFI
+    files; a WIM over 4 GiB is split for FAT32. Request values are data, and a disk
+    number alone never authorises a write: the drive's identity must still match what
+    the user confirmed.
+
+    Atlas Manager stages it in a protected media job folder (see Stage-App.ps1) and runs
+    it elevated with -File. It writes lines for the app on standard output:
+    ATLAS_PROGRESS with the stage and bytes done, ATLAS_ERROR with a typed failure
+    reason, and ATLAS_RESULT with the outcome. A file named cancel in the job folder
+    stops the write at the next checkpoint.
+.PARAMETER RequestFile
+    The request Atlas Manager writes in the job folder: the confirmed drive, the source
+    ISO, the app and the Atlas package's supported builds.
+.PARAMETER Operation
+    List reports eligible drives, Write erases the confirmed drive and writes the media,
+    and Eject ejects the confirmed drive.
+.NOTES
+    Exit codes: 0 done, 1 failed or cancelled. The error is on standard error and in
+    error.txt in the job folder.
+#>
 param(
     [Parameter(Mandatory=$true)][string]$RequestFile,
     [ValidateSet('List','Write','Eject')][string]$Operation = 'List'
@@ -142,7 +163,7 @@ function Format-AtlasUsb {
     param($ExpectedDrive, [long]$Capacity)
     Assert-AtlasUsbContinue
     $disk = Assert-AtlasUsbIdentity $ExpectedDrive
-    # Clear-Disk rejects an uninitialized (RAW) disk, such as one left by a
+    # Clear-Disk rejects an uninitialised (RAW) disk, such as one left by a
     # cancelled write or diskpart clean. Such a disk has nothing to clear.
     if ($disk.PartitionStyle -ne 'RAW') {
         Clear-Disk -InputObject $disk -RemoveData -RemoveOEM -Confirm:$false
@@ -192,7 +213,7 @@ function Copy-AtlasUsbFile {
 
 function Get-AtlasUsbDeviceHash {
     param([string]$Path)
-    # Pages just written stay in the file cache, where an ordinary read would
+    # Pages written a moment ago stay in the file cache, where an ordinary read would
     # find them. An unbuffered handle makes the file data come from the device.
     if (-not ('AtlasUsbDeviceReader' -as [type])) {
         Add-Type -TypeDefinition @'
@@ -336,6 +357,7 @@ public static class AtlasUsbEject {
  [DllImport("cfgmgr32.dll", CharSet=CharSet.Unicode)] public static extern uint CM_Request_Device_EjectW(uint node, out uint veto, StringBuilder name, uint length, uint flags);
  public static void Eject(string id) {
   uint node, veto; var name = new StringBuilder(260);
+  // Flags 0 is CM_LOCATE_DEVNODE_NORMAL; a result of 0 is CR_SUCCESS.
   uint result = CM_Locate_DevNodeW(out node, id, 0);
   if(result != 0) throw new InvalidOperationException("USB device could not be located: " + result);
   result = CM_Request_Device_EjectW(node, out veto, name, 260, 0);
@@ -385,6 +407,8 @@ function Invoke-AtlasUsbWorker {
             $scratch = Join-Path $PSScriptRoot 'split'
             [void][IO.Directory]::CreateDirectory($scratch)
             $workVolume = Get-Volume -DriveLetter $PSScriptRoot.Substring(0,1)
+            # The working WIM and its split parts, with room for an ESD export, which
+            # comes out larger than its source.
             $needed = [long]$large[0].bytes * 3 + 2GB
             if ($workVolume.SizeRemaining -lt $needed) { Fail 'working-space' 'There is not enough working space to prepare the Windows image.' }
             $wim = $images[0]

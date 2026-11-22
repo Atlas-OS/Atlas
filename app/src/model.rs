@@ -31,7 +31,7 @@ pub use elevation::ElevationProblem;
 pub use eligibility::InstallBlock;
 pub use install::{InstallAttempt, Preflight};
 pub use options::{FixedChoice, ScreenKind, UpdatePath};
-pub use package::{AcquireProblem, Acquisition, Origin, PlaybookSource, ReleaseCheck};
+pub use package::{AcquireProblem, Acquisition, Origin, PackageSource, ReleaseCheck};
 pub use preferences::{ProtectionReminder, ReminderReason};
 pub use restart::{OwedRestart, RestartConfirmation, RestartCountdown, RestartKind, RestartProblem};
 pub use transition::{RestoreStatus, StopQuestion};
@@ -49,7 +49,7 @@ pub use crate::flow::{Flow, RunState, Step};
 use crate::i18n::{self, Localization};
 use crate::services::atlas_state::{self, AtlasState};
 use crate::services::legacy_choices::Facts;
-use crate::services::playbook::{self, Manifest};
+use crate::services::package::Manifest;
 use crate::services::requirements::{CheckId, CheckResult};
 use crate::services::security::SecurityStatus;
 use crate::services::session::{SessionPaths, SessionRecord};
@@ -60,12 +60,19 @@ use crate::services::{self, desktop_setup, diagnostics, iso};
 
 use navigation::PendingStart;
 
+/// The page the window shows. One page shows at a time; the install steps
+/// are part of [`Page::Install`] and tracked by [`Flow`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Page {
+    /// Installed version, release notes and the way into the install flow.
     Home,
+    /// ISO creation and the Windows installation USB.
     Iso,
+    /// The install flow's four steps.
     Install,
+    /// The app's own settings, help and feedback, and About.
     Settings,
+    /// Send a report.
     Report,
     /// The completion window, opened by the completion Run entry after the
     /// install's restart (see `session::completion_after_restart`).
@@ -98,8 +105,14 @@ pub enum Notice {
     SessionUnreadable { error: String, record: PathBuf },
 }
 
+/// What the model tells the shell beyond a redraw: changes the shell applies
+/// to the window itself. Pages don't subscribe; they re-render on
+/// `cx.notify()`.
 pub enum ModelEvent {
+    /// The theme setting or the Ease of Access preferences it follows changed.
     ThemeChanged,
+    /// The language showing changed; the shell copies it into the GPUI global
+    /// and redraws every window.
     LanguageChanged,
     /// Something the user waited for while the window may be behind others
     /// has happened, such as Windows Update offering the new release.
@@ -146,6 +159,17 @@ pub enum CloseGuard {
     ProtectionOff,
 }
 
+/// All of the app's state and the background tasks that feed it, in one GPUI
+/// entity. Pages are thin views over it, and it notifies them when it changes.
+///
+/// Invariants its methods keep:
+/// - Anything that feeds an install (package, options, install settings)
+///   changes only while [`AppModel::locked`] is false.
+/// - The install flow moves only through [`Flow`]'s methods.
+/// - Each kind of background task carries a generation; starting a newer one
+///   makes older results stale, so a late result never lands in newer state.
+/// - Interface text is never stored. The model holds values and causes, with
+///   raw diagnostics as text, and `i18n::describe` words them at render time.
 pub struct AppModel {
     pub diagnostics_busy: bool,
     pub diagnostics_result: Option<Result<PathBuf, String>>,
@@ -248,7 +272,7 @@ pub struct AppModel {
     acquisition_cancel: Arc<AtomicBool>,
     /// When the running download last received data.
     download_heard: Instant,
-    pub playbook: Option<PlaybookSource>,
+    pub package: Option<PackageSource>,
     /// Download was chosen while the release check ran or had failed: the
     /// check, when it ends, starts the download wherever it was chosen.
     download_requested: bool,
@@ -344,9 +368,9 @@ impl AppModel {
         self.diagnostics_result = None;
         let root = self.env.paths.root.clone();
         let package = self
-            .playbook
+            .package
             .as_ref()
-            .and_then(|book| playbook::identity(&book.dir))
+            .and_then(|source| crate::services::package::identity(&source.dir))
             .and_then(|identity| serde_json::to_value(identity).ok());
         log::info!("Diagnostic export requested");
         cx.spawn(async move |this, cx| {
@@ -445,7 +469,7 @@ impl AppModel {
             acquisition_generation: Generation::default(),
             acquisition_cancel: Arc::new(AtomicBool::new(false)),
             download_heard: Instant::now(),
-            playbook: None,
+            package: None,
             download_requested: false,
             builtin_manifest,
             security: SecurityStatus::default(),

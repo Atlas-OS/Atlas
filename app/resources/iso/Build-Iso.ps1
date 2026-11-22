@@ -1,4 +1,25 @@
-# Host-side image worker. Never runs an Atlas package or writes host setup keys.
+<#
+.SYNOPSIS
+    Checks a Windows ISO and builds Atlas installation media from it.
+.DESCRIPTION
+    The host-side image worker. It never runs an Atlas package or writes the host's
+    setup keys. Atlas Manager stages it in a protected media job folder (see
+    Stage-App.ps1) and runs it elevated with -File; app\tools\Run-IsoValidation.ps1
+    runs it the same way outside the app.
+
+    It writes lines for the app on standard output: ATLAS_STAGE for each stage,
+    ATLAS_ERROR with a typed failure reason, ATLAS_RESULT with the ISO's editions, size
+    and architecture, and ATLAS_NOTE when this PC has no network drivers to copy. A file
+    named cancel in the job folder stops the build at the next stage.
+.PARAMETER RequestFile
+    The request.json Atlas Manager writes in the job folder: the source ISO, the output
+    path, the Atlas package and app to add, and the setup choices.
+.PARAMETER Operation
+    Inspect checks the ISO and reports what it contains. Build also writes the new ISO.
+.NOTES
+    Exit codes: 0 inspected or built, 1 failed or cancelled (the error is on standard
+    error).
+#>
 [CmdletBinding()]
 param([Parameter(Mandatory)][string]$RequestFile, [ValidateSet('Inspect', 'Build')][string]$Operation)
 # This elevated worker must never autoload a module from an inherited user path.
@@ -120,6 +141,75 @@ function Get-AtlasMediaEditions([string]$ImagePath, [int[]]$SupportedBuilds, [sw
         $info
     }
 }
+function Get-AtlasMediaTerms([string]$Image, [object[]]$Editions, [string]$Root, [string]$Job) {
+    if (-not ('AtlasIsoLicense' -as [type])) {
+        Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public static class AtlasIsoLicense {
+    [DllImport("wimgapi.dll", CharSet=CharSet.Unicode, ExactSpelling=true)]
+    static extern IntPtr WIMCreateFile(string path, uint access, uint disposition, uint flags, uint compression, out uint result);
+    [DllImport("wimgapi.dll", CharSet=CharSet.Unicode, ExactSpelling=true)]
+    static extern bool WIMSetTemporaryPath(IntPtr image, string path);
+    [DllImport("wimgapi.dll")] static extern IntPtr WIMLoadImage(IntPtr file, uint index);
+    [DllImport("wimgapi.dll", CharSet=CharSet.Unicode, ExactSpelling=true)]
+    static extern bool WIMExtractImagePath(IntPtr image, string source, string destination, uint flags);
+    [DllImport("wimgapi.dll")] static extern bool WIMCloseHandle(IntPtr handle);
+    public static bool Extract(string file, uint index, string source, string output, string temp) {
+        uint result;
+        IntPtr wim = WIMCreateFile(file, 0x80000000, 3, 0, 0, out result);
+        if (wim == IntPtr.Zero) return false;
+        try {
+            if (!WIMSetTemporaryPath(wim, temp)) return false;
+            IntPtr image = WIMLoadImage(wim, index);
+            if (image == IntPtr.Zero) return false;
+            try { return WIMExtractImagePath(image, source, output, 0); }
+            finally { WIMCloseHandle(image); }
+        } finally { WIMCloseHandle(wim); }
+    }
+}
+"@
+    }
+    $channel = '_Default'
+    $config = Join-Path $Root 'sources\ei.cfg'
+    if (Test-Path -LiteralPath $config) {
+        $ini = [IO.File]::ReadAllText($config)
+        if ($ini -match '(?im)^\[VL\]\s*1\s*$' -or $ini -match '(?im)^\[Channel\]\s*Volume\s*$') { $channel = 'Volume' }
+        elseif ($ini -match '(?im)^\[Channel\]\s*OEM\s*$') { $channel = 'OEM' }
+    }
+    foreach ($edition in $Editions) {
+        $digest = ''
+        $id = [string]$edition.EditionId
+        $languages = @($edition.Languages)
+        $lang = if ($edition.DefaultLanguageIndex -ge 0 -and $edition.DefaultLanguageIndex -lt $languages.Count) {
+            [string]$languages[$edition.DefaultLanguageIndex]
+        }
+        if ($id -ne 'EnterpriseEval' -and $id -match '^[a-zA-Z0-9]+$' -and $lang -match '^[a-zA-Z0-9-]+$') {
+            $inside = "\Windows\System32\$lang\Licenses\$channel\$id\license.rtf"
+            $file = Join-Path $Job ("license-" + [int]$edition.ImageIndex + '.rtf')
+            $baseEdition = if ($id.EndsWith('N')) { 'ProfessionalN' } else { 'Professional' }
+            # Business media can carry one shared volume agreement in the base Pro image.
+            if ([AtlasIsoLicense]::Extract($Image, $edition.ImageIndex, $inside, $file, $Job) -or
+                ($channel -eq 'Volume' -and [AtlasIsoLicense]::Extract($Image, $edition.ImageIndex, "\Windows\System32\$lang\Licenses\Volume\$baseEdition\license.rtf", $file, $Job)) -or
+                [AtlasIsoLicense]::Extract($Image, $edition.ImageIndex, '\Windows\System32\license.rtf', $file, $Job)) {
+                $candidateHash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
+                Add-Type -AssemblyName System.Windows.Forms
+                $reader = New-Object Windows.Forms.RichTextBox
+                try {
+                    $reader.LoadFile($file)
+                    $textFile = Join-Path $Job ("windows-terms-" + $candidateHash + '.txt')
+                    if (![string]::IsNullOrWhiteSpace($reader.Text)) {
+                        [IO.File]::WriteAllText($textFile, $reader.Text, [Text.Encoding]::UTF8)
+                        $digest = $candidateHash
+                    }
+                } catch [ArgumentException] {
+                    Write-Verbose "Could not read the licence terms for $id. Windows Setup will display them."
+                } finally { $reader.Dispose() }
+            }
+        }
+        $digest
+    }
+}
 function Export-AtlasMediaEditions([string]$SourceImage, [string]$DestinationImage, [object[]]$Editions) {
     if (Test-Path -LiteralPath $DestinationImage) { throw 'The filtered Windows image already exists.' }
     if ($Editions.Count -eq 0) { Fail 'edition-unsupported' 'The ISO contains no supported Windows editions.' }
@@ -175,18 +265,32 @@ try {
         if (-not (Test-Path -LiteralPath (Join-Path $root $relative) -PathType Leaf)) { Fail 'windows-unsupported' "Windows $architecture boot file missing: $relative" }
     }
     if ($request.copyNetworkDrivers) {
+        # Win32_Processor reports architecture with the same codes as DISM.
         $hostArchitectures = @(Get-CimInstance Win32_Processor | Select-Object -ExpandProperty Architecture -Unique)
         if ($hostArchitectures.Count -ne 1 -or [int]$hostArchitectures[0] -ne [int]$supportedEditions[0].Architecture) {
             Fail 'network-architecture' 'Network drivers cannot be copied between x64 and ARM64. Choose media for this PC or turn off network driver copying.'
         }
     }
-    Write-Output ('ATLAS_RESULT:' + (@{ editions = $editions; bytes = (Get-Item -LiteralPath $source).Length; architecture = $architecture } | ConvertTo-Json -Compress))
+    $acceptedTerms = if ($request.PSObject.Properties['acceptedTerms']) { [string]$request.acceptedTerms }
+    $chosenEdition = if ($request.PSObject.Properties['edition']) { [string]$request.edition }
+    if ($chosenEdition) {
+        $supportedEditions = @($supportedEditions | Where-Object { $_.ImageName -ceq $chosenEdition })
+        if ($supportedEditions.Count -ne 1) { Fail 'edition-unsupported' 'The selected edition is no longer available. Check the ISO again.' }
+    }
+    $editionTerms = @()
+    if ($Operation -eq 'Inspect' -or $acceptedTerms) {
+        $editionTerms = @(Get-AtlasMediaTerms $images[0] $supportedEditions $root $job)
+    }
+    if ($acceptedTerms -and (@($editionTerms | Where-Object { $_ -cne $acceptedTerms }).Count -or !$editionTerms.Count)) {
+        throw 'The Windows licence terms changed. Check the files and review the terms again.'
+    }
+    Write-Output ('ATLAS_RESULT:' + (@{ editions = $editions; editionTerms = $editionTerms; bytes = (Get-Item -LiteralPath $source).Length; architecture = $architecture } | ConvertTo-Json -Compress))
     if ($Operation -eq 'Inspect') { exit 0 }
     if ($request.mode -notin @('interactive', 'configured', 'before-desktop')) { throw 'Unknown setup mode.' }
     if ($request.copyNetworkDrivers -and -not $request.reinstallThisPc) { throw 'Network driver copying is only available when reinstalling this PC.' }
     if ($request.updateNetworkDrivers -and -not $request.copyNetworkDrivers) { throw 'Network driver updates require network driver copying.' }
-    [xml]$packageManifest = Get-Content -LiteralPath (Join-Path $request.package 'playbook.conf') -Raw
-    $packageVersion = [version]([string]$packageManifest.Playbook.Version -replace '-.*$', '')
+    $packageManifest = Get-Content -LiteralPath (Join-Path $request.package 'atlas.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+    $packageVersion = [version]([string]$packageManifest.version -replace '-.*$', '')
     if ($packageVersion -lt [version]'0.6.0') { throw 'ISO creation requires Atlas 0.6.0 or newer.' }
     Assert-PlainTree $request.package
     if ($request.mode -ne 'interactive') {
@@ -196,7 +300,8 @@ try {
     $id = [guid]::NewGuid().ToString('N')
     $work = Join-Path $parent ".atlas-iso-$id"
     $partial = Join-Path $parent ".atlas-iso-$id.partial"
-    # The elevated worker creates the private tree with its final ACL atomically.
+    # The elevated worker creates the private tree with its final ACL atomically:
+    # full control for SYSTEM (S-1-5-18) and Administrators (S-1-5-32-544) only.
     $acl = New-Object Security.AccessControl.DirectorySecurity
     $acl.SetAccessRuleProtection($true, $false)
     foreach ($sid in @('S-1-5-18', 'S-1-5-32-544')) {
@@ -229,11 +334,11 @@ try {
     $atlasIso = 'sources\$OEM$\$$\AtlasISO'
     $target = Join-Path $media $atlasIso
     [void][IO.Directory]::CreateDirectory($target)
-    $payload = [ordered]@{ 'AtlasManager.exe' = $request.app; 'Atlas.apbx' = $request.archive }
+    $payload = [ordered]@{ 'AtlasManager.exe' = $request.app; 'Atlas.atlaspkg' = $request.archive }
     foreach ($name in @('Setup.ps1', 'Desktop.ps1', 'Desktop-Policy.ps1', 'RegistryFile.ps1', 'THIRD-PARTY-NOTICES.txt', 'DriverPolicy.reg')) {
         $payload[$name] = Join-Path $job $name
     }
-    # The app installs from Atlas.apbx. The unpacked package stays off the media:
+    # The app installs from Atlas.atlaspkg. The unpacked package stays off the media:
     # its deepest launchers pass MAX_PATH under a workspace in the user's folders.
     foreach ($name in $payload.Keys) { Copy-Item -LiteralPath $payload[$name] -Destination (Join-Path $target $name) }
     $username = [string]$request.username
@@ -241,13 +346,15 @@ try {
     if ($request.drivers -notin @('automatic','manual')) { throw 'Choose an automatic or manual driver policy.' }
     $config = @{ schema = 2; mode = $request.mode; options = @($request.options); username = $username; drivers = $request.drivers }
     [IO.File]::WriteAllText((Join-Path $target 'setup.json'), ($config | ConvertTo-Json -Compress), (New-Object Text.UTF8Encoding($false)))
+    # ProtectYourPC answers the OOBE Express settings question, so OOBE doesn't ask it;
+    # 3 is Microsoft's documented value for automatic protection turned off.
     $answer = @'
 <?xml version="1.0" encoding="utf-8"?>
 <unattend xmlns="urn:schemas-microsoft-com:unattend">
   <settings pass="windowsPE">
     <component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
       <EnableFirewall>true</EnableFirewall>
-      <UserData><ProductKey><WillShowUI>Always</WillShowUI></ProductKey></UserData>
+      <UserData><AcceptEula>false</AcceptEula><ProductKey><WillShowUI>Always</WillShowUI></ProductKey></UserData>
       <ImageInstall><OSImage><WillShowUI>Always</WillShowUI></OSImage></ImageInstall>
     </component>
   </settings>
@@ -268,7 +375,7 @@ try {
       <RegisteredOwner>ATLAS_LOCAL_ACCOUNT</RegisteredOwner>
       <OOBE>
         <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
-        <HideEULAPage>true</HideEULAPage>
+        <HideEULAPage>false</HideEULAPage>
         <ProtectYourPC>3</ProtectYourPC>
       </OOBE>
       <UserAccounts><LocalAccounts><LocalAccount xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" wcm:action="add">
@@ -291,15 +398,26 @@ try {
     $namespace = New-Object Xml.XmlNamespaceManager($document.NameTable)
     $namespace.AddNamespace('u', 'urn:schemas-microsoft-com:unattend')
     foreach ($node in $document.SelectNodes('//u:LocalAccount/u:Name | //u:AutoLogon/u:Username | //u:RegisteredOwner', $namespace)) { $node.InnerText = $username }
+    if ($acceptedTerms) {
+        $document.SelectSingleNode('//u:UserData/u:AcceptEula', $namespace).InnerText = 'true'
+        $document.SelectSingleNode('//u:OOBE/u:HideEULAPage', $namespace).InnerText = 'true'
+    }
     $answer = $document.OuterXml
-    # Setup caches an answer file only if it has settings for the current pass, so
-    # the windowsPE section restates Setup's defaults: firewall on, key and edition
-    # still asked. The sources\ and Sysprep copies cover Setup's other search paths.
-    [IO.File]::WriteAllText((Join-Path $media 'autounattend.xml'), $answer, (New-Object Text.UTF8Encoding($false)))
-    [IO.File]::WriteAllText((Join-Path $media 'sources\autounattend.xml'), $answer, (New-Object Text.UTF8Encoding($false)))
-    $sysprep = Join-Path $media 'sources\$OEM$\$$\System32\Sysprep'
-    [void][IO.Directory]::CreateDirectory($sysprep)
-    [IO.File]::WriteAllText((Join-Path $sysprep 'unattend.xml'), $answer, (New-Object Text.UTF8Encoding($false)))
+    # An answer file in WinPE overrides the source's EI.cfg. Enterprise Evaluation
+    # relies on that file to select its keyless evaluation channel. On that media,
+    # deliver the answer to the installed OS for specialize and first sign-in.
+    $answerPaths = @('sources\$OEM$\$$\System32\Sysprep\unattend.xml')
+    if ($supportedEditions.Count -eq 1 -and $supportedEditions[0].EditionId -eq 'EnterpriseEval') {
+        $answerPaths += 'sources\$OEM$\$$\Panther\unattend.xml'
+    }
+    else {
+        $answerPaths += @('autounattend.xml', 'sources\autounattend.xml')
+    }
+    foreach ($relative in $answerPaths) {
+        $destination = Join-Path $media $relative
+        [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($destination))
+        [IO.File]::WriteAllText($destination, $answer, (New-Object Text.UTF8Encoding($false)))
+    }
     # This PC's network drivers come last, so each stage is reported once, in order.
     $networkIncluded = $false
     if ($request.copyNetworkDrivers) {
@@ -335,8 +453,9 @@ try {
         if ($checkVolumes.Count -ne 1) { throw 'Output volume is unreadable.' }
         $checkRoot = "$($checkVolumes[0].DriveLetter):\"
         # The staged image, not the source: it may be the filtered export.
-        $expected = @($imageRelative, 'autounattend.xml', 'sources\autounattend.xml', 'sources\$OEM$\$$\System32\Sysprep\unattend.xml', 'sources\boot.wim', 'efi\microsoft\boot\efisys.bin') + $bootFiles
+        $expected = @($imageRelative, 'sources\boot.wim', 'efi\microsoft\boot\efisys.bin') + $bootFiles
         $expected += @(@($payload.Keys) + 'setup.json' | ForEach-Object { Join-Path $atlasIso $_ })
+        $expected += $answerPaths
         if ($networkIncluded) {
             $expected += @(@(Get-ChildItem -LiteralPath $networkRoot -File -Force -Recurse) + @(Get-Item -LiteralPath (Join-Path $target 'network-drivers.json')) |
                 ForEach-Object { $_.FullName.Substring($media.Length + 1) })

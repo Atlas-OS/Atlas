@@ -13,7 +13,7 @@ use super::options::OptionScreen;
 use super::{AppModel, FixedChoice, ScreenKind, UpdatePath};
 use crate::services::atlas_state::{InstallIdentity, InstallMode};
 use crate::services::legacy_choices::{self, Facts};
-use crate::services::playbook::PageKind;
+use crate::services::package::ChoiceKind;
 use crate::services::releases::AtlasVersion;
 
 /// The option that removes Microsoft Edge.
@@ -124,7 +124,7 @@ impl AppModel {
         let manifest = self.manifest();
         screen.required
             && !screen.pages.iter().any(|&index| {
-                manifest.pages[index].options.iter().any(|option| options.contains(&option.name))
+                manifest.choices[index].options.iter().any(|option| options.contains(&option.id))
             })
     }
 
@@ -161,15 +161,11 @@ impl AppModel {
         let manifest = self.manifest();
         let mut differs = Vec::new();
         if let Some(recorded) = recorded {
-            for page in &manifest.pages {
+            for page in &manifest.choices {
                 let chosen = |options: &[String]| -> BTreeSet<String> {
-                    page.options
-                        .iter()
-                        .filter(|o| options.contains(&o.name))
-                        .map(|o| o.name.clone())
-                        .collect()
+                    page.options.iter().filter(|o| options.contains(&o.id)).map(|o| o.id.clone()).collect()
                 };
-                let kind = ScreenKind::of_page(page);
+                let kind = ScreenKind::of_choice(page);
                 if chosen(&recorded) != chosen(&kept) && !differs.contains(&kind) {
                     differs.push(kind);
                 }
@@ -248,7 +244,7 @@ impl AppModel {
                 && screen
                     .pages
                     .iter()
-                    .any(|&page| manifest.pages[page].options.iter().any(|o| o.name == name))
+                    .any(|&page| manifest.choices[page].options.iter().any(|o| o.id == name))
         })
     }
 
@@ -337,17 +333,17 @@ impl AppModel {
         let manifest = self.manifest();
         // The browser picker too: a record names a browser only when one was
         // installed, and the installer refuses the picker left empty once shown.
-        for page in manifest.pages.iter().filter(|page| page.kind == PageKind::Radio) {
-            if page.options.iter().any(|option| options.contains(&option.name)) {
+        for page in manifest.choices.iter().filter(|page| page.kind == ChoiceKind::Single) {
+            if page.options.iter().any(|option| options.contains(&option.id)) {
                 continue;
             }
             let current = page
                 .options
                 .iter()
-                .find(|option| self.options.contains(&option.name))
+                .find(|option| self.options.contains(&option.id))
                 .or_else(|| page.options.iter().find(|option| option.default));
             if let Some(current) = current {
-                options.insert(current.name.clone());
+                options.insert(current.id.clone());
             }
         }
         self.options = options;

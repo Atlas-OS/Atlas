@@ -6,11 +6,10 @@
 # MacOS
 .DS_Store
 
-# Playbooks
-*.apbx
-*.apbx.tmp
-*.apbx.*.building.tmp*
-*.apbx.*.replaced.bak
+# Built Atlas packages and their temporary files
+*.atlaspkg
+*.atlaspkg.tmp
+*.atlaspkg.*.building.tmp*
 
 # Installation media and disposable virtual machines
 *.iso
@@ -21,7 +20,7 @@
 *.vmdk
 *.qcow2
 
-# Local credentials and signing keys (never payload inputs)
+# Local credentials and signing keys (never package inputs)
 .env
 .env.*
 !.env.example

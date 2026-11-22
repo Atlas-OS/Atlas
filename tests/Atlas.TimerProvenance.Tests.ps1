@@ -7,15 +7,15 @@ Describe 'Timer source provenance' {
     }
     It 'includes the reviewed executable bytes recorded by the accepted build' {
         $paths = @{
-            'SetTimerResolution.exe' = 'playbook/Executables/AtlasModules/Tools/SetTimerResolution.exe'
-            'MeasureSleep.exe' = 'playbook/Executables/AtlasDesktop/3. General Configuration/Timer Resolution/! MeasureSleep.exe'
+            'SetTimerResolution.exe' = 'package/Executables/AtlasModules/Tools/SetTimerResolution.exe'
+            'MeasureSleep.exe' = 'package/Executables/AtlasDesktop/3. General Configuration/Timer Resolution/! MeasureSleep.exe'
         }
         foreach ($output in $manifest.outputs) {
             (Get-FileHash (Join-Path $repo $paths[$output.name]) -Algorithm SHA256).Hash | Should -Be $output.sha256
         }
     }
     It 'keeps the complete accepted source inputs and licenses in the source archive' {
-        $zip = [IO.Compression.ZipFile]::OpenRead((Join-Path $repo 'playbook/Executables/AtlasModules/Sources/TimerResolution-source.zip'))
+        $zip = [IO.Compression.ZipFile]::OpenRead((Join-Path $repo 'package/Executables/AtlasModules/Sources/TimerResolution-source.zip'))
         try {
             $zip.Entries.Count | Should -Be $manifest.sourceFiles.Count
             foreach ($sourceFile in $manifest.sourceFiles) {

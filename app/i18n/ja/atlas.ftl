@@ -11,9 +11,8 @@
 ###   where the wording changes.
 ### - "Relaunch" (the Atlas Manager) is 再実行 / 開き直す; "restart" (the PC or
 ###   Windows) is 再起動. Never swap them.
-### - "Atlas package" (the .apbx file) is "Atlas パッケージ", shortened to
+### - "Atlas package" (the .atlaspkg file) is "Atlas パッケージ", shortened to
 ###   "パッケージ" once it's clear; "package file" is パッケージ ファイル.
-###   AME Wizard's own name for it appears only where a string explains that.
 
 ## 共通
 
@@ -95,9 +94,9 @@ window-close-restart-close = 再起動せずに閉じる
 # window-close-keep, common-open-windows-security and window-close-close.
 window-close-protection-title = 保護がオフのまま Atlas を閉じますか?
 window-close-protection-message = Windows セキュリティの一部の保護がまだオフになっています: { $switches }。Atlas のインストールを最後まで行わない場合は、閉じる前に保護をオンに戻してください。インストールを続ける場合は、Atlas をもう一度開くとセットアップを再開します。
-# The Open button of the file picker for an Atlas package (.apbx) file, on Get ready and the
+# The Open button of the file picker for an Atlas package (.atlaspkg) file, on Get ready and the
 # ISO page. It's a button label, so keep it short.
-file-dialog-open-package = Atlas パッケージ (.apbx) を開く
+file-dialog-open-package = Atlas パッケージ (.atlaspkg) を開く
 # Message Windows shows in its restart notification.
 shutdown-comment = Atlas のインストールが完了しました。セットアップを完了するため、Windows を再起動します。
 # Message Windows shows in its restart notification when "Get ready" restarts
@@ -155,9 +154,6 @@ home-show-full-notes = リリース ノートをすべて表示
 home-your-install = Atlas のインストール情報
 # Atlas is installed, but without the record Atlas Manager keeps (older versions didn't write one).
 home-install-unrecorded = この PC には Atlas のインストール方法の記録がないため、選択内容とインストール履歴を表示できません。
-# Row label: how Atlas was set up.
-home-set-up = セットアップ方法
-home-set-up-during-oobe = Windows のセットアップ中
 home-history = インストール履歴
 # One history row. $version is text, $mode one of the history-mode-* messages, $date a formatted date and time.
 home-history-entry = Atlas { $version } · { $mode } · { $date }
@@ -241,7 +237,11 @@ ready-banner-busy-message = Atlas が PC を確認し、インストール フ�
 ready-banner-blocked-title = PC の準備がまだできていません
 ready-banner-blocked-message = 「PC の確認」で示された項目に対処してから、「もう一度確認」を選んでください。
 ready-banner-no-package-title = 続行するには Atlas をダウンロードしてください
-ready-banner-no-package-message = 「インストール ファイル」で Atlas をダウンロードするか、Atlas パッケージ (.apbx) をお持ちの場合は「パッケージ ファイルを開く」を選んでください。
+ready-banner-no-package-message = 「インストール ファイル」で Atlas をダウンロードするか、Atlas パッケージ (.atlaspkg) をお持ちの場合は「パッケージ ファイルを開く」を選んでください。
+# The package tried needs a newer Atlas Manager. The title is also the footer's hint then.
+ready-banner-manager-title = 続行するには新しい Atlas Manager をダウンロードしてください
+# "Download Atlas Manager" is manager-download, the button in Installation files (package-title).
+ready-banner-manager-message = 「インストール ファイル」で「Atlas Manager をダウンロード」を選んでから、このバージョンの代わりに新しいバージョンを使ってください。
 # Tester build: the bundled Atlas package couldn't be unpacked.
 ready-banner-no-package-bundled-title = 続行するには同梱の Atlas パッケージを準備してください
 ready-banner-no-package-bundled-message = このテスト ビルドに同梱された Atlas パッケージはまだ準備できていません。「インストール ファイル」カードを確認してください。
@@ -282,10 +282,10 @@ package-unpacking = 展開中
 package-looking = 最新の Atlas バージョンを確認しています。
 # Tester build: the bundled Atlas package is being unpacked, nothing is downloaded.
 package-looking-bundled = 同梱の Atlas パッケージを準備しています。
-package-none = Atlas をダウンロードして、インストール ファイルを入手してください。Atlas パッケージ (.apbx) をすでにお持ちの場合は、代わりにそれを開いてください。
+package-none = Atlas をダウンロードして、インストール ファイルを入手してください。Atlas パッケージ (.atlaspkg) をすでにお持ちの場合は、代わりにそれを開いてください。
 # The GitHub release check failed. "最新バージョンをダウンロード" is package-download-newest,
 # the button offered in this state; it checks again.
-package-release-failed = Atlas は最新バージョンを確認できませんでした。インターネット接続を確認してから「最新バージョンをダウンロード」を選ぶか、保存済みの Atlas パッケージ (.apbx) を開いてください。
+package-release-failed = Atlas は最新バージョンを確認できませんでした。インターネット接続を確認してから「最新バージョンをダウンロード」を選ぶか、保存済みの Atlas パッケージ (.atlaspkg) を開いてください。
 # Short status words beside the card title.
 package-status-downloading = ダウンロード中
 package-status-unpacking = 展開中
@@ -306,15 +306,31 @@ package-from-release = Atlas { $version } を GitHub からダウンロードし
 package-from-file = Atlas { $version } を { $file } から読み込みました。インストールの準備ができています。
 package-unpacked = Atlas { $version } のインストール準備ができています。
 package-none-yet = インストール ファイルが選択されていません
-acquire-no-asset = Atlas { $version } にはダウンロードできるパッケージ ファイルがありません。続行するには、保存済みの Atlas パッケージ (.apbx) を開いてください。
-acquire-unsupported = このアプリでインストールできるのは Atlas 0.6.0 以降です。Atlas { $version } をインストールするには、代わりに AME Wizard を使ってください。
+acquire-no-asset = Atlas { $version } にはダウンロードできるパッケージ ファイルがありません。続行するには、保存済みの Atlas パッケージ (.atlaspkg) を開いてください。
+# Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
+# .apbx file from an Atlas release before 0.6.
+acquire-unsupported = このアプリでインストールできるのは Atlas 0.6.0 以降の Atlas パッケージ (.atlaspkg) です。
 # A package new enough to include the installer script that this app drives, but without it.
-acquire-incomplete = Atlas { $version } には、このアプリでのインストールに必要なファイルが含まれていません。もう一度ダウンロードするか、別の Atlas パッケージ (.apbx) を開いてください。
-acquire-failed = インストール ファイルを準備できませんでした。もう一度ダウンロードするか、別の Atlas パッケージ (.apbx) を開いてください。詳細: { $error }
+acquire-incomplete = Atlas { $version } には、このアプリでのインストールに必要なファイルが含まれていません。もう一度ダウンロードするか、別の Atlas パッケージ (.atlaspkg) を開いてください。
+acquire-failed = インストール ファイルを準備できませんでした。もう一度ダウンロードするか、別の Atlas パッケージ (.atlaspkg) を開いてください。詳細: { $error }
 # The download received nothing for a minute and was stopped.
-acquire-stalled = ダウンロードが応答しなくなりました。インターネット接続を確認してからもう一度ダウンロードするか、保存済みの Atlas パッケージ (.apbx) を開いてください。
+acquire-stalled = ダウンロードが応答しなくなりました。インターネット接続を確認してからもう一度ダウンロードするか、保存済みの Atlas パッケージ (.atlaspkg) を開いてください。
 # Tester build: the bundled Atlas package couldn't be unpacked. Try again is the only control offered.
 acquire-failed-bundled = 同梱の Atlas パッケージを準備できませんでした。「再試行」を選んでください。詳細: { $error }
+# The Atlas package asks for a newer Atlas Manager than this one. $version is the version it asks for,
+# such as 0.7.0. "Download Atlas Manager" is manager-download, the button beside the message.
+acquire-manager-outdated = この Atlas パッケージには Atlas Manager { $version } 以降が必要です。「Atlas Manager をダウンロード」を選んでから、このバージョンの代わりに新しいバージョンを使ってください。
+# The same, for a package that doesn't say which version it needs.
+acquire-manager-outdated-any = この Atlas パッケージには新しいバージョンの Atlas Manager が必要です。「Atlas Manager をダウンロード」を選んでから、このバージョンの代わりに新しいバージョンを使ってください。
+
+## 新しい Atlas Manager
+
+# Opens the latest Atlas release on GitHub in the browser, where Atlas Manager is downloaded.
+manager-download = Atlas Manager をダウンロード
+# A note on Home and in Settings that a newer Atlas Manager has been released. $version is its
+# version, such as 0.7.0. The note doesn't stop anything; manager-download is its button.
+manager-update-title = Atlas Manager { $version } が利用可能です
+manager-update-message = Atlas Manager は自身を更新できません。新しいバージョンをダウンロードして、このバージョンの代わりに使ってください。
 
 ## システム チェック
 
@@ -416,33 +432,33 @@ consequence-auto-updates-disable = 定期的に Windows Update を開いて、�
 consequence-auto-updates-default = Windows がセキュリティ修正を含む更新プログラムを自動的にインストールします。
 
 ## Atlas パッケージのテキスト
-## The Atlas package carries its own English text for each option. These
-## UI labels and explanations are used only when the package text matches
-## i18n/playbook-source.ftl. A future package with different wording keeps
-## its own text instead of receiving a potentially outdated description.
+## Labels and descriptions for the Atlas package's options and choices, by
+## their ids in the package's atlas.json. The app shows these in place of the
+## package's own English text; an option or choice that a newer package adds,
+## which has no message here, shows the package's English.
 
-playbook-option-defender-enable = Microsoft Defender を残す (推奨)
-playbook-option-defender-disable = Microsoft Defender を削除する
-playbook-option-mitigations-default = プロセッサの保護を維持する (推奨)
-playbook-option-mitigations-disable = プロセッサの保護をオフにする
-playbook-option-auto-updates-disable = 更新プログラムを自分でインストールする
-playbook-option-auto-updates-default = 更新プログラムを自動的にインストールする
-playbook-option-disable-hibernation = 休止状態をオフにする
-playbook-option-disable-power-saving = 省電力機能をオフにする
-playbook-option-disable-core-isolation = 仮想化ベースのセキュリティ (VBS) をオフにする
-playbook-option-remove-snipping-tool = Snipping Tool を削除する
-playbook-option-uninstall-edge = Microsoft Edge を削除する
-playbook-option-install-another-browser = ブラウザーをインストールする
-playbook-option-install-toolbox = Atlas Toolbox をインストールする
-playbook-option-install-eclean = eclean をインストールする
-playbook-option-browser-brave = Brave
-playbook-option-browser-librewolf = LibreWolf
-playbook-option-browser-firefox = Firefox
-playbook-option-browser-chrome = Chrome
-playbook-page-defender-enable-description = Microsoft Defender は Windows に組み込まれたウイルス対策です。削除するのは、リスクを理解したうえで、別のウイルス対策アプリを使う予定がある場合だけにしてください。どちらを選んでも、Atlas はスマート アプリ コントロール、拡張フィッシング保護、デバイスの検索をオフにします。
-playbook-page-mitigations-default-description = これらの保護はセキュリティの軽減策とも呼ばれ、Spectre や Meltdown などのプロセッサの欠陥や、アプリのバグを悪用する攻撃から PC を守ります。Windows の既定のまま維持することをおすすめします。
-playbook-page-auto-updates-disable-description = Windows の更新プログラムには、セキュリティ修正が含まれています。Windows に自動でインストールさせることも、自分でインストールすることもできます。どちらの場合も、Atlas は Windows を現在のバージョンのまま維持します。このバージョンにセキュリティ修正が提供されるのは、Microsoft のサポートが終了するまでです。また、Atlas は Microsoft Store アプリの自動更新をオフにするため、Store アプリは Microsoft Store で更新してください。
-playbook-page-browser-brave-description = インストールするブラウザーを選んでください。Atlas はブラウザーの設定を変更しません。
+package-option-defender-enable = Microsoft Defender を残す (推奨)
+package-option-defender-disable = Microsoft Defender を削除する
+package-option-mitigations-default = プロセッサの保護を維持する (推奨)
+package-option-mitigations-disable = プロセッサの保護をオフにする
+package-option-auto-updates-disable = 更新プログラムを自分でインストールする
+package-option-auto-updates-default = 更新プログラムを自動的にインストールする
+package-option-disable-hibernation = 休止状態をオフにする
+package-option-disable-power-saving = 省電力機能をオフにする
+package-option-disable-core-isolation = 仮想化ベースのセキュリティ (VBS) をオフにする
+package-option-remove-snipping-tool = Snipping Tool を削除する
+package-option-uninstall-edge = Microsoft Edge を削除する
+package-option-install-another-browser = ブラウザーをインストールする
+package-option-install-toolbox = Atlas Toolbox をインストールする
+package-option-install-eclean = eclean をインストールする
+package-option-browser-brave = Brave
+package-option-browser-librewolf = LibreWolf
+package-option-browser-firefox = Firefox
+package-option-browser-chrome = Chrome
+package-choice-defender-description = Microsoft Defender は Windows に組み込まれたウイルス対策です。削除するのは、リスクを理解したうえで、別のウイルス対策アプリを使う予定がある場合だけにしてください。どちらを選んでも、Atlas はスマート アプリ コントロール、拡張フィッシング保護、デバイスの検索をオフにします。
+package-choice-mitigations-description = これらの保護はセキュリティの軽減策とも呼ばれ、Spectre や Meltdown などのプロセッサの欠陥や、アプリのバグを悪用する攻撃から PC を守ります。Windows の既定のまま維持することをおすすめします。
+package-choice-auto-updates-description = Windows の更新プログラムには、セキュリティ修正が含まれています。Windows に自動でインストールさせることも、自分でインストールすることもできます。どちらの場合も、Atlas は Windows を現在のバージョンのまま維持します。このバージョンにセキュリティ修正が提供されるのは、Microsoft のサポートが終了するまでです。また、Atlas は Microsoft Store アプリの自動更新をオフにするため、Store アプリは Microsoft Store で更新してください。
+package-choice-browser-description = インストールするブラウザーを選んでください。Atlas はブラウザーの設定を変更しません。
 
 ## 手順 3: Windows セキュリティ
 
@@ -545,7 +561,7 @@ output-problem-title = インストールの進行状況を読み取れません
 output-problem-message = Atlas はログを読み取れませんでした。インストールが停止したとは限りません。PC の電源を切らずに、ログ ファイルを開いてみてください。詳細: { $error }
 install-elevate-title = インストールには管理者権限が必要です
 install-no-package-title = 先にインストール ファイルを選んでください
-install-no-package-message = 「準備」に戻って Atlas をダウンロードするか、保存済みの Atlas パッケージ (.apbx) を開いてください。
+install-no-package-message = 「準備」に戻って Atlas をダウンロードするか、保存済みの Atlas パッケージ (.atlaspkg) を開いてください。
 # Tester build variant of install-no-package-message.
 install-no-package-bundled-message = 「準備」に戻って、このテスト ビルドに同梱された Atlas パッケージを準備してください。
 # Step 4 when step 1 is incomplete for this session (checks or Windows updates), with go-to-ready as the button.
@@ -647,6 +663,7 @@ settings-language-formats = 数値、日付、時刻は Windows の地域設定�
 # right to left. $locale is the format's English name, for example "Arabic (Saudi Arabia)".
 settings-language-formats-numbers-only = 数値は Windows の地域設定の形式 ({ $locale }) に従います。Atlas はまだ右から左に書くテキストを表示できないため、日付と時刻には標準の形式を使用します。
 settings-language-contribute = GitHub で Atlas の翻訳に協力する
+settings-usage-analytics = 表示した画面、ISO の作成、インストール結果を Atlas と共有する
 settings-restart-label = インストール後に PC を自動的に再起動する
 settings-restart-locked = この設定はインストールが終わってから変更できます。
 settings-restart-description = オンにすると、インストールの完了後 1 分以内に PC が再起動し、開いているアプリはすべて閉じられます。インストールする前に作業を保存してください。
@@ -681,25 +698,31 @@ consequence-install-eclean = セットアップ後の PC を整える、AtlasOS 
 # Introduction on the home page before Atlas is installed.
 home-intro = Atlas は Windows を調整して、バックグラウンドの動作や気を散らす要素を減らします。Windows を新規インストールしたら、ご自身のアプリやファイルを追加する前に Atlas をインストールしてください。
 
-## ISO creation (Beta)
+## ISO creation
 iso-home-title = Windows インストール メディア
 iso-home-description = Atlas を含む Windows のインストール ファイル (ISO) を作成して、この PC や別の PC での Windows の再インストールに使用できます。
 iso-open = Atlas ISO を作成
 iso-title = Atlas ISO を作成
-iso-beta = ベータ
-iso-beta-description = PC で使用する前に、仮想マシンで ISO をテストしてください。Windows のインストール前にファイルをバックアップしてください。
+iso-recommended = おすすめ
 iso-admin-description = Windows ISO を読み取って新しい ISO を作成するには、Atlas に管理者権限が必要です。「管理者として再実行」を選び、Windows で確認が表示されたら「はい」を選んでください。
-iso-files-description = Atlas は、Windows の再インストールに使えるよう、Atlas を追加した Windows 11 ISO のコピーを作成します。Microsoft からダウンロードした Windows 11 ISO を選び、最新の Atlas パッケージをダウンロードするかお持ちのパッケージ (.apbx) を選んでから、新しい ISO の保存先を選んでください。
-# Tester build: no package picker.
-iso-files-description-bundled = Atlas は、このテスト ビルドに同梱された Atlas パッケージを Windows 11 ISO に追加したコピーを作成します。Microsoft からダウンロードした Windows 11 ISO を選んでから、新しい ISO の保存先を選んでください。
 iso-source = Windows ISO
+iso-download-recommended = Microsoft からダウンロード（推奨）
+iso-source-question = Windows はどこから入手しますか？
+iso-use-local = ISO ファイルを選ぶ
+iso-package-latest-label = 最新版
+iso-package-latest = 最新の Atlas パッケージ
+iso-package-unavailable = このバージョンの Manager に対応する Atlas パッケージを選んでください。
+iso-save-name = 保存名：{ $name }
 iso-source-download = Microsoft から Windows 11 をダウンロード
-# $minimum is the first Atlas version that can be used (text, such as 0.6.0).
-iso-package = Atlas パッケージ ({ $minimum } 以降)
+iso-download-arch = アーキテクチャ
+iso-download-languages = 言語を読み込み中…
+iso-download-list-error = Windows の言語を読み込めませんでした。もう一度試すか、Microsoft のサイトから ISO をダウンロードしてください。
+iso-download-file-error = ISO を保存できませんでした。接続と空き容量を確認し、新しいファイル名でもう一度お試しください。
+iso-download-website = Microsoft のダウンロードページを開く
+iso-download-progress = Windows をダウンロード中 · { $total } 中 { $received }
+iso-download-starting = Windows のダウンロードを準備中…
 iso-output = 新しい ISO の保存先
 iso-no-file = ファイル未選択
-iso-browse = 参照
-iso-save-as = 名前を付けて保存
 # Accessible name of the Browse or Save as button beside a file field: $action is
 # that button's text and $field the field's label.
 iso-pick-a11y = { $action }: { $field }
@@ -728,6 +751,9 @@ iso-step-review = 確認
 iso-review-package = Atlas パッケージ
 iso-review-output = 新しい ISO
 iso-review-editions = エディション
+iso-edition = Windows エディション
+iso-edition-auto = Windows セットアップ時に選択
+iso-accept-terms = Windows のマイクロソフト ソフトウェア ライセンス条項に同意します
 iso-architecture-x64 = x64
 iso-architecture-arm64 = Arm64
 # A file size; $size is a formatted number (text). Megabytes below a gigabyte.
@@ -757,7 +783,7 @@ iso-cancelling = 安全にキャンセルできる時点を待っています
 iso-cancelled = ISO の作成をキャンセルしました
 iso-cancelled-description = 元の ISO は変更されていません。一時ファイルが残っている場合は、「ログ フォルダーを開く」を選ぶと場所を確認できます。
 iso-complete = ISO が完成しました
-iso-complete-description = ISO の作成はベータ版のため、まず仮想マシンで ISO をテストしてください。その後、「インストール USB を作成」を選び、Windows を再インストールする前にファイルをバックアップしてください。
+iso-complete-description = その後、「インストール USB を作成」を選び、Windows を再インストールする前にファイルをバックアップしてください。
 iso-open-folder = フォルダーに表示
 iso-failed = ISO の作成を完了できませんでした
 iso-failed-description = ファイルが選択した場所にあり、保存先のドライブが接続されていることを確認してから、「ISO を作成」を選んでください。失敗が続く場合は、「レポートを送信」を選んでください。
@@ -831,7 +857,8 @@ iso-account-empty = 続行するには、ローカル アカウント名を入�
 iso-account-invalid = 20 文字以内で入力してください。先頭と末尾には空白を使えません。また、次の記号は使えません: " / \ [ ] : ; | = , + * ? < > @
 iso-account-trailing-dot = 名前の末尾にピリオド (.) は使用できません。
 iso-account-reserved = この名前は Windows の組み込みアカウントで使用されています。別の名前を入力してください。
-iso-privacy-defaults = この ISO では、Windows のセットアップのライセンス、Microsoft アカウント、プライバシーの画面が省略され、任意のデータ共有と個人向けのおすすめがオフになります。
+iso-terms-in-setup = Windows セットアップでライセンス条項への同意を求められます。
+iso-privacy-defaults = この ISO では、Windows のセットアップのMicrosoft アカウント、プライバシーの画面が省略され、任意のデータ共有と個人向けのおすすめがオフになります。
 prepare-drivers = ドライバーのインストール方法
 prepare-drivers-auto = Windows Update から取得する
 prepare-drivers-auto-detail = Windows がハードウェアに適したドライバーを探します。通常はこちらをおすすめします。
@@ -865,7 +892,7 @@ iso-mode-desktop-description = Atlas は選択内容を ISO に保存します�
 desktop-setup-description = PC のセットアップを完了しましょう。Atlas の選択内容は保存されています。必要に応じて Windows に戻れます。
 desktop-setup-exit = Windows で続ける
 
-# Windows installation USB (Beta)
+# Windows installation USB
 usb-title = インストール USB を作成
 usb-existing = 既存の ISO から USB を作成
 usb-description = ISO を USB ドライブに書き込んで、その USB から Windows を再インストールできるようにします。Atlas も同時にインストールするには、Atlas で作成した ISO を使用してください。
@@ -926,7 +953,7 @@ install-source-unsupported = Atlas { $source } から { $target } へ直接更�
 # Before a package is chosen, so the version on offer isn't known yet.
 install-source-unsupported-any = Atlas { $source } から直接更新することはできません。新しいバージョンを使用するには、ファイルをバックアップしてから Windows を再インストールしてください。
 # "パッケージ ファイルを開く" is package-open-file. $folder is a folder path (text).
-install-source-resume = Atlas { $target } のインストールが完了していません。このインストールを完了できるのは Atlas { $target } のパッケージだけです。「パッケージ ファイルを開く」を選び、その Atlas パッケージ (.apbx) を選択してください。Atlas がダウンロードした場合は、{ $folder } にあります。
+install-source-resume = Atlas { $target } のインストールが完了していません。このインストールを完了できるのは Atlas { $target } のパッケージだけです。「パッケージ ファイルを開く」を選び、その Atlas パッケージ (.atlaspkg) を選択してください。Atlas がダウンロードした場合は、{ $folder } にあります。
 # Tester build: only the bundled Atlas package can be installed.
 install-source-resume-bundled = Atlas { $target } のインストールが完了していません。このテスト ビルドは同梱の Atlas パッケージしかインストールできないため、Atlas Manager のリリース ビルドで Atlas { $target } のパッケージを使用して、このインストールを完了してください。
 install-source-unknown = この PC に何がインストールされているかを Atlas が確認できなかったため、今はインストールを行いません。Atlas チームが対応できるよう、「レポートを送信」を選んでください。
@@ -961,7 +988,7 @@ diagnostics-failed-title = 診断情報をエクスポートできませんで�
 # $error is the raw error (text).
 diagnostics-failed = PC のディスクに空き領域があることを確認してから、再試行してください。詳細: { $error }
 
-## Tester builds (embedded-playbook feature)
+## Tester builds (embedded-package feature)
 
 # One line of chrome under the title bar on a release-candidate build.
 rc-banner = Atlas { $release } テスト ビルド。このアプリは同梱の Atlas パッケージのみをインストールします。
@@ -1229,10 +1256,10 @@ prepare-repair-store = Microsoft Store を修復
 
 screen-keyboard-title = キーボードの言語
 screen-keyboard-question = 複数のキーボード言語を使いますか?
-playbook-option-keyboard-shortcuts = はい、キーボード ショートカットで切り替える
-playbook-option-keyboard-selector = はい、タスク バーの選択メニューで切り替える
-playbook-option-keyboard-single = いいえ、1 つのキーボード レイアウトだけを使う
+package-option-keyboard-shortcuts = はい、キーボード ショートカットで切り替える
+package-option-keyboard-selector = はい、タスク バーの選択メニューで切り替える
+package-option-keyboard-single = いいえ、1 つのキーボード レイアウトだけを使う
 consequence-keyboard-shortcuts = Alt+Shift で言語を、Ctrl+Shift でキーボード レイアウトを切り替えます。
 consequence-keyboard-selector = ゲーム中に誤って切り替わらないよう、Alt+Shift と Ctrl+Shift をオフにします。
-playbook-page-keyboard-shortcuts-description = キーボード言語の切り替え方法を選んでください。
+package-choice-keyboard-description = キーボード言語の切り替え方法を選んでください。
 consequence-keyboard-single = { consequence-keyboard-selector }

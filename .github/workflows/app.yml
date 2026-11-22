@@ -1,5 +1,7 @@
 name: Desktop app
 
+# Actions are pinned by SHA; Dependabot updates the SHA and its version comment together.
+
 # The paths cover every file outside app/ that the app or its tests compile in or read
 # (the include_str!, include_bytes! and CARGO_MANIFEST_DIR paths in app/src) and the
 # package build the tester-build step runs. Changes to any of them must rebuild the app.
@@ -7,12 +9,14 @@ on:
   push:
     paths:
       - "app/**"
-      - "playbook/playbook.conf"
-      - "playbook/Executables/AtlasModules/Scripts/Preparation/**"
-      - "playbook/Executables/AtlasModules/Scripts/Compatibility/**"
-      - "playbook/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1"
-      - "playbook/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/**"
-      - "playbook/Executables/AtlasDesktop/2. Drivers/Drivers from Windows Update/*.reg"
+      - "package/atlas.json"
+      - "package/Executables/AtlasModules/Scripts/Preparation/**"
+      - "package/Executables/AtlasModules/Scripts/Compatibility/**"
+      - "package/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1"
+      - "package/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/**"
+      - "package/Executables/AtlasModules/Scripts/Modules/Atlas.Core/Domain/Logging.ps1"
+      - "package/Executables/AtlasModules/Scripts/Modules/Atlas.Appx/Domain/Removal.ps1"
+      - "package/Executables/AtlasDesktop/2. Drivers/Drivers from Windows Update/*.reg"
       - "tools/dev/Get-AtlasInstallReport.ps1"
       - "tools/build/**"
       - "tests/fixtures/**"
@@ -22,12 +26,14 @@ on:
   pull_request:
     paths:
       - "app/**"
-      - "playbook/playbook.conf"
-      - "playbook/Executables/AtlasModules/Scripts/Preparation/**"
-      - "playbook/Executables/AtlasModules/Scripts/Compatibility/**"
-      - "playbook/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1"
-      - "playbook/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/**"
-      - "playbook/Executables/AtlasDesktop/2. Drivers/Drivers from Windows Update/*.reg"
+      - "package/atlas.json"
+      - "package/Executables/AtlasModules/Scripts/Preparation/**"
+      - "package/Executables/AtlasModules/Scripts/Compatibility/**"
+      - "package/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1"
+      - "package/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/**"
+      - "package/Executables/AtlasModules/Scripts/Modules/Atlas.Core/Domain/Logging.ps1"
+      - "package/Executables/AtlasModules/Scripts/Modules/Atlas.Appx/Domain/Removal.ps1"
+      - "package/Executables/AtlasDesktop/2. Drivers/Drivers from Windows Update/*.reg"
       - "tools/dev/Get-AtlasInstallReport.ps1"
       - "tools/build/**"
       - "tests/fixtures/**"
@@ -58,23 +64,20 @@ jobs:
 
     steps:
       - name: Checkout code
-        # gh api repos/actions/checkout/commits/v7.0.0 --jq '.sha'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Install the Rust toolchain
-        # The version comes from app/rust-toolchain.toml, so CI, releases and
-        # local builds compile with the same compiler.
-        # gh api repos/dtolnay/rust-toolchain/commits/stable --jq '.sha'
-        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+        # Must match app/rust-toolchain.toml; installing it here saves a second download.
+        # The SHA is a commit on the action's stable branch, which Dependabot doesn't follow; update it by hand.
+        uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
         with:
-          toolchain: 1.98.1
+          toolchain: 1.100.0
           components: rustfmt, clippy
 
       - name: Cache Cargo registry and build output
-        # gh api repos/Swatinem/rust-cache/commits/v2 --jq '.sha'
-        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: app
           cache-workspace-crates: true
@@ -91,14 +94,14 @@ jobs:
         run: cargo test --locked -- --nocapture
 
       - name: Build a LocalTest Atlas package for the tester-build checks
-        # The embedded-playbook feature compiles one APBX into the test binary.
+        # The embedded-package feature compiles one Atlas package into the test binary.
         # Tests never install it; they only unpack it into a temporary root.
         working-directory: ${{ github.workspace }}
-        run: ./tools/build/Build-Playbook.ps1 -LocalTest
+        run: ./tools/build/Build-Package.ps1 -LocalTest
 
-      - name: Clippy and test the tester build (embedded-playbook)
+      - name: Clippy and test the tester build (embedded-package)
         env:
-          ATLAS_EMBED_APBX: ${{ github.workspace }}/playbook/Atlas Test.apbx
+          ATLAS_EMBED_PACKAGE: ${{ github.workspace }}/package/Atlas Test.atlaspkg
         # The step's status is the last native exit code, so a Clippy failure must stop it here.
         run: |
           # build.rs requires the id to name app/Cargo.toml's version and a candidate number
@@ -106,9 +109,9 @@ jobs:
           $metadata = cargo metadata --no-deps --format-version 1 --locked | ConvertFrom-Json
           $version = $metadata.packages.Where({ $_.name -eq 'atlas-app' })[0].version
           $env:ATLAS_RC_ID = "$version-rc.1"
-          cargo clippy --locked --all-targets --features embedded-playbook -- -D warnings
+          cargo clippy --locked --all-targets --features embedded-package -- -D warnings
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cargo test --locked --features embedded-playbook -- --nocapture
+          cargo test --locked --features embedded-package -- --nocapture
 
       - name: Build production executable
         run: ./tools/Build-Release.ps1
@@ -124,8 +127,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Save production executable and license notices
-        # gh api repos/actions/upload-artifact/commits/v7.0.1 --jq '.sha'
+      - name: Save production executable and licence notices
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: atlas-manager-windows-x64

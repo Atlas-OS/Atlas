@@ -4,10 +4,9 @@
 // the LICENSE-MIT file), at your option.
 
 use accesskit::{ActionHandler, ActivationHandler};
-use once_cell::sync::Lazy;
 use std::{
     cell::RefCell,
-    sync::{Arc, Condvar, Mutex},
+    sync::{Arc, Condvar, LazyLock, Mutex},
     thread,
     time::Duration,
 };
@@ -31,7 +30,7 @@ use super::{
 
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(5);
 
-static WINDOW_CLASS_ATOM: Lazy<u16> = Lazy::new(|| {
+static WINDOW_CLASS_ATOM: LazyLock<u16> = LazyLock::new(|| {
     let class_name = w!("AccessKitTest");
 
     let wc = WNDCLASSW {

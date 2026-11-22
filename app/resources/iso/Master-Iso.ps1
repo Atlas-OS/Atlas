@@ -1,9 +1,27 @@
-# Masters the ISO with Windows' built-in IMAPI2FS: UDF for files over 4 GB,
-# BIOS and UEFI boot for x64, UEFI only for ARM64.
+<#
+.SYNOPSIS
+    Masters a bootable ISO from a media folder with Windows' built-in IMAPI2FS.
+.DESCRIPTION
+    Writes UDF, which allows files over 4 GiB, with BIOS and UEFI boot for x64 and
+    UEFI boot only for ARM64. Build-Iso.ps1 calls it within its elevated process.
+.PARAMETER Media
+    The folder to master, laid out as Windows installation media.
+.PARAMETER Output
+    The ISO file to create; it must not exist.
+.PARAMETER CancelFile
+    A file whose appearance stops mastering.
+.PARAMETER Architecture
+    x64 or arm64; decides the boot entries.
+.NOTES
+    Throws on failure or cancellation, and Build-Iso.ps1 reports the error.
+#>
 [CmdletBinding()]
 param([Parameter(Mandatory)][string]$Media, [Parameter(Mandatory)][string]$Output, [Parameter(Mandatory)][string]$CancelFile,
     [ValidateSet('x64','arm64')][string]$Architecture = 'x64')
 $ErrorActionPreference = 'Stop'
+# The GUID is IFileSystemImage2's interface ID, and DISPID 60 its BootImageOptionsArray,
+# which takes several boot images as a SAFEARRAY of VARIANTs holding IDispatch pointers.
+# PowerShell's late binding can't build that array, so this typed interface sets it.
 Add-Type @'
 using System;
 using System.IO;
@@ -45,8 +63,8 @@ $comObjects = New-Object Collections.ArrayList
 try {
     $image = New-Object -ComObject IMAPI2FS.MsftFileSystemImage
     [void]$comObjects.Add($image)
-    $image.FileSystemsToCreate = 4 # UDF only
-    $image.UDFRevision = 0x102
+    $image.FileSystemsToCreate = 4 # FsiFileSystemUDF: UDF only
+    $image.UDFRevision = 0x102 # UDF 1.02
     $image.FreeMediaBlocks = 2147483647 # no size limit
     $image.VolumeName = 'ATLAS'
     # Platform 0 = BIOS, 0xEF = UEFI.

@@ -4,7 +4,7 @@ Describe 'Phone Link cross-device Resume state' {
         Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
         Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
         $script:phoneLink = Get-AtlasToggleDefinition -Name PhoneLink `
-            -TogglesRoot (Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles')
+            -TogglesRoot (Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toggles')
         $script:resumePath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CrossDeviceResume\Configuration'
         $script:policyPath = 'HKCU:\SOFTWARE\Microsoft\PolicyManager\default\Connectivity\DisableCrossDeviceResume'
 

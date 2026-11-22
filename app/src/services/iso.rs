@@ -15,7 +15,7 @@ use super::powershell;
 
 /// The oldest Atlas release media can install: the first with a front door
 /// script.
-pub const MINIMUM_VERSION: &str = super::playbook::FIRST_FRONT_DOOR_VERSION;
+pub const MINIMUM_VERSION: &str = super::package::FIRST_FRONT_DOOR_VERSION;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -32,6 +32,8 @@ pub enum Mode {
 #[serde(rename_all = "camelCase")]
 pub struct Request {
     pub reinstall_this_pc: bool,
+    pub edition: Option<String>,
+    pub accepted_terms: Option<String>,
     pub copy_network_drivers: bool,
     pub update_network_drivers: bool,
     pub drivers: super::preparation::Drivers,
@@ -61,9 +63,30 @@ pub enum Architecture {
 #[serde(rename_all = "camelCase")]
 pub struct ImageInfo {
     pub editions: Vec<String>,
+    #[serde(default)]
+    pub edition_terms: Vec<String>,
     pub bytes: u64,
     #[serde(default)]
     pub architecture: Architecture,
+}
+
+impl ImageInfo {
+    /// A reusable ISO can carry consent only if every edition it offers has the same terms.
+    pub fn terms(&self, chosen: Option<&str>) -> Option<&str> {
+        if self.editions.len() != self.edition_terms.len() {
+            return None;
+        }
+        let hash = if let Some(name) = chosen {
+            &self.edition_terms[self.editions.iter().position(|edition| edition == name)?]
+        } else {
+            let first = self.edition_terms.first()?;
+            if self.edition_terms.iter().any(|terms| terms != first) {
+                return None;
+            }
+            first
+        };
+        (hash.len() == 64 && hash.bytes().all(|b| b.is_ascii_hexdigit())).then_some(hash)
+    }
 }
 
 /// What the image worker is doing, in the order a build does it. A check
@@ -124,9 +147,9 @@ struct SetupCapability {
 }
 
 /// Whether the package can set Windows up from media (the configured and
-/// before-desktop modes). Only its iso-setup.json counts: a version number,
-/// or the SupportsISO flag in playbook.conf (an AME Wizard setting), is not
-/// enough.
+/// before-desktop modes). Only its iso-setup.json counts: a version number
+/// or a flag in atlas.json isn't enough, because only the setup scripts
+/// that file describes can finish setup at first sign-in.
 pub fn supports_setup(package: &Path) -> bool {
     fs::read_to_string(package.join(SETUP_CAPABILITY))
         .ok()
@@ -137,30 +160,30 @@ pub fn supports_setup(package: &Path) -> bool {
 /// Whether media can install this version: a known one no older than
 /// [`MINIMUM_VERSION`].
 pub fn supports_version(version: &str) -> bool {
-    super::releases::AtlasVersion::parse(version).is_some() && !super::playbook::predates_front_door(version)
+    super::releases::AtlasVersion::parse(version).is_some() && !super::package::predates_front_door(version)
 }
 
-pub fn validate_options(manifest: &super::playbook::Manifest, options: &[String]) -> Result<()> {
+pub fn validate_options(manifest: &super::package::Manifest, options: &[String]) -> Result<()> {
     check_options(manifest, options, false)
 }
 
 /// An unfinished install's choices, against the package that finishes it.
 /// The install keeps them, so a required page added since it began may have
 /// no choice; Invoke-AtlasInstallSession.ps1 accepts that on a resume too.
-pub fn validate_resumed_options(manifest: &super::playbook::Manifest, options: &[String]) -> Result<()> {
+pub fn validate_resumed_options(manifest: &super::package::Manifest, options: &[String]) -> Result<()> {
     check_options(manifest, options, true)
 }
 
-fn check_options(manifest: &super::playbook::Manifest, options: &[String], resumed: bool) -> Result<()> {
+fn check_options(manifest: &super::package::Manifest, options: &[String], resumed: bool) -> Result<()> {
     use std::collections::HashSet;
     let unique: HashSet<_> = options.iter().collect();
     if unique.len() != options.len() || options.iter().any(|o| manifest.option_label(o).is_none()) {
         bail!("Unknown or repeated Atlas option");
     }
-    for page in &manifest.pages {
-        let selected = page.options.iter().filter(|o| options.contains(&o.name)).count();
+    for page in &manifest.choices {
+        let selected = page.options.iter().filter(|o| options.contains(&o.id)).count();
         let active = page.depends_on.as_ref().is_none_or(|n| options.contains(n));
-        let required = active && page.kind == super::playbook::PageKind::Radio;
+        let required = active && page.kind == super::package::ChoiceKind::Single;
         if (!active && selected != 0) || (required && selected != 1 && !(resumed && selected == 0)) {
             bail!("The Atlas choices are incomplete or inconsistent");
         }
@@ -168,11 +191,11 @@ fn check_options(manifest: &super::playbook::Manifest, options: &[String], resum
     Ok(())
 }
 
-pub fn default_options(manifest: &super::playbook::Manifest) -> Vec<String> {
+pub fn default_options(manifest: &super::package::Manifest) -> Vec<String> {
     let mut options = manifest.default_options();
-    for page in &manifest.pages {
+    for page in &manifest.choices {
         if page.depends_on.as_ref().is_some_and(|n| !options.contains(n)) {
-            options.retain(|n| !page.options.iter().any(|o| &o.name == n));
+            options.retain(|n| !page.options.iter().any(|o| &o.id == n));
         }
     }
     options
@@ -182,7 +205,7 @@ pub fn default_options(manifest: &super::playbook::Manifest) -> Vec<String> {
 /// the package is unchanged (same digest, so the same pages) and they still
 /// validate, otherwise the defaults.
 pub fn options_after_inspection(
-    manifest: &super::playbook::Manifest,
+    manifest: &super::package::Manifest,
     previous: &[String],
     same_package: bool,
 ) -> Vec<String> {
@@ -409,6 +432,10 @@ pub enum FailureReason {
     /// The package is no longer the one the files were checked with.
     /// Decided by the app before the worker starts, so it has no marker.
     PackageChanged,
+    /// The Atlas package needs a newer Atlas Manager. The package's own
+    /// error ([`super::package::ManagerOutdated`]), which [`create`] passes
+    /// on, says so before the worker starts and names the version.
+    ManagerOutdated,
     /// Some other problem while checking the files.
     Check,
     /// Some other problem after the checks passed.
@@ -453,9 +480,11 @@ impl std::fmt::Display for Failure {
 impl std::error::Error for Failure {}
 
 /// Types a package the app cannot use for ISO creation, so the page can say
-/// so instead of pointing at the diagnostics. Other errors pass through.
+/// so instead of pointing at the diagnostics: one too old, or a file that
+/// isn't an Atlas package at all. Other errors pass through, a package for
+/// a newer Atlas Manager among them, which the page reads as it is.
 pub fn package_error(error: anyhow::Error) -> anyhow::Error {
-    if error.is::<super::playbook::Unsupported>() {
+    if error.is::<super::package::Unsupported>() || error.is::<super::package::NotAPackage>() {
         Failure::new(FailureReason::PackageUnsupported, format!("{error:#}")).into()
     } else {
         error
@@ -467,7 +496,7 @@ const WORKER_FILES: &[(&str, &str)] = &[
     ("Build-Iso.ps1", include_str!("../../resources/iso/Build-Iso.ps1")),
     (
         "Windows-Release.ps1",
-        include_str!("../../../playbook/Executables/AtlasModules/Scripts/Compatibility/Windows-Release.ps1"),
+        include_str!("../../../package/Executables/AtlasModules/Scripts/Compatibility/Windows-Release.ps1"),
     ),
     ("windows-releases.json", super::windows_release::CATALOG),
     ("Master-Iso.ps1", include_str!("../../resources/iso/Master-Iso.ps1")),
@@ -589,6 +618,8 @@ pub struct CreateInput {
     pub drivers: super::preparation::Drivers,
     pub username: String,
     pub reinstall_this_pc: bool,
+    pub edition: Option<String>,
+    pub accepted_terms: Option<String>,
     pub copy_network_drivers: bool,
     pub update_network_drivers: bool,
 }
@@ -600,7 +631,7 @@ pub struct CreateInput {
 pub struct Created {
     pub image: Option<ImageInfo>,
     pub package: PathBuf,
-    pub manifest: super::playbook::Manifest,
+    pub manifest: super::package::Manifest,
     pub network_drivers_inbox: bool,
 }
 
@@ -635,27 +666,34 @@ pub fn create(
         drivers,
         username,
         reinstall_this_pc,
+        edition,
+        accepted_terms,
         copy_network_drivers,
         update_network_drivers,
     } = input;
     // Inspect and add the same archive bytes even if the original
     // file is replaced while the worker is running. The copy is only
     // needed until the worker has put it on the media.
-    let snapshot = std::env::temp_dir()
-        .join(format!("Atlas-{}.apbx", job.file_name().unwrap_or_default().to_string_lossy()));
+    let snapshot = std::env::temp_dir().join(format!(
+        "Atlas-{}.{}",
+        job.file_name().unwrap_or_default().to_string_lossy(),
+        super::package::EXTENSION
+    ));
     let operation = || -> Result<Created> {
         // The job exists before anything else can fail, so every
         // failure leaves its error there for the diagnostics link.
         // The worker's files are staged into it later.
         super::recovery_app::stage_media_job(job, &[])?;
         let archive = if bundled { bundled_archive()? } else { archive };
+        // The snapshot's own name would pass any file as a package.
+        super::package::check_file_name(&archive).map_err(package_error)?;
         std::io::copy(
             &mut fs::File::open(&archive)?,
             &mut fs::OpenOptions::new().write(true).create_new(true).open(&snapshot)?,
         )?;
-        let (package, manifest) = super::playbook::extract_into(
+        let (package, manifest) = super::package::extract_into(
             &snapshot,
-            &super::settings::AppPaths::from_process().playbooks(),
+            &super::settings::AppPaths::from_process().packages(),
             |_, _| {},
         )
         .map_err(package_error)?;
@@ -677,6 +715,8 @@ pub fn create(
         validate_options(&manifest, &options)?;
         let request = Request {
             reinstall_this_pc,
+            edition,
+            accepted_terms,
             copy_network_drivers,
             update_network_drivers,
             drivers,
@@ -711,11 +751,11 @@ pub fn create(
 /// The bundled package, written to the downloads folder so it can be added
 /// to the media.
 fn bundled_archive() -> Result<PathBuf> {
-    #[cfg(feature = "embedded-playbook")]
+    #[cfg(feature = "embedded-package")]
     {
         super::embedded::materialize(&super::settings::AppPaths::from_process())
     }
-    #[cfg(not(feature = "embedded-playbook"))]
+    #[cfg(not(feature = "embedded-package"))]
     {
         bail!("this build has no bundled package")
     }
@@ -724,7 +764,7 @@ fn bundled_archive() -> Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::services::playbook;
+    use crate::services::package;
     use crate::services::test_support::TempDir;
 
     #[test]
@@ -748,6 +788,27 @@ mod tests {
     }
 
     #[test]
+    fn consent_applies_only_to_editions_with_the_reviewed_terms() {
+        let a = "a".repeat(64);
+        let b = "b".repeat(64);
+        let mut image = ImageInfo {
+            editions: vec!["Pro".into(), "Education".into()],
+            edition_terms: vec![a.clone(), b.clone()],
+            bytes: 1,
+            architecture: Architecture::X64,
+        };
+        assert_eq!(image.terms(None), None);
+        assert_eq!(image.terms(Some("Education")), Some(b.as_str()));
+        assert_eq!(image.terms(Some("Home")), None);
+        image.edition_terms[1] = a.clone();
+        assert_eq!(image.terms(None), Some(a.as_str()));
+        image.edition_terms[0] = String::new();
+        assert_eq!(image.terms(Some("Pro")), None);
+        image.edition_terms.clear();
+        assert_eq!(image.terms(None), None);
+    }
+
+    #[test]
     fn iso_support_begins_with_atlas_06() {
         for version in ["0.4.1", "0.5.0", "invalid"] {
             assert!(!supports_version(version));
@@ -760,13 +821,15 @@ mod tests {
     fn request(dir: &Path) -> Request {
         Request {
             reinstall_this_pc: false,
+            edition: None,
+            accepted_terms: None,
             copy_network_drivers: false,
             update_network_drivers: false,
             drivers: Default::default(),
             username: "Atlas".into(),
             source: dir.join("Windows.iso"),
             output: dir.join("Atlas.iso"),
-            archive: dir.join("Atlas.apbx"),
+            archive: dir.join("Atlas.atlaspkg"),
             package: dir.to_path_buf(),
             app: dir.join("AtlasManager.exe"),
             mode: Mode::Interactive,
@@ -936,9 +999,15 @@ mod tests {
 
     #[test]
     fn unusable_packages_are_typed_and_other_errors_pass_through() {
-        let old = package_error(playbook::Unsupported { version: "0.5.0".into() }.into());
+        let old = package_error(package::Unsupported { version: "0.5.0".into() }.into());
         assert_eq!(
             old.downcast_ref::<Failure>().map(|failure| failure.reason),
+            Some(FailureReason::PackageUnsupported)
+        );
+        let other =
+            package_error(package::check_file_name(Path::new(r"C:\Downloads\Atlas.apbx")).unwrap_err());
+        assert_eq!(
+            other.downcast_ref::<Failure>().map(|failure| failure.reason),
             Some(FailureReason::PackageUnsupported)
         );
         assert!(package_error(anyhow::anyhow!("unreadable archive")).downcast_ref::<Failure>().is_none());
@@ -946,18 +1015,18 @@ mod tests {
 
     #[test]
     fn checking_the_same_package_again_keeps_valid_choices() {
-        use playbook::PageKind;
-        let manifest = playbook::Manifest::builtin();
+        use package::ChoiceKind;
+        let manifest = package::Manifest::builtin();
         let defaults = default_options(&manifest);
-        // A valid choice other than the default on a top-level radio page.
-        let page = manifest
-            .pages
+        // A valid answer other than the default to a top-level single choice.
+        let choice = manifest
+            .choices
             .iter()
-            .find(|page| page.kind == PageKind::Radio && page.depends_on.is_none() && page.options.len() > 1)
-            .expect("a radio page with a choice");
-        let other = page.options.iter().find(|o| !defaults.contains(&o.name)).unwrap().name.clone();
+            .find(|c| c.kind == ChoiceKind::Single && c.depends_on.is_none() && c.options.len() > 1)
+            .expect("a single choice with another answer");
+        let other = choice.options.iter().find(|o| !defaults.contains(&o.id)).unwrap().id.clone();
         let mut chosen: Vec<String> =
-            defaults.iter().filter(|n| !page.options.iter().any(|o| &o.name == *n)).cloned().collect();
+            defaults.iter().filter(|n| !choice.options.iter().any(|o| &o.id == *n)).cloned().collect();
         chosen.push(other);
         assert!(validate_options(&manifest, &chosen).is_ok());
         assert_eq!(options_after_inspection(&manifest, &chosen, true), chosen);
@@ -1029,16 +1098,29 @@ mod tests {
 
     #[test]
     fn iso_options_respect_required_groups_and_dependencies() {
-        let builtin = playbook::Manifest::builtin();
+        let builtin = package::Manifest::builtin();
         assert!(validate_options(&builtin, &default_options(&builtin)).is_ok(), "the built-in defaults");
         // A choice of two, extras, and a choice of two shown only with `extra`.
-        let manifest = playbook::parse(
-            "<Playbook><Version>0.6.0</Version><FeaturePages>\
-             <RadioPage DefaultOption=\"a1\"><Options><RadioOption><Name>a1</Name></RadioOption><RadioOption><Name>a2</Name></RadioOption></Options></RadioPage>\
-             <CheckboxPage><Options><CheckboxOption><Name>extra</Name></CheckboxOption></Options></CheckboxPage>\
-             <RadioPage DependsOn=\"extra\" DefaultOption=\"b1\"><Options><RadioOption><Name>b1</Name></RadioOption><RadioOption><Name>b2</Name></RadioOption></Options></RadioPage>\
-             </FeaturePages></Playbook>",
-        )
+        let manifest = package::parse(&crate::services::test_support::package::manifest_with_choices(
+            "0.6.0",
+            &[],
+            serde_json::json!([
+                {
+                    "id": "a",
+                    "kind": "single",
+                    "default": "a1",
+                    "options": [{ "id": "a1", "label": "A1" }, { "id": "a2", "label": "A2" }],
+                },
+                { "id": "extras", "kind": "multiple", "options": [{ "id": "extra", "label": "Extra" }] },
+                {
+                    "id": "b",
+                    "kind": "single",
+                    "default": "b1",
+                    "dependsOn": "extra",
+                    "options": [{ "id": "b1", "label": "B1" }, { "id": "b2", "label": "B2" }],
+                },
+            ]),
+        ))
         .unwrap();
         let options = |names: &[&str]| names.iter().map(|name| name.to_string()).collect::<Vec<_>>();
         assert_eq!(default_options(&manifest), options(&["a1"]), "a hidden page's default is dropped");

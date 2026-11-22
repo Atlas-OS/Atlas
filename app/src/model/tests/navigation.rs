@@ -8,7 +8,7 @@ use crate::model::{AppModel, Page, Step};
 use crate::services::installer::InstallOutcome;
 use crate::services::security::{SecurityStatus, Switch};
 use crate::services::settings::{self, InstallDraft};
-use crate::services::{playbook, session};
+use crate::services::{package, session};
 
 #[test]
 fn navigation_goes_only_where_the_window_can_show_the_page() {
@@ -196,11 +196,11 @@ fn a_start_request_waits_for_startup_recovery() {
         for (step, resumed) in [(None, true), (Some(Step::Security), false)] {
             let (temp, _, env) = fixture("model-start-during-recovery");
             let (package, _) = marking_package(&temp, 0);
-            let (dir, _) = playbook::extract_into(&package, &env.paths.playbooks(), |_, _| {}).unwrap();
+            let (dir, _) = package::extract_into(&package, &env.paths.packages(), |_, _| {}).unwrap();
             let draft = InstallDraft {
                 step: "options".into(),
                 options: vec!["defender-disable".into()],
-                playbook_dir: Some(dir.clone()),
+                package_dir: Some(dir.clone()),
                 flow: Some("saved-flow".into()),
                 preparation_restart_at: Some("2001-01-01T00:00:00Z".into()),
                 ..InstallDraft::default()
@@ -222,7 +222,7 @@ fn a_start_request_waits_for_startup_recovery() {
                     assert_eq!(m.flow.step, Step::Options);
                     assert_eq!(m.flow_id.as_deref(), Some("saved-flow"));
                     assert!(m.options.contains("defender-disable"));
-                    assert_eq!(m.playbook.as_ref().map(|p| p.dir.clone()), Some(dir.clone()));
+                    assert_eq!(m.package.as_ref().map(|p| p.dir.clone()), Some(dir.clone()));
                     assert_eq!(m.preparation, State::Resumed);
                 } else {
                     // A command-line step still takes precedence over the draft.

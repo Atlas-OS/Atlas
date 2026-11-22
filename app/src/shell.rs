@@ -42,8 +42,8 @@ const NOTICES_MAX_SHARE: f32 = 0.4;
 pub struct StartAt {
     pub page: Option<Page>,
     pub step: Option<Step>,
-    /// An .apbx to unpack on launch.
-    pub playbook: Option<PathBuf>,
+    /// A package file to unpack on launch.
+    pub package: Option<PathBuf>,
     /// A language tag that outranks the setting (`--language`), for review.
     pub language: Option<String>,
 }
@@ -57,6 +57,7 @@ pub struct Shell {
     installed: Entity<InstalledPage>,
     settings: Entity<SettingsPage>,
     report: Entity<ReportPage>,
+    last_analytics_path: Option<&'static str>,
     system_appearance: Appearance,
     focus_handle: FocusHandle,
     /// The user confirmed closing while an install runs.
@@ -78,7 +79,7 @@ impl Shell {
     pub fn new(start: StartAt, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let language = start.language.clone();
         let model = cx.new(|cx| AppModel::new(language, cx));
-        model.update(cx, |model, cx| model.apply_start(start.page, start.step, start.playbook, cx));
+        model.update(cx, |model, cx| model.apply_start(start.page, start.step, start.package, cx));
         let system_appearance = Appearance::from_window(window.appearance());
         {
             let (theme, localization) = {
@@ -96,7 +97,9 @@ impl Shell {
         window.focus(&focus_handle, cx);
 
         model.update(cx, |model, _| model.set_window_active(window.is_window_active()));
+        let iso = cx.new(|cx| IsoPage::new(model.clone(), cx));
         let subscriptions = vec![
+            cx.observe(&iso, |_, _, cx| cx.notify()),
             cx.observe_in(&model, window, |this, model, window, cx| {
                 // A countdown that starts while the window is behind others
                 // flashes its taskbar button until the user comes back.
@@ -165,7 +168,8 @@ impl Shell {
 
         let shell = Self {
             home: cx.new(|cx| HomePage::new(model.clone(), cx)),
-            iso: cx.new(|cx| IsoPage::new(model.clone(), cx)),
+            iso,
+            last_analytics_path: None,
             install: cx.new(|cx| InstallPage::new(model.clone(), close, cx)),
             installing: cx.new(|cx| InstallingPage::new(model.clone(), cx)),
             installed: cx.new(|cx| InstalledPage::new(model.clone(), cx)),
@@ -578,6 +582,27 @@ impl Shell {
 
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let state = self.model.read(cx);
+        let path = state.settings.usage_analytics.then(|| match state.page {
+            Page::Home => "home",
+            Page::Settings => "settings",
+            Page::Report => "report",
+            Page::Installed => "installed",
+            Page::Iso => self.iso.read(cx).analytics_path(),
+            Page::Install if state.install_in_progress() => "install/run",
+            Page::Install => match state.flow.step {
+                crate::model::Step::Ready => "install/ready",
+                crate::model::Step::Options => "install/options",
+                crate::model::Step::Security => "install/security",
+                crate::model::Step::Install => "install/review",
+            },
+        });
+        if path != self.last_analytics_path {
+            self.last_analytics_path = path;
+            if let Some(path) = path {
+                crate::services::analytics::send(true, "pageview", path);
+            }
+        }
         self.sync_backdrop(window, cx);
         let theme = cx.theme();
         // The type ramp is in rems; the Ease of Access text size scales it,

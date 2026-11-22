@@ -1,6 +1,6 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
+    $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\package\Executables\AtlasModules\Scripts\Modules'
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Shortcuts\Atlas.Shortcuts.psd1') -Force
 
     function Read-AtlasTestShortcut {

@@ -1,13 +1,36 @@
+<#
+.SYNOPSIS
+    Regenerates windows-releases.json, the catalog of published Windows 11 releases that
+    Atlas checks Windows builds against.
+.DESCRIPTION
+    Reads the Markdown source of Microsoft's Windows 11 release information page and
+    writes, for each build, its General Availability versions with their dates and KB
+    articles. The catalog records the source's commit, SHA-256 and update time. Review
+    the catalog diff before publishing it; docs/windows-release-policy.md has the steps.
+.PARAMETER MarkdownPath
+    A saved copy of the page's Markdown source.
+.PARAMETER Refresh
+    Downloads the Markdown source from Microsoft Learn instead.
+.PARAMETER AsOfDate
+    Leaves out versions made available after this date. Defaults to today (UTC).
+.PARAMETER Build
+    The Windows builds to include.
+.PARAMETER OutputPath
+    The catalog to write. Defaults to Scripts\Compatibility\windows-releases.json in the
+    Atlas package.
+.NOTES
+    Exit codes: 0 the catalog was written, 1 the source could not be read or parsed.
+#>
 [CmdletBinding(DefaultParameterSetName = 'File')]
 param(
     [Parameter(Mandatory, ParameterSetName = 'File')][string]$MarkdownPath,
     [Parameter(Mandatory, ParameterSetName = 'Refresh')][switch]$Refresh,
     [datetime]$AsOfDate = [datetime]::UtcNow.Date,
     [ValidateSet(26200,26300)][int[]]$Build = @(26200,26300),
-    [string]$OutputPath = (Join-Path $PSScriptRoot '../../playbook/Executables/AtlasModules/Scripts/Compatibility/windows-releases.json')
+    [string]$OutputPath = (Join-Path $PSScriptRoot '../../package/Executables/AtlasModules/Scripts/Compatibility/windows-releases.json')
 )
 $ErrorActionPreference = 'Stop'
-. (Join-Path $PSScriptRoot '../../playbook/Executables/AtlasModules/Scripts/Compatibility/Windows-Release.ps1')
+. (Join-Path $PSScriptRoot '../../package/Executables/AtlasModules/Scripts/Compatibility/Windows-Release.ps1')
 $markdown = if ($Refresh) { Get-AtlasWindowsReleaseMarkdown } else { [IO.File]::ReadAllText((Resolve-Path -LiteralPath $MarkdownPath).Path) }
 $builds = @($Build | Sort-Object -Unique)
 $releases = @(foreach ($buildNumber in $builds) { ConvertFrom-AtlasWindowsReleaseMarkdown -Markdown $markdown -AsOfDate $AsOfDate -Build $buildNumber })

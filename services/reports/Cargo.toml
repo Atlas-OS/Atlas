@@ -8,13 +8,13 @@ publish = false
 [dependencies]
 axum = "0.8"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "fs", "io-util", "time", "sync", "signal"] }
-tower-http = { version = "0.6", features = ["fs"] }
+tower-http = { version = "0.7", features = ["fs"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-rusqlite = { version = "0.39", features = ["bundled"] }
+rusqlite = { version = "0.43", features = ["bundled"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 ring = "0.17"
-zip = { version = "9.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+zip = { version = "9.8", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 futures-util = "0.3"
 fs2 = "0.4"
 tower = { version = "0.5", features = ["util"] }

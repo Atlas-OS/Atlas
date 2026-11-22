@@ -4,50 +4,46 @@ BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:RepoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).ProviderPath
     $script:ReplacementScript = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Install\Tasks\Invoke-AtlasPayloadReplacement.ps1'
+        'package\Executables\AtlasModules\Scripts\Install\Tasks\Invoke-AtlasPackageReplacement.ps1'
     $cbsRetryScript = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Operations\CbsRetry.ps1'
+        'package\Executables\AtlasModules\Scripts\Operations\CbsRetry.ps1'
     . $cbsRetryScript -LibraryOnly
     . $script:ReplacementScript -LibraryOnly
 
     function New-TestInstallState {
         param(
             [ValidateSet('Fresh', 'Upgrade', 'Reapply', 'Rebase')][string]$Mode,
-            [bool]$IsOobe = $false,
             [string]$Status = 'Running'
         )
-        [pscustomobject]@{ status = $Status; mode = $Mode; isOobe = $IsOobe }
+        [pscustomobject]@{ status = $Status; mode = $Mode }
     }
 }
 
 Describe 'Atlas file replacement plan' {
-    It 'maps <Mode> OOBE=<IsOobe> to stop=<Stop> remove=<Remove>' -TestCases @(
-        @{ Mode = 'Fresh'; IsOobe = $false; Stop = $false; Remove = $false }
-        @{ Mode = 'Fresh'; IsOobe = $true; Stop = $false; Remove = $false }
-        @{ Mode = 'Upgrade'; IsOobe = $false; Stop = $true; Remove = $true }
-        @{ Mode = 'Upgrade'; IsOobe = $true; Stop = $true; Remove = $false }
-        @{ Mode = 'Reapply'; IsOobe = $false; Stop = $true; Remove = $true }
-        @{ Mode = 'Reapply'; IsOobe = $true; Stop = $true; Remove = $false }
-        @{ Mode = 'Rebase'; IsOobe = $false; Stop = $true; Remove = $true }
-        @{ Mode = 'Rebase'; IsOobe = $true; Stop = $true; Remove = $false }
+    It 'maps <Mode> to stop=<Stop> remove=<Remove>' -TestCases @(
+        @{ Mode = 'Fresh'; Stop = $false; Remove = $false }
+        @{ Mode = 'Upgrade'; Stop = $true; Remove = $true }
+        @{ Mode = 'Reapply'; Stop = $true; Remove = $true }
+        @{ Mode = 'Rebase'; Stop = $true; Remove = $true }
     ) {
-        $plan = Resolve-AtlasPayloadReplacementPlan `
-            -InstallState (New-TestInstallState -Mode $Mode -IsOobe $IsOobe)
+        $plan = Resolve-AtlasPackageReplacementPlan `
+            -InstallState (New-TestInstallState -Mode $Mode)
         $plan.Mode | Should -BeExactly $Mode
-        $plan.StopInstalledPayload | Should -Be $Stop
-        $plan.RemoveInstalledPayload | Should -Be $Remove
+        $plan.StopInstalledPackage | Should -Be $Stop
+        $plan.RemoveInstalledPackage | Should -Be $Remove
     }
 
     It 'requires committed Running install state' {
-        { Resolve-AtlasPayloadReplacementPlan `
+        { Resolve-AtlasPackageReplacementPlan `
                 -InstallState (New-TestInstallState -Mode Fresh -Status Capturing) } |
             Should -Throw -ExpectedMessage '*requires a Running install state*'
     }
 
-    It 'requires a typed OOBE decision' {
-        $state = [pscustomobject]@{ status = 'Running'; mode = 'Fresh'; isOobe = 'false' }
-        { Resolve-AtlasPayloadReplacementPlan -InstallState $state } |
-            Should -Throw -ExpectedMessage '*isOobe must be a Boolean*'
+    It 'ignores the isOobe field an install state from an older release carries' {
+        $state = [pscustomobject]@{ status = 'Running'; mode = 'Reapply'; isOobe = $true }
+        $plan = Resolve-AtlasPackageReplacementPlan -InstallState $state
+        $plan.StopInstalledPackage | Should -BeTrue
+        $plan.RemoveInstalledPackage | Should -BeTrue
     }
 }
 
@@ -57,58 +53,52 @@ Describe 'Atlas file replacement sequencing' {
         $script:AtlasExtractedExecutablesRoot = 'C:\extracted'
         $script:AtlasWindowsPath = 'C:\Windows'
 
-        Mock Assert-AtlasPayloadReplacementAllowed { $script:Events.Add('CBS') }
-        Mock Invoke-AtlasInstalledPayloadStop { $script:Events.Add('Stop') }
+        Mock Assert-AtlasPackageReplacementAllowed { $script:Events.Add('CBS') }
+        Mock Invoke-AtlasInstalledPackageStop { $script:Events.Add('Stop') }
         Mock Invoke-AtlasProcessExplorerStop { $script:Events.Add('ProcessExplorer') }
-        Mock Invoke-AtlasInstalledPayloadRemove { $script:Events.Add('Remove') }
-        Mock Invoke-AtlasExtractedPayloadCopy { $script:Events.Add('Copy') }
-        Mock Assert-AtlasPayloadInstalled { $script:Events.Add('Verify') }
+        Mock Invoke-AtlasInstalledPackageRemove { $script:Events.Add('Remove') }
+        Mock Invoke-AtlasExtractedPackageCopy { $script:Events.Add('Copy') }
+        Mock Assert-AtlasPackageInstalled { $script:Events.Add('Verify') }
         $script:ProcessExplorerChoiceEnabled = $true
         Mock Test-AtlasProcessExplorerChoiceEnabled { $script:Events.Add('Choice'); $script:ProcessExplorerChoiceEnabled }
         Mock Invoke-AtlasProcessExplorerRestore { $script:Events.Add('RestoreProcessExplorer') }
     }
 
     It 'copies and verifies fresh files without touching an old install' {
-        $plan = Resolve-AtlasPayloadReplacementPlan `
+        $plan = Resolve-AtlasPackageReplacementPlan `
             -InstallState (New-TestInstallState -Mode Fresh)
-        Invoke-AtlasPayloadReplacementCore -Plan $plan
+        Invoke-AtlasPackageReplacementCore -Plan $plan
         @($script:Events) | Should -Be @('CBS', 'Copy', 'Verify')
     }
 
     It 'stops, removes, copies, and verifies an upgrade in order' {
-        $plan = Resolve-AtlasPayloadReplacementPlan `
+        $plan = Resolve-AtlasPackageReplacementPlan `
             -InstallState (New-TestInstallState -Mode Upgrade)
-        Invoke-AtlasPayloadReplacementCore -Plan $plan
+        Invoke-AtlasPackageReplacementCore -Plan $plan
         @($script:Events) | Should -Be @('CBS', 'Stop', 'ProcessExplorer', 'Remove', 'Copy', 'Verify')
     }
 
-    It 'does not remove the old files during an OOBE reapply' {
-        $plan = Resolve-AtlasPayloadReplacementPlan `
-            -InstallState (New-TestInstallState -Mode Reapply -IsOobe $true)
-        Invoke-AtlasPayloadReplacementCore -Plan $plan
-        @($script:Events) | Should -Be @('CBS', 'Stop', 'ProcessExplorer', 'Copy', 'Verify')
-    }
 
     It 'blocks every mutation while CBS retry is pending' {
-        Mock Assert-AtlasPayloadReplacementAllowed {
+        Mock Assert-AtlasPackageReplacementAllowed {
             $script:Events.Add('CBS')
             throw 'CBS retry state is Armed'
         }
-        $plan = Resolve-AtlasPayloadReplacementPlan `
+        $plan = Resolve-AtlasPackageReplacementPlan `
             -InstallState (New-TestInstallState -Mode Upgrade)
-        { Invoke-AtlasPayloadReplacementCore -Plan $plan } |
+        { Invoke-AtlasPackageReplacementCore -Plan $plan } |
             Should -Throw -ExpectedMessage '*CBS retry state is Armed*'
         @($script:Events) | Should -Be @('CBS')
     }
 
     It 'does not continue after old-file cleanup fails' {
-        Mock Invoke-AtlasInstalledPayloadRemove {
+        Mock Invoke-AtlasInstalledPackageRemove {
             $script:Events.Add('Remove')
             throw 'remove failed'
         }
-        $plan = Resolve-AtlasPayloadReplacementPlan `
+        $plan = Resolve-AtlasPackageReplacementPlan `
             -InstallState (New-TestInstallState -Mode Upgrade)
-        { Invoke-AtlasPayloadReplacementCore -Plan $plan } |
+        { Invoke-AtlasPackageReplacementCore -Plan $plan } |
             Should -Throw -ExpectedMessage '*remove failed*'
         @($script:Events) | Should -Be @('CBS', 'Stop', 'ProcessExplorer', 'Remove')
     }
@@ -123,8 +113,8 @@ Describe 'Atlas file replacement sequencing' {
     ) {
         param($Case, $Steps, $Enabled, $Expected)
         $script:ProcessExplorerChoiceEnabled = $Enabled
-        $state = [pscustomobject]@{ status = 'Running'; mode = 'Upgrade'; isOobe = $false; completedSteps = $Steps }
-        Invoke-AtlasPayloadReplacementCore -Plan (Resolve-AtlasPayloadReplacementPlan -InstallState $state)
+        $state = [pscustomobject]@{ status = 'Running'; mode = 'Upgrade'; completedSteps = $Steps }
+        Invoke-AtlasPackageReplacementCore -Plan (Resolve-AtlasPackageReplacementPlan -InstallState $state)
         @($script:Events) | Should -Be $Expected -Because $Case
     }
 }
@@ -210,13 +200,13 @@ Describe 'Installed Atlas file verification' {
     }
 
     It 'accepts the installed roots, bootstrap, and theme' {
-        { Assert-AtlasPayloadInstalled -ExtractedExecutablesRoot $script:ExtractedRoot `
+        { Assert-AtlasPackageInstalled -ExtractedExecutablesRoot $script:ExtractedRoot `
                 -WindowsPath $script:WindowsRoot } | Should -Not -Throw
     }
 
     It 'fails when the installed bootstrap is missing' {
         Remove-Item -LiteralPath (Join-Path $script:WindowsRoot 'AtlasModules\Scripts\Initialize-AtlasPowerShell.ps1')
-        { Assert-AtlasPayloadInstalled -ExtractedExecutablesRoot $script:ExtractedRoot `
+        { Assert-AtlasPackageInstalled -ExtractedExecutablesRoot $script:ExtractedRoot `
                 -WindowsPath $script:WindowsRoot } |
             Should -Throw -ExpectedMessage '*Atlas bootstrap*is missing*'
     }
@@ -232,7 +222,7 @@ Describe 'CBS retry file replacement gate' {
 
     It 'allows replacement when no retry exists' {
         Mock Read-AtlasCbsRetryState { $script:GateEvents.Add('Read'); $null }
-        { Assert-AtlasPayloadReplacementAllowed } | Should -Not -Throw
+        { Assert-AtlasPackageReplacementAllowed } | Should -Not -Throw
         # The Atlas 0.5 list and a retry nobody armed are given up before the state decides.
         @($script:GateEvents) | Should -Be @('Legacy', 'Unarmed', 'Read')
     }
@@ -242,21 +232,21 @@ Describe 'CBS retry file replacement gate' {
         @{ Phase = 'Armed'; Instruction = '*Safe Mode with Command Prompt*Invoke-AtlasCbsRetry.cmd*' }
     ) {
         Mock Read-AtlasCbsRetryState { [pscustomobject]@{ Phase = $Phase } }
-        { Assert-AtlasPayloadReplacementAllowed } |
+        { Assert-AtlasPackageReplacementAllowed } |
             Should -Throw -ExpectedMessage "*CBS retry state is '$Phase' ('$(Get-AtlasCbsRetryStatePath)')*"
-        { Assert-AtlasPayloadReplacementAllowed } | Should -Throw -ExpectedMessage $Instruction
+        { Assert-AtlasPackageReplacementAllowed } | Should -Throw -ExpectedMessage $Instruction
     }
 
     It 'fails closed when retry-state reading fails' {
         Mock Read-AtlasCbsRetryState { throw 'invalid CBS retry state' }
-        { Assert-AtlasPayloadReplacementAllowed } |
+        { Assert-AtlasPackageReplacementAllowed } |
             Should -Throw -ExpectedMessage '*invalid CBS retry state*'
     }
 
     It 'stops while the Atlas 0.5 retry is still set to run' {
         Mock Remove-AtlasLegacyCbsRetryList { throw 'Restart Windows to let it finish' }
         Mock Read-AtlasCbsRetryState { $null }
-        { Assert-AtlasPayloadReplacementAllowed } | Should -Throw -ExpectedMessage '*Restart Windows to let it finish*'
+        { Assert-AtlasPackageReplacementAllowed } | Should -Throw -ExpectedMessage '*Restart Windows to let it finish*'
         Should -Invoke Read-AtlasCbsRetryState -Times 0 -Exactly
     }
 }
@@ -279,14 +269,14 @@ Describe 'CBS retry file replacement gate with retry state on disk' {
         # Atlas 0.5 never deleted its list, and earlier 0.6 builds recorded it as a Pending retry.
         [void](Write-AtlasCbsRetryState -Phase Pending -Packages $script:package)
         Set-Content -LiteralPath $script:legacyPath -Value $script:package
-        { Assert-AtlasPayloadReplacementAllowed } | Should -Not -Throw
+        { Assert-AtlasPackageReplacementAllowed } | Should -Not -Throw
         Test-Path -LiteralPath $script:statePath | Should -BeFalse
         Test-Path -LiteralPath $script:legacyPath | Should -BeFalse
     }
 
     It 'keeps blocking an armed retry' {
         [void](Write-AtlasCbsRetryState -Phase Armed -Packages $script:package)
-        { Assert-AtlasPayloadReplacementAllowed } |
+        { Assert-AtlasPackageReplacementAllowed } |
             Should -Throw -ExpectedMessage "*CBS retry state is 'Armed' ('$($script:statePath)')*"
         (Read-AtlasCbsRetryState).Phase | Should -BeExactly 'Armed'
     }
@@ -294,7 +284,7 @@ Describe 'CBS retry file replacement gate with retry state on disk' {
 
 Describe 'Install session logs kept with the machine''s' {
     BeforeAll {
-        $script:SessionScript = Join-Path $script:RepoRoot 'playbook\Executables\AtlasModules\Scripts\Install\Invoke-AtlasInstallSession.ps1'
+        $script:SessionScript = Join-Path $script:RepoRoot 'package\Executables\AtlasModules\Scripts\Install\Invoke-AtlasInstallSession.ps1'
         $script:SessionAst = [Management.Automation.Language.Parser]::ParseFile($script:SessionScript, [ref]$null, [ref]$null)
         foreach ($name in @('Write-AtlasSessionLog', 'Save-AtlasSessionLog')) {
             $function = $script:SessionAst.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name }, $true)
@@ -397,7 +387,7 @@ Describe 'Install session logs kept with the machine''s' {
 
 Describe 'Install log retention' {
     BeforeAll {
-        Import-Module (Join-Path $script:RepoRoot 'playbook\Executables\AtlasModules\Scripts\Modules\Atlas.Core\Atlas.Core.psd1') -Force
+        Import-Module (Join-Path $script:RepoRoot 'package\Executables\AtlasModules\Scripts\Modules\Atlas.Core\Atlas.Core.psd1') -Force
         $script:Now = [DateTime]::new(2026, 10, 31, 12, 0, 0, [DateTimeKind]::Utc)
         function New-TestLog {
             param([string]$Root, [string]$Name, [int]$AgeDays, [string]$Text = 'x')

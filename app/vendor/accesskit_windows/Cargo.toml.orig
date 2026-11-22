@@ -1,6 +1,6 @@
 [package]
 name = "accesskit_windows"
-version = "0.34.0"
+version = "0.35.2"
 authors.workspace = true
 license.workspace = true
 description = "AccessKit UI accessibility infrastructure: Windows adapter"
@@ -8,6 +8,7 @@ categories.workspace = true
 keywords = ["gui", "ui", "accessibility"]
 repository.workspace = true
 readme = "README.md"
+exclude = ["examples"]
 edition.workspace = true
 rust-version.workspace = true
 
@@ -16,8 +17,8 @@ default-target = "x86_64-pc-windows-msvc"
 targets = []
 
 [dependencies]
-accesskit = { version = "0.24.1", path = "../../common" }
-accesskit_consumer = { version = "0.38.0", path = "../../consumer" }
+accesskit = { version = "0.25.2", path = "../../accesskit" }
+accesskit_consumer = { version = "0.39.2", path = "../../accesskit_consumer" }
 hashbrown.workspace = true
 static_assertions = "1.1.0"
 windows-core = "0.62.0"
@@ -38,7 +39,8 @@ features = [
 ]
 
 [dev-dependencies]
-once_cell = "1.13.0"
+example_common = { path = "../../example_common" }
 parking_lot = "0.12.4"
+raw-window-handle = "0.6.2"
 scopeguard = "1.1.0"
 winit = "0.30"

@@ -82,13 +82,6 @@ pub const BODY_LINE_HEIGHT: Rems = r(20.);
 /// The containing control supplies the accessible name.
 pub struct CapCenteredText(pub SharedString);
 
-impl IntoElement for CapCenteredText {
-    type Element = Self;
-    fn into_element(self) -> Self {
-        self
-    }
-}
-
 impl gpui::Element for CapCenteredText {
     type RequestLayoutState = (<SharedString as gpui::Element>::RequestLayoutState, Pixels);
     type PrepaintState = ();

@@ -540,7 +540,7 @@ mod tests {
             log_path: temp.path().join("install-s.log"),
             exit_path: temp.path().join("install-s.exit"),
             request: InstallRequest {
-                playbook_dir: temp.path().into(),
+                package_dir: temp.path().into(),
                 options: vec![],
                 restart: false,
                 windows_security_confirmed: false,

@@ -1,6 +1,6 @@
 {
   "git": {
-    "sha1": "c88605b96d04431f9c3c792464a0f2f253480e94"
+    "sha1": "f3026222559c7f5f46d8f25cb7404de68eb149f0"
   },
-  "path_in_vcs": "platforms/windows"
+  "path_in_vcs": "adapters/windows"
 }

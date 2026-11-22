@@ -4,7 +4,11 @@
     Atlas modules on PSModulePath when working in this repository under VS Code,
     so the PowerShell extension resolves Import-Module and provides IntelliSense.
 .DESCRIPTION
-    Explicit one-time setup step. Safe to re-run - the snippet is only added once.
+    Explicit one-time setup step. It's safe to rerun: the snippet is added only once.
+.PARAMETER Remove
+    Removes the snippet from your profile instead.
+.NOTES
+    Exit codes: 0 success, 1 the profile could not be read or written.
 #>
 Param(
     [switch]$Remove

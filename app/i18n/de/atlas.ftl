@@ -11,11 +11,10 @@
 ###   Übermittlung von Beispielen, Einstellungen für Viren- & Bedrohungsschutz).
 ### - Product names stay as they are: Atlas, Windows, Microsoft Defender,
 ###   Windows-Sicherheit, Windows Update, GitHub, Discord, Atlas Toolbox,
-###   AME Wizard, Snipping Tool, LocalTest. German quotation marks („ “) mark
+###   Snipping Tool, LocalTest. German quotation marks („ “) mark
 ###   button and step names quoted inside sentences.
-### - The .apbx file is the "Atlas-Paket" ("Paket" once that is clear; its file
-###   is the "Paketdatei"). "Playbook" only where a text explains that AME
-###   Wizard calls it that.
+### - The .atlaspkg file is the "Atlas-Paket" ("Paket" once that is clear; its file
+###   is the "Paketdatei").
 ### - Plural categories: one, other.
 
 ## Shared
@@ -96,9 +95,9 @@ window-close-restart-close = Ohne Neustart schließen
 # window-close-keep, common-open-windows-security and window-close-close.
 window-close-protection-title = Atlas mit ausgeschaltetem Schutz schließen?
 window-close-protection-message = Einige Schutzfunktionen in der Windows-Sicherheit sind noch ausgeschaltet: { $switches }. Wenn Sie Atlas nicht fertig installieren möchten, schalten Sie diese Schutzfunktionen vor dem Schließen wieder ein. Wenn Sie Atlas fertig installieren möchten, setzt Atlas die Einrichtung fort, sobald Sie es wieder öffnen.
-# The Open button of the file picker for an Atlas package (.apbx) file, on Get ready and the
+# The Open button of the file picker for an Atlas package (.atlaspkg) file, on Get ready and the
 # ISO page. It's a button label, so keep it short.
-file-dialog-open-package = Atlas-Paket (.apbx) öffnen
+file-dialog-open-package = Atlas-Paket (.atlaspkg) öffnen
 # Message Windows shows in its restart notification.
 shutdown-comment = Atlas ist installiert. Windows wird neu gestartet, um die Einrichtung abzuschließen.
 # Message Windows shows in its restart notification when "Get ready" restarts
@@ -156,9 +155,6 @@ home-show-full-notes = Alle Versionshinweise anzeigen
 home-your-install = Ihre Atlas-Installation
 # Atlas is installed, but without the record Atlas Manager keeps (older versions didn't write one).
 home-install-unrecorded = Auf diesem PC ist nicht erfasst, wie Atlas installiert wurde. Ihre Auswahl und der Installationsverlauf können daher nicht angezeigt werden.
-# Row label: how Atlas was set up.
-home-set-up = Eingerichtet
-home-set-up-during-oobe = Während der Windows-Ersteinrichtung
 home-history = Installationsverlauf
 # One history row. $version is text, $mode one of the history-mode-* messages, $date a formatted date and time.
 home-history-entry = Atlas { $version } · { $mode } · { $date }
@@ -244,7 +240,11 @@ ready-banner-busy-message = Atlas prüft Ihren PC und bereitet die Installations
 ready-banner-blocked-title = Ihr PC ist noch nicht bereit
 ready-banner-blocked-message = Beheben Sie die markierten Punkte unter „PC-Prüfungen“ und wählen Sie dann „Erneut prüfen“.
 ready-banner-no-package-title = Laden Sie Atlas herunter, um fortzufahren
-ready-banner-no-package-message = Laden Sie Atlas unter „Installationsdateien“ herunter oder wählen Sie „Paketdatei öffnen“, wenn Sie bereits ein Atlas-Paket (.apbx) haben.
+ready-banner-no-package-message = Laden Sie Atlas unter „Installationsdateien“ herunter oder wählen Sie „Paketdatei öffnen“, wenn Sie bereits ein Atlas-Paket (.atlaspkg) haben.
+# The package tried needs a newer Atlas Manager. The title is also the footer's hint then.
+ready-banner-manager-title = Laden Sie einen neueren Atlas Manager herunter, um fortzufahren
+# "Download Atlas Manager" is manager-download, the button in Installation files (package-title).
+ready-banner-manager-message = Wählen Sie unter „Installationsdateien“ „Atlas Manager herunterladen“ und verwenden Sie dann die neue Version statt dieser.
 # Tester build: the bundled Atlas package couldn't be unpacked.
 ready-banner-no-package-bundled-title = Bereiten Sie das mitgelieferte Atlas-Paket vor, um fortzufahren
 ready-banner-no-package-bundled-message = Das mit dieser Testversion mitgelieferte Atlas-Paket ist noch nicht bereit. Sehen Sie sich die Karte „Installationsdateien“ an.
@@ -292,10 +292,10 @@ package-unpacking = Wird entpackt
 package-looking = Die neueste Atlas-Version wird gesucht.
 # Tester build: the bundled Atlas package is being unpacked, nothing is downloaded.
 package-looking-bundled = Das mitgelieferte Atlas-Paket wird vorbereitet.
-package-none = Laden Sie Atlas herunter, um die Installationsdateien zu erhalten. Wenn Sie bereits ein Atlas-Paket (.apbx) haben, öffnen Sie stattdessen dieses.
+package-none = Laden Sie Atlas herunter, um die Installationsdateien zu erhalten. Wenn Sie bereits ein Atlas-Paket (.atlaspkg) haben, öffnen Sie stattdessen dieses.
 # The GitHub release check failed. „Neueste Version herunterladen“ is package-download-newest,
 # the button offered in this state; it checks again.
-package-release-failed = Atlas konnte nicht nach der neuesten Version suchen. Prüfen Sie Ihre Internetverbindung und wählen Sie dann „Neueste Version herunterladen“ oder öffnen Sie ein gespeichertes Atlas-Paket (.apbx).
+package-release-failed = Atlas konnte nicht nach der neuesten Version suchen. Prüfen Sie Ihre Internetverbindung und wählen Sie dann „Neueste Version herunterladen“ oder öffnen Sie ein gespeichertes Atlas-Paket (.atlaspkg).
 # Short status words beside the card title.
 package-status-downloading = Wird heruntergeladen
 package-status-unpacking = Wird entpackt
@@ -316,15 +316,31 @@ package-from-release = Atlas { $version } wurde von GitHub heruntergeladen und i
 package-from-file = Atlas { $version } wurde aus { $file } geladen und ist bereit zur Installation.
 package-unpacked = Atlas { $version } ist bereit zur Installation.
 package-none-yet = Keine Installationsdateien ausgewählt
-acquire-no-asset = Für Atlas { $version } gibt es keine Paketdatei zum Herunterladen. Öffnen Sie ein gespeichertes Atlas-Paket (.apbx), um fortzufahren.
-acquire-unsupported = Diese App kann Atlas 0.6.0 und neuer installieren. Verwenden Sie für Atlas { $version } stattdessen den AME Wizard.
+acquire-no-asset = Für Atlas { $version } gibt es keine Paketdatei zum Herunterladen. Öffnen Sie ein gespeichertes Atlas-Paket (.atlaspkg), um fortzufahren.
+# Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
+# .apbx file from an Atlas release before 0.6.
+acquire-unsupported = Diese App kann Atlas 0.6.0 und neuer aus Atlas-Paketen (.atlaspkg) installieren.
 # A package new enough to include the installer script that this app drives, but without it.
-acquire-incomplete = In Atlas { $version } fehlen Dateien, die diese App zur Installation benötigt. Laden Sie es erneut herunter oder öffnen Sie ein anderes Atlas-Paket (.apbx).
-acquire-failed = Die Installationsdateien konnten nicht vorbereitet werden. Laden Sie sie erneut herunter oder öffnen Sie ein anderes Atlas-Paket (.apbx). Details: { $error }
+acquire-incomplete = In Atlas { $version } fehlen Dateien, die diese App zur Installation benötigt. Laden Sie es erneut herunter oder öffnen Sie ein anderes Atlas-Paket (.atlaspkg).
+acquire-failed = Die Installationsdateien konnten nicht vorbereitet werden. Laden Sie sie erneut herunter oder öffnen Sie ein anderes Atlas-Paket (.atlaspkg). Details: { $error }
 # The download received nothing for a minute and was stopped.
-acquire-stalled = Der Download reagiert nicht mehr. Prüfen Sie Ihre Internetverbindung und laden Sie die Dateien dann erneut herunter oder öffnen Sie ein gespeichertes Atlas-Paket (.apbx).
+acquire-stalled = Der Download reagiert nicht mehr. Prüfen Sie Ihre Internetverbindung und laden Sie die Dateien dann erneut herunter oder öffnen Sie ein gespeichertes Atlas-Paket (.atlaspkg).
 # Tester build: the bundled Atlas package couldn't be unpacked. Try again is the only control offered.
 acquire-failed-bundled = Das mitgelieferte Atlas-Paket konnte nicht vorbereitet werden. Wählen Sie „Erneut versuchen“. Details: { $error }
+# The Atlas package asks for a newer Atlas Manager than this one. $version is the version it asks for,
+# such as 0.7.0. "Download Atlas Manager" is manager-download, the button beside the message.
+acquire-manager-outdated = Dieses Atlas-Paket erfordert Atlas Manager { $version } oder neuer. Wählen Sie „Atlas Manager herunterladen“ und verwenden Sie dann die neue Version statt dieser.
+# The same, for a package that doesn't say which version it needs.
+acquire-manager-outdated-any = Dieses Atlas-Paket erfordert einen neueren Atlas Manager. Wählen Sie „Atlas Manager herunterladen“ und verwenden Sie dann die neue Version statt dieser.
+
+## Newer Atlas Manager
+
+# Opens the latest Atlas release on GitHub in the browser, where Atlas Manager is downloaded.
+manager-download = Atlas Manager herunterladen
+# A note on Home and in Settings that a newer Atlas Manager has been released. $version is its
+# version, such as 0.7.0. The note doesn't stop anything; manager-download is its button.
+manager-update-title = Atlas Manager { $version } ist verfügbar
+manager-update-message = Atlas Manager kann sich nicht selbst aktualisieren. Laden Sie die neue Version herunter und verwenden Sie sie statt dieser.
 
 ## System checks
 
@@ -426,33 +442,33 @@ consequence-auto-updates-disable = Öffnen Sie regelmäßig Windows Update, um U
 consequence-auto-updates-default = Windows installiert Updates automatisch, einschließlich Sicherheitskorrekturen.
 
 ## Atlas package text
-## The Atlas package carries its own English text for each option. These
-## UI labels and explanations are used only when the package text matches
-## i18n/playbook-source.ftl. A future package with different wording keeps
-## its own text instead of receiving a potentially outdated description.
+## Labels and descriptions for the Atlas package's options and choices, by
+## their ids in the package's atlas.json. The app shows these in place of the
+## package's own English text; an option or choice that a newer package adds,
+## which has no message here, shows the package's English.
 
-playbook-option-defender-enable = Microsoft Defender behalten (empfohlen)
-playbook-option-defender-disable = Microsoft Defender entfernen
-playbook-option-mitigations-default = Prozessorschutz behalten (empfohlen)
-playbook-option-mitigations-disable = Prozessorschutz ausschalten
-playbook-option-auto-updates-disable = Updates selbst installieren
-playbook-option-auto-updates-default = Updates automatisch installieren
-playbook-option-disable-hibernation = Ruhezustand ausschalten
-playbook-option-disable-power-saving = Energiesparen ausschalten
-playbook-option-disable-core-isolation = Virtualisierungsbasierte Sicherheit (VBS) ausschalten
-playbook-option-remove-snipping-tool = Snipping Tool entfernen
-playbook-option-uninstall-edge = Microsoft Edge entfernen
-playbook-option-install-another-browser = Browser installieren
-playbook-option-install-toolbox = Atlas Toolbox installieren
-playbook-option-install-eclean = eclean installieren
-playbook-option-browser-brave = Brave
-playbook-option-browser-librewolf = LibreWolf
-playbook-option-browser-firefox = Firefox
-playbook-option-browser-chrome = Chrome
-playbook-page-defender-enable-description = Microsoft Defender ist der in Windows integrierte Virenschutz. Entfernen Sie ihn nur, wenn Sie die Risiken kennen und eine andere Antivirensoftware verwenden möchten. Unabhängig von Ihrer Wahl schaltet Atlas die Intelligente App-Steuerung, den Erweiterten Phishingschutz und „Mein Gerät suchen“ aus.
-playbook-page-mitigations-default-description = Diese Schutzfunktionen, auch Mitigationen genannt, helfen, Ihren PC vor Prozessorschwachstellen wie Spectre und Meltdown und vor Angriffen zu schützen, die Fehler in Apps ausnutzen. Es wird empfohlen, die Standardeinstellungen von Windows beizubehalten.
-playbook-page-auto-updates-disable-description = Windows-Updates enthalten Sicherheitskorrekturen. Sie können sie von Windows automatisch installieren lassen oder selbst installieren. In beiden Fällen belässt Atlas Windows auf der aktuellen Version, die nur so lange Sicherheitskorrekturen erhält, bis Microsoft den Support dafür beendet. Atlas schaltet außerdem automatische Updates für Apps aus dem Microsoft Store aus. Aktualisieren Sie diese Apps daher im Microsoft Store.
-playbook-page-browser-brave-description = Wählen Sie einen Browser, der installiert werden soll. Atlas ändert Ihre Browsereinstellungen nicht.
+package-option-defender-enable = Microsoft Defender behalten (empfohlen)
+package-option-defender-disable = Microsoft Defender entfernen
+package-option-mitigations-default = Prozessorschutz behalten (empfohlen)
+package-option-mitigations-disable = Prozessorschutz ausschalten
+package-option-auto-updates-disable = Updates selbst installieren
+package-option-auto-updates-default = Updates automatisch installieren
+package-option-disable-hibernation = Ruhezustand ausschalten
+package-option-disable-power-saving = Energiesparen ausschalten
+package-option-disable-core-isolation = Virtualisierungsbasierte Sicherheit (VBS) ausschalten
+package-option-remove-snipping-tool = Snipping Tool entfernen
+package-option-uninstall-edge = Microsoft Edge entfernen
+package-option-install-another-browser = Browser installieren
+package-option-install-toolbox = Atlas Toolbox installieren
+package-option-install-eclean = eclean installieren
+package-option-browser-brave = Brave
+package-option-browser-librewolf = LibreWolf
+package-option-browser-firefox = Firefox
+package-option-browser-chrome = Chrome
+package-choice-defender-description = Microsoft Defender ist der in Windows integrierte Virenschutz. Entfernen Sie ihn nur, wenn Sie die Risiken kennen und eine andere Antivirensoftware verwenden möchten. Unabhängig von Ihrer Wahl schaltet Atlas die Intelligente App-Steuerung, den Erweiterten Phishingschutz und „Mein Gerät suchen“ aus.
+package-choice-mitigations-description = Diese Schutzfunktionen, auch Mitigationen genannt, helfen, Ihren PC vor Prozessorschwachstellen wie Spectre und Meltdown und vor Angriffen zu schützen, die Fehler in Apps ausnutzen. Es wird empfohlen, die Standardeinstellungen von Windows beizubehalten.
+package-choice-auto-updates-description = Windows-Updates enthalten Sicherheitskorrekturen. Sie können sie von Windows automatisch installieren lassen oder selbst installieren. In beiden Fällen belässt Atlas Windows auf der aktuellen Version, die nur so lange Sicherheitskorrekturen erhält, bis Microsoft den Support dafür beendet. Atlas schaltet außerdem automatische Updates für Apps aus dem Microsoft Store aus. Aktualisieren Sie diese Apps daher im Microsoft Store.
+package-choice-browser-description = Wählen Sie einen Browser, der installiert werden soll. Atlas ändert Ihre Browsereinstellungen nicht.
 
 ## Step 3: Windows Security
 
@@ -558,7 +574,7 @@ output-problem-title = Installationsfortschritt konnte nicht gelesen werden
 output-problem-message = Atlas konnte das Protokoll nicht lesen. Das bedeutet nicht, dass die Installation gestoppt wurde. Lassen Sie Ihren PC eingeschaltet und versuchen Sie, die Protokolldatei zu öffnen. Details: { $error }
 install-elevate-title = Atlas benötigt eine Berechtigung für die Installation
 install-no-package-title = Wählen Sie zuerst Ihre Installationsdateien
-install-no-package-message = Gehen Sie zurück zu „Vorbereiten“, um Atlas herunterzuladen oder ein gespeichertes Atlas-Paket (.apbx) zu öffnen.
+install-no-package-message = Gehen Sie zurück zu „Vorbereiten“, um Atlas herunterzuladen oder ein gespeichertes Atlas-Paket (.atlaspkg) zu öffnen.
 # Tester build variant of install-no-package-message.
 install-no-package-bundled-message = Gehen Sie zurück zu „Vorbereiten“, um das mit dieser Testversion mitgelieferte Atlas-Paket vorzubereiten.
 # Step 4 when step 1 is incomplete for this session (checks or Windows updates), with go-to-ready as the button.
@@ -669,6 +685,7 @@ settings-language-formats = Zahlen, Datum und Uhrzeit folgen Ihrem regionalen Fo
 # right to left. $locale is the format's English name, for example "Arabic (Saudi Arabia)".
 settings-language-formats-numbers-only = Zahlen folgen Ihrem regionalen Format in Windows ({ $locale }). Datum und Uhrzeit werden in einem Standardformat angezeigt, da Atlas noch keinen Text von rechts nach links darstellen kann.
 settings-language-contribute = Beim Übersetzen von Atlas auf GitHub helfen
+settings-usage-analytics = Seitenaufrufe, ISO-Erstellungen und Installationsergebnisse mit Atlas teilen
 settings-restart-label = PC nach der Installation automatisch neu starten
 settings-restart-locked = Sie können das ändern, sobald die Installation abgeschlossen ist.
 settings-restart-description = Wenn diese Option eingeschaltet ist, wird Ihr PC innerhalb einer Minute nach Abschluss der Installation neu gestartet. Dabei werden Ihre geöffneten Apps geschlossen. Speichern Sie Ihre Arbeit, bevor Sie installieren.
@@ -703,25 +720,31 @@ consequence-install-eclean = Ein Wartungstool vom Team hinter AtlasOS, mit dem S
 # Introduction on the home page before Atlas is installed.
 home-intro = Atlas passt Windows so an, dass weniger im Hintergrund läuft und weniger ablenkt. Installieren Sie Atlas direkt nach einer Neuinstallation von Windows, bevor Sie eigene Apps und Dateien hinzufügen.
 
-## ISO creation (Beta)
+## ISO creation
 iso-home-title = Windows-Installationsmedium
 iso-home-description = Erstellen Sie eine Windows-Installationsdatei (ISO) mit Atlas und installieren Sie damit Windows auf diesem oder einem anderen PC neu.
 iso-open = Atlas-ISO erstellen
 iso-title = Atlas-ISO erstellen
-iso-beta = Beta
-iso-beta-description = Testen Sie die ISO in einer virtuellen Maschine, bevor Sie sie auf einem PC verwenden. Sichern Sie Ihre Dateien, bevor Sie Windows installieren.
+iso-recommended = Empfohlen
 iso-admin-description = Atlas benötigt Administratorrechte, um Ihre Windows-ISO zu lesen und die neue zu erstellen. Wählen Sie „Als Administrator ausführen“ und dann „Ja“, wenn Windows nachfragt.
-iso-files-description = Atlas erstellt eine Kopie einer Windows-11-ISO und fügt Atlas hinzu, sodass Sie Windows damit neu installieren können. Wählen Sie eine von Microsoft heruntergeladene Windows-11-ISO, laden Sie das neueste Atlas-Paket herunter oder wählen Sie ein vorhandenes (.apbx), und legen Sie dann fest, wo die neue ISO gespeichert wird.
-# Tester build: no package picker.
-iso-files-description-bundled = Atlas erstellt eine Kopie einer Windows-11-ISO und fügt das mit dieser Testversion mitgelieferte Atlas-Paket hinzu. Wählen Sie eine von Microsoft heruntergeladene Windows-11-ISO und legen Sie dann fest, wo die neue ISO gespeichert wird.
 iso-source = Windows-ISO
+iso-download-recommended = Von Microsoft herunterladen (empfohlen)
+iso-source-question = Woher soll Windows kommen?
+iso-use-local = ISO-Datei auswählen
+iso-package-latest-label = Aktuell
+iso-package-latest = Neuestes Atlas-Paket
+iso-package-unavailable = Wähle ein Atlas-Paket für diese Manager-Version.
+iso-save-name = Speichern als { $name }
 iso-source-download = Windows 11 bei Microsoft herunterladen
-# $minimum is the first Atlas version that can be used (text, such as 0.6.0).
-iso-package = Atlas-Paket ({ $minimum } oder neuer)
+iso-download-arch = Architektur
+iso-download-languages = Sprachen werden geladen…
+iso-download-list-error = Die Windows-Sprachen konnten nicht geladen werden. Versuche es erneut oder lade die ISO von Microsoft herunter.
+iso-download-file-error = Die ISO konnte nicht gespeichert werden. Prüfe die Verbindung und den freien Speicherplatz und versuche es mit einem neuen Dateinamen erneut.
+iso-download-website = Microsofts Downloadseite öffnen
+iso-download-progress = Windows wird heruntergeladen · { $received } von { $total }
+iso-download-starting = Windows-Download wird vorbereitet…
 iso-output = Neue ISO speichern unter
 iso-no-file = Keine Datei ausgewählt
-iso-browse = Durchsuchen
-iso-save-as = Speichern unter
 # Accessible name of the Browse or Save as button beside a file field: $action is
 # that button's text and $field the field's label.
 iso-pick-a11y = { $action }: { $field }
@@ -749,6 +772,9 @@ iso-step-review = Überprüfung
 iso-review-package = Atlas-Paket
 iso-review-output = Neue ISO
 iso-review-editions = Editionen
+iso-edition = Windows-Edition
+iso-edition-auto = Während der Windows-Installation auswählen
+iso-accept-terms = Ich akzeptiere die Microsoft-Software-Lizenzbedingungen für Windows
 iso-architecture-x64 = x64
 iso-architecture-arm64 = Arm64
 # A file size; $size is a formatted number (text). Megabytes below a gigabyte.
@@ -778,7 +804,7 @@ iso-cancelling = Warten auf einen sicheren Abbruchpunkt
 iso-cancelled = ISO-Erstellung abgebrochen
 iso-cancelled-description = Ihre ursprüngliche ISO ist unverändert. Falls temporäre Dateien zurückgeblieben sind, wählen Sie „Protokollordner öffnen“, um zu sehen, wo sie liegen.
 iso-complete = Ihre ISO ist fertig
-iso-complete-description = Die ISO-Erstellung ist in der Betaphase. Testen Sie die ISO daher zuerst in einer virtuellen Maschine. Wählen Sie dann „Installations-USB erstellen“ und sichern Sie Ihre Dateien, bevor Sie Windows neu installieren.
+iso-complete-description = Wählen Sie dann „Installations-USB erstellen“ und sichern Sie Ihre Dateien, bevor Sie Windows neu installieren.
 iso-open-folder = Im Ordner anzeigen
 iso-failed = ISO-Erstellung konnte nicht abgeschlossen werden
 iso-failed-description = Stellen Sie sicher, dass Ihre Dateien noch am gewählten Ort liegen und das Laufwerk, auf dem Sie speichern, angeschlossen ist, und wählen Sie dann „ISO erstellen“. Wenn es weiterhin fehlschlägt, wählen Sie „Bericht senden“.
@@ -854,7 +880,8 @@ iso-account-empty = Geben Sie einen Namen für das lokale Konto ein, um fortzufa
 iso-account-invalid = Verwenden Sie bis zu 20 Zeichen, ohne Leerzeichen am Anfang oder Ende und ohne diese Zeichen: " / \ [ ] : ; | = , + * ? < > @
 iso-account-trailing-dot = Der Name darf nicht mit einem Punkt enden.
 iso-account-reserved = Windows verwendet diesen Namen für ein integriertes Konto. Wählen Sie einen anderen Namen.
-iso-privacy-defaults = Diese ISO überspringt bei der Windows-Einrichtung die Seiten für Lizenz, Microsoft-Konto und Datenschutz und schaltet die optionale Datenfreigabe und personalisierte Angebote aus.
+iso-terms-in-setup = Windows Setup fragt während der Installation nach deiner Zustimmung zu den Lizenzbedingungen.
+iso-privacy-defaults = Diese ISO überspringt bei der Windows-Einrichtung die Seiten für Microsoft-Konto und Datenschutz und schaltet die optionale Datenfreigabe und personalisierte Angebote aus.
 prepare-drivers = Wie sollen Treiber installiert werden?
 prepare-drivers-auto = Treiber über Windows Update beziehen
 prepare-drivers-auto-detail = Windows sucht passende Treiber für Ihre Hardware. Für die meisten PCs empfohlen.
@@ -888,7 +915,7 @@ iso-mode-desktop-description = Atlas speichert Ihre Auswahl in der ISO. Nach der
 desktop-setup-description = Schließen Sie die Einrichtung Ihres PCs ab. Ihre Atlas-Auswahl ist gespeichert. Bei Bedarf können Sie zu Windows wechseln.
 desktop-setup-exit = In Windows fortfahren
 
-# Windows installation USB (Beta)
+# Windows installation USB
 usb-title = Installations-USB erstellen
 usb-existing = USB aus einer vorhandenen ISO erstellen
 usb-description = Übertragen Sie eine ISO auf ein USB-Laufwerk, um Windows davon neu zu installieren. Verwenden Sie eine mit Atlas erstellte ISO, um Atlas gleich mit zu installieren.
@@ -949,7 +976,7 @@ install-source-unsupported = Atlas { $source } kann nicht direkt auf { $target }
 # Before a package is chosen, so the version on offer isn't known yet.
 install-source-unsupported-any = Atlas { $source } kann nicht direkt aktualisiert werden. Um eine neuere Version zu verwenden, sichern Sie Ihre Dateien und installieren Sie Windows neu.
 # „Paketdatei öffnen“ is package-open-file. $folder is a folder path (text).
-install-source-resume = Eine Installation von Atlas { $target } wurde nicht abgeschlossen und kann nur mit dem Paket für Atlas { $target } abgeschlossen werden. Wählen Sie „Paketdatei öffnen“ und dann dieses Atlas-Paket (.apbx). Falls Atlas es heruntergeladen hat, finden Sie es in { $folder }.
+install-source-resume = Eine Installation von Atlas { $target } wurde nicht abgeschlossen und kann nur mit dem Paket für Atlas { $target } abgeschlossen werden. Wählen Sie „Paketdatei öffnen“ und dann dieses Atlas-Paket (.atlaspkg). Falls Atlas es heruntergeladen hat, finden Sie es in { $folder }.
 # Tester build: only the bundled Atlas package can be installed.
 install-source-resume-bundled = Eine Installation von Atlas { $target } wurde nicht abgeschlossen. Diese Testversion kann nur ihr mitgeliefertes Atlas-Paket installieren. Schließen Sie die Installation daher mit dem Paket für Atlas { $target } in einer regulären Version von Atlas Manager ab.
 install-source-unknown = Atlas konnte nicht feststellen, was auf diesem PC bereits installiert ist, und installiert deshalb vorerst nichts. Wählen Sie „Bericht senden“, damit das Atlas-Team helfen kann.
@@ -984,7 +1011,7 @@ diagnostics-failed-title = Diagnose konnte nicht exportiert werden
 # $error is the raw error (text).
 diagnostics-failed = Prüfen Sie, ob auf Ihrem PC genügend Speicherplatz frei ist, und versuchen Sie es dann erneut. Details: { $error }
 
-## Tester builds (embedded-playbook feature)
+## Tester builds (embedded-package feature)
 
 # One line of chrome under the title bar on a release-candidate build.
 rc-banner = Testversion von Atlas { $release }. Diese App installiert nur das mitgelieferte Atlas-Paket.
@@ -1296,10 +1323,10 @@ prepare-repair-store = Microsoft Store reparieren
 
 screen-keyboard-title = Tastatursprachen
 screen-keyboard-question = Verwenden Sie mehrere Tastatursprachen?
-playbook-option-keyboard-shortcuts = Ja, mit Tastenkombinationen
-playbook-option-keyboard-selector = Ja, mit der Auswahl in der Taskleiste
-playbook-option-keyboard-single = Nein, ich verwende nur ein Tastaturlayout
+package-option-keyboard-shortcuts = Ja, mit Tastenkombinationen
+package-option-keyboard-selector = Ja, mit der Auswahl in der Taskleiste
+package-option-keyboard-single = Nein, ich verwende nur ein Tastaturlayout
 consequence-keyboard-shortcuts = Alt+Shift wechselt die Sprache; Ctrl+Shift wechselt das Layout.
 consequence-keyboard-selector = Alt+Shift und Ctrl+Shift ausschalten, um versehentliche Wechsel beim Spielen zu vermeiden.
-playbook-page-keyboard-shortcuts-description = Wählen Sie, wie Sie die Tastatursprache wechseln.
+package-choice-keyboard-description = Wählen Sie, wie Sie die Tastatursprache wechseln.
 consequence-keyboard-single = { consequence-keyboard-selector }

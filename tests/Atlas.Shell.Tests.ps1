@@ -513,7 +513,7 @@ Describe 'Set-AtlasStartLayout' {
 
     It 'accepts the included Start layout' {
         Mock Get-AtlasStartLayoutPath -ModuleName Atlas.Shell {
-            Join-Path -Path $script:AtlasTestRepoRoot -ChildPath 'playbook\Executables\AtlasModules\Other\StartLayout.json'
+            Join-Path -Path $script:AtlasTestRepoRoot -ChildPath 'package\Executables\AtlasModules\Other\StartLayout.json'
         }
 
         { Set-AtlasStartLayout } | Should -Not -Throw
@@ -788,7 +788,7 @@ Describe 'Add-AtlasMusicVideosToHome' {
 }
 
 Describe 'Atlas.Shell tweak bindings' {
-    It 'runs <Definition> as the non-elevated user outside OOBE' -ForEach @(
+    It 'runs <Definition> as the non-elevated user' -ForEach @(
         @{ Definition = 'scripts\set-file-associations.psd1' }
         @{ Definition = 'qol\explorer\debloat-send-to.psd1' }
     ) {

@@ -5,6 +5,9 @@ use std::borrow::Cow;
 use anyhow::Result;
 use gpui::{AssetSource, SharedString};
 
+/// GPUI's asset source: the images under `assets/` that `FILES` lists, looked
+/// up by their path relative to it. Nothing is read from disk at run time; a
+/// path missing from `FILES` loads as `None`.
 pub struct Assets;
 
 const FILES: &[(&str, &[u8])] = &[

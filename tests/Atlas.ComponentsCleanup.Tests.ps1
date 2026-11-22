@@ -1,7 +1,7 @@
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
     'PSReviewUnusedParameter',
     '',
-    Justification = 'The components-phase harness stubs declare the parameter surface of the commands they shadow.'
+    Justification = 'The components-phase harness stubs declare the same parameters as the commands they shadow.'
 )]
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
     'PSAvoidOverwritingBuiltInCmdlets',
@@ -80,7 +80,6 @@ BeforeAll {
     function Reset-PhaseRecording {
         $script:PhaseOptions = @()
         $script:PhaseContext = [pscustomobject]@{
-            IsOobe             = $true
             InteractiveUserSid = 'S-1-5-21-1000-2000-3000-1001'
         }
         $script:AsUserExitCode = 0
@@ -267,7 +266,7 @@ AfterAll {
     }
 }
 
-Describe 'Components phase deferred and exact-user cleanup behavior' {
+Describe 'Components phase deferred and exact-user cleanup behaviour' {
     BeforeEach {
         Reset-PhaseRecording
         # The phase must never read this PC's own servicing packages or Defender.
@@ -325,7 +324,7 @@ Describe 'Components phase deferred and exact-user cleanup behavior' {
         @{ Option = 'defender-disable'; Installs = @('Install:*Z-Atlas-NoDefender-Package*+*Z-Atlas-NoTelemetry-Package*'); Core = @('Removed') }
     ) {
         $script:PhaseOptions = @($Option)
-        $script:PhaseContext = [pscustomobject]@{ IsOobe = $true; IsRebase = $true; InteractiveUserSid = $null }
+        $script:PhaseContext = [pscustomobject]@{ IsRebase = $true; InteractiveUserSid = 'S-1-5-21-1000-2000-3000-1001' }
         Mock Get-AtlasWindowsTransitionRebase { [pscustomobject]@{ Carry = [pscustomobject]@{ edge = $false; oneDrive = $false } } }
 
         Invoke-ComponentsPhaseUnderTest
@@ -396,7 +395,6 @@ Describe 'Components phase deferred and exact-user cleanup behavior' {
     }
 
     It 'dispatches OneDrive profile cleanup through the exact-user launcher' {
-        $script:PhaseContext.IsOobe = $false
 
         Invoke-ComponentsPhaseUnderTest
 
@@ -411,7 +409,6 @@ Describe 'Components phase deferred and exact-user cleanup behavior' {
     }
 
     It 'warns and continues when the exact-user OneDrive cleanup exits nonzero' {
-        $script:PhaseContext.IsOobe = $false
         $script:AsUserExitCode = 23
 
         { Invoke-ComponentsPhaseUnderTest } | Should -Not -Throw
@@ -424,7 +421,6 @@ Describe 'Components phase deferred and exact-user cleanup behavior' {
 
     It 'warns and reaches the remaining cleanup when Edge leftovers cannot be removed' {
         $script:PhaseOptions = @('uninstall-edge')
-        $script:PhaseContext.IsOobe = $false
         $script:AsUserExitCode = 1
 
         { Invoke-ComponentsPhaseUnderTest } | Should -Not -Throw
@@ -440,7 +436,7 @@ Describe 'Components phase deferred and exact-user cleanup behavior' {
 
     It 'leaves Edge and OneDrive in a Rebase when an account had them before Windows moved' {
         $script:PhaseOptions = @('uninstall-edge')
-        $script:PhaseContext = [pscustomobject]@{ IsOobe = $false; IsRebase = $true; InteractiveUserSid = 'S-1-5-21-1000-2000-3000-1001' }
+        $script:PhaseContext = [pscustomobject]@{ IsRebase = $true; InteractiveUserSid = 'S-1-5-21-1000-2000-3000-1001' }
         Mock Get-AtlasWindowsTransitionRebase { [pscustomobject]@{ Carry = [pscustomobject]@{ edge = $true; oneDrive = $true } } }
         Mock Remove-AtlasOneDrive { }
 
@@ -456,7 +452,7 @@ Describe 'Components phase deferred and exact-user cleanup behavior' {
 
     It 'removes in a Rebase only the Edge and OneDrive Windows put back' {
         $script:PhaseOptions = @('uninstall-edge')
-        $script:PhaseContext = [pscustomobject]@{ IsOobe = $false; IsRebase = $true; InteractiveUserSid = 'S-1-5-21-1000-2000-3000-1001' }
+        $script:PhaseContext = [pscustomobject]@{ IsRebase = $true; InteractiveUserSid = 'S-1-5-21-1000-2000-3000-1001' }
         Mock Get-AtlasWindowsTransitionRebase { [pscustomobject]@{ Carry = [pscustomobject]@{ edge = $false; oneDrive = $false } } }
         Mock Remove-AtlasOneDrive { }
 
@@ -466,33 +462,20 @@ Describe 'Components phase deferred and exact-user cleanup behavior' {
         Should -Invoke Remove-AtlasOneDrive -Times 1 -Exactly
     }
 
-    It 'requires the install-state user SID for non-OOBE OneDrive cleanup' {
-        $script:PhaseContext.IsOobe = $false
+    It 'requires the install-state user SID for OneDrive cleanup' {
         $script:PhaseContext.InteractiveUserSid = ''
 
         { Invoke-ComponentsPhaseUnderTest } | Should -Throw '*OneDrive current-user cleanup requires*'
     }
 
-    It 'requires the install-state user SID for non-OOBE Edge cleanup' {
+    It 'requires the install-state user SID for Edge cleanup' {
         $script:PhaseOptions = @('uninstall-edge')
-        $script:PhaseContext.IsOobe = $false
         $script:PhaseContext.InteractiveUserSid = ''
 
         { Invoke-ComponentsPhaseUnderTest } | Should -Throw '*Edge current-user cleanup requires*'
         @($script:AsUserCalls).Count | Should -Be 0
     }
 
-    It 'skips both exact-user cleanup processes during OOBE' {
-        $script:PhaseOptions = @('uninstall-edge')
-        # OOBE installs never bind a user.
-        $script:PhaseContext.InteractiveUserSid = $null
-
-        { Invoke-ComponentsPhaseUnderTest } | Should -Not -Throw
-
-        # Machine-wide Edge removal still runs.
-        @($script:HiddenProcessCalls).Count | Should -Be 1
-        @($script:AsUserCalls).Count | Should -Be 0
-    }
 
     It 'rethrows unconfirmed OneDrive process containment instead of continuing' {
         $containmentError = New-Object Exception 'vendor uninstall failed'
@@ -619,7 +602,7 @@ Describe 'OneDrive exact-user cleanup boundary' {
         }
     }
 
-    It 'canonicalizes account SIDs and rejects invalid or non-account SIDs' {
+    It 'canonicalises account SIDs and rejects invalid or non-account SIDs' {
         ConvertTo-AtlasOneDriveUserSid -Sid 'S-1-5-21-1000-2000-3000-1001' |
             Should -BeExactly 'S-1-5-21-1000-2000-3000-1001'
         { ConvertTo-AtlasOneDriveUserSid -Sid 'not-a-sid' } |

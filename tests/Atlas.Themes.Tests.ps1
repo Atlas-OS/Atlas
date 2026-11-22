@@ -1,6 +1,6 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
+    $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\package\Executables\AtlasModules\Scripts\Modules'
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Core\Atlas.Core.psd1') -Force
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Themes\Atlas.Themes.psd1') -Force
 }
@@ -8,6 +8,8 @@ BeforeAll {
 Describe 'Set-AtlasThemeMru' {
     BeforeAll {
         $script:themeMruNames = @(
+            'atlas-v0.6.x-dark.theme'
+            'atlas-v0.6.x-light.theme'
             'atlas-v0.4.x-dark.theme'
             'atlas-v0.4.x-light.theme'
             'atlas-v0.5.x-dark.theme'
@@ -38,8 +40,8 @@ Describe 'Set-AtlasThemeMru' {
     }
 
     It 'lists only Atlas themes that the Atlas package installs' {
-        # Copy-AtlasPayload copies these to Resources\Themes; the other entries are inbox themes.
-        $themesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\Themes'
+        # Copy-AtlasPackage.ps1 copies these to Resources\Themes; the other entries are inbox themes.
+        $themesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\package\Executables\Themes'
         foreach ($name in @($script:themeMruNames -like 'atlas-*')) {
             Join-Path -Path $themesRoot -ChildPath $name | Should -Exist
         }

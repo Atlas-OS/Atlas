@@ -14,8 +14,8 @@ use super::{Icon, Typography, icon_in_line_sized};
 use crate::theme::{ActiveTheme, Theme};
 use gpui::{
     App, Bounds, ClipboardItem, Context, CursorStyle, EntityInputHandler, FocusHandle, Focusable,
-    MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, Rems, ScrollWheelEvent,
-    ShapedLine, SharedString, Window, actions, div, prelude::*, px,
+    MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, Rems, ScrollEvent, ShapedLine,
+    SharedString, Window, actions, div, prelude::*, px,
 };
 use unicode_segmentation::*;
 
@@ -377,7 +377,7 @@ impl TextInput {
 
     /// Scrolls a multi-line input whose text is taller than it. At either
     /// end the wheel goes on to scroll the page.
-    fn on_scroll_wheel(&mut self, event: &ScrollWheelEvent, _: &mut Window, cx: &mut Context<Self>) {
+    fn on_scroll_wheel(&mut self, event: &ScrollEvent, _: &mut Window, cx: &mut Context<Self>) {
         let (Some(bounds), Some(rows)) = (self.last_bounds, self.last_rows.as_ref()) else { return };
         let limit = (rows.height() - bounds.size.height).max(px(0.));
         let offset =
@@ -573,7 +573,7 @@ impl Render for TextInput {
             .on_mouse_up(MouseButton::Left, cx.listener(Self::on_mouse_up))
             .on_mouse_up_out(MouseButton::Left, cx.listener(Self::on_mouse_up))
             .on_mouse_move(cx.listener(Self::on_mouse_move))
-            .on_scroll_wheel(cx.listener(Self::on_scroll_wheel))
+            .on_scroll(cx.listener(Self::on_scroll_wheel))
             .bg(fill)
             .border_1()
             .border_color(border)

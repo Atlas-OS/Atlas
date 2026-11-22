@@ -1,9 +1,11 @@
-name: Build Playbook
+name: Build Atlas package
+
+# Actions are pinned by SHA; Dependabot updates the SHA and its version comment together.
 
 on:
   push:
     paths:
-      - "playbook/**"
+      - "package/**"
       - "tools/**"
       - ".github/requirements-ci.txt"
       - ".github/workflows/build.yml"
@@ -21,7 +23,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: build-playbook-${{ github.ref }}
+  group: build-package-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -30,12 +32,12 @@ env:
 
 jobs:
   build:
+    name: Build the Atlas package
     runs-on: windows-latest
     timeout-minutes: 60
 
     steps:
       - name: Checkout code
-        # gh api repos/actions/checkout/commits/v7.0.0 --jq '.sha'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
@@ -53,7 +55,6 @@ jobs:
           "ATLAS_SOURCE_SHA=$sourceSha" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Set up pinned Python
-        # gh api repos/actions/setup-python/commits/v6.3.0 --jq '.sha'
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
@@ -202,7 +203,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $sxsc = $env:ATLAS_SXSC_ROOT
           $packagePath = Join-Path $env:GITHUB_WORKSPACE `
-              'playbook\Executables\AtlasModules\Packages'
+              'package\Executables\AtlasModules\Packages'
           New-Item -Path $packagePath -ItemType Directory -Force | Out-Null
           if ($env:ATLAS_REGENERATE_ALL -eq 'true') {
               Get-ChildItem -LiteralPath $packagePath -Filter '*.cab' -File |
@@ -252,7 +253,7 @@ jobs:
           # a workspace with freshly built CABs must carry matching hashes before the CI
           # Atlas package is built from it.
           $pkgDir = Join-Path $env:GITHUB_WORKSPACE `
-              'playbook\Executables\AtlasModules\Packages'
+              'package\Executables\AtlasModules\Packages'
           $manifestPath = Join-Path $pkgDir 'Atlas-CbsHashes.psd1'
           $header = foreach ($line in [IO.File]::ReadAllLines($manifestPath)) {
               if ($line -match '^@\{') { break }
@@ -287,7 +288,6 @@ jobs:
 
       - name: Upload review-only CAB candidates
         if: steps.sxsc-configs.outputs.run-sxsc == 'true'
-        # gh api repos/actions/upload-artifact/commits/v7.0.1 --jq '.sha'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: Atlas-CAB-candidates-${{ env.ATLAS_SOURCE_SHA }}
@@ -297,30 +297,27 @@ jobs:
           compression-level: 0
 
       - name: Build and stage the CI Atlas package
-        id: create-playbook
-        if: ${{ !startsWith(github.ref, 'refs/heads/na-') }}
+        id: create-package
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $shortSha = $env:ATLAS_SOURCE_SHA.Substring(0, 8)
-          $playbookName = "Atlas Playbook $shortSha"
-          & .\tools\build\Build-Playbook.ps1 -ReplaceOldPlaybook `
-              -Removals Verification, WinverRequirement -FileName $playbookName `
-              -DontOpenPbLocation
+          $packageName = "Atlas-CI-$shortSha"
+          & .\tools\build\Build-Package.ps1 -ReplaceExisting `
+              -Removals SupportedBuilds -FileName $packageName `
+              -NoExplorer
 
-          $apbx = Get-Item -LiteralPath "playbook\$playbookName.apbx" -ErrorAction Stop
-          & .\tools\build\Test-Apbx.ps1 -Path $apbx.FullName
+          $package = Get-Item -LiteralPath "package\$packageName.atlaspkg" -ErrorAction Stop
+          & .\tools\build\Test-Package.ps1 -Path $package.FullName
+          if ($LASTEXITCODE -ne 0) { throw 'The CI Atlas package failed verification.' }
 
-          $stage = Join-Path $env:RUNNER_TEMP 'atlas-ci-playbook'
+          $stage = Join-Path $env:RUNNER_TEMP 'atlas-ci-package'
           New-Item -Path $stage -ItemType Directory -Force | Out-Null
-          Copy-Item -LiteralPath $apbx.FullName -Destination $stage -Force
-          Get-ChildItem -LiteralPath 'tools\release-zip' -File |
-              Copy-Item -Destination $stage -Force
+          Copy-Item -LiteralPath $package.FullName -Destination $stage -Force
           "ATLAS_CI_STAGE=$stage" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Upload the review-only CI Atlas package
-        if: steps.create-playbook.outcome == 'success'
-        # gh api repos/actions/upload-artifact/commits/v7.0.1 --jq '.sha'
+        if: steps.create-package.outcome == 'success'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: Atlas-CI-${{ env.ATLAS_SOURCE_SHA }}

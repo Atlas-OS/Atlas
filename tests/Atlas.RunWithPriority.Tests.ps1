@@ -4,10 +4,10 @@ BeforeAll {
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
     $handlerPath = Join-Path $repoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Operations\Invoke-AtlasPriorityLaunch.ps1'
+        'package\Executables\AtlasModules\Scripts\Operations\Invoke-AtlasPriorityLaunch.ps1'
 
     $script:definition = Get-AtlasToggleDefinition -Name RunWithPriority `
-        -TogglesRoot (Join-Path $repoRoot 'playbook\Executables\AtlasModules\Toggles')
+        -TogglesRoot (Join-Path $repoRoot 'package\Executables\AtlasModules\Toggles')
     Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Shell\Atlas.Shell.psd1') -Force
     . $handlerPath -Priority Normal -TargetPath 'C:\not-used.exe'
 

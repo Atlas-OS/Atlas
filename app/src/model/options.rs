@@ -1,19 +1,19 @@
 //! The Options step: one screen per decision, the user's choices, and the
-//! option names passed to the installer. Updating or reinstalling an
+//! option ids passed to the installer. Updating or reinstalling an
 //! installed Atlas first asks whether to keep its choices or choose again.
 
 use gpui::Context;
 
 use super::AppModel;
 use crate::services::atlas_state::InstallIdentity;
-use crate::services::playbook::{self, FeaturePage, PageKind};
+use crate::services::package::{self, Choice, ChoiceKind};
 
 /// One screen of the Options step.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OptionScreen {
     /// What the screen decides; its title and question are worded at render.
     pub kind: ScreenKind,
-    /// Indexes into the manifest's pages shown on this screen.
+    /// Indexes into the manifest's choices shown on this screen, one card each.
     pub pages: Vec<usize>,
     /// Exactly one choice is required.
     pub required: bool,
@@ -57,12 +57,12 @@ pub enum FixedChoice {
     Installed(String),
 }
 
-/// What a page of options controls, derived from its first option's stable
-/// name. The words for each kind live in the message catalog.
+/// What a screen of choices controls, from the stable id of the choice it
+/// shows. The words for each kind live in the message catalog.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ScreenKind {
     /// The first screen of an update or reinstall: keep the choices this PC
-    /// has, or choose again. It has no pages of its own.
+    /// has, or choose again. It shows no choice of the package.
     UpdatePath,
     Defender,
     Mitigations,
@@ -72,35 +72,31 @@ pub enum ScreenKind {
     Power,
     Apps,
     OptionalApps,
+    /// A single choice this app doesn't know.
     ChooseOne,
+    /// A multiple choice this app doesn't know, and the screen the optional
+    /// choices share.
     Extras,
 }
 
 impl ScreenKind {
-    pub fn of_page(page: &FeaturePage) -> ScreenKind {
-        let first = page.options.first().map(|o| o.name.as_str()).unwrap_or_default();
-        match first {
-            n if n.starts_with("defender") => ScreenKind::Defender,
-            n if n.starts_with("mitigations") => ScreenKind::Mitigations,
-            n if n.starts_with("auto-updates") => ScreenKind::Updates,
-            n if n.starts_with("keyboard-") => ScreenKind::Keyboard,
-            n if n.starts_with("browser") => ScreenKind::Browser,
-            n if n.starts_with("disable-hibernation") || n.starts_with("disable-power") => ScreenKind::Power,
-            n if n.starts_with("remove-")
-                || n.starts_with("uninstall-")
-                || n.starts_with("install-another") =>
-            {
-                ScreenKind::Apps
-            }
-            "install-toolbox" | "install-eclean" => ScreenKind::OptionalApps,
-            _ => match page.kind {
-                PageKind::Radio => ScreenKind::ChooseOne,
-                PageKind::Checkbox => ScreenKind::Extras,
+    pub fn of_choice(choice: &Choice) -> ScreenKind {
+        match choice.id.as_str() {
+            "defender" => ScreenKind::Defender,
+            "mitigations" => ScreenKind::Mitigations,
+            "auto-updates" => ScreenKind::Updates,
+            "keyboard" => ScreenKind::Keyboard,
+            "browser" => ScreenKind::Browser,
+            "system" => ScreenKind::Power,
+            "apps" => ScreenKind::Apps,
+            "extras" => ScreenKind::OptionalApps,
+            _ => match choice.kind {
+                ChoiceKind::Single => ScreenKind::ChooseOne,
+                ChoiceKind::Multiple => ScreenKind::Extras,
             },
         }
     }
 }
-
 impl AppModel {
     /// An option's text in the loaded package, or in the app's own when the
     /// loaded one doesn't have it.
@@ -129,16 +125,16 @@ impl AppModel {
     }
 
     /// The package's choices, one decision per screen: every required choice
-    /// (radio page) gets its own screen, phrased as a question, and the
-    /// optional extras share the last one.
+    /// (a single choice asked whatever else is chosen) gets its own screen,
+    /// phrased as a question, and the optional extras share the last one.
     pub fn choice_screens(&self) -> Vec<OptionScreen> {
         let manifest = self.manifest();
         let mut screens = Vec::new();
         let mut extras = Vec::new();
-        for (index, page) in manifest.pages.iter().enumerate() {
-            if page.kind == PageKind::Radio && page.depends_on.is_none() {
+        for (index, choice) in manifest.choices.iter().enumerate() {
+            if choice.kind == ChoiceKind::Single && choice.depends_on.is_none() {
                 screens.push(OptionScreen {
-                    kind: ScreenKind::of_page(page),
+                    kind: ScreenKind::of_choice(choice),
                     pages: vec![index],
                     required: true,
                 });
@@ -147,7 +143,7 @@ impl AppModel {
             }
         }
         if !extras.is_empty() {
-            let pages = playbook::follow_parents(&manifest.pages, extras);
+            let pages = package::follow_parents(&manifest.choices, extras);
             screens.push(OptionScreen { kind: ScreenKind::Extras, pages, required: false });
         }
         screens
@@ -162,16 +158,16 @@ impl AppModel {
         if self.locked_options().is_some() || self.locked() || self.fixed_option(name).is_some() {
             return;
         }
-        let Some(page) = self.manifest().pages.get(page_index) else { return };
-        match page.kind {
-            PageKind::Radio => {
-                let siblings: Vec<String> = page.options.iter().map(|o| o.name.clone()).collect();
+        let Some(choice) = self.manifest().choices.get(page_index) else { return };
+        match choice.kind {
+            ChoiceKind::Single => {
+                let siblings: Vec<String> = choice.options.iter().map(|o| o.id.clone()).collect();
                 for sibling in siblings {
                     self.options.remove(&sibling);
                 }
                 self.options.insert(name.to_owned());
             }
-            PageKind::Checkbox => {
+            ChoiceKind::Multiple => {
                 if !self.options.remove(name) {
                     self.options.insert(name.to_owned());
                 }
@@ -184,22 +180,22 @@ impl AppModel {
         cx.notify();
     }
 
-    /// Option names to pass to the installer: an unfinished install's
+    /// Option ids to pass to the installer: an unfinished install's
     /// original choices, a rebuilt Windows's kept ones, or the current ones
-    /// honouring `DependsOn` pages.
+    /// honouring each choice's `dependsOn`.
     pub fn effective_options(&self) -> Vec<String> {
         if let Some(options) = self.locked_options() {
             return options;
         }
         let manifest = self.manifest();
         let mut names = Vec::new();
-        for page in &manifest.pages {
-            if page.depends_on.as_ref().is_some_and(|dependency| !self.options.contains(dependency)) {
+        for choice in &manifest.choices {
+            if choice.depends_on.as_ref().is_some_and(|dependency| !self.options.contains(dependency)) {
                 continue;
             }
-            for option in &page.options {
-                if self.options.contains(&option.name) {
-                    names.push(option.name.clone());
+            for option in &choice.options {
+                if self.options.contains(&option.id) {
+                    names.push(option.id.clone());
                 }
             }
         }

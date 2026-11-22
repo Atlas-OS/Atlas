@@ -2,9 +2,9 @@ BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:RepoRoot = Split-Path -Parent $PSScriptRoot
     $script:PackageHelperPath = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Operations\ProcessExplorer-Package.ps1'
+        'package\Executables\AtlasModules\Scripts\Operations\ProcessExplorer-Package.ps1'
     $script:UpgradeStopPath = Join-Path $script:RepoRoot `
-        'playbook\Executables\AtlasModules\Scripts\Install\Tasks\Stop-ProcessExplorerUpgrade.ps1'
+        'package\Executables\AtlasModules\Scripts\Install\Tasks\Stop-ProcessExplorerUpgrade.ps1'
     . $script:PackageHelperPath
 }
 
@@ -273,11 +273,11 @@ Describe 'Process Explorer integration ownership' {
 
 Describe 'Process Explorer toggle caller' {
     BeforeAll {
-        $modulesRoot = Join-Path $script:RepoRoot 'playbook\Executables\AtlasModules\Scripts\Modules'
+        $modulesRoot = Join-Path $script:RepoRoot 'package\Executables\AtlasModules\Scripts\Modules'
         Import-Module (Join-Path $modulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
         Import-Module (Join-Path $modulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
         $script:Definition = Get-AtlasToggleDefinition -Name ProcessExplorer `
-            -TogglesRoot (Join-Path $script:RepoRoot 'playbook\Executables\AtlasModules\Toggles')
+            -TogglesRoot (Join-Path $script:RepoRoot 'package\Executables\AtlasModules\Toggles')
 
         # The companion dot-sources ProcessExplorer-Package.ps1 from $Toggle.OperationsPath;
         # the fake records which package operation ran beside itself.

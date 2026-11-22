@@ -17,7 +17,7 @@
 ### - Formal "siz" throughout, as in Microsoft Turkish. Buttons are short
 ###   imperatives. Sentences end with a full stop; titles and labels do not.
 ### - "Yeniden aç" = relaunch the Atlas Manager. "Yeniden başlat" = restart the PC.
-### - The .apbx file is the "Atlas paketi" ("paket" once that is clear;
+### - The .atlaspkg file is the "Atlas paketi" ("paket" once that is clear;
 ###   the button is "Paket dosyası aç").
 ### - A Windows build is a "derleme", as Windows says ("İS Derlemesi").
 ###   Diagnostics are "tanılama verileri" everywhere.
@@ -99,9 +99,9 @@ window-close-restart-close = Yeniden başlatmadan kapat
 # window-close-keep, common-open-windows-security and window-close-close.
 window-close-protection-title = Koruma kapalıyken Atlas kapatılsın mı?
 window-close-protection-message = Windows Güvenliği'ndeki bazı korumalar hâlâ kapalı: { $switches }. Atlas'ı kurmayı bitirmeyecekseniz, kapatmadan önce bunları yeniden açın. Bitirecekseniz, Atlas'ı yeniden açtığınızda Atlas kurulumunuza kaldığı yerden devam eder.
-# The Open button of the file picker for an Atlas package (.apbx) file, on Get ready and the
+# The Open button of the file picker for an Atlas package (.atlaspkg) file, on Get ready and the
 # ISO page. It's a button label, so keep it short.
-file-dialog-open-package = Atlas paketi aç (.apbx)
+file-dialog-open-package = Atlas paketi aç (.atlaspkg)
 # Message Windows shows in its restart notification.
 shutdown-comment = Atlas kuruldu. Kurulumu tamamlamak için Windows yeniden başlatılıyor.
 # Message Windows shows in its restart notification when "Get ready" restarts
@@ -159,9 +159,6 @@ home-show-full-notes = Tüm sürüm notlarını göster
 home-your-install = Atlas kurulumunuz
 # Atlas is installed, but without the record Atlas Manager keeps (older versions didn't write one).
 home-install-unrecorded = Bu bilgisayarda Atlas'ın nasıl kurulduğuna dair bir kayıt yok, bu yüzden seçimleriniz ve kurulum geçmişi gösterilemiyor.
-# Row label: how Atlas was set up.
-home-set-up = Kurulum yöntemi
-home-set-up-during-oobe = Windows kurulumu sırasında
 home-history = Kurulum geçmişi
 # One history row. $version is text, $mode one of the history-mode-* messages, $date a formatted date and time.
 home-history-entry = Atlas { $version } · { $mode } · { $date }
@@ -247,7 +244,11 @@ ready-banner-busy-message = Atlas bilgisayarınızı denetliyor ve kurulum dosya
 ready-banner-blocked-title = Bilgisayarınız henüz hazır değil
 ready-banner-blocked-message = Bilgisayar denetimlerinde işaretlenen sorunları giderin, ardından Yeniden denetle'yi seçin.
 ready-banner-no-package-title = Devam etmek için Atlas'ı indirin
-ready-banner-no-package-message = Atlas'ı Kurulum dosyaları kartından indirin veya bir Atlas paketiniz (.apbx) varsa Paket dosyası aç'ı seçin.
+ready-banner-no-package-message = Atlas'ı Kurulum dosyaları kartından indirin veya bir Atlas paketiniz (.atlaspkg) varsa Paket dosyası aç'ı seçin.
+# The package tried needs a newer Atlas Manager. The title is also the footer's hint then.
+ready-banner-manager-title = Devam etmek için Atlas Manager'ın daha yeni bir sürümünü indirin
+# "Download Atlas Manager" is manager-download, the button in Installation files (package-title).
+ready-banner-manager-message = Kurulum dosyaları kartında Atlas Manager'ı indir'i seçin, ardından bu sürüm yerine yeni sürümü kullanın.
 # Tester build: the bundled Atlas package couldn't be unpacked.
 ready-banner-no-package-bundled-title = Devam etmek için birlikte gelen Atlas paketini hazırlayın
 ready-banner-no-package-bundled-message = Bu test sürümüyle gelen Atlas paketi henüz hazır değil. Kurulum dosyaları kartını denetleyin.
@@ -295,10 +296,10 @@ package-unpacking = Paket açılıyor
 package-looking = En son Atlas sürümü denetleniyor.
 # Tester build: the bundled Atlas package is being unpacked, nothing is downloaded.
 package-looking-bundled = Birlikte gelen Atlas paketi hazırlanıyor.
-package-none = Kurulum dosyalarını almak için Atlas'ı indirin. Elinizde bir Atlas paketi (.apbx) varsa bunun yerine onu açın.
+package-none = Kurulum dosyalarını almak için Atlas'ı indirin. Elinizde bir Atlas paketi (.atlaspkg) varsa bunun yerine onu açın.
 # The GitHub release check failed. "En son sürümü indir" is package-download-newest,
 # the button offered in this state; it checks again.
-package-release-failed = Atlas en son sürümü denetleyemedi. İnternet bağlantınızı denetleyin, sonra En son sürümü indir'i seçin veya kayıtlı bir Atlas paketi (.apbx) açın.
+package-release-failed = Atlas en son sürümü denetleyemedi. İnternet bağlantınızı denetleyin, sonra En son sürümü indir'i seçin veya kayıtlı bir Atlas paketi (.atlaspkg) açın.
 # Short status words beside the card title.
 package-status-downloading = İndiriliyor
 package-status-unpacking = Açılıyor
@@ -319,15 +320,31 @@ package-from-release = Atlas { $version } GitHub'dan indirildi ve kuruluma hazı
 package-from-file = Atlas { $version }, { $file } dosyasından yüklendi ve kuruluma hazır.
 package-unpacked = Atlas { $version } kuruluma hazır.
 package-none-yet = Kurulum dosyası seçilmedi
-acquire-no-asset = Atlas { $version } sürümü için indirilebilecek bir paket dosyası yok. Devam etmek için kayıtlı bir Atlas paketi (.apbx) açın.
-acquire-unsupported = Bu uygulama Atlas 0.6.0 ve sonraki sürümleri kurabilir. Atlas { $version } sürümünü kurmak için AME Wizard'ı kullanın.
+acquire-no-asset = Atlas { $version } sürümü için indirilebilecek bir paket dosyası yok. Devam etmek için kayıtlı bir Atlas paketi (.atlaspkg) açın.
+# Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
+# .apbx file from an Atlas release before 0.6.
+acquire-unsupported = Bu uygulama Atlas 0.6.0 ve sonraki sürümleri Atlas paketlerinden (.atlaspkg) kurabilir.
 # A package new enough to include the installer script that this app drives, but without it.
-acquire-incomplete = Atlas { $version } sürümünde bu uygulamanın kurulum için ihtiyaç duyduğu dosyalar eksik. Sürümü yeniden indirin veya başka bir Atlas paketi (.apbx) açın.
-acquire-failed = Kurulum dosyaları hazırlanamadı. Yeniden indirmeyi deneyin veya başka bir Atlas paketi (.apbx) açın. Ayrıntılar: { $error }
+acquire-incomplete = Atlas { $version } sürümünde bu uygulamanın kurulum için ihtiyaç duyduğu dosyalar eksik. Sürümü yeniden indirin veya başka bir Atlas paketi (.atlaspkg) açın.
+acquire-failed = Kurulum dosyaları hazırlanamadı. Yeniden indirmeyi deneyin veya başka bir Atlas paketi (.atlaspkg) açın. Ayrıntılar: { $error }
 # The download received nothing for a minute and was stopped.
-acquire-stalled = İndirme yanıt vermeyi durdurdu. İnternet bağlantınızı denetleyin, sonra yeniden indirin veya kayıtlı bir Atlas paketi (.apbx) açın.
+acquire-stalled = İndirme yanıt vermeyi durdurdu. İnternet bağlantınızı denetleyin, sonra yeniden indirin veya kayıtlı bir Atlas paketi (.atlaspkg) açın.
 # Tester build: the bundled Atlas package couldn't be unpacked. Try again is the only control offered.
 acquire-failed-bundled = Birlikte gelen Atlas paketi hazırlanamadı. Yeniden dene'yi seçin. Ayrıntılar: { $error }
+# The Atlas package asks for a newer Atlas Manager than this one. $version is the version it asks for,
+# such as 0.7.0. "Download Atlas Manager" is manager-download, the button beside the message.
+acquire-manager-outdated = Bu Atlas paketi için Atlas Manager { $version } sürümü veya sonrası gerekiyor. Atlas Manager'ı indir'i seçin, ardından bu sürüm yerine yeni sürümü kullanın.
+# The same, for a package that doesn't say which version it needs.
+acquire-manager-outdated-any = Bu Atlas paketi için Atlas Manager'ın daha yeni bir sürümü gerekiyor. Atlas Manager'ı indir'i seçin, ardından bu sürüm yerine yeni sürümü kullanın.
+
+## Newer Atlas Manager
+
+# Opens the latest Atlas release on GitHub in the browser, where Atlas Manager is downloaded.
+manager-download = Atlas Manager'ı indir
+# A note on Home and in Settings that a newer Atlas Manager has been released. $version is its
+# version, such as 0.7.0. The note doesn't stop anything; manager-download is its button.
+manager-update-title = Atlas Manager { $version } sürümü kullanılabilir
+manager-update-message = Atlas Manager kendini güncelleyemez. Yeni sürümü indirin ve bu sürüm yerine onu kullanın.
 
 ## System checks
 
@@ -430,33 +447,33 @@ consequence-auto-updates-disable = Güncelleştirmeleri yüklemek için Windows 
 consequence-auto-updates-default = Windows, güvenlik düzeltmeleri dahil güncelleştirmeleri otomatik olarak yükler.
 
 ## Atlas package text
-## The Atlas package carries its own English text for each option. These
-## UI labels and explanations are used only when the package text matches
-## i18n/playbook-source.ftl. A future package with different wording keeps
-## its own text instead of receiving a potentially outdated description.
+## Labels and descriptions for the Atlas package's options and choices, by
+## their ids in the package's atlas.json. The app shows these in place of the
+## package's own English text; an option or choice that a newer package adds,
+## which has no message here, shows the package's English.
 
-playbook-option-defender-enable = Microsoft Defender'ı tut (önerilir)
-playbook-option-defender-disable = Microsoft Defender'ı kaldır
-playbook-option-mitigations-default = İşlemci korumalarını tut (önerilir)
-playbook-option-mitigations-disable = İşlemci korumalarını kapat
-playbook-option-auto-updates-disable = Güncelleştirmeleri kendim yükleyeceğim
-playbook-option-auto-updates-default = Güncelleştirmeleri otomatik olarak yükle
-playbook-option-disable-hibernation = Hazırda bekletmeyi kapat
-playbook-option-disable-power-saving = Güç tasarrufunu kapat
-playbook-option-disable-core-isolation = Sanallaştırma tabanlı güvenliği (VBS) kapat
-playbook-option-remove-snipping-tool = Ekran Alıntısı Aracı'nı kaldır
-playbook-option-uninstall-edge = Microsoft Edge'i kaldır
-playbook-option-install-another-browser = Tarayıcı yükle
-playbook-option-install-toolbox = Atlas Toolbox'ı yükle
-playbook-option-install-eclean = eclean yükle
-playbook-option-browser-brave = Brave
-playbook-option-browser-librewolf = LibreWolf
-playbook-option-browser-firefox = Firefox
-playbook-option-browser-chrome = Chrome
-playbook-page-defender-enable-description = Microsoft Defender, Windows'un yerleşik virüsten koruma yazılımıdır. Yalnızca riskleri anlıyorsanız ve başka bir virüsten koruma uygulaması kullanacaksanız kaldırın. Hangisini seçerseniz seçin, Atlas şunları kapatır: Akıllı Uygulama Denetimi, Gelişmiş Kimlik Avı Koruması ve Cihazımı bul.
-playbook-page-mitigations-default-description = Güvenlik risk azaltmaları olarak da bilinen bu korumalar, Spectre ve Meltdown gibi işlemci açıklarına ve uygulamalardaki hatalardan yararlanan saldırılara karşı korunmaya yardımcı olur. Windows varsayılanlarını tutmanız önerilir.
-playbook-page-auto-updates-disable-description = Windows güncelleştirmeleri güvenlik düzeltmeleri içerir. Bunları Windows'un otomatik olarak yüklemesini seçebilir veya kendiniz yükleyebilirsiniz. Her iki durumda da Atlas, Windows'u mevcut sürümünde tutar. Bu sürüm, yalnızca Microsoft desteğini sonlandırana kadar güvenlik düzeltmeleri alır. Atlas ayrıca Microsoft Store uygulamalarının otomatik güncelleştirmelerini kapatır; bu yüzden bu uygulamaları Microsoft Store'dan güncelleyin.
-playbook-page-browser-brave-description = Yüklenecek bir tarayıcı seçin. Atlas tarayıcı ayarlarınızı değiştirmez.
+package-option-defender-enable = Microsoft Defender'ı tut (önerilir)
+package-option-defender-disable = Microsoft Defender'ı kaldır
+package-option-mitigations-default = İşlemci korumalarını tut (önerilir)
+package-option-mitigations-disable = İşlemci korumalarını kapat
+package-option-auto-updates-disable = Güncelleştirmeleri kendim yükleyeceğim
+package-option-auto-updates-default = Güncelleştirmeleri otomatik olarak yükle
+package-option-disable-hibernation = Hazırda bekletmeyi kapat
+package-option-disable-power-saving = Güç tasarrufunu kapat
+package-option-disable-core-isolation = Sanallaştırma tabanlı güvenliği (VBS) kapat
+package-option-remove-snipping-tool = Ekran Alıntısı Aracı'nı kaldır
+package-option-uninstall-edge = Microsoft Edge'i kaldır
+package-option-install-another-browser = Tarayıcı yükle
+package-option-install-toolbox = Atlas Toolbox'ı yükle
+package-option-install-eclean = eclean yükle
+package-option-browser-brave = Brave
+package-option-browser-librewolf = LibreWolf
+package-option-browser-firefox = Firefox
+package-option-browser-chrome = Chrome
+package-choice-defender-description = Microsoft Defender, Windows'un yerleşik virüsten koruma yazılımıdır. Yalnızca riskleri anlıyorsanız ve başka bir virüsten koruma uygulaması kullanacaksanız kaldırın. Hangisini seçerseniz seçin, Atlas şunları kapatır: Akıllı Uygulama Denetimi, Gelişmiş Kimlik Avı Koruması ve Cihazımı bul.
+package-choice-mitigations-description = Güvenlik risk azaltmaları olarak da bilinen bu korumalar, Spectre ve Meltdown gibi işlemci açıklarına ve uygulamalardaki hatalardan yararlanan saldırılara karşı korunmaya yardımcı olur. Windows varsayılanlarını tutmanız önerilir.
+package-choice-auto-updates-description = Windows güncelleştirmeleri güvenlik düzeltmeleri içerir. Bunları Windows'un otomatik olarak yüklemesini seçebilir veya kendiniz yükleyebilirsiniz. Her iki durumda da Atlas, Windows'u mevcut sürümünde tutar. Bu sürüm, yalnızca Microsoft desteğini sonlandırana kadar güvenlik düzeltmeleri alır. Atlas ayrıca Microsoft Store uygulamalarının otomatik güncelleştirmelerini kapatır; bu yüzden bu uygulamaları Microsoft Store'dan güncelleyin.
+package-choice-browser-description = Yüklenecek bir tarayıcı seçin. Atlas tarayıcı ayarlarınızı değiştirmez.
 
 ## Step 3: Windows Security
 
@@ -562,7 +579,7 @@ output-problem-title = Kurulum ilerlemesi okunamadı
 output-problem-message = Atlas günlüğü okuyamadı. Bu, kurulumun durduğu anlamına gelmez. Bilgisayarınızı açık tutun ve günlük dosyasını açmayı deneyin. Ayrıntılar: { $error }
 install-elevate-title = Atlas'ın kurulum için izne ihtiyacı var
 install-no-package-title = Önce kurulum dosyalarınızı seçin
-install-no-package-message = Atlas'ı indirmek veya kayıtlı bir Atlas paketi (.apbx) açmak için Hazırlık adımına dönün.
+install-no-package-message = Atlas'ı indirmek veya kayıtlı bir Atlas paketi (.atlaspkg) açmak için Hazırlık adımına dönün.
 # Tester build variant of install-no-package-message.
 install-no-package-bundled-message = Bu test sürümüyle gelen Atlas paketini hazırlamak için Hazırlık adımına dönün.
 # Step 4 when step 1 is incomplete for this session (checks or Windows updates), with go-to-ready as the button.
@@ -673,6 +690,7 @@ settings-language-formats = Sayılar, tarihler ve saatler Windows bölgesel biç
 # right to left. $locale is the format's English name, for example "Arabic (Saudi Arabia)".
 settings-language-formats-numbers-only = Sayılar Windows bölgesel biçiminizi izler ({ $locale }). Atlas sağdan sola yazılan metni henüz gösteremediği için tarihler ve saatler standart bir biçimde gösterilir.
 settings-language-contribute = Atlas'ın çevirisine GitHub'da katkıda bulun
+settings-usage-analytics = Ziyaret edilen ekranları, ISO oluşturma işlemlerini ve kurulum sonuçlarını Atlas ile paylaş
 settings-restart-label = Kurulumdan sonra bilgisayarımı otomatik olarak yeniden başlat
 settings-restart-locked = Bunu kurulum bittikten sonra değiştirebilirsiniz.
 settings-restart-description = Bu ayar açıkken bilgisayarınız kurulum bittikten sonra bir dakika içinde yeniden başlar ve açık uygulamalarınız kapanır. Kurulumdan önce çalışmanızı kaydedin.
@@ -707,25 +725,31 @@ consequence-install-eclean = Kurulumdan sonra bilgisayarınızı düzenli tutmak
 # Introduction on the home page before Atlas is installed.
 home-intro = Atlas, arka plan etkinliğini ve dikkat dağıtan öğeleri azaltmak için Windows'ta ayarlamalar yapar. Atlas'ı, kendi uygulamalarınızı ve dosyalarınızı eklemeden önce temiz bir Windows kurulumuna kurun.
 
-## ISO creation (Beta)
+## ISO creation
 iso-home-title = Windows yükleme medyası
 iso-home-description = Atlas içeren bir Windows kurulum dosyası (ISO) oluşturun, ardından bu dosyayla Windows'u bu bilgisayara veya başka bir bilgisayara yeniden yükleyin.
 iso-open = Atlas ISO'su oluştur
 iso-title = Atlas ISO'su oluştur
-iso-beta = Beta
-iso-beta-description = ISO'yu bir bilgisayarda kullanmadan önce sanal makinede deneyin. Windows'u yüklemeden önce dosyalarınızı yedekleyin.
+iso-recommended = Önerilen
 iso-admin-description = Atlas'ın Windows ISO'nuzu okuyup yenisini oluşturabilmesi için yönetici izni gerekiyor. Yönetici olarak yeniden aç'ı seçin, ardından Windows sorduğunda Evet'i seçin.
-iso-files-description = Atlas, Windows'u yeniden yükleyebilmeniz için bir Windows 11 ISO'sunun Atlas eklenmiş bir kopyasını oluşturur. Microsoft'tan indirilmiş bir Windows 11 ISO'su seçin, en son Atlas paketini indirin veya elinizdeki bir paketi (.apbx) seçin, ardından yeni ISO'nun kaydedileceği yeri seçin.
-# Tester build: no package picker.
-iso-files-description-bundled = Atlas, bir Windows 11 ISO'sunun bu test sürümüyle gelen Atlas paketi eklenmiş bir kopyasını oluşturur. Microsoft'tan indirilmiş bir Windows 11 ISO'su seçin, ardından yeni ISO'nun kaydedileceği yeri seçin.
 iso-source = Windows ISO'su
+iso-download-recommended = Microsoft’tan indir (önerilen)
+iso-source-question = Windows’u nereden almak istersiniz?
+iso-use-local = ISO dosyası seç
+iso-package-latest-label = En güncel
+iso-package-latest = En son Atlas paketi
+iso-package-unavailable = Manager’ın bu sürümü için bir Atlas paketi seçin.
+iso-save-name = { $name } olarak kaydet
 iso-source-download = Windows 11'i Microsoft'tan indir
-# $minimum is the first Atlas version that can be used (text, such as 0.6.0).
-iso-package = Atlas paketi ({ $minimum } veya daha yeni)
+iso-download-arch = Mimari
+iso-download-languages = Diller yükleniyor…
+iso-download-list-error = Windows dilleri yüklenemedi. Tekrar deneyin veya ISO’yu Microsoft’un sitesinden indirin.
+iso-download-file-error = ISO kaydedilemedi. Bağlantıyı ve boş alanı kontrol edip yeni bir dosya adıyla tekrar deneyin.
+iso-download-website = Microsoft indirme sayfasını aç
+iso-download-progress = Windows indiriliyor · { $received } / { $total }
+iso-download-starting = Windows indirmesi hazırlanıyor…
 iso-output = Yeni ISO'nun kaydedileceği konum
 iso-no-file = Dosya seçilmedi
-iso-browse = Gözat
-iso-save-as = Farklı kaydet
 # Accessible name of the Browse or Save as button beside a file field: $action is
 # that button's text and $field the field's label.
 iso-pick-a11y = { $action }: { $field }
@@ -753,6 +777,9 @@ iso-step-review = İnceleme
 iso-review-package = Atlas paketi
 iso-review-output = Yeni ISO
 iso-review-editions = Sürümler
+iso-edition = Windows sürümü
+iso-edition-auto = Windows kurulumu sırasında seç
+iso-accept-terms = Windows için Microsoft Yazılımı Lisans Koşullarını kabul ediyorum
 iso-architecture-x64 = x64
 iso-architecture-arm64 = Arm64
 # A file size; $size is a formatted number (text). Megabytes below a gigabyte.
@@ -782,7 +809,7 @@ iso-cancelling = İptal için güvenli bir durma noktası bekleniyor
 iso-cancelled = ISO oluşturma iptal edildi
 iso-cancelled-description = Orijinal ISO'nuz değişmedi. Geride geçici dosyalar kaldıysa nerede olduklarını görmek için Günlük klasörünü aç'ı seçin.
 iso-complete = ISO'nuz hazır
-iso-complete-description = ISO oluşturma beta aşamasında olduğu için ISO’yu önce bir sanal makinede deneyin. Ardından Kurulum USB’si oluştur’u seçin ve Windows’u yeniden yüklemeden önce dosyalarınızı yedekleyin.
+iso-complete-description = Ardından Kurulum USB’si oluştur’u seçin ve Windows’u yeniden yüklemeden önce dosyalarınızı yedekleyin.
 iso-open-folder = Klasörde göster
 iso-failed = ISO oluşturma tamamlanamadı
 iso-failed-description = Dosyalarınızın hâlâ seçtiğiniz yerde olduğundan ve kaydettiğiniz sürücünün bağlı olduğundan emin olun, ardından ISO oluştur'u seçin. Sorun devam ederse Rapor gönder'i seçin.
@@ -862,7 +889,8 @@ iso-account-empty = Devam etmek için bir yerel hesap adı girin
 iso-account-invalid = En fazla 20 karakter kullanın. Başta veya sonda boşluk olmamalı ve şunların hiçbiri bulunmamalı: " / \ [ ] : ; | = , + * ? < > @
 iso-account-trailing-dot = Ad nokta ile bitemez.
 iso-account-reserved = Windows bu adı yerleşik bir hesap için kullanıyor. Başka bir ad seçin.
-iso-privacy-defaults = Bu ISO, Windows kurulumundaki lisans, Microsoft hesabı ve gizlilik ekranlarını atlar; isteğe bağlı veri paylaşımını ve kişiselleştirilmiş teklifleri kapatır.
+iso-terms-in-setup = Windows Kurulumu lisans koşullarını kabul etmenizi isteyecek.
+iso-privacy-defaults = Bu ISO, Windows kurulumundaki Microsoft hesabı ve gizlilik ekranlarını atlar; isteğe bağlı veri paylaşımını ve kişiselleştirilmiş teklifleri kapatır.
 prepare-drivers = Sürücüler nasıl yüklensin?
 prepare-drivers-auto = Sürücüleri Windows Update’ten al
 prepare-drivers-auto-detail = Windows, donanımınız için sürücüleri bulur. Çoğu bilgisayar için önerilir.
@@ -896,7 +924,7 @@ iso-mode-desktop-description = Atlas seçimlerinizi ISO’ya kaydeder. Oturum a�
 desktop-setup-description = Bilgisayarınızın kurulumunu tamamlayın. Atlas seçimleriniz kaydedildi; gerekirse Windows’a dönebilirsiniz.
 desktop-setup-exit = Windows’ta devam et
 
-# Windows installation USB (Beta)
+# Windows installation USB
 usb-title = Kurulum USB’si oluştur
 usb-existing = Mevcut bir ISO’dan USB oluştur
 usb-description = Windows’u yeniden yükleyebilmeniz için bir ISO’yu USB sürücüsüne yazın. Atlas’ı aynı anda kurmak için Atlas ile oluşturulmuş bir ISO kullanın.
@@ -957,7 +985,7 @@ install-source-unsupported = Atlas { $source }, doğrudan { $target } sürümün
 # Before a package is chosen, so the version on offer isn't known yet.
 install-source-unsupported-any = Atlas { $source } doğrudan güncellenemez. Daha yeni bir sürümü kullanmak için dosyalarınızı yedekleyin ve Windows'u yeniden yükleyin.
 # "Paket dosyası aç" is package-open-file. $folder is a folder path (text).
-install-source-resume = Atlas { $target } kurulumu yarım kaldı ve bu kurulumu yalnızca Atlas { $target } paketi tamamlayabilir. Paket dosyası aç'ı seçip o Atlas paketini (.apbx) seçin. Dosyayı Atlas indirdiyse { $folder } klasöründedir.
+install-source-resume = Atlas { $target } kurulumu yarım kaldı ve bu kurulumu yalnızca Atlas { $target } paketi tamamlayabilir. Paket dosyası aç'ı seçip o Atlas paketini (.atlaspkg) seçin. Dosyayı Atlas indirdiyse { $folder } klasöründedir.
 # Tester build: only the bundled Atlas package can be installed.
 install-source-resume-bundled = Atlas { $target } kurulumu yarım kaldı. Bu test sürümü yalnızca birlikte gelen Atlas paketini kurabilir, bu yüzden bu kurulumu Atlas Manager'ın bir yayın sürümünde Atlas { $target } paketiyle tamamlayın.
 install-source-unknown = Atlas bu bilgisayarda neyin kurulu olduğunu doğrulayamadı, bu yüzden şimdilik hiçbir şey kurmayacak. Atlas ekibinin yardımcı olabilmesi için Rapor gönder'i seçin.
@@ -992,7 +1020,7 @@ diagnostics-failed-title = Tanılama verileri dışa aktarılamadı
 # $error is the raw error (text).
 diagnostics-failed = Bilgisayarınızda yeterli boş disk alanı olduğundan emin olun, ardından yeniden deneyin. Ayrıntılar: { $error }
 
-## Tester builds (embedded-playbook feature)
+## Tester builds (embedded-package feature)
 
 # One line of chrome under the title bar on a release-candidate build.
 rc-banner = Atlas { $release } test sürümü. Bu uygulama yalnızca birlikte gelen Atlas paketini kurar.
@@ -1268,10 +1296,10 @@ prepare-repair-store = Microsoft Store'u onar
 
 screen-keyboard-title = Klavye dilleri
 screen-keyboard-question = Birden fazla klavye dili kullanıyor musunuz?
-playbook-option-keyboard-shortcuts = Evet, klavye kısayollarıyla
-playbook-option-keyboard-selector = Evet, görev çubuğundaki seçiciyle
-playbook-option-keyboard-single = Hayır, tek bir klavye düzeni kullanıyorum
+package-option-keyboard-shortcuts = Evet, klavye kısayollarıyla
+package-option-keyboard-selector = Evet, görev çubuğundaki seçiciyle
+package-option-keyboard-single = Hayır, tek bir klavye düzeni kullanıyorum
 consequence-keyboard-shortcuts = Alt+Shift dili, Ctrl+Shift klavye düzenini değiştirir.
 consequence-keyboard-selector = Oyun sırasında yanlışlıkla geçiş yapmamak için Alt+Shift ve Ctrl+Shift kapatılır.
-playbook-page-keyboard-shortcuts-description = Klavye dilini nasıl değiştireceğinizi seçin.
+package-choice-keyboard-description = Klavye dilini nasıl değiştireceğinizi seçin.
 consequence-keyboard-single = { consequence-keyboard-selector }

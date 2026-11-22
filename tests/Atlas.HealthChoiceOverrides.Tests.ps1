@@ -5,7 +5,7 @@ BeforeAll {
     }
     $script:choiceContext = [pscustomobject]@{
         IsArm64 = $false; WindowsBuild = 26200; IsUpgrade = $false
-        IsOobe = $false; IsInstallStateBacked = $true; Options = @()
+        IsInstallStateBacked = $true; Options = @()
     }
     $script:choiceFile = Join-Path $TestDrive 'choice.psd1'
     $healthPath = Join-Path $script:AtlasTestScriptsRoot 'Entry\Test-AtlasHealth.ps1'

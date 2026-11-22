@@ -11,11 +11,12 @@
 
 [package]
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.87"
 name = "accesskit_windows"
-version = "0.34.0"
+version = "0.35.2"
 authors = ["The AccessKit contributors"]
 build = false
+exclude = ["examples"]
 autolib = false
 autobins = false
 autoexamples = false
@@ -31,7 +32,6 @@ keywords = [
 categories = ["gui"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/AccessKit/accesskit"
-resolver = "2"
 
 [package.metadata.docs.rs]
 default-target = "x86_64-pc-windows-msvc"
@@ -41,18 +41,14 @@ targets = []
 name = "accesskit_windows"
 path = "src/lib.rs"
 
-[[example]]
-name = "hello_world"
-path = "examples/hello_world.rs"
-
 [dependencies.accesskit]
-version = "0.24.1"
+version = "0.25.2"
 
 [dependencies.accesskit_consumer]
-version = "0.38.0"
+version = "0.39.2"
 
 [dependencies.hashbrown]
-version = "0.16"
+version = "0.17"
 features = ["default-hasher"]
 default-features = false
 
@@ -77,11 +73,11 @@ features = [
 [dependencies.windows-core]
 version = "0.62.0"
 
-[dev-dependencies.once_cell]
-version = "1.13.0"
-
 [dev-dependencies.parking_lot]
 version = "0.12.4"
+
+[dev-dependencies.raw-window-handle]
+version = "0.6.2"
 
 [dev-dependencies.scopeguard]
 version = "1.1.0"

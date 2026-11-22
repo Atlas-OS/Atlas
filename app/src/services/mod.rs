@@ -1,6 +1,7 @@
 //! Windows-facing services: plain synchronous Rust with no GPUI types. Pages
 //! run the slow calls on GPUI's background executor.
 
+pub mod analytics;
 pub mod atlas_state;
 pub mod desktop_setup;
 pub mod diagnostics;
@@ -12,7 +13,8 @@ pub mod iso;
 pub mod legacy_choices;
 pub mod licenses;
 pub mod locale;
-pub mod playbook;
+pub mod manager_version;
+pub mod package;
 mod powershell;
 pub mod preparation;
 pub mod recovery_app;
@@ -30,4 +32,5 @@ pub mod test_support;
 pub mod update_access;
 pub mod usb;
 pub mod windows_installation;
+pub mod windows_iso;
 pub mod windows_release;

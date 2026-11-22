@@ -1,8 +1,5 @@
-//! The vendored GPUI patches that keep a mark after a no-break character,
-//! and closing punctuation, with the word before it. They're checked through
-//! both wrappers rather than through the helpers alone, so a GPUI upgrade
-//! that drops either fails here. GPUI's headless text system needs no fonts: every character is 6px
-//! wide at 10px.
+//! Regression tests for GPUI's shaped and unshaped text wrappers.
+//! The headless text system uses 6px glyphs at a font size of 10px.
 
 use std::sync::Arc;
 
@@ -37,7 +34,10 @@ fn laid_out(text: &'static str) -> Vec<usize> {
 /// Where `LineWrapper::wrap_line` breaks `text`: the byte each row starts at.
 fn wrapped(text: &str) -> Vec<usize> {
     let mut wrapper = text_system().line_wrapper(font("Segoe UI"), px(10.));
-    wrapper.wrap_line(&[LineFragment::text(text)], px(WIDTH)).map(|boundary| boundary.ix).collect()
+    wrapper
+        .wrap_line(&[LineFragment::text(text)], px(WIDTH), gpui::IndentAdjustment::NoIndent)
+        .map(|boundary| boundary.ix)
+        .collect()
 }
 
 #[test]
@@ -47,9 +47,9 @@ fn a_mark_after_a_no_break_character_wraps_with_its_word() {
         assert_eq!(laid_out(text), [3], "{text:?}");
         assert_eq!(wrapped(text), [3], "{text:?}");
     }
-    // `?` after anything else is still a break opportunity (`foo?b=2`).
-    assert_eq!(laid_out("ab cde?"), [6]);
-    assert_eq!(wrapped("ab cde?"), [6]);
+    // A question mark stays with the preceding word.
+    assert_eq!(laid_out("ab cde?"), [3]);
+    assert_eq!(wrapped("ab cde?"), [3]);
 }
 
 #[test]

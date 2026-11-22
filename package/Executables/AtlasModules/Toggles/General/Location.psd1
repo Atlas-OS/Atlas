@@ -1,0 +1,33 @@
+@{
+    Name        = 'Location'
+    # Enable-AtlasLocation asks about Find My Device only in interactive runs.
+    Description = 'Turns location services (lfsvc and MapsBroker) and Find My Device on or off.'
+    Elevation   = 'Admin'
+    Script      = 'Location.ps1'
+    States      = @(
+        @{
+            Name          = 'Disable'
+            StateValue    = 0
+            Launcher      = '3. General Configuration\Location\Disable Location (default).cmd'
+            Reboot        = 'None'
+            MachineAction = 'Disable-AtlasLocation'
+            Registry      = @(
+                # What the install's app permissions set, so Enable's Allow doesn't stay behind.
+                @{ Path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location'; Name = 'Value'; Type = 'String'; Data = 'Deny' }
+                @{ Path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location'; Name = 'ShowGlobalPrompts'; Type = 'DWord'; Data = 0 }
+            )
+        }
+        @{
+            Name          = 'Enable'
+            StateValue    = 1
+            Launcher      = '3. General Configuration\Location\Enable Location.cmd'
+            Reboot        = 'None'
+            MachineAction = 'Enable-AtlasLocation'
+            UserAction    = 'Show-AtlasLocationSettings'
+            Registry      = @(
+                @{ Path = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location'; Name = 'Value'; Type = 'String'; Data = 'Allow' }
+                @{ Path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location'; Name = 'ShowGlobalPrompts'; Operation = 'Delete' }
+            )
+        }
+    )
+}

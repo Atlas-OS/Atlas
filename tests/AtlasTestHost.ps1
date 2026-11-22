@@ -13,7 +13,7 @@ if ($PSVersionTable.PSEdition -ne 'Desktop') {
 }
 
 $script:AtlasTestRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).ProviderPath
-$script:AtlasTestScriptsRoot = Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Scripts'
+$script:AtlasTestScriptsRoot = Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Scripts'
 $script:AtlasTestModulesRoot = Join-Path $script:AtlasTestScriptsRoot 'Modules'
 $script:AtlasTestToolsHost = (Get-Command -Name pwsh -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 

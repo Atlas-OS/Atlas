@@ -1,9 +1,11 @@
-# Export only packages used by this PC's physical Ethernet and Wi-Fi adapters.
-# PnPUtil reads the driver store; this never installs or changes host drivers.
+# Build-Iso.ps1 dot-sources this, elevated on the PC that builds the ISO, when the
+# build copies this PC's network drivers. It exports only the packages that this PC's
+# physical Ethernet and Wi-Fi adapters use. PnPUtil reads the driver store; nothing
+# here installs or changes the host's drivers.
 function Get-AtlasNetworkDeviceIds {
     $devices = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
     foreach ($adapter in @(Get-NetAdapter -Physical -IncludeHidden -ErrorAction Stop)) {
-        # IANA interface types: 6 = Ethernet, 71 = Wi-Fi.
+        # IANA interface types: 6 = Ethernet (ethernetCsmacd), 71 = Wi-Fi (ieee80211).
         if ($adapter.InterfaceType -in @(6, 71) -and $adapter.PnPDeviceID) { [void]$devices.Add([string]$adapter.PnPDeviceID) }
     }
     return ,$devices
@@ -50,7 +52,7 @@ function Get-AtlasNetworkHardwareIds {
 }
 
 function Test-AtlasNetworkUpdate($Update, $HardwareIds) {
-    # Update type 2 = driver.
+    # Update type 2 = driver (utDriver).
     return ([int]$Update.Type -eq 2 -and [string]$Update.DriverClass -ieq 'Net' -and $HardwareIds.Contains([string]$Update.DriverHardwareID))
 }
 
@@ -73,11 +75,12 @@ function Export-AtlasNetworkUpdates([string]$Destination, [string]$CancelFile, [
     $session.ClientApplicationID = 'Atlas ISO network drivers'
     $searcher = $session.CreateUpdateSearcher()
     $searcher.Online = $true
-    # Query the public Windows Update service (ServerSelection 2) without changing
-    # the PC's driver policy. No installer is created; this PC is never updated.
+    # Query the public Windows Update service (ServerSelection 2, ssWindowsUpdate)
+    # without changing the PC's driver policy. No installer is created; this PC is
+    # never updated.
     $searcher.ServerSelection = 2
     $found = $searcher.Search("IsInstalled=0 and IsHidden=0 and Type='Driver'")
-    # ResultCode 2 = succeeded.
+    # ResultCode 2 = succeeded (orcSucceeded).
     if ([int]$found.ResultCode -ne 2) { throw 'Windows Update could not complete the network driver search.' }
     $updates = New-Object -ComObject Microsoft.Update.UpdateColl
     $downloadBytes = [decimal]0

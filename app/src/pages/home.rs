@@ -8,11 +8,12 @@ use gpui::{
 
 use super::stepper::step_marker;
 use super::{
-    StepStatus, badge, card_body, card_header, detail_row, detail_text, focusable_heading, heading, on_model,
-    options_value, page_frame, recorded_options,
+    StepStatus, badge, card_body, card_header, detail_row, detail_text, focusable_heading, heading,
+    manager_update_bar, on_model, options_value, page_frame, recorded_options,
 };
 use crate::i18n::{describe, fmt};
 use crate::model::{AppModel, InstallBlock, Page, ReleaseCheck, RestoreStatus, Step};
+use crate::services::atlas_state::AtlasState;
 use crate::services::releases::Release;
 use crate::services::system::links;
 use crate::services::update_access::JournalKind;
@@ -84,7 +85,7 @@ impl HomePage {
 
     /// The version stamp: what is installed, the update status, and the
     /// button that starts, continues or finishes an install.
-    fn hero(&self, state: &AppModel, cx: &App) -> AnyElement {
+    fn hero(&self, state: &AppModel, recommend_iso: bool, cx: &App) -> AnyElement {
         let theme = cx.theme();
         let model = &self.model;
         let installed = state.installed();
@@ -162,8 +163,8 @@ impl HomePage {
                 .disabled(elevating)
                 .on_click(on_model(model, |m, cx| m.navigate(Page::Install, cx))),
             )
-        } else if block.is_some() || state.owed_restart().is_some() {
-            // The bar below explains it and offers what there is to do.
+        } else if recommend_iso || block.is_some() || state.owed_restart().is_some() {
+            // The media card or the notice below offers the next action.
             None
         } else {
             let accent = hero_is_accent(state);
@@ -277,8 +278,8 @@ impl HomePage {
     }
 
     /// The bars below the hero: a restart still owed, why no install can
-    /// start, a notice, the Windows Security reminder, a failed elevation and
-    /// an unreadable state.
+    /// start, a notice, the Windows Security reminder, a failed elevation, an
+    /// unreadable state and a newer Atlas Manager.
     fn notices(&self, state: &AppModel, diagnostics: Option<Div>) -> Vec<AnyElement> {
         let model = &self.model;
         let block = state.start_block();
@@ -395,6 +396,10 @@ impl HomePage {
                 .id("home-state-error")
                 .into_any_element(),
             );
+        }
+        // Last: a note that holds nothing up.
+        if let Some(bar) = manager_update_bar(state, "home") {
+            body.push(bar.into_any_element());
         }
         body
     }
@@ -606,8 +611,8 @@ impl HomePage {
     }
 
     /// The entry to the installation media page: a settings card with its
-    /// beta label and a standard button, so the hero keeps the one accent.
-    fn media_entry(&self, state: &AppModel, cx: &App) -> AnyElement {
+    /// recommendation and the primary action on a first visit.
+    fn media_entry(&self, state: &AppModel, recommended: bool, cx: &App) -> AnyElement {
         let theme = cx.theme();
         let locked = state.locked();
         let recovering = state.recovering;
@@ -646,7 +651,13 @@ impl HomePage {
                                                 heading("iso-home-title", 2, t!("iso-home-title"), cx)
                                                     .type_body(),
                                             )
-                                            .child(badge("home-iso-beta", t!("iso-beta"), cx)),
+                                            .when(recommended, |this| {
+                                                this.child(badge(
+                                                    "home-iso-recommended",
+                                                    t!("iso-recommended"),
+                                                    cx,
+                                                ))
+                                            }),
                                     )
                                     .child(div().type_caption().text_color(theme.text_secondary).child(
                                         detail_text("iso-home-description", t!("iso-home-description")),
@@ -656,8 +667,17 @@ impl HomePage {
                     .child(
                         div().ml_auto().child(
                             Button::new("home-create-iso", t!("iso-open"))
-                                .disabled(locked || recovering)
-                                .on_click(on_model(&self.model, |m, cx| m.navigate(Page::Iso, cx))),
+                                .when(recommended, Button::accent)
+                                .disabled(
+                                    locked || recovering || state.elevating || !state.can_navigate(Page::Iso),
+                                )
+                                .on_click(on_model(&self.model, move |m, cx| {
+                                    if recommended {
+                                        m.navigate_iso_for_this_pc(cx)
+                                    } else {
+                                        m.navigate(Page::Iso, cx)
+                                    }
+                                })),
                         ),
                     ),
             )
@@ -691,7 +711,17 @@ impl Render for HomePage {
                     || matches!(state.restore_status, RestoreStatus::Failed(_)))
         };
         let state = self.model.read(cx);
-        let mut body: Vec<AnyElement> = vec![self.hero(state, cx)];
+        let setup = setup_card(
+            state.installed(),
+            state.installed_version().is_some(),
+            state.start_block().is_some(),
+            state.atlas.is_err(),
+        );
+        let recommend_iso = matches!(setup, SetupCard::FirstRun)
+            && !state.flow.active
+            && state.resume_target().is_none()
+            && state.owed_restart().is_none();
+        let mut body: Vec<AnyElement> = vec![self.hero(state, recommend_iso, cx)];
         body.extend(self.notices(state, diagnostics));
         if access_help {
             body.push(self.diagnostics.panel(&model, cx).into_any_element());
@@ -700,9 +730,13 @@ impl Render for HomePage {
         if let Some(release) = state.offered_update() {
             body.push(self.release_notes_card(release, cx));
         }
-        body.extend(setup_card_view(state, window, cx));
-        // Installation media is the secondary path, after the setup card.
-        body.push(self.media_entry(state, cx));
+        if recommend_iso {
+            body.push(self.media_entry(state, true, cx));
+        }
+        body.extend(setup_card_view(&model, state, setup, recommend_iso, window, cx));
+        if !recommend_iso {
+            body.push(self.media_entry(state, false, cx));
+        }
         body.push(project_links(&model, state));
         self.diagnostics.settle(&model, window, cx);
         page_frame("home-scroll", None, None, None, (&self.scroll, &self.scrollbar), body, None, cx)
@@ -806,15 +840,17 @@ fn hero_is_accent(state: &AppModel) -> bool {
 
 /// The [`SetupCard`] for this PC: the record of its install, or how an
 /// install goes.
-fn setup_card_view(state: &AppModel, window: &Window, cx: &App) -> Option<AnyElement> {
+fn setup_card_view(
+    model: &Entity<AppModel>,
+    state: &AppModel,
+    setup: SetupCard<&AtlasState>,
+    recommend_iso: bool,
+    window: &Window,
+    cx: &App,
+) -> Option<AnyElement> {
     let theme = cx.theme();
     let system_text = describe::system_description(&state.system);
-    match setup_card(
-        state.installed(),
-        state.installed_version().is_some(),
-        state.start_block().is_some(),
-        state.atlas.is_err(),
-    ) {
+    match setup {
         SetupCard::Recorded(installed) => {
             // As this PC has them: an earlier update may have recorded a
             // choice it never applied.
@@ -859,14 +895,6 @@ fn setup_card_view(state: &AppModel, window: &Window, cx: &App) -> Option<AnyEle
                                 t!("common-options"),
                                 options_value(cx, "options", "home-options", options),
                             ))
-                            .when(installed.is_oobe, |this| {
-                                this.child(detail_row(
-                                    cx,
-                                    "set-up",
-                                    t!("home-set-up"),
-                                    detail_text("set-up", t!("home-set-up-during-oobe")),
-                                ))
-                            })
                             // A single entry is this install, already described above.
                             .when(history.len() > 1, |this| {
                                 this.child(detail_row(
@@ -955,6 +983,15 @@ fn setup_card_view(state: &AppModel, window: &Window, cx: &App) -> Option<AnyEle
                                 ),
                             )),
                     )
+                    .when(recommend_iso, |this| {
+                        this.child(
+                            card_body().child(
+                                Button::new("home-install", t!("home-install"))
+                                    .disabled(state.recovering || state.locked() || state.elevating)
+                                    .on_click(on_model(model, |m, cx| m.begin_install(cx))),
+                            ),
+                        )
+                    })
                     .into_any_element(),
             )
         }

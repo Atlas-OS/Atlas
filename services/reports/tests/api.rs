@@ -25,7 +25,7 @@ fn config(data: &Path) -> Config {
         web: data.join("web"),
         origin: "https://reports.test".into(),
         gateway_secret: "test-gateway-secret-xxxxxxxxxxxxxxxx".into(),
-        admins: vec!["jack".into()],
+        admins: vec!["reviewer".into()],
         proxy_ips: vec!["127.0.0.1".parse().unwrap()],
         quota_bytes: 2 * 1024 * 1024 * 1024,
     }
@@ -60,13 +60,13 @@ impl Fixture {
         }
         if auth {
             builder = builder
-                .header("remote-user", "jack")
+                .header("remote-user", "reviewer")
                 .header("x-atlas-gateway", "test-gateway-secret-xxxxxxxxxxxxxxxx")
                 .header("origin", "https://reports.test")
                 .header(
                     "x-atlas-csrf",
                     self.state
-                        .signature(&format!("csrf:jack:{}", atlas_reports::now() / 86400)),
+                        .signature(&format!("csrf:reviewer:{}", atlas_reports::now() / 86400)),
                 );
         }
         for (k, v) in extra {
@@ -310,7 +310,7 @@ async fn agent_bearer_requires_trusted_gateway_and_cannot_replace_browser_auth()
             vec![],
             false,
             &[
-                ("remote-user", "jack"),
+                ("remote-user", "reviewer"),
                 ("x-atlas-gateway", "test-gateway-secret-xxxxxxxxxxxxxxxx")
             ]
         )
@@ -616,7 +616,7 @@ async fn agent_access_cannot_evict_protected_audit_records() {
     {
         let db = f.state.db.lock().unwrap();
         db.execute(
-            "INSERT INTO audit VALUES(?1,'jack','delete',''),(?1,'jack','download','')",
+            "INSERT INTO audit VALUES(?1,'reviewer','delete',''),(?1,'reviewer','download','')",
             [atlas_reports::now()],
         )
         .unwrap();
@@ -668,10 +668,10 @@ fn cleanup_bounds_audit_history_by_age_and_count() {
         .unwrap()
         .execute_batch(&format!(
             "WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM n WHERE i < 50001)
-            INSERT INTO audit SELECT {now},'jack','review',i FROM n;
+            INSERT INTO audit SELECT {now},'reviewer','review',i FROM n;
             WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM n WHERE i < 10000)
             INSERT INTO audit SELECT {now},'agent:seed','agent-read','' FROM n;
-            INSERT INTO audit VALUES({aged},'jack','review','aged');",
+            INSERT INTO audit VALUES({aged},'reviewer','review','aged');",
             now = atlas_reports::now(),
             aged = atlas_reports::now() - 91 * 86400
         ))
@@ -870,7 +870,7 @@ async fn no_public_access_or_header_spoof() {
             StatusCode::UNAUTHORIZED
         );
         assert_eq!(
-            f.request("GET", path, vec![], false, &[("remote-user", "jack")])
+            f.request("GET", path, vec![], false, &[("remote-user", "reviewer")])
                 .await
                 .0,
             StatusCode::UNAUTHORIZED
@@ -1014,7 +1014,7 @@ async fn foreign_origins_and_stale_csrf_tokens_are_refused() {
     let (_, receipt) = f.json("POST", "/api/v1/reports", data, false).await;
     let path = format!("/api/admin/reports/{}", receipt["id"].as_str().unwrap());
     let day = atlas_reports::now() / 86400;
-    let token = |day: i64| f.state.signature(&format!("csrf:jack:{day}"));
+    let token = |day: i64| f.state.signature(&format!("csrf:reviewer:{day}"));
     let review = async |origin: &str, csrf: String| {
         f.request(
             "PATCH",
@@ -1022,7 +1022,7 @@ async fn foreign_origins_and_stale_csrf_tokens_are_refused() {
             serde_json::to_vec(&json!({"status":"investigating"})).unwrap(),
             false,
             &[
-                ("remote-user", "jack"),
+                ("remote-user", "reviewer"),
                 ("x-atlas-gateway", "test-gateway-secret-xxxxxxxxxxxxxxxx"),
                 ("origin", origin),
                 ("x-atlas-csrf", &csrf),
@@ -1058,7 +1058,7 @@ async fn foreign_origins_and_stale_csrf_tokens_are_refused() {
 #[tokio::test]
 async fn session_token_lets_the_dashboard_save() {
     let f = Fixture::with(|config| Config {
-        admins: vec!["jack".into(), "alice".into()],
+        admins: vec!["reviewer".into(), "alice".into()],
         ..config
     });
     let mut data = metadata();
@@ -1072,11 +1072,11 @@ async fn session_token_lets_the_dashboard_save() {
             "/api/admin/session",
             vec![],
             false,
-            &[("remote-user", "jack"), gateway],
+            &[("remote-user", "reviewer"), gateway],
         )
         .await;
     assert_eq!(code, StatusCode::OK);
-    assert_eq!(session["user"], "jack");
+    assert_eq!(session["user"], "reviewer");
     let csrf = session["csrf"].as_str().unwrap();
     assert!(csrf.len() == 64 && csrf.bytes().all(|b| b.is_ascii_hexdigit()));
     let save = async |user: &str| {
@@ -1095,7 +1095,7 @@ async fn session_token_lets_the_dashboard_save() {
         .await
         .0
     };
-    assert_eq!(save("jack").await, StatusCode::OK);
+    assert_eq!(save("reviewer").await, StatusCode::OK);
     // The token belongs to the administrator it was issued to.
     assert_eq!(save("alice").await, StatusCode::FORBIDDEN);
 }
@@ -1278,7 +1278,7 @@ fn startup_failures_name_the_setting_or_point_to_the_logged_cause() {
                 "ATLAS_REPORTS_GATEWAY_SECRET",
                 "test-gateway-secret-xxxxxxxxxxxxxxxx",
             )
-            .env("ATLAS_REPORTS_ADMINS", "jack")
+            .env("ATLAS_REPORTS_ADMINS", "reviewer")
             .env("ATLAS_REPORTS_PROXY_IPS", "127.0.0.1")
             .env("ATLAS_REPORTS_LISTEN", "127.0.0.1:0")
             .env_remove("ATLAS_REPORTS_QUOTA_BYTES")
@@ -1373,7 +1373,7 @@ fn upgrade_replaces_unscoped_audit_bound_and_scrubs_deleted_text() {
         .unwrap();
     assert_eq!(version, 1);
     db.execute_batch(
-        "INSERT INTO audit VALUES(1,'jack','delete','');
+        "INSERT INTO audit VALUES(1,'reviewer','delete','');
         WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM n WHERE i < 10001)
         INSERT INTO audit SELECT 1,'Test agent','agent-read','' FROM n;",
     )
@@ -1399,7 +1399,7 @@ async fn trusted_gateway_still_requires_allowed_peer() {
     let mut request = Request::builder()
         .uri("/api/admin/session")
         .header("host", "reports.test")
-        .header("remote-user", "jack")
+        .header("remote-user", "reviewer")
         .header("x-atlas-gateway", "test-gateway-secret-xxxxxxxxxxxxxxxx")
         .body(Body::empty())
         .unwrap();
@@ -1693,7 +1693,7 @@ fn configuration_errors_name_the_setting_and_loopback_may_use_http() {
         (
             "ATLAS_REPORTS_ADMINS",
             Config {
-                admins: vec!["jack".into(), " alice".into()],
+                admins: vec!["reviewer".into(), " alice".into()],
                 ..base()
             },
         ),
@@ -1732,7 +1732,7 @@ fn configuration_errors_name_the_setting_and_loopback_may_use_http() {
         assert!(reason.starts_with(setting), "{reason}");
     }
     let config = Config {
-        admins: vec!["jack".into(), "alice".into()],
+        admins: vec!["reviewer".into(), "alice".into()],
         ..base()
     };
     assert!(create(config).is_ok());

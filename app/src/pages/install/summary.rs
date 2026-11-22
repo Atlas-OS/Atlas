@@ -15,7 +15,7 @@ use crate::pages::{
     on_model, plain_list, step_card_header,
 };
 use crate::services::installer::{self, InstallOutcome};
-use crate::services::playbook::{FeatureOption, Manifest};
+use crate::services::package::{ChoiceOption, Manifest};
 use crate::services::requirements::{CheckId, Verdict};
 use crate::services::system::links;
 use crate::t;
@@ -142,7 +142,7 @@ impl InstallPage {
                             .into_any_element(),
                     );
                 }
-            } else if state.playbook.is_none() {
+            } else if state.package.is_none() {
                 cards.push(
                     InfoBar::new(
                         Severity::Warning,
@@ -285,7 +285,7 @@ impl InstallPage {
             })
             .unwrap_or_else(|| t!("summary-activation-unknown"));
         let package =
-            state.playbook.as_ref().map(|source| source.describe()).unwrap_or_else(|| t!("package-none-yet"));
+            state.package.as_ref().map(|source| source.describe()).unwrap_or_else(|| t!("package-none-yet"));
         let show_command = self.show_command;
         // Built only while shown, not on every frame.
         let command = request.as_ref().filter(|_| show_command).map(|request| {
@@ -401,7 +401,7 @@ impl InstallPage {
                 detail_text(&key, path).into_any_element()
             } else {
                 let chosen = chosen_on(manifest, &row.pages, &options, |option| {
-                    ListEntry::install_option(&option.name, &option.text, state.before_desktop)
+                    ListEntry::install_option(&option.id, &option.label, state.before_desktop)
                 });
                 choice_value(
                     cx,
@@ -504,14 +504,14 @@ pub(super) fn chosen_on<T>(
     manifest: &Manifest,
     pages: &[usize],
     options: &[String],
-    entry: impl Fn(&FeatureOption) -> T,
+    entry: impl Fn(&ChoiceOption) -> T,
 ) -> Vec<T> {
     pages
         .iter()
-        .filter_map(|&page_index| manifest.pages.get(page_index))
+        .filter_map(|&page_index| manifest.choices.get(page_index))
         .filter(|page| page.depends_on.as_ref().is_none_or(|dependency| options.contains(dependency)))
         .flat_map(|page| page.options.iter())
-        .filter(|option| options.contains(&option.name))
+        .filter(|option| options.contains(&option.id))
         .map(entry)
         .collect()
 }

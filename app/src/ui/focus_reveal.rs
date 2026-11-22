@@ -202,14 +202,6 @@ impl Revealed {
     }
 }
 
-impl IntoElement for Revealed {
-    type Element = Self;
-
-    fn into_element(self) -> Self::Element {
-        self
-    }
-}
-
 impl Element for Revealed {
     type RequestLayoutState = ();
     type PrepaintState = ();

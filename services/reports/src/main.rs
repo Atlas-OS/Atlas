@@ -1,3 +1,22 @@
+//! Starts the Atlas reports service. It reads its settings from the environment,
+//! removes expired reports every hour and serves HTTP until SIGTERM or Ctrl+C.
+//!
+//! Required settings:
+//!
+//! - `ATLAS_REPORTS_ORIGIN`: the public origin, such as `https://reports.atlasos.net`.
+//! - `ATLAS_REPORTS_GATEWAY_SECRET`: at least 32 characters; the proxy sends it as `X-Atlas-Gateway`.
+//! - `ATLAS_REPORTS_ADMINS`: reviewer usernames, comma-separated.
+//! - `ATLAS_REPORTS_PROXY_IPS`: the IP addresses the proxy connects from, comma-separated.
+//!
+//! Optional settings, with their defaults:
+//!
+//! - `ATLAS_REPORTS_DATA`: the data directory, `/data`.
+//! - `ATLAS_REPORTS_WEB`: the built website, `/web`.
+//! - `ATLAS_REPORTS_LISTEN`: the listen address, `0.0.0.0:8080`.
+//! - `ATLAS_REPORTS_QUOTA_BYTES`: space for attachments, 2 GiB; at least 134217728 (128 MiB).
+//!
+//! A missing or invalid setting stops the service at startup. API.md describes each
+//! setting in full.
 use atlas_reports::{Config, StartupError, create};
 use std::{env, net::SocketAddr, path::PathBuf, time::Duration};
 

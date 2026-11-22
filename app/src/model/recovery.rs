@@ -7,10 +7,10 @@ use gpui::Context;
 
 use super::drafts::draft_launched;
 use super::package::{bundled_holds, unpacked_origin};
-use super::{AppModel, Generation, Notice, Page, PlaybookSource, Step, UpdatePath};
+use super::{AppModel, Generation, Notice, PackageSource, Page, Step, UpdatePath};
 use crate::services::session::{self, Inspection, LaunchLock, SessionPaths, SessionRecord};
 use crate::services::settings::{self, InstallDraft};
-use crate::services::{installer, playbook, preparation, system};
+use crate::services::{installer, package, preparation, system};
 
 /// How long startup waits for the install record before finishing recovery
 /// in the background; a stuck lock holder must not delay the first frame.
@@ -102,8 +102,8 @@ impl AppModel {
         self.own_session = draft.session.clone();
         // A package that has lost a file since (to security software, say) is
         // not resumed; Get ready prepares one again, as for a draft without one.
-        if let Some(dir) = draft.playbook_dir.filter(|dir| {
-            let intact = playbook::intact(dir);
+        if let Some(dir) = draft.package_dir.filter(|dir| {
+            let intact = package::intact(dir);
             if !intact && dir.exists() {
                 log::warn!("The draft's package {} is incomplete; not resuming it", dir.display());
             }
@@ -115,12 +115,12 @@ impl AppModel {
                 // loaded in its place once the flow reaches Ready.
                 log::info!("The draft's package {} is not the bundled package; ignoring it", dir.display());
             } else {
-                match playbook::read_manifest(&dir) {
+                match package::read_manifest(&dir) {
                     Ok(manifest) => {
                         // The file it came from, for ISO creation, while it's still there.
                         let archive = draft.package_archive.filter(|archive| archive.is_file());
                         let origin = unpacked_origin(&dir);
-                        self.playbook = Some(PlaybookSource { dir, manifest, origin, archive });
+                        self.package = Some(PackageSource { dir, manifest, origin, archive });
                     }
                     Err(error) => log::warn!("could not resume the unpacked package: {error:#}"),
                 }
@@ -176,6 +176,12 @@ impl AppModel {
     ) {
         self.recovering = false;
         self.drop_left_start_page();
+        // An install or preparation could still be using a package unpacked
+        // by an earlier version, so the folder those went to waits for a start
+        // with neither running.
+        if matches!(found, StartupInspection::None) && matches!(running_preparation, Ok(None)) {
+            self.remove_old_package_cache(cx);
+        }
         if self.elevated {
             // Finished preparation jobs beyond the newest few are only
             // history; the protected folder can only be changed elevated.
@@ -260,10 +266,31 @@ impl AppModel {
         self.restore_pending_reminder(cx);
         // A flow that reached Ready while recovery was still running waited
         // for this answer before loading anything.
-        if self.bundled() && self.flow.active && self.flow.step == Step::Ready && self.playbook.is_none() {
+        if self.bundled() && self.flow.active && self.flow.step == Step::Ready && self.package.is_none() {
             self.load_bundled_package(cx);
         }
         cx.notify();
+    }
+
+    /// Removes, on a worker, the folder under the app data folder where
+    /// earlier versions of Atlas Manager unpacked packages, which nothing
+    /// reads (see [`package::remove_old_cache`]), and logs what happened.
+    fn remove_old_package_cache(&self, cx: &mut Context<Self>) {
+        let root = self.env.paths.root.clone();
+        cx.background_executor()
+            .spawn(async move {
+                match package::remove_old_cache(&root) {
+                    Ok(true) => {
+                        log::info!("Removed the packages earlier versions unpacked under {}", root.display())
+                    }
+                    Ok(false) => {}
+                    Err(error) => log::warn!(
+                        "Could not remove all the packages earlier versions unpacked under {}: {error}",
+                        root.display()
+                    ),
+                }
+            })
+            .detach();
     }
 
     /// Follows a recorded install: its package, choices and output. `ended`
@@ -291,13 +318,13 @@ impl AppModel {
                 self.flow_id.get_or_insert_with(settings::new_flow_id);
             }
         }
-        if playbook::is_extracted(&record.request.playbook_dir)
-            && let Ok(manifest) = playbook::read_manifest(&record.request.playbook_dir)
+        if package::is_extracted(&record.request.package_dir)
+            && let Ok(manifest) = package::read_manifest(&record.request.package_dir)
         {
-            self.playbook = Some(PlaybookSource {
-                dir: record.request.playbook_dir.clone(),
+            self.package = Some(PackageSource {
+                dir: record.request.package_dir.clone(),
                 manifest,
-                origin: unpacked_origin(&record.request.playbook_dir),
+                origin: unpacked_origin(&record.request.package_dir),
                 archive: None,
             });
         }

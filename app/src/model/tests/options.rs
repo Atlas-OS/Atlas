@@ -41,22 +41,22 @@ fn a_dependent_page_follows_the_page_it_depends_on() {
             let extras =
                 m.option_screens().into_iter().find(|screen| screen.kind == ScreenKind::Extras).unwrap();
             let kinds: Vec<ScreenKind> =
-                extras.pages.iter().map(|&page| ScreenKind::of_page(&manifest.pages[page])).collect();
+                extras.pages.iter().map(|&page| ScreenKind::of_choice(&manifest.choices[page])).collect();
             assert_eq!(
                 kinds,
                 [ScreenKind::Power, ScreenKind::Apps, ScreenKind::Browser, ScreenKind::OptionalApps],
                 "the built-in package lists the browser picker last"
             );
             let browser = extras.pages[2];
-            let option = manifest.pages[browser].depends_on.as_deref().unwrap();
-            assert!(manifest.pages[extras.pages[1]].options.iter().any(|offered| offered.name == option));
+            let option = manifest.choices[browser].depends_on.as_deref().unwrap();
+            assert!(manifest.choices[extras.pages[1]].options.iter().any(|offered| offered.id == option));
         });
         // Every page still shows exactly once, in one place.
         act(&mut cx, &model, |m, _| {
             let mut pages: Vec<usize> =
                 m.option_screens().into_iter().flat_map(|screen| screen.pages).collect();
             pages.sort();
-            assert_eq!(pages, (0..m.manifest().pages.len()).collect::<Vec<_>>());
+            assert_eq!(pages, (0..m.manifest().choices.len()).collect::<Vec<_>>());
         });
     });
 }
@@ -77,9 +77,9 @@ fn ticking_install_a_browser_finds_one_chosen() {
             m.options = in_effect.into_iter().collect();
             let page = m
                 .manifest()
-                .pages
+                .choices
                 .iter()
-                .position(|page| page.options.iter().any(|o| o.name == "install-another-browser"))
+                .position(|page| page.options.iter().any(|o| o.id == "install-another-browser"))
                 .unwrap();
             m.choose_option(page, "install-another-browser", cx);
         });

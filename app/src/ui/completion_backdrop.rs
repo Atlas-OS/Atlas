@@ -105,14 +105,6 @@ struct Halftone {
     keep_out: KeepOut,
 }
 
-impl IntoElement for Halftone {
-    type Element = Self;
-
-    fn into_element(self) -> Self {
-        self
-    }
-}
-
 impl Element for Halftone {
     type RequestLayoutState = ();
     type PrepaintState = ();

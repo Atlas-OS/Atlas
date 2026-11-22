@@ -1,11 +1,11 @@
 @{
     # Strict profile for build tooling (tools/**) and tests (tests/**), which run under
     # PowerShell 5.1 or 7 on developer machines and CI. The scripts that run on users' PCs
-    # use the more lenient PSScriptAnalyzerSettings.Payload.psd1.
+    # use the more lenient PSScriptAnalyzerSettings.Package.psd1.
     Severity = @('Error', 'Warning')
 
     ExcludeRules = @(
-        # Build scripts print progress/results intentionally with colors
+        # Build scripts print progress and results in colour intentionally
         'PSAvoidUsingWriteHost',
         # Internal tooling functions are not published cmdlets; ShouldProcess is not applicable
         'PSUseShouldProcessForStateChangingFunctions'

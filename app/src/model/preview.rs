@@ -11,12 +11,13 @@ use std::sync::atomic::Ordering;
 use serde_json::json;
 
 use super::{
-    AppModel, Origin, Page, PlaybookSource, Preflight, ReleaseCheck, RestartConfirmation, RestartKind,
-    RestoreStatus, Step, UpdatePath,
+    AcquireProblem, Acquisition, AppModel, Origin, PackageSource, Page, Preflight, ReleaseCheck,
+    RestartConfirmation, RestartKind, RestoreStatus, Step, UpdatePath,
 };
 use crate::services::atlas_state::{InstallIdentity, InstallMode, Unfinished};
 use crate::services::installer::InstallRequest;
 use crate::services::legacy_choices::Facts;
+use crate::services::manager_version::next_patch;
 use crate::services::preparation::{RestartProblem, Stage, State};
 use crate::services::releases::Release;
 use crate::services::requirements::{CheckDetail, CheckId, CheckResult, Verdict};
@@ -235,6 +236,10 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
             model.install_identity = Ok(InstallIdentity::Resume("0.6.0".into(), unfinished));
         }
         "ineligible" => model.install_identity = Ok(InstallIdentity::Installed("0.3.2".into())),
+        "manager-outdated" => {
+            model.acquisition =
+                Acquisition::Failed(AcquireProblem::ManagerOutdated { required: Some(next_patch()) })
+        }
         // Restart now was chosen with two other people signed in.
         "reboot-others" => {
             model.restart_confirmation = Some(RestartConfirmation {
@@ -317,9 +322,9 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
         _ => {}
     }
     // An unpacked package, except where the preview is about not having one.
-    if !matches!(preview, "idle" | "ineligible") {
+    if !matches!(preview, "idle" | "ineligible" | "manager-outdated") {
         let manifest = model.builtin_manifest.clone();
-        model.playbook = Some(PlaybookSource {
+        model.package = Some(PackageSource {
             dir: std::env::temp_dir(),
             manifest,
             origin: Origin::Unpacked,
@@ -706,7 +711,8 @@ fn apply_windows(model: &mut AppModel, state: &str) {
     }
 }
 
-/// Home on a PC with Atlas 0.5.0 and Atlas 0.6.0 on offer.
+/// Home on a PC with Atlas 0.5.0 and Atlas 0.6.0 on offer, or, for
+/// `manager-update`, the release after this Atlas Manager.
 fn apply_home(model: &mut AppModel, state: &str) {
     model.system = match state {
         "24h2-home" => windows_pc(26100, "24H2", "Core"),
@@ -715,11 +721,18 @@ fn apply_home(model: &mut AppModel, state: &str) {
         "update-access-after" => windows_pc(26300, "26H2", "Professional"),
         _ => windows_pc(26100, "24H2", "Professional"),
     };
-    model.install_identity = Ok(InstallIdentity::Installed("0.5.0".into()));
+    model.install_identity = if state == "fresh" {
+        model.system = windows_pc(26200, "25H2", "Professional");
+        model.atlas = Ok(None);
+        Ok(InstallIdentity::Fresh)
+    } else {
+        Ok(InstallIdentity::Installed("0.5.0".into()))
+    };
+    let version = if state == "manager-update" { next_patch() } else { "0.6.0".into() };
     model.release = ReleaseCheck::Ready {
         release: Release {
-            tag_name: "0.6.0".into(),
-            body: "## Atlas 0.6.0\n\nAtlas Manager installs and updates Atlas.".into(),
+            body: format!("## Atlas {version}\n\nAtlas Manager installs and updates Atlas."),
+            tag_name: version,
             html_url: String::new(),
             published_at: "2026-10-14T12:00:00Z".into(),
             assets: vec![],
@@ -841,7 +854,7 @@ fn apply_not_applied(model: &mut AppModel) {
         exit_path: log.with_extension("exit"),
         log_path: log,
         request: InstallRequest {
-            playbook_dir: std::env::temp_dir(),
+            package_dir: std::env::temp_dir(),
             options,
             restart: true,
             windows_security_confirmed: false,

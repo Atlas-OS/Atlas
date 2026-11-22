@@ -1,0 +1,11 @@
+@{
+    Name        = 'Disable MSRT telemetry'
+    Description = 'Stops the Malicious Software Removal Tool reporting infection information and heartbeat data to Microsoft.'
+    Registry    = @(
+        # Disable MSRT telemetry
+        @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\MRT'; Name = 'DontReportInfectionInformation'; Type = 'DWord'; Data = 1 }
+        @{ Path = 'HKLM:\SOFTWARE\Microsoft\RemovalTools\MpGears'; Name = 'HeartbeatTrackingIndex'; Type = 'DWord'; Data = 0 }
+        # Intentionally empty REG_MULTI_SZ
+        @{ Path = 'HKLM:\SOFTWARE\Microsoft\RemovalTools\MpGears'; Name = 'SpyNetReportingLocation'; Type = 'MultiString'; Data = @('') }
+    )
+}

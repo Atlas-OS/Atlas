@@ -4,7 +4,7 @@ Describe 'File Explorer Home configuration' {
         Import-Module -Name (Join-Path $script:AtlasTestModulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
         Import-Module -Name (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
         $script:homeToggle = Get-AtlasToggleDefinition -Name Home `
-            -TogglesRoot (Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles')
+            -TogglesRoot (Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toggles')
     }
 
     It 'round-trips the per-user navigation-tree override in the Home toggle' {

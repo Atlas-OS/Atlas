@@ -2,6 +2,8 @@
 //! choices, review), which the USB panel can then write to a drive. It runs
 //! apart from the install flow and its checks of this PC.
 
+mod download;
+
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::atomic::Ordering;
@@ -15,13 +17,13 @@ use gpui::{
 use super::usb::UsbPage;
 use super::{
     CommandBar, Diagnostics, ListEntry, PageTitle, StepStatus, Stepper, card_body, card_header_with_icon,
-    caution_caption, detail_row, detail_text, drivers_radio, focusable_heading, option_page_card, page_frame,
-    plain_list, step_card_header,
+    caution_caption, detail_row, detail_text, drivers_radio, focusable_heading, manager_download_button,
+    option_page_card, page_frame, plain_list, step_card_header,
 };
 use crate::i18n::{describe, fmt};
-use crate::model::{Acquisition, AppModel, Page, ReleaseCheck, ScreenKind};
+use crate::model::{AcquireProblem, Acquisition, AppModel, Page, ReleaseCheck, ScreenKind};
 use crate::services::iso::{self, Architecture, FailureReason, ImageInfo, Mode, Stage, UsernameProblem};
-use crate::services::playbook::{self, Manifest, PageKind};
+use crate::services::package::{self, ChoiceKind, Manifest};
 use crate::services::preparation::Drivers;
 use crate::services::{settings, system};
 use crate::t;
@@ -194,7 +196,7 @@ fn account_error(name: &str) -> Option<String> {
 /// The manifest's pages in the install flow's order: a page shown only when
 /// an option is chosen comes straight after the page that offers it.
 fn page_order(manifest: &Manifest) -> Vec<usize> {
-    playbook::follow_parents(&manifest.pages, (0..manifest.pages.len()).collect())
+    package::follow_parents(&manifest.choices, (0..manifest.choices.len()).collect())
 }
 
 /// A new ISO in `folder` that overwrites nothing: Atlas-Windows.iso, then
@@ -211,6 +213,12 @@ fn free_output(folder: &Path, exists: impl Fn(&Path) -> bool) -> PathBuf {
 }
 
 pub struct IsoPage {
+    download: download::IsoDownload,
+    editing_source: bool,
+    terms_folder: Option<PathBuf>,
+    editing_edition: bool,
+    edition: Option<String>,
+    accept_terms: bool,
     usb: Option<Entity<UsbPage>>,
     username: Entity<TextInput>,
     model: Entity<AppModel>,
@@ -244,6 +252,9 @@ pub struct IsoPage {
     /// Whether the build running, or last run, adds this PC's network drivers.
     network_build: bool,
     result: JobResult,
+    /// The Atlas Manager version the package asked for, when the last job
+    /// failed with [`FailureReason::ManagerOutdated`] and the package named one.
+    manager_required: Option<String>,
     job: Option<PathBuf>,
     task: Option<Task<()>>,
     scroll: ScrollHandle,
@@ -277,6 +288,12 @@ impl IsoPage {
         })
         .detach();
         let page = Self {
+            download: Default::default(),
+            editing_source: false,
+            terms_folder: None,
+            editing_edition: false,
+            edition: None,
+            accept_terms: false,
             usb: None,
             username,
             model,
@@ -301,6 +318,7 @@ impl IsoPage {
             stage: Stage::Inspect,
             network_build: false,
             result: JobResult::None,
+            manager_required: None,
             job: None,
             task: None,
             scroll: ScrollHandle::new(),
@@ -325,8 +343,8 @@ impl IsoPage {
         self.preview_unelevated = state == "not-elevated";
         self.source = Some(PathBuf::from(r"C:\Downloads\Windows11_25H2_English_x64.iso"));
         // A first-time user who never handled the Atlas package: the field is empty.
-        if state != "files-empty" {
-            self.archive = Some(PathBuf::from(r"C:\Downloads\Atlas.apbx"));
+        if !matches!(state, "files-empty" | "download-language" | "download-progress") {
+            self.archive = Some(PathBuf::from(r"C:\Downloads\Atlas.atlaspkg"));
         }
         self.output = Some(PathBuf::from(r"C:\Users\Atlas\Downloads\Atlas-Windows.iso"));
         let name = match state {
@@ -340,6 +358,8 @@ impl IsoPage {
             state,
             "files"
                 | "files-empty"
+                | "download-language"
+                | "download-progress"
                 | "failed"
                 | "release-unknown"
                 | "release-unlisted"
@@ -349,14 +369,28 @@ impl IsoPage {
                 | "package-changed"
         ) {
             self.image = Some(ImageInfo {
+                edition_terms: vec!["0".repeat(64)],
                 editions: vec!["Windows 11 Pro".into()],
                 bytes: 6_500_000_000,
                 architecture: Architecture::X64,
             });
         }
-        let manifest = crate::services::playbook::parse(include_str!("../../../playbook/playbook.conf"))
-            .ok()
-            .map(Rc::new);
+        if state == "windows" {
+            let image = self.image.as_mut().unwrap();
+            image.editions.push("Windows 11 Education".into());
+            image.edition_terms.push("0".repeat(64));
+        }
+        if state == "files-empty" {
+            self.source = None;
+            self.output = None;
+        }
+        if matches!(state, "download-language" | "download-progress") {
+            self.source = None;
+            self.output = None;
+            self.download.preview(state == "download-progress");
+        }
+        let manifest =
+            crate::services::package::parse(include_str!("../../../package/atlas.json")).ok().map(Rc::new);
         self.options = manifest.as_deref().map(iso::default_options).unwrap_or_default();
         // A review that carries a choice that reduces protection, to show its caution.
         if state == "review-before" {
@@ -393,9 +427,13 @@ impl IsoPage {
             "release-unlisted" => JobResult::Failed(Some(FailureReason::WindowsReleaseUnlisted)),
             "package-unsupported" => JobResult::Failed(Some(FailureReason::PackageUnsupported)),
             "package-changed" => JobResult::Failed(Some(FailureReason::PackageChanged)),
+            "manager-outdated" => JobResult::Failed(Some(FailureReason::ManagerOutdated)),
             "cancelled" => JobResult::Cancelled,
             _ => JobResult::None,
         };
+        if state == "manager-outdated" {
+            self.manager_required = Some(crate::services::manager_version::next_patch());
+        }
         if matches!(self.result, JobResult::Failed(_) | JobResult::Cancelled) {
             self.job = Some(settings::app_data_dir());
         }
@@ -427,7 +465,7 @@ impl IsoPage {
         let (archive, for_this_pc, on_page, busy, bundled) = {
             let state = model.read(cx);
             (
-                state.playbook.as_ref().and_then(|package| package.archive.clone()),
+                state.package.as_ref().and_then(|package| package.archive.clone()),
                 state.iso_for_this_pc,
                 state.page == Page::Iso,
                 state.iso_busy,
@@ -530,17 +568,31 @@ impl IsoPage {
             {
                 this.update(cx, |this, cx| {
                     if field == Field::Source {
-                        this.source = Some(path);
-                        this.suggest_output();
+                        this.accept_source(path, cx);
                     } else {
                         this.archive = Some(path);
+                        this.manifest = None;
+                        this.invalidate(cx);
                     }
-                    this.invalidate(cx);
                 })
                 .ok();
             }
         })
         .detach();
+    }
+
+    fn accept_source(&mut self, path: PathBuf, cx: &mut Context<Self>) {
+        self.source = Some(path);
+        self.editing_source = false;
+        self.download.close_picker();
+        self.suggest_output();
+        if self.archive.is_none()
+            && !self.model.read(cx).bundled()
+            && !self.model.read(cx).latest_predates_app()
+        {
+            self.model.update(cx, |m, cx| m.download_latest(cx));
+        }
+        self.invalidate(cx);
     }
 
     /// Puts the new ISO beside the source, under a name no file has yet,
@@ -555,6 +607,9 @@ impl IsoPage {
     }
 
     fn invalidate(&mut self, cx: &mut Context<Self>) {
+        self.edition = None;
+        self.editing_edition = false;
+        self.accept_terms = false;
         self.image = None;
         self.result = JobResult::None;
         self.step = IsoStep::Files;
@@ -574,6 +629,18 @@ impl IsoPage {
         cx.notify();
     }
 
+    pub fn analytics_path(&self) -> &'static str {
+        if self.usb.is_some() {
+            return "iso/usb";
+        }
+        match self.step {
+            IsoStep::Files => "iso/files",
+            IsoStep::Windows => "iso/windows",
+            IsoStep::Choices => "iso/choices",
+            IsoStep::Review => "iso/review",
+        }
+    }
+
     fn gates(&self, cx: &App) -> Gates {
         Gates {
             checked: self.image.is_some(),
@@ -586,7 +653,7 @@ impl IsoPage {
         if self.preview.is_some() {
             return;
         }
-        if self.model.read(cx).locked() || self.model.read(cx).recovering {
+        if self.download.busy() || self.model.read(cx).locked() || self.model.read(cx).recovering {
             return;
         }
         let bundled = self.model.read(cx).bundled();
@@ -609,6 +676,9 @@ impl IsoPage {
         if inspect {
             // Checking again replaces the last result, so a failed check
             // cannot leave an earlier one to continue with.
+            self.edition = None;
+            self.editing_edition = false;
+            self.accept_terms = false;
             self.image = None;
         }
         self.stage = Stage::Inspect;
@@ -627,6 +697,12 @@ impl IsoPage {
             inspected_package: self.package.clone(),
             source,
             output,
+            edition: self.edition.clone(),
+            accepted_terms: self
+                .image
+                .as_ref()
+                .filter(|_| self.accept_terms)
+                .and_then(|img| img.terms(self.edition.as_deref()).map(str::to_owned)),
             mode: self.mode,
             options: self.options.clone(),
             drivers: self.drivers,
@@ -636,6 +712,13 @@ impl IsoPage {
             update_network_drivers,
         };
         self.model.update(cx, |m, cx| {
+            if !inspect {
+                crate::services::analytics::send(
+                    m.settings.usage_analytics,
+                    "ISO build started",
+                    "iso/review",
+                );
+            }
             m.iso_busy = true;
             m.iso_cancel.store(false, Ordering::Relaxed);
             cx.notify();
@@ -670,6 +753,18 @@ impl IsoPage {
                     this.job = None;
                 }
                 this.finish(inspect, cancelled, result);
+                if !inspect {
+                    let event = match this.result {
+                        JobResult::Complete => "ISO build completed",
+                        JobResult::Cancelled => "ISO build cancelled",
+                        _ => "ISO build failed",
+                    };
+                    crate::services::analytics::send(
+                        this.model.read(cx).settings.usage_analytics,
+                        event,
+                        "iso/review",
+                    );
+                }
                 cx.notify();
             })
             .ok();
@@ -682,6 +777,7 @@ impl IsoPage {
     fn finish(&mut self, inspect: bool, cancelled: bool, result: anyhow::Result<iso::Created>) {
         match result {
             Ok(created) if inspect => {
+                self.terms_folder = self.job.clone();
                 self.image = created.image;
                 let same_package = self.package.as_ref() == Some(&created.package);
                 self.options = iso::options_after_inspection(&created.manifest, &self.options, same_package);
@@ -702,7 +798,13 @@ impl IsoPage {
             }
             Err(_) if cancelled => self.result = JobResult::Cancelled,
             Err(error) => {
-                let reason = error.downcast_ref::<iso::Failure>().map(|failure| failure.reason);
+                // A package for a newer Atlas Manager says which version it needs.
+                let outdated = error.downcast_ref::<package::ManagerOutdated>();
+                self.manager_required = outdated.and_then(|outdated| outdated.required.clone());
+                let reason = match outdated {
+                    Some(_) => Some(FailureReason::ManagerOutdated),
+                    None => error.downcast_ref::<iso::Failure>().map(|failure| failure.reason),
+                };
                 if reason == Some(FailureReason::PackageChanged) {
                     // The check was of another package, so the files need
                     // checking again: Files offers Check files, not Continue.
@@ -770,18 +872,29 @@ impl IsoPage {
             .into_any_element()
     }
 
-    /// The bar a failed check or build leaves, with its log folder.
+    /// The bar a failed check or build leaves, with its log folder, and the
+    /// download a package for a newer Atlas Manager calls for.
     fn error_bar(&self, focus: &FocusHandle) -> AnyElement {
         let (title, message) = self.failure_text();
-        let mut bar =
-            InfoBar::new(Severity::Error, title, message).id("iso-error").focus_handle(focus.clone());
-        if let Some(job) = self.job.clone() {
-            bar = bar.action(
-                Button::new("iso-error-log", t!("iso-diagnostics"))
-                    .icon(Icon::Folder)
-                    .on_click(move |_, _, cx| cx.reveal_path(&job)),
-            );
-        }
+        let bar = InfoBar::new(Severity::Error, title, message).id("iso-error").focus_handle(focus.clone());
+        let outdated = self.result == JobResult::Failed(Some(FailureReason::ManagerOutdated));
+        let log = self.job.clone().map(|job| {
+            Button::new("iso-error-log", t!("iso-diagnostics"))
+                .icon(Icon::Folder)
+                .on_click(move |_, _, cx| cx.reveal_path(&job))
+        });
+        let bar = match (outdated, log) {
+            (false, None) => bar,
+            (false, Some(log)) => bar.action(log),
+            (true, log) => bar.action(
+                div()
+                    .flex()
+                    .flex_wrap()
+                    .gap(px(8.))
+                    .child(manager_download_button("iso-error-manager-download").accent())
+                    .when_some(log, |this, log| this.child(log)),
+            ),
+        };
         bar.into_any_element()
     }
 
@@ -811,7 +924,11 @@ impl IsoPage {
                     && self.job.is_some()
                     && !matches!(
                         reason,
-                        Some(FailureReason::PackageChanged | FailureReason::PackageUnsupported)
+                        Some(
+                            FailureReason::PackageChanged
+                                | FailureReason::PackageUnsupported
+                                | FailureReason::ManagerOutdated
+                        )
                     ) =>
             {
                 Some(self.stage)
@@ -894,82 +1011,145 @@ impl IsoPage {
 
     /// Step 1: the Windows ISO, the Atlas package and where to save the new ISO.
     fn files(&self, checked: bool, cx: &mut Context<Self>) -> AnyElement {
-        let mut content = card_body().gap(px(14.));
-        let bundled = self.model.read(cx).bundled();
-        // On the rule `pick` refuses on: while any job holds the app.
-        let locked = self.model.read(cx).locked();
-        let fields = [
-            (Field::Source, t!("iso-source"), &self.source),
-            (Field::Package, t!("iso-package", minimum = iso::MINIMUM_VERSION), &self.archive),
-            (Field::Output, t!("iso-output"), &self.output),
-        ];
-        for (index, (field, label, path)) in fields.into_iter().enumerate() {
-            let heading =
-                div().type_body_strong().child(a11y_text(("iso-field-label", index), label.clone()));
-            if field == Field::Package && bundled {
-                content = content.child(
-                    div()
-                        .flex()
-                        .flex_col()
-                        .gap(px(6.))
-                        .child(heading)
-                        .child(detail_text("iso-path-1", t!("iso-package-bundled"))),
-                );
-                continue;
+        let state = self.model.read(cx);
+        let bundled = state.bundled();
+        let latest_predates_app = state.latest_predates_app();
+        let locked = state.locked() || self.download.busy();
+        let short_name = |path: &Path| path.file_name().unwrap_or_default().to_string_lossy().into_owned();
+        let selected_package =
+            state.package.as_ref().filter(|p| bundled || p.archive.as_ref() == self.archive.as_ref());
+        let latest = state.release.release().filter(|r| !latest_predates_app && r.package_asset().is_some());
+        let is_latest = !bundled
+            && latest.is_some_and(|release| {
+                if let Some(package) = selected_package {
+                    matches!(&package.origin, crate::model::Origin::Release(_))
+                        && crate::services::releases::compare_versions(
+                            &package.manifest.version,
+                            release.version(),
+                        )
+                        .is_eq()
+                } else {
+                    self.archive.is_none() && self.manifest.is_none()
+                }
+            });
+        // The review fixture shows the verified-release state without making a network request.
+        #[cfg(debug_assertions)]
+        let is_latest = is_latest
+            || matches!(
+                self.preview.as_deref(),
+                Some("files-empty" | "download-language" | "download-progress")
+            );
+        let secondary = cx.theme().text_secondary;
+        let package_name = if let Some(package) = selected_package {
+            format!("Atlas {}", package.manifest.version)
+        } else if let Some(manifest) = &self.manifest {
+            format!("Atlas {}", manifest.version)
+        } else if let Some(path) = &self.archive {
+            short_name(path)
+        } else if let Some(release) = state.release.release().filter(|_| !state.latest_predates_app()) {
+            format!("Atlas {}", release.version())
+        } else if bundled {
+            t!("iso-package-bundled")
+        } else {
+            t!("iso-package-latest")
+        };
+        let change = |field: Field, id: &'static str, label: String, cx: &mut Context<Self>| {
+            Button::new(id, t!("common-change"))
+                .compact()
+                .hyperlink()
+                .aria_label(t!("iso-pick-a11y", action = t!("common-change"), field = label))
+                .disabled(locked)
+                .on_click(cx.listener(move |this, _, _, cx| this.pick(field, cx)))
+        };
+        let mut windows = div()
+            .flex()
+            .flex_col()
+            .gap(px(8.))
+            .child(div().type_body_strong().child(a11y_text("iso-source-label", t!("iso-source"))));
+        if let Some(path) = &self.source
+            && !self.editing_source
+        {
+            windows = windows.child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(px(8.))
+                    .child(detail_text("iso-path-0", short_name(path)))
+                    .child(
+                        Button::new("iso-change-source", t!("common-change"))
+                            .compact()
+                            .hyperlink()
+                            .disabled(locked)
+                            .aria_label(t!(
+                                "iso-pick-a11y",
+                                action = t!("common-change"),
+                                field = t!("iso-source")
+                            ))
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.editing_source = true;
+                                cx.notify();
+                            })),
+                    ),
+            );
+        } else {
+            windows = windows.child(self.windows_download(cx)).child(
+                div().flex().child(
+                    Button::new("iso-source-local", t!("iso-use-local"))
+                        .compact()
+                        .hyperlink()
+                        .disabled(locked)
+                        .on_click(cx.listener(|this, _, _, cx| this.pick(Field::Source, cx))),
+                ),
+            );
+        }
+        if self.editing_source && !self.download.busy() {
+            windows = windows.child(div().flex().child(
+                Button::new("iso-keep-source", t!("common-cancel")).compact().on_click(cx.listener(
+                    |this, _, _, cx| {
+                        this.editing_source = false;
+                        this.download.close_picker();
+                        cx.notify();
+                    },
+                )),
+            ));
+        }
+        let mut content = card_body().gap(px(16.)).child(windows).child(
+            div()
+                .flex()
+                .items_center()
+                .gap(px(8.))
+                .pt(px(12.))
+                .border_t_1()
+                .border_color(cx.theme().divider)
+                .child(div().type_body_strong().child(a11y_text("iso-path-1", package_name)))
+                .when(is_latest, |row| {
+                    row.child(
+                        div()
+                            .type_caption()
+                            .text_color(secondary)
+                            .child(a11y_text("iso-package-latest-label", t!("iso-package-latest-label"))),
+                    )
+                })
+                .when(!bundled, |row| {
+                    row.child(change(Field::Package, "iso-change-package", t!("package-title"), cx))
+                }),
+        );
+        if !bundled && self.archive.is_none() && self.source.is_some() {
+            if latest_predates_app {
+                content =
+                    content.child(detail_text("iso-package-unavailable", t!("iso-package-unavailable")));
+            } else {
+                content = content.children(self.package_download(cx));
             }
-            let action = if field == Field::Output { t!("iso-save-as") } else { t!("iso-browse") };
+        }
+        if let Some(path) = &self.output {
             content = content.child(
                 div()
                     .flex()
-                    .flex_col()
-                    .gap(px(6.))
-                    .child(heading)
-                    .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap(px(12.))
-                            .when(field == Field::Source && path.is_some(), |this| {
-                                this.child(TextMark::new(icon(Icon::Disc), false).natural_text())
-                            })
-                            .child(
-                                div().flex_1().min_w_0().child(detail_text(
-                                    &format!("iso-path-{index}"),
-                                    path.as_ref()
-                                        .map(|p| p.display().to_string())
-                                        .unwrap_or_else(|| t!("iso-no-file")),
-                                )),
-                            )
-                            .child(
-                                // Named with its field: three pickers would otherwise
-                                // all be "Browse" or "Save as".
-                                Button::new(("iso-pick", index), action.clone())
-                                    .aria_label(t!(
-                                        "iso-pick-a11y",
-                                        action = action.as_str(),
-                                        field = label.as_str()
-                                    ))
-                                    .icon(Icon::Folder)
-                                    .disabled(locked)
-                                    .on_click(cx.listener(move |this, _, _, cx| this.pick(field, cx))),
-                            ),
-                    )
-                    // Where to get the ISO the field asks for.
-                    .when(field == Field::Source, |this| {
-                        this.child(
-                            div().flex().child(
-                                Button::new("iso-source-download", t!("iso-source-download"))
-                                    .hyperlink()
-                                    .compact()
-                                    .trailing_icon(Icon::OpenInNewWindow)
-                                    .opens(WINDOWS_DOWNLOAD),
-                            ),
-                        )
-                    })
-                    // A first-time user never handled the file: Atlas downloads it here.
-                    .when(field == Field::Package && path.is_none(), |this| {
-                        this.children(self.package_download(cx))
-                    }),
+                    .items_center()
+                    .gap(px(8.))
+                    .child(detail_text("iso-path-2", t!("iso-save-name", name = short_name(path))))
+                    .child(change(Field::Output, "iso-change-output", t!("iso-output"), cx)),
             );
         }
         // Checked files leave Continue as the only way on; this says why.
@@ -1057,16 +1237,117 @@ impl IsoPage {
                         )
                     })
                     .child(
-                        div().flex().child(
-                            Button::new("iso-package-download", label)
-                                .icon(Icon::Download)
-                                .disabled(checking || state.locked())
-                                .on_click(move |_, _, cx| model.update(cx, |m, cx| m.download_latest(cx))),
-                        ),
+                        div()
+                            .flex()
+                            .flex_wrap()
+                            .gap(px(8.))
+                            .when(
+                                matches!(
+                                    acquisition,
+                                    Acquisition::Failed(AcquireProblem::ManagerOutdated { .. })
+                                ),
+                                |this| this.child(manager_download_button("iso-package-manager-download")),
+                            )
+                            .child(
+                                Button::new("iso-package-download", label)
+                                    .icon(Icon::Download)
+                                    .disabled(checking || state.locked())
+                                    .on_click(move |_, _, cx| {
+                                        model.update(cx, |m, cx| m.download_latest(cx))
+                                    }),
+                            ),
                     )
             }
         };
         Some(content.into_any_element())
+    }
+
+    fn edition_and_terms(&self, cx: &mut Context<Self>) -> AnyElement {
+        use crate::ui::{ComboBox, ComboItem};
+        let mut body = card_body().gap(px(8.));
+        if let Some(image) = &self.image {
+            let automatic = t!("iso-edition-auto");
+            if image.editions.len() > 1 && self.editing_edition {
+                let items = std::iter::once(ComboItem::new(automatic))
+                    .chain(image.editions.iter().cloned().map(ComboItem::new));
+                let selected = image
+                    .editions
+                    .iter()
+                    .position(|name| Some(name) == self.edition.as_ref())
+                    .map_or(0, |i| i + 1);
+                let owner = cx.entity();
+                body = body.child(
+                    ComboBox::new("iso-edition-picker", t!("iso-edition"))
+                        .items(items)
+                        .selected(Some(selected))
+                        .on_select(move |index, _, cx| {
+                            owner.update(cx, |this, cx| {
+                                this.edition = index
+                                    .checked_sub(1)
+                                    .and_then(|i| this.image.as_ref()?.editions.get(i).cloned());
+                                this.editing_edition = false;
+                                this.accept_terms = false;
+                                cx.notify();
+                            });
+                        }),
+                );
+            } else {
+                let label = self
+                    .edition
+                    .clone()
+                    .or_else(|| (image.editions.len() == 1).then(|| image.editions[0].clone()))
+                    .unwrap_or(automatic);
+                body = body.child(
+                    div()
+                        .flex()
+                        .items_center()
+                        .gap(px(8.))
+                        .child(detail_text("iso-selected-edition", label))
+                        .when(image.editions.len() > 1, |row| {
+                            row.child(
+                                Button::new("iso-change-edition", t!("common-change"))
+                                    .compact()
+                                    .hyperlink()
+                                    .aria_label(t!("summary-change-a11y", title = t!("iso-edition")))
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        this.editing_edition = true;
+                                        cx.notify();
+                                    })),
+                            )
+                        }),
+                );
+            }
+            if let Some(hash) = image.terms(self.edition.as_deref()) {
+                let terms =
+                    self.terms_folder.as_ref().map(|dir| dir.join(format!("windows-terms-{hash}.txt")));
+                body = body
+                    .child(
+                        CheckBox::new("iso-accept-terms", t!("iso-accept-terms"), self.accept_terms)
+                            .on_toggle(cx.listener(|this, _, _, cx| {
+                                this.accept_terms = !this.accept_terms;
+                                cx.notify();
+                            })),
+                    )
+                    .child(
+                        div().flex().pl(px(32.)).child(
+                            Button::new("iso-read-terms", t!("windows-terms-link"))
+                                .compact()
+                                .hyperlink()
+                                .on_click(move |_, _, cx| {
+                                    if let Some(path) = &terms {
+                                        cx.open_url(&path.to_string_lossy());
+                                    }
+                                }),
+                        ),
+                    );
+            } else {
+                body = body.child(detail_text("iso-terms-in-setup", t!("iso-terms-in-setup")));
+            }
+        }
+        card(cx)
+            .child(step_card_header(cx, "iso-edition", t!("iso-edition"), None))
+            .child(body)
+            .into_any_element()
     }
 
     /// Step 2: the Windows the ISO installs. The account, then the drivers,
@@ -1163,6 +1444,7 @@ impl IsoPage {
             }
         }
         vec![
+            self.edition_and_terms(cx),
             account,
             drivers,
             card(cx)
@@ -1237,21 +1519,21 @@ impl IsoPage {
             && let Some(manifest) = self.manifest.clone()
         {
             for page_index in page_order(&manifest) {
-                let page = &manifest.pages[page_index];
+                let page = &manifest.choices[page_index];
                 if page.depends_on.as_ref().is_some_and(|name| !self.options.contains(name)) {
                     continue;
                 }
                 // Titled as in the install flow: a top-level choice as a question.
-                let kind = ScreenKind::of_page(page);
-                let header = if page.kind == PageKind::Radio && page.depends_on.is_none() {
+                let kind = ScreenKind::of_choice(page);
+                let header = if page.kind == ChoiceKind::Single && page.depends_on.is_none() {
                     kind.question()
                 } else {
                     kind.title()
                 };
                 let chosen = self.options.clone();
                 let entity = cx.entity();
-                let radio = page.kind == PageKind::Radio;
-                let names: Vec<String> = page.options.iter().map(|o| o.name.clone()).collect();
+                let radio = page.kind == ChoiceKind::Single;
+                let names: Vec<String> = page.options.iter().map(|o| o.id.clone()).collect();
                 body.push(option_page_card(
                     cx,
                     "iso-option",
@@ -1261,7 +1543,7 @@ impl IsoPage {
                     move |name| chosen.iter().any(|option| option == name),
                     false,
                     &mut self.focus,
-                    |option| describe::known_option_consequence(&option.name, &option.text),
+                    |option| describe::option_consequence(&option.id),
                     Rc::new(move |name: &str, cx: &mut App| {
                         let name = name.to_owned();
                         let names = names.clone();
@@ -1288,14 +1570,14 @@ impl IsoPage {
 
     fn clean_options(&mut self) {
         if let Some(manifest) = &self.manifest {
-            for page in &manifest.pages {
+            for page in &manifest.choices {
                 if page.depends_on.as_ref().is_some_and(|n| !self.options.contains(n)) {
-                    self.options.retain(|n| !page.options.iter().any(|o| &o.name == n));
-                } else if page.kind == PageKind::Radio
-                    && !page.options.iter().any(|o| self.options.contains(&o.name))
+                    self.options.retain(|n| !page.options.iter().any(|o| &o.id == n));
+                } else if page.kind == ChoiceKind::Single
+                    && !page.options.iter().any(|o| self.options.contains(&o.id))
                     && let Some(default) = page.options.iter().find(|o| o.default)
                 {
-                    self.options.push(default.name.clone());
+                    self.options.push(default.id.clone());
                 }
             }
         }
@@ -1310,18 +1592,18 @@ impl IsoPage {
         let secondary = cx.theme().text_secondary;
         page_order(manifest)
             .into_iter()
-            .map(|index| (index, &manifest.pages[index]))
+            .map(|index| (index, &manifest.choices[index]))
             .filter(|(_, page)| page.depends_on.as_ref().is_none_or(|name| self.options.contains(name)))
             .map(|(index, page)| {
-                let title = ScreenKind::of_page(page).title();
+                let title = ScreenKind::of_choice(page).title();
                 let key = format!("iso-choice-{index}");
                 let chosen: Vec<ListEntry> = page
                     .options
                     .iter()
-                    .filter(|option| self.options.contains(&option.name))
-                    .map(|option| ListEntry::option(&option.name, &option.text))
+                    .filter(|option| self.options.contains(&option.id))
+                    .map(|option| ListEntry::option(&option.id, &option.label))
                     .collect();
-                let value = if page.kind == PageKind::Radio {
+                let value = if page.kind == ChoiceKind::Single {
                     let (text, caution) = match chosen.into_iter().next() {
                         Some(ListEntry { text, caution }) => (text, caution),
                         None => (t!("summary-not-chosen"), None),
@@ -1394,9 +1676,18 @@ impl IsoPage {
                         cx,
                         "iso-editions",
                         &t!("iso-review-editions"),
-                        image.editions.iter().cloned().map(ListEntry::new).collect(),
+                        self.edition
+                            .as_ref()
+                            .map(std::slice::from_ref)
+                            .unwrap_or(&image.editions)
+                            .iter()
+                            .cloned()
+                            .map(ListEntry::new)
+                            .collect(),
                     ))
-                    .child(caption(detail_text("iso-edition-selection", t!("iso-edition-selection")))),
+                    .when(self.edition.is_none() && image.editions.len() > 1, |row| {
+                        row.child(caption(detail_text("iso-edition-selection", t!("iso-edition-selection"))))
+                    }),
             ));
         }
         if let Some(path) = &self.archive {
@@ -1544,7 +1835,7 @@ impl IsoPage {
                 .on_click(cx.listener(|this, _, _, cx| this.open_usb(this.output.clone(), cx)));
             return CommandBar::new().back(done).primary(usb).into_any_element();
         }
-        let locked = self.model.read(cx).locked();
+        let locked = self.model.read(cx).locked() || self.download.busy() || self.editing_source;
         let back = Button::new("iso-back", t!("common-back"))
             .disabled(self.step.previous().is_none() || locked)
             .on_click(cx.listener(|this, _, _, cx| {
@@ -1633,12 +1924,16 @@ impl Render for IsoPage {
             } else {
                 self.focus.get("iso-step-heading", cx)
             };
-            let title = t!(
-                "step-heading",
-                number = self.step.index() + 1,
-                total = IsoStep::ALL.len(),
-                title = self.step.title()
-            );
+            let title = if self.step == IsoStep::Files {
+                t!("iso-source-question")
+            } else {
+                t!(
+                    "step-heading",
+                    number = self.step.index() + 1,
+                    total = IsoStep::ALL.len(),
+                    title = self.step.title()
+                )
+            };
             body.push(
                 focusable_heading("iso-step-heading", 2, title, &heading_focus, cx)
                     .type_subtitle()
@@ -1748,28 +2043,6 @@ impl Render for IsoPage {
             } else {
                 match self.step {
                     IsoStep::Files => {
-                        // The title's Beta badge says why. This bar gives the
-                        // safety advice once, where the flow starts, unless a
-                        // result already holds the top of the page.
-                        if !failed && !cancelled {
-                            body.push(
-                                InfoBar::new(Severity::Informational, "", t!("iso-beta-description"))
-                                    .id("iso-beta")
-                                    .into_any_element(),
-                            );
-                        }
-                        let bundled = self.model.read(cx).bundled();
-                        body.push(
-                            detail_text(
-                                "iso-files-description",
-                                if bundled {
-                                    t!("iso-files-description-bundled")
-                                } else {
-                                    t!("iso-files-description")
-                                },
-                            )
-                            .into_any_element(),
-                        );
                         body.push(self.files(gates.checked, cx));
                         body.push(
                             div()
@@ -1792,7 +2065,7 @@ impl Render for IsoPage {
         self.diagnostics.settle(&self.model, window, cx);
         page_frame(
             "iso-page",
-            Some(PageTitle { text: t!("iso-title").into(), badge: Some(t!("iso-beta").into()), back: None }),
+            Some(PageTitle { text: t!("iso-title").into(), badge: None, back: None }),
             None,
             Some(&self.model),
             (&self.scroll, &self.scrollbar),
@@ -1819,7 +2092,7 @@ impl IsoPage {
             _ if checking => t!("iso-check-failed"),
             _ => t!("iso-failed"),
         };
-        if self.job.is_none() {
+        if self.job.is_none() && failure != Some(FailureReason::ManagerOutdated) {
             // Nothing ran: there are no diagnostics to point at.
             return (title, t!("iso-failed-unstaged"));
         }
@@ -1837,6 +2110,9 @@ impl IsoPage {
                 t!("iso-failed-package-unsupported", minimum = iso::MINIMUM_VERSION)
             }
             Some(FailureReason::PackageChanged) => t!("iso-failed-package-changed"),
+            Some(FailureReason::ManagerOutdated) => {
+                describe::manager_outdated(self.manager_required.as_deref())
+            }
             Some(FailureReason::Build) if self.stage == Stage::NetworkDrivers => t!("iso-network-failed"),
             Some(FailureReason::Check) | None if checking => t!("iso-check-failed-description"),
             Some(FailureReason::Check | FailureReason::Build) | None => t!("iso-failed-description"),
@@ -2016,7 +2292,7 @@ mod tests {
         let manifest = Manifest::builtin();
         let kinds: Vec<ScreenKind> = page_order(&manifest)
             .into_iter()
-            .map(|index| ScreenKind::of_page(&manifest.pages[index]))
+            .map(|index| ScreenKind::of_choice(&manifest.choices[index]))
             .collect();
         let apps = kinds.iter().position(|kind| *kind == ScreenKind::Apps).unwrap();
         assert_eq!(kinds[apps + 1], ScreenKind::Browser);
@@ -2126,6 +2402,7 @@ mod tests {
             let page = page(&mut cx, &temp);
             page.update(&mut cx, |page, cx| {
                 page.image = Some(ImageInfo {
+                    edition_terms: vec!["0".repeat(64)],
                     editions: vec!["Windows 11 Pro".into()],
                     bytes: 1,
                     architecture: Architecture::X64,
@@ -2165,6 +2442,7 @@ mod tests {
             let page = page(&mut cx, &temp);
             page.update(&mut cx, |page, cx| {
                 page.image = Some(ImageInfo {
+                    edition_terms: vec!["0".repeat(64)],
                     editions: vec!["Windows 11 Pro".into()],
                     bytes: 1,
                     architecture: Architecture::X64,

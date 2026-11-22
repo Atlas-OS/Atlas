@@ -101,7 +101,7 @@ Describe 'Legacy toggle migration' {
     }
 
     It 'keeps every current recorded state unchanged without a legacy path' {
-        $definitions = Get-ChildItem (Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles') -Recurse -Filter '*.psd1'
+        $definitions = Get-ChildItem (Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toggles') -Recurse -Filter '*.psd1'
         foreach ($file in $definitions) {
             $definition = Import-PowerShellDataFile $file.FullName
             foreach ($state in $definition.States) {
@@ -122,7 +122,7 @@ Describe 'Legacy toggle migration' {
     }
 
     It 'skips a saved NVIDIA menu choice when its driver has been removed' {
-        InModuleScope Atlas.Toggles -Parameters @{ Root = $script:LegacyRoot; TogglesRoot = (Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles') } {
+        InModuleScope Atlas.Toggles -Parameters @{ Root = $script:LegacyRoot; TogglesRoot = (Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toggles') } {
             param($Root, $TogglesRoot)
             Mock Assert-AtlasPrivilege {}
             Mock Test-Path { $false } -ParameterFilter { $LiteralPath -eq 'HKLM:\SYSTEM\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem' }

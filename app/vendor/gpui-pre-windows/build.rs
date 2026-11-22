@@ -3,7 +3,6 @@
 fn main() {
     for input in [
         "src/shaders.hlsl",
-        "src/color_text_raster.hlsl",
         "src/alpha_correction.hlsl",
         "prebuilt/shaders_bytes.rs",
         "prebuilt/inputs.sha256",
@@ -44,7 +43,7 @@ fn prepare_release_shaders() {
             .unwrap_or_else(|error| panic!("Missing GPUI shader input hashes: {error}. {HELP}"));
         let hashes = std::process::Command::new("sha256sum")
             .current_dir(&root)
-            .args(["src/shaders.hlsl", "src/color_text_raster.hlsl", "src/alpha_correction.hlsl"])
+            .args(["src/shaders.hlsl", "src/alpha_correction.hlsl"])
             .output()
             .expect("sha256sum is required for the Linux GPUI shader check");
         assert!(
@@ -86,9 +85,9 @@ mod shader_compilation {
         // Define all modules
         let modules = [
             "quad",
+            "opaque_quad",
             "shadow",
-            "path_rasterization",
-            "path_sprite",
+            "path_tile",
             "underline",
             "monochrome_sprite",
             "subpixel_sprite",
@@ -102,18 +101,6 @@ mod shader_compilation {
         for module in modules {
             compile_shader_for_module(
                 module,
-                &out_dir,
-                &fxc_path,
-                shader_path.to_str().unwrap(),
-                &rust_binding_path,
-            );
-        }
-
-        {
-            let shader_path = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap())
-                .join("src/color_text_raster.hlsl");
-            compile_shader_for_module(
-                "emoji_rasterization",
                 &out_dir,
                 &fxc_path,
                 shader_path.to_str().unwrap(),
@@ -254,7 +241,7 @@ mod shader_compilation {
         let rust_binding = format!(
             "const {}: &[u8] = &{}\n",
             const_name,
-            const_definition.replace('{', "[").replace('}', "]")
+            const_definition.replace("\r\n", "\n").replace('{', "[").replace('}', "]")
         );
         let mut options = fs::OpenOptions::new()
             .create(true)

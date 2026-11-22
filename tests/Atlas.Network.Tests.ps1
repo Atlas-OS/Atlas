@@ -24,7 +24,7 @@ Describe 'Network-default toggle' {
     BeforeAll {
         Import-Module -Name (Join-Path $script:AtlasTestModulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
         $script:networkDefinition = Get-AtlasToggleDefinition -Name DefaultAtlasNetwork `
-            -TogglesRoot (Join-Path $script:AtlasTestRepoRoot 'playbook\Executables\AtlasModules\Toggles')
+            -TogglesRoot (Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toggles')
     }
 
     BeforeEach {

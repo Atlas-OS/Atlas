@@ -17,7 +17,7 @@ $shader = Join-Path $PSScriptRoot '../vendor/gpui-pre-windows/src/shaders.hlsl'
 $output = Join-Path ([IO.Path]::GetTempPath()) ('atlas-shader-check-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $output | Out-Null
 $count = 0
-foreach ($module in @('quad','shadow','path_rasterization','path_sprite','underline','monochrome_sprite','subpixel_sprite','polychrome_sprite')) {
+foreach ($module in @('quad','opaque_quad','shadow','path_tile','underline','monochrome_sprite','subpixel_sprite','polychrome_sprite')) {
     foreach ($stage in @(@('vertex','vs_4_1'),@('fragment','ps_4_1'))) {
         $entry = "$($module)_$($stage[0])"
         $messages = & $FxcPath /nologo /O3 /T $stage[1] /E $entry /Fo (Join-Path $output "$entry.cso") $shader 2>&1

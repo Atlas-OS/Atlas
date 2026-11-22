@@ -42,14 +42,19 @@ pub struct Asset {
 }
 
 impl Release {
-    /// Version without a leading "v", as it appears in playbook.conf.
+    /// Version without a leading "v", as it appears in atlas.json.
     pub fn version(&self) -> &str {
         self.tag_name.trim_start_matches(['v', 'V'])
     }
 
-    /// The Atlas package to install, if the release includes one.
-    pub fn playbook_asset(&self) -> Option<&Asset> {
-        self.assets.iter().find(|asset| asset.name.to_ascii_lowercase().ends_with(".apbx"))
+    /// The Atlas package to install, if the release includes one: the file
+    /// with the package extension, whatever else its name says.
+    pub fn package_asset(&self) -> Option<&Asset> {
+        self.assets.iter().find(|asset| {
+            Path::new(&asset.name)
+                .extension()
+                .is_some_and(|extension| extension.eq_ignore_ascii_case(super::package::EXTENSION))
+        })
     }
 }
 
@@ -385,9 +390,9 @@ mod tests {
     #[test]
     fn promotion_verifies_length_and_digest_and_records_identity() {
         let temp = TempDir::new("releases-promote");
-        let (asset, path) = asset(temp.path(), "Atlas.apbx", b"package-bytes");
+        let (asset, path) = asset(temp.path(), "Atlas.atlaspkg", b"package-bytes");
         assert_eq!(cached_in(temp.path(), &asset), None, "present with the right size but never verified");
-        let partial = temp.path().join("Atlas.apbx.partial");
+        let partial = temp.path().join("Atlas.atlaspkg.partial");
         std::fs::rename(&path, &partial).unwrap();
         promote(&partial, &path, &asset).unwrap();
         assert_eq!(cached_in(temp.path(), &asset), Some(path.clone()));
@@ -408,12 +413,12 @@ mod tests {
     #[test]
     fn only_abandoned_partial_downloads_are_swept() {
         let temp = TempDir::new("releases-sweep");
-        let (asset, path) = asset(temp.path(), "Atlas.apbx", b"package-bytes");
-        let partial = temp.path().join("Atlas.apbx.partial");
+        let (asset, path) = asset(temp.path(), "Atlas.atlaspkg", b"package-bytes");
+        let partial = temp.path().join("Atlas.atlaspkg.partial");
         std::fs::rename(&path, &partial).unwrap();
         promote(&partial, &path, &asset).unwrap();
-        let old = temp.path().join("Atlas.apbx.1-a.partial");
-        let fresh = temp.path().join("Atlas.apbx.2-b.partial");
+        let old = temp.path().join("Atlas.atlaspkg.1-a.partial");
+        let fresh = temp.path().join("Atlas.atlaspkg.2-b.partial");
         std::fs::write(&old, b"interrupted").unwrap();
         std::fs::write(&fresh, b"still downloading").unwrap();
         let long_ago = SystemTime::now() - Duration::from_secs(60 * 60 * 3);
@@ -427,8 +432,8 @@ mod tests {
     #[test]
     fn a_short_or_mismatching_download_is_refused() {
         let temp = TempDir::new("releases-refuse");
-        let (mut asset, path) = asset(temp.path(), "Atlas.apbx", b"package-bytes");
-        let partial = temp.path().join("Atlas.apbx.partial");
+        let (mut asset, path) = asset(temp.path(), "Atlas.atlaspkg", b"package-bytes");
+        let partial = temp.path().join("Atlas.atlaspkg.partial");
         std::fs::rename(&path, &partial).unwrap();
         asset.size += 1;
         assert!(promote(&partial, &path, &asset).unwrap_err().to_string().contains("incomplete"));
@@ -436,5 +441,22 @@ mod tests {
         asset.digest = Some(format!("sha256:{}", "11".repeat(32)));
         assert!(promote(&partial, &path, &asset).unwrap_err().to_string().contains("digest"));
         assert!(!path.exists());
+    }
+
+    /// A release publishes other files beside its package, such as checksums
+    /// or an older AME Wizard package; only the `.atlaspkg` file is installed.
+    #[test]
+    fn the_package_is_the_release_file_with_the_package_extension() {
+        let named = |names: &[&str]| Release {
+            tag_name: "v0.6.0".into(),
+            body: String::new(),
+            html_url: String::new(),
+            published_at: String::new(),
+            assets: names.iter().map(|name| Asset { name: (*name).into(), ..Asset::default() }).collect(),
+        };
+        let release =
+            named(&["Atlas-v0.6.0.atlaspkg.sha256", "AtlasPlaybook_v0.6.0.apbx", "Atlas-v0.6.0.ATLASPKG"]);
+        assert_eq!(release.package_asset().map(|asset| asset.name.as_str()), Some("Atlas-v0.6.0.ATLASPKG"));
+        assert!(named(&["AtlasPlaybook_v0.5.0.apbx", "atlaspkg"]).package_asset().is_none());
     }
 }

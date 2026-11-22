@@ -32,8 +32,7 @@ fn parses_plan_progress_and_rejects_invalid_or_unrelated_output() {
 /// there must fail here rather than freeze the phase shown.
 #[test]
 fn phases_are_read_from_the_front_doors_own_lines() {
-    let script =
-        include_str!("../../../../playbook/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1");
+    let script = include_str!("../../../../package/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1");
     let phases: Vec<Phase> = script
         .lines()
         .filter_map(|line| line.trim().strip_prefix("Write-AtlasInstallStep '")?.strip_suffix('\''))
@@ -52,11 +51,12 @@ fn phases_are_read_from_the_front_doors_own_lines() {
 /// A harmless stand-in for the front door, in a folder whose name holds every
 /// character PowerShell reads as a single quote, so each launch tests the
 /// command's quoting.
-fn stub_playbook(root: &Path, body: &str) -> PathBuf {
-    let dir = root.join("Play book 'quoted' \u{2018}\u{2019}\u{201A}\u{201B}").join("0.6.0");
-    let script = playbook::front_door(&dir);
+fn stub_package(root: &Path, body: &str) -> PathBuf {
+    let dir = root.join("Atlas package 'quoted' \u{2018}\u{2019}\u{201A}\u{201B}").join("0.6.0");
+    let script = package::front_door(&dir);
     fs::create_dir_all(script.parent().unwrap()).unwrap();
-    fs::write(dir.join("playbook.conf"), "<Playbook><Version>0.6.0</Version></Playbook>").unwrap();
+    fs::write(dir.join("atlas.json"), crate::services::test_support::package::manifest("0.6.0", &[26100]))
+        .unwrap();
     fs::write(&script, front_door_script(body)).unwrap();
     dir
 }
@@ -86,13 +86,13 @@ fn run(request: InstallRequest, paths: &SessionPaths) -> (SessionRecord, Vec<Str
 #[test]
 fn multiple_options_reach_windows_powershell_as_an_array() {
     let temp = TempDir::new("installer-options");
-    let dir = stub_playbook(
+    let dir = stub_package(
         temp.path(),
         "foreach ($o in $Option) { Write-Host \"OPTION=$o\" }\r\nWrite-Host \"COUNT=$($Option.Count)\"\r\nWrite-Host \"UNATTENDED=$Unattended RESTART=$Restart\"\r\nWrite-Host \"CWD=$((Get-Location).Path)\"\r\nexit 0",
     );
     let paths = SessionPaths::under(&temp.path().join("App"));
     let request = InstallRequest {
-        playbook_dir: dir.clone(),
+        package_dir: dir.clone(),
         options: vec!["defender-enable".into(), "mitigations-default".into(), "auto-updates-disable".into()],
         restart: true,
         windows_security_confirmed: false,
@@ -116,13 +116,13 @@ fn multiple_options_reach_windows_powershell_as_an_array() {
 #[test]
 fn exit_codes_and_stderr_come_back_and_output_survives_bad_bytes() {
     let temp = TempDir::new("installer-exit");
-    let dir = stub_playbook(
+    let dir = stub_package(
         temp.path(),
         "Write-Host \"[Atlas] Running the install plan as TrustedInstaller. This takes several minutes...\"\r\nWrite-Host \"Grüße ✓\"\r\n$s = [Console]::OpenStandardOutput(); $s.Write([byte[]](0xE9, 0x0A), 0, 2); $s.Flush()\r\nWrite-Host \"AFTER_NON_UTF8\"\r\n[Console]::Error.WriteLine(\"[Atlas] something failed\")\r\nexit 1",
     );
     let paths = SessionPaths::under(&temp.path().join("App"));
     let request = InstallRequest {
-        playbook_dir: dir,
+        package_dir: dir,
         options: vec!["defender-enable".into()],
         restart: true,
         windows_security_confirmed: false,
@@ -144,10 +144,10 @@ fn exit_codes_and_stderr_come_back_and_output_survives_bad_bytes() {
 #[test]
 fn an_error_that_escapes_the_front_door_is_still_a_failure() {
     let temp = TempDir::new("installer-throw");
-    let dir = stub_playbook(temp.path(), "throw 'boom'");
+    let dir = stub_package(temp.path(), "throw 'boom'");
     let paths = SessionPaths::under(&temp.path().join("App"));
     let request = InstallRequest {
-        playbook_dir: dir,
+        package_dir: dir,
         options: vec!["defender-enable".into()],
         restart: false,
         windows_security_confirmed: false,
@@ -167,10 +167,10 @@ fn an_error_that_escapes_the_front_door_is_still_a_failure() {
 #[test]
 fn a_finished_session_can_be_reattached_from_its_record() {
     let temp = TempDir::new("installer-reattach");
-    let dir = stub_playbook(temp.path(), "Write-Host \"first line\"\r\nexit 2");
+    let dir = stub_package(temp.path(), "Write-Host \"first line\"\r\nexit 2");
     let paths = SessionPaths::under(&temp.path().join("App"));
     let request = InstallRequest {
-        playbook_dir: dir,
+        package_dir: dir,
         options: vec!["defender-enable".into()],
         restart: false,
         windows_security_confirmed: false,
@@ -233,7 +233,7 @@ fn a_go_ahead_that_never_comes_is_reported_as_not_started() {
         powershell::command()
             .arg("-Command")
             .arg(&command)
-            .current_dir(&record.request.playbook_dir)
+            .current_dir(&record.request.package_dir)
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -272,7 +272,7 @@ fn a_missing_front_door_is_refused_before_anything_starts() {
     let temp = TempDir::new("installer-missing");
     let paths = SessionPaths::under(&temp.path().join("App"));
     let request = InstallRequest {
-        playbook_dir: temp.path().join("nowhere"),
+        package_dir: temp.path().join("nowhere"),
         options: vec!["defender-enable".into()],
         restart: false,
         windows_security_confirmed: false,
@@ -287,7 +287,7 @@ fn a_running_install_refuses_a_second_start_and_hands_back_its_record() {
     let temp = TempDir::new("installer-second-start");
     // The stub runs until the test lets it finish (or a minute passes).
     let release = temp.path().join("release");
-    let dir = stub_playbook(
+    let dir = stub_package(
         temp.path(),
         &format!(
             "$deadline = (Get-Date).AddMinutes(1)\r\nwhile (-not (Test-Path -LiteralPath {}) -and (Get-Date) -lt $deadline) {{ Start-Sleep -Milliseconds 50 }}\r\nWrite-Host \"first done\"\r\nexit 0",
@@ -296,7 +296,7 @@ fn a_running_install_refuses_a_second_start_and_hands_back_its_record() {
     );
     let paths = SessionPaths::under(&temp.path().join("App"));
     let request = InstallRequest {
-        playbook_dir: dir,
+        package_dir: dir,
         options: vec!["defender-enable".into()],
         restart: false,
         windows_security_confirmed: false,
@@ -334,11 +334,11 @@ fn a_running_install_refuses_a_second_start_and_hands_back_its_record() {
 #[test]
 fn a_held_launch_lock_refuses_a_start() {
     let temp = TempDir::new("installer-launch-lock");
-    let dir = stub_playbook(temp.path(), "exit 0");
+    let dir = stub_package(temp.path(), "exit 0");
     let paths = SessionPaths::under(&temp.path().join("App"));
     let held = session::LaunchLock::acquire(&paths).unwrap();
     let request = InstallRequest {
-        playbook_dir: dir,
+        package_dir: dir,
         options: vec!["defender-enable".into()],
         restart: false,
         windows_security_confirmed: false,
@@ -376,7 +376,7 @@ fn a_completed_session_replays_the_whole_log() {
         log_path,
         exit_path,
         request: InstallRequest {
-            playbook_dir: temp.path().into(),
+            package_dir: temp.path().into(),
             options: vec![],
             restart: false,
             windows_security_confirmed: false,
@@ -415,7 +415,7 @@ fn the_machine_log_is_followed_from_the_installs_own_offset() {
         log_path: logs.join("install-machine.log"),
         exit_path: logs.join("install-machine.exit"),
         request: InstallRequest {
-            playbook_dir: temp.path().into(),
+            package_dir: temp.path().into(),
             options: vec![],
             restart: false,
             windows_security_confirmed: false,
@@ -460,7 +460,7 @@ fn the_machine_log_is_followed_from_the_installs_own_offset() {
 /// can tell whether the script body was ever entered.
 fn marking_stub(root: &Path, body: &str) -> (InstallRequest, PathBuf) {
     let marker = root.join("front-door-ran.txt");
-    let dir = stub_playbook(
+    let dir = stub_package(
         root,
         &format!(
             "Set-Content -LiteralPath {} -Value 'ran'\r\n{body}",
@@ -469,7 +469,7 @@ fn marking_stub(root: &Path, body: &str) -> (InstallRequest, PathBuf) {
     );
     (
         InstallRequest {
-            playbook_dir: dir,
+            package_dir: dir,
             options: vec!["defender-enable".into()],
             restart: false,
             windows_security_confirmed: false,
@@ -491,7 +491,7 @@ fn abandoned_and_unreadable_records_do_not_own_anything() {
         log_path: paths.logs.join("x.log"),
         exit_path: paths.logs.join("x.exit"),
         request: InstallRequest {
-            playbook_dir: temp.path().into(),
+            package_dir: temp.path().into(),
             options: vec![],
             restart: false,
             windows_security_confirmed: false,
@@ -505,9 +505,9 @@ fn abandoned_and_unreadable_records_do_not_own_anything() {
         assert!(matches!(lock.inspect(&paths), Inspection::Abandoned));
     }
     assert!(!session::release(&paths, "pending").unwrap(), "an abandoned record is nobody's to release");
-    let dir = stub_playbook(temp.path(), "exit 0");
+    let dir = stub_package(temp.path(), "exit 0");
     let request = InstallRequest {
-        playbook_dir: dir,
+        package_dir: dir,
         options: vec!["defender-enable".into()],
         restart: false,
         windows_security_confirmed: false,
@@ -549,9 +549,9 @@ fn record_publication_failures_never_reach_the_front_door() {
     for point in [FailPoint::InitialRecord, FailPoint::RecordRewrite, FailPoint::GoAhead] {
         let temp = TempDir::new("installer-fail-point");
         let paths = SessionPaths::under(&temp.path().join("App"));
-        let dir = stub_playbook(temp.path(), "exit 0");
+        let dir = stub_package(temp.path(), "exit 0");
         let request = InstallRequest {
-            playbook_dir: dir,
+            package_dir: dir,
             options: vec!["defender-enable".into()],
             restart: false,
             windows_security_confirmed: false,
@@ -596,9 +596,9 @@ fn a_launch_follows_its_own_machine_log_from_where_it_began() {
         "[IO.File]::AppendAllText({}, \"MACHINE_LINE`r`n\")\r\nexit 0",
         ps_quote(&paths.machine_log.display().to_string())
     );
-    let dir = stub_playbook(temp.path(), &body);
+    let dir = stub_package(temp.path(), &body);
     let request = InstallRequest {
-        playbook_dir: dir,
+        package_dir: dir,
         options: vec!["defender-enable".into()],
         restart: false,
         windows_security_confirmed: false,

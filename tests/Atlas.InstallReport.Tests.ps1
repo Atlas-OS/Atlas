@@ -272,7 +272,7 @@ Describe 'Install report install state section' {
             param([string]$Status, [string]$Mode, [string[]]$Steps = @(), [string]$LastError)
             [pscustomobject]@{
                 schemaVersion = 1; targetVersion = '0.6.0'; transactionId = [guid]::NewGuid().ToString('D')
-                status = $Status; mode = $Mode; isOobe = $false; options = @('defender-enable')
+                status = $Status; mode = $Mode; options = @('defender-enable')
                 userSid = $null; userSessionId = $null; captureNonce = 'nonce'
                 completedSteps = @($Steps); lastError = $(if ($LastError) { $LastError } else { $null })
             } | ConvertTo-Json -Compress

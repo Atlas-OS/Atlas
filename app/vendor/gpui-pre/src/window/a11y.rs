@@ -220,7 +220,11 @@ impl A11y {
     /// See the docs for [`Self::active_flag`] and [`Self::active_this_frame`]
     /// for more commentary.
     pub(crate) fn sync_active_flag(&mut self) {
-        self.active_this_frame = !self.force_disabled && self.active_flag.load(Ordering::SeqCst);
+        self.active_this_frame = self.is_enabled() && self.active_flag.load(Ordering::SeqCst);
+    }
+
+    pub(crate) fn is_enabled(&self) -> bool {
+        !self.force_disabled
     }
 
     pub(crate) fn is_active(&self) -> bool {
@@ -587,7 +591,7 @@ impl A11yNodeBuilder {
         let nodes = std::mem::take(&mut self.all_nodes);
         let update = TreeUpdate {
             nodes,
-            tree: Some(accesskit::Tree::new(ROOT_NODE_ID)),
+            tree: Some(accesskit::TreeInfo::new(ROOT_NODE_ID)),
             tree_id: accesskit::TreeId::ROOT,
             focus,
         };
@@ -665,6 +669,19 @@ mod tests {
         let mut a11y = A11y::new(Arc::new(AtomicBool::new(true)), false, None);
         a11y.begin_frame();
         a11y
+    }
+
+    #[test]
+    fn accessibility_enabled_is_independent_of_activation() {
+        for force_disabled in [false, true] {
+            for active in [false, true] {
+                let mut a11y = A11y::new(Arc::new(AtomicBool::new(active)), force_disabled, None);
+                a11y.sync_active_flag();
+
+                assert_eq!(a11y.is_enabled(), !force_disabled);
+                assert_eq!(a11y.is_active(), !force_disabled && active);
+            }
+        }
     }
 
     #[test]

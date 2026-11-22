@@ -34,6 +34,9 @@ impl InstallMode {
     }
 }
 
+/// The parts of `state.json` the app shows. Unknown fields are ignored, so
+/// documents written by older or newer Atlas releases, with fields this app
+/// doesn't read, still load.
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AtlasState {
@@ -41,8 +44,6 @@ pub struct AtlasState {
     pub installed_version: Option<String>,
     pub installed_at: Option<String>,
     pub mode: Option<String>,
-    #[serde(default)]
-    pub is_oobe: bool,
     #[serde(default)]
     pub options: Vec<String>,
     #[serde(default)]
@@ -163,20 +164,21 @@ fn choose_again(choices: Option<&serde_json::Value>) -> Option<bool> {
 }
 
 impl InstallIdentity {
-    pub fn allows(&self, manifest: &super::playbook::Manifest) -> bool {
+    pub fn allows(&self, manifest: &super::package::Manifest) -> bool {
         match self {
             Self::Fresh => true,
             Self::Resume(target, _) => target == &manifest.version,
             Self::Installed(version) => {
-                version == &manifest.version || manifest.upgradable_from.contains(version)
+                version == &manifest.version || manifest.updatable_from.contains(version)
             }
         }
     }
 }
 
 /// Reads the install identity in the front door's order: an install in
-/// progress, then state.json, then the registry markers of Atlas before 0.6.
-/// The front door checks again before changing anything.
+/// progress, then state.json, then the version markers in the registry,
+/// which are all that Atlas releases before 0.6 recorded. The front door
+/// checks again before changing anything.
 pub fn read_install_identity() -> Result<InstallIdentity> {
     let path = state_path();
     let fixture = cfg!(debug_assertions) && std::env::var_os("ATLAS_STATE_FILE").is_some();
@@ -186,7 +188,7 @@ pub fn read_install_identity() -> Result<InstallIdentity> {
             if fixture {
                 return Ok(Vec::new());
             }
-            let mut versions = read_legacy_versions()?;
+            let mut versions = read_version_markers()?;
             if versions.is_empty() {
                 // A Windows that rebuilt itself during Atlas Manager's move can
                 // lose the markers; the record of the move kept the version.
@@ -251,7 +253,9 @@ fn read_identity_at(
     Ok(InstallIdentity::Fresh)
 }
 
-fn read_legacy_versions() -> Result<Vec<String>> {
+/// The Atlas versions in Windows' OEM model name and registered organisation,
+/// where every Atlas install records its version.
+fn read_version_markers() -> Result<Vec<String>> {
     let markers = [
         (r"SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation", "Model"),
         (r"SOFTWARE\Microsoft\Windows NT\CurrentVersion", "RegisteredOrganization"),
@@ -259,9 +263,9 @@ fn read_legacy_versions() -> Result<Vec<String>> {
     .map(|(key, name)| -> Result<Option<String>> {
         let value = windows_registry::LOCAL_MACHINE.open(key).and_then(|key| key.get_string(name));
         match value {
-            Ok(value) => Ok(legacy_version(&value)),
+            Ok(value) => Ok(marker_version(&value)),
             Err(error) if error.code().0 == registry::NOT_FOUND => Ok(None),
-            Err(error) => Err(error).context("read legacy Atlas identity"),
+            Err(error) => Err(error).context("read the Atlas version markers"),
         }
     });
     let mut versions = Vec::new();
@@ -273,12 +277,15 @@ fn read_legacy_versions() -> Result<Vec<String>> {
     Ok(versions)
 }
 
-fn legacy_version(value: &str) -> Option<String> {
-    const PREFIX: &str = "Atlas Playbook ";
-    let version = value
-        .get(..PREFIX.len())
-        .filter(|prefix| prefix.eq_ignore_ascii_case(PREFIX))
-        .and_then(|_| value.get(PREFIX.len()..))?;
+/// The version in a marker: `Atlas v<version>`, or `Atlas Playbook
+/// v<version>` as releases before Atlas 0.6 wrote it, the `v` optional in
+/// either and the words in any case.
+fn marker_version(value: &str) -> Option<String> {
+    let after = |prefix: &str| {
+        value.get(..prefix.len()).filter(|start| start.eq_ignore_ascii_case(prefix))?;
+        value.get(prefix.len()..)
+    };
+    let version = after("Atlas Playbook ").or_else(|| after("Atlas "))?;
     let version = version.strip_prefix(['v', 'V']).unwrap_or(version);
     let parts: Vec<_> = version.split('.').collect();
     (parts.len() == 3 && parts.iter().all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit())))
@@ -291,8 +298,8 @@ mod tests {
 
     #[test]
     fn declared_upgrade_sources_and_same_version_reapply_are_distinct_from_other_installs() {
-        let manifest = super::super::playbook::parse(
-            "<Playbook><Version>0.6.0</Version><UpgradableFrom><string>0.4.1</string><string>0.5.0</string></UpgradableFrom></Playbook>",
+        let manifest = super::super::package::parse(
+            r#"{"schemaVersion": 1, "version": "0.6.0", "minimumManagerVersion": "0.6.0", "updatableFrom": ["0.4.1", "0.5.0"]}"#,
         )
         .unwrap();
         for version in ["0.4.1", "0.5.0", "0.6.0"] {
@@ -311,7 +318,7 @@ mod tests {
     #[test]
     fn every_mode_the_install_state_writes_is_one_the_app_reads() {
         let module = include_str!(
-            "../../../playbook/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/Atlas.InstallState.psm1"
+            "../../../package/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/Atlas.InstallState.psm1"
         );
         let start =
             &module[module.find("function Start-AtlasInstallState").expect("Start-AtlasInstallState")..];
@@ -348,7 +355,7 @@ mod tests {
     #[test]
     fn every_choice_the_install_state_records_is_one_the_app_reads() {
         let module = include_str!(
-            "../../../playbook/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/Atlas.InstallState.psm1"
+            "../../../package/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/Atlas.InstallState.psm1"
         );
         let start =
             &module[module.find("function Start-AtlasInstallState").expect("Start-AtlasInstallState")..];
@@ -372,19 +379,32 @@ mod tests {
         );
     }
 
+    /// ConvertFrom-AtlasVersionMarker reads the markers for the front door and
+    /// the update worker with this pattern, case-insensitively as PowerShell
+    /// matches; the cases below follow it.
     #[test]
-    fn legacy_marker_parser_matches_the_front_door_contract() {
+    fn version_markers_read_as_the_front_door_reads_them() {
+        assert!(
+            super::super::preparation::LIBRARY.contains(r"-match '^Atlas (?:Playbook )?v?(\d+\.\d+\.\d+)$'"),
+            "the scripts' marker pattern changed; read markers here as they do"
+        );
         for value in ["Atlas Playbook v0.4.1", "Atlas Playbook 0.4.1", "atlas playbook V0.4.1"] {
-            assert_eq!(legacy_version(value).as_deref(), Some("0.4.1"));
+            assert_eq!(marker_version(value).as_deref(), Some("0.4.1"), "{value}");
+        }
+        for value in ["Atlas v0.6.0", "Atlas 0.6.0", "ATLAS V0.6.0"] {
+            assert_eq!(marker_version(value).as_deref(), Some("0.6.0"), "{value}");
         }
         for value in [
-            "Atlas 0.4.1",
             "Atlas Playbook 0.5.0-hotfix",
             "Atlas Playbook 0.5",
             "Atlas Playbook 0.5.1 ",
+            "Atlas v0.6.0-rc.1",
+            "Atlas Playbook",
+            "Atlas Package v0.6.0",
+            "AtlasOS v0.6.0",
             "Other",
         ] {
-            assert_eq!(legacy_version(value), None);
+            assert_eq!(marker_version(value), None, "{value}");
         }
     }
 
@@ -558,5 +578,19 @@ mod tests {
             .unwrap();
             assert_eq!(state.has_completed_install(), installed, "{version:?} {timestamp:?}");
         }
+    }
+
+    /// Records written by older releases carry fields the app no longer
+    /// reads, such as `isOobe` and `isInteractive`; they still load.
+    #[test]
+    fn a_state_with_fields_the_app_does_not_read_still_loads() {
+        let state: AtlasState = serde_json::from_value(serde_json::json!({
+            "schemaVersion": 1, "installedVersion": "0.6.0", "installedAt": "2026-09-07T14:00:00Z",
+            "mode": "Fresh", "isOobe": true, "isInteractive": false, "options": ["defender-enable"],
+        }))
+        .unwrap();
+        assert!(state.has_completed_install());
+        assert_eq!(state.install_mode(), InstallMode::Fresh);
+        assert_eq!(state.options, ["defender-enable"]);
     }
 }

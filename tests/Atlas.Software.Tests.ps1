@@ -1,6 +1,6 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-    $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\playbook\Executables\AtlasModules\Scripts\Modules'
+    $modulesRoot = Join-Path -Path $PSScriptRoot -ChildPath '..\package\Executables\AtlasModules\Scripts\Modules'
     function New-AtlasTestNanaZipBundle {
         param(
             [Parameter(Mandatory = $true)][string]$Path,
@@ -736,10 +736,10 @@ Describe 'Invoke-AtlasSoftwareDownload' {
         InModuleScope Atlas.Software -Parameters @{ Root = $TestDrive } {
             $destination = Join-Path -Path $Root -ChildPath 'installer.exe'
             Mock Resolve-AtlasProtectedExecutionPath { $Path }
-            Mock Invoke-AtlasBoundedHttpGet {
-                $payload = [Text.Encoding]::UTF8.GetBytes('signed fixture')
-                $OutputStream.Write($payload, 0, $payload.Length)
-                return $payload.Length
+            Mock Invoke-AtlasLimitedHttpGet {
+                $bytes = [Text.Encoding]::UTF8.GetBytes('signed fixture')
+                $OutputStream.Write($bytes, 0, $bytes.Length)
+                return $bytes.Length
             }
 
             Invoke-AtlasSoftwareDownload `
@@ -750,7 +750,7 @@ Describe 'Invoke-AtlasSoftwareDownload' {
                 -MaximumSeconds 45 | Should -Be $destination
 
             Get-Content -LiteralPath $destination -Raw | Should -BeExactly 'signed fixture'
-            Should -Invoke Invoke-AtlasBoundedHttpGet -Times 1 -Exactly -ParameterFilter {
+            Should -Invoke Invoke-AtlasLimitedHttpGet -Times 1 -Exactly -ParameterFilter {
                 $Uri.AbsoluteUri -ceq 'https://downloads.example.test/setup.exe' -and
                 $MaximumBytes -eq 4096 -and
                 $MaximumSeconds -eq 45 -and
@@ -761,14 +761,14 @@ Describe 'Invoke-AtlasSoftwareDownload' {
 
     It 'rejects HTTP before creating a destination' {
         InModuleScope Atlas.Software -Parameters @{ Root = $TestDrive } {
-            Mock Invoke-AtlasBoundedHttpGet
+            Mock Invoke-AtlasLimitedHttpGet
             $destination = Join-Path $Root 'setup.exe'
 
             { Invoke-AtlasSoftwareDownload -Uri 'http://example.test/setup.exe' `
                     -Destination $destination -Description 'fixture' } |
                 Should -Throw -ExpectedMessage '*Only HTTPS*'
             Test-Path -LiteralPath $destination | Should -BeFalse
-            Should -Invoke Invoke-AtlasBoundedHttpGet -Times 0
+            Should -Invoke Invoke-AtlasLimitedHttpGet -Times 0
         }
     }
 
@@ -776,9 +776,9 @@ Describe 'Invoke-AtlasSoftwareDownload' {
         InModuleScope Atlas.Software -Parameters @{ Root = $TestDrive } {
             $destination = Join-Path -Path $Root -ChildPath 'partial.exe'
             Mock Resolve-AtlasProtectedExecutionPath { $Path }
-            Mock Invoke-AtlasBoundedHttpGet {
-                $payload = [Text.Encoding]::UTF8.GetBytes('partial')
-                $OutputStream.Write($payload, 0, $payload.Length)
+            Mock Invoke-AtlasLimitedHttpGet {
+                $bytes = [Text.Encoding]::UTF8.GetBytes('partial')
+                $OutputStream.Write($bytes, 0, $bytes.Length)
                 throw 'network failed'
             }
 

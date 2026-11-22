@@ -680,11 +680,7 @@ impl Render for UsbPage {
         };
         page_frame(
             "usb-page",
-            Some(PageTitle {
-                text: t!("usb-title").into(),
-                badge: Some(t!("iso-beta").into()),
-                back: Some(back),
-            }),
+            Some(PageTitle { text: t!("usb-title").into(), badge: None, back: Some(back) }),
             None,
             None,
             (&self.scroll, &self.scrollbar),

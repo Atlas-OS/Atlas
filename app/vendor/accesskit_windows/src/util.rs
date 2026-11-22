@@ -109,7 +109,7 @@ pub(crate) struct LocaleName<'a>(pub(crate) &'a str);
 impl From<LocaleName<'_>> for Variant {
     fn from(value: LocaleName) -> Self {
         let lcid = unsafe { LocaleNameToLCID(&HSTRING::from(value.0), LOCALE_ALLOW_NEUTRAL_NAMES) };
-        (lcid != 0).then_some(lcid as i32).into()
+        (lcid != 0).then_some(lcid.cast_signed()).into()
     }
 }
 

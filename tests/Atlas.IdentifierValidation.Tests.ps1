@@ -1,5 +1,5 @@
 BeforeDiscovery {
-    $root = Join-Path $PSScriptRoot '..\playbook\Executables\AtlasModules\Scripts'
+    $root = Join-Path $PSScriptRoot '..\package\Executables\AtlasModules\Scripts'
     $script:IdentifierCases = @(foreach ($file in Get-ChildItem -LiteralPath $root -Recurse -File | Where-Object Extension -in @('.ps1', '.psm1')) {
         $ast = [Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$null, [ref]$null)
         foreach ($attribute in $ast.FindAll({
@@ -83,7 +83,7 @@ Describe 'Atlas data under other cultures' {
             @((Get-AtlasState -Path $path).toggles.PSObject.Properties.Name).Count | Should -Be $script:ToggleNames.Count
             @(Test-AtlasToggleDefinition -Path $script:ToggleRoot).Count | Should -Be 0
             @(Test-AtlasTweakManifest -Path (Join-Path $script:TweakRoot 'tweaks.manifest.psd1')).Count | Should -Be 0
-            @(Get-AtlasPlaybookOption -PlaybookPath (Join-Path $script:AtlasTestRepoRoot 'playbook\playbook.conf')).Count | Should -BeGreaterThan 0
+            @(Get-AtlasPackageChoice -ManifestPath (Join-Path $script:AtlasTestRepoRoot 'package\atlas.json')).Count | Should -BeGreaterThan 0
         }
     }
 

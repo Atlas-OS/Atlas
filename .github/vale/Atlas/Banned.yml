@@ -1,0 +1,18 @@
+# docs/style.md: words that are vague, inflated or filler.
+extends: existence
+message: "Avoid '%s'; say the specific thing, or leave it out."
+link: https://github.com/Atlas-OS/Atlas/blob/main/docs/style.md#words
+level: warning
+ignorecase: true
+tokens:
+  - bounded
+  - authoritative
+  - durable
+  - robust
+  - seamless(?:ly)?
+  - leverag(?:e|es|ed|ing)
+  - utili[sz](?:e|es|ed|ing|ation)
+  - simply
+  - basically
+  - actually
+  - really

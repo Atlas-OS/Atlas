@@ -1,5 +1,5 @@
 //! Helpers for service tests: disposable directories and registry keys, stub
-//! front doors and small synthetic .apbx packages. Nothing here touches the
+//! front doors and small synthetic Atlas packages. Nothing here touches the
 //! real app data, the registry keys the app reads, or the machine's Atlas
 //! state.
 
@@ -64,7 +64,7 @@ impl Drop for TestKey {
 /// The real front door's text before its parameter block, and the inside of
 /// that block.
 pub fn front_door_parts() -> (&'static str, &'static str) {
-    let script = include_str!("../../../playbook/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1");
+    let script = include_str!("../../../package/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1");
     let (head, rest) = script.split_once("\nparam(").expect("the front door's parameter block");
     let (block, _) = rest.split_once("\n)").expect("the end of the front door's parameter block");
     (head, block)
@@ -78,22 +78,25 @@ pub fn front_door_script(body: &str) -> String {
     format!("\u{feff}{}\nparam({block}\n)\r\n{body}\r\n", head.trim_start_matches('\u{feff}'))
 }
 
-/// Synthetic Atlas packages.
-pub mod apbx {
+/// Synthetic Atlas packages, encrypted as releases are.
+pub mod package {
     use std::io::Write;
     use std::path::{Path, PathBuf};
 
     use zip::write::{FileOptions, SimpleFileOptions};
     use zip::{AesMode, ZipWriter};
 
-    use crate::services::playbook::APBX_PASSWORD;
+    use crate::services::package::PACKAGE_PASSWORD;
 
     pub const FRONT_DOOR: &str = "Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1";
+    pub const MANIFEST: &str = "atlas.json";
 
     pub struct Entry {
         pub name: String,
         pub data: Vec<u8>,
         pub encrypted: bool,
+        /// The password it's encrypted under, when it isn't Atlas's.
+        pub password: Option<&'static str>,
     }
 
     pub struct Package {
@@ -103,25 +106,50 @@ pub mod apbx {
         pub corrupt_marker: Option<Vec<u8>>,
     }
 
-    fn conf(version: &str) -> String {
-        conf_with_builds(version, &[26100])
-    }
-
-    fn conf_with_builds(version: &str, builds: &[u32]) -> String {
-        let builds: String = builds.iter().map(|b| format!("<string>{b}</string>")).collect();
-        format!(
-            "<Playbook><Version>{version}</Version><SupportedBuilds>{builds}</SupportedBuilds><FeaturePages><RadioPage DefaultOption=\"defender-enable\"><Options><RadioOption><Name>defender-enable</Name><Text>Keep Defender</Text></RadioOption><RadioOption><Name>defender-disable</Name><Text>Remove Defender</Text></RadioOption></Options></RadioPage></FeaturePages></Playbook>"
+    /// A manifest with one Defender choice, supporting `builds`.
+    pub fn manifest(version: &str, builds: &[u32]) -> String {
+        let builds: Vec<_> = builds.iter().map(|build| serde_json::json!({ "build": build })).collect();
+        manifest_with_choices(
+            version,
+            &builds,
+            serde_json::json!([{
+                "id": "defender",
+                "kind": "single",
+                "default": "defender-enable",
+                "options": [
+                    { "id": "defender-enable", "label": "Keep Defender" },
+                    { "id": "defender-disable", "label": "Remove Defender" },
+                ],
+            }]),
         )
     }
 
+    /// A manifest declaring `choices`, as `atlas.json` lists them.
+    pub fn manifest_with_choices(
+        version: &str,
+        builds: &[serde_json::Value],
+        choices: serde_json::Value,
+    ) -> String {
+        serde_json::json!({
+            "schemaVersion": 1,
+            "version": version,
+            "minimumManagerVersion": "0.6.0",
+            "supportedBuilds": builds,
+            "updatableFrom": [],
+            "requirements": [],
+            "choices": choices,
+        })
+        .to_string()
+    }
+
     fn entry(name: &str, data: impl Into<Vec<u8>>) -> Entry {
-        Entry { name: name.to_owned(), data: data.into(), encrypted: true }
+        Entry { name: name.to_owned(), data: data.into(), encrypted: true, password: None }
     }
 
     pub fn valid(version: &str) -> Package {
         Package {
             entries: vec![
-                entry("playbook.conf", conf(version)),
+                entry(MANIFEST, manifest(version, &[26100])),
                 entry(FRONT_DOOR, "param([string[]]$Option) exit 0\r\n"),
                 entry("Executables/AtlasModules/Scripts/Initialize-AtlasPowerShell.ps1", "# bootstrap\r\n"),
             ],
@@ -133,8 +161,23 @@ pub mod apbx {
     /// the digest) differs per build list.
     pub fn valid_with_builds(version: &str, builds: &[u32]) -> Package {
         let mut package = valid(version);
-        package.entries[0] = entry("playbook.conf", conf_with_builds(version, builds));
+        package.entries[0] = entry(MANIFEST, manifest(version, builds));
         package
+    }
+
+    /// An AME Wizard package as Atlas releases before 0.6 came: its manifest
+    /// is playbook.conf, under another password.
+    pub fn ame_wizard(version: &str) -> Package {
+        let conf = format!("<Playbook><Version>{version}</Version></Playbook>");
+        Package {
+            entries: vec![Entry {
+                name: "playbook.conf".to_owned(),
+                data: conf.into_bytes(),
+                encrypted: true,
+                password: Some("another password"),
+            }],
+            corrupt_marker: None,
+        }
     }
 
     /// A valid package whose front door runs `body` (Windows PowerShell 5.1)
@@ -167,6 +210,7 @@ pub mod apbx {
             name: "Executables/big.bin".to_owned(),
             data: marker.clone(),
             encrypted: false,
+            password: None,
         });
         package.corrupt_marker = Some(marker[..24].to_vec());
         package
@@ -179,7 +223,8 @@ pub mod apbx {
             let mut options: SimpleFileOptions =
                 FileOptions::default().compression_method(zip::CompressionMethod::Stored);
             if entry.encrypted {
-                options = options.with_aes_encryption(AesMode::Aes256, APBX_PASSWORD);
+                options =
+                    options.with_aes_encryption(AesMode::Aes256, entry.password.unwrap_or(PACKAGE_PASSWORD));
             }
             writer.start_file(&entry.name, options).expect("start an entry");
             writer.write_all(&entry.data).expect("write an entry");

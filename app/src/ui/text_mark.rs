@@ -41,13 +41,6 @@ impl TextMark {
     }
 }
 
-impl IntoElement for TextMark {
-    type Element = Self;
-    fn into_element(self) -> Self {
-        self
-    }
-}
-
 impl Element for TextMark {
     type RequestLayoutState = LayoutId;
     type PrepaintState = ();

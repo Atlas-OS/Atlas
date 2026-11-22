@@ -16,7 +16,7 @@ use crate::services::settings::{self, InstallDraft};
 pub(super) struct PendingStart {
     page: Option<Page>,
     step: Option<Step>,
-    playbook: Option<PathBuf>,
+    package: Option<PathBuf>,
     /// `page_visit` once the page had opened; any later visit is the user's.
     visit: u64,
 }
@@ -183,14 +183,14 @@ impl AppModel {
         &mut self,
         page: Option<Page>,
         step: Option<Step>,
-        playbook: Option<PathBuf>,
+        package: Option<PathBuf>,
         cx: &mut Context<Self>,
     ) {
         if self.recovering {
             if let Some(page) = page.filter(|page| *page != Page::Install) {
                 self.navigate(page, cx);
             }
-            self.pending_start = Some(PendingStart { page, step, playbook, visit: self.page_visit });
+            self.pending_start = Some(PendingStart { page, step, package, visit: self.page_visit });
             return;
         }
         if let Some(page) = page {
@@ -202,16 +202,16 @@ impl AppModel {
         if let Some(step) = step {
             self.start_flow_at(step, cx);
         }
-        if let Some(path) = playbook {
-            self.load_playbook_file(path, cx);
+        if let Some(path) = package {
+            self.load_package_file(path, cx);
         }
     }
 
     /// Applies the start request that waited for recovery, into whatever
     /// flow recovery resumed or attached.
     pub(super) fn apply_pending_start(&mut self, cx: &mut Context<Self>) {
-        if let Some(PendingStart { page, step, playbook, .. }) = self.pending_start.take() {
-            self.apply_start(page, step, playbook, cx);
+        if let Some(PendingStart { page, step, package, .. }) = self.pending_start.take() {
+            self.apply_start(page, step, package, cx);
         }
     }
 
@@ -405,7 +405,7 @@ impl AppModel {
         if self.checks.is_empty() {
             self.run_checks(cx);
         }
-        if self.playbook.is_none()
+        if self.package.is_none()
             && !self.acquisition.is_busy()
             && !matches!(self.acquisition, Acquisition::Failed(_))
         {

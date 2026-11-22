@@ -11,7 +11,10 @@ BeforeAll {
     $answerSteps = @($ast.FindAll({ param($n) $n -is [Management.Automation.Language.AssignmentStatementAst] -and $n.Left.Extent.Text -eq '$answer' }, $true))
     $start = $answerSteps[0].Extent.StartOffset
     $script:WriteAnswer = [scriptblock]::Create($ast.Extent.Text.Substring($start, $answerSteps[-1].Extent.EndOffset - $start))
-    function New-TestAnswer([string]$architecture, [string]$username) {
+    $pathsStart = $ast.Find({ param($n) $n -is [Management.Automation.Language.AssignmentStatementAst] -and $n.Left.Extent.Text -eq '$answerPaths' }, $true)
+    $writeFiles = $ast.Find({ param($n) $n -is [Management.Automation.Language.ForEachStatementAst] -and $n.Condition.Extent.Text -eq '$answerPaths' }, $true)
+    $script:WriteAnswerFiles = [scriptblock]::Create("param(`$supportedEditions)`n" + $ast.Extent.Text.Substring($pathsStart.Extent.StartOffset, $writeFiles.Extent.EndOffset - $pathsStart.Extent.StartOffset))
+    function New-TestAnswer([string]$architecture, [string]$username, [string]$acceptedTerms) {
         . $script:WriteAnswer
         [xml]$answer
     }
@@ -30,11 +33,17 @@ Describe 'Native ISO mastering' {
         $oobe = @($script:Answer.unattend.settings | Where-Object pass -eq 'oobeSystem')[0].component
         $oobe.OOBE.HideOnlineAccountScreens | Should -Be 'true'
         $oobe.OOBE.ProtectYourPC | Should -Be '3'
-        $oobe.OOBE.HideEULAPage | Should -Be 'true'
+        $oobe.OOBE.HideEULAPage | Should -Be 'false'
         $oobe.UserAccounts.LocalAccounts.LocalAccount.Group | Should -Be 'Administrators'
         $oobe.AutoLogon.LogonCount | Should -Be '1'
         $oobe.FirstLogonCommands.SynchronousCommand.CommandLine | Should -Match '-FirstLogon'
         @($oobe.FirstLogonCommands.SynchronousCommand) | Should -HaveCount 1
+    }
+    It 'only skips the Windows licence pages after explicit acceptance' {
+        $script:Answer.unattend.settings[0].component.UserData.AcceptEula | Should -Be 'false'
+        $accepted = New-TestAnswer x64 'Atlas' -acceptedTerms 'verified-media'
+        $accepted.unattend.settings[0].component.UserData.AcceptEula | Should -Be 'true'
+        ($accepted.unattend.settings | Where-Object pass -eq 'oobeSystem').component.OOBE.HideEULAPage | Should -Be 'true'
     }
     It 'makes the answer file discoverable in WinPE before the destination specialize pass' {
         # Without a valid current pass, Setup silently ignores the answer file.
@@ -49,6 +58,20 @@ Describe 'Native ISO mastering' {
         $specialize = @($script:Answer.unattend.settings | Where-Object pass -eq 'specialize')
         $specialize | Should -HaveCount 1
         $specialize[0].component.RunSynchronous.RunSynchronousCommand.Path | Should -Match 'AtlasISO\\Setup.ps1'
+    }
+    It 'stages the answer for the correct setup pass on <Edition> media' -ForEach @(
+        @{ Edition = 'EnterpriseEval'; AnswerInWinPE = $false }
+        @{ Edition = 'Professional'; AnswerInWinPE = $true }
+    ) {
+        $media = Join-Path $TestDrive $Edition
+        $answer = $script:Answer.OuterXml
+        . $script:WriteAnswerFiles @([pscustomobject]@{ EditionId = $Edition })
+        Test-Path (Join-Path $media 'autounattend.xml') | Should -Be $AnswerInWinPE
+        Test-Path (Join-Path $media 'sources\autounattend.xml') | Should -Be $AnswerInWinPE
+        Test-Path (Join-Path $media 'sources\$OEM$\$$\Panther\unattend.xml') | Should -Be (!$AnswerInWinPE)
+        foreach ($relative in $answerPaths) {
+            [IO.File]::ReadAllText((Join-Path $media $relative)) | Should -BeExactly $answer
+        }
     }
     It 'names the account and matches the components to <Architecture> media' -ForEach @(
         @{ Architecture = 'x64'; Expected = 'amd64' }
