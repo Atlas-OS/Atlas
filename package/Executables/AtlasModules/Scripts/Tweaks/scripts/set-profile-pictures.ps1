@@ -24,5 +24,9 @@ foreach ($image in $resolutions.Keys) {
     $a = New-Object System.Drawing.Bitmap($resolution, $resolution)
     $graph = [System.Drawing.Graphics]::FromImage($a)
     $graph.DrawImage($img, 0, 0, $resolution, $resolution)
-    $a.Save("$([Environment]::GetFolderPath('CommonApplicationData'))\Microsoft\User Account Pictures\$image")
+    $format = if ($image.EndsWith('.bmp')) { [Drawing.Imaging.ImageFormat]::Bmp } else { [Drawing.Imaging.ImageFormat]::Png }
+    $a.Save("$([Environment]::GetFolderPath('CommonApplicationData'))\Microsoft\User Account Pictures\$image", $format)
+    $graph.Dispose()
+    $a.Dispose()
 }
+$img.Dispose()
