@@ -1,23 +1,9 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
-
-    $script:scriptPath = Join-Path $script:AtlasTestScriptsRoot 'Tweaks\qol\config-start-menu.ps1'
-    $tokens = $null
-    $errors = $null
-    $ast = [Management.Automation.Language.Parser]::ParseFile($script:scriptPath, [ref]$tokens, [ref]$errors)
-    @($errors).Count | Should -Be 0
-
-    # The policy function is defined inside the companion script; lift it out so it can
-    # run against mocked CIM cmdlets without executing the rest of the tweak.
-    $functionAst = $ast.Find({
-            param($node)
-            $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
-            $node.Name -eq 'Set-AtlasStartPinnedFolderPolicy'
-        }, $true)
-    $functionAst | Should -Not -BeNullOrEmpty
-    . ([scriptblock]::Create($functionAst.Extent.Text))
-
-    $script:ExpectedFolders = @(
+    $script:freshTweak = Join-Path $script:AtlasTestScriptsRoot 'Tweaks\qol\config-start-menu.ps1'
+    $script:upgradeTweak = Join-Path $script:AtlasTestScriptsRoot 'Tweaks\qol\restore-start-folder-choices.ps1'
+    $script:folderPolicyWinner = 'C49328F1-A48C-408A-BA0C-972F051825D7'
+    $script:folders = @(
         'AllowPinnedFolderSettings'
         'AllowPinnedFolderFileExplorer'
         'AllowPinnedFolderDocuments'
@@ -29,73 +15,115 @@ BeforeAll {
         'AllowPinnedFolderPersonalFolder'
     )
 
-    function New-TestStartPolicyInstance {
-        param([int]$Value)
+    function Import-AtlasModule { param([string]$Name) [void]$Name }
+    function Get-AtlasInstalledVersion { }
+    function Set-AtlasStartLayout { }
+    function Invoke-AtlasUserAppxCacheCleanup { param([string]$Mode) [void]$Mode }
+    function Write-AtlasLog { param([string]$Level, [string]$Message) $null = $Level; $null = $Message }
+}
 
-        $properties = @{}
-        foreach ($name in $script:ExpectedFolders) {
-            $properties[$name] = [pscustomobject]@{ Value = $Value }
-        }
-        return [pscustomobject]@{ CimInstanceProperties = $properties }
+Describe 'Start folder choices during a fresh install' {
+    It 'applies the layout and refreshes Start without configuring folder policies' {
+        Mock Set-AtlasStartLayout
+        Mock Invoke-AtlasUserAppxCacheCleanup
+        Mock Get-CimInstance { throw 'Fresh installs do not need the Start CSP.' }
+        Mock New-CimInstance { throw 'Fresh installs must not create a Start CSP policy.' }
+        Mock Set-CimInstance { throw 'Fresh installs must not set a Start CSP policy.' }
+
+        & $script:freshTweak
+
+        Should -Invoke Set-AtlasStartLayout -Times 1 -Exactly
+        Should -Invoke Invoke-AtlasUserAppxCacheCleanup -Times 1 -Exactly -ParameterFilter { $Mode -eq 'StartMenu' }
+        Should -Not -Invoke Get-CimInstance
+        Should -Not -Invoke New-CimInstance
+        Should -Not -Invoke Set-CimInstance
     }
 }
 
-Describe 'Start pinned-folder policy' {
+Describe 'Restoring Start folder choices on upgrade' {
     BeforeEach {
-        Mock Get-CimInstance { @() }
-        Mock New-CimInstance { New-TestStartPolicyInstance -Value 0 }
-        Mock Set-CimInstance { $InputObject } -RemoveParameterType 'InputObject'
+        $script:folderPolicyFixture = @{}
+        foreach ($name in $script:folders) {
+            $script:folderPolicyFixture[$name] = 0
+            $script:folderPolicyFixture["${name}_WinningProvider"] = $script:folderPolicyWinner
+        }
+        Mock Get-AtlasInstalledVersion { '0.6.1' }
+        Mock Get-ItemProperty { [pscustomobject]$script:folderPolicyFixture } -ParameterFilter { $LiteralPath -like '*\current\device\Start' }
+        Mock Get-ItemProperty {
+            [pscustomobject]@{ ConfigureStartPinsJSON = '%SystemRoot%\AtlasModules\Other\StartLayout.json' }
+        } -ParameterFilter { $Name -eq 'ConfigureStartPinsJSON' }
+        Mock Get-CimInstance { [pscustomobject]@{ InstanceID = 'Start' } }
+        Mock Set-CimInstance {
+            $applied = @{}
+            foreach ($propertyName in $Property.Keys) {
+                $applied[$propertyName] = [pscustomobject]@{ Value = $Property[$propertyName] }
+            }
+            [pscustomobject]@{ CimInstanceProperties = $applied }
+        } -RemoveParameterType 'InputObject'
+        Mock Write-AtlasLog
     }
 
-    It 'addresses the documented device Start CSP class and hides every folder when no instance exists' {
-        Set-AtlasStartPinnedFolderPolicy
+    It 'restores user choice for the nine Atlas folder policies through the existing CSP instance' {
+        . $script:upgradeTweak
 
+        Should -Invoke Get-AtlasInstalledVersion -Times 1 -Exactly
+        Should -Invoke Get-ItemProperty -Times 1 -Exactly -ParameterFilter { $Name -eq 'ConfigureStartPinsJSON' }
+        Should -Invoke Get-ItemProperty -Times 1 -Exactly -ParameterFilter { $LiteralPath -like '*\current\device\Start' }
         Should -Invoke Get-CimInstance -Times 1 -Exactly -ParameterFilter {
             $Namespace -eq 'root\cimv2\mdm\dmmap' -and $ClassName -eq 'MDM_Policy_Config01_Start02' -and
-            $Filter -like "*ParentID='./Vendor/MSFT/Policy/Config'*" -and $Filter -like "*InstanceID='Start'*"
+            $Filter -eq "ParentID='./Vendor/MSFT/Policy/Config' and InstanceID='Start'"
         }
-        Should -Invoke New-CimInstance -Times 1 -Exactly -ParameterFilter {
-            $Namespace -eq 'root\cimv2\mdm\dmmap' -and $ClassName -eq 'MDM_Policy_Config01_Start02' -and
-            $Property.ParentID -eq './Vendor/MSFT/Policy/Config' -and $Property.InstanceID -eq 'Start' -and
-            @($script:ExpectedFolders | Where-Object { $Property[$_] -ne 0 }).Count -eq 0
+        Should -Invoke Set-CimInstance -Times 1 -Exactly -ParameterFilter {
+            $InputObject.InstanceID -eq 'Start' -and $PassThru -and $Property.Count -eq $script:folders.Count -and
+            @($script:folders | Where-Object { $Property[$_] -ne 65535 }).Count -eq 0
         }
+        Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter { $Level -eq 'Info' }
+    }
+
+    It 'skips domain-managed, already editable, visible, and absent folder values' {
+        $script:folderPolicyFixture['AllowPinnedFolderSettings_WinningProvider'] = 'B375585A-FFA3-42C4-89EE-F7E3E5BEE7C5'
+        $script:folderPolicyFixture['AllowPinnedFolderPictures'] = 65535
+        $script:folderPolicyFixture['AllowPinnedFolderDocuments'] = 1
+        $script:folderPolicyFixture.Remove('AllowPinnedFolderMusic')
+
+        . $script:upgradeTweak
+
+        Should -Invoke Set-CimInstance -Times 1 -Exactly -ParameterFilter {
+            $Property.Count -eq 5 -and
+            -not $Property.ContainsKey('AllowPinnedFolderSettings') -and
+            -not $Property.ContainsKey('AllowPinnedFolderPictures') -and
+            -not $Property.ContainsKey('AllowPinnedFolderDocuments') -and
+            -not $Property.ContainsKey('AllowPinnedFolderMusic')
+        }
+    }
+
+    It 'skips an installation without an Atlas Start layout policy' {
+        Mock Get-ItemProperty {
+            [pscustomobject]@{ ConfigureStartPinsJSON = 'C:\Managed\Start.json' }
+        } -ParameterFilter { $Name -eq 'ConfigureStartPinsJSON' }
+
+        . $script:upgradeTweak
+
+        Should -Not -Invoke Get-CimInstance
         Should -Not -Invoke Set-CimInstance
     }
 
-    It 'updates an existing instance in place and sets every folder to hidden' {
-        $existing = New-TestStartPolicyInstance -Value 1
-        Mock Get-CimInstance { @($existing) }
+    It 'skips versions that did not apply the old policy' {
+        Mock Get-AtlasInstalledVersion { '0.5.0' }
 
-        Set-AtlasStartPinnedFolderPolicy
+        . $script:upgradeTweak
 
-        Should -Not -Invoke New-CimInstance
-        Should -Invoke Set-CimInstance -Times 1 -Exactly
-        foreach ($name in $script:ExpectedFolders) {
-            $existing.CimInstanceProperties[$name].Value | Should -Be 0 -Because $name
+        Should -Not -Invoke Get-CimInstance
+        Should -Not -Invoke Set-CimInstance
+    }
+
+    It 'logs a warning and continues when the policy provider fails' {
+        Mock Set-CimInstance { throw 'CSP unavailable' } -RemoveParameterType 'InputObject'
+
+        { . $script:upgradeTweak } | Should -Not -Throw
+
+        Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and $Message -like '*CSP unavailable*'
         }
-    }
-
-    It 'fails when the provider does not retain the hidden state or returns more than one instance' {
-        Mock New-CimInstance { New-TestStartPolicyInstance -Value 1 }
-        { Set-AtlasStartPinnedFolderPolicy } | Should -Throw '*did not apply the hidden state*'
-
-        Mock Get-CimInstance { @((New-TestStartPolicyInstance -Value 0), (New-TestStartPolicyInstance -Value 0)) }
-        { Set-AtlasStartPinnedFolderPolicy } | Should -Throw '*more than one configuration instance*'
-    }
-
-    It 'hides the folders after setting the layout and before clearing the Start cache' {
-        # Clearing the cache first would leave Start showing the folders until the next reset.
-        function Set-AtlasStartLayout { }
-        function Invoke-AtlasUserAppxCacheCleanup { param([string]$Mode) [void]$Mode }
-        function Import-AtlasModule { param([string]$Name) [void]$Name }
-        $calls = [Collections.Generic.List[string]]::new()
-        Mock Import-AtlasModule { }
-        Mock Set-AtlasStartLayout { $calls.Add('layout') }
-        Mock New-CimInstance { $calls.Add('folders'); New-TestStartPolicyInstance -Value 0 }
-        Mock Invoke-AtlasUserAppxCacheCleanup { $calls.Add("cache:$Mode") }
-
-        & $script:scriptPath
-
-        @($calls) | Should -Be @('layout', 'folders', 'cache:StartMenu')
     }
 }

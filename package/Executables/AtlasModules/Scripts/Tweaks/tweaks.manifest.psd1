@@ -187,6 +187,7 @@
                 'system/disable-wpbt'
                 # Applied last: these restart shell components (Start Menu / Explorer).
                 'config-start-menu'
+                'restore-start-folder-choices'
                 'taskbar/config-pins'
             )
         }
