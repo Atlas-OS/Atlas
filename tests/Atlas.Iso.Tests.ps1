@@ -14,7 +14,7 @@ BeforeAll {
     $pathsStart = $ast.Find({ param($n) $n -is [Management.Automation.Language.AssignmentStatementAst] -and $n.Left.Extent.Text -eq '$answerPaths' }, $true)
     $writeFiles = $ast.Find({ param($n) $n -is [Management.Automation.Language.ForEachStatementAst] -and $n.Condition.Extent.Text -eq '$answerPaths' }, $true)
     $script:WriteAnswerFiles = [scriptblock]::Create("param(`$supportedEditions)`n" + $ast.Extent.Text.Substring($pathsStart.Extent.StartOffset, $writeFiles.Extent.EndOffset - $pathsStart.Extent.StartOffset))
-    function New-TestAnswer([string]$architecture, [string]$username) {
+    function New-TestAnswer([string]$architecture, [string]$username, [string]$acceptedTerms) {
         . $script:WriteAnswer
         [xml]$answer
     }
@@ -41,8 +41,7 @@ Describe 'Native ISO mastering' {
     }
     It 'only skips the Windows licence pages after explicit acceptance' {
         $script:Answer.unattend.settings[0].component.UserData.AcceptEula | Should -Be 'false'
-        $acceptedTerms = 'verified-media'
-        $accepted = New-TestAnswer x64 'Atlas'
+        $accepted = New-TestAnswer x64 'Atlas' -acceptedTerms 'verified-media'
         $accepted.unattend.settings[0].component.UserData.AcceptEula | Should -Be 'true'
         ($accepted.unattend.settings | Where-Object pass -eq 'oobeSystem').component.OOBE.HideEULAPage | Should -Be 'true'
     }

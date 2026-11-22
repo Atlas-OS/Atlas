@@ -100,7 +100,7 @@ Describe 'Protected preparation recovery journals' {
         { Assert-PreparationContinue } | Should -Throw '*stopped*'
     }
     It 'publishes progress after a reader releases the previous report' {
-        $PersistentCancellation = $false
+        Set-Variable -Name PersistentCancellation -Value $false
         $JobPath = Join-Path $TestDrive 'busy-report'
         [void][IO.Directory]::CreateDirectory($JobPath)
         Write-PreparationState running verify
