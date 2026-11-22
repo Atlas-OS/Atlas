@@ -62,6 +62,22 @@ AfterAll {
 }
 
 Describe 'Atlas process privilege decisions' {
+    It 'limits the post-exit wait for <Case>' -TestCases @(
+        @{ Case = 'a completed install'; Operation = 'Install'; Phase = 'Run'; ExitCode = 0; Timeout = 3600000; Expected = 121000 }
+        @{ Case = 'a completed install near the overall deadline'; Operation = 'Install'; Phase = 'Run'; ExitCode = 0; Timeout = 2000; Expected = 2000 }
+        @{ Case = 'a failed install'; Operation = 'Install'; Phase = 'Run'; ExitCode = 1; Timeout = 3600000; Expected = [long]::MaxValue }
+        @{ Case = 'install capture'; Operation = 'Install'; Phase = 'Capture'; ExitCode = 0; Timeout = 3600000; Expected = [long]::MaxValue }
+        @{ Case = 'a toggle'; Operation = 'Toggle'; Phase = $null; ExitCode = 0; Timeout = 3600000; Expected = [long]::MaxValue }
+    ) {
+        param($Operation, $Phase, $ExitCode, $Timeout, $Expected)
+        $request = New-Object Atlas.Native.TrustedInstallerLaunchRequest
+        $request.Operation = $Operation
+        $request.InstallPhase = $Phase
+        $request.TimeoutMilliseconds = $Timeout
+        $method = [Atlas.Native.TrustedInstallerProcess].GetMethod('GetSuccessfulInstallDrainDeadline', [Reflection.BindingFlags]'Static,NonPublic')
+        $method.Invoke($null, @($request.PSObject.BaseObject, [uint32]$ExitCode, [long]1000)) | Should -Be $Expected
+    }
+
     It 'reads enabled and deny-only groups without duplicating the token' {
         $nativeType = [Atlas.Native.TrustedInstallerProcess]
         $openToken = $nativeType.GetMethod('OpenProcessToken', [Reflection.BindingFlags]'Static,NonPublic')

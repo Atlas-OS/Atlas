@@ -20,7 +20,10 @@ function Invoke-AtlasTrustedInstallerNativeOperation {
     param($Operation, $TimeoutMilliseconds, $Name, $State, $Silent, $JustContext,
         $NoExplorerRestart, $MachineOnly, $RestoreSource, $InstallPhase, $PackageRoot)
     $PSBoundParameters | ConvertTo-Json | Set-Content -LiteralPath $env:ATLAS_BROKER_TEST_RESULT
-    [pscustomobject]@{ ExitCodeUInt32 = [uint32]$env:ATLAS_BROKER_TEST_EXIT }
+    [pscustomobject]@{
+        ExitCodeUInt32 = [uint32]$env:ATLAS_BROKER_TEST_EXIT
+        LingeringProcessesTerminated = [bool]$env:ATLAS_BROKER_TEST_LINGERING
+    }
 }
 Export-ModuleMember -Function Assert-AtlasPrivilege
 '@
@@ -41,12 +44,14 @@ Export-ModuleMember -Function Get-AtlasToggleDefinition
     $script:PreviousBrokerResult = $env:ATLAS_BROKER_TEST_RESULT
     $script:PreviousBrokerExit = $env:ATLAS_BROKER_TEST_EXIT
     $script:PreviousBrokerDenyAdmin = $env:ATLAS_BROKER_TEST_DENY_ADMIN
+    $script:PreviousBrokerLingering = $env:ATLAS_BROKER_TEST_LINGERING
 }
 
 AfterAll {
     $env:ATLAS_BROKER_TEST_RESULT = $script:PreviousBrokerResult
     $env:ATLAS_BROKER_TEST_EXIT = $script:PreviousBrokerExit
     $env:ATLAS_BROKER_TEST_DENY_ADMIN = $script:PreviousBrokerDenyAdmin
+    $env:ATLAS_BROKER_TEST_LINGERING = $script:PreviousBrokerLingering
 }
 
 Describe 'TrustedInstaller broker private native dispatch' {
@@ -54,6 +59,7 @@ Describe 'TrustedInstaller broker private native dispatch' {
         $env:ATLAS_BROKER_TEST_RESULT = Join-Path $TestDrive ([guid]::NewGuid().ToString() + '.json')
         $env:ATLAS_BROKER_TEST_EXIT = '0'
         $env:ATLAS_BROKER_TEST_DENY_ADMIN = $null
+        $env:ATLAS_BROKER_TEST_LINGERING = $null
     }
 
     It 'dispatches a validated toggle through the private module function' {
@@ -84,6 +90,15 @@ Describe 'TrustedInstaller broker private native dispatch' {
         $request = Get-Content -LiteralPath $env:ATLAS_BROKER_TEST_RESULT -Raw | ConvertFrom-Json
         $request.InstallPhase | Should -Be 'Capture'
         $request.PackageRoot | Should -Be $stagedRoot
+    }
+
+    It 'reports contained cleanup without changing a successful install exit code' {
+        $env:ATLAS_BROKER_TEST_LINGERING = '1'
+        $stagedRoot = Join-Path ([Environment]::GetFolderPath('Windows')) 'AtlasOS\Staging\BrokerTest\Executables'
+        $output = & $script:BrokerPowerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script:BrokerFixture `
+            -Operation Install -InstallPhase Run -PackageRoot $stagedRoot
+        $LASTEXITCODE | Should -Be 0
+        ($output | Out-String) | Should -Match 'closed leftover processes in the installer job'
     }
 
     It 'rejects an undeclared toggle state before native dispatch' {

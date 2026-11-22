@@ -251,9 +251,11 @@ namespace Atlas.Native
         public TrustedInstallerTokenEvidence ChildToken { get; internal set; }
         public bool RootExited { get; internal set; }
         public bool JobDrained { get; internal set; }
+        public bool LingeringProcessesTerminated { get; internal set; }
     }
 
     public static class TrustedInstallerProcess {
+        const int SUCCESSFUL_INSTALL_DRAIN_MILLISECONDS = 120000;
         const UInt32 TOKEN_ASSIGN_PRIMARY = 0x0001;
         const UInt32 TOKEN_QUERY = 0x0008;
         const UInt32 TOKEN_ADJUST_PRIVILEGES = 0x0020;
@@ -652,6 +654,13 @@ namespace Atlas.Native
             return commandLine.ToString();
         }
 
+        static long GetSuccessfulInstallDrainDeadline(TrustedInstallerLaunchRequest request, UInt32 exitCode, long elapsedMilliseconds) {
+            if (exitCode != 0 || request.Operation != "Install" || request.InstallPhase != "Run") {
+                return Int64.MaxValue;
+            }
+            return Math.Min(request.TimeoutMilliseconds, elapsedMilliseconds + SUCCESSFUL_INSTALL_DRAIN_MILLISECONDS);
+        }
+
         public static TrustedInstallerLaunchResult LaunchNonInteractive(TrustedInstallerLaunchRequest request) {
             if (request == null) {
                 throw new ArgumentNullException("request");
@@ -792,8 +801,12 @@ namespace Atlas.Native
                 }
                 bool rootExited = false;
                 UInt32 exitCode = STILL_ACTIVE;
+                long successfulInstallDrainDeadline = Int64.MaxValue;
+                bool lingeringProcessesTerminated = false;
                 while (true) {
-                    ThrowIfDeadlineExceeded(stopwatch, request.TimeoutMilliseconds);
+                    if (successfulInstallDrainDeadline == Int64.MaxValue) {
+                        ThrowIfDeadlineExceeded(stopwatch, request.TimeoutMilliseconds);
+                    }
                     if (!rootExited) {
                         UInt32 rootWait = WaitForSingleObject(processInfo.hProcess, 0);
                         if (rootWait == WAIT_OBJECT_0) {
@@ -801,6 +814,7 @@ namespace Atlas.Native
                                 throw LastError("GetExitCodeProcess(root) failed");
                             }
                             rootExited = true;
+                            successfulInstallDrainDeadline = GetSuccessfulInstallDrainDeadline(request, exitCode, stopwatch.ElapsedMilliseconds);
 
                             // Capture the terminal root exit value, then release Atlas's
                             // PROCESS_INFORMATION references before the lifecycle advances to
@@ -813,6 +827,17 @@ namespace Atlas.Native
                     }
 
                     UInt32 activeProcesses = QueryActiveProcesses(job);
+                    if (rootExited && activeProcesses != 0 && stopwatch.ElapsedMilliseconds >= successfulInstallDrainDeadline) {
+                        // The protected Run script has committed the install and exited
+                        // successfully. Contain leftover descendants without extending the
+                        // operation deadline or terminating processes outside this job.
+                        if (!TerminateJobObject(job, 0xC000013A)) {
+                            throw LastError("TerminateJobObject failed after the successful install's drain deadline");
+                        }
+                        DrainTerminatedJob(job, 10000);
+                        activeProcesses = 0;
+                        lingeringProcessesTerminated = true;
+                    }
                     if (rootExited && activeProcesses == 0) {
                         jobDrained = true;
                         return new TrustedInstallerLaunchResult {
@@ -823,7 +848,8 @@ namespace Atlas.Native
                             SourceToken = sourceEvidence,
                             ChildToken = childEvidence,
                             RootExited = true,
-                            JobDrained = true
+                            JobDrained = true,
+                            LingeringProcessesTerminated = lingeringProcessesTerminated
                         };
                     }
                     System.Threading.Thread.Sleep(50);

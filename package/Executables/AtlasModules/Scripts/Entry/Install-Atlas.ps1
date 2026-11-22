@@ -845,7 +845,7 @@ function Invoke-AtlasInstallPhase {
     # The copy's name begins with its time, so only one written since the phase began is its own.
     $started = [DateTime]::UtcNow.AddSeconds(-2)
     try {
-        $null = Invoke-AtlasTrustedInstaller -Operation Install -InstallPhase $Phase -PackageRoot $PackageRoot -TimeoutSeconds $TimeoutSeconds
+        $result = Invoke-AtlasTrustedInstaller -Operation Install -InstallPhase $Phase -PackageRoot $PackageRoot -TimeoutSeconds $TimeoutSeconds
     }
     catch {
         $failure = $_.Exception.Message
@@ -867,6 +867,9 @@ function Invoke-AtlasInstallPhase {
         elseif ($ChooseAgain) { 'Re-run this script with the same options and -ChooseAgain to resume.' }
         else { 'Re-run this script with the same options to resume.' }
         throw "The install plan failed: $failure The full log is '$log'. $next"
+    }
+    if ($Phase -eq 'Run' -and -not [string]::IsNullOrWhiteSpace($result.StandardOutput)) {
+        Write-AtlasInstallStep $result.StandardOutput.Trim()
     }
 }
 
@@ -966,6 +969,7 @@ try {
     Write-AtlasInstallStep 'Running the install plan as TrustedInstaller. This takes several minutes...'
     Invoke-AtlasInstallPhase -Phase Run -PackageRoot $packageRoot -TimeoutSeconds 7200 -ChooseAgain:$ChooseAgain -ResumeOptions $captured.ResumeOptions
 
+    Write-AtlasInstallStep 'The install plan and its process tree have finished. Cleaning up staged files...'
     Remove-AtlasEarlierStagedPackage -StagingRoot $stagingRoot
     if (-not $KeepStaging) {
         Remove-Item -LiteralPath $stagingRoot -Recurse -Force -ErrorAction SilentlyContinue
