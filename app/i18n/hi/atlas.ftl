@@ -733,6 +733,7 @@ iso-source = Windows ISO
 iso-download-recommended = Microsoft से डाउनलोड करें (अनुशंसित)
 iso-source-question = आप Windows कहाँ से लेना चाहते हैं?
 iso-use-local = ISO फ़ाइल चुनें
+iso-package-latest-label = नवीनतम
 iso-package-latest = नवीनतम Atlas पैकेज
 iso-package-unavailable = Manager के इस संस्करण के लिए Atlas पैकेज चुनें।
 iso-save-name = { $name } के रूप में सहेजें

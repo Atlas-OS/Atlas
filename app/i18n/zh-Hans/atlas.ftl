@@ -696,6 +696,7 @@ iso-source = Windows ISO
 iso-download-recommended = 从微软下载（推荐）
 iso-source-question = 你想从哪里获取 Windows？
 iso-use-local = 选择 ISO 文件
+iso-package-latest-label = 最新版
 iso-package-latest = 最新的 Atlas 软件包
 iso-package-unavailable = 请选择适用于此版本 Manager 的 Atlas 软件包。
 iso-save-name = 另存为 { $name }

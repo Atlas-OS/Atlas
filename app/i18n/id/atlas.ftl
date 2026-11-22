@@ -713,6 +713,7 @@ iso-source = ISO Windows
 iso-download-recommended = Unduh dari Microsoft (disarankan)
 iso-source-question = Dari mana Anda ingin mendapatkan Windows?
 iso-use-local = Pilih file ISO
+iso-package-latest-label = Terbaru
 iso-package-latest = Paket Atlas terbaru
 iso-package-unavailable = Pilih paket Atlas untuk versi Manager ini.
 iso-save-name = Simpan sebagai { $name }

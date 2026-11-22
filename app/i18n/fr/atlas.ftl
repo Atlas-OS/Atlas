@@ -721,6 +721,7 @@ iso-source = ISO Windows
 iso-download-recommended = Télécharger depuis Microsoft (recommandé)
 iso-source-question = Où souhaitez-vous récupérer Windows ?
 iso-use-local = Choisir un fichier ISO
+iso-package-latest-label = Dernière version
 iso-package-latest = Dernier paquet Atlas
 iso-package-unavailable = Choisissez un paquet Atlas pour cette version de Manager.
 iso-save-name = Enregistrer sous { $name }

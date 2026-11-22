@@ -731,6 +731,7 @@ iso-source = Windows-ISO
 iso-download-recommended = Von Microsoft herunterladen (empfohlen)
 iso-source-question = Woher soll Windows kommen?
 iso-use-local = ISO-Datei auswählen
+iso-package-latest-label = Aktuell
 iso-package-latest = Neuestes Atlas-Paket
 iso-package-unavailable = Wähle ein Atlas-Paket für diese Manager-Version.
 iso-save-name = Speichern als { $name }

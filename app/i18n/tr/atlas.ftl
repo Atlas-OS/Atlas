@@ -736,6 +736,7 @@ iso-source = Windows ISO'su
 iso-download-recommended = Microsoft’tan indir (önerilen)
 iso-source-question = Windows’u nereden almak istersiniz?
 iso-use-local = ISO dosyası seç
+iso-package-latest-label = En güncel
 iso-package-latest = En son Atlas paketi
 iso-package-unavailable = Manager’ın bu sürümü için bir Atlas paketi seçin.
 iso-save-name = { $name } olarak kaydet

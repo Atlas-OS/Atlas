@@ -991,6 +991,24 @@ impl IsoPage {
         let short_name = |path: &Path| path.file_name().unwrap_or_default().to_string_lossy().into_owned();
         let selected_package =
             state.package.as_ref().filter(|p| bundled || p.archive.as_ref() == self.archive.as_ref());
+        let latest = state.release.release().filter(|r| !latest_predates_app && r.package_asset().is_some());
+        let is_latest = !bundled
+            && latest.is_some_and(|release| {
+                if let Some(package) = selected_package {
+                    matches!(&package.origin, crate::model::Origin::Release(_))
+                        && crate::services::releases::compare_versions(
+                            &package.manifest.version,
+                            release.version(),
+                        )
+                        .is_eq()
+                } else {
+                    self.archive.is_none() && self.manifest.is_none()
+                }
+            });
+        // The review fixture shows the verified-release state without making a network request.
+        #[cfg(debug_assertions)]
+        let is_latest = is_latest || self.preview.as_deref() == Some("files-empty");
+        let secondary = cx.theme().text_secondary;
         let package_name = if let Some(package) = selected_package {
             format!("Atlas {}", package.manifest.version)
         } else if let Some(manifest) = &self.manifest {
@@ -1073,6 +1091,14 @@ impl IsoPage {
                 .border_t_1()
                 .border_color(cx.theme().divider)
                 .child(div().type_body_strong().child(a11y_text("iso-path-1", package_name)))
+                .when(is_latest, |row| {
+                    row.child(
+                        div()
+                            .type_caption()
+                            .text_color(secondary)
+                            .child(a11y_text("iso-package-latest-label", t!("iso-package-latest-label"))),
+                    )
+                })
                 .when(!bundled, |row| {
                     row.child(change(Field::Package, "iso-change-package", t!("package-title"), cx))
                 }),

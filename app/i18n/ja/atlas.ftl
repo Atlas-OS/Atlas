@@ -709,6 +709,7 @@ iso-source = Windows ISO
 iso-download-recommended = Microsoft からダウンロード（推奨）
 iso-source-question = Windows はどこから入手しますか？
 iso-use-local = ISO ファイルを選ぶ
+iso-package-latest-label = 最新版
 iso-package-latest = 最新の Atlas パッケージ
 iso-package-unavailable = このバージョンの Manager に対応する Atlas パッケージを選んでください。
 iso-save-name = 保存名：{ $name }
