@@ -423,11 +423,11 @@ if ($setupMarker -lt 1) {
         Invoke-AtlasDesktopCommand '4. Interface Tweaks\Context Menus\Windows 11\Old Context Menu (default).cmd'
         Invoke-AtlasDesktopCommand '4. Interface Tweaks\File Explorer Customization\Gallery\Disable Gallery (default).cmd'
 
-        Set-AtlasTheme -Path (Join-Path $windir 'Resources\Themes\atlas-v0.5.x-dark.theme')
+        Set-AtlasTheme -Path (Join-Path $windir 'Resources\Themes\atlas-v0.6.x-dark.theme')
         Set-AtlasThemeMru | Out-Null
 
         try {
-            $wallpaper = Join-Path $atlasModules 'Wallpapers\atlas-v0.5.x-dark.png'
+            $wallpaper = Join-Path $atlasModules 'Wallpapers\atlas-v0.6.x-dark.png'
             if (Test-Path -LiteralPath $wallpaper -PathType Leaf) {
                 Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name WallPaper -Value $wallpaper -Type String -Force
                 Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name WallpaperStyle -Value '10' -Type String -Force

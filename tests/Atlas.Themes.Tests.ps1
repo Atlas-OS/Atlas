@@ -8,6 +8,8 @@ BeforeAll {
 Describe 'Set-AtlasThemeMru' {
     BeforeAll {
         $script:themeMruNames = @(
+            'atlas-v0.6.x-dark.theme'
+            'atlas-v0.6.x-light.theme'
             'atlas-v0.4.x-dark.theme'
             'atlas-v0.4.x-light.theme'
             'atlas-v0.5.x-dark.theme'

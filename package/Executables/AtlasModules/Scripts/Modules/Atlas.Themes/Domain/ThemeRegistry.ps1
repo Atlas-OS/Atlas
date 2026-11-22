@@ -12,6 +12,8 @@ function Set-AtlasThemeMru {
     #>
     Stop-ThemeProcesses
     Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes" -Name "ThemeMRU" -Value "$((@(
+        "atlas-v0.6.x-dark.theme",
+        "atlas-v0.6.x-light.theme",
         "atlas-v0.4.x-dark.theme",
         "atlas-v0.4.x-light.theme",
         "atlas-v0.5.x-dark.theme",
