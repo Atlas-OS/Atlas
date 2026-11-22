@@ -828,6 +828,7 @@ iso-failed-edition = Bu ISO desteklenen bir Windows sürümü içermiyor. Window
 iso-failed-customised = Bu ISO zaten autounattend.xml gibi özel kurulum dosyaları içeriyor. Microsoft'tan alınmış, değiştirilmemiş bir Windows ISO'su seçin.
 iso-failed-windows-unsupported = Bu Windows görüntüsü Atlas paketi tarafından desteklenmiyor. Bu paketin desteklediği bir Windows 11 sürümünün değiştirilmemiş, 64 bit ISO’sunu kullanın.
 iso-failed-network-architecture = Bu bilgisayarın ağ sürücüleri bu ISO'nun mimarisiyle eşleşmiyor. Geri dönüp Bu bilgisayarın ağ sürücülerini ekle seçeneğini kapatın veya bu bilgisayar için bir ISO seçin.
+iso-failed-manager-missing = Atlas Manager dosyası bulunamadı. AtlasManager.exe dosyasını İndirilenler gibi yerel bir klasöre indirin, oradan açın ve tekrar deneyin.
 iso-failed-unstaged = Atlas çalışma klasörünü hazırlayamadı, bu yüzden hiçbir şey değiştirilmedi. Yeniden deneyin. Sorun devam ederse hata raporu için Tanılama verilerini dışa aktar’ı seçin.
 iso-failed-package-changed = Dosyalar denetlendikten sonra Atlas paketi değişti. Dosyalar’ın yanındaki Değiştir’i, ardından Dosyaları denetle’yi seçin.
 iso-diagnostics = Günlük klasörünü aç

@@ -823,6 +823,7 @@ iso-failed-edition = Diese ISO enthält keine unterstützten Windows-Editionen. 
 iso-failed-customised = Diese ISO enthält bereits angepasste Setup-Dateien wie autounattend.xml. Wählen Sie eine unveränderte Windows-ISO von Microsoft.
 iso-failed-windows-unsupported = Dieses Windows-Abbild wird vom Atlas-Paket nicht unterstützt. Verwenden Sie eine unveränderte 64-Bit-ISO einer Windows-11-Version, die dieses Paket unterstützt.
 iso-failed-network-architecture = Die Netzwerktreiber dieses PCs passen nicht zur Architektur dieser ISO. Gehen Sie zurück und deaktivieren Sie „Netzwerktreiber dieses PCs einbinden“ oder wählen Sie eine ISO für diesen PC.
+iso-failed-manager-missing = Die Datei von Atlas Manager fehlt. Speichern Sie AtlasManager.exe in einem lokalen Ordner wie „Downloads“, öffnen Sie die Datei von dort und versuchen Sie es erneut.
 iso-failed-unstaged = Atlas konnte seinen Arbeitsordner nicht vorbereiten, daher wurde nichts geändert. Versuchen Sie es erneut. Wenn der Fehler weiterhin auftritt, wählen Sie „Diagnose exportieren“ für einen Fehlerbericht.
 iso-failed-package-changed = Das Atlas-Paket wurde nach der Prüfung der Dateien geändert. Wählen Sie „Ändern“ neben „Dateien“ und dann „Dateien prüfen“.
 iso-diagnostics = Protokollordner öffnen

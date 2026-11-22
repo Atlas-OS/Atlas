@@ -983,6 +983,7 @@ iso-failed-edition = This ISO contains no supported Windows editions. Windows Ho
 iso-failed-customised = This ISO already contains custom setup files, such as autounattend.xml. Choose an unmodified Windows ISO from Microsoft.
 iso-failed-windows-unsupported = This Windows image isn't supported by the Atlas package. Use an unmodified 64-bit Windows 11 ISO for a version this package supports.
 iso-failed-network-architecture = This PC's network drivers don't match this ISO's architecture. Go back and turn off Include this PC's network drivers, or choose an ISO for this PC.
+iso-failed-manager-missing = Atlas Manager's file is missing. Download AtlasManager.exe to a local folder such as Downloads, open it from there and try again.
 # Shown instead of the messages that point at diagnostics when the folder the
 # worker runs from couldn't be created. "Export diagnostics" is diagnostics-export.
 iso-failed-unstaged = Atlas couldn't prepare its working folder, so nothing was changed. Try again. If it keeps failing, choose Export diagnostics for a bug report.

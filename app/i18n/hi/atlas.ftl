@@ -825,6 +825,7 @@ iso-failed-edition = इस ISO में कोई समर्थित Window
 iso-failed-customised = इस ISO में पहले से कस्टम सेटअप फ़ाइलें हैं, जैसे autounattend.xml। Microsoft का बिना बदलाव वाला Windows ISO चुनें।
 iso-failed-windows-unsupported = Atlas पैकेज इस Windows इमेज का समर्थन नहीं करता। Windows 11 के ऐसे संस्करण का बिना बदलाव वाला 64-बिट ISO इस्तेमाल करें, जिसका यह पैकेज समर्थन करता है।
 iso-failed-network-architecture = इस PC के नेटवर्क ड्राइवर इस ISO के आर्किटेक्चर से मेल नहीं खाते। वापस जाकर “इस PC के नेटवर्क ड्राइवर शामिल करें” बंद करें, या इस PC के लिए ISO चुनें।
+iso-failed-manager-missing = Atlas Manager की फ़ाइल नहीं मिली। AtlasManager.exe को डाउनलोड जैसे किसी स्थानीय फ़ोल्डर में सेव करें, वहाँ से खोलें और फिर कोशिश करें।
 iso-failed-unstaged = Atlas अपना कार्य फ़ोल्डर तैयार नहीं कर सका, इसलिए कुछ भी नहीं बदला गया। दोबारा कोशिश करें। अगर यह फिर भी विफल हो, तो बग रिपोर्ट के लिए “डायग्नोस्टिक्स निर्यात करें” चुनें।
 iso-failed-package-changed = फ़ाइलें जाँचने के बाद Atlas पैकेज बदल गया। “फ़ाइलें” के पास “बदलें” चुनें, फिर “फ़ाइलें जाँचें” चुनें।
 iso-diagnostics = लॉग फ़ोल्डर खोलें

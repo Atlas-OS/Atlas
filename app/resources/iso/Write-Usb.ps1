@@ -193,13 +193,16 @@ function Get-AtlasUsbParentPath {
     return (Split-Path -Parent $Path).TrimEnd('\') + '\'
 }
 
-function Write-AtlasUsbFileChunk {
-    param($Stream, [byte[]]$Buffer, [int]$Count, [switch]$ToUsb)
-    try { $Stream.Write($Buffer, 0, $Count) }
+function Write-AtlasUsbFileBuffer {
+    param($Stream, [byte[]]$Buffer, [int]$Count, [switch]$Flush, [switch]$ToUsb)
+    try {
+        if ($Flush) { $Stream.Flush($true) }
+        else { $Stream.Write($Buffer, 0, $Count) }
+    }
     catch {
         $cause = $_.Exception.GetBaseException()
-        # ERROR_NO_SUCH_DEVICE and ERROR_DEVICE_NOT_CONNECTED from the destination.
-        if ($ToUsb -and $cause -is [IO.IOException] -and $cause.HResult -in @(0x800701B1, 0x8007048F)) {
+        # ERROR_NO_SUCH_DEVICE, ERROR_MEDIA_CHANGED and ERROR_DEVICE_NOT_CONNECTED.
+        if ($ToUsb -and $cause -is [IO.IOException] -and $cause.HResult -in @(0x800701B1, 0x80070456, 0x8007048F)) {
             Fail 'drive-unavailable' ('Windows lost access to the USB drive while writing (0x{0:X8}): {1}' -f $cause.HResult, $cause.Message)
         }
         throw
@@ -217,9 +220,9 @@ function Copy-AtlasUsbFile {
             $buffer = New-Object byte[] (4MB)
             while (($read = $inputStream.Read($buffer,0,$buffer.Length)) -gt 0) {
                 Assert-AtlasUsbContinue
-                Write-AtlasUsbFileChunk -Stream $outputStream -Buffer $buffer -Count $read -ToUsb:$ToUsb
+                Write-AtlasUsbFileBuffer -Stream $outputStream -Buffer $buffer -Count $read -ToUsb:$ToUsb
             }
-            $outputStream.Flush($true)
+            Write-AtlasUsbFileBuffer -Stream $outputStream -Flush -ToUsb:$ToUsb
         } finally { $outputStream.Dispose() }
     } finally { $inputStream.Dispose() }
 }

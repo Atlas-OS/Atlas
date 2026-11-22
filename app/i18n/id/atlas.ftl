@@ -804,6 +804,7 @@ iso-failed-edition = ISO ini tidak berisi edisi Windows yang didukung. Windows H
 iso-failed-customised = ISO ini sudah berisi file penyiapan kustom, seperti autounattend.xml. Pilih ISO Windows dari Microsoft yang belum dimodifikasi.
 iso-failed-windows-unsupported = Citra Windows ini tidak didukung oleh paket Atlas. Gunakan ISO Windows 11 64-bit yang belum dimodifikasi untuk versi yang didukung paket ini.
 iso-failed-network-architecture = Driver jaringan PC ini tidak cocok dengan arsitektur ISO ini. Kembali dan nonaktifkan Sertakan driver jaringan PC ini, atau pilih ISO untuk PC ini.
+iso-failed-manager-missing = File Atlas Manager tidak ditemukan. Unduh AtlasManager.exe ke folder lokal seperti Unduhan, buka dari sana, lalu coba lagi.
 iso-failed-unstaged = Atlas tidak dapat menyiapkan folder kerjanya, sehingga tidak ada yang diubah. Coba lagi. Jika masih gagal, pilih Ekspor diagnostik untuk laporan bug.
 iso-failed-package-changed = Paket Atlas berubah setelah file diperiksa. Pilih Ubah di samping File, lalu pilih Periksa file.
 iso-diagnostics = Buka folder log

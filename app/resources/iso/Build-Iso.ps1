@@ -45,6 +45,7 @@ $ownedMount = $false
 $work = $null
 $partial = $null
 $source = $null
+$appStream = $null
 $mutex = $null
 $ownsMutex = $false
 
@@ -58,6 +59,15 @@ function Write-Stage([string]$Stage) {
 function Fail([string]$Reason, [string]$Message) {
     [Console]::Out.WriteLine("ATLAS_ERROR:$Reason")
     throw $Message
+}
+function Open-AtlasIsoManager([string]$Path) {
+    # A browser may remove its temporary download during the build. Keep reading
+    # the same file after a rename or deletion, while allowing that cleanup.
+    try {
+        return [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, ([IO.FileShare]::Read -bor [IO.FileShare]::Delete))
+    } catch [IO.FileNotFoundException], [IO.DirectoryNotFoundException] {
+        Fail 'manager-missing' "Atlas Manager is no longer at '$Path'. Download it to a local folder and launch it again."
+    }
 }
 function Assert-PlainTree([string]$Path) {
     $root = Get-Item -LiteralPath $Path -Force
@@ -291,6 +301,7 @@ try {
     $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
     if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Administrator access is required.' }
     Write-Stage inspect
+    if ($Operation -eq 'Build') { $appStream = Open-AtlasIsoManager $request.app }
     $source = (Get-Item -LiteralPath $request.source).FullName
     if ([IO.Path]::GetExtension($source) -ine '.iso') { throw 'Choose a Windows ISO file.' }
     $parent = Assert-Output -OutputPath $request.output -PackagePath $request.package -SourcePath $source
@@ -390,7 +401,13 @@ try {
     $atlasIso = 'sources\$OEM$\$$\AtlasISO'
     $target = Join-Path $media $atlasIso
     [void][IO.Directory]::CreateDirectory($target)
-    $payload = [ordered]@{ 'AtlasManager.exe' = $request.app; 'Atlas.atlaspkg' = $request.archive }
+    $managerName = 'AtlasManager.exe'
+    $managerOutput = [IO.File]::Open((Join-Path $target $managerName), [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+    try { $appStream.CopyTo($managerOutput) }
+    finally { $managerOutput.Dispose() }
+    $appStream.Dispose()
+    $appStream = $null
+    $payload = [ordered]@{ 'Atlas.atlaspkg' = $request.archive }
     foreach ($name in @('Setup.ps1', 'Desktop.ps1', 'Desktop-Policy.ps1', 'RegistryFile.ps1', 'THIRD-PARTY-NOTICES.txt', 'DriverPolicy.reg')) {
         $payload[$name] = Join-Path $job $name
     }
@@ -511,7 +528,7 @@ try {
         $checkRoot = "$($checkVolumes[0].DriveLetter):\"
         # The staged image, not the source: it may be the filtered export.
         $expected = @($imageRelative, 'sources\boot.wim', 'efi\microsoft\boot\efisys.bin') + $bootFiles
-        $expected += @(@($payload.Keys) + 'setup.json' | ForEach-Object { Join-Path $atlasIso $_ })
+        $expected += @(@($payload.Keys) + @($managerName, 'setup.json') | ForEach-Object { Join-Path $atlasIso $_ })
         $expected += $answerPaths
         if ($networkIncluded) {
             $expected += @(@(Get-ChildItem -LiteralPath $networkRoot -File -Force -Recurse) + @(Get-Item -LiteralPath (Join-Path $target 'network-drivers.json')) |
@@ -541,6 +558,7 @@ catch {
     exit 1
 }
 finally {
+    if ($null -ne $appStream) { $appStream.Dispose() }
     if ($ownedMount -and $source) { Dismount-DiskImage -ImagePath $source -ErrorAction Continue | Out-Null }
     # Only remove the exact unique paths created above, after checking their parent.
     if ($work -and (Test-Path -LiteralPath $work)) {

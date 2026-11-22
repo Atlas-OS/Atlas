@@ -786,6 +786,7 @@ iso-failed-edition = 此 ISO 不包含受支持的 Windows 版本。不支持 Wi
 iso-failed-customised = 此 ISO 已包含自定义安装文件（例如 autounattend.xml）。请选择 Microsoft 提供的未经修改的 Windows ISO。
 iso-failed-windows-unsupported = Atlas 安装包不支持此 Windows 映像。请使用未经修改的 64 位 Windows 11 ISO，且其版本须受此安装包支持。
 iso-failed-network-architecture = 这台电脑的网卡驱动程序与此 ISO 的体系结构不匹配。请返回并取消勾选“包含这台电脑的网卡驱动程序”，或选择适用于这台电脑的 ISO。
+iso-failed-manager-missing = 找不到 Atlas Manager 文件。请将 AtlasManager.exe 下载到“下载”等本地文件夹，从该文件夹打开它，然后重试。
 iso-failed-unstaged = Atlas 无法准备其工作文件夹，因此未做任何更改。请重试。如果仍然失败，请选择“导出诊断信息”并附在错误报告中。
 iso-failed-package-changed = 检查文件后，Atlas 安装包已更改。请选择“文件”旁的“更改”，然后选择“检查文件”。
 iso-diagnostics = 打开日志文件夹

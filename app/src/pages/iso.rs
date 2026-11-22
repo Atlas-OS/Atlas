@@ -2106,6 +2106,7 @@ impl IsoPage {
             Some(FailureReason::EditionUnsupported) => t!("iso-failed-edition"),
             Some(FailureReason::IsoCustomised) => t!("iso-failed-customised"),
             Some(FailureReason::NetworkArchitecture) => t!("iso-failed-network-architecture"),
+            Some(FailureReason::ManagerMissing) => t!("iso-failed-manager-missing"),
             Some(FailureReason::PackageUnsupported) => {
                 t!("iso-failed-package-unsupported", minimum = iso::MINIMUM_VERSION)
             }
@@ -2334,6 +2335,8 @@ mod tests {
                 page.step = IsoStep::Review;
                 page.result = JobResult::Failed(Some(FailureReason::PackageChanged));
                 assert_eq!(page.failure_text(), (t!("iso-failed"), t!("iso-failed-package-changed")));
+                page.result = JobResult::Failed(Some(FailureReason::ManagerMissing));
+                assert_eq!(page.failure_text(), (t!("iso-failed"), t!("iso-failed-manager-missing")));
             });
         });
     }
