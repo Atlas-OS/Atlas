@@ -16,51 +16,44 @@ function Test-AtlasServicesBackupExcludedName {
 }
 
 function Get-AtlasServicesBackupRecordSet {
-    $root = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey(
-        'SYSTEM\CurrentControlSet\Services'
-    )
-    if ($null -eq $root) {
-        throw 'The Windows Services registry key could not be opened.'
-    }
+    param([string]$ServicesRoot = 'HKLM:\SYSTEM\CurrentControlSet\Services')
 
+    $root = Get-Item -LiteralPath $ServicesRoot -ErrorAction Stop
     try {
         $names = @($root.GetSubKeyNames() | Sort-Object)
+        $records = @(
+            foreach ($name in $names) {
+                if (Test-AtlasServicesBackupExcludedName -Name $name) {
+                    continue
+                }
+                $key = $root.OpenSubKey($name)
+                if ($null -eq $key) {
+                    continue
+                }
+                try {
+                    if ($key.GetValueNames() -notcontains 'Start') {
+                        continue
+                    }
+                    if ($key.GetValueKind('Start') -ne [Microsoft.Win32.RegistryValueKind]::DWord) {
+                        Write-AtlasLog -Level Warning -Message "Skipped service '$name' in the backup because its Start value is not a DWORD."
+                        continue
+                    }
+                    $start = [int]$key.GetValue('Start')
+                    if ($start -lt 0 -or $start -gt 4) {
+                        Write-AtlasLog -Level Warning -Message "Skipped service '$name' in the backup because its Start value '$start' is outside 0 through 4."
+                        continue
+                    }
+                    [pscustomobject]@{ Name = $name; Start = $start }
+                }
+                finally {
+                    $key.Dispose()
+                }
+            }
+        )
     }
     finally {
         $root.Dispose()
     }
-
-    $records = @(
-        foreach ($name in $names) {
-            if (Test-AtlasServicesBackupExcludedName -Name $name) {
-                continue
-            }
-
-            $key = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey(
-                "SYSTEM\CurrentControlSet\Services\$name"
-            )
-            if ($null -eq $key) {
-                continue
-            }
-            try {
-                if ($key.GetValueNames() -notcontains 'Start') {
-                    continue
-                }
-                if ($key.GetValueKind('Start') -ne
-                    [Microsoft.Win32.RegistryValueKind]::DWord) {
-                    throw "Service '$name' has a non-DWORD Start value."
-                }
-                $start = [int]$key.GetValue('Start')
-                if ($start -lt 0 -or $start -gt 4) {
-                    throw "Service '$name' has unsupported Start value '$start'."
-                }
-                [pscustomobject]@{ Name = $name; Start = $start }
-            }
-            finally {
-                $key.Dispose()
-            }
-        }
-    )
     if ($records.Count -eq 0) {
         throw 'No service Start values were available to back up.'
     }
@@ -157,7 +150,7 @@ function Restore-AtlasServicesBackup {
 function Export-AtlasServicesBackup {
     <#
     .SYNOPSIS
-        Saves the Start value of every service and driver to a .reg backup, unless a
+        Saves valid Start values for services and drivers to a .reg backup, unless a
         valid backup already exists there.
     .DESCRIPTION
         An existing file is kept, after checking it, so the first backup of a PC's

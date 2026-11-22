@@ -153,6 +153,34 @@ Describe 'Atlas service backup' {
             Should -BeLessThan $content.IndexOf('Services\Zulu]')
     }
 
+    It 'backs up valid services when another service has a malformed Start value' {
+        $root = "$script:testRoot\BackupServiceFixtures"
+        try {
+            $null = New-Item -Path "$root\Dokan2t", "$root\BadStart", "$root\Valid" -Force
+            $null = New-ItemProperty -LiteralPath "$root\Dokan2t" -Name Start -PropertyType String -Value '3'
+            $null = New-ItemProperty -LiteralPath "$root\BadStart" -Name Start -PropertyType DWord -Value 5
+            $null = New-ItemProperty -LiteralPath "$root\Valid" -Name Start -PropertyType DWord -Value 2
+
+            $records = @(InModuleScope Atlas.Services {
+                Get-AtlasServicesBackupRecordSet -ServicesRoot $fixture
+            } -Parameters @{ fixture = $root })
+
+            $records.Count | Should -Be 1
+            $records[0].Name | Should -BeExactly 'Valid'
+            $records[0].Start | Should -Be 2
+            Should -Invoke Write-AtlasLog -ModuleName Atlas.Services -Times 1 -Exactly -ParameterFilter {
+                $Level -eq 'Warning' -and $Message -like '*Dokan2t*not a DWORD*'
+            }
+            Should -Invoke Write-AtlasLog -ModuleName Atlas.Services -Times 1 -Exactly -ParameterFilter {
+                $Level -eq 'Warning' -and $Message -like '*BadStart*outside 0 through 4*'
+            }
+            (Get-ItemProperty -LiteralPath "$root\Dokan2t").Start | Should -BeOfType [string]
+        }
+        finally {
+            Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
     It 'keeps the first valid backup without enumerating current services again' {
         Write-TestAtlasServicesBackup -Path $script:backupPath -Lines @(
             'Windows Registry Editor Version 5.00'
