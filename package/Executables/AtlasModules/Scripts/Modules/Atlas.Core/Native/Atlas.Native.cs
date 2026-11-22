@@ -23,6 +23,19 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Atlas.Native
 {
+    public static class PowerSchemes {
+        [DllImport("powrprof.dll", ExactSpelling = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        private static extern uint PowerRestoreIndividualDefaultPowerScheme(ref Guid schemeGuid);
+
+        public static void RestoreDefault(Guid schemeGuid) {
+            uint result = PowerRestoreIndividualDefaultPowerScheme(ref schemeGuid);
+            if (result != 0) {
+                throw new Win32Exception(unchecked((int)result));
+            }
+        }
+    }
+
     [ComImport, Guid("EA502723-A23D-11D1-A7D3-0000F87571E3"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     internal interface ILocalGroupPolicyObject {
         void New([MarshalAs(UnmanagedType.LPWStr)] string domain, [MarshalAs(UnmanagedType.LPWStr)] string displayName, uint flags);
