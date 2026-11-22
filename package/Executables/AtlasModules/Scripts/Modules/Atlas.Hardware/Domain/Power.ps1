@@ -220,6 +220,11 @@ function Clear-AtlasPreviousPowerScheme {
     }
 }
 
+function Restore-AtlasBalancedPowerScheme {
+    Initialize-AtlasNativeType
+    [Atlas.Native.PowerSchemes]::RestoreDefault([guid]$script:BalancedPowerScheme)
+}
+
 function Invoke-AtlasPowerSavingState {
     param(
         [Parameter(Mandatory = $true)]
@@ -231,8 +236,29 @@ function Invoke-AtlasPowerSavingState {
     )
 
     $installed = @(Get-AtlasPowerSchemeInventory -PowerCfgPath $PowerCfgPath)
-    if ($installed -cnotcontains $script:BalancedPowerScheme) {
-        throw 'The Windows Balanced power scheme is not installed.'
+    $saved = $null
+    $target = $null
+    if ($RequestedMode -ceq 'Default') {
+        $saved = Get-AtlasPreviousPowerScheme
+        if ($null -ne $saved -and $saved -cne $script:AtlasPowerScheme -and $installed -ccontains $saved) {
+            $target = $saved
+        }
+    }
+    if ($null -eq $target -and $installed -cnotcontains $script:BalancedPowerScheme) {
+        if (Test-AtlasPowerSchemeStored -SchemeGuid $script:BalancedPowerScheme) {
+            throw 'Windows has a stored Balanced power scheme, but powercfg did not list it.'
+        }
+        try {
+            Restore-AtlasBalancedPowerScheme
+        }
+        catch {
+            throw "The Windows Balanced power scheme is missing and could not be restored: $($_.Exception.Message)"
+        }
+        $installed = @(Get-AtlasPowerSchemeInventory -PowerCfgPath $PowerCfgPath)
+        if ($installed -cnotcontains $script:BalancedPowerScheme) {
+            throw 'Windows did not list the Balanced power scheme after restoring it.'
+        }
+        Write-AtlasLog -Message 'Restored the missing Windows Balanced power scheme.'
     }
     $atlasPresent = $installed -ccontains $script:AtlasPowerScheme -or
         (Test-AtlasPowerSchemeStored -SchemeGuid $script:AtlasPowerScheme)
@@ -294,15 +320,7 @@ function Invoke-AtlasPowerSavingState {
         $expectedActive = $script:AtlasPowerScheme
     }
     else {
-        $saved = Get-AtlasPreviousPowerScheme
-        $target = if ($null -ne $saved -and
-            $saved -cne $script:AtlasPowerScheme -and
-            $installed -ccontains $saved) {
-            $saved
-        }
-        else {
-            $script:BalancedPowerScheme
-        }
+        if ($null -eq $target) { $target = $script:BalancedPowerScheme }
 
         [void](Invoke-AtlasPowerCfg -FilePath $PowerCfgPath `
                 -ArgumentList @('/setactive', $target))

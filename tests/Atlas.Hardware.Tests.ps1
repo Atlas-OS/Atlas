@@ -74,6 +74,8 @@ Describe 'Atlas power-saving state' {
         Mock Save-AtlasPreviousPowerScheme -ModuleName Atlas.Hardware { $SchemeGuid }
         Mock Clear-AtlasPreviousPowerScheme -ModuleName Atlas.Hardware
         Mock Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware { @() }
+        Mock Restore-AtlasBalancedPowerScheme -ModuleName Atlas.Hardware
+        Mock Write-AtlasLog -ModuleName Atlas.Hardware
     }
 
     It 'creates the Atlas plan from Balanced and applies only the four reviewed AC settings' {
@@ -200,10 +202,66 @@ Describe 'Atlas power-saving state' {
         Should -Invoke Clear-AtlasPreviousPowerScheme -ModuleName Atlas.Hardware -Times 0 -Exactly
     }
 
-    It 'fails when the Windows Balanced scheme is missing' {
+    It 'recovers a missing Balanced plan before creating the Atlas plan' {
+        $script:restoredBalanced = $false
+        Mock Get-AtlasPowerSchemeInventory -ModuleName Atlas.Hardware {
+            if ($script:restoredBalanced) { $script:balanced }
+            $script:custom
+        }
+        Mock Restore-AtlasBalancedPowerScheme -ModuleName Atlas.Hardware { $script:restoredBalanced = $true }
+        $script:activeQueue.Enqueue($script:custom)
+        $script:activeQueue.Enqueue($script:atlas)
+
+        Invoke-PowerSavingCore -Mode Atlas
+
+        Should -Invoke Restore-AtlasBalancedPowerScheme -ModuleName Atlas.Hardware -Times 1 -Exactly
+        Should -Invoke Get-AtlasPowerSchemeInventory -ModuleName Atlas.Hardware -Times 2 -Exactly
+        Should -Invoke Save-AtlasPreviousPowerScheme -ModuleName Atlas.Hardware -Times 1 -Exactly -ParameterFilter {
+            $SchemeGuid -ceq $script:custom
+        }
+        Should -Invoke Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware -Times 1 -Exactly -ParameterFilter {
+            $ArgumentList[0] -ceq '/duplicatescheme' -and $ArgumentList[1] -ceq $script:balanced
+        }
+    }
+
+    It 'reactivates the saved plan when restoring the default and Balanced is absent' {
+        Mock Get-AtlasPowerSchemeInventory -ModuleName Atlas.Hardware { @($script:atlas, $script:custom) }
+        Mock Get-AtlasPreviousPowerScheme -ModuleName Atlas.Hardware { $script:custom }
+        $script:activeQueue.Enqueue($script:custom)
+
+        Invoke-PowerSavingCore -Mode Default
+
+        Should -Invoke Restore-AtlasBalancedPowerScheme -ModuleName Atlas.Hardware -Times 0 -Exactly
+        Should -Invoke Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware -Times 1 -Exactly -ParameterFilter {
+            $ArgumentList[0] -ceq '/setactive' -and $ArgumentList[1] -ceq $script:custom
+        }
+    }
+
+    It 'does not replace a stored Balanced plan that powercfg leaves out of the list' {
+        Mock Get-AtlasPowerSchemeInventory -ModuleName Atlas.Hardware { @($script:custom) }
+        Mock Test-AtlasPowerSchemeStored -ModuleName Atlas.Hardware { $SchemeGuid -ceq $script:balanced }
+
+        { Invoke-PowerSavingCore -Mode Atlas } | Should -Throw '*stored Balanced power scheme*'
+
+        Should -Invoke Restore-AtlasBalancedPowerScheme -ModuleName Atlas.Hardware -Times 0 -Exactly
+        Should -Invoke Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware -Times 0 -Exactly
+    }
+
+    It 'fails before changing power plans if the restored Balanced plan does not appear' {
         Mock Get-AtlasPowerSchemeInventory -ModuleName Atlas.Hardware { @($script:custom) }
 
-        { Invoke-PowerSavingCore -Mode Atlas } | Should -Throw '*Balanced power scheme is not installed*'
+        { Invoke-PowerSavingCore -Mode Atlas } | Should -Throw '*did not list the Balanced power scheme after restoring it*'
+
+        Should -Invoke Restore-AtlasBalancedPowerScheme -ModuleName Atlas.Hardware -Times 1 -Exactly
+        Should -Invoke Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware -Times 0 -Exactly
+        Should -Invoke Save-AtlasPreviousPowerScheme -ModuleName Atlas.Hardware -Times 0 -Exactly
+    }
+
+    It 'retains the Windows diagnostic if the individual restore fails' {
+        Mock Get-AtlasPowerSchemeInventory -ModuleName Atlas.Hardware { @($script:custom) }
+        Mock Restore-AtlasBalancedPowerScheme -ModuleName Atlas.Hardware { throw 'Access is denied' }
+
+        { Invoke-PowerSavingCore -Mode Atlas } | Should -Throw '*Balanced power scheme is missing and could not be restored: Access is denied*'
 
         Should -Invoke Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware -Times 0 -Exactly
     }

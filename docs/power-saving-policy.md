@@ -94,9 +94,10 @@ No compatibility switch restores the old per-device changes.
 
 `Set-AtlasPowerSavingState` in `package/Executables/AtlasModules/Scripts/Modules/Atlas.Hardware/Domain/Power.ps1` implements both states.
 
-- **Both states** require the Windows Balanced plan (`381b4222-f694-41f0-9685-ff5bb260df2e`).
-  They hold the machine-wide `Global\AtlasOS.PowerSaving.Transaction.v1` mutex for the whole transaction, so concurrent launches can't interleave rollback state with plan changes.
+- **Both states** hold the machine-wide `Global\AtlasOS.PowerSaving.Transaction.v1` mutex for the whole transaction, so concurrent launches can't interleave rollback state with plan changes.
   Waiting more than 30 seconds fails without changing anything.
+- **Balanced** (`381b4222-f694-41f0-9685-ff5bb260df2e`) is the base for the Atlas plan and the fallback when the saved plan is unavailable.
+  If Balanced is missing, Atlas asks Windows to restore that individual plan and checks that it appears before continuing. An existing Balanced plan keeps its settings.
 - **Rollback value:** before changing any plan, Disable saves the active plan's GUID (lowercase, no braces) as a `REG_SZ` at `HKLM\SOFTWARE\AtlasOS\Services\PowerSaving\PreviousPowerSchemeGuid`, or Balanced if the Atlas plan is already active.
   An existing value is kept, so a rerun never replaces the original target.
   A value that isn't a `REG_SZ` GUID stops the run.
