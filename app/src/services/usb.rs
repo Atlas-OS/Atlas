@@ -49,7 +49,7 @@ pub struct Outcome {
     pub ejected: bool,
 }
 
-/// Why a USB write stopped before erasing anything, when the worker said.
+/// Why a USB operation stopped, when the worker reported a reason.
 /// It reports these on stdout as `ATLAS_ERROR:<reason>` before it throws.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FailureReason {
@@ -64,6 +64,8 @@ pub enum FailureReason {
     /// The drive is no longer the one the list showed: removed, reconnected
     /// or replaced since.
     DriveChanged,
+    /// Windows lost access to the destination while writing its files.
+    DriveUnavailable,
 }
 
 impl FailureReason {
@@ -74,6 +76,7 @@ impl FailureReason {
             "working-space" => Self::WorkingSpace,
             "does-not-fit" => Self::DoesNotFit,
             "drive-changed" => Self::DriveChanged,
+            "drive-unavailable" => Self::DriveUnavailable,
             _ => return None,
         })
     }
@@ -250,11 +253,12 @@ mod tests {
         assert!(output.outcome.is_some());
         assert!(!output.drive_changed, "the worker only prepared files");
         let formatting = read_output(
-            &b"ATLAS_PROGRESS:{\"stage\":\"prepare\",\"done\":0,\"total\":0}\nATLAS_PROGRESS:{\"stage\":\"format\",\"done\":0,\"total\":0}\n"[..],
+            &b"ATLAS_PROGRESS:{\"stage\":\"prepare\",\"done\":0,\"total\":0}\nATLAS_PROGRESS:{\"stage\":\"format\",\"done\":0,\"total\":0}\nATLAS_ERROR:drive-unavailable\n"[..],
             &mut Vec::new(),
             |_| {},
         );
         assert!(formatting.drive_changed);
+        assert_eq!(formatting.reason, Some(FailureReason::DriveUnavailable));
     }
 
     /// The empty-list text quotes these limits; the worker applies them.

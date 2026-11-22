@@ -92,7 +92,7 @@ Describe 'Set-AtlasLocationMachineState' {
         }
     }
 
-    It 'enables both services and reveals only the location page, leaving Find My Device locked' {
+    It 'starts the location service, restores on-demand maps and reveals only the location page' {
         $global:AtlasPrivacyTestStatus = @{ lfsvc = 'Stopped'; MapsBroker = 'Stopped' }
 
         Set-AtlasLocationMachineState -State Enable
@@ -103,9 +103,6 @@ Describe 'Set-AtlasLocationMachineState' {
             'lfsvc:Wait:Running'
             'lfsvc:Dispose'
             'MapsBroker:Start=Automatic'
-            'MapsBroker:Start'
-            'MapsBroker:Wait:Running'
-            'MapsBroker:Dispose'
             'settings:unhide:privacy-location'
         )
         Should -Invoke Set-AtlasRegistryValue -ModuleName Atlas.Privacy -Times 0
@@ -188,6 +185,24 @@ Describe 'Clear-AtlasTelemetryLogFiles' {
         Remove-Item -LiteralPath (Join-Path $script:etlRoot 'AutoLogger') -Recurse -Force
 
         { Clear-AtlasTelemetryLogFiles -ProgramDataPath $script:programData } | Should -Not -Throw
+    }
+
+    It 'logs an inaccessible directory and still cleans up the other log directory' {
+        $shutdown = Join-Path $script:etlRoot 'ShutdownLogger'
+        New-Item -Path $shutdown -ItemType Directory -Force | Out-Null
+        $log = Join-Path $shutdown 'DiagTrack-Shutdown.etl'
+        Set-Content -LiteralPath $log -Value 'x' -Encoding ASCII
+        Mock Get-ChildItem -ModuleName Atlas.Privacy {
+            Write-Error -Category PermissionDenied -Message 'Access denied' -ErrorAction Stop
+        } -ParameterFilter { $LiteralPath -like '*\AutoLogger' }
+
+        Clear-AtlasTelemetryLogFiles -ProgramDataPath $script:programData
+
+        Test-Path -LiteralPath $log | Should -BeFalse
+        Test-Path -LiteralPath (Join-Path $script:etlRoot 'AutoLogger\DiagTrack-Listener.etl') | Should -BeTrue
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Privacy -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and $Message -like '*AutoLogger*Access denied*'
+        }
     }
 
     It 'requires active install state and a rooted common application-data directory' {

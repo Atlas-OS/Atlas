@@ -141,7 +141,8 @@ It checks the drive's identity again before erasing and while writing, and reads
 
 1. **Windows setup** copies the Atlas files to `%windir%\AtlasISO`.
 2. In the `specialize` pass, which runs before the out-of-box experience (OOBE), setup applies the driver-update choice and installs the backed-up network drivers.
-3. During OOBE, Windows' first-run setup screens, the answer file creates the account through supported unattended settings and hides the online-account screen.
+3. During OOBE, Windows' first-run setup screens, the answer file creates the local account and hides the network and online-account screens.
+   You'll need internet access when Atlas Manager runs preparation after sign-in.
    It also sets `ProtectYourPC=3`, which turns Express settings off and hides them, because Atlas's options hold the real security and update choices.
    The ISO's **Windows setup** step says so under the account name.
 4. One automatic sign-in turns off further automatic sign-ins, expires the empty password, registers Atlas Manager for the next sign-in and signs out.

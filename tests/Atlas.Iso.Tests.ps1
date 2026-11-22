@@ -4,8 +4,14 @@ BeforeAll {
     $errors = $null
     $ast = [Management.Automation.Language.Parser]::ParseFile((Join-Path $script:IsoResources 'Build-Iso.ps1'), [ref]$null, [ref]$errors)
     if ($errors) { throw ($errors | Out-String) }
-    $function = $ast.Find({ param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Assert-BootCatalog' }, $true)
-    . ([scriptblock]::Create($function.Extent.Text))
+    foreach ($name in @('Assert-BootCatalog', 'Get-AtlasIsoDestinationVolume', 'Assert-Output')) {
+        $function = $ast.Find({ param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name }, $true)
+        . ([scriptblock]::Create($function.Extent.Text))
+    }
+    function Fail([string]$Reason, [string]$Message) { throw "$($Reason): $Message" }
+    function Get-TestIsoOutput {
+        Assert-Output -OutputPath (Join-Path $TestDrive 'destination.iso') -PackagePath $script:Media -SourcePath $script:Image
+    }
     # The worker's statements from the answer template to the finished file, so the
     # tests read what the media carries after the account name and architecture go in.
     $answerSteps = @($ast.FindAll({ param($n) $n -is [Management.Automation.Language.AssignmentStatementAst] -and $n.Left.Extent.Text -eq '$answer' }, $true))
@@ -28,10 +34,34 @@ BeforeAll {
     & (Join-Path $script:IsoResources 'Master-Iso.ps1') -Media $script:Media -Output $script:Image -CancelFile $script:Cancel
 }
 
+Describe 'ISO destination validation' {
+    It 'reads the filesystem and free space for a local folder' {
+        $volume = Get-AtlasIsoDestinationVolume -Path $script:Media
+        $volume.FileSystem | Should -BeIn @('NTFS', 'ReFS')
+        $volume.AvailableBytes | Should -BeGreaterOrEqual 0
+    }
+
+    It 'reports an unrecognised destination when Windows cannot query the volume' {
+        Mock Get-AtlasIsoDestinationVolume { throw 'Volume lookup failed' }
+        { Get-TestIsoOutput } | Should -Throw 'destination-filesystem:*Volume lookup failed*'
+    }
+
+    It 'rejects unsupported destination filesystems' {
+        Mock Get-AtlasIsoDestinationVolume { [pscustomobject]@{ FileSystem = 'exFAT'; AvailableBytes = 64GB } }
+        { Get-TestIsoOutput } | Should -Throw 'destination-filesystem:*'
+    }
+
+    It 'still reports insufficient space on a supported filesystem' {
+        Mock Get-AtlasIsoDestinationVolume { [pscustomobject]@{ FileSystem = 'ReFS'; AvailableBytes = 0 } }
+        { Get-TestIsoOutput } | Should -Throw 'disk-space:*'
+    }
+}
+
 Describe 'Native ISO mastering' {
     It 'uses one local-account bootstrap and a native first-logon handoff' {
         $oobe = @($script:Answer.unattend.settings | Where-Object pass -eq 'oobeSystem')[0].component
         $oobe.OOBE.HideOnlineAccountScreens | Should -Be 'true'
+        $oobe.OOBE.HideWirelessSetupInOOBE | Should -Be 'true'
         $oobe.OOBE.ProtectYourPC | Should -Be '3'
         $oobe.OOBE.HideEULAPage | Should -Be 'false'
         $oobe.UserAccounts.LocalAccounts.LocalAccount.Group | Should -Be 'Administrators'

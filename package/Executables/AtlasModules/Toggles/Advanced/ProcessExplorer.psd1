@@ -1,6 +1,6 @@
 @{
     Name        = 'ProcessExplorer'
-    Description = 'Replaces Task Manager with Sysinternals Process Explorer, or restores Task Manager.'
+    Description = 'Replaces Task Manager with the latest Microsoft-signed Sysinternals Process Explorer, or restores Task Manager.'
     Elevation   = 'Admin'
     Script      = 'ProcessExplorer.ps1'
     States      = @(

@@ -1,5 +1,5 @@
 {
-  "cargoLockSha256": "D973F4009D05EDFDD30CD50E56F9CB64DE4A87C4A787BE2ABCAE83058F4D66E0",
+  "cargoLockSha256": "012CFDCF45FFF0E385C58AF6834DD3FFB5E429DA33FF46B81E1879E0AD8D0290",
   "hashEncoding": "UTF-8 with LF line endings; supplemental hashes retain downloaded bytes",
   "target": "x86_64-pc-windows-msvc",
   "scope": "conservative locked target resolution, including build and development packages",

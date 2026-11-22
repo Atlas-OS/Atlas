@@ -1164,6 +1164,7 @@ usb-complete-title = Your USB is ready
 usb-close-title = USB creation is still running
 # After erasing may have begun.
 usb-failed = The drive may already have been erased, so it can't be used to install Windows yet. Make sure it's connected, then choose Review USB to try again. If you reconnected it, choose Refresh and select it again first.
+usb-failed-drive-unavailable = Windows lost access to the USB drive while writing. The installation files are incomplete. Reconnect it or use another USB drive, then choose Refresh, select the drive and choose Review USB.
 # Before anything on the drive was changed: in general, then for the reasons the writer reports.
 usb-failed-unchanged = Your USB drive wasn't changed. Choose Open log folder to see what failed, then choose Review USB to try again.
 usb-failed-iso = This ISO can't be used to create an installation USB. Choose an ISO created by Atlas, or a Windows 11 ISO from Microsoft for a version Atlas supports. Your USB drive wasn't changed.
@@ -1524,7 +1525,7 @@ prepare-store-repaired = Microsoft Store wasn't working, so Atlas repaired it.
 prepare-store-skipped-removed = Microsoft Store is turned off on this PC, so Atlas skipped Store app updates.
 # "Repair Microsoft Store" is prepare-repair-store; "Send a report" is report-title. The Atlas
 # ISO is iso-open, a button beside them.
-prepare-failed-store-repair-failed = Microsoft Store can't install or update apps on this PC, and Atlas couldn't repair it. Atlas needs it working, because installing Atlas while it's broken can leave the Store and its apps broken. Choose Repair Microsoft Store to try again. If it still doesn't work, back up your files and reinstall Windows with an Atlas ISO, or choose Send a report.
+prepare-failed-store-repair-failed = Atlas couldn't repair Microsoft Store on this PC. Choose Create an Atlas ISO to prepare a fresh Windows installation with Atlas. Back up your files before reinstalling Windows.
 prepare-repair-store = Repair Microsoft Store
 
 screen-keyboard-title = Keyboard languages

@@ -9,7 +9,7 @@ use crate::model::test_harness::{
     act, completed_session, fixture, marking_package, model_as_started, new_model, passing, ps_literal, read,
     run_model_test, save_draft, settle, wait_for, wait_on_disk, walk_to_install,
 };
-use crate::model::{AppModel, RunState, Step};
+use crate::model::{AppModel, Page, RunState, Step};
 use crate::services::installer::InstallOutcome;
 use crate::services::preparation::{Drivers, RestartProblem, State, StoreOutcome};
 use crate::services::recovery_app::SourceLinked;
@@ -603,6 +603,11 @@ fn get_ready_says_what_it_did_about_microsoft_store() {
             m.preparation == State::Failed && *runs.lock().unwrap() > before
         })
         .await;
+        act(&mut cx, &model, |m, cx| m.navigate_iso_for_this_pc(cx));
+        read(&cx, &model, |m| {
+            assert_eq!(m.page, Page::Iso);
+            assert!(m.iso_for_this_pc);
+        });
         settle(&cx, &model).await;
     });
 }

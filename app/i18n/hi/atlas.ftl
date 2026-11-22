@@ -953,6 +953,7 @@ usb-complete-title = आपका USB तैयार है
 usb-close-title = USB अभी बन रहा है
 # After erasing may have begun.
 usb-failed = हो सकता है कि ड्राइव पहले ही मिटा दी गई हो, इसलिए अभी उससे Windows इंस्टॉल नहीं किया जा सकता। पक्का करें कि वह कनेक्ट है, फिर दोबारा कोशिश करने के लिए “USB की समीक्षा करें” चुनें। अगर आपने उसे दोबारा कनेक्ट किया है, तो पहले “रीफ़्रेश करें” चुनें और उसे फिर से चुनें।
+usb-failed-drive-unavailable = लिखते समय Windows की USB ड्राइव तक पहुँच चली गई। उस पर इंस्टॉलेशन फ़ाइलें अधूरी हैं। ड्राइव को दोबारा कनेक्ट करें या दूसरी USB ड्राइव इस्तेमाल करें। फिर “रीफ़्रेश करें” चुनें, ड्राइव चुनें और “USB की समीक्षा करें” चुनें।
 # Before anything on the drive was changed: in general, then for the reasons the writer reports.
 usb-failed-unchanged = आपकी USB ड्राइव में कोई बदलाव नहीं हुआ। क्या विफल हुआ, यह देखने के लिए “लॉग फ़ोल्डर खोलें” चुनें, फिर दोबारा कोशिश करने के लिए “USB की समीक्षा करें” चुनें।
 usb-failed-iso = इस ISO से इंस्टॉलेशन USB नहीं बनाया जा सकता। Atlas से बनाया गया ISO चुनें, या Microsoft से लिया गया Windows 11 का ऐसा ISO, जिसके संस्करण का Atlas समर्थन करता है। आपकी USB ड्राइव में कोई बदलाव नहीं हुआ।
@@ -1281,7 +1282,7 @@ prepare-store-updated = Microsoft Store पुराना था, इसलि�
 prepare-store-bootstrapped = Microsoft Store ख़ुद को अपडेट नहीं कर सका, इसलिए Atlas ने Microsoft से नवीनतम App Installer और Microsoft Store इंस्टॉल किए।
 prepare-store-repaired = Microsoft Store काम नहीं कर रहा था, इसलिए Atlas ने उसे ठीक कर दिया।
 prepare-store-skipped-removed = इस PC पर Microsoft Store बंद है, इसलिए Atlas ने Store ऐप के अपडेट छोड़ दिए।
-prepare-failed-store-repair-failed = Microsoft Store इस PC पर ऐप्स इंस्टॉल या अपडेट नहीं कर पा रहा है, और Atlas उसे ठीक नहीं कर सका। Atlas के लिए इसका काम करना ज़रूरी है, क्योंकि Store ख़राब होने पर Atlas इंस्टॉल करने से Store और उसके ऐप्स ख़राब रह सकते हैं। फिर कोशिश करने के लिए “Microsoft Store ठीक करें” चुनें। अगर यह फिर भी काम न करे, तो अपनी फ़ाइलों का बैकअप लें और Atlas ISO से Windows दोबारा इंस्टॉल करें, या “रिपोर्ट भेजें” चुनें।
+prepare-failed-store-repair-failed = Atlas इस PC पर Microsoft Store को ठीक नहीं कर सका। Atlas के साथ Windows की नई स्थापना तैयार करने के लिए “Atlas ISO बनाएँ” चुनें। Windows दोबारा इंस्टॉल करने से पहले अपनी फ़ाइलों का बैकअप लें।
 prepare-repair-store = Microsoft Store ठीक करें
 
 screen-keyboard-title = कीबोर्ड की भाषाएँ

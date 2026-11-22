@@ -37,24 +37,41 @@ function Clear-AtlasTelemetryLogFiles {
 
     $removed = 0
     foreach ($directoryPath in $logDirectories) {
-        if (-not [IO.Directory]::Exists($directoryPath)) {
+        try {
+            $directory = Get-Item -LiteralPath $directoryPath -Force -ErrorAction Stop
+            if (($directory.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw "Telemetry-log directory '$directoryPath' is a reparse point."
+            }
+
+            $files = @(Get-ChildItem -LiteralPath $directoryPath `
+                    -Filter 'DiagTrack*' -File -Force -ErrorAction Stop)
+        }
+        catch [System.Management.Automation.ItemNotFoundException] {
             continue
         }
-
-        $directory = Get-Item -LiteralPath $directoryPath -Force -ErrorAction Stop
-        if (($directory.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-            throw "Telemetry-log directory '$directoryPath' is a reparse point."
+        catch {
+            if ($_.CategoryInfo.Category -ne [System.Management.Automation.ErrorCategory]::PermissionDenied) {
+                throw
+            }
+            # Cleanup of existing logs is optional. Do not change Windows' ACLs to remove them.
+            Write-AtlasLog -Level Warning -Message "Skipped DiagTrack log cleanup in '$directoryPath': $($_.Exception.Message)"
+            continue
         }
-
-        $files = @(Get-ChildItem -LiteralPath $directoryPath `
-                -Filter 'DiagTrack*' -File -Force -ErrorAction Stop)
         foreach ($file in $files) {
             if (($file.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
                 throw "Telemetry-log file '$($file.FullName)' is a reparse point."
             }
 
-            Remove-Item -LiteralPath $file.FullName -Force -ErrorAction Stop
-            $removed++
+            try {
+                Remove-Item -LiteralPath $file.FullName -Force -ErrorAction Stop
+                $removed++
+            }
+            catch {
+                if ($_.CategoryInfo.Category -ne [System.Management.Automation.ErrorCategory]::PermissionDenied) {
+                    throw
+                }
+                Write-AtlasLog -Level Warning -Message "Could not remove DiagTrack log '$($file.FullName)': $($_.Exception.Message)"
+            }
         }
     }
     Write-AtlasLog -Message "Removed $removed DiagTrack log file(s)."

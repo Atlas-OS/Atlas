@@ -931,6 +931,7 @@ usb-complete-title = USB Anda siap
 usb-close-title = Pembuatan USB masih berlangsung
 # After erasing may have begun.
 usb-failed = Isi drive mungkin sudah dihapus, sehingga drive belum dapat digunakan untuk menginstal Windows. Pastikan drive terhubung, lalu pilih Tinjau USB untuk mencoba lagi. Jika Anda menghubungkannya kembali, terlebih dahulu pilih Muat ulang dan pilih drive tersebut lagi.
+usb-failed-drive-unavailable = Windows kehilangan akses ke drive USB saat menulis. File penginstalannya belum lengkap. Hubungkan kembali drive itu atau gunakan drive USB lain. Lalu pilih Muat ulang, pilih drive, dan pilih Tinjau USB.
 # Before anything on the drive was changed: in general, then for the reasons the writer reports.
 usb-failed-unchanged = Drive USB Anda tidak diubah. Pilih Buka folder log untuk melihat penyebabnya, lalu pilih Tinjau USB untuk mencoba lagi.
 usb-failed-iso = ISO ini tidak dapat digunakan untuk membuat USB instalasi. Pilih ISO yang dibuat oleh Atlas, atau ISO Windows 11 dari Microsoft untuk versi yang didukung Atlas. Drive USB Anda tidak diubah.
@@ -1257,7 +1258,7 @@ prepare-store-updated = Versi Microsoft Store sudah usang, jadi Atlas memperbaru
 prepare-store-bootstrapped = Microsoft Store tidak dapat memperbarui dirinya sendiri, jadi Atlas menginstal App Installer dan Microsoft Store terbaru dari Microsoft.
 prepare-store-repaired = Microsoft Store tidak berfungsi, jadi Atlas memperbaikinya.
 prepare-store-skipped-removed = Microsoft Store dinonaktifkan di PC ini, jadi Atlas melewati pembaruan aplikasi Store.
-prepare-failed-store-repair-failed = Microsoft Store tidak dapat menginstal atau memperbarui aplikasi di PC ini, dan Atlas tidak dapat memperbaikinya. Atlas memerlukannya berfungsi, karena menginstal Atlas saat Store rusak dapat membuat Store dan aplikasinya tetap rusak. Pilih Perbaiki Microsoft Store untuk mencoba lagi. Jika masih tidak berfungsi, cadangkan file Anda dan instal ulang Windows dengan ISO Atlas, atau pilih Kirim laporan.
+prepare-failed-store-repair-failed = Atlas tidak dapat memperbaiki Microsoft Store di PC ini. Pilih Buat ISO Atlas untuk menyiapkan penginstalan baru Windows dengan Atlas. Cadangkan file Anda sebelum menginstal ulang Windows.
 prepare-repair-store = Perbaiki Microsoft Store
 
 screen-keyboard-title = Bahasa keyboard

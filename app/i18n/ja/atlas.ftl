@@ -928,6 +928,7 @@ usb-complete-title = USB の準備ができました
 usb-close-title = USB の作成はまだ実行中です
 # After erasing may have begun.
 usb-failed = ドライブはすでに消去されている可能性があるため、まだ Windows のインストールには使用できません。ドライブが接続されていることを確認してから、「USB を確認」を選んで再試行してください。接続し直した場合は、先に「一覧を更新」を選んでドライブを選択し直してください。
+usb-failed-drive-unavailable = 書き込み中に Windows が USB ドライブにアクセスできなくなりました。インストールファイルは不完全です。接続し直すか別の USB ドライブを使い、「一覧を更新」を選んでドライブを選択し、「USB を確認」を選んでください。
 # Before anything on the drive was changed: in general, then for the reasons the writer reports.
 usb-failed-unchanged = USB ドライブは変更されていません。「ログ フォルダーを開く」を選んで原因を確認してから、「USB を確認」を選んで再試行してください。
 usb-failed-iso = この ISO はインストール USB の作成に使用できません。Atlas で作成した ISO か、Atlas が対応するバージョンの Microsoft 提供の Windows 11 ISO を選んでください。USB ドライブは変更されていません。
@@ -1251,7 +1252,7 @@ prepare-store-updated = Microsoft Store が最新ではなかったため、Atla
 prepare-store-bootstrapped = Microsoft Store が自身を更新できなかったため、Atlas は Microsoft から最新のアプリ インストーラーと Microsoft Store をインストールしました。
 prepare-store-repaired = Microsoft Store が動作していなかったため、Atlas が修復しました。
 prepare-store-skipped-removed = この PC では Microsoft Store がオフになっているため、Atlas は Store アプリの更新をスキップしました。
-prepare-failed-store-repair-failed = Microsoft Store がこの PC でアプリのインストールや更新を行えず、Atlas は修復できませんでした。Store が壊れた状態で Atlas をインストールすると、Store とそのアプリが壊れたままになる可能性があるため、Atlas には Store が正常に動作している必要があります。もう一度試すには、「Microsoft Store を修復」を選んでください。それでも動作しない場合は、ファイルをバックアップしてから Atlas ISO で Windows を再インストールするか、「レポートを送信」を選んでください。
+prepare-failed-store-repair-failed = Atlas はこの PC の Microsoft Store を修復できませんでした。「Atlas ISO を作成」を選んで、Atlas を含む Windows の新規インストールを準備してください。Windows を再インストールする前に、ファイルをバックアップしてください。
 prepare-repair-store = Microsoft Store を修復
 
 screen-keyboard-title = キーボードの言語

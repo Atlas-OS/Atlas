@@ -1061,6 +1061,20 @@ function Invoke-PreparationStore {
     throw (New-PreparationFailure "Microsoft Store still offers updates after $script:PreparationPasses passes." 'store-passes')
 }
 
+function Assert-PreparationWindowsCurrent($Session, [string]$Phase, [string]$Message) {
+    $required = @(Find-PreparationWindowsUpdate $Session)
+    if ($required.Count -eq 0) { return }
+
+    Write-PreparationLog "Verification found $($required.Count) required Windows update(s) $Phase the Store check (driver mode: $DriverMode)."
+    foreach ($update in ($required | Select-Object -First 20)) {
+        $title = ([string]$update.Title -replace '\s+', ' ').Trim()
+        $kb = @(Get-PreparationUpdateKb $update)
+        $reference = if ($kb.Count -gt 0) { " (KB: $($kb -join ', '))" } else { '' }
+        Write-PreparationLog "Required update: $title$reference"
+    }
+    throw $Message
+}
+
 function Assert-PreparationCurrent {
     Assert-PreparationContinue
     Assert-PreparationUser
@@ -1069,7 +1083,8 @@ function Assert-PreparationCurrent {
     Write-PreparationState running windows-search
     $session = New-Object -ComObject Microsoft.Update.Session
     $session.ClientApplicationID = 'Atlas preparation verification'
-    if (@(Find-PreparationWindowsUpdate $session).Count -gt 0) { throw 'Windows still offers required updates. Finish preparation in Atlas, then retry installation.' }
+    Assert-PreparationWindowsCurrent $session 'before' `
+        'Windows still offers required updates. Finish preparation in Atlas, then retry installation.'
     Assert-PreparationContinue
     # A Store the user removed has nothing to check; preparation skipped it too.
     if (Test-PreparationStoreRemoved) { $pending = @() }
@@ -1086,7 +1101,8 @@ function Assert-PreparationCurrent {
     }
     if ($pending.Count -gt 0) { throw 'Microsoft Store apps still need updates. Finish the queued updates in Atlas or Microsoft Store, then retry installation.' }
     Assert-PreparationContinue
-    if (@(Find-PreparationWindowsUpdate $session).Count -gt 0) { throw 'Windows offered additional updates during verification. Finish preparation, then retry.' }
+    Assert-PreparationWindowsCurrent $session 'after' `
+        'Windows offered additional updates during verification. Finish preparation, then retry.'
     if (Test-PreparationRestart) { throw "Restart Windows before installing Atlas (pending: $($script:PreparationRestartReasons -join ', '))." }
     if (-not (Test-PreparationNetwork)) { throw 'The internet connection changed during preparation verification.' }
 }
@@ -1472,7 +1488,8 @@ function Repair-PreparationStore([Exception]$Failure) {
         }
     }
     Write-PreparationStoreInventory 'after'
-    $hresult = if ($code) { [Convert]::ToInt32($code, 16) } else { 0 }
+    $lastCode = (Get-PreparationFailureDetail $last)['errorCode']
+    $hresult = if ($lastCode) { [Convert]::ToInt32($lastCode, 16) } else { 0 }
     throw (New-PreparationFailure "Microsoft Store couldn't be repaired: $($last.Message)" 'store-repair-failed' $hresult)
 }
 
@@ -1671,7 +1688,14 @@ function Install-PreparationStoreFromMicrosoft {
         Write-PreparationStoreEvidence "bootstrap: the App Installer this PC has didn't give a usable winget: $($_.Exception.Message)"
     }
     if (-not $winget) {
-        Save-PreparationAppInstaller
+        try { Save-PreparationAppInstaller }
+        catch {
+            # ERROR_INSTALL_PACKAGE_DOWNGRADE: Windows already has a newer
+            # package than the stable release we tried. Use the signed App
+            # Installer available to this user, then verify its Store source.
+            if ((Get-PreparationHResult $_.Exception) -ne 0x80073D06) { throw }
+            Write-PreparationStoreEvidence 'bootstrap: Windows already has a newer App Installer package; trying the installed winget (0x80073D06)'
+        }
         $winget = Get-PreparationWingetPath
     }
     Assert-PreparationWingetStoreSource $winget

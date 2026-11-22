@@ -73,7 +73,8 @@ impl UsbError {
                 Severity::Error,
                 t!("usb-failed-title"),
                 match reason {
-                    // The worker reports its typed reasons before erasing anything.
+                    Some(FailureReason::DriveUnavailable) => t!("usb-failed-drive-unavailable"),
+                    // These other typed reasons only have specific advice before erasing.
                     _ if changed => t!("usb-failed"),
                     Some(FailureReason::IsoUnsupported) => t!("usb-failed-iso"),
                     Some(FailureReason::SourceLocation) => t!("usb-failed-location"),
@@ -746,6 +747,9 @@ mod tests {
             // After erasing began, the drive may be partly written whatever changed.
             let late = UsbError::Write { reason: Some(FailureReason::DriveChanged), changed: true };
             assert_eq!(late.bar(true).2, t!("usb-failed"));
+            let unavailable = failure(Some(FailureReason::DriveUnavailable), true);
+            let error = UsbError::of("Write", false, unavailable.downcast_ref());
+            assert_eq!(error.bar(true).2, t!("usb-failed-drive-unavailable"));
         });
     }
 

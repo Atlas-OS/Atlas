@@ -918,6 +918,7 @@ usb-complete-title = 隨身碟已準備就緒
 usb-close-title = 隨身碟仍在建立中
 # After erasing may have begun.
 usb-failed = 磁碟機可能已被清除，因此目前還無法用來安裝 Windows。請確認磁碟機已連接，然後選擇「檢查隨身碟」再試一次。如果您曾重新連接磁碟機，請先選擇「重新整理」並再次選取它。
+usb-failed-drive-unavailable = Windows 在寫入過程中無法繼續存取隨身碟。安裝檔案尚未寫入完成。請重新連接此隨身碟或使用其他隨身碟，然後選擇「重新整理」，選取隨身碟，再選擇「檢查隨身碟」。
 # Before anything on the drive was changed: in general, then for the reasons the writer reports.
 usb-failed-unchanged = 您的 USB 磁碟機沒有任何變更。請選擇「開啟記錄資料夾」查看失敗原因，然後選擇「檢查隨身碟」再試一次。
 usb-failed-iso = 此 ISO 無法用來建立安裝隨身碟。請選擇 Atlas 建立的 ISO，或從 Microsoft 取得、且為 Atlas 支援版本的 Windows 11 ISO。您的 USB 磁碟機沒有任何變更。
@@ -1236,7 +1237,7 @@ prepare-store-updated = Microsoft Store 版本過舊，因此 Atlas 先更新了
 prepare-store-bootstrapped = Microsoft Store 無法自行更新，因此 Atlas 從 Microsoft 安裝了最新的應用程式安裝程式和 Microsoft Store。
 prepare-store-repaired = Microsoft Store 無法正常運作，因此 Atlas 已將其修復。
 prepare-store-skipped-removed = 這台電腦已關閉 Microsoft Store，因此 Atlas 略過了市集應用程式的更新。
-prepare-failed-store-repair-failed = Microsoft Store 無法在這台電腦上安裝或更新應用程式，Atlas 也無法修復它。Atlas 需要 Microsoft Store 正常運作，因為在它損毀時安裝 Atlas，可能會讓 Microsoft Store 及其應用程式持續無法運作。請選擇「修復 Microsoft Store」再試一次。如果仍然無法運作，請備份您的檔案，並使用 Atlas ISO 重新安裝 Windows，或選擇「傳送報告」。
+prepare-failed-store-repair-failed = Atlas 無法修復這台電腦上的 Microsoft Store。請選擇「建立 Atlas ISO」，準備全新安裝含有 Atlas 的 Windows。重新安裝 Windows 前，請先備份您的檔案。
 prepare-repair-store = 修復 Microsoft Store
 
 screen-keyboard-title = 鍵盤語言

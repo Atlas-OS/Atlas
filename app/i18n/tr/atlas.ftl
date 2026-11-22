@@ -960,6 +960,7 @@ usb-complete-title = USB’niz hazır
 usb-close-title = USB oluşturma devam ediyor
 # After erasing may have begun.
 usb-failed = Sürücü zaten silinmiş olabilir, bu yüzden henüz Windows yüklemek için kullanılamaz. Sürücünün bağlı olduğundan emin olun, ardından yeniden denemek için USB’yi gözden geçir’i seçin. Sürücüyü yeniden bağladıysanız önce Yenile’yi seçip sürücüyü yeniden seçin.
+usb-failed-drive-unavailable = Windows, yazma sırasında USB sürücüsüne erişimi kaybetti. Yükleme dosyaları tamamlanmadı. Sürücüyü yeniden bağlayın veya başka bir USB sürücüsü kullanın. Ardından Yenile’yi seçin, sürücüyü seçin ve USB’yi gözden geçir’i seçin.
 # Before anything on the drive was changed: in general, then for the reasons the writer reports.
 usb-failed-unchanged = USB sürücünüz değiştirilmedi. Neyin başarısız olduğunu görmek için Günlük klasörünü aç’ı seçin, ardından yeniden denemek için USB’yi gözden geçir’i seçin.
 usb-failed-iso = Bu ISO ile kurulum USB’si oluşturulamaz. Atlas ile oluşturulmuş bir ISO veya Microsoft’tan alınmış, Atlas’ın desteklediği bir sürüme ait Windows 11 ISO’su seçin. USB sürücünüz değiştirilmedi.
@@ -1291,7 +1292,7 @@ prepare-store-updated = Microsoft Store güncel değildi, bu yüzden Atlas onu u
 prepare-store-bootstrapped = Microsoft Store kendini güncelleştiremedi, bu yüzden Atlas en son Uygulama Yükleyicisi'ni ve Microsoft Store'u Microsoft'tan yükledi.
 prepare-store-repaired = Microsoft Store çalışmıyordu, bu yüzden Atlas onu onardı.
 prepare-store-skipped-removed = Microsoft Store bu bilgisayarda kapalı, bu yüzden Atlas Store uygulaması güncelleştirmelerini atladı.
-prepare-failed-store-repair-failed = Microsoft Store bu bilgisayarda uygulama yükleyemiyor veya güncelleştiremiyor ve Atlas onu onaramadı. Atlas'ın çalışan bir Store'a ihtiyacı var, çünkü Store bozukken Atlas'ı yüklemek Store'u ve uygulamalarını bozuk bırakabilir. Yeniden denemek için Microsoft Store'u onar'ı seçin. Yine çalışmazsa dosyalarınızı yedekleyin ve Windows'u bir Atlas ISO'suyla yeniden yükleyin ya da Rapor gönder'i seçin.
+prepare-failed-store-repair-failed = Atlas bu bilgisayarda Microsoft Store’u onaramadı. Atlas ile temiz bir Windows kurulumu hazırlamak için Atlas ISO'su oluştur’u seçin. Windows’u yeniden yüklemeden önce dosyalarınızı yedekleyin.
 prepare-repair-store = Microsoft Store'u onar
 
 screen-keyboard-title = Klavye dilleri

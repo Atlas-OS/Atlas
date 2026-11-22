@@ -9,14 +9,47 @@ BeforeAll {
 }
 
 Describe 'Process Explorer package identity' {
-    It 'selects the native binary and its SHA-256 for <Architecture>' -TestCases @(
+    It 'selects the native archive entry for <Architecture>' -TestCases @(
         @{ Architecture = 'X86'; Name = 'procexp.exe' }
         @{ Architecture = 'X64'; Name = 'procexp64.exe' }
         @{ Architecture = 'ARM64'; Name = 'procexp64a.exe' }
     ) {
-        $binary = Get-AtlasProcessExplorerBinary -Architecture $Architecture
-        $binary.ArchiveName | Should -BeExactly $Name
-        $binary.Sha256 | Should -MatchExactly '^[0-9a-f]{64}$'
+        Get-AtlasProcessExplorerArchiveName -Architecture $Architecture | Should -BeExactly $Name
+    }
+}
+
+Describe 'Process Explorer current download' {
+    It 'extracts only the native root entry and rejects a non-Microsoft signer' {
+        Add-Type -AssemblyName System.IO.Compression -ErrorAction Stop
+        Mock Invoke-AtlasLimitedHttpGet {
+            $archive = [IO.Compression.ZipArchive]::new($OutputStream, [IO.Compression.ZipArchiveMode]::Create, $true)
+            try {
+                foreach ($name in @('procexp64.exe', '../outside.exe', 'procexp64a.exe')) {
+                    $stream = $archive.CreateEntry($name).Open()
+                    try { $stream.WriteByte(42) }
+                    finally { $stream.Dispose() }
+                }
+            }
+            finally { $archive.Dispose() }
+            $OutputStream.Length
+        }
+        Mock Get-AuthenticodeSignature {
+            [pscustomobject]@{
+                Status = [System.Management.Automation.SignatureStatus]::Valid
+                SignerCertificate = [pscustomobject]@{ Subject = 'CN=Other Publisher' }
+            }
+        }
+        $stage = Join-Path $TestDrive 'staging'
+        New-Item -Path $stage -ItemType Directory | Out-Null
+
+        { Get-AtlasLatestProcessExplorerBinary -StagingPath $stage -ArchiveName 'procexp64.exe' } |
+            Should -Throw '*not validly signed by Microsoft*'
+
+        @(Get-ChildItem -LiteralPath $stage).Name | Should -Be 'procexp64.exe'
+        Test-Path -LiteralPath (Join-Path $TestDrive 'outside.exe') | Should -BeFalse
+        Should -Invoke Invoke-AtlasLimitedHttpGet -Times 1 -Exactly -ParameterFilter {
+            $Uri.Host -eq 'download.sysinternals.com' -and $MaximumBytes -eq 32MB -and -not $AllowRedirect
+        }
     }
 }
 
@@ -78,11 +111,11 @@ Describe 'Process Explorer registry provider integration' {
 Describe 'Process Explorer ownership state' {
     It 'records only package identity and the pcw value Atlas changed' {
         $state = ConvertTo-AtlasProcessExplorerState -Architecture X64 `
-            -InstalledBinarySha256 ('a' * 64) -PcwStart 2 `
+            -PackageVersion '17.21' -InstalledBinarySha256 ('a' * 64) -PcwStart 2 `
             -DisablePcw $true -ExistingState $null
 
         $state.SchemaVersion | Should -Be 1
-        $state.PackageVersion | Should -Be '17.13'
+        $state.PackageVersion | Should -Be '17.21'
         $state.PcwChanged | Should -BeTrue
         $state.PcwPriorStart | Should -Be 2
         @($state.PSObject.Properties.Name) | Should -Be @(
@@ -94,7 +127,7 @@ Describe 'Process Explorer ownership state' {
     It 'preserves the original pcw value across reinstall' {
         $existing = [pscustomobject]@{ PcwChanged = $true; PcwPriorStart = 3 }
         $state = ConvertTo-AtlasProcessExplorerState -Architecture X64 `
-            -InstalledBinarySha256 ('b' * 64) -PcwStart 4 `
+            -PackageVersion '17.21' -InstalledBinarySha256 ('b' * 64) -PcwStart 4 `
             -DisablePcw $true -ExistingState $existing
 
         $state.PcwChanged | Should -BeTrue
@@ -104,7 +137,7 @@ Describe 'Process Explorer ownership state' {
     It 'round-trips the size-limited JSON record' {
         $statePath = Join-Path $TestDrive 'ProcessExplorer\Atlas.ProcessExplorer.State.json'
         $state = ConvertTo-AtlasProcessExplorerState -Architecture ARM64 `
-            -InstalledBinarySha256 ('c' * 64) -PcwStart 4 `
+            -PackageVersion '17.21' -InstalledBinarySha256 ('c' * 64) -PcwStart 4 `
             -DisablePcw $false -ExistingState $null
 
         Write-AtlasProcessExplorerState -StatePath $statePath -State $state
@@ -199,7 +232,7 @@ Describe 'Process Explorer integration ownership' {
             Should -Throw '*will not replace the existing Start menu shortcut*'
     }
 
-    It 'accepts the exact new pin when state refresh was interrupted' {
+    It 'accepts the verified download when state refresh was interrupted' {
         [void](New-Item $Layout.PackagePath -ItemType Directory -Force)
         [IO.File]::WriteAllText($Layout.BinaryPath, 'new-reviewed-binary')
         $newHash = Get-AtlasProcessExplorerFileSha256 -Path $Layout.BinaryPath
@@ -259,7 +292,7 @@ Describe 'Process Explorer integration ownership' {
         [IO.File]::WriteAllText($Layout.BinaryPath, 'working-package')
         $hash = Get-AtlasProcessExplorerFileSha256 -Path $Layout.BinaryPath
         $state = ConvertTo-AtlasProcessExplorerState -Architecture X64 `
-            -InstalledBinarySha256 $hash -PcwStart 3 `
+            -PackageVersion '17.21' -InstalledBinarySha256 $hash -PcwStart 3 `
             -DisablePcw $false -ExistingState $null
         Write-AtlasProcessExplorerState -StatePath $Layout.StatePath -State $state
         Mock Get-AtlasProcessExplorerLayout { $script:Layout }
