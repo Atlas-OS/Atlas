@@ -735,6 +735,13 @@ iso-files-description = Atlas, Windows 11 ISO की एक कॉपी बन�
 iso-files-description-bundled = Atlas, Windows 11 ISO की एक कॉपी बनाकर उसमें इस परीक्षण बिल्ड के साथ दिया गया Atlas पैकेज जोड़ता है। Microsoft से डाउनलोड किया गया Windows 11 ISO चुनें, फिर चुनें कि नया ISO कहाँ सहेजना है।
 iso-source = Windows ISO
 iso-source-download = Microsoft से Windows 11 डाउनलोड करें
+iso-download-arch = आर्किटेक्चर
+iso-download-languages = भाषाएँ लोड हो रही हैं…
+iso-download-list-error = Windows की भाषाएँ लोड नहीं हो सकीं। फिर कोशिश करें या Microsoft की वेबसाइट से ISO डाउनलोड करें।
+iso-download-file-error = ISO सहेजी नहीं जा सकी। कनेक्शन और खाली जगह जाँचें और नए फ़ाइल नाम के साथ फिर कोशिश करें।
+iso-download-website = Microsoft का डाउनलोड पेज खोलें
+iso-download-progress = Windows डाउनलोड हो रहा है · { $total } में से { $received }
+iso-download-starting = Windows डाउनलोड की तैयारी हो रही है…
 # $minimum is the first Atlas version that can be used (text, such as 0.6.0).
 iso-package = Atlas पैकेज ({ $minimum } या उससे नया)
 iso-output = नया ISO यहाँ सहेजें

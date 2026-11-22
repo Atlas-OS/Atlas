@@ -698,6 +698,13 @@ iso-files-description = Atlas 会复制一份 Windows 11 ISO 并在其中加入 
 iso-files-description-bundled = Atlas 会复制一份 Windows 11 ISO，并在其中加入此测试版内置的 Atlas 安装包。请选择从 Microsoft 下载的 Windows 11 ISO，然后选择新 ISO 的保存位置。
 iso-source = Windows ISO
 iso-source-download = 从 Microsoft 下载 Windows 11
+iso-download-arch = 体系结构
+iso-download-languages = 正在加载语言…
+iso-download-list-error = 无法加载 Windows 语言列表。请重试，或从微软网站下载 ISO。
+iso-download-file-error = 无法保存 ISO。请检查网络连接和可用空间，然后使用新的文件名重试。
+iso-download-website = 打开微软下载页面
+iso-download-progress = 正在下载 Windows · { $received } / { $total }
+iso-download-starting = 正在准备下载 Windows…
 # $minimum 为可使用的最低 Atlas 版本（文本，例如 0.6.0）。
 iso-package = Atlas 安装包（{ $minimum } 或更高版本）
 iso-output = 新 ISO 的保存位置

@@ -729,6 +729,13 @@ iso-files-description = Atlas crea una copia de una ISO de Windows 11 con Atlas 
 iso-files-description-bundled = Atlas crea una copia de una ISO de Windows 11 con el paquete de Atlas incluido en esta versión de prueba. Elija una ISO de Windows 11 descargada de Microsoft y, después, elija dónde guardar la nueva ISO.
 iso-source = ISO de Windows
 iso-source-download = Descargar Windows 11 de Microsoft
+iso-download-arch = Arquitectura
+iso-download-languages = Cargando idiomas…
+iso-download-list-error = No se pudieron cargar los idiomas de Windows. Vuelve a intentarlo o descarga la ISO desde Microsoft.
+iso-download-file-error = No se pudo guardar la ISO. Comprueba la conexión y el espacio libre y vuelve a intentarlo con otro nombre de archivo.
+iso-download-website = Abrir la página de descargas de Microsoft
+iso-download-progress = Descargando Windows · { $received } de { $total }
+iso-download-starting = Preparando la descarga de Windows…
 # $minimum es la primera versión de Atlas que se puede usar (texto, como 0.6.0).
 iso-package = Paquete de Atlas ({ $minimum } o posterior)
 iso-output = Guardar la nueva ISO en

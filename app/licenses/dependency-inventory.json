@@ -1,5 +1,5 @@
 {
-  "cargoLockSha256": "8BAA1BB72AE24156CF2D0AD6359108F9AAEEF594B42B49550E87D142832A48F0",
+  "cargoLockSha256": "D973F4009D05EDFDD30CD50E56F9CB64DE4A87C4A787BE2ABCAE83058F4D66E0",
   "hashEncoding": "UTF-8 with LF line endings; supplemental hashes retain downloaded bytes",
   "target": "x86_64-pc-windows-msvc",
   "scope": "conservative locked target resolution, including build and development packages",
@@ -1332,6 +1332,23 @@
         {
           "path": "LICENSE.md",
           "sha256": "50CCA25AB13F5322D4413A1CF067FD2DFEF1B39BD24B015A98000FABA5F63FFC"
+        }
+      ]
+    },
+    {
+      "package": "fastrand",
+      "version": "2.5.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "Apache-2.0 OR MIT",
+      "normalWindowsDependency": true,
+      "notices": [
+        {
+          "path": "LICENSE-APACHE",
+          "sha256": "A60EEA817514531668D7E00765731449FE14D059D3249E0BC93B36DE45F759F2"
+        },
+        {
+          "path": "LICENSE-MIT",
+          "sha256": "23F18E03DC49DF91622FE2A76176497404E46CED8A715D9D2B67A7446571CCA3"
         }
       ]
     },
@@ -4647,6 +4664,23 @@
         {
           "path": "LICENSE-MIT",
           "sha256": "6CFE51B21BD30814A17D34967AE9372BD7EC3EA043AFAFBF2F0EC0FC6371D7A1"
+        }
+      ]
+    },
+    {
+      "package": "tempfile",
+      "version": "3.27.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "license": "MIT OR Apache-2.0",
+      "normalWindowsDependency": true,
+      "notices": [
+        {
+          "path": "LICENSE-APACHE",
+          "sha256": "A60EEA817514531668D7E00765731449FE14D059D3249E0BC93B36DE45F759F2"
+        },
+        {
+          "path": "LICENSE-MIT",
+          "sha256": "8B427F5BC501764575E52BA4F9D95673CF8F6D80A86D0D06599852E1A9A20A36"
         }
       ]
     },

@@ -201,7 +201,7 @@ It sets `ATLAS_ISO_PREVIEW`, and for `prepare-` states also `ATLAS_PREPARATION_P
 | Screen | States |
 | --- | --- |
 | Home | `home` |
-| Files | `files`, `files-empty`, `files-checked`, `checking`, `not-elevated`, `failed`, `release-unknown`, `release-unlisted`, `package-unsupported`, `manager-outdated` |
+| Files | `files`, `files-empty`, `download-language`, `download-progress`, `files-checked`, `checking`, `not-elevated`, `failed`, `release-unknown`, `release-unlisted`, `package-unsupported`, `manager-outdated` |
 | Windows setup | `windows`, `account-empty`, `account-invalid`, `network-drivers` |
 | Your choices | `choices`, `choices-unsupported`, `before`, `before-desktop` |
 | Review and Create | `review`, `review-before`, `progress`, `progress-network`, `build-failed`, `package-changed`, `cancelled`, `complete` |

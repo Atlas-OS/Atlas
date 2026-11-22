@@ -715,6 +715,13 @@ iso-files-description = Atlas membuat salinan ISO Windows 11 yang sudah berisi A
 iso-files-description-bundled = Atlas membuat salinan ISO Windows 11 yang sudah berisi paket Atlas bawaan versi uji ini. Pilih ISO Windows 11 yang diunduh dari Microsoft, lalu pilih lokasi untuk menyimpan ISO baru.
 iso-source = ISO Windows
 iso-source-download = Unduh Windows 11 dari Microsoft
+iso-download-arch = Arsitektur
+iso-download-languages = Memuat bahasa…
+iso-download-list-error = Bahasa Windows gagal dimuat. Coba lagi atau unduh ISO dari situs Microsoft.
+iso-download-file-error = ISO gagal disimpan. Periksa koneksi dan ruang kosong, lalu coba lagi dengan nama file baru.
+iso-download-website = Buka halaman unduhan Microsoft
+iso-download-progress = Mengunduh Windows · { $received } dari { $total }
+iso-download-starting = Menyiapkan unduhan Windows…
 # $minimum is the first Atlas version that can be used (text, such as 0.6.0).
 iso-package = Paket Atlas ({ $minimum } atau lebih baru)
 iso-output = Simpan ISO baru ke

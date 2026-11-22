@@ -711,6 +711,13 @@ iso-files-description = Atlas は、Windows の再インストールに使える
 iso-files-description-bundled = Atlas は、このテスト ビルドに同梱された Atlas パッケージを Windows 11 ISO に追加したコピーを作成します。Microsoft からダウンロードした Windows 11 ISO を選んでから、新しい ISO の保存先を選んでください。
 iso-source = Windows ISO
 iso-source-download = Microsoft から Windows 11 をダウンロード
+iso-download-arch = アーキテクチャ
+iso-download-languages = 言語を読み込み中…
+iso-download-list-error = Windows の言語を読み込めませんでした。もう一度試すか、Microsoft のサイトから ISO をダウンロードしてください。
+iso-download-file-error = ISO を保存できませんでした。接続と空き容量を確認し、新しいファイル名でもう一度お試しください。
+iso-download-website = Microsoft のダウンロードページを開く
+iso-download-progress = Windows をダウンロード中 · { $total } 中 { $received }
+iso-download-starting = Windows のダウンロードを準備中…
 # $minimum is the first Atlas version that can be used (text, such as 0.6.0).
 iso-package = Atlas パッケージ ({ $minimum } 以降)
 iso-output = 新しい ISO の保存先

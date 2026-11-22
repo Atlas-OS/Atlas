@@ -3,7 +3,7 @@ param(
     [string]$Language = 'en-GB',
     # The ISO and USB preview states of pages/iso.rs and pages/usb.rs, and the preparation states
     # listed in docs/review-tools.md. Set ATLAS_PREPARATION_PREVIEW directly for the others.
-    [ValidateSet('home','files','files-empty','files-checked','checking','not-elevated','windows','account-empty','account-invalid','choices','choices-unsupported','before','before-desktop',
+    [ValidateSet('home','files','files-empty','download-language','download-progress','files-checked','checking','not-elevated','windows','account-empty','account-invalid','choices','choices-unsupported','before','before-desktop',
         'review','review-before','progress','progress-network','failed','build-failed','package-changed','cancelled','release-unknown','release-unlisted','package-unsupported','manager-outdated','complete',
         'prepare-idle','prepare-busy','prepare-stopping','prepare-download','prepare-complete','prepare-resume','prepare-failed','prepare-failed-battery','prepare-unconfirmed',
         'prepare-reboot','prepare-restart-persists','prepare-network','prepare-network-limited','prepare-previous-worker',

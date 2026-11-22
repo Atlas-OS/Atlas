@@ -738,6 +738,13 @@ iso-files-description = Atlas, Windows'u yeniden yükleyebilmeniz için bir Wind
 iso-files-description-bundled = Atlas, bir Windows 11 ISO'sunun bu test sürümüyle gelen Atlas paketi eklenmiş bir kopyasını oluşturur. Microsoft'tan indirilmiş bir Windows 11 ISO'su seçin, ardından yeni ISO'nun kaydedileceği yeri seçin.
 iso-source = Windows ISO'su
 iso-source-download = Windows 11'i Microsoft'tan indir
+iso-download-arch = Mimari
+iso-download-languages = Diller yükleniyor…
+iso-download-list-error = Windows dilleri yüklenemedi. Tekrar deneyin veya ISO’yu Microsoft’un sitesinden indirin.
+iso-download-file-error = ISO kaydedilemedi. Bağlantıyı ve boş alanı kontrol edip yeni bir dosya adıyla tekrar deneyin.
+iso-download-website = Microsoft indirme sayfasını aç
+iso-download-progress = Windows indiriliyor · { $received } / { $total }
+iso-download-starting = Windows indirmesi hazırlanıyor…
 # $minimum is the first Atlas version that can be used (text, such as 0.6.0).
 iso-package = Atlas paketi ({ $minimum } veya daha yeni)
 iso-output = Yeni ISO'nun kaydedileceği konum

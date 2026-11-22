@@ -721,6 +721,13 @@ iso-files-description = Atlas จะคัดลอก ISO ของ Windows 11 
 iso-files-description-bundled = Atlas จะคัดลอก ISO ของ Windows 11 แล้วเพิ่มแพ็กเกจ Atlas ที่มาพร้อมรุ่นทดสอบนี้ลงไป เลือก ISO ของ Windows 11 ที่ดาวน์โหลดจาก Microsoft จากนั้นเลือกตำแหน่งที่จะบันทึก ISO ใหม่
 iso-source = ISO ของ Windows
 iso-source-download = ดาวน์โหลด Windows 11 จาก Microsoft
+iso-download-arch = สถาปัตยกรรม
+iso-download-languages = กำลังโหลดภาษา…
+iso-download-list-error = โหลดภาษาของ Windows ไม่สำเร็จ ลองอีกครั้งหรือดาวน์โหลด ISO จากเว็บไซต์ Microsoft
+iso-download-file-error = บันทึก ISO ไม่สำเร็จ ตรวจสอบการเชื่อมต่อและพื้นที่ว่าง แล้วลองอีกครั้งโดยใช้ชื่อไฟล์ใหม่
+iso-download-website = เปิดหน้าดาวน์โหลดของ Microsoft
+iso-download-progress = กำลังดาวน์โหลด Windows · { $received } จาก { $total }
+iso-download-starting = กำลังเตรียมดาวน์โหลด Windows…
 # $minimum is the first Atlas version that can be used (text, such as 0.6.0).
 iso-package = แพ็กเกจ Atlas ({ $minimum } ขึ้นไป)
 iso-output = บันทึก ISO ใหม่ที่

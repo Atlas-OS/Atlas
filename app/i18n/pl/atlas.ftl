@@ -753,6 +753,13 @@ iso-files-description = Atlas tworzy kopię obrazu ISO Windows 11 z dodanym Atla
 iso-files-description-bundled = Atlas tworzy kopię obrazu ISO Windows 11 z dodanym pakietem Atlasa dołączonym do tej wersji testowej. Wybierz obraz ISO Windows 11 pobrany od firmy Microsoft, a potem wskaż, gdzie zapisać nowy obraz ISO.
 iso-source = Obraz ISO Windows
 iso-source-download = Pobierz Windows 11 od firmy Microsoft
+iso-download-arch = Architektura
+iso-download-languages = Wczytywanie języków…
+iso-download-list-error = Nie udało się wczytać języków systemu Windows. Spróbuj ponownie lub pobierz ISO z witryny Microsoft.
+iso-download-file-error = Nie udało się zapisać ISO. Sprawdź połączenie i wolne miejsce, a następnie spróbuj ponownie z nową nazwą pliku.
+iso-download-website = Otwórz stronę pobierania Microsoft
+iso-download-progress = Pobieranie systemu Windows · { $received } z { $total }
+iso-download-starting = Przygotowywanie pobierania systemu Windows…
 # $minimum is the first Atlas version that can be used (text, such as 0.6.0).
 iso-package = Pakiet Atlasa ({ $minimum } lub nowszy)
 iso-output = Zapisz nowy obraz ISO w

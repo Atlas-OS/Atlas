@@ -884,6 +884,13 @@ iso-files-description-bundled = Atlas makes a copy of a Windows 11 ISO with the 
 iso-source = Windows ISO
 # Link under the Windows ISO field. It opens Microsoft's Windows 11 download page in the browser.
 iso-source-download = Download Windows 11 from Microsoft
+iso-download-arch = Architecture
+iso-download-languages = Loading languages…
+iso-download-list-error = Couldn’t load the Windows languages. Try again or download the ISO from Microsoft’s website.
+iso-download-file-error = Couldn’t save the ISO. Check your connection and free space, then choose a new filename and try again.
+iso-download-website = Open Microsoft’s download page
+iso-download-progress = Downloading Windows · { $received } of { $total }
+iso-download-starting = Preparing the Windows download…
 # $minimum is the first Atlas version that can be used (text, such as 0.6.0).
 iso-package = Atlas package ({ $minimum } or newer)
 iso-output = Save the new ISO to

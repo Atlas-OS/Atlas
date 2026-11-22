@@ -32,4 +32,5 @@ pub mod test_support;
 pub mod update_access;
 pub mod usb;
 pub mod windows_installation;
+pub mod windows_iso;
 pub mod windows_release;

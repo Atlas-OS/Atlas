@@ -2,6 +2,8 @@
 //! choices, review), which the USB panel can then write to a drive. It runs
 //! apart from the install flow and its checks of this PC.
 
+mod download;
+
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::atomic::Ordering;
@@ -211,6 +213,7 @@ fn free_output(folder: &Path, exists: impl Fn(&Path) -> bool) -> PathBuf {
 }
 
 pub struct IsoPage {
+    download: download::IsoDownload,
     usb: Option<Entity<UsbPage>>,
     username: Entity<TextInput>,
     model: Entity<AppModel>,
@@ -280,6 +283,7 @@ impl IsoPage {
         })
         .detach();
         let page = Self {
+            download: Default::default(),
             usb: None,
             username,
             model,
@@ -344,6 +348,8 @@ impl IsoPage {
             state,
             "files"
                 | "files-empty"
+                | "download-language"
+                | "download-progress"
                 | "failed"
                 | "release-unknown"
                 | "release-unlisted"
@@ -357,6 +363,11 @@ impl IsoPage {
                 bytes: 6_500_000_000,
                 architecture: Architecture::X64,
             });
+        }
+        if matches!(state, "download-language" | "download-progress") {
+            self.source = None;
+            self.output = None;
+            self.download.preview(state == "download-progress");
         }
         let manifest =
             crate::services::package::parse(include_str!("../../../package/atlas.json")).ok().map(Rc::new);
@@ -605,7 +616,7 @@ impl IsoPage {
         if self.preview.is_some() {
             return;
         }
-        if self.model.read(cx).locked() || self.model.read(cx).recovering {
+        if self.download.busy() || self.model.read(cx).locked() || self.model.read(cx).recovering {
             return;
         }
         let bundled = self.model.read(cx).bundled();
@@ -956,7 +967,7 @@ impl IsoPage {
         let mut content = card_body().gap(px(14.));
         let bundled = self.model.read(cx).bundled();
         // On the rule `pick` refuses on: while any job holds the app.
-        let locked = self.model.read(cx).locked();
+        let locked = self.model.read(cx).locked() || self.download.busy();
         let fields = [
             (Field::Source, t!("iso-source"), &self.source),
             (Field::Package, t!("iso-package", minimum = iso::MINIMUM_VERSION), &self.archive),
@@ -1014,17 +1025,7 @@ impl IsoPage {
                             ),
                     )
                     // Where to get the ISO the field asks for.
-                    .when(field == Field::Source, |this| {
-                        this.child(
-                            div().flex().child(
-                                Button::new("iso-source-download", t!("iso-source-download"))
-                                    .hyperlink()
-                                    .compact()
-                                    .trailing_icon(Icon::OpenInNewWindow)
-                                    .opens(WINDOWS_DOWNLOAD),
-                            ),
-                        )
-                    })
+                    .when(field == Field::Source, |this| this.child(self.windows_download(cx)))
                     // A first-time user never handled the file: Atlas downloads it here.
                     .when(field == Field::Package && path.is_none(), |this| {
                         this.children(self.package_download(cx))
@@ -1616,7 +1617,7 @@ impl IsoPage {
                 .on_click(cx.listener(|this, _, _, cx| this.open_usb(this.output.clone(), cx)));
             return CommandBar::new().back(done).primary(usb).into_any_element();
         }
-        let locked = self.model.read(cx).locked();
+        let locked = self.model.read(cx).locked() || self.download.busy();
         let back = Button::new("iso-back", t!("common-back"))
             .disabled(self.step.previous().is_none() || locked)
             .on_click(cx.listener(|this, _, _, cx| {

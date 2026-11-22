@@ -35,6 +35,7 @@ zip = { version = "9.8", default-features = false, features = ["deflate-flate2-z
 image = { version = "0.25", default-features = false, features = ["png"] }
 ring = "0.17"
 regex = "1.13"
+tempfile = "3"
 fluent-bundle = "0.16"
 fluent-langneg = { version = "0.14.2", features = ["cldr"] }
 unic-langid = { version = "0.9", features = ["likelysubtags"] }

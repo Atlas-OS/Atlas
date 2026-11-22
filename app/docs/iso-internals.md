@@ -7,6 +7,7 @@ It's for contributors who change the media workers; [Creating an Atlas ISO](iso-
 
 The code is in `src/services/iso.rs`, `resources/iso/Build-Iso.ps1` and `resources/iso/Master-Iso.ps1`.
 
+- **Windows download.** On the Files screen, users can browse for an existing ISO or choose an architecture and language. Manager requests a signed ISO link from the website’s `/api/ms-iso` endpoints and downloads the file directly from Microsoft. A cancelled or incomplete transfer leaves the destination untouched.
 - **Inspection.** DISM reads every edition from the source, mounted read-only.
   The worker checks each version against `windows-releases.json` in the Atlas package's compatibility scripts, which the app and the front door share.
   An unknown version triggers a refresh from Microsoft's release page, limited in size and time.
