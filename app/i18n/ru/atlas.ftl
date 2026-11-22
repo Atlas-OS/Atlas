@@ -744,7 +744,7 @@ iso-home-description = Создайте установочный файл Window
 iso-open = Создать ISO с Atlas
 iso-title = Создать ISO с Atlas
 iso-recommended = Рекомендуется
-iso-backup-advice = Проверьте ISO-образ в виртуальной машине, прежде чем использовать его на ПК. Перед установкой Windows сделайте резервную копию файлов.
+iso-backup-advice = Перед установкой Windows сделайте резервную копию файлов.
 iso-admin-description = Чтобы прочитать ваш ISO-образ Windows и создать новый, Atlas нужны права администратора. Нажмите «Перезапустить от имени администратора», затем нажмите «Да», когда Windows запросит разрешение.
 iso-files-description = Atlas создаёт копию ISO-образа Windows 11 с добавленным Atlas для переустановки Windows. Выберите ISO-образ Windows 11, скачанный с сайта Microsoft, скачайте последний пакет Atlas или выберите уже имеющийся (.atlaspkg), затем укажите, где сохранить новый ISO-образ.
 # Tester build: no package picker.

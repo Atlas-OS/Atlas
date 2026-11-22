@@ -731,7 +731,7 @@ iso-home-description = Atlas içeren bir Windows kurulum dosyası (ISO) oluştur
 iso-open = Atlas ISO'su oluştur
 iso-title = Atlas ISO'su oluştur
 iso-recommended = Önerilen
-iso-backup-advice = ISO'yu bir bilgisayarda kullanmadan önce sanal makinede deneyin. Windows'u yüklemeden önce dosyalarınızı yedekleyin.
+iso-backup-advice = Windows'u yüklemeden önce dosyalarınızı yedekleyin.
 iso-admin-description = Atlas'ın Windows ISO'nuzu okuyup yenisini oluşturabilmesi için yönetici izni gerekiyor. Yönetici olarak yeniden aç'ı seçin, ardından Windows sorduğunda Evet'i seçin.
 iso-files-description = Atlas, Windows'u yeniden yükleyebilmeniz için bir Windows 11 ISO'sunun Atlas eklenmiş bir kopyasını oluşturur. Microsoft'tan indirilmiş bir Windows 11 ISO'su seçin, en son Atlas paketini indirin veya elinizdeki bir paketi (.atlaspkg) seçin, ardından yeni ISO'nun kaydedileceği yeri seçin.
 # Tester build: no package picker.

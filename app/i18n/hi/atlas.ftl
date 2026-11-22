@@ -728,7 +728,7 @@ iso-home-description = Atlas वाली Windows इंस्टॉलेशन
 iso-open = Atlas ISO बनाएँ
 iso-title = Atlas ISO बनाएँ
 iso-recommended = सुझाया गया
-iso-backup-advice = PC पर इस्तेमाल करने से पहले ISO को वर्चुअल मशीन में जाँचें। Windows इंस्टॉल करने से पहले अपनी फ़ाइलों का बैकअप लें।
+iso-backup-advice = Windows इंस्टॉल करने से पहले अपनी फ़ाइलों का बैकअप लें।
 iso-admin-description = आपका Windows ISO पढ़ने और नया ISO बनाने के लिए Atlas को व्यवस्थापक की अनुमति चाहिए। “व्यवस्थापक के रूप में दोबारा खोलें” चुनें, फिर जब Windows पूछे, तो “हाँ” चुनें।
 iso-files-description = Atlas, Windows 11 ISO की एक कॉपी बनाकर उसमें Atlas जोड़ता है, ताकि आप Windows दोबारा इंस्टॉल कर सकें। Microsoft से डाउनलोड किया गया Windows 11 ISO चुनें, नवीनतम Atlas पैकेज डाउनलोड करें या पहले से मौजूद पैकेज (.atlaspkg) चुनें, फिर चुनें कि नया ISO कहाँ सहेजना है।
 # Tester build: no package picker.

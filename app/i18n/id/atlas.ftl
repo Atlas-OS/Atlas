@@ -708,7 +708,7 @@ iso-home-description = Buat file instalasi Windows (ISO) yang menyertakan Atlas,
 iso-open = Buat ISO Atlas
 iso-title = Buat ISO Atlas
 iso-recommended = Disarankan
-iso-backup-advice = Uji ISO di mesin virtual sebelum menggunakannya di PC. Cadangkan file Anda sebelum menginstal Windows.
+iso-backup-advice = Cadangkan file Anda sebelum menginstal Windows.
 iso-admin-description = Atlas memerlukan izin administrator untuk membaca ISO Windows Anda dan membuat ISO baru. Pilih Jalankan ulang sebagai administrator, lalu pilih Ya saat Windows meminta izin.
 iso-files-description = Atlas membuat salinan ISO Windows 11 yang sudah berisi Atlas, untuk menginstal ulang Windows. Pilih ISO Windows 11 yang diunduh dari Microsoft, unduh paket Atlas terbaru atau pilih paket yang sudah Anda miliki (.atlaspkg), lalu pilih lokasi untuk menyimpan ISO baru.
 # Tester build: no package picker.

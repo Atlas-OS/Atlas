@@ -704,7 +704,7 @@ iso-home-description = Atlas を含む Windows のインストール ファイ�
 iso-open = Atlas ISO を作成
 iso-title = Atlas ISO を作成
 iso-recommended = おすすめ
-iso-backup-advice = PC で使用する前に、仮想マシンで ISO をテストしてください。Windows のインストール前にファイルをバックアップしてください。
+iso-backup-advice = Windows のインストール前にファイルをバックアップしてください。
 iso-admin-description = Windows ISO を読み取って新しい ISO を作成するには、Atlas に管理者権限が必要です。「管理者として再実行」を選び、Windows で確認が表示されたら「はい」を選んでください。
 iso-files-description = Atlas は、Windows の再インストールに使えるよう、Atlas を追加した Windows 11 ISO のコピーを作成します。Microsoft からダウンロードした Windows 11 ISO を選び、最新の Atlas パッケージをダウンロードするかお持ちのパッケージ (.atlaspkg) を選んでから、新しい ISO の保存先を選んでください。
 # Tester build: no package picker.

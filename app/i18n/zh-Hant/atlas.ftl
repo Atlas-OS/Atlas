@@ -693,7 +693,7 @@ iso-home-description = 建立包含 Atlas 的 Windows 安裝檔（ISO），然�
 iso-open = 建立 Atlas ISO
 iso-title = 建立 Atlas ISO
 iso-recommended = 建議
-iso-backup-advice = 在電腦上使用前，請先在虛擬機器中測試 ISO。安裝 Windows 前，請備份檔案。
+iso-backup-advice = 安裝 Windows 前，請備份檔案。
 iso-admin-description = Atlas 需要系統管理員權限，才能讀取您的 Windows ISO 並建立新的 ISO。請選擇「以系統管理員身分重新開啟 Atlas」，然後在 Windows 詢問時選擇「是」。
 iso-files-description = Atlas 會複製一份 Windows 11 ISO 並加入 Atlas，用來重新安裝 Windows。請選擇從 Microsoft 下載的 Windows 11 ISO，下載最新的 Atlas 套件或選擇您已有的套件（.atlaspkg），然後選擇新 ISO 的儲存位置。
 # Tester build: no package picker.

@@ -722,7 +722,7 @@ iso-home-description = Cree un archivo de instalación de Windows (ISO) que incl
 iso-open = Crear una ISO con Atlas
 iso-title = Crear una ISO con Atlas
 iso-recommended = Recomendado
-iso-backup-advice = Pruebe la ISO en una máquina virtual antes de usarla en un equipo. Haga una copia de seguridad de sus archivos antes de instalar Windows.
+iso-backup-advice = Haga una copia de seguridad de sus archivos antes de instalar Windows.
 iso-admin-description = Atlas necesita permisos de administrador para leer su ISO de Windows y crear la nueva. Elija Reabrir como administrador y, después, elija Sí cuando Windows pregunte.
 iso-files-description = Atlas crea una copia de una ISO de Windows 11 con Atlas incluido, para reinstalar Windows. Elija una ISO de Windows 11 descargada de Microsoft, descargue el paquete de Atlas más reciente o elija uno que ya tenga (.atlaspkg) y, después, elija dónde guardar la nueva ISO.
 # Versión de prueba: sin selector de paquete.
