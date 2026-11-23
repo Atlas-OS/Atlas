@@ -656,6 +656,11 @@ Describe 'AppX removal policy' {
             'Microsoft.WidgetsPlatformRuntime*'
             'Ink.Handwriting.Main.Store*'
         )
+        @($definitions | Where-Object AllowMissingProvisioningFiles).Name | Should -Be @(
+            'Microsoft.549981C3F5F10*'
+            'Microsoft.Getstarted*'
+            'Microsoft.MicrosoftOfficeHub*'
+        )
     }
 
     It 'never matches a package that Windows, the Store or winget needs' {
@@ -1170,6 +1175,75 @@ Describe 'Invoke-AtlasAppxRemovalPlan' {
             $Level -eq 'Warning' -and
             $Message -like "AppX package 'Staged.App_1.0_x64__abc'*not installed for the installing user (no account has it registered)*"
         }
+    }
+
+    It 'warns for the three inbox families when both provisioning removal attempts report missing files or paths' {
+        $inboxFamilies = @('Microsoft.549981C3F5F10', 'Microsoft.Getstarted', 'Microsoft.MicrosoftOfficeHub')
+        $definitions = @(Get-AtlasAppxRemovalDefinition | Where-Object AllowMissingProvisioningFiles)
+        $provisioned = @(foreach ($family in $inboxFamilies) {
+            [pscustomobject]@{ DisplayName = $family; PackageName = "${family}_1.0_neutral_~_8wekyb3d8bbwe" }
+        })
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx { @() }
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx { $provisioned }
+        Mock Remove-AppxProvisionedPackage -ModuleName Atlas.Appx {
+            if ($AllUsers) {
+                throw [System.Runtime.InteropServices.COMException]::new('File missing.', 0x80070002)
+            }
+            throw [System.Runtime.InteropServices.COMException]::new('Das System kann den angegebenen Pfad nicht finden.', 0x80070003)
+        }
+
+        { Invoke-AtlasAppxRemovalPlan -Definition $definitions } | Should -Not -Throw
+
+        Should -Invoke Remove-AppxProvisionedPackage -ModuleName Atlas.Appx -Times 3 -Exactly -ParameterFilter { $AllUsers -and $Online }
+        Should -Invoke Remove-AppxProvisionedPackage -ModuleName Atlas.Appx -Times 3 -Exactly -ParameterFilter { -not $AllUsers -and $Online }
+        foreach ($family in $inboxFamilies) {
+            Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+                $Level -eq 'Warning' -and $Message -like "*$family*Still provisioned for new accounts*Pfad nicht finden*"
+            }
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 0 -Exactly -ParameterFilter { $Level -eq 'Error' }
+    }
+
+    It 'fails for Get Started when <description>' -TestCases @(
+        @{ description = 'only the provisioning-only attempt reports a missing path'; allUsersError = 0x80070005; retryError = 0x80070003 }
+        @{ description = 'the provisioning-only attempt reports access denied'; allUsersError = 0x80070003; retryError = 0x80070005 }
+        @{ description = 'the provisioning-only attempt succeeds but leaves its entry'; allUsersError = 0x80070003; retryError = 0 }
+        @{ description = 'only the error text says the path is missing'; allUsersError = 0x80004005; retryError = 0x80004005 }
+    ) {
+        param($allUsersError, $retryError)
+
+        $failureCodes = @{ AllUsers = $allUsersError; ProvisioningOnly = $retryError }
+        $definition = Get-AtlasAppxRemovalDefinition | Where-Object Name -eq 'Microsoft.Getstarted*'
+        $provisioned = [pscustomobject]@{
+            DisplayName = 'Microsoft.Getstarted'; PackageName = 'Microsoft.Getstarted_1.0_neutral_~_8wekyb3d8bbwe'
+        }
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx { @() }
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx { $provisioned }
+        Mock Remove-AppxProvisionedPackage -ModuleName Atlas.Appx {
+            $code = if ($AllUsers) { $failureCodes.AllUsers } else { $failureCodes.ProvisioningOnly }
+            if ($code) {
+                throw [System.Runtime.InteropServices.COMException]::new('The system cannot find the path specified.', $code)
+            }
+        }
+
+        { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } |
+            Should -Throw -ExpectedMessage '*Microsoft.Getstarted*: Still provisioned for new accounts*'
+        Should -Invoke Remove-AppxProvisionedPackage -ModuleName Atlas.Appx -Times 2 -Exactly
+    }
+
+    It 'still fails when Get Started remains installed for the installing user' {
+        $definition = Get-AtlasAppxRemovalDefinition | Where-Object Name -eq 'Microsoft.Getstarted*'
+        $installed = [pscustomobject]@{
+            Name = 'Microsoft.Getstarted'; PackageFamilyName = 'Microsoft.Getstarted_8wekyb3d8bbwe'
+            PackageFullName = 'Microsoft.Getstarted_2021.2312.1.0_x64__8wekyb3d8bbwe'
+            PackageUserInformation = @(New-TestRegistration -Sid $script:installingSid)
+        }
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx { $installed }
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx { @() }
+        Mock Remove-AppxPackage -ModuleName Atlas.Appx
+
+        { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } |
+            Should -Throw -ExpectedMessage '*Microsoft.Getstarted*still installed for the installing user*'
     }
 
     It 'fails when a required family stays provisioned, naming the package' {

@@ -7,6 +7,7 @@
 # another account, SYSTEM or an account that no longer exists, and running it again
 # doesn't change that. So a removal fails only on what reaches a person: a package
 # still installed for the installing user, or still provisioned for new accounts.
+# Some inbox apps can stay provisioned without blocking setup if Windows cannot remove them.
 # Every other leftover is a warning that names the package and its accounts, as is a
 # removal Windows has accepted but finishes only when the app closes or the account
 # signs out.
@@ -39,12 +40,12 @@ function Get-AtlasAppxRemovalDefinition {
         [pscustomobject]@{ Name = 'Clipchamp.Clipchamp*';                         Option = $null;                 IgnoreErrors = $false }
         [pscustomobject]@{ Name = 'Disney.37853FC22B2CE*';                        Option = $null;                 IgnoreErrors = $false }
         [pscustomobject]@{ Name = 'SpotifyAB.SpotifyMusic*';                      Option = $null;                 IgnoreErrors = $false }
-        [pscustomobject]@{ Name = 'Microsoft.549981C3F5F10*';                     Option = $null;                 IgnoreErrors = $false }
+        [pscustomobject]@{ Name = 'Microsoft.549981C3F5F10*';                     Option = $null;                 IgnoreErrors = $false; AllowMissingProvisioningFiles = $true }
         [pscustomobject]@{ Name = 'Microsoft.XboxApp*';                           Option = $null;                 IgnoreErrors = $false }
         [pscustomobject]@{ Name = 'microsoft.windowscommunicationsapps*';          Option = $null;                 IgnoreErrors = $false }
         [pscustomobject]@{ Name = 'Microsoft.MSPaint*';                           Option = $null;                 IgnoreErrors = $false }
         [pscustomobject]@{ Name = 'Microsoft.Paint*';                             Option = $null;                 IgnoreErrors = $false }
-        [pscustomobject]@{ Name = 'Microsoft.Getstarted*';                        Option = $null;                 IgnoreErrors = $false }
+        [pscustomobject]@{ Name = 'Microsoft.Getstarted*';                        Option = $null;                 IgnoreErrors = $false; AllowMissingProvisioningFiles = $true }
         [pscustomobject]@{ Name = 'Microsoft.WindowsBackup*';                     Option = $null;                 IgnoreErrors = $false }
         [pscustomobject]@{ Name = 'Microsoft.ZuneVideo*';                         Option = $null;                 IgnoreErrors = $false }
         [pscustomobject]@{ Name = 'Microsoft.ZuneMusic*';                         Option = $null;                 IgnoreErrors = $false }
@@ -60,7 +61,7 @@ function Get-AtlasAppxRemovalDefinition {
         [pscustomobject]@{ Name = 'Microsoft.OutlookForWindows*';                 Option = $null;                 IgnoreErrors = $false }
         [pscustomobject]@{ Name = 'Microsoft.GetHelp*';                           Option = $null;                 IgnoreErrors = $false }
         [pscustomobject]@{ Name = 'Microsoft.Microsoft3DViewer*';                 Option = $null;                 IgnoreErrors = $false }
-        [pscustomobject]@{ Name = 'Microsoft.MicrosoftOfficeHub*';                Option = $null;                 IgnoreErrors = $false }
+        [pscustomobject]@{ Name = 'Microsoft.MicrosoftOfficeHub*';                Option = $null;                 IgnoreErrors = $false; AllowMissingProvisioningFiles = $true }
         [pscustomobject]@{ Name = 'Microsoft.MicrosoftSolitaireCollection*';       Option = $null;                 IgnoreErrors = $false }
         [pscustomobject]@{ Name = 'Microsoft.MicrosoftStickyNotes*';              Option = $null;                 IgnoreErrors = $false }
         [pscustomobject]@{ Name = 'Microsoft.StickyNotesPreview*';                Option = $null;                 IgnoreErrors = $false }
@@ -301,10 +302,14 @@ function Add-AtlasAppxRemovalFailure {
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [string]$Message
+        [string]$Message,
+
+        [switch]$MissingProvisioningFiles
     )
 
-    if ([bool]$Definition.IgnoreErrors) {
+    $allowMissingProvisioningFiles = $MissingProvisioningFiles -and
+        $Definition.PSObject.Properties['AllowMissingProvisioningFiles'] -and [bool]$Definition.AllowMissingProvisioningFiles
+    if ([bool]$Definition.IgnoreErrors -or $allowMissingProvisioningFiles) {
         Write-AtlasLog -Level Warning -Message "Ignoring AppX removal failure for '$($Definition.Name)': $Message"
         return
     }
@@ -644,6 +649,20 @@ function Read-AtlasAppxRemainingInventory {
     }
 }
 
+function Get-AtlasAppxProvisioningError {
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Management.Automation.ErrorRecord]$ErrorRecord
+    )
+
+    $exception = $ErrorRecord.Exception.GetBaseException()
+    [pscustomobject]@{
+        Detail            = ($ErrorRecord.Exception.Message -replace '\s+', ' ').Trim().TrimEnd('.')
+        HResult           = '0x{0:X8}' -f $exception.HResult
+        MissingFileOrPath = $exception.HResult -in @(0x80070002, 0x80070003)
+    }
+}
+
 function Resolve-AtlasAppxRemovalLeftover {
     <#
     .SYNOPSIS
@@ -720,20 +739,26 @@ function Resolve-AtlasAppxRemovalLeftover {
             }
         }
 
-        $provisionedNames = @($result.Provisioned | ForEach-Object {
-                $packageNameProperty = $_.PSObject.Properties['PackageName']
-                if ($packageNameProperty -and -not [string]::IsNullOrWhiteSpace([string]$packageNameProperty.Value)) {
-                    $packageName = [string]$packageNameProperty.Value
-                    $detail = $ProvisionedErrors[$packageName]
-                    if ($detail) { "'$packageName' (Windows removal error: $detail)" }
-                    else { "'$packageName'" }
-                }
-                else {
-                    "'$(Get-AtlasAppxPropertyText -Package $_ -Name DisplayName)'"
-                }
-            })
+        $allMissingProvisioningFiles = $true
+        $provisionedNames = @(foreach ($package in $result.Provisioned) {
+            $packageNameProperty = $package.PSObject.Properties['PackageName']
+            if (-not $packageNameProperty -or [string]::IsNullOrWhiteSpace([string]$packageNameProperty.Value)) {
+                $allMissingProvisioningFiles = $false
+                "'$(Get-AtlasAppxPropertyText -Package $package -Name DisplayName)'"
+                continue
+            }
+
+            $packageName = [string]$packageNameProperty.Value
+            $provisioningError = $ProvisionedErrors[$packageName]
+            if (-not $provisioningError -or -not $provisioningError.MissingFileOrPath) {
+                $allMissingProvisioningFiles = $false
+            }
+            if ($provisioningError) { "'$packageName' (Windows removal error: $($provisioningError.Detail))" }
+            else { "'$packageName'" }
+        })
         if ($provisionedNames.Count -gt 0) {
             Add-AtlasAppxRemovalFailure -Failures $Failures -Definition $definition `
+                -MissingProvisioningFiles:$allMissingProvisioningFiles `
                 -Message "Still provisioned for new accounts: $($provisionedNames -join ', ')."
         }
     }
@@ -751,7 +776,9 @@ function Invoke-AtlasAppxRemovalPlan {
         actually failed: a package still installed for the installing user, or still
         provisioned. A package left only for other accounts, SYSTEM or no account, or
         whose removal Windows finishes at sign-out, is a warning. Definitions marked
-        IgnoreErrors only warn. Option gates come from the install context.
+        IgnoreErrors only warn. AllowMissingProvisioningFiles permits a provisioning
+        leftover when both attempts return a missing-file or missing-path HRESULT.
+        Option gates come from the install context.
     #>
     param(
         [Parameter()]
@@ -860,10 +887,10 @@ function Invoke-AtlasAppxRemovalPlan {
                 Write-AtlasLog -Message "Removed provisioned AppX package '$packageName'."
             }
             catch {
-                $detail = ($_.Exception.Message -replace '\s+', ' ').Trim().TrimEnd('.')
-                $provisionedErrors[$packageName] = $detail
+                $provisioningError = Get-AtlasAppxProvisioningError -ErrorRecord $_
+                $provisionedErrors[$packageName] = $provisioningError
                 Write-AtlasLog -Message `
-                    "Provisioned AppX removal command reported an error for '$packageName'; deferring to final inventory: $detail"
+                    "Provisioned AppX removal for '$packageName' reported $($provisioningError.HResult): $($provisioningError.Detail)"
             }
         }
     }
@@ -897,9 +924,10 @@ function Invoke-AtlasAppxRemovalPlan {
                 Write-AtlasLog -Message "Retried provisioning-only removal for '$name' successfully."
             }
             catch {
-                $detail = ($_.Exception.Message -replace '\s+', ' ').Trim().TrimEnd('.')
-                $provisionedErrors[$name] = $detail
-                Write-AtlasLog -Message "Provisioning-only removal for '$name' reported an error: $detail"
+                $retryError = Get-AtlasAppxProvisioningError -ErrorRecord $_
+                $retryError.MissingFileOrPath = $retryError.MissingFileOrPath -and $provisionedErrors[$name].MissingFileOrPath
+                $provisionedErrors[$name] = $retryError
+                Write-AtlasLog -Message "Provisioning-only removal for '$name' reported $($retryError.HResult): $($retryError.Detail)"
             }
         }
         Start-Sleep -Seconds $script:AtlasAppxRemovalSettleSeconds
