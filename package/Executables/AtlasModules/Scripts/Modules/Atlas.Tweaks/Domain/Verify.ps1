@@ -23,7 +23,9 @@ function Test-AtlasTweak {
 
         [psobject]$Context,
 
-        [System.Collections.IDictionary]$RecordedToggleStates = @{}
+        [System.Collections.IDictionary]$RecordedToggleStates = @{},
+
+        [hashtable]$RegistryOwnership
     )
 
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
@@ -44,7 +46,8 @@ function Test-AtlasTweak {
         # install default, and targets a recorded toggle owns are left to toggle
         # verification, since unlocked preferences have no fixed default. Current-user
         # entries are still read from the account being verified, never another hive.
-        $verificationEntries = @(Get-AtlasUpgradeRegistryEntries -Entries @($tweak['Registry']) -Records $RecordedToggleStates -IgnoreInvalidDefinitions)
+        $verificationEntries = @(Get-AtlasUpgradeRegistryEntries -Entries @($tweak['Registry']) `
+            -Records $RecordedToggleStates -IgnoreInvalidDefinitions -RegistryOwnership $RegistryOwnership)
         foreach ($item in @(Test-AtlasRegistryEntries -Entries @($verificationEntries) -Scope $RegistryScope -IsArm64 ([bool]$Context.IsArm64))) {
             $drift += [pscustomobject]@{ Tweak = $tweakName; Kind = 'Registry'; Target = "$($item.Path)\$($item.Name)"; Reason = $item.Reason }
         }
@@ -81,7 +84,9 @@ function Test-AtlasTweakCategory {
 
         [psobject]$Context,
 
-        [System.Collections.IDictionary]$RecordedToggleStates = @{}
+        [System.Collections.IDictionary]$RecordedToggleStates = @{},
+
+        [hashtable]$RegistryOwnership
     )
 
     if ($null -eq $Context) {
@@ -99,7 +104,8 @@ function Test-AtlasTweakCategory {
     $drift = @()
     foreach ($tweakName in @($category['Tweaks'])) {
         $tweakFile = Join-Path -Path (Join-Path -Path $TweaksRoot -ChildPath $Name) -ChildPath (([string]$tweakName -replace '/', '\') + '.psd1')
-        $drift += @(Test-AtlasTweak -Path $tweakFile -RegistryScope $RegistryScope -Context $Context -RecordedToggleStates $RecordedToggleStates)
+        $drift += @(Test-AtlasTweak -Path $tweakFile -RegistryScope $RegistryScope -Context $Context `
+            -RecordedToggleStates $RecordedToggleStates -RegistryOwnership $RegistryOwnership)
     }
     return $drift
 }

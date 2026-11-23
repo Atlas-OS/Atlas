@@ -43,6 +43,7 @@ foreach ($domainModule in @(
 
 Export-ModuleMember -Function @(
     'Get-AtlasTweakManifest', 'Test-AtlasTweakManifest', 'Test-AtlasTweakApplicable',
+    'Get-AtlasToggleRegistryOwnership',
     'Get-AtlasTweakCategoryPostUserRegistryRefresh',
     'Invoke-AtlasTweak', 'Invoke-AtlasTweakCategory',
     'Test-AtlasTweakSchema',

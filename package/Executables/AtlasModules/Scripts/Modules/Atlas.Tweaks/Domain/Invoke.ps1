@@ -153,9 +153,8 @@ function Invoke-AtlasTweakRemovePathEntries {
     }
 }
 
-function Get-AtlasUpgradeRegistryEntries {
+function Get-AtlasToggleRegistryOwnership {
     param(
-        [Parameter(Mandatory = $true)][AllowEmptyCollection()][hashtable[]]$Entries,
         [Parameter(Mandatory = $true)][System.Collections.IDictionary]$Records,
         [switch]$IgnoreInvalidDefinitions
     )
@@ -185,6 +184,22 @@ function Get-AtlasUpgradeRegistryEntries {
             }
         }
     }
+    return @{ Values = $owned; Trees = $ownedTrees }
+}
+
+function Get-AtlasUpgradeRegistryEntries {
+    param(
+        [Parameter(Mandatory = $true)][AllowEmptyCollection()][hashtable[]]$Entries,
+        [Parameter(Mandatory = $true)][System.Collections.IDictionary]$Records,
+        [switch]$IgnoreInvalidDefinitions,
+        [hashtable]$RegistryOwnership
+    )
+
+    if ($null -eq $RegistryOwnership) {
+        $RegistryOwnership = Get-AtlasToggleRegistryOwnership -Records $Records -IgnoreInvalidDefinitions:$IgnoreInvalidDefinitions
+    }
+    $owned = $RegistryOwnership['Values']
+    $ownedTrees = $RegistryOwnership['Trees']
     foreach ($entry in $Entries) {
         $path = (([string]$entry.Path).Replace(':', '') -replace '\\+', '\').TrimEnd('\').ToUpperInvariant()
         $key = $path + '|' + ([string]$entry['Name']).ToUpperInvariant()

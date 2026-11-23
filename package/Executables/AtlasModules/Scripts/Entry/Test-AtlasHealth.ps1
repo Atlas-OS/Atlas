@@ -46,15 +46,20 @@ function Get-AtlasHealthReport {
 
     $toggleDrift = @(Test-AtlasToggleDrift -Scope Machine, User)
     $recordedToggleStates = Get-AtlasToggleStateRecords
+    $verification = @{
+        Context              = $Context
+        RecordedToggleStates = $recordedToggleStates
+        RegistryOwnership    = Get-AtlasToggleRegistryOwnership -Records $recordedToggleStates -IgnoreInvalidDefinitions
+    }
     $tweakDrift = @()
     foreach ($category in $Categories) {
-        $tweakDrift += @(Test-AtlasTweakCategory -Name $category -RegistryScope Machine -Context $Context -RecordedToggleStates $recordedToggleStates)
-        $tweakDrift += @(Test-AtlasTweakCategory -Name $category -RegistryScope ProtectedCurrentUser -Context $Context -RecordedToggleStates $recordedToggleStates)
-        $tweakDrift += @(Test-AtlasTweakCategory -Name $category -RegistryScope CurrentUser -Context $Context -RecordedToggleStates $recordedToggleStates)
+        foreach ($scope in 'Machine', 'ProtectedCurrentUser', 'CurrentUser') {
+            $tweakDrift += @(Test-AtlasTweakCategory -Name $category -RegistryScope $scope @verification)
+        }
     }
     # Standalone tweaks cannot declare live-user entries, so machine scope covers them.
     foreach ($path in $StandaloneTweakPaths) {
-        $tweakDrift += @(Test-AtlasTweak -Path $path -RegistryScope Machine -Context $Context -RecordedToggleStates $recordedToggleStates)
+        $tweakDrift += @(Test-AtlasTweak -Path $path -RegistryScope Machine @verification)
     }
 
     return [pscustomobject][ordered]@{

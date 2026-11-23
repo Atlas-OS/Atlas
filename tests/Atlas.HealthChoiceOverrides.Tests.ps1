@@ -54,6 +54,7 @@ Describe 'Health expectations for explicitly applied machine choices' {
     It 'builds the entry-point report using public commands and forwards the recorded choices' {
         Mock Test-AtlasToggleDrift { @() }
         Mock Get-AtlasToggleStateRecords { @{ Location = 1; Copilot = 1 } }
+        Mock Get-AtlasToggleRegistryOwnership { @{ Values = @{ 'HKLM\FIXTURE|' = $true }; Trees = @{} } }
         Mock Test-AtlasTweakCategory { @() }
         Mock Test-AtlasTweakCategory -ParameterFilter { $RegistryScope -eq 'CurrentUser' } {
             [pscustomobject]@{ Tweak = 'user-fixture'; Kind = 'Registry'; Target = 'HKCU\Fixture'; Reason = 'value is missing' }
@@ -63,6 +64,9 @@ Describe 'Health expectations for explicitly applied machine choices' {
         @($report.tweakDrift).Count | Should -Be 1
         $report.tweakDrift[0].Tweak | Should -Be 'user-fixture'
         Should -Invoke Get-AtlasToggleStateRecords -Times 1 -Exactly
+        Should -Invoke Get-AtlasToggleRegistryOwnership -Times 1 -Exactly -ParameterFilter {
+            $IgnoreInvalidDefinitions -and $Records.Location -eq 1 -and $Records.Copilot -eq 1
+        }
         Should -Invoke Test-AtlasToggleDrift -Times 1 -Exactly -ParameterFilter {
             @($Scope) -contains 'Machine' -and @($Scope) -contains 'User'
         }
@@ -70,7 +74,8 @@ Describe 'Health expectations for explicitly applied machine choices' {
         foreach ($scope in 'Machine', 'ProtectedCurrentUser', 'CurrentUser') {
             Should -Invoke Test-AtlasTweakCategory -Times 1 -Exactly -ParameterFilter {
                 $Name -eq 'privacy' -and $RegistryScope -ceq $scope -and
-                $RecordedToggleStates.Location -eq 1 -and $RecordedToggleStates.Copilot -eq 1
+                $RecordedToggleStates.Location -eq 1 -and $RecordedToggleStates.Copilot -eq 1 -and
+                $RegistryOwnership['Values'].ContainsKey('HKLM\FIXTURE|')
             }
         }
     }

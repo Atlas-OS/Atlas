@@ -9,6 +9,7 @@
         'Get-AtlasTweakManifest'
         'Test-AtlasTweakManifest'
         'Test-AtlasTweakApplicable'
+        'Get-AtlasToggleRegistryOwnership'
         'Get-AtlasTweakCategoryPostUserRegistryRefresh'
         'Invoke-AtlasTweak'
         'Invoke-AtlasTweakCategory'
