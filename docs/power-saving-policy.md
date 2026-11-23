@@ -98,7 +98,8 @@ No compatibility switch restores the old per-device changes.
   Waiting more than 30 seconds fails without changing anything.
 - **Balanced** (`381b4222-f694-41f0-9685-ff5bb260df2e`) is the base for the Atlas plan and the fallback when the saved plan is unavailable.
   If Balanced is missing, Atlas asks Windows to restore that individual plan and checks that it appears before continuing. An existing Balanced plan keeps its settings.
-- **Rollback value:** before changing any plan, Disable saves the active plan's GUID (lowercase, no braces) as a `REG_SZ` at `HKLM\SOFTWARE\AtlasOS\Services\PowerSaving\PreviousPowerSchemeGuid`, or Balanced if the Atlas plan is already active.
+  If Windows reports an all-zero active plan GUID, Atlas activates and verifies Balanced before creating the Atlas plan.
+- **Rollback value:** before configuring the Atlas plan, Disable saves the active plan's GUID (lowercase, no braces) as a `REG_SZ` at `HKLM\SOFTWARE\AtlasOS\Services\PowerSaving\PreviousPowerSchemeGuid`. Balanced is the rollback target if Atlas is already active or Windows reports no active plan.
   An existing value is kept, so a rerun never replaces the original target.
   A value that isn't a `REG_SZ` GUID stops the run.
 - **Disable** replaces any existing Atlas plan with a fresh duplicate of Balanced, activating Balanced first if needed, then sets the four AC values and activates it.
@@ -110,6 +111,6 @@ No compatibility switch restores the old per-device changes.
 - **Unlisted plans:** on Modern Standby PCs, `powercfg /list` shows only Balanced and its copies.
   The Ultimate Performance copy older Atlas versions made is left out of that list but still holds the Atlas GUID.
   Both states therefore also look for its key under `HKLM\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes` and delete it.
-- **Checks:** every `%windir%\System32\powercfg.exe` call that `Set-AtlasPowerSavingState` makes stops the run on a nonzero exit code, and every plan GUID from `powercfg` or the registry is validated.
+- **Checks:** every `%windir%\System32\powercfg.exe` call that `Set-AtlasPowerSavingState` makes stops the run on a nonzero exit code. All-zero entries are left out of the plan inventory, and GUIDs used for plan changes or read from saved state must be valid plan identifiers.
   The active plan is read back before success is reported.
   Default removes the saved value only after that check.

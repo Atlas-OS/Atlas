@@ -267,6 +267,53 @@ Describe 'Atlas power-saving state' {
     }
 }
 
+Describe 'Recovering a missing active power plan' {
+    BeforeEach {
+        $script:unsetGuid = [string][guid]::Empty
+        $script:listedPlans = @($script:unsetGuid)
+        $script:reportedActive = $script:unsetGuid
+        $script:atlasActivationSucceeds = $true
+        Mock Test-AtlasPowerSchemeStored -ModuleName Atlas.Hardware { $false }
+        Mock Restore-AtlasBalancedPowerScheme -ModuleName Atlas.Hardware { $script:listedPlans += $script:balanced }
+        Mock Save-AtlasPreviousPowerScheme -ModuleName Atlas.Hardware { $SchemeGuid }
+        Mock Write-AtlasLog -ModuleName Atlas.Hardware
+        Mock Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware {
+            switch ($ArgumentList[0]) {
+                '/l' { $script:listedPlans }
+                '/getactivescheme' { $script:reportedActive }
+                '/setactive' {
+                    $script:reportedActive = if ($ArgumentList[1] -ceq $script:atlas -and -not $script:atlasActivationSucceeds) {
+                        $script:unsetGuid
+                    }
+                    else { $ArgumentList[1] }
+                }
+                '/duplicatescheme' {
+                    if ($script:reportedActive -cne $script:balanced) { throw 'Balanced must be active before duplication.' }
+                }
+            }
+        }
+    }
+
+    It 'recovers from all-zero inventory and active-plan output before applying the Atlas plan' {
+        Invoke-PowerSavingCore -Mode Atlas
+
+        $script:reportedActive | Should -BeExactly $script:atlas
+        Should -Invoke Restore-AtlasBalancedPowerScheme -ModuleName Atlas.Hardware -Times 1 -Exactly
+        Should -Invoke Save-AtlasPreviousPowerScheme -ModuleName Atlas.Hardware -Times 1 -Exactly -ParameterFilter {
+            $SchemeGuid -ceq $script:balanced
+        }
+        Should -Invoke Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware -Times 0 -Exactly -ParameterFilter {
+            $ArgumentList[0] -eq '/restoredefaultschemes' -or $ArgumentList -contains $script:unsetGuid
+        }
+    }
+
+    It 'still fails if the final active power plan is all-zero after activation' {
+        $script:atlasActivationSucceeds = $false
+
+        { Invoke-PowerSavingCore -Mode Atlas } | Should -Throw "*Invalid power-scheme GUID '$script:unsetGuid'*"
+    }
+}
+
 Describe 'powercfg helpers' {
     It 'propagates a nonzero powercfg exit code' {
         $commandProcessor = Join-Path -Path ([Environment]::SystemDirectory) `
@@ -297,6 +344,7 @@ Describe 'powercfg helpers' {
                 ''
                 "Localized label: $b"
                 "Another label: $c"
+                ('No plan: ' + [guid]::Empty)
             )
         } -Parameters @{ b = $script:balanced; c = $script:custom }
 

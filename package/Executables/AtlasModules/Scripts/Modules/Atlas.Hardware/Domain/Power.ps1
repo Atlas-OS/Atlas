@@ -63,29 +63,36 @@ function Get-AtlasPowerSchemeGuidFromOutput {
         [AllowEmptyString()]
         [string[]]$Output,
 
-        [switch]$RequireSingle
+        [switch]$RequireSingle,
+
+        [switch]$AllowUnset
     )
 
     $text = $Output -join "`n"
     $guids = @([regex]::Matches(
             $text,
             '(?i)(?<![0-9a-f])[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}(?![0-9a-f])'
-        ) | ForEach-Object {
-            ConvertTo-AtlasPowerSchemeGuid -Value $_.Value
-        } | Sort-Object -Unique)
-    if ($RequireSingle -and $guids.Count -ne 1) {
+        ) | ForEach-Object { $_.Value.ToLowerInvariant() } | Sort-Object -Unique)
+    $unset = [string][guid]::Empty
+    if (-not $RequireSingle) {
+        return [string[]]@($guids -cne $unset)
+    }
+    if ($guids.Count -ne 1) {
         throw "Expected one power-scheme GUID, found $($guids.Count)."
     }
-    return [string[]]$guids
+    if ($AllowUnset -and $guids[0] -ceq $unset) {
+        return
+    }
+    return ConvertTo-AtlasPowerSchemeGuid -Value $guids[0]
 }
 
 function Get-AtlasActivePowerScheme {
-    param([Parameter(Mandatory = $true)][string]$PowerCfgPath)
+    param([Parameter(Mandatory = $true)][string]$PowerCfgPath, [switch]$AllowUnset)
 
-    return @(Get-AtlasPowerSchemeGuidFromOutput `
+    return Get-AtlasPowerSchemeGuidFromOutput `
             -Output (Invoke-AtlasPowerCfg -FilePath $PowerCfgPath `
                 -ArgumentList @('/getactivescheme')) `
-            -RequireSingle)[0]
+            -RequireSingle -AllowUnset:$AllowUnset
 }
 
 function Get-AtlasPowerSchemeInventory {
@@ -265,7 +272,16 @@ function Invoke-AtlasPowerSavingState {
 
     $savedToClear = $null
     if ($RequestedMode -ceq 'Atlas') {
-        $active = Get-AtlasActivePowerScheme -PowerCfgPath $PowerCfgPath
+        $active = Get-AtlasActivePowerScheme -PowerCfgPath $PowerCfgPath -AllowUnset
+        if ($null -eq $active) {
+            [void](Invoke-AtlasPowerCfg -FilePath $PowerCfgPath `
+                    -ArgumentList @('/setactive', $script:BalancedPowerScheme))
+            $active = Get-AtlasActivePowerScheme -PowerCfgPath $PowerCfgPath
+            if ($active -cne $script:BalancedPowerScheme) {
+                throw "Windows reported no active power scheme, and Balanced did not become active (found '$active')."
+            }
+            Write-AtlasLog -Message 'Windows reported no active power scheme. Activated Balanced before creating the Atlas plan.'
+        }
         if ($installed -cnotcontains $active) {
             throw "The active power scheme '$active' is not installed."
         }
