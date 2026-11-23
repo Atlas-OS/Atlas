@@ -6,6 +6,49 @@ BeforeAll {
     & $coreModule { Initialize-AtlasNativeType }
 }
 
+Describe 'Native compiler scratch directory cleanup' {
+    BeforeEach {
+        $scratch = Join-Path $TestDrive ('compiler-' + [guid]::NewGuid().ToString('N'))
+        [void][IO.Directory]::CreateDirectory($scratch)
+        Mock Write-Warning -ModuleName Atlas.Core
+    }
+
+    It 'retries a sharing violation and removes the directory once the file is released' {
+        $fileLock = [IO.File]::Open((Join-Path $scratch 'locked.tmp'), 'CreateNew', 'ReadWrite', 'None')
+        try {
+            Mock Start-Sleep -ModuleName Atlas.Core { $fileLock.Dispose() }
+
+            & $coreModule { param($path) Remove-AtlasNativeCompilerDirectory -Path $path } $scratch
+
+            Test-Path -LiteralPath $scratch | Should -BeFalse
+            Should -Invoke Start-Sleep -ModuleName Atlas.Core -Times 1 -Exactly
+            Should -Invoke Write-Warning -ModuleName Atlas.Core -Times 0 -Exactly
+        }
+        finally {
+            $fileLock.Dispose()
+        }
+    }
+
+    It 'warns after bounded retries when a file remains locked' {
+        $scratchFile = Join-Path $scratch 'locked.tmp'
+        $fileLock = [IO.File]::Open($scratchFile, 'CreateNew', 'ReadWrite', 'None')
+        try {
+            Mock Start-Sleep -ModuleName Atlas.Core
+
+            { & $coreModule { param($path) Remove-AtlasNativeCompilerDirectory -Path $path } $scratch } | Should -Not -Throw
+
+            Test-Path -LiteralPath $scratchFile | Should -BeTrue
+            Should -Invoke Start-Sleep -ModuleName Atlas.Core -Times 2 -Exactly
+            Should -Invoke Write-Warning -ModuleName Atlas.Core -Times 1 -Exactly -ParameterFilter {
+                $Message -like 'Could not remove the protected compiler directory*'
+            }
+        }
+        finally {
+            $fileLock.Dispose()
+        }
+    }
+}
+
 Describe 'Get-AtlasContext install state' {
     BeforeEach {
         & $coreModule { $script:AtlasContext = $null }

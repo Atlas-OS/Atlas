@@ -6,6 +6,36 @@
 
 $script:AtlasNativeTypeLoaded = $false
 
+function Remove-AtlasNativeCompilerDirectory {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+        'PSUseShouldProcessForStateChangingFunctions',
+        '',
+        Justification = 'The compiler passes only the protected scratch directory it created.'
+    )]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    for ($attempt = 1; $attempt -le 3; $attempt++) {
+        try {
+            [IO.Directory]::Delete($Path, $true)
+            return
+        }
+        catch [IO.IOException] {
+            $exception = $_.Exception.GetBaseException()
+            if ($exception.HResult -notin @(0x80070020, 0x80070021)) {
+                throw
+            }
+            if ($attempt -eq 3) {
+                Write-Warning "Could not remove the protected compiler directory '$Path': $($exception.Message)" -WarningAction Continue
+                return
+            }
+            Start-Sleep -Milliseconds 250
+        }
+    }
+}
+
 function Add-AtlasNativeType {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
         'PSUseShouldProcessForStateChangingFunctions',
@@ -64,6 +94,7 @@ function Add-AtlasNativeType {
     $compilerTemp = Join-Path -Path $systemProfile -ChildPath ('AtlasCompiler-' + [guid]::NewGuid().ToString('N'))
     $originalTemp = $env:TEMP
     $originalTmp = $env:TMP
+    $compilerTempCreated = $false
     try {
         if (Test-Path -LiteralPath $compilerTemp) {
             throw "Random protected compiler directory '$compilerTemp' unexpectedly exists."
@@ -73,6 +104,7 @@ function Add-AtlasNativeType {
             $security.PSObject.BaseObject
         )
         [void]$createWithSecurity.Invoke($null, $createArguments)
+        $compilerTempCreated = $true
         $env:TEMP = $compilerTemp
         $env:TMP = $compilerTemp
         Add-Type -TypeDefinition $TypeDefinition -Language CSharp -ErrorAction Stop
@@ -80,8 +112,8 @@ function Add-AtlasNativeType {
     finally {
         $env:TEMP = $originalTemp
         $env:TMP = $originalTmp
-        if (Test-Path -LiteralPath $compilerTemp -PathType Container) {
-            [IO.Directory]::Delete($compilerTemp, $true)
+        if ($compilerTempCreated) {
+            Remove-AtlasNativeCompilerDirectory -Path $compilerTemp
         }
     }
 }
