@@ -7,8 +7,8 @@
     -File. The Setup and first sign-in runs record their steps in setup.log in that
     folder, because Windows keeps no output from these commands.
       No switch: Windows Setup runs it as SYSTEM in the specialize pass. It protects
-        the setup folder, applies the ISO driver policy and installs this PC's
-        network drivers.
+        the setup folder, blocks Windows Update drivers for new media and
+        installs this PC's packaged network drivers.
       -FirstLogon: FirstLogonCommands runs it as the setup account. It turns off the
         one-time automatic sign-in, makes Windows ask for a new password, queues
         Atlas Manager or registers the before-desktop shell, then signs out.

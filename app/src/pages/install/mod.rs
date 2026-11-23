@@ -162,6 +162,8 @@ impl InstallPage {
                     (t!("footer-need-package-bundled"), false)
                 } else if state.package.is_none() {
                     (t!("footer-need-package"), false)
+                } else if state.driver_choice_required() {
+                    (t!("prepare-choose-drivers"), false)
                 } else if !state.preparation.ready() {
                     (t!("footer-prepare-required"), false)
                 } else {

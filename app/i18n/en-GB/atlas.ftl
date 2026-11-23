@@ -769,6 +769,9 @@ installing-restart-auto = Your PC restarts automatically when installation finis
 installed-title-version = Atlas { $version } is installed
 installed-title = Atlas is installed
 installed-ready = You're all set. Your PC is ready to use with Atlas.
+installed-manual-drivers-title = Install your drivers
+installed-manual-drivers-detail = Get chipset, network and graphics drivers from your PC, motherboard or device manufacturer.
+installed-drivers-guide = Open the drivers guide
 # After an installation that kept Microsoft Defender, under home-security-reminder-title.
 # $switches names the switches that read off, as Windows Security names them, joined like a list.
 installed-security-message = You kept Microsoft Defender, but some of its protection is still off. Open Windows Security and make sure these are on: { $switches }.
@@ -1100,6 +1103,11 @@ prepare-drivers-manual = Install drivers myself
 prepare-drivers-manual-detail = Windows Update won't install drivers, so you'll need to get them from your PC or device maker. Drivers already installed are kept.
 # Get ready: under the drivers question, above its two answers.
 prepare-drivers-description = Drivers let Windows use your hardware, such as graphics, sound and Wi-Fi. If you change this after updating, Atlas needs to check for updates again.
+prepare-drivers-from-iso = Atlas Manager will use the driver choice saved in the ISO.
+prepare-choose-drivers = Choose how to install drivers before checking for updates.
+iso-drivers-title = Driver updates after sign-in
+iso-drivers-during-setup = Windows Setup uses built-in drivers and any network drivers included in the ISO. Atlas Manager applies your driver choice after you sign in.
+iso-drivers-defer = Choose after sign-in
 prepare-network-needed = Updates need an internet connection that isn't metered. Connect to Wi-Fi or Ethernet, then choose Try again. If you don't see any Wi-Fi networks, install your network driver first.
 # Connected, but Windows found no internet access (a captive portal, or DNS or firewall filtering).
 prepare-network-limited = Windows reports that this network has no internet access. Sign in to the network if it asks you to, or check your router and any DNS or firewall filtering, then try again.

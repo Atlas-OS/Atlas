@@ -26,6 +26,13 @@ pub enum Mode {
     BeforeDesktop,
 }
 
+/// Whether the ISO carries a driver choice for Atlas Manager to use after Windows Setup.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StagedDrivers {
+    ChooseAfterSignIn,
+    Selected(super::preparation::Drivers),
+}
+
 /// What the image worker builds, written to its job as `request.json` and
 /// read there by Build-Iso.ps1.
 #[derive(Clone, Debug, Serialize)]
@@ -36,7 +43,7 @@ pub struct Request {
     pub accepted_terms: Option<String>,
     pub copy_network_drivers: bool,
     pub update_network_drivers: bool,
-    pub drivers: super::preparation::Drivers,
+    pub drivers: Option<super::preparation::Drivers>,
     pub username: String,
     pub source: PathBuf,
     pub output: PathBuf,
@@ -320,8 +327,16 @@ pub fn is_staged_setup() -> bool {
     staged_settings().is_some()
 }
 
-pub fn staged_drivers() -> Option<super::preparation::Drivers> {
-    serde_json::from_value(staged_settings()?["drivers"].clone()).ok()
+pub fn staged_drivers() -> Option<StagedDrivers> {
+    read_staged_drivers(&staged_settings()?)
+}
+
+fn read_staged_drivers(settings: &serde_json::Value) -> Option<StagedDrivers> {
+    let drivers = settings.get("drivers")?;
+    if drivers.is_null() {
+        return Some(StagedDrivers::ChooseAfterSignIn);
+    }
+    serde_json::from_value(drivers.clone()).ok().map(StagedDrivers::Selected)
 }
 
 /// The setup mode the media was built with.
@@ -544,7 +559,8 @@ pub fn run(
     let request_json = serde_json::to_vec(request)?;
     let mut files: Vec<(&str, &[u8])> =
         WORKER_FILES.iter().map(|(name, text)| (*name, text.as_bytes())).collect();
-    files.push(("DriverPolicy.reg", request.drivers.policy()));
+    // The destination stays on inbox and packaged drivers until Get ready runs.
+    files.push(("DriverPolicy.reg", super::preparation::Drivers::Manual.policy()));
     files.push(("request.json", &request_json));
     super::recovery_app::stage_media_job(dir, &files)?;
     let _notices = if inspect { None } else { Some(NoticesCopy::write(dir)?) };
@@ -618,7 +634,7 @@ pub struct CreateInput {
     pub output: PathBuf,
     pub mode: Mode,
     pub options: Vec<String>,
-    pub drivers: super::preparation::Drivers,
+    pub drivers: Option<super::preparation::Drivers>,
     pub username: String,
     pub reinstall_this_pc: bool,
     pub edition: Option<String>,
@@ -861,7 +877,24 @@ mod tests {
             assert!(json.get(name).is_some(), "Build-Iso.ps1 reads {name}, which the request lacks");
         }
         assert_eq!(json["mode"], "before-desktop");
-        assert_eq!(json["drivers"], "automatic");
+        assert!(json["drivers"].is_null(), "driver choice defaults to after sign-in");
+    }
+
+    #[test]
+    fn the_iso_handoff_distinguishes_deferred_and_saved_driver_choices() {
+        use super::super::preparation::Drivers;
+
+        for (drivers, expected) in [
+            (None, StagedDrivers::ChooseAfterSignIn),
+            (Some(Drivers::Manual), StagedDrivers::Selected(Drivers::Manual)),
+            (Some(Drivers::Automatic), StagedDrivers::Selected(Drivers::Automatic)),
+        ] {
+            let request = Request { drivers, ..request(Path::new("C:\\Jobs")) };
+            let json = serde_json::to_value(request).unwrap();
+            assert_eq!(read_staged_drivers(&json), Some(expected));
+        }
+        assert_eq!(read_staged_drivers(&serde_json::json!({})), None);
+        assert_eq!(read_staged_drivers(&serde_json::json!({ "drivers": "unknown" })), None);
     }
 
     #[test]

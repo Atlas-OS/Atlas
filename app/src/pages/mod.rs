@@ -873,28 +873,22 @@ pub fn option_page_card<N: Into<OptionNote>>(
         .into_any_element()
 }
 
-/// The driver policy choice, as Get ready and the ISO page offer it. `id`
-/// names the group; its items are `{id}-auto` and `{id}-manual`.
-pub fn drivers_radio(
-    id: &str,
-    selected: Drivers,
-    focus: &mut FocusHandles,
-    cx: &mut App,
-    on_select: impl Fn(Drivers, &mut App) + 'static,
-) -> RadioGroup {
+pub fn driver_label(drivers: Drivers) -> String {
+    match drivers {
+        Drivers::Automatic => t!("prepare-drivers-auto"),
+        Drivers::Manual => t!("prepare-drivers-manual"),
+    }
+}
+
+/// The two driver policies, in the order both driver pickers show them.
+pub fn driver_radio_items(id: &str, focus: &mut FocusHandles, cx: &mut App) -> [RadioItem; 2] {
     let (auto, manual) = (format!("{id}-auto"), format!("{id}-manual"));
-    let items = [
-        RadioItem::new(auto.clone(), t!("prepare-drivers-auto"), focus.get(&auto, cx))
+    [
+        RadioItem::new(auto.clone(), driver_label(Drivers::Automatic), focus.get(&auto, cx))
             .description(t!("prepare-drivers-auto-detail")),
-        RadioItem::new(manual.clone(), t!("prepare-drivers-manual"), focus.get(&manual, cx))
+        RadioItem::new(manual.clone(), driver_label(Drivers::Manual), focus.get(&manual, cx))
             .description(t!("prepare-drivers-manual-detail")),
-    ];
-    RadioGroup::new(id.to_owned(), t!("prepare-drivers"))
-        .items(items)
-        .selected(Some(usize::from(selected == Drivers::Manual)))
-        .on_select(move |index, _, cx| {
-            on_select(if index == 0 { Drivers::Automatic } else { Drivers::Manual }, cx)
-        })
+    ]
 }
 
 /// Stable element ids for one log view, so two views on one page never share state.

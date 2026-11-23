@@ -116,6 +116,19 @@ impl Render for InstalledPage {
                     .on_click(on_model(&model, |m, cx| m.reveal_install_log(cx))),
             )
         });
+        let manual_drivers = state.manual_driver_policy().then(|| {
+            InfoBar::new(
+                Severity::Informational,
+                t!("installed-manual-drivers-title"),
+                t!("installed-manual-drivers-detail"),
+            )
+            .id("installed-manual-drivers")
+            .action(
+                Button::new("installed-drivers-guide", t!("installed-drivers-guide"))
+                    .trailing_icon(Icon::OpenInNewWindow)
+                    .opens(links::DRIVERS_GUIDE),
+            )
+        });
         // "You're all set" only where a reading confirms it: an install that
         // kept Defender needs Defender there with every switch on. Dismissing
         // a reminder hides the bar, not what Windows Security reports, and
@@ -124,6 +137,7 @@ impl Render for InstalledPage {
             && defender_removed.is_none()
             && !state.defender_not_restored()
             && not_applied.is_none()
+            && manual_drivers.is_none()
             && !state.protection_reading_pending()
             && (!state.kept_defender_recorded() || state.protection_confirmed_on());
 
@@ -230,6 +244,7 @@ impl Render for InstalledPage {
                     .children(reminder)
                     .children(not_applied)
                     .children(update_choice)
+                    .children(manual_drivers)
                     .child(
                         div()
                             .flex()

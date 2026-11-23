@@ -29,6 +29,10 @@ The code is in `src/services/iso.rs`, `resources/iso/Build-Iso.ps1` and `resourc
 
 The local account name reaches the answer file through the XML DOM and JSON, never through PowerShell commands.
 
+### Driver policy
+
+The `windowsPE` answer disables Setup Dynamic Update on media that loads it. Enterprise Evaluation uses Microsoft's default with Dynamic Update disabled so Setup can read its edition configuration. During `specialize`, Setup imports the manual driver policy for every ISO. The `drivers` setting in `setup.json` holds the choice Atlas Manager applies when preparing Windows, or `null` to ask after sign-in.
+
 ### Network drivers
 
 The code is in `resources/iso/Network-Drivers.ps1`.

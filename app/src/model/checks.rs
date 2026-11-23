@@ -36,6 +36,8 @@ pub enum ReadyStatus {
     /// There are no installation files, and the package tried needs a newer
     /// Atlas Manager.
     ManagerOutdated,
+    /// The ISO deferred the driver choice until sign-in.
+    Drivers,
     /// Only Windows and Store updates are left, and Check and install updates
     /// hasn't run yet.
     Updates,
@@ -138,6 +140,7 @@ impl AppModel {
     /// so every failed check counts here.
     pub fn ready_to_continue(&self) -> bool {
         self.install_block().is_none()
+            && !self.driver_choice_required()
             && self.preparation.ready()
             && self.package.is_some()
             && !self.acquisition.is_busy()
@@ -173,6 +176,8 @@ impl AppModel {
             ReadyStatus::ManagerOutdated
         } else if self.package.is_none() {
             ReadyStatus::NoPackage
+        } else if self.driver_choice_required() {
+            ReadyStatus::Drivers
         } else if !self.preparation.ready() {
             match self.preparation {
                 Preparation::Idle if self.transition_chosen() && !self.windows_terms_accepted => {

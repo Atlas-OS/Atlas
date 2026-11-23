@@ -10,6 +10,7 @@ use gpui::Context;
 
 use super::drafts::DraftWrite;
 use super::{AppModel, RestartKind, Step, UpdatePath, preview};
+use crate::services::iso::StagedDrivers;
 use crate::services::preparation::{
     self, Drivers, Operation, PreparationRequest, RestartProblem, Stage, State, Status, StoreOutcome,
 };
@@ -19,11 +20,27 @@ use crate::t;
 
 impl AppModel {
     pub fn driver_preference(&self) -> Drivers {
-        self.settings.drivers.unwrap_or(self.driver_default)
+        self.staged_driver_preference().or(self.settings.drivers).unwrap_or(self.driver_default)
+    }
+
+    pub fn staged_driver_preference(&self) -> Option<Drivers> {
+        match self.iso_drivers {
+            Some(StagedDrivers::Selected(drivers)) => Some(drivers),
+            _ => None,
+        }
+    }
+
+    pub fn driver_choice_required(&self) -> bool {
+        self.iso_drivers == Some(StagedDrivers::ChooseAfterSignIn) && self.settings.drivers.is_none()
+    }
+
+    /// The completion window opens after the restart and reads the applied policy.
+    pub fn manual_driver_policy(&self) -> bool {
+        self.driver_default == Drivers::Manual
     }
 
     pub fn set_drivers(&mut self, drivers: Drivers, cx: &mut Context<Self>) {
-        if self.locked() || self.preparation_choices_fixed() {
+        if self.locked() || self.preparation_choices_fixed() || self.staged_driver_preference().is_some() {
             return;
         }
         self.settings.drivers = Some(drivers);
@@ -108,6 +125,13 @@ impl AppModel {
         offer_only: bool,
         cx: &mut Context<Self>,
     ) {
+        // After a restart, recovery can run from a copy outside the ISO's setup folder.
+        if let Some(drivers) = self.staged_driver_preference()
+            && self.settings.drivers != Some(drivers)
+        {
+            self.settings.drivers = Some(drivers);
+            self.persist_preference(move |doc| doc.drivers = Some(drivers), cx);
+        }
         let request = PreparationRequest {
             drivers: self.driver_preference(),
             transition: self

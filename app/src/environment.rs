@@ -16,9 +16,9 @@ use crate::services::requirements::{self, CheckContext, CheckId, CheckResult};
 use crate::services::security::{self, SecurityStatus};
 use crate::services::session::{self, SessionPaths};
 use crate::services::settings::{self, AppPaths};
+use crate::services::system;
 use crate::services::system::SystemInfo;
 use crate::services::update_access::{self, UpdateAccess};
-use crate::services::{iso, system};
 
 /// Runs one preparation in a job folder, reporting the worker's progress.
 pub type RunPreparation = dyn Fn(&Path, &PreparationRequest, Arc<AtomicBool>, Box<dyn FnMut(Progress) + Send>) -> anyhow::Result<State>
@@ -78,9 +78,7 @@ impl Adapters {
             relaunch_elevated: Arc::new(system::relaunch_elevated),
             arm_completion: Arc::new(session::arm_completion),
             fetch_release: Arc::new(releases::fetch_latest),
-            read_driver_default: Arc::new(|| {
-                iso::staged_drivers().unwrap_or_else(preparation::existing_driver_policy)
-            }),
+            read_driver_default: Arc::new(preparation::existing_driver_policy),
             read_system: Arc::new(SystemInfo::read),
             run_preparation: Arc::new(|job, request, cancel, report| {
                 preparation::run(job, request, cancel, report)

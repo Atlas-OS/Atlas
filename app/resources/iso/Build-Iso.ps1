@@ -416,7 +416,7 @@ try {
     foreach ($name in $payload.Keys) { Copy-Item -LiteralPath $payload[$name] -Destination (Join-Path $target $name) }
     $username = [string]$request.username
     if ($username.Length -lt 1 -or $username.Length -gt 20 -or $username.Trim() -cne $username -or $username.EndsWith('.') -or $username -match '[\p{Cc}"/\\\[\]:;|=,+*?<>@]' -or $username -in @('administrator','guest','defaultaccount','defaultuser0','wdagutilityaccount','system','anonymous logon')) { throw 'Invalid Windows local account name.' }
-    if ($request.drivers -notin @('automatic','manual')) { throw 'Choose an automatic or manual driver policy.' }
+    if ($null -ne $request.drivers -and $request.drivers -notin @('automatic','manual')) { throw 'Unknown driver choice.' }
     $config = @{ schema = 2; mode = $request.mode; options = @($request.options); username = $username; drivers = $request.drivers }
     [IO.File]::WriteAllText((Join-Path $target 'setup.json'), ($config | ConvertTo-Json -Compress), (New-Object Text.UTF8Encoding($false)))
     # ProtectYourPC answers the OOBE Express settings question, so OOBE doesn't ask it;
@@ -427,6 +427,7 @@ try {
   <settings pass="windowsPE">
     <component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
       <EnableFirewall>true</EnableFirewall>
+      <DynamicUpdate><Enable>false</Enable><WillShowUI>Never</WillShowUI></DynamicUpdate>
       <UserData><AcceptEula>false</AcceptEula><ProductKey><WillShowUI>Always</WillShowUI></ProductKey></UserData>
       <ImageInstall><OSImage><WillShowUI>Always</WillShowUI></OSImage></ImageInstall>
     </component>

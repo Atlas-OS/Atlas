@@ -17,8 +17,8 @@ use gpui::{
 use super::usb::UsbPage;
 use super::{
     CommandBar, Diagnostics, ListEntry, PageTitle, StepStatus, Stepper, card_body, card_header_with_icon,
-    caution_caption, detail_row, detail_text, drivers_radio, focusable_heading, manager_download_button,
-    option_page_card, page_frame, plain_list, step_card_header,
+    caution_caption, detail_row, detail_text, driver_label, driver_radio_items, focusable_heading,
+    manager_download_button, option_page_card, page_frame, plain_list, step_card_header,
 };
 use crate::i18n::{describe, fmt};
 use crate::model::{AcquireProblem, Acquisition, AppModel, Page, ReleaseCheck, ScreenKind};
@@ -234,7 +234,7 @@ pub struct IsoPage {
     options: Vec<String>,
     image: Option<ImageInfo>,
     mode: Mode,
-    drivers: Drivers,
+    drivers: Option<Drivers>,
     reinstall_this_pc: bool,
     /// The user chose which PC the ISO is for, so arriving from a message
     /// about reinstalling this PC doesn't change it.
@@ -1372,15 +1372,29 @@ impl IsoPage {
             .into_any_element();
 
         let driver_entity = cx.entity();
-        let drivers = drivers_radio("iso-drivers", self.drivers, &mut self.focus, cx, move |drivers, cx| {
-            driver_entity.update(cx, |this, cx| {
-                this.drivers = drivers;
-                cx.notify();
-            })
-        });
+        let choices = [Some(Drivers::Automatic), Some(Drivers::Manual), None];
+        let drivers = RadioGroup::new("iso-drivers", t!("iso-drivers-title"))
+            .items(driver_radio_items("iso-drivers", &mut self.focus, cx))
+            .items([RadioItem::new(
+                "iso-drivers-defer",
+                t!("iso-drivers-defer"),
+                self.focus.get("iso-drivers-defer", cx),
+            )])
+            .selected(choices.iter().position(|&choice| choice == self.drivers))
+            .on_select(move |index, _, cx| {
+                driver_entity.update(cx, |this, cx| {
+                    this.drivers = choices[index];
+                    cx.notify();
+                })
+            });
         let drivers = card(cx)
-            .child(step_card_header(cx, "iso-drivers", t!("prepare-drivers"), None))
-            .child(card_body().child(drivers))
+            .child(step_card_header(cx, "iso-drivers", t!("iso-drivers-title"), None))
+            .child(
+                card_body()
+                    .gap(px(4.))
+                    .child(detail_text("iso-drivers-during-setup", t!("iso-drivers-during-setup")))
+                    .child(drivers),
+            )
             .into_any_element();
 
         let target_entity = cx.entity();
@@ -1737,11 +1751,7 @@ impl IsoPage {
                 t!("iso-review-drivers"),
                 detail_text(
                     "iso-review-drivers",
-                    if self.drivers == Drivers::Manual {
-                        t!("prepare-drivers-manual")
-                    } else {
-                        t!("prepare-drivers-auto")
-                    },
+                    self.drivers.map_or_else(|| t!("iso-drivers-defer"), driver_label),
                 ),
             ))
             .child(detail_row(
@@ -2413,7 +2423,7 @@ mod tests {
                 page.username.update(cx, |input, cx| input.set_value("Ada", cx));
                 page.go_to_step(IsoStep::Windows, cx);
                 page.reinstall_this_pc = true;
-                page.drivers = Drivers::Manual;
+                page.drivers = Some(Drivers::Manual);
                 page.go_to_step(IsoStep::Choices, cx);
                 // Set up before sign-in, which the package supports, with a choice of its own.
                 page.setup_available = true;
@@ -2425,7 +2435,7 @@ mod tests {
                 assert_eq!(page.furthest, IsoStep::Review);
                 assert!(page.gates(cx).reachable(page.step, IsoStep::Review, page.furthest));
                 assert_eq!(page.username.read(cx).value(), "Ada");
-                assert!(page.reinstall_this_pc && page.drivers == Drivers::Manual);
+                assert!(page.reinstall_this_pc && page.drivers == Some(Drivers::Manual));
                 assert_eq!((page.mode, &page.options), (Mode::Configured, &chosen));
                 // Choosing another file means checking again from the start.
                 page.invalidate(cx);

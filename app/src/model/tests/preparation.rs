@@ -11,6 +11,7 @@ use crate::model::test_harness::{
 };
 use crate::model::{AppModel, Page, RunState, Step};
 use crate::services::installer::InstallOutcome;
+use crate::services::iso::StagedDrivers;
 use crate::services::preparation::{Drivers, RestartProblem, State, StoreOutcome};
 use crate::services::recovery_app::SourceLinked;
 use crate::services::requirements::CheckId;
@@ -463,6 +464,48 @@ fn the_driver_default_is_not_read_per_render_and_a_choice_overrides_it() {
         act(&mut cx, &model, |m, cx| m.set_drivers(Drivers::Automatic, cx));
         assert_eq!(read(&cx, &model, AppModel::driver_preference), Drivers::Automatic, "a choice wins");
         settle(&cx, &model).await;
+    });
+}
+
+#[test]
+fn iso_preparation_uses_the_saved_choice_or_waits_for_the_user_to_choose() {
+    run_model_test(|mut cx| async move {
+        let (temp, _, mut env) = fixture("preparation-iso-drivers");
+        let (package, _) = marking_package(&temp, 0);
+        env.adapters.read_driver_default = Arc::new(|| Drivers::Manual);
+        let requests = Arc::new(Mutex::new(Vec::new()));
+        let seen = requests.clone();
+        env.adapters.run_preparation = Arc::new(move |_, request, _, _| {
+            seen.lock().unwrap().push(request.drivers);
+            Ok(State::Ready)
+        });
+        let model = new_model(&mut cx, env.clone());
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        act(&mut cx, &model, |m, cx| {
+            m.iso_drivers = Some(StagedDrivers::ChooseAfterSignIn);
+            m.begin_install(cx);
+            m.load_package_file(package, cx);
+        });
+        wait_for(&cx, &model, "the package and the checks", |m| m.package.is_some() && m.checks_complete())
+            .await;
+        act(&mut cx, &model, |m, cx| {
+            assert!(m.driver_choice_required());
+            assert!(!m.start_preparation(false, cx));
+            m.set_drivers(Drivers::Manual, cx);
+            assert!(!m.driver_choice_required());
+            assert!(m.start_preparation(false, cx));
+        });
+        wait_for(&cx, &model, "manual preparation", |m| m.preparation.ready()).await;
+        act(&mut cx, &model, |m, cx| {
+            m.iso_drivers = Some(StagedDrivers::Selected(Drivers::Automatic));
+            m.set_drivers(Drivers::Manual, cx);
+            assert!(!m.driver_choice_required());
+            assert!(m.start_preparation(false, cx));
+        });
+        wait_for(&cx, &model, "automatic preparation", |m| m.preparation.ready()).await;
+        wait_on_disk(&cx, &env, "the choice for restart recovery", |s| s.drivers == Some(Drivers::Automatic))
+            .await;
+        assert_eq!(*requests.lock().unwrap(), [Drivers::Manual, Drivers::Automatic]);
     });
 }
 

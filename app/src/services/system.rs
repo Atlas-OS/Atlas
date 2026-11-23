@@ -725,6 +725,7 @@ pub mod links {
     pub const POWER: &str = "ms-settings:powersleep";
     pub const ACTIVATION: &str = "ms-settings:activation";
     pub const DOCS: &str = "https://atlasos.net/docs/";
+    pub const DRIVERS_GUIDE: &str = "https://atlasos.net/docs/essential-setup/drivers/";
     pub const GITHUB: &str = "https://github.com/Atlas-OS/Atlas";
     pub const RELEASES: &str = "https://github.com/Atlas-OS/Atlas/releases";
     /// The latest release, where the newest Atlas Manager is downloaded.

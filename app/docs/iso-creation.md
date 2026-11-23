@@ -105,8 +105,11 @@ Atlas never claims a backup that didn't happen.
 
 ### Driver updates
 
-The driver-update choice in **Windows setup** works as it does in Get ready ([driver updates](install-flow.md#driver-updates)).
-The new PC applies it during Windows setup, before its first update scan.
+Windows Setup uses the drivers that come with Windows and any network drivers included on the ISO. Driver downloads from Windows Update are blocked until Atlas Manager starts preparing Windows after sign-in.
+
+Leave **Choose after sign-in** selected to decide in **Get ready**, or choose **Get drivers through Windows Update** or **Install drivers myself** when you build the ISO. Atlas Manager uses a choice saved on the ISO without asking again.
+
+After a manual-driver installation, Atlas Manager links to the [drivers guide](https://atlasos.net/docs/essential-setup/drivers/) for chipset, network and graphics drivers.
 
 ## Create a Windows installation USB
 
@@ -140,7 +143,7 @@ It checks the drive's identity again before erasing and while writing, and reads
 ## On the new PC
 
 1. **Windows setup** copies the Atlas files to `%windir%\AtlasISO`.
-2. In the `specialize` pass, which runs before the out-of-box experience (OOBE), setup applies the driver-update choice and installs the backed-up network drivers.
+2. In the `specialize` pass, which runs before the out-of-box experience (OOBE), setup blocks Windows Update driver downloads and installs the backed-up network drivers.
 3. During OOBE, Windows' first-run setup screens, the answer file creates the local account and hides the network and online-account screens.
    You'll need internet access when Atlas Manager runs preparation after sign-in.
    It also sets `ProtectYourPC=3`, which turns Express settings off and hides them, because Atlas's options hold the real security and update choices.

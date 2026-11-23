@@ -685,6 +685,9 @@ installing-restart-auto = Seu PC será reiniciado automaticamente quando a insta
 installed-title-version = O Atlas { $version } foi instalado
 installed-title = O Atlas foi instalado
 installed-ready = Tudo certo. Seu PC já está pronto para usar com o Atlas.
+installed-manual-drivers-title = Instale seus drivers
+installed-manual-drivers-detail = Obtenha os drivers de chipset, rede e vídeo com o fabricante do seu PC, da placa-mãe ou do dispositivo.
+installed-drivers-guide = Abrir o guia de drivers
 # After an installation that kept Microsoft Defender, under home-security-reminder-title.
 # $switches names the switches that read off, as Windows Security names them, joined like a list.
 installed-security-message = Você manteve o Microsoft Defender, mas parte da proteção dele ainda está desativada. Abra a Segurança do Windows e verifique se estas proteções estão ativadas: { $switches }.
@@ -972,6 +975,11 @@ prepare-drivers-manual = Instalar os drivers por conta própria
 prepare-drivers-manual-detail = O Windows Update não instalará drivers, então você precisará obtê-los com o fabricante do seu PC ou dispositivo. Os drivers já instalados serão mantidos.
 # Get ready: under the drivers question, above its two answers.
 prepare-drivers-description = Os drivers permitem que o Windows use seu hardware, como vídeo, som e Wi-Fi. Se você mudar isso depois de atualizar, o Atlas precisará buscar atualizações novamente.
+prepare-drivers-from-iso = O Atlas Manager usará a opção de drivers salva na ISO.
+prepare-choose-drivers = Escolha como instalar os drivers antes de buscar atualizações.
+iso-drivers-title = Atualizações de drivers após entrar
+iso-drivers-during-setup = A instalação do Windows usa os drivers internos e os drivers de rede incluídos na ISO. O Atlas Manager aplica sua escolha depois que você entra.
+iso-drivers-defer = Escolher depois de entrar
 prepare-network-needed = As atualizações precisam de uma conexão com a internet que não seja limitada. Conecte-se por Wi-Fi ou Ethernet e escolha Tentar novamente. Se nenhuma rede Wi-Fi aparecer, instale primeiro o driver de rede.
 # Connected, but Windows found no internet access (a captive portal, or DNS or firewall filtering).
 prepare-network-limited = O Windows informa que esta rede está sem acesso à internet. Faça login na rede, se ela pedir, ou verifique o roteador e eventuais filtros de DNS ou firewall. Depois, tente novamente.

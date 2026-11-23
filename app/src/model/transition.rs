@@ -160,6 +160,9 @@ impl AppModel {
     /// nothing else may stand in the way of the Atlas install: nothing
     /// changes Windows while something would still stop Atlas.
     pub fn preparation_may_start(&self) -> bool {
+        if self.driver_choice_required() {
+            return false;
+        }
         let build =
             self.checks.iter().find(|(id, _)| *id == CheckId::SupportedBuild).and_then(|(_, r)| r.as_ref());
         let chosen = self.transition_chosen();

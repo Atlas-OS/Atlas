@@ -10,9 +10,11 @@ use std::sync::atomic::Ordering;
 use crate::i18n::fmt;
 use crate::model::{Acquisition, AppModel, InstallBlock, Page, ReadyHelp, ReadyStatus, ReleaseCheck};
 use crate::pages::{
-    card_body, detail_text, drivers_radio, manager_download_button, on_model, step_card_header,
+    card_body, detail_text, driver_label, driver_radio_items, manager_download_button, on_model,
+    step_card_header,
 };
 use crate::services::atlas_state::InstallIdentity;
+use crate::services::preparation::Drivers;
 use crate::services::requirements::{CheckId, CheckResult, Verdict};
 use crate::services::windows_release::TransitionNeed;
 use crate::t;
@@ -390,28 +392,41 @@ impl InstallPage {
     }
 
     fn drivers_card(&mut self, cx: &mut Context<Self>) -> AnyElement {
-        let (selected, disabled) = {
+        let (staged, selected, disabled) = {
             let state = self.model.read(cx);
-            (state.driver_preference(), state.locked() || state.preparation_choices_fixed())
-        };
-        let model = self.model.clone();
-        let drivers = drivers_radio("prepare-drivers", selected, &mut self.focus, cx, move |drivers, cx| {
-            model.update(cx, |m, cx| m.set_drivers(drivers, cx))
-        });
-        let theme = cx.theme();
-        card(cx)
-            .child(step_card_header(cx, "drivers", t!("prepare-drivers"), None))
-            .child(
-                card_body()
-                    .child(
-                        div().type_body().text_color(theme.text_secondary).pb(px(4.)).child(a11y_text(
-                            "prepare-drivers-description",
-                            t!("prepare-drivers-description"),
-                        )),
-                    )
-                    .child(drivers.disabled(disabled)),
+            (
+                state.staged_driver_preference(),
+                (!state.driver_choice_required())
+                    .then(|| usize::from(state.driver_preference() == Drivers::Manual)),
+                state.locked() || state.preparation_choices_fixed(),
             )
-            .into_any_element()
+        };
+        let secondary = cx.theme().text_secondary;
+        let description = |message| {
+            div()
+                .type_body()
+                .text_color(secondary)
+                .pb(px(4.))
+                .child(a11y_text("prepare-drivers-description", message))
+        };
+        let (title, body) = if let Some(drivers) = staged {
+            (driver_label(drivers), card_body().child(description(t!("prepare-drivers-from-iso"))))
+        } else {
+            let model = self.model.clone();
+            let drivers = RadioGroup::new("prepare-drivers", t!("prepare-drivers"))
+                .items(driver_radio_items("prepare-drivers", &mut self.focus, cx))
+                .selected(selected)
+                .disabled(disabled)
+                .on_select(move |index, _, cx| {
+                    let drivers = [Drivers::Automatic, Drivers::Manual][index];
+                    model.update(cx, |m, cx| m.set_drivers(drivers, cx));
+                });
+            (
+                t!("prepare-drivers"),
+                card_body().child(description(t!("prepare-drivers-description"))).child(drivers),
+            )
+        };
+        card(cx).child(step_card_header(cx, "drivers", title, None)).child(body).into_any_element()
     }
 
     /// The Windows version Atlas moves this PC to before installing: what
@@ -746,6 +761,7 @@ fn status_bar(status: ReadyStatus, state: &AppModel) -> InfoBar {
         ReadyStatus::ManagerOutdated => {
             (Severity::Warning, t!("ready-banner-manager-title"), t!("ready-banner-manager-message"))
         }
+        ReadyStatus::Drivers => (Severity::Informational, t!("prepare-choose-drivers"), String::new()),
         ReadyStatus::Updates => {
             (Severity::Informational, t!("ready-banner-updates-title"), t!("ready-banner-updates-message"))
         }

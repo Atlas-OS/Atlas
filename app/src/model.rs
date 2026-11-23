@@ -179,6 +179,7 @@ pub struct AppModel {
     /// Options chosen when the ISO was built; the first package that loads
     /// uses them if it accepts them.
     iso_initial_options: Option<Vec<String>>,
+    iso_drivers: Option<iso::StagedDrivers>,
     pub preparation: services::preparation::State,
     pub preparation_progress: Option<services::preparation::Progress>,
     pub preparation_error: Option<String>,
@@ -192,8 +193,7 @@ pub struct AppModel {
     pub preparation_problem: Option<services::preparation::RestartProblem>,
     pub preparation_cancel: Arc<AtomicBool>,
     preparation_task: Option<Task<()>>,
-    /// The driver policy preparation uses when the user has not chosen one,
-    /// read from the machine once, at startup, rather than on every render.
+    /// The driver policy Windows had when Atlas Manager opened.
     driver_default: services::preparation::Drivers,
     /// An ISO or USB job is running (the USB page sets this as well as
     /// `usb_busy`).
@@ -418,6 +418,7 @@ impl AppModel {
             before_desktop: desktop_setup::active()
                 || (cfg!(debug_assertions) && std::env::var_os("ATLAS_DESKTOP_PREVIEW").is_some()),
             iso_initial_options: if loaded.settings.draft.is_none() { iso::staged_options() } else { None },
+            iso_drivers: iso::staged_drivers(),
             preparation: Default::default(),
             preparation_progress: None,
             preparation_error: None,

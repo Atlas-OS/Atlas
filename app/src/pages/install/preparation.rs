@@ -263,6 +263,8 @@ impl InstallPage {
             Some(t!("prepare-blocked-source"))
         } else if failed_check(CheckId::SupportedBuild) && !handled_build {
             Some(t!("prepare-needs-build-check", check = CheckId::SupportedBuild.title()))
+        } else if state.driver_choice_required() {
+            Some(t!("prepare-choose-drivers"))
         } else if moving && state.transition_chosen() && !state.windows_terms_accepted {
             Some(t!("prepare-needs-terms", release = release.as_str()))
         } else if !state.elevated {

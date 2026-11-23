@@ -105,6 +105,8 @@ Describe 'Native ISO mastering' {
         $pe | Should -HaveCount 1
         $pe[0].component.name | Should -Be 'Microsoft-Windows-Setup'
         $pe[0].component.EnableFirewall | Should -Be 'true'
+        $pe[0].component.DynamicUpdate.Enable | Should -Be 'false'
+        $pe[0].component.DynamicUpdate.WillShowUI | Should -Be 'Never'
         $pe[0].component.UserData.ProductKey.WillShowUI | Should -Be 'Always'
         $pe[0].component.UserData.ProductKey.Key | Should -BeNullOrEmpty
         $pe[0].component.ImageInstall.OSImage.WillShowUI | Should -Be 'Always'
