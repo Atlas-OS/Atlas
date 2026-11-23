@@ -694,6 +694,27 @@ Describe 'Invoke-AtlasTweak' {
             }
     }
 
+    It 'warns and continues when Windows cannot rebuild performance counters during upgrade' {
+        Mock Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks
+        Mock Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks {
+            throw 'Unable to rebuild performance counter settings from system backup store; error code is 3.'
+        } -ParameterFilter { $FilePath -eq 'C:\Windows\System32\lodctr.exe' }
+        $tweakFile = Join-Path $script:AtlasTestScriptsRoot 'Tweaks\misc\rebuild-perf-counters.psd1'
+
+        { Invoke-AtlasTweak -Path $tweakFile -Context (New-TestContextMock -IsUpgrade $true -WindowsBuild 26300) } |
+            Should -Not -Throw
+
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Tweaks -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and $Message -like '*System32\lodctr.exe*error code is 3*'
+        }
+        Should -Invoke Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks -Times 1 -Exactly -ParameterFilter {
+            $FilePath -eq 'C:\Windows\SysWOW64\lodctr.exe' -and $ArgumentList[0] -eq '/R'
+        }
+        Should -Invoke Invoke-AtlasHiddenProcess -ModuleName Atlas.Tweaks -Times 1 -Exactly -ParameterFilter {
+            $FilePath -eq 'C:\Windows\System32\wbem\winmgmt.exe' -and $ArgumentList[0] -eq '/resyncperf'
+        }
+    }
+
     It 'routes scheduled task entries through the missing-task-tolerant Atlas.TasksProcs helpers' {
         Mock -CommandName Disable-AtlasScheduledTask -ModuleName Atlas.TasksProcs
         Mock -CommandName Enable-AtlasScheduledTask -ModuleName Atlas.TasksProcs

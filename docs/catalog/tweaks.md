@@ -248,7 +248,7 @@ Install modes: Fresh, Upgrade, Reapply and Rebase.
 | --- | --- | --- | --- |
 | `config-time`<br>Configure Time Servers | Uses the pool.ntp.org time servers, which are more reliable and accurate than the Windows default. | | Registry 2, Services 1, Run 2 |
 | `delete-windows-specific-files`<br>Delete Windows-version Specific Tweaks | Removes the Open-Shell launchers from AtlasDesktop on ARM64, where they don't apply. It only changes Atlas's own desktop folder, never Windows files. | ARM64 only; Fresh and Rebase installs only | Script `delete-windows-specific-files.ps1` |
-| `rebuild-perf-counters`<br>Rebuild Performance Counters | Rebuilds the performance counters from the system files, which repairs corrupt counters that monitoring tools rely on. | | Run 3 |
+| `rebuild-perf-counters`<br>Rebuild Performance Counters | Attempts to rebuild the performance counters that monitoring tools rely on and logs a warning if Windows cannot complete the repair. | | Run 3 |
 | `make-measuresleep-admin`<br>Make MeasureSleep Run as Administrator | Makes the MeasureSleep tool in the Timer Resolution folder always run as administrator, which it needs. | | Script `make-measuresleep-admin.ps1` |
 | `add-newUser-script`<br>Add Initialize-NewUser.ps1 script | Adds Initialize-NewUser.ps1 to RunOnce for new accounts, so each one gets the per-user Atlas settings at first sign-in. | | Registry 3, Script `add-newUser-script.ps1` |
 | `register-user-upgrade`<br>Register user upgrade migration | Updates existing accounts to the installed version at their next sign-in, keeping their desktop layout. | Not on fresh installs | Registry 1 |
