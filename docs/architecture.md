@@ -221,9 +221,10 @@ It exits with 0 on success, 1 on an install failure and 2 on the wrong privilege
 So `Invoke-AtlasAppxRemovalPlan` (Atlas.Appx) reads both the installed and provisioned inventories again after each removal, instead of trusting the cmdlets.
 It removes each leftover once more for every account that still has it, and looks again a few seconds later.
 
-- A package still installed for the installing user, or still provisioned, fails the removal, and the error points to Settings > Apps.
+- A required package still installed for the installing user fails the removal and the error points to Settings > Apps. Required provisioning leftovers also fail the removal.
 - A package left only for other accounts, SYSTEM or no account, or whose removal Windows finishes later, is a warning naming the package and its accounts.
 - Families marked `IgnoreErrors`, such as Edge's and the Widgets packages, only warn.
+- A provisioning leftover for Cortana, Get Started, or Office Hub warns if both DISM attempts report a missing file or path (`0x80070002` or `0x80070003`). Atlas logs both codes and still checks removal for the installing user.
 
 `Set-AtlasAppxDeprovisioned` then registers every removed and matched family under the AppX `Deprovisioned` key, so a feature update doesn't bring them back.
 Its snapshot is in `Install\work`, so a resumed step keeps the families an interrupted attempt removed.
