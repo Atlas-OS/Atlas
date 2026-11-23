@@ -252,6 +252,39 @@ Describe 'Included tweak definitions' {
         )
     }
 
+    It 'disables and stops DiagTrack before cleaning its logs in <Mode> mode' -ForEach @(
+        @{ Mode = 'Fresh'; IsUpgrade = $false; IsRebase = $false }
+        @{ Mode = 'Upgrade'; IsUpgrade = $true; IsRebase = $false }
+        @{ Mode = 'Reapply'; IsUpgrade = $true; IsRebase = $false }
+        @{ Mode = 'Rebase'; IsUpgrade = $true; IsRebase = $true }
+    ) {
+        $script:telemetryOperations = New-Object 'Collections.Generic.List[string]'
+        Import-Module (Join-Path $script:AtlasTestModulesRoot 'Atlas.Privacy\Atlas.Privacy.psd1')
+        Mock Get-AtlasToggleStateRecords -ModuleName Atlas.Tweaks { @{} }
+        Mock Invoke-AtlasRegistryEntries -ModuleName Atlas.Tweaks {}
+        Mock Invoke-AtlasServiceEntries -ModuleName Atlas.Tweaks {
+            param($Entries)
+            foreach ($entry in $Entries) {
+                if ($entry.Operation -eq 'Stop') {
+                    $script:telemetryOperations.Add("Stop:$($entry.Name)")
+                }
+                else {
+                    $script:telemetryOperations.Add("Change:$($entry.Name):$($entry.StartupType)")
+                }
+            }
+        }
+        Mock Import-AtlasModule -ModuleName Atlas.Tweaks {}
+        Mock Clear-AtlasTelemetryLogFiles -ModuleName Atlas.Tweaks {
+            $script:telemetryOperations.Add('Clean logs')
+        }
+        $context = New-TestContextMock -IsUpgrade $IsUpgrade
+        $context | Add-Member -NotePropertyName IsRebase -NotePropertyValue $IsRebase
+        Invoke-AtlasTweak -Path (Join-Path $script:shippedTweaksRoot 'privacy\telemetry\disallow-data-collection.psd1') `
+            -RegistryScope Machine -Context $context
+
+        @($script:telemetryOperations) | Should -Be @('Change:DiagTrack:4', 'Stop:DiagTrack', 'Clean logs')
+    }
+
     It 'points the editable Windows 11 Start pin policy at the installed layout file' {
         $atlasModules = Join-Path -Path $script:shippedTweaksRoot -ChildPath '..\..'
         $definition = Import-PowerShellDataFile -LiteralPath (Join-Path $script:shippedTweaksRoot `

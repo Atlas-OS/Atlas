@@ -99,7 +99,7 @@ Install modes: Fresh, Upgrade, Reapply and Rebase.
 | `telemetry/disable-dotnet-cli-telemetry`<br>Disable .NET CLI Telemetry | Turns off .NET CLI telemetry for every user by setting DOTNET_CLI_TELEMETRY_OPTOUT. | | Registry 1 |
 | `telemetry/disable-input-telemetry`<br>Disable Input Telemetry | Stops Windows collecting typing, inking and handwriting data, including typing insights and handwriting error reports. | | Registry 9 |
 | `telemetry/disable-phishing-protection`<br>Disable Enhanced Phishing Protection | Turns off Enhanced Phishing Protection in SmartScreen. By default it runs in audit mode, reports unsafe password entry to Microsoft, and can capture screen content and app memory when triggered. Windows then doesn't warn you when you type your sign-in password into a known phishing site. | | Registry 2 |
-| `telemetry/disallow-data-collection`<br>Disallow Telemetry and Data Collection | Sets diagnostic data to the minimum your edition of Windows allows through supported policy, and limits extra diagnostic logs and crash dumps. | | Registry 3, Script `disallow-data-collection.ps1` |
+| `telemetry/disallow-data-collection`<br>Disallow Telemetry and Data Collection | Disables and stops Connected User Experiences and Telemetry (DiagTrack), sets diagnostic data to the lowest level your Windows edition allows, and limits diagnostic logs and crash dumps. | | Registry 3, Services 2, Script `disallow-data-collection.ps1` |
 
 ## qol
 

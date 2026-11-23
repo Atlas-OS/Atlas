@@ -1,18 +1,19 @@
 # Windows service and driver startup policy
 
-Atlas leaves Windows service and driver startup values at their Windows defaults.
-To turn a feature off, it uses a documented policy or feature interface first, and changes a startup value only when a feature choice needs it.
+Atlas leaves most service and driver startup values at their Windows defaults.
+To turn a feature off, it uses a documented policy or feature interface where that control covers the intended behaviour.
 A generic startup override changes how Windows features behave, so it isn't a harmless performance tweak.
 This page is for contributors and reviewers: it sets out where Atlas changes startup values, and the services and drivers Atlas has reviewed.
 
 ## Where Atlas changes startup values
 
-Atlas changes a startup value only as part of a feature choice:
+The following install defaults, choices and toggles change startup values.
 
 - **Fresh installs** apply the Disable state of the File Sharing and Location toggles; a Rebase applies them only where nothing was recorded.
   File Sharing sets the `NetBT` driver to Disabled (`Start=4`), and Location sets `lfsvc` and `MapsBroker` to Disabled and stops them.
   Enable File Sharing and Enable Location turn them back on.
 - **The `disable-pca` privacy tweak** sets `PcaSvc` to Disabled, as the table below describes.
+- **The `disallow-data-collection` privacy tweak** disables and stops `DiagTrack` on fresh installs, upgrades, reinstalls and rebases.
 - **Choices and toggles you run** change the services they name.
   For example, Disable Printing disables `Spooler` and `PrintWorkFlowUserSvc`, and Enable Printing turns them back on.
   The [toggle reference](catalog/toggles.md) lists what each toggle changes.
@@ -29,7 +30,7 @@ A new startup override must pass the [VM gate](#vm-gate), and state the feature 
 | `OneSyncSvc` | [Per-user services](https://learn.microsoft.com/windows/application-management/per-user-services-in-windows) shows how to set the template to `Start=4`, but says dependent mail, contact and calendar apps then don't work properly. | Windows default. A profile without mail and contacts would need a product decision and VM evidence. |
 | `TrkWks` | [Distributed Link Tracking](https://learn.microsoft.com/windows/win32/fileio/distributed-link-tracking-and-object-identifiers) keeps shell shortcuts and OLE links working when NTFS files move. Disabling it is recommended only for fixed-function IoT. | Windows default. |
 | `PcaSvc` | The [AppCompat policy](https://learn.microsoft.com/windows/client-management/mdm/policy-csp-admx-appcompat#appcompatturnoffprogramcompatibilityassistant_2) provides the supported `DisablePCA` control and explains the compatibility help it removes. | The `disable-pca` tweak sets `DisablePCA` and related policies, then disables and stops `PcaSvc` before disabling `PcaPatchDbTask`, because a starting `PcaSvc` re-enables that task. |
-| `DiagTrack` | [Diagnostic data guidance](https://learn.microsoft.com/windows/privacy/configure-windows-diagnostic-data-in-your-organization) defines `AllowTelemetry`, `LimitDumpCollection` and `LimitDiagnosticLogCollection` as the supported controls. | Uses those policies, and leaves the service and its autologger alone. |
+| `DiagTrack` | [Diagnostic data guidance](https://learn.microsoft.com/windows/privacy/configure-windows-diagnostic-data-in-your-organization#diagnostic-data-off) limits the policy's Diagnostic data off setting to Enterprise, Education and Server. | Disables and stops the service and applies `AllowTelemetry`, `LimitDumpCollection` and `LimitDiagnosticLogCollection`. |
 | `diagnosticshub.standardcollector.service` | [IoT Enterprise service guidance](https://learn.microsoft.com/windows/iot/iot-enterprise/optimize/services) labels this manual collector "Don't disable". | Windows default. |
 | `WerSvc` | Service guidance says not to disable Windows Error Reporting; the [ErrorReporting policy](https://learn.microsoft.com/windows/client-management/mdm/policy-csp-errorreporting#disablewindowserrorreporting) is the supported privacy control. | Uses the documented `Disabled` policy, not a startup change. |
 | `wercplsupport` | Service guidance lists this manual Problem Reports service as "No guidance", which means leave the default. | Windows default. |

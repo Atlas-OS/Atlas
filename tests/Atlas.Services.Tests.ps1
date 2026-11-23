@@ -328,6 +328,31 @@ Describe 'Invoke-AtlasServiceEntries' {
         Should -Invoke Set-AtlasServiceStartup -ModuleName Atlas.Services -Times 0 -Exactly
     }
 
+    It 'skips an optional stop only when Windows cannot find the service' {
+        Mock Stop-Service -ModuleName Atlas.Services -ParameterFilter { $Name -ceq 'Absent' } -MockWith {
+            throw [System.Management.Automation.ErrorRecord]::new(
+                [InvalidOperationException]::new('No service with the given name.'),
+                'NoServiceFoundForGivenName,Microsoft.PowerShell.Commands.StopServiceCommand',
+                [System.Management.Automation.ErrorCategory]::ObjectNotFound, 'Absent')
+        }
+        Mock Stop-Service -ModuleName Atlas.Services -ParameterFilter { $Name -ceq 'Protected' } -MockWith {
+            throw 'Access denied.'
+        }
+
+        {
+            Invoke-AtlasServiceEntries -Entries @(@{ Name = 'Absent'; Operation = 'Stop'; AllowMissing = $true })
+        } | Should -Not -Throw
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Services -Times 1 -Exactly -ParameterFilter {
+            $Message -like '*Absent*skipping stop*'
+        }
+        {
+            Invoke-AtlasServiceEntries -Entries @(@{ Name = 'Absent'; Operation = 'Stop' })
+        } | Should -Throw '*No service with the given name*'
+        {
+            Invoke-AtlasServiceEntries -Entries @(@{ Name = 'Protected'; Operation = 'Stop'; AllowMissing = $true })
+        } | Should -Throw '*Access denied*'
+    }
+
     It 'rejects malformed entries before touching any service' -TestCases @(
         @{ Entry = @{ StartupType = 4 }; Message = '*has no Name*' }
         @{ Entry = @{ Name = 'Alpha' }; Message = '*no valid StartupType*' }

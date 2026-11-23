@@ -43,9 +43,8 @@
                 'disable-activity-feed'
                 'disable-app-launch-tracking'
                 'disable-lockscreen-camera'
-                # No experimentation tweak: AllowExperimentation is an obsolete MDM policy, its
-                # PolicyManager\current variant can block Known Issue Rollback fixes, and disabling
-                # DiagTrack already cuts the experimentation delivery channel.
+                # AllowExperimentation is an obsolete MDM policy. The PolicyManager\current
+                # variant can block Known Issue Rollback fixes.
                 'disable-online-speech-recognition'
                 'disable-pca'
                 'disable-perf-track'

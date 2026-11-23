@@ -7,7 +7,7 @@ function Invoke-AtlasServiceEntries {
         Applies a Services entry array. Each entry is a hashtable with Name, an
         Operation of 'Change' (default), 'Stop' or 'Start', a StartupType of 0-4 for
         Change, an optional AllowMissing switch that tolerates an absent optional
-        service or driver for StartupType 0-3, and an optional IgnoreErrors switch that
+        service or driver for StartupType 0-3 or Stop, and an optional IgnoreErrors switch that
         turns any failure into a logged warning. A missing service is always skipped
         for StartupType 4, because it can't run.
     #>
@@ -25,6 +25,7 @@ function Invoke-AtlasServiceEntries {
                 throw 'Service entry has no Name.'
             }
             $serviceName = [string]$entry['Name']
+            $allowMissing = $entry.ContainsKey('AllowMissing') -and [bool]$entry['AllowMissing']
 
             $operation = 'Change'
             if ($entry.ContainsKey('Operation') -and $entry['Operation']) {
@@ -39,12 +40,19 @@ function Invoke-AtlasServiceEntries {
                     if ($null -eq $startupType -or [int]$startupType -lt 0 -or [int]$startupType -gt 4) {
                         throw "Service entry has no valid StartupType (expected 0-4, got '$startupType')."
                     }
-                    $allowMissing = $entry.ContainsKey('AllowMissing') -and [bool]$entry['AllowMissing']
                     Set-AtlasServiceStartup -Name $serviceName -StartupType ([int]$startupType) `
                         -AllowMissing:$allowMissing
                 }
                 'Stop' {
-                    Stop-Service -Name $serviceName -Force -ErrorAction Stop
+                    try {
+                        Stop-Service -Name $serviceName -Force -ErrorAction Stop
+                    }
+                    catch {
+                        if (-not $allowMissing -or $_.FullyQualifiedErrorId -cne 'NoServiceFoundForGivenName,Microsoft.PowerShell.Commands.StopServiceCommand') {
+                            throw
+                        }
+                        Write-AtlasLog -Message "Service '$serviceName' is absent and cannot run; skipping stop."
+                    }
                 }
                 'Start' {
                     Start-Service -Name $serviceName -ErrorAction Stop
