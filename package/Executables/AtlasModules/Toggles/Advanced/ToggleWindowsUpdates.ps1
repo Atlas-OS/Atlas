@@ -79,8 +79,23 @@ function Enable-AtlasWindowsUpdates {
 
     foreach ($serviceName in @('wuauserv', 'UsoSvc', 'WaaSMedicSvc')) {
         Set-AtlasServiceStartup -Name $serviceName -StartupType 3
+
+        # The registry write doesn't reach the service manager, which refuses to start a
+        # service it still holds as disabled (error 1058) until Windows restarts. sc.exe
+        # changes both. A service it can't change is left for the restart, not started.
+        $synced = $true
+        try {
+            Invoke-AtlasToggleNativeCommand -FilePath (Join-Path -Path ([Environment]::SystemDirectory) -ChildPath 'sc.exe') `
+                -ArgumentList ([string[]]@('config', $serviceName, 'start=', 'demand')) `
+                -AllowedExitCodes ([int[]]@(0)) | Out-Null
+        }
+        catch {
+            $synced = $false
+            Write-AtlasLog -Level Warning -Message "ToggleWindowsUpdates: the service manager kept the old startup type of '$serviceName': $($_.Exception.Message) Restart Windows to finish."
+        }
+
         $service = Get-Service -Name $serviceName -ErrorAction Stop
-        if ($service.Status -eq [System.ServiceProcess.ServiceControllerStatus]::Stopped) {
+        if ($synced -and $service.Status -eq [System.ServiceProcess.ServiceControllerStatus]::Stopped) {
             Start-Service -Name $serviceName -ErrorAction Stop
         }
     }
