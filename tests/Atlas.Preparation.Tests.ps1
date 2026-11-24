@@ -581,11 +581,34 @@ Describe 'Microsoft Store before the Store apps' {
         @{ Case = 'paused for battery'; Failure = { New-PreparationStoreFailure 'Microsoft.WindowsStore_8wekyb3d8bbwe' 'PausedLowBattery' $null } }
         @{ Case = 'an app in use'; Failure = { New-PreparationStoreFailure '40174MouriNaruto.NanaZip_gnj4mf6z9tkrc' 'Error' ([Runtime.InteropServices.COMException]::new('Resources are in use.', -2147009278)) } }
         @{ Case = 'Stop'; Failure = { New-Object OperationCanceledException 'Preparation stopped after the current operation.' } }
+        @{ Case = 'an item the Store kept cancelling'; Failure = { New-PreparationStoreFailure 'Microsoft.Windows.Photos_8wekyb3d8bbwe' 'Canceled' ([Runtime.InteropServices.COMException]::new('Operation aborted', -2147467260)) } }
+        @{ Case = 'a Store that kept not answering'; Failure = { $silent = New-PreparationFailure 'Microsoft Store did not answer.' 'store-timeout'; $silent.Data['storeTransient'] = 'retry'; $silent } }
+        @{ Case = 'a Store slow to the end'; Failure = { $slow = New-PreparationFailure 'Store apps have not finished updating.' 'store-timeout'; $slow.Data['storeTransient'] = 'final'; $slow } }
     ) {
         $script:Failure = & $Failure
         Mock Invoke-PreparationStoreWithRetry { throw $script:Failure }
         { Invoke-PreparationStoreStage } | Should -Throw
         $script:Repairs.Count | Should -Be 0
+    }
+
+    It 'says which repairs ran, failed or were skipped, and names a network problem' {
+        Mock Update-PreparationStoreItself { throw (New-PreparationFailure 'Microsoft Store is not registered for this user.' 'store-missing') }
+        Mock Invoke-PreparationStoreRepair {
+            $script:Repairs.Add($Repair)
+            switch ($Repair) {
+                'bootstrap' { throw (New-PreparationNetworkFailure 'https://api.github.com/repos/microsoft/winget-cli' 'HTTP 403') }
+                'storefixer' { 'skipped' }
+                default { $false }
+            }
+        }
+        try { Invoke-PreparationStoreStage } catch { $failure = $_.Exception }
+        $detail = Get-PreparationFailureDetail $failure
+        $detail.reason | Should -Be 'store-repair-failed'
+        $detail.failureMessage | Should -Match '\(wsreset changed nothing; bootstrap failed, a network problem; storefixer skipped\): Microsoft Store is not registered'
+        $log = Get-Content (Join-Path $JobPath 'updates.log') -Raw
+        $log | Should -Match 'bootstrap failed, a network problem: A network problem stopped the download from api\.github\.com: HTTP 403'
+        $log | Should -Match 'storefixer skipped'
+        $log | Should -Not -Match 'storefixer changed nothing'
     }
 
     It 'stops the repairs when the user chooses Stop' {
@@ -2026,6 +2049,177 @@ Describe 'Transient Store deployment recovery' {
         Mock Assert-PreparationContinue { throw [OperationCanceledException]::new('Stopped') }
         { Invoke-PreparationStoreWithRetry } | Should -Throw '*Stopped*'
         Should -Invoke Invoke-PreparationStore -Times 1 -Exactly
+    }
+    It 'tries again after the Store <Case>' -TestCases @(
+        @{ Case = 'cancelled an item (E_ABORT)'; Failure = { New-PreparationStoreFailure 'Microsoft.Windows.Photos_8wekyb3d8bbwe' 'Canceled' ([Runtime.InteropServices.COMException]::new('Operation aborted', -2147467260)) } }
+        @{ Case = 'didn''t answer'; Failure = { $silent = New-PreparationFailure 'Microsoft Store did not answer.' 'store-timeout'; $silent.Data['storeTransient'] = 'retry'; $silent } }
+    ) {
+        param($Case, $Failure)
+        $script:failure = & $Failure
+        Mock Invoke-PreparationStore { $script:storeAttempts++; if ($script:storeAttempts -le 2) { throw $script:failure } }
+        { Invoke-PreparationStoreWithRetry } | Should -Not -Throw -Because $Case
+        Should -Invoke Invoke-PreparationStore -Times 3 -Exactly
+    }
+    It 'ends with store-timeout, which no repair answers, when the Store keeps cancelling' {
+        Mock Invoke-PreparationStore { throw (New-PreparationStoreFailure 'Microsoft.Windows.Photos_8wekyb3d8bbwe' 'Canceled' ([Runtime.InteropServices.COMException]::new('Operation aborted', -2147467260))) }
+        try { Invoke-PreparationStoreWithRetry } catch { $thrown = $_.Exception }
+        Should -Invoke Invoke-PreparationStore -Times 4 -Exactly
+        (Get-PreparationFailureDetail $thrown).reason | Should -Be 'store-timeout'
+        Test-PreparationStoreRepairable $thrown | Should -BeFalse
+    }
+    It 'doesn''t wait again for a Store that was slow until the end' {
+        $script:slow = New-PreparationFailure 'Store apps have not finished updating.' 'store-timeout'
+        $script:slow.Data['storeTransient'] = 'final'
+        Mock Invoke-PreparationStore { throw $script:slow }
+        { Invoke-PreparationStoreWithRetry } | Should -Throw '*have not finished*'
+        Should -Invoke Invoke-PreparationStore -Times 1 -Exactly
+    }
+}
+
+Describe 'A Store that is slow or briefly fails' {
+    BeforeEach {
+        Mock Write-PreparationState {}
+        Mock Write-PreparationStoreEvidence {}
+        $script:now = [DateTime]::new(2026, 1, 1, 12, 0, 0, [DateTimeKind]::Utc)
+        Mock Get-PreparationStoreTime { $script:now }
+    }
+
+    It 'names an item the Store cancelled (E_ABORT) as a wait, and other failures as they were' {
+        $aborted = New-PreparationStoreFailure 'Microsoft.Windows.Photos_8wekyb3d8bbwe' 'Canceled' ([Runtime.InteropServices.COMException]::new('Operation aborted', -2147467260))
+        (Get-PreparationFailureDetail $aborted).reason | Should -Be 'store-timeout'
+        Get-PreparationStoreTransient $aborted | Should -Be 'retry'
+        $failed = New-PreparationStoreFailure 'Microsoft.Windows.Photos_8wekyb3d8bbwe' 'Error' ([Runtime.InteropServices.COMException]::new('Install failed', -2147009287))
+        (Get-PreparationFailureDetail $failed).ContainsKey('reason') | Should -BeFalse
+        Get-PreparationStoreTransient $failed | Should -Be ''
+        Test-PreparationStoreRepairable $failed | Should -BeTrue
+    }
+
+    It 'names a Store that refuses to resume a download as a wait, with its code' {
+        $manager = [pscustomobject]@{}
+        $manager | Add-Member ScriptMethod Restart { param($Product) throw ([Runtime.InteropServices.COMException]::new('Error HRESULT E_FAIL has been returned from a call to a COM component.', -2147467259)) }
+        $item = [pscustomobject]@{ ProductId = '9WZDNCRFJ3PT'; PackageFamilyName = 'Microsoft.ZuneMusic_8wekyb3d8bbwe' }
+        try { Resume-PreparationStoreItem $manager $item } catch { $thrown = $_.Exception }
+        $detail = Get-PreparationFailureDetail $thrown
+        $detail.reason | Should -Be 'store-timeout'
+        $detail.errorCode | Should -Be '0x80004005'
+        Get-PreparationStoreTransient $thrown | Should -Be 'retry'
+    }
+
+    It 'names a Store that doesn''t answer as a wait' {
+        $source = [Threading.Tasks.TaskCompletionSource[object]]::new()
+        Mock Get-PreparationStoreTime { $script:now = $script:now.AddMinutes(4); $script:now }
+        try { Wait-PreparationStoreTask $source.Task } catch { $thrown = $_.Exception }
+        $thrown.Message | Should -Be 'Microsoft Store did not answer.'
+        (Get-PreparationFailureDetail $thrown).reason | Should -Be 'store-timeout'
+        Get-PreparationStoreTransient $thrown | Should -Be 'retry'
+    }
+
+    It 'keeps App Installer as it is, and goes on, when the Store briefly fails to update it' {
+        Mock Assert-PreparationContinue {}
+        $script:manager = [pscustomobject]@{}
+        $script:manager | Add-Member ScriptMethod UpdateAppByPackageFamilyNameAsync { param($Family) $Family }
+        Mock New-PreparationStoreManager { $script:manager }
+        Mock Wait-PreparationStoreCall {
+            if ($Operation -eq 'Microsoft.WindowsStore_8wekyb3d8bbwe') { return $null }
+            $silent = New-PreparationFailure 'Microsoft Store did not answer.' 'store-timeout'
+            $silent.Data['storeTransient'] = 'retry'
+            throw $silent
+        }
+        $null = [Windows.ApplicationModel.Store.Preview.InstallControl.AppInstallItem, Windows.ApplicationModel.Store.Preview.InstallControl, ContentType=WindowsRuntime]
+        Update-PreparationStoreItself | Should -BeFalse
+        Should -Invoke Write-PreparationStoreEvidence -Times 1 -Exactly -ParameterFilter { $Text -eq 'Microsoft.DesktopAppInstaller_8wekyb3d8bbwe could not be updated, going on: Microsoft Store did not answer.' }
+    }
+
+    It 'gives up on a Store that stops moving, for the repairs' {
+        $clock = New-PreparationStoreClock
+        Assert-PreparationStoreProgress $clock 'Downloading 10' 'Not finished.'
+        $script:now = $script:now.AddMinutes(29)
+        Assert-PreparationStoreProgress $clock 'Downloading 10' 'Not finished.'
+        $script:now = $script:now.AddMinutes(2)
+        try { Assert-PreparationStoreProgress $clock 'Downloading 10' 'Not finished.' } catch { $thrown = $_.Exception }
+        (Get-PreparationFailureDetail $thrown).reason | Should -Be 'store-timeout'
+        Test-PreparationStoreRepairable $thrown | Should -BeTrue
+    }
+
+    It 'waits for a Store that keeps moving, then gives up without the repairs' {
+        $clock = New-PreparationStoreClock
+        for ($minute = 0; $minute -le 90; $minute += 10) {
+            $script:now = $clock.Started.AddMinutes($minute)
+            Assert-PreparationStoreProgress $clock "Downloading $minute" 'Not finished.'
+        }
+        $script:now = $clock.Started.AddMinutes(91)
+        try { Assert-PreparationStoreProgress $clock 'Downloading 91' 'Not finished.' } catch { $thrown = $_.Exception }
+        (Get-PreparationFailureDetail $thrown).reason | Should -Be 'store-timeout'
+        Get-PreparationStoreTransient $thrown | Should -Be 'final'
+        Test-PreparationStoreRepairable $thrown | Should -BeFalse
+    }
+
+    It 'ends a wait with a limit of its own at that limit' {
+        $clock = New-PreparationStoreClock 15
+        $script:now = $clock.Started.AddMinutes(14)
+        Assert-PreparationStoreProgress $clock 'Downloading 50' 'Not finished.'
+        $script:now = $clock.Started.AddMinutes(16)
+        { Assert-PreparationStoreProgress $clock 'Downloading 60' 'Not finished.' } | Should -Throw 'Not finished.'
+    }
+
+    It 'names a refused or cut download as a network problem: <Case>' -TestCases @(
+        @{ Case = 'GitHub''s limit'; Status = 403; Network = $true }
+        @{ Case = 'too many requests'; Status = 429; Network = $true }
+        @{ Case = 'a proxy asking for credentials'; Status = 407; Network = $true }
+        @{ Case = 'a missing file'; Status = 404; Network = $false }
+    ) {
+        param($Case, $Status, $Network)
+        $failure = Get-PreparationHttpFailure 'https://api.github.com/repos/microsoft/winget-cli' $Status
+        $failure.Data.Contains('network') | Should -Be $Network -Because $Case
+        $failure.Message | Should -Match "HTTP (status )?$Status"
+        if ($Network) { $failure.Message | Should -Match '^A network problem stopped the download from api\.github\.com' }
+    }
+
+    It 'names a connection that fails as a network problem' {
+        $file = Join-Path $TestDrive 'refused.json'
+        try { Save-PreparationDownload 'https://127.0.0.1:9/' $file 1KB 10 } catch { $thrown = $_.Exception }
+        $thrown.Data.Contains('network') | Should -BeTrue
+        $thrown.Message | Should -Match '^A network problem stopped the download from 127\.0\.0\.1: '
+        Test-Path -LiteralPath $file | Should -BeFalse
+    }
+}
+
+Describe 'App Installer the latest release has' {
+    BeforeEach {
+        Remove-Item -LiteralPath (Join-Path $JobPath 'updates.log') -ErrorAction SilentlyContinue
+        Mock Write-PreparationState {}
+        Mock Get-PreparationWingetRelease { [pscustomobject]@{ tag_name = 'v1.29.380' } }
+        Mock Save-PreparationReleaseAsset { throw 'downloading the release' }
+        $script:installed = [version]'1.30.310.0'
+        $script:client = [version]'1.30.310'
+        Mock Get-PreparationAppInstallerVersion { $script:installed }
+        Mock Get-PreparationWingetVersion { $script:client }
+    }
+
+    It 'downloads nothing when this user has that release or a newer one' {
+        Save-PreparationAppInstaller | Should -BeFalse
+        Should -Invoke Save-PreparationReleaseAsset -Times 0 -Exactly
+        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'this user has App Installer 1\.30\.310\.0 with winget 1\.30\.310, at least the latest stable release v1\.29\.380; not downloading it'
+        $script:installed = [version]'1.29.380.0'
+        $script:client = [version]'1.29.380'
+        Save-PreparationAppInstaller | Should -BeFalse
+    }
+
+    It 'downloads the release when <Case>' -TestCases @(
+        @{ Case = 'this user''s App Installer is older'; Installed = '1.28.240.0'; Client = '1.28.240' }
+        @{ Case = 'this user has no App Installer'; Installed = $null; Client = $null }
+        @{ Case = 'its winget reports an older version'; Installed = '1.30.310.0'; Client = '1.15.100' }
+        @{ Case = 'its winget reports no version'; Installed = '1.30.310.0'; Client = $null }
+    ) {
+        param($Case, $Installed, $Client)
+        $script:installed = if ($Installed) { [version]$Installed } else { $null }
+        $script:client = if ($Client) { [version]$Client } else { $null }
+        { Save-PreparationAppInstaller } | Should -Throw '*downloading the release*' -Because $Case
+    }
+
+    It 'downloads the release when its tag names no version' {
+        Mock Get-PreparationWingetRelease { [pscustomobject]@{ tag_name = 'latest' } }
+        { Save-PreparationAppInstaller } | Should -Throw '*downloading the release*'
     }
 }
 

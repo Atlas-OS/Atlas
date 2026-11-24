@@ -141,7 +141,14 @@ function New-PreparationStoreFailure([string]$PackageFamilyName, [string]$State,
         'PausedLowBattery' { 'store-paused-battery' }
         'PausedWiFi*' { 'store-paused-network' }
     }
-    $failure = New-PreparationFailure $message $reason $(if ($null -ne $ErrorCode) { $ErrorCode.HResult } else { 0 })
+    $code = if ($null -ne $ErrorCode) { $ErrorCode.HResult } else { 0 }
+    # E_ABORT: something interrupted the Store's work on the item, which a later
+    # try gets past. A Store that keeps doing it hasn't finished, rather than
+    # being broken.
+    $aborted = $code -eq $script:StoreAborted
+    if ($aborted -and -not $reason) { $reason = 'store-timeout' }
+    $failure = New-PreparationFailure $message $reason $code
+    if ($aborted) { $failure.Data['storeTransient'] = 'retry' }
     $failure.Data['packageName'] = ($PackageFamilyName -split '_')[0].Split('.')[-1]
     return $failure
 }
@@ -1242,11 +1249,16 @@ function Wait-PreparationStoreCall($Operation, [type]$ResultType) {
 # A failed Store call ends with the Store's own error. The task wraps it twice, as
 # "Exception calling Wait" around "One or more errors occurred.", which says nothing.
 function Wait-PreparationStoreTask([Threading.Tasks.Task]$Task) {
-    $deadline = [DateTime]::UtcNow.AddMinutes(3)
+    $deadline = (Get-PreparationStoreTime).AddMinutes(3)
     try {
         while (-not $Task.Wait(2000)) {
             Write-PreparationState running store-search
-            if ([DateTime]::UtcNow -gt $deadline) { throw 'Microsoft Store did not answer.' }
+            if ((Get-PreparationStoreTime) -gt $deadline) {
+                # A busy Store can take this long; a later call usually answers.
+                $silent = New-PreparationFailure 'Microsoft Store did not answer.' 'store-timeout'
+                $silent.Data['storeTransient'] = 'retry'
+                throw $silent
+            }
         }
         return $Task.Result
     }
@@ -1286,6 +1298,59 @@ function Wait-PreparationStoreQueueRefresh($Manager, [string]$ProductId) {
     }
 }
 
+# The time a Store wait reads, on its own so tests can move it on.
+function Get-PreparationStoreTime { [DateTime]::UtcNow }
+
+# How long a Store wait has run, and when what it follows last moved. $Minutes,
+# when given, ends the wait that long after it began, moving or not.
+function New-PreparationStoreClock([int]$Minutes = 0) {
+    $now = Get-PreparationStoreTime
+    $stall = if ($Minutes -gt 0) { $Minutes } else { $script:PreparationStoreStallMinutes }
+    $limit = if ($Minutes -gt 0) { $Minutes } else { $script:PreparationStoreLimitMinutes }
+    return [pscustomobject]@{ Started = $now; Moved = $now; Signature = $null; Stall = $stall; Limit = $limit }
+}
+
+# Ends a Store wait that has gone on too long, with store-timeout. Nothing moving
+# for the clock's stall time means the Store is stuck, which a repair can help.
+# A Store still moving at the clock's limit is slow, which no repair helps, so
+# that timeout is marked to skip them. $Signature is what the wait follows, such
+# as each item's state and percentage.
+function Assert-PreparationStoreProgress($Clock, [string]$Signature, [string]$Message) {
+    $now = Get-PreparationStoreTime
+    if ($Signature -cne $Clock.Signature) {
+        $Clock.Signature = $Signature
+        $Clock.Moved = $now
+    }
+    if ($now -gt $Clock.Moved.AddMinutes($Clock.Stall)) {
+        throw (New-PreparationFailure $Message 'store-timeout')
+    }
+    if ($now -gt $Clock.Started.AddMinutes($Clock.Limit)) {
+        Write-PreparationStoreEvidence "still moving after $($Clock.Limit) minutes; stopping the wait without a repair"
+        $slow = New-PreparationFailure $Message 'store-timeout'
+        $slow.Data['storeTransient'] = 'final'
+        throw $slow
+    }
+}
+
+# Asks the Store to resume a queued or paused download. The Store can refuse with
+# a passing COM error, such as E_FAIL, which a later try gets past.
+function Resume-PreparationStoreItem($Manager, $Item) {
+    try { $Manager.Restart($Item.ProductId) }
+    catch {
+        $refused = New-PreparationFailure "Microsoft Store couldn't resume $($Item.PackageFamilyName): $($_.Exception.Message)" 'store-timeout' (Get-PreparationHResult $_.Exception)
+        $refused.Data['storeTransient'] = 'retry'
+        throw $refused
+    }
+}
+
+# Whether a Store failure passes on its own: 'retry' for one a later try gets
+# past, 'final' for a slow Store that has had all the time it gets, or '' for
+# any other. Neither kind is a broken Store, so neither starts the repairs.
+function Get-PreparationStoreTransient([Exception]$Exception) {
+    if ($Exception.Data.Contains('storeTransient')) { return [string]$Exception.Data['storeTransient'] }
+    return ''
+}
+
 function Invoke-PreparationStore {
     for ($pass = 0; $pass -lt $script:PreparationPasses; $pass++) {
         Assert-PreparationContinue
@@ -1321,22 +1386,24 @@ function Invoke-PreparationStore {
         $items = @(@($items) + @($manager.AppInstallItems) | Group-Object PackageFamilyName | ForEach-Object { $_.Group[0] })
         Write-PreparationStoreRetried $cleared $items
         if ($items.Count -eq 0) { return }
-        $deadline = [DateTime]::UtcNow.AddMinutes(30)
+        $clock = New-PreparationStoreClock
         $restarted = @{}
         $refresh = $null
         try {
             do {
                 $complete = 0
                 $percent = 0.0
+                $moves = [Collections.Generic.List[string]]::new()
                 foreach ($item in $items) {
                     $status = $item.GetCurrentStatus()
                     $state = [string]$status.InstallState
                     if ($state -eq 'Completed') { $complete++; $percent += 100; continue }
                     $percent += [Math]::Max(0, [Math]::Min(100, [double]$status.PercentComplete))
+                    $moves.Add(('{0} {1:F0}' -f $state, [double]$status.PercentComplete))
                     # Store may return a queued download even when automatic
                     # installation was requested. WinGet restarts this state too.
                     if ($state -in @('ReadyToDownload','Paused') -and -not $restarted.ContainsKey($item.ProductId)) {
-                        $manager.Restart($item.ProductId)
+                        Resume-PreparationStoreItem $manager $item
                         $restarted[$item.ProductId] = $true
                         continue
                     }
@@ -1355,7 +1422,7 @@ function Invoke-PreparationStore {
                 if ($null -ne $refresh) { break }
                 Write-PreparationState running store-install $complete $items.Count -Detail @{percent = [int][Math]::Floor($percent / $items.Count)}
                 if ($complete -lt $items.Count) {
-                    if ([DateTime]::UtcNow -gt $deadline) { throw (New-PreparationFailure 'Store apps have not finished updating. Open Microsoft Store and resolve the remaining downloads.' 'store-timeout') }
+                    Assert-PreparationStoreProgress $clock "$complete $($moves -join ',')" 'Store apps have not finished updating. Open Microsoft Store and resolve the remaining downloads.'
                     Start-Sleep -Seconds 2
                 }
             } while ($complete -lt $items.Count)
@@ -1422,14 +1489,19 @@ function Assert-PreparationCurrent {
 }
 
 function Invoke-PreparationStoreWithRetry {
-    # Retry only 0x80240016 (another install is in progress), never an app-in-use
-    # or unknown error.
+    # Retry what passes on its own: another install in progress (0x80240016), and a
+    # Store that cancelled an item (E_ABORT), didn't answer or couldn't resume a
+    # download. Never an app in use or an unknown error. The Store's own end the
+    # run with store-timeout after the last try.
     for ($attempt = 0; $attempt -lt 4; $attempt++) {
         try { Invoke-PreparationStore; return }
         catch {
             $detail = Get-PreparationFailureDetail $_.Exception
-            if (-not $detail.ContainsKey('errorCode') -or $detail.errorCode -ne '0x80240016' -or $attempt -eq 3 -or (Test-PreparationRestart)) { throw }
-            Write-PreparationLog "Store is busy; retrying in 15 seconds (attempt $($attempt + 2) of 4)."
+            $busy = $detail.ContainsKey('errorCode') -and $detail.errorCode -eq '0x80240016'
+            $passing = (Get-PreparationStoreTransient $_.Exception) -eq 'retry'
+            if (-not ($busy -or $passing) -or $attempt -eq 3 -or (Test-PreparationRestart)) { throw }
+            if ($busy) { Write-PreparationLog "Store is busy; retrying in 15 seconds (attempt $($attempt + 2) of 4)." }
+            else { Write-PreparationStoreEvidence "$(([string]$_.Exception.Message).Trim().TrimEnd('.')); trying again in 15 seconds (attempt $($attempt + 2) of 4)" }
             for ($second = 0; $second -lt 15; $second++) {
                 Assert-PreparationContinue
                 Write-PreparationState running store-search
@@ -1462,6 +1534,12 @@ $script:PreparationStoreRepairs = @('wsreset', 'bootstrap', 'storefixer')
 $script:PreparationStoreDownloaded = $false
 $script:PreparationStoreRepairsRun = $false
 $script:PreparationStoreQueueRefreshed = $false
+# E_ABORT (0x80004004), which the Store gives an item something interrupted.
+$script:StoreAborted = -2147467260
+# A Store wait gives up once nothing has moved for this long, and in any case
+# after the limit; a Store that still moves at the limit is slow, not broken.
+$script:PreparationStoreStallMinutes = 30
+$script:PreparationStoreLimitMinutes = 90
 # What happened to the Store in this run, for the app: store-updated,
 # store-bootstrapped, store-repaired or store-skipped-removed.
 $script:PreparationStoreOutcome = $null
@@ -1704,9 +1782,10 @@ function Get-PreparationAppInstallManager {
 }
 
 # Follows one Store download to its end. A queued or paused one is restarted
-# once, as WinGet does; any other stop fails.
-function Wait-PreparationStoreItem($Manager, $Item, [string]$Stage, [int]$Minutes = 30) {
-    $deadline = [DateTime]::UtcNow.AddMinutes($Minutes)
+# once, as WinGet does; any other stop fails. The wait ends as
+# Assert-PreparationStoreProgress says, or after $Minutes when given.
+function Wait-PreparationStoreItem($Manager, $Item, [string]$Stage, [int]$Minutes = 0) {
+    $clock = New-PreparationStoreClock $Minutes
     $restarted = $false
     while ($true) {
         Assert-PreparationContinue
@@ -1714,14 +1793,15 @@ function Wait-PreparationStoreItem($Manager, $Item, [string]$Stage, [int]$Minute
         $state = [string]$status.InstallState
         if ($state -eq 'Completed') { return }
         if ($state -in @('ReadyToDownload', 'Paused') -and -not $restarted) {
-            $Manager.Restart($Item.ProductId)
+            Resume-PreparationStoreItem $Manager $Item
             $restarted = $true
         }
         elseif ($state -in @('Error', 'Canceled', 'Paused', 'PausedLowBattery', 'PausedWiFiRecommended', 'PausedWiFiRequired')) {
             throw (New-PreparationStoreFailure $Item.PackageFamilyName $state $status.ErrorCode)
         }
-        Write-PreparationState running $Stage -Detail @{ percent = [int][Math]::Max(0, [Math]::Min(100, [double]$status.PercentComplete)) }
-        if ([DateTime]::UtcNow -gt $deadline) { throw (New-PreparationFailure "Microsoft Store has not finished updating $($Item.PackageFamilyName)." 'store-timeout') }
+        $percent = [int][Math]::Max(0, [Math]::Min(100, [double]$status.PercentComplete))
+        Write-PreparationState running $Stage -Detail @{ percent = $percent }
+        Assert-PreparationStoreProgress $clock "$state $percent" "Microsoft Store has not finished updating $($Item.PackageFamilyName)."
         Start-Sleep -Seconds 2
     }
 }
@@ -1748,7 +1828,10 @@ function Update-PreparationStoreItself {
             $updated = $true
         }
         catch {
-            if ($family -eq $script:PreparationStoreFamily -or -not (Test-PreparationStoreRepairable $_.Exception)) { throw }
+            # App Installer only helps: whatever a repair could help with, or a
+            # Store that briefly fails, leaves it as it is.
+            $passing = Get-PreparationStoreTransient $_.Exception
+            if ($family -eq $script:PreparationStoreFamily -or -not ((Test-PreparationStoreRepairable $_.Exception) -or $passing)) { throw }
             Write-PreparationStoreEvidence "$family could not be updated, going on: $($_.Exception.Message)"
         }
     }
@@ -1756,9 +1839,11 @@ function Update-PreparationStoreItself {
 }
 
 # Failures a Store repair can help with. Not a paused queue the user resolves,
-# an app in use, a busy installer, the connection, the wrong account or Stop.
+# an app in use, a busy installer, a Store that is slow or briefly fails
+# (Get-PreparationStoreTransient), the connection, the wrong account or Stop.
 function Test-PreparationStoreRepairable([Exception]$Exception) {
     if ($Exception -is [OperationCanceledException] -or $Exception -is [System.Net.NetworkInformation.NetworkInformationException]) { return $false }
+    if (Get-PreparationStoreTransient $Exception) { return $false }
     $detail = Get-PreparationFailureDetail $Exception
     if ($detail.ContainsKey('reason') -and $detail.reason -in @('store-paused-battery', 'store-paused-network', 'session-owner')) { return $false }
     if ($detail.ContainsKey('errorCode') -and $detail.errorCode -in @('0x80073D02', '0x80240016')) { return $false }
@@ -1804,23 +1889,34 @@ function Invoke-PreparationStoreStage {
 
 # One pass through the repairs. After each that changed something, the Store
 # is asked to update itself and the apps again; the first that works ends it.
+# A repair can also say 'skipped', when this PC has nothing to run it with. The
+# failure after the last names how each one ended.
 function Repair-PreparationStore([Exception]$Failure) {
     if ($script:PreparationStoreRepairsRun) { throw $Failure }
     $script:PreparationStoreRepairsRun = $true
     $code = (Get-PreparationFailureDetail $Failure)['errorCode']
     Write-PreparationStoreEvidence "updating failed ($($Failure.Message)$(if ($code) { ", $code" })); repairing"
     $last = $Failure
+    $ended = [Collections.Generic.List[string]]::new()
     foreach ($repair in $script:PreparationStoreRepairs) {
         Assert-PreparationContinue
         Write-PreparationState running store-repair
-        try { $changed = [bool](Invoke-PreparationStoreRepair $repair | Select-Object -Last 1) }
+        try { $result = Invoke-PreparationStoreRepair $repair | Select-Object -Last 1 }
         catch {
             if ($_.Exception -is [OperationCanceledException]) { throw }
-            Write-PreparationStoreEvidence "$repair failed: $($_.Exception.Message)"
+            $network = if ($_.Exception.Data.Contains('network')) { ', a network problem' } else { '' }
+            Write-PreparationStoreEvidence "$repair failed$network`: $($_.Exception.Message)"
+            $ended.Add("$repair failed$network")
             continue
         }
-        if (-not $changed) {
+        if ($result -is [string] -and $result -ceq 'skipped') {
+            Write-PreparationStoreEvidence "$repair skipped"
+            $ended.Add("$repair skipped")
+            continue
+        }
+        if (-not [bool]$result) {
             Write-PreparationStoreEvidence "$repair changed nothing"
+            $ended.Add("$repair changed nothing")
             continue
         }
         Write-PreparationStoreEvidence "$repair done; trying the Store again"
@@ -1836,12 +1932,13 @@ function Repair-PreparationStore([Exception]$Failure) {
             if (-not (Test-PreparationStoreRepairable $_.Exception)) { throw }
             $last = $_.Exception
             Write-PreparationStoreEvidence "still failing after $repair`: $($last.Message)"
+            $ended.Add("$repair didn't help")
         }
     }
     Write-PreparationStoreInventory 'after'
     $lastCode = (Get-PreparationFailureDetail $last)['errorCode']
     $hresult = if ($lastCode) { [Convert]::ToInt32($lastCode, 16) } else { 0 }
-    throw (New-PreparationFailure "Microsoft Store couldn't be repaired: $($last.Message)" 'store-repair-failed' $hresult)
+    throw (New-PreparationFailure "Microsoft Store couldn't be repaired ($($ended -join '; ')): $($last.Message)" 'store-repair-failed' $hresult)
 }
 
 function Invoke-PreparationStoreRepair([string]$Repair) {
@@ -1915,6 +2012,33 @@ function Assert-PreparationMicrosoftSignature([string]$Path) {
     }
 }
 
+# A download that the network stopped, named as such: the connection failed or
+# was cut, or a proxy or GitHub refused the request. GitHub answers 403 or 429
+# when one address sends it too many requests, as a shared or proxied connection
+# can, and a proxy that wants credentials answers 407. None of it says anything
+# about Microsoft Store.
+function New-PreparationNetworkFailure([uri]$Uri, [string]$Problem) {
+    $failure = New-PreparationFailure "A network problem stopped the download from $($Uri.Host): $Problem"
+    $failure.Data['network'] = $true
+    return $failure
+}
+
+# Why a download answered with HTTP $Status.
+function Get-PreparationHttpFailure([uri]$Uri, [int]$Status) {
+    switch ($Status) {
+        { $_ -in @(403, 429) } { return (New-PreparationNetworkFailure $Uri "HTTP $Status, which GitHub answers when one address sends it too many requests, and a proxy can answer when it blocks one") }
+        407 { return (New-PreparationNetworkFailure $Uri 'HTTP 407: a proxy asks for credentials') }
+    }
+    return [Exception]::new("Downloading $Uri failed with HTTP status $Status.")
+}
+
+# The innermost message of a failed request, which names the network's own error.
+function Get-PreparationInnerMessage([Exception]$Exception) {
+    $cause = $Exception
+    while ($null -ne $cause.InnerException) { $cause = $cause.InnerException }
+    return ([string]$cause.Message).Trim()
+}
+
 # HTTPS only, no user information, at most $MaximumBytes, within $Seconds.
 function Save-PreparationDownload([uri]$Uri, [string]$Destination, [long]$MaximumBytes, [int]$Seconds = 600, [switch]$GitHubApi) {
     if ($Uri.Scheme -cne 'https' -or $Uri.UserInfo) { throw "Only HTTPS downloads are allowed: $Uri" }
@@ -1928,14 +2052,18 @@ function Save-PreparationDownload([uri]$Uri, [string]$Destination, [long]$Maximu
     $response = $null
     $output = $null
     try {
-        $response = $client.GetAsync($Uri, [Net.Http.HttpCompletionOption]::ResponseHeadersRead).GetAwaiter().GetResult()
-        if (-not $response.IsSuccessStatusCode) { throw "Downloading $Uri failed with HTTP status $([int]$response.StatusCode)." }
+        try { $response = $client.GetAsync($Uri, [Net.Http.HttpCompletionOption]::ResponseHeadersRead).GetAwaiter().GetResult() }
+        catch { throw (New-PreparationNetworkFailure $Uri (Get-PreparationInnerMessage $_.Exception)) }
+        if (-not $response.IsSuccessStatusCode) { throw (Get-PreparationHttpFailure $Uri ([int]$response.StatusCode)) }
         if ($response.RequestMessage.RequestUri.Scheme -cne 'https') { throw "Downloading $Uri left HTTPS." }
         $stream = $response.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
         $output = [IO.File]::Open($Destination, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
         $buffer = New-Object byte[] 65536
         [long]$total = 0
-        while (($read = $stream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+        while ($true) {
+            try { $read = $stream.Read($buffer, 0, $buffer.Length) }
+            catch { throw (New-PreparationNetworkFailure $Uri (Get-PreparationInnerMessage $_.Exception)) }
+            if ($read -le 0) { break }
             $total += $read
             if ($total -gt $MaximumBytes) { throw "Downloading $Uri passed $MaximumBytes bytes." }
             $output.Write($buffer, 0, $read)
@@ -1995,9 +2123,7 @@ function Save-PreparationReleaseAsset($Release, [string]$Name, [string]$Folder) 
 # which is always above App Installer's own 1.x. Returns whether this user's
 # version rose, so that when registering changes nothing it is downloaded.
 function Register-PreparationNewerAppInstaller {
-    $mine = { @(Get-AppxPackage -Name Microsoft.DesktopAppInstaller -ErrorAction SilentlyContinue |
-                Where-Object { [string]$_.PackageFamilyName -ceq $script:PreparationAppInstallerFamily } |
-                ForEach-Object { [version]$_.Version } | Sort-Object -Descending) | Select-Object -First 1 }
+    $mine = { Get-PreparationAppInstallerVersion }
     $current = & $mine
     $had = if ($null -ne $current) { $current } else { 'none' }
     $newest = @(Get-AppxPackage -AllUsers -Name Microsoft.DesktopAppInstaller -ErrorAction SilentlyContinue |
@@ -2039,7 +2165,7 @@ function Install-PreparationStoreFromMicrosoft {
         Write-PreparationStoreEvidence "bootstrap: the App Installer this PC has didn't give a usable winget: $($_.Exception.Message)"
     }
     if (-not $winget) {
-        try { Save-PreparationAppInstaller }
+        try { [void](Save-PreparationAppInstaller) }
         catch {
             # ERROR_INSTALL_PACKAGE_DOWNGRADE: Windows already has a newer
             # package than the stable release we tried. Use the signed App
@@ -2054,11 +2180,56 @@ function Install-PreparationStoreFromMicrosoft {
     $exit = Invoke-PreparationStoreProcess $winget $arguments 20 -Hidden
     # 0x8A15002B: nothing newer to install, so the Store is already current.
     Write-PreparationStoreEvidence "bootstrap: winget install of Microsoft Store exited $exit"
+    # 0x80072EE0 to 0x80072F8F: WinINet and WinHTTP's own errors, such as a
+    # connection cut short (0x80072EFE).
+    if ($null -ne $exit -and $exit -ge -2147012896 -and $exit -le -2147012721) {
+        throw (New-PreparationNetworkFailure 'https://storeedgefd.dsx.mp.microsoft.com/' ('winget could not install Microsoft Store (exit 0x{0:X8})' -f $exit))
+    }
     if ($exit -notin @(0, -1978335189)) { throw "winget couldn't install Microsoft Store (exit $exit)." }
     return $true
 }
 
-# App Installer and its frameworks from the latest winget-cli release.
+# This user's App Installer, by the package's own version, or $null.
+function Get-PreparationAppInstallerVersion {
+    @(Get-AppxPackage -Name Microsoft.DesktopAppInstaller -ErrorAction SilentlyContinue |
+            Where-Object { [string]$_.PackageFamilyName -ceq $script:PreparationAppInstallerFamily } |
+            ForEach-Object { [version]$_.Version } | Sort-Object -Descending) | Select-Object -First 1
+}
+
+# The version this user's winget reports, as in "v1.29.380", or $null.
+function Get-PreparationWingetVersion {
+    try {
+        $winget = Get-PreparationWingetPath
+        $output = @(& $winget --version 2>&1 | ForEach-Object { [string]$_ })
+        $match = [regex]::Match(($output -join ' '), 'v?(\d+\.\d+\.\d+)')
+        if ($LASTEXITCODE -eq 0 -and $match.Success) { return [version]$match.Groups[1].Value }
+    }
+    catch { Write-PreparationStoreEvidence "bootstrap: winget's version couldn't be read: $($_.Exception.Message)" }
+    return $null
+}
+
+# Whether this user's App Installer is already the latest stable release or
+# newer, so its download would change nothing. The package's own version is
+# compared with the release's tag, which names it (see "Microsoft Store repair"
+# in docs/preparation.md), and so is the version the user's winget reports. Any
+# that's missing or older lets the download go ahead.
+function Test-PreparationAppInstallerCurrent($Release) {
+    $tag = [regex]::Match([string]$Release.tag_name, '^v?(\d+\.\d+\.\d+)$')
+    if (-not $tag.Success) { return $false }
+    $latest = [version]$tag.Groups[1].Value
+    $installed = Get-PreparationAppInstallerVersion
+    if ($null -eq $installed -or [version]('{0}.{1}.{2}' -f $installed.Major, $installed.Minor, $installed.Build) -lt $latest) { return $false }
+    $client = Get-PreparationWingetVersion
+    if ($null -eq $client -or $client -lt $latest) {
+        Write-PreparationStoreEvidence "bootstrap: this user has App Installer $installed, and its winget reports $(if ($null -ne $client) { $client } else { 'no version' }); downloading $($Release.tag_name)"
+        return $false
+    }
+    Write-PreparationStoreEvidence "bootstrap: this user has App Installer $installed with winget $client, at least the latest stable release $($Release.tag_name); not downloading it"
+    return $true
+}
+
+# App Installer and its frameworks from the latest winget-cli release, unless this
+# user already has that release or a newer one. Returns whether it installed them.
 function Save-PreparationAppInstaller {
     $folder = Join-Path $JobPath 'store-bootstrap'
     if (Test-Path -LiteralPath $folder) { Remove-Item -LiteralPath $folder -Recurse -Force }
@@ -2067,6 +2238,7 @@ function Save-PreparationAppInstaller {
     if (-not $architecture) { throw "No App Installer frameworks for $env:PROCESSOR_ARCHITECTURE." }
     $release = Get-PreparationWingetRelease $folder
     Write-PreparationStoreEvidence "bootstrap: winget-cli $($release.tag_name)"
+    if (Test-PreparationAppInstallerCurrent $release) { return $false }
     $bundle = Save-PreparationReleaseAsset $release 'Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle' $folder
     $archive = Save-PreparationReleaseAsset $release 'DesktopAppInstaller_Dependencies.zip' $folder
     $unpacked = Join-Path $folder 'dependencies'
@@ -2077,6 +2249,7 @@ function Save-PreparationAppInstaller {
     Add-AppxPackage -Path $bundle -DependencyPath $dependencies -ForceApplicationShutdown -ErrorAction Stop
     $script:PreparationStoreDownloaded = $true
     Write-PreparationStoreEvidence "bootstrap: installed App Installer with $(@($dependencies | ForEach-Object { [IO.Path]::GetFileName($_) }) -join ', ')"
+    return $true
 }
 
 # winget.exe from this user's App Installer: Microsoft's package under
@@ -2130,7 +2303,7 @@ function Register-PreparationStore {
 
 # StoreFixer runs as TrustedInstaller, which only Atlas 0.6's own "Fix MS Store
 # Issues" can start safely; an older Atlas has no such launcher, so this repair
-# is left out there.
+# is left out there, and says 'skipped'.
 function Invoke-PreparationStoreFixer {
     $windows = [Environment]::GetFolderPath('Windows')
     $launcher = [IO.Path]::Combine($windows, 'AtlasModules\Scripts\Entry\Invoke-AtlasToggleLauncher.cmd')
@@ -2138,7 +2311,7 @@ function Invoke-PreparationStoreFixer {
     $shortcut = [IO.Path]::Combine($windows, 'AtlasDesktop\9. Troubleshooting\Fix MS Store Issues.cmd')
     if (-not ([IO.File]::Exists($launcher) -and [IO.File]::Exists($definition))) {
         Write-PreparationStoreEvidence "StoreFixer: this PC has no Atlas 0.6 Fix MS Store Issues to start it; left out"
-        return $false
+        return 'skipped'
     }
     $cmd = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'cmd.exe')
     $exit = Invoke-PreparationStoreProcess $cmd "/d /s /c `"`"$launcher`" FixMSStoreIssues Run `"$shortcut`" /silent`"" 15 -Hidden

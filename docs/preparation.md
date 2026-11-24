@@ -147,7 +147,8 @@ It leaves the Store's services alone, and turning off automatic Store app update
 
 ### Microsoft Store repair
 
-If the Store still can't update, the worker tries these repairs once per run, in order, and tries the Store again after each one that changed something:
+If the Store still can't update, the worker tries these repairs once per run, in order, and tries the Store again after each one that changed something.
+A Store that's slow or fails for a moment gets no repairs (see [Store app updates](#store-app-updates)).
 
 1. **`wsreset.exe -i`**, run in your session.
    The switch isn't documented.
@@ -157,18 +158,22 @@ If the Store still can't update, the worker tries these repairs once per run, in
 2. **App Installer, then the Store through winget.**
    When the PC has a newer App Installer staged, or installed for another account, the worker registers that copy for you without a download.
    Otherwise, or when registering it changes nothing, it installs App Installer and its frameworks from the latest stable [winget-cli release](https://github.com/microsoft/winget-cli/releases).
+   When your App Installer is already that release or newer, it downloads nothing.
    If Windows refuses that release because a newer App Installer is on the PC, the worker uses the signed winget available to you.
    Then it installs the Store with `winget install --id 9WZDNCRFJBMP --source msstore`.
 3. **StoreFixer**, started through Atlas's own **Fix MS Store Issues**, which runs it as TrustedInstaller.
-   A PC with an Atlas older than 0.6 has no safe way to start it, so the worker leaves this step out there.
+   A PC with an Atlas older than 0.6 has no safe way to start it, so the worker leaves this step out there, and says it skipped it.
 
 App Installer versions are compared by the package's own version.
+The release's tag gives that version, and the version your winget reports must also be at least the tag before the worker skips the download.
 The list of provisioned packages gives the bundle's version, such as 2026.115.2221.0, which is always above the package's, such as 1.27.459.0, so the worker doesn't use it.
 The winget-cli repository is checked by its GitHub IDs, and each file by the SHA-256 that GitHub records and by Microsoft's signature.
+A download that the connection cuts short, or that a proxy or GitHub refuses, is logged as a network problem.
+GitHub answers HTTP 403 or 429 when one address sends it too many requests, as a shared connection can, and a proxy that wants credentials answers 407.
 
 The first repair after which the Store works ends the repairs, and `updates.log` says what was done.
 The update row doesn't, as it changes nothing you do.
-If none helps, the run stops with `store-repair-failed`.
+If none helps, the run stops with `store-repair-failed`, and its message says how each repair ended.
 The update row says Microsoft Store isn't working and that installing Atlas now could break Store apps, with **Try repair again**, which runs the repairs again.
 Behind **Show details** are the worker's own message and **Create an Atlas ISO**, for reinstalling Windows after a backup if the repair keeps failing.
 The row of help links under it offers **Send a report**, **Export diagnostics** and **Open log folder**.
@@ -180,6 +185,19 @@ If the Store offers the app again, the worker waits for it again and stops if it
 If the update disappears from the Store, the app is up to date, because a busy Store can report `Error` for an update it has already installed.
 If a newly failed update is for an installed app, the worker gives the queue up to a minute to settle and searches again before it starts repairs. It does this once per run.
 The log says which.
+
+Some Store failures pass on their own:
+
+- an update the Store cancels with `0x80004004` (`E_ABORT`);
+- a Store that doesn't answer within three minutes;
+- a Store that refuses to resume a queued download.
+
+The worker tries the Store again, up to four times in all, 15 seconds apart.
+When the Store still fails that way, the run stops with `store-timeout`, without the repairs.
+
+The worker waits for Store apps while their updates move, until 30 minutes after anything last moved, and for 90 minutes at most.
+A Store that stops moving for 30 minutes gets the repairs, as a stuck Store can need them.
+One still moving after 90 minutes stops the run with `store-timeout`, without the repairs.
 
 An update that fails because its app is open (`0x80073D02`) names the app on the update row: close it, then try again, in Task Manager if it has no window.
 The row offers only **Try again**, as Microsoft Store has nothing to add.
@@ -279,7 +297,7 @@ These logs belong to the **Get ready** page, so they aren't under `%windir%\Atla
 | `component-store-unrepairable` | Windows reads its component store as damaged beyond repair. |
 | `store-missing` | Microsoft Store isn't registered for you. |
 | `store-paused-battery`, `store-paused-network` | The Store paused an update until the PC is plugged in or on Wi-Fi. |
-| `store-timeout` | Store apps didn't finish updating in time. |
+| `store-timeout` | Store apps didn't finish updating in time, or the Store kept failing in ways that pass on their own. |
 | `store-passes` | The Store still offers updates after eight passes. |
 | `store-repair-failed` | None of the Store repairs made the Store work. |
 
