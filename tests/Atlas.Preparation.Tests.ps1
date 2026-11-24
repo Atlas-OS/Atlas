@@ -616,14 +616,23 @@ Describe 'Microsoft Store before the Store apps' {
         @{ Case = 'paused for battery'; Failure = { New-PreparationStoreFailure 'Microsoft.WindowsStore_8wekyb3d8bbwe' 'PausedLowBattery' $null } }
         @{ Case = 'an app in use'; Failure = { New-PreparationStoreFailure '40174MouriNaruto.NanaZip_gnj4mf6z9tkrc' 'Error' ([Runtime.InteropServices.COMException]::new('Resources are in use.', -2147009278)) } }
         @{ Case = 'Stop'; Failure = { New-Object OperationCanceledException 'Preparation stopped after the current operation.' } }
-        @{ Case = 'an item the Store kept cancelling'; Failure = { New-PreparationStoreFailure 'Microsoft.Windows.Photos_8wekyb3d8bbwe' 'Canceled' ([Runtime.InteropServices.COMException]::new('Operation aborted', -2147467260)) } }
-        @{ Case = 'a Store that kept not answering'; Failure = { $silent = New-PreparationFailure 'Microsoft Store did not answer.' 'store-timeout'; $silent.Data['storeTransient'] = 'retry'; $silent } }
         @{ Case = 'a Store slow to the end'; Failure = { $slow = New-PreparationFailure 'Store apps have not finished updating.' 'store-timeout'; $slow.Data['storeTransient'] = 'final'; $slow } }
     ) {
         $script:Failure = & $Failure
         Mock Invoke-PreparationStoreWithRetry { throw $script:Failure }
         { Invoke-PreparationStoreStage } | Should -Throw
         $script:Repairs.Count | Should -Be 0
+    }
+
+    It 'repairs a Store that <Case> through every try, as a Store failing every time can be broken' -TestCases @(
+        @{ Case = 'kept cancelling an item'; Failure = { New-PreparationStoreFailure 'Microsoft.Windows.Photos_8wekyb3d8bbwe' 'Canceled' ([Runtime.InteropServices.COMException]::new('Operation aborted', -2147467260)) } }
+        @{ Case = 'kept not answering'; Failure = { $silent = New-PreparationFailure 'Microsoft Store did not answer.' 'store-timeout'; $silent.Data['storeTransient'] = 'retry'; $silent } }
+        @{ Case = 'kept refusing to resume a download'; Failure = { $refused = New-PreparationFailure 'Microsoft Store couldn''t resume Microsoft.ZuneMusic_8wekyb3d8bbwe.' 'store-timeout' -2147467259; $refused.Data['storeTransient'] = 'retry'; $refused } }
+    ) {
+        $script:Failure = & $Failure
+        Mock Invoke-PreparationStoreWithRetry { throw $script:Failure }
+        { Invoke-PreparationStoreStage } | Should -Throw
+        @($script:Repairs) | Should -Be @('wsreset', 'bootstrap', 'storefixer') -Because $Case
     }
 
     It 'says which repairs ran, failed or were skipped, and names a network problem' {
@@ -2194,12 +2203,11 @@ Describe 'Transient Store deployment recovery' {
         { Invoke-PreparationStoreWithRetry } | Should -Not -Throw -Because $Case
         Should -Invoke Invoke-PreparationStore -Times 3 -Exactly
     }
-    It 'ends with store-timeout, which no repair answers, when the Store keeps cancelling' {
+    It 'leaves a Store that keeps cancelling to the repairs once its tries are used up' {
         Mock Invoke-PreparationStore { throw (New-PreparationStoreFailure 'Microsoft.Windows.Photos_8wekyb3d8bbwe' 'Canceled' ([Runtime.InteropServices.COMException]::new('Operation aborted', -2147467260))) }
         try { Invoke-PreparationStoreWithRetry } catch { $thrown = $_.Exception }
         Should -Invoke Invoke-PreparationStore -Times 4 -Exactly
-        (Get-PreparationFailureDetail $thrown).reason | Should -Be 'store-timeout'
-        Test-PreparationStoreRepairable $thrown | Should -BeFalse
+        Test-PreparationStoreRepairable $thrown | Should -BeTrue
     }
     It 'doesn''t wait again for a Store that was slow until the end' {
         $script:slow = New-PreparationFailure 'Store apps have not finished updating.' 'store-timeout'

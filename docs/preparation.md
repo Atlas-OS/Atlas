@@ -150,7 +150,7 @@ It leaves the Store's services alone, and turning off automatic Store app update
 ### Microsoft Store repair
 
 If the Store still can't update, the worker tries these repairs once per run, in order, and tries the Store again after each one that changed something.
-A Store that's slow or fails for a moment gets no repairs (see [Store app updates](#store-app-updates)).
+A Store that fails for a moment is tried again first, and one that's slow but still moving gets no repairs (see [Store app updates](#store-app-updates)).
 
 1. **`wsreset.exe -i`**, run in your session.
    The switch isn't documented.
@@ -195,7 +195,7 @@ Some Store failures pass on their own:
 - a Store that refuses to resume a queued download.
 
 The worker tries the Store again, up to four times in all, 15 seconds apart.
-When the Store still fails that way, the run stops with `store-timeout`, without the repairs.
+When the Store still fails that way, it goes on to the repairs, as a Store that fails every time can be broken.
 
 The worker waits for Store apps while their updates move, until 30 minutes after anything last moved, and for 90 minutes at most.
 A Store that stops moving for 30 minutes gets the repairs, as a stuck Store can need them.
@@ -299,7 +299,7 @@ These logs belong to the **Get ready** page, so they aren't under `%windir%\Atla
 | `component-store-unrepairable` | Windows reads its component store as damaged beyond repair. |
 | `store-missing` | Microsoft Store isn't registered for you. |
 | `store-paused-battery`, `store-paused-network` | The Store paused an update until the PC is plugged in or on Wi-Fi. |
-| `store-timeout` | Store apps didn't finish updating in time, or the Store kept failing in ways that pass on their own. |
+| `store-timeout` | Store apps didn't finish updating in time. |
 | `store-passes` | The Store still offers updates after eight passes. |
 | `store-repair-failed` | None of the Store repairs made the Store work. |
 

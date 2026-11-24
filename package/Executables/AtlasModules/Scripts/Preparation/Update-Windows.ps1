@@ -1367,9 +1367,9 @@ function Resume-PreparationStoreItem($Manager, $Item) {
     }
 }
 
-# Whether a Store failure passes on its own: 'retry' for one a later try gets
-# past, 'final' for a slow Store that has had all the time it gets, or '' for
-# any other. Neither kind is a broken Store, so neither starts the repairs.
+# Whether a Store failure passes on its own: 'retry' for one a later try usually
+# gets past, 'final' for a slow Store that has had all the time it gets, or ''
+# for any other. Test-PreparationStoreRepairable says which the repairs follow.
 function Get-PreparationStoreTransient([Exception]$Exception) {
     if ($Exception.Data.Contains('storeTransient')) { return [string]$Exception.Data['storeTransient'] }
     return ''
@@ -1515,8 +1515,8 @@ function Assert-PreparationCurrent {
 function Invoke-PreparationStoreWithRetry {
     # Retry what passes on its own: another install in progress (0x80240016), and a
     # Store that cancelled an item (E_ABORT), didn't answer or couldn't resume a
-    # download. Never an app in use or an unknown error. The Store's own end the
-    # run with store-timeout after the last try.
+    # download. Never an app in use or an unknown error. One the last try doesn't
+    # get past goes on to the repairs, as any Store failure does.
     for ($attempt = 0; $attempt -lt 4; $attempt++) {
         try { Invoke-PreparationStore; return }
         catch {
@@ -1853,9 +1853,9 @@ function Update-PreparationStoreItself {
         }
         catch {
             # App Installer only helps: whatever a repair could help with, or a
-            # Store that briefly fails, leaves it as it is.
-            $passing = Get-PreparationStoreTransient $_.Exception
-            if ($family -eq $script:PreparationStoreFamily -or -not ((Test-PreparationStoreRepairable $_.Exception) -or $passing)) { throw }
+            # Store slow to the end, leaves it as it is.
+            $slow = (Get-PreparationStoreTransient $_.Exception) -eq 'final'
+            if ($family -eq $script:PreparationStoreFamily -or -not ((Test-PreparationStoreRepairable $_.Exception) -or $slow)) { throw }
             Write-PreparationStoreEvidence "$family could not be updated, going on: $($_.Exception.Message)"
         }
     }
@@ -1863,11 +1863,14 @@ function Update-PreparationStoreItself {
 }
 
 # Failures a Store repair can help with. Not a paused queue the user resolves,
-# an app in use, a busy installer, a Store that is slow or briefly fails
-# (Get-PreparationStoreTransient), the connection, the wrong account or Stop.
+# an app in use, a busy installer, a Store slow to the end but still moving
+# ('final', see Get-PreparationStoreTransient), the connection, the wrong account
+# or Stop. A failure that usually passes on its own ('retry') gets the repairs
+# once Invoke-PreparationStoreWithRetry's tries haven't got past it, as a Store
+# that does it every time can be broken.
 function Test-PreparationStoreRepairable([Exception]$Exception) {
     if ($Exception -is [OperationCanceledException] -or $Exception -is [System.Net.NetworkInformation.NetworkInformationException]) { return $false }
-    if (Get-PreparationStoreTransient $Exception) { return $false }
+    if ((Get-PreparationStoreTransient $Exception) -eq 'final') { return $false }
     $detail = Get-PreparationFailureDetail $Exception
     if ($detail.ContainsKey('reason') -and $detail.reason -in @('store-paused-battery', 'store-paused-network', 'session-owner')) { return $false }
     if ($detail.ContainsKey('errorCode') -and $detail.errorCode -in @('0x80073D02', '0x80240016')) { return $false }
