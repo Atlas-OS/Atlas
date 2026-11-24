@@ -48,6 +48,24 @@ Describe 'ISO network driver selection' {
         New-Item -Path (Join-Path $TestDrive 'cancel') -ItemType File | Out-Null
         { Export-AtlasNetworkDrivers -Destination $TestDrive -CancelFile (Join-Path $TestDrive 'cancel') -LogPath (Join-Path $TestDrive 'log') } | Should -Throw '*cancelled*'
     }
+    It 'keeps the installed drivers when Windows Update can''t provide any' {
+        Mock Get-AtlasNetworkPackages { @() }
+        Mock Export-AtlasNetworkUpdates {
+            New-Item -ItemType Directory -Path (Join-Path $Destination 'windows-update-0') | Out-Null
+            throw 'Use an unmetered connection to download network drivers.'
+        }
+        $destination = Join-Path $TestDrive 'Fallback'
+        $log = Join-Path $TestDrive 'fallback.log'
+        $packages = @(Export-AtlasNetworkDrivers -Destination $destination -CancelFile (Join-Path $TestDrive 'none') -LogPath $log -CheckUpdates)
+        $packages.Count | Should -Be 0
+        Test-Path -LiteralPath $destination | Should -BeFalse
+        Get-Content -LiteralPath $log -Raw | Should -Match 'keeping the installed drivers'
+    }
+    It 'stops when cancelled during the Windows Update search' {
+        Mock Get-AtlasNetworkPackages { @() }
+        Mock Export-AtlasNetworkUpdates { throw (New-Object OperationCanceledException 'Network driver export cancelled.') }
+        { Export-AtlasNetworkDrivers -Destination (Join-Path $TestDrive 'Cancelled') -CancelFile (Join-Path $TestDrive 'none') -LogPath (Join-Path $TestDrive 'log') -CheckUpdates } | Should -Throw '*cancelled*'
+    }
     It 'downloads and copies a matching update without creating an installer' {
         Mock Assert-AtlasNetworkDownloadConnection { }
         Mock Test-Path { $false } -ParameterFilter { $LiteralPath -like '*cancel*' }

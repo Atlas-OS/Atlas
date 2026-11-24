@@ -637,7 +637,7 @@ fn get_ready_says_what_it_did_about_microsoft_store() {
             let failure = m.preparation_progress.as_ref().and_then(|p| p.failure());
             assert_eq!(
                 crate::i18n::describe::preparation_failure(failure, false),
-                crate::t!("prepare-failed-store-repair-failed")
+                crate::t!("prepare-store-broken")
             );
         });
         let before = *runs.lock().unwrap();

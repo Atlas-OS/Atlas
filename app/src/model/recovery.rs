@@ -134,6 +134,8 @@ impl AppModel {
         self.fill_radio_defaults();
         self.option_screen = draft.option_screen;
         if self.flow.resume(step).is_ok() {
+            // After Atlas's own restart, updating carries on by itself.
+            self.begin_get_ready();
             // The checks of the flow before, such as an install that has just
             // finished, say nothing about this PC now: Get ready runs them again.
             self.checks.clear();
@@ -251,7 +253,9 @@ impl AppModel {
             Ok(Some(job)) => {
                 // A running preparation is followed at Get ready, in the
                 // resumed flow or in one of its own.
-                self.flow.resume(Step::Ready).ok();
+                if self.flow.resume(Step::Ready).is_ok() {
+                    self.ready_moves_on = true;
+                }
                 self.flow_id.get_or_insert_with(settings::new_flow_id);
                 self.navigate(Page::Install, cx);
                 self.follow_preparation(job.directory.clone(), Some(job), false, cx);
@@ -373,6 +377,8 @@ impl AppModel {
                 if matches!(self.notice, Some(Notice::SessionUnreadable { .. })) {
                     self.notice = None;
                 }
+                // Get ready may have waited for the record alone.
+                self.advance_ready(cx);
             }
         }
         cx.notify();

@@ -22,7 +22,7 @@ mod toggle_switch;
 mod tooltip;
 mod typography;
 
-pub use button::Button;
+pub use button::{Button, COMPACT_INSET, link_row};
 pub use card::card;
 pub use combo_box::{ComboBox, ComboItem};
 pub use completion_backdrop::{CompletionBackdrop, KeepOut};

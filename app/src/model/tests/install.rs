@@ -271,10 +271,10 @@ fn a_resumed_install_starts_without_an_answer_to_a_page_added_since() {
         act(&mut cx, &model, |m, cx| m.load_package_file(package, cx));
         wait_for(&cx, &model, "the package and the checks", |m| m.package.is_some() && m.checks_complete())
             .await;
-        for _ in 0..3 {
+        for _ in 0..2 {
             act(&mut cx, &model, |m, cx| m.next_step(cx));
         }
-        assert_eq!(read(&cx, &model, |m| m.flow.step), Step::Security, "two screens of choices");
+        assert_eq!(read(&cx, &model, |m| m.flow.step), Step::Security, "both questions on one screen");
         wait_for(&cx, &model, "a Windows Security reading", |m| m.security_fresh()).await;
         act(&mut cx, &model, |m, cx| m.next_step(cx));
         wait_for(&cx, &model, "the install to be possible", AppModel::can_install).await;
@@ -343,7 +343,7 @@ fn a_retry_that_stops_on_the_same_error_is_told_apart_even_past_a_refusal() {
                 assert!(!m.attempt.repeated(), "{failure}");
                 assert_eq!(m.attempt.unremoved_apps(), ["MSTeams"]);
                 assert!(!m.defender_removed());
-                assert_eq!(advice(m), crate::t!("outcome-failed-applying"), "{failure}");
+                assert_eq!(advice(m), crate::t!("result-failed-applying"), "{failure}");
                 assert!(m.result_offers_windows_security());
             });
         }
@@ -388,7 +388,7 @@ fn a_retry_that_stops_on_the_same_error_is_told_apart_even_past_a_refusal() {
             assert!(m.attempt.repeated(), "the same error again");
             assert_eq!(m.attempt.unremoved_apps(), ["MSTeams"]);
             assert!(!m.defender_removed(), "its switches are off");
-            assert_eq!(advice(m), crate::t!("outcome-failed-repeated-apps", apps = "MSTeams"));
+            assert_eq!(advice(m), crate::t!("result-failed-repeated-apps", apps = "MSTeams"));
             assert!(m.result_offers_windows_security());
         });
 
@@ -411,7 +411,7 @@ fn a_retry_that_stops_on_the_same_error_is_told_apart_even_past_a_refusal() {
                 assert!(m.defender_removed(), "{what}");
                 assert_eq!(
                     advice(m),
-                    crate::t!("outcome-failed-repeated-apps-defender-removed", apps = "MSTeams"),
+                    crate::t!("result-failed-repeated-apps-defender-removed", apps = "MSTeams"),
                     "{what}"
                 );
                 assert!(!m.result_offers_windows_security(), "{what}");

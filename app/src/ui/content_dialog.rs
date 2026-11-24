@@ -3,18 +3,29 @@
 //! app's own theme, instead of a legacy task dialog that sits away from the
 //! window under an English "Warning" caption.
 //!
-//! The first answer is the safe one ("Keep open"). It takes WinUI's Close
-//! slot: rightmost, accent and focused, and Escape chooses it. The others
-//! keep their order to its left. The answer chosen is reported by its index
-//! in the list the prompt was given, so callers don't change.
+//! Each answer has a role, given by building it with [`safe_answer`],
+//! [`default_answer`] or [`answer`]:
+//! - The safe answer takes WinUI's Close slot, rightmost, and Escape
+//!   chooses it. It's the answer that changes least, such as Keep open.
+//! - The default answer is the accent and has focus, so Enter chooses it.
+//!   With none given, the safe answer is the default too, as it must be when
+//!   the other answer is destructive, such as restarting while other apps
+//!   may hold unsaved work. A default of its own suits an answer that loses
+//!   nothing, such as opening Windows Security to turn protection back on.
+//! - The others keep their order, left of the safe answer.
+//!
+//! The answer chosen is reported by its index in the list the prompt was
+//! given. A plain label carries no role, except that GPUI reads the words
+//! "OK" and "Cancel" as roles; with no safe answer, the first answer is safe
+//! and the default.
 //!
 //! When the window is too short for the whole dialog, as at a large text
 //! size, the title and message scroll and the buttons stay in view.
 //!
-//! The smoke layer stops the page under it, and the title bar's caption
-//! buttons stay usable: Minimize and Maximize work, and Close asks the shell,
-//! which keeps the window while a dialog is open. The rest of the title bar
-//! still moves the window.
+//! The smoke layer dims the whole window and stops the page under it, while
+//! the title bar's caption buttons stay usable: Minimize and Maximize work,
+//! and Close asks the shell, which keeps the window while a dialog is open.
+//! The rest of the title bar still moves the window.
 
 use gpui::{
     App, AppContext, Context, EventEmitter, FocusHandle, Focusable, IntoElement, ParentElement, PromptButton,
@@ -37,6 +48,42 @@ const GAP: f32 = 8.;
 /// A standard button's padding and border either side of its label.
 const BUTTON_CHROME: f32 = 26.;
 
+/// The answer Escape chooses, in the Close slot. GPUI's own conversion from a
+/// label gives a role by the label's text, so answers are built here instead.
+pub fn safe_answer(label: impl Into<SharedString>) -> PromptButton {
+    PromptButton::Cancel(label.into())
+}
+
+/// The answer Enter chooses: the accent, focused as the dialog opens.
+pub fn default_answer(label: impl Into<SharedString>) -> PromptButton {
+    PromptButton::Ok(label.into())
+}
+
+/// An answer with no role of its own.
+pub fn answer(label: impl Into<SharedString>) -> PromptButton {
+    PromptButton::Other(label.into())
+}
+
+/// Which answer Escape chooses and which is the default, by index.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct Roles {
+    safe: usize,
+    default: usize,
+}
+
+impl Roles {
+    fn of(actions: &[PromptButton]) -> Self {
+        debug_assert!(
+            actions.iter().filter(|action| action.is_cancel()).count() <= 1
+                && actions.iter().filter(|action| matches!(action, PromptButton::Ok(_))).count() <= 1,
+            "a dialog has at most one safe answer and one default"
+        );
+        let safe = actions.iter().position(PromptButton::is_cancel).unwrap_or(0);
+        let default = actions.iter().position(|action| matches!(action, PromptButton::Ok(_))).unwrap_or(safe);
+        Self { safe, default }
+    }
+}
+
 /// The prompt builder `main` registers with `set_prompt_builder`.
 pub fn build(
     _level: PromptLevel,
@@ -55,6 +102,7 @@ pub struct ContentDialog {
     title: SharedString,
     message: Option<SharedString>,
     answers: Vec<SharedString>,
+    roles: Roles,
     /// One per answer, in the answers' order.
     focus: Vec<FocusHandle>,
     scroll: ScrollHandle,
@@ -64,9 +112,9 @@ pub struct ContentDialog {
 impl EventEmitter<PromptResponse> for ContentDialog {}
 
 impl Focusable for ContentDialog {
-    /// The safe answer has focus, so Enter keeps the window.
+    /// The default answer has focus, so Enter chooses it.
     fn focus_handle(&self, _: &App) -> FocusHandle {
-        self.focus[0].clone()
+        self.focus[self.roles.default].clone()
     }
 }
 
@@ -78,6 +126,7 @@ impl ContentDialog {
             title: title.to_owned().into(),
             message: message.filter(|message| !message.is_empty()).map(|message| message.to_owned().into()),
             answers,
+            roles: Roles::of(actions),
             focus,
             scroll: ScrollHandle::new(),
             scrollbar: ScrollbarState::new(),
@@ -87,7 +136,7 @@ impl ContentDialog {
     /// The answers' indexes as the buttons stand, left to right: the safe
     /// answer last, in the Close slot.
     fn visual_order(&self) -> Vec<usize> {
-        visual_order(self.answers.len())
+        visual_order(self.answers.len(), self.roles.safe)
     }
 
     /// Tab and Shift+Tab stay among the dialog's buttons.
@@ -97,7 +146,7 @@ impl ContentDialog {
         let next = match current {
             Some(at) if forward => (at + 1) % order.len(),
             Some(at) => (at + order.len() - 1) % order.len(),
-            None => order.len() - 1,
+            None => order.iter().position(|&index| index == self.roles.default).unwrap_or(0),
         };
         window.focus(&self.focus[order[next]], cx);
     }
@@ -130,8 +179,8 @@ impl ContentDialog {
 }
 
 /// See [`ContentDialog::visual_order`].
-fn visual_order(count: usize) -> Vec<usize> {
-    (1..count).chain((count > 0).then_some(0)).collect()
+fn visual_order(count: usize, safe: usize) -> Vec<usize> {
+    (0..count).filter(|&index| index != safe).chain((safe < count).then_some(safe)).collect()
 }
 
 impl Render for ContentDialog {
@@ -142,10 +191,11 @@ impl Render for ContentDialog {
         // from the window's root, the language's font fallbacks included.
         let font = text_font(cx);
         let (side_by_side, row_width) = self.button_layout(&font, window);
+        let Roles { safe, default } = self.roles;
         let buttons = self.visual_order().into_iter().map(|index| {
             let label = self.answers[index].clone();
             Button::new(("dialog-answer", index), label)
-                .when(index == 0, Button::accent)
+                .when(index == default, Button::accent)
                 .focus_handle(self.focus[index].clone())
                 .on_click(cx.listener(move |_, _, _, cx| cx.emit(PromptResponse(index))))
                 .into_any_element()
@@ -217,8 +267,8 @@ impl Render for ContentDialog {
             .font(font)
             .on_action(cx.listener(|this, _: &FocusNext, window, cx| this.cycle(true, window, cx)))
             .on_action(cx.listener(|this, _: &FocusPrevious, window, cx| this.cycle(false, window, cx)))
-            // Escape answers Keep open, and never reaches the page's Back.
-            .on_action(cx.listener(|_, _: &NavigateBack, _, cx| cx.emit(PromptResponse(0))))
+            // Escape gives the safe answer, and never reaches the page's Back.
+            .on_action(cx.listener(move |_, _: &NavigateBack, _, cx| cx.emit(PromptResponse(safe))))
             // The title bar left of the caption buttons still moves the window.
             .child(
                 div()
@@ -231,6 +281,17 @@ impl Render for ContentDialog {
                     .bg(smoke)
                     .occlude()
                     .window_control_area(WindowControlArea::Drag),
+            )
+            // The caption buttons dim with the rest. Without a hitbox, the
+            // smoke leaves them their clicks and hover.
+            .child(
+                div()
+                    .absolute()
+                    .top_0()
+                    .right_0()
+                    .w(px(CAPTION_BUTTONS_WIDTH))
+                    .h(px(TITLE_BAR_HEIGHT))
+                    .bg(smoke),
             )
             .child(
                 div()
@@ -265,9 +326,37 @@ mod tests {
 
     #[test]
     fn the_safe_answer_takes_the_close_slot_and_the_rest_keep_their_order() {
-        assert_eq!(visual_order(2), [1, 0]);
-        assert_eq!(visual_order(3), [1, 2, 0]);
-        assert_eq!(visual_order(1), [0]);
-        assert!(visual_order(0).is_empty());
+        assert_eq!(visual_order(2, 0), [1, 0]);
+        assert_eq!(visual_order(3, 0), [1, 2, 0]);
+        assert_eq!(visual_order(2, 1), [0, 1]);
+        assert_eq!(visual_order(3, 1), [0, 2, 1]);
+        assert_eq!(visual_order(1, 0), [0]);
+        assert!(visual_order(0, 0).is_empty());
+    }
+
+    #[test]
+    fn the_safe_answer_is_the_default_unless_another_answer_is() {
+        // A destructive question: the safe answer is the default too.
+        let stop = [safe_answer("Keep creating"), answer("Stop")];
+        assert_eq!(Roles::of(&stop), Roles { safe: 0, default: 0 });
+        // Restarting on close can lose work in other apps: Restart later is
+        // the default, rightmost, and Enter and Escape both choose it.
+        let restart = [answer("Restart now"), safe_answer("Restart later")];
+        assert_eq!(Roles::of(&restart), Roles { safe: 1, default: 1 });
+        assert_eq!(visual_order(2, Roles::of(&restart).safe), [0, 1]);
+        // An answer that loses nothing can be the default of its own.
+        let protection = [default_answer("Open Windows Security"), safe_answer("Close window")];
+        assert_eq!(Roles::of(&protection), Roles { safe: 1, default: 0 });
+        // Labels alone, as GPUI passes them, keep the first answer safe.
+        let labels = [answer("Keep open"), answer("Close window")];
+        assert_eq!(Roles::of(&labels), Roles { safe: 0, default: 0 });
+    }
+
+    #[test]
+    fn built_answers_keep_their_labels_whatever_they_say() {
+        // GPUI's conversion from text would give "Cancel" a role and rename "ok".
+        assert_eq!(answer("Cancel"), PromptButton::Other("Cancel".into()));
+        assert_eq!(answer("ok").label().as_ref(), "ok");
+        assert!(safe_answer("Don't restart").is_cancel());
     }
 }

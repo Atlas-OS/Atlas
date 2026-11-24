@@ -57,13 +57,12 @@ type SelectHandler = Rc<dyn Fn(usize, &mut Window, &mut App)>;
 pub struct ComboItem {
     label: SharedString,
     chip: Option<SharedString>,
-    selected_label: Option<SharedString>,
     language: Option<SharedString>,
 }
 
 impl ComboItem {
     pub fn new(label: impl Into<SharedString>) -> Self {
-        Self { label: label.into(), chip: None, selected_label: None, language: None }
+        Self { label: label.into(), chip: None, language: None }
     }
 
     /// The language the label is written in (a BCP 47 tag), when it isn't
@@ -77,13 +76,6 @@ impl ComboItem {
     /// item's accessible description.
     pub fn chip(mut self, text: impl Into<SharedString>) -> Self {
         self.chip = Some(text.into());
-        self
-    }
-
-    /// What the closed combo box shows while this item is chosen, when the
-    /// label alone says too little there.
-    pub fn selected_label(mut self, text: impl Into<SharedString>) -> Self {
-        self.selected_label = Some(text.into());
         self
     }
 }
@@ -332,9 +324,7 @@ impl RenderOnce for ComboBox {
         let theme = cx.theme().clone();
         let len = items.len();
         let selected = selected.filter(|&index| index < len);
-        let shown: SharedString = selected
-            .map(|index| items[index].selected_label.clone().unwrap_or_else(|| items[index].label.clone()))
-            .unwrap_or_default();
+        let shown: SharedString = selected.map(|index| items[index].label.clone()).unwrap_or_default();
         let open = picker.open && !disabled;
 
         let toggle = {

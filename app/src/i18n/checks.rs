@@ -542,6 +542,13 @@ fn package_inventory() -> BTreeSet<String> {
 fn is_package_text(id: &str) -> bool {
     id.starts_with("package-option-") || id.starts_with("package-choice-")
 }
+
+/// Whether a message is the answer form of an option's label
+/// (`package-option-<id>-short`), which pages also format by id, for an
+/// option `inventory` has a label for.
+fn is_short_form(id: &str, inventory: &BTreeSet<String>) -> bool {
+    id.strip_suffix("-short").is_some_and(|label| inventory.contains(label))
+}
 #[test]
 fn catalog_checks_source_covers_every_message_the_app_uses() {
     let source = parse(catalog::source());
@@ -562,8 +569,13 @@ fn catalog_checks_source_covers_every_message_the_app_uses() {
         used.insert(id);
     }
     let inventory = package_inventory();
-    let unused: Vec<&String> =
-        source.messages.keys().filter(|id| !used.contains(id.as_str()) && !inventory.contains(*id)).collect();
+    let unused: Vec<&String> = source
+        .messages
+        .keys()
+        .filter(|id| {
+            !used.contains(id.as_str()) && !inventory.contains(*id) && !is_short_form(id, &inventory)
+        })
+        .collect();
     assert!(unused.is_empty(), "messages in en-GB that nothing uses: {unused:?}");
     for (id, info) in &source.messages {
         assert!(
@@ -589,7 +601,7 @@ fn catalog_checks_package_text_covers_the_builtin_manifest() {
         manifest.choices.iter().map(|choice| format!("package-choice-{}-description", choice.id)).collect();
     for id in parse(catalog::source()).messages.keys().filter(|id| is_package_text(id)) {
         assert!(
-            inventory.contains(id) || choices.contains(id),
+            inventory.contains(id) || choices.contains(id) || is_short_form(id, &inventory),
             "{id}: no option or choice in the built-in manifest uses this message"
         );
     }
@@ -707,28 +719,29 @@ fn the_gate_rejects_a_dropped_variable_and_one_missing_from_a_branch() {
         problems.iter().any(|p| p.contains("home-status-update") && p.contains("dropped")),
         "{problems:?}"
     );
+    // A select over one variable whose every branch shows another, in both
+    // catalogs, so the test doesn't rest on a message the app may drop.
+    let sample = "gate-sample =\n    { $count ->\n        [one] { $count } update: { $titles }\n       *[other] { $count } updates: { $titles }\n    }\n";
+    let source_text = format!("{}\n{sample}", catalog::source().ftl);
+    let source = parse_text(catalog::SOURCE_TAG, &source_text).unwrap_or_else(|p| panic!("{}", p.join("\n")));
+    let german = |replacement: &str| {
+        let ftl = format!("{}\n{sample}", catalog::find("de").unwrap().ftl);
+        validate("de", &mutate(&ftl, "gate-sample", replacement), false, &source)
+    };
     // $titles shown in the default branch only.
-    let problems = german_problems(|ftl| {
-        mutate(
-            ftl,
-            "detail-updates-pending",
-            "{ $count ->\n        [7] Zuerst { $count } Updates.\n       *[other] Zuerst { $count } Updates: { $titles }.\n    }",
-        )
-    });
+    let problems = german(
+        "{ $count ->\n        [7] Zuerst { $count } Updates.\n       *[other] Zuerst { $count } Updates: { $titles }.\n    }",
+    );
     assert!(
-        problems.iter().any(|p| p.contains("detail-updates-pending") && p.contains("on every branch")),
+        problems.iter().any(|p| p.contains("gate-sample") && p.contains("on every branch")),
         "{problems:?}"
     );
     // A nested select counts branch by branch too.
-    let problems = german_problems(|ftl| {
-        mutate(
-            ftl,
-            "detail-updates-pending",
-            "{ $count ->\n        [1] { $count ->\n            [1] Eins: { $titles }\n           *[other] Sonst\n        }\n       *[other] Zuerst { $titles }.\n    }",
-        )
-    });
+    let problems = german(
+        "{ $count ->\n        [1] { $count ->\n            [1] Eins: { $titles }\n           *[other] Sonst\n        }\n       *[other] Zuerst { $titles }.\n    }",
+    );
     assert!(
-        problems.iter().any(|p| p.contains("detail-updates-pending") && p.contains("on every branch")),
+        problems.iter().any(|p| p.contains("gate-sample") && p.contains("on every branch")),
         "{problems:?}"
     );
 }

@@ -7,6 +7,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use super::install::details_toggle;
 use super::{CommandBar, card_body, focusable_heading, on_model, page_frame};
 use crate::{
     i18n::describe,
@@ -16,8 +17,8 @@ use crate::{
     theme::{ActiveTheme, FONT_MONO},
     ui::{
         BODY_LINE_HEIGHT, Button, CheckBox, FocusHandles, Icon, InfoBar, ProgressRing, RadioGroup, RadioItem,
-        Revealed, ScrollbarState, Severity, Typography, a11y_text, card, focus_reveal, icon_in_line,
-        text_input::TextInput,
+        Revealed, ScrollbarState, Severity, Typography, a11y_text, card, compose_description, focus_reveal,
+        icon_in_line, link_row, text_input::TextInput,
     },
 };
 use gpui::{
@@ -127,6 +128,8 @@ pub struct ReportPage {
     /// focus. Diagnostics prepared on their own never do: the user may be
     /// typing.
     preparing: bool,
+    /// The raw error behind a failure to prepare diagnostics is showing.
+    prepare_details: bool,
     focus_message: bool,
     last_message: String,
     last_contact: String,
@@ -152,7 +155,7 @@ impl ReportPage {
                 cx,
                 "report-message-input",
                 || t!("report-message"),
-                || t!("report-message-placeholder"),
+                || t!("report-message-placeholder-issue"),
             );
             input.multiline();
             input
@@ -191,6 +194,7 @@ impl ReportPage {
             prepare_focus: cx.focus_handle(),
             focus_prepare: false,
             preparing: false,
+            prepare_details: false,
             focus_message: false,
             last_message: String::new(),
             last_contact: String::new(),
@@ -221,14 +225,21 @@ impl ReportPage {
         let zip = crate::services::settings::app_data_dir()
             .join("Diagnostics")
             .join("Atlas-diagnostics-preview.zip");
-        let filled = !matches!(state.as_str(), "invalid" | "collecting" | "ready" | "prepare-failed");
+        let filled =
+            !matches!(state.as_str(), "invalid" | "collecting" | "ready" | "prepare-failed" | "suggestion");
         // Recorded as seen, so filling them in doesn't count as an edit.
         let mut fill = |message: &str, contact: String, cx: &mut Context<Self>| {
             self.message.update(cx, |input, cx| input.set_value(message.to_owned(), cx));
             self.contact.update(cx, |input, cx| input.set_value(contact.clone(), cx));
             (self.last_message, self.last_contact) = (message.to_owned(), contact);
         };
-        if filled {
+        if state == "limit" {
+            let long = "Atlas stopped at the Windows Security step and didn't install. ".repeat(60);
+            fill(long.trim_end(), "someone@example.org".into(), cx);
+        } else if state == "suggestion" {
+            self.category = Category::Suggestion;
+            self.attach = false;
+        } else if filled {
             fill(
                 "Atlas stopped at the Windows Security step and didn't install.",
                 "someone@example.org".into(),
@@ -302,6 +313,7 @@ impl ReportPage {
             self.failure = None;
         }
         self.preparing = true;
+        self.prepare_details = false;
         self.prepare_diagnostics(cx);
         cx.notify();
     }
@@ -525,86 +537,72 @@ impl ReportPage {
         self.prepare_diagnostics(cx);
     }
 
-    /// Under Include diagnostics: being collected, ready to review, or
-    /// nothing while they're left out or couldn't be prepared.
-    fn diagnostics_status(&self, collecting: bool, path: Option<PathBuf>, cx: &App) -> Option<Div> {
-        let theme = cx.theme();
-        let (glyph, text, review) = if collecting {
-            (ProgressRing::new().into_any_element(), t!("diagnostics-exporting"), None)
-        } else {
-            let glyph = icon_in_line(Icon::Completed, BODY_LINE_HEIGHT).text_color(theme.success);
-            (glyph.into_any_element(), t!("diagnostics-saved"), Some(path?))
-        };
-        Some(
-            // In line with the check box's label.
-            div().pl(px(40.)).child(
-                div()
-                    .id("report-diagnostics-status")
-                    .role(Role::Status)
-                    .aria_label(text.clone())
-                    // "Collecting", then "created": announced as it changes.
-                    .aria_live(gpui::Live::Polite)
-                    .flex()
-                    .flex_wrap()
-                    .items_center()
-                    .gap_x(px(8.))
-                    .child(div().flex().items_center().h(BODY_LINE_HEIGHT).child(glyph))
-                    .child(div().type_body().text_color(theme.text_primary).child(text))
-                    .when_some(review, |this, path| {
-                        this.child(
-                            Button::new("report-review", t!("report-review"))
-                                .hyperlink()
-                                .compact()
-                                .disabled(self.delivery != Delivery::Idle)
-                                .on_click(move |_, _, cx| cx.reveal_path(&path)),
-                        )
-                    }),
+    /// Under Include diagnostics once they're ready: Review ZIP, in line with
+    /// the check box's label. While they're collected, the footer says so.
+    fn review_link(&self, path: PathBuf) -> Div {
+        // The check box's 20px box and 12px gap.
+        div().pl(px(32.)).child(
+            link_row().child(
+                Button::new("report-review", t!("report-review"))
+                    .hyperlink()
+                    .compact()
+                    .disabled(self.delivery != Delivery::Idle)
+                    .on_click(move |_, _, cx| cx.reveal_path(&path)),
             ),
         )
     }
 
-    /// Why the report wasn't sent, with what can be done about it.
-    fn failure_bar(&self, problem: SendProblem, path: Option<PathBuf>, cx: &mut Context<Self>) -> AnyElement {
-        let try_again = matches!(problem, SendProblem::Retry | SendProblem::Busy).then(|| {
-            Button::new("report-try-again", t!("common-try-again"))
-                .on_click(cx.listener(|this, _, window, cx| this.send(window, cx)))
-        });
-        // The website takes the report instead, with the ZIP attached there.
-        let website = matches!(problem, SendProblem::Retry | SendProblem::Outdated);
-        let review = path.filter(|_| website).map(|path| {
-            Button::new("report-failed-review", t!("report-review"))
-                .icon(Icon::Folder)
-                .on_click(move |_, _, cx| cx.reveal_path(&path))
-        });
-        let prepare = (problem == SendProblem::Diagnostics).then(|| {
-            Button::new("report-failed-prepare", t!("report-prepare")).on_click(cx.listener(
-                |this, _, window, cx| {
-                    this.prepare_again(cx);
-                    window.focus(&this.attach_focus, cx);
-                },
-            ))
-        });
-        let actions = div()
-            .flex()
-            .flex_wrap()
-            .items_center()
-            .gap(px(8.))
-            .children(try_again)
-            .children(prepare)
-            .when(website, |this| {
-                this.child(
-                    Button::new("report-failed-website", t!("report-failed-website"))
-                        .hyperlink()
-                        .trailing_icon(Icon::OpenInNewWindow)
-                        .opens(reports::ORIGIN),
-                )
-            })
-            .children(review);
-        Revealed::new(
+    /// Why the report wasn't sent. The footer's button is the retry, or the
+    /// report website where this version can't send at all, and the page
+    /// already links the website and the ZIP, so the bar repeats none of
+    /// them. Where this version can't send, it offers the newer Atlas
+    /// Manager, which can.
+    fn failure_bar(&self, problem: SendProblem) -> AnyElement {
+        let mut bar =
             InfoBar::new(Severity::Error, t!("report-failed-title"), describe::report_failure(problem))
                 .id("report-result")
-                .focus_handle(self.result_focus.clone())
-                .action(actions),
+                .focus_handle(self.result_focus.clone());
+        if problem == SendProblem::Outdated {
+            bar = bar.action(super::manager_download_button("report-manager-download"));
+        }
+        Revealed::new(bar).into_any_element()
+    }
+
+    /// Why diagnostics couldn't be prepared: Try again prepares them again,
+    /// and the raw error is behind Show details.
+    fn prepare_failed_bar(&self, error: String, busy: bool, cx: &mut Context<Self>) -> AnyElement {
+        let title = t!("report-prepare-failed-title");
+        let shown = self.prepare_details;
+        let details = div()
+            .flex()
+            .flex_col()
+            .gap(px(4.))
+            .child(link_row().child(details_toggle(
+                "report-prepare-details",
+                title.clone(),
+                shown,
+                |page: &mut Self| &mut page.prepare_details,
+                cx,
+            )))
+            .when(shown, |this| {
+                this.child(
+                    div()
+                        .type_caption()
+                        .text_color(cx.theme().text_secondary)
+                        .child(a11y_text("report-prepare-error", error)),
+                )
+            });
+        Revealed::new(
+            InfoBar::new(Severity::Error, title, t!("report-prepare-failed-advice"))
+                .id("report-prepare-error")
+                .focus_handle(self.prepare_focus.clone())
+                .action(Button::new("report-prepare", t!("common-try-again")).disabled(busy).on_click(
+                    cx.listener(|this, _, window, cx| {
+                        this.prepare_again(cx);
+                        window.focus(&this.attach_focus, cx);
+                    }),
+                ))
+                .content(details),
         )
         .into_any_element()
     }
@@ -629,42 +627,67 @@ impl ReportPage {
             ),
         ];
         let label = |text: String| div().type_body_strong().text_color(theme.text_primary).child(text);
-        let status = if self.attach { self.diagnostics_status(collecting, path.clone(), cx) } else { None };
-        let failure = self.failure.map(|problem| self.failure_bar(problem, path.filter(|_| self.attach), cx));
+        let review = path.filter(|_| self.attach && !collecting).map(|path| self.review_link(path));
+        let prepare_failed = export_error.map(|error| self.prepare_failed_bar(error, busy, cx));
+        let failure = self.failure.map(|problem| self.failure_bar(problem));
+        let message_count = self.message_count(cx);
+        let contact_count = self.contact_count(cx);
+        // 8px from a field's header to it, as Fluent sets a control's header.
+        let field = |header: String, control: AnyElement| {
+            div().flex().flex_col().gap(px(8.)).child(label(header)).child(control)
+        };
         card(cx).child(
             card_body()
                 .gap(px(16.))
-                .child(
-                    div().flex().flex_col().gap(px(6.)).child(label(t!("report-kind"))).child(
-                        RadioGroup::new("report-kind", t!("report-kind"))
-                            .items(kinds)
-                            .selected(Some(usize::from(self.category == Category::Suggestion)))
-                            .disabled(busy)
-                            .on_select(move |index, _, cx| {
-                                let category =
-                                    if index == 0 { Category::Issue } else { Category::Suggestion };
-                                entity.update(cx, |this, cx| this.choose_category(category, cx))
-                            }),
-                    ),
-                )
-                .child(
+                .child(field(
+                    t!("report-kind"),
+                    RadioGroup::new("report-kind", t!("report-kind"))
+                        .items(kinds)
+                        .selected(Some(usize::from(self.category == Category::Suggestion)))
+                        .disabled(busy)
+                        .on_select(move |index, _, cx| {
+                            let category = if index == 0 { Category::Issue } else { Category::Suggestion };
+                            entity.update(cx, |this, cx| this.choose_category(category, cx))
+                        })
+                        .into_any_element(),
+                ))
+                .child(field(
+                    t!("report-message"),
                     div()
                         .flex()
                         .flex_col()
-                        .gap(px(6.))
-                        .child(label(t!("report-message")))
-                        // The box reads this out as its description.
-                        .child(div().type_caption().text_color(theme.text_secondary).child(intro()))
-                        .child(self.message.clone()),
-                )
-                .child(
+                        .gap(px(4.))
+                        .child(self.message.clone())
+                        // Under the box, as WinUI places a text box's
+                        // description. The box reads it out, so it isn't
+                        // reported again.
+                        .child(
+                            div()
+                                .flex()
+                                .flex_wrap()
+                                .justify_between()
+                                .gap_x(px(12.))
+                                .type_caption()
+                                .text_color(theme.text_secondary)
+                                .child(t!("report-message-help"))
+                                .when_some(message_count, |this, (count, over)| {
+                                    this.child(count_caption(count, over, cx))
+                                }),
+                        )
+                        .into_any_element(),
+                ))
+                .child(field(
+                    t!("report-contact"),
                     div()
                         .flex()
                         .flex_col()
-                        .gap(px(6.))
-                        .child(label(t!("report-contact")))
-                        .child(self.contact.clone()),
-                )
+                        .gap(px(4.))
+                        .child(self.contact.clone())
+                        .when_some(contact_count, |this, (count, over)| {
+                            this.child(div().flex().justify_end().child(count_caption(count, over, cx)))
+                        })
+                        .into_any_element(),
+                ))
                 .child(
                     div()
                         .flex()
@@ -677,26 +700,8 @@ impl ReportPage {
                                 .disabled(busy)
                                 .on_toggle(cx.listener(|this, _, _, cx| this.set_attach(!this.attach, cx))),
                         )
-                        .children(status)
-                        .when_some(export_error, |this, error| {
-                            this.child(Revealed::new(
-                                InfoBar::new(
-                                    Severity::Error,
-                                    t!("report-prepare-failed-title"),
-                                    t!("report-prepare-failed", error = error.as_str()),
-                                )
-                                .id("report-prepare-error")
-                                .focus_handle(self.prepare_focus.clone())
-                                .action(
-                                    Button::new("report-prepare", t!("report-prepare"))
-                                        .disabled(busy)
-                                        .on_click(cx.listener(|this, _, window, cx| {
-                                            this.prepare_again(cx);
-                                            window.focus(&this.attach_focus, cx);
-                                        })),
-                                ),
-                            ))
-                        }),
+                        .children(review)
+                        .children(prepare_failed),
                 )
                 .child(
                     div()
@@ -710,7 +715,7 @@ impl ReportPage {
                                 .child(a11y_text("report-privacy", t!("report-privacy"))),
                         )
                         .child(
-                            div().flex().child(
+                            link_row().child(
                                 Button::new("report-website", t!("report-website"))
                                     .hyperlink()
                                     .compact()
@@ -814,15 +819,35 @@ impl ReportPage {
         )
     }
 
-    /// Cancel, what is happening, and Send report.
+    /// Cancel, then the page's one status line beside the button it holds
+    /// up. The button keeps its label while it waits; after a failure it's
+    /// Try again, or the report website where this version can't send.
     fn command_bar(&self, cx: &mut Context<Self>) -> CommandBar {
         let busy = self.delivery != Delivery::Idle;
         let state = self.model.read(cx);
         // Nothing has gone while it waits for diagnostics, so leaving then
         // cancels the report; once it's on its way it can't be called back.
         let can_cancel = self.delivery != Delivery::Sending && state.can_navigate(state.back_target());
-        let hint =
-            if self.delivery == Delivery::Waiting { t!("diagnostics-exporting") } else { String::new() };
+        let status = match self.delivery {
+            Delivery::Sending => Some(t!("report-sending")),
+            _ if self.attach && state.diagnostics_busy => Some(t!("diagnostics-exporting")),
+            _ => None,
+        };
+        let send = |label: String| {
+            Button::new("report-send", label)
+                .accent()
+                .disabled(busy)
+                .on_click(cx.listener(|this, _, window, cx| this.send(window, cx)))
+        };
+        let primary = match Primary::after(self.failure) {
+            Primary::Send => send(t!("report-send")),
+            Primary::TryAgain => send(t!("common-try-again")),
+            Primary::Website => Button::new("report-send-website", t!("report-failed-website"))
+                .accent()
+                .trailing_icon(Icon::OpenInNewWindow)
+                .opens(reports::ORIGIN),
+        };
+        let theme = cx.theme();
         CommandBar::new()
             .cancel(
                 "report-cancel",
@@ -830,29 +855,76 @@ impl ReportPage {
                 !can_cancel,
                 on_model(&self.model, |m, cx| m.navigate(m.back_target(), cx)),
             )
-            .hint(hint)
             .primary(
                 div()
                     .flex()
                     .items_center()
                     .gap(px(12.))
-                    .when(busy, |this| this.child(ProgressRing::new()))
-                    .child(
-                        Button::new(
-                            "report-send",
-                            if busy { t!("report-sending") } else { t!("report-send") },
+                    .when_some(status, |this, status| {
+                        this.child(
+                            div()
+                                .id("report-status")
+                                .role(Role::Status)
+                                .aria_label(status.clone())
+                                // Collecting, then sending: announced as it changes.
+                                .aria_live(gpui::Live::Polite)
+                                .flex()
+                                .items_center()
+                                .gap(px(8.))
+                                .child(ProgressRing::new())
+                                .child(div().type_caption().text_color(theme.text_secondary).child(status)),
                         )
-                        .accent()
-                        .disabled(busy)
-                        .on_click(cx.listener(|this, _, window, cx| this.send(window, cx))),
-                    ),
+                    })
+                    .child(primary),
             )
+    }
+
+    /// The message's length once it's near the limit.
+    fn message_count(&self, cx: &App) -> Option<(String, bool)> {
+        character_count(self.message.read(cx).value(), *reports::MESSAGE_CHARS.end())
+    }
+
+    /// The contact details' length once it's near the limit. Over it, the
+    /// field's error names the limit, so the field says that alone.
+    fn contact_count(&self, cx: &App) -> Option<(String, bool)> {
+        character_count(self.contact.read(cx).value(), reports::CONTACT_MAX_CHARS)
+            .filter(|_| !self.problems.contact)
     }
 }
 
-/// What to write, and what to leave out.
-fn intro() -> String {
-    t!("report-intro", min = *reports::MESSAGE_CHARS.start(), max = *reports::MESSAGE_CHARS.end())
+/// The footer's button: the next thing to do with the report.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Primary {
+    Send,
+    /// Sends again, after a failure sending again can fix; refused
+    /// diagnostics are collected afresh first.
+    TryAgain,
+    /// This version can't send, so the report goes through the website.
+    Website,
+}
+
+impl Primary {
+    fn after(failure: Option<SendProblem>) -> Self {
+        match failure {
+            None => Primary::Send,
+            Some(SendProblem::Outdated) => Primary::Website,
+            Some(SendProblem::Retry | SendProblem::Busy | SendProblem::Diagnostics) => Primary::TryAgain,
+        }
+    }
+}
+
+/// "3,612 of 4,000 characters", and whether that's too many, once `value`
+/// is within a tenth of `max`; counted as the service counts, after trimming.
+fn character_count(value: &str, max: usize) -> Option<(String, bool)> {
+    let count = value.trim().chars().count();
+    (count * 10 >= max * 9).then(|| (t!("report-character-count", count = count, max = max), count > max))
+}
+
+/// A field's character count, in the critical colour once it's over. The
+/// field reads it out as part of its description.
+fn count_caption(count: String, over: bool, cx: &App) -> Div {
+    let theme = cx.theme();
+    div().type_caption().text_color(if over { theme.critical } else { theme.text_secondary }).child(count)
 }
 
 /// Moves focus to `focus` and scrolls it into view.
@@ -908,14 +980,26 @@ impl Render for ReportPage {
             .problems
             .contact
             .then(|| t!("report-validation-contact", max = reports::CONTACT_MAX_CHARS).into());
+        let message_count = self.message_count(cx).map(|(count, _)| count.into());
+        let contact_count = self.contact_count(cx).map(|(count, _)| count.into());
+        // What to write depends on the kind of report.
+        let placeholder: fn() -> String = match self.category {
+            Category::Issue => || t!("report-message-placeholder-issue"),
+            Category::Suggestion => || t!("report-message-placeholder-suggestion"),
+        };
         self.message.update(cx, |input, _| {
             input.set_read_only(busy);
             input.set_error(message_error);
-            input.set_description(Some(intro().into()));
+            input.set_placeholder(placeholder);
+            input.set_description(compose_description(&[
+                Some(t!("report-message-help").into()),
+                message_count,
+            ]));
         });
         self.contact.update(cx, |input, _| {
             input.set_read_only(busy);
             input.set_error(contact_error);
+            input.set_description(contact_count);
         });
         let (content, footer) = match self.receipt.clone() {
             Some(reference) => (self.sent_panel(reference, cx), None),
@@ -1482,6 +1566,29 @@ mod tests {
         let missing = std::env::temp_dir().join(format!("atlas-missing-{}.zip", reports::new_key().unwrap()));
         reports::send(&reports::new_key().unwrap(), Category::Issue, "Valid test message", "", Some(&missing))
             .unwrap_err()
+    }
+
+    #[test]
+    fn after_a_failure_the_footer_offers_what_can_still_work() {
+        assert_eq!(Primary::after(None), Primary::Send);
+        for problem in [SendProblem::Retry, SendProblem::Busy, SendProblem::Diagnostics] {
+            assert_eq!(Primary::after(Some(problem)), Primary::TryAgain, "{problem:?}");
+        }
+        // Sending again can't work, so the website is the way on.
+        assert_eq!(Primary::after(Some(SendProblem::Outdated)), Primary::Website);
+    }
+
+    #[test]
+    fn a_count_shows_only_near_the_limit_and_counts_as_the_service_does() {
+        let max = *reports::MESSAGE_CHARS.end();
+        assert_eq!(character_count("Setup stopped", max), None);
+        assert_eq!(character_count(&"x".repeat(max * 9 / 10 - 1), max), None);
+        let (_, over) = character_count(&"x".repeat(max * 9 / 10), max).expect("near the limit");
+        assert!(!over);
+        let (_, over) = character_count(&"é".repeat(max + 1), max).expect("past the limit");
+        assert!(over, "characters, not bytes, and past the limit");
+        // Spaces around the message aren't sent, so they don't count.
+        assert_eq!(character_count(&format!("{}{}", "x".repeat(10), " ".repeat(max)), max), None);
     }
 
     #[test]

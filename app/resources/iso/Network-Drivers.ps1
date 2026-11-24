@@ -136,7 +136,17 @@ function Export-AtlasNetworkDrivers([string]$Destination, [string]$CancelFile, [
         if ($LASTEXITCODE -ne 0) { throw "Windows could not export network driver $($package.inf). See the network driver log." }
         if (-not (Test-AtlasDriverPackage $folder)) { throw "Network driver export is incomplete: $($package.inf)." }
     }
-    if ($CheckUpdates) { $packages += @(Export-AtlasNetworkUpdates -Destination $Destination -CancelFile $CancelFile -LogPath $LogPath) }
+    if ($CheckUpdates) {
+        # Windows Update comes first and the installed packages are the
+        # fallback: without an unmetered connection, or when the search or a
+        # download fails, the ISO carries the installed drivers alone.
+        try { $packages += @(Export-AtlasNetworkUpdates -Destination $Destination -CancelFile $CancelFile -LogPath $LogPath) }
+        catch [System.OperationCanceledException] { throw }
+        catch {
+            "Windows Update network drivers unavailable; keeping the installed drivers. $($_.Exception.Message)" | Add-Content -LiteralPath $LogPath -Encoding UTF8
+            Get-ChildItem -LiteralPath $Destination -Directory -Filter 'windows-update-*' | Remove-Item -Recurse -Force
+        }
+    }
     if ($packages.Count -eq 0) {
         'Neither the installed drivers nor Windows Update had a Wi-Fi or Ethernet driver to add; Windows includes the drivers these adapters use.' | Add-Content -LiteralPath $LogPath -Encoding UTF8
         [IO.Directory]::Delete($Destination, $true)

@@ -41,14 +41,14 @@ Be direct about security, installation failures and restarts.
 
 Use one name for one thing.
 
-- In running text, the selections made in the **Your choices** step are "choices", the ISO modes included.
+- In running text, the selections made in the **Your choices** step are "choices", the ISO's Atlas choices included.
   Summary cards list them in an "Options" row, and the ISO review in an "Atlas choices" row, kept apart from the step name on purpose.
 - "Settings" is the app's own page.
 - The `.atlaspkg` file is "the Atlas package", or "the package" once that's clear.
   Interface text never calls it a playbook.
 - The install steps are **Get ready**, **Your choices**, **Windows Security** and **Install**.
-  The ISO steps are **Files**, **Windows setup**, **Your choices** and **Review**.
-  "Windows setup" otherwise means Windows' own installer.
+  The ISO steps are **Windows**, **Setup** and **Create**.
+  "Windows Setup" means Windows' own installer.
 - When text tells people to choose a control, use its exact label.
 - On first mention, the four switches Atlas asks people to turn off are "the four Windows Security protection switches"; after that, "the protection switches".
   They're turned off and turned back on, never paused or disabled.

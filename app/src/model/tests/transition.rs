@@ -256,6 +256,41 @@ fn the_move_waits_for_the_licence_terms_and_for_everything_else_that_would_stop_
     });
 }
 
+/// Where Get ready updates by itself, a move waits for the licence terms,
+/// and accepting them starts it straight away. Keeping an optional
+/// version needs no terms, so updating starts without the move.
+#[test]
+fn accepting_the_licence_terms_starts_the_move_by_itself() {
+    run_model_test(|mut cx| async move {
+        let mut required = scene("transition-terms-start", system(26100, "24H2", "Professional"));
+        required.env.automatic_get_ready = true;
+        required.worker(report("reboot", &["feature-update"], None), State::Reboot);
+        let model = new_model(&mut cx, required.env.clone());
+        to_get_ready(&mut cx, &model, &required.package).await;
+        cx.background_executor().timer(std::time::Duration::from_millis(300)).await;
+        assert!(required.requests.lock().unwrap().is_empty(), "nothing runs before the terms are accepted");
+        act(&mut cx, &model, |m, cx| m.accept_windows_terms(true, cx));
+        assert!(read(&cx, &model, |m| m.preparation.busy()), "the move starts as the terms are accepted");
+        wait_for(&cx, &model, "the run to ask for a restart", |m| m.preparation == State::Reboot).await;
+        let request = required.requests.lock().unwrap()[0].clone();
+        assert!(request.transition.is_some_and(|transition| transition.accept_license));
+        settle(&cx, &model).await;
+
+        // 25H2, where moving is optional: keeping it starts plain updates.
+        let mut optional = scene("transition-keep-start", system(26200, "25H2", "Professional"));
+        optional.env.automatic_get_ready = true;
+        optional.worker(report("complete", &[], None), State::Ready);
+        let model = new_model(&mut cx, optional.env.clone());
+        to_get_ready(&mut cx, &model, &optional.package).await;
+        cx.background_executor().timer(std::time::Duration::from_millis(300)).await;
+        assert!(optional.requests.lock().unwrap().is_empty(), "the move is chosen until the user keeps 25H2");
+        act(&mut cx, &model, |m, cx| m.keep_windows_version(true, cx));
+        wait_for(&cx, &model, "updates without the move", |m| m.preparation.ready()).await;
+        assert!(optional.requests.lock().unwrap()[0].transition.is_none());
+        settle(&cx, &model).await;
+    });
+}
+
 #[test]
 fn restart_and_continue_saves_registers_commits_and_only_then_restarts() {
     run_model_test(|mut cx| async move {
@@ -904,6 +939,270 @@ fn home_and_get_ready_agree_on_a_move_already_on_its_target() {
     });
 }
 
+/// Too little free space for the move, as the worker refuses it.
+fn space_low() -> CheckDetail {
+    CheckDetail::SpaceLow { drive: "C:".into(), free_gb: 3, needed_gb: 6, release: "26H2".into() }
+}
+
+/// What a move needs is checked as Get ready opens, where a move applies.
+/// It counts only while the move is chosen, and an optional move this PC
+/// can't make is kept without asking.
+#[test]
+fn what_a_move_needs_is_checked_first_and_counts_only_while_the_move_is_chosen() {
+    run_model_test(|mut cx| async move {
+        // 24H2, where the move is required, with too little free space.
+        let mut required = scene("transition-move-checks", system(26100, "24H2", "Professional"));
+        required.env.adapters.run_check = Arc::new(|id, context| match id {
+            CheckId::SupportedBuild => requirements::run(id, context),
+            CheckId::MoveSpace => CheckResult { id, verdict: Verdict::Fail, detail: space_low() },
+            _ => passing(id),
+        });
+        let model = new_model(&mut cx, required.env.clone());
+        to_get_ready(&mut cx, &model, &required.package).await;
+        read(&cx, &model, |m| {
+            assert!(CheckId::MOVE.iter().all(|id| m.checks.iter().any(|(check, _)| check == id)));
+            assert!(m.checks_blocking(), "too little space stops the move before it starts");
+            assert_eq!(m.ready_status(), Some(ReadyStatus::Blocked));
+            assert!(!m.preparation_may_start());
+            assert!(
+                m.windows_card_shown() && m.move_shows_preparation(),
+                "the move's card says how it stands"
+            );
+        });
+        settle(&cx, &model).await;
+
+        // 25H2, where moving is optional, on hardware below Windows 11's.
+        let mut optional = scene("transition-move-ruled-out", system(26200, "25H2", "Professional"));
+        optional.env.adapters.run_check = Arc::new(|id, context| match id {
+            CheckId::SupportedBuild => requirements::run(id, context),
+            CheckId::MoveHardware => CheckResult {
+                id,
+                verdict: Verdict::Fail,
+                detail: CheckDetail::HardwareMissing { missing: vec!["tpm".into()], release: "26H2".into() },
+            },
+            _ => passing(id),
+        });
+        let model = new_model(&mut cx, optional.env.clone());
+        to_get_ready(&mut cx, &model, &optional.package).await;
+        read(&cx, &model, |m| {
+            assert!(m.move_ruled_out());
+            assert!(!m.transition_chosen(), "Atlas keeps 25H2 without asking");
+            assert!(!m.windows_card_shown() && !m.move_shows_preparation());
+            assert!(!m.checks_blocking(), "what the move needs counts only for the move");
+            let rows = m.check_rows();
+            assert!(rows.listed.iter().chain(&rows.passed).all(|index| !m.checks[*index].0.for_move()));
+            assert_eq!(m.ready_status(), Some(ReadyStatus::Updates));
+            assert!(m.preparation_may_start(), "updating goes on without the move");
+        });
+        settle(&cx, &model).await;
+
+        // 26H2, where no move applies, checks none of it.
+        let none = scene("transition-move-none", system(26300, "26H2", "Professional"));
+        let model = new_model(&mut cx, none.env.clone());
+        to_get_ready(&mut cx, &model, &none.package).await;
+        read(&cx, &model, |m| {
+            assert!(m.checks.iter().all(|(id, _)| !id.for_move()));
+            assert!(!m.windows_card_shown());
+        });
+        settle(&cx, &model).await;
+    });
+}
+
+/// A move short of space reads the free space again by itself, and once
+/// there's room it carries on without a click: one not started yet starts,
+/// and one the worker stopped for space starts over.
+#[test]
+fn a_move_short_of_space_carries_on_by_itself_once_there_is_room() {
+    run_model_test(|mut cx| async move {
+        let mut scene = scene("transition-space-watch", system(26100, "24H2", "Professional"));
+        scene.env.automatic_get_ready = true;
+        scene.env.offer_recheck.space = std::time::Duration::from_millis(40);
+        // Room at first; once the first run has started, too little, until
+        // the test makes room again.
+        let room = Arc::new(Mutex::new(true));
+        let space = room.clone();
+        let requests = scene.requests.clone();
+        scene.env.adapters.run_check = Arc::new(move |id, context| match id {
+            CheckId::SupportedBuild => requirements::run(id, context),
+            CheckId::MoveSpace if !*space.lock().unwrap() => {
+                CheckResult { id, verdict: Verdict::Fail, detail: space_low() }
+            }
+            _ => passing(id),
+        });
+        let short = room.clone();
+        scene.env.adapters.run_preparation = Arc::new(move |_, request, _, mut send| {
+            let mut seen = requests.lock().unwrap();
+            seen.push(request.clone());
+            let (progress, state) = if seen.len() == 1 {
+                *short.lock().unwrap() = false;
+                (report("failed", &[], Some("feature-disk-space")), State::Failed)
+            } else {
+                (report("reboot", &["feature-update"], None), State::Reboot)
+            };
+            send(serde_json::from_value::<Progress>(progress).unwrap());
+            Ok(state)
+        });
+        let model = new_model(&mut cx, scene.env.clone());
+        to_get_ready(&mut cx, &model, &scene.package).await;
+        act(&mut cx, &model, |m, cx| m.accept_and_update(cx));
+        wait_for(&cx, &model, "the worker to stop for space, and the checks after", |m| {
+            m.preparation == State::Failed && m.checks_complete() && m.checks_blocking()
+        })
+        .await;
+        cx.background_executor().timer(std::time::Duration::from_millis(200)).await;
+        assert_eq!(scene.requests.lock().unwrap().len(), 1, "no new run without the room");
+        assert!(read(&cx, &model, |m| m.move_shows_preparation()), "the outcome is the move's");
+        assert!(
+            read(&cx, &model, |m| m.move_outcome_held_by_check()),
+            "the free space check says it, so the move's card doesn't say it again"
+        );
+        *room.lock().unwrap() = true;
+        wait_for(&cx, &model, "the move to start over by itself", |m| m.preparation == State::Reboot).await;
+        assert_eq!(scene.requests.lock().unwrap().len(), 2);
+        settle(&cx, &model).await;
+    });
+}
+
+/// A move Windows Update refused for the hardware says so once: as the
+/// failed check, with its fix, once the checks after the run find it too,
+/// and as the move's own outcome only where Atlas couldn't read it.
+#[test]
+fn a_move_outcome_a_check_reports_too_is_said_once_by_the_check() {
+    run_model_test(|mut cx| async move {
+        let mut scene = scene("transition-held-by-check", system(26100, "24H2", "Professional"));
+        let refused = serde_json::json!({
+            "schema": 1, "status": "failed", "stage": "windows-search", "completed": 0, "total": 0,
+            "activity": { "reason": "feature-hardware", "hardware": "tpm", "failureMessage": "worker text" }
+        });
+        scene.worker(refused, State::Failed);
+        let model = new_model(&mut cx, scene.env.clone());
+        to_get_ready(&mut cx, &model, &scene.package).await;
+        act(&mut cx, &model, |m, cx| m.accept_and_update(cx));
+        wait_for(&cx, &model, "the move to stop for the hardware, and the checks after", |m| {
+            m.preparation == State::Failed && m.checks_complete()
+        })
+        .await;
+        read(&cx, &model, |m| {
+            assert!(!m.move_outcome_held_by_check(), "the check passed: the outcome is the only place");
+            assert!(m.move_shows_preparation());
+        });
+        let missing = CheckDetail::HardwareMissing { missing: vec!["tpm".into()], release: "26H2".into() };
+        act(&mut cx, &model, |m, _| set_check(m, CheckId::MoveHardware, Verdict::Fail, missing.clone()));
+        read(&cx, &model, |m| {
+            assert!(m.move_outcome_held_by_check(), "the check says it now");
+            assert!(m.checks_blocking());
+        });
+        // Another cause is the move's own to say.
+        act(&mut cx, &model, |m, _| {
+            if let Some(progress) = m.preparation_progress.as_mut() {
+                progress.activity.reason = Some("feature-rolled-back".into());
+            }
+        });
+        assert!(!read(&cx, &model, |m| m.move_outcome_held_by_check()));
+        settle(&cx, &model).await;
+    });
+}
+
+/// Accept and update is the go-ahead and the start in one: it starts the
+/// move at once, also where Get ready doesn't start updating by itself, and
+/// after the user stopped updating.
+#[test]
+fn accept_and_update_starts_the_move_even_after_a_stop() {
+    run_model_test(|mut cx| async move {
+        let mut scene = scene("transition-accept-update", system(26100, "24H2", "Professional"));
+        scene.worker(report("reboot", &["feature-update"], None), State::Reboot);
+        let model = new_model(&mut cx, scene.env.clone());
+        to_get_ready(&mut cx, &model, &scene.package).await;
+        act(&mut cx, &model, |m, cx| {
+            m.updates_held = true;
+            m.accept_and_update(cx);
+        });
+        read(&cx, &model, |m| {
+            assert!(m.windows_terms_accepted && !m.updates_held());
+            assert!(m.preparation.busy(), "the move starts as the terms are accepted");
+        });
+        wait_for(&cx, &model, "the run to ask for a restart", |m| m.preparation == State::Reboot).await;
+        let request = scene.requests.lock().unwrap()[0].clone();
+        assert!(request.transition.is_some_and(|transition| transition.accept_license));
+        read(&cx, &model, |m| assert!(m.move_shows_preparation(), "the restart that finishes the move"));
+        settle(&cx, &model).await;
+    });
+}
+
+/// Updates that still failed on the component store after Atlas's repair
+/// restart and carry on after the restart, as any restart updating asks for.
+#[test]
+fn restart_and_try_again_saves_the_flow_registers_and_restarts() {
+    run_model_test(|mut cx| async move {
+        let mut scene = scene("transition-components-restart", system(26300, "26H2", "Professional"));
+        scene.worker(
+            serde_json::json!({
+                "schema": 1, "status": "failed", "stage": "windows-install", "completed": 0, "total": 0,
+                "activity": { "errorCode": "0x80073712", "failureMessage": "worker text" }
+            }),
+            State::Failed,
+        );
+        let model = new_model(&mut cx, scene.env.clone());
+        to_get_ready(&mut cx, &model, &scene.package).await;
+        act(&mut cx, &model, |m, cx| m.prepare_windows(cx));
+        wait_for(&cx, &model, "the run to fail on the component store", |m| {
+            m.preparation == State::Failed && m.checks_complete()
+        })
+        .await;
+        act(&mut cx, &model, |m, cx| m.restart_to_retry(cx));
+        wait_until(&cx, "the restart", || scene.calls().iter().any(|call| call == "restart")).await;
+        assert_eq!(scene.calls(), ["register after save", "restart"], "nothing to commit, then the restart");
+        crate::model::test_harness::wait_on_disk(&cx, &scene.env, "the restart in the draft", |s| {
+            s.draft.as_ref().is_some_and(|d| d.preparation_restart_at.is_some())
+        })
+        .await;
+        settle(&cx, &model).await;
+    });
+}
+
+/// With other people signed in, Restart and try again asks first. Kept
+/// running for them, Get ready still shows the failure it offered to fix,
+/// with nothing saved for a restart; confirmed, it saves, registers and
+/// restarts.
+#[test]
+fn restart_and_try_again_declined_for_other_people_keeps_the_failure() {
+    run_model_test(|mut cx| async move {
+        let mut scene = scene("transition-components-others", system(26300, "26H2", "Professional"));
+        scene.worker(
+            serde_json::json!({
+                "schema": 1, "status": "failed", "stage": "windows-install", "completed": 0, "total": 0,
+                "activity": { "errorCode": "0x80073712", "failureMessage": "worker text" }
+            }),
+            State::Failed,
+        );
+        *scene.machine.others.lock().unwrap() = Some(vec!["Alex".into()]);
+        let model = new_model(&mut cx, scene.env.clone());
+        to_get_ready(&mut cx, &model, &scene.package).await;
+        act(&mut cx, &model, |m, cx| m.prepare_windows(cx));
+        wait_for(&cx, &model, "the run to fail on the component store", |m| {
+            m.preparation == State::Failed && m.checks_complete()
+        })
+        .await;
+        act(&mut cx, &model, |m, cx| m.restart_to_retry(cx));
+        read(&cx, &model, |m| {
+            assert!(m.restart_confirmation().is_some(), "it asks first");
+            assert_eq!(m.preparation, State::Failed, "the failure shows while it asks");
+        });
+        act(&mut cx, &model, |m, cx| m.decline_restart_confirmation(cx));
+        read(&cx, &model, |m| {
+            assert_eq!(m.preparation, State::Failed, "the failure and its fix stay");
+            assert!(m.preparation_restart_at.is_none(), "nothing is saved for a restart");
+        });
+        assert!(scene.calls().is_empty(), "nothing registered or restarted");
+
+        act(&mut cx, &model, |m, cx| m.restart_to_retry(cx));
+        act(&mut cx, &model, |m, cx| m.confirm_restart(cx));
+        wait_until(&cx, "the restart", || scene.calls().iter().any(|call| call == "restart")).await;
+        assert_eq!(scene.calls(), ["register after save", "restart"]);
+        settle(&cx, &model).await;
+    });
+}
+
 /// While Get ready waits for Windows Update to offer the new version, it
 /// looks again by itself (offer only), continues when the offer comes, and
 /// stops when the flow stops. A wait that runs out puts the settings back.
@@ -945,6 +1244,7 @@ mod offer_wait {
             interval: Duration::from_millis(interval_ms),
             window: Duration::from_millis(window_ms),
             tick: Duration::from_millis(10),
+            ..OfferRecheckTiming::default()
         };
         scene
     }
@@ -974,7 +1274,9 @@ mod offer_wait {
             assert_eq!(*attention.lock().unwrap(), 0, "finding nothing asks nothing of the user");
             wait_for(&cx, &model, "the offer to come on a later look", |m| m.preparation == State::Reboot)
                 .await;
-            assert_eq!(*attention.lock().unwrap(), 1, "the offer came while the user may be away");
+            // The offer came while the user may be away, and the restart it
+            // needs counts down: each asks for them.
+            assert_eq!(*attention.lock().unwrap(), 2, "the offer came, and its restart counts down");
             let requests = scene.requests.lock().unwrap().clone();
             assert_eq!(requests.len(), 3);
             let offer_only: Vec<bool> =
@@ -1035,20 +1337,26 @@ mod offer_wait {
         model
     }
 
-    /// Between looks, Get ready shows how long Atlas has waited and when it
-    /// looks again; once the offer comes, there is no wait to show.
+    /// Between looks, Get ready shows the wait, with the minutes waited once
+    /// there's a whole one to say; once the offer comes, there is no wait to
+    /// show.
     #[test]
-    fn between_looks_the_wait_shows_how_long_it_has_been_and_when_it_looks_again() {
+    fn between_looks_the_wait_shows_without_a_ticking_clock() {
         run_model_test(|mut cx| async move {
             let mut scene = scene_waiting("offer-wait-clock", 400, 10_000);
             offering_after(&mut scene, 2);
             let model = start_waiting(&mut cx, &scene).await;
             wait_for(&cx, &model, "the first look to find nothing", |m| m.offer_rechecks_active()).await;
-            let clock = read(&cx, &model, AppModel::offer_wait_clock).expect("a wait under way");
-            assert_eq!(clock.waited_minutes, 1, "under a minute counts as one");
-            assert_eq!(clock.next_check_minutes, Some(1), "a look due within the minute");
+            read(&cx, &model, |m| {
+                assert!(m.offer_wait_shown(), "the wait shows between looks");
+                assert_eq!(m.offer_waited_minutes(), None, "under a minute says nothing");
+                assert!(m.move_shows_preparation(), "on the move's card");
+            });
             wait_for(&cx, &model, "the offer", |m| m.preparation == State::Reboot).await;
-            assert_eq!(read(&cx, &model, AppModel::offer_wait_clock), None);
+            read(&cx, &model, |m| {
+                assert!(!m.offer_wait_shown());
+                assert_eq!(m.offer_waited_minutes(), None);
+            });
             settle(&cx, &model).await;
         });
     }
@@ -1209,6 +1517,167 @@ mod offer_wait {
             cx.background_executor().timer(Duration::from_millis(400)).await;
             assert_eq!(scene.requests.lock().unwrap().len(), 1, "no look after the flow stopped");
             assert!(read(&cx, &model, |m| m.offer_wait.is_none()));
+            settle(&cx, &model).await;
+        });
+    }
+
+    /// 25H2, waiting for the offer of 26H2 with the record open: a move run
+    /// waits for the offer until it's stopped, a run without the move
+    /// finishes, and putting the settings back closes the record.
+    fn scene_optional_waiting(name: &str) -> Scene {
+        let mut scene = scene(name, system(26200, "25H2", "Professional"));
+        *scene.access.lock().unwrap() = record("transition", "targeted");
+        scene.env.offer_recheck =
+            OfferRecheckTiming { interval: Duration::from_secs(600), ..OfferRecheckTiming::default() };
+        let requests = scene.requests.clone();
+        scene.env.adapters.run_preparation = Arc::new(move |_, request, cancel, mut report| {
+            requests.lock().unwrap().push(request.clone());
+            if request.transition.is_none() {
+                report(serde_json::from_value::<Progress>(super::report("complete", &[], None)).unwrap());
+                return Ok(State::Ready);
+            }
+            report(
+                serde_json::from_value::<Progress>(serde_json::json!({
+                    "schema": 1, "status": "running", "stage": "windows-search", "completed": 0, "total": 0,
+                    "activity": { "waiting": "feature-offer" }
+                }))
+                .unwrap(),
+            );
+            while !cancel.load(std::sync::atomic::Ordering::Relaxed) {
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            Ok(State::Cancelled)
+        });
+        let (log, access) = (scene.calls.clone(), scene.access.clone());
+        scene.env.adapters.run_operation = Arc::new(move |_, operation| {
+            log.lock().unwrap().push(format!("{operation:?}"));
+            *access.lock().unwrap() = UpdateAccess::default();
+            Ok(())
+        });
+        scene
+    }
+
+    /// Keep stays a choice while Atlas waits for the offer. Choosing it
+    /// stops the run waiting for it, puts the settings back, and updates
+    /// Windows without the move.
+    #[test]
+    fn keeping_this_version_while_waiting_stops_the_move_and_updates_without_it() {
+        run_model_test(|mut cx| async move {
+            let scene = scene_optional_waiting("offer-wait-keep");
+            let model = new_model(&mut cx, scene.env.clone());
+            to_get_ready(&mut cx, &model, &scene.package).await;
+            act(&mut cx, &model, |m, cx| m.accept_and_update(cx));
+            wait_for(&cx, &model, "the run to wait for the offer", |m| m.offer_wait_shown()).await;
+            read(&cx, &model, |m| {
+                assert!(m.preparation.busy());
+                assert!(m.may_keep_windows_version(), "Keep stays a choice while Atlas waits");
+                assert!(m.keeping_stops_the_move(), "and asks first");
+                assert_eq!(m.ready_status(), Some(ReadyStatus::Updating));
+            });
+            act(&mut cx, &model, |m, cx| m.keep_windows_version_now(cx));
+            wait_for(&cx, &model, "the version kept and updated without the move", |m| {
+                m.windows_transition_declined && m.preparation == State::Idle && !m.transition_open()
+            })
+            .await;
+            assert_eq!(scene.calls(), ["Restore"], "the settings went back once");
+            read(&cx, &model, |m| {
+                assert!(!m.updates_held(), "updating isn't held by the stop that kept the version");
+                assert!(!m.windows_card_shown() || !m.move_shows_preparation());
+            });
+            act(&mut cx, &model, |m, cx| m.prepare_windows(cx));
+            wait_for(&cx, &model, "updates without the move", |m| m.preparation.ready()).await;
+            let requests = scene.requests.lock().unwrap().clone();
+            assert!(requests.last().is_some_and(|request| request.transition.is_none()));
+            settle(&cx, &model).await;
+        });
+    }
+
+    /// A move's first run opens Atlas's record before Atlas reads it. While
+    /// an Atlas install is unfinished, its own last step puts the settings
+    /// back, so keeping this version can't stop the move: Keep isn't
+    /// offered, the run keeps waiting, and Get ready says why.
+    #[test]
+    fn keeping_this_version_waits_for_an_unfinished_install_without_stopping_the_run() {
+        run_model_test(|mut cx| async move {
+            let mut scene = scene_optional_waiting("offer-wait-keep-install");
+            *scene.access.lock().unwrap() = UpdateAccess::default();
+            let (opened, waiting) = (scene.access.clone(), scene.env.adapters.run_preparation.clone());
+            scene.env.adapters.run_preparation = Arc::new(move |job, request, cancel, report| {
+                if request.transition.is_some() {
+                    *opened.lock().unwrap() = record("transition", "targeted");
+                }
+                waiting(job, request, cancel, report)
+            });
+            *scene.machine.identity.lock().unwrap() =
+                Some(InstallIdentity::Resume("0.6.0".into(), Default::default()));
+            let model = new_model(&mut cx, scene.env.clone());
+            to_get_ready(&mut cx, &model, &scene.package).await;
+            act(&mut cx, &model, |m, cx| m.accept_and_update(cx));
+            wait_for(&cx, &model, "the run to wait for the offer", |m| m.offer_wait_shown()).await;
+            read(&cx, &model, |m| {
+                assert!(!m.transition_open(), "Atlas hasn't read the record the run opened");
+                assert!(!m.may_keep_windows_version(), "the install puts the settings back");
+                assert!(m.keep_waits_for_install(), "and Get ready says so");
+            });
+            act(&mut cx, &model, |m, cx| m.keep_windows_version_now(cx));
+            cx.background_executor().timer(Duration::from_millis(100)).await;
+            read(&cx, &model, |m| {
+                assert!(!m.preparation_cancel.load(std::sync::atomic::Ordering::Relaxed), "nothing stops");
+                assert!(m.preparation.busy() && m.offer_wait_shown(), "the run keeps waiting");
+            });
+            act(&mut cx, &model, |m, _| {
+                m.preparation_cancel.store(true, std::sync::atomic::Ordering::Relaxed)
+            });
+            wait_for(&cx, &model, "the run to stop", |m| !m.preparation.busy()).await;
+            assert!(!scene.calls().iter().any(|call| call == "Restore"));
+            settle(&cx, &model).await;
+        });
+    }
+
+    /// Should the settings become the unfinished install's to put back while
+    /// the run stops for Keep, the move stays: updating, stopped only to keep
+    /// this version, isn't held, and Get ready says why the version wasn't kept.
+    #[test]
+    fn a_keep_the_stop_can_no_longer_finish_leaves_updating_to_carry_on() {
+        run_model_test(|mut cx| async move {
+            let scene = scene_optional_waiting("offer-wait-keep-changed");
+            let model = new_model(&mut cx, scene.env.clone());
+            to_get_ready(&mut cx, &model, &scene.package).await;
+            act(&mut cx, &model, |m, cx| m.accept_and_update(cx));
+            wait_for(&cx, &model, "the run to wait for the offer", |m| m.offer_wait_shown()).await;
+            assert!(read(&cx, &model, AppModel::may_keep_windows_version));
+            let identity = scene.machine.identity.clone();
+            act(&mut cx, &model, |m, cx| {
+                m.keep_windows_version_now(cx);
+                // Read again as the run ends.
+                *identity.lock().unwrap() = Some(InstallIdentity::Resume("0.6.0".into(), Default::default()));
+            });
+            wait_for(&cx, &model, "the run to stop", |m| !m.preparation.busy()).await;
+            read(&cx, &model, |m| {
+                assert!(!m.windows_transition_declined && m.transition_open(), "the move stays");
+                assert!(!m.updates_held(), "updating isn't held by a stop made only to keep the version");
+                assert_eq!(m.preparation, State::Idle, "updating can start again");
+                assert!(m.keep_waits_for_install(), "Get ready says why the version wasn't kept");
+            });
+            assert!(!scene.calls().iter().any(|call| call == "Restore"));
+            settle(&cx, &model).await;
+        });
+    }
+
+    /// Stop updating while Atlas waits for the offer stops the run waiting
+    /// for it, puts the settings back and ends the setup, as Cancel does.
+    #[test]
+    fn stopping_while_waiting_puts_the_settings_back_and_leaves() {
+        run_model_test(|mut cx| async move {
+            let scene = scene_optional_waiting("offer-wait-stop");
+            let model = new_model(&mut cx, scene.env.clone());
+            to_get_ready(&mut cx, &model, &scene.package).await;
+            act(&mut cx, &model, |m, cx| m.accept_and_update(cx));
+            wait_for(&cx, &model, "the run to wait for the offer", |m| m.offer_wait_shown()).await;
+            act(&mut cx, &model, |m, cx| m.stop_waiting_for_offer(cx));
+            wait_for(&cx, &model, "the setup to end", |m| !m.flow.active).await;
+            assert_eq!(scene.calls(), ["Restore"]);
+            assert_eq!(scene.requests.lock().unwrap().len(), 1, "nothing ran after the stop");
             settle(&cx, &model).await;
         });
     }

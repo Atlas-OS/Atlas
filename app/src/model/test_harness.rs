@@ -22,6 +22,7 @@ use crate::services::security::{SecurityStatus, Switch};
 use crate::services::session::{self, SessionRecord};
 use crate::services::settings::{self, AppSettings, InstallDraft, save_to};
 use crate::services::test_support::{TempDir, package};
+use crate::services::windows_installation::Evidence;
 
 /// How long a test waits for the model to reach a state before failing.
 pub(super) const PATIENCE: Duration = Duration::from_secs(30);
@@ -219,6 +220,11 @@ pub(crate) struct Machine {
     pub(super) others: Arc<Mutex<Option<Vec<String>>>>,
     /// Times the model showed a hidden Virus & threat protection page.
     pub(super) virus_page_shown: Arc<Mutex<u32>>,
+    /// Times the model opened Windows Security.
+    pub(super) security_opened: Arc<Mutex<u32>>,
+    /// The keyboard layouts the user can switch between; `None` reads as a
+    /// failure to list them. By default two, so Your choices asks.
+    pub(super) layouts: Arc<Mutex<Option<usize>>>,
 }
 
 impl Machine {
@@ -232,6 +238,8 @@ impl Machine {
             armed: Arc::new(Mutex::new(0)),
             others: Arc::new(Mutex::new(Some(Vec::new()))),
             virus_page_shown: Arc::new(Mutex::new(0)),
+            security_opened: Arc::new(Mutex::new(0)),
+            layouts: Arc::new(Mutex::new(Some(2))),
         }
     }
 
@@ -248,6 +256,8 @@ impl Machine {
         let armed = self.armed.clone();
         let others = self.others.clone();
         let virus_page_shown = self.virus_page_shown.clone();
+        let security_opened = self.security_opened.clone();
+        let layouts = self.layouts.clone();
         Adapters {
             register_preparation_resume: Arc::new(|| Ok(())),
             is_elevated: Arc::new(|| true),
@@ -255,6 +265,10 @@ impl Machine {
             show_hidden_virus_page: Arc::new(move || {
                 *virus_page_shown.lock().unwrap() += 1;
                 Ok(true)
+            }),
+            open_windows_security: Arc::new(move || {
+                *security_opened.lock().unwrap() += 1;
+                Ok(())
             }),
             read_install_identity: Arc::new(move || {
                 identity.lock().unwrap().clone().ok_or_else(|| anyhow::anyhow!("unreadable identity"))
@@ -281,6 +295,11 @@ impl Machine {
             read_pc_facts: Arc::new(move || facts.lock().unwrap().clone()),
             read_other_sessions: Arc::new(move || {
                 others.lock().unwrap().clone().ok_or_else(|| anyhow::anyhow!("sessions unreadable"))
+            }),
+            // Windows installed today, with no apps: nothing suggests earlier use.
+            read_windows_installation: Arc::new(|| Evidence { age_days: Some(0), desktop_apps: 0 }),
+            read_keyboard_layouts: Arc::new(move || {
+                layouts.lock().unwrap().ok_or_else(|| anyhow::anyhow!("layouts unreadable"))
             }),
         }
     }
@@ -370,11 +389,5 @@ pub(super) fn completed_state(version: &str) -> AtlasState {
 }
 
 pub(super) fn release(tag: &str, assets: Vec<releases::Asset>) -> Release {
-    Release {
-        tag_name: tag.into(),
-        body: String::new(),
-        html_url: String::new(),
-        published_at: String::new(),
-        assets,
-    }
+    Release { tag_name: tag.into(), body: String::new(), html_url: String::new(), assets }
 }

@@ -6,12 +6,16 @@
 //! Like WinUI's InfoBar, a bar announces itself when it appears or its words
 //! change: it is a polite live region, named by its title and message
 //! together. A bar the page moves focus to is announced by that instead.
+//!
+//! Hyperlink buttons in a success, warning or error bar's actions or
+//! content keep 4.5:1 on its tint by themselves (see `button::OnTint`).
 
 use gpui::{
     AnyElement, App, ClickEvent, ElementId, FocusHandle, IntoElement, Live, ParentElement, RenderOnce, Role,
     SharedString, Styled, Window, div, prelude::*, px,
 };
 
+use super::button::OnTint;
 use super::typography::BODY_LINE_HEIGHT;
 use super::{Button, Icon, Revealed, Typography, icon_in_line};
 use crate::t;
@@ -127,57 +131,62 @@ impl RenderOnce for InfoBar {
         let id = self.id.unwrap_or_else(|| {
             ElementId::Name(if has_title { self.title.clone() } else { self.message.clone() })
         });
+        let description = (has_title && has_message && !live).then(|| self.message.clone());
         let focus_outer = theme.focus_outer;
+        let column = div()
+            .flex()
+            .flex_col()
+            .flex_1()
+            .min_w_0()
+            .text_color(theme.text_primary)
+            .when(has_title, |this| this.child(div().type_body_strong().child(self.title)))
+            .when(has_message, |this| this.child(div().type_body().child(self.message)))
+            // Below the copy, so a long translated action can't squeeze
+            // it. The wrapping row keeps a button at its natural width,
+            // as WinUI does, and still lets a check box take the full width.
+            .when_some(self.action, |this, action| {
+                this.child(
+                    div()
+                        .flex()
+                        .flex_wrap()
+                        .items_start()
+                        .gap(px(8.))
+                        .w_full()
+                        .min_w_0()
+                        .pt(px(8.))
+                        .child(action),
+                )
+            })
+            .when_some(self.content, |this, content| this.child(div().w_full().pt(px(8.)).child(content)));
+        // Links on a tint take a darker colour, to keep their contrast.
+        let column = match self.severity {
+            Severity::Informational => column.into_any_element(),
+            Severity::Success | Severity::Warning | Severity::Error => OnTint::new(column).into_any_element(),
+        };
         let bar = div()
             .id(id)
             .role(role)
             .aria_label(name)
-            .when(has_title && has_message && !live, |this| this.aria_description(self.message.clone()))
+            .when_some(description, |this, description| this.aria_description(description))
             .when(live, |this| this.aria_live(Live::Polite))
             .flex()
             .items_start()
             .gap(px(12.))
             .w_full()
-            .px(px(14.))
-            .py(px(10.))
+            // 16px inside the border, as in a card, so the glyph lines up with
+            // the text of the cards around the bar.
+            .px(px(16.))
+            .py(px(12.))
             .rounded(px(4.))
             .bg(fill)
             .border_1()
             .border_color(theme.card_stroke)
             // The glyph sits on the title's letters, not on the top of the column.
             .child(icon_in_line(glyph, BODY_LINE_HEIGHT).type_body_strong().text_color(colour))
-            .child(
-                div()
-                    .flex()
-                    .flex_col()
-                    .flex_1()
-                    .min_w_0()
-                    .text_color(theme.text_primary)
-                    .when(has_title, |this| this.child(div().type_body_strong().child(self.title)))
-                    .when(has_message, |this| this.child(div().type_body().child(self.message)))
-                    // Below the copy, so a long translated action can't squeeze
-                    // it. The wrapping row keeps a button at its natural width,
-                    // as WinUI does, and still lets a check box take the full width.
-                    .when_some(self.action, |this, action| {
-                        this.child(
-                            div()
-                                .flex()
-                                .flex_wrap()
-                                .items_start()
-                                .gap(px(8.))
-                                .w_full()
-                                .min_w_0()
-                                .pt(px(8.))
-                                .child(action),
-                        )
-                    })
-                    .when_some(self.content, |this, content| {
-                        this.child(div().w_full().pt(px(8.)).child(content))
-                    }),
-            )
+            .child(column)
             // Level with the title, in the corner's padding.
             .when_some(self.close, |this, close| {
-                this.child(div().flex_shrink_0().my(px(-4.)).mr(px(-6.)).child(close))
+                this.child(div().flex_shrink_0().my(px(-6.)).mr(px(-8.)).child(close))
             });
         match self.focus {
             // A bar the page moves focus to is scrolled into view with it.

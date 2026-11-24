@@ -16,16 +16,17 @@ use std::sync::atomic::Ordering;
 
 use gpui::{
     AnyElement, App, Context, Entity, FocusHandle, IntoElement, Point, PromptLevel, Render, ScrollHandle,
-    SharedString, Styled, Window, prelude::*, px,
+    SharedString, Window, prelude::*,
 };
 
-use super::{CommandBar, LogIds, LogView, StepStatus, Stepper, focusable_heading, on_model, page_frame};
-use crate::model::{AppModel, ElevationProblem, RunState, Step, StopQuestion};
-use crate::services::iso;
+use super::{CommandBar, LogIds, LogView, StepStatus, Stepper, on_model, page_frame};
+use crate::model::{
+    Acquisition, AppModel, ElevationProblem, ReadyStatus, ReleaseCheck, RunState, ScreenKind, Step,
+    StopQuestion,
+};
 use crate::services::preparation::State as Preparation;
-use crate::services::windows_installation::Evidence;
 use crate::t;
-use crate::ui::{Button, FocusHandles, Icon, InfoBar, ScrollbarState, Severity, Typography, focus_reveal};
+use crate::ui::{Button, FocusHandles, Icon, InfoBar, ScrollbarState, Severity, focus_reveal};
 
 const LOG_IDS: LogIds =
     LogIds { log: "install-log", hidden: "log-hidden", line: "log-line", copy: "log-copy", open: "log-open" };
@@ -42,26 +43,32 @@ pub struct InstallPage {
     log: LogView,
     scrollbar: ScrollbarState,
     show_command: bool,
-    /// The Install summary's details: installation files, Windows, activation
-    /// and the installation command.
+    /// The Install summary's details: the Atlas package, Windows, activation,
+    /// what every Defender answer turns off, and the installation command.
     show_summary_details: bool,
-    /// A finished attempt's log, folded away by default.
-    show_log: bool,
+    /// The raw words behind the Install step's bar: a refusal's error, or a
+    /// finished attempt's error and log.
+    show_result_details: bool,
+    /// What the Change link just chosen on the Install step lists, so focus
+    /// goes there once Your choices shows (see `InstallPage::change_focus`).
+    change_target: Option<ScreenKind>,
     /// The passed checks on Get ready, folded into one line by default.
     show_passed_checks: bool,
-    /// The raw details of an update failure.
+    /// The raw details of an update failure, or a running update's figures.
     show_preparation_details: bool,
+    /// The raw error of installation files that couldn't be prepared.
+    show_package_details: bool,
+    /// What a move to a newer Windows release removes, before its go-ahead.
+    show_windows_details: bool,
+    /// The driver choice's two answers, folded under its line by default.
+    show_driver_choice: bool,
     /// Whether updating was under way last frame, to follow how it ended.
     preparation_was_busy: bool,
-    /// The user chose the update card's button since updating was last
+    /// The user chose the update row's button since updating was last
     /// seen idle, so the run it starts is theirs, not one of Atlas's looks.
     preparation_asked: bool,
     /// Updating was last seen idle waiting for the offer, with looks to come.
     offer_wait_shown: bool,
-    windows_installation: Evidence,
-    /// This copy was staged by Atlas installation media in the Windows it has
-    /// just installed, so the fresh-install note is left out.
-    staged_iso_setup: bool,
     /// The step and option screen drawn last frame, to reset scrolling and focus on a change.
     shown_step: Option<(Step, usize)>,
     /// The run drawn last frame, with the install it belongs to, so each
@@ -69,9 +76,6 @@ pub struct InstallPage {
     shown_run: Option<(RunState, Option<String>)>,
     /// The last refusal of the final checks that was brought into view.
     shown_preflight_epoch: u64,
-    /// Updating was last seen waiting to continue after Atlas's own restart,
-    /// so its Continue updates took focus once.
-    shown_resumed: bool,
     /// The model's page visit this page last drew, to announce each arrival.
     seen_visit: u64,
     focus: FocusHandles,
@@ -83,15 +87,6 @@ pub struct InstallPage {
 impl InstallPage {
     pub fn new(model: Entity<AppModel>, close: CloseHandler, cx: &mut Context<Self>) -> Self {
         cx.observe(&model, |_, _, cx| cx.notify()).detach();
-        cx.spawn(async move |this, cx| {
-            let evidence = cx.background_executor().spawn(async { Evidence::read() }).await;
-            this.update(cx, |this, cx| {
-                this.windows_installation = evidence;
-                cx.notify();
-            })
-            .ok();
-        })
-        .detach();
         Self {
             model,
             scroll: ScrollHandle::new(),
@@ -99,18 +94,19 @@ impl InstallPage {
             scrollbar: ScrollbarState::new(),
             show_command: false,
             show_summary_details: false,
-            show_log: false,
+            show_result_details: false,
+            change_target: None,
             show_passed_checks: false,
             show_preparation_details: false,
+            show_package_details: false,
+            show_windows_details: false,
+            show_driver_choice: false,
             preparation_was_busy: false,
             preparation_asked: false,
             offer_wait_shown: false,
-            windows_installation: Default::default(),
-            staged_iso_setup: iso::is_staged_setup(),
             shown_step: None,
             shown_run: None,
             shown_preflight_epoch: 0,
-            shown_resumed: false,
             seen_visit: 0,
             focus: FocusHandles::default(),
             diagnostics: super::Diagnostics::new(cx),
@@ -118,10 +114,21 @@ impl InstallPage {
         }
     }
 
-    fn stepper(&self, current: Step, may_edit: bool, cx: &App) -> AnyElement {
+    /// The stepper, which marks where the flow is. The current step takes
+    /// focus when the step changes, so it's announced: on Your choices its
+    /// name goes on with the questions showing (`current_name`).
+    fn stepper(
+        &self,
+        current: Step,
+        may_edit: bool,
+        focus: FocusHandle,
+        current_name: Option<String>,
+        cx: &App,
+    ) -> AnyElement {
         let state = self.model.read(cx);
         let model = self.model.clone();
         let mut stepper = Stepper::new("stepper", t!("stepper-label"))
+            .current_focus(focus, current_name.map(Into::into))
             .on_select(move |index, _, cx| model.update(cx, |m, cx| m.set_step(Step::ALL[index], cx)));
         for step in Step::ALL {
             // Earlier steps can be gone back to; later ones can't be skipped to.
@@ -140,69 +147,40 @@ impl InstallPage {
         // Cancel asked preparation to stop; it does at the next safe point.
         let stopping = state.preparation.busy() && state.preparation_cancel.load(Ordering::Relaxed);
 
-        let (hint, next_enabled): (String, bool) = match step {
-            Step::Ready => {
-                if stopping {
-                    (t!("footer-prepare-stopping"), false)
-                } else if state.install_block().is_some() {
-                    (t!("install-source-title"), false)
-                } else if !state.preparation.ready()
-                    && state.preparation != Preparation::Idle
-                    // A build that fails its check cannot be prepared; that check is what to fix.
-                    && state.preparation_may_start()
-                {
-                    (t!("footer-prepare-required"), false)
-                } else if !state.checks_complete() || state.acquisition.is_busy() {
-                    (t!("footer-still-checking"), false)
-                } else if state.checks_blocking() {
-                    (t!("footer-fix-items"), false)
-                } else if state.package.is_none() && state.package_needs_newer_manager() {
-                    (t!("ready-banner-manager-title"), false)
-                } else if state.package.is_none() && state.bundled() {
-                    (t!("footer-need-package-bundled"), false)
-                } else if state.package.is_none() {
-                    (t!("footer-need-package"), false)
-                } else if state.driver_choice_required() {
-                    (t!("prepare-choose-drivers"), false)
-                } else if !state.preparation.ready() {
-                    (t!("footer-prepare-required"), false)
-                } else {
-                    (String::new(), true)
-                }
-            }
-            Step::Options => (String::new(), true),
+        let (wait, next_enabled): (Wait, bool) = match step {
+            Step::Ready => match ready_hint(state, stopping) {
+                Some(wait) => (wait, false),
+                None => (Wait::none(), true),
+            },
+            Step::Options => (Wait::none(), true),
+            // The bar or the list above says what is left to do, so the
+            // footer only reads it with Continue.
             Step::Security => {
-                // What is left to do, not how many switches: the card says that.
                 if state.security_ok() {
-                    (String::new(), true)
+                    (Wait::none(), true)
                 } else if !state.security_fresh() {
-                    (t!("footer-reading-security"), false)
+                    (Wait::quiet(t!("footer-reading-security")), false)
                 } else if state.security.counts().on > 0 {
-                    (t!("footer-security-pending"), false)
+                    (Wait::quiet(t!("footer-security-pending")), false)
                 } else if !state.elevated {
-                    (t!("security-unknown-unelevated-title"), false)
+                    (Wait::quiet(t!("security-unknown-unelevated-title")), false)
                 } else {
-                    (t!("footer-security-confirm"), false)
+                    (Wait::quiet(t!("footer-security-confirm")), false)
                 }
             }
             Step::Install => {
-                // Why Install (or Try again) is unavailable, beside it, or
-                // what to do before choosing it when it restarts the PC.
+                // What to do before choosing Install when it restarts the PC.
+                // Why it's unavailable is the bar's to say, not the footer's.
                 let restart = state.install_request().is_some_and(|request| request.restart);
-                let hint = if !run.may_start() {
-                    String::new()
-                } else if !state.elevated {
-                    t!("install-elevate-title")
-                } else if state.package.is_some() && !state.ready_to_continue() {
-                    t!("install-not-ready-title")
-                } else if state.can_install() && restart {
-                    t!("footer-install-ready")
+                let hint = if state.can_install() && restart && !summary::retry_hidden(state) {
+                    Wait::shown(t!("footer-install-ready"))
                 } else {
-                    String::new()
+                    Wait::none()
                 };
                 (hint, false)
             }
         };
+        let Wait { reason: hint, shown } = wait;
 
         let cancel_disabled =
             stopping || (locked && !matches!(state.preparation, Preparation::Running { .. }));
@@ -210,6 +188,9 @@ impl InstallPage {
             let model = model.clone();
             let close = self.close.clone();
             move |_: &gpui::ClickEvent, window: &mut Window, cx: &mut App| {
+                // Cancel stops the countdown to a restart for updates first,
+                // as Not now does, so no restart comes while a question is open.
+                model.update(cx, |m, cx| m.decline_preparation_restart(cx));
                 // Desktop setup has no Home to return to, so Cancel closes the
                 // window, asking first as the caption Close button does.
                 if model.read(cx).before_desktop && !model.read(cx).preparation.busy() {
@@ -247,7 +228,8 @@ impl InstallPage {
                     t!("button-install")
                 },
             )
-            .accent()
+            // The one accent, unless the bar's own button is the next step.
+            .when(!summary::bar_leads(state), Button::accent)
             .disabled(!state.can_install())
             // Read with the button, while it waits: why it can't be chosen yet.
             .when(!state.can_install() && !hint.is_empty(), |button| button.aria_description(hint.clone()))
@@ -271,13 +253,89 @@ impl InstallPage {
             .on_click(on_model(&model, |m, cx| m.next_step(cx))),
         };
 
+        // Try again is left out while the result's own button is the fix.
+        let forward = (step != Step::Install || !summary::retry_hidden(state)).then_some(forward);
         CommandBar::new()
             .cancel("flow-cancel", t!("common-cancel"), cancel_disabled, on_cancel)
-            .hint(hint)
+            .hint(if shown { hint } else { String::new() })
             .back(back)
-            .primary(forward)
+            .when_some(forward, CommandBar::primary)
             .into_any_element()
     }
+}
+
+/// Why a step's Continue waits, which it reads as its description while it
+/// can't be chosen, and whether the footer shows it too. It shows only what
+/// the page doesn't already say: status lives in one place, so a row, a
+/// caption or a bar that says it keeps it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct Wait {
+    reason: String,
+    shown: bool,
+}
+
+impl Wait {
+    fn none() -> Self {
+        Self { reason: String::new(), shown: false }
+    }
+
+    /// Read with Continue only: the page says it already.
+    fn quiet(reason: String) -> Self {
+        Self { reason, shown: false }
+    }
+
+    /// Read with Continue and shown beside it.
+    fn shown(reason: String) -> Self {
+        Self { reason, shown: true }
+    }
+}
+
+/// Why Continue waits on Get ready, or `None` once it can go. The footer
+/// shows it only when the checklist doesn't say it: what Continue needs the
+/// user to finish, after a problem they can fix. While Atlas is at work, or
+/// a row, its caption or the bar at the top says what's next, it's only
+/// read with Continue.
+fn ready_hint(state: &AppModel, stopping: bool) -> Option<Wait> {
+    if stopping {
+        return Some(Wait::quiet(t!("footer-prepare-stopping-stage")));
+    }
+    if state.install_block().is_some() {
+        return Some(Wait::none());
+    }
+    if state.ready_to_continue() {
+        return None;
+    }
+    Some(match state.ready_status() {
+        Some(ReadyStatus::Busy) => Wait::quiet(t!("footer-still-checking")),
+        Some(ReadyStatus::Blocked) => Wait::shown(t!("footer-checks-blocked")),
+        Some(ReadyStatus::ManagerOutdated) => Wait::quiet(t!("footer-manager-outdated")),
+        Some(ReadyStatus::NoPackage) if state.bundled() => Wait::quiet(t!("footer-need-package-bundled")),
+        // The download starts once Atlas knows the latest release.
+        Some(ReadyStatus::NoPackage)
+            if matches!(state.release, ReleaseCheck::Checking | ReleaseCheck::NotChecked)
+                && !matches!(state.acquisition, Acquisition::Failed(_)) =>
+        {
+            Wait::quiet(t!("footer-still-checking"))
+        }
+        // The row says it couldn't get them, and what to do.
+        Some(ReadyStatus::NoPackage) if matches!(state.acquisition, Acquisition::Failed(_)) => {
+            Wait::quiet(t!("footer-need-files"))
+        }
+        Some(ReadyStatus::NoPackage) => Wait::shown(t!("footer-need-files")),
+        // The caption under the update row says what updating waits for.
+        Some(ReadyStatus::Drivers) => Wait::quiet(t!("footer-drivers")),
+        Some(ReadyStatus::WindowsTerms) => Wait::quiet(t!("footer-windows-terms")),
+        // Atlas is at work, or the row asks for its restart.
+        Some(ReadyStatus::Updating) => Wait::quiet(t!("footer-updating")),
+        Some(ReadyStatus::UpdatesRestart) => Wait::quiet(t!("footer-restart")),
+        Some(ReadyStatus::Updates | ReadyStatus::UpdatesResumed) => {
+            Wait::quiet(t!("footer-prepare-required"))
+        }
+        Some(ReadyStatus::UpdatesStopped | ReadyStatus::UpdatesFailed | ReadyStatus::UpdatesUnconfirmed) => {
+            Wait::shown(t!("footer-prepare-required"))
+        }
+        Some(ReadyStatus::Warnings | ReadyStatus::Ready) | None => Wait::none(),
+    })
 }
 
 /// The stop question's title: an update names the Atlas it updates to; a
@@ -304,9 +362,11 @@ fn ask_to_stop_updating(
         StopQuestion::BeforeMove { current } => t!("stop-update-before", current = current),
         StopQuestion::AfterMove { release } => t!("stop-update-after", release = release),
     };
-    let (keep, stop) = (t!("stop-update-keep"), t!("prepare-stop"));
-    let answer =
-        window.prompt(PromptLevel::Warning, title, Some(&message), &[keep.as_str(), stop.as_str()], cx);
+    let answers = [
+        crate::ui::content_dialog::safe_answer(t!("stop-update-keep")),
+        crate::ui::content_dialog::answer(t!("prepare-stop")),
+    ];
+    let answer = window.prompt(PromptLevel::Warning, title, Some(&message), &answers, cx);
     let model = model.clone();
     cx.spawn(async move |cx| {
         if answer.await == Ok(1) {
@@ -318,13 +378,14 @@ fn ask_to_stop_updating(
 
 /// Why the last relaunch as administrator failed, for the steps before
 /// Install, which has its own bar. Relaunching can't help while another
-/// window owns the setup; starting over here can.
-fn elevation_problem(state: &AppModel, model: &Entity<AppModel>) -> Option<AnyElement> {
+/// window owns the setup; starting over here can, and it's the accent while
+/// the step's Continue can't be chosen (`step_done`).
+fn elevation_problem(state: &AppModel, model: &Entity<AppModel>, step_done: bool) -> Option<AnyElement> {
     let problem = state.elevation_error.as_ref().filter(|_| !state.elevated)?;
     let bar =
         InfoBar::new(Severity::Error, t!("install-elevate-title"), problem.text()).id("step-elevate-problem");
     let bar = if *problem == ElevationProblem::TakenOver {
-        bar.action(start_over_button("step-start-over", state, model))
+        bar.action(start_over_button("step-start-over", state, model).when(!step_done, Button::accent))
     } else {
         bar
     };
@@ -337,11 +398,6 @@ fn start_over_button(id: &'static str, state: &AppModel, model: &Entity<AppModel
     Button::new(id, t!("home-start-over"))
         .disabled(state.recovering || state.elevating || state.locked())
         .on_click(on_model(model, |m, cx| m.begin_install(cx)))
-}
-
-/// Leads back to Get ready, where what stands in the way is fixed.
-fn go_to_ready_button(id: &'static str, model: &Entity<AppModel>) -> Button {
-    Button::new(id, t!("go-to-ready")).on_click(on_model(model, |m, cx| m.set_step(Step::Ready, cx)))
 }
 
 /// The Show details link with its chevron, which opens or folds the part of
@@ -377,25 +433,30 @@ impl Render for InstallPage {
             let state = self.model.read(cx);
             (state.flow.step, state.flow.run, state.flow.may_edit(), state.current_option_screen())
         };
-        let step_heading = self.focus.get("step-heading", cx);
+        let step_focus = self.focus.get("step-current", cx);
         let result_focus = self.focus.get("install-result", cx);
         let preflight_focus = self.focus.get("install-preflight", cx);
 
-        // A new step, or arriving from another page, puts focus on the step
-        // heading; a new step also starts at the top. A result is brought
-        // into view and announced.
+        // A new step, or arriving from another page, puts focus on the
+        // current step in the stepper, which names it; a new step also
+        // starts at the top. A Change link puts it on what it changes
+        // instead, which is read with its question, and brings that into
+        // view. A result is brought into view and announced.
         let visit = self.model.read(cx).page_visit;
         let arrived = std::mem::replace(&mut self.seen_visit, visit) != visit;
         if self.shown_step != Some((step, screen)) {
             let first = self.shown_step.is_none();
             self.shown_step = Some((step, screen));
             self.scroll.set_offset(Point::default());
-            if !first {
-                window.focus(&step_heading, cx);
+            let changed = self.change_target.take().filter(|_| step == Step::Options);
+            match changed.and_then(|kind| self.change_focus(kind, cx)) {
+                Some(target) => reveal_focus(&target, window, cx),
+                None if !first => window.focus(&step_focus, cx),
+                None => {}
             }
         }
         if arrived {
-            window.focus(&step_heading, cx);
+            window.focus(&step_focus, cx);
         }
         // The installing view covers this page while an install runs, so a
         // retry goes from one result straight to the next; the install each
@@ -420,22 +481,27 @@ impl Render for InstallPage {
             }
         }
 
-        // Updates that end in trouble or a restart put the next button in the
-        // bar that explains it, so focus follows to that bar: the outcome is
+        // Updates that end in trouble or a restart put what to do next under
+        // the update row, so focus follows to the row: the outcome is
         // announced, and the keyboard isn't left on a button that went away.
-        let preparation_focus = self.focus.get("preparation-status", cx);
-        let (busy, in_bar, waiting) = {
+        // A countdown puts it on Not now instead, so a key press keeps the PC
+        // from restarting before work is saved. Starting needs nobody, so it
+        // moves nothing.
+        let row_focus = self.focus.get("preparation-status", cx);
+        let later_focus = self.focus.get("prepare-not-now", cx);
+        let (busy, needs_user, waiting, counting) = {
             let state = self.model.read(cx);
             (
                 state.preparation.busy(),
-                preparation::in_bar(&state.preparation),
+                preparation::needs_user(&state.preparation),
                 state.waiting_for_offer() && state.offer_rechecks_active(),
+                state.preparation_countdown().is_some(),
             )
         };
         let was_busy = std::mem::replace(&mut self.preparation_was_busy, busy);
         if !busy {
             if was_busy
-                && in_bar
+                && needs_user
                 && step == Step::Ready
                 && preparation_end_is_news(
                     self.preparation_asked,
@@ -444,33 +510,16 @@ impl Render for InstallPage {
                     window.focused(cx).is_some(),
                 )
             {
-                reveal_focus(&preparation_focus, window, cx);
+                reveal_focus(if counting { &later_focus } else { &row_focus }, window, cx);
             }
             self.preparation_asked = false;
             self.offer_wait_shown = waiting;
         }
-        // Back after Atlas's own restart, Continue updates is what's next:
-        // it takes focus once and is brought into view.
-        let resumed = self.model.read(cx).preparation == Preparation::Resumed && step == Step::Ready;
-        if resumed && !std::mem::replace(&mut self.shown_resumed, true) {
-            let action = self.focus.get("prepare-action", cx);
-            reveal_focus(&action, window, cx);
-        }
-        self.shown_resumed &= resumed;
 
-        let heading =
-            t!("step-heading", number = step.index() + 1, total = Step::ALL.len(), title = step.title());
-        // Each screen of Your choices names its question when the heading
-        // takes focus, so moving on is announced as a new screen.
-        let heading_name = (step == Step::Options).then(|| self.choice_heading_name(&heading, cx)).flatten();
-        let mut body = vec![
-            self.stepper(step, may_edit, cx),
-            focusable_heading("step-heading", 2, heading, &step_heading, cx)
-                .when_some(heading_name, |this, name| this.aria_label(name))
-                .type_subtitle()
-                .pb(px(4.))
-                .into_any_element(),
-        ];
+        // Each screen of Your choices says what it asks when the current
+        // step takes focus, so moving on is announced as a new screen.
+        let current_name = (step == Step::Options).then(|| self.choice_heading_name(cx)).flatten();
+        let mut body = vec![self.stepper(step, may_edit, step_focus, current_name, cx)];
         body.extend(match step {
             Step::Ready => self.ready_cards(cx),
             Step::Options => self.options_cards(cx),
@@ -515,10 +564,10 @@ fn reveal_focus(handle: &FocusHandle, window: &mut Window, cx: &mut App) {
 }
 
 impl InstallPage {
-    /// The step heading's accessible name on a screen of Your choices (see
-    /// [`options::choice_heading_name`]).
-    fn choice_heading_name(&self, heading: &str, cx: &App) -> Option<String> {
-        options::choice_heading_name(self.model.read(cx), heading)
+    /// What the current step reads after its name on a screen of Your
+    /// choices (see [`options::choice_heading_name`]).
+    fn choice_heading_name(&self, cx: &App) -> Option<String> {
+        options::choice_heading_name(self.model.read(cx))
     }
 }
 

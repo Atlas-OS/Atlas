@@ -8,6 +8,7 @@
     runs it the same way outside the app.
 
     It writes lines for the app on standard output: ATLAS_STAGE for each stage,
+    ATLAS_PROGRESS with the bytes written while Master-Iso.ps1 writes the ISO,
     ATLAS_ERROR with a typed failure reason, ATLAS_RESULT with the ISO's editions, size
     and architecture, and ATLAS_NOTE when this PC has no network drivers to copy. A file
     named cancel in the job folder stops the build at the next stage.
@@ -304,7 +305,9 @@ try {
     if ($Operation -eq 'Build') { $appStream = Open-AtlasIsoManager $request.app }
     $source = (Get-Item -LiteralPath $request.source).FullName
     if ([IO.Path]::GetExtension($source) -ine '.iso') { throw 'Choose a Windows ISO file.' }
-    $parent = Assert-Output -OutputPath $request.output -PackagePath $request.package -SourcePath $source
+    # Only a build writes the output. The app checks its folder before Create,
+    # where it can be changed, so a check of the files never fails on it.
+    if ($Operation -eq 'Build') { $parent = Assert-Output -OutputPath $request.output -PackagePath $request.package -SourcePath $source }
     $disk = Get-DiskImage -ImagePath $source
     if (-not $disk.Attached) {
         $disk = Mount-DiskImage -ImagePath $source -Access ReadOnly -PassThru

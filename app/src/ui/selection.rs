@@ -1,16 +1,22 @@
 //! RadioGroup and CheckBox, drawn to the Windows 11 spec (20px glyphs, 4px
-//! corners on the check box, accent fill when selected).
+//! corners on the check box, accent fill when selected, a grey fill when
+//! selected but disabled).
 //!
 //! A radio group is one tab stop: Tab lands on the selected option and the
 //! arrow keys move the selection, as in Windows Settings. Each control
 //! carries its accessible role, name and checked state.
+//!
+//! A disabled row greys out its label, glyph and description. An option that
+//! is disabled for a reason its description gives, such as a drive that's
+//! too small, keeps that description readable with
+//! [`RadioItem::readable_description`].
 
 use std::collections::HashMap;
 use std::rc::Rc;
 
 use gpui::{
-    AnyElement, App, ClickEvent, ElementId, FocusHandle, ImageSource, IntoElement, ParentElement, Pixels,
-    RenderOnce, Role, SharedString, Styled, Toggled, Window, div, prelude::*, px,
+    AnyElement, App, ClickEvent, ElementId, FocusHandle, Hsla, ImageSource, IntoElement, ParentElement,
+    Pixels, RenderOnce, Role, SharedString, Styled, Toggled, Window, div, prelude::*, px,
 };
 
 use super::actions::{RadioNext, RadioPrevious};
@@ -19,7 +25,7 @@ use super::typography::CapCenteredText;
 use super::{
     ClickHandler, Icon, Revealed, TextMark, Typography, focus_ring, icon_sized, on_activate, pointer_hover,
 };
-use crate::theme::ActiveTheme;
+use crate::theme::{ActiveTheme, Theme};
 
 type SelectHandler = Rc<dyn Fn(usize, &mut Window, &mut App)>;
 
@@ -48,11 +54,40 @@ pub struct RadioItem {
     pub focus: FocusHandle,
     pub leading_icon: Option<Icon>,
     pub image: Option<std::path::PathBuf>,
+    /// Shown but unavailable, with its description saying why: Tab and the
+    /// arrow keys pass over it.
+    pub disabled: bool,
+    /// See [`RadioItem::readable_description`].
+    pub readable_description: bool,
 }
 
 impl RadioItem {
     pub fn new(id: impl Into<ElementId>, label: impl Into<SharedString>, focus: FocusHandle) -> Self {
-        Self { id: id.into(), label: label.into(), description: None, focus, leading_icon: None, image: None }
+        Self {
+            id: id.into(),
+            label: label.into(),
+            description: None,
+            focus,
+            leading_icon: None,
+            image: None,
+            disabled: false,
+            readable_description: false,
+        }
+    }
+
+    pub fn disabled(mut self, disabled: bool) -> Self {
+        self.disabled = disabled;
+        self
+    }
+
+    /// Keeps the description in the secondary text colour while the item is
+    /// disabled, so a reason such as "Too small" stays readable (4.5:1 or
+    /// more); the label and glyph still grey out. For a description that
+    /// says why the option can't be chosen. Without it, a disabled item's
+    /// description greys out with the rest of the row.
+    pub fn readable_description(mut self) -> Self {
+        self.readable_description = true;
+        self
     }
 
     pub fn icon(mut self, icon: Icon) -> Self {
@@ -122,30 +157,46 @@ fn step_index(current: usize, len: usize, forward: bool) -> usize {
     if forward { (current + 1) % len } else { (current + len - 1) % len }
 }
 
+/// The next option an arrow key reaches from `current`, passing over
+/// unavailable ones; `current` itself when no other option is available.
+fn step_available(current: usize, available: &[bool], forward: bool) -> usize {
+    let mut next = current;
+    for _ in 0..available.len() {
+        next = step_index(next, available.len(), forward);
+        if available[next] {
+            return next;
+        }
+    }
+    current
+}
+
 impl RenderOnce for RadioGroup {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme();
         let disabled = self.disabled;
         let selected = self.selected;
         let on_select = self.on_select.clone();
-        // Tab lands on the selected option only; arrows reach the rest.
-        let tab_stop_index = selected.unwrap_or(0);
+        let available: Vec<bool> = self.items.iter().map(|item| !disabled && !item.disabled).collect();
+        // Tab lands on the selected option only, or the first available one;
+        // arrows reach the rest.
+        let tab_stop_index = selected.or_else(|| available.iter().position(|&available| available));
         let handles: Vec<FocusHandle> = self
             .items
             .iter()
             .enumerate()
             .map(|(index, item)| {
-                item.focus.clone().tab_index(0).tab_stop(!disabled && index == tab_stop_index)
+                item.focus.clone().tab_index(0).tab_stop(available[index] && Some(index) == tab_stop_index)
             })
             .collect();
 
         let mover = |forward: bool| {
             let items: Vec<FocusHandle> = handles.clone();
+            let available = available.clone();
             let on_select = on_select.clone();
             move |window: &mut Window, cx: &mut App| {
                 let current = items.iter().position(|h| h.is_focused(window)).or(selected).unwrap_or(0);
-                let next = step_index(current, items.len(), forward);
-                if let Some(handle) = items.get(next) {
+                let next = step_available(current, &available, forward);
+                if let Some(handle) = items.get(next).filter(|_| available[next]) {
                     window.focus(handle, cx);
                     super::focus_reveal::request(window, cx);
                     if let Some(on_select) = &on_select {
@@ -162,6 +213,10 @@ impl RenderOnce for RadioGroup {
             .role(Role::RadioGroup)
             .aria_label(self.label)
             .key_context("RadioGroup")
+            // The glyphs line up with the text above, as Fluent aligns a
+            // control with its column: each row's padding and border move
+            // into the margin (see `ROW_INSET`).
+            .ml(-ROW_INSET)
             .flex()
             .flex_col()
             .gap(px(2.))
@@ -170,32 +225,28 @@ impl RenderOnce for RadioGroup {
                     .on_action(move |_: &RadioPrevious, window, cx| previous(window, cx))
             });
 
-        let accent = theme.accent;
-        let dot = if theme.is_dark() && !theme.high_contrast {
-            theme.text_on_accent.opacity(0.9)
-        } else {
-            theme.text_on_accent
-        };
-        // In a contrast theme the selected ring is the highlight colour, as a
-        // hovered row's outline is; an outline of its own keeps it distinct.
-        let outline = theme.high_contrast.then_some(theme.text_on_accent);
         let control_fill = theme.control_fill;
-        let stroke =
-            if disabled { theme.control_strong_stroke_disabled } else { theme.control_strong_stroke };
+        let (stroke, stroke_disabled) = (theme.control_strong_stroke, theme.control_strong_stroke_disabled);
+        let (enabled_mark, disabled_mark) = (Checked::of(theme, true), Checked::of(theme, false));
+        // The dot is a touch softer than the check box's tick in dark mode.
+        let dot_opacity = if theme.is_dark() && !theme.high_contrast { 0.9 } else { 1. };
 
         for (index, item) in self.items.into_iter().enumerate() {
             let is_selected = selected == Some(index);
+            let stroke = if available[index] { stroke } else { stroke_disabled };
             let glyph = if is_selected {
-                // Accent disc with a centre dot in the on-accent colour.
+                // A filled disc with a centre dot.
+                let Checked { fill, mark, outline } =
+                    if available[index] { enabled_mark } else { disabled_mark };
                 div()
                     .size(px(20.))
                     .rounded_full()
-                    .bg(accent)
+                    .bg(fill)
                     .when_some(outline, |this, colour| this.border_1().border_color(colour))
                     .flex()
                     .items_center()
                     .justify_center()
-                    .child(div().size(px(8.)).rounded_full().bg(dot))
+                    .child(div().size(px(8.)).rounded_full().bg(mark.opacity(dot_opacity)))
             } else {
                 div().size(px(20.)).rounded_full().bg(control_fill).border_1().border_color(stroke)
             };
@@ -217,7 +268,8 @@ impl RenderOnce for RadioGroup {
                 item.label,
                 item.description,
                 None,
-                disabled,
+                !available[index],
+                item.readable_description,
                 handler,
                 window,
                 cx,
@@ -249,7 +301,6 @@ pub struct CheckBox {
     disabled: bool,
     focus: Option<FocusHandle>,
     error: Option<SharedString>,
-    flush_start: bool,
     on_toggle: Option<ClickHandler>,
 }
 
@@ -264,17 +315,8 @@ impl CheckBox {
             disabled: false,
             focus: None,
             error: None,
-            flush_start: false,
             on_toggle: None,
         }
-    }
-
-    /// Lines the box up with the text and buttons above it, as in a bar
-    /// whose message it confirms: the row's padding and border move into the
-    /// margin, so the hover fill and focus ring reach into the gutter instead.
-    pub fn flush_start(mut self) -> Self {
-        self.flush_start = true;
-        self
     }
 
     pub fn description(mut self, text: impl Into<SharedString>) -> Self {
@@ -318,16 +360,16 @@ impl RenderOnce for CheckBox {
         let theme = cx.theme();
         let decoration = self.image.map(|asset| decorative_image(asset, px(20.), px(0.)));
         let glyph = if self.checked {
+            let Checked { fill, mark, outline } = Checked::of(theme, !self.disabled);
             div()
                 .size(px(20.))
                 .rounded(px(4.))
-                .bg(theme.accent)
-                // Kept distinct from a contrast theme's highlight hover outline.
-                .when(theme.high_contrast, |this| this.border_1().border_color(theme.text_on_accent))
+                .bg(fill)
+                .when_some(outline, |this, colour| this.border_1().border_color(colour))
                 .flex()
                 .items_center()
                 .justify_center()
-                .text_color(theme.text_on_accent)
+                .text_color(mark)
                 .child(icon_sized(Icon::CheckMark, 12.))
         } else {
             div().size(px(20.)).rounded(px(4.)).bg(theme.control_fill).border_1().border_color(
@@ -338,7 +380,6 @@ impl RenderOnce for CheckBox {
                 },
             )
         };
-        let flush_start = self.flush_start;
         let row = selectable_row(
             self.id,
             Role::CheckBox,
@@ -350,19 +391,55 @@ impl RenderOnce for CheckBox {
             self.description,
             self.error,
             self.disabled,
+            false,
             self.on_toggle,
             window,
             cx,
         );
-        if flush_start {
-            // The row's 8px padding plus its 1px border. An auto width grows
-            // by the margin, so the right edge stays where it was.
-            div().ml(px(-9.)).child(row).into_any_element()
-        } else {
-            row.into_any_element()
+        // The box lines up with the text above, as a radio group's glyphs do.
+        div().ml(-ROW_INSET).child(row).into_any_element()
+    }
+}
+
+/// How a checked box or selected radio is painted: its fill, the tick or dot
+/// on it, and an outline in a contrast theme.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Checked {
+    fill: Hsla,
+    mark: Hsla,
+    outline: Option<Hsla>,
+}
+
+impl Checked {
+    /// The accent while the control can be used. A disabled one takes
+    /// WinUI's disabled accent fill, so it doesn't look like a live choice;
+    /// a contrast theme draws it as gray text on the control colour.
+    fn of(theme: &Theme, enabled: bool) -> Self {
+        match (enabled, theme.high_contrast) {
+            // In a contrast theme the fill is the highlight colour, as a
+            // hovered row's outline is; an outline of its own keeps it distinct.
+            (true, true) => {
+                Self { fill: theme.accent, mark: theme.text_on_accent, outline: Some(theme.text_on_accent) }
+            }
+            (true, false) => Self { fill: theme.accent, mark: theme.text_on_accent, outline: None },
+            (false, true) => Self {
+                fill: theme.control_fill,
+                mark: theme.text_disabled,
+                outline: Some(theme.control_strong_stroke_disabled),
+            },
+            (false, false) => {
+                Self { fill: theme.accent_disabled, mark: theme.text_on_accent_disabled, outline: None }
+            }
         }
     }
 }
+
+/// How far a selectable row's glyph sits inside the row: its 8px padding and
+/// 1px border. Radio groups and check boxes move it into the margin, so the
+/// glyph lines up with the text above while the hover fill and focus ring
+/// reach into the gutter. An auto width grows by the margin, so the right
+/// edge stays where it was.
+const ROW_INSET: Pixels = px(9.);
 
 #[allow(clippy::too_many_arguments)]
 fn selectable_row(
@@ -376,6 +453,7 @@ fn selectable_row(
     description: Option<SharedString>,
     error: Option<SharedString>,
     disabled: bool,
+    readable_description: bool,
     handler: Option<ClickHandler>,
     window: &Window,
     cx: &App,
@@ -390,13 +468,11 @@ fn selectable_row(
     let transparent = theme.transparent();
     let high_contrast = theme.high_contrast;
     let label_color = if disabled { theme.text_disabled } else { theme.text_primary };
-    let description_color = if disabled { theme.text_disabled } else { theme.text_secondary };
+    let description_color = description_colour(theme, disabled, readable_description);
     let has_description = description.as_ref().is_some_and(|text| !text.is_empty());
-    // In a contrast theme secondary text is the body colour anyway; it takes
-    // the row's colour there, as the label does.
-    let description_line = description.clone().map(|text| {
-        div().type_caption().when(!high_contrast, |this| this.text_color(description_color)).child(text)
-    });
+    let description_line = description
+        .clone()
+        .map(|text| div().type_caption().when_some(description_color, Styled::text_color).child(text));
     let row = div()
         .id(id)
         .role(role)
@@ -445,7 +521,6 @@ fn selectable_row(
         // With supporting copy, align the control's top to the visible title.
         // A label alone is centred against the control.
         .child(TextMark::new(glyph.flex_shrink_0(), has_description))
-        .when_some(decoration, |this, decoration| this.child(TextMark::new(decoration, has_description)))
         .child(
             div()
                 .flex()
@@ -453,16 +528,80 @@ fn selectable_row(
                 .flex_1()
                 .min_w_0()
                 .type_body()
-                .child(CapCenteredText(label))
+                .child(label_line(decoration, label))
                 .children(description_line)
                 .children(error.map(|error| div().pt(px(2.)).child(error_caption(error, theme)))),
         );
     Revealed::new(row)
 }
 
+/// A row's label, after its icon or logo when it has one. The icon sits on
+/// the label's line, not beside the whole text, so every description in a
+/// list starts at the same text edge, with an icon or without.
+fn label_line(decoration: Option<AnyElement>, label: SharedString) -> AnyElement {
+    match decoration {
+        Some(decoration) => div()
+            .flex()
+            .items_center()
+            .gap(px(8.))
+            .child(div().flex_shrink_0().child(decoration))
+            .child(div().flex_1().min_w_0().child(CapCenteredText(label)))
+            .into_any_element(),
+        None => CapCenteredText(label).into_any_element(),
+    }
+}
+
+/// The colour of a row's description, or `None` to take the row's own, as
+/// the label does. A disabled row's description greys out with it, unless it
+/// says why the row is disabled. In a contrast theme secondary text is the
+/// body colour anyway, so only such a reason sets one there.
+fn description_colour(theme: &Theme, disabled: bool, readable: bool) -> Option<Hsla> {
+    match (disabled, readable) {
+        (true, true) => Some(theme.text_secondary),
+        _ if theme.high_contrast => None,
+        (true, false) => Some(theme.text_disabled),
+        (false, _) => Some(theme.text_secondary),
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::step_index;
+    use super::{Checked, description_colour, step_available, step_index};
+    use crate::theme::{Theme, composite, contrast_ratio, windows_contrast_themes};
+
+    #[test]
+    fn a_disabled_reason_stays_readable_on_a_card() {
+        for theme in [Theme::light(), Theme::dark()] {
+            let layer = composite(theme.layer_fill, theme.solid_background);
+            let reason = description_colour(&theme, true, true).expect("a reason sets its colour");
+            let ratio = contrast_ratio(reason, theme.card_fill, layer);
+            assert!(ratio >= 4.5, "{:?}: {ratio:.2}:1", theme.appearance);
+            // Without the option, the description greys out with the row.
+            assert_eq!(description_colour(&theme, true, false), Some(theme.text_disabled));
+        }
+        for (name, colors) in windows_contrast_themes() {
+            let theme = Theme::high_contrast(colors);
+            assert_eq!(description_colour(&theme, true, true), Some(theme.text_primary), "{name}");
+            assert_eq!(description_colour(&theme, false, false), None, "{name}");
+        }
+    }
+
+    #[test]
+    fn a_disabled_choice_never_keeps_the_accent() {
+        for theme in [Theme::light(), Theme::dark()] {
+            let disabled = Checked::of(&theme, false);
+            assert_ne!(disabled.fill, theme.accent, "{:?}", theme.appearance);
+            assert_eq!(Checked::of(&theme, true).fill, theme.accent);
+        }
+        for (name, colors) in windows_contrast_themes() {
+            let theme = Theme::high_contrast(colors);
+            let disabled = Checked::of(&theme, false);
+            assert_ne!(disabled.fill, theme.accent, "{name}");
+            // The gray tick on the control colour still reads as checked.
+            let ratio = contrast_ratio(disabled.mark, disabled.fill, theme.solid_background);
+            assert!(ratio >= 3.0, "{name}: {ratio:.2}:1");
+        }
+    }
 
     #[test]
     fn arrow_keys_wrap_around_the_group() {
@@ -472,5 +611,16 @@ mod tests {
         assert_eq!(step_index(1, 3, false), 0);
         assert_eq!(step_index(0, 1, true), 0);
         assert_eq!(step_index(0, 0, true), 0);
+    }
+
+    #[test]
+    fn arrow_keys_pass_over_unavailable_options() {
+        let available = [true, false, true, false];
+        assert_eq!(step_available(0, &available, true), 2);
+        assert_eq!(step_available(2, &available, true), 0);
+        assert_eq!(step_available(0, &available, false), 2);
+        // With nothing else available, the option stays where it is.
+        assert_eq!(step_available(0, &[true, false], true), 0);
+        assert_eq!(step_available(0, &[], true), 0);
     }
 }

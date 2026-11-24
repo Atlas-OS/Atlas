@@ -9,7 +9,7 @@ use futures::StreamExt;
 use gpui::Context;
 
 use super::drafts::DraftWrite;
-use super::{AppModel, RestartKind, Step, UpdatePath, preview};
+use super::{AppModel, Page, RestartKind, Step, UpdatePath, preview};
 use crate::services::iso::StagedDrivers;
 use crate::services::preparation::{
     self, Drivers, Operation, PreparationRequest, RestartProblem, Stage, State, Status, StoreOutcome,
@@ -49,11 +49,63 @@ impl AppModel {
         self.reset_preparation();
         self.persist_preference(move |doc| doc.drivers = Some(drivers), cx);
         self.save_draft(cx);
+        // Updating may have waited for this choice, or starts over under it.
+        self.advance_ready(cx);
         cx.notify();
     }
 
+    /// The update row's own button: start, resume, continue or try again.
+    /// Resuming after the user stopped updating lets Get ready start it by
+    /// itself again.
     pub fn prepare_windows(&mut self, cx: &mut Context<Self>) {
+        self.updates_held = false;
         self.start_preparation(false, cx);
+    }
+
+    /// Whether Get ready starts updating by itself now. The user is on Get
+    /// ready, which is elevated and holds nothing back but updating itself:
+    /// every check has reported and none stands in the way, except updates
+    /// waiting and a restart Windows wants, which updating takes care of;
+    /// the package is ready; and the driver choice is known. A move to a
+    /// newer Windows release also waits for the user's choice and
+    /// Microsoft's licence terms (see [`AppModel::preparation_may_start`]).
+    /// It starts from a preparation not yet run, or from the one Atlas's own
+    /// restart left to continue, and never once the user stopped it, until
+    /// they resume it. A run that fails, stops or needs a restart leaves
+    /// another state, so nothing starts over in a loop.
+    pub fn updates_start_by_themselves(&self) -> bool {
+        self.env.automatic_get_ready
+            && !preview::active()
+            && self.elevated
+            && !self.updates_held
+            && !self.recovering
+            && !self.elevating
+            && self.page == Page::Install
+            && self.flow.active
+            && self.flow.step == Step::Ready
+            && !self.locked()
+            && matches!(self.preparation, State::Idle | State::Resumed)
+            && self.checks_complete()
+            && !self.checks_blocking()
+            && self.install_block().is_none()
+            && self.package.is_some()
+            && !self.acquisition.is_busy()
+            && self.preparation_may_start()
+    }
+
+    /// Whether the user stopped updating, which Get ready doesn't start
+    /// again by itself until they resume it.
+    pub fn updates_held(&self) -> bool {
+        self.updates_held
+    }
+
+    /// Starts updating when nothing but updating holds Get ready back (see
+    /// [`AppModel::updates_start_by_themselves`]).
+    pub(super) fn update_by_itself(&mut self, cx: &mut Context<Self>) {
+        if self.updates_start_by_themselves() {
+            log::info!("Get ready is starting Windows and Store updates by itself");
+            self.start_preparation(false, cx);
+        }
     }
 
     /// Starts a preparation run; `offer_only` only looks for the offer of a
@@ -223,6 +275,11 @@ impl AppModel {
                     );
                 }
                 this.preparation = state;
+                // Only the user stops a run; Get ready leaves it stopped
+                // until they resume it.
+                if this.preparation == State::Cancelled {
+                    this.updates_held = true;
+                }
                 // Whatever the run did, Atlas's record may have changed.
                 this.refresh_update_access();
                 let waited = this.offer_wait.is_some_and(|wait| !wait.expired);
@@ -243,6 +300,8 @@ impl AppModel {
                     this.save_draft(cx);
                 }
                 this.run_checks(cx);
+                // What the user asked for while the move waited for its offer.
+                this.finish_after_stop(cx);
                 cx.notify();
             })
             .ok();
@@ -256,8 +315,8 @@ impl AppModel {
         (self.preparation == State::Ready).then_some(self.store_outcome_seen).flatten()
     }
 
-    /// Microsoft Store couldn't be repaired. Get ready recommends creating an
-    /// Atlas ISO to reinstall Windows and offers repair and diagnostics.
+    /// Microsoft Store couldn't be repaired. Get ready offers the repairs
+    /// again, with reinstalling Windows from an Atlas ISO behind its details.
     pub fn store_repair_failed(&self) -> bool {
         self.preparation == State::Failed
             && self
@@ -267,8 +326,44 @@ impl AppModel {
                 .is_some_and(|failure| failure.reason.as_deref() == Some("store-repair-failed"))
     }
 
+    /// Restart now. With other people signed in, Atlas asks first.
     pub fn restart_preparation(&mut self, cx: &mut Context<Self>) {
-        if preview::active() {
+        self.stop_preparation_countdown();
+        self.restart_for_updates(cx);
+    }
+
+    /// Restart and try again, for updates that still failed on Windows'
+    /// component store after Atlas's repair: a restart can clear what's
+    /// left, and updating carries on by itself after it, as after any
+    /// restart updating asks for.
+    /// With other people signed in, Atlas asks first, and the failure stays
+    /// on Get ready until the restart goes ahead.
+    pub fn restart_to_retry(&mut self, cx: &mut Context<Self>) {
+        if preview::active() || self.preparation != State::Failed || self.locked() {
+            return;
+        }
+        if !self.hold_for_other_sessions(RestartKind::Retry, cx) {
+            self.restart_to_retry_now(cx);
+        }
+    }
+
+    /// Restarts to try again, as asked or once confirmed over other
+    /// people's sessions.
+    pub(super) fn restart_to_retry_now(&mut self, cx: &mut Context<Self>) {
+        if self.preparation != State::Failed || self.locked() || self.media_job_running() {
+            return;
+        }
+        log::info!("Restarting to try the updates that failed on the component store again");
+        self.stop_preparation_countdown();
+        self.preparation = State::Reboot;
+        self.save_preparation_restart(true, cx);
+    }
+
+    /// Restart now without touching the countdown's timer, for the timer's
+    /// own end, which mustn't drop the task it runs in. Refused while an ISO
+    /// or USB job runs, which the restart would break off.
+    pub(super) fn restart_for_updates(&mut self, cx: &mut Context<Self>) {
+        if preview::active() || self.media_job_running() {
             return;
         }
         if self.preparation != State::Reboot || self.hold_for_other_sessions(RestartKind::Preparation, cx) {
@@ -280,14 +375,16 @@ impl AppModel {
     /// Restarts for Get ready once the user has confirmed it over other
     /// people's sessions.
     pub(super) fn restart_preparation_now(&mut self, cx: &mut Context<Self>) {
-        if self.preparation == State::Reboot {
+        if self.preparation == State::Reboot && !self.media_job_running() {
             self.save_preparation_restart(true, cx);
         }
     }
 
     /// Saves the draft and arms recovery as soon as a worker requires a
     /// restart, also when the user will restart from Windows instead of this
-    /// app. The draft is saved before recovery is registered.
+    /// app. The draft is saved before recovery is registered. Once both are
+    /// in place, a restart not asked for yet is counted down to (see
+    /// [`AppModel::begin_preparation_countdown`]).
     pub(super) fn save_preparation_restart(&mut self, restart: bool, cx: &mut Context<Self>) {
         self.preparation_cancel.store(false, Ordering::Relaxed);
         self.preparation_restart_at.get_or_insert_with(|| chrono::Utc::now().to_rfc3339());
@@ -336,7 +433,9 @@ impl AppModel {
                 this.preparation = State::Reboot;
                 if let Err(problem) = result {
                     this.preparation_problem = Some(problem);
-                } else if restart {
+                } else if !restart {
+                    this.begin_preparation_countdown(cx);
+                } else {
                     // Keep recovery armed if shutdown fails: restarting through
                     // Windows should still bring the user back to their draft.
                     match (this.env.adapters.schedule_restart)(&t!("prepare-shutdown-comment")) {

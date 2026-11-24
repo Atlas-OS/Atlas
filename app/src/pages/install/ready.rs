@@ -1,97 +1,346 @@
-//! Step 1, Get ready, in the order its tasks depend on each other: the
-//! installation files, the checks of this PC, the drivers choice and the
-//! Windows and Store updates.
+//! Step 1, Get ready, as one checklist: the checks of this PC, the Atlas
+//! package, and the Windows and Store updates with the driver choice under
+//! them. Get ready starts updating and moves on by itself (see
+//! `AppModel::advance_ready`), so each row says where it stands and offers an
+//! action only when the user has something to do. A move to a newer Windows
+//! release has a card of its own, first, which holds the move from the
+//! go-ahead to its outcome.
 
-use gpui::{AnyElement, App, Context, Hsla, IntoElement, ParentElement, Role, Styled, div, prelude::*, px};
-
-use super::{InstallPage, details_toggle, elevation_problem};
-use std::sync::atomic::Ordering;
-
-use crate::i18n::fmt;
-use crate::model::{Acquisition, AppModel, InstallBlock, Page, ReadyHelp, ReadyStatus, ReleaseCheck};
-use crate::pages::{
-    card_body, detail_text, driver_label, driver_radio_items, manager_download_button, on_model,
-    step_card_header,
+use gpui::{
+    AnyElement, App, Context, ElementId, Entity, FocusHandle, Hsla, IntoElement, ParentElement, PromptLevel,
+    Role, Styled, Window, div, prelude::*, px,
 };
-use crate::services::atlas_state::InstallIdentity;
-use crate::services::preparation::Drivers;
+
+use super::preparation::{RunView, access_notice};
+use super::{InstallPage, details_toggle, elevation_problem};
+
+use crate::i18n::{describe, fmt};
+use crate::model::{
+    AcquireProblem, Acquisition, AppModel, InstallBlock, Page, ReadyHelp, ReleaseCheck, StopQuestion,
+};
+use crate::pages::{detail_text, driver_radio_items, manager_download_button, on_model};
+use crate::services::preparation::{Drivers, State as Preparation};
 use crate::services::requirements::{CheckId, CheckResult, Verdict};
 use crate::services::windows_release::TransitionNeed;
 use crate::t;
 use crate::theme::ActiveTheme;
 use crate::ui::{
-    BODY_LINE_HEIGHT, Button, CapCenteredText, CheckBox, Icon, InfoBar, LightState, ProgressBar,
-    ProgressRing, RadioGroup, RadioItem, Severity, StatusLight, TextMark, Typography, a11y_text, card, icon,
-    icon_in_line_sized,
+    Button, COMPACT_INSET, CapCenteredText, CheckBox, Icon, InfoBar, ProgressBar, ProgressRing, RadioGroup,
+    RadioItem, Revealed, Severity, TextMark, Typography, a11y_text, card, icon, link_row,
 };
+
+/// Where a row of the checklist stands, as its leading mark shows it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum Mark {
+    /// Not started: an empty circle.
+    Pending,
+    /// Under way: a spinning ring.
+    Busy,
+    /// Done: a tick.
+    Done,
+    /// Something to read that needn't stop anything, such as waiting updates.
+    Note,
+    /// Something for the user to look at or do.
+    Warning,
+    /// Something went wrong.
+    Error,
+}
+
+/// One row of Get ready's checklist: its leading mark, a title, one status
+/// line, an action at the trailing edge when there is one, and what unfolds
+/// under it, which lines up with the title. `focus` lets the page move focus
+/// to the row when how it stands is news. A row that is a card of its own,
+/// as the move's is, gives its title a `heading` level and is read as a
+/// group rather than a list item.
+pub(super) struct ChecklistRow {
+    pub id: &'static str,
+    pub mark: Mark,
+    pub title: String,
+    pub status: AnyElement,
+    /// What the row is read as: its title and how it stands.
+    pub name: String,
+    /// Read after the name: what the status line and what's under it say.
+    pub description: Option<String>,
+    pub action: Option<AnyElement>,
+    pub below: Vec<AnyElement>,
+    pub divided: bool,
+    pub focus: Option<FocusHandle>,
+    pub heading: Option<usize>,
+}
+
+impl ChecklistRow {
+    pub fn render(self, cx: &App) -> AnyElement {
+        let theme = cx.theme();
+        let focus_outer = theme.focus_outer;
+        let title = div().type_body_strong().text_color(theme.text_primary);
+        let title = match self.heading {
+            Some(level) => title
+                .id(ElementId::Name(format!("{}-title", self.id).into()))
+                .role(Role::Heading)
+                .aria_level(level)
+                .aria_label(self.title.clone())
+                .child(CapCenteredText(self.title.into()))
+                .into_any_element(),
+            None => title.child(CapCenteredText(self.title.into())).into_any_element(),
+        };
+        let row = div()
+            .id(self.id)
+            .role(if self.heading.is_some() { Role::Group } else { Role::ListItem })
+            .aria_label(self.name)
+            .when_some(self.description, |this, description| this.aria_description(description))
+            .flex()
+            .flex_col()
+            // Room for the focus ring, which news brings here.
+            .border_1()
+            .border_color(theme.transparent())
+            .child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(px(16.))
+                    .px(px(15.))
+                    .py(px(11.))
+                    .child(TextMark::new(mark(self.mark, cx), true).strong())
+                    .child(div().flex().flex_col().flex_1().min_w_0().child(title).child(self.status))
+                    .when_some(self.action, |this, action| this.child(div().flex_shrink_0().child(action))),
+            )
+            .when(!self.below.is_empty(), |this| {
+                this.child(
+                    div()
+                        .flex()
+                        .flex_col()
+                        .gap(px(12.))
+                        // Under the title: the mark's 20px and the 16px gap past the row's padding.
+                        .pl(px(51.))
+                        .pr(px(15.))
+                        .pb(px(15.))
+                        .children(self.below),
+                )
+            });
+        let row = match self.focus {
+            // Focus comes here only to announce news, never by Tab.
+            Some(handle) => Revealed::new(
+                row.track_focus(&handle.tab_stop(false))
+                    .rounded(px(7.))
+                    .focus_visible(move |style| style.border_color(focus_outer)),
+            )
+            .into_any_element(),
+            None => row.into_any_element(),
+        };
+        div()
+            .flex()
+            .flex_col()
+            .when(self.divided, |this| this.child(div().h(px(1.)).bg(theme.divider)))
+            .child(row)
+            .into_any_element()
+    }
+}
+
+/// A row's leading mark: 20px, coloured by what it says, with words beside
+/// it in the row so colour is never the only signal.
+fn mark(mark: Mark, cx: &App) -> AnyElement {
+    let theme = cx.theme();
+    let frame = || div().flex_shrink_0().size(px(20.)).flex().items_center().justify_center();
+    let glyph = |glyph: Icon, colour: Hsla| frame().text_color(colour).child(icon(glyph)).into_any_element();
+    match mark {
+        Mark::Pending => frame()
+            .child(div().size(px(14.)).rounded_full().border_1().border_color(theme.control_strong_stroke))
+            .into_any_element(),
+        Mark::Busy => frame().child(ProgressRing::new()).into_any_element(),
+        Mark::Done => glyph(Icon::Completed, theme.success),
+        Mark::Note => glyph(Icon::Info, theme.text_secondary),
+        Mark::Warning => glyph(Icon::Warning, theme.caution),
+        Mark::Error => glyph(Icon::ErrorBadge, theme.critical),
+    }
+}
+
+/// A row's status line, with an inline link after it, such as Show details.
+pub(super) fn status_line(id: &'static str, text: String, link: Option<Button>, cx: &App) -> AnyElement {
+    let theme = cx.theme();
+    let text = a11y_text(ElementId::Name(format!("{id}-status").into()), text);
+    div()
+        .flex()
+        .flex_wrap()
+        .items_center()
+        .gap_x(px(6.))
+        .type_body()
+        .text_color(theme.text_secondary)
+        // A long line wraps within the row rather than running past it.
+        .child(div().flex_shrink(1.).min_w_0().child(text))
+        .when_some(link, |this, link| {
+            // The link's own padding stands in for the gap after the dot.
+            this.child(div().child("·")).child(div().ml(-COMPACT_INSET).child(link))
+        })
+        .into_any_element()
+}
+
+/// Body text under a row: what happened, or what to do.
+pub(super) fn row_text(id: &str, text: String, cx: &App) -> AnyElement {
+    div().type_body().text_color(cx.theme().text_primary).child(detail_text(id, text)).into_any_element()
+}
+
+/// A note under a row, in Body like every line a row shows by default:
+/// why its action waits, what to expect, or what to do before it.
+pub(super) fn row_note(id: &str, text: String, cx: &App) -> AnyElement {
+    div().type_body().text_color(cx.theme().text_secondary).child(detail_text(id, text)).into_any_element()
+}
+
+/// A caption, only for the raw details behind Show details: an error as
+/// Windows or the worker wrote it, which is for troubleshooting.
+pub(super) fn row_caption(id: &str, text: String, cx: &App) -> AnyElement {
+    div().type_caption().text_color(cx.theme().text_secondary).child(detail_text(id, text)).into_any_element()
+}
+
+/// Which control on Get ready is its one accent button, most pressing
+/// first: creating an Atlas ISO where reinstalling Windows is the only way
+/// on, relaunching as administrator, getting the Atlas package again, the
+/// fix of the one check that stands in the way, accepting the move's
+/// licence terms, or updating's own next step.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Accent {
+    /// No installation can start on this Windows: the bar's Create an Atlas ISO.
+    IsoBar,
+    /// The move this PC needs can't happen here: the first such check's
+    /// Create an Atlas ISO.
+    IsoCheck(CheckId),
+    Elevate,
+    Package,
+    /// The only check that stands in the way, by its Settings page.
+    Fix(CheckId),
+    Accept,
+    Run,
+}
+
+impl Accent {
+    fn of(state: &AppModel) -> Self {
+        let iso = state.can_navigate(Page::Iso);
+        let iso_bar = iso && matches!(state.install_block(), Some(InstallBlock::Unsupported { .. }));
+        let iso_check = state
+            .blocking_results()
+            .find(|result| {
+                matches!(result.id, CheckId::MoveHardware | CheckId::MoveUpdateSource)
+                    && result.verdict == Verdict::Fail
+            })
+            .map(|result| result.id)
+            .filter(|_| iso);
+        let blocking: Vec<CheckId> = state.blocking_results().map(|result| result.id).collect();
+        let fix = match blocking.as_slice() {
+            [only] if only.fix_target().is_some() && !state.locked() => Some(*only),
+            _ => None,
+        };
+        let elevate = state.package.is_some()
+            && !state.locked()
+            && state.may_relaunch_elevated()
+            && state.checks.iter().any(|(id, result)| {
+                *id == CheckId::Administrator && result.as_ref().is_some_and(|r| r.verdict == Verdict::Fail)
+            });
+        // As the package row offers its button (see `package_row`).
+        let package = match (&state.acquisition, &state.package) {
+            (Acquisition::Failed(_), _) => true,
+            (Acquisition::Idle, None) if !state.bundled() => match &state.release {
+                ReleaseCheck::Failed => true,
+                ReleaseCheck::Ready { .. } => state.offers_download() && !state.latest_predates_app(),
+                ReleaseCheck::Checking | ReleaseCheck::NotChecked => false,
+            },
+            _ => false,
+        };
+        if iso_bar {
+            Self::IsoBar
+        } else if let Some(id) = iso_check {
+            Self::IsoCheck(id)
+        } else if elevate {
+            Self::Elevate
+        } else if package {
+            Self::Package
+        } else if let Some(id) = fix {
+            Self::Fix(id)
+        } else if offers_accept(state) {
+            Self::Accept
+        } else {
+            Self::Run
+        }
+    }
+}
+
+/// Whether the move's card asks for its licence terms: the move is chosen,
+/// its terms aren't accepted yet, and nothing runs or waits for a restart.
+fn asks_for_terms(state: &AppModel) -> bool {
+    state.windows_card_shown()
+        && state.transition_chosen()
+        && !state.windows_terms_accepted
+        && matches!(
+            state.preparation,
+            Preparation::Idle | Preparation::Cancelled | Preparation::Failed | Preparation::Network
+        )
+}
+
+/// Whether the card offers Accept and update: it asks for the terms, and no
+/// check stands in the way, which would keep the update from starting.
+fn offers_accept(state: &AppModel) -> bool {
+    asks_for_terms(state) && !state.checks_blocking()
+}
 
 impl InstallPage {
     pub(super) fn ready_cards(&mut self, cx: &mut Context<Self>) -> Vec<AnyElement> {
-        let drivers = self.drivers_card(cx);
-        let windows = self.windows_card(cx);
-        let preparation_focus = self.focus.get("preparation-status", cx);
+        let drivers = self.driver_row(cx);
+        let row_focus = self.focus.get("preparation-status", cx);
         let action_focus = self.focus.get("prepare-action", cx);
-        let model = self.model.clone();
-        let state = self.model.read(cx);
-        let help = state.ready_help();
-
-        // The fresh-install note applies to a first install on Windows that
-        // shows no prior use. Once the used-Windows warning applies, it takes
-        // over; dismissing it must not bring another bar back in its place.
-        let fresh_identity = matches!(state.install_identity, Ok(InstallIdentity::Fresh));
-        let used_windows = fresh_identity && self.windows_installation.suggests_prior_use();
-        let rebase = state.rebase_choices();
-        let note = if state.original_options().is_some() {
-            Some(
-                InfoBar::new(
-                    Severity::Informational,
-                    t!("resume-choices-title"),
-                    t!("resume-choices-detail"),
-                )
-                .id("ready-resume-note"),
+        let later_focus = self.focus.get("prepare-not-now", cx);
+        let (help, accent, card_shown, card_runs) = {
+            let state = self.model.read(cx);
+            (
+                state.ready_help(),
+                Accent::of(state),
+                state.windows_card_shown(),
+                state.move_shows_preparation(),
             )
-        } else if let Some(choices) = rebase {
-            // After a move during which Windows reinstalled itself instead of
-            // switching the new version on in place.
-            Some(
-                InfoBar::new(
-                    Severity::Informational,
-                    t!("ready-rebase-title"),
-                    t!(
-                        "ready-rebase-message",
-                        release = state.system.display_version.as_str(),
-                        version = state.manifest().version.as_str(),
-                        previous = choices.previous.as_str()
-                    ),
-                )
-                .id("ready-rebase-note"),
-            )
-        } else if fresh_identity && !used_windows && !self.staged_iso_setup {
-            Some(
-                InfoBar::new(Severity::Informational, t!("ready-fresh-title"), t!("ready-fresh-description"))
-                    .id("ready-fresh-note"),
-            )
-        } else {
-            None
         };
-        // One informational bar at most above the first card: the status
-        // when it asks for something or says what updating is doing,
-        // otherwise a note, otherwise the status. After Atlas's own restart
-        // the top says how updating stands, not to reinstall Windows.
-        let status = state.ready_status();
-        let status_first =
-            status.is_some_and(|status| !matches!(status, ReadyStatus::Busy | ReadyStatus::Ready));
-        let (status, note) = if status_first || note.is_none() { (status, None) } else { (None, note) };
+        // How updating stands goes on the move's card while Windows moves,
+        // and in the update row otherwise; focus follows it there.
+        let run = self.run_view(
+            help == Some(ReadyHelp::Preparation),
+            accent == Accent::Run,
+            action_focus,
+            later_focus,
+            cx,
+        );
+        let (card_run, row_run) = if card_runs { (Some(run), None) } else { (None, Some(run)) };
 
         let mut cards = Vec::new();
-        // Errors and the used-Windows warning always show.
-        cards.extend(elevation_problem(state, &model));
-        if used_windows && !state.used_windows_accepted {
-            cards.push(self.used_windows_warning(state, cx));
+        cards.extend(self.ready_bar(help, accent == Accent::IsoBar, cx));
+        if card_shown {
+            let focus = card_runs.then(|| row_focus.clone());
+            cards.push(self.windows_card(card_run, focus, accent == Accent::Accept, cx));
         }
-        if let Some(status) = status {
-            cards.push(status_bar(status, state).into_any_element());
-        }
+        let checks = self.checks_row(help == Some(ReadyHelp::Checks), accent, cx);
+        let package = self.package_row(help == Some(ReadyHelp::Package), accent == Accent::Package, cx);
+        let updates = self.preparation_row(row_run, drivers, (!card_runs).then_some(row_focus), cx);
+        cards.push(
+            card(cx)
+                .child(
+                    div()
+                        .id("get-ready")
+                        .role(Role::List)
+                        .aria_label(t!("step-ready"))
+                        .flex()
+                        .flex_col()
+                        .child(checks)
+                        .child(package)
+                        .child(updates),
+                )
+                .into_any_element(),
+        );
+        cards
+    }
+
+    /// The one bar at the top of Get ready, if any: the first that applies
+    /// of why no installation can start here and a relaunch that didn't
+    /// happen. How the checklist's rows and the move's card stand never gets
+    /// a bar as well. `iso_accent` makes Create an Atlas ISO the accent, as
+    /// the only way on.
+    fn ready_bar(&self, help: Option<ReadyHelp>, iso_accent: bool, cx: &Context<Self>) -> Option<AnyElement> {
+        let model = self.model.clone();
+        let state = self.model.read(cx);
         if let Some(block) = state.install_block() {
             let mut bar =
                 InfoBar::new(Severity::Error, t!("install-source-title"), block.text(state.bundled()))
@@ -100,165 +349,137 @@ impl InstallPage {
             if matches!(block, InstallBlock::Unsupported { .. }) && state.can_navigate(Page::Iso) {
                 bar = bar.action(
                     Button::new("ready-eligibility-iso", t!("iso-open"))
+                        .when(iso_accent, Button::accent)
                         .on_click(on_model(&model, |m, cx| m.navigate_iso_for_this_pc(cx))),
                 );
             }
-            cards.push(bar.into_any_element());
             if help == Some(ReadyHelp::Eligibility) {
-                cards.push(self.diagnostics.panel(&self.model, cx).into_any_element());
+                bar = bar.content(self.diagnostics.content(&self.model, cx));
             }
+            return Some(bar.into_any_element());
         }
-        cards.extend(note.map(IntoElement::into_any_element));
-
-        cards.push(self.package_card(cx));
-        if help == Some(ReadyHelp::Package) {
-            cards.push(self.diagnostics.panel(&self.model, cx).into_any_element());
-        }
-        cards.push(self.checks_card(cx));
-        // Under the checks that stand in the way, which the user can often fix.
-        if state.ready_status() == Some(ReadyStatus::Blocked) && help == Some(ReadyHelp::Checks) {
-            cards.push(self.diagnostics.panel(&self.model, cx).into_any_element());
-        }
-        cards.push(drivers);
-        cards.extend(windows);
-        cards.push(self.preparation_card(
-            help == Some(ReadyHelp::Preparation),
-            preparation_focus,
-            action_focus,
-            cx,
-        ));
-        cards
+        // An unfinished install carrying on needs no bar here: Your choices
+        // says its choices are held, where that matters.
+        elevation_problem(state, &model, state.ready_to_continue())
     }
 
-    /// Windows here looks used: the safe path, reinstalling from an Atlas
-    /// ISO, comes first; going on anyway second, with neither as the default.
-    fn used_windows_warning(&self, state: &AppModel, cx: &Context<Self>) -> AnyElement {
-        let model = self.model.clone();
-        let actions = div()
-            .flex()
-            .flex_wrap()
-            .gap(px(8.))
-            .when(state.can_navigate(Page::Iso), |this| {
-                this.child(
-                    Button::new("ready-used-windows-iso", t!("iso-open"))
-                        .on_click(on_model(&model, |m, cx| m.navigate_iso_for_this_pc(cx))),
-                )
-            })
-            .child(Button::new("ready-used-windows-dismiss", t!("ready-used-windows-dismiss")).on_click(
-                // The bar and its button go away; focus goes back to the step heading.
-                cx.listener(|this, _, window, cx| {
-                    this.model.update(cx, |m, cx| m.accept_used_windows(cx));
-                    let heading = this.focus.get("step-heading", cx);
-                    window.focus(&heading, cx);
-                }),
-            ));
-        InfoBar::new(Severity::Warning, t!("ready-used-windows-title"), t!("ready-used-windows-description"))
-            .id("ready-used-windows-warning")
-            .action(actions)
-            .into_any_element()
-    }
-
-    /// PC checks. While they run, every row shows in the usual order; once
-    /// they have all reported, what needs attention comes first and the
-    /// passed checks fold into one line that can be opened.
-    fn checks_card(&self, cx: &Context<Self>) -> AnyElement {
+    /// Check your PC. While the checks run, the row says so. Then what
+    /// needs attention unfolds under it, most urgent first, with its fix;
+    /// what passed, and what updating takes care of, is behind Show details.
+    /// `accent` says which of the checks' fixes, if any, is the page's accent.
+    fn checks_row(&self, with_help: bool, accent: Accent, cx: &Context<Self>) -> AnyElement {
         let model = self.model.clone();
         let state = self.model.read(cx);
-        let rows = state.check_rows();
-        let show_passed = self.show_passed_checks;
-        let mut list = div().id("checks").role(Role::List).aria_label(t!("ready-this-pc")).flex().flex_col();
-        let mut drawn = 0;
-        for &index in &rows.listed {
-            list = list.child(self.check_row(index, drawn > 0, cx));
-            drawn += 1;
-        }
-        if !rows.passed.is_empty() {
-            list = list.child(self.passed_checks_row(rows.passed.len(), drawn > 0, cx));
-            drawn += 1;
-            if show_passed {
-                for &index in &rows.passed {
-                    list = list.child(self.check_row(index, drawn > 0, cx));
-                    drawn += 1;
-                }
+        let title = t!("ready-checks-title");
+        if !state.checks_complete() {
+            let status = t!("ready-checks-running");
+            return ChecklistRow {
+                id: "ready-checks",
+                mark: Mark::Busy,
+                name: t!("check-a11y", title = title.as_str(), state = status.as_str()),
+                title,
+                status: status_line("ready-checks", status, None, cx),
+                description: None,
+                action: None,
+                below: Vec::new(),
+                divided: false,
+                focus: None,
+                heading: None,
             }
+            .render(cx);
         }
-        card(cx)
-            .child(step_card_header(
-                cx,
-                "checks",
-                t!("ready-this-pc"),
-                Some(
-                    // Stays enabled while the checks run, so it keeps focus;
-                    // choosing it again starts them over.
-                    // Named with its card: the Windows card can show its own Check again.
-                    Button::new("checks-rerun", t!("ready-check-again"))
-                        .aria_label(t!(
-                            "common-details-a11y",
-                            action = t!("ready-check-again"),
-                            section = t!("ready-this-pc")
-                        ))
-                        .compact()
-                        .icon(Icon::Refresh)
-                        .disabled(state.locked())
-                        .on_click(on_model(&model, |m, cx| m.run_checks(cx)))
-                        .into_any_element(),
-                ),
-            ))
-            .child(list)
-            .into_any_element()
-    }
-
-    /// The line that stands for every check that passed, with the control
-    /// that shows them.
-    fn passed_checks_row(&self, count: usize, divided: bool, cx: &Context<Self>) -> AnyElement {
-        let theme = cx.theme();
+        let rows = state.check_rows();
+        let handled = |index: &usize| {
+            state.checks[*index].1.as_ref().is_some_and(|result| state.handled_by_preparation(result))
+        };
+        let attention: Vec<usize> = rows.listed.iter().copied().filter(|index| !handled(index)).collect();
+        let folded: Vec<usize> =
+            rows.listed.iter().copied().filter(handled).chain(rows.passed.iter().copied()).collect();
+        let total = rows.listed.len() + rows.passed.len();
+        let handled_count = rows.listed.len() - attention.len();
+        let status = checks_status(rows.passed.len(), total, handled_count, !attention.is_empty());
+        let mark = if state.checks_blocking() {
+            Mark::Error
+        } else if !attention.is_empty() {
+            Mark::Warning
+        } else if handled_count > 0 {
+            Mark::Note
+        } else {
+            Mark::Done
+        };
         let shown = self.show_passed_checks;
-        let label = t!("ready-checks-passed", count = count);
-        div()
-            .id("checks-passed")
-            .role(Role::ListItem)
-            .aria_label(label.clone())
-            .flex()
-            .items_center()
-            .gap(px(16.))
-            .px(px(16.))
-            .py(px(12.))
-            .when(divided, |this| this.border_t_1().border_color(theme.divider))
-            .child(
-                TextMark::new(
-                    div()
-                        .flex_shrink_0()
-                        .size(px(20.))
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .text_color(theme.success)
-                        .child(icon(Icon::Completed)),
-                    false,
-                )
-                .strong(),
-            )
-            .child(
-                div()
-                    .flex_1()
-                    .min_w_0()
-                    .type_body_strong()
-                    .text_color(theme.text_primary)
-                    .child(CapCenteredText(label.into())),
-            )
-            .child(details_toggle(
+        let toggle = (!folded.is_empty()).then(|| {
+            details_toggle(
                 "checks-passed-toggle",
-                t!("ready-this-pc"),
+                title.clone(),
                 shown,
                 |page| &mut page.show_passed_checks,
                 cx,
-            ))
+            )
+        });
+        let mut below = Vec::new();
+        if !attention.is_empty() {
+            below.push(self.check_list("checks-attention", &attention, accent, cx));
+        }
+        if with_help {
+            below.push(self.diagnostics.content(&self.model, cx).into_any_element());
+        }
+        if shown && !folded.is_empty() {
+            below.push(self.check_list("checks-passed", &folded, accent, cx));
+        }
+        // Choosing it again starts the checks over; it's offered while
+        // something needs attention, as fixing it is then what's next.
+        let check_again = (!attention.is_empty() && !state.locked()).then(|| {
+            Button::new("checks-rerun", t!("ready-check-again"))
+                .aria_label(t!(
+                    "common-details-a11y",
+                    action = t!("ready-check-again"),
+                    section = title.as_str()
+                ))
+                .compact()
+                .icon(Icon::Refresh)
+                .on_click(on_model(&model, |m, cx| m.run_checks(cx)))
+                .into_any_element()
+        });
+        ChecklistRow {
+            id: "ready-checks",
+            mark,
+            name: t!("check-a11y", title = title.as_str(), state = status.as_str()),
+            title,
+            status: status_line("ready-checks", status, toggle, cx),
+            description: None,
+            action: check_again,
+            below,
+            divided: false,
+            focus: None,
+            heading: None,
+        }
+        .render(cx)
+    }
+
+    /// The checks at `indexes`, one line each.
+    fn check_list(
+        &self,
+        id: &'static str,
+        indexes: &[usize],
+        accent: Accent,
+        cx: &Context<Self>,
+    ) -> AnyElement {
+        div()
+            .id(id)
+            .role(Role::List)
+            .aria_label(t!("ready-checks-title"))
+            .flex()
+            .flex_col()
+            .gap(px(12.))
+            .children(indexes.iter().map(|&index| self.check_item(index, accent, cx)))
             .into_any_element()
     }
 
     /// One check: its verdict as a glyph and words, what it found, and the
-    /// fix or confirmation it offers.
-    fn check_row(&self, index: usize, divided: bool, cx: &App) -> AnyElement {
+    /// fix or confirmation it offers. What it found is a text of its own
+    /// under the title, so a screen reader reads it with the fix.
+    fn check_item(&self, index: usize, accent: Accent, cx: &App) -> AnyElement {
         let theme = cx.theme();
         let model = self.model.clone();
         let state = self.model.read(cx);
@@ -266,95 +487,100 @@ impl InstallPage {
         let (id, result) = &state.checks[index];
         let id = *id;
         let handled = result.as_ref().is_some_and(|r| state.handled_by_preparation(r));
-        let (glyph, colour, state_word): (AnyElement, Hsla, String) = match result.as_ref().map(|r| r.verdict)
-        {
-            None => (ProgressRing::new().into_any_element(), theme.accent, t!("check-state-checking")),
-            Some(Verdict::Pass) => {
-                (icon(Icon::Completed).into_any_element(), theme.success, t!("check-state-passed"))
-            }
-            // Update Windows and Store apps takes care of it: a note, not a failure.
-            Some(_) if handled => {
-                (icon(Icon::Info).into_any_element(), theme.text_secondary, t!("check-state-failed"))
-            }
-            Some(Verdict::Warn) => {
-                (icon(Icon::Warning).into_any_element(), theme.caution, t!("check-state-warning"))
-            }
+        let (glyph, colour, state_word): (Icon, Hsla, String) = match result.as_ref().map(|r| r.verdict) {
+            None => (Icon::Unknown, theme.text_secondary, t!("check-state-checking")),
+            Some(Verdict::Pass) => (Icon::Completed, theme.success, t!("check-state-passed")),
+            // Updating takes care of it: a note, not a failure.
+            Some(_) if handled => (Icon::Info, theme.text_secondary, t!("check-state-updates")),
+            Some(Verdict::Warn) => (Icon::Warning, theme.caution, t!("check-state-warning")),
             Some(Verdict::Fail) if id.blocking() => {
-                (icon(Icon::ErrorBadge).into_any_element(), theme.critical, t!("check-state-failed-blocking"))
+                (Icon::ErrorBadge, theme.critical, t!("check-state-failed-blocking"))
             }
-            Some(Verdict::Fail) => {
-                (icon(Icon::Warning).into_any_element(), theme.caution, t!("check-state-failed"))
-            }
+            Some(Verdict::Fail) => (Icon::Warning, theme.caution, t!("check-state-failed")),
             Some(Verdict::Unknown) if id.blocking() => {
-                (icon(Icon::Unknown).into_any_element(), theme.critical, t!("check-state-unknown"))
+                (Icon::Unknown, theme.critical, t!("check-state-unknown"))
             }
-            Some(Verdict::Unknown) => {
-                (icon(Icon::Unknown).into_any_element(), theme.text_secondary, t!("check-state-unknown"))
-            }
+            Some(Verdict::Unknown) => (Icon::Unknown, theme.text_secondary, t!("check-state-unknown")),
         };
-        let detail =
-            result.as_ref().map(|r| r.detail.text(&state.system)).unwrap_or_else(|| t!("common-checking"));
+        let detail = result
+            .as_ref()
+            .map(|r| if handled { handled_detail(r) } else { r.detail.text(&state.system) })
+            .unwrap_or_else(|| t!("common-checking"));
         let fix = match (result, id.fix_target(), id.fix_label()) {
             (Some(r), Some(target), Some(label)) if offers_fix(r) && !handled => Some(
                 Button::new(("fix", index), label)
                     .compact()
+                    .when(accent == Accent::Fix(id), Button::accent)
                     .trailing_icon(Icon::OpenInNewWindow)
                     .opens(target)
                     .into_any_element(),
             ),
-            (Some(r), None, _) if id == CheckId::Administrator && r.verdict == Verdict::Fail => {
-                let enabled = may_edit && state.may_relaunch_elevated();
+            // A move this PC can't make: reinstalling Windows from an Atlas
+            // ISO is the way on.
+            (Some(r), None, _)
+                if matches!(id, CheckId::MoveHardware | CheckId::MoveUpdateSource)
+                    && r.verdict == Verdict::Fail
+                    && state.can_navigate(Page::Iso) =>
+            {
                 Some(
-                    Button::new("fix-elevate", t!("common-restart-as-administrator"))
+                    Button::new(("fix", index), t!("iso-open"))
                         .compact()
-                        .icon(Icon::Admin)
-                        // The next task once there is a package: everything after it waits for it.
-                        .when(enabled && state.package.is_some(), Button::accent)
-                        .disabled(!enabled)
-                        .on_click(on_model(&model, |m, cx| m.relaunch_elevated(cx)))
+                        .when(accent == Accent::IsoCheck(id), Button::accent)
+                        .on_click(on_model(&model, |m, cx| m.navigate_iso_for_this_pc(cx)))
                         .into_any_element(),
                 )
             }
+            (Some(r), None, _) if id == CheckId::Administrator && r.verdict == Verdict::Fail => {
+                let enabled = may_edit && state.may_relaunch_elevated();
+                // Relaunching waits for the installation files.
+                enabled.then(|| {
+                    Button::new("fix-elevate", t!("common-restart-as-administrator"))
+                        .compact()
+                        .icon(Icon::Admin)
+                        .when(accent == Accent::Elevate, Button::accent)
+                        .on_click(on_model(&model, |m, cx| m.relaunch_elevated(cx)))
+                        .into_any_element()
+                })
+            }
             _ => None,
         };
-        // Relaunching waits for the installation files; say so beside the button.
         let elevate_waits = id == CheckId::Administrator
             && result.as_ref().is_some_and(|r| r.verdict == Verdict::Fail)
             && state.acquisition.is_busy();
         let acknowledgement = result
             .as_ref()
             .and_then(|r| r.acknowledgement().map(|label| (r.id, label)))
+            .filter(|_| may_edit)
             .map(|(check, label)| {
                 let confirmed = state.acknowledged.contains(&check);
                 CheckBox::new(("acknowledge", index), label, confirmed)
-                    .disabled(!may_edit)
                     .on_toggle(on_model(&model, move |m, cx| m.acknowledge_check(check, !confirmed, cx)))
             });
         div()
             .id(("check", index))
             .role(Role::ListItem)
             .aria_label(t!("check-a11y", title = id.title(), state = state_word))
-            .aria_description(detail.clone())
             .flex()
             .flex_col()
-            .when(divided, |this| this.border_t_1().border_color(theme.divider))
+            .gap(px(4.))
             .child(
                 div()
                     .flex()
-                    .items_center()
-                    .gap(px(16.))
-                    .px(px(16.))
-                    .py(px(12.))
+                    .items_start()
+                    .gap(px(12.))
                     .child(
                         TextMark::new(
                             div()
                                 .flex_shrink_0()
-                                .size(px(20.))
+                                .size(px(16.))
+                                // Centred on the title's 20px line, however
+                                // many lines what the check found takes.
+                                .mt(px(2.))
                                 .flex()
                                 .items_center()
                                 .justify_center()
                                 .text_color(colour)
-                                .child(glyph),
+                                .child(icon(glyph)),
                             true,
                         )
                         .strong(),
@@ -371,332 +597,550 @@ impl InstallPage {
                                     .text_color(theme.text_primary)
                                     .child(CapCenteredText(id.title().into())),
                             )
-                            .child(div().type_caption().text_color(theme.text_secondary).child(detail)),
+                            .child(
+                                div()
+                                    .type_body()
+                                    .text_color(theme.text_secondary)
+                                    .child(detail_text(&format!("check-{index}"), detail)),
+                            ),
                     )
-                    .when_some(fix, |this, fix| this.child(fix)),
+                    .when_some(fix, |this, fix| this.child(div().flex_shrink_0().self_center().child(fix))),
             )
+            // Under the check's title: the glyph's 16px and the 12px gap.
             .when_some(acknowledgement, |this, acknowledgement| {
-                this.child(div().px(px(44.)).pb(px(8.)).child(acknowledgement))
+                this.child(div().pl(px(28.)).child(acknowledgement))
             })
             .when(elevate_waits, |this| {
-                this.child(
-                    div()
-                        .px(px(44.))
-                        .pb(px(8.))
-                        .type_caption()
-                        .text_color(theme.text_secondary)
-                        .child(detail_text("fix-elevate-unavailable", t!("prepare-wait-for-package"))),
-                )
+                this.child(div().pl(px(28.)).child(row_note(
+                    "fix-elevate-unavailable",
+                    t!("prepare-wait-for-package"),
+                    cx,
+                )))
             })
             .into_any_element()
     }
 
-    fn drivers_card(&mut self, cx: &mut Context<Self>) -> AnyElement {
-        let (staged, selected, disabled) = {
+    /// The Atlas package: unpacked and ready, on its way, or what stopped
+    /// it. Getting it again is offered only after a failure; a file the user
+    /// already has can be opened from the row at any time. `accent` makes
+    /// the row's button the page's accent.
+    fn package_row(&self, with_help: bool, accent: bool, cx: &Context<Self>) -> AnyElement {
+        let model = self.model.clone();
+        let state = self.model.read(cx);
+        let bundled = state.bundled();
+        let release = state.release.release().cloned();
+        let version = state
+            .package
+            .as_ref()
+            .map(|package| package.manifest.version.clone())
+            .or_else(|| release.as_ref().map(|release| release.version().to_owned()))
+            .unwrap_or_else(|| state.manifest().version.clone());
+        let title = t!("ready-package-title", version = version.as_str());
+        let manager_outdated = state.package_needs_newer_manager();
+        let mut below = Vec::new();
+        let (mark, status) = match (&state.acquisition, &state.package) {
+            (Acquisition::Downloading { received, total }, _) => {
+                below.push(
+                    ProgressBar::new(
+                        "package-progress",
+                        t!("package-progress"),
+                        Some(*received as f32 / (*total).max(1) as f32),
+                    )
+                    .into_any_element(),
+                );
+                (Mark::Busy, t!("ready-package-downloading"))
+            }
+            (Acquisition::Extracting { done, total }, _) => {
+                let value = (*total > 0).then(|| *done as f32 / *total as f32);
+                below.push(
+                    ProgressBar::new("package-progress", t!("package-progress"), value).into_any_element(),
+                );
+                (Mark::Busy, t!("ready-package-unpacking"))
+            }
+            (Acquisition::Failed(problem), _) => {
+                // What to do in the row; the raw error behind Show details.
+                let (text, raw) = match problem {
+                    AcquireProblem::Other { error } if bundled => {
+                        (t!("ready-package-bundled-failed-detail"), Some(error.clone()))
+                    }
+                    AcquireProblem::Other { error } => {
+                        (t!("ready-package-failed-detail"), Some(error.clone()))
+                    }
+                    AcquireProblem::ManagerOutdated { required } => {
+                        (describe::manager_needed(&version, required.as_deref()), None)
+                    }
+                    _ => (problem.text(bundled), None),
+                };
+                below.push(row_text("package-problem", text, cx));
+                let retry = if manager_outdated {
+                    manager_download_button("source-manager-download")
+                } else if bundled {
+                    Button::new("source-bundled", t!("common-try-again"))
+                        .on_click(on_model(&model, |m, cx| m.load_bundled_package(cx)))
+                } else {
+                    Button::new("source-download", t!("package-download-again"))
+                        .on_click(on_model(&model, |m, cx| m.download_latest(cx)))
+                }
+                .when(accent, Button::accent);
+                below.push(div().flex().child(retry).into_any_element());
+                if let Some(raw) = raw {
+                    let shown = self.show_package_details;
+                    below.push(
+                        div()
+                            .flex()
+                            .flex_col()
+                            .gap(px(4.))
+                            .child(link_row().child(details_toggle(
+                                "package-details",
+                                title.clone(),
+                                shown,
+                                |page| &mut page.show_package_details,
+                                cx,
+                            )))
+                            .when(shown, |this| this.child(row_caption("package-error", raw, cx)))
+                            .into_any_element(),
+                    );
+                }
+                if with_help {
+                    below.push(self.diagnostics.content(&self.model, cx).into_any_element());
+                }
+                if manager_outdated {
+                    (Mark::Warning, t!("ready-package-manager"))
+                } else {
+                    (Mark::Error, t!("ready-package-failed"))
+                }
+            }
+            (Acquisition::Idle, Some(_)) => (Mark::Done, t!("ready-package-ready")),
+            // A tester build never checks for a release: before its bundled
+            // package is unpacked it is preparing, not checking.
+            (Acquisition::Idle, None) if bundled => (Mark::Busy, t!("ready-package-bundled")),
+            (Acquisition::Idle, None) => match &state.release {
+                // A download chosen meanwhile starts when the check ends.
+                ReleaseCheck::Checking | ReleaseCheck::NotChecked => {
+                    (Mark::Busy, t!("ready-package-checking"))
+                }
+                ReleaseCheck::Failed => {
+                    below.push(row_text("package-problem", t!("ready-package-release-failed-detail"), cx));
+                    below.push(
+                        div()
+                            .flex()
+                            .child(
+                                Button::new("source-download", t!("package-download-again"))
+                                    .when(accent, Button::accent)
+                                    .on_click(on_model(&model, |m, cx| m.download_latest(cx))),
+                            )
+                            .into_any_element(),
+                    );
+                    (Mark::Error, t!("ready-package-release-failed"))
+                }
+                // Get ready downloads the latest release by itself; one it
+                // can't take, such as one an unfinished install rules out,
+                // leaves opening a file, unless downloading is still possible.
+                ReleaseCheck::Ready { .. } => {
+                    if state.offers_download() && !state.latest_predates_app() {
+                        let label = release.as_ref().map_or_else(
+                            || t!("package-download-newest"),
+                            |r| t!("package-download-version", version = r.version()),
+                        );
+                        below.push(
+                            div()
+                                .flex()
+                                .child(
+                                    Button::new("source-download", label)
+                                        .when(accent, Button::accent)
+                                        .icon(Icon::Download)
+                                        .on_click(on_model(&model, |m, cx| m.download_latest(cx))),
+                                )
+                                .into_any_element(),
+                        );
+                    }
+                    (Mark::Pending, t!("ready-package-none"))
+                }
+            },
+        };
+        // A running download gives way to a chosen file; a tester build
+        // offers its bundled package and nothing else.
+        let open = (!bundled && state.may_choose_package()).then(|| {
+            Button::new("source-local", t!("package-open-file"))
+                .hyperlink()
+                .compact()
+                .on_click(on_model(&model, |m, cx| m.choose_local_package(cx)))
+                .into_any_element()
+        });
+        ChecklistRow {
+            id: "ready-package",
+            mark,
+            name: t!("check-a11y", title = title.as_str(), state = status.as_str()),
+            title,
+            status: status_line("ready-package", status, None, cx),
+            description: None,
+            action: open,
+            below,
+            divided: true,
+            focus: None,
+            heading: None,
+        }
+        .render(cx)
+    }
+
+    /// The driver choice under the update row: one line that says it, with
+    /// Change to unfold today's two answers. An ISO that left the choice
+    /// until after sign-in asks it here, unfolded, before updating starts;
+    /// an ISO that made it shows it, fixed.
+    fn driver_row(&mut self, cx: &mut Context<Self>) -> AnyElement {
+        let (staged, required, preference, fixed, has_run) = {
             let state = self.model.read(cx);
             (
                 state.staged_driver_preference(),
-                (!state.driver_choice_required())
-                    .then(|| usize::from(state.driver_preference() == Drivers::Manual)),
+                state.driver_choice_required(),
+                state.driver_preference(),
                 state.locked() || state.preparation_choices_fixed(),
+                state.preparation != Preparation::Idle,
             )
         };
-        let secondary = cx.theme().text_secondary;
-        let description = |message| {
-            div()
-                .type_body()
-                .text_color(secondary)
-                .pb(px(4.))
-                .child(a11y_text("prepare-drivers-description", message))
-        };
-        let (title, body) = if let Some(drivers) = staged {
-            (driver_label(drivers), card_body().child(description(t!("prepare-drivers-from-iso"))))
-        } else {
+        let open = required || (self.show_driver_choice && staged.is_none() && !fixed);
+        let radios = open.then(|| {
             let model = self.model.clone();
-            let drivers = RadioGroup::new("prepare-drivers", t!("prepare-drivers"))
+            RadioGroup::new("prepare-drivers", t!("prepare-drivers"))
                 .items(driver_radio_items("prepare-drivers", &mut self.focus, cx))
-                .selected(selected)
-                .disabled(disabled)
+                .selected((!required).then(|| usize::from(preference == Drivers::Manual)))
+                .disabled(fixed)
                 .on_select(move |index, _, cx| {
                     let drivers = [Drivers::Automatic, Drivers::Manual][index];
                     model.update(cx, |m, cx| m.set_drivers(drivers, cx));
-                });
-            (
-                t!("prepare-drivers"),
-                card_body().child(description(t!("prepare-drivers-description"))).child(drivers),
-            )
-        };
-        card(cx).child(step_card_header(cx, "drivers", title, None)).child(body).into_any_element()
+                })
+        });
+        let theme = cx.theme();
+        let mut column = div().id("ready-drivers").flex().flex_col().gap(px(4.));
+        if required {
+            column = column.child(
+                div()
+                    .type_body_strong()
+                    .text_color(theme.text_primary)
+                    .child(a11y_text("ready-drivers-question", t!("prepare-drivers"))),
+            );
+        } else {
+            let choice = match preference {
+                Drivers::Automatic => t!("ready-drivers-automatic"),
+                Drivers::Manual => t!("ready-drivers-manual"),
+            };
+            let change = (staged.is_none() && !fixed).then(|| {
+                let shown = self.show_driver_choice;
+                Button::new("ready-drivers-change", t!("common-change"))
+                    .aria_label(t!("ready-drivers-change-a11y"))
+                    .expanded(shown)
+                    .hyperlink()
+                    .compact()
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.show_driver_choice = !this.show_driver_choice;
+                        cx.notify();
+                    }))
+            });
+            column = column.child(status_line(
+                "ready-drivers",
+                t!("ready-drivers-row", choice = choice),
+                change,
+                cx,
+            ));
+        }
+        if let Some(radios) = radios {
+            column = column.child(div().pt(px(4.)).child(radios));
+            // Only while the answers show: what changing one does now.
+            if has_run && !required {
+                column = column.child(row_note("ready-drivers-again", t!("ready-drivers-again"), cx));
+            }
+        }
+        column.into_any_element()
     }
 
-    /// The Windows version Atlas moves this PC to before installing: what
-    /// changes, the choice where moving is optional, and Microsoft's licence
-    /// terms. It never takes the accent; the update card's button starts it.
-    fn windows_card(&mut self, cx: &mut Context<Self>) -> Option<AnyElement> {
-        let (transition, need, current, build, version, chosen, terms, locked, open) = {
+    /// The move to a newer Windows release, first under the stepper: the
+    /// choice where moving is optional, what the move keeps, and Microsoft's
+    /// licence terms, whose acceptance starts it. Once it runs, how updating
+    /// stands (`run`), its waiting and every outcome, with their buttons,
+    /// until Windows has the release; and afterwards, that Windows
+    /// reinstalled itself, when it did. `focus` is the card's while it shows
+    /// how updating stands, and `accent` makes Accept and update the page's
+    /// accent.
+    fn windows_card(
+        &mut self,
+        run: Option<RunView>,
+        focus: Option<FocusHandle>,
+        accent: bool,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        let model = self.model.clone();
+        let (
+            offer,
+            release,
+            current,
+            build,
+            version,
+            chosen,
+            terms,
+            pre_run,
+            may_keep,
+            keep_waits,
+            editable,
+            rebuilt,
+        ) = {
             let state = self.model.read(cx);
-            let (transition, need) = state.windows_transition()?;
+            let offer = state.windows_transition();
+            let release = offer
+                .map(|(transition, _)| transition.target_release.to_owned())
+                .or_else(|| state.transition_request().map(|request| request.target_release))
+                .unwrap_or_else(|| state.system.display_version.clone());
+            let held = state.updates_held();
             (
-                transition,
-                need,
+                offer,
+                release,
                 state.system.display_version.clone(),
                 state.system.build,
                 state.manifest().version.clone(),
                 state.transition_chosen(),
                 state.windows_terms_accepted,
-                state.locked(),
-                state.transition_open(),
+                (state.preparation == Preparation::Idle && !held) || asks_for_terms(state),
+                state.may_keep_windows_version(),
+                state.keep_waits_for_install(),
+                !state.locked() && !state.transition_open(),
+                state.rebase_choices().is_some(),
             )
         };
-        let terms_fixed = terms && self.model.read(cx).preparation_choices_fixed();
-        let release = transition.target_release;
-        let model = self.model.clone();
-        let choice = (need == TransitionNeed::Optional).then(|| {
+        let optional = offer.is_some_and(|(_, need)| need == TransitionNeed::Optional);
+        // The choice, where moving is optional. Keeping this version once the
+        // move has begun stops it, which asks first.
+        let choice = offer.filter(|_| optional).map(|(transition, _)| {
             let (move_key, keep_key) = ("windows-release-move", "windows-release-keep");
             let items = [
                 RadioItem::new(
                     move_key,
-                    t!("windows-choice-move", release = release),
+                    t!("windows-choice-move-recommended", release = release.as_str()),
                     self.focus.get(move_key, cx),
                 )
-                .description(t!("windows-choice-move-detail", date = fmt::day(transition.end_of_updates()))),
+                .description(t!("windows-choice-move-support", date = fmt::day(transition.end_of_updates()))),
                 RadioItem::new(
                     keep_key,
                     t!("windows-choice-keep", current = current.as_str()),
                     self.focus.get(keep_key, cx),
                 )
-                .description(t!("windows-choice-keep-detail")),
+                .description(t!("windows-choice-keep-later", current = current.as_str())),
             ];
             let model = model.clone();
             RadioGroup::new("windows-release", t!("windows-card-question"))
                 .items(items)
                 .selected(Some(usize::from(!chosen)))
-                .disabled(locked || open)
-                .on_select(move |index, _, cx| {
-                    model.update(cx, |m, cx| m.keep_windows_version(index == 1, cx))
+                .disabled(!editable && !may_keep)
+                .on_select(move |index, window, cx| {
+                    let keep = index == 1;
+                    let (asks, chosen) = {
+                        let state = model.read(cx);
+                        (keep && state.keeping_stops_the_move(), state.transition_chosen())
+                    };
+                    if asks {
+                        ask_to_keep_version(&model, window, cx);
+                    } else if keep == chosen {
+                        model.update(cx, |m, cx| m.keep_windows_version(keep, cx));
+                    }
                 })
+                .into_any_element()
         });
-        let theme = cx.theme();
-        let mut body = card_body().gap(px(8.));
-        body = match choice {
-            None => body.child(div().type_body().text_color(theme.text_secondary).child(a11y_text(
-                "windows-card-required",
-                t!("windows-card-required", version = version.as_str(), release = release),
-            ))),
-            Some(group) => body
-                .child(div().type_body().text_color(theme.text_secondary).child(t!("windows-card-question")))
-                .child(group)
-                .when(open, |this| {
-                    this.child(div().type_caption().text_color(theme.text_secondary).child(detail_text(
-                        "windows-card-locked",
-                        t!("windows-card-locked", current = current.as_str()),
-                    )))
-                }),
-        };
-        if chosen {
-            let mut facts = vec![
-                t!("windows-fact-keep"),
-                t!("windows-fact-restart"),
-                t!("transition-offer-expectation"),
-                t!("windows-fact-stays", release = release),
-            ];
-            // 25H2 removed both already; only a PC on 24H2 loses them now.
-            if build == 26100 {
-                facts.push(t!("windows-fact-removed", release = release));
-            }
-            let undo = if need == TransitionNeed::Required {
-                t!("windows-card-undo", version = version.as_str(), current = current.as_str())
-            } else {
-                t!("windows-card-undo-optional")
-            };
-            let terms_box = CheckBox::new("windows-terms", t!("windows-terms", release = release), terms)
-                .disabled(locked || terms_fixed)
-                .on_toggle(on_model(&model, move |m, cx| m.accept_windows_terms(!terms, cx)));
-            body = body
-                .child(fact_list(&facts, cx))
-                .child(
-                    div()
-                        .type_caption()
-                        .text_color(theme.text_secondary)
-                        .child(detail_text("windows-card-undo", undo)),
-                )
-                .child(
-                    div().flex().flex_col().gap(px(2.)).pt(px(4.)).child(terms_box).child(
-                        div().flex().child(
-                            Button::new("windows-terms-link", t!("windows-terms-link"))
-                                .hyperlink()
-                                .compact()
-                                .trailing_icon(Icon::OpenInNewWindow)
-                                .opens(WINDOWS_TERMS),
-                        ),
-                    ),
-                );
+        let title = t!("windows-card-title", release = release.as_str());
+        let mut below: Vec<AnyElement> = choice.into_iter().collect();
+        // Why keeping this version isn't a choice now, under it. The setup
+        // waiting may be a first install as well as an update, so the words
+        // name neither.
+        if optional && keep_waits {
+            below.push(row_note("windows-keep-waits", t!("update-access-finish-install"), cx));
         }
-        Some(
-            card(cx)
-                .child(step_card_header(
-                    cx,
-                    "windows-version",
-                    t!("windows-card-title", release = release),
-                    None,
-                ))
-                .child(body)
-                .into_any_element(),
-        )
-    }
-
-    fn package_card(&self, cx: &App) -> AnyElement {
-        let theme = cx.theme();
-        let model = self.model.clone();
-        let state = self.model.read(cx);
-        let release = state.release.release().cloned();
-        let bundled = state.bundled();
-
-        let (line, light, light_label) = match (&state.acquisition, &state.package) {
-            (Acquisition::Downloading { received, total }, _) => (
-                t!(
-                    "package-downloading",
-                    version = release.as_ref().map(|r| r.version()).unwrap_or(""),
-                    received = fmt::megabytes_value(*received),
-                    total = fmt::megabytes_value(*total)
-                ),
-                LightState::Pending,
-                t!("package-status-downloading"),
-            ),
-            (Acquisition::Extracting { done, total }, _) => (
-                if *total > 0 {
-                    t!("package-unpacking-progress", done = *done, total = *total)
-                } else {
-                    t!("package-unpacking")
-                },
-                LightState::Pending,
-                t!("package-status-unpacking"),
-            ),
-            (Acquisition::Failed(problem), _) => {
-                (problem.text(bundled), LightState::Bad, t!("package-status-failed"))
+        let mut trailing = None;
+        let mut description = None;
+        let (mark, status) = match run {
+            // How updating stands, while the move runs or once it ended: its
+            // bar or what happened straight under the status line, then the
+            // choice.
+            Some(view) if !pre_run => {
+                below.splice(0..0, view.below);
+                trailing = view.trailing;
+                description = view.description;
+                (view.mark, view.status)
             }
-            (Acquisition::Idle, Some(source)) => {
-                (source.describe(), LightState::Good, t!("package-status-ready"))
-            }
-            // A tester build never checks for a release: before its bundled
-            // package is unpacked it is preparing, not checking.
-            (Acquisition::Idle, None) if bundled => {
-                (t!("package-looking-bundled"), LightState::Pending, t!("package-status-preparing"))
-            }
-            (Acquisition::Idle, None) => match &state.release {
-                ReleaseCheck::Checking | ReleaseCheck::NotChecked => {
-                    (t!("package-looking"), LightState::Pending, t!("package-status-checking"))
+            // The go-ahead: what the move keeps, and the licence terms.
+            _ if chosen && !terms => {
+                below.push(fact_list(&[t!("windows-fact-files"), t!("windows-fact-time")], cx));
+                // 25H2 removed both already; only a PC on 24H2 loses them now.
+                if build == 26100 {
+                    below.push(self.windows_details(&title, cx));
                 }
-                ReleaseCheck::Failed => {
-                    (t!("package-release-failed"), LightState::Caution, t!("package-status-missing"))
+                if optional {
+                    below.push(
+                        link_row()
+                            .child(
+                                Button::new("windows-undo", t!("windows-undo-link"))
+                                    .hyperlink()
+                                    .compact()
+                                    .trailing_icon(Icon::OpenInNewWindow)
+                                    .opens(UNDO_DOCS),
+                            )
+                            .into_any_element(),
+                    );
                 }
-                ReleaseCheck::Ready { .. } => {
-                    (t!("package-none"), LightState::Caution, t!("package-status-missing"))
-                }
-            },
-        };
-        let progress = match &state.acquisition {
-            Acquisition::Downloading { received, total } => {
-                Some(Some(*received as f32 / (*total).max(1) as f32))
-            }
-            Acquisition::Extracting { done, total } if *total > 0 => Some(Some(*done as f32 / *total as f32)),
-            Acquisition::Extracting { .. } => Some(None),
-            _ => None,
-        };
-        let busy = state.acquisition.is_busy() || state.locked();
-        let downloading = matches!(state.acquisition, Acquisition::Downloading { .. });
-        // The package needs a newer Atlas Manager: getting one is the way on.
-        let manager_outdated = state.package_needs_newer_manager();
-        // Getting the files is the first task: its button is the accent one
-        // until there is a package.
-        let first_task = state.package.is_none() && !manager_outdated;
-        let download_label = match (&release, &state.package) {
-            (Some(r), Some(p)) if p.manifest.version == r.version() => t!("package-download-again"),
-            (Some(r), _) => t!("package-download-version", version = r.version()),
-            (None, _) => t!("package-download-newest"),
-        };
-
-        card(cx)
-            .child(step_card_header(
-                cx,
-                "package",
-                t!("package-title"),
-                Some(
-                    StatusLight::new(light, light_label.clone())
-                        .id("package-status")
-                        .aria_label(t!("check-a11y", title = t!("package-title"), state = light_label))
-                        .live()
-                        .into_any_element(),
-                ),
-            ))
-            .child(
-                card_body()
-                    .child(
-                        div()
-                            .type_body()
-                            .text_color(theme.text_primary)
-                            .child(a11y_text("package-line", line)),
-                    )
-                    .when_some(progress, |this, value| {
-                        this.child(ProgressBar::new("package-progress", t!("package-progress"), value))
-                    })
-                    .child(
+                below.extend(access_notice(self.model.read(cx), &version, cx));
+                below.push(terms_line(cx));
+                // Hidden while a check stands in the way, which would keep
+                // the update from starting: the check's fix comes first.
+                if offers_accept(self.model.read(cx)) {
+                    let page_focus = focus.clone();
+                    below.push(
                         div()
                             .flex()
-                            .flex_wrap()
-                            .gap(px(8.))
-                            .pt(px(4.))
-                            .when(manager_outdated, |this| {
-                                this.child(manager_download_button("source-manager-download").accent())
-                            })
-                            // A tester build offers its bundled package and nothing else.
-                            .when(bundled && matches!(state.acquisition, Acquisition::Failed(_)), |this| {
-                                this.child(
-                                    Button::new("source-bundled", t!("common-try-again"))
-                                        .accent()
-                                        .icon(Icon::Sync)
-                                        .disabled(busy)
-                                        .on_click(on_model(&model, |m, cx| m.load_bundled_package(cx))),
-                                )
-                            })
-                            .when(
-                                !bundled && !state.latest_predates_app() && state.offers_download(),
-                                |this| {
-                                    let disabled = busy || matches!(state.release, ReleaseCheck::Checking);
-                                    this.child(
-                                        Button::new("source-download", download_label)
-                                            .when(first_task && !disabled, Button::accent)
-                                            .icon(Icon::Download)
-                                            .disabled(disabled)
-                                            .on_click(on_model(&model, |m, cx| m.download_latest(cx))),
-                                    )
-                                },
+                            .child(
+                                Button::new("windows-accept", t!("windows-accept"))
+                                    .when(accent, Button::accent)
+                                    .on_click(cx.listener(move |this, _, window, cx| {
+                                        this.preparation_asked = true;
+                                        this.model.update(cx, |m, cx| m.accept_and_update(cx));
+                                        // The button goes with the go-ahead: focus
+                                        // follows to how the move stands.
+                                        if let Some(focus) = &page_focus {
+                                            super::reveal_focus(focus, window, cx);
+                                        }
+                                    })),
                             )
-                            .when(!bundled && downloading, |this| {
-                                this.child(
-                                    Button::new("source-cancel", t!("package-cancel-download"))
-                                        .on_click(on_model(&model, |m, cx| m.cancel_download(cx))),
-                                )
-                            })
-                            .when(!bundled, |this| {
-                                this.child(
-                                    Button::new("source-local", t!("package-open-file"))
-                                        .icon(Icon::Folder)
-                                        // A running download gives way to a chosen file.
-                                        .disabled(!state.may_choose_package())
-                                        .on_click(on_model(&model, |m, cx| m.choose_local_package(cx))),
-                                )
-                            }),
-                    ),
-            )
+                            .into_any_element(),
+                    );
+                }
+                let status = if optional {
+                    t!("windows-optional")
+                } else {
+                    t!("windows-required", version = version.as_str(), current = current.as_str())
+                };
+                (Mark::Pending, status)
+            }
+            // Accepted, and about to start, or waiting for what holds it.
+            _ if chosen => {
+                below.extend(access_notice(self.model.read(cx), &version, cx));
+                match move_waits_for(self.model.read(cx), &version) {
+                    Some(reason) => (Mark::Pending, reason),
+                    None => (Mark::Busy, t!("windows-starting")),
+                }
+            }
+            // Windows reinstalled itself on the way; the install puts Atlas back.
+            _ if rebuilt => {
+                (Mark::Note, t!("windows-rebuilt", release = current.as_str(), version = version.as_str()))
+            }
+            // This version stays.
+            _ => (Mark::Done, t!("windows-optional")),
+        };
+        let row = ChecklistRow {
+            id: "windows-move",
+            mark,
+            name: t!("check-a11y", title = title.as_str(), state = status.as_str()),
+            title,
+            status: status_line("windows-move", status, None, cx),
+            description,
+            action: trailing,
+            below,
+            divided: false,
+            focus,
+            heading: Some(3),
+        };
+        card(cx).child(row.render(cx)).into_any_element()
+    }
+
+    /// Show details, with what the move removes from Windows.
+    fn windows_details(&self, title: &str, cx: &Context<Self>) -> AnyElement {
+        let shown = self.show_windows_details;
+        div()
+            .flex()
+            .flex_col()
+            .gap(px(4.))
+            .child(link_row().child(details_toggle(
+                "windows-details",
+                title.to_owned(),
+                shown,
+                |page| &mut page.show_windows_details,
+                cx,
+            )))
+            .when(shown, |this| this.child(row_text("windows-removes", t!("windows-fact-removes"), cx)))
             .into_any_element()
+    }
+}
+
+/// What holds a move whose terms are accepted from starting, if anything:
+/// the checks, the installation files or what the update row would name.
+fn move_waits_for(state: &AppModel, version: &str) -> Option<String> {
+    if state.install_block().is_some() {
+        Some(t!("ready-updates-blocked"))
+    } else if state.driver_choice_required() {
+        Some(t!("ready-updates-needs-drivers"))
+    } else if !state.blocking_checks_complete() || state.checks_blocking() || !state.elevated {
+        Some(t!("windows-starts-after-checks"))
+    } else if state.package.is_none() || state.acquisition.is_busy() {
+        Some(t!("windows-starts-after-package", version = version))
+    } else {
+        None
+    }
+}
+
+/// The line that says updating accepts Microsoft's licence terms, and the
+/// link to them.
+fn terms_line(cx: &App) -> AnyElement {
+    div()
+        .flex()
+        .flex_wrap()
+        .items_center()
+        .gap_x(px(4.))
+        .type_body()
+        .text_color(cx.theme().text_secondary)
+        .child(div().flex_shrink(1.).min_w_0().child(detail_text("windows-terms", t!("windows-terms-line"))))
+        .child(
+            div().ml(-COMPACT_INSET).child(
+                Button::new("windows-terms-link", t!("windows-terms-link"))
+                    .hyperlink()
+                    .compact()
+                    .trailing_icon(Icon::OpenInNewWindow)
+                    .opens(WINDOWS_TERMS),
+            ),
+        )
+        .into_any_element()
+}
+
+/// Asks before keeping this version once the move has begun: keeping it
+/// puts back the Windows Update settings Atlas turned on.
+fn ask_to_keep_version(model: &Entity<AppModel>, window: &mut Window, cx: &mut App) {
+    let current = model.read(cx).system.display_version.clone();
+    let StopQuestion::BeforeMove { current: kept } = model.read(cx).move_stop_question() else {
+        return;
+    };
+    let title = t!("windows-keep-title", current = current.as_str());
+    let message = t!("stop-update-before", current = kept);
+    let (cancel, keep) = (t!("common-cancel"), t!("prepare-keep-version", current = current.as_str()));
+    let answer =
+        window.prompt(PromptLevel::Info, &title, Some(&message), &[cancel.as_str(), keep.as_str()], cx);
+    let model = model.clone();
+    cx.spawn(async move |cx| {
+        if answer.await == Ok(1) {
+            model.update(cx, |model, cx| model.keep_windows_version_now(cx));
+        }
+    })
+    .detach();
+}
+
+/// What a check that updating takes care of says, without the update titles
+/// a Windows Update search found: those are for the log.
+fn handled_detail(result: &CheckResult) -> String {
+    match result.id {
+        CheckId::PendingUpdates => t!("check-updates-handled"),
+        CheckId::PendingReboot => t!("check-restart-handled"),
+        _ => t!("check-handled"),
     }
 }
 
 /// Microsoft's licence terms by product, acquisition channel and language.
 const WINDOWS_TERMS: &str = "https://www.microsoft.com/useterms";
+/// How to undo a move, in the Atlas documentation.
+const UNDO_DOCS: &str = "https://atlasos.net/docs/upgrade/windows-release/#undo-the-move";
 
-/// What moving Windows keeps and changes, one line each, with a check mark.
+/// What moving Windows keeps and how long it takes, one plain bullet each.
 fn fact_list(facts: &[String], cx: &App) -> AnyElement {
     let theme = cx.theme();
     div()
@@ -714,16 +1158,29 @@ fn fact_list(facts: &[String], cx: &App) -> AnyElement {
                 .flex()
                 .items_start()
                 .gap(px(8.))
-                .child(
-                    icon_in_line_sized(Icon::CheckMark, 12., BODY_LINE_HEIGHT)
-                        .flex_shrink_0()
-                        .text_color(theme.success),
-                )
-                .child(
-                    div().flex_1().min_w_0().type_body().text_color(theme.text_primary).child(fact.clone()),
-                )
+                .type_body()
+                .child(div().flex_shrink_0().text_color(theme.text_secondary).child("•"))
+                .child(div().flex_1().min_w_0().text_color(theme.text_primary).child(fact.clone()))
         }))
         .into_any_element()
+}
+
+/// The checks row's status line, in one format: "9 checks passed", "5 of 9
+/// checks passed", and, when updating takes care of every check left, how
+/// many after a dot. Those are two messages, so each count has plural forms
+/// of its own.
+fn checks_status(passed: usize, total: usize, handled: usize, attention: bool) -> String {
+    if passed == total {
+        t!("ready-checks-passed", count = total)
+    } else if !attention {
+        [
+            t!("ready-checks-passed-some", passed = passed, total = total),
+            t!("ready-checks-handled", count = handled),
+        ]
+        .join(&t!("usb-detail-separator"))
+    } else {
+        t!("ready-checks-passed-some", passed = passed, total = total)
+    }
 }
 
 /// Whether a check's row offers its Settings page: whenever the check didn't
@@ -735,126 +1192,6 @@ fn offers_fix(result: &CheckResult) -> bool {
         Verdict::Warn => result.id != CheckId::ThirdPartyAntivirus,
         Verdict::Fail | Verdict::Unknown => true,
     }
-}
-
-/// Get ready's status bar for `status`. The update states name the update
-/// card and the button that comes next on it, in words only: the button
-/// stays in the card, beside what explains it.
-fn status_bar(status: ReadyStatus, state: &AppModel) -> InfoBar {
-    use crate::services::preparation::State as Preparation;
-    let bundled = state.bundled();
-    let (severity, title, message) = match status {
-        ReadyStatus::Busy => {
-            (Severity::Informational, t!("ready-banner-busy-title"), t!("ready-banner-busy-message"))
-        }
-        ReadyStatus::Blocked => {
-            (Severity::Error, t!("ready-banner-blocked-title"), t!("ready-banner-blocked-message"))
-        }
-        ReadyStatus::NoPackage if bundled => (
-            Severity::Warning,
-            t!("ready-banner-no-package-bundled-title"),
-            t!("ready-banner-no-package-bundled-message"),
-        ),
-        ReadyStatus::NoPackage => {
-            (Severity::Warning, t!("ready-banner-no-package-title"), t!("ready-banner-no-package-message"))
-        }
-        ReadyStatus::ManagerOutdated => {
-            (Severity::Warning, t!("ready-banner-manager-title"), t!("ready-banner-manager-message"))
-        }
-        ReadyStatus::Drivers => (Severity::Informational, t!("prepare-choose-drivers"), String::new()),
-        ReadyStatus::Updates => {
-            (Severity::Informational, t!("ready-banner-updates-title"), t!("ready-banner-updates-message"))
-        }
-        ReadyStatus::WindowsTerms => {
-            let release = state.windows_transition().map_or("", |(transition, _)| transition.target_release);
-            (
-                Severity::Informational,
-                t!("ready-banner-terms-title"),
-                t!("ready-banner-terms-message", release = release),
-            )
-        }
-        // A look for the offer while Atlas waits for it leaves the live bar
-        // as it was, so only a change is announced.
-        ReadyStatus::Updating
-            if state.offer_wait_running()
-                && matches!(
-                    state.preparation,
-                    Preparation::Running {
-                        stage: crate::services::preparation::Stage::WindowsSearch
-                            | crate::services::preparation::Stage::Verify,
-                        ..
-                    }
-                ) =>
-        {
-            let release =
-                state.transition_request().map(|request| request.target_release).unwrap_or_default();
-            (
-                Severity::Informational,
-                t!("prepare-not-offered-title", release = release.as_str()),
-                t!("ready-banner-not-offered-message"),
-            )
-        }
-        ReadyStatus::Updating => {
-            let message = if state.preparation == Preparation::WaitingExternal {
-                t!("prepare-previous-worker")
-            } else if state.preparation_cancel.load(Ordering::Relaxed) {
-                t!("prepare-stop-description")
-            } else {
-                t!("ready-banner-updating-message")
-            };
-            (Severity::Informational, t!("ready-banner-updating-title"), message)
-        }
-        ReadyStatus::UpdatesStopped => (
-            Severity::Informational,
-            t!("ready-banner-updates-stopped-title"),
-            t!("ready-banner-updates-stopped-message"),
-        ),
-        ReadyStatus::UpdatesResumed => (
-            Severity::Informational,
-            t!("ready-banner-updates-resumed-title"),
-            t!("ready-banner-updates-resumed-message"),
-        ),
-        ReadyStatus::UpdatesFailed => {
-            // A move between Windows releases that stopped is named as such,
-            // as the update card does.
-            let failure = state.preparation_progress.as_ref().and_then(|progress| progress.failure());
-            let reason =
-                failure.and_then(|failure| failure.reason.as_deref()).filter(|r| r.starts_with("feature-"));
-            let release =
-                state.transition_request().map(|request| request.target_release).unwrap_or_default();
-            match (failure, reason) {
-                (Some(failure), Some(_)) if failure.not_offered() => (
-                    Severity::Informational,
-                    t!("prepare-not-offered-title", release = release.as_str()),
-                    t!("ready-banner-not-offered-message"),
-                ),
-                (Some(_), Some(_)) => (
-                    Severity::Error,
-                    t!("prepare-transition-failed-title", release = release.as_str()),
-                    t!("ready-banner-transition-failed-message"),
-                ),
-                _ => (Severity::Error, t!("prepare-failed-title"), t!("ready-banner-updates-failed-message")),
-            }
-        }
-        ReadyStatus::UpdatesUnconfirmed => {
-            (Severity::Warning, t!("prepare-unconfirmed-title"), t!("ready-banner-updates-failed-message"))
-        }
-        ReadyStatus::UpdatesRestart => {
-            let severity =
-                if state.preparation_problem.is_some() { Severity::Error } else { Severity::Warning };
-            let message = match state.preparation {
-                Preparation::SavingRestart => t!("prepare-saving-restart"),
-                Preparation::Restarting => t!("prepare-shutdown-comment"),
-                _ => t!("ready-banner-reboot-message"),
-            };
-            (severity, t!("prepare-reboot-title"), message)
-        }
-        ReadyStatus::Warnings => {
-            (Severity::Warning, t!("ready-banner-warnings-title"), t!("ready-banner-warnings-message"))
-        }
-        ReadyStatus::Ready => (Severity::Success, t!("ready-banner-ok-title"), t!("ready-banner-ok-message")),
-    };
-    InfoBar::new(severity, title, message).id("ready-banner")
 }
 
 #[cfg(test)]
@@ -871,5 +1208,14 @@ mod tests {
         assert!(!offers_fix(&result(CheckId::ThirdPartyAntivirus, Verdict::Warn)));
         assert!(offers_fix(&result(CheckId::Activation, Verdict::Warn)));
         assert!(!offers_fix(&result(CheckId::Power, Verdict::Pass)));
+    }
+
+    #[test]
+    fn the_checks_status_counts_what_updating_takes_care_of_on_its_own() {
+        crate::i18n::testing::english(|| {
+            assert_eq!(checks_status(9, 9, 0, false), "9 checks passed");
+            assert_eq!(checks_status(5, 9, 0, true), "5 of 9 checks passed");
+            assert_eq!(checks_status(8, 9, 1, false), "8 of 9 checks passed · 1 handled by updating");
+        });
     }
 }

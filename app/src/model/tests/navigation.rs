@@ -4,7 +4,7 @@ use crate::model::test_harness::{
     act, all_off, fixture, marking_package, new_model, read, run_model_test, save_draft, settle, wait_for,
     walk_to_install,
 };
-use crate::model::{AppModel, Page, Step};
+use crate::model::{AppModel, Page, ScreenKind, Step};
 use crate::services::installer::InstallOutcome;
 use crate::services::security::{SecurityStatus, Switch};
 use crate::services::settings::{self, InstallDraft};
@@ -122,20 +122,25 @@ fn no_flow_begins_while_settings_are_put_back() {
 }
 
 /// Back on Your choices steps from the screen showing, also when a draft's
-/// index is past the last screen of a package that has fewer.
+/// index is past the last screen, as one saved by an app with a screen per
+/// question can be.
 #[test]
 fn back_steps_from_the_options_screen_that_shows() {
     run_model_test(|mut cx| async move {
-        let (_temp, _, env) = fixture("model-options-back");
+        use crate::model::OptionScreen;
+        use crate::services::atlas_state::InstallIdentity;
+        let (_temp, machine, env) = fixture("model-options-back");
+        // An update with nothing recorded: how to update, then the questions.
+        *machine.identity.lock().unwrap() = Some(InstallIdentity::Installed("0.6.0".into()));
         let model = new_model(&mut cx, env);
         wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
         act(&mut cx, &model, |m, cx| {
             m.start_flow_at(Step::Options, cx);
-            let last = m.option_screens().len() - 1;
-            assert!(last > 0, "the built-in package has more than one screen");
-            m.option_screen = last + 3;
+            assert_eq!(m.option_screens().len(), 2, "{:?}", m.option_screens());
+            m.option_screen = 5;
             m.previous_step(cx);
-            assert_eq!((m.flow.step, m.current_option_screen()), (Step::Options, last - 1));
+            assert_eq!(m.flow.step, Step::Options);
+            assert_eq!(m.option_screens()[m.current_option_screen()], OptionScreen::UpdatePath);
         });
         settle(&cx, &model).await;
     });
@@ -153,7 +158,7 @@ fn a_change_link_returns_to_the_summary() {
         act(&mut cx, &model, |m, cx| m.next_step(cx));
         assert_eq!(read(&cx, &model, |m| m.flow.step), Step::Install);
 
-        act(&mut cx, &model, |m, cx| m.edit_options(0, cx));
+        act(&mut cx, &model, |m, cx| m.edit_options(ScreenKind::Defender, cx));
         read(&cx, &model, |m| {
             assert_eq!(m.flow.step, Step::Options);
             assert!(m.returning_to_install);
@@ -166,7 +171,7 @@ fn a_change_link_returns_to_the_summary() {
         });
 
         // A switch was turned back on meanwhile: Windows Security comes first.
-        act(&mut cx, &model, |m, cx| m.edit_options(0, cx));
+        act(&mut cx, &model, |m, cx| m.edit_options(ScreenKind::Defender, cx));
         machine.set_security(SecurityStatus { real_time_protection: Switch::On, ..all_off() });
         wait_for(&cx, &model, "the new reading", |m| m.security_fresh() && !m.security_ok()).await;
         act(&mut cx, &model, |m, cx| m.next_step(cx));
@@ -176,7 +181,7 @@ fn a_change_link_returns_to_the_summary() {
         machine.set_security(all_off());
         wait_for(&cx, &model, "an all-off reading", AppModel::security_ok).await;
         act(&mut cx, &model, |m, cx| m.next_step(cx));
-        act(&mut cx, &model, |m, cx| m.edit_options(0, cx));
+        act(&mut cx, &model, |m, cx| m.edit_options(ScreenKind::Defender, cx));
         act(&mut cx, &model, |m, cx| m.previous_step(cx));
         assert!(!read(&cx, &model, |m| m.returning_to_install));
         act(&mut cx, &model, |m, cx| m.next_step(cx));

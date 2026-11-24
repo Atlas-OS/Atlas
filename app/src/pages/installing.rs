@@ -1,6 +1,7 @@
-//! Shows preparation, installation progress and the restart countdown.
-//! Failures return to the Install step, which provides the log and retry action.
-//! While the install runs, it says whether the PC restarts by itself after.
+//! Shows the install from its final checks to the restart countdown, as one
+//! screen whose bar never goes backwards: what Atlas is doing, and one line
+//! on keeping the PC on and whether it restarts by itself. Failures return to
+//! the Install step, which provides the log and retry action.
 
 use gpui::{
     AnyElement, Context, Entity, IntoElement, ParentElement, Render, Role, ScrollHandle, Styled, Window, div,
@@ -8,15 +9,14 @@ use gpui::{
 };
 
 use super::install::details_toggle;
-use super::{LogIds, LogView, card_header, focusable_heading, log_actions, on_model};
-use crate::i18n::fmt;
-use crate::model::{AppModel, RunState};
+use super::{LogIds, LogView, card_header, detail_text, focusable_heading, log_actions, on_model};
+use crate::model::{AppModel, RestartProblem, RunState};
 use crate::services::installer::Phase;
 use crate::t;
 use crate::theme::ActiveTheme;
 use crate::ui::{
-    Button, FocusHandles, Icon, InfoBar, ProgressBar, ProgressRing, ScrollbarState, Severity, Typography,
-    a11y_text, card, focus_reveal, icon_sized, scrollbar,
+    Button, FocusHandles, Icon, InfoBar, ProgressBar, ScrollbarState, Severity, Typography, a11y_text, card,
+    focus_reveal, icon_sized, scrollbar,
 };
 
 /// Log lines drawn; the whole log is in the file.
@@ -29,17 +29,39 @@ const LOG_IDS: LogIds = LogIds {
     open: "installing-open",
 };
 
-/// The most progress shown, in percent, while the installer runs. The plan can
-/// finish before the installer exits, and 100% waits for its result.
-const RUNNING_PERCENT_CAP: f32 = 99.;
+/// The most progress shown, as a fraction, while the installer runs. The
+/// plan can finish before the installer exits, and the end waits for its
+/// result.
+const RUNNING_PROGRESS_CAP: f32 = 0.99;
+
+/// What the view shows. The final checks and the installer's run are one
+/// screen, so moving from one to the other moves nothing.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Screen {
+    Installing,
+    Installed,
+    Other,
+}
+
+impl Screen {
+    fn of(run: RunState) -> Self {
+        match run {
+            RunState::Preparing | RunState::Running => Screen::Installing,
+            RunState::Finished(_) if run.succeeded() => Screen::Installed,
+            _ => Screen::Other,
+        }
+    }
+}
 
 pub struct InstallingPage {
     model: Entity<AppModel>,
     scroll: ScrollHandle,
     scrollbar: ScrollbarState,
     log: LogView,
+    /// The log, and the raw error of anything that went wrong, folded away
+    /// by default.
     show_details: bool,
-    shown_run: Option<RunState>,
+    shown_screen: Option<Screen>,
     /// Whether the last frame showed the automatic restart as cancelled.
     shown_restart_cancelled: bool,
     /// Whether Windows had been asked to restart last frame.
@@ -47,7 +69,6 @@ pub struct InstallingPage {
     /// The restarts that didn't happen, as last announced.
     shown_restart_epoch: u64,
     focus: FocusHandles,
-    diagnostics: super::Diagnostics,
 }
 
 impl InstallingPage {
@@ -59,18 +80,29 @@ impl InstallingPage {
             scrollbar: ScrollbarState::new(),
             log: LogView::default(),
             show_details: false,
-            shown_run: None,
+            shown_screen: None,
             shown_restart_cancelled: false,
             shown_restarting: false,
             shown_restart_epoch: 0,
             focus: FocusHandles::default(),
-            diagnostics: super::Diagnostics::new(cx),
         }
     }
 
     fn log_view(&mut self, cx: &mut Context<Self>) -> AnyElement {
         let state = self.model.read(cx);
         self.log.render(LOG_IDS, 220., LOG_LINES_SHOWN, &state.attempt, cx)
+    }
+}
+
+/// What the view says Atlas is doing while it installs, as a short verb
+/// phrase: the final checks and the installer's own first checks read the
+/// same, so the two read as one step.
+fn installing_label(run: RunState, phase: Phase) -> String {
+    match (run, phase) {
+        (RunState::Preparing, _) | (_, Phase::Preflight) => t!("installing-checking-label"),
+        (_, Phase::Staging) => t!("installing-staging-label"),
+        (_, Phase::Applying) => t!("installing-applying-label"),
+        (_, Phase::Done) => t!("installing-finishing-label"),
     }
 }
 
@@ -86,14 +118,13 @@ impl Render for InstallingPage {
             run,
             phase,
             countdown,
-            progress,
             cancelled,
             restarting,
             cancellable,
-            started_at,
             output_problem,
             restart_problem,
             restarts_after,
+            plan_progress,
         ) = {
             let state = self.model.read(cx);
             (
@@ -101,25 +132,27 @@ impl Render for InstallingPage {
                 state.flow.run,
                 state.attempt.phase,
                 state.restart_countdown(),
-                state.restart_progress(),
                 state.attempt.restart_cancelled,
                 state.attempt.restart_requested,
                 state.restart_cancellable(),
-                state.session.as_ref().map(|s| s.started_at.clone()),
                 state.attempt.output_problem.clone(),
                 state.attempt.restart_problem.clone(),
-                state.session.as_ref().is_some_and(|s| s.request.restart),
+                // The final checks run before there's a record, so they say
+                // what the request will ask for.
+                state.install_request().is_some_and(|request| request.restart),
+                state.attempt.plan_progress,
             )
         };
-        let plan_progress = self.model.read(cx).attempt.plan_progress;
-        // Announce each change of state by focusing the heading. A countdown
+        let screen = Screen::of(run);
+        // Announce each change of screen by focusing the heading. A countdown
         // focuses Restart later instead, so a key press keeps the PC from
         // restarting before work is saved. "Restart later" removes the focused
         // button, so focus returns to the heading.
-        if self.shown_run != Some(run) || (cancelled && !self.shown_restart_cancelled) {
-            self.shown_run = Some(run);
+        if self.shown_screen != Some(screen) || (cancelled && !self.shown_restart_cancelled) {
+            self.shown_screen = Some(screen);
             self.scroll.set_offset(gpui::Point::default());
-            let focus = if run.succeeded() && cancellable { &later_focus } else { &heading_focus };
+            let focus =
+                if screen == Screen::Installed && cancellable { &later_focus } else { &heading_focus };
             window.focus(focus, cx);
         }
         self.shown_restart_cancelled = cancelled;
@@ -130,44 +163,36 @@ impl Render for InstallingPage {
         }
         self.shown_restarting = restarting;
         // A restart Windows refused, or didn't act on, is announced, and
-        // Restart now is back right under it.
+        // Try again or Restart now is back right under it.
         if std::mem::replace(&mut self.shown_restart_epoch, restart_epoch) != restart_epoch {
             let target = if restart_problem.is_some() { &problem_focus } else { &heading_focus };
             window.focus(target, cx);
             focus_reveal::request(window, cx);
         }
 
-        let succeeded = run.succeeded();
-        let (title, line): (String, String) = match run {
-            RunState::Preparing => (t!("installing-checking-title"), t!("installing-checking-line")),
-            RunState::Running => (
-                t!("installing-title"),
-                match phase {
-                    Phase::Preflight => t!("installing-phase-preflight"),
-                    Phase::Staging => t!("installing-phase-staging"),
-                    Phase::Applying => t!("installing-phase-applying"),
-                    Phase::Done => t!("installing-phase-done"),
-                },
-            ),
-            RunState::Finished(_) if succeeded => (
+        let (title, line): (String, String) = match screen {
+            Screen::Installing => (t!("installing-title"), installing_label(run, phase)),
+            Screen::Installed => (
                 t!("installing-installed-title"),
                 match (restarting, countdown, cancelled) {
                     (true, _, _) | (_, Some(0), _) => t!("restart-now-message"),
-                    (_, Some(seconds), _) => t!("restart-countdown", seconds = seconds),
+                    (_, Some(seconds), _) => t!("installing-restart-countdown", seconds = seconds),
+                    // The bar under the heading says what to do.
+                    _ if restart_problem.is_some() => String::new(),
                     (_, None, true) => t!("restart-stopped"),
                     (_, None, false) => t!("restart-needed"),
                 },
             ),
-            _ => (t!("install-title"), String::new()),
+            Screen::Other => (t!("install-title"), String::new()),
         };
-        let started = started_at.as_deref().and_then(fmt::parse_local).map(|when| {
-            let minutes = (chrono::Local::now().signed_duration_since(when).num_minutes()).max(0);
-            let time = fmt::time(&when);
-            match minutes {
-                0 => t!("installing-started-just-now", time = time),
-                n => t!("installing-started-minutes", time = time, minutes = n),
-            }
-        });
+        // While it counts down, there's still time to save work elsewhere.
+        let counting = screen == Screen::Installed && !restarting && countdown.is_some_and(|left| left > 0);
+        let save = counting.then(|| t!("installing-restart-save"));
+        // What the heading and the restart buttons read with them.
+        let said = match &save {
+            Some(save) => format!("{line} {save}"),
+            None => line.clone(),
+        };
 
         // The mark, the state, the one line that matters, then progress.
         let mut column = div()
@@ -179,7 +204,7 @@ impl Render for InstallingPage {
             .gap(px(12.))
             .flex_shrink_0()
             .my_auto()
-            .child(if succeeded {
+            .child(if screen == Screen::Installed {
                 icon_sized(Icon::Completed, 48.).text_color(theme.success).into_any_element()
             } else {
                 svg().path("brand/atlas-mark.svg").size(px(48.)).text_color(theme.brand).into_any_element()
@@ -187,82 +212,67 @@ impl Render for InstallingPage {
             .child(
                 focusable_heading("installing-heading", 1, title, &heading_focus, cx)
                     .m(px(-1.))
-                    // Focused, it reads the line under it too: what happens next.
-                    .when(!line.is_empty(), |this| this.aria_description(line.clone()))
+                    // Focused, it reads the lines under it too: what happens next.
+                    .when(!said.is_empty(), |this| this.aria_description(said.clone()))
                     .text_center(),
             )
-            .child(
-                div()
-                    .type_body()
-                    .text_color(theme.text_secondary)
-                    .text_center()
-                    .child(a11y_text("installing-line", line.clone())),
-            );
+            .when(!line.is_empty(), |this| {
+                this.child(
+                    div()
+                        .flex()
+                        .flex_col()
+                        .items_center()
+                        .type_body()
+                        .text_color(theme.text_secondary)
+                        .text_center()
+                        .child(a11y_text("installing-line", line.clone()))
+                        .when_some(save, |this, save| this.child(a11y_text("installing-save", save))),
+                )
+            });
 
-        match run {
-            RunState::Preparing => {
-                column = column.child(div().pt(px(8.)).child(ProgressRing::new().size(28.)));
-            }
-            RunState::Running => {
-                // The bar reports the whole percent the label shows.
-                let percent = plan_progress.map(|p| (p.fraction() * 100.).floor().min(RUNNING_PERCENT_CAP));
-                let mut progress_group =
-                    div().w_full().flex().flex_col().gap(px(8.)).pt(px(12.)).child(ProgressBar::new(
-                        "installing-progress",
-                        t!("install-progress"),
-                        percent.map(|percent| percent / 100.),
-                    ));
-                let metadata = div()
-                    .flex()
-                    .flex_wrap()
-                    .items_center()
-                    .justify_between()
-                    .gap(px(8.))
-                    .when_some(started, |this, text| {
-                        this.child(
+        match screen {
+            Screen::Installing => {
+                // Only the plan's own count moves the bar, so it never goes
+                // backwards; until the plan runs, it sweeps. The bar is named
+                // after what Atlas is doing and announces it as that changes.
+                let fraction = plan_progress
+                    .filter(|_| run == RunState::Running)
+                    .map(|progress| progress.fraction().min(RUNNING_PROGRESS_CAP));
+                let keep_on =
+                    if restarts_after { t!("installing-keep-on-restart") } else { t!("installing-keep-on") };
+                column = column.child(
+                    div()
+                        .w_full()
+                        .flex()
+                        .flex_col()
+                        .gap(px(8.))
+                        .pt(px(12.))
+                        .child(ProgressBar::new("installing-progress", line.clone(), fraction).live())
+                        // Said while there is still time to save work elsewhere.
+                        .child(
                             div()
                                 .type_caption()
                                 .text_color(theme.text_secondary)
-                                .child(a11y_text("installing-started", text)),
-                        )
-                    })
-                    .when_some(percent, |this, percent| {
-                        let percent = t!("install-percent", percent = percent as u32);
-                        this.child(
-                            div()
-                                .type_caption()
-                                .text_color(theme.text_secondary)
-                                .child(a11y_text("installing-percent", percent)),
-                        )
-                    });
-                progress_group = progress_group.child(metadata).when(restarts_after, |this| {
-                    // Said while there is still time to save work elsewhere.
-                    this.child(
-                        div()
-                            .type_caption()
-                            .text_color(theme.text_secondary)
-                            .child(a11y_text("installing-restart-auto", t!("installing-restart-auto"))),
-                    )
-                });
-                column = column.child(progress_group);
+                                .text_center()
+                                .child(a11y_text("installing-keep-on", keep_on)),
+                        ),
+                );
             }
-            RunState::Finished(_) if succeeded => {
-                if let Some(progress) = progress {
-                    // Decorative: the sentence above and the buttons' group
-                    // name give the seconds in words.
+            Screen::Installed => {
+                // A restart that didn't happen: what to do, with the retry,
+                // in the words Home uses for the restart still owed. Windows'
+                // own words are behind Show details.
+                if restart_problem.is_some() {
                     column = column.child(
-                        div()
-                            .w_full()
-                            .pt(px(8.))
-                            .child(ProgressBar::new("restart-progress", "", Some(progress)).decorative()),
-                    );
-                }
-                // A restart that didn't happen, before the buttons that retry it.
-                if let Some(problem) = &restart_problem {
-                    column = column.child(
-                        InfoBar::new(Severity::Warning, t!("home-restart-title"), problem.text())
+                        InfoBar::new(Severity::Warning, t!("home-restart-title"), t!("home-restart-failed"))
                             .id("restart-problem")
-                            .focus_handle(problem_focus.clone()),
+                            .focus_handle(problem_focus.clone())
+                            .action(
+                                Button::new("restart-retry", t!("common-try-again"))
+                                    .accent()
+                                    .icon(Icon::Power)
+                                    .on_click(on_model(&model, |m, cx| m.restart_now(cx))),
+                            ),
                     );
                 }
                 let mut buttons =
@@ -270,25 +280,12 @@ impl Render for InstallingPage {
                 if restarting {
                     // Windows has the request; nothing here can take it back.
                 } else if cancellable {
-                    // Both standard: the countdown is the default, and Restart
-                    // later has the keyboard. Entering the group reads the countdown.
+                    // Restart now is the countdown's own end, so it's the
+                    // accent; Restart later has the keyboard. Entering the
+                    // group reads the countdown.
                     buttons = buttons
                         .role(Role::Group)
-                        .aria_label(line.clone())
-                        .child(
-                            Button::new("restart-now", t!("restart-now"))
-                                .icon(Icon::Power)
-                                .on_click(on_model(&model, |m, cx| m.restart_now(cx))),
-                        )
-                        .child(
-                            Button::new("stop-restart", t!("restart-dont-now"))
-                                .focus_handle(later_focus.clone())
-                                // The keyboard's default: its focus ring shows from the start.
-                                .keyboard_default()
-                                .on_click(on_model(&model, |m, cx| m.cancel_restart(cx))),
-                        );
-                } else {
-                    buttons = buttons
+                        .aria_label(said.clone())
                         .child(
                             Button::new("restart-now", t!("restart-now"))
                                 .accent()
@@ -296,26 +293,48 @@ impl Render for InstallingPage {
                                 .on_click(on_model(&model, |m, cx| m.restart_now(cx))),
                         )
                         .child(
+                            Button::new("stop-restart", t!("restart-dont-now"))
+                                .focus_handle(later_focus.clone())
+                                // Focus starts here, so Enter doesn't restart; Restart now is the
+                                // accent, and the ring shows only after a key press, as elsewhere.
+                                .on_click(on_model(&model, |m, cx| m.cancel_restart(cx))),
+                        );
+                } else {
+                    // After a refusal, Try again in its bar is the restart.
+                    buttons = buttons
+                        .when(restart_problem.is_none(), |this| {
+                            this.child(
+                                Button::new("restart-now", t!("restart-now"))
+                                    .accent()
+                                    .icon(Icon::Power)
+                                    .on_click(on_model(&model, |m, cx| m.restart_now(cx))),
+                            )
+                        })
+                        .child(
                             Button::new("installing-done", t!("common-done"))
                                 .on_click(on_model(&model, |m, cx| m.cancel_flow(cx))),
                         );
                 }
                 column = column.child(buttons);
             }
-            _ => {}
+            Screen::Other => {}
         }
 
-        if let Some(problem) = output_problem {
+        // The installer carries on whether or not Atlas can follow its log.
+        if output_problem.is_some() {
             column = column.child(
-                div()
-                    .type_caption()
-                    .text_color(theme.caution)
-                    .text_center()
-                    .child(a11y_text("installing-output", t!("output-problem-message", error = problem))),
+                InfoBar::new(Severity::Warning, t!("output-problem-title"), t!("installing-output-problem"))
+                    .id("installing-output")
+                    .action(
+                        Button::new("installing-output-log", t!("common-open-log-folder"))
+                            .icon(Icon::Folder)
+                            .on_click(on_model(&model, |m, cx| m.reveal_log(cx))),
+                    ),
             );
         }
 
-        // The log stays a click away, never in the way.
+        // The log stays a click away, never in the way, with Windows' or the
+        // log reader's own words for what went wrong above it, untranslated.
         let show_details = self.show_details;
         column = column.child(div().pt(px(8.)).child(details_toggle(
             "installing-details",
@@ -325,16 +344,32 @@ impl Render for InstallingPage {
             cx,
         )));
         if show_details {
+            let errors: Vec<(&str, String)> = restart_problem
+                .map(|RestartProblem::Start { error }| ("restart-error", error))
+                .into_iter()
+                .chain(output_problem.map(|error| ("output-error", error)))
+                .collect();
             let actions = log_actions(&model, LOG_IDS, cx);
             column = column.child(
                 card(cx)
                     .w_full()
-                    .child(card_header(cx, "log", t!("common-install-log"), Some(actions.into_any_element())))
-                    .child(self.log_view(cx))
-                    .child(div().p(px(16.)).child(self.diagnostics.content(&self.model, cx))),
+                    .child(card_header(cx, "log", t!("common-install-log"), actions.into_any_element()))
+                    .when(!errors.is_empty(), |card| {
+                        card.child(
+                            div()
+                                .flex()
+                                .flex_col()
+                                .gap(px(2.))
+                                .px(px(16.))
+                                .pt(px(8.))
+                                .type_caption()
+                                .text_color(theme.text_secondary)
+                                .children(errors.into_iter().map(|(key, error)| detail_text(key, error))),
+                        )
+                    })
+                    .child(self.log_view(cx)),
             );
         }
-        self.diagnostics.settle(&self.model, window, cx);
 
         div()
             .relative()
@@ -353,5 +388,31 @@ impl Render for InstallingPage {
                     .child(column),
             )
             .child(scrollbar(&self.scroll, &self.scrollbar))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::services::installer::InstallOutcome;
+
+    /// The final checks and the installer's run are one screen, so moving
+    /// from one to the other neither moves focus nor changes the heading,
+    /// and both start by checking the PC.
+    #[test]
+    fn the_final_checks_and_the_install_read_as_one_screen() {
+        assert_eq!(Screen::of(RunState::Preparing), Screen::of(RunState::Running));
+        assert_eq!(Screen::of(RunState::Finished(InstallOutcome::Succeeded)), Screen::Installed);
+        assert_eq!(Screen::of(RunState::Finished(InstallOutcome::Failed(1))), Screen::Other);
+        crate::i18n::testing::english(|| {
+            let checking = installing_label(RunState::Preparing, Phase::Preflight);
+            assert_eq!(installing_label(RunState::Running, Phase::Preflight), checking);
+            let labels = [Phase::Staging, Phase::Applying, Phase::Done]
+                .map(|phase| installing_label(RunState::Running, phase));
+            for label in std::iter::once(&checking).chain(&labels) {
+                assert!(label.ends_with('…'), "a progress label ends in an ellipsis: {label}");
+            }
+            assert!(labels.iter().all(|label| *label != checking), "each phase says what it does");
+        });
     }
 }

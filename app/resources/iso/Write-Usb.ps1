@@ -1,6 +1,7 @@
 <#
 .SYNOPSIS
-    Lists eligible USB drives, writes Windows installation media to one, and ejects it.
+    Lists USB drives, checks an ISO, writes Windows installation media to a drive, and
+    ejects it.
 .DESCRIPTION
     The elevated USB worker. The media boots from the ISO's own Microsoft-signed UEFI
     files; a WIM over 4 GiB is split for FAT32. Request values are data, and a disk
@@ -11,20 +12,23 @@
     it elevated with -File. It writes lines for the app on standard output:
     ATLAS_PROGRESS with the stage and bytes done, ATLAS_ERROR with a typed failure
     reason, and ATLAS_RESULT with the outcome. A file named cancel in the job folder
-    stops the write at the next checkpoint.
+    stops the job at the next checkpoint.
 .PARAMETER RequestFile
     The request Atlas Manager writes in the job folder: the confirmed drive, the source
     ISO, the app and the Atlas package's supported builds.
 .PARAMETER Operation
-    List reports eligible drives, Write erases the confirmed drive and writes the media,
-    and Eject ejects the confirmed drive.
+    List reports USB drives, marking those too small to write. Check reads the source
+    ISO, without a drive, and reports the bytes a write copies, or that it's busy while
+    another worker writes or ejects. Write erases the confirmed drive, writes and
+    verifies the media, then ejects the drive. Eject ejects the confirmed drive again
+    after Windows refused.
 .NOTES
     Exit codes: 0 done, 1 failed or cancelled. The error is on standard error and in
     error.txt in the job folder.
 #>
 param(
     [Parameter(Mandatory=$true)][string]$RequestFile,
-    [ValidateSet('List','Write','Eject')][string]$Operation = 'List'
+    [ValidateSet('List','Check','Write','Eject')][string]$Operation = 'List'
 )
 # This elevated worker must never autoload a module from an inherited user path.
 $env:PSModulePath = [IO.Path]::Combine($PSHOME, 'Modules')
@@ -33,9 +37,11 @@ $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
 $ProgressPreference = 'SilentlyContinue'
 
-# A typed reason the app turns into advice; the message goes to the log.
-function Fail([string]$Reason, [string]$Message) {
-    [Console]::Out.WriteLine("ATLAS_ERROR:$Reason")
+# A typed reason the app turns into advice; the message goes to the log. The app
+# reads a marker as the reason the job failed, so a caller that handles the failure
+# itself, without ending the job, passes -Quiet.
+function Fail([string]$Reason, [string]$Message, [switch]$Quiet) {
+    if (-not $Quiet) { [Console]::Out.WriteLine("ATLAS_ERROR:$Reason") }
     throw $Message
 }
 
@@ -54,36 +60,49 @@ function Get-AtlasUsbIdentity {
         uniqueId = ([string]$Disk.UniqueId).Trim()
         path = [string]$Disk.Path
         size = [long]$Disk.Size
-        volumes = if ($IncludeVolumes) { (@(Get-Partition -DiskNumber $Disk.Number -ErrorAction SilentlyContinue | Get-Volume -ErrorAction SilentlyContinue | ForEach-Object {
-            if ($_.DriveLetter) { '{0}: {1}' -f $_.DriveLetter,$_.FileSystemLabel }
-        }) -join ', ') } else { '' }
+        # Always an array, so the app reads one letter as a list too.
+        letters = @(if ($IncludeVolumes) {
+            Get-Partition -DiskNumber $Disk.Number -ErrorAction SilentlyContinue | Get-Volume -ErrorAction SilentlyContinue |
+                Where-Object { $_.DriveLetter } | ForEach-Object { [string]$_.DriveLetter }
+        })
     }
 }
 
-function Test-AtlasUsbDisk {
+# Every rule but the smallest size, so the list can show a drive too small to use.
+function Test-AtlasUsbCandidate {
     param($Disk)
     return ($null -ne $Disk -and [string]$Disk.BusType -eq 'USB' -and
         -not $Disk.IsBoot -and -not $Disk.IsSystem -and -not $Disk.IsReadOnly -and
-        -not $Disk.IsOffline -and $Disk.Size -ge 8GB -and $Disk.Size -le 2TB -and
+        -not $Disk.IsOffline -and $Disk.Size -gt 0 -and $Disk.Size -le 2TB -and
         -not [string]::IsNullOrWhiteSpace([string]$Disk.UniqueId) -and
         -not [string]::IsNullOrWhiteSpace([string]$Disk.Path))
 }
 
+function Test-AtlasUsbDisk {
+    param($Disk)
+    return ((Test-AtlasUsbCandidate $Disk) -and $Disk.Size -ge 8GB)
+}
+
+# The app carries the user's agreement to erase a drive only by these same parts
+# of its identity (Drive::same_identity in src/services/usb.rs, which a test keeps
+# in step). -Quiet leaves the marker out, as Fail does.
 function Assert-AtlasUsbIdentity {
-    param($Expected)
+    param($Expected, [switch]$Quiet)
     if ($null -eq $Expected) { throw 'No USB drive was confirmed.' }
     # A missing disk is one that changed: it was removed or renumbered.
     $disk = Get-Disk -Number ([int]$Expected.number) -ErrorAction SilentlyContinue
-    if (-not (Test-AtlasUsbDisk $disk)) { Fail 'drive-changed' 'The selected drive is not an eligible USB disk.' }
+    if (-not (Test-AtlasUsbDisk $disk)) { Fail 'drive-changed' 'The selected drive is not an eligible USB disk.' -Quiet:$Quiet }
     $actual = Get-AtlasUsbIdentity $disk
     foreach ($key in @('number','name','serial','uniqueId','path','size')) {
         if ([string]$actual.$key -cne [string]$Expected.$key) {
-            Fail 'drive-changed' 'The USB drive changed. Select it again and confirm erasing it.'
+            Fail 'drive-changed' 'The USB drive changed. Select it again and confirm erasing it.' -Quiet:$Quiet
         }
     }
     return $disk
 }
 
+# Without a $Disk, as when checking an ISO before a drive is chosen, only the
+# path rules apply.
 function Assert-AtlasUsbPaths {
     param($Disk, [string[]]$Paths)
     foreach ($path in $Paths) {
@@ -104,7 +123,7 @@ function Assert-AtlasUsbPaths {
             if ($_.CategoryInfo.Category -eq 'ObjectNotFound') { Fail 'source-location' 'The ISO, app or working files are on a drive with no local disk partition. Move them to a local folder first.' }
             throw
         }
-        if ($partition.DiskNumber -eq $Disk.Number) { Fail 'source-location' 'The USB contains the ISO, app or working files. Move them to another drive first.' }
+        if ($null -ne $Disk -and $partition.DiskNumber -eq $Disk.Number) { Fail 'source-location' 'The USB contains the ISO, app or working files. Move them to another drive first.' }
     }
 }
 
@@ -356,13 +375,79 @@ function Get-AtlasUsbMediaInfo {
 }
 
 function Write-AtlasUsbDriveList {
-    $drives = @(Get-Disk | Where-Object { Test-AtlasUsbDisk $_ } | ForEach-Object { Get-AtlasUsbIdentity $_ -IncludeVolumes })
+    $drives = @(Get-Disk | Where-Object { Test-AtlasUsbCandidate $_ } | ForEach-Object {
+        $identity = Get-AtlasUsbIdentity $_ -IncludeVolumes
+        $identity | Add-Member -NotePropertyName tooSmall -NotePropertyValue (-not (Test-AtlasUsbDisk $_))
+        $identity
+    })
     Write-Output ('ATLAS_RESULT:' + (@{ drives=$drives } | ConvertTo-Json -Depth 5 -Compress))
 }
 
-function Invoke-AtlasUsbEject {
+# Mounts the ISO unless it already is. The result says whether this worker
+# mounted it, so it dismounts only its own mount.
+function Mount-AtlasUsbSource {
+    param([string]$Source)
+    $image = Get-DiskImage -ImagePath $Source -ErrorAction SilentlyContinue
+    if ($image -and $image.Attached) { return [pscustomobject]@{ image=$image; owned=$false } }
+    return [pscustomobject]@{ image=(Mount-DiskImage -ImagePath $Source -PassThru); owned=$true }
+}
+
+function Get-AtlasUsbSourceRoot {
+    param($Mount)
+    $volume = @($Mount.image | Get-Volume)
+    if ($volume.Count -ne 1 -or -not $volume[0].DriveLetter) { Fail 'iso-unsupported' 'The ISO has no readable filesystem.' }
+    return "$($volume[0].DriveLetter):\"
+}
+
+# The files a write copies from the mounted ISO at $Root, and its install image.
+# Refuses media the writer can't put on FAT32, and an image too large to split in
+# the working space left.
+function Get-AtlasUsbSourcePlan {
+    param([string]$Root, [int[]]$SupportedBuilds)
+    $mediaInfo = Get-AtlasUsbMediaInfo $Root $SupportedBuilds
+    $files = @(Get-ChildItem -LiteralPath $Root -Recurse -File -Force | ForEach-Object {
+        if (($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { Fail 'iso-unsupported' 'The ISO contains a linked file.' }
+        [pscustomobject]@{ source=$_.FullName; relative=$_.FullName.Substring($Root.Length); bytes=$_.Length; hash=$null }
+    })
+    $large = @($files | Where-Object { $_.bytes -ge 4GB })
+    foreach ($file in $large) { if ($file.source -ine $mediaInfo.imagePath) { Fail 'iso-unsupported' "This file exceeds the FAT32 limit: $($file.relative)" } }
+    if ($large.Count -gt 0) {
+        $workVolume = Get-Volume -DriveLetter $PSScriptRoot.Substring(0,1)
+        # The working WIM and its split parts, with room for an ESD export, which
+        # comes out larger than its source.
+        $needed = [long]$large[0].bytes * 3 + 2GB
+        if ($workVolume.SizeRemaining -lt $needed) { Fail 'working-space' 'There is not enough working space to prepare the Windows image.' }
+    }
+    return [pscustomobject]@{ imagePath=$mediaInfo.imagePath; files=$files; large=$large }
+}
+
+# What a write would refuse about the source, found before a drive is chosen, so
+# the app can say so before anything is erased.
+function Invoke-AtlasUsbCheck {
     param($Request)
-    $disk = Assert-AtlasUsbIdentity $Request.drive
+    Assert-AtlasUsbPaths $null @($Request.source,$RequestFile,$Request.app)
+    $source = (Get-Item -LiteralPath $Request.source).FullName
+    if ([IO.Path]::GetExtension($source) -ine '.iso') { Fail 'iso-unsupported' 'Select a Windows installation ISO.' }
+    $mount = $null
+    try {
+        Assert-AtlasUsbContinue
+        $mount = Mount-AtlasUsbSource $source
+        $root = Get-AtlasUsbSourceRoot $mount
+        Import-Module Dism
+        $plan = Get-AtlasUsbSourcePlan $root @($Request.supportedBuilds)
+        # A split image's parts hold what the image does. An ESD exported to a WIM
+        # comes out larger, so for one the write checks the fit again before erasing.
+        $bytes = [long](($plan.files | Measure-Object bytes -Sum).Sum)
+        Write-Output ('ATLAS_RESULT:' + (@{ checked=$true; bytes=$bytes } | ConvertTo-Json -Compress))
+    } finally {
+        if ($null -ne $mount -and $mount.owned) { Dismount-DiskImage -ImagePath $source -ErrorAction Continue | Out-Null }
+    }
+}
+
+# -Quiet when the failure doesn't end the job: a write ejects a drive it has
+# already verified, which is ready whatever the eject finds.
+function Invoke-AtlasUsbEject {
+    param($Drive, [switch]$Quiet)
     if (-not ('AtlasUsbEject' -as [type])) {
         Add-Type -TypeDefinition @'
 using System;
@@ -382,51 +467,49 @@ public static class AtlasUsbEject {
 }
 '@
     }
-    $device = Get-AtlasUsbEjectTarget $disk
-    $null = Assert-AtlasUsbIdentity $Request.drive
-    [AtlasUsbEject]::Eject($device)
-    Write-Output 'ATLAS_RESULT:{"ejected":true}'
+    # Windows refuses while something has a file on the drive open, such as a scan
+    # of the files just written. That usually ends within seconds.
+    for ($attempt = 1; ; $attempt++) {
+        $disk = Assert-AtlasUsbIdentity $Drive -Quiet:$Quiet
+        $device = Get-AtlasUsbEjectTarget $disk
+        $null = Assert-AtlasUsbIdentity $Drive -Quiet:$Quiet
+        try { [AtlasUsbEject]::Eject($device); return }
+        catch {
+            if ($attempt -ge 5) { throw }
+            Start-Sleep -Seconds 2
+        }
+    }
 }
 
 function Invoke-AtlasUsbWorker {
     $request = Read-AtlasUsbRequest $RequestFile
     if ($Operation -eq 'List') { Write-AtlasUsbDriveList; return }
-    if ($Operation -eq 'Eject') { Invoke-AtlasUsbEject $request; return }
+    if ($Operation -eq 'Check') { Invoke-AtlasUsbCheck $request; return }
+    if ($Operation -eq 'Eject') {
+        Invoke-AtlasUsbEject $request.drive
+        Write-Output 'ATLAS_RESULT:{"ejected":true}'
+        return
+    }
     $disk = Assert-AtlasUsbIdentity $request.drive
     if ($request.eraseConfirmed -ne $true) { throw 'Erasing this USB drive has not been confirmed.' }
     Assert-AtlasUsbPaths $disk @($request.source,$RequestFile,$request.app)
     $source = (Get-Item -LiteralPath $request.source).FullName
     if ([IO.Path]::GetExtension($source) -ine '.iso') { Fail 'iso-unsupported' 'Select a Windows installation ISO.' }
     $sourceLock = [IO.File]::Open($source,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
-    $ownedMount = $false
+    $mount = $null
     try {
         Write-AtlasUsbProgress 'prepare'
         Assert-AtlasUsbContinue
-        $mount = Get-DiskImage -ImagePath $source -ErrorAction SilentlyContinue
-        if (-not $mount -or -not $mount.Attached) {
-            $mount = Mount-DiskImage -ImagePath $source -PassThru
-            $ownedMount = $true
-        }
-        $volume = @($mount | Get-Volume)
-        if ($volume.Count -ne 1 -or -not $volume[0].DriveLetter) { Fail 'iso-unsupported' 'The ISO has no readable filesystem.' }
-        $root = "$($volume[0].DriveLetter):\"
+        $mount = Mount-AtlasUsbSource $source
+        $root = Get-AtlasUsbSourceRoot $mount
         Import-Module Dism
-        $mediaInfo = Get-AtlasUsbMediaInfo $root @($request.supportedBuilds)
-        $images = @($mediaInfo.imagePath)
-        $files = @(Get-ChildItem -LiteralPath $root -Recurse -File -Force | ForEach-Object {
-            if (($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { Fail 'iso-unsupported' 'The ISO contains a linked file.' }
-            [pscustomobject]@{ source=$_.FullName; relative=$_.FullName.Substring($root.Length); bytes=$_.Length; hash=$null }
-        })
-        $large = @($files | Where-Object { $_.bytes -ge 4GB })
-        foreach ($file in $large) { if ($file.source -ine $images[0]) { Fail 'iso-unsupported' "This file exceeds the FAT32 limit: $($file.relative)" } }
+        $plan = Get-AtlasUsbSourcePlan $root @($request.supportedBuilds)
+        $images = @($plan.imagePath)
+        $files = @($plan.files)
+        $large = @($plan.large)
         if ($large.Count -gt 0) {
             $scratch = Join-Path $PSScriptRoot 'split'
             [void][IO.Directory]::CreateDirectory($scratch)
-            $workVolume = Get-Volume -DriveLetter $PSScriptRoot.Substring(0,1)
-            # The working WIM and its split parts, with room for an ESD export, which
-            # comes out larger than its source.
-            $needed = [long]$large[0].bytes * 3 + 2GB
-            if ($workVolume.SizeRemaining -lt $needed) { Fail 'working-space' 'There is not enough working space to prepare the Windows image.' }
             $wim = $images[0]
             if ([IO.Path]::GetExtension($wim) -ieq '.esd') {
                 $wim = Join-Path $scratch 'install.wim'
@@ -454,9 +537,12 @@ function Invoke-AtlasUsbWorker {
         $total = [long](($files | Measure-Object bytes -Sum).Sum)
         if ($total + 512MB -gt $capacity -or @($files | Where-Object { $_.bytes -ge 4GB }).Count -gt 0) { Fail 'does-not-fit' 'The prepared files do not fit the USB installation partition.' }
         # Hash the immutable source before erasing anything. Generated SWMs stay in the job for verification.
+        $hashed = 0L
         foreach ($file in $files) {
             Assert-AtlasUsbContinue
             $file.hash = (Get-FileHash -LiteralPath $file.source -Algorithm SHA256).Hash
+            $hashed += $file.bytes
+            Write-AtlasUsbProgress 'prepare' $hashed $total
         }
         $files | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $PSScriptRoot 'manifest.json') -Encoding UTF8
         Assert-AtlasUsbContinue
@@ -479,9 +565,18 @@ function Invoke-AtlasUsbWorker {
         }
         Test-AtlasUsbCopy $files $target $request.drive $usbVolume $total
         Assert-AtlasUsbVolume $request.drive $usbVolume
-        Write-Output ('ATLAS_RESULT:' + (@{ verified=$true; driveLetter=[string]$usbVolume.DriveLetter; files=$files.Count } | ConvertTo-Json -Compress))
+        # A verified drive is ready whether or not Windows lets it go, so a refused
+        # eject is reported in the result and logged, never thrown.
+        Write-AtlasUsbProgress 'eject'
+        $ejected = $true
+        try { Invoke-AtlasUsbEject $request.drive -Quiet }
+        catch {
+            $ejected = $false
+            [Console]::Error.WriteLine("The USB drive is ready, but Windows didn't eject it: $_")
+        }
+        Write-Output ('ATLAS_RESULT:' + (@{ verified=$true; ejected=$ejected; driveLetter=[string]$usbVolume.DriveLetter; files=$files.Count } | ConvertTo-Json -Compress))
     } finally {
-        if ($ownedMount) { Dismount-DiskImage -ImagePath $source -ErrorAction Continue | Out-Null }
+        if ($null -ne $mount -and $mount.owned) { Dismount-DiskImage -ImagePath $source -ErrorAction Continue | Out-Null }
         $sourceLock.Dispose()
         # Remove only the split scratch folder; logs and manifest.json stay in the job.
         # A file still held open must not fail a verified write or replace the error
@@ -497,12 +592,19 @@ function Invoke-AtlasUsbWorker {
 $mutex = $null
 $ownsMutex = $false
 try {
+    # Writing and ejecting change a drive, and a check mounts the ISO a write reads
+    # and dismounts it after, so they take turns across every Atlas Manager window.
+    # Listing reads only, and may overlap.
     if ($Operation -ne 'List') {
         $mutex = [Threading.Mutex]::new($false,'Global\AtlasOS.UsbWriter')
         try { $ownsMutex = $mutex.WaitOne(0) } catch [Threading.AbandonedMutexException] { $ownsMutex = $true }
-        if (-not $ownsMutex) { throw 'Another Atlas USB operation is running. Wait for it to finish.' }
     }
-    Invoke-AtlasUsbWorker
+    if ($null -ne $mutex -and -not $ownsMutex) {
+        if ($Operation -ne 'Check') { throw 'Another Atlas USB operation is running. Wait for it to finish.' }
+        # Nothing was read; the app checks again once the write may be done.
+        Write-Output 'ATLAS_RESULT:{"busy":true}'
+    }
+    else { Invoke-AtlasUsbWorker }
 } catch {
     $_ | Out-String | Set-Content -LiteralPath (Join-Path $PSScriptRoot 'error.txt') -Encoding UTF8
     Write-Error $_

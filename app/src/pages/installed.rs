@@ -2,19 +2,19 @@
 //! install's restart, or by the Atlas package's new-user script for accounts set
 //! up later, so whoever left the PC to install comes back to a completion screen
 //! rather than a toast. When the install left the PC with less protection, it
-//! says so before it says "you're all set".
+//! says so before it says "you're all set", in the one bar that shows. Its
+//! one accent is that bar's button where it leads back to protection
+//! (Reinstall Atlas, or Open Windows Security while switches are off), and
+//! Done otherwise.
 
 use gpui::{
     AnyElement, Context, Entity, IntoElement, ParentElement, Render, ScrollHandle, Styled, Window, div,
     prelude::*, px, svg,
 };
 
-use super::home::{defender_not_restored_bar, protection_reminder_bar};
-use super::{
-    card_body, card_header, detail_row, detail_text, focusable_heading, on_model, options_value,
-    recorded_options,
-};
-use crate::i18n::{describe, fmt};
+use super::focusable_heading;
+use super::home::{defender_not_restored_bar, protection_reminder_bar, recorded_setup_card};
+use crate::i18n::describe;
 use crate::model::{AppModel, ScreenKind};
 use crate::services::package::Manifest;
 use crate::services::system::links;
@@ -23,7 +23,7 @@ use crate::t;
 use crate::theme::ActiveTheme;
 use crate::ui::{
     Button, CompletionBackdrop, FocusHandles, Icon, InfoBar, KeepOut, ScrollbarState, Severity, Typography,
-    a11y_text, card, icon_sized, scrollbar,
+    a11y_text, icon_sized, link_row, scrollbar,
 };
 
 pub struct InstalledPage {
@@ -32,6 +32,7 @@ pub struct InstalledPage {
     scrollbar: ScrollbarState,
     focus: FocusHandles,
     focused_once: bool,
+    diagnostics: super::Diagnostics,
 }
 
 impl InstalledPage {
@@ -43,6 +44,7 @@ impl InstalledPage {
             scrollbar: ScrollbarState::new(),
             focus: FocusHandles::default(),
             focused_once: false,
+            diagnostics: super::Diagnostics::new(cx),
         }
     }
 }
@@ -63,121 +65,89 @@ impl Render for InstalledPage {
             Some(version) => t!("installed-title-version", version = version),
             None => t!("installed-title"),
         };
-        // As this PC has them, which the install recorded, and what it shows since.
-        let installed_options = state.installed_options();
-        let options = installed.map(|_| recorded_options(state, &installed_options)).unwrap_or_default();
-        let mode = installed.map(|i| i.install_mode().label());
-        let when = installed.and_then(|i| i.installed_at_local()).map(|when| fmt::long_date(&when));
-        let system_text = describe::system_description(&state.system);
-        // Protection the install reduced comes before "you're all set", and
-        // turning it back on is the page's one accent while it shows. A
-        // missing Defender has no such action, so Done stays the accent.
+        // One bar, the most urgent that applies: protection or Microsoft
+        // Defender, then choices that didn't apply, then Windows Update off
+        // again. Protection the install reduced comes before "you're all set".
         let reminder = protection_reminder_bar(&model, state, "installed", true, &heading_focus);
-        let reminding = state.protection_reminder().is_some_and(|reminder| !reminder.missing);
         let not_restored = defender_not_restored_bar(&model, state, "installed", &heading_focus);
-        let defender_removed = defender_removed_shown(state).then(|| {
-            InfoBar::new(
-                Severity::Warning,
-                t!("installed-defender-removed-title"),
-                t!("installed-defender-removed-message"),
-            )
-            .id("installed-defender-removed")
-        });
-        // The user's own choice turned Windows Update off or paused it again
-        // after Atlas had it on for the update; say what that means.
-        let update_choice = state.update_choice_after_install().and_then(|kinds| {
-            if kinds.contains(&BlockerKind::Off) {
-                Some(t!("installed-update-off-again"))
-            } else if kinds.contains(&BlockerKind::Paused) {
-                Some(t!("installed-update-paused-again"))
-            } else {
-                None
-            }
-        });
-        let update_choice = update_choice
-            .map(|message| InfoBar::new(Severity::Informational, message, "").id("installed-update-choice"));
-        // What the install recorded where it couldn't do what was asked, such
-        // as VBS a policy controls: the log says why, so its button opens it.
         let differs = state
             .choices_not_applied()
             .map(|options| choices_not_applied(state.manifest(), options))
             .unwrap_or_default();
-        let not_applied = (!differs.is_empty()).then(|| {
-            let choices: Vec<String> = differs.iter().map(|kind| kind.title()).collect();
-            InfoBar::new(
+        let update_choice = update_choice_words(state);
+        // The bar's own button is the accent where it's the way back to
+        // protection: Reinstall Atlas, or Open Windows Security while
+        // switches are off. Otherwise Done is. Windows Update off, as the
+        // user chose, still leaves them all set.
+        let (bar, bar_leads, all_set_after) = if let Some(bar) = not_restored {
+            (Some(bar), true, false)
+        } else if defender_removed_shown(state) {
+            // What it costs, as Your choices said it before it was chosen.
+            let bar = InfoBar::new(
                 Severity::Warning,
-                t!("choices-not-applied-title"),
-                t!("choices-not-applied-message", choices = describe::join_and(&choices)),
+                t!("installed-defender-removed-title"),
+                t!("cost-defender-disable"),
+            )
+            .id("installed-defender-removed");
+            (Some(bar), false, false)
+        } else if let Some(bar) = reminder {
+            (Some(bar), state.protection_reminder().is_some_and(|reminder| !reminder.missing), false)
+        } else if !differs.is_empty() {
+            // What the install recorded where it couldn't do what was asked,
+            // such as VBS a policy controls. Nothing the user did explains
+            // it, so the help row goes with it, with the log that says why.
+            let bar = InfoBar::new(
+                Severity::Warning,
+                t!("installed-not-applied-title"),
+                not_applied_message(&differs),
             )
             .id("installed-choices-not-applied")
-            .action(
-                Button::new("installed-open-log", t!("common-open-log-file"))
-                    .icon(Icon::Folder)
-                    .on_click(on_model(&model, |m, cx| m.reveal_install_log(cx))),
-            )
-        });
-        let manual_drivers = state.manual_driver_policy().then(|| {
-            InfoBar::new(
-                Severity::Informational,
-                t!("installed-manual-drivers-title"),
-                t!("installed-manual-drivers-detail"),
-            )
-            .id("installed-manual-drivers")
-            .action(
-                Button::new("installed-drivers-guide", t!("installed-drivers-guide"))
-                    .trailing_icon(Icon::OpenInNewWindow)
-                    .opens(links::DRIVERS_GUIDE),
-            )
+            .content(self.diagnostics.content_with_log(&model, state.install_log_path(), cx));
+            (Some(bar), false, false)
+        } else {
+            let bar = update_choice.map(|(title, message)| {
+                InfoBar::new(Severity::Informational, title, message).id("installed-update-choice")
+            });
+            (bar, false, true)
+        };
+        // Drivers the user installs themselves: advice, not a warning, so a
+        // line under the setup card.
+        let drivers = state.manual_driver_policy().then(|| {
+            div()
+                .w_full()
+                .flex()
+                .flex_col()
+                .gap(px(4.))
+                .px(px(17.))
+                .child(
+                    div()
+                        .type_body()
+                        .text_color(theme.text_secondary)
+                        .child(a11y_text("installed-manual-drivers", t!("installed-manual-drivers-detail"))),
+                )
+                .child(
+                    link_row().child(
+                        Button::new("installed-drivers-guide", t!("installed-drivers-guide"))
+                            .hyperlink()
+                            .compact()
+                            .trailing_icon(Icon::OpenInNewWindow)
+                            .opens(links::DRIVERS_GUIDE),
+                    ),
+                )
         });
         // "You're all set" only where a reading confirms it: an install that
         // kept Defender needs Defender there with every switch on. Dismissing
         // a reminder hides the bar, not what Windows Security reports, and
         // dismissing that Defender is still removed doesn't bring it back.
-        let all_set = reminder.is_none()
-            && defender_removed.is_none()
+        let all_set = (bar.is_none() || all_set_after)
             && !state.defender_not_restored()
-            && not_applied.is_none()
-            && manual_drivers.is_none()
             && !state.protection_reading_pending()
             && (!state.kept_defender_recorded() || state.protection_confirmed_on());
 
-        let details: Option<AnyElement> = installed.map(|_| {
-            card(cx)
-                .w_full()
-                .child(card_header(cx, "your-install", t!("home-your-install"), None))
-                .child(
-                    card_body()
-                        .when_some(mode, |this, mode| {
-                            this.child(detail_row(
-                                cx,
-                                "mode",
-                                t!("common-installed-as"),
-                                detail_text("mode", mode),
-                            ))
-                        })
-                        .when_some(when, |this, when| {
-                            this.child(detail_row(
-                                cx,
-                                "installed",
-                                t!("common-installed"),
-                                detail_text("installed", when),
-                            ))
-                        })
-                        .child(detail_row(
-                            cx,
-                            "windows",
-                            t!("common-windows"),
-                            detail_text("windows", system_text),
-                        ))
-                        .child(detail_row(
-                            cx,
-                            "options",
-                            t!("common-options"),
-                            options_value(cx, "options", "installed-options", options),
-                        )),
-                )
-                .into_any_element()
-        });
+        // The same card Home shows: each choice under its question, Windows
+        // and the history.
+        let details: Option<AnyElement> =
+            installed.and_then(|installed| recorded_setup_card(state, installed, cx));
 
         let keep_out = KeepOut::default();
         let column = div()
@@ -239,12 +209,7 @@ impl Render for InstalledPage {
                                 .child(a11y_text("installed-line", t!("installed-ready"))),
                         )
                     })
-                    .children(not_restored)
-                    .children(defender_removed)
-                    .children(reminder)
-                    .children(not_applied)
-                    .children(update_choice)
-                    .children(manual_drivers)
+                    .children(bar)
                     .child(
                         div()
                             .flex()
@@ -254,7 +219,7 @@ impl Render for InstalledPage {
                             .pt(px(8.))
                             .child(
                                 Button::new("installed-done", t!("common-done"))
-                                    .when(!reminding, Button::accent)
+                                    .when(!bar_leads, Button::accent)
                                     .on_click(|_, window, _| window.remove_window()),
                             )
                             .child(
@@ -265,11 +230,20 @@ impl Render for InstalledPage {
                             ),
                     ),
             )
-            .when_some(details, |this, details| {
+            .when(details.is_some() || drivers.is_some(), |this| {
                 this.child(
-                    div().w_full().pt(px(16.)).on_children_prepainted(keep_out.record(1)).child(details),
+                    div()
+                        .w_full()
+                        .flex()
+                        .flex_col()
+                        .gap(px(12.))
+                        .pt(px(16.))
+                        .on_children_prepainted(keep_out.record(1))
+                        .children(details)
+                        .children(drivers),
                 )
             });
+        self.diagnostics.settle(&self.model, window, cx);
 
         div()
             .relative()
@@ -290,6 +264,20 @@ impl Render for InstalledPage {
                     .child(column),
             )
             .child(scrollbar(&self.scroll, &self.scrollbar))
+    }
+}
+
+/// What the window says when the user's own choice turned Windows Update off
+/// or paused it again after Atlas had it on for the update: its title, then
+/// what that means.
+fn update_choice_words(state: &AppModel) -> Option<(String, String)> {
+    let kinds = state.update_choice_after_install()?;
+    if kinds.contains(&BlockerKind::Off) {
+        Some((t!("installed-update-off-title"), t!("installed-update-off-message")))
+    } else if kinds.contains(&BlockerKind::Paused) {
+        Some((t!("installed-update-paused-title"), t!("installed-update-paused-message")))
+    } else {
+        None
     }
 }
 
@@ -316,6 +304,13 @@ fn choices_not_applied(manifest: &Manifest, not_applied: &[String]) -> Vec<Scree
         }
     }
     kinds
+}
+
+/// What stayed as it was, naming each choice as it reads mid-sentence, after
+/// the message's colon, with how many there are for languages that agree.
+fn not_applied_message(kinds: &[ScreenKind]) -> String {
+    let choices: Vec<String> = kinds.iter().map(|kind| kind.name()).collect();
+    t!("installed-not-applied-choices", choices = describe::join_and(&choices), count = choices.len())
 }
 
 #[cfg(test)]
@@ -358,8 +353,8 @@ mod tests {
         });
     }
 
-    /// The notice names each choice the install tried and didn't get, as its
-    /// page is titled, and nothing when it got them all.
+    /// The notice names each choice the install tried and didn't get, as it
+    /// reads mid-sentence, and nothing when it got them all.
     #[test]
     fn the_notice_names_the_choices_the_install_tried_and_did_not_get() {
         let manifest = Manifest::builtin();
@@ -372,6 +367,16 @@ mod tests {
         // A browser the install didn't put on names both its pages.
         let browser = names(&["browser-brave", "install-another-browser"]);
         assert_eq!(choices_not_applied(&manifest, &browser), [ScreenKind::Apps, ScreenKind::Browser]);
+        crate::i18n::testing::english(|| {
+            assert_eq!(
+                not_applied_message(&[ScreenKind::Power]),
+                "This choice stayed as it was: power and security."
+            );
+            assert_eq!(
+                not_applied_message(&[ScreenKind::Defender, ScreenKind::Mitigations]),
+                "These choices stayed as they were: Microsoft Defender and processor protections."
+            );
+        });
     }
 
     /// Only the install's own record of what it couldn't apply counts: a

@@ -143,6 +143,21 @@ impl Stage {
     }
 }
 
+/// Where the image worker is: the stage it reported last and, while it
+/// writes the ISO, how far through that stage it is by bytes.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Report {
+    pub stage: Stage,
+    pub fraction: Option<f32>,
+}
+
+/// The bytes the worker has done of a stage, as `ATLAS_PROGRESS` reports them.
+#[derive(Deserialize)]
+struct Bytes {
+    done: u64,
+    total: u64,
+}
+
 /// Where a package declares that it can finish setup from media.
 const SETUP_CAPABILITY: &str = "Executables/AtlasModules/Scripts/Install/iso-setup.json";
 
@@ -260,6 +275,122 @@ pub fn validate(request: &Request) -> Result<()> {
         bail!("Invalid Atlas option identifier");
     }
     Ok(())
+}
+
+/// The free space a build needs on the new ISO's volume: 5 × the source ISO,
+/// 2 × the unpacked package and 4 GiB to spare, as Build-Iso.ps1 counts it
+/// before it starts.
+pub fn space_needed(source_bytes: u64, package_bytes: u64) -> u64 {
+    source_bytes.saturating_mul(5).saturating_add(package_bytes.saturating_mul(2)).saturating_add(4 << 30)
+}
+
+/// The size of an unpacked package's files, which the build copies twice.
+pub fn package_bytes(dir: &Path) -> u64 {
+    let Ok(entries) = fs::read_dir(dir) else { return 0 };
+    entries
+        .flatten()
+        .map(|entry| match entry.file_type() {
+            Ok(kind) if kind.is_dir() => package_bytes(&entry.path()),
+            Ok(kind) if kind.is_file() => entry.metadata().map_or(0, |metadata| metadata.len()),
+            _ => 0,
+        })
+        .sum()
+}
+
+/// Why the new ISO can't be saved where it's going, found before the build
+/// starts rather than by the worker after it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DestinationProblem {
+    /// Not a local volume: a network location, a missing folder or a drive
+    /// Windows can't read.
+    Unusable,
+    /// A local volume that isn't NTFS or ReFS, such as a FAT32 USB drive,
+    /// which can't hold the build's large files.
+    FileSystem,
+    /// Too little free space for the build.
+    Space,
+}
+
+/// The volume the new ISO goes to, and whether the build fits there.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Destination {
+    /// The volume as people know it, such as "C:".
+    pub drive: String,
+    pub free: u64,
+    pub needed: u64,
+    pub problem: Option<DestinationProblem>,
+}
+
+/// What the destination volume is, as [`destination`] reads it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct Volume {
+    drive: String,
+    local: bool,
+    file_system: String,
+    free: u64,
+}
+
+/// Checks the folder `output` goes in as Build-Iso.ps1's `Assert-Output`
+/// does: a local NTFS or ReFS volume with `needed` bytes free.
+pub fn destination(output: &Path, needed: u64) -> Destination {
+    let volume = output.parent().filter(|folder| folder.is_dir()).and_then(read_volume);
+    match volume {
+        Some(volume) => {
+            let problem = judge_volume(&volume, needed);
+            Destination { drive: volume.drive, free: volume.free, needed, problem }
+        }
+        None => {
+            Destination { drive: String::new(), free: 0, needed, problem: Some(DestinationProblem::Unusable) }
+        }
+    }
+}
+
+fn judge_volume(volume: &Volume, needed: u64) -> Option<DestinationProblem> {
+    if !volume.local {
+        Some(DestinationProblem::Unusable)
+    } else if !["NTFS", "ReFS"].iter().any(|name| volume.file_system.eq_ignore_ascii_case(name)) {
+        Some(DestinationProblem::FileSystem)
+    } else if volume.free < needed {
+        Some(DestinationProblem::Space)
+    } else {
+        None
+    }
+}
+
+/// The volume that holds `folder`, through its real mount point even when
+/// the folder is reached through a junction.
+fn read_volume(folder: &Path) -> Option<Volume> {
+    use windows::Win32::Storage::FileSystem::{
+        GetDiskFreeSpaceExW, GetDriveTypeW, GetVolumeInformationW, GetVolumePathNameW,
+    };
+    use windows::core::{HSTRING, PCWSTR};
+    let until_nul = |buffer: &[u16]| {
+        String::from_utf16_lossy(&buffer[..buffer.iter().position(|&unit| unit == 0).unwrap_or(buffer.len())])
+    };
+    let path = HSTRING::from(folder.as_os_str());
+    let mut root = vec![0u16; 32_768];
+    // SAFETY: a NUL-terminated path and a buffer the call fills.
+    unsafe { GetVolumePathNameW(PCWSTR(path.as_ptr()), &mut root) }.ok()?;
+    let root = until_nul(&root);
+    let root_path = HSTRING::from(root.as_str());
+    // 0 unknown, 1 no such root, 4 a network drive.
+    // SAFETY: a NUL-terminated root path.
+    let local = !matches!(unsafe { GetDriveTypeW(PCWSTR(root_path.as_ptr())) }, 0 | 1 | 4);
+    let mut file_system = [0u16; 261];
+    // SAFETY: a NUL-terminated root path and a buffer the call fills.
+    unsafe {
+        GetVolumeInformationW(PCWSTR(root_path.as_ptr()), None, None, None, None, Some(&mut file_system))
+    }
+    .ok()?;
+    let mut free = 0u64;
+    // SAFETY: a NUL-terminated path and an out parameter.
+    unsafe { GetDiskFreeSpaceExW(PCWSTR(path.as_ptr()), Some(&mut free), None, None) }.ok()?;
+    Some(Volume {
+        drive: root.trim_end_matches('\\').to_owned(),
+        local,
+        file_system: until_nul(&file_system),
+        free,
+    })
 }
 
 /// Why Windows would refuse a local account name, so the page can say what
@@ -552,7 +683,7 @@ pub fn run(
     dir: &Path,
     inspect: bool,
     cancel: Arc<AtomicBool>,
-    report: impl FnMut(Stage),
+    report: impl FnMut(Report),
 ) -> Result<Output> {
     log::info!("ISO operation started; inspect={inspect}; diagnostics={}", dir.display());
     validate(request)?;
@@ -601,7 +732,7 @@ pub struct Output {
 }
 
 /// Reads the worker's markers to the end, copying every line to `log`.
-fn read_output(stream: impl BufRead, log: &mut impl Write, mut report: impl FnMut(Stage)) -> Output {
+fn read_output(stream: impl BufRead, log: &mut impl Write, mut report: impl FnMut(Report)) -> Output {
     let mut output = Output::default();
     powershell::read_lines(stream, log, |line| {
         if let Some(typed) = line.strip_prefix("ATLAS_ERROR:").and_then(FailureReason::parse) {
@@ -609,7 +740,14 @@ fn read_output(stream: impl BufRead, log: &mut impl Write, mut report: impl FnMu
         }
         if let Some(stage) = line.strip_prefix("ATLAS_STAGE:").and_then(Stage::parse) {
             output.stage = stage;
-            report(stage);
+            report(Report { stage, fraction: None });
+        }
+        if let Some(json) = line.strip_prefix("ATLAS_PROGRESS:")
+            && let Ok(bytes) = serde_json::from_str::<Bytes>(json)
+            && bytes.total > 0
+        {
+            let fraction = (bytes.done as f64 / bytes.total as f64).clamp(0., 1.) as f32;
+            report(Report { stage: output.stage, fraction: Some(fraction) });
         }
         if let Some(json) = line.strip_prefix("ATLAS_RESULT:") {
             output.image = serde_json::from_str(json).ok();
@@ -671,7 +809,7 @@ pub fn create(
     input: CreateInput,
     job: &Path,
     cancel: Arc<AtomicBool>,
-    report: impl FnMut(Stage),
+    report: impl FnMut(Report),
 ) -> Result<Created> {
     let CreateInput {
         inspect,
@@ -989,7 +1127,7 @@ mod tests {
         let output = read_output(
             &b"ATLAS_STAGE:copy\r\nE: Donn\x82es\r\nATLAS_ERROR:disk-space\r\nATLAS_RESULT:{\"editions\":[\"Windows 11 Pro\"],\"bytes\":1}\r\n"[..],
             &mut Vec::new(),
-            |stage| stages.push(stage),
+            |report| stages.push(report.stage),
         );
         assert_eq!(stages, [Stage::Copy]);
         assert_eq!(output.stage, Stage::Copy);
@@ -1008,6 +1146,30 @@ mod tests {
             |_| {},
         );
         assert!(output.network_drivers_inbox);
+    }
+
+    /// Writing the ISO reports its bytes, so the bar moves within that long
+    /// stage; a report without a total, or before any stage, moves nothing.
+    #[test]
+    fn writing_the_iso_reports_how_far_it_is_by_bytes() {
+        let mut reports = vec![];
+        read_output(
+            &b"ATLAS_STAGE:master\nATLAS_PROGRESS:{\"done\":0,\"total\":0}\nATLAS_PROGRESS:{\"done\":25,\"total\":100}\nATLAS_PROGRESS:{\"done\":150,\"total\":100}\nATLAS_STAGE:verify\n"[..],
+            &mut Vec::new(),
+            |report| reports.push(report),
+        );
+        let report = |stage, fraction| Report { stage, fraction };
+        assert_eq!(
+            reports,
+            [
+                report(Stage::Master, None),
+                report(Stage::Master, Some(0.25)),
+                report(Stage::Master, Some(1.)),
+                report(Stage::Verify, None),
+            ]
+        );
+        let master = include_str!("../../resources/iso/Master-Iso.ps1");
+        assert!(master.contains("ATLAS_PROGRESS:"), "the mastering step reports its bytes");
     }
 
     #[test]
@@ -1174,6 +1336,58 @@ mod tests {
         for refused in [&["a1", "a2"][..], &["a1", "a1"], &["a1", "shell-command"], &["a1", "b1"]] {
             assert!(validate_resumed_options(&manifest, &options(refused)).is_err(), "{refused:?}");
         }
+    }
+
+    /// The Create step's free-space check and the worker's must agree, or a
+    /// build the page let start would stop on disk space after all.
+    #[test]
+    fn the_space_check_counts_as_the_worker_does() {
+        let script = include_str!("../../resources/iso/Build-Iso.ps1");
+        assert!(
+            script.contains("5 * (Get-Item -LiteralPath $SourcePath).Length + 2 * [long]$packageBytes + 4GB"),
+            "Build-Iso.ps1 counts the space it needs differently from space_needed"
+        );
+        assert!(script.contains("-notin @('NTFS', 'ReFS')"), "Build-Iso.ps1 accepts other file systems");
+        const GIB: u64 = 1 << 30;
+        assert_eq!(space_needed(6 * GIB, GIB), 30 * GIB + 2 * GIB + 4 * GIB);
+        assert_eq!(space_needed(u64::MAX, 1), u64::MAX);
+    }
+
+    #[test]
+    fn a_destination_needs_a_local_ntfs_or_refs_volume_with_room() {
+        let volume = |local: bool, file_system: &str, free: u64| Volume {
+            drive: "D:".into(),
+            local,
+            file_system: file_system.into(),
+            free,
+        };
+        assert_eq!(judge_volume(&volume(true, "NTFS", 100), 100), None);
+        assert_eq!(judge_volume(&volume(true, "refs", 100), 50), None);
+        assert_eq!(judge_volume(&volume(true, "NTFS", 99), 100), Some(DestinationProblem::Space));
+        for file_system in ["FAT32", "exFAT", ""] {
+            assert_eq!(
+                judge_volume(&volume(true, file_system, u64::MAX), 1),
+                Some(DestinationProblem::FileSystem)
+            );
+        }
+        // A network drive is refused whatever it reports.
+        assert_eq!(judge_volume(&volume(false, "NTFS", u64::MAX), 1), Some(DestinationProblem::Unusable));
+        // A folder that isn't there can't be checked, so it isn't offered.
+        let temp = TempDir::new("iso-destination");
+        let missing = destination(&temp.path().join("gone").join("Atlas.iso"), 1);
+        assert_eq!(missing.problem, Some(DestinationProblem::Unusable));
+        let here = destination(&temp.path().join("Atlas.iso"), 0);
+        assert!(!here.drive.is_empty() && here.free > 0, "{here:?}");
+    }
+
+    #[test]
+    fn a_package_is_measured_with_its_folders() {
+        let temp = TempDir::new("iso-package-bytes");
+        fs::create_dir_all(temp.path().join("a").join("b")).unwrap();
+        fs::write(temp.path().join("atlas.json"), [0u8; 10]).unwrap();
+        fs::write(temp.path().join("a").join("b").join("file"), [0u8; 32]).unwrap();
+        assert_eq!(package_bytes(temp.path()), 42);
+        assert_eq!(package_bytes(&temp.path().join("missing")), 0);
     }
 
     #[test]

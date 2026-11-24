@@ -526,9 +526,39 @@ pub fn export(root: &Path, package: Option<Value>) -> Result<PathBuf> {
         local: local.as_deref(),
         windows: windows.as_deref(),
     };
-    let result = archive.write_to(&exports.join(format!("Atlas-diagnostics-{id}.zip")), package, collector);
+    let result = claim_archive(&exports, chrono::Local::now().naive_local())
+        .and_then(|(destination, output)| archive.write_to(&destination, output, package, collector));
     let _ = fs::remove_dir_all(&working);
     result.context("export Atlas diagnostics")
+}
+
+/// The names one minute's exports try before giving up.
+const ARCHIVE_NAMES: u32 = 100;
+
+/// Where an export made at `now`, local time, saves its archive in
+/// `exports`, with its `.partial` file opened to write it: a name that says
+/// when, to the minute, such as `Atlas-diagnostics-2026-11-24-0612.zip`, so a
+/// person can tell their exports apart. Another export in the same minute
+/// takes the next free number after it. Creating the `.partial` file claims
+/// the name, so exports that pick the same one at once never share it: the
+/// one that finds it taken tries the next.
+fn claim_archive(exports: &Path, now: chrono::NaiveDateTime) -> Result<(PathBuf, File)> {
+    let stem = format!("Atlas-diagnostics-{}", now.format("%Y-%m-%d-%H%M"));
+    for number in 1..=ARCHIVE_NAMES {
+        let path = match number {
+            1 => exports.join(format!("{stem}.zip")),
+            _ => exports.join(format!("{stem}-{number}.zip")),
+        };
+        if path.exists() {
+            continue;
+        }
+        match OpenOptions::new().create_new(true).write(true).open(path.with_extension("partial")) {
+            Ok(output) => return Ok((path, output)),
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
+            Err(error) => return Err(error.into()),
+        }
+    }
+    anyhow::bail!("{ARCHIVE_NAMES} diagnostics archives were already saved this minute")
 }
 
 /// Where the evidence for one archive comes from.
@@ -545,16 +575,17 @@ struct Archive<'a> {
 }
 
 impl Archive<'_> {
-    /// Writes the archive beside `destination` as a `.partial` file first,
-    /// renamed into place only once it is complete.
+    /// Writes the archive to `output`, its `.partial` file beside
+    /// `destination` (see [`claim_archive`]), renamed into place only once
+    /// it is complete.
     fn write_to(
         &self,
         destination: &Path,
+        output: File,
         package: Option<Value>,
         collector: Option<String>,
     ) -> Result<PathBuf> {
         let temporary = destination.with_extension("partial");
-        let output = OpenOptions::new().create_new(true).write(true).open(&temporary)?;
         let written = self
             .write(Bundle::new(output, Redactor::new()), package, collector)
             .and_then(|()| Ok(fs::rename(&temporary, destination)?));
@@ -641,6 +672,50 @@ mod tests {
     use crate::services::iso::NOTICES;
     use crate::services::test_support::TempDir;
     use windows::Win32::Storage::FileSystem::FILE_SHARE_WRITE;
+
+    fn archive_name(path: PathBuf) -> String {
+        path.file_name().unwrap().to_string_lossy().into_owned()
+    }
+
+    fn a_minute() -> chrono::NaiveDateTime {
+        chrono::NaiveDate::from_ymd_opt(2026, 11, 24).unwrap().and_hms_opt(6, 12, 59).unwrap()
+    }
+
+    #[test]
+    fn an_archive_is_named_by_when_it_was_saved_and_never_replaces_another() {
+        let temp = TempDir::new("diagnostics-name");
+        let (first, _) = claim_archive(temp.path(), a_minute()).unwrap();
+        assert_eq!(archive_name(first.clone()), "Atlas-diagnostics-2026-11-24-0612.zip");
+        assert!(first.with_extension("partial").exists(), "claimed by its partial file");
+        // One still being written counts as taken, and so does one finished.
+        let (second, _) = claim_archive(temp.path(), a_minute()).unwrap();
+        assert_eq!(archive_name(second), "Atlas-diagnostics-2026-11-24-0612-2.zip");
+        fs::write(temp.path().join("Atlas-diagnostics-2026-11-24-0612-3.zip"), b"").unwrap();
+        let (fourth, _) = claim_archive(temp.path(), a_minute()).unwrap();
+        assert_eq!(archive_name(fourth), "Atlas-diagnostics-2026-11-24-0612-4.zip");
+    }
+
+    /// Exports in the same minute can pick the same free name at once; each
+    /// still ends with a name of its own rather than failing.
+    #[test]
+    fn exports_started_together_each_claim_a_name_of_their_own() {
+        let temp = TempDir::new("diagnostics-claim");
+        let start = std::sync::Barrier::new(8);
+        let mut names: Vec<String> = std::thread::scope(|scope| {
+            let claims: Vec<_> = (0..8)
+                .map(|_| {
+                    scope.spawn(|| {
+                        start.wait();
+                        claim_archive(temp.path(), a_minute()).map(|(path, _)| archive_name(path))
+                    })
+                })
+                .collect();
+            claims.into_iter().map(|claim| claim.join().unwrap().unwrap()).collect()
+        });
+        names.sort();
+        names.dedup();
+        assert_eq!(names.len(), 8, "{names:?}");
+    }
 
     /// A bundle writing to `path` whose redactor knows no account, computer
     /// or profile names.

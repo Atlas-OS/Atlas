@@ -16,6 +16,9 @@ use crate::environment::OfferRecheckTiming;
 use crate::services::preparation::{Activity, MISSING_PREREQUISITE, State, waits_for_offer};
 use crate::services::update_access::UpdateAccess;
 
+/// What a run reports while it waits for Windows Update's offer.
+const FEATURE_OFFER: &str = "feature-offer";
+
 /// The wait for an offer in this flow.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct OfferWait {
@@ -23,8 +26,6 @@ pub struct OfferWait {
     pub since: Instant,
     /// The wait ended without an offer, and the settings were put back.
     pub expired: bool,
-    /// When the next look is due, while one is scheduled.
-    pub next_check: Option<Instant>,
     /// The looks are full runs: the move waits for a newer monthly update,
     /// which only a full run installs.
     pub full_runs: bool,
@@ -32,25 +33,15 @@ pub struct OfferWait {
 
 impl OfferWait {
     pub fn started(since: Instant) -> Self {
-        Self { since, expired: false, next_check: None, full_runs: false }
+        Self { since, expired: false, full_runs: false }
     }
 }
 
-/// What Get ready shows of a wait under way: how long Atlas has waited, and
-/// when it looks again, in whole minutes; no next look while it looks.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct OfferWaitClock {
-    pub waited_minutes: u64,
-    pub next_check_minutes: Option<u64>,
-}
-
-/// The clock of a wait that began at `waiting_since`, as of `now`. The time
-/// waited counts down to whole minutes, at least one; the next look counts
-/// up, so it never says zero before it starts.
-pub fn wait_clock(waiting_since: Instant, next_check: Option<Instant>, now: Instant) -> OfferWaitClock {
-    let waited = now.saturating_duration_since(waiting_since).as_secs() / 60;
-    let next = next_check.map(|at| at.saturating_duration_since(now).as_secs().div_ceil(60).max(1));
-    OfferWaitClock { waited_minutes: waited.max(1), next_check_minutes: next }
+/// Whole minutes waited since `since`, as of `now`; `None` under a minute,
+/// which says nothing worth reading.
+pub fn waited_minutes(since: Instant, now: Instant) -> Option<u64> {
+    let minutes = now.saturating_duration_since(since).as_secs() / 60;
+    (minutes > 0).then_some(minutes)
 }
 
 /// What the wait does next, after a search at `last` found nothing.
@@ -121,12 +112,27 @@ impl AppModel {
             && (self.offer_wait_goes_on() || self.preparation.busy())
     }
 
-    /// How long Atlas has waited for the offer, counted from the first search
-    /// that waited for it, and when it looks again.
-    pub fn offer_wait_clock(&self) -> Option<OfferWaitClock> {
-        let wait = self.offer_wait.filter(|_| self.offer_wait_running())?;
-        let next_check = wait.next_check.filter(|_| !self.preparation.busy());
-        Some(wait_clock(self.offer_waiting_since.unwrap_or(wait.since), next_check, Instant::now()))
+    /// Atlas is waiting for Windows Update to offer the release, as Get
+    /// ready shows it: a run waits for it, a look is under way, or the looks
+    /// between runs go on. A look that lost the connection says so instead.
+    pub fn offer_wait_shown(&self) -> bool {
+        let run_waits = matches!(self.preparation, State::Running { .. })
+            && self
+                .preparation_progress
+                .as_ref()
+                .is_some_and(|progress| progress.activity.waiting.as_deref() == Some(FEATURE_OFFER));
+        self.preparation != State::Network && (run_waits || self.offer_wait_running())
+    }
+
+    /// How many whole minutes Atlas has waited for the offer, counted from
+    /// the first run that waited for it; `None` under a minute, and when it
+    /// isn't waiting.
+    pub fn offer_waited_minutes(&self) -> Option<u64> {
+        if !self.offer_wait_shown() {
+            return None;
+        }
+        let since = self.offer_waiting_since.or(self.offer_wait.map(|wait| wait.since))?;
+        waited_minutes(since, Instant::now())
     }
 
     /// After every run: starts or continues the wait when no offer came, or
@@ -155,10 +161,7 @@ impl AppModel {
 
     fn schedule_offer_recheck(&mut self, delay: Duration, cx: &mut Context<Self>) {
         let generation = self.offer_wait_generation.next();
-        if let Some(wait) = self.offer_wait.as_mut() {
-            wait.next_check = Some(Instant::now() + delay);
-        }
-        // Get ready's clock moves on between looks, so the wait never looks frozen.
+        // Get ready's minutes waited move on between looks.
         let tick = self.env.offer_recheck.tick;
         self.offer_wait_tick = Some(cx.spawn(async move |this, cx| {
             loop {
@@ -179,9 +182,6 @@ impl AppModel {
             this.update(cx, |this, cx| {
                 if this.offer_wait_generation != generation || !this.offer_rechecks_active() {
                     return;
-                }
-                if let Some(wait) = this.offer_wait.as_mut() {
-                    wait.next_check = None;
                 }
                 // A look put off past the end of the wait ends it instead.
                 let since = this.offer_wait.map_or_else(Instant::now, |wait| wait.since);
@@ -236,7 +236,6 @@ impl AppModel {
         log::info!("Windows Update offered nothing while Atlas waited; putting the settings back");
         if let Some(wait) = self.offer_wait.as_mut() {
             wait.expired = true;
-            wait.next_check = None;
         }
         self.restore_update_access(cx);
     }
@@ -276,27 +275,16 @@ mod tests {
         OfferRecheckTiming::default()
     }
 
-    /// The clock says how long Atlas has waited and when it looks again, in
-    /// whole minutes, and never says zero minutes.
+    /// The time waited is said in whole minutes, rounded down, and not at
+    /// all under a minute: never zero, and never a ticking clock.
     #[test]
-    fn the_wait_clock_counts_whole_minutes() {
+    fn the_wait_is_counted_in_whole_minutes() {
         let start = Instant::now();
         let at = |seconds: u64| start + Duration::from_secs(seconds);
-        assert_eq!(
-            wait_clock(start, Some(at(34 * 60 + 360)), at(34 * 60)),
-            OfferWaitClock { waited_minutes: 34, next_check_minutes: Some(6) }
-        );
-        assert_eq!(
-            wait_clock(start, Some(at(34 * 60 + 301)), at(34 * 60 + 59)),
-            OfferWaitClock { waited_minutes: 34, next_check_minutes: Some(5) },
-            "4 min 2 s to go is shown as 5 minutes"
-        );
-        assert_eq!(
-            wait_clock(start, Some(at(10)), at(20)),
-            OfferWaitClock { waited_minutes: 1, next_check_minutes: Some(1) },
-            "a look already due, a wait just begun"
-        );
-        assert_eq!(wait_clock(start, None, at(111 * 60)).next_check_minutes, None, "looking now");
+        assert_eq!(waited_minutes(start, at(59)), None);
+        assert_eq!(waited_minutes(start, at(60)), Some(1));
+        assert_eq!(waited_minutes(start, at(34 * 60 + 59)), Some(34));
+        assert_eq!(waited_minutes(at(10), start), None, "a clock that went backwards");
     }
 
     #[test]

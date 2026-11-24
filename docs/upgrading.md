@@ -77,7 +77,7 @@ Atlas Manager doesn't ask how to update:
 
 **Your choices** locks every choice to what your PC has.
 It asks only for a required choice that neither the PC nor Atlas's record shows.
-When it knows them all, **Continue** goes from the first screen straight to **Windows Security**.
+When it knows them all, **Continue** goes from the first screen straight on to the next step.
 
 The install changes none of your choices, so what earlier choices did stays.
 For example, Microsoft Defender that Atlas's NoDefender package removed stays removed, and the install records it as removed.
@@ -86,7 +86,7 @@ The install itself also takes each choice your PC shows from the PC, and its log
 
 ### Choose again
 
-**Your choices** shows every screen again, starting from what your PC has.
+**Your choices** asks every question again, starting from what your PC has.
 **On this PC now** marks the answer your PC has, and an answer that changes your PC says what it changes.
 
 Some answers are fixed, because an update can't undo them:
@@ -150,7 +150,7 @@ For example, an update that keeps your choices leaves Defender as your PC has it
 
 When an install finishes, it reads your PC again and records each choice as the PC shows it, which can differ from what you asked for.
 Changing a choice later in the Atlas folder or Atlas Toolbox keeps the record in step.
-When a choice the install tried to apply didn't take effect, the completion window says **Some choices didn't take effect**, names it and offers **Open log file**.
+When a choice the install tried to apply didn't take effect, the completion window says **Some choices didn't apply**, names it and offers **Open log folder**, with **Send a report** and **Export diagnostics**.
 
 When Atlas's record keeps Microsoft Defender but Atlas's NoDefender package still removes it, **Home** and the completion window warn that **Microsoft Defender is still removed**.
 The warning points to **Choose again** and to **Toggle Defender**, and you can dismiss it for that install.

@@ -456,9 +456,8 @@ fn going_on_past_the_used_windows_warning_lasts_for_its_flow() {
         let (_temp, _, env) = fixture("model-used-windows-accepted");
         let model = new_model(&mut cx, env.clone());
         wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
-        act(&mut cx, &model, |m, cx| m.begin_install(cx));
-        wait_on_disk(&cx, &env, "this flow's draft", |s| s.draft.is_some()).await;
-        act(&mut cx, &model, |m, cx| m.accept_used_windows(cx));
+        act(&mut cx, &model, |m, cx| m.begin_install_on_used_windows(cx));
+        assert!(read(&cx, &model, |m| m.flow.active && m.used_windows_accepted));
         wait_on_disk(&cx, &env, "the acceptance in the draft", |s| {
             s.draft.as_ref().is_some_and(|d| d.used_windows_accepted)
         })

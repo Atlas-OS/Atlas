@@ -22,8 +22,6 @@ pub struct Release {
     #[serde(default)]
     pub html_url: String,
     #[serde(default)]
-    pub published_at: String,
-    #[serde(default)]
     pub assets: Vec<Asset>,
 }
 
@@ -451,7 +449,6 @@ mod tests {
             tag_name: "v0.6.0".into(),
             body: String::new(),
             html_url: String::new(),
-            published_at: String::new(),
             assets: names.iter().map(|name| Asset { name: (*name).into(), ..Asset::default() }).collect(),
         };
         let release =

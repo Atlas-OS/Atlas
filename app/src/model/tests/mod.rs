@@ -8,7 +8,9 @@ mod checks;
 mod drafts;
 mod elevation;
 mod eligibility;
+mod get_ready;
 mod install;
+mod installing;
 mod navigation;
 mod options;
 mod package;
@@ -17,6 +19,7 @@ mod preparation;
 mod rebase;
 mod recovery;
 mod restart;
+mod security;
 mod transition;
 
 use crate::model::test_harness::{act, fixture, new_model, read, run_model_test, wait_for};
