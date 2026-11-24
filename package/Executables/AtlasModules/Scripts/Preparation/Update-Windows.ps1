@@ -68,8 +68,8 @@ $script:PreparationClock = [Diagnostics.Stopwatch]::StartNew()
 $script:PreparationStartedAt = [DateTime]::Now
 $script:PreparationLastChange = 0L
 $script:PreparationLastProgress = ''
-# Whether state.json had to be written over in place, which the log notes once.
-$script:PreparationStateInPlace = $false
+# Whether Windows refused to replace state.json for a while, which the log notes once.
+$script:PreparationStateHeld = $false
 # Restart markers seen by the last Test-PreparationRestart, so the app can name one
 # that survives a restart instead of asking for another.
 $script:PreparationRestartReasons = @()
@@ -342,15 +342,20 @@ function Write-PreparationState([string]$Status, [string]$Stage, [int]$Completed
             [IO.File]::WriteAllBytes($temporary, $bytes)
             $ownsTemporary = $true
         }
-        # A reader or a scanner can briefly hold the previous report; see
-        # Install-AtlasTransitionFile in WindowsTransition.ps1.
-        if (Install-AtlasTransitionFile $temporary $path $bytes) {
-            if (-not $script:PreparationStateInPlace) {
-                $script:PreparationStateInPlace = $true
-                Write-PreparationLog 'state.json could not be replaced, so this run writes it over in place.'
-            }
+        # A reader or a scanner can hold the previous report for a while; see
+        # Install-AtlasTransitionFile in WindowsTransition.ps1. Progress while the
+        # run goes on can wait for a later report: the earlier one stays whole and
+        # names this process, and the output line below carries this one. How the
+        # run ended can't wait, so that report gets longer, and fails the run if
+        # Windows still refuses it.
+        $running = $Status -eq 'running'
+        $refused = Install-AtlasTransitionFile $temporary $path $(if ($running) { 5 } else { 60 })
+        if ($null -eq $refused) { $ownsTemporary = $false }
+        elseif (-not $running) { throw $refused }
+        elseif (-not $script:PreparationStateHeld) {
+            $script:PreparationStateHeld = $true
+            Write-PreparationLog ('state.json could not be replaced (0x{0:X8}: {1}); it keeps the last report it took until a later one goes in.' -f $refused.HResult, ([string]$refused.Message).Trim())
         }
-        else { $ownsTemporary = $false }
     } finally {
         if ($ownsTemporary) { [IO.File]::Delete($temporary) }
     }

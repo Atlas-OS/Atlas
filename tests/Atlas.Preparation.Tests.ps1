@@ -144,7 +144,7 @@ Describe 'Protected preparation recovery journals' {
         Test-Path (Join-Path $JobPath 'state.tmp') | Should -BeFalse
         Should -Invoke Invoke-AtlasTransitionFileReplace -Times 3 -Exactly
     }
-    It 'writes the report over in place, keeping its security, when Windows keeps refusing to replace it' {
+    It 'keeps the earlier report whole, and the run going, while Windows refuses to replace it' {
         Set-Variable -Name PersistentCancellation -Value $true
         $JobPath = Join-Path $TestDrive 'replace-refused'
         [void][IO.Directory]::CreateDirectory($JobPath)
@@ -155,18 +155,56 @@ Describe 'Protected preparation recovery journals' {
             return $security
         }
         $path = Join-Path $JobPath 'state.json'
-        $script:PreparationStateInPlace = $false
+        $script:PreparationStateHeld = $false
         Write-PreparationState running windows-search -Detail @{ currentUpdate = 'A long update title that makes this report longer than the next one' }
-        Mock Start-Sleep {}
+        $before = [IO.File]::ReadAllBytes($path)
+        $script:slept = [Collections.Generic.List[int]]::new()
+        Mock Start-Sleep { $script:slept.Add($Milliseconds) }
         Mock Invoke-AtlasTransitionFileReplace { throw [IO.IOException]::new('Unable to remove the file to be replaced.', -2147023721) }
         Write-PreparationState running verify
-        Write-PreparationState complete verify
-        $record = [IO.File]::ReadAllText($path) | ConvertFrom-Json
-        $record.status | Should -Be 'complete'
-        $record.activity.PSObject.Properties['currentUpdate'] | Should -BeNullOrEmpty
+        Write-PreparationState running windows-search
+        [IO.File]::ReadAllBytes($path) | Should -Be $before
         (Get-Item -LiteralPath $path).GetAccessControl().AreAccessRulesProtected | Should -BeTrue
         Test-Path (Join-Path $JobPath 'state.tmp') | Should -BeFalse
-        @(Select-String -LiteralPath (Join-Path $JobPath 'updates.log') -Pattern 'writes it over in place').Count | Should -Be 1
+        # Each wait is longer than the last, and each report waits about five seconds in all.
+        @($script:slept | Select-Object -First 5) | Should -Be @(100, 200, 400, 800, 1000)
+        ($script:slept | Measure-Object -Sum).Sum | Should -Be 9000
+        @(Select-String -LiteralPath (Join-Path $JobPath 'updates.log') -Pattern 'state\.json could not be replaced \(0x80070497: Unable to remove the file to be replaced\.\); it keeps the last report').Count | Should -Be 1
+    }
+    It 'waits longer for the report of how the run ended, then fails the run with Windows''s refusal' {
+        Set-Variable -Name PersistentCancellation -Value $false
+        $JobPath = Join-Path $TestDrive 'replace-refused-end'
+        [void][IO.Directory]::CreateDirectory($JobPath)
+        $path = Join-Path $JobPath 'state.json'
+        Write-PreparationState running verify
+        $before = [IO.File]::ReadAllBytes($path)
+        $script:slept = 0
+        Mock Start-Sleep { $script:slept += $Milliseconds }
+        Mock Invoke-AtlasTransitionFileReplace { throw [IO.IOException]::new('Unable to remove the file to be replaced.', -2147023721) }
+        { Write-PreparationState complete verify } | Should -Throw '*Unable to remove the file to be replaced*'
+        $script:slept | Should -BeGreaterThan 55000
+        $script:slept | Should -Not -BeGreaterThan 60000
+        [IO.File]::ReadAllBytes($path) | Should -Be $before
+        Test-Path (Join-Path $JobPath 'state.tmp') | Should -BeFalse
+    }
+    It 'makes no report of its own when Windows moved the old one aside and the new one can''t take its name' {
+        Set-Variable -Name PersistentCancellation -Value $false
+        $JobPath = Join-Path $TestDrive 'replace-moved-aside'
+        [void][IO.Directory]::CreateDirectory($JobPath)
+        $path = Join-Path $JobPath 'state.json'
+        Write-PreparationState running verify
+        Mock Start-Sleep {}
+        Mock Invoke-AtlasTransitionFileReplace {
+            if ([IO.File]::Exists($Path)) {
+                [IO.File]::Move($Path, "$Path.aside")
+                throw [IO.IOException]::new('Unable to move the replacement file to the file to be replaced.', -2147023720)
+            }
+            throw [IO.IOException]::new('The process cannot access the file because it is being used by another process.', -2147024864)
+        }
+        Write-PreparationState running windows-search
+        # Only a replacement puts a report in place, so none has any security but its own.
+        Test-Path -LiteralPath $path | Should -BeFalse
+        Test-Path (Join-Path $JobPath 'state.tmp') | Should -BeFalse
     }
     It 'keeps the earlier report for an error that waiting can''t help' {
         Set-Variable -Name PersistentCancellation -Value $false
@@ -182,19 +220,16 @@ Describe 'Protected preparation recovery journals' {
         (Get-FileHash -LiteralPath $path).Hash | Should -Be $before
         Test-Path (Join-Path $JobPath 'state.tmp') | Should -BeFalse
     }
-    It 'writes the copy of the Windows Update record over in place when Windows keeps refusing to replace it' {
+    It 'keeps the copy of the Windows Update record whole, and says why, when Windows keeps refusing to replace it' {
         $copy = Join-Path $TestDrive 'record-copy\journal.json'
         [void][IO.Directory]::CreateDirectory((Split-Path -Parent $copy))
         [IO.File]::WriteAllText($copy, '{"phase":"lifted","history":["an older and longer record"]}')
-        $script:AtlasTransitionEvidencePath = Join-Path $TestDrive 'record-copy\windows-transition.log'
         Mock Get-AtlasTransitionCopyPath { $copy }
         Mock Start-Sleep {}
         Mock Invoke-AtlasTransitionFileReplace { throw [IO.IOException]::new('Unable to remove the file to be replaced.', -2147023721) }
-        try { Write-AtlasTransitionCopy '{"phase":"installed"}' }
-        finally { $evidence = Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw; $script:AtlasTransitionEvidencePath = $null }
-        [IO.File]::ReadAllText($copy) | Should -BeExactly '{"phase":"installed"}'
+        { Write-AtlasTransitionCopy '{"phase":"installed"}' } | Should -Throw 'Unable to remove the file to be replaced.'
+        [IO.File]::ReadAllText($copy) | Should -BeExactly '{"phase":"lifted","history":["an older and longer record"]}'
         Test-Path "$copy.tmp" | Should -BeFalse
-        $evidence | Should -Match 'written over in place'
     }
     It 'atomically writes recovery records and refuses an existing temporary file' {
         Set-Variable -Name PersistentCancellation -Value $true
