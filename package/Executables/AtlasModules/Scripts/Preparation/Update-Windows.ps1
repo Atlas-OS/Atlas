@@ -947,9 +947,23 @@ function Invoke-PreparationWindows {
             elseif ($entry.Update.InstallationBehavior.CanRequestUserInput) { $manual += $entry.Update.Title }
             else { $failed += $entry }
         }
-        $optionalFailures = @(Select-PreparationOptionalFailure $failed $optional)
+        $optionalFailures = @(Select-PreparationOptionalFailure $failed $optional -Installed)
         $failed = @($failed | Where-Object { $optionalFailures -notcontains $_ })
-        $again = @($unfinished | Where-Object { $restartedFor.ContainsKey((Get-PreparationUpdateKey $_)) })
+        # A restart Windows needs outranks a partial failure.
+        $restartNeeded = [bool]$installed.RebootRequired
+        if (-not $restartNeeded) { $restartNeeded = Test-PreparationRestart }
+        # Without another restart, an update that met another installation or a
+        # damaged store gets the wait or the repair below before it can count as
+        # one the restart didn't finish.
+        $handledHere = @{}
+        if (-not $restartNeeded) {
+            foreach ($entry in @($failed | Where-Object { $_.HResult -in @($script:InstallNotAllowed, $script:ComponentStoreCorrupt) })) {
+                $handledHere[(Get-PreparationUpdateKey $entry.Update)] = $true
+            }
+        }
+        $again = @($unfinished | Where-Object {
+                $restartedFor.ContainsKey((Get-PreparationUpdateKey $_)) -and -not $handledHere.ContainsKey((Get-PreparationUpdateKey $_))
+            })
         if ($again.Count -gt 0) {
             Save-PreparationRestartedFor @()
             $titles = @($again | ForEach-Object { [string]$_.Title }) -join '; '
@@ -958,13 +972,9 @@ function Invoke-PreparationWindows {
             $failure.Data['restartRepeated'] = $true
             throw $failure
         }
-        if ($installed.RebootRequired) {
+        if ($restartNeeded) {
             Save-PreparationRestartedFor $unfinished
-            $script:PreparationRestartReasons = @('windows-update')
-            return 'reboot'
-        }
-        if (Test-PreparationRestart) {
-            Save-PreparationRestartedFor $unfinished
+            if ($installed.RebootRequired) { $script:PreparationRestartReasons = @('windows-update') }
             return 'reboot'
         }
         if ($manual.Count -gt 0) { throw (New-PreparationFailure "Windows could not finish these updates automatically. Finish them in Windows Settings, then retry: $($manual -join '; ')" 'manual-updates') }
@@ -989,11 +999,15 @@ function Invoke-PreparationWindows {
 }
 
 # The optional prerequisites among $Failed. Each is logged and left out of the
-# rest of the run, so the next pass installs the monthly update it replaced.
-function Select-PreparationOptionalFailure($Failed, [hashtable]$Optional) {
+# rest of the run, so the next pass installs the monthly update it replaced. An
+# install that met another installation or a damaged store (-Installed) gets the
+# wait or the repair first, as any update does, while the run has one left.
+function Select-PreparationOptionalFailure($Failed, [hashtable]$Optional, [switch]$Installed) {
     foreach ($entry in @($Failed)) {
         $key = Get-PreparationUpdateKey $entry.Update
         if (-not $Optional.ContainsKey($key)) { continue }
+        if ($Installed -and (($entry.HResult -eq $script:InstallNotAllowed -and $script:PreparationBusyWaited -lt $script:PreparationBusyWaits) -or
+                ($entry.HResult -eq $script:ComponentStoreCorrupt -and -not $script:PreparationComponentRepairRun))) { continue }
         $script:PreparationOptionalFailed[$key] = $true
         $line = "Optional update '$($entry.Update.Title)' failed (0x{0:X8}); installing the monthly update it replaced instead." -f $entry.HResult
         Write-PreparationLog $line

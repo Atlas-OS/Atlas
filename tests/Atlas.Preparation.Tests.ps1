@@ -1436,6 +1436,73 @@ Describe 'Windows installation results requiring restart' {
         Mock Get-PreparationBootId { $Boot }
         Invoke-PreparationWindows | Should -Be 'reboot' -Because $Case
     }
+    It 'gives an update Windows restarted for <Case> first, and installs it' -TestCases @(
+        @{ Case = 'the wait for another installation'; HResult = -2145124330 }
+        @{ Case = 'the store repair'; HResult = -2147010798 }
+    ) {
+        $script:RestartRecordText = ConvertTo-Json -Compress -Depth 4 -InputObject @{
+            boot = 'boot:1'; at = [DateTime]::UtcNow.ToString('o'); updates = @(@{ key = 'Fixture update id/0'; title = 'Fixture update' }) }
+        Mock Get-PreparationBootId { 'boot:2' }
+        $script:met = [pscustomobject]@{ ResultCode = 4; RebootRequired = $false; HResult = 0; Code = $HResult }
+        $script:met | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ ResultCode = 4; HResult = $this.Code } }
+        $script:done = [pscustomobject]@{ ResultCode = 2; RebootRequired = $false; HResult = 0 }
+        $script:done | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ ResultCode = 2; HResult = 0 } }
+        $script:installs = 0
+        Mock Invoke-PreparationWindowsOperation {
+            if ($Kind -eq 'Download') { return $script:download }
+            $script:installs++
+            if ($script:installs -eq 1) { return $script:met }
+            return $script:done
+        }
+        $script:searches = 0
+        Mock Find-PreparationWindowsUpdate { $script:searches++; if ($script:searches -le 2) { $script:offered } }
+        Mock Wait-PreparationInstallerIdle { $true }
+        Mock Invoke-PreparationComponentRepair { $true }
+        Invoke-PreparationWindows | Should -Be 'complete' -Because $Case
+        $script:installs | Should -Be 2
+    }
+    It 'still stops when an update Windows restarted for meets another installation and asks for yet another restart' {
+        $script:RestartRecordText = ConvertTo-Json -Compress -Depth 4 -InputObject @{
+            boot = 'boot:1'; at = [DateTime]::UtcNow.ToString('o'); updates = @(@{ key = 'Fixture update id/0'; title = 'Fixture update' }) }
+        Mock Get-PreparationBootId { 'boot:2' }
+        $script:installation | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ ResultCode = 4; HResult = -2145124330 } } -Force
+        Mock Wait-PreparationInstallerIdle { $true }
+        try { Invoke-PreparationWindows } catch { $thrown = $_.Exception }
+        (Get-PreparationFailureDetail $thrown).reason | Should -Be 'manual-updates'
+        $thrown.Data['restartRepeated'] | Should -BeTrue
+        Should -Invoke Wait-PreparationInstallerIdle -Times 0 -Exactly
+    }
+    It 'gives an optional prerequisite <Case> before leaving it for the monthly update' -TestCases @(
+        @{ Case = 'the wait for another installation'; HResult = -2145124330 }
+        @{ Case = 'the store repair'; HResult = -2147010798 }
+    ) {
+        $preview = New-FixtureUpdate '2026-11 Preview Update (KB5132057) (26200.10075)'
+        $monthly = New-FixtureUpdate '2026-11 Security Update (KB5132061) (26200.9974)'
+        $script:previewInstalls = 0
+        Mock Find-PreparationPrerequisiteUpdate {
+            if ($script:previewInstalls -lt 2 -and -not $script:PreparationOptionalFailed.ContainsKey((Get-PreparationUpdateKey $preview))) { $preview }
+        }
+        $script:searches = 0
+        Mock Find-PreparationWindowsUpdate { $script:searches++; if ($script:searches -le 2) { $monthly } }
+        $script:met = [pscustomobject]@{ ResultCode = 4; RebootRequired = $false; HResult = 0; Code = $HResult }
+        $script:met | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ ResultCode = 4; HResult = $this.Code } }
+        $script:done = [pscustomobject]@{ ResultCode = 2; RebootRequired = $false; HResult = 0 }
+        $script:done | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ ResultCode = 2; HResult = 0 } }
+        Mock Invoke-PreparationWindowsOperation {
+            if ($Kind -eq 'Download') { return $script:download }
+            if ($Updates.Item(0).Title -like '*Preview*') {
+                $script:previewInstalls++
+                if ($script:previewInstalls -eq 1) { return $script:met }
+            }
+            return $script:done
+        }
+        Mock Wait-PreparationInstallerIdle { $true }
+        Mock Invoke-PreparationComponentRepair { $script:PreparationComponentRepairRun = $true; $true }
+        $script:PreparationComponentRepairRun = $false
+        Invoke-PreparationWindows | Should -Be 'complete' -Because $Case
+        $script:previewInstalls | Should -Be 2
+        $script:PreparationOptionalFailed.Count | Should -Be 0
+    }
 }
 
 Describe 'A damaged component store' {
