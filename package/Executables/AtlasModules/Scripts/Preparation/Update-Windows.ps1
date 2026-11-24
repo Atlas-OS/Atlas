@@ -823,18 +823,23 @@ function Repair-PreparationRecordedDamage {
     return (Invoke-PreparationComponentRepair 'Windows records damage to it')
 }
 
-# Repairs the store once a run; returns whether the repair ran.
-function Invoke-PreparationComponentRepair([string]$Why) {
+# Repairs the store once a run; returns whether the repair ran. -Ahead is a
+# repair before any update has failed on the store: when it fails, it doesn't
+# use up the run's repair, which an update that does fail on it then gets.
+function Invoke-PreparationComponentRepair([string]$Why, [switch]$Ahead) {
     if ($script:PreparationComponentRepairRun) { return $false }
     $script:PreparationComponentRepairRun = $true
     Write-PreparationComponentEvidence "$Why; repairing it with DISM RestoreHealth"
     Write-PreparationState running windows-repair
-    try { $exit = '0x{0:X8}' -f (Invoke-PreparationRestoreHealth) }
+    try { $code = [int](Invoke-PreparationRestoreHealth) }
     catch {
         Write-PreparationComponentEvidence "the repair could not run: $($_.Exception.Message)"
+        if ($Ahead) { $script:PreparationComponentRepairRun = $false }
         return $true
     }
-    Write-PreparationComponentEvidence "the repair ended with $exit; Windows now records it as $(Get-PreparationComponentHealth)"
+    Write-PreparationComponentEvidence ('the repair ended with 0x{0:X8}; Windows now records it as {1}' -f $code, (Get-PreparationComponentHealth))
+    # 3010: done, with a restart to finish it.
+    if ($Ahead -and $code -notin @(0, 3010)) { $script:PreparationComponentRepairRun = $false }
     return $true
 }
 
@@ -2875,15 +2880,12 @@ function Invoke-PreparationTransition {
         return (Resolve-PreparationPendingMove $journal)
     }
     # Before a move starts, also after plain updates left their record open.
+    $storeRepair = $null
     if ($null -eq $journal -or $journal.kind -eq 'access') {
         if (Test-PreparationRestart) { return 'reboot' }
         # Nothing changes before Windows Update can be reached.
         if (-not (Test-PreparationNetwork)) { throw (New-Object System.Net.NetworkInformation.NetworkInformationException) }
-        $storeRepair = Test-AtlasWindowsTransitionPreflight -Wait { Write-PreparationState running windows-repair }
-        # A feature update can roll back at the restart on a damaged store, so
-        # damage other than what the Atlas packages leave is repaired first. Any
-        # restart the repair leaves comes before the monthly updates.
-        if ($storeRepair) { [void](Invoke-PreparationComponentRepair $storeRepair) }
+        $storeRepair = Test-AtlasWindowsTransitionPreflight -Wait { Assert-PreparationContinue; Write-PreparationState running windows-repair }
     }
     $source = [pscustomobject][ordered]@{ build = $version.Build; ubr = $version.Ubr; displayVersion = $version.DisplayVersion; editionId = $version.EditionId }
     $target = [pscustomobject][ordered]@{ release = $WindowsTarget; build = $TargetBuild; kb = $FeatureKb }
@@ -2894,6 +2896,11 @@ function Invoke-PreparationTransition {
         -UserSid ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value) -AtlasPackages $packages -Carry $carry
     Update-AtlasTransitionLiftSet $journal
     Invoke-AtlasWindowsUpdateLift $journal
+    # A feature update can roll back at the restart on a damaged store, so damage
+    # other than what the Atlas packages leave is repaired before it. The repair
+    # takes its files from Windows Update, so it comes once that is on. Any
+    # restart it leaves comes before the monthly updates.
+    if ($storeRepair) { [void](Invoke-PreparationComponentRepair $storeRepair -Ahead) }
     $recheck = $OfferOnly -and $journal.phase -eq 'targeted'
     if ($recheck) {
         Write-AtlasTransitionEvidence 'recheck: only looking for the offer again'

@@ -613,15 +613,30 @@ function Test-AtlasWindowsUpdateManaged {
 # DISM's ScanHealth: a full check of the component store, which writes what it
 # finds to the servicing log, as a repair does, and changes nothing. It reports
 # no progress Atlas can read, so $Wait runs every two seconds while it does.
-# Returns DISM's exit code.
+# When $Wait throws, as for Stop, the check is ended: it changes nothing, so
+# stopping it part way is safe. Returns DISM's exit code.
 function Invoke-AtlasTransitionScanHealth([scriptblock]$Wait = {}) {
     $dism = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'Dism.exe')
     $process = Start-Process -FilePath $dism -ArgumentList '/Online /Cleanup-Image /ScanHealth' -WindowStyle Hidden -PassThru
     # Holding the handle keeps the exit code, which is otherwise lost when the
     # process ends before it is read.
     $null = $process.Handle
-    while (-not $process.WaitForExit(2000)) { & $Wait }
+    try {
+        while (-not $process.WaitForExit(2000)) { & $Wait }
+    }
+    catch {
+        if (-not $process.HasExited) { Stop-AtlasTransitionProcessTree $process }
+        throw
+    }
     return $process.ExitCode
+}
+
+# Ends a process and those it started, as DISM runs its work in a host process
+# of its own.
+function Stop-AtlasTransitionProcessTree($Process) {
+    $taskkill = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'taskkill.exe')
+    $null = & $taskkill /PID $Process.Id /T /F 2>&1
+    if (-not $Process.HasExited) { $Process.Kill() }
 }
 
 # What Windows Update needs to work at all and Atlas will not change itself.
@@ -666,7 +681,10 @@ function Test-AtlasWindowsTransitionPreflight([int64]$MinimumFreeBytes = 6GB, [s
         if ($null -eq $finding) {
             Write-AtlasTransitionEvidence 'component store is repairable, and the servicing log has no store check that says how; running DISM ScanHealth'
             try { Write-AtlasTransitionEvidence ('ScanHealth ended with 0x{0:X8}' -f (Invoke-AtlasTransitionScanHealth $Wait)) }
-            catch { Write-AtlasTransitionEvidence "ScanHealth could not run: $($_.Exception.Message)" }
+            catch {
+                if ($_.Exception -is [OperationCanceledException]) { throw }
+                Write-AtlasTransitionEvidence "ScanHealth could not run: $($_.Exception.Message)"
+            }
             $finding = Get-AtlasTransitionStoreFinding @(Get-AtlasTransitionCbsLogTail)
         }
         $listed = if ($null -ne $finding) { (@($finding.Items | ForEach-Object { "$($_.Kind) $($_.Path)" }) -join '; ') } else { 'no store check in the servicing log' }

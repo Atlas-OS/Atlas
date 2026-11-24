@@ -842,13 +842,31 @@ Describe 'A component store that reads as repairable' {
         Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw | Should -Match 'no store check that says how; running DISM ScanHealth'
     }
 
+    It 'passes a stop during the store check on, without a repair' {
+        $script:CbsLines = @()
+        Mock Invoke-AtlasTransitionScanHealth { throw (New-Object OperationCanceledException 'Preparation stopped after the current operation.') }
+        { Test-AtlasWindowsTransitionPreflight } | Should -Throw -ExceptionType ([OperationCanceledException])
+    }
+
+    It 'ends DISM when the wait during the store check throws, as for Stop' {
+        # The file's real ScanHealth, which the double stands in for elsewhere.
+        . $script:Library
+        $script:process = [pscustomobject]@{ Id = 0; HasExited = $false; Handle = 1 }
+        $script:process | Add-Member ScriptMethod WaitForExit { $false }
+        Mock Start-Process { $script:process }
+        Mock Stop-AtlasTransitionProcessTree {}
+        { Invoke-AtlasTransitionScanHealth { throw (New-Object OperationCanceledException 'Preparation stopped after the current operation.') } } |
+            Should -Throw -ExceptionType ([OperationCanceledException])
+        Should -Invoke Stop-AtlasTransitionProcessTree -Times 1 -Exactly -ParameterFilter { [object]::ReferenceEquals($Process, $script:process) }
+    }
+
     It 'asks for a repair when the store check can''t run' {
         $script:CbsLines = @()
         Test-AtlasWindowsTransitionPreflight | Should -Be 'Windows records damage to it that no store check names'
         Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw | Should -Match 'ScanHealth could not run: A test started DISM'
     }
 
-    It 'repairs other damage before the move starts, and goes on' {
+    It 'repairs other damage once Windows Update is on again, before the monthly updates, and goes on' {
         Use-TransitionRun
         Set-HeldBackUpdate
         $script:CbsLines = $script:AppInvLog
@@ -857,10 +875,27 @@ Describe 'A component store that reads as repairable' {
         Mock Test-PreparationNetwork { $true }
         Mock Write-PreparationState {}
         Mock Invoke-PreparationComponentRepair { $script:Writes.Add('repair'); $true }
-        Mock Invoke-PreparationWindows { throw 'Stop after the monthly updates begin.' }
+        Mock Invoke-PreparationWindows { $script:Writes.Add('monthly updates'); throw 'Stop after the monthly updates begin.' }
         { Invoke-PreparationTransition } | Should -Throw '*monthly updates begin*'
-        Should -Invoke Invoke-PreparationComponentRepair -Times 1 -Exactly -ParameterFilter { $Why -match 'other than the Atlas packages leave' }
-        $script:Writes.IndexOf('repair') | Should -BeLessThan $script:Writes.IndexOf("set $script:Record|Journal")
+        Should -Invoke Invoke-PreparationComponentRepair -Times 1 -Exactly -ParameterFilter { $Why -match 'other than the Atlas packages leave' -and $Ahead }
+        # The repair takes its files from Windows Update, which Atlas 0.5.0's launcher can have turned off.
+        $script:Writes.IndexOf('repair') | Should -BeGreaterThan $script:Writes.IndexOf("service wuauserv 3")
+        $script:Writes.IndexOf('repair') | Should -BeGreaterThan $script:Writes.IndexOf("remove $script:Policy|DisableWindowsUpdateAccess")
+        $script:Writes.IndexOf('repair') | Should -BeLessThan $script:Writes.IndexOf('monthly updates')
+    }
+
+    It 'stops the store check when the user chooses Stop' {
+        Use-TransitionRun
+        $script:CbsLines = @()
+        Mock Test-PreparationRestart { $false }
+        Mock Test-PreparationNetwork { $true }
+        Mock Write-PreparationState {}
+        Mock Assert-PreparationContinue { throw (New-Object OperationCanceledException 'Preparation stopped after the current operation.') }
+        Mock Invoke-AtlasTransitionScanHealth { & $Wait; 0 }
+        Mock Invoke-PreparationComponentRepair { $true }
+        { Invoke-PreparationTransition } | Should -Throw -ExceptionType ([OperationCanceledException])
+        Should -Invoke Invoke-PreparationComponentRepair -Times 0 -Exactly
+        @($script:Writes) | Should -BeNullOrEmpty
     }
 
     It 'moves without a repair on a store with only the known Atlas pattern' {

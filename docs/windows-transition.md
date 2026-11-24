@@ -111,7 +111,9 @@ So a repairable store doesn't stop the feature update:
 - The worker logs the corrupt items that the newest check in `CBS.log` names.
   When the log has no check, it runs `DISM /Online /Cleanup-Image /ScanHealth`, which changes nothing, and reads what that check found.
 - When the items are the known Atlas package pattern, or the check finds nothing, the worker goes on.
-- Otherwise it repairs the store with `DISM /RestoreHealth` before anything else changes, because other damage can make the feature update roll back at the restart, and then goes on.
+- Otherwise it repairs the store with `DISM /RestoreHealth`, because other damage can make the feature update roll back at the restart, and then goes on.
+  The repair takes its files from Windows Update, so it runs once Windows Update is turned on for the move, before the monthly updates.
+  A repair here that fails doesn't use up the run's repair, which an update that fails on the store then gets (see [Windows component store](preparation.md#windows-component-store)).
 
 A health check that can't run is logged with its error, and the worker goes on too.
 

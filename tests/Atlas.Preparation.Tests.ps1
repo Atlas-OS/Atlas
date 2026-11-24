@@ -1505,6 +1505,41 @@ Describe 'Windows installation results requiring restart' {
     }
 }
 
+Describe 'A component store repair ahead of a move' {
+    BeforeEach {
+        $script:PreparationComponentRepairRun = $false
+        Mock Write-PreparationState {}
+        Mock Write-PreparationComponentEvidence {}
+        Mock Get-PreparationComponentHealth { 'Repairable' }
+    }
+
+    It 'leaves the run its repair when it <Case>' -TestCases @(
+        @{ Case = 'finds no source (0x800F081F)'; Restore = { -2146498529 } }
+        @{ Case = 'can''t download its files (0x800F0906)'; Restore = { -2146498298 } }
+        @{ Case = 'can''t run'; Restore = { throw 'DISM is unavailable' } }
+    ) {
+        $script:restore = $Restore
+        Mock Invoke-PreparationRestoreHealth { & $script:restore }
+        Invoke-PreparationComponentRepair 'damage before a move' -Ahead | Should -BeTrue
+        $script:PreparationComponentRepairRun | Should -BeFalse -Because $Case
+        Invoke-PreparationComponentRepair '1 update(s) failed on it (0x80073712)' | Should -BeTrue
+        Invoke-PreparationComponentRepair 'another update failed on it' | Should -BeFalse
+        Should -Invoke Invoke-PreparationRestoreHealth -Times 2 -Exactly
+    }
+
+    It 'uses up the run''s repair when it <Case>' -TestCases @(
+        @{ Case = 'succeeds'; Code = 0; Ahead = $true }
+        @{ Case = 'succeeds with a restart to finish it'; Code = 3010; Ahead = $true }
+        @{ Case = 'is the one for an update that failed, and fails too'; Code = -2146498529; Ahead = $false }
+    ) {
+        $script:code = $Code
+        Mock Invoke-PreparationRestoreHealth { $script:code }
+        Invoke-PreparationComponentRepair 'the store' -Ahead:$Ahead | Should -BeTrue
+        $script:PreparationComponentRepairRun | Should -BeTrue -Because $Case
+        Invoke-PreparationComponentRepair 'again' | Should -BeFalse
+    }
+}
+
 Describe 'A damaged component store' {
     BeforeAll {
         # An install whose one update ended with $HResult; 0 is success.
