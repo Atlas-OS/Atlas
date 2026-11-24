@@ -955,6 +955,28 @@ Describe 'Moving Windows' {
         Should -Invoke Invoke-PreparationWindowsOperation -Times 1 -Exactly -ParameterFilter { $Kind -eq 'Install' }
     }
 
+    It 'waits for another installation before installing the update again, without using up its retry' {
+        $script:Offers.default = @(New-Offer 'Windows 11, version 26H2' @('5129195') -Upgrade)
+        $script:Installs = [Collections.Queue]::new()
+        foreach ($result in @((New-Result 4 -2145124330 $false), (New-Result 4 -2145124330 $false), (New-Result 2 0 $true))) { $script:Installs.Enqueue($result) }
+        Mock Invoke-PreparationWindowsOperation { if ($Kind -eq 'Download') { $script:Download } else { $script:Installs.Dequeue() } }
+        Mock Wait-PreparationInstallerIdle { $true }
+        Invoke-PreparationTransition | Should -Be 'reboot'
+        Should -Invoke Wait-PreparationInstallerIdle -Times 2 -Exactly
+        (Read-Journal).phase | Should -BeExactly 'installed'
+    }
+
+    It 'names the code Windows Update''s history gives a failed install whose result names none' {
+        $script:Offers.default = @(New-Offer 'Windows 11, version 26H2' @('5129195') -Upgrade)
+        $script:Install = [pscustomobject]@{ ResultCode = 4; HResult = -2145124318; RebootRequired = $false }
+        $script:Install | Add-Member ScriptMethod GetUpdateResult { param($Index) [pscustomobject]@{ ResultCode = 4; HResult = 0 } }
+        Mock Get-PreparationHistoryCode { -2146498270 }
+        try { Invoke-PreparationTransition } catch { $thrown = $_.Exception }
+        $thrown.Data['reason'] | Should -BeExactly 'feature-failed'
+        $thrown.Data['errorCode'] | Should -BeExactly '0x800F0922'
+        Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw | Should -Match 'Windows Update history records 0x800F0922'
+    }
+
     It 'restarts Windows Update to read the new target before it searches' {
         $script:Offers.default = @(New-Offer 'Windows 11, version 26H2' @('5129195') -Upgrade)
         $script:Restarts = 0

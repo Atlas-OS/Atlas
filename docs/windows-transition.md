@@ -254,6 +254,8 @@ The worker downloads and installs the feature update on its own.
 Any result that leaves work for a restart counts as installed, because the build Windows starts after the restart decides whether it moved.
 When Windows wants a restart before the install, Atlas Manager restarts first.
 A failed install gets one more try, and the second failure stops the run with `feature-failed`.
+An install that meets another installation waits for it first, without using up that try, as monthly updates do (see [Windows updates](preparation.md#windows-updates)).
+When the result gives no code, the log and the outcome have the one Windows Update's history records.
 
 Atlas commits the installed update once, immediately before it restarts Windows.
 The worker finds the update again by the ID the record keeps, and commits it.

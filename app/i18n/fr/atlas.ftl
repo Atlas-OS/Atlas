@@ -1203,6 +1203,7 @@ prepare-failed-store-timeout = Les applications du Store n’ont pas fini de se 
 prepare-failed-store-passes = Le Microsoft Store a continué à proposer de nouvelles mises à jour. Terminez les mises à jour restantes dans le Microsoft Store, puis réessayez.
 prepare-failed-manual-updates = Certaines mises à jour Windows doivent être terminées dans Windows Update. Ouvrez Windows Update, terminez-les, puis réessayez.
 prepare-failed-windows-passes = Windows Update a continué à proposer de nouvelles mises à jour. Terminez les mises à jour restantes dans Windows Update, puis réessayez.
+prepare-failed-windows-update-unreachable = Windows Update n’a pas pu joindre les serveurs de Microsoft. Vérifiez votre connexion Internet ainsi que tout pare-feu, proxy ou VPN, puis réessayez.
 # Atlas Manager runs from a folder that links to another place (a junction or symbolic link).
 prepare-failed-source-linked = Atlas Manager se trouve dans un dossier lié. Fermez Atlas, déplacez Atlas Manager dans un dossier local de ce PC, puis ouvrez-le depuis ce dossier.
 prepare-error-code = Code d’erreur : { $code }

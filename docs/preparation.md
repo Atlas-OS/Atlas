@@ -44,7 +44,9 @@ The worker searches Windows Update online, downloads and installs what it finds,
 - Each search asks the Windows Update service itself (`ServerSelection` set to `ssWindowsUpdate`).
   The default service can be another catalogue on some PCs, and that catalogue may not offer the update Atlas needs.
 - A PC that gets updates from its organisation's server (`AU\UseWUServer` set to 1) keeps that server.
-- A search that ends with errors runs again, up to three times, 30 seconds apart.
+- A search that fails or ends with errors runs up to three times, after 30 seconds and then 60.
+  When Windows Update still can't be reached, or keeps stopping, the run stops with `windows-update-unreachable`.
+  The errors that count are `0x8024001E`, `0x80240438` and `0x80244010` to `0x8024401F`; any other error stops the run at once.
 - The worker leaves out optional previews (browse-only updates) and feature updates.
   It also leaves out drivers when you chose **Install drivers myself**.
 - When one pass offers several cumulative updates for the installed build, it installs only the newest.
@@ -52,6 +54,17 @@ The worker searches Windows Update online, downloads and installs what it finds,
 - Updates that can ask for input are installed last, silently.
   An update that requires your input stops the run with `manual-updates`, naming the updates to finish in Windows Settings.
 - A run gives up with `windows-passes` when Windows still offers updates after eight passes.
+
+A failed update gets one more try after a fresh search.
+Some failures are handled first:
+
+- When another installation holds Windows Update (`0x80240016`), the worker waits for it, for at least 30 seconds and at most 10 minutes, then tries again.
+  These waits don't use up the update's try, and a run makes up to three of them.
+- When an install result gives no code of its own, `updates.log` adds the code Windows Update's history records for that attempt, and the run reports that one.
+
+Before a restart for updates, the worker records the updates it's for under `HKLM\SOFTWARE\AtlasOS\Preparation`.
+When one of them fails again after the restart, or asks for yet another restart, the run stops with `manual-updates` instead of restarting again.
+A record from more than a day before doesn't count.
 
 The worker stops waiting for two kinds of update:
 
@@ -255,8 +268,9 @@ These logs belong to the **Get ready** page, so they aren't under `%windir%\Atla
 | Reason | Meaning |
 | --- | --- |
 | `session-owner` | The worker isn't running as the signed-in owner of the session. |
-| `manual-updates` | Some updates need you to finish them in Windows Settings. |
+| `manual-updates` | Some updates need you to finish them in Windows Settings, including updates that didn't finish after a restart for them. |
 | `windows-passes` | Windows still offers updates after eight passes. |
+| `windows-update-unreachable` | Windows Update couldn't be reached, or kept stopping, on every try. |
 | `component-store-unrepairable` | Windows reads its component store as damaged beyond repair. |
 | `store-missing` | Microsoft Store isn't registered for you. |
 | `store-paused-battery`, `store-paused-network` | The Store paused an update until the PC is plugged in or on Wi-Fi. |

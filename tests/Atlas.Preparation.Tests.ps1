@@ -5,6 +5,10 @@ BeforeAll {
     $script:ComponentHealth = 'Healthy'
     function Get-AtlasTransitionImageHealth { if ($script:ComponentHealth -eq 'Throws') { throw 'DISM is unavailable' }; $script:ComponentHealth }
     function Invoke-PreparationRestoreHealth { throw 'A test started DISM without standing in for it.' }
+    # No test reads or writes this PC's record of what a restart was for.
+    $script:RestartRecordText = ''
+    function Get-PreparationRestartRecordText { $script:RestartRecordText }
+    function Set-PreparationRestartRecordText([string]$Text) { $script:RestartRecordText = $Text }
 }
 
 Describe 'Signed-in preparation ownership' {
@@ -1107,8 +1111,11 @@ Describe 'Windows installation results requiring restart' {
         Mock Test-PreparationNetwork { $true }
         Mock Write-PreparationState {}
         Mock Get-PreparationWindowsVersion { [pscustomobject]@{ Build = 26200; Ubr = 9168; DisplayVersion = '25H2'; EditionId = 'Professional' } }
+        Mock Get-PreparationBootId { 'boot:1' }
         Remove-Item -LiteralPath (Join-Path $JobPath 'updates.log') -ErrorAction SilentlyContinue
+        $script:PreparationBusyWaited = 0
         $script:PreparationOptionalFailed = @{}
+        $script:RestartRecordText = ''
         $script:offered = New-FixtureUpdate 'Fixture update'
         $script:download = [pscustomobject]@{ResultCode=2; HResult=0}
         Mock Invoke-PreparationWindowsOperation {
@@ -1172,10 +1179,10 @@ Describe 'Windows installation results requiring restart' {
     }
     It 'retries a failed update once after a fresh search, then reports it with its Windows code' {
         $script:installation.RebootRequired = $false
-        $script:installation | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ResultCode=4; HResult=-2145124330} } -Force
+        $script:installation | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ResultCode=4; HResult=-2147023293} } -Force
         try { Invoke-PreparationWindows } catch { $thrown = $_.Exception }
         $thrown.Message | Should -BeLike '*could not install every update*'
-        (Get-PreparationFailureDetail $thrown).errorCode | Should -Be '0x80240016'
+        (Get-PreparationFailureDetail $thrown).errorCode | Should -Be '0x80070643'
         Should -Invoke Find-PreparationWindowsUpdate -Times 2 -Exactly
         Should -Invoke Invoke-PreparationWindowsOperation -Times 2 -Exactly -ParameterFilter { $Kind -eq 'Install' }
         Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'Retrying 1 failed update'
@@ -1259,6 +1266,56 @@ Describe 'Windows installation results requiring restart' {
         Invoke-PreparationWindows | Should -Be 'reboot'
         Should -Invoke Invoke-PreparationWindowsOperation -Times 0 -Exactly -ParameterFilter { $Kind -eq 'Install' }
     }
+    It 'waits for another installation, then installs the update that met it' {
+        $script:busy = [pscustomobject]@{ResultCode=4; RebootRequired=$false; HResult=0}
+        $script:busy | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ResultCode=4; HResult=-2145124330} }
+        $script:succeeded = [pscustomobject]@{ResultCode=2; RebootRequired=$false; HResult=0}
+        $script:succeeded | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ResultCode=2; HResult=0} }
+        $script:installs = 0
+        Mock Invoke-PreparationWindowsOperation {
+            if ($Kind -eq 'Download') { return $script:download }
+            $script:installs++
+            if ($script:installs -le 3) { return $script:busy }
+            return $script:succeeded
+        }
+        $script:searches = 0
+        Mock Find-PreparationWindowsUpdate { $script:searches++; if ($script:searches -le 4) { $script:offered } }
+        Mock Start-Sleep {}
+        Mock Test-PreparationInstallerBusy { $false }
+        Invoke-PreparationWindows | Should -Be 'complete'
+        $script:installs | Should -Be 4
+        # Each wait lasts at least 30 seconds, in steps of two.
+        Should -Invoke Start-Sleep -Times 45 -Exactly
+        @(Select-String -LiteralPath (Join-Path $JobPath 'updates.log') -Pattern 'busy with another installation \(0x80240016\)').Count | Should -Be 3
+    }
+    It 'reports another installation''s refusal with its code once waiting for it hasn''t helped' {
+        $script:installation.RebootRequired = $false
+        $script:installation | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ResultCode=4; HResult=-2145124330} } -Force
+        Mock Start-Sleep {}
+        Mock Test-PreparationInstallerBusy { $false }
+        try { Invoke-PreparationWindows } catch { $thrown = $_.Exception }
+        (Get-PreparationFailureDetail $thrown).errorCode | Should -Be '0x80240016'
+        Should -Invoke Invoke-PreparationWindowsOperation -Times 4 -Exactly -ParameterFilter { $Kind -eq 'Install' }
+    }
+    It 'waits at least 30 seconds and at most 10 minutes for another installation, and only so often in a run' {
+        Mock Start-Sleep {}
+        Mock Test-PreparationInstallerBusy { $true }
+        Wait-PreparationInstallerIdle windows-install | Should -BeTrue
+        Should -Invoke Start-Sleep -Times 300 -Exactly
+        Wait-PreparationInstallerIdle windows-install | Should -BeTrue
+        Wait-PreparationInstallerIdle windows-install | Should -BeTrue
+        Wait-PreparationInstallerIdle windows-install | Should -BeFalse
+        Should -Invoke Start-Sleep -Times 900 -Exactly
+    }
+    It 'reports the code Windows Update''s history gives an update whose result names none' {
+        $script:installation.RebootRequired = $false
+        $script:installation | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ResultCode=4; HResult=0} } -Force
+        Mock Get-PreparationHistoryCode { -2146498270 }
+        try { Invoke-PreparationWindows } catch { $thrown = $_.Exception }
+        (Get-PreparationFailureDetail $thrown).errorCode | Should -Be '0x800F0922'
+        Should -Invoke Get-PreparationHistoryCode -ParameterFilter { $UpdateId -eq 'Fixture update id' }
+        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'Fixture update: result=4, HRESULT=0, update history: 0x800F0922'
+    }
     It 'installs the monthly update instead when the optional prerequisite that replaced it fails' {
         $preview = New-FixtureUpdate '2026-11 Preview Update (KB5132057) (26200.10075)'
         $monthly = New-FixtureUpdate '2026-11 Security Update (KB5132061) (26200.9974)'
@@ -1278,6 +1335,49 @@ Describe 'Windows installation results requiring restart' {
         Invoke-PreparationWindows | Should -Be 'complete'
         @($script:collections | Where-Object { $_.Count -gt 0 } | ForEach-Object { $_.Queued[0].Title }) | Should -Be @($preview.Title, $monthly.Title)
         Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match "Optional update '2026-11 Preview Update \(KB5132057\) \(26200\.10075\)' failed \(0x800F0993\); installing the monthly update it replaced instead"
+    }
+    It 'records what a restart is for' {
+        $script:installation | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ResultCode=2; HResult=0; RebootRequired=$true} } -Force
+        Invoke-PreparationWindows | Should -Be 'reboot'
+        $record = $script:RestartRecordText | ConvertFrom-Json
+        $record.boot | Should -BeExactly 'boot:1'
+        @($record.updates.key) | Should -Be @('Fixture update id/0')
+    }
+    It 'stops instead of restarting again when an update Windows restarted for <Case>' -TestCases @(
+        @{ Case = 'asks for another restart'; Code = 2; HResult = 0 }
+        @{ Case = 'fails again'; Code = 4; HResult = -2147023293 }
+    ) {
+        param($Case, $Code, $HResult)
+        $script:RestartRecordText = ConvertTo-Json -Compress -Depth 4 -InputObject @{
+            boot = 'boot:1'; at = [DateTime]::UtcNow.ToString('o'); updates = @(@{ key = 'Fixture update id/0'; title = 'Fixture update' }) }
+        Mock Get-PreparationBootId { 'boot:2' }
+        $script:fixtureResult = [pscustomobject]@{ ResultCode = $Code; HResult = $HResult; RebootRequired = $true }
+        $script:installation | Add-Member ScriptMethod GetUpdateResult { $script:fixtureResult } -Force
+        try { Invoke-PreparationWindows } catch { $thrown = $_.Exception }
+        $detail = Get-PreparationFailureDetail $thrown
+        $detail.reason | Should -Be 'manual-updates' -Because $Case
+        $detail.failureMessage | Should -Match 'even after restarting.*Fixture update'
+        $script:RestartRecordText | Should -BeNullOrEmpty
+    }
+    It 'reports the update instead of restarting when updating ends with Windows wanting a restart' {
+        $script:RestartRecordText = ConvertTo-Json -Compress -Depth 4 -InputObject @{
+            boot = 'boot:1'; at = [DateTime]::UtcNow.ToString('o'); updates = @(@{ key = 'Fixture update id/0'; title = 'Fixture update' }) }
+        Mock Get-PreparationBootId { 'boot:2' }
+        $script:restartChecks = 0
+        Mock Test-PreparationRestart { $script:restartChecks++; $script:restartChecks -gt 1 }
+        Mock Invoke-PreparationStoreStage {}
+        { Invoke-PreparationUpdates } | Should -Throw '*even after restarting*'
+    }
+    It 'restarts as usual <Case>' -TestCases @(
+        @{ Case = 'for an update the last restart wasn''t for'; Boot = 'boot:2'; Key = 'Another update id/0'; Days = 0 }
+        @{ Case = 'while Windows hasn''t restarted since'; Boot = 'boot:1'; Key = 'Fixture update id/0'; Days = 0 }
+        @{ Case = 'once the record is more than a day old'; Boot = 'boot:2'; Key = 'Fixture update id/0'; Days = -2 }
+    ) {
+        param($Case, $Boot, $Key, $Days)
+        $script:RestartRecordText = ConvertTo-Json -Compress -Depth 4 -InputObject @{
+            boot = 'boot:1'; at = [DateTime]::UtcNow.AddDays($Days).ToString('o'); updates = @(@{ key = $Key; title = 'An update' }) }
+        Mock Get-PreparationBootId { $Boot }
+        Invoke-PreparationWindows | Should -Be 'reboot' -Because $Case
     }
 }
 
@@ -1444,7 +1544,7 @@ Describe 'Updates Windows offers again after they installed' {
         function New-InstallResult([int]$Code) {
             $result = [pscustomobject]@{ ResultCode = $Code; RebootRequired = $false; HResult = 0 }
             # One update per collection, so every index reports the same result.
-            $result | Add-Member ScriptMethod GetUpdateResult { param($Index) $null = $Index; [pscustomobject]@{ ResultCode = $this.ResultCode; HResult = $(if ($this.ResultCode -eq 2) { 0 } else { -2145124330 }) } }
+            $result | Add-Member ScriptMethod GetUpdateResult { param($Index) $null = $Index; [pscustomobject]@{ ResultCode = $this.ResultCode; HResult = $(if ($this.ResultCode -eq 2) { 0 } else { -2147023293 }) } }
             return $result
         }
     }
@@ -1546,7 +1646,11 @@ Describe 'Windows Update searches that end with errors' {
                 $job | Add-Member ScriptMethod CleanUp { }
                 $job
             }
-            $searcher | Add-Member ScriptMethod EndSearch { $script:results.Dequeue() }
+            $searcher | Add-Member ScriptMethod EndSearch {
+                $next = $script:results.Dequeue()
+                if ($next -is [Exception]) { throw $next }
+                $next
+            }
             $searcher
         }
         $script:partial = [pscustomobject]@{ ResultCode = 3; Updates = @(); Warnings = @($warning) }
@@ -1572,7 +1676,47 @@ Describe 'Windows Update searches that end with errors' {
         catch { $detail = Get-PreparationFailureDetail $_.Exception }
         $detail.errorCode | Should -Be '0x8024402C'
         $detail.failureMessage | Should -Match '^Windows update search failed: 3 \(0x8024402C'
+        $detail.ContainsKey('reason') | Should -BeFalse
         Should -Invoke Wait-PreparationSeconds -Times 2 -Exactly
+    }
+
+    It 'searches again after Windows Update stopped for a moment' {
+        $script:results.Enqueue([Runtime.InteropServices.COMException]::new('Exception from HRESULT: 0x8024001E', -2145124322))
+        $script:results.Enqueue([pscustomobject]@{ ResultCode = 2; Updates = @([pscustomobject]@{ Title = 'Cumulative update' }) })
+        @((Invoke-PreparationSearch $script:session 'IsInstalled=0').Title) | Should -Be @('Cumulative update')
+        Should -Invoke Wait-PreparationSeconds -Times 1 -Exactly -ParameterFilter { $Seconds -eq 30 }
+        Get-Content -LiteralPath (Join-Path $TestDrive 'updates.log') -Raw | Should -Match 'search failed on attempt 1 of 3: 0x8024001E'
+    }
+
+    It 'waits longer each time, then names the cause when Windows Update stays out of reach (<Code>)' -TestCases @(
+        @{ Code = '0x80240438'; HResult = -2145123272 }
+        @{ Code = '0x80244018'; HResult = -2145107944 }
+    ) {
+        param($Code, $HResult)
+        1..3 | ForEach-Object { $script:results.Enqueue([Runtime.InteropServices.COMException]::new("Exception from HRESULT: $Code", $HResult)) }
+        try { Invoke-PreparationSearch $script:session 'IsInstalled=0'; throw 'expected a failure' }
+        catch { $detail = Get-PreparationFailureDetail $_.Exception }
+        $detail.reason | Should -Be 'windows-update-unreachable'
+        $detail.errorCode | Should -Be $Code
+        Should -Invoke Wait-PreparationSeconds -Times 1 -Exactly -ParameterFilter { $Seconds -eq 30 }
+        Should -Invoke Wait-PreparationSeconds -Times 1 -Exactly -ParameterFilter { $Seconds -eq 60 }
+    }
+
+    It 'names the cause when part of every search couldn''t reach Windows Update' {
+        $warning = [pscustomobject]@{ HResult = -2145123272; Context = 4; Message = '' }
+        1..3 | ForEach-Object { $script:results.Enqueue([pscustomobject]@{ ResultCode = 3; Updates = @(); Warnings = @($warning) }) }
+        try { Invoke-PreparationSearch $script:session 'IsInstalled=0'; throw 'expected a failure' }
+        catch { $detail = Get-PreparationFailureDetail $_.Exception }
+        $detail.reason | Should -Be 'windows-update-unreachable'
+        $detail.errorCode | Should -Be '0x80240438'
+    }
+
+    It 'stops at once for a search error that doesn''t pass on its own' {
+        $script:results.Enqueue([Runtime.InteropServices.COMException]::new('invalid criteria', -2145124302))
+        try { Invoke-PreparationSearch $script:session 'IsInstalled=0'; throw 'expected a failure' }
+        catch { $thrown = $_.Exception }
+        Get-PreparationHResult $thrown | Should -Be -2145124302
+        Should -Invoke Wait-PreparationSeconds -Times 0 -Exactly
     }
 }
 
@@ -1631,6 +1775,23 @@ Describe 'Provider progress without interrupting servicing' {
         if ($Kind -eq 'Install') { $result.RebootRequired | Should -BeTrue }
         Should -Invoke Write-PreparationState -Times 2 -Exactly
         Should -Invoke Assert-PreparationContinue -Times 0 -Exactly
+    }
+    It 'waits for another installation when Windows Update won''t start this one, then starts it' {
+        $script:refusals = 1
+        $script:provider | Add-Member ScriptMethod BeginInstall {
+            param($Progress, $Completed, $State)
+            if ($script:refusals-- -gt 0) { throw ([Runtime.InteropServices.COMException]::new('Another installation is in progress.', -2145124330)) }
+            $script:job
+        } -Force
+        Mock Wait-PreparationInstallerIdle { $true }
+        (Invoke-PreparationWindowsOperation $script:provider $script:updates Install).ResultCode | Should -Be 3
+        Should -Invoke Wait-PreparationInstallerIdle -Times 1 -Exactly -ParameterFilter { $Stage -eq 'windows-install' }
+    }
+    It 'reports the refusal to start once waiting for another installation is used up' {
+        $script:provider | Add-Member ScriptMethod BeginInstall { throw ([Runtime.InteropServices.COMException]::new('Another installation is in progress.', -2145124330)) } -Force
+        Mock Wait-PreparationInstallerIdle { $false }
+        { Invoke-PreparationWindowsOperation $script:provider $script:updates Install } | Should -Throw '*Another installation is in progress*'
+        $script:cleaned | Should -BeFalse
     }
     It 'does not abandon an active installation when the progress journal cannot be written' {
         Mock Write-PreparationState { throw 'disk write failed' }

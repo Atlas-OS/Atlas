@@ -1174,6 +1174,7 @@ prepare-failed-store-timeout = 商店应用尚未完成更新。请在 Microsoft
 prepare-failed-store-passes = Microsoft Store 不断提供新的更新。请在 Microsoft Store 中完成剩余的更新，然后重试。
 prepare-failed-manual-updates = 部分更新需要在 Windows 更新中完成。请打开 Windows 更新，完成这些更新，然后重试。
 prepare-failed-windows-passes = Windows 更新不断提供新的更新。请在 Windows 更新中完成剩余的更新，然后重试。
+prepare-failed-windows-update-unreachable = Windows 更新无法连接到 Microsoft 的服务器。请检查 Internet 连接以及防火墙、代理或 VPN 设置，然后重试。
 # Atlas Manager 位于链接到其他位置的文件夹（联接或符号链接）中。Atlas 会继续使用打开它的文件夹，因此在同一窗口中重试没有帮助。
 prepare-failed-source-linked = Atlas Manager 位于链接文件夹中。请关闭 Atlas，将 Atlas Manager 移到这台电脑上的本地文件夹，然后从那里打开它。
 prepare-error-code = 错误代码：{ $code }
