@@ -590,9 +590,10 @@ function Get-AtlasTransitionStoreFinding([string[]]$Lines) {
 # Whether a store check's findings are the pattern Atlas's NoTelemetry package is
 # known to leave: a component store cleanup rebuilds the replaced Application
 # Experience (AppInv) 10.0.26100.1591 component from its baseline without
-# aeinvext.dll and Microsoft.Management.Deployment.winmd. A label for the log
-# only: a repair moves the findings to other 1591-baseline files, so no decision
-# rests on it.
+# aeinvext.dll and Microsoft.Management.Deployment.winmd. A repair doesn't clear
+# it, and Windows moves with it, so the preflight goes on without one; it
+# repairs any other damage first. A repair can move the findings to other
+# 1591-baseline files, which then read as other damage.
 function Test-AtlasTransitionKnownStoreDamage($Finding, [string[]]$AtlasPackages) {
     if ($null -eq $Finding -or $Finding.Total -lt 1) { return $false }
     if (@($AtlasPackages | Where-Object { $_ -like 'Z-Atlas-NoTelemetry-Package*' }).Count -eq 0) { return $false }
@@ -618,9 +619,25 @@ function Test-AtlasWindowsUpdateManaged {
     }
 }
 
+# DISM's ScanHealth: a full check of the component store, which writes what it
+# finds to the servicing log, as a repair does, and changes nothing. It reports
+# no progress Atlas can read, so $Wait runs every two seconds while it does.
+# Returns DISM's exit code.
+function Invoke-AtlasTransitionScanHealth([scriptblock]$Wait = {}) {
+    $dism = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'Dism.exe')
+    $process = Start-Process -FilePath $dism -ArgumentList '/Online /Cleanup-Image /ScanHealth' -WindowStyle Hidden -PassThru
+    # Holding the handle keeps the exit code, which is otherwise lost when the
+    # process ends before it is read.
+    $null = $process.Handle
+    while (-not $process.WaitForExit(2000)) { & $Wait }
+    return $process.ExitCode
+}
+
 # What Windows Update needs to work at all and Atlas will not change itself.
-# Read only; the first problem ends it, before anything changes.
-function Test-AtlasWindowsTransitionPreflight([int64]$MinimumFreeBytes = 6GB) {
+# Nothing changes; the first problem ends it. Returns why the component store
+# should be repaired before Windows moves, or nothing (see below). $Wait runs
+# while a store check does, so the caller can report that it's alive.
+function Test-AtlasWindowsTransitionPreflight([int64]$MinimumFreeBytes = 6GB, [scriptblock]$Wait = {}) {
     Test-AtlasWindowsUpdateManaged
     foreach ($service in @('BITS', 'CryptSvc', 'TrustedInstaller')) {
         $start = Get-AtlasTransitionValue "SYSTEM\CurrentControlSet\Services\$service" 'Start'
@@ -649,13 +666,30 @@ function Test-AtlasWindowsTransitionPreflight([int64]$MinimumFreeBytes = 6GB) {
     if ($health -eq 'Repairable') {
         # Atlas PCs can read as repairable from the packages' supersedence, which
         # a repair doesn't fully clear, and Windows Update installs on such a
-        # store. So it is recorded and the move goes on; whether Windows moved
-        # is decided after the restart. The servicing log says what Windows's
-        # last full check found.
+        # store. So that pattern is recorded and the move goes on; whether
+        # Windows moved is decided after the restart. The servicing log says what
+        # Windows's last full check found, and with no check there, ScanHealth
+        # runs one. Other damage can make the feature update roll back at the
+        # restart, so the caller repairs it before the move, which still goes on.
         $finding = Get-AtlasTransitionStoreFinding @(Get-AtlasTransitionCbsLogTail)
+        if ($null -eq $finding) {
+            Write-AtlasTransitionEvidence 'component store is repairable, and the servicing log has no store check that says how; running DISM ScanHealth'
+            try { Write-AtlasTransitionEvidence ('ScanHealth ended with 0x{0:X8}' -f (Invoke-AtlasTransitionScanHealth $Wait)) }
+            catch { Write-AtlasTransitionEvidence "ScanHealth could not run: $($_.Exception.Message)" }
+            $finding = Get-AtlasTransitionStoreFinding @(Get-AtlasTransitionCbsLogTail)
+        }
         $listed = if ($null -ne $finding) { (@($finding.Items | ForEach-Object { "$($_.Kind) $($_.Path)" }) -join '; ') } else { 'no store check in the servicing log' }
-        $pattern = if (Test-AtlasTransitionKnownStoreDamage $finding @(Get-AtlasInstalledAtlasPackage)) { 'the known Atlas package pattern' } else { 'other' }
-        Write-AtlasTransitionEvidence "component store is repairable ($pattern): $listed; going on"
+        if (Test-AtlasTransitionKnownStoreDamage $finding @(Get-AtlasInstalledAtlasPackage)) {
+            Write-AtlasTransitionEvidence "component store is repairable (the known Atlas package pattern): $listed; going on"
+        }
+        elseif ($null -ne $finding -and $finding.Total -eq 0) {
+            Write-AtlasTransitionEvidence 'component store is repairable, but its store check found no damage; going on'
+        }
+        else {
+            Write-AtlasTransitionEvidence "component store is repairable (other): $listed; repairing it before the move"
+            if ($null -ne $finding) { return "the store check found $($finding.Total) corrupt item(s) other than the Atlas packages leave" }
+            return 'Windows records damage to it that no store check names'
+        }
     }
     elseif ($health -eq 'NonRepairable') {
         throw (New-AtlasTransitionFailure "Windows reports that its component store is $health." 'feature-servicing')

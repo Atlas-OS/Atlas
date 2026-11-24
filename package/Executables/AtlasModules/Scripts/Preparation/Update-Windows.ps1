@@ -2764,10 +2764,82 @@ function Resolve-PreparationPendingMove($Journal) {
     $offerId = if ($null -ne $Journal.PSObject.Properties['offer'] -and $null -ne $Journal.offer) { [string]$Journal.offer.updateId } else { '' }
     $failed = @(Get-PreparationFeatureHistory $offerId | Where-Object { $_.ResultCode -ne $script:UpdateSucceeded } | Sort-Object Date -Descending)
     $code = if ($failed.Count -gt 0 -and $failed[0].HResult -ne 0) { '0x{0:X8}' -f $failed[0].HResult } else { '' }
-    Write-PreparationJournal $Journal 'rolled-back' $code
+    $servicing = Get-PreparationServicingFailure $Journal
+    $repeated = Test-PreparationRollbackRepeated $Journal $code $servicing
+    Write-PreparationJournal $Journal 'rolled-back' ((@($code, $servicing) | Where-Object { $_ }) -join ' ')
     $detail = @{}
     if ($code) { $detail.errorCode = $code }
-    throw (New-AtlasTransitionFailure "Windows went back to its earlier version after the restart." 'feature-rolled-back' $detail)
+    $cause = if ($servicing) { " Servicing reported $servicing." } else { '' }
+    # The same failure again: trying the same update once more can't help, so the
+    # way on is a repair of Windows or a new install, which feature-servicing offers.
+    if ($repeated) {
+        throw (New-AtlasTransitionFailure "Windows went back to its earlier version again after the restart, the same way as before.$cause Repair Windows, or reinstall it from an Atlas ISO after a backup." 'feature-servicing' $detail)
+    }
+    throw (New-AtlasTransitionFailure "Windows went back to its earlier version after the restart.$cause" 'feature-rolled-back' $detail)
+}
+
+# The servicing log's last failure report for the feature update's own package,
+# as in "Package_for_KB5121794~... 0x80070002, failure source AI: System
+# Protection luainstall.dll 80070002 31 Delta NONE", or ''. The package is the one
+# a KB number of the transition or of the offer names.
+function Get-PreparationServicingFailure($Journal) {
+    $kbs = @()
+    foreach ($name in @('target', 'offer')) {
+        $part = $Journal.PSObject.Properties[$name]
+        if ($null -ne $part -and $null -ne $part.Value) { $kbs += @([string]$part.Value.kb -split ',') }
+    }
+    $kbs = @($kbs | Where-Object { $_ -match '^\d{7}$' } | Sort-Object -Unique)
+    if ($kbs.Count -eq 0) { return '' }
+    try { $lines = @(Get-AtlasTransitionCbsLogTail) }
+    catch {
+        Write-AtlasTransitionEvidence "the servicing log could not be read: $($_.Exception.Message)"
+        return ''
+    }
+    $report = 'Reporting package change completion for package: (Package_for_KB(\d{7})[^,\s]*), .*?status: (0x[0-9A-Fa-f]{8}), failure source: ([^,]*), failure details: "([^"]*)"'
+    for ($index = $lines.Count - 1; $index -ge 0; $index--) {
+        $match = [regex]::Match([string]$lines[$index], $report)
+        if (-not $match.Success -or $kbs -notcontains $match.Groups[2].Value) { continue }
+        $status = [Convert]::ToUInt32($match.Groups[3].Value.Substring(2), 16)
+        if ($status -eq 0) { continue }
+        $details = ($match.Groups[5].Value -replace '\s+', ' ').Trim()
+        $text = '{0} 0x{1:X8}, failure source {2}{3}' -f $match.Groups[1].Value, $status, $match.Groups[4].Value.Trim(), $(if ($details -and $details -ne '(null)') { ": $details" } else { '' })
+        return $text.Substring(0, [Math]::Min($text.Length, 300))
+    }
+    return ''
+}
+
+# Whether a rollback repeats one recorded before: the same code from Windows
+# Update's history and, where both name one, the same servicing failure. The open
+# record keeps this move's rollbacks, and the summary of the last one closed
+# (LastResult) those of an attempt in the 30 days before. A rollback that names
+# neither can't be told apart from another.
+function Test-PreparationRollbackRepeated($Journal, [string]$Code, [string]$Servicing) {
+    if (-not $Code -and -not $Servicing) { return $false }
+    $earlier = @()
+    if ($null -ne $Journal.PSObject.Properties['history']) { $earlier += @($Journal.history) }
+    $last = Get-AtlasTransitionValue (Get-AtlasWindowsTransitionRoot) 'LastResult'
+    if ($last.Present -and $last.Kind -eq 'String') {
+        try {
+            $closed = [string]$last.Data | ConvertFrom-Json -ErrorAction Stop
+            $at = [DateTime]::MinValue
+            if ([DateTime]::TryParse([string]$closed.closedAt, [Globalization.CultureInfo]::InvariantCulture,
+                    [Globalization.DateTimeStyles]::AdjustToUniversal, [ref]$at) -and $at -gt [DateTime]::UtcNow.AddDays(-30)) {
+                $earlier += @($closed.history)
+            }
+        }
+        catch { Write-AtlasTransitionEvidence "the last closed record could not be read: $($_.Exception.Message)" }
+    }
+    foreach ($entry in $earlier) {
+        if ($null -eq $entry -or $null -eq $entry.PSObject.Properties['event'] -or [string]$entry.event -cne 'rolled-back') { continue }
+        $detail = [string]$entry.detail
+        $codeBefore = if ($detail -match '^(0x[0-9A-F]{8})\b') { $Matches[1] } else { '' }
+        $servicingBefore = ($detail -replace '^0x[0-9A-F]{8}\s*', '').Trim()
+        if ($codeBefore -ne $Code) { continue }
+        if ($Servicing -and $servicingBefore -and $servicingBefore -ne $Servicing) { continue }
+        if (-not $Code -and -not $servicingBefore) { continue }
+        return $true
+    }
+    return $false
 }
 
 # Moves Windows to -WindowsTarget. Every run decides from the machine; the journal
@@ -2788,7 +2860,11 @@ function Invoke-PreparationTransition {
         if (Test-PreparationRestart) { return 'reboot' }
         # Nothing changes before Windows Update can be reached.
         if (-not (Test-PreparationNetwork)) { throw (New-Object System.Net.NetworkInformation.NetworkInformationException) }
-        Test-AtlasWindowsTransitionPreflight
+        $storeRepair = Test-AtlasWindowsTransitionPreflight -Wait { Write-PreparationState running windows-repair }
+        # A feature update can roll back at the restart on a damaged store, so
+        # damage other than what the Atlas packages leave is repaired first. Any
+        # restart the repair leaves comes before the monthly updates.
+        if ($storeRepair) { [void](Invoke-PreparationComponentRepair $storeRepair) }
     }
     $source = [pscustomobject][ordered]@{ build = $version.Build; ubr = $version.Ubr; displayVersion = $version.DisplayVersion; editionId = $version.EditionId }
     $target = [pscustomobject][ordered]@{ release = $WindowsTarget; build = $TargetBuild; kb = $FeatureKb }

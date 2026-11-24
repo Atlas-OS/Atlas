@@ -5,6 +5,7 @@ BeforeAll {
     $script:ComponentHealth = 'Healthy'
     function Get-AtlasTransitionImageHealth { if ($script:ComponentHealth -eq 'Throws') { throw 'DISM is unavailable' }; $script:ComponentHealth }
     function Invoke-PreparationRestoreHealth { throw 'A test started DISM without standing in for it.' }
+    function Invoke-AtlasTransitionScanHealth { throw 'A test started DISM without standing in for it.' }
     # No test reads or writes this PC's record of what a restart was for.
     $script:RestartRecordText = ''
     function Get-PreparationRestartRecordText { $script:RestartRecordText }

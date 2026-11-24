@@ -47,6 +47,7 @@ The move has a card of its own, first under the stepper, which holds it from the
 | --- | --- |
 | Windows couldn't install the release (`feature-failed`) | **Try again**, and the row of help links |
 | Windows went back to the release it had (`feature-rolled-back`) | **Try again**, and the row of help links |
+| Windows went back again, with the same failure (`feature-servicing`) | **Create an Atlas ISO** |
 | Too little free space (`feature-disk-space`) | **Open Storage settings**; Atlas reads the space again by itself and carries on |
 | No offer within two hours | **Try again** and **Create an Atlas ISO** |
 | A service Windows Update needs is turned off (`feature-blocked`) | Its name in words, **Try again** and **Open Services** |
@@ -105,8 +106,13 @@ Atlas Manager reads three of these itself as **Get ready** opens, as PC checks, 
   That includes a run the worker stopped with `feature-disk-space`.
 
 An Atlas PC can read its component store as repairable because of the Atlas packages alone (see [The component store and the Atlas packages](preparation.md#the-component-store-and-the-atlas-packages)).
-So a repairable store doesn't stop the feature update.
-The worker logs the corrupt items that the newest check in `CBS.log` names, labelled as the known Atlas package pattern or not, and goes on.
+So a repairable store doesn't stop the feature update:
+
+- The worker logs the corrupt items that the newest check in `CBS.log` names.
+  When the log has no check, it runs `DISM /Online /Cleanup-Image /ScanHealth`, which changes nothing, and reads what that check found.
+- When the items are the known Atlas package pattern, or the check finds nothing, the worker goes on.
+- Otherwise it repairs the store with `DISM /RestoreHealth` before anything else changes, because other damage can make the feature update roll back at the restart, and then goes on.
+
 A health check that can't run is logged with its error, and the worker goes on too.
 
 ## What Atlas records first
@@ -270,6 +276,10 @@ After the restart:
 - Still on the old build after a restart from Start without Atlas's commit, it asks for one more restart through Atlas Manager.
 - Still on the old build after that, Windows rolled the update back: `feature-rolled-back`.
 
+The outcome of a rollback names what the servicing log reported for the update's package: the error, and the component that failed with it.
+When the same failure repeats, in this move or in the last one closed within 30 days, the run ends with `feature-servicing` instead, because trying the same update again can't help.
+Repairing Windows, or reinstalling it from an Atlas ISO, is the way on.
+
 ## Putting Windows Update settings back
 
 The Atlas install puts the settings back in its `WindowsTransition` step, near the end of the plan.
@@ -365,7 +375,7 @@ Every step of a run goes to `windows-transition.log` beside the preparation job 
 | `feature-managed` | The PC gets updates from its organisation's update server. |
 | `feature-blocked` | A service Windows Update needs is turned off or missing, or Windows Update was turned off again during the run. |
 | `feature-disk-space` | The system drive has too little free space. |
-| `feature-servicing` | Windows reads its component store as damaged beyond repair. |
+| `feature-servicing` | Windows reads its component store as damaged beyond repair, or rolled the feature update back again with the same failure. |
 | `feature-pin` | A pin value is one Atlas couldn't put back later. |
 | `feature-journal` | The record can't be read or can't be trusted. |
 | `feature-policy` | A setting went back after Atlas turned it on. |

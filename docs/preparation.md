@@ -91,10 +91,11 @@ When the store is damaged, updates fail, often with `0x80073712` (`ERROR_SXS_COM
 The worker repairs the store at most once per run with `DISM /Online /Cleanup-Image /RestoreHealth`, which takes replacement files from Windows Update.
 Microsoft describes the repair in [Repair a Windows image](https://learn.microsoft.com/windows-hardware/manufacture/desktop/repair-a-windows-image).
 
-The repair runs in two cases:
+The repair runs in three cases:
 
 - Before the run's first search, when Windows already records damage (`/CheckHealth` reads `Repairable`).
   PCs with Atlas packages installed are skipped, as the next section explains.
+- Before moving Windows to a newer release, when the store reads `Repairable` for a reason other than the Atlas packages (see [Preflight checks](windows-transition.md#preflight-checks)).
 - When an update fails with `0x80073712`.
   The updates that failed then get another try.
 
@@ -128,7 +129,8 @@ Atlas handles this in four places:
   When the `Servicing\LocalSourcePath` policy names that folder and the folder is gone, it removes the policy.
 - The **Get ready** page leaves a repairable store alone on a PC with Atlas packages before its first search.
   It still repairs the store when an update fails with `0x80073712`.
-- Before moving Windows to a newer release, the worker records the store's health and goes on with a repairable store (see [Preflight checks](windows-transition.md#preflight-checks)).
+- Before moving Windows to a newer release, the worker records the store's health and goes on with a repairable store.
+  It repairs the store first only when a store check finds damage other than the packages' own (see [Preflight checks](windows-transition.md#preflight-checks)).
 
 Windows's own scheduled store cleanup can have the same effect on any PC with the packages.
 
