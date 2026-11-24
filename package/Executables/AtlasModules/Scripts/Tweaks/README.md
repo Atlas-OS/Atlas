@@ -190,6 +190,7 @@ Don't repeat the refresh in `Run` or `Script`.
 
 - `Operation` is `Change` (the default), `Stop` or `Start`.
   `Change` writes the service key's `Start` value directly, so protected services work too.
+  When the service manager holds another startup type, `sc.exe` changes it there as well, so a service can start before Windows restarts; one the service manager won't change is logged as a warning and takes the new type at the restart.
 - `StartupType` is required for `Change`: 0 Boot, 1 System, 2 Automatic, 3 Manual or 4 Disabled.
 - A missing service is skipped when `StartupType` is 4, since it can't run.
   For 0 to 3 and for `Stop`, a missing service is an error unless the entry declares `AllowMissing = $true`.

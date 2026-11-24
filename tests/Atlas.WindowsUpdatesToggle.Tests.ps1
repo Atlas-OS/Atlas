@@ -12,49 +12,77 @@ BeforeAll {
     $togglesRoot = Join-Path $script:AtlasTestRepoRoot 'package\Executables\AtlasModules\Toggles'
     $script:windowsUpdates = Get-AtlasToggleDefinition -Name ToggleWindowsUpdates -TogglesRoot $togglesRoot
 
-    function Invoke-EnableWindowsUpdateToggle {
-        $toggle = [pscustomobject]@{ Name = 'ToggleWindowsUpdates'; State = 'Enable'; Silent = $true }
+    function Invoke-WindowsUpdateToggle([string]$State, [string]$FunctionName) {
+        $toggle = [pscustomobject]@{ Name = 'ToggleWindowsUpdates'; State = $State; Silent = $true }
         InModuleScope Atlas.Toggles {
-            Invoke-AtlasToggleFunction -Definition $d -FunctionName 'Enable-AtlasWindowsUpdates' -Toggle $t -Label 'test'
-        } -Parameters @{ d = $script:windowsUpdates; t = $toggle }
+            Invoke-AtlasToggleFunction -Definition $d -FunctionName $f -Toggle $t -Label 'test'
+        } -Parameters @{ d = $script:windowsUpdates; f = $FunctionName; t = $toggle }
     }
 }
 
 Describe 'Enable Windows Updates' {
     BeforeEach {
         $script:calls = [System.Collections.Generic.List[string]]::new()
+        $script:serviceManager = 'Synced'
         Mock Write-AtlasLog -ModuleName Atlas.Toggles
         Mock Import-AtlasModule -ModuleName Atlas.Toggles
         Mock Remove-AtlasRegistryValue -ModuleName Atlas.Toggles
         Mock Set-AtlasSettingsPageVisibility -ModuleName Atlas.Toggles
-        Mock Set-AtlasServiceStartup -ModuleName Atlas.Toggles
+        Mock Set-AtlasServiceStartup -ModuleName Atlas.Toggles {
+            $script:calls.Add("startup $Name $StartupType")
+            [pscustomobject]@{ Name = $Name; Applied = $true; StartupType = $StartupType; ServiceManager = $script:serviceManager }
+        }
         Mock Get-ScheduledTask -ModuleName Atlas.Toggles { @() }
         Mock Get-Service -ModuleName Atlas.Toggles {
             [pscustomobject]@{ Name = $Name; Status = [System.ServiceProcess.ServiceControllerStatus]::Stopped }
         }
-        Mock Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles { $script:calls.Add("sc $($ArgumentList[1])") }
         Mock Start-Service -ModuleName Atlas.Toggles { $script:calls.Add("start $Name") }
     }
 
-    It 'tells the service manager about each startup change before it starts the service' {
-        # The registry write doesn't reach the service manager, which keeps refusing to start
-        # a service it holds as disabled (error 1058) until Windows restarts.
-        Invoke-EnableWindowsUpdateToggle
+    It 'starts each service once the service manager holds it as manual' {
+        # The service manager refuses to start a service it still holds as disabled
+        # (error 1058) until Windows restarts; the startup helper tells it first.
+        Invoke-WindowsUpdateToggle Enable 'Enable-AtlasWindowsUpdates'
 
         $script:calls | Should -Be @(
-            'sc wuauserv', 'start wuauserv'
-            'sc UsoSvc', 'start UsoSvc'
-            'sc WaaSMedicSvc', 'start WaaSMedicSvc'
+            'startup wuauserv 3', 'start wuauserv'
+            'startup UsoSvc 3', 'start UsoSvc'
+            'startup WaaSMedicSvc 3', 'start WaaSMedicSvc'
         )
     }
 
-    It 'finishes without starting a service whose startup change the service manager refuses' {
-        Mock Invoke-AtlasToggleNativeCommand -ModuleName Atlas.Toggles { throw 'exit code 5' }
+    It 'finishes without starting a service whose startup type the service manager kept' {
+        $script:serviceManager = 'Refused'
 
-        { Invoke-EnableWindowsUpdateToggle } | Should -Not -Throw
+        { Invoke-WindowsUpdateToggle Enable 'Enable-AtlasWindowsUpdates' } | Should -Not -Throw
 
         Should -Not -Invoke Start-Service -ModuleName Atlas.Toggles
         Should -Invoke Get-ScheduledTask -ModuleName Atlas.Toggles -Times 1 -Exactly
-        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 3 -Exactly -ParameterFilter { $Level -ceq 'Warning' }
+    }
+}
+
+Describe 'Disable Windows Updates' {
+    BeforeEach {
+        $script:calls = [System.Collections.Generic.List[string]]::new()
+        Mock Write-AtlasLog -ModuleName Atlas.Toggles
+        Mock Import-AtlasModule -ModuleName Atlas.Toggles
+        Mock Set-AtlasRegistryValue -ModuleName Atlas.Toggles
+        Mock Set-AtlasSettingsPageVisibility -ModuleName Atlas.Toggles
+        Mock Get-ScheduledTask -ModuleName Atlas.Toggles { @() }
+        Mock Get-Service -ModuleName Atlas.Toggles {
+            [pscustomobject]@{ Name = $Name; Status = [System.ServiceProcess.ServiceControllerStatus]::Running }
+        }
+        Mock Stop-Service -ModuleName Atlas.Toggles { $script:calls.Add("stop $Name") }
+        Mock Set-AtlasServiceStartup -ModuleName Atlas.Toggles { $script:calls.Add("startup $Name $StartupType") }
+    }
+
+    It 'stops each service, then disables it through the startup helper, which tells the service manager' {
+        Invoke-WindowsUpdateToggle Disable 'Disable-AtlasWindowsUpdates'
+
+        $script:calls | Should -Be @(
+            'stop wuauserv', 'startup wuauserv 4'
+            'stop UsoSvc', 'startup UsoSvc 4'
+            'stop WaaSMedicSvc', 'startup WaaSMedicSvc 4'
+        )
     }
 }

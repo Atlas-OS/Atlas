@@ -121,6 +121,123 @@ Describe 'Set-AtlasServiceStartup' {
     }
 }
 
+Describe 'Set-AtlasServiceStartup and the service manager' {
+    BeforeEach {
+        Mock Write-AtlasLog -ModuleName Atlas.Services
+        New-Item -Path "$script:servicesRoot\TestSvc" -Force | Out-Null
+        # The isolated root stands in for this PC's own, which the service manager reads.
+        Mock Test-AtlasServiceRootLive -ModuleName Atlas.Services { $true }
+        $script:held = 4
+        Mock Get-AtlasServiceManagerStartup -ModuleName Atlas.Services { $script:held }
+        Mock Invoke-AtlasServiceControlConfig -ModuleName Atlas.Services {}
+    }
+
+    AfterEach {
+        Remove-Item -Path $script:testRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'gives the service manager the startup type <Type> as <Expected>' -TestCases @(
+        @{ Type = 0; Expected = 'boot' }
+        @{ Type = 1; Expected = 'system' }
+        @{ Type = 2; Expected = 'auto' }
+        @{ Type = 3; Expected = 'demand' }
+        @{ Type = 4; Expected = 'disabled' }
+    ) {
+        param($Type, $Expected)
+        $script:held = if ($Type -eq 4) { 3 } else { 4 }
+        $result = Set-AtlasServiceStartup -Name TestSvc -StartupType $Type -ServicesRoot $script:servicesRoot -PassThru
+        (Get-Item -LiteralPath "$script:servicesRoot\TestSvc").GetValue('Start') | Should -Be $Type
+        Should -Invoke Invoke-AtlasServiceControlConfig -ModuleName Atlas.Services -Times 1 -Exactly -ParameterFilter { $Name -eq 'TestSvc' -and $Mode -ceq $Expected }
+        $result.ServiceManager | Should -Be 'Synced'
+    }
+
+    It 'tells the service manager when the registry already has the startup type and it doesn''t' {
+        New-ItemProperty -Path "$script:servicesRoot\TestSvc" -Name Start -Value 2 -PropertyType DWord | Out-Null
+        Mock Set-ItemProperty -ModuleName Atlas.Services { throw 'The registry already has it.' }
+        $result = Set-AtlasServiceStartup -Name TestSvc -StartupType 2 -ServicesRoot $script:servicesRoot -PassThru
+        Should -Invoke Invoke-AtlasServiceControlConfig -ModuleName Atlas.Services -Times 1 -Exactly -ParameterFilter { $Mode -eq 'auto' }
+        $result.ServiceManager | Should -Be 'Synced'
+    }
+
+    It 'leaves the service manager alone when it already holds the startup type' {
+        $script:held = 2
+        $result = Set-AtlasServiceStartup -Name TestSvc -StartupType 2 -ServicesRoot $script:servicesRoot -PassThru
+        Should -Invoke Invoke-AtlasServiceControlConfig -ModuleName Atlas.Services -Times 0 -Exactly
+        $result.ServiceManager | Should -Be 'Synced'
+    }
+
+    It 'keeps an automatic service delayed where its key says so' {
+        New-ItemProperty -Path "$script:servicesRoot\TestSvc" -Name DelayedAutostart -Value 1 -PropertyType DWord | Out-Null
+        Set-AtlasServiceStartup -Name TestSvc -StartupType 2 -ServicesRoot $script:servicesRoot
+        Should -Invoke Invoke-AtlasServiceControlConfig -ModuleName Atlas.Services -Times 1 -Exactly -ParameterFilter { $Mode -eq 'delayed-auto' }
+    }
+
+    It 'keeps the registry write and warns when the service manager refuses a protected service' {
+        Mock Invoke-AtlasServiceControlConfig -ModuleName Atlas.Services { throw 'sc.exe exited 5: [SC] ChangeServiceConfig FAILED 5: Access is denied.' }
+        $result = Set-AtlasServiceStartup -Name TestSvc -StartupType 3 -ServicesRoot $script:servicesRoot -PassThru
+        (Get-Item -LiteralPath "$script:servicesRoot\TestSvc").GetValue('Start') | Should -Be 3
+        $result.Applied | Should -BeTrue
+        $result.ServiceManager | Should -Be 'Refused'
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Services -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and $Message -like "*kept '4' for 'TestSvc'*Access is denied*after a restart*"
+        }
+    }
+
+    It 'asks nothing of the service manager for a service it doesn''t list' {
+        $script:held = $null
+        $result = Set-AtlasServiceStartup -Name TestSvc -StartupType 3 -ServicesRoot $script:servicesRoot -PassThru
+        Should -Invoke Invoke-AtlasServiceControlConfig -ModuleName Atlas.Services -Times 0 -Exactly
+        $result.ServiceManager | Should -BeNullOrEmpty
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Services -Times 0 -Exactly -ParameterFilter { $Level -eq 'Warning' }
+    }
+
+    It 'still tries the service manager when its startup type can''t be read' {
+        $script:held = -1
+        Set-AtlasServiceStartup -Name TestSvc -StartupType 3 -ServicesRoot $script:servicesRoot
+        Should -Invoke Invoke-AtlasServiceControlConfig -ModuleName Atlas.Services -Times 1 -Exactly -ParameterFilter { $Mode -eq 'demand' }
+    }
+
+    It 'asks nothing of the service manager for a service that isn''t on the PC' {
+        Set-AtlasServiceStartup -Name MissingSvc -StartupType 4 -ServicesRoot $script:servicesRoot
+        Set-AtlasServiceStartup -Name MissingSvc -StartupType 3 -AllowMissing -ServicesRoot $script:servicesRoot
+        Should -Invoke Get-AtlasServiceManagerStartup -ModuleName Atlas.Services -Times 0 -Exactly
+        Should -Invoke Invoke-AtlasServiceControlConfig -ModuleName Atlas.Services -Times 0 -Exactly
+    }
+
+    It 'never asks the service manager about a registry root other than this PC''s' {
+        Mock Test-AtlasServiceRootLive -ModuleName Atlas.Services { $false }
+        $result = Set-AtlasServiceStartup -Name TestSvc -StartupType 3 -ServicesRoot $script:servicesRoot -PassThru
+        Should -Invoke Get-AtlasServiceManagerStartup -ModuleName Atlas.Services -Times 0 -Exactly
+        $result.ServiceManager | Should -BeNullOrEmpty
+    }
+}
+
+Describe 'The service manager''s own records' {
+    It 'is this PC''s Services key only' {
+        InModuleScope Atlas.Services {
+            Test-AtlasServiceRootLive -ServicesRoot 'HKLM:\SYSTEM\CurrentControlSet\Services' | Should -BeTrue
+            Test-AtlasServiceRootLive -ServicesRoot 'HKLM:\SYSTEM\CurrentControlSet\Services\' | Should -BeTrue
+            Test-AtlasServiceRootLive -ServicesRoot 'HKCU:\Software\AtlasRewriteTest\Services' | Should -BeFalse
+        }
+    }
+
+    It 'reads a service''s and a driver''s startup type as the registry has it, and none for a service that doesn''t exist' {
+        InModuleScope Atlas.Services {
+            foreach ($name in @('EventLog', 'Tcpip')) {
+                $registry = (Get-ItemProperty -LiteralPath "HKLM:\SYSTEM\CurrentControlSet\Services\$name" -Name Start).Start
+                Get-AtlasServiceManagerStartup -Name $name | Should -Be $registry -Because $name
+            }
+            Get-AtlasServiceManagerStartup -Name 'AtlasRewriteTestMissingSvc' | Should -BeNullOrEmpty
+        }
+    }
+
+    It 'reports what sc.exe says when it refuses' {
+        InModuleScope Atlas.Services {
+            { Invoke-AtlasServiceControlConfig -Name 'AtlasRewriteTestMissingSvc' -Mode demand } | Should -Throw 'sc.exe exited *'
+        }
+    }
+}
+
 Describe 'Stop-AtlasService' {
     It 'warns instead of failing when a service cannot be stopped' {
         Mock Write-AtlasLog -ModuleName Atlas.Services
