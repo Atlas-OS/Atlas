@@ -172,7 +172,11 @@ When two cumulative updates for the build are offered together, it installs only
 Once Microsoft's regular monthly updates include the prerequisite, the ordinary pass installs it.
 
 The transition also gives the minimum revision that includes the prerequisite.
-That value only explains a missing offer, and doesn't stop a run (see [Waiting for the offer](#waiting-for-the-offer)).
+
+- On a PC at or above that revision, the worker takes no optional update, because Windows already has what the feature update needs.
+- Below it, an optional update that fails is left out for the rest of the run, so the next pass installs the monthly update it replaced.
+
+The minimum revision doesn't stop a run; it explains a missing offer (see [Waiting for the offer](#waiting-for-the-offer)).
 
 ## Retargeting the update pin
 

@@ -1108,6 +1108,7 @@ Describe 'Windows installation results requiring restart' {
         Mock Write-PreparationState {}
         Mock Get-PreparationWindowsVersion { [pscustomobject]@{ Build = 26200; Ubr = 9168; DisplayVersion = '25H2'; EditionId = 'Professional' } }
         Remove-Item -LiteralPath (Join-Path $JobPath 'updates.log') -ErrorAction SilentlyContinue
+        $script:PreparationOptionalFailed = @{}
         $script:offered = New-FixtureUpdate 'Fixture update'
         $script:download = [pscustomobject]@{ResultCode=2; HResult=0}
         Mock Invoke-PreparationWindowsOperation {
@@ -1257,6 +1258,26 @@ Describe 'Windows installation results requiring restart' {
         $script:installer | Add-Member ScriptMethod Install { throw 'Install must not run' } -Force
         Invoke-PreparationWindows | Should -Be 'reboot'
         Should -Invoke Invoke-PreparationWindowsOperation -Times 0 -Exactly -ParameterFilter { $Kind -eq 'Install' }
+    }
+    It 'installs the monthly update instead when the optional prerequisite that replaced it fails' {
+        $preview = New-FixtureUpdate '2026-11 Preview Update (KB5132057) (26200.10075)'
+        $monthly = New-FixtureUpdate '2026-11 Security Update (KB5132061) (26200.9974)'
+        # As the real search does, an optional update that failed in this run isn't offered again.
+        Mock Find-PreparationPrerequisiteUpdate { if (-not $script:PreparationOptionalFailed.ContainsKey((Get-PreparationUpdateKey $preview))) { $preview } }
+        $script:searches = 0
+        Mock Find-PreparationWindowsUpdate { $script:searches++; if ($script:searches -le 2) { $monthly } }
+        $script:failedPreview = [pscustomobject]@{ResultCode=4; RebootRequired=$false; HResult=0}
+        $script:failedPreview | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ResultCode=4; HResult=-2146498157} }
+        $script:installedMonthly = [pscustomobject]@{ResultCode=2; RebootRequired=$false; HResult=0}
+        $script:installedMonthly | Add-Member ScriptMethod GetUpdateResult { [pscustomobject]@{ResultCode=2; HResult=0} }
+        Mock Invoke-PreparationWindowsOperation {
+            if ($Kind -eq 'Download') { return $script:download }
+            if ($Updates.Item(0).Title -like '*Preview*') { return $script:failedPreview }
+            return $script:installedMonthly
+        }
+        Invoke-PreparationWindows | Should -Be 'complete'
+        @($script:collections | Where-Object { $_.Count -gt 0 } | ForEach-Object { $_.Queued[0].Title }) | Should -Be @($preview.Title, $monthly.Title)
+        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match "Optional update '2026-11 Preview Update \(KB5132057\) \(26200\.10075\)' failed \(0x800F0993\); installing the monthly update it replaced instead"
     }
 }
 

@@ -100,6 +100,9 @@ $script:PreparationSearchAttempts = 3
 $script:PreparationSearchRetrySeconds = 30
 # Searches per provider before giving up on one that keeps offering updates.
 $script:PreparationPasses = 8
+# Optional prerequisites that failed in this run, by id and revision; the passes
+# after it install the monthly update instead (Find-PreparationPrerequisiteUpdate).
+$script:PreparationOptionalFailed = @{}
 # What the worker's reports say while it searches: set while it waits for
 # Windows Update to offer a new release, so the app words the wait as one.
 $script:PreparationSearchDetail = @{}
@@ -672,7 +675,11 @@ function Invoke-PreparationWindows {
         $session.ClientApplicationID = 'Atlas preparation'
         $updates = New-Object -ComObject Microsoft.Update.UpdateColl
         $interactive = @()
-        foreach ($update in @(Select-PreparationNewestUpdate (@(Find-PreparationWindowsUpdate $session) + @(Find-PreparationPrerequisiteUpdate $session)))) {
+        $required = @(Find-PreparationWindowsUpdate $session)
+        $prerequisites = @(Find-PreparationPrerequisiteUpdate $session)
+        $optional = @{}
+        foreach ($update in $prerequisites) { $optional[(Get-PreparationUpdateKey $update)] = $true }
+        foreach ($update in @(Select-PreparationNewestUpdate ($required + $prerequisites))) {
             $key = Get-PreparationUpdateKey $update
             if ($succeeded.ContainsKey($key)) {
                 Add-PreparationReoffered $update
@@ -699,6 +706,9 @@ function Invoke-PreparationWindows {
         $downloaded = Invoke-PreparationWindowsOperation $downloader $updates Download
         if ([int]$downloaded.ResultCode -ne $script:UpdateSucceeded) {
             $failed = @(Get-PreparationFailedUpdate $downloaded $updates 'download result')
+            $optionalFailures = @(Select-PreparationOptionalFailure $failed $optional)
+            $failed = @($failed | Where-Object { $optionalFailures -notcontains $_ })
+            if ($failed.Count -eq 0 -and $optionalFailures.Count -gt 0) { continue }
             Register-PreparationRetry $failed $downloaded $retried "Windows update download failed: $($downloaded.ResultCode). See updates.log."
             continue
         }
@@ -730,15 +740,17 @@ function Invoke-PreparationWindows {
             elseif ($entry.Update.InstallationBehavior.CanRequestUserInput) { $manual += $entry.Update.Title }
             else { $failed += $entry }
         }
+        $optionalFailures = @(Select-PreparationOptionalFailure $failed $optional)
+        $failed = @($failed | Where-Object { $optionalFailures -notcontains $_ })
         if ($installed.RebootRequired) {
             $script:PreparationRestartReasons = @('windows-update')
             return 'reboot'
         }
         if (Test-PreparationRestart) { return 'reboot' }
         if ($manual.Count -gt 0) { throw (New-PreparationFailure "Windows could not finish these updates automatically. Finish them in Windows Settings, then retry: $($manual -join '; ')" 'manual-updates') }
-        # A pass whose only failures were drivers the device doesn't need is done,
-        # and the next search leaves them out.
-        if ([int]$installed.ResultCode -ne $script:UpdateSucceeded -and ($failed.Count -gt 0 -or $unneededDrivers -eq 0)) {
+        # A pass whose only failures were drivers the device doesn't need, or
+        # optional prerequisites, is done; the next search leaves them out.
+        if ([int]$installed.ResultCode -ne $script:UpdateSucceeded -and ($failed.Count -gt 0 -or ($unneededDrivers -eq 0 -and $optionalFailures.Count -eq 0))) {
             # Updates that failed on a damaged component store get another try
             # once it's repaired, even if they've had one.
             $damaged = @($failed | Where-Object { $_.HResult -eq $script:ComponentStoreCorrupt })
@@ -749,6 +761,20 @@ function Invoke-PreparationWindows {
         }
     }
     throw (New-PreparationFailure "Windows still offers updates after $script:PreparationPasses passes. Resolve the remaining updates in Windows Settings." 'windows-passes')
+}
+
+# The optional prerequisites among $Failed. Each is logged and left out of the
+# rest of the run, so the next pass installs the monthly update it replaced.
+function Select-PreparationOptionalFailure($Failed, [hashtable]$Optional) {
+    foreach ($entry in @($Failed)) {
+        $key = Get-PreparationUpdateKey $entry.Update
+        if (-not $Optional.ContainsKey($key)) { continue }
+        $script:PreparationOptionalFailed[$key] = $true
+        $line = "Optional update '$($entry.Update.Title)' failed (0x{0:X8}); installing the monthly update it replaced instead." -f $entry.HResult
+        Write-PreparationLog $line
+        Write-AtlasTransitionEvidence $line
+        $entry
+    }
 }
 
 # Which update service the searches ask. The default (ssDefault, 0) is the first
@@ -920,10 +946,18 @@ function Get-PreparationWindowsVersion {
 # (DeploymentAction=OptionalInstallation) and the ordinary pass never installs.
 # Only before the move, and only Windows's own cumulative updates for this build;
 # the known KB numbers name it in the log. Other optional updates are left alone.
+# An installed revision at or above -MinimumRevision already has what the move
+# needs, so nothing optional is taken then: an optional preview can fail where the
+# monthly update installs, and it replaces that update in its pass. One that
+# failed in this run isn't taken again, so the monthly update goes in instead.
 function Find-PreparationPrerequisiteUpdate($Session) {
     if (-not $WindowsTarget) { return }
     $version = Get-PreparationWindowsVersion
     if (@(Get-PreparationSourceBuild) -notcontains $version.Build) { return }
+    if ($MinimumRevision -gt 0 -and $version.Ubr -ge $MinimumRevision) {
+        Write-AtlasTransitionEvidence "optional updates left: $($version.Build).$($version.Ubr) already has revision $MinimumRevision, which the update to $WindowsTarget needs"
+        return
+    }
     $searches = @("IsInstalled=0 and IsHidden=0 and Type='Software' and DeploymentAction='OptionalInstallation'")
     $offers = @()
     try { $offers = @(Invoke-PreparationSearch $Session $searches[0]) }
@@ -939,6 +973,10 @@ function Find-PreparationPrerequisiteUpdate($Session) {
         $known = Test-PreparationKnownKb $update $PrerequisiteKb
         if (-not $known -and -not (Test-PreparationNewerRevision $update $version)) {
             Write-AtlasTransitionEvidence "optional update left: $(Format-PreparationOffer $update)"
+            continue
+        }
+        if ($script:PreparationOptionalFailed.ContainsKey((Get-PreparationUpdateKey $update))) {
+            Write-AtlasTransitionEvidence "optional update left, as it failed earlier in this run: $(Format-PreparationOffer $update)"
             continue
         }
         Write-AtlasTransitionEvidence "prerequisite offer$(if ($known) { ' (a known KB)' }): $(Format-PreparationOffer $update)"

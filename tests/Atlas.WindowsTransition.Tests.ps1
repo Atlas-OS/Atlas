@@ -1282,7 +1282,11 @@ Describe 'Optional prerequisites' {
     BeforeEach {
         Reset-Machine
         Use-TransitionRun
-        $script:Windows.UBR = 9550
+        # Below the revision the move needs (9546).
+        $script:Windows.UBR = 9500
+        $script:PreparationOptionalFailed = @{}
+        $script:AtlasTransitionEvidencePath = Join-Path $TestDrive 'optional-evidence.log'
+        Remove-Item -LiteralPath $script:AtlasTransitionEvidencePath -ErrorAction SilentlyContinue
         $script:Optional = @(
             (New-Offer '2026-09 Cumulative Update Preview for Windows 11 Version 24H2 for x64-based Systems (KB5124010) (26100.9600)' @('5124010'))
             (New-Offer '2026-10 Cumulative Update Preview for Windows 11 Version 24H2 for x64-based Systems (KB5130001) (26100.9700)' @('5130001'))
@@ -1311,6 +1315,29 @@ Describe 'Optional prerequisites' {
             throw "Unexpected search $Criteria"
         }
         @(Find-PreparationPrerequisiteUpdate (New-Session)).KBArticleIDs | Should -Be @('5124010')
+    }
+
+    It 'takes nothing optional once Windows has the revision the move needs (<Revision>)' -TestCases @(
+        @{ Revision = 9546 }
+        @{ Revision = 9818 }
+    ) {
+        param($Revision)
+        $script:Windows.UBR = $Revision
+        @(Find-PreparationPrerequisiteUpdate (New-Session)) | Should -BeNullOrEmpty
+        Should -Invoke Invoke-PreparationSearch -Times 0 -Exactly
+        Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw | Should -Match "optional updates left: 26100\.$Revision already has revision 9546"
+    }
+
+    It 'takes the prerequisite as before when the move names no minimum revision' {
+        $script:Windows.UBR = 9550
+        Set-Variable -Name MinimumRevision -Value 0
+        @(Find-PreparationPrerequisiteUpdate (New-Session)).KBArticleIDs | Should -Be @('5124010', '5130001')
+    }
+
+    It 'leaves an optional update that failed earlier in the run' {
+        $script:PreparationOptionalFailed[(Get-PreparationUpdateKey $script:Optional[0])] = $true
+        @(Find-PreparationPrerequisiteUpdate (New-Session)).KBArticleIDs | Should -Be @('5130001')
+        Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw | Should -Match 'optional update left, as it failed earlier in this run: .*KB5124010'
     }
 
     It 'takes nothing once Windows has moved, or outside a move' {
