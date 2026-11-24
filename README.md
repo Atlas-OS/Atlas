@@ -23,15 +23,15 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/atlas-manager-get-ready-dark.png">
-    <img src="docs/images/atlas-manager-get-ready-light.png" alt="Atlas Manager's Get ready step, with the PC checks passed and the installation files ready" width="720">
+    <img src="docs/images/atlas-manager-get-ready-light.png" alt="Atlas Manager's Get ready step, with the PC checks passed, the Atlas package ready and Windows up to date" width="720">
   </picture>
 </p>
 
 ## Install Atlas
 
 1. Download `AtlasManager.exe` from the [latest release](https://github.com/Atlas-OS/Atlas/releases/latest).
-2. For a first install, choose **Create an Atlas ISO**. Select an original Windows 11 ISO from Microsoft and choose your driver settings.
-3. Back up your files and reinstall Windows using the media you created. After sign-in, Atlas Manager guides you through updates and installing Atlas.
+2. For a first install, choose **Create an Atlas ISO**. Atlas Manager downloads Windows 11 from Microsoft, or uses an original Windows 11 ISO you already have.
+3. Back up your files and reinstall Windows using the media you created. After sign-in, Atlas Manager updates Windows, asks a few questions and installs Atlas.
 
 Atlas needs a supported edition and release of Windows 11.
 Check the [requirements](https://atlasos.net/docs/install/requirements/) and the [supported Windows releases](docs/windows-release-policy.md#supported-releases) before you start.
