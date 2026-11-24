@@ -1633,6 +1633,80 @@ Describe 'The install''s own check after an update was offered again' {
     }
 }
 
+Describe 'Microsoft Defender''s own updates' {
+    BeforeAll {
+        function New-Offered([string]$Title, [string]$Kb, [string]$Id) {
+            [pscustomobject]@{ Title = $Title; KBArticleIDs = @($Kb); Identity = [pscustomobject]@{ UpdateID = $Id; RevisionNumber = 1 } }
+        }
+    }
+    BeforeEach {
+        $script:intelligence = New-Offered 'Security Intelligence Update for Microsoft Defender Antivirus - KB2267602 (Version 1.463.439.0) - Current Channel (Broad)' '2267602' 'intelligence'
+        $script:platform = New-Offered 'Update for Microsoft Defender Antivirus antimalware platform - KB4052623 (Version 4.18.26100.4) - Current Channel (Broad)' '4052623' 'platform'
+        $script:monthly = New-Offered '2026-11 Security Update (KB5132061) (26200.9974)' '5132061' 'monthly'
+        Mock Invoke-PreparationSearch { @($script:intelligence, $script:platform, $script:monthly) }
+        Mock Get-PreparationUpdateExclusion { '' }
+        $script:record = @()
+        Mock Read-PreparationReoffered { $script:record }
+        Mock Write-PreparationReoffered { $script:record = @($Entries) }
+        $script:PreparationDefenderSkipped = @{}
+        Set-Variable -Name VerifyOnly -Value ([switch]$false)
+        Remove-Item -LiteralPath (Join-Path $JobPath 'updates.log') -ErrorAction SilentlyContinue
+    }
+
+    It 'leaves them out, and records them, once Atlas has removed Defender' {
+        Mock Test-PreparationDefenderRemoved { $true }
+        @((Find-PreparationWindowsUpdate ([pscustomobject]@{})).Title) | Should -Be @($script:monthly.Title)
+        @($script:record.key) | Should -Be @('intelligence/1', 'platform/1')
+        @($script:record.why) | Should -Be @('defender-removed', 'defender-removed')
+        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match "defender update not needed, not installed: 'Security Intelligence Update for Microsoft Defender Antivirus - KB2267602"
+        Should -Invoke Test-PreparationDefenderRemoved -Times 1 -Exactly
+    }
+
+    It 'keeps them required while Defender is on this PC' {
+        Mock Test-PreparationDefenderRemoved { $false }
+        @((Find-PreparationWindowsUpdate ([pscustomobject]@{})).Title) | Should -Be @($script:intelligence.Title, $script:platform.Title, $script:monthly.Title)
+        $script:record | Should -BeNullOrEmpty
+    }
+
+    It 'leaves them out of the check before the install, which records nothing' {
+        Set-Variable -Name VerifyOnly -Value ([switch]$true)
+        Mock Test-PreparationDefenderRemoved { $true }
+        @((Find-PreparationWindowsUpdate ([pscustomobject]@{})).Title) | Should -Be @($script:monthly.Title)
+        Should -Invoke Write-PreparationReoffered -Times 0 -Exactly
+        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'defender update not needed'
+    }
+
+    It 'waits for them again once Defender is back, whatever the record says' {
+        Mock Test-PreparationDefenderRemoved { $false }
+        $script:record = @([pscustomobject]@{ key = 'intelligence/1'; kb = '2267602'; title = 'x'; at = [DateTime]::UtcNow.ToString('o'); why = 'defender-removed' })
+        @((Find-PreparationWindowsUpdate ([pscustomobject]@{})).Title) | Should -Contain $script:intelligence.Title
+    }
+
+    It 'keeps one record for each Defender update however often a new one comes' {
+        Mock Test-PreparationDefenderRemoved { $true }
+        $script:record = @([pscustomobject]@{ key = 'driver/1'; kb = ''; title = 'A driver'; at = [DateTime]::UtcNow.ToString('o') })
+        [void](Find-PreparationWindowsUpdate ([pscustomobject]@{}))
+        $script:intelligence.Identity.UpdateID = 'intelligence-next'
+        $script:PreparationDefenderSkipped = @{}
+        [void](Find-PreparationWindowsUpdate ([pscustomobject]@{}))
+        @($script:record.key) | Should -Be @('driver/1', 'intelligence-next/1', 'platform/1')
+    }
+
+    It 'counts Defender as removed only with the NoDefender package installed and Defender unable to run: <Case>' -TestCases @(
+        @{ Case = 'no WinDefend service'; Package = 'Installed'; Service = $false; Engine = $true; Removed = $true }
+        @{ Case = 'no Defender engine'; Package = 'Installed'; Service = $true; Engine = $false; Removed = $true }
+        @{ Case = 'the service and the engine there'; Package = 'Installed'; Service = $true; Engine = $true; Removed = $false }
+        @{ Case = 'no NoDefender package'; Package = $null; Service = $false; Engine = $false; Removed = $false }
+        @{ Case = 'the package waiting for a restart'; Package = 'InstallPending'; Service = $false; Engine = $false; Removed = $false }
+    ) {
+        param($Case, $Package, $Service, $Engine, $Removed)
+        Mock Get-AtlasTransitionDefenderPackageState { $Package }
+        Mock Test-AtlasTransitionKey { $Service } -ParameterFilter { $Path -eq 'SYSTEM\CurrentControlSet\Services\WinDefend' }
+        Mock Test-PreparationDefenderEngine { $Engine }
+        Test-PreparationDefenderRemoved | Should -Be $Removed -Because $Case
+    }
+}
+
 Describe 'Windows Update searches that end with errors' {
     BeforeEach {
         # Each search returns the next result; a warning names the part that failed.

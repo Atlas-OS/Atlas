@@ -66,15 +66,20 @@ Before a restart for updates, the worker records the updates it's for under `HKL
 When one of them fails again after the restart, or asks for yet another restart, the run stops with `manual-updates` instead of restarting again.
 A record from more than a day before doesn't count.
 
-The worker stops waiting for two kinds of update:
+The worker stops waiting for three kinds of update:
 
 - An update that installs successfully and is offered again at once, such as the Windows Security platform update.
   The log calls it `reoffered-after-success`.
 - A driver that Windows Update fails with `0x80070103`, because the device already has one at least as good.
   The log calls it `driver not needed`.
+- Microsoft Defender's own updates (KB2267602 and KB4052623) on a PC Atlas removed Defender from: Atlas's NoDefender package is installed, and the WinDefend service or the Defender engine (`MsMpEng.exe`) is gone.
+  Windows Update can keep offering them there, and they fail with `0x80070643`.
+  The log calls them `defender update not needed`.
+  While Defender could still run, they stay required.
 
-The worker keeps both under `HKLM\SOFTWARE\AtlasOS\Preparation` for 30 days, up to 100 entries.
+The worker keeps all three under `HKLM\SOFTWARE\AtlasOS\Preparation` for 30 days, up to 100 entries.
 The check before the install reads the same record, so it doesn't wait for them either.
+Defender's updates are the exception: each new one has a new ID, so the worker and the check decide them from the PC every time, and the record only shows them.
 
 When Windows Update is turned off, paused or set to delay monthly updates, the **Get ready** page turns it on for the run.
 It records the original settings first, and the Atlas install puts them back at its end (see [Putting Windows Update settings back](windows-transition.md#putting-windows-update-settings-back)).
@@ -233,7 +238,7 @@ Microsoft documents the parts this relies on in [Run and RunOnce registry keys](
 Before Capture, the front door runs the worker again with `-VerifyOnly`, from the protected staging copy of the Atlas package.
 It passes only when:
 
-- an online Windows Update search finds no required updates, apart from those recorded under `HKLM\SOFTWARE\AtlasOS\Preparation`;
+- an online Windows Update search finds no required updates, apart from those recorded under `HKLM\SOFTWARE\AtlasOS\Preparation` and Defender's own updates on a PC Atlas removed Defender from (see [Windows updates](#windows-updates));
 - Microsoft Store is registered for you, with no outstanding updates or active queue items;
 - the connection has confirmed internet access and isn't metered, over its data limit or roaming;
 - Windows needs no restart;

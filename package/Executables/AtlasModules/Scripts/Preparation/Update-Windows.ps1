@@ -107,6 +107,12 @@ $script:InstallNotAllowed = -2145124330
 $script:PreparationBusyWaitSeconds = 600
 $script:PreparationBusyWaits = 3
 $script:PreparationBusyWaited = 0
+# Microsoft Defender's security intelligence (KB2267602) and antimalware platform
+# (KB4052623) updates. Windows Update can keep offering them once Atlas's
+# NoDefender package has removed Defender, and they then fail with 0x80070643.
+$script:DefenderUpdateKbs = @('2267602', '4052623')
+# Defender updates this run has recorded as not needed, by id and revision.
+$script:PreparationDefenderSkipped = @{}
 # Searches per provider before giving up on one that keeps offering updates.
 $script:PreparationPasses = 8
 # Optional prerequisites that failed in this run, by id and revision; the passes
@@ -621,10 +627,63 @@ function Write-PreparationReoffered($Entries) {
     Set-AtlasTransitionValue $script:PreparationReofferedRoot 'Reoffered' 'String' $json
 }
 
+# The updates the record says are no longer waited for. A Defender update recorded
+# because Atlas removed Defender isn't among them: whether Defender is there now
+# decides that each time (Test-PreparationDefenderRemoved).
 function Get-PreparationReofferedKey {
     $keys = New-Object 'Collections.Generic.HashSet[string]'
-    foreach ($entry in @(Read-PreparationReoffered)) { [void]$keys.Add([string]$entry.key) }
+    foreach ($entry in @(Read-PreparationReoffered)) {
+        if ((Get-PreparationHandledWhy $entry) -eq 'defender-removed') { continue }
+        [void]$keys.Add([string]$entry.key)
+    }
     return , $keys
+}
+
+function Get-PreparationHandledWhy($Entry) {
+    $why = $Entry.PSObject.Properties['why']
+    if ($null -ne $why) { return [string]$why.Value }
+    return ''
+}
+
+# Whether Atlas removed Microsoft Defender from this PC: its NoDefender package
+# is installed, and Defender can't run, with no WinDefend service or no Defender
+# engine (MsMpEng.exe) where Windows runs it from. Defender's own updates then have
+# nothing to update. The package alone isn't enough: Defender's updates stay
+# required wherever Defender could still run.
+function Test-PreparationDefenderRemoved {
+    if ((Get-AtlasTransitionDefenderPackageState) -cne 'Installed') { return $false }
+    if (-not (Test-AtlasTransitionKey 'SYSTEM\CurrentControlSet\Services\WinDefend')) { return $true }
+    return -not (Test-PreparationDefenderEngine)
+}
+
+# Whether a Defender engine is on this PC: in Program Files, as Windows installs
+# it, or in a platform folder its updates add under ProgramData. A folder that
+# can't be read counts as holding one.
+function Test-PreparationDefenderEngine {
+    if ([IO.File]::Exists([IO.Path]::Combine([Environment]::GetFolderPath('ProgramFiles'), 'Windows Defender\MsMpEng.exe'))) { return $true }
+    $platform = [IO.Path]::Combine([Environment]::GetFolderPath('CommonApplicationData'), 'Microsoft\Windows Defender\Platform')
+    try {
+        if (-not [IO.Directory]::Exists($platform)) { return $false }
+        foreach ($folder in [IO.Directory]::EnumerateDirectories($platform)) {
+            if ([IO.File]::Exists([IO.Path]::Combine($folder, 'MsMpEng.exe'))) { return $true }
+        }
+        return $false
+    }
+    catch { return $true }
+}
+
+# A Defender update this PC has no Defender for: logged each time it's left out,
+# and recorded once a run the way a driver that isn't needed is, outside the check
+# before the install, which changes nothing.
+function Add-PreparationDefenderNotNeeded($Update) {
+    $line = "defender update not needed, not installed: '$($Update.Title)': Atlas removed Microsoft Defender from this PC (NoDefender package installed, Defender not there to update)"
+    $key = Get-PreparationUpdateKey $Update
+    if ($VerifyOnly -or $script:PreparationDefenderSkipped.ContainsKey($key)) {
+        Write-PreparationLog $line
+        return
+    }
+    $script:PreparationDefenderSkipped[$key] = $true
+    Save-PreparationHandled $Update $line 'defender-removed'
 }
 
 # What the PC has of an update that keeps being offered, where Windows says.
@@ -641,15 +700,21 @@ function Get-PreparationInstalledVersion($Update) {
     return ''
 }
 
-# Logs why an update is no longer waited for, then records it.
-function Save-PreparationHandled($Update, [string]$Line) {
+# Logs why an update is no longer waited for, then records it. $Why names a
+# record whose update the record alone doesn't decide; each such kind keeps only
+# its newest entry for each KB, as these updates take a new id every few hours.
+function Save-PreparationHandled($Update, [string]$Line, [string]$Why = '') {
     Write-PreparationLog $Line
     Write-AtlasTransitionEvidence $Line
     try {
         $title = [string]$Update.Title
         $key = Get-PreparationUpdateKey $Update
-        $entries = @(Read-PreparationReoffered | Where-Object { [string]$_.key -ne $key })
-        $entries += [pscustomobject][ordered]@{ key = $key; kb = (@(Get-PreparationUpdateKb $Update) -join ','); title = $title.Substring(0, [Math]::Min($title.Length, 200)); at = [DateTime]::UtcNow.ToString('o') }
+        $kb = @(Get-PreparationUpdateKb $Update) -join ','
+        $entries = @(Read-PreparationReoffered | Where-Object {
+                [string]$_.key -ne $key -and -not ($Why -and (Get-PreparationHandledWhy $_) -eq $Why -and [string]$_.PSObject.Properties['kb'].Value -eq $kb) })
+        $entry = [ordered]@{ key = $key; kb = $kb; title = $title.Substring(0, [Math]::Min($title.Length, 200)); at = [DateTime]::UtcNow.ToString('o') }
+        if ($Why) { $entry.why = $Why }
+        $entries += [pscustomobject]$entry
         # The install's check skips only what's listed, so the list has room for more
         # than one run records. Entries lapse after 30 days.
         if ($entries.Count -gt 100) { $entries = $entries[($entries.Count - 100)..($entries.Count - 1)] }
@@ -1034,11 +1099,19 @@ function Invoke-PreparationSearch($Session, [string]$Criteria, [switch]$IncludeS
 
 function Find-PreparationWindowsUpdate($Session) {
     $handled = Get-PreparationReofferedKey
+    $defenderRemoved = $null
     foreach ($update in @(Invoke-PreparationSearch $Session "IsInstalled=0 and IsHidden=0 and BrowseOnly=0 and DeploymentAction='Installation'")) {
         $excluded = Get-PreparationUpdateExclusion $update
         if ($excluded) {
             Write-PreparationLog "Left '$($update.Title)': $excluded."
             continue
+        }
+        if (Test-PreparationKnownKb $update ($script:DefenderUpdateKbs -join ',')) {
+            if ($null -eq $defenderRemoved) { $defenderRemoved = Test-PreparationDefenderRemoved }
+            if ($defenderRemoved) {
+                Add-PreparationDefenderNotNeeded $update
+                continue
+            }
         }
         if ($handled.Contains((Get-PreparationUpdateKey $update))) {
             Write-PreparationLog "Left '$($update.Title)': Windows offers it again, and an earlier pass recorded it as done."
