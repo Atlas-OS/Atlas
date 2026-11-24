@@ -39,7 +39,8 @@ function Set-AtlasServiceStartup {
         startup type, sc.exe changes it there too, also when the registry already had
         the new value. A service the service manager won't change, as Windows can
         refuse for a protected one, keeps the registry write, which applies after a
-        restart, and is logged as a warning. A running service keeps running. A
+        restart, and is logged, as a warning when this call changed the registry
+        (see Sync-AtlasServiceManagerStartup). A running service keeps running. A
         missing service is skipped when disabling, since it can't run anyway.
     .PARAMETER Name
         The service or driver key name under HKLM\SYSTEM\CurrentControlSet\Services.
@@ -124,7 +125,8 @@ function Set-AtlasServiceStartup {
     # read, from an earlier write without it.
     $serviceManager = $null
     if (Test-AtlasServiceRootLive -ServicesRoot $ServicesRoot) {
-        $serviceManager = Sync-AtlasServiceManagerStartup -Name $Name -StartupType $StartupType -ServicePath $servicePath
+        $serviceManager = Sync-AtlasServiceManagerStartup -Name $Name -StartupType $StartupType -ServicePath $servicePath `
+            -Unchanged:$alreadyConfigured
     }
 
     if ($PassThru) {
@@ -156,18 +158,33 @@ function Sync-AtlasServiceManagerStartup {
     .DESCRIPTION
         sc.exe changes the service manager's startup type and the registry value
         together. An automatic service whose key marks it delayed (DelayedAutostart
-        1) stays delayed. A refusal is a warning: the registry already has the value,
-        which Windows reads when it starts.
+        1) stays delayed. A per-user service's template (Type 0x50 or 0x60) isn't
+        changed there: Windows gives each account's copy the template's registry
+        value when it creates it. Nothing is asked of sc.exe when the service
+        manager's startup type can't be read. A refusal is a warning when this call
+        changed the registry, and only noted with -Unchanged, when the registry
+        already held the value: the same refusal then comes on every run.
     #>
     param(
         [Parameter(Mandatory = $true)][string]$Name,
         [Parameter(Mandatory = $true)][ValidateRange(0, 4)][int]$StartupType,
-        [Parameter(Mandatory = $true)][string]$ServicePath
+        [Parameter(Mandatory = $true)][string]$ServicePath,
+        [switch]$Unchanged
     )
 
+    $type = Get-ItemProperty -LiteralPath $ServicePath -Name 'Type' -ErrorAction SilentlyContinue
+    # SERVICE_USER_SERVICE (0x40) without SERVICE_USERSERVICE_INSTANCE (0x80).
+    if ($null -ne $type -and ([int64]$type.Type -band 0xC0) -eq 0x40) {
+        Write-AtlasLog -Message "'$Name' is a per-user service template; each account's copy takes its startup type when Windows creates it."
+        return $null
+    }
     $held = Get-AtlasServiceManagerStartup -Name $Name
     if ($null -eq $held) {
         Write-AtlasLog -Message "The service manager doesn't list '$Name'; Windows reads its startup type when it next starts."
+        return $null
+    }
+    if ($held -lt 0) {
+        Write-AtlasLog -Message "The service manager's startup type for '$Name' couldn't be read; Windows reads the registry's when it next starts."
         return $null
     }
     if ($held -eq $StartupType) {
@@ -179,18 +196,17 @@ function Sync-AtlasServiceManagerStartup {
         $delayed = Get-ItemProperty -LiteralPath $ServicePath -Name 'DelayedAutostart' -ErrorAction SilentlyContinue
         if ($null -ne $delayed -and [int]$delayed.DelayedAutostart -eq 1) { $mode = 'delayed-auto' }
     }
-    $before = if ($held -ge 0) { "'$held'" } else { 'a startup type Atlas could not read' }
     try {
         Invoke-AtlasServiceControlConfig -Name $Name -Mode $mode
     }
     catch {
-        Write-AtlasLog -Level Warning -Message (
-            "The service manager kept $before for '$Name': $($_.Exception.Message) " +
+        Write-AtlasLog -Level $(if ($Unchanged) { 'Info' } else { 'Warning' }) -Message (
+            "The service manager kept '$held' for '$Name': $($_.Exception.Message) " +
             "The registry has '$StartupType', which Windows uses after a restart."
         )
         return 'Refused'
     }
-    Write-AtlasLog -Message "The service manager held $before for '$Name'; it now has '$mode'."
+    Write-AtlasLog -Message "The service manager held '$held' for '$Name'; it now has '$mode'."
     return 'Synced'
 }
 

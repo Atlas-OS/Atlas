@@ -190,10 +190,39 @@ Describe 'Set-AtlasServiceStartup and the service manager' {
         Should -Invoke Write-AtlasLog -ModuleName Atlas.Services -Times 0 -Exactly -ParameterFilter { $Level -eq 'Warning' }
     }
 
-    It 'still tries the service manager when its startup type can''t be read' {
+    It 'asks nothing of sc.exe when the service manager''s startup type can''t be read' {
         $script:held = -1
+        $result = Set-AtlasServiceStartup -Name TestSvc -StartupType 3 -ServicesRoot $script:servicesRoot -PassThru
+        Should -Invoke Invoke-AtlasServiceControlConfig -ModuleName Atlas.Services -Times 0 -Exactly
+        $result.ServiceManager | Should -BeNullOrEmpty
+        (Get-Item -LiteralPath "$script:servicesRoot\TestSvc").GetValue('Start') | Should -Be 3
+    }
+
+    It 'leaves a per-user service''s template (Type 0x<Type>) to the copies Windows makes of it' -TestCases @(
+        @{ Type = '50' }
+        @{ Type = '60' }
+    ) {
+        New-ItemProperty -Path "$script:servicesRoot\TestSvc" -Name Type -Value ([Convert]::ToInt32($Type, 16)) -PropertyType DWord | Out-Null
+        $result = Set-AtlasServiceStartup -Name TestSvc -StartupType 4 -ServicesRoot $script:servicesRoot -PassThru
+        (Get-Item -LiteralPath "$script:servicesRoot\TestSvc").GetValue('Start') | Should -Be 4
+        Should -Invoke Get-AtlasServiceManagerStartup -ModuleName Atlas.Services -Times 0 -Exactly
+        Should -Invoke Invoke-AtlasServiceControlConfig -ModuleName Atlas.Services -Times 0 -Exactly
+        $result.ServiceManager | Should -BeNullOrEmpty
+    }
+
+    It 'still syncs a per-user service''s own copy (Type 0xE0)' {
+        New-ItemProperty -Path "$script:servicesRoot\TestSvc" -Name Type -Value 0xE0 -PropertyType DWord | Out-Null
         Set-AtlasServiceStartup -Name TestSvc -StartupType 3 -ServicesRoot $script:servicesRoot
-        Should -Invoke Invoke-AtlasServiceControlConfig -ModuleName Atlas.Services -Times 1 -Exactly -ParameterFilter { $Mode -eq 'demand' }
+        Should -Invoke Invoke-AtlasServiceControlConfig -ModuleName Atlas.Services -Times 1 -Exactly
+    }
+
+    It 'only notes a refusal when the registry already held the startup type, as it comes on every run' {
+        New-ItemProperty -Path "$script:servicesRoot\TestSvc" -Name Start -Value 3 -PropertyType DWord | Out-Null
+        Mock Invoke-AtlasServiceControlConfig -ModuleName Atlas.Services { throw 'sc.exe exited 5: [SC] ChangeServiceConfig FAILED 5: Access is denied.' }
+        $result = Set-AtlasServiceStartup -Name TestSvc -StartupType 3 -ServicesRoot $script:servicesRoot -PassThru
+        $result.ServiceManager | Should -Be 'Refused'
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Services -Times 0 -Exactly -ParameterFilter { $Level -eq 'Warning' }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Services -Times 1 -Exactly -ParameterFilter { $Message -like "*kept '4' for 'TestSvc'*Access is denied*" }
     }
 
     It 'asks nothing of the service manager for a service that isn''t on the PC' {
