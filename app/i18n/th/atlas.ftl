@@ -1263,6 +1263,7 @@ prepare-failed-store-timeout = แอปจาก Store ยังอัปเด
 prepare-failed-store-passes = Microsoft Store ยังมีการอัปเดตใหม่เข้ามาเรื่อย ๆ ติดตั้งการอัปเดตที่เหลือใน Microsoft Store ให้เสร็จ แล้วลองอีกครั้ง
 prepare-failed-manual-updates = การอัปเดต Windows บางรายการต้องติดตั้งให้เสร็จใน Windows Update เปิด Windows Update แล้วติดตั้งการอัปเดตเหล่านั้นให้เสร็จ จากนั้นลองอีกครั้ง
 prepare-failed-windows-passes = Windows Update ยังมีการอัปเดตใหม่เข้ามาเรื่อย ๆ ติดตั้งการอัปเดตที่เหลือใน Windows Update ให้เสร็จ แล้วลองอีกครั้ง
+prepare-failed-windows-update-unreachable = Windows Update เชื่อมต่อเซิร์ฟเวอร์ของ Microsoft ไม่ได้ ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต รวมถึงไฟร์วอลล์ พร็อกซี หรือ VPN ที่อาจมีอยู่ แล้วลองอีกครั้ง
 prepare-failed-source-linked = Atlas Manager อยู่ในโฟลเดอร์ที่ลิงก์ไว้ ปิด Atlas ย้าย Atlas Manager ไปยังโฟลเดอร์ในพีซีเครื่องนี้ แล้วเปิดจากที่นั่น
 prepare-error-code = รหัสข้อผิดพลาด: { $code }
 prepare-open-store = เปิด Microsoft Store

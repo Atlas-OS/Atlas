@@ -1281,6 +1281,7 @@ prepare-failed-store-timeout = 市集應用程式尚未完成更新。請在 Mic
 prepare-failed-store-passes = Microsoft Store 持續提供新的更新。請在 Microsoft Store 中完成其餘的更新，然後再試一次。
 prepare-failed-manual-updates = 部分 Windows 更新需要在 Windows Update 中完成。請開啟 Windows Update 完成這些更新，然後再試一次。
 prepare-failed-windows-passes = Windows Update 持續提供新的更新。請在 Windows Update 中完成其餘的更新，然後再試一次。
+prepare-failed-windows-update-unreachable = Windows Update 無法連線至 Microsoft 的伺服器。請檢查網際網路連線，以及任何防火牆、Proxy 或 VPN，然後再試一次。
 # Atlas Manager runs from a folder that links to another place (a junction or symbolic
 # link). "Linked folder" and "local folder" as in usb-failed-location. Atlas keeps using
 # the folder it was opened from, so trying again in the same window can't help.

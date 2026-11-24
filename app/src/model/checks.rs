@@ -301,10 +301,10 @@ impl AppModel {
     /// Updating failed, or a restart didn't clear, for a reason the user
     /// can't put right as Get ready says: not a wait for Windows Update's
     /// offer, and none of the causes whose advice is the fix, such as an app
-    /// left open, a pause for the battery or the connection, updates to
-    /// finish in Windows Update or Microsoft Store, the wrong account, too
-    /// little disk space, a Windows too damaged to update or a linked Atlas
-    /// Manager folder. Of a move's own causes, only an update Windows
+    /// left open, a pause for the battery or the connection, Windows Update
+    /// out of reach, updates to finish in Windows Update or Microsoft Store,
+    /// the wrong account, too little disk space, a Windows too damaged to
+    /// update or a linked Atlas Manager folder. Of a move's own causes, only an update Windows
     /// couldn't install or rolled back is unexpected: the others name what
     /// stands in the way, or offer Send a report as their one button.
     fn preparation_failed_unexpectedly(&self) -> bool {
@@ -327,6 +327,7 @@ impl AppModel {
                                     | "store-timeout"
                                     | "store-missing"
                                     | "manual-updates"
+                                    | "windows-update-unreachable"
                                     | "session-owner"
                                     | "component-store-unrepairable"
                             )

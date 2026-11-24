@@ -1334,6 +1334,7 @@ prepare-failed-store-timeout = Store apps haven't finished updating. Finish the 
 prepare-failed-store-passes = Microsoft Store kept offering new updates. Finish the remaining updates in Microsoft Store, then try again.
 prepare-failed-manual-updates = Some Windows updates need to be finished in Windows Update. Open Windows Update, finish them, then try again.
 prepare-failed-windows-passes = Windows Update kept offering new updates. Finish the remaining updates in Windows Update, then try again.
+prepare-failed-windows-update-unreachable = Windows Update couldn't reach Microsoft's servers. Check your internet connection and any firewall, proxy or VPN, then try again.
 # Atlas Manager runs from a folder that links to another place (a junction or symbolic
 # link). "Linked folder" and "local folder" as in usb-iso-location. Atlas keeps using
 # the folder it was opened from, so trying again in the same window can't help.

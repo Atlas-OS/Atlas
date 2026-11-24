@@ -1289,6 +1289,7 @@ prepare-failed-store-timeout = Aplikasi Store belum selesai diperbarui. Selesaik
 prepare-failed-store-passes = Microsoft Store terus menawarkan pembaruan baru. Selesaikan pembaruan yang tersisa di Microsoft Store, lalu coba lagi.
 prepare-failed-manual-updates = Beberapa pembaruan Windows perlu diselesaikan di Windows Update. Buka Windows Update, selesaikan pembaruan tersebut, lalu coba lagi.
 prepare-failed-windows-passes = Windows Update terus menawarkan pembaruan baru. Selesaikan pembaruan yang tersisa di Windows Update, lalu coba lagi.
+prepare-failed-windows-update-unreachable = Windows Update tidak dapat menjangkau server Microsoft. Periksa koneksi internet Anda serta firewall, proxy, atau VPN yang digunakan, lalu coba lagi.
 # Atlas Manager runs from a folder that links to another place (a junction or symbolic
 # link). "Linked folder" and "local folder" as in usb-failed-location. Atlas keeps using
 # the folder it was opened from, so trying again in the same window can't help.

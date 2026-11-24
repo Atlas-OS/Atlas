@@ -1374,6 +1374,7 @@ prepare-failed-store-timeout = Приложения Store ещё не обнов
 prepare-failed-store-passes = Microsoft Store продолжал предлагать новые обновления. Установите оставшиеся обновления в Microsoft Store и повторите попытку.
 prepare-failed-manual-updates = Установку некоторых обновлений Windows нужно завершить в Центре обновления Windows. Откройте Центр обновления Windows, завершите установку и повторите попытку.
 prepare-failed-windows-passes = Центр обновления Windows продолжал предлагать новые обновления. Установите оставшиеся обновления в Центре обновления Windows и повторите попытку.
+prepare-failed-windows-update-unreachable = Центру обновления Windows не удалось подключиться к серверам Microsoft. Проверьте подключение к интернету, а также брандмауэр, прокси-сервер или VPN, если они используются, затем повторите попытку.
 # Atlas Manager runs from a folder that links to another place (a junction or symbolic
 # link). "Linked folder" and "local folder" as in usb-iso-location. Atlas keeps using
 # the folder it was opened from, so trying again in the same window can't help.

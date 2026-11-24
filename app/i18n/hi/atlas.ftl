@@ -1328,6 +1328,7 @@ prepare-failed-store-timeout = Store ऐप अभी पूरी तरह अ
 prepare-failed-store-passes = Microsoft Store लगातार नए अपडेट देता रहा। Microsoft Store में बाकी अपडेट पूरे करें, फिर कोशिश करें।
 prepare-failed-manual-updates = कुछ Windows अपडेट Windows Update में ही पूरे करने होंगे। Windows Update खोलें, उन्हें पूरा करें, फिर कोशिश करें।
 prepare-failed-windows-passes = Windows Update लगातार नए अपडेट देता रहा। Windows Update में बाकी अपडेट पूरे करें, फिर कोशिश करें।
+prepare-failed-windows-update-unreachable = Windows Update, Microsoft के सर्वर तक नहीं पहुँच सका। अपना इंटरनेट कनेक्शन और कोई भी फ़ायरवॉल, प्रॉक्सी या VPN जाँचें, फिर कोशिश करें।
 # Atlas Manager runs from a folder that links to another place (a junction or symbolic
 # link). "Linked folder" and "local folder" as in usb-failed-location. Atlas keeps using
 # the folder it was opened from, so trying again in the same window can't help.
