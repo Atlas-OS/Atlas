@@ -3,13 +3,36 @@
 //! The update worker does the work; this decides when it may, and what the
 //! user is asked first.
 
-use gpui::Context;
+use std::sync::atomic::Ordering;
 
-use super::{AppModel, RunState};
-use crate::services::preparation::{self, Operation, TransitionRequest};
-use crate::services::requirements::{CheckDetail, CheckId, Verdict};
+use gpui::{Context, Task};
+
+use super::{AppModel, RunState, Step};
+use crate::services::preparation::{self, Operation, State, TransitionRequest};
+use crate::services::requirements::{CheckDetail, CheckId, CheckResult, Verdict};
 use crate::services::update_access::{JournalKind, Phase, UpdateAccess};
 use crate::services::windows_release::{self, Transition, TransitionNeed, WindowsBlock};
+
+/// What happens once a run stops that the user stopped while the move
+/// waited for Windows Update's offer: a run stops only at its next safe
+/// point, so the rest waits for it to end.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum AfterStop {
+    /// Keep this Windows version: the settings go back, and updating
+    /// carries on without the move.
+    Keep,
+    /// Stop updating: the settings go back and the flow ends, as Cancel does.
+    Leave,
+}
+
+/// Free space read again while a move waits for room on the system drive.
+#[derive(Default)]
+pub(super) struct SpaceWatch {
+    task: Option<Task<()>>,
+    /// The task is still reading; it ends by itself once there's room or
+    /// nothing waits for it.
+    running: bool,
+}
 
 /// Where putting back the Windows Update settings stands.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -40,22 +63,83 @@ impl AppModel {
 
     /// Whether Get ready will move Windows: always where the package needs
     /// it, and where it's optional unless the user chose to keep their
-    /// version.
+    /// version or this PC can't move (see [`AppModel::move_ruled_out`]).
     pub fn transition_chosen(&self) -> bool {
         match self.windows_transition() {
             Some((_, TransitionNeed::Required)) => true,
-            Some((_, TransitionNeed::Optional)) => !self.windows_transition_declined,
+            Some((_, TransitionNeed::Optional)) => {
+                !self.windows_transition_declined && !self.move_ruled_out()
+            }
             None => false,
         }
     }
 
-    /// Windows has the new version, or only waits for the restart that
-    /// switches it on.
-    pub fn transition_installed(&self) -> bool {
-        self.update_access
+    /// A move this PC can't make, as Get ready's checks read it: hardware
+    /// below what Windows 11 requires, or updates from an organisation's
+    /// server. Windows Update would refuse it only after the move had begun.
+    /// Where moving is optional, Atlas keeps this version without asking;
+    /// where it's required, the check says what to do.
+    pub fn move_ruled_out(&self) -> bool {
+        self.checks.iter().any(|(id, result)| {
+            matches!(id, CheckId::MoveHardware | CheckId::MoveUpdateSource)
+                && result.as_ref().is_some_and(|result| result.verdict == Verdict::Fail)
+        })
+    }
+
+    /// Whether Get ready shows the move's own card, first under the
+    /// stepper: a move to choose or accept that this PC can make, one under
+    /// way, how one ended, or a Windows that reinstalled itself on the way.
+    pub fn windows_card_shown(&self) -> bool {
+        let offered =
+            self.windows_transition().is_some() && (!self.move_ruled_out() || self.transition_open());
+        offered || self.move_shows_preparation() || self.rebase_choices().is_some()
+    }
+
+    /// Whether the move's card says how updating stands, in place of the
+    /// update row: Windows hasn't reached the release the move is for, the
+    /// last run ended in one of the move's own outcomes, or the restart owed
+    /// finishes the move. The rest of updating comes after the move.
+    pub fn move_shows_preparation(&self) -> bool {
+        let Some(request) = self.transition_request() else {
+            return false;
+        };
+        let before_target =
+            self.system.build != request.target_build && (self.transition_open() || !self.move_ruled_out());
+        let outcome = self.preparation == State::Failed
+            && self
+                .preparation_progress
+                .as_ref()
+                .and_then(|progress| progress.failure())
+                .and_then(|failure| failure.reason.as_deref())
+                .is_some_and(|reason| reason.starts_with("feature-"));
+        let restart = matches!(self.preparation, State::Reboot | State::SavingRestart | State::Restarting)
+            && self.restart_needs_commit();
+        before_target || outcome || restart
+    }
+
+    /// Whether the last run's move ended for a cause one of Get ready's
+    /// checks now reports as well: hardware below what Windows 11 requires,
+    /// an organisation's update server, or too little free space. The check
+    /// says it, with its fix, so how the move stands doesn't say it again.
+    pub fn move_outcome_held_by_check(&self) -> bool {
+        if self.preparation != State::Failed {
+            return false;
+        }
+        let check = match self
+            .preparation_progress
             .as_ref()
-            .and_then(UpdateAccess::transition)
-            .is_some_and(|journal| journal.installed())
+            .and_then(|progress| progress.failure())
+            .and_then(|failure| failure.reason.as_deref())
+        {
+            Some("feature-hardware") => CheckId::MoveHardware,
+            Some("feature-managed") => CheckId::MoveUpdateSource,
+            Some("feature-disk-space") => CheckId::MoveSpace,
+            _ => return false,
+        };
+        self.check_counts(check)
+            && self.checks.iter().any(|(id, result)| {
+                *id == check && result.as_ref().is_some_and(|result| result.verdict == Verdict::Fail)
+            })
     }
 
     /// The move under way by Atlas's record, if its target is one Atlas knows.
@@ -135,6 +219,8 @@ impl AppModel {
             self.reset_preparation();
         }
         self.save_draft(cx);
+        // Keeping this version needs no licence terms: updating can start.
+        self.advance_ready(cx);
         cx.notify();
     }
 
@@ -151,7 +237,230 @@ impl AppModel {
             self.reset_preparation();
         }
         self.save_draft(cx);
+        // Accepting the terms is the go-ahead for the move: it starts now.
+        self.advance_ready(cx);
         cx.notify();
+    }
+
+    /// Accept and update: accepts the licence terms, the go-ahead for the
+    /// move, and starts it, also after the user stopped updating or a run
+    /// stopped for the terms. Something still to finish, such as the checks,
+    /// holds the start until then (see [`AppModel::preparation_may_start`]).
+    pub fn accept_and_update(&mut self, cx: &mut Context<Self>) {
+        if self.locked() {
+            return;
+        }
+        self.updates_held = false;
+        self.accept_windows_terms(true, cx);
+        if matches!(self.preparation, State::Idle | State::Cancelled | State::Failed | State::Network) {
+            self.start_preparation(false, cx);
+        }
+    }
+
+    /// Whether keeping this Windows version can be chosen now, where moving
+    /// is optional: before the new release is installed, while nothing runs
+    /// but the wait for its offer, and while the settings Atlas turned on for
+    /// it can be put back, which an unfinished Atlas install leaves to itself
+    /// (see [`AppModel::keep_waits_for_install`]). A run under way counts as
+    /// having turned them on, as it records them before Atlas reads them.
+    pub fn may_keep_windows_version(&self) -> bool {
+        let journal = self.update_access.as_ref().and_then(UpdateAccess::transition);
+        let quiet = !self.preparation.busy() || self.offer_wait_shown();
+        !self.flow.locked()
+            && !self.iso_busy
+            && !self.elevating
+            && self.restore_status != RestoreStatus::Running
+            && quiet
+            && !matches!(
+                self.preparation,
+                State::Reboot
+                    | State::SavingRestart
+                    | State::Restarting
+                    | State::Resumed
+                    | State::RestartPersists { .. }
+            )
+            && !self.keep_waits_for_install()
+            && journal.is_none_or(|journal| !journal.installed() && self.elevated)
+    }
+
+    /// Whether choosing to keep this version needs the user's go-ahead
+    /// first: the move has begun, so stopping it puts back what Atlas turned
+    /// on, as the stop question says.
+    pub fn keeping_stops_the_move(&self) -> bool {
+        self.transition_open() || (self.preparation.busy() && self.transition_chosen())
+    }
+
+    /// Whether keeping this version waits for an unfinished Atlas install,
+    /// or one owed to a Windows that rebuilt itself: the move has begun, and
+    /// that install's own last step puts back what Atlas turned on for it,
+    /// so nothing else may until then.
+    pub fn keep_waits_for_install(&self) -> bool {
+        self.keeping_stops_the_move()
+            && (self.resume_target().is_some() || self.rebuilt_windows_awaits_install())
+    }
+
+    /// Keeps this Windows version once the move has begun, as the user
+    /// confirmed (see [`AppModel::keeping_stops_the_move`]): a run waiting
+    /// for the offer stops first, then the settings Atlas turned on go back,
+    /// and updating carries on without the move.
+    pub fn keep_windows_version_now(&mut self, cx: &mut Context<Self>) {
+        if !self.may_keep_windows_version() {
+            return;
+        }
+        if self.preparation.busy() {
+            log::info!("Keeping this Windows version once the run waiting for the offer stops");
+            self.after_stop = Some(AfterStop::Keep);
+            self.preparation_cancel.store(true, Ordering::Relaxed);
+            cx.notify();
+            return;
+        }
+        self.keep_after_move_stops(false, cx);
+    }
+
+    /// Puts the settings back, then keeps this version; `stopped` when a run
+    /// stopped for this alone.
+    fn keep_after_move_stops(&mut self, stopped: bool, cx: &mut Context<Self>) {
+        if self.update_access.as_ref().is_none_or(|access| access.journal.is_none()) {
+            self.keep_without_move(cx);
+            return;
+        }
+        if !self.may_restore_update_access() {
+            // What changed while the run stopped, such as an Atlas install
+            // left unfinished, holds the settings, so the move stays. A run
+            // stopped only to keep this version leaves updating free to carry
+            // on, and Get ready says why the version wasn't kept.
+            log::info!("not keeping this Windows version: the settings can't be put back now");
+            if stopped && self.preparation == State::Cancelled {
+                self.updates_held = false;
+                self.reset_preparation();
+                self.advance_ready(cx);
+            }
+            cx.notify();
+            return;
+        }
+        self.restore_update_access_then(
+            |this, done, cx| {
+                if done {
+                    this.keep_without_move(cx);
+                }
+            },
+            cx,
+        );
+    }
+
+    fn keep_without_move(&mut self, cx: &mut Context<Self>) {
+        log::info!("Keeping this Windows version; updating carries on without the move");
+        self.windows_transition_declined = true;
+        self.updates_held = false;
+        self.stop_offer_wait();
+        self.reset_preparation();
+        self.save_draft(cx);
+        self.advance_ready(cx);
+        cx.notify();
+    }
+
+    /// Stop updating while the move waits for the offer, as the user
+    /// confirmed: a look under way stops first; then the settings go back
+    /// and the flow ends, as Cancel does.
+    pub fn stop_waiting_for_offer(&mut self, cx: &mut Context<Self>) {
+        if self.preparation.busy() {
+            log::info!("Stopping the move once the run waiting for the offer stops");
+            self.after_stop = Some(AfterStop::Leave);
+            self.preparation_cancel.store(true, Ordering::Relaxed);
+            cx.notify();
+        } else {
+            self.stop_updating(cx);
+        }
+    }
+
+    /// The question asked before stopping a move that waits for the offer,
+    /// or before keeping this version: nothing has moved yet.
+    pub fn move_stop_question(&self) -> StopQuestion {
+        StopQuestion::BeforeMove { current: self.system.display_version.clone() }
+    }
+
+    /// Once a run ends: what the user asked for while it waited for the
+    /// offer (see [`AfterStop`]). A run that found the offer meanwhile has
+    /// gone on with the move, which nothing then undoes.
+    pub(super) fn finish_after_stop(&mut self, cx: &mut Context<Self>) {
+        let Some(after) = self.after_stop.take() else {
+            return;
+        };
+        if !matches!(self.preparation, State::Cancelled | State::Failed | State::Network) {
+            log::info!(
+                "the run ended as {:?} before it stopped; {after:?} isn't carried out",
+                self.preparation
+            );
+            return;
+        }
+        match after {
+            AfterStop::Keep => self.keep_after_move_stops(true, cx),
+            AfterStop::Leave => self.stop_updating(cx),
+        }
+    }
+
+    /// A move waits for room on the system drive: the free-space check
+    /// failed while the move counts.
+    fn free_space_short(&self) -> bool {
+        self.check_counts(CheckId::MoveSpace)
+            && self.checks.iter().any(|(id, result)| {
+                *id == CheckId::MoveSpace
+                    && result.as_ref().is_some_and(|result| result.verdict == Verdict::Fail)
+            })
+    }
+
+    /// While a move waits for room, reads the free space again every so
+    /// often, and once there's enough, carries on by itself: a run that
+    /// stopped for the space starts over, and one not started yet starts.
+    pub(super) fn follow_free_space(&mut self, cx: &mut Context<Self>) {
+        if self.space_watch.running || !self.free_space_short() || super::preview::active() {
+            return;
+        }
+        let interval = self.env.offer_recheck.space;
+        let run = self.env.adapters.run_check.clone();
+        let context = self.check_context();
+        self.space_watch.running = true;
+        self.space_watch.task = Some(cx.spawn(async move |this, cx| {
+            loop {
+                cx.background_executor().timer(interval).await;
+                let (run, context) = (run.clone(), context.clone());
+                let result =
+                    cx.background_executor().spawn(async move { run(CheckId::MoveSpace, &context) }).await;
+                let reading =
+                    this.update(cx, |this, cx| this.observe_free_space(result, cx)).unwrap_or(false);
+                if !reading {
+                    break;
+                }
+            }
+        }));
+    }
+
+    /// Records a reading of the free space; returns whether to read again.
+    fn observe_free_space(&mut self, result: CheckResult, cx: &mut Context<Self>) -> bool {
+        if !self.free_space_short() || !self.flow.active || self.flow.step != Step::Ready {
+            self.space_watch.running = false;
+            return false;
+        }
+        let enough = result.verdict == Verdict::Pass;
+        if let Some(slot) = self.checks.iter_mut().find(|(id, _)| *id == CheckId::MoveSpace) {
+            slot.1 = Some(result);
+        }
+        if enough {
+            log::info!("There's room for the move now; carrying on");
+            self.space_watch.running = false;
+            let stopped_for_space = self.preparation == State::Failed
+                && self
+                    .preparation_progress
+                    .as_ref()
+                    .and_then(|progress| progress.failure())
+                    .is_some_and(|failure| failure.reason.as_deref() == Some("feature-disk-space"));
+            if stopped_for_space && !self.locked() {
+                self.reset_preparation();
+            }
+            self.advance_ready(cx);
+        }
+        cx.notify();
+        !enough
     }
 
     /// Whether Update Windows and Store apps may run now. The Windows

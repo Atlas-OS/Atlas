@@ -4,9 +4,26 @@ BeforeAll {
     $errors = $null
     $ast = [Management.Automation.Language.Parser]::ParseFile($script:UsbScript,[ref]$null,[ref]$errors)
     if ($errors) { throw ($errors | Out-String) }
-    foreach ($name in @('Fail','Read-AtlasUsbRequest','Get-AtlasUsbIdentity','Test-AtlasUsbDisk','Assert-AtlasUsbIdentity','Assert-AtlasUsbPaths','Assert-AtlasUsbContinue','Write-AtlasUsbProgress','Write-AtlasUsbFileBuffer','Copy-AtlasUsbFile','Get-AtlasUsbDeviceHash','Test-AtlasUsbCopy','Get-AtlasUsbParentPath','Assert-AtlasUsbVolume','Get-AtlasUsbVolumeId','Get-AtlasUsbTargetRoot','Format-AtlasUsb','Get-AtlasUsbEjectTarget','Get-AtlasUsbMediaInfo')) {
+    foreach ($name in @('Fail','Read-AtlasUsbRequest','Get-AtlasUsbIdentity','Test-AtlasUsbCandidate','Test-AtlasUsbDisk','Assert-AtlasUsbIdentity','Assert-AtlasUsbPaths','Assert-AtlasUsbContinue','Write-AtlasUsbProgress','Write-AtlasUsbFileBuffer','Copy-AtlasUsbFile','Get-AtlasUsbDeviceHash','Test-AtlasUsbCopy','Get-AtlasUsbParentPath','Assert-AtlasUsbVolume','Get-AtlasUsbVolumeId','Get-AtlasUsbTargetRoot','Format-AtlasUsb','Get-AtlasUsbEjectTarget','Get-AtlasUsbMediaInfo','Mount-AtlasUsbSource','Get-AtlasUsbSourceRoot','Get-AtlasUsbSourcePlan','Invoke-AtlasUsbCheck','Invoke-AtlasUsbEject')) {
         $node = $ast.Find({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name},$true)
         . ([scriptblock]::Create($node.Extent.Text))
+    }
+    # Invoke-AtlasUsbEject compiles its CM_Request_Device_EjectW wrapper only when no type of
+    # that name exists. This stand-in takes its place in the test session, so no device is
+    # ejected: it records the device and refuses as many times as a test asks.
+    if (-not ('AtlasUsbEject' -as [type])) {
+        Add-Type -TypeDefinition @'
+public static class AtlasUsbEject {
+ public static int Calls;
+ public static int Refusals;
+ public static string Device;
+ public static void Eject(string id) {
+  Calls++;
+  Device = id;
+  if (Calls <= Refusals) throw new System.InvalidOperationException("USB ejection was blocked: 23, veto 6");
+ }
+}
+'@
     }
 }
 
@@ -414,7 +431,43 @@ Describe 'USB destination safety' {
             Mock Format-AtlasUsb { [pscustomobject]@{ DriveLetter='Z'; UniqueId=$script:Root } }
             Mock Assert-AtlasUsbVolume { }
             Mock Copy-AtlasUsbFile { $script:Destinations.Add($Destination) }
-            Mock Test-AtlasUsbCopy { }
+            $script:Order = [Collections.Generic.List[string]]::new()
+            Mock Test-AtlasUsbCopy { $script:Order.Add('verify') }
+            Mock Invoke-AtlasUsbEject { $script:Order.Add('eject') }
+        }
+        It 'ejects the confirmed drive by itself once every file is verified' {
+            $script:RequestFile = Join-Path $script:Job 'usb-request.json'
+            $script:Operation = 'Write'
+            $output = @(Invoke-AtlasUsbWorker) -join "`n"
+            ($script:Order -join ',') | Should -BeExactly 'verify,eject'
+            Should -Invoke Invoke-AtlasUsbEject -Times 1 -Exactly -ParameterFilter { $Drive.uniqueId -ceq $script:Expected.uniqueId }
+            Should -Invoke Write-AtlasUsbProgress -Times 1 -Exactly -ParameterFilter { $Stage -eq 'eject' }
+            $result = ($output -split "`n" | Where-Object { $_ -like 'ATLAS_RESULT:*' }).Substring(13) | ConvertFrom-Json
+            $result.verified | Should -BeTrue
+            $result.ejected | Should -BeTrue
+        }
+        It 'reports a drive Windows would not let go as ready, not as a failed write' {
+            $script:RequestFile = Join-Path $script:Job 'usb-request.json'
+            $script:Operation = 'Write'
+            # Something, such as a scan of the files just written, holds the drive.
+            Mock Invoke-AtlasUsbEject { throw 'USB ejection was blocked: 23, veto 6' }
+            $output = @(Invoke-AtlasUsbWorker) -join "`n"
+            $result = ($output -split "`n" | Where-Object { $_ -like 'ATLAS_RESULT:*' }).Substring(13) | ConvertFrom-Json
+            $result.verified | Should -BeTrue
+            $result.ejected | Should -BeFalse
+        }
+        It 'ejects without failure markers, as the verified drive is ready whatever the eject finds' {
+            $script:RequestFile = Join-Path $script:Job 'usb-request.json'
+            $script:Operation = 'Write'
+            $null = Invoke-AtlasUsbWorker
+            Should -Invoke Invoke-AtlasUsbEject -Times 1 -Exactly -ParameterFilter { $Quiet }
+        }
+        It 'never ejects a drive that failed verification' {
+            $script:RequestFile = Join-Path $script:Job 'usb-request.json'
+            $script:Operation = 'Write'
+            Mock Test-AtlasUsbCopy { throw 'USB verification failed: setup.exe' }
+            { Invoke-AtlasUsbWorker } | Should -Throw 'USB verification failed: setup.exe'
+            Should -Invoke Invoke-AtlasUsbEject -Times 0 -Exactly
         }
         It 'copies to and verifies the formatted volume by its GUID path, not its drive letter' {
             # The worker reads its script parameters through dynamic scope.
@@ -438,6 +491,209 @@ Describe 'USB destination safety' {
             { Invoke-AtlasUsbWorker } | Should -Throw 'USB verification failed: setup.exe'
             Should -Invoke Remove-Item -Times 2 -Exactly -ParameterFilter { $LiteralPath -eq $script:Split }
         }
+    }
+}
+
+Describe 'USB ISO check before a drive is chosen' {
+    BeforeEach {
+        $script:Source = Join-Path $TestDrive 'Windows.iso'
+        Set-Content -LiteralPath $script:Source -Value 'fixture'
+        # The check reads its script parameter through dynamic scope.
+        $script:RequestFile = Join-Path $TestDrive 'usb-request.json'
+        $script:Request = [pscustomobject]@{ source=$script:Source; app=$script:Source; supportedBuilds=@(26200,26300) }
+        $script:Owned = $true
+        Mock Fail { throw "$Reason|$Message" }
+        Mock Assert-AtlasUsbPaths { }
+        Mock Assert-AtlasUsbContinue { }
+        Mock Mount-AtlasUsbSource { [pscustomobject]@{ image='mounted'; owned=$script:Owned } }
+        Mock Get-AtlasUsbSourceRoot { 'Z:\' }
+        Mock Import-Module { }
+        Mock Get-AtlasUsbSourcePlan {
+            [pscustomobject]@{
+                imagePath = 'Z:\sources\install.wim'
+                files = @([pscustomobject]@{ bytes=1KB }, [pscustomobject]@{ bytes=5GB })
+                large = @()
+            }
+        }
+        Mock Dismount-DiskImage { }
+        # Nothing a check does may touch a disk.
+        Mock Clear-Disk { }
+        Mock New-Partition { }
+        Mock Format-Volume { }
+    }
+    It 'reports the bytes a write would copy, and changes nothing' {
+        $output = @(Invoke-AtlasUsbCheck $script:Request) -join "`n"
+        $output | Should -Match '^ATLAS_RESULT:'
+        $result = $output.Substring(13) | ConvertFrom-Json
+        $result.checked | Should -BeTrue
+        $result.bytes | Should -Be (1KB + 5GB)
+        # The same path rules a write applies, without a drive to compare them with.
+        Should -Invoke Assert-AtlasUsbPaths -Times 1 -Exactly -ParameterFilter {
+            $null -eq $Disk -and $Paths -contains $script:Source -and $Paths -contains $script:RequestFile
+        }
+        Should -Invoke Get-AtlasUsbSourcePlan -Times 1 -Exactly -ParameterFilter { ($SupportedBuilds -join ',') -eq '26200,26300' }
+        foreach ($command in 'Clear-Disk', 'New-Partition', 'Format-Volume') { Should -Invoke $command -Times 0 -Exactly }
+    }
+    It 'dismounts an ISO it mounted, also when the check fails' {
+        Mock Get-AtlasUsbSourcePlan { Fail 'working-space' 'There is not enough working space to prepare the Windows image.' }
+        { Invoke-AtlasUsbCheck $script:Request } | Should -Throw 'working-space|*'
+        Should -Invoke Dismount-DiskImage -Times 1 -Exactly -ParameterFilter { $ImagePath -eq $script:Source }
+    }
+    It 'leaves an ISO that was already mounted as it was' {
+        $script:Owned = $false
+        $null = Invoke-AtlasUsbCheck $script:Request
+        Should -Invoke Dismount-DiskImage -Times 0 -Exactly
+    }
+    It 'refuses a file that is not an ISO without mounting it' {
+        $image = Join-Path $TestDrive 'Windows.img'
+        Set-Content -LiteralPath $image -Value 'fixture'
+        $script:Request.source = $image
+        { Invoke-AtlasUsbCheck $script:Request } | Should -Throw 'iso-unsupported|*'
+        Should -Invoke Mount-AtlasUsbSource -Times 0 -Exactly
+    }
+    It 'stops before mounting when cancelled' {
+        Mock Assert-AtlasUsbContinue { throw [OperationCanceledException]::new('cancel') }
+        { Invoke-AtlasUsbCheck $script:Request } | Should -Throw '*cancel*'
+        Should -Invoke Mount-AtlasUsbSource -Times 0 -Exactly
+    }
+}
+
+Describe 'USB checks and writes take turns' {
+    BeforeAll {
+        $script:Job = Join-Path $TestDrive 'exclusion'
+        [void][IO.Directory]::CreateDirectory($script:Job)
+        Copy-Item -LiteralPath $script:UsbScript -Destination $script:Job
+        $script:Iso = Join-Path $script:Job 'Windows.iso'
+        Set-Content -LiteralPath $script:Iso -Value 'fixture'
+        $request = @{ source=$script:Iso; app=$script:Iso; supportedBuilds=@(26200) } | ConvertTo-Json -Compress
+        [IO.File]::WriteAllText((Join-Path $script:Job 'usb-request.json'), $request, (New-Object Text.UTF8Encoding($false)))
+        $script:Mounted = Join-Path $script:Job 'mounted.txt'
+        $script:Release = Join-Path $script:Job 'release.txt'
+        # Runs the worker in a process of its own, as the app does. Functions take precedence
+        # over the Storage cmdlets, so no image is mounted: reading the ISO records that it
+        # began, waits for the test to release it, then stops the check.
+        function script:Start-AtlasUsbWorker([string]$Operation) {
+            $command = @"
+`$ProgressPreference = 'SilentlyContinue'
+function Get-Partition { [pscustomobject]@{ DiskNumber=0 } }
+function Get-DiskImage { [IO.File]::WriteAllText('$script:Mounted', 'mounted'); while (-not (Test-Path -LiteralPath '$script:Release')) { Start-Sleep -Milliseconds 50 }; throw 'stopped by the test' }
+function Mount-DiskImage { throw 'Mount-DiskImage must not run in tests.' }
+& '$(Join-Path $script:Job 'Write-Usb.ps1')' -RequestFile '$(Join-Path $script:Job 'usb-request.json')' -Operation $Operation
+"@
+            $start = New-Object Diagnostics.ProcessStartInfo (Join-Path $PSHOME 'powershell.exe')
+            $start.Arguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand ' + [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
+            $start.UseShellExecute = $false
+            $start.CreateNoWindow = $true
+            $start.RedirectStandardOutput = $true
+            $start.RedirectStandardError = $true
+            return [Diagnostics.Process]::Start($start)
+        }
+        # Waits for the worker and returns its standard output; its errors go to its job's error.txt.
+        function script:Wait-AtlasUsbWorker($Process) {
+            $errors = $Process.StandardError.ReadToEndAsync()
+            $output = $Process.StandardOutput.ReadToEnd()
+            $Process.WaitForExit()
+            $null = $errors.Result
+            return $output
+        }
+    }
+    BeforeEach {
+        Remove-Item -LiteralPath $script:Mounted, $script:Release -ErrorAction SilentlyContinue
+        $script:Lock = [Threading.Mutex]::new($false, 'Global\AtlasOS.UsbWriter')
+    }
+    AfterEach { $script:Lock.Dispose() }
+    It 'holds the writer lock while a check reads the ISO, so a write cannot remove it' {
+        $check = Start-AtlasUsbWorker 'Check'
+        try {
+            $deadline = [DateTime]::UtcNow.AddSeconds(60)
+            while (-not (Test-Path -LiteralPath $script:Mounted)) {
+                if ($check.HasExited -or [DateTime]::UtcNow -gt $deadline) { throw 'The check never read the ISO.' }
+                Start-Sleep -Milliseconds 50
+            }
+            $taken = $false
+            try { $taken = $script:Lock.WaitOne(0) } catch [Threading.AbandonedMutexException] { $taken = $true }
+            if ($taken) { $script:Lock.ReleaseMutex() }
+            $taken | Should -BeFalse
+        }
+        finally {
+            Set-Content -LiteralPath $script:Release -Value 'release'
+            $null = Wait-AtlasUsbWorker $check
+        }
+    }
+    It 'reports a check busy, without reading the ISO, while a write holds the lock' {
+        # A check that read the ISO anyway stops at once instead of waiting.
+        Set-Content -LiteralPath $script:Release -Value 'release'
+        $script:Lock.WaitOne(0) | Should -BeTrue
+        try {
+            $check = Start-AtlasUsbWorker 'Check'
+            $output = Wait-AtlasUsbWorker $check
+        }
+        finally { $script:Lock.ReleaseMutex() }
+        $check.ExitCode | Should -Be 0
+        $output.Trim() | Should -BeExactly 'ATLAS_RESULT:{"busy":true}'
+        Test-Path -LiteralPath $script:Mounted | Should -BeFalse
+    }
+}
+
+Describe 'USB failure markers' {
+    BeforeEach {
+        $script:Disk = [pscustomobject]@{ Number=42; FriendlyName='Test USB'; SerialNumber='SERIAL-A'; UniqueId='USB-A'; Path='DEVICE-A'; Size=64GB; BusType='USB'; IsBoot=$false; IsSystem=$false; IsReadOnly=$false; IsOffline=$false }
+        Mock Get-Disk { $script:Disk }
+        Mock Get-Partition { @() }
+        $script:Expected = Get-AtlasUsbIdentity $script:Disk
+        # Another drive with the same serial number, model and size took its place.
+        $script:Disk.UniqueId = 'USB-B'
+        # The worker writes its markers straight to the console.
+        $script:Console = [Console]::Out
+        $script:Captured = New-Object IO.StringWriter
+        [Console]::SetOut($script:Captured)
+    }
+    AfterEach { [Console]::SetOut($script:Console) }
+    It 'names a changed drive when the failure ends the job' {
+        { Invoke-AtlasUsbEject $script:Expected } | Should -Throw '*changed*'
+        $script:Captured.ToString().Trim() | Should -BeExactly 'ATLAS_ERROR:drive-changed'
+    }
+    It 'leaves the marker out where the write it ends has already verified the drive' {
+        { Invoke-AtlasUsbEject $script:Expected -Quiet } | Should -Throw '*changed*'
+        $script:Captured.ToString() | Should -BeNullOrEmpty
+    }
+}
+
+Describe 'Automatic USB ejection' {
+    BeforeEach {
+        [AtlasUsbEject]::Calls = 0
+        [AtlasUsbEject]::Refusals = 0
+        [AtlasUsbEject]::Device = $null
+        $script:Target = 'USB\VID_0951&PID_177F\TEST'
+        Mock Assert-AtlasUsbIdentity { [pscustomobject]@{ Number=42 } }
+        Mock Get-AtlasUsbEjectTarget { $script:Target }
+        Mock Start-Sleep { }
+        $script:Drive = [pscustomobject]@{ number=42; uniqueId='USB-A' }
+    }
+    It 'ejects the USB device that holds the confirmed drive' {
+        Invoke-AtlasUsbEject $script:Drive
+        [AtlasUsbEject]::Calls | Should -Be 1
+        [AtlasUsbEject]::Device | Should -BeExactly $script:Target
+        # The drive is checked again after finding its device, just before ejecting it.
+        Should -Invoke Assert-AtlasUsbIdentity -Times 2 -Exactly -ParameterFilter { $Expected.uniqueId -eq 'USB-A' }
+        Should -Invoke Start-Sleep -Times 0 -Exactly
+    }
+    It 'tries again, two seconds apart, while Windows refuses' {
+        [AtlasUsbEject]::Refusals = 2
+        { Invoke-AtlasUsbEject $script:Drive } | Should -Not -Throw
+        [AtlasUsbEject]::Calls | Should -Be 3
+        Should -Invoke Start-Sleep -Times 2 -Exactly -ParameterFilter { $Seconds -eq 2 }
+    }
+    It 'gives up after five refusals' {
+        [AtlasUsbEject]::Refusals = 99
+        { Invoke-AtlasUsbEject $script:Drive } | Should -Throw '*blocked*'
+        [AtlasUsbEject]::Calls | Should -Be 5
+        Should -Invoke Start-Sleep -Times 4 -Exactly
+    }
+    It 'never ejects a drive that changed' {
+        Mock Assert-AtlasUsbIdentity { throw 'drive-changed|The USB drive changed.' }
+        { Invoke-AtlasUsbEject $script:Drive } | Should -Throw 'drive-changed|*'
+        [AtlasUsbEject]::Calls | Should -Be 0
     }
 }
 

@@ -2,7 +2,6 @@
 //! installer's output and its result.
 
 use std::path::Path;
-use std::time::Duration;
 
 use futures::StreamExt;
 use futures::channel::mpsc::Receiver;
@@ -25,9 +24,6 @@ use crate::t;
 const LOG_KEEP: usize = 2000;
 /// Bytes of log kept in memory, whatever the line count.
 const LOG_KEEP_BYTES: usize = 1024 * 1024;
-/// How often the installing view is redrawn while the install runs, so its
-/// "started N minutes ago" stays current. Output redraws it as it arrives.
-const ELAPSED_REDRAW: Duration = Duration::from_secs(15);
 
 /// Why the final checks refused to start the install.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -53,6 +49,14 @@ pub enum Preflight {
     Refused {
         error: String,
     },
+}
+
+/// The Install step's restart check box as the user set it, with the flow
+/// it was set in: it applies to that flow's install alone.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct RestartChoice {
+    flow: Option<String>,
+    restart: bool,
 }
 
 /// State of one install attempt, reset as a whole so nothing from an earlier
@@ -229,6 +233,9 @@ impl AppModel {
             PreparationState::SavingRestart => return CloseGuard::Wait,
             // Windows has the restart and recovery is armed, so closing is safe.
             PreparationState::Restarting => return CloseGuard::None,
+            PreparationState::Reboot if self.preparation_countdown().is_some() => {
+                return CloseGuard::PreparationRestart;
+            }
             _ => {}
         }
         if self.iso_busy {
@@ -338,10 +345,33 @@ impl AppModel {
         Some(InstallRequest {
             package_dir: source.dir.clone(),
             options: self.effective_options(),
-            restart: self.settings.restart_after_install,
+            restart: self.install_restarts(),
             windows_security_confirmed: self.security_confirmed_by_hand(),
             choose_again: self.choosing_again(),
         })
+    }
+
+    /// Whether this flow's install restarts the PC once it finishes: as the
+    /// Install step's check box was set in this flow, or else as the Restart
+    /// automatically setting says. The box changes this install alone;
+    /// Settings stays the default for every install and for the restarts
+    /// updating needs.
+    pub fn install_restarts(&self) -> bool {
+        self.install_restart
+            .as_ref()
+            .filter(|choice| choice.flow == self.flow_id)
+            .map_or(self.settings.restart_after_install, |choice| choice.restart)
+    }
+
+    /// Sets the Install step's check box, for this flow's install only.
+    /// Like everything that feeds the install, it can't change while one
+    /// runs or anything else holds the flow.
+    pub fn set_install_restart(&mut self, restart: bool, cx: &mut Context<Self>) {
+        if self.locked() || !self.flow.active {
+            return;
+        }
+        self.install_restart = Some(RestartChoice { flow: self.flow_id.clone(), restart });
+        cx.notify();
     }
 
     /// Starts the install: the mandatory checks and the Windows Security
@@ -616,21 +646,6 @@ impl AppModel {
 
     fn pump_install_events(&mut self, mut events: Receiver<InstallEvent>, cx: &mut Context<Self>) {
         cx.spawn(async move |this, cx| {
-            loop {
-                cx.background_executor().timer(ELAPSED_REDRAW).await;
-                let running = this
-                    .update(cx, |this, cx| {
-                        cx.notify();
-                        matches!(this.flow.run, RunState::Running)
-                    })
-                    .unwrap_or(false);
-                if !running {
-                    break;
-                }
-            }
-        })
-        .detach();
-        cx.spawn(async move |this, cx| {
             while let Some(event) = events.next().await {
                 let alive = this
                     .update(cx, |this, cx| {
@@ -725,9 +740,9 @@ pub(super) fn disarm_completion() {
     }
 }
 
-/// The log "Open log file" shows: the machine log once this attempt has
-/// reached Applying (before that it may hold an earlier install's lines),
-/// otherwise the session log.
+/// The log Open log folder selects in its folder: the machine log once this
+/// attempt has reached Applying (before that it may hold an earlier
+/// install's lines), otherwise the session log.
 fn log_to_reveal<'a>(
     phase: Phase,
     session_log: &'a Path,
@@ -745,7 +760,7 @@ mod tests {
     use crate::services::installer::Phase;
 
     #[test]
-    fn open_log_file_shows_the_machine_log_only_once_the_install_plan_runs() {
+    fn open_log_folder_selects_the_machine_log_only_once_the_install_plan_runs() {
         let session = Path::new(r"C:\App\Logs\install-1.log");
         let machine = Path::new(r"C:\Windows\AtlasModules\Logs\install\atlas-install.log");
         for phase in [Phase::Preflight, Phase::Staging] {

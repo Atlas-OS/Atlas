@@ -9,8 +9,7 @@
 use std::borrow::Cow;
 use std::collections::BTreeSet;
 
-use super::options::OptionScreen;
-use super::{AppModel, FixedChoice, ScreenKind, UpdatePath};
+use super::{AppModel, ChoiceGroup, FixedChoice, ScreenKind, UpdatePath};
 use crate::services::atlas_state::{InstallIdentity, InstallMode};
 use crate::services::legacy_choices::{self, Facts};
 use crate::services::package::ChoiceKind;
@@ -115,15 +114,16 @@ impl AppModel {
             .filter(|name| !(carry.edge && name.as_str() == UNINSTALL_EDGE))
             .cloned()
             .collect();
+        let options = self.with_detected(options);
         let missing = self.missing_choices(&options);
         Some(RebaseChoices { previous, options, missing })
     }
 
-    /// Whether `options` leave the required choice `screen` asks unmade.
-    pub(super) fn unanswered(&self, screen: &OptionScreen, options: &[String]) -> bool {
+    /// Whether `options` leave the question `group` asks unanswered.
+    pub(super) fn unanswered(&self, group: &ChoiceGroup, options: &[String]) -> bool {
         let manifest = self.manifest();
-        screen.required
-            && !screen.pages.iter().any(|&index| {
+        group.required
+            && !group.pages.iter().any(|&index| {
                 manifest.choices[index].options.iter().any(|option| options.contains(&option.id))
             })
     }
@@ -157,7 +157,6 @@ impl AppModel {
             return None;
         }
         let (kept, recorded) = self.pc_choices();
-        let missing = self.missing_choices(&kept);
         let manifest = self.manifest();
         let mut differs = Vec::new();
         if let Some(recorded) = recorded {
@@ -171,6 +170,10 @@ impl AppModel {
                 }
             }
         }
+        // What Atlas finds itself fills only what neither shows, so it's no
+        // disagreement with the record.
+        let kept = self.with_detected(kept);
+        let missing = self.missing_choices(&kept);
         Some(UpdateChoices {
             previous: version.clone(),
             reinstall: *version == manifest.version,
@@ -194,7 +197,7 @@ impl AppModel {
         if !keeps || self.before_desktop || self.rebase_choices().is_some() {
             return None;
         }
-        let (kept, _) = self.pc_choices();
+        let kept = self.with_detected(self.pc_choices().0);
         let missing = self.missing_choices(&kept);
         Some(UnfinishedChoices { kept, missing })
     }
@@ -226,39 +229,40 @@ impl AppModel {
         (kept, recorded)
     }
 
-    /// The required choices `kept` leaves unmade, which keeping them asks.
+    /// The questions `kept` leaves unanswered, which keeping them asks.
     fn missing_choices(&self, kept: &[String]) -> Vec<ScreenKind> {
-        self.choice_screens()
+        self.choice_groups()
             .into_iter()
-            .filter(|screen| self.unanswered(screen, kept))
-            .map(|screen| screen.kind)
+            .filter(|group| self.unanswered(group, kept))
+            .map(|group| group.kind)
             .collect()
     }
 
-    /// Whether keeping the choices `kept` asks `name`: it is on a required
-    /// screen they leave unmade.
+    /// Whether keeping the choices `kept` asks `name`: it answers a question
+    /// they leave unanswered.
     fn asked_when_keeping(&self, kept: &[String], name: &str) -> bool {
         let manifest = self.manifest();
-        self.choice_screens().into_iter().any(|screen| {
-            self.unanswered(&screen, kept)
-                && screen
-                    .pages
-                    .iter()
-                    .any(|&page| manifest.choices[page].options.iter().any(|o| o.id == name))
+        self.choice_groups().into_iter().any(|group| {
+            self.unanswered(&group, kept)
+                && group.pages.iter().any(|&page| manifest.choices[page].options.iter().any(|o| o.id == name))
         })
     }
 
     /// Why `name` can't be changed on this update or reinstall, if it can't.
-    /// Keeping the choices fixes every option on a screen this PC answers,
-    /// as does an unfinished update that will keep them. Choosing again
-    /// fixes what an update can't undo: Edge already removed, and a Toolbox
-    /// or browser Atlas installed, which it never uninstalls; another browser
-    /// can still be picked. Not Snipping Tool: only this account's apps can
-    /// be read, and other accounts may still have it, which ticking it
-    /// removes for good.
+    /// Keeping the choices fixes every option of a question this PC answers,
+    /// as do an unfinished update that will keep them and Atlas put back
+    /// after Windows rebuilt itself, with the choices its record kept.
+    /// Choosing again fixes what an update can't undo: Edge already removed,
+    /// and a Toolbox or browser Atlas installed, which it never uninstalls;
+    /// another browser can still be picked. Not Snipping Tool: only this
+    /// account's apps can be read, and other accounts may still have it,
+    /// which ticking it removes for good.
     pub fn fixed_option(&self, name: &str) -> Option<FixedChoice> {
         if let Some(unfinished) = self.unfinished_choices() {
             return (!self.asked_when_keeping(&unfinished.kept, name)).then_some(FixedChoice::Kept);
+        }
+        if let Some(rebase) = self.rebase_choices() {
+            return (!self.asked_when_keeping(&rebase.options, name)).then_some(FixedChoice::Kept);
         }
         let update = self.update_choices()?;
         if self.update_path == UpdatePath::Keep {

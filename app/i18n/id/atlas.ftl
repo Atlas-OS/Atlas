@@ -1,4 +1,4 @@
-### Atlas Manager: Bahasa Indonesia (id). Preview translation, revised on 1 October 2026 from the en-GB source; native-speaker review pending.
+### Atlas Manager: Bahasa Indonesia (id). Preview translation, revised on 24 November 2026 from the en-GB source; native-speaker review pending.
 ###
 ### This complete translation follows the en-GB source.
 ### Ids are stable identifiers, never shown to users. Comments
@@ -9,7 +9,8 @@
 ### - Numbers arrive as numbers and are formatted for the user's region
 ###   automatically. Indonesian has only the "other" plural category, so
 ###   selectors use exact numbers ([1], [2]) or none at all; no singular
-###   category exists.
+###   category exists. Nouns don't change with the count, so most messages
+###   need no selector; "tersebut" keeps a reference number-neutral.
 ### - Values marked "text" (versions, build numbers, file names, paths,
 ###   error details) are inserted as they are and must not be translated.
 ### - "Atlas", "AtlasOS", "Windows", "Defender", "Windows Security", "SmartScreen", "GitHub"
@@ -21,6 +22,13 @@
 ###   is always reopening the Atlas Manager (as in "Jalankan sebagai administrator").
 ### - Buttons are verb-first and short. Sentences end with a full stop;
 ###   titles and labels do not. Address the user as "Anda".
+### - The .atlaspkg file is "paket Atlas", then "paket". The install steps are
+###   Persiapan, Pilihan Anda, Keamanan Windows and Instal; the ISO steps are
+###   Windows, Penyiapan and Buat. "Penyiapan Windows" is Windows Setup.
+### - The protection switches are "pengaturan perlindungan"; they are
+###   nonaktifkan (turned off) and aktifkan kembali (turned back on).
+### - Licence terms are "ketentuan lisensi". Buttons that open a step say
+###   "Buka langkah …", so they differ from "Buka Keamanan Windows" (the app).
 
 ## Shared
 
@@ -46,59 +54,83 @@ common-try-again = Coba lagi
 common-read-the-docs = Baca panduan Atlas
 common-show-details = Tampilkan detail
 common-hide-details = Sembunyikan detail
-# Accessible name of a Show details or Hide details toggle. $action is common-show-details or
-# common-hide-details; $section is the title of the card it opens.
+# Accessible name of a button that acts on one card, so two buttons with the same label stay
+# distinct: a Show details or Hide details toggle, or PC checks' Check again. $action is the
+# button's label; $section is the title of its card.
 common-details-a11y = { $action }, { $section }
-common-open-log-file = Buka file log
+# Opens the folder of the install log, with the log selected.
+common-open-log-folder = Buka folder log
 # Accessible name of the Copy button beside the install log.
 common-copy-install-log = Salin log penginstalan
 common-install-log = Log penginstalan
 # Row labels in summary cards.
 common-windows = Windows
-common-options = Pilihan
-common-package = File penginstalan
-common-installed-as = Jenis penginstalan
-common-installed = Terinstal
+common-package = Paket Atlas
 common-checking = Memeriksa
 # Joins two items in a list: "Brave, Firefox". The braces keep the space.
 list-separator = { ", " }
 # Joins two alternatives: "26100 or 26200".
 list-or = { $a } atau { $b }
+# Joins the last two items of a list: "Tamper Protection and Cloud-delivered protection".
+# $a may itself be several items joined with list-separator.
 list-and = { $a } dan { $b }
 # Accessible name of a message bar that announces itself: its title, then its message.
 infobar-a11y = { $title }. { $message }
 
 ## Window
 
-# Dialog shown when the window is closed while an install runs.
+# Dialog shown when the window is closed while an install runs. Its buttons are
+# window-close-keep and window-close-close.
 window-close-title = Tutup jendela saat Atlas sedang diinstal?
-window-close-message = Penginstalan akan berlanjut di latar belakang. Buka Atlas lagi untuk melihat kemajuan dan hasilnya. Biarkan PC tetap menyala hingga penginstalan selesai.
-# Instead of window-close-message when the installation restarts the PC afterwards: only an
+window-close-installing = Penginstalan tetap berjalan. Buka Atlas lagi untuk melihat hasilnya.
+# Instead of window-close-installing when the installation restarts the PC afterwards: only an
 # open Atlas window restarts it, so closing the window cancels that.
-window-close-message-restart = Penginstalan akan berlanjut di latar belakang, tetapi PC Anda tidak akan dimulai ulang secara otomatis selama Atlas ditutup. Buka Atlas lagi untuk melihat kemajuan dan hasilnya. Biarkan PC tetap menyala hingga penginstalan selesai.
-# The safe answer in every dialog shown when the window is closed, including those for ISO
-# and USB creation, updates and Windows Update access.
+window-close-installing-no-restart = Penginstalan tetap berjalan, tetapi PC Anda tidak akan dimulai ulang dengan sendirinya. Buka Atlas lagi untuk melihat hasilnya.
+# The answer that keeps the window open when closing it would interrupt something, such as
+# installing or Windows Update access.
 window-close-keep = Biarkan terbuka
 window-close-close = Tutup jendela
-# Dialog shown when the window is closed during the final checks, before the
-# installer has started; window-close-keep and window-close-close are its buttons.
-window-close-preparing-title = Tutup sebelum penginstalan dimulai?
-window-close-preparing-message = Atlas masih memeriksa PC Anda dan belum mulai menginstal. Jika Anda menutup jendela sekarang, penginstalan tidak akan dimulai. Buka Atlas lagi untuk melanjutkan.
-prepare-close-title = Pembaruan masih berjalan
-# "Stop updating" is prepare-stop, the dialog's other button.
-prepare-close-message = Biarkan Atlas tetap terbuka selama pembaruan berjalan. Jika Anda memilih Hentikan pembaruan, pembaruan akan berhenti setelah langkah saat ini, lalu Anda dapat menutup Atlas.
-# Dialog shown when the window is closed during the restart countdown after a
-# successful install. Its buttons are window-close-keep, restart-now and
-# window-close-restart-close.
-window-close-restart-title = Tutup Atlas tanpa memulai ulang?
-# "Restart now" is restart-now, one of this dialog's three buttons.
-window-close-restart-message = PC Anda perlu dimulai ulang untuk menyelesaikan penyiapan Atlas. Jika Anda menutup Atlas sekarang, Atlas tidak akan memulai ulang PC Anda, jadi mulai ulang PC sendiri saat Anda siap. Simpan pekerjaan Anda sebelum memilih Mulai ulang sekarang.
-window-close-restart-close = Tutup tanpa memulai ulang
+# Dialog shown when the window is closed during the final checks, before the installer has
+# started. Its buttons are window-close-keep-installing and window-close-stop-and-close.
+window-close-checks-question = Hentikan sebelum menginstal?
+window-close-checks-unchanged = Penginstalan belum mengubah apa pun. Jika Anda menutup jendela, Atlas tidak akan memulainya.
+window-close-keep-installing = Lanjutkan penginstalan
+window-close-stop-and-close = Hentikan dan tutup
+# Dialog shown when the window is closed while Windows and Store apps update. Its buttons are
+# stop-update-keep and prepare-stop. Atlas stays open once it has stopped.
+prepare-close-question = Hentikan pembaruan?
+# "Stage" is a stage of updating (as in prepare-percent), not one of the four flow steps.
+prepare-close-stops-after-stage = Atlas akan berhenti setelah tahap saat ini. Setelah itu, Anda dapat menutupnya.
+# Dialog shown when the window is closed during the restart countdown after a successful
+# install. Its buttons are restart-now and restart-dont-now, the default, which closes Atlas
+# without restarting.
+window-close-restart-question = Mulai ulang untuk menyelesaikan penyiapan Atlas?
+window-close-restart-closed = Atlas tidak dapat memulai ulang PC Anda setelah ditutup. Simpan pekerjaan Anda terlebih dahulu.
+# Closing while Get ready counts down to the restart Windows and Store updates need. Its buttons
+# are restart-now and restart-dont-now ("Restart later"), the default, which closes Atlas; Atlas
+# opens again and carries on after the next restart.
+window-close-update-restart-question = Mulai ulang untuk menyelesaikan pembaruan?
+window-close-update-restart-later = Simpan pekerjaan Anda terlebih dahulu. Jika Anda memulai ulang nanti, Atlas akan melanjutkan setelah PC dimulai ulang.
 # Dialog shown when the window is closed during a setup with Windows Security switches still
-# off. $switches names them as Windows Security does, joined like a list. Its buttons are
-# window-close-keep, common-open-windows-security and window-close-close.
+# off. Its message is window-close-protection-all or window-close-protection-some; its buttons
+# are common-open-windows-security and window-close-close.
 window-close-protection-title = Tutup Atlas saat perlindungan masih nonaktif?
-window-close-protection-message = Beberapa perlindungan di Keamanan Windows masih nonaktif: { $switches }. Jika Anda tidak akan menyelesaikan penginstalan Atlas, aktifkan kembali perlindungan tersebut sebelum menutup Atlas. Jika Anda akan menyelesaikannya, Atlas akan melanjutkan penyiapan Anda saat dibuka lagi.
+window-close-protection-all = Keempat pengaturan perlindungan Keamanan Windows sedang nonaktif. Jika Anda tidak menginstal Atlas sekarang, aktifkan kembali terlebih dahulu.
+# $switches names the switches that are off as Windows Security does, joined like a list;
+# $count is how many there are.
+window-close-protection-some =
+    { $count ->
+       *[other] { $switches } nonaktif di Keamanan Windows. Jika Anda tidak menginstal Atlas sekarang, aktifkan kembali terlebih dahulu.
+    }
+# Dialogs shown when the window is closed while an ISO or a USB drive is being created.
+# Their buttons are window-close-keep-creating and window-close-stop; Atlas stays open once it
+# has stopped.
+iso-close-question = Hentikan pembuatan ISO?
+iso-close-safe-point = Atlas akan berhenti pada titik aman berikutnya.
+usb-close-question = Hentikan pembuatan drive USB?
+usb-close-unfinished = Drive yang belum selesai tidak dapat menginstal Windows.
+window-close-keep-creating = Lanjutkan pembuatan
+window-close-stop = Hentikan
 # The Open button of the file picker for an Atlas package (.atlaspkg) file, on Get ready and the
 # ISO page. It's a button label, so keep it short.
 file-dialog-open-package = Buka paket Atlas (.atlaspkg)
@@ -116,13 +148,22 @@ system-description = { $product } { $version } (build { $build })
 ## Home page
 
 home-not-installed = Selamat datang di Atlas
+# Under home-not-installed: this PC's Windows, such as "Windows 11 Pro 25H2". Both values are text.
+home-windows = { $product } { $version }
+# Instead of home-windows once Atlas has found its latest release: this PC's Windows and the Atlas
+# version Install Atlas would install, such as "Windows 11 Pro 25H2 · Atlas 0.6.1". $product and
+# $version are this PC's Windows edition and version, and $atlas is the Atlas version (all text).
+home-windows-atlas = { $product } { $version } · Atlas { $atlas }
+# Under home-windows or home-windows-atlas, on a PC without Atlas: what Atlas does, in one sentence.
+# Keep it to what Atlas changes: don't promise a faster PC.
+home-about = Atlas mengurangi aktivitas latar belakang dan gangguan di Windows.
 # The headline when Atlas Manager can't tell what is installed on this PC.
 home-state-unknown = Atlas di PC ini
 # The headline when Atlas is installed. $version is text.
 home-version = Atlas { $version }
-# $date is a formatted date.
+# Beside the update status, on the line under the version. $date is a formatted date.
 home-installed-on = Diinstal pada { $date }
-home-status-checking = Memeriksa pembaruan
+home-status-checking = Memeriksa pembaruan…
 # While startup checks whether another window's installation is running.
 home-status-recovering = Memeriksa penginstalan yang berjalan
 home-status-offline = Tidak dapat memeriksa pembaruan
@@ -141,19 +182,49 @@ home-reinstall = Instal ulang Atlas
 home-install = Instal Atlas
 home-finish-install = Selesaikan penginstalan Atlas { $version }
 home-start-over = Mulai dari awal
+# The question Install Atlas asks where Windows on this PC has been in use: installed a week
+# or more ago, or with several apps. Its buttons are common-cancel and home-used-windows-install.
+home-used-windows-title = Instal Atlas di PC ini?
+# OneDrive: use the name Windows shows in your language.
+home-used-windows-message = Aplikasi dan pengaturan yang sudah ada mungkin tidak berfungsi lagi, dan Atlas menghapus OneDrive, sehingga file di dalamnya berhenti disinkronkan dan folder mungkin tampak kosong. Cadangkan file Anda terlebih dahulu.
+home-used-windows-install = Tetap instal
+# The card that opens ISO creation; its button is iso-open.
+home-iso-title = Instal ulang Windows dengan Atlas
+# Under home-iso-title, with the Recommended badge, where Windows on this PC has been in use.
+home-iso-used = Windows di PC ini sudah pernah digunakan, dan Atlas bekerja paling baik pada instalasi Windows yang baru.
+# A bar on Home after an installation finished, until the PC restarts. Its message is
+# restart-needed and its button restart-now.
 home-restart-title = PC Anda perlu dimulai ulang
+# Instead of restart-needed when Windows refused to restart. The raw error is behind Show
+# details, and the bar's button is common-try-again.
+home-restart-failed = Atlas tidak dapat memulai ulang PC Anda. Mulai ulang PC melalui menu Mulai.
 home-security-reminder-title = Aktifkan kembali perlindungan Anda
 # Instead of home-security-reminder-title when no switch reads off but some couldn't be read
 # (with home-security-reminder-unreadable-message).
 home-security-reminder-unreadable-title = Pastikan perlindungan Anda aktif
-home-security-reminder-message = Atlas tidak sedang menginstal apa pun, tetapi beberapa perlindungan di Keamanan Windows masih nonaktif. Buka Keamanan Windows dan pastikan pengaturan berikut aktif: { $switches }.
-home-security-reminder-unreadable-message = Atlas tidak dapat memeriksa semua pengaturan perlindungan. Pastikan pengaturan berikut aktif di Keamanan Windows: { $switches }.
+# Under home-security-reminder-title, after leaving the install flow or an installation that kept
+# Microsoft Defender. $switches names the switches that read off, as Windows Security names them
+# (protection-*), joined with list-separator and list-and; $count is how many it names.
+security-switches-still-off =
+    { $count ->
+       *[other] Pengaturan berikut masih nonaktif di Keamanan Windows: { $switches }.
+    }
+# Instead of security-switches-still-off when no switch
+# reads off but some couldn't be read. $switches names those, joined like a list.
+home-security-reminder-unreadable-message = Atlas tidak dapat membaca semua pengaturan perlindungan. Pastikan pengaturan berikut aktif di Keamanan Windows: { $switches }.
 home-elevation-title = Atlas memerlukan izin untuk menginstal
+# Under home-elevation-title when the setup choices couldn't be saved; the raw error is
+# behind Show details.
+home-elevation-draft-not-saved = Atlas tidak dapat menyimpan pilihan penyiapan Anda, sehingga Atlas belum dijalankan ulang.
 home-state-error-title = Tidak dapat membaca detail penginstalan Atlas Anda
-home-state-error-message = Versi Atlas, pilihan, dan riwayat Anda mungkin tidak ditampilkan dengan benar. Pilih Periksa lagi untuk mencoba lagi. Detail: { $error }
+# Its button is common-try-again; the raw error is behind Show details.
+home-state-error-problem = Versi Atlas, pilihan, dan riwayat Anda mungkin tidak ditampilkan dengan benar.
+# A bar on Home when the Atlas package needs a newer Atlas Manager. Its message is
+# acquire-manager-update-required or acquire-manager-update-required-any, and the button beside
+# the version above is manager-download.
+home-manager-needed-title = Atlas Manager perlu diperbarui
 home-whats-new = Yang baru di Atlas { $version }
 home-view-release = Lihat catatan rilis di GitHub
-home-released = Dirilis pada { $date }
 home-show-less = Tampilkan lebih sedikit
 home-show-full-notes = Tampilkan semua catatan rilis
 home-your-install = Penyiapan Atlas Anda
@@ -162,26 +233,40 @@ home-install-unrecorded = PC ini tidak memiliki catatan tentang cara Atlas diins
 home-history = Riwayat penginstalan
 # One history row. $version is text, $mode one of the history-mode-* messages, $date a formatted date and time.
 home-history-entry = Atlas { $version } · { $mode } · { $date }
-home-how-it-works = Mari siapkan PC Anda untuk Atlas
-home-step-1-detail = Atlas memeriksa PC Anda, menginstal pembaruan Windows dan Microsoft Store yang tertunda, lalu mengunduh file penginstalan. Aplikasi Store mungkin ditutup dan PC Anda mungkin perlu dimulai ulang, jadi simpan pekerjaan Anda terlebih dahulu.
-# Tester build: the Atlas package is bundled, nothing is downloaded.
-home-step-1-detail-bundled = Atlas memeriksa PC Anda, menginstal pembaruan Windows dan Microsoft Store yang tertunda, lalu menyiapkan file penginstalan bawaan. Aplikasi Store mungkin ditutup dan PC Anda mungkin perlu dimulai ulang, jadi simpan pekerjaan Anda terlebih dahulu.
-home-step-2-detail = Pilih apakah akan mempertahankan Microsoft Defender dan perlindungan prosesor, cara pembaruan Windows diinstal, dan tambahan opsional yang Anda inginkan.
-home-step-3-detail = Nonaktifkan empat pengaturan perlindungan di Keamanan Windows agar tidak menghalangi penginstalan. Atlas akan menunjukkan caranya.
-# Indonesian has no plural forms; one wording covers every count.
-home-step-4-detail = Penginstalan memerlukan waktu sekitar { $minutes } menit. Setelah itu, PC Anda perlu dimulai ulang.
 # Accessible name of a numbered step.
 home-step-a11y = Langkah { $number }: { $title }
+# Accessible name of a numbered step with its sentence, as screen readers read each step of
+# Home's lists. $step is home-step-a11y or stepper-item-a11y, and $detail is the step's sentence,
+# such as home-step-ready.
+home-step-detail-a11y = { $step }. { $detail }
+# The card on Home that lists the four install steps (step-ready, step-options, step-security and
+# step-install) on a PC without Atlas, each with its home-step-* sentence beside it.
+home-steps-title = Yang akan terjadi
+# Instead of home-steps-title while a setup is under way: each step shows whether it's done, current
+# or still to come.
+home-steps-under-way-title = Menyiapkan Atlas
+# Beside step-ready in that card.
+home-step-ready = Atlas memeriksa PC Anda dan memperbarui Windows.
+# Instead of home-step-ready where Windows must move to a newer version before Atlas can install.
+# $release is that version, such as "26H2" (text).
+home-step-ready-move = Atlas memeriksa PC Anda dan meningkatkan Windows ke versi { $release }.
+# Beside step-options in that card. Microsoft Defender is one of the choices asked there.
+home-step-options = Anda memilih apa yang ingin dipertahankan, seperti Microsoft Defender.
+# Beside step-security in that card.
+home-step-security = Anda menonaktifkan keempat pengaturan perlindungan Keamanan Windows.
+# Beside step-install in that card. $minutes is how long installing usually takes, from the Atlas
+# package (a number). The first is shown when the PC restarts by itself after installing, as set in
+# settings-restart-automatically, and the second when the person restarts it.
+home-step-install-restarts = Penginstalan biasanya memakan waktu sekitar { $minutes } menit, lalu PC Anda dimulai ulang.
+home-step-install-restart-yourself = Penginstalan biasanya memakan waktu sekitar { $minutes } menit, lalu mulai ulang PC Anda.
+# At the bottom of that card, under the four steps.
+home-steps-save-work = Simpan pekerjaan Anda terlebih dahulu: aplikasi mungkin ditutup dan PC Anda akan dimulai ulang.
 home-github = Lihat Atlas di GitHub
-home-discord = Bergabung dengan komunitas Atlas di Discord
+home-discord = Bergabung dengan komunitas Atlas
 home-report-problem = Laporkan masalah
 
 ## How an install was done (from the state document)
 
-mode-fresh = Penginstalan pertama
-mode-upgrade = Pembaruan dari versi sebelumnya
-mode-reapply = Penginstalan ulang versi yang sama
-mode-unknown = Penginstalan
 # Lower-case forms used inside a history row.
 history-mode-fresh = penginstalan pertama
 history-mode-upgrade = pembaruan
@@ -190,17 +275,17 @@ history-mode-unknown = penginstalan
 
 ## Notices on the Home page
 
+# Each notice's raw error, and the file it concerns, are behind Show details.
 notice-settings-reset-title = Atlas menggunakan pengaturan aplikasi bawaan
-# $error is a raw error message (text).
-notice-settings-unreadable = Atlas tidak dapat membaca pengaturan aplikasi yang tersimpan. Pengaturan Windows Anda tidak berubah. Detail: { $error }
-# $file is a file name (text).
-notice-settings-damaged-kept = File pengaturan aplikasi rusak dan telah diatur ulang. Salinan file lama disimpan sebagai { $file }. Detail: { $error }
-notice-settings-damaged = File pengaturan aplikasi rusak. Atlas menggunakan pengaturan bawaan untuk sementara. Detail: { $error }
+notice-settings-unreadable-problem = Atlas tidak dapat membaca pengaturan aplikasi yang tersimpan. Pengaturan Windows Anda tidak berubah.
+notice-settings-damaged-kept-problem = File pengaturan aplikasi rusak, sehingga Atlas mengatur ulang file tersebut dan menyimpan salinan file lama.
+notice-settings-damaged-problem = File pengaturan aplikasi rusak. Atlas menggunakan pengaturan bawaan untuk sementara.
 notice-settings-not-saved-title = Tidak dapat menyimpan pengaturan aplikasi
-# $error is a raw error message (text).
-notice-settings-not-saved = Atlas tidak dapat menyimpan perubahan terbaru Anda, sehingga perubahan tersebut mungkin hilang saat Atlas ditutup. Jika ada jendela Atlas lain yang terbuka, tutup jendela tersebut, lalu lakukan perubahan lagi. Detail: { $error }
+notice-settings-not-saved-problem = Atlas tidak dapat menyimpan perubahan terbaru Anda, sehingga perubahan tersebut mungkin hilang saat Atlas ditutup. Jika ada jendela Atlas lain yang terbuka, tutup jendela tersebut, lalu lakukan perubahan lagi.
 notice-session-unreadable-title = Tidak dapat memeriksa penginstalan sebelumnya
-# $path is a file path (text).
+# Its button, iso-open-folder, shows the install record in File Explorer.
+notice-session-unreadable-problem = Atlas tidak dapat memastikan apakah penginstalan sebelumnya masih berjalan. Jika Anda yakin tidak ada, hapus catatan penginstalannya, lalu jalankan ulang Atlas.
+# Get ready, when the install record can't be read. $path is a file path (text).
 notice-session-unreadable-message = Atlas tidak dapat memastikan apakah penginstalan sebelumnya masih berjalan. Jika Anda tidak yakin, minta bantuan komunitas Atlas. Hapus { $path } dan coba lagi hanya jika Anda yakin tidak ada penginstalan yang berjalan. Detail: { $error }
 
 ## Administrator elevation
@@ -220,111 +305,151 @@ step-install = Instal
 install-title = Siapkan Atlas
 # Accessible name of the row of steps.
 stepper-label = Langkah penyiapan Atlas
-# Accessible name of one step. $status is one of the stepper-status-* messages.
-stepper-step-a11y = Langkah { $number } dari { $total }, { $title }, { $status }
+# Accessible name of one step. $heading is step-heading; $status is one of the
+# stepper-status-* messages.
+stepper-item-a11y = { $heading }, { $status }
 stepper-status-completed = selesai
 stepper-status-current = langkah saat ini
 stepper-status-upcoming = belum dimulai
+# A step already visited whose requirements aren't met yet.
 stepper-status-attention = perlu diperhatikan
-# Heading above each step's content.
+# Names the step showing. Not shown: the stepper marks the step, and its current step reads
+# this, or step-heading-*-a11y, when it takes focus.
 step-heading = Langkah { $number } dari { $total }: { $title }
-# Accessible name of the step heading on a screen of Your choices, read when it takes focus.
-# $heading is step-heading; $progress is options-progress; $question is the screen's question.
-step-heading-choice-a11y = { $heading }. { $progress }: { $question }
-# The same on the optional extras screen; $progress is options-progress-extras.
-step-heading-extras-a11y = { $heading }. { $progress }
+# Accessible name of the current step on Your choices, read when it takes focus. $heading is
+# stepper-item-a11y; $questions is what the screen asks: each question, such as
+# screen-defender-question, one after another, then screen-extras-title, or, on the first
+# screen of an update or reinstall, update-path-update-title or update-path-reinstall-title.
+step-heading-choices-a11y = { $heading }. { $questions }
 
 ## Step 1: Get ready
+## One checklist with three rows: the checks, the Atlas package, and the updates. Each row has a
+## title and one status line. Get ready starts updating and moves on by itself.
 
-ready-banner-busy-title = Menyiapkan PC Anda
-ready-banner-busy-message = Atlas sedang memeriksa PC Anda dan menyiapkan file penginstalan.
-ready-banner-blocked-title = PC Anda belum siap
-ready-banner-blocked-message = Atasi item yang ditandai di Pemeriksaan PC, lalu pilih Periksa lagi.
-ready-banner-no-package-title = Unduh Atlas untuk melanjutkan
-ready-banner-no-package-message = Unduh Atlas di File penginstalan, atau pilih Buka file paket jika Anda sudah memiliki paket Atlas (.atlaspkg).
-# The package tried needs a newer Atlas Manager. The title is also the footer's hint then.
-ready-banner-manager-title = Unduh Atlas Manager versi yang lebih baru untuk melanjutkan
-# "Download Atlas Manager" is manager-download, the button in Installation files (package-title).
-ready-banner-manager-message = Pilih Unduh Atlas Manager di File penginstalan. Setelah itu, gunakan versi baru sebagai pengganti versi ini.
-# Tester build: the bundled Atlas package couldn't be unpacked.
-ready-banner-no-package-bundled-title = Siapkan paket Atlas bawaan untuk melanjutkan
-ready-banner-no-package-bundled-message = Paket Atlas bawaan versi uji ini belum siap. Periksa kartu File penginstalan.
-ready-banner-updates-title = Perbarui Windows dan aplikasi Store untuk melanjutkan
-ready-banner-updates-message = Pilih Periksa dan instal pembaruan. Setelah pembaruan selesai, Atlas akan memeriksa PC Anda lagi.
-# While Windows and Store apps update. "Update Windows and Store apps" is prepare-title, the
-# card further down the page.
-ready-banner-updating-title = Memperbarui Windows dan aplikasi Store
-ready-banner-updating-message = Proses ini mungkin memerlukan waktu. Biarkan Atlas tetap terbuka. Anda dapat memantau kemajuannya di Perbarui Windows dan aplikasi Store.
-# After Stop updating. "Check and install updates" is prepare-start, the card's button.
-ready-banner-updates-stopped-title = Pembaruan dihentikan
-ready-banner-updates-stopped-message = Pilih Periksa dan instal pembaruan di Perbarui Windows dan aplikasi Store untuk menyelesaikannya.
-# Atlas reopened after restarting the PC to continue updating. "Continue updates" is
-# prepare-continue, the card's button.
-ready-banner-updates-resumed-title = PC Anda telah dimulai ulang
-ready-banner-updates-resumed-message = Pilih Lanjutkan pembaruan di Perbarui Windows dan aplikasi Store untuk menyelesaikan pembaruan.
-# Under prepare-failed-title or prepare-unconfirmed-title. "Try again" is common-try-again,
-# the card's button.
-ready-banner-updates-failed-message = Lihat langkah yang perlu dilakukan di Perbarui Windows dan aplikasi Store, lalu pilih Coba lagi.
-# Under prepare-reboot-title. "Restart and continue" is prepare-restart, the card's button.
-ready-banner-reboot-message = Simpan pekerjaan Anda terlebih dahulu, lalu pilih Mulai ulang dan lanjutkan di Perbarui Windows dan aplikasi Store.
-ready-banner-warnings-title = Ada beberapa hal yang perlu diperhatikan
-ready-banner-warnings-message = Anda dapat melanjutkan, tetapi baca dahulu item yang ditandai di Pemeriksaan PC.
-ready-banner-ok-title = Anda siap menentukan pilihan
-ready-banner-ok-message = Semua pemeriksaan berhasil dan file penginstalan sudah siap.
-# Card title and accessible name of the list of checks.
-ready-this-pc = Pemeriksaan PC
+# Row title. It names what the row does, as a checklist item.
+ready-checks-title = Periksa PC Anda
+# Status line while the checks run.
+ready-checks-running = Memeriksa PC Anda…
 ready-check-again = Periksa lagi
-# Indonesian has no plural forms; one wording covers every count.
+# Status line once every check passed; common-show-details lists them.
 ready-checks-passed = { $count } pemeriksaan berhasil
-package-title = File penginstalan
+# Status line when some checks need attention, which are listed under it. When updating takes
+# care of every one of them, ready-checks-handled follows it, after usb-detail-separator.
+ready-checks-passed-some = { $passed } dari { $total } pemeriksaan berhasil
+# After ready-checks-passed-some, when the only checks that didn't pass are ones updating takes
+# care of, such as updates waiting: "5 of 9 checks passed · 4 handled by updating". $count is
+# how many updating takes care of.
+ready-checks-handled = { $count } diatasi oleh pembaruan
+# Accessible state of a check that updating takes care of, after check-a11y's title.
+check-state-updates = diatasi oleh pembaruan
+# Under the title of a check that updating takes care of.
+check-updates-handled = Ada pembaruan yang menunggu. Atlas menginstalnya saat memperbarui Windows.
+check-restart-handled = Windows perlu dimulai ulang untuk menyelesaikan perubahan sebelumnya. Ini akan diatasi oleh pembaruan.
+check-handled = Ini akan diatasi oleh pembaruan.
+# Row title: the Atlas version the package holds.
+ready-package-title = Atlas { $version }
+# Status lines of the package row.
+ready-package-downloading = Mengunduh…
+ready-package-unpacking = Mengekstrak…
+ready-package-ready = Siap
+ready-package-checking = Memeriksa versi terbaru…
+# Tester build: the bundled Atlas package is being unpacked; nothing is downloaded.
+ready-package-bundled = Menyiapkan paket Atlas bawaan…
+ready-package-none = Belum diunduh
+ready-package-failed = Tidak dapat memperoleh paket Atlas
+# Under ready-package-failed, with package-download-again and package-open-file. The raw error
+# is behind common-show-details.
+ready-package-failed-detail = Unduh lagi, atau buka paket Atlas (.atlaspkg) lain.
+# Tester build: the same, with Try again (common-try-again) as the only control.
+ready-package-bundled-failed-detail = Paket Atlas bawaan versi uji ini tidak dapat diekstrak. Coba lagi.
+ready-package-manager = Perlu Atlas Manager versi baru
+ready-package-release-failed = Tidak dapat memeriksa versi terbaru
+# Under ready-package-release-failed, with package-download-again and package-open-file.
+ready-package-release-failed-detail = Periksa koneksi internet Anda, lalu coba lagi. Jika Anda memiliki paket Atlas (.atlaspkg), Anda dapat membukanya sebagai gantinya.
+# Row title.
+ready-updates-title = Pembaruan Windows dan Microsoft Store
+# Status line before updating starts. Get ready starts it by itself.
+ready-updates-pending = Aplikasi Store seperti Notepad mungkin ditutup saat diperbarui. Simpan pekerjaan Anda di aplikasi tersebut terlebih dahulu.
+# Status line while Windows moves to version $release, whose card says how that stands.
+ready-updates-after-move = Dimulai setelah Windows ditingkatkan ke versi { $release }.
+# Status line after Atlas's own restart, until updating carries on by itself.
+ready-updates-resumed = Melanjutkan setelah PC dimulai ulang…
+ready-updates-restarting = Memulai ulang PC Anda…
+ready-updates-done = Windows dan aplikasi Store sudah diperbarui.
+# Instead of ready-updates-done where Microsoft Store is turned off, so only Windows was updated;
+# prepare-store-skipped-removed says so under it.
+ready-updates-done-windows = Windows sudah diperbarui.
+# The countdown before the restart updating needs, with restart-now and restart-dont-now under
+# it. Read when it shows, not every second.
+ready-updates-restart-countdown = PC Anda akan dimulai ulang dalam { $seconds } detik.
+ready-updates-restart = PC Anda perlu dimulai ulang untuk menyelesaikan pembaruan.
+ready-updates-restart-finish = Windows perlu dimulai ulang sekali lagi untuk menyelesaikan penginstalan versi { $release }.
+ready-updates-restart-failed = PC Anda tidak dimulai ulang
+# Under the restart's status line, before Restart now.
+ready-updates-restart-save = Simpan pekerjaan Anda terlebih dahulu.
+ready-updates-restart-persists = Windows masih meminta untuk dimulai ulang
+# Under ready-updates-restart-persists, with Try again and check-fix-windows-update.
+ready-updates-restart-persists-advice = Memulai ulang lagi kemungkinan tidak akan membantu. Selesaikan apa pun yang menunggu di Windows Update, lalu coba lagi.
+# Behind common-show-details. $reasons lists prepare-reason-* messages.
+ready-updates-restart-persists-reasons = Alasan mulai ulang: { $reasons }
+ready-updates-network = Pembaruan tidak dapat menggunakan koneksi ini
+ready-updates-stopped = Pembaruan dihentikan. Beberapa pembaruan mungkin sudah terinstal.
+ready-updates-previous = Menunggu pembaruan yang dimulai sebelumnya…
+# Button after the user stopped updating.
+ready-updates-resume = Lanjutkan pembaruan
+ready-updates-start = Mulai pembaruan
+# Why updating hasn't started, under the row.
+ready-updates-blocked = Pembaruan menunggu hingga Atlas dapat diinstal di PC ini.
+ready-updates-needs-admin = Dimulai setelah Atlas mendapatkan izin administrator.
+ready-updates-needs-windows = Dimulai setelah pemeriksaan Kompatibilitas Windows berhasil.
+ready-updates-needs-drivers = Dimulai setelah Anda menentukan cara driver diinstal.
+# The driver choice, one line under the update row. $choice is ready-drivers-automatic or
+# ready-drivers-manual. common-change unfolds the two answers.
+ready-drivers-row = Driver: { $choice }
+ready-drivers-automatic = Melalui Windows Update
+ready-drivers-manual = Instal sendiri
+ready-drivers-change-a11y = Ubah cara driver diinstal
+# Under the two answers, once updating has run.
+ready-drivers-again = Mengubah pilihan ini akan menjalankan pembaruan lagi.
+
 # $received and $total are formatted numbers of megabytes (text).
 package-downloading = Mengunduh Atlas { $version } · { $received } dari { $total } MB
-# Indonesian has no plural forms; one wording covers every count.
-package-unpacking-progress = Mengekstrak · { $done } dari { $total } file
 package-unpacking = Mengekstrak
-package-looking = Memeriksa versi Atlas terbaru.
-# Tester build: the bundled Atlas package is being unpacked, nothing is downloaded.
-package-looking-bundled = Menyiapkan paket Atlas bawaan.
-package-none = Unduh Atlas untuk mendapatkan file penginstalan. Jika Anda sudah memiliki paket Atlas (.atlaspkg), buka paket tersebut.
-# The GitHub release check failed. "Download latest version" is package-download-newest,
-# the button offered in this state; it checks again.
-package-release-failed = Atlas tidak dapat memeriksa versi terbaru. Periksa koneksi internet Anda, lalu pilih Unduh versi terbaru, atau buka paket Atlas (.atlaspkg) yang tersimpan.
-# Short status words beside the card title.
-package-status-downloading = Mengunduh
-package-status-unpacking = Mengekstrak
-package-status-failed = File tidak dapat disiapkan
 package-status-ready = Siap
-package-status-checking = Memeriksa
-package-status-preparing = Menyiapkan
-package-status-missing = Belum diunduh
 # Accessible name of the progress bar.
-package-progress = Kemajuan penyiapan file penginstalan
+package-progress = Kemajuan paket Atlas
 package-download-again = Unduh lagi
 package-download-version = Unduh Atlas { $version }
 package-download-newest = Unduh versi terbaru
 package-cancel-download = Batalkan unduhan
 package-open-file = Buka file paket
-# Where the package came from. $file is a file name, $path a folder path (text).
+# Where the package came from. $file is a file name (text).
 package-from-release = Atlas { $version } telah diunduh dari GitHub dan siap diinstal.
 package-from-file = Atlas { $version } telah dimuat dari { $file } dan siap diinstal.
 package-unpacked = Atlas { $version } siap diinstal.
-package-none-yet = Belum ada file penginstalan yang dipilih
+package-none-yet = Belum ada paket Atlas
 acquire-no-asset = Atlas { $version } tidak memiliki file paket yang dapat diunduh. Buka paket Atlas (.atlaspkg) yang tersimpan untuk melanjutkan.
 # Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
 # .apbx file from an Atlas release before 0.6.
 acquire-unsupported = Aplikasi ini dapat menginstal Atlas 0.6.0 dan yang lebih baru dari paket Atlas (.atlaspkg).
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = Atlas { $version } tidak berisi file yang diperlukan aplikasi ini untuk menginstalnya. Unduh lagi, atau buka paket Atlas (.atlaspkg) lain.
-acquire-failed = Tidak dapat menyiapkan file penginstalan. Coba unduh lagi, atau buka paket Atlas (.atlaspkg) lain. Detail: { $error }
+acquire-failed = Tidak dapat menyiapkan paket Atlas. Unduh lagi, atau buka paket Atlas (.atlaspkg) lain. Detail: { $error }
 # The download received nothing for a minute and was stopped.
 acquire-stalled = Unduhan berhenti merespons. Periksa koneksi internet Anda, lalu unduh lagi, atau buka paket Atlas (.atlaspkg) yang tersimpan.
 # Tester build: the bundled Atlas package couldn't be unpacked. Try again is the only control offered.
 acquire-failed-bundled = Tidak dapat menyiapkan paket Atlas bawaan. Pilih Coba lagi. Detail: { $error }
 # The Atlas package asks for a newer Atlas Manager than this one. $version is the version it asks for,
-# such as 0.7.0. "Download Atlas Manager" is manager-download, the button beside the message.
-acquire-manager-outdated = Paket Atlas ini memerlukan Atlas Manager { $version } atau yang lebih baru. Pilih Unduh Atlas Manager. Setelah itu, gunakan versi baru sebagai pengganti versi ini.
+# such as 0.7.0. Download Atlas Manager (manager-download) is beside it. "It" is the Atlas Manager
+# downloaded, and "this one" the Atlas Manager running now.
+acquire-manager-update-needed = Paket Atlas ini memerlukan versi Atlas Manager yang lebih baru. Unduh Atlas Manager { $version } atau yang lebih baru, lalu gunakan sebagai pengganti versi ini.
 # The same, for a package that doesn't say which version it needs.
-acquire-manager-outdated-any = Paket Atlas ini memerlukan Atlas Manager versi yang lebih baru. Pilih Unduh Atlas Manager. Setelah itu, gunakan versi baru sebagai pengganti versi ini.
+acquire-manager-update-needed-any = Paket Atlas ini memerlukan versi Atlas Manager yang lebih baru. Unduh Atlas Manager versi terbaru, lalu gunakan sebagai pengganti versi ini.
+# The Atlas package for Atlas $version asks for Atlas Manager $required or later, such as 0.7.0.
+# Download Atlas Manager (manager-download) is beside it, on Get ready and on Home.
+acquire-manager-update-required = Untuk menginstal Atlas { $version }, unduh Atlas Manager { $required } atau yang lebih baru, lalu gunakan sebagai pengganti versi ini.
+# The same, for a package that doesn't say which Atlas Manager it needs.
+acquire-manager-update-required-any = Untuk menginstal Atlas { $version }, unduh Atlas Manager versi terbaru, lalu gunakan sebagai pengganti versi ini.
 
 ## Newer Atlas Manager
 
@@ -345,6 +470,10 @@ check-third-party-antivirus = Antivirus lain
 check-internet = Koneksi internet
 check-power = Daya
 check-activation = Aktivasi Windows
+# Checks shown only where Atlas moves Windows to a newer version: what the move needs.
+check-move-hardware = Perangkat keras Windows 11
+check-move-space = Ruang kosong
+check-move-update-source = Sumber pembaruan
 # Accessible name of a check row. $state is one of the check-state-* messages.
 check-a11y = { $title }: { $state }
 check-state-checking = sedang diperiksa
@@ -357,51 +486,96 @@ check-fix-windows-update = Buka Windows Update
 check-fix-network = Buka pengaturan jaringan
 check-fix-power = Buka pengaturan daya
 check-fix-activation = Buka pengaturan aktivasi
-check-fix-apps = Buka Aplikasi yang diinstal
+# Opens Storage in Windows Settings, where space is freed up.
+check-fix-storage = Buka pengaturan Penyimpanan
+# Opens Installed apps in Windows Settings, from the Other antivirus software check. "Installed
+# apps" is the page of that name in Windows Settings, as in fixed-installed; use the name Windows
+# shows in your language.
+check-fix-installed-apps = Buka Aplikasi yang diinstal
 # Check box the user ticks when the Windows Update scan could not run.
 check-ack-updates = Saya sudah memeriksa Windows Update dan tidak ada pembaruan yang menunggu diinstal
+
 detail-admin-ok = Atlas memiliki izin untuk membuat perubahan yang diperlukan untuk penginstalan.
 detail-admin-missing = Jalankan ulang Atlas sebagai administrator, lalu pilih Ya saat Windows meminta izin.
 # $builds is a list of build numbers such as "26100 or 26200"; $build is this PC's (text).
 detail-build-unsupported = Versi Atlas ini memerlukan Windows build { $builds }. PC Anda menggunakan build { $build }. Instal versi Windows yang didukung sebelum melanjutkan.
 detail-build-missing = Paket Atlas ini tidak mencantumkan build Windows yang didukung. Gunakan build lengkap paket ini, bukan build LocalTest.
 detail-updates-none = Tidak ada pembaruan Windows yang menunggu diinstal.
-# $titles lists up to two update names (text); $count is the total.
-detail-updates-pending =
-    { $count ->
-        [1] Pembaruan ini menunggu diinstal: { $titles }. Atlas menginstalnya di Perbarui Windows dan aplikasi Store.
-        [2] Kedua pembaruan ini menunggu diinstal: { $titles }. Atlas menginstalnya di Perbarui Windows dan aplikasi Store.
-       *[other] { $count } pembaruan menunggu diinstal, termasuk { $titles }. Atlas menginstalnya di Perbarui Windows dan aplikasi Store.
-    }
-detail-updates-unknown = Tidak dapat memeriksa pembaruan Windows. Buka Windows Update, lalu konfirmasikan di bawah jika tidak ada pembaruan yang menunggu. ({ $error })
+# Updates still waiting once updating has run. $count is how many.
+detail-updates-left = { $count } pembaruan masih menunggu. Instal di Windows Update, lalu periksa lagi.
+detail-updates-scan-failed = Tidak dapat memeriksa pembaruan Windows. Buka Windows Update untuk melihat apakah ada yang menunggu. ({ $error })
 detail-reboot-none = Windows tidak perlu dimulai ulang saat ini.
-detail-reboot-pending = Windows perlu dimulai ulang untuk menyelesaikan perubahan sebelumnya. Saat Anda memilih Periksa dan instal pembaruan, Atlas akan meminta Anda memulai ulang terlebih dahulu.
+# Once updating has run: a restart it left, or one Windows still wants.
+detail-restart-pending = Windows perlu dimulai ulang untuk menyelesaikan perubahan sebelumnya. Mulai ulang PC Anda, lalu periksa lagi.
 # $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
-detail-reboot-pending-reasons = Windows perlu dimulai ulang untuk menyelesaikan perubahan sebelumnya ({ $reasons }). Saat Anda memilih Periksa dan instal pembaruan, Atlas akan meminta Anda memulai ulang terlebih dahulu.
+detail-restart-pending-reasons = Windows perlu dimulai ulang untuk menyelesaikan perubahan sebelumnya ({ $reasons }). Mulai ulang PC Anda, lalu periksa lagi.
 # Warning, not a block: $files lists up to three file paths Windows will replace or remove at the next restart.
 detail-reboot-file-renames = Anda dapat melanjutkan. Windows akan mengganti atau menghapus beberapa file saat PC dimulai ulang berikutnya ({ $files }). Beberapa aplikasi, seperti Xbox Gaming Services, melakukan ini setelah setiap mulai ulang.
 detail-reboot-unknown = Tidak dapat memeriksa apakah Windows perlu dimulai ulang. Mulai ulang PC, lalu buka kembali Atlas dan periksa lagi. ({ $error })
 detail-antivirus-none = Tidak ada antivirus lain yang terdeteksi.
-# $products is a list of product names (text).
-detail-antivirus-found = Aplikasi antivirus selain Microsoft Defender dapat menghalangi penginstalan. Hapus instalan { $products }, lalu pilih Periksa lagi.
+# $products is a list of product names (text). The row offers check-fix-installed-apps.
+detail-antivirus-uninstall = Aplikasi antivirus selain Microsoft Defender dapat menghalangi penginstalan. Hapus instalan { $products }, lalu periksa lagi.
 # Warning, not a block: Security Center still lists the product but its files are gone.
 detail-antivirus-stale = Keamanan Windows masih mencantumkan { $products }, tetapi file-nya sudah tidak ada, jadi perangkat lunak ini sudah tidak terinstal lagi. Atlas tetap dapat melanjutkan penginstalan.
-detail-antivirus-unknown = Tidak dapat memeriksa antivirus lain. Pilih Periksa lagi. Jika terus gagal, mulai ulang PC Anda, lalu periksa lagi. ({ $error })
+detail-antivirus-check-failed = Tidak dapat memeriksa apakah ada antivirus lain. Jika ini terus terjadi, mulai ulang PC Anda, lalu periksa lagi. ({ $error })
 detail-internet-ok = PC terhubung ke internet. Pertahankan koneksi ini saat Atlas mengunduh dan menginstal perangkat lunak.
 detail-internet-missing = Hubungkan PC ke internet, lalu periksa lagi.
 detail-power-mains = PC terhubung ke sumber listrik. Biarkan tetap terhubung hingga penginstalan selesai.
 detail-power-battery = Hubungkan PC ke sumber listrik agar tetap menyala selama penginstalan.
-detail-power-unknown = Atlas tidak dapat memastikan apakah PC Anda terhubung ke sumber listrik. Jika PC Anda laptop, hubungkan ke sumber listrik, lalu pilih Periksa lagi. Jika ini terus terjadi, pilih Kirim laporan.
+detail-power-check-failed = Atlas tidak dapat memastikan apakah PC Anda terhubung ke sumber listrik. Jika PC Anda laptop, hubungkan ke sumber listrik, lalu periksa lagi.
 detail-activation-ok = Windows sudah diaktifkan. Atlas tidak akan mengubahnya.
 detail-activation-missing = Windows belum diaktifkan. Anda dapat melanjutkan, tetapi Atlas tidak akan mengaktifkan Windows untuk Anda.
 detail-activation-no-licence = Windows tidak melaporkan adanya lisensi. Anda dapat melanjutkan; Atlas tidak akan mengubah status aktivasi Anda.
 detail-activation-unknown = Tidak dapat memeriksa aktivasi Windows. Anda dapat melanjutkan; Atlas tidak akan mengubah status aktivasi Anda. ({ $error })
+# What moving Windows to version $release needs. $missing lists hardware-tpm and hardware-uefi.
+detail-move-not-needed = Atlas tidak perlu meningkatkan Windows ke versi yang lebih baru di PC ini.
+detail-move-hardware-ready = PC ini memiliki TPM 2.0 dan firmware UEFI yang diperlukan Windows 11.
+detail-move-hardware-missing = PC ini tidak memiliki { $missing }, sehingga Windows Update tidak akan meningkatkannya ke versi { $release }. Cadangkan file Anda, lalu instal ulang Windows dengan ISO Atlas.
+detail-move-hardware-unread = Atlas tidak dapat membaca semua perangkat keras PC ini, jadi Windows Update yang akan memeriksanya.
+# $drive is a drive such as C:; $free and $needed are whole gigabytes.
+detail-move-space-ok = { $drive } memiliki ruang kosong { $free } GB.
+detail-move-space-short = Versi { $release } memerlukan ruang kosong { $needed } GB di { $drive }, sedangkan yang tersedia { $free } GB. Kosongkan ruang, dan Atlas akan memeriksa lagi dengan sendirinya.
+detail-move-space-unknown = Tidak dapat memeriksa ruang kosong untuk pembaruan Windows. Mulai ulang PC Anda, lalu periksa lagi. ({ $error })
+detail-move-update-source-ok = PC ini mendapatkan pembaruan dari Windows Update.
+detail-move-update-source-managed = PC ini mendapatkan pembaruan dari server organisasinya, yang tidak menawarkan versi { $release }. Tanyakan kepada organisasi Anda, atau instal ulang Windows dengan ISO Atlas.
 
-## Step 2: Options
+## Step 2: Your choices
+## One screen asks every question, a card each, with the optional extras folded under them.
 
-options-progress = Pilihan { $number } dari { $total }
-options-progress-extras = Pilihan { $number } dari { $total }: tambahan opsional
+# Once, at the top of Your choices. It names only what the Atlas folder can change back; other
+# choices, such as removing Microsoft Edge, can't be undone there.
 options-change-later = Anda dapat mengubah Microsoft Defender, perlindungan prosesor, dan pengaturan pembaruan nanti melalui folder Atlas di desktop.
+# The status line of the folded Optional extras card, then options-extras-show or -hide beside it.
+options-extras-none = Tidak ada yang dipilih
+# $count is how many of the extras' check boxes are ticked.
+options-extras-ticked = { $count } dipilih
+# Links that unfold and fold the Optional extras card.
+options-extras-show = Tampilkan
+options-extras-hide = Sembunyikan
+# Under each question's title, one sentence at most. What every Defender answer turns off
+# is in the Install step's details (summary-turned-off).
+question-defender-description = Microsoft Defender adalah antivirus bawaan Windows.
+question-mitigations-description = Perlindungan ini, yang juga disebut mitigasi keamanan, melindungi dari celah keamanan prosesor, seperti Spectre dan Meltdown, serta serangan yang memanfaatkan bug dalam aplikasi.
+question-auto-updates-description = Apa pun pilihan Anda, Atlas mempertahankan Windows pada versinya saat ini dan menonaktifkan pembaruan otomatis untuk aplikasi Microsoft Store.
+question-browser-description = Atlas tidak akan mengubah pengaturan browser Anda.
+# One line under an answer other than the recommended one: what it costs.
+# cost-defender-disable is also the caution under Remove Microsoft Defender on the Install step
+# and Home, and the message after an installation that removed Defender.
+cost-defender-disable = PC Anda tidak memiliki antivirus sampai Anda menginstal antivirus lain, dan Windows tidak lagi memperingatkan Anda sebelum Anda membuka aplikasi atau unduhan yang tidak dikenal.
+# "Exploit protection" is the Windows Security page of that name; use the name Windows shows in
+# your language.
+cost-mitigations-disable = Ini juga menonaktifkan Perlindungan eksploitasi untuk aplikasi, seperti Control Flow Guard, sehingga keamanan berkurang.
+cost-auto-updates-disable = Buka Windows Update secara rutin untuk mendapatkan perbaikan keamanan.
+cost-auto-updates-default = Windows mungkin memulai ulang PC Anda untuk menyelesaikan penginstalan pembaruan.
+# Under the taskbar selector answer, which turns off the keyboard shortcuts for switching.
+cost-keyboard-shortcuts-off = Alt+Shift dan Ctrl+Shift tidak lagi mengganti bahasa atau tata letak.
+# One line under an optional extra: what ticking it does.
+extra-disable-hibernation = Membebaskan ruang disk, tetapi Hibernasi dan startup cepat (Fast Startup) tidak lagi tersedia.
+extra-disable-power-saving = PC Anda mungkin memakai lebih banyak daya, menjadi lebih panas, dan daya tahan baterainya lebih pendek.
+extra-disable-core-isolation = Ini mengurangi perlindungan, termasuk integritas memori, dan dapat memengaruhi aplikasi atau game yang memerlukannya.
+extra-uninstall-edge = Favorit, riwayat, dan kata sandi tersimpan Edge di PC ini akan dihapus, kecuali yang disinkronkan ke akun Microsoft Anda.
+extra-install-toolbox = Membantu Anda mengelola pengaturan Atlas, meskipun beberapa fitur mungkin belum selesai selama masih beta.
+extra-install-eclean = Alat dari tim di balik AtlasOS untuk meninjau file sampah dan aplikasi startup. Memerlukan akun dan koneksi internet.
 # Short names for each decision (summary rows) and the question each screen asks.
 screen-defender-title = Microsoft Defender
 screen-defender-question = Pertahankan Microsoft Defender?
@@ -409,12 +583,29 @@ screen-mitigations-title = Perlindungan prosesor
 screen-mitigations-question = Pertahankan perlindungan prosesor Windows?
 screen-updates-title = Windows Update
 screen-updates-question = Bagaimana sebaiknya Windows menginstal pembaruan?
-screen-browser-title = Browser
+screen-browser-title = Browser web
 screen-power-title = Daya dan keamanan
 screen-apps-title = Aplikasi
 screen-optional-apps-title = Aplikasi opsional
 screen-choose-one-title = Pilih salah satu
 screen-extras-title = Tambahan opsional
+# Each decision's short name in the middle of a sentence, as in summary-change-a11y,
+# update-path-differs, preflight-choice-unanswered and installed-not-applied-choices. Write it as
+# the language does mid-sentence: in English, product names keep their capitals and other names
+# are lower case.
+screen-update-path-name = metode pembaruan
+screen-defender-name = Microsoft Defender
+screen-mitigations-name = perlindungan prosesor
+screen-updates-name = pengaturan Windows Update
+screen-keyboard-name = bahasa keyboard
+screen-browser-name = browser web
+screen-power-name = daya dan keamanan
+screen-apps-name = aplikasi
+screen-optional-apps-name = aplikasi opsional
+# A question with one answer that this app has no name for, such as one a newer Atlas package
+# adds. Its title is screen-choose-one-title.
+screen-package-choice-name = pilihan dalam paket Atlas
+screen-extras-name = tambahan opsional
 # Question for a required choice this app has no specific wording for.
 screen-generic-question = Pilih salah satu opsi untuk { $title }
 learn-more-defender = Pelajari selengkapnya tentang Microsoft Defender
@@ -423,25 +614,83 @@ learn-more-updates = Pelajari selengkapnya tentang Windows Update
 learn-more-browser = Pelajari selengkapnya tentang browser
 learn-more-power = Pelajari selengkapnya tentang daya dan keamanan
 learn-more-apps = Pelajari selengkapnya tentang aplikasi
-learn-more-eclean = Cara eclean bekerja dengan AtlasOS
+learn-more-eclean = Pelajari selengkapnya tentang eclean
+learn-more-keyboard = Pelajari selengkapnya tentang bahasa keyboard
 learn-more-generic = Baca panduan penyiapan
 # One line under the chosen answer: what it means for the PC.
 consequence-defender-enable = Mempertahankan antivirus bawaan Windows untuk membantu melindungi PC Anda dari virus dan ancaman lainnya.
-consequence-defender-disable = Juga menghapus SmartScreen. PC Anda tidak akan memiliki perlindungan antivirus sampai Anda menginstal aplikasi antivirus lain, dan Windows tidak akan memperingatkan Anda sebelum Anda membuka aplikasi atau unduhan yang tidak dikenal.
 consequence-mitigations-default = Mempertahankan perlindungan bawaan Windows terhadap celah keamanan prosesor dan serangan yang memanfaatkan bug dalam aplikasi.
+# Under Turn off processor protections. "Exploit protection" is the Windows Security page
+# of that name; use the name Windows shows in your language.
 consequence-mitigations-disable = Juga menonaktifkan Perlindungan eksploitasi untuk aplikasi, seperti Control Flow Guard. Ini mengurangi keamanan. Perbedaan kinerja, jika ada, bergantung pada prosesor Anda.
 consequence-auto-updates-disable = Buka Windows Update secara rutin untuk menginstal pembaruan. Notifikasi pembaruan tetap aktif.
 consequence-auto-updates-default = Windows akan menginstal pembaruan secara otomatis, termasuk perbaikan keamanan.
+
+## Step 2 on an update or reinstall of the installed Atlas
+
+# The first screen of Your choices when updating the installed Atlas. $version is the Atlas
+# version being installed, such as 0.6.1.
+update-path-update-title = Bagaimana Anda ingin memperbarui ke Atlas { $version }?
+# The same screen when installing again the Atlas version this PC already has.
+update-path-reinstall-title = Bagaimana Anda ingin menginstal ulang Atlas { $version }?
+# The two answers on that screen, each with the detail line under it. Other messages
+# name the answers too, so keep each the same everywhere.
+update-path-keep = Pertahankan pilihan saya
+update-path-keep-detail = Atlas mempertahankan setiap pilihan sesuai kondisi PC ini sekarang dan tidak mengubah satu pun.
+update-path-choose = Pilih ulang
+update-path-choose-detail = Mulai dari kondisi PC ini sekarang. Aplikasi, file, dan personalisasi Anda tetap ada.
+# Heading of the list under the two answers: one row per choice, as this PC has it now.
+update-path-now-title = Pilihan Anda di PC ini sekarang
+# The value of a row in that list for a choice nothing on the PC shows. Keep my choices
+# then asks it.
+update-path-unknown = Atlas tidak dapat mengetahuinya dari PC Anda, jadi Atlas akan menanyakannya
+# Above that list. $choices lists the screen-*-name messages, such as "Microsoft Defender and
+# processor protections", joined with list-and.
+update-path-differs = PC ini tidak sesuai dengan catatan Atlas untuk { $choices }.
+# A line above the questions Keep my choices still asks, which are the ones this PC can't show.
+keep-choices-asked = Atlas mempertahankan semua pilihan lain sesuai kondisi PC ini sekarang.
+# A short tag, on a line of its own, under the answer this PC has now, on the screens of
+# Choose again.
+option-now = Di PC ini sekarang
+# Under an answer on a screen of Choose again, instead of what it usually means, when
+# choosing it changes this PC.
+change-defender-enable = Atlas mengembalikan Microsoft Defender. Setelah PC dimulai ulang, aktifkan perlindungannya di Keamanan Windows.
+change-mitigations-default = Atlas mengaktifkan kembali perlindungan prosesor sesuai pengaturan bawaan Windows. Perubahan ini berlaku setelah PC dimulai ulang.
+# Under Keep processor protections when every protection is turned on: Atlas leaves them
+# all on rather than going back to the Windows defaults.
+change-mitigations-all-on = Semua perlindungan prosesor sedang aktif. Jika Anda mempertahankan perlindungan, semuanya tetap aktif.
+change-auto-updates-default = Atlas kembali mengizinkan Windows menginstal pembaruan secara otomatis.
+# Under Turn off hibernation, Turn off power saving and Turn off VBS when the box is cleared
+# while this PC has them off.
+change-hibernation-on = Atlas mengaktifkan kembali hibernasi.
+change-power-saving-on = Atlas mengaktifkan kembali penghematan daya dan kembali ke rencana daya Anda sebelumnya, atau ke rencana Seimbang jika tidak ada.
+change-core-isolation-on = Atlas mengaktifkan kembali keamanan berbasis virtualisasi (VBS), kecuali jika kebijakan di PC ini mengendalikannya. Perubahan ini berlaku setelah PC dimulai ulang.
+# Under Remove Snipping Tool when it's ticked while this PC still has the app.
+change-remove-snipping-tool = Menghapus Snipping Tool untuk semua pengguna PC ini. Atlas tidak dapat mengembalikannya nanti, tetapi Anda dapat menginstalnya lagi dari Microsoft Store.
+# Under a box Choose again shows ticked and can't clear, saying why. Install or Remove Edge
+# is a file name in the Atlas folder, in English on every PC.
+fixed-uninstall-edge = Microsoft Edge sudah dihapus, dan pembaruan Atlas tidak dapat mengembalikannya. Untuk menginstalnya lagi, gunakan Install or Remove Edge di folder Atlas.
+# The same for an app Atlas installed. $app is its name, such as Atlas Toolbox or Brave.
+# "Installed apps" is the page of that name in Windows Settings.
+fixed-installed = { $app } sudah terinstal. Atlas tidak menghapus instalan aplikasi; untuk menghapusnya, buka Aplikasi yang diinstal di Pengaturan Windows.
+# Under the browser chosen when another browser Atlas offers is already installed.
+# $installed and $browser are browser names, such as Brave and Firefox.
+browser-also = { $installed } tetap terinstal, dan Atlas juga menginstal { $browser }.
 
 ## Atlas package text
 ## Labels and descriptions for the Atlas package's options and choices, by
 ## their ids in the package's atlas.json. The app shows these in place of the
 ## package's own English text; an option or choice that a newer package adds,
 ## which has no message here, shows the package's English.
+## An option whose label recommends it has a -short form too: the same answer
+## without the recommendation, for the Install step's summary, Home and the
+## records, where the choice is already made.
 
 package-option-defender-enable = Pertahankan Microsoft Defender (disarankan)
+package-option-defender-enable-short = Pertahankan Microsoft Defender
 package-option-defender-disable = Hapus Microsoft Defender
 package-option-mitigations-default = Pertahankan perlindungan prosesor (disarankan)
+package-option-mitigations-default-short = Pertahankan perlindungan prosesor
 package-option-mitigations-disable = Nonaktifkan perlindungan prosesor
 package-option-auto-updates-disable = Instal pembaruan sendiri
 package-option-auto-updates-default = Instal pembaruan secara otomatis
@@ -464,223 +713,333 @@ package-choice-browser-description = Pilih browser untuk diinstal. Atlas tidak a
 
 ## Step 3: Windows Security
 
-security-banner-reading-title = Memeriksa Keamanan Windows
-security-banner-reading-message = Atlas sedang memeriksa empat pengaturan perlindungan di bawah.
-security-banner-off-title = Keempat pengaturan perlindungan sudah nonaktif
 # Shown instead of the switch list when Microsoft Defender isn't on this PC and the user
 # chose to remove it.
 security-banner-absent-title = Microsoft Defender tidak terinstal di PC ini
-security-banner-absent-message = Tidak ada yang perlu dinonaktifkan di langkah ini. Pilih Lanjutkan.
-security-banner-off-message = Pilih Lanjutkan untuk meninjau penyiapan Anda dan menginstal Atlas.
-security-banner-on-title = Nonaktifkan perlindungan antivirus di Keamanan Windows
-security-banner-on-message = Microsoft Defender dapat memblokir perubahan yang dilakukan Atlas. Pilih Buka Keamanan Windows, lalu nonaktifkan setiap pengaturan yang tercantum di bawah. Jika Anda mempertahankan Microsoft Defender, aktifkan kembali pengaturan tersebut setelah penginstalan selesai.
+# The message under security-banner-absent-title and security-banner-removed-title.
+security-nothing-to-turn-off = Tidak ada pengaturan perlindungan yang perlu dinonaktifkan.
+# Instead of security-banner-absent-title when Atlas's own package removed Microsoft Defender
+# and it stays removed. Its message is security-nothing-to-turn-off.
+security-banner-removed-title = Atlas telah menghapus Microsoft Defender dari PC ini
+# When Atlas's own package removed Microsoft Defender and this installation brings it back.
+security-banner-restore-title = Atlas mengembalikan Microsoft Defender dalam penginstalan ini
+security-restore-nothing-to-turn-off = Defender belum berjalan, jadi tidak ada yang perlu dinonaktifkan. Setelah PC dimulai ulang, aktifkan perlindungannya di Keamanan Windows.
+# A warning that doesn't stop the step: the user chose to keep Microsoft Defender, but it
+# isn't on this PC and Atlas didn't remove it. Home and the "Atlas is installed" window use
+# the same title.
+security-banner-missing-title = Microsoft Defender tidak ditemukan
+security-banner-missing-message = Atlas tidak menghapusnya, jadi Atlas tidak dapat mengembalikannya. Anda dapat melanjutkan, tetapi PC Anda tidak memiliki antivirus sampai Anda menginstal aplikasi antivirus lain atau memperbaiki Windows.
+# While a switch is on, or none can be read. Atlas has opened Windows Security at the switches,
+# and Open Windows Security, its button, opens it again.
+security-turn-off-title = Nonaktifkan keempat pengaturan ini
+security-turn-off-message = Microsoft Defender dapat memblokir Atlas selama penginstalan. Jika Anda mempertahankan Defender, aktifkan kembali pengaturan ini setelah penginstalan.
 # The page name in Windows Security.
 security-list-title = Pengaturan perlindungan virus & ancaman
 security-switch-off = Nonaktif
 security-switch-on = Aktif
-security-switch-unreadable = Tidak dapat diperiksa
+security-switch-unreadable = Tidak dapat dibaca
 security-switch-reading = Memeriksa
 security-all-off = Semua nonaktif
 # Accessible name of a switch row. $state is one of the security-switch-* messages.
 security-a11y = { $title }: { $state }
-# Parts of the summary "2 still on, 1 can't be read".
+# Parts of the summary "2 still on, 1 couldn't be read".
 security-count-still-on = { $count } masih aktif
-security-count-unreadable = { $count } tidak dapat diperiksa
+security-count-unreadable = { $count } tidak dapat dibaca
 security-count-join = { $a }, { $b }
-security-unknown-title = Konfirmasikan pengaturan yang tidak dapat diperiksa Atlas
-security-unknown-message = Pastikan keempat pengaturan sudah nonaktif di Keamanan Windows, lalu konfirmasikan di bawah.
+# Every switch Atlas could read is off, and the rest couldn't be read. $switches names those,
+# as Windows Security names them, joined with list-and; $count is how many there are. English
+# reads the same for one or several; agree with $count where your language needs to.
+security-unread-switches-title =
+    { $count ->
+       *[other] Atlas tidak dapat membaca { $switches }
+    }
+security-unread-message =
+    { $count ->
+       *[other] Pastikan pengaturan tersebut nonaktif di Keamanan Windows.
+    }
+# The check box under security-unread-message.
+security-unread-confirm =
+    { $count ->
+       *[other] Saya sudah memastikan { $switches } nonaktif
+    }
+# The check box when Atlas couldn't read any of the four switches.
 security-acknowledge = Saya sudah memeriksa Keamanan Windows dan keempat pengaturan sudah nonaktif
 security-unknown-unelevated-title = Atlas memerlukan izin untuk memeriksa perlindungan
 security-unknown-unelevated-message = Jalankan ulang Atlas sebagai administrator agar Atlas dapat memeriksa pengaturan Microsoft Defender.
-# The four switches, named as Windows Security names them in Indonesian.
+# The four switches, named as Windows Security names them, each with why it must be off.
 # "Proteksi Kerusakan" follows the Indonesian Windows interface; Microsoft's
-# machine-translated support pages vary ("Proteksi perusak", "Perlindungan
-# Perubahan"). Verify against a localized Windows build.
+# machine-translated support pages vary. Verify against a localised Windows build.
 protection-tamper = Proteksi Kerusakan
-protection-tamper-why = Nonaktifkan pengaturan ini agar Defender tidak memblokir Atlas saat mengubah pengaturan keamanan Defender.
+protection-tamper-why = Agar Atlas dapat mengubah pengaturan keamanan.
 protection-realtime = Perlindungan real-time
-protection-realtime-why = Nonaktifkan pengaturan ini agar Defender tidak memblokir file penginstalan Atlas saat memindainya.
+protection-realtime-reason = Pemindaian dapat memblokir file Atlas.
 protection-cloud = Perlindungan yang dikirimkan cloud
-protection-cloud-why = Nonaktifkan pengaturan ini agar pemeriksaan ancaman online tidak memblokir file penginstalan Atlas.
+protection-cloud-reason = Pemeriksaan online dapat memblokir file Atlas.
 protection-samples = Pengiriman sampel otomatis
-protection-samples-why = Cegah Defender mengirim file Atlas secara otomatis ke Microsoft untuk dianalisis.
+protection-samples-why = Agar file Atlas tidak dikirim ke Microsoft.
 
 ## Step 4: Install
 
-# Accessible name of the progress bar.
-install-progress = Kemajuan penginstalan
-# The installation's progress shown beside the bar. $percent is a whole number from 0 to 99.
-install-percent = { $percent }%
 outcome-succeeded-title = Atlas sudah terinstal
 outcome-lost-title = Hasil penginstalan tidak dapat dipastikan
 outcome-failed-title = Penginstalan tidak selesai
-outcome-requirements = PC Anda tidak memenuhi persyaratan penginstalan. Penginstalan belum mengubah apa pun. Kembali ke Persiapan dan jalankan pemeriksaan lagi.
+# The result bar's message after an attempt that didn't succeed: what happened, then what to do,
+# in two sentences at most. The bar's button, or the footer's Try again, is the next step, so the
+# message never names it. The installer's own error is behind Show details.
+# Beside go-to-ready.
+result-requirements = PC Anda tidak memenuhi persyaratan penginstalan, sehingga penginstalan belum mengubah apa pun.
 # The -resumed variants follow a retry of an installation an earlier attempt had already started applying.
-outcome-requirements-resumed = PC Anda tidak memenuhi persyaratan penginstalan, sehingga upaya ini berhenti. Upaya sebelumnya sudah mulai membuat perubahan. Kembali ke Persiapan dan jalankan pemeriksaan lagi.
-outcome-not-elevated = Atlas tidak memiliki izin administrator. Penginstalan belum mengubah apa pun. Jalankan ulang Atlas sebagai administrator, lalu coba lagi.
-outcome-not-elevated-resumed = Atlas tidak memiliki izin administrator, sehingga upaya ini berhenti. Upaya sebelumnya sudah mulai membuat perubahan. Jalankan ulang Atlas sebagai administrator, lalu coba lagi.
-# The installer's live check found Windows or Store updates unfinished. Get ready offers the
-# update check again; "Check and install updates" is prepare-start, its button in that state.
-outcome-preparation-stale = Atlas tidak dapat memastikan bahwa Windows dan aplikasi Store sudah diperbarui, sehingga penginstalan berhenti sebelum mengubah Windows. Kembali ke Persiapan dan pilih Periksa dan instal pembaruan.
-outcome-preparation-stale-resumed = Atlas tidak dapat memastikan bahwa Windows dan aplikasi Store sudah diperbarui, sehingga upaya ini berhenti. Upaya sebelumnya sudah mulai membuat perubahan. Kembali ke Persiapan dan pilih Periksa dan instal pembaruan.
-outcome-failed-preflight = Penginstalan berhenti sebelum mengubah apa pun. Anda dapat mencoba lagi. Jika berhenti lagi, pilih Kirim laporan.
-outcome-failed-staging = Penginstalan berhenti saat menyiapkan file, sebelum mengubah Windows. Anda dapat mencoba lagi. Jika berhenti lagi, pilih Kirim laporan.
-outcome-failed-applying = Sebagian perubahan mungkin sudah diterapkan. Anda dapat mencoba lagi. Jika Anda berhenti di sini, aktifkan kembali perlindungan yang tadi Anda nonaktifkan di Keamanan Windows, jika masih tersedia.
-outcome-failed-applying-defender-removed = Sebagian perubahan mungkin sudah diterapkan. Anda dapat mencoba lagi. Jika penginstalan berhenti lagi, pilih Kirim laporan.
-outcome-failed-resumed = Upaya ini berhenti lebih awal, tetapi upaya sebelumnya sudah mulai membuat perubahan. Anda dapat mencoba lagi. Jika Anda berhenti di sini, aktifkan kembali perlindungan yang tadi Anda nonaktifkan di Keamanan Windows, jika masih tersedia.
-outcome-failed-resumed-defender-removed = Upaya ini berhenti lebih awal, tetapi upaya sebelumnya sudah mulai membuat perubahan. Anda dapat mencoba lagi. Jika penginstalan berhenti lagi, pilih Kirim laporan.
-outcome-failed-repeated = Upaya ini berhenti dengan kesalahan yang sama seperti upaya sebelumnya, dan sebagian perubahan mungkin sudah diterapkan. Mencoba lagi tanpa mengubah apa pun kemungkinan besar tidak akan membantu. Pilih Kirim laporan agar tim Atlas dapat menemukan penyebabnya. Jika Anda berhenti di sini, aktifkan kembali perlindungan yang tadi Anda nonaktifkan di Keamanan Windows, jika masih tersedia.
-outcome-failed-repeated-defender-removed = Upaya ini berhenti dengan kesalahan yang sama seperti upaya sebelumnya, dan sebagian perubahan mungkin sudah diterapkan. Mencoba lagi tanpa mengubah apa pun kemungkinan besar tidak akan membantu. Pilih Kirim laporan agar tim Atlas dapat menemukan penyebabnya.
-outcome-failed-repeated-apps = Windows tetap tidak menghapus { $apps }, jadi upaya ini berhenti dengan kesalahan yang sama seperti upaya sebelumnya. Sebagian perubahan mungkin sudah diterapkan. Mencoba lagi tanpa mengubah apa pun kemungkinan besar tidak akan membantu. Pilih Kirim laporan agar tim Atlas dapat menemukan penyebabnya. Jika Anda berhenti di sini, aktifkan kembali perlindungan yang tadi Anda nonaktifkan di Keamanan Windows, jika masih tersedia.
-outcome-failed-repeated-apps-defender-removed = Windows tetap tidak menghapus { $apps }, jadi upaya ini berhenti dengan kesalahan yang sama seperti upaya sebelumnya. Sebagian perubahan mungkin sudah diterapkan. Mencoba lagi tanpa mengubah apa pun kemungkinan besar tidak akan membantu. Pilih Kirim laporan agar tim Atlas dapat menemukan penyebabnya.
-outcome-not-started = Penginstal tidak dimulai tepat waktu. Penginstalan belum mengubah apa pun. Anda dapat mencoba lagi.
-outcome-lost = Penginstal berhenti tanpa melaporkan hasil, dan sebagian perubahan mungkin sudah diterapkan. Anda dapat mencoba lagi. Jika Anda berhenti di sini, aktifkan kembali perlindungan yang tadi Anda nonaktifkan di Keamanan Windows, jika masih tersedia.
-outcome-lost-defender-removed = Penginstal berhenti tanpa melaporkan hasil, dan sebagian perubahan mungkin sudah diterapkan. Anda dapat mencoba lagi. Jika berhenti lagi, pilih Kirim laporan.
+result-requirements-resumed = PC Anda tidak memenuhi persyaratan penginstalan, sehingga upaya ini berhenti. Upaya sebelumnya sudah membuat perubahan.
+# Beside common-restart-as-administrator.
+result-not-elevated = Atlas tidak memiliki izin administrator, sehingga penginstalan belum mengubah apa pun.
+result-not-elevated-resumed = Atlas tidak memiliki izin administrator, sehingga upaya ini berhenti. Upaya sebelumnya sudah membuat perubahan.
+# The installer's live check found Windows or Store updates unfinished. Beside go-to-ready, where
+# updating starts again by itself.
+result-preparation-stale = Atlas tidak dapat memastikan bahwa Windows dan aplikasi Store sudah diperbarui, sehingga penginstalan berhenti sebelum mengubah Windows.
+result-preparation-stale-resumed = Atlas tidak dapat memastikan bahwa Windows dan aplikasi Store sudah diperbarui, sehingga upaya ini berhenti. Upaya sebelumnya sudah membuat perubahan.
+result-failed-preflight = Penginstalan berhenti sebelum mengubah apa pun. Anda dapat mencoba lagi.
+result-failed-staging = Penginstalan berhenti saat menyiapkan file, sebelum mengubah Windows. Anda dapat mencoba lagi.
+# Beside common-open-windows-security. The "protection switches" are the four the user turned off.
+result-failed-applying = Sebagian perubahan mungkin sudah diterapkan. Anda dapat mencoba lagi, atau jika berhenti di sini, aktifkan kembali pengaturan perlindungan di Keamanan Windows.
+# The -defender-removed variants once Microsoft Defender has been removed, so there are no
+# protection switches to turn back on.
+result-failed-applying-defender-removed = Sebagian perubahan mungkin sudah diterapkan. Anda dapat mencoba lagi.
+result-failed-resumed = Upaya ini berhenti lebih awal, tetapi upaya sebelumnya sudah membuat perubahan. Anda dapat mencoba lagi, atau jika berhenti di sini, aktifkan kembali pengaturan perlindungan di Keamanan Windows.
+result-failed-resumed-defender-removed = Upaya ini berhenti lebih awal, tetapi upaya sebelumnya sudah membuat perubahan. Anda dapat mencoba lagi.
+# The -repeated variants follow a retry of an installation already part-way through that stopped
+# with the same error as the attempt before it, so they point to a report rather than another try.
+# "Send a report" is report-title, in the row of links under the bar.
+result-failed-repeated = Upaya ini berhenti dengan kesalahan yang sama seperti sebelumnya, jadi mencoba lagi kemungkinan tidak akan membantu. Kirim laporan agar tim Atlas dapat menemukan penyebabnya, dan aktifkan kembali pengaturan perlindungan jika Anda berhenti di sini.
+result-failed-repeated-defender-removed = Upaya ini berhenti dengan kesalahan yang sama seperti sebelumnya, jadi mencoba lagi kemungkinan tidak akan membantu. Kirim laporan agar tim Atlas dapat menemukan penyebabnya.
+# $apps holds the package names Windows gives the apps, such as MSTeams (text), joined with list-and.
+result-failed-repeated-apps = Windows tetap tidak menghapus { $apps }, jadi mencoba lagi kemungkinan tidak akan membantu. Kirim laporan agar tim Atlas dapat menemukan penyebabnya, dan aktifkan kembali pengaturan perlindungan jika Anda berhenti di sini.
+result-failed-repeated-apps-defender-removed = Windows tetap tidak menghapus { $apps }, jadi mencoba lagi kemungkinan tidak akan membantu. Kirim laporan agar tim Atlas dapat menemukan penyebabnya.
+result-not-started = Penginstal tidak dimulai tepat waktu, sehingga penginstalan belum mengubah apa pun. Anda dapat mencoba lagi.
+result-lost = Penginstal berhenti tanpa melaporkan hasil, sehingga sebagian perubahan mungkin sudah diterapkan. Anda dapat mencoba lagi, atau jika berhenti di sini, aktifkan kembali pengaturan perlindungan di Keamanan Windows.
+# Instead of result-lost once Defender is gone, as for the -defender-removed variants above.
+result-lost-defender-removed = Penginstal berhenti tanpa melaporkan hasil, sehingga sebagian perubahan mungkin sudah diterapkan. Anda dapat mencoba lagi.
 restart-now-message = Windows sedang dimulai ulang untuk menyelesaikan penyiapan Atlas.
-# Indonesian has no plural forms; one wording covers every count.
-restart-countdown = Windows akan dimulai ulang dalam { $seconds } detik untuk menyelesaikan penyiapan Atlas. Untuk menyimpan pekerjaan Anda terlebih dahulu, pilih Mulai ulang nanti.
 restart-stopped = Mulai ulang otomatis dibatalkan. Simpan pekerjaan Anda, lalu mulai ulang PC untuk menyelesaikan penyiapan Atlas.
 restart-needed = Simpan pekerjaan Anda, lalu mulai ulang PC untuk menyelesaikan penyiapan Atlas.
 restart-dont-now = Mulai ulang nanti
 restart-now = Mulai ulang sekarang
-restart-start-failed = Atlas tidak dapat memulai ulang PC Anda. Simpan pekerjaan Anda, lalu mulai ulang PC melalui menu Mulai. Detail: { $error }
+# The bar when the final checks refuse to start the installer. Its message names what needs
+# attention; the bar's button is the fix, and raw errors are behind Show details.
 preflight-title = Penginstalan belum dimulai
-preflight-invalid-options = Atlas tidak dapat menggunakan pilihan penyiapan ini. Kembali ke Pilihan Anda dan tinjau kembali, lalu coba lagi. Detail: { $error }
-# $problems is a sentence or two built from preflight-problem and preflight-security.
-preflight-changed = Kondisi PC Anda berubah sejak pemeriksaan sebelumnya. Atasi hal berikut sebelum mencoba lagi. { $problems }
-preflight-problem = { $title }: { $detail }
-# $summary is the Windows Security summary such as "2 still on".
-preflight-security = Keamanan Windows: { $summary }.
-preflight-busy = Jendela Atlas lain sedang memulai penginstalan. Tunggu sebentar, lalu pilih Instal Atlas lagi.
-# Shown with the home-start-over button.
-preflight-taken-over = Jendela Atlas lain kini menggunakan penyiapan ini, sehingga penginstalan belum dimulai. Lanjutkan di jendela tersebut, atau pilih Mulai dari awal untuk mengulang penyiapan di sini.
-preflight-record-unreadable = Atlas tidak dapat memastikan apakah penginstalan sebelumnya masih berjalan, sehingga belum memulai penginstalan baru. Kembali ke Persiapan untuk melihat langkah selanjutnya. Detail: { $error }
-preflight-refused = Penginstal tidak dapat dijalankan. Penginstalan belum mengubah apa pun. Pilih Instal Atlas untuk mencoba lagi. Jika ini terus terjadi, pilih Kirim laporan. Detail: { $error }
-# Instead of preflight-refused when retrying an installation an earlier attempt had already started applying.
-preflight-refused-resumed = Penginstal tidak dapat dijalankan, sehingga upaya ini berhenti. Upaya sebelumnya sudah mulai membuat perubahan. Pilih Instal Atlas untuk mencoba lagi. Jika ini terus terjadi, pilih Kirim laporan. Detail: { $error }
-go-to-ready = Kembali ke Persiapan
-go-to-options = Kembali ke Pilihan Anda
+# Beside go-to-options. $choice is a screen-*-name message, as it reads mid-sentence, such as
+# processor protections.
+preflight-choice-unanswered = Atlas memerlukan jawaban Anda untuk { $choice }.
+preflight-choices-unusable = Atlas tidak dapat menggunakan pilihan ini.
+# Beside go-to-ready. $checks lists check-* names, such as "Internet connection and Power supply",
+# joined with list-and; $count is how many it names.
+preflight-checks-changed =
+    { $count ->
+       *[other] { $checks } perlu diperhatikan sejak Atlas memeriksa PC Anda.
+    }
+# Beside common-open-windows-security. $summary is the Windows Security summary such as "1 still on".
+preflight-security-changed = Keamanan Windows berubah sejak Anda menonaktifkan pengaturan perlindungan: { $summary }.
+preflight-busy-wait = Jendela Atlas lain sedang memulai penginstalan. Tunggu sebentar, lalu coba lagi.
+# Beside home-start-over.
+preflight-taken-over-start-over = Jendela Atlas lain kini menggunakan penyiapan ini. Lanjutkan di sana, atau mulai dari awal di sini.
+# Beside go-to-ready.
+preflight-record-unreadable-check = Atlas tidak dapat memastikan apakah penginstalan sebelumnya masih berjalan, sehingga belum memulai penginstalan lain.
+preflight-not-started = Atlas tidak dapat memulai penginstal, sehingga penginstalan belum mengubah apa pun. Anda dapat mencoba lagi.
+# Instead of preflight-not-started when retrying an installation an earlier attempt had already
+# started applying.
+preflight-not-started-resumed = Atlas tidak dapat memulai penginstal, tetapi upaya sebelumnya sudah membuat perubahan. Anda dapat mencoba lagi.
+go-to-ready = Buka langkah Persiapan
+# Button on the Install step's bar when a question has no answer; opens Your choices there.
+go-to-options = Buka langkah Pilihan Anda
+# Button on the Install step's bar when switches Atlas can't read need confirming on that step.
+go-to-security = Buka langkah Keamanan Windows
 # Replaces Continue on a choice opened from a Change link on the Install step, while Continue leads straight back there.
 go-to-install = Kembali ke Instal
 output-problem-title = Kemajuan penginstalan tidak dapat dibaca
-output-problem-message = Atlas tidak dapat membaca log. Ini tidak berarti penginstalan berhenti. Biarkan PC tetap menyala dan coba buka file log. Detail: { $error }
 install-elevate-title = Atlas memerlukan izin untuk menginstal
-install-no-package-title = Pilih file penginstalan terlebih dahulu
-install-no-package-message = Kembali ke Persiapan untuk mengunduh Atlas atau membuka paket Atlas (.atlaspkg) yang tersimpan.
-# Tester build variant of install-no-package-message.
-install-no-package-bundled-message = Kembali ke Persiapan untuk menyiapkan paket Atlas bawaan versi uji ini.
+# Under install-elevate-title, beside common-restart-as-administrator.
+install-elevate-uac = Saat Atlas dijalankan ulang, Windows akan meminta izin Anda.
+# A bar on the Install step, beside go-to-ready, when no Atlas package is ready.
+install-package-missing = Paket Atlas belum siap
 # Step 4 when step 1 is incomplete for this session (checks or Windows updates), with go-to-ready as the button.
 install-not-ready-title = Selesaikan Persiapan terlebih dahulu
 install-not-ready-message = Atlas perlu menyelesaikan pemeriksaan PC dan pembaruan Windows sebelum dapat menginstal.
-install-security-title = Periksa perlindungan antivirus sebelum menginstal
-install-security-reading = Memeriksa kembali keempat pengaturan perlindungan.
-install-security-message = { $summary }. Buka Keamanan Windows dan pastikan keempat pengaturan sudah nonaktif sebelum menginstal.
-summary-try-again = Tinjau sebelum mencoba lagi
-summary-ready = Tinjau penyiapan Atlas Anda
+# A bar on the Install step when a fresh reading of the protection switches no longer passes.
+# $summary is the Windows Security summary such as "1 still on".
+install-switches-title = Nonaktifkan lagi pengaturan perlindungan
+install-switches-message = Keamanan Windows: { $summary }.
+# The Install step's card, when nothing stands in the way of installing, and otherwise.
+summary-ready-title = Siap diinstal
+summary-setup-title = Penyiapan Atlas Anda
 summary-activation = Aktivasi
 summary-activation-ok = Sudah diaktifkan. Atlas tidak akan mengubahnya.
 summary-activation-missing = Belum diaktifkan. Anda dapat melanjutkan, tetapi Atlas tidak akan mengaktifkan Windows.
 summary-activation-unknown = Atlas tidak akan mengubah status aktivasi Windows Anda.
-summary-duration = Perkiraan waktu
-# Indonesian has no plural forms; one wording covers every count.
-summary-duration-value = { $minutes } menit, lalu mulai ulang
-summary-restart-checkbox = Mulai ulang PC secara otomatis setelah penginstalan
+# How long installing usually takes, from the Atlas package. The card shows the first while the
+# box below it is ticked, and the second while it isn't.
+summary-time-restarts = Biasanya sekitar { $minutes } menit, lalu PC Anda dimulai ulang
+summary-time-restart-yourself = Biasanya sekitar { $minutes } menit, lalu mulai ulang PC Anda
+# The check box on the card. It starts from settings-restart-automatically and applies to this install only.
+summary-restart-automatically = Mulai ulang secara otomatis setelah penginstalan selesai
+# A row of the card's details: what Atlas turns off whichever Microsoft Defender answer is chosen.
+summary-turned-off = Juga dinonaktifkan
+summary-turned-off-value = Kontrol Aplikasi Pintar, Perlindungan pengelabuan, dan Temukan perangkat saya
 summary-show-command = Tampilkan perintah penginstalan
 summary-hide-command = Sembunyikan perintah penginstalan
+# Accessible name of the Copy button under the installation command.
 summary-copy-command-a11y = Salin perintah penginstalan
 summary-command-unavailable = Tidak dapat menyiapkan perintah penginstalan. Detail: { $error }
 summary-not-chosen = Belum dipilih
-# Accessible name of a Change link. $title is a screen-*-title message.
+# Accessible name of a Change link. $title is a screen-*-name message, as it reads mid-sentence.
 summary-change-a11y = Ubah { $title }
+# The summary's first row on an update or reinstall. Its value is update-path-keep or
+# update-path-choose.
+summary-update-path = Metode pembaruan
+# Why Continue waits on Get ready: read with it as its description, and shown beside it
+# where the page doesn't already say so. 8 words or fewer.
 footer-still-checking = Menyiapkan penginstalan
-footer-fix-items = Atasi item di Pemeriksaan PC untuk melanjutkan
-footer-need-package = Unduh Atlas atau buka paket Atlas untuk melanjutkan
-# Tester build variant of footer-need-package.
+footer-checks-blocked = Atasi hasil pemeriksaan untuk melanjutkan
+footer-manager-outdated = Unduh Atlas Manager versi baru untuk melanjutkan
+footer-need-files = Dapatkan paket Atlas untuk melanjutkan
+# Tester build variant of footer-need-files.
 footer-need-package-bundled = Siapkan paket Atlas bawaan untuk melanjutkan
+footer-drivers = Tentukan cara driver diinstal untuk melanjutkan
+footer-windows-terms = Terima ketentuan lisensi untuk melanjutkan
+footer-updating = Memperbarui Windows dan aplikasi Store…
+footer-restart = Mulai ulang PC Anda untuk melanjutkan
 footer-reading-security = Memeriksa pengaturan perlindungan
+# Why Continue waits on Windows Security, read with it as its description: while a switch is
+# on, then while only switches Atlas couldn't read are left to confirm.
 footer-security-pending = Nonaktifkan keempat pengaturan untuk melanjutkan
-footer-security-confirm = Untuk melanjutkan, konfirmasikan pengaturan yang tidak dapat diperiksa Atlas
+footer-security-confirm = Untuk melanjutkan, konfirmasikan pengaturan yang tidak dapat dibaca Atlas
+# Beside Install Atlas while automatic restart is on: the PC restarts when installation finishes.
 footer-install-ready = Simpan pekerjaan Anda dan tutup aplikasi terlebih dahulu
 button-install = Instal Atlas
-# Indonesian has no plural forms; one wording covers every count.
 log-earlier-lines = { $count } baris sebelumnya ada di file log.
 # Appended when the log is copied. $path is a file path (text).
 log-full-log-note = (log lengkap: { $path })
 
 ## The installing view
 
-installing-checking-title = Pemeriksaan terakhir
-installing-checking-line = Atlas memeriksa PC Anda sebelum membuat perubahan. Ini mungkin perlu beberapa saat.
 installing-title = Menginstal Atlas
-installing-phase-preflight = Memeriksa PC dan menyiapkan file penginstalan.
-installing-phase-staging = Menyiapkan file penginstalan. Biarkan PC tetap menyala.
-installing-phase-applying = Menyiapkan Windows sesuai pilihan Anda. Biarkan PC tetap menyala dan terhubung ke sumber listrik.
-installing-phase-done = Menyelesaikan penginstalan. Biarkan PC tetap menyala.
+# What Atlas is doing, under installing-title and as the progress bar's accessible name: a
+# short verb phrase ending in an ellipsis. The final checks and the installer's own first
+# checks both read installing-checking-label.
+installing-checking-label = Memeriksa PC Anda…
+installing-staging-label = Menyalin file Atlas…
+installing-applying-label = Menyiapkan Windows…
+installing-finishing-label = Menyelesaikan…
+# The one line under the progress bar: when the PC restarts by itself after, and when it doesn't.
+installing-keep-on-restart = Biarkan PC Anda tetap menyala dan terhubung ke sumber listrik. PC akan dimulai ulang dengan sendirinya setelah penginstalan selesai.
+installing-keep-on = Biarkan PC Anda tetap menyala dan terhubung ke sumber listrik. Mulai ulang PC setelah penginstalan selesai.
+# When Atlas can't follow the installer's log. Its title is output-problem-title; "Open log
+# folder" is common-open-log-folder, its button.
+installing-output-problem = Ini tidak berarti penginstalan berhenti.
 installing-installed-title = Atlas sudah terinstal
-# $time is a formatted clock time.
-installing-started-just-now = Dimulai pukul { $time }, kurang dari satu menit yang lalu
-# Indonesian has no plural forms; one wording covers every count.
-installing-started-minutes = Dimulai pukul { $time }, { $minutes } menit yang lalu
-installing-restart-auto = PC Anda akan dimulai ulang secara otomatis setelah penginstalan selesai. Simpan pekerjaan Anda di aplikasi lain sebelum itu.
+# Under installing-installed-title while the restart counts down, with installing-restart-save
+# under it, then restart-now and restart-dont-now.
+installing-restart-countdown = PC Anda akan dimulai ulang dalam { $seconds } detik.
+installing-restart-save = Simpan pekerjaan Anda terlebih dahulu.
 
 ## The "Atlas is installed" window after the restart
 
 installed-title-version = Atlas { $version } sudah terinstal
 installed-title = Atlas sudah terinstal
 installed-ready = Semua sudah beres. PC Anda siap digunakan dengan Atlas.
-installed-manual-drivers-title = Instal driver Anda
+# A line under the setup card where the user installs drivers themselves, with
+# installed-drivers-guide, a link, under it.
 installed-manual-drivers-detail = Dapatkan driver chipset, jaringan, dan grafis dari produsen PC, motherboard, atau perangkat Anda.
 installed-drivers-guide = Buka panduan driver
-installed-security-message = Anda mempertahankan Microsoft Defender, tetapi sebagian perlindungannya masih nonaktif. Buka Keamanan Windows dan pastikan pengaturan berikut aktif: { $switches }.
+# After an installation that removed Microsoft Defender. Its message is cost-defender-disable.
 installed-defender-removed-title = Microsoft Defender telah dihapus
-installed-defender-removed-message = PC Anda tidak akan memiliki perlindungan antivirus sampai Anda menginstal aplikasi antivirus lain. SmartScreen juga telah dihapus, jadi Windows tidak akan memperingatkan Anda sebelum Anda membuka aplikasi atau unduhan yang tidak dikenal.
 # Home and the "Atlas is installed" window, after an installation that kept Microsoft Defender,
 # when it is missing and no Atlas package removed it. Its title is security-banner-missing-title;
-# "Report a problem" is home-report-problem, its button.
-installed-defender-missing-message = Anda memilih untuk mempertahankan Microsoft Defender, tetapi Defender tidak ditemukan, dan Atlas tidak menghapusnya. Jika Anda tidak menggunakan aplikasi antivirus lain, instal aplikasi antivirus untuk melindungi PC Anda. Jika Anda tidak menghapus Defender sendiri, pilih Laporkan masalah.
+# its button is report-title.
+defender-missing-message = Atlas tidak menghapusnya. Jika Anda tidak menggunakan aplikasi antivirus lain, instal antivirus untuk melindungi PC Anda.
+# Home and the "Atlas is installed" window, when Atlas's record kept Microsoft Defender but
+# Atlas's own package still removes it. Its button is home-reinstall. 7. Security, Defender and
+# Toggle Defender are folder and file names in the Atlas folder, in English on every PC.
+installed-defender-not-restored-title = Microsoft Defender masih terhapus
+defender-not-restored-message = Pembaruan Atlas sebelumnya tidak mengembalikannya, jadi Defender tidak melindungi PC Anda. Instal ulang Atlas dan pertahankan Defender, atau jalankan Toggle Defender dari 7. Security > Defender di folder Atlas.
+# The "Atlas is installed" window, when what the installation recorded for some choices isn't
+# what was chosen. The help links (Send a report, Export diagnostics, Open log folder) follow.
+installed-not-applied-title = Beberapa pilihan tidak diterapkan
+# $choices lists their names as they read mid-sentence (screen-*-name), such as "Microsoft
+# Defender and processor protections", joined with list-and; $count is how many it names.
+installed-not-applied-choices =
+    { $count ->
+       *[other] Pilihan berikut tetap seperti semula: { $choices }.
+    }
+# After an update whose last step turned Windows Update off, or paused it, again, as the
+# user's own Atlas choices ask.
+installed-update-off-title = Windows Update kembali nonaktif, sesuai pilihan Anda
+installed-update-off-message = Selama nonaktif, PC Anda tidak menerima pembaruan keamanan.
+installed-update-paused-title = Pembaruan Windows kembali dijeda, sesuai pilihan Anda
+installed-update-paused-message = Selama dijeda, PC Anda tidak menerima pembaruan keamanan.
 
 ## Settings
 
 settings-title = Pengaturan
+# Headings of the page's sections, over their cards. settings-language and settings-help
+# head sections too.
+settings-appearance = Tampilan
+settings-installation = Penginstalan
+settings-privacy = Privasi
 settings-theme = Tema aplikasi
 settings-theme-system = Ikuti Windows
 settings-theme-light = Terang
 settings-theme-dark = Gelap
 settings-theme-contrast-note = Atlas menggunakan warna dari tema kontras Windows Anda.
-settings-theme-mica-note = Untuk menampilkan latar belakang tembus pandang, pilih tema terang atau gelap yang sama dengan Windows.
 settings-language = Bahasa
-settings-language-system = Ikuti Windows
-settings-language-system-selected = { settings-language-system } ({ $language })
-# Under "Match Windows": which language that gives. $language is a language's own name.
-settings-language-system-detail = Jika mengikuti Windows: { $language }
-# A short tag under each language that is translated but not yet reviewed by a native speaker.
+# The setting in the Language section, and its box's name.
+settings-app-language = Bahasa aplikasi
+# The first choice in the language box: following Windows, then the language that gives.
+# $language is that language's own name, for example "English (United Kingdom)".
+settings-language-match-windows = Ikuti Windows – { $language }
+
+# A short tag after each language in the list that is translated but not yet reviewed
+# by a native speaker.
 settings-language-preview-tag = Pratinjau
-# Under the language list, once, explaining the Preview tag.
-settings-language-preview-note = Terjemahan pratinjau belum ditinjau oleh penutur asli.
+# Under the language box while the language in use is a preview translation, once its
+# notice (preview-notice) has been dismissed.
+settings-language-preview-in-use = Terjemahan ini belum ditinjau oleh penutur asli.
+# A bar at the top of the content while a preview translation is in use, until the user
+# dismisses it (common-dismiss names its close button). $language is the language's own
+# name; preview-notice-switch and preview-notice-language are its links.
 preview-notice = { $language } adalah terjemahan pratinjau dan mungkin berisi kesalahan.
 preview-notice-switch = Beralih ke bahasa Inggris
 preview-notice-language = Ubah bahasa
-# $tag is a language tag (text).
-settings-language-unavailable = { $tag } tidak tersedia dalam versi Atlas ini. Bahasa Inggris ditampilkan untuk sementara, dan pilihan bahasa Anda tetap disimpan.
-# $languages is the Windows display-language list (text).
-settings-language-windows-unmatched = Atlas belum mendukung bahasa tampilan Windows Anda ({ $languages }). Bahasa Inggris ditampilkan untuk sementara.
-settings-language-windows-unavailable = Tidak dapat memeriksa bahasa tampilan Windows Anda. Atlas menggunakan bahasa Inggris untuk sementara. Detail: { $error }
-# $locale is the regional format's own name, for example "English (United Kingdom)".
-settings-language-formats = Angka, tanggal, dan waktu mengikuti format regional Windows Anda ({ $locale }).
+# Under the language box when the language chosen isn't in this version, and the box
+# shows English, which is in use.
+settings-language-chosen-unavailable = Bahasa yang Anda pilih tidak tersedia dalam versi Atlas ini, jadi Atlas menampilkan bahasa Inggris. Pilihan Anda tetap disimpan.
+# Under the language box while Match Windows is chosen and Atlas has none of the Windows
+# display languages.
+settings-language-windows-unsupported = Atlas belum mendukung bahasa tampilan Windows Anda, jadi Atlas menampilkan bahasa Inggris.
+# Under the language box while Match Windows is chosen and the Windows display languages
+# couldn't be read.
+settings-language-windows-unreadable = Atlas tidak dapat memeriksa bahasa tampilan Windows Anda, jadi Atlas menampilkan bahasa Inggris.
+# Under the language box when the regional format is of another language or region than
+# the app. $locale is the regional format's own name, for example "English (United States)".
+settings-language-formats = Angka, tanggal, dan waktu mengikuti format regional Windows Anda: { $locale }.
 # Instead of settings-language-formats when the regional format writes dates or times
 # right to left. $locale is the format's English name, for example "Arabic (Saudi Arabia)".
-settings-language-formats-numbers-only = Angka mengikuti format regional Windows Anda ({ $locale }). Tanggal dan waktu menggunakan format standar karena Atlas belum dapat menampilkan teks dari kanan ke kiri.
-settings-language-contribute = Bantu menerjemahkan Atlas di GitHub
-settings-usage-analytics = Bagikan layar yang dikunjungi, pembuatan ISO, dan hasil instalasi dengan Atlas
-settings-restart-label = Mulai ulang PC secara otomatis setelah penginstalan
+settings-language-formats-numbers-only = Angka mengikuti format regional Windows Anda: { $locale }. Tanggal dan waktu menggunakan format standar karena Atlas belum dapat menampilkan teks dari kanan ke kiri.
+settings-language-contribute = Bantu menerjemahkan Atlas
+# The usage analytics switch, with its description and a link to the privacy policy.
+settings-share-usage = Bagikan data penggunaan dengan Atlas
+settings-share-usage-description = Halaman yang Anda buka, pembuatan ISO, dan apakah penginstalan berhasil.
+settings-privacy-policy = Kebijakan privasi
+# The switch covers the restart after installing and the restart that Windows and Store
+# updates need before installing.
+settings-restart-automatically = Mulai ulang secara otomatis setelah menginstal dan memperbarui
+settings-restart-automatically-description = PC Anda dimulai ulang dalam waktu satu menit setelah Atlas selesai, dan aplikasi yang terbuka akan ditutup.
 settings-restart-locked = Pengaturan ini dapat diubah setelah penginstalan selesai.
-settings-restart-description = Jika pengaturan ini aktif, PC Anda akan dimulai ulang dalam waktu satu menit setelah penginstalan selesai, sehingga aplikasi yang terbuka akan ditutup. Simpan pekerjaan Anda sebelum menginstal.
-settings-help = Bantuan dan masukan
+# Heading over Send a report, Export diagnostics and settings-open-data-folder.
+settings-help = Bantuan
 settings-about = Tentang
 settings-about-app = Atlas Manager
 settings-about-licence = Lisensi
 settings-about-licence-value = GPL-3.0, gratis dan sumber terbuka
-settings-view-source = Lihat kode sumber di GitHub
+settings-view-source = Lihat kode sumber
 # Link that opens the third-party licence notices.
 settings-view-licences = Lihat pemberitahuan lisensi
 # Under the links when Windows could not open the notices.
@@ -694,72 +1053,101 @@ consequence-disable-power-saving = Menonaktifkan fitur penghematan daya. PC Anda
 consequence-disable-core-isolation = Menonaktifkan lapisan keamanan tambahan Windows, termasuk integritas memori. Ini mengurangi perlindungan dan dapat memengaruhi aplikasi atau game yang memerlukannya.
 consequence-remove-snipping-tool = Menghapus aplikasi Windows untuk mengambil tangkapan layar dan merekam layar.
 consequence-uninstall-edge = Menghapus browser Microsoft Edge. Pastikan Anda memiliki browser lain, atau pilih salah satu di bawah.
-# Instead of consequence-uninstall-edge when Atlas is installed on this PC, which has the
-# user's Edge data. "choose one below" refers to the browser choice under it.
-consequence-uninstall-edge-data = Menghapus Microsoft Edge serta favorit, riwayat, dan kata sandi tersimpan Anda di Edge pada PC ini. Data yang tidak disinkronkan ke akun Microsoft Anda akan hilang. Pastikan Anda memiliki browser lain, atau pilih salah satu di bawah.
 # Under Remove Microsoft Edge in the Install step's summary, with a caution glyph.
 caution-uninstall-edge = Menghapus favorit, riwayat, dan kata sandi tersimpan Anda di Edge pada PC ini.
 consequence-install-another-browser = Pilih browser di bawah dan Atlas akan menginstalnya untuk Anda.
 consequence-install-toolbox = Tambahkan Atlas Toolbox untuk membantu mengelola pengaturan Atlas Anda. Toolbox masih dalam tahap beta, sehingga beberapa fitur mungkin belum selesai.
 consequence-install-eclean = Alat perawatan dari tim di balik AtlasOS untuk menjaga PC tetap rapi setelah penyiapan. Tinjau file sampah dan aplikasi startup. Memerlukan akun dan koneksi internet.
 
-# Introduction on the home page before Atlas is installed.
-home-intro = Atlas menyesuaikan Windows untuk mengurangi aktivitas latar belakang dan gangguan. Instal Atlas pada instalasi Windows yang bersih, sebelum Anda menambahkan aplikasi dan file Anda sendiri.
 ## ISO creation
-iso-home-title = Media instalasi Windows
-iso-home-description = Buat file instalasi Windows (ISO) yang menyertakan Atlas, lalu gunakan untuk menginstal ulang Windows di PC ini atau PC lain.
 iso-open = Buat ISO Atlas
 iso-title = Buat ISO Atlas
 iso-recommended = Disarankan
-iso-admin-description = Atlas memerlukan izin administrator untuk membaca ISO Windows Anda dan membuat ISO baru. Pilih Jalankan ulang sebagai administrator, lalu pilih Ya saat Windows meminta izin.
+# Titles of the three ISO steps in the stepper: where Windows comes from, how it's set
+# up, and the review that creates the ISO.
+iso-step-source = Windows
+iso-step-setup = Penyiapan
+iso-step-create = Buat
+# The first question on the Windows step. It sets the defaults that follow: the
+# architecture, language, edition and account name, and this PC's network drivers.
+iso-target-title = Untuk PC mana ISO ini?
+iso-target-this = PC ini
+iso-target-another = PC lain
+# Under the question when the ISO is for another kind of processor than this PC's, so only
+# Another PC applies. $architecture is iso-architecture-x64 or iso-architecture-arm64.
+iso-target-arch = ISO ini untuk PC { $architecture }.
 iso-source = ISO Windows
-iso-download-recommended = Unduh dari Microsoft (disarankan)
-iso-source-question = Dari mana Anda ingin mendapatkan Windows?
-iso-use-local = Pilih file ISO
-iso-package-latest-label = Terbaru
-iso-package-latest = Paket Atlas terbaru
-iso-package-unavailable = Pilih paket Atlas untuk versi Manager ini.
-iso-save-name = Simpan sebagai { $name }
-iso-source-download = Unduh Windows 11 dari Microsoft
+# Starts the Windows 11 download at once, in the language and architecture of the caption
+# under it (iso-download-caption). Also in the Windows ISO's Change menu and on the bar of
+# an ISO Atlas can't use.
+iso-download-windows = Unduh dari Microsoft
+# What the download gets. $language is Microsoft's own name for the language, in English,
+# such as "English International"; $architecture is iso-architecture-x64 or -arm64.
+iso-download-caption = Windows 11 · { $language } · { $architecture }
+# The same while Microsoft's list of languages loads.
+iso-download-caption-loading = Windows 11 · { $architecture }
+# Names the download's language and architecture for the accessible name of its Change link.
+iso-download-what = Unduhan Windows
+iso-download-language = Bahasa
 iso-download-arch = Arsitektur
 iso-download-languages = Memuat bahasa…
-iso-download-list-error = Bahasa Windows gagal dimuat. Coba lagi atau unduh ISO dari situs Microsoft.
-iso-download-file-error = ISO gagal disimpan. Periksa koneksi dan ruang kosong, lalu coba lagi dengan nama file baru.
-iso-download-website = Buka halaman unduhan Microsoft
-iso-download-progress = Mengunduh Windows · { $received } dari { $total }
-iso-download-starting = Menyiapkan unduhan Windows…
-iso-output = Simpan ISO baru ke
-iso-no-file = Belum ada file yang dipilih
-# Accessible name of the Browse or Save as button beside a file field: $action is
-# that button's text and $field the field's label.
+# The progress bar's label while Windows downloads, then how much has arrived. $received and
+# $total are sizes such as "2.4 GB" (size-gigabytes).
+iso-downloading = Mengunduh Windows 11…
+iso-download-amount = { $received } dari { $total }
+# The download couldn't start because Microsoft's download service couldn't be reached
+# through Atlas, or it stopped part-way. Try again (common-try-again) is beside it.
+iso-download-unreachable = Atlas tidak dapat menjangkau layanan unduhan Microsoft. Periksa koneksi internet Anda, lalu coba lagi.
+iso-download-incomplete = Unduhan tidak selesai. Periksa koneksi internet dan ruang kosong, lalu coba lagi.
+iso-download-website = Buka situs unduhan Microsoft
+# Opens the file picker for a Windows ISO, and is that picker's Open button. On the ISO and
+# USB pages, and on the bar of an ISO Atlas can't use.
+iso-use-local = Pilih file ISO
+# A status pill while the files are checked, before Continue becomes available.
+iso-checking = Memeriksa ISO Windows Anda…
+# Accessible name of the Ready pill once the check passed. $facts is the ISO's architecture
+# and size, such as "x64 · 6.6 GB".
+iso-checked-a11y = ISO Windows siap, { $facts }
+iso-package-latest-label = Terbaru
+# The latest Atlas release is older than this Atlas Manager can use; Open package file
+# (package-open-file) is under it.
+iso-package-release-old = Rilis Atlas terbaru lebih lama daripada versi yang dapat digunakan Atlas Manager ini.
+# While Atlas finds and downloads the latest Atlas package by itself.
+iso-package-fetching = Mendapatkan Atlas terbaru…
+# The release check failed, so the latest package couldn't be found; Try again is beside it.
+iso-package-release-failed = Atlas tidak dapat memeriksa versi terbaru. Periksa koneksi internet Anda, lalu coba lagi.
+# Accessible name of the Change button beside a file: $action is that button's text and
+# $field the file's label.
 iso-pick-a11y = { $action }: { $field }
-iso-inspect = Periksa file
-iso-mode-title = Bagaimana Anda ingin menyiapkan Atlas?
-iso-mode-interactive = Tentukan pilihan Atlas setelah masuk
-iso-mode-interactive-description = Setelah Anda masuk, Atlas terbuka dan memandu Anda melalui pembaruan, pilihan Anda, dan penginstalan Atlas.
-iso-mode-before = Tentukan pilihan Atlas sekarang
-iso-mode-before-description = Atlas menyimpan pilihan Anda dalam ISO. Setelah Anda masuk, Atlas terbuka dan memandu Anda melalui pembaruan, lalu Anda menginstal Atlas dengan pilihan tersebut.
-iso-package-unsupported-title = Pilih paket Atlas yang lebih baru
-# "Make Atlas choices after sign-in" is iso-mode-interactive.
-iso-package-unsupported = Paket Atlas ini tidak dapat menyimpan pilihan Atlas dalam ISO. Pilih paket yang lebih baru, atau pilih Tentukan pilihan Atlas setelah masuk.
-# Shown when Check files refuses the Atlas package; $minimum as for iso-package.
-iso-failed-package-unsupported = Paket Atlas ini tidak dapat digunakan untuk membuat ISO. Pilih paket untuk Atlas { $minimum } atau yang lebih baru.
-# Tester build: the bundled package cannot be swapped, so the only way on is the after-sign-in mode.
-iso-package-unsupported-bundled-title = Pilihan Atlas tidak dapat disimpan dalam ISO ini
-# "Make Atlas choices after sign-in" is iso-mode-interactive.
-iso-package-unsupported-bundled = Paket Atlas bawaan versi uji ini tidak mendukung penyiapan ISO. Sebagai gantinya, pilih Tentukan pilihan Atlas setelah masuk.
+# Beside the unavailable Continue on the Windows step while there's no Windows ISO yet.
+iso-need-windows = Dapatkan ISO Windows untuk melanjutkan
+# The question on the Setup step about when the package's choices are made.
+iso-mode-question = Kapan Anda ingin menentukan pilihan Atlas?
+iso-mode-after = Setelah masuk
+iso-mode-after-description = Atlas memandu Anda melalui penyiapan setelah Anda masuk.
+iso-mode-now = Sekarang
+iso-mode-now-description = Disimpan dalam ISO. Anda menginstal Atlas setelah masuk.
+# A check box under Now, whose description already says the choices are saved in the ISO.
+iso-mode-before-desktop = Selesaikan sebelum desktop terbuka
+iso-mode-before-desktop-description = Setelah Anda masuk, Atlas berjalan dalam layar penuh hingga terinstal.
+# In place of the question when the Atlas package can't save choices in an ISO.
+iso-mode-unavailable = Paket Atlas ini tidak dapat menyimpan pilihan dalam ISO, jadi Anda menentukannya setelah masuk.
 iso-atlas-options = Pilihan Atlas
-iso-review = Tinjau ISO
-iso-review-description = Membuat ISO tidak menginstal apa pun di PC ini dan tidak mengubah ISO asli Anda. Setelah itu, Atlas dapat menyalin ISO baru ke drive USB agar Anda dapat menginstal ulang Windows dari drive tersebut.
-iso-review-files = File
-iso-step-windows = Penyiapan Windows
-iso-step-review = Tinjau
+# The line at the top of the Create step.
+iso-create-intro = Membuat ISO tidak mengubah PC ini atau ISO asli Anda.
 iso-review-package = Paket Atlas
 iso-review-output = ISO baru
+iso-review-edition = Edisi
 iso-review-editions = Edisi
 iso-edition = Edisi Windows
-iso-edition-auto = Pilih saat penyiapan Windows
-iso-accept-terms = Saya menerima Persyaratan Lisensi Perangkat Lunak Microsoft untuk Windows
+# The edition shown on the Setup step's edition card when Windows Setup asks which edition to
+# install.
+iso-edition-auto = Ditanyakan saat Penyiapan Windows
+# The first item of that card's edition menu, above the ISO's own editions: the choice that lets
+# Windows Setup ask which edition to install.
+iso-edition-auto-menu = Pilih saat Penyiapan Windows
+# An optional check box: accepting the terms here stops Windows Setup from asking.
+iso-accept-terms-optional = Terima ketentuan lisensi Windows agar Penyiapan Windows tidak menanyakannya
 iso-architecture-x64 = x64
 iso-architecture-arm64 = Arm64
 # A file size; $size is a formatted number (text). Megabytes below a gigabyte.
@@ -768,9 +1156,28 @@ size-gigabytes = { $size } GB
 iso-review-account = Nama akun
 iso-review-target = Instal di
 iso-review-drivers = Driver
+# A review row about the Windows Setup screens the ISO's answer file skips.
+iso-review-setup-screens = Penyiapan Windows
+iso-review-skips = Melewati layar akun Microsoft dan privasi
+iso-review-skips-terms = Melewati layar lisensi, akun Microsoft, dan privasi
+iso-review-network = Driver jaringan
+iso-review-network-included = Driver Wi-Fi dan Ethernet PC ini
+# The Atlas choices row when they're saved in the ISO and finish before the desktop opens.
+iso-review-mode-before-desktop = Sekarang, selesai sebelum desktop terbuka
+# Under the new ISO on the Create step. $needed and $free are sizes such as "35.0 GB"
+# (size-gigabytes); $drive is a drive such as "C:".
+iso-destination-space = Memerlukan { $needed } · { $free } kosong di { $drive }
+iso-destination-short = ISO memerlukan { $needed }, sedangkan ruang kosong di { $drive } hanya { $free }. Kosongkan ruang, atau simpan ISO ke drive lain.
+iso-destination-filesystem = { $drive } tidak dapat menyimpan file besar dalam ISO. Simpan ke drive berformat NTFS, seperti drive Windows Anda.
+iso-destination-unusable = Atlas hanya dapat menyimpan ISO ke folder di drive pada PC ini.
 iso-create = Buat ISO
-iso-progress-title = Membuat ISO Anda
-iso-stage-inspect = Memeriksa ISO Windows Anda
+# Heading above the progress bar and the list of stages (iso-stage-*) while the ISO is
+# being created.
+iso-progress-title = Membuat ISO Anda…
+# The progress bar's label: the stage under way, as a verb phrase ending in an ellipsis.
+# $stage is one of the iso-stage-* messages.
+iso-progress-stage = { $stage }…
+iso-stage-read = Membaca ISO Windows
 iso-stage-copy = Menyalin file Windows
 iso-stage-add-atlas = Menambahkan Atlas
 iso-stage-master = Menulis file ISO
@@ -783,247 +1190,96 @@ iso-stage-status-current = sedang berlangsung
 # The stage where creating the ISO stopped with an error.
 iso-stage-status-failed = gagal
 iso-stage-status-not-started = belum dimulai
-iso-progress-description = Biarkan Atlas tetap terbuka. Citra berukuran besar mungkin memerlukan waktu untuk diproses.
+iso-progress-keep-open = Biarkan Atlas tetap terbuka hingga selesai.
 iso-cancel = Batalkan pembuatan
 iso-cancelling = Menunggu titik aman untuk membatalkan
+# The heading over the progress bar of an ISO or a USB drive once cancelling is asked for.
+iso-cancelling-short = Membatalkan…
 iso-cancelled = Pembuatan ISO dibatalkan
-iso-cancelled-description = ISO asli Anda tidak berubah. Jika ada file sementara yang tertinggal, pilih Buka folder log untuk melihat lokasinya.
+iso-cancelled-unchanged = ISO asli Anda tidak diubah.
 iso-complete = ISO Anda siap
-iso-complete-description = Setelah itu, pilih Buat USB instalasi, dan cadangkan file Anda sebelum menginstal ulang Windows.
+iso-complete-backup = Cadangkan file Anda sebelum menginstal ulang Windows dari ISO ini.
+# The finished page's main button, which opens the USB drive panel.
+iso-create-usb = Buat drive USB
 iso-open-folder = Tampilkan di folder
 iso-failed = Pembuatan ISO tidak dapat diselesaikan
-iso-failed-description = Pastikan file Anda masih berada di lokasi yang Anda pilih dan drive tujuan masih terhubung, lalu pilih Buat ISO. Jika terus gagal, pilih Kirim laporan.
-# Title while the Check files step fails; the messages below say why.
+# Under iso-failed, beside Try again.
+iso-failed-retry = Pastikan file Anda masih berada di lokasi yang Anda pilih dan drive tujuan masih terhubung, lalu coba lagi.
+# Title while checking the files fails; the messages below say why.
 iso-check-failed = Tidak dapat memeriksa file
-iso-check-failed-description = Pastikan ISO dan paket Atlas masih berada di lokasi yang Anda pilih dan sudah selesai diunduh, lalu pilih Periksa file. Jika terus gagal, pilih Kirim laporan.
-# Title when Windows refused the administrator relaunch (UAC declined); elevation-declined is the message.
+iso-check-failed-retry = Pastikan ISO dan paket Atlas sudah selesai diunduh, lalu coba lagi.
+# Nothing ran because the folder the worker runs from couldn't be created.
+iso-unstaged = Atlas tidak dapat menyiapkan folder kerjanya, sehingga tidak ada yang diubah.
+# Titles and messages for an ISO or package Atlas can't use. The bar offers the fix:
+# iso-download-windows and iso-use-local for the ISO, iso-fix-package for the package.
+iso-edition-unsupported-title = ISO ini tidak berisi edisi yang didukung Atlas
+iso-edition-unsupported = Windows Home dan LTSC tidak didukung. Gunakan ISO dengan edisi Pro, Education, atau Enterprise.
+iso-customised-title = ISO ini sudah dimodifikasi
+iso-customised = ISO ini sudah berisi file penyiapan, seperti autounattend.xml. Gunakan ISO dari Microsoft yang belum dimodifikasi.
+iso-preview-title = ISO ini adalah build pratinjau
+iso-preview = Build Windows-nya tidak ada dalam daftar rilis publik Microsoft. Gunakan ISO dari Microsoft.
+iso-windows-unsupported-title = Paket Atlas ini tidak dapat menggunakan ISO ini
+iso-windows-unsupported = Gunakan ISO Windows 11 yang belum dimodifikasi untuk versi yang didukung paket ini.
+iso-release-unknown-title = Atlas tidak dapat memastikan rilis Windows ini
+iso-release-unconfirmed = Atlas mencocokkannya dengan daftar rilis publik Microsoft. Periksa koneksi internet Anda, lalu coba lagi.
+# $minimum is the oldest Atlas version that can make an ISO, such as "0.6.0".
+iso-package-old-title = Paket Atlas ini tidak dapat membuat ISO
+iso-package-old = Gunakan Atlas { $minimum } atau yang lebih baru.
+iso-manager-missing-title = File Atlas Manager tidak ditemukan
+iso-fix-package = Pilih paket lain
+# A package that needs a newer Atlas Manager; Download Atlas Manager (manager-download) is
+# beside it, and acquire-manager-update-needed says which version.
+iso-manager-outdated-title = Atlas Manager perlu diperbarui
+# This PC's network drivers couldn't be exported; the button beside it builds without them.
+iso-network-not-added = Atlas tidak dapat menambahkan driver jaringan PC ini ke ISO.
+iso-network-skip = Buat tanpa driver
+# Title of the bar that asks for administrator permission. Its message is iso-admin-reason,
+# or iso-elevation-declined after Windows refused the relaunch (UAC declined).
 iso-elevation-title = Atlas memerlukan izin untuk membuat ISO
-# Typed reasons reported by the image worker.
-iso-failed-output-exists = File dengan nama tersebut sudah ada. Pilih Simpan sebagai dan masukkan nama file baru.
-iso-failed-destination = Atlas tidak dapat menyimpan ISO baru di sana. Pilih Simpan sebagai, lalu pilih folder di PC ini, seperti Unduhan. Lokasi jaringan dan drive berformat FAT32 atau exFAT, seperti banyak drive USB, tidak dapat digunakan.
+iso-admin-reason = Izin ini diperlukan untuk membaca ISO Windows Anda dan membuat ISO baru.
+iso-elevation-declined = Windows tidak memberikan izin kepada Atlas, sehingga Atlas belum dapat membaca ISO Windows Anda.
+# The free space ran out while the ISO was being created.
 iso-failed-space = Ruang kosong di drive tujuan tidak cukup. Kosongkan ruang, atau simpan ISO baru ke drive lain.
+# Under iso-manager-missing-title.
+iso-manager-missing = Unduh AtlasManager.exe ke folder lokal seperti Unduhan, lalu buka dari sana.
 # Home and LTSC are the editions ISO creation drops; the others are examples it keeps.
 iso-failed-edition = ISO ini tidak berisi edisi Windows yang didukung. Windows Home dan LTSC tidak didukung. Gunakan ISO yang menyertakan edisi lain, seperti Pro, Education, atau Enterprise.
-iso-failed-customised = ISO ini sudah berisi file penyiapan kustom, seperti autounattend.xml. Pilih ISO Windows dari Microsoft yang belum dimodifikasi.
-iso-failed-windows-unsupported = Citra Windows ini tidak didukung oleh paket Atlas. Gunakan ISO Windows 11 64-bit yang belum dimodifikasi untuk versi yang didukung paket ini.
-iso-failed-network-architecture = Driver jaringan PC ini tidak cocok dengan arsitektur ISO ini. Kembali dan nonaktifkan Sertakan driver jaringan PC ini, atau pilih ISO untuk PC ini.
-iso-failed-manager-missing = File Atlas Manager tidak ditemukan. Unduh AtlasManager.exe ke folder lokal seperti Unduhan, buka dari sana, lalu coba lagi.
-iso-failed-unstaged = Atlas tidak dapat menyiapkan folder kerjanya, sehingga tidak ada yang diubah. Coba lagi. Jika masih gagal, pilih Ekspor diagnostik untuk laporan bug.
-iso-failed-package-changed = Paket Atlas berubah setelah file diperiksa. Pilih Ubah di samping File, lalu pilih Periksa file.
+# Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = Buka folder log
-iso-close-title = Pembuatan ISO masih berlangsung
-iso-close-message = Biarkan jendela ini terbuka hingga pembuatan atau pembatalan selesai. Pembatalan menunggu hingga operasi saat ini dapat dihentikan dengan aman.
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,
 # from another page. Their controls are unavailable until it finishes.
 iso-locked = Atlas sedang memproses Windows Update. Anda dapat melanjutkan di sini setelah selesai.
-prepare-title = Perbarui Windows dan aplikasi Store
-prepare-description = Sebelum menginstal, Atlas memperbarui Windows, Microsoft Store, dan aplikasi Store Anda. Aplikasi Store yang sedang terbuka, seperti Notepad, Paint, atau Windows Terminal, mungkin ditutup saat diperbarui, jadi simpan pekerjaan Anda di aplikasi tersebut terlebih dahulu. PC Anda mungkin juga perlu dimulai ulang.
-prepare-complete = Atlas tidak menemukan pembaruan Windows atau Store lain yang perlu diinstal.
-prepare-reboot-title = Mulai ulang PC Anda untuk melanjutkan
-prepare-reboot = PC Anda perlu dimulai ulang untuk menyelesaikan penginstalan pembaruan. Atlas menyimpan pilihan Anda sejauh ini dan akan terbuka kembali setelah Anda masuk.
-# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
-prepare-reboot-reasons = PC Anda perlu dimulai ulang untuk menyelesaikan penginstalan pembaruan ({ $reasons }). Atlas menyimpan pilihan Anda sejauh ini dan akan terbuka kembali setelah Anda masuk.
-# Under the restart message: the button restarts Windows without a countdown.
-prepare-reboot-save-work = Simpan pekerjaan Anda dan tutup aplikasi terlebih dahulu. PC Anda langsung dimulai ulang begitu Anda memilih Mulai ulang dan lanjutkan.
-# Shown instead of another restart when Windows asks for one again right after restarting.
-prepare-restart-persists = PC Anda sudah dimulai ulang, tetapi Windows masih meminta mulai ulang ({ $reasons }), jadi memulai ulang lagi kemungkinan tidak akan membantu. Pilih Buka Windows Update dan selesaikan apa pun yang menunggu di sana, lalu pilih Coba lagi. Jika tidak ada yang menunggu, pilih Kirim laporan.
 # Names of the markers Windows sets when it wants a restart. They complete
-# "Windows needs to restart (…)"; keep them short and lower case where the language allows.
+# "Your PC needs to restart to finish installing updates (…)"; keep them short and lower
+# case where the language allows.
 prepare-reason-servicing = pemeliharaan komponen Windows
-prepare-reason-windows-update = Windows Update
+prepare-reason-windows-update = pembaruan Windows
 prepare-reason-file-renames = file yang menunggu diganti
 prepare-reason-update-agent = layanan Windows Update
 prepare-reason-unknown = alasan tidak dilaporkan
-prepare-failed = Pilih Coba lagi. Jika gagal lagi, selesaikan pembaruan yang tersisa di Windows Update atau Microsoft Store, atau pilih Kirim laporan.
+# Under prepare-failed-title, with Try again (common-try-again).
+prepare-failed-retry = Jika mencoba lagi tidak membantu, selesaikan pembaruan yang tersisa di Windows Update atau Microsoft Store.
+# Title of the error bar on the update card; the cause is its message.
 prepare-failed-title = Beberapa pembaruan tidak dapat diselesaikan
-# The update run ended without writing any result, for example after Atlas was closed
-# while it ran. "Try again" is common-try-again, the button beside it.
-prepare-ended-unconfirmed = Proses pembaruan berhenti sebelum melaporkan hasilnya, sehingga Atlas tidak dapat memastikan bahwa Windows dan aplikasi Store sudah diperbarui. Pilih Coba lagi untuk memeriksa pembaruan.
+# Under prepare-unconfirmed-title: the run ended without writing any result, for example after
+# Atlas was closed while it ran.
+prepare-unconfirmed = Pembaruan berhenti sebelum melaporkan hasilnya.
+# Title of the bar over prepare-unconfirmed: not called a failure, as none was reported.
 prepare-unconfirmed-title = Tidak dapat memastikan hasil pembaruan
-# "Check and install updates" is prepare-start, its button in this state.
-prepare-cancelled = Pembaruan dihentikan. Beberapa pembaruan mungkin sudah terinstal. Pilih Periksa dan instal pembaruan untuk menyelesaikannya sebelum melanjutkan.
-prepare-windows-search = Memeriksa pembaruan Windows…
-prepare-windows-download = Mengunduh pembaruan Windows…
-prepare-windows-install = Menginstal pembaruan Windows…
-prepare-windows-repair = Memperbaiki Windows terlebih dahulu, karena Windows melaporkan kerusakan yang dapat mencegah pembaruan terinstal. Ini dapat memerlukan waktu setengah jam atau lebih.
-prepare-store-search = Memeriksa Microsoft Store…
-prepare-store-install = Memperbarui Microsoft Store dan aplikasinya…
-prepare-stop-description = Atlas akan berhenti setelah langkah saat ini selesai. Biarkan Atlas tetap terbuka sampai saat itu.
-prepare-stop = Hentikan pembaruan
-prepare-restart = Mulai ulang dan lanjutkan
-prepare-start = Periksa dan instal pembaruan
-# Under the preparation button while it is unavailable. $check is the check-supported-build title.
-prepare-blocked-source = Tidak tersedia karena penginstalan ini tidak dapat dilanjutkan. Lihat pesan di bagian atas halaman.
-prepare-needs-build-check = Tersedia setelah { $check } berhasil di Pemeriksaan PC.
-# Under the preparation button, and under the Administrator check, while the installation files are still downloading or unpacking.
-prepare-wait-for-package = Tersedia setelah file penginstalan siap.
-iso-username = Nama akun lokal
-iso-account-description = Penyiapan Windows membuat akun lokal dengan nama ini, jadi Anda tidak memerlukan akun Microsoft. Windows akan meminta Anda membuat kata sandi saat pertama kali masuk.
-iso-username-placeholder = Nama Anda
-iso-account-empty = Masukkan nama akun lokal untuk melanjutkan
-iso-account-invalid = Gunakan maksimal 20 karakter, tanpa spasi di awal atau akhir dan tanpa karakter berikut: " / \ [ ] : ; | = , + * ? < > @
-iso-account-trailing-dot = Nama tidak boleh diakhiri dengan titik.
-iso-account-reserved = Windows menggunakan nama ini untuk akun bawaan. Pilih nama lain.
-iso-terms-in-setup = Penyiapan Windows akan meminta Anda menyetujui persyaratan lisensi.
-iso-privacy-defaults = ISO ini melewati layar akun Microsoft, dan privasi dalam penyiapan Windows, serta menonaktifkan berbagi data opsional dan penawaran yang dipersonalisasi.
-prepare-drivers = Bagaimana driver akan diinstal?
-prepare-drivers-auto = Dapatkan driver melalui Windows Update
-prepare-drivers-auto-detail = Windows mencari driver untuk perangkat keras Anda. Disarankan untuk sebagian besar PC.
-prepare-drivers-manual = Saya akan menginstal driver sendiri
-prepare-drivers-manual-detail = Windows Update tidak akan menginstal driver, jadi Anda perlu mendapatkannya dari produsen PC atau perangkat Anda. Driver yang sudah terinstal tetap dipertahankan.
-prepare-drivers-description = Driver memungkinkan Windows menggunakan perangkat keras Anda, seperti grafis, suara, dan Wi-Fi. Jika Anda mengubah pilihan ini setelah memperbarui, Atlas perlu memeriksa pembaruan lagi.
-prepare-drivers-from-iso = Atlas Manager akan menggunakan pilihan driver yang disimpan dalam ISO.
-prepare-choose-drivers = Pilih cara menginstal driver sebelum memeriksa pembaruan.
-iso-drivers-title = Pembaruan driver setelah masuk
-iso-drivers-during-setup = Penyiapan Windows menggunakan driver bawaan dan driver jaringan yang disertakan dalam ISO. Atlas Manager menerapkan pilihan driver Anda setelah Anda masuk.
-iso-drivers-defer = Pilih setelah masuk
-prepare-network-needed = Pembaruan memerlukan koneksi internet yang tidak terukur. Hubungkan ke Wi-Fi atau Ethernet, lalu pilih Coba lagi. Jika tidak ada jaringan Wi-Fi yang muncul, instal driver jaringan Anda terlebih dahulu.
-# Connected, but Windows found no internet access (a captive portal, or DNS or firewall filtering).
-prepare-network-limited = Windows melaporkan bahwa jaringan ini tidak memiliki akses internet. Masuk ke jaringan jika diminta, atau periksa router serta pemfilteran DNS atau firewall, lalu coba lagi.
-# "Metered connection" is the switch's name in Windows network settings.
-prepare-network-metered = Koneksi ini terukur atau memiliki batas data. Hubungkan ke jaringan yang tidak terukur, atau nonaktifkan Koneksi terukur di pengaturan jaringan, lalu coba lagi.
-prepare-network-settings = Buka pengaturan jaringan
-iso-target-title = Di PC mana Anda akan menginstal ulang Windows?
-iso-target-this = PC ini
-# Under This PC (iso-target-this), before it's chosen.
-iso-target-this-description = Atlas dapat menambahkan driver Wi-Fi dan Ethernet PC ini ke ISO, sehingga Windows dapat langsung terhubung ke internet setelah diinstal ulang.
-iso-target-other = PC lain
-iso-copy-network = Sertakan driver jaringan PC ini
-iso-network-detail = Gunakan kembali driver Wi-Fi dan Ethernet PC ini saat menginstal Windows. Anda perlu menghubungkan ulang Wi-Fi setelah instalasi.
-iso-network-source = Sumber driver jaringan
-iso-network-installed = Gunakan driver yang terinstal
-iso-network-updated = Periksa Windows Update terlebih dahulu
-iso-network-updated-detail = Unduh driver yang sesuai dari Windows Update dan simpan driver terinstal sebagai cadangan. Memerlukan koneksi yang tidak terukur.
-iso-stage-network-drivers = Menyiapkan driver jaringan
-iso-network-failed = Driver jaringan tidak dapat disiapkan. Periksa diagnostik atau kembali dan ubah opsi driver jaringan.
-# Under iso-complete when Include this PC's network drivers was chosen but the adapters use
-# drivers that come with Windows, so none were added.
-iso-network-inbox = Adaptor jaringan PC ini menggunakan driver bawaan Windows, sehingga ISO tidak perlu menyertakannya.
-iso-mode-desktop = Selesaikan penyiapan sebelum membuka desktop
-iso-mode-desktop-description = Atlas menyimpan pilihan Anda dalam ISO. Setelah Anda masuk, Atlas menyelesaikan pembaruan dan penginstalan sebelum desktop Windows terbuka.
-desktop-setup-description = Selesaikan penyiapan PC Anda. Pilihan Atlas tersimpan; Anda dapat kembali ke Windows jika perlu.
-desktop-setup-exit = Lanjutkan di Windows
-
-# Windows installation USB
-usb-title = Buat USB instalasi
-usb-existing = Buat USB dari ISO yang sudah ada
-usb-description = Salin ISO ke drive USB agar Anda dapat menginstal ulang Windows dari drive tersebut. Gunakan ISO yang dibuat oleh Atlas untuk sekaligus menginstal Atlas.
-# Button that opens the file picker for an ISO, and the Open button of that picker, on the USB
-# and ISO pages.
-usb-choose-iso = Pilih ISO
-usb-drive = Drive USB
-# $min and $max are formatted numbers (text), in gigabytes and terabytes.
-usb-empty = Tidak ada drive USB yang ditemukan. Hubungkan drive USB berukuran minimal { $min } GB, lalu pilih Muat ulang. Drive yang lebih besar dari { $max } TB, drive hanya-baca, dan drive tempat Windows berjalan tidak ditampilkan.
-usb-refresh = Muat ulang
-# Shown when the drive list could not be read.
-usb-scan-failed = Pastikan drive terhubung, lalu pilih Muat ulang. Untuk melihat detailnya, pilih Buka folder log.
-usb-scan-failed-title = Tidak dapat membaca daftar drive USB
-# Parts of a drive's detail line, joined by usb-detail-separator; empty parts are left out.
-# $size is a formatted number of gigabytes (text); $volumes and $serial are text.
-usb-drive-size = { $size } GB
-usb-drive-serial = Nomor seri: { $serial }
-usb-detail-separator = { " · " }
-usb-review = Tinjau USB
-usb-erase-title = Hapus isi drive USB ini?
-usb-erase-description = Seluruh isi { $drive } ({ $size } GB) akan dihapus secara permanen, termasuk semua file dan partisi. Salin semua yang ingin Anda simpan ke drive lain terlebih dahulu. ISO Anda akan tetap disimpan.
-usb-layout = Atlas menggunakan hingga 32 GB dari drive ini dan membiarkan sisanya tidak terpakai. Drive USB ini berfungsi di PC yang melakukan boot dalam mode UEFI, yang diwajibkan oleh Windows 11.
-usb-ack = Saya memahami bahwa seluruh isi drive USB ini akan dihapus
-usb-write = Hapus dan buat USB
-usb-stage-prepare = Menyiapkan file instalasi…
-usb-stage-format = Memformat USB…
-usb-stage-copy = Menyalin file instalasi…
-usb-stage-verify = Memverifikasi USB…
-usb-working = Biarkan Atlas tetap terbuka dan drive USB tetap terhubung. Jika Anda membatalkan, drive USB yang belum selesai tidak dapat digunakan untuk menginstal Windows.
-# Titles of the error bar, the success bar and the close prompt while a USB is being written.
-usb-failed-title = Pembuatan USB tidak dapat diselesaikan
-usb-complete-title = USB Anda siap
-usb-close-title = Pembuatan USB masih berlangsung
-# After erasing may have begun.
-usb-failed = Isi drive mungkin sudah dihapus, sehingga drive belum dapat digunakan untuk menginstal Windows. Pastikan drive terhubung, lalu pilih Tinjau USB untuk mencoba lagi. Jika Anda menghubungkannya kembali, terlebih dahulu pilih Muat ulang dan pilih drive tersebut lagi.
-usb-failed-drive-unavailable = Windows kehilangan akses ke drive USB saat menulis. File penginstalannya belum lengkap. Hubungkan kembali drive itu atau gunakan drive USB lain. Lalu pilih Muat ulang, pilih drive, dan pilih Tinjau USB.
-# Before anything on the drive was changed: in general, then for the reasons the writer reports.
-usb-failed-unchanged = Drive USB Anda tidak diubah. Pilih Buka folder log untuk melihat penyebabnya, lalu pilih Tinjau USB untuk mencoba lagi.
-usb-failed-iso = ISO ini tidak dapat digunakan untuk membuat USB instalasi. Pilih ISO yang dibuat oleh Atlas, atau ISO Windows 11 dari Microsoft untuk versi yang didukung Atlas. Drive USB Anda tidak diubah.
-usb-failed-location = ISO atau Atlas Manager berada di drive USB ini, lokasi jaringan, atau folder tertaut. Pindahkan ke folder lokal di PC ini, lalu coba lagi. Drive USB Anda tidak diubah.
-usb-failed-space = Ruang kosong di drive Windows tidak cukup untuk menyiapkan file instalasi. Kosongkan ruang, lalu coba lagi. Drive USB Anda tidak diubah.
-usb-failed-fit = File instalasi tidak muat di drive USB ini. Gunakan drive yang lebih besar, lalu coba lagi. Drive USB Anda tidak diubah.
-usb-failed-drive-changed = Drive USB dilepas, dihubungkan kembali, atau diganti setelah daftar dibaca. Pilih Muat ulang, pilih drive tersebut lagi, lalu pilih Tinjau USB. Drive USB Anda tidak diubah.
-usb-cancelled = Drive mungkin berisi file instalasi yang belum lengkap. Buat ulang sebelum menggunakannya untuk menginstal Windows.
-usb-cancelled-title = Pembuatan USB dibatalkan
-usb-cancelled-unchanged = Drive USB Anda tidak diubah.
-usb-complete = Atlas sudah memeriksa setiap file. Pilih Keluarkan USB, lalu cadangkan file di PC yang ingin Anda instal ulang. Hubungkan drive ke PC tersebut, lalu lakukan boot dari drive USB melalui menu boot PC (biasanya F12, F11, atau Esc saat PC dinyalakan).
-usb-eject = Keluarkan USB
-usb-ejected = Drive USB sekarang dapat dicabut. Cadangkan file di PC yang ingin Anda instal ulang. Setelah itu, lakukan boot PC tersebut dari drive USB melalui menu boot-nya (biasanya F12, F11, atau Esc saat PC dinyalakan).
-usb-eject-failed = Tutup file atau jendela yang menggunakan USB ini, lalu coba lagi.
-usb-eject-failed-title = Tidak dapat mengeluarkan USB
-ready-fresh-title = Atlas dibuat untuk instalasi Windows yang bersih
-ready-fresh-description = Jika Anda sudah menggunakan Windows di PC ini, cadangkan file Anda dan instal ulang Windows sebelum melanjutkan. Pastikan Kompatibilitas Windows berhasil di Pemeriksaan PC terlebih dahulu, agar Anda menginstal ulang versi yang didukung.
-# Home, LTSC and Server are the editions the check refuses; the others are examples of
-# editions it accepts. Keep edition names as Windows shows them.
-detail-edition-unsupported = Edisi Windows 11 Home, LTSC, dan Server tidak didukung. Gunakan edisi lain, seperti Pro, Education, atau Enterprise. Jika Windows tidak dapat mengenali edisi Anda, selesaikan masalah tersebut sebelum melanjutkan.
-install-source-title = Penginstalan tidak tersedia
-install-source-unsupported = Atlas { $source } tidak dapat diperbarui langsung ke { $target }. Untuk menggunakan versi ini, cadangkan file Anda dan instal ulang Windows.
-# Before a package is chosen, so the version on offer isn't known yet.
-install-source-unsupported-any = Atlas { $source } tidak dapat diperbarui langsung. Untuk menggunakan versi yang lebih baru, cadangkan file Anda dan instal ulang Windows.
-# "Open package file" is package-open-file. $folder is a folder path (text).
-install-source-resume = Penginstalan Atlas { $target } tidak selesai, dan hanya paket Atlas { $target } yang dapat menyelesaikannya. Pilih Buka file paket, lalu pilih paket Atlas tersebut (.atlaspkg). Jika Atlas mengunduhnya, paket tersebut ada di { $folder }.
-# Tester build: only the bundled Atlas package can be installed.
-install-source-resume-bundled = Penginstalan Atlas { $target } tidak selesai. Versi uji ini hanya dapat menginstal paket Atlas bawaannya, jadi selesaikan penginstalan tersebut dengan paket Atlas { $target } di versi rilis Atlas Manager.
-install-source-unknown = Atlas tidak dapat memastikan apa yang sudah terinstal di PC ini, jadi Atlas tidak akan menginstal apa pun untuk saat ini. Pilih Kirim laporan agar tim Atlas dapat membantu.
-# $problem is one of the install-source-* messages; $error is a raw error message (text).
-install-source-details = { $problem } Detail: { $error }
-iso-edition-selection = Hanya edisi yang didukung yang disertakan. Saat menginstal Windows, pilih edisi yang sesuai dengan lisensi Windows Anda.
-detail-windows-preview = Build Insider tidak didukung. Gunakan rilis publik Windows 11.
-detail-windows-release-unknown = Atlas tidak dapat memastikan bahwa build Windows ini merupakan rilis publik. Hubungkan ke internet, lalu periksa lagi.
-# $build is this PC's Windows build and update number, such as 26300.9807 (text).
-detail-windows-release-unlisted = Build { $build } tidak ada dalam daftar rilis publik Windows 11 dari Microsoft, sehingga Atlas belum dapat diinstal pada build ini. Build Release Preview dan build pratinjau lainnya tidak didukung. Pilih Periksa lagi setelah Microsoft menambahkan build ini ke daftar.
-iso-release-unknown = Atlas tidak dapat memastikan bahwa ISO ini adalah rilis publik Windows 11 yang didukung oleh paket Atlas. Hubungkan ke internet, lalu pilih Periksa file lagi. Jika masih gagal, unduh ulang ISO dari Microsoft.
-iso-release-unlisted = Build Windows 11 dalam ISO ini tidak ada dalam daftar rilis publik dari Microsoft. Build Release Preview dan build pratinjau lainnya tidak didukung. Unduh ISO dari Microsoft, atau pilih Periksa file lagi setelah Microsoft menambahkan build ini ke daftar.
-prepare-previous-worker = Pembaruan yang dimulai sebelumnya masih berjalan. Atlas akan menunggu hingga selesai, lalu Anda dapat memeriksa pembaruan lagi.
-
-ready-used-windows-title = Windows di PC ini tampaknya sudah pernah digunakan
-ready-used-windows-description = Windows di PC ini diinstal setidaknya seminggu yang lalu atau sudah memiliki beberapa aplikasi. Menginstal Atlas di sini tidak didukung dan sangat tidak disarankan: aplikasi dan pengaturan yang sudah Anda miliki mungkin tidak berfungsi seperti yang diharapkan, dan Atlas menghapus OneDrive, sehingga file di dalamnya berhenti disinkronkan dan folder Desktop, Dokumen, dan Gambar Anda mungkin tampak kosong. Cadangkan file Anda dan instal ulang Windows terlebih dahulu, atau lanjutkan hanya jika Anda menerima risikonya.
-ready-used-windows-dismiss = Tetap lanjutkan
-
-prepare-resumed = PC Anda telah dimulai ulang, dan Atlas telah memulihkan pilihan Anda sejauh ini. Pilih Lanjutkan pembaruan untuk menyelesaikan pembaruan sebelum Anda menginstal Atlas.
-prepare-continue = Lanjutkan pembaruan
-prepare-saving-restart = Menyimpan pilihan Anda dan mengatur Atlas agar terbuka kembali setelah Windows dimulai ulang…
-prepare-restart-save-failed = Pilihan Anda tidak dapat disimpan. Coba lagi sebelum memulai ulang.
-prepare-restart-registration-failed = Pilihan Anda tersimpan, tetapi Atlas tidak dapat mengatur agar terbuka kembali setelah PC dimulai ulang. Coba lagi, atau mulai ulang PC Anda sendiri dan buka Atlas setelah Anda masuk.
-prepare-restart-source-linked = Pilihan Anda tersimpan, tetapi selama Atlas Manager berada di folder tertaut, Atlas tidak dapat mengatur agar terbuka kembali setelah PC dimulai ulang. Tutup Atlas dan pindahkan Atlas Manager ke folder lokal di PC ini. Lalu buka dari sana, atau mulai ulang PC Anda sendiri dan buka dari sana setelah Anda masuk.
-prepare-restart-failed = Atlas tidak dapat memulai ulang PC Anda. Coba lagi, atau mulai ulang PC melalui menu Mulai. Pilihan Anda tersimpan, dan Atlas akan terbuka kembali setelah Anda masuk.
-diagnostics-export = Ekspor diagnostik
-diagnostics-exporting = Mengumpulkan diagnostik…
-diagnostics-privacy = Kirim laporan secara pribadi ke tim Atlas, atau ekspor ZIP diagnostik untuk dibagikan saat Anda meminta bantuan. Atlas menghapus nama pengguna, nama PC, dan alamat email Anda dari ZIP tersebut.
-# Title of the result bar after an export; its button is iso-open-folder.
-diagnostics-saved = ZIP diagnostik dibuat
-diagnostics-failed-title = Tidak dapat mengekspor diagnostik
-# $error is the raw error (text).
-diagnostics-failed = Pastikan PC Anda memiliki ruang disk kosong, lalu coba lagi. Detail: { $error }
-
-## Tester builds (embedded-package feature)
-
-# One line of chrome under the title bar on a release-candidate build.
-rc-banner = Versi uji Atlas { $release }. Aplikasi ini hanya menginstal paket Atlas bawaan.
-home-status-bundled = Versi uji { $release }
-package-bundled = Atlas { $version } bawaan versi uji ini siap diinstal.
-rc-about-release = Versi uji
-rc-about-commit = Commit sumber
-rc-about-package = Paket Atlas bawaan (SHA-256)
-iso-package-bundled = Paket Atlas bawaan versi uji ini
-prepare-percent = { $percent }% dari tahap ini
-prepare-count = Pembaruan selesai: { $completed } dari { $total }
-prepare-bytes = Terunduh { $downloaded } dari sekitar { $total } MB
-prepare-elapsed = Waktu berlalu: { $minutes } mnt { $seconds } dtk
-prepare-progress-waiting = Menunggu layanan pembaruan. Persentase tidak tersedia untuk langkah ini.
-prepare-progress-unchanged = Tidak ada kemajuan selama { $minutes } mnt. Pembaruan besar dapat memerlukan waktu, jadi biarkan Atlas tetap terbuka. Untuk melihat detailnya, pilih Buka folder log.
-prepare-report-delayed = Windows belum melaporkan kemajuan selama { $seconds } dtk. Pembaruan mungkin masih berjalan, jadi biarkan Atlas tetap terbuka.
-
 prepare-affected-app = aplikasi terkait
-prepare-app-in-use = Tutup { $app }, lalu coba lagi. Windows tidak dapat memperbaruinya saat aplikasi tersebut terbuka. Jika Anda tidak dapat menemukan jendelanya, tutup aplikasi melalui Pengelola Tugas. Jika masih gagal, mulai ulang PC Anda dan coba lagi sebelum membuka { $app }.
+# A Store app couldn't update because it was open. $app is its name, such as NanaZip, or
+# prepare-affected-app.
+prepare-close-app = Tutup { $app }, lalu coba lagi. Jika Anda tidak dapat menemukannya, tutup melalui Pengelola Tugas.
 prepare-install-busy = Penginstalan lain atau mulai ulang yang diperlukan menghalangi pembaruan. Tunggu hingga penginstalan lain selesai, mulai ulang PC Anda jika Windows memintanya, lalu coba lagi.
-prepare-failed-component-store = Windows melaporkan kerusakan pada penyimpanan komponennya yang mencegah pembaruan terinstal, dan Atlas tidak dapat memperbaikinya. Mulai ulang PC Anda, lalu pilih Coba lagi. Jika pembaruan masih gagal, cadangkan file Anda dan instal ulang Windows dengan ISO Atlas.
-prepare-failed-component-store-unrepairable = Windows melaporkan kerusakan pada penyimpanan komponennya yang tidak dapat diperbaiki, sehingga tidak dapat menginstal pembaruan. Cadangkan file Anda, lalu instal ulang Windows dengan ISO Atlas.
+# Updates failed with 0x80073712 after Atlas's own repair of the component store (DISM). The
+# button is prepare-restart-and-retry; updating carries on by itself after the restart.
+prepare-components-damaged-title = Windows tidak dapat memperbaiki dirinya sendiri
+prepare-components-damaged = Windows melaporkan kerusakan yang mencegah pembaruan terinstal. Memulai ulang dapat mengatasinya, dan Atlas akan melanjutkan setelah Anda masuk.
+prepare-restart-and-retry = Mulai ulang dan coba lagi
+# Windows records damage to its component store that it can't repair, so Atlas stops before
+# any update. The one button is iso-open.
+prepare-components-unrepairable-title = Windows terlalu rusak untuk diperbarui
+prepare-components-unrepairable = Cadangkan file Anda, lalu instal ulang Windows dengan ISO Atlas.
 # Causes the update worker names. The worker's own English message is shown below as a detail.
 prepare-failed-session-owner = Atlas berjalan dengan akun yang berbeda dari akun yang masuk ke Windows. Masuk ke Windows dengan akun administrator, buka Atlas dari akun tersebut, lalu coba lagi.
 prepare-failed-store-missing = Microsoft Store belum disiapkan untuk akun Anda. Buka Microsoft Store sekali, atau instal ulang jika tidak ada, lalu coba lagi.
@@ -1033,24 +1289,229 @@ prepare-failed-store-timeout = Aplikasi Store belum selesai diperbarui. Selesaik
 prepare-failed-store-passes = Microsoft Store terus menawarkan pembaruan baru. Selesaikan pembaruan yang tersisa di Microsoft Store, lalu coba lagi.
 prepare-failed-manual-updates = Beberapa pembaruan Windows perlu diselesaikan di Windows Update. Buka Windows Update, selesaikan pembaruan tersebut, lalu coba lagi.
 prepare-failed-windows-passes = Windows Update terus menawarkan pembaruan baru. Selesaikan pembaruan yang tersisa di Windows Update, lalu coba lagi.
+# Atlas Manager runs from a folder that links to another place (a junction or symbolic
+# link). "Linked folder" and "local folder" as in usb-failed-location. Atlas keeps using
+# the folder it was opened from, so trying again in the same window can't help.
 prepare-failed-source-linked = Atlas Manager berada di folder tertaut. Tutup Atlas, pindahkan Atlas Manager ke folder lokal di PC ini, lalu buka dari sana.
 prepare-error-code = Kode kesalahan: { $code }
 prepare-open-store = Buka Microsoft Store
+prepare-windows-search = Memeriksa pembaruan Windows…
+prepare-percent = { $percent }% dari tahap ini
+prepare-count = Pembaruan selesai: { $completed } dari { $total }
+prepare-bytes = Terunduh { $downloaded } dari sekitar { $total } MB
+prepare-progress-still = Tidak ada kemajuan selama { $minutes } mnt. Pembaruan besar dapat memerlukan waktu, jadi biarkan Atlas tetap terbuka.
+prepare-report-late = Windows belum melaporkan kemajuan selama beberapa saat. Pembaruan mungkin masih berjalan, jadi biarkan Atlas tetap terbuka.
+prepare-windows-download = Mengunduh pembaruan Windows…
+prepare-windows-install = Menginstal pembaruan Windows…
+# While DISM repairs Windows' component store, before updates or after one failed on it, with
+# prepare-windows-repair-detail under the progress bar. DISM reports no progress.
+prepare-windows-repairing = Memperbaiki Windows…
+prepare-windows-repair-detail = Windows melaporkan kerusakan yang dapat mencegah pembaruan terinstal. Ini dapat memerlukan waktu setengah jam atau lebih.
+prepare-store-search = Memeriksa Microsoft Store…
+prepare-store-install = Memperbarui Microsoft Store dan aplikasinya…
+prepare-stop = Hentikan pembaruan
+prepare-start = Periksa dan instal pembaruan
+# Under the Administrator check, while the Atlas package is still downloading or unpacking.
+prepare-wait-for-package = Tersedia setelah paket Atlas siap.
+iso-username = Nama akun lokal
+# Under the local account name: Windows asks for the password at the first sign-in.
+iso-account-help = Anda akan membuat kata sandi saat pertama kali masuk.
+iso-username-placeholder = Nama Anda
+# Beside the unavailable Continue button while the local account name is empty.
+iso-account-empty = Masukkan nama akun lokal untuk melanjutkan
+# Keep the list of symbols exactly: Windows refuses them in account names.
+iso-account-invalid = Gunakan maksimal 20 karakter, tanpa spasi di awal atau akhir dan tanpa karakter berikut: " / \ [ ] : ; | = , + * ? < > @
+iso-account-trailing-dot = Nama tidak boleh diakhiri dengan titik.
+iso-account-reserved = Windows menggunakan nama ini untuk akun bawaan. Pilih nama lain.
+# The answer file on the ISO hides these Windows setup screens.
+iso-terms-in-setup = Penyiapan Windows akan meminta Anda menerima ketentuan lisensi.
+prepare-drivers = Bagaimana driver akan diinstal?
+prepare-drivers-auto = Dapatkan driver melalui Windows Update
+# The same answer as a radio button's label, where the choice is made.
+prepare-drivers-auto-recommended = Dapatkan driver melalui Windows Update (disarankan)
+prepare-drivers-auto-detail = Windows mencari driver untuk perangkat keras Anda.
+prepare-drivers-manual = Saya akan menginstal driver sendiri
+prepare-drivers-manual-detail = Windows Update tidak akan menginstal driver, jadi Anda perlu mendapatkannya dari produsen PC atau perangkat Anda. Driver yang sudah terinstal tetap dipertahankan.
+# The Setup step's drivers card: this PC's network drivers on the ISO, then the choice
+# Atlas Manager applies after sign-in, asked with prepare-drivers.
+iso-drivers-card = Driver
+iso-network-drivers = Sertakan driver Wi-Fi dan Ethernet PC ini
+# The third driver answer, and its value on the Create step: Get ready asks on the new PC.
+iso-drivers-defer = Pilih setelah masuk
+prepare-network-unmetered = Pembaruan memerlukan koneksi internet yang tidak terukur. Hubungkan ke Wi-Fi atau Ethernet, lalu coba lagi.
+# Connected, but Windows found no internet access (a captive portal, or DNS or firewall filtering).
+prepare-network-limited = Windows melaporkan bahwa jaringan ini tidak memiliki akses internet. Masuk ke jaringan jika diminta, atau periksa router serta pemfilteran DNS atau firewall, lalu coba lagi.
+# "Metered connection" is the switch's name in Windows network settings.
+prepare-network-metered = Koneksi ini terukur atau memiliki batas data. Hubungkan ke jaringan yang tidak terukur, atau nonaktifkan Koneksi terukur di pengaturan jaringan, lalu coba lagi.
+prepare-network-settings = Buka pengaturan jaringan
+iso-stage-network-drivers = Menyiapkan driver jaringan
+# Under iso-complete when this PC's network drivers were asked for but the adapters use
+# drivers that come with Windows, so none were added.
+iso-network-inbox = Adaptor jaringan PC ini menggunakan driver bawaan Windows, sehingga ISO tidak perlu menyertakannya.
+desktop-setup-description = Selesaikan penyiapan PC Anda. Pilihan Atlas tersimpan; Anda dapat kembali ke Windows jika perlu.
+desktop-setup-exit = Lanjutkan di Windows
+
+# Windows installation USB
+usb-title = Buat drive USB
+usb-existing = Buat drive USB dari ISO yang sudah ada
+# Title of the drive card, and the name of a drive that doesn't report one.
+usb-drive = Drive USB
+# Title of the card with the ISO the USB drive is made from.
+usb-iso-title = ISO Windows
+# No ISO was given, and none whose name starts with "Atlas" is in Downloads.
+usb-iso-missing = Tidak ada ISO Atlas di folder Unduhan Anda.
+usb-iso-checking = Memeriksa ISO…
+# What checking the ISO found. It runs before anything is erased, so none of these mentions the drive.
+usb-iso-not-usable = Atlas tidak dapat membuat drive USB dari ISO ini. Gunakan ISO yang dibuat oleh Atlas, atau ISO Windows 11 dari Microsoft untuk versi yang didukung Atlas.
+# A linked folder points to another place (a junction or symbolic link).
+usb-iso-location = ISO atau Atlas Manager berada di lokasi jaringan atau folder tertaut. Pindahkan ke folder di PC ini, seperti Unduhan.
+# Splitting a large Windows image needs room on the drive Windows is on. Atlas checks again every 30 seconds.
+usb-working-space = Ruang kosong di drive Windows tidak cukup untuk menyiapkan ISO ini. Kosongkan sebagian ruang, dan Atlas akan memeriksa lagi dengan sendirinya.
+# The ISO couldn't be read for another reason, such as a damaged file.
+usb-iso-unreadable = Atlas tidak dapat membaca ISO ini. Coba lagi, atau gunakan ISO lain.
+# Opens the Storage page of Windows Settings, where space can be freed.
+usb-open-storage = Buka pengaturan Penyimpanan
+usb-looking = Mencari drive USB…
+# $size is a whole number of gigabytes, as drives are sold.
+usb-connect = Hubungkan drive USB berukuran { $size } GB atau lebih.
+# Under a drive that can't be used, after its size and letters: why. $size is a whole number
+# of gigabytes, as drives are sold, as in usb-connect.
+usb-drive-too-small-needs = Terlalu kecil. Memerlukan { $size } GB atau lebih.
+usb-drive-too-small-iso = Terlalu kecil untuk ISO ini
+usb-drive-has-iso = ISO Anda ada di drive ini
+usb-drive-has-app = Atlas Manager berjalan dari drive ini
+# A drive's size as it's sold, which isn't the size Windows shows. $size is a whole number of
+# gigabytes, or a number of terabytes (text).
+usb-drive-size = { $size } GB
+usb-drive-size-tb = { $size } TB
+# Joins a drive's size and its letters, an ISO's architecture and size under its name, and
+# ready-checks-passed-some and ready-checks-handled on Get ready.
+usb-detail-separator = { " · " }
+usb-create = Buat drive USB
+# Beside the unavailable Create USB drive (usb-create) while several drives are listed and none is picked.
+usb-hint-pick = Pilih drive USB terlebih dahulu
+# The question before erasing. $drive is the drive's name; $size is usb-drive-size or
+# usb-drive-size-tb; $letters is its drive letters, such as "F:" or "F:, G:". A drive with no
+# letter, such as one an unfinished write left, is asked with usb-confirm-title.
+usb-confirm-title-letters = Hapus isi { $drive } ({ $size }, { $letters })?
+usb-confirm-title = Hapus isi { $drive } ({ $size })?
+# The same question for a drive that reports no name.
+usb-confirm-title-unnamed-letters = Hapus isi drive USB ({ $size }, { $letters })?
+usb-confirm-title-unnamed = Hapus isi drive USB ({ $size })?
+usb-confirm-message = Semua isinya akan dihapus. ISO Anda tetap disimpan.
+usb-confirm-erase = Hapus isi dan buat
+usb-progress-title = Membuat drive USB…
+# $percent is a whole number.
+usb-percent = { $percent }%
+# The stages of creating the USB drive, as a checklist under usb-progress-title.
+usb-stage-prepare-files = Menyiapkan file
+usb-stage-formatting = Memformat
+usb-stage-copying = Menyalin file
+usb-stage-checking = Memeriksa drive
+usb-stage-ejecting = Mengeluarkan
+usb-keep-open = Biarkan Atlas tetap terbuka dan drive tetap terhubung.
+usb-scan-failed-title = Tidak dapat membaca daftar drive USB
+usb-scan-failed-retry = Atlas tidak dapat membaca drive yang terhubung ke PC ini. Coba lagi.
+# The title of the error bar for a USB drive, and the heading of the finished drive's page.
+usb-failed-title = Tidak dapat membuat drive USB
+usb-complete-title = Drive USB Anda siap
+# F12, F11 and Esc are key names.
+usb-ready = Cabut drive, cadangkan PC yang akan Anda instal ulang, lalu lakukan boot PC tersebut dari drive USB. Menu boot biasanya terbuka dengan F12, F11, atau Esc.
+# After erasing may have begun.
+usb-failed-partial = Sebagian drive sudah ditulis. Pastikan drive terhubung, lalu coba lagi.
+# Before anything on the drive was changed.
+usb-failed-before-erase = Atlas berhenti sebelum mengubah drive. Coba lagi.
+# Before erasing, the drive no longer matched the list: it was removed, reconnected or replaced.
+# Atlas reads the list again, and picks the drive again if it's back.
+usb-drive-changed-title = Drive USB berubah
+usb-drive-changed = Drive dilepas atau dihubungkan kembali sebelum Atlas menghapus isinya, jadi isinya tidak berubah.
+usb-drive-cancelled-title = Pembuatan drive USB dibatalkan
+usb-cancelled-partial = Drive belum lengkap. Buat ulang sebelum menggunakannya.
+usb-cancelled-unchanged = Drive USB Anda tidak diubah.
+usb-eject-failed-title = Tidak dapat mengeluarkan drive USB
+usb-eject-failed-ready = Drive siap digunakan. Tutup file atau jendela yang menggunakannya, lalu coba lagi.
+# Title of the bar with Relaunch as administrator (common-restart-as-administrator). Its
+# message is usb-admin-reason, or usb-elevation-declined after Windows refused the relaunch
+# (UAC declined), as on the ISO page.
+usb-elevation-title = Atlas memerlukan izin untuk membuat drive USB
+usb-admin-reason = Atlas memerlukan izin administrator untuk menghapus isi dan menulis drive.
+usb-elevation-declined = Windows tidak memberikan izin kepada Atlas, sehingga Atlas belum dapat menulis drive USB.
+# Home, LTSC and Server are the editions the check refuses; the others are examples of
+# editions it accepts. Keep edition names as Windows shows them.
+detail-edition-unsupported = Edisi Windows 11 Home, LTSC, dan Server tidak didukung. Gunakan edisi lain, seperti Pro, Education, atau Enterprise. Jika Windows tidak dapat mengenali edisi Anda, selesaikan masalah tersebut sebelum melanjutkan.
+install-source-title = Penginstalan tidak tersedia
+install-source-unsupported = Atlas { $source } tidak dapat diperbarui langsung ke { $target }. Untuk menggunakan versi ini, cadangkan file Anda dan instal ulang Windows.
+# Before a package is chosen, so the version on offer isn't known yet.
+install-source-unsupported-any = Atlas { $source } tidak dapat diperbarui langsung. Untuk menggunakan versi yang lebih baru, cadangkan file Anda dan instal ulang Windows.
+# $folder is a folder path (text).
+install-source-resume-package = Penginstalan Atlas { $target } tidak selesai, dan hanya paket Atlas { $target } yang dapat menyelesaikannya. Buka paket Atlas tersebut (.atlaspkg). Jika Atlas mengunduhnya, paket tersebut ada di { $folder }.
+# Tester build: only the bundled Atlas package can be installed.
+install-source-resume-bundled = Penginstalan Atlas { $target } tidak selesai. Versi uji ini hanya dapat menginstal paket Atlas bawaannya, jadi selesaikan penginstalan tersebut dengan paket Atlas { $target } di versi rilis Atlas Manager.
+# Send a report and Export diagnostics are offered with it.
+install-source-unconfirmed = Atlas tidak dapat memastikan apa yang sudah terinstal di PC ini, jadi Atlas tidak akan menginstal apa pun untuk saat ini.
+# Under the editions on the Create step, when Windows Setup asks which to install.
+iso-edition-selection = Di Penyiapan Windows, pilih edisi yang lisensinya Anda miliki.
+detail-windows-preview = Build Insider tidak didukung. Gunakan rilis publik Windows 11.
+detail-windows-release-unknown = Atlas tidak dapat memastikan bahwa build Windows ini merupakan rilis publik. Hubungkan ke internet, lalu periksa lagi.
+# $build is this PC's Windows build and update number, such as 26300.9807 (text).
+detail-windows-release-not-listed = Build { $build } tidak ada dalam daftar rilis publik Windows 11 dari Microsoft, sehingga Atlas belum dapat diinstal pada build ini. Build Release Preview dan build pratinjau lainnya tidak didukung. Periksa lagi setelah Microsoft mencantumkan build ini.
+
+
+prepare-continue = Lanjutkan pembaruan
+prepare-saving-restart = Menyimpan pilihan Anda dan mengatur Atlas agar terbuka kembali setelah Windows dimulai ulang…
+prepare-restart-save-failed = Pilihan Anda tidak dapat disimpan. Coba lagi sebelum memulai ulang.
+prepare-restart-registration-failed = Pilihan Anda tersimpan, tetapi Atlas tidak dapat mengatur agar terbuka kembali setelah PC dimulai ulang. Coba lagi, atau mulai ulang PC Anda sendiri dan buka Atlas setelah Anda masuk.
+# The same cause as prepare-failed-source-linked, met while arranging the restart. Both ways
+# on need the move, because Atlas keeps using the folder it was opened from.
+prepare-restart-source-linked = Pilihan Anda tersimpan, tetapi selama Atlas Manager berada di folder tertaut, Atlas tidak dapat mengatur agar terbuka kembali setelah PC dimulai ulang. Tutup Atlas dan pindahkan Atlas Manager ke folder lokal di PC ini. Setelah itu, buka dari sana, atau mulai ulang PC Anda sendiri dan buka dari sana setelah Anda masuk.
+prepare-restart-failed = Atlas tidak dapat memulai ulang PC Anda. Coba lagi, atau mulai ulang PC melalui menu Mulai. Pilihan Anda tersimpan, dan Atlas akan terbuka kembali setelah Anda masuk.
+diagnostics-export = Ekspor diagnostik
+# Beside a spinner while an export runs, and in Send a report's footer while its diagnostics
+# are collected.
+diagnostics-exporting = Mengumpulkan diagnostik…
+# Accessible name of the row of help links: report-title, diagnostics-export and iso-diagnostics.
+diagnostics-help-a11y = Dapatkan bantuan
+# Title of the result bar after an export; its button is iso-open-folder.
+diagnostics-saved = Diagnostik disimpan
+# Under diagnostics-saved, above diagnostics-saved-privacy. $file is the ZIP's name, such as
+# Atlas-diagnostics-2026-11-24-0612.zip, and $folder the name of the folder it's in,
+# "Diagnostics" (both text, never translated).
+diagnostics-saved-in-folder = Disimpan sebagai { $file } di folder { $folder } milik Atlas.
+# Under diagnostics-saved. Says exactly what the export removes, so keep every item.
+diagnostics-saved-privacy = Atlas telah menghapus nama pengguna, nama PC, dan alamat email Anda, serta kata sandi atau kunci yang dikenali, dari file ini.
+# The bar when an export failed, on its own. Its button is common-try-again, and its raw error
+# is behind Show details.
+diagnostics-save-failed = Tidak dapat menyimpan ZIP diagnostik
+
+## Tester builds (embedded-package feature)
+
+# A bar at the top of the content on a release-candidate build.
+rc-banner = Versi uji Atlas { $release }. Aplikasi ini hanya menginstal paket Atlas bawaan.
+home-status-bundled = Versi uji { $release }
+package-bundled = Atlas { $version } bawaan versi uji ini siap diinstal.
+rc-about-release = Versi uji
+rc-about-commit = Commit sumber
+rc-about-package = Paket Atlas bawaan (SHA-256)
+iso-package-bundled = Paket Atlas bawaan versi uji ini
 
 check-user-account = Akun pengguna
 detail-user-account-ok = UAC aktif dan akun Anda siap untuk penginstalan.
 detail-user-account-not-ready = Aktifkan Kontrol Akun Pengguna (UAC), mulai ulang PC, lalu coba lagi. Jika Anda menggunakan akun Administrator bawaan, masuk dengan akun administrator lain.
 detail-user-account-work-or-school = Atlas tidak dapat diinstal dari akun kerja atau sekolah (Microsoft Entra ID). Masuk dengan akun lokal atau akun Microsoft, lalu coba lagi.
-detail-user-account-unknown = Atlas tidak dapat memeriksa akun pengguna Anda. Mulai ulang PC, lalu buka kembali Atlas dan periksa lagi. Jika ini terus terjadi, pilih Kirim laporan. Windows melaporkan: { $error }
+detail-user-account-check-failed = Atlas tidak dapat memeriksa akun pengguna Anda. Mulai ulang PC, lalu buka kembali Atlas dan periksa lagi. Windows melaporkan: { $error }
 
 footer-prepare-required = Selesaikan pembaruan Windows dan aplikasi Store untuk melanjutkan
-footer-prepare-stopping = Menghentikan pembaruan setelah langkah saat ini…
+# "Stage" as in prepare-close-stops-after-stage.
+footer-prepare-stopping-stage = Menghentikan pembaruan setelah tahap saat ini…
 resume-choices-title = Melanjutkan penginstalan sebelumnya
-resume-choices-detail = Untuk menyelesaikan penginstalan tersebut, Atlas memulihkan pilihan yang Anda buat sebelumnya. Anda tidak dapat mengubahnya di Pilihan Anda sampai penginstalan selesai.
+# The bar on Your choices, above the choices an unfinished installation holds, which it shows
+# and can't change.
+resume-choices-held = Atlas menggunakan pilihan yang Anda buat sebelumnya untuk menyelesaikan penginstalan tersebut, jadi pilihan ini tidak dapat diubah hingga selesai.
 
 ## Voluntary reports
 report-title = Kirim laporan
 report-received = Laporan diterima
+# Under the report's reference, which has a line of its own with a Copy button.
 report-reference = Simpan referensi ini jika Anda menghubungi tim Atlas tentang laporan ini. Jika Anda mencantumkan detail kontak, tim mungkin menggunakannya untuk membalas, tetapi balasan tidak dijamin.
 # Accessible name of the Copy button beside the report reference.
 report-copy-reference = Salin referensi laporan
@@ -1059,142 +1520,238 @@ report-another = Kirim laporan lain
 report-kind = Apa yang ingin Anda kirim?
 report-kind-issue = Masalah
 report-kind-suggestion = Saran
-# $min and $max are numbers: the message lengths the report service accepts.
-report-intro = Jelaskan apa yang terjadi atau apa yang ingin Anda ubah ({ $min }–{ $max } karakter). Jangan sertakan kata sandi dalam pesan Anda.
 report-message = Pesan Anda
-report-message-placeholder = Saya sedang mencoba…
+# What the message box shows while it's empty, for each kind of report.
+report-message-placeholder-issue = Apa yang terjadi, dan apa yang sedang Anda lakukan?
+report-message-placeholder-suggestion = Apa yang sebaiknya diubah?
+# Under the message box, which also reads it out.
+report-message-help = Jangan sertakan kata sandi.
+# Under the message or contact box once it's near the longest the report service accepts.
+# $count and $max are numbers.
+report-character-count = { $count } dari { $max } karakter
 report-contact = Kontak (opsional)
 report-contact-placeholder = Email atau nama pengguna Discord
 report-attach = Sertakan diagnostik
+# Under Include diagnostics. Part of the privacy notice the user agrees to: it says
+# exactly what Atlas removes and keeps, so keep every item.
 report-attach-description = Log dan detail sistem yang membantu menemukan penyebab masalah. Atlas menghapus nama pengguna, nama PC, dan alamat email Anda, serta kata sandi atau kunci yang dikenali. Detail kesalahan, model perangkat keras, dan nama aplikasi tetap disertakan. Anda dapat meninjau ZIP sebelum mengirim.
-report-prepare = Siapkan diagnostik
 report-review = Tinjau ZIP
+# A bar when diagnostics couldn't be prepared. Its button is common-try-again, and its raw
+# error is behind Show details.
 report-prepare-failed-title = Tidak dapat menyiapkan diagnostik
-# $error is a raw error message (text).
-report-prepare-failed = Siapkan diagnostik lagi, atau nonaktifkan Sertakan diagnostik untuk mengirim laporan tanpa diagnostik. Detail: { $error }
+report-prepare-failed-advice = Coba lagi, atau kirim tanpa diagnostik.
+# The privacy notice the user agrees to, with report-attach-description. Changing it means a
+# new PRIVACY_VERSION in the app, the report service and the website, deployed together.
 report-privacy = Laporan Anda dikirim secara pribadi ke tim Atlas di reports.atlasos.net. Pesan dan detail kontak Anda dikirim persis seperti yang Anda tulis. Tim mungkin menggunakan layanan AI dari perusahaan lain untuk membantu penyelidikan. Layanan tersebut menerima pesan dan diagnostik Anda, tetapi tidak menerima detail kontak Anda. Laporan dihapus setelah 90 hari, dan log keamanan server mungkin mencatat alamat IP Anda.
 report-website = Privasi dan situs laporan
 report-consent = Saya setuju mengirim laporan ini dan diagnostik yang disertakan ke tim Atlas
-report-failed = Pesan Anda masih tersimpan. Periksa koneksi internet Anda, lalu pilih Coba lagi, atau kirim laporan Anda dari situs laporan.
-report-failed-busy = Layanan laporan sedang sibuk. Pesan Anda masih tersimpan. Coba lagi nanti.
-report-failed-outdated = Versi Atlas Manager ini tidak dapat lagi mengirim laporan. Pesan Anda masih tersimpan: salin pesan tersebut ke situs laporan. Jika Anda menyertakan diagnostik, pilih Tinjau ZIP dan lampirkan ZIP tersebut di sana juga.
-report-failed-diagnostics = Diagnostik yang disiapkan tidak dapat dikirim. Pesan Anda masih tersimpan. Siapkan diagnostik lagi, atau nonaktifkan Sertakan diagnostik.
-# Link under a report that wasn't sent.
+# Under "Report wasn't sent". The footer's button is common-try-again, except after
+# report-not-sent-outdated, where it's report-failed-website and the bar's button is
+# manager-download.
+report-not-sent-retry = Periksa koneksi internet Anda, lalu coba lagi. Anda juga dapat mengirimnya dari situs laporan.
+report-not-sent-busy = Layanan laporan sedang sibuk. Tunggu beberapa menit, lalu coba lagi.
+report-not-sent-outdated = Versi Atlas Manager ini tidak dapat mengirim laporan. Salin pesan Anda ke situs laporan, beserta ZIP jika Anda menyertakan diagnostik.
+report-not-sent-diagnostics = Diagnostik tidak dapat dikirim. Coba lagi, atau kirim tanpa diagnostik.
+# The footer's button where this version can't send.
 report-failed-website = Buka situs laporan
+# Beside a spinner in the footer while the report is on its way.
 report-sending = Mengirim…
 report-send = Kirim laporan
 
-# $min and $max are numbers: the message lengths the report service accepts.
+# Under the message box when Send report finds it too short or too long. $min and $max
+# are numbers: the message lengths the report service accepts.
 report-validation-message = Masukkan { $min }–{ $max } karakter.
 
-# $max is a number: the longest contact details the report service accepts.
+# Under the contact box. $max is a number: the longest contact details the report
+# service accepts.
 report-validation-contact = Batasi detail kontak hingga { $max } karakter.
 
+# Under the agreement check box when Send report is chosen without it.
 report-validation-consent = Konfirmasikan persetujuan untuk mengirim laporan ini.
 
 report-failed-title = Laporan belum terkirim
 
 ## Windows version update
-home-plan-intro = Pembaruan ini terdiri dari dua bagian. File dan aplikasi Anda tetap ada. Jika pembaruan Windows membatalkan sebagian perubahan Atlas, Atlas akan menerapkannya kembali.
+# Atlas moves Windows to a newer release before installing, through Windows Update.
+# $release is the target release (26H2) and $current the release the PC has (24H2);
+# say "Windows 11, version" before them as Microsoft does. $version is an Atlas version.
+
+# Home, under the update button, when the update also moves Windows: a card with the
+# update's two parts. home-plan-name is the accessible name of their list.
+home-plan-files = File dan aplikasi Anda tetap ada.
+home-plan-name = Pembaruan ini terdiri dari dua bagian
 home-plan-windows-title = Windows 11, versi { $release }
-home-plan-windows-detail = Atlas menginstalnya dari Windows Update. PC Anda akan dimulai ulang untuk menyelesaikannya.
-home-plan-windows-optional = Disarankan. Atlas menginstalnya dari Windows Update. PC Anda akan dimulai ulang untuk menyelesaikannya.
+home-plan-windows-step = Atlas menginstalnya dari Windows Update, lalu PC Anda dimulai ulang.
+# The same step where moving is optional.
+home-plan-windows-step-ask = Opsional. Atlas bertanya terlebih dahulu, lalu menginstalnya dari Windows Update dan PC Anda dimulai ulang.
+# Instead of the step's own line, once Windows has moved.
+home-plan-step-installed = Terinstal.
 home-plan-atlas-title = Atlas { $version }
-home-plan-atlas-detail = Atlas memperbarui file-nya dan mempertahankan pilihan yang sudah Anda buat. PC Anda akan dimulai ulang di akhir.
+home-plan-atlas-step = Atlas diperbarui tanpa mengubah pilihan Anda, lalu PC Anda dimulai ulang.
+# $date and $until are dates.
 home-end-of-updates-title = Windows 11, versi { $current } berhenti menerima pembaruan keamanan pada { $date }
 home-end-of-updates-past-title = Windows 11, versi { $current } tidak lagi menerima pembaruan keamanan
 home-end-of-updates-message = Pembaruan ke Atlas { $version } juga meningkatkan PC ini ke Windows 11, versi { $release }, yang menerima pembaruan keamanan hingga { $until }.
-install-windows-edition = Atlas { $version } berfungsi dengan Windows 11 Pro, Enterprise, dan Education. PC ini menggunakan { $product }, sehingga Atlas tidak dapat diinstal di PC ini.
-install-windows-edition-ending = Atlas { $version } berfungsi dengan Windows 11 Pro, Enterprise, dan Education. PC ini menggunakan { $product }, sehingga Atlas tidak dapat diinstal di PC ini. Windows 11, versi { $current } berhenti menerima pembaruan keamanan pada { $date }. Windows Update dapat meningkatkan PC ini ke versi yang lebih baru.
-install-windows-no-path = Atlas { $version } memerlukan Windows 11, versi { $releases }, dan Windows Update tidak dapat meningkatkan PC ini ke versi tersebut dari Windows yang terinstal saat ini. Untuk menggunakan Atlas { $version }, cadangkan file Anda dan instal ulang Windows dengan ISO Atlas.
+# Instead of home-end-of-updates-message when the card with the update's two parts, which
+# names the move, is under the bar.
+home-end-of-support-plan = Windows 11, versi { $release } menerima pembaruan keamanan hingga { $until }.
+
+# Home, when this Windows can't take the Atlas version at all. $product is Windows'
+# own name for the edition, such as Windows 11 Home.
+install-windows-edition-only = Atlas { $version } berfungsi dengan Windows 11 Pro, Enterprise, dan Education, sehingga tidak dapat diinstal di { $product }.
+# The same, on a version whose security updates end, with Open Windows Update. $date is a date.
+install-windows-edition-until = Atlas { $version } berfungsi dengan Windows 11 Pro, Enterprise, dan Education, sehingga tidak dapat diinstal di { $product }. Windows 11, versi { $current } menerima pembaruan keamanan hingga { $date }, dan Windows Update dapat meningkatkan PC ini ke versi yang lebih baru.
+# The same once that date has passed.
+install-windows-edition-ended-update = Atlas { $version } berfungsi dengan Windows 11 Pro, Enterprise, dan Education, sehingga tidak dapat diinstal di { $product }. Versi { $current } tidak lagi menerima pembaruan keamanan, jadi tetap perbarui Windows meskipun tanpa Atlas.
+# $releases lists the supported releases, such as "25H2 or 26H2".
+install-windows-reinstall = Atlas { $version } memerlukan Windows 11, versi { $releases }, dan Windows Update tidak dapat meningkatkan PC ini ke versi tersebut. Cadangkan file Anda, lalu instal ulang Windows dengan ISO Atlas.
+# The same on Home, where the card that creates an Atlas ISO comes first and says how to reinstall.
+home-windows-no-path = Atlas { $version } memerlukan Windows 11, versi { $releases }, dan Windows Update tidak dapat meningkatkan PC ini ke versi tersebut.
+
+# Home, when Atlas changed Windows Update settings for an update and hasn't put them back.
+# The bar's button is home-put-back; Continue update (home-continue-update) is beside the
+# version above.
 home-update-access-title = Pengaturan Windows Update diubah untuk pembaruan Atlas
-home-update-access-not-offered = Atlas mengaktifkan Windows Update untuk meningkatkan PC ini ke Windows 11, versi { $release }, tetapi Windows Update belum menawarkannya. Pilih Periksa lagi, atau pilih Kembalikan pengaturan.
-home-update-access-before = Atlas mengaktifkan Windows Update untuk meningkatkan PC ini ke Windows 11, versi { $release }, tetapi belum selesai. Lanjutkan pembaruan tersebut, atau pilih Kembalikan pengaturan.
-home-update-access-after = PC ini sudah menggunakan Windows 11, versi { $release }. Selesaikan penginstalan Atlas, atau pilih Kembalikan pengaturan.
-home-update-access-plain = Atlas mengaktifkan Windows Update untuk menginstal pembaruan, tetapi belum selesai. Lanjutkan pembaruan tersebut, atau pilih Kembalikan pengaturan.
-home-update-access-unreadable = Atlas tidak dapat membaca catatannya tentang pengaturan Windows Update yang diubahnya, sehingga Atlas tidak akan mengubah atau mengembalikan apa pun. Pilih Kirim laporan agar tim Atlas dapat membantu.
-home-update-access-failed = Atlas tidak dapat mengembalikan pengaturan. Coba lagi, atau pilih Kirim laporan. Detail: { $error }
-home-update-access-install-active = Selesaikan penginstalan Atlas terlebih dahulu. Langkah terakhirnya akan mengembalikan pengaturan ini.
+# Under home-update-access-title while an update that moves Windows is under way.
+home-update-access-put-back-later = Atlas akan mengembalikan pengaturan ini setelah pembaruan selesai.
+# When the last check found no offer yet.
+home-update-access-waiting = Atlas mengaktifkan Windows Update untuk meningkatkan PC ini ke Windows 11, versi { $release }, tetapi Windows Update belum menawarkannya.
+home-update-access-updating = Atlas mengaktifkan Windows Update untuk menginstal pembaruan dan belum selesai.
+# Instead of home-update-access-title when Atlas can't read its record of the settings it changed.
+home-update-access-unreadable-title = Tidak dapat membaca catatan Windows Update milik Atlas
+# With Send a report and Export diagnostics under it; the raw error is behind Show details. Also
+# why putting the settings back failed, where the worker names this cause.
+home-update-access-unreadable-problem = Atlas tidak dapat membaca catatannya tentang pengaturan Windows Update yang diubahnya, sehingga Atlas tidak akan mengubah atau mengembalikan apa pun.
+# Under the bar when putting the settings back failed for another reason. Put back settings
+# tries again; the raw error is behind Show details.
+home-put-back-failed = Atlas tidak dapat mengembalikan pengaturan.
+# Why the Windows Update settings Atlas changed can't be put back yet: an unfinished Atlas
+# installation or update puts them back in its last stage. On Home, where Put back settings is
+# hidden meanwhile, and in the close question when putting them back failed. Also under the
+# Windows release choice on Get ready, where keeping this version waits for the same reason.
+# "Stage" is a stage of installing, not one of the four flow steps.
+update-access-finish-install = Selesaikan penginstalan Atlas terlebih dahulu. Tahap terakhir penginstalan akan mengembalikan pengaturan Windows Update yang diubah Atlas.
 home-continue-update = Lanjutkan pembaruan
 home-put-back = Kembalikan pengaturan
 home-putting-back = Mengembalikan pengaturan…
+
+# Get ready: the card of the move to a newer Windows version, first on the page. Its title is
+# windows-card-title, and the line under it says how the move stands.
 windows-card-title = Windows 11, versi { $release }
-windows-card-required = Atlas { $version } memerlukan versi Windows yang lebih baru. Saat Atlas memperbarui Windows di bawah, Atlas juga menginstal Windows 11, versi { $release } dari Windows Update.
+# Under the title of a move the Atlas package needs, before the go-ahead.
+windows-required = Atlas { $version } tidak mendukung versi { $current }, jadi Atlas memperbarui Windows terlebih dahulu.
+# Under the title where moving is optional.
+windows-optional = Atlas berfungsi dengan kedua versi.
+# The choice's accessible name; the two answers say it.
 windows-card-question = Versi Windows mana yang sebaiknya digunakan PC ini?
-windows-choice-move = Perbarui ke Windows 11, versi { $release }
-windows-choice-move-detail = Disarankan. Pembaruan keamanan hingga { $date }. Perlu mulai ulang sekali lagi.
+windows-choice-move-recommended = Perbarui ke Windows 11, versi { $release } (disarankan)
+# $date is when the new version stops getting security updates.
+windows-choice-move-support = Pembaruan keamanan hingga { $date }.
 windows-choice-keep = Pertahankan Windows 11, versi { $current }
-windows-choice-keep-detail = PC Anda tetap menggunakan versi ini. Windows Update tidak akan meningkatkannya ke versi yang lebih baru, jadi untuk beralih nanti, Anda perlu menjalankan pembaruan lain di Atlas Manager.
+windows-choice-keep-later = Tetap di versi { $current }. Anda dapat meningkatkannya nanti dari Atlas Manager.
 windows-card-facts = Yang berubah
-windows-fact-keep = File dan aplikasi Anda tetap ada. Jika pembaruan membatalkan sebagian perubahan Atlas, Atlas akan menerapkannya kembali saat diinstal.
-windows-fact-restart = PC Anda akan dimulai ulang setidaknya sekali lagi untuk menyelesaikannya.
-transition-offer-expectation = Windows Update biasanya menawarkannya dalam beberapa menit, tetapi dapat memerlukan waktu hingga 2 jam; Atlas menunggu dan memeriksanya untuk Anda.
-windows-fact-stays = Setelah itu, Windows tetap menggunakan versi { $release } dan tidak beralih ke versi yang lebih baru dengan sendirinya.
-windows-fact-removed = Versi { $release } tidak menyertakan Windows PowerShell 2.0 atau alat WMIC.
-windows-card-undo = Untuk membatalkannya nanti, hapus instalan pembaruan tersebut dari Riwayat pembaruan di Windows Update. Jika Windows menginstal ulang dirinya sendiri untuk memperbarui, pilih Kembali di bagian Pemulihan pada pengaturan Sistem sebagai gantinya, dalam waktu 10 hari. Atlas { $version } tidak mendukung versi { $current }, jadi jangan membatalkannya setelah Atlas { $version } terinstal.
-windows-card-undo-optional = Untuk membatalkannya nanti, hapus instalan pembaruan tersebut dari Riwayat pembaruan di Windows Update. Jika Windows menginstal ulang dirinya sendiri untuk memperbarui, pilih Kembali di bagian Pemulihan pada pengaturan Sistem sebagai gantinya, dalam waktu 10 hari.
-windows-terms = Saya menerima Ketentuan Lisensi Perangkat Lunak Microsoft untuk Windows 11, versi { $release }
+windows-fact-files = File dan aplikasi Anda tetap ada. Atlas menerapkan kembali apa pun yang dibatalkan oleh pembaruan.
+windows-fact-time = Biasanya beberapa menit, hingga 2 jam, lalu PC dimulai ulang.
+# Behind Show details, on a PC whose version still has them.
+windows-fact-removes = Menghapus Windows PowerShell 2.0 dan WMIC.
+# Opens the Atlas documentation on undoing the move, where moving is optional.
+windows-undo-link = Cara membatalkan pembaruan
+# Before windows-accept: accepting the terms and starting the move are one choice.
+windows-terms-line = Dengan memperbarui, Anda menerima Ketentuan Lisensi Perangkat Lunak Microsoft.
 windows-terms-link = Baca ketentuan lisensi
-windows-card-locked = Untuk mempertahankan versi { $current }, pilih Batal, lalu pilih Hentikan pembaruan.
-prepare-description-transition = Sebelum menginstal, Atlas menginstal pembaruan Windows yang tertunda, lalu Windows 11, versi { $release }, kemudian memperbarui Microsoft Store dan aplikasi Store Anda. Aplikasi Store yang sedang terbuka mungkin ditutup saat diperbarui, jadi simpan pekerjaan Anda di aplikasi tersebut terlebih dahulu. PC Anda akan dimulai ulang setidaknya sekali.
-prepare-start-transition = Perbarui Windows ke versi { $release }
-prepare-needs-terms = Tersedia setelah Anda menerima ketentuan lisensi di kartu Windows 11, versi { $release }.
-ready-banner-not-offered-message = Lihat Perbarui Windows dan aplikasi Store untuk mengetahui yang dapat Anda lakukan sekarang.
-ready-banner-transition-failed-message = Lihat langkah selanjutnya di Perbarui Windows dan aplikasi Store.
-ready-banner-terms-title = Terima ketentuan lisensi untuk melanjutkan
-ready-banner-terms-message = Ketentuan tersebut ada di kartu Windows 11, versi { $release }, lebih ke bawah di halaman ini. Setelah itu, pilih Perbarui Windows ke versi { $release }.
+windows-accept = Terima dan perbarui
+# Once the terms are accepted, before the move starts by itself.
+windows-starting = Memulai…
+windows-starts-after-checks = Dimulai setelah pemeriksaan berhasil.
+windows-starts-after-package = Dimulai setelah Atlas { $version } siap.
+# After the move, when Windows reinstalled itself instead of switching the new version on.
+windows-rebuilt = Versi { $release } mengatur ulang sebagian perubahan Atlas. Atlas { $version } akan menerapkannya kembali dengan pilihan Anda sebelumnya.
+# Asked before keeping this version once the move has begun; the message is stop-update-before
+# and the buttons are common-cancel and prepare-keep-version.
+windows-keep-title = Pertahankan Windows 11, versi { $current }?
+
+
+# The bar that names each Windows Update setting Atlas turns on for the update.
 access-notice-title = Atlas mengaktifkan Windows Update untuk sementara
 access-off = Windows Update dinonaktifkan di PC ini. Atlas mengaktifkannya kembali selama memperbarui Windows.
 access-paused = Pembaruan Windows dijeda di PC ini. Atlas membatalkan jeda tersebut selama memperbarui Windows.
 access-delayed = Pembaruan bulanan ditunda di PC ini. Atlas menghapus penundaan tersebut selama memperbarui Windows.
-access-back-chosen = Setelah Atlas { $version } terinstal, pengaturan ini dikembalikan sesuai pilihan Anda.
+# After the lines above.
 access-back = Setelah Atlas { $version } terinstal, pengaturan ini dikembalikan seperti semula.
 access-back-stop = Jika Anda berhenti sebelum itu, Atlas akan mengembalikannya.
-prepare-reboot-transition = Windows 11, versi { $release } sudah terinstal. Pilih Mulai ulang dan lanjutkan untuk menyelesaikan penginstalannya. Atlas akan terbuka kembali setelah Anda masuk.
-prepare-reboot-commit = Windows perlu dimulai ulang sekali lagi untuk menyelesaikan penginstalan versi { $release }. Atlas akan terbuka kembali setelah Anda masuk.
-prepare-restart-commit-failed = Windows tidak dapat menyiapkan versi { $release } untuk diselesaikan saat dimulai ulang, sehingga PC Anda tidak dimulai ulang. Pilih Mulai ulang dan lanjutkan untuk mencoba lagi.
+
 prepare-reason-feature-update = versi Windows baru
 prepare-reason-feature-commit = penyelesaian versi Windows baru
-prepare-resumed-transition = PC Anda telah dimulai ulang. Pilih Lanjutkan pembaruan agar Atlas dapat memastikan bahwa Windows 11, versi { $release } sudah selesai diinstal dan menginstal pembaruan yang tersisa.
-prepare-waiting-offer = Menunggu Windows Update menawarkan Windows 11, versi { $release }. Biasanya ini berlangsung beberapa menit, tetapi dapat memerlukan waktu hingga 2 jam. Anda tetap dapat menggunakan PC. Biarkan Atlas tetap terbuka.
-prepare-resumed-before-move = PC Anda telah dimulai ulang untuk menyelesaikan penginstalan pembaruan. Pilih Lanjutkan pembaruan agar Atlas dapat menginstal pembaruan yang tersisa, lalu Windows 11, versi { $release }.
-prepare-not-offered-title = Menunggu Windows Update menawarkan Windows 11, versi { $release }
-prepare-transition-failed-title = Windows tidak dapat ditingkatkan ke versi { $release }
-prepare-failed-feature-not-offered = Windows Update mungkin memerlukan waktu untuk menawarkan Windows 11, versi { $release } ke sebuah PC. PC Anda masih menggunakan versi { $current }.
-prepare-offer-rechecking = Atlas memeriksa lagi setiap 10 menit dan melanjutkan dengan sendirinya begitu Windows Update menawarkannya. Anda juga dapat memilih Periksa lagi.
-prepare-offer-waited =
-    { $minutes ->
-       *[other] Sudah menunggu { $minutes } menit.
-    }
-prepare-offer-next-check =
-    { $minutes ->
-       *[other] Pemeriksaan berikutnya dalam { $minutes } menit.
-    }
-prepare-offer-checking-now = Sedang memeriksa.
-prepare-offer-check-again = Pilih Periksa lagi untuk memeriksa sekarang.
-prepare-offer-wait-ended-title = Windows Update belum menawarkan Windows 11, versi { $release }
-prepare-offer-wait-ended = Windows Update tidak menawarkan Windows 11, versi { $release } dalam 2 jam, sehingga Atlas berhenti menunggu dan mengembalikan pengaturan Windows Update Anda. Pilih Periksa lagi nanti. Jika Anda tidak dapat menunggu, cadangkan file Anda dan instal ulang Windows dengan ISO Atlas.
-prepare-offer-wait-put-back-failed = Windows Update tidak menawarkan Windows 11, versi { $release } dalam 2 jam, dan Atlas tidak dapat mengembalikan pengaturan Windows Update Anda. Pilih Kembalikan pengaturan untuk mencoba lagi. Detail: { $error }
-prepare-failed-feature-hardware = PC ini tidak memenuhi persyaratan perangkat keras Windows 11 ({ $missing }), sehingga Windows Update tidak akan meningkatkannya ke versi { $release }. PC Anda masih menggunakan versi { $current }. Untuk menggunakan Atlas { $version }, cadangkan file Anda dan instal ulang Windows dengan ISO Atlas.
+# Waiting for Windows Update to offer the new version: the progress bar's label and status
+# line, the line under the bar, and how long Atlas has waited, in whole minutes, after it.
+windows-waiting = Menunggu Windows Update menawarkan Windows 11, versi { $release }…
+windows-waiting-detail = Biasanya beberapa menit, hingga 2 jam. Atlas melanjutkan dengan sendirinya; Anda tetap dapat menggunakan PC.
+windows-waited = Sudah menunggu { $minutes } menit.
+# After 2 hours of looking again without an offer. The buttons are common-try-again and iso-open.
+windows-wait-ended-title = Windows Update tidak menawarkan versi { $release } dalam 2 jam
+windows-wait-ended = Atlas sudah mengembalikan pengaturan Anda. Coba lagi nanti, atau instal ulang Windows dengan ISO Atlas.
+# Instead of the message above when putting the settings back failed. The button is
+# home-put-back; the raw error is behind common-show-details.
+windows-wait-put-back-failed = Atlas tidak dapat mengembalikan pengaturan Windows Update Anda.
+# Windows couldn't get the new version ready to finish at the restart, so the PC didn't
+# restart. Try again (common-try-again) makes the restart again.
+windows-commit-failed-title = Windows tidak dapat menyiapkan mulai ulang
+windows-commit-failed = PC Anda tidak dimulai ulang. Coba lagi.
+
+# Outcomes of moving Windows, each a title and what to do next. A cause that only the Atlas
+# team can look into has report-title as its button; one an ISO fixes, iso-open.
+windows-outcome-not-offered-title = Windows Update belum menawarkan versi { $release }
+windows-outcome-not-offered = Ini dapat memerlukan waktu hingga 2 jam. PC Anda masih menggunakan versi { $current }.
+windows-outcome-hardware-title = PC ini tidak memenuhi persyaratan Windows 11
+# $missing lists the hardware this PC lacks, from the two messages below.
+windows-outcome-hardware = PC ini tidak memiliki { $missing }, sehingga Windows Update tidak akan menawarkan versi { $release }. Cadangkan file Anda, lalu instal ulang Windows dengan ISO Atlas.
 hardware-tpm = TPM 2.0
 hardware-uefi = firmware UEFI
-prepare-failed-feature-hidden = Windows 11, versi { $release } disembunyikan di Windows Update pada PC ini. Tampilkan kembali dengan alat yang Anda gunakan untuk menyembunyikannya, lalu pilih Coba lagi.
-prepare-failed-feature-disk-space = Windows memerlukan ruang kosong minimal { $needed } GB di drive { $drive } untuk pembaruan ini, sedangkan yang tersedia hanya { $free } GB. Atlas tidak mengubah apa pun. Kosongkan ruang, lalu pilih Coba lagi.
-prepare-failed-feature-servicing = Windows melaporkan kerusakan pada penyimpanan komponennya yang tidak dapat diperbaiki, sehingga Atlas tidak mengubah apa pun. Perbaiki Windows, lalu pilih Coba lagi.
-prepare-failed-feature-managed = PC ini menerima pembaruan dari server pembaruan milik organisasi, sehingga Atlas tidak dapat meningkatkannya ke versi { $release }. Atlas tidak mengubah apa pun.
-prepare-failed-feature-policy = Sesuatu di PC ini terus mengubah kembali { $setting } setelah Atlas mengubahnya, sehingga Atlas tidak dapat memperbarui Windows. Jika PC ini dikelola oleh organisasi, tanyakan kepada pengelolanya. Atlas akan mengembalikan apa yang diubahnya saat Anda berhenti.
-prepare-failed-feature-blocked = Pengaturan yang tidak diubah Atlas mencegah Windows Update berjalan: { $setting }. Ubah pengaturan tersebut agar Windows Update dapat berjalan, lalu pilih Coba lagi.
-prepare-failed-feature-rolled-back = Windows tidak dapat menyelesaikan penginstalan versi { $release } saat dimulai ulang dan kembali ke versi { $current }. File dan aplikasi Anda tidak terpengaruh. Pilih Coba lagi, atau pilih Kirim laporan.
-prepare-failed-feature-components-lost = Sebagian perubahan Atlas hilang setelah pembaruan Windows, dan tidak ada tanda bahwa Windows menginstal ulang dirinya sendiri, sehingga Atlas tidak dapat mengetahui apa yang terjadi. Atlas { $version } tidak diinstal. Pilih Kirim laporan agar tim Atlas dapat membantu.
-prepare-failed-feature-build = Versi Windows di PC ini berubah saat Atlas memperbaruinya. Pilih Kembalikan pengaturan, lalu mulai lagi dari Beranda.
-prepare-failed-feature-journal = Atlas tidak dapat membaca catatannya tentang pengaturan Windows Update yang diubahnya, sehingga Atlas tidak akan mengubah atau mengembalikan apa pun. Pilih Kirim laporan agar tim Atlas dapat membantu.
+windows-outcome-hidden-title = Versi { $release } disembunyikan di Windows Update
+windows-outcome-hidden = Tampilkan kembali dengan alat yang Anda gunakan untuk menyembunyikannya, lalu coba lagi.
+windows-outcome-disk-space-title = Ruang kosong tidak cukup
+# $needed and $free are whole gigabytes; $drive is a drive such as C:. The button is
+# check-fix-storage; Atlas reads the free space again by itself.
+windows-outcome-disk-space = Windows memerlukan ruang kosong { $needed } GB di { $drive }, sedangkan yang tersedia { $free } GB. Atlas akan melanjutkan dengan sendirinya setelah ruangnya cukup.
+windows-outcome-managed-title = PC ini mendapatkan pembaruan dari organisasinya
+windows-outcome-managed = Server pembaruannya tidak menawarkan versi { $release }, jadi Atlas tidak mengubah apa pun. Tanyakan kepada organisasi Anda, atau instal ulang Windows dengan ISO Atlas.
+windows-outcome-policy-title = Sesuatu terus mengubah kembali Windows Update
+# $setting is the technical name of a Windows Update policy value, such as NoAutoUpdate,
+# shown as it is.
+windows-outcome-policy = { $setting } kembali seperti semula setelah Atlas mengubahnya, sehingga Atlas tidak dapat memperbarui Windows. Jika PC ini dikelola oleh organisasi, tanyakan kepada mereka.
+# $service is a service-* name, after a fixed phrase so that the name needs no agreement. The
+# buttons are common-try-again and prepare-open-services.
+windows-outcome-service-off-title = Layanan dinonaktifkan: { $service }
+windows-outcome-blocked-service = Windows Update memerlukan layanan ini. Atur ke Manual di Layanan, lalu coba lagi.
+windows-outcome-blocked-title = Sesuatu membuat Windows Update tetap nonaktif
+windows-outcome-blocked = Pengaturan yang tidak diubah Atlas, { $setting }, mencegahnya berjalan. Ubah pengaturan tersebut, lalu coba lagi.
+windows-outcome-rollback-title = Windows tidak dapat menyelesaikan penginstalan versi { $release }
+windows-outcome-rolled-back = Windows kembali ke versi { $current }. File dan aplikasi Anda tidak terpengaruh.
+windows-outcome-components-lost-title = Sebagian perubahan Atlas hilang
+windows-outcome-components-lost = Atlas tidak dapat mengetahui penyebabnya, sehingga berhenti sebelum menginstal Atlas { $version }.
+windows-outcome-build-title = Versi Windows berubah selama pembaruan
+windows-outcome-build = Kembalikan pengaturan yang diubah Atlas, lalu mulai lagi dari Beranda.
+windows-outcome-journal-title = Atlas tidak dapat membaca catatannya tentang pembaruan ini
+windows-outcome-journal = Atlas tidak akan mengubah atau mengembalikan apa pun sampai tim Atlas memeriksanya.
+windows-outcome-pin-title = Kebijakan Windows Update tidak dapat dicatat
 # $setting is the name of a Windows Update policy value, such as TargetReleaseVersionInfo.
-prepare-failed-feature-pin = Kebijakan Windows Update di PC ini, { $setting }, memiliki nilai yang tidak dapat dicatat Atlas, sehingga Atlas tidak mengubah apa pun. Pilih Kirim laporan agar tim Atlas dapat membantu.
-prepare-failed-feature-terms = Terima ketentuan lisensi untuk Windows 11, versi { $release }, lalu pilih Coba lagi.
-prepare-failed-feature-failed = Windows tidak dapat menginstal versi { $release }. PC Anda masih menggunakan versi { $current }. Pilih Coba lagi. Jika gagal lagi, pilih Kirim laporan.
-prepare-check-again = Periksa lagi
+windows-outcome-pin = { $setting } memiliki nilai yang tidak dapat dikembalikan Atlas nanti, sehingga Atlas tidak mengubah apa pun.
+windows-outcome-terms-title = Ketentuan lisensi belum diterima
+windows-outcome-terms = Windows Update memerlukannya sebelum menginstal versi { $release }.
+windows-outcome-failed-title = Windows tidak dapat menginstal versi { $release }
+windows-outcome-failed = PC Anda masih menggunakan versi { $current }.
+# Windows services a move needs, as Services lists them, in Microsoft's Indonesian terms.
+# Check them against Services on Indonesian Windows.
+service-bits = Layanan Transfer Cerdas Latar Belakang (BITS)
+service-cryptsvc = Layanan Kriptografi
+service-trusted-installer = Penginstal Modul Windows
+prepare-open-services = Buka Layanan
+# Confirms keeping this version in the windows-keep-title question.
 prepare-keep-version = Pertahankan versi { $current }
+
+# Asked before leaving the update with Windows Update settings changed.
 stop-update-title = Hentikan pembaruan ke Atlas { $version }?
+# stop-update-title for a first install or a reinstall, which so far has only updated Windows.
 stop-update-title-windows = Hentikan pembaruan Windows?
 stop-update-before = Atlas akan mengembalikan pengaturan Windows Update yang diubahnya. Pembaruan yang sudah diinstal Windows tetap terinstal, dan PC Anda tetap menggunakan Windows 11, versi { $current }.
 stop-update-after = PC Anda tetap menggunakan Windows 11, versi { $release }. Atlas akan mengembalikan pengaturan Windows Update yang diubahnya.
@@ -1209,66 +1766,49 @@ window-close-put-back = Kembalikan dan tutup
 # message; the buttons are window-close-keep and window-close-close.
 window-close-put-back-failed-title = Tutup tanpa mengembalikan pengaturan?
 window-close-put-back-failed-message = Jika Anda menutup Atlas sekarang, pengaturan Windows Update tetap seperti yang diubah Atlas. Saat Anda membuka Atlas lagi, Beranda akan menawarkan untuk mengembalikannya.
-installed-update-off-again = Windows Update kembali nonaktif, sesuai pilihan Anda. Selama Windows Update nonaktif, PC Anda tidak menerima pembaruan keamanan.
-installed-update-paused-again = Pembaruan Windows kembali dijeda, sesuai pilihan Anda. Selama pembaruan dijeda, PC Anda tidak menerima pembaruan keamanan.
-detail-build-transition = PC ini menggunakan Windows 11, versi { $current }, yang tidak didukung oleh versi Atlas ini. Atlas meningkatkan Windows ke versi { $release } saat memperbarui Windows di bawah.
+
+# PC checks: Windows compatibility on a version Atlas moves from. The move's card says how
+# the move goes.
+detail-build-needs-release = Versi Atlas ini memerlukan Windows 11, versi { $release }, sedangkan PC ini menggunakan versi { $current }.
+
+# The first lines of a report about a Windows update that didn't finish; technical
+# details follow in English.
 report-transition-intro = Pembaruan Windows untuk Atlas tidak selesai. Detail untuk tim Atlas:
-mode-rebase = Penginstalan ulang setelah pembaruan Windows
+
+# When Windows reinstalled itself while it moved to a newer version, instead of
+# switching the new version on in place. Atlas then puts all of its changes back.
 history-mode-rebase = penginstalan ulang setelah pembaruan Windows
-ready-rebase-title = Windows menginstal ulang dirinya sendiri saat diperbarui
-ready-rebase-message = Windows 11, versi { $release } menggantikan Windows yang sebelumnya ada di PC ini, sehingga sebagian perubahan Atlas hilang. Atlas { $version } akan menerapkannya kembali dengan pilihan yang Anda buat untuk Atlas { $previous }.
-update-path-update-title = Bagaimana Anda ingin memperbarui ke Atlas { $version }?
-update-path-reinstall-title = Bagaimana Anda ingin menginstal ulang Atlas { $version }?
-update-path-keep = Pertahankan pilihan saya
-update-path-keep-detail = Atlas mempertahankan setiap pilihan sesuai kondisi PC ini sekarang dan tidak mengubah satu pun. Ini cara yang lebih cepat.
-update-path-choose = Pilih ulang
-update-path-choose-detail = Tentukan lagi setiap pilihan, dimulai dari kondisi PC ini sekarang. Atlas menerapkan setiap pilihan seperti pada penginstalan baru. Aplikasi, file, menu Mulai, taskbar, dan tema Anda tetap seperti semula, begitu juga pengaturan yang Anda ubah di folder Atlas yang tidak tercakup oleh pilihan ini.
-update-path-now-title = Pilihan Anda di PC ini sekarang
-update-path-unknown = Atlas tidak dapat mengetahuinya dari PC Anda, jadi Atlas akan menanyakannya
-update-path-differs = Catatan Atlas tentang penginstalan terakhir Anda tidak cocok dengan PC ini untuk { $choices }. Daftar ini menunjukkan kondisi PC sekarang.
-keep-choices-title = Mempertahankan pilihan Anda
-keep-choices-partial = Atlas mempertahankan kondisi PC ini sekarang. Atlas tidak dapat mengetahui pilihan berikut dari PC Anda, jadi tentukan sendiri: { $missing }
-choose-again-title = Memilih ulang
-choose-again-detail = Setiap pilihan dimulai dari kondisi PC ini sekarang. Atlas menerapkan pilihan Anda selama penginstalan.
-option-now = Di PC ini sekarang
-change-defender-enable = Atlas mengembalikan Microsoft Defender. Setelah PC dimulai ulang, aktifkan perlindungannya di Keamanan Windows.
-change-mitigations-default = Atlas mengaktifkan kembali perlindungan prosesor sesuai pengaturan bawaan Windows. Perubahan ini berlaku setelah PC dimulai ulang.
-change-mitigations-all-on = Semua perlindungan prosesor sedang aktif. Jika Anda mempertahankan perlindungan, semuanya tetap aktif.
-change-auto-updates-default = Atlas kembali mengizinkan Windows menginstal pembaruan secara otomatis.
-change-hibernation-on = Atlas mengaktifkan kembali hibernasi.
-change-power-saving-on = Atlas mengaktifkan kembali penghematan daya dan kembali ke rencana daya Anda sebelumnya, atau ke rencana Seimbang jika tidak ada.
-change-core-isolation-on = Atlas mengaktifkan kembali keamanan berbasis virtualisasi (VBS), kecuali jika kebijakan di PC ini mengendalikannya. Perubahan ini berlaku setelah PC dimulai ulang.
-change-remove-snipping-tool = Menghapus Snipping Tool untuk semua pengguna PC ini. Atlas tidak dapat mengembalikannya nanti, tetapi Anda dapat menginstalnya lagi dari Microsoft Store.
-fixed-uninstall-edge = Microsoft Edge sudah dihapus, dan pembaruan Atlas tidak dapat mengembalikannya. Untuk menginstalnya lagi, gunakan Install or Remove Edge di folder Atlas.
-fixed-installed = { $app } sudah terinstal. Atlas tidak menghapus instalan aplikasi; untuk menghapusnya, buka Aplikasi yang diinstal di Pengaturan Windows.
-browser-also = { $installed } tetap terinstal, dan Atlas juga menginstal { $browser }.
-summary-update-path = Metode pembaruan
-step-heading-update-path-a11y = { $heading }. { $question }
-security-banner-removed-title = Atlas telah menghapus Microsoft Defender dari PC ini
-security-banner-restore-title = Atlas mengembalikan Microsoft Defender dalam penginstalan ini
-security-banner-restore-message = Defender belum berjalan, jadi tidak ada yang perlu dinonaktifkan di langkah ini. Setelah PC dimulai ulang, aktifkan perlindungannya di Keamanan Windows. Pilih Lanjutkan.
-security-banner-missing-title = Microsoft Defender tidak ditemukan
-security-banner-missing-message = Atlas tidak menghapusnya, jadi Atlas tidak dapat mengembalikannya. Anda dapat melanjutkan, tetapi PC Anda tidak memiliki antivirus sampai Anda menginstal aplikasi antivirus lain atau memperbaiki Windows.
-installed-defender-not-restored-title = Microsoft Defender masih terhapus
-installed-defender-not-restored-message = Anda memilih untuk mempertahankan Microsoft Defender, tetapi pembaruan Atlas sebelumnya tidak mengembalikannya, jadi PC Anda tidak memiliki antivirus. Untuk mengembalikannya, perbarui atau instal ulang Atlas lalu pilih opsi Pilih ulang, atau buka 7. Security > Defender di folder Atlas pada desktop Anda, jalankan Toggle Defender, pilih Enable Windows Defender, lalu mulai ulang PC Anda.
-choices-not-applied-title = Beberapa pilihan tidak diterapkan
-choices-not-applied-message = Atlas mencatat kondisi PC ini sekarang untuk { $choices }. Alasannya ada di log penginstalan.
+# Your choices after Windows reinstalled itself during a move, which put the choices of the
+# Atlas it had back.
 rebase-choices-title = Pilihan Anda dari Atlas { $previous }
-rebase-choices-detail = Atlas menggunakan pilihan yang Anda buat untuk Atlas { $previous }, jadi tidak ada yang perlu dipilih di sini. Untuk mengubahnya nanti, pilih Instal ulang Atlas, lalu pilih opsi Pilih ulang.
-rebase-choices-partial = Atlas menggunakan pilihan yang Anda buat untuk Atlas { $previous }. Atlas tidak dapat menemukan pilihan berikut, jadi periksa pilihan tersebut: { $missing }
-restart-other-title = Pengguna lain sedang masuk di PC ini
-restart-others-title = Beberapa pengguna lain sedang masuk di PC ini
-restart-others-message = Memulai ulang akan menutup aplikasi mereka, dan pekerjaan mereka yang belum disimpan akan hilang. Akun yang sedang masuk: { $names }.
+rebase-choices-kept = Atlas menerapkan kembali pilihan yang Anda buat untuk Atlas { $previous }, dan Anda dapat mengubahnya nanti dengan menginstal ulang Atlas.
+# Above the questions the record of the move had no answer for, which are all Your choices asks.
+rebase-choices-asked = Atlas menerapkan kembali semua pilihan lain yang Anda buat untuk Atlas { $previous }.
+# Asked before any restart Atlas makes while other people are signed in to the PC. Its
+# buttons are restart-others-keep, the default, and restart-others-restart.
+restart-other-question = Mulai ulang saat pengguna lain sedang masuk?
+restart-others-question = Mulai ulang saat beberapa pengguna lain sedang masuk?
+# $names lists their account names, such as "Alex and Sam"; $count is how many there are.
+restart-others-signed-in =
+    { $count ->
+       *[other] { $names } juga sedang masuk. Memulai ulang akan menutup aplikasi di akun tersebut, dan pekerjaan yang belum disimpan akan hilang.
+    }
 restart-others-keep = Jangan mulai ulang
 restart-others-restart = Tetap mulai ulang
-prepare-store-self-update = Memperbarui Microsoft Store terlebih dahulu. Versi Microsoft Store di PC ini sudah usang.
-prepare-store-repair = Memperbaiki Microsoft Store. Ini dapat memerlukan waktu beberapa menit.
-prepare-store-updated = Versi Microsoft Store sudah usang, jadi Atlas memperbaruinya sebelum memperbarui aplikasi Anda.
-prepare-store-bootstrapped = Microsoft Store tidak dapat memperbarui dirinya sendiri, jadi Atlas menginstal App Installer dan Microsoft Store terbaru dari Microsoft.
-prepare-store-repaired = Microsoft Store tidak berfungsi, jadi Atlas memperbaikinya.
-prepare-store-skipped-removed = Microsoft Store dinonaktifkan di PC ini, jadi Atlas melewati pembaruan aplikasi Store.
-prepare-failed-store-repair-failed = Atlas tidak dapat memperbaiki Microsoft Store di PC ini. Pilih Buat ISO Atlas untuk menyiapkan penginstalan baru Windows dengan Atlas. Cadangkan file Anda sebelum menginstal ulang Windows.
-prepare-repair-store = Perbaiki Microsoft Store
+# Microsoft Store itself, before the Store apps: Get ready's status line while it updates or is
+# repaired, with prepare-store-repair-detail under the progress bar while it's repaired.
+prepare-store-updating = Memperbarui Microsoft Store…
+prepare-store-repairing = Memperbaiki Microsoft Store…
+prepare-store-repair-detail = Ini dapat memerlukan waktu beberapa menit.
+# Under ready-updates-done-windows once Get ready has finished, where Microsoft Store is turned off.
+# What updating did to Microsoft Store itself otherwise is only in the log.
+prepare-store-skipped-removed = Microsoft Store dinonaktifkan di PC ini, sehingga aplikasi Store tidak diperbarui.
+# None of Atlas's repairs made Microsoft Store work. The button is prepare-repair-store-again;
+# prepare-store-broken-iso and Create an Atlas ISO (iso-open) are behind common-show-details.
+prepare-store-broken-title = Microsoft Store tidak berfungsi
+prepare-store-broken = Atlas tidak dapat memperbaikinya, dan menginstal Atlas sekarang dapat merusak aplikasi Store.
+prepare-store-broken-iso = Jika perbaikan terus gagal, cadangkan file Anda dan instal ulang Windows dengan ISO Atlas.
+prepare-repair-store-again = Coba perbaiki lagi
 
 screen-keyboard-title = Bahasa keyboard
 screen-keyboard-question = Apakah Anda menggunakan beberapa bahasa keyboard?
@@ -1276,6 +1816,7 @@ package-option-keyboard-shortcuts = Ya, dengan pintasan keyboard
 package-option-keyboard-selector = Ya, dengan pemilih di taskbar
 package-option-keyboard-single = Tidak, saya hanya menggunakan satu tata letak
 consequence-keyboard-shortcuts = Alt+Shift mengganti bahasa; Ctrl+Shift mengganti tata letak.
-consequence-keyboard-selector = Nonaktifkan Alt+Shift dan Ctrl+Shift agar tidak berganti tanpa sengaja saat bermain.
+consequence-keyboard-selector = Menonaktifkan Alt+Shift dan Ctrl+Shift agar tidak berganti tanpa sengaja saat bermain game.
 package-choice-keyboard-description = Pilih cara mengganti bahasa keyboard.
-consequence-keyboard-single = { consequence-keyboard-selector }
+# Written out rather than referencing consequence-keyboard-selector, with the same text.
+consequence-keyboard-single = Menonaktifkan Alt+Shift dan Ctrl+Shift agar tidak berganti tanpa sengaja saat bermain game.

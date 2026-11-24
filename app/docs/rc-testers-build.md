@@ -113,7 +113,7 @@ Run these by hand for each candidate, on a disposable installation of a [support
 - **Recovery.** Reopening the app while the installer runs picks the session up.
   Declining the UAC prompt that begins the flow abandons it, and declining a relaunch from inside the flow keeps the flow and its draft.
 - **ISO.** Create an ISO from the bundled package in each of the three modes, and check the before-desktop handoff ([Creating an Atlas ISO](iso-creation.md)).
-- **Diagnostics.** **Export diagnostics** in **Settings** > **Help and feedback** and `AtlasManager.exe --export-diagnostics` both produce a ZIP under `%LOCALAPPDATA%\AtlasOS\App\Diagnostics` with the right `rcId`.
+- **Diagnostics.** **Export diagnostics** in **Settings** > **Help** and `AtlasManager.exe --export-diagnostics` both produce a ZIP under `%LOCALAPPDATA%\AtlasOS\App\Diagnostics` with the right `rcId`.
   **Send a report** collects its diagnostics as the page opens, without a separate step.
 - **Reports.** The report service and website run the privacy notice version the candidate sends (`PRIVACY_VERSION` in `src/services/reports.rs`).
   The service refuses any other version, so the app, the service and the website deploy together.

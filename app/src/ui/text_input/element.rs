@@ -319,9 +319,12 @@ impl Element for TextElement {
         }
         let Some(line) = prepaint.line.take() else { return };
         let origin = bounds.origin - point(prepaint.offset, px(0.));
-        if let Err(error) = line.paint(origin, window.line_height(), TextAlign::Left, None, window, cx) {
-            log::error!("could not paint a text box line: {error}");
-        }
+        // Text scrolled sideways must not show in the padding either.
+        window.with_content_mask(Some(ContentMask { bounds }), |window| {
+            if let Err(error) = line.paint(origin, window.line_height(), TextAlign::Left, None, window, cx) {
+                log::error!("could not paint a text box line: {error}");
+            }
+        });
 
         if focus_handle.is_focused(window)
             && let Some(cursor) = prepaint.cursor.take()

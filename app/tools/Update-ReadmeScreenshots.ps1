@@ -69,7 +69,9 @@ try {
         $root = Join-Path $env:TEMP "atlas-readme-$name"
         if (Test-Path -LiteralPath $root) { Remove-Item -LiteralPath $root -Recurse -Force }
         New-Item -ItemType Directory -Path $root -Force | Out-Null
-        @{ theme = $name; language = 'en-GB' } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $root 'settings.json') -Encoding UTF8
+        # Without a saved driver answer, Get ready shows this PC's own driver policy, so a PC that blocks
+        # driver updates would show "Install them myself"; the README shows the usual answer instead.
+        @{ theme = $name; language = 'en-GB'; drivers = 'automatic' } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $root 'settings.json') -Encoding UTF8
         foreach ($variable in $saved) { Remove-Item -LiteralPath "Env:$($variable.Name)" -ErrorAction SilentlyContinue }
         $env:ATLAS_APP_DATA = $root
         $env:ATLAS_PREPARATION_PREVIEW = 'complete'

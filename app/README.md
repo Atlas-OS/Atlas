@@ -5,7 +5,7 @@ This guide is for contributors who build, test or review it; user documentation 
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../docs/images/atlas-manager-get-ready-dark.png">
-  <img src="../docs/images/atlas-manager-get-ready-light.png" alt="Atlas Manager's Get ready step, with the PC checks passed and the installation files ready" width="720">
+  <img src="../docs/images/atlas-manager-get-ready-light.png" alt="Atlas Manager's Get ready step, with the PC checks passed, the Atlas package ready and Windows up to date" width="720">
 </picture>
 
 ## Requirements
@@ -59,7 +59,7 @@ The script writes `target/x86_64-pc-windows-msvc/release/AtlasManager.exe`.
   Home shows the installed version and checks GitHub for newer releases.
   The install has four steps, **Get ready**, **Your choices**, **Windows Security** and **Install**, and ends by running the front door, `Entry\Install-Atlas.ps1`, the script in the Atlas package that installs Atlas.
 - **Creates media.**
-  Home recommends **Create an Atlas ISO** for a first install. It builds Windows 11 installation media that applies Atlas after Windows setup, and can write it to a USB drive.
+  Home offers **Create an Atlas ISO**, and recommends it where Windows on the PC has been in use. It builds Windows 11 installation media that applies Atlas after Windows setup, and can write it to a USB drive.
 - **Helps with problems.**
   **Export diagnostics** saves a ZIP for a bug report, and **Send a report** sends a message privately to the Atlas team.
 

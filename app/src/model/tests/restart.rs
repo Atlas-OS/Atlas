@@ -17,8 +17,8 @@ use crate::model::{AppModel, CloseGuard, Environment, Page, RestartKind, Restart
 use crate::services::atlas_state::AtlasState;
 use crate::services::installer::InstallOutcome;
 use crate::services::preparation::State;
-use crate::services::session;
 use crate::services::test_support::TempDir;
+use crate::services::{session, settings};
 
 /// The state document an install that finished `minutes` from now writes.
 fn installed_at(minutes: i64) -> AtlasState {
@@ -537,6 +537,73 @@ fn get_ready_and_home_ask_before_restarting_over_others() {
         act(&mut cx, &model, |m, cx| m.confirm_restart(cx));
         assert_eq!(*machine.scheduled.lock().unwrap(), 2);
         assert!(read(&cx, &model, |m| m.owed_restart().unwrap().requested));
+        settle(&cx, &model).await;
+    });
+}
+
+/// The Install step's restart box applies to that install only: it starts
+/// from the Restart automatically setting, changes neither the setting nor
+/// what a later flow starts from, and the install runs as it says. While
+/// the install runs it can't change.
+#[test]
+fn the_install_step_s_restart_box_applies_to_that_install_only() {
+    run_model_test(async move |mut cx| {
+        let (temp, machine, env) = fixture("model-restart-box");
+        let gate = temp.path().join("gate");
+        let package = gated_package(&temp, &gate);
+        let model = new_model(&mut cx, env.clone());
+        walk_to_install(&mut cx, &model, &package).await;
+        act(&mut cx, &model, |m, cx| m.next_step(cx));
+        read(&cx, &model, |m| {
+            assert!(m.settings.restart_after_install);
+            assert!(m.install_restarts() && m.install_request().unwrap().restart, "it starts from Settings");
+        });
+
+        // Cleared, this install doesn't restart; Settings stays as it was.
+        act(&mut cx, &model, |m, cx| m.set_install_restart(false, cx));
+        read(&cx, &model, |m| {
+            assert!(!m.install_restarts() && !m.install_request().unwrap().restart);
+            assert!(m.settings.restart_after_install, "Settings is unchanged");
+        });
+        settle(&cx, &model).await;
+        assert!(settings::load_from(&env.paths.settings()).settings.restart_after_install, "and on disk");
+
+        // A new flow starts from what Settings says.
+        act(&mut cx, &model, |m, cx| {
+            m.cancel_flow(cx);
+            m.set_restart_after_install(false, cx);
+            m.begin_install(cx);
+        });
+        assert!(read(&cx, &model, |m| m.flow.active && !m.install_restarts()), "Settings is off");
+        act(&mut cx, &model, |m, cx| m.set_install_restart(true, cx));
+        assert!(read(&cx, &model, |m| m.install_restarts() && !m.settings.restart_after_install));
+        act(&mut cx, &model, |m, cx| {
+            m.cancel_flow(cx);
+            m.set_restart_after_install(true, cx);
+        });
+
+        // The install runs as the box says, and the box is locked meanwhile.
+        walk_to_install(&mut cx, &model, &package).await;
+        act(&mut cx, &model, |m, cx| {
+            m.next_step(cx);
+            m.set_install_restart(false, cx);
+        });
+        wait_for(&cx, &model, "the install to be possible", AppModel::can_install).await;
+        act(&mut cx, &model, |m, cx| m.start_install(cx));
+        wait_for(&cx, &model, "the install to run", |m| m.flow.run == RunState::Running).await;
+        act(&mut cx, &model, |m, cx| m.set_install_restart(true, cx));
+        read(&cx, &model, |m| {
+            assert!(!m.session.as_ref().unwrap().request.restart, "the request the install ran with");
+            assert!(!m.install_restarts(), "locked while it runs");
+        });
+        std::fs::write(&gate, "").unwrap();
+        wait_for(&cx, &model, "a successful install", |m| {
+            m.flow.run == RunState::Finished(InstallOutcome::Succeeded)
+        })
+        .await;
+        read(&cx, &model, |m| assert!(m.restart_countdown().is_none() && !m.restart_cancellable()));
+        assert_eq!(*machine.scheduled.lock().unwrap(), 0, "nothing restarts");
+        assert!(read(&cx, &model, |m| m.settings.restart_after_install), "Settings is unchanged");
         settle(&cx, &model).await;
     });
 }

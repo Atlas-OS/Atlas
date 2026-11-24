@@ -91,7 +91,8 @@ fn updates_wait_for_the_update_step_before_they_block() {
             assert!(!m.handled_by_preparation(&pending_updates()));
             assert!(m.checks_blocking());
             assert_eq!(m.ready_status(), Some(ReadyStatus::Blocked));
-            assert_eq!(m.ready_help(), Some(ReadyHelp::Checks));
+            // Windows Update is where they're finished: no report is needed for that.
+            assert_eq!(m.ready_help(), None);
         });
         // The last decision before launch never sets them aside.
         let decision = preflight_decision(&[pending_updates()], &BTreeSet::new(), &all_off(), None, true);
@@ -99,8 +100,8 @@ fn updates_wait_for_the_update_step_before_they_block() {
     });
 }
 
-/// Get ready's status bar says one thing, the most urgent, and nothing where
-/// another message already says what's next.
+/// Get ready says where it stands, the most urgent first, and offers help
+/// only for what went wrong unexpectedly.
 #[test]
 fn get_ready_reports_the_most_urgent_status() {
     run_model_test(|mut cx| async move {
@@ -114,8 +115,17 @@ fn get_ready_reports_the_most_urgent_status() {
             assert_eq!(m.ready_status(), Some(ReadyStatus::Busy), "a check is still running");
             m.checks = checks_with(vec![]);
             assert_eq!(m.ready_status(), Some(ReadyStatus::NoPackage));
-            m.acquisition = Acquisition::Failed(AcquireProblem::Stalled);
-            assert_eq!(m.ready_help(), Some(ReadyHelp::Package));
+            // A stalled download or the wrong file is put right by trying
+            // again; a release without its package isn't.
+            for (problem, help) in [
+                (AcquireProblem::Stalled, None),
+                (AcquireProblem::NotAPackage, None),
+                (AcquireProblem::NoPackageAsset { version: "0.6.0".into() }, Some(ReadyHelp::Package)),
+                (AcquireProblem::Other { error: "access denied".into() }, Some(ReadyHelp::Package)),
+            ] {
+                m.acquisition = Acquisition::Failed(problem.clone());
+                assert_eq!(m.ready_help(), help, "{problem:?}");
+            }
             m.acquisition = Acquisition::Idle;
             m.package = Some(package());
             assert_eq!(m.ready_status(), Some(ReadyStatus::Ready));
@@ -125,8 +135,7 @@ fn get_ready_reports_the_most_urgent_status() {
             assert_eq!(m.ready_status(), Some(ReadyStatus::Warnings));
             assert_eq!(m.ready_help(), None, "advice is no trouble");
 
-            // Once only updates are left, the top says how updating stands
-            // and names the card and its button, far down the page.
+            // Once only updates are left, how updating stands.
             for (preparation, status) in [
                 (State::Idle, ReadyStatus::Updates),
                 (
@@ -153,11 +162,36 @@ fn get_ready_reports_the_most_urgent_status() {
             assert_eq!(m.ready_help(), Some(ReadyHelp::Preparation), "a failed update run");
             m.preparation = State::RestartPersists { reasons: vec![] };
             assert_eq!(m.ready_help(), Some(ReadyHelp::Preparation));
+            // Paused for the battery, or cut off: the user puts that right.
+            m.preparation = State::Network;
+            assert_eq!(m.ready_help(), None);
+            m.preparation = State::Failed;
+            m.preparation_progress = Some(
+                serde_json::from_value(serde_json::json!({
+                    "schema": 1, "status": "failed", "stage": "store-install", "completed": 0, "total": 1,
+                    "activity": { "failureMessage": "PausedLowBattery", "reason": "store-paused-battery" }
+                }))
+                .unwrap(),
+            );
+            assert_eq!(m.ready_help(), None);
+            // An app left open while it updates: closing it is the fix.
+            m.preparation_progress = Some(
+                serde_json::from_value(serde_json::json!({
+                    "schema": 1, "status": "failed", "stage": "store-install", "completed": 0, "total": 1,
+                    "activity": { "failureMessage": "in use", "errorCode": "0x80073D02", "packageName": "NanaZip" }
+                }))
+                .unwrap(),
+            );
+            assert_eq!(m.ready_help(), None);
+            m.preparation_progress = None;
 
-            // A blocker outranks the updates still to do.
+            // A blocker outranks the updates still to do. One the user can
+            // fix asks for no report; a check that couldn't run does.
             m.preparation = State::Idle;
             m.checks = checks_with(vec![result(CheckId::Power, Verdict::Fail, CheckDetail::PowerBattery)]);
             assert_eq!(m.ready_status(), Some(ReadyStatus::Blocked));
+            assert_eq!(m.ready_help(), None);
+            m.checks = checks_with(vec![result(CheckId::Power, Verdict::Unknown, CheckDetail::PowerUnknown)]);
             assert_eq!(m.ready_help(), Some(ReadyHelp::Checks));
 
             // No installation can start here: the eligibility message says why.

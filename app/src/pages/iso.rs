@@ -1,59 +1,66 @@
-//! Installation media: an Atlas ISO built in four steps (files, Windows setup,
-//! choices, review), which the USB panel can then write to a drive. It runs
-//! apart from the install flow and its checks of this PC.
+//! Installation media: an Atlas ISO made in three steps. Windows asks which
+//! PC the ISO is for and where Windows comes from, and checks the files by
+//! itself; Setup holds the edition, the account, the drivers and the Atlas
+//! choices; Create reviews them, builds the ISO and shows how it ended. The
+//! USB panel can then write the ISO to a drive. It runs apart from the
+//! install flow and its checks of this PC.
 
+mod create;
 mod download;
+mod menu;
+mod setup;
 
+use std::cell::Cell;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::atomic::Ordering;
 
 use futures::StreamExt;
 use gpui::{
-    AnyElement, App, Context, Div, Entity, FocusHandle, Hsla, IntoElement, ParentElement, PathPromptOptions,
-    Point, Render, Role, ScrollHandle, Stateful, Task, Window, div, prelude::*, px,
+    AnyElement, App, Bounds, Context, Div, Entity, FocusHandle, Hsla, IntoElement, ParentElement,
+    PathPromptOptions, Pixels, Point, Render, Role, ScrollHandle, Stateful, Task, Window, div, prelude::*,
+    px,
 };
 
 use super::usb::UsbPage;
 use super::{
-    CommandBar, Diagnostics, ListEntry, PageTitle, StepStatus, Stepper, card_body, card_header_with_icon,
-    caution_caption, detail_row, detail_text, driver_label, driver_radio_items, focusable_heading,
-    manager_download_button, option_page_card, page_frame, plain_list, step_card_header,
+    CommandBar, Diagnostics, PageTitle, StepStatus, Stepper, card_body, card_title, detail_text,
+    manager_download_button, page_frame,
 };
 use crate::i18n::{describe, fmt};
-use crate::model::{AcquireProblem, Acquisition, AppModel, Page, ReleaseCheck, ScreenKind};
+use crate::model::{AcquireProblem, Acquisition, AppModel, Page, ReleaseCheck};
 use crate::services::iso::{self, Architecture, FailureReason, ImageInfo, Mode, Stage, UsernameProblem};
-use crate::services::package::{self, ChoiceKind, Manifest};
+use crate::services::package::{self, Manifest};
 use crate::services::preparation::Drivers;
 use crate::services::{settings, system};
 use crate::t;
 use crate::theme::ActiveTheme;
 use crate::ui::text_input::TextInput;
 use crate::ui::{
-    Button, CapCenteredText, CheckBox, FocusHandles, Icon, InfoBar, LightState, ProgressBar, ProgressRing,
-    RadioGroup, RadioItem, ScrollbarState, Severity, StatusLight, TextMark, Typography, a11y_text, card,
-    icon,
+    Button, CapCenteredText, FocusHandles, Icon, InfoBar, LightState, ProgressBar, ProgressRing, RadioGroup,
+    RadioItem, ScrollbarState, Severity, StatusLight, TextMark, Typography, a11y_text, card, icon, link_row,
 };
-
-/// Where Microsoft offers Windows 11 ISOs.
-const WINDOWS_DOWNLOAD: &str = "https://www.microsoft.com/software-download/windows11";
 
 /// The new ISO's name, unless the user chooses another.
 const OUTPUT_STEM: &str = "Atlas-Windows";
+/// How often the Create step reads a volume short of space again.
+const SPACE_RECHECK: std::time::Duration = std::time::Duration::from_secs(5);
+/// Windows Settings' Storage page, where space can be freed.
+const STORAGE_SETTINGS: &str = "ms-settings:storagesense";
 
 /// The steps of making an ISO, in order.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum IsoStep {
-    Files,
-    /// The Windows the ISO installs: its account, drivers and target PC.
+    /// Which PC the ISO is for, the Windows ISO and the Atlas package.
     Windows,
-    /// How Atlas is set up from it, and the choices it carries.
-    Choices,
-    Review,
+    /// The Windows the ISO installs and how Atlas is set up from it.
+    Setup,
+    /// A review of everything, then the build.
+    Create,
 }
 
 impl IsoStep {
-    const ALL: [IsoStep; 4] = [IsoStep::Files, IsoStep::Windows, IsoStep::Choices, IsoStep::Review];
+    const ALL: [IsoStep; 3] = [IsoStep::Windows, IsoStep::Setup, IsoStep::Create];
 
     fn index(self) -> usize {
         self as usize
@@ -61,10 +68,9 @@ impl IsoStep {
 
     fn title(self) -> String {
         match self {
-            IsoStep::Files => t!("iso-review-files"),
-            IsoStep::Windows => t!("iso-step-windows"),
-            IsoStep::Choices => t!("step-options"),
-            IsoStep::Review => t!("iso-step-review"),
+            IsoStep::Windows => t!("iso-step-source"),
+            IsoStep::Setup => t!("iso-step-setup"),
+            IsoStep::Create => t!("iso-step-create"),
         }
     }
 
@@ -80,21 +86,18 @@ impl IsoStep {
 /// What each step asks for before the flow moves past it.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 struct Gates {
-    /// Files: they passed the check, and none was chosen again since.
+    /// Windows: the files passed the check, and none was chosen again since.
     checked: bool,
-    /// Windows setup: a local account name Windows accepts.
+    /// Setup: a local account name Windows accepts.
     account: bool,
-    /// Your choices: the Atlas package supports the setup mode chosen.
-    mode: bool,
 }
 
 impl Gates {
     fn passes(self, step: IsoStep) -> bool {
         match step {
-            IsoStep::Files => self.checked,
-            IsoStep::Windows => self.account,
-            IsoStep::Choices => self.mode,
-            IsoStep::Review => true,
+            IsoStep::Windows => self.checked,
+            IsoStep::Setup => self.account,
+            IsoStep::Create => true,
         }
     }
 
@@ -120,12 +123,11 @@ fn step_status(step: IsoStep, current: IsoStep, furthest: IsoStep, gates: Gates)
     }
 }
 
-/// A file the first step asks for.
+/// A file the Windows step asks for.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Field {
     Source,
     Package,
-    Output,
 }
 
 /// How the last check or build ended.
@@ -158,7 +160,7 @@ fn stage_state(stage: Stage, reported: Stage, failed: bool) -> StageState {
 
 fn stage_text(stage: Stage) -> String {
     match stage {
-        Stage::Inspect => t!("iso-stage-inspect"),
+        Stage::Inspect => t!("iso-stage-read"),
         Stage::Copy => t!("iso-stage-copy"),
         Stage::AddAtlas => t!("iso-stage-add-atlas"),
         Stage::NetworkDrivers => t!("iso-stage-network-drivers"),
@@ -166,6 +168,31 @@ fn stage_text(stage: Stage) -> String {
         Stage::Verify => t!("iso-stage-verify"),
         Stage::Cleanup => t!("iso-stage-cleanup"),
     }
+}
+
+/// How long a stage usually takes, against the others: copying Windows and
+/// writing the ISO take most of a build.
+fn stage_weight(stage: Stage) -> f32 {
+    match stage {
+        Stage::Inspect => 3.,
+        Stage::Copy => 30.,
+        Stage::AddAtlas => 5.,
+        Stage::NetworkDrivers => 10.,
+        Stage::Master => 30.,
+        Stage::Verify => 17.,
+        Stage::Cleanup => 5.,
+    }
+}
+
+/// How far a build has come: the share of its stages, by weight, finished
+/// before `reported`, and of `reported` itself the `fraction` its bytes say.
+/// It only grows, as the worker reports stages in order.
+fn build_progress(reported: Stage, network_drivers: bool, fraction: Option<f32>) -> f32 {
+    let stages = Stage::build(network_drivers);
+    let total: f32 = stages.iter().copied().map(stage_weight).sum();
+    let done: f32 = stages.iter().copied().filter(|stage| *stage < reported).map(stage_weight).sum();
+    let within = stages.contains(&reported).then(|| stage_weight(reported) * fraction.unwrap_or(0.));
+    ((done + within.unwrap_or(0.)) / total).clamp(0., 1.)
 }
 
 /// A stage's accessible name: its title and where it stands. The list it's
@@ -193,31 +220,105 @@ fn account_error(name: &str) -> Option<String> {
     })
 }
 
-/// The manifest's pages in the install flow's order: a page shown only when
-/// an option is chosen comes straight after the page that offers it.
-fn page_order(manifest: &Manifest) -> Vec<usize> {
-    package::follow_parents(&manifest.choices, (0..manifest.choices.len()).collect())
+/// A file in `folder` named `stem` that overwrites nothing: `stem.iso`, then
+/// `stem (2).iso` and so on.
+fn free_name(folder: &Path, stem: &str, exists: impl Fn(&Path) -> bool) -> PathBuf {
+    let candidate = |number: u32| {
+        folder.join(if number == 1 { format!("{stem}.iso") } else { format!("{stem} ({number}).iso") })
+    };
+    (1..100).map(candidate).find(|path| !exists(path)).unwrap_or_else(|| candidate(1))
 }
 
 /// A new ISO in `folder` that overwrites nothing: Atlas-Windows.iso, then
 /// Atlas-Windows (2).iso and so on.
 fn free_output(folder: &Path, exists: impl Fn(&Path) -> bool) -> PathBuf {
-    let candidate = |number: u32| {
-        folder.join(if number == 1 {
-            format!("{OUTPUT_STEM}.iso")
-        } else {
-            format!("{OUTPUT_STEM} ({number}).iso")
-        })
+    free_name(folder, OUTPUT_STEM, exists)
+}
+
+/// `path`, or, when a file already has its name, the first free name like it:
+/// Mine.iso becomes Mine (2).iso, and Mine (2).iso becomes Mine (3).iso.
+fn unused_path(path: &Path, exists: impl Fn(&Path) -> bool) -> PathBuf {
+    if !exists(path) {
+        return path.to_path_buf();
+    }
+    let folder = path.parent().unwrap_or(Path::new(""));
+    let stem = path.file_stem().map(|stem| stem.to_string_lossy().into_owned()).unwrap_or_default();
+    // "Name (2)" counts on from its number, not to "Name (2) (2)".
+    let base = stem
+        .strip_suffix(')')
+        .and_then(|rest| rest.rsplit_once(" ("))
+        .filter(|(_, number)| !number.is_empty() && number.bytes().all(|b| b.is_ascii_digit()))
+        .map_or(stem.as_str(), |(base, _)| base);
+    free_name(folder, base, exists)
+}
+
+/// The edition among `editions` that is this PC's, named as Windows images
+/// name them, from the PC's EditionID. Home and the editions Atlas doesn't
+/// support have none.
+fn this_pc_edition(edition_id: &str, editions: &[String]) -> Option<String> {
+    let name = match edition_id.to_ascii_lowercase().as_str() {
+        "professional" => "Windows 11 Pro",
+        "professionaln" => "Windows 11 Pro N",
+        "professionaleducation" => "Windows 11 Pro Education",
+        "professionaleducationn" => "Windows 11 Pro Education N",
+        "professionalworkstation" => "Windows 11 Pro for Workstations",
+        "professionalworkstationn" => "Windows 11 Pro N for Workstations",
+        "education" => "Windows 11 Education",
+        "educationn" => "Windows 11 Education N",
+        "enterprise" => "Windows 11 Enterprise",
+        "enterprisen" => "Windows 11 Enterprise N",
+        _ => return None,
     };
-    (1..100).map(candidate).find(|path| !exists(path)).unwrap_or_else(|| candidate(1))
+    editions.iter().find(|edition| edition.eq_ignore_ascii_case(name)).cloned()
+}
+
+/// The name of the account Atlas runs as, when Windows would accept it for
+/// the ISO's local account.
+fn this_pc_account() -> Option<String> {
+    std::env::var("USERNAME").ok().filter(|name| iso::valid_username(name))
+}
+
+/// Whether this process was started on ISO creation, as relaunching as
+/// administrator starts it: it doesn't ask again by itself, so a relaunch
+/// that comes back without the permission can't repeat.
+fn launched_on_this_page() -> bool {
+    let args: Vec<String> = std::env::args().collect();
+    args.windows(2).any(|pair| pair[0] == "--page" && pair[1] == "iso")
+}
+
+fn architecture_text(architecture: Architecture) -> String {
+    match architecture {
+        Architecture::X64 => t!("iso-architecture-x64"),
+        Architecture::Arm64 => t!("iso-architecture-arm64"),
+    }
+}
+
+/// A source the person can fix themselves by using other Windows media.
+fn other_media_fixes(reason: Option<FailureReason>) -> bool {
+    matches!(
+        reason,
+        Some(
+            FailureReason::EditionUnsupported
+                | FailureReason::IsoCustomised
+                | FailureReason::WindowsReleaseUnlisted
+                | FailureReason::WindowsUnsupported
+        )
+    )
 }
 
 pub struct IsoPage {
     download: download::IsoDownload,
-    editing_source: bool,
+    /// The Windows ISO's Change menu is open.
+    source_menu: bool,
+    /// Where the Change link was last drawn, for the menu to open under.
+    source_menu_anchor: Rc<Cell<Bounds<Pixels>>>,
     terms_folder: Option<PathBuf>,
-    editing_edition: bool,
+    /// The edition's Change menu is open, under the link it was drawn at.
+    edition_menu: bool,
+    edition_menu_anchor: Rc<Cell<Bounds<Pixels>>>,
     edition: Option<String>,
+    /// The user chose the edition, so the target PC's no longer sets it.
+    edition_chosen: bool,
     accept_terms: bool,
     usb: Option<Entity<UsbPage>>,
     username: Entity<TextInput>,
@@ -229,9 +330,13 @@ pub struct IsoPage {
     /// choice, so it follows the source.
     output_suggested: bool,
     package: Option<PathBuf>,
+    /// The unpacked package's size, which the free space it needs counts.
+    package_bytes: u64,
     setup_available: bool,
     manifest: Option<Rc<Manifest>>,
     options: Vec<String>,
+    /// The optional extras are unfolded under the questions.
+    extras_shown: bool,
     image: Option<ImageInfo>,
     mode: Mode,
     drivers: Option<Drivers>,
@@ -243,12 +348,13 @@ pub struct IsoPage {
     /// that Windows includes them, so it added none.
     network_inbox: bool,
     copy_network_drivers: bool,
-    update_network_drivers: bool,
     step: IsoStep,
     /// The furthest step reached since the files were last checked.
     furthest: IsoStep,
     /// The stage the worker reported last.
     stage: Stage,
+    /// The furthest the build's bar has been, so it never goes back.
+    peak: f32,
     /// Whether the build running, or last run, adds this PC's network drivers.
     network_build: bool,
     result: JobResult,
@@ -257,18 +363,45 @@ pub struct IsoPage {
     manager_required: Option<String>,
     job: Option<PathBuf>,
     task: Option<Task<()>>,
+    /// The files the last check ran on, so a check that failed isn't
+    /// repeated by itself until a file changes.
+    checked_files: Option<(PathBuf, Option<PathBuf>)>,
+    /// A build found the package changed since the check: the check runs
+    /// again, then the build.
+    rebuild: bool,
+    /// The new ISO's volume and whether the build fits there.
+    destination: Option<iso::Destination>,
+    /// The volume is read again every few seconds while it lacks the space,
+    /// so space freed elsewhere is noticed without asking.
+    destination_watched: bool,
+    /// The page visit on which Atlas last asked for administrator
+    /// permission by itself, and on which it last fetched the package.
+    elevation_asked: Option<u64>,
+    package_requested: Option<u64>,
+    /// Windows refused the last relaunch as administrator.
+    elevation_declined: bool,
     scroll: ScrollHandle,
     scrollbar: ScrollbarState,
     focus: FocusHandles,
     /// The `ATLAS_ISO_PREVIEW` state (debug builds only). A preview page never
-    /// reads or writes files and never starts a build.
+    /// reads or writes files and never starts a check or build.
     preview: Option<String>,
     /// A preview of the page as it is before Atlas has administrator permission.
     preview_unelevated: bool,
-    /// Step, busy and result as last drawn, and the model's page visit, so
-    /// each change and each arrival is announced.
-    shown: Option<(IsoStep, bool, JobResult, u64)>,
+    /// Step, result and page visit as last drawn, and whether a build was
+    /// showing, so each change is announced once.
+    shown: Option<Shown>,
     diagnostics: Diagnostics,
+}
+
+/// What the page drew last, to tell what's new.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct Shown {
+    step: IsoStep,
+    result: JobResult,
+    visit: u64,
+    building: bool,
+    declined: bool,
 }
 
 impl IsoPage {
@@ -288,11 +421,14 @@ impl IsoPage {
         })
         .detach();
         let page = Self {
-            download: Default::default(),
-            editing_source: false,
+            download: download::IsoDownload::new(),
+            source_menu: false,
+            source_menu_anchor: Rc::default(),
             terms_folder: None,
-            editing_edition: false,
+            edition_menu: false,
+            edition_menu_anchor: Rc::default(),
             edition: None,
+            edition_chosen: false,
             accept_terms: false,
             usb: None,
             username,
@@ -302,25 +438,34 @@ impl IsoPage {
             output: None,
             output_suggested: false,
             package: None,
+            package_bytes: 0,
             setup_available: false,
             manifest: None,
             options: vec![],
+            extras_shown: false,
             image: None,
             mode: Mode::Interactive,
             drivers: Default::default(),
-            reinstall_this_pc: false,
+            reinstall_this_pc: true,
             target_chosen: false,
             network_inbox: false,
             copy_network_drivers: true,
-            update_network_drivers: false,
-            step: IsoStep::Files,
-            furthest: IsoStep::Files,
+            step: IsoStep::Windows,
+            furthest: IsoStep::Windows,
             stage: Stage::Inspect,
+            peak: 0.,
             network_build: false,
             result: JobResult::None,
             manager_required: None,
             job: None,
             task: None,
+            checked_files: None,
+            rebuild: false,
+            destination: None,
+            destination_watched: false,
+            elevation_asked: None,
+            package_requested: None,
+            elevation_declined: false,
             scroll: ScrollHandle::new(),
             scrollbar: ScrollbarState::new(),
             focus: FocusHandles::default(),
@@ -340,13 +485,20 @@ impl IsoPage {
         let Ok(state) = std::env::var("ATLAS_ISO_PREVIEW") else { return self };
         let state = state.as_str();
         self.preview = Some(state.to_owned());
-        self.preview_unelevated = state == "not-elevated";
-        self.source = Some(PathBuf::from(r"C:\Downloads\Windows11_25H2_English_x64.iso"));
-        // A first-time user who never handled the Atlas package: the field is empty.
-        if !matches!(state, "files-empty" | "download-language" | "download-progress") {
-            self.archive = Some(PathBuf::from(r"C:\Downloads\Atlas.atlaspkg"));
+        self.preview_unelevated = matches!(state, "not-elevated" | "elevation-declined");
+        self.elevation_declined = state == "elevation-declined";
+        let downloads = PathBuf::from(r"C:\Users\Atlas\Downloads");
+        // No Windows ISO chosen yet: the download is on offer.
+        if !matches!(state, "windows-empty" | "download-change" | "download-progress" | "download-failed") {
+            self.source = Some(downloads.join("Win11_25H2_EnglishInternational_x64.iso"));
         }
-        self.output = Some(PathBuf::from(r"C:\Users\Atlas\Downloads\Atlas-Windows.iso"));
+        // Offline: the latest package couldn't be found, so one on this PC is offered.
+        if state == "package-offline" {
+            self.model.update(cx, |model, _| model.release = ReleaseCheck::Failed);
+        } else {
+            self.archive = Some(downloads.join("Atlas.atlaspkg"));
+        }
+        self.output = Some(downloads.join("Atlas-Windows.iso"));
         let name = match state {
             "account-empty" => "",
             "account-invalid" => "Atlas/PC",
@@ -354,43 +506,48 @@ impl IsoPage {
         };
         self.username.update(cx, |input, cx| input.set_value(name, cx));
         // Every state past a successful check has the image's details.
-        if !matches!(
+        let before_check = matches!(
             state,
-            "files"
-                | "files-empty"
-                | "download-language"
+            "windows-empty"
+                | "download-change"
                 | "download-progress"
+                | "download-failed"
+                | "source-menu"
+                | "package-offline"
+                | "checking"
+                | "not-elevated"
+                | "elevation-declined"
                 | "failed"
                 | "release-unknown"
                 | "release-unlisted"
+                | "edition-unsupported"
+                | "iso-customised"
+                | "windows-unsupported"
                 | "package-unsupported"
-                | "checking"
-                | "not-elevated"
-                | "package-changed"
-        ) {
+                | "manager-outdated"
+        );
+        if !before_check {
             self.image = Some(ImageInfo {
-                edition_terms: vec!["0".repeat(64)],
-                editions: vec!["Windows 11 Pro".into()],
-                bytes: 6_500_000_000,
+                edition_terms: vec!["0".repeat(64), "0".repeat(64)],
+                editions: vec!["Windows 11 Pro".into(), "Windows 11 Education".into()],
+                bytes: 7_100_000_000,
                 architecture: Architecture::X64,
             });
+            self.package_bytes = 400_000_000;
         }
-        if state == "windows" {
+        if state == "this-pc-arm64" {
             let image = self.image.as_mut().unwrap();
-            image.editions.push("Windows 11 Education".into());
-            image.edition_terms.push("0".repeat(64));
+            image.architecture = Architecture::Arm64;
+            self.source = Some(downloads.join("Win11_25H2_EnglishInternational_Arm64.iso"));
         }
-        if state == "files-empty" {
-            self.source = None;
-            self.output = None;
+        let mut manifest = crate::services::package::parse(include_str!("../../../package/atlas.json")).ok();
+        // A package too old to make an ISO, as the bar above it says.
+        if state == "package-unsupported"
+            && let Some(manifest) = &mut manifest
+        {
+            manifest.version = "0.5.0".into();
         }
-        if matches!(state, "download-language" | "download-progress") {
-            self.source = None;
-            self.output = None;
-            self.download.preview(state == "download-progress");
-        }
-        let manifest =
-            crate::services::package::parse(include_str!("../../../package/atlas.json")).ok().map(Rc::new);
+        let manifest = manifest.map(Rc::new);
         self.options = manifest.as_deref().map(iso::default_options).unwrap_or_default();
         // A review that carries a choice that reduces protection, to show its caution.
         if state == "review-before" {
@@ -402,31 +559,59 @@ impl IsoPage {
         }
         self.manifest = manifest;
         self.step = match state {
-            "windows" | "network-drivers" | "account-empty" | "account-invalid" => IsoStep::Windows,
-            "choices" | "choices-unsupported" | "before" | "before-desktop" => IsoStep::Choices,
-            "review" | "review-before" | "progress" | "progress-network" | "build-failed"
-            | "package-changed" | "cancelled" | "complete" => IsoStep::Review,
-            _ => IsoStep::Files,
+            "setup"
+            | "setup-another-pc"
+            | "account-empty"
+            | "account-invalid"
+            | "setup-now"
+            | "setup-extras"
+            | "before-desktop"
+            | "choices-unsupported" => IsoStep::Setup,
+            "review"
+            | "review-before"
+            | "review-space"
+            | "progress"
+            | "progress-network"
+            | "cancelling"
+            | "build-failed"
+            | "network-failed"
+            | "cancelled"
+            | "complete"
+            | "complete-network-inbox" => IsoStep::Create,
+            _ => IsoStep::Windows,
         };
         // The checked files can go on to the steps visited before.
-        self.furthest = if state == "files-checked" { IsoStep::Review } else { self.step };
+        self.furthest = if state == "files-checked" { IsoStep::Create } else { self.step };
         self.mode = match state {
-            "before" | "review-before" | "choices-unsupported" => Mode::Configured,
+            "setup-now" | "setup-extras" | "review-before" => Mode::Configured,
             "before-desktop" => Mode::BeforeDesktop,
             _ => Mode::Interactive,
         };
-        self.setup_available = matches!(state, "before" | "before-desktop" | "review-before");
-        self.reinstall_this_pc = matches!(state, "network-drivers" | "progress-network");
-        self.update_network_drivers = state == "network-drivers";
-        self.network_build = state == "progress-network";
+        self.extras_shown = state == "setup-extras";
+        self.setup_available = state != "choices-unsupported";
+        self.reinstall_this_pc = !matches!(state, "setup-another-pc" | "this-pc-arm64");
+        self.network_build = matches!(state, "progress-network" | "network-failed");
+        self.network_inbox = state == "complete-network-inbox";
+        if !self.reinstall_this_pc || self.image.is_none() {
+            self.edition = None;
+        } else if state != "setup" {
+            self.edition = Some("Windows 11 Pro".into());
+        }
+        self.accept_terms = matches!(state, "review" | "review-before");
         self.result = match state {
-            "complete" => JobResult::Complete,
-            "failed" => JobResult::Failed(None),
-            "build-failed" => JobResult::Failed(Some(FailureReason::Build)),
+            "complete" | "complete-network-inbox" => JobResult::Complete,
+            "failed" | "build-failed" => JobResult::Failed(Some(if state == "failed" {
+                FailureReason::Check
+            } else {
+                FailureReason::Build
+            })),
+            "network-failed" => JobResult::Failed(Some(FailureReason::Build)),
             "release-unknown" => JobResult::Failed(Some(FailureReason::WindowsReleaseUnknown)),
             "release-unlisted" => JobResult::Failed(Some(FailureReason::WindowsReleaseUnlisted)),
+            "edition-unsupported" => JobResult::Failed(Some(FailureReason::EditionUnsupported)),
+            "iso-customised" => JobResult::Failed(Some(FailureReason::IsoCustomised)),
+            "windows-unsupported" => JobResult::Failed(Some(FailureReason::WindowsUnsupported)),
             "package-unsupported" => JobResult::Failed(Some(FailureReason::PackageUnsupported)),
-            "package-changed" => JobResult::Failed(Some(FailureReason::PackageChanged)),
             "manager-outdated" => JobResult::Failed(Some(FailureReason::ManagerOutdated)),
             "cancelled" => JobResult::Cancelled,
             _ => JobResult::None,
@@ -434,18 +619,35 @@ impl IsoPage {
         if state == "manager-outdated" {
             self.manager_required = Some(crate::services::manager_version::next_patch());
         }
-        if matches!(self.result, JobResult::Failed(_) | JobResult::Cancelled) {
+        if matches!(self.result, JobResult::Failed(_)) {
             self.job = Some(settings::app_data_dir());
         }
         self.stage = match state {
             "checking" => Stage::Inspect,
-            "progress-network" => Stage::NetworkDrivers,
+            "progress-network" | "network-failed" => Stage::NetworkDrivers,
             _ => Stage::Master,
         };
+        // Part of the way through writing the ISO, by its bytes.
+        self.peak =
+            build_progress(self.stage, self.network_build, (self.stage == Stage::Master).then_some(0.4));
+        const GIB: u64 = 1 << 30;
+        let needed = iso::space_needed(7_100_000_000, self.package_bytes);
+        let free = if state == "review-space" { 21 * GIB } else { 118 * GIB };
+        self.destination = Some(iso::Destination {
+            drive: "C:".into(),
+            free,
+            needed,
+            problem: (free < needed).then_some(iso::DestinationProblem::Space),
+        });
         // A check or build in progress holds the window on this page, as a real one does.
-        if matches!(state, "progress" | "progress-network" | "checking") {
-            self.model.update(cx, |model, _| model.iso_busy = true);
+        if matches!(state, "progress" | "progress-network" | "checking" | "cancelling") {
+            self.model.update(cx, |model, _| {
+                model.iso_busy = true;
+                model.iso_cancel.store(state == "cancelling", Ordering::Relaxed);
+            });
         }
+        self.source_menu = state == "source-menu";
+        self.download.preview(state);
         if state.starts_with("usb-") {
             let (model, output) = (self.model.clone(), self.output.clone());
             let panel = cx.new(|cx| UsbPage::new(model, output, vec![], Some(state), cx));
@@ -479,13 +681,116 @@ impl IsoPage {
             self.archive = Some(archive);
         }
         if for_this_pc && on_page {
-            // An image already checked must suit this PC for it to be the target.
-            let suits =
-                self.image.as_ref().is_none_or(|image| image.architecture == iso::host_architecture());
-            if !busy && !self.target_chosen && suits {
-                self.reinstall_this_pc = true;
+            if !busy && !self.target_chosen && self.suits_this_pc() {
+                self.set_target(true, false, cx);
             }
             model.update(cx, |m, _| m.iso_for_this_pc = false);
+        }
+        if on_page {
+            self.settle(cx);
+        }
+    }
+
+    /// What the page does by itself while it shows: it asks for
+    /// administrator permission on arrival, fetches the latest Atlas package
+    /// and Microsoft's Windows languages, and checks the files once it has
+    /// both a Windows ISO and a package.
+    fn settle(&mut self, cx: &mut Context<Self>) {
+        if self.preview.is_some() {
+            return;
+        }
+        let (on_page, elevated, visit, bundled, fetch) = {
+            let state = self.model.read(cx);
+            let fetch = !state.latest_predates_app()
+                && !state.acquisition.is_busy()
+                && !matches!(state.acquisition, Acquisition::Failed(_));
+            (state.page == Page::Iso, state.elevated, state.page_visit, state.bundled(), fetch)
+        };
+        if !on_page {
+            return;
+        }
+        if !elevated && self.elevation_asked != Some(visit) && !launched_on_this_page() {
+            self.elevation_asked = Some(visit);
+            self.relaunch_elevated(cx);
+        }
+        if self.step == IsoStep::Windows && self.source.is_none() {
+            self.prefetch_languages(cx);
+        }
+        if !elevated {
+            return;
+        }
+        if self.archive.is_none() && !bundled && fetch && self.package_requested != Some(visit) {
+            self.package_requested = Some(visit);
+            self.model.update(cx, |m, cx| m.download_latest(cx));
+        }
+        self.check_when_ready(cx);
+    }
+
+    /// Checks the files once a Windows ISO and a package are both known, on
+    /// the Windows step. A check that failed waits for a file to change, or
+    /// for Try again.
+    fn check_when_ready(&mut self, cx: &mut Context<Self>) {
+        if self.image.is_some() || self.step != IsoStep::Windows || self.result != JobResult::None {
+            return;
+        }
+        let state = self.model.read(cx);
+        if state.iso_busy || state.locked() || state.recovering || !state.elevated || self.download.busy() {
+            return;
+        }
+        let Some(source) = self.source.clone() else { return };
+        if self.archive.is_none() && !state.bundled() {
+            return;
+        }
+        let files = (source, self.archive.clone());
+        if self.checked_files.as_ref() == Some(&files) {
+            return;
+        }
+        self.checked_files = Some(files);
+        self.start(true, cx);
+    }
+
+    /// Whether the checked image, if any, can be reinstalled on this PC.
+    fn suits_this_pc(&self) -> bool {
+        self.image.as_ref().is_none_or(|image| image.architecture == iso::host_architecture())
+    }
+
+    /// Sets which PC the ISO is for, and with it the defaults that follow
+    /// it: the Windows download's architecture, the edition and the account
+    /// name, unless the user chose them.
+    fn set_target(&mut self, this_pc: bool, chosen: bool, cx: &mut Context<Self>) {
+        self.reinstall_this_pc = this_pc && self.suits_this_pc();
+        self.target_chosen |= chosen;
+        if self.reinstall_this_pc {
+            self.set_download_arch(iso::host_architecture(), false, cx);
+        }
+        self.apply_target_defaults(cx);
+        cx.notify();
+    }
+
+    /// The edition and account name the target suggests: this PC's edition
+    /// and its user's name for This PC. Anything the user set stays.
+    fn apply_target_defaults(&mut self, cx: &mut Context<Self>) {
+        if self.preview.is_some() {
+            return;
+        }
+        if !self.edition_chosen
+            && let Some(image) = &self.image
+        {
+            let edition = if self.reinstall_this_pc {
+                this_pc_edition(&self.model.read(cx).system.edition_id, &image.editions)
+            } else {
+                None
+            };
+            if edition != self.edition {
+                self.edition = edition;
+                self.accept_terms = false;
+            }
+        }
+        if self.reinstall_this_pc
+            && self.username.read(cx).value().is_empty()
+            && let Some(name) = this_pc_account()
+        {
+            self.username.update(cx, |input, cx| input.set_value(name, cx));
         }
     }
 
@@ -522,39 +827,11 @@ impl IsoPage {
         if self.preview.is_some() || self.model.read(cx).locked() {
             return;
         }
-        if field == Field::Output {
-            let directory = self
-                .output
-                .as_ref()
-                .or(self.source.as_ref())
-                .and_then(|p| p.parent())
-                .map(PathBuf::from)
-                .unwrap_or_else(std::env::temp_dir);
-            let name = self
-                .output
-                .as_ref()
-                .and_then(|p| p.file_name())
-                .map(|name| name.to_string_lossy().into_owned())
-                .unwrap_or_else(|| format!("{OUTPUT_STEM}.iso"));
-            let response = cx.prompt_for_new_path(&directory, Some(&name));
-            cx.spawn(async move |this, cx| {
-                if let Ok(Ok(Some(path))) = response.await {
-                    this.update(cx, |this, cx| {
-                        this.output = Some(with_iso_extension(path));
-                        this.output_suggested = false;
-                        this.invalidate(cx);
-                    })
-                    .ok();
-                }
-            })
-            .detach();
-            return;
-        }
         // The dialog shows this on its Open button, so it names the action,
         // as the USB page and Get ready word their pickers of these files.
         let prompt = match field {
-            Field::Source => t!("usb-choose-iso"),
-            _ => t!("file-dialog-open-package"),
+            Field::Source => t!("iso-use-local"),
+            Field::Package => t!("file-dialog-open-package"),
         };
         let receiver = cx.prompt_for_paths(PathPromptOptions {
             files: true,
@@ -566,14 +843,48 @@ impl IsoPage {
             if let Ok(Ok(Some(paths))) = receiver.await
                 && let Some(path) = paths.into_iter().next()
             {
-                this.update(cx, |this, cx| {
-                    if field == Field::Source {
-                        this.accept_source(path, cx);
-                    } else {
+                this.update(cx, |this, cx| match field {
+                    Field::Source => this.accept_source(path, cx),
+                    Field::Package => {
                         this.archive = Some(path);
                         this.manifest = None;
                         this.invalidate(cx);
+                        this.settle(cx);
                     }
+                })
+                .ok();
+            }
+        })
+        .detach();
+    }
+
+    /// The Save dialog for the new ISO, from the Create step.
+    fn pick_output(&mut self, cx: &mut Context<Self>) {
+        if self.preview.is_some() || self.model.read(cx).locked() {
+            return;
+        }
+        let directory = self
+            .output
+            .as_ref()
+            .or(self.source.as_ref())
+            .and_then(|p| p.parent())
+            .map(PathBuf::from)
+            .unwrap_or_else(std::env::temp_dir);
+        let name = self
+            .output
+            .as_ref()
+            .and_then(|p| p.file_name())
+            .map(|name| name.to_string_lossy().into_owned())
+            .unwrap_or_else(|| format!("{OUTPUT_STEM}.iso"));
+        let response = cx.prompt_for_new_path(&directory, Some(&name));
+        cx.spawn(async move |this, cx| {
+            if let Ok(Ok(Some(path))) = response.await {
+                this.update(cx, |this, cx| {
+                    this.output = Some(with_iso_extension(path));
+                    this.output_suggested = false;
+                    this.result = JobResult::None;
+                    this.check_destination();
+                    cx.notify();
                 })
                 .ok();
             }
@@ -583,16 +894,10 @@ impl IsoPage {
 
     fn accept_source(&mut self, path: PathBuf, cx: &mut Context<Self>) {
         self.source = Some(path);
-        self.editing_source = false;
-        self.download.close_picker();
+        self.source_menu = false;
         self.suggest_output();
-        if self.archive.is_none()
-            && !self.model.read(cx).bundled()
-            && !self.model.read(cx).latest_predates_app()
-        {
-            self.model.update(cx, |m, cx| m.download_latest(cx));
-        }
         self.invalidate(cx);
+        self.settle(cx);
     }
 
     /// Puts the new ISO beside the source, under a name no file has yet,
@@ -606,27 +911,83 @@ impl IsoPage {
         }
     }
 
+    /// Starts the files over: a file chosen again, even the same one, is
+    /// checked again.
     fn invalidate(&mut self, cx: &mut Context<Self>) {
+        self.checked_files = None;
         self.edition = None;
-        self.editing_edition = false;
+        self.edition_chosen = false;
+        self.edition_menu = false;
         self.accept_terms = false;
         self.image = None;
         self.result = JobResult::None;
-        self.step = IsoStep::Files;
-        self.furthest = IsoStep::Files;
+        self.destination = None;
+        self.rebuild = false;
+        self.step = IsoStep::Windows;
+        self.furthest = IsoStep::Windows;
         cx.notify();
     }
 
     fn go_to_step(&mut self, step: IsoStep, cx: &mut Context<Self>) {
         if step != self.step {
             // A result belongs to the step its job ran from: a check's to
-            // Files, a build's to Review.
+            // Windows, a build's to Create.
             self.result = JobResult::None;
+            self.source_menu = false;
         }
         self.step = step;
         self.furthest = self.furthest.max(step);
+        if step == IsoStep::Create {
+            self.check_destination();
+        }
         self.scroll.set_offset(Point::default());
         cx.notify();
+    }
+
+    /// Reads the new ISO's volume again, for the Create step to show.
+    fn check_destination(&mut self) {
+        if self.preview.is_some() {
+            return;
+        }
+        self.destination = match (&self.output, &self.image) {
+            (Some(output), Some(image)) => {
+                Some(iso::destination(output, iso::space_needed(image.bytes, self.package_bytes)))
+            }
+            _ => None,
+        };
+    }
+
+    /// Whether the Create step shows a destination without the space the build needs.
+    fn short_of_space(&self) -> bool {
+        self.step == IsoStep::Create
+            && self.destination.as_ref().is_some_and(|d| d.problem == Some(iso::DestinationProblem::Space))
+    }
+
+    /// Reads the volume again every few seconds while it's short of space,
+    /// so Create ISO becomes available once space is freed, as Open Storage
+    /// settings invites. It stops once the space is there or the step changes.
+    fn watch_destination(&mut self, cx: &mut Context<Self>) {
+        if self.destination_watched || self.preview.is_some() || !self.short_of_space() {
+            return;
+        }
+        self.destination_watched = true;
+        cx.spawn(async move |this, cx| {
+            loop {
+                cx.background_executor().timer(SPACE_RECHECK).await;
+                let watching = this.update(cx, |this, cx| {
+                    if this.short_of_space() && !this.model.read(cx).iso_busy {
+                        this.check_destination();
+                        cx.notify();
+                    }
+                    this.destination_watched = this.short_of_space();
+                    this.destination_watched
+                });
+                if !matches!(watching, Ok(true)) {
+                    break;
+                }
+            }
+        })
+        .detach();
     }
 
     pub fn analytics_path(&self) -> &'static str {
@@ -634,18 +995,31 @@ impl IsoPage {
             return "iso/usb";
         }
         match self.step {
-            IsoStep::Files => "iso/files",
             IsoStep::Windows => "iso/windows",
-            IsoStep::Choices => "iso/choices",
-            IsoStep::Review => "iso/review",
+            IsoStep::Setup => "iso/setup",
+            IsoStep::Create => "iso/create",
         }
     }
 
     fn gates(&self, cx: &App) -> Gates {
-        Gates {
-            checked: self.image.is_some(),
-            account: iso::valid_username(self.username.read(cx).value()),
-            mode: self.mode == Mode::Interactive || self.setup_available,
+        Gates { checked: self.image.is_some(), account: iso::valid_username(self.username.read(cx).value()) }
+    }
+
+    /// The package needs a newer Atlas Manager, as the last check found or
+    /// as fetching the latest package did: the version it asks for, if it
+    /// names one.
+    fn manager_outdated(&self, cx: &App) -> Option<Option<String>> {
+        if self.result == JobResult::Failed(Some(FailureReason::ManagerOutdated)) {
+            return Some(self.manager_required.clone());
+        }
+        let state = self.model.read(cx);
+        let own_package = self.archive.is_none()
+            || state.package.as_ref().and_then(|package| package.archive.as_ref()) == self.archive.as_ref();
+        match &state.acquisition {
+            Acquisition::Failed(AcquireProblem::ManagerOutdated { required }) if own_package => {
+                Some(required.clone())
+            }
+            _ => None,
         }
     }
 
@@ -657,13 +1031,28 @@ impl IsoPage {
             return;
         }
         let bundled = self.model.read(cx).bundled();
-        let (Some(source), Some(output)) = (self.source.clone(), self.output.clone()) else { return };
+        let Some(source) = self.source.clone() else { return };
+        if self.output.is_none() {
+            self.suggest_output();
+        }
+        let Some(mut output) = self.output.clone() else { return };
         let archive = match self.archive.clone() {
             Some(archive) => archive,
             // A tester build adds its bundled package, which the worker writes out.
             None if bundled => PathBuf::new(),
             None => return,
         };
+        if !inspect {
+            // A file that took the name since it was chosen moves the new ISO
+            // to the next free name, and the volume is read again just before.
+            output = unused_path(&output, Path::exists);
+            self.output = Some(output.clone());
+            self.check_destination();
+            if self.destination.as_ref().is_some_and(|destination| destination.problem.is_some()) {
+                cx.notify();
+                return;
+            }
+        }
         let Ok(job) = iso::new_job() else {
             // Nothing ran, so there are no diagnostics to open.
             self.job = None;
@@ -673,22 +1062,19 @@ impl IsoPage {
         };
         self.job = Some(job.clone());
         self.result = JobResult::None;
+        self.source_menu = false;
         if inspect {
             // Checking again replaces the last result, so a failed check
             // cannot leave an earlier one to continue with.
-            self.edition = None;
-            self.editing_edition = false;
+            self.edition_menu = false;
             self.accept_terms = false;
             self.image = None;
         }
         self.stage = Stage::Inspect;
+        self.peak = 0.;
         self.network_inbox = false;
-        let (reinstall_this_pc, copy_network_drivers, update_network_drivers) = network_choices(
-            inspect,
-            self.reinstall_this_pc,
-            self.copy_network_drivers,
-            self.update_network_drivers,
-        );
+        let (reinstall_this_pc, copy_network_drivers) =
+            network_choices(inspect, self.reinstall_this_pc, self.copy_network_drivers);
         self.network_build = copy_network_drivers;
         let input = iso::CreateInput {
             inspect,
@@ -703,20 +1089,21 @@ impl IsoPage {
                 .as_ref()
                 .filter(|_| self.accept_terms)
                 .and_then(|img| img.terms(self.edition.as_deref()).map(str::to_owned)),
-            mode: self.mode,
+            mode: self.effective_mode(),
             options: self.options.clone(),
             drivers: self.drivers,
             username: if inspect { "Atlas".to_string() } else { self.username.read(cx).value().to_string() },
             reinstall_this_pc,
             copy_network_drivers,
-            update_network_drivers,
+            // Windows Update first, with the installed drivers to fall back on.
+            update_network_drivers: copy_network_drivers,
         };
         self.model.update(cx, |m, cx| {
             if !inspect {
                 crate::services::analytics::send(
                     m.settings.usage_analytics,
                     "ISO build started",
-                    "iso/review",
+                    "iso/create",
                 );
             }
             m.iso_busy = true;
@@ -729,19 +1116,27 @@ impl IsoPage {
             let work = cx.background_executor().spawn(async move {
                 iso::prune_jobs(&job);
                 iso::prune_legacy_jobs(&settings::AppPaths::from_process().root);
-                let result = iso::create(input, &job, cancel, |stage| {
-                    let _ = tx.unbounded_send(stage);
+                let result = iso::create(input, &job, cancel, |report| {
+                    let _ = tx.unbounded_send(report);
                 });
-                (result, job.is_dir())
+                // The package's size, for the free space the build will need.
+                let package_bytes = result
+                    .as_ref()
+                    .ok()
+                    .filter(|_| inspect)
+                    .map(|created| iso::package_bytes(&created.package));
+                (result, job.is_dir(), package_bytes)
             });
-            while let Some(stage) = rx.next().await {
+            while let Some(report) = rx.next().await {
                 this.update(cx, |this, cx| {
-                    this.stage = stage;
+                    this.stage = report.stage;
+                    let value = build_progress(report.stage, this.network_build, report.fraction);
+                    this.peak = this.peak.max(value);
                     cx.notify();
                 })
                 .ok();
             }
-            let (result, staged) = work.await;
+            let (result, staged, package_bytes) = work.await;
             this.update(cx, |this, cx| {
                 let cancelled = this.model.read(cx).iso_cancel.load(Ordering::Relaxed);
                 this.model.update(cx, |m, cx| {
@@ -752,8 +1147,12 @@ impl IsoPage {
                     // The job could not be created, so there are no diagnostics to show.
                     this.job = None;
                 }
-                this.finish(inspect, cancelled, result);
-                if !inspect {
+                if let Some(bytes) = package_bytes {
+                    this.package_bytes = bytes;
+                }
+                this.finish(inspect, cancelled, result, cx);
+                // A changed package is checked again before the build runs again.
+                if !inspect && !this.rebuild {
                     let event = match this.result {
                         JobResult::Complete => "ISO build completed",
                         JobResult::Cancelled => "ISO build cancelled",
@@ -762,7 +1161,7 @@ impl IsoPage {
                     crate::services::analytics::send(
                         this.model.read(cx).settings.usage_analytics,
                         event,
-                        "iso/review",
+                        "iso/create",
                     );
                 }
                 cx.notify();
@@ -772,20 +1171,51 @@ impl IsoPage {
         cx.notify();
     }
 
-    /// Takes in how a check or build ended: a check that passed moves on to
-    /// Windows setup, and anything else leaves its result on the step it ran from.
-    fn finish(&mut self, inspect: bool, cancelled: bool, result: anyhow::Result<iso::Created>) {
+    /// The mode the ISO is built with: one the package can't carry falls
+    /// back to choices after sign-in, which every package supports.
+    fn effective_mode(&self) -> Mode {
+        if self.setup_available { self.mode } else { Mode::Interactive }
+    }
+
+    /// Takes in how a check or build ended. A check that passed stays on the
+    /// Windows step, which then offers Continue, unless it was the check a
+    /// changed package called for at Create, which builds again; anything
+    /// else leaves its result on the step it ran from.
+    fn finish(
+        &mut self,
+        inspect: bool,
+        cancelled: bool,
+        result: anyhow::Result<iso::Created>,
+        cx: &mut Context<Self>,
+    ) {
         match result {
             Ok(created) if inspect => {
                 self.terms_folder = self.job.clone();
+                let image_suits = created.image.as_ref().is_none_or(|image| {
+                    image.architecture == iso::host_architecture() || self.preview.is_some()
+                });
                 self.image = created.image;
-                let same_package = self.package.as_ref() == Some(&created.package);
-                self.options = iso::options_after_inspection(&created.manifest, &self.options, same_package);
+                // A package replaced just before Create keeps the choices made
+                // with it while they still fit the new one.
+                let same_package = self.package.as_ref() == Some(&created.package)
+                    || (self.rebuild && iso::validate_options(&created.manifest, &self.options).is_ok());
+                let kept = iso::options_after_inspection(&created.manifest, &self.options, same_package);
+                let choices_kept = kept == self.options;
+                self.options = kept;
                 self.manifest = Some(Rc::new(created.manifest));
                 self.setup_available = iso::supports_setup(&created.package);
                 self.package = Some(created.package);
-                self.step = IsoStep::Windows;
-                self.furthest = self.furthest.max(IsoStep::Windows);
+                // An ISO for another kind of processor is for another PC.
+                if !image_suits {
+                    self.reinstall_this_pc = false;
+                }
+                self.apply_target_defaults(cx);
+                if std::mem::take(&mut self.rebuild) {
+                    self.step = IsoStep::Create;
+                    if choices_kept {
+                        self.start(false, cx);
+                    }
+                }
             }
             Ok(created) => {
                 // Windows includes this PC's network drivers: none were added,
@@ -796,7 +1226,12 @@ impl IsoPage {
                 }
                 self.result = JobResult::Complete;
             }
-            Err(_) if cancelled => self.result = JobResult::Cancelled,
+            Err(_) if cancelled => {
+                self.rebuild = false;
+                // A cancelled check leaves nothing to say; a build says the
+                // original ISO is as it was.
+                self.result = if inspect { JobResult::None } else { JobResult::Cancelled };
+            }
             Err(error) => {
                 // A package for a newer Atlas Manager says which version it needs.
                 let outdated = error.downcast_ref::<package::ManagerOutdated>();
@@ -805,15 +1240,38 @@ impl IsoPage {
                     Some(_) => Some(FailureReason::ManagerOutdated),
                     None => error.downcast_ref::<iso::Failure>().map(|failure| failure.reason),
                 };
-                if reason == Some(FailureReason::PackageChanged) {
-                    // The check was of another package, so the files need
-                    // checking again: Files offers Check files, not Continue.
+                if reason == Some(FailureReason::PackageChanged) && !inspect && !self.rebuild {
+                    // The package file was replaced since the check: check it
+                    // again, then build with the same choices if they still fit.
+                    self.rebuild = true;
                     self.image = None;
+                    self.start(true, cx);
+                    return;
+                }
+                self.rebuild = false;
+                if inspect && self.step == IsoStep::Create {
+                    // The check a changed package called for failed: its
+                    // result belongs to the Windows step.
+                    self.step = IsoStep::Windows;
                 }
                 self.result = JobResult::Failed(reason);
             }
         }
         self.scroll.set_offset(Point::default());
+    }
+
+    /// Checks the files again after a failed check, or builds again after a
+    /// failed build.
+    fn try_again(&mut self, cx: &mut Context<Self>) {
+        let inspect = self.step == IsoStep::Windows;
+        self.result = JobResult::None;
+        if inspect {
+            self.checked_files = None;
+            self.check_when_ready(cx);
+        } else {
+            self.start(false, cx);
+        }
+        cx.notify();
     }
 
     fn relaunch_elevated(&mut self, cx: &mut Context<Self>) {
@@ -828,7 +1286,7 @@ impl IsoPage {
                 Ok(()) => cx.quit(),
                 Err(error) => {
                     log::warn!("ISO elevation was not completed: {error:#}");
-                    this.result = JobResult::Failed(None);
+                    this.elevation_declined = true;
                     cx.notify();
                 }
             })
@@ -837,12 +1295,19 @@ impl IsoPage {
         .detach();
     }
 
-    /// The steps, with each one the user can go to now as a button.
-    fn stepper(&self, gates: Gates, may_move: bool, cx: &mut Context<Self>) -> AnyElement {
+    /// The steps, with each one the user can go to now as a button. The
+    /// current step takes focus when the step changes, so it's announced.
+    fn stepper(
+        &self,
+        gates: Gates,
+        may_move: bool,
+        focus: FocusHandle,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
         let entity = cx.entity();
-        let mut stepper = Stepper::new("iso-stepper", t!("iso-title")).on_select(move |index, _, cx| {
-            entity.update(cx, |this, cx| this.go_to_step(IsoStep::ALL[index], cx))
-        });
+        let mut stepper = Stepper::new("iso-stepper", t!("iso-title")).current_focus(focus, None).on_select(
+            move |index, _, cx| entity.update(cx, |this, cx| this.go_to_step(IsoStep::ALL[index], cx)),
+        );
         for step in IsoStep::ALL {
             stepper = stepper.step(
                 step.title(),
@@ -853,66 +1318,117 @@ impl IsoPage {
         stepper.into_any_element()
     }
 
-    /// The bar that asks for administrator permission, with the way to give it.
-    fn elevation_bar(&self, declined: bool, focus: &FocusHandle, cx: &mut Context<Self>) -> AnyElement {
-        let (severity, message) = if declined {
-            (Severity::Error, t!("elevation-declined"))
-        } else {
-            (Severity::Warning, t!("iso-admin-description"))
-        };
-        InfoBar::new(severity, t!("iso-elevation-title"), message)
-            .id("iso-elevation")
-            .focus_handle(focus.clone())
-            .action(
-                Button::new("iso-elevate", t!("common-restart-as-administrator"))
-                    .accent()
-                    .icon(Icon::Admin)
-                    .on_click(cx.listener(|this, _, _, cx| this.relaunch_elevated(cx))),
+    /// The one bar at the top of the page, if any: the first that applies of
+    /// a missing administrator permission, a package for a newer Atlas
+    /// Manager, how the last check or build failed and a cancelled build.
+    /// Each names the problem and holds the fix; `accent` says whether its
+    /// fix is the page's next action.
+    fn top_bar(
+        &self,
+        elevated: bool,
+        focus: &FocusHandle,
+        cx: &mut Context<Self>,
+    ) -> Option<(AnyElement, bool)> {
+        if !elevated {
+            let message =
+                if self.elevation_declined { t!("iso-elevation-declined") } else { t!("iso-admin-reason") };
+            let bar = InfoBar::new(Severity::Warning, t!("iso-elevation-title"), message)
+                .id("iso-elevation")
+                .focus_handle(focus.clone())
+                .action(
+                    Button::new("iso-elevate", t!("common-restart-as-administrator"))
+                        .accent()
+                        .icon(Icon::Admin)
+                        .on_click(cx.listener(|this, _, _, cx| this.relaunch_elevated(cx))),
+                );
+            return Some((bar.into_any_element(), true));
+        }
+        if let Some(required) = self.manager_outdated(cx) {
+            let bar = InfoBar::new(
+                Severity::Warning,
+                t!("iso-manager-outdated-title"),
+                describe::manager_outdated(required.as_deref()),
             )
-            .into_any_element()
+            .id("iso-manager-outdated")
+            .focus_handle(focus.clone())
+            .action(manager_download_button("iso-manager-download").accent());
+            return Some((bar.into_any_element(), true));
+        }
+        match self.result {
+            JobResult::Failed(reason) => Some(self.failure_bar(reason, focus, cx)),
+            JobResult::Cancelled => Some((
+                InfoBar::new(Severity::Informational, t!("iso-cancelled"), t!("iso-cancelled-unchanged"))
+                    .id("iso-cancelled")
+                    .focus_handle(focus.clone())
+                    .into_any_element(),
+                false,
+            )),
+            _ => None,
+        }
     }
 
-    /// The bar a failed check or build leaves, with its log folder, and the
-    /// download a package for a newer Atlas Manager calls for.
-    fn error_bar(&self, focus: &FocusHandle) -> AnyElement {
+    /// The bar a failed check or build leaves: what went wrong, the fix, and
+    /// the help row when nothing the person can do is known to fix it.
+    fn failure_bar(
+        &self,
+        reason: Option<FailureReason>,
+        focus: &FocusHandle,
+        cx: &mut Context<Self>,
+    ) -> (AnyElement, bool) {
         let (title, message) = self.failure_text();
-        let bar = InfoBar::new(Severity::Error, title, message).id("iso-error").focus_handle(focus.clone());
-        let outdated = self.result == JobResult::Failed(Some(FailureReason::ManagerOutdated));
-        let log = self.job.clone().map(|job| {
-            Button::new("iso-error-log", t!("iso-diagnostics"))
-                .icon(Icon::Folder)
-                .on_click(move |_, _, cx| cx.reveal_path(&job))
-        });
-        let bar = match (outdated, log) {
-            (false, None) => bar,
-            (false, Some(log)) => bar.action(log),
-            (true, log) => bar.action(
+        let mut bar =
+            InfoBar::new(Severity::Error, title, message).id("iso-error").focus_handle(focus.clone());
+        let checking = self.step == IsoStep::Windows;
+        let mut accent = false;
+        if checking && other_media_fixes(reason) {
+            accent = true;
+            bar = bar.action(
                 div()
                     .flex()
                     .flex_wrap()
                     .gap(px(8.))
-                    .child(manager_download_button("iso-error-manager-download").accent())
-                    .when_some(log, |this, log| this.child(log)),
-            ),
-        };
-        bar.into_any_element()
-    }
-
-    /// The bar a cancelled check or build leaves. Its message points at the
-    /// log folder, so it is left out when there is none.
-    fn cancelled_bar(&self, focus: &FocusHandle) -> AnyElement {
-        let message = if self.job.is_some() { t!("iso-cancelled-description") } else { String::new() };
-        let mut bar = InfoBar::new(Severity::Informational, t!("iso-cancelled"), message)
-            .id("iso-cancelled")
-            .focus_handle(focus.clone());
-        if let Some(job) = self.job.clone() {
-            bar = bar.action(
-                Button::new("iso-cancelled-log", t!("iso-diagnostics"))
-                    .icon(Icon::Folder)
-                    .on_click(move |_, _, cx| cx.reveal_path(&job)),
+                    .child(
+                        Button::new("iso-fix-download", t!("iso-download-windows"))
+                            .accent()
+                            .icon(Icon::Download)
+                            .on_click(cx.listener(|this, _, _, cx| this.download_windows_now(cx))),
+                    )
+                    .child(
+                        Button::new("iso-fix-choose", t!("iso-use-local"))
+                            .on_click(cx.listener(|this, _, _, cx| this.pick(Field::Source, cx))),
+                    ),
             );
+        } else if checking && reason == Some(FailureReason::PackageUnsupported) {
+            accent = true;
+            bar = bar.action(
+                Button::new("iso-fix-package", t!("iso-fix-package"))
+                    .accent()
+                    .on_click(cx.listener(|this, _, _, cx| this.pick(Field::Package, cx))),
+            );
+        } else if checking {
+            // Try again checks the same files; the footer's Continue waits.
+            accent = true;
+            bar = bar.action(
+                Button::new("iso-check-again", t!("common-try-again"))
+                    .accent()
+                    .on_click(cx.listener(|this, _, _, cx| this.try_again(cx))),
+            );
+        } else if self.network_build && self.stage == Stage::NetworkDrivers {
+            // Leaving them out is the way on; the footer's Try again repeats
+            // the export that just failed.
+            accent = true;
+            bar = bar.action(Button::new("iso-network-skip", t!("iso-network-skip")).accent().on_click(
+                cx.listener(|this, _, _, cx| {
+                    this.copy_network_drivers = false;
+                    this.try_again(cx);
+                }),
+            ));
         }
-        bar.into_any_element()
+        if failure_needs_help(reason, checking, self.job.is_some()) {
+            let log = self.job.clone().filter(|_| reason != Some(FailureReason::ManagerOutdated));
+            bar = bar.content(self.diagnostics.content_with_log(&self.model, log, cx));
+        }
+        (bar.into_any_element(), accent)
     }
 
     /// The stage a build failed at, when the worker got that far. Atlas
@@ -920,7 +1436,7 @@ impl IsoPage {
     fn failed_stage(&self) -> Option<Stage> {
         match self.result {
             JobResult::Failed(reason)
-                if self.step == IsoStep::Review
+                if self.step == IsoStep::Create
                     && self.job.is_some()
                     && !matches!(
                         reason,
@@ -978,12 +1494,14 @@ impl IsoPage {
                     // AccessKit counts from 0 and takes the size from the list.
                     .aria_position_in_set(index)
                     .flex()
-                    .gap(px(12.))
+                    // The 16px glyphs start on the card's text edge, and the
+                    // names line up with a radio button's label, as on the USB page.
+                    .gap(px(16.))
                     .child(
                         TextMark::new(
                             div()
                                 .flex_shrink_0()
-                                .size(px(20.))
+                                .size(px(16.))
                                 .flex()
                                 .items_center()
                                 .justify_center()
@@ -1009,171 +1527,328 @@ impl IsoPage {
             }))
     }
 
-    /// Step 1: the Windows ISO, the Atlas package and where to save the new ISO.
-    fn files(&self, checked: bool, cx: &mut Context<Self>) -> AnyElement {
-        let state = self.model.read(cx);
-        let bundled = state.bundled();
-        let latest_predates_app = state.latest_predates_app();
-        let locked = state.locked() || self.download.busy();
-        let short_name = |path: &Path| path.file_name().unwrap_or_default().to_string_lossy().into_owned();
-        let selected_package =
-            state.package.as_ref().filter(|p| bundled || p.archive.as_ref() == self.archive.as_ref());
-        let latest = state.release.release().filter(|r| !latest_predates_app && r.package_asset().is_some());
-        let is_latest = !bundled
-            && latest.is_some_and(|release| {
-                if let Some(package) = selected_package {
-                    matches!(&package.origin, crate::model::Origin::Release(_))
-                        && crate::services::releases::compare_versions(
-                            &package.manifest.version,
-                            release.version(),
-                        )
-                        .is_eq()
-                } else {
-                    self.archive.is_none() && self.manifest.is_none()
-                }
-            });
-        // The review fixture shows the verified-release state without making a network request.
-        #[cfg(debug_assertions)]
-        let is_latest = is_latest
-            || matches!(
-                self.preview.as_deref(),
-                Some("files-empty" | "download-language" | "download-progress")
-            );
-        let secondary = cx.theme().text_secondary;
-        let package_name = if let Some(package) = selected_package {
-            format!("Atlas {}", package.manifest.version)
-        } else if let Some(manifest) = &self.manifest {
-            format!("Atlas {}", manifest.version)
-        } else if let Some(path) = &self.archive {
-            short_name(path)
-        } else if let Some(release) = state.release.release().filter(|_| !state.latest_predates_app()) {
-            format!("Atlas {}", release.version())
-        } else if bundled {
-            t!("iso-package-bundled")
-        } else {
-            t!("iso-package-latest")
-        };
-        let change = |field: Field, id: &'static str, label: String, cx: &mut Context<Self>| {
-            Button::new(id, t!("common-change"))
-                .compact()
-                .hyperlink()
-                .aria_label(t!("iso-pick-a11y", action = t!("common-change"), field = label))
-                .disabled(locked)
-                .on_click(cx.listener(move |this, _, _, cx| this.pick(field, cx)))
-        };
-        let mut windows = div()
-            .flex()
-            .flex_col()
-            .gap(px(8.))
-            .child(div().type_body_strong().child(a11y_text("iso-source-label", t!("iso-source"))));
-        if let Some(path) = &self.source
-            && !self.editing_source
-        {
-            windows = windows.child(
-                div()
-                    .flex()
-                    .items_center()
-                    .gap(px(8.))
-                    .child(detail_text("iso-path-0", short_name(path)))
-                    .child(
-                        Button::new("iso-change-source", t!("common-change"))
-                            .compact()
-                            .hyperlink()
-                            .disabled(locked)
-                            .aria_label(t!(
-                                "iso-pick-a11y",
-                                action = t!("common-change"),
-                                field = t!("iso-source")
-                            ))
-                            .on_click(cx.listener(|this, _, _, cx| {
-                                this.editing_source = true;
-                                cx.notify();
-                            })),
-                    ),
-            );
-        } else {
-            windows = windows.child(self.windows_download(cx)).child(
-                div().flex().child(
-                    Button::new("iso-source-local", t!("iso-use-local"))
-                        .compact()
-                        .hyperlink()
-                        .disabled(locked)
-                        .on_click(cx.listener(|this, _, _, cx| this.pick(Field::Source, cx))),
-                ),
-            );
-        }
-        if self.editing_source && !self.download.busy() {
-            windows = windows.child(div().flex().child(
-                Button::new("iso-keep-source", t!("common-cancel")).compact().on_click(cx.listener(
-                    |this, _, _, cx| {
-                        this.editing_source = false;
-                        this.download.close_picker();
-                        cx.notify();
-                    },
-                )),
-            ));
-        }
-        let mut content = card_body().gap(px(16.)).child(windows).child(
-            div()
-                .flex()
-                .items_center()
-                .gap(px(8.))
-                .pt(px(12.))
-                .border_t_1()
-                .border_color(cx.theme().divider)
-                .child(div().type_body_strong().child(a11y_text("iso-path-1", package_name)))
-                .when(is_latest, |row| {
-                    row.child(
-                        div()
-                            .type_caption()
-                            .text_color(secondary)
-                            .child(a11y_text("iso-package-latest-label", t!("iso-package-latest-label"))),
-                    )
-                })
-                .when(!bundled, |row| {
-                    row.child(change(Field::Package, "iso-change-package", t!("package-title"), cx))
-                }),
-        );
-        if !bundled && self.archive.is_none() && self.source.is_some() {
-            if latest_predates_app {
-                content =
-                    content.child(detail_text("iso-package-unavailable", t!("iso-package-unavailable")));
-            } else {
-                content = content.children(self.package_download(cx));
-            }
-        }
-        if let Some(path) = &self.output {
-            content = content.child(
-                div()
-                    .flex()
-                    .items_center()
-                    .gap(px(8.))
-                    .child(detail_text("iso-path-2", t!("iso-save-name", name = short_name(path))))
-                    .child(change(Field::Output, "iso-change-output", t!("iso-output"), cx)),
-            );
-        }
-        // Checked files leave Continue as the only way on; this says why.
-        if checked {
-            content =
-                content.child(div().flex().pt(px(12.)).border_t_1().border_color(cx.theme().divider).child(
-                    StatusLight::new(LightState::Good, t!("package-status-ready")).id("iso-files-ready"),
-                ));
-        }
-        card(cx).child(content).into_any_element()
+    /// Step 1: which PC the ISO is for, the Windows ISO and the Atlas package.
+    fn windows_cards(
+        &mut self,
+        accent_free: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Vec<AnyElement> {
+        let target = self.target_card(cx);
+        let source = self.source_card(accent_free, window, cx);
+        let package = self.package_card(accent_free, cx);
+        let usb = link_row()
+            .child(
+                Button::new("iso-existing-usb", t!("usb-existing"))
+                    .hyperlink()
+                    .compact()
+                    .on_click(cx.listener(|this, _, _, cx| this.open_usb(None, cx))),
+            )
+            .into_any_element();
+        vec![target, source, package, usb]
     }
 
-    /// Under an empty package field: the latest Atlas package to download,
-    /// its progress, or why it couldn't be prepared, as Get ready offers it.
-    fn package_download(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
+    /// Which PC the ISO is for. An ISO for another kind of processor can only
+    /// be for another PC, so This PC is unavailable then and says why, and
+    /// Another PC stays chosen.
+    fn target_card(&mut self, cx: &mut Context<Self>) -> AnyElement {
+        let entity = cx.entity();
+        // The answer applies to the build, so it can change while the files are checked.
+        let locked = self.model.read(cx).locked() && !self.model.read(cx).iso_busy;
+        let mut this_pc =
+            RadioItem::new("iso-this-pc", t!("iso-target-this"), self.focus.get("iso-this-pc", cx))
+                .icon(Icon::PC);
+        if let Some(image) = self.image.as_ref().filter(|_| !self.suits_this_pc()) {
+            this_pc = this_pc
+                .disabled(true)
+                .description(t!("iso-target-arch", architecture = architecture_text(image.architecture)))
+                .readable_description();
+        }
+        let items = [
+            this_pc,
+            RadioItem::new("iso-other-pc", t!("iso-target-another"), self.focus.get("iso-other-pc", cx))
+                .icon(Icon::Devices),
+        ];
+        let body = card_body().child(card_title(cx, "iso-target", t!("iso-target-title"), 3)).child(
+            RadioGroup::new("iso-target", t!("iso-target-title"))
+                .items(items)
+                .selected(Some(usize::from(!self.reinstall_this_pc)))
+                .disabled(locked)
+                .on_select(move |index, _, cx| {
+                    entity.update(cx, |this, cx| this.set_target(index == 0, true, cx))
+                }),
+        );
+        card(cx).child(body).into_any_element()
+    }
+
+    /// The Windows ISO: the download on offer, its progress, or the file
+    /// chosen with its Change menu and how its check is going.
+    fn source_card(&mut self, accent_free: bool, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
+        let mut body = card_body().child(card_title(cx, "iso-source", t!("iso-source"), 3));
+        let Some(path) = self.source.clone() else {
+            body = body.child(self.windows_download(accent_free, cx));
+            return card(cx).child(body).into_any_element();
+        };
+        let theme = cx.theme().clone();
+        let (checking, locked) = {
+            let state = self.model.read(cx);
+            let checking = state.iso_busy && self.step == IsoStep::Windows;
+            (checking, state.locked() || checking || self.download.busy())
+        };
+        let name = path.file_name().unwrap_or_default().to_string_lossy().into_owned();
+        let anchor = self.source_menu_anchor.clone();
+        let change_focus = self.focus.get("iso-change-source", cx);
+        let open = self.source_menu;
+        // Hidden while it can't work: during a download or the check, or while
+        // another job holds the app.
+        let change = (!locked).then(|| {
+            div().relative().child(
+                Button::new("iso-change-source", t!("common-change"))
+                    .compact()
+                    .hyperlink()
+                    // Invokable rather than expandable: the menu it opens takes
+                    // focus, which is what announces it.
+                    .focus_handle(change_focus.clone())
+                    .aria_label(t!("iso-pick-a11y", action = t!("common-change"), field = t!("iso-source")))
+                    .on_click(cx.listener(|this, _, window, cx| {
+                        this.source_menu = !this.source_menu;
+                        if this.source_menu {
+                            let first = this.focus.get("iso-menu-download", cx);
+                            window.focus(&first, cx);
+                        }
+                        cx.notify();
+                    })),
+            )
+        });
+        body = body.child(
+            div()
+                .flex()
+                .flex_wrap()
+                .items_center()
+                .gap_x(px(8.))
+                .child(div().min_w_0().type_body().child(detail_text("iso-source-file", name)))
+                .children(change.map(|change| change.child(menu::anchor(anchor)))),
+        );
+        if open && !locked {
+            body = body.child(self.source_menu_flyout(change_focus, window, cx));
+        }
+        // How the check of the files stands, announced as it changes: the
+        // image's architecture and size once it passed.
+        let facts = self.image.as_ref().filter(|_| !checking).map(|image| {
+            [architecture_text(image.architecture), describe::file_size(image.bytes)]
+                .join(&t!("usb-detail-separator"))
+        });
+        let status = if checking {
+            Some(StatusLight::new(LightState::Pending, t!("iso-checking")))
+        } else {
+            facts.as_ref().map(|facts| {
+                StatusLight::new(LightState::Good, t!("package-status-ready"))
+                    .check_mark()
+                    .aria_label(t!("iso-checked-a11y", facts = facts.as_str()))
+            })
+        };
+        if let Some(status) = status {
+            body = body.child(
+                div()
+                    .flex()
+                    .flex_wrap()
+                    .items_center()
+                    .gap(px(8.))
+                    .child(status.id("iso-check-status").live())
+                    // The pill's name carries the facts, so they're read once.
+                    .when_some(facts, |row, facts| {
+                        row.child(div().type_caption().text_color(theme.text_secondary).child(facts))
+                    }),
+            );
+        }
+        card(cx).child(body).into_any_element()
+    }
+
+    /// The source's Change menu: download Windows from Microsoft instead,
+    /// or choose another ISO file.
+    fn source_menu_flyout(
+        &mut self,
+        change: FocusHandle,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        let entity = cx.entity();
+        let close: menu::Command = {
+            let (entity, change) = (entity.clone(), change.clone());
+            Rc::new(move |window, cx| {
+                entity.update(cx, |this, cx| {
+                    this.source_menu = false;
+                    cx.notify();
+                });
+                window.focus(&change, cx);
+            })
+        };
+        let download: menu::Command = {
+            let entity = entity.clone();
+            Rc::new(move |_, cx| entity.update(cx, |this, cx| this.download_windows_now(cx)))
+        };
+        let choose: menu::Command =
+            Rc::new(move |_, cx| entity.update(cx, |this, cx| this.pick(Field::Source, cx)));
+        let commands = vec![
+            menu::MenuCommand {
+                id: "iso-menu-download".into(),
+                label: t!("iso-download-windows"),
+                focus: self.focus.get("iso-menu-download", cx),
+                checked: None,
+                run: download,
+            },
+            menu::MenuCommand {
+                id: "iso-menu-choose".into(),
+                label: t!("iso-use-local"),
+                focus: self.focus.get("iso-menu-choose", cx),
+                checked: None,
+                run: choose,
+            },
+        ];
+        menu::flyout(t!("iso-source").into(), commands, self.source_menu_anchor.get(), close, window, cx)
+    }
+
+    /// The Atlas package: its version, the download of the latest under way,
+    /// or why it couldn't be prepared, as Get ready shows it. `accent_free`
+    /// says whether nothing above it leads.
+    fn package_card(&mut self, accent_free: bool, cx: &mut Context<Self>) -> AnyElement {
+        let theme = cx.theme().clone();
+        let (bundled, latest_predates_app, locked, is_latest, version) = {
+            let state = self.model.read(cx);
+            let bundled = state.bundled();
+            let latest_predates_app = state.latest_predates_app();
+            let selected_package =
+                state.package.as_ref().filter(|p| bundled || p.archive.as_ref() == self.archive.as_ref());
+            let latest =
+                state.release.release().filter(|r| !latest_predates_app && r.package_asset().is_some());
+            let is_latest = !bundled
+                && latest.is_some_and(|release| {
+                    selected_package.is_some_and(|package| {
+                        matches!(&package.origin, crate::model::Origin::Release(_))
+                            && crate::services::releases::compare_versions(
+                                &package.manifest.version,
+                                release.version(),
+                            )
+                            .is_eq()
+                    })
+                });
+            let version = selected_package
+                .map(|package| package.manifest.version.clone())
+                .or_else(|| self.manifest.as_ref().map(|manifest| manifest.version.clone()));
+            let locked = state.locked() || state.iso_busy || self.download.busy();
+            (bundled, latest_predates_app, locked, is_latest, version)
+        };
+        // The review fixture shows the verified-release state without making a network
+        // request, except for the old package a refused package stands for.
+        #[cfg(debug_assertions)]
+        let is_latest =
+            is_latest || self.preview.as_deref().is_some_and(|state| state != "package-unsupported");
+        let mut body = card_body().child(card_title(cx, "iso-package", t!("iso-review-package"), 3));
+        let known = self.archive.is_some() || bundled;
+        if known {
+            let name = match (&version, &self.archive) {
+                _ if bundled => t!("iso-package-bundled"),
+                (Some(version), _) => format!("Atlas {version}"),
+                (None, Some(path)) => path.file_name().unwrap_or_default().to_string_lossy().into_owned(),
+                (None, None) => String::new(),
+            };
+            body = body.child(
+                div()
+                    .flex()
+                    .flex_wrap()
+                    .items_center()
+                    .gap_x(px(8.))
+                    .child(div().type_body().child(detail_text("iso-package-name", name)))
+                    .when(is_latest, |row| {
+                        row.child(
+                            div()
+                                .type_caption()
+                                .text_color(theme.text_secondary)
+                                .child(a11y_text("iso-package-latest-label", t!("iso-package-latest-label"))),
+                        )
+                    })
+                    // Hidden while it can't work, as the Windows ISO's is.
+                    .when(!bundled && !locked, |row| {
+                        row.child(
+                            Button::new("iso-change-package", t!("common-change"))
+                                .compact()
+                                .hyperlink()
+                                .aria_label(t!(
+                                    "iso-pick-a11y",
+                                    action = t!("common-change"),
+                                    field = t!("iso-review-package")
+                                ))
+                                .on_click(cx.listener(|this, _, _, cx| this.pick(Field::Package, cx))),
+                        )
+                    }),
+            );
+        } else {
+            let (content, stalled) = if latest_predates_app {
+                (
+                    div()
+                        .type_body()
+                        .text_color(theme.text_secondary)
+                        .child(detail_text("iso-package-release-old", t!("iso-package-release-old")))
+                        .into_any_element(),
+                    true,
+                )
+            } else {
+                // Its retry is the page's next action once the Windows ISO is
+                // known, when nothing above leads.
+                self.package_download(accent_free && self.source.is_some(), cx)
+            };
+            body = body.child(content);
+            // Without the latest package, one saved on this PC does as well.
+            if stalled && !locked {
+                body = body.child(
+                    link_row().child(
+                        Button::new("iso-open-package", t!("package-open-file"))
+                            .compact()
+                            .hyperlink()
+                            .on_click(cx.listener(|this, _, _, cx| this.pick(Field::Package, cx))),
+                    ),
+                );
+            }
+        }
+        card(cx).child(body).into_any_element()
+    }
+
+    /// Under an empty package field: the latest Atlas package downloading or
+    /// unpacking, or why it couldn't be prepared with the way to try again.
+    /// Atlas fetches it by itself once per visit; a download the user
+    /// cancelled waits for Download. Also whether it stalled, so a package
+    /// saved on this PC is offered instead. A failure reads in the error
+    /// colour, and its retry is the accent when `accent` says it leads.
+    fn package_download(&self, accent: bool, cx: &App) -> (AnyElement, bool) {
         let theme = cx.theme().clone();
         let state = self.model.read(cx);
         let release = state.release.release().cloned();
         let model = self.model.clone();
+        // Download waits while a release check it asked for runs.
+        let waiting = state.locked() || state.download_pending();
+        let download_label = match &release {
+            Some(r) => t!("package-download-version", version = r.version()),
+            None => t!("package-download-newest"),
+        };
+        // The offline preview keeps its failed release check even when the
+        // app's own check, which no preview stops, succeeds meanwhile.
+        let release_failed = matches!(state.release, ReleaseCheck::Failed)
+            || self.preview.as_deref() == Some("package-offline");
+        let fetching = matches!(state.release, ReleaseCheck::Checking | ReleaseCheck::NotChecked)
+            || state.download_pending()
+            || (self.package_requested != Some(state.page_visit) && self.preview.is_none());
+        let stalled = match &state.acquisition {
+            Acquisition::Downloading { .. } | Acquisition::Extracting { .. } => false,
+            // The bar's own download is the way on.
+            Acquisition::Failed(AcquireProblem::ManagerOutdated { .. }) => false,
+            Acquisition::Failed(_) => true,
+            _ => !fetching || release_failed,
+        };
         let content = match &state.acquisition {
             Acquisition::Downloading { received, total } => div()
                 .flex()
                 .flex_col()
-                .gap(px(6.))
+                .gap(px(8.))
                 .child(div().type_body().child(a11y_text(
                     "iso-package-downloading",
                     t!(
@@ -1191,636 +1866,122 @@ impl IsoPage {
                     )
                     .live(),
                 )
-                .child(
+                .child({
+                    let model = model.clone();
                     div().flex().child(
                         Button::new("iso-package-cancel", t!("package-cancel-download"))
                             .on_click(move |_, _, cx| model.update(cx, |m, cx| m.cancel_download(cx))),
-                    ),
-                ),
+                    )
+                }),
             Acquisition::Extracting { .. } => div()
                 .flex()
                 .flex_col()
-                .gap(px(6.))
+                .gap(px(8.))
                 .child(div().type_body().child(a11y_text("iso-package-unpacking", t!("package-unpacking"))))
                 .child(ProgressBar::new("iso-package-progress", t!("package-progress"), None).live()),
-            _ if state.latest_predates_app() || !state.offers_download() => return None,
-            acquisition => {
-                let checking = matches!(state.release, ReleaseCheck::Checking) || state.download_pending();
-                let label = match &release {
-                    Some(r) => t!("package-download-version", version = r.version()),
-                    None => t!("package-download-newest"),
-                };
-                // A download that failed, or a release check that did: as
-                // Get ready says it, so Download never fails without a word.
-                let problem = match acquisition {
-                    Acquisition::Failed(problem) => Some((problem.text(false), theme.critical)),
-                    _ if !checking && matches!(state.release, ReleaseCheck::Failed) => {
-                        Some((t!("package-release-failed"), theme.text_secondary))
-                    }
-                    _ => None,
-                };
-                div()
-                    .flex()
-                    .flex_col()
-                    .gap(px(6.))
-                    .when_some(problem, |this, (problem, colour)| {
-                        // Announced as it appears: Download has just gone back to idle.
-                        this.child(
-                            div()
-                                .id("iso-package-problem")
-                                .role(Role::Status)
-                                .aria_label(problem.clone())
-                                .aria_live(gpui::Live::Polite)
-                                .type_caption()
-                                .text_color(colour)
-                                .child(problem),
-                        )
-                    })
-                    .child(
-                        div()
-                            .flex()
-                            .flex_wrap()
-                            .gap(px(8.))
-                            .when(
-                                matches!(
-                                    acquisition,
-                                    Acquisition::Failed(AcquireProblem::ManagerOutdated { .. })
-                                ),
-                                |this| this.child(manager_download_button("iso-package-manager-download")),
-                            )
-                            .child(
-                                Button::new("iso-package-download", label)
-                                    .icon(Icon::Download)
-                                    .disabled(checking || state.locked())
-                                    .on_click(move |_, _, cx| {
-                                        model.update(cx, |m, cx| m.download_latest(cx))
-                                    }),
-                            ),
-                    )
+            // The bar says it needs a newer Atlas Manager and offers it.
+            Acquisition::Failed(AcquireProblem::ManagerOutdated { .. }) => {
+                div().type_body().child(detail_text(
+                    "iso-package-name",
+                    release.as_ref().map(|r| format!("Atlas {}", r.version())).unwrap_or_default(),
+                ))
             }
-        };
-        Some(content.into_any_element())
-    }
-
-    fn edition_and_terms(&self, cx: &mut Context<Self>) -> AnyElement {
-        use crate::ui::{ComboBox, ComboItem};
-        let mut body = card_body().gap(px(8.));
-        if let Some(image) = &self.image {
-            let automatic = t!("iso-edition-auto");
-            if image.editions.len() > 1 && self.editing_edition {
-                let items = std::iter::once(ComboItem::new(automatic))
-                    .chain(image.editions.iter().cloned().map(ComboItem::new));
-                let selected = image
-                    .editions
-                    .iter()
-                    .position(|name| Some(name) == self.edition.as_ref())
-                    .map_or(0, |i| i + 1);
-                let owner = cx.entity();
-                body = body.child(
-                    ComboBox::new("iso-edition-picker", t!("iso-edition"))
-                        .items(items)
-                        .selected(Some(selected))
-                        .on_select(move |index, _, cx| {
-                            owner.update(cx, |this, cx| {
-                                this.edition = index
-                                    .checked_sub(1)
-                                    .and_then(|i| this.image.as_ref()?.editions.get(i).cloned());
-                                this.editing_edition = false;
-                                this.accept_terms = false;
-                                cx.notify();
-                            });
-                        }),
-                );
-            } else {
-                let label = self
-                    .edition
-                    .clone()
-                    .or_else(|| (image.editions.len() == 1).then(|| image.editions[0].clone()))
-                    .unwrap_or(automatic);
-                body = body.child(
+            Acquisition::Failed(problem) => div()
+                .flex()
+                .flex_col()
+                .gap(px(8.))
+                .child(
                     div()
-                        .flex()
-                        .items_center()
-                        .gap(px(8.))
-                        .child(detail_text("iso-selected-edition", label))
-                        .when(image.editions.len() > 1, |row| {
-                            row.child(
-                                Button::new("iso-change-edition", t!("common-change"))
-                                    .compact()
-                                    .hyperlink()
-                                    .aria_label(t!("summary-change-a11y", title = t!("iso-edition")))
-                                    .on_click(cx.listener(|this, _, _, cx| {
-                                        this.editing_edition = true;
-                                        cx.notify();
-                                    })),
-                            )
-                        }),
-                );
-            }
-            if let Some(hash) = image.terms(self.edition.as_deref()) {
-                let terms =
-                    self.terms_folder.as_ref().map(|dir| dir.join(format!("windows-terms-{hash}.txt")));
-                body = body
-                    .child(
-                        CheckBox::new("iso-accept-terms", t!("iso-accept-terms"), self.accept_terms)
-                            .on_toggle(cx.listener(|this, _, _, cx| {
-                                this.accept_terms = !this.accept_terms;
-                                cx.notify();
-                            })),
-                    )
-                    .child(
-                        div().flex().pl(px(32.)).child(
-                            Button::new("iso-read-terms", t!("windows-terms-link"))
-                                .compact()
-                                .hyperlink()
-                                .on_click(move |_, _, cx| {
-                                    if let Some(path) = &terms {
-                                        cx.open_url(&path.to_string_lossy());
-                                    }
-                                }),
-                        ),
-                    );
-            } else {
-                body = body.child(detail_text("iso-terms-in-setup", t!("iso-terms-in-setup")));
-            }
-        }
-        card(cx)
-            .child(step_card_header(cx, "iso-edition", t!("iso-edition"), None))
-            .child(body)
-            .into_any_element()
-    }
-
-    /// Step 2: the Windows the ISO installs. The account, then the drivers,
-    /// then the PC it's for and that PC's network drivers.
-    fn windows_setup(&mut self, cx: &mut Context<Self>) -> Vec<AnyElement> {
-        let secondary = cx.theme().text_secondary;
-        let error = account_error(self.username.read(cx).value());
-        self.username.update(cx, |input, _| input.set_error(error.map(Into::into)));
-        let account = card(cx)
-            .child(step_card_header(cx, "iso-account", t!("iso-username"), None))
-            .child(
-                card_body()
-                    .gap(px(8.))
-                    .child(detail_text("iso-account-description", t!("iso-account-description")))
-                    .child(self.username.clone())
-                    .child(
-                        div()
-                            .text_color(secondary)
-                            .child(detail_text("iso-privacy-defaults", t!("iso-privacy-defaults"))),
-                    ),
-            )
-            .into_any_element();
-
-        let driver_entity = cx.entity();
-        let choices = [Some(Drivers::Automatic), Some(Drivers::Manual), None];
-        let drivers = RadioGroup::new("iso-drivers", t!("iso-drivers-title"))
-            .items(driver_radio_items("iso-drivers", &mut self.focus, cx))
-            .items([RadioItem::new(
-                "iso-drivers-defer",
-                t!("iso-drivers-defer"),
-                self.focus.get("iso-drivers-defer", cx),
-            )])
-            .selected(choices.iter().position(|&choice| choice == self.drivers))
-            .on_select(move |index, _, cx| {
-                driver_entity.update(cx, |this, cx| {
-                    this.drivers = choices[index];
-                    cx.notify();
-                })
-            });
-        let drivers = card(cx)
-            .child(step_card_header(cx, "iso-drivers", t!("iso-drivers-title"), None))
-            .child(
-                card_body()
-                    .gap(px(4.))
-                    .child(detail_text("iso-drivers-during-setup", t!("iso-drivers-during-setup")))
-                    .child(drivers),
-            )
-            .into_any_element();
-
-        let target_entity = cx.entity();
-        let target_items = [
-            RadioItem::new("iso-this-pc", t!("iso-target-this"), self.focus.get("iso-this-pc", cx))
-                .icon(Icon::PC)
-                // What choosing it gives, before it's chosen.
-                .description(t!("iso-target-this-description")),
-            RadioItem::new("iso-other-pc", t!("iso-target-other"), self.focus.get("iso-other-pc", cx))
-                .icon(Icon::Devices),
-        ];
-        let mut target = card_body().gap(px(12.)).child(
-            RadioGroup::new("iso-target", t!("iso-target-title"))
-                .items(target_items)
-                .selected(Some(usize::from(!self.reinstall_this_pc)))
-                .on_select(move |index, _, cx| {
-                    target_entity.update(cx, |this, cx| {
-                        this.reinstall_this_pc = index == 0;
-                        this.target_chosen = true;
-                        cx.notify();
-                    })
-                }),
-        );
-        if self.reinstall_this_pc {
-            target = target.child(
-                CheckBox::new("iso-copy-network", t!("iso-copy-network"), self.copy_network_drivers)
-                    .description(t!("iso-network-detail"))
-                    .on_toggle(cx.listener(|this, _, _, cx| {
-                        this.copy_network_drivers = !this.copy_network_drivers;
-                        cx.notify();
-                    })),
-            );
-            if self.copy_network_drivers {
-                let network_entity = cx.entity();
-                // Indented under the check box, whose text starts 32px in from its own control.
-                target = target.child(
-                    div().pl(px(32.)).child(
-                        RadioGroup::new("iso-network-source", t!("iso-network-source"))
-                            .items([
-                                RadioItem::new(
-                                    "iso-network-installed",
-                                    t!("iso-network-installed"),
-                                    self.focus.get("iso-network-installed", cx),
-                                ),
-                                RadioItem::new(
-                                    "iso-network-updated",
-                                    t!("iso-network-updated"),
-                                    self.focus.get("iso-network-updated", cx),
-                                )
-                                .description(t!("iso-network-updated-detail")),
-                            ])
-                            .selected(Some(usize::from(self.update_network_drivers)))
-                            .on_select(move |index, _, cx| {
-                                network_entity.update(cx, |this, cx| {
-                                    this.update_network_drivers = index == 1;
-                                    cx.notify();
-                                })
-                            }),
-                    ),
-                );
-            }
-        }
-        vec![
-            self.edition_and_terms(cx),
-            account,
-            drivers,
-            card(cx)
-                .child(step_card_header(cx, "iso-target", t!("iso-target-title"), None))
-                .child(target)
-                .into_any_element(),
-        ]
-    }
-
-    /// Step 3: how Atlas is set up from the ISO and, when the ISO carries
-    /// them, the choices it's set up with.
-    fn choices(&mut self, cx: &mut Context<Self>) -> Vec<AnyElement> {
-        let mut body = vec![];
-        if self.mode != Mode::Interactive && !self.setup_available {
-            // A tester build cannot swap its package, so the advice is to
-            // choose the after-sign-in mode instead of a newer package.
-            let bundled = self.model.read(cx).bundled();
-            body.push(
-                if bundled {
-                    InfoBar::new(
-                        Severity::Warning,
-                        t!("iso-package-unsupported-bundled-title"),
-                        t!("iso-package-unsupported-bundled"),
-                    )
-                } else {
-                    InfoBar::new(
-                        Severity::Warning,
-                        t!("iso-package-unsupported-title"),
-                        t!("iso-package-unsupported"),
-                    )
-                }
-                .id("iso-package-unsupported")
-                .into_any_element(),
-            );
-        }
-        let entity = cx.entity();
-        let modes = RadioGroup::new("iso-mode", t!("iso-mode-title"))
-            .items([
-                RadioItem::new(
-                    "iso-interactive",
-                    t!("iso-mode-interactive"),
-                    self.focus.get("iso-interactive", cx),
+                        .id("iso-package-problem")
+                        .role(Role::Status)
+                        .aria_label(problem.text(false))
+                        .aria_live(gpui::Live::Polite)
+                        .type_body()
+                        .text_color(theme.critical)
+                        .child(problem.text(false)),
                 )
-                .description(t!("iso-mode-interactive-description")),
-                RadioItem::new("iso-before", t!("iso-mode-before"), self.focus.get("iso-before", cx))
-                    .description(t!("iso-mode-before-description")),
-                RadioItem::new("iso-desktop", t!("iso-mode-desktop"), self.focus.get("iso-desktop", cx))
-                    .description(t!("iso-mode-desktop-description")),
-            ])
-            .selected(Some(match self.mode {
-                Mode::Interactive => 0,
-                Mode::Configured => 1,
-                Mode::BeforeDesktop => 2,
-            }))
-            .on_select(move |index, _, cx| {
-                entity.update(cx, |this, cx| {
-                    this.mode = match index {
-                        0 => Mode::Interactive,
-                        1 => Mode::Configured,
-                        _ => Mode::BeforeDesktop,
-                    };
-                    cx.notify();
-                })
-            });
-        body.push(
-            card(cx)
-                .child(step_card_header(cx, "iso-mode", t!("iso-mode-title"), None))
-                .child(card_body().child(modes))
-                .into_any_element(),
-        );
-        if self.mode != Mode::Interactive
-            && let Some(manifest) = self.manifest.clone()
-        {
-            for page_index in page_order(&manifest) {
-                let page = &manifest.choices[page_index];
-                if page.depends_on.as_ref().is_some_and(|name| !self.options.contains(name)) {
-                    continue;
-                }
-                // Titled as in the install flow: a top-level choice as a question.
-                let kind = ScreenKind::of_choice(page);
-                let header = if page.kind == ChoiceKind::Single && page.depends_on.is_none() {
-                    kind.question()
-                } else {
-                    kind.title()
-                };
-                let chosen = self.options.clone();
-                let entity = cx.entity();
-                let radio = page.kind == ChoiceKind::Single;
-                let names: Vec<String> = page.options.iter().map(|o| o.id.clone()).collect();
-                body.push(option_page_card(
-                    cx,
-                    "iso-option",
-                    page_index,
-                    page,
-                    header,
-                    move |name| chosen.iter().any(|option| option == name),
-                    false,
-                    &mut self.focus,
-                    |option| describe::option_consequence(&option.id),
-                    Rc::new(move |name: &str, cx: &mut App| {
-                        let name = name.to_owned();
-                        let names = names.clone();
-                        entity.update(cx, |this, cx| {
-                            if radio {
-                                this.options.retain(|n| !names.contains(n));
-                                this.options.push(name);
-                            } else if this.options.contains(&name) {
-                                this.options.retain(|n| n != &name);
-                            } else {
-                                this.options.push(name);
-                            }
-                            this.clean_options();
-                            cx.notify();
-                        })
-                    }),
-                    // The ISO's own package isn't unpacked here, so no browser logos.
-                    None,
-                ));
-            }
-        }
-        body
-    }
-
-    fn clean_options(&mut self) {
-        if let Some(manifest) = &self.manifest {
-            for page in &manifest.choices {
-                if page.depends_on.as_ref().is_some_and(|n| !self.options.contains(n)) {
-                    self.options.retain(|n| !page.options.iter().any(|o| &o.id == n));
-                } else if page.kind == ChoiceKind::Single
-                    && !page.options.iter().any(|o| self.options.contains(&o.id))
-                    && let Some(default) = page.options.iter().find(|o| o.default)
-                {
-                    self.options.push(default.id.clone());
-                }
-            }
-        }
-    }
-
-    /// One row per choice page the ISO carries: the page's name, and what was
-    /// chosen on it. A choice that reduces protection says what it means.
-    fn choice_rows(&self, cx: &App) -> Vec<AnyElement> {
-        let Some(manifest) = self.manifest.as_ref().filter(|_| self.mode != Mode::Interactive) else {
-            return vec![];
-        };
-        let secondary = cx.theme().text_secondary;
-        page_order(manifest)
-            .into_iter()
-            .map(|index| (index, &manifest.choices[index]))
-            .filter(|(_, page)| page.depends_on.as_ref().is_none_or(|name| self.options.contains(name)))
-            .map(|(index, page)| {
-                let title = ScreenKind::of_choice(page).title();
-                let key = format!("iso-choice-{index}");
-                let chosen: Vec<ListEntry> = page
-                    .options
-                    .iter()
-                    .filter(|option| self.options.contains(&option.id))
-                    .map(|option| ListEntry::option(&option.id, &option.label))
-                    .collect();
-                let value = if page.kind == ChoiceKind::Single {
-                    let (text, caution) = match chosen.into_iter().next() {
-                        Some(ListEntry { text, caution }) => (text, caution),
-                        None => (t!("summary-not-chosen"), None),
-                    };
-                    div()
-                        .flex()
-                        .flex_col()
-                        .gap(px(2.))
-                        .min_w_0()
-                        .child(detail_text(&key, text))
-                        .when_some(caution, |this, caution| {
-                            this.child(caution_caption(cx, detail_text(&format!("{key}-caution"), caution)))
-                        })
-                        .into_any_element()
-                } else if chosen.is_empty() {
-                    div().text_color(secondary).child(detail_text(&key, t!("common-none"))).into_any_element()
-                } else {
-                    plain_list(cx, ("iso-choice-list", index), &title, chosen).into_any_element()
-                };
-                detail_row(cx, &key, title, value).into_any_element()
-            })
-            .collect()
-    }
-
-    /// Step 4: everything the ISO will be built from, as labelled rows in a
-    /// card per step, each with a Change link back to that step.
-    fn review(&self, cx: &mut Context<Self>) -> Vec<AnyElement> {
-        let secondary = cx.theme().text_secondary;
-        let caption = move |text: gpui::Text| div().type_caption().text_color(secondary).child(text);
-        let file_value = |key: &str, path: &PathBuf| file_value(key, path, cx);
-        let change = |id: &'static str, step: IsoStep| {
-            Button::new(id, t!("common-change"))
-                .hyperlink()
-                .compact()
-                .aria_label(t!("summary-change-a11y", title = step.title()))
-                .on_click(cx.listener(move |this, _, _, cx| this.go_to_step(step, cx)))
-                .into_any_element()
-        };
-
-        let mut files = card_body().gap(px(4.));
-        if let Some(path) = &self.source {
-            // The image's architecture and size, under its name and folder.
-            let image = self.image.as_ref().map(|image| {
-                let architecture = match image.architecture {
-                    Architecture::X64 => t!("iso-architecture-x64"),
-                    Architecture::Arm64 => t!("iso-architecture-arm64"),
-                };
-                [architecture, describe::file_size(image.bytes)].join(&t!("usb-detail-separator"))
-            });
-            files = files.child(detail_row(
-                cx,
-                "iso-source",
-                t!("iso-source"),
-                file_value("iso-review-source", path).when_some(image, |this, image| {
-                    this.child(caption(detail_text("iso-review-image", image)))
-                }),
-            ));
-        }
-        if let Some(image) = &self.image {
-            files = files.child(detail_row(
-                cx,
-                "iso-editions",
-                t!("iso-review-editions"),
+                .child(
+                    div().flex().child(
+                        Button::new("iso-package-download", download_label)
+                            .icon(Icon::Download)
+                            .when(accent && !waiting, Button::accent)
+                            .disabled(waiting)
+                            .on_click(move |_, _, cx| model.update(cx, |m, cx| m.download_latest(cx))),
+                    ),
+                ),
+            _ if release_failed && !state.download_pending() => {
+                let message = t!("iso-package-release-failed");
                 div()
                     .flex()
                     .flex_col()
-                    .gap(px(6.))
-                    .min_w_0()
-                    .child(plain_list(
-                        cx,
-                        "iso-editions",
-                        &t!("iso-review-editions"),
-                        self.edition
-                            .as_ref()
-                            .map(std::slice::from_ref)
-                            .unwrap_or(&image.editions)
-                            .iter()
-                            .cloned()
-                            .map(ListEntry::new)
-                            .collect(),
-                    ))
-                    .when(self.edition.is_none() && image.editions.len() > 1, |row| {
-                        row.child(caption(detail_text("iso-edition-selection", t!("iso-edition-selection"))))
-                    }),
-            ));
-        }
-        if let Some(path) = &self.archive {
-            files = files.child(detail_row(
-                cx,
-                "iso-package",
-                t!("iso-review-package"),
-                file_value("iso-review-package", path),
-            ));
-        } else if self.model.read(cx).bundled() {
-            // A tester build adds its bundled package; say so rather than
-            // leaving the row out.
-            files = files.child(detail_row(
-                cx,
-                "iso-package",
-                t!("iso-review-package"),
-                detail_text("iso-review-package", t!("iso-package-bundled")),
-            ));
-        }
-        if let Some(path) = &self.output {
-            files = files.child(detail_row(
-                cx,
-                "iso-output",
-                t!("iso-review-output"),
-                file_value("iso-review-output", path),
-            ));
-        }
-
-        let network = (self.reinstall_this_pc && self.copy_network_drivers).then(|| {
-            if self.update_network_drivers {
-                t!("iso-network-updated-detail")
-            } else {
-                t!("iso-network-detail")
+                    .gap(px(8.))
+                    .child(
+                        div()
+                            .id("iso-package-problem")
+                            .role(Role::Status)
+                            .aria_label(message.clone())
+                            .aria_live(gpui::Live::Polite)
+                            .type_body()
+                            .text_color(theme.critical)
+                            .child(message),
+                    )
+                    .child(
+                        div().flex().child(
+                            Button::new("iso-package-download", t!("common-try-again"))
+                                .when(accent && !waiting, Button::accent)
+                                .disabled(waiting)
+                                .on_click(move |_, _, cx| model.update(cx, |m, cx| m.download_latest(cx))),
+                        ),
+                    )
             }
-        });
-        let windows = card_body()
-            .gap(px(4.))
-            .child(detail_row(
-                cx,
-                "iso-account",
-                t!("iso-review-account"),
-                detail_text("iso-review-account", self.username.read(cx).value().to_string()),
-            ))
-            .child(detail_row(
-                cx,
-                "iso-drivers",
-                t!("iso-review-drivers"),
-                detail_text(
-                    "iso-review-drivers",
-                    self.drivers.map_or_else(|| t!("iso-drivers-defer"), driver_label),
-                ),
-            ))
-            .child(detail_row(
-                cx,
-                "iso-target",
-                t!("iso-review-target"),
-                captioned(
-                    "iso-review-target",
-                    if self.reinstall_this_pc { t!("iso-target-this") } else { t!("iso-target-other") },
-                    network,
-                    cx,
-                ),
-            ));
-
-        let (mode_title, mode_detail) = match self.mode {
-            Mode::Interactive => (t!("iso-mode-interactive"), t!("iso-mode-interactive-description")),
-            Mode::BeforeDesktop => (t!("iso-mode-desktop"), t!("iso-mode-desktop-description")),
-            Mode::Configured => (t!("iso-mode-before"), t!("iso-mode-before-description")),
+            // Fetching starts by itself once the release is known.
+            _ if fetching => div().flex().items_center().gap(px(8.)).child(
+                StatusLight::new(LightState::Pending, t!("iso-package-fetching")).id("iso-package-fetching"),
+            ),
+            // A download the user cancelled.
+            _ => div().flex().child(
+                Button::new("iso-package-download", download_label)
+                    .icon(Icon::Download)
+                    .when(accent && !waiting, Button::accent)
+                    .disabled(waiting)
+                    .on_click(move |_, _, cx| model.update(cx, |m, cx| m.download_latest(cx))),
+            ),
         };
-        let choices = card_body()
-            .gap(px(4.))
-            .child(detail_row(
-                cx,
-                "iso-mode",
-                t!("iso-atlas-options"),
-                captioned("iso-review-mode", mode_title, Some(mode_detail), cx),
-            ))
-            .children(self.choice_rows(cx));
-
-        let section = |key: &str, step: IsoStep, icon: Option<Icon>, id: &'static str, rows: Div| {
-            card(cx)
-                .child(card_header_with_icon(cx, key, step.title(), icon, Some(change(id, step)), 3))
-                .child(rows)
-                .into_any_element()
-        };
-        vec![
-            div()
-                .type_body()
-                .text_color(secondary)
-                .child(detail_text("iso-review-description", t!("iso-review-description")))
-                .into_any_element(),
-            section("iso-review-files", IsoStep::Files, Some(Icon::Disc), "iso-change-files", files),
-            section("iso-review-windows", IsoStep::Windows, None, "iso-change-windows", windows),
-            section("iso-review-choices", IsoStep::Choices, None, "iso-change-choices", choices),
-        ]
+        (content.into_any_element(), stalled)
     }
 
-    /// Why the step's primary button is unavailable, when the step itself
-    /// doesn't say it beside the problem.
-    fn hint(&self, gates: Gates, cx: &App) -> String {
+    /// Why the step's primary button is unavailable, when nothing on the
+    /// page says it already: the status lives in one place.
+    fn hint(&self, elevated: bool, cx: &App) -> String {
+        let state = self.model.read(cx);
         match self.step {
-            // The footer isn't built while this page's own job runs, so this
-            // is another job, such as Windows preparation, holding the app.
-            _ if self.model.read(cx).locked() => t!("iso-locked"),
-            IsoStep::Windows if self.username.read(cx).value().is_empty() => t!("iso-account-empty"),
-            // Why Review ISO is unavailable; the bar above offers the fixes.
-            IsoStep::Choices if !gates.mode => t!("iso-package-unsupported-bundled-title"),
+            // Another job, such as Windows preparation, holding the app; this
+            // page's own check says so where it shows.
+            _ if state.locked() && !state.iso_busy => t!("iso-locked"),
+            // The bar says what's missing, or a row says what's happening.
+            _ if !elevated || self.result != JobResult::None => String::new(),
+            IsoStep::Windows if state.iso_busy || self.download.busy() => String::new(),
+            IsoStep::Windows if self.source.is_none() => t!("iso-need-windows"),
+            IsoStep::Windows if self.archive.is_none() && !state.bundled() => String::new(),
+            IsoStep::Setup if self.username.read(cx).value().is_empty() => t!("iso-account-empty"),
             _ => String::new(),
         }
     }
 
     /// Back and the step's primary button, or the controls of a running or
     /// finished job.
-    fn footer(&self, gates: Gates, busy: bool, cancelling: bool, cx: &mut Context<Self>) -> AnyElement {
-        if busy {
+    fn footer(&self, gates: Gates, elevated: bool, bar_leads: bool, cx: &mut Context<Self>) -> AnyElement {
+        let (busy, cancelling, locked) = {
+            let state = self.model.read(cx);
+            (state.iso_busy, state.iso_busy && state.iso_cancel.load(Ordering::Relaxed), state.locked())
+        };
+        if busy && self.step == IsoStep::Create {
+            // Cancelling keeps the button, unavailable; the heading says so,
+            // as on the USB page.
             return CommandBar::new()
                 .cancel(
                     "iso-cancel",
-                    if cancelling { t!("iso-cancelling") } else { t!("iso-cancel") },
+                    t!("iso-cancel"),
                     cancelling,
                     cx.listener(|this, _, _, cx| {
                         this.model.update(cx, |m, cx| {
@@ -1837,15 +1998,16 @@ impl IsoPage {
                 // written cannot be the next output, so another name is suggested.
                 this.output = None;
                 this.suggest_output();
+                this.checked_files = None;
                 this.invalidate(cx);
                 this.model.update(cx, |m, cx| m.navigate(Page::Home, cx));
             }));
-            let usb = Button::new("iso-write-usb", t!("usb-title"))
+            let usb = Button::new("iso-write-usb", t!("iso-create-usb"))
                 .accent()
                 .on_click(cx.listener(|this, _, _, cx| this.open_usb(this.output.clone(), cx)));
             return CommandBar::new().back(done).primary(usb).into_any_element();
         }
-        let locked = self.model.read(cx).locked() || self.download.busy() || self.editing_source;
+        let locked = locked || busy || self.download.busy();
         let back = Button::new("iso-back", t!("common-back"))
             .disabled(self.step.previous().is_none() || locked)
             .on_click(cx.listener(|this, _, _, cx| {
@@ -1853,41 +2015,42 @@ impl IsoPage {
                     this.go_to_step(previous, cx);
                 }
             }));
-        let next = |label: String, enabled: bool, cx: &mut Context<Self>| {
-            Button::new("iso-next", label)
-                .accent()
-                .trailing_icon(Icon::ChevronRight)
-                .disabled(!enabled || locked)
-                .on_click(cx.listener(|this, _, _, cx| {
-                    if let Some(next) = this.step.next() {
-                        this.go_to_step(next, cx);
-                    }
-                }))
-        };
-        let primary = match self.step {
-            // Choosing another file clears the check; until then the files
-            // stay checked and Continue is the way on.
-            IsoStep::Files if gates.checked => next(t!("common-next"), true, cx),
-            IsoStep::Files => {
-                let bundled = self.model.read(cx).bundled();
-                Button::new("iso-inspect", t!("iso-inspect"))
-                    .accent()
-                    .disabled(
-                        self.source.is_none()
-                            || (self.archive.is_none() && !bundled)
-                            || self.output.is_none()
-                            || locked,
-                    )
-                    .on_click(cx.listener(|this, _, _, cx| this.start(true, cx)))
-            }
-            IsoStep::Windows => next(t!("common-next"), gates.account, cx),
-            IsoStep::Choices => next(t!("iso-review"), gates.mode, cx),
-            IsoStep::Review => Button::new("iso-create", t!("iso-create"))
-                .accent()
-                .disabled(locked)
-                .on_click(cx.listener(|this, _, _, cx| this.start(false, cx))),
-        };
-        CommandBar::new().hint(self.hint(gates, cx)).back(back).primary(primary).into_any_element()
+        let hint = self.hint(elevated, cx);
+        let mut bar = CommandBar::new().hint(hint.clone()).back(back);
+        // A package for a newer Atlas Manager can't make an ISO here at all:
+        // the bar's download is the only way on.
+        if self.manager_outdated(cx).is_some() {
+            return bar.into_any_element();
+        }
+        let primary =
+            match self.step {
+                IsoStep::Create => {
+                    let blocked = self.destination.as_ref().is_some_and(|d| d.problem.is_some()) || !elevated;
+                    let failed = matches!(self.result, JobResult::Failed(_));
+                    let label = if failed { t!("common-try-again") } else { t!("iso-create") };
+                    Button::new("iso-create", label)
+                        .when(!blocked && !bar_leads, Button::accent)
+                        .disabled(blocked || locked)
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            if failed { this.try_again(cx) } else { this.start(false, cx) }
+                        }))
+                }
+                step => {
+                    let enabled = gates.passes(step) && elevated && !locked;
+                    Button::new("iso-next", t!("common-next"))
+                        .when(enabled && !bar_leads, Button::accent)
+                        .trailing_icon(Icon::ChevronRight)
+                        .disabled(!enabled)
+                        .when(!enabled && !hint.is_empty(), |button| button.aria_description(hint.clone()))
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            if let Some(next) = this.step.next() {
+                                this.go_to_step(next, cx);
+                            }
+                        }))
+                }
+            };
+        bar = bar.primary(primary);
+        bar.into_any_element()
     }
 }
 
@@ -1901,177 +2064,67 @@ impl Render for IsoPage {
             // The control that opened the panel is gone; announce this page again.
             self.shown = None;
         }
-        let (busy, cancelling, elevated, visit) = {
+        let (busy, elevated, visit) = {
             let state = self.model.read(cx);
             let elevated = (state.elevated || self.preview.is_some()) && !self.preview_unelevated;
-            (
-                state.iso_busy,
-                state.iso_busy && state.iso_cancel.load(Ordering::Relaxed),
-                elevated,
-                state.page_visit,
-            )
+            (state.iso_busy, elevated, state.page_visit)
         };
-        let failed = matches!(self.result, JobResult::Failed(_));
         let complete = self.result == JobResult::Complete;
-        let cancelled = self.result == JobResult::Cancelled;
-        // A build runs from Review and takes over the page; a check runs within step 1.
-        let building = busy && self.step == IsoStep::Review;
-        let status = self.focus.get("iso-status", cx);
-        let shown = (self.step, busy, self.result, visit);
-        if self.shown != Some(shown) {
-            self.shown = Some(shown);
-            window.focus(&status, cx);
+        // A build runs from Create and takes over the page; a check runs within the Windows step.
+        let building = busy && self.step == IsoStep::Create;
+        let step_focus = self.focus.get("iso-step-current", cx);
+        let result_focus = self.focus.get("iso-result", cx);
+
+        // A new step, or arriving on the page, puts focus on the current
+        // step in the stepper, which names it. A result, the elevation
+        // question's answer or a build that starts puts it on what says so.
+        // A check that starts by itself moves nothing.
+        let now = Shown {
+            step: self.step,
+            result: self.result,
+            visit,
+            building,
+            declined: self.elevation_declined,
+        };
+        if self.shown != Some(now) {
+            let before = self.shown.replace(now);
+            let news = before.is_some_and(|before| {
+                (before.result != now.result && now.result != JobResult::None)
+                    || (now.building && !before.building)
+                    || (now.declined && !before.declined)
+            });
+            let moved = before.is_none_or(|before| before.step != now.step || before.visit != now.visit);
+            if news || (moved && (complete || building)) {
+                window.focus(&result_focus, cx);
+            } else if moved {
+                window.focus(&step_focus, cx);
+            }
         }
         let gates = self.gates(cx);
+        self.watch_destination(cx);
 
         let mut body: Vec<AnyElement> = Vec::new();
         if !building && !complete {
-            body.push(self.stepper(gates, elevated && !busy && !self.model.read(cx).locked(), cx));
-            // A new step is announced by its heading, unless a result or a
-            // check in progress is announced instead.
-            let heading_focus = if elevated && !busy && !failed && !cancelled {
-                status.clone()
-            } else {
-                self.focus.get("iso-step-heading", cx)
-            };
-            let title = if self.step == IsoStep::Files {
-                t!("iso-source-question")
-            } else {
-                t!(
-                    "step-heading",
-                    number = self.step.index() + 1,
-                    total = IsoStep::ALL.len(),
-                    title = self.step.title()
-                )
-            };
-            body.push(
-                focusable_heading("iso-step-heading", 2, title, &heading_focus, cx)
-                    .type_subtitle()
-                    .pb(px(4.))
-                    .into_any_element(),
-            );
+            let may_move = elevated && !busy && !self.model.read(cx).locked() && !self.download.busy();
+            body.push(self.stepper(gates, may_move, step_focus, cx));
         }
-        let mut footer = None;
-        if !elevated {
-            // Nothing on this page works without the permission, so the bar
-            // and its button are all there is.
-            body.push(self.elevation_bar(failed, &status, cx));
+        let bar = if building || complete { None } else { self.top_bar(elevated, &result_focus, cx) };
+        let bar_leads = bar.as_ref().is_some_and(|(_, accent)| *accent);
+        if let Some((bar, _)) = bar {
+            body.push(bar);
+        }
+        if building {
+            body.push(self.progress_card(&result_focus, cx));
+        } else if complete {
+            body.push(self.complete_card(&result_focus, cx));
         } else {
-            // What the last check or build came to, under the steps, with
-            // the ways to get help right beside it.
-            if failed || cancelled {
-                body.push(if failed { self.error_bar(&status) } else { self.cancelled_bar(&status) });
-                body.push(self.diagnostics.panel(&self.model, cx).into_any_element());
+            match self.step {
+                IsoStep::Windows => body.extend(self.windows_cards(!bar_leads, window, cx)),
+                IsoStep::Setup => body.extend(self.setup_cards(window, cx)),
+                IsoStep::Create => body.extend(self.create_cards(cx)),
             }
-            // Where a build stopped, as the checklist it showed while running.
-            if self.failed_stage().is_some() {
-                body.push(card(cx).child(card_body().child(self.stage_list(true, cx))).into_any_element());
-            }
-            if building {
-                let current = if cancelling { t!("iso-cancelling") } else { stage_text(self.stage) };
-                body.push(
-                    card(cx)
-                        .child(
-                            card_body()
-                                .gap(px(16.))
-                                .child(focusable_heading(
-                                    "iso-progress-title",
-                                    2,
-                                    t!("iso-progress-title"),
-                                    &status,
-                                    cx,
-                                ))
-                                // The one live node while creating: it names the stage.
-                                .child(ProgressBar::new("iso-progress", current, None).live())
-                                .child(self.stage_list(false, cx))
-                                .child(detail_text(
-                                    "iso-progress-description",
-                                    t!("iso-progress-description"),
-                                )),
-                        )
-                        .into_any_element(),
-                );
-            } else if busy {
-                let stage = if cancelling { t!("iso-cancelling") } else { stage_text(self.stage) };
-                body.push(
-                    card(cx)
-                        .child(
-                            card_body()
-                                .gap(px(18.))
-                                .child(focusable_heading("iso-progress-title", 2, stage.clone(), &status, cx))
-                                .child(ProgressBar::new("iso-progress", stage, None).live())
-                                .child(detail_text(
-                                    "iso-progress-description",
-                                    t!("iso-progress-description"),
-                                )),
-                        )
-                        .into_any_element(),
-                );
-            } else if complete {
-                body.push(
-                    InfoBar::new(Severity::Success, t!("iso-complete"), t!("iso-complete-description"))
-                        .id("iso-complete")
-                        .focus_handle(status.clone())
-                        // Network drivers were asked for, and Windows has them already.
-                        .when(self.network_inbox, |bar| {
-                            bar.content(
-                                div()
-                                    .type_body()
-                                    .child(a11y_text("iso-network-inbox", t!("iso-network-inbox"))),
-                            )
-                        })
-                        .into_any_element(),
-                );
-                if let Some(path) = &self.output {
-                    body.push(
-                        card(cx)
-                            .child(
-                                card_body().child(
-                                    div()
-                                        .flex()
-                                        .items_center()
-                                        .gap(px(12.))
-                                        .child(TextMark::new(icon(Icon::Disc), false).natural_text())
-                                        .child(div().flex_1().min_w_0().child(detail_text(
-                                            "iso-created-file",
-                                            path.display().to_string(),
-                                        )))
-                                        .child(
-                                            Button::new("iso-reveal", t!("iso-open-folder"))
-                                                .icon(Icon::Folder)
-                                                .on_click(cx.listener(|this, _, _, cx| {
-                                                    if let Some(path) = &this.output {
-                                                        cx.reveal_path(path);
-                                                    }
-                                                })),
-                                        ),
-                                ),
-                            )
-                            .into_any_element(),
-                    );
-                }
-            } else {
-                match self.step {
-                    IsoStep::Files => {
-                        body.push(self.files(gates.checked, cx));
-                        body.push(
-                            div()
-                                .flex()
-                                .child(
-                                    Button::new("iso-existing-usb", t!("usb-existing"))
-                                        .hyperlink()
-                                        .on_click(cx.listener(|this, _, _, cx| this.open_usb(None, cx))),
-                                )
-                                .into_any_element(),
-                        );
-                    }
-                    IsoStep::Windows => body.extend(self.windows_setup(cx)),
-                    IsoStep::Choices => body.extend(self.choices(cx)),
-                    IsoStep::Review => body.extend(self.review(cx)),
-                }
-            }
-            footer = Some(self.footer(gates, busy, cancelling, cx));
         }
+        let footer = self.footer(gates, elevated, bar_leads, cx);
         self.diagnostics.settle(&self.model, window, cx);
         page_frame(
             "iso-page",
@@ -2080,7 +2133,7 @@ impl Render for IsoPage {
             Some(&self.model),
             (&self.scroll, &self.scrollbar),
             body,
-            footer,
+            Some(footer),
             cx,
         )
         .into_any_element()
@@ -2088,47 +2141,71 @@ impl Render for IsoPage {
 }
 
 impl IsoPage {
-    /// Title and message of the error bar: what failed and what to do next,
-    /// as far as the worker said. Only an existing output file calls for a
-    /// new filename; a failed build leaves the chosen name free.
+    /// Title and message of the error bar: the problem, then what to do, as
+    /// far as the worker said.
     fn failure_text(&self) -> (String, String) {
-        let checking = self.step == IsoStep::Files;
+        let checking = self.step == IsoStep::Windows;
         let failure = match self.result {
             JobResult::Failed(reason) => reason,
             _ => None,
         };
-        let title = match failure {
-            Some(FailureReason::PackageUnsupported) => t!("iso-package-unsupported-title"),
-            _ if checking => t!("iso-check-failed"),
-            _ => t!("iso-failed"),
-        };
+        let generic_title = if checking { t!("iso-check-failed") } else { t!("iso-failed") };
         if self.job.is_none() && failure != Some(FailureReason::ManagerOutdated) {
             // Nothing ran: there are no diagnostics to point at.
-            return (title, t!("iso-failed-unstaged"));
+            return (generic_title, t!("iso-unstaged"));
         }
-        let message = match failure {
-            Some(FailureReason::WindowsReleaseUnknown) => t!("iso-release-unknown"),
-            Some(FailureReason::WindowsReleaseUnlisted) => t!("iso-release-unlisted"),
-            Some(FailureReason::OutputExists) => t!("iso-failed-output-exists"),
-            Some(FailureReason::DestinationFilesystem) => t!("iso-failed-destination"),
-            Some(FailureReason::DiskSpace) => t!("iso-failed-space"),
-            Some(FailureReason::WindowsUnsupported) => t!("iso-failed-windows-unsupported"),
-            Some(FailureReason::EditionUnsupported) => t!("iso-failed-edition"),
-            Some(FailureReason::IsoCustomised) => t!("iso-failed-customised"),
-            Some(FailureReason::NetworkArchitecture) => t!("iso-failed-network-architecture"),
-            Some(FailureReason::ManagerMissing) => t!("iso-failed-manager-missing"),
+        match failure {
+            Some(FailureReason::WindowsReleaseUnknown) => {
+                (t!("iso-release-unknown-title"), t!("iso-release-unconfirmed"))
+            }
+            Some(FailureReason::WindowsReleaseUnlisted) => (t!("iso-preview-title"), t!("iso-preview")),
+            Some(FailureReason::EditionUnsupported) => {
+                (t!("iso-edition-unsupported-title"), t!("iso-edition-unsupported"))
+            }
+            Some(FailureReason::IsoCustomised) => (t!("iso-customised-title"), t!("iso-customised")),
+            Some(FailureReason::WindowsUnsupported) => {
+                (t!("iso-windows-unsupported-title"), t!("iso-windows-unsupported"))
+            }
             Some(FailureReason::PackageUnsupported) => {
-                t!("iso-failed-package-unsupported", minimum = iso::MINIMUM_VERSION)
+                (t!("iso-package-old-title"), t!("iso-package-old", minimum = iso::MINIMUM_VERSION))
             }
-            Some(FailureReason::PackageChanged) => t!("iso-failed-package-changed"),
-            Some(FailureReason::ManagerOutdated) => {
-                describe::manager_outdated(self.manager_required.as_deref())
+            Some(FailureReason::ManagerMissing) => {
+                (t!("iso-manager-missing-title"), t!("iso-manager-missing"))
             }
-            Some(FailureReason::Build) if self.stage == Stage::NetworkDrivers => t!("iso-network-failed"),
-            Some(FailureReason::Check) | None if checking => t!("iso-check-failed-description"),
-            Some(FailureReason::Check | FailureReason::Build) | None => t!("iso-failed-description"),
-        };
-        (title, message)
+            Some(FailureReason::DiskSpace) => (generic_title, t!("iso-failed-space")),
+            Some(FailureReason::Build) if self.network_build && self.stage == Stage::NetworkDrivers => {
+                (generic_title, t!("iso-network-not-added"))
+            }
+            // Checked before Create, so only a change while it ran gets here,
+            // and trying again checks them before it builds.
+            Some(
+                FailureReason::OutputExists
+                | FailureReason::DestinationFilesystem
+                | FailureReason::NetworkArchitecture
+                | FailureReason::PackageChanged
+                | FailureReason::ManagerOutdated
+                | FailureReason::Check
+                | FailureReason::Build,
+            )
+            | None => {
+                (generic_title, if checking { t!("iso-check-failed-retry") } else { t!("iso-failed-retry") })
+            }
+        }
+    }
+}
+
+/// Whether a failure gets the help row: only one that nothing on the page
+/// fixes, not media to replace, a package to change or a connection to check.
+fn failure_needs_help(reason: Option<FailureReason>, checking: bool, ran: bool) -> bool {
+    !ran || match reason {
+        Some(
+            FailureReason::WindowsReleaseUnknown
+            | FailureReason::PackageUnsupported
+            | FailureReason::ManagerOutdated
+            | FailureReason::DiskSpace,
+        ) => false,
+        reason if checking && other_media_fixes(reason) => false,
+        _ => true,
     }
 }
 
@@ -2161,13 +2238,11 @@ pub(super) fn file_value(key: &str, path: &Path, cx: &App) -> Div {
     captioned(key, name, folder, cx)
 }
 
-/// The network choices a request carries: reinstall this PC, copy its network
-/// drivers, update them. A check carries none: they are made in step 2, which a
-/// failed check cannot reach.
-fn network_choices(inspect: bool, reinstall: bool, copy: bool, update: bool) -> (bool, bool, bool) {
+/// The network choices a request carries: reinstall this PC, and include
+/// its network drivers. A check carries none: they apply to the build.
+fn network_choices(inspect: bool, reinstall: bool, copy: bool) -> (bool, bool) {
     let reinstall = !inspect && reinstall;
-    let copy = reinstall && copy;
-    (reinstall, copy, copy && update)
+    (reinstall, reinstall && copy)
 }
 
 /// The output must end in `.iso`: the worker refuses anything else, so a
@@ -2183,338 +2258,4 @@ fn with_iso_extension(path: PathBuf) -> PathBuf {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::model::test_harness::{Machine, all_off, new_model, run_model_test};
-    use crate::services::test_support::TempDir;
-
-    #[test]
-    fn a_check_sends_no_network_driver_choices() {
-        // Chosen on an earlier visit to step 2, which a failed check could not lead back to.
-        assert_eq!(network_choices(true, true, true, true), (false, false, false));
-        assert_eq!(network_choices(false, true, true, true), (true, true, true));
-        assert_eq!(network_choices(false, true, false, true), (true, false, false));
-        assert_eq!(network_choices(false, false, true, true), (false, false, false));
-    }
-
-    const ALL_DONE: Gates = Gates { checked: true, account: true, mode: true };
-
-    #[test]
-    fn the_stepper_goes_back_freely_and_forward_only_to_visited_steps_that_still_hold() {
-        use IsoStep::*;
-        // Back to any earlier step; never to the step showing.
-        assert!(ALL_DONE.reachable(Review, Files, Review));
-        assert!(Gates::default().reachable(Choices, Windows, Choices));
-        assert!(!ALL_DONE.reachable(Windows, Windows, Review));
-        // Forward only as far as the furthest step reached.
-        assert!(ALL_DONE.reachable(Files, Review, Review));
-        assert!(!ALL_DONE.reachable(Files, Choices, Windows));
-        // Never past a step that no longer holds: an account name cleared on
-        // Windows setup keeps Review out of reach from there and from Files.
-        let no_account = Gates { account: false, ..ALL_DONE };
-        assert!(!no_account.reachable(Windows, Review, Review));
-        assert!(!no_account.reachable(Files, Choices, Review));
-        assert!(no_account.reachable(Files, Windows, Review));
-        // A package that can't carry the mode keeps Review out of reach.
-        let no_mode = Gates { mode: false, ..ALL_DONE };
-        assert!(!no_mode.reachable(Windows, Review, Review));
-        assert!(no_mode.reachable(Windows, Choices, Review));
-    }
-
-    #[test]
-    fn steps_the_user_went_past_stay_done_while_an_earlier_one_shows() {
-        use IsoStep::*;
-        let statuses =
-            |current, furthest, gates| IsoStep::ALL.map(|step| step_status(step, current, furthest, gates));
-        use StepStatus::{Attention, Current, Done, Upcoming};
-        assert_eq!(statuses(Windows, Windows, ALL_DONE), [Done, Current, Upcoming, Upcoming]);
-        // Back on Files from Review: the steps in between are still done, and
-        // Review, never finished, is still to come.
-        assert_eq!(statuses(Files, Review, ALL_DONE), [Current, Done, Done, Upcoming]);
-        // Visited but not gone past.
-        assert_eq!(statuses(Files, Choices, ALL_DONE), [Current, Done, Upcoming, Upcoming]);
-        let no_account = Gates { account: false, ..ALL_DONE };
-        assert_eq!(statuses(Files, Review, no_account), [Current, Upcoming, Done, Upcoming]);
-        assert_eq!(statuses(Review, Review, no_account), [Done, Attention, Done, Current]);
-    }
-
-    #[test]
-    fn a_build_ticks_off_its_stages_and_marks_the_one_that_failed() {
-        let states = |reported, failed| {
-            Stage::build(false)
-                .into_iter()
-                .map(|stage| stage_state(stage, reported, failed))
-                .collect::<Vec<_>>()
-        };
-        use StageState::*;
-        assert_eq!(
-            states(Stage::Inspect, false),
-            [Current, NotStarted, NotStarted, NotStarted, NotStarted, NotStarted]
-        );
-        assert_eq!(states(Stage::Master, false), [Done, Done, Done, Current, NotStarted, NotStarted]);
-        assert_eq!(states(Stage::Master, true), [Done, Done, Done, Failed, NotStarted, NotStarted]);
-        assert_eq!(states(Stage::Cleanup, false), [Done, Done, Done, Done, Done, Current]);
-    }
-
-    #[test]
-    fn a_stage_says_plainly_where_it_stands() {
-        crate::i18n::testing::english(|| {
-            assert_eq!(
-                stage_name(&stage_text(Stage::Master), StageState::Failed),
-                "Writing the ISO file, failed"
-            );
-            assert_eq!(
-                stage_name(&stage_text(Stage::Copy), StageState::Done),
-                "Copying Windows files, completed"
-            );
-            assert!(!stage_name("x", StageState::Current).contains("Step"));
-        });
-    }
-
-    #[test]
-    fn an_empty_account_name_waits_and_a_refused_one_says_what_to_change() {
-        crate::i18n::testing::english(|| {
-            assert_eq!(account_error(""), None);
-            assert_eq!(account_error("Atlas"), None);
-            assert_eq!(account_error("Atlas/PC"), Some(t!("iso-account-invalid")));
-            assert_eq!(account_error("Atlas."), Some(t!("iso-account-trailing-dot")));
-            assert_eq!(account_error("Guest"), Some(t!("iso-account-reserved")));
-        });
-        // The message lists every symbol the check refuses, in every language.
-        // The symbols are found by asking the check, so the two can't drift apart.
-        let refused: Vec<char> = (' '..='~')
-            .filter(|c| c.is_ascii_punctuation())
-            .filter(|c| iso::username_problem(&format!("Atlas{c}PC")) == Some(UsernameProblem::Invalid))
-            .collect();
-        for locale in crate::i18n::catalog::LOCALES.iter().filter(|locale| !locale.pseudo) {
-            crate::i18n::testing::with_chain(&[locale.tag], || {
-                let message = t!("iso-account-invalid");
-                for symbol in &refused {
-                    assert!(message.contains(*symbol), "{}: {symbol}", locale.tag);
-                }
-            });
-        }
-    }
-
-    /// As in the install flow, the browser picker comes straight after the
-    /// apps that say to choose one below.
-    #[test]
-    fn the_browser_picker_follows_the_apps_that_offer_it() {
-        let manifest = Manifest::builtin();
-        let kinds: Vec<ScreenKind> = page_order(&manifest)
-            .into_iter()
-            .map(|index| ScreenKind::of_choice(&manifest.choices[index]))
-            .collect();
-        let apps = kinds.iter().position(|kind| *kind == ScreenKind::Apps).unwrap();
-        assert_eq!(kinds[apps + 1], ScreenKind::Browser);
-    }
-
-    #[test]
-    fn the_suggested_iso_never_overwrites_a_file() {
-        let folder = Path::new(r"C:\Downloads");
-        assert_eq!(free_output(folder, |_| false), folder.join("Atlas-Windows.iso"));
-        let taken = [folder.join("Atlas-Windows.iso"), folder.join("Atlas-Windows (2).iso")];
-        assert_eq!(
-            free_output(folder, |path| taken.iter().any(|t| t == path)),
-            folder.join("Atlas-Windows (3).iso")
-        );
-    }
-
-    fn page(cx: &mut gpui::AsyncApp, temp: &TempDir) -> Entity<IsoPage> {
-        let model = new_model(cx, Machine::new(all_off()).environment(temp.path()));
-        cx.update(|cx| cx.new(|cx| IsoPage::new(model.clone(), cx)))
-    }
-
-    #[test]
-    fn only_a_failure_with_a_job_points_at_its_diagnostics() {
-        run_model_test(|mut cx| async move {
-            let temp = TempDir::new("iso-failure-text");
-            let page = page(&mut cx, &temp);
-            page.update(&mut cx, |page, _| {
-                page.result = JobResult::Failed(None);
-                page.job = None;
-                assert_eq!(page.failure_text(), (t!("iso-check-failed"), t!("iso-failed-unstaged")));
-                page.step = IsoStep::Review;
-                assert_eq!(page.failure_text(), (t!("iso-failed"), t!("iso-failed-unstaged")));
-
-                page.job = Some(temp.path().to_path_buf());
-                assert_eq!(page.failure_text().1, t!("iso-failed-description"));
-                page.step = IsoStep::Files;
-                assert_eq!(page.failure_text().1, t!("iso-check-failed-description"));
-                // An Atlas package replaced after the check is named, whatever the step.
-                page.step = IsoStep::Review;
-                page.result = JobResult::Failed(Some(FailureReason::PackageChanged));
-                assert_eq!(page.failure_text(), (t!("iso-failed"), t!("iso-failed-package-changed")));
-                page.result = JobResult::Failed(Some(FailureReason::ManagerMissing));
-                assert_eq!(page.failure_text(), (t!("iso-failed"), t!("iso-failed-manager-missing")));
-            });
-        });
-    }
-
-    #[test]
-    fn only_a_build_the_worker_ran_shows_the_stage_it_failed_at() {
-        run_model_test(|mut cx| async move {
-            let temp = TempDir::new("iso-failed-stage");
-            let page = page(&mut cx, &temp);
-            page.update(&mut cx, |page, _| {
-                page.step = IsoStep::Review;
-                page.stage = Stage::Master;
-                page.job = Some(temp.path().to_path_buf());
-                page.result = JobResult::Failed(Some(FailureReason::Build));
-                assert_eq!(page.failed_stage(), Some(Stage::Master));
-                // Refused by Atlas before the worker started.
-                page.result = JobResult::Failed(Some(FailureReason::PackageChanged));
-                assert_eq!(page.failed_stage(), None);
-                // No job: nothing ran.
-                page.result = JobResult::Failed(None);
-                page.job = None;
-                assert_eq!(page.failed_stage(), None);
-                // A failed check has no stages to show.
-                page.job = Some(temp.path().to_path_buf());
-                page.step = IsoStep::Files;
-                assert_eq!(page.failed_stage(), None);
-                page.step = IsoStep::Review;
-                page.result = JobResult::Cancelled;
-                assert_eq!(page.failed_stage(), None);
-            });
-        });
-    }
-
-    #[test]
-    fn the_new_iso_follows_the_source_until_the_user_chooses_where_to_save_it() {
-        run_model_test(|mut cx| async move {
-            let temp = TempDir::new("iso-output");
-            let (first, second) = (temp.path().join("first"), temp.path().join("second"));
-            std::fs::create_dir_all(&first).unwrap();
-            std::fs::create_dir_all(&second).unwrap();
-            // An ISO made earlier keeps its name.
-            std::fs::write(first.join("Atlas-Windows.iso"), b"earlier").unwrap();
-            let page = page(&mut cx, &temp);
-            page.update(&mut cx, |page, _| {
-                page.source = Some(first.join("Windows.iso"));
-                page.suggest_output();
-                assert_eq!(page.output, Some(first.join("Atlas-Windows (2).iso")));
-                page.source = Some(second.join("Windows.iso"));
-                page.suggest_output();
-                assert_eq!(page.output, Some(second.join("Atlas-Windows.iso")));
-                // Chosen with Save as: it stays where the user put it.
-                let chosen = temp.path().join("Mine.iso");
-                page.output = Some(chosen.clone());
-                page.output_suggested = false;
-                page.source = Some(first.join("Windows.iso"));
-                page.suggest_output();
-                assert_eq!(page.output, Some(chosen));
-            });
-        });
-    }
-
-    #[test]
-    fn going_back_and_forward_keeps_every_choice_and_a_new_file_starts_again() {
-        run_model_test(|mut cx| async move {
-            let temp = TempDir::new("iso-steps");
-            let page = page(&mut cx, &temp);
-            page.update(&mut cx, |page, cx| {
-                page.image = Some(ImageInfo {
-                    edition_terms: vec!["0".repeat(64)],
-                    editions: vec!["Windows 11 Pro".into()],
-                    bytes: 1,
-                    architecture: Architecture::X64,
-                });
-                page.username.update(cx, |input, cx| input.set_value("Ada", cx));
-                page.go_to_step(IsoStep::Windows, cx);
-                page.reinstall_this_pc = true;
-                page.drivers = Some(Drivers::Manual);
-                page.go_to_step(IsoStep::Choices, cx);
-                // Set up before sign-in, which the package supports, with a choice of its own.
-                page.setup_available = true;
-                page.mode = Mode::Configured;
-                let chosen: Vec<String> = vec!["defender-disable".into()];
-                page.options = chosen.clone();
-                page.go_to_step(IsoStep::Review, cx);
-                page.go_to_step(IsoStep::Files, cx);
-                assert_eq!(page.furthest, IsoStep::Review);
-                assert!(page.gates(cx).reachable(page.step, IsoStep::Review, page.furthest));
-                assert_eq!(page.username.read(cx).value(), "Ada");
-                assert!(page.reinstall_this_pc && page.drivers == Some(Drivers::Manual));
-                assert_eq!((page.mode, &page.options), (Mode::Configured, &chosen));
-                // Choosing another file means checking again from the start.
-                page.invalidate(cx);
-                assert_eq!((page.step, page.furthest), (IsoStep::Files, IsoStep::Files));
-                assert!(!page.gates(cx).reachable(IsoStep::Files, IsoStep::Windows, page.furthest));
-                assert_eq!(page.username.read(cx).value(), "Ada");
-                // Kept for the next check, which carries them over for the same package.
-                assert_eq!((page.mode, &page.options), (Mode::Configured, &chosen));
-            });
-        });
-    }
-
-    #[test]
-    fn a_result_stays_with_its_step_and_a_changed_package_is_checked_again() {
-        run_model_test(|mut cx| async move {
-            let temp = TempDir::new("iso-result-step");
-            let page = page(&mut cx, &temp);
-            page.update(&mut cx, |page, cx| {
-                page.image = Some(ImageInfo {
-                    edition_terms: vec!["0".repeat(64)],
-                    editions: vec!["Windows 11 Pro".into()],
-                    bytes: 1,
-                    architecture: Architecture::X64,
-                });
-                page.step = IsoStep::Review;
-                page.furthest = IsoStep::Review;
-                page.finish(false, false, Err(anyhow::anyhow!("worker failed")));
-                // The step showing keeps its result.
-                page.go_to_step(IsoStep::Review, cx);
-                assert_eq!(page.result, JobResult::Failed(None));
-                assert!(page.gates(cx).checked, "a failed build leaves the check standing");
-
-                page.finish(
-                    false,
-                    false,
-                    Err(iso::Failure::new(FailureReason::PackageChanged, "test").into()),
-                );
-                assert_eq!(page.result, JobResult::Failed(Some(FailureReason::PackageChanged)));
-                // Change next to Files, as the bar says: no build failure on
-                // the Files step, and Check files rather than Continue.
-                page.go_to_step(IsoStep::Files, cx);
-                assert_eq!(page.result, JobResult::None);
-                assert!(!page.gates(cx).checked);
-                assert!(!page.gates(cx).reachable(IsoStep::Files, IsoStep::Windows, page.furthest));
-            });
-        });
-    }
-
-    #[test]
-    fn the_footer_says_what_an_unavailable_step_still_needs() {
-        run_model_test(|mut cx| async move {
-            let temp = TempDir::new("iso-hint");
-            let page = page(&mut cx, &temp);
-            page.update(&mut cx, |page, cx| {
-                page.step = IsoStep::Windows;
-                assert_eq!(page.hint(page.gates(cx), cx), t!("iso-account-empty"));
-                // A name with a problem says so in the field, not here.
-                page.username.update(cx, |input, cx| input.set_value("Atlas/PC", cx));
-                assert!(!page.gates(cx).account);
-                assert_eq!(page.hint(page.gates(cx), cx), "");
-                page.step = IsoStep::Choices;
-                page.mode = Mode::Configured;
-                page.setup_available = false;
-                // Why Review ISO is unavailable, not the harder of the two fixes.
-                assert_eq!(page.hint(page.gates(cx), cx), t!("iso-package-unsupported-bundled-title"));
-                page.setup_available = true;
-                assert_eq!(page.hint(page.gates(cx), cx), "");
-                // Another job holding the app is why every step waits.
-                page.model.update(cx, |m, _| {
-                    m.preparation = crate::services::preparation::State::Running {
-                        stage: Default::default(),
-                        completed: 0,
-                        total: 0,
-                    }
-                });
-                assert_eq!(page.hint(page.gates(cx), cx), t!("iso-locked"));
-                page.model.update(cx, |m, _| m.preparation = crate::services::preparation::State::Ready);
-                assert_eq!(page.hint(page.gates(cx), cx), "");
-            });
-        });
-    }
-}
+mod tests;

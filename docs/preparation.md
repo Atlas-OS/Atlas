@@ -8,9 +8,10 @@ Moving Windows to a newer release also starts on the **Get ready** page, and has
 ## What the Get ready page does
 
 Atlas Manager brings Windows and Microsoft Store apps up to date before it installs Atlas, so that servicing doesn't run alongside the install.
-The **Get ready** page shows the installation files, the PC checks, the drivers choice and the **Update Windows and Store apps** card.
+The **Get ready** page is a checklist: the PC checks, the Atlas package, and **Windows and Microsoft Store updates**, with the drivers choice under it.
 
-When you start updating, Atlas Manager runs the preparation worker, which:
+Updating starts by itself once the checks pass and the package is ready, as [the install flow](../app/docs/install-flow.md#what-get-ready-does-by-itself) describes.
+Atlas Manager then runs the preparation worker, which:
 
 1. installs the Windows updates Windows Update offers;
 2. registers, updates or repairs Microsoft Store for you when it can't update apps;
@@ -79,13 +80,17 @@ The repair runs in two cases:
 - When an update fails with `0x80073712`.
   The updates that failed then get another try.
 
-While DISM runs, the update card says Windows is being repaired first, which can take half an hour or more.
+While DISM runs, the update row says Windows is being repaired, and under its progress bar that this can take half an hour or more.
 DISM reports no progress the worker can read, and like Windows Update's own work it isn't stopped.
 If the repair leaves a restart, the **Get ready** page restarts before it searches.
 
 When Windows reads the store as `NonRepairable`, the run stops before any update with `component-store-unrepairable`.
+The update row says Windows is too damaged to update, with **Create an Atlas ISO** as its one button, after a backup; trying again can't help.
+
 When an update still fails with `0x80073712` after the repair, the run stops with that error.
-Both offer **Create an Atlas ISO** for reinstalling Windows.
+A restart can clear what's left, so the row offers **Restart and try again**.
+It restarts as any restart updating asks for does, and updating carries on by itself after you sign in.
+
 The health Windows reads, the repair's exit code and the health afterwards go to `updates.log`.
 
 ### The component store and the Atlas packages
@@ -117,7 +122,7 @@ The worker deals with the Store before the Store apps:
 1. A Store that's staged or provisioned on the PC but not registered and working for you is registered for you.
    The worker uses the newest package's manifest under `WindowsApps`, or the package family name.
 2. The worker asks the Store to update itself, then App Installer, by package family, through [`AppInstallManager.UpdateAppByPackageFamilyNameAsync`](https://learn.microsoft.com/uwp/api/windows.applicationmodel.store.preview.installcontrol.appinstallmanager.updateappbypackagefamilynameasync).
-   The update card says so while it does.
+   The update row says so while it does.
 
 Nothing Atlas 0.5.0 sets by default stops this.
 It leaves the Store's services alone, and turning off automatic Store app updates (`AutoDownload` set to 2) doesn't stop an update Atlas asks for.
@@ -143,10 +148,12 @@ App Installer versions are compared by the package's own version.
 The list of provisioned packages gives the bundle's version, such as 2026.115.2221.0, which is always above the package's, such as 1.27.459.0, so the worker doesn't use it.
 The winget-cli repository is checked by its GitHub IDs, and each file by the SHA-256 that GitHub records and by Microsoft's signature.
 
-The first repair after which the Store works ends the repairs, and the card says what was done.
-If none helps, the run stops with `store-repair-failed` and recommends **Create an Atlas ISO** for reinstalling Windows.
-Atlas reminds you to back up your files before reinstalling.
-**Repair Microsoft Store** runs the repairs again, and **Send a report** lets you tell the Atlas team what happened.
+The first repair after which the Store works ends the repairs, and `updates.log` says what was done.
+The update row doesn't, as it changes nothing you do.
+If none helps, the run stops with `store-repair-failed`.
+The update row says Microsoft Store isn't working and that installing Atlas now could break Store apps, with **Try repair again**, which runs the repairs again.
+Behind **Show details** are the worker's own message and **Create an Atlas ISO**, for reinstalling Windows after a backup if the repair keeps failing.
+The row of help links under it offers **Send a report**, **Export diagnostics** and **Open log folder**.
 
 ### Store app updates
 
@@ -156,9 +163,13 @@ If the update disappears from the Store, the app is up to date, because a busy S
 If a newly failed update is for an installed app, the worker gives the queue up to a minute to settle and searches again before it starts repairs. It does this once per run.
 The log says which.
 
+An update that fails because its app is open (`0x80073D02`) names the app on the update row: close it, then try again, in Task Manager if it has no window.
+The row offers only **Try again**, as Microsoft Store has nothing to add.
+
 A Store you removed on purpose stays removed.
 Atlas 0.5.0's **Disable Microsoft Store** and Atlas's Microsoft Store toggle record `HKLM\SOFTWARE\AtlasOS\Services\MicrosoftStore` with `state` set to 0.
-With that record and no Store registered for you, the worker skips Store app updates and says so, and the check before the install skips the Store too.
+With that record and no Store registered for you, the worker skips Store app updates, and the check before the install skips the Store too.
+The update row then says Windows is up to date, and under it that Store apps weren't updated because Microsoft Store is turned off.
 Atlas 0.5.0's script removed the Store only for the account that ran it, so other accounts may still have it.
 The install doesn't need the Store.
 NanaZip, for example, falls back to its verified download.
@@ -189,14 +200,17 @@ Before Atlas Manager restarts Windows for preparation:
   It's removed after the restart, or silently at its next launch if the draft was abandoned.
 - On a PC installed from an Atlas ISO, the before-desktop shell starts Atlas Manager again instead.
 
-After the restart, Atlas Manager restores the package and your choices and offers **Continue updates**, without marking preparation complete.
+Once the draft and the Run entry are in place, Atlas Manager counts down 60 seconds, with **Restart now** and **Restart later**, then restarts.
+With **Restart automatically after installing and updating** off in **Settings**, it offers **Restart now** and nothing counts down.
+
+After the restart, Atlas Manager restores the package and your choices and carries on updating by itself, without marking preparation complete.
 Failures to save, to register the Run entry and to restart have their own messages.
 A failed restart keeps recovery in place for a restart through Windows.
 When `shutdown.exe` answers that a shutdown is already in progress or scheduled (errors 1115 and 1190), the restart counts as accepted.
 
 Before any restart Atlas Manager makes, it checks for other people with an open or disconnected session.
 If anyone else is signed in, it names them, says that restarting closes their apps and loses their unsaved work, and restarts only when you choose **Restart anyway**.
-Nothing counts down while someone else is signed in.
+Nothing counts down while someone else is signed in: **Restart now** asks first.
 When Windows won't list the sessions, the restart goes ahead and the reason is logged.
 
 Microsoft documents the parts this relies on in [Run and RunOnce registry keys](https://learn.microsoft.com/windows/win32/setupapi/run-and-runonce-registry-keys) and [`IInstallationResult::RebootRequired`](https://learn.microsoft.com/windows/win32/api/wuapi/nf-wuapi-iinstallationresult-get_rebootrequired).

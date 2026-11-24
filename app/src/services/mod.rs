@@ -10,6 +10,7 @@ pub mod embedded;
 mod files;
 pub mod installer;
 pub mod iso;
+pub mod keyboard_layouts;
 pub mod legacy_choices;
 pub mod licenses;
 pub mod locale;

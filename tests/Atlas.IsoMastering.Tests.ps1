@@ -25,6 +25,20 @@ Describe 'IMAPI source file lifetime' {
         }
     }
 
+    It 'reports the bytes it writes, ending with all of them' {
+        # The reports go straight to the console for the app, as the stage markers do.
+        $writer = New-Object IO.StringWriter
+        $console = [Console]::Out
+        [Console]::SetOut($writer)
+        try { & $Master -Media $Media -Output $Output -CancelFile $Cancel }
+        finally { [Console]::SetOut($console) }
+        $reports = @($writer.ToString() -split "`r?`n" | Where-Object { $_ -like 'ATLAS_PROGRESS:*' } |
+            ForEach-Object { $_.Substring('ATLAS_PROGRESS:'.Length) | ConvertFrom-Json })
+        $reports.Count | Should -BeGreaterThan 0
+        $reports[-1].total | Should -Be (Get-Item $Output).Length
+        $reports[-1].done | Should -Be $reports[-1].total
+    }
+
     It 'releases every source file when mastering is cancelled' {
         Set-Content $Cancel ''
         { & $Master -Media $Media -Output $Output -CancelFile $Cancel } | Should -Throw '*cancelled*'

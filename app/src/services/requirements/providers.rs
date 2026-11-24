@@ -1,5 +1,7 @@
 //! The Windows providers the checks read: the Windows Update search, the
-//! restart markers, Security Center and the licensing service.
+//! restart markers, Security Center and the licensing service, and for a
+//! move to a newer Windows release, the hardware, the free space and where
+//! updates come from.
 
 use std::time::Duration;
 
@@ -24,9 +26,12 @@ const UPDATE_SEARCH_DEADLINE: Duration = Duration::from_secs(60);
 const ANTIVIRUS_DEADLINE: Duration = Duration::from_secs(30);
 const ACTIVATION_DEADLINE: Duration = Duration::from_secs(50);
 
+const TPM_DEADLINE: Duration = Duration::from_secs(20);
+
 static UPDATE_SEARCH: Deadline<Vec<String>> = Deadline::new("the Windows Update search");
 static ANTIVIRUS_QUERY: Deadline<Vec<Vec<Option<String>>>> = Deadline::new("the Security Center query");
 static ACTIVATION_QUERY: Deadline<Vec<String>> = Deadline::new("the licensing query");
+static TPM_QUERY: Deadline<Vec<String>> = Deadline::new("the TPM query");
 
 /// The Windows Update category of feature upgrades: another Windows release,
 /// not a pending update.
@@ -224,9 +229,80 @@ pub(super) fn windows_activation() -> Result<Option<bool>> {
     Ok(Some(statuses.iter().any(|status| status.trim() == LICENSED)))
 }
 
+/// The Windows 11 hardware Windows itself reports, as the preparation
+/// worker reads it when Windows Update offers no move: `None` where it
+/// couldn't be read. Processor support has no reliable local answer, so it
+/// isn't guessed.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) struct Hardware {
+    pub(super) tpm_2: Option<bool>,
+    pub(super) uefi: Option<bool>,
+}
+
+pub(super) fn windows_11_hardware() -> Hardware {
+    // Win32_Tpm answers only an administrator, and lists nothing without a TPM.
+    let tpm_2 = TPM_QUERY
+        .run(TPM_DEADLINE, || {
+            wmi_strings(
+                r"ROOT\CIMV2\Security\MicrosoftTpm",
+                "SELECT SpecVersion FROM Win32_Tpm",
+                "SpecVersion",
+            )
+        })
+        .map(|versions| versions.iter().any(|version| version.trim_start().starts_with("2.0")))
+        .inspect_err(|error| log::info!("the TPM couldn't be read: {error:#}"))
+        .ok();
+    // 1 is BIOS, 2 is UEFI.
+    let uefi = LOCAL_MACHINE
+        .open(r"SYSTEM\CurrentControlSet\Control")
+        .and_then(|key| key.get_u32("PEFirmwareType"))
+        .ok()
+        .and_then(|kind| match kind {
+            1 => Some(false),
+            2 => Some(true),
+            _ => None,
+        });
+    Hardware { tpm_2, uefi }
+}
+
+/// The system drive, such as "C:", and the bytes free on it for this process.
+pub(super) fn free_space() -> Result<(String, u64)> {
+    use windows::Win32::Storage::FileSystem::GetDiskFreeSpaceExW;
+    use windows::Win32::System::SystemInformation::GetSystemWindowsDirectoryW;
+    use windows::core::HSTRING;
+    let mut buffer = [0u16; 260];
+    let length = unsafe { GetSystemWindowsDirectoryW(Some(&mut buffer)) } as usize;
+    anyhow::ensure!(length > 0 && length < buffer.len(), "the Windows folder couldn't be read");
+    let windows = String::from_utf16_lossy(&buffer[..length]);
+    let drive: String = windows.chars().take(2).collect();
+    anyhow::ensure!(drive.ends_with(':'), "the Windows folder {windows} isn't on a drive letter");
+    let mut free = 0u64;
+    unsafe {
+        GetDiskFreeSpaceExW(&HSTRING::from(format!(r"{drive}\")), Some(&mut free as *mut u64), None, None)
+    }
+    .with_context(|| format!("read the free space on {drive}"))?;
+    Ok((drive, free))
+}
+
+/// Whether this PC gets updates from its organisation's server
+/// (`AU\UseWUServer` set to 1), which the worker never overrides.
+pub(super) fn managed_update_server() -> bool {
+    LOCAL_MACHINE
+        .open(r"SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU")
+        .and_then(|key| key.get_u32("UseWUServer"))
+        .is_ok_and(|value| value == 1)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn this_pc_reports_its_system_drive_and_free_space() {
+        let (drive, free) = free_space().unwrap();
+        assert_eq!(drive.len(), 2, "{drive}");
+        assert!(free > 0);
+    }
 
     #[test]
     fn a_registration_whose_executable_is_gone_is_a_leftover() {

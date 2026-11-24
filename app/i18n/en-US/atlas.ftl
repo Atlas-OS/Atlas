@@ -6,8 +6,8 @@
 ### read the same in both; this file is a spelling overlay, not a catalog.
 
 ## Optional choices
-consequence-defender-disable = Also removes SmartScreen. Your PC won't have antivirus protection until you install another antivirus app, and Windows won't warn you before you open unrecognized apps or downloads.
-installed-defender-removed-message = Your PC won't have antivirus protection until you install another antivirus app. SmartScreen was removed too, so Windows won't warn you before you open unrecognized apps or downloads.
+cost-defender-disable = Your PC has no antivirus until you install another, and Windows stops warning you before you open unrecognized apps or downloads.
+update-path-choose-detail = Start from how this PC is set up now. Your apps, files and personalization stay.
 change-core-isolation-on = Atlas turns virtualization-based security (VBS) back on, unless a policy on this PC controls it. This takes effect after the restart.
 
 ## Shared and settings
@@ -26,22 +26,23 @@ package-option-disable-core-isolation = Turn off virtualization-based security (
 restart-stopped = Automatic restart canceled. Save your work, then restart your PC to finish setting up Atlas.
 
 ## ISO creation
-iso-review-description = Creating the ISO doesn't install anything on this PC or change your original ISO. Afterward, Atlas can put the new ISO on a USB drive so you can reinstall Windows from it.
 iso-cancelled = ISO creation canceled
-iso-close-message = Keep this window open until creation or cancellation finishes. Canceling waits for the current operation to reach a safe stopping point.
+iso-cancelling-short = Canceling…
 iso-terms-in-setup = Windows Setup will ask you to accept the license terms.
-iso-privacy-defaults = This ISO skips the Microsoft account and privacy screens in Windows setup, and turns off optional data sharing and personalized offers.
+iso-accept-terms-optional = Accept the Windows license terms, so Windows Setup doesn't ask
+iso-review-skips-terms = Skips the license, Microsoft account and privacy screens
+iso-customised-title = This ISO has been customized
 iso-account-trailing-dot = The name can't end with a period.
-iso-target-this-description = Atlas can add this PC's Wi-Fi and Ethernet drivers to the ISO, so Windows can go online right after it's reinstalled.
-iso-edition-selection = Only supported editions are included. During Windows setup, choose an edition you have a Windows license for.
+iso-edition-selection = In Windows Setup, choose an edition you have a license for.
 
 ## Windows installation USB
-usb-cancelled-title = USB creation canceled
+usb-drive-cancelled-title = USB drive creation canceled
 
 ## Windows version update
 windows-terms-link = Read the license terms
-prepare-needs-terms = Available when you accept the license terms in Windows 11, version { $release }.
-ready-banner-terms-title = Accept the license terms to continue
-prepare-failed-feature-terms = Accept the license terms for Windows 11, version { $release }, then choose Try again.
-prepare-failed-feature-managed = This PC gets updates from an organization's update server, so Atlas can't move it to version { $release }. Atlas didn't change anything.
-prepare-failed-feature-policy = Something on this PC keeps changing { $setting } back after Atlas changes it, so Atlas can't update Windows. If an organization manages this PC, ask them. Atlas puts back what it changed when you stop.
+footer-windows-terms = Accept the license terms to continue
+windows-outcome-terms-title = The license terms weren't accepted
+windows-outcome-managed-title = This PC gets updates from its organization
+windows-outcome-managed = Its update server doesn't offer version { $release }, so Atlas didn't change anything. Ask your organization, or reinstall Windows with an Atlas ISO.
+windows-outcome-policy = { $setting } goes back after Atlas changes it, so Atlas can't update Windows. If an organization manages this PC, ask them.
+detail-move-update-source-managed = This PC gets updates from its organization's server, which doesn't offer version { $release }. Ask your organization, or reinstall Windows with an Atlas ISO.

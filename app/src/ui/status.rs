@@ -13,8 +13,6 @@ use crate::theme::{ActiveTheme, Theme};
 pub enum LightState {
     /// The desired state: green.
     Good,
-    /// Needs the user's attention: red.
-    Bad,
     /// Not ideal, but the flow can continue: amber.
     Caution,
     /// Could not be determined: grey.
@@ -74,7 +72,6 @@ impl StatusLight {
 fn pill_colours(theme: &Theme, state: LightState) -> (Hsla, Hsla, Hsla) {
     let (colour, text) = match state {
         LightState::Good => (theme.success, theme.success),
-        LightState::Bad => (theme.critical, theme.critical),
         LightState::Caution => (theme.caution, theme.caution),
         LightState::Unknown => (theme.text_tertiary, theme.text_secondary),
         LightState::Pending => (theme.accent, theme.text_secondary),
@@ -86,7 +83,6 @@ fn pill_colours(theme: &Theme, state: LightState) -> (Hsla, Hsla, Hsla) {
     } else {
         match state {
             LightState::Good => theme.success_fill,
-            LightState::Bad => theme.critical_fill,
             LightState::Caution => theme.caution_fill,
             LightState::Unknown | LightState::Pending => colour.opacity(0.10),
         }
@@ -120,10 +116,10 @@ impl RenderOnce for StatusLight {
                     .text_color(colour)
                     .into_any_element(),
             })
+            // Regular, as Windows sets no text under 14px in semibold.
             .child(
                 div()
                     .type_caption()
-                    .font_weight(gpui::FontWeight::SEMIBOLD)
                     .text_color(text)
                     .child(super::typography::CapCenteredText(self.label.clone())),
             );
@@ -148,13 +144,7 @@ mod tests {
 
     #[test]
     fn every_status_label_is_readable_on_its_pill() {
-        let states = [
-            LightState::Good,
-            LightState::Bad,
-            LightState::Caution,
-            LightState::Unknown,
-            LightState::Pending,
-        ];
+        let states = [LightState::Good, LightState::Caution, LightState::Unknown, LightState::Pending];
         for theme in [Theme::light(), Theme::dark()] {
             // The pill sits on the page layer or inside a card.
             let layer = composite(theme.layer_fill, theme.solid_background);

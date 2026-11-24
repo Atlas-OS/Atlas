@@ -152,6 +152,12 @@ impl TextInput {
         self.description = description;
     }
 
+    /// The hint shown while the input is empty, when it depends on another
+    /// choice on the page. Called when the input draws, as in [`Self::new`].
+    pub fn set_placeholder(&mut self, placeholder: fn() -> String) {
+        self.placeholder = placeholder;
+    }
+
     /// Replaces the text, with the caret at the end and nothing selected.
     pub fn set_value(&mut self, value: impl Into<SharedString>, cx: &mut Context<Self>) {
         self.content = value.into();

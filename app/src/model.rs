@@ -30,7 +30,7 @@ pub use checks::{ReadyHelp, ReadyStatus};
 pub use elevation::ElevationProblem;
 pub use eligibility::InstallBlock;
 pub use install::{InstallAttempt, Preflight};
-pub use options::{FixedChoice, ScreenKind, UpdatePath};
+pub use options::{ChoiceGroup, FixedChoice, OptionScreen, ScreenKind, UpdatePath};
 pub use package::{AcquireProblem, Acquisition, Origin, PackageSource, ReleaseCheck};
 pub use preferences::{ProtectionReminder, ReminderReason};
 pub use restart::{OwedRestart, RestartConfirmation, RestartCountdown, RestartKind, RestartProblem};
@@ -56,6 +56,7 @@ use crate::services::session::{SessionPaths, SessionRecord};
 use crate::services::settings::{self, AppSettings, SettingsProblem};
 use crate::services::system::AccessibilityPreferences;
 use crate::services::update_access::UpdateAccess;
+use crate::services::windows_installation::Evidence;
 use crate::services::{self, desktop_setup, diagnostics, iso};
 
 use navigation::PendingStart;
@@ -117,6 +118,10 @@ pub enum ModelEvent {
     /// Something the user waited for while the window may be behind others
     /// has happened, such as Windows Update offering the new release.
     NeedsAttention,
+    /// The user's part elsewhere is done, as when every Windows Security
+    /// switch reads off, and Atlas carries on: the window comes to the front,
+    /// or its taskbar button flashes where Windows won't allow that.
+    BringToFront,
 }
 
 /// Counts restarts of one kind of background task. A task keeps the
@@ -151,6 +156,10 @@ pub enum CloseGuard {
     Install,
     /// The restart countdown is running, and only this window keeps it.
     Restart,
+    /// Get ready counts down to the restart updating needs, and only this
+    /// window keeps the countdown. Recovery is armed, so Atlas carries on
+    /// after any restart; closing only loses the restart itself.
+    PreparationRestart,
     /// Windows Update is turned on for an update that hasn't changed Windows
     /// yet: closing puts the settings back first, or keeps the window.
     WindowsUpdateAccess,
@@ -219,6 +228,23 @@ pub struct AppModel {
     /// The user went on past the warning that Windows here looks used, in
     /// this flow, so it stays away after Atlas's own restart.
     pub used_windows_accepted: bool,
+    /// What this PC shows of earlier use of Windows, read on a worker as the
+    /// app starts; `None` until then (see [`AppModel::windows_looks_used`]).
+    windows_installation: Option<Evidence>,
+    /// This copy was staged by Atlas installation media in the Windows it
+    /// has just installed.
+    staged_iso_setup: bool,
+    /// The user stopped updating in this window: Get ready doesn't start it
+    /// again by itself until they resume it.
+    updates_held: bool,
+    /// Get ready moves on to Your choices by itself once it's done, once per
+    /// visit, and not on a visit the user made on purpose (see
+    /// [`AppModel::advance_ready`]).
+    ready_moves_on: bool,
+    /// The countdown to the restart updating needs (see `restart.rs`).
+    preparation_countdown: Option<RestartCountdown>,
+    preparation_countdown_timer: Option<Task<()>>,
+    preparation_countdown_generation: Generation,
     /// This flow started Your choices from the installed Atlas's choices; the
     /// user's changes since then stand.
     recorded_choices_applied: bool,
@@ -238,6 +264,11 @@ pub struct AppModel {
     offer_waiting_since: Option<std::time::Instant>,
     /// This window has looked for an offer it found missing before it opened.
     offer_reopen_checked: bool,
+    /// What happens once the running move stops, as the user asked while it
+    /// waited for the offer (see `transition.rs`).
+    after_stop: Option<transition::AfterStop>,
+    /// Free space read again while a move waits for room (see `transition.rs`).
+    space_watch: transition::SpaceWatch,
     /// What this PC shows of the install choices Atlas made on it, read with
     /// the installation state.
     pub pc_facts: Facts,
@@ -286,6 +317,12 @@ pub struct AppModel {
     /// not be read are off. The confirmation names the reading it was given
     /// for: a different reading, later, is not covered by it.
     security_confirmation: Option<SecurityStatus>,
+    /// What Windows Security does by itself on this visit to it (see
+    /// [`AppModel::advance_security`]).
+    security_visit: checks::SecurityVisit,
+    /// The user is going back to Windows Security on purpose, so the visit
+    /// that begins neither skips it nor moves on by itself.
+    security_on_purpose: bool,
 
     pub flow: Flow,
     /// Which screen of the Options step is showing (see [`AppModel::option_screens`]).
@@ -293,6 +330,12 @@ pub struct AppModel {
     /// Options was opened from a Change link on the Install step: Continue
     /// goes back there. Never saved in the draft.
     pub returning_to_install: bool,
+    /// Your choices shows the optional extras unfolded. They start folded
+    /// in each flow, and a Change link to them unfolds them.
+    pub extras_shown: bool,
+    /// How many keyboard layouts this user can switch between; `None` when
+    /// Windows couldn't say (see [`AppModel::detected_answer`]).
+    pub keyboard_layouts: Option<usize>,
     pub options: BTreeSet<String>,
     pub checks: Vec<(CheckId, Option<CheckResult>)>,
     check_tasks: Vec<Task<()>>,
@@ -354,6 +397,9 @@ pub struct AppModel {
     owed_restart: Option<OwedRestart>,
     /// A restart held until the user confirms it over other people's sessions.
     restart_confirmation: Option<RestartConfirmation>,
+    /// The Install step's restart check box, as set in the flow it names
+    /// (see [`AppModel::install_restarts`]).
+    install_restart: Option<install::RestartChoice>,
     session_paths: SessionPaths,
 }
 
@@ -432,6 +478,7 @@ impl AppModel {
             install_identity: (env.adapters.read_install_identity)().map_err(|e| format!("{e:#}")),
             atlas: (env.adapters.read_atlas_state)().map_err(|e| format!("{e:#}")),
             pc_facts: (env.adapters.read_pc_facts)(),
+            keyboard_layouts: options::read_keyboard_layouts(&env),
             env,
             page: Page::Home,
             page_visit: 0,
@@ -444,6 +491,13 @@ impl AppModel {
             windows_transition_declined: false,
             windows_terms_accepted: false,
             used_windows_accepted: false,
+            windows_installation: None,
+            staged_iso_setup: iso::is_staged_setup(),
+            updates_held: false,
+            ready_moves_on: false,
+            preparation_countdown: None,
+            preparation_countdown_timer: None,
+            preparation_countdown_generation: Generation::default(),
             recorded_choices_applied: false,
             update_path: UpdatePath::Keep,
             store_outcome_seen: None,
@@ -453,6 +507,8 @@ impl AppModel {
             offer_wait_tick: None,
             offer_waiting_since: None,
             offer_reopen_checked: false,
+            after_stop: None,
+            space_watch: Default::default(),
             restore_status: RestoreStatus::Idle,
             elevated,
             settings: loaded.settings,
@@ -478,9 +534,12 @@ impl AppModel {
             security_watch: None,
             security_generation: Generation::default(),
             security_confirmation: None,
+            security_visit: Default::default(),
+            security_on_purpose: false,
             flow: Flow::default(),
             option_screen: 0,
             returning_to_install: false,
+            extras_shown: false,
             options,
             checks: Vec::new(),
             check_tasks: Vec::new(),
@@ -508,12 +567,21 @@ impl AppModel {
             protection_generation: Generation::default(),
             owed_restart: None,
             restart_confirmation: None,
+            install_restart: None,
             session_paths,
         };
         if let Some(preview) = preview::requested() {
             preview::apply(&mut model, &preview);
+            // A preview of a restart countdown counts down as the real one does.
+            if model.preparation_countdown.is_some() {
+                model.begin_preparation_countdown(cx);
+            }
+            if model.attempt.restart.is_some() {
+                model.begin_restart_countdown(cx);
+            }
             return model;
         }
+        model.read_windows_installation(cx);
         if model.env.check_updates {
             model.check_for_updates(cx);
         }

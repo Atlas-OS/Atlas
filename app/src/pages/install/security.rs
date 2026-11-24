@@ -1,5 +1,8 @@
 //! Step 3, Windows Security: the Defender switches an install needs off, as a
-//! checklist with one message about what is left to do.
+//! checklist with at most one bar about what is left to do. The step opens
+//! Windows Security, moves on once every switch reads off, and is passed over
+//! when there's nothing to turn off, by itself (see
+//! `AppModel::advance_security`); this page only shows where it stands.
 
 use gpui::{AnyElement, App, IntoElement, ParentElement, Role, Styled, div, prelude::*, px};
 
@@ -8,7 +11,6 @@ use crate::i18n::describe::{self, DefenderAbsence};
 use crate::model::AppModel;
 use crate::pages::{on_model, step_card_header};
 use crate::services::security::{Protection, SecurityStatus, Switch};
-use crate::services::system::links;
 use crate::t;
 use crate::theme::ActiveTheme;
 use crate::ui::{
@@ -24,62 +26,45 @@ impl InstallPage {
         let status = state.security;
         let counts = status.counts();
         let fresh = state.security_fresh();
-        let open_security = || {
-            let model = model.clone();
-            Button::new("open-security", t!("common-open-windows-security"))
-                .icon(Icon::Shield)
-                .opens(links::WINDOWS_SECURITY_PROTECTION)
-                // An Atlas 0.5 policy can hide the page the switches are on.
-                .on_click(move |_, _, cx| {
-                    model.update(cx, |m, _| m.show_hidden_virus_page());
-                    cx.open_url(links::WINDOWS_SECURITY_PROTECTION);
-                })
-        };
 
         let kind = security_banner(&status, fresh);
         let confirm = confirm_placement(kind, &status, fresh, state.elevated);
+        // One bar at most, the first that applies: a relaunch that didn't
+        // happen, then what is left to do. While Atlas reads, and once every
+        // switch reads off, the list says it all.
         let banner = match kind {
-            SecurityBanner::Reading => InfoBar::new(
-                Severity::Informational,
-                t!("security-banner-reading-title"),
-                t!("security-banner-reading-message"),
-            ),
+            SecurityBanner::Checking | SecurityBanner::AllOff => None,
             SecurityBanner::Absent => {
                 let absence = state.defender_absence();
                 let (title, message) = absence.banner();
-                InfoBar::new(absence_severity(absence), title, message)
+                Some(InfoBar::new(absence_severity(absence), title, message))
             }
-            SecurityBanner::AllOff => InfoBar::new(
-                Severity::Success,
-                t!("security-banner-off-title"),
-                t!("security-banner-off-message"),
-            ),
             // Every switch Atlas could read is off: the rest are confirmed by
             // hand, in the same bar that asks for it.
-            SecurityBanner::ReadableOff => unreadable_bar(state, &model, Some(open_security()))
-                .unwrap_or_else(|| {
-                    InfoBar::new(
-                        Severity::Warning,
-                        t!("security-banner-on-title"),
-                        t!("security-banner-on-message"),
-                    )
-                }),
+            SecurityBanner::ReadableOff => unreadable_bar(state, &model, Some(open_security(&model, state))),
             // Nothing could be read and Atlas can't read it as it is: relaunching
             // is the one thing that helps, so that bar is the message.
-            SecurityBanner::TurnOff if confirm == Confirm::Relaunch => {
-                unreadable_bar(state, &model, None).expect("switches that couldn't be read")
-            }
-            SecurityBanner::TurnOff => InfoBar::new(
-                Severity::Warning,
-                t!("security-banner-on-title"),
-                t!("security-banner-on-message"),
-            )
-            .action(open_security().accent())
-            // Nothing could be read: after the instructions, the confirmation,
-            // in the same bar, under Open Windows Security.
-            .when(confirm == Confirm::InBanner, |bar| bar.content(acknowledge_box(state, &model))),
+            SecurityBanner::TurnOff if confirm == Confirm::Relaunch => unreadable_bar(state, &model, None),
+            SecurityBanner::TurnOff => Some(
+                InfoBar::new(
+                    Severity::Warning,
+                    t!("security-turn-off-title"),
+                    t!("security-turn-off-message"),
+                )
+                .action(open_security(&model, state))
+                // Nothing could be read: after the instructions, the
+                // confirmation, in the same bar, under Open Windows Security.
+                .when(confirm == Confirm::InBanner, |bar| bar.content(acknowledge_box(state, &model))),
+            ),
         }
-        .id("security-banner");
+        .map(|bar| bar.id("security-banner").into_any_element());
+
+        let mut cards: Vec<AnyElement> =
+            elevation_problem(state, &model, state.security_ok()).or(banner).into_iter().collect();
+        // Without Defender there are no switches to list or to confirm.
+        if kind == SecurityBanner::Absent {
+            return cards;
+        }
 
         let mut list = div()
             .id("security-list")
@@ -127,7 +112,7 @@ impl InstallPage {
                                 .items_center()
                                 .justify_center()
                                 .size(px(32.))
-                                .rounded(px(6.))
+                                .rounded(px(4.))
                                 // A contrast theme's subtle fill is its highlight colour.
                                 .when(!theme.high_contrast, |this| this.bg(theme.subtle_hover))
                                 .text_color(theme.text_secondary)
@@ -156,48 +141,47 @@ impl InstallPage {
             );
         }
 
-        let (light, summary) = if !fresh {
-            (LightState::Pending, t!("security-switch-reading"))
-        } else if status.all_off() {
-            (LightState::Good, t!("security-all-off"))
-        } else if counts.on > 0 {
-            (LightState::Caution, describe::security_summary(&counts))
-        } else {
-            (LightState::Unknown, describe::security_summary(&counts))
-        };
-        // Announced as it changes while the user is in Windows Security,
-        // with what it counts.
-        let header_status = StatusLight::new(light, summary.clone())
-            .id("security-summary")
-            .aria_label(t!("check-a11y", title = t!("security-list-title"), state = summary))
-            .live();
-
-        let mut cards = vec![banner.into_any_element()];
-        cards.extend(elevation_problem(state, &model));
-        // A switch is still on and others couldn't be read: the relaunch
-        // that lets Atlas read them, above the list rather than under it.
-        if confirm == Confirm::RelaunchBelowBanner
-            && let Some(bar) = unreadable_bar(state, &model, None)
-        {
-            cards.push(bar.id("security-unknown").into_any_element());
-        }
-        // Without Defender there are no switches to list or to confirm.
-        if kind == SecurityBanner::Absent {
-            return cards;
-        }
+        // While Atlas reads, the rows' own marks are the only status.
+        let header_status = fresh.then(|| {
+            let (light, summary) = if status.all_off() {
+                (LightState::Good, t!("security-all-off"))
+            } else if counts.on > 0 {
+                (LightState::Caution, describe::security_summary(&counts))
+            } else {
+                (LightState::Unknown, describe::security_summary(&counts))
+            };
+            // Announced as it changes while the user is in Windows Security,
+            // with what it counts.
+            StatusLight::new(light, summary.clone())
+                .id("security-summary")
+                .aria_label(t!("check-a11y", title = t!("security-list-title"), state = summary))
+                .live()
+                .into_any_element()
+        });
+        // The header keeps its strip while Atlas reads, so the list doesn't
+        // move when the summary arrives in its trailing slot.
+        let header_status = header_status.unwrap_or_else(|| div().into_any_element());
         cards.push(
             card(cx)
-                .child(step_card_header(
-                    cx,
-                    "security",
-                    t!("security-list-title"),
-                    Some(header_status.into_any_element()),
-                ))
+                .child(step_card_header(cx, "security", t!("security-list-title"), header_status))
                 .child(list)
                 .into_any_element(),
         );
         cards
     }
+}
+
+/// Open Windows Security, which shows the Virus & threat protection page
+/// again first where an Atlas 0.5 policy hides it. The step opens it by
+/// itself once per visit; the button opens it again, and it's the accent
+/// until the step passes, when Continue is. A button, as the question
+/// before closing offers it too.
+fn open_security(model: &gpui::Entity<AppModel>, state: &AppModel) -> Button {
+    let model = model.clone();
+    Button::new("open-security", t!("common-open-windows-security"))
+        .icon(Icon::Shield)
+        .when(!state.security_ok(), Button::accent)
+        .on_click(move |_, _, cx| model.update(cx, |m, cx| m.open_windows_security(cx)))
 }
 
 /// How the bar without Microsoft Defender reads: informational, not a
@@ -209,66 +193,80 @@ fn absence_severity(absence: DefenderAbsence) -> Severity {
 }
 
 /// The confirmation of switches Atlas couldn't read, which unblocks the
-/// step once every readable switch is off. It lines up with the bar's text
-/// and buttons.
+/// step once every readable switch is off. It names them, or all four when
+/// none could be read, and lines up with the bar's text and buttons.
 fn acknowledge_box(state: &AppModel, model: &gpui::Entity<AppModel>) -> CheckBox {
     let confirmed = state.security_acknowledged();
-    CheckBox::new("security-acknowledge", t!("security-acknowledge"), confirmed)
-        .flush_start()
+    let unreadable = state.security.switches(Switch::Unknown);
+    let label = if unreadable.len() == Protection::ALL.len() {
+        t!("security-acknowledge")
+    } else {
+        t!("security-unread-confirm", count = unreadable.len(), switches = switch_names(&unreadable))
+    };
+    CheckBox::new("security-acknowledge", label, confirmed)
         .disabled(!state.security.off_where_readable() || state.locked())
         .on_toggle(on_model(model, move |m, cx| m.acknowledge_security(!confirmed, cx)))
 }
 
-/// Where the step offers what unblocks switches Atlas couldn't read, beside
-/// the one bar at the top, so it's never below the list.
+/// The switches' names as Windows Security shows them, joined as a list.
+fn switch_names(switches: &[Protection]) -> String {
+    let names: Vec<String> = switches.iter().map(|switch| switch.title()).collect();
+    describe::join_and(&names)
+}
+
+/// Where the step offers what unblocks switches Atlas couldn't read: in the
+/// one bar at the top, never below the list.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Confirm {
-    /// Nothing to offer: every switch was read, or one is on and Atlas can
-    /// read the rest once it's off.
+    /// Nothing to offer: every switch was read, or one is on, and Atlas
+    /// asks about the rest once it's off.
     None,
     /// No switch could be read: the confirmation goes in the instructions' bar.
     InBanner,
     /// No switch could be read without permission: the relaunch bar is the
     /// message.
     Relaunch,
-    /// A switch is on and others need permission to read: the relaunch bar
-    /// follows the instructions.
-    RelaunchBelowBanner,
 }
 
 fn confirm_placement(kind: SecurityBanner, status: &SecurityStatus, fresh: bool, elevated: bool) -> Confirm {
     let counts = status.counts();
-    if kind != SecurityBanner::TurnOff || !fresh || counts.unknown == 0 {
+    if kind != SecurityBanner::TurnOff || !fresh || counts.unknown == 0 || counts.on > 0 {
         return Confirm::None;
     }
-    match (counts.on == 0, elevated) {
-        (true, true) => Confirm::InBanner,
-        (true, false) => Confirm::Relaunch,
-        (false, false) => Confirm::RelaunchBelowBanner,
-        (false, true) => Confirm::None,
-    }
+    if elevated { Confirm::InBanner } else { Confirm::Relaunch }
 }
 
-/// The bar for switches Atlas couldn't read: the confirmation, with `open`
-/// to check them, or, without administrator rights, the relaunch that lets
-/// Atlas read them. `None` when every switch could be read.
+/// The bar for switches Atlas couldn't read: the confirmation, naming only
+/// those switches, with `open` to check them, or, without administrator
+/// rights, the relaunch that lets Atlas read them. `None` when every switch
+/// could be read.
 fn unreadable_bar(state: &AppModel, model: &gpui::Entity<AppModel>, open: Option<Button>) -> Option<InfoBar> {
-    let status = state.security;
-    if status.counts().unknown == 0 {
+    let unreadable = state.security.switches(Switch::Unknown);
+    if unreadable.is_empty() {
         return None;
     }
     Some(if state.elevated {
-        InfoBar::new(Severity::Warning, t!("security-unknown-title"), t!("security-unknown-message"))
-            .when_some(open, InfoBar::action)
-            .content(acknowledge_box(state, model))
+        InfoBar::new(
+            Severity::Warning,
+            t!(
+                "security-unread-switches-title",
+                switches = switch_names(&unreadable),
+                count = unreadable.len()
+            ),
+            t!("security-unread-message", count = unreadable.len()),
+        )
+        .when_some(open, InfoBar::action)
+        .content(acknowledge_box(state, model))
     } else {
         InfoBar::new(
             Severity::Warning,
             t!("security-unknown-unelevated-title"),
             t!("security-unknown-unelevated-message"),
         )
+        // The one way on: Continue waits for switches only an administrator can read.
         .action(
             Button::new("security-elevate", t!("common-restart-as-administrator"))
+                .accent()
                 .icon(Icon::Admin)
                 .disabled(!state.may_relaunch_elevated())
                 .on_click(on_model(model, |m, cx| m.relaunch_elevated(cx))),
@@ -276,11 +274,12 @@ fn unreadable_bar(state: &AppModel, model: &gpui::Entity<AppModel>, open: Option
     })
 }
 
-/// Which banner the Windows Security step shows for a reading.
+/// Where the Windows Security step stands for a reading, which decides its
+/// bar, if any.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum SecurityBanner {
     /// The first reading has not arrived yet.
-    Reading,
+    Checking,
     /// The Defender service isn't on this PC, so there are no switches; the
     /// model says why (see `AppModel::defender_absence`).
     Absent,
@@ -297,7 +296,7 @@ enum SecurityBanner {
 fn security_banner(status: &SecurityStatus, fresh: bool) -> SecurityBanner {
     let counts = status.counts();
     if !fresh {
-        SecurityBanner::Reading
+        SecurityBanner::Checking
     } else if !status.defender_present {
         SecurityBanner::Absent
     } else if status.all_off() {
@@ -330,7 +329,7 @@ mod tests {
         let nothing_readable = status([Switch::Unknown; 4]);
         let partly_readable = status([Switch::Off, Switch::Off, Switch::Unknown, Switch::Unknown]);
         let one_on = status([Switch::Off, Switch::On, Switch::Unknown, Switch::Off]);
-        assert_eq!(security_banner(&all_off, false), SecurityBanner::Reading);
+        assert_eq!(security_banner(&all_off, false), SecurityBanner::Checking);
         assert_eq!(security_banner(&all_off, true), SecurityBanner::AllOff);
         assert_eq!(security_banner(&all_on, true), SecurityBanner::TurnOff);
         assert_eq!(security_banner(&partly_readable, true), SecurityBanner::ReadableOff);
@@ -340,7 +339,7 @@ mod tests {
         assert_eq!(security_banner(&nothing_readable, true), SecurityBanner::TurnOff);
         // Defender not on the PC: nothing to read, nothing to turn off.
         let removed = SecurityStatus { defender_present: false, ..nothing_readable };
-        assert_eq!(security_banner(&removed, false), SecurityBanner::Reading);
+        assert_eq!(security_banner(&removed, false), SecurityBanner::Checking);
         assert_eq!(security_banner(&removed, true), SecurityBanner::Absent);
     }
 
@@ -472,22 +471,47 @@ mod tests {
         });
     }
 
-    /// Whatever unblocks unreadable switches is in the bar at the top, or
-    /// right under it: never a second bar under the list.
+    /// Whatever unblocks unreadable switches is in the one bar at the top:
+    /// never a second bar, and never under the list.
     #[test]
     fn what_unblocks_unreadable_switches_is_offered_at_the_top() {
         let nothing_readable = status([Switch::Unknown; 4]);
         let turn_off = security_banner(&nothing_readable, true);
         assert_eq!(confirm_placement(turn_off, &nothing_readable, true, true), Confirm::InBanner);
         assert_eq!(confirm_placement(turn_off, &nothing_readable, true, false), Confirm::Relaunch);
+        // A switch is on: it's turned off first, and then the readable-off
+        // bar confirms the rest, or relaunches to read them.
         let one_on = status([Switch::On, Switch::Unknown, Switch::Unknown, Switch::Unknown]);
         let kind = security_banner(&one_on, true);
-        assert_eq!(confirm_placement(kind, &one_on, true, false), Confirm::RelaunchBelowBanner);
-        // Elevated, the switch is turned off first; then the readable-off bar confirms the rest.
+        assert_eq!(confirm_placement(kind, &one_on, true, false), Confirm::None);
         assert_eq!(confirm_placement(kind, &one_on, true, true), Confirm::None);
         // The readable-off bar has its own confirmation, and a stale reading offers nothing.
         let partly = status([Switch::Off, Switch::Off, Switch::Unknown, Switch::Unknown]);
         assert_eq!(confirm_placement(security_banner(&partly, true), &partly, true, true), Confirm::None);
         assert_eq!(confirm_placement(turn_off, &nothing_readable, false, true), Confirm::None);
+    }
+
+    /// The readable-off confirmation names only the switches Atlas couldn't
+    /// read, as Windows Security names them; with none read, all four.
+    #[test]
+    fn the_confirmation_names_only_the_switches_atlas_could_not_read() {
+        crate::i18n::testing::english(|| {
+            let partly = status([Switch::Off, Switch::Off, Switch::Off, Switch::Unknown]);
+            let unreadable = partly.switches(Switch::Unknown);
+            let label =
+                t!("security-unread-confirm", count = unreadable.len(), switches = switch_names(&unreadable));
+            assert!(label.contains("Automatic sample submission"), "{label}");
+            for named in
+                [Protection::TamperProtection, Protection::RealTimeProtection, Protection::CloudDelivered]
+            {
+                assert!(!label.contains(&named.title()), "{label}");
+            }
+            let title = t!(
+                "security-unread-switches-title",
+                switches = switch_names(&unreadable),
+                count = unreadable.len()
+            );
+            assert!(title.contains("Automatic sample submission") && !title.contains("Tamper"), "{title}");
+        });
     }
 }

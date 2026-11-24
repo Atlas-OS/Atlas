@@ -154,10 +154,6 @@ pub fn day(date: chrono::NaiveDate) -> String {
 }
 
 /// "20:13" or "8:13 PM", as the regional format has it.
-pub fn time(when: &DateTime<Local>) -> String {
-    time_in(format_locale(), when)
-}
-
 fn time_in(locale: &LocaleName, when: &DateTime<Local>) -> String {
     locale::format_time(locale, &local_parts(when))
         .filter(|text| !shows_rtl(text))

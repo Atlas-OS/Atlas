@@ -299,20 +299,19 @@ mod tests {
     }
 
     #[test]
-    fn russian_duration_keeps_counts_ending_in_one() {
+    fn russian_minutes_keep_counts_ending_in_one() {
         with_chain(&["ru"], || {
             for (minutes, noun) in [
-                (1u32, "минута"),
+                (1u32, "минуту"),
                 (2, "минуты"),
                 (5, "минут"),
-                (21, "минута"),
+                (11, "минут"),
+                (21, "минуту"),
                 (22, "минуты"),
-                (101, "минута"),
+                (101, "минуту"),
             ] {
-                let summary = t!("summary-duration-value", minutes = minutes);
-                assert!(summary.contains(&format!("{minutes} {noun}")), "{summary}");
-                let introduction = t!("home-step-4-detail", minutes = minutes);
-                assert!(introduction.contains(&minutes.to_string()), "{minutes}: {introduction}");
+                let waited = t!("windows-waited", minutes = minutes);
+                assert!(waited.contains(&format!("{minutes} {noun}")), "{waited}");
             }
         });
     }

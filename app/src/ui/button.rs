@@ -1,10 +1,16 @@
 //! Fluent buttons: accent, standard, subtle and hyperlink.
+//!
+//! A hyperlink button inside [`OnTint`], as every InfoBar but an
+//! informational one lays out its content, takes a darker link colour in the
+//! light theme, so it keeps 4.5:1 on the tint.
 
+use std::cell::Cell;
 use std::rc::Rc;
 
 use gpui::{
-    App, BoxShadow, ClickEvent, ElementId, FocusHandle, Hsla, IntoElement, ParentElement, RenderOnce, Role,
-    SharedString, Styled, Window, div, point, prelude::*, px,
+    AnyElement, App, Bounds, BoxShadow, ClickEvent, Div, Element, ElementId, FocusHandle, GlobalElementId,
+    Hsla, InspectorElementId, IntoElement, LayoutId, ParentElement, Pixels, RenderOnce, Role, SharedString,
+    Styled, Window, div, point, prelude::*, px,
 };
 
 use super::icons::icon_in_line_sized;
@@ -40,9 +46,6 @@ pub struct Button {
     description: Option<SharedString>,
     /// A disclosure's state: whether what it shows is open.
     expanded: Option<bool>,
-    /// The page's programmatic default, which shows its focus ring whenever
-    /// it has focus.
-    keyboard_default: bool,
     variant: ButtonVariant,
     icon: Option<Icon>,
     trailing_icon: Option<Icon>,
@@ -63,7 +66,6 @@ impl Button {
             tooltip: None,
             description: None,
             expanded: None,
-            keyboard_default: false,
             variant: ButtonVariant::Standard,
             icon: None,
             trailing_icon: None,
@@ -146,13 +148,6 @@ impl Button {
         self
     }
 
-    /// The page's programmatic default. Shows the focus ring whenever
-    /// focused, like a Windows default button, not only after a key press.
-    pub fn keyboard_default(mut self) -> Self {
-        self.keyboard_default = true;
-        self
-    }
-
     pub fn on_click(mut self, handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> Self {
         self.on_click = Some(Rc::new(handler));
         self
@@ -174,6 +169,110 @@ impl Button {
     }
 }
 
+/// The padding either side of a compact or icon-only button's content.
+const COMPACT_PADDING: f32 = 8.;
+/// The padding either side of a standard button's label.
+const PADDING: f32 = 12.;
+
+/// How far a compact or icon-only button's content sits inside its box: its
+/// padding and its 1px border. A [`link_row`] moves it into the margin.
+pub const COMPACT_INSET: Pixels = px(COMPACT_PADDING + 1.);
+
+/// A row of compact hyperlink buttons that starts a line of a text column,
+/// such as Show details under a message or a row of help links. As a radio
+/// group's glyphs do, each line's first link has its text on the column's
+/// edge, while its hover fill and focus ring reach into the gutter. The row
+/// wraps, and a wrapped line starts on the edge too. A link after text on the
+/// same line, such as "9 checks passed · Show details", isn't in one, and
+/// keeps its padding before its text.
+pub fn link_row() -> Div {
+    div().flex().flex_wrap().items_center().gap(px(4.)).ml(-COMPACT_INSET)
+}
+
+thread_local! {
+    /// Set while an [`OnTint`] lays out its content, when buttons render.
+    static ON_TINT: Cell<bool> = const { Cell::new(false) };
+}
+
+/// Lays out its content as sitting on a tinted surface, such as a success,
+/// warning or error InfoBar's fill, so the hyperlink buttons in it take
+/// [`link_on_tint`]. Transparent to layout: it takes its content's own
+/// layout node.
+pub(super) struct OnTint {
+    child: AnyElement,
+}
+
+impl OnTint {
+    pub(super) fn new(child: impl IntoElement) -> Self {
+        Self { child: child.into_any_element() }
+    }
+}
+
+impl Element for OnTint {
+    type RequestLayoutState = ();
+    type PrepaintState = ();
+
+    fn id(&self) -> Option<ElementId> {
+        None
+    }
+
+    fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
+        None
+    }
+
+    fn request_layout(
+        &mut self,
+        _id: Option<&GlobalElementId>,
+        _inspector_id: Option<&InspectorElementId>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> (LayoutId, Self::RequestLayoutState) {
+        // Components render as they lay out, and a button picks its colours then.
+        let outer = ON_TINT.replace(true);
+        let layout = self.child.request_layout(window, cx);
+        ON_TINT.set(outer);
+        (layout, ())
+    }
+
+    fn prepaint(
+        &mut self,
+        _id: Option<&GlobalElementId>,
+        _inspector_id: Option<&InspectorElementId>,
+        _bounds: Bounds<Pixels>,
+        _request_layout: &mut Self::RequestLayoutState,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> Self::PrepaintState {
+        self.child.prepaint(window, cx);
+    }
+
+    fn paint(
+        &mut self,
+        _id: Option<&GlobalElementId>,
+        _inspector_id: Option<&InspectorElementId>,
+        _bounds: Bounds<Pixels>,
+        _request_layout: &mut Self::RequestLayoutState,
+        _prepaint: &mut Self::PrepaintState,
+        window: &mut Window,
+        cx: &mut App,
+    ) {
+        self.child.paint(window, cx);
+    }
+}
+
+/// A link's colour on a tinted surface. The light tints are darker than a
+/// card, where the usual light link colour has barely 4.5:1, so links on
+/// them take the shade WinUI gives accent text (AccentDark2), which keeps
+/// more than 5:1 on each. Dark tints and contrast themes keep the usual link
+/// colour, which already clears 4.5:1 there.
+fn link_on_tint(theme: &Theme) -> Hsla {
+    if theme.high_contrast || theme.is_dark() {
+        theme.accent_text
+    } else {
+        gpui::rgb(crate::theme::ATLAS_BLUE_DARK2).into()
+    }
+}
+
 /// A button's colours at rest, hovered and pressed, and its outline.
 struct Colours {
     fill: Hsla,
@@ -185,7 +284,7 @@ struct Colours {
     stroke: Hsla,
 }
 
-fn colours(theme: &Theme, variant: ButtonVariant, disabled: bool) -> Colours {
+fn colours(theme: &Theme, variant: ButtonVariant, disabled: bool, on_tint: bool) -> Colours {
     let mut colours = match variant {
         ButtonVariant::Accent => Colours {
             fill: theme.accent,
@@ -218,7 +317,7 @@ fn colours(theme: &Theme, variant: ButtonVariant, disabled: bool) -> Colours {
             fill: theme.transparent(),
             fill_hover: theme.subtle_hover,
             fill_pressed: theme.subtle_pressed,
-            text: theme.accent_text,
+            text: if on_tint { link_on_tint(theme) } else { theme.accent_text },
             text_hover: theme.text_on_hover(theme.accent_text_hover),
             text_pressed: theme.text_on_hover(theme.accent_text_hover),
             stroke: theme.transparent(),
@@ -246,7 +345,7 @@ impl RenderOnce for Button {
         let variant = self.variant;
         let is_link = variant == ButtonVariant::Hyperlink;
         let Colours { fill, fill_hover, fill_pressed, text, text_hover, text_pressed, stroke } =
-            colours(theme, variant, disabled);
+            colours(theme, variant, disabled, ON_TINT.get());
 
         // Win11 draws a slightly darker stroke on the bottom edge of raised
         // buttons; a 1px offset shadow reproduces it without a gradient border.
@@ -268,7 +367,6 @@ impl RenderOnce for Button {
             tooltip::description(self.tooltip.as_ref(), &name).filter(|_| !disabled),
             self.description.clone(),
         ]);
-        let keyboard_default = self.keyboard_default;
 
         let button = div()
             .id(self.id)
@@ -283,7 +381,7 @@ impl RenderOnce for Button {
             .justify_center()
             .gap(px(8.))
             .min_h(px(height))
-            .px(px(if icon_only || self.compact { 8. } else { 12. }))
+            .px(px(if icon_only || self.compact { COMPACT_PADDING } else { PADDING }))
             .rounded(px(4.))
             .bg(fill)
             .border_1()
@@ -308,12 +406,10 @@ impl RenderOnce for Button {
                 let this =
                     pointer_hover(this, window, move |style| style.bg(fill_hover).text_color(text_hover))
                         .active(move |style| style.bg(fill_pressed).text_color(text_pressed));
-                let this = if keyboard_default {
-                    this.focus(move |style| focus_ring(style, focus_outer, focus_inner))
-                } else {
-                    this.focus_visible(move |style| focus_ring(style, focus_outer, focus_inner))
-                };
-                this.when_some(on_click, on_activate)
+                // As in Windows, the ring shows only once the keyboard is in use;
+                // a page's emphasis is its accent button.
+                this.focus_visible(move |style| focus_ring(style, focus_outer, focus_inner))
+                    .when_some(on_click, on_activate)
             })
             .when_some(self.icon, |this, glyph| {
                 this.child(if icon_only || self.centre_label {
@@ -347,7 +443,7 @@ impl RenderOnce for Button {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::theme::{contrast_ratio, windows_contrast_themes};
+    use crate::theme::{composite, contrast_ratio, windows_contrast_themes};
 
     const VARIANTS: [ButtonVariant; 4] =
         [ButtonVariant::Accent, ButtonVariant::Standard, ButtonVariant::Subtle, ButtonVariant::Hyperlink];
@@ -356,8 +452,33 @@ mod tests {
     fn disabling_a_button_never_changes_its_outline() {
         for theme in [Theme::light(), Theme::dark()] {
             for variant in VARIANTS {
-                let (enabled, disabled) = (colours(&theme, variant, false), colours(&theme, variant, true));
+                let (enabled, disabled) =
+                    (colours(&theme, variant, false, false), colours(&theme, variant, true, false));
                 assert_eq!(enabled.stroke, disabled.stroke, "{:?} {variant:?}", theme.appearance);
+            }
+        }
+    }
+
+    /// Links in a success, warning or error InfoBar, at rest, hovered and
+    /// pressed, on the bar's tint.
+    #[test]
+    fn links_keep_readable_text_on_every_infobar_tint() {
+        for theme in [Theme::light(), Theme::dark()] {
+            let link = colours(&theme, ButtonVariant::Hyperlink, false, true);
+            for (tint, fill) in [
+                ("success", theme.success_fill),
+                ("warning", theme.caution_fill),
+                ("error", theme.critical_fill),
+            ] {
+                let bar = composite(fill, theme.solid_background);
+                for (state, text, over) in [
+                    ("at rest", link.text, link.fill),
+                    ("hovered", link.text_hover, link.fill_hover),
+                    ("pressed", link.text_pressed, link.fill_pressed),
+                ] {
+                    let ratio = contrast_ratio(text, over, bar);
+                    assert!(ratio >= 4.5, "{:?} {tint} {state}: {ratio:.2}:1", theme.appearance);
+                }
             }
         }
     }
@@ -370,8 +491,11 @@ mod tests {
             let theme = Theme::high_contrast(colors);
             // What a transparent fill shows.
             let window = theme.solid_background;
-            for variant in VARIANTS {
-                let (enabled, disabled) = (colours(&theme, variant, false), colours(&theme, variant, true));
+            for (variant, on_tint) in
+                VARIANTS.into_iter().flat_map(|variant| [(variant, false), (variant, true)])
+            {
+                let (enabled, disabled) =
+                    (colours(&theme, variant, false, on_tint), colours(&theme, variant, true, on_tint));
                 for (state, text, fill) in [
                     ("at rest", enabled.text, enabled.fill),
                     ("hovered", enabled.text_hover, enabled.fill_hover),

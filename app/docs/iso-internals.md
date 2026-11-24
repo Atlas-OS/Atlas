@@ -7,7 +7,8 @@ It's for contributors who change the media workers; [Creating an Atlas ISO](iso-
 
 The code is in `src/services/iso.rs`, `resources/iso/Build-Iso.ps1` and `resources/iso/Master-Iso.ps1`.
 
-- **Windows download.** On the Files screen, users can browse for an existing ISO or choose an architecture and language. Manager requests a signed ISO link from the website’s `/api/ms-iso` endpoints and downloads the file directly from Microsoft. A cancelled or incomplete transfer leaves the destination untouched.
+- **Windows download.** On the Windows step, users can browse for an existing ISO or download one. Manager requests the language list and a signed ISO link from the website's `/api/ms-iso` endpoints and downloads the file directly from Microsoft into the Downloads known folder, under a name no file has yet. It picks the language that matches the first Windows display language (`language_for` in `src/pages/iso/download.rs`), and the target PC's architecture. A cancelled or incomplete transfer leaves the destination untouched.
+- **Checks before Create.** The app reads the output's volume as the worker does (`destination` in `src/services/iso.rs`, which a test keeps in step with `Assert-Output`): a local NTFS or ReFS volume with the free space below. The worker asserts the output only for a build, so checking the files never fails on where the ISO will go.
 - **Inspection.** DISM reads every edition from the source, mounted read-only.
   The worker checks each version against `windows-releases.json` in the Atlas package's compatibility scripts, which the app and the front door share.
   An unknown version triggers a refresh from Microsoft's release page, limited in size and time.
@@ -21,6 +22,7 @@ The code is in `src/services/iso.rs`, `resources/iso/Build-Iso.ps1` and `resourc
   Network drivers, if any, go in its `NetworkDrivers` folder, with `network-drivers.json` as their source report.
   Atlas sits beside the Windows image, never inside it.
 - **Stages.** The worker reports its stages in order (`ATLAS_STAGE:inspect`, `copy`, `add-atlas`, `network-drivers`, `master`, `verify`, `cleanup`), and the app's checklist follows them.
+  While `Master-Iso.ps1` writes the image, it also reports the bytes written (`ATLAS_PROGRESS:{"done":…,"total":…}`), every 64 MiB and at the end. The page weights the stages by their usual share of a build, and moves the bar within the writing stage by those bytes, so the bar never goes back.
 - **Mastering.** IMAPI2FS writes a UDF image with BIOS and UEFI boot entries for x64, or UEFI only for ARM64.
 - **Verification.** The worker validates the boot catalog, then hashes the remounted image's key files and network-driver files against the staged copies.
   It records the output's SHA-256 before the output takes its new file name.
@@ -38,7 +40,7 @@ The `windowsPE` answer disables Setup Dynamic Update on media that loads it. Ent
 The code is in `resources/iso/Network-Drivers.ps1`.
 
 - Downloads and the packaged total are each capped at 2 GiB, and every package needs INF and catalog files.
-- **Check Windows Update first** downloads Windows Update's offers for the adapters' hardware and compatible IDs.
+- The app always asks for Windows Update's offers (`updateNetworkDrivers`) with the installed drivers. The worker downloads the offers for the adapters' hardware and compatible IDs on an unmetered connection; a metered, limited or missing connection, or a search or download that fails, leaves the installed packages alone on the ISO and is written to `network-drivers.log`. Cancellation still stops the build.
 - The build exports the drivers last, after the answer file.
 - When the adapters use only drivers that come with Windows, the build adds no `NetworkDrivers` folder and prints `ATLAS_NOTE:network-drivers-inbox`, which the app turns into the finished ISO's message.
 - In Windows setup's `specialize` pass, which runs before the out-of-box experience (OOBE), PnPUtil stages the packages and installs those that match, even when the user chose **Install drivers myself**.
@@ -53,24 +55,35 @@ Starting a job removes jobs older than a day and beyond the newest 20, including
 
 ## USB writing
 
-The code is in `resources/iso/Write-Usb.ps1`.
+The code is in `resources/iso/Write-Usb.ps1`, with the app's side in `src/services/usb.rs` and `src/pages/usb.rs`.
+The worker has four operations: **List**, **Check**, **Write** and **Eject**.
 
 | Rule | What the worker does |
 | --- | --- |
+| Listing | Lists every USB disk that passes the rules below except the smallest size, and marks those under 8 GiB as too small, so the page can show why they can't be used. |
 | Refused disks | Refuses boot, system, offline and read-only disks, disks without identifiers, and disks that hold the worker's ISO, app or working files. |
-| Before erasing | Locks the source against replacement and checks space and capacity, with typed failures so the app can say what to change and that the drive wasn't touched. |
+| Checking | Reads the source ISO before a drive is chosen: the same media, path and working-space rules a write applies, and the bytes a write copies. It changes nothing. |
+| Before erasing | Locks the source against replacement and checks the source, space and capacity again, with typed failures so the app can say what to change and that the drive wasn't touched. |
 | Identity | Checks disk number, hardware path, serial, model, capacity and unique ID just before each destructive operation. |
 | Copying | Rechecks disk and volume identity, rejecting unplugged or replaced devices and reused drive letters. |
 | Volume paths | Writes and verifies through the volume GUID path, which a reassigned drive letter can't redirect. |
-| One writer | Blocks concurrent Atlas USB writes with a global mutex. |
+| One at a time | Runs writes, ejects and checks one at a time with a global mutex, as a check mounts the ISO a write reads. |
 | Cancellation | Waits for Storage and DISM calls that can't be interrupted, and stops copying between chunks. |
 | Partial media | Never reports partial media as ready, and initialises a RAW drive, such as one a cancelled write left, without clearing it. |
 | Verification | Reads every file back unbuffered, bypassing the Windows file cache, and compares it by SHA-256; file-system metadata still goes through the cache. |
+| Ejecting | A write ejects the drive once it's verified. A drive Windows won't let go is still ready, so the result reports it rather than the write failing. |
 
+- A check that finds the mutex taken reports `busy` without reading the ISO, and the page checks again a few seconds later; a write or eject that finds it taken stops before changing anything.
+  Lists change nothing, so they run alongside any of them.
 - The worker splits a large `install.wim` with DISM's integrity-checked split into `sources\install*.swm` parts of up to 3,800 MiB, which stay under FAT32's 4 GiB file limit.
-- A large `install.esd` is first exported, with every edition, to a WIM.
-- The partition is at most 32 GB (decimal), because Windows formats FAT32 only up to that size.
-- Ejecting uses `CM_Request_Device_EjectW`, and a veto from Windows gives a recoverable error.
+- A large `install.esd` is first exported, with every edition, to a WIM. That WIM comes out larger than the ESD, so a check's byte count is a lower bound for such an ISO, and the write's own capacity check before erasing decides.
+- The partition is at most 32 GB (decimal), because Windows formats FAT32 only up to that size. The page applies the worker's partition rule to the check's byte count to mark drives too small for the ISO; a test keeps the two in step.
+- Ejecting uses `CM_Request_Device_EjectW`. Windows refuses while a file on the drive is open, often briefly, such as a scan of the files just written, so the worker tries five times, two seconds apart.
+- Progress is reported per stage, in bytes where there are any: hashing the source while preparing, copying, and verifying. The page weights the stages by their usual share of the time, so one bar runs once from start to finish and never goes back.
+
+The page follows drives coming and going without a worker: every two seconds while it's on screen, it compares the disks Plug and Play lists for the disk driver (`HKLM\SYSTEM\CurrentControlSet\Services\disk\Enum`) and the drive letters in use, and runs **List** when they change.
+It doesn't list while a write runs, so the drive picked can't change under it. After a `drive-changed` failure, it lists again and picks the drive with the same serial number, model and size.
+Generic flash drives can share all three, so that match only picks a drive: the user's go-ahead to erase it carries over only while every part of the identity the worker checks is unchanged (`Drive::same_identity`), and otherwise **Create USB drive** asks again.
 
 ## Before-desktop handoff
 

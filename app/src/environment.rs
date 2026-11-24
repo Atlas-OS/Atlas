@@ -19,6 +19,7 @@ use crate::services::settings::{self, AppPaths};
 use crate::services::system;
 use crate::services::system::SystemInfo;
 use crate::services::update_access::{self, UpdateAccess};
+use crate::services::windows_installation::Evidence;
 
 /// Runs one preparation in a job folder, reporting the worker's progress.
 pub type RunPreparation = dyn Fn(&Path, &PreparationRequest, Arc<AtomicBool>, Box<dyn FnMut(Progress) + Send>) -> anyhow::Result<State>
@@ -35,6 +36,9 @@ pub struct Adapters {
     /// Shows Windows Security's Virus & threat protection page again if a
     /// policy hides it; says whether one did.
     pub show_hidden_virus_page: Arc<dyn Fn() -> anyhow::Result<bool> + Send + Sync>,
+    /// Opens Windows Security at Virus & threat protection settings, where
+    /// the protection switches are; run on a worker.
+    pub open_windows_security: Arc<dyn Fn() -> anyhow::Result<()> + Send + Sync>,
     pub read_install_identity: Arc<dyn Fn() -> anyhow::Result<InstallIdentity> + Send + Sync>,
     pub read_atlas_state: Arc<dyn Fn() -> anyhow::Result<Option<AtlasState>> + Send + Sync>,
     pub run_check: Arc<dyn Fn(CheckId, &CheckContext) -> CheckResult + Send + Sync>,
@@ -61,6 +65,10 @@ pub struct Adapters {
     pub read_pc_facts: Arc<dyn Fn() -> Facts + Send + Sync>,
     /// The other people signed in to this PC, whose apps a restart closes.
     pub read_other_sessions: Arc<dyn Fn() -> anyhow::Result<Vec<String>> + Send + Sync>,
+    /// What this PC shows of earlier use of Windows; run on a worker.
+    pub read_windows_installation: Arc<dyn Fn() -> Evidence + Send + Sync>,
+    /// How many keyboard layouts this user can switch between.
+    pub read_keyboard_layouts: Arc<dyn Fn() -> anyhow::Result<usize> + Send + Sync>,
 }
 
 impl Adapters {
@@ -70,6 +78,9 @@ impl Adapters {
             is_elevated: Arc::new(system::is_elevated),
             read_security: Arc::new(SecurityStatus::read),
             show_hidden_virus_page: Arc::new(security::show_hidden_virus_page),
+            open_windows_security: Arc::new(|| {
+                system::shell_execute("open", system::links::WINDOWS_SECURITY_PROTECTION)
+            }),
             read_install_identity: Arc::new(atlas_state::read_install_identity),
             read_atlas_state: Arc::new(atlas_state::read),
             run_check: Arc::new(requirements::run),
@@ -87,6 +98,8 @@ impl Adapters {
             run_operation: Arc::new(preparation::run_operation),
             read_pc_facts: Arc::new(legacy_choices::read),
             read_other_sessions: Arc::new(crate::services::signed_in::others),
+            read_windows_installation: Arc::new(Evidence::read),
+            read_keyboard_layouts: Arc::new(crate::services::keyboard_layouts::count),
         }
     }
 }
@@ -100,6 +113,10 @@ pub struct RestartTiming {
     /// windows or minimised: long enough to notice the flashing taskbar
     /// button, come back and choose Restart later.
     pub background_countdown: Duration,
+    /// How long the countdown lasts before the restart Windows and Store
+    /// updates need. Updating runs unattended, so it ends unseen as often as
+    /// not, and the countdown is as long as the background one.
+    pub preparation: Duration,
     /// How often the view is refreshed while it runs.
     pub tick: Duration,
     /// How long after the countdown the view keeps saying Windows is
@@ -112,6 +129,7 @@ impl Default for RestartTiming {
         Self {
             countdown: Duration::from_secs(10),
             background_countdown: Duration::from_secs(60),
+            preparation: Duration::from_secs(60),
             tick: Duration::from_secs(1),
             grace: Duration::from_secs(20),
         }
@@ -126,6 +144,8 @@ pub struct OfferRecheckTiming {
     pub window: Duration,
     /// How often Get ready's clock of the wait is refreshed between looks.
     pub tick: Duration,
+    /// How often free space is read again while a move waits for room.
+    pub space: Duration,
 }
 
 impl Default for OfferRecheckTiming {
@@ -134,6 +154,7 @@ impl Default for OfferRecheckTiming {
             interval: Duration::from_secs(10 * 60),
             window: Duration::from_secs(2 * 60 * 60),
             tick: Duration::from_secs(15),
+            space: Duration::from_secs(30),
         }
     }
 }
@@ -149,6 +170,15 @@ pub struct Environment {
     pub paths: AppPaths,
     /// Ask GitHub for the latest release at startup.
     pub check_updates: bool,
+    /// Get ready starts updating and moves on to Your choices by itself (see
+    /// `AppModel::advance_ready`). Model tests that drive Get ready a click
+    /// at a time leave it off; the tests of those steps turn it on.
+    pub automatic_get_ready: bool,
+    /// Windows Security opens Windows Security, moves on once every switch
+    /// reads off, and is passed over when there's nothing to turn off, by
+    /// itself (see `AppModel::advance_security`). Tests that drive it a click
+    /// at a time leave it off; the tests of that step turn it on.
+    pub automatic_security: bool,
     /// A tester build: the bundled Atlas package is the only one, loaded
     /// when a flow needs it, and GitHub is never asked. Tests keep this off
     /// and choose their own packages.
@@ -170,6 +200,8 @@ impl Environment {
             paths: AppPaths::from_process(),
             // A tester build installs only its bundled package, so it never checks for releases.
             check_updates: !cfg!(feature = "embedded-package"),
+            automatic_get_ready: true,
+            automatic_security: true,
             embedded_startup: cfg!(feature = "embedded-package"),
             language_override: language_override.or_else(|| std::env::var(crate::i18n::LANGUAGE_ENV).ok()),
             restart: RestartTiming::default(),
@@ -186,6 +218,8 @@ impl Environment {
         Self {
             paths: AppPaths::under(root),
             check_updates: false,
+            automatic_get_ready: false,
+            automatic_security: false,
             embedded_startup: false,
             language_override: None,
             restart: RestartTiming::default(),
@@ -201,6 +235,8 @@ impl std::fmt::Debug for Environment {
         f.debug_struct("Environment")
             .field("paths", &self.paths)
             .field("check_updates", &self.check_updates)
+            .field("automatic_get_ready", &self.automatic_get_ready)
+            .field("automatic_security", &self.automatic_security)
             .field("embedded_startup", &self.embedded_startup)
             .field("language_override", &self.language_override)
             .field("restart", &self.restart)

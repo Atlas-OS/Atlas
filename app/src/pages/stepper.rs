@@ -6,8 +6,8 @@ use std::cmp::Ordering;
 use std::rc::Rc;
 
 use gpui::{
-    AnyElement, App, Div, ElementId, IntoElement, ParentElement, RenderOnce, Role, SharedString, Styled,
-    Window, div, prelude::*, px,
+    AnyElement, App, Div, ElementId, FocusHandle, IntoElement, ParentElement, RenderOnce, Role, SharedString,
+    Styled, Window, div, prelude::*, px,
 };
 
 use crate::i18n::fmt;
@@ -59,9 +59,11 @@ impl StepStatus {
     }
 }
 
-/// A step's accessible name: "Step 2 of 4, Your choices, current step".
+/// A step's accessible name, in the words Home uses for a setup under way:
+/// "Step 2 of 4: Your choices, current step".
 pub(super) fn step_name(index: usize, total: usize, title: &str, status: StepStatus) -> String {
-    t!("stepper-step-a11y", number = index + 1, total = total, title = title, status = status.text())
+    let heading = t!("step-heading", number = index + 1, total = total, title = title);
+    t!("stepper-item-a11y", heading = heading, status = status.text())
 }
 
 /// A step's round marker, as the stepper and Home's step list both draw it:
@@ -106,6 +108,9 @@ struct StepperStep {
 
 type SelectHandler = Rc<dyn Fn(usize, &mut Window, &mut App)>;
 
+/// A step's padding either side of its marker and title, inside its 1px border.
+const STEP_PADDING: f32 = 8.;
+
 /// The steps, reported as a list. A step that can be chosen is a button.
 #[derive(IntoElement)]
 pub struct Stepper {
@@ -113,11 +118,21 @@ pub struct Stepper {
     label: SharedString,
     steps: Vec<StepperStep>,
     on_select: Option<SelectHandler>,
+    current_focus: Option<(FocusHandle, Option<SharedString>)>,
 }
 
 impl Stepper {
     pub fn new(id: impl Into<ElementId>, label: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), label: label.into(), steps: Vec::new(), on_select: None }
+        Self { id: id.into(), label: label.into(), steps: Vec::new(), on_select: None, current_focus: None }
+    }
+
+    /// Lets the page move focus to the current step, so a change of step is
+    /// announced by the step's name, followed by `more` when the page has
+    /// more to say, such as the questions a screen asks. It's never a Tab
+    /// stop.
+    pub fn current_focus(mut self, handle: FocusHandle, more: Option<SharedString>) -> Self {
+        self.current_focus = Some((handle, more));
+        self
     }
 
     /// Adds the next step: its title, where it stands, and whether it can be
@@ -148,7 +163,11 @@ impl RenderOnce for Stepper {
             .items_center()
             .flex_wrap()
             .gap_y(px(8.))
-            .pb(px(4.));
+            .pb(px(4.))
+            // Each line's first marker starts on the content's edge, as a
+            // radio group's glyphs do: a step's padding and border move into
+            // the margin, where its hover fill and focus border still show.
+            .ml(px(-(STEP_PADDING + 1.)));
         for (index, step) in self.steps.into_iter().enumerate() {
             let status = step.status;
             let current = status == StepStatus::Current;
@@ -159,16 +178,27 @@ impl RenderOnce for Stepper {
                 .text_color(if current { theme.text_primary } else { theme.text_secondary })
                 .child(step.title.clone());
             let select = self.on_select.clone().filter(|_| step.clickable);
+            let focus = self.current_focus.clone().filter(|_| current);
+            let name = step_name(index, total, &step.title, status);
+            let name = match focus.as_ref().and_then(|(_, more)| more.as_ref()) {
+                Some(more) => t!("step-heading-choices-a11y", heading = name, questions = more.as_ref()),
+                None => name,
+            };
+            let focus_outer = theme.focus_outer;
             let item = div()
                 .id(("step", index))
                 .role(if select.is_some() { Role::Button } else { Role::ListItem })
-                .aria_label(step_name(index, total, &step.title, status))
+                .aria_label(name)
+                .when_some(focus.map(|(handle, _)| handle), |this, handle| {
+                    this.track_focus(&handle.tab_stop(false))
+                        .focus_visible(move |style| style.border_color(focus_outer))
+                })
                 // AccessKit counts from 0 and takes the size from the list.
                 .aria_position_in_set(index)
                 .flex()
                 .items_center()
                 .gap(px(8.))
-                .px(px(8.))
+                .px(px(STEP_PADDING))
                 .py(px(4.))
                 .rounded(px(4.))
                 .border_1()
@@ -243,11 +273,11 @@ mod tests {
         crate::i18n::testing::english(|| {
             assert_eq!(
                 step_name(1, 4, "Your choices", StepStatus::Current),
-                "Step 2 of 4, Your choices, current step"
+                "Step 2 of 4: Your choices, current step"
             );
             assert_eq!(
                 step_name(0, 4, "Get ready", StepStatus::Attention),
-                "Step 1 of 4, Get ready, needs attention"
+                "Step 1 of 4: Get ready, needs attention"
             );
         });
     }

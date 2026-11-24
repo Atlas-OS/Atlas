@@ -24,7 +24,7 @@ pub use settings::SettingsPage;
 pub use stepper::{StepStatus, Stepper};
 
 use std::cell::Cell;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use gpui::{
@@ -39,9 +39,9 @@ use crate::services::preparation::Drivers;
 use crate::t;
 use crate::theme::ActiveTheme;
 use crate::ui::{
-    BODY_LINE_HEIGHT, Button, CapCenteredText, CheckBox, FocusHandles, Icon, InfoBar, RadioGroup, RadioItem,
-    Revealed, ScrollbarState, Severity, TextMark, Typography, a11y_text, card, focus_ring, icon_in_line,
-    icon_in_line_sized, keyboard_scrolling, nested_scrollbar, scrollbar,
+    BODY_LINE_HEIGHT, Button, COMPACT_INSET, CapCenteredText, CheckBox, FocusHandles, Icon, InfoBar,
+    RadioGroup, RadioItem, Revealed, ScrollbarState, Severity, TextMark, Typography, a11y_text, card,
+    focus_ring, icon_in_line, icon_in_line_sized, keyboard_scrolling, link_row, nested_scrollbar, scrollbar,
 };
 
 /// Horizontal page padding, matching Settings' content margin.
@@ -102,7 +102,12 @@ pub fn back_arrow(state: &AppModel) -> Option<Page> {
     back_arrow_state(state).and_then(|(target, enabled)| enabled.then_some(target))
 }
 
-/// A page's diagnostics controls, which can go anywhere on the page, once.
+/// A page's help row: Send a report, Export diagnostics and, where a log
+/// exists, Open log folder, as one compact row of links. It goes under an
+/// unexpected failure, once per page, and under nothing the user can put
+/// right themselves. It carries no privacy text: Send a report and the
+/// export's result say what leaves the PC, where it does.
+///
 /// When an export ends while the page stays on screen and focus is still
 /// where it was when the export started, focus moves to its result so the
 /// outcome is announced.
@@ -111,23 +116,56 @@ pub struct Diagnostics {
     watch: ExportWatch<FocusHandle>,
     /// Whether the controls are part of the frame being built.
     drawn: Cell<bool>,
+    /// A failed export's raw error is showing.
+    details: Rc<Cell<bool>>,
+}
+
+/// A folder the help row opens, after its other links.
+struct FolderLink {
+    id: &'static str,
+    label: String,
+    path: PathBuf,
+    /// Made first if it doesn't exist yet, as the app's own folder may not.
+    create: bool,
 }
 
 impl Diagnostics {
     pub fn new(cx: &App) -> Self {
-        Self { result: cx.focus_handle(), watch: ExportWatch::default(), drawn: Cell::new(false) }
+        Self {
+            result: cx.focus_handle(),
+            watch: ExportWatch::default(),
+            drawn: Cell::new(false),
+            details: Rc::default(),
+        }
     }
 
-    /// The controls in a card of their own.
-    pub fn panel(&self, model: &Entity<AppModel>, cx: &App) -> Div {
-        card(cx).p(px(16.)).child(self.content(model, cx))
-    }
-
-    /// The controls, for a card or section that already exists.
+    /// The help row, inside a card, a bar or a row that already exists.
     pub fn content(&self, model: &Entity<AppModel>, cx: &App) -> Div {
+        self.content_with_log(model, None, cx)
+    }
+
+    /// The help row with Open log folder for `log`, when there is one.
+    pub fn content_with_log(&self, model: &Entity<AppModel>, log: Option<PathBuf>, cx: &App) -> Div {
+        let folder = log.map(|path| FolderLink {
+            id: "open-log-folder",
+            label: t!("iso-diagnostics"),
+            path,
+            create: false,
+        });
+        self.content_with_folder(model, folder, cx)
+    }
+
+    /// The help row with Open app folder, for Settings.
+    pub fn content_with_app_folder(&self, model: &Entity<AppModel>, path: PathBuf, cx: &App) -> Div {
+        let folder =
+            FolderLink { id: "open-app-folder", label: t!("settings-open-data-folder"), path, create: true };
+        self.content_with_folder(model, Some(folder), cx)
+    }
+
+    fn content_with_folder(&self, model: &Entity<AppModel>, folder: Option<FolderLink>, cx: &App) -> Div {
         let repeated = self.drawn.replace(true);
         debug_assert!(!repeated, "diagnostics drawn twice in a frame, or `settle` was not called");
-        diagnostics_content(model, &self.result, cx)
+        diagnostics_content(model, &self.result, &self.details, folder, cx)
     }
 
     /// Call once per render, after the body is built. When the controls are
@@ -181,75 +219,131 @@ impl<F: PartialEq> ExportWatch<F> {
     }
 }
 
-fn diagnostics_content(model: &Entity<AppModel>, result_focus: &FocusHandle, cx: &App) -> Div {
+fn diagnostics_content(
+    model: &Entity<AppModel>,
+    result_focus: &FocusHandle,
+    details: &Rc<Cell<bool>>,
+    folder: Option<FolderLink>,
+    cx: &App,
+) -> Div {
     let state = model.read(cx);
+    let theme = cx.theme();
+    let link = |id: &'static str, label: String| Button::new(id, label).hyperlink().compact();
+    if state.diagnostics_busy {
+        // The next result starts with its details folded.
+        details.set(false);
+    }
     div()
         .flex()
         .flex_col()
         .gap(px(8.))
         .child(
-            div()
-                .flex()
-                .flex_wrap()
-                .items_center()
-                .gap(px(12.))
+            link_row()
+                .id("diagnostics-help")
+                .role(Role::Group)
+                .aria_label(t!("diagnostics-help-a11y"))
+                // The installing view covers every page, so there is nowhere
+                // to report from until the install is over.
+                .when(!state.install_in_progress() && state.can_navigate(Page::Report), |this| {
+                    this.child(
+                        link("send-report", t!("report-title"))
+                            .on_click(on_model(model, |m, cx| m.navigate(Page::Report, cx))),
+                    )
+                })
+                // Its label stays while an export runs, so the row doesn't
+                // move; the model ignores a click meanwhile, so the link
+                // stays enabled and keeps focus.
                 .child(
-                    div()
-                        .flex_1()
-                        .min_w(px(180.))
-                        .type_caption()
-                        .text_color(cx.theme().text_secondary)
-                        .child(a11y_text("diagnostics-privacy", t!("diagnostics-privacy"))),
+                    link("export-diagnostics", t!("diagnostics-export"))
+                        .on_click(on_model(model, |m, cx| m.export_diagnostics(cx))),
                 )
-                .child(
-                    div()
-                        .flex()
-                        .flex_wrap()
-                        .gap(px(8.))
-                        // The installing view covers every page, so there is
-                        // nowhere to report from until the install is over.
-                        .when(!state.install_in_progress(), |this| {
-                            this.child(
-                                Button::new("send-report", t!("report-title"))
-                                    .disabled(!state.can_navigate(Page::Report))
-                                    .on_click(on_model(model, |m, cx| m.navigate(Page::Report, cx))),
-                            )
-                        })
-                        .child(
-                            Button::new(
-                                "export-diagnostics",
-                                if state.diagnostics_busy {
-                                    t!("diagnostics-exporting")
-                                } else {
-                                    t!("diagnostics-export")
-                                },
-                            )
-                            .icon(Icon::Diagnostic)
-                            // The model ignores a click while an export runs, so
-                            // the button stays enabled and keeps focus.
-                            .on_click(on_model(model, |m, cx| m.export_diagnostics(cx))),
-                        ),
-                ),
+                .when_some(folder, |this, FolderLink { id, label, path, create }| {
+                    this.child(link(id, label).on_click(move |_, _, cx| {
+                        if create {
+                            let _ = std::fs::create_dir_all(&path);
+                        }
+                        cx.reveal_path(&path);
+                    }))
+                }),
         )
-        .when_some(state.diagnostics_result.as_ref(), |this, result| {
+        // Where the result will be: what's happening, as it happens.
+        .when(state.diagnostics_busy, |this| {
+            let text = t!("diagnostics-exporting");
+            this.child(
+                div()
+                    .id("diagnostics-exporting")
+                    .role(Role::Status)
+                    .aria_label(text.clone())
+                    .aria_live(gpui::Live::Polite)
+                    .flex()
+                    .items_center()
+                    .gap(px(8.))
+                    .child(
+                        div().flex().items_center().h(BODY_LINE_HEIGHT).child(crate::ui::ProgressRing::new()),
+                    )
+                    .child(div().type_body().text_color(theme.text_secondary).child(text)),
+            )
+        })
+        .when_some(state.diagnostics_result.as_ref().filter(|_| !state.diagnostics_busy), |this, result| {
             let bar = match result {
+                // Where the ZIP is, and what it leaves out, where the user
+                // decides what to do with it.
                 Ok(path) => {
+                    let message = [saved_location(path), t!("diagnostics-saved-privacy")].join("\n");
                     let path = path.clone();
-                    InfoBar::new(Severity::Success, t!("diagnostics-saved"), "").action(
+                    InfoBar::new(Severity::Success, t!("diagnostics-saved"), message).action(
                         Button::new("diagnostics-reveal", t!("iso-open-folder"))
                             .icon(Icon::Folder)
                             .on_click(move |_, _, cx| cx.reveal_path(&path)),
                     )
                 }
-                // Export diagnostics, just above, is the retry.
-                Err(error) => InfoBar::new(
-                    Severity::Error,
-                    t!("diagnostics-failed-title"),
-                    t!("diagnostics-failed", error = error.as_str()),
-                ),
+                // The title says what happened, Try again is what to do, and
+                // the raw error is behind Show details.
+                Err(error) => {
+                    let title = t!("diagnostics-save-failed");
+                    let shown = details.get();
+                    let toggle = {
+                        let details = details.clone();
+                        let label = if shown { t!("common-hide-details") } else { t!("common-show-details") };
+                        Button::new("diagnostics-details", label.clone())
+                            .aria_label(t!("common-details-a11y", action = label, section = title.as_str()))
+                            .expanded(shown)
+                            .hyperlink()
+                            .compact()
+                            .trailing_icon(if shown { Icon::ChevronUp } else { Icon::ChevronDown })
+                            .on_click(move |_, window, _| {
+                                details.set(!details.get());
+                                window.refresh();
+                            })
+                    };
+                    let raw = shown.then(|| {
+                        div()
+                            .type_caption()
+                            .text_color(theme.text_secondary)
+                            .child(a11y_text("diagnostics-error", error.clone()))
+                    });
+                    InfoBar::new(Severity::Error, title, "")
+                        .action(
+                            Button::new("diagnostics-retry", t!("common-try-again"))
+                                .on_click(on_model(model, |m, cx| m.export_diagnostics(cx))),
+                        )
+                        .content(
+                            div().flex().flex_col().gap(px(4.)).child(link_row().child(toggle)).children(raw),
+                        )
+                }
             };
             this.child(bar.id("diagnostics-result").focus_handle(result_focus.clone()))
         })
+}
+
+/// "Saved as <file> in Atlas's <folder> folder": the folder by its own name
+/// alone, which Show in folder opens, so the text carries no path and no
+/// user name.
+fn saved_location(path: &Path) -> String {
+    let name = |path: Option<&Path>| {
+        path.and_then(Path::file_name).map(|name| name.to_string_lossy().into_owned()).unwrap_or_default()
+    };
+    t!("diagnostics-saved-in-folder", file = name(Some(path)), folder = name(path.parent()))
 }
 
 /// A page's title, with an optional badge after it.
@@ -328,6 +422,10 @@ pub fn page_frame(
                         .gap(px(8.))
                         .pt(px(22.))
                         .pb(px(14.))
+                        // The back arrow's glyph starts on the content's edge,
+                        // and its hover fill reaches into the page margin, as a
+                        // link's does in a link row.
+                        .when(back.is_some(), |this| this.pl(px(PAGE_PADDING) - COMPACT_INSET))
                         .when_some(back, |this, (label, enabled, on_back)| {
                             this.child(
                                 TextMark::new(
@@ -384,7 +482,7 @@ pub fn page_frame(
                     .flex_shrink_0()
                     .flex()
                     .justify_center()
-                    .py(px(14.))
+                    .py(px(16.))
                     .border_t_1()
                     .border_color(theme.divider)
                     .child(column().child(footer)),
@@ -540,9 +638,11 @@ pub fn detail_row_with_action(
                 .child(
                     div().flex_1().min_w(rems(10.)).type_body().text_color(theme.text_primary).child(value),
                 )
-                // The 24px compact link's text lines up with the 20px body line.
+                // The 24px compact link's text lines up with the 20px body
+                // line, and takes no more height than it, so a row with an
+                // action is as tall as one without.
                 .when_some(action, |this, action| {
-                    this.child(div().ml_auto().flex_shrink_0().mt(px(-2.)).child(action))
+                    this.child(div().ml_auto().flex_shrink_0().mt(px(-2.)).mb(px(-2.)).child(action))
                 }),
         )
 }
@@ -552,21 +652,27 @@ pub fn detail_text(key: &str, text: impl Into<SharedString>) -> gpui::Text {
     a11y_text(ElementId::Name(format!("detail-{key}-value").into()), text)
 }
 
-/// A card header: title on the left, optional trailing element on the right.
-/// `key` is a stable element id for the heading, reported at level 2, under
-/// the page title.
-pub fn card_header(cx: &App, key: &str, title: impl Into<SharedString>, trailing: Option<AnyElement>) -> Div {
+/// A card's title at the top of its body, for a card whose header would
+/// carry nothing at its trailing edge: Body Strong, with the body's 8px gap
+/// to what follows, as Windows titles a card in a confined space. `key` is a
+/// stable element id for the heading, reported at `level`: 2 under a page
+/// title, 3 under a step.
+pub fn card_title(cx: &App, key: &str, title: impl Into<SharedString>, level: usize) -> Stateful<Div> {
+    heading(ElementId::Name(format!("card-{key}").into()), level, title, cx)
+}
+
+/// A card header strip: the title on the left, `trailing` (a status pill, a
+/// button or a link) on the right, and a divider under them. A card with
+/// nothing to put there takes a [`card_title`] instead. `key` is a stable
+/// element id for the heading, reported at level 2, under the page title.
+pub fn card_header(cx: &App, key: &str, title: impl Into<SharedString>, trailing: AnyElement) -> Div {
     card_header_with_icon(cx, key, title, None, trailing, 2)
 }
 
-/// A [`card_header`] under a step heading ("Step 1 of 4: Get ready"), so
-/// it's reported at level 3 and heading navigation follows the outline.
-pub fn step_card_header(
-    cx: &App,
-    key: &str,
-    title: impl Into<SharedString>,
-    trailing: Option<AnyElement>,
-) -> Div {
+/// A [`card_header`] for a card under a step, reported at level 3: under
+/// the step heading on ISO creation, and under the stepper's step on the
+/// install steps.
+pub fn step_card_header(cx: &App, key: &str, title: impl Into<SharedString>, trailing: AnyElement) -> Div {
     card_header_with_icon(cx, key, title, None, trailing, 3)
 }
 
@@ -577,7 +683,7 @@ pub fn card_header_with_icon(
     key: &str,
     title: impl Into<SharedString>,
     leading: Option<Icon>,
-    trailing: Option<AnyElement>,
+    trailing: AnyElement,
     level: usize,
 ) -> Div {
     let theme = cx.theme();
@@ -608,7 +714,7 @@ pub fn card_header_with_icon(
                 None => heading.into_any_element(),
             }
         })
-        .when_some(trailing, |this, trailing| this.child(trailing))
+        .child(trailing)
 }
 
 pub fn card_body() -> Div {
@@ -616,7 +722,9 @@ pub fn card_body() -> Div {
 }
 
 /// A pill naming a feature's status, such as Recommended. It is reported as text, so
-/// screen readers read its words where they appear.
+/// screen readers read its words where they appear. Its caption stays regular:
+/// Windows sets no text under 14px in semibold, which some scripts can't be
+/// read in.
 pub fn badge(id: impl Into<ElementId>, text: impl Into<SharedString>, cx: &App) -> Stateful<Div> {
     let theme = cx.theme();
     let text = text.into();
@@ -632,7 +740,6 @@ pub fn badge(id: impl Into<ElementId>, text: impl Into<SharedString>, cx: &App) 
         .py(px(2.))
         .rounded_full()
         .type_caption()
-        .font_weight(gpui::FontWeight::SEMIBOLD)
         .map(|this| {
             if theme.high_contrast {
                 this.text_color(theme.text_primary).border_1().border_color(theme.text_primary)
@@ -659,9 +766,11 @@ impl ListEntry {
         Self { text: text.into(), caution: None }
     }
 
-    /// An option of the Atlas package, by its id and the manifest's label.
+    /// An option of the Atlas package as an answer already given, by its id
+    /// and the manifest's label: lists of choices are records and summaries,
+    /// so a recommended answer doesn't say it's recommended.
     pub fn option(id: &str, label: &str) -> Self {
-        Self { text: describe::option_label(id, label), caution: caution(id) }
+        Self { text: describe::option_answer(id, label), caution: caution(id) }
     }
 
     /// An option as the install on this PC will apply it: as [`Self::option`],
@@ -681,24 +790,6 @@ fn caution(id: &str) -> Option<String> {
     REDUCES_PROTECTION.contains(&id).then(|| describe::option_consequence(id)).flatten()
 }
 
-/// The options an install recorded, as this app labels them: by the app's
-/// own label, the manifest's, or else the id itself.
-pub fn recorded_options(state: &AppModel, ids: &[String]) -> Vec<ListEntry> {
-    ids.iter().map(|id| ListEntry::option(id, state.option_text(id).unwrap_or(id))).collect()
-}
-
-/// The options of an install as a list, or "None" when there are none.
-pub fn options_value(cx: &App, key: &str, list_id: &'static str, options: Vec<ListEntry>) -> AnyElement {
-    if options.is_empty() {
-        div()
-            .text_color(cx.theme().text_secondary)
-            .child(detail_text(key, t!("common-none")))
-            .into_any_element()
-    } else {
-        plain_list(cx, list_id, &t!("common-options"), options).into_any_element()
-    }
-}
-
 /// A caption beside a caution glyph: what a choice that reduces protection means.
 pub fn caution_caption(cx: &App, text: impl IntoElement) -> Div {
     let theme = cx.theme();
@@ -712,11 +803,11 @@ pub fn caution_caption(cx: &App, text: impl IntoElement) -> Div {
         .child(div().flex_1().min_w_0().child(text))
 }
 
-/// How [`option_page_card`] reports an answer: the option chosen for a
+/// How [`option_page_body`] reports an answer: the option chosen for a
 /// single choice, or the option toggled for a multiple one.
 pub type OptionChoice = Rc<dyn Fn(&str, &mut App)>;
 
-/// What [`option_page_card`] says under one option. ISO creation and a first
+/// What [`option_page_body`] says under one option. ISO creation and a first
 /// install say what it means; choosing again on an update also says what it
 /// changes on this PC, which answer the PC has, and why an option an update
 /// can't undo is fixed.
@@ -755,33 +846,34 @@ impl OptionNote {
     }
 }
 
-/// One of the Atlas package's choices as a card, as the install flow and ISO
-/// creation both show it: the header (the question, or the choice's title),
-/// a divider, the choice's description, its options with what each means,
-/// and its "Learn more" link. `id` prefixes the element ids; `note` says
-/// what goes under an option (see [`OptionNote`]); `on_choose` gets the
-/// option's id; `images` is the unpacked package, for the browser logos.
+/// The inside of one of the Atlas package's choices, under its heading in a
+/// card body: `description`, its options with what each says under it, and
+/// its "Learn more" link, 8px apart. `header` names a single choice's radio
+/// group. `id` prefixes the element ids; `note` says what goes under an
+/// option (see [`OptionNote`]); `on_choose` gets the option's id; `images` is
+/// the unpacked package, for the browser logos.
 #[allow(clippy::too_many_arguments)]
-pub fn option_page_card<N: Into<OptionNote>>(
+pub fn option_page_body<N: Into<OptionNote>>(
     cx: &mut App,
     id: &str,
     page_index: usize,
     choice: &Choice,
     header: String,
+    description: Option<String>,
     selected: impl Fn(&str) -> bool,
     disabled: bool,
     focus: &mut FocusHandles,
     note: impl Fn(&ChoiceOption) -> N,
     on_choose: OptionChoice,
     images: Option<&Path>,
-) -> AnyElement {
+) -> Div {
     let theme = cx.theme().clone();
     let kind = ScreenKind::of_choice(choice);
     let title = kind.title();
-    let mut body = card_body().gap(px(2.));
-    if let Some(description) = describe::choice_description(choice) {
+    let mut body = div().flex().flex_col().gap(px(8.));
+    if let Some(description) = description {
         body =
-            body.child(div().type_body().text_color(theme.text_secondary).pb(px(4.)).child(a11y_text(
+            body.child(div().type_body().text_color(theme.text_secondary).child(a11y_text(
                 ElementId::Name(format!("{id}-description-{page_index}").into()),
                 description,
             )));
@@ -858,7 +950,7 @@ pub fn option_page_card<N: Into<OptionNote>>(
     }
     if let Some(link) = &choice.learn_more {
         body = body.child(
-            div().flex().pt(px(6.)).child(
+            link_row().child(
                 Button::new(ElementId::Name(format!("{id}-learn-{page_index}").into()), kind.learn_more())
                     .hyperlink()
                     .compact()
@@ -867,10 +959,7 @@ pub fn option_page_card<N: Into<OptionNote>>(
             ),
         );
     }
-    card(cx)
-        .child(step_card_header(cx, &format!("{id}-page-{page_index}"), header, None))
-        .child(body)
-        .into_any_element()
+    body
 }
 
 pub fn driver_label(drivers: Drivers) -> String {
@@ -880,11 +969,12 @@ pub fn driver_label(drivers: Drivers) -> String {
     }
 }
 
-/// The two driver policies, in the order both driver pickers show them.
+/// The two driver policies, in the order both driver pickers show them. The
+/// recommended one says so in its label, where the choice is made.
 pub fn driver_radio_items(id: &str, focus: &mut FocusHandles, cx: &mut App) -> [RadioItem; 2] {
     let (auto, manual) = (format!("{id}-auto"), format!("{id}-manual"));
     [
-        RadioItem::new(auto.clone(), driver_label(Drivers::Automatic), focus.get(&auto, cx))
+        RadioItem::new(auto.clone(), t!("prepare-drivers-auto-recommended"), focus.get(&auto, cx))
             .description(t!("prepare-drivers-auto-detail")),
         RadioItem::new(manual.clone(), driver_label(Drivers::Manual), focus.get(&manual, cx))
             .description(t!("prepare-drivers-manual-detail")),
@@ -901,7 +991,8 @@ pub struct LogIds {
     pub open: &'static str,
 }
 
-/// Copy and Open log file, for the log view `ids` belongs to.
+/// Copy and Open log folder, for the log view `ids` belongs to. The folder
+/// opens with the log selected.
 pub fn log_actions(model: &Entity<AppModel>, ids: LogIds, cx: &App) -> Div {
     let has_log = model.read(cx).session.is_some();
     div()
@@ -915,7 +1006,7 @@ pub fn log_actions(model: &Entity<AppModel>, ids: LogIds, cx: &App) -> Div {
                 .on_click(on_model(model, |m, cx| m.copy_log(cx))),
         )
         .child(
-            Button::new(ids.open, t!("common-open-log-file"))
+            Button::new(ids.open, t!("common-open-log-folder"))
                 .compact()
                 .icon(Icon::Folder)
                 .disabled(!has_log)

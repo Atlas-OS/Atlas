@@ -1,18 +1,36 @@
-### Atlas Manager: Japanese (ja), preview translation. Revised 1 October 2026 from the en-GB source (i18n/en-GB/atlas.ftl).
+### Atlas Manager: Japanese (ja), preview translation. Revised on 24 November 2026 from the en-GB source (i18n/en-GB/atlas.ftl).
 ###
 ### Conventions for this catalog:
 ### - Polite です・ます form for sentences; noun-stop or verb-stem labels for
 ###   buttons and headings, as Windows does (再起動, キャンセル, 完了).
 ### - A half-width space between Japanese and Latin words or numbers, and
-###   between katakana compounds (インストール ファイル), as Microsoft does.
+###   between katakana compounds (ログ フォルダー, スタート メニュー), as Microsoft does.
 ### - Full-width 。、 with half-width ( ) and : plus a half-width space, as
 ###   Microsoft Japanese UI does; half-width "?" in questions.
 ### - Japanese has only the "other" plural category; exact [1]/[2] are used
-###   where the wording changes.
+###   where the wording changes. Where English selects only for is/are, the
+###   Japanese drops the selector.
 ### - "Relaunch" (the Atlas Manager) is 再実行 / 開き直す; "restart" (the PC or
 ###   Windows) is 再起動. Never swap them.
 ### - "Atlas package" (the .atlaspkg file) is "Atlas パッケージ", shortened to
 ###   "パッケージ" once it's clear; "package file" is パッケージ ファイル.
+### - Install steps: 準備, 設定の選択, Windows セキュリティ, インストール.
+###   ISO steps: Windows, セットアップ, 作成. "Go to <step>" is 「<step>」に移動;
+###   "Return to Install" stays 「インストール」に戻る.
+### - Status lines in progress end in 〜しています…. ISO and USB stage names
+###   (iso-stage-*, usb-stage-*) are plain nouns without 中 (ファイルのコピー),
+###   because the checklist shows them done, current or pending;
+###   iso-progress-stage adds 中… (ファイルのコピー中…).
+### - A stage of updating, installing, or creating an ISO or USB drive is a
+###   段階; 手順 is only a flow step.
+### - A check that updating takes care of is 更新時に対処 (状態) and
+###   更新時に対処されます (説明).
+### - Countdowns: "{ $seconds } 秒後に PC が再起動します。"
+### - Storage settings is ストレージ設定; personalisation is 個人用設定; the
+###   Services console is 「サービス」 and its startup type 「手動」; the
+###   Windows regional format is 地域のフォーマット, as Settings names it.
+### - Windows service names (BITS, Cryptographic Services, Windows Modules
+###   Installer) stay in English, as Japanese Windows lists them.
 
 ## 共通
 
@@ -39,19 +57,18 @@ common-try-again = 再試行
 common-read-the-docs = Atlas のガイドを読む
 common-show-details = 詳細を表示
 common-hide-details = 詳細を非表示
-# Accessible name of a Show details or Hide details toggle. $action is common-show-details or
-# common-hide-details; $section is the title of the card it opens.
+# Accessible name of a button that acts on one card, so two buttons with the same label stay
+# distinct: a Show details or Hide details toggle, or PC checks' Check again. $action is the
+# button's label; $section is the title of its card.
 common-details-a11y = { $action }、{ $section }
-common-open-log-file = ログ ファイルを開く
+# Opens the folder of the install log, with the log selected.
+common-open-log-folder = ログ フォルダーを開く
 # Accessible name of the Copy button beside the install log.
 common-copy-install-log = インストール ログをコピー
 common-install-log = インストール ログ
 # Row labels in summary cards.
 common-windows = Windows
-common-options = オプション
-common-package = インストール ファイル
-common-installed-as = インストールの種類
-common-installed = インストール済み
+common-package = Atlas パッケージ
 common-checking = 確認中
 # Joins two items in a list: "Brave、Firefox". The braces keep the literal.
 list-separator = { "、" }
@@ -65,35 +82,58 @@ infobar-a11y = { $title }。{ $message }
 
 ## ウィンドウ
 
-# Dialog shown when the window is closed while an install runs.
+# Dialog shown when the window is closed while an install runs. Its buttons are
+# window-close-keep and window-close-close.
 window-close-title = インストール中にウィンドウを閉じますか?
-window-close-message = インストールはバックグラウンドで続行されます。進行状況と結果を確認するには、Atlas をもう一度開いてください。インストールが終わるまで PC の電源を切らないでください。
-# Instead of window-close-message when the installation restarts the PC afterwards: only an
+window-close-installing = インストールは続行されます。Atlas をもう一度開くと、結果を確認できます。
+# Instead of window-close-installing when the installation restarts the PC afterwards: only an
 # open Atlas window restarts it, so closing the window cancels that.
-window-close-message-restart = インストールはバックグラウンドで続行されますが、Atlas を閉じている間は PC が自動的に再起動しません。進行状況と結果を確認するには、Atlas をもう一度開いてください。インストールが終わるまで PC の電源を切らないでください。
-# The safe answer in every dialog shown when the window is closed, including those for ISO
-# and USB creation, updates and Windows Update access.
+window-close-installing-no-restart = インストールは続行されますが、PC は自動的に再起動しません。Atlas をもう一度開くと、結果を確認できます。
+# The answer that keeps the window open when closing it would interrupt something, such as
+# installing or Windows Update access.
 window-close-keep = 開いたままにする
 window-close-close = ウィンドウを閉じる
-# Dialog shown when the window is closed during the final checks, before the
-# installer has started; window-close-keep and window-close-close are its buttons.
-window-close-preparing-title = インストールの開始前に閉じますか?
-window-close-preparing-message = Atlas は PC を確認中で、まだインストールを開始していません。今閉じると、インストールは開始されません。続行するには、Atlas をもう一度開いてください。
-prepare-close-title = 更新はまだ実行中です
-# "Stop updating" is prepare-stop, the dialog's other button.
-prepare-close-message = 更新の実行中は Atlas を開いたままにしてください。「更新を停止」を選ぶと、現在の手順が終わった時点で更新が停止し、その後 Atlas を閉じられます。
-# Dialog shown when the window is closed during the restart countdown after a
-# successful install. Its buttons are window-close-keep, restart-now and
-# window-close-restart-close.
-window-close-restart-title = 再起動せずに Atlas を閉じますか?
-# "今すぐ再起動" is restart-now, one of this dialog's three buttons.
-window-close-restart-message = Atlas のセットアップを完了するには、PC の再起動が必要です。今 Atlas を閉じると PC は再起動されないため、準備ができたらご自身で再起動してください。「今すぐ再起動」を選ぶ前に作業を保存してください。
-window-close-restart-close = 再起動せずに閉じる
+# Dialog shown when the window is closed during the final checks, before the installer has
+# started. Its buttons are window-close-keep-installing and window-close-stop-and-close.
+window-close-checks-question = インストールの前に停止しますか?
+window-close-checks-unchanged = インストールによる変更はまだありません。ここで閉じると、インストールは開始されません。
+window-close-keep-installing = インストールを続行
+window-close-stop-and-close = 停止して閉じる
+# Dialog shown when the window is closed while Windows and Store apps update. Its buttons are
+# stop-update-keep and prepare-stop. Atlas stays open once it has stopped.
+prepare-close-question = 更新を停止しますか?
+# "Stage" is a stage of updating (as in prepare-percent), not one of the four flow steps.
+prepare-close-stops-after-stage = Atlas は現在の段階が終わると停止します。その後、Atlas を閉じることができます。
+# Dialog shown when the window is closed during the restart countdown after a successful
+# install. Its buttons are restart-now and restart-dont-now, the default, which closes Atlas
+# without restarting.
+window-close-restart-question = 再起動して Atlas のセットアップを完了しますか?
+window-close-restart-closed = Atlas を閉じると、PC を再起動できなくなります。先に作業を保存してください。
+# Closing while Get ready counts down to the restart Windows and Store updates need. Its buttons
+# are restart-now and restart-dont-now ("Restart later"), the default, which closes Atlas; Atlas
+# opens again and carries on after the next restart.
+window-close-update-restart-question = 再起動して更新を完了しますか?
+window-close-update-restart-later = 先に作業を保存してください。後で再起動した場合も、再起動後に Atlas が続行します。
 # Dialog shown when the window is closed during a setup with Windows Security switches still
-# off. $switches names them as Windows Security does, joined like a list. Its buttons are
-# window-close-keep, common-open-windows-security and window-close-close.
+# off. Its message is window-close-protection-all or window-close-protection-some; its buttons
+# are common-open-windows-security and window-close-close.
 window-close-protection-title = 保護がオフのまま Atlas を閉じますか?
-window-close-protection-message = Windows セキュリティの一部の保護がまだオフになっています: { $switches }。Atlas のインストールを最後まで行わない場合は、閉じる前に保護をオンに戻してください。インストールを続ける場合は、Atlas をもう一度開くとセットアップを再開します。
+window-close-protection-all = Windows セキュリティの 4 つの保護スイッチがオフになっています。今 Atlas をインストールしない場合は、先にオンに戻してください。
+# $switches names the switches that are off as Windows Security does, joined like a list.
+# Japanese needs no plural forms here, so $count isn't used.
+window-close-protection-some =
+    { $count ->
+       *[other] Windows セキュリティで { $switches } がオフになっています。今 Atlas をインストールしない場合は、先にオンに戻してください。
+    }
+# Dialogs shown when the window is closed while an ISO or a USB drive is being created.
+# Their buttons are window-close-keep-creating and window-close-stop; Atlas stays open once it
+# has stopped.
+iso-close-question = ISO の作成を停止しますか?
+iso-close-safe-point = Atlas は、次に安全に停止できる時点で停止します。
+usb-close-question = USB ドライブの作成を停止しますか?
+usb-close-unfinished = 作成途中のドライブでは Windows をインストールできません。
+window-close-keep-creating = 作成を続行
+window-close-stop = 停止
 # The Open button of the file picker for an Atlas package (.atlaspkg) file, on Get ready and the
 # ISO page. It's a button label, so keep it short.
 file-dialog-open-package = Atlas パッケージ (.atlaspkg) を開く
@@ -111,13 +151,22 @@ system-description = { $product } { $version } (ビルド { $build })
 ## ホーム ページ
 
 home-not-installed = Atlas へようこそ
+# Under home-not-installed: this PC's Windows, such as "Windows 11 Pro 25H2". Both values are text.
+home-windows = { $product } { $version }
+# Instead of home-windows once Atlas has found its latest release: this PC's Windows and the Atlas
+# version Install Atlas would install, such as "Windows 11 Pro 25H2 · Atlas 0.6.1". $product and
+# $version are this PC's Windows edition and version, and $atlas is the Atlas version (all text).
+home-windows-atlas = { $product } { $version } · Atlas { $atlas }
+# Under home-windows or home-windows-atlas, on a PC without Atlas: what Atlas does, in one sentence.
+# Keep it to what Atlas changes: don't promise a faster PC.
+home-about = Atlas は、Windows のバックグラウンド処理と気が散る要素を減らします。
 # The headline when Atlas Manager can't tell what is installed on this PC.
 home-state-unknown = この PC の Atlas
 # The headline when Atlas is installed. $version is text.
 home-version = Atlas { $version }
-# $date is a formatted date.
+# Beside the update status, on the line under the version. $date is a formatted date.
 home-installed-on = インストール日: { $date }
-home-status-checking = 更新プログラムを確認しています
+home-status-checking = 更新プログラムを確認しています…
 # While startup checks whether another window's installation is running.
 home-status-recovering = 実行中のインストールを確認しています
 home-status-offline = 更新プログラムを確認できませんでした
@@ -136,19 +185,50 @@ home-reinstall = Atlas を再インストール
 home-install = Atlas をインストール
 home-finish-install = Atlas { $version } のインストールを完了
 home-start-over = 最初からやり直す
+# The question Install Atlas asks where Windows on this PC has been in use: installed a week
+# or more ago, or with several apps. Its buttons are common-cancel and home-used-windows-install.
+home-used-windows-title = この PC に Atlas をインストールしますか?
+# OneDrive: use the name Windows shows in your language.
+home-used-windows-message = 既存のアプリや設定が動作しなくなる可能性があります。また、Atlas は OneDrive を削除するため、OneDrive 内のファイルは同期されなくなり、フォルダーが空に見える場合があります。先にファイルをバックアップしてください。
+home-used-windows-install = このままインストール
+# The card that opens ISO creation; its button is iso-open.
+home-iso-title = Atlas で Windows を再インストール
+# Under home-iso-title, with the Recommended badge, where Windows on this PC has been in use.
+home-iso-used = この PC の Windows はすでに使用されています。Atlas は新規インストールした Windows に最適です。
+# A bar on Home after an installation finished, until the PC restarts. Its message is
+# restart-needed and its button restart-now.
 home-restart-title = PC の再起動が必要です
+# Instead of restart-needed when Windows refused to restart. The raw error is behind Show
+# details, and the bar's button is common-try-again.
+home-restart-failed = Atlas は PC を再起動できませんでした。スタート メニューから再起動してください。
 home-security-reminder-title = 保護をオンに戻してください
 # Instead of home-security-reminder-title when no switch reads off but some couldn't be read
 # (with home-security-reminder-unreadable-message).
 home-security-reminder-unreadable-title = 保護がオンになっているか確認してください
-home-security-reminder-message = Atlas は現在インストールを実行していませんが、Windows セキュリティの一部の保護がまだオフになっています。Windows セキュリティを開き、次の保護を必ずオンにしてください: { $switches }。
+# Under home-security-reminder-title, after leaving the install flow or an installation that kept
+# Microsoft Defender. $switches names the switches that read off, as Windows Security names them
+# (protection-*), joined with list-separator and list-and; $count is how many it names.
+# Japanese needs no plural forms here.
+security-switches-still-off =
+    { $count ->
+       *[other] Windows セキュリティで、次の保護がまだオフになっています: { $switches }。
+    }
+# Instead of security-switches-still-off when no switch
+# reads off but some couldn't be read. $switches names those, joined like a list.
 home-security-reminder-unreadable-message = Atlas は一部の保護スイッチを読み取れませんでした。Windows セキュリティで、次の保護がオンになっていることを確認してください: { $switches }。
 home-elevation-title = インストールには管理者権限が必要です
+# Under home-elevation-title when the setup choices couldn't be saved; the raw error is
+# behind Show details.
+home-elevation-draft-not-saved = Atlas はセットアップの選択内容を保存できなかったため、再実行していません。
 home-state-error-title = Atlas のインストール情報を読み取れませんでした
-home-state-error-message = Atlas のバージョン、選択内容、履歴が正しく表示されない可能性があります。「もう一度確認」を選んで再試行してください。詳細: { $error }
+# Its button is common-try-again; the raw error is behind Show details.
+home-state-error-problem = Atlas のバージョン、選択内容、履歴が正しく表示されない可能性があります。
+# A bar on Home when the Atlas package needs a newer Atlas Manager. Its message is
+# acquire-manager-update-required or acquire-manager-update-required-any, and the button beside
+# the version above is manager-download.
+home-manager-needed-title = Atlas Manager の更新が必要です
 home-whats-new = Atlas { $version } の新機能
 home-view-release = GitHub でリリース ノートを表示
-home-released = リリース日: { $date }
 home-show-less = 折りたたむ
 home-show-full-notes = リリース ノートをすべて表示
 home-your-install = Atlas のインストール情報
@@ -157,28 +237,48 @@ home-install-unrecorded = この PC には Atlas のインストール方法の�
 home-history = インストール履歴
 # One history row. $version is text, $mode one of the history-mode-* messages, $date a formatted date and time.
 home-history-entry = Atlas { $version } · { $mode } · { $date }
-home-how-it-works = PC を Atlas 用に準備しましょう
-home-step-1-detail = Atlas が PC を確認し、保留中の Windows と Microsoft Store の更新プログラムをインストールして、インストール ファイルをダウンロードします。Store アプリが終了したり、PC の再起動が必要になったりすることがあるため、先に作業を保存してください。
-# Tester build: the Atlas package is bundled, nothing is downloaded.
-home-step-1-detail-bundled = Atlas が PC を確認し、保留中の Windows と Microsoft Store の更新プログラムをインストールして、同梱のインストール ファイルを準備します。Store アプリが終了したり、PC の再起動が必要になったりすることがあるため、先に作業を保存してください。
-home-step-2-detail = Microsoft Defender とプロセッサの保護を残すかどうかと、Windows の更新プログラムのインストール方法を選び、必要に応じて追加オプションも選びます。
-home-step-3-detail = インストールを妨げないよう、Windows セキュリティの 4 つの保護スイッチをオフにします。手順は Atlas がご案内します。
-# Japanese has no plural forms; the same wording serves every count.
-home-step-4-detail = インストールには約 { $minutes } 分かかります。その後、PC の再起動が必要です。
 # Accessible name of a numbered step.
 home-step-a11y = 手順 { $number }: { $title }
-# Link buttons: say where they lead, not just the brand.
+# Accessible name of a numbered step with its sentence, as screen readers read each step of
+# Home's lists. $step is home-step-a11y or stepper-item-a11y, and $detail is the step's sentence,
+# such as home-step-ready.
+home-step-detail-a11y = { $step }。{ $detail }
+# The card on Home that lists the four install steps (step-ready, step-options, step-security and
+# step-install) on a PC without Atlas, each with its home-step-* sentence beside it.
+home-steps-title = セットアップの流れ
+# Instead of home-steps-title while a setup is under way: each step shows whether it's done, current
+# or still to come.
+home-steps-under-way-title = Atlas をセットアップしています
+# Beside step-ready in that card.
+home-step-ready = Atlas が PC を確認し、Windows を更新します。
+# Instead of home-step-ready where Windows must move to a newer version before Atlas can install.
+# $release is that version, such as "26H2" (text).
+home-step-ready-move = Atlas が PC を確認し、Windows をバージョン { $release } に移行します。
+# Beside step-options in that card. Microsoft Defender is one of the choices asked there.
+home-step-options = Microsoft Defender など、残すものを選びます。
+# Beside step-security in that card.
+home-step-security = Windows セキュリティの 4 つの保護スイッチを手動でオフにします。
+# Beside step-install in that card. $minutes is how long installing usually takes, from the Atlas
+# package (a number). The first is shown when the PC restarts by itself after installing, as set in
+# settings-restart-automatically, and the second when the person restarts it.
+# Japanese needs no plural forms here.
+home-step-install-restarts =
+    { $minutes ->
+       *[other] インストールは通常、約 { $minutes } 分で完了し、その後 PC が再起動します。
+    }
+home-step-install-restart-yourself =
+    { $minutes ->
+       *[other] インストールは通常、約 { $minutes } 分で完了します。その後、PC を再起動してください。
+    }
+# At the bottom of that card, under the four steps.
+home-steps-save-work = アプリが終了することがあり、PC も再起動するため、先に作業を保存してください。
 home-github = GitHub で Atlas を見る
 home-discord = Discord の Atlas コミュニティに参加
 home-report-problem = 問題を報告
 
 ## インストールの種類 (状態ドキュメントから)
 
-mode-fresh = 新規インストール
-mode-upgrade = 以前のバージョンからの更新
-mode-reapply = 同じバージョンの再インストール
-mode-unknown = インストール
-# Short forms used inside a history row.
+# Lower-case forms used inside a history row.
 history-mode-fresh = 新規インストール
 history-mode-upgrade = 更新
 history-mode-reapply = 再インストール
@@ -186,17 +286,17 @@ history-mode-unknown = インストール
 
 ## ホーム ページの通知
 
+# Each notice's raw error, and the file it concerns, are behind Show details.
 notice-settings-reset-title = Atlas は既定のアプリ設定を使用しています
-# $error is a raw error message (text).
-notice-settings-unreadable = 保存されたアプリの設定を読み取れませんでした。Windows の設定は変更されていません。詳細: { $error }
-# $file is a file name (text).
-notice-settings-damaged-kept = アプリの設定ファイルが破損していたため、リセットしました。以前のファイルは { $file } として保存してあります。詳細: { $error }
-notice-settings-damaged = アプリの設定ファイルが破損していました。当面は既定の設定を使用します。詳細: { $error }
+notice-settings-unreadable-problem = Atlas は保存されたアプリの設定を読み取れませんでした。Windows の設定は変更されていません。
+notice-settings-damaged-kept-problem = アプリの設定ファイルが破損していたため、Atlas はリセットし、以前のファイルのコピーを保存しました。
+notice-settings-damaged-problem = アプリの設定ファイルが破損していました。当面は既定の設定を使用します。
 notice-settings-not-saved-title = アプリの設定を保存できませんでした
-# $error is a raw error message (text).
-notice-settings-not-saved = Atlas は最新の変更を保存できなかったため、Atlas を閉じると変更が失われる可能性があります。別の Atlas ウィンドウが開いている場合は閉じてから、もう一度変更してください。詳細: { $error }
+notice-settings-not-saved-problem = Atlas は最新の変更を保存できなかったため、Atlas を閉じると変更が失われる可能性があります。別の Atlas ウィンドウが開いている場合は閉じてから、もう一度変更してください。
 notice-session-unreadable-title = 前回のインストールの状態を確認できませんでした
-# $path is a file path (text).
+# Its button, iso-open-folder, shows the install record in File Explorer.
+notice-session-unreadable-problem = 以前のインストールがまだ実行中かどうかを、Atlas は確認できませんでした。実行中のものがないと確信できる場合は、そのインストール記録を削除してから Atlas を開き直してください。
+# Get ready, when the install record can't be read. $path is a file path (text).
 notice-session-unreadable-message = 以前のインストールがまだ実行中かどうかを、Atlas は確認できませんでした。判断できない場合は、Atlas コミュニティに相談してください。実行中のインストールがないと確信できる場合に限り、{ $path } を削除してから再試行してください。詳細: { $error }
 
 ## 管理者への昇格
@@ -216,112 +316,151 @@ step-install = インストール
 install-title = Atlas のセットアップ
 # Accessible name of the row of steps.
 stepper-label = Atlas セットアップの手順
-# Accessible name of one step. $status is one of the stepper-status-* messages.
-stepper-step-a11y = 手順 { $number }/{ $total }、{ $title }、{ $status }
+# Accessible name of one step. $heading is step-heading; $status is one of the
+# stepper-status-* messages.
+stepper-item-a11y = { $heading }、{ $status }
 stepper-status-completed = 完了
 stepper-status-current = 現在の手順
 stepper-status-upcoming = 今後の手順
+# A step already visited whose requirements aren't met yet.
 stepper-status-attention = 要注意
-# Heading above each step's content.
+# Names the step showing. Not shown: the stepper marks the step, and its current step reads
+# this, or step-heading-*-a11y, when it takes focus.
 step-heading = 手順 { $number }/{ $total }: { $title }
-# Accessible name of the step heading on a screen of Your choices, read when it takes focus.
-# $heading is step-heading; $progress is options-progress; $question is the screen's question.
-step-heading-choice-a11y = { $heading }。{ $progress }: { $question }
-# The same on the optional extras screen; $progress is options-progress-extras.
-step-heading-extras-a11y = { $heading }。{ $progress }
+# Accessible name of the current step on Your choices, read when it takes focus. $heading is
+# stepper-item-a11y; $questions is what the screen asks: each question, such as
+# screen-defender-question, one after another, then screen-extras-title, or, on the first
+# screen of an update or reinstall, update-path-update-title or update-path-reinstall-title.
+step-heading-choices-a11y = { $heading }。{ $questions }
 
 ## 手順 1: 準備
+## One checklist with three rows: the checks, the Atlas package, and the updates. Each row has a
+## title and one status line. Get ready starts updating and moves on by itself.
 
-ready-banner-busy-title = PC を準備しています
-ready-banner-busy-message = Atlas が PC を確認し、インストール ファイルを準備しています。
-ready-banner-blocked-title = PC の準備がまだできていません
-ready-banner-blocked-message = 「PC の確認」で示された項目に対処してから、「もう一度確認」を選んでください。
-ready-banner-no-package-title = 続行するには Atlas をダウンロードしてください
-ready-banner-no-package-message = 「インストール ファイル」で Atlas をダウンロードするか、Atlas パッケージ (.atlaspkg) をお持ちの場合は「パッケージ ファイルを開く」を選んでください。
-# The package tried needs a newer Atlas Manager. The title is also the footer's hint then.
-ready-banner-manager-title = 続行するには新しい Atlas Manager をダウンロードしてください
-# "Download Atlas Manager" is manager-download, the button in Installation files (package-title).
-ready-banner-manager-message = 「インストール ファイル」で「Atlas Manager をダウンロード」を選んでから、このバージョンの代わりに新しいバージョンを使ってください。
-# Tester build: the bundled Atlas package couldn't be unpacked.
-ready-banner-no-package-bundled-title = 続行するには同梱の Atlas パッケージを準備してください
-ready-banner-no-package-bundled-message = このテスト ビルドに同梱された Atlas パッケージはまだ準備できていません。「インストール ファイル」カードを確認してください。
-ready-banner-updates-title = 続行するには Windows と Store アプリを更新してください
-ready-banner-updates-message = 「更新を確認してインストール」を選んでください。更新が終わると、Atlas が PC をもう一度確認します。
-# While Windows and Store apps update. "Update Windows and Store apps" is prepare-title, the
-# card further down the page.
-ready-banner-updating-title = Windows と Store アプリを更新しています
-ready-banner-updating-message = 時間がかかることがあります。Atlas を開いたままにしてください。進行状況は「Windows と Store アプリの更新」で確認できます。
-# After Stop updating. "Check and install updates" is prepare-start, the card's button.
-ready-banner-updates-stopped-title = 更新を停止しました
-ready-banner-updates-stopped-message = 更新を完了するには、「Windows と Store アプリの更新」で「更新を確認してインストール」を選んでください。
-# Atlas reopened after restarting the PC to continue updating. "Continue updates" is
-# prepare-continue, the card's button.
-ready-banner-updates-resumed-title = PC が再起動しました
-ready-banner-updates-resumed-message = 更新を完了するには、「Windows と Store アプリの更新」で「更新を続ける」を選んでください。
-# Under prepare-failed-title or prepare-unconfirmed-title. "Try again" is common-try-again,
-# the card's button.
-ready-banner-updates-failed-message = 「Windows と Store アプリの更新」で対処方法を確認してから、「再試行」を選んでください。
-# Under prepare-reboot-title. "Restart and continue" is prepare-restart, the card's button.
-ready-banner-reboot-message = 先に作業を保存してから、「Windows と Store アプリの更新」で「再起動して続行」を選んでください。
-ready-banner-warnings-title = 確認しておきたい点があります
-ready-banner-warnings-message = このまま続行できますが、先に「PC の確認」で示された項目を読んでください。
-ready-banner-ok-title = 設定を選択する準備ができました
-ready-banner-ok-message = 確認はすべて完了し、インストール ファイルの準備ができました。
-
-# Card title and accessible name of the list of checks.
-ready-this-pc = PC の確認
+# Row title. It names what the row does, as a checklist item.
+ready-checks-title = PC の確認
+# Status line while the checks run.
+ready-checks-running = PC を確認しています…
 ready-check-again = もう一度確認
+# Status line once every check passed; common-show-details lists them.
 ready-checks-passed = { $count } 項目は問題ありません
+# Status line when some checks need attention, which are listed under it. When updating takes
+# care of every one of them, ready-checks-handled follows it, after usb-detail-separator.
+ready-checks-passed-some = { $total } 項目中 { $passed } 項目は問題ありません
+# After ready-checks-passed-some, when the only checks that didn't pass are ones updating takes
+# care of, such as updates waiting: "9 項目中 5 項目は問題ありません · 4 項目は更新時に対処されます".
+# $count is how many updating takes care of.
+ready-checks-handled = { $count } 項目は更新時に対処されます
+# Accessible state of a check that updating takes care of, after check-a11y's title.
+check-state-updates = 更新時に対処
+# Under the title of a check that updating takes care of.
+check-updates-handled = インストール待ちの更新プログラムがあります。Windows の更新時に Atlas がインストールします。
+check-restart-handled = 以前の変更を完了するため、Windows の再起動が必要です。更新時に対処されます。
+check-handled = 更新時に対処されます。
+# Row title: the Atlas version the package holds.
+ready-package-title = Atlas { $version }
+# Status lines of the package row.
+ready-package-downloading = ダウンロードしています…
+ready-package-unpacking = 展開しています…
+ready-package-ready = 準備完了
+ready-package-checking = 最新バージョンを確認しています…
+# Tester build: the bundled Atlas package is being unpacked; nothing is downloaded.
+ready-package-bundled = 同梱の Atlas パッケージを準備しています…
+ready-package-none = 未ダウンロード
+ready-package-failed = Atlas パッケージを入手できませんでした
+# Under ready-package-failed, with package-download-again and package-open-file. The raw error
+# is behind common-show-details.
+ready-package-failed-detail = もう一度ダウンロードするか、別の Atlas パッケージ (.atlaspkg) を開いてください。
+# Tester build: the same, with Try again (common-try-again) as the only control.
+ready-package-bundled-failed-detail = このテスト ビルドに同梱された Atlas パッケージを展開できませんでした。再試行してください。
+ready-package-manager = 新しい Atlas Manager が必要です
+ready-package-release-failed = 最新バージョンを確認できませんでした
+# Under ready-package-release-failed, with package-download-again and package-open-file.
+ready-package-release-failed-detail = インターネット接続を確認してから、再試行してください。Atlas パッケージ (.atlaspkg) をお持ちの場合は、代わりにそれを開くこともできます。
+# Row title.
+ready-updates-title = Windows と Microsoft Store の更新
+# Status line before updating starts. Get ready starts it by itself.
+ready-updates-pending = メモ帳などの Store アプリは、更新中に終了することがあります。先にそれらのアプリで作業内容を保存してください。
+# Status line while Windows moves to version $release, whose card says how that stands.
+ready-updates-after-move = Windows がバージョン { $release } に移行した後に開始します。
+# Status line after Atlas's own restart, until updating carries on by itself.
+ready-updates-resumed = 再起動後の処理を続けています…
+ready-updates-restarting = PC を再起動しています…
+ready-updates-done = Windows と Store アプリは最新の状態です。
+# Instead of ready-updates-done where Microsoft Store is turned off, so only Windows was updated;
+# prepare-store-skipped-removed says so under it.
+ready-updates-done-windows = Windows は最新の状態です。
+# The countdown before the restart updating needs, with restart-now and restart-dont-now under
+# it. Read when it shows, not every second.
+ready-updates-restart-countdown = { $seconds } 秒後に PC が再起動します。
+ready-updates-restart = 更新を完了するには、PC の再起動が必要です。
+ready-updates-restart-finish = バージョン { $release } のインストールを完了するには、Windows の再起動がもう一度必要です。
+ready-updates-restart-failed = PC が再起動しませんでした
+# Under the restart's status line, before Restart now.
+ready-updates-restart-save = 先に作業を保存してください。
+ready-updates-restart-persists = Windows がまだ再起動を求めています
+# Under ready-updates-restart-persists, with Try again and check-fix-windows-update.
+ready-updates-restart-persists-advice = もう一度再起動しても解決しない可能性があります。Windows Update で待機中の処理を完了してから、再試行してください。
+# Behind common-show-details. $reasons lists prepare-reason-* messages.
+ready-updates-restart-persists-reasons = 再起動の理由: { $reasons }
+ready-updates-network = この接続では更新できません
+ready-updates-stopped = 更新を停止しました。一部の更新プログラムはすでにインストールされている可能性があります。
+ready-updates-previous = 以前に開始した更新を待っています…
+# Button after the user stopped updating.
+ready-updates-resume = 更新を再開
+ready-updates-start = 更新を開始
+# Why updating hasn't started, under the row.
+ready-updates-blocked = Atlas がこの PC にインストールできる状態になるまで、更新は開始されません。
+ready-updates-needs-admin = Atlas に管理者権限が付与されると開始します。
+ready-updates-needs-windows = 「Windows の互換性」に問題がなければ開始します。
+ready-updates-needs-drivers = ドライバーのインストール方法を決めると開始します。
+# The driver choice, one line under the update row. $choice is ready-drivers-automatic or
+# ready-drivers-manual. common-change unfolds the two answers.
+ready-drivers-row = ドライバー: { $choice }
+ready-drivers-automatic = Windows Update から取得
+ready-drivers-manual = 自分でインストール
+ready-drivers-change-a11y = ドライバーのインストール方法を変更
+# Under the two answers, once updating has run.
+ready-drivers-again = 変更すると、更新がもう一度実行されます。
 
-package-title = インストール ファイル
 # $received and $total are formatted numbers of megabytes (text).
 package-downloading = Atlas { $version } をダウンロード中 · { $received } / { $total } MB
-# Japanese has no plural forms; the same wording serves every count.
-package-unpacking-progress = 展開中 · { $done } / { $total } ファイル
 package-unpacking = 展開中
-package-looking = 最新の Atlas バージョンを確認しています。
-# Tester build: the bundled Atlas package is being unpacked, nothing is downloaded.
-package-looking-bundled = 同梱の Atlas パッケージを準備しています。
-package-none = Atlas をダウンロードして、インストール ファイルを入手してください。Atlas パッケージ (.atlaspkg) をすでにお持ちの場合は、代わりにそれを開いてください。
-# The GitHub release check failed. "最新バージョンをダウンロード" is package-download-newest,
-# the button offered in this state; it checks again.
-package-release-failed = Atlas は最新バージョンを確認できませんでした。インターネット接続を確認してから「最新バージョンをダウンロード」を選ぶか、保存済みの Atlas パッケージ (.atlaspkg) を開いてください。
-# Short status words beside the card title.
-package-status-downloading = ダウンロード中
-package-status-unpacking = 展開中
-package-status-failed = 準備できませんでした
 package-status-ready = 準備完了
-package-status-checking = 確認中
-package-status-preparing = 準備中
-package-status-missing = 未ダウンロード
 # Accessible name of the progress bar.
-package-progress = インストール ファイルの進行状況
+package-progress = Atlas パッケージの進行状況
 package-download-again = もう一度ダウンロード
 package-download-version = Atlas { $version } をダウンロード
 package-download-newest = 最新バージョンをダウンロード
 package-cancel-download = ダウンロードをキャンセル
 package-open-file = パッケージ ファイルを開く
-# Where the package came from. $file is a file name, $path a folder path (text).
+# Where the package came from. $file is a file name (text).
 package-from-release = Atlas { $version } を GitHub からダウンロードしました。インストールの準備ができています。
 package-from-file = Atlas { $version } を { $file } から読み込みました。インストールの準備ができています。
 package-unpacked = Atlas { $version } のインストール準備ができています。
-package-none-yet = インストール ファイルが選択されていません
+package-none-yet = Atlas パッケージはまだありません
 acquire-no-asset = Atlas { $version } にはダウンロードできるパッケージ ファイルがありません。続行するには、保存済みの Atlas パッケージ (.atlaspkg) を開いてください。
 # Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
 # .apbx file from an Atlas release before 0.6.
 acquire-unsupported = このアプリでインストールできるのは Atlas 0.6.0 以降の Atlas パッケージ (.atlaspkg) です。
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = Atlas { $version } には、このアプリでのインストールに必要なファイルが含まれていません。もう一度ダウンロードするか、別の Atlas パッケージ (.atlaspkg) を開いてください。
-acquire-failed = インストール ファイルを準備できませんでした。もう一度ダウンロードするか、別の Atlas パッケージ (.atlaspkg) を開いてください。詳細: { $error }
+acquire-failed = Atlas パッケージを準備できませんでした。もう一度ダウンロードするか、別の Atlas パッケージ (.atlaspkg) を開いてください。詳細: { $error }
 # The download received nothing for a minute and was stopped.
 acquire-stalled = ダウンロードが応答しなくなりました。インターネット接続を確認してからもう一度ダウンロードするか、保存済みの Atlas パッケージ (.atlaspkg) を開いてください。
 # Tester build: the bundled Atlas package couldn't be unpacked. Try again is the only control offered.
 acquire-failed-bundled = 同梱の Atlas パッケージを準備できませんでした。「再試行」を選んでください。詳細: { $error }
 # The Atlas package asks for a newer Atlas Manager than this one. $version is the version it asks for,
-# such as 0.7.0. "Download Atlas Manager" is manager-download, the button beside the message.
-acquire-manager-outdated = この Atlas パッケージには Atlas Manager { $version } 以降が必要です。「Atlas Manager をダウンロード」を選んでから、このバージョンの代わりに新しいバージョンを使ってください。
+# such as 0.7.0. Download Atlas Manager (manager-download) is beside it. "It" is the Atlas Manager
+# downloaded, and "this one" the Atlas Manager running now.
+acquire-manager-update-needed = この Atlas パッケージには、新しい Atlas Manager が必要です。Atlas Manager { $version } 以降をダウンロードし、現在お使いの Atlas Manager の代わりに使ってください。
 # The same, for a package that doesn't say which version it needs.
-acquire-manager-outdated-any = この Atlas パッケージには新しいバージョンの Atlas Manager が必要です。「Atlas Manager をダウンロード」を選んでから、このバージョンの代わりに新しいバージョンを使ってください。
+acquire-manager-update-needed-any = この Atlas パッケージには、新しい Atlas Manager が必要です。最新の Atlas Manager をダウンロードし、現在お使いの Atlas Manager の代わりに使ってください。
+# The Atlas package for Atlas $version asks for Atlas Manager $required or later, such as 0.7.0.
+# Download Atlas Manager (manager-download) is beside it, on Get ready and on Home.
+acquire-manager-update-required = Atlas { $version } をインストールするには、Atlas Manager { $required } 以降をダウンロードし、現在お使いの Atlas Manager の代わりに使ってください。
+# The same, for a package that doesn't say which Atlas Manager it needs.
+acquire-manager-update-required-any = Atlas { $version } をインストールするには、最新の Atlas Manager をダウンロードし、現在お使いの Atlas Manager の代わりに使ってください。
 
 ## 新しい Atlas Manager
 
@@ -342,6 +481,10 @@ check-third-party-antivirus = 他のウイルス対策ソフト
 check-internet = インターネット接続
 check-power = 電源
 check-activation = Windows のライセンス認証
+# Checks shown only where Atlas moves Windows to a newer version: what the move needs.
+check-move-hardware = Windows 11 のハードウェア
+check-move-space = 空き領域
+check-move-update-source = 更新プログラムの取得元
 # Accessible name of a check row. $state is one of the check-state-* messages.
 check-a11y = { $title }: { $state }
 check-state-checking = 確認中
@@ -354,52 +497,96 @@ check-fix-windows-update = Windows Update を開く
 check-fix-network = ネットワーク設定を開く
 check-fix-power = 電源設定を開く
 check-fix-activation = ライセンス認証の設定を開く
-check-fix-apps = インストールされているアプリを開く
+# Opens Storage in Windows Settings, where space is freed up.
+check-fix-storage = ストレージ設定を開く
+# Opens Installed apps in Windows Settings, from the Other antivirus software check. "Installed
+# apps" is the page of that name in Windows Settings, as in fixed-installed; use the name Windows
+# shows in your language.
+check-fix-installed-apps = 「インストールされているアプリ」を開く
 # Check box the user ticks when the Windows Update scan could not run.
 check-ack-updates = Windows Update で、インストール待ちの更新プログラムがないことを確認しました
 
 detail-admin-ok = Atlas には、インストールに必要な変更を行う権限があります。
 detail-admin-missing = Atlas を管理者として再実行し、Windows が許可を求めたら「はい」を選んでください。
-# $builds is a list of build numbers such as "26100 または 26200"; $build is this PC's (text).
+# $builds is a list of build numbers such as "26100 or 26200"; $build is this PC's (text).
 detail-build-unsupported = このバージョンの Atlas には Windows ビルド { $builds } が必要です。この PC のビルドは { $build } です。続行する前に、対応する Windows バージョンをインストールしてください。
 detail-build-missing = この Atlas パッケージには、対応する Windows ビルドが記載されていません。LocalTest ビルドではなく、パッケージの完全なビルドを使用してください。
 detail-updates-none = インストール待ちの Windows 更新プログラムはありません。
-# $titles lists up to two update names (text); $count is the total.
-detail-updates-pending =
-    { $count ->
-        [1] 次の更新プログラムがインストール待ちです: { $titles }。「Windows と Store アプリの更新」で Atlas がインストールします。
-        [2] 次の { $count } 件の更新プログラムがインストール待ちです: { $titles }。「Windows と Store アプリの更新」で Atlas がインストールします。
-       *[other] { $titles } など、{ $count } 件の更新プログラムがインストール待ちです。「Windows と Store アプリの更新」で Atlas がインストールします。
-    }
-detail-updates-unknown = Windows 更新プログラムを確認できませんでした。Windows Update を開き、インストール待ちの更新プログラムがなければ下でチェックを入れてください。 ({ $error })
+# Updates still waiting once updating has run. $count is how many.
+detail-updates-left = { $count } 件の更新プログラムがまだインストール待ちです。Windows Update でインストールしてから、もう一度確認してください。
+detail-updates-scan-failed = Windows 更新プログラムを確認できませんでした。Windows Update を開いて、インストール待ちの更新プログラムがあるかどうかを確認してください。({ $error })
 detail-reboot-none = 現在、Windows の再起動は必要ありません。
-detail-reboot-pending = 以前の変更を完了するため、Windows の再起動が必要です。「更新を確認してインストール」を選ぶと、まず再起動するよう Atlas が案内します。
+# Once updating has run: a restart it left, or one Windows still wants.
+detail-restart-pending = 以前の変更を完了するため、Windows の再起動が必要です。PC を再起動してから、もう一度確認してください。
 # $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
-detail-reboot-pending-reasons = 以前の変更を完了するため、Windows の再起動が必要です ({ $reasons })。「更新を確認してインストール」を選ぶと、まず再起動するよう Atlas が案内します。
+detail-restart-pending-reasons = 以前の変更を完了するため、Windows の再起動が必要です ({ $reasons })。PC を再起動してから、もう一度確認してください。
 # Warning, not a block: $files lists up to three file paths Windows will replace or remove at the next restart.
 detail-reboot-file-renames = このまま続行できます。Windows には、次回の再起動時に置き換えまたは削除するファイルがあります ({ $files })。Xbox Gaming Services など一部のアプリは、再起動のたびにこの処理を予約します。
-detail-reboot-unknown = Windows に再起動が必要かどうかを確認できませんでした。PC を再起動し、Atlas を開き直してからもう一度確認してください。 ({ $error })
+detail-reboot-unknown = Windows に再起動が必要かどうかを確認できませんでした。PC を再起動し、Atlas を開き直してからもう一度確認してください。({ $error })
 detail-antivirus-none = 他のウイルス対策ソフトは検出されませんでした。
-# $products is a list of product names (text).
-detail-antivirus-found = Microsoft Defender 以外のウイルス対策アプリは、インストールを妨げることがあります。{ $products } をアンインストールしてから、「もう一度確認」を選んでください。
+# $products is a list of product names (text). The row offers check-fix-installed-apps.
+detail-antivirus-uninstall = Microsoft Defender 以外のウイルス対策アプリは、インストールを妨げることがあります。{ $products } をアンインストールしてから、もう一度確認してください。
 # Warning, not a block: Security Center still lists the product but its files are gone.
 detail-antivirus-stale = Windows セキュリティには { $products } がまだ表示されていますが、そのファイルはすでに削除されているため、インストールされていない状態です。Atlas はこのままインストールできます。
-detail-antivirus-unknown = 他のウイルス対策ソフトを確認できませんでした。「もう一度確認」を選んでください。失敗が続く場合は、PC を再起動してからもう一度確認してください。 ({ $error })
+detail-antivirus-check-failed = 他のウイルス対策ソフトを確認できませんでした。この問題が続く場合は、PC を再起動してからもう一度確認してください。({ $error })
 detail-internet-ok = インターネットに接続されています。Atlas がソフトウェアをダウンロードしてインストールする間、接続を維持してください。
 detail-internet-missing = インターネットに接続してから、もう一度確認してください。
 detail-power-mains = PC は電源に接続されています。インストールが終わるまで接続したままにしてください。
 detail-power-battery = インストール中に電源が切れないよう、PC を電源に接続してください。
-detail-power-unknown = PC が電源に接続されているかどうかを、Atlas は確認できませんでした。ノート PC の場合は電源に接続してから、「もう一度確認」を選んでください。この状態が続く場合は、「レポートを送信」を選んでください。
+detail-power-check-failed = PC が電源に接続されているかどうかを、Atlas は確認できませんでした。ノート PC の場合は電源に接続してから、もう一度確認してください。
 detail-activation-ok = Windows はライセンス認証されています。Atlas はこれを変更しません。
 detail-activation-missing = Windows はライセンス認証されていません。続行できますが、Atlas が代わりにライセンス認証を行うことはありません。
 detail-activation-no-licence = Windows からライセンス情報が報告されませんでした。続行できます。Atlas はライセンス認証の状態を変更しません。
-detail-activation-unknown = Windows のライセンス認証を確認できませんでした。続行できます。Atlas はライセンス認証の状態を変更しません。 ({ $error })
+detail-activation-unknown = Windows のライセンス認証を確認できませんでした。続行できます。Atlas はライセンス認証の状態を変更しません。({ $error })
+# What moving Windows to version $release needs. $missing lists hardware-tpm and hardware-uefi.
+detail-move-not-needed = この PC では、Atlas が Windows を新しいバージョンに移行する必要はありません。
+detail-move-hardware-ready = この PC には、Windows 11 に必要な TPM 2.0 と UEFI ファームウェアがあります。
+detail-move-hardware-missing = この PC には { $missing } がないため、Windows Update でバージョン { $release } に移行できません。ファイルをバックアップしてから、Atlas ISO で Windows を再インストールしてください。
+detail-move-hardware-unread = Atlas はこの PC のハードウェアをすべて読み取れなかったため、確認は Windows Update が行います。
+# $drive is a drive such as C:; $free and $needed are whole gigabytes.
+detail-move-space-ok = { $drive } の空き領域は { $free } GB です。
+detail-move-space-short = バージョン { $release } には { $drive } に { $needed } GB の空き領域が必要ですが、現在は { $free } GB です。空き領域を確保すると、Atlas が自動的にもう一度確認します。
+detail-move-space-unknown = Windows の更新に必要な空き領域を確認できませんでした。PC を再起動してから、もう一度確認してください。({ $error })
+detail-move-update-source-ok = この PC は Windows Update から更新プログラムを受け取っています。
+detail-move-update-source-managed = この PC は組織のサーバーから更新プログラムを受け取っていますが、そのサーバーはバージョン { $release } を提供していません。組織に問い合わせるか、Atlas ISO で Windows を再インストールしてください。
 
 ## 手順 2: 設定の選択
+## One screen asks every question, a card each, with the optional extras folded under them.
 
-options-progress = 選択 { $number }/{ $total }
-options-progress-extras = 選択 { $number }/{ $total }: 追加オプション
+# Once, at the top of Your choices. It names only what the Atlas folder can change back; other
+# choices, such as removing Microsoft Edge, can't be undone there.
 options-change-later = Microsoft Defender、プロセッサの保護、更新の設定は、後からデスクトップの Atlas フォルダーで変更できます。
+# The status line of the folded Optional extras card, then options-extras-show or -hide beside it.
+options-extras-none = 選択なし
+# $count is how many of the extras' check boxes are ticked.
+options-extras-ticked = { $count } 個を選択済み
+# Links that unfold and fold the Optional extras card.
+options-extras-show = 表示
+options-extras-hide = 非表示
+# Under each question's title, one sentence at most. What every Defender answer turns off
+# is in the Install step's details (summary-turned-off).
+question-defender-description = Microsoft Defender は Windows に組み込まれたウイルス対策です。
+question-mitigations-description = これらの保護はセキュリティの軽減策とも呼ばれ、Spectre や Meltdown などのプロセッサの欠陥や、アプリのバグを悪用する攻撃から PC を守ります。
+question-auto-updates-description = どちらの場合も、Atlas は Windows を現在のバージョンのまま維持し、Microsoft Store アプリの自動更新をオフにします。
+question-browser-description = Atlas はブラウザーの設定を変更しません。
+# One line under an answer other than the recommended one: what it costs.
+# cost-defender-disable is also the caution under Remove Microsoft Defender on the Install step
+# and Home, and the message after an installation that removed Defender.
+cost-defender-disable = 別のウイルス対策アプリをインストールするまで PC はウイルス対策による保護を受けられず、認識されないアプリやダウンロードを開く前に Windows が警告しなくなります。
+# "Exploit protection" is the Windows Security page of that name; use the name Windows shows in
+# your language.
+cost-mitigations-disable = 制御フロー ガードなど、アプリに対する Exploit Protection もオフになり、セキュリティが低下します。
+cost-auto-updates-disable = セキュリティ修正を入手するには、定期的に Windows Update を開いてください。
+cost-auto-updates-default = 更新プログラムのインストールを完了するため、Windows が PC を再起動することがあります。
+# Under the taskbar selector answer, which turns off the keyboard shortcuts for switching.
+cost-keyboard-shortcuts-off = Alt+Shift と Ctrl+Shift で言語やレイアウトを切り替えられなくなります。
+# One line under an optional extra: what ticking it does.
+extra-disable-hibernation = ディスク領域が解放されますが、休止状態と高速スタートアップは使えなくなります。
+extra-disable-power-saving = 消費電力や発熱が増え、バッテリー駆動時間が短くなる場合があります。
+extra-disable-core-isolation = メモリ整合性などの保護が弱まり、それを必要とするアプリやゲームに影響する場合があります。
+extra-uninstall-edge = この PC の Edge のお気に入り、履歴、保存したパスワードが削除されます。Microsoft アカウントに同期されているものは除きます。
+extra-install-toolbox = Atlas の設定を管理しやすくなります。ベータ版のため、一部の機能は未完成の場合があります。
+extra-install-eclean = 不要なファイルやスタートアップ アプリを確認できる、AtlasOS 開発チームのツールです。アカウントとインターネット接続が必要です。
 # Short names for each decision (summary rows) and the question each screen asks.
 screen-defender-title = Microsoft Defender
 screen-defender-question = Microsoft Defender を残しますか?
@@ -413,6 +600,23 @@ screen-apps-title = アプリ
 screen-optional-apps-title = 任意のアプリ
 screen-choose-one-title = オプションを選択
 screen-extras-title = 追加オプション
+# Each decision's short name in the middle of a sentence, as in summary-change-a11y,
+# update-path-differs, preflight-choice-unanswered and installed-not-applied-choices. Write it as
+# the language does mid-sentence: in English, product names keep their capitals and other names
+# are lower case.
+screen-update-path-name = Atlas の更新方法
+screen-defender-name = Microsoft Defender
+screen-mitigations-name = プロセッサの保護
+screen-updates-name = Windows Update
+screen-keyboard-name = キーボードの言語
+screen-browser-name = ブラウザー
+screen-power-name = 電源とセキュリティ
+screen-apps-name = アプリ
+screen-optional-apps-name = 任意のアプリ
+# A question with one answer that this app has no name for, such as one a newer Atlas package
+# adds. Its title is screen-choose-one-title.
+screen-package-choice-name = Atlas パッケージ内の選択項目
+screen-extras-name = 追加オプション
 # Question for a required choice this app has no specific wording for.
 screen-generic-question = 「{ $title }」のオプションを選んでください
 learn-more-defender = Microsoft Defender の詳細
@@ -421,25 +625,83 @@ learn-more-updates = Windows Update の詳細
 learn-more-browser = ブラウザーの詳細
 learn-more-power = 電源とセキュリティの詳細
 learn-more-apps = アプリの詳細
-learn-more-eclean = eclean と AtlasOS の連携について
+learn-more-eclean = eclean の詳細
+learn-more-keyboard = キーボードの言語の詳細
 learn-more-generic = セットアップ ガイドを読む
 # One line under the chosen answer: what it means for the PC.
 consequence-defender-enable = Windows 標準のウイルス対策を残し、ウイルスなどの脅威から PC を保護します。
-consequence-defender-disable = SmartScreen も削除します。別のウイルス対策アプリをインストールするまで、PC はウイルス対策による保護を受けられません。また、認識されないアプリやダウンロードしたファイルを開く前に、Windows が警告しなくなります。
 consequence-mitigations-default = プロセッサの欠陥や、アプリのバグを悪用する攻撃に対する Windows の既定の保護を維持します。
+# Under Turn off processor protections. "Exploit protection" is the Windows Security page
+# of that name; use the name Windows shows in your language.
 consequence-mitigations-disable = 制御フロー ガードなど、アプリに対する Exploit Protection もオフにします。これによりセキュリティが低下します。パフォーマンスに差が出るかどうかは、プロセッサによって異なります。
 consequence-auto-updates-disable = 定期的に Windows Update を開いて、更新プログラムをインストールしてください。更新の通知は引き続き表示されます。
 consequence-auto-updates-default = Windows がセキュリティ修正を含む更新プログラムを自動的にインストールします。
+
+## 手順 2: インストール済みの Atlas の更新と再インストール
+
+# The first screen of Your choices when updating the installed Atlas. $version is the Atlas
+# version being installed, such as 0.6.1.
+update-path-update-title = Atlas { $version } にどのように更新しますか?
+# The same screen when installing again the Atlas version this PC already has.
+update-path-reinstall-title = Atlas { $version } をどのように再インストールしますか?
+# The two answers on that screen, each with the detail line under it. Other messages
+# name the answers too, so keep each the same everywhere.
+update-path-keep = 選択内容を維持する
+update-path-keep-detail = Atlas は、すべての選択をこの PC の現在の設定のまま維持し、どれも変更しません。
+update-path-choose = 選択をやり直す
+update-path-choose-detail = この PC の現在の設定から始めます。アプリ、ファイル、個人用設定はそのまま残ります。
+# Heading of the list under the two answers: one row per choice, as this PC has it now.
+update-path-now-title = この PC の現在の選択内容
+# The value of a row in that list for a choice nothing on the PC shows. Keep my choices
+# then asks it.
+update-path-unknown = PC から判断できないため、Atlas がお尋ねします
+# Above that list. $choices lists the screen-*-name messages, such as "Microsoft Defender and
+# processor protections", joined with list-and.
+update-path-differs = { $choices } について、この PC が Atlas の記録と一致しません。
+# A line above the questions Keep my choices still asks, which are the ones this PC can't show.
+keep-choices-asked = Atlas は、その他の選択をすべてこの PC の現在の設定のまま維持します。
+# A short tag, on a line of its own, under the answer this PC has now, on the screens of
+# Choose again.
+option-now = この PC の現在の設定
+# Under an answer on a screen of Choose again, instead of what it usually means, when
+# choosing it changes this PC.
+change-defender-enable = Atlas は Microsoft Defender を復元します。再起動後に、Windows セキュリティで Defender の保護をオンにしてください。
+change-mitigations-default = Atlas はプロセッサの保護を Windows の既定どおりにオンに戻します。再起動後に有効になります。
+# Under Keep processor protections when every protection is turned on: Atlas leaves them
+# all on rather than going back to the Windows defaults.
+change-mitigations-all-on = 現在、プロセッサの保護はすべてオンになっています。保護を維持すると、すべてオンのままになります。
+change-auto-updates-default = Atlas は、Windows が更新プログラムを再び自動的にインストールするようにします。
+# Under Turn off hibernation, Turn off power saving and Turn off VBS when the box is cleared
+# while this PC has them off.
+change-hibernation-on = Atlas は休止状態をオンに戻します。
+change-power-saving-on = Atlas は省電力機能をオンに戻し、以前の電源プランに戻します。以前の電源プランがない場合は「バランス」にします。
+change-core-isolation-on = Atlas は仮想化ベースのセキュリティ (VBS) をオンに戻します。ただし、この PC のポリシーで管理されている場合は変更しません。再起動後に有効になります。
+# Under Remove Snipping Tool when it's ticked while this PC still has the app.
+change-remove-snipping-tool = この PC のすべてのユーザーから Snipping Tool を削除します。Atlas では後から元に戻せませんが、Microsoft Store から再インストールできます。
+# Under a box Choose again shows ticked and can't clear, saying why. Install or Remove Edge
+# is a file name in the Atlas folder, in English on every PC.
+fixed-uninstall-edge = Microsoft Edge はすでに削除されており、Atlas を更新しても元に戻りません。再インストールするには、Atlas フォルダーにある「Install or Remove Edge」を使用してください。
+# The same for an app Atlas installed. $app is its name, such as Atlas Toolbox or Brave.
+# "Installed apps" is the page of that name in Windows Settings.
+fixed-installed = { $app } はインストール済みです。Atlas はアプリをアンインストールしません。削除するには、Windows の「設定」で「インストールされているアプリ」を開いてください。
+# Under the browser chosen when another browser Atlas offers is already installed.
+# $installed and $browser are browser names, such as Brave and Firefox.
+browser-also = { $installed } はそのまま残り、Atlas が { $browser } もインストールします。
 
 ## Atlas パッケージのテキスト
 ## Labels and descriptions for the Atlas package's options and choices, by
 ## their ids in the package's atlas.json. The app shows these in place of the
 ## package's own English text; an option or choice that a newer package adds,
 ## which has no message here, shows the package's English.
+## An option whose label recommends it has a -short form too: the same answer
+## without the recommendation, for the Install step's summary, Home and the
+## records, where the choice is already made.
 
 package-option-defender-enable = Microsoft Defender を残す (推奨)
+package-option-defender-enable-short = Microsoft Defender を残す
 package-option-defender-disable = Microsoft Defender を削除する
 package-option-mitigations-default = プロセッサの保護を維持する (推奨)
+package-option-mitigations-default-short = プロセッサの保護を維持する
 package-option-mitigations-disable = プロセッサの保護をオフにする
 package-option-auto-updates-disable = 更新プログラムを自分でインストールする
 package-option-auto-updates-default = 更新プログラムを自動的にインストールする
@@ -462,215 +724,327 @@ package-choice-browser-description = インストールするブラウザーを�
 
 ## 手順 3: Windows セキュリティ
 
-security-banner-reading-title = Windows セキュリティを確認しています
-security-banner-reading-message = Atlas が下の 4 つの保護スイッチを確認しています。
-security-banner-off-title = 4 つの保護スイッチはすべてオフです
 # Shown instead of the switch list when Microsoft Defender isn't on this PC and the user
 # chose to remove it.
 security-banner-absent-title = この PC に Microsoft Defender はインストールされていません
-security-banner-absent-message = この手順でオフにするものはありません。「続行」を選んでください。
-security-banner-off-message = 「続行」を選んで、セットアップ内容を確認し、Atlas をインストールしてください。
-security-banner-on-title = Windows セキュリティでウイルス対策の保護をオフにしてください
-security-banner-on-message = Microsoft Defender は、Atlas による変更をブロックすることがあります。「Windows セキュリティを開く」を選び、下に表示されているスイッチをそれぞれオフにしてください。Microsoft Defender を残す場合は、インストールが完了したらスイッチをオンに戻してください。
+# The message under security-banner-absent-title and security-banner-removed-title.
+security-nothing-to-turn-off = オフにする保護スイッチはありません。
+# Instead of security-banner-absent-title when Atlas's own package removed Microsoft Defender
+# and it stays removed. Its message is security-nothing-to-turn-off.
+security-banner-removed-title = この PC の Microsoft Defender は Atlas によって削除されています
+# When Atlas's own package removed Microsoft Defender and this installation brings it back.
+security-banner-restore-title = このインストールで Atlas が Microsoft Defender を復元します
+security-restore-nothing-to-turn-off = Defender はまだ実行されていないため、オフにするものはありません。再起動後に、Windows セキュリティで Defender の保護をオンにしてください。
+# A warning that doesn't stop the step: the user chose to keep Microsoft Defender, but it
+# isn't on this PC and Atlas didn't remove it. Home and the "Atlas is installed" window use
+# the same title.
+security-banner-missing-title = Microsoft Defender が見つかりません
+security-banner-missing-message = Atlas が削除したものではないため、Atlas では復元できません。続行できますが、別のウイルス対策アプリをインストールするか Windows を修復するまで、PC はウイルス対策による保護を受けられません。
+# While a switch is on, or none can be read. Atlas has opened Windows Security at the switches,
+# and Open Windows Security, its button, opens it again.
+security-turn-off-title = 次の 4 つのスイッチをオフにしてください
+security-turn-off-message = Microsoft Defender は、インストール中に Atlas をブロックすることがあります。Defender を残す場合は、インストール後にスイッチをオンに戻してください。
 # The page name in Windows Security.
 security-list-title = ウイルスと脅威の防止の設定
 security-switch-off = オフ
 security-switch-on = オン
-security-switch-unreadable = 読み取れません
+security-switch-unreadable = 読み取り不可
 security-switch-reading = 確認中
 security-all-off = すべてオフ
 # Accessible name of a switch row. $state is one of the security-switch-* messages.
 security-a11y = { $title }: { $state }
-# Parts of the summary "2 個がまだオン、1 個が読み取れません".
+# Parts of the summary "2 個がまだオン、1 個を読み取れませんでした".
 security-count-still-on = { $count } 個がまだオン
-security-count-unreadable = { $count } 個が読み取れません
+security-count-unreadable = { $count } 個を読み取れませんでした
 security-count-join = { $a }、{ $b }
-security-unknown-title = Atlas が読み取れなかったスイッチを確認してください
-security-unknown-message = Windows セキュリティで 4 つのスイッチがすべてオフになっていることを確認してから、下でチェックを入れてください。
+# Every switch Atlas could read is off, and the rest couldn't be read. $switches names those,
+# as Windows Security names them, joined with list-and; $count is how many there are.
+# Japanese reads the same for one or several.
+security-unread-switches-title =
+    { $count ->
+       *[other] Atlas は { $switches } の状態を読み取れませんでした
+    }
+security-unread-message =
+    { $count ->
+       *[other] Windows セキュリティでオフになっていることを確認してください。
+    }
+# The check box under security-unread-message.
+security-unread-confirm =
+    { $count ->
+       *[other] { $switches } がオフになっていることを確認しました
+    }
+# The check box when Atlas couldn't read any of the four switches.
 security-acknowledge = Windows セキュリティで、4 つのスイッチがすべてオフになっていることを確認しました
 security-unknown-unelevated-title = 保護の確認には管理者権限が必要です
 security-unknown-unelevated-message = Microsoft Defender の設定を確認できるよう、Atlas を管理者として再実行してください。
-# The four switches, named as Windows Security names them in Japanese.
+# The four switches, named as Windows Security names them, each with why it must be off.
 protection-tamper = 改ざん防止
-protection-tamper-why = Atlas による Defender のセキュリティ設定の変更がブロックされないよう、オフにしてください。
+protection-tamper-why = Atlas がセキュリティ設定を変更できるようにするためです。
 protection-realtime = リアルタイム保護
-protection-realtime-why = スキャン中に Defender が Atlas のインストール ファイルをブロックしないよう、オフにしてください。
+protection-realtime-reason = スキャンによって Atlas のファイルがブロックされることがあります。
 protection-cloud = クラウド提供の保護
-protection-cloud-why = オンラインの脅威チェックが Atlas のインストール ファイルをブロックしないよう、オフにしてください。
+protection-cloud-reason = オンラインのチェックによって Atlas のファイルがブロックされることがあります。
 protection-samples = サンプルの自動送信
-protection-samples-why = オフにすると、Defender が Atlas のファイルを分析のために Microsoft へ自動送信しなくなります。
+protection-samples-why = Atlas のファイルが Microsoft に送信されないようにするためです。
 
 ## 手順 4: インストール
 
-# Accessible name of the progress bar.
-install-progress = インストールの進行状況
-# The installation's progress shown beside the bar. $percent is a whole number from 0 to 99.
-install-percent = { $percent }%
 outcome-succeeded-title = Atlas がインストールされました
 outcome-lost-title = インストール結果を確認できませんでした
 outcome-failed-title = インストールが完了しませんでした
-outcome-requirements = この PC はインストール要件を満たしていませんでした。インストールによる変更はありません。「準備」に戻って、もう一度確認を実行してください。
+# The result bar's message after an attempt that didn't succeed: what happened, then what to do,
+# in two sentences at most. The bar's button, or the footer's Try again, is the next step, so the
+# message never names it. The installer's own error is behind Show details.
+# Beside go-to-ready.
+result-requirements = この PC はインストール要件を満たしていなかったため、インストールによる変更はありません。
 # The -resumed variants follow a retry of an installation an earlier attempt had already started applying.
-outcome-requirements-resumed = この PC はインストール要件を満たしていなかったため、今回の試行は停止しました。以前の試行ですでに変更の適用が始まっています。「準備」に戻って、もう一度確認を実行してください。
-outcome-not-elevated = Atlas に管理者権限がありませんでした。インストールによる変更はありません。Atlas を管理者として再実行してから、もう一度お試しください。
-outcome-not-elevated-resumed = Atlas に管理者権限がなかったため、今回の試行は停止しました。以前の試行ですでに変更の適用が始まっています。Atlas を管理者として再実行してから、もう一度お試しください。
-# The installer's live check found Windows or Store updates unfinished. Get ready offers the
-# update check again; "更新を確認してインストール" is prepare-start, its button in that state.
-outcome-preparation-stale = Windows と Store アプリが最新の状態であることを Atlas が確認できなかったため、Windows を変更する前にインストールを停止しました。「準備」に戻って「更新を確認してインストール」を選んでください。
-outcome-preparation-stale-resumed = Windows と Store アプリが最新の状態であることを Atlas が確認できなかったため、今回の試行は停止しました。ただし、以前の試行ですでに変更の適用が始まっています。「準備」に戻って「更新を確認してインストール」を選んでください。
-outcome-failed-preflight = 変更を加える前にインストールが停止しました。もう一度試すことができます。再び停止する場合は、「レポートを送信」を選んでください。
-outcome-failed-staging = ファイルの準備中、Windows を変更する前にインストールが停止しました。もう一度試すことができます。再び停止する場合は、「レポートを送信」を選んでください。
-outcome-failed-applying = 一部の変更はすでに適用されている可能性があります。もう一度試すことができます。ここで中止する場合は、オフにした保護のうちまだ利用できるものを Windows セキュリティでオンに戻してください。
-outcome-failed-applying-defender-removed = 一部の変更はすでに適用されている可能性があります。もう一度試すことができます。インストールが再び停止する場合は、「レポートを送信」を選んでください。
-outcome-failed-resumed = 今回の試行は途中で停止しましたが、以前の試行ですでに変更の適用が始まっています。もう一度試すことができます。ここで中止する場合は、オフにした保護のうちまだ利用できるものを Windows セキュリティでオンに戻してください。
-outcome-failed-resumed-defender-removed = 今回の試行は途中で停止しましたが、以前の試行ですでに変更の適用が始まっています。もう一度試すことができます。インストールが再び停止する場合は、「レポートを送信」を選んでください。
-outcome-failed-repeated = 今回の試行は前回と同じエラーで停止しました。一部の変更はすでに適用されている可能性があります。何も変えずにもう一度試しても解決する可能性は低いです。Atlas チームが原因を調べられるように、「レポートを送信」を選んでください。ここで中止する場合は、オフにした保護のうちまだ利用できるものを Windows セキュリティでオンに戻してください。
-outcome-failed-repeated-defender-removed = 今回の試行は前回と同じエラーで停止しました。一部の変更はすでに適用されている可能性があります。何も変えずにもう一度試しても解決する可能性は低いです。Atlas チームが原因を調べられるように、「レポートを送信」を選んでください。
-outcome-failed-repeated-apps = Windows が依然として { $apps } を削除しなかったため、今回の試行は前回と同じエラーで停止しました。一部の変更はすでに適用されている可能性があります。何も変えずにもう一度試しても解決する可能性は低いです。Atlas チームが原因を調べられるように、「レポートを送信」を選んでください。ここで中止する場合は、オフにした保護のうちまだ利用できるものを Windows セキュリティでオンに戻してください。
-outcome-failed-repeated-apps-defender-removed = Windows が依然として { $apps } を削除しなかったため、今回の試行は前回と同じエラーで停止しました。一部の変更はすでに適用されている可能性があります。何も変えずにもう一度試しても解決する可能性は低いです。Atlas チームが原因を調べられるように、「レポートを送信」を選んでください。
-outcome-not-started = インストーラーが時間内に起動しませんでした。インストールによる変更はありません。もう一度試すことができます。
-outcome-lost = インストーラーは結果を報告せずに停止しました。一部の変更はすでに適用されている可能性があります。もう一度試すことができます。ここで中止する場合は、オフにした保護のうちまだ利用できるものを Windows セキュリティでオンに戻してください。
-outcome-lost-defender-removed = インストーラーは結果を報告せずに停止しました。一部の変更はすでに適用されている可能性があります。もう一度試すことができます。再び停止する場合は、「レポートを送信」を選んでください。
+result-requirements-resumed = この PC はインストール要件を満たしていなかったため、今回の試行は停止しました。以前の試行ですでに変更が加えられています。
+# Beside common-restart-as-administrator.
+result-not-elevated = Atlas に管理者権限がなかったため、インストールによる変更はありません。
+result-not-elevated-resumed = Atlas に管理者権限がなかったため、今回の試行は停止しました。以前の試行ですでに変更が加えられています。
+# The installer's live check found Windows or Store updates unfinished. Beside go-to-ready, where
+# updating starts again by itself.
+result-preparation-stale = Windows と Store アプリが最新の状態であることを Atlas が確認できなかったため、Windows を変更する前にインストールを停止しました。
+result-preparation-stale-resumed = Windows と Store アプリが最新の状態であることを Atlas が確認できなかったため、今回の試行は停止しました。以前の試行ですでに変更が加えられています。
+result-failed-preflight = 変更を加える前にインストールが停止しました。もう一度試すことができます。
+result-failed-staging = ファイルの準備中、Windows を変更する前にインストールが停止しました。もう一度試すことができます。
+# Beside common-open-windows-security. The "protection switches" are the four the user turned off.
+result-failed-applying = 一部の変更はすでに適用されている可能性があります。もう一度試すか、ここで中止する場合は Windows セキュリティで保護スイッチをオンに戻してください。
+# The -defender-removed variants once Microsoft Defender has been removed, so there are no
+# protection switches to turn back on.
+result-failed-applying-defender-removed = 一部の変更はすでに適用されている可能性があります。もう一度試すことができます。
+result-failed-resumed = 今回の試行は途中で停止しましたが、以前の試行ですでに変更が加えられています。もう一度試すか、ここで中止する場合は Windows セキュリティで保護スイッチをオンに戻してください。
+result-failed-resumed-defender-removed = 今回の試行は途中で停止しましたが、以前の試行ですでに変更が加えられています。もう一度試すことができます。
+# The -repeated variants follow a retry of an installation already part-way through that stopped
+# with the same error as the attempt before it, so they point to a report rather than another try.
+# "Send a report" is report-title, in the row of links under the bar.
+result-failed-repeated = 今回の試行は前回と同じエラーで停止したため、もう一度試しても解決する可能性は低いです。Atlas チームが原因を調べられるようレポートを送信し、ここで中止する場合は保護スイッチをオンに戻してください。
+result-failed-repeated-defender-removed = 今回の試行は前回と同じエラーで停止したため、もう一度試しても解決する可能性は低いです。Atlas チームが原因を調べられるよう、レポートを送信してください。
+# $apps holds the package names Windows gives the apps, such as MSTeams (text), joined with list-and.
+result-failed-repeated-apps = Windows が依然として { $apps } を削除しないため、もう一度試しても解決する可能性は低いです。Atlas チームが原因を調べられるようレポートを送信し、ここで中止する場合は保護スイッチをオンに戻してください。
+result-failed-repeated-apps-defender-removed = Windows が依然として { $apps } を削除しないため、もう一度試しても解決する可能性は低いです。Atlas チームが原因を調べられるよう、レポートを送信してください。
+result-not-started = インストーラーが時間内に起動しなかったため、インストールによる変更はありません。もう一度試すことができます。
+result-lost = インストーラーが結果を報告せずに停止したため、一部の変更が適用されている可能性があります。もう一度試すか、ここで中止する場合は Windows セキュリティで保護スイッチをオンに戻してください。
+# Instead of result-lost once Defender is gone, as for the -defender-removed variants above.
+result-lost-defender-removed = インストーラーが結果を報告せずに停止したため、一部の変更が適用されている可能性があります。もう一度試すことができます。
 restart-now-message = Atlas のセットアップを完了するため、Windows を再起動しています。
-# Japanese has no plural forms; the same wording serves every count.
-restart-countdown = Atlas のセットアップを完了するため、{ $seconds } 秒後に Windows を再起動します。先に作業を保存するには、「後で再起動」を選んでください。
 restart-stopped = 自動再起動をキャンセルしました。作業を保存してから PC を再起動し、Atlas のセットアップを完了してください。
 restart-needed = 作業を保存してから PC を再起動し、Atlas のセットアップを完了してください。
 restart-dont-now = 後で再起動
 restart-now = 今すぐ再起動
-restart-start-failed = Atlas は PC を再起動できませんでした。作業を保存してから、スタート メニューから再起動してください。詳細: { $error }
+# The bar when the final checks refuse to start the installer. Its message names what needs
+# attention; the bar's button is the fix, and raw errors are behind Show details.
 preflight-title = インストールは開始されていません
-preflight-invalid-options = 選択した設定を Atlas で使用できませんでした。「設定の選択」に戻って内容を確認し、再試行してください。詳細: { $error }
-# $problems is a sentence or two built from preflight-problem and preflight-security.
-preflight-changed = 前回の確認の後で PC の状態が変わりました。次の問題を解決してから再試行してください。{ $problems }
-preflight-problem = { $title }: { $detail }
-# $summary is the Windows Security summary such as "2 個がまだオン".
-preflight-security = Windows セキュリティ: { $summary }。
-preflight-busy = 別の Atlas ウィンドウがインストールを開始しています。少し待ってから、もう一度「Atlas をインストール」を選んでください。
-# Shown with the home-start-over button.
-preflight-taken-over = 別の Atlas ウィンドウがこのセットアップを使用しているため、インストールは開始されていません。そのウィンドウで続行するか、「最初からやり直す」を選んでここでもう一度セットアップしてください。
-preflight-record-unreadable = 前回のインストールがまだ実行中かどうかを確認できなかったため、Atlas は新しいインストールを開始していません。「準備」に戻って、次に行うことを確認してください。詳細: { $error }
-preflight-refused = インストーラーを起動できませんでした。インストールによる変更はありません。再試行するには「Atlas をインストール」を選んでください。問題が続く場合は、「レポートを送信」を選んでください。詳細: { $error }
-# Instead of preflight-refused when retrying an installation an earlier attempt had already started applying.
-preflight-refused-resumed = インストーラーを起動できなかったため、今回の試行は停止しました。以前の試行ですでに変更の適用が始まっています。再試行するには「Atlas をインストール」を選んでください。問題が続く場合は、「レポートを送信」を選んでください。詳細: { $error }
-go-to-ready = 「準備」に戻る
-go-to-options = 「設定の選択」に戻る
+# Beside go-to-options. $choice is a screen-*-name message, as it reads mid-sentence, such as
+# processor protections.
+preflight-choice-unanswered = { $choice } についての回答が必要です。
+preflight-choices-unusable = Atlas はこれらの選択内容を使用できませんでした。
+# Beside go-to-ready. $checks lists check-* names, such as "Internet connection and Power supply",
+# joined with list-and; $count is how many it names.
+preflight-checks-changed =
+    { $count ->
+       *[other] PC の確認後に状態が変わり、{ $checks } に対処が必要になりました。
+    }
+# Beside common-open-windows-security. $summary is the Windows Security summary such as "1 still on".
+preflight-security-changed = スイッチをオフにした後に、Windows セキュリティの状態が変わりました: { $summary }。
+preflight-busy-wait = 別の Atlas ウィンドウがインストールを開始しています。少し待ってから、再試行してください。
+# Beside home-start-over.
+preflight-taken-over-start-over = 別の Atlas ウィンドウがこのセットアップを使用しています。そのウィンドウで続行するか、ここで最初からやり直してください。
+# Beside go-to-ready.
+preflight-record-unreadable-check = 以前のインストールがまだ実行中かどうかを確認できなかったため、Atlas は新しいインストールを開始していません。
+preflight-not-started = Atlas はインストーラーを起動できなかったため、インストールによる変更はありません。もう一度試すことができます。
+# Instead of preflight-not-started when retrying an installation an earlier attempt had already
+# started applying.
+preflight-not-started-resumed = Atlas はインストーラーを起動できませんでしたが、以前の試行ですでに変更が加えられています。もう一度試すことができます。
+go-to-ready = 「準備」に移動
+# Button on the Install step's bar when a question has no answer; opens Your choices there.
+go-to-options = 「設定の選択」に移動
+# Button on the Install step's bar when switches Atlas can't read need confirming on that step.
+go-to-security = 「Windows セキュリティ」に移動
 # Replaces Continue on a choice opened from a Change link on the Install step, while Continue leads straight back there.
 go-to-install = 「インストール」に戻る
 output-problem-title = インストールの進行状況を読み取れませんでした
-output-problem-message = Atlas はログを読み取れませんでした。インストールが停止したとは限りません。PC の電源を切らずに、ログ ファイルを開いてみてください。詳細: { $error }
 install-elevate-title = インストールには管理者権限が必要です
-install-no-package-title = 先にインストール ファイルを選んでください
-install-no-package-message = 「準備」に戻って Atlas をダウンロードするか、保存済みの Atlas パッケージ (.atlaspkg) を開いてください。
-# Tester build variant of install-no-package-message.
-install-no-package-bundled-message = 「準備」に戻って、このテスト ビルドに同梱された Atlas パッケージを準備してください。
+# Under install-elevate-title, beside common-restart-as-administrator.
+install-elevate-uac = Atlas を再実行すると、Windows が許可を求めます。
+# A bar on the Install step, beside go-to-ready, when no Atlas package is ready.
+install-package-missing = Atlas パッケージの準備ができていません
 # Step 4 when step 1 is incomplete for this session (checks or Windows updates), with go-to-ready as the button.
 install-not-ready-title = 先に「準備」を完了してください
 install-not-ready-message = インストールを始める前に、Atlas が PC の確認と Windows の更新を完了する必要があります。
-install-security-title = インストール前にウイルス対策の保護を確認してください
-install-security-reading = 4 つの保護スイッチをもう一度確認しています。
-install-security-message = { $summary }。インストールする前に、Windows セキュリティを開いて 4 つのスイッチがすべてオフになっていることを確認してください。
-summary-try-again = 再試行前の確認
-summary-ready = Atlas のセットアップ内容を確認
+# A bar on the Install step when a fresh reading of the protection switches no longer passes.
+# $summary is the Windows Security summary such as "1 still on".
+install-switches-title = 保護スイッチをもう一度オフにしてください
+install-switches-message = Windows セキュリティ: { $summary }。
+# The Install step's card, when nothing stands in the way of installing, and otherwise.
+summary-ready-title = インストールの準備ができました
+summary-setup-title = Atlas のセットアップ内容
 summary-activation = ライセンス認証
 summary-activation-ok = ライセンス認証済み。Atlas はこれを変更しません。
 summary-activation-missing = ライセンス認証されていません。続行できますが、Atlas が Windows のライセンス認証を行うことはありません。
 summary-activation-unknown = Atlas は Windows のライセンス認証の状態を変更しません。
-summary-duration = 推定時間
-# Japanese has no plural forms; the same wording serves every count.
-summary-duration-value = { $minutes } 分、その後に再起動
-summary-restart-checkbox = インストール後に PC を自動的に再起動する
+# How long installing usually takes, from the Atlas package. The card shows the first while the
+# box below it is ticked, and the second while it isn't.
+summary-time-restarts = 通常は約 { $minutes } 分で完了し、その後 PC が再起動します
+summary-time-restart-yourself = 通常は約 { $minutes } 分で完了し、その後 PC の再起動が必要です
+# The check box on the card. It's the same setting as settings-restart-label.
+summary-restart-automatically = インストールが完了したら自動的に再起動する
+# A row of the card's details: what Atlas turns off whichever Microsoft Defender answer is chosen.
+summary-turned-off = 同時にオフになる機能
+summary-turned-off-value = スマート アプリ コントロール、拡張フィッシング保護、デバイスの検索
 summary-show-command = インストール コマンドを表示
 summary-hide-command = インストール コマンドを非表示
+# Accessible name of the Copy button under the installation command.
 summary-copy-command-a11y = インストール コマンドをコピー
 summary-command-unavailable = インストール コマンドを準備できませんでした。詳細: { $error }
 summary-not-chosen = まだ選択されていません
-# Accessible name of a Change link. $title is a screen-*-title message.
+# Accessible name of a Change link. $title is a screen-*-name message, as it reads mid-sentence.
 summary-change-a11y = { $title } を変更
+# The summary's first row on an update or reinstall. Its value is update-path-keep or
+# update-path-choose.
+summary-update-path = Atlas の更新方法
+# Why Continue waits on Get ready: read with it as its description, and shown beside it
+# where the page doesn't already say so. 8 words or fewer.
 footer-still-checking = インストールの準備中
-footer-fix-items = 続行するには、「PC の確認」の項目に対処してください
-footer-need-package = 続行するには、Atlas をダウンロードするか Atlas パッケージを開いてください
-# Tester build variant of footer-need-package.
+footer-checks-blocked = 続行するには、確認で見つかった問題を解決してください
+footer-manager-outdated = 続行するには、新しい Atlas Manager をダウンロードしてください
+footer-need-files = 続行するには、Atlas パッケージを入手してください
+# Tester build variant of footer-need-files.
 footer-need-package-bundled = 続行するには、同梱の Atlas パッケージを準備してください
+footer-drivers = 続行するには、ドライバーのインストール方法を決めてください
+footer-windows-terms = 続行するには、ライセンス条項に同意してください
+footer-updating = Windows と Store アプリを更新しています…
+footer-restart = 続行するには、PC を再起動してください
 footer-reading-security = 保護スイッチを確認中
+# Why Continue waits on Windows Security, read with it as its description: while a switch is
+# on, then while only switches Atlas couldn't read are left to confirm.
 footer-security-pending = 続行するには、4 つのスイッチをすべてオフにしてください
 footer-security-confirm = 続行するには、Atlas が読み取れなかったスイッチを確認してください
+# Beside Install Atlas while automatic restart is on: the PC restarts when installation finishes.
 footer-install-ready = 先に作業を保存し、アプリを閉じてください
 button-install = Atlas をインストール
-# Japanese has no plural forms; the same wording serves every count.
 log-earlier-lines = これより前の { $count } 行はログ ファイルにあります。
 # Appended when the log is copied. $path is a file path (text).
 log-full-log-note = (完全なログ: { $path })
 
 ## インストール中の画面
 
-installing-checking-title = 最終確認
-installing-checking-line = 変更を加える前に、Atlas が PC を確認しています。少し時間がかかる場合があります。
 installing-title = Atlas をインストールしています
-installing-phase-preflight = PC を確認し、インストール ファイルを準備しています。
-installing-phase-staging = インストール ファイルを準備しています。PC の電源を切らないでください。
-installing-phase-applying = 選択した設定に従って Windows を設定しています。PC の電源を切らず、電源に接続したままにしてください。
-installing-phase-done = インストールを完了しています。PC の電源を切らないでください。
+# What Atlas is doing, under installing-title and as the progress bar's accessible name: a
+# short verb phrase ending in an ellipsis. The final checks and the installer's own first
+# checks both read installing-checking-label.
+installing-checking-label = PC を確認しています…
+installing-staging-label = Atlas のファイルをコピーしています…
+installing-applying-label = Windows を設定しています…
+installing-finishing-label = 最終処理を行っています…
+# The one line under the progress bar: when the PC restarts by itself after, and when it doesn't.
+installing-keep-on-restart = PC の電源を入れたまま、電源に接続しておいてください。インストールが完了すると自動的に再起動します。
+installing-keep-on = PC の電源を入れたまま、電源に接続しておいてください。インストールが完了したら、PC を再起動してください。
+# When Atlas can't follow the installer's log. Its title is output-problem-title; "Open log
+# folder" is common-open-log-folder, its button.
+installing-output-problem = インストールが停止したとは限りません。
 installing-installed-title = Atlas がインストールされました
-# $time is a formatted clock time.
-installing-started-just-now = { $time } に開始 (経過 1 分未満)
-# Japanese has no plural forms; the same wording serves every count.
-installing-started-minutes = { $time } に開始 (経過 { $minutes } 分)
-installing-restart-auto = インストールが完了すると、PC は自動的に再起動します。それまでに、他のアプリで作業中の内容を保存してください。
+# Under installing-installed-title while the restart counts down, with installing-restart-save
+# under it, then restart-now and restart-dont-now.
+installing-restart-countdown = { $seconds } 秒後に PC が再起動します。
+installing-restart-save = 先に作業を保存してください。
 
 ## 再起動後の「Atlas がインストールされました」ウィンドウ
 
 installed-title-version = Atlas { $version } がインストールされました
 installed-title = Atlas がインストールされました
 installed-ready = セットアップが完了しました。Atlas を適用した PC をお使いいただけます。
-installed-manual-drivers-title = ドライバーをインストール
+# A line under the setup card where the user installs drivers themselves, with
+# installed-drivers-guide, a link, under it.
 installed-manual-drivers-detail = チップセット、ネットワーク、グラフィックスのドライバーは、PC、マザーボード、またはデバイスのメーカーから入手してください。
-installed-drivers-guide = ドライバーガイドを開く
-installed-security-message = Microsoft Defender を残しましたが、その保護の一部がまだオフになっています。Windows セキュリティを開き、次の保護を必ずオンにしてください: { $switches }。
+installed-drivers-guide = ドライバー ガイドを開く
+# After an installation that removed Microsoft Defender. Its message is cost-defender-disable.
 installed-defender-removed-title = Microsoft Defender は削除されました
-installed-defender-removed-message = 別のウイルス対策アプリをインストールするまで、PC はウイルス対策による保護を受けられません。SmartScreen も削除されたため、認識されないアプリやダウンロードしたファイルを開く前に、Windows が警告することはありません。
 # Home and the "Atlas is installed" window, after an installation that kept Microsoft Defender,
 # when it is missing and no Atlas package removed it. Its title is security-banner-missing-title;
-# "Report a problem" is home-report-problem, its button.
-installed-defender-missing-message = Microsoft Defender を残すことを選びましたが、Defender が見つかりません。Atlas が削除したものではありません。他のウイルス対策アプリを使っていない場合は、ウイルス対策アプリをインストールして PC を保護してください。Defender をご自身で削除していない場合は、「問題を報告」を選んでください。
+# its button is report-title.
+defender-missing-message = Atlas が削除したものではありません。他のウイルス対策アプリを使っていない場合は、インストールして PC を保護してください。
+# Home and the "Atlas is installed" window, when Atlas's record kept Microsoft Defender but
+# Atlas's own package still removes it. Its button is home-reinstall. 7. Security, Defender and
+# Toggle Defender are folder and file names in the Atlas folder, in English on every PC.
+installed-defender-not-restored-title = Microsoft Defender は削除されたままです
+defender-not-restored-message = 以前の Atlas の更新で復元されなかったため、Defender は PC を保護していません。Atlas を再インストールして Defender を残すか、Atlas フォルダーの「7. Security」>「Defender」にある「Toggle Defender」を実行してください。
+# The "Atlas is installed" window, when what the installation recorded for some choices isn't
+# what was chosen. The help links (Send a report, Export diagnostics, Open log folder) follow.
+installed-not-applied-title = 一部の選択が反映されませんでした
+# $choices lists their names as they read mid-sentence (screen-*-name), such as "Microsoft
+# Defender、プロセッサの保護", joined with list-and; $count is how many it names. Japanese
+# needs no plural forms here.
+installed-not-applied-choices =
+    { $count ->
+       *[other] 次の項目は以前の状態のままです: { $choices }。
+    }
+# After an update whose last step turned Windows Update off, or paused it, again, as the
+# user's own Atlas choices ask.
+installed-update-off-title = 選択したとおり、Windows Update は再びオフになりました
+installed-update-off-message = オフの間、PC はセキュリティ更新プログラムを受け取りません。
+installed-update-paused-title = 選択したとおり、Windows の更新は再び一時停止されました
+installed-update-paused-message = 一時停止中、PC はセキュリティ更新プログラムを受け取りません。
 
 ## 設定
 
 settings-title = 設定
+# Headings of the page's sections, over their cards. settings-language and settings-help
+# head sections too.
+settings-appearance = 外観
+settings-installation = インストール
+settings-privacy = プライバシー
 settings-theme = アプリのテーマ
 settings-theme-system = Windows に合わせる
 settings-theme-light = ライト
 settings-theme-dark = ダーク
 settings-theme-contrast-note = Atlas は Windows のコントラスト テーマの配色を使用しています。
-settings-theme-mica-note = 半透明の背景を表示するには、Windows と同じライトまたはダークのテーマを選んでください。
 settings-language = 言語
-settings-language-system = Windows に合わせる
-settings-language-system-selected = { settings-language-system } ({ $language })
-# Under "Windows に合わせる": which language that gives. $language is a language's own name.
-settings-language-system-detail = 「Windows に合わせる」の場合: { $language }
-# A short tag under each language that is translated but not yet reviewed by a native speaker.
+# The setting in the Language section, and its box's name.
+settings-app-language = アプリの言語
+# The first choice in the language box: following Windows, then the language that gives.
+# $language is that language's own name, for example "English (United Kingdom)".
+settings-language-match-windows = Windows に合わせる ({ $language })
+
+# A short tag after each language in the list that is translated but not yet reviewed
+# by a native speaker.
 settings-language-preview-tag = プレビュー
-# Under the language list, once, explaining the Preview tag.
-settings-language-preview-note = プレビュー翻訳は、まだネイティブ スピーカーによるレビューを受けていません。
+# Under the language box while the language in use is a preview translation, once its
+# notice (preview-notice) has been dismissed.
+settings-language-preview-in-use = この翻訳は、まだネイティブ スピーカーによるレビューを受けていません。
+# A bar at the top of the content while a preview translation is in use, until the user
+# dismisses it (common-dismiss names its close button). $language is the language's own
+# name; preview-notice-switch and preview-notice-language are its links.
 preview-notice = { $language }はプレビュー翻訳のため、誤りが含まれている可能性があります。
 preview-notice-switch = 英語に切り替える
 preview-notice-language = 言語を変更
-# $tag is a language tag (text).
-settings-language-unavailable = { $tag } はこのバージョンの Atlas では利用できません。現在は英語で表示しています。選択した言語は保存されています。
-# $languages is the Windows display-language list (text).
-settings-language-windows-unmatched = Atlas は Windows の表示言語 ({ $languages }) にまだ対応していません。現在は英語で表示しています。
-settings-language-windows-unavailable = Windows の表示言語を確認できませんでした。現在は英語で表示しています。詳細: { $error }
-# $locale is the regional format's own name, for example "日本語 (日本)".
-settings-language-formats = 数値、日付、時刻は Windows の地域設定の形式 ({ $locale }) に従います。
+# Under the language box when the language chosen isn't in this version, and the box
+# shows English, which is in use.
+settings-language-chosen-unavailable = 選択した言語はこのバージョンの Atlas にないため、英語で表示しています。選択内容は保存されています。
+# Under the language box while Match Windows is chosen and Atlas has none of the Windows
+# display languages.
+settings-language-windows-unsupported = Atlas は Windows の表示言語にまだ対応していないため、英語で表示しています。
+# Under the language box while Match Windows is chosen and the Windows display languages
+# couldn't be read.
+settings-language-windows-unreadable = Windows の表示言語を確認できなかったため、英語で表示しています。
+# Under the language box when the regional format is of another language or region than
+# the app. $locale is the regional format's own name, for example "日本語 (日本)".
+settings-language-formats = 数値、日付、時刻は Windows の地域のフォーマットに従います: { $locale }。
 # Instead of settings-language-formats when the regional format writes dates or times
 # right to left. $locale is the format's English name, for example "Arabic (Saudi Arabia)".
-settings-language-formats-numbers-only = 数値は Windows の地域設定の形式 ({ $locale }) に従います。Atlas はまだ右から左に書くテキストを表示できないため、日付と時刻には標準の形式を使用します。
+settings-language-formats-numbers-only = 数値は Windows の地域のフォーマットに従います: { $locale }。Atlas はまだ右から左に書くテキストを表示できないため、日付と時刻には標準の形式を使用します。
 settings-language-contribute = GitHub で Atlas の翻訳に協力する
-settings-usage-analytics = 表示した画面、ISO の作成、インストール結果を Atlas と共有する
-settings-restart-label = インストール後に PC を自動的に再起動する
+# The usage analytics switch, with its description and a link to the privacy policy.
+settings-share-usage = 使用状況データを Atlas と共有する
+settings-share-usage-description = 開いたページ、ISO の作成、インストールの成否が対象です。
+settings-privacy-policy = プライバシー ポリシー
+# The switch covers the restart after installing and the restart that Windows and Store
+# updates need before installing.
+settings-restart-automatically = インストールと更新の後に自動的に再起動する
+settings-restart-automatically-description = Atlas の処理が終わると 1 分以内に PC が再起動し、開いているアプリは閉じられます。
 settings-restart-locked = この設定はインストールが終わってから変更できます。
-settings-restart-description = オンにすると、インストールの完了後 1 分以内に PC が再起動し、開いているアプリはすべて閉じられます。インストールする前に作業を保存してください。
-settings-help = ヘルプとフィードバック
+# Heading over Send a report, Export diagnostics and settings-open-data-folder.
+settings-help = ヘルプ
 settings-about = バージョン情報
 settings-about-app = Atlas Manager
 settings-about-licence = ライセンス
@@ -682,81 +1056,108 @@ settings-view-licences = サードパーティのライセンス情報を表示
 settings-licences-failed = ライセンス情報を開けませんでした。再試行するか、GitHub のソース コードで確認してください。
 settings-open-data-folder = アプリのフォルダーを開く
 
-## Optional choices: explanations shown before selection.
+## 追加オプション: 選択前に表示する説明
 
 consequence-disable-hibernation = 休止状態でセッションを保存するために使うディスク領域を解放します。休止状態と高速スタートアップは使えなくなります。
 consequence-disable-power-saving = 省電力機能をオフにします。消費電力や発熱が増え、バッテリー駆動時間が短くなる場合があります。
 consequence-disable-core-isolation = メモリ整合性を含む、Windows の追加のセキュリティ層をオフにします。保護が弱まり、この機能を必要とするアプリやゲームに影響する場合があります。
 consequence-remove-snipping-tool = スクリーンショットや画面録画に使う Windows のアプリを削除します。
 consequence-uninstall-edge = Microsoft Edge ブラウザーを削除します。別のブラウザーがあることを確認するか、下で選んでください。
-# Instead of consequence-uninstall-edge when Atlas is installed on this PC, which has the
-# user's Edge data. "choose one below" refers to the browser choice under it.
-consequence-uninstall-edge-data = Microsoft Edge と、この PC の Edge のお気に入り、履歴、保存したパスワードを削除します。Microsoft アカウントに同期されていないデータは失われます。別のブラウザーがあることを確認するか、下で選んでください。
 # Under Remove Microsoft Edge in the Install step's summary, with a caution glyph.
 caution-uninstall-edge = この PC の Edge のお気に入り、履歴、保存したパスワードを削除します。
 consequence-install-another-browser = 下でブラウザーを選ぶと、Atlas がインストールします。
 consequence-install-toolbox = Atlas Toolbox を追加すると、Atlas の設定を管理しやすくなります。Toolbox はベータ版のため、一部の機能は未完成の場合があります。
 consequence-install-eclean = セットアップ後の PC を整える、AtlasOS 開発チームのメンテナンス ツールです。不要なファイルやスタートアップ アプリを確認できます。アカウントとインターネット接続が必要です。
 
-# Introduction on the home page before Atlas is installed.
-home-intro = Atlas は Windows を調整して、バックグラウンドの動作や気を散らす要素を減らします。Windows を新規インストールしたら、ご自身のアプリやファイルを追加する前に Atlas をインストールしてください。
-
-## ISO creation
-iso-home-title = Windows インストール メディア
-iso-home-description = Atlas を含む Windows のインストール ファイル (ISO) を作成して、この PC や別の PC での Windows の再インストールに使用できます。
+## ISO の作成
 iso-open = Atlas ISO を作成
 iso-title = Atlas ISO を作成
 iso-recommended = おすすめ
-iso-admin-description = Windows ISO を読み取って新しい ISO を作成するには、Atlas に管理者権限が必要です。「管理者として再実行」を選び、Windows で確認が表示されたら「はい」を選んでください。
+# Titles of the three ISO steps in the stepper: where Windows comes from, how it's set
+# up, and the review that creates the ISO.
+iso-step-source = Windows
+iso-step-setup = セットアップ
+iso-step-create = 作成
+# The first question on the Windows step. It sets the defaults that follow: the
+# architecture, language, edition and account name, and this PC's network drivers.
+iso-target-title = この ISO はどの PC 用ですか?
+iso-target-this = この PC
+iso-target-another = 別の PC
+# Under the question when the ISO is for another kind of processor than this PC's, so only
+# Another PC applies. $architecture is iso-architecture-x64 or iso-architecture-arm64.
+iso-target-arch = この ISO は { $architecture } の PC 用です。
 iso-source = Windows ISO
-iso-download-recommended = Microsoft からダウンロード（推奨）
-iso-source-question = Windows はどこから入手しますか？
-iso-use-local = ISO ファイルを選ぶ
-iso-package-latest-label = 最新版
-iso-package-latest = 最新の Atlas パッケージ
-iso-package-unavailable = このバージョンの Manager に対応する Atlas パッケージを選んでください。
-iso-save-name = 保存名：{ $name }
-iso-source-download = Microsoft から Windows 11 をダウンロード
+# Starts the Windows 11 download at once, in the language and architecture of the caption
+# under it (iso-download-caption). Also in the Windows ISO's Change menu and on the bar of
+# an ISO Atlas can't use.
+iso-download-windows = Microsoft からダウンロード
+# What the download gets. $language is Microsoft's own name for the language, in English,
+# such as "English International"; $architecture is iso-architecture-x64 or -arm64.
+iso-download-caption = Windows 11 · { $language } · { $architecture }
+# The same while Microsoft's list of languages loads.
+iso-download-caption-loading = Windows 11 · { $architecture }
+# Names the download's language and architecture for the accessible name of its Change link.
+iso-download-what = Windows のダウンロード
+iso-download-language = 言語
 iso-download-arch = アーキテクチャ
 iso-download-languages = 言語を読み込み中…
-iso-download-list-error = Windows の言語を読み込めませんでした。もう一度試すか、Microsoft のサイトから ISO をダウンロードしてください。
-iso-download-file-error = ISO を保存できませんでした。接続と空き容量を確認し、新しいファイル名でもう一度お試しください。
-iso-download-website = Microsoft のダウンロードページを開く
-iso-download-progress = Windows をダウンロード中 · { $total } 中 { $received }
-iso-download-starting = Windows のダウンロードを準備中…
-iso-output = 新しい ISO の保存先
-iso-no-file = ファイル未選択
-# Accessible name of the Browse or Save as button beside a file field: $action is
-# that button's text and $field the field's label.
+# The progress bar's label while Windows downloads, then how much has arrived. $received and
+# $total are sizes such as "2.4 GB" (size-gigabytes).
+iso-downloading = Windows 11 をダウンロードしています…
+iso-download-amount = { $received } / { $total }
+# The download couldn't start because Microsoft's download service couldn't be reached
+# through Atlas, or it stopped part-way. Try again (common-try-again) is beside it.
+iso-download-unreachable = Atlas は Microsoft のダウンロード サービスに接続できませんでした。インターネット接続を確認してから、再試行してください。
+iso-download-incomplete = ダウンロードが完了しませんでした。インターネット接続と空き領域を確認してから、再試行してください。
+iso-download-website = Microsoft のダウンロード ページを開く
+# Opens the file picker for a Windows ISO, and is that picker's Open button. On the ISO and
+# USB pages, and on the bar of an ISO Atlas can't use.
+iso-use-local = ISO ファイルを選ぶ
+# A status pill while the files are checked, before Continue becomes available.
+iso-checking = Windows ISO を確認しています…
+# Accessible name of the Ready pill once the check passed. $facts is the ISO's architecture
+# and size, such as "x64 · 6.6 GB".
+iso-checked-a11y = Windows ISO の準備完了、{ $facts }
+iso-package-latest-label = 最新版
+# The latest Atlas release is older than this Atlas Manager can use; Open package file
+# (package-open-file) is under it.
+iso-package-release-old = 最新の Atlas リリースは古いため、この Atlas Manager では使用できません。
+# While Atlas finds and downloads the latest Atlas package by itself.
+iso-package-fetching = 最新の Atlas を入手しています…
+# The release check failed, so the latest package couldn't be found; Try again is beside it.
+iso-package-release-failed = Atlas は最新バージョンを確認できませんでした。インターネット接続を確認してから、再試行してください。
+# Accessible name of the Change button beside a file: $action is that button's text and
+# $field the file's label.
 iso-pick-a11y = { $action }: { $field }
-iso-inspect = ファイルを確認
-iso-mode-title = Atlas をどのようにセットアップしますか?
-iso-mode-interactive = サインイン後に Atlas の選択内容を決定
-iso-mode-interactive-description = サインインすると Atlas が開き、更新、設定の選択、Atlas のインストールを順にご案内します。
-iso-mode-before = Atlas の選択内容を今すぐ決定
-iso-mode-before-description = Atlas は選択内容を ISO に保存します。サインインすると Atlas が開いて更新の手順を案内し、その後、この選択内容で Atlas をインストールできます。
-iso-package-unsupported-title = 新しいバージョンの Atlas パッケージを選んでください
-# "サインイン後に Atlas の選択内容を決定" is iso-mode-interactive.
-iso-package-unsupported = この Atlas パッケージでは、Atlas の選択内容を ISO に保存できません。新しいバージョンのパッケージを選ぶか、「サインイン後に Atlas の選択内容を決定」を選んでください。
-# Shown when Check files refuses the Atlas package; $minimum as for iso-package.
-iso-failed-package-unsupported = この Atlas パッケージは ISO の作成に使用できません。Atlas { $minimum } 以降のパッケージを選んでください。
-# Tester build: the bundled package cannot be swapped, so the only way on is the after-sign-in
-# mode. Also the Your choices footer hint for any package that can't save choices.
-iso-package-unsupported-bundled-title = この ISO には Atlas の選択内容を保存できません
-# "サインイン後に Atlas の選択内容を決定" is iso-mode-interactive.
-iso-package-unsupported-bundled = このテスト ビルドに同梱された Atlas パッケージは、ISO でのセットアップに対応していません。代わりに「サインイン後に Atlas の選択内容を決定」を選んでください。
+# Beside the unavailable Continue on the Windows step while there's no Windows ISO yet.
+iso-need-windows = 続行するには、Windows ISO を入手してください
+# The question on the Setup step about when the package's choices are made.
+iso-mode-question = Atlas の選択はいつ行いますか?
+iso-mode-after = サインイン後
+iso-mode-after-description = サインイン後に、Atlas がセットアップを案内します。
+iso-mode-now = 今すぐ
+iso-mode-now-description = 選択内容は ISO に保存され、サインイン後に Atlas をインストールします。
+# A check box under Now, whose description already says the choices are saved in the ISO.
+iso-mode-before-desktop = デスクトップが開く前に完了する
+iso-mode-before-desktop-description = サインイン後、インストールが終わるまで Atlas が全画面で実行されます。
+# In place of the question when the Atlas package can't save choices in an ISO.
+iso-mode-unavailable = この Atlas パッケージは選択内容を ISO に保存できないため、選択はサインイン後に行います。
 iso-atlas-options = Atlas の選択内容
-iso-review = ISO の内容を確認
-iso-review-description = ISO を作成しても、この PC には何もインストールされず、元の ISO も変更されません。作成後は、Atlas で新しい ISO を USB ドライブに書き込み、その USB から Windows を再インストールできます。
-iso-review-files = ファイル
-iso-step-windows = Windows のセットアップ
-iso-step-review = 確認
+# The line at the top of the Create step.
+iso-create-intro = ISO を作成しても、この PC と元の ISO は変更されません。
 iso-review-package = Atlas パッケージ
 iso-review-output = 新しい ISO
+iso-review-edition = エディション
 iso-review-editions = エディション
 iso-edition = Windows エディション
-iso-edition-auto = Windows セットアップ時に選択
-iso-accept-terms = Windows のマイクロソフト ソフトウェア ライセンス条項に同意します
+# The edition shown on the Setup step's edition card when Windows Setup asks which edition to
+# install.
+iso-edition-auto = Windows セットアップで選択
+# The first item of that card's edition menu, above the ISO's own editions: the choice that lets
+# Windows Setup ask which edition to install.
+iso-edition-auto-menu = Windows セットアップで選択
+# An optional check box: accepting the terms here stops Windows Setup from asking.
+iso-accept-terms-optional = Windows のライセンス条項に同意し、Windows セットアップでの確認を省略する
 iso-architecture-x64 = x64
 iso-architecture-arm64 = Arm64
 # A file size; $size is a formatted number (text). Megabytes below a gigabyte.
@@ -765,14 +1166,38 @@ size-gigabytes = { $size } GB
 iso-review-account = アカウント名
 iso-review-target = インストール先
 iso-review-drivers = ドライバー
+# A review row about the Windows Setup screens the ISO's answer file skips.
+iso-review-setup-screens = Windows セットアップ
+iso-review-skips = Microsoft アカウントとプライバシーの画面を省略
+iso-review-skips-terms = ライセンス条項、Microsoft アカウント、プライバシーの画面を省略
+iso-review-network = ネットワーク ドライバー
+iso-review-network-included = この PC の Wi-Fi とイーサネットのドライバー
+# The Atlas choices row when they're saved in the ISO and finish before the desktop opens.
+iso-review-mode-before-desktop = 今すぐ (デスクトップが開く前に完了)
+# Under the new ISO on the Create step. $needed and $free are sizes such as "35.0 GB"
+# (size-gigabytes); $drive is a drive such as "C:".
+iso-destination-space = 必要な領域: { $needed } · { $drive } の空き領域: { $free }
+iso-destination-short = ISO には { $needed } が必要ですが、{ $drive } の空き領域は { $free } です。空き領域を確保するか、別のドライブに保存してください。
+iso-destination-filesystem = { $drive } には ISO の大きなファイルを保存できません。Windows ドライブなど、NTFS でフォーマットされたドライブに保存してください。
+iso-destination-unusable = Atlas が ISO を保存できるのは、この PC 内のドライブにあるフォルダーだけです。
 iso-create = ISO を作成
-iso-progress-title = ISO を作成しています
-iso-stage-inspect = Windows ISO を確認中
-iso-stage-copy = Windows ファイルをコピー中
-iso-stage-add-atlas = Atlas を追加中
-iso-stage-master = ISO ファイルを書き込み中
-iso-stage-verify = 新しい ISO を確認中
-iso-stage-cleanup = 最終処理中
+# Heading above the progress bar and the list of stages (iso-stage-*) while the ISO is
+# being created.
+iso-progress-title = ISO を作成しています…
+# The progress bar's label while an ISO or a USB drive is created: the stage under way, ending
+# in an ellipsis. $stage is one of the iso-stage-* or usb-stage-* names. Those names also label
+# the list of stages, each shown as completed, in progress or not started, so add here any
+# in-progress form your language needs. Japanese adds 中 to the noun: "Windows ISO の読み取り中…".
+iso-progress-stage = { $stage }中…
+# The stages of creating the ISO, as a list under iso-progress-title. Each name reads as
+# completed, in progress or not started (iso-stage-a11y), so write it as a noun or plain verb
+# phrase, without an in-progress form; Japanese uses a plain noun (〜の読み取り), without 中.
+iso-stage-read = Windows ISO の読み取り
+iso-stage-copy = Windows ファイルのコピー
+iso-stage-add-atlas = Atlas の追加
+iso-stage-master = ISO ファイルの書き込み
+iso-stage-verify = 新しい ISO の確認
+iso-stage-cleanup = 最終処理
 # Accessible name of one stage while the ISO is created. No "Step": the screen reader adds
 # "4 of 6". $status is stepper-status-completed or one of the three below.
 iso-stage-a11y = { $title }、{ $status }
@@ -780,50 +1205,65 @@ iso-stage-status-current = 進行中
 # The stage where creating the ISO stopped with an error.
 iso-stage-status-failed = 失敗
 iso-stage-status-not-started = 未開始
-iso-progress-description = Atlas を開いたままにしてください。大きなイメージの処理には時間がかかる場合があります。
+iso-progress-keep-open = 完了するまで Atlas を開いたままにしてください。
 iso-cancel = 作成をキャンセル
 iso-cancelling = 安全にキャンセルできる時点を待っています
+# The heading over the progress bar of an ISO or a USB drive once cancelling is asked for.
+iso-cancelling-short = キャンセルしています…
 iso-cancelled = ISO の作成をキャンセルしました
-iso-cancelled-description = 元の ISO は変更されていません。一時ファイルが残っている場合は、「ログ フォルダーを開く」を選ぶと場所を確認できます。
+iso-cancelled-unchanged = 元の ISO は変更されていません。
 iso-complete = ISO が完成しました
-iso-complete-description = その後、「インストール USB を作成」を選び、Windows を再インストールする前にファイルをバックアップしてください。
+iso-complete-backup = この ISO から Windows を再インストールする前に、ファイルをバックアップしてください。
+# The finished page's main button, which opens the USB drive panel.
+iso-create-usb = USB ドライブを作成
 iso-open-folder = フォルダーに表示
 iso-failed = ISO の作成を完了できませんでした
-iso-failed-description = ファイルが選択した場所にあり、保存先のドライブが接続されていることを確認してから、「ISO を作成」を選んでください。失敗が続く場合は、「レポートを送信」を選んでください。
-# Title while the Check files step fails; the messages below say why.
+# Under iso-failed, beside Try again.
+iso-failed-retry = ファイルが選択した場所にあり、保存先のドライブが接続されていることを確認してから、再試行してください。
+# Title while checking the files fails; the messages below say why.
 iso-check-failed = ファイルを確認できませんでした
-iso-check-failed-description = ISO と Atlas パッケージが選択した場所にあり、ダウンロードが完了していることを確認してから、「ファイルを確認」を選んでください。失敗が続く場合は、「レポートを送信」を選んでください。
-# Title when Windows refused the administrator relaunch (UAC declined); elevation-declined is the message.
+iso-check-failed-retry = ISO と Atlas パッケージのダウンロードが完了していることを確認してから、再試行してください。
+# Nothing ran because the folder the worker runs from couldn't be created.
+iso-unstaged = Atlas は作業フォルダーを準備できなかったため、何も変更されていません。
+# Titles and messages for an ISO or package Atlas can't use. The bar offers the fix:
+# iso-download-windows and iso-use-local for the ISO, iso-fix-package for the package.
+iso-edition-unsupported-title = この ISO には Atlas が対応するエディションがありません
+iso-edition-unsupported = Windows Home と LTSC には対応していません。Pro、Education、Enterprise を含む ISO を使用してください。
+iso-customised-title = この ISO はカスタマイズされています
+iso-customised = autounattend.xml などのセットアップ ファイルがすでに含まれています。Microsoft が提供する未変更の ISO を使用してください。
+iso-preview-title = この ISO はプレビュー ビルドです
+iso-preview = この Windows ビルドは、Microsoft の一般公開版の一覧にありません。Microsoft が提供する ISO を使用してください。
+iso-windows-unsupported-title = この Atlas パッケージでは、この ISO を使用できません
+iso-windows-unsupported = パッケージが対応するバージョンの、未変更の Windows 11 ISO を使用してください。
+iso-release-unknown-title = Atlas はこの Windows リリースを確認できませんでした
+iso-release-unconfirmed = Atlas は Microsoft の一般公開版の一覧で確認します。インターネット接続を確認してから、再試行してください。
+# $minimum is the oldest Atlas version that can make an ISO, such as "0.6.0".
+iso-package-old-title = この Atlas パッケージでは ISO を作成できません
+iso-package-old = Atlas { $minimum } 以降を使用してください。
+iso-manager-missing-title = Atlas Manager のファイルが見つかりません
+iso-fix-package = 別のパッケージを選択
+# A package that needs a newer Atlas Manager; Download Atlas Manager (manager-download) is
+# beside it, and acquire-manager-update-needed says which version.
+iso-manager-outdated-title = Atlas Manager の更新が必要です
+# This PC's network drivers couldn't be exported; the button beside it builds without them.
+iso-network-not-added = Atlas は、この PC のネットワーク ドライバーを ISO に追加できませんでした。
+iso-network-skip = ドライバーなしで作成
+# Title of the bar that asks for administrator permission. Its message is iso-admin-reason,
+# or iso-elevation-declined after Windows refused the relaunch (UAC declined).
 iso-elevation-title = ISO の作成には管理者権限が必要です
-# Typed reasons reported by the image worker.
-iso-failed-output-exists = 同じ名前のファイルがすでに存在します。「名前を付けて保存」を選んで、新しいファイル名を入力してください。
-iso-failed-destination = その場所には新しい ISO を保存できません。「名前を付けて保存」を選び、「ダウンロード」など、この PC 上のフォルダーを選んでください。ネットワーク上の場所や、多くの USB ドライブのように FAT32 または exFAT でフォーマットされたドライブは使用できません。
+iso-admin-reason = Windows ISO を読み取って新しい ISO を作成するために必要です。
+iso-elevation-declined = Windows が Atlas に許可を与えなかったため、まだ Windows ISO を読み取れません。
+# The free space ran out while the ISO was being created.
 iso-failed-space = 保存先ドライブの空き領域が不足しています。空き領域を確保するか、新しい ISO を別のドライブに保存してください。
+# Under iso-manager-missing-title.
+iso-manager-missing = AtlasManager.exe を「ダウンロード」などのローカル フォルダーにダウンロードし、そこから開いてください。
 # Home and LTSC are the editions ISO creation drops; the others are examples it keeps.
 iso-failed-edition = この ISO には対応する Windows エディションが含まれていません。Windows Home と LTSC には対応していません。Pro、Education、Enterprise など、別のエディションを含む ISO を使用してください。
-iso-failed-customised = この ISO には autounattend.xml などのカスタム セットアップ ファイルがすでに含まれています。Microsoft が提供する未変更の Windows ISO を選んでください。
-iso-failed-windows-unsupported = この Windows イメージには、Atlas パッケージが対応していません。このパッケージが対応するバージョンの、未変更の 64 ビット版 Windows 11 ISO を使用してください。
-iso-failed-network-architecture = この PC のネットワーク ドライバーは、この ISO のアーキテクチャと一致しません。前の画面に戻って「この PC のネットワーク ドライバーを含める」をオフにするか、この PC 用の ISO を選んでください。
-iso-failed-manager-missing = Atlas Manager のファイルが見つかりません。AtlasManager.exe を「ダウンロード」などのローカル フォルダーに保存し、そこから開いてもう一度お試しください。
-iso-failed-unstaged = Atlas は作業フォルダーを準備できなかったため、何も変更されていません。もう一度お試しください。問題が続く場合は、「診断情報をエクスポート」を選んでバグ報告に添付してください。
-iso-failed-package-changed = ファイルの確認後に Atlas パッケージが変更されました。「ファイル」の横にある「変更」を選んでから、「ファイルを確認」を選んでください。
+# Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = ログ フォルダーを開く
-iso-close-title = ISO の作成はまだ実行中です
-iso-close-message = 作成またはキャンセルが完了するまで、このウィンドウを開いたままにしてください。キャンセルは、現在の処理を安全に停止できる時点まで待機します。
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,
 # from another page. Their controls are unavailable until it finishes.
 iso-locked = Atlas は Windows Update の処理中です。完了すると、ここで続行できます。
-prepare-title = Windows と Store アプリの更新
-prepare-description = インストール前に、Atlas は Windows、Microsoft Store、Store アプリを更新します。メモ帳、ペイント、ターミナルなど、開いている Store アプリは更新中に終了することがあるため、先に作業内容を保存してください。PC の再起動が必要になることもあります。
-prepare-complete = インストールする Windows と Store の更新プログラムは、もう見つかりませんでした。
-prepare-reboot-title = 続行するには PC を再起動してください
-prepare-reboot = 更新プログラムのインストールを完了するには、PC の再起動が必要です。Atlas はここまでの選択内容を保存し、サインイン後に再び開きます。
-# $reasons: the pending-restart markers Windows set, from the prepare-reason-* names.
-prepare-reboot-reasons = 更新プログラムのインストールを完了するには、PC の再起動が必要です ({ $reasons })。Atlas はここまでの選択内容を保存し、サインイン後に再び開きます。
-# Under the restart message: the button restarts Windows without a countdown.
-prepare-reboot-save-work = 先に作業を保存し、アプリを閉じてください。「再起動して続行」を選ぶと、PC はすぐに再起動します。
-# Shown instead of another restart when Windows asks for one again right after restarting.
-prepare-restart-persists = PC は再起動しましたが、Windows はまだ再起動が必要だと報告しています ({ $reasons })。もう一度再起動しても解決しない可能性が高いため、「Windows Update を開く」を選んで待機中の処理を完了してから、「再試行」を選んでください。何も待機していない場合は、「レポートを送信」を選んでください。
 # Names of the markers Windows sets when it wants a restart. They complete
 # "Windows の再起動が必要です (…)"; keep them short, noun-stop, in the half-width parentheses.
 prepare-reason-servicing = Windows サービシング
@@ -831,196 +1271,31 @@ prepare-reason-windows-update = Windows Update
 prepare-reason-file-renames = 置き換え待ちのファイル
 prepare-reason-update-agent = Windows Update サービス
 prepare-reason-unknown = 理由の報告なし
-prepare-failed = 「再試行」を選んでください。再び失敗する場合は、Windows Update または Microsoft Store で残りの更新を完了するか、「レポートを送信」を選んでください。
+# Under prepare-failed-title, with Try again (common-try-again).
+prepare-failed-retry = 再試行しても解決しない場合は、Windows Update または Microsoft Store で残りの更新を完了してください。
+# Title of the error bar on the update card; the cause is its message.
 prepare-failed-title = 一部の更新を完了できませんでした
-# The update run ended without writing any result, for example after Atlas was closed
-# while it ran. "再試行" is common-try-again, the button beside it.
-prepare-ended-unconfirmed = 更新が結果を報告する前に停止したため、Windows と Store アプリが最新の状態であることを Atlas は確認できません。「再試行」を選んで、更新を確認してください。
+# Under prepare-unconfirmed-title: the run ended without writing any result, for example after
+
+
+# Atlas was closed while it ran.
+prepare-unconfirmed = 更新が結果を報告する前に停止しました。
+# Title of the bar over prepare-ended-unconfirmed: not called a failure, as none was reported.
 prepare-unconfirmed-title = 更新の結果を確認できませんでした
-# "更新を確認してインストール" is prepare-start, its button in this state.
-prepare-cancelled = 更新を停止しました。一部の更新プログラムはすでにインストールされている可能性があります。続行する前に、「更新を確認してインストール」を選んで更新を完了してください。
-prepare-windows-search = Windows の更新を確認しています…
-prepare-windows-download = Windows の更新プログラムをダウンロードしています…
-prepare-windows-install = Windows の更新プログラムをインストールしています…
-prepare-windows-repair = 先に Windows を修復しています。更新プログラムのインストールを妨げる可能性のある破損があると Windows が報告しています。30 分以上かかることがあります。
-prepare-store-search = Microsoft Store を確認しています…
-prepare-store-install = Microsoft Store とアプリを更新しています…
-prepare-stop-description = 現在の手順が完了すると、Atlas は更新を停止します。それまで Atlas を開いたままにしてください。
-prepare-stop = 更新を停止
-prepare-restart = 再起動して続行
-prepare-start = 更新を確認してインストール
-# Under the preparation button while it is unavailable. $check is the check-supported-build title.
-prepare-blocked-source = このインストールは続行できないため、利用できません。ページ上部のメッセージを確認してください。
-prepare-needs-build-check = 「PC の確認」で「{ $check }」に問題がなければ利用できます。
-# Under the preparation button, and under the Administrator check, while the installation files are still downloading or unpacking.
-prepare-wait-for-package = インストール ファイルの準備ができると利用できます。
-iso-username = ローカル アカウント名
-iso-account-description = Windows のセットアップでこの名前のローカル アカウントが作成されるため、Microsoft アカウントは必要ありません。初めてサインインするときに、Windows からパスワードの設定を求められます。
-iso-username-placeholder = お名前
-iso-account-empty = 続行するには、ローカル アカウント名を入力してください
-iso-account-invalid = 20 文字以内で入力してください。先頭と末尾には空白を使えません。また、次の記号は使えません: " / \ [ ] : ; | = , + * ? < > @
-iso-account-trailing-dot = 名前の末尾にピリオド (.) は使用できません。
-iso-account-reserved = この名前は Windows の組み込みアカウントで使用されています。別の名前を入力してください。
-iso-terms-in-setup = Windows セットアップでライセンス条項への同意を求められます。
-iso-privacy-defaults = この ISO では、Windows のセットアップのMicrosoft アカウント、プライバシーの画面が省略され、任意のデータ共有と個人向けのおすすめがオフになります。
-prepare-drivers = ドライバーのインストール方法
-prepare-drivers-auto = Windows Update から取得する
-prepare-drivers-auto-detail = Windows がハードウェアに適したドライバーを探します。通常はこちらをおすすめします。
-prepare-drivers-manual = 自分でインストールする
-prepare-drivers-manual-detail = Windows Update はドライバーをインストールしなくなるため、PC やデバイスのメーカーから入手する必要があります。インストール済みのドライバーは保持されます。
-prepare-drivers-description = ドライバーは、グラフィックス、サウンド、Wi-Fi などのハードウェアを Windows で使えるようにするものです。更新後にこの設定を変更した場合は、Atlas がもう一度更新を確認する必要があります。
-prepare-drivers-from-iso = Atlas Manager は ISO に保存されたドライバーの設定を使用します。
-prepare-choose-drivers = 更新を確認する前に、ドライバーのインストール方法を選んでください。
-iso-drivers-title = サインイン後のドライバー更新
-iso-drivers-during-setup = Windows セットアップでは、標準ドライバーと ISO に含まれるネットワークドライバーを使用します。サインイン後に Atlas Manager が選択した設定を適用します。
-iso-drivers-defer = サインイン後に選ぶ
-prepare-network-needed = 更新には、従量制課金接続ではないインターネット接続が必要です。Wi-Fi またはイーサネットに接続してから、「再試行」を選んでください。Wi-Fi ネットワークが表示されない場合は、先にネットワーク ドライバーをインストールしてください。
-# Connected, but Windows found no internet access (a captive portal, or DNS or firewall filtering).
-prepare-network-limited = Windows の報告によると、このネットワークはインターネットに接続できません。ネットワークからサインインを求められた場合はサインインするか、ルーターのほか、DNS やファイアウォールによるフィルタリングも確認してから、再試行してください。
-# "従量制課金接続" is the switch's name in Windows network settings.
-prepare-network-metered = この接続は従量制課金接続に設定されているか、データ使用量の上限が設定されています。従量制課金接続ではないネットワークに接続するか、ネットワーク設定で「従量制課金接続」をオフにしてから、再試行してください。
-prepare-network-settings = ネットワーク設定を開く
-iso-target-title = どの PC に Windows を再インストールしますか?
-iso-target-this = この PC
-# Under This PC (iso-target-this), before it's chosen.
-iso-target-this-description = Atlas は、この PC の Wi-Fi とイーサネットのドライバーを ISO に追加できます。これにより、Windows を再インストールした直後からインターネットに接続できます。
-iso-target-other = 別の PC
-iso-copy-network = この PC のネットワーク ドライバーを含める
-iso-network-detail = Windows のインストール時に、この PC の Wi-Fi とイーサネットのドライバーを再利用します。再インストール後は Wi-Fi に接続し直してください。
-iso-network-source = ネットワーク ドライバーの取得元
-iso-network-installed = インストール済みのドライバーを使う
-iso-network-updated = 先に Windows Update で確認する
-iso-network-updated-detail = Windows Update が提供する適合ドライバーをダウンロードし、インストール済みのドライバーも予備として保持します。従量制課金ではない接続が必要です。
-iso-stage-network-drivers = ネットワーク ドライバーを準備中
-iso-network-failed = ネットワーク ドライバーを準備できませんでした。診断情報を確認するか、前の画面に戻ってネットワーク ドライバーの設定を変更してください。
-# Under iso-complete when Include this PC's network drivers was chosen but the adapters use
-# drivers that come with Windows, so none were added.
-iso-network-inbox = この PC のネットワーク アダプターは Windows 付属のドライバーを使用しているため、ISO に含める必要はありません。
-iso-mode-desktop = デスクトップを開く前にセットアップを完了
-iso-mode-desktop-description = Atlas は選択内容を ISO に保存します。サインイン後、Windows デスクトップが開く前に、Atlas が更新とインストールを完了します。
-desktop-setup-description = PC のセットアップを完了しましょう。Atlas の選択内容は保存されています。必要に応じて Windows に戻れます。
-desktop-setup-exit = Windows で続ける
-
-# Windows installation USB
-usb-title = インストール USB を作成
-usb-existing = 既存の ISO から USB を作成
-usb-description = ISO を USB ドライブに書き込んで、その USB から Windows を再インストールできるようにします。Atlas も同時にインストールするには、Atlas で作成した ISO を使用してください。
-# Button that opens the file picker for an ISO, and the Open button of that picker, on the USB
-# and ISO pages.
-usb-choose-iso = ISO を選択
-usb-drive = USB ドライブ
-# $min and $max are formatted numbers (text), in gigabytes and terabytes.
-usb-empty = USB ドライブが見つかりません。{ $min } GB 以上の USB ドライブを接続してから、「一覧を更新」を選んでください。{ $max } TB を超えるドライブ、読み取り専用のドライブ、実行中の Windows があるドライブは表示されません。
-usb-refresh = 一覧を更新
-# Shown when the drive list could not be read.
-usb-scan-failed = ドライブが接続されていることを確認してから、「一覧を更新」を選んでください。詳細を確認するには、「ログ フォルダーを開く」を選んでください。
-usb-scan-failed-title = USB ドライブの一覧を取得できませんでした
-# Parts of a drive's detail line, joined by usb-detail-separator; empty parts are left out.
-# $size is a formatted number of gigabytes (text); $volumes and $serial are text.
-usb-drive-size = { $size } GB
-usb-drive-serial = シリアル番号: { $serial }
-usb-detail-separator = { " · " }
-usb-review = USB を確認
-usb-erase-title = この USB ドライブを消去しますか?
-usb-erase-description = { $drive } ({ $size } GB) の内容は、すべてのファイルとパーティションを含め、完全に消去されます。残しておきたいものは、先に別のドライブにコピーしてください。ISO ファイルは保持されます。
-usb-layout = Atlas はドライブの最大 32 GB を使用し、残りの領域は使用しません。この USB ドライブは、Windows 11 に必要な UEFI モードで起動する PC で使用できます。
-usb-ack = この USB ドライブの内容がすべて消去されることを理解しました
-usb-write = 消去して USB を作成
-usb-stage-prepare = インストール ファイルを準備しています…
-usb-stage-format = USB をフォーマットしています…
-usb-stage-copy = インストール ファイルをコピーしています…
-usb-stage-verify = USB を検証しています…
-usb-working = Atlas を開いたまま、USB ドライブを接続しておいてください。キャンセルすると、作成途中の USB ドライブは Windows のインストールに使用できません。
-# Titles of the error bar, the success bar and the close prompt while a USB is being written.
-usb-failed-title = USB の作成を完了できませんでした
-usb-complete-title = USB の準備ができました
-usb-close-title = USB の作成はまだ実行中です
-# After erasing may have begun.
-usb-failed = ドライブはすでに消去されている可能性があるため、まだ Windows のインストールには使用できません。ドライブが接続されていることを確認してから、「USB を確認」を選んで再試行してください。接続し直した場合は、先に「一覧を更新」を選んでドライブを選択し直してください。
-usb-failed-drive-unavailable = 書き込み中に Windows が USB ドライブにアクセスできなくなりました。インストールファイルは不完全です。接続し直すか別の USB ドライブを使い、「一覧を更新」を選んでドライブを選択し、「USB を確認」を選んでください。
-# Before anything on the drive was changed: in general, then for the reasons the writer reports.
-usb-failed-unchanged = USB ドライブは変更されていません。「ログ フォルダーを開く」を選んで原因を確認してから、「USB を確認」を選んで再試行してください。
-usb-failed-iso = この ISO はインストール USB の作成に使用できません。Atlas で作成した ISO か、Atlas が対応するバージョンの Microsoft 提供の Windows 11 ISO を選んでください。USB ドライブは変更されていません。
-usb-failed-location = ISO または Atlas Manager が、この USB ドライブ、ネットワーク上の場所、またはリンクされたフォルダーにあります。そのファイルをこの PC のローカル フォルダーに移動してから、再試行してください。USB ドライブは変更されていません。
-usb-failed-space = Windows ドライブの空き領域が不足しているため、インストール ファイルを準備できません。空き領域を確保してから、再試行してください。USB ドライブは変更されていません。
-usb-failed-fit = インストール ファイルがこの USB ドライブに収まりません。容量の大きいドライブを使用して、再試行してください。USB ドライブは変更されていません。
-usb-failed-drive-changed = 一覧を読み取った後に、USB ドライブが取り外されたか、接続し直されたか、別のドライブに交換されました。「一覧を更新」を選んでドライブを選択し直してから、「USB を確認」を選んでください。USB ドライブは変更されていません。
-usb-cancelled = ドライブに不完全なインストール ファイルが残っている可能性があります。Windows のインストール前に作成し直してください。
-usb-cancelled-title = USB の作成をキャンセルしました
-usb-cancelled-unchanged = USB ドライブは変更されていません。
-usb-complete = Atlas がすべてのファイルを確認しました。「USB を取り出す」を選んでから、再インストールする PC のファイルをバックアップしてください。その PC にドライブを接続し、ブート メニューを使って USB ドライブから起動してください (多くの場合、PC の起動時に F12、F11、Esc のいずれかのキーで表示できます)。
-usb-eject = USB を取り出す
-usb-ejected = USB ドライブを取り外せるようになりました。再インストールする PC のファイルをバックアップしてください。その後、ブート メニューを使って、その PC を USB ドライブから起動してください (多くの場合、起動時に F12、F11、Esc のいずれかのキーで表示できます)。
-usb-eject-failed = USB を使用しているファイルやウィンドウを閉じてから、もう一度お試しください。
-usb-eject-failed-title = USB を取り出せませんでした
-ready-fresh-title = Atlas は新規インストールした Windows 向けです
-ready-fresh-description = この PC の Windows をすでに使用している場合は、続行する前にファイルをバックアップして Windows を再インストールしてください。対応するバージョンを再インストールできるよう、先に「PC の確認」で「Windows の互換性」に問題がないことを確認してください。
-# Home, LTSC and Server are the editions the check refuses; the others are examples of
-# editions it accepts. Keep edition names as Windows shows them.
-detail-edition-unsupported = Windows 11 の Home、LTSC、Server エディションには対応していません。Pro、Education、Enterprise など、別のエディションを使用してください。Windows がエディションを識別できなかった場合は、続行する前に問題を解決してください。
-install-source-title = インストールできません
-install-source-unsupported = Atlas { $source } から { $target } へ直接更新することはできません。このバージョンを使用するには、ファイルをバックアップしてから Windows を再インストールしてください。
-# Before a package is chosen, so the version on offer isn't known yet.
-install-source-unsupported-any = Atlas { $source } から直接更新することはできません。新しいバージョンを使用するには、ファイルをバックアップしてから Windows を再インストールしてください。
-# "パッケージ ファイルを開く" is package-open-file. $folder is a folder path (text).
-install-source-resume = Atlas { $target } のインストールが完了していません。このインストールを完了できるのは Atlas { $target } のパッケージだけです。「パッケージ ファイルを開く」を選び、その Atlas パッケージ (.atlaspkg) を選択してください。Atlas がダウンロードした場合は、{ $folder } にあります。
-# Tester build: only the bundled Atlas package can be installed.
-install-source-resume-bundled = Atlas { $target } のインストールが完了していません。このテスト ビルドは同梱の Atlas パッケージしかインストールできないため、Atlas Manager のリリース ビルドで Atlas { $target } のパッケージを使用して、このインストールを完了してください。
-install-source-unknown = この PC に何がインストールされているかを Atlas が確認できなかったため、今はインストールを行いません。Atlas チームが対応できるよう、「レポートを送信」を選んでください。
-# $problem is one of the install-source-* messages; $error is a raw error message (text).
-install-source-details = { $problem }詳細: { $error }
-iso-edition-selection = 対応するエディションのみが含まれます。Windows のセットアップでは、Windows ライセンスをお持ちのエディションを選択してください。
-detail-windows-preview = Insider ビルドには対応していません。Windows 11 の一般公開版を使用してください。
-detail-windows-release-unknown = この Windows ビルドが一般公開版かどうかを確認できませんでした。インターネットに接続して、もう一度確認してください。
-# $build is this PC's Windows build and update number, such as 26300.9807 (text).
-detail-windows-release-unlisted = ビルド { $build } は Microsoft の Windows 11 一般公開版の一覧に含まれていないため、Atlas はまだこのビルドにインストールできません。Release Preview ビルドやその他のプレビュー ビルドには対応していません。Microsoft がこのビルドを一覧に追加したら、「もう一度確認」を選んでください。
-iso-release-unknown = この ISO が、Atlas パッケージが対応する Windows 11 の一般公開版であることを Atlas は確認できませんでした。インターネットに接続してから、もう一度「ファイルを確認」を選んでください。それでも失敗する場合は、Microsoft から ISO をダウンロードし直してください。
-iso-release-unlisted = この ISO の Windows 11 ビルドは、Microsoft の一般公開版の一覧に含まれていません。Release Preview ビルドやその他のプレビュー ビルドには対応していません。Microsoft から ISO をダウンロードするか、Microsoft がこのビルドを一覧に追加してから、もう一度「ファイルを確認」を選んでください。
-prepare-previous-worker = 以前に開始した更新がまだ実行中です。Atlas は完了するまで待機します。完了後に、もう一度更新を確認できます。
-
-ready-used-windows-title = この PC の Windows はすでに使用されているようです
-ready-used-windows-description = この PC の Windows は、インストールから 1 週間以上経過しているか、すでに複数のアプリが入っています。この状態での Atlas のインストールはサポート対象外で、行わないことを強くおすすめします。既存のアプリや設定が正しく動作しなくなる可能性があります。また、Atlas は OneDrive を削除するため、OneDrive 内のファイルは同期されなくなり、デスクトップ、ドキュメント、ピクチャのフォルダーが空に見える場合があります。先にファイルをバックアップして Windows を再インストールするか、リスクを受け入れる場合にのみ続行してください。
-ready-used-windows-dismiss = このまま続行
-
-prepare-resumed = PC が再起動し、Atlas はここまでの選択内容を復元しました。Atlas をインストールする前に、「更新を続ける」を選んで更新を完了してください。
-prepare-continue = 更新を続ける
-prepare-saving-restart = 選択内容を保存し、Windows の再起動後に Atlas を開くよう設定しています…
-prepare-restart-save-failed = 選択内容を保存できませんでした。再起動する前にもう一度お試しください。
-prepare-restart-registration-failed = 選択内容は保存されましたが、再起動後に Atlas が自動で開くよう設定できませんでした。もう一度試すか、ご自身で PC を再起動し、サインイン後に Atlas を開いてください。
-prepare-restart-source-linked = 選択内容は保存されましたが、Atlas Manager がリンクされたフォルダーにある間は、再起動後に Atlas が自動で開くよう設定できません。Atlas を閉じ、Atlas Manager をこの PC のローカル フォルダーに移動してください。その後、そこから開くか、ご自身で PC を再起動し、サインイン後にそこから開いてください。
-prepare-restart-failed = Atlas は PC を再起動できませんでした。もう一度試すか、スタート メニューから再起動してください。選択内容は保存されており、サインイン後に Atlas が再び開きます。
-diagnostics-export = 診断情報をエクスポート
-diagnostics-exporting = 診断情報を収集中…
-diagnostics-privacy = Atlas チームに非公開でレポートを送信するか、助けを求めるときに共有できる診断情報の ZIP をエクスポートできます。Atlas は、ZIP からユーザー名、PC 名、メール アドレスを削除します。
-# Title of the result bar after an export; its button is iso-open-folder.
-diagnostics-saved = 診断情報の ZIP を作成しました
-diagnostics-failed-title = 診断情報をエクスポートできませんでした
-# $error is the raw error (text).
-diagnostics-failed = PC のディスクに空き領域があることを確認してから、再試行してください。詳細: { $error }
-
-## Tester builds (embedded-package feature)
-
-# One line of chrome under the title bar on a release-candidate build.
-rc-banner = Atlas { $release } テスト ビルド。このアプリは同梱の Atlas パッケージのみをインストールします。
-home-status-bundled = テスト ビルド { $release }
-package-bundled = このテスト ビルドに同梱された Atlas { $version } のインストール準備ができています。
-rc-about-release = テスト ビルド
-rc-about-commit = ソース コミット
-rc-about-package = 同梱の Atlas パッケージ (SHA-256)
-iso-package-bundled = このテスト ビルドに同梱された Atlas パッケージ
-prepare-percent = この段階の { $percent }% が完了
-prepare-count = 完了した更新: { $completed } / { $total }
-prepare-bytes = 約 { $total } MB 中 { $downloaded } MB をダウンロード済み
-prepare-elapsed = 経過時間: { $minutes } 分 { $seconds } 秒
-prepare-progress-waiting = 更新サービスを待っています。この手順では進捗率を取得できません。
-prepare-progress-unchanged = { $minutes } 分間、進捗がありません。大きな更新には時間がかかることがあるため、Atlas を開いたままにしてください。詳細を確認するには、「ログ フォルダーを開く」を選んでください。
-prepare-report-delayed = { $seconds } 秒間、Windows から進捗が報告されていません。更新はまだ実行中の可能性があるため、Atlas を開いたままにしてください。
-
 prepare-affected-app = 対象のアプリ
-prepare-app-in-use = { $app } を閉じてから、再試行してください。開いている間は、Windows がこのアプリを更新できません。ウィンドウが見つからない場合は、タスク マネージャーで終了してください。それでも失敗する場合は、PC を再起動し、{ $app } を開く前に再試行してください。
+# A Store app couldn't update because it was open. $app is its name, such as NanaZip, or
+# prepare-affected-app.
+prepare-close-app = { $app } を閉じてから、再試行してください。見つからない場合は、タスク マネージャーで終了してください。
 prepare-install-busy = 別のインストールまたは必要な再起動により、更新がブロックされています。他のインストールが終わるのを待ち、Windows から再起動を求められた場合は PC を再起動してから、再試行してください。
-prepare-failed-component-store = Windows のコンポーネント ストアに更新プログラムのインストールを妨げる破損があると Windows が報告しており、Atlas では修復できませんでした。PC を再起動してから、「再試行」を選んでください。それでも更新に失敗する場合は、ファイルをバックアップしてから、Atlas ISO で Windows を再インストールしてください。
-prepare-failed-component-store-unrepairable = Windows のコンポーネント ストアに修復できない破損があると Windows が報告しているため、更新プログラムをインストールできません。ファイルをバックアップしてから、Atlas ISO で Windows を再インストールしてください。
+# Updates failed with 0x80073712 after Atlas's own repair of the component store (DISM). The
+# button is prepare-restart-and-retry; updating carries on by itself after the restart.
+prepare-components-damaged-title = Windows を修復できませんでした
+prepare-components-damaged = 更新プログラムのインストールを妨げる破損があると Windows が報告しています。再起動で解消できることがあり、サインイン後に Atlas が続行します。
+prepare-restart-and-retry = 再起動して再試行
+# Windows records damage to its component store that it can't repair, so Atlas stops before
+# any update. The one button is iso-open.
+prepare-components-unrepairable-title = Windows の破損が大きいため更新できません
+prepare-components-unrepairable = ファイルをバックアップしてから、Atlas ISO で Windows を再インストールしてください。
 # Causes the update worker names. The worker's own English message is shown below as a detail.
 prepare-failed-session-owner = Atlas は、Windows にサインインしているアカウントとは別のアカウントで実行されています。管理者アカウントで Windows にサインインし、そのアカウントから Atlas を開いてから、再試行してください。
 prepare-failed-store-missing = お使いのアカウントでは Microsoft Store がセットアップされていません。Microsoft Store を一度開くか、見つからない場合は再インストールしてから、再試行してください。
@@ -1030,24 +1305,232 @@ prepare-failed-store-timeout = Store アプリの更新が完了していませ�
 prepare-failed-store-passes = Microsoft Store から新しい更新プログラムが提供され続けました。Microsoft Store で残りの更新を完了してから、再試行してください。
 prepare-failed-manual-updates = 一部の Windows 更新プログラムは Windows Update で完了する必要があります。Windows Update を開いて完了してから、再試行してください。
 prepare-failed-windows-passes = Windows Update から新しい更新プログラムが提供され続けました。Windows Update で残りの更新を完了してから、再試行してください。
+# Atlas Manager runs from a folder that links to another place (a junction or symbolic
+# link). "Linked folder" and "local folder" as in usb-failed-location. Atlas keeps using
+# the folder it was opened from, so trying again in the same window can't help.
 prepare-failed-source-linked = Atlas Manager がリンクされたフォルダーにあります。Atlas を閉じ、Atlas Manager をこの PC のローカル フォルダーに移動してから、そこから開いてください。
 prepare-error-code = エラー コード: { $code }
 prepare-open-store = Microsoft Store を開く
+prepare-windows-search = Windows の更新を確認しています…
+prepare-percent = この段階の { $percent }% が完了
+prepare-count = 完了した更新: { $completed } / { $total }
+prepare-bytes = 約 { $total } MB 中 { $downloaded } MB をダウンロード済み
+prepare-progress-still = { $minutes } 分間、進捗がありません。大きな更新には時間がかかることがあるため、Atlas を開いたままにしてください。
+prepare-report-late = Windows からしばらく進捗が報告されていません。更新はまだ実行中の可能性があるため、Atlas を開いたままにしてください。
+prepare-windows-download = Windows の更新プログラムをダウンロードしています…
+prepare-windows-install = Windows の更新プログラムをインストールしています…
+# While DISM repairs Windows' component store, before updates or after one failed on it, with
+# prepare-windows-repair-detail under the progress bar. DISM reports no progress.
+prepare-windows-repairing = Windows を修復しています…
+prepare-windows-repair-detail = 更新プログラムのインストールを妨げる可能性のある破損があると Windows が報告しています。30 分以上かかることがあります。
+prepare-store-search = Microsoft Store を確認しています…
+prepare-store-install = Microsoft Store とアプリを更新しています…
+prepare-stop = 更新を停止
+prepare-start = 更新を確認してインストール
+# Under the Administrator check, while the Atlas package is still downloading or unpacking.
+prepare-wait-for-package = Atlas パッケージの準備ができると利用できます。
+iso-username = ローカル アカウント名
+# Under the local account name: Windows asks for the password at the first sign-in.
+iso-account-help = パスワードは、初めてサインインするときに設定します。
+iso-username-placeholder = お名前
+# Beside the unavailable Continue button while the local account name is empty.
+iso-account-empty = 続行するには、ローカル アカウント名を入力してください
+# Keep the list of symbols exactly: Windows refuses them in account names.
+iso-account-invalid = 20 文字以内で入力してください。先頭と末尾には空白を使えません。また、次の記号は使えません: " / \ [ ] : ; | = , + * ? < > @
+iso-account-trailing-dot = 名前の末尾にピリオド (.) は使用できません。
+iso-account-reserved = この名前は Windows の組み込みアカウントで使用されています。別の名前を入力してください。
+# The answer file on the ISO hides these Windows setup screens.
+iso-terms-in-setup = Windows セットアップでライセンス条項への同意を求められます。
+prepare-drivers = ドライバーのインストール方法
+prepare-drivers-auto = Windows Update から取得する
+# The same answer as a radio button's label, where the choice is made.
+prepare-drivers-auto-recommended = Windows Update から取得する (推奨)
+prepare-drivers-auto-detail = Windows がハードウェアに適したドライバーを探します。
+prepare-drivers-manual = 自分でインストールする
+prepare-drivers-manual-detail = Windows Update はドライバーをインストールしなくなるため、PC やデバイスのメーカーから入手する必要があります。インストール済みのドライバーは保持されます。
+# The Setup step's drivers card: this PC's network drivers on the ISO, then the choice
+# Atlas Manager applies after sign-in, asked with prepare-drivers.
+iso-drivers-card = ドライバー
+iso-network-drivers = この PC の Wi-Fi とイーサネットのドライバーを含める
+# The third driver answer, and its value on the Create step: Get ready asks on the new PC.
+iso-drivers-defer = サインイン後に選ぶ
+prepare-network-unmetered = 更新には、従量制課金接続ではないインターネット接続が必要です。Wi-Fi またはイーサネットに接続してから、再試行してください。
+# Connected, but Windows found no internet access (a captive portal, or DNS or firewall filtering).
+prepare-network-limited = Windows の報告によると、このネットワークはインターネットに接続できません。ネットワークからサインインを求められた場合はサインインするか、ルーターのほか、DNS やファイアウォールによるフィルタリングも確認してから、再試行してください。
+# "Metered connection" is the switch's name in Windows network settings.
+prepare-network-metered = この接続は従量制課金接続に設定されているか、データ使用量の上限が設定されています。従量制課金接続ではないネットワークに接続するか、ネットワーク設定で「従量制課金接続」をオフにしてから、再試行してください。
+prepare-network-settings = ネットワーク設定を開く
+iso-stage-network-drivers = ネットワーク ドライバーの準備
+# Under iso-complete when this PC's network drivers were asked for but the adapters use
+# drivers that come with Windows, so none were added.
+iso-network-inbox = この PC のネットワーク アダプターは Windows 付属のドライバーを使用しているため、ISO に含める必要はありません。
+desktop-setup-description = PC のセットアップを完了しましょう。Atlas の選択内容は保存されています。必要に応じて Windows に戻れます。
+desktop-setup-exit = Windows で続ける
+
+# Windows installation USB
+usb-title = USB ドライブを作成
+usb-existing = 既存の ISO から USB ドライブを作成
+# Title of the drive card, and the name of a drive that doesn't report one.
+usb-drive = USB ドライブ
+# Title of the card with the ISO the USB drive is made from.
+usb-iso-title = Windows ISO
+# No ISO was given, and none whose name starts with "Atlas" is in Downloads.
+usb-iso-missing = 「ダウンロード」フォルダーに Atlas ISO がありません。
+usb-iso-checking = ISO を確認しています…
+# What checking the ISO found. It runs before anything is erased, so none of these mentions the drive.
+usb-iso-not-usable = Atlas はこの ISO から USB ドライブを作成できません。Atlas で作成した ISO か、Microsoft が提供する Atlas 対応バージョンの Windows 11 ISO を使用してください。
+# A linked folder points to another place (a junction or symbolic link).
+usb-iso-location = ISO または Atlas Manager が、ネットワーク上の場所かリンクされたフォルダーにあります。「ダウンロード」など、この PC 上のフォルダーに移動してください。
+# Splitting a large Windows image needs room on the drive Windows is on. Atlas checks again every 30 seconds.
+usb-working-space = Windows ドライブの空き領域が不足しているため、この ISO を準備できません。空き領域を確保すると、Atlas が自動的にもう一度確認します。
+# The ISO couldn't be read for another reason, such as a damaged file.
+usb-iso-unreadable = Atlas はこの ISO を読み取れませんでした。再試行するか、別の ISO を使用してください。
+# Opens the Storage page of Windows Settings, where space can be freed.
+usb-open-storage = ストレージ設定を開く
+usb-looking = USB ドライブを探しています…
+# $size is a whole number of gigabytes, as drives are sold.
+usb-connect = { $size } GB 以上の USB ドライブを接続してください。
+# Under a drive that can't be used, after its size and letters: why. $size is a whole number
+# of gigabytes, as drives are sold, as in usb-connect.
+usb-drive-too-small-needs = 容量不足です。{ $size } GB 以上が必要です。
+usb-drive-too-small-iso = この ISO には容量が足りません
+usb-drive-has-iso = このドライブに ISO があります
+usb-drive-has-app = Atlas Manager はこのドライブから実行されています
+# A drive's size as it's sold, which isn't the size Windows shows. $size is a whole number of
+# gigabytes, or a number of terabytes (text).
+usb-drive-size = { $size } GB
+usb-drive-size-tb = { $size } TB
+# Joins a drive's size and its letters, an ISO's architecture and size under its name, and
+# ready-checks-passed-some and ready-checks-handled on Get ready.
+usb-detail-separator = { " · " }
+usb-create = USB ドライブを作成
+# Beside the unavailable Create USB drive (usb-create) while several drives are listed and none is picked.
+usb-hint-pick = 先に USB ドライブを選んでください
+# The question before erasing. $drive is the drive's name; $size is usb-drive-size or
+# usb-drive-size-tb; $letters is its drive letters, such as "F:" or "F:, G:". A drive with no
+# letter, such as one an unfinished write left, is asked with usb-confirm-title.
+usb-confirm-title-letters = { $drive } ({ $size }、{ $letters }) を消去しますか?
+usb-confirm-title = { $drive } ({ $size }) を消去しますか?
+# The same question for a drive that reports no name.
+usb-confirm-title-unnamed-letters = USB ドライブ ({ $size }、{ $letters }) を消去しますか?
+usb-confirm-title-unnamed = USB ドライブ ({ $size }) を消去しますか?
+usb-confirm-message = ドライブ上のすべてのデータが削除されます。ISO は保持されます。
+usb-confirm-erase = 消去して作成
+usb-progress-title = USB ドライブを作成しています…
+# $percent is a whole number.
+usb-percent = { $percent }%
+# The stages of creating the USB drive, as a checklist under usb-progress-title, which
+# iso-progress-stage also names while each runs. Each name reads as completed, in progress or not
+# started, as the ISO's stages do, so write it as a noun or plain verb phrase; Japanese uses a
+# plain noun, without 中.
+usb-stage-prepare-files = ファイルの準備
+usb-stage-formatting = フォーマット
+usb-stage-copying = ファイルのコピー
+usb-stage-checking = ドライブの確認
+usb-stage-ejecting = 取り出し
+usb-keep-open = Atlas を開いたまま、ドライブを接続しておいてください。
+usb-scan-failed-title = USB ドライブの一覧を取得できませんでした
+usb-scan-failed-retry = Atlas は、この PC に接続されているドライブを読み取れませんでした。再試行してください。
+# The title of the error bar for a USB drive, and the heading of the finished drive's page.
+usb-failed-title = USB ドライブを作成できませんでした
+usb-complete-title = USB ドライブの準備ができました
+# F12, F11 and Esc are key names.
+usb-ready = ドライブを取り外し、再インストールする PC のファイルをバックアップしてから、その PC を USB ドライブから起動してください。ブート メニューは多くの場合、F12、F11、Esc のいずれかのキーで開きます。
+# After erasing may have begun.
+usb-failed-partial = ドライブへの書き込みが途中で終わりました。接続されていることを確認してから、再試行してください。
+# Before anything on the drive was changed.
+usb-failed-before-erase = Atlas はドライブを変更する前に停止しました。再試行してください。
+# Before erasing, the drive no longer matched the list: it was removed, reconnected or replaced.
+# Atlas reads the list again, and picks the drive again if it's back.
+usb-drive-changed-title = USB ドライブが変わりました
+usb-drive-changed = Atlas が消去する前にドライブが取り外されたか接続し直されたため、ドライブの内容は変更されていません。
+usb-drive-cancelled-title = USB ドライブの作成をキャンセルしました
+usb-cancelled-partial = ドライブは不完全な状態です。使用する前にもう一度作成してください。
+usb-cancelled-unchanged = USB ドライブは変更されていません。
+usb-eject-failed-title = USB ドライブを取り出せませんでした
+usb-eject-failed-ready = ドライブは使用できる状態です。ドライブを使用しているファイルやウィンドウを閉じてから、再試行してください。
+# Title of the bar with Relaunch as administrator (common-restart-as-administrator). Its
+# message is usb-admin-reason, or usb-elevation-declined after Windows refused the relaunch
+# (UAC declined), as on the ISO page.
+usb-elevation-title = USB ドライブの作成には管理者権限が必要です
+usb-admin-reason = ドライブを消去して書き込むには、Atlas に管理者権限が必要です。
+usb-elevation-declined = Windows が Atlas に許可を与えなかったため、まだ USB ドライブに書き込めません。
+# Home, LTSC and Server are the editions the check refuses; the others are examples of
+# editions it accepts. Keep edition names as Windows shows them.
+detail-edition-unsupported = Windows 11 の Home、LTSC、Server エディションには対応していません。Pro、Education、Enterprise など、別のエディションを使用してください。Windows がエディションを識別できなかった場合は、続行する前に問題を解決してください。
+install-source-title = インストールできません
+install-source-unsupported = Atlas { $source } から { $target } へ直接更新することはできません。このバージョンを使用するには、ファイルをバックアップしてから Windows を再インストールしてください。
+# Before a package is chosen, so the version on offer isn't known yet.
+install-source-unsupported-any = Atlas { $source } から直接更新することはできません。新しいバージョンを使用するには、ファイルをバックアップしてから Windows を再インストールしてください。
+# $folder is a folder path (text).
+install-source-resume-package = Atlas { $target } のインストールが完了していません。このインストールを完了できるのは Atlas { $target } のパッケージだけです。その Atlas パッケージ (.atlaspkg) を開いてください。Atlas がダウンロードした場合は、{ $folder } にあります。
+# Tester build: only the bundled Atlas package can be installed.
+install-source-resume-bundled = Atlas { $target } のインストールが完了していません。このテスト ビルドは同梱の Atlas パッケージしかインストールできないため、Atlas Manager のリリース ビルドで Atlas { $target } のパッケージを使用して、このインストールを完了してください。
+# Send a report and Export diagnostics are offered with it.
+install-source-unconfirmed = この PC に何がインストールされているかを Atlas が確認できなかったため、今はインストールを行いません。
+# Under the editions on the Create step, when Windows Setup asks which to install.
+iso-edition-selection = Windows セットアップで、ライセンスをお持ちのエディションを選んでください。
+detail-windows-preview = Insider ビルドには対応していません。Windows 11 の一般公開版を使用してください。
+detail-windows-release-unknown = この Windows ビルドが一般公開版かどうかを確認できませんでした。インターネットに接続して、もう一度確認してください。
+# $build is this PC's Windows build and update number, such as 26300.9807 (text).
+detail-windows-release-not-listed = ビルド { $build } は Microsoft の Windows 11 一般公開版の一覧に含まれていないため、Atlas はまだこのビルドにインストールできません。Release Preview ビルドやその他のプレビュー ビルドには対応していません。Microsoft がこのビルドを一覧に追加したら、もう一度確認してください。
+
+
+prepare-continue = 更新を続ける
+prepare-saving-restart = 選択内容を保存し、Windows の再起動後に Atlas を開くよう設定しています…
+prepare-restart-save-failed = 選択内容を保存できませんでした。再起動する前にもう一度お試しください。
+prepare-restart-registration-failed = 選択内容は保存されましたが、再起動後に Atlas が自動で開くよう設定できませんでした。もう一度試すか、ご自身で PC を再起動し、サインイン後に Atlas を開いてください。
+# The same cause as prepare-failed-source-linked, met while arranging the restart. Both ways
+# on need the move, because Atlas keeps using the folder it was opened from.
+prepare-restart-source-linked = 選択内容は保存されましたが、Atlas Manager がリンクされたフォルダーにある間は、再起動後に Atlas が自動で開くよう設定できません。Atlas を閉じ、Atlas Manager をこの PC のローカル フォルダーに移動してください。その後、そこから開くか、ご自身で PC を再起動し、サインイン後にそこから開いてください。
+prepare-restart-failed = Atlas は PC を再起動できませんでした。もう一度試すか、スタート メニューから再起動してください。選択内容は保存されており、サインイン後に Atlas が再び開きます。
+diagnostics-export = 診断情報をエクスポート
+# Beside a spinner while an export runs, and in Send a report's footer while its diagnostics
+# are collected.
+diagnostics-exporting = 診断情報を収集中…
+# Accessible name of the row of help links: report-title, diagnostics-export and iso-diagnostics.
+diagnostics-help-a11y = ヘルプを表示
+# Title of the result bar after an export; its button is iso-open-folder.
+diagnostics-saved = 診断情報を保存しました
+# Under diagnostics-saved, above diagnostics-saved-privacy. $file is the ZIP's name, such as
+# Atlas-diagnostics-2026-11-24-0612.zip, and $folder the name of the folder it's in,
+# "Diagnostics" (both text, never translated).
+diagnostics-saved-in-folder = Atlas の { $folder } フォルダーに { $file } として保存しました。
+# Under diagnostics-saved. Says exactly what the export removes, so keep every item.
+diagnostics-saved-privacy = Atlas は、この ZIP からユーザー名、PC 名、メール アドレス、既知のパスワードやキーを削除しました。
+# The bar when an export failed, on its own. Its button is common-try-again, and its raw error
+# is behind Show details.
+diagnostics-save-failed = 診断情報の ZIP を保存できませんでした
+
+## テスト ビルド (embedded-package 機能)
+
+# A bar at the top of the content on a release-candidate build.
+rc-banner = Atlas { $release } テスト ビルド。このアプリは同梱の Atlas パッケージのみをインストールします。
+home-status-bundled = テスト ビルド { $release }
+package-bundled = このテスト ビルドに同梱された Atlas { $version } のインストール準備ができています。
+rc-about-release = テスト ビルド
+rc-about-commit = ソース コミット
+rc-about-package = 同梱の Atlas パッケージ (SHA-256)
+iso-package-bundled = このテスト ビルドに同梱された Atlas パッケージ
 
 check-user-account = ユーザー アカウント
 detail-user-account-ok = UAC が有効で、アカウントのインストール準備が整っています。
 detail-user-account-not-ready = ユーザー アカウント制御 (UAC) を有効にし、PC を再起動してから、もう一度お試しください。組み込みの Administrator アカウントを使用している場合は、別の管理者アカウントでサインインしてください。
 detail-user-account-work-or-school = 職場または学校アカウント (Microsoft Entra ID) からは Atlas をインストールできません。ローカル アカウントまたは Microsoft アカウントでサインインしてから、再試行してください。
-detail-user-account-unknown = Atlas はユーザー アカウントを確認できませんでした。PC を再起動し、Atlas を開き直してからもう一度確認してください。この状態が続く場合は、「レポートを送信」を選んでください。Windows の報告: { $error }
+detail-user-account-check-failed = Atlas はユーザー アカウントを確認できませんでした。PC を再起動し、Atlas を開き直してからもう一度確認してください。Windows の報告: { $error }
 
 footer-prepare-required = 続行するには、Windows と Store アプリの更新を完了してください
-footer-prepare-stopping = 現在の手順の完了後に更新を停止します…
+# "Stage" as in prepare-close-stops-after-stage.
+footer-prepare-stopping-stage = 現在の段階が終わり次第、更新を停止します…
 resume-choices-title = 前回のインストールを再開
-resume-choices-detail = 前回のインストールを完了するため、Atlas は前回の選択内容を復元しました。インストールが完了するまで、「設定の選択」でこれらを変更することはできません。
+# The bar on Your choices, above the choices an unfinished installation holds, which it shows
+# and can't change.
+resume-choices-held = 前回のインストールを完了するため、Atlas は前回の選択内容を使用します。完了するまで変更できません。
 
-## Voluntary reports
+## レポートの送信
 report-title = レポートを送信
 report-received = レポートを受信しました
+# Under the report's reference, which has a line of its own with a Copy button.
 report-reference = このレポートについて Atlas チームに問い合わせる場合に備えて、この参照番号を控えておいてください。連絡先を入力した場合はチームから返信することがありますが、返信は保証されません。
 # Accessible name of the Copy button beside the report reference.
 report-copy-reference = 参照番号をコピー
@@ -1056,139 +1539,238 @@ report-another = 別のレポートを送信
 report-kind = 何を送信しますか?
 report-kind-issue = 問題
 report-kind-suggestion = 提案
-# $min and $max are numbers: the message lengths the report service accepts.
-report-intro = 何が起きたか、または何を変えてほしいかを記入してください ({ $min }～{ $max } 文字)。メッセージにパスワードを含めないでください。
 report-message = メッセージ
-report-message-placeholder = 次の操作をしようとしました…
+# What the message box shows while it's empty, for each kind of report.
+report-message-placeholder-issue = 何が起きましたか? そのとき何をしていましたか?
+report-message-placeholder-suggestion = どのような変更をご希望ですか?
+# Under the message box, which also reads it out.
+report-message-help = パスワードは含めないでください。
+# Under the message or contact box once it's near the longest the report service accepts.
+# $count and $max are numbers.
+report-character-count = { $count } / { $max } 文字
 report-contact = 連絡先 (任意)
 report-contact-placeholder = メール アドレスまたは Discord ユーザー名
 report-attach = 診断情報を添付
+# Under Include diagnostics. Part of the privacy notice the user agrees to: it says
+# exactly what Atlas removes and keeps, so keep every item.
 report-attach-description = 原因の特定に役立つログとシステムの詳細情報です。Atlas は、ユーザー名、PC 名、メール アドレス、既知のパスワードやキーを削除します。エラーの詳細、ハードウェアのモデル、アプリ名は残ります。送信前に ZIP の内容を確認できます。
-report-prepare = 診断情報を準備
 report-review = ZIP を確認
+# A bar when diagnostics couldn't be prepared. Its button is common-try-again, and its raw
+# error is behind Show details.
 report-prepare-failed-title = 診断情報を準備できませんでした
-# $error is a raw error message (text).
-report-prepare-failed = 診断情報をもう一度準備するか、「診断情報を添付」をオフにして、診断情報なしでレポートを送信してください。詳細: { $error }
+report-prepare-failed-advice = 再試行するか、診断情報なしで送信してください。
+# The privacy notice the user agrees to, with report-attach-description. Changing it means a
+# new PRIVACY_VERSION in the app, the report service and the website, deployed together.
 report-privacy = レポートは reports.atlasos.net の Atlas チームに非公開で送信されます。メッセージと連絡先は、入力したとおりに送信されます。チームは調査のために他社の AI サービスを利用することがあります。AI サービスにはメッセージと診断情報が渡されますが、連絡先は渡されません。レポートは 90 日後に削除されます。また、サーバーのセキュリティ ログに IP アドレスが記録される場合があります。
 report-website = プライバシーとレポート サイト
 report-consent = このレポートと添付した診断情報を Atlas チームに送信することに同意します
-report-failed = メッセージは保持されています。インターネット接続を確認してから「再試行」を選ぶか、レポート サイトからレポートを送信してください。
-report-failed-busy = レポート サービスが混み合っています。メッセージは保持されています。しばらくしてから再試行してください。
-report-failed-outdated = このバージョンの Atlas Manager ではレポートを送信できなくなりました。メッセージは保持されているので、レポート サイトにコピーしてください。診断情報を添付していた場合は、「ZIP を確認」を選び、その ZIP もレポート サイトで添付してください。
-report-failed-diagnostics = 準備した診断情報を送信できません。メッセージは保持されています。診断情報をもう一度準備するか、「診断情報を添付」をオフにしてください。
-# Link under a report that wasn't sent.
+# Under "Report wasn't sent". The footer's button is common-try-again, except after
+# report-not-sent-outdated, where it's report-failed-website and the bar's button is
+# manager-download.
+report-not-sent-retry = インターネット接続を確認してから、再試行してください。レポート サイトから送信することもできます。
+report-not-sent-busy = レポート サービスが混み合っています。数分待ってから、再試行してください。
+report-not-sent-outdated = このバージョンの Atlas Manager ではレポートを送信できません。メッセージをレポート サイトにコピーし、診断情報を添付していた場合は ZIP も添付してください。
+report-not-sent-diagnostics = 診断情報を送信できませんでした。再試行するか、診断情報なしで送信してください。
+# The footer's button where this version can't send.
 report-failed-website = レポート サイトを開く
+# Beside a spinner in the footer while the report is on its way.
 report-sending = 送信中…
 report-send = レポートを送信
 
-# $min and $max are numbers: the message lengths the report service accepts.
+# Under the message box when Send report finds it too short or too long. $min and $max
+# are numbers: the message lengths the report service accepts.
 report-validation-message = { $min }～{ $max } 文字で入力してください。
 
-# $max is a number: the longest contact details the report service accepts.
+# Under the contact box. $max is a number: the longest contact details the report
+# service accepts.
 report-validation-contact = 連絡先は { $max } 文字以内で入力してください。
 
+# Under the agreement check box when Send report is chosen without it.
 report-validation-consent = このレポートの送信に同意してください。
 
 report-failed-title = レポートを送信できませんでした
 
-## Windows version update
-home-plan-intro = この更新は 2 段階で行われます。ファイルとアプリはそのまま残ります。Windows の更新によって Atlas の変更が元に戻された場合は、Atlas が適用し直します。
+## Windows のバージョンの更新
+# Atlas moves Windows to a newer release before installing, through Windows Update.
+# $release is the target release (26H2) and $current the release the PC has (24H2);
+# say "Windows 11, version" before them as Microsoft does. $version is an Atlas version.
+
+# Home, under the update button, when the update also moves Windows: a card with the
+# update's two parts. home-plan-name is the accessible name of their list.
+home-plan-files = ファイルとアプリはそのまま残ります。
+home-plan-name = この更新は 2 段階で行われます
 home-plan-windows-title = Windows 11 バージョン { $release }
-home-plan-windows-detail = Atlas が Windows Update からインストールします。インストールを完了するため、PC が再起動します。
-home-plan-windows-optional = 推奨。Atlas が Windows Update からインストールします。インストールを完了するため、PC が再起動します。
+home-plan-windows-step = Atlas が Windows Update からインストールし、その後 PC が再起動します。
+# The same step where moving is optional.
+home-plan-windows-step-ask = 任意です。Atlas が事前に確認を求めたうえで Windows Update からインストールし、その後 PC が再起動します。
+# Instead of the step's own line, once Windows has moved.
+home-plan-step-installed = インストール済みです。
 home-plan-atlas-title = Atlas { $version }
-home-plan-atlas-detail = Atlas がファイルを更新し、選択内容はそのまま引き継ぎます。最後に PC が再起動します。
+home-plan-atlas-step = Atlas が選択内容を維持したまま更新され、その後 PC が再起動します。
+# $date and $until are dates.
 home-end-of-updates-title = Windows 11 バージョン { $current } のセキュリティ更新プログラムの提供は { $date } に終了します
 home-end-of-updates-past-title = Windows 11 バージョン { $current } のセキュリティ更新プログラムの提供は終了しました
 home-end-of-updates-message = Atlas { $version } に更新すると、この PC は Windows 11 バージョン { $release } にも移行します。このバージョンには { $until } までセキュリティ更新プログラムが提供されます。
-install-windows-edition = Atlas { $version } は Windows 11 Pro、Enterprise、Education に対応しています。この PC の Windows は { $product } のため、Atlas をインストールできません。
-install-windows-edition-ending = Atlas { $version } は Windows 11 Pro、Enterprise、Education に対応しています。この PC の Windows は { $product } のため、Atlas をインストールできません。Windows 11 バージョン { $current } のセキュリティ更新プログラムの提供は { $date } に終了します。Windows Update で、この PC を新しいバージョンに移行できます。
-install-windows-no-path = Atlas { $version } には Windows 11 バージョン { $releases } が必要ですが、この PC の Windows から Windows Update でそのバージョンに移行することはできません。Atlas { $version } を使用するには、ファイルをバックアップしてから、Atlas ISO で Windows を再インストールしてください。
+# Instead of home-end-of-updates-message when the card with the update's two parts, which
+# names the move, is under the bar.
+home-end-of-support-plan = Windows 11 バージョン { $release } には { $until } までセキュリティ更新プログラムが提供されます。
+
+# Home, when this Windows can't take the Atlas version at all. $product is Windows'
+# own name for the edition, such as Windows 11 Home.
+install-windows-edition-only = Atlas { $version } は Windows 11 Pro、Enterprise、Education に対応しているため、{ $product } にはインストールできません。
+# The same, on a version whose security updates end, with Open Windows Update. $date is a date.
+install-windows-edition-until = Atlas { $version } は Windows 11 Pro、Enterprise、Education に対応しているため、{ $product } にはインストールできません。Windows 11 バージョン { $current } のセキュリティ更新プログラムは { $date } まで提供されます。Windows Update で、この PC を新しいバージョンに移行できます。
+# The same once that date has passed.
+install-windows-edition-ended-update = Atlas { $version } は Windows 11 Pro、Enterprise、Education に対応しているため、{ $product } にはインストールできません。バージョン { $current } のセキュリティ更新プログラムの提供は終了しているため、Atlas を使わない場合でも Windows を更新してください。
+# $releases lists the supported releases, such as "25H2 or 26H2".
+install-windows-reinstall = Atlas { $version } には Windows 11 バージョン { $releases } が必要ですが、Windows Update でこの PC をそのバージョンに移行することはできません。ファイルをバックアップしてから、Atlas ISO で Windows を再インストールしてください。
+# The same on Home, where the card that creates an Atlas ISO comes first and says how to reinstall.
+home-windows-no-path = Atlas { $version } には Windows 11 バージョン { $releases } が必要ですが、Windows Update でこの PC をそのバージョンに移行することはできません。
+
+# Home, when Atlas changed Windows Update settings for an update and hasn't put them back.
+# The bar's button is home-put-back; Continue update (home-continue-update) is beside the
+# version above.
 home-update-access-title = Atlas の更新のため、Windows Update の設定が変更されています
-home-update-access-not-offered = Atlas はこの PC を Windows 11 バージョン { $release } に移行するために Windows Update をオンにしましたが、Windows Update ではまだ提供されていません。「もう一度確認」または「設定を元に戻す」を選んでください。
-home-update-access-before = Atlas はこの PC を Windows 11 バージョン { $release } に移行するために Windows Update をオンにしましたが、まだ完了していません。更新を続行するか、「設定を元に戻す」を選んでください。
-home-update-access-after = この PC には Windows 11 バージョン { $release } がインストールされています。Atlas のインストールを完了するか、「設定を元に戻す」を選んでください。
-home-update-access-plain = Atlas は更新プログラムをインストールするために Windows Update をオンにしましたが、まだ完了していません。更新を続行するか、「設定を元に戻す」を選んでください。
-home-update-access-unreadable = Atlas は、変更した Windows Update の設定の記録を読み取れないため、何も変更せず、元にも戻しません。Atlas チームが対応できるよう、「レポートを送信」を選んでください。
-home-update-access-failed = Atlas は設定を元に戻せませんでした。もう一度試すか、「レポートを送信」を選んでください。詳細: { $error }
-home-update-access-install-active = 先に Atlas のインストールを完了してください。インストールの最後に、これらの設定は元に戻されます。
+# Under home-update-access-title while an update that moves Windows is under way.
+home-update-access-put-back-later = 更新が完了すると、Atlas がこれらの設定を元に戻します。
+# When the last check found no offer yet.
+home-update-access-waiting = Atlas はこの PC を Windows 11 バージョン { $release } に移行するために Windows Update をオンにしましたが、Windows Update ではまだ提供されていません。
+home-update-access-updating = Atlas は更新プログラムをインストールするために Windows Update をオンにしましたが、まだ完了していません。
+# Instead of home-update-access-title when Atlas can't read its record of the settings it changed.
+home-update-access-unreadable-title = Atlas の Windows Update の記録を読み取れませんでした
+# With Send a report and Export diagnostics under it; the raw error is behind Show details. Also
+# why putting the settings back failed, where the worker names this cause.
+home-update-access-unreadable-problem = Atlas は、変更した Windows Update の設定の記録を読み取れないため、何も変更せず、元にも戻しません。
+# Under the bar when putting the settings back failed for another reason. Put back settings
+# tries again; the raw error is behind Show details.
+home-put-back-failed = Atlas は設定を元に戻せませんでした。
+# Why the Windows Update settings Atlas changed can't be put back yet: an unfinished Atlas
+# installation or update puts them back in its last stage. On Home, where Put back settings is
+# hidden meanwhile, and in the close question when putting them back failed. Also under the
+# Windows release choice on Get ready, where keeping this version waits for the same reason.
+# "Stage" is a stage of installing, not one of the four flow steps.
+update-access-finish-install = 先に Atlas のインストールを完了してください。Atlas が変更した Windows Update の設定は、インストールの最後の段階で元に戻ります。
 home-continue-update = 更新を続行
 home-put-back = 設定を元に戻す
 home-putting-back = 設定を元に戻しています…
+
+# Get ready: the card of the move to a newer Windows version, first on the page. Its title is
+# windows-card-title, and the line under it says how the move stands.
 windows-card-title = Windows 11 バージョン { $release }
-windows-card-required = Atlas { $version } には、より新しいバージョンの Windows が必要です。下で Windows を更新するときに、Atlas は Windows Update から Windows 11 バージョン { $release } もインストールします。
+# Under the title of a move the Atlas package needs, before the go-ahead.
+windows-required = Atlas { $version } はバージョン { $current } に対応していないため、Atlas が先に Windows を更新します。
+# Under the title where moving is optional.
+windows-optional = Atlas はどちらのバージョンでも動作します。
+# The choice's accessible name; the two answers say it.
 windows-card-question = この PC でどのバージョンの Windows を使用しますか?
-windows-choice-move = Windows 11 バージョン { $release } に更新
-windows-choice-move-detail = 推奨。{ $date } までセキュリティ更新プログラムが提供されます。再起動が 1 回増えます。
+windows-choice-move-recommended = Windows 11 バージョン { $release } に更新 (推奨)
+# $date is when the new version stops getting security updates.
+windows-choice-move-support = { $date } までセキュリティ更新プログラムが提供されます。
 windows-choice-keep = Windows 11 バージョン { $current } を維持
-windows-choice-keep-detail = PC はこのバージョンのままです。Windows Update によって新しいバージョンに移行されることはないため、後で移行するには Atlas Manager でもう一度更新する必要があります。
+windows-choice-keep-later = バージョン { $current } のままです。後で Atlas Manager から移行できます。
 windows-card-facts = 変更内容
-windows-fact-keep = ファイルとアプリはそのまま残ります。更新によって Atlas の変更が元に戻された場合は、インストール時に Atlas が適用し直します。
-windows-fact-restart = 完了するまでに、PC はさらに 1 回以上再起動します。
-transition-offer-expectation = Windows Update でこのバージョンが提供されるまで、通常は数分ですが、最大 2 時間かかることがあります。Atlas が自動で確認しながら待機します。
-windows-fact-stays = その後、Windows はバージョン { $release } のままになり、自動的に新しいバージョンに移行することはありません。
-windows-fact-removed = バージョン { $release } には、Windows PowerShell 2.0 と WMIC ツールが含まれていません。
-# "設定" > "Windows Update" > "更新の履歴" and "設定" > "システム" > "回復" > "戻す" are the
-# labels Japanese Windows 11 shows.
-windows-card-undo = 後で元に戻すには、「設定」の「Windows Update」>「更新の履歴」から更新プログラムをアンインストールしてください。更新時に Windows が再インストールされた場合は、代わりに 10 日以内に「設定」の「システム」>「回復」で「戻す」を選んでください。Atlas { $version } はバージョン { $current } に対応していないため、Atlas { $version } をインストールした後は元に戻さないでください。
-windows-card-undo-optional = 後で元に戻すには、「設定」の「Windows Update」>「更新の履歴」から更新プログラムをアンインストールしてください。更新時に Windows が再インストールされた場合は、代わりに 10 日以内に「設定」の「システム」>「回復」で「戻す」を選んでください。
-windows-terms = Windows 11 バージョン { $release } のマイクロソフト ソフトウェア ライセンス条項に同意します
+windows-fact-files = ファイルとアプリはそのまま残ります。更新で元に戻された変更は、Atlas が適用し直します。
+windows-fact-time = 通常は数分、最大 2 時間かかり、その後に再起動します。
+# Behind Show details, on a PC whose version still has them.
+windows-fact-removes = Windows PowerShell 2.0 と WMIC が削除されます。
+# Opens the Atlas documentation on undoing the move, where moving is optional.
+windows-undo-link = 更新を元に戻す方法
+# Before windows-accept: accepting the terms and starting the move are one choice.
+windows-terms-line = 更新すると、マイクロソフト ソフトウェア ライセンス条項に同意したことになります。
 windows-terms-link = ライセンス条項を読む
-windows-card-locked = バージョン { $current } のままにするには、「キャンセル」を選んでから「更新を停止」を選んでください。
-prepare-description-transition = インストール前に、Atlas は保留中の Windows 更新プログラムをインストールし、次に Windows 11 バージョン { $release } をインストールしてから、Microsoft Store と Store アプリを更新します。開いている Store アプリは更新中に終了することがあるため、先にそのアプリでの作業を保存してください。PC は少なくとも 1 回再起動します。
-prepare-start-transition = Windows をバージョン { $release } に更新
-prepare-needs-terms = 「Windows 11 バージョン { $release }」でライセンス条項に同意すると利用できます。
-ready-banner-not-offered-message = 現在できることは、「Windows と Store アプリの更新」で確認してください。
-ready-banner-transition-failed-message = 次に行うことは、「Windows と Store アプリの更新」で確認してください。
-ready-banner-terms-title = 続行するにはライセンス条項に同意してください
-ready-banner-terms-message = ライセンス条項は、このページの下にある「Windows 11 バージョン { $release }」にあります。同意したら、「Windows をバージョン { $release } に更新」を選んでください。
+windows-accept = 同意して更新
+# Once the terms are accepted, before the move starts by itself.
+windows-starting = 開始しています…
+windows-starts-after-checks = 確認に問題がなければ開始します。
+windows-starts-after-package = Atlas { $version } の準備ができると開始します。
+# After the move, when Windows reinstalled itself instead of switching the new version on.
+windows-rebuilt = バージョン { $release } で Atlas の変更の一部がリセットされました。Atlas { $version } が以前の選択内容に従って適用し直します。
+# Asked before keeping this version once the move has begun; the message is stop-update-before
+# and the buttons are common-cancel and prepare-keep-version.
+windows-keep-title = Windows 11 バージョン { $current } を維持しますか?
+
+
+# The bar that names each Windows Update setting Atlas turns on for the update.
 access-notice-title = Atlas は一時的に Windows Update をオンにします
 access-off = この PC では Windows Update がオフになっています。Windows の更新中は、Atlas がオンに戻します。
 access-paused = この PC では Windows の更新が一時停止されています。Windows の更新中は、Atlas が一時停止を解除します。
 access-delayed = この PC では毎月の更新プログラムが延期されています。Windows の更新中は、Atlas が延期を解除します。
-access-back-chosen = Atlas { $version } のインストールが完了すると、これらの設定は選択したとおりに戻ります。
+# After the lines above.
 access-back = Atlas { $version } のインストールが完了すると、これらの設定は元の状態に戻ります。
 access-back-stop = それより前に停止した場合も、Atlas が元に戻します。
-prepare-reboot-transition = Windows 11 バージョン { $release } がインストールされました。インストールを完了するには、「再起動して続行」を選んでください。サインイン後に Atlas が再び開きます。
-prepare-reboot-commit = バージョン { $release } のインストールを完了するには、Windows をもう一度再起動する必要があります。サインイン後に Atlas が再び開きます。
-prepare-restart-commit-failed = Windows は再起動時にバージョン { $release } のインストールを完了する準備ができなかったため、PC は再起動されませんでした。もう一度試すには、「再起動して続行」を選んでください。
+
 prepare-reason-feature-update = 新しい Windows バージョン
 prepare-reason-feature-commit = 新しい Windows バージョンの完了処理
-prepare-resumed-transition = PC が再起動しました。「更新を続ける」を選ぶと、Windows 11 バージョン { $release } のインストールが完了したことを Atlas が確認し、残りの更新プログラムをインストールします。
-prepare-waiting-offer = Windows Update で Windows 11 バージョン { $release } が提供されるのを待っています。通常は数分で提供されますが、最大 2 時間かかることがあります。PC は引き続き使用できますが、Atlas は開いたままにしてください。
-prepare-resumed-before-move = 更新プログラムのインストールを完了するため、PC が再起動しました。「更新を続ける」を選ぶと、Atlas が残りの更新プログラムをインストールし、その後 Windows 11 バージョン { $release } をインストールします。
-prepare-not-offered-title = Windows Update で Windows 11 バージョン { $release } が提供されるのを待っています
-prepare-transition-failed-title = Windows をバージョン { $release } に移行できませんでした
-prepare-failed-feature-not-offered = Windows Update で Windows 11 バージョン { $release } が PC に提供されるまで、時間がかかることがあります。PC は現在もバージョン { $current } です。
-prepare-offer-rechecking = Atlas は 10 分ごとに再確認し、Windows Update で提供され次第、自動で続行します。「もう一度確認」を選ぶこともできます。
-prepare-offer-waited = { $minutes } 分間待機しています。
-prepare-offer-next-check = 次の確認は { $minutes } 分後です。
-prepare-offer-checking-now = 確認しています。
-prepare-offer-check-again = 今すぐ確認するには、「もう一度確認」を選んでください。
-prepare-offer-wait-ended-title = Windows Update で Windows 11 バージョン { $release } がまだ提供されていません
-prepare-offer-wait-ended = Windows Update で 2 時間以内に Windows 11 バージョン { $release } が提供されなかったため、Atlas は待機を終了し、Windows Update の設定を元に戻しました。後で「もう一度確認」を選んでください。待てない場合は、ファイルをバックアップしてから、Atlas ISO で Windows を再インストールしてください。
-# $error is the raw error.
-prepare-offer-wait-put-back-failed = Windows Update で 2 時間以内に Windows 11 バージョン { $release } が提供されず、Atlas は Windows Update の設定を元に戻せませんでした。もう一度試すには、「設定を元に戻す」を選んでください。詳細: { $error }
-prepare-failed-feature-hardware = この PC は Windows 11 のハードウェア要件 ({ $missing }) を満たしていないため、Windows Update でバージョン { $release } に移行することはできません。PC は現在もバージョン { $current } です。Atlas { $version } を使用するには、ファイルをバックアップしてから、Atlas ISO で Windows を再インストールしてください。
+# Waiting for Windows Update to offer the new version: the progress bar's label and status
+# line, the line under the bar, and how long Atlas has waited, in whole minutes, after it.
+windows-waiting = Windows Update で Windows 11 バージョン { $release } が提供されるのを待っています…
+windows-waiting-detail = 通常は数分、最大 2 時間かかります。Atlas が自動的に続行するため、その間も PC を使用できます。
+windows-waited = { $minutes } 分間待機しています。
+# After 2 hours of looking again without an offer. The buttons are common-try-again and iso-open.
+windows-wait-ended-title = Windows Update で 2 時間以内にバージョン { $release } が提供されませんでした
+windows-wait-ended = Atlas は設定を元に戻しました。後でもう一度試すか、Atlas ISO で Windows を再インストールしてください。
+# Instead of the message above when putting the settings back failed. The button is
+# home-put-back; the raw error is behind common-show-details.
+windows-wait-put-back-failed = Atlas は Windows Update の設定を元に戻せませんでした。
+# Windows couldn't get the new version ready to finish at the restart, so the PC didn't
+# restart. Try again (common-try-again) makes the restart again.
+windows-commit-failed-title = Windows は再起動の準備ができませんでした
+windows-commit-failed = PC は再起動していません。再試行してください。
+
+# Outcomes of moving Windows, each a title and what to do next. A cause that only the Atlas
+# team can look into has report-title as its button; one an ISO fixes, iso-open.
+windows-outcome-not-offered-title = Windows Update でバージョン { $release } がまだ提供されていません
+windows-outcome-not-offered = 最大 2 時間かかることがあります。PC は現在もバージョン { $current } です。
+windows-outcome-hardware-title = この PC は Windows 11 の要件を満たしていません
+# $missing lists the hardware this PC lacks, from the two messages below.
+windows-outcome-hardware = この PC には { $missing } がないため、Windows Update でバージョン { $release } は提供されません。ファイルをバックアップしてから、Atlas ISO で Windows を再インストールしてください。
 hardware-tpm = TPM 2.0
 hardware-uefi = UEFI ファームウェア
-prepare-failed-feature-hidden = この PC では、Windows Update で Windows 11 バージョン { $release } が非表示になっています。非表示にしたときのツールで再表示してから、「再試行」を選んでください。
-prepare-failed-feature-disk-space = この更新には、ドライブ { $drive } に { $needed } GB 以上の空き領域が必要ですが、現在の空き領域は { $free } GB です。Atlas は何も変更していません。空き領域を確保してから、「再試行」を選んでください。
-prepare-failed-feature-servicing = Windows のコンポーネント ストアに修復できない破損があると Windows が報告しているため、Atlas は何も変更していません。Windows を修復してから、「再試行」を選んでください。
-prepare-failed-feature-managed = この PC は組織の更新サーバーから更新プログラムを受け取っているため、Atlas はバージョン { $release } に移行できません。Atlas は何も変更していません。
-prepare-failed-feature-policy = Atlas が { $setting } を変更しても、この PC 上の何かが繰り返し変更前の状態に戻すため、Atlas は Windows を更新できません。この PC が組織によって管理されている場合は、管理者に問い合わせてください。停止すると、Atlas は変更した内容を元に戻します。
-prepare-failed-feature-blocked = Atlas が変更していない設定によって、Windows Update を実行できません: { $setting }。Windows Update を実行できるようにこの設定を変更してから、「再試行」を選んでください。
-prepare-failed-feature-rolled-back = Windows は再起動中にバージョン { $release } のインストールを完了できず、バージョン { $current } に戻りました。ファイルとアプリに影響はありません。「再試行」または「レポートを送信」を選んでください。
-prepare-failed-feature-components-lost = Windows の更新後に Atlas の変更の一部が失われていますが、Windows が再インストールされた形跡はないため、Atlas は何が起きたのかを判断できません。Atlas { $version } はインストールされていません。Atlas チームが対応できるよう、「レポートを送信」を選んでください。
-prepare-failed-feature-build = Atlas による更新中に、この PC の Windows のバージョンが変わりました。「設定を元に戻す」を選んでから、ホームからやり直してください。
-prepare-failed-feature-journal = Atlas は、変更した Windows Update の設定の記録を読み取れないため、何も変更せず、元にも戻しません。Atlas チームが対応できるよう、「レポートを送信」を選んでください。
+windows-outcome-hidden-title = Windows Update でバージョン { $release } が非表示になっています
+windows-outcome-hidden = 非表示にしたときのツールで再表示してから、再試行してください。
+windows-outcome-disk-space-title = 空き領域が不足しています
+# $needed and $free are whole gigabytes; $drive is a drive such as C:. The button is
+# check-fix-storage; Atlas reads the free space again by itself.
+windows-outcome-disk-space = Windows には { $drive } に { $needed } GB の空き領域が必要ですが、現在は { $free } GB です。十分な空き領域ができると、Atlas が自動的に続行します。
+windows-outcome-managed-title = この PC は組織から更新プログラムを受け取っています
+windows-outcome-managed = 組織の更新サーバーはバージョン { $release } を提供していないため、Atlas は何も変更していません。組織に問い合わせるか、Atlas ISO で Windows を再インストールしてください。
+windows-outcome-policy-title = Windows Update の設定が繰り返し元に戻されています
+# $setting is the technical name of a Windows Update policy value, such as NoAutoUpdate,
+# shown as it is.
+windows-outcome-policy = Atlas が { $setting } を変更しても元に戻されるため、Windows を更新できません。この PC が組織によって管理されている場合は、組織に問い合わせてください。
+# $service is a service-* name, after a fixed phrase so that the name needs no agreement. The
+# buttons are common-try-again and prepare-open-services.
+windows-outcome-service-off-title = サービスが無効になっています: { $service }
+windows-outcome-blocked-service = Windows Update にはこのサービスが必要です。「サービス」でスタートアップの種類を「手動」に設定してから、再試行してください。
+windows-outcome-blocked-title = Windows Update がオフのままになっています
+windows-outcome-blocked = Atlas が変更していない設定 { $setting } によって、Windows Update を実行できません。この設定を変更してから、再試行してください。
+windows-outcome-rollback-title = Windows はバージョン { $release } のインストールを完了できませんでした
+windows-outcome-rolled-back = バージョン { $current } に戻りました。ファイルとアプリに影響はありません。
+windows-outcome-components-lost-title = Atlas の変更の一部が失われています
+windows-outcome-components-lost = 原因を判断できないため、Atlas は Atlas { $version } をインストールする前に停止しました。
+windows-outcome-build-title = 更新中に Windows のバージョンが変わりました
+windows-outcome-build = Atlas が変更した設定を元に戻してから、ホームからやり直してください。
+windows-outcome-journal-title = Atlas はこの更新の記録を読み取れません
+windows-outcome-journal = Atlas チームが確認するまで、Atlas は何も変更せず、元にも戻しません。
+windows-outcome-pin-title = Windows Update ポリシーを記録できません
 # $setting is the name of a Windows Update policy value, such as TargetReleaseVersionInfo.
-prepare-failed-feature-pin = この PC の Windows Update ポリシー { $setting } に Atlas が記録できない値が設定されているため、Atlas は何も変更していません。Atlas チームが対応できるよう、「レポートを送信」を選んでください。
-prepare-failed-feature-terms = Windows 11 バージョン { $release } のライセンス条項に同意してから、「再試行」を選んでください。
-prepare-failed-feature-failed = Windows はバージョン { $release } をインストールできませんでした。PC は現在もバージョン { $current } です。「再試行」を選んでください。再び失敗する場合は、「レポートを送信」を選んでください。
-prepare-check-again = もう一度確認
+windows-outcome-pin = { $setting } には Atlas が後で元に戻せない値が設定されているため、Atlas は何も変更していません。
+windows-outcome-terms-title = ライセンス条項に同意していません
+windows-outcome-terms = Windows Update でバージョン { $release } をインストールするには、ライセンス条項への同意が必要です。
+windows-outcome-failed-title = Windows はバージョン { $release } をインストールできませんでした
+windows-outcome-failed = PC は現在もバージョン { $current } です。
+# Windows services a move needs, as Services lists them. Japanese Windows shows these three
+# names in English.
+service-bits = Background Intelligent Transfer Service (BITS)
+service-cryptsvc = Cryptographic Services
+service-trusted-installer = Windows Modules Installer
+prepare-open-services = 「サービス」を開く
+# Confirms keeping this version in the windows-keep-title question.
 prepare-keep-version = バージョン { $current } を維持
+
+# Asked before leaving the update with Windows Update settings changed.
 stop-update-title = Atlas { $version } への更新を停止しますか?
+# stop-update-title for a first install or a reinstall, which so far has only updated Windows.
 stop-update-title-windows = Windows の更新を停止しますか?
 stop-update-before = Atlas は変更した Windows Update の設定を元に戻します。Windows がすでにインストールした更新プログラムはそのまま残り、PC は Windows 11 バージョン { $current } のままです。
 stop-update-after = PC は Windows 11 バージョン { $release } のままです。Atlas は変更した Windows Update の設定を元に戻します。
@@ -1203,66 +1785,50 @@ window-close-put-back = 元に戻して閉じる
 # message; the buttons are window-close-keep and window-close-close.
 window-close-put-back-failed-title = 設定を元に戻さずに閉じますか?
 window-close-put-back-failed-message = 今 Atlas を閉じると、Windows Update の設定は Atlas が変更したままになります。次に Atlas を開くと、ホームから設定を元に戻せます。
-installed-update-off-again = 選択したとおり、Windows Update は再びオフになりました。オフの間、PC はセキュリティ更新プログラムを受け取りません。
-installed-update-paused-again = 選択したとおり、Windows の更新は再び一時停止されました。一時停止中、PC はセキュリティ更新プログラムを受け取りません。
-detail-build-transition = この PC の Windows は Windows 11 バージョン { $current } で、このバージョンの Atlas は対応していません。下で Windows を更新するときに、Atlas が Windows をバージョン { $release } に移行します。
+
+# PC checks: Windows compatibility on a version Atlas moves from. The move's card says how
+# the move goes.
+detail-build-needs-release = このバージョンの Atlas には Windows 11 バージョン { $release } が必要ですが、この PC はバージョン { $current } です。
+
+# The first lines of a report about a Windows update that didn't finish; technical
+# details follow in English.
 report-transition-intro = Atlas のための Windows の更新が完了しませんでした。Atlas チーム向けの詳細:
-mode-rebase = Windows の更新後の再インストール
+
+# When Windows reinstalled itself while it moved to a newer version, instead of
+# switching the new version on in place. Atlas then puts all of its changes back.
 history-mode-rebase = Windows 更新後の再インストール
-ready-rebase-title = 更新時に Windows が再インストールされました
-ready-rebase-message = Windows 11 バージョン { $release } がこの PC の以前の Windows を置き換えたため、Atlas の変更の一部が失われています。Atlas { $version } は、Atlas { $previous } での選択内容に従って、それらを適用し直します。
-update-path-update-title = Atlas { $version } にどのように更新しますか?
-update-path-reinstall-title = Atlas { $version } をどのように再インストールしますか?
-update-path-keep = 選択内容を維持する
-update-path-keep-detail = Atlas は、すべての選択をこの PC の現在の設定のまま維持し、どれも変更しません。こちらのほうが早く完了します。
-update-path-choose = 選択をやり直す
-update-path-choose-detail = この PC の現在の設定を出発点に、すべての選択をもう一度行います。Atlas は新規インストールと同じように各選択を適用します。アプリ、ファイル、スタート メニュー、タスク バー、テーマはそのまま残ります。Atlas フォルダーで変更した設定のうち、これらの選択に含まれないものもそのまま残ります。
-update-path-now-title = この PC の現在の選択内容
-update-path-unknown = PC から判断できないため、Atlas がお尋ねします
-update-path-differs = { $choices } について、前回のインストールに関する Atlas の記録がこの PC と一致しません。この一覧には、PC の現在の設定が表示されています。
-keep-choices-title = 選択内容の維持
-keep-choices-partial = Atlas はこの PC の現在の設定を維持します。次の項目は PC から判断できないため、選んでください: { $missing }
-choose-again-title = 選択のやり直し
-choose-again-detail = 各選択では、最初にこの PC の現在の設定が選択されています。選んだ内容は、インストール中に Atlas が適用します。
-option-now = この PC の現在の設定
-change-defender-enable = Atlas は Microsoft Defender を復元します。再起動後に、Windows セキュリティで Defender の保護をオンにしてください。
-change-mitigations-default = Atlas はプロセッサの保護を Windows の既定どおりにオンに戻します。再起動後に有効になります。
-change-mitigations-all-on = 現在、プロセッサの保護はすべてオンになっています。保護を維持すると、すべてオンのままになります。
-change-auto-updates-default = Atlas は、Windows が更新プログラムを再び自動的にインストールするようにします。
-change-hibernation-on = Atlas は休止状態をオンに戻します。
-change-power-saving-on = Atlas は省電力機能をオンに戻し、以前の電源プランに戻します。以前の電源プランがない場合は「バランス」にします。
-change-core-isolation-on = Atlas は仮想化ベースのセキュリティ (VBS) をオンに戻します。ただし、この PC のポリシーで管理されている場合は変更しません。再起動後に有効になります。
-change-remove-snipping-tool = この PC のすべてのユーザーから Snipping Tool を削除します。Atlas では後から元に戻せませんが、Microsoft Store から再インストールできます。
-fixed-uninstall-edge = Microsoft Edge はすでに削除されており、Atlas を更新しても元に戻りません。再インストールするには、Atlas フォルダーにある「Install or Remove Edge」を使用してください。
-fixed-installed = { $app } はインストール済みです。Atlas はアプリをアンインストールしません。削除するには、Windows の「設定」で「インストールされているアプリ」を開いてください。
-browser-also = { $installed } はそのまま残り、Atlas が { $browser } もインストールします。
-summary-update-path = Atlas の更新方法
-step-heading-update-path-a11y = { $heading }。{ $question }
-security-banner-removed-title = この PC の Microsoft Defender は Atlas によって削除されています
-security-banner-restore-title = このインストールで Atlas が Microsoft Defender を復元します
-security-banner-restore-message = Defender はまだ実行されていないため、この手順でオフにするものはありません。再起動後に、Windows セキュリティで Defender の保護をオンにしてください。「続行」を選んでください。
-security-banner-missing-title = Microsoft Defender が見つかりません
-security-banner-missing-message = Atlas が削除したものではないため、Atlas では復元できません。続行できますが、別のウイルス対策アプリをインストールするか Windows を修復するまで、PC はウイルス対策による保護を受けられません。
-installed-defender-not-restored-title = Microsoft Defender は削除されたままです
-installed-defender-not-restored-message = Microsoft Defender を残すことを選びましたが、以前の Atlas の更新で復元されなかったため、PC はウイルス対策による保護を受けていません。復元するには、Atlas を更新または再インストールして「選択をやり直す」を選択してください。または、デスクトップの Atlas フォルダーで「7. Security」>「Defender」を開き、「Toggle Defender」を実行して「Enable Windows Defender」を選んでから、PC を再起動してください。
-choices-not-applied-title = 一部の選択が反映されませんでした
-choices-not-applied-message = { $choices } について、Atlas はこの PC の現在の設定を記録しました。理由はインストール ログで確認できます。
+# Your choices after Windows reinstalled itself during a move, which put the choices of the
+# Atlas it had back.
 rebase-choices-title = Atlas { $previous } からの選択内容
-rebase-choices-detail = Atlas は Atlas { $previous } での選択内容を使用するため、ここで選ぶものはありません。後で変更するには、「Atlas を再インストール」を選んでから、「選択をやり直す」を選択してください。
-rebase-choices-partial = Atlas は Atlas { $previous } での選択内容を使用します。次の項目は見つからなかったため、確認してください: { $missing }
-restart-other-title = この PC に別のユーザーがサインインしています
-restart-others-title = この PC に他のユーザーが複数サインインしています
-restart-others-message = 再起動すると、サインインしているユーザーのアプリが閉じられ、保存されていない作業は失われます。サインイン中: { $names }。
+rebase-choices-kept = Atlas { $previous } で選んだ内容を Atlas が適用し直します。Atlas を再インストールすると、後で変更できます。
+# Above the questions the record of the move had no answer for, which are all Your choices asks.
+rebase-choices-asked = Atlas { $previous } で選んだその他の内容は、すべて Atlas が適用し直します。
+# Asked before any restart Atlas makes while other people are signed in to the PC. Its
+# buttons are restart-others-keep, the default, and restart-others-restart.
+restart-other-question = 別のユーザーがサインインしたまま再起動しますか?
+restart-others-question = 他のユーザーがサインインしたまま再起動しますか?
+# $names lists their account names, such as "Alex、Sam"; $count is how many there are.
+# Japanese needs no plural forms here.
+restart-others-signed-in =
+    { $count ->
+       *[other] { $names } もサインインしています。再起動すると、そのユーザーのアプリが終了し、保存されていない作業は失われます。
+    }
 restart-others-keep = 再起動しない
 restart-others-restart = このまま再起動
-prepare-store-self-update = 先に Microsoft Store を更新しています。この PC の Microsoft Store は最新ではありません。
-prepare-store-repair = Microsoft Store を修復しています。数分かかることがあります。
-prepare-store-updated = Microsoft Store が最新ではなかったため、Atlas はアプリより先に Microsoft Store を更新しました。
-prepare-store-bootstrapped = Microsoft Store が自身を更新できなかったため、Atlas は Microsoft から最新のアプリ インストーラーと Microsoft Store をインストールしました。
-prepare-store-repaired = Microsoft Store が動作していなかったため、Atlas が修復しました。
-prepare-store-skipped-removed = この PC では Microsoft Store がオフになっているため、Atlas は Store アプリの更新をスキップしました。
-prepare-failed-store-repair-failed = Atlas はこの PC の Microsoft Store を修復できませんでした。「Atlas ISO を作成」を選んで、Atlas を含む Windows の新規インストールを準備してください。Windows を再インストールする前に、ファイルをバックアップしてください。
-prepare-repair-store = Microsoft Store を修復
+# Microsoft Store itself, before the Store apps: Get ready's status line while it updates or is
+# repaired, with prepare-store-repair-detail under the progress bar while it's repaired.
+prepare-store-updating = Microsoft Store を更新しています…
+prepare-store-repairing = Microsoft Store を修復しています…
+prepare-store-repair-detail = 数分かかることがあります。
+# Under ready-updates-done-windows once Get ready has finished, where Microsoft Store is turned off.
+# What updating did to Microsoft Store itself otherwise is only in the log.
+prepare-store-skipped-removed = この PC では Microsoft Store がオフになっているため、Store アプリは更新されませんでした。
+# None of Atlas's repairs made Microsoft Store work. The button is prepare-repair-store-again;
+# prepare-store-broken-iso and Create an Atlas ISO (iso-open) are behind common-show-details.
+prepare-store-broken-title = Microsoft Store が動作していません
+prepare-store-broken = Atlas は修復できませんでした。今 Atlas をインストールすると、Store アプリが動作しなくなるおそれがあります。
+prepare-store-broken-iso = 修復が失敗し続ける場合は、ファイルをバックアップしてから、Atlas ISO で Windows を再インストールしてください。
+prepare-repair-store-again = もう一度修復
 
 screen-keyboard-title = キーボードの言語
 screen-keyboard-question = 複数のキーボード言語を使いますか?

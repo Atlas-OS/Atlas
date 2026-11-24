@@ -4,6 +4,9 @@
 .DESCRIPTION
     Writes UDF, which allows files over 4 GiB, with BIOS and UEFI boot for x64 and
     UEFI boot only for ARM64. Build-Iso.ps1 calls it within its elevated process.
+
+    While it writes the image it reports the bytes written on standard output for the
+    app, as lines such as ATLAS_PROGRESS:{"done":67108864,"total":7340032000}.
 .PARAMETER Media
     The folder to master, laid out as Windows installation media.
 .PARAMETER Output
@@ -40,22 +43,30 @@ public static class AtlasIsoStream {
   for (int i = 0; i < boots.Length; i++) options[i] = new DispatchWrapper(boots[i]);
   ((AtlasFileSystemImage2)image).BootImageOptionsArray = options;
  }
- public static void Save(object source, string path, string cancel) {
+ // Writes the image to a new file, reporting the bytes written every 64 MiB and at the end.
+ public static void Save(object source, string path, string cancel, long total) {
   var stream = (IStream)source;
   var count = Marshal.AllocHGlobal(4);
   try {
    using (var output = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
     var buffer = new byte[1024 * 1024];
+    long done = 0, reported = 0;
     for (;;) {
      if (File.Exists(cancel)) throw new OperationCanceledException("ISO creation cancelled.");
      stream.Read(buffer, buffer.Length, count);
      int read = Marshal.ReadInt32(count);
      if (read == 0) break;
      output.Write(buffer, 0, read);
+     done += read;
+     if (done - reported >= 64L * 1024 * 1024) { Report(done, total); reported = done; }
     }
     output.Flush(true);
+    Report(done, total);
    }
   } finally { Marshal.FreeHGlobal(count); }
+ }
+ static void Report(long done, long total) {
+  if (total > 0) Console.Out.WriteLine("ATLAS_PROGRESS:{\"done\":" + done + ",\"total\":" + total + "}");
  }
 }
 '@
@@ -96,7 +107,7 @@ try {
     [void]$comObjects.Add($result)
     $outputStream = $result.ImageStream
     [void]$comObjects.Add($outputStream)
-    [AtlasIsoStream]::Save($outputStream, $Output, $CancelFile)
+    [AtlasIsoStream]::Save($outputStream, $Output, $CancelFile, [long]$result.TotalBlocks * [long]$result.BlockSize)
     if ((Get-Item -LiteralPath $Output).Length -ne [long]$result.TotalBlocks * [long]$result.BlockSize) { throw 'Image stream was incomplete.' }
 }
 finally {

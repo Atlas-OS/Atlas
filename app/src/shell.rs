@@ -27,6 +27,7 @@ use crate::services::system::links;
 use crate::t;
 use crate::theme::{ActiveTheme, Appearance, Theme, text_font};
 use crate::ui::actions::{FocusNext, FocusPrevious, NavigateBack};
+use crate::ui::content_dialog as dialog;
 use crate::ui::{
     Button, InfoBar, ScrollbarState, Severity, TitleBar, Typography, a11y_text, dismiss_button, focus_reveal,
     nested_scrollbar, page_keyboard_scrolling,
@@ -127,6 +128,7 @@ impl Shell {
                         crate::services::system::flash_until_foreground(window);
                     }
                 }
+                ModelEvent::BringToFront => this.bring_to_front(window, cx),
             }),
             cx.observe_window_appearance(window, |this, window, cx| {
                 this.system_appearance = Appearance::from_window(window.appearance());
@@ -192,6 +194,29 @@ impl Shell {
         shell
     }
 
+    /// Brings the window back in front of the app the user is in, such as
+    /// Windows Security once its switches are off. Windows lets an app take
+    /// the foreground only in some cases; where it refuses, the taskbar
+    /// button flashes until the user comes back.
+    fn bring_to_front(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        /// How long Windows has to act on the request before Atlas looks.
+        const ACTIVATION_WAIT: Duration = Duration::from_millis(500);
+        if window.is_window_active() {
+            return;
+        }
+        window.activate_window();
+        cx.spawn_in(window, async move |_, cx| {
+            cx.background_executor().timer(ACTIVATION_WAIT).await;
+            cx.update(|window, _| {
+                if !window.is_window_active() {
+                    crate::services::system::flash_until_foreground(window);
+                }
+            })
+            .ok();
+        })
+        .detach();
+    }
+
     /// Other people are signed in, so a restart would close their apps:
     /// the user restarts anyway or keeps the PC running. Don't restart is
     /// the safe answer, and Escape chooses it.
@@ -202,19 +227,17 @@ impl Shell {
         }
         self.asking_about_sessions = true;
         let title = match confirmation.people.len() {
-            1 => t!("restart-other-title"),
-            _ => t!("restart-others-title"),
+            1 => t!("restart-other-question"),
+            _ => t!("restart-others-question"),
         };
-        let message =
-            t!("restart-others-message", names = crate::i18n::describe::join_and(&confirmation.people));
-        let (keep, restart) = (t!("restart-others-keep"), t!("restart-others-restart"));
-        let answer = window.prompt(
-            PromptLevel::Warning,
-            &title,
-            Some(&message),
-            &[keep.as_str(), restart.as_str()],
-            cx,
+        let message = t!(
+            "restart-others-signed-in",
+            names = crate::i18n::describe::join_and(&confirmation.people),
+            count = confirmation.people.len()
         );
+        let answers =
+            [dialog::safe_answer(t!("restart-others-keep")), dialog::answer(t!("restart-others-restart"))];
+        let answer = window.prompt(PromptLevel::Warning, &title, Some(&message), &answers, cx);
         cx.spawn_in(window, async move |this, cx| {
             let answer = answer.await;
             this.update_in(cx, |shell, _, cx| {
@@ -252,7 +275,9 @@ impl Shell {
         if !matches!(guard, CloseGuard::None | CloseGuard::Wait) && !window.is_window_active() {
             window.activate_window();
         }
-        let (title, message) = match guard {
+        // Each answer pair is the safe answer, which keeps the job going, then
+        // the answer that closes.
+        let (title, message, keep, close) = match guard {
             CloseGuard::None => return true,
             CloseGuard::ProtectionOff => {
                 self.confirm_closing_with_protection_off(window, cx);
@@ -264,43 +289,56 @@ impl Shell {
                 self.confirm_restart_before_closing(window, cx);
                 return false;
             }
+            CloseGuard::PreparationRestart => {
+                self.confirm_update_restart_before_closing(window, cx);
+                return false;
+            }
             CloseGuard::WindowsUpdateAccess => {
                 self.confirm_put_back_before_closing(window, cx);
                 return false;
             }
             CloseGuard::Preparation => {
-                let (title, message) = (t!("prepare-close-title"), t!("prepare-close-message"));
+                let (title, message) = (t!("prepare-close-question"), t!("prepare-close-stops-after-stage"));
+                let answers = (t!("stop-update-keep"), t!("prepare-stop"));
                 let stop = |m: &mut AppModel| m.preparation_cancel.store(true, Ordering::Relaxed);
-                self.offer_stop(&title, &message, &t!("prepare-stop"), stop, window, cx);
+                self.offer_stop(&title, &message, answers, stop, window, cx);
                 return false;
             }
             CloseGuard::Media => {
                 let (title, message) = if usb {
-                    (t!("usb-close-title"), t!("usb-working"))
+                    (t!("usb-close-question"), t!("usb-close-unfinished"))
                 } else {
-                    (t!("iso-close-title"), t!("iso-close-message"))
+                    (t!("iso-close-question"), t!("iso-close-safe-point"))
                 };
+                let answers = (t!("window-close-keep-creating"), t!("window-close-stop"));
                 let stop = |m: &mut AppModel| m.iso_cancel.store(true, Ordering::Relaxed);
-                self.offer_stop(&title, &message, &t!("iso-cancel"), stop, window, cx);
+                self.offer_stop(&title, &message, answers, stop, window, cx);
                 return false;
             }
-            CloseGuard::PreparingInstall => {
-                (t!("window-close-preparing-title"), t!("window-close-preparing-message"))
-            }
+            CloseGuard::PreparingInstall => (
+                t!("window-close-checks-question"),
+                t!("window-close-checks-unchanged"),
+                t!("window-close-keep-installing"),
+                t!("window-close-stop-and-close"),
+            ),
             CloseGuard::Install => {
                 // Only an open window restarts the PC when installing ends.
+                // Before the session is recorded, this install's own check
+                // box says whether it will, not the Settings default.
                 let restart = state
                     .session
                     .as_ref()
-                    .map_or(state.settings.restart_after_install, |session| session.request.restart);
-                let message =
-                    if restart { t!("window-close-message-restart") } else { t!("window-close-message") };
-                (t!("window-close-title"), message)
+                    .map_or_else(|| state.install_restarts(), |session| session.request.restart);
+                let message = if restart {
+                    t!("window-close-installing-no-restart")
+                } else {
+                    t!("window-close-installing")
+                };
+                (t!("window-close-title"), message, t!("window-close-keep"), t!("window-close-close"))
             }
         };
-        let (keep, close) = (t!("window-close-keep"), t!("window-close-close"));
-        let answer =
-            window.prompt(PromptLevel::Warning, &title, Some(&message), &[keep.as_str(), close.as_str()], cx);
+        let answers = [dialog::safe_answer(keep), dialog::answer(close)];
+        let answer = window.prompt(PromptLevel::Warning, &title, Some(&message), &answers, cx);
         cx.spawn_in(window, async move |this, cx| {
             if answer.await == Ok(1) {
                 this.update_in(cx, |shell, window, cx| {
@@ -337,9 +375,9 @@ impl Shell {
     fn confirm_put_back_before_closing(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let (title, message) =
             (t!("window-close-update-access-title"), t!("window-close-update-access-message"));
-        let (keep, close) = (t!("window-close-keep"), t!("window-close-put-back"));
-        let answer =
-            window.prompt(PromptLevel::Warning, &title, Some(&message), &[keep.as_str(), close.as_str()], cx);
+        let answers =
+            [dialog::safe_answer(t!("window-close-keep")), dialog::answer(t!("window-close-put-back"))];
+        let answer = window.prompt(PromptLevel::Warning, &title, Some(&message), &answers, cx);
         cx.spawn_in(window, async move |this, cx| {
             if answer.await != Ok(1) {
                 return;
@@ -410,9 +448,9 @@ impl Shell {
             Some(cause) => format!("{cause}\n\n{}", t!("window-close-put-back-failed-message")),
             None => t!("window-close-put-back-failed-message"),
         };
-        let (keep, close) = (t!("window-close-keep"), t!("window-close-close"));
-        let answer =
-            window.prompt(PromptLevel::Warning, &title, Some(&message), &[keep.as_str(), close.as_str()], cx);
+        let answers =
+            [dialog::safe_answer(t!("window-close-keep")), dialog::answer(t!("window-close-close"))];
+        let answer = window.prompt(PromptLevel::Warning, &title, Some(&message), &answers, cx);
         cx.spawn_in(window, async move |this, cx| {
             if answer.await == Ok(1) {
                 this.update_in(cx, |shell, window, cx| shell.close_after_launch(window, cx)).ok();
@@ -421,20 +459,20 @@ impl Shell {
         .detach();
     }
 
-    /// Offers to stop a job that stops at a safe point. The window stays open
-    /// either way; it can be closed once the job has ended.
+    /// Offers to stop a job that stops at a safe point: `answers` keeps it
+    /// going, which is safe, or stops it. The window stays open either way;
+    /// it can be closed once the job has ended.
     fn offer_stop(
         &mut self,
         title: &str,
         message: &str,
-        stop_label: &str,
+        (keep, stop_label): (String, String),
         stop: fn(&mut AppModel),
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let keep = t!("window-close-keep");
-        let answer =
-            window.prompt(PromptLevel::Warning, title, Some(message), &[keep.as_str(), stop_label], cx);
+        let answers = [dialog::safe_answer(keep), dialog::answer(stop_label)];
+        let answer = window.prompt(PromptLevel::Warning, title, Some(message), &answers, cx);
         let model = self.model.clone();
         cx.spawn(async move |_, cx| {
             if answer.await == Ok(1) {
@@ -474,31 +512,51 @@ impl Shell {
     }
 
     /// Atlas keeps the restart countdown, so closing the window would drop
-    /// the restart without a word. The user keeps the window, restarts now,
-    /// or closes knowing the PC must be restarted by hand. The countdown is
-    /// held while the prompt is open and starts again if the window stays.
+    /// the restart without a word. Someone who chose Close may not have
+    /// saved their work in other apps, so Restart later is the default,
+    /// which Enter and Escape both choose: it closes knowing the PC must be
+    /// restarted by hand. The countdown is held while the prompt is open and
+    /// starts again if it goes unanswered.
     fn confirm_restart_before_closing(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let (title, message) = (t!("window-close-restart-title"), t!("window-close-restart-message"));
-        let (keep, restart, close) =
-            (t!("window-close-keep"), t!("restart-now"), t!("window-close-restart-close"));
+        let (title, message) = (t!("window-close-restart-question"), t!("window-close-restart-closed"));
+        let answers = [dialog::answer(t!("restart-now")), dialog::safe_answer(t!("restart-dont-now"))];
         self.model.update(cx, |model, _| model.hold_restart());
-        let answer = window.prompt(
-            PromptLevel::Warning,
-            &title,
-            Some(&message),
-            &[keep.as_str(), restart.as_str(), close.as_str()],
-            cx,
-        );
+        let answer = window.prompt(PromptLevel::Warning, &title, Some(&message), &answers, cx);
         cx.spawn_in(window, async move |this, cx| {
             let answer = answer.await;
             this.update_in(cx, |shell, window, cx| match answer {
-                Ok(1) => shell.model.update(cx, |model, cx| model.restart_now(cx)),
-                Ok(2) => {
+                Ok(0) => shell.model.update(cx, |model, cx| model.restart_now(cx)),
+                Ok(_) => {
                     shell.model.update(cx, |model, cx| model.cancel_restart(cx));
                     shell.close_after_launch(window, cx);
                 }
-                // Keep open, or the prompt went away without an answer.
-                _ => shell.model.update(cx, |model, cx| model.resume_restart(cx)),
+                // The prompt went away without an answer.
+                Err(_) => shell.model.update(cx, |model, cx| model.resume_restart(cx)),
+            })
+            .ok();
+        })
+        .detach();
+    }
+
+    /// Get ready keeps the countdown to the restart updating needs, so
+    /// closing the window would drop it without a word. As at the end of an
+    /// install, Restart later is the default, which Enter and Escape both
+    /// choose: it closes, and Atlas carries on after the user restarts. The
+    /// countdown is held while the prompt is open and starts again if it
+    /// goes unanswered.
+    fn confirm_update_restart_before_closing(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let (title, message) =
+            (t!("window-close-update-restart-question"), t!("window-close-update-restart-later"));
+        let answers = [dialog::answer(t!("restart-now")), dialog::safe_answer(t!("restart-dont-now"))];
+        self.model.update(cx, |model, _| model.hold_preparation_countdown());
+        let answer = window.prompt(PromptLevel::Warning, &title, Some(&message), &answers, cx);
+        cx.spawn_in(window, async move |this, cx| {
+            let answer = answer.await;
+            this.update_in(cx, |shell, window, cx| match answer {
+                Ok(0) => shell.model.update(cx, |model, cx| model.restart_preparation(cx)),
+                Ok(_) => shell.close_after_launch(window, cx),
+                // The prompt went away without an answer.
+                Err(_) => shell.model.update(cx, |model, cx| model.resume_preparation_countdown(cx)),
             })
             .ok();
         })
@@ -506,30 +564,33 @@ impl Shell {
     }
 
     /// Closing during a setup with protection switches read off would leave
-    /// them off. The user keeps the window, opens Windows Security to turn
-    /// them back on, or closes knowing the setup continues when Atlas opens
-    /// again.
+    /// them off. Opening Windows Security to turn them back on is the
+    /// default and keeps the window; closing, which Escape chooses, leaves
+    /// them off and the setup continues when Atlas opens again.
     fn confirm_closing_with_protection_off(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let Some(reminder) = self.model.read(cx).protection_left_off() else { return };
         let names: Vec<String> = reminder.switches.iter().map(|switch| switch.title()).collect();
         let title = t!("window-close-protection-title");
-        let message =
-            t!("window-close-protection-message", switches = crate::i18n::describe::join_and(&names));
-        let (keep, open, close) =
-            (t!("window-close-keep"), t!("common-open-windows-security"), t!("window-close-close"));
-        let answer = window.prompt(
-            PromptLevel::Warning,
-            &title,
-            Some(&message),
-            &[keep.as_str(), open.as_str(), close.as_str()],
-            cx,
-        );
+        let message = if names.len() == crate::services::security::Protection::ALL.len() {
+            t!("window-close-protection-all")
+        } else {
+            t!(
+                "window-close-protection-some",
+                switches = crate::i18n::describe::join_and(&names),
+                count = names.len()
+            )
+        };
+        let answers = [
+            dialog::default_answer(t!("common-open-windows-security")),
+            dialog::safe_answer(t!("window-close-close")),
+        ];
+        let answer = window.prompt(PromptLevel::Warning, &title, Some(&message), &answers, cx);
         cx.spawn_in(window, async move |this, cx| {
             let answer = answer.await;
             this.update_in(cx, |shell, window, cx| match answer {
-                Ok(1) => cx.open_url(links::WINDOWS_SECURITY_PROTECTION),
-                Ok(2) => shell.close_after_launch(window, cx),
-                _ => {}
+                Ok(0) => cx.open_url(links::WINDOWS_SECURITY_PROTECTION),
+                Ok(_) => shell.close_after_launch(window, cx),
+                Err(_) => {}
             })
             .ok();
         })

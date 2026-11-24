@@ -5,10 +5,9 @@ It's for anyone using Atlas; [Triage](#triage), [Log limits](#log-limits) and [H
 
 ## Report a problem
 
-In Atlas Manager, open **Settings** > **Help and feedback**.
+In Atlas Manager, open **Settings** > **Help**.
 It has both routes: **Send a report** and **Export diagnostics**.
-The install, ISO and USB pages offer the same buttons under a problem.
-The installing view keeps them with the install log, and adds **Send a report** once the install ends.
+The install, ISO and USB pages offer the same links under an unexpected failure, such as a check that couldn't run or a failed install, with **Open log folder** where a log exists.
 **Report a problem** on Home opens **Send a report**.
 
 | Route | Who sees it |

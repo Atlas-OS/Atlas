@@ -22,28 +22,12 @@ pub struct ProgressBar {
     label: SharedString,
     /// `None` animates an indeterminate sweep.
     value: Option<f32>,
-    decorative: bool,
     live: bool,
 }
 
 impl ProgressBar {
     pub fn new(id: impl Into<ElementId>, label: impl Into<SharedString>, value: Option<f32>) -> Self {
-        Self {
-            id: id.into(),
-            label: label.into(),
-            value: value.map(|v| v.clamp(0., 1.)),
-            decorative: false,
-            live: false,
-        }
-    }
-
-    /// Drawn only, with no progress node of its own, for a bar whose words
-    /// beside it say everything: the restart countdown's sentence and its
-    /// buttons' group name give the seconds, so the bar's elapsed fraction
-    /// would only contradict them.
-    pub fn decorative(mut self) -> Self {
-        self.decorative = true;
-        self
+        Self { id: id.into(), label: label.into(), value: value.map(|v| v.clamp(0., 1.)), live: false }
     }
 
     /// Announces its name when it changes, as the one live node of a task
@@ -57,18 +41,15 @@ impl ProgressBar {
 impl RenderOnce for ProgressBar {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme();
-        let exposed = !self.decorative;
         let track = div()
             .id(self.id)
-            .when(exposed, |this| {
-                this.role(Role::ProgressIndicator)
-                    .aria_label(self.label)
-                    .when(self.live, |this| this.aria_live(Live::Polite))
-                    .when_some(self.value, |this, value| {
-                        this.aria_numeric_value((value * 100.).round() as f64)
-                            .aria_min_numeric_value(0.)
-                            .aria_max_numeric_value(100.)
-                    })
+            .role(Role::ProgressIndicator)
+            .aria_label(self.label)
+            .when(self.live, |this| this.aria_live(Live::Polite))
+            .when_some(self.value, |this, value| {
+                this.aria_numeric_value((value * 100.).round() as f64)
+                    .aria_min_numeric_value(0.)
+                    .aria_max_numeric_value(100.)
             })
             .relative()
             .w_full()

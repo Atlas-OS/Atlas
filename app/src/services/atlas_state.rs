@@ -43,7 +43,6 @@ pub struct AtlasState {
     pub schema_version: u32,
     pub installed_version: Option<String>,
     pub installed_at: Option<String>,
-    pub mode: Option<String>,
     #[serde(default)]
     pub options: Vec<String>,
     #[serde(default)]
@@ -70,10 +69,6 @@ impl AtlasState {
     pub fn has_completed_install(&self) -> bool {
         self.installed_version.as_ref().is_some_and(|version| !version.trim().is_empty())
             && self.installed_at_local().is_some()
-    }
-
-    pub fn install_mode(&self) -> InstallMode {
-        InstallMode::parse(self.mode.as_deref())
     }
 
     /// When the install finished, in the user's local zone.
@@ -580,8 +575,8 @@ mod tests {
         }
     }
 
-    /// Records written by older releases carry fields the app no longer
-    /// reads, such as `isOobe` and `isInteractive`; they still load.
+    /// Records carry fields the app doesn't read, such as `mode`, and older
+    /// releases' `isOobe` and `isInteractive`; they still load.
     #[test]
     fn a_state_with_fields_the_app_does_not_read_still_loads() {
         let state: AtlasState = serde_json::from_value(serde_json::json!({
@@ -590,7 +585,6 @@ mod tests {
         }))
         .unwrap();
         assert!(state.has_completed_install());
-        assert_eq!(state.install_mode(), InstallMode::Fresh);
         assert_eq!(state.options, ["defender-enable"]);
     }
 }

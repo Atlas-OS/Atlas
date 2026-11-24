@@ -84,7 +84,7 @@ body:
   attributes:
     label: Diagnostics
     description: >-
-      In Atlas Manager, open **Settings** with the gear button in the title bar, choose **Export diagnostics** under **Help and feedback**, then **Show in folder**, and attach the ZIP here.
+      In Atlas Manager, open **Settings** with the gear button in the title bar, choose **Export diagnostics** under **Help**, then **Show in folder**, and attach the ZIP here.
       Atlas removes your user name, PC name and email addresses from it.
       To send diagnostics privately instead, choose **Send a report** in the same place, and paste the report reference here.
 

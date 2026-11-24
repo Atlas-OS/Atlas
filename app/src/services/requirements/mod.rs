@@ -2,7 +2,9 @@
 //! package lists in its manifest (`no-third-party-antivirus` and
 //! `plugged-in`; the Windows Security step covers `windows-security-off`)
 //! and the ones the front door always checks, evaluated with the same rules
-//! as `Entry\Install-Atlas.ps1` where the script has an opinion.
+//! as `Entry\Install-Atlas.ps1` where the script has an opinion. Where Get
+//! ready moves Windows to a newer release, it also checks what the move
+//! needs ([`CheckId::MOVE`]), by the preparation worker's rules.
 
 mod deadline;
 mod providers;
@@ -10,11 +12,17 @@ mod wmi;
 
 use super::system::{self, PowerSource, SystemInfo};
 use providers::{
-    AntivirusProduct, pending_updates, reboot_markers, third_party_antivirus, windows_activation,
+    AntivirusProduct, Hardware, free_space, managed_update_server, pending_updates, reboot_markers,
+    third_party_antivirus, windows_11_hardware, windows_activation,
 };
 
 /// Installed apps in Windows Settings, where other antivirus software is uninstalled.
 const INSTALLED_APPS: &str = "ms-settings:appsfeatures";
+/// Storage in Windows Settings, where space is freed up.
+const STORAGE: &str = "ms-settings:storagesense";
+/// The free space a move to a newer Windows release needs on the system drive,
+/// in GiB: the preparation worker's own minimum (`Test-AtlasWindowsTransitionPreflight`).
+pub const MOVE_SPACE_GB: u64 = 6;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum CheckId {
@@ -28,9 +36,25 @@ pub enum CheckId {
     Power,
     /// Advisory: Atlas never changes activation, but people should know.
     Activation,
+    /// Moving Windows: the hardware Windows 11 requires, where it can be read.
+    MoveHardware,
+    /// Moving Windows: free space on the system drive.
+    MoveSpace,
+    /// Moving Windows: updates come from Windows Update, not an organisation's server.
+    MoveUpdateSource,
 }
 
 impl CheckId {
+    /// What a move to a newer Windows release needs that Windows Update
+    /// would otherwise refuse only after the move had begun. Get ready runs
+    /// these only where a move applies; the install never needs them.
+    pub const MOVE: [CheckId; 3] = [CheckId::MoveHardware, CheckId::MoveSpace, CheckId::MoveUpdateSource];
+
+    /// Whether this check is one of [`CheckId::MOVE`].
+    pub fn for_move(self) -> bool {
+        Self::MOVE.contains(&self)
+    }
+
     pub const ALL: [CheckId; 9] = [
         CheckId::Administrator,
         CheckId::UserAccount,
@@ -57,6 +81,7 @@ impl CheckId {
             CheckId::Internet => Some(system::links::NETWORK),
             CheckId::Power => Some(system::links::POWER),
             CheckId::Activation => Some(system::links::ACTIVATION),
+            CheckId::MoveSpace => Some(STORAGE),
             _ => None,
         }
     }
@@ -150,6 +175,38 @@ pub enum CheckDetail {
     ActivationNoLicence,
     ActivationUnknown {
         error: String,
+    },
+    /// No move to a newer Windows release applies here.
+    MoveNotNeeded,
+    HardwareReady,
+    /// Windows 11 hardware this PC lacks, as the preparation worker names it
+    /// (`tpm`, `uefi`), which `release` needs.
+    HardwareMissing {
+        missing: Vec<String>,
+        release: String,
+    },
+    /// Some of it couldn't be read, as without administrator rights; Windows
+    /// Update decides then.
+    HardwareUnread,
+    /// `drive` (such as "C:") has `free_gb` whole GiB free.
+    SpaceEnough {
+        drive: String,
+        free_gb: u64,
+    },
+    SpaceLow {
+        drive: String,
+        free_gb: u64,
+        needed_gb: u64,
+        release: String,
+    },
+    SpaceUnknown {
+        error: String,
+    },
+    UpdateSourceMicrosoft,
+    /// Updates come from an organisation's server (`AU\UseWUServer`), which
+    /// doesn't offer `release` as Windows Update would.
+    UpdateSourceManaged {
+        release: String,
     },
 }
 
@@ -274,6 +331,16 @@ pub fn run(id: CheckId, ctx: &CheckContext) -> CheckResult {
             Ok(None) => (Verdict::Unknown, D::ActivationNoLicence),
             Err(error) => (Verdict::Unknown, D::ActivationUnknown { error: format!("{error:#}") }),
         },
+        CheckId::MoveHardware | CheckId::MoveSpace | CheckId::MoveUpdateSource => {
+            match super::windows_release::transition_for(
+                &ctx.system,
+                &ctx.supported_builds,
+                super::desktop_setup::active(),
+            ) {
+                None => (Verdict::Pass, D::MoveNotNeeded),
+                Some((transition, _)) => move_check(id, transition.target_release),
+            }
+        }
     };
     // Checks run when asked, not on a timer, so the log keeps every result that held
     // the install back.
@@ -283,6 +350,51 @@ pub fn run(id: CheckId, ctx: &CheckContext) -> CheckResult {
         _ => {}
     }
     CheckResult { id, verdict, detail }
+}
+
+/// What a move to `release` needs from this PC, read before anything changes,
+/// by the rules the preparation worker refuses a move with.
+fn move_check(id: CheckId, release: &str) -> (Verdict, CheckDetail) {
+    use CheckDetail as D;
+    let release = release.to_owned();
+    match id {
+        CheckId::MoveHardware => hardware_verdict(windows_11_hardware(), release),
+        CheckId::MoveSpace => match free_space() {
+            Ok((drive, bytes)) => space_verdict(drive, bytes, release),
+            Err(error) => (Verdict::Unknown, D::SpaceUnknown { error: format!("{error:#}") }),
+        },
+        _ if managed_update_server() => (Verdict::Fail, D::UpdateSourceManaged { release }),
+        _ => (Verdict::Pass, D::UpdateSourceMicrosoft),
+    }
+}
+
+/// Hardware this PC is known to lack fails; what can't be read doesn't.
+fn hardware_verdict(hardware: Hardware, release: String) -> (Verdict, CheckDetail) {
+    let mut missing = Vec::new();
+    if hardware.tpm_2 == Some(false) {
+        missing.push("tpm".to_owned());
+    }
+    if hardware.uefi == Some(false) {
+        missing.push("uefi".to_owned());
+    }
+    if !missing.is_empty() {
+        (Verdict::Fail, CheckDetail::HardwareMissing { missing, release })
+    } else if hardware.tpm_2.is_none() || hardware.uefi.is_none() {
+        (Verdict::Pass, CheckDetail::HardwareUnread)
+    } else {
+        (Verdict::Pass, CheckDetail::HardwareReady)
+    }
+}
+
+/// Whole GiB, rounded down, against [`MOVE_SPACE_GB`].
+fn space_verdict(drive: String, bytes: u64, release: String) -> (Verdict, CheckDetail) {
+    const GIB: u64 = 1 << 30;
+    let free_gb = bytes / GIB;
+    if bytes < MOVE_SPACE_GB * GIB {
+        (Verdict::Fail, CheckDetail::SpaceLow { drive, free_gb, needed_gb: MOVE_SPACE_GB, release })
+    } else {
+        (Verdict::Pass, CheckDetail::SpaceEnough { drive, free_gb })
+    }
 }
 
 /// Whether Windows owes a restart, from the flags servicing and Windows Update
@@ -424,6 +536,52 @@ mod tests {
         context.system.build = 26200;
         context.system.installation_type = "Server".into();
         assert!(run(CheckId::SupportedBuild, &context).blocks_install());
+    }
+
+    /// Hardware known to be missing fails the move; what can't be read is
+    /// left to Windows Update.
+    #[test]
+    fn the_move_checks_fail_only_on_what_they_could_read() {
+        let release = || "26H2".to_owned();
+        let hardware = |tpm_2, uefi| hardware_verdict(Hardware { tpm_2, uefi }, release());
+        assert_eq!(hardware(Some(true), Some(true)), (Verdict::Pass, CheckDetail::HardwareReady));
+        assert_eq!(hardware(None, Some(true)), (Verdict::Pass, CheckDetail::HardwareUnread));
+        assert_eq!(
+            hardware(Some(false), None),
+            (Verdict::Fail, CheckDetail::HardwareMissing { missing: vec!["tpm".into()], release: release() })
+        );
+        assert_eq!(
+            hardware(Some(false), Some(false)).1,
+            CheckDetail::HardwareMissing { missing: vec!["tpm".into(), "uefi".into()], release: release() }
+        );
+        const GIB: u64 = 1 << 30;
+        assert_eq!(
+            space_verdict("C:".into(), 6 * GIB, release()),
+            (Verdict::Pass, CheckDetail::SpaceEnough { drive: "C:".into(), free_gb: 6 })
+        );
+        assert_eq!(
+            space_verdict("C:".into(), 6 * GIB - 1, release()),
+            (
+                Verdict::Fail,
+                CheckDetail::SpaceLow { drive: "C:".into(), free_gb: 5, needed_gb: 6, release: release() }
+            )
+        );
+        // Where no move applies, there's nothing to check.
+        let context = CheckContext {
+            system: SystemInfo {
+                build: 26200,
+                revision: 6584,
+                edition_id: "Professional".into(),
+                installation_type: "Client".into(),
+                ..Default::default()
+            },
+            supported_builds: vec![26200],
+        };
+        for id in CheckId::MOVE {
+            assert!(id.for_move() && id.blocking(), "{id:?}");
+            assert_eq!(run(id, &context).detail, CheckDetail::MoveNotNeeded, "{id:?}");
+        }
+        assert!(!CheckId::ALL.iter().any(|id| id.for_move()), "the install never runs them");
     }
 
     /// On a listed build, Windows's release decides; neither case reaches

@@ -15,10 +15,10 @@ This page is for people who create Atlas media; [ISO internals](iso-internals.md
 | Source ISO | Unmodified Windows 11 client media, all x64 or all ARM64, whose full version Microsoft lists as generally available. |
 | Editions | At least one edition besides Home and the known LTSC editions. |
 | Atlas package | Atlas 0.6.0 or later, as an `.atlaspkg` file. |
-| Administrator access | Without it, the page offers only **Relaunch as administrator**. |
-| Free space | A new file on a local NTFS or ReFS volume with about 5 × the source ISO, plus 2 × the unpacked package, plus 4 GiB free. |
+| Administrator access | Windows asks for it when the page opens. Until it's given, the page shows **Relaunch as administrator** above the first step. |
+| Free space | A new file on a local NTFS or ReFS volume with about 5 × the source ISO, plus 2 × the unpacked package, plus 4 GiB free. The **Create** step shows both figures. |
 | Account name | A name for the local account that Windows setup creates. |
-| USB drive | A USB disk from 8 GiB to 2 TiB. |
+| USB drive | A USB disk from 8 GiB to 2 TiB: one sold as 16 GB or more. |
 
 - Atlas refuses media that has its own answer file or a `$OEM$` folder, rather than merge it with unknown setup instructions.
 - Saving Atlas choices in the ISO needs a package that declares ISO setup support in `Executables\AtlasModules\Scripts\Install\iso-setup.json`.
@@ -30,43 +30,56 @@ That happens on a Windows version with no update path, on hardware below the Win
 
 ## Create an ISO
 
-On a PC without Atlas, Home recommends **Create an Atlas ISO**. Choose it to start.
-The flow has four steps, **Files**, **Windows setup**, **Your choices** and **Review**, followed by **Create**.
-The flow is independent of the install flow and its PC checks.
+Choose **Create an Atlas ISO** on Home's **Reinstall Windows with Atlas** card to start.
+Home recommends it where Windows on the PC has been in use, and where only reinstalling Windows gets the PC to the Atlas package.
+The flow has three steps, **Windows**, **Setup** and **Create**, and is independent of the install flow and its PC checks.
+Without administrator permission, Windows asks for it as the page opens, and Atlas relaunches on the page.
 
-1. **Files.** Choose the Windows ISO, the Atlas package and where to save the new ISO, then choose **Check files**.
-   For a Microsoft download, choose a language. Manager uses this PC’s architecture by default. Choose **Change** to download for another architecture.
-   Until you choose a name, Atlas suggests one beside the source ISO that no file has yet: `Atlas-Windows.iso`, then `Atlas-Windows (2).iso` and so on.
-   After a successful check, the files card reads **Ready** and **Continue** replaces **Check files**.
-   Choosing another file clears the check, and checking the same package again keeps the saved choices.
-2. **Windows setup.** Choose an edition now or during Windows Setup. You can read the licence from the ISO and accept it here, or leave it for the person installing Windows. Then set the local account, driver updates, target PC and network drivers.
-   An empty account name holds **Continue** with a hint, and an invalid one is marked on the field.
-3. **Your choices.** Choose the mode and, when choices are saved in the ISO, the Atlas options.
-4. **Review.** Check one card per earlier step, each with a **Change** link, and the editions the ISO includes.
+1. **Windows.** Answer which PC the ISO is for, **This PC** (the default) or **Another PC**, then get Windows and the Atlas package.
+   - **Download from Microsoft** starts at once and saves to your Downloads folder, under a name no file has yet. The caption under it names what you get, for example "Windows 11 · English International · x64": the language Windows shows on this PC, as Microsoft names it, and this PC's architecture. **Change** opens both choices.
+   - **Choose an ISO file** uses one you have. Once a file is chosen, its **Change** opens a menu with both ways.
+   - Atlas fetches the latest Atlas package by itself. **Change** beside it opens another package.
+   - Once both are known, Atlas checks them by itself, and **Continue** becomes available when the check passes. An ISO for another kind of processor than this PC's can only be for another PC: **This PC** is unavailable, with the reason under it, and **Another PC** stays chosen.
+   - While a download or the check runs, **Change** is hidden rather than unavailable.
+   - A check that fails names the problem, and its bar offers the fix: **Download from Microsoft** or **Choose an ISO file** for media Atlas can't use, **Choose another package**, or **Try again**.
+   - Without the latest Atlas package, the package card says why in the error colour, with **Try again** and **Open package file**.
+   - A package that needs a newer Atlas Manager shows one bar with **Download Atlas Manager**, and no **Continue**.
+2. **Setup.** The Windows the ISO installs, and how Atlas is set up from it.
+   - **Windows edition**: for This PC, this PC's edition when the ISO has it; otherwise Windows Setup asks. With several editions, **Change** opens the list of them, with **Windows Setup asks** first. You can read the licence terms from the ISO and accept them here, so Windows Setup doesn't ask.
+   - **Local account name**: for This PC, your user name. An empty name holds **Continue** with a hint, and an invalid one is marked on the field.
+   - **Drivers**: for This PC, **Include this PC's Wi-Fi and Ethernet drivers** ([network drivers](#network-drivers)), then **How should drivers be installed?**, as **Get ready** asks it, with **Choose after sign-in** as a third answer ([driver updates](#driver-updates)).
+   - **When do you want to make your Atlas choices?**: [the mode](#modes). **Now** shows the Atlas package's questions under it, as **Your choices** asks them, with the line that says which choices the Atlas folder can change later, and the optional extras folded.
+3. **Create.** Where the new ISO goes, with **Change**, and the space the build needs against the space free, such as "Needs 37.8 GB · 118.0 GB free on C:". Then one card per earlier step, each with **Change**.
+   A drive without the space offers **Open Storage settings**, and Atlas reads it again every few seconds, so **Create ISO** becomes available once space is freed.
+   Atlas suggests a name beside the Windows ISO that no file has yet: `Atlas-Windows.iso`, then `Atlas-Windows (2).iso` and so on.
    Atlas sets no product key or image index. If Windows Setup asks, choose an edition you're licensed for. Microsoft's single-edition Enterprise Evaluation ISO uses its own evaluation channel.
-5. **Create.** A checklist shows the build's stages: checking the source, copying Windows files, adding Atlas, preparing network drivers (only when the ISO includes them), writing the ISO, checking it and finishing up.
+   **Create ISO** shows one progress bar, with its percentage, and the build's stages: reading the Windows ISO, copying Windows files, adding Atlas, preparing network drivers (only when the ISO includes them), writing the ISO, checking it and finishing up. While the ISO is written, the bar follows the bytes written. **Cancel creation** turns the heading to "Cancelling…" until the build stops at a safe point.
+
+Before the build starts, Atlas reads the destination again: a folder that isn't on a local NTFS or ReFS volume, or that lacks the space, holds **Create ISO** with the reason under the new ISO. A file that took the chosen name in the meantime moves the new ISO to the next free name, such as `Atlas-Windows (2).iso`. An Atlas package that changed since the check is checked again by itself, and the build carries on while the choices still fit it.
 
 - **Back** and **Continue** keep every value, and the stepper jumps to any step already reached once every step before it is complete.
-- A failure or cancellation shows a bar with **Open log folder**, then the diagnostics, and a failed build marks the stage it stopped at.
+  A step change moves focus to the current step in the stepper, which names it.
+- A failed build names the problem, offers **Try again**, marks the stage it stopped at and, when nothing on the page fixes it, shows **Send a report**, **Export diagnostics** and **Open log folder**.
   Your inputs stay.
+- A cancelled build says your original ISO wasn't changed. The worker removes its temporary files.
 - A result belongs to its step, and clears when you leave it.
-- If the Atlas package changed after the check, **Files** asks you to choose **Check files** again.
+- The finished page says the ISO is ready, with **Show in folder**, **Done** and **Create a USB drive**. A finished USB drive shows itself the same way.
 
 ### Modes
 
 Atlas is applied after Windows setup and sign-in, not inside `install.wim`, because Store updates depend on the new user's registered apps.
-The ISO includes the supported Windows editions by default. Pick an edition on the Windows setup step to include only that edition. Atlas places its own files and an answer file beside the Windows image.
+The ISO includes the supported Windows editions, or only the one picked on the **Setup** step. Atlas places its own files and an answer file beside the Windows image.
 Every mode then runs the normal preparation, Windows Security and install steps, checks included, so the new PC needs internet access.
 
-| Mode | Atlas choices | When Atlas Manager opens |
+| Mode on the Setup step | Atlas choices | When Atlas Manager opens |
 | --- | --- | --- |
-| **Make Atlas choices after sign-in** | Made on the new PC | On the desktop, after sign-in |
-| **Make Atlas choices now** | Saved in the ISO and preselected | On the desktop, after sign-in |
-| **Finish setup before the desktop** | Saved in the ISO; the **Your choices** step is skipped | Full-screen after sign-in, before the desktop |
+| **After sign-in** (the default) | Made on the new PC | On the desktop, after sign-in |
+| **Now** | Saved in the ISO and preselected | On the desktop, after sign-in |
+| **Now**, with **Finish before the desktop opens** ticked | Saved in the ISO; the **Your choices** step is skipped | Full-screen after sign-in, before the desktop |
 
-Without `iso-setup.json` in the package, only the first mode is available.
+Without `iso-setup.json` in the package, the step says the choices are made after sign-in, and offers no other mode.
 
-**Finish setup before the desktop** is neither unattended nor a kiosk lock.
+**Finish before the desktop opens** is neither unattended nor a kiosk lock.
 
 - It needs elevation, a network connection and the security prerequisites.
 - After the intended user signs in, Atlas Manager runs full-screen until updates and the install finish.
@@ -77,7 +90,8 @@ Without `iso-setup.json` in the package, only the first mode is available.
 ### Local account
 
 The answer file creates this local administrator account.
-Windows asks for its password at the first sign-in. The ISO skips the Microsoft account and privacy screens. Windows Setup shows the licence terms unless you accept them in Manager. Manager offers that choice when it can read the same terms for every edition you include. Enterprise Evaluation handles its own licence during Setup.
+For This PC, Atlas suggests your user name on this PC.
+Windows asks for its password at the first sign-in. The ISO skips the Microsoft account and privacy screens, as the **Create** step's review says. Windows Setup shows the licence terms unless you accept them in Manager. Manager offers that choice when it can read the same terms for every edition you include. Enterprise Evaluation handles its own licence during Setup.
 
 A name can't:
 
@@ -90,17 +104,16 @@ The field supports Unicode, IME composition, selection, the clipboard and keyboa
 
 ### Network drivers
 
-**Windows setup** asks which PC the ISO is for.
-With **This PC** as the target, **Include this PC's network drivers** adds the signed OEM driver packages of the physical Ethernet and Wi-Fi adapters, so Windows can go online right after it's reinstalled.
+The **Windows** step asks which PC the ISO is for.
+With **This PC** as the target, **Include this PC's Wi-Fi and Ethernet drivers** on the **Setup** step, ticked by default, adds the signed OEM driver packages of the physical Ethernet and Wi-Fi adapters, so Windows can go online right after it's reinstalled.
 Built-in Windows drivers, VPN and virtual adapters, and Wi-Fi credentials aren't copied.
 
-- **Use installed drivers** exports the installed packages.
-- **Check Windows Update first** also downloads the drivers Windows Update offers for the adapters, and keeps the installed packages as a fallback.
-  It needs an unmetered connection, and never installs updates or changes this PC's driver policy.
-  It isn't a search for the latest driver, and an offered driver may not support an older target build.
+- The build exports the installed packages, then, on an unmetered connection, also downloads the drivers Windows Update offers for the adapters.
+- When Windows Update can't be used (a metered, limited or missing connection, or a search or download that fails), the installed packages are what the ISO carries, and the network driver log says why.
+- It never installs updates or changes this PC's driver policy. It isn't a search for the latest driver, and an offered driver may not support an older target build.
 
 When the adapters use only drivers that come with Windows, and Windows Update offers none, there's nothing to back up, and the finished ISO's message says so.
-A package that fails to export stops the build, so you can change the option.
+An installed package that fails to export stops the build, whose bar offers **Create without them**.
 Atlas never claims a backup that didn't happen.
 
 ### Driver updates
@@ -113,26 +126,36 @@ After a manual-driver installation, Atlas Manager links to the [drivers guide](h
 
 ## Create a Windows installation USB
 
-**Create installation USB** is on the completed-ISO screen, and on the first ISO screen for an existing ISO.
+**Create a USB drive** is on the finished ISO's page, and **Create a USB drive from an existing ISO** is on the **Windows** step.
 
 > [!CAUTION]
 > Atlas erases the USB drive you choose.
 
-1. Choose the drive yourself; refreshing the list clears the choice.
-   The list shows each drive's model, capacity and volumes.
-2. Check the review, which adds the drive's serial number.
-   **Erase and create USB** stays unavailable until you acknowledge the erase.
-3. When writing finishes, eject the drive from the app, which leaves **Done**.
-   If Windows refuses the eject, the app says so and you can try again.
+The ISO and the drive are on one screen, and Atlas checks both before anything is erased.
+Without administrator permission, the page shows the ISO under a bar that asks for it with **Relaunch as administrator**, as ISO creation does, and lists drives once Atlas has it.
 
-- **Back**, the title's back arrow and Escape go from the review to the drive list, then out of the panel.
-  The arrow is unavailable while a job runs.
-- A failure offers **Open log folder** and the diagnostics.
+- **The ISO** is the one just created, or else the newest ISO in Downloads whose name starts with "Atlas". **Change** opens another.
+  Atlas checks it straight away: that it's Windows 11 installation media for a build the Atlas package supports, that it and Atlas Manager are on a drive of this PC rather than a network location or a linked folder, and that the Windows drive has room to split a large image.
+  A problem shows under the ISO with its fix: **Choose an ISO file**, **Open Storage settings** or **Try again**. After freeing space, Atlas checks again by itself within 30 seconds.
+- **The drive list** follows drives as they're connected and removed. Each drive shows its model, its size as drives are sold (256 GB, not the 238 GB Windows shows) and its drive letters.
+  A drive Atlas can't write is shown unavailable, with the reason: too small (under 8 GiB, which rules out drives sold as 8 GB, so it says 16 GB or more is needed), too small for this ISO, or holding the ISO or Atlas Manager.
+- **Picking the drive.** When only one drive can be used, Atlas picks it. A drive you pick stays picked while others come and go, and is picked again if it's reconnected.
+- **Create USB drive** asks once, naming the drive, its size and its letters, such as "Erase Kingston DataTraveler Max (256 GB, F:)?". **Cancel** is the default answer, and Escape chooses it; **Erase and create** starts.
+- **Progress** is one bar for the whole job, with its percentage, over five stages: Preparing files, Formatting, Copying files, Checking the drive and Ejecting. **Cancel** turns the heading to "Cancelling…".
+  Atlas ejects the drive once every file is checked, and the page says the drive is ready. If Windows won't let it go, a bar says the drive is ready anyway and offers **Try again**.
+
+After a failure, the screen comes back with what happened above it:
+
+- A write that may have changed the drive offers **Try again**, which writes the same drive again without asking, and **Send a report**, **Export diagnostics** and **Open log folder**. **Create USB drive** is hidden meanwhile, unless you pick another drive.
+- A drive removed, reconnected or replaced before erasing is looked for again by its serial number. Nothing on it changed.
+- Cancelling says whether the drive is now incomplete, as a warning when it is.
+
+**Back**, the title's back arrow and Escape leave the panel, except while the drive is being written.
 
 The result is UEFI media for Windows 11 x64 or ARM64 on a supported build.
 The USB writer doesn't support legacy BIOS boot or other operating systems.
 
-- The drive gets one active MBR FAT32 partition of up to 32 GB (decimal), and the rest stays unallocated, as the app says before erasing.
+- The drive gets one active MBR FAT32 partition of up to 32 GB (decimal), and the rest stays unallocated.
 - The media uses the ISO's signed UEFI boot files, and Atlas adds no bootloader.
 - A large `install.wim` is split into `sources\install*.swm` parts, and a large `install.esd` is first exported to a WIM with every edition.
   Any other file over FAT32's 4 GiB limit fails before anything is erased.
@@ -147,7 +170,7 @@ It checks the drive's identity again before erasing and while writing, and reads
 3. During OOBE, Windows' first-run setup screens, the answer file creates the local account and hides the network and online-account screens.
    You'll need internet access when Atlas Manager runs preparation after sign-in.
    It also sets `ProtectYourPC=3`, which turns Express settings off and hides them, because Atlas's options hold the real security and update choices.
-   The ISO's **Windows setup** step says so under the account name.
+   The **Create** step's review says so in its **Windows Setup** row.
 4. One automatic sign-in turns off further automatic sign-ins, expires the empty password, registers Atlas Manager for the next sign-in and signs out.
 5. At your sign-in, Windows asks for a new password, then Atlas Manager opens and runs [the install flow](install-flow.md).
 
@@ -155,8 +178,9 @@ It checks the drive's identity again before erasing and while writing, and reads
 
 | Problem | What to do |
 | --- | --- |
-| Release information is unavailable or unrecognised | Check the files again; the check stops and explains why. |
-| The ISO's Windows build isn't in Microsoft's list of public releases | Use an ISO from Microsoft, or check the files again once Microsoft lists the build; Release Preview and other preview builds aren't supported. |
+| Release information is unavailable or unrecognised | Check your internet connection, then choose **Try again** on the bar. |
+| The ISO's Windows build isn't in Microsoft's list of public releases | Use an ISO from Microsoft: the bar offers **Download from Microsoft**. Release Preview and other preview builds aren't supported. |
+| A network driver couldn't be exported | Choose **Create without them** on the bar, or update the driver in Device Manager first. |
 | A network driver was rejected | Install it from `%windir%\AtlasISO\NetworkDrivers` once Windows is running ([details](#a-network-driver-was-rejected)). |
 | Before-desktop cleanup failed | Run `%windir%\AtlasISO\Desktop.ps1 -RestoreDesktop` ([details](#before-desktop-cleanup-failed)). |
 | An ISO or USB job failed | Choose **Open log folder** to see its logs, request and errors. |

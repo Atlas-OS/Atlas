@@ -11,8 +11,8 @@ use std::sync::atomic::Ordering;
 use serde_json::json;
 
 use super::{
-    AcquireProblem, Acquisition, AppModel, Origin, PackageSource, Page, Preflight, ReleaseCheck,
-    RestartConfirmation, RestartKind, RestoreStatus, Step, UpdatePath,
+    AcquireProblem, Acquisition, AppModel, Notice, Origin, OwedRestart, PackageSource, Page, Preflight,
+    ReleaseCheck, RestartConfirmation, RestartCountdown, RestartKind, RestoreStatus, Step, UpdatePath,
 };
 use crate::services::atlas_state::{InstallIdentity, InstallMode, Unfinished};
 use crate::services::installer::InstallRequest;
@@ -27,6 +27,7 @@ use crate::services::system::SystemInfo;
 use crate::services::update_access::{
     Blocker, BlockerKind, Carry, CarryToggle, Rebuild, UpdateAccess, parse_journal, parse_last_result,
 };
+use crate::services::windows_installation::Evidence;
 use crate::services::{iso, settings};
 
 const VARIABLE: &str = "ATLAS_PREPARATION_PREVIEW";
@@ -44,6 +45,9 @@ pub(super) fn requested() -> Option<String> {
 
 /// Puts a newly built model in the state `preview` names.
 pub(super) fn apply(model: &mut AppModel, preview: &str) {
+    // Your choices asks how to switch keyboard layouts, as on a PC with two,
+    // whatever this PC has, unless the preview is of a PC with one.
+    model.keyboard_layouts = Some(if preview == "options-one-layout" { 1 } else { 2 });
     if let Some(state) = preview.strip_prefix("home-") {
         apply_home(model, state);
         return;
@@ -54,6 +58,14 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
     }
     if preview == "installed-choices-not-applied" {
         apply_not_applied(model);
+        return;
+    }
+    if let Some(state) = preview.strip_prefix("installing-") {
+        apply_installing(model, state);
+        return;
+    }
+    if let Some(state) = preview.strip_prefix("installed").filter(|state| COMPLETION_STATES.contains(state)) {
+        apply_installed_first(model, state);
         return;
     }
     let step = match preview {
@@ -70,9 +82,15 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
     // The preparation state, whether it has a job folder to open, and the
     // worker's last report.
     let (state, has_job, report) = match preview {
-        "busy" | "stopping" => {
-            (State::Running { stage: Stage::StoreInstall, completed: 4, total: 12 }, true, None)
-        }
+        // Store apps updating, with the share of every app the search found.
+        "busy" | "stopping" => (
+            State::Running { stage: Stage::StoreInstall, completed: 4, total: 12 },
+            true,
+            Some(json!({
+                "schema": 1, "status": "running", "stage": "store-install", "completed": 4, "total": 12,
+                "activity": { "percent": 41 }
+            })),
+        ),
         "complete" | "checks-warnings" => (State::Ready, true, None),
         "resume" => (State::Ready, false, None),
         "download" => (
@@ -109,7 +127,7 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
             })),
         ),
         "unconfirmed" => (State::Failed, true, None),
-        "reboot" | "reboot-others" => (State::Reboot, true, None),
+        "reboot" | "reboot-others" | "reboot-countdown" => (State::Reboot, true, None),
         // Atlas reopened after its own restart, and updating stopped by the user.
         "resumed" => (State::Resumed, true, None),
         "cancelled" => (State::Cancelled, true, None),
@@ -209,9 +227,10 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
                 "activity": { "waiting": "feature-offer", "elapsedSeconds": 245, "unchangedSeconds": 200 }
             })),
         ),
-        "windows-restart" | "windows-commit-failed" => {
+        "windows-restart" | "windows-restart-countdown" | "windows-commit-failed" => {
             (State::Reboot, true, Some(report_reasons(&["feature-update"])))
         }
+        "windows-stopped" => (State::Cancelled, true, None),
         "windows-resumed" => (State::Resumed, true, None),
         // Windows reinstalled itself during the move; Atlas puts its changes back.
         "windows-rebuilt" | "options-rebase" | "options-rebase-partial" => (State::Ready, true, None),
@@ -237,6 +256,10 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
                 Ok(InstallIdentity::Resume(model.manifest().version.clone(), unfinished));
         }
         "ineligible" => model.install_identity = Ok(InstallIdentity::Installed("0.3.2".into())),
+        // What updating did about Microsoft Store, as a finished run records it.
+        "store-updated" | "store-bootstrapped" | "store-repaired" | "store-skipped-removed" => {
+            model.store_outcome_seen = crate::services::preparation::StoreOutcome::from_id(preview)
+        }
         "manager-outdated" => {
             model.acquisition =
                 Acquisition::Failed(AcquireProblem::ManagerOutdated { required: Some(next_patch()) })
@@ -247,6 +270,27 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
                 kind: RestartKind::Preparation,
                 people: vec!["Alex".into(), "Sam".into()],
             })
+        }
+        // The countdown that follows a restart updating needs; the model
+        // starts it from here once it's built.
+        "reboot-countdown" | "windows-restart-countdown" => {
+            let total = model.env.restart.preparation;
+            model.preparation_countdown =
+                Some(RestartCountdown { deadline: std::time::Instant::now() + total, total });
+        }
+        // An ISO that left the driver choice until after sign-in.
+        "drivers-required" => {
+            model.iso_drivers = Some(iso::StagedDrivers::ChooseAfterSignIn);
+            model.settings.drivers = None;
+        }
+        // The installation files downloading, and a download that failed.
+        "package-downloading" => {
+            model.acquisition = Acquisition::Downloading { received: 61_000_000, total: 145_000_000 };
+        }
+        "package-failed" => {
+            model.acquisition = Acquisition::Failed(AcquireProblem::Other {
+                error: "the download's SHA-256 doesn't match the release".into(),
+            });
         }
         _ => {}
     }
@@ -323,7 +367,10 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
         _ => {}
     }
     // An unpacked package, except where the preview is about not having one.
-    if !matches!(preview, "idle" | "ineligible" | "manager-outdated") {
+    if !matches!(
+        preview,
+        "idle" | "ineligible" | "manager-outdated" | "package-downloading" | "package-failed"
+    ) {
         let manifest = model.builtin_manifest.clone();
         model.package = Some(PackageSource {
             dir: std::env::temp_dir(),
@@ -332,7 +379,11 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
             archive: None,
         });
     }
-    if let Some(state) = preview.strip_prefix("options-") {
+    // A first install's own (see `apply_choices_and_results`) aside.
+    if let Some(state) = preview
+        .strip_prefix("options-")
+        .filter(|state| !matches!(*state, "first-install" | "one-layout" | "extras"))
+    {
         apply_rebase(model, state);
     }
     if let Some(state) = preview.strip_prefix("security-defender-") {
@@ -353,6 +404,10 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
         model.security = reading;
         model.security_read_at =
             Some(std::time::Instant::now() + std::time::Duration::from_secs(24 * 60 * 60));
+        // Checking: the step opens before its first reading.
+        if preview == "security-checking" {
+            model.security_read_at = None;
+        }
     }
     if preview == "install-refused" {
         model.preflight_problem = Some(Preflight::Refused {
@@ -365,6 +420,98 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
     model.flow.resume(step).ok();
     model.flow_id = Some(settings::new_flow_id());
     model.page = Page::Install;
+    apply_choices_and_results(model, preview);
+}
+
+/// Your choices and the Install step, for the previews of what they show
+/// besides the questions and the summary, each of a first install but
+/// `install-choose-again`'s: a first install's questions
+/// (`options-first-install`), on a PC with one keyboard layout
+/// (`options-one-layout`), and with the extras unfolded (`options-extras`);
+/// each refusal of the final checks (`install-` and `invalid-options`,
+/// `changed`, `taken-over` or `record-unreadable`); and each result of an
+/// attempt that didn't succeed (`install-failed`, `-not-elevated`,
+/// `-requirements`, `-preparation` or `-lost`).
+fn apply_choices_and_results(model: &mut AppModel, preview: &str) {
+    use crate::services::installer::InstallOutcome;
+    use crate::services::security::SwitchCounts;
+    // A first install, whatever this PC has installed.
+    if matches!(preview, "options-first-install" | "options-one-layout" | "options-extras")
+        || (preview.starts_with("install-") && preview != "install-choose-again")
+    {
+        model.install_identity = Ok(InstallIdentity::Fresh);
+        model.atlas = Ok(None);
+        model.update_access = Some(UpdateAccess::default());
+    }
+    model.extras_shown = matches!(preview, "options-extras" | "options-choose-again-fixed");
+    let problem = match preview {
+        "install-invalid-options" => {
+            // The browser picker left without an answer.
+            model.options.insert("install-another-browser".into());
+            for browser in ["browser-brave", "browser-librewolf", "browser-firefox", "browser-chrome"] {
+                model.options.remove(browser);
+            }
+            Some(Preflight::InvalidOptions {
+                error: "The Atlas choices are incomplete or inconsistent".into(),
+            })
+        }
+        "install-changed" => Some(Preflight::Changed {
+            checks: vec![(CheckId::Power, CheckDetail::PowerUnknown)],
+            security: Some(SwitchCounts { off: 3, on: 1, unknown: 0 }),
+        }),
+        "install-taken-over" => Some(Preflight::TakenOver),
+        "install-record-unreadable" => {
+            Some(Preflight::RecordUnreadable { error: "expected value at line 1 column 1".into() })
+        }
+        _ => None,
+    };
+    if problem.is_some() {
+        model.preflight_problem = problem;
+    }
+    let (outcome, lines): (InstallOutcome, &[&str]) = match preview {
+        "install-failed" => (
+            InstallOutcome::Failed(1),
+            &[
+                "[Atlas] Running the install plan as TrustedInstaller. This takes several minutes...",
+                "[2026-11-24 10:12:40] [-] [ERROR] Removing Microsoft Edge failed: the file is in use.",
+            ],
+        ),
+        "install-not-elevated" => (
+            InstallOutcome::Failed(3),
+            &["[2026-11-24 10:12:40] [-] [ERROR] Install-Atlas.ps1 must run as administrator."],
+        ),
+        "install-requirements" => (
+            InstallOutcome::Failed(2),
+            &[
+                "[Atlas] FAIL Windows release (build 26300.10066 is not in Microsoft's list of public Windows 11 releases)",
+            ],
+        ),
+        "install-preparation" => (
+            InstallOutcome::Failed(5),
+            &["[2026-11-24 10:12:40] [-] [ERROR] Windows Update has 2 updates waiting to install."],
+        ),
+        "install-lost" => (InstallOutcome::Lost, &["[Atlas] Running the install plan as TrustedInstaller."]),
+        _ => return,
+    };
+    model.attempt.push_lines(lines.iter().map(|line| (*line).to_owned()).collect());
+    let log = std::env::temp_dir().join("install-preview.log");
+    model.session = Some(SessionRecord {
+        id: "preview".into(),
+        pid: 0,
+        process_start: 0,
+        started_at: "2026-11-24T10:00:00Z".into(),
+        exit_path: log.with_extension("exit"),
+        log_path: log,
+        request: InstallRequest {
+            package_dir: std::env::temp_dir(),
+            options: model.effective_options(),
+            restart: true,
+            windows_security_confirmed: false,
+            choose_again: false,
+        },
+    });
+    model.elevated = preview != "install-not-elevated";
+    model.flow.run = super::RunState::Finished(outcome);
 }
 
 /// The outcomes of moving Windows a preview can show, by preview name and the
@@ -373,6 +520,7 @@ const FEATURE_OUTCOMES: &[(&str, &str)] = &[
     ("not-offered", "feature-not-offered"),
     ("not-offered-25h2", "feature-not-offered"),
     ("not-offered-ended", "feature-not-offered"),
+    ("not-offered-put-back-failed", "feature-not-offered"),
     ("hardware", "feature-hardware"),
     ("rolled-back", "feature-rolled-back"),
     ("disk-space", "feature-disk-space"),
@@ -548,7 +696,7 @@ fn apply_update(model: &mut AppModel, state: &str) -> bool {
         "choose-again" => apply_contradicted(model, UpdatePath::ChooseAgain),
         "choose-again-defender" | "choose-again-mitigations" => {
             apply_contradicted(model, UpdatePath::ChooseAgain);
-            model.option_screen = if state == "choose-again-defender" { 1 } else { 2 };
+            model.option_screen = 1;
         }
         "choose-again-fixed" => {
             apply_contradicted(model, UpdatePath::ChooseAgain);
@@ -666,12 +814,44 @@ fn apply_windows(model: &mut AppModel, state: &str) {
             *slot = (id, Some(CheckResult { id, verdict: Verdict::Fail, detail }));
         }
     }
-    model.windows_terms_accepted = !matches!(state, "required" | "choice" | "blockers");
+    // What the move needs, as Get ready checks it, passing unless the state
+    // is about one that doesn't.
+    let release = || "26H2".to_owned();
+    model.checks.extend(CheckId::MOVE.map(|id| {
+        let failed = |detail| (id, Some(CheckResult { id, verdict: Verdict::Fail, detail }));
+        match (id, state) {
+            (CheckId::MoveSpace, "checks-space") => failed(CheckDetail::SpaceLow {
+                drive: "C:".into(),
+                free_gb: 3,
+                needed_gb: 6,
+                release: release(),
+            }),
+            (CheckId::MoveHardware, "checks-hardware") => {
+                failed(CheckDetail::HardwareMissing { missing: vec!["tpm".into()], release: release() })
+            }
+            // Windows Update refused the move for the hardware, which the
+            // checks after the run find as well.
+            (CheckId::MoveHardware, "hardware") => failed(CheckDetail::HardwareMissing {
+                missing: vec!["tpm".into(), "uefi".into()],
+                release: release(),
+            }),
+            (CheckId::MoveUpdateSource, "checks-managed") => {
+                failed(CheckDetail::UpdateSourceManaged { release: release() })
+            }
+            _ => (id, Some(passing(id))),
+        }
+    }));
+    model.windows_terms_accepted = !matches!(
+        state,
+        "required" | "choice" | "blockers" | "checks-space" | "checks-hardware" | "checks-managed"
+    );
     model.windows_transition_declined = state == "keep";
     model.update_access = Some(match state {
-        "required" | "ready" | "choice" | "keep" => UpdateAccess::default(),
+        "required" | "ready" | "choice" | "keep" | "checks-space" | "checks-hardware" | "checks-managed" => {
+            UpdateAccess::default()
+        }
         "blockers" => UpdateAccess { blockers: blockers(), ..UpdateAccess::default() },
-        "restart" | "commit-failed" => record("transition", "installed"),
+        "restart" | "restart-countdown" | "commit-failed" => record("transition", "installed"),
         "rebuilt" => {
             on_rebuilt_windows(model);
             record_rebuilt(&[
@@ -693,53 +873,153 @@ fn apply_windows(model: &mut AppModel, state: &str) {
     if state == "commit-failed" {
         model.preparation_problem = Some(RestartProblem::Commit);
     }
-    // Not offered yet: Atlas looks again by itself, or stopped after 2 hours
-    // and put the settings back.
-    if matches!(state, "not-offered" | "not-offered-25h2") {
-        // 34 minutes in, the next look 6 minutes away.
-        let now = std::time::Instant::now();
-        model.offer_wait = Some(super::offer_wait::OfferWait {
-            next_check: Some(now + std::time::Duration::from_secs(6 * 60 - 1)),
-            ..super::offer_wait::OfferWait::started(now)
-        });
-        model.offer_waiting_since = now.checked_sub(std::time::Duration::from_secs(34 * 60));
+    // Waiting for the offer: in the first run, 25 minutes in, or between
+    // looks, 34 minutes in; or stopped after 2 hours, with the settings put
+    // back or not.
+    let now = std::time::Instant::now();
+    let minutes = |minutes: u64| now.checked_sub(std::time::Duration::from_secs(minutes * 60));
+    if state == "waiting" {
+        model.offer_waiting_since = minutes(25);
     }
-    if state == "not-offered-ended" {
+    if matches!(state, "not-offered" | "not-offered-25h2") {
+        model.offer_wait = Some(super::offer_wait::OfferWait::started(now));
+        model.offer_waiting_since = minutes(34);
+    }
+    if matches!(state, "not-offered-ended" | "not-offered-put-back-failed") {
         model.offer_wait = Some(super::offer_wait::OfferWait {
             expired: true,
-            ..super::offer_wait::OfferWait::started(std::time::Instant::now())
+            ..super::offer_wait::OfferWait::started(now)
         });
+    }
+    if state == "not-offered-ended" {
         model.update_access = Some(UpdateAccess::default());
+    }
+    if state == "not-offered-put-back-failed" {
+        model.restore_status = RestoreStatus::Failed(
+            "feature-restore: Atlas couldn't put back service.wuauserv: Access is denied.".into(),
+        );
+    }
+    if state == "stopped" {
+        model.updates_held = true;
     }
 }
 
 /// Home on a PC with Atlas 0.5.0 and Atlas 0.6.0 on offer, or, for
-/// `manager-update`, the release after this Atlas Manager.
+/// `manager-update` and `manager-outdated`, the release after this Atlas
+/// Manager. `fresh`, `used`, `used-question` and `flow` have no Atlas;
+/// `up-to-date`, `checking`, `check-failed` and the notices have the latest.
 fn apply_home(model: &mut AppModel, state: &str) {
+    let latest = matches!(
+        state,
+        "up-to-date"
+            | "checking"
+            | "check-failed"
+            | "settings-not-saved"
+            | "session-unreadable"
+            | "state-error"
+    );
     model.system = match state {
         "24h2-home" => windows_pc(26100, "24H2", "Core"),
         "23h2" => windows_pc(22631, "23H2", "Professional"),
         "25h2" => windows_pc(26200, "25H2", "Professional"),
-        "update-access-after" => windows_pc(26300, "26H2", "Professional"),
+        // On the latest Windows, with no end of support to outrank the note.
+        "update-access-after" | "manager-update" | "manager-outdated" => {
+            windows_pc(26300, "26H2", "Professional")
+        }
+        _ if latest => windows_pc(26300, "26H2", "Professional"),
         _ => windows_pc(26100, "24H2", "Professional"),
     };
-    model.install_identity = if state == "fresh" {
+    // What Atlas's packages show, as an install that kept Microsoft Defender
+    // leaves them, whatever the reviewing PC has.
+    model.pc_facts = Facts { packages: vec![NO_TELEMETRY.into()], ..Facts::default() };
+    model.install_identity = if matches!(
+        state,
+        "fresh" | "fresh-checking" | "fresh-check-failed" | "used" | "used-question" | "flow"
+    ) {
         model.system = windows_pc(26200, "25H2", "Professional");
         model.atlas = Ok(None);
         Ok(InstallIdentity::Fresh)
+    } else if latest {
+        Ok(InstallIdentity::Installed("0.6.0".into()))
     } else {
         Ok(InstallIdentity::Installed("0.5.0".into()))
     };
-    let version = if state == "manager-update" { next_patch() } else { "0.6.0".into() };
+    // Windows a year old with a dozen apps: Home recommends reinstalling it,
+    // and `used-question` opens the question Install Atlas asks.
+    if matches!(state, "used" | "used-question") {
+        model.windows_installation = Some(Evidence { age_days: Some(400), desktop_apps: 12 });
+    }
+    // A setup under way, at Your choices, past a Get ready that finished:
+    // checks passed, the package unpacked and Windows updated.
+    if state == "flow" {
+        model.elevated = true;
+        model.preparation = State::Ready;
+        model.checks = CheckId::ALL.iter().map(|&id| (id, Some(passing(id)))).collect();
+        model.package = Some(PackageSource {
+            dir: std::env::temp_dir(),
+            manifest: model.builtin_manifest.clone(),
+            origin: Origin::Unpacked,
+            archive: None,
+        });
+        let _ = model.flow.resume(Step::Options);
+    }
+    if latest {
+        model.atlas = serde_json::from_value(json!({
+            "schemaVersion": 1, "installedVersion": "0.6.0", "installedAt": "2026-10-14T12:30:00+00:00",
+            "mode": "Upgrade", "options": ["defender-enable", "mitigations-default", "auto-updates-disable", "keyboard-shortcuts", "remove-snipping-tool"],
+            "history": [
+                { "version": "0.5.0", "mode": "Fresh", "completedAt": "2026-09-02T10:00:00+00:00" },
+                { "version": "0.6.0", "mode": "Upgrade", "completedAt": "2026-10-14T12:30:00+00:00" }
+            ]
+        }))
+        .map(Some)
+        .map_err(|error| error.to_string());
+    }
+    let version = match state {
+        "manager-update" | "manager-outdated" => next_patch(),
+        _ => "0.6.0".into(),
+    };
     model.release = ReleaseCheck::Ready {
         release: Release {
-            body: format!("## Atlas {version}\n\nAtlas Manager installs and updates Atlas."),
+            body: format!(
+                "## Atlas {version}\n\n### Atlas Manager\n\n- Check Windows before starting an installation.\n- Review choices before applying them.\n- Resume a setup after Windows restarts.\n- Create a Windows 11 ISO with Atlas.\n- Write installation media to a USB drive.\n- Send a private report with diagnostics.\n\n### More changes\n\n- Review the installed configuration from Home.\n- Match the Windows display language."
+            ),
             tag_name: version,
             html_url: String::new(),
-            published_at: "2026-10-14T12:00:00Z".into(),
             assets: vec![],
         },
     };
+    match state {
+        "checking" | "fresh-checking" => model.release = ReleaseCheck::Checking,
+        "check-failed" | "fresh-check-failed" => model.release = ReleaseCheck::Failed,
+        // The package Get ready fetched asked for a newer Atlas Manager.
+        "manager-outdated" => {
+            model.acquisition =
+                Acquisition::Failed(AcquireProblem::ManagerOutdated { required: Some(next_patch()) })
+        }
+        // A finished install still owes its restart, and Windows refused it.
+        "restart" => model.owed_restart = Some(Default::default()),
+        "restart-failed" => {
+            model.owed_restart = Some(OwedRestart {
+                problem: Some(super::RestartProblem::Start {
+                    error: "Access is denied. (os error 5)".into(),
+                }),
+                epoch: 1,
+                ..OwedRestart::default()
+            })
+        }
+        "settings-not-saved" => {
+            model.notice = Some(Notice::SettingsNotSaved { error: "Access is denied. (os error 5)".into() })
+        }
+        "session-unreadable" => {
+            model.notice = Some(Notice::SessionUnreadable {
+                error: "The install record is damaged".into(),
+                record: model.env.paths.root.join("install.json"),
+            })
+        }
+        "state-error" => model.atlas = Err("expected value at line 1 column 1".into()),
+        _ => {}
+    }
     model.update_access = Some(match state {
         "update-access" | "put-back-failed" => record("transition", "targeted"),
         "update-access-after" => record("transition", "on-target"),
@@ -822,6 +1102,8 @@ fn apply_installed(model: &mut AppModel) {
     )
     .ok();
     model.update_access = Some(UpdateAccess { last_result: last, ..UpdateAccess::default() });
+    // What Atlas's packages show after it, whatever the reviewing PC has.
+    model.pc_facts = Facts { packages: vec![NO_TELEMETRY.into()], ..Facts::default() };
     model.page = Page::Installed;
 }
 
@@ -867,6 +1149,163 @@ fn apply_not_applied(model: &mut AppModel) {
     model.page = Page::Installed;
 }
 
+/// The installing view, for the `installing-` previews: the final checks
+/// (`checking`); the installer checking the PC (`preflight`), copying files
+/// (`staging`), applying them (`applying`; `manual` with automatic restart
+/// off; `output-error` with a log Atlas can't read) and finishing
+/// (`finishing`); then the restart: counting down (`countdown`), refused by
+/// Windows (`restart-error`), put off (`restart-later`), with automatic
+/// restart off (`restart-off`), asked first over someone else's session
+/// (`restart-others`) and under way (`restarting`). Nothing restarts while it
+/// shows: Restart now is accepted and ignored, or refused for `restart-error`.
+fn apply_installing(model: &mut AppModel, state: &str) {
+    use crate::services::installer::InstallOutcome;
+
+    model.system = windows_pc(26300, "26H2", "Professional");
+    model.elevated = true;
+    model.preparation = State::Ready;
+    model.checks = CheckId::ALL.iter().map(|&id| (id, Some(passing(id)))).collect();
+    let manifest = model.builtin_manifest.clone();
+    model.package =
+        Some(PackageSource { dir: std::env::temp_dir(), manifest, origin: Origin::Unpacked, archive: None });
+    let off = SecurityStatus {
+        tamper_protection: Switch::Off,
+        real_time_protection: Switch::Off,
+        cloud_delivered: Switch::Off,
+        sample_submission: Switch::Off,
+        defender_present: true,
+    };
+    model.env.adapters.read_security = Arc::new(move || off);
+    model.security = off;
+    let refused = state == "restart-error";
+    model.env.adapters.schedule_restart =
+        Arc::new(move |_| if refused { anyhow::bail!("Access is denied. (os error 5)") } else { Ok(()) });
+    let restart = !matches!(state, "manual" | "restart-off");
+    model.settings.restart_after_install = restart;
+    model.flow.resume(Step::Install).ok();
+    model.flow_id = Some(settings::new_flow_id());
+    model.page = Page::Install;
+    model.flow.start_preparing().ok();
+    if state == "checking" {
+        return;
+    }
+    model.flow.start_running().ok();
+    let log = std::env::temp_dir().join("install-preview.log");
+    model.session = Some(SessionRecord {
+        id: "preview".into(),
+        pid: 0,
+        process_start: 0,
+        started_at: chrono::Utc::now().to_rfc3339(),
+        exit_path: log.with_extension("exit"),
+        log_path: log,
+        request: InstallRequest {
+            package_dir: std::env::temp_dir(),
+            options: model.effective_options(),
+            restart,
+            windows_security_confirmed: false,
+            choose_again: false,
+        },
+    });
+    // The installer's own lines, as far as the state goes: they set the
+    // phase and the bar, and fill the log behind Show details.
+    let lines = [
+        ("preflight", "[Atlas] Checking the requirements..."),
+        ("staging", "[Atlas] Copying Atlas's files to a protected folder..."),
+        ("applying", "[Atlas] Running the install plan as TrustedInstaller. This takes several minutes..."),
+        ("applying", "[AtlasProgress] 44/100"),
+        ("finishing", "[AtlasProgress] 100/100"),
+        ("finishing", "[Atlas] Atlas installed successfully."),
+    ];
+    let reached = match state {
+        "preflight" => "preflight",
+        "staging" => "staging",
+        "applying" | "manual" | "output-error" => "applying",
+        _ => "finishing",
+    };
+    let order = ["preflight", "staging", "applying", "finishing"];
+    let last = order.iter().position(|phase| *phase == reached).unwrap_or(0);
+    model.attempt.push_lines(
+        lines
+            .iter()
+            .filter(|(phase, _)| order.iter().position(|p| p == phase).unwrap_or(0) <= last)
+            .map(|(_, line)| (*line).to_owned())
+            .collect(),
+    );
+    if state == "output-error" {
+        model.attempt.output_problem = Some(
+            "The process cannot access the file because it is being used by another process. (os error 32)"
+                .into(),
+        );
+    }
+    if !matches!(
+        state,
+        "countdown" | "restart-error" | "restart-later" | "restart-off" | "restart-others" | "restarting"
+    ) {
+        return;
+    }
+    model.flow.finish(InstallOutcome::Succeeded).ok();
+    match state {
+        // Long enough to capture; the model starts it from here once it's built.
+        "countdown" => {
+            let total = model.env.restart.background_countdown;
+            model.env.restart.countdown = total;
+            model.attempt.restart =
+                Some(RestartCountdown { deadline: std::time::Instant::now() + total, total });
+        }
+        "restart-error" => {
+            model.attempt.restart_problem =
+                Some(super::RestartProblem::Start { error: "Access is denied. (os error 5)".into() });
+        }
+        "restart-later" => model.attempt.restart_cancelled = true,
+        "restart-others" => {
+            model.restart_confirmation =
+                Some(RestartConfirmation { kind: RestartKind::Install, people: vec!["Alex".into()] });
+        }
+        "restarting" => model.attempt.restart_requested = true,
+        _ => {}
+    }
+}
+
+/// The "Atlas is installed" window after a first install that kept Microsoft
+/// Defender, or removed it (`defender_removed`). With Defender kept, what it
+/// says follows Windows Security's reading, which `ATLAS_SECURITY_PREVIEW`
+/// sets.
+fn apply_installed_first(model: &mut AppModel, state: &str) {
+    model.system = windows_pc(26300, "26H2", "Professional");
+    let defender_removed = state == "-defender-removed";
+    // Atlas's record kept Defender, but Atlas's package that removes it is
+    // still installed.
+    let not_restored = state == "-defender-not-restored";
+    let defender = if defender_removed { "defender-disable" } else { "defender-enable" };
+    model.atlas = serde_json::from_value(json!({
+        "schemaVersion": 1, "installedVersion": "0.6.0", "installedAt": "2026-11-24T12:30:00+00:00",
+        "mode": "Fresh", "options": ["uninstall-edge", "auto-updates-default", defender, "mitigations-default"]
+    }))
+    .map(Some)
+    .map_err(|error| error.to_string());
+    model.install_identity = Ok(InstallIdentity::Installed("0.6.0".into()));
+    let mut packages = vec![NO_TELEMETRY.to_owned()];
+    if defender_removed || not_restored {
+        packages.insert(0, NO_DEFENDER.into());
+    }
+    model.pc_facts = Facts { packages, ..Facts::default() };
+    model.update_access = Some(UpdateAccess::default());
+    // The reading the window takes as it opens, at once, and drivers from
+    // Windows Update, whatever this PC's own policy, unless the state is
+    // of drivers the user installs themselves.
+    model.protection = Some((model.env.adapters.read_security)());
+    model.driver_default = if state == "-manual-drivers" {
+        crate::services::preparation::Drivers::Manual
+    } else {
+        crate::services::preparation::Drivers::Automatic
+    };
+    model.page = Page::Installed;
+}
+
+/// The completion window's states after a first install, by what follows
+/// `installed` in their names.
+const COMPLETION_STATES: [&str; 4] = ["", "-defender-removed", "-defender-not-restored", "-manual-drivers"];
+
 /// The Windows Security reading a security or install preview shows.
 fn security_reading(preview: &str) -> Option<SecurityStatus> {
     let all = |switch| SecurityStatus {
@@ -877,16 +1316,17 @@ fn security_reading(preview: &str) -> Option<SecurityStatus> {
         defender_present: true,
     };
     Some(match preview {
-        "security-on" => SecurityStatus { tamper_protection: Switch::Off, ..all(Switch::On) },
+        "security-on" | "security-checking" => {
+            SecurityStatus { tamper_protection: Switch::Off, ..all(Switch::On) }
+        }
         "security-readable-off" => SecurityStatus { sample_submission: Switch::Unknown, ..all(Switch::Off) },
         "security-unreadable" => all(Switch::Unknown),
         "security-absent"
         | "security-defender-restore"
         | "security-defender-removed"
         | "security-defender-missing" => SecurityStatus { defender_present: false, ..all(Switch::Unknown) },
-        "security-off" | "install-ready" | "install-refused" | "install-busy" | "install-choose-again" => {
-            all(Switch::Off)
-        }
+        "security-off" => all(Switch::Off),
+        _ if preview.starts_with("install-") => all(Switch::Off),
         _ => return None,
     })
 }
@@ -903,6 +1343,9 @@ pub(super) fn passing(id: CheckId) -> CheckResult {
         CheckId::Internet => CheckDetail::InternetOk,
         CheckId::Power => CheckDetail::PowerMains,
         CheckId::Activation => CheckDetail::ActivationOk,
+        CheckId::MoveHardware => CheckDetail::HardwareReady,
+        CheckId::MoveSpace => CheckDetail::SpaceEnough { drive: "C:".into(), free_gb: 48 },
+        CheckId::MoveUpdateSource => CheckDetail::UpdateSourceMicrosoft,
     };
     CheckResult { id, verdict: Verdict::Pass, detail }
 }
@@ -927,19 +1370,33 @@ mod tests {
                     check(m);
                 });
             };
-            let screen = |m: &AppModel| m.option_screens()[m.current_option_screen()].kind;
+            use crate::model::OptionScreen;
+            let screen = |m: &AppModel| m.option_screens()[m.current_option_screen()].clone();
+            let asked = |m: &AppModel| -> Vec<ScreenKind> {
+                screen(m).groups().iter().map(|group| group.kind).collect()
+            };
             shown("options-update-path", &|m| {
-                assert_eq!((screen(m), m.update_path), (ScreenKind::UpdatePath, UpdatePath::Keep));
+                assert_eq!((screen(m), m.update_path), (OptionScreen::UpdatePath, UpdatePath::Keep));
                 let update = m.update_choices().unwrap();
                 assert!(!update.reinstall && update.missing == [ScreenKind::Keyboard], "{update:?}");
             });
             shown("options-keep-partial", &|m| {
-                let kinds: Vec<ScreenKind> = m.option_screens().iter().map(|screen| screen.kind).collect();
-                assert_eq!(kinds, [ScreenKind::UpdatePath, ScreenKind::Mitigations]);
-                assert_eq!(screen(m), ScreenKind::Mitigations);
+                assert_eq!(m.option_screens().len(), 2);
+                assert_eq!(asked(m), [ScreenKind::Mitigations]);
             });
+            use ScreenKind::{Defender, Extras, Keyboard, Mitigations, Updates};
+            shown("options-first-install", &|m| {
+                assert!(m.update_choices().is_none() && m.rebase_choices().is_none());
+                assert_eq!(asked(m), [Defender, Mitigations, Updates, Keyboard, Extras]);
+                assert!(!m.extras_shown);
+            });
+            shown("options-one-layout", &|m| {
+                assert_eq!(asked(m), [Defender, Mitigations, Updates, Extras]);
+                assert!(m.effective_options().iter().any(|o| o == "keyboard-single"));
+            });
+            shown("options-extras", &|m| assert!(m.extras_shown && asked(m).contains(&Extras)));
             shown("options-choose-again", &|m| {
-                assert_eq!(screen(m), ScreenKind::UpdatePath);
+                assert_eq!(screen(m), OptionScreen::UpdatePath);
                 assert!(m.choosing_again());
                 let update = m.update_choices().unwrap();
                 assert!(update.reinstall);
@@ -949,15 +1406,15 @@ mod tests {
                 );
             });
             shown("options-choose-again-defender", &|m| {
-                assert_eq!(screen(m), ScreenKind::Defender);
+                assert_eq!(asked(m)[0], Defender);
                 assert!(m.options.contains("defender-disable"), "as the PC has it");
             });
             shown("options-choose-again-mitigations", &|m| {
-                assert_eq!(screen(m), ScreenKind::Mitigations);
+                assert!(asked(m).contains(&Mitigations));
                 assert_eq!(m.choice_facts().toggles.get("Mitigations"), Some(&2), "every protection on");
             });
             shown("options-choose-again-fixed", &|m| {
-                assert_eq!(screen(m), ScreenKind::Extras);
+                assert!(m.extras_shown && asked(m).contains(&Extras));
                 for name in ["uninstall-edge", "install-toolbox", "install-another-browser"] {
                     assert!(m.fixed_option(name).is_some(), "{name}");
                 }
@@ -984,6 +1441,33 @@ mod tests {
                 assert_eq!(m.flow.step, Step::Install);
                 assert!(m.install_request().unwrap().choose_again);
             });
+            // Each result and refusal on the Install step, with Install
+            // otherwise ready to start.
+            use crate::services::installer::InstallOutcome::{Failed, Lost};
+            for (preview, outcome) in [
+                ("install-failed", Failed(1)),
+                ("install-not-elevated", Failed(3)),
+                ("install-requirements", Failed(2)),
+                ("install-preparation", Failed(5)),
+                ("install-lost", Lost),
+            ] {
+                shown(preview, &|m| {
+                    assert_eq!(
+                        (m.flow.step, m.flow.run),
+                        (Step::Install, super::super::RunState::Finished(outcome))
+                    );
+                    assert_eq!(m.elevated, preview != "install-not-elevated", "{preview}");
+                    assert!(m.security_ok() && m.session.is_some(), "{preview}");
+                });
+            }
+            for preview in [
+                "install-invalid-options",
+                "install-changed",
+                "install-taken-over",
+                "install-record-unreadable",
+            ] {
+                shown(preview, &|m| assert!(m.preflight_problem.is_some() && m.can_install(), "{preview}"));
+            }
             shown("home-defender-not-restored", &|m| {
                 assert!(m.page == Page::Home && m.defender_not_restored_shown());
             });

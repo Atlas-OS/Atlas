@@ -8,7 +8,9 @@ use std::collections::HashMap;
 use crate::model::test_harness::{
     act, fixture, held, new_model, read, run_model_test, settle, wait_for, wait_on_disk,
 };
-use crate::model::{AppModel, FixedChoice, Origin, PackageSource, ScreenKind, Step, UpdatePath};
+use crate::model::{
+    AppModel, FixedChoice, OptionScreen, Origin, PackageSource, ScreenKind, Step, UpdatePath,
+};
 use crate::services::atlas_state::{AtlasState, InstallIdentity, InstallMode, Unfinished};
 use crate::services::legacy_choices::Facts;
 use crate::services::package::Manifest;
@@ -408,7 +410,7 @@ fn only_an_update_or_reinstall_of_an_installed_atlas_asks_how() {
         let model = new_model(&mut cx, env);
         wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
         let asks = |m: &AppModel| {
-            let first = m.option_screens()[0].kind == ScreenKind::UpdatePath;
+            let first = m.option_screens()[0] == OptionScreen::UpdatePath;
             assert_eq!(first, m.update_choices().is_some());
             first
         };
@@ -530,8 +532,10 @@ fn keeping_the_choices_asks_only_what_the_pc_cannot_show() {
                 sorted(&["auto-updates-disable", "defender-enable", "keyboard-shortcuts"])
             );
             assert!(m.locked_options().is_none());
-            let kinds: Vec<ScreenKind> = m.option_screens().iter().map(|screen| screen.kind).collect();
-            assert_eq!(kinds, [ScreenKind::UpdatePath, ScreenKind::Mitigations]);
+            let screens = m.option_screens();
+            assert_eq!(screens[0], OptionScreen::UpdatePath);
+            let asked: Vec<ScreenKind> = screens[1].groups().iter().map(|group| group.kind).collect();
+            assert_eq!(asked, [ScreenKind::Mitigations]);
             assert_eq!(m.fixed_option("mitigations-disable"), None);
             assert_eq!(m.fixed_option("auto-updates-default"), Some(FixedChoice::Kept));
             assert_eq!(m.fixed_option("disable-hibernation"), Some(FixedChoice::Kept));
@@ -725,7 +729,11 @@ fn choosing_again_opens_every_choice_but_what_an_update_cannot_undo() {
             let start = m.options.clone();
             m.set_update_path(UpdatePath::ChooseAgain, cx);
             assert_eq!(m.options, start, "the same start as keeping them");
-            assert_eq!(m.option_screens().len(), m.choice_screens().len() + 1, "every screen");
+            assert_eq!(
+                m.option_screens(),
+                [OptionScreen::UpdatePath, OptionScreen::Choices(m.choice_groups())],
+                "every question"
+            );
             assert!(m.locked_options().is_none());
             assert_eq!(m.fixed_option("uninstall-edge"), Some(FixedChoice::EdgeRemoved));
             assert_eq!(
@@ -865,7 +873,11 @@ fn an_unfinished_update_that_will_keep_the_choices_holds_what_the_pc_has() {
         read(&cx, &model, |m| {
             assert!(m.update_choices().is_none(), "no first screen: it goes on as it began");
             assert_eq!(sorted(&m.locked_options().unwrap()), sorted(ON_THE_PC));
-            assert_eq!(m.option_screens(), m.choice_screens(), "each screen shows what it keeps");
+            assert_eq!(
+                m.option_screens(),
+                [OptionScreen::Choices(m.choice_groups())],
+                "every question shows what it keeps"
+            );
             assert_eq!(m.fixed_option("defender-enable"), Some(FixedChoice::Kept));
             let request = m.install_request().unwrap();
             assert!(!request.choose_again);
@@ -887,8 +899,9 @@ fn an_unfinished_update_that_will_keep_the_choices_holds_what_the_pc_has() {
         act(&mut cx, &model, |m, _| m.refresh_atlas_state());
         read(&cx, &model, |m| {
             assert!(m.locked_options().is_none());
-            let kinds: Vec<ScreenKind> = m.option_screens().iter().map(|screen| screen.kind).collect();
-            assert_eq!(kinds, [ScreenKind::Mitigations]);
+            let asked: Vec<ScreenKind> =
+                m.option_screens().iter().flat_map(|screen| screen.groups().iter().map(|g| g.kind)).collect();
+            assert_eq!(asked, [ScreenKind::Mitigations]);
             assert_eq!(m.fixed_option("mitigations-disable"), None);
             assert_eq!(m.fixed_option("auto-updates-disable"), Some(FixedChoice::Kept));
         });
@@ -899,7 +912,7 @@ fn an_unfinished_update_that_will_keep_the_choices_holds_what_the_pc_has() {
             read(&cx, &model, |m| {
                 assert!(m.unfinished_choices().is_none() && m.locked_options().is_none(), "{identity:?}");
                 assert_eq!(m.fixed_option("defender-enable"), None, "{identity:?}");
-                assert_eq!(m.option_screens(), m.choice_screens(), "{identity:?}");
+                assert_eq!(m.option_screens(), [OptionScreen::Choices(m.choice_groups())], "{identity:?}");
             });
         }
         settle(&cx, &model).await;
@@ -926,7 +939,7 @@ fn an_unfinished_install_chooses_again_only_as_it_began() {
         wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
         act(&mut cx, &model, |m, _| load_builtin(m, temp.path()));
         read(&cx, &model, |m| {
-            assert!(m.update_choices().is_none() && m.option_screens()[0].kind != ScreenKind::UpdatePath);
+            assert!(m.update_choices().is_none() && m.option_screens()[0] != OptionScreen::UpdatePath);
             let request = m.install_request().unwrap();
             assert!(request.choose_again && request.options == options);
         });

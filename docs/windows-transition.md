@@ -27,6 +27,33 @@ A feature update needs a supported edition, which excludes Home, LTSC and Server
 It also needs nothing else that would stop the Atlas install.
 Atlas Manager's **Home** page says when an edition or a release has no path to a supported one, and when the current release stops getting security updates on Home and Pro editions.
 
+## On the Get ready page
+
+The move has a card of its own, first under the stepper, which holds it from the go-ahead to its outcome.
+
+- Before the move, the card says why it's needed, or, where it's optional, offers the new release, marked "(recommended)", and keeping this one.
+  Two lines say that files and apps stay and how long it usually takes, and what the move removes from Windows is behind **Show details**.
+  Where moving is optional, a link explains how to undo it.
+- **Accept and update**, with the line that updating means accepting the Microsoft Software License Terms and a link to them, is the go-ahead, and starts the move.
+  While a PC check stands in the way, the card doesn't offer it, and the check's fix is what to do first.
+  Something else still to finish holds the start once the terms are accepted, and the card says what it waits for.
+- While Windows moves, the card shows how updating stands, the wait for the offer, the restart and every outcome, with their buttons.
+  Its progress bar comes straight under the status line, and **Stop updating** at its trailing edge, also while Atlas waits for the offer.
+  The **Windows and Microsoft Store updates** row of the checklist waits for the move, and shows the rest of updating once Windows has the new release.
+- An outcome that a PC check then finds as well (`feature-hardware`, `feature-managed` or `feature-disk-space`) shows once, as the failed check with its fix, and the card says only that the move starts once the checks pass.
+- After a move during which Windows reinstalled itself, the card says that the Atlas install puts Atlas's changes back.
+
+| Outcome | What the card offers |
+| --- | --- |
+| Windows couldn't install the release (`feature-failed`) | **Try again**, and the row of help links |
+| Windows went back to the release it had (`feature-rolled-back`) | **Try again**, and the row of help links |
+| Too little free space (`feature-disk-space`) | **Open Storage settings**; Atlas reads the space again by itself and carries on |
+| No offer within two hours | **Try again** and **Create an Atlas ISO** |
+| A service Windows Update needs is turned off (`feature-blocked`) | Its name in words, **Try again** and **Open Services** |
+| Hardware or an update server that rules the move out (`feature-hardware`, `feature-managed`) | **Create an Atlas ISO** |
+| Atlas's changes gone without a sign of Setup (`feature-components-lost`), a record or pin value Atlas can't use (`feature-journal`, `feature-pin`) | **Send a report** |
+| Windows couldn't get ready for the restart | **Try again**, as a note, not an error |
+
 ## How it works
 
 The preparation worker, `Preparation/Update-Windows.ps1`, does the work, with the functions in `Preparation/WindowsTransition.ps1`.
@@ -41,7 +68,7 @@ A run decides from the PC each time, so a run interrupted by a restart or by clo
 7. After the restart it decides how Windows moved, then finishes the monthly and Microsoft Store updates.
 8. The Atlas install that follows puts the Windows Update settings back as its last step.
 
-You accept Microsoft's licence terms for the new release in Atlas Manager, and the worker accepts them on Windows Update's side only after that.
+You accept Microsoft's licence terms for the new release in Atlas Manager, with **Accept and update**, and the worker accepts them on Windows Update's side only after that.
 
 ## Preflight checks
 
@@ -60,6 +87,22 @@ The first problem stops the run before anything changes.
 | The current pin values are ones Atlas can record and put back | `feature-pin` |
 | An existing record is readable and owned by SYSTEM or Administrators | `feature-journal` |
 | Windows is on a source build of the feature update, or on its target | `feature-build` |
+
+Atlas Manager reads three of these itself as **Get ready** opens, as PC checks, so a move that can't work says so before anything starts (`CheckId::MOVE` in `app/src/services/requirements/`):
+
+| PC check | Reads | Fails with |
+| --- | --- | --- |
+| **Where updates come from** | `AU\UseWUServer` isn't 1 | **Create an Atlas ISO** |
+| **Free space** | The system drive has at least 6 GiB free | **Open Storage settings** |
+| **Windows 11 hardware** | A TPM 2.0 and UEFI firmware, where Windows lets Atlas read them | **Create an Atlas ISO** |
+
+- The hardware check reads the TPM as the worker does, from `Win32_Tpm`, which answers only an administrator, and the firmware from `PEFirmwareType`.
+  A part it can't read doesn't fail, and Windows Update decides then.
+  Processor support and Secure Boot have no reliable local answer without more privileges, so they aren't guessed.
+- These checks count only while the move is chosen.
+  Where moving is optional, a PC whose hardware or update server rules the move out keeps its release without being asked, and Get ready doesn't offer the move.
+- While a move waits for free space, Get ready reads it again every 30 seconds, and once there's enough, a move already accepted carries on by itself; otherwise the card offers **Accept and update**.
+  That includes a run the worker stopped with `feature-disk-space`.
 
 An Atlas PC can read its component store as repairable because of the Atlas packages alone (see [The component store and the Atlas packages](preparation.md#the-component-store-and-the-atlas-packages)).
 So a repairable store doesn't stop the feature update.
@@ -187,15 +230,18 @@ While Atlas Manager stays open, it looks again by itself every 10 minutes for up
 Each look is the worker's `-OfferOnly` run, which installs nothing else.
 When the wait is for the prerequisite (`feature-prerequisite`), each look is a full run, because only a full run installs it.
 
-- An indeterminate progress bar on the card shows how long Atlas has waited and when it looks next.
-  Its accessible name stays the same across looks, so a screen reader announces only a change.
+- The move's card shows one indeterminate progress bar, the same in the first run's own wait, during a look and between looks.
+  A line under it says what to expect, and how many whole minutes Atlas has waited; nothing ticks.
+  The bar's accessible name stays the same across looks, so a screen reader announces only a change.
 - When the offer comes while the window is in the background, its taskbar button flashes.
-- A look that loses the connection doesn't end the wait.
-- **Check again** looks at once.
-- Opened again on a wait, **Home** offers **Check again**, and the **Get ready** page looks once by itself.
+- A look that loses the connection doesn't end the wait, and the card says why the look couldn't run.
+- **Stop updating** asks first, then stops a look under way at its next safe point, puts the settings back and ends the setup, as **Cancel** does.
+- Where moving is optional, **Keep** stays a choice while Atlas waits.
+  It asks first too, then stops the move, puts the settings back and carries on updating without it.
+- Opened again on a wait, **Home** offers **Continue update**, and the **Get ready** page looks once by itself.
 
 When the offer comes, the feature update goes on.
-After two hours without one, Atlas Manager puts the settings back once nothing else is running, and says to check again later or to reinstall from an Atlas ISO after a backup.
+After two hours without one, Atlas Manager puts the settings back once nothing else is running, and says to try again later or to reinstall from an Atlas ISO, with **Try again** and **Create an Atlas ISO**.
 While an Atlas install is still to finish, it only stops looking, because that install puts the settings back as its last step.
 
 ## Installing the update and restarting
@@ -209,6 +255,8 @@ Atlas commits the installed update once, immediately before it restarts Windows.
 The worker finds the update again by the ID the record keeps, and commits it.
 Committing twice before one restart can fail the update, so the record notes the start of Windows in which it committed.
 A commit that fails is logged, and the restart goes ahead.
+When Atlas Manager can't run the commit at all, it doesn't restart: the move's card says Windows couldn't prepare the restart, as a note rather than an error, and **Try again** runs the commit and the restart again.
+The restart that finishes the move counts down as any restart updating needs (see [Restarts](preparation.md#restarts)).
 
 After the restart:
 
@@ -238,7 +286,8 @@ The front door's `No Windows update in progress` check enforces both (see [Requi
 These put the settings back exactly, original pin included:
 
 - cancelling from any step before the install starts, which asks first;
-- **Stop updating** on the card between looks;
+- **Stop updating** on the move's card while Atlas waits for the offer, which asks first;
+- choosing to keep this release, where moving is optional, before the new release is installed, which asks first and then carries on updating without the move;
 - closing Atlas Manager before the new release is installed, or after Atlas Manager reopened from a restart.
 
 If the settings can't be put back, Atlas Manager says why, and closes only if you still want it to.

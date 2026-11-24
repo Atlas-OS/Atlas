@@ -195,13 +195,6 @@ impl Progress {
         (self.status == Status::Failed && self.activity.failure_message.is_some()).then_some(&self.activity)
     }
 
-    pub fn fraction(&self) -> Option<f32> {
-        self.activity.percent.map(|p| p as f32 / 100.).or_else(|| {
-            (self.stage == Stage::StoreInstall && self.total > 0)
-                .then(|| self.completed as f32 / self.total as f32)
-        })
-    }
-
     pub fn report_age(&self, now: u64) -> u64 {
         if self.updated_at == 0 { 0 } else { now.saturating_sub(self.updated_at) }
     }
@@ -901,11 +894,11 @@ mod tests {
         let old =
             r#"ATLAS_PREP:{"schema":1,"status":"running","stage":"windows-install","completed":0,"total":5}"#;
         let old = parse_event(old).unwrap();
-        assert_eq!(old.fraction(), None);
+        assert_eq!(old.activity.percent, None);
         assert_eq!(old.report_age(100), 0);
         let new = r#"ATLAS_PREP:{"schema":1,"status":"running","stage":"windows-download","completed":1,"total":5,"updatedAt":100,"activity":{"percent":37,"currentUpdate":"Cumulative update","bytesDownloaded":370,"bytesTotal":1000,"elapsedSeconds":65,"unchangedSeconds":60}}"#;
         let progress = parse_event(new).unwrap();
-        assert_eq!(progress.fraction(), Some(0.37));
+        assert_eq!(progress.activity.percent, Some(37));
         assert_eq!(progress.activity.current_update.as_deref(), Some("Cumulative update"));
         assert_eq!(progress.activity.unchanged_seconds, 60);
         assert_eq!(progress.report_age(120), 20);

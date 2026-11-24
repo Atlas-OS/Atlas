@@ -1,12 +1,14 @@
 //! The restart that completes a successful install: the countdown Atlas
 //! keeps, "Restart later" shared with every window, "Restart now", and the
-//! restart Home asks for while one is still owed.
+//! restart Home asks for while one is still owed. And the countdown to the
+//! restart Windows and Store updates need on Get ready.
 
 use std::time::{Duration, Instant};
 
 use gpui::Context;
 
-use super::{AppModel, Page};
+use super::{AppModel, ModelEvent, Page, Step};
+use crate::services::preparation::State as Preparation;
 use crate::services::session;
 use crate::t;
 
@@ -28,12 +30,6 @@ impl RestartCountdown {
     /// Whole seconds left, rounded up; `0` once the deadline has passed.
     pub fn seconds_left(&self) -> u32 {
         self.deadline.saturating_duration_since(Instant::now()).as_secs_f32().ceil() as u32
-    }
-
-    /// How far along the countdown is, 0 to 1.
-    pub fn progress(&self) -> f32 {
-        let left = self.deadline.saturating_duration_since(Instant::now()).as_secs_f32();
-        (1.0 - left / self.total.as_secs_f32().max(f32::EPSILON)).clamp(0.0, 1.0)
     }
 }
 
@@ -68,6 +64,9 @@ pub enum RestartKind {
     Owed,
     /// The restart Get ready asks for while preparing Windows.
     Preparation,
+    /// The restart Get ready offers to try updates that failed on Windows'
+    /// component store again.
+    Retry,
 }
 
 /// What the restart timer found when it woke.
@@ -81,10 +80,6 @@ impl AppModel {
     /// Seconds left on the restart countdown, if one is running.
     pub fn restart_countdown(&self) -> Option<u32> {
         self.attempt.restart.map(|countdown| countdown.seconds_left())
-    }
-
-    pub fn restart_progress(&self) -> Option<f32> {
-        self.attempt.restart.map(|countdown| countdown.progress())
     }
 
     /// Atlas owns the countdown; Windows receives an immediate restart only
@@ -343,13 +338,7 @@ impl AppModel {
     /// A list Windows won't give is logged, and the restart goes ahead as
     /// it did before Atlas looked.
     pub(super) fn hold_for_other_sessions(&mut self, kind: RestartKind, cx: &mut Context<Self>) -> bool {
-        let people = match (self.env.adapters.read_other_sessions)() {
-            Ok(people) => people,
-            Err(error) => {
-                log::warn!("could not read who else is signed in: {error:#}");
-                Vec::new()
-            }
-        };
+        let people = self.other_people();
         if people.is_empty() {
             return false;
         }
@@ -373,6 +362,7 @@ impl AppModel {
             }
             RestartKind::Owed => self.request_owed_restart(cx),
             RestartKind::Preparation => self.restart_preparation_now(cx),
+            RestartKind::Retry => self.restart_to_retry_now(cx),
         }
         cx.notify();
     }
@@ -384,5 +374,128 @@ impl AppModel {
             log::info!("restart not confirmed; other people are signed in");
             cx.notify();
         }
+    }
+
+    /// The other people signed in, whose apps a restart would close. A list
+    /// Windows won't give is logged and read as nobody.
+    fn other_people(&self) -> Vec<String> {
+        (self.env.adapters.read_other_sessions)().unwrap_or_else(|error| {
+            log::warn!("could not read who else is signed in: {error:#}");
+            Vec::new()
+        })
+    }
+
+    /// Seconds left before Atlas restarts for updating, while it counts down.
+    pub fn preparation_countdown(&self) -> Option<u32> {
+        self.preparation_countdown.map(|countdown| countdown.seconds_left())
+    }
+
+    /// Counts down to the restart updating needs, once the draft and
+    /// recovery are in place, then restarts as Restart now does. Updating
+    /// runs unattended, so the countdown is long enough to come back to,
+    /// and the taskbar button flashes when the window is behind others.
+    /// It follows the Restart automatically setting: with it off, Get ready
+    /// offers Restart now and nothing counts down. Nothing counts down while
+    /// other people are signed in either: Restart now asks first, as it
+    /// does at the end if someone signs in meanwhile. Only Get ready keeps
+    /// it (see [`AppModel::preparation_countdown_allowed`]); anything that
+    /// ends what it needs ends it, as Not now does.
+    pub(super) fn begin_preparation_countdown(&mut self, cx: &mut Context<Self>) {
+        if !self.preparation_countdown_allowed() || !self.other_people().is_empty() {
+            self.stop_preparation_countdown();
+            return;
+        }
+        let timing = self.env.restart;
+        let generation = self.preparation_countdown_generation.next();
+        self.preparation_countdown = Some(RestartCountdown {
+            deadline: Instant::now() + timing.preparation,
+            total: timing.preparation,
+        });
+        cx.emit(ModelEvent::NeedsAttention);
+        self.preparation_countdown_timer = Some(cx.spawn(async move |this, cx| {
+            loop {
+                cx.background_executor().timer(timing.tick).await;
+                let tick = this
+                    .update(cx, |this, cx| {
+                        if this.preparation_countdown_generation != generation {
+                            return Tick::Stop;
+                        }
+                        cx.notify();
+                        if !this.preparation_countdown_allowed() {
+                            log::info!("restart for updates put off: Get ready no longer counts down to it");
+                            this.preparation_countdown = None;
+                            return Tick::Stop;
+                        }
+                        match this.preparation_countdown {
+                            Some(countdown) if Instant::now() >= countdown.deadline => Tick::Expired,
+                            Some(_) => Tick::Continue,
+                            None => Tick::Stop,
+                        }
+                    })
+                    .unwrap_or(Tick::Stop);
+                match tick {
+                    Tick::Continue => continue,
+                    Tick::Stop => return,
+                    Tick::Expired => break,
+                }
+            }
+            this.update(cx, |this, cx| {
+                if this.preparation_countdown_generation == generation {
+                    log::info!("Restarting for Windows and Store updates at the end of the countdown");
+                    // This timer is ending, so only the countdown goes.
+                    this.preparation_countdown = None;
+                    this.preparation_countdown_generation.next();
+                    this.restart_for_updates(cx);
+                    cx.notify();
+                }
+            })
+            .ok();
+        }));
+        cx.notify();
+    }
+
+    /// Whether Get ready may count down to the restart updating needs: the
+    /// restart is owed and saved for, Restart automatically is on, Get ready
+    /// is the page showing, where the countdown and Not now are, and no ISO
+    /// or USB job runs, which the restart would break off.
+    fn preparation_countdown_allowed(&self) -> bool {
+        self.settings.restart_after_install
+            && self.preparation == Preparation::Reboot
+            && self.preparation_problem.is_none()
+            && self.flow.active
+            && self.flow.step == Step::Ready
+            && self.page == Page::Install
+            && !self.media_job_running()
+    }
+
+    /// An ISO or USB job runs (the USB page sets both flags).
+    pub(super) fn media_job_running(&self) -> bool {
+        self.iso_busy || self.usb_busy
+    }
+
+    /// Holds the countdown while closing asks about it, so the PC doesn't
+    /// restart under the question.
+    pub fn hold_preparation_countdown(&mut self) {
+        self.stop_preparation_countdown();
+    }
+
+    /// Counts down again after closing's question went away unanswered.
+    pub fn resume_preparation_countdown(&mut self, cx: &mut Context<Self>) {
+        self.begin_preparation_countdown(cx);
+    }
+
+    /// Not now: the countdown stops, and Get ready offers Restart now.
+    pub fn decline_preparation_restart(&mut self, cx: &mut Context<Self>) {
+        if self.preparation_countdown.is_some() {
+            log::info!("restart for updates put off");
+            self.stop_preparation_countdown();
+            cx.notify();
+        }
+    }
+
+    pub(super) fn stop_preparation_countdown(&mut self) {
+        self.preparation_countdown = None;
+        self.preparation_countdown_timer = None;
+        self.preparation_countdown_generation.next();
     }
 }

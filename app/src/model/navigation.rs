@@ -6,7 +6,10 @@ use std::path::PathBuf;
 use gpui::Context;
 
 use super::install::disarm_completion;
-use super::{Acquisition, AppModel, ElevationProblem, Page, RestoreStatus, RunState, Step, UpdatePath};
+use super::{
+    Acquisition, AppModel, ElevationProblem, Page, ReadyStatus, RestoreStatus, RunState, ScreenKind, Step,
+    UpdatePath,
+};
 use crate::services::iso;
 use crate::services::settings::{self, InstallDraft};
 
@@ -62,6 +65,11 @@ impl AppModel {
             return;
         }
         if page != self.page {
+            // Only Get ready shows the countdown to the restart updating
+            // needs, and Not now with it: leaving puts the restart off.
+            if page != Page::Install {
+                self.decline_preparation_restart(cx);
+            }
             if page == Page::Report {
                 self.report_return = self.page;
             }
@@ -70,6 +78,10 @@ impl AppModel {
             self.refresh_page_notices(cx);
         }
         self.sync_security_watch(cx);
+        // Get ready waits for the user to be on it before it acts by itself.
+        if page == Page::Install {
+            self.advance_ready(cx);
+        }
         cx.notify();
     }
 
@@ -84,29 +96,83 @@ impl AppModel {
             self.enter_ready(cx);
         }
         if self.flow.step == Step::Options && self.flow.may_edit() {
+            // First, as whether the keyboard question is asked follows it.
+            self.refresh_keyboard_layouts();
             self.apply_recorded_choices();
         }
         self.save_draft(cx);
         self.sync_security_watch(cx);
         cx.notify();
+        // Last, as moving on runs this again for the next step.
+        if self.flow.step == Step::Ready {
+            self.advance_ready(cx);
+        }
     }
 
     /// Revisits an earlier step (from the stepper or a "go to" button).
+    /// Back on Get ready or Windows Security on purpose, it stays there
+    /// until the user moves on.
     pub fn set_step(&mut self, step: Step, cx: &mut Context<Self>) {
         if self.flow.go_to(step).is_ok() {
             self.option_screen = 0;
             self.returning_to_install = false;
+            if step == Step::Ready {
+                self.ready_moves_on = false;
+            }
+            self.security_on_purpose = step == Step::Security;
             self.after_step_change(cx);
         }
     }
 
-    /// Jumps back to one screen of the Options step (from "Change" links).
-    /// From the Install step, Continue then leads straight back to it.
-    pub fn edit_options(&mut self, screen: usize, cx: &mut Context<Self>) {
+    /// What Get ready does by itself once nothing waits for the user: it
+    /// starts updating (see [`AppModel::updates_start_by_themselves`]), and
+    /// once it's done, moves on to Your choices (see
+    /// [`AppModel::ready_moves_on_by_itself`]). Called wherever what they
+    /// wait for can change: a check reporting, a choice on Get ready, the
+    /// step or page showing, the install record read again.
+    pub(super) fn advance_ready(&mut self, cx: &mut Context<Self>) {
+        self.update_by_itself(cx);
+        if self.ready_moves_on_by_itself() {
+            log::info!("Get ready is done; moving on to Your choices");
+            self.ready_moves_on = false;
+            self.next_step(cx);
+        }
+    }
+
+    /// Whether Get ready moves on to Your choices by itself now: once per
+    /// visit, when everything has passed with nothing to read, the package
+    /// is ready and Windows is up to date. Not when the user came back to it
+    /// on purpose, and not when a check passed with a note or needs the
+    /// user's confirmation (see [`ReadyStatus::Ready`]): they may want to
+    /// read it first.
+    pub fn ready_moves_on_by_itself(&self) -> bool {
+        self.env.automatic_get_ready
+            && self.ready_moves_on
+            && !super::preview::active()
+            && self.page == Page::Install
+            && self.flow.active
+            && self.flow.step == Step::Ready
+            && self.flow.may_edit()
+            && !self.locked()
+            && self.ready_status() == Some(ReadyStatus::Ready)
+            && self.ready_to_continue()
+    }
+
+    /// Opens Your choices at what a Change link's row lists. How Atlas
+    /// updates goes back through the first screen of an update or
+    /// reinstall, as its answer decides which questions follow. Any other
+    /// row opens the screen of questions, with the extras unfolded for
+    /// theirs, and from the Install step, Continue then leads straight back.
+    pub fn edit_options(&mut self, kind: ScreenKind, cx: &mut Context<Self>) {
+        if kind == ScreenKind::UpdatePath {
+            self.set_step(Step::Options, cx);
+            return;
+        }
         let from_install = self.flow.step == Step::Install;
         if self.flow.go_to(Step::Options).is_ok() {
-            self.option_screen = screen.min(self.option_screens().len().saturating_sub(1));
+            self.option_screen = self.choices_screen().unwrap_or(0);
             self.returning_to_install = from_install;
+            self.extras_shown |= kind == ScreenKind::Extras;
             self.after_step_change(cx);
         }
     }
@@ -170,6 +236,10 @@ impl AppModel {
         if let Ok(step) = self.flow.back() {
             self.option_screen =
                 if step == Step::Options { self.option_screens().len().saturating_sub(1) } else { 0 };
+            if step == Step::Ready {
+                self.ready_moves_on = false;
+            }
+            self.security_on_purpose = step == Step::Security;
             self.after_step_change(cx);
         }
     }
@@ -236,16 +306,37 @@ impl AppModel {
             self.flow_id = Some(settings::new_flow_id());
             self.own_session = None;
             self.returning_to_install = false;
+            self.extras_shown = false;
+            self.begin_get_ready();
             self.take_over_draft(cx);
             self.after_step_change(cx);
             self.navigate(Page::Install, cx);
         }
     }
 
+    /// A flow arrives at Get ready, not on purpose: Get ready may start
+    /// updating, and move on, by itself.
+    pub(super) fn begin_get_ready(&mut self) {
+        self.updates_held = false;
+        self.ready_moves_on = true;
+    }
+
     /// Starts the install flow. Everything in it needs administrator rights,
     /// so the elevation prompt comes first; the draft lets the elevated copy
     /// resume here instead of starting over.
     pub fn begin_install(&mut self, cx: &mut Context<Self>) {
+        self.begin_flow(false, cx);
+    }
+
+    /// Starts the install flow on Windows that looks used (see
+    /// [`AppModel::windows_looks_used`]), the user having accepted the risk:
+    /// the acceptance holds for this flow, Atlas's own restarts included,
+    /// and is in the draft the elevated copy resumes.
+    pub fn begin_install_on_used_windows(&mut self, cx: &mut Context<Self>) {
+        self.begin_flow(true, cx);
+    }
+
+    fn begin_flow(&mut self, used_windows_accepted: bool, cx: &mut Context<Self>) {
         if self.elevating {
             return;
         }
@@ -272,7 +363,8 @@ impl AppModel {
         // warning belong to one flow.
         self.windows_terms_accepted = false;
         self.windows_transition_declined = false;
-        self.used_windows_accepted = false;
+        self.used_windows_accepted = used_windows_accepted;
+        self.begin_get_ready();
         self.recorded_choices_applied = false;
         self.update_path = UpdatePath::Keep;
         self.store_outcome_seen = None;
@@ -293,6 +385,7 @@ impl AppModel {
         self.security_reminder = false;
         self.forget_pending_reminder(cx);
         self.returning_to_install = false;
+        self.extras_shown = false;
         // A new flow, begun on purpose, takes the draft over from whatever
         // flow held it; from here on only this window may change it.
         self.flow_id = Some(settings::new_flow_id());
@@ -359,6 +452,7 @@ impl AppModel {
         }
         self.returning_to_install = false;
         self.stop_offer_wait();
+        self.stop_preparation_countdown();
         // Protection was switched off for an install that is not happening
         // (or that stopped early); remind the user to put it back. Without
         // Defender there is nothing to put back.
