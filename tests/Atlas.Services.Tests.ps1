@@ -143,7 +143,6 @@ Describe 'Set-AtlasServiceStartup and the service manager' {
         @{ Type = 3; Expected = 'demand' }
         @{ Type = 4; Expected = 'disabled' }
     ) {
-        param($Type, $Expected)
         $script:held = if ($Type -eq 4) { 3 } else { 4 }
         $result = Set-AtlasServiceStartup -Name TestSvc -StartupType $Type -ServicesRoot $script:servicesRoot -PassThru
         (Get-Item -LiteralPath "$script:servicesRoot\TestSvc").GetValue('Start') | Should -Be $Type

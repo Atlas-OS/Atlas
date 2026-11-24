@@ -122,7 +122,6 @@ Describe 'Protected preparation recovery journals' {
         @{ Name = 'the new report could not be moved in'; HResult = -2147023720; MovedAside = $true }
         @{ Name = 'the new report could not be moved in, with the old one renamed'; HResult = -2147023719; MovedAside = $true }
     ) {
-        param($Name, $HResult, $MovedAside)
         Set-Variable -Name PersistentCancellation -Value $false
         $JobPath = Join-Path $TestDrive "replace-$HResult"
         [void][IO.Directory]::CreateDirectory($JobPath)
@@ -1397,7 +1396,6 @@ Describe 'Windows installation results requiring restart' {
         @{ Case = 'while Windows hasn''t restarted since'; Boot = 'boot:1'; Key = 'Fixture update id/0'; Days = 0 }
         @{ Case = 'once the record is more than a day old'; Boot = 'boot:2'; Key = 'Fixture update id/0'; Days = -2 }
     ) {
-        param($Case, $Boot, $Key, $Days)
         $script:RestartRecordText = ConvertTo-Json -Compress -Depth 4 -InputObject @{
             boot = 'boot:1'; at = [DateTime]::UtcNow.AddDays($Days).ToString('o'); updates = @(@{ key = $Key; title = 'An update' }) }
         Mock Get-PreparationBootId { $Boot }
@@ -1723,7 +1721,6 @@ Describe 'Microsoft Defender''s own updates' {
         @{ Case = 'no NoDefender package'; Package = $null; Service = $false; Engine = $false; Removed = $false }
         @{ Case = 'the package waiting for a restart'; Package = 'InstallPending'; Service = $false; Engine = $false; Removed = $false }
     ) {
-        param($Case, $Package, $Service, $Engine, $Removed)
         Mock Get-AtlasTransitionDefenderPackageState { $Package }
         Mock Test-AtlasTransitionKey { $Service } -ParameterFilter { $Path -eq 'SYSTEM\CurrentControlSet\Services\WinDefend' }
         Mock Test-PreparationDefenderEngine { $Engine }
@@ -1877,7 +1874,6 @@ Describe 'Provider progress without interrupting servicing' {
     It 'waits for another installation when Windows Update won''t start this one, then starts it' {
         $script:refusals = 1
         $script:provider | Add-Member ScriptMethod BeginInstall {
-            param($Progress, $Completed, $State)
             if ($script:refusals-- -gt 0) { throw ([Runtime.InteropServices.COMException]::new('Another installation is in progress.', -2145124330)) }
             $script:job
         } -Force
@@ -2097,7 +2093,7 @@ Describe 'A Store that is slow or briefly fails' {
 
     It 'names a Store that refuses to resume a download as a wait, with its code' {
         $manager = [pscustomobject]@{}
-        $manager | Add-Member ScriptMethod Restart { param($Product) throw ([Runtime.InteropServices.COMException]::new('Error HRESULT E_FAIL has been returned from a call to a COM component.', -2147467259)) }
+        $manager | Add-Member ScriptMethod Restart { throw ([Runtime.InteropServices.COMException]::new('Error HRESULT E_FAIL has been returned from a call to a COM component.', -2147467259)) }
         $item = [pscustomobject]@{ ProductId = '9WZDNCRFJ3PT'; PackageFamilyName = 'Microsoft.ZuneMusic_8wekyb3d8bbwe' }
         try { Resume-PreparationStoreItem $manager $item } catch { $thrown = $_.Exception }
         $detail = Get-PreparationFailureDetail $thrown
