@@ -68,6 +68,8 @@ $script:PreparationClock = [Diagnostics.Stopwatch]::StartNew()
 $script:PreparationStartedAt = [DateTime]::Now
 $script:PreparationLastChange = 0L
 $script:PreparationLastProgress = ''
+# Whether state.json had to be written over in place, which the log notes once.
+$script:PreparationStateInPlace = $false
 # Restart markers seen by the last Test-PreparationRestart, so the app can name one
 # that survives a restart instead of asking for another.
 $script:PreparationRestartReasons = @()
@@ -300,34 +302,30 @@ function Write-PreparationState([string]$Status, [string]$Stage, [int]$Completed
     $json = $state | ConvertTo-Json -Compress
     $path = Join-Path $JobPath 'state.json'
     $temporary = Join-Path $JobPath 'state.tmp'
-    $encoding = New-Object Text.UTF8Encoding($false)
+    $bytes = (New-Object Text.UTF8Encoding($false)).GetBytes($json)
     $ownsTemporary = $false
     try {
         if ($PersistentCancellation) {
             $stream = New-Object IO.FileStream($temporary, [IO.FileMode]::CreateNew, [Security.AccessControl.FileSystemRights]::Write, [IO.FileShare]::None, 4096, [IO.FileOptions]::None, (Get-PreparationStateSecurity))
             $ownsTemporary = $true
             try {
-                $bytes = $encoding.GetBytes($json)
                 $stream.Write($bytes, 0, $bytes.Length)
                 $stream.Flush($true)
             } finally { $stream.Dispose() }
         }
         else {
-            [IO.File]::WriteAllText($temporary, $json, $encoding)
+            [IO.File]::WriteAllBytes($temporary, $bytes)
             $ownsTemporary = $true
         }
-        # A reader may briefly hold the previous report without allowing replacement.
-        for ($attempt = 0; ; $attempt++) {
-            try {
-                if ([IO.File]::Exists($path)) { [IO.File]::Replace($temporary, $path, [NullString]::Value) }
-                else { [IO.File]::Move($temporary, $path) }
-                $ownsTemporary = $false
-                break
-            } catch [IO.IOException] {
-                if ($attempt -ge 20 -or ($_.Exception.HResult -band 0xffff) -notin 32, 33) { throw }
-                Start-Sleep -Milliseconds 100
+        # A reader or a scanner can briefly hold the previous report; see
+        # Install-AtlasTransitionFile in WindowsTransition.ps1.
+        if (Install-AtlasTransitionFile $temporary $path $bytes) {
+            if (-not $script:PreparationStateInPlace) {
+                $script:PreparationStateInPlace = $true
+                Write-PreparationLog 'state.json could not be replaced, so this run writes it over in place.'
             }
         }
+        else { $ownsTemporary = $false }
     } finally {
         if ($ownsTemporary) { [IO.File]::Delete($temporary) }
     }

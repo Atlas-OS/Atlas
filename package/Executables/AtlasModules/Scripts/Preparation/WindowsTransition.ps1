@@ -304,9 +304,73 @@ function Write-AtlasTransitionCopy([string]$Json) {
         [void][IO.Directory]::CreateDirectory($directory, $security)
     }
     $temporary = "$path.tmp"
-    [IO.File]::WriteAllText($temporary, $Json, [Text.UTF8Encoding]::new($false))
-    if ([IO.File]::Exists($path)) { [IO.File]::Replace($temporary, $path, [NullString]::Value) }
-    else { [IO.File]::Move($temporary, $path) }
+    $bytes = [Text.UTF8Encoding]::new($false).GetBytes($Json)
+    [IO.File]::WriteAllBytes($temporary, $bytes)
+    try {
+        if (Install-AtlasTransitionFile $temporary $path $bytes) {
+            Write-AtlasTransitionEvidence 'the copy of the record could not be replaced, so it was written over in place'
+        }
+    }
+    finally {
+        if ([IO.File]::Exists($temporary)) { [IO.File]::Delete($temporary) }
+    }
+}
+
+# Win32 errors that something briefly holding a file causes while a new copy
+# replaces it, such as a reader or a scanner: a sharing or lock violation (32,
+# 33), or ReplaceFile unable to remove the file it replaces or to move the new
+# copy in (ERROR_UNABLE_TO_REMOVE_REPLACED, ERROR_UNABLE_TO_MOVE_REPLACEMENT and
+# ERROR_UNABLE_TO_MOVE_REPLACEMENT_2, 1175 to 1177).
+function Test-AtlasTransitionReplaceBusy([Exception]$Exception) {
+    for ($cause = $Exception; $null -ne $cause; $cause = $cause.InnerException) {
+        if ($cause -is [IO.IOException]) { return ($cause.HResult -band 0xFFFF) -in @(32, 33, 1175, 1176, 1177) }
+    }
+    return $false
+}
+
+# One replacement of $Path by $Temporary, or the move of $Temporary into place
+# when $Path is gone. On its own so tests can stand in for Windows refusing it.
+function Invoke-AtlasTransitionFileReplace([string]$Temporary, [string]$Path) {
+    if ([IO.File]::Exists($Path)) { [IO.File]::Replace($Temporary, $Path, [NullString]::Value) }
+    else { [IO.File]::Move($Temporary, $Path) }
+}
+
+# Puts $Temporary, which holds $Bytes, in place of $Path, which keeps its own
+# security descriptor. While something holds $Path, the replacement is tried
+# again. ReplaceFile without a backup can fail with 1176 or 1177 after it moved
+# $Path aside, so a try after that moves $Temporary into the free name. When the
+# replacement keeps failing, $Bytes are written over $Path in place instead, so
+# $Path is neither missing nor left with the earlier content; a reader at that
+# moment can see a partial file and reads it again. Returns $true when $Bytes
+# went in that way, and $Temporary is then still the caller's to remove.
+function Install-AtlasTransitionFile([string]$Temporary, [string]$Path, [byte[]]$Bytes, [int]$Attempts = 20, [int]$DelayMilliseconds = 100) {
+    for ($attempt = 1; ; $attempt++) {
+        try {
+            Invoke-AtlasTransitionFileReplace $Temporary $Path
+            return $false
+        }
+        catch {
+            if (-not (Test-AtlasTransitionReplaceBusy $_.Exception)) { throw }
+            if ($attempt -ge $Attempts) { $failure = $_; break }
+            Start-Sleep -Milliseconds $DelayMilliseconds
+        }
+    }
+    try {
+        if (-not [IO.File]::Exists($Path)) {
+            # $Path was moved aside and $Temporary can't take its name.
+            [IO.File]::Copy($Temporary, $Path, $false)
+            return $true
+        }
+        $stream = [IO.FileStream]::new($Path, [IO.FileMode]::Open, [IO.FileAccess]::Write, [IO.FileShare]'ReadWrite, Delete')
+        try {
+            $stream.Write($Bytes, 0, $Bytes.Length)
+            $stream.SetLength($Bytes.Length)
+            $stream.Flush($true)
+        }
+        finally { $stream.Dispose() }
+        return $true
+    }
+    catch { throw $failure }
 }
 
 # The copy's text, or $null without one. A copy someone other than SYSTEM,
