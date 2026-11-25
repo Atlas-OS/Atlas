@@ -1528,6 +1528,7 @@ access-back-stop = 如果你在此之前停止，Atlas 会还原这些设置。
 
 prepare-reason-feature-update = 新的 Windows 版本
 prepare-reason-feature-commit = 完成新 Windows 版本的安装
+prepare-reason-apprepository = 删除残留的应用记录
 # 等待 Windows 更新提供新版本：进度条的标签和状态行、进度条下方的一行，以及已等待的整数分钟数。
 windows-waiting = 正在等待 Windows 更新提供 Windows 11 版本 { $release }…
 windows-waiting-detail = 通常需要几分钟，最长 2 小时。Atlas 会自动继续，你可以继续使用电脑。

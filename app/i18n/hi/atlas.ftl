@@ -1721,6 +1721,7 @@ access-back-stop = अगर आप उससे पहले रोकते �
 
 prepare-reason-feature-update = नया Windows संस्करण
 prepare-reason-feature-commit = नए Windows संस्करण को पूरा करना
+prepare-reason-apprepository = बचे हुए ऐप रिकॉर्ड हटाना
 # Waiting for Windows Update to offer the new version: the progress bar's label and status
 # line, the line under the bar, and how long Atlas has waited, in whole minutes, after it.
 windows-waiting = Windows Update के Windows 11, संस्करण { $release } उपलब्ध कराने की प्रतीक्षा है…

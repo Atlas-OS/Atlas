@@ -1641,6 +1641,7 @@ access-back-stop = หากคุณหยุดก่อนถึงตอน�
 
 prepare-reason-feature-update = Windows เวอร์ชันใหม่
 prepare-reason-feature-commit = การติดตั้ง Windows เวอร์ชันใหม่ให้เสร็จ
+prepare-reason-apprepository = การลบบันทึกแอปที่ค้างอยู่
 # Waiting for Windows Update to offer the new version: the progress bar's label and status
 # line, the line under the bar, and how long Atlas has waited, in whole minutes, after it.
 windows-waiting = กำลังรอให้ Windows Update เสนอ Windows 11 เวอร์ชัน { $release }…

@@ -1563,6 +1563,7 @@ access-back-stop = Si vous arrêtez avant, Atlas les rétablit.
 
 prepare-reason-feature-update = la nouvelle version de Windows
 prepare-reason-feature-commit = la finalisation de la nouvelle version de Windows
+prepare-reason-apprepository = la suppression d’anciens enregistrements d’applications
 # Waiting for Windows Update to offer the new version: the progress bar's label and status line,
 # the line under the bar, and how long Atlas has waited, in whole minutes.
 windows-waiting = En attente de Windows 11, version { $release } dans Windows Update…

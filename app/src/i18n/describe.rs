@@ -51,6 +51,7 @@ pub fn restart_reason(id: &str) -> String {
         "update-agent" => t!("prepare-reason-update-agent"),
         "feature-update" => t!("prepare-reason-feature-update"),
         "feature-commit" => t!("prepare-reason-feature-commit"),
+        "apprepository" => t!("prepare-reason-apprepository"),
         other => other.to_owned(),
     }
 }
@@ -1670,6 +1671,7 @@ mod tests {
                 Activity { reason: Some("feature-prerequisite".into()), ..Activity::default() }.not_offered()
             );
             assert_eq!(restart_reason("feature-update"), t!("prepare-reason-feature-update"));
+            assert_eq!(restart_reason("apprepository"), t!("prepare-reason-apprepository"));
         });
     }
 

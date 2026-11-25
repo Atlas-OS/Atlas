@@ -1671,6 +1671,7 @@ access-back-stop = 如果您在那之前停止，Atlas 會還原這些設定。
 
 prepare-reason-feature-update = 新的 Windows 版本
 prepare-reason-feature-commit = 完成新 Windows 版本的安裝
+prepare-reason-apprepository = 刪除殘留的應用程式記錄
 # Waiting for Windows Update to offer the new version: the progress bar's label and status
 # line, the line under the bar, and how long Atlas has waited, in whole minutes, after it.
 windows-waiting = 正在等待 Windows Update 提供 Windows 11 版本 { $release }…

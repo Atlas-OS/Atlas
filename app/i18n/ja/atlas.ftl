@@ -1701,6 +1701,7 @@ access-back-stop = それより前に停止した場合も、Atlas が元に戻�
 
 prepare-reason-feature-update = 新しい Windows バージョン
 prepare-reason-feature-commit = 新しい Windows バージョンの完了処理
+prepare-reason-apprepository = 残っているアプリ記録の削除
 # Waiting for Windows Update to offer the new version: the progress bar's label and status
 # line, the line under the bar, and how long Atlas has waited, in whole minutes, after it.
 windows-waiting = Windows Update で Windows 11 バージョン { $release } が提供されるのを待っています…
