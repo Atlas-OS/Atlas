@@ -576,7 +576,7 @@ cost-keyboard-shortcuts-off = Alt+Shift i Ctrl+Shift nie będą już przełącza
 # One line under an optional extra: what ticking it does.
 extra-disable-hibernation = Zwalnia miejsce na dysku, ale hibernacja i szybkie uruchamianie będą niedostępne.
 extra-disable-power-saving = Komputer może zużywać więcej energii, mocniej się nagrzewać i krócej działać na baterii.
-extra-disable-core-isolation = Zmniejsza to ochronę (w tym integralność pamięci) i może wpływać na aplikacje lub gry, które jej wymagają.
+extra-disable-core-isolation = Zmniejsza to ochronę, a gry korzystające z systemów anti-cheat, takich jak Riot Vanguard czy FACEIT, mogą się nie uruchomić, dopóki nie włączysz ponownie integralności pamięci.
 extra-uninstall-edge = Zakładki, historia i zapisane hasła przeglądarki Edge na tym komputerze zostaną usunięte, z wyjątkiem danych zsynchronizowanych z kontem Microsoft.
 extra-install-toolbox = Pomaga zarządzać ustawieniami Atlasa, ale w wersji beta niektóre funkcje mogą być niedokończone.
 extra-install-eclean = Narzędzie od zespołu AtlasOS do przeglądania zbędnych plików i aplikacji startowych, wymagające konta i połączenia z internetem.
@@ -1066,7 +1066,7 @@ settings-open-data-folder = Otwórz folder aplikacji
 
 consequence-disable-hibernation = Zwalnia miejsce na dysku, w którym zapisywana jest sesja podczas hibernacji. Hibernacja i szybkie uruchamianie będą niedostępne.
 consequence-disable-power-saving = Wyłącza funkcje oszczędzania energii. Komputer może zużywać więcej prądu, mocniej się nagrzewać i krócej działać na baterii.
-consequence-disable-core-isolation = Wyłącza dodatkową warstwę zabezpieczeń Windows, w tym integralność pamięci. Zmniejsza to ochronę i może wpływać na aplikacje lub gry, które jej wymagają.
+consequence-disable-core-isolation = Wyłącza dodatkową warstwę zabezpieczeń Windows, w tym integralność pamięci. Zmniejsza to ochronę, a gry korzystające z systemów anti-cheat, takich jak Riot Vanguard czy FACEIT, mogą się nie uruchomić, dopóki nie włączysz ponownie integralności pamięci.
 consequence-remove-snipping-tool = Usuwa aplikację Windows do robienia zrzutów ekranu i nagrywania ekranu.
 consequence-uninstall-edge = Usuwa przeglądarkę Microsoft Edge. Upewnij się, że masz inną przeglądarkę, lub wybierz jedną poniżej.
 # Under Remove Microsoft Edge in the Install step's summary, with a caution glyph.

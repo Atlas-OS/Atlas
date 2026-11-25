@@ -603,7 +603,7 @@ cost-keyboard-shortcuts-off = Alt+Shift और Ctrl+Shift से अब भा�
 # One line under an optional extra: what ticking it does.
 extra-disable-hibernation = डिस्क स्पेस ख़ाली होगा, लेकिन हाइबरनेट और तेज़ स्टार्टअप (Fast Startup) उपलब्ध नहीं रहेंगे।
 extra-disable-power-saving = आपका PC ज़्यादा बिजली ले सकता है, ज़्यादा गर्म हो सकता है और बैटरी कम समय चल सकती है।
-extra-disable-core-isolation = इससे मेमोरी अखंडता (Memory integrity) समेत सुरक्षा कम होती है, और इसकी ज़रूरत वाले ऐप या गेम पर असर पड़ सकता है।
+extra-disable-core-isolation = इससे सुरक्षा कम होती है, और हो सकता है कि Riot Vanguard या FACEIT जैसे एंटी-चीट वाले गेम तब तक शुरू न हों, जब तक आप मेमोरी अखंडता (Memory integrity) फिर से चालू न करें।
 extra-uninstall-edge = इस PC पर आपके Edge बुकमार्क, इतिहास और सहेजे गए पासवर्ड मिट जाते हैं, सिवाय उनके जो आपके Microsoft खाते में सिंक हैं।
 extra-install-toolbox = आपकी Atlas सेटिंग्स सँभालने में मदद करता है, हालाँकि बीटा में होने के कारण कुछ सुविधाएँ अधूरी हो सकती हैं।
 extra-install-eclean = बेकार फ़ाइलों और स्टार्टअप ऐप्स की समीक्षा के लिए AtlasOS की टीम का टूल, जिसके लिए खाता और इंटरनेट कनेक्शन चाहिए।
@@ -1089,7 +1089,7 @@ settings-open-data-folder = ऐप फ़ोल्डर खोलें
 
 consequence-disable-hibernation = हाइबरनेशन के दौरान आपका सत्र सहेजने में इस्तेमाल होने वाला डिस्क स्पेस ख़ाली करता है। हाइबरनेट और तेज़ स्टार्टअप (Fast Startup) उपलब्ध नहीं रहेंगे।
 consequence-disable-power-saving = पावर बचाने वाली सुविधाएँ बंद कर देता है। आपका PC ज़्यादा बिजली ले सकता है, ज़्यादा गर्म हो सकता है और बैटरी कम समय चल सकती है।
-consequence-disable-core-isolation = मेमोरी अखंडता (Memory integrity) समेत Windows की सुरक्षा की एक अतिरिक्त परत बंद कर देता है। इससे सुरक्षा कम होती है और इसकी ज़रूरत वाले ऐप या गेम पर असर पड़ सकता है।
+consequence-disable-core-isolation = मेमोरी अखंडता (Memory integrity) समेत Windows की सुरक्षा की एक अतिरिक्त परत बंद कर देता है। इससे सुरक्षा कम होती है, और हो सकता है कि Riot Vanguard या FACEIT जैसे एंटी-चीट वाले गेम तब तक शुरू न हों, जब तक आप मेमोरी अखंडता फिर से चालू न करें।
 consequence-remove-snipping-tool = स्क्रीनशॉट लेने और स्क्रीन रिकॉर्ड करने वाला Windows ऐप हटा देता है।
 consequence-uninstall-edge = Microsoft Edge ब्राउज़र हटा देता है। पक्का करें कि आपके पास कोई दूसरा ब्राउज़र है, या नीचे एक चुनें।
 # Under Remove Microsoft Edge in the Install step's summary, with a caution glyph.

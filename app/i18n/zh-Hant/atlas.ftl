@@ -564,7 +564,7 @@ cost-keyboard-shortcuts-off = Alt+Shift 和 Ctrl+Shift 將不再切換語言或�
 # One line under an optional extra: what ticking it does.
 extra-disable-hibernation = 可釋放磁碟空間，但休眠與快速啟動將無法使用。
 extra-disable-power-saving = 電腦可能耗電更多、溫度更高，電池續航力也可能縮短。
-extra-disable-core-isolation = 這會降低防護（包括記憶體完整性），也可能影響需要這項功能的應用程式或遊戲。
+extra-disable-core-isolation = 這會降低防護，使用 Riot Vanguard 或 FACEIT 等反作弊系統的遊戲，可能要在您重新開啟記憶體完整性後才能啟動。
 extra-uninstall-edge = 會刪除這台電腦上 Edge 的「我的最愛」、歷程記錄和已儲存的密碼，已同步到 Microsoft 帳戶的資料除外。
 extra-install-toolbox = 協助您管理 Atlas 設定。測試階段期間，部分功能可能尚未完成。
 extra-install-eclean = AtlasOS 團隊打造的工具，可檢查垃圾檔案和啟動應用程式，需要帳戶和網際網路連線。
@@ -1042,7 +1042,7 @@ settings-open-data-folder = 開啟應用程式資料夾
 
 consequence-disable-hibernation = 釋放休眠時用來儲存工作狀態的磁碟空間。休眠與快速啟動將無法使用。
 consequence-disable-power-saving = 關閉省電功能。電腦可能耗電更多、溫度更高，電池續航力也可能縮短。
-consequence-disable-core-isolation = 關閉 Windows 的一層額外安全防護，包括記憶體完整性。這會降低防護，也可能影響需要這項功能的應用程式或遊戲。
+consequence-disable-core-isolation = 關閉 Windows 的一層額外安全防護，包括記憶體完整性。這會降低防護，使用 Riot Vanguard 或 FACEIT 等反作弊系統的遊戲，可能要在您重新開啟記憶體完整性後才能啟動。
 consequence-remove-snipping-tool = 移除用來擷取螢幕畫面與錄製螢幕的 Windows 應用程式。
 consequence-uninstall-edge = 移除 Microsoft Edge 瀏覽器。請確認您已有其他瀏覽器，或在下方選擇一個。
 # Under Remove Microsoft Edge in the Install step's summary, with a caution glyph.

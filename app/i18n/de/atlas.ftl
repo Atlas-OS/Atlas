@@ -558,7 +558,7 @@ cost-keyboard-shortcuts-off = Alt+Umschalt und Strg+Umschalt wechseln nicht mehr
 # One line under an optional extra: what ticking it does.
 extra-disable-hibernation = Gibt Speicherplatz frei, aber Ruhezustand und Schnellstart stehen nicht mehr zur Verfügung.
 extra-disable-power-saving = Ihr PC verbraucht möglicherweise mehr Strom, wird wärmer und hält im Akkubetrieb kürzer durch.
-extra-disable-core-isolation = Das verringert den Schutz, einschließlich der Speicherintegrität, und kann Apps oder Spiele beeinträchtigen, die darauf angewiesen sind.
+extra-disable-core-isolation = Verringert den Schutz, und Spiele mit Anti-Cheat-Systemen wie Riot Vanguard oder FACEIT starten möglicherweise erst, wenn Sie die Speicherintegrität wieder einschalten.
 extra-uninstall-edge = Ihre Favoriten, Ihr Verlauf und Ihre gespeicherten Kennwörter in Edge auf diesem PC werden gelöscht, sofern sie nicht mit Ihrem Microsoft-Konto synchronisiert sind.
 extra-install-toolbox = Hilft Ihnen, Ihre Atlas-Einstellungen zu verwalten; in der Betaphase sind manche Funktionen eventuell noch unfertig.
 extra-install-eclean = Ein Tool vom Team hinter AtlasOS zum Prüfen überflüssiger Dateien und Autostart-Apps. Erfordert ein Konto und eine Internetverbindung.
@@ -1014,7 +1014,7 @@ settings-open-data-folder = App-Ordner öffnen
 
 consequence-disable-hibernation = Gibt den Speicherplatz frei, in dem Ihre Sitzung im Ruhezustand gespeichert wird. Ruhezustand und Schnellstart stehen dann nicht mehr zur Verfügung.
 consequence-disable-power-saving = Schaltet Energiesparfunktionen aus. Ihr PC verbraucht dann möglicherweise mehr Strom, wird wärmer und hält im Akkubetrieb kürzer durch.
-consequence-disable-core-isolation = Schaltet eine zusätzliche Sicherheitsebene von Windows aus, einschließlich der Speicherintegrität. Das verringert den Schutz und kann Apps oder Spiele beeinträchtigen, die darauf angewiesen sind.
+consequence-disable-core-isolation = Schaltet eine zusätzliche Sicherheitsebene von Windows aus, einschließlich der Speicherintegrität. Das verringert den Schutz, und Spiele mit Anti-Cheat-Systemen wie Riot Vanguard oder FACEIT starten möglicherweise erst, wenn Sie die Speicherintegrität wieder einschalten.
 consequence-remove-snipping-tool = Entfernt die Windows-App für Screenshots und Bildschirmaufnahmen.
 consequence-uninstall-edge = Entfernt den Browser Microsoft Edge. Stellen Sie sicher, dass Sie einen anderen Browser haben, oder wählen Sie unten einen aus.
 # Under Remove Microsoft Edge in the Install step's summary, with a caution glyph.
