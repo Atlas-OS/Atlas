@@ -1,6 +1,6 @@
 # Atlas.Hardware domain: the Atlas power scheme.
 #
-# 'Atlas' duplicates the Windows Balanced scheme under a fixed GUID, applies four
+# 'Atlas' duplicates the Windows Balanced scheme under a fixed GUID, applies three
 # AC settings and activates it, remembering the previously active scheme in
 # the Atlas services state key. 'Default' reactivates that remembered scheme (or
 # Balanced when it is gone) and deletes the Atlas scheme. Every powercfg call is
@@ -314,13 +314,14 @@ function Invoke-AtlasPowerSavingState {
 
         # Subgroup GUID, setting GUID, AC value; docs/power-saving-policy.md lists each one:
         # Hard disk > NVMe NOPPME off; Processor power management > Allow Throttle States
-        # off; Display > Turn off display after never; Processor power management >
-        # Processor performance time check interval 200 ms.
+        # off; Display > Turn off display after never.
+        # The processor performance time check interval keeps Balanced's value: Windows
+        # counts its performance, core-parking and hybrid-core decisions in these
+        # intervals, so a longer one makes the CPU slower to respond to load.
         foreach ($setting in @(
                 @('0012ee47-9041-4b5d-9b77-535fba8b1442', 'fc7372b6-ab2d-43ee-8797-15e9841f2cca', '0'),
                 @('54533251-82be-4824-96c1-47b60b740d00', '3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb', '0'),
-                @('7516b95f-f776-4464-8c53-06167f40cc99', '3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e', '0'),
-                @('54533251-82be-4824-96c1-47b60b740d00', '4d2b0152-7d5c-498b-88e2-34345392a2c5', '200')
+                @('7516b95f-f776-4464-8c53-06167f40cc99', '3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e', '0')
             )) {
             [void](Invoke-AtlasPowerCfg -FilePath $PowerCfgPath `
                     -ArgumentList @(

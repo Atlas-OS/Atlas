@@ -14,7 +14,7 @@ function Get-AtlasPowerPlanValue {
 
 function Test-AtlasPowerPlanDrift {
     param([string]$StateName)
-    # The Atlas plan's fixed GUID and, below, its four AC settings must match what
+    # The Atlas plan's fixed GUID and, below, its three AC settings must match what
     # Set-AtlasPowerSavingState (Atlas.Hardware) applies.
     $root = 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes'
     $atlas = '11111111-1111-1111-1111-111111111111'
@@ -41,13 +41,20 @@ function Test-AtlasPowerPlanDrift {
         foreach ($setting in @(
                 @('0012ee47-9041-4b5d-9b77-535fba8b1442', 'fc7372b6-ab2d-43ee-8797-15e9841f2cca', 0),
                 @('54533251-82be-4824-96c1-47b60b740d00', '3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb', 0),
-                @('7516b95f-f776-4464-8c53-06167f40cc99', '3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e', 0),
-                @('54533251-82be-4824-96c1-47b60b740d00', '4d2b0152-7d5c-498b-88e2-34345392a2c5', 200))) {
+                @('7516b95f-f776-4464-8c53-06167f40cc99', '3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e', 0))) {
             $path = "$root\$atlas\$($setting[0])\$($setting[1])"
             $actual = Get-AtlasPowerPlanValue -Path $path -Name ACSettingIndex
             if ($null -eq $actual -or $actual -ne $setting[2]) {
                 & $issue $path "ACSettingIndex differs (expected $($setting[2]), found $actual)"
             }
+        }
+        # Older Atlas plans set a 200 ms processor performance time check interval, which
+        # slows the CPU's response to load; the Disable launcher rebuilds the plan without
+        # it. The plan may hold no value of its own here, which is the healthy case.
+        $interval = "$root\$atlas\54533251-82be-4824-96c1-47b60b740d00\4d2b0152-7d5c-498b-88e2-34345392a2c5"
+        $intervalValue = try { Get-AtlasPowerPlanValue -Path $interval -Name ACSettingIndex } catch { $null }
+        if ($intervalValue -eq 200) {
+            & $issue $interval 'the processor performance time check interval is still the 200 ms older Atlas plans set'
         }
     }
     catch { & $issue $root "power-plan verification failed: $($_.Exception.Message)" }

@@ -91,8 +91,13 @@ Describe 'Atlas power-saving state' {
                 $ArgumentList[1] -ceq $script:balanced -and
                 $ArgumentList[2] -ceq $script:atlas
         }
-        Should -Invoke Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware -Times 4 -Exactly -ParameterFilter {
+        Should -Invoke Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware -Times 3 -Exactly -ParameterFilter {
             $ArgumentList[0] -ceq '/setacvalueindex'
+        }
+        # The processor performance time check interval keeps Balanced's value.
+        Should -Invoke Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware -Times 0 -Exactly -ParameterFilter {
+            $ArgumentList[0] -ceq '/setacvalueindex' -and
+                $ArgumentList[3] -ceq '4d2b0152-7d5c-498b-88e2-34345392a2c5'
         }
         Should -Invoke Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware -Times 1 -Exactly -ParameterFilter {
             $ArgumentList[0] -ceq '/setactive' -and

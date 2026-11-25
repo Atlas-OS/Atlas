@@ -1,7 +1,7 @@
 # Power-saving policy
 
 This page explains what Atlas's Power Saving toggle changes, what it leaves alone and why, for contributors, reviewers and users who want the detail.
-The toggle uses documented Windows power-plan operations to switch to an Atlas copy of the Balanced plan with four plugged-in (AC) settings changed; undoing it restores the previous plan.
+The toggle uses documented Windows power-plan operations to switch to an Atlas copy of the Balanced plan with three plugged-in (AC) settings changed; undoing it restores the previous plan.
 
 The toggle isn't a switch for every device or platform power-saving mechanism, and battery (DC) values stay as Balanced has them.
 Power behaviour depends on hardware, firmware and drivers.
@@ -25,7 +25,8 @@ Default Power-saving undoes only Atlas's change, apart from applying any recorde
 It never runs `powercfg /restoredefaultschemes`, which would delete the PC's current plans and their settings.
 
 Check Atlas Health reads the active plan for both states.
-For Disable it also checks the four AC settings below, and reports missing or unreadable settings as drift rather than trusting the toggle record alone.
+For Disable it also checks the three AC settings below, and reports missing or unreadable settings as drift rather than trusting the toggle record alone.
+It also reports an Atlas plan that still has the 200 ms processor performance time check interval older Atlas versions set (see [Processor scheduling](#processor-scheduling)); running `Disable Power-saving.cmd` again rebuilds the plan without it.
 
 ### Updates and reinstalls
 
@@ -46,9 +47,17 @@ The Atlas plan ("Atlas Power Scheme", `11111111-1111-1111-1111-111111111111`) ch
 | NVMe NOPPME (Hard disk, `0012ee47-9041-4b5d-9b77-535fba8b1442`) | `fc7372b6-ab2d-43ee-8797-15e9841f2cca` | `0` | Off. A plan setting, not a promise that every storage device avoids low-power states. |
 | Allow Throttle States (Processor power management, `54533251-82be-4824-96c1-47b60b740d00`) | `3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb` | `0` | Disabled on AC. Firmware thermal controls still apply. |
 | Turn off display after (Display, `7516b95f-f776-4464-8c53-06167f40cc99`) | `3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e` | `0` | Never. Can increase display energy use. |
-| Processor performance time check interval (Processor power management, `54533251-82be-4824-96c1-47b60b740d00`) | `4d2b0152-7d5c-498b-88e2-34345392a2c5` | `200` | 200 ms, within the range Windows accepts. An Atlas product choice, not a performance or DPC-latency guarantee. |
 
 Recorded CPU Idle and Sleep choices are applied to this plan too.
+
+### Processor scheduling
+
+Every processor setting keeps the value the PC's Balanced plan has, including those that processor drivers tune for the CPU, such as AMD's for dual-CCD 3D V-Cache processors and Intel's for hybrid processors.
+
+The processor performance time check interval (`4d2b0152-7d5c-498b-88e2-34345392a2c5`) stays at Balanced's value too.
+Windows counts its decisions to raise CPU performance, unpark cores and move work between performance and efficiency cores in these intervals, so a longer interval slows each of them on a Balanced plan.
+Older Atlas versions set it to 200 ms on a copy of Ultimate Performance, a plan that keeps every core unparked at full speed, where the interval barely mattered.
+On a Balanced copy, it made the CPU slower to respond to load than on stock Windows, whose Balanced plan typically uses 15 ms when plugged in.
 
 ## What the toggle doesn't change
 
@@ -103,7 +112,7 @@ No compatibility switch restores the old per-device changes.
 - **Rollback value:** before configuring the Atlas plan, Disable saves the active plan's GUID (lowercase, no braces) as a `REG_SZ` at `HKLM\SOFTWARE\AtlasOS\Services\PowerSaving\PreviousPowerSchemeGuid`. Balanced is the rollback target if Atlas is already active or Windows reports no active plan.
   An existing value is kept, so a rerun never replaces the original target.
   A value that isn't a `REG_SZ` GUID stops the run.
-- **Disable** replaces any existing Atlas plan with a fresh duplicate of Balanced, activating Balanced first if needed, then sets the four AC values and activates it.
+- **Disable** replaces any existing Atlas plan with a fresh duplicate of Balanced, activating Balanced first if needed, then sets the three AC values and activates it.
 - **Default** activates the saved plan if it's installed and isn't the Atlas plan, otherwise Balanced, then deletes the Atlas plan.
 - **Per-plan choices:** CPU idle and sleep settings belong to each plan, so after either state the toggle applies the recorded CpuIdle and Sleep choices to the plan it left active.
   A recorded choice that doesn't apply on this PC, such as disabling CPU idle with SMT on, is skipped.
