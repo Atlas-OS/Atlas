@@ -2159,14 +2159,16 @@ function Clear-PreparationAppRepositoryNotice {
 
 # The restore, run as TrustedInstaller. It puts StateRepository's start type back,
 # starts it and the dependents that start automatically, clears the notice and
-# removes the three tasks. Then Windows restarts once, as a session signed in
-# while StateRepository was off keeps a broken shell, unless Atlas Manager is
-# already open again: that restart would cut its run short, so only the shell
-# processes that started before the restore are restarted. Never when a task or
-# the disabled start type is left, so a failed restore can't restart Windows at
-# every startup.
+# removes the three tasks. While the start type is still disabled, it keeps the
+# tasks and the notice, so the startup task tries again at the next startup.
+# Then Windows restarts once, as a session signed in while StateRepository was
+# off keeps a broken shell, unless Atlas Manager is already open again: that
+# restart would cut its run short, so only the shell processes that started
+# before the restore are restarted. Never when a task or the disabled start type
+# is left, so a failed restore can't restart Windows at every startup.
 $script:PreparationRestoreCommand = @'
 sc.exe config StateRepository start= {start};
+if ((Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Services\StateRepository').Start -eq 4) { return };
 Start-Service StateRepository;
 (Get-Service StateRepository).DependentServices | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -eq 'Stopped' } | Start-Service -ErrorAction SilentlyContinue;
 $restored = Get-Date;
@@ -2262,7 +2264,11 @@ function Measure-PreparationAppRepository([hashtable]$Path, [string]$Job) {
 # them) are stopped, and the guards are checked before anything is copied or
 # changed. The restore task the startup task runs next starts them again. The
 # outcome goes to apprepository.json in the job folder, for the next run to log.
+# A startup after a restore that couldn't put the start type back runs this again:
+# the outcome already there is kept, and nothing is repaired twice.
 function Repair-PreparationAppRepository {
+    $outcome = [IO.Path]::Combine($JobPath, 'apprepository.json')
+    if ([IO.File]::Exists($outcome)) { return }
     $result = [ordered]@{ status = 'failed'; message = '' }
     try {
         if ((Get-PreparationAppRepositoryIdentity) -ne 'TrustedInstaller') { throw 'The AppX database repair runs only as TrustedInstaller.' }
@@ -2296,7 +2302,7 @@ function Repair-PreparationAppRepository {
         $result.message = $_.Exception.Message
     }
     finally {
-        [IO.File]::WriteAllText([IO.Path]::Combine($JobPath, 'apprepository.json'), (ConvertTo-Json $result -Compress))
+        [IO.File]::WriteAllText($outcome, (ConvertTo-Json $result -Compress))
     }
 }
 

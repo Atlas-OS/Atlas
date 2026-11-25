@@ -156,6 +156,7 @@ Describe 'AppX database repair at startup' {
         foreach ($state in @(@{ Start = 'auto'; Stopped = $true }, @{ Start = 'disabled'; Stopped = $false })) {
             Mock Get-PreparationServiceStart { $state.Start }
             Mock Test-PreparationStateRepositoryStopped { $state.Stopped }
+            Remove-Item -LiteralPath (Join-Path $JobPath 'apprepository.json') -ErrorAction SilentlyContinue
             Repair-PreparationAppRepository
             $result = Get-Content (Join-Path $JobPath 'apprepository.json') -Raw | ConvertFrom-Json
             $result.status | Should -Be 'failed'
@@ -169,6 +170,18 @@ Describe 'AppX database repair at startup' {
         Mock Get-PreparationAppRepositoryIdentity { 'S-1-5-18' }
         Repair-PreparationAppRepository
         (Get-Content (Join-Path $JobPath 'apprepository.json') -Raw | ConvertFrom-Json).message | Should -Match 'only as TrustedInstaller'
+    }
+
+    It 'keeps the outcome of an earlier startup and repairs nothing again' {
+        $path = New-AppRepositoryFixture 'startup-again' -LivePackages 1 -FilePackages 1, 1, 2
+        Mock Get-PreparationAppRepositoryPath { $path }
+        Mock Save-PreparationAppRepositoryBackup { $script:Backups++ }
+        $earlier = '{"status":"removed","message":"3 row(s) removed"}'
+        [IO.File]::WriteAllText((Join-Path $JobPath 'apprepository.json'), $earlier)
+        Repair-PreparationAppRepository
+        Get-Content (Join-Path $JobPath 'apprepository.json') -Raw | Should -Be $earlier
+        $script:Backups | Should -Be 0
+        (Get-AppRepositoryCount $path).Files | Should -Be 1
     }
 }
 
@@ -389,6 +402,14 @@ Describe 'The restore task''s command' {
         $atlas | Should -BeGreaterThan $guard
         $restart | Should -BeGreaterThan $atlas
         $script:Command | Should -Match 'Start -eq 4\) \{ return \}'
+    }
+
+    It 'keeps the tasks and the notice while the start type is still disabled' {
+        $check = $script:Command.IndexOf("Services\StateRepository').Start -eq 4) { return }")
+        $check | Should -BeGreaterThan $script:Command.IndexOf('sc.exe config StateRepository')
+        $check | Should -BeLessThan $script:Command.IndexOf('Start-Service StateRepository')
+        $check | Should -BeLessThan $script:Command.IndexOf('legalnoticecaption -eq')
+        $check | Should -BeLessThan $script:Command.IndexOf('schtasks.exe /delete')
     }
 
     It 'clears only the notice Atlas set' {
