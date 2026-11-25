@@ -426,6 +426,66 @@ Describe 'Set-AtlasPowerSavingState' {
     }
 }
 
+Describe 'Set-AtlasDevicePowerSaving' {
+    BeforeEach {
+        Mock Write-AtlasLog -ModuleName Atlas.Hardware
+        Mock Assert-AtlasPrivilege -ModuleName Atlas.Hardware
+        # Device Manager's check box per device: Enable is whether Windows may turn it off.
+        Mock Get-AtlasDevicePowerManagement -ModuleName Atlas.Hardware {
+            @(
+                [pscustomobject]@{ InstanceName = 'USB\ROOT_HUB30\4&1_0'; Enable = $true }
+                [pscustomobject]@{ InstanceName = 'PCI\VEN_8086&DEV_15F3\3&1_0'; Enable = $false }
+                [pscustomobject]@{ InstanceName = 'HID\VID_046D&PID_C547\7&2_0'; Enable = $true }
+            )
+        }
+        Mock Set-AtlasDevicePowerManagementInstance -ModuleName Atlas.Hardware
+    }
+
+    It 'requires Administrator rights before reading any device' {
+        Mock Assert-AtlasPrivilege -ModuleName Atlas.Hardware { throw '[privilege] This operation requires Administrator rights.' }
+
+        { Set-AtlasDevicePowerSaving -State Off } | Should -Throw '*requires Administrator*'
+
+        Should -Invoke Get-AtlasDevicePowerManagement -ModuleName Atlas.Hardware -Times 0 -Exactly
+    }
+
+    It 'turns power saving <State> for every device that has it <Other>' -ForEach @(
+        @{ State = 'Off'; Other = 'on'; Target = $false; Expected = 2 }
+        @{ State = 'On'; Other = 'off'; Target = $true; Expected = 1 }
+    ) {
+        $refused = @(Set-AtlasDevicePowerSaving -State $State)
+
+        $refused | Should -HaveCount 0
+        Should -Invoke Set-AtlasDevicePowerManagementInstance -ModuleName Atlas.Hardware -Times $Expected -Exactly
+        # Only devices not already at the target change, and each changes to it.
+        Should -Invoke Set-AtlasDevicePowerManagementInstance -ModuleName Atlas.Hardware -Times $Expected -Exactly -ParameterFilter {
+            $Enable -eq $Target -and [bool]$Instance.Enable -ne $Target
+        }
+    }
+
+    It 'changes the other devices and returns the one that refuses' {
+        Mock Set-AtlasDevicePowerManagementInstance -ModuleName Atlas.Hardware {
+            if ($Instance.InstanceName -like 'USB*') { throw 'Not supported' }
+        }
+
+        $refused = @(Set-AtlasDevicePowerSaving -State Off)
+
+        $refused | Should -Be @('USB\ROOT_HUB30\4&1_0')
+        Should -Invoke Set-AtlasDevicePowerManagementInstance -ModuleName Atlas.Hardware -Times 2 -Exactly
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Hardware -Times 1 -Exactly -ParameterFilter {
+            $Level -ceq 'Warning' -and $Message -like "*turned off for 'USB\ROOT_HUB30\4&1_0'*Not supported*"
+        }
+    }
+
+    It 'fails when Windows cannot list the devices' {
+        Mock Get-AtlasDevicePowerManagement -ModuleName Atlas.Hardware { throw 'Generic failure' }
+
+        { Set-AtlasDevicePowerSaving -State Off } | Should -Throw '*Generic failure*'
+
+        Should -Invoke Set-AtlasDevicePowerManagementInstance -ModuleName Atlas.Hardware -Times 0 -Exactly
+    }
+}
+
 Describe 'Set-AtlasDeviceState' {
     BeforeEach {
         Mock Write-AtlasLog -ModuleName Atlas.Hardware
@@ -726,6 +786,7 @@ Describe 'Hardware toggle companions' {
 
     It 'PowerSaving maps both recorded states onto the power-saving modes' {
         Mock Set-AtlasPowerSavingState -ModuleName Atlas.Toggles
+        Mock Set-AtlasDevicePowerSaving -ModuleName Atlas.Toggles
 
         $definition = $script:PowerSaving
         foreach ($stateName in @('Disable', 'Enable')) {
@@ -743,9 +804,31 @@ Describe 'Hardware toggle companions' {
         Should -Invoke Set-AtlasPowerSavingState -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
             $Mode -ceq 'Default' -and -not $Silent
         }
+        # Power saving off turns it off on every device, and on turns it on.
+        Should -Invoke Set-AtlasDevicePowerSaving -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter { $State -ceq 'Off' }
+        Should -Invoke Set-AtlasDevicePowerSaving -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter { $State -ceq 'On' }
         Should -Invoke Import-AtlasModule -ModuleName Atlas.Toggles -Times 2 -Exactly -ParameterFilter { $Name -ceq 'Atlas.Hardware' }
         Should -Invoke Write-AtlasSuccess -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
             $Text -like 'The previous power plan*'
+        }
+    }
+
+    It 'PowerSaving keeps the plan change and warns when the devices cannot be listed' {
+        Mock Set-AtlasPowerSavingState -ModuleName Atlas.Toggles
+        Mock Set-AtlasDevicePowerSaving -ModuleName Atlas.Toggles { throw 'Generic failure' }
+        Mock Write-AtlasPartial -ModuleName Atlas.Toggles
+
+        {
+            Invoke-CompanionFunction -Definition $script:PowerSaving -FunctionName 'Invoke-AtlasPowerSavingToggle' `
+                -Toggle (New-ToggleContext -Name 'PowerSaving' -State 'Disable' -Silent $false)
+        } | Should -Not -Throw
+
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            $Level -ceq 'Warning' -and $Message -like '*device power saving off*Generic failure*'
+        }
+        Should -Invoke Write-AtlasPartial -ModuleName Atlas.Toggles -Times 1 -Exactly
+        Should -Invoke Write-AtlasSuccess -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            $Text -like 'The Atlas AC power policy is active*'
         }
     }
 

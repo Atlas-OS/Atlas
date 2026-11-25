@@ -1,7 +1,7 @@
 # Power-saving policy
 
 This page explains what Atlas's Power Saving toggle changes, what it leaves alone and why, for contributors, reviewers and users who want the detail.
-The toggle uses documented Windows power-plan operations to switch to an Atlas copy of the Balanced plan with three plugged-in (AC) settings changed; undoing it restores the previous plan.
+The toggle uses documented Windows power-plan operations to switch to an Atlas copy of the Balanced plan with three plugged-in (AC) settings changed, and stops Windows turning off devices to save power; undoing it restores the previous plan and lets Windows turn off every device again.
 
 The toggle isn't a switch for every device or platform power-saving mechanism, and battery (DC) values stay as Balanced has them.
 Power behaviour depends on hardware, firmware and drivers.
@@ -14,14 +14,14 @@ Its launchers are in `3. General Configuration\Power-saving`:
 
 | Launcher | Toggle state | Effect |
 | --- | --- | --- |
-| `Disable Power-saving.cmd` | `Disable` | Applies the Atlas plan. |
-| `Default Power-saving (default).cmd` | `Enable` | Restores the previous plan and deletes the Atlas plan. |
+| `Disable Power-saving.cmd` | `Disable` | Applies the Atlas plan and turns off [device power saving](#device-power-saving). |
+| `Default Power-saving (default).cmd` | `Enable` | Restores the previous plan, deletes the Atlas plan and turns device power saving on for every device. |
 
 A fresh install with **Turn off power saving** (`disable-power-saving`) ticked on Atlas Manager's **Your choices** page applies `Disable`.
 The check box starts ticked on a new install, and updates start from the choice the PC shows.
 Without it, the install makes Balanced the active plan.
 
-Default Power-saving undoes only Atlas's change, apart from applying any recorded CPU Idle and Sleep choices to the restored plan (see [How it works](#how-it-works)).
+Default Power-saving undoes only Atlas's plan change, apart from applying any recorded CPU Idle and Sleep choices to the restored plan (see [How it works](#how-it-works)), and turns device power saving on for every device.
 It never runs `powercfg /restoredefaultschemes`, which would delete the PC's current plans and their settings.
 
 Check Atlas Health reads the active plan for both states.
@@ -59,13 +59,28 @@ Windows counts its decisions to raise CPU performance, unpark cores and move wor
 Older Atlas versions set it to 200 ms on a copy of Ultimate Performance, a plan that keeps every core unparked at full speed, where the interval barely mattered.
 On a Balanced copy, it made the CPU slower to respond to load than on stock Windows, whose Balanced plan typically uses 15 ms when plugged in.
 
+## Device power saving
+
+Device Manager shows **Allow the computer to turn off this device to save power** on the **Power Management** tab of each device whose driver offers it, such as USB controllers and hubs, input devices and network adapters.
+Windows exposes the check box as the `MSPower_DeviceEnable` WMI class.
+
+- **Disable** clears the check box on every device that has it, so Windows doesn't turn those devices off while they're idle.
+- **Enable** ticks it on every device that has it.
+
+Atlas doesn't record each device's earlier setting, so Enable doesn't bring back a check box that was clear before.
+A device that refuses the change is logged as a warning and the others still change; if Windows can't list the devices at all, the plan change stands and an interactive run says to run the launcher again.
+
+A device that appears later starts with its driver's default until the toggle runs again, from its launcher or when an update replays it.
+This includes a device plugged into another USB port and one whose driver is reinstalled or updated.
+Nothing runs at startup to keep the setting.
+
 ## What the toggle doesn't change
 
 | Not changed | Why |
 | --- | --- |
 | Values under `HKLM\SYSTEM\CurrentControlSet\Enum`, including per-device idle, wake, selective-suspend and D-state values | The right value depends on the device, and the driver framework owns the idle and wake values ([user control of device idle and wake behaviour](https://learn.microsoft.com/windows-hardware/drivers/wdf/user-control-of-device-idle-and-wake-behavior)). |
 | The ACPI Processor Aggregator (`ACPI000C`) | Windows uses it to idle logical processors as a thermal mitigation ([ACPI-defined devices](https://learn.microsoft.com/windows-hardware/drivers/bringup/acpi-defined-devices)). |
-| Devices matched by localised WMI ACPI friendly name, and bulk `MSPower_DeviceEnable` changes | No exactly reversible way exists across hardware. |
+| Devices matched by localised WMI ACPI friendly name | No exactly reversible way exists across hardware. |
 | Network-adapter advanced properties, including the standardised `*EEE` ([power management keywords](https://learn.microsoft.com/windows-hardware/drivers/network/standardized-inf-keywords-for-power-management)) and `*SelectiveSuspend` keywords | The toggle has no exact per-adapter rollback; a separate install step sets five vendor properties ([network adapter properties](#network-adapter-properties)). |
 | `StorageD3InModernStandby` | It's a platform policy that OEMs set through ACPI first ([storage power management](https://learn.microsoft.com/windows-hardware/design/component-guidelines/power-management-for-storage-hardware-devices-intro)). |
 | StorNVMe `IdlePowerMode` and NDIS `DefaultPnPCapabilities` | Microsoft doesn't document them for this use. |
@@ -102,7 +117,7 @@ No compatibility switch restores the old per-device changes.
 
 ## How it works
 
-`Set-AtlasPowerSavingState` in `package/Executables/AtlasModules/Scripts/Modules/Atlas.Hardware/Domain/Power.ps1` implements both states.
+`Set-AtlasPowerSavingState` in `package/Executables/AtlasModules/Scripts/Modules/Atlas.Hardware/Domain/Power.ps1` implements both states of the plan, and `Set-AtlasDevicePowerSaving` in the same file implements [device power saving](#device-power-saving), which the toggle applies after the plan.
 
 - **Both states** hold the machine-wide `Global\AtlasOS.PowerSaving.Transaction.v1` mutex for the whole transaction, so concurrent launches can't interleave rollback state with plan changes.
   Waiting more than 30 seconds fails without changing anything.

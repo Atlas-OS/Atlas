@@ -35,6 +35,7 @@ Describe 'PowerSaving carries the per-plan choices over to the new plan' {
         Mock Write-AtlasLog -ModuleName Atlas.Toggles
         Mock Import-AtlasModule -ModuleName Atlas.Toggles
         Mock Set-AtlasPowerSavingState -ModuleName Atlas.Toggles { $script:calls.Add("PowerSaving/$Mode") }
+        Mock Set-AtlasDevicePowerSaving -ModuleName Atlas.Toggles
         Mock Invoke-AtlasToggleMachineState -ModuleName Atlas.Toggles { $script:calls.Add("$Name/$State") }
         # The companion reads the installed definitions, which a test host doesn't have.
         Mock Get-AtlasToggleDefinition -ModuleName Atlas.Toggles -ParameterFilter { $script:PlanDefinitions.Contains($Name) } {

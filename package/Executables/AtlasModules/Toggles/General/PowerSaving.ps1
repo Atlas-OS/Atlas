@@ -1,7 +1,7 @@
 # Companion for the PowerSaving toggle: applies the Atlas power settings or restores the
-# earlier power plan. Invoke-AtlasPowerSavingToggle runs as Administrator when you run a
-# launcher, when the install applies your power-saving choice and when an update replays the
-# recorded state.
+# earlier power plan, and sets device power saving to match. Invoke-AtlasPowerSavingToggle
+# runs as Administrator when you run a launcher, when the install applies your power-saving
+# choice and when an update replays the recorded state.
 
 function Invoke-AtlasPowerSavingToggle {
     param($Toggle)
@@ -9,17 +9,32 @@ function Invoke-AtlasPowerSavingToggle {
     switch -CaseSensitive ([string]$Toggle.State) {
         'Disable' {
             $mode = 'Atlas'
-            $message = 'The Atlas AC power policy is active.'
+            $message = "The Atlas AC power policy is active, and Windows can't turn off devices to save power."
         }
         'Enable' {
             $mode = 'Default'
-            $message = 'The previous power plan, or Balanced when none was saved, is active and the Atlas plan was removed.'
+            $message = 'The previous power plan, or Balanced when none was saved, is active, the Atlas plan was removed and Windows can turn off devices to save power again.'
         }
         default { throw "PowerSaving: unsupported state '$($Toggle.State)'." }
     }
 
     Import-AtlasModule -Name Atlas.Hardware
     Set-AtlasPowerSavingState -Mode $mode -Silent:$Toggle.Silent
+
+    # Power saving off clears "Allow the computer to turn off this device to save power" on
+    # every device that offers it, and power saving on ticks it on every device. A device
+    # that appears later keeps its driver's default until the toggle runs again.
+    $devicePowerSaving = if ($mode -ceq 'Atlas') { 'Off' } else { 'On' }
+    try {
+        [void](Set-AtlasDevicePowerSaving -State $devicePowerSaving)
+    }
+    catch {
+        Write-AtlasLog -Level Warning -NoConsole:(-not $Toggle.Silent) -ErrorRecord $_ -Message `
+            "PowerSaving couldn't turn device power saving $($devicePowerSaving.ToLowerInvariant()): $($_.Exception.Message)"
+        if (-not $Toggle.Silent) {
+            Write-AtlasPartial -Text "The power plan changed, but Windows couldn't list the devices' power-saving settings. Run this launcher again."
+        }
+    }
 
     # CPU idle and sleep settings belong to a plan, and both modes leave a different
     # plan active, so the recorded choices are applied to it again. The plan change
