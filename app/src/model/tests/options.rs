@@ -24,7 +24,7 @@ fn recorded(version: &str, options: &[&str]) -> AtlasState {
 }
 
 /// A first install asks every question on one screen, in the package's
-/// order, with the optional extras after them, folded.
+/// order, with the optional extras after them, unfolded.
 #[test]
 fn a_first_install_asks_every_question_on_one_screen() {
     use ScreenKind::{Defender, Extras, Keyboard, Mitigations, Updates};
@@ -37,21 +37,21 @@ fn a_first_install_asks_every_question_on_one_screen() {
             assert_eq!(m.option_screens().len(), 1);
             assert_eq!(asked(m), [Defender, Mitigations, Updates, Keyboard, Extras]);
             assert_eq!(m.choices_screen(), Some(0));
-            assert!(!m.extras_shown, "the extras start folded");
+            assert!(m.extras_shown, "the extras start unfolded");
             let groups = m.option_screens()[0].groups().to_vec();
             assert!(groups[..4].iter().all(|group| group.required && group.pages.len() == 1));
             assert!(!groups[4].required);
         });
         // Continue goes straight on to Windows Security.
         act(&mut cx, &model, |m, cx| {
-            m.show_extras(true, cx);
+            m.show_extras(false, cx);
             m.next_step(cx);
             assert_eq!(m.flow.step, Step::Security);
             m.previous_step(cx);
             assert_eq!(m.flow.step, Step::Options);
-            assert!(m.extras_shown, "as the user left them");
+            assert!(!m.extras_shown, "as the user left them");
             m.begin_install(cx);
-            assert!(!m.extras_shown, "folded again in a new flow");
+            assert!(m.extras_shown, "unfolded again in a new flow");
         });
         settle(&cx, &model).await;
     });

@@ -330,8 +330,9 @@ pub struct AppModel {
     /// Options was opened from a Change link on the Install step: Continue
     /// goes back there. Never saved in the draft.
     pub returning_to_install: bool,
-    /// Your choices shows the optional extras unfolded. They start folded
-    /// in each flow, and a Change link to them unfolds them.
+    /// Your choices shows the optional extras unfolded. They start unfolded
+    /// in each flow, as some start ticked, and a Change link to them unfolds
+    /// them again after Hide.
     pub extras_shown: bool,
     /// How many keyboard layouts this user can switch between; `None` when
     /// Windows couldn't say (see [`AppModel::detected_answer`]).
@@ -539,7 +540,7 @@ impl AppModel {
             flow: Flow::default(),
             option_screen: 0,
             returning_to_install: false,
-            extras_shown: false,
+            extras_shown: true,
             options,
             checks: Vec::new(),
             check_tasks: Vec::new(),

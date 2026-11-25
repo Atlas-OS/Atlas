@@ -1,5 +1,5 @@
 //! Step 2, Your choices: every question the Atlas package asks on one
-//! screen, a card each, with the optional extras folded under them.
+//! screen, a card each, with the optional extras under them.
 //! Updating or reinstalling an installed Atlas first asks, on a screen of
 //! its own, whether to keep the choices this PC has or to choose again.
 
@@ -38,7 +38,7 @@ impl InstallPage {
 
     /// The questions, one card each with the question as its title and the
     /// cost under any answer other than the recommended one, then the
-    /// optional extras folded into one card. Above them, a bar where the
+    /// optional extras in one card. Above them, a bar where the
     /// choices can't change, or a line on what this flow keeps, and a line
     /// saying which choices the Atlas folder can change later, while one of
     /// those is asked.
@@ -111,8 +111,9 @@ impl InstallPage {
     }
 
     /// The optional extras as one card: its title and how many are ticked,
-    /// with Show to unfold them, each page of them under a heading of its
-    /// own. A page that depends on an option shows once that's ticked.
+    /// with Hide to fold them and Show to unfold them again, each page of
+    /// them under a heading of its own. A page that depends on an option
+    /// shows once that's ticked.
     #[allow(clippy::too_many_arguments)]
     fn extras_card(
         &mut self,

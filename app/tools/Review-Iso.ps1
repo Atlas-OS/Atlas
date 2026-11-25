@@ -5,7 +5,7 @@ param(
     # listed in docs/review-tools.md. Set ATLAS_PREPARATION_PREVIEW directly for the others.
     [ValidateSet('home','windows-empty','download-change','download-progress','download-failed','source-menu','package-offline','checking','files-checked','this-pc-arm64',
         'not-elevated','elevation-declined','failed','release-unknown','release-unlisted','edition-unsupported','iso-customised','windows-unsupported','package-unsupported','manager-outdated',
-        'setup','setup-another-pc','account-empty','account-invalid','setup-now','setup-extras','before-desktop','choices-unsupported',
+        'setup','setup-another-pc','account-empty','account-invalid','setup-now','setup-extras-folded','before-desktop','choices-unsupported',
         'review','review-before','review-space','progress','progress-network','cancelling','build-failed','network-failed','cancelled','complete','complete-network-inbox',
         'prepare-idle','prepare-busy','prepare-stopping','prepare-download','prepare-complete','prepare-resume','prepare-failed','prepare-failed-battery','prepare-unconfirmed',
         'prepare-reboot','prepare-restart-persists','prepare-network','prepare-network-limited','prepare-previous-worker',
