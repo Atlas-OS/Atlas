@@ -75,9 +75,14 @@ A requirement id it doesn't recognise stops the install.
 | `dependsOn` | No | An option id. The choice is asked, and its options accepted, only when that option is chosen. |
 | `description` | No | English text that explains the question. |
 | `learnMore` | No | An `https://` link to documentation about the question. |
-| `options` | Yes | Each option as `{ "id": "<option>", "label": "<English text>" }`, with an optional `"image": "<stem>"`. |
+| `options` | Yes | Each option as `{ "id": "<option>", "label": "<English text>" }`, with an optional `"image": "<stem>"` and, in a `multiple` choice, an optional `"default": true`. |
 
 An option's `image` names a PNG in `Images/` without its extension, using letters, digits, `-` and `_` only.
+
+An option with `"default": true` starts ticked on a new install.
+Only options of a `multiple` choice take it; a `single` choice names its default with the choice's `default` field.
+Updates and reinstalls start from the choices the PC shows instead, so a default never changes a choice the PC already has.
+Atlas Manager 0.6.1 and earlier ignore the field and start these options unticked.
 
 Atlas Manager shows its own translated label and description for every option and choice it knows by id.
 It falls back to the manifest's English text only for ids it doesn't know, such as options a newer package adds.

@@ -18,6 +18,7 @@ Its launchers are in `3. General Configuration\Power-saving`:
 | `Default Power-saving (default).cmd` | `Enable` | Restores the previous plan and deletes the Atlas plan. |
 
 A fresh install with **Turn off power saving** (`disable-power-saving`) ticked on Atlas Manager's **Your choices** page applies `Disable`.
+The check box starts ticked on a new install, and updates start from the choice the PC shows.
 Without it, the install makes Balanced the active plan.
 
 Default Power-saving undoes only Atlas's change, apart from applying any recorded CPU Idle and Sleep choices to the restored plan (see [How it works](#how-it-works)).
