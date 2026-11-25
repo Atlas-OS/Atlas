@@ -134,8 +134,8 @@ Every preview asks the keyboard question as on a PC with two keyboard layouts, e
 
 | `ATLAS_PREPARATION_PREVIEW` | Shows |
 | --- | --- |
-| `options-first-install` | A first install's questions, with the optional extras folded. |
-| `options-extras` | The same with the extras unfolded. |
+| `options-first-install` | A first install's questions, with the optional extras unfolded. |
+| `options-extras-folded` | The same with the extras folded by Hide. |
 | `options-one-layout` | The same on a PC with one keyboard layout, which Atlas answers the keyboard question for. |
 | `options-rebase` | After Windows reinstalled itself, with every recorded choice kept. |
 | `options-rebase-partial` | The same, asking the one choice missing from the record. |
@@ -300,7 +300,7 @@ USB previews show made-up drives, and never list drives, check the ISO or write 
 | Home | `home` |
 | Windows | `windows-empty` (the download on offer), `download-change` (its language and architecture open), `download-progress`, `download-failed`, `source-menu` (the Windows ISO's Change menu), `package-offline` (no latest package, with **Open package file**), `checking`, `files-checked`, `this-pc-arm64` (an ISO for another kind of processor) |
 | Windows, bars | `not-elevated`, `elevation-declined`, `failed`, `release-unknown`, `release-unlisted`, `edition-unsupported`, `iso-customised`, `windows-unsupported`, `package-unsupported` (an Atlas 0.5.0 package), `manager-outdated` |
-| Setup | `setup` (two editions, Windows Setup choosing), `setup-another-pc`, `account-empty`, `account-invalid`, `setup-now` (the questions inline), `setup-extras` (the extras unfolded), `before-desktop`, `choices-unsupported` |
+| Setup | `setup` (two editions, Windows Setup choosing), `setup-another-pc`, `account-empty`, `account-invalid`, `setup-now` (the questions inline), `setup-extras-folded` (the extras folded by Hide), `before-desktop`, `choices-unsupported` |
 | Create | `review`, `review-before` (a choice that reduces protection), `review-space` (too little free space, with **Open Storage settings**), `progress` (part of the way through writing the ISO), `progress-network`, `cancelling`, `build-failed`, `network-failed`, `cancelled`, `complete`, `complete-network-inbox` |
 | Preparation | `prepare-idle`, `prepare-busy`, `prepare-stopping`, `prepare-download`, `prepare-complete`, `prepare-resume`, `prepare-failed`, `prepare-failed-battery`, `prepare-unconfirmed`, `prepare-reboot`, `prepare-restart-persists`, `prepare-network`, `prepare-network-limited`, `prepare-previous-worker` |
 | USB | `usb-select` (one drive, picked by itself), `usb-drives` (two drives and one too small), `usb-too-small`, `usb-empty`, `usb-looking`, `usb-confirm` (the erase question), `usb-not-elevated`, `usb-elevation-declined` |

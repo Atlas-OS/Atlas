@@ -1,6 +1,6 @@
-# Atlas.Hardware domain: the Atlas power scheme.
+# Atlas.Hardware domain: the Atlas power scheme and device power saving.
 #
-# 'Atlas' duplicates the Windows Balanced scheme under a fixed GUID, applies four
+# 'Atlas' duplicates the Windows Balanced scheme under a fixed GUID, applies three
 # AC settings and activates it, remembering the previously active scheme in
 # the Atlas services state key. 'Default' reactivates that remembered scheme (or
 # Balanced when it is gone) and deletes the Atlas scheme. Every powercfg call is
@@ -314,13 +314,14 @@ function Invoke-AtlasPowerSavingState {
 
         # Subgroup GUID, setting GUID, AC value; docs/power-saving-policy.md lists each one:
         # Hard disk > NVMe NOPPME off; Processor power management > Allow Throttle States
-        # off; Display > Turn off display after never; Processor power management >
-        # Processor performance time check interval 200 ms.
+        # off; Display > Turn off display after never.
+        # The processor performance time check interval keeps Balanced's value: Windows
+        # counts its performance, core-parking and hybrid-core decisions in these
+        # intervals, so a longer one makes the CPU slower to respond to load.
         foreach ($setting in @(
                 @('0012ee47-9041-4b5d-9b77-535fba8b1442', 'fc7372b6-ab2d-43ee-8797-15e9841f2cca', '0'),
                 @('54533251-82be-4824-96c1-47b60b740d00', '3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb', '0'),
-                @('7516b95f-f776-4464-8c53-06167f40cc99', '3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e', '0'),
-                @('54533251-82be-4824-96c1-47b60b740d00', '4d2b0152-7d5c-498b-88e2-34345392a2c5', '200')
+                @('7516b95f-f776-4464-8c53-06167f40cc99', '3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e', '0')
             )) {
             [void](Invoke-AtlasPowerCfg -FilePath $PowerCfgPath `
                     -ArgumentList @(
@@ -413,4 +414,65 @@ function Set-AtlasPowerSavingState {
     }
 
     Write-AtlasLog -Message "Power-saving mode '$Mode' applied."
+}
+
+# Device Manager's "Allow the computer to turn off this device to save power" check box is
+# the MSPower_DeviceEnable WMI class, which each driver that offers the setting implements.
+function Get-AtlasDevicePowerManagement {
+    return @(CimCmdlets\Get-CimInstance -Namespace 'root/wmi' -ClassName 'MSPower_DeviceEnable' -ErrorAction Stop)
+}
+
+function Set-AtlasDevicePowerManagementInstance {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Instance,
+
+        [Parameter(Mandatory = $true)]
+        [bool]$Enable
+    )
+
+    CimCmdlets\Set-CimInstance -InputObject $Instance -Property @{ Enable = $Enable } -ErrorAction Stop | Out-Null
+}
+
+function Set-AtlasDevicePowerSaving {
+    <#
+    .SYNOPSIS
+        Ticks (On) or clears (Off) "Allow the computer to turn off this device to save
+        power" for every device whose driver offers it, and returns the instance names
+        of the devices that refused. A device that refuses is logged and the rest still
+        change; failing to read the devices at all is an error. Requires Administrator
+        rights.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('On', 'Off')]
+        [string]$State
+    )
+
+    Assert-AtlasPrivilege -Administrator
+
+    $enable = $State -ceq 'On'
+    $instances = @(Get-AtlasDevicePowerManagement)
+    $changed = 0
+    $refused = New-Object 'System.Collections.Generic.List[string]'
+    foreach ($instance in $instances) {
+        if ([bool]$instance.Enable -eq $enable) {
+            continue
+        }
+        $name = [string]$instance.InstanceName
+        try {
+            Set-AtlasDevicePowerManagementInstance -Instance $instance -Enable $enable
+            $changed++
+        }
+        catch {
+            $refused.Add($name)
+            Write-AtlasLog -Level Warning -ErrorRecord $_ -Message (
+                "Device power saving couldn't be turned $($State.ToLowerInvariant()) for '$name': $($_.Exception.Message)")
+        }
+    }
+
+    Write-AtlasLog -Message ("Device power saving {0}: changed {1} of {2} device(s), {3} refused." -f
+        $State.ToLowerInvariant(), $changed, $instances.Count, $refused.Count)
+    return [string[]]$refused.ToArray()
 }

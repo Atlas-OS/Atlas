@@ -1863,19 +1863,33 @@ Describe 'Power-plan verification' {
         $drift[0].Reason | Should -BeLike '*recorded as enabled*'
     }
 
-    It 'accepts the active Atlas plan only when its four AC values match' {
+    It 'accepts the active Atlas plan only when its three AC values match' {
         Mock Get-AtlasPowerPlanValue -ModuleName Atlas.Toggles { 0 }
         Mock Get-AtlasPowerPlanValue -ModuleName Atlas.Toggles { '11111111-1111-1111-1111-111111111111' } -ParameterFilter { $Name -eq 'ActivePowerScheme' }
-        Mock Get-AtlasPowerPlanValue -ModuleName Atlas.Toggles { 200 } -ParameterFilter { $Path -like '*4d2b0152-7d5c-498b-88e2-34345392a2c5' }
         @(& (Get-Module Atlas.Toggles) { Test-AtlasPowerPlanDrift -StateName Disable }) | Should -HaveCount 0
     }
 
     It 'reports an incorrect AC value even when the Atlas plan is active' {
         Mock Get-AtlasPowerPlanValue -ModuleName Atlas.Toggles { 0 }
         Mock Get-AtlasPowerPlanValue -ModuleName Atlas.Toggles { '11111111-1111-1111-1111-111111111111' } -ParameterFilter { $Name -eq 'ActivePowerScheme' }
+        Mock Get-AtlasPowerPlanValue -ModuleName Atlas.Toggles { 600 } -ParameterFilter { $Path -like '*3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e' }
         $drift = @(& (Get-Module Atlas.Toggles) { Test-AtlasPowerPlanDrift -StateName Disable })
         $drift | Should -HaveCount 1
-        $drift[0].Target | Should -BeLike '*4d2b0152-7d5c-498b-88e2-34345392a2c5'
+        $drift[0].Target | Should -BeLike '*3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e'
+    }
+
+    It 'reports the 200 ms check interval an older Atlas plan kept, and nothing when the plan has none' {
+        $interval = '*4d2b0152-7d5c-498b-88e2-34345392a2c5'
+        Mock Get-AtlasPowerPlanValue -ModuleName Atlas.Toggles { 0 }
+        Mock Get-AtlasPowerPlanValue -ModuleName Atlas.Toggles { '11111111-1111-1111-1111-111111111111' } -ParameterFilter { $Name -eq 'ActivePowerScheme' }
+        Mock Get-AtlasPowerPlanValue -ModuleName Atlas.Toggles { 200 } -ParameterFilter { $Path -like $interval }
+        $drift = @(& (Get-Module Atlas.Toggles) { Test-AtlasPowerPlanDrift -StateName Disable })
+        $drift | Should -HaveCount 1
+        $drift[0].Target | Should -BeLike $interval
+        $drift[0].Reason | Should -BeLike '*200 ms*'
+
+        Mock Get-AtlasPowerPlanValue -ModuleName Atlas.Toggles { throw 'Property ACSettingIndex does not exist' } -ParameterFilter { $Path -like $interval }
+        @(& (Get-Module Atlas.Toggles) { Test-AtlasPowerPlanDrift -StateName Disable }) | Should -HaveCount 0
     }
 
     It 'reports an unreadable plan instead of declaring it healthy' {

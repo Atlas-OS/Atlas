@@ -572,7 +572,7 @@ cost-keyboard-shortcuts-off = Alt+Shift dan Ctrl+Shift tidak lagi mengganti baha
 # One line under an optional extra: what ticking it does.
 extra-disable-hibernation = Membebaskan ruang disk, tetapi Hibernasi dan startup cepat (Fast Startup) tidak lagi tersedia.
 extra-disable-power-saving = PC Anda mungkin memakai lebih banyak daya, menjadi lebih panas, dan daya tahan baterainya lebih pendek.
-extra-disable-core-isolation = Ini mengurangi perlindungan, termasuk integritas memori, dan dapat memengaruhi aplikasi atau game yang memerlukannya.
+extra-disable-core-isolation = Mengurangi perlindungan, dan game yang memakai anti-cheat seperti Riot Vanguard atau FACEIT mungkin tidak bisa dimulai sampai Anda mengaktifkan kembali integritas memori.
 extra-uninstall-edge = Favorit, riwayat, dan kata sandi tersimpan Edge di PC ini akan dihapus, kecuali yang disinkronkan ke akun Microsoft Anda.
 extra-install-toolbox = Membantu Anda mengelola pengaturan Atlas, meskipun beberapa fitur mungkin belum selesai selama masih beta.
 extra-install-eclean = Alat dari tim di balik AtlasOS untuk meninjau file sampah dan aplikasi startup. Memerlukan akun dan koneksi internet.
@@ -1050,7 +1050,7 @@ settings-open-data-folder = Buka folder aplikasi
 
 consequence-disable-hibernation = Membebaskan ruang disk yang dipakai untuk menyimpan sesi Anda saat hibernasi. Hibernasi dan startup cepat (Fast Startup) tidak akan tersedia.
 consequence-disable-power-saving = Menonaktifkan fitur penghematan daya. PC Anda mungkin memakai lebih banyak daya, menjadi lebih panas, dan daya tahan baterainya lebih pendek.
-consequence-disable-core-isolation = Menonaktifkan lapisan keamanan tambahan Windows, termasuk integritas memori. Ini mengurangi perlindungan dan dapat memengaruhi aplikasi atau game yang memerlukannya.
+consequence-disable-core-isolation = Menonaktifkan lapisan keamanan tambahan Windows, termasuk integritas memori. Ini mengurangi perlindungan, dan game yang memakai anti-cheat seperti Riot Vanguard atau FACEIT mungkin tidak bisa dimulai sampai Anda mengaktifkan kembali integritas memori.
 consequence-remove-snipping-tool = Menghapus aplikasi Windows untuk mengambil tangkapan layar dan merekam layar.
 consequence-uninstall-edge = Menghapus browser Microsoft Edge. Pastikan Anda memiliki browser lain, atau pilih salah satu di bawah.
 # Under Remove Microsoft Edge in the Install step's summary, with a caution glyph.

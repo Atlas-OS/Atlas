@@ -849,6 +849,7 @@ mod tests {
                 assert_eq!(at(m).2.first(), Some(&ScreenKind::Defender), "every question, choosing again");
 
                 m.flow.resume(Step::Install).unwrap();
+                m.show_extras(false, cx);
                 assert!(!m.extras_shown);
                 m.edit_options(ScreenKind::Extras, cx);
                 assert!(m.extras_shown && at(m).0 == Step::Options && !at(m).1);
