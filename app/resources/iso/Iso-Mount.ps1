@@ -1,6 +1,7 @@
 # Build-Iso.ps1 and Write-Usb.ps1 dot-source this, elevated from their protected media
-# job folder, to read a Windows ISO through the drive Windows mounts it as. Each worker
-# defines Fail, which writes a typed reason for the app and throws.
+# job folder, to read a Windows ISO through the drive Windows mounts it as, and to export
+# the images of its Windows image. Each worker defines Fail, which writes a typed reason
+# for the app and throws.
 
 # Windows can mount an ISO before its volume has a drive letter, and gives it none where
 # automatic mounting is off. The volume is read again every half second for up to about
@@ -237,5 +238,47 @@ function Dismount-AtlasIso([string]$ImagePath, [switch]$Required) {
     catch {
         if ($Required) { throw }
         [Console]::Error.WriteLine("Couldn't eject '$ImagePath'. $($_.Exception.Message)")
+    }
+}
+
+# Whether a DISM cmdlet failed for want of native code of this process's architecture
+# (0x8007000B), as on Arm64 Windows, where Atlas Manager and its workers run as x64.
+function Test-AtlasWrongArchitecture($Failure) {
+    for ($exception = $Failure.Exception; $null -ne $exception; $exception = $exception.InnerException) {
+        if ($exception -is [BadImageFormatException] -or $exception.HResult -eq -2147024885) { return $true }
+    }
+    return $false
+}
+
+# Exports one image with Windows' own DISM, which runs natively whatever this process's
+# architecture, with the same compression and integrity check as Export-WindowsImage.
+function Invoke-AtlasDismExport([string]$SourceImage, [int]$Index, [string]$DestinationImage, [string]$Dism = (Join-Path ([Environment]::GetFolderPath('System')) 'dism.exe')) {
+    # DISM reports on standard output; its standard error goes to the worker's log as it is.
+    $output = @(& $Dism /English /Export-Image "/SourceImageFile:$SourceImage" "/SourceIndex:$Index" "/DestinationImageFile:$DestinationImage" /Compress:max /CheckIntegrity)
+    if ($LASTEXITCODE -ne 0) {
+        throw "DISM couldn't export image $Index (exit code $LASTEXITCODE): $((@($output | Where-Object { "$_".Trim() }) | Select-Object -Last 3) -join ' ')"
+    }
+}
+
+# Exports the images at $Indexes of $SourceImage, in that order, into $DestinationImage
+# with maximum compression and an integrity check, running $Checkpoint, which may stop
+# the worker, before each. Where the DISM module can't run in this process, dism.exe
+# exports them all again: the cmdlet can fail after writing an image, so the partial
+# file goes first.
+function Export-AtlasWindowsImages([string]$SourceImage, [string]$DestinationImage, [int[]]$Indexes, [scriptblock]$Checkpoint) {
+    try {
+        foreach ($index in $Indexes) {
+            & $Checkpoint
+            Export-WindowsImage -SourceImagePath $SourceImage -SourceIndex $index -DestinationImagePath $DestinationImage -CompressionType Max -CheckIntegrity -ErrorAction Stop | Out-Null
+        }
+    }
+    catch {
+        if (-not (Test-AtlasWrongArchitecture $_)) { throw }
+        [Console]::Error.WriteLine("The DISM module can't run in this process, so dism.exe exports the images: $($_.Exception.Message)")
+        if (Test-Path -LiteralPath $DestinationImage) { Remove-Item -LiteralPath $DestinationImage -Force }
+        foreach ($index in $Indexes) {
+            & $Checkpoint
+            Invoke-AtlasDismExport $SourceImage $index $DestinationImage
+        }
     }
 }

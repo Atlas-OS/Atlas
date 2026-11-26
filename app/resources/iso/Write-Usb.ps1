@@ -512,10 +512,8 @@ function Invoke-AtlasUsbWorker {
             $wim = $images[0]
             if ([IO.Path]::GetExtension($wim) -ieq '.esd') {
                 $wim = Join-Path $scratch 'install.wim'
-                foreach ($edition in @(Get-WindowsImage -ImagePath $images[0])) {
-                    Assert-AtlasUsbContinue
-                    Export-WindowsImage -SourceImagePath $images[0] -SourceIndex $edition.ImageIndex -DestinationImagePath $wim -CompressionType Max -CheckIntegrity | Out-Null
-                }
+                $indexes = @(Get-WindowsImage -ImagePath $images[0] | ForEach-Object { [int]$_.ImageIndex })
+                Export-AtlasWindowsImages -SourceImage $images[0] -DestinationImage $wim -Indexes $indexes -Checkpoint { Assert-AtlasUsbContinue }
             } else {
                 # WIMGAPI's integrity-checked split can request write access to its input.
                 # Work on our own writable copy, never on the mounted optical image.

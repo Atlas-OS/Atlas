@@ -484,6 +484,24 @@ Describe 'USB destination safety' {
             ($script:Destinations -join ',') | Should -BeExactly "$($script:Root)setup.exe,$($script:Root)sources\boot.wim"
             Should -Invoke Test-AtlasUsbCopy -Times 1 -Exactly -ParameterFilter { $Target -ceq $script:Root }
         }
+        It 'converts a large install.esd with the shared export, which stops when cancelled' {
+            $script:RequestFile = Join-Path $script:Job 'usb-request.json'
+            $script:Operation = 'Write'
+            $script:Esd = $script:MediaRoot + 'sources\install.esd'
+            Mock Get-AtlasUsbSourcePlan {
+                $esd = [pscustomobject]@{ source=$script:Esd; relative='sources\install.esd'; bytes=5GB; hash=$null }
+                [pscustomobject]@{ imagePath=$script:Esd; files=@($esd, [pscustomobject]@{ source=($script:MediaRoot + 'setup.exe'); relative='setup.exe'; bytes=1KB; hash=$null }); large=@($esd) }
+            }
+            Mock Get-WindowsImage { [pscustomobject]@{ ImageIndex=1 }; [pscustomobject]@{ ImageIndex=2 } }
+            Mock Export-AtlasWindowsImages { }
+            Mock Split-WindowsImage { }
+            (@(Invoke-AtlasUsbWorker) -join "`n") | Should -Match '^ATLAS_RESULT:.*"verified":true'
+            Should -Invoke Export-AtlasWindowsImages -Times 1 -Exactly -ParameterFilter {
+                $SourceImage -eq $script:Esd -and $DestinationImage -eq (Join-Path $script:Job 'split\install.wim') -and
+                ($Indexes -join ',') -eq '1,2' -and $Checkpoint.ToString().Trim() -eq 'Assert-AtlasUsbContinue'
+            }
+            Should -Invoke Split-WindowsImage -Times 1 -Exactly -ParameterFilter { $ImagePath -eq (Join-Path $script:Job 'split\install.wim') -and $CheckIntegrity }
+        }
         It 'keeps the outcome when the split folder cannot be removed' {
             $script:RequestFile = Join-Path $script:Job 'usb-request.json'
             $script:Operation = 'Write'

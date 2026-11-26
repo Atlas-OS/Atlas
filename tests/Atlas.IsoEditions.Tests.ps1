@@ -4,10 +4,12 @@ BeforeAll {
     $errors = $null
     $ast = [Management.Automation.Language.Parser]::ParseFile($source, [ref]$null, [ref]$errors)
     if ($errors) { throw ($errors | Out-String) }
-    foreach ($name in @('Fail', 'Get-AtlasMediaEditions', 'Test-AtlasWrongArchitecture', 'Invoke-AtlasDismExport', 'Export-AtlasMediaEditions')) {
+    foreach ($name in @('Fail', 'Get-AtlasMediaEditions', 'Export-AtlasMediaEditions')) {
         $function = $ast.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name }, $true)
         . ([scriptblock]::Create($function.Extent.Text))
     }
+    # The export itself, with its fallback to dism.exe, is shared with the USB worker.
+    . (Join-Path $script:AtlasTestRepoRoot 'app\resources\iso\Iso-Mount.ps1')
     # Owned stubs ensure a failed mock never calls DISM on the host.
     function Get-WindowsImage { param($ImagePath, $Index) throw "Unmocked image query: $ImagePath, $Index" }
     function Export-WindowsImage { param($SourceImagePath, $SourceIndex, $DestinationImagePath, $CompressionType, [switch]$CheckIntegrity, $ErrorAction) throw "Unmocked image export: $SourceImagePath, $SourceIndex, $DestinationImagePath, $CompressionType, $CheckIntegrity, $ErrorAction" }
@@ -180,28 +182,5 @@ Describe 'Supported editions in mixed Microsoft media' {
             { Export-AtlasMediaEditions source (Join-Path $TestDrive 'native-cancelled.wim') @(Get-AtlasMediaEditions source @(26200)) } | Should -Throw '*Cancelled*'
             Should -Invoke Invoke-AtlasDismExport -Times 1 -Exactly
         }
-    }
-}
-
-Describe 'Exporting an edition with Windows'' own DISM' {
-    BeforeAll {
-        # A stand-in for dism.exe that records its arguments, so no image is touched.
-        $script:FakeDism = Join-Path $TestDrive 'dism.ps1'
-        $script:DismArguments = Join-Path $TestDrive 'dism-arguments.txt'
-        Set-Content -LiteralPath $script:FakeDism -Value @"
-`$args | Set-Content -LiteralPath '$script:DismArguments'
-'Error: 87'
-exit `$(if (`$args -contains '/SourceIndex:9') { 87 } else { 0 })
-"@
-    }
-    It 'exports one index with maximum compression and an integrity check' {
-        Invoke-AtlasDismExport 'X:\sources\install.wim' 4 'C:\Users\A B\.atlas-iso-1\supported.wim' -Dism $script:FakeDism
-        (Get-Content -LiteralPath $script:DismArguments) -join '|' | Should -BeExactly (@(
-            '/English', '/Export-Image', '/SourceImageFile:X:\sources\install.wim', '/SourceIndex:4',
-            '/DestinationImageFile:C:\Users\A B\.atlas-iso-1\supported.wim', '/Compress:max', '/CheckIntegrity'
-        ) -join '|')
-    }
-    It 'fails with DISM''s exit code and last words' {
-        { Invoke-AtlasDismExport 'X:\sources\install.wim' 9 'C:\out.wim' -Dism $script:FakeDism } | Should -Throw "DISM couldn't export image 9 (exit code 87): Error: 87"
     }
 }

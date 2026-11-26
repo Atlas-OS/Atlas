@@ -26,7 +26,7 @@ The code is in `src/services/iso.rs`, `resources/iso/Build-Iso.ps1` and `resourc
   This checks eligibility, not the authenticity of modified media ([Windows release eligibility](../../docs/windows-release-policy.md)).
 - **Editions.** The exclusions match the destination edition check.
   The worker exports the supported editions, with DISM integrity checking, to a new WIM, and verifies their edition identities.
-  On Arm64 Windows, where Atlas Manager and its workers run as x64, the DISM PowerShell module can lack native code for the process (0x8007000B). The worker then deletes the partial WIM and exports the same editions with Windows' own `dism.exe`, with maximum compression and the integrity check, before the same verification.
+  On Arm64 Windows, where Atlas Manager and its workers run as x64, the DISM PowerShell module can lack native code for the process (0x8007000B). The worker then deletes the partial WIM and exports the same editions with Windows' own `dism.exe`, with maximum compression and the integrity check, before the same verification. The USB worker does the same when it exports a large `install.esd` (`Export-AtlasWindowsImages` in `resources/iso/Iso-Mount.ps1`).
   Atlas sets no product key or image index, so firmware Home keys and volume licence media need their own boot checks; these settings say nothing about activation.
   For single-edition Enterprise Evaluation media, Setup reads Microsoft's edition configuration in WinPE. Atlas delivers its answer file to the installed Windows Panther folder for the later setup passes.
 - **Staging.** The worker stages in a private, uniquely named folder beside the output.
@@ -90,7 +90,7 @@ The worker has four operations: **List**, **Check**, **Write** and **Eject**.
 - A check that finds the mutex taken reports `busy` without reading the ISO, and the page checks again a few seconds later; a write or eject that finds it taken stops before changing anything.
   Lists change nothing, so they run alongside any of them.
 - The worker splits a large `install.wim` with DISM's integrity-checked split into `sources\install*.swm` parts of up to 3,800 MiB, which stay under FAT32's 4 GiB file limit.
-- A large `install.esd` is first exported, with every edition, to a WIM. That WIM comes out larger than the ESD, so a check's byte count is a lower bound for such an ISO, and the write's own capacity check before erasing decides.
+- A large `install.esd` is first exported, with every edition, to a WIM, with `dism.exe` where the DISM module can't run, as for [ISO editions](#iso-build). That WIM comes out larger than the ESD, so a check's byte count is a lower bound for such an ISO, and the write's own capacity check before erasing decides.
 - The partition is at most 32 GB (decimal), because Windows formats FAT32 only up to that size. The page applies the worker's partition rule to the check's byte count to mark drives too small for the ISO; a test keeps the two in step.
 - Ejecting uses `CM_Request_Device_EjectW`. Windows refuses while a file on the drive is open, often briefly, such as a scan of the files just written, so the worker tries five times, two seconds apart.
 - Progress is reported per stage, in bytes where there are any: hashing the source while preparing, copying, and verifying. The page weights the stages by their usual share of the time, so one bar runs once from start to finish and never goes back.

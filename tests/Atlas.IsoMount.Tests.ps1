@@ -302,3 +302,62 @@ Describe 'Mounting the ISO' {
         { Get-AtlasIsoImage 'C:\Downloads\Windows.iso' -Quiet } | Should -Throw 'iso-mount-timeout|late'
     }
 }
+
+Describe 'Exporting Windows images' {
+    BeforeAll {
+        # An owned stub, so a test that fails to mock it never runs DISM on this PC.
+        function Export-WindowsImage { param($SourceImagePath, $SourceIndex, $DestinationImagePath, $CompressionType, [switch]$CheckIntegrity, $ErrorAction) throw "Unmocked image export: $SourceImagePath, $SourceIndex, $DestinationImagePath, $CompressionType, $CheckIntegrity, $ErrorAction" }
+    }
+    BeforeEach {
+        $script:Steps = [Collections.Generic.List[string]]::new()
+        $script:Destination = Join-Path $TestDrive ([guid]::NewGuid().ToString('N') + '.wim')
+        Mock Export-WindowsImage { $script:Steps.Add("cmdlet $SourceIndex") }
+        Mock Invoke-AtlasDismExport { $script:Steps.Add("dism $Index $(Test-Path -LiteralPath $DestinationImage)") }
+        $script:Checkpoint = { $script:Steps.Add('checkpoint') }
+    }
+    It 'exports each image in order, with maximum compression and an integrity check, after its checkpoint' {
+        Export-AtlasWindowsImages 'X:\sources\install.esd' $script:Destination @(1, 2) $script:Checkpoint
+        ($script:Steps -join ',') | Should -BeExactly 'checkpoint,cmdlet 1,checkpoint,cmdlet 2'
+        Should -Invoke Export-WindowsImage -Times 2 -Exactly -ParameterFilter {
+            $SourceImagePath -eq 'X:\sources\install.esd' -and $DestinationImagePath -eq $script:Destination -and $CompressionType -eq 'Max' -and $CheckIntegrity
+        }
+    }
+    It 'starts again from nothing with dism.exe when the DISM module has no native code for this process' {
+        Mock Export-WindowsImage {
+            Set-Content -LiteralPath $DestinationImagePath -Value 'partial'
+            throw [BadImageFormatException]::new('An attempt was made to load a program with an incorrect format. (Exception from HRESULT: 0x8007000B)')
+        }
+        Export-AtlasWindowsImages 'X:\sources\install.esd' $script:Destination @(1, 2) $script:Checkpoint
+        ($script:Steps -join ',') | Should -BeExactly 'checkpoint,checkpoint,dism 1 False,checkpoint,dism 2 False'
+        Should -Invoke Invoke-AtlasDismExport -Times 2 -Exactly -ParameterFilter { $SourceImage -eq 'X:\sources\install.esd' -and $DestinationImage -eq $script:Destination }
+    }
+    It 'passes on any other export failure, and a checkpoint that stops the worker' {
+        Mock Export-WindowsImage { throw 'Access is denied.' }
+        { Export-AtlasWindowsImages 'X:\sources\install.esd' $script:Destination @(1, 2) $script:Checkpoint } | Should -Throw 'Access is denied.'
+        Should -Invoke Invoke-AtlasDismExport -Times 0 -Exactly
+        { Export-AtlasWindowsImages 'X:\sources\install.esd' $script:Destination @(1, 2) { throw [OperationCanceledException]::new('USB creation stopped.') } } | Should -Throw 'USB creation stopped.'
+        Should -Invoke Invoke-AtlasDismExport -Times 0 -Exactly
+    }
+}
+Describe 'Exporting an edition with Windows'' own DISM' {
+    BeforeAll {
+        # A stand-in for dism.exe that records its arguments, so no image is touched.
+        $script:FakeDism = Join-Path $TestDrive 'dism.ps1'
+        $script:DismArguments = Join-Path $TestDrive 'dism-arguments.txt'
+        Set-Content -LiteralPath $script:FakeDism -Value @"
+`$args | Set-Content -LiteralPath '$script:DismArguments'
+'Error: 87'
+exit `$(if (`$args -contains '/SourceIndex:9') { 87 } else { 0 })
+"@
+    }
+    It 'exports one index with maximum compression and an integrity check' {
+        Invoke-AtlasDismExport 'X:\sources\install.wim' 4 'C:\Users\A B\.atlas-iso-1\supported.wim' -Dism $script:FakeDism
+        (Get-Content -LiteralPath $script:DismArguments) -join '|' | Should -BeExactly (@(
+            '/English', '/Export-Image', '/SourceImageFile:X:\sources\install.wim', '/SourceIndex:4',
+            '/DestinationImageFile:C:\Users\A B\.atlas-iso-1\supported.wim', '/Compress:max', '/CheckIntegrity'
+        ) -join '|')
+    }
+    It 'fails with DISM''s exit code and last words' {
+        { Invoke-AtlasDismExport 'X:\sources\install.wim' 9 'C:\out.wim' -Dism $script:FakeDism } | Should -Throw "DISM couldn't export image 9 (exit code 87): Error: 87"
+    }
+}
