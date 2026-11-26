@@ -47,6 +47,11 @@ Describe 'Finding the mounted ISO''s drive' {
         Mock Add-AtlasIsoLetter { throw 'Unexpected drive letter.' }
         Mock Get-AtlasIsoStorageParameters { @{} }
         Mock Receive-AtlasIsoStorage { if ($null -ne $Job) { $Job } }
+        $script:Starts = @{ vdrvroot = 0; cdrom = 1 }
+        Mock Get-ItemProperty {
+            $name = Split-Path -Leaf $LiteralPath
+            if ($script:Starts.ContainsKey($name)) { [pscustomobject]@{ Start = $script:Starts[$name] } }
+        } -ParameterFilter { $LiteralPath -like 'HKLM:\SYSTEM\CurrentControlSet\Services\*' }
     }
     It 'uses the first answer at once when it is one volume with a drive letter' {
         Get-AtlasIsoRoot -ImagePath 'C:\Downloads\Windows.iso' -Disk $script:Disk -Owned | Should -BeExactly 'E:\'
@@ -61,6 +66,17 @@ Describe 'Finding the mounted ISO''s drive' {
         Should -Invoke Get-AtlasIsoVolumes -Times 1 -Exactly
         Mock Receive-AtlasIsoStorage { throw [TimeoutException]::new('late') }
         { Get-AtlasIsoRoot -ImagePath 'C:\Downloads\Windows.iso' -Disk $script:Disk } | Should -Throw 'iso-mount-timeout|late'
+        # A disabled driver explains it.
+        $script:Starts.cdrom = 4
+        { Get-AtlasIsoRoot -ImagePath 'C:\Downloads\Windows.iso' -Disk $script:Disk } | Should -Throw 'iso-mount-drivers|*cdrom*'
+    }
+    It 'names a disabled driver when no drive letter came, and only then reads the drivers' {
+        Get-AtlasIsoRoot -ImagePath 'C:\Downloads\Windows.iso' -Disk $script:Disk | Should -BeExactly 'E:\'
+        Should -Invoke Get-ItemProperty -Times 0 -Exactly
+        $script:First = @(New-TestVolume '')
+        $script:Later = , @(New-TestVolume '')
+        $script:Starts.vdrvroot = 4
+        { Get-AtlasIsoRoot -ImagePath 'C:\Downloads\Windows.iso' -Disk $script:Disk } | Should -Throw 'iso-mount-drivers|*vdrvroot*'
     }
     It 'waits for a drive letter Windows gives late, querying the image again' {
         $script:First = @(New-TestVolume '')
@@ -232,14 +248,27 @@ Describe 'Mounting the ISO' {
         Mount-AtlasIso 'C:\Downloads\Windows.iso' -ReadOnly | Should -Be $script:Image
         Should -Invoke Mount-DiskImage -Times 1 -Exactly -ParameterFilter { $ImagePath -eq 'C:\Downloads\Windows.iso' -and $Access -eq 'ReadOnly' -and $PassThru }
     }
-    It 'refuses to mount while <Driver> is disabled, and names it' -ForEach @(@{ Driver = 'vdrvroot' }, @{ Driver = 'cdrom' }) {
+    It 'mounts as before while <Driver> is set to disabled but still loaded, until a restart' -ForEach @(@{ Driver = 'vdrvroot' }, @{ Driver = 'cdrom' }) {
         $script:Starts[$Driver] = 4
+        Mount-AtlasIso 'C:\Downloads\Windows.iso' -ReadOnly | Should -Be $script:Image
+        Get-AtlasIsoImage 'C:\Downloads\Windows.iso' | Should -Be $script:Image
+        # Nothing reads the drivers until something fails.
+        Should -Invoke Get-ItemProperty -Times 0 -Exactly
+    }
+    It 'names <Driver> as the reason a mount failed while it is disabled' -ForEach @(@{ Driver = 'vdrvroot' }, @{ Driver = 'cdrom' }) {
+        $script:Starts[$Driver] = 4
+        Mock Mount-DiskImage { throw 'A virtual disk support provider for the specified file was not found.' }
         { Mount-AtlasIso 'C:\Downloads\Windows.iso' } | Should -Throw "iso-mount-drivers|*: $Driver.*"
-        Should -Invoke Mount-DiskImage -Times 0 -Exactly
+    }
+    It 'names <Driver> as the reason a mount did not finish while it is disabled' -ForEach @(@{ Driver = 'vdrvroot' }, @{ Driver = 'cdrom' }) {
+        $script:Starts[$Driver] = 4
+        Mock Receive-AtlasIsoStorage { throw [TimeoutException]::new("Windows didn't finish mounting the ISO within 120 seconds.") }
+        { Mount-AtlasIso 'C:\Downloads\Windows.iso' } | Should -Throw "iso-mount-drivers|*: $Driver.*"
     }
     It 'treats a driver it cannot read, or one set to start on demand, as available' {
         $script:Starts = @{ cdrom = 3 }
-        { Mount-AtlasIso 'C:\Downloads\Windows.iso' } | Should -Not -Throw
+        Mock Mount-DiskImage { throw 'The device is not ready.' }
+        { Mount-AtlasIso 'C:\Downloads\Windows.iso' } | Should -Throw 'iso-mount|*not ready*'
     }
     It 'says the file must be copied when Windows refuses a <Stored> file' -ForEach @(
         @{ Stored = 'Compressed' }, @{ Stored = 'Encrypted' }, @{ Stored = 'SparseFile' }

@@ -43,8 +43,9 @@ function Receive-AtlasIsoStorage($Job, [string]$Action) {
 }
 
 # vdrvroot enumerates the virtual DVD drive a mounted ISO becomes, and cdrom drives it.
-# With either disabled (Start 4), Windows mounts no ISO: the mount fails, or waits
-# minutes for a drive that never starts.
+# With either disabled (Start 4), Windows mounts no ISO once the PC restarts: the mount
+# fails, or waits for a drive that never starts. Until that restart a driver already
+# loaded still works, so this explains a failure and never stops a mount by itself.
 function Assert-AtlasIsoDrivers {
     $disabled = @(foreach ($name in @('vdrvroot', 'cdrom')) {
         $service = Get-ItemProperty -LiteralPath "HKLM:\SYSTEM\CurrentControlSet\Services\$name" -Name Start -ErrorAction SilentlyContinue
@@ -69,14 +70,14 @@ function Get-AtlasIsoFileAttributes([string]$Path) {
 }
 
 # Stops the worker with the reason Windows couldn't read or mount the image at $ImagePath,
-# from the error it gave ($Failure): a call that didn't finish, disabled drivers, or a
+# from the error it gave ($Failure): disabled drivers, a call that didn't finish, or a
 # file stored in a way Windows doesn't mount. -OwnFile for an image this worker wrote,
 # which copying wouldn't change.
 function Resolve-AtlasIsoMountFailure([string]$ImagePath, $Failure, [switch]$OwnFile) {
+    Assert-AtlasIsoDrivers
     $timeout = Get-AtlasIsoTimeout $Failure
     if ($null -ne $timeout) { Fail 'iso-mount-timeout' $timeout.Message }
     $cause = $Failure.Exception.Message
-    Assert-AtlasIsoDrivers
     # Windows mounts only files stored uncompressed, unencrypted and not sparse, as a
     # partly allocated download can be. The user's file is left as it is.
     $attributes = Get-AtlasIsoFileAttributes $ImagePath
@@ -100,10 +101,9 @@ function Get-AtlasIsoImage([string]$ImagePath, [switch]$Quiet) {
     }
 }
 
-# Mounts the image at $ImagePath and returns its image object. Disabled drivers stop the
-# worker first, as the mount would otherwise wait minutes for a drive that never starts.
+# Mounts the image at $ImagePath and returns its image object; a failure is explained by
+# Resolve-AtlasIsoMountFailure.
 function Mount-AtlasIso([string]$ImagePath, [switch]$ReadOnly, [switch]$OwnFile) {
-    Assert-AtlasIsoDrivers
     try {
         $parameters = Get-AtlasIsoStorageParameters
         if ($ReadOnly) { $parameters.Access = 'ReadOnly' }
@@ -200,6 +200,7 @@ function Get-AtlasIsoRoot {
         $queryError = ''
         for ($poll = 1; $lettered.Count -ne 1; $poll++) {
             if ($poll -gt $script:AtlasIsoLetterPolls) {
+                Assert-AtlasIsoDrivers
                 $detail = (Format-AtlasIsoVolumes $volumes) + $assigned + $queryError
                 Fail 'iso-mount' "Windows mounted '$ImagePath', but it has no single volume with a drive letter after about $([int]($script:AtlasIsoLetterPolls / 2)) seconds. $detail"
             }
@@ -217,7 +218,10 @@ function Get-AtlasIsoRoot {
         }
         return "$($lettered[0].DriveLetter):\"
     }
-    catch [TimeoutException] { Fail 'iso-mount-timeout' $_.Exception.Message }
+    catch [TimeoutException] {
+        Assert-AtlasIsoDrivers
+        Fail 'iso-mount-timeout' $_.Exception.Message
+    }
 }
 
 # Ejects the image at $ImagePath, taking back any letter Atlas gave it first. A failure
