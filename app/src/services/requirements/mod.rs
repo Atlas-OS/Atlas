@@ -204,7 +204,9 @@ pub enum CheckDetail {
     },
     UpdateSourceMicrosoft,
     /// Updates come from an organisation's server (`AU\UseWUServer`), which
-    /// doesn't offer `release` as Windows Update would.
+    /// doesn't offer `release` as Windows Update would. A redirect to a
+    /// server that can't be one, on a PC no organisation manages, doesn't
+    /// count: the worker lifts it.
     UpdateSourceManaged {
         release: String,
     },

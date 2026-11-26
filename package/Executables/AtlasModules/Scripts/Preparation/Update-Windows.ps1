@@ -1272,8 +1272,9 @@ function Select-PreparationOptionalFailure($Failed, [hashtable]$Optional, [switc
 # https://learn.microsoft.com/windows/win32/api/wuapicommon/ne-wuapicommon-serverselection
 # A PC whose updates come from its organisation's server (AU\UseWUServer=1) keeps
 # the default, so they still come from there: a move refuses such a PC before it
-# searches. Downloads and installs follow the updates a search returned, so they
-# use the same service.
+# searches. A redirect to a server that can't be one is lifted before any search
+# (Test-AtlasWindowsUpdateRedirectBroken). Downloads and installs follow the
+# updates a search returned, so they use the same service.
 function Get-PreparationServerSelection {
     $server = Get-AtlasTransitionValue 'SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' 'UseWUServer'
     if ($server.Present -and $server.Kind -eq 'DWord' -and [int64]$server.Data -eq 1) { return 0 }

@@ -49,6 +49,7 @@ BeforeAll {
         $script:RebuildFacts = [pscustomobject]@{ WindowsOld = $false; SetupFolder = $false; PantherWritten = $false; AtlasModules = $true }
         $script:PendingXml = $false
         $script:UpdateRestart = $false
+        $script:DomainJoined = $false
         Set-Fake $script:Services\BITS Start DWord 3
         Set-Fake $script:Services\CryptSvc Start DWord 3
         Set-Fake $script:Services\TrustedInstaller Start DWord 3
@@ -135,6 +136,14 @@ BeforeAll {
     function Start-PreparationUpdateService { throw 'A test started Windows Update without standing in for it.' }
     function Test-AtlasServicingPendingFile { $script:PendingXml }
     function Test-AtlasTransitionUpdateRestartRequired { $script:UpdateRestart }
+    function Test-AtlasTransitionDomainJoined { if ('Throws' -eq $script:DomainJoined) { throw 'WMI is unavailable' }; [bool]$script:DomainJoined }
+    # What tools that block updates write: Windows Update sent to a server that isn't there.
+    function Set-BrokenRedirect([string]$Server = 'localserver.localdomain.wsus') {
+        Set-Fake $script:Policy WUServer String $Server
+        Set-Fake $script:Policy WUStatusServer String $Server
+        Set-Fake $script:Policy UpdateServiceUrlAlternate String 'wsus.localdomain.localserver'
+        Set-Fake "$script:Policy\AU" UseWUServer DWord 1
+    }
 
     # The pin writer uses the registry cmdlets; HKLM paths go to the double too.
     function ConvertTo-FakePath([string]$Path) { $Path -replace '^HKLM:\\', '' }
@@ -740,7 +749,11 @@ Describe 'Checks before anything changes' {
     }
 
     It 'stops for <Case> with <Reason> and writes nothing' -TestCases @(
-        @{ Case = 'an organisation''s update server'; Reason = 'feature-managed'; Arrange = { Set-Fake "$script:Policy\AU" UseWUServer DWord 1 } }
+        @{ Case = 'an organisation''s update server'; Reason = 'feature-managed'; Arrange = { Set-BrokenRedirect 'https://wsus.contoso.com:8531' } }
+        @{ Case = 'a server that isn''t there on a domain PC'; Reason = 'feature-managed'; Arrange = { Set-BrokenRedirect; $script:DomainJoined = $true } }
+        @{ Case = 'a server that isn''t there on a Microsoft Entra PC'; Reason = 'feature-managed'; Arrange = { Set-BrokenRedirect; Set-Fake 'SYSTEM\CurrentControlSet\Control\CloudDomainJoin\JoinInfo\0123456789ABCDEF' IdpDomain String 'contoso.com' } }
+        @{ Case = 'a server that isn''t there on an enrolled PC'; Reason = 'feature-managed'; Arrange = { Set-BrokenRedirect; Set-Fake 'SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\{11111111-2222-3333-4444-555555555555}' Flags DWord 0 } }
+        @{ Case = 'a server that isn''t there where management can''t be read'; Reason = 'feature-managed'; Arrange = { Set-BrokenRedirect; $script:DomainJoined = 'Throws' } }
         @{ Case = 'a disabled BITS'; Reason = 'feature-blocked'; Arrange = { Set-Fake "$script:Services\BITS" Start DWord 4 } }
         @{ Case = 'too little free space'; Reason = 'feature-disk-space'; Arrange = { $script:FreeBytes = 2GB } }
         @{ Case = 'a component store Windows can no longer repair'; Reason = 'feature-servicing'; Arrange = { $script:Health = 'NonRepairable' } }
@@ -778,6 +791,31 @@ Describe 'Checks before anything changes' {
         Mock Test-PreparationRestart { $true }
         Invoke-PreparationTransition | Should -Be 'reboot'
         @($script:Writes) | Should -BeNullOrEmpty
+    }
+
+    It 'records and lifts a redirect to a server that isn''t there (<Server>) on a PC no organisation manages, before the monthly updates' -TestCases @(
+        @{ Server = 'localserver.localdomain.wsus' }
+        @{ Server = 'http://127.0.0.1' }
+        @{ Server = '' }
+    ) {
+        param($Server)
+        $script:AtlasTransitionEvidencePath = Join-Path $TestDrive 'redirect-evidence.log'
+        Remove-Item -LiteralPath $script:AtlasTransitionEvidencePath -ErrorAction SilentlyContinue
+        Set-BrokenRedirect $Server
+        # Enrolments Windows keeps on every PC name no user or server.
+        Set-Fake 'SOFTWARE\Microsoft\Enrollments\C49328F1-A48C-408A-BA0C-972F051825D7' ProviderID String 'WMI_Bridge_SCCM_Server'
+        { Invoke-PreparationTransition } | Should -Throw '*No update may run*'
+        $journal = Read-Journal
+        foreach ($id in @('policy.WUServer', 'policy.WUStatusServer', 'policy.UpdateServiceUrlAlternate', 'policy.AU.UseWUServer')) {
+            @($journal.items | Where-Object id -eq $id)[0].lifted | Should -BeTrue -Because "$id goes with the redirect"
+        }
+        @($journal.items | Where-Object id -eq 'policy.WUServer')[0].data | Should -BeExactly $Server
+        Get-Fake "$script:Policy\AU" UseWUServer | Should -BeNullOrEmpty
+        Get-Fake $script:Policy WUServer | Should -BeNullOrEmpty
+        $evidence = Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw
+        $evidence | Should -Match 'managed by: nothing'
+        $evidence | Should -Match 'lifting the redirect for this update, to be put back afterwards'
+        $evidence | Should -Match 'lifted policy.AU.UseWUServer: DWord 1 -> absent'
     }
 
     It 'goes on with a store Windows <Case>' -TestCases @(
@@ -955,6 +993,106 @@ Describe 'A component store that reads as repairable' {
         $script:Health = 'Throws'
         { Test-AtlasWindowsTransitionPreflight } | Should -Not -Throw
         Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw | Should -Match 'component store health could not be read \(0x[0-9A-F]{8}\): DISM is unavailable; going on'
+    }
+}
+
+Describe 'A redirect to an update server that isn''t there' {
+    BeforeEach {
+        Reset-Machine
+        Mock Test-PreparationRestart { $false }
+        Mock Test-PreparationNetwork { $true }
+        Mock Write-PreparationState {}
+    }
+
+    It 'takes <Server> for a server that can''t be one: <Unusable>' -TestCases @(
+        @{ Server = ''; Unusable = $true }
+        @{ Server = '   '; Unusable = $true }
+        @{ Server = 'localserver.localdomain.wsus'; Unusable = $true }
+        @{ Server = 'wsus.localdomain.localserver:8530'; Unusable = $true }
+        @{ Server = 'ftp://wsus.contoso.com'; Unusable = $true }
+        @{ Server = 'http://127.0.0.1'; Unusable = $true }
+        @{ Server = 'http://127.20.0.9:8530'; Unusable = $true }
+        @{ Server = 'http://localhost:8530'; Unusable = $true }
+        @{ Server = 'http://[::1]:8530'; Unusable = $true }
+        @{ Server = 'http://wsus.home.localdomain'; Unusable = $true }
+        @{ Server = 'http://wsus.local:8530'; Unusable = $true }
+        @{ Server = 'http://updates.invalid'; Unusable = $true }
+        @{ Server = 'http://wsus.test'; Unusable = $true }
+        @{ Server = 'http://wsus.example'; Unusable = $true }
+        @{ Server = 'http://wsus.localhost'; Unusable = $true }
+        @{ Server = 'http://wsus.contoso.com:8530'; Unusable = $false }
+        @{ Server = 'https://10.0.0.5:8531'; Unusable = $false }
+        @{ Server = 'http://WSUS01:8530'; Unusable = $false }
+        @{ Server = 'http://wsus.example.com'; Unusable = $false }
+    ) {
+        param($Server, $Unusable)
+        Test-AtlasUpdateServerUnusable $Server | Should -Be $Unusable
+    }
+
+    It 'finds no management on a PC with only the enrolments Windows keeps itself' {
+        Set-Fake 'SOFTWARE\Microsoft\Enrollments\8345CBE6-CEFC-462A-8219-78F3FC0377C1' ProviderID String 'Deploy Authority'
+        Set-Fake 'SOFTWARE\Microsoft\Enrollments\8345CBE6-CEFC-462A-8219-78F3FC0377C1' EnrollmentState DWord 1
+        Set-Fake 'SOFTWARE\Microsoft\Enrollments\Context' '(key)' Key ''
+        @(Get-AtlasDeviceManagement) | Should -BeNullOrEmpty
+    }
+
+    It 'names <Case> as management' -TestCases @(
+        @{ Case = 'a domain join'; Named = 'domain'; Arrange = { $script:DomainJoined = $true } }
+        @{ Case = 'a Microsoft Entra join'; Named = 'entra'; Arrange = { Set-Fake 'SYSTEM\CurrentControlSet\Control\CloudDomainJoin\JoinInfo\0123456789ABCDEF' TenantId String 'tenant' } }
+        @{ Case = 'an OMA-DM account'; Named = 'mdm'; Arrange = { Set-Fake 'SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\{11111111-2222-3333-4444-555555555555}' Flags DWord 0 } }
+        @{ Case = 'an enrolment with a user'; Named = 'mdm'; Arrange = { Set-Fake 'SOFTWARE\Microsoft\Enrollments\{11111111-2222-3333-4444-555555555555}' UPN String 'someone@contoso.com' } }
+        @{ Case = 'an enrolment with a server'; Named = 'mdm'; Arrange = { Set-Fake 'SOFTWARE\Microsoft\Enrollments\{11111111-2222-3333-4444-555555555555}' DiscoveryServiceFullURL String 'https://enrollment.manage.microsoft.com/' } }
+        @{ Case = 'a domain join that can''t be read'; Named = 'domain unreadable (WMI is unavailable)'; Arrange = { $script:DomainJoined = 'Throws' } }
+    ) {
+        param($Case, $Named, $Arrange)
+        & $Arrange
+        @(Get-AtlasDeviceManagement) | Should -Be @($Named) -Because $Case
+    }
+
+    It 'counts the redirect''s values as blockers only while it''s broken' {
+        Set-BrokenRedirect
+        @(Get-AtlasWindowsUpdateBlocker).Id | Should -Be @('policy.WUServer', 'policy.WUStatusServer', 'policy.UpdateServiceUrlAlternate', 'policy.AU.UseWUServer')
+        @(Get-AtlasWindowsUpdateBlocker | Where-Object OwnerRecord) | Should -BeNullOrEmpty
+        $script:DomainJoined = $true
+        @(Get-AtlasWindowsUpdateBlocker) | Should -BeNullOrEmpty
+        $script:DomainJoined = $false
+        Set-Fake $script:Policy WUServer String 'http://wsus.contoso.com:8530'
+        @(Get-AtlasWindowsUpdateBlocker) | Should -BeNullOrEmpty
+        Set-BrokenRedirect
+        Set-Fake "$script:Policy\AU" UseWUServer DWord 0
+        @(Get-AtlasWindowsUpdateBlocker) | Should -BeNullOrEmpty -Because 'Windows Update ignores a server it isn''t told to use'
+    }
+
+    It 'turns Windows Update on for plain updates on a PC with only a broken redirect, then puts the redirect back exactly' {
+        Set-BrokenRedirect 'http://127.0.0.1'
+        Mock Invoke-PreparationUpdates { $script:Writes.Add('updates'); 'complete' }
+        Invoke-PreparationAccess | Should -Be 'complete'
+        (Read-Journal).kind | Should -BeExactly 'access'
+        Get-Fake "$script:Policy\AU" UseWUServer | Should -BeNullOrEmpty
+        $script:Writes.IndexOf('updates') | Should -BeGreaterThan $script:Writes.IndexOf("remove $script:Policy\AU|UseWUServer")
+        $result = Restore-AtlasWindowsTransition -Outcome Installed
+        @($result.restored) | Should -Be @('policy.WUServer', 'policy.WUStatusServer', 'policy.UpdateServiceUrlAlternate', 'policy.AU.UseWUServer')
+        (Get-Fake "$script:Policy\AU" UseWUServer).Data | Should -Be 1
+        (Get-Fake $script:Policy WUServer).Data | Should -BeExactly 'http://127.0.0.1'
+        (Get-Fake $script:Policy WUServer).Kind | Should -BeExactly 'String'
+        (Get-Fake $script:Policy UpdateServiceUrlAlternate).Data | Should -BeExactly 'wsus.localdomain.localserver'
+    }
+
+    It 'stops plain updates on a PC whose organisation runs its update server' {
+        Set-BrokenRedirect 'https://wsus.contoso.com:8531'
+        Set-Fake $script:Policy DisableWindowsUpdateAccess DWord 1
+        Mock Invoke-PreparationUpdates { throw 'No update may run on a managed PC.' }
+        try { Invoke-PreparationAccess } catch { $thrown = $_.Exception }
+        $thrown.Data['reason'] | Should -BeExactly 'feature-managed'
+    }
+
+    It 'stops with feature-policy when something puts the redirect back while Atlas has it lifted' {
+        Set-BrokenRedirect
+        $journal = Save-AtlasWindowsTransitionSnapshot -Kind access -Source ([pscustomobject]@{ build = 26200 }) -Target $null -UserSid 'S'
+        Mock Remove-AtlasTransitionValue { $script:Writes.Add("remove $Path|$Name") } -ParameterFilter { $Name -eq 'UseWUServer' }
+        try { Invoke-AtlasWindowsUpdateLift $journal } catch { $thrown = $_.Exception }
+        $thrown.Data['reason'] | Should -BeExactly 'feature-policy'
+        $thrown.Data['setting'] | Should -BeExactly 'UseWUServer'
     }
 }
 

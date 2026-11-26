@@ -81,7 +81,7 @@ The first problem stops the run before anything changes.
 | --- | --- |
 | Windows doesn't need a restart | A restart first |
 | The connection has confirmed internet access and isn't metered or roaming | The connection's reason |
-| The PC doesn't get updates from its organisation's server (`AU\UseWUServer` isn't 1) | `feature-managed` |
+| The PC doesn't get updates from its organisation's server (`AU\UseWUServer` isn't 1, or names a server that can't be one on a PC no organisation manages) | `feature-managed` |
 | BITS, Cryptographic Services and Windows Modules Installer exist and aren't disabled | `feature-blocked` |
 | The system drive has at least 6 GiB free | `feature-disk-space` |
 | Windows doesn't read its component store as `NonRepairable` | `feature-servicing` |
@@ -93,7 +93,7 @@ Atlas Manager reads three of these itself as **Get ready** opens, as PC checks, 
 
 | PC check | Reads | Fails with |
 | --- | --- | --- |
-| **Where updates come from** | `AU\UseWUServer` isn't 1 | **Create an Atlas ISO** |
+| **Where updates come from** | `AU\UseWUServer` isn't 1, or names a server that can't be one on a PC no organisation manages | **Create an Atlas ISO** |
 | **Free space** | The system drive has at least 6 GiB free | **Open Storage settings** |
 | **Windows 11 hardware** | A TPM 2.0 and UEFI firmware, where Windows lets Atlas read them | **Create an Atlas ISO** |
 
@@ -141,7 +141,7 @@ The worker turns on only the settings that hold Windows Update back, from a fixe
 
 | Group | Settings |
 | --- | --- |
-| Turned off | The `DisableWindowsUpdateAccess`, `DoNotConnectToWindowsUpdateInternetLocations` and `AU\NoAutoUpdate` policies, the `wuauserv` and `UsoSvc` services, and the `sih` and `sihboot` tasks |
+| Turned off | The `DisableWindowsUpdateAccess`, `DoNotConnectToWindowsUpdateInternetLocations` and `AU\NoAutoUpdate` policies, the `wuauserv` and `UsoSvc` services, the `sih` and `sihboot` tasks, and a broken redirect's `WUServer`, `WUStatusServer`, `UpdateServiceUrlAlternate` and `AU\UseWUServer` policies |
 | Delayed | The `DeferQualityUpdates` and `DeferQualityUpdatesPeriodInDays` policies |
 | Paused | The pause values under `WindowsUpdate\UpdatePolicy\Settings` and `WindowsUpdate\UX\Settings` |
 | Pin | `TargetReleaseVersion`, `ProductVersion` and `TargetReleaseVersionInfo`, which are retargeted instead of removed |
@@ -149,6 +149,20 @@ The worker turns on only the settings that hold Windows Update back, from a fixe
 These are what Atlas 0.5.0's launchers, Atlas's own toggles or other tools set.
 A task the PC doesn't have is recorded as absent and left alone.
 Windows Update searches and installs without the tasks, so a task that can't be turned on doesn't stop the run.
+
+Tools that block updates can also send Windows Update to an update server that isn't there, which no Atlas release does.
+The redirect is broken when `AU\UseWUServer` is 1 and `WUServer` names no server Windows Update can reach:
+
+- it's empty, or isn't an http or https URL;
+- its host is a loopback address (`localhost`, `127.0.0.0/8` or `::1`);
+- its host is under a name reserved for networks that aren't routed: `.localdomain`, `.local`, `.invalid`, `.test`, `.example` or `.localhost`.
+
+On a PC no organisation manages, the worker lifts a broken redirect's four policies with the other settings, and they come back afterwards as they were.
+A PC counts as managed when it's joined to a domain (`Win32_ComputerSystem.PartOfDomain`) or to Microsoft Entra ID (`CloudDomainJoin\JoinInfo`).
+It also counts when it's enrolled in device management: an OMA-DM account, or an enrolment under `HKLM\SOFTWARE\Microsoft\Enrollments` that names a user or an enrolment server.
+Windows keeps other enrolments of its own on every PC, so those don't count, and anything the worker can't read counts as managed.
+A real update server, or any managed PC, keeps its redirect: a move then stops with `feature-managed`, and so does an ordinary update that would have to turn Windows Update on.
+Atlas Manager's **Where updates come from** check and its view of what holds Windows Update back read the redirect the same way.
 
 The worker reads each value back after changing it.
 A value that goes back, for example because an organisation's policy sets it, stops the run with `feature-policy`.

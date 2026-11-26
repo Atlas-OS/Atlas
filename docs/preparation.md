@@ -48,6 +48,7 @@ The worker searches Windows Update online, downloads and installs what it finds,
 - Each search asks the Windows Update service itself (`ServerSelection` set to `ssWindowsUpdate`).
   The default service can be another catalogue on some PCs, and that catalogue may not offer the update Atlas needs.
 - A PC that gets updates from its organisation's server (`AU\UseWUServer` set to 1) keeps that server.
+  A redirect to a server that can't be one, on a PC no organisation manages, is lifted for the run instead (see [Turning Windows Update on](windows-transition.md#turning-windows-update-on)).
 - A search that fails or ends with errors runs up to three times, after 30 seconds and then 60.
   When Windows Update still can't be reached, or keeps stopping, the run stops with `windows-update-unreachable`.
   The errors that count are `0x8024001E`, `0x80240069`, `0x80240438` and `0x80244010` to `0x8024401F`; any other error stops the run at once.
@@ -87,7 +88,7 @@ The worker keeps all three under `HKLM\SOFTWARE\AtlasOS\Preparation` for 30 days
 The check before the install reads the same record, so it doesn't wait for them either.
 Defender's updates are the exception: each new one has a new ID, so the worker and the check decide them from the PC every time, and the record only shows them.
 
-When Windows Update is turned off, paused or set to delay monthly updates, the **Get ready** page turns it on for the run.
+When Windows Update is turned off, paused, set to delay monthly updates or sent to an update server that isn't there, the **Get ready** page turns it on for the run.
 It records the original settings first, and the Atlas install puts them back at its end (see [Putting Windows Update settings back](windows-transition.md#putting-windows-update-settings-back)).
 
 ## Windows component store

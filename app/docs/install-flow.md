@@ -140,7 +140,7 @@ They count only while the move is chosen, and the install never runs them.
 | --- | --- |
 | Windows 11 hardware | A TPM 2.0 and UEFI firmware, where Windows lets Atlas read them; otherwise **Create an Atlas ISO**. |
 | Free space | 6 GiB free on the system drive; otherwise **Open Storage settings**. |
-| Where updates come from | Not an organisation's update server (`AU\UseWUServer`); otherwise **Create an Atlas ISO**. |
+| Where updates come from | Not an organisation's update server (`AU\UseWUServer`); otherwise **Create an Atlas ISO**. A redirect to a server that can't be one, on a PC no organisation manages, passes, as the worker lifts it ([Turning Windows Update on](../../docs/windows-transition.md#turning-windows-update-on)). |
 
 - A blocking check that fails or can't run disables **Continue**.
   Only an update scan that couldn't run can be confirmed by hand.

@@ -40,12 +40,15 @@ function Write-AtlasTransitionEvidence([string]$Text) {
 # restore. A journal entry for anything else is refused. Rules: nonzero (a DWORD
 # other than 0 blocks), disabled (a service Start of 4 blocks), future (a pause end
 # date still ahead blocks), paused (lifted only while the pause blocks), task (a
-# disabled task, turned on only with the rest of Windows Update), pin (never lifted;
-# retargeted by Set-AtlasFeatureUpdateTarget).
+# disabled task, turned on only with the rest of Windows Update), redirect (lifted
+# only while the redirect to an update server is broken; see
+# Test-AtlasWindowsUpdateRedirectBroken), pin (never lifted; retargeted by
+# Set-AtlasFeatureUpdateTarget).
 # Atlas 0.5.0's "Disable Windows Updates" disables wuauserv and the sih and sihboot
 # tasks, which 25H2 and later no longer have: an absent task is recorded as absent
 # and left alone. Its deferral launcher sets the Defer* policies. The policies, UsoSvc and the
-# pause values are what Atlas 0.6's own toggles, or a user's tools, set.
+# pause values are what Atlas 0.6's own toggles, or a user's tools, set. Tools that
+# block updates set the redirect; no Atlas release sets it.
 function Get-AtlasWindowsTransitionItem {
     $policy = 'SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
     $pause = 'SOFTWARE\Microsoft\WindowsUpdate\UpdatePolicy\Settings'
@@ -72,6 +75,10 @@ function Get-AtlasWindowsTransitionItem {
         ,@('pause.PauseUpdatesStartTime', 'paused', $ux, 'PauseUpdatesStartTime', 'String', $null, 'PauseUpdates', 'paused')
         ,@('pause.PauseUpdatesExpiryTime', 'paused', $ux, 'PauseUpdatesExpiryTime', 'String', $null, 'PauseUpdates', 'future')
         ,@('pause.FlightSettingsMaxPauseDays', 'paused', $ux, 'FlightSettingsMaxPauseDays', 'DWord', $null, 'PauseUpdates', 'paused')
+        ,@('policy.WUServer', 'off', $policy, 'WUServer', 'String', $null, $null, 'redirect')
+        ,@('policy.WUStatusServer', 'off', $policy, 'WUStatusServer', 'String', $null, $null, 'redirect')
+        ,@('policy.UpdateServiceUrlAlternate', 'off', $policy, 'UpdateServiceUrlAlternate', 'String', $null, $null, 'redirect')
+        ,@('policy.AU.UseWUServer', 'off', "$policy\AU", 'UseWUServer', 'DWord', $null, $null, 'redirect')
         ,@('pin.TargetReleaseVersion', 'pin', $policy, 'TargetReleaseVersion', 'DWord,String', $null, $null, 'pin')
         ,@('pin.ProductVersion', 'pin', $policy, 'ProductVersion', 'String', $null, $null, 'pin')
         ,@('pin.TargetReleaseVersionInfo', 'pin', $policy, 'TargetReleaseVersionInfo', 'String', $null, $null, 'pin')
@@ -529,16 +536,21 @@ function Get-AtlasWindowsUpdateBlocker([DateTime]$Now = [DateTime]::UtcNow) {
         if (& $blocking $item $live[$item.Id]) { $pauseActive = $true }
     }
     $offActive = $false
-    foreach ($item in $items | Where-Object { $_.Group -eq 'off' -and $_.Rule -ne 'task' }) {
+    foreach ($item in $items | Where-Object { $_.Group -eq 'off' -and $_.Rule -notin @('task', 'redirect') }) {
         if (& $blocking $item $live[$item.Id]) { $offActive = $true }
     }
+    # Asked only when the redirect is on, as it can read the domain join.
+    $use = $live['policy.AU.UseWUServer']
+    $redirected = $use.Present -and $use.Kind -eq 'DWord' -and [int64]$use.Data -eq 1 -and (Test-AtlasWindowsUpdateRedirectBroken)
     foreach ($item in $items) {
         $value = $live[$item.Id]
         # While updates are paused, every pause date goes with the pause, past
         # ones included; Windows reads them together. The update tasks come
-        # back with the service that runs them.
+        # back with the service that runs them, and a broken redirect's values
+        # go together.
         $blocks = if ($item.Rule -in @('paused', 'future')) { $pauseActive -and $value.Present }
         elseif ($item.Rule -eq 'task') { $offActive -and $value.Present -and $value.Data -eq 'Disabled' }
+        elseif ($item.Rule -eq 'redirect') { $redirected -and $value.Present }
         else { & $blocking $item $value }
         if ($blocks) {
             [pscustomobject]@{
@@ -679,12 +691,97 @@ function Test-AtlasServicingMarkerStale {
     return -not (Test-AtlasTransitionUpdateRestartRequired)
 }
 
+# Whether $Server, a WUServer policy value, can't name an update server: empty,
+# not an http or https URL, a loopback address (localhost, 127.0.0.0/8, ::1), or a
+# host under a name reserved for networks that aren't routed (.localdomain,
+# .local, .invalid, .test, .example, .localhost). Tools that block updates point
+# Windows Update at such a server; an organisation's server has a name it can
+# be reached by. The host is read from the text as written, as Atlas Manager's
+# server_unusable (app/src/services/update_access.rs) reads it, so the two agree.
+function Test-AtlasUpdateServerUnusable([string]$Server) {
+    $text = ([string]$Server).Trim()
+    $separator = $text.IndexOf('://')
+    if ($separator -lt 0 -or $text.Substring(0, $separator) -notin @('http', 'https')) { return $true }
+    # The authority ends at the path, query or fragment; a user name can come
+    # before the host, and a port after it.
+    $authority = ($text.Substring($separator + 3) -split '[/?#]', 2)[0]
+    $authority = $authority.Substring($authority.LastIndexOf('@') + 1)
+    $name = if ($authority.StartsWith('[')) { ($authority.Substring(1) -split '\]', 2)[0] }
+    elseif ($authority.LastIndexOf(':') -ge 0) { $authority.Substring(0, $authority.LastIndexOf(':')) }
+    else { $authority }
+    $name = $name.TrimEnd('.').ToLowerInvariant()
+    if (-not $name -or $name -eq 'localhost') { return $true }
+    if ($name -match '^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$') {
+        if (@($Matches[1..4] | Where-Object { [int]$_ -gt 255 }).Count -eq 0) { return [int]$Matches[1] -eq 127 }
+    }
+    $address = $null
+    if ($name.Contains(':') -and [Net.IPAddress]::TryParse($name, [ref]$address)) { return [Net.IPAddress]::IsLoopback($address) }
+    return $name -match '\.(localdomain|local|invalid|test|example|localhost)$'
+}
+
+# How an organisation manages this PC, read only: joined to a domain, joined to
+# Microsoft Entra ID (CloudDomainJoin\JoinInfo), or enrolled in device management
+# (an OMA-DM account, or an enrolment that names a user or an enrolment server;
+# Windows keeps other enrolments of its own on every PC). A source that can't be
+# read counts as management, so Atlas never lifts what it can't rule out.
+function Get-AtlasDeviceManagement {
+    try { if (Test-AtlasTransitionDomainJoined) { 'domain' } }
+    catch { "domain unreadable ($($_.Exception.Message))" }
+    try {
+        if (@(Get-AtlasTransitionSubKeyName 'SYSTEM\CurrentControlSet\Control\CloudDomainJoin\JoinInfo').Count -gt 0) { 'entra' }
+        if (@(Get-AtlasTransitionSubKeyName 'SOFTWARE\Microsoft\Provisioning\OMADM\Accounts').Count -gt 0) { 'mdm' }
+        else {
+            foreach ($name in @(Get-AtlasTransitionSubKeyName 'SOFTWARE\Microsoft\Enrollments')) {
+                $named = @('UPN', 'DiscoveryServiceFullURL' | Where-Object {
+                        $value = Get-AtlasTransitionValue "SOFTWARE\Microsoft\Enrollments\$name" $_
+                        $value.Present -and -not [string]::IsNullOrWhiteSpace([string]$value.Data)
+                    })
+                if ($named.Count -gt 0) { 'mdm'; break }
+            }
+        }
+    }
+    catch { "join and enrolment unreadable ($($_.Exception.Message))" }
+}
+
+function Test-AtlasTransitionDomainJoined {
+    return [bool](Get-CimInstance -ClassName Win32_ComputerSystem -ErrorAction Stop).PartOfDomain
+}
+
+# Whether Windows Update is pointed at an update server that can't be one
+# (AU\UseWUServer set to 1, with a WUServer Test-AtlasUpdateServerUnusable
+# refuses) on a PC no organisation manages. Tools that block updates set this;
+# Windows Update then reaches nothing, so Atlas lifts the redirect for an update
+# and puts it back afterwards, as it does with the policies that turn Windows
+# Update off. A real server, or any managed PC, keeps its redirect.
+function Test-AtlasWindowsUpdateRedirectBroken {
+    $policy = 'SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    $use = Get-AtlasTransitionValue "$policy\AU" 'UseWUServer'
+    if (-not ($use.Present -and $use.Kind -eq 'DWord' -and [int64]$use.Data -eq 1)) { return $false }
+    if (-not (Test-AtlasUpdateServerUnusable (Get-AtlasTransitionUpdateServer))) { return $false }
+    return @(Get-AtlasDeviceManagement).Count -eq 0
+}
+
+# The WUServer policy value as text: '' when it's absent or not text.
+function Get-AtlasTransitionUpdateServer {
+    $server = Get-AtlasTransitionValue 'SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' 'WUServer'
+    if ($server.Present -and $server.Kind -in @('String', 'ExpandString')) { return [string]$server.Data }
+    return ''
+}
+
 # An organisation's update server owns this PC's updates; Atlas does not
-# override where updates come from.
+# override where updates come from. A redirect to a server that can't be one, on
+# a PC no organisation manages, is lifted with the other settings instead.
 function Test-AtlasWindowsUpdateManaged {
     $server = Get-AtlasTransitionValue 'SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' 'UseWUServer'
     Write-AtlasTransitionEvidence "read AU\UseWUServer: $(Format-AtlasTransitionValue $server)"
     if ($server.Present -and $server.Kind -eq 'DWord' -and [int64]$server.Data -eq 1) {
+        $address = Get-AtlasTransitionUpdateServer
+        $managed = @(Get-AtlasDeviceManagement)
+        Write-AtlasTransitionEvidence "read WUServer: '$address'; managed by: $(if ($managed.Count) { $managed -join ', ' } else { 'nothing' })"
+        if ($managed.Count -eq 0 -and (Test-AtlasUpdateServerUnusable $address)) {
+            Write-AtlasTransitionEvidence 'the update server is one that can''t be reached, on a PC no organisation manages: lifting the redirect for this update, to be put back afterwards'
+            return
+        }
         throw (New-AtlasTransitionFailure 'This PC gets updates from an update server its organisation runs.' 'feature-managed')
     }
 }

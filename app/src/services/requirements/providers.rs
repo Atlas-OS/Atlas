@@ -14,8 +14,8 @@ use windows_registry::LOCAL_MACHINE;
 
 use super::deadline::Deadline;
 use super::wmi::{ComApartment, wmi_query, wmi_strings};
-use crate::services::preparation;
 use crate::services::registry::{NOT_FOUND, key_present, pending_file_renames};
+use crate::services::{preparation, update_access};
 
 /// How long one check may wait for the Windows Update Agent's local search.
 /// It takes seconds on a healthy PC; a provider that never answers must
@@ -354,12 +354,16 @@ pub(super) fn free_space() -> Result<(String, u64)> {
 }
 
 /// Whether this PC gets updates from its organisation's server
-/// (`AU\UseWUServer` set to 1), which the worker never overrides.
+/// (`AU\UseWUServer` set to 1), which the worker never overrides. A redirect
+/// to a server that can't be one, on a PC no organisation manages, isn't:
+/// tools that block updates set it, and the worker lifts it for the move
+/// ([`update_access::redirect_broken`]).
 pub(super) fn managed_update_server() -> bool {
     LOCAL_MACHINE
         .open(r"SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU")
         .and_then(|key| key.get_u32("UseWUServer"))
         .is_ok_and(|value| value == 1)
+        && !update_access::redirect_broken()
 }
 
 #[cfg(test)]

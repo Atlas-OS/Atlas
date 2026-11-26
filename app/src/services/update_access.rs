@@ -42,6 +42,9 @@ enum Rule {
     Future,
     /// Counts only while updates are paused.
     Paused,
+    /// Counts only while Windows Update is sent to an update server that
+    /// can't be one, on a PC no organisation manages (see [`redirect_broken`]).
+    Redirect,
 }
 
 /// The settings the worker may lift, as in its fixed table (the shared
@@ -192,7 +195,153 @@ const ITEMS: &[Item] = &[
         rule: Rule::Paused,
         owner: PAUSE_UPDATES,
     },
+    // Tools that block updates send Windows Update to a server that isn't
+    // there; no Atlas release sets these.
+    Item {
+        id: "policy.WUServer",
+        kind: BlockerKind::Off,
+        path: POLICY,
+        name: "WUServer",
+        rule: Rule::Redirect,
+        owner: None,
+    },
+    Item {
+        id: "policy.WUStatusServer",
+        kind: BlockerKind::Off,
+        path: POLICY,
+        name: "WUStatusServer",
+        rule: Rule::Redirect,
+        owner: None,
+    },
+    Item {
+        id: "policy.UpdateServiceUrlAlternate",
+        kind: BlockerKind::Off,
+        path: POLICY,
+        name: "UpdateServiceUrlAlternate",
+        rule: Rule::Redirect,
+        owner: None,
+    },
+    Item {
+        id: "policy.AU.UseWUServer",
+        kind: BlockerKind::Off,
+        path: AU,
+        name: "UseWUServer",
+        rule: Rule::Redirect,
+        owner: None,
+    },
 ];
+
+const AU: &str = r"SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU";
+
+/// Whether `server`, a `WUServer` policy value, can't name an update server:
+/// empty, not an http or https URL, a loopback address (localhost,
+/// 127.0.0.0/8, ::1), or a host under a name reserved for networks that
+/// aren't routed (.localdomain, .local, .invalid, .test, .example,
+/// .localhost). The worker's `Test-AtlasUpdateServerUnusable` decides the same.
+pub(crate) fn server_unusable(server: Option<&str>) -> bool {
+    let server = server.unwrap_or_default().trim();
+    let Some((scheme, rest)) = server.split_once("://") else { return true };
+    if !scheme.eq_ignore_ascii_case("http") && !scheme.eq_ignore_ascii_case("https") {
+        return true;
+    }
+    // The authority ends at the path, query or fragment; a user name can come
+    // before the host.
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
+    let authority = authority.rsplit_once('@').map_or(authority, |(_, host)| host);
+    let host = if let Some(bracketed) = authority.strip_prefix('[') {
+        bracketed.split_once(']').map_or(bracketed, |(host, _)| host)
+    } else {
+        authority.rsplit_once(':').map_or(authority, |(host, _)| host)
+    };
+    let host = host.trim_end_matches('.').to_ascii_lowercase();
+    if host.is_empty() || host == "localhost" {
+        return true;
+    }
+    let octets: Vec<&str> = host.split('.').collect();
+    if octets.len() == 4
+        && octets
+            .iter()
+            .all(|octet| (1..=3).contains(&octet.len()) && octet.bytes().all(|b| b.is_ascii_digit()))
+        && octets.iter().all(|octet| octet.parse::<u16>().is_ok_and(|value| value <= 255))
+    {
+        return octets[0].parse::<u16>() == Ok(127);
+    }
+    if host.contains(':')
+        && let Ok(address) = host.parse::<std::net::Ipv6Addr>()
+    {
+        return address.is_loopback();
+    }
+    [".localdomain", ".local", ".invalid", ".test", ".example", ".localhost"]
+        .iter()
+        .any(|suffix| host.ends_with(suffix))
+}
+
+/// How an organisation manages this PC, as the worker's
+/// `Get-AtlasDeviceManagement` reads it: joined to a domain, joined to
+/// Microsoft Entra ID, or enrolled in device management (an OMA-DM account,
+/// or an enrolment that names a user or an enrolment server; Windows keeps
+/// other enrolments of its own on every PC). A source that can't be read
+/// counts as management.
+fn device_managed() -> bool {
+    use windows::Win32::NetworkManagement::NetManagement::{
+        NETSETUP_JOIN_STATUS, NetApiBufferFree, NetGetJoinInformation, NetSetupDomainName,
+    };
+    let mut name = windows::core::PWSTR::null();
+    let mut status = NETSETUP_JOIN_STATUS::default();
+    let result = unsafe { NetGetJoinInformation(None, &mut name, &mut status) };
+    if !name.is_null() {
+        unsafe { NetApiBufferFree(Some(name.0.cast())) };
+    }
+    if result != 0 || status == NetSetupDomainName {
+        return true;
+    }
+    let has_subkeys = |path: &str| match LOCAL_MACHINE.open(path) {
+        Ok(key) => key.keys().map(|mut keys| keys.next().is_some()),
+        Err(error) if error.code().0 == NOT_FOUND => Ok(false),
+        Err(error) => Err(error),
+    };
+    let named_enrolment = || -> windows_registry::Result<bool> {
+        let key = match LOCAL_MACHINE.open(r"SOFTWARE\Microsoft\Enrollments") {
+            Ok(key) => key,
+            Err(error) if error.code().0 == NOT_FOUND => return Ok(false),
+            Err(error) => return Err(error),
+        };
+        for name in key.keys()? {
+            let enrolment = key.open(&name)?;
+            let named = |value: &str| enrolment.get_string(value).is_ok_and(|text| !text.trim().is_empty());
+            if named("UPN") || named("DiscoveryServiceFullURL") {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    };
+    !matches!(
+        (
+            has_subkeys(r"SYSTEM\CurrentControlSet\Control\CloudDomainJoin\JoinInfo"),
+            has_subkeys(r"SOFTWARE\Microsoft\Provisioning\OMADM\Accounts"),
+            named_enrolment()
+        ),
+        (Ok(false), Ok(false), Ok(false))
+    )
+}
+
+/// Whether Windows Update is sent to an update server that can't be one
+/// (`AU\UseWUServer` set to 1, with a `WUServer` [`server_unusable`] refuses)
+/// on a PC no organisation manages. The worker lifts such a redirect for an
+/// update and puts it back afterwards
+/// (`Test-AtlasWindowsUpdateRedirectBroken` in `WindowsTransition.ps1`).
+pub fn redirect_broken() -> bool {
+    use windows::Win32::Foundation::ERROR_INVALID_DATA;
+    let redirected = matches!(read_machine(AU, "UseWUServer"), Ok(Some(Value::Number(1))));
+    // A value that isn't text names no server; one that can't be read keeps
+    // the redirect.
+    redirected
+        && match LOCAL_MACHINE.open(POLICY).and_then(|key| key.get_string("WUServer")) {
+            Ok(server) => server_unusable(Some(&server)),
+            Err(error) => error.code().0 == NOT_FOUND || error.code().0 == ERROR_INVALID_DATA.to_hresult().0,
+        }
+        && !device_managed()
+}
 
 /// A registry value as the blocker rules need it.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -204,10 +353,12 @@ pub(crate) enum Value {
 
 /// Which blockers the values hold, by kind, from the same rules the worker
 /// uses. `read` gives each item's value; `owned` says whether a toggle has a
-/// recorded choice.
+/// recorded choice; `redirected` whether the redirect to an update server is
+/// broken ([`redirect_broken`]).
 fn blockers_from(
     mut read: impl FnMut(&Item) -> Option<Value>,
     owned: impl Fn(&str) -> bool,
+    redirected: bool,
     now: DateTime<Utc>,
 ) -> Vec<Blocker> {
     let values: Vec<(&Item, Option<Value>)> = ITEMS.iter().map(|item| (item, read(item))).collect();
@@ -222,6 +373,7 @@ fn blockers_from(
     for (item, value) in &values {
         let blocking = match item.rule {
             Rule::Paused | Rule::Future => paused && value.is_some(),
+            Rule::Redirect => redirected && value.is_some(),
             _ => blocks(item, value),
         };
         if !blocking {
@@ -491,6 +643,7 @@ pub fn read() -> Result<UpdateAccess> {
                 .and_then(|key| key.get_u32("state"))
                 .is_ok()
         },
+        redirect_broken(),
         Utc::now(),
     );
     if let Some(problem) = problem {
@@ -612,9 +765,63 @@ mod tests {
                 Rule::Disabled => "disabled",
                 Rule::Future => "future",
                 Rule::Paused => "paused",
+                Rule::Redirect => "redirect",
             };
             assert_eq!(expected["rule"], rule, "{}", item.id);
         }
+    }
+
+    /// The worker's `Test-AtlasUpdateServerUnusable` takes the same servers
+    /// for ones that can't be.
+    #[test]
+    fn servers_that_can_t_be_update_servers_are_told_apart_from_real_ones() {
+        for server in [
+            "",
+            "   ",
+            "localserver.localdomain.wsus",
+            "wsus.localdomain.localserver:8530",
+            "ftp://wsus.contoso.com",
+            "http://127.0.0.1",
+            "http://127.20.0.9:8530",
+            "http://localhost:8530",
+            "http://[::1]:8530",
+            "http://wsus.home.localdomain",
+            "http://wsus.local:8530",
+            "http://updates.invalid",
+            "http://wsus.test",
+            "http://wsus.example",
+            "http://wsus.localhost",
+            "HTTP://LOCALHOST",
+        ] {
+            assert!(server_unusable(Some(server)), "{server:?}");
+        }
+        assert!(server_unusable(None), "no value");
+        for server in [
+            "http://wsus.contoso.com:8530",
+            "https://10.0.0.5:8531",
+            "http://WSUS01:8530",
+            "http://wsus.example.com",
+            "https://user@wsus.contoso.com/ClientWebService",
+        ] {
+            assert!(!server_unusable(Some(server)), "{server:?}");
+        }
+    }
+
+    /// A broken redirect shows as Windows Update turned off, not by an Atlas
+    /// choice, so Get ready turns it on for the run; one to a real server, or
+    /// on a managed PC, shows nothing.
+    #[test]
+    fn a_broken_redirect_holds_windows_update_back_and_a_real_one_doesn_t() {
+        let read = values(&[
+            ("policy.WUServer", Value::Text("localserver.localdomain.wsus".into())),
+            ("policy.WUStatusServer", Value::Text("localserver.localdomain.wsus".into())),
+            ("policy.AU.UseWUServer", Value::Number(1)),
+        ]);
+        assert_eq!(
+            blockers_from(&read, |_| true, true, now()),
+            vec![Blocker { kind: BlockerKind::Off, owned: false }]
+        );
+        assert_eq!(blockers_from(&read, |_| true, false, now()), vec![]);
     }
 
     fn values(entries: &[(&str, Value)]) -> impl Fn(&Item) -> Option<Value> + use<> {
@@ -636,13 +843,13 @@ mod tests {
             ("pause.PauseUpdatesExpiryTime", Value::Text("3000-12-31T14:03:37Z".into())),
         ]);
         assert_eq!(
-            blockers_from(&read, |_| true, now()),
+            blockers_from(&read, |_| true, false, now()),
             vec![
                 Blocker { kind: BlockerKind::Off, owned: true },
                 Blocker { kind: BlockerKind::Paused, owned: true }
             ]
         );
-        let unowned = blockers_from(&read, |_| false, now());
+        let unowned = blockers_from(&read, |_| false, false, now());
         assert!(unowned.iter().all(|blocker| !blocker.owned));
     }
 
@@ -685,7 +892,7 @@ mod tests {
                 owned: blocker["owned"].as_bool().unwrap(),
             })
             .collect();
-        assert_eq!(blockers_from(read, owned, read_at), expected);
+        assert_eq!(blockers_from(read, owned, false, read_at), expected);
     }
 
     #[test]
@@ -697,11 +904,11 @@ mod tests {
             ("pause.PauseUpdatesExpiryTime", Value::Text("2020-01-01T00:00:00Z".into())),
             ("pause.PauseUpdatesStartTime", Value::Text("2019-12-01T00:00:00Z".into())),
         ]);
-        assert_eq!(blockers_from(read, |_| true, now()), vec![]);
+        assert_eq!(blockers_from(read, |_| true, false, now()), vec![]);
         // A 0.5.0 delay has no toggle that owns it.
         let delayed = values(&[("policy.DeferQualityUpdates", Value::Number(1))]);
         assert_eq!(
-            blockers_from(delayed, |_| true, now()),
+            blockers_from(delayed, |_| true, false, now()),
             vec![Blocker { kind: BlockerKind::Delayed, owned: false }]
         );
     }
