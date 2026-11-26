@@ -293,13 +293,16 @@ fn architecture_text(architecture: Architecture) -> String {
     }
 }
 
-/// A source the person can fix themselves by using other Windows media.
+/// A source the person can fix themselves by using other Windows media, or a
+/// copy of the ISO that Windows can mount.
 fn other_media_fixes(reason: Option<FailureReason>) -> bool {
     matches!(
         reason,
         Some(
             FailureReason::EditionUnsupported
                 | FailureReason::IsoCustomised
+                | FailureReason::IsoCreatedByAtlas
+                | FailureReason::IsoMountFile
                 | FailureReason::WindowsReleaseUnlisted
                 | FailureReason::WindowsUnsupported
         )
@@ -496,6 +499,9 @@ impl IsoPage {
         // Offline: the latest package couldn't be found, so one on this PC is offered.
         if state == "package-offline" {
             self.model.update(cx, |model, _| model.release = ReleaseCheck::Failed);
+        } else if state == "package-windows-iso" {
+            // A Windows ISO chosen as the Atlas package, as the bar above it says.
+            self.archive = Some(downloads.join("Win11_25H2_EnglishInternational_x64.iso"));
         } else {
             self.archive = Some(downloads.join("Atlas.atlaspkg"));
         }
@@ -525,6 +531,7 @@ impl IsoPage {
                 | "iso-customised"
                 | "windows-unsupported"
                 | "package-unsupported"
+                | "package-windows-iso"
                 | "manager-outdated"
         );
         if !before_check {
@@ -541,7 +548,9 @@ impl IsoPage {
             image.architecture = Architecture::Arm64;
             self.source = Some(downloads.join("Win11_25H2_EnglishInternational_Arm64.iso"));
         }
-        let mut manifest = crate::services::package::parse(include_str!("../../../package/atlas.json")).ok();
+        let mut manifest = crate::services::package::parse(include_str!("../../../package/atlas.json"))
+            .ok()
+            .filter(|_| state != "package-windows-iso");
         // A package too old to make an ISO, as the bar above it says.
         if state == "package-unsupported"
             && let Some(manifest) = &mut manifest
@@ -613,6 +622,7 @@ impl IsoPage {
             "iso-customised" => JobResult::Failed(Some(FailureReason::IsoCustomised)),
             "windows-unsupported" => JobResult::Failed(Some(FailureReason::WindowsUnsupported)),
             "package-unsupported" => JobResult::Failed(Some(FailureReason::PackageUnsupported)),
+            "package-windows-iso" => JobResult::Failed(Some(FailureReason::PackageIsWindowsIso)),
             "manager-outdated" => JobResult::Failed(Some(FailureReason::ManagerOutdated)),
             "cancelled" => JobResult::Cancelled,
             _ => JobResult::None,
@@ -1399,7 +1409,9 @@ impl IsoPage {
                             .on_click(cx.listener(|this, _, _, cx| this.pick(Field::Source, cx))),
                     ),
             );
-        } else if checking && reason == Some(FailureReason::PackageUnsupported) {
+        } else if checking
+            && matches!(reason, Some(FailureReason::PackageUnsupported | FailureReason::PackageIsWindowsIso))
+        {
             accent = true;
             bar = bar.action(
                 Button::new("iso-fix-package", t!("iso-fix-package"))
@@ -1444,6 +1456,7 @@ impl IsoPage {
                         Some(
                             FailureReason::PackageChanged
                                 | FailureReason::PackageUnsupported
+                                | FailureReason::PackageIsWindowsIso
                                 | FailureReason::ManagerOutdated
                         )
                     ) =>
@@ -1740,10 +1753,13 @@ impl IsoPage {
             (bundled, latest_predates_app, locked, is_latest, version)
         };
         // The review fixture shows the verified-release state without making a network
-        // request, except for the old package a refused package stands for.
+        // request, except for the old package or the Windows ISO a refused package stands for.
         #[cfg(debug_assertions)]
-        let is_latest =
-            is_latest || self.preview.as_deref().is_some_and(|state| state != "package-unsupported");
+        let is_latest = is_latest
+            || self
+                .preview
+                .as_deref()
+                .is_some_and(|state| !matches!(state, "package-unsupported" | "package-windows-iso"));
         let mut body = card_body().child(card_title(cx, "iso-package", t!("iso-review-package"), 3));
         let known = self.archive.is_some() || bundled;
         if known {
@@ -2164,16 +2180,29 @@ impl IsoPage {
                 (t!("iso-edition-unsupported-title"), t!("iso-edition-unsupported"))
             }
             Some(FailureReason::IsoCustomised) => (t!("iso-customised-title"), t!("iso-customised")),
+            // The same setup files, put there by Atlas itself.
+            Some(FailureReason::IsoCreatedByAtlas) => {
+                (t!("iso-created-by-atlas-title"), t!("iso-customised"))
+            }
             Some(FailureReason::WindowsUnsupported) => {
                 (t!("iso-windows-unsupported-title"), t!("iso-windows-unsupported"))
             }
             Some(FailureReason::PackageUnsupported) => {
                 (t!("iso-package-old-title"), t!("iso-package-old", minimum = iso::MINIMUM_VERSION))
             }
+            // Not a version to change: the file goes under Windows ISO instead.
+            Some(FailureReason::PackageIsWindowsIso) => {
+                (t!("iso-package-windows-iso-title"), t!("iso-package-windows-iso"))
+            }
             Some(FailureReason::ManagerMissing) => {
                 (t!("iso-manager-missing-title"), t!("iso-manager-missing"))
             }
             Some(FailureReason::DiskSpace) => (generic_title, t!("iso-failed-space")),
+            Some(FailureReason::DestinationPath) => (generic_title, t!("iso-path-too-long")),
+            Some(FailureReason::IsoMount) => (generic_title, t!("iso-mount-failed")),
+            Some(FailureReason::IsoMountDrivers) => (generic_title, t!("iso-mount-drivers")),
+            Some(FailureReason::IsoMountFile) => (generic_title, t!("iso-mount-file")),
+            Some(FailureReason::IsoMountTimeout) => (generic_title, t!("iso-mount-timeout")),
             Some(FailureReason::Build) if self.network_build && self.stage == Stage::NetworkDrivers => {
                 (generic_title, t!("iso-network-not-added"))
             }
@@ -2196,14 +2225,18 @@ impl IsoPage {
 }
 
 /// Whether a failure gets the help row: only one that nothing on the page
-/// fixes, not media to replace, a package to change or a connection to check.
+/// fixes, not media to replace, a package to change, a connection to check or
+/// drivers to turn back on.
 fn failure_needs_help(reason: Option<FailureReason>, checking: bool, ran: bool) -> bool {
     !ran || match reason {
         Some(
             FailureReason::WindowsReleaseUnknown
             | FailureReason::PackageUnsupported
+            | FailureReason::PackageIsWindowsIso
             | FailureReason::ManagerOutdated
-            | FailureReason::DiskSpace,
+            | FailureReason::DiskSpace
+            | FailureReason::DestinationPath
+            | FailureReason::IsoMountDrivers,
         ) => false,
         reason if checking && other_media_fixes(reason) => false,
         _ => true,

@@ -94,6 +94,7 @@ Previews never start updating or move on by themselves, so each state stays as i
 | `store-updated`, `store-bootstrapped`, `store-repaired` | Updating finished after Microsoft Store was updated, reinstalled or repaired, which only the log says. |
 | `store-skipped-removed` | Updating finished on a PC where Microsoft Store is turned off, so Store apps weren't updated. |
 | `store-repair-failed` | A Store repair that failed, with **Try repair again** and reinstalling behind **Show details**. |
+| `store-appx-staging` | Built-in apps Windows couldn't update after the Store repairs, named, with **Create an Atlas ISO** and **Try again**. |
 | `components-repairing` | Windows repairing its component store before updates. |
 | `components-damaged` | An update that still failed on the component store, with **Restart and try again**. |
 | `components-unrepairable` | Component store damage that Windows can't repair, with **Create an Atlas ISO**. |
@@ -299,7 +300,7 @@ USB previews show made-up drives, and never list drives, check the ISO or write 
 | --- | --- |
 | Home | `home` |
 | Windows | `windows-empty` (the download on offer), `download-change` (its language and architecture open), `download-progress`, `download-failed`, `source-menu` (the Windows ISO's Change menu), `package-offline` (no latest package, with **Open package file**), `checking`, `files-checked`, `this-pc-arm64` (an ISO for another kind of processor) |
-| Windows, bars | `not-elevated`, `elevation-declined`, `failed`, `release-unknown`, `release-unlisted`, `edition-unsupported`, `iso-customised`, `windows-unsupported`, `package-unsupported` (an Atlas 0.5.0 package), `manager-outdated` |
+| Windows, bars | `not-elevated`, `elevation-declined`, `failed`, `release-unknown`, `release-unlisted`, `edition-unsupported`, `iso-customised`, `windows-unsupported`, `package-unsupported` (an Atlas 0.5.0 package), `package-windows-iso` (a Windows ISO chosen as the package), `manager-outdated` |
 | Setup | `setup` (two editions, Windows Setup choosing), `setup-another-pc`, `account-empty`, `account-invalid`, `setup-now` (the questions inline), `setup-extras-folded` (the extras folded by Hide), `before-desktop`, `choices-unsupported` |
 | Create | `review`, `review-before` (a choice that reduces protection), `review-space` (too little free space, with **Open Storage settings**), `progress` (part of the way through writing the ISO), `progress-network`, `cancelling`, `build-failed`, `network-failed`, `cancelled`, `complete`, `complete-network-inbox` |
 | Preparation | `prepare-idle`, `prepare-busy`, `prepare-stopping`, `prepare-download`, `prepare-complete`, `prepare-resume`, `prepare-failed`, `prepare-failed-battery`, `prepare-unconfirmed`, `prepare-reboot`, `prepare-restart-persists`, `prepare-network`, `prepare-network-limited`, `prepare-previous-worker` |

@@ -40,6 +40,7 @@ Windows Security comes last, so protection is off for as short a time as possibl
 - At most one bar shows under it, the most urgent that applies: a restart owed, then Windows Security protection or a missing Microsoft Defender, then Windows Update settings Atlas changed, then the end of security updates for this Windows, then the rest.
   A bar's raw error is behind **Show details**, and the help row shows only under an unexpected failure.
   Windows that no update path reaches gets a warning, and the ISO card first; a record Atlas can't read gets **Try again** as the accent.
+  An installed Atlas that no package updates, and Atlas's files without a record of a finished install, also put the ISO card first, and Get ready's bar offers **Create an Atlas ISO** for them.
 - **Your Atlas setup** lists each choice under its question, as the Install step's summary does, with Windows and the installation history.
   It records what was chosen, so it shows none of the cautions that go with a choice where it's made.
 
@@ -57,6 +58,7 @@ What needs attention unfolds under its row.
   Where one check alone stands in the way, its fix is the page's accent; where reinstalling Windows is the only way on, **Create an Atlas ISO** is.
 - The package row downloads the latest release by itself.
   It offers **Open package file** as a link, and **Download again** only after a failure.
+  A Windows ISO opened as the package is named as one, and the row adds **Create an Atlas ISO**, the way to reinstall Windows with Atlas from that ISO.
 - Atlas Manager refuses a package that needs a newer Atlas Manager before unpacking anything.
   Such a package names a later `minimumManagerVersion` than this app, or uses a newer manifest format.
   The package row names the version it needs, when the package gives one, and offers **Download Atlas Manager**, which opens the latest release.
@@ -109,6 +111,7 @@ Where moving is optional, it asks which release to use, and keeping this one sta
 - A move that stopped for what a check then finds too (hardware, an update server or free space) is said once, by the check with its fix; the card only says the move starts once the checks pass (`AppModel::move_outcome_held_by_check`).
 
 - Home shows the two parts of such an update, warns when the installed Windows version stops getting security updates, and says when an edition or version can't take the package at all.
+  It names Home and Server editions as Windows does, and says LTSC editions aren't supported instead of naming one, because Windows' name for it ends in a year, such as "LTSC 2024", that reads like a version.
 - If Windows reinstalls itself instead of switching the new version on, the move's card says so.
   Atlas then puts itself back on the rebuilt Windows, an install mode called [Rebase](../../docs/windows-transition.md#rebase).
 - A Rebase uses the choices recorded before the move, and **Your choices** asks only for a choice that nothing recorded.
@@ -137,7 +140,7 @@ They count only while the move is chosen, and the install never runs them.
 | --- | --- |
 | Windows 11 hardware | A TPM 2.0 and UEFI firmware, where Windows lets Atlas read them; otherwise **Create an Atlas ISO**. |
 | Free space | 6 GiB free on the system drive; otherwise **Open Storage settings**. |
-| Where updates come from | Not an organisation's update server (`AU\UseWUServer`); otherwise **Create an Atlas ISO**. |
+| Where updates come from | Not an organisation's update server (`AU\UseWUServer`); otherwise **Create an Atlas ISO**. A redirect to a server that can't be one, on a PC no organisation manages, passes, as the worker lifts it ([Turning Windows Update on](../../docs/windows-transition.md#turning-windows-update-on)). |
 
 - A blocking check that fails or can't run disables **Continue**.
   Only an update scan that couldn't run can be confirmed by hand.
@@ -357,6 +360,8 @@ Protection is never left off silently.
 
 - Before preparation or an install, the app copies itself to the immutable, hash-named `%ProgramFiles%\Atlas Setup Recovery\<SHA-256>\AtlasManager.exe`.
   Restart registrations use this copy, so deleting the download or unplugging its drive doesn't break recovery.
+  An existing copy without the protected permissions or with other content, as a Windows feature update can leave it, is moved aside and made again, then checked.
+  When it can't be moved aside, or the new copy still doesn't match, staging stops with the reason.
   Before-desktop ISO setup already runs from the protected `%windir%\AtlasISO`, and skips the copy.
 - Jobs live in `Atlas Setup Recovery\Preparation`, scoped to the app's settings path, and in `Atlas Setup Recovery\Media` for ISO and USB jobs (`src/services/recovery_app.rs`, `resources/prepare/Stage-App.ps1`).
   Only administrators and SYSTEM can write their workers, driver policies and journals.

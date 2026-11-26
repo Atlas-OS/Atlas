@@ -115,7 +115,9 @@ BeforeAll {
         param($Packages)
         $script:Events.Add("Uninstall:$(@($Packages) -join '+')")
         if (@($script:UninstallFailed).Count -eq 0) { $script:Pc.DefenderPackage = 'UninstallPending' }
-        return [pscustomobject]@{ RemovedPackages = @(); FailedPackages = @($script:UninstallFailed); UnmatchedPatterns = @() }
+        return [pscustomobject]@{
+            RemovedPackages = @(); FailedPackages = @($script:UninstallFailed); PermanentPackages = @(); UnmatchedPatterns = @()
+        }
     }
     function Set-AtlasDefenderCoreService {
         param($State)
@@ -123,6 +125,10 @@ BeforeAll {
         if ($State -ceq 'Removed') { $script:Pc.CoreServiceRemoved = $true }
     }
     function Test-AtlasDefenderCoreServiceRemoved { $script:Pc.CoreServiceRemoved }
+    function Test-AtlasDefenderPackagePermanent { $false }
+    function Get-AtlasDefenderCoreServiceSnapshot { [pscustomobject]@{ Start = 4; TaskEnabled = $false } }
+    function Restore-AtlasDefenderCoreServiceSnapshot { param($Snapshot) $script:Events.Add('CoreService:Put back') }
+    function Get-AtlasDefenderPermanentMessage { "Microsoft Defender can't be restored on this Windows installation." }
     function Save-AtlasAppxSnapshot { $script:Events.Add('AppxSnapshot') }
     function Invoke-AtlasAppxRemovalPlan {
         param($Definition)
@@ -205,7 +211,9 @@ AfterAll {
     foreach ($name in @(
             'Assert-AtlasPrivilege', 'Import-Module', 'Get-AtlasContext', 'Write-AtlasLog'
             'Install-AtlasCbsPackage', 'Uninstall-AtlasCbsPackage', 'Set-AtlasDefenderCoreService'
-            'Test-AtlasDefenderCoreServiceRemoved', 'Save-AtlasAppxSnapshot', 'Invoke-AtlasAppxRemovalPlan'
+            'Test-AtlasDefenderCoreServiceRemoved', 'Test-AtlasDefenderPackagePermanent', 'Get-AtlasDefenderCoreServiceSnapshot'
+            'Restore-AtlasDefenderCoreServiceSnapshot', 'Get-AtlasDefenderPermanentMessage'
+            'Save-AtlasAppxSnapshot', 'Invoke-AtlasAppxRemovalPlan'
             'Get-AtlasAppxProvisionedFamily', 'Set-AtlasAppxDeprovisioned', 'Test-AtlasVbsChange', 'Invoke-AtlasToggleMachineState'
             'Get-AtlasTransitionMachineFact', 'Get-AtlasServicingPackageState', 'Test-AtlasDefenderServicePresent'
             'Invoke-AtlasEdgeRemoval', 'Get-AtlasAppxRemovalDefinition', 'Get-AtlasChoiceToggleName'

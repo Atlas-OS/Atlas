@@ -456,6 +456,8 @@ acquire-no-asset = Atlas { $version } के लिए डाउनलोड क
 # Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
 # .apbx file from an Atlas release before 0.6.
 acquire-unsupported = यह ऐप Atlas पैकेज (.atlaspkg) से Atlas 0.6.0 और उसके बाद के संस्करण इंस्टॉल कर सकता है।
+# Instead of acquire-unsupported for a Windows ISO opened as the Atlas package. Create an Atlas ISO (iso-open) is beside it.
+acquire-windows-iso = यह एक Windows ISO है, Atlas पैकेज (.atlaspkg) नहीं। Atlas के साथ Windows दोबारा इंस्टॉल करने के लिए, इससे एक Atlas ISO बनाएँ।
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = Atlas { $version } में वे फ़ाइलें नहीं हैं, जिनकी ज़रूरत इस ऐप को इसे इंस्टॉल करने के लिए है। इसे दोबारा डाउनलोड करें, या कोई दूसरा Atlas पैकेज (.atlaspkg) खोलें।
 acquire-failed = Atlas पैकेज तैयार नहीं हो सका। इसे दोबारा डाउनलोड करें, या कोई दूसरा Atlas पैकेज (.atlaspkg) खोलें। विवरण: { $error }
@@ -1209,6 +1211,9 @@ iso-destination-space = { $needed } चाहिए · { $drive } पर { $free
 iso-destination-short = ISO के लिए { $needed } चाहिए, और { $drive } पर { $free } ख़ाली है। जगह ख़ाली करें, या ISO किसी दूसरी ड्राइव पर सहेजें।
 iso-destination-filesystem = { $drive } पर ISO की बड़ी फ़ाइलें नहीं रखी जा सकतीं। इसे NTFS में फ़ॉर्मैट की गई ड्राइव पर सहेजें, जैसे आपकी Windows ड्राइव।
 iso-destination-unusable = Atlas, ISO को केवल इस PC की किसी ड्राइव के फ़ोल्डर में सहेज सकता है।
+# Copying the ISO's files would pass Windows' limit of 260 characters for a path, even at the
+# root of the drive the new ISO is saved to. Under iso-failed.
+iso-path-too-long = जिस फ़ोल्डर में आप सहेज रहे हैं, उसमें ISO की फ़ाइलों को Windows की अनुमति से लंबे पाथ चाहिए होंगे। नया ISO छोटे पाथ वाले फ़ोल्डर में सहेजें, जैसे आपकी Windows ड्राइव का कोई फ़ोल्डर।
 iso-create = ISO बनाएँ
 # Heading above the progress bar and the list of stages (iso-stage-*) while the ISO is
 # being created.
@@ -1254,6 +1259,9 @@ iso-unstaged = Atlas अपना कार्य फ़ोल्डर तै�
 iso-edition-unsupported-title = इस ISO में ऐसा कोई संस्करण नहीं है, जिसका Atlas समर्थन करता हो
 iso-edition-unsupported = Windows Home और LTSC समर्थित नहीं हैं। Pro, Education या Enterprise वाला ISO इस्तेमाल करें।
 iso-customised-title = इस ISO में बदलाव किए गए हैं
+# In place of iso-customised-title, above iso-customised, when the ISO is one Atlas Manager
+# created: Atlas creates an ISO only from an unmodified ISO from Microsoft.
+iso-created-by-atlas-title = यह ISO, Atlas से बनाया गया है
 iso-customised = इसमें पहले से सेटअप फ़ाइलें हैं, जैसे autounattend.xml। Microsoft का बिना बदलाव वाला ISO इस्तेमाल करें।
 iso-preview-title = यह ISO एक पूर्वावलोकन बिल्ड है
 iso-preview = इसका Windows बिल्ड, Microsoft की सार्वजनिक रिलीज़ की सूची में नहीं है। Microsoft का ISO इस्तेमाल करें।
@@ -1264,6 +1272,9 @@ iso-release-unconfirmed = Atlas इसे Microsoft की सार्वजन
 # $minimum is the oldest Atlas version that can make an ISO, such as "0.6.0".
 iso-package-old-title = इस Atlas पैकेज से ISO नहीं बनाया जा सकता
 iso-package-old = Atlas { $minimum } या उससे नया संस्करण इस्तेमाल करें।
+# Instead of iso-package-old-title and iso-package-old when the file chosen as the Atlas package is a Windows ISO. "The Windows ISO" is the field named iso-source.
+iso-package-windows-iso-title = यह एक Windows ISO है, Atlas पैकेज नहीं
+iso-package-windows-iso = इसके बजाय कोई Atlas पैकेज (.atlaspkg) चुनें, और इस ISO को Windows ISO के रूप में चुनें।
 iso-manager-missing-title = Atlas Manager की फ़ाइल नहीं मिली
 iso-fix-package = कोई दूसरा पैकेज चुनें
 # A package that needs a newer Atlas Manager; Download Atlas Manager (manager-download) is
@@ -1283,6 +1294,20 @@ iso-failed-space = गंतव्य ड्राइव पर पर्या�
 iso-manager-missing = AtlasManager.exe को डाउनलोड जैसे किसी स्थानीय फ़ोल्डर में सहेजें, फिर उसे वहीं से खोलें।
 # Home and LTSC are the editions ISO creation drops; the others are examples it keeps.
 iso-failed-edition = इस ISO में कोई समर्थित Windows संस्करण नहीं है। Windows Home और LTSC समर्थित नहीं हैं। ऐसा ISO इस्तेमाल करें, जिसमें कोई दूसरा संस्करण हो, जैसे Pro, Education या Enterprise।
+# Windows didn't open an ISO as a drive Atlas can read: the Windows ISO, the new ISO while it's
+# checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
+# USB page's ISO card.
+iso-mount-failed = Windows ISO नहीं खोल सका। अपना PC रीस्टार्ट करें, फिर कोशिश करें।
+# Windows stopped answering while it read or mounted the ISO.
+iso-mount-timeout = ISO खोलते समय Windows ने जवाब देना बंद कर दिया। अपना PC रीस्टार्ट करें, फिर कोशिश करें।
+# vdrvroot and cdrom are the Windows drivers' own names, as tools that turn drivers off show
+# them. Keep them as they are.
+iso-mount-drivers = इस PC पर Windows ISO फ़ाइलें नहीं खोल सकता, क्योंकि इसके लिए ज़रूरी ड्राइवर, vdrvroot और cdrom, बंद हैं। उन्हें फिर से चालू करें, अपना PC रीस्टार्ट करें, फिर कोशिश करें।
+# Windows can store a file compressed or encrypted (in the file's Properties, under Advanced),
+# and a download can be stored sparse, with space reserved but not yet written. Windows can't
+# open an ISO stored any of these ways. Under iso-check-failed, with iso-download-windows and
+# iso-use-local beside it, or on the USB page's ISO card.
+iso-mount-file = Windows यह ISO नहीं खोल सकता, क्योंकि फ़ाइल कंप्रेस, एन्क्रिप्ट या स्पार्स (sparse) है। इसे ऐसे फ़ोल्डर में कॉपी करें जो कंप्रेस या एन्क्रिप्ट न हो, फिर वह कॉपी इस्तेमाल करें।
 # Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = लॉग फ़ोल्डर खोलें
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,
@@ -1489,6 +1514,8 @@ install-source-resume-package = Atlas { $target } का एक इंस्ट�
 install-source-resume-bundled = Atlas { $target } का एक इंस्टॉलेशन पूरा नहीं हुआ। यह परीक्षण बिल्ड केवल अपने साथ दिया गया Atlas पैकेज इंस्टॉल कर सकता है, इसलिए वह इंस्टॉलेशन Atlas Manager के रिलीज़ बिल्ड में Atlas { $target } के पैकेज से पूरा करें।
 # Send a report and Export diagnostics are offered with it.
 install-source-unconfirmed = Atlas पुष्टि नहीं कर सका कि इस PC पर पहले से क्या इंस्टॉल है, इसलिए वह फ़िलहाल कुछ भी इंस्टॉल नहीं करेगा।
+# Atlas's files are on this PC without a record of a finished installation. Create an Atlas ISO (iso-open) is beside it.
+install-source-unrecorded = इस PC पर Atlas के पुराने संस्करण की फ़ाइलें हैं, लेकिन पूरे हुए इंस्टॉलेशन का कोई रिकॉर्ड नहीं है, इसलिए उसे अपडेट नहीं किया जा सकता। Atlas इंस्टॉल करने के लिए अपनी फ़ाइलों का बैकअप लें और Windows दोबारा इंस्टॉल करें।
 # Under the editions on the Create step, when Windows Setup asks which to install.
 iso-edition-selection = Windows सेटअप में वह संस्करण चुनें, जिसका लाइसेंस आपके पास है।
 detail-windows-preview = Insider बिल्ड समर्थित नहीं हैं। Windows 11 का सार्वजनिक रिलीज़ संस्करण इस्तेमाल करें।
@@ -1643,6 +1670,8 @@ install-windows-edition-only = Atlas { $version }, Windows 11 Pro, Enterprise �
 install-windows-edition-until = Atlas { $version }, Windows 11 Pro, Enterprise और Education के साथ काम करता है, इसलिए यह { $product } पर इंस्टॉल नहीं हो सकता। Windows 11, संस्करण { $current } को { $date } तक सुरक्षा अपडेट मिलेंगे, और Windows Update इस PC को नए संस्करण पर ले जा सकता है।
 # The same once that date has passed.
 install-windows-edition-ended-update = Atlas { $version }, Windows 11 Pro, Enterprise और Education के साथ काम करता है, इसलिए यह { $product } पर इंस्टॉल नहीं हो सकता। संस्करण { $current } को अब सुरक्षा अपडेट नहीं मिलते, इसलिए Atlas के बिना भी Windows अपडेट करें।
+# Instead of install-windows-edition-only on an LTSC edition, which Windows names with a year that reads like a version.
+install-windows-edition-ltsc = Atlas { $version }, Windows 11 Pro, Enterprise और Education के साथ काम करता है। LTSC संस्करण समर्थित नहीं हैं।
 # $releases lists the supported releases, such as "25H2 or 26H2".
 install-windows-reinstall = Atlas { $version } के लिए Windows 11, संस्करण { $releases } ज़रूरी है, और Windows Update इस PC को वहाँ नहीं ले जा सकता। अपनी फ़ाइलों का बैकअप लें, फिर Atlas ISO से Windows दोबारा इंस्टॉल करें।
 # The same on Home, where the card that creates an Atlas ISO comes first and says how to reinstall.
@@ -1852,6 +1881,10 @@ prepare-store-broken-title = Microsoft Store काम नहीं कर र�
 prepare-store-broken = Atlas इसे ठीक नहीं कर सका, और अभी Atlas इंस्टॉल करने से Store ऐप ख़राब हो सकते हैं।
 prepare-store-broken-iso = अगर ठीक करने की कोशिश बार-बार विफल हो, तो अपनी फ़ाइलों का बैकअप लें और Atlas ISO से Windows दोबारा इंस्टॉल करें।
 prepare-repair-store-again = फिर से ठीक करें
+# Windows couldn't install updates for some of its own apps, and Atlas's Store repairs didn't help.
+# $apps lists the apps by their package names, joined with list-and.
+prepare-store-staging-title = Windows अपने बिल्ट-इन ऐप अपडेट नहीं कर पा रहा है
+prepare-store-staging = Windows इन बिल्ट-इन ऐप के अपडेट इंस्टॉल नहीं कर सका, और Atlas के ठीक करने से भी मदद नहीं मिली: { $apps }। { prepare-components-unrepairable }
 
 screen-keyboard-title = कीबोर्ड की भाषाएँ
 screen-keyboard-question = क्या आप कीबोर्ड की कई भाषाएँ इस्तेमाल करते हैं?

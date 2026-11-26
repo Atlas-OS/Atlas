@@ -275,5 +275,55 @@
       "updateType": "2026-11 D",
       "kb": "KB5132057"
     }
+  ],
+  "hotpatches": [
+    {
+      "version": "10.0.26200.7092",
+      "availableDate": "2025-11-11",
+      "updateType": "2025.11 B",
+      "kb": "KB5068966"
+    },
+    {
+      "version": "10.0.26200.7392",
+      "availableDate": "2025-12-09",
+      "updateType": "2025.12 B",
+      "kb": "KB5072014"
+    },
+    {
+      "version": "10.0.26200.7781",
+      "availableDate": "2026-02-10",
+      "updateType": "2026.02 B",
+      "kb": "KB5077212"
+    },
+    {
+      "version": "10.0.26200.7979",
+      "availableDate": "2026-03-10",
+      "updateType": "2026.03 B",
+      "kb": "KB5079420"
+    },
+    {
+      "version": "10.0.26200.8390",
+      "availableDate": "2026-05-12",
+      "updateType": "2026.05 B",
+      "kb": "KB5089466"
+    },
+    {
+      "version": "10.0.26200.9106",
+      "availableDate": "2026-08-11",
+      "updateType": "2026.08 B",
+      "kb": "KB5120994"
+    },
+    {
+      "version": "10.0.26200.9911",
+      "availableDate": "2026-11-10",
+      "updateType": "2026.11 B",
+      "kb": "KB5132043"
+    },
+    {
+      "version": "10.0.26300.9911",
+      "availableDate": "2026-11-10",
+      "updateType": "2026.11 B",
+      "kb": "KB5132043"
+    }
   ]
 }

@@ -32,6 +32,8 @@ foreach ($domainModule in @(
 Export-ModuleMember -Function @(
     'Get-AtlasDefenderState', 'Set-AtlasDefenderState', 'Read-AtlasDefenderStateChoice',
     'Set-AtlasDefenderCoreService', 'Test-AtlasDefenderCoreServiceRemoved',
+    'Test-AtlasDefenderPackagePermanent', 'Get-AtlasDefenderPermanentMessage',
+    'Get-AtlasDefenderCoreServiceSnapshot', 'Restore-AtlasDefenderCoreServiceSnapshot',
     'Get-AtlasVbsConfiguration', 'Set-AtlasVbsConfiguration', 'Test-AtlasVbsChange',
     'Repair-AtlasWindowsTempPermissions'
 )

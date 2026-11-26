@@ -9,8 +9,10 @@
             StateValue    = 1
             Launcher      = '6. Advanced Configuration\Process Explorer\Install Process Explorer.cmd'
             Reboot        = 'None'
-            MachineAction = 'Install-AtlasProcessExplorer'
-            UserAction    = 'Set-AtlasProcessExplorerUserPreference'
+            MachineAction    = 'Install-AtlasProcessExplorer'
+            UserAction       = 'Set-AtlasProcessExplorerUserPreference'
+            # An update leaves another program's Task Manager Debugger alone.
+            ReplayApplicable = 'Test-AtlasProcessExplorerReplayApplicable'
         }
         @{
             Name          = 'Disable'

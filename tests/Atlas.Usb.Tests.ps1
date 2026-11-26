@@ -8,6 +8,9 @@ BeforeAll {
         $node = $ast.Find({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name},$true)
         . ([scriptblock]::Create($node.Extent.Text))
     }
+    # The worker dot-sources the mount helper it shares with the ISO worker.
+    $script:MountHelper = Join-Path (Split-Path $script:UsbScript -Parent) 'Iso-Mount.ps1'
+    . $script:MountHelper
     # Invoke-AtlasUsbEject compiles its CM_Request_Device_EjectW wrapper only when no type of
     # that name exists. This stand-in takes its place in the test session, so no device is
     # ejected: it records the device and refuses as many times as a test asks.
@@ -128,7 +131,7 @@ Describe 'USB worker request and module resolution' {
     It 'writes the drive list as UTF-8 so non-ASCII names reach the app intact' {
         $job = Join-Path $TestDrive 'encoding'
         [void][IO.Directory]::CreateDirectory($job)
-        Copy-Item -LiteralPath $script:UsbScript -Destination $job
+        Copy-Item -LiteralPath $script:UsbScript, $script:MountHelper -Destination $job
         [IO.File]::WriteAllText((Join-Path $job 'usb-request.json'), '{}')
         $name = "Cl$([char]0xE9) $([char]0x424)$([char]0x5C0F)"
         # Functions take precedence over the Storage cmdlets, so no real disk is read.
@@ -159,7 +162,7 @@ function Get-Volume { }
         $marker = Join-Path $TestDrive 'shadow-imported.txt'
         [void][IO.Directory]::CreateDirectory($job)
         [void][IO.Directory]::CreateDirectory($shadow)
-        Copy-Item -LiteralPath $script:UsbScript -Destination $job
+        Copy-Item -LiteralPath $script:UsbScript, $script:MountHelper -Destination $job
         [IO.File]::WriteAllText((Join-Path $job 'usb-request.json'), '{}')
         [IO.File]::WriteAllText((Join-Path $shadow 'Storage.psd1'), "@{ RootModule = 'Storage.psm1'; ModuleVersion = '99.0.0'; FunctionsToExport = @('Get-Disk') }")
         [IO.File]::WriteAllText((Join-Path $shadow 'Storage.psm1'), "[IO.File]::WriteAllText('$marker', 'imported'); function Get-Disk { }")
@@ -421,6 +424,9 @@ Describe 'USB destination safety' {
             $script:MediaRoot = [IO.Path]::GetPathRoot($TestDrive)
             Mock Get-DiskImage { $script:Image }
             Mock Get-Volume { [pscustomobject]@{ DriveLetter=$script:MediaRoot.Substring(0,1) } }
+            # The storage calls run as jobs on a session; these mocks answer directly.
+            Mock Get-AtlasIsoStorageParameters { @{} }
+            Mock Receive-AtlasIsoStorage { if ($null -ne $Job) { $Job } }
             Mock Import-Module { }
             Mock Get-AtlasUsbMediaInfo { [pscustomobject]@{ imagePath=($script:MediaRoot + 'sources\install.wim'); architecture=9 } }
             Mock Get-ChildItem {
@@ -478,6 +484,24 @@ Describe 'USB destination safety' {
             ($script:Destinations -join ',') | Should -BeExactly "$($script:Root)setup.exe,$($script:Root)sources\boot.wim"
             Should -Invoke Test-AtlasUsbCopy -Times 1 -Exactly -ParameterFilter { $Target -ceq $script:Root }
         }
+        It 'converts a large install.esd with the shared export, which stops when cancelled' {
+            $script:RequestFile = Join-Path $script:Job 'usb-request.json'
+            $script:Operation = 'Write'
+            $script:Esd = $script:MediaRoot + 'sources\install.esd'
+            Mock Get-AtlasUsbSourcePlan {
+                $esd = [pscustomobject]@{ source=$script:Esd; relative='sources\install.esd'; bytes=5GB; hash=$null }
+                [pscustomobject]@{ imagePath=$script:Esd; files=@($esd, [pscustomobject]@{ source=($script:MediaRoot + 'setup.exe'); relative='setup.exe'; bytes=1KB; hash=$null }); large=@($esd) }
+            }
+            Mock Get-WindowsImage { [pscustomobject]@{ ImageIndex=1 }; [pscustomobject]@{ ImageIndex=2 } }
+            Mock Export-AtlasWindowsImages { }
+            Mock Split-WindowsImage { }
+            (@(Invoke-AtlasUsbWorker) -join "`n") | Should -Match '^ATLAS_RESULT:.*"verified":true'
+            Should -Invoke Export-AtlasWindowsImages -Times 1 -Exactly -ParameterFilter {
+                $SourceImage -eq $script:Esd -and $DestinationImage -eq (Join-Path $script:Job 'split\install.wim') -and
+                ($Indexes -join ',') -eq '1,2' -and $Checkpoint.ToString().Trim() -eq 'Assert-AtlasUsbContinue'
+            }
+            Should -Invoke Split-WindowsImage -Times 1 -Exactly -ParameterFilter { $ImagePath -eq (Join-Path $script:Job 'split\install.wim') -and $CheckIntegrity }
+        }
         It 'keeps the outcome when the split folder cannot be removed' {
             $script:RequestFile = Join-Path $script:Job 'usb-request.json'
             $script:Operation = 'Write'
@@ -516,6 +540,8 @@ Describe 'USB ISO check before a drive is chosen' {
             }
         }
         Mock Dismount-DiskImage { }
+        Mock Get-AtlasIsoStorageParameters { @{} }
+        Mock Receive-AtlasIsoStorage { if ($null -ne $Job) { $Job } }
         # Nothing a check does may touch a disk.
         Mock Clear-Disk { }
         Mock New-Partition { }
@@ -562,7 +588,7 @@ Describe 'USB checks and writes take turns' {
     BeforeAll {
         $script:Job = Join-Path $TestDrive 'exclusion'
         [void][IO.Directory]::CreateDirectory($script:Job)
-        Copy-Item -LiteralPath $script:UsbScript -Destination $script:Job
+        Copy-Item -LiteralPath $script:UsbScript, $script:MountHelper -Destination $script:Job
         $script:Iso = Join-Path $script:Job 'Windows.iso'
         Set-Content -LiteralPath $script:Iso -Value 'fixture'
         $request = @{ source=$script:Iso; app=$script:Iso; supportedBuilds=@(26200) } | ConvertTo-Json -Compress

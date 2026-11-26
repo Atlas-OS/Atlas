@@ -184,9 +184,15 @@ BeforeAll {
         return [pscustomobject]@{
             RemovedPackages   = @()
             FailedPackages    = @($script:CbsUninstallFailed)
+            PermanentPackages = @()
             UnmatchedPatterns = @()
         }
     }
+    # Stand in for Atlas.Security's permanence reader and core service snapshot.
+    function Test-AtlasDefenderPackagePermanent { $false }
+    function Get-AtlasDefenderCoreServiceSnapshot { [pscustomobject]@{ Start = 4; TaskEnabled = $false } }
+    function Restore-AtlasDefenderCoreServiceSnapshot { param($Snapshot) $script:Events.Add('CoreService:Put back') }
+    function Get-AtlasDefenderPermanentMessage { "Microsoft Defender can't be restored on this Windows installation." }
     function New-ScheduledTaskSettingsSet {
         return 'settings'
     }
@@ -256,7 +262,8 @@ AfterAll {
             'Invoke-AtlasAsUser', 'Remove-AtlasOneDrive', 'Write-AtlasLog', 'Get-AtlasWindowsTransitionRebase'
             'Get-AtlasServicingPackageState', 'Test-AtlasDefenderServicePresent', 'Set-AtlasDefenderCoreService'
             'Test-AtlasDefenderCoreServiceRemoved', 'Stop-AtlasService', 'Set-AtlasServiceStartup', 'Remove-AtlasScheduledTask'
-            'Install-AtlasCbsPackage', 'Uninstall-AtlasCbsPackage'
+            'Install-AtlasCbsPackage', 'Uninstall-AtlasCbsPackage', 'Test-AtlasDefenderPackagePermanent'
+            'Get-AtlasDefenderCoreServiceSnapshot', 'Restore-AtlasDefenderCoreServiceSnapshot', 'Get-AtlasDefenderPermanentMessage'
             'New-ScheduledTaskSettingsSet', 'New-ScheduledTaskTrigger'
             'New-ScheduledTaskPrincipal', 'New-ScheduledTaskAction', 'Register-ScheduledTask'
             'Test-Path', 'New-Item', 'Set-ItemProperty', 'Remove-ItemProperty'

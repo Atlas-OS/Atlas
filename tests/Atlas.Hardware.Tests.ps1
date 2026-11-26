@@ -855,10 +855,14 @@ Describe 'Hardware toggle companions' {
 }
 
 Describe 'set-power-settings install tweak' {
-    It 'applies and records the power-saving choice through the toggle engine' {
-        Mock Test-AtlasOption { $Name -ceq 'disable-power-saving' }
+    BeforeEach {
         Mock Import-AtlasModule
         Mock Invoke-AtlasToggleMachineState
+        Mock Enable-AtlasBalancedPowerScheme
+    }
+
+    It 'applies and records the power-saving choice through the toggle engine' {
+        Mock Test-AtlasOption { $Name -ceq 'disable-power-saving' }
 
         & $script:PowerTweakScript
 
@@ -866,44 +870,132 @@ Describe 'set-power-settings install tweak' {
         Should -Invoke Invoke-AtlasToggleMachineState -Times 1 -Exactly -ParameterFilter {
             $Name -ceq 'PowerSaving' -and $State -ceq 'Disable'
         }
+        Should -Not -Invoke Enable-AtlasBalancedPowerScheme
     }
 
     It 'applies and records the hibernation choice through the toggle engine' {
         Mock Test-AtlasOption { $Name -cin @('disable-power-saving', 'disable-hibernation') }
-        Mock Import-AtlasModule
-        Mock Invoke-AtlasToggleMachineState
-        Mock Invoke-AtlasToggleNativeCommand
 
         & $script:PowerTweakScript
 
         Should -Invoke Invoke-AtlasToggleMachineState -Times 1 -Exactly -ParameterFilter {
             $Name -ceq 'Hibernation' -and $State -ceq 'Disable'
         }
-        Should -Not -Invoke Invoke-AtlasToggleNativeCommand
+        Should -Not -Invoke Enable-AtlasBalancedPowerScheme
     }
 
-    It 'selects Balanced through the checked native runner when power saving is kept' {
-        # Literal GUIDs: a mock the companion calls resolves $script: in the companion's own scope.
+    It 'activates Balanced without the PowerSaving toggle when power saving is kept' {
         Mock Test-AtlasOption { $false }
-        Mock Import-AtlasModule
-        Mock Invoke-AtlasToggleMachineState
-        Mock Invoke-AtlasToggleNativeCommand {
-            if ($PassThru) { [pscustomobject]@{ Output = [string[]]@('Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced)') } }
-        }
 
         & $script:PowerTweakScript
 
+        # The PowerSaving toggle would also change device power saving.
         Should -Not -Invoke Invoke-AtlasToggleMachineState
-        Should -Invoke Invoke-AtlasToggleNativeCommand -Times 1 -Exactly -ParameterFilter {
-            ($ArgumentList -join ' ') -ceq '/setactive 381b4222-f694-41f0-9685-ff5bb260df2e' -and ($AllowedExitCodes -join ',') -ceq '0'
+        Should -Invoke Import-AtlasModule -Times 1 -Exactly -ParameterFilter { $Name -ceq 'Atlas.Hardware' }
+        Should -Invoke Enable-AtlasBalancedPowerScheme -Times 1 -Exactly
+    }
+
+    It 'fails the tweak when Balanced cannot be made active' {
+        Mock Test-AtlasOption { $false }
+        Mock Enable-AtlasBalancedPowerScheme { throw 'The Windows Balanced power scheme is missing and could not be restored: Access is denied' }
+
+        { & $script:PowerTweakScript } | Should -Throw '*Balanced power scheme is missing and could not be restored*'
+    }
+}
+
+Describe 'Enable-AtlasBalancedPowerScheme' {
+    BeforeEach {
+        $script:listedPlans = @($script:balanced, $script:custom)
+        $script:storedPlans = @()
+        $script:reportedActive = $script:custom
+        Mock Assert-AtlasPrivilege -ModuleName Atlas.Hardware
+        Mock Get-AtlasPowerCfgPath -ModuleName Atlas.Hardware { $script:powerCfg }
+        Mock Write-AtlasLog -ModuleName Atlas.Hardware
+        Mock Test-AtlasPowerSchemeStored -ModuleName Atlas.Hardware { $script:storedPlans -ccontains $SchemeGuid }
+        Mock Restore-AtlasBalancedPowerScheme -ModuleName Atlas.Hardware { $script:listedPlans += $script:balanced }
+        # powercfg refuses to activate a plan Windows doesn't have.
+        Mock Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware {
+            switch ($ArgumentList[0]) {
+                '/l' { $script:listedPlans }
+                '/getactivescheme' { "Power Scheme GUID: $script:reportedActive" }
+                '/setactive' {
+                    if ($script:listedPlans + $script:storedPlans -cnotcontains $ArgumentList[1]) {
+                        throw "powercfg.exe /setactive $($ArgumentList[1]) failed with exit code '1'. Invalid Parameters -- try `"/?`" for help"
+                    }
+                    $script:reportedActive = $ArgumentList[1]
+                }
+                default { throw "Unexpected powercfg call: $($ArgumentList -join ' ')" }
+            }
         }
-        Should -Invoke Invoke-AtlasToggleNativeCommand -Times 1 -Exactly -ParameterFilter {
-            ($ArgumentList -join ' ') -ceq '/getactivescheme' -and $PassThru
+    }
+
+    It 'activates an installed Balanced plan without restoring it' {
+        Enable-AtlasBalancedPowerScheme
+
+        $script:reportedActive | Should -BeExactly $script:balanced
+        Should -Invoke Restore-AtlasBalancedPowerScheme -ModuleName Atlas.Hardware -Times 0 -Exactly
+        Should -Invoke Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware -Times 1 -Exactly -ParameterFilter {
+            $ArgumentList[0] -ceq '/setactive' -and $ArgumentList[1] -ceq $script:balanced
+        }
+    }
+
+    It 'restores a missing Balanced plan before activating it' {
+        $script:listedPlans = @($script:custom)
+
+        Enable-AtlasBalancedPowerScheme
+
+        $script:reportedActive | Should -BeExactly $script:balanced
+        Should -Invoke Restore-AtlasBalancedPowerScheme -ModuleName Atlas.Hardware -Times 1 -Exactly
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Hardware -Times 1 -Exactly -ParameterFilter {
+            $Message -ceq 'Restored the missing Windows Balanced power scheme.'
+        }
+    }
+
+    It 'activates a Balanced plan Windows stores but does not list, without replacing it' {
+        $script:listedPlans = @($script:custom)
+        $script:storedPlans = @($script:balanced)
+
+        Enable-AtlasBalancedPowerScheme
+
+        $script:reportedActive | Should -BeExactly $script:balanced
+        Should -Invoke Restore-AtlasBalancedPowerScheme -ModuleName Atlas.Hardware -Times 0 -Exactly
+    }
+
+    It 'stops before activating when the missing Balanced plan cannot be restored' {
+        $script:listedPlans = @($script:custom)
+        Mock Restore-AtlasBalancedPowerScheme -ModuleName Atlas.Hardware { throw 'Access is denied' }
+
+        { Enable-AtlasBalancedPowerScheme } | Should -Throw '*Balanced power scheme is missing and could not be restored: Access is denied*'
+
+        $script:reportedActive | Should -BeExactly $script:custom
+        Should -Invoke Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware -Times 0 -Exactly -ParameterFilter {
+            $ArgumentList[0] -ceq '/setactive'
+        }
+    }
+
+    It 'stops when the restored Balanced plan is not listed' {
+        $script:listedPlans = @($script:custom)
+        Mock Restore-AtlasBalancedPowerScheme -ModuleName Atlas.Hardware
+
+        { Enable-AtlasBalancedPowerScheme } | Should -Throw '*did not list the Balanced power scheme after restoring it*'
+    }
+
+    It 'fails when Balanced does not become the active plan' {
+        Mock Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware {
+            switch ($ArgumentList[0]) {
+                '/l' { $script:listedPlans }
+                '/getactivescheme' { "Power Scheme GUID: $script:custom" }
+            }
         }
 
-        Mock Invoke-AtlasToggleNativeCommand {
-            if ($PassThru) { [pscustomobject]@{ Output = [string[]]@('Power Scheme GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c  (High performance)') } }
-        }
-        { & $script:PowerTweakScript } | Should -Throw '*Balanced power scheme did not become the active scheme*'
+        { Enable-AtlasBalancedPowerScheme } | Should -Throw "*Balanced power scheme did not become the active scheme*$script:custom*"
+    }
+
+    It 'requires Administrator rights before any powercfg work' {
+        Mock Assert-AtlasPrivilege -ModuleName Atlas.Hardware { throw '[privilege] This operation requires Administrator rights.' }
+
+        { Enable-AtlasBalancedPowerScheme } | Should -Throw '*requires Administrator*'
+
+        Should -Invoke Invoke-AtlasPowerCfg -ModuleName Atlas.Hardware -Times 0 -Exactly
     }
 }

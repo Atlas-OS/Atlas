@@ -214,6 +214,135 @@ Describe 'Previous-install file removal' {
     }
 }
 
+Describe 'Previous-install items whose permissions refuse removal' {
+    BeforeAll {
+        Import-Module -Name (Join-Path $script:ScriptsRoot 'Modules\Atlas.Core\Atlas.Core.psd1') -Force
+        Initialize-AtlasNativeType
+        . $script:PreviousInstallScript -LibraryOnly
+
+        $script:Self = [Security.Principal.WindowsIdentity]::GetCurrent().User
+
+        # Gives only the current account the rights listed, on this item alone: a folder's
+        # DACL isn't propagated, so a hard link under it keeps its own. Taking ownership
+        # stands in for the privilege TrustedInstaller enables.
+        function Set-TestOnlyAccess {
+            param([string]$Path, [Security.AccessControl.FileSystemRights]$Rights)
+            $isDirectory = Test-Path -LiteralPath $Path -PathType Container
+            $security = if ($isDirectory) { New-Object Security.AccessControl.DirectorySecurity } else { New-Object Security.AccessControl.FileSecurity }
+            $security.SetAccessRuleProtection($true, $false)
+            $inherit = if ($isDirectory) { [Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit' } else { [Security.AccessControl.InheritanceFlags]::None }
+            $security.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule(
+                        $script:Self, $Rights, $inherit, [Security.AccessControl.PropagationFlags]::None,
+                        [Security.AccessControl.AccessControlType]::Allow)))
+            if ($isDirectory) { [Atlas.Native.DirectoryDacl]::SetProtected($Path, $security) } else { [IO.File]::SetAccessControl($Path, $security) }
+        }
+
+        function New-RefusedFixture {
+            param([string]$Name)
+            $root = Join-Path $TestDrive $Name
+            $refused = New-Item -ItemType Directory -Path (Join-Path $root 'AtlasModules\Scripts\Refused') -Force
+            [IO.File]::WriteAllText((Join-Path $refused.FullName 'helper.ps1'), 'old code')
+            $refusing = [Security.AccessControl.FileSystemRights]'ReadAndExecute, TakeOwnership'
+            Set-TestOnlyAccess -Path (Join-Path $refused.FullName 'helper.ps1') -Rights $refusing
+            Set-TestOnlyAccess -Path $refused.FullName -Rights $refusing
+            return $refused.FullName
+        }
+    }
+
+    AfterEach {
+        # Lets TestDrive clean up whatever a test left refused.
+        Get-ChildItem -LiteralPath $TestDrive -Recurse -Force -ErrorAction SilentlyContinue |
+            Sort-Object -Property FullName -Descending |
+            ForEach-Object { try { Set-TestOnlyAccess -Path $_.FullName -Rights FullControl } catch { $null = $_ } }
+    }
+
+    It 'tells a refusal for its permissions from a file in use' {
+        $denied = try { throw [UnauthorizedAccessException]::new('Access to the path is denied.') } catch { $_ }
+        # How Windows PowerShell's Remove-Item -Force reports a refused delete.
+        $forced = New-Object Management.Automation.ErrorRecord(
+            [ArgumentException]::new('Zugriff verweigert'),
+            'RemoveFileSystemItemArgumentError,Microsoft.PowerShell.Commands.RemoveItemCommand',
+            [Management.Automation.ErrorCategory]::InvalidArgument, $null)
+        $inUse = New-Object Management.Automation.ErrorRecord(
+            [IO.IOException]::new('The process cannot access the file because it is being used by another process.', -2147024864),
+            'RemoveFileSystemItemIOError,Microsoft.PowerShell.Commands.RemoveItemCommand',
+            [Management.Automation.ErrorCategory]::WriteError, $null)
+
+        Test-AtlasRemovalAccessDenied -ErrorRecord $denied | Should -BeTrue
+        Test-AtlasRemovalAccessDenied -ErrorRecord $forced | Should -BeTrue
+        Test-AtlasRemovalAccessDenied -ErrorRecord $inUse | Should -BeFalse
+    }
+
+    It 'takes back an item whose permissions refuse its removal, then removes it' {
+        Mock Enable-AtlasOwnershipPrivilege {}
+        $refused = New-RefusedFixture -Name 'Refused'
+        { Remove-Item -LiteralPath $refused -Recurse -Force -ErrorAction Stop } | Should -Throw
+
+        $output = @(Remove-AtlasPreviousInstallItem -Path $refused)
+
+        Test-Path -LiteralPath $refused | Should -BeFalse
+        ($output -join ' ') | Should -BeLike "Windows refused access to '*', so Atlas takes ownership of '$refused'*"
+        Should -Invoke Enable-AtlasOwnershipPrivilege -Times 1 -Exactly
+    }
+
+    It 'leaves the security of a hard-linked file alone and still removes the link' {
+        Mock Enable-AtlasOwnershipPrivilege {}
+        $refused = New-RefusedFixture -Name 'RefusedLink'
+        $windowsFile = Join-Path $TestDrive 'WinSxS-manifest.txt'
+        [IO.File]::WriteAllText($windowsFile, 'a Windows manifest')
+        Set-TestOnlyAccess -Path $refused -Rights FullControl
+        try {
+            New-Item -ItemType HardLink -Path (Join-Path $refused 'manifest.txt') -Value $windowsFile -ErrorAction Stop | Out-Null
+        }
+        catch {
+            Set-ItResult -Skipped -Because 'this host cannot create hard links'
+            return
+        }
+        # As a WinSxS manifest, the linked file lets this account only read it.
+        Set-TestOnlyAccess -Path $windowsFile -Rights ReadAndExecute
+        Set-TestOnlyAccess -Path $refused -Rights 'ReadAndExecute, TakeOwnership'
+        $before = (Get-Acl -LiteralPath $windowsFile).Sddl
+
+        $null = Remove-AtlasPreviousInstallItem -Path $refused
+
+        Test-Path -LiteralPath $refused | Should -BeFalse
+        (Get-Acl -LiteralPath $windowsFile).Sddl | Should -BeExactly $before
+        [IO.File]::ReadAllText($windowsFile) | Should -BeExactly 'a Windows manifest'
+    }
+
+    It 'refuses to take ownership through a reparse point' {
+        Mock Enable-AtlasOwnershipPrivilege {}
+        $refused = New-RefusedFixture -Name 'RefusedJunction'
+        $elsewhere = New-Item -ItemType Directory -Path (Join-Path $TestDrive 'NotAtlas') -Force
+        [IO.File]::WriteAllText((Join-Path $elsewhere.FullName 'keep.txt'), 'not Atlas''s')
+        Set-TestOnlyAccess -Path $refused -Rights FullControl
+        try {
+            New-Item -ItemType Junction -Path (Join-Path $refused 'link') -Value $elsewhere.FullName -ErrorAction Stop | Out-Null
+        }
+        catch {
+            Set-ItResult -Skipped -Because 'this host cannot create junctions'
+            return
+        }
+        Set-TestOnlyAccess -Path $refused -Rights 'ReadAndExecute, TakeOwnership'
+        $before = (Get-Acl -LiteralPath $elsewhere.FullName).Sddl
+
+        { Grant-AtlasPreviousInstallAccess -Path $refused } |
+            Should -Throw -ExpectedMessage "Refusing to take ownership through a reparse point at '$refused\link'."
+        (Get-Acl -LiteralPath $elsewhere.FullName).Sddl | Should -BeExactly $before
+        Test-Path -LiteralPath (Join-Path $elsewhere.FullName 'keep.txt') | Should -BeTrue
+    }
+
+    It 'stops, naming the item, when the removal is still refused' {
+        Mock Enable-AtlasOwnershipPrivilege {}
+        Mock Grant-AtlasPreviousInstallAccess {}
+        $refused = New-RefusedFixture -Name 'StillRefused'
+
+        { Remove-AtlasPreviousInstallItem -Path $refused } |
+            Should -Throw -ExpectedMessage "Atlas couldn't remove '*' from the previous Atlas install, even after taking ownership of '$refused'*Delete it yourself*"
+        Test-Path -LiteralPath $refused | Should -BeTrue
+    }
+}
+
 Describe 'Atlas file copy' {
     BeforeAll {
         # Copy-AtlasPackage.ps1 finds the staged files four levels above itself and

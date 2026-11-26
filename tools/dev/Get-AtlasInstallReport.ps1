@@ -12,9 +12,10 @@
     than declared, or because it describes the machine rather than Atlas:
 
       1. Machine, under a summary of the findings.
-      2. Atlas install state: the state document and its recorded toggle states, then
-         any unfinished install transaction and the last completed one, with their
-         completed steps.
+      2. Atlas install state: the state document and its recorded toggle states, the
+         version markers in the registry, shown only where they look like an Atlas
+         version, then any unfinished install transaction and the last completed one,
+         with their completed steps.
       3. The toggle state registry store.
       4. Drift, from AtlasModules\Scripts\Entry\Test-AtlasHealth.ps1, stopped after
          25 seconds so the sections after it still have time.
@@ -190,6 +191,23 @@ function Get-RegistryValueOrNull {
     return $item.$Name
 }
 
+function Format-AtlasVersionMarker {
+    <#
+    .SYNOPSIS
+        A version marker as the report shows it. A PC maker's model name, or the
+        organisation someone registered Windows to, can identify the PC or its owner, so
+        only a value shaped like an Atlas version shows as it is. Atlas Manager's log
+        (describe_marker in app/src/services/atlas_state.rs) shows the markers the same way.
+    #>
+    param([AllowNull()]$Value)
+
+    if ($null -eq $Value) { return 'not set' }
+    $text = [string]$Value
+    if ($text -match '\AAtlas(?:OS)?(?: Playbook)? v?[0-9][0-9a-z.+-]{0,31}\z') { return '"{0}"' -f $text }
+    if ($text.Length -eq 0) { return 'empty' }
+    return 'set to something other than an Atlas version'
+}
+
 function Get-FileTail {
     param(
         [Parameter(Mandatory = $true)][string]$Path,
@@ -233,6 +251,31 @@ function Get-InstallTransactionLine {
     "  completedSteps    : $(@($Transaction.completedSteps).Count)"
     foreach ($step in @($Transaction.completedSteps)) {
         "    $step"
+    }
+}
+
+function Get-PreparationStoreLine {
+    <#
+    .SYNOPSIS
+        The Microsoft Store lines of Get ready's three newest runs under $Root: the newest
+        80 of each updates.log, then all of its AppX staging evidence, which the worker
+        writes once a run, within limits of its own, when Windows can't stage app updates.
+    #>
+    param([Parameter(Mandatory = $true)][string]$Root)
+
+    $evidencePrefix = 'Microsoft Store: staging evidence: *'
+    $logs = @(Get-ChildItem -LiteralPath $Root -Recurse -File -Filter 'updates.log' -ErrorAction SilentlyContinue |
+            Sort-Object -Property LastWriteTimeUtc -Descending | Select-Object -First 3)
+    foreach ($log in $logs) {
+        $storeLines = @(Get-Content -LiteralPath $log.FullName -ErrorAction SilentlyContinue | Where-Object { $_ -like 'Microsoft Store: *' })
+        if ($storeLines.Count -eq 0) { continue }
+        "-- Microsoft Store in $($log.FullName) ($($log.LastWriteTime.ToString('s'))) --"
+        $storeLines | Where-Object { $_ -notlike $evidencePrefix } | Select-Object -Last 80
+        $evidence = @($storeLines | Where-Object { $_ -like $evidencePrefix })
+        if ($evidence.Count -gt 0) {
+            "-- AppX staging evidence in $($log.FullName) --"
+            $evidence | Select-Object -First 500
+        }
     }
 }
 
@@ -557,6 +600,12 @@ Add-Section -Title '2. Atlas install state' -Collector {
         Add-Summary 'The Atlas machine state document is missing.'
     }
 
+    # Releases before Atlas 0.6 recorded their version only here, and releases before
+    # 0.4.1 only in the model name, as AtlasOS v<version>.
+    $lines += 'Version markers     :'
+    $lines += "  Model             : $(Format-AtlasVersionMarker (Get-RegistryValueOrNull -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation' -Name 'Model'))"
+    $lines += "  RegisteredOrganization : $(Format-AtlasVersionMarker (Get-RegistryValueOrNull -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'RegisteredOrganization'))"
+
     # A failed or interrupted install keeps its transaction, and the error that stopped
     # it, in active.json until it is resumed; last.json is written only on completion.
     # An empty or 'null' file parses to nothing without an error, and a missing property
@@ -860,17 +909,10 @@ Add-Section -Title '7. Installed applications and AppX packages' -Collector {
         (Get-RegistryValueOrNull -Path 'HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore' -Name 'RemoveWindowsStore'),
         (Get-RegistryValueOrNull -Path 'HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore' -Name 'DisableStoreApps'))
 
-    # What Get ready's last runs did about the Store: each repair step, and each
-    # Store item with its versions and how it ended.
+    # What Get ready's last runs did about the Store: each repair step, each Store
+    # item with its versions and how it ended, and any AppX staging evidence.
     $preparationRoot = Join-Path -Path ([Environment]::GetFolderPath('ProgramFiles')) -ChildPath 'Atlas Setup Recovery\Preparation'
-    $updateLogs = @(Get-ChildItem -LiteralPath $preparationRoot -Recurse -File -Filter 'updates.log' -ErrorAction SilentlyContinue |
-            Sort-Object -Property LastWriteTimeUtc -Descending | Select-Object -First 3)
-    foreach ($log in $updateLogs) {
-        $storeLines = @(Get-Content -LiteralPath $log.FullName -ErrorAction SilentlyContinue | Where-Object { $_ -like 'Microsoft Store: *' })
-        if ($storeLines.Count -eq 0) { continue }
-        $lines += "-- Microsoft Store in $($log.FullName) ($($log.LastWriteTime.ToString('s'))) --"
-        $lines += @($storeLines | Select-Object -Last 80)
-    }
+    $lines += @(Get-PreparationStoreLine -Root $preparationRoot)
 
     $lines += ''
     $provisioned = $null

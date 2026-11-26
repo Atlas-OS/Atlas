@@ -663,6 +663,55 @@ function Get-AtlasAppxProvisioningError {
     }
 }
 
+function Get-AtlasAppxProvisionedFolderLeft {
+    <#
+    .SYNOPSIS
+        The first install folder of a provisioned package that still exists or can't be
+        shown to be gone, or $null when every one is gone. The folders are the one its
+        InstallLocation manifest sits in and %ProgramFiles%\WindowsApps\<PackageName>.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [psobject]$Package,
+
+        # Tests point this at a scratch folder.
+        [ValidateNotNullOrEmpty()]
+        [string]$WindowsAppsRoot = [IO.Path]::Combine([Environment]::GetFolderPath('ProgramFiles'), 'WindowsApps')
+    )
+
+    $folders = [System.Collections.Generic.List[string]]::new()
+    $nameProperty = $Package.PSObject.Properties['PackageName']
+    if ($nameProperty -and -not [string]::IsNullOrWhiteSpace([string]$nameProperty.Value)) {
+        $folders.Add([IO.Path]::Combine($WindowsAppsRoot, [string]$nameProperty.Value))
+    }
+    $locationProperty = $Package.PSObject.Properties['InstallLocation']
+    if ($locationProperty -and -not [string]::IsNullOrWhiteSpace([string]$locationProperty.Value)) {
+        # DISM gives the package's manifest, under %SYSTEMDRIVE%, and a bundle's sits in
+        # AppxMetadata.
+        $location = [Environment]::ExpandEnvironmentVariables([string]$locationProperty.Value).TrimEnd('\')
+        if ($location -like '*.xml') { $location = [IO.Path]::GetDirectoryName($location) }
+        if ([IO.Path]::GetFileName($location) -eq 'AppxMetadata') { $location = [IO.Path]::GetDirectoryName($location) }
+        if ([IO.Path]::IsPathRooted($location)) { $folders.Add($location) }
+    }
+    if ($folders.Count -eq 0) {
+        return '(no install folder named)'
+    }
+    foreach ($folder in $folders) {
+        try {
+            $null = Get-Item -LiteralPath $folder -Force -ErrorAction Stop
+            return $folder
+        }
+        catch [System.Management.Automation.ItemNotFoundException] {
+            continue
+        }
+        catch {
+            return $folder
+        }
+    }
+    return $null
+}
+
 function Resolve-AtlasAppxRemovalLeftover {
     <#
     .SYNOPSIS
@@ -740,6 +789,13 @@ function Resolve-AtlasAppxRemovalLeftover {
         }
 
         $allMissingProvisioningFiles = $true
+        # A missing-file error proves nothing on its own: the entry is left over only
+        # once no account has the app installed and its files are gone.
+        $installedAccounts = @($result.Installed | ForEach-Object { @($_.Registrations) } | Where-Object {
+                (Get-AtlasAppxRegistrationKind -InstallState $_.InstallState) -ne 'NotInstalled'
+            })
+        $allowsMissingFiles = $definition.PSObject.Properties['AllowMissingProvisioningFiles'] -and
+            [bool]$definition.AllowMissingProvisioningFiles
         $provisionedNames = @(foreach ($package in $result.Provisioned) {
             $packageNameProperty = $package.PSObject.Properties['PackageName']
             if (-not $packageNameProperty -or [string]::IsNullOrWhiteSpace([string]$packageNameProperty.Value)) {
@@ -752,6 +808,19 @@ function Resolve-AtlasAppxRemovalLeftover {
             $provisioningError = $ProvisionedErrors[$packageName]
             if (-not $provisioningError -or -not $provisioningError.MissingFileOrPath) {
                 $allMissingProvisioningFiles = $false
+            }
+            elseif ($allowsMissingFiles -and $allMissingProvisioningFiles) {
+                if ($installedAccounts.Count -gt 0) {
+                    $allMissingProvisioningFiles = $false
+                    Write-AtlasLog -Message "The provisioning entry '$packageName' isn't left over: an account still has '$($definition.Name)' ($(Format-AtlasAppxRegistration -Registration $installedAccounts))."
+                }
+                else {
+                    $folderLeft = Get-AtlasAppxProvisionedFolderLeft -Package $package
+                    if ($null -ne $folderLeft) {
+                        $allMissingProvisioningFiles = $false
+                        Write-AtlasLog -Message "The provisioning entry '$packageName' isn't left over: its install folder '$folderLeft' isn't gone."
+                    }
+                }
             }
             if ($provisioningError) { "'$packageName' (Windows removal error: $($provisioningError.Detail))" }
             else { "'$packageName'" }
@@ -777,8 +846,9 @@ function Invoke-AtlasAppxRemovalPlan {
         provisioned. A package left only for other accounts, SYSTEM or no account, or
         whose removal Windows finishes at sign-out, is a warning. Definitions marked
         IgnoreErrors only warn. AllowMissingProvisioningFiles permits a provisioning
-        leftover when both attempts return a missing-file or missing-path HRESULT.
-        Option gates come from the install context.
+        leftover when both attempts return a missing-file or missing-path HRESULT, no
+        account has the app installed, and its install folder is gone. Option gates
+        come from the install context.
     #>
     param(
         [Parameter()]

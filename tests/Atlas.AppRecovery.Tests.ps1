@@ -46,6 +46,16 @@ Describe 'Links on recovery paths' {
 }
 
 Describe 'Immutable recovery copies in owned temporary storage' {
+    BeforeAll {
+        # Lets Users read the file too, as permissions a Windows feature update
+        # reset can.
+        function Set-ChangedPermission([string]$Path) {
+            $security = [IO.File]::GetAccessControl($Path, [Security.AccessControl.AccessControlSections]::Access)
+            $users = New-Object Security.Principal.SecurityIdentifier('S-1-5-32-545')
+            $security.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule($users, 'ReadAndExecute', 'Allow')))
+            [IO.File]::SetAccessControl($Path, $security)
+        }
+    }
     BeforeEach {
         # Exercise the real copy/hash/atomic rename with a current-user-only test ACL.
         # Production descriptors are independently checked above; never create Program Files entries.
@@ -87,11 +97,44 @@ Describe 'Immutable recovery copies in owned temporary storage' {
         [IO.File]::ReadAllText($destination) | Should -Be 'second'
         Assert-AtlasRecoveryFileSecurity $destination
     }
-    It 'refuses an altered existing destination rather than overwriting it' {
+    It 'moves an altered copy aside and copies this app again, leaving nothing of it' {
         $first = Copy-AtlasRecoveryExecutable $script:Source $script:Root
         [IO.File]::WriteAllText($first, 'changed')
-        { Copy-AtlasRecoveryExecutable $script:Source $script:Root } | Should -Throw '*does not match*'
+        Copy-AtlasRecoveryExecutable $script:Source $script:Root | Should -Be $first
+        (Get-FileHash -LiteralPath $first).Hash | Should -Be (Get-FileHash -LiteralPath $script:Source).Hash
+        Assert-AtlasRecoveryFileSecurity $first
+        @(Get-ChildItem -LiteralPath (Split-Path -Parent $first) -Force).Name | Should -Be @('AtlasManager.exe')
+    }
+    It 'makes a copy whose permissions changed again with the protected ones' {
+        $first = Copy-AtlasRecoveryExecutable $script:Source $script:Root
+        Set-ChangedPermission $first
+        { Assert-AtlasRecoveryFileSecurity $first } | Should -Throw '*permissions changed*'
+        Copy-AtlasRecoveryExecutable $script:Source $script:Root | Should -Be $first
+        { Assert-AtlasRecoveryFileSecurity $first } | Should -Not -Throw
+        (Get-FileHash -LiteralPath $first).Hash | Should -Be (Get-FileHash -LiteralPath $script:Source).Hash
+    }
+    It 'makes the copy Atlas Manager runs from again, from that copy itself' {
+        $first = Copy-AtlasRecoveryExecutable $script:Source $script:Root
+        Set-ChangedPermission $first
+        # Windows lets a running image be renamed.
+        $running = [IO.File]::Open($first, 'Open', 'Read', 'Read, Delete')
+        try {
+            Copy-AtlasRecoveryExecutable $first $script:Root | Should -Be $first
+            { Assert-AtlasRecoveryFileSecurity $first } | Should -Not -Throw
+        }
+        finally { $running.Dispose() }
+        (Get-FileHash -LiteralPath $first).Hash | Should -Be (Get-FileHash -LiteralPath $script:Source).Hash
+    }
+    It 'stops clearly, and changes nothing, when the copy that doesn''t match can''t be moved aside' {
+        $first = Copy-AtlasRecoveryExecutable $script:Source $script:Root
+        [IO.File]::WriteAllText($first, 'changed')
+        $holder = [IO.File]::Open($first, 'Open', 'Read', 'Read')
+        try {
+            { Copy-AtlasRecoveryExecutable $script:Source $script:Root } | Should -Throw '*does not match this app), and Windows refused to move it aside*'
+        }
+        finally { $holder.Dispose() }
         [IO.File]::ReadAllText($first) | Should -Be 'changed'
+        @(Get-ChildItem -LiteralPath (Split-Path -Parent $first) -Force).Name | Should -Be @('AtlasManager.exe')
     }
     Context 'with files the current user may only read' {
         BeforeEach {

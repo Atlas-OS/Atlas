@@ -4,10 +4,12 @@ BeforeAll {
     $errors = $null
     $ast = [Management.Automation.Language.Parser]::ParseFile((Join-Path $script:IsoResources 'Build-Iso.ps1'), [ref]$null, [ref]$errors)
     if ($errors) { throw ($errors | Out-String) }
-    foreach ($name in @('Assert-BootCatalog', 'Get-AtlasIsoDestinationVolume', 'Assert-Output', 'Open-AtlasIsoManager')) {
+    foreach ($name in @('Assert-BootCatalog', 'Initialize-AtlasIsoDestinationVolume', 'Get-AtlasIsoDestinationVolume', 'Test-AtlasIsoLetterVolume', 'Get-AtlasIsoVolumeByLetter', 'Get-AtlasIsoVolumeRoot', 'Get-AtlasIsoDeepestPath', 'Get-AtlasIsoWorkspace', 'Assert-Output', 'Open-AtlasIsoManager')) {
         $function = $ast.Find({ param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name }, $true)
         . ([scriptblock]::Create($function.Extent.Text))
     }
+    # The worker loads the storage helpers it shares with the USB worker.
+    . (Join-Path $script:IsoResources 'Iso-Mount.ps1')
     function Fail([string]$Reason, [string]$Message) { throw "$($Reason): $Message" }
     function Get-TestIsoOutput {
         Assert-Output -OutputPath (Join-Path $TestDrive 'destination.iso') -PackagePath $script:Media -SourcePath $script:Image
@@ -78,6 +80,137 @@ Describe 'ISO destination validation' {
     It 'still reports insufficient space on a supported filesystem' {
         Mock Get-AtlasIsoDestinationVolume { [pscustomobject]@{ FileSystem = 'ReFS'; AvailableBytes = 0 } }
         { Get-TestIsoOutput } | Should -Throw 'disk-space:*'
+    }
+
+    It 'names the call Windows refused' {
+        { Get-AtlasIsoDestinationVolume -Path (Join-Path $TestDrive 'missing') } | Should -Throw '*GetDiskFreeSpaceExW: *'
+    }
+
+    Context 'a volume call Windows refuses' {
+        BeforeEach {
+            Mock Get-AtlasIsoDestinationVolume { throw [ComponentModel.Win32Exception]::new(1314, 'GetVolumeInformationW: A required privilege is not held by the client') }
+            Mock Get-AtlasIsoStorageParameters { @{} }
+            Mock Receive-AtlasIsoStorage { if ($null -ne $Job) { $Job } }
+            $script:Volume = [pscustomobject]@{ DriveLetter = 'C'; FileSystem = 'NTFS'; SizeRemaining = 64GB }
+            Mock Get-Volume { $script:Volume }
+        }
+        It 'reads the filesystem and free space with Get-Volume by the folder''s drive letter' {
+            Get-TestIsoOutput | Should -BeExactly $TestDrive.TrimEnd('\')
+            Should -Invoke Get-Volume -Times 1 -Exactly -ParameterFilter { "$DriveLetter" -eq $TestDrive.Substring(0, 1) }
+        }
+        It 'applies the same checks to what Get-Volume read' {
+            $script:Volume.FileSystem = 'exFAT'
+            { Get-TestIsoOutput } | Should -Throw 'destination-filesystem:*NTFS or ReFS*'
+            $script:Volume.FileSystem = 'NTFS'
+            $script:Volume.SizeRemaining = 0
+            { Get-TestIsoOutput } | Should -Throw 'disk-space:*'
+        }
+        It 'names the refused call when Get-Volume cannot read the volume either' {
+            Mock Get-Volume { }
+            { Get-TestIsoOutput } | Should -Throw "destination-filesystem:*GetVolumeInformationW: A required privilege is not held by the client"
+        }
+        It 'keeps any other failure, such as a volume that is not local, as it is' {
+            Mock Get-AtlasIsoDestinationVolume { throw [IO.IOException]::new('The destination does not resolve to a local volume.') }
+            { Get-TestIsoOutput } | Should -Throw 'destination-filesystem:*not resolve to a local volume*'
+            Should -Invoke Get-Volume -Times 0 -Exactly
+        }
+    }
+
+    It 'trusts a drive letter only where no link leads to another volume' {
+        $target = Join-Path $TestDrive 'elsewhere'
+        [void][IO.Directory]::CreateDirectory((Join-Path $target 'ISO'))
+        Test-AtlasIsoLetterVolume (Get-Item -LiteralPath (Join-Path $target 'ISO')) | Should -BeTrue
+        $junction = Join-Path $TestDrive 'linked'
+        $null = cmd.exe /d /c mklink /J "$junction" "$target"
+        try { Test-AtlasIsoLetterVolume (Get-Item -LiteralPath (Join-Path $junction 'ISO')) | Should -BeFalse }
+        finally { [IO.Directory]::Delete($junction) }
+        Test-AtlasIsoLetterVolume ([pscustomobject]@{ FullName = '\\server\share\ISO'; Attributes = [IO.FileAttributes]::Directory; LinkType = $null; Parent = $null }) | Should -BeFalse
+    }
+}
+
+Describe 'Windows installation files on the source' {
+    BeforeAll {
+        # The worker's check of the mounted source, run on a folder that stands for it.
+        $parsed = [Management.Automation.Language.Parser]::ParseFile((Join-Path $script:IsoResources 'Build-Iso.ps1'), [ref]$null, [ref]$null)
+        $loop = $parsed.Find({ param($n) $n -is [Management.Automation.Language.ForEachStatementAst] -and $n.Condition.Extent.Text -like "*'setup.exe'*" }, $true)
+        $script:CheckInstallationFiles = [scriptblock]::Create("param(`$root)`n" + $loop.Extent.Text)
+        $script:InstallationFiles = @('setup.exe', 'sources\boot.wim', 'efi\microsoft\boot\efisys.bin')
+    }
+    It 'names a missing <Relative> as media the package can''t use' -ForEach @(
+        @{ Relative = 'setup.exe' }, @{ Relative = 'sources\boot.wim' }, @{ Relative = 'efi\microsoft\boot\efisys.bin' }
+    ) {
+        $media = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        foreach ($file in $script:InstallationFiles -ne $Relative) { New-Item -ItemType File -Path (Join-Path $media $file) -Force | Out-Null }
+        { & $script:CheckInstallationFiles "$media\" } | Should -Throw "windows-unsupported: Windows installation file missing: $Relative"
+    }
+    It 'accepts media that has all of them' {
+        $media = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        foreach ($file in $script:InstallationFiles) { New-Item -ItemType File -Path (Join-Path $media $file) -Force | Out-Null }
+        { & $script:CheckInstallationFiles "$media\" } | Should -Not -Throw
+    }
+}
+
+Describe 'Setup content already on the source' {
+    BeforeAll {
+        # The worker's two checks, from the one for Atlas's own media to the loop after it.
+        $parsed = [Management.Automation.Language.Parser]::ParseFile((Join-Path $script:IsoResources 'Build-Iso.ps1'), [ref]$null, [ref]$null)
+        $first = $parsed.Find({ param($n) $n -is [Management.Automation.Language.IfStatementAst] -and $n.Clauses[0].Item1.Extent.Text -clike '*\AtlasISO*' }, $true)
+        $loop = $parsed.Find({ param($n) $n -is [Management.Automation.Language.ForEachStatementAst] -and $n.Condition.Extent.Text -like "*'autounattend.xml'*" }, $true)
+        $text = $parsed.Extent.Text.Substring($first.Extent.StartOffset, $loop.Extent.EndOffset - $first.Extent.StartOffset)
+        $script:CheckSetupContent = [scriptblock]::Create("param(`$root)`n" + $text)
+        function New-TestSource([string[]]$Files) {
+            $media = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+            foreach ($file in @('setup.exe') + $Files) { New-Item -ItemType File -Path (Join-Path $media $file) -Force | Out-Null }
+            return "$media\"
+        }
+    }
+    It 'says so when Atlas created the ISO' {
+        $source = New-TestSource @('autounattend.xml', 'sources\$OEM$\$$\AtlasISO\setup.json')
+        { & $script:CheckSetupContent $source } | Should -Throw 'iso-created-by-atlas: *'
+    }
+    It 'still refuses other customised media as before' -ForEach @(
+        @{ File = 'autounattend.xml' }, @{ File = 'sources\$OEM$\$1\Tool.exe' }
+    ) {
+        { & $script:CheckSetupContent (New-TestSource @($File)) } | Should -Throw 'iso-customised: *'
+    }
+    It 'accepts unmodified media' {
+        { & $script:CheckSetupContent (New-TestSource @('sources\install.wim')) } | Should -Not -Throw
+    }
+}
+
+Describe 'ISO workspace paths' {
+    It 'measures the longest file path, and a folder path with room for a file in it' {
+        $tree = Join-Path $TestDrive 'tree'
+        New-Item -ItemType Directory -Path (Join-Path $tree 'sources\dlmanifests') -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $tree 'setup.exe') -Value 'x'
+        Get-AtlasIsoDeepestPath "$tree\" | Should -Be ('sources\dlmanifests'.Length + 12)
+        Set-Content -LiteralPath (Join-Path $tree 'sources\dlmanifests\a-long-manifest-name.dll') -Value 'x'
+        Get-AtlasIsoDeepestPath "$tree\" | Should -Be 'sources\dlmanifests\a-long-manifest-name.dll'.Length
+    }
+    It 'stages beside the output whenever every copied path fits' {
+        Mock Get-AtlasIsoVolumeRoot { throw 'Not needed.' }
+        $parent = 'C:\Users\Someone\Downloads'
+        $name = '.atlas-iso-' + ('0' * 32)
+        # 'C:\Users\Someone\Downloads\.atlas-iso-<32>\media\' is 77 characters.
+        Get-AtlasIsoWorkspace $parent $name 182 | Should -BeExactly "$parent\$name"
+        Should -Invoke Get-AtlasIsoVolumeRoot -Times 0 -Exactly
+    }
+    It 'stages at the root of the same volume when a copied path would reach MAX_PATH' {
+        Mock Get-AtlasIsoVolumeRoot { 'C:\' }
+        $parent = 'C:\Users\Someone\Downloads\' + ('x' * 85)
+        $name = '.atlas-iso-' + ('0' * 32)
+        Get-AtlasIsoWorkspace $parent $name 100 | Should -BeExactly "C:\$name"
+        Should -Invoke Get-AtlasIsoVolumeRoot -Times 1 -Exactly -ParameterFilter { $Path -eq $parent }
+        # A volume mounted in a folder has that folder as its root.
+        Mock Get-AtlasIsoVolumeRoot { 'C:\Mounts\Data\' }
+        Get-AtlasIsoWorkspace $parent $name 100 | Should -BeExactly "C:\Mounts\Data\$name"
+    }
+    It 'asks for a shorter folder when even the volume root is too deep' {
+        Mock Get-AtlasIsoVolumeRoot { 'C:\' + ('m' * 200) + '\' }
+        { Get-AtlasIsoWorkspace ('C:\' + ('m' * 200) + '\iso') ('.atlas-iso-' + ('0' * 32)) 60 } | Should -Throw 'destination-path:*'
+    }
+    It 'finds the mount point of the volume that holds a folder' {
+        Get-AtlasIsoVolumeRoot $script:Media | Should -BeExactly ([IO.Path]::GetPathRoot($script:Media))
     }
 }
 

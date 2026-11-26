@@ -115,12 +115,16 @@ Correlate app log timestamps with the install, preparation or media job.
 
 | Question | Read first | Look for |
 | --- | --- | --- |
+| Why couldn't Home read the installation's details? | The app log | `could not read the Atlas state document:` and the error that stopped it. |
+| Why does Home find Atlas's files but no finished install? | The app log, then the install state section of `report/machine-report.txt` | The version markers in the registry, shown only where they look like an Atlas version. |
 | Why did a move to a newer Windows release stop? | `preparation/windows-transition.log` | Each step of the move, with each outcome's reason ID (`feature-*`). |
 | Where are the move's earlier steps? | `preparation/windows-transition.old.log` | The steps before the log passed 1 MiB. |
 | Did Windows offer the feature update? | `preparation/windows-transition.log` | An `Outcome (feature-not-offered)` line, which isn't an error record. |
 | Which updates did Get ready install? | `updates.log` in each job folder | That run's updates and the Microsoft Store items it waited for. |
 | Why did a preparation worker stop without reporting? | `worker.log` in the same job folder | The error it wrote, for example when PowerShell refused to run it. |
+| Why does Windows still ask for a restart after restarting? | `updates.log` in the job folders | A `stale restart marker` line when servicing had nothing pending, or what it still had waiting. `report/machine-report.txt` shows the restart flags and the end of `CBS.log`. |
 | Why did a Store item end in `Error`? | The event section of `report/machine-report.txt` | The AppX deployment errors behind 0x80073CF9, which only says the install failed. |
+| Why couldn't Windows update built-in apps (`store-appx-staging`)? | `updates.log`, or the AppX staging evidence in `report/machine-report.txt` | The lines that start with `Microsoft Store: staging evidence:`: each failing deployment's events and what Windows records of each app ([Updates Windows can't stage](preparation.md#updates-windows-cant-stage)). |
 | What state is Windows servicing in? | `report/machine-report.txt` | The `HKLM\SOFTWARE\AtlasOS\WindowsTransition` record, update policies, services, tasks and update history. |
 | Did servicing log errors? | `report/machine-report.txt` | The ends of `CBS.log` and `DISM.log`, the Setup and Windows Update event channels, and pending file renames. |
 | Which way did an update or reinstall go? | `install-capture.log` | The `Install mode:` line, such as `Install mode: Upgrade, keeping your choices.` |
@@ -152,6 +156,8 @@ Each log Atlas and Atlas Manager keep has a limit, so repeated runs can't fill t
 | `windows-transition.log` | Past 1 MiB, copied to `windows-transition.old.log`, replacing the one before, and started again. |
 | AppX deployment events in `updates.log` | Each text once a run, cut at 1,500 characters. |
 | AppX deployment events in `updates.log`, by count | At most four for each package each time a Store item fails, and 24 a run. |
+| AppX staging evidence in `updates.log` | Once a run: eight apps, 25 events of each failing deployment, 30 of the deployment log's errors and warnings and six entries of each kind for each app, each line cut at 600 characters, within 90 seconds. |
+| AppX staging evidence in `report/machine-report.txt` | The first 500 lines of each of the three newest runs. |
 | Media job folders | Starting a job removes other jobs older than a day, always keeping the newest 20. |
 | Diagnostic export | Whole files up to 32 MiB each, 256 MiB in total, and at most 2,048 entries visited. |
 

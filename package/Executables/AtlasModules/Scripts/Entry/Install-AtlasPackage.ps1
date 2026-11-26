@@ -46,7 +46,15 @@ $env:path = "$windir;$sys32;$sys32\Wbem;$sys32\WindowsPowerShell\v1.0;" + $env:p
 $script:errorLevel = 0
 $script:warningLevel = 0
 $script:retryPackages = @()
+$script:permanentRemoval = $false
 $literalPackages = $null
+
+function Get-AtlasPackageExitCode {
+	# A removal servicing refused because it keeps the package permanently exits with
+	# CBS_E_CANNOT_UNINSTALL (0x800F0825), so a caller can tell that no retry helps.
+	if ($script:permanentRemoval) { return -2146498523 }
+	return $script:errorLevel
+}
 
 function Restart {
 	shutdown /f /r /t 0 *>$null
@@ -75,11 +83,11 @@ function Finish($failedPackages) {
 		if (@($script:retryPackages).Count -eq 0) {
 			Write-AtlasNote -Text 'The failed packages are not eligible for a Safe Mode retry.'
 			NoRestart
-			exit $script:errorLevel
+			exit (Get-AtlasPackageExitCode)
 		}
 		if ($NoInteraction) {
 			NoRestart
-			exit $script:errorLevel
+			exit (Get-AtlasPackageExitCode)
 		}
 		if (Read-AtlasYesNo -Question 'Arm a Safe Mode retry for the failed packages and restart now?') {
 			$retryPaths = @($script:retryPackages | ForEach-Object { [string]$_.Path })
@@ -94,28 +102,34 @@ function Finish($failedPackages) {
 			NoRestart
 		}
 
-		exit $script:errorLevel
+		exit (Get-AtlasPackageExitCode)
 	}
 
-	if ($script:warningLevel -gt 0) {
+	if ($script:errorLevel -gt 0) {
+		Write-AtlasPartial -Text "$script:errorLevel package change(s) failed; see above."
+	} elseif ($script:warningLevel -gt 0) {
 		Write-AtlasPartial -Text "The package change completed with $script:warningLevel warning(s); see above."
 	} else {
 		Write-AtlasSuccess -Text 'The package change completed.'
 	}
-	if ($NoInteraction) { exit $script:errorLevel }
+	if ($NoInteraction) { exit (Get-AtlasPackageExitCode) }
 	Write-AtlasRestartNotice -Kind Required
 	if (Read-AtlasYesNo -Question 'Restart Windows now?') {
 		Write-AtlasStep -Text 'Restarting Windows...'
 		Restart
 	} else {
 		Wait-AtlasExit
-		exit $script:errorLevel
+		exit (Get-AtlasPackageExitCode)
 	}
 }
 
 if ($UninstallPackages) {
 	$uninstallResult = Uninstall-AtlasCbsPackage -Packages $UninstallPackages
 	$script:errorLevel += @($uninstallResult.FailedPackages).Count
+	if (@($uninstallResult.PermanentPackages).Count -gt 0) {
+		$script:permanentRemoval = $true
+		Write-AtlasFailure -Text "Windows keeps $(@($uninstallResult.PermanentPackages) -join ', ') as a permanent part of this Windows installation, so it can't be removed."
+	}
 	if ((@($uninstallResult.RemovedPackages).Count + @($uninstallResult.FailedPackages).Count) -eq 0) {
 		$script:warningLevel++
 	} elseif (@($uninstallResult.UnmatchedPatterns).Count -gt 0) {
@@ -154,7 +168,7 @@ try {
 	Write-AtlasFailure -Text $_.Exception.Message
 	$script:errorLevel++
 	if (!$NoInteraction) { Wait-AtlasExit }
-	exit $script:errorLevel
+	exit (Get-AtlasPackageExitCode)
 }
 
 $script:errorLevel += @($installResult.FailedPackages).Count

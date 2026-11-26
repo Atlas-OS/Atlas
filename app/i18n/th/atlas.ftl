@@ -442,6 +442,8 @@ acquire-no-asset = Atlas { $version } ไม่มีไฟล์แพ็กเ
 # Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
 # .apbx file from an Atlas release before 0.6.
 acquire-unsupported = แอปนี้ติดตั้งได้เฉพาะ Atlas 0.6.0 ขึ้นไปจากแพ็กเกจ Atlas (.atlaspkg)
+# Instead of acquire-unsupported for a Windows ISO opened as the Atlas package. Create an Atlas ISO (iso-open) is beside it.
+acquire-windows-iso = ไฟล์นี้เป็น ISO ของ Windows ไม่ใช่แพ็กเกจ Atlas (.atlaspkg) หากต้องการติดตั้ง Windows ใหม่พร้อม Atlas ให้ใช้ไฟล์นี้สร้าง ISO พร้อม Atlas
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = Atlas { $version } ขาดไฟล์ที่แอปนี้ต้องใช้ในการติดตั้ง ดาวน์โหลดอีกครั้ง หรือเปิดแพ็กเกจ Atlas (.atlaspkg) อีกไฟล์หนึ่ง
 acquire-failed = เตรียมแพ็กเกจ Atlas ไม่ได้ ดาวน์โหลดอีกครั้ง หรือเปิดแพ็กเกจ Atlas (.atlaspkg) อื่น รายละเอียด: { $error }
@@ -1144,6 +1146,9 @@ iso-destination-space = ต้องใช้ { $needed } · { $drive } ว่�
 iso-destination-short = ISO ต้องใช้พื้นที่ { $needed } แต่ { $drive } มีพื้นที่ว่าง { $free } เพิ่มพื้นที่ว่าง หรือบันทึก ISO ลงในไดรฟ์อื่น
 iso-destination-filesystem = { $drive } เก็บไฟล์ขนาดใหญ่ของ ISO ไม่ได้ บันทึกลงในไดรฟ์ที่ฟอร์แมตเป็น NTFS เช่น ไดรฟ์ Windows ของคุณ
 iso-destination-unusable = Atlas บันทึก ISO ได้เฉพาะในโฟลเดอร์บนไดรฟ์ในพีซีเครื่องนี้
+# Copying the ISO's files would pass Windows' limit of 260 characters for a path, even at the
+# root of the drive the new ISO is saved to. Under iso-failed.
+iso-path-too-long = ในโฟลเดอร์ที่คุณบันทึก ไฟล์ใน ISO จะต้องใช้พาธที่ยาวเกินกว่าที่ Windows อนุญาต บันทึก ISO ใหม่ลงในโฟลเดอร์ที่มีพาธสั้นกว่า เช่น โฟลเดอร์ในไดรฟ์ Windows ของคุณ
 iso-create = สร้าง ISO
 # Heading above the progress bar and the list of stages (iso-stage-*) while the ISO is
 # being created.
@@ -1191,6 +1196,9 @@ iso-unstaged = Atlas เตรียมโฟลเดอร์ทำงาน�
 iso-edition-unsupported-title = ISO นี้ไม่มีรุ่นที่ Atlas รองรับ
 iso-edition-unsupported = ไม่รองรับ Windows Home และ LTSC ให้ใช้ ISO ที่มีรุ่น Pro, Education หรือ Enterprise
 iso-customised-title = ISO นี้ผ่านการปรับแต่งมาแล้ว
+# In place of iso-customised-title, above iso-customised, when the ISO is one Atlas Manager
+# created: Atlas creates an ISO only from an unmodified ISO from Microsoft.
+iso-created-by-atlas-title = ISO นี้สร้างโดย Atlas
 iso-customised = ISO นี้มีไฟล์ตั้งค่าการติดตั้งอยู่แล้ว เช่น autounattend.xml ให้ใช้ ISO จาก Microsoft ที่ไม่ได้ดัดแปลง
 iso-preview-title = ISO นี้เป็นบิลด์ตัวอย่าง
 iso-preview = บิลด์ Windows ของ ISO นี้ไม่อยู่ในรายการรุ่นเผยแพร่สาธารณะของ Microsoft ให้ใช้ ISO จาก Microsoft
@@ -1201,6 +1209,9 @@ iso-release-unconfirmed = Atlas จะตรวจสอบกับรายก
 # $minimum is the oldest Atlas version that can make an ISO, such as "0.6.0".
 iso-package-old-title = แพ็กเกจ Atlas นี้สร้าง ISO ไม่ได้
 iso-package-old = ใช้ Atlas { $minimum } ขึ้นไป
+# Instead of iso-package-old-title and iso-package-old when the file chosen as the Atlas package is a Windows ISO. "The Windows ISO" is the field named iso-source.
+iso-package-windows-iso-title = ไฟล์นี้เป็น ISO ของ Windows ไม่ใช่แพ็กเกจ Atlas
+iso-package-windows-iso = ให้เลือกแพ็กเกจ Atlas (.atlaspkg) แทน และเลือก ISO นี้เป็น ISO ของ Windows
 iso-manager-missing-title = ไม่พบไฟล์ของ Atlas Manager
 iso-fix-package = เลือกแพ็กเกจอื่น
 # A package that needs a newer Atlas Manager; Download Atlas Manager (manager-download) is
@@ -1220,6 +1231,20 @@ iso-failed-space = พื้นที่ว่างในไดรฟ์ปล�
 iso-manager-missing = ดาวน์โหลด AtlasManager.exe ไปยังโฟลเดอร์ในเครื่อง เช่น ดาวน์โหลด แล้วเปิดจากที่นั่น
 # Home and LTSC are the editions ISO creation drops; the others are examples it keeps.
 iso-failed-edition = ISO นี้ไม่มีรุ่น Windows ที่รองรับ ไม่รองรับ Windows Home และ LTSC ให้ใช้ ISO ที่มีรุ่นอื่น เช่น Pro, Education หรือ Enterprise
+# Windows didn't open an ISO as a drive Atlas can read: the Windows ISO, the new ISO while it's
+# checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
+# USB page's ISO card.
+iso-mount-failed = Windows เปิด ISO ไม่ได้ รีสตาร์ตพีซีของคุณ แล้วลองอีกครั้ง
+# Windows stopped answering while it read or mounted the ISO.
+iso-mount-timeout = Windows หยุดตอบสนองขณะเปิด ISO รีสตาร์ตพีซีของคุณ แล้วลองอีกครั้ง
+# vdrvroot and cdrom are the Windows drivers' own names, as tools that turn drivers off show
+# them. Keep them as they are.
+iso-mount-drivers = Windows เปิดไฟล์ ISO ในพีซีเครื่องนี้ไม่ได้ เนื่องจากไดรเวอร์ที่ใช้เปิดไฟล์เหล่านี้ คือ vdrvroot และ cdrom ถูกปิดใช้งานอยู่ เปิดใช้งานไดรเวอร์เหล่านี้อีกครั้ง รีสตาร์ตพีซีของคุณ แล้วลองอีกครั้ง
+# Windows can store a file compressed or encrypted (in the file's Properties, under Advanced),
+# and a download can be stored sparse, with space reserved but not yet written. Windows can't
+# open an ISO stored any of these ways. Under iso-check-failed, with iso-download-windows and
+# iso-use-local beside it, or on the USB page's ISO card.
+iso-mount-file = Windows เปิด ISO นี้ไม่ได้ เนื่องจากไฟล์ถูกบีบอัด ถูกเข้ารหัส หรือเป็นไฟล์แบบ sparse คัดลอกไฟล์ไปยังโฟลเดอร์ที่ไม่ได้บีบอัดหรือเข้ารหัส แล้วใช้สำเนานั้น
 iso-diagnostics = เปิดโฟลเดอร์บันทึก
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,
 # from another page. Their controls are unavailable until it finishes.
@@ -1417,6 +1442,8 @@ install-source-resume-package = การติดตั้ง Atlas { $target }
 install-source-resume-bundled = การติดตั้ง Atlas { $target } ยังไม่เสร็จ รุ่นทดสอบนี้ติดตั้งได้เฉพาะแพ็กเกจ Atlas ที่มาพร้อมกัน จึงต้องติดตั้งให้เสร็จด้วยแพ็กเกจ Atlas { $target } ใน Atlas Manager รุ่นเผยแพร่
 # Send a report and Export diagnostics are offered with it.
 install-source-unconfirmed = Atlas ยืนยันไม่ได้ว่ามีอะไรติดตั้งอยู่แล้วบนพีซีเครื่องนี้ จึงจะยังไม่ติดตั้งสิ่งใดในตอนนี้
+# Atlas's files are on this PC without a record of a finished installation. Create an Atlas ISO (iso-open) is beside it.
+install-source-unrecorded = พีซีเครื่องนี้มีไฟล์จาก Atlas เวอร์ชันก่อนหน้า แต่ไม่มีบันทึกว่าการติดตั้งเสร็จสมบูรณ์ จึงอัปเดตไม่ได้ หากต้องการติดตั้ง Atlas ให้สำรองไฟล์ของคุณแล้วติดตั้ง Windows ใหม่
 # Under the editions on the Create step, when Windows Setup asks which to install.
 iso-edition-selection = ในโปรแกรมติดตั้ง Windows ให้เลือกรุ่นที่คุณมีสิทธิ์การใช้งาน
 detail-windows-preview = ไม่รองรับบิลด์ Insider ให้ใช้ Windows 11 รุ่นที่เผยแพร่ทั่วไป
@@ -1563,6 +1590,8 @@ install-windows-edition-only = Atlas { $version } ใช้ได้กับ Wi
 install-windows-edition-until = Atlas { $version } ใช้ได้กับ Windows 11 Pro, Enterprise และ Education จึงติดตั้งบน { $product } ไม่ได้ Windows 11 เวอร์ชัน { $current } จะได้รับการอัปเดตความปลอดภัยจนถึงวันที่ { $date } และ Windows Update เปลี่ยนพีซีเครื่องนี้เป็นเวอร์ชันที่ใหม่กว่าได้
 # The same once that date has passed.
 install-windows-edition-ended-update = Atlas { $version } ใช้ได้กับ Windows 11 Pro, Enterprise และ Education จึงติดตั้งบน { $product } ไม่ได้ เวอร์ชัน { $current } ไม่ได้รับการอัปเดตความปลอดภัยแล้ว จึงควรอัปเดต Windows แม้จะไม่ใช้ Atlas
+# Instead of install-windows-edition-only on an LTSC edition, which Windows names with a year that reads like a version.
+install-windows-edition-ltsc = Atlas { $version } ใช้ได้กับ Windows 11 Pro, Enterprise และ Education ไม่รองรับรุ่น LTSC
 # $releases lists the supported releases, such as "25H2 or 26H2".
 install-windows-reinstall = Atlas { $version } ต้องใช้ Windows 11 เวอร์ชัน { $releases } และ Windows Update เปลี่ยนพีซีเครื่องนี้เป็นเวอร์ชันนั้นไม่ได้ สำรองไฟล์ของคุณ แล้วติดตั้ง Windows ใหม่ด้วย ISO ของ Atlas
 # The same on Home, where the card that creates an Atlas ISO comes first and says how to reinstall.
@@ -1768,6 +1797,10 @@ prepare-store-broken-title = Microsoft Store ไม่ทำงาน
 prepare-store-broken = Atlas ซ่อมแซมไม่ได้ และการติดตั้ง Atlas ตอนนี้อาจทำให้แอปจาก Store เสียหาย
 prepare-store-broken-iso = หากการซ่อมแซมยังไม่สำเร็จ ให้สำรองไฟล์ของคุณ แล้วติดตั้ง Windows ใหม่ด้วย ISO ของ Atlas
 prepare-repair-store-again = ลองซ่อมแซมอีกครั้ง
+# Windows couldn't install updates for some of its own apps, and Atlas's Store repairs didn't help.
+# $apps lists the apps by their package names, joined with list-and.
+prepare-store-staging-title = Windows อัปเดตแอปในตัวไม่ได้
+prepare-store-staging = Windows ติดตั้งการอัปเดตของแอปในตัวเหล่านี้ไม่ได้ และการซ่อมแซมของ Atlas ก็ไม่ได้ช่วย: { $apps } { prepare-components-unrepairable }
 
 screen-keyboard-title = ภาษาของแป้นพิมพ์
 screen-keyboard-question = คุณใช้แป้นพิมพ์หลายภาษาหรือไม่

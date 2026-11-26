@@ -169,6 +169,8 @@ The orderings matter:
 
 - PayloadReplacement replays every time, so a resume syncs the package's files before it skips completed steps.
   A rebuilt package can keep its version while it fixes a failed run.
+  When permissions changed by hand refuse the removal of an old file, it takes ownership of that item in `AtlasModules` or `AtlasDesktop`, gives SYSTEM and Administrators full control and tries again.
+  A removal still refused stops the step, naming the item.
 - Choices runs only when an update or reinstall chooses again, through the step's `ChooseAgainModes` list.
   It comes after LegacyChoices and Software, so the old choices are read and a newly chosen browser is installed first.
   It comes before Defaults and the tweak categories, so they apply the records it writes.
@@ -208,9 +210,17 @@ It exits with 0 on success, 1 on an install failure and 2 on the wrong privilege
 
 - Software installs the latest stable Atlas Toolbox release.
   Only a tester build made with `--toolbox` carries its own Toolbox, in `AtlasModules\Bundled\Toolbox`, and installs that instead.
+- Software tries a download again after 5 and then 15 seconds when the connection fails or the server answers 408, 429 or 5xx, and logs every cause under the failure.
+  Each Visual C++ runtime is attempted, and the step fails at the end naming any that didn't install.
+- When the Google Chrome MSI ends with 1603, a Google-signed `chrome.exe` in Program Files at least as new as the MSI counts as installed.
+  A newer Chrome that only the registry records stops the step, naming those registry keys.
 - Components doesn't install an Atlas CBS package again while servicing shows it installed or waiting for a restart.
   Keeping Defender takes off `Z-Atlas-NoDefender-Package`.
   A failed removal, or a NoDefender package still waiting for a restart, fails the install rather than report success on a PC with no antivirus.
+  Windows can keep the package permanently.
+  Atlas looks for the permanent state (128) in the servicing registry before it changes anything, and a removal Windows refuses with `0x800F0825` means the same.
+  Atlas then says Defender can't come back on that Windows installation, and leaves Defender's core service as it was.
+  Toggle Defender does the same.
 - Choices applies Defender, then Edge, then the app families a choice removes, then the six choice toggles.
   A servicing or Edge failure fails the step at once, and toggle and app failures fail it together once every other choice is applied.
   The next attempt finishes an Edge or app removal an interrupted one began.
@@ -224,7 +234,7 @@ It removes each leftover once more for every account that still has it, and look
 - A required package still installed for the installing user fails the removal and the error points to Settings > Apps. Required provisioning leftovers also fail the removal.
 - A package left only for other accounts, SYSTEM or no account, or whose removal Windows finishes later, is a warning naming the package and its accounts.
 - Families marked `IgnoreErrors`, such as Edge's and the Widgets packages, only warn.
-- A provisioning leftover for Cortana, Get Started, or Office Hub warns if both DISM attempts report a missing file or path (`0x80070002` or `0x80070003`). Atlas logs both codes and still checks removal for the installing user.
+- A provisioning leftover for Cortana, Get Started, or Office Hub warns if both DISM attempts report a missing file or path (`0x80070002` or `0x80070003`), no account has the app installed, and its install folder under `WindowsApps` is gone. Atlas logs both codes and still checks removal for the installing user.
 
 `Set-AtlasAppxDeprovisioned` then registers every removed and matched family under the AppX `Deprovisioned` key, so a feature update doesn't bring them back.
 Its snapshot is in `Install\work`, so a resumed step keeps the families an interrupted attempt removed.
@@ -248,6 +258,7 @@ Run binds the installing user from the marker the front door publishes (see [The
 It runs only from SYSTEM or TrustedInstaller, asks WTS for the recorded session instead of listing sessions, and checks the returned token's SID and session.
 It requires the user's profile hive to be loaded, starts only the inbox Windows PowerShell host with `CreateProcessAsUser`, and waits with a time limit for a child that can't detach.
 Shell refresh, live `HKCU` work, AppX cache work and the other installing-user steps go through it.
+The child's output never reaches the install console, so a failed shell refresh writes its stage, error and script position to `%LOCALAPPDATA%\AtlasOS\Logs\shell-refresh-<id>.log`, named for the run, and the ShellRefresh phase adds them to its error.
 
 ### The HKCU rule
 
@@ -257,6 +268,8 @@ Shell refresh, live `HKCU` work, AppX cache work and the other installing-user s
 2. **Live user.** The installing user's process checks its own SID and writes its own `HKCU`.
 3. **Default user.** TrustedInstaller writes the same declarations to the loaded `HKU\Atlas_DefaultUser` hive, with Atlas.Registry bound to the active transaction.
    Only TrustedInstaller with an active transaction may write it, and other `HKEY_USERS` targets are rejected.
+   A key under its `Software\Policies` whose permissions refuse the write, as some keys older Atlas releases wrote do, is taken back: Atlas takes ownership of it, resets it to inherit its parent's permissions and writes again.
+   A key still refused stops the step, naming it.
 
 DefaultHiveLoad and DefaultHiveUnload bracket every plan, and Atlas records that it owns the mount only after loading the hive.
 After a failure, cleanup unloads a mount this run created and leaves any other.
@@ -343,11 +356,14 @@ It changes nothing and prints a report, or JSON with `-Json`.
 It exits with 0 when it finds no drift, 1 when it does, and 2 when Atlas isn't installed or the check couldn't run.
 
 Scheduled-task changes read the scheduler's language-neutral `Enabled` state before and after `schtasks.exe`, so verification doesn't depend on translated output.
+When `schtasks.exe` can't find the path of a task the scheduler lists, Atlas enables or disables it through the Task Scheduler COM API, and the same check decides.
 Search indexing stages its URLs under `HKLM\SOFTWARE\AtlasOS\Search` while WSearch is stopped.
 Once the service runs, it commits them through `ISearchCrawlScopeManager` and reads the saved scope back.
+A WSearch that stops while starting fails the change at once, with its exit codes.
+One that's still starting after two minutes gets its index reset (`SetupCompletedSuccessfully` = 0), which Windows Search rebuilds, and one more start with a five-minute wait.
 Includes end in a folder separator and exclusions in `\*`, following Microsoft's [scope rule format](https://learn.microsoft.com/windows/win32/search/-search-3x-wds-extidx-csm-scoperules).
 Minimal or Full replaces earlier user scope overrides with Windows's defaults and the preset, and an administrator's Group Policy still wins.
-Atlas leaves Windows's Gather scope records, its `CurrentPolicies` cache and Search setup alone.
+Atlas leaves Windows's Gather scope records, its `CurrentPolicies` cache and Search setup alone, apart from that index reset.
 `Get-AtlasIndexScopeState` reads the scope for reports without changing anything.
 
 ### Registry entry options
@@ -410,8 +426,13 @@ Earlier Atlas builds set the Winlogon shell to `cmd.exe` and saved the original 
 3. At the Safe Mode prompt, you run `Scripts\Entry\Invoke-AtlasCbsRetry.cmd`.
    It starts `CbsRetry.ps1 -Recover` through the broker, because servicing needs a TrustedInstaller token.
    With that token it leaves Safe Mode and installs the recorded packages, and with any other token it changes nothing.
-4. The state file goes only after the retry succeeds.
+4. The state file goes only after the retry succeeds, or after it finds the packages can't be installed.
    `Invoke-AtlasCbsRetry.cmd /discard` gives the retry up, leaving Safe Mode and removing the state.
+
+Atlas arms no retry when servicing refuses a package's signature or the certificate chain it needs, such as `0x80092004` or the `0x800B01xx` trust results.
+Windows decides those from the signature and the PC's certificate stores, which Safe Mode doesn't change.
+The install stops and says what to do instead, and a retry that meets such a failure gives itself up.
+Every servicing failure copies the end of `CBS.log` into the install log, and each package add logs the state of the test root key servicing reads.
 
 One mutex serialises the retry, and recovery is always this explicit `-Recover` operation.
 PayloadReplacement refuses to run while a retry is armed, so it can't replace the installer that recovery needs.

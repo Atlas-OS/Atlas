@@ -81,7 +81,7 @@ The first problem stops the run before anything changes.
 | --- | --- |
 | Windows doesn't need a restart | A restart first |
 | The connection has confirmed internet access and isn't metered or roaming | The connection's reason |
-| The PC doesn't get updates from its organisation's server (`AU\UseWUServer` isn't 1) | `feature-managed` |
+| The PC doesn't get updates from its organisation's server (`AU\UseWUServer` isn't 1, or names a server that can't be one on a PC no organisation manages) | `feature-managed` |
 | BITS, Cryptographic Services and Windows Modules Installer exist and aren't disabled | `feature-blocked` |
 | The system drive has at least 6 GiB free | `feature-disk-space` |
 | Windows doesn't read its component store as `NonRepairable` | `feature-servicing` |
@@ -93,7 +93,7 @@ Atlas Manager reads three of these itself as **Get ready** opens, as PC checks, 
 
 | PC check | Reads | Fails with |
 | --- | --- | --- |
-| **Where updates come from** | `AU\UseWUServer` isn't 1 | **Create an Atlas ISO** |
+| **Where updates come from** | `AU\UseWUServer` isn't 1, or names a server that can't be one on a PC no organisation manages | **Create an Atlas ISO** |
 | **Free space** | The system drive has at least 6 GiB free | **Open Storage settings** |
 | **Windows 11 hardware** | A TPM 2.0 and UEFI firmware, where Windows lets Atlas read them | **Create an Atlas ISO** |
 
@@ -141,7 +141,7 @@ The worker turns on only the settings that hold Windows Update back, from a fixe
 
 | Group | Settings |
 | --- | --- |
-| Turned off | The `DisableWindowsUpdateAccess`, `DoNotConnectToWindowsUpdateInternetLocations` and `AU\NoAutoUpdate` policies, the `wuauserv` and `UsoSvc` services, and the `sih` and `sihboot` tasks |
+| Turned off | The `DisableWindowsUpdateAccess`, `DoNotConnectToWindowsUpdateInternetLocations` and `AU\NoAutoUpdate` policies, the `wuauserv` and `UsoSvc` services, the `sih` and `sihboot` tasks, and a broken redirect's `WUServer`, `WUStatusServer`, `UpdateServiceUrlAlternate` and `AU\UseWUServer` policies |
 | Delayed | The `DeferQualityUpdates` and `DeferQualityUpdatesPeriodInDays` policies |
 | Paused | The pause values under `WindowsUpdate\UpdatePolicy\Settings` and `WindowsUpdate\UX\Settings` |
 | Pin | `TargetReleaseVersion`, `ProductVersion` and `TargetReleaseVersionInfo`, which are retargeted instead of removed |
@@ -149,6 +149,20 @@ The worker turns on only the settings that hold Windows Update back, from a fixe
 These are what Atlas 0.5.0's launchers, Atlas's own toggles or other tools set.
 A task the PC doesn't have is recorded as absent and left alone.
 Windows Update searches and installs without the tasks, so a task that can't be turned on doesn't stop the run.
+
+Tools that block updates can also send Windows Update to an update server that isn't there, which no Atlas release does.
+The redirect is broken when `AU\UseWUServer` is 1 and `WUServer` names no server Windows Update can reach:
+
+- it's empty, or isn't an http or https URL;
+- its host is a loopback address (`localhost`, `127.0.0.0/8` or `::1`);
+- its host is under a name reserved for networks that aren't routed: `.localdomain`, `.local`, `.invalid`, `.test`, `.example` or `.localhost`.
+
+On a PC no organisation manages, the worker lifts a broken redirect's four policies with the other settings, and they come back afterwards as they were.
+A PC counts as managed when it's joined to a domain (`Win32_ComputerSystem.PartOfDomain`) or to Microsoft Entra ID (`CloudDomainJoin\JoinInfo`).
+It also counts when it's enrolled in device management: an OMA-DM account, or an enrolment under `HKLM\SOFTWARE\Microsoft\Enrollments` that names a user or an enrolment server.
+Windows keeps other enrolments of its own on every PC, so those don't count, and anything the worker can't read counts as managed.
+A real update server, or any managed PC, keeps its redirect: a move then stops with `feature-managed`, and so does an ordinary update that would have to turn Windows Update on.
+Atlas Manager's **Where updates come from** check and its view of what holds Windows Update back read the redirect the same way.
 
 The worker reads each value back after changing it.
 A value that goes back, for example because an organisation's policy sets it, stops the run with `feature-policy`.
@@ -218,6 +232,8 @@ Of the feature updates Windows Update offers, the worker installs the one whose 
 Failing that, it installs the one whose title names the target release.
 When several titles name it and none has a known KB number, it installs none and stops with `feature-failed`.
 It logs any other feature update and leaves it alone.
+An offer whose title names another release is left alone even under a KB number the transition lists.
+Windows Update can offer the release before the target under that number, then refuses to download it.
 
 Windows Update can give the offer the KB number of a monthly update.
 So update history counts as the new release only by the ID of the update Atlas installed, or by a title that names the release.
@@ -262,6 +278,9 @@ The worker downloads and installs the feature update on its own.
 Any result that leaves work for a restart counts as installed, because the build Windows starts after the restart decides whether it moved.
 When Windows wants a restart before the install, Atlas Manager restarts first.
 A failed install gets one more try, and the second failure stops the run with `feature-failed`.
+When Windows Update refuses to download the offer (`0x80246017` or `0x80246019`), as it can before it has taken in the target, that try comes after a restart of Windows Update.
+The worker restarts it even after its two restarts for the offer, waits up to two minutes for its policy state to show the release, and searches again.
+A second refusal stops the run with `feature-failed`, and its message names the error.
 An install that meets another installation waits for it first, without using up that try, as monthly updates do (see [Windows updates](preparation.md#windows-updates)).
 When the result gives no code, the log and the outcome have the one Windows Update's history records.
 
@@ -277,9 +296,11 @@ After the restart:
 - On the target build, the worker decides how Windows moved (see [Rebase](#rebase)), then finishes the monthly and Microsoft Store updates.
 - Still on the old build after a restart from Start without Atlas's commit, it asks for one more restart through Atlas Manager.
 - Still on the old build after that, Windows rolled the update back: `feature-rolled-back`.
+  The record then goes back to before the install, so **Try again** installs the feature update again.
 
 The outcome of a rollback names what the servicing log reported for the update's package: the error, and the component that failed with it.
-When the same failure repeats, in this move or in the last one closed within 30 days, the run ends with `feature-servicing` instead, because trying the same update again can't help.
+When a later install attempt rolls back with the same failure, in this move or in the last one closed within 30 days, the run ends with `feature-servicing` instead, because trying the same update again can't help.
+Only rollbacks of earlier attempts count: each attempt starts with an `installed` entry in the record's history, and the rollbacks after the newest one belong to the attempt being checked.
 Repairing Windows, or reinstalling it from an Atlas ISO, is the way on.
 
 ## Putting Windows Update settings back

@@ -1,8 +1,9 @@
 # Features phase.
 # Windows optional-feature work via DISM: enable DirectPlay, remove the Steps Recorder
-# capability (fresh installs only), clean the component store while that is safe (a
-# failure there only warns), and keep the Atlas packages' repair source. Runs as
-# TrustedInstaller and requires online component sources.
+# capability (fresh installs only, repairing the component store once when it's missing a
+# manifest the removal needs), clean the component store while that is safe (a failure
+# there only warns), and keep the Atlas packages' repair source. Runs as TrustedInstaller
+# and requires online component sources.
 Assert-AtlasPrivilege -TrustedInstaller
 
 $context = Get-AtlasContext
@@ -42,6 +43,8 @@ function Invoke-AtlasDism {
         [Parameter(Mandatory = $true)][string[]]$Arguments,
         [Parameter(Mandatory = $true)][string]$Description,
         [int[]]$DeferredExitCode = @(),
+        # Failures the caller handles: the exit code is returned instead of thrown.
+        [int[]]$ReturnExitCode = @(),
         # Work the install can do without: a failure is a warning instead of a stop.
         [switch]$Optional
     )
@@ -60,6 +63,10 @@ function Invoke-AtlasDism {
     }
     if ($disposition -ceq 'Failure') {
         $detail = Get-AtlasDismOutputDetail -Output $output
+        if ($ReturnExitCode -contains $exitCode) {
+            Write-AtlasLog -Message "DISM '$Description' ended with exit code $exitCode. $detail"
+            return $exitCode
+        }
         if ($Optional) {
             Write-AtlasLog -Level Warning -Message "DISM '$Description' failed with exit code $exitCode; continuing without it. $detail"
             return
@@ -78,6 +85,12 @@ function Remove-AtlasStepsRecorder {
         Write-AtlasLog -Message 'Steps Recorder is not listed as a Windows capability; skipping removal.'
         return
     }
+    # 0x800F0831 (CBS_E_STORE_CORRUPTION): the component store is missing a manifest the
+    # removal needs, such as a Feature on Demand's. RestoreHealth can bring it back from
+    # Windows Update, so the store is repaired once and the removal tried again.
+    $storeCorruption = -2146498511
+    $damagedText = 'Repair-install Windows, or back up your files and reinstall Windows with an Atlas ISO, then try again.'
+    $repaired = $false
     foreach ($capability in $capabilities) {
         if ([string]$capability.State -eq 'NotPresent') {
             Write-AtlasLog -Message "Steps Recorder capability '$($capability.Name)' is already absent; skipping removal."
@@ -86,14 +99,48 @@ function Remove-AtlasStepsRecorder {
         if ([string]$capability.State -ne 'Installed') {
             throw "Steps Recorder capability '$($capability.Name)' has unexpected state '$($capability.State)'. Complete pending Windows servicing and restart before retrying."
         }
-        Invoke-AtlasDism -Description 'Removing the Steps Recorder capability' -Arguments @(
-            '/Online', '/Remove-Capability', "/CapabilityName:$($capability.Name)", '/NoRestart'
-        )
+        $removal = @('/Online', '/Remove-Capability', "/CapabilityName:$($capability.Name)", '/NoRestart')
+        $exitCode = Invoke-AtlasDism -Description 'Removing the Steps Recorder capability' `
+            -Arguments $removal -ReturnExitCode $storeCorruption
+        if (@($exitCode) -notcontains $storeCorruption) { continue }
+
+        if (-not $repaired) {
+            $repaired = $true
+            Write-AtlasLog -Level Warning -Message (
+                'Removing the Steps Recorder capability failed with 0x800F0831: the Windows component store ' +
+                'is missing a manifest it needs. Repairing the component store with DISM RestoreHealth, ' +
+                'then removing it again.'
+            )
+            try {
+                Invoke-AtlasDism -Description 'Repairing the component store' -Arguments @(
+                    '/Online', '/Cleanup-Image', '/RestoreHealth', '/NoRestart'
+                )
+            }
+            catch {
+                throw ("Steps Recorder can't be removed because the Windows component store is damaged " +
+                    "(0x800F0831), and DISM couldn't repair it: $($_.Exception.Message) $damagedText")
+            }
+            $exitCode = Invoke-AtlasDism -Description 'Removing the Steps Recorder capability again' `
+                -Arguments $removal -ReturnExitCode $storeCorruption
+            if (@($exitCode) -notcontains $storeCorruption) { continue }
+        }
+        throw ("Steps Recorder can't be removed because the Windows component store is damaged (0x800F0831), " +
+            "even after DISM RestoreHealth. $damagedText")
     }
 }
 
 function Enable-AtlasDirectPlay {
-    $feature = Dism\Get-WindowsOptionalFeature -Online -FeatureName DirectPlay -ErrorAction Stop
+    # Enumerate instead of querying the name: a Windows image without the feature reports
+    # it as unknown (0x800F080C) rather than as an object with a state.
+    $features = @(Dism\Get-WindowsOptionalFeature -Online -ErrorAction Stop | Where-Object {
+            [string]$_.FeatureName -eq 'DirectPlay'
+        })
+    if ($features.Count -eq 0) {
+        throw ("Windows doesn't list the DirectPlay optional feature, so Atlas can't enable it: the " +
+            'Windows component is missing from this installation. Repair-install Windows, or back up ' +
+            'your files and reinstall Windows with an Atlas ISO, then try again.')
+    }
+    $feature = $features[0]
     if ([string]$feature.State -eq 'Enabled') {
         Write-AtlasLog -Message 'DirectPlay is already enabled; skipping change.'
         return

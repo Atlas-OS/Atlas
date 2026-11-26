@@ -358,8 +358,26 @@ fn judge_volume(volume: &Volume, needed: u64) -> Option<DestinationProblem> {
 }
 
 /// The volume that holds `folder`, through its real mount point even when
-/// the folder is reached through a junction.
+/// the folder is reached through a junction. Some PCs refuse one of those
+/// calls ("A required privilege is not held by the client"): the log names
+/// it, and the folder's drive letter is read through WMI instead, where that
+/// letter names the folder's volume.
 fn read_volume(folder: &Path) -> Option<Volume> {
+    let error = match read_mount_point(folder) {
+        Ok(volume) => return Some(volume),
+        Err(error) => error,
+    };
+    let volume = read_volume_by_letter(folder);
+    match &volume {
+        Some(_) => log::warn!("Read the volume for {} through WMI, as {error:#}", folder.display()),
+        None => log::warn!("Couldn't read the volume for {}: {error:#}", folder.display()),
+    }
+    volume
+}
+
+/// The volume that holds `folder`, read through its mount point; a failure
+/// names the call Windows refused.
+fn read_mount_point(folder: &Path) -> Result<Volume> {
     use windows::Win32::Storage::FileSystem::{
         GetDiskFreeSpaceExW, GetDriveTypeW, GetVolumeInformationW, GetVolumePathNameW,
     };
@@ -370,7 +388,7 @@ fn read_volume(folder: &Path) -> Option<Volume> {
     let path = HSTRING::from(folder.as_os_str());
     let mut root = vec![0u16; 32_768];
     // SAFETY: a NUL-terminated path and a buffer the call fills.
-    unsafe { GetVolumePathNameW(PCWSTR(path.as_ptr()), &mut root) }.ok()?;
+    unsafe { GetVolumePathNameW(PCWSTR(path.as_ptr()), &mut root) }.context("GetVolumePathNameW")?;
     let root = until_nul(&root);
     let root_path = HSTRING::from(root.as_str());
     // 0 unknown, 1 no such root, 4 a network drive.
@@ -381,15 +399,60 @@ fn read_volume(folder: &Path) -> Option<Volume> {
     unsafe {
         GetVolumeInformationW(PCWSTR(root_path.as_ptr()), None, None, None, None, Some(&mut file_system))
     }
-    .ok()?;
+    .context("GetVolumeInformationW")?;
     let mut free = 0u64;
     // SAFETY: a NUL-terminated path and an out parameter.
-    unsafe { GetDiskFreeSpaceExW(PCWSTR(path.as_ptr()), Some(&mut free), None, None) }.ok()?;
-    Some(Volume {
+    unsafe { GetDiskFreeSpaceExW(PCWSTR(path.as_ptr()), Some(&mut free), None, None) }
+        .context("GetDiskFreeSpaceExW")?;
+    Ok(Volume {
         drive: root.trim_end_matches('\\').to_owned(),
         local,
         file_system: until_nul(&file_system),
         free,
+    })
+}
+
+/// The drive, such as "C:", that names the volume holding `folder`: the
+/// folder's path starts with a drive letter and reaches it through no link
+/// or mount point that could lead to another volume.
+fn letter_drive(folder: &Path) -> Option<String> {
+    use std::path::{Component, Prefix};
+    let Some(Component::Prefix(prefix)) = folder.components().next() else { return None };
+    let (Prefix::Disk(letter) | Prefix::VerbatimDisk(letter)) = prefix.kind() else { return None };
+    // A junction or mount point counts as a link here too.
+    if folder
+        .ancestors()
+        .any(|ancestor| fs::symlink_metadata(ancestor).is_ok_and(|m| m.file_type().is_symlink()))
+    {
+        return None;
+    }
+    Some(format!("{}:", char::from(letter).to_ascii_uppercase()))
+}
+
+/// The volume that holds `folder`, read through WMI by its drive letter,
+/// which needs none of the calls [`read_mount_point`] makes.
+fn read_volume_by_letter(folder: &Path) -> Option<Volume> {
+    let drive = letter_drive(folder)?;
+    let query =
+        format!("SELECT DriveType, FileSystem, FreeSpace FROM Win32_LogicalDisk WHERE DeviceID = '{drive}'");
+    let rows =
+        super::requirements::wmi::wmi_query(r"ROOT\CIMV2", &query, &["DriveType", "FileSystem", "FreeSpace"])
+            .inspect_err(|error| log::warn!("Couldn't read {drive} through WMI: {error:#}"))
+            .ok()?;
+    logical_disk_volume(&drive, &rows)
+}
+
+/// The volume one `Win32_LogicalDisk` row describes: its drive type, with
+/// the codes `GetDriveTypeW` uses, its filesystem and its free space.
+fn logical_disk_volume(drive: &str, rows: &[Vec<Option<String>>]) -> Option<Volume> {
+    let [row] = rows else { return None };
+    let [drive_type, file_system, free] = row.as_slice() else { return None };
+    let drive_type: u32 = drive_type.as_deref()?.parse().ok()?;
+    Some(Volume {
+        drive: drive.to_owned(),
+        local: !matches!(drive_type, 0 | 1 | 4),
+        file_system: file_system.clone().unwrap_or_default(),
+        free: free.as_deref()?.parse().ok()?,
     })
 }
 
@@ -564,19 +627,39 @@ pub enum FailureReason {
     DestinationFilesystem,
     /// The destination has too little free space.
     DiskSpace,
+    /// Even at the root of the destination's volume, the workspace's copy of
+    /// the ISO would need paths past MAX_PATH.
+    DestinationPath,
     /// The image is not a supported client build or architecture.
     WindowsUnsupported,
     /// The ISO contains no supported edition (Home, LTSC).
     EditionUnsupported,
     /// The ISO already carries custom setup content.
     IsoCustomised,
+    /// The ISO is one Atlas Manager created, which carries Atlas's own setup
+    /// content.
+    IsoCreatedByAtlas,
     /// Network drivers from this PC cannot go on media for another architecture.
     NetworkArchitecture,
     /// The running Atlas Manager executable disappeared from its launch path.
     ManagerMissing,
+    /// Windows didn't open the ISO as one volume with a drive letter, even
+    /// after the worker waited for one and gave its own mount a letter.
+    IsoMount,
+    /// The drivers Windows mounts an ISO with, vdrvroot and cdrom, are
+    /// disabled, so no ISO can be mounted on this PC.
+    IsoMountDrivers,
+    /// Windows refused to mount the ISO, whose file is stored compressed,
+    /// encrypted or sparse; a copy in an ordinary folder can be mounted.
+    IsoMountFile,
+    /// Windows didn't finish reading or mounting the ISO in time.
+    IsoMountTimeout,
     /// The Atlas package is too old for ISO creation, or has no front door.
     /// Decided by the app before the worker starts, so it has no marker.
     PackageUnsupported,
+    /// A Windows ISO was chosen as the Atlas package. Decided by the app
+    /// before the worker starts, so it has no marker.
+    PackageIsWindowsIso,
     /// The package is no longer the one the files were checked with.
     /// Decided by the app before the worker starts, so it has no marker.
     PackageChanged,
@@ -598,11 +681,17 @@ impl FailureReason {
             "output-exists" => Self::OutputExists,
             "destination-filesystem" => Self::DestinationFilesystem,
             "disk-space" => Self::DiskSpace,
+            "destination-path" => Self::DestinationPath,
             "windows-unsupported" => Self::WindowsUnsupported,
             "edition-unsupported" => Self::EditionUnsupported,
             "iso-customised" => Self::IsoCustomised,
+            "iso-created-by-atlas" => Self::IsoCreatedByAtlas,
             "network-architecture" => Self::NetworkArchitecture,
             "manager-missing" => Self::ManagerMissing,
+            "iso-mount" => Self::IsoMount,
+            "iso-mount-drivers" => Self::IsoMountDrivers,
+            "iso-mount-file" => Self::IsoMountFile,
+            "iso-mount-timeout" => Self::IsoMountTimeout,
             _ => return None,
         })
     }
@@ -629,11 +718,15 @@ impl std::fmt::Display for Failure {
 impl std::error::Error for Failure {}
 
 /// Types a package the app cannot use for ISO creation, so the page can say
-/// so instead of pointing at the diagnostics: one too old, or a file that
-/// isn't an Atlas package at all. Other errors pass through, a package for
-/// a newer Atlas Manager among them, which the page reads as it is.
+/// so instead of pointing at the diagnostics: a Windows ISO chosen in its
+/// place, one too old, or another file that isn't an Atlas package at all.
+/// Other errors pass through, a package for a newer Atlas Manager among them,
+/// which the page reads as it is.
 pub fn package_error(error: anyhow::Error) -> anyhow::Error {
-    if error.is::<super::package::Unsupported>() || error.is::<super::package::NotAPackage>() {
+    use super::package::NotAPackage;
+    if error.downcast_ref::<NotAPackage>().is_some_and(NotAPackage::windows_iso) {
+        Failure::new(FailureReason::PackageIsWindowsIso, format!("{error:#}")).into()
+    } else if error.is::<super::package::Unsupported>() || error.is::<NotAPackage>() {
         Failure::new(FailureReason::PackageUnsupported, format!("{error:#}")).into()
     } else {
         error
@@ -643,6 +736,7 @@ pub fn package_error(error: anyhow::Error) -> anyhow::Error {
 /// The scripts and data the image worker loads from its job directory.
 const WORKER_FILES: &[(&str, &str)] = &[
     ("Build-Iso.ps1", include_str!("../../resources/iso/Build-Iso.ps1")),
+    ("Iso-Mount.ps1", include_str!("../../resources/iso/Iso-Mount.ps1")),
     (
         "Windows-Release.ps1",
         include_str!("../../../package/Executables/AtlasModules/Scripts/Compatibility/Windows-Release.ps1"),
@@ -1174,13 +1268,24 @@ mod tests {
 
     #[test]
     fn failure_reasons_match_the_worker_markers() {
-        // Every marker the worker writes must be understood here, or the page
-        // falls back to generic advice.
-        let script = include_str!("../../resources/iso/Build-Iso.ps1");
-        for marker in script.lines().filter_map(|line| {
-            let start = line.find("Fail '")? + "Fail '".len();
-            line[start..].split('\'').next()
-        }) {
+        // Every marker the worker writes, itself or through the mount helper it
+        // loads, must be understood here, or the page falls back to generic advice.
+        let scripts = [
+            include_str!("../../resources/iso/Build-Iso.ps1"),
+            include_str!("../../resources/iso/Iso-Mount.ps1"),
+        ];
+        let markers: Vec<&str> = scripts
+            .iter()
+            .flat_map(|script| script.lines())
+            .filter_map(|line| {
+                let start = line.find("Fail '")? + "Fail '".len();
+                line[start..].split('\'').next()
+            })
+            .collect();
+        for typed in ["iso-mount", "iso-mount-drivers", "iso-mount-file", "iso-mount-timeout"] {
+            assert!(markers.contains(&typed), "{typed} is missing from {markers:?}");
+        }
+        for marker in markers {
             assert!(FailureReason::parse(marker).is_some(), "unknown worker marker {marker:?}");
         }
         assert_eq!(
@@ -1207,6 +1312,12 @@ mod tests {
         assert_eq!(
             other.downcast_ref::<Failure>().map(|failure| failure.reason),
             Some(FailureReason::PackageUnsupported)
+        );
+        let windows =
+            package_error(package::check_file_name(Path::new(r"C:\Downloads\Win11_25H2.iso")).unwrap_err());
+        assert_eq!(
+            windows.downcast_ref::<Failure>().map(|failure| failure.reason),
+            Some(FailureReason::PackageIsWindowsIso)
         );
         assert!(package_error(anyhow::anyhow!("unreadable archive")).downcast_ref::<Failure>().is_none());
     }
@@ -1378,6 +1489,64 @@ mod tests {
         assert_eq!(missing.problem, Some(DestinationProblem::Unusable));
         let here = destination(&temp.path().join("Atlas.iso"), 0);
         assert!(!here.drive.is_empty() && here.free > 0, "{here:?}");
+    }
+
+    #[test]
+    fn a_refused_volume_call_is_named_and_the_drive_letter_is_read_instead() {
+        let temp = TempDir::new("iso-volume-call");
+        // Windows refuses free space for a folder that isn't there.
+        let error = read_mount_point(&temp.path().join("gone")).unwrap_err();
+        assert!(format!("{error:#}").starts_with("GetDiskFreeSpaceExW: "), "{error:#}");
+        // WMI reads the same volume by its drive letter.
+        let direct = read_mount_point(temp.path()).unwrap();
+        let by_letter = read_volume_by_letter(temp.path()).expect("the folder's drive through WMI");
+        assert_eq!((by_letter.drive.as_str(), by_letter.local), (direct.drive.to_uppercase().as_str(), true));
+        assert!(by_letter.file_system.eq_ignore_ascii_case(&direct.file_system), "{by_letter:?} {direct:?}");
+        assert!(by_letter.free > 0);
+    }
+
+    #[test]
+    fn a_drive_letter_stands_for_a_volume_only_without_links_on_the_way() {
+        assert_eq!(letter_drive(Path::new(r"c:\Windows")).as_deref(), Some("C:"));
+        assert_eq!(letter_drive(Path::new(r"\\?\D:\Downloads")).as_deref(), Some("D:"));
+        assert_eq!(letter_drive(Path::new(r"\\server\share\ISO")), None);
+        assert_eq!(letter_drive(Path::new("Downloads")), None);
+        // A junction can lead to another volume, so its letter says nothing.
+        let temp = TempDir::new("iso-letter-link");
+        let target = temp.path().join("target");
+        fs::create_dir_all(target.join("ISO")).unwrap();
+        let link = temp.path().join("link");
+        let made = std::process::Command::new("cmd.exe")
+            .args(["/d", "/c", "mklink", "/J"])
+            .arg(&link)
+            .arg(&target)
+            .output()
+            .unwrap();
+        assert!(made.status.success(), "{made:?}");
+        assert!(letter_drive(&target.join("ISO")).is_some());
+        assert_eq!(letter_drive(&link.join("ISO")), None);
+    }
+
+    #[test]
+    fn a_logical_disk_row_reads_as_the_volume_it_describes() {
+        let row = |kind: &str, file_system: Option<&str>, free: Option<&str>| {
+            vec![Some(kind.to_owned()), file_system.map(str::to_owned), free.map(str::to_owned)]
+        };
+        assert_eq!(
+            logical_disk_volume("C:", &[row("3", Some("NTFS"), Some("1024"))]),
+            Some(Volume { drive: "C:".into(), local: true, file_system: "NTFS".into(), free: 1024 })
+        );
+        // A network drive is read as one, so the check refuses it.
+        let network = logical_disk_volume("Z:", &[row("4", Some("NTFS"), Some("1"))]).unwrap();
+        assert_eq!(judge_volume(&network, 1), Some(DestinationProblem::Unusable));
+        // A drive without a filesystem has none to accept.
+        let raw = logical_disk_volume("E:", &[row("2", None, Some("0"))]).unwrap();
+        assert_eq!(judge_volume(&raw, 0), Some(DestinationProblem::FileSystem));
+        // Without free space, or with no row or several, there's nothing to judge by.
+        assert_eq!(logical_disk_volume("C:", &[row("3", Some("NTFS"), None)]), None);
+        assert_eq!(logical_disk_volume("C:", &[]), None);
+        let two = [row("3", Some("NTFS"), Some("1")), row("3", Some("NTFS"), Some("1"))];
+        assert_eq!(logical_disk_volume("C:", &two), None);
     }
 
     #[test]

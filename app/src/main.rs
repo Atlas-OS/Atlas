@@ -169,6 +169,14 @@ fn main() {
         cx.set_prompt_builder(ui::content_dialog::build);
 
         let bounds = Bounds::centered(None, size(px(900.), px(680.)), cx);
+        // A window that asks for Mica where Windows draws none is left
+        // transparent; the shell paints its own background there instead.
+        let window_background =
+            if services::system::mica_available(services::system::SystemInfo::read().build) {
+                WindowBackgroundAppearance::MicaBackdrop
+            } else {
+                WindowBackgroundAppearance::Opaque
+            };
         let options = WindowOptions {
             is_minimizable: !before_desktop,
             is_resizable: !before_desktop,
@@ -182,7 +190,7 @@ fn main() {
                 appears_transparent: true,
                 traffic_light_position: None,
             }),
-            window_background: WindowBackgroundAppearance::MicaBackdrop,
+            window_background,
             window_min_size: Some(size(px(700.), px(520.))),
             app_id: Some("AtlasOS.Atlas".into()),
             icon: assets::window_icon(),

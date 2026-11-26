@@ -42,8 +42,10 @@ foreach ($name in @('source', 'output', 'archive', 'package', 'app')) {
     if ($null -ne $request.PSObject.Properties[$name]) { $request.$name = ConvertFrom-VerbatimPath ([string]$request.$name) }
 }
 . (Join-Path $PSScriptRoot 'Windows-Release.ps1')
+. (Join-Path $PSScriptRoot 'Iso-Mount.ps1')
 $ownedMount = $false
 $work = $null
+$workParent = $null
 $partial = $null
 $source = $null
 $appStream = $null
@@ -110,7 +112,7 @@ function Assert-BootCatalog([string]$Path, [ValidateSet('x64','arm64')][string]$
     }
     finally { $stream.Dispose() }
 }
-function Get-AtlasIsoDestinationVolume([string]$Path) {
+function Initialize-AtlasIsoDestinationVolume {
     if (-not ('AtlasIsoDestinationVolume' -as [type])) {
         Add-Type -TypeDefinition @'
 using System.ComponentModel;
@@ -140,7 +142,7 @@ public sealed class AtlasIsoDestinationVolume {
     public static AtlasIsoDestinationVolume Read(string path) {
         var root = new StringBuilder(32768);
         if (!GetVolumePathNameW(path, root, (uint)root.Capacity))
-            throw new Win32Exception(Marshal.GetLastWin32Error());
+            throw Failure("GetVolumePathNameW");
 
         string mount = root.ToString();
         uint driveType = GetDriveTypeW(mount);
@@ -150,17 +152,89 @@ public sealed class AtlasIsoDestinationVolume {
         var fileSystem = new StringBuilder(260);
         if (!GetVolumeInformationW(mount, System.IntPtr.Zero, 0, System.IntPtr.Zero,
             System.IntPtr.Zero, System.IntPtr.Zero, fileSystem, (uint)fileSystem.Capacity))
-            throw new Win32Exception(Marshal.GetLastWin32Error());
+            throw Failure("GetVolumeInformationW");
 
         ulong availableBytes;
         if (!GetDiskFreeSpaceExW(path, out availableBytes, System.IntPtr.Zero, System.IntPtr.Zero))
-            throw new Win32Exception(Marshal.GetLastWin32Error());
+            throw Failure("GetDiskFreeSpaceExW");
         return new AtlasIsoDestinationVolume { FileSystem = fileSystem.ToString(), AvailableBytes = availableBytes };
+    }
+
+    public static string Root(string path) {
+        var root = new StringBuilder(32768);
+        if (!GetVolumePathNameW(path, root, (uint)root.Capacity))
+            throw Failure("GetVolumePathNameW");
+        return root.ToString();
+    }
+
+    // Names the call Windows refused, as some PCs refuse one of these for their system
+    // drive ("A required privilege is not held by the client").
+    static Win32Exception Failure(string call) {
+        int error = Marshal.GetLastWin32Error();
+        return new Win32Exception(error, call + ": " + new Win32Exception(error).Message);
     }
 }
 '@
     }
+}
+function Get-AtlasIsoDestinationVolume([string]$Path) {
+    Initialize-AtlasIsoDestinationVolume
     return [AtlasIsoDestinationVolume]::Read($Path)
+}
+# Whether the drive letter $Folder starts with names the volume that holds it: no link or
+# mount point on the way leads to another volume.
+function Test-AtlasIsoLetterVolume($Folder) {
+    if ($Folder.FullName -notmatch '^[A-Za-z]:\\') { return $false }
+    for ($item = $Folder; $null -ne $item; $item = $item.Parent) {
+        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -and @('SymbolicLink', 'Junction') -contains $item.LinkType) { return $false }
+    }
+    return $true
+}
+# The filesystem and free space of the volume that holds $Folder, read by its drive letter
+# with Get-Volume, which needs none of the calls Windows can refuse; nothing where that
+# letter doesn't name the folder's volume, or Get-Volume can't say.
+function Get-AtlasIsoVolumeByLetter($Folder) {
+    if (-not (Test-AtlasIsoLetterVolume $Folder)) { return $null }
+    try {
+        $parameters = Get-AtlasIsoStorageParameters
+        $found = @(Receive-AtlasIsoStorage (Get-Volume -DriveLetter $Folder.FullName[0] @parameters) 'reading the destination volume')
+    }
+    catch { return $null }
+    if ($found.Count -ne 1 -or $null -eq $found[0].PSObject.Properties['FileSystem'] -or $null -eq $found[0].PSObject.Properties['SizeRemaining']) { return $null }
+    return [pscustomobject]@{ FileSystem = [string]$found[0].FileSystem; AvailableBytes = [uint64]$found[0].SizeRemaining }
+}
+# The mount point of the volume that holds $Path, through any junction on the way, or the
+# path's own drive root where Windows refuses the call and that letter names the volume.
+function Get-AtlasIsoVolumeRoot([string]$Path) {
+    Initialize-AtlasIsoDestinationVolume
+    try { return [AtlasIsoDestinationVolume]::Root($Path) }
+    catch {
+        if (-not (Test-AtlasIsoLetterVolume (Get-Item -LiteralPath $Path))) { throw }
+        return [IO.Path]::GetPathRoot($Path)
+    }
+}
+# The length a copy of the tree at $Root needs beyond the folder it goes in: its longest
+# file path, or folder path with 12 characters to spare, relative to $Root.
+function Get-AtlasIsoDeepestPath([string]$Root) {
+    $deepest = 0
+    foreach ($item in Get-ChildItem -LiteralPath $Root -Force -Recurse) {
+        $length = $item.FullName.Length - $Root.Length + $(if ($item.PSIsContainer) { 12 } else { 0 })
+        if ($length -gt $deepest) { $deepest = $length }
+    }
+    return $deepest
+}
+# The workspace $Name, whose media folder takes a copy needing $Deepest more characters.
+# Windows PowerShell's file cmdlets stop at MAX_PATH: a file's path must stay under 260
+# characters, and a folder's under 248, room for an 8.3 name in it. The workspace goes
+# beside the output in $Parent or, when that's too deep, at the root of the same volume,
+# so the finished ISO is still only renamed into place.
+function Get-AtlasIsoWorkspace([string]$Parent, [string]$Name, [int]$Deepest) {
+    $work = Join-Path $Parent $Name
+    if ((Join-Path $work 'media\').Length + $Deepest -lt 260) { return $work }
+    $root = Get-AtlasIsoVolumeRoot $Parent
+    $atRoot = Join-Path $root $Name
+    if ((Join-Path $atRoot 'media\').Length + $Deepest -lt 260) { return $atRoot }
+    Fail 'destination-path' "The ISO's files need $Deepest characters beyond the workspace, more than MAX_PATH leaves beside '$Parent' or at '$root'. Save the ISO to a folder with a shorter path."
 }
 function Assert-Output([string]$OutputPath, [string]$PackagePath, [string]$SourcePath) {
     if ([IO.Path]::GetExtension($OutputPath) -ine '.iso') { throw 'Output must end in .iso.' }
@@ -169,7 +243,14 @@ function Assert-Output([string]$OutputPath, [string]$PackagePath, [string]$Sourc
     if ($parent.FullName.StartsWith('\\')) { Fail 'destination-filesystem' 'Choose a local NTFS or ReFS destination.' }
     # Query the real mount point even for a directory reached through a junction.
     try { $volume = Get-AtlasIsoDestinationVolume -Path $parent.FullName }
-    catch { Fail 'destination-filesystem' "Could not read the volume for '$($parent.FullName)': $($_.Exception.Message)" }
+    catch {
+        # The message names the call Windows refused. Only a refused call has a fallback:
+        # a volume that isn't local stays refused.
+        $failure = $_.Exception.GetBaseException()
+        $volume = if ($failure -is [ComponentModel.Win32Exception]) { Get-AtlasIsoVolumeByLetter $parent }
+        if ($null -eq $volume) { Fail 'destination-filesystem' "Could not read the volume for '$($parent.FullName)': $($failure.Message)" }
+        [Console]::Error.WriteLine("Could not read the volume for '$($parent.FullName)' ($($failure.Message)), so Get-Volume read it by its drive letter.")
+    }
     if ($volume.FileSystem -notin @('NTFS', 'ReFS')) {
         Fail 'destination-filesystem' 'Choose an NTFS or ReFS destination for large installation files.'
     }
@@ -280,10 +361,7 @@ public static class AtlasIsoLicense {
 function Export-AtlasMediaEditions([string]$SourceImage, [string]$DestinationImage, [object[]]$Editions) {
     if (Test-Path -LiteralPath $DestinationImage) { throw 'The filtered Windows image already exists.' }
     if ($Editions.Count -eq 0) { Fail 'edition-unsupported' 'The ISO contains no supported Windows editions.' }
-    foreach ($edition in $Editions) {
-        Write-Stage copy
-        Export-WindowsImage -SourceImagePath $SourceImage -SourceIndex $edition.ImageIndex -DestinationImagePath $DestinationImage -CompressionType Max -CheckIntegrity -ErrorAction Stop | Out-Null
-    }
+    Export-AtlasWindowsImages -SourceImage $SourceImage -DestinationImage $DestinationImage -Indexes @($Editions | ForEach-Object { [int]$_.ImageIndex }) -Checkpoint { Write-Stage copy }
     $actual = @(Get-WindowsImage -ImagePath $DestinationImage)
     if ($actual.Count -ne $Editions.Count) { throw 'The filtered Windows image has an unexpected edition count.' }
     for ($index = 0; $index -lt $actual.Count; $index++) {
@@ -308,16 +386,18 @@ try {
     # Only a build writes the output. The app checks its folder before Create,
     # where it can be changed, so a check of the files never fails on it.
     if ($Operation -eq 'Build') { $parent = Assert-Output -OutputPath $request.output -PackagePath $request.package -SourcePath $source }
-    $disk = Get-DiskImage -ImagePath $source
+    $disk = Get-AtlasIsoImage $source
     if (-not $disk.Attached) {
-        $disk = Mount-DiskImage -ImagePath $source -Access ReadOnly -PassThru
+        $disk = Mount-AtlasIso $source -ReadOnly
         $ownedMount = $true
     }
-    $volumes = @($disk | Get-Volume | Where-Object DriveLetter)
-    if ($volumes.Count -ne 1) { throw 'The ISO must contain one readable Windows installation volume.' }
-    $root = "$($volumes[0].DriveLetter):\"
+    $root = Get-AtlasIsoRoot -ImagePath $source -Disk $disk -Owned:$ownedMount
     foreach ($relative in @('setup.exe', 'sources\boot.wim', 'efi\microsoft\boot\efisys.bin')) {
-        if (-not (Test-Path -LiteralPath (Join-Path $root $relative))) { throw "Windows installation file missing: $relative" }
+        if (-not (Test-Path -LiteralPath (Join-Path $root $relative))) { Fail 'windows-unsupported' "Windows installation file missing: $relative" }
+    }
+    # Media Atlas created carries Atlas where Windows Setup copies it into %windir%.
+    if (Test-Path -LiteralPath (Join-Path $root 'sources\$OEM$\$$\AtlasISO')) {
+        Fail 'iso-created-by-atlas' 'Atlas created this ISO, so it already has custom setup content (sources\$OEM$\$$\AtlasISO). Choose unmodified Microsoft media.'
     }
     foreach ($relative in @('autounattend.xml', 'unattend.xml', 'sources\autounattend.xml', 'sources\unattend.xml', 'sources\$OEM$')) {
         if (Test-Path -LiteralPath (Join-Path $root $relative)) { Fail 'iso-customised' "This ISO already has custom setup content ($relative). Choose unmodified Microsoft media." }
@@ -368,7 +448,8 @@ try {
         if ($cap.schema -ne 1 -or $cap.firstSignIn -ne $true) { throw 'The package does not support ISO setup.' }
     }
     $id = [guid]::NewGuid().ToString('N')
-    $work = Join-Path $parent ".atlas-iso-$id"
+    $work = Get-AtlasIsoWorkspace -Parent $parent -Name ".atlas-iso-$id" -Deepest (Get-AtlasIsoDeepestPath $root)
+    $workParent = [IO.Path]::GetDirectoryName($work)
     $partial = Join-Path $parent ".atlas-iso-$id.partial"
     # The elevated worker creates the private tree with its final ACL atomically:
     # full control for SYSTEM (S-1-5-18) and Administrators (S-1-5-32-544) only.
@@ -525,11 +606,9 @@ try {
     [IO.File]::Move($partial, $verifyIso)
     $verifiedMount = $false
     try {
-        $checkDisk = Mount-DiskImage -ImagePath $verifyIso -Access ReadOnly -PassThru
+        $checkDisk = Mount-AtlasIso $verifyIso -ReadOnly -OwnFile
         $verifiedMount = $true
-        $checkVolumes = @($checkDisk | Get-Volume | Where-Object DriveLetter)
-        if ($checkVolumes.Count -ne 1) { throw 'Output volume is unreadable.' }
-        $checkRoot = "$($checkVolumes[0].DriveLetter):\"
+        $checkRoot = Get-AtlasIsoRoot -ImagePath $verifyIso -Disk $checkDisk -Owned
         # The staged image, not the source: it may be the filtered export.
         $expected = @($imageRelative, 'sources\boot.wim', 'efi\microsoft\boot\efisys.bin') + $bootFiles
         $expected += @(@($payload.Keys) + @($managerName, 'setup.json') | ForEach-Object { Join-Path $atlasIso $_ })
@@ -545,7 +624,7 @@ try {
         }
     }
     finally {
-        if ($verifiedMount) { Dismount-DiskImage -ImagePath $verifyIso -ErrorAction Stop | Out-Null }
+        if ($verifiedMount) { Dismount-AtlasIso $verifyIso -Required }
     }
     [IO.File]::Move($verifyIso, $partial)
     # Read the entire output before publication, retaining a checksum for diagnostics.
@@ -563,11 +642,11 @@ catch {
 }
 finally {
     if ($null -ne $appStream) { $appStream.Dispose() }
-    if ($ownedMount -and $source) { Dismount-DiskImage -ImagePath $source -ErrorAction Continue | Out-Null }
+    if ($ownedMount -and $source) { Dismount-AtlasIso $source }
     # Only remove the exact unique paths created above, after checking their parent.
     if ($work -and (Test-Path -LiteralPath $work)) {
         $resolved = [IO.Path]::GetFullPath($work)
-        if ([IO.Path]::GetDirectoryName($resolved) -eq $parent -and [IO.Path]::GetFileName($resolved) -match '^\.atlas-iso-[0-9a-f]{32}$') {
+        if ([IO.Path]::GetDirectoryName($resolved) -eq $workParent -and [IO.Path]::GetFileName($resolved) -match '^\.atlas-iso-[0-9a-f]{32}$') {
             try { Assert-PlainTree $resolved; Remove-Item -LiteralPath $resolved -Recurse -Force } catch { [Console]::Error.WriteLine("Cleanup required: $resolved. $_") }
         }
     }

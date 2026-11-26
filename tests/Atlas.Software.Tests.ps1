@@ -45,6 +45,8 @@ BeforeAll {
 
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Core\Atlas.Core.psd1') -Force
     Import-Module -Name (Join-Path -Path $modulesRoot -ChildPath 'Atlas.Software\Atlas.Software.psd1') -Force
+    # The download failures the tests build are System.Net.Http types.
+    Add-Type -AssemblyName System.Net.Http
 }
 
 Describe 'Official archive-app mirrors' {
@@ -653,6 +655,179 @@ Describe 'CBS Safe Mode retry fallback' {
             Should -Invoke Enable-AtlasCbsRetry -Times 1 -Exactly
         }
     }
+
+    It 'arms no retry when servicing refuses a signature, and says what to do instead' {
+        InModuleScope Atlas.Software {
+            Mock Assert-AtlasPrivilege {}
+            Mock Initialize-AtlasCbsEnvironment {}
+            Mock Write-Host {}
+            Mock Enable-AtlasCbsRetry {}
+            Mock Install-AtlasCbsCab {
+                if ($CabPath -like '*one.cab') {
+                    return [pscustomobject]@{
+                        Path = $CabPath; Success = $false; RetryEligible = $false
+                        Sha256 = ('A' * 64); FailureKind = 'Trust'; HResult = 0x80092004
+                    }
+                }
+                [pscustomobject]@{
+                    Path = $CabPath; Success = $false; RetryEligible = $true
+                    Sha256 = ('B' * 64); FailureKind = 'Servicing'; HResult = 0x800F0922
+                }
+            }
+            { Install-AtlasCbsPackage -Packages @('C:\Packages\one.cab', 'C:\Packages\two.cab') `
+                    -PackagesPath 'C:\Packages' -LiteralPaths -NonInteractive } |
+                Should -Throw "*one.cab (0x80092004).*doesn't change that*RestoreHealth*repair-install Windows*"
+            Should -Invoke Enable-AtlasCbsRetry -Times 0 -Exactly
+        }
+    }
+
+    It 'reports a refused signature to the interactive installer with no retry to offer' {
+        InModuleScope Atlas.Software {
+            Mock Assert-AtlasPrivilege {}
+            Mock Initialize-AtlasCbsEnvironment {}
+            Mock Write-Host {}
+            Mock Enable-AtlasCbsRetry {}
+            Mock Install-AtlasCbsCab {
+                [pscustomobject]@{
+                    Path = $CabPath; Success = $false; RetryEligible = $false
+                    Sha256 = ('A' * 64); FailureKind = 'Trust'; HResult = 0x800B0109
+                }
+            }
+            $result = Install-AtlasCbsPackage -Packages @('C:\Packages\one.cab') -PackagesPath 'C:\Packages' -LiteralPaths
+            @($result.FailedPackages) | Should -Be @('C:\Packages\one.cab')
+            @($result.RetryPackages).Count | Should -Be 0
+            $result.TrustInstruction | Should -BeLike '*one.cab (0x800B0109)*'
+            Should -Invoke Enable-AtlasCbsRetry -Times 0 -Exactly
+        }
+    }
+}
+
+Describe 'CBS servicing failures' {
+    It 'treats <Code> as a refused signature: <Trust>' -TestCases @(
+        @{ Code = '0x80092004'; Trust = $true }
+        @{ Code = '0x800B0100'; Trust = $true }
+        @{ Code = '0x800B0109'; Trust = $true }
+        @{ Code = '0x800B0111'; Trust = $true }
+        @{ Code = '0x800B0004'; Trust = $true }
+        @{ Code = '0x80096010'; Trust = $true }
+        @{ Code = '0x800F0922'; Trust = $false }
+        @{ Code = '0x80070005'; Trust = $false }
+        @{ Code = '0x800B0200'; Trust = $false }
+        @{ Code = '0x00000000'; Trust = $false }
+    ) {
+        InModuleScope Atlas.Software -Parameters @{ Code = $Code; Trust = $Trust } {
+            Test-AtlasCbsTrustFailure -HResult ([Convert]::ToInt32($Code.Substring(2), 16)) | Should -Be $Trust
+        }
+    }
+
+    It 'reads the HRESULT from the COMException the DISM cmdlets throw' {
+        InModuleScope Atlas.Software {
+            $record = try {
+                throw [Runtime.InteropServices.COMException]::new('A permanent package cannot be uninstalled.', 0x800F0825)
+            }
+            catch { $_ }
+            Get-AtlasCbsFailureHResult -ErrorRecord $record | Should -Be 0x800F0825
+        }
+    }
+
+    It 'reads the HRESULT from a localised message when no COMException carries it' {
+        InModuleScope Atlas.Software {
+            $record = try { throw 'Fehler bei Add-WindowsPackage. Fehlercode = 0x80092004' } catch { $_ }
+            Get-AtlasCbsFailureHResult -ErrorRecord $record | Should -Be 0x80092004
+            $none = try { throw 'Something else failed.' } catch { $_ }
+            Get-AtlasCbsFailureHResult -ErrorRecord $none | Should -Be 0
+        }
+    }
+
+    It 'classifies a refused signature as <Kind> and logs the test root key and CBS.log' -TestCases @(
+        @{ Code = 0x80092004; Kind = 'Trust'; Retry = $false }
+        @{ Code = 0x800F0922; Kind = 'Servicing'; Retry = $true }
+    ) {
+        InModuleScope Atlas.Software -Parameters @{ Code = $Code; Kind = $Kind; Retry = $Retry } {
+            Mock Write-Host {}
+            Mock Write-AtlasLog {}
+            Mock Assert-AtlasCbsHash { 'A' * 64 }
+            Mock Assert-AtlasCbsCertificate {}
+            Mock Get-AtlasCbsTestRootState { 'present, with no values' }
+            Mock Get-AtlasCbsLogTail { @('2026-11-24 03:12:11, Error CBS Failed to add the package [HRESULT = 0x80092004]') }
+            Mock Add-WindowsPackage { throw [Runtime.InteropServices.COMException]::new('Add-WindowsPackage failed.', $Code) }
+
+            $result = Install-AtlasCbsCab -CabPath 'C:\Packages\one.cab'
+
+            $result.Success | Should -BeFalse
+            $result.FailureKind | Should -BeExactly $Kind
+            $result.RetryEligible | Should -Be $Retry
+            $result.HResult | Should -Be $Code
+            Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
+                $Message -like 'Adding one.cab; the test root key servicing reads is present, with no values.'
+            }
+            Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
+                $Message -like 'CBS.log: *HRESULT = 0x80092004*'
+            }
+        }
+    }
+
+    It 'reports a removal servicing refuses as permanent (<Code>: <Permanent>)' -TestCases @(
+        @{ Code = 0x800F0825; Permanent = $true }
+        @{ Code = 0x800F0922; Permanent = $false }
+    ) {
+        InModuleScope Atlas.Software -Parameters @{ Code = $Code; Permanent = $Permanent } {
+            $package = 'Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0'
+            Mock Assert-AtlasPrivilege {}
+            Mock Initialize-AtlasCbsEnvironment {}
+            Mock Get-AtlasCbsArchitecture { 'amd64' }
+            Mock Write-Host {}
+            Mock Write-AtlasLog {}
+            Mock Write-AtlasCbsLogTail {}
+            Mock Get-WindowsPackage { [pscustomobject]@{ PackageName = $package } }
+            Mock Remove-WindowsPackage {
+                throw [Runtime.InteropServices.COMException]::new('A permanent package cannot be uninstalled.', $Code)
+            }
+
+            $result = Uninstall-AtlasCbsPackage -Packages @('*Z-Atlas-NoDefender-Package*')
+
+            @($result.FailedPackages) | Should -Be @($package)
+            (@($result.PermanentPackages).Count -eq 1) | Should -Be $Permanent
+            Should -Invoke Write-AtlasCbsLogTail -Times 1 -Exactly
+        }
+    }
+
+    It 'describes the test root key servicing reads' {
+        InModuleScope Atlas.Software {
+            $scratchPath = 'Software\AtlasRewriteTest\CbsTestRoot'
+            [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree($scratchPath, $false)
+            $scratch = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($scratchPath)
+            try {
+                Get-AtlasCbsTestRootState -BaseKey $scratch | Should -BeExactly 'missing'
+                $root = $scratch.CreateSubKey($script:AtlasCbsTestRootKey)
+                Get-AtlasCbsTestRootState -BaseKey $scratch | Should -BeExactly 'present, with no values'
+                $root.SetValue('Blob', [byte[]]@(1), [Microsoft.Win32.RegistryValueKind]::Binary)
+                $root.Dispose()
+                Get-AtlasCbsTestRootState -BaseKey $scratch | Should -BeExactly 'present, with values Blob'
+            }
+            finally {
+                $scratch.Dispose()
+                [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree('Software\AtlasRewriteTest', $false)
+            }
+        }
+    }
+
+    It 'keeps the errors at the end of CBS.log, or its last lines when it names none' {
+        InModuleScope Atlas.Software -Parameters @{ Root = $TestDrive } {
+            $log = Join-Path $Root 'CBS.log'
+            Set-Content -LiteralPath $log -Encoding UTF8 -Value @(
+                '2026-11-24 03:12:10, Info                  CBS    Session initialized'
+                '2026-11-24 03:12:11, Error                 CBS    Failed to stage the package [HRESULT = 0x80092004 - CRYPT_E_NOT_FOUND]'
+                '2026-11-24 03:12:12, Info                  CBS    Starting the store check'
+            )
+            @(Get-AtlasCbsLogTail -Path $log) | Should -Be @(
+                '2026-11-24 03:12:11, Error                 CBS    Failed to stage the package [HRESULT = 0x80092004 - CRYPT_E_NOT_FOUND]'
+            )
+            Set-Content -LiteralPath $log -Encoding UTF8 -Value @('one', 'two', 'three')
+            @(Get-AtlasCbsLogTail -Path $log -MaximumLines 2) | Should -Be @('two', 'three')
+            @(Get-AtlasCbsLogTail -Path (Join-Path $Root 'missing.log')).Count | Should -Be 0
+        }
+    }
 }
 
 Describe 'Start-AtlasSoftwareInstaller' {
@@ -676,6 +851,15 @@ Describe 'Start-AtlasSoftwareInstaller' {
                 $TimeoutSeconds -eq 123 -and
                 $Hidden -and $NoWindow
             }
+        }
+    }
+
+    It 'gives the installer''s exit code with its failure' {
+        InModuleScope Atlas.Software {
+            Mock Invoke-AtlasContainedProcess { [pscustomobject]@{ ExitCodeUInt32 = [uint32]1603 } }
+            $failure = try { Start-AtlasSoftwareInstaller -FilePath 'C:\fake\setup.exe' -Description 'Test'; $null } catch { $_ }
+            $failure.Exception.Message | Should -BeExactly 'Installing Test failed with exit code 1603.'
+            $failure.Exception.Data['AtlasInstallerExitCode'] | Should -Be 1603
         }
     }
 
@@ -773,6 +957,104 @@ Describe 'Invoke-AtlasSoftwareDownload' {
         }
     }
 
+    It 'tries a connection failure again and returns the download that then succeeds' {
+        InModuleScope Atlas.Software -Parameters @{ Root = $TestDrive } {
+            $destination = Join-Path -Path $Root -ChildPath 'retried.exe'
+            $script:downloadAttempts = 0
+            Mock Resolve-AtlasProtectedExecutionPath { $Path }
+            Mock Start-Sleep {}
+            Mock Write-AtlasLog {}
+            Mock Invoke-AtlasLimitedHttpGet {
+                $script:downloadAttempts++
+                if ($script:downloadAttempts -eq 1) {
+                    $cause = [Net.Http.HttpRequestException]::new('An error occurred while sending the request.',
+                        [Net.WebException]::new('The remote name could not be resolved.'))
+                    throw [InvalidOperationException]::new("Downloading '$Uri' failed: $($cause.Message)", $cause)
+                }
+                $bytes = [Text.Encoding]::UTF8.GetBytes('signed fixture')
+                $OutputStream.Write($bytes, 0, $bytes.Length)
+                return $bytes.Length
+            }
+
+            Invoke-AtlasSoftwareDownload -Uri 'https://downloads.example.test/setup.exe' `
+                -Destination $destination -Description 'fixture' | Should -Be $destination
+
+            Get-Content -LiteralPath $destination -Raw | Should -BeExactly 'signed fixture'
+            Should -Invoke Invoke-AtlasLimitedHttpGet -Times 2 -Exactly
+            Should -Invoke Start-Sleep -Times 1 -Exactly -ParameterFilter { $Seconds -eq 5 }
+            Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
+                $Level -eq 'Warning' -and $Message -like 'Downloading fixture failed (attempt 1 of 3)*sending the request*Trying again in 5 seconds.'
+            }
+        }
+    }
+
+    It 'gives up after three attempts at a download that keeps failing, naming the cause' {
+        InModuleScope Atlas.Software -Parameters @{ Root = $TestDrive } {
+            $destination = Join-Path -Path $Root -ChildPath 'unreachable.exe'
+            Mock Resolve-AtlasProtectedExecutionPath { $Path }
+            Mock Start-Sleep {}
+            Mock Write-AtlasLog {}
+            Mock Invoke-AtlasLimitedHttpGet {
+                $cause = [Net.Http.HttpRequestException]::new('An error occurred while sending the request.',
+                    [Net.Sockets.SocketException]::new(10060))
+                throw [InvalidOperationException]::new("Downloading '$Uri' failed: $($cause.Message)", $cause)
+            }
+
+            { Invoke-AtlasSoftwareDownload -Uri 'https://downloads.example.test/setup.exe' `
+                    -Destination $destination -Description 'fixture' } |
+                Should -Throw -ExpectedMessage 'Downloading fixture failed after 3 attempts: *sending the request*'
+            Should -Invoke Invoke-AtlasLimitedHttpGet -Times 3 -Exactly
+            Should -Invoke Start-Sleep -Times 1 -Exactly -ParameterFilter { $Seconds -eq 5 }
+            Should -Invoke Start-Sleep -Times 1 -Exactly -ParameterFilter { $Seconds -eq 15 }
+            Test-Path -LiteralPath $destination | Should -BeFalse
+        }
+    }
+
+    It 'tries again only when the failure can pass: <Case>' -TestCases @(
+        @{ Case = 'HTTP 503'; Status = 503; Inner = $null; Expected = $true }
+        @{ Case = 'HTTP 429'; Status = 429; Inner = $null; Expected = $true }
+        @{ Case = 'HTTP 404'; Status = 404; Inner = $null; Expected = $false }
+        @{ Case = 'the time limit'; Status = $null; Inner = 'timeout'; Expected = $false }
+        @{ Case = 'a refused connection'; Status = $null; Inner = 'socket'; Expected = $true }
+        @{ Case = 'a local write failure'; Status = $null; Inner = 'disk'; Expected = $false }
+    ) {
+        InModuleScope Atlas.Software -Parameters @{ Status = $Status; Inner = $Inner; Expected = $Expected } {
+            $exception = if ($null -ne $Status) {
+                $statusFailure = [Net.Http.HttpRequestException]::new("failed with HTTP status $Status.")
+                $statusFailure.Data['AtlasHttpStatus'] = $Status
+                $statusFailure
+            }
+            else {
+                $cause = switch ($Inner) {
+                    'timeout' { [Threading.Tasks.TaskCanceledException]::new('A task was canceled.') }
+                    'socket' { [Net.Http.HttpRequestException]::new('sending failed', [Net.Sockets.SocketException]::new(10061)) }
+                    'disk' { [IO.IOException]::new('There is not enough space on the disk.') }
+                }
+                [InvalidOperationException]::new('Downloading failed.', $cause)
+            }
+            Test-AtlasSoftwareDownloadRetryable -Exception $exception | Should -Be $Expected
+        }
+    }
+
+    It 'does not try a refused status again' {
+        InModuleScope Atlas.Software -Parameters @{ Root = $TestDrive } {
+            $destination = Join-Path -Path $Root -ChildPath 'missing.exe'
+            Mock Resolve-AtlasProtectedExecutionPath { $Path }
+            Mock Start-Sleep {}
+            Mock Invoke-AtlasLimitedHttpGet {
+                $statusFailure = [Net.Http.HttpRequestException]::new("Downloading '$Uri' failed with HTTP status 404.")
+                $statusFailure.Data['AtlasHttpStatus'] = 404
+                throw $statusFailure
+            }
+
+            { Invoke-AtlasSoftwareDownload -Uri 'https://downloads.example.test/setup.exe' `
+                    -Destination $destination -Description 'fixture' } |
+                Should -Throw -ExpectedMessage "Downloading 'https://downloads.example.test/setup.exe' failed with HTTP status 404."
+            Should -Invoke Invoke-AtlasLimitedHttpGet -Times 1 -Exactly
+            Should -Invoke Start-Sleep -Times 0 -Exactly
+        }
+    }
+
     It 'removes a partial file when size-limited streaming fails' {
         InModuleScope Atlas.Software -Parameters @{ Root = $TestDrive } {
             $destination = Join-Path -Path $Root -ChildPath 'partial.exe'
@@ -787,6 +1069,124 @@ Describe 'Invoke-AtlasSoftwareDownload' {
                     -Destination $destination -Description 'fixture' } |
                 Should -Throw -ExpectedMessage '*network failed*'
             Test-Path -LiteralPath $destination | Should -BeFalse
+        }
+    }
+}
+
+Describe 'Download failure detail' {
+    It 'names every cause under a failed request once' {
+        InModuleScope Atlas.Download {
+            $exception = [InvalidOperationException]::new('An error occurred while sending the request.',
+                [Net.Http.HttpRequestException]::new('An error occurred while sending the request.',
+                    [Net.WebException]::new("The remote name could not be resolved: 'laptop-updates.brave.com'")))
+
+            Get-AtlasDownloadFailureDetail -Exception $exception |
+                Should -BeExactly "An error occurred while sending the request. -> The remote name could not be resolved: 'laptop-updates.brave.com'"
+        }
+    }
+}
+
+Describe 'Visual C++ runtime installation' {
+    It 'installs every other runtime when one can''t be downloaded, then fails naming it' {
+        InModuleScope Atlas.Software -Parameters @{ Root = $TestDrive } {
+            Mock Write-AtlasLog {}
+            Mock Invoke-AtlasSoftwareDownload {
+                if ($Description -like '*2008-x64') { throw "Downloading Visual C++ Runtime 2008-x64 failed after 3 attempts: unreachable" }
+                $Destination
+            }
+            Mock Assert-AtlasFileSignature {}
+            Mock Test-AtlasVisualCppRuntimeCurrent { $false }
+            Mock Start-AtlasSoftwareOptionalInstaller { $true }
+            Mock Resolve-AtlasProtectedExecutionPath { $Path }
+            Mock Get-ChildItem { [pscustomobject]@{ FullName = (Join-Path $LiteralPath 'vcredist.msi'); BaseName = 'vcredist' } }
+
+            { Install-AtlasVisualCppRuntimes -TempDir $Root -LogRoot (Join-Path $Root 'logs') } |
+                Should -Throw -ExpectedMessage 'One or more Visual C++ runtime installers failed: 2008-x64 download.'
+
+            # The eleven other runtimes: the two 2005 extractors and their MSIs, and nine more.
+            Should -Invoke Invoke-AtlasSoftwareDownload -Times 12 -Exactly
+            Should -Invoke Start-AtlasSoftwareOptionalInstaller -Times 13 -Exactly
+            Should -Invoke Start-AtlasSoftwareOptionalInstaller -Times 0 -Exactly -ParameterFilter { $Description -like '*2008-x64*' }
+            Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
+                $Level -eq 'Warning' -and $Message -like "Visual C++ Runtime 2008-x64 wasn't installed: *unreachable"
+            }
+        }
+    }
+}
+
+Describe 'Google Chrome over an existing install' {
+    BeforeEach {
+        InModuleScope Atlas.Software {
+            Mock Test-AtlasSoftwareArm64 { $false }
+            Mock Invoke-AtlasSoftwareDownload { $Destination }
+            Mock Assert-AtlasFileSignature {}
+            Mock Write-AtlasLog {}
+            Mock Get-AtlasChromeMsiVersion { [version]'131.0.6778.86' }
+            Mock Get-AtlasChromeRegistryRecord {}
+            Mock Get-AtlasInstalledChrome {}
+            Mock Start-AtlasSoftwareInstaller {
+                $failure = [InvalidOperationException]::new('Installing Google Chrome failed with exit code 1603.')
+                $failure.Data['AtlasInstallerExitCode'] = [uint32]1603
+                throw $failure
+            }
+        }
+    }
+
+    It 'keeps a Google-signed Chrome at least as new as the installer that refused with 1603: <Installed>' -TestCases @(
+        @{ Installed = '131.0.6778.86' }
+        @{ Installed = '132.0.6834.6' }
+    ) {
+        InModuleScope Atlas.Software -Parameters @{ Installed = $Installed } {
+            Mock Get-AtlasInstalledChrome {
+                [pscustomobject]@{ Path = 'C:\Program Files\Google\Chrome\Application\chrome.exe'; Version = [version]$Installed }
+            }
+
+            { Install-AtlasChromeBrowser -TempDir 'C:\Staging' } | Should -Not -Throw
+
+            Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
+                $Message -like "Google Chrome $Installed is already installed at 'C:\Program Files\Google\Chrome\Application\chrome.exe'*131.0.6778.86*keeps the installed Chrome."
+            }
+        }
+    }
+
+    It 'stops naming the leftover records when only the registry records a Chrome that new' {
+        InModuleScope Atlas.Software {
+            Mock Get-AtlasChromeRegistryRecord {
+                [pscustomobject]@{ Key = 'HKLM\SOFTWARE\WOW6432Node\Google\Update\Clients\{8A69D345-D564-463c-AFF1-A69D9E530F96}'; Version = [version]'133.0.1.2' }
+                [pscustomobject]@{ Key = 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Google Chrome'; Version = [version]'120.0.1.2' }
+            }
+
+            { Install-AtlasChromeBrowser -TempDir 'C:\Staging' } |
+                Should -Throw -ExpectedMessage "Google Chrome 131.0.6778.86 couldn't be installed*'HKLM\SOFTWARE\WOW6432Node\Google\Update\Clients\{8A69D345-D564-463c-AFF1-A69D9E530F96}' (133.0.1.2). There's no Google Chrome program in Program Files, so those records are left over.*"
+        }
+    }
+
+    It 'keeps the installer''s failure when <Case>' -TestCases @(
+        @{ Case = 'the installed Chrome is older and nothing records a newer one'; Installed = '120.0.1.2'; MsiVersion = '131.0.6778.86' }
+        @{ Case = 'the installer''s version can''t be read'; Installed = '132.0.6834.6'; MsiVersion = $null }
+    ) {
+        InModuleScope Atlas.Software -Parameters @{ Installed = $Installed; MsiVersion = $MsiVersion } {
+            Mock Get-AtlasInstalledChrome {
+                [pscustomobject]@{ Path = 'C:\Program Files\Google\Chrome\Application\chrome.exe'; Version = [version]$Installed }
+            }
+            Mock Get-AtlasChromeMsiVersion { if ($MsiVersion) { [version]$MsiVersion } }
+
+            { Install-AtlasChromeBrowser -TempDir 'C:\Staging' } |
+                Should -Throw -ExpectedMessage 'Installing Google Chrome failed with exit code 1603.'
+        }
+    }
+
+    It 'leaves any other installer failure as it is' {
+        InModuleScope Atlas.Software {
+            Mock Start-AtlasSoftwareInstaller {
+                $failure = [InvalidOperationException]::new('Installing Google Chrome failed with exit code 1618.')
+                $failure.Data['AtlasInstallerExitCode'] = [uint32]1618
+                throw $failure
+            }
+
+            { Install-AtlasChromeBrowser -TempDir 'C:\Staging' } |
+                Should -Throw -ExpectedMessage 'Installing Google Chrome failed with exit code 1618.'
+            Should -Invoke Get-AtlasChromeMsiVersion -Times 0 -Exactly
         }
     }
 }

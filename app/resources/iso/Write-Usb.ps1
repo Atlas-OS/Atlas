@@ -44,6 +44,7 @@ function Fail([string]$Reason, [string]$Message, [switch]$Quiet) {
     if (-not $Quiet) { [Console]::Out.WriteLine("ATLAS_ERROR:$Reason") }
     throw $Message
 }
+. (Join-Path $PSScriptRoot 'Iso-Mount.ps1')
 
 function Read-AtlasUsbRequest {
     param([string]$Path)
@@ -387,16 +388,14 @@ function Write-AtlasUsbDriveList {
 # mounted it, so it dismounts only its own mount.
 function Mount-AtlasUsbSource {
     param([string]$Source)
-    $image = Get-DiskImage -ImagePath $Source -ErrorAction SilentlyContinue
-    if ($image -and $image.Attached) { return [pscustomobject]@{ image=$image; owned=$false } }
-    return [pscustomobject]@{ image=(Mount-DiskImage -ImagePath $Source -PassThru); owned=$true }
+    $image = Get-AtlasIsoImage $Source -Quiet
+    if ($image -and $image.Attached) { return [pscustomobject]@{ image=$image; owned=$false; source=$Source } }
+    return [pscustomobject]@{ image=(Mount-AtlasIso $Source); owned=$true; source=$Source }
 }
 
 function Get-AtlasUsbSourceRoot {
     param($Mount)
-    $volume = @($Mount.image | Get-Volume)
-    if ($volume.Count -ne 1 -or -not $volume[0].DriveLetter) { Fail 'iso-unsupported' 'The ISO has no readable filesystem.' }
-    return "$($volume[0].DriveLetter):\"
+    return (Get-AtlasIsoRoot -ImagePath $Mount.source -Disk $Mount.image -Owned:$Mount.owned)
 }
 
 # The files a write copies from the mounted ISO at $Root, and its install image.
@@ -440,7 +439,7 @@ function Invoke-AtlasUsbCheck {
         $bytes = [long](($plan.files | Measure-Object bytes -Sum).Sum)
         Write-Output ('ATLAS_RESULT:' + (@{ checked=$true; bytes=$bytes } | ConvertTo-Json -Compress))
     } finally {
-        if ($null -ne $mount -and $mount.owned) { Dismount-DiskImage -ImagePath $source -ErrorAction Continue | Out-Null }
+        if ($null -ne $mount -and $mount.owned) { Dismount-AtlasIso $source }
     }
 }
 
@@ -513,10 +512,8 @@ function Invoke-AtlasUsbWorker {
             $wim = $images[0]
             if ([IO.Path]::GetExtension($wim) -ieq '.esd') {
                 $wim = Join-Path $scratch 'install.wim'
-                foreach ($edition in @(Get-WindowsImage -ImagePath $images[0])) {
-                    Assert-AtlasUsbContinue
-                    Export-WindowsImage -SourceImagePath $images[0] -SourceIndex $edition.ImageIndex -DestinationImagePath $wim -CompressionType Max -CheckIntegrity | Out-Null
-                }
+                $indexes = @(Get-WindowsImage -ImagePath $images[0] | ForEach-Object { [int]$_.ImageIndex })
+                Export-AtlasWindowsImages -SourceImage $images[0] -DestinationImage $wim -Indexes $indexes -Checkpoint { Assert-AtlasUsbContinue }
             } else {
                 # WIMGAPI's integrity-checked split can request write access to its input.
                 # Work on our own writable copy, never on the mounted optical image.
@@ -576,7 +573,7 @@ function Invoke-AtlasUsbWorker {
         }
         Write-Output ('ATLAS_RESULT:' + (@{ verified=$true; ejected=$ejected; driveLetter=[string]$usbVolume.DriveLetter; files=$files.Count } | ConvertTo-Json -Compress))
     } finally {
-        if ($null -ne $mount -and $mount.owned) { Dismount-DiskImage -ImagePath $source -ErrorAction Continue | Out-Null }
+        if ($null -ne $mount -and $mount.owned) { Dismount-AtlasIso $source }
         $sourceLock.Dispose()
         # Remove only the split scratch folder; logs and manifest.json stay in the job.
         # A file still held open must not fail a verified write or replace the error

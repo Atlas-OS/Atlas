@@ -114,6 +114,32 @@ fn a_file_that_is_not_an_atlas_package_is_refused() {
         settle(&cx, &model).await;
     });
 }
+
+/// A Windows ISO opened as the package is refused with its own problem,
+/// which Get ready words with the way to an Atlas ISO; nothing is unpacked
+/// and no help row shows, as the bar says what to do.
+#[test]
+fn a_windows_iso_opened_as_the_package_points_to_an_atlas_iso() {
+    run_model_test(async move |mut cx| {
+        use crate::model::AcquireProblem;
+        let (temp, _, env) = fixture("model-windows-iso");
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        act(&mut cx, &model, |m, cx| m.begin_install(cx));
+        let iso = temp.path().join("Win11_25H2_English_x64.iso");
+        std::fs::write(&iso, b"not a package").unwrap();
+        act(&mut cx, &model, |m, cx| m.load_package_file(iso.clone(), cx));
+        wait_for(&cx, &model, "the refusal", |m| !m.acquisition.is_busy()).await;
+        read(&cx, &model, |m| {
+            assert!(matches!(m.acquisition, Acquisition::Failed(AcquireProblem::WindowsIso)));
+            assert!(m.package.is_none());
+            assert!(m.ready_help().is_none());
+            assert!(m.can_navigate(crate::model::Page::Iso), "Create an Atlas ISO can open");
+        });
+        settle(&cx, &model).await;
+    });
+}
+
 /// A package that asks for a newer Atlas Manager, and one whose manifest is
 /// in a format only a newer Atlas Manager reads, are refused the same way:
 /// nothing is unpacked, and Get ready says which version to download when

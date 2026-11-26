@@ -17,8 +17,9 @@ catch {
 }
 foreach ($binding in $bindings) {
     try {
-        Disable-NetAdapterBinding -Name ([string]$binding.Name) -ComponentID 'ms_lldp' `
-            -Confirm:$false -ErrorAction Stop | Out-Null
+        # -Name is a wildcard, so the binding itself is passed: an adapter name with
+        # brackets would read as a character set and match nothing.
+        Disable-NetAdapterBinding -InputObject $binding -Confirm:$false -ErrorAction Stop | Out-Null
     }
     catch {
         Write-AtlasLog -Level Warning -Message "Disabling the LLDP binding on adapter '$($binding.Name)' failed: $($_.Exception.Message)" -ErrorRecord $_

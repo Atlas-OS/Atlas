@@ -463,6 +463,117 @@ Windows Registry Editor Version 5.00
     }
 }
 
+Describe 'Default-user policy keys whose permissions refuse Atlas' {
+    BeforeAll {
+        # Software\AtlasRewriteTest\Policies stands in for Atlas_DefaultUser\Software\Policies.
+        $script:policySubPath = "$script:testSubPath\Policies\Microsoft\Windows\Personalization"
+
+        # Lets only this account read the key and take ownership of it, as permissions
+        # changed outside Atlas can. Taking ownership stands in for the privilege
+        # TrustedInstaller enables.
+        function Set-RefusingPolicyKey {
+            $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($script:policySubPath)
+            try {
+                $security = New-Object Security.AccessControl.RegistrySecurity
+                $security.SetAccessRuleProtection($true, $false)
+                $security.AddAccessRule((New-Object Security.AccessControl.RegistryAccessRule(
+                            [Security.Principal.WindowsIdentity]::GetCurrent().User,
+                            [Security.AccessControl.RegistryRights]'ReadKey, TakeOwnership',
+                            [Security.AccessControl.AccessControlType]::Allow)))
+                $key.SetAccessControl($security)
+            }
+            finally { $key.Close() }
+        }
+
+        function Test-PolicyKeyWritable {
+            try {
+                $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($script:policySubPath, $true)
+                $key.Close()
+                return $true
+            }
+            catch [System.Security.SecurityException], [System.UnauthorizedAccessException] {
+                return $false
+            }
+        }
+    }
+
+    BeforeEach {
+        Remove-Item -Path $script:testRoot -Recurse -Force -ErrorAction SilentlyContinue
+        Set-RefusingPolicyKey
+        Mock Write-AtlasLog -ModuleName Atlas.Registry
+        Mock Enable-AtlasRegistryOwnershipPrivilege -ModuleName Atlas.Registry
+    }
+
+    AfterEach {
+        # The key's owner can always give the permissions back, for cleanup.
+        $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($script:policySubPath,
+            [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, [Security.AccessControl.RegistryRights]::ChangePermissions)
+        if ($null -ne $key) {
+            $inherited = New-Object Security.AccessControl.RegistrySecurity
+            $inherited.SetSecurityDescriptorSddlForm('D:', [Security.AccessControl.AccessControlSections]::Access)
+            $key.SetAccessControl($inherited)
+            $key.Close()
+        }
+        Remove-Item -Path $script:testRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'applies only below the default-user hive''s Software\Policies' {
+        InModuleScope Atlas.Registry {
+            Get-AtlasDefaultUserPolicyRootDepth -ProviderPath 'Registry::HKEY_USERS\Atlas_DefaultUser\Software\Policies\Microsoft\Windows\Personalization' | Should -Be 3
+            Get-AtlasDefaultUserPolicyRootDepth -ProviderPath 'Registry::HKEY_USERS\Atlas_DefaultUser\Software\Policies' | Should -Be 0
+            Get-AtlasDefaultUserPolicyRootDepth -ProviderPath 'Registry::HKEY_USERS\Atlas_DefaultUser\Software\Microsoft\Windows' | Should -Be 0
+            Get-AtlasDefaultUserPolicyRootDepth -ProviderPath 'Registry::HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows' | Should -Be 0
+            Get-AtlasDefaultUserPolicyRootDepth -ProviderPath 'Registry::HKEY_USERS\S-1-5-21-1-2-3-1001\Software\Policies\Microsoft' | Should -Be 0
+        }
+    }
+
+    It 'takes back the refusing key, resets it to inherit from its parent, then writes the value' {
+        Test-PolicyKeyWritable | Should -BeFalse
+
+        InModuleScope Atlas.Registry -Parameters @{ SubPath = $script:policySubPath } {
+            Mock Get-AtlasDefaultUserPolicyRootDepth { 3 }
+            Set-AtlasRegistryValueCore -ProviderPath "Registry::HKEY_CURRENT_USER\$SubPath" -Name 'ThemeFile' `
+                -Type ExpandString -Data '%windir%\Resources\Themes\atlas-v0.6.x-dark.theme'
+        }
+
+        Test-PolicyKeyWritable | Should -BeTrue
+        $written = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($script:policySubPath, $false)
+        try {
+            $written.GetValue('ThemeFile', $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames) |
+                Should -BeExactly '%windir%\Resources\Themes\atlas-v0.6.x-dark.theme'
+            $acl = $written.GetAccessControl()
+        }
+        finally { $written.Close() }
+        $acl.AreAccessRulesProtected | Should -BeFalse
+        $rules = @($acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier]))
+        $rules.Count | Should -BeGreaterThan 0
+        @($rules | Where-Object { -not $_.IsInherited }).Count | Should -Be 0 -Because $acl.GetSecurityDescriptorSddlForm('Access')
+        Should -Invoke Enable-AtlasRegistryOwnershipPrivilege -ModuleName Atlas.Registry -Times 1 -Exactly
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Registry -Times 1 -Exactly -ParameterFilter {
+            $Message -like "Took ownership of the default-user policy key 'HKEY_CURRENT_USER\*\Personalization' and reset its permissions*"
+        }
+    }
+
+    It 'stops, naming the key, when it still refuses after being taken back' {
+        InModuleScope Atlas.Registry -Parameters @{ SubPath = $script:policySubPath } {
+            Mock Get-AtlasDefaultUserPolicyRootDepth { 3 }
+            Mock Repair-AtlasDefaultUserPolicyKeyAccess { $SubPath }
+            { Set-AtlasRegistryValueCore -ProviderPath "Registry::HKEY_CURRENT_USER\$SubPath" -Name 'ThemeFile' -Type String -Data 'x' } |
+                Should -Throw -ExpectedMessage "Windows still refuses Atlas access to the default-user policy key 'Registry::HKEY_CURRENT_USER\*\Personalization' after Atlas took ownership*"
+        }
+    }
+
+    It 'leaves any other refused key an error, unchanged' {
+        InModuleScope Atlas.Registry -Parameters @{ SubPath = $script:policySubPath } {
+            Mock Repair-AtlasDefaultUserPolicyKeyAccess {}
+            { Set-AtlasRegistryValueCore -ProviderPath "Registry::HKEY_CURRENT_USER\$SubPath" -Name 'ThemeFile' -Type String -Data 'x' } |
+                Should -Throw -ExpectedMessage '*Access to the registry key*is denied*'
+            Should -Invoke Repair-AtlasDefaultUserPolicyKeyAccess -Times 0 -Exactly
+        }
+        Test-PolicyKeyWritable | Should -BeFalse
+    }
+}
+
 Describe 'Values Windows itself refuses' {
     BeforeAll {
         $script:RefusedRecord = InModuleScope Atlas.Registry {

@@ -29,6 +29,45 @@ updated_at: 2026-08-28T08:57:00.0000000Z
 | General Availability Channel | 2025-09 D | 2025-09-30 | 26200.8888 | |
 "@
     }
+    # The release fixture with Microsoft's hotpatch calendar after it: a 26H2 heading that
+    # carries the year on the same line, baseline rows, an announced month and 24H2 rows.
+    function New-HotpatchMarkdownFixture {
+        (New-ReleaseMarkdownFixture) + @"
+
+## Windows 11 hotpatch calendar
+
+Note
+
+Hotpatching is not available on Windows 11, version 26H1.
+**Version 26H2 (OS build 26300)** **Calendar year 2026**
+
+| Month | Update type | Type | Availability date | Build | KB article |
+| --- | --- | --- | --- | --- | --- |
+| October | 2026.10 B | Baseline (Restart) | 2026-10-13 | 26300.9711 | [KB5127648](https://support.microsoft.com/help/5127648) |
+| November | 2026.11 B | Hotpatch | 2026-11-10 | 26300.9911 | [KB5132043](https://support.microsoft.com/help/5132043) |
+| December | 2026.12 B | Hotpatch |  |  |  |
+
+**Version 25H2 (OS build 26200)**
+**Calendar year 2026**
+
+| Month | Update type | Type | Availability date | Build | KB article |
+| --- | --- | --- | --- | --- | --- |
+| November | 2026.11 B | Hotpatch | 2026-11-10 | 26200.9911 | [KB5132043](https://support.microsoft.com/help/5132043) |
+
+**Calendar year 2025**
+
+| Month | Update type | Type | Availability date | Build | KB article |
+| --- | --- | --- | --- | --- | --- |
+| November | 2025.11 B | Hotpatch | 2025-11-11 | 26200.7092 | [KB5068966](https://support.microsoft.com/topic/november-11-2025-hotpatch-kb5068966) |
+
+**Version 24H2 (OS build 26100)**
+**Calendar year 2026**
+
+| Month | Update type | Type | Availability date | Build | KB article |
+| --- | --- | --- | --- | --- | --- |
+| November | 2026.11 B | Hotpatch | 2026-11-10 | 26100.9911 | [KB5132043](https://support.microsoft.com/help/5132043) |
+"@
+    }
     function New-ReleaseResponseFixture {
         param([string]$Text, [int]$Status = 200, [long]$Length = -1, [string]$Location = '')
         $response = [pscustomobject]@{
@@ -83,6 +122,100 @@ Describe 'Windows release catalog parser' {
         $markdown = New-ReleaseMarkdownFixture
         $row = @($markdown -split '\r?\n' | Where-Object { $_ -match '^\| General Availability Channel.*26200\.9999' })[0]
         { ConvertFrom-AtlasWindowsReleaseMarkdown ($markdown.Replace($row, "$row`n$row")) } | Should -Throw '*Duplicate release*'
+    }
+}
+
+Describe 'Windows hotpatch calendar parser' {
+    It 'reads the released hotpatches of one release, without its baseline rows or announced months' {
+        $rows = @(ConvertFrom-AtlasWindowsHotpatchMarkdown (New-HotpatchMarkdownFixture) -Build 26200 -AsOfDate ([datetime]'2026-11-20'))
+        $rows.version | Should -Be @('10.0.26200.7092', '10.0.26200.9911')
+        $rows[1].availableDate | Should -Be '2026-11-10'
+        $rows[1].updateType | Should -Be '2026.11 B'
+        $rows[1].kb | Should -Be 'KB5132043'
+        $rows = @(ConvertFrom-AtlasWindowsHotpatchMarkdown (New-HotpatchMarkdownFixture) -Build 26300 -AsOfDate ([datetime]'2026-11-20'))
+        $rows.version | Should -Be @('10.0.26300.9911')
+    }
+    It 'leaves out a hotpatch that is not released yet' {
+        @(ConvertFrom-AtlasWindowsHotpatchMarkdown (New-HotpatchMarkdownFixture) -Build 26300 -AsOfDate ([datetime]'2026-11-09')).Count | Should -Be 0
+        @(ConvertFrom-AtlasWindowsHotpatchMarkdown (New-HotpatchMarkdownFixture) -Build 26200 -AsOfDate ([datetime]'2026-11-09')).version | Should -Be @('10.0.26200.7092')
+    }
+    It 'gives none without a calendar' {
+        @(ConvertFrom-AtlasWindowsHotpatchMarkdown (New-ReleaseMarkdownFixture) -Build 26200).Count | Should -Be 0
+    }
+    It 'leaves out a row of another kind, such as a preview' {
+        $markdown = (New-HotpatchMarkdownFixture).Replace('| Hotpatch | 2025-11-11', '| Hotpatch (Release Preview) | 2025-11-11')
+        @(ConvertFrom-AtlasWindowsHotpatchMarkdown $markdown -Build 26200 -AsOfDate ([datetime]'2026-11-20')).version | Should -Be @('10.0.26200.9911')
+    }
+    It 'rejects a hotpatch row of its release that it can''t read' {
+        $markdown = New-HotpatchMarkdownFixture
+        foreach ($broken in @(
+                $markdown.Replace('2025-11-11 | 26200.7092', '2025-11-11 | 26100.7092')
+                $markdown.Replace('2025-11-11 | 26200.7092', 'November 11 | 26200.7092')
+                $markdown.Replace('2025-11-11 | 26200.7092', '2025-11-11 | ')
+                $markdown.Replace('26200.7092', '26200.9911')
+                $markdown.Replace('https://support.microsoft.com/topic/november-11-2025', 'https://example.invalid/november-11-2025')
+                $markdown.Replace('| Month | Update type | Type |', '| Month | Update type | Kind |')
+            )) {
+            { ConvertFrom-AtlasWindowsHotpatchMarkdown $broken -Build 26200 -AsOfDate ([datetime]'2026-11-20') } | Should -Throw
+        }
+        # A row of another release can't stop this one.
+        @(ConvertFrom-AtlasWindowsHotpatchMarkdown ($markdown.Replace('26100.9911', 'not-a-build')) -Build 26200 -AsOfDate ([datetime]'2026-11-20')).Count | Should -Be 2
+    }
+}
+
+Describe 'Windows hotpatch eligibility' {
+    BeforeAll {
+        # Listed: 26200.100, .200 and .300 as releases, and .250 and .400 as hotpatches, with
+        # .500 a hotpatch not released yet.
+        $hotpatchRoot = Join-Path $TestDrive 'Hotpatches'
+        $null = New-Item -ItemType Directory -Path $hotpatchRoot
+        Copy-Item -LiteralPath $policy -Destination $hotpatchRoot
+        $catalog = [ordered]@{
+            schemaVersion = 2
+            supportedReleases = @([ordered]@{ release = '25H2'; build = 26200 }, [ordered]@{ release = '26H2'; build = 26300 })
+            releases = @(foreach ($build in '26200.100', '26200.200', '26200.300') {
+                [ordered]@{ version = "10.0.$build"; availableDate = '2025-10-14' }
+            })
+            hotpatches = @(
+                [ordered]@{ version = '10.0.26200.250'; availableDate = '2025-11-11' }
+                [ordered]@{ version = '10.0.26200.400'; availableDate = '2025-12-09' }
+                [ordered]@{ version = '10.0.26200.500'; availableDate = '2099-01-01' }
+            )
+        }
+        [IO.File]::WriteAllText((Join-Path $hotpatchRoot 'windows-releases.json'), ($catalog | ConvertTo-Json -Depth 5), [Text.UTF8Encoding]::new($false))
+        . (Join-Path $hotpatchRoot 'Windows-Release.ps1')
+    }
+    BeforeEach {
+        Remove-Variable AtlasWindowsReleasedVersions -Scope Script -ErrorAction SilentlyContinue
+        Mock Get-AtlasWindowsReleaseMarkdown { throw 'offline fixture' }
+    }
+    It 'recognises a listed hotpatch offline' {
+        Get-AtlasWindowsReleaseStatus -Version '10.0.26200.250' | Should -Be 'Released'
+        Get-AtlasWindowsReleaseStatus -Version '10.0.26200.400' -NoRefresh | Should -Be 'Released'
+        Should -Invoke Get-AtlasWindowsReleaseMarkdown -Times 0 -Exactly
+    }
+    It 'never counts a hotpatch as the newest listed revision' {
+        # Newer than every listed release, so an update the catalog predates, though older
+        # than a listed hotpatch.
+        Get-AtlasWindowsReleaseStatus -Version '10.0.26200.350' -NoRefresh | Should -Be 'Released'
+        Get-AtlasWindowsReleaseStatus -Version '10.0.26200.299' -NoRefresh | Should -Be 'Unknown'
+    }
+    It 'does not accept a hotpatch before its date' {
+        Get-AtlasWindowsReleaseStatus -Version '10.0.26200.500' | Should -Be 'Unknown'
+        Should -Invoke Get-AtlasWindowsReleaseMarkdown -Times 1 -Exactly
+    }
+    It 'accepts a hotpatch the live calendar lists' {
+        Mock Get-AtlasWindowsReleaseMarkdown { New-HotpatchMarkdownFixture }
+        Get-AtlasWindowsReleaseStatus -Version '10.0.26200.9911' | Should -Be 'Released'
+        Get-AtlasWindowsReleaseStatus -Version '10.0.26300.9911' | Should -Be 'Released'
+        # Baseline rows, announced months and other releases add nothing.
+        Get-AtlasWindowsReleaseStatus -Version '10.0.26300.9711' | Should -Be 'Unlisted'
+        Should -Invoke Get-AtlasWindowsReleaseMarkdown -Times 1 -Exactly
+    }
+    It 'keeps the General Availability releases when the live calendar can''t be read' {
+        Mock Get-AtlasWindowsReleaseMarkdown { (New-HotpatchMarkdownFixture).Replace('2026-11-10 | 26200.9911', 'soon | 26200.9911') }
+        Get-AtlasWindowsReleaseStatus -Version '10.0.26200.9999' | Should -Be 'Released'
+        Get-AtlasWindowsReleaseStatus -Version '10.0.26300.9911' | Should -Be 'Unlisted'
     }
 }
 
@@ -179,6 +312,14 @@ Describe 'Bundled Windows release catalog' {
             Get-AtlasWindowsReleaseStatus -Version $newest -NoRefresh | Should -Be 'Released'
         }
     }
+    It 'counts each bundled hotpatch as released, apart from the releases' {
+        $catalog = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $policy) 'windows-releases.json') -Raw | ConvertFrom-Json
+        @($catalog.hotpatches).Count | Should -BeGreaterThan 0
+        foreach ($hotpatch in $catalog.hotpatches) {
+            @($catalog.releases.version) | Should -Not -Contain $hotpatch.version
+            Get-AtlasWindowsReleaseStatus -Version $hotpatch.version -NoRefresh | Should -Be 'Released'
+        }
+    }
 }
 
 Describe 'Limits on the official release transport' {
@@ -255,5 +396,33 @@ Describe 'Reviewed release catalog regeneration' {
         $catalog.sourceSha256 | Should -Be (Get-FileHash $markdownPath -Algorithm SHA256).Hash
         $catalog.updatedAt | Should -Be '2026-08-28T08:57:00.0000000Z'
         $catalog.asOfDate | Should -Be '2026-09-30'
+        @($catalog.hotpatches).Count | Should -Be 0
+    }
+    It 'lists the calendar''s hotpatches apart from the releases, which stay as they were' {
+        $hotpatchSource = Join-Path $TestDrive 'hotpatch-source.md'
+        [IO.File]::WriteAllText($hotpatchSource, (New-HotpatchMarkdownFixture), [Text.UTF8Encoding]::new($false))
+        $catalogPath = Join-Path $TestDrive 'hotpatches.json'
+        $output = & $script:AtlasTestToolsHost -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $generator -MarkdownPath $hotpatchSource -AsOfDate '2026-11-20' -OutputPath $catalogPath 2>&1
+        $LASTEXITCODE | Should -Be 0 -Because ($output -join "`n")
+        $catalog = Get-Content $catalogPath -Raw | ConvertFrom-Json
+        $catalog.releases.version | Should -Be @('10.0.26200.9999', '10.0.26300.9457', '10.0.26300.9550')
+        $catalog.hotpatches.version | Should -Be @('10.0.26200.7092', '10.0.26200.9911', '10.0.26300.9911')
+        $catalog.hotpatches[0].updateType | Should -Be '2025.11 B'
+    }
+    It 'refuses a version listed both as a release and as a hotpatch' {
+        $overlap = Join-Path $TestDrive 'overlap-source.md'
+        [IO.File]::WriteAllText($overlap, (New-HotpatchMarkdownFixture).Replace('26300.9911', '26300.9550'), [Text.UTF8Encoding]::new($false))
+        # Windows PowerShell turns redirected native stderr into error records.
+        # Capture the expected failure even when CI uses ErrorActionPreference=Stop.
+        $savedPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'Continue'
+            $output = & $script:AtlasTestToolsHost -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $generator -MarkdownPath $overlap -AsOfDate '2026-11-20' -OutputPath (Join-Path $TestDrive 'overlap.json') 2>&1
+        }
+        finally {
+            $ErrorActionPreference = $savedPreference
+        }
+        $LASTEXITCODE | Should -Not -Be 0
+        ($output -join "`n") | Should -Match 'both as releases and as hotpatches'
     }
 }

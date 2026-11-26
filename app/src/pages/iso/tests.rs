@@ -173,15 +173,32 @@ fn this_pc_s_edition_is_found_by_its_windows_name() {
 fn only_failures_nothing_on_the_page_fixes_get_the_help_row() {
     use FailureReason::*;
     // Other media, a package to change, a connection or free space: the bar has the fix.
-    for reason in [EditionUnsupported, IsoCustomised, WindowsReleaseUnlisted, WindowsUnsupported] {
+    for reason in [
+        EditionUnsupported,
+        IsoCustomised,
+        IsoCreatedByAtlas,
+        IsoMountFile,
+        WindowsReleaseUnlisted,
+        WindowsUnsupported,
+    ] {
         assert!(!failure_needs_help(Some(reason), true, true), "{reason:?}");
     }
-    for reason in [WindowsReleaseUnknown, PackageUnsupported, ManagerOutdated, DiskSpace] {
+    for reason in [
+        WindowsReleaseUnknown,
+        PackageUnsupported,
+        PackageIsWindowsIso,
+        ManagerOutdated,
+        DiskSpace,
+        DestinationPath,
+        IsoMountDrivers,
+    ] {
         assert!(!failure_needs_help(Some(reason), true, true), "{reason:?}");
         assert!(!failure_needs_help(Some(reason), false, true), "{reason:?}");
     }
     // Unexpected failures, and a job that never started, do.
-    for reason in [Some(Check), Some(Build), Some(ManagerMissing), None] {
+    for reason in
+        [Some(Check), Some(Build), Some(ManagerMissing), Some(IsoMount), Some(IsoMountTimeout), None]
+    {
         assert!(failure_needs_help(reason, true, true), "{reason:?}");
         assert!(failure_needs_help(reason, false, true), "{reason:?}");
     }
@@ -222,15 +239,47 @@ fn each_failure_is_named_and_says_what_to_do() {
             for (reason, title) in [
                 (FailureReason::EditionUnsupported, t!("iso-edition-unsupported-title")),
                 (FailureReason::IsoCustomised, t!("iso-customised-title")),
+                (FailureReason::IsoCreatedByAtlas, t!("iso-created-by-atlas-title")),
                 (FailureReason::WindowsReleaseUnlisted, t!("iso-preview-title")),
                 (FailureReason::WindowsReleaseUnknown, t!("iso-release-unknown-title")),
                 (FailureReason::PackageUnsupported, t!("iso-package-old-title")),
+                (FailureReason::PackageIsWindowsIso, t!("iso-package-windows-iso-title")),
             ] {
                 page.result = JobResult::Failed(Some(reason));
                 assert_eq!(page.failure_text().0, title, "{reason:?}");
             }
+            // A Windows ISO chosen as the package isn't sent to another Atlas version.
+            page.result = JobResult::Failed(Some(FailureReason::PackageIsWindowsIso));
+            let message = page.failure_text().1;
+            assert_eq!(message, t!("iso-package-windows-iso"));
+            assert!(!message.contains(iso::MINIMUM_VERSION), "{message}");
+            // An ISO Atlas created has the setup files an altered ISO has.
+            page.result = JobResult::Failed(Some(FailureReason::IsoCreatedByAtlas));
+            assert_eq!(page.failure_text().1, t!("iso-customised"));
+            assert!(other_media_fixes(Some(FailureReason::IsoCreatedByAtlas)));
+            // An ISO Windows couldn't open says so, whether checking or building.
+            page.result = JobResult::Failed(Some(FailureReason::IsoMount));
+            assert_eq!(page.failure_text(), (t!("iso-check-failed"), t!("iso-mount-failed")));
+            page.step = IsoStep::Create;
+            assert_eq!(page.failure_text(), (t!("iso-failed"), t!("iso-mount-failed")));
+            page.step = IsoStep::Windows;
+            // Why Windows couldn't, when the worker knows: each says what to do about it.
+            for (reason, message) in [
+                (FailureReason::IsoMountDrivers, t!("iso-mount-drivers")),
+                (FailureReason::IsoMountFile, t!("iso-mount-file")),
+                (FailureReason::IsoMountTimeout, t!("iso-mount-timeout")),
+            ] {
+                page.result = JobResult::Failed(Some(reason));
+                assert_eq!(page.failure_text(), (t!("iso-check-failed"), message), "{reason:?}");
+            }
+            // A copy of the ISO is the fix, so the bar offers another file.
+            assert!(other_media_fixes(Some(FailureReason::IsoMountFile)));
+            assert!(!other_media_fixes(Some(FailureReason::IsoMountDrivers)));
             // A network driver export that failed says so, with the way to leave them out.
             page.step = IsoStep::Create;
+            // A folder too deep for the ISO's files, even at the drive's root.
+            page.result = JobResult::Failed(Some(FailureReason::DestinationPath));
+            assert_eq!(page.failure_text(), (t!("iso-failed"), t!("iso-path-too-long")));
             page.network_build = true;
             page.stage = Stage::NetworkDrivers;
             page.result = JobResult::Failed(Some(FailureReason::Build));

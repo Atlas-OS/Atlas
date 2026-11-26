@@ -27,6 +27,8 @@ BeforeAll {
     }
     $script:Groups = @(Get-AtlasPackageChoice -ManifestPath $script:ManifestPath)
     function Get-AtlasWindowsReleaseStatus { param($Version, $BuildLabEx) throw "Unmocked release query: $Version $BuildLabEx" }
+    # The front door dot-sources WindowsTransition.ps1, which reads servicing.
+    function Test-AtlasServicingMarkerStale { $false }
     # The requirement checks default to this process's account. These tests check a
     # local account's; a test about another account type passes -AccountSid itself.
     $PSDefaultParameterValues = @{ 'Test-AtlasInstallRequirement:AccountSid' = 'S-1-5-21-111-222-333-1001' }
@@ -1145,6 +1147,22 @@ Describe 'Front door requirements and staging' {
         $files.Passed | Should -BeTrue -Because 'without a restart flag nothing needs the user'
         $files.Blocking | Should -BeFalse
         $files.Detail | Should -BeLike '*C:\Windows\System32\spool\drivers\x64\3\New\MXDWDRV.DLL*'
+    }
+
+    It 'passes servicing''s marker only when the worker confirmed it stale in this start of Windows: <Case>' -TestCases @(
+        @{ Case = 'confirmed, servicing alone'; Stale = $true; Keys = @('Component Based Servicing'); Passed = $true }
+        @{ Case = 'not confirmed'; Stale = $false; Keys = @('Component Based Servicing'); Passed = $false }
+        @{ Case = 'confirmed, with Windows Update''s own marker'; Stale = $true; Keys = @('Component Based Servicing', 'Auto Update'); Passed = $false }
+    ) {
+        param($Case, $Stale, $Keys, $Passed)
+        $script:MarkerKeys = $Keys
+        $script:StaleMarker = $Stale
+        Mock Test-Path { @($script:MarkerKeys | Where-Object { $LiteralPath -like "*\$_\*" }).Count -gt 0 }
+        Mock Test-AtlasServicingMarkerStale { $script:StaleMarker }
+        $result = Get-TestRequirement 'No pending reboot'
+        $result.Passed | Should -Be $Passed -Because $Case
+        $result.Blocking | Should -BeTrue
+        if ($Passed) { $result.Detail | Should -Match 'nothing pending for, which Atlas Manager confirmed after restarting' }
     }
 
     It 'does not treat an unreadable reboot marker as absent' {

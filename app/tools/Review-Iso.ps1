@@ -4,7 +4,7 @@ param(
     # The ISO and USB preview states of pages/iso.rs and pages/usb.rs, and the preparation states
     # listed in docs/review-tools.md. Set ATLAS_PREPARATION_PREVIEW directly for the others.
     [ValidateSet('home','windows-empty','download-change','download-progress','download-failed','source-menu','package-offline','checking','files-checked','this-pc-arm64',
-        'not-elevated','elevation-declined','failed','release-unknown','release-unlisted','edition-unsupported','iso-customised','windows-unsupported','package-unsupported','manager-outdated',
+        'not-elevated','elevation-declined','failed','release-unknown','release-unlisted','edition-unsupported','iso-customised','windows-unsupported','package-unsupported','package-windows-iso','manager-outdated',
         'setup','setup-another-pc','account-empty','account-invalid','setup-now','setup-extras-folded','before-desktop','choices-unsupported',
         'review','review-before','review-space','progress','progress-network','cancelling','build-failed','network-failed','cancelled','complete','complete-network-inbox',
         'prepare-idle','prepare-busy','prepare-stopping','prepare-download','prepare-complete','prepare-resume','prepare-failed','prepare-failed-battery','prepare-unconfirmed',

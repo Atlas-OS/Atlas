@@ -223,6 +223,7 @@ fn media_is_the_way_on(block: Option<&InstallBlock>) -> bool {
         block,
         Some(
             InstallBlock::Unsupported { .. }
+                | InstallBlock::Unrecorded
                 | InstallBlock::Windows { block: WindowsBlock::NoPath { .. }, .. }
         )
     )
@@ -1939,6 +1940,32 @@ mod tests {
                 m.flow.begin().unwrap();
                 assert_eq!(hero_action(m), Some(HeroAction::Continue));
                 assert!(hero_accent(&HeroAction::Continue, m.windows_looks_used()));
+                assert!(!media_recommended(m));
+            });
+        });
+    }
+
+    /// An Atlas no package updates, an earlier release named by its old
+    /// marker among them, and Atlas's files without a record of a finished
+    /// install: Home starts nothing, its bar says why, and the ISO card comes
+    /// first. An installation that can't be read isn't known to need that.
+    #[test]
+    fn atlas_that_only_a_reinstall_replaces_puts_the_iso_card_first() {
+        use crate::services::atlas_state::InstallIdentity;
+        run_model_test(|mut cx| async move {
+            let temp = TempDir::new("home-unrecorded");
+            let model = new_model(&mut cx, Machine::new(all_off()).environment(temp.path()));
+            model.update(&mut cx, |m, _| {
+                for identity in [InstallIdentity::Installed("0.4.0".into()), InstallIdentity::Unrecorded] {
+                    m.install_identity = Ok(identity.clone());
+                    assert_eq!(hero_action(m), None, "{identity:?}");
+                    assert_eq!(home_bar(m), Some(HomeBar::Unavailable), "{identity:?}");
+                    assert!(media_recommended(m), "{identity:?}");
+                    assert!(!first_install(m), "{identity:?}");
+                }
+                assert_eq!(m.start_block(), Some(InstallBlock::Unrecorded));
+                m.install_identity = Err("unreadable".into());
+                assert_eq!(m.start_block(), Some(InstallBlock::Unknown));
                 assert!(!media_recommended(m));
             });
         });

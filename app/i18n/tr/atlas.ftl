@@ -437,6 +437,8 @@ acquire-no-asset = Atlas { $version } sürümü için indirilebilecek bir paket 
 # Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
 # .apbx file from an Atlas release before 0.6.
 acquire-unsupported = Bu uygulama Atlas 0.6.0 ve sonraki sürümleri Atlas paketlerinden (.atlaspkg) kurabilir.
+# Instead of acquire-unsupported for a Windows ISO opened as the Atlas package. Create an Atlas ISO (iso-open) is beside it.
+acquire-windows-iso = Bu bir Windows ISO'sudur, Atlas paketi (.atlaspkg) değildir. Windows'u Atlas ile yeniden yüklemek için bununla bir Atlas ISO'su oluşturun.
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = Atlas { $version } sürümünde bu uygulamanın kurulum için ihtiyaç duyduğu dosyalar eksik. Sürümü yeniden indirin veya başka bir Atlas paketi (.atlaspkg) açın.
 acquire-failed = Atlas paketi hazırlanamadı. Yeniden indirin veya başka bir Atlas paketi (.atlaspkg) açın. Ayrıntılar: { $error }
@@ -1159,6 +1161,9 @@ iso-destination-space = { $needed } gerekli · { $drive } sürücüsünde { $fre
 iso-destination-short = ISO için { $needed } gerekiyor, { $drive } sürücüsünde ise { $free } boş alan var. Alan boşaltın veya ISO'yu başka bir sürücüye kaydedin.
 iso-destination-filesystem = { $drive } sürücüsü ISO'nun büyük dosyalarını barındıramaz. ISO'yu Windows sürücünüz gibi NTFS biçimli bir sürücüye kaydedin.
 iso-destination-unusable = Atlas, ISO'yu yalnızca bu bilgisayardaki bir sürücüde bulunan bir klasöre kaydedebilir.
+# Copying the ISO's files would pass Windows' limit of 260 characters for a path, even at the
+# root of the drive the new ISO is saved to. Under iso-failed.
+iso-path-too-long = ISO'nun dosyaları, kaydettiğiniz klasörde Windows'un izin verdiğinden daha uzun yollar gerektirir. Yeni ISO'yu Windows sürücünüzdeki bir klasör gibi daha kısa yolu olan bir klasöre kaydedin.
 iso-create = ISO oluştur
 # Heading above the progress bar and the list of stages while the ISO is being created.
 iso-progress-title = ISO'nuz oluşturuluyor…
@@ -1201,6 +1206,9 @@ iso-unstaged = Atlas çalışma klasörünü hazırlayamadı, bu yüzden hiçbir
 iso-edition-unsupported-title = Bu ISO'da Atlas'ın desteklediği bir sürüm yok
 iso-edition-unsupported = Windows Home ve LTSC desteklenmez. Pro, Education veya Enterprise içeren bir ISO kullanın.
 iso-customised-title = Bu ISO özelleştirilmiş
+# In place of iso-customised-title, above iso-customised, when the ISO is one Atlas Manager
+# created: Atlas creates an ISO only from an unmodified ISO from Microsoft.
+iso-created-by-atlas-title = Bu ISO, Atlas ile oluşturulmuş
 iso-customised = autounattend.xml gibi kurulum dosyaları zaten içeriyor. Microsoft'tan alınmış, değiştirilmemiş bir ISO kullanın.
 iso-preview-title = Bu ISO bir önizleme derlemesi
 iso-preview = Windows derlemesi, Microsoft'un genel kullanıma sunulan sürümler listesinde yok. Microsoft'tan alınmış bir ISO kullanın.
@@ -1211,6 +1219,9 @@ iso-release-unconfirmed = Atlas bunu Microsoft'un genel kullanıma sunulan sür�
 # $minimum is the oldest Atlas version that can make an ISO, such as "0.6.0".
 iso-package-old-title = Bu Atlas paketiyle ISO oluşturulamaz
 iso-package-old = Atlas { $minimum } veya daha yeni bir sürüm kullanın.
+# Instead of iso-package-old-title and iso-package-old when the file chosen as the Atlas package is a Windows ISO. "The Windows ISO" is the field named iso-source.
+iso-package-windows-iso-title = Bu bir Windows ISO'su, Atlas paketi değil
+iso-package-windows-iso = Bunun yerine bir Atlas paketi (.atlaspkg) seçin ve bu ISO'yu Windows ISO'su olarak seçin.
 iso-manager-missing-title = Atlas Manager dosyası eksik
 iso-fix-package = Başka bir paket seç
 # A package that needs a newer Atlas Manager; manager-download is beside it.
@@ -1229,6 +1240,20 @@ iso-failed-space = Hedef sürücüde yeterli boş alan yok. Alan boşaltın veya
 iso-manager-missing = AtlasManager.exe dosyasını İndirilenler gibi yerel bir klasöre indirin, ardından oradan açın.
 # Home and LTSC are the editions ISO creation drops; the others are examples it keeps.
 iso-failed-edition = Bu ISO desteklenen bir Windows sürümü içermiyor. Windows Home ve LTSC desteklenmez. Pro, Education veya Enterprise gibi başka bir sürüm içeren bir ISO kullanın.
+# Windows didn't open an ISO as a drive Atlas can read: the Windows ISO, the new ISO while it's
+# checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
+# USB page's ISO card.
+iso-mount-failed = Windows ISO'yu açamadı. Bilgisayarınızı yeniden başlatın, ardından yeniden deneyin.
+# Windows stopped answering while it read or mounted the ISO.
+iso-mount-timeout = Windows, ISO'yu açarken yanıt vermeyi durdurdu. Bilgisayarınızı yeniden başlatın, ardından yeniden deneyin.
+# vdrvroot and cdrom are the Windows drivers' own names, as tools that turn drivers off show
+# them. Keep them as they are.
+iso-mount-drivers = Windows bu bilgisayarda ISO dosyalarını açamıyor, çünkü bunun için kullandığı vdrvroot ve cdrom sürücüleri devre dışı. Bu sürücüleri yeniden etkinleştirin, bilgisayarınızı yeniden başlatın ve yeniden deneyin.
+# Windows can store a file compressed or encrypted (in the file's Properties, under Advanced),
+# and a download can be stored sparse, with space reserved but not yet written. Windows can't
+# open an ISO stored any of these ways. Under iso-check-failed, with iso-download-windows and
+# iso-use-local beside it, or on the USB page's ISO card.
+iso-mount-file = Windows bu ISO'yu açamıyor, çünkü dosya sıkıştırılmış, şifrelenmiş veya seyrek bir dosya. Dosyayı sıkıştırılmamış ve şifrelenmemiş bir klasöre kopyalayın, ardından kopyayı kullanın.
 # Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = Günlük klasörünü aç
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,
@@ -1428,6 +1453,8 @@ install-source-resume-package = Atlas { $target } kurulumu tamamlanmadı ve bu k
 install-source-resume-bundled = Atlas { $target } kurulumu yarım kaldı. Bu test sürümü yalnızca birlikte gelen Atlas paketini kurabilir, bu yüzden bu kurulumu Atlas Manager'ın bir yayın sürümünde Atlas { $target } paketiyle tamamlayın.
 # Send a report and Export diagnostics are offered with it.
 install-source-unconfirmed = Atlas bu bilgisayarda neyin kurulu olduğunu doğrulayamadı, bu yüzden şimdilik hiçbir şey kurmayacak.
+# Atlas's files are on this PC without a record of a finished installation. Create an Atlas ISO (iso-open) is beside it.
+install-source-unrecorded = Bu bilgisayarda önceki bir Atlas sürümünün dosyaları var, ancak tamamlanmış bir kurulum kaydı yok, bu yüzden güncelleştirilemez. Atlas'ı kurmak için dosyalarınızı yedekleyin ve Windows'u yeniden yükleyin.
 # Under the editions on the Create step, when Windows Setup asks which to install.
 iso-edition-selection = Windows Kurulumu'nda lisansınızın bulunduğu bir sürümü seçin.
 detail-windows-preview = Insider derlemeleri desteklenmiyor. Windows 11'in genel kullanıma sunulan bir sürümünü kullanın.
@@ -1574,6 +1601,8 @@ install-windows-edition-only = Atlas { $version } sürümü Windows 11 Pro, Ente
 install-windows-edition-until = Atlas { $version } sürümü Windows 11 Pro, Enterprise ve Education ile çalışır, bu yüzden { $product } üzerine kurulamaz. Windows 11 { $current } sürümü { $date } tarihine kadar güvenlik güncelleştirmeleri alır ve Windows Update bu bilgisayarı daha yeni bir sürüme geçirebilir.
 # The same once that date has passed.
 install-windows-edition-ended-update = Atlas { $version } sürümü Windows 11 Pro, Enterprise ve Education ile çalışır, bu yüzden { $product } üzerine kurulamaz. { $current } sürümü artık güvenlik güncelleştirmesi almıyor; Atlas'ı kurmasanız bile Windows'u güncelleştirin.
+# Instead of install-windows-edition-only on an LTSC edition, which Windows names with a year that reads like a version.
+install-windows-edition-ltsc = Atlas { $version } sürümü Windows 11 Pro, Enterprise ve Education ile çalışır. LTSC sürümleri desteklenmez.
 # $releases lists the supported releases, such as "25H2 veya 26H2".
 install-windows-reinstall = Atlas { $version } sürümü için Windows 11 { $releases } sürümü gerekiyor ve Windows Update bu bilgisayarı bu sürüme geçiremiyor. Dosyalarınızı yedekleyin, ardından Windows'u bir Atlas ISO'suyla yeniden yükleyin.
 # The same on Home, where the card that creates an Atlas ISO comes first.
@@ -1780,6 +1809,10 @@ prepare-store-broken-title = Microsoft Store çalışmıyor
 prepare-store-broken = Atlas onu onaramadı ve Atlas'ı şimdi kurmak Store uygulamalarını bozabilir.
 prepare-store-broken-iso = Onarım başarısız olmaya devam ederse dosyalarınızı yedekleyin ve Windows'u bir Atlas ISO'suyla yeniden yükleyin.
 prepare-repair-store-again = Onarmayı yeniden dene
+# Windows couldn't install updates for some of its own apps, and Atlas's Store repairs didn't help.
+# $apps lists the apps by their package names, joined with list-and.
+prepare-store-staging-title = Windows yerleşik uygulamalarını güncelleştiremiyor
+prepare-store-staging = Windows bu yerleşik uygulamaların güncelleştirmelerini yükleyemedi ve Atlas'ın onarımları işe yaramadı: { $apps }. { prepare-components-unrepairable }
 
 screen-keyboard-title = Klavye dilleri
 screen-keyboard-question = Birden fazla klavye dili kullanıyor musunuz?

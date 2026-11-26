@@ -86,7 +86,12 @@ impl Shell {
             let (theme, localization) = {
                 let model = model.read(cx);
                 (
-                    Theme::resolve(model.settings.theme, system_appearance, &model.accessibility),
+                    Theme::resolve(
+                        model.settings.theme,
+                        system_appearance,
+                        &model.accessibility,
+                        crate::services::system::mica_available(model.system.build),
+                    ),
                     model.localization.clone(),
                 )
             };
@@ -619,7 +624,12 @@ impl Shell {
 
     fn apply_theme(&mut self, cx: &mut Context<Self>) {
         let model = self.model.read(cx);
-        let theme = Theme::resolve(model.settings.theme, self.system_appearance, &model.accessibility);
+        let theme = Theme::resolve(
+            model.settings.theme,
+            self.system_appearance,
+            &model.accessibility,
+            crate::services::system::mica_available(model.system.build),
+        );
         cx.set_global(theme);
         cx.refresh_windows();
         cx.notify();
@@ -627,7 +637,8 @@ impl Shell {
 
     /// Mica only looks right when DWM's tint and our text colours agree, so
     /// the backdrop is dropped to a solid fill when the user overrides the
-    /// system appearance (or a contrast theme is active).
+    /// system appearance (or a contrast theme is active), and where Windows
+    /// draws no Mica at all.
     fn sync_backdrop(&self, window: &mut Window, cx: &mut Context<Self>) {
         let wanted = if cx.theme().mica {
             WindowBackgroundAppearance::MicaBackdrop

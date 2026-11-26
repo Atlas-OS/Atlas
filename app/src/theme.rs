@@ -66,9 +66,9 @@ impl Appearance {
 #[derive(Clone, Debug)]
 pub struct Theme {
     pub appearance: Appearance,
-    /// True when the window can show Mica: the app follows the system
-    /// appearance, so DWM's tint matches the UI. Otherwise the root paints
-    /// `solid_background` itself.
+    /// True when the window can show Mica: Windows draws it, and the app
+    /// follows the system appearance, so DWM's tint matches the UI.
+    /// Otherwise the root paints `solid_background` itself.
     pub mica: bool,
     /// A Windows contrast theme is active: system colours, no translucency.
     pub high_contrast: bool,
@@ -145,10 +145,13 @@ fn tint(rgb_hex: u32, alpha: f32) -> Hsla {
 }
 
 impl Theme {
+    /// `mica_available` is whether Windows draws Mica behind the window at
+    /// all (see [`crate::services::system::mica_available`]).
     pub fn resolve(
         preference: ThemePreference,
         system: Appearance,
         accessibility: &AccessibilityPreferences,
+        mica_available: bool,
     ) -> Theme {
         let mut theme = match accessibility.system_colors {
             Some(colors) if accessibility.high_contrast => Theme::high_contrast(colors),
@@ -162,7 +165,7 @@ impl Theme {
                     Appearance::Light => Theme::light(),
                     Appearance::Dark => Theme::dark(),
                 };
-                theme.mica = mica;
+                theme.mica = mica && mica_available;
                 theme
             }
         };
@@ -558,6 +561,7 @@ mod tests {
                 text_scale: 1.5,
                 system_colors: Some(colors),
             },
+            true,
         );
         assert!(theme.high_contrast);
         assert!(!theme.mica);
@@ -587,7 +591,7 @@ mod tests {
                 (ThemePreference::Light, Appearance::Light),
                 (ThemePreference::Dark, Appearance::Dark),
             ] {
-                let theme = Theme::resolve(preference, system, &accessibility);
+                let theme = Theme::resolve(preference, system, &accessibility, true);
                 let name = format!("{preference:?} on a {system:?} system");
                 // DWM tints Mica for the system appearance, not the app's.
                 assert_eq!((theme.appearance, theme.mica), (appearance, appearance == system), "{name}");
@@ -598,8 +602,29 @@ mod tests {
         }
         // A contrast theme whose colours couldn't be read keeps the usual palette.
         let unread = AccessibilityPreferences { high_contrast: true, ..accessibility };
-        let theme = Theme::resolve(ThemePreference::Light, Appearance::Dark, &unread);
+        let theme = Theme::resolve(ThemePreference::Light, Appearance::Dark, &unread, true);
         assert_eq!((theme.appearance, theme.mica, theme.high_contrast), (Appearance::Light, false, false));
+    }
+
+    /// Where Windows draws no Mica, the root paints its own background, in
+    /// every appearance; the palette is otherwise the same.
+    #[test]
+    fn without_mica_from_windows_the_root_paints_its_background() {
+        let accessibility = AccessibilityPreferences {
+            high_contrast: false,
+            reduce_motion: false,
+            text_scale: 1.,
+            system_colors: None,
+        };
+        for system in [Appearance::Light, Appearance::Dark] {
+            for preference in [ThemePreference::System, ThemePreference::Light, ThemePreference::Dark] {
+                let with = Theme::resolve(preference, system, &accessibility, true);
+                let without = Theme::resolve(preference, system, &accessibility, false);
+                assert!(!without.mica, "{preference:?} on a {system:?} system");
+                assert_eq!(without.appearance, with.appearance);
+                assert_eq!(without.solid_background, with.solid_background);
+            }
+        }
     }
 
     #[test]

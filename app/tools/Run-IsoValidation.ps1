@@ -8,7 +8,7 @@ $compatibility = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\package\
 $exitFile = Join-Path $root 'exit-code.txt'
 # A previous successful build must not look like the result of a running one.
 if (Test-Path -LiteralPath $exitFile) { Remove-Item -LiteralPath $exitFile -Force }
-foreach ($name in @('Build-Iso.ps1', 'Master-Iso.ps1', 'Setup.ps1', 'Desktop.ps1', 'Desktop-Policy.ps1', 'Network-Drivers.ps1')) {
+foreach ($name in @('Build-Iso.ps1', 'Iso-Mount.ps1', 'Master-Iso.ps1', 'Setup.ps1', 'Desktop.ps1', 'Desktop-Policy.ps1', 'Network-Drivers.ps1')) {
     Copy-Item -LiteralPath (Join-Path $resource $name) -Destination $root -Force
 }
 foreach ($name in @('Windows-Release.ps1', 'windows-releases.json')) {

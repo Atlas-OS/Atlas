@@ -19,6 +19,11 @@
     Which processes to stop: ShellRefresh (the default), ExplorerRefresh,
     SearchShellRefresh, StartMenuRefresh, ExplorerAndSettingsRefresh, or AppxQuiesce,
     which stops Teams and Search so their packages can change.
+.PARAMETER FailureRecordId
+    32 hexadecimal digits that name this run's failure record. On a failure, the stage,
+    the error and its script position go to
+    %LOCALAPPDATA%\AtlasOS\Logs\shell-refresh-<FailureRecordId>.log, where the shell
+    refresh phase reads them; this process's output never reaches the install console.
 .NOTES
     Exit codes name the stage that failed, as Atlas.Core's RunAsUser.ps1 reads them:
     0   Done.
@@ -48,7 +53,10 @@ param(
         'ExplorerAndSettingsRefresh',
         'AppxQuiesce'
     )]
-    [string]$Operation = 'ShellRefresh'
+    [string]$Operation = 'ShellRefresh',
+
+    [ValidatePattern('^[0-9a-f]{32}$', Options = [Text.RegularExpressions.RegexOptions]::None)]
+    [string]$FailureRecordId
 )
 
 $trustBootstrap = Join-Path (Split-Path -Parent $PSScriptRoot) 'Initialize-AtlasPowerShell.ps1'
@@ -57,6 +65,36 @@ $trustBootstrap = Join-Path (Split-Path -Parent $PSScriptRoot) 'Initialize-Atlas
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 [void]$CurrentSession
+
+function Write-AtlasShellRefreshFailure {
+    # Writes this run's failure record, the user's own Atlas log folder by default.
+    param(
+        [Parameter(Mandatory = $true)][string]$Stage,
+        [Parameter(Mandatory = $true)][Management.Automation.ErrorRecord]$ErrorRecord,
+        [AllowEmptyString()][string]$RecordId = $FailureRecordId,
+        [string]$LogDirectory
+    )
+
+    if ([string]::IsNullOrEmpty($RecordId)) { return }
+    try {
+        if ([string]::IsNullOrEmpty($LogDirectory)) {
+            $localAppData = [Environment]::GetFolderPath('LocalApplicationData')
+            if ([string]::IsNullOrEmpty($localAppData)) { return }
+            $LogDirectory = [IO.Path]::Combine($localAppData, 'AtlasOS', 'Logs')
+        }
+        [void][IO.Directory]::CreateDirectory($LogDirectory)
+        $position = ([string]$ErrorRecord.InvocationInfo.PositionMessage -replace '\s*\r?\n\s*', ' ').Trim()
+        [IO.File]::WriteAllLines(
+            [IO.Path]::Combine($LogDirectory, "shell-refresh-$RecordId.log"),
+            [string[]]@("Stage: $Stage", "Error: $($ErrorRecord.Exception.Message)", "Position: $position"),
+            (New-Object Text.UTF8Encoding($false))
+        )
+    }
+    catch {
+        # The record only explains the failure; the exit code still names the stage.
+        $null = $_
+    }
+}
 
 function Restore-AtlasUserExplorer {
     param([Parameter(Mandatory = $true)][int]$SessionId)
@@ -78,6 +116,13 @@ function Restore-AtlasUserExplorer {
 
 $failureStage = 'Bootstrap'
 trap {
+    $failureRecord = $_
+    try {
+        Write-AtlasShellRefreshFailure -Stage ([string]$failureStage) -ErrorRecord $failureRecord
+    }
+    catch {
+        $null = $_
+    }
     $exitCode = switch -CaseSensitive ($failureStage) {
         'CurrentSessionIdentity' { 11 }
         'ProcessStop' { 12 }

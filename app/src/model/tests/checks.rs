@@ -120,6 +120,7 @@ fn get_ready_reports_the_most_urgent_status() {
             for (problem, help) in [
                 (AcquireProblem::Stalled, None),
                 (AcquireProblem::NotAPackage, None),
+                (AcquireProblem::WindowsIso, None),
                 (AcquireProblem::NoPackageAsset { version: "0.6.0".into() }, Some(ReadyHelp::Package)),
                 (AcquireProblem::Other { error: "access denied".into() }, Some(ReadyHelp::Package)),
             ] {

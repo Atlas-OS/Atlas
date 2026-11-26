@@ -58,17 +58,42 @@ Describe 'DirectPlay feature enablement' {
     }
 
     It 'does not service an already enabled feature' {
-        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ State = 'Enabled' } }
+        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ FeatureName = 'DirectPlay'; State = 'Enabled' } }
         Enable-AtlasDirectPlay
         Should -Invoke Invoke-AtlasDism -Times 0 -Exactly
     }
 
     It 'enables a disabled feature with its dependencies' {
-        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ State = 'Disabled' } }
+        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ FeatureName = 'DirectPlay'; State = 'Disabled' } }
         Enable-AtlasDirectPlay
         Should -Invoke Invoke-AtlasDism -Times 1 -Exactly -ParameterFilter {
             $Arguments -contains '/Enable-Feature' -and $Arguments -contains '/FeatureName:DirectPlay' -and $Arguments -contains '/All'
         }
+    }
+
+    It 'finds DirectPlay among the listed features instead of querying its name' {
+        Mock Dism\Get-WindowsOptionalFeature {
+            [pscustomobject]@{ FeatureName = 'LegacyComponents'; State = 'Enabled' }
+            [pscustomobject]@{ FeatureName = 'DirectPlay'; State = 'Disabled' }
+        }
+        Enable-AtlasDirectPlay
+        Should -Invoke Dism\Get-WindowsOptionalFeature -Times 1 -Exactly -ParameterFilter {
+            $Online -and -not $PesterBoundParameters.ContainsKey('FeatureName')
+        }
+        Should -Invoke Invoke-AtlasDism -Times 1 -Exactly
+    }
+
+    # Servicing reports the name as unknown (0x800F080C) when the Windows image lacks it.
+    It 'stops with the repair steps when Windows does not list DirectPlay' {
+        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ FeatureName = 'LegacyComponents'; State = 'Enabled' } }
+        { Enable-AtlasDirectPlay } | Should -Throw "*doesn't list the DirectPlay optional feature*component is missing*Repair-install Windows*Atlas ISO*"
+        Should -Invoke Invoke-AtlasDism -Times 0 -Exactly
+    }
+
+    It 'does not mistake a failed feature query for absence' {
+        Mock Dism\Get-WindowsOptionalFeature { Write-Error 'servicing query failed' }
+        { Enable-AtlasDirectPlay } | Should -Throw '*servicing query failed*'
+        Should -Invoke Invoke-AtlasDism -Times 0 -Exactly
     }
 }
 
@@ -113,6 +138,84 @@ Describe 'Steps Recorder capability removal' {
     }
 }
 
+Describe 'Steps Recorder removal on a damaged component store' {
+    BeforeEach {
+        Mock Write-AtlasLog {}
+        Mock Dism\Get-WindowsCapability { [pscustomobject]@{ Name = 'App.StepsRecorder~~~~0.0.1.0'; State = 'Installed' } }
+        $script:dismCalls = New-Object 'Collections.Generic.List[string]'
+        # 0x800F0831 until RestoreHealth has run, as when the store is missing a manifest.
+        $script:storeRepairs = 1
+        Mock Invoke-AtlasDism {
+            $script:dismCalls.Add($Arguments[1])
+            if ($Arguments -contains '/RestoreHealth') {
+                $script:storeRepairs--
+                return
+            }
+            if ($script:storeRepairs -gt 0) {
+                if ($ReturnExitCode -notcontains -2146498511) { throw 'The removal must hand 0x800F0831 back.' }
+                return -2146498511
+            }
+        }
+    }
+
+    It 'repairs the store once and removes Steps Recorder again' {
+        Remove-AtlasStepsRecorder
+
+        @($script:dismCalls) | Should -Be @('/Remove-Capability', '/Cleanup-Image', '/Remove-Capability')
+        Should -Invoke Invoke-AtlasDism -Times 1 -Exactly -ParameterFilter {
+            $Arguments -contains '/RestoreHealth' -and $Arguments -contains '/Online' -and
+            -not $Optional -and -not $PesterBoundParameters.ContainsKey('ReturnExitCode')
+        }
+        Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter { $Level -ceq 'Warning' -and $Message -like '*0x800F0831*RestoreHealth*' }
+    }
+
+    It 'stops with the repair-install steps when the removal still fails after the repair' {
+        $script:storeRepairs = 2
+
+        { Remove-AtlasStepsRecorder } | Should -Throw '*component store is damaged (0x800F0831), even after DISM RestoreHealth*Repair-install Windows*Atlas ISO*'
+
+        @($script:dismCalls) | Should -Be @('/Remove-Capability', '/Cleanup-Image', '/Remove-Capability')
+    }
+
+    It 'stops with the repair-install steps when RestoreHealth fails' {
+        Mock Invoke-AtlasDism {
+            if ($Arguments -contains '/RestoreHealth') { throw "DISM 'Repairing the component store' failed with exit code -2146498529. Error: 0x800f081f" }
+            return -2146498511
+        }
+
+        { Remove-AtlasStepsRecorder } | Should -Throw "*damaged (0x800F0831), and DISM couldn't repair it: DISM 'Repairing the component store' failed*Repair-install Windows*Atlas ISO*"
+
+        Should -Invoke Invoke-AtlasDism -Times 1 -Exactly -ParameterFilter { $Arguments -contains '/Remove-Capability' }
+    }
+
+    It 'does not repair the store for other removal failures' {
+        Mock Invoke-AtlasDism { throw "DISM 'Removing the Steps Recorder capability' failed with exit code 5." }
+
+        { Remove-AtlasStepsRecorder } | Should -Throw '*exit code 5*'
+
+        Should -Invoke Invoke-AtlasDism -Times 0 -Exactly -ParameterFilter { $Arguments -contains '/RestoreHealth' }
+    }
+
+    It 'repairs the store only once for several Steps Recorder capabilities' {
+        Mock Dism\Get-WindowsCapability {
+            [pscustomobject]@{ Name = 'App.StepsRecorder~~~~0.0.1.0'; State = 'Installed' }
+            [pscustomobject]@{ Name = 'App.StepsRecorder~~~~0.0.2.0'; State = 'Installed' }
+        }
+        # The repair fixes the first capability's manifest but not the second's.
+        Mock Invoke-AtlasDism {
+            $script:dismCalls.Add($Arguments[1])
+            if ($Arguments -contains '/RestoreHealth') { $script:storeRepairs--; return }
+            if ($Arguments -contains '/CapabilityName:App.StepsRecorder~~~~0.0.2.0' -or $script:storeRepairs -gt 0) {
+                return -2146498511
+            }
+        }
+
+        { Remove-AtlasStepsRecorder } | Should -Throw '*even after DISM RestoreHealth*'
+
+        @($script:dismCalls) | Should -Be @('/Remove-Capability', '/Cleanup-Image', '/Remove-Capability', '/Remove-Capability')
+    }
+}
+
 Describe 'Features DISM outcomes' {
     It 'accepts success and reboot-required success' {
         Get-AtlasDismExitDisposition -ExitCode 0 | Should -BeExactly 'Success'
@@ -129,7 +232,7 @@ Describe 'Features DISM outcomes' {
     }
 
     It 'defers pending operations, and lets a failure pass, only for component-store cleanup' {
-        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ State = 'Disabled' } }
+        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ FeatureName = 'DirectPlay'; State = 'Disabled' } }
         Mock Dism\Get-WindowsCapability { [pscustomobject]@{ Name = 'App.StepsRecorder~~~~0.0.1.0'; State = 'Installed' } }
         Mock Invoke-AtlasDism {}
         Mock Get-AtlasInstalledAtlasPackage {}
@@ -186,6 +289,15 @@ Describe 'A failed DISM run' {
             Should -Throw -ExpectedMessage "DISM 'Enabling DirectPlay' failed with exit code 5. Error: 5 Access is denied."
     }
 
+    It 'hands back an exit code the caller handles, without stopping' {
+        Invoke-AtlasDism -Description 'Removing the Steps Recorder capability' -Arguments @('/Online') `
+            -ReturnExitCode @(5) | Should -Be 5
+        Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
+            $null -eq $Level -and
+            $Message -ceq "DISM 'Removing the Steps Recorder capability' ended with exit code 5. Error: 5 Access is denied."
+        }
+    }
+
     It 'warns and carries on when the work is optional' {
         Invoke-AtlasDism -Description 'Cleaning the component store' -Arguments @('/Online') -Optional
         Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
@@ -197,7 +309,7 @@ Describe 'A failed DISM run' {
 
 Describe 'Component store cleanup with the Atlas packages' {
     BeforeEach {
-        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ State = 'Enabled' } }
+        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ FeatureName = 'DirectPlay'; State = 'Enabled' } }
         Mock Dism\Get-WindowsCapability { [pscustomobject]@{ Name = 'App.StepsRecorder~~~~0.0.1.0'; State = 'NotPresent' } }
         Mock Invoke-AtlasDism {}
         Mock Write-AtlasLog {}
@@ -220,7 +332,7 @@ Describe 'Component store cleanup with the Atlas packages' {
 
 Describe 'Features work by install mode' {
     BeforeEach {
-        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ State = 'Enabled' } }
+        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ FeatureName = 'DirectPlay'; State = 'Enabled' } }
         Mock Dism\Get-WindowsCapability { [pscustomobject]@{ Name = 'App.StepsRecorder~~~~0.0.1.0'; State = 'Installed' } }
         Mock Invoke-AtlasDism {}
         Mock Write-AtlasLog {}

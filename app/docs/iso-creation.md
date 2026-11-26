@@ -21,6 +21,7 @@ This page is for people who create Atlas media; [ISO internals](iso-internals.md
 | USB drive | A USB disk from 8 GiB to 2 TiB: one sold as 16 GB or more. |
 
 - Atlas refuses media that has its own answer file or a `$OEM$` folder, rather than merge it with unknown setup instructions.
+  An ISO that Atlas created is refused the same way, and the bar says that Atlas created it.
 - Saving Atlas choices in the ISO needs a package that declares ISO setup support in `Executables\AtlasModules\Scripts\Install\iso-setup.json`.
 - The PC checks, the ISO edition filter and the USB writer all read the supported builds from `supportedBuilds` in the package's `atlas.json`.
 
@@ -42,6 +43,7 @@ Without administrator permission, Windows asks for it as the page opens, and Atl
    - Once both are known, Atlas checks them by itself, and **Continue** becomes available when the check passes. An ISO for another kind of processor than this PC's can only be for another PC: **This PC** is unavailable, with the reason under it, and **Another PC** stays chosen.
    - While a download or the check runs, **Change** is hidden rather than unavailable.
    - A check that fails names the problem, and its bar offers the fix: **Download from Microsoft** or **Choose an ISO file** for media Atlas can't use, **Choose another package**, or **Try again**.
+     A Windows ISO chosen as the Atlas package is named as one, with **Choose another package**, and the bar says to choose it as the Windows ISO instead.
    - Without the latest Atlas package, the package card says why in the error colour, with **Try again** and **Open package file**.
    - A package that needs a newer Atlas Manager shows one bar with **Download Atlas Manager**, and no **Continue**.
 2. **Setup.** The Windows the ISO installs, and how Atlas is set up from it.
@@ -183,6 +185,9 @@ It checks the drive's identity again before erasing and while writing, and reads
 | A network driver couldn't be exported | Choose **Create without them** on the bar, or update the driver in Device Manager first. |
 | A network driver was rejected | Install it from `%windir%\AtlasISO\NetworkDrivers` once Windows is running ([details](#a-network-driver-was-rejected)). |
 | Before-desktop cleanup failed | Run `%windir%\AtlasISO\Desktop.ps1 -RestoreDesktop` ([details](#before-desktop-cleanup-failed)). |
+| Windows couldn't open the ISO | Restart your PC, then try again. Atlas waits for Windows to give the ISO a drive letter, and gives one itself to an ISO it opened ([mounting](iso-internals.md#iso-build)). |
+| Windows can't open ISO files on this PC | Turn the `vdrvroot` and `cdrom` drivers back on, if a tool turned them off, and restart your PC. |
+| The ISO file is compressed, encrypted or sparse | Copy it to a folder that isn't compressed or encrypted, and use the copy. Atlas doesn't change your file. |
 | An ISO or USB job failed | Choose **Open log folder** to see its logs, request and errors. |
 | The ISO has no network drivers | Nothing to do: this PC's adapters use drivers that come with Windows, and the finished ISO's message says so. |
 

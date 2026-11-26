@@ -74,6 +74,11 @@ const ERROR_SXS_COMPONENT_STORE_CORRUPT: &str = "0x80073712";
 /// The cause the worker names when Windows records damage to its component
 /// store that it can't repair.
 const COMPONENT_STORE_UNREPAIRABLE: &str = "component-store-unrepairable";
+/// The cause the worker names when Windows couldn't stage updates for
+/// built-in apps (0x80070490) and Microsoft Store's repairs didn't help.
+/// Reinstalling Windows is the way on; the apps are in `package_name`,
+/// comma-separated.
+pub const STORE_APPX_STAGING: &str = "store-appx-staging";
 
 /// Windows records damage to its component store that it can't repair:
 /// reinstalling Windows is the way on, and trying again can't help.
@@ -92,7 +97,8 @@ pub fn component_store_still_damaged(failure: &Activity) -> bool {
 }
 
 /// The status a failed run gets where its cause has one of its own: a
-/// damaged component store, and a Microsoft Store Atlas couldn't repair.
+/// damaged component store, a Microsoft Store Atlas couldn't repair, and
+/// built-in apps Windows couldn't update.
 pub fn preparation_failure_title(failure: &Activity) -> Option<String> {
     if component_store_unrepairable(failure) {
         Some(t!("prepare-components-unrepairable-title"))
@@ -100,8 +106,29 @@ pub fn preparation_failure_title(failure: &Activity) -> Option<String> {
         Some(t!("prepare-components-damaged-title"))
     } else if failure.reason.as_deref() == Some("store-repair-failed") {
         Some(t!("prepare-store-broken-title"))
+    } else if failure.reason.as_deref() == Some(STORE_APPX_STAGING) {
+        Some(t!("prepare-store-staging-title"))
     } else {
         None
+    }
+}
+
+/// What to do about built-in apps Windows couldn't update, naming them when
+/// the worker did.
+fn store_staging(failure: &Activity) -> String {
+    let apps: Vec<String> = failure
+        .package_name
+        .as_deref()
+        .unwrap_or_default()
+        .split(',')
+        .map(str::trim)
+        .filter(|app| !app.is_empty())
+        .map(str::to_owned)
+        .collect();
+    if apps.is_empty() {
+        t!("prepare-components-unrepairable")
+    } else {
+        t!("prepare-store-staging", apps = join_and(&apps))
     }
 }
 
@@ -120,6 +147,7 @@ pub fn preparation_failure(failure: Option<&Activity>, has_error: bool) -> Strin
         }
         Some(code) if code.eq_ignore_ascii_case(WU_E_INSTALL_NOT_ALLOWED) => t!("prepare-install-busy"),
         _ if component_store_still_damaged(failure) => t!("prepare-components-damaged"),
+        _ if failure.reason.as_deref() == Some(STORE_APPX_STAGING) => store_staging(failure),
         _ => failure
             .reason
             .as_deref()
@@ -139,7 +167,8 @@ pub fn preparation_failure_reason(id: &str) -> Option<String> {
         "store-timeout" => t!("prepare-failed-store-timeout"),
         "store-passes" => t!("prepare-failed-store-passes"),
         "store-repair-failed" => t!("prepare-store-broken"),
-        COMPONENT_STORE_UNREPAIRABLE => t!("prepare-components-unrepairable"),
+        // Without the apps, which preparation_failure names, only the way on.
+        STORE_APPX_STAGING | COMPONENT_STORE_UNREPAIRABLE => t!("prepare-components-unrepairable"),
         "manual-updates" => t!("prepare-failed-manual-updates"),
         "windows-passes" => t!("prepare-failed-windows-passes"),
         "windows-update-unreachable" => t!("prepare-failed-windows-update-unreachable"),
@@ -967,6 +996,7 @@ impl InstallBlock {
                 t!("notice-session-unreadable-message", path = record.display().to_string(), error = error)
             }
             InstallBlock::Unknown => t!("install-source-unconfirmed"),
+            InstallBlock::Unrecorded => t!("install-source-unrecorded"),
             InstallBlock::Windows { block, version, product, current, releases, ending } => match block {
                 WindowsBlock::Edition => match ending {
                     Some(date) if chrono::Local::now().date_naive() > *date => t!(
@@ -988,6 +1018,7 @@ impl InstallBlock {
                         product = product.as_str()
                     ),
                 },
+                WindowsBlock::Ltsc => t!("install-windows-edition-ltsc", version = version.as_str()),
                 WindowsBlock::NoPath { .. } => {
                     t!("install-windows-reinstall", version = version.as_str(), releases = join_or(releases))
                 }
@@ -1021,6 +1052,7 @@ impl AcquireProblem {
         match self {
             AcquireProblem::NoPackageAsset { version } => t!("acquire-no-asset", version = version),
             AcquireProblem::Unsupported { .. } | AcquireProblem::NotAPackage => t!("acquire-unsupported"),
+            AcquireProblem::WindowsIso => t!("acquire-windows-iso"),
             AcquireProblem::Incomplete { version } if bundled => {
                 let error = crate::services::package::Incomplete { version: version.clone() }.to_string();
                 t!("acquire-failed-bundled", error = error)
@@ -1151,6 +1183,31 @@ mod tests {
                 assert!(!edition(id, "Client"), "{id} is named as unsupported but accepted");
             }
             assert!(host.contains("Server") && !edition("ServerStandard", "Server"));
+        });
+    }
+
+    /// An LTSC edition is named by its kind: Windows' own name for it carries
+    /// the LTSC release's year, which reads like a Windows version. Home and
+    /// Server keep Windows' name.
+    #[test]
+    fn an_ltsc_edition_is_named_by_its_kind_not_its_year() {
+        let block = |block, product: &str| InstallBlock::Windows {
+            block,
+            version: "0.6.2".into(),
+            product: product.into(),
+            current: "26H2".into(),
+            releases: vec!["25H2".into(), "26H2".into()],
+            ending: None,
+        };
+        english(|| {
+            let ltsc = block(WindowsBlock::Ltsc, "Windows 11 IoT Enterprise LTSC 2024").text(false);
+            assert!(ltsc.contains("LTSC editions") && ltsc.contains("0.6.2"), "{ltsc}");
+            assert!(!ltsc.contains("2024") && !ltsc.contains("IoT"), "{ltsc}");
+            for name in ["Pro", "Enterprise", "Education"] {
+                assert!(ltsc.contains(name), "{name}: {ltsc}");
+            }
+            let home = block(WindowsBlock::Edition, "Windows 11 Home").text(false);
+            assert!(home.contains("Windows 11 Home"), "{home}");
         });
     }
 
@@ -1417,6 +1474,12 @@ mod tests {
             assert!(!resume.text(true).contains(r"C:\D"), "a tester build can't open one");
             // The text never names the button that opens it: Open package file says that.
             assert!(!resume.text(false).contains(&t!("package-open-file")));
+            // Files without a record say what's there and the way on, not that
+            // nothing could be confirmed; the bar's Create an Atlas ISO opens it.
+            let unrecorded = InstallBlock::Unrecorded.text(false);
+            assert_eq!(unrecorded, InstallBlock::Unrecorded.text(true));
+            assert_ne!(unrecorded, InstallBlock::Unknown.text(false));
+            assert!(unrecorded.contains("reinstall Windows") && !unrecorded.contains(&t!("iso-open")));
         });
     }
 
@@ -1464,6 +1527,25 @@ mod tests {
             let store = activity(None, Some("store-repair-failed"));
             assert_eq!(preparation_failure(Some(&store), false), t!("prepare-store-broken"));
             assert_eq!(preparation_failure_title(&store), Some(t!("prepare-store-broken-title")));
+            // Built-in apps Windows couldn't update, named as the language lists them.
+            let staging = Activity {
+                package_name: Some("ZuneMusic,WindowsCalculator, GamingApp".into()),
+                ..activity(Some("0x80070490"), Some(STORE_APPX_STAGING))
+            };
+            let named = preparation_failure(Some(&staging), false);
+            assert_eq!(
+                named,
+                t!(
+                    "prepare-store-staging",
+                    apps = join_and(&["ZuneMusic".into(), "WindowsCalculator".into(), "GamingApp".into()])
+                )
+            );
+            assert!(named.contains("ZuneMusic, WindowsCalculator and GamingApp"), "{named}");
+            assert!(named.ends_with(&t!("prepare-components-unrepairable")), "{named}");
+            assert_eq!(preparation_failure_title(&staging), Some(t!("prepare-store-staging-title")));
+            // A report that names no app still says the way on.
+            let unnamed = activity(Some("0x80070490"), Some(STORE_APPX_STAGING));
+            assert_eq!(preparation_failure(Some(&unnamed), false), t!("prepare-components-unrepairable"));
             assert_eq!(preparation_failure_title(&activity(None, Some("store-timeout"))), None);
             let battery = activity(None, Some("store-paused-battery"));
             assert_eq!(preparation_failure(Some(&battery), false), t!("prepare-failed-store-battery"));
@@ -1702,6 +1784,18 @@ mod tests {
             assert_ne!(incomplete.text(false), old.text(false));
             let retry = t!("common-try-again");
             assert!(incomplete.text(true).contains(&retry), "a tester build offers only Try again");
+        });
+    }
+
+    /// A Windows ISO opened as the package is told what it is and where it
+    /// goes, not which Atlas versions the app installs.
+    #[test]
+    fn a_windows_iso_opened_as_the_package_is_told_it_is_one() {
+        english(|| {
+            let iso = AcquireProblem::WindowsIso.text(false);
+            assert_ne!(iso, AcquireProblem::NotAPackage.text(false));
+            assert!(iso.contains("Windows ISO") && iso.contains(".atlaspkg"), "{iso}");
+            assert!(!iso.contains("0.6.0"), "{iso}");
         });
     }
 

@@ -398,6 +398,8 @@ package-none-yet = 尚无 Atlas 安装包
 acquire-no-asset = Atlas { $version } 没有可下载的安装包。请打开已保存的 Atlas 安装包 (.atlaspkg) 以继续。
 # 早于 Atlas 0.6.0 的安装包，以及不是 Atlas 安装包的文件（例如 0.6 之前的 .apbx 文件）。
 acquire-unsupported = 此应用只能通过 Atlas 安装包 (.atlaspkg) 安装 Atlas 0.6.0 及更高版本。
+# 打开的 Atlas 安装包是 Windows ISO 时代替 acquire-unsupported。旁边提供“创建 Atlas ISO”（iso-open）。
+acquire-windows-iso = 这是 Windows ISO，不是 Atlas 安装包 (.atlaspkg)。要使用 Atlas 重新安装 Windows，请用它创建 Atlas ISO。
 # 安装包足够新，本应包含此应用驱动的安装脚本，但缺少该脚本。
 acquire-incomplete = Atlas { $version } 缺少此应用安装所需的文件。请重新下载，或打开其他 Atlas 安装包 (.atlaspkg)。
 acquire-failed = 无法准备 Atlas 安装包。请重新下载，或打开其他 Atlas 安装包 (.atlaspkg)。详细信息：{ $error }
@@ -1068,6 +1070,9 @@ iso-destination-space = 需要 { $needed } · { $drive } 可用 { $free }
 iso-destination-short = ISO 需要 { $needed }，而 { $drive } 只有 { $free } 可用空间。请释放空间，或将 ISO 保存到其他驱动器。
 iso-destination-filesystem = { $drive } 无法存放 ISO 中的大文件。请将其保存到格式化为 NTFS 的驱动器，例如 Windows 所在的驱动器。
 iso-destination-unusable = Atlas 只能将 ISO 保存到这台电脑上某个驱动器中的文件夹。
+# Copying the ISO's files would pass Windows' limit of 260 characters for a path, even at the
+# root of the drive the new ISO is saved to. Under iso-failed.
+iso-path-too-long = 在你保存到的文件夹中，ISO 中的文件所需的路径会超出 Windows 允许的长度。请将新 ISO 保存到路径较短的文件夹，例如 Windows 所在驱动器上的文件夹。
 iso-create = 创建 ISO
 # 创建 ISO 期间，进度条和阶段列表（iso-stage-*）上方的标题。
 iso-progress-title = 正在创建 ISO…
@@ -1109,6 +1114,9 @@ iso-unstaged = Atlas 无法准备其工作文件夹，因此未做任何更改�
 iso-edition-unsupported-title = 此 ISO 中没有 Atlas 支持的版本
 iso-edition-unsupported = 不支持 Windows 家庭版和 LTSC 版本。请使用包含专业版、教育版或企业版的 ISO。
 iso-customised-title = 此 ISO 已被自定义
+# In place of iso-customised-title, above iso-customised, when the ISO is one Atlas Manager
+# created: Atlas creates an ISO only from an unmodified ISO from Microsoft.
+iso-created-by-atlas-title = 此 ISO 由 Atlas 创建
 iso-customised = 它已包含安装配置文件，例如 autounattend.xml。请使用 Microsoft 提供的未经修改的 ISO。
 iso-preview-title = 此 ISO 是预览版本
 iso-preview = 它的 Windows 内部版本不在 Microsoft 的正式发布版本列表中。请使用 Microsoft 提供的 ISO。
@@ -1119,6 +1127,9 @@ iso-release-unconfirmed = Atlas 会根据 Microsoft 的正式发布版本列表�
 # $minimum 为能够创建 ISO 的最早 Atlas 版本，例如“0.6.0”。
 iso-package-old-title = 此 Atlas 安装包无法创建 ISO
 iso-package-old = 请使用 Atlas { $minimum } 或更高版本。
+# 选作 Atlas 安装包的文件是 Windows ISO 时，代替 iso-package-old-title 和 iso-package-old。“Windows ISO”指名为 iso-source 的字段。
+iso-package-windows-iso-title = 这是 Windows ISO，不是 Atlas 安装包
+iso-package-windows-iso = 请改为选择 Atlas 安装包 (.atlaspkg)，并将此 ISO 选为 Windows ISO。
 iso-manager-missing-title = Atlas Manager 文件缺失
 iso-fix-package = 选择其他安装包
 # 安装包需要更新版本的 Atlas Manager；旁边是 manager-download，acquire-manager-update-needed 说明所需版本。
@@ -1136,6 +1147,20 @@ iso-failed-space = 目标驱动器的可用空间不足。请释放空间，或�
 iso-manager-missing = 请将 AtlasManager.exe 下载到“下载”等本地文件夹，然后从那里打开它。
 # 家庭版和 LTSC 是创建 ISO 时会剔除的版本；其他为会保留的版本示例。版本名称与简体中文版 Windows 显示的一致。
 iso-failed-edition = 此 ISO 不包含受支持的 Windows 版本。不支持 Windows 家庭版和 LTSC 版本。请使用包含其他版本（例如专业版、教育版或企业版）的 ISO。
+# Windows didn't open an ISO as a drive Atlas can read: the Windows ISO, the new ISO while it's
+# checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
+# USB page's ISO card.
+iso-mount-failed = Windows 无法打开 ISO。请重启电脑，然后重试。
+# Windows stopped answering while it read or mounted the ISO.
+iso-mount-timeout = Windows 在打开 ISO 时停止响应。请重启电脑，然后重试。
+# vdrvroot and cdrom are the Windows drivers' own names, as tools that turn drivers off show
+# them. Keep them as they are.
+iso-mount-drivers = Windows 无法在这台电脑上打开 ISO 文件，因为它所需的驱动程序 vdrvroot 和 cdrom 已被禁用。请重新启用它们，重启电脑，然后重试。
+# Windows can store a file compressed or encrypted (in the file's Properties, under Advanced),
+# and a download can be stored sparse, with space reserved but not yet written. Windows can't
+# open an ISO stored any of these ways. Under iso-check-failed, with iso-download-windows and
+# iso-use-local beside it, or on the USB page's ISO card.
+iso-mount-file = Windows 无法打开此 ISO，因为该文件已压缩、已加密或为稀疏文件。请将其复制到未压缩且未加密的文件夹，然后使用该副本。
 # 打开 ISO 或 U 盘任务原始日志所在的文件夹。
 iso-diagnostics = 打开日志文件夹
 # Atlas 从其他页面更新 Windows 或还原 Windows 更新设置期间，显示在 ISO 和 U 盘页面上。完成前，这两个页面上的控件不可用。
@@ -1321,6 +1346,8 @@ install-source-resume-package = Atlas { $target } 的安装未完成，只有 At
 install-source-resume-bundled = Atlas { $target } 的安装未完成。此测试版只能安装其内置的 Atlas 安装包，因此请在 Atlas Manager 正式版中使用 Atlas { $target } 安装包完成该安装。
 # 同时提供“发送报告”和“导出诊断信息”。
 install-source-unconfirmed = Atlas 无法确认这台电脑上已安装了什么，因此暂时不会安装任何内容。
+# 这台电脑上有 Atlas 的文件，但没有完成安装的记录。旁边提供“创建 Atlas ISO”（iso-open）。
+install-source-unrecorded = 这台电脑上有早期版本 Atlas 的文件，但没有完成安装的记录，因此无法更新。要安装 Atlas，请备份文件并重新安装 Windows。
 # “创建”步骤中版本下方，Windows 安装程序询问要安装哪个版本时显示。
 iso-edition-selection = 请在 Windows 安装程序中选择你拥有许可证的版本。
 detail-windows-preview = 不支持 Insider 预览版本。请使用 Windows 11 的正式发布版本。
@@ -1458,6 +1485,8 @@ install-windows-edition-only = Atlas { $version } 适用于 Windows 11 专业版
 install-windows-edition-until = Atlas { $version } 适用于 Windows 11 专业版、企业版和教育版，因此无法安装在 { $product } 上。Windows 11 版本 { $current } 的安全更新将持续到 { $date }，Windows 更新可以将这台电脑更新到较新的版本。
 # 同上，该日期已过。
 install-windows-edition-ended-update = Atlas { $version } 适用于 Windows 11 专业版、企业版和教育版，因此无法安装在 { $product } 上。版本 { $current } 已不再获得安全更新，因此即使不使用 Atlas，也请更新 Windows。
+# 在 LTSC 版本上代替 install-windows-edition-only：Windows 为这类版本起的名称带有年份，看起来像是 Windows 版本号。
+install-windows-edition-ltsc = Atlas { $version } 适用于 Windows 11 专业版、企业版和教育版。不支持 LTSC 版本。
 # $releases 列出受支持的版本，例如“25H2 或 26H2”。
 install-windows-reinstall = Atlas { $version } 需要 Windows 11 版本 { $releases }，而 Windows 更新无法将这台电脑更新到该版本。请备份文件，然后使用 Atlas ISO 重新安装 Windows。
 # 同上，用于主页：创建 Atlas ISO 的卡片在前，并说明如何重新安装。
@@ -1642,6 +1671,10 @@ prepare-store-broken-title = Microsoft Store 无法正常工作
 prepare-store-broken = Atlas 无法修复它，现在安装 Atlas 可能会导致商店应用无法使用。
 prepare-store-broken-iso = 如果修复一直失败，请备份文件，然后使用 Atlas ISO 重新安装 Windows。
 prepare-repair-store-again = 再次尝试修复
+# Windows couldn't install updates for some of its own apps, and Atlas's Store repairs didn't help.
+# $apps lists the apps by their package names, joined with list-and.
+prepare-store-staging-title = Windows 无法更新内置应用
+prepare-store-staging = Windows 未能安装以下内置应用的更新，Atlas 的修复也没有解决问题：{ $apps }。{ prepare-components-unrepairable }
 
 screen-keyboard-title = 键盘语言
 screen-keyboard-question = 你使用多种键盘语言吗？

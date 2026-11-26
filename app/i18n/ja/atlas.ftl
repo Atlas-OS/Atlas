@@ -443,6 +443,8 @@ acquire-no-asset = Atlas { $version } にはダウンロードできるパッケ
 # Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
 # .apbx file from an Atlas release before 0.6.
 acquire-unsupported = このアプリでインストールできるのは Atlas 0.6.0 以降の Atlas パッケージ (.atlaspkg) です。
+# Instead of acquire-unsupported for a Windows ISO opened as the Atlas package. Create an Atlas ISO (iso-open) is beside it.
+acquire-windows-iso = これは Windows ISO で、Atlas パッケージ (.atlaspkg) ではありません。Atlas で Windows を再インストールするには、この ISO から Atlas ISO を作成してください。
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = Atlas { $version } には、このアプリでのインストールに必要なファイルが含まれていません。もう一度ダウンロードするか、別の Atlas パッケージ (.atlaspkg) を開いてください。
 acquire-failed = Atlas パッケージを準備できませんでした。もう一度ダウンロードするか、別の Atlas パッケージ (.atlaspkg) を開いてください。詳細: { $error }
@@ -1180,6 +1182,9 @@ iso-destination-space = 必要な領域: { $needed } · { $drive } の空き領�
 iso-destination-short = ISO には { $needed } が必要ですが、{ $drive } の空き領域は { $free } です。空き領域を確保するか、別のドライブに保存してください。
 iso-destination-filesystem = { $drive } には ISO の大きなファイルを保存できません。Windows ドライブなど、NTFS でフォーマットされたドライブに保存してください。
 iso-destination-unusable = Atlas が ISO を保存できるのは、この PC 内のドライブにあるフォルダーだけです。
+# Copying the ISO's files would pass Windows' limit of 260 characters for a path, even at the
+# root of the drive the new ISO is saved to. Under iso-failed.
+iso-path-too-long = 保存先のフォルダーでは、ISO のファイルに Windows が許可するより長いパスが必要になります。Windows ドライブ上のフォルダーなど、パスの短いフォルダーに新しい ISO を保存してください。
 iso-create = ISO を作成
 # Heading above the progress bar and the list of stages (iso-stage-*) while the ISO is
 # being created.
@@ -1230,6 +1235,9 @@ iso-unstaged = Atlas は作業フォルダーを準備できなかったため�
 iso-edition-unsupported-title = この ISO には Atlas が対応するエディションがありません
 iso-edition-unsupported = Windows Home と LTSC には対応していません。Pro、Education、Enterprise を含む ISO を使用してください。
 iso-customised-title = この ISO はカスタマイズされています
+# In place of iso-customised-title, above iso-customised, when the ISO is one Atlas Manager
+# created: Atlas creates an ISO only from an unmodified ISO from Microsoft.
+iso-created-by-atlas-title = この ISO は Atlas で作成されたものです
 iso-customised = autounattend.xml などのセットアップ ファイルがすでに含まれています。Microsoft が提供する未変更の ISO を使用してください。
 iso-preview-title = この ISO はプレビュー ビルドです
 iso-preview = この Windows ビルドは、Microsoft の一般公開版の一覧にありません。Microsoft が提供する ISO を使用してください。
@@ -1240,6 +1248,9 @@ iso-release-unconfirmed = Atlas は Microsoft の一般公開版の一覧で確�
 # $minimum is the oldest Atlas version that can make an ISO, such as "0.6.0".
 iso-package-old-title = この Atlas パッケージでは ISO を作成できません
 iso-package-old = Atlas { $minimum } 以降を使用してください。
+# Instead of iso-package-old-title and iso-package-old when the file chosen as the Atlas package is a Windows ISO. "The Windows ISO" is the field named iso-source.
+iso-package-windows-iso-title = これは Windows ISO で、Atlas パッケージではありません
+iso-package-windows-iso = 代わりに Atlas パッケージ (.atlaspkg) を選択し、この ISO は Windows ISO として選択してください。
 iso-manager-missing-title = Atlas Manager のファイルが見つかりません
 iso-fix-package = 別のパッケージを選択
 # A package that needs a newer Atlas Manager; Download Atlas Manager (manager-download) is
@@ -1259,6 +1270,20 @@ iso-failed-space = 保存先ドライブの空き領域が不足しています�
 iso-manager-missing = AtlasManager.exe を「ダウンロード」などのローカル フォルダーにダウンロードし、そこから開いてください。
 # Home and LTSC are the editions ISO creation drops; the others are examples it keeps.
 iso-failed-edition = この ISO には対応する Windows エディションが含まれていません。Windows Home と LTSC には対応していません。Pro、Education、Enterprise など、別のエディションを含む ISO を使用してください。
+# Windows didn't open an ISO as a drive Atlas can read: the Windows ISO, the new ISO while it's
+# checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
+# USB page's ISO card.
+iso-mount-failed = Windows で ISO を開けませんでした。PC を再起動してから、もう一度お試しください。
+# Windows stopped answering while it read or mounted the ISO.
+iso-mount-timeout = ISO を開いている途中で Windows が応答しなくなりました。PC を再起動してから、もう一度お試しください。
+# vdrvroot and cdrom are the Windows drivers' own names, as tools that turn drivers off show
+# them. Keep them as they are.
+iso-mount-drivers = ISO ファイルを開くためのドライバー (vdrvroot と cdrom) が無効になっているため、この PC の Windows では ISO ファイルを開けません。これらを再度有効にし、PC を再起動してから、もう一度お試しください。
+# Windows can store a file compressed or encrypted (in the file's Properties, under Advanced),
+# and a download can be stored sparse, with space reserved but not yet written. Windows can't
+# open an ISO stored any of these ways. Under iso-check-failed, with iso-download-windows and
+# iso-use-local beside it, or on the USB page's ISO card.
+iso-mount-file = ファイルが圧縮、暗号化、またはスパース ファイルになっているため、Windows でこの ISO を開けません。圧縮も暗号化もされていないフォルダーにコピーし、そのコピーを使用してください。
 # Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = ログ フォルダーを開く
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,
@@ -1469,6 +1494,8 @@ install-source-resume-package = Atlas { $target } のインストールが完了
 install-source-resume-bundled = Atlas { $target } のインストールが完了していません。このテスト ビルドは同梱の Atlas パッケージしかインストールできないため、Atlas Manager のリリース ビルドで Atlas { $target } のパッケージを使用して、このインストールを完了してください。
 # Send a report and Export diagnostics are offered with it.
 install-source-unconfirmed = この PC に何がインストールされているかを Atlas が確認できなかったため、今はインストールを行いません。
+# Atlas's files are on this PC without a record of a finished installation. Create an Atlas ISO (iso-open) is beside it.
+install-source-unrecorded = この PC には以前の Atlas のファイルがありますが、インストールが完了した記録がないため、更新できません。Atlas をインストールするには、ファイルをバックアップしてから Windows を再インストールしてください。
 # Under the editions on the Create step, when Windows Setup asks which to install.
 iso-edition-selection = Windows セットアップで、ライセンスをお持ちのエディションを選んでください。
 detail-windows-preview = Insider ビルドには対応していません。Windows 11 の一般公開版を使用してください。
@@ -1623,6 +1650,8 @@ install-windows-edition-only = Atlas { $version } は Windows 11 Pro、Enterpris
 install-windows-edition-until = Atlas { $version } は Windows 11 Pro、Enterprise、Education に対応しているため、{ $product } にはインストールできません。Windows 11 バージョン { $current } のセキュリティ更新プログラムは { $date } まで提供されます。Windows Update で、この PC を新しいバージョンに移行できます。
 # The same once that date has passed.
 install-windows-edition-ended-update = Atlas { $version } は Windows 11 Pro、Enterprise、Education に対応しているため、{ $product } にはインストールできません。バージョン { $current } のセキュリティ更新プログラムの提供は終了しているため、Atlas を使わない場合でも Windows を更新してください。
+# Instead of install-windows-edition-only on an LTSC edition, which Windows names with a year that reads like a version.
+install-windows-edition-ltsc = Atlas { $version } は Windows 11 Pro、Enterprise、Education に対応しています。LTSC エディションには対応していません。
 # $releases lists the supported releases, such as "25H2 or 26H2".
 install-windows-reinstall = Atlas { $version } には Windows 11 バージョン { $releases } が必要ですが、Windows Update でこの PC をそのバージョンに移行することはできません。ファイルをバックアップしてから、Atlas ISO で Windows を再インストールしてください。
 # The same on Home, where the card that creates an Atlas ISO comes first and says how to reinstall.
@@ -1831,6 +1860,10 @@ prepare-store-broken-title = Microsoft Store が動作していません
 prepare-store-broken = Atlas は修復できませんでした。今 Atlas をインストールすると、Store アプリが動作しなくなるおそれがあります。
 prepare-store-broken-iso = 修復が失敗し続ける場合は、ファイルをバックアップしてから、Atlas ISO で Windows を再インストールしてください。
 prepare-repair-store-again = もう一度修復
+# Windows couldn't install updates for some of its own apps, and Atlas's Store repairs didn't help.
+# $apps lists the apps by their package names, joined with list-and.
+prepare-store-staging-title = Windows の組み込みアプリを更新できません
+prepare-store-staging = Windows は次の組み込みアプリの更新プログラムをインストールできず、Atlas による修復でも解決しませんでした: { $apps }。{ prepare-components-unrepairable }
 
 screen-keyboard-title = キーボードの言語
 screen-keyboard-question = 複数のキーボード言語を使いますか?

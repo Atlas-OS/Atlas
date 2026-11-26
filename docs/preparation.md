@@ -32,6 +32,10 @@ Its process loads PowerShell modules only from the inbox module root, so a modul
   A check before an install waits up to two minutes for another run to finish, and any other run stops at once.
 - Each run has a job folder under `%ProgramFiles%\Atlas Setup Recovery\Preparation`, which only administrators and SYSTEM can change.
   It holds the worker's `state.json`, its `updates.log` and `worker.log`.
+- The worker replaces `state.json` whole with each report, and tries again while something such as a scanner holds it.
+  A progress report that still can't go in waits for the next one.
+  The report of how the run ended is tried for up to a minute, then written over the held file in place, because Atlas Manager reads only `state.json`.
+  The run fails only when that doesn't work either.
 - **Stop updating** asks the worker to stop after the current step.
   Windows Update's and Microsoft Store's own work isn't interrupted, so a stop waits for it.
 
@@ -44,9 +48,12 @@ The worker searches Windows Update online, downloads and installs what it finds,
 - Each search asks the Windows Update service itself (`ServerSelection` set to `ssWindowsUpdate`).
   The default service can be another catalogue on some PCs, and that catalogue may not offer the update Atlas needs.
 - A PC that gets updates from its organisation's server (`AU\UseWUServer` set to 1) keeps that server.
+  A redirect to a server that can't be one, on a PC no organisation manages, is lifted for the run instead (see [Turning Windows Update on](windows-transition.md#turning-windows-update-on)).
 - A search that fails or ends with errors runs up to three times, after 30 seconds and then 60.
   When Windows Update still can't be reached, or keeps stopping, the run stops with `windows-update-unreachable`.
-  The errors that count are `0x8024001E`, `0x80240438` and `0x80244010` to `0x8024401F`; any other error stops the run at once.
+  The errors that count are `0x8024001E`, `0x80240069`, `0x80240438` and `0x80244010` to `0x8024401F`; any other error stops the run at once.
+- Before a failed search runs again, the worker waits up to two minutes for the Windows Update service to report that it's running, and starts it once if it stopped.
+  Windows Update can drop a search while it restarts, as it can straight after a component store repair.
 - The worker leaves out optional previews (browse-only updates) and feature updates.
   It also leaves out drivers when you chose **Install drivers myself**.
 - When one pass offers several cumulative updates for the installed build, it installs only the newest.
@@ -81,7 +88,7 @@ The worker keeps all three under `HKLM\SOFTWARE\AtlasOS\Preparation` for 30 days
 The check before the install reads the same record, so it doesn't wait for them either.
 Defender's updates are the exception: each new one has a new ID, so the worker and the check decide them from the PC every time, and the record only shows them.
 
-When Windows Update is turned off, paused or set to delay monthly updates, the **Get ready** page turns it on for the run.
+When Windows Update is turned off, paused, set to delay monthly updates or sent to an update server that isn't there, the **Get ready** page turns it on for the run.
 It records the original settings first, and the Atlas install puts them back at its end (see [Putting Windows Update settings back](windows-transition.md#putting-windows-update-settings-back)).
 
 ## Windows component store
@@ -96,7 +103,7 @@ The repair runs in three cases:
 - Before the run's first search, when Windows already records damage (`/CheckHealth` reads `Repairable`).
   PCs with Atlas packages installed are skipped, as the next section explains.
 - Before moving Windows to a newer release, when the store reads `Repairable` for a reason other than the Atlas packages (see [Preflight checks](windows-transition.md#preflight-checks)).
-- When an update fails with `0x80073712`.
+- When an update fails with `0x80073712`, or with `0x800F0831` (`CBS_E_STORE_CORRUPTION`), which servicing reports when the store is missing a manifest the update needs.
   The updates that failed then get another try.
 
 While DISM runs, the update row says Windows is being repaired, and under its progress bar that this can take half an hour or more.
@@ -106,9 +113,21 @@ If the repair leaves a restart, the **Get ready** page restarts before it search
 When Windows reads the store as `NonRepairable`, the run stops before any update with `component-store-unrepairable`.
 The update row says Windows is too damaged to update, with **Create an Atlas ISO** as its one button, after a backup; trying again can't help.
 
+A repair can also fail on manifests the store has lost, such as those of Features on Demand.
+DISM then ends with an error such as `0x800F0915`, the store still reads `Repairable`, and `CBS.log` reports `Store corruption, manifest missing for package` since the repair started.
+The Atlas install would fail on such a store with `0x800F0831`, so the run stops with `component-store-unrepairable` there, before any update.
+
+- The worker records the failed repair under `HKLM\SOFTWARE\AtlasOS\Preparation`.
+- The next run, such as trying again, repairs once more.
+- After a second such failure, runs stop at once without repairing, as each repair can take several minutes.
+- A store that reads healthy clears the record, and a record lapses after 30 days.
+
 When an update still fails with `0x80073712` after the repair, the run stops with that error.
 A restart can clear what's left, so the row offers **Restart and try again**.
 It restarts as any restart updating asks for does, and updating carries on by itself after you sign in.
+
+When an update still fails with `0x800F0831` after its retry and the run's repair, the run stops with `component-store-unrepairable` and that code, and its message names the update.
+The repair can report the store healthy while it's still missing what the update needs, so trying again can't help either.
 
 The health Windows reads, the repair's exit code and the health afterwards go to `updates.log`.
 
@@ -177,6 +196,10 @@ It comes before the update work so that its restarts never land in the middle of
 If the Store still can't update, the worker tries these repairs once per run, in order, and tries the Store again after each one that changed something.
 A Store that fails for a moment is tried again first, and one that's slow but still moving gets no repairs (see [Store app updates](#store-app-updates)).
 
+A Store that didn't answer in any of its tries first has its install service restarted, and is tried again.
+The Microsoft Store Install Service (`InstallService`) carries out the Store's downloads and installs, and a stuck one stops the Store answering.
+The worker waits at most a minute for it to stop and a minute for it to start, and leaves a service that's turned off alone, as it couldn't start again.
+
 1. **`wsreset.exe -i`**, run in your session.
    The switch isn't documented.
    It runs without a window, registers the Store's frameworks (UI.Xaml, VCLibs) again and updates the Store's purchase app in the background, and the worker follows what it queued.
@@ -205,6 +228,38 @@ The update row says Microsoft Store isn't working and that installing Atlas now 
 Behind **Show details** are the worker's own message and **Create an Atlas ISO**, for reinstalling Windows after a backup if the repair keeps failing.
 The row of help links under it offers **Send a report**, **Export diagnostics** and **Open log folder**.
 
+### Updates Windows can't stage
+
+Windows can fail to stage an app update with `0x80070490` (`ERROR_NOT_FOUND`, element not found), which the Store reports only as `0x80073CF9`.
+Updates whose files are already on the PC still install.
+The apps that fail are built-in ones, such as Calculator, Photos, App Installer and the Store itself, and the repairs don't change it.
+
+After the repairs, the run stops with `store-appx-staging` instead of `store-repair-failed` when either of these holds:
+
+- Since the run started, the AppX deployment log has event 401 for a Stage or an Add that failed with `0x80070490` for two or more apps, and the Store still fails to deploy an update.
+- The bootstrap's own App Installer bundle failed with `0x80070490`.
+
+The worker reads the operation and the error from the event's own values, which don't depend on the language Windows uses.
+An item the Store cancels with `0x80004004` (`E_ABORT`) after such a failure counts as that failure (see [Store app updates](#store-app-updates)).
+
+The update row says Windows can't update its built-in apps and names them by their package names, such as ZuneMusic.
+It offers **Create an Atlas ISO**, for reinstalling Windows after a backup, and **Try again**.
+
+The worker records each run that ends this way as `StoreStaging` under `HKLM\SOFTWARE\AtlasOS\Preparation`, with the apps.
+The repairs run in at most two such runs: the first, and one more after you try again.
+After that, a run whose Store fails to stage updates for any of the recorded apps again stops before the repairs.
+The Store is still asked to update first, so a Store that works again finishes as usual and clears the record.
+A record more than 30 days old counts for nothing.
+
+When a run stops this way, `updates.log` also gets read-only evidence, once a run, on lines that start with `Microsoft Store: staging evidence:`:
+
+- the events of each failing deployment, as `Get-AppPackageLog -ActivityID` gives them, read through a query that each AppX log filters itself;
+- the `Microsoft-Windows-AppXDeploymentServer/Operational` log's errors and warnings since the run started that `updates.log` doesn't have already;
+- for each app, its packages for every account (by SID only), its provisioned packages, its entries under `Applications`, `InboxApplications` and `Deprovisioned` in `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore`, and whether `%ProgramData%\Microsoft\Windows\AppRepository` holds each installed package's manifest.
+
+See [Log limits](diagnostics.md#log-limits) for how much of it the worker writes.
+A part that can't be read is noted, and nothing in it changes how the run ends.
+
 ### Store app updates
 
 An app update that ends in `Error` or `Canceled` is cleared from the Store's queue, and the worker searches the Store again.
@@ -220,13 +275,19 @@ Some Store failures pass on their own:
 - a Store that refuses to resume a queued download.
 
 The worker tries the Store again, up to four times in all, 15 seconds apart.
+The Store's own update gets the same tries before the repairs, and one try after each repair, which says whether it helped.
 When the Store still fails that way, it goes on to the repairs, as a Store that fails every time can be broken.
+
+An item the Store cancels with `0x80004004` in a run whose AppX deployment log already shows Windows unable to stage an update with `0x80070490` counts as that failure instead, as trying again doesn't get past a staging failure.
+The run reports `0x80070490` with the apps Windows couldn't stage, and goes on to the repairs at once (see [Updates Windows can't stage](#updates-windows-cant-stage)).
 
 The worker waits for Store apps while their updates move, until 30 minutes after anything last moved, and for 90 minutes at most.
 A Store that stops moving for 30 minutes gets the repairs, as a stuck Store can need them.
 One still moving after 90 minutes stops the run with `store-timeout`, without the repairs.
 
-An update that fails because its app is open (`0x80073D02`) names the app on the update row: close it, then try again, in Task Manager if it has no window.
+An update that fails because its app is open (`0x80073D02`) is tried again too, up to four times in all, 15 seconds apart, as the Store closes an app it updates and the app can be closed meanwhile.
+When the app is still open after that, the run stops without the repairs, which can't close it.
+The update row names the app: close it, then try again, in Task Manager if it has no window.
 The row offers only **Try again**, as Microsoft Store has nothing to add.
 
 A Store you removed on purpose stays removed.
@@ -255,6 +316,21 @@ The worker checks for one even when an update provider throws, because a failed 
 Atlas Manager writes the results of each update and any provider errors to its diagnostic log.
 The worker checks the servicing stack's and Windows Update's restart flags, then asks Windows Update itself.
 Files waiting to be replaced at the next restart are noted but don't ask for one, because apps such as Xbox Gaming Services queue one at every restart.
+
+Windows can keep the servicing stack's flag (`Component Based Servicing\RebootPending`) over restarts while servicing has nothing pending, and `CBS.log` then says `Nothing is pending` at each shutdown.
+So when that flag is the only one left after a restart a run asked for while the flag was there, the worker asks servicing and Windows Update what still waits:
+
+- `%windir%\WinSxS\pending.xml`;
+- an exclusive session under `SessionsPending`;
+- the `PackagesPending` and `RebootInProgress` markers;
+- packages waiting to install or uninstall;
+- Windows Update's own need for a restart.
+
+With none of these, the flag holds nothing back: `updates.log` notes a stale restart marker, and the run goes on.
+A flag that no restart has met yet still gets its restart.
+The worker keeps the restart it last asked for, and the start of Windows in which it found the flag stale, under `HKLM\SOFTWARE\AtlasOS\Preparation`.
+For the rest of that start, the **Get ready** restart check and the install's requirement check don't count the flag either, while servicing still has nothing waiting.
+If Windows Update then asks for a restart before it installs an update, the run stops with `manual-updates` instead of restarting again.
 
 Before Atlas Manager restarts Windows for preparation:
 
@@ -286,7 +362,7 @@ It passes only when:
 - an online Windows Update search finds no required updates, apart from those recorded under `HKLM\SOFTWARE\AtlasOS\Preparation` and Defender's own updates on a PC Atlas removed Defender from (see [Windows updates](#windows-updates));
 - Microsoft Store is registered for you, with no outstanding updates or active queue items;
 - the connection has confirmed internet access and isn't metered, over its data limit or roaming;
-- Windows needs no restart;
+- Windows needs no restart, apart from a servicing flag found stale as [Restarts](#restarts) describes;
 - the Windows Update service is available.
 
 The check never downloads or installs updates.
@@ -313,7 +389,7 @@ See [Log limits](diagnostics.md#log-limits) for how much of each log Atlas keeps
 
 While Windows moves to a newer release, the worker also writes `windows-transition.log` beside the job folders, and notes there how many AppX events it found.
 These logs belong to the **Get ready** page, so they aren't under `%windir%\AtlasModules\Logs`.
-**Export diagnostics** includes them, and `tools/dev/Get-AtlasInstallReport.ps1` lists the Store lines from the latest runs.
+**Export diagnostics** includes them, and `tools/dev/Get-AtlasInstallReport.ps1` lists the Store lines from the latest runs, with any [staging evidence](#updates-windows-cant-stage) in full.
 
 | Reason | Meaning |
 | --- | --- |
@@ -321,11 +397,12 @@ These logs belong to the **Get ready** page, so they aren't under `%windir%\Atla
 | `manual-updates` | Some updates need you to finish them in Windows Settings, including updates that didn't finish after a restart for them. |
 | `windows-passes` | Windows still offers updates after eight passes. |
 | `windows-update-unreachable` | Windows Update couldn't be reached, or kept stopping, on every try. |
-| `component-store-unrepairable` | Windows reads its component store as damaged beyond repair. |
+| `component-store-unrepairable` | Windows reads its component store as damaged beyond repair, or an update stays missing its files after the repair (`0x800F0831`). |
 | `store-missing` | Microsoft Store isn't registered for you. |
 | `store-paused-battery`, `store-paused-network` | The Store paused an update until the PC is plugged in or on Wi-Fi. |
 | `store-timeout` | Store apps didn't finish updating in time. |
 | `store-passes` | The Store still offers updates after eight passes. |
 | `store-repair-failed` | None of the Store repairs made the Store work. |
+| `store-appx-staging` | Windows couldn't stage updates for built-in apps (`0x80070490`), and the Store repairs didn't help. |
 
 The `feature-*` reasons belong to moving Windows to a newer release, and are listed in [Moving Windows to a newer release](windows-transition.md#failure-reasons).

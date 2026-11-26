@@ -76,6 +76,10 @@ $script:PreparationStateHeld = $false
 # Restart markers seen by the last Test-PreparationRestart, so the app can name one
 # that survives a restart instead of asking for another.
 $script:PreparationRestartReasons = @()
+# Whether this run set aside servicing's restart marker as stale, and whether it
+# logged what servicing has waiting (Test-PreparationServicingStale).
+$script:PreparationServicingSetAside = $false
+$script:PreparationServicingNoted = $false
 # Why the last Test-PreparationNetwork refused the connection; the app words each cause.
 $script:PreparationNetworkReason = $null
 $script:PreparationStage = 'verify'
@@ -94,6 +98,9 @@ $script:DriverNotNeeded = -2147024637
 # ERROR_SXS_COMPONENT_STORE_CORRUPT (0x80073712): an update failed because the
 # component store, which Windows installs updates into, is damaged.
 $script:ComponentStoreCorrupt = -2147010798
+# CBS_E_STORE_CORRUPTION (0x800F0831): servicing found the component store
+# missing a manifest the update needs, which a repair can report healthy over.
+$script:StoreCorruption = -2146498511
 # A run reads the component store's health once and repairs it at most once:
 # a repair can take half an hour.
 $script:PreparationComponentChecked = $false
@@ -147,8 +154,17 @@ function New-PreparationStoreFailure([string]$PackageFamilyName, [string]$State,
     $code = if ($null -ne $ErrorCode) { $ErrorCode.HResult } else { 0 }
     # E_ABORT: something interrupted the Store's work on the item, which a later
     # try gets past. A Store that keeps doing it hasn't finished, rather than
-    # being broken.
+    # being broken. One in a run where Windows already couldn't stage updates
+    # (0x80070490) counts as that failure, which another try doesn't get past.
     $aborted = $code -eq $script:StoreAborted
+    if ($aborted) {
+        $staging = @(Get-PreparationStagingFailure)
+        if ($staging.Count -gt 0) {
+            $hidden = New-PreparationFailure "$message; Windows couldn't stage updates in this run (0x80070490, element not found): $(@($staging | ForEach-Object { $_.Name }) -join ', ')" $reason $script:StagingNotFound
+            $hidden.Data['packageName'] = ($PackageFamilyName -split '_')[0].Split('.')[-1]
+            return $hidden
+        }
+    }
     if ($aborted -and -not $reason) { $reason = 'store-timeout' }
     $failure = New-PreparationFailure $message $reason $code
     if ($aborted) { $failure.Data['storeTransient'] = 'retry' }
@@ -275,12 +291,117 @@ function Test-PreparationRestart {
     # apps such as Xbox Gaming Services queue one at every boot. The update
     # provider is asked only when no blocking registry marker already answers.
     $blocking = @($reasons | Where-Object { $_ -ne 'file-renames' })
-    if ($blocking.Count -eq 0 -and [bool](New-Object -ComObject Microsoft.Update.SystemInfo).RebootRequired) {
+    $agentAsked = $false
+    if ($blocking.Count -eq 1 -and $blocking[0] -eq 'servicing' -and (Test-PreparationServicingStale)) {
+        $reasons = @($reasons | Where-Object { $_ -ne 'servicing' })
+        $blocking = @()
+        $agentAsked = $true
+    }
+    if ($blocking.Count -eq 0 -and -not $agentAsked -and [bool](New-Object -ComObject Microsoft.Update.SystemInfo).RebootRequired) {
         $reasons += 'update-agent'
         $blocking += 'update-agent'
     }
     $script:PreparationRestartReasons = $reasons
     return $blocking.Count -gt 0
+}
+
+# Servicing's RebootPending marker on its own, when Windows has restarted since a
+# run asked for a restart while the marker was there (Save-PreparationRestartAsked):
+# Windows can keep the marker over restarts while servicing has nothing pending,
+# and logs "Nothing is pending" at each shutdown. So servicing is asked then, and
+# with nothing waiting for a restart (Get-AtlasServicingPending) and Windows
+# Update needing none either, the marker holds nothing back. A marker no restart
+# has met yet gets its restart as before. The run notes the stale marker once,
+# and records the start of Windows it confirmed it in, which Atlas Manager's
+# restart check and the install's requirement check read.
+function Test-PreparationServicingStale {
+    if (-not (Test-PreparationRestartSurvived)) { return $false }
+    # What can't be read leaves the marker to ask for its restart.
+    try {
+        $pending = @(Get-AtlasServicingPending)
+        if ($pending.Count -eq 0 -and (Test-AtlasTransitionUpdateRestartRequired)) { $pending = @('a restart for Windows Update') }
+        $waiting = "has this waiting: $($pending -join ', ')"
+    }
+    catch {
+        $pending = @('unreadable')
+        $waiting = "what it has waiting couldn't be read: $($_.Exception.Message)"
+    }
+    if ($pending.Count -gt 0) {
+        if (-not $script:PreparationServicingNoted) {
+            $script:PreparationServicingNoted = $true
+            Write-PreparationLog "Windows servicing still asks for a restart after restarting, and $waiting."
+        }
+        return $false
+    }
+    $script:PreparationServicingSetAside = $true
+    if (-not $script:PreparationServicingNoted) {
+        $script:PreparationServicingNoted = $true
+        $line = 'stale restart marker: Windows servicing keeps RebootPending after restarting, but has nothing pending (no pending.xml, exclusive session or package waiting to install or uninstall) and Windows Update needs no restart; going on'
+        Write-PreparationLog $line
+        Write-AtlasTransitionEvidence $line
+        try {
+            $boot = Get-AtlasTransitionBootId
+            if ($boot) { Set-PreparationServicingStaleText $boot }
+        }
+        catch { Write-PreparationLog "The stale restart marker couldn't be recorded: $($_.Exception.Message)" }
+    }
+    return $true
+}
+
+function Set-PreparationServicingStaleText([string]$Text) {
+    Set-AtlasTransitionValue (Get-AtlasServicingStaleRoot) 'ServicingMarkerStale' 'String' $Text
+}
+
+# The restart the last run that asked for one asked for: the start of Windows it
+# ran in, when, why, and whether servicing's RebootPending marker was there.
+# Kept under HKLM beside the record of updates no longer waited for.
+function Get-PreparationRestartAskedText {
+    $value = Get-AtlasTransitionValue $script:PreparationReofferedRoot 'RestartAsked'
+    if ($value.Present -and $value.Kind -eq 'String') { return [string]$value.Data }
+    return ''
+}
+
+function Set-PreparationRestartAskedText([string]$Text) {
+    Set-AtlasTransitionValue $script:PreparationReofferedRoot 'RestartAsked' 'String' $Text
+}
+
+function Save-PreparationRestartAsked([string[]]$Reasons) {
+    try {
+        $servicing = Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
+        $record = [pscustomobject][ordered]@{
+            boot = Get-PreparationBootId; at = [DateTime]::UtcNow.ToString('o'); reasons = @($Reasons); servicing = [bool]$servicing
+        }
+        Set-PreparationRestartAskedText (ConvertTo-Json -InputObject $record -Compress)
+    }
+    catch { Write-PreparationLog "The restart this run asks for couldn't be recorded: $($_.Exception.Message)" }
+}
+
+# Whether Windows has restarted since a run asked for a restart while servicing's
+# RebootPending marker was there, within the last week.
+function Test-PreparationRestartSurvived {
+    try {
+        $text = Get-PreparationRestartAskedText
+        if (-not $text) { return $false }
+        $record = $text | ConvertFrom-Json -ErrorAction Stop
+        $at = [DateTime]::MinValue
+        if (-not [DateTime]::TryParse([string]$record.at, [Globalization.CultureInfo]::InvariantCulture,
+                [Globalization.DateTimeStyles]::AdjustToUniversal, [ref]$at) -or $at -lt [DateTime]::UtcNow.AddDays(-7)) { return $false }
+        return $record.servicing -eq $true -and [string]$record.boot -and [string]$record.boot -ne (Get-PreparationBootId)
+    }
+    catch {
+        Write-PreparationLog "The record of the last restart asked for couldn't be read: $($_.Exception.Message)"
+        return $false
+    }
+}
+
+# A restart Windows asks for before it installs, after this run set aside a
+# stale servicing marker, wouldn't change anything a restart hasn't already: the
+# run stops with what to do instead of restarting again.
+function Assert-PreparationRestartHelps {
+    if (-not $script:PreparationServicingSetAside) { return }
+    $failure = New-PreparationFailure 'Windows Update asks for a restart before it installs updates, although Windows has restarted for it and servicing has nothing pending. Restart from Windows Update, then try again.' 'manual-updates'
+    $failure.Data['restartRepeated'] = $true
+    throw $failure
 }
 
 # Why a pass leaves an offer out, for the log, or '' when it installs it.
@@ -349,12 +470,23 @@ function Write-PreparationState([string]$Status, [string]$Stage, [int]$Completed
         # Install-AtlasTransitionFile in WindowsTransition.ps1. Progress while the
         # run goes on can wait for a later report: the earlier one stays whole and
         # names this process, and the output line below carries this one. How the
-        # run ended can't wait, so that report gets longer, and fails the run if
-        # Windows still refuses it.
+        # run ended can't wait, so that report gets longer. Atlas Manager and the
+        # front door read only state.json, so when Windows still refuses to
+        # replace it, the report is written over it in place. Only when that
+        # fails too does the run fail with Windows's refusal, after the output
+        # line has carried the report.
         $running = $Status -eq 'running'
         $refused = Install-AtlasTransitionFile $temporary $path $(if ($running) { 5 } else { 60 })
         if ($null -eq $refused) { $ownsTemporary = $false }
-        elseif (-not $running) { throw $refused }
+        elseif (-not $running) {
+            $unwritten = Write-AtlasTransitionFileInPlace $path $bytes
+            if ($null -ne $unwritten) {
+                [Console]::WriteLine("ATLAS_PREP:$json")
+                Write-PreparationLog ('state.json could not be replaced (0x{0:X8}: {1}) or written in place (0x{2:X8}: {3}).' -f $refused.HResult, ([string]$refused.Message).Trim(), $unwritten.HResult, ([string]$unwritten.Message).Trim())
+                throw $refused
+            }
+            Write-PreparationLog ('state.json could not be replaced (0x{0:X8}: {1}); the report of how the run ended was written over it in place.' -f $refused.HResult, ([string]$refused.Message).Trim())
+        }
         elseif (-not $script:PreparationStateHeld) {
             $script:PreparationStateHeld = $true
             Write-PreparationLog ('state.json could not be replaced (0x{0:X8}: {1}); it keeps the last report it took until a later one goes in.' -f $refused.HResult, ([string]$refused.Message).Trim())
@@ -817,6 +949,8 @@ function Repair-PreparationRecordedDamage {
         Write-PreparationComponentEvidence 'Windows records damage it can''t repair'
         throw (New-PreparationFailure 'Windows reports that its component store is damaged beyond repair.' 'component-store-unrepairable')
     }
+    # Repaired since by other means: an earlier failed repair no longer counts.
+    if ($health -eq 'Healthy') { Clear-PreparationRepairFailure }
     if ($health -ne 'Repairable') { return $false }
     $packages = @(Get-AtlasInstalledAtlasPackage)
     if ($packages.Count -gt 0) {
@@ -829,21 +963,119 @@ function Repair-PreparationRecordedDamage {
 # Repairs the store once a run; returns whether the repair ran. -Ahead is a
 # repair before any update has failed on the store: when it fails, it doesn't
 # use up the run's repair, which an update that does fail on it then gets.
+#
+# A repair that fails, leaves the store repairable and has servicing report
+# package manifests missing, as for Features on Demand whose manifests are gone,
+# can't put the store right: the Atlas install would then fail on it (0x800F0831),
+# so the run stops with component-store-unrepairable before it. The failure is
+# recorded, so a later run, such as a deliberate try again, repairs once more,
+# and runs after a second such failure stop at once instead of repairing for
+# minutes each time. A store that reads healthy clears the record.
 function Invoke-PreparationComponentRepair([string]$Why, [switch]$Ahead) {
     if ($script:PreparationComponentRepairRun) { return $false }
+    $failures = Get-PreparationRepairFailure
+    if ($null -ne $failures -and $failures.failures -ge 2 -and (Get-PreparationComponentHealth) -eq 'Repairable') {
+        Write-PreparationComponentEvidence ("$Why; its repair already failed {0} times on missing manifests, most recently with {1}, so it isn't repaired again" -f $failures.failures, $failures.code)
+        throw (New-PreparationFailure "Windows couldn't repair its component store: servicing reports package manifests missing, and the repair failed $($failures.failures) times." 'component-store-unrepairable')
+    }
     $script:PreparationComponentRepairRun = $true
     Write-PreparationComponentEvidence "$Why; repairing it with DISM RestoreHealth"
     Write-PreparationState running windows-repair
+    # CBS.log writes local times.
+    $started = [DateTime]::Now
     try { $code = [int](Invoke-PreparationRestoreHealth) }
     catch {
         Write-PreparationComponentEvidence "the repair could not run: $($_.Exception.Message)"
         if ($Ahead) { $script:PreparationComponentRepairRun = $false }
         return $true
     }
-    Write-PreparationComponentEvidence ('the repair ended with 0x{0:X8}; Windows now records it as {1}' -f $code, (Get-PreparationComponentHealth))
+    $health = Get-PreparationComponentHealth
+    Write-PreparationComponentEvidence ('the repair ended with 0x{0:X8}; Windows now records it as {1}' -f $code, $health)
+    if ($health -eq 'Healthy') { Clear-PreparationRepairFailure }
     # 3010: done, with a restart to finish it.
+    if ($code -notin @(0, 3010) -and $health -eq 'Repairable') {
+        $missing = @(Get-PreparationMissingManifest $started)
+        if ($missing.Count -gt 0) {
+            $count = Save-PreparationRepairFailure $code
+            $named = @($missing | Select-Object -First 3) -join ', '
+            Write-PreparationComponentEvidence "servicing reports manifests missing for $($missing.Count) package(s), such as $named; the repair can't put them back (failure $count)"
+            throw (New-PreparationFailure ("Windows couldn't repair its component store (0x{0:X8}): servicing reports manifests missing for {1} package(s), such as {2}." -f $code, $missing.Count, $named) 'component-store-unrepairable' $code)
+        }
+    }
     if ($Ahead -and $code -notin @(0, 3010)) { $script:PreparationComponentRepairRun = $false }
     return $true
+}
+
+# The packages whose manifests servicing reports missing in CBS.log since
+# $Since, as in "Store corruption, manifest missing for package: <name>", or a
+# store corruption failure that names none. Empty when the log can't be read.
+function Get-PreparationMissingManifest([DateTime]$Since) {
+    try { $lines = @(Get-AtlasTransitionCbsLogTail) }
+    catch {
+        Write-PreparationComponentEvidence "the servicing log could not be read: $($_.Exception.Message)"
+        return
+    }
+    $from = $Since.AddSeconds(-5)
+    $packages = [Collections.Generic.List[string]]::new()
+    foreach ($line in $lines) {
+        $stamp = [DateTime]::MinValue
+        if ([string]$line -notmatch '^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}),' -or
+            -not [DateTime]::TryParseExact($Matches[1], 'yyyy-MM-dd HH:mm:ss', [Globalization.CultureInfo]::InvariantCulture,
+                [Globalization.DateTimeStyles]::None, [ref]$stamp) -or $stamp -lt $from) { continue }
+        $name = if ($line -match 'manifest missing for package: (\S+)') { $Matches[1] }
+        elseif ($line -match "Failed to resolve package '([^']+)'.*CBS_E_STORE_CORRUPTION") { $Matches[1] }
+        if ($name -and -not $packages.Contains($name)) { $packages.Add($name) }
+    }
+    $packages
+}
+
+# Failed repairs the last runs recorded (see Invoke-PreparationComponentRepair),
+# kept beside the record of updates no longer waited for. A record more than 30
+# days old counts for nothing.
+function Get-PreparationRepairRecordText {
+    $value = Get-AtlasTransitionValue $script:PreparationReofferedRoot 'ComponentRepairFailed'
+    if ($value.Present -and $value.Kind -eq 'String') { return [string]$value.Data }
+    return ''
+}
+
+function Set-PreparationRepairRecordText([string]$Text) {
+    if ($Text) { Set-AtlasTransitionValue $script:PreparationReofferedRoot 'ComponentRepairFailed' 'String' $Text }
+    else { Remove-AtlasTransitionValue $script:PreparationReofferedRoot 'ComponentRepairFailed' }
+}
+
+# The record as { failures, code, at }, or $null without a valid recent one.
+function Get-PreparationRepairFailure {
+    try {
+        $text = Get-PreparationRepairRecordText
+        if (-not $text) { return $null }
+        $record = $text | ConvertFrom-Json -ErrorAction Stop
+        $at = [DateTime]::MinValue
+        if (-not [DateTime]::TryParse([string]$record.at, [Globalization.CultureInfo]::InvariantCulture,
+                [Globalization.DateTimeStyles]::AdjustToUniversal, [ref]$at) -or $at -lt [DateTime]::UtcNow.AddDays(-30) -or
+            [string]$record.code -notmatch '^0x[0-9A-F]{8}$' -or ($record.failures -isnot [int] -and $record.failures -isnot [long])) { return $null }
+        return [pscustomobject]@{ failures = [int]$record.failures; code = [string]$record.code; at = $at }
+    }
+    catch {
+        Write-PreparationComponentEvidence "the record of failed repairs couldn't be read: $($_.Exception.Message)"
+        return $null
+    }
+}
+
+# Records one more failed repair and returns how many the record now holds.
+function Save-PreparationRepairFailure([int]$Code) {
+    $earlier = Get-PreparationRepairFailure
+    $count = if ($null -ne $earlier) { $earlier.failures + 1 } else { 1 }
+    try {
+        $record = [pscustomobject][ordered]@{ failures = $count; code = '0x{0:X8}' -f $Code; at = [DateTime]::UtcNow.ToString('o') }
+        Set-PreparationRepairRecordText (ConvertTo-Json -InputObject $record -Compress)
+    }
+    catch { Write-PreparationComponentEvidence "the failed repair couldn't be recorded: $($_.Exception.Message)" }
+    return $count
+}
+
+function Clear-PreparationRepairFailure {
+    try { if (Get-PreparationRepairRecordText) { Set-PreparationRepairRecordText '' } }
+    catch { Write-PreparationComponentEvidence "the record of failed repairs couldn't be cleared: $($_.Exception.Message)" }
 }
 
 # DISM's RestoreHealth, which repairs the store from Windows Update. It reports
@@ -927,6 +1159,7 @@ function Invoke-PreparationWindows {
         $installer.ForceQuiet = $true
         $installer.AllowSourcePrompts = $false
         if ($installer.RebootRequiredBeforeInstallation) {
+            Assert-PreparationRestartHelps
             $script:PreparationRestartReasons = @('windows-update')
             return 'reboot'
         }
@@ -965,7 +1198,7 @@ function Invoke-PreparationWindows {
         # one the restart didn't finish.
         $handledHere = @{}
         if (-not $restartNeeded) {
-            foreach ($entry in @($failed | Where-Object { $_.HResult -in @($script:InstallNotAllowed, $script:ComponentStoreCorrupt) })) {
+            foreach ($entry in @($failed | Where-Object { $_.HResult -in @($script:InstallNotAllowed, $script:ComponentStoreCorrupt, $script:StoreCorruption) })) {
                 $handledHere[(Get-PreparationUpdateKey $entry.Update)] = $true
             }
         }
@@ -991,9 +1224,20 @@ function Invoke-PreparationWindows {
         if ([int]$installed.ResultCode -ne $script:UpdateSucceeded -and ($failed.Count -gt 0 -or ($unneededDrivers -eq 0 -and $optionalFailures.Count -eq 0))) {
             # Updates that failed on a damaged component store get another try
             # once it's repaired, even if they've had one.
-            $damaged = @($failed | Where-Object { $_.HResult -eq $script:ComponentStoreCorrupt })
-            if ($damaged.Count -gt 0 -and (Invoke-PreparationComponentRepair "$($damaged.Count) update(s) failed on it (0x80073712)")) {
-                foreach ($entry in $damaged) { $retried.Remove($entry.Id) }
+            $damaged = @($failed | Where-Object { $_.HResult -in @($script:ComponentStoreCorrupt, $script:StoreCorruption) })
+            if ($damaged.Count -gt 0) {
+                $codes = @($damaged | ForEach-Object { '0x{0:X8}' -f $_.HResult } | Sort-Object -Unique) -join ', '
+                if (Invoke-PreparationComponentRepair "$($damaged.Count) update(s) failed on it ($codes)") {
+                    foreach ($entry in $damaged) { $retried.Remove($entry.Id) }
+                }
+            }
+            # A store missing what an update needs, after its try and the run's
+            # repair, is damage Windows's own repair doesn't put right.
+            $missing = @($failed | Where-Object { $_.HResult -eq $script:StoreCorruption -and $retried.ContainsKey($_.Id) })
+            if ($missing.Count -gt 0) {
+                $names = @($missing | ForEach-Object { Format-PreparationUpdateName $_.Update }) -join '; '
+                Write-PreparationComponentEvidence "updates still fail on it after the repair (0x800F0831): $names"
+                throw (New-PreparationFailure "Windows couldn't install $names (0x800F0831, CBS_E_STORE_CORRUPTION): its component store is missing files the update needs, and Windows's repair didn't put them back." 'component-store-unrepairable' $script:StoreCorruption)
             }
             # So do updates that met another installation, once it's done.
             $busy = @($failed | Where-Object { $_.HResult -eq $script:InstallNotAllowed })
@@ -1015,7 +1259,7 @@ function Select-PreparationOptionalFailure($Failed, [hashtable]$Optional, [switc
         $key = Get-PreparationUpdateKey $entry.Update
         if (-not $Optional.ContainsKey($key)) { continue }
         if ($Installed -and (($entry.HResult -eq $script:InstallNotAllowed -and $script:PreparationBusyWaited -lt $script:PreparationBusyWaits) -or
-                ($entry.HResult -eq $script:ComponentStoreCorrupt -and -not $script:PreparationComponentRepairRun))) { continue }
+                ($entry.HResult -in @($script:ComponentStoreCorrupt, $script:StoreCorruption) -and -not $script:PreparationComponentRepairRun))) { continue }
         $script:PreparationOptionalFailed[$key] = $true
         $line = "Optional update '$($entry.Update.Title)' failed (0x{0:X8}); installing the monthly update it replaced instead." -f $entry.HResult
         Write-PreparationLog $line
@@ -1031,8 +1275,9 @@ function Select-PreparationOptionalFailure($Failed, [hashtable]$Optional, [switc
 # https://learn.microsoft.com/windows/win32/api/wuapicommon/ne-wuapicommon-serverselection
 # A PC whose updates come from its organisation's server (AU\UseWUServer=1) keeps
 # the default, so they still come from there: a move refuses such a PC before it
-# searches. Downloads and installs follow the updates a search returned, so they
-# use the same service.
+# searches. A redirect to a server that can't be one is lifted before any search
+# (Test-AtlasWindowsUpdateRedirectBroken). Downloads and installs follow the
+# updates a search returned, so they use the same service.
 function Get-PreparationServerSelection {
     $server = Get-AtlasTransitionValue 'SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' 'UseWUServer'
     if ($server.Present -and $server.Kind -eq 'DWord' -and [int64]$server.Data -eq 1) { return 0 }
@@ -1069,11 +1314,45 @@ function Get-PreparationSearchWarning($Result) {
 }
 
 # Windows Update errors that pass on their own: the service was stopping
-# (WU_E_SERVICE_STOP, 0x8024001E), its server couldn't be reached
-# (WU_E_PT_ENDPOINT_UNREACHABLE, 0x80240438), or the server answered with an HTTP
-# error (WU_E_PT_HTTP_STATUS_*, 0x80244010 to 0x8024401F), as a proxy can.
+# (WU_E_SERVICE_STOP, 0x8024001E), it dropped the search as it restarted
+# (0x80240069), as it can straight after a component store repair, its server
+# couldn't be reached (WU_E_PT_ENDPOINT_UNREACHABLE, 0x80240438), or the server
+# answered with an HTTP error (WU_E_PT_HTTP_STATUS_*, 0x80244010 to 0x8024401F),
+# as a proxy can.
 function Test-PreparationTransientUpdateError([int]$HResult) {
-    return $HResult -in @(-2145124322, -2145123272) -or ($HResult -ge -2145107952 -and $HResult -le -2145107937)
+    return $HResult -in @(-2145124322, -2145124247, -2145123272) -or ($HResult -ge -2145107952 -and $HResult -le -2145107937)
+}
+
+# How long a search that failed waits, at most, for Windows Update to run again.
+$script:PreparationServiceWaitSeconds = 120
+
+function Get-PreparationUpdateServiceStatus { [string](Get-Service -Name wuauserv -ErrorAction Stop).Status }
+
+function Start-PreparationUpdateService { Start-Service -Name wuauserv -ErrorAction Stop }
+
+# Before a search runs again, Windows Update has to be running: one that is
+# stopping, or stopped after it dropped the search, fails the next search the
+# same way. A stopped service is started once, as any search would start it.
+# One still not running after $script:PreparationServiceWaitSeconds is logged,
+# and the search runs anyway: its own result is what the run reports.
+function Wait-PreparationUpdateService {
+    $started = $false
+    for ($waited = 0; ; $waited += 2) {
+        $status = try { Get-PreparationUpdateServiceStatus } catch { "unreadable ($($_.Exception.Message))" }
+        if ($status -eq 'Running') { return $true }
+        if ($waited -ge $script:PreparationServiceWaitSeconds) {
+            Write-PreparationLog "Windows Update still reports $status after $waited seconds; searching again anyway."
+            return $false
+        }
+        if ($status -eq 'Stopped' -and -not $started) {
+            $started = $true
+            try { Start-PreparationUpdateService }
+            catch { Write-PreparationLog "Windows Update couldn't be started: $($_.Exception.Message)" }
+        }
+        Assert-PreparationContinue
+        Write-PreparationState running windows-search -Detail $script:PreparationSearchDetail
+        Start-Sleep -Seconds 2
+    }
 }
 
 # A search that fails, or ends with errors, runs again after a wait that grows
@@ -1109,6 +1388,7 @@ function Invoke-PreparationSearch($Session, [string]$Criteria, [switch]$IncludeS
                 throw (New-PreparationFailure "Windows Update couldn't be reached: $described" 'windows-update-unreachable' $failure)
             }
             Wait-PreparationSeconds ($script:PreparationSearchRetrySeconds * $attempt)
+            [void](Wait-PreparationUpdateService)
             continue
         }
         Write-AtlasTransitionEvidence "search on $(Format-PreparationService $searcher): result $($found.ResultCode), $(@($found.Updates).Count) update(s) for $Criteria"
@@ -1174,6 +1454,17 @@ function Get-PreparationUpdateKb($Update) {
     foreach ($kb in $property.Value) { [string]$kb }
 }
 
+# An update as a failure message names it: its title, and its KB numbers when
+# the title doesn't give them.
+function Format-PreparationUpdateName($Update) {
+    $property = $Update.PSObject.Properties['Title']
+    $title = if ($null -ne $property) { ([string]$property.Value -replace '\s+', ' ').Trim() } else { '' }
+    $kbs = @(Get-PreparationUpdateKb $Update | Where-Object { $_ -and $title -notmatch "KB$_" } | ForEach-Object { "KB$_" })
+    if ($kbs.Count -eq 0) { return $title }
+    if (-not $title) { return $kbs -join ', ' }
+    return "$title ($($kbs -join ', '))"
+}
+
 function Test-PreparationUpgradeCategory($Update) {
     foreach ($category in @($Update.Categories)) {
         if ([string]$category.CategoryID -eq $script:UpgradesCategory) { return $true }
@@ -1199,6 +1490,16 @@ function Test-PreparationTargetTitle($Update, [string]$Release = $WindowsTarget)
     $property = $Update.PSObject.Properties['Title']
     $title = if ($null -ne $property) { [string]$property.Value } else { '' }
     return $title -match "(^|[^0-9A-Za-z])$([regex]::Escape($Release))([^0-9A-Za-z]|$)"
+}
+
+# Whether an update's title names a Windows release, as in "version 25H2", and
+# not the target. Windows Update can offer another release's feature update
+# under a KB number the target's is known by, and refuses to download it.
+function Test-PreparationOtherReleaseTitle($Update, [string]$Release = $WindowsTarget) {
+    if (-not $Release) { return $false }
+    $property = $Update.PSObject.Properties['Title']
+    $title = if ($null -ne $property) { [string]$property.Value } else { '' }
+    return $title -match '(^|[^0-9A-Za-z])\d{2}H\d([^0-9A-Za-z]|$)' -and -not (Test-PreparationTargetTitle $Update $Release)
 }
 
 function Test-PreparationKnownKb($Update, [string]$List) {
@@ -1282,8 +1583,11 @@ function Wait-PreparationStoreTask([Threading.Tasks.Task]$Task) {
             Write-PreparationState running store-search
             if ((Get-PreparationStoreTime) -gt $deadline) {
                 # A busy Store can take this long; a later call usually answers.
+                # One that never does can have a stuck install service, which
+                # the repairs restart first (see Repair-PreparationStore).
                 $silent = New-PreparationFailure 'Microsoft Store did not answer.' 'store-timeout'
                 $silent.Data['storeTransient'] = 'retry'
+                $silent.Data['storeSilent'] = $true
                 throw $silent
             }
         }
@@ -1515,19 +1819,30 @@ function Assert-PreparationCurrent {
     if (-not (Test-PreparationNetwork)) { throw 'The internet connection changed during preparation verification.' }
 }
 
-function Invoke-PreparationStoreWithRetry {
-    # Retry what passes on its own: another install in progress (0x80240016), and a
-    # Store that cancelled an item (E_ABORT), didn't answer or couldn't resume a
-    # download. Never an app in use or an unknown error. One the last try doesn't
-    # get past goes on to the repairs, as any Store failure does.
+# Runs $Action, the Store apps' pass unless given another Store call, and returns
+# what it returns.
+function Invoke-PreparationStoreWithRetry([scriptblock]$Action = { Invoke-PreparationStore }) {
+    # Retry what passes on its own: another install in progress (0x80240016), an app
+    # whose files are in use (0x80073D02), which the Store's forced restart of the
+    # app or the user closing it gets past, and a Store that cancelled an item
+    # (E_ABORT), didn't answer or couldn't resume a download. Never an unknown error.
+    # An app still in use after the last try is left to the user to close; any other
+    # failure the last try doesn't get past goes on to the repairs, as any Store
+    # failure does.
     for ($attempt = 0; $attempt -lt 4; $attempt++) {
-        try { Invoke-PreparationStore; return }
+        try { return (& $Action) }
         catch {
             $detail = Get-PreparationFailureDetail $_.Exception
-            $busy = $detail.ContainsKey('errorCode') -and $detail.errorCode -eq '0x80240016'
+            $code = if ($detail.ContainsKey('errorCode')) { $detail.errorCode } else { '' }
+            $busy = $code -eq '0x80240016'
+            $inUse = $code -eq '0x80073D02'
             $passing = (Get-PreparationStoreTransient $_.Exception) -eq 'retry'
-            if (-not ($busy -or $passing) -or $attempt -eq 3 -or (Test-PreparationRestart)) { throw }
+            if (-not ($busy -or $inUse -or $passing) -or $attempt -eq 3 -or (Test-PreparationRestart)) { throw }
             if ($busy) { Write-PreparationLog "Store is busy; retrying in 15 seconds (attempt $($attempt + 2) of 4)." }
+            elseif ($inUse) {
+                $app = if ($detail.ContainsKey('packageName')) { $detail.packageName } else { 'an app' }
+                Write-PreparationStoreEvidence "$app is in use (0x80073D02); trying again in 15 seconds (attempt $($attempt + 2) of 4)"
+            }
             else { Write-PreparationStoreEvidence "$(([string]$_.Exception.Message).Trim().TrimEnd('.')); trying again in 15 seconds (attempt $($attempt + 2) of 4)" }
             for ($second = 0; $second -lt 15; $second++) {
                 Assert-PreparationContinue
@@ -1554,7 +1869,8 @@ $script:PreparationStoreInventoryNames = @(
     'Microsoft.VCLibs.140.00*', 'Microsoft.UI.Xaml.*', 'Microsoft.NET.Native.Framework.*',
     'Microsoft.NET.Native.Runtime.*', 'Microsoft.WindowsAppRuntime.*')
 # In order: wsreset -i, then App Installer (the newer copy this PC has, or one
-# from Microsoft) and the Store through winget, then StoreFixer.
+# from Microsoft) and the Store through winget, then StoreFixer. A Store that
+# didn't answer gets a restart of its install service first ('installservice').
 $script:PreparationStoreRepairs = @('wsreset', 'bootstrap', 'storefixer')
 # Whether the bootstrap downloaded App Installer, rather than registering the
 # copy this PC already had.
@@ -1591,6 +1907,32 @@ $script:PreparationDeploymentLength = 1500
 $script:PreparationDeploymentSeen = [Collections.Generic.HashSet[string]]::new()
 $script:PreparationDeploymentWritten = 0
 $script:PreparationStateRepositoryRead = $false
+# A package full name: name, version, architecture, resource id, publisher id.
+$script:PackageFullNamePattern = '\b[A-Za-z0-9][A-Za-z0-9.-]*_\d+(\.\d+){3}_[A-Za-z0-9]+_[^\s_]*_[a-z0-9]{13}\b'
+# ERROR_NOT_FOUND (0x80070490), element not found: Windows couldn't stage a package. Event
+# 401 of the AppX deployment log gives it for the Stage of a Store update, or the Add of a
+# downloaded package, and its DeploymentOperation value says which: 1 is Add, 4 is Stage.
+$script:StagingNotFound = -2147023728
+$script:StagingOperations = @(1, 4)
+# A Store the repairs didn't help, whose run has Windows unable to stage updates for two
+# or more apps, or for App Installer's own bundle, stops with store-appx-staging. The
+# repairs run in at most this many runs that end that way; a record beside the one of
+# updates offered again counts them (see Read-PreparationStagingRecord).
+$script:PreparationStagingRepairs = 2
+# The activity id Add-AppxPackage named when the bootstrap's App Installer bundle failed
+# with 0x80070490, '' when it named none, and $null when the bundle didn't fail so.
+$script:PreparationStagingBootstrap = $null
+$script:PreparationStagingEvidenceWritten = $false
+# How much read-only evidence of a staging failure updates.log takes: so many apps, so
+# many events of each failing deployment and of the run's AppX deployment log, so many
+# entries of each kind for each app, each line cut at a length, and only so long reading.
+$script:PreparationStagingApps = 8
+$script:PreparationStagingActivityEvents = 25
+$script:PreparationStagingRunEvents = 30
+$script:PreparationStagingEntries = 6
+$script:PreparationStagingLength = 600
+$script:PreparationStagingSeconds = 90
+$script:PreparationAllUserStore = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore'
 
 function Write-PreparationStoreEvidence([string]$Text) {
     Write-PreparationLog "Microsoft Store: $Text"
@@ -1677,6 +2019,15 @@ function Write-PreparationStateRepositoryEvent([string]$Package, [datetime]$At) 
     }
 }
 
+# An event's text on one line. Windows PowerShell can't always render a
+# provider's text; the event's own values still carry the package and the error.
+function Get-PreparationEventText($Entry) {
+    $text = ([string]$Entry.Message -replace '\s+', ' ').Trim()
+    if ($text) { return $text }
+    $values = $Entry.PSObject.Properties['Properties']
+    return 'no text; values: ' + $(if ($null -ne $values) { @($values.Value | ForEach-Object { [string]$_.Value }) -join '; ' } else { 'none' })
+}
+
 # The AppX deployment log's events 401 (a deployment step failed, with that
 # step's own error) and 404 (the deployment failed) since this run started,
 # under the package each names, in updates.log; windows-transition.log only
@@ -1703,17 +2054,10 @@ function Write-PreparationDeploymentEvent([string[]]$Refused) {
         $left = 0
         $missing = $null
         foreach ($entry in $events) {
-            $text = ([string]$entry.Message -replace '\s+', ' ').Trim()
-            if (-not $text) {
-                # Windows PowerShell can't always render a provider's text; the
-                # event's own values still carry the package and the error.
-                $values = $entry.PSObject.Properties['Properties']
-                $text = 'no text; values: ' + $(if ($null -ne $values) { @($values.Value | ForEach-Object { [string]$_.Value }) -join '; ' } else { 'none' })
-            }
+            $text = Get-PreparationEventText $entry
             $key = "$($entry.Id) $text"
             if ($script:PreparationDeploymentSeen.Contains($key) -or -not $counted.Add($key)) { continue }
-            # A package full name: name, version, architecture, resource id, publisher id.
-            $named = [regex]::Match($text, '\b[A-Za-z0-9][A-Za-z0-9.-]*_\d+(\.\d+){3}_[A-Za-z0-9]+_[^\s_]*_[a-z0-9]{13}\b')
+            $named = [regex]::Match($text, $script:PackageFullNamePattern)
             $package = if ($named.Success) { $named.Value } else { 'no package named' }
             if ($null -eq $missing -and $named.Success -and $null -ne $entry.TimeCreated -and $text -match '0x80070490|-2147023728') {
                 $missing = @{ Package = $package; At = $entry.TimeCreated }
@@ -1749,6 +2093,313 @@ function Write-PreparationDeploymentEvent([string[]]$Refused) {
         }
     }
     catch { Write-PreparationStoreEvidence "$intro couldn't be read: $($_.Exception.Message)" }
+}
+
+# The package an event 401 names when it's a Stage or an Add that failed with
+# 0x80070490, or ''. The event's own values say so in any language; its text,
+# where they're missing, keeps the operation's English name in every language.
+function Get-PreparationStagingPackage($Entry) {
+    $values = $Entry.PSObject.Properties['Properties']
+    $data = @(if ($null -ne $values -and $null -ne $values.Value) { $values.Value | ForEach-Object { $_.Value } })
+    if ($data.Count -ge 4 -and $null -ne ($data[0] -as [long]) -and $null -ne ($data[3] -as [long])) {
+        # ErrorCode is a HexInt32, which can come as an unsigned value.
+        $code = [long]$data[3]
+        if ($code -gt [int]::MaxValue) { $code -= 4294967296 }
+        if ($script:StagingOperations -contains [long]$data[0] -and $code -eq $script:StagingNotFound) { return [string]$data[1] }
+        return ''
+    }
+    $text = [string]$Entry.Message
+    if ($text -notmatch '0x80070490' -or $text -notmatch '(?<![\w.-])(Stage|Add)(?![\w.-])') { return '' }
+    $named = [regex]::Match($text, $script:PackageFullNamePattern)
+    if ($named.Success) { return $named.Value }
+    return ''
+}
+
+# Each app Windows couldn't stage an update for in this run (see
+# Get-PreparationStagingPackage), newest first, once by package name: its family,
+# the package full name and the deployment's activity id. A log that can't be
+# read gives none, and updates.log says so.
+function Get-PreparationStagingFailure {
+    try {
+        $filter = @{ LogName = $script:PreparationDeploymentLog; Id = 401; StartTime = $script:PreparationStartedAt }
+        $events = @(Get-WinEvent -FilterHashtable $filter -MaxEvents 500 -ErrorAction Stop)
+    }
+    catch {
+        if ([string]$_.FullyQualifiedErrorId -notlike 'NoMatchingEventsFound*') {
+            Write-PreparationLog "Microsoft Store: the AppX deployment log couldn't be read for staging failures: $($_.Exception.Message)"
+        }
+        return
+    }
+    $named = @{}
+    foreach ($entry in $events) {
+        $package = Get-PreparationStagingPackage $entry
+        if (-not $package) { continue }
+        $name = ($package -split '_')[0]
+        if ($named.ContainsKey($name)) { continue }
+        $named[$name] = $true
+        $activity = $entry.PSObject.Properties['ActivityId']
+        [pscustomobject]@{
+            Name = $name
+            Family = '{0}_{1}' -f $name, $package.Substring($package.LastIndexOf('_') + 1)
+            Package = $package
+            ActivityId = if ($null -ne $activity -and $null -ne $activity.Value) { [string]$activity.Value } else { '' }
+        }
+    }
+}
+
+# Notes the bootstrap's App Installer bundle failing with 0x80070490, by the
+# activity id Add-AppxPackage's error names.
+function Register-PreparationBootstrapStaging([Exception]$Exception) {
+    $text = [string]$Exception.Message
+    if ($text -notmatch '0x80070490') { return }
+    $activity = [regex]::Match($text, '\[ActivityId\]\s*([0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12})')
+    $script:PreparationStagingBootstrap = if ($activity.Success) { $activity.Groups[1].Value } else { '' }
+}
+
+# The apps of a staging failure, by package name, after the repairs didn't help:
+# App Installer's own bundle that the bootstrap couldn't add, or updates for two or
+# more apps that Windows couldn't stage while the Store still fails to deploy one.
+# None for any other failure, which stays store-repair-failed.
+function Get-PreparationStagingApp($Staging, [Exception]$Last) {
+    $names = [Collections.Generic.List[string]]::new()
+    foreach ($entry in @($Staging | Where-Object { $null -ne $_ })) { $names.Add([string]$entry.Name) }
+    $bootstrap = $null -ne $script:PreparationStagingBootstrap
+    if ($bootstrap -and -not $names.Contains('Microsoft.DesktopAppInstaller')) { $names.Add('Microsoft.DesktopAppInstaller') }
+    $code = (Get-PreparationFailureDetail $Last)['errorCode']
+    $hresult = if ($code) { [Convert]::ToInt32($code, 16) } else { 0 }
+    $deploying = $hresult -eq $script:StagingNotFound -or ($hresult -ge $script:DeploymentErrorFirst -and $hresult -le $script:DeploymentErrorLast)
+    if ($bootstrap -or ($deploying -and $names.Count -ge 2)) { return $names.ToArray() }
+}
+
+# The record of a staging failure the repairs didn't help, beside the record of
+# updates offered again: the apps, when, and in how many runs the repairs met it.
+function Get-PreparationStagingRecordText {
+    $value = Get-AtlasTransitionValue $script:PreparationReofferedRoot 'StoreStaging'
+    if ($value.Present -and $value.Kind -eq 'String') { return [string]$value.Data }
+    return ''
+}
+
+function Set-PreparationStagingRecordText([string]$Text) {
+    if ($Text) { Set-AtlasTransitionValue $script:PreparationReofferedRoot 'StoreStaging' 'String' $Text }
+    else { Remove-AtlasTransitionValue $script:PreparationReofferedRoot 'StoreStaging' }
+}
+
+# The record, or $null when there's none. One more than 30 days old belongs to an
+# earlier preparation, and counts for nothing.
+function Read-PreparationStagingRecord {
+    try {
+        $text = Get-PreparationStagingRecordText
+        if (-not $text) { return $null }
+        $record = $text | ConvertFrom-Json -ErrorAction Stop
+        $field = { param([string]$Name) $property = $record.PSObject.Properties[$Name]; if ($null -ne $property) { $property.Value } }
+        $at = [DateTime]::MinValue
+        if (-not [DateTime]::TryParse([string](& $field 'at'), [Globalization.CultureInfo]::InvariantCulture,
+                [Globalization.DateTimeStyles]::AdjustToUniversal, [ref]$at) -or $at -lt [DateTime]::UtcNow.AddDays(-30)) { return $null }
+        $apps = @(@(& $field 'apps') | ForEach-Object { [string]$_ } | Where-Object { $_ -match '^[A-Za-z0-9][A-Za-z0-9.-]{0,99}$' })
+        return [pscustomobject]@{ At = $at; Apps = $apps; Repairs = [int](& $field 'repairs') }
+    }
+    catch {
+        Write-PreparationLog "Microsoft Store: the record of its AppX staging failures couldn't be read: $($_.Exception.Message)"
+        return $null
+    }
+}
+
+# Records a staging failure the repairs met in $Repairs runs. A record that can't be
+# written is logged: the next run then repairs again.
+function Save-PreparationStagingRecord([string[]]$Apps, [int]$Repairs) {
+    try {
+        $record = [pscustomobject][ordered]@{ at = [DateTime]::UtcNow.ToString('o'); apps = @($Apps | Select-Object -First 20); repairs = $Repairs }
+        Set-PreparationStagingRecordText (ConvertTo-Json -InputObject $record -Compress)
+    }
+    catch { Write-PreparationLog "Microsoft Store: its AppX staging failure couldn't be recorded: $($_.Exception.Message)" }
+}
+
+# Clears the record once the Store works. Without one there's nothing to clear.
+function Clear-PreparationStagingRecord {
+    try {
+        if (-not (Get-PreparationStagingRecordText)) { return }
+        Set-PreparationStagingRecordText ''
+        Write-PreparationStoreEvidence 'works, so the record of its AppX staging failures is cleared'
+    }
+    catch { Write-PreparationLog "Microsoft Store: the record of its AppX staging failures couldn't be cleared: $($_.Exception.Message)" }
+}
+
+# One line of staging evidence in updates.log, cut at a length.
+function Write-PreparationStagingLine([string]$Text) {
+    $line = ($Text -replace '\s+', ' ').Trim()
+    if ($line.Length -gt $script:PreparationStagingLength) { $line = $line.Substring(0, $script:PreparationStagingLength) + '...' }
+    Write-PreparationLog "Microsoft Store: staging evidence: $line"
+}
+
+# Whether reading the evidence has taken its time, which the log then says.
+function Test-PreparationStagingLate($Clock) {
+    if ($Clock.Elapsed.TotalSeconds -lt $script:PreparationStagingSeconds) { return $false }
+    Write-PreparationStagingLine "stopped after $script:PreparationStagingSeconds seconds; the rest is left out"
+    return $true
+}
+
+# The events of one AppX deployment, oldest first: what Get-AppPackageLog
+# -ActivityID gives, through a query each log filters itself, as that command reads
+# every event of every AppX log first.
+function Get-PreparationAppxActivityEvent([string]$ActivityId) {
+    $query = "*[System[Correlation[@ActivityID='{0}']]]" -f ([guid]$ActivityId).ToString('B')
+    $logs = @(Get-WinEvent -ListLog 'Microsoft-Windows-Appx*' -ErrorAction SilentlyContinue |
+            Where-Object { $_.IsEnabled -and [string]$_.LogType -in @('Administrative', 'Operational') } | ForEach-Object { $_.LogName })
+    $events = foreach ($log in $logs) {
+        try { Get-WinEvent -LogName $log -FilterXPath $query -MaxEvents $script:PreparationStagingActivityEvents -ErrorAction Stop }
+        catch { if ([string]$_.FullyQualifiedErrorId -notlike 'NoMatchingEventsFound*') { throw } }
+    }
+    @($events | Sort-Object TimeCreated | Select-Object -First $script:PreparationStagingActivityEvents)
+}
+
+# The subkeys of one place in the AppX store's registry, with the manifest each
+# names; nothing when the place is missing.
+function Get-PreparationAllUserStoreEntry([string]$Place) {
+    $key = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey("$script:PreparationAllUserStore\$Place", $false)
+    if ($null -eq $key) { return }
+    try {
+        foreach ($name in @($key.GetSubKeyNames())) {
+            $path = ''
+            $entry = $key.OpenSubKey($name, $false)
+            if ($null -ne $entry) {
+                try { $path = [string]$entry.GetValue('Path') }
+                finally { $entry.Dispose() }
+            }
+            [pscustomobject]@{ Key = $name; Path = $path }
+        }
+    }
+    finally { $key.Dispose() }
+}
+
+# Whether Windows keeps a package's manifest in its app repository.
+function Test-PreparationAppRepositoryManifest([string]$PackageFullName) {
+    [IO.File]::Exists([IO.Path]::Combine([Environment]::GetFolderPath('CommonApplicationData'), 'Microsoft\Windows\AppRepository', "$PackageFullName.xml"))
+}
+
+# Read-only evidence of a staging failure, in updates.log, once a run: the events
+# of each failing deployment, the AppX deployment log's errors and warnings since
+# the run started, and what Windows records of each app (its packages for every
+# account, its provisioned packages, its entries in the AppX store's registry and
+# its manifest in the app repository). Each part takes so much and the whole so
+# long (see $script:PreparationStagingApps); a part that fails is noted, and
+# nothing here changes the outcome.
+function Write-PreparationStagingEvidence([string[]]$Apps, $Staging) {
+    if ($script:PreparationStagingEvidenceWritten) { return }
+    $script:PreparationStagingEvidenceWritten = $true
+    $clock = [Diagnostics.Stopwatch]::StartNew()
+    $names = @($Apps | Select-Object -First $script:PreparationStagingApps)
+    Write-PreparationStagingLine "Windows couldn't stage updates for $($names -join ', '); what Windows records of them follows"
+    Write-AtlasTransitionEvidence "store: Windows couldn't stage updates for $($names -join ', ') (0x80070490); updates.log has the evidence"
+
+    $activities = [ordered]@{}
+    $families = @{}
+    foreach ($entry in @($Staging | Where-Object { $null -ne $_ })) {
+        $families[[string]$entry.Name] = [string]$entry.Family
+        if ($entry.ActivityId -and -not $activities.Contains([string]$entry.ActivityId)) { $activities[[string]$entry.ActivityId] = [string]$entry.Package }
+    }
+    if ($script:PreparationStagingBootstrap) { $activities[$script:PreparationStagingBootstrap] = 'the App Installer bundle the bootstrap added' }
+    foreach ($id in @($activities.Keys | Select-Object -First $script:PreparationStagingApps)) {
+        if (Test-PreparationStagingLate $clock) { return }
+        Write-PreparationState running $script:PreparationStage
+        try {
+            $logged = @(Get-PreparationAppxActivityEvent $id)
+            Write-PreparationStagingLine "deployment $id ($($activities[$id])): $($logged.Count) event(s)"
+            foreach ($record in $logged) {
+                Write-PreparationStagingLine ('deployment {0}: {1} event {2} at {3:yyyy-MM-dd HH:mm:ss}: {4}' -f $id, $record.LogName, $record.Id, $record.TimeCreated, (Get-PreparationEventText $record))
+            }
+        }
+        catch { Write-PreparationStagingLine "deployment $id couldn't be read: $($_.Exception.Message)" }
+    }
+
+    if (Test-PreparationStagingLate $clock) { return }
+    try {
+        try {
+            $filter = @{ LogName = $script:PreparationDeploymentLog; Level = @(1, 2, 3); StartTime = $script:PreparationStartedAt }
+            $logged = @(Get-WinEvent -FilterHashtable $filter -MaxEvents 200 -ErrorAction Stop)
+        }
+        catch {
+            if ([string]$_.FullyQualifiedErrorId -notlike 'NoMatchingEventsFound*') { throw }
+            $logged = @()
+        }
+        # Newest first, as Get-WinEvent returns them; written oldest first.
+        $kept = [Collections.Generic.List[string]]::new()
+        $counted = [Collections.Generic.HashSet[string]]::new()
+        foreach ($record in $logged) {
+            $text = Get-PreparationEventText $record
+            $key = "$($record.Id) $text"
+            if ($script:PreparationDeploymentSeen.Contains($key) -or -not $counted.Add($key)) { continue }
+            if ($kept.Count -ge $script:PreparationStagingRunEvents) { break }
+            $kept.Add(('event {0} at {1:yyyy-MM-dd HH:mm:ss}: {2}' -f $record.Id, $record.TimeCreated, $text))
+        }
+        Write-PreparationStagingLine "the AppX deployment log's errors and warnings since this run started that updates.log doesn't have already: $($kept.Count)$(if ($kept.Count -ge $script:PreparationStagingRunEvents) { ', the newest' })"
+        for ($index = $kept.Count - 1; $index -ge 0; $index--) { Write-PreparationStagingLine $kept[$index] }
+    }
+    catch { Write-PreparationStagingLine "the AppX deployment log couldn't be read: $($_.Exception.Message)" }
+
+    if (Test-PreparationStagingLate $clock) { return }
+    Write-PreparationState running $script:PreparationStage
+    try { $provisioned = @(Get-AppxProvisionedPackage -Online -ErrorAction Stop) }
+    catch {
+        $provisioned = $null
+        Write-PreparationStagingLine "the provisioned packages couldn't be listed: $($_.Exception.Message)"
+    }
+    $places = [ordered]@{}
+    foreach ($place in @('Applications', 'InboxApplications', 'Deprovisioned')) {
+        try { $places[$place] = @(Get-PreparationAllUserStoreEntry $place) }
+        catch { Write-PreparationStagingLine "AppxAllUserStore\$place couldn't be read: $($_.Exception.Message)" }
+    }
+    foreach ($name in $names) {
+        if (Test-PreparationStagingLate $clock) { return }
+        Write-PreparationState running $script:PreparationStage
+        $family = if ($families.ContainsKey($name)) { $families[$name] } elseif ($name -eq 'Microsoft.DesktopAppInstaller') { $script:PreparationAppInstallerFamily } else { '' }
+        $publisher = if ($family) { $family.Substring($family.LastIndexOf('_') + 1) } else { '' }
+        try {
+            $packages = @(Get-AppxPackage -AllUsers -Name $name -ErrorAction Stop | Where-Object { -not $family -or [string]$_.PackageFamilyName -eq $family } |
+                    Sort-Object { [version]$_.Version } -Descending | Select-Object -First $script:PreparationStagingEntries)
+            if ($packages.Count -eq 0) { Write-PreparationStagingLine "$name`: no package for any account" }
+            foreach ($package in $packages) {
+                # Accounts by SID only, as an account's name would reach reports.
+                $users = try {
+                    @($package.PackageUserInformation | Where-Object { $null -ne $_ } | ForEach-Object { '{0}: {1}' -f $_.UserSecurityId.Sid, $_.InstallState }) -join '; '
+                }
+                catch { 'accounts unreadable' }
+                $manifest = if (Test-PreparationAppRepositoryManifest $package.PackageFullName) { 'present' } else { 'missing' }
+                Write-PreparationStagingLine "$name`: package $($package.PackageFullName), $($package.Status)$(if ($users) { " ($users)" }); AppRepository\$($package.PackageFullName).xml $manifest"
+            }
+        }
+        catch { Write-PreparationStagingLine "$name`: its packages couldn't be listed: $($_.Exception.Message)" }
+        if ($null -ne $provisioned) {
+            $mine = @($provisioned | Where-Object { [string]$_.DisplayName -eq $name } | Select-Object -First $script:PreparationStagingEntries)
+            if ($mine.Count -eq 0) { Write-PreparationStagingLine "$name`: not provisioned" }
+            foreach ($package in $mine) { Write-PreparationStagingLine "$name`: provisioned $($package.PackageName)" }
+        }
+        $found = 0
+        foreach ($place in $places.Keys) {
+            $entries = @($places[$place] | Where-Object {
+                    $key = [string]$_.Key
+                    if ($place -eq 'Deprovisioned') { if ($family) { $key -eq $family } else { $key -like "$name`_*" } }
+                    else { $key -like "$name`_*" -and (-not $publisher -or $key -like "*_$publisher") }
+                } | Select-Object -First $script:PreparationStagingEntries)
+            foreach ($entry in $entries) {
+                $found++
+                $path = if (-not $entry.Path) { '' }
+                elseif ([IO.File]::Exists($entry.Path) -or [IO.Directory]::Exists($entry.Path)) { ", $($entry.Path) present" }
+                else { ", $($entry.Path) missing" }
+                Write-PreparationStagingLine "$name`: AppxAllUserStore\$place\$($entry.Key)$path"
+            }
+        }
+        if ($found -eq 0) { Write-PreparationStagingLine "$name`: no entry in AppxAllUserStore\$(@($places.Keys) -join ', ')" }
+    }
+}
+
+# Ends the Store stage for a staging failure: the evidence, then store-appx-staging,
+# which names the apps and leaves reinstalling Windows as the way on. $Repairs says
+# how the repairs went.
+function Stop-PreparationStoreStaging([string[]]$Apps, $Staging, [string]$Repairs) {
+    Write-PreparationStagingEvidence $Apps $Staging
+    $failure = New-PreparationFailure "Windows couldn't stage updates for these built-in apps (0x80070490, element not found): $($Apps -join ', '). $Repairs" 'store-appx-staging' $script:StagingNotFound
+    $failure.Data['packageName'] = @($Apps | ForEach-Object { $_.Split('.')[-1] }) -join ','
+    throw $failure
 }
 
 # What became of the items an earlier round left in Error or Canceled. The fresh
@@ -1835,24 +2486,20 @@ function Wait-PreparationStoreItem($Manager, $Item, [string]$Stage, [int]$Minute
 
 # Asks the Store to update itself, then App Installer, by package family, and
 # waits for each. App Installer only helps; a Store that can't update fails.
-# Returns whether either was updated.
-function Update-PreparationStoreItself {
+# With -Retry, the Store's own update gets the tries the Store apps get
+# (Invoke-PreparationStoreWithRetry), as the first try before the repairs; after
+# a repair, one try says whether it helped. Returns whether either was updated.
+function Update-PreparationStoreItself([switch]$Retry) {
     $manager = New-PreparationStoreManager
-    $itemType = [Windows.ApplicationModel.Store.Preview.InstallControl.AppInstallItem]
     $updated = $false
     foreach ($family in @($script:PreparationStoreFamily, $script:PreparationAppInstallerFamily)) {
         Assert-PreparationContinue
         try {
-            $item = Wait-PreparationStoreCall ($manager.UpdateAppByPackageFamilyNameAsync($family)) $itemType
-            if ($null -eq $item) {
-                Write-PreparationStoreEvidence "$family has no update"
-                continue
+            $result = if ($Retry -and $family -eq $script:PreparationStoreFamily) {
+                Invoke-PreparationStoreWithRetry { Update-PreparationStoreFamily $manager $family }
             }
-            Write-PreparationStoreEvidence "$family is out of date; updating it"
-            $before = Get-PreparationPackageVersion
-            try { Wait-PreparationStoreItem $manager $item store-self-update }
-            finally { Write-PreparationStoreItem @($item) $before }
-            $updated = $true
+            else { Update-PreparationStoreFamily $manager $family }
+            if (@($result) -contains $true) { $updated = $true }
         }
         catch {
             # App Installer only helps: whatever a repair could help with, or a
@@ -1863,6 +2510,22 @@ function Update-PreparationStoreItself {
         }
     }
     return $updated
+}
+
+# Asks the Store to update one package family and follows the update to its end.
+# Returns whether there was one.
+function Update-PreparationStoreFamily($Manager, [string]$Family) {
+    $itemType = [Windows.ApplicationModel.Store.Preview.InstallControl.AppInstallItem]
+    $item = Wait-PreparationStoreCall ($Manager.UpdateAppByPackageFamilyNameAsync($Family)) $itemType
+    if ($null -eq $item) {
+        Write-PreparationStoreEvidence "$Family has no update"
+        return $false
+    }
+    Write-PreparationStoreEvidence "$Family is out of date; updating it"
+    $before = Get-PreparationPackageVersion
+    try { Wait-PreparationStoreItem $Manager $item store-self-update }
+    finally { Write-PreparationStoreItem @($item) $before }
+    return $true
 }
 
 # Failures a Store repair can help with. Not a paused queue the user resolves,
@@ -1905,8 +2568,9 @@ function Invoke-PreparationStoreStage {
         }
     }
     try {
-        if (Update-PreparationStoreItself) { Set-PreparationStoreOutcome 'store-updated' }
+        if (Update-PreparationStoreItself -Retry) { Set-PreparationStoreOutcome 'store-updated' }
         Invoke-PreparationStoreWithRetry
+        Clear-PreparationStagingRecord
         Write-PreparationStoreInventory 'after'
         return
     }
@@ -1920,20 +2584,38 @@ function Invoke-PreparationStoreStage {
 # One pass through the repairs. After each that changed something, the Store
 # is asked to update itself and the apps again; the first that works ends it.
 # A repair can also say 'skipped', when this PC has nothing to run it with. The
-# failure after the last names how each one ended.
+# failure after the last names how each one ended, or the apps of a staging
+# failure (see Get-PreparationStagingApp). A staging failure the repairs already
+# met in as many runs as they may take stops the run before them.
 function Repair-PreparationStore([Exception]$Failure) {
     if ($script:PreparationStoreRepairsRun) { throw $Failure }
     $script:PreparationStoreRepairsRun = $true
     $code = (Get-PreparationFailureDetail $Failure)['errorCode']
+    $record = Read-PreparationStagingRecord
+    if ($null -ne $record -and $record.Repairs -ge $script:PreparationStagingRepairs) {
+        $staging = @(Get-PreparationStagingFailure)
+        if (@($staging | Where-Object { $record.Apps -contains $_.Name }).Count -gt 0) {
+            $apps = @($staging | ForEach-Object { [string]$_.Name })
+            Write-PreparationStoreEvidence ('updating failed ({0}{1}); Windows couldn''t stage updates for {2} again, as in {3} earlier runs whose repairs didn''t help (the last on {4:yyyy-MM-dd}), so they don''t run again' -f
+                $Failure.Message, $(if ($code) { ", $code" }), ($apps -join ', '), $record.Repairs, $record.At)
+            Save-PreparationStagingRecord @($apps + $record.Apps | Select-Object -Unique) $record.Repairs
+            Stop-PreparationStoreStaging $apps $staging "The Store repairs ran in $($record.Repairs) earlier runs without helping, so they didn't run again."
+        }
+    }
     Write-PreparationStoreEvidence "updating failed ($($Failure.Message)$(if ($code) { ", $code" })); repairing"
     $last = $Failure
     $ended = [Collections.Generic.List[string]]::new()
-    foreach ($repair in $script:PreparationStoreRepairs) {
+    # A Store that didn't answer in any of its tries can have a stuck install
+    # service, which a restart clears without the repairs.
+    $repairs = @($script:PreparationStoreRepairs)
+    if ($Failure.Data.Contains('storeSilent')) { $repairs = @('installservice') + $repairs }
+    foreach ($repair in $repairs) {
         Assert-PreparationContinue
         Write-PreparationState running store-repair
         try { $result = Invoke-PreparationStoreRepair $repair | Select-Object -Last 1 }
         catch {
             if ($_.Exception -is [OperationCanceledException]) { throw }
+            if ($repair -eq 'bootstrap') { Register-PreparationBootstrapStaging $_.Exception }
             $network = if ($_.Exception.Data.Contains('network')) { ', a network problem' } else { '' }
             Write-PreparationStoreEvidence "$repair failed$network`: $($_.Exception.Message)"
             $ended.Add("$repair failed$network")
@@ -1955,6 +2637,7 @@ function Repair-PreparationStore([Exception]$Failure) {
             Invoke-PreparationStoreWithRetry
             Set-PreparationStoreOutcome $(if ($repair -eq 'bootstrap' -and $script:PreparationStoreDownloaded) { 'store-bootstrapped' } else { 'store-repaired' })
             Write-PreparationStoreEvidence "works again after $repair"
+            Clear-PreparationStagingRecord
             Write-PreparationStoreInventory 'after'
             return
         }
@@ -1966,6 +2649,16 @@ function Repair-PreparationStore([Exception]$Failure) {
         }
     }
     Write-PreparationStoreInventory 'after'
+    $staging = @(Get-PreparationStagingFailure)
+    $apps = @(Get-PreparationStagingApp $staging $last)
+    if ($apps.Count -gt 0) {
+        # The same apps as a record of an earlier run: one more run whose repairs didn't help.
+        $earlier = Read-PreparationStagingRecord
+        $runs = if ($null -ne $earlier -and @($earlier.Apps | Where-Object { $apps -contains $_ }).Count -gt 0) { $earlier.Repairs + 1 } else { 1 }
+        Save-PreparationStagingRecord $apps $runs
+        Write-PreparationStoreEvidence "Windows couldn't stage updates for $($apps -join ', ') (0x80070490), and the repairs didn't help, as recorded for $runs run(s); from $script:PreparationStagingRepairs such runs on, a run doesn't repair again"
+        Stop-PreparationStoreStaging $apps $staging "The Store repairs didn't help ($($ended -join '; '))."
+    }
     $lastCode = (Get-PreparationFailureDetail $last)['errorCode']
     $hresult = if ($lastCode) { [Convert]::ToInt32($lastCode, 16) } else { 0 }
     throw (New-PreparationFailure "Microsoft Store couldn't be repaired ($($ended -join '; ')): $($last.Message)" 'store-repair-failed' $hresult)
@@ -1973,10 +2666,40 @@ function Repair-PreparationStore([Exception]$Failure) {
 
 function Invoke-PreparationStoreRepair([string]$Repair) {
     switch ($Repair) {
+        'installservice' { Restart-PreparationStoreService }
         'wsreset' { Invoke-PreparationWsReset }
         'bootstrap' { Install-PreparationStoreFromMicrosoft }
         'storefixer' { Invoke-PreparationStoreFixer }
     }
+}
+
+# Restarts the Microsoft Store Install Service (InstallService), which carries out
+# the Store's downloads and installs, for a Store that stopped answering. A service
+# that's turned off isn't stopped, as it couldn't start again. Each wait for it is
+# cut at a minute, and Stop doesn't interrupt one, so a restart is never left
+# between stopping and starting. Returns whether it's running again.
+function Restart-PreparationStoreService {
+    $service = Get-Service -Name InstallService -ErrorAction Stop
+    if ([string]$service.StartType -eq 'Disabled') { throw 'The Microsoft Store Install Service is turned off (start type Disabled).' }
+    $was = [string]$service.Status
+    if ($was -ne 'Stopped') {
+        $service.Stop()
+        Wait-PreparationStoreService $service 'Stopped'
+    }
+    $service.Start()
+    Wait-PreparationStoreService $service 'Running'
+    Write-PreparationStoreEvidence "installservice: restarted the Microsoft Store Install Service, which was $was"
+    return $true
+}
+
+function Wait-PreparationStoreService($Service, [string]$Status) {
+    for ($waited = 0; $waited -lt 60; $waited += 2) {
+        Write-PreparationState running store-repair
+        $Service.Refresh()
+        if ([string]$Service.Status -eq $Status) { return }
+        Start-Sleep -Seconds 2
+    }
+    throw "The Microsoft Store Install Service isn't $($Status.ToLowerInvariant()) after a minute; it's $($Service.Status)."
 }
 
 # Starts a program in this session and waits for it, reporting the repair
@@ -2954,6 +3677,11 @@ $script:PreparationTargetReread = $false
 # something turned Windows Update off again.
 $script:UpdateAccessCodes = @(-2145124306, -2145124305, -2147023838)
 
+# 0x80246017 and 0x80246019: Windows Update refused, within seconds, to download
+# a feature update it offered, as it does when it offers one before it has
+# taken in the feature-update target.
+$script:DownloadRefusedCodes = @(-2145099753, -2145099751)
+
 function Get-PreparationSourceBuild { if ($SourceBuilds) { @($SourceBuilds -split ',' | ForEach-Object { [int]$_ }) } }
 
 # Changes every boot, so a commit can be tied to the boot it happened in.
@@ -3036,7 +3764,8 @@ function Invoke-PreparationCommitCall([string]$UpdateId) {
 
 # Finds the target's feature update among the upgrades Windows Update offers: the
 # one whose title names the target release, whatever its KB. A known KB number
-# wins when several do. Any other upgrade is logged and left alone.
+# wins when several do, but never for a title that names another release. Any
+# other upgrade is logged and left alone.
 function Find-PreparationFeatureOffer($Session) {
     $base = "IsInstalled=0 and IsHidden=0 and Type='Software' and CategoryIDs contains '$script:UpgradesCategory'"
     # Without DeploymentAction, a search means Installation; an optional offer
@@ -3051,7 +3780,8 @@ function Find-PreparationFeatureOffer($Session) {
         Write-AtlasTransitionEvidence "searched: $criteria ($($offers.Count) offer(s))"
         $known = @(); $titled = @()
         foreach ($update in $offers) {
-            if (Test-PreparationKnownKb $update $FeatureKb) { $known += $update }
+            if (Test-PreparationOtherReleaseTitle $update) { Write-AtlasTransitionEvidence "unexpected-offer, for another release than $WindowsTarget, not installed: $(Format-PreparationOffer $update)" }
+            elseif (Test-PreparationKnownKb $update $FeatureKb) { $known += $update }
             elseif (Test-PreparationTargetTitle $update) { $titled += $update }
             else { Write-AtlasTransitionEvidence "unexpected-offer, not installed: $(Format-PreparationOffer $update)" }
         }
@@ -3108,6 +3838,21 @@ function Update-PreparationTargetRead([string]$Why) {
     Write-AtlasTransitionEvidence "$Why; restarted wuauserv, policy state now: target '$(Get-PreparationPolicyState)'$(if (-not $read) { " (not the target after $script:PreparationPolicyWaitSeconds seconds)" })"
 }
 
+# After Windows Update refused to download the offer (see $script:DownloadRefusedCodes):
+# restarts it, however often the run already has, so it reads the target afresh,
+# and waits for its policy state to show the target. The search after this finds
+# the offer again for the one more try.
+function Reset-PreparationRefusedDownload {
+    $why = 'Windows Update refused the download'
+    if (-not (Restart-PreparationUpdateService)) {
+        Write-AtlasTransitionEvidence "$why; it is busy, so it wasn't restarted"
+        return
+    }
+    $script:PreparationServiceRestarts++
+    $read = Wait-PreparationPolicyState
+    Write-AtlasTransitionEvidence "$why; restarted wuauserv, policy state now: target '$(Get-PreparationPolicyState)'$(if (-not $read) { " (not the target after $script:PreparationPolicyWaitSeconds seconds)" })"
+}
+
 # Windows Update reads the feature-update target only when it starts or scans,
 # and offers the release some minutes after its policy state shows it. So: the
 # policy state is checked before the first search; a first search that finds
@@ -3141,7 +3886,7 @@ function Find-PreparationFeatureUpdate($Session) {
     if ($null -eq $update) {
         try {
             $offers = @(Invoke-PreparationSearch $Session "IsInstalled=0 and IsHidden=1 and Type='Software' and CategoryIDs contains '$script:UpgradesCategory'" -IncludeSuperseded)
-            $hidden = @($offers | Where-Object { (Test-PreparationKnownKb $_ $FeatureKb) -or (Test-PreparationTargetTitle $_) }).Count -gt 0
+            $hidden = @($offers | Where-Object { -not (Test-PreparationOtherReleaseTitle $_) -and ((Test-PreparationKnownKb $_ $FeatureKb) -or (Test-PreparationTargetTitle $_)) }).Count -gt 0
         }
         catch { Write-AtlasTransitionEvidence "hidden search failed: $($_.Exception.Message)" }
     }
@@ -3254,6 +3999,7 @@ function Install-PreparationFeatureUpdate($Session, $Update, $Journal, [bool]$Ma
         $installer.AllowSourcePrompts = $false
         if ($installer.RebootRequiredBeforeInstallation) {
             Write-AtlasTransitionEvidence 'Windows needs a restart before it installs the update'
+            Assert-PreparationRestartHelps
             $script:PreparationRestartReasons = @('windows-update')
             return 'reboot'
         }
@@ -3287,6 +4033,12 @@ function Install-PreparationFeatureUpdate($Session, $Update, $Journal, [bool]$Ma
         $settings = @(Get-AtlasWindowsUpdateBlocker | ForEach-Object { $_.Id.Split('.')[-1] })
         $setting = if ($settings.Count -gt 0) { $settings -join ', ' } else { 'Windows Update' }
         throw (New-AtlasTransitionFailure "Windows Update was turned off again while it installed $label." 'feature-blocked' @{ setting = $setting; errorCode = '0x{0:X8}' -f $failure })
+    }
+    # A download Windows Update refused gets its one more try after a restart of
+    # Windows Update; refused again, the run names the refusal.
+    if ($script:DownloadRefusedCodes -contains $failure) {
+        if ($MayRetry) { return 'refused' }
+        throw (New-AtlasTransitionFailure ("Windows Update refused to download {0} (0x{1:X8}), also after Atlas restarted it and searched again." -f $label, $failure) 'feature-failed' @{ errorCode = '0x{0:X8}' -f $failure })
     }
     if ($MayRetry) { return 'retry' }
     $detail = @{}
@@ -3359,6 +4111,13 @@ function Resolve-PreparationPendingMove($Journal) {
     $code = if ($failed.Count -gt 0 -and $failed[0].HResult -ne 0) { '0x{0:X8}' -f $failed[0].HResult } else { '' }
     $servicing = Get-PreparationServicingFailure $Journal
     $repeated = Test-PreparationRollbackRepeated $Journal $code $servicing
+    # This attempt is over, so the record goes back to before the install: the
+    # next run installs the feature update again, and this rollback is counted
+    # once, when the next one is compared with it.
+    $Journal.phase = 'targeted'
+    $Journal | Add-Member -NotePropertyName installed -NotePropertyValue $null -Force
+    $Journal | Add-Member -NotePropertyName commitBoot -NotePropertyValue $null -Force
+    $Journal | Add-Member -NotePropertyName commitRetried -NotePropertyValue $false -Force
     Write-PreparationJournal $Journal 'rolled-back' ((@($code, $servicing) | Where-Object { $_ }) -join ' ')
     $detail = @{}
     if ($code) { $detail.errorCode = $code }
@@ -3401,15 +4160,29 @@ function Get-PreparationServicingFailure($Journal) {
     return ''
 }
 
-# Whether a rollback repeats one recorded before: the same code from Windows
-# Update's history and, where both name one, the same servicing failure. The open
-# record keeps this move's rollbacks, and the summary of the last one closed
-# (LastResult) those of an attempt in the 30 days before. A rollback that names
-# neither can't be told apart from another.
+# Whether a rollback repeats one of an earlier install attempt: the same code
+# from Windows Update's history and, where both name one, the same servicing
+# failure. The open record keeps this move's rollbacks, and the summary of the
+# last one closed (LastResult) those of an attempt in the 30 days before. Each
+# attempt starts with an 'installed' entry, so only rollbacks before the newest
+# one count: those after it are this attempt's own, which a record an earlier
+# Atlas left installed can hold several of. A record that no longer has that
+# entry can't say which attempt its rollbacks were, and none of them count. A
+# rollback that names neither a code nor a failure can't be told apart from
+# another.
 function Test-PreparationRollbackRepeated($Journal, [string]$Code, [string]$Servicing) {
     if (-not $Code -and -not $Servicing) { return $false }
     $earlier = @()
-    if ($null -ne $Journal.PSObject.Properties['history']) { $earlier += @($Journal.history) }
+    if ($null -ne $Journal.PSObject.Properties['history']) {
+        $history = @($Journal.history)
+        for ($index = $history.Count - 1; $index -ge 0; $index--) {
+            $entry = $history[$index]
+            if ($null -ne $entry -and $null -ne $entry.PSObject.Properties['event'] -and [string]$entry.event -ceq 'installed') {
+                if ($index -gt 0) { $earlier += @($history[0..($index - 1)]) }
+                break
+            }
+        }
+    }
     $last = Get-AtlasTransitionValue (Get-AtlasWindowsTransitionRoot) 'LastResult'
     if ($last.Present -and $last.Kind -eq 'String') {
         try {
@@ -3512,6 +4285,10 @@ function Invoke-PreparationTransition {
         $result = Install-PreparationFeatureUpdate $session $offer.Update $journal ($attempt -lt 2)
         if ($result -eq 'busy') {
             $attempt--
+            continue
+        }
+        if ($result -eq 'refused') {
+            Reset-PreparationRefusedDownload
             continue
         }
         if ($result -eq 'reboot') { return 'reboot' }
@@ -3645,6 +4422,7 @@ try {
     else { Invoke-PreparationUpdates }
     if (($outcome | Select-Object -Last 1) -eq 'reboot') {
         if ($transitionRun) { Write-PreparationTransitionOutcome 'restart' ($script:PreparationRestartReasons -join ',') }
+        Save-PreparationRestartAsked $script:PreparationRestartReasons
         # What the Store stage did before the restart, so the app can still say so.
         $detail = Get-PreparationOutcomeDetail
         $detail.restartReasons = @($script:PreparationRestartReasons)

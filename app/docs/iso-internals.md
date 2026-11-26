@@ -9,15 +9,29 @@ The code is in `src/services/iso.rs`, `resources/iso/Build-Iso.ps1` and `resourc
 
 - **Windows download.** On the Windows step, users can browse for an existing ISO or download one. Manager requests the language list and a signed ISO link from the website's `/api/ms-iso` endpoints and downloads the file directly from Microsoft into the Downloads known folder, under a name no file has yet. It picks the language that matches the first Windows display language (`language_for` in `src/pages/iso/download.rs`), and the target PC's architecture. A cancelled or incomplete transfer leaves the destination untouched.
 - **Checks before Create.** The app reads the output's volume as the worker does (`destination` in `src/services/iso.rs`, which a test keeps in step with `Assert-Output`): a local NTFS or ReFS volume with the free space below. The worker asserts the output only for a build, so checking the files never fails on where the ISO will go.
-- **Inspection.** DISM reads every edition from the source, mounted read-only.
+  Some PCs refuse one of the volume calls, `GetVolumePathNameW`, `GetVolumeInformationW` or `GetDiskFreeSpaceExW`, with "A required privilege is not held by the client". The app and the worker then log the call that failed and read the volume by the folder's drive letter, the app through WMI (`Win32_LogicalDisk`) and the worker with `Get-Volume`, as long as no link or mount point on the folder's path could lead to another volume.
+- **Mounting.** The ISO and USB workers share `resources/iso/Iso-Mount.ps1`, and read a mounted ISO only as exactly one volume with a drive letter.
+  Windows can give the letter late, or none where automatic mounting is off, so the worker reads the image's volume again every half second for about 30 seconds.
+  After about 10 seconds, an image the worker mounted itself gets the highest free drive letter, which the worker takes back before it ejects the image. An image that was already mounted is used as it is.
+  Without such a volume, the worker stops with `iso-mount`, and the log lists each volume's filesystem, drive letter and status.
+- **Mount failures.** The worker mounts first, and explains a failure only after Windows refuses to read or mount an image, doesn't finish in time, or gives it no drive letter.
+  If the `vdrvroot` or `cdrom` driver is then disabled (`Start` 4), it stops with `iso-mount-drivers`: once the PC restarts, Windows mounts no ISO, or waits for a drive that never starts. A driver disabled since the last restart is still loaded, so its mount goes ahead.
+  Otherwise, a source file stored compressed, encrypted or sparse stops the worker with `iso-mount-file`, which asks for a copy in an ordinary folder; the worker changes nothing about the user's file. Any other refusal is `iso-mount`.
+  The storage cmdlets run as jobs on one local CIM session with a 120-second operation timeout, and the worker waits no longer than that for each, because Windows doesn't apply the timeout to every call over a local session. A call that doesn't finish stops the worker with `iso-mount-timeout`, unless a disabled driver explains it.
+- **Inspection.** Media without `setup.exe`, `sources\boot.wim` or `efi\microsoft\boot\efisys.bin` stops the worker with `windows-unsupported`, as media the package can't use.
+  Media with `sources\$OEM$\$$\AtlasISO`, which Atlas created, is `iso-created-by-atlas`; other media with an answer file or a `$OEM$` folder is `iso-customised`.
+  DISM reads every edition from the source, mounted read-only.
   The worker checks each version against `windows-releases.json` in the Atlas package's compatibility scripts, which the app and the front door share.
   An unknown version triggers a refresh from Microsoft's release page, limited in size and time.
   This checks eligibility, not the authenticity of modified media ([Windows release eligibility](../../docs/windows-release-policy.md)).
 - **Editions.** The exclusions match the destination edition check.
   The worker exports the supported editions, with DISM integrity checking, to a new WIM, and verifies their edition identities.
+  On Arm64 Windows, where Atlas Manager and its workers run as x64, the DISM PowerShell module can lack native code for the process (0x8007000B). The worker then deletes the partial WIM and exports the same editions with Windows' own `dism.exe`, with maximum compression and the integrity check, before the same verification. The USB worker does the same when it exports a large `install.esd` (`Export-AtlasWindowsImages` in `resources/iso/Iso-Mount.ps1`).
   Atlas sets no product key or image index, so firmware Home keys and volume licence media need their own boot checks; these settings say nothing about activation.
   For single-edition Enterprise Evaluation media, Setup reads Microsoft's edition configuration in WinPE. Atlas delivers its answer file to the installed Windows Panther folder for the later setup passes.
 - **Staging.** The worker stages in a private, uniquely named folder beside the output.
+  Windows PowerShell's file cmdlets stop at `MAX_PATH`, so a copied file's path must stay under 260 characters and a folder's under 248.
+  When the ISO's deepest path wouldn't fit beside the output, the folder goes at the root of the output's volume instead, where the finished ISO is still only renamed into place. When it wouldn't fit there either, the worker stops with `destination-path`.
   The app and its notices, the package, the destination scripts and the typed settings go in `sources\$OEM$\$$\AtlasISO`.
   Network drivers, if any, go in its `NetworkDrivers` folder, with `network-drivers.json` as their source report.
   Atlas sits beside the Windows image, never inside it.
@@ -76,7 +90,7 @@ The worker has four operations: **List**, **Check**, **Write** and **Eject**.
 - A check that finds the mutex taken reports `busy` without reading the ISO, and the page checks again a few seconds later; a write or eject that finds it taken stops before changing anything.
   Lists change nothing, so they run alongside any of them.
 - The worker splits a large `install.wim` with DISM's integrity-checked split into `sources\install*.swm` parts of up to 3,800 MiB, which stay under FAT32's 4 GiB file limit.
-- A large `install.esd` is first exported, with every edition, to a WIM. That WIM comes out larger than the ESD, so a check's byte count is a lower bound for such an ISO, and the write's own capacity check before erasing decides.
+- A large `install.esd` is first exported, with every edition, to a WIM, with `dism.exe` where the DISM module can't run, as for [ISO editions](#iso-build). That WIM comes out larger than the ESD, so a check's byte count is a lower bound for such an ISO, and the write's own capacity check before erasing decides.
 - The partition is at most 32 GB (decimal), because Windows formats FAT32 only up to that size. The page applies the worker's partition rule to the check's byte count to mark drives too small for the ISO; a test keeps the two in step.
 - Ejecting uses `CM_Request_Device_EjectW`. Windows refuses while a file on the drive is open, often briefly, such as a scan of the files just written, so the worker tries five times, two seconds apart.
 - Progress is reported per stage, in bytes where there are any: hashing the source while preparing, copying, and verifying. The page weights the stages by their usual share of the time, so one bar runs once from start to finish and never goes back.

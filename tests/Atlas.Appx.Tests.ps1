@@ -1185,6 +1185,8 @@ Describe 'Invoke-AtlasAppxRemovalPlan' {
         })
         Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx { @() }
         Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx { $provisioned }
+        # Their install folders are gone.
+        Mock Get-AtlasAppxProvisionedFolderLeft -ModuleName Atlas.Appx { $null }
         Mock Remove-AppxProvisionedPackage -ModuleName Atlas.Appx {
             if ($AllUsers) {
                 throw [System.Runtime.InteropServices.COMException]::new('File missing.', 0x80070002)
@@ -1229,6 +1231,59 @@ Describe 'Invoke-AtlasAppxRemovalPlan' {
         { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } |
             Should -Throw -ExpectedMessage '*Microsoft.Getstarted*: Still provisioned for new accounts*'
         Should -Invoke Remove-AppxProvisionedPackage -ModuleName Atlas.Appx -Times 2 -Exactly
+    }
+
+    It 'fails for Get Started despite missing-file errors when <Case>' -TestCases @(
+        @{ Case = 'its install folder is still there'; Folder = 'C:\Program Files\WindowsApps\Microsoft.Getstarted_1.0_neutral_~_8wekyb3d8bbwe'; InstalledState = $null }
+        @{ Case = 'another account still has it installed'; Folder = $null; InstalledState = 'Installed' }
+        @{ Case = 'another account has its removal pending'; Folder = $null; InstalledState = 'Installed(pending removal)' }
+    ) {
+        param($Folder, $InstalledState)
+
+        $definition = Get-AtlasAppxRemovalDefinition | Where-Object Name -eq 'Microsoft.Getstarted*'
+        $provisioned = [pscustomobject]@{
+            DisplayName = 'Microsoft.Getstarted'; PackageName = 'Microsoft.Getstarted_1.0_neutral_~_8wekyb3d8bbwe'
+        }
+        $installed = if ($InstalledState) {
+            [pscustomobject]@{
+                Name = 'Microsoft.Getstarted'; PackageFamilyName = 'Microsoft.Getstarted_8wekyb3d8bbwe'
+                PackageFullName = 'Microsoft.Getstarted_2021.2312.1.0_x64__8wekyb3d8bbwe'
+                PackageUserInformation = @(New-TestRegistration -Sid $script:otherSid -State $InstalledState)
+            }
+        }
+        Mock Get-AtlasAppxInstalledInventory -ModuleName Atlas.Appx { @($installed | Where-Object { $_ }) }
+        Mock Get-AtlasAppxProvisionedInventory -ModuleName Atlas.Appx { $provisioned }
+        $folderLeft = $Folder
+        Mock Get-AtlasAppxProvisionedFolderLeft -ModuleName Atlas.Appx { $folderLeft }
+        Mock Remove-AppxPackage -ModuleName Atlas.Appx
+        Mock Remove-AppxProvisionedPackage -ModuleName Atlas.Appx {
+            throw [System.Runtime.InteropServices.COMException]::new('The system cannot find the path specified.', 0x80070003)
+        }
+
+        { Invoke-AtlasAppxRemovalPlan -Definition @($definition) } |
+            Should -Throw -ExpectedMessage '*Microsoft.Getstarted*: Still provisioned for new accounts*'
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Appx -Times 1 -Exactly -ParameterFilter {
+            $Message -like "The provisioning entry 'Microsoft.Getstarted_1.0_neutral_~_8wekyb3d8bbwe' isn't left over: *"
+        }
+    }
+
+    It 'finds a provisioned package''s install folder from its name and its manifest' {
+        $windowsApps = Join-Path $TestDrive 'WindowsApps'
+        $name = 'Microsoft.Getstarted_1.0_neutral_~_8wekyb3d8bbwe'
+        $package = [pscustomobject]@{
+            PackageName = $name
+            InstallLocation = (Join-Path $TestDrive "Moved\$name\AppxMetadata\AppxBundleManifest.xml")
+        }
+        $find = { InModuleScope Atlas.Appx -Parameters @{ Package = $package; Root = $windowsApps } {
+                Get-AtlasAppxProvisionedFolderLeft -Package $Package -WindowsAppsRoot $Root
+            } }
+
+        & $find | Should -BeNullOrEmpty
+        $moved = New-Item -ItemType Directory -Path (Join-Path $TestDrive "Moved\$name") -Force
+        & $find | Should -Be $moved.FullName
+        Remove-Item -LiteralPath $moved.FullName -Recurse -Force
+        $default = New-Item -ItemType Directory -Path (Join-Path $windowsApps $name) -Force
+        & $find | Should -Be $default.FullName
     }
 
     It 'still fails when Get Started remains installed for the installing user' {

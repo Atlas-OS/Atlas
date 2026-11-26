@@ -47,6 +47,9 @@ BeforeAll {
         $script:CbsLines = @()
         $script:ToggleRecords = @{}
         $script:RebuildFacts = [pscustomobject]@{ WindowsOld = $false; SetupFolder = $false; PantherWritten = $false; AtlasModules = $true }
+        $script:PendingXml = $false
+        $script:UpdateRestart = $false
+        $script:DomainJoined = $false
         Set-Fake $script:Services\BITS Start DWord 3
         Set-Fake $script:Services\CryptSvc Start DWord 3
         Set-Fake $script:Services\TrustedInstaller Start DWord 3
@@ -129,6 +132,18 @@ BeforeAll {
     function Get-AtlasTransitionImageHealth { if ($script:Health -eq 'Throws') { throw 'DISM is unavailable' }; $script:Health }
     function Invoke-PreparationRestoreHealth { throw 'A test started DISM without standing in for it.' }
     function Invoke-AtlasTransitionScanHealth { throw 'A test started DISM without standing in for it.' }
+    function Get-PreparationUpdateServiceStatus { 'Running' }
+    function Start-PreparationUpdateService { throw 'A test started Windows Update without standing in for it.' }
+    function Test-AtlasServicingPendingFile { $script:PendingXml }
+    function Test-AtlasTransitionUpdateRestartRequired { $script:UpdateRestart }
+    function Test-AtlasTransitionDomainJoined { if ('Throws' -eq $script:DomainJoined) { throw 'WMI is unavailable' }; [bool]$script:DomainJoined }
+    # What tools that block updates write: Windows Update sent to a server that isn't there.
+    function Set-BrokenRedirect([string]$Server = 'localserver.localdomain.wsus') {
+        Set-Fake $script:Policy WUServer String $Server
+        Set-Fake $script:Policy WUStatusServer String $Server
+        Set-Fake $script:Policy UpdateServiceUrlAlternate String 'wsus.localdomain.localserver'
+        Set-Fake "$script:Policy\AU" UseWUServer DWord 1
+    }
 
     # The pin writer uses the registry cmdlets; HKLM paths go to the double too.
     function ConvertTo-FakePath([string]$Path) { $Path -replace '^HKLM:\\', '' }
@@ -734,7 +749,11 @@ Describe 'Checks before anything changes' {
     }
 
     It 'stops for <Case> with <Reason> and writes nothing' -TestCases @(
-        @{ Case = 'an organisation''s update server'; Reason = 'feature-managed'; Arrange = { Set-Fake "$script:Policy\AU" UseWUServer DWord 1 } }
+        @{ Case = 'an organisation''s update server'; Reason = 'feature-managed'; Arrange = { Set-BrokenRedirect 'https://wsus.contoso.com:8531' } }
+        @{ Case = 'a server that isn''t there on a domain PC'; Reason = 'feature-managed'; Arrange = { Set-BrokenRedirect; $script:DomainJoined = $true } }
+        @{ Case = 'a server that isn''t there on a Microsoft Entra PC'; Reason = 'feature-managed'; Arrange = { Set-BrokenRedirect; Set-Fake 'SYSTEM\CurrentControlSet\Control\CloudDomainJoin\JoinInfo\0123456789ABCDEF' IdpDomain String 'contoso.com' } }
+        @{ Case = 'a server that isn''t there on an enrolled PC'; Reason = 'feature-managed'; Arrange = { Set-BrokenRedirect; Set-Fake 'SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\{11111111-2222-3333-4444-555555555555}' Flags DWord 0 } }
+        @{ Case = 'a server that isn''t there where management can''t be read'; Reason = 'feature-managed'; Arrange = { Set-BrokenRedirect; $script:DomainJoined = 'Throws' } }
         @{ Case = 'a disabled BITS'; Reason = 'feature-blocked'; Arrange = { Set-Fake "$script:Services\BITS" Start DWord 4 } }
         @{ Case = 'too little free space'; Reason = 'feature-disk-space'; Arrange = { $script:FreeBytes = 2GB } }
         @{ Case = 'a component store Windows can no longer repair'; Reason = 'feature-servicing'; Arrange = { $script:Health = 'NonRepairable' } }
@@ -772,6 +791,31 @@ Describe 'Checks before anything changes' {
         Mock Test-PreparationRestart { $true }
         Invoke-PreparationTransition | Should -Be 'reboot'
         @($script:Writes) | Should -BeNullOrEmpty
+    }
+
+    It 'records and lifts a redirect to a server that isn''t there (<Server>) on a PC no organisation manages, before the monthly updates' -TestCases @(
+        @{ Server = 'localserver.localdomain.wsus' }
+        @{ Server = 'http://127.0.0.1' }
+        @{ Server = '' }
+    ) {
+        param($Server)
+        $script:AtlasTransitionEvidencePath = Join-Path $TestDrive 'redirect-evidence.log'
+        Remove-Item -LiteralPath $script:AtlasTransitionEvidencePath -ErrorAction SilentlyContinue
+        Set-BrokenRedirect $Server
+        # Enrolments Windows keeps on every PC name no user or server.
+        Set-Fake 'SOFTWARE\Microsoft\Enrollments\C49328F1-A48C-408A-BA0C-972F051825D7' ProviderID String 'WMI_Bridge_SCCM_Server'
+        { Invoke-PreparationTransition } | Should -Throw '*No update may run*'
+        $journal = Read-Journal
+        foreach ($id in @('policy.WUServer', 'policy.WUStatusServer', 'policy.UpdateServiceUrlAlternate', 'policy.AU.UseWUServer')) {
+            @($journal.items | Where-Object id -eq $id)[0].lifted | Should -BeTrue -Because "$id goes with the redirect"
+        }
+        @($journal.items | Where-Object id -eq 'policy.WUServer')[0].data | Should -BeExactly $Server
+        Get-Fake "$script:Policy\AU" UseWUServer | Should -BeNullOrEmpty
+        Get-Fake $script:Policy WUServer | Should -BeNullOrEmpty
+        $evidence = Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw
+        $evidence | Should -Match 'managed by: nothing'
+        $evidence | Should -Match 'lifting the redirect for this update, to be put back afterwards'
+        $evidence | Should -Match 'lifted policy.AU.UseWUServer: DWord 1 -> absent'
     }
 
     It 'goes on with a store Windows <Case>' -TestCases @(
@@ -884,6 +928,27 @@ Describe 'A component store that reads as repairable' {
         $script:Writes.IndexOf('repair') | Should -BeLessThan $script:Writes.IndexOf('monthly updates')
     }
 
+    It 'stops before the monthly updates and the move when the repair fails on missing manifests' {
+        Use-TransitionRun
+        Set-HeldBackUpdate
+        $script:CbsLines = $script:AppInvLog
+        $script:Packages = @()
+        Mock Test-PreparationRestart { $false }
+        Mock Test-PreparationNetwork { $true }
+        Mock Write-PreparationState {}
+        Mock Invoke-PreparationRestoreHealth {
+            $script:CbsLines = @("$('{0:yyyy-MM-dd HH:mm:ss}' -f [DateTime]::Now), Info                  CBS    Store corruption, manifest missing for package: Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~wow64~~10.0.26100.9974")
+            -2146498283
+        }
+        Mock Invoke-PreparationWindows { throw 'The monthly updates never begin on a store that can''t be repaired.' }
+        try { Invoke-PreparationTransition } catch { $detail = Get-PreparationFailureDetail $_.Exception }
+        $detail.reason | Should -BeExactly 'component-store-unrepairable'
+        $detail.errorCode | Should -BeExactly '0x800F0915'
+        Should -Invoke Invoke-PreparationWindows -Times 0 -Exactly
+        (Get-Item-Value 'SOFTWARE\AtlasOS\Preparation' 'ComponentRepairFailed' | ConvertFrom-Json).failures | Should -Be 1
+        (Get-Fake $script:Policy TargetReleaseVersionInfo) | Should -BeNullOrEmpty -Because 'Windows isn''t told to move'
+    }
+
     It 'stops the store check when the user chooses Stop' {
         Use-TransitionRun
         $script:CbsLines = @()
@@ -928,6 +993,162 @@ Describe 'A component store that reads as repairable' {
         $script:Health = 'Throws'
         { Test-AtlasWindowsTransitionPreflight } | Should -Not -Throw
         Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw | Should -Match 'component store health could not be read \(0x[0-9A-F]{8}\): DISM is unavailable; going on'
+    }
+}
+
+Describe 'A redirect to an update server that isn''t there' {
+    BeforeEach {
+        Reset-Machine
+        Mock Test-PreparationRestart { $false }
+        Mock Test-PreparationNetwork { $true }
+        Mock Write-PreparationState {}
+    }
+
+    It 'takes <Server> for a server that can''t be one: <Unusable>' -TestCases @(
+        @{ Server = ''; Unusable = $true }
+        @{ Server = '   '; Unusable = $true }
+        @{ Server = 'localserver.localdomain.wsus'; Unusable = $true }
+        @{ Server = 'wsus.localdomain.localserver:8530'; Unusable = $true }
+        @{ Server = 'ftp://wsus.contoso.com'; Unusable = $true }
+        @{ Server = 'http://127.0.0.1'; Unusable = $true }
+        @{ Server = 'http://127.20.0.9:8530'; Unusable = $true }
+        @{ Server = 'http://localhost:8530'; Unusable = $true }
+        @{ Server = 'http://[::1]:8530'; Unusable = $true }
+        @{ Server = 'http://wsus.home.localdomain'; Unusable = $true }
+        @{ Server = 'http://wsus.local:8530'; Unusable = $true }
+        @{ Server = 'http://updates.invalid'; Unusable = $true }
+        @{ Server = 'http://wsus.test'; Unusable = $true }
+        @{ Server = 'http://wsus.example'; Unusable = $true }
+        @{ Server = 'http://wsus.localhost'; Unusable = $true }
+        @{ Server = 'http://wsus.contoso.com:8530'; Unusable = $false }
+        @{ Server = 'https://10.0.0.5:8531'; Unusable = $false }
+        @{ Server = 'http://WSUS01:8530'; Unusable = $false }
+        @{ Server = 'http://wsus.example.com'; Unusable = $false }
+    ) {
+        param($Server, $Unusable)
+        Test-AtlasUpdateServerUnusable $Server | Should -Be $Unusable
+    }
+
+    It 'finds no management on a PC with only the enrolments Windows keeps itself' {
+        Set-Fake 'SOFTWARE\Microsoft\Enrollments\8345CBE6-CEFC-462A-8219-78F3FC0377C1' ProviderID String 'Deploy Authority'
+        Set-Fake 'SOFTWARE\Microsoft\Enrollments\8345CBE6-CEFC-462A-8219-78F3FC0377C1' EnrollmentState DWord 1
+        Set-Fake 'SOFTWARE\Microsoft\Enrollments\Context' '(key)' Key ''
+        @(Get-AtlasDeviceManagement) | Should -BeNullOrEmpty
+    }
+
+    It 'names <Case> as management' -TestCases @(
+        @{ Case = 'a domain join'; Named = 'domain'; Arrange = { $script:DomainJoined = $true } }
+        @{ Case = 'a Microsoft Entra join'; Named = 'entra'; Arrange = { Set-Fake 'SYSTEM\CurrentControlSet\Control\CloudDomainJoin\JoinInfo\0123456789ABCDEF' TenantId String 'tenant' } }
+        @{ Case = 'an OMA-DM account'; Named = 'mdm'; Arrange = { Set-Fake 'SOFTWARE\Microsoft\Provisioning\OMADM\Accounts\{11111111-2222-3333-4444-555555555555}' Flags DWord 0 } }
+        @{ Case = 'an enrolment with a user'; Named = 'mdm'; Arrange = { Set-Fake 'SOFTWARE\Microsoft\Enrollments\{11111111-2222-3333-4444-555555555555}' UPN String 'someone@contoso.com' } }
+        @{ Case = 'an enrolment with a server'; Named = 'mdm'; Arrange = { Set-Fake 'SOFTWARE\Microsoft\Enrollments\{11111111-2222-3333-4444-555555555555}' DiscoveryServiceFullURL String 'https://enrollment.manage.microsoft.com/' } }
+        @{ Case = 'a domain join that can''t be read'; Named = 'domain unreadable (WMI is unavailable)'; Arrange = { $script:DomainJoined = 'Throws' } }
+    ) {
+        param($Case, $Named, $Arrange)
+        & $Arrange
+        @(Get-AtlasDeviceManagement) | Should -Be @($Named) -Because $Case
+    }
+
+    It 'counts the redirect''s values as blockers only while it''s broken' {
+        Set-BrokenRedirect
+        @(Get-AtlasWindowsUpdateBlocker).Id | Should -Be @('policy.WUServer', 'policy.WUStatusServer', 'policy.UpdateServiceUrlAlternate', 'policy.AU.UseWUServer')
+        @(Get-AtlasWindowsUpdateBlocker | Where-Object OwnerRecord) | Should -BeNullOrEmpty
+        $script:DomainJoined = $true
+        @(Get-AtlasWindowsUpdateBlocker) | Should -BeNullOrEmpty
+        $script:DomainJoined = $false
+        Set-Fake $script:Policy WUServer String 'http://wsus.contoso.com:8530'
+        @(Get-AtlasWindowsUpdateBlocker) | Should -BeNullOrEmpty
+        Set-BrokenRedirect
+        Set-Fake "$script:Policy\AU" UseWUServer DWord 0
+        @(Get-AtlasWindowsUpdateBlocker) | Should -BeNullOrEmpty -Because 'Windows Update ignores a server it isn''t told to use'
+    }
+
+    It 'turns Windows Update on for plain updates on a PC with only a broken redirect, then puts the redirect back exactly' {
+        Set-BrokenRedirect 'http://127.0.0.1'
+        Mock Invoke-PreparationUpdates { $script:Writes.Add('updates'); 'complete' }
+        Invoke-PreparationAccess | Should -Be 'complete'
+        (Read-Journal).kind | Should -BeExactly 'access'
+        Get-Fake "$script:Policy\AU" UseWUServer | Should -BeNullOrEmpty
+        $script:Writes.IndexOf('updates') | Should -BeGreaterThan $script:Writes.IndexOf("remove $script:Policy\AU|UseWUServer")
+        $result = Restore-AtlasWindowsTransition -Outcome Installed
+        @($result.restored) | Should -Be @('policy.WUServer', 'policy.WUStatusServer', 'policy.UpdateServiceUrlAlternate', 'policy.AU.UseWUServer')
+        (Get-Fake "$script:Policy\AU" UseWUServer).Data | Should -Be 1
+        (Get-Fake $script:Policy WUServer).Data | Should -BeExactly 'http://127.0.0.1'
+        (Get-Fake $script:Policy WUServer).Kind | Should -BeExactly 'String'
+        (Get-Fake $script:Policy UpdateServiceUrlAlternate).Data | Should -BeExactly 'wsus.localdomain.localserver'
+    }
+
+    It 'stops plain updates on a PC whose organisation runs its update server' {
+        Set-BrokenRedirect 'https://wsus.contoso.com:8531'
+        Set-Fake $script:Policy DisableWindowsUpdateAccess DWord 1
+        Mock Invoke-PreparationUpdates { throw 'No update may run on a managed PC.' }
+        try { Invoke-PreparationAccess } catch { $thrown = $_.Exception }
+        $thrown.Data['reason'] | Should -BeExactly 'feature-managed'
+    }
+
+    It 'stops with feature-policy when something puts the redirect back while Atlas has it lifted' {
+        Set-BrokenRedirect
+        $journal = Save-AtlasWindowsTransitionSnapshot -Kind access -Source ([pscustomobject]@{ build = 26200 }) -Target $null -UserSid 'S'
+        Mock Remove-AtlasTransitionValue { $script:Writes.Add("remove $Path|$Name") } -ParameterFilter { $Name -eq 'UseWUServer' }
+        try { Invoke-AtlasWindowsUpdateLift $journal } catch { $thrown = $_.Exception }
+        $thrown.Data['reason'] | Should -BeExactly 'feature-policy'
+        $thrown.Data['setting'] | Should -BeExactly 'UseWUServer'
+    }
+}
+
+Describe 'What servicing has waiting for a restart' {
+    BeforeAll {
+        $script:Cbs = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing'
+    }
+    BeforeEach {
+        Reset-Machine
+        Set-Fake "$script:Cbs\Packages\Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.9974.1.1" CurrentState DWord 112
+        Set-Fake "$script:Cbs\Packages\Microsoft-Windows-Foundation-Package~31bf3856ad364e35~amd64~~10.0.26100.1" CurrentState DWord 112
+        Set-Fake "$script:Cbs\Packages\Package_for_KB5000001~31bf3856ad364e35~amd64~~26100.1.1.1" CurrentState DWord 80
+        Set-Fake "$script:Cbs\SessionsPending" Exclusive DWord 0
+    }
+
+    It 'finds nothing on a PC whose servicing has nothing to finish' {
+        @(Get-AtlasServicingPending) | Should -BeNullOrEmpty
+    }
+
+    It 'names <Case>' -TestCases @(
+        @{ Case = 'pending.xml'; Arrange = { $script:PendingXml = $true }; Named = 'pending.xml' }
+        @{ Case = 'an exclusive session'; Arrange = { Set-Fake "$script:Cbs\SessionsPending" Exclusive DWord 1 }; Named = 'an exclusive session' }
+        @{ Case = 'the PackagesPending marker'; Arrange = { Set-Fake "$script:Cbs\PackagesPending" Package_for_KB5132061 DWord 1 }; Named = 'PackagesPending' }
+        @{ Case = 'the RebootInProgress marker'; Arrange = { Set-Fake "$script:Cbs\RebootInProgress" '(key)' Key '' }; Named = 'RebootInProgress' }
+        @{ Case = 'a package waiting to install'; Arrange = { Set-Fake "$script:Cbs\Packages\Package_for_KB5132061~31bf3856ad364e35~amd64~~26100.9974.1.1" CurrentState DWord 96 }; Named = 'package Package_for_KB5132061~31bf3856ad364e35~amd64~~26100.9974.1.1 (CurrentState 96)' }
+        @{ Case = 'a package waiting to uninstall'; Arrange = { Set-Fake "$script:Cbs\Packages\Package_for_KB5000002~31bf3856ad364e35~amd64~~26100.1.1.1" CurrentState DWord 5 }; Named = 'package Package_for_KB5000002~31bf3856ad364e35~amd64~~26100.1.1.1 (CurrentState 5)' }
+    ) {
+        param($Case, $Arrange, $Named)
+        & $Arrange
+        @(Get-AtlasServicingPending) | Should -Be @($Named) -Because $Case
+    }
+
+    It 'names three waiting packages and counts the rest' {
+        foreach ($number in 1..5) { Set-Fake "$script:Cbs\Packages\Package_for_KB500000$number~31bf3856ad364e35~amd64~~26100.1.1.1" CurrentState DWord 96 }
+        $pending = @(Get-AtlasServicingPending)
+        $pending | Should -HaveCount 4
+        $pending[-1] | Should -BeExactly '2 more package(s)'
+    }
+
+    It 'takes servicing''s marker as stale only in the start of Windows the worker confirmed it in, while nothing waits: <Case>' -TestCases @(
+        @{ Case = 'confirmed now, nothing waiting'; Arrange = { Set-Fake 'SOFTWARE\AtlasOS\Preparation' ServicingMarkerStale String 'boot:7' }; Stale = $true }
+        @{ Case = 'confirmed in an earlier start of Windows'; Arrange = { Set-Fake 'SOFTWARE\AtlasOS\Preparation' ServicingMarkerStale String 'boot:6' }; Stale = $false }
+        @{ Case = 'never confirmed'; Arrange = { }; Stale = $false }
+        @{ Case = 'confirmed now, with pending.xml since'; Arrange = { Set-Fake 'SOFTWARE\AtlasOS\Preparation' ServicingMarkerStale String 'boot:7'; $script:PendingXml = $true }; Stale = $false }
+        @{ Case = 'confirmed now, with Windows Update waiting for a restart since'; Arrange = { Set-Fake 'SOFTWARE\AtlasOS\Preparation' ServicingMarkerStale String 'boot:7'; $script:UpdateRestart = $true }; Stale = $false }
+        @{ Case = 'a start of Windows Windows doesn''t count'; Arrange = { Set-Fake 'SOFTWARE\AtlasOS\Preparation' ServicingMarkerStale String 'boot:7'; $script:Registry.Remove('SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters|BootId') }; Stale = $false }
+    ) {
+        param($Case, $Arrange, $Stale)
+        & $Arrange
+        Test-AtlasServicingMarkerStale | Should -Be $Stale -Because $Case
+    }
+
+    It 'shares the stale marker with Atlas Manager under the name and in the format its restart check reads' {
+        # app/src/services/requirements/providers.rs reads the same value.
+        Get-AtlasServicingStaleRoot | Should -BeExactly 'SOFTWARE\AtlasOS\Preparation'
+        Get-AtlasTransitionBootId | Should -BeExactly 'boot:7'
     }
 }
 
@@ -995,7 +1216,7 @@ Describe 'Moving Windows' {
         (Read-Journal).phase | Should -BeExactly 'installed'
         Should -Invoke Invoke-PreparationCommitCall -Times 0 -Exactly -Because 'Atlas commits only just before its own restart'
         $evidence = Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw
-        $evidence | Should -Match "unexpected-offer, not installed: 'Windows 11, version 25H2' KB=5054156"
+        $evidence | Should -Match "unexpected-offer, for another release than 26H2, not installed: 'Windows 11, version 25H2' KB=5054156"
         $evidence | Should -Match 'lifted policy.DisableWindowsUpdateAccess: DWord 1 -> absent'
     }
 
@@ -1013,7 +1234,68 @@ Describe 'Moving Windows' {
         $journal.offer.title | Should -BeExactly 'Windows 11, version 26H2'
         $evidence = Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw
         $evidence | Should -Match "offer, chosen by the release 26H2 in its title: 'Windows 11, version 26H2' KB=5139999 id=\S+ rev 1"
-        $evidence | Should -Match "unexpected-offer, not installed: 'Windows 11, version 25H2'"
+        $evidence | Should -Match "unexpected-offer, for another release than 26H2, not installed: 'Windows 11, version 25H2'"
+    }
+
+    It 'never takes an upgrade a known KB names when its title names another release' {
+        # Windows Update can offer the release before the target under the target's KB.
+        $script:Offers.default = @(New-Offer 'Windows 11, version 25H2' @('5129195') -Upgrade)
+        try { Invoke-PreparationTransition } catch { $thrown = $_.Exception }
+        $thrown.Data['reason'] | Should -BeExactly 'feature-not-offered'
+        Should -Invoke Invoke-PreparationWindowsOperation -Times 0 -Exactly
+        Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw |
+            Should -Match "unexpected-offer, for another release than 26H2, not installed: 'Windows 11, version 25H2' KB=5129195"
+    }
+
+    It 'takes the offer naming the target when another release''s offer has the same known KB' {
+        $script:Offers.default = @(
+            (New-Offer 'Windows 11, version 25H2' @('5129195') -Upgrade)
+            (New-Offer 'Windows 11, version 26H2' @('5129195') -Upgrade)
+        )
+        Invoke-PreparationTransition | Should -Be 'reboot'
+        $script:Collections[-1].Items[0].Title | Should -BeExactly 'Windows 11, version 26H2'
+        (Read-Journal).offer.title | Should -BeExactly 'Windows 11, version 26H2'
+    }
+
+    It 'counts a hidden offer only when its title names no other release' {
+        $script:Offers.hidden = @(New-Offer 'Windows 11, version 25H2' @('5129195') -Upgrade)
+        try { Invoke-PreparationTransition } catch { $thrown = $_.Exception }
+        $thrown.Data['reason'] | Should -BeExactly 'feature-not-offered'
+    }
+
+    It 'restarts Windows Update, waits for the target and tries a refused download once more (<Code>)' -TestCases @(
+        @{ Code = '0x80246017'; HResult = -2145099753 }
+        @{ Code = '0x80246019'; HResult = -2145099751 }
+    ) {
+        param($Code, $HResult)
+        $script:Offers.default = @(New-Offer 'Windows 11, version 26H2' @('5129195') -Upgrade)
+        $script:Downloads = [Collections.Queue]::new(@((New-Result 4 $HResult $false), (New-Result 2 0 $false)))
+        Mock Invoke-PreparationWindowsOperation { if ($Kind -eq 'Download') { $script:Downloads.Dequeue() } else { $script:Install } }
+        # The offer comes before Windows Update has taken in the target, which it
+        # takes in only with the restart after the refusal.
+        $script:Restarts = 0
+        Mock Restart-PreparationUpdateService {
+            $script:Restarts++
+            if ($script:Restarts -ge 2) { Set-Fake 'SOFTWARE\Microsoft\WindowsUpdate\UpdatePolicy\PolicyState' TargetReleaseVersion String '26H2' }
+            $true
+        }
+        Invoke-PreparationTransition | Should -Be 'reboot'
+        (Read-Journal).phase | Should -BeExactly 'installed'
+        $script:Restarts | Should -Be 2 -Because 'one restart was for reading the target, and one for the refusal'
+        Should -Invoke Invoke-PreparationWindowsOperation -Times 2 -Exactly -ParameterFilter { $Kind -eq 'Download' }
+        Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw | Should -Match "Windows Update refused the download; restarted wuauserv, policy state now: target '26H2'"
+    }
+
+    It 'names the refusal when Windows Update refuses the download again' {
+        $script:Offers.default = @(New-Offer 'Windows 11, version 26H2' @('5129195') -Upgrade)
+        $script:Download = New-Result 4 -2145099753 $false
+        Mock Restart-PreparationUpdateService { $true }
+        try { Invoke-PreparationTransition } catch { $detail = Get-PreparationFailureDetail $_.Exception }
+        $detail.reason | Should -BeExactly 'feature-failed'
+        $detail.errorCode | Should -BeExactly '0x80246017'
+        $detail.failureMessage | Should -Match "refused to download 'Windows 11, version 26H2' KB=5129195 \(0x80246017\)"
+        Should -Invoke Invoke-PreparationWindowsOperation -Times 0 -Exactly -ParameterFilter { $Kind -eq 'Install' }
+        (Read-Journal).phase | Should -BeExactly 'targeted'
     }
 
     It 'chooses none of several unknown upgrades naming the target, and installs nothing' {
@@ -1550,15 +1832,85 @@ Describe 'Restarting into the new version' {
         (Read-Journal).history[-1].detail | Should -BeExactly "0x8024200B $servicing"
     }
 
-    It 'stops offering the same try once the same rollback repeats' {
+    It 'goes back to before the install after a rollback, so trying again installs the update again' {
         Invoke-PreparationCommit
         Set-Fake 'SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' BootId DWord 8
         try { Invoke-PreparationTransition } catch { $first = $_.Exception }
         $first.Data['reason'] | Should -BeExactly 'feature-rolled-back'
+        $journal = Read-Journal
+        $journal.phase | Should -BeExactly 'targeted'
+        $journal.installed | Should -BeNullOrEmpty
+        $journal.commitBoot | Should -BeNullOrEmpty
+        $journal.commitRetried | Should -BeFalse
+        # Try again: the run searches and installs the update again.
+        $script:Offer = New-Offer 'Windows 11, version 26H2' @('5121794') -Upgrade
+        Mock Test-PreparationNetwork { $true }
+        Mock Assert-PreparationContinue {}
+        Mock Invoke-PreparationWindows { 'complete' }
+        Mock New-Object -ParameterFilter { $ComObject -eq 'Microsoft.Update.Session' } { New-Session }
+        Mock Find-PreparationFeatureUpdate { [pscustomobject]@{ Update = $script:Offer; Hidden = $false } }
+        Mock Install-PreparationFeatureUpdate { Set-PreparationInstalled $Journal 'update=again' $Update; 'installed' }
+        Invoke-PreparationTransition | Should -Be 'reboot'
+        $script:PreparationRestartReasons | Should -Be @('feature-update')
+        Should -Invoke Install-PreparationFeatureUpdate -Times 1 -Exactly
+        (Read-Journal).phase | Should -BeExactly 'installed'
+    }
+
+    It 'stops offering the same try once a new attempt rolls back the same way' {
+        Invoke-PreparationCommit
+        Set-Fake 'SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' BootId DWord 8
+        try { Invoke-PreparationTransition } catch { $first = $_.Exception }
+        $first.Data['reason'] | Should -BeExactly 'feature-rolled-back'
+        # The update installed again, committed, and Windows went back once more.
+        Set-PreparationInstalled (Read-Journal) 'update=again'
+        Invoke-PreparationCommit
+        Set-Fake 'SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' BootId DWord 9
         try { Invoke-PreparationTransition } catch { $again = $_.Exception }
         $again.Data['reason'] | Should -BeExactly 'feature-servicing'
         $again.Data['errorCode'] | Should -BeExactly '0x8024200B'
         $again.Message | Should -Match 'again after the restart.*Atlas ISO'
+    }
+
+    It 'reports a rollback another attempt failed differently as a rollback, and tries again' {
+        Invoke-PreparationCommit
+        Set-Fake 'SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' BootId DWord 8
+        try { Invoke-PreparationTransition } catch { $first = $_.Exception }
+        Set-PreparationInstalled (Read-Journal) 'update=again'
+        Invoke-PreparationCommit
+        Set-Fake 'SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' BootId DWord 9
+        Mock Get-PreparationFeatureHistory { [pscustomobject]@{ Date = [DateTime]::UtcNow; ResultCode = 4; HResult = -2146498270; Title = 'KB5121794' } }
+        try { Invoke-PreparationTransition } catch { $again = $_.Exception }
+        $again.Data['reason'] | Should -BeExactly 'feature-rolled-back'
+        $again.Data['errorCode'] | Should -BeExactly '0x800F0922'
+        (Read-Journal).phase | Should -BeExactly 'targeted'
+    }
+
+    It 'counts none of the rollbacks an earlier Atlas recorded again and again for the same attempt' {
+        # Earlier Atlas releases left the record installed after a rollback, and
+        # each try added another rollback of the same attempt.
+        $journal = Read-Journal
+        Invoke-PreparationCommit
+        $journal = Read-Journal
+        foreach ($try in 1..3) {
+            Add-AtlasTransitionHistory $journal 'rolled-back' '0x8024200B'
+            Add-AtlasTransitionHistory $journal 'failed' 'reason=feature-rolled-back code=0x8024200B'
+        }
+        Write-AtlasWindowsTransition $journal
+        Set-Fake 'SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' BootId DWord 8
+        try { Invoke-PreparationTransition } catch { $thrown = $_.Exception }
+        $thrown.Data['reason'] | Should -BeExactly 'feature-rolled-back'
+        (Read-Journal).phase | Should -BeExactly 'targeted'
+    }
+
+    It 'counts no rollback when the record no longer says which attempt it was' {
+        $journal = Read-Journal
+        Invoke-PreparationCommit
+        $journal = Read-Journal
+        $journal.history = @([pscustomobject]@{ at = [DateTime]::UtcNow.ToString('o'); event = 'rolled-back'; detail = '0x8024200B' })
+        Write-AtlasWindowsTransition $journal
+        Set-Fake 'SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' BootId DWord 8
+        try { Invoke-PreparationTransition } catch { $thrown = $_.Exception }
+        $thrown.Data['reason'] | Should -BeExactly 'feature-rolled-back'
     }
 
     It 'names a rollback that repeats the last closed attempt''s, within 30 days, and none older or different: <Case>' -TestCases @(

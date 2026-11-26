@@ -430,6 +430,8 @@ acquire-no-asset = Atlas { $version } nie ma pliku pakietu do pobrania. Aby kont
 # Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
 # .apbx file from an Atlas release before 0.6.
 acquire-unsupported = Ta aplikacja instaluje Atlas w wersji 0.6.0 i nowszych z pakietów Atlasa (.atlaspkg).
+# Instead of acquire-unsupported for a Windows ISO opened as the Atlas package. Create an Atlas ISO (iso-open) is beside it.
+acquire-windows-iso = To jest obraz ISO Windows, a nie pakiet Atlasa (.atlaspkg). Aby zainstalować ponownie Windows z Atlasem, utwórz z niego ISO z Atlasem.
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = W Atlasie { $version } brakuje plików, których ta aplikacja potrzebuje, aby go zainstalować. Pobierz go ponownie albo otwórz inny pakiet Atlasa (.atlaspkg).
 acquire-failed = Nie udało się przygotować pakietu Atlasa. Pobierz go ponownie albo otwórz inny pakiet Atlasa (.atlaspkg). Szczegóły: { $error }
@@ -1182,6 +1184,9 @@ iso-destination-space = Wymaga { $needed } · { $free } wolnego miejsca na dysku
 iso-destination-short = Obraz ISO wymaga { $needed }, a na dysku { $drive } jest { $free } wolnego miejsca. Zwolnij miejsce albo zapisz obraz ISO na innym dysku.
 iso-destination-filesystem = Dysk { $drive } nie może przechowywać dużych plików obrazu ISO. Zapisz go na dysku sformatowanym w systemie NTFS, na przykład na dysku z Windows.
 iso-destination-unusable = Atlas może zapisać obraz ISO tylko w folderze na dysku tego komputera.
+# Copying the ISO's files would pass Windows' limit of 260 characters for a path, even at the
+# root of the drive the new ISO is saved to. Under iso-failed.
+iso-path-too-long = W folderze docelowym pliki obrazu ISO wymagałyby dłuższych ścieżek, niż pozwala Windows. Zapisz nowy obraz ISO w folderze o krótszej ścieżce, na przykład na dysku z Windows.
 iso-create = Utwórz ISO
 # Heading above the progress bar and the list of stages while the ISO is being created.
 iso-progress-title = Tworzenie obrazu ISO…
@@ -1225,6 +1230,9 @@ iso-unstaged = Atlas nie mógł przygotować folderu roboczego, więc nic nie zo
 iso-edition-unsupported-title = Ten obraz ISO nie zawiera edycji obsługiwanej przez Atlas
 iso-edition-unsupported = Edycje Windows Home i LTSC nie są obsługiwane. Użyj obrazu ISO z edycją Pro, Education lub Enterprise.
 iso-customised-title = Ten obraz ISO został zmodyfikowany
+# In place of iso-customised-title, above iso-customised, when the ISO is one Atlas Manager
+# created: Atlas creates an ISO only from an unmodified ISO from Microsoft.
+iso-created-by-atlas-title = Ten obraz ISO utworzył Atlas
 iso-customised = Zawiera już pliki instalacyjne, takie jak autounattend.xml. Użyj niezmodyfikowanego obrazu ISO od firmy Microsoft.
 iso-preview-title = Ten obraz ISO zawiera kompilację zapoznawczą
 iso-preview = Jego kompilacji Windows nie ma na liście publicznych wydań firmy Microsoft. Użyj obrazu ISO od firmy Microsoft.
@@ -1235,6 +1243,9 @@ iso-release-unconfirmed = Atlas porównuje je z listą publicznych wydań firmy 
 # $minimum is the oldest Atlas version that can make an ISO, such as "0.6.0".
 iso-package-old-title = Ten pakiet Atlasa nie może utworzyć obrazu ISO
 iso-package-old = Użyj Atlasa w wersji { $minimum } lub nowszej.
+# Instead of iso-package-old-title and iso-package-old when the file chosen as the Atlas package is a Windows ISO. "The Windows ISO" is the field named iso-source.
+iso-package-windows-iso-title = To jest obraz ISO Windows, a nie pakiet Atlasa
+iso-package-windows-iso = Zamiast tego wybierz pakiet Atlasa (.atlaspkg), a ten obraz wybierz jako obraz ISO Windows.
 iso-manager-missing-title = Brakuje pliku aplikacji Atlas Manager
 iso-fix-package = Wybierz inny pakiet
 # A package that needs a newer Atlas Manager; manager-download is beside it.
@@ -1253,6 +1264,20 @@ iso-failed-space = Na dysku docelowym nie ma wystarczającej ilości wolnego mie
 iso-manager-missing = Pobierz plik AtlasManager.exe do folderu lokalnego, takiego jak Pobrane, a potem otwórz go stamtąd.
 # Home and LTSC are the editions ISO creation drops; the others are examples it keeps.
 iso-failed-edition = Ten obraz ISO nie zawiera żadnej obsługiwanej edycji Windows. Edycje Windows Home i LTSC nie są obsługiwane. Użyj obrazu ISO z inną edycją, na przykład Pro, Education lub Enterprise.
+# Windows didn't open an ISO as a drive Atlas can read: the Windows ISO, the new ISO while it's
+# checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
+# USB page's ISO card.
+iso-mount-failed = Windows nie mógł otworzyć obrazu ISO. Uruchom ponownie komputer i spróbuj jeszcze raz.
+# Windows stopped answering while it read or mounted the ISO.
+iso-mount-timeout = Windows przestał odpowiadać podczas otwierania obrazu ISO. Uruchom ponownie komputer i spróbuj jeszcze raz.
+# vdrvroot and cdrom are the Windows drivers' own names, as tools that turn drivers off show
+# them. Keep them as they are.
+iso-mount-drivers = Windows nie może otwierać plików ISO na tym komputerze, ponieważ sterowniki, których do tego używa, vdrvroot i cdrom, są wyłączone. Włącz je ponownie, uruchom ponownie komputer i spróbuj jeszcze raz.
+# Windows can store a file compressed or encrypted (in the file's Properties, under Advanced),
+# and a download can be stored sparse, with space reserved but not yet written. Windows can't
+# open an ISO stored any of these ways. Under iso-check-failed, with iso-download-windows and
+# iso-use-local beside it, or on the USB page's ISO card.
+iso-mount-file = Windows nie może otworzyć tego obrazu ISO, ponieważ plik jest skompresowany, zaszyfrowany lub rozrzedzony. Skopiuj go do folderu, który nie jest skompresowany ani zaszyfrowany, i użyj kopii.
 # Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = Otwórz folder dzienników
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,
@@ -1451,6 +1476,8 @@ install-source-resume-package = Instalacja Atlasa { $target } nie została ukoń
 install-source-resume-bundled = Instalacja Atlasa { $target } nie została ukończona. Ta wersja testowa może zainstalować tylko dołączony do niej pakiet Atlasa, więc dokończ tę instalację za pomocą pakietu Atlasa { $target } w oficjalnym wydaniu aplikacji Atlas Manager.
 # Send a report and Export diagnostics are offered with it.
 install-source-unconfirmed = Atlas nie mógł ustalić, co jest już zainstalowane na tym komputerze, więc na razie niczego nie zainstaluje.
+# Atlas's files are on this PC without a record of a finished installation. Create an Atlas ISO (iso-open) is beside it.
+install-source-unrecorded = Na tym komputerze są pliki wcześniejszej wersji Atlasa, ale brak zapisu o ukończonej instalacji, więc nie można jej zaktualizować. Aby zainstalować Atlasa, zrób kopię zapasową plików i zainstaluj ponownie Windows.
 # Under the editions on the Create step, when Windows Setup asks which to install.
 iso-edition-selection = W Instalatorze Windows wybierz edycję, na którą masz licencję.
 detail-windows-preview = Kompilacje Insider nie są obsługiwane. Użyj publicznie wydanej wersji systemu Windows 11.
@@ -1594,6 +1621,8 @@ install-windows-edition-only = Atlas { $version } działa z Windows 11 Pro, Ente
 install-windows-edition-until = Atlas { $version } działa z Windows 11 Pro, Enterprise i Education, więc nie można go zainstalować w systemie { $product }. Windows 11 w wersji { $current } otrzymuje aktualizacje zabezpieczeń do { $date }, a Windows Update może zaktualizować ten komputer do nowszej wersji.
 # The same once that date has passed.
 install-windows-edition-ended-update = Atlas { $version } działa z Windows 11 Pro, Enterprise i Education, więc nie można go zainstalować w systemie { $product }. Wersja { $current } nie otrzymuje już aktualizacji zabezpieczeń, więc zaktualizuj Windows nawet bez Atlasa.
+# Instead of install-windows-edition-only on an LTSC edition, which Windows names with a year that reads like a version.
+install-windows-edition-ltsc = Atlas { $version } działa z Windows 11 Pro, Enterprise i Education. Edycje LTSC nie są obsługiwane.
 # $releases lists the supported releases, such as "25H2 lub 26H2".
 install-windows-reinstall = Atlas { $version } wymaga Windows 11 w wersji { $releases }, a Windows Update nie może zaktualizować tego komputera do takiej wersji. Zrób kopię zapasową plików, a potem zainstaluj ponownie Windows z obrazu ISO z Atlasem.
 # The same on Home, where the card that creates an Atlas ISO comes first.
@@ -1794,6 +1823,10 @@ prepare-store-broken-title = Microsoft Store nie działa
 prepare-store-broken = Atlas nie mógł go naprawić, a instalacja Atlasa w tej chwili mogłaby uszkodzić aplikacje ze sklepu.
 prepare-store-broken-iso = Jeśli naprawa nadal się nie udaje, zrób kopię zapasową plików i zainstaluj ponownie Windows z obrazu ISO z Atlasem.
 prepare-repair-store-again = Spróbuj naprawić ponownie
+# Windows couldn't install updates for some of its own apps, and Atlas's Store repairs didn't help.
+# $apps lists the apps by their package names, joined with list-and.
+prepare-store-staging-title = Windows nie może zaktualizować wbudowanych aplikacji
+prepare-store-staging = Windows nie mógł zainstalować aktualizacji tych wbudowanych aplikacji, a naprawy Atlasa nie pomogły: { $apps }. { prepare-components-unrepairable }
 
 screen-keyboard-title = Języki klawiatury
 screen-keyboard-question = Czy używasz wielu języków klawiatury?

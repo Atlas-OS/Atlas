@@ -114,10 +114,172 @@ function Assert-AtlasCbsCertificate {
 
     # Add the Atlas test cert. It isn't cleared later, as it's required for the
     # alternative repair source.
-    $certRegPath = 'HKLM:\Software\Microsoft\SystemCertificates\ROOT\Certificates\8A334AA8052DD244A647306A76B8178FA215F344'
+    $certRegPath = "HKLM:\$script:AtlasCbsTestRootKey"
     if (-not (Test-Path -LiteralPath $certRegPath)) {
         New-Item -Path $certRegPath -Force | Out-Null
     }
+}
+
+# The test root servicing needs to accept the Atlas CABs (see Assert-AtlasCbsCertificate).
+$script:AtlasCbsTestRootKey = 'SOFTWARE\Microsoft\SystemCertificates\ROOT\Certificates\8A334AA8052DD244A647306A76B8178FA215F344'
+
+function Get-AtlasCbsTestRootState {
+    <#
+    .SYNOPSIS
+        Describes the test root key servicing reads to accept the Atlas CABs: whether it
+        exists and which values it holds. Reads only.
+    #>
+    param(
+        # Tests point this at a scratch key.
+        [ValidateNotNull()]
+        [Microsoft.Win32.RegistryKey]$BaseKey = [Microsoft.Win32.Registry]::LocalMachine
+    )
+
+    try {
+        $key = $BaseKey.OpenSubKey($script:AtlasCbsTestRootKey, $false)
+    }
+    catch {
+        return "unreadable ($($_.Exception.Message))"
+    }
+    if ($null -eq $key) {
+        return 'missing'
+    }
+    try {
+        $names = @($key.GetValueNames() | ForEach-Object { if ($_) { $_ } else { '(default)' } })
+        if ($names.Count -eq 0) {
+            return 'present, with no values'
+        }
+        return "present, with values $($names -join ', ')"
+    }
+    finally {
+        $key.Dispose()
+    }
+}
+
+function Get-AtlasCbsLogTail {
+    <#
+    .SYNOPSIS
+        The lines at the end of CBS.log that say what servicing refused: its errors and
+        failures, or its last lines when it named none. Read without locking out
+        Windows, which keeps the file open. Returns nothing when the log can't be read.
+    #>
+    param(
+        [string]$Path = [IO.Path]::Combine([Environment]::GetFolderPath('Windows'), 'Logs\CBS\CBS.log'),
+        [int64]$Bytes = 1MB,
+        [int]$MaximumLines = 60
+    )
+
+    try {
+        if (-not [IO.File]::Exists($Path)) { return @() }
+        $stream = [IO.FileStream]::new($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]'ReadWrite, Delete')
+        try {
+            [void]$stream.Seek([Math]::Max(0, $stream.Length - $Bytes), [IO.SeekOrigin]::Begin)
+            $text = [IO.StreamReader]::new($stream, [Text.Encoding]::UTF8).ReadToEnd()
+        }
+        finally { $stream.Dispose() }
+    }
+    catch {
+        return @()
+    }
+    $lines = @($text -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    # A failed package change can start an automatic store check, which fills the end
+    # of the log with lines that say nothing about the failure.
+    $errors = @($lines | Where-Object { $_ -match ',\s+Error\s|HRESULT|\bFailed\b' })
+    $selected = if ($errors.Count -gt 0) { $errors } else { $lines }
+    return @($selected | Select-Object -Last $MaximumLines)
+}
+
+function Write-AtlasCbsLogTail {
+    <#
+    .SYNOPSIS
+        Copies the end of CBS.log into the install log after servicing refused a package,
+        so the diagnostics say why.
+    #>
+    $lines = @(Get-AtlasCbsLogTail)
+    if ($lines.Count -eq 0) {
+        Write-AtlasLog -Message 'CBS.log could not be read for the servicing failure.'
+        return
+    }
+    Write-AtlasLog -Message "The end of CBS.log after the servicing failure ($($lines.Count) line(s)):"
+    foreach ($line in $lines) {
+        Write-AtlasLog -Message "CBS.log: $($line.Trim())"
+    }
+}
+
+function Get-AtlasCbsFailureHResult {
+    <#
+    .SYNOPSIS
+        The servicing HRESULT of a failed DISM cmdlet, or 0. The DISM cmdlets throw a
+        COMException that carries it. Their message is localised, so it's searched only
+        for the 0x code it ends with.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Management.Automation.ErrorRecord]$ErrorRecord
+    )
+
+    for ($cause = $ErrorRecord.Exception; $null -ne $cause; $cause = $cause.InnerException) {
+        if ($cause -is [Runtime.InteropServices.COMException] -and $cause.HResult -ne 0) {
+            return [int]$cause.HResult
+        }
+    }
+    $code = [regex]::Match([string]$ErrorRecord.Exception.Message, '0x[0-9A-Fa-f]{8}\b')
+    if ($code.Success) {
+        return [Convert]::ToInt32($code.Value.Substring(2), 16)
+    }
+    return 0
+}
+
+function Format-AtlasCbsHResult {
+    param([int]$HResult)
+    return '0x{0:X8}' -f $HResult
+}
+
+# CBS_E_CANNOT_UNINSTALL: servicing refuses to remove a package it keeps permanently.
+# The message that comes with it is localised, so only the code is matched.
+$script:AtlasCbsCannotUninstall = -2146498523 # 0x800F0825
+
+function Test-AtlasCbsTrustFailure {
+    <#
+    .SYNOPSIS
+        Whether servicing refused a package's signature or the certificate chain it needs.
+    .DESCRIPTION
+        Windows decides these from the package's signature and this PC's certificate
+        stores and trust settings, which starting in Safe Mode doesn't change, so a Safe
+        Mode retry fails the same way:
+        - 0x80092004 (CRYPT_E_NOT_FOUND): servicing couldn't find the certificate or
+          signature it looked for.
+        - 0x800B0100 to 0x800B01FF: the WinVerifyTrust certificate and signature results,
+          such as TRUST_E_NOSIGNATURE, CERT_E_EXPIRED, CERT_E_UNTRUSTEDROOT and
+          TRUST_E_EXPLICIT_DISTRUST.
+        - 0x800B0004 (TRUST_E_SUBJECT_NOT_TRUSTED), 0x80096004 (TRUST_E_CERT_SIGNATURE)
+          and 0x80096010 (TRUST_E_BAD_DIGEST): the signature or its certificate doesn't
+          verify.
+    #>
+    param([int]$HResult)
+
+    $code = [int64]$HResult -band 0xFFFFFFFFL
+    if ($code -eq 0x80092004L -or ($code -band 0xFFFFFF00L) -eq 0x800B0100L) {
+        return $true
+    }
+    return $code -in @(0x800B0004L, 0x80096004L, 0x80096010L)
+}
+
+function Get-AtlasCbsTrustFailureInstruction {
+    <#
+    .SYNOPSIS
+        What to tell the user when servicing refused the signature of Atlas packages.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [object[]]$Failure
+    )
+
+    $named = @($Failure | ForEach-Object {
+        "$(Split-Path -Path ([string]$_.Path) -Leaf) ($(Format-AtlasCbsHResult -HResult ([int]$_.HResult)))"
+    }) -join ', '
+    return "Windows didn't accept the signature of $named. Starting in Safe Mode doesn't change that, so Atlas doesn't retry there. Check that the PC's date and time are right and that no security software blocks certificates, run 'DISM /Online /Cleanup-Image /RestoreHealth' as an administrator, restart Windows, then try installing Atlas again. If it fails the same way, repair-install Windows. The install log has the end of CBS.log."
 }
 
 $script:AtlasCbsExpectedHashes = $null
@@ -203,14 +365,25 @@ function Install-AtlasCbsCab {
     }
 
     Write-Host '[INFO] Adding package...'
+    Write-AtlasLog -Message "Adding $fileName; the test root key servicing reads is $(Get-AtlasCbsTestRootState)."
     # -LogLevel 1 writes only errors to the DISM log.
     try {
         Add-WindowsPackage -Online -PackagePath $CabPath -NoRestart -IgnoreCheck -LogLevel 1 *>$null
     }
     catch {
         Write-Host "[ERROR] Error when adding package '$CabPath': $($_.Exception.Message)" -ForegroundColor Red
+        $hresult = Get-AtlasCbsFailureHResult -ErrorRecord $_
+        Write-AtlasLog -Level Warning -Message "Servicing refused $fileName with $(Format-AtlasCbsHResult -HResult $hresult): $($_.Exception.Message)"
+        Write-AtlasCbsLogTail
+        if (Test-AtlasCbsTrustFailure -HResult $hresult) {
+            return [pscustomobject]@{
+                Path = $CabPath; Success = $false; RetryEligible = $false; Sha256 = $expectedSha256
+                FailureKind = 'Trust'; HResult = $hresult
+            }
+        }
         return [pscustomobject]@{
-            Path = $CabPath; Success = $false; RetryEligible = $true; Sha256 = $expectedSha256; FailureKind = 'Servicing'
+            Path = $CabPath; Success = $false; RetryEligible = $true; Sha256 = $expectedSha256
+            FailureKind = 'Servicing'; HResult = $hresult
         }
     }
 
@@ -347,9 +520,12 @@ function Install-AtlasCbsPackage {
     .PARAMETER NonInteractive
         On failure, register the Safe Mode retry fallback and throw so the ordered
         Components step fails and the orchestrator returns a single nonzero status,
-        instead of returning the failures for an interactive prompt.
+        instead of returning the failures for an interactive prompt. A package whose
+        signature servicing refuses (Test-AtlasCbsTrustFailure) arms no retry: the
+        failure says what to do instead.
     .OUTPUTS
-        PSCustomObject with SuccessPackages, FailedPackages and UnmatchedPatterns.
+        PSCustomObject with SuccessPackages, FailedPackages, RetryPackages,
+        TrustFailures, TrustInstruction and UnmatchedPatterns.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -391,6 +567,7 @@ function Install-AtlasCbsPackage {
     $successPackages = @()
     $failedPackages = @()
     $retryPackages = @()
+    $trustFailures = @()
     foreach ($cabPath in $packagesToProcess) {
         $cabResult = Install-AtlasCbsCab -CabPath $cabPath
         if ($cabResult.Success) {
@@ -398,7 +575,10 @@ function Install-AtlasCbsPackage {
         }
         else {
             $failedPackages += $cabPath
-            if ($cabResult.RetryEligible) {
+            if ([string]$cabResult.FailureKind -ceq 'Trust') {
+                $trustFailures += [pscustomobject]@{ Path = [string]$cabResult.Path; HResult = [int]$cabResult.HResult }
+            }
+            elseif ($cabResult.RetryEligible) {
                 $retryPackages += [pscustomobject]@{
                     Path = [IO.Path]::GetFullPath([string]$cabResult.Path)
                     Sha256 = [string]$cabResult.Sha256
@@ -411,9 +591,21 @@ function Install-AtlasCbsPackage {
         New-AtlasCbsRepairSource | Out-Null
     }
 
+    $trustInstruction = $null
+    if ($trustFailures.Count -gt 0) {
+        $trustInstruction = Get-AtlasCbsTrustFailureInstruction -Failure $trustFailures
+        Write-Host "[ERROR] $trustInstruction" -ForegroundColor Red
+        # The install can't finish while one package is refused this way, so a Safe Mode
+        # retry of the others would only send the user through Safe Mode for nothing.
+        $retryPackages = @()
+    }
+
     if (($failedPackages.Count -gt 0) -and $NonInteractive) {
         $failure = "These CBS packages failed to install: $($failedPackages -join ', ')."
-        if ($retryPackages.Count -gt 0) {
+        if ($null -ne $trustInstruction) {
+            $failure += " $trustInstruction"
+        }
+        elseif ($retryPackages.Count -gt 0) {
             Register-AtlasCbsFailureFallback -RetryPackages $retryPackages
             # This failure ends the install, so it's where the user learns of the retry.
             $failure += " $(Get-AtlasCbsRetryInstruction)"
@@ -425,6 +617,8 @@ function Install-AtlasCbsPackage {
         SuccessPackages   = $successPackages
         FailedPackages    = $failedPackages
         RetryPackages     = $retryPackages
+        TrustFailures     = $trustFailures
+        TrustInstruction  = $trustInstruction
         UnmatchedPatterns = $unmatchedPatterns
     }
 }
@@ -436,7 +630,9 @@ function Uninstall-AtlasCbsPackage {
         filtered by architecture. Failures are logged as warnings; must run as
         SYSTEM/TrustedInstaller.
     .OUTPUTS
-        PSCustomObject with RemovedPackages, FailedPackages and UnmatchedPatterns.
+        PSCustomObject with RemovedPackages, FailedPackages, PermanentPackages (failed
+        because servicing keeps them permanently, CBS_E_CANNOT_UNINSTALL) and
+        UnmatchedPatterns.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -453,6 +649,7 @@ function Uninstall-AtlasCbsPackage {
 
     $removedPackages = @()
     $failedPackages = @()
+    $permanentPackages = @()
     if (@($selection.Matched).Count -eq 0) {
         Write-Host "[WARN] '$Packages' matched no installed packages, nothing to do." -ForegroundColor Yellow
     }
@@ -471,7 +668,13 @@ function Uninstall-AtlasCbsPackage {
             }
             catch {
                 Write-Host "[ERROR] $package failed to uninstall: $($_.Exception.Message)" -ForegroundColor Red
+                $hresult = Get-AtlasCbsFailureHResult -ErrorRecord $_
+                Write-AtlasLog -Level Warning -Message "Servicing refused to remove $package with $(Format-AtlasCbsHResult -HResult $hresult): $($_.Exception.Message)"
+                Write-AtlasCbsLogTail
                 $failedPackages += $package
+                if ($hresult -eq $script:AtlasCbsCannotUninstall) {
+                    $permanentPackages += $package
+                }
             }
         }
     }
@@ -479,6 +682,7 @@ function Uninstall-AtlasCbsPackage {
     return [pscustomobject]@{
         RemovedPackages   = $removedPackages
         FailedPackages    = $failedPackages
+        PermanentPackages = $permanentPackages
         UnmatchedPatterns = @($selection.UnmatchedPatterns)
     }
 }

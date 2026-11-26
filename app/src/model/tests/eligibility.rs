@@ -11,6 +11,7 @@ use crate::model::test_harness::{
 };
 use crate::model::{Acquisition, AppModel, Environment, InstallBlock, Page, ReleaseCheck, RunState, Step};
 use crate::services::manager_version::next_patch;
+use crate::services::test_support::capture_logs;
 use crate::services::{atlas_state, package};
 
 #[test]
@@ -99,6 +100,40 @@ fn unsupported_or_unreadable_identity_blocks_before_preparation_and_is_rechecked
             m.prepare_windows(cx);
         });
         assert!(read(&cx, &model, |m| m.preparation_job.is_none() && !m.preparation.busy()));
+        settle(&cx, &model).await;
+    });
+}
+
+/// Atlas's files without a record of a finished install block every install
+/// as an Atlas no package updates does, with nothing to report: the bar says
+/// to reinstall Windows. The identity is read again before launch, so the
+/// front door never runs over them.
+#[test]
+fn atlas_files_without_a_record_block_every_install() {
+    run_model_test(|mut cx| async move {
+        let (temp, machine, env) = fixture("unrecorded-gate");
+        let (package, marker) = marking_package(&temp, 0);
+        *machine.identity.lock().unwrap() = Some(atlas_state::InstallIdentity::Unrecorded);
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        act(&mut cx, &model, |m, cx| m.begin_install(cx));
+        read(&cx, &model, |m| {
+            assert!(!m.flow.active);
+            assert_eq!(m.start_block(), Some(InstallBlock::Unrecorded));
+            assert!(m.ready_help().is_none(), "the bar says what to do");
+            assert!(m.installed_version().is_none() && !m.updates_atlas());
+        });
+        *machine.identity.lock().unwrap() = Some(atlas_state::InstallIdentity::Fresh);
+        walk_to_install(&mut cx, &model, &package).await;
+        act(&mut cx, &model, |m, cx| m.next_step(cx));
+        *machine.identity.lock().unwrap() = Some(atlas_state::InstallIdentity::Unrecorded);
+        act(&mut cx, &model, |m, cx| m.start_install(cx));
+        read(&cx, &model, |m| {
+            assert_eq!(m.flow.run, RunState::Idle);
+            assert_eq!(m.install_block(), Some(InstallBlock::Unrecorded));
+            assert!(!m.can_install());
+        });
+        assert!(!marker.exists());
         settle(&cx, &model).await;
     });
 }
@@ -293,6 +328,37 @@ fn home_offers_no_update_that_this_pc_cannot_start() {
         // An unfinished install of 0.5.0 is finished, not updated.
         *machine.state.lock().unwrap() = Some(completed_state("0.4.1"));
         assert_eq!(offered(&machine, Resume("0.5.0".into(), Default::default()), &mut cx), None);
+    });
+}
+
+/// Home says only that the installation's details can't be read; the log
+/// keeps the error that stopped the state document, and only that error.
+#[test]
+fn an_unreadable_state_document_is_logged_with_its_error() {
+    run_model_test(|mut cx| async move {
+        let (_temp, _, mut env) = fixture("state-unreadable-logged");
+        let unreadable = Arc::new(std::sync::atomic::AtomicBool::new(true));
+        let fails = unreadable.clone();
+        env.adapters.read_atlas_state = Arc::new(move || {
+            if fails.load(std::sync::atomic::Ordering::SeqCst) {
+                anyhow::bail!("parse state.json: expected value at line 1 column 1")
+            }
+            Ok(None)
+        });
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        let ((), logs) = capture_logs(|| act(&mut cx, &model, |m, _| m.refresh_atlas_state()));
+        assert!(read(&cx, &model, |m| m.atlas.is_err() && m.start_block().is_none()));
+        assert_eq!(
+            logs.iter().filter(|line| line.contains("Atlas state document")).collect::<Vec<_>>(),
+            [
+                "WARN could not read the Atlas state document: parse state.json: expected value at line 1 column 1"
+            ]
+        );
+        unreadable.store(false, std::sync::atomic::Ordering::SeqCst);
+        let ((), logs) = capture_logs(|| act(&mut cx, &model, |m, _| m.refresh_atlas_state()));
+        assert!(read(&cx, &model, |m| m.atlas.is_ok()));
+        assert!(!logs.iter().any(|line| line.contains("Atlas state document")), "{logs:?}");
     });
 }
 

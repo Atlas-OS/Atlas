@@ -232,6 +232,99 @@ function Restore-AtlasBalancedPowerScheme {
     [Atlas.Native.PowerSchemes]::RestoreDefault([guid]$script:BalancedPowerScheme)
 }
 
+function Restore-AtlasMissingBalancedPowerScheme {
+    <#
+    .SYNOPSIS
+        Restores the Windows Balanced plan that Windows doesn't store, checks that
+        powercfg lists it, and returns the power-scheme inventory.
+    #>
+    param([Parameter(Mandatory = $true)][string]$PowerCfgPath)
+
+    try {
+        Restore-AtlasBalancedPowerScheme
+    }
+    catch {
+        throw "The Windows Balanced power scheme is missing and could not be restored: $($_.Exception.Message)"
+    }
+    $installed = @(Get-AtlasPowerSchemeInventory -PowerCfgPath $PowerCfgPath)
+    if ($installed -cnotcontains $script:BalancedPowerScheme) {
+        throw 'Windows did not list the Balanced power scheme after restoring it.'
+    }
+    Write-AtlasLog -Message 'Restored the missing Windows Balanced power scheme.'
+    return $installed
+}
+
+function Invoke-AtlasPowerTransaction {
+    <#
+    .SYNOPSIS
+        Runs a power-plan change while holding the Atlas power mutex, so concurrent Atlas
+        power operations are serialised.
+    #>
+    param([Parameter(Mandatory = $true)][scriptblock]$Operation)
+
+    $mutex = New-Object Threading.Mutex($false, $script:PowerTransactionMutexName)
+    $ownsMutex = $false
+    try {
+        try {
+            $ownsMutex = $mutex.WaitOne([TimeSpan]::FromSeconds(30))
+        }
+        catch [Threading.AbandonedMutexException] {
+            $ownsMutex = $true
+        }
+        if (-not $ownsMutex) {
+            throw 'Timed out waiting for another Atlas power operation to finish.'
+        }
+        & $Operation
+    }
+    finally {
+        if ($ownsMutex) {
+            [void]$mutex.ReleaseMutex()
+        }
+        $mutex.Dispose()
+    }
+}
+
+function Get-AtlasPowerCfgPath {
+    $powerCfgPath = [IO.Path]::Combine([Environment]::SystemDirectory, 'powercfg.exe')
+    if (-not [IO.File]::Exists($powerCfgPath)) {
+        throw "Windows powercfg.exe was not found at '$powerCfgPath'."
+    }
+    return $powerCfgPath
+}
+
+function Enable-AtlasBalancedPowerScheme {
+    <#
+    .SYNOPSIS
+        Makes the Windows Balanced power plan the active plan, restoring it first when
+        Windows doesn't have it, and checks that it's active.
+    .DESCRIPTION
+        Tools outside Atlas can delete the Balanced plan, and powercfg then refuses to
+        activate it with "Invalid Parameters". A plan Windows still stores but doesn't
+        list is activated as it is. This leaves device power saving alone, unlike the
+        PowerSaving toggle. Requires Administrator rights; concurrent Atlas power
+        operations are serialised.
+    #>
+    [CmdletBinding()]
+    param()
+
+    Assert-AtlasPrivilege -Administrator
+    $powerCfgPath = Get-AtlasPowerCfgPath
+    Invoke-AtlasPowerTransaction -Operation {
+        $installed = @(Get-AtlasPowerSchemeInventory -PowerCfgPath $powerCfgPath)
+        if ($installed -cnotcontains $script:BalancedPowerScheme -and
+            -not (Test-AtlasPowerSchemeStored -SchemeGuid $script:BalancedPowerScheme)) {
+            [void](Restore-AtlasMissingBalancedPowerScheme -PowerCfgPath $powerCfgPath)
+        }
+        [void](Invoke-AtlasPowerCfg -FilePath $powerCfgPath `
+                -ArgumentList @('/setactive', $script:BalancedPowerScheme))
+        $active = Get-AtlasActivePowerScheme -PowerCfgPath $powerCfgPath
+        if ($active -cne $script:BalancedPowerScheme) {
+            throw "The Balanced power scheme did not become the active scheme (found '$active')."
+        }
+    }
+    Write-AtlasLog -Message 'Activated the Windows Balanced power scheme.'
+}
+
 function Invoke-AtlasPowerSavingState {
     param(
         [Parameter(Mandatory = $true)]
@@ -255,17 +348,7 @@ function Invoke-AtlasPowerSavingState {
         if (Test-AtlasPowerSchemeStored -SchemeGuid $script:BalancedPowerScheme) {
             throw 'Windows has a stored Balanced power scheme, but powercfg did not list it.'
         }
-        try {
-            Restore-AtlasBalancedPowerScheme
-        }
-        catch {
-            throw "The Windows Balanced power scheme is missing and could not be restored: $($_.Exception.Message)"
-        }
-        $installed = @(Get-AtlasPowerSchemeInventory -PowerCfgPath $PowerCfgPath)
-        if ($installed -cnotcontains $script:BalancedPowerScheme) {
-            throw 'Windows did not list the Balanced power scheme after restoring it.'
-        }
-        Write-AtlasLog -Message 'Restored the missing Windows Balanced power scheme.'
+        $installed = @(Restore-AtlasMissingBalancedPowerScheme -PowerCfgPath $PowerCfgPath)
     }
     $atlasPresent = $installed -ccontains $script:AtlasPowerScheme -or
         (Test-AtlasPowerSchemeStored -SchemeGuid $script:AtlasPowerScheme)
@@ -378,24 +461,8 @@ function Set-AtlasPowerSavingState {
 
     Assert-AtlasPrivilege -Administrator
 
-    $powerCfgPath = [IO.Path]::Combine([Environment]::SystemDirectory, 'powercfg.exe')
-    if (-not [IO.File]::Exists($powerCfgPath)) {
-        throw "Windows powercfg.exe was not found at '$powerCfgPath'."
-    }
-
-    $mutex = New-Object Threading.Mutex($false, $script:PowerTransactionMutexName)
-    $ownsMutex = $false
-    try {
-        try {
-            $ownsMutex = $mutex.WaitOne([TimeSpan]::FromSeconds(30))
-        }
-        catch [Threading.AbandonedMutexException] {
-            $ownsMutex = $true
-        }
-        if (-not $ownsMutex) {
-            throw 'Timed out waiting for another Atlas power operation to finish.'
-        }
-
+    $powerCfgPath = Get-AtlasPowerCfgPath
+    Invoke-AtlasPowerTransaction -Operation {
         if (-not $Silent) {
             Write-AtlasStep -Text $(if ($Mode -ceq 'Atlas') {
                     'Applying the Atlas AC power policy...'
@@ -405,12 +472,6 @@ function Set-AtlasPowerSavingState {
                 })
         }
         Invoke-AtlasPowerSavingState -RequestedMode $Mode -PowerCfgPath $powerCfgPath
-    }
-    finally {
-        if ($ownsMutex) {
-            [void]$mutex.ReleaseMutex()
-        }
-        $mutex.Dispose()
     }
 
     Write-AtlasLog -Message "Power-saving mode '$Mode' applied."

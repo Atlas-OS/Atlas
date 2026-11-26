@@ -424,6 +424,8 @@ acquire-no-asset = Atlas { $version } 沒有可下載的套件檔案。請開啟
 # Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
 # .apbx file from an Atlas release before 0.6.
 acquire-unsupported = 這個應用程式可透過 Atlas 套件（.atlaspkg）安裝 Atlas 0.6.0 及更新版本。
+# Instead of acquire-unsupported for a Windows ISO opened as the Atlas package. Create an Atlas ISO (iso-open) is beside it.
+acquire-windows-iso = 這是 Windows ISO，不是 Atlas 套件（.atlaspkg）。若要使用 Atlas 重新安裝 Windows，請用它建立 Atlas ISO。
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = Atlas { $version } 缺少這個應用程式進行安裝所需的檔案。請重新下載，或開啟其他 Atlas 套件（.atlaspkg）。
 acquire-failed = 無法準備 Atlas 套件。請重新下載，或開啟其他 Atlas 套件（.atlaspkg）。詳細資料：{ $error }
@@ -1162,6 +1164,9 @@ iso-destination-space = 需要 { $needed } · { $drive } 可用 { $free }
 iso-destination-short = ISO 需要 { $needed }，而 { $drive } 只有 { $free } 可用。請釋放空間，或將 ISO 儲存到其他磁碟機。
 iso-destination-filesystem = { $drive } 無法存放 ISO 中的大型檔案。請將它儲存到格式化為 NTFS 的磁碟機，例如您的 Windows 磁碟機。
 iso-destination-unusable = Atlas 只能將 ISO 儲存到這台電腦上磁碟機中的資料夾。
+# Copying the ISO's files would pass Windows' limit of 260 characters for a path, even at the
+# root of the drive the new ISO is saved to. Under iso-failed.
+iso-path-too-long = 在您儲存到的資料夾中，ISO 中的檔案所需的路徑會超過 Windows 允許的長度。請將新 ISO 儲存到路徑較短的資料夾，例如您 Windows 磁碟機上的資料夾。
 iso-create = 建立 ISO
 # Heading above the progress bar and the list of stages (iso-stage-*) while the ISO is
 # being created.
@@ -1207,6 +1212,9 @@ iso-unstaged = Atlas 無法準備其工作資料夾，因此沒有進行任何�
 iso-edition-unsupported-title = 此 ISO 沒有 Atlas 支援的版本
 iso-edition-unsupported = 不支援 Windows Home 和 LTSC。請使用包含 Pro、Education 或 Enterprise 的 ISO。
 iso-customised-title = 此 ISO 已經過自訂
+# In place of iso-customised-title, above iso-customised, when the ISO is one Atlas Manager
+# created: Atlas creates an ISO only from an unmodified ISO from Microsoft.
+iso-created-by-atlas-title = 此 ISO 由 Atlas 建立
 iso-customised = 它已包含安裝檔案（例如 autounattend.xml）。請使用 Microsoft 提供、未經修改的 ISO。
 iso-preview-title = 此 ISO 是預覽組建
 iso-preview = 它的 Windows 組建不在 Microsoft 的正式發行版本清單中。請使用 Microsoft 提供的 ISO。
@@ -1217,6 +1225,9 @@ iso-release-unconfirmed = Atlas 會將它與 Microsoft 的正式發行版本清�
 # $minimum is the oldest Atlas version that can make an ISO, such as "0.6.0".
 iso-package-old-title = 此 Atlas 套件無法建立 ISO
 iso-package-old = 請使用 Atlas { $minimum } 或更新版本。
+# Instead of iso-package-old-title and iso-package-old when the file chosen as the Atlas package is a Windows ISO. "The Windows ISO" is the field named iso-source.
+iso-package-windows-iso-title = 這是 Windows ISO，不是 Atlas 套件
+iso-package-windows-iso = 請改為選擇 Atlas 套件（.atlaspkg），並將此 ISO 選為 Windows ISO。
 iso-manager-missing-title = 找不到 Atlas Manager 的檔案
 iso-fix-package = 選擇其他套件
 # A package that needs a newer Atlas Manager; Download Atlas Manager (manager-download) is
@@ -1236,6 +1247,20 @@ iso-failed-space = 目的地磁碟機的可用空間不足。請釋放空間，�
 iso-manager-missing = 請將 AtlasManager.exe 下載到「下載」等本機資料夾，然後從該處開啟。
 # Home and LTSC are the editions ISO creation drops; the others are examples it keeps.
 iso-failed-edition = 此 ISO 不包含支援的 Windows 版本。不支援 Windows Home 與 LTSC。請使用包含其他版本（例如 Pro、Education 或 Enterprise）的 ISO。
+# Windows didn't open an ISO as a drive Atlas can read: the Windows ISO, the new ISO while it's
+# checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
+# USB page's ISO card.
+iso-mount-failed = Windows 無法開啟 ISO。請重新啟動電腦，然後再試一次。
+# Windows stopped answering while it read or mounted the ISO.
+iso-mount-timeout = Windows 在開啟 ISO 時停止回應。請重新啟動電腦，然後再試一次。
+# vdrvroot and cdrom are the Windows drivers' own names, as tools that turn drivers off show
+# them. Keep them as they are.
+iso-mount-drivers = Windows 無法在這台電腦上開啟 ISO 檔案，因為它所需的驅動程式 vdrvroot 和 cdrom 已停用。請重新啟用它們、重新啟動電腦，然後再試一次。
+# Windows can store a file compressed or encrypted (in the file's Properties, under Advanced),
+# and a download can be stored sparse, with space reserved but not yet written. Windows can't
+# open an ISO stored any of these ways. Under iso-check-failed, with iso-download-windows and
+# iso-use-local beside it, or on the USB page's ISO card.
+iso-mount-file = Windows 無法開啟此 ISO，因為該檔案已壓縮、已加密或為疏鬆檔案。請將它複製到未壓縮且未加密的資料夾，然後使用該複本。
 # Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = 開啟記錄資料夾
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,
@@ -1441,6 +1466,8 @@ install-source-resume-package = Atlas { $target } 的安裝尚未完成，只有
 install-source-resume-bundled = Atlas { $target } 的安裝尚未完成。此測試版只能安裝其內建的 Atlas 套件，因此請在正式版 Atlas Manager 中使用 Atlas { $target } 套件完成該安裝。
 # Send a report and Export diagnostics are offered with it.
 install-source-unconfirmed = Atlas 無法確認這台電腦上已安裝的內容，因此目前不會安裝任何項目。
+# Atlas's files are on this PC without a record of a finished installation. Create an Atlas ISO (iso-open) is beside it.
+install-source-unrecorded = 這台電腦上有舊版 Atlas 的檔案，但沒有完成安裝的記錄，因此無法更新。若要安裝 Atlas，請備份您的檔案並重新安裝 Windows。
 # Under the editions on the Create step, when Windows Setup asks which to install.
 iso-edition-selection = 請在 Windows 安裝程式中選擇您擁有授權的版本。
 detail-windows-preview = 不支援 Insider 預覽組建。請使用 Windows 11 的正式發行版本。
@@ -1594,6 +1621,8 @@ install-windows-edition-only = Atlas { $version } 適用於 Windows 11 Pro、Ent
 install-windows-edition-until = Atlas { $version } 適用於 Windows 11 Pro、Enterprise 和 Education，因此無法安裝在 { $product } 上。Windows 11 版本 { $current } 會接收安全性更新至 { $date }，而 Windows Update 可以將這台電腦更新至較新的版本。
 # The same once that date has passed.
 install-windows-edition-ended-update = Atlas { $version } 適用於 Windows 11 Pro、Enterprise 和 Education，因此無法安裝在 { $product } 上。版本 { $current } 已不再接收安全性更新，因此即使不安裝 Atlas，也請更新 Windows。
+# Instead of install-windows-edition-only on an LTSC edition, which Windows names with a year that reads like a version.
+install-windows-edition-ltsc = Atlas { $version } 適用於 Windows 11 Pro、Enterprise 和 Education。不支援 LTSC 版本。
 # $releases lists the supported releases, such as "25H2 or 26H2".
 install-windows-reinstall = Atlas { $version } 需要 Windows 11 版本 { $releases }，而 Windows Update 無法將這台電腦更新至該版本。請備份您的檔案，然後使用 Atlas ISO 重新安裝 Windows。
 # The same on Home, where the card that creates an Atlas ISO comes first and says how to reinstall.
@@ -1800,6 +1829,10 @@ prepare-store-broken-title = Microsoft Store 無法運作
 prepare-store-broken = Atlas 無法修復它，現在安裝 Atlas 可能會導致市集應用程式無法運作。
 prepare-store-broken-iso = 如果修復一再失敗，請備份您的檔案，並使用 Atlas ISO 重新安裝 Windows。
 prepare-repair-store-again = 再次嘗試修復
+# Windows couldn't install updates for some of its own apps, and Atlas's Store repairs didn't help.
+# $apps lists the apps by their package names, joined with list-and.
+prepare-store-staging-title = Windows 無法更新內建應用程式
+prepare-store-staging = Windows 無法安裝下列內建應用程式的更新，Atlas 的修復也無法解決問題：{ $apps }。{ prepare-components-unrepairable }
 
 screen-keyboard-title = 鍵盤語言
 screen-keyboard-question = 您使用多種鍵盤語言嗎？

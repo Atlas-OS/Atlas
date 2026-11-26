@@ -76,6 +76,14 @@ enum IsoProblem {
     WorkingSpace,
     /// The check failed some other way, such as a damaged ISO.
     Unreadable,
+    /// Windows didn't open the ISO as a drive Atlas can read.
+    Mount,
+    /// The drivers Windows mounts an ISO with are turned off.
+    MountDrivers,
+    /// The ISO's file is stored in a way Windows doesn't mount; a copy is.
+    MountFile,
+    /// Windows stopped answering while it opened the ISO.
+    MountTimeout,
 }
 
 impl IsoProblem {
@@ -85,7 +93,17 @@ impl IsoProblem {
             Self::Location => t!("usb-iso-location"),
             Self::WorkingSpace => t!("usb-working-space"),
             Self::Unreadable => t!("usb-iso-unreadable"),
+            Self::Mount => t!("iso-mount-failed"),
+            Self::MountDrivers => t!("iso-mount-drivers"),
+            Self::MountFile => t!("iso-mount-file"),
+            Self::MountTimeout => t!("iso-mount-timeout"),
         }
+    }
+
+    /// Whether nothing the person can do is known to fix it, so the card
+    /// offers help and the check's logs.
+    fn needs_help(self) -> bool {
+        matches!(self, Self::Unreadable | Self::Mount | Self::MountTimeout)
     }
 }
 
@@ -234,6 +252,10 @@ impl Failed {
             Some(FailureReason::IsoUnsupported) => Some(IsoProblem::Unsupported),
             Some(FailureReason::SourceLocation) => Some(IsoProblem::Location),
             Some(FailureReason::WorkingSpace) => Some(IsoProblem::WorkingSpace),
+            Some(FailureReason::IsoMount) => Some(IsoProblem::Mount),
+            Some(FailureReason::IsoMountDrivers) => Some(IsoProblem::MountDrivers),
+            Some(FailureReason::IsoMountFile) => Some(IsoProblem::MountFile),
+            Some(FailureReason::IsoMountTimeout) => Some(IsoProblem::MountTimeout),
             _ => None,
         };
         match operation {
@@ -727,7 +749,7 @@ impl UsbPage {
                     _ => IsoProblem::Unreadable,
                 };
                 self.check = IsoCheck::Failed(problem);
-                self.check_job = job.filter(|_| problem == IsoProblem::Unreadable);
+                self.check_job = job.filter(|_| problem.needs_help());
             }
         }
         self.repick();
@@ -1416,7 +1438,8 @@ impl UsbPage {
             .unwrap_or_else(|| path.display().to_string());
         let folder = path.parent().map(|parent| parent.display().to_string()).unwrap_or_default();
         // The fix for an ISO that can't be used is another one, under the problem.
-        let change = !matches!(problem, Some(IsoProblem::Unsupported | IsoProblem::Location));
+        let change =
+            !matches!(problem, Some(IsoProblem::Unsupported | IsoProblem::Location | IsoProblem::MountFile));
         content = content.child(
             div()
                 .flex()
@@ -1484,16 +1507,21 @@ impl UsbPage {
             IsoCheck::Failed(problem) => {
                 let message = problem.text();
                 let fix = match problem {
-                    IsoProblem::Unsupported | IsoProblem::Location => choose("usb-iso-fix", cx),
+                    IsoProblem::Unsupported | IsoProblem::Location | IsoProblem::MountFile => {
+                        choose("usb-iso-fix", cx)
+                    }
                     IsoProblem::WorkingSpace => Button::new("usb-iso-fix", t!("usb-open-storage"))
                         .when(leads, Button::accent)
                         .trailing_icon(Icon::OpenInNewWindow)
                         .opens(STORAGE_SETTINGS),
-                    IsoProblem::Unreadable => Button::new("usb-iso-fix", t!("common-try-again"))
+                    IsoProblem::Unreadable
+                    | IsoProblem::Mount
+                    | IsoProblem::MountDrivers
+                    | IsoProblem::MountTimeout => Button::new("usb-iso-fix", t!("common-try-again"))
                         .when(leads, Button::accent)
                         .on_click(cx.listener(|this, _, _, cx| this.start_check(false, cx))),
                 };
-                let help = help && problem == IsoProblem::Unreadable;
+                let help = help && problem.needs_help();
                 content = content.child(
                     div()
                         .id("usb-iso-problem")
@@ -1736,6 +1764,24 @@ mod tests {
         assert_eq!(of(Some(FailureReason::IsoUnsupported)), Failed::Iso(IsoProblem::Unsupported));
         assert_eq!(of(Some(FailureReason::WorkingSpace)), Failed::Iso(IsoProblem::WorkingSpace));
         assert_eq!(of(None), Failed::Iso(IsoProblem::Unreadable));
+        // Windows couldn't open it as a drive: the card says so, with help.
+        assert_eq!(of(Some(FailureReason::IsoMount)), Failed::Iso(IsoProblem::Mount));
+        assert_eq!(of(Some(FailureReason::IsoMountDrivers)), Failed::Iso(IsoProblem::MountDrivers));
+        assert_eq!(of(Some(FailureReason::IsoMountFile)), Failed::Iso(IsoProblem::MountFile));
+        assert_eq!(of(Some(FailureReason::IsoMountTimeout)), Failed::Iso(IsoProblem::MountTimeout));
+        for problem in [IsoProblem::Unreadable, IsoProblem::Mount, IsoProblem::MountTimeout] {
+            assert!(problem.needs_help(), "{problem:?}");
+        }
+        // The card's message has the fix: other media, space, drivers or a copy.
+        for problem in [
+            IsoProblem::Unsupported,
+            IsoProblem::Location,
+            IsoProblem::WorkingSpace,
+            IsoProblem::MountDrivers,
+            IsoProblem::MountFile,
+        ] {
+            assert!(!problem.needs_help(), "{problem:?}");
+        }
         assert_eq!(Failed::of("List", true, None), Failed::Bar(UsbError::Scan));
         assert_eq!(Failed::of("Eject", false, None), Failed::Bar(UsbError::Eject));
     }
@@ -1824,6 +1870,10 @@ mod tests {
                     IsoProblem::Location,
                     IsoProblem::WorkingSpace,
                     IsoProblem::Unreadable,
+                    IsoProblem::Mount,
+                    IsoProblem::MountDrivers,
+                    IsoProblem::MountFile,
+                    IsoProblem::MountTimeout,
                 ]
                 .map(IsoProblem::text),
             );

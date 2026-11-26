@@ -396,6 +396,107 @@ function Write-AtlasProcessExplorerUserPreference {
     }
 }
 
+Describe 'Process Explorer update replay' {
+    BeforeAll {
+        $modulesRoot = Join-Path $script:RepoRoot 'package\Executables\AtlasModules\Scripts\Modules'
+        Import-Module (Join-Path $modulesRoot 'Atlas.Core\Atlas.Core.psd1') -Force
+        Import-Module (Join-Path $modulesRoot 'Atlas.Toggles\Atlas.Toggles.psd1') -Force
+        $script:ReplayDefinition = Get-AtlasToggleDefinition -Name ProcessExplorer `
+            -TogglesRoot (Join-Path $script:RepoRoot 'package\Executables\AtlasModules\Toggles')
+
+        # The companion dot-sources the package helper beside it. This one keeps the real
+        # Debugger read and ownership check, with Task Manager's IFEO key in Pester's
+        # isolated registry.
+        $tokens = $null
+        $errors = $null
+        $helperAst = [Management.Automation.Language.Parser]::ParseFile(
+            $script:PackageHelperPath, [ref]$tokens, [ref]$errors)
+        $realFunctions = foreach ($name in @('Get-AtlasProcessExplorerDebugger', 'Test-AtlasProcessExplorerDebuggerValue')) {
+            $helperAst.Find({
+                    param($node)
+                    $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -ceq $name
+                }, $true).Extent.Text
+        }
+        $script:ReplayBinaryPath = 'C:\Windows\AtlasModules\Apps\ProcessExplorer\procexp.exe'
+        $script:ReplayIfeoPath = 'TestRegistry:\taskmgr.exe'
+        $operationsPath = Join-Path $TestDrive 'ReplayOperations'
+        [void](New-Item $operationsPath -ItemType Directory -Force)
+        Set-Content -LiteralPath (Join-Path $operationsPath 'ProcessExplorer-Package.ps1') -Encoding Ascii -Value (@(
+                'function Get-AtlasProcessExplorerLayout {'
+                "    [pscustomobject]@{ IfeoPath = '$script:ReplayIfeoPath'; BinaryPath = '$script:ReplayBinaryPath' }"
+                '}'
+            ) + $realFunctions)
+        $script:ReplayContext = [pscustomobject]@{
+            Name              = 'ProcessExplorer'
+            State             = 'Enable'
+            StateValue        = 1
+            Silent            = $true
+            JustContext       = $false
+            NoExplorerRestart = $true
+            ResetServices     = $false
+            StateRoot         = 'HKCU:\Software\AtlasRewriteTest\Services'
+            LauncherPath      = $null
+            WinDir            = $env:SystemRoot
+            AtlasModulesPath  = $TestDrive
+            ScriptsPath       = (Join-Path $TestDrive 'Scripts')
+            ModulesPath       = (Join-Path $TestDrive 'Scripts\Modules')
+            OperationsPath    = $operationsPath
+            WindowsBuild      = 26100
+        }
+
+        function Test-ProcessExplorerReplay {
+            InModuleScope Atlas.Toggles {
+                Invoke-AtlasToggleFunction -Definition $d -FunctionName $f -Toggle $t -Label 'replay applicability check'
+            } -Parameters @{
+                d = $script:ReplayDefinition
+                f = [string]$script:ReplayDefinition.States['Enable']['ReplayApplicable']
+                t = $script:ReplayContext
+            }
+        }
+
+        function Set-TestTaskManagerDebugger {
+            param([Parameter(Mandatory = $true)][string]$Value)
+            [void](New-Item -Path $script:ReplayIfeoPath -Force)
+            [void](New-ItemProperty -LiteralPath $script:ReplayIfeoPath -Name 'Debugger' -Value $Value `
+                    -PropertyType String -Force)
+        }
+    }
+
+    BeforeEach {
+        Mock Write-AtlasLog -ModuleName Atlas.Toggles
+        Remove-Item -LiteralPath $script:ReplayIfeoPath -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'checks applicability for Enable only' {
+        $script:ReplayDefinition.States['Enable']['ReplayApplicable'] |
+            Should -BeExactly 'Test-AtlasProcessExplorerReplayApplicable'
+        $script:ReplayDefinition.States['Disable'].Contains('ReplayApplicable') | Should -BeFalse
+    }
+
+    It 'replays Enable when Task Manager has no Debugger' {
+        Test-ProcessExplorerReplay | Should -BeTrue
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 0
+    }
+
+    It 'replays Enable when the Debugger is Atlas''s Process Explorer' {
+        Set-TestTaskManagerDebugger -Value $script:ReplayBinaryPath
+
+        Test-ProcessExplorerReplay | Should -BeTrue
+    }
+
+    It 'retires Enable and leaves another program''s Task Manager Debugger alone' {
+        $launcher = '"C:\Program Files\Example\Task Manager Launcher.exe"'
+        Set-TestTaskManagerDebugger -Value $launcher
+
+        Test-ProcessExplorerReplay | Should -BeFalse
+
+        (Get-ItemProperty -LiteralPath $script:ReplayIfeoPath -Name 'Debugger').Debugger | Should -BeExactly $launcher
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Toggles -Times 1 -Exactly -ParameterFilter {
+            $Message -like "Task Manager opens '`"C:\Program Files\Example\Task Manager Launcher.exe`"' instead of Atlas's Process Explorer*"
+        }
+    }
+}
+
 Describe 'Process Explorer upgrade teardown' {
     BeforeEach {
         # The script dot-sources the Atlas bootstrap, which replaces PSModulePath for the

@@ -101,7 +101,7 @@ pub(super) fn wmi_strings(namespace: &str, query: &str, property: &str) -> Resul
 
 /// Runs a WQL query and returns the named properties of every row as text,
 /// in the order given; `None` where a row has no value for one.
-pub(super) fn wmi_query(
+pub(in crate::services) fn wmi_query(
     namespace: &str,
     query: &str,
     properties: &[&str],

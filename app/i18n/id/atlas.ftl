@@ -432,6 +432,8 @@ acquire-no-asset = Atlas { $version } tidak memiliki file paket yang dapat diund
 # Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
 # .apbx file from an Atlas release before 0.6.
 acquire-unsupported = Aplikasi ini dapat menginstal Atlas 0.6.0 dan yang lebih baru dari paket Atlas (.atlaspkg).
+# Instead of acquire-unsupported for a Windows ISO opened as the Atlas package. Create an Atlas ISO (iso-open) is beside it.
+acquire-windows-iso = Ini adalah ISO Windows, bukan paket Atlas (.atlaspkg). Untuk menginstal ulang Windows dengan Atlas, buat ISO Atlas dengan file ini.
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = Atlas { $version } tidak berisi file yang diperlukan aplikasi ini untuk menginstalnya. Unduh lagi, atau buka paket Atlas (.atlaspkg) lain.
 acquire-failed = Tidak dapat menyiapkan paket Atlas. Unduh lagi, atau buka paket Atlas (.atlaspkg) lain. Detail: { $error }
@@ -1170,6 +1172,9 @@ iso-destination-space = Memerlukan { $needed } · { $free } kosong di { $drive }
 iso-destination-short = ISO memerlukan { $needed }, sedangkan ruang kosong di { $drive } hanya { $free }. Kosongkan ruang, atau simpan ISO ke drive lain.
 iso-destination-filesystem = { $drive } tidak dapat menyimpan file besar dalam ISO. Simpan ke drive berformat NTFS, seperti drive Windows Anda.
 iso-destination-unusable = Atlas hanya dapat menyimpan ISO ke folder di drive pada PC ini.
+# Copying the ISO's files would pass Windows' limit of 260 characters for a path, even at the
+# root of the drive the new ISO is saved to. Under iso-failed.
+iso-path-too-long = Di folder tujuan, file dalam ISO akan memerlukan jalur yang lebih panjang daripada yang diizinkan Windows. Simpan ISO baru ke folder dengan jalur yang lebih pendek, seperti folder di drive Windows Anda.
 iso-create = Buat ISO
 # Heading above the progress bar and the list of stages (iso-stage-*) while the ISO is
 # being created.
@@ -1215,6 +1220,9 @@ iso-unstaged = Atlas tidak dapat menyiapkan folder kerjanya, sehingga tidak ada 
 iso-edition-unsupported-title = ISO ini tidak berisi edisi yang didukung Atlas
 iso-edition-unsupported = Windows Home dan LTSC tidak didukung. Gunakan ISO dengan edisi Pro, Education, atau Enterprise.
 iso-customised-title = ISO ini sudah dimodifikasi
+# In place of iso-customised-title, above iso-customised, when the ISO is one Atlas Manager
+# created: Atlas creates an ISO only from an unmodified ISO from Microsoft.
+iso-created-by-atlas-title = ISO ini dibuat oleh Atlas
 iso-customised = ISO ini sudah berisi file penyiapan, seperti autounattend.xml. Gunakan ISO dari Microsoft yang belum dimodifikasi.
 iso-preview-title = ISO ini adalah build pratinjau
 iso-preview = Build Windows-nya tidak ada dalam daftar rilis publik Microsoft. Gunakan ISO dari Microsoft.
@@ -1225,6 +1233,9 @@ iso-release-unconfirmed = Atlas mencocokkannya dengan daftar rilis publik Micros
 # $minimum is the oldest Atlas version that can make an ISO, such as "0.6.0".
 iso-package-old-title = Paket Atlas ini tidak dapat membuat ISO
 iso-package-old = Gunakan Atlas { $minimum } atau yang lebih baru.
+# Instead of iso-package-old-title and iso-package-old when the file chosen as the Atlas package is a Windows ISO. "The Windows ISO" is the field named iso-source.
+iso-package-windows-iso-title = Ini adalah ISO Windows, bukan paket Atlas
+iso-package-windows-iso = Pilih paket Atlas (.atlaspkg) sebagai gantinya, dan pilih ISO ini sebagai ISO Windows.
 iso-manager-missing-title = File Atlas Manager tidak ditemukan
 iso-fix-package = Pilih paket lain
 # A package that needs a newer Atlas Manager; Download Atlas Manager (manager-download) is
@@ -1244,6 +1255,20 @@ iso-failed-space = Ruang kosong di drive tujuan tidak cukup. Kosongkan ruang, at
 iso-manager-missing = Unduh AtlasManager.exe ke folder lokal seperti Unduhan, lalu buka dari sana.
 # Home and LTSC are the editions ISO creation drops; the others are examples it keeps.
 iso-failed-edition = ISO ini tidak berisi edisi Windows yang didukung. Windows Home dan LTSC tidak didukung. Gunakan ISO yang menyertakan edisi lain, seperti Pro, Education, atau Enterprise.
+# Windows didn't open an ISO as a drive Atlas can read: the Windows ISO, the new ISO while it's
+# checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
+# USB page's ISO card.
+iso-mount-failed = Windows tidak dapat membuka ISO. Mulai ulang PC Anda, lalu coba lagi.
+# Windows stopped answering while it read or mounted the ISO.
+iso-mount-timeout = Windows berhenti merespons saat membuka ISO. Mulai ulang PC Anda, lalu coba lagi.
+# vdrvroot and cdrom are the Windows drivers' own names, as tools that turn drivers off show
+# them. Keep them as they are.
+iso-mount-drivers = Windows tidak dapat membuka file ISO di PC ini karena driver yang digunakannya untuk itu, vdrvroot dan cdrom, dinonaktifkan. Aktifkan kembali driver tersebut, mulai ulang PC Anda, lalu coba lagi.
+# Windows can store a file compressed or encrypted (in the file's Properties, under Advanced),
+# and a download can be stored sparse, with space reserved but not yet written. Windows can't
+# open an ISO stored any of these ways. Under iso-check-failed, with iso-download-windows and
+# iso-use-local beside it, or on the USB page's ISO card.
+iso-mount-file = Windows tidak dapat membuka ISO ini karena file-nya dikompresi, dienkripsi, atau berupa file sparse. Salin ke folder yang tidak dikompresi atau dienkripsi, lalu gunakan salinannya.
 # Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = Buka folder log
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,
@@ -1450,6 +1475,8 @@ install-source-resume-package = Penginstalan Atlas { $target } tidak selesai, da
 install-source-resume-bundled = Penginstalan Atlas { $target } tidak selesai. Versi uji ini hanya dapat menginstal paket Atlas bawaannya, jadi selesaikan penginstalan tersebut dengan paket Atlas { $target } di versi rilis Atlas Manager.
 # Send a report and Export diagnostics are offered with it.
 install-source-unconfirmed = Atlas tidak dapat memastikan apa yang sudah terinstal di PC ini, jadi Atlas tidak akan menginstal apa pun untuk saat ini.
+# Atlas's files are on this PC without a record of a finished installation. Create an Atlas ISO (iso-open) is beside it.
+install-source-unrecorded = PC ini memiliki file dari Atlas versi sebelumnya, tetapi tidak ada catatan penginstalan yang selesai, jadi Atlas tersebut tidak dapat diperbarui. Untuk menginstal Atlas, cadangkan file Anda dan instal ulang Windows.
 # Under the editions on the Create step, when Windows Setup asks which to install.
 iso-edition-selection = Di Penyiapan Windows, pilih edisi yang lisensinya Anda miliki.
 detail-windows-preview = Build Insider tidak didukung. Gunakan rilis publik Windows 11.
@@ -1604,6 +1631,8 @@ install-windows-edition-only = Atlas { $version } berfungsi dengan Windows 11 Pr
 install-windows-edition-until = Atlas { $version } berfungsi dengan Windows 11 Pro, Enterprise, dan Education, sehingga tidak dapat diinstal di { $product }. Windows 11, versi { $current } menerima pembaruan keamanan hingga { $date }, dan Windows Update dapat meningkatkan PC ini ke versi yang lebih baru.
 # The same once that date has passed.
 install-windows-edition-ended-update = Atlas { $version } berfungsi dengan Windows 11 Pro, Enterprise, dan Education, sehingga tidak dapat diinstal di { $product }. Versi { $current } tidak lagi menerima pembaruan keamanan, jadi tetap perbarui Windows meskipun tanpa Atlas.
+# Instead of install-windows-edition-only on an LTSC edition, which Windows names with a year that reads like a version.
+install-windows-edition-ltsc = Atlas { $version } berfungsi dengan Windows 11 Pro, Enterprise, dan Education. Edisi LTSC tidak didukung.
 # $releases lists the supported releases, such as "25H2 or 26H2".
 install-windows-reinstall = Atlas { $version } memerlukan Windows 11, versi { $releases }, dan Windows Update tidak dapat meningkatkan PC ini ke versi tersebut. Cadangkan file Anda, lalu instal ulang Windows dengan ISO Atlas.
 # The same on Home, where the card that creates an Atlas ISO comes first and says how to reinstall.
@@ -1811,6 +1840,10 @@ prepare-store-broken-title = Microsoft Store tidak berfungsi
 prepare-store-broken = Atlas tidak dapat memperbaikinya, dan menginstal Atlas sekarang dapat merusak aplikasi Store.
 prepare-store-broken-iso = Jika perbaikan terus gagal, cadangkan file Anda dan instal ulang Windows dengan ISO Atlas.
 prepare-repair-store-again = Coba perbaiki lagi
+# Windows couldn't install updates for some of its own apps, and Atlas's Store repairs didn't help.
+# $apps lists the apps by their package names, joined with list-and.
+prepare-store-staging-title = Windows tidak dapat memperbarui aplikasi bawaannya
+prepare-store-staging = Windows tidak dapat menginstal pembaruan untuk aplikasi bawaan ini, dan perbaikan dari Atlas tidak membantu: { $apps }. { prepare-components-unrepairable }
 
 screen-keyboard-title = Bahasa keyboard
 screen-keyboard-question = Apakah Anda menggunakan beberapa bahasa keyboard?
