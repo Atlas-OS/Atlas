@@ -997,7 +997,7 @@ Describe 'Moving Windows' {
         (Read-Journal).phase | Should -BeExactly 'installed'
         Should -Invoke Invoke-PreparationCommitCall -Times 0 -Exactly -Because 'Atlas commits only just before its own restart'
         $evidence = Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw
-        $evidence | Should -Match "unexpected-offer, not installed: 'Windows 11, version 25H2' KB=5054156"
+        $evidence | Should -Match "unexpected-offer, for another release than 26H2, not installed: 'Windows 11, version 25H2' KB=5054156"
         $evidence | Should -Match 'lifted policy.DisableWindowsUpdateAccess: DWord 1 -> absent'
     }
 
@@ -1015,7 +1015,68 @@ Describe 'Moving Windows' {
         $journal.offer.title | Should -BeExactly 'Windows 11, version 26H2'
         $evidence = Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw
         $evidence | Should -Match "offer, chosen by the release 26H2 in its title: 'Windows 11, version 26H2' KB=5139999 id=\S+ rev 1"
-        $evidence | Should -Match "unexpected-offer, not installed: 'Windows 11, version 25H2'"
+        $evidence | Should -Match "unexpected-offer, for another release than 26H2, not installed: 'Windows 11, version 25H2'"
+    }
+
+    It 'never takes an upgrade a known KB names when its title names another release' {
+        # Windows Update can offer the release before the target under the target's KB.
+        $script:Offers.default = @(New-Offer 'Windows 11, version 25H2' @('5129195') -Upgrade)
+        try { Invoke-PreparationTransition } catch { $thrown = $_.Exception }
+        $thrown.Data['reason'] | Should -BeExactly 'feature-not-offered'
+        Should -Invoke Invoke-PreparationWindowsOperation -Times 0 -Exactly
+        Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw |
+            Should -Match "unexpected-offer, for another release than 26H2, not installed: 'Windows 11, version 25H2' KB=5129195"
+    }
+
+    It 'takes the offer naming the target when another release''s offer has the same known KB' {
+        $script:Offers.default = @(
+            (New-Offer 'Windows 11, version 25H2' @('5129195') -Upgrade)
+            (New-Offer 'Windows 11, version 26H2' @('5129195') -Upgrade)
+        )
+        Invoke-PreparationTransition | Should -Be 'reboot'
+        $script:Collections[-1].Items[0].Title | Should -BeExactly 'Windows 11, version 26H2'
+        (Read-Journal).offer.title | Should -BeExactly 'Windows 11, version 26H2'
+    }
+
+    It 'counts a hidden offer only when its title names no other release' {
+        $script:Offers.hidden = @(New-Offer 'Windows 11, version 25H2' @('5129195') -Upgrade)
+        try { Invoke-PreparationTransition } catch { $thrown = $_.Exception }
+        $thrown.Data['reason'] | Should -BeExactly 'feature-not-offered'
+    }
+
+    It 'restarts Windows Update, waits for the target and tries a refused download once more (<Code>)' -TestCases @(
+        @{ Code = '0x80246017'; HResult = -2145099753 }
+        @{ Code = '0x80246019'; HResult = -2145099751 }
+    ) {
+        param($Code, $HResult)
+        $script:Offers.default = @(New-Offer 'Windows 11, version 26H2' @('5129195') -Upgrade)
+        $script:Downloads = [Collections.Queue]::new(@((New-Result 4 $HResult $false), (New-Result 2 0 $false)))
+        Mock Invoke-PreparationWindowsOperation { if ($Kind -eq 'Download') { $script:Downloads.Dequeue() } else { $script:Install } }
+        # The offer comes before Windows Update has taken in the target, which it
+        # takes in only with the restart after the refusal.
+        $script:Restarts = 0
+        Mock Restart-PreparationUpdateService {
+            $script:Restarts++
+            if ($script:Restarts -ge 2) { Set-Fake 'SOFTWARE\Microsoft\WindowsUpdate\UpdatePolicy\PolicyState' TargetReleaseVersion String '26H2' }
+            $true
+        }
+        Invoke-PreparationTransition | Should -Be 'reboot'
+        (Read-Journal).phase | Should -BeExactly 'installed'
+        $script:Restarts | Should -Be 2 -Because 'one restart was for reading the target, and one for the refusal'
+        Should -Invoke Invoke-PreparationWindowsOperation -Times 2 -Exactly -ParameterFilter { $Kind -eq 'Download' }
+        Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw | Should -Match "Windows Update refused the download; restarted wuauserv, policy state now: target '26H2'"
+    }
+
+    It 'names the refusal when Windows Update refuses the download again' {
+        $script:Offers.default = @(New-Offer 'Windows 11, version 26H2' @('5129195') -Upgrade)
+        $script:Download = New-Result 4 -2145099753 $false
+        Mock Restart-PreparationUpdateService { $true }
+        try { Invoke-PreparationTransition } catch { $detail = Get-PreparationFailureDetail $_.Exception }
+        $detail.reason | Should -BeExactly 'feature-failed'
+        $detail.errorCode | Should -BeExactly '0x80246017'
+        $detail.failureMessage | Should -Match "refused to download 'Windows 11, version 26H2' KB=5129195 \(0x80246017\)"
+        Should -Invoke Invoke-PreparationWindowsOperation -Times 0 -Exactly -ParameterFilter { $Kind -eq 'Install' }
+        (Read-Journal).phase | Should -BeExactly 'targeted'
     }
 
     It 'chooses none of several unknown upgrades naming the target, and installs nothing' {

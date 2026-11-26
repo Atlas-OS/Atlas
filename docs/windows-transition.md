@@ -218,6 +218,8 @@ Of the feature updates Windows Update offers, the worker installs the one whose 
 Failing that, it installs the one whose title names the target release.
 When several titles name it and none has a known KB number, it installs none and stops with `feature-failed`.
 It logs any other feature update and leaves it alone.
+An offer whose title names another release is left alone even under a KB number the transition lists.
+Windows Update can offer the release before the target under that number, then refuses to download it.
 
 Windows Update can give the offer the KB number of a monthly update.
 So update history counts as the new release only by the ID of the update Atlas installed, or by a title that names the release.
@@ -262,6 +264,9 @@ The worker downloads and installs the feature update on its own.
 Any result that leaves work for a restart counts as installed, because the build Windows starts after the restart decides whether it moved.
 When Windows wants a restart before the install, Atlas Manager restarts first.
 A failed install gets one more try, and the second failure stops the run with `feature-failed`.
+When Windows Update refuses to download the offer (`0x80246017` or `0x80246019`), as it can before it has taken in the target, that try comes after a restart of Windows Update.
+The worker restarts it even after its two restarts for the offer, waits up to two minutes for its policy state to show the release, and searches again.
+A second refusal stops the run with `feature-failed`, and its message names the error.
 An install that meets another installation waits for it first, without using up that try, as monthly updates do (see [Windows updates](preparation.md#windows-updates)).
 When the result gives no code, the log and the outcome have the one Windows Update's history records.
 

@@ -1253,6 +1253,16 @@ function Test-PreparationTargetTitle($Update, [string]$Release = $WindowsTarget)
     return $title -match "(^|[^0-9A-Za-z])$([regex]::Escape($Release))([^0-9A-Za-z]|$)"
 }
 
+# Whether an update's title names a Windows release, as in "version 25H2", and
+# not the target. Windows Update can offer another release's feature update
+# under a KB number the target's is known by, and refuses to download it.
+function Test-PreparationOtherReleaseTitle($Update, [string]$Release = $WindowsTarget) {
+    if (-not $Release) { return $false }
+    $property = $Update.PSObject.Properties['Title']
+    $title = if ($null -ne $property) { [string]$property.Value } else { '' }
+    return $title -match '(^|[^0-9A-Za-z])\d{2}H\d([^0-9A-Za-z]|$)' -and -not (Test-PreparationTargetTitle $Update $Release)
+}
+
 function Test-PreparationKnownKb($Update, [string]$List) {
     if (-not $List) { return $false }
     $known = @($List -split ',')
@@ -2865,6 +2875,11 @@ $script:PreparationTargetReread = $false
 # something turned Windows Update off again.
 $script:UpdateAccessCodes = @(-2145124306, -2145124305, -2147023838)
 
+# 0x80246017 and 0x80246019: Windows Update refused, within seconds, to download
+# a feature update it offered, as it does when it offers one before it has
+# taken in the feature-update target.
+$script:DownloadRefusedCodes = @(-2145099753, -2145099751)
+
 function Get-PreparationSourceBuild { if ($SourceBuilds) { @($SourceBuilds -split ',' | ForEach-Object { [int]$_ }) } }
 
 # Changes every boot, so a commit can be tied to the boot it happened in.
@@ -2947,7 +2962,8 @@ function Invoke-PreparationCommitCall([string]$UpdateId) {
 
 # Finds the target's feature update among the upgrades Windows Update offers: the
 # one whose title names the target release, whatever its KB. A known KB number
-# wins when several do. Any other upgrade is logged and left alone.
+# wins when several do, but never for a title that names another release. Any
+# other upgrade is logged and left alone.
 function Find-PreparationFeatureOffer($Session) {
     $base = "IsInstalled=0 and IsHidden=0 and Type='Software' and CategoryIDs contains '$script:UpgradesCategory'"
     # Without DeploymentAction, a search means Installation; an optional offer
@@ -2962,7 +2978,8 @@ function Find-PreparationFeatureOffer($Session) {
         Write-AtlasTransitionEvidence "searched: $criteria ($($offers.Count) offer(s))"
         $known = @(); $titled = @()
         foreach ($update in $offers) {
-            if (Test-PreparationKnownKb $update $FeatureKb) { $known += $update }
+            if (Test-PreparationOtherReleaseTitle $update) { Write-AtlasTransitionEvidence "unexpected-offer, for another release than $WindowsTarget, not installed: $(Format-PreparationOffer $update)" }
+            elseif (Test-PreparationKnownKb $update $FeatureKb) { $known += $update }
             elseif (Test-PreparationTargetTitle $update) { $titled += $update }
             else { Write-AtlasTransitionEvidence "unexpected-offer, not installed: $(Format-PreparationOffer $update)" }
         }
@@ -3019,6 +3036,21 @@ function Update-PreparationTargetRead([string]$Why) {
     Write-AtlasTransitionEvidence "$Why; restarted wuauserv, policy state now: target '$(Get-PreparationPolicyState)'$(if (-not $read) { " (not the target after $script:PreparationPolicyWaitSeconds seconds)" })"
 }
 
+# After Windows Update refused to download the offer (see $script:DownloadRefusedCodes):
+# restarts it, however often the run already has, so it reads the target afresh,
+# and waits for its policy state to show the target. The search after this finds
+# the offer again for the one more try.
+function Reset-PreparationRefusedDownload {
+    $why = 'Windows Update refused the download'
+    if (-not (Restart-PreparationUpdateService)) {
+        Write-AtlasTransitionEvidence "$why; it is busy, so it wasn't restarted"
+        return
+    }
+    $script:PreparationServiceRestarts++
+    $read = Wait-PreparationPolicyState
+    Write-AtlasTransitionEvidence "$why; restarted wuauserv, policy state now: target '$(Get-PreparationPolicyState)'$(if (-not $read) { " (not the target after $script:PreparationPolicyWaitSeconds seconds)" })"
+}
+
 # Windows Update reads the feature-update target only when it starts or scans,
 # and offers the release some minutes after its policy state shows it. So: the
 # policy state is checked before the first search; a first search that finds
@@ -3052,7 +3084,7 @@ function Find-PreparationFeatureUpdate($Session) {
     if ($null -eq $update) {
         try {
             $offers = @(Invoke-PreparationSearch $Session "IsInstalled=0 and IsHidden=1 and Type='Software' and CategoryIDs contains '$script:UpgradesCategory'" -IncludeSuperseded)
-            $hidden = @($offers | Where-Object { (Test-PreparationKnownKb $_ $FeatureKb) -or (Test-PreparationTargetTitle $_) }).Count -gt 0
+            $hidden = @($offers | Where-Object { -not (Test-PreparationOtherReleaseTitle $_) -and ((Test-PreparationKnownKb $_ $FeatureKb) -or (Test-PreparationTargetTitle $_)) }).Count -gt 0
         }
         catch { Write-AtlasTransitionEvidence "hidden search failed: $($_.Exception.Message)" }
     }
@@ -3198,6 +3230,12 @@ function Install-PreparationFeatureUpdate($Session, $Update, $Journal, [bool]$Ma
         $settings = @(Get-AtlasWindowsUpdateBlocker | ForEach-Object { $_.Id.Split('.')[-1] })
         $setting = if ($settings.Count -gt 0) { $settings -join ', ' } else { 'Windows Update' }
         throw (New-AtlasTransitionFailure "Windows Update was turned off again while it installed $label." 'feature-blocked' @{ setting = $setting; errorCode = '0x{0:X8}' -f $failure })
+    }
+    # A download Windows Update refused gets its one more try after a restart of
+    # Windows Update; refused again, the run names the refusal.
+    if ($script:DownloadRefusedCodes -contains $failure) {
+        if ($MayRetry) { return 'refused' }
+        throw (New-AtlasTransitionFailure ("Windows Update refused to download {0} (0x{1:X8}), also after Atlas restarted it and searched again." -f $label, $failure) 'feature-failed' @{ errorCode = '0x{0:X8}' -f $failure })
     }
     if ($MayRetry) { return 'retry' }
     $detail = @{}
@@ -3423,6 +3461,10 @@ function Invoke-PreparationTransition {
         $result = Install-PreparationFeatureUpdate $session $offer.Update $journal ($attempt -lt 2)
         if ($result -eq 'busy') {
             $attempt--
+            continue
+        }
+        if ($result -eq 'refused') {
+            Reset-PreparationRefusedDownload
             continue
         }
         if ($result -eq 'reboot') { return 'reboot' }
