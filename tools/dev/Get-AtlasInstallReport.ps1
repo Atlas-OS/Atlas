@@ -236,6 +236,31 @@ function Get-InstallTransactionLine {
     }
 }
 
+function Get-PreparationStoreLine {
+    <#
+    .SYNOPSIS
+        The Microsoft Store lines of Get ready's three newest runs under $Root: the newest
+        80 of each updates.log, then all of its AppX staging evidence, which the worker
+        writes once a run, within limits of its own, when Windows can't stage app updates.
+    #>
+    param([Parameter(Mandatory = $true)][string]$Root)
+
+    $evidencePrefix = 'Microsoft Store: staging evidence: *'
+    $logs = @(Get-ChildItem -LiteralPath $Root -Recurse -File -Filter 'updates.log' -ErrorAction SilentlyContinue |
+            Sort-Object -Property LastWriteTimeUtc -Descending | Select-Object -First 3)
+    foreach ($log in $logs) {
+        $storeLines = @(Get-Content -LiteralPath $log.FullName -ErrorAction SilentlyContinue | Where-Object { $_ -like 'Microsoft Store: *' })
+        if ($storeLines.Count -eq 0) { continue }
+        "-- Microsoft Store in $($log.FullName) ($($log.LastWriteTime.ToString('s'))) --"
+        $storeLines | Where-Object { $_ -notlike $evidencePrefix } | Select-Object -Last 80
+        $evidence = @($storeLines | Where-Object { $_ -like $evidencePrefix })
+        if ($evidence.Count -gt 0) {
+            "-- AppX staging evidence in $($log.FullName) --"
+            $evidence | Select-Object -First 500
+        }
+    }
+}
+
 function Get-EventWindow {
     <#
     .SYNOPSIS
@@ -860,17 +885,10 @@ Add-Section -Title '7. Installed applications and AppX packages' -Collector {
         (Get-RegistryValueOrNull -Path 'HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore' -Name 'RemoveWindowsStore'),
         (Get-RegistryValueOrNull -Path 'HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore' -Name 'DisableStoreApps'))
 
-    # What Get ready's last runs did about the Store: each repair step, and each
-    # Store item with its versions and how it ended.
+    # What Get ready's last runs did about the Store: each repair step, each Store
+    # item with its versions and how it ended, and any AppX staging evidence.
     $preparationRoot = Join-Path -Path ([Environment]::GetFolderPath('ProgramFiles')) -ChildPath 'Atlas Setup Recovery\Preparation'
-    $updateLogs = @(Get-ChildItem -LiteralPath $preparationRoot -Recurse -File -Filter 'updates.log' -ErrorAction SilentlyContinue |
-            Sort-Object -Property LastWriteTimeUtc -Descending | Select-Object -First 3)
-    foreach ($log in $updateLogs) {
-        $storeLines = @(Get-Content -LiteralPath $log.FullName -ErrorAction SilentlyContinue | Where-Object { $_ -like 'Microsoft Store: *' })
-        if ($storeLines.Count -eq 0) { continue }
-        $lines += "-- Microsoft Store in $($log.FullName) ($($log.LastWriteTime.ToString('s'))) --"
-        $lines += @($storeLines | Select-Object -Last 80)
-    }
+    $lines += @(Get-PreparationStoreLine -Root $preparationRoot)
 
     $lines += ''
     $provisioned = $null

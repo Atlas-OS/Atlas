@@ -163,6 +163,18 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
                 }
             })),
         ),
+        "store-appx-staging" => (
+            State::Failed,
+            true,
+            Some(json!({
+                "schema": 1, "status": "failed", "stage": "store-repair", "completed": 0, "total": 0,
+                "activity": {
+                    "failureMessage": "Windows couldn't stage updates for these built-in apps (0x80070490, element not found): Microsoft.ZuneMusic, Microsoft.WindowsCalculator, Microsoft.GamingApp. The Store repairs didn't help (wsreset didn't help; bootstrap failed; storefixer skipped).",
+                    "reason": "store-appx-staging", "errorCode": "0x80070490",
+                    "packageName": "ZuneMusic,WindowsCalculator,GamingApp"
+                }
+            })),
+        ),
         // Windows' component store: repaired before updates, an update that still
         // failed on it, and damage Windows can't repair.
         "components-repairing" => (

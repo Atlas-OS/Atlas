@@ -104,6 +104,10 @@ enum Remedy {
     Retry,
     /// Reinstall Windows from an Atlas ISO: nothing on this Windows helps.
     Reinstall,
+    /// Reinstall Windows from an Atlas ISO, with Try again beside it: the
+    /// worker runs Microsoft Store's repairs in one more run, then stops
+    /// before them, so trying again only checks the Store.
+    ReinstallOrRetry,
     /// The Atlas team needs to look: Send a report.
     Report,
     /// Put back the Windows Update settings Atlas changed.
@@ -130,6 +134,7 @@ impl Remedy {
         }
         match reason {
             Some("feature-hardware" | "feature-managed" | "feature-servicing") => Self::Reinstall,
+            Some(describe::STORE_APPX_STAGING) => Self::ReinstallOrRetry,
             Some("feature-components-lost" | "feature-journal" | "feature-pin") => Self::Report,
             Some("feature-build") => Self::PutBack,
             Some("feature-disk-space") => Self::Space,
@@ -305,6 +310,10 @@ impl InstallPage {
             PrepareAction::Retry if remedy == Remedy::RepairStore => t!("prepare-repair-store-again"),
             _ => action.label(),
         };
+        // The ISO is the way on that a remedy beside Try again names, so it
+        // takes the accent wherever it can open.
+        let can_iso = state.can_navigate(Page::Iso);
+        let iso_first = remedy == Remedy::ReinstallOrRetry && can_iso;
         // Hidden where it can't work: Get ready starts updating by itself,
         // and continues after a restart by itself, unless something holds it
         // back, which the caption under the status names. While Atlas waits
@@ -313,12 +322,13 @@ impl InstallPage {
         let main_button = (enabled
             && !matches!(action, PrepareAction::Start | PrepareAction::Continue)
             && !waiting
-            && (action != PrepareAction::Retry || matches!(remedy, Remedy::Retry | Remedy::RepairStore))
+            && (action != PrepareAction::Retry
+                || matches!(remedy, Remedy::Retry | Remedy::RepairStore | Remedy::ReinstallOrRetry))
             && state.preparation != State::WaitingExternal)
             .then(|| {
                 Button::new("prepare-action", label)
                     .focus_handle(action_focus.clone())
-                    .when(action.moves_on() && accent, Button::accent)
+                    .when(action.moves_on() && accent && !iso_first, Button::accent)
                     .when(action == PrepareAction::Restart && !commit_failed, |button| {
                         button.icon(Icon::Power)
                     })
@@ -343,9 +353,10 @@ impl InstallPage {
                     }))
             });
         // The remedy's own button, when trying again isn't it.
-        let can_iso = state.can_navigate(Page::Iso);
         let remedy_button = match remedy {
-            Remedy::Reinstall => can_iso.then(|| iso_button("prepare-iso", &self.model, accent)),
+            Remedy::Reinstall | Remedy::ReinstallOrRetry => {
+                can_iso.then(|| iso_button("prepare-iso", &self.model, accent))
+            }
             Remedy::Report => state.can_navigate(Page::Report).then(|| {
                 Button::new("prepare-report", t!("report-title"))
                     .when(accent, Button::accent)

@@ -1830,6 +1830,10 @@ prepare-store-broken-title = Microsoft Store が動作していません
 prepare-store-broken = Atlas は修復できませんでした。今 Atlas をインストールすると、Store アプリが動作しなくなるおそれがあります。
 prepare-store-broken-iso = 修復が失敗し続ける場合は、ファイルをバックアップしてから、Atlas ISO で Windows を再インストールしてください。
 prepare-repair-store-again = もう一度修復
+# Windows couldn't install updates for some of its own apps, and Atlas's Store repairs didn't help.
+# $apps lists the apps by their package names, joined with list-and.
+prepare-store-staging-title = Windows の組み込みアプリを更新できません
+prepare-store-staging = Windows は次の組み込みアプリの更新プログラムをインストールできず、Atlas による修復でも解決しませんでした: { $apps }。{ prepare-components-unrepairable }
 
 screen-keyboard-title = キーボードの言語
 screen-keyboard-question = 複数のキーボード言語を使いますか?

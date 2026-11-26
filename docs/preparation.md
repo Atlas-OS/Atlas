@@ -180,6 +180,37 @@ The update row says Microsoft Store isn't working and that installing Atlas now 
 Behind **Show details** are the worker's own message and **Create an Atlas ISO**, for reinstalling Windows after a backup if the repair keeps failing.
 The row of help links under it offers **Send a report**, **Export diagnostics** and **Open log folder**.
 
+### Updates Windows can't stage
+
+Windows can fail to stage an app update with `0x80070490` (`ERROR_NOT_FOUND`, element not found), which the Store reports only as `0x80073CF9`.
+Updates whose files are already on the PC still install.
+The apps that fail are built-in ones, such as Calculator, Photos, App Installer and the Store itself, and the repairs don't change it.
+
+After the repairs, the run stops with `store-appx-staging` instead of `store-repair-failed` when either of these holds:
+
+- Since the run started, the AppX deployment log has event 401 for a Stage or an Add that failed with `0x80070490` for two or more apps, and the Store still fails to deploy an update.
+- The bootstrap's own App Installer bundle failed with `0x80070490`.
+
+The worker reads the operation and the error from the event's own values, which don't depend on the language Windows uses.
+
+The update row says Windows can't update its built-in apps and names them by their package names, such as ZuneMusic.
+It offers **Create an Atlas ISO**, for reinstalling Windows after a backup, and **Try again**.
+
+The worker records each run that ends this way as `StoreStaging` under `HKLM\SOFTWARE\AtlasOS\Preparation`, with the apps.
+The repairs run in at most two such runs: the first, and one more after you try again.
+After that, a run whose Store fails to stage updates for any of the recorded apps again stops before the repairs.
+The Store is still asked to update first, so a Store that works again finishes as usual and clears the record.
+A record more than 30 days old counts for nothing.
+
+When a run stops this way, `updates.log` also gets read-only evidence, once a run, on lines that start with `Microsoft Store: staging evidence:`:
+
+- the events of each failing deployment, as `Get-AppPackageLog -ActivityID` gives them, read through a query that each AppX log filters itself;
+- the `Microsoft-Windows-AppXDeploymentServer/Operational` log's errors and warnings since the run started that `updates.log` doesn't have already;
+- for each app, its packages for every account (by SID only), its provisioned packages, its entries under `Applications`, `InboxApplications` and `Deprovisioned` in `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore`, and whether `%ProgramData%\Microsoft\Windows\AppRepository` holds each installed package's manifest.
+
+See [Log limits](diagnostics.md#log-limits) for how much of it the worker writes.
+A part that can't be read is noted, and nothing in it changes how the run ends.
+
 ### Store app updates
 
 An app update that ends in `Error` or `Canceled` is cleared from the Store's queue, and the worker searches the Store again.
@@ -288,7 +319,7 @@ See [Log limits](diagnostics.md#log-limits) for how much of each log Atlas keeps
 
 While Windows moves to a newer release, the worker also writes `windows-transition.log` beside the job folders, and notes there how many AppX events it found.
 These logs belong to the **Get ready** page, so they aren't under `%windir%\AtlasModules\Logs`.
-**Export diagnostics** includes them, and `tools/dev/Get-AtlasInstallReport.ps1` lists the Store lines from the latest runs.
+**Export diagnostics** includes them, and `tools/dev/Get-AtlasInstallReport.ps1` lists the Store lines from the latest runs, with any [staging evidence](#updates-windows-cant-stage) in full.
 
 | Reason | Meaning |
 | --- | --- |
@@ -302,5 +333,6 @@ These logs belong to the **Get ready** page, so they aren't under `%windir%\Atla
 | `store-timeout` | Store apps didn't finish updating in time. |
 | `store-passes` | The Store still offers updates after eight passes. |
 | `store-repair-failed` | None of the Store repairs made the Store work. |
+| `store-appx-staging` | Windows couldn't stage updates for built-in apps (`0x80070490`), and the Store repairs didn't help. |
 
 The `feature-*` reasons belong to moving Windows to a newer release, and are listed in [Moving Windows to a newer release](windows-transition.md#failure-reasons).

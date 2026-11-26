@@ -1641,6 +1641,10 @@ prepare-store-broken-title = Microsoft Store 无法正常工作
 prepare-store-broken = Atlas 无法修复它，现在安装 Atlas 可能会导致商店应用无法使用。
 prepare-store-broken-iso = 如果修复一直失败，请备份文件，然后使用 Atlas ISO 重新安装 Windows。
 prepare-repair-store-again = 再次尝试修复
+# Windows couldn't install updates for some of its own apps, and Atlas's Store repairs didn't help.
+# $apps lists the apps by their package names, joined with list-and.
+prepare-store-staging-title = Windows 无法更新内置应用
+prepare-store-staging = Windows 未能安装以下内置应用的更新，Atlas 的修复也没有解决问题：{ $apps }。{ prepare-components-unrepairable }
 
 screen-keyboard-title = 键盘语言
 screen-keyboard-question = 你使用多种键盘语言吗？

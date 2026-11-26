@@ -73,6 +73,11 @@ const ERROR_SXS_COMPONENT_STORE_CORRUPT: &str = "0x80073712";
 /// The cause the worker names when Windows records damage to its component
 /// store that it can't repair.
 const COMPONENT_STORE_UNREPAIRABLE: &str = "component-store-unrepairable";
+/// The cause the worker names when Windows couldn't stage updates for
+/// built-in apps (0x80070490) and Microsoft Store's repairs didn't help.
+/// Reinstalling Windows is the way on; the apps are in `package_name`,
+/// comma-separated.
+pub const STORE_APPX_STAGING: &str = "store-appx-staging";
 
 /// Windows records damage to its component store that it can't repair:
 /// reinstalling Windows is the way on, and trying again can't help.
@@ -91,7 +96,8 @@ pub fn component_store_still_damaged(failure: &Activity) -> bool {
 }
 
 /// The status a failed run gets where its cause has one of its own: a
-/// damaged component store, and a Microsoft Store Atlas couldn't repair.
+/// damaged component store, a Microsoft Store Atlas couldn't repair, and
+/// built-in apps Windows couldn't update.
 pub fn preparation_failure_title(failure: &Activity) -> Option<String> {
     if component_store_unrepairable(failure) {
         Some(t!("prepare-components-unrepairable-title"))
@@ -99,8 +105,29 @@ pub fn preparation_failure_title(failure: &Activity) -> Option<String> {
         Some(t!("prepare-components-damaged-title"))
     } else if failure.reason.as_deref() == Some("store-repair-failed") {
         Some(t!("prepare-store-broken-title"))
+    } else if failure.reason.as_deref() == Some(STORE_APPX_STAGING) {
+        Some(t!("prepare-store-staging-title"))
     } else {
         None
+    }
+}
+
+/// What to do about built-in apps Windows couldn't update, naming them when
+/// the worker did.
+fn store_staging(failure: &Activity) -> String {
+    let apps: Vec<String> = failure
+        .package_name
+        .as_deref()
+        .unwrap_or_default()
+        .split(',')
+        .map(str::trim)
+        .filter(|app| !app.is_empty())
+        .map(str::to_owned)
+        .collect();
+    if apps.is_empty() {
+        t!("prepare-components-unrepairable")
+    } else {
+        t!("prepare-store-staging", apps = join_and(&apps))
     }
 }
 
@@ -119,6 +146,7 @@ pub fn preparation_failure(failure: Option<&Activity>, has_error: bool) -> Strin
         }
         Some(code) if code.eq_ignore_ascii_case(WU_E_INSTALL_NOT_ALLOWED) => t!("prepare-install-busy"),
         _ if component_store_still_damaged(failure) => t!("prepare-components-damaged"),
+        _ if failure.reason.as_deref() == Some(STORE_APPX_STAGING) => store_staging(failure),
         _ => failure
             .reason
             .as_deref()
@@ -138,7 +166,8 @@ pub fn preparation_failure_reason(id: &str) -> Option<String> {
         "store-timeout" => t!("prepare-failed-store-timeout"),
         "store-passes" => t!("prepare-failed-store-passes"),
         "store-repair-failed" => t!("prepare-store-broken"),
-        COMPONENT_STORE_UNREPAIRABLE => t!("prepare-components-unrepairable"),
+        // Without the apps, which preparation_failure names, only the way on.
+        STORE_APPX_STAGING | COMPONENT_STORE_UNREPAIRABLE => t!("prepare-components-unrepairable"),
         "manual-updates" => t!("prepare-failed-manual-updates"),
         "windows-passes" => t!("prepare-failed-windows-passes"),
         "windows-update-unreachable" => t!("prepare-failed-windows-update-unreachable"),
@@ -1463,6 +1492,25 @@ mod tests {
             let store = activity(None, Some("store-repair-failed"));
             assert_eq!(preparation_failure(Some(&store), false), t!("prepare-store-broken"));
             assert_eq!(preparation_failure_title(&store), Some(t!("prepare-store-broken-title")));
+            // Built-in apps Windows couldn't update, named as the language lists them.
+            let staging = Activity {
+                package_name: Some("ZuneMusic,WindowsCalculator, GamingApp".into()),
+                ..activity(Some("0x80070490"), Some(STORE_APPX_STAGING))
+            };
+            let named = preparation_failure(Some(&staging), false);
+            assert_eq!(
+                named,
+                t!(
+                    "prepare-store-staging",
+                    apps = join_and(&["ZuneMusic".into(), "WindowsCalculator".into(), "GamingApp".into()])
+                )
+            );
+            assert!(named.contains("ZuneMusic, WindowsCalculator and GamingApp"), "{named}");
+            assert!(named.ends_with(&t!("prepare-components-unrepairable")), "{named}");
+            assert_eq!(preparation_failure_title(&staging), Some(t!("prepare-store-staging-title")));
+            // A report that names no app still says the way on.
+            let unnamed = activity(Some("0x80070490"), Some(STORE_APPX_STAGING));
+            assert_eq!(preparation_failure(Some(&unnamed), false), t!("prepare-components-unrepairable"));
             assert_eq!(preparation_failure_title(&activity(None, Some("store-timeout"))), None);
             let battery = activity(None, Some("store-paused-battery"));
             assert_eq!(preparation_failure(Some(&battery), false), t!("prepare-failed-store-battery"));

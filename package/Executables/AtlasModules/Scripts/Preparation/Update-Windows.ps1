@@ -1588,6 +1588,32 @@ $script:PreparationDeploymentLength = 1500
 $script:PreparationDeploymentSeen = [Collections.Generic.HashSet[string]]::new()
 $script:PreparationDeploymentWritten = 0
 $script:PreparationStateRepositoryRead = $false
+# A package full name: name, version, architecture, resource id, publisher id.
+$script:PackageFullNamePattern = '\b[A-Za-z0-9][A-Za-z0-9.-]*_\d+(\.\d+){3}_[A-Za-z0-9]+_[^\s_]*_[a-z0-9]{13}\b'
+# ERROR_NOT_FOUND (0x80070490), element not found: Windows couldn't stage a package. Event
+# 401 of the AppX deployment log gives it for the Stage of a Store update, or the Add of a
+# downloaded package, and its DeploymentOperation value says which: 1 is Add, 4 is Stage.
+$script:StagingNotFound = -2147023728
+$script:StagingOperations = @(1, 4)
+# A Store the repairs didn't help, whose run has Windows unable to stage updates for two
+# or more apps, or for App Installer's own bundle, stops with store-appx-staging. The
+# repairs run in at most this many runs that end that way; a record beside the one of
+# updates offered again counts them (see Read-PreparationStagingRecord).
+$script:PreparationStagingRepairs = 2
+# The activity id Add-AppxPackage named when the bootstrap's App Installer bundle failed
+# with 0x80070490, '' when it named none, and $null when the bundle didn't fail so.
+$script:PreparationStagingBootstrap = $null
+$script:PreparationStagingEvidenceWritten = $false
+# How much read-only evidence of a staging failure updates.log takes: so many apps, so
+# many events of each failing deployment and of the run's AppX deployment log, so many
+# entries of each kind for each app, each line cut at a length, and only so long reading.
+$script:PreparationStagingApps = 8
+$script:PreparationStagingActivityEvents = 25
+$script:PreparationStagingRunEvents = 30
+$script:PreparationStagingEntries = 6
+$script:PreparationStagingLength = 600
+$script:PreparationStagingSeconds = 90
+$script:PreparationAllUserStore = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Appx\AppxAllUserStore'
 
 function Write-PreparationStoreEvidence([string]$Text) {
     Write-PreparationLog "Microsoft Store: $Text"
@@ -1674,6 +1700,15 @@ function Write-PreparationStateRepositoryEvent([string]$Package, [datetime]$At) 
     }
 }
 
+# An event's text on one line. Windows PowerShell can't always render a
+# provider's text; the event's own values still carry the package and the error.
+function Get-PreparationEventText($Entry) {
+    $text = ([string]$Entry.Message -replace '\s+', ' ').Trim()
+    if ($text) { return $text }
+    $values = $Entry.PSObject.Properties['Properties']
+    return 'no text; values: ' + $(if ($null -ne $values) { @($values.Value | ForEach-Object { [string]$_.Value }) -join '; ' } else { 'none' })
+}
+
 # The AppX deployment log's events 401 (a deployment step failed, with that
 # step's own error) and 404 (the deployment failed) since this run started,
 # under the package each names, in updates.log; windows-transition.log only
@@ -1700,17 +1735,10 @@ function Write-PreparationDeploymentEvent([string[]]$Refused) {
         $left = 0
         $missing = $null
         foreach ($entry in $events) {
-            $text = ([string]$entry.Message -replace '\s+', ' ').Trim()
-            if (-not $text) {
-                # Windows PowerShell can't always render a provider's text; the
-                # event's own values still carry the package and the error.
-                $values = $entry.PSObject.Properties['Properties']
-                $text = 'no text; values: ' + $(if ($null -ne $values) { @($values.Value | ForEach-Object { [string]$_.Value }) -join '; ' } else { 'none' })
-            }
+            $text = Get-PreparationEventText $entry
             $key = "$($entry.Id) $text"
             if ($script:PreparationDeploymentSeen.Contains($key) -or -not $counted.Add($key)) { continue }
-            # A package full name: name, version, architecture, resource id, publisher id.
-            $named = [regex]::Match($text, '\b[A-Za-z0-9][A-Za-z0-9.-]*_\d+(\.\d+){3}_[A-Za-z0-9]+_[^\s_]*_[a-z0-9]{13}\b')
+            $named = [regex]::Match($text, $script:PackageFullNamePattern)
             $package = if ($named.Success) { $named.Value } else { 'no package named' }
             if ($null -eq $missing -and $named.Success -and $null -ne $entry.TimeCreated -and $text -match '0x80070490|-2147023728') {
                 $missing = @{ Package = $package; At = $entry.TimeCreated }
@@ -1746,6 +1774,313 @@ function Write-PreparationDeploymentEvent([string[]]$Refused) {
         }
     }
     catch { Write-PreparationStoreEvidence "$intro couldn't be read: $($_.Exception.Message)" }
+}
+
+# The package an event 401 names when it's a Stage or an Add that failed with
+# 0x80070490, or ''. The event's own values say so in any language; its text,
+# where they're missing, keeps the operation's English name in every language.
+function Get-PreparationStagingPackage($Entry) {
+    $values = $Entry.PSObject.Properties['Properties']
+    $data = @(if ($null -ne $values -and $null -ne $values.Value) { $values.Value | ForEach-Object { $_.Value } })
+    if ($data.Count -ge 4 -and $null -ne ($data[0] -as [long]) -and $null -ne ($data[3] -as [long])) {
+        # ErrorCode is a HexInt32, which can come as an unsigned value.
+        $code = [long]$data[3]
+        if ($code -gt [int]::MaxValue) { $code -= 4294967296 }
+        if ($script:StagingOperations -contains [long]$data[0] -and $code -eq $script:StagingNotFound) { return [string]$data[1] }
+        return ''
+    }
+    $text = [string]$Entry.Message
+    if ($text -notmatch '0x80070490' -or $text -notmatch '(?<![\w.-])(Stage|Add)(?![\w.-])') { return '' }
+    $named = [regex]::Match($text, $script:PackageFullNamePattern)
+    if ($named.Success) { return $named.Value }
+    return ''
+}
+
+# Each app Windows couldn't stage an update for in this run (see
+# Get-PreparationStagingPackage), newest first, once by package name: its family,
+# the package full name and the deployment's activity id. A log that can't be
+# read gives none, and updates.log says so.
+function Get-PreparationStagingFailure {
+    try {
+        $filter = @{ LogName = $script:PreparationDeploymentLog; Id = 401; StartTime = $script:PreparationStartedAt }
+        $events = @(Get-WinEvent -FilterHashtable $filter -MaxEvents 500 -ErrorAction Stop)
+    }
+    catch {
+        if ([string]$_.FullyQualifiedErrorId -notlike 'NoMatchingEventsFound*') {
+            Write-PreparationLog "Microsoft Store: the AppX deployment log couldn't be read for staging failures: $($_.Exception.Message)"
+        }
+        return
+    }
+    $named = @{}
+    foreach ($entry in $events) {
+        $package = Get-PreparationStagingPackage $entry
+        if (-not $package) { continue }
+        $name = ($package -split '_')[0]
+        if ($named.ContainsKey($name)) { continue }
+        $named[$name] = $true
+        $activity = $entry.PSObject.Properties['ActivityId']
+        [pscustomobject]@{
+            Name = $name
+            Family = '{0}_{1}' -f $name, $package.Substring($package.LastIndexOf('_') + 1)
+            Package = $package
+            ActivityId = if ($null -ne $activity -and $null -ne $activity.Value) { [string]$activity.Value } else { '' }
+        }
+    }
+}
+
+# Notes the bootstrap's App Installer bundle failing with 0x80070490, by the
+# activity id Add-AppxPackage's error names.
+function Register-PreparationBootstrapStaging([Exception]$Exception) {
+    $text = [string]$Exception.Message
+    if ($text -notmatch '0x80070490') { return }
+    $activity = [regex]::Match($text, '\[ActivityId\]\s*([0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12})')
+    $script:PreparationStagingBootstrap = if ($activity.Success) { $activity.Groups[1].Value } else { '' }
+}
+
+# The apps of a staging failure, by package name, after the repairs didn't help:
+# App Installer's own bundle that the bootstrap couldn't add, or updates for two or
+# more apps that Windows couldn't stage while the Store still fails to deploy one.
+# None for any other failure, which stays store-repair-failed.
+function Get-PreparationStagingApp($Staging, [Exception]$Last) {
+    $names = [Collections.Generic.List[string]]::new()
+    foreach ($entry in @($Staging | Where-Object { $null -ne $_ })) { $names.Add([string]$entry.Name) }
+    $bootstrap = $null -ne $script:PreparationStagingBootstrap
+    if ($bootstrap -and -not $names.Contains('Microsoft.DesktopAppInstaller')) { $names.Add('Microsoft.DesktopAppInstaller') }
+    $code = (Get-PreparationFailureDetail $Last)['errorCode']
+    $hresult = if ($code) { [Convert]::ToInt32($code, 16) } else { 0 }
+    $deploying = $hresult -eq $script:StagingNotFound -or ($hresult -ge $script:DeploymentErrorFirst -and $hresult -le $script:DeploymentErrorLast)
+    if ($bootstrap -or ($deploying -and $names.Count -ge 2)) { return $names.ToArray() }
+}
+
+# The record of a staging failure the repairs didn't help, beside the record of
+# updates offered again: the apps, when, and in how many runs the repairs met it.
+function Get-PreparationStagingRecordText {
+    $value = Get-AtlasTransitionValue $script:PreparationReofferedRoot 'StoreStaging'
+    if ($value.Present -and $value.Kind -eq 'String') { return [string]$value.Data }
+    return ''
+}
+
+function Set-PreparationStagingRecordText([string]$Text) {
+    if ($Text) { Set-AtlasTransitionValue $script:PreparationReofferedRoot 'StoreStaging' 'String' $Text }
+    else { Remove-AtlasTransitionValue $script:PreparationReofferedRoot 'StoreStaging' }
+}
+
+# The record, or $null when there's none. One more than 30 days old belongs to an
+# earlier preparation, and counts for nothing.
+function Read-PreparationStagingRecord {
+    try {
+        $text = Get-PreparationStagingRecordText
+        if (-not $text) { return $null }
+        $record = $text | ConvertFrom-Json -ErrorAction Stop
+        $field = { param([string]$Name) $property = $record.PSObject.Properties[$Name]; if ($null -ne $property) { $property.Value } }
+        $at = [DateTime]::MinValue
+        if (-not [DateTime]::TryParse([string](& $field 'at'), [Globalization.CultureInfo]::InvariantCulture,
+                [Globalization.DateTimeStyles]::AdjustToUniversal, [ref]$at) -or $at -lt [DateTime]::UtcNow.AddDays(-30)) { return $null }
+        $apps = @(@(& $field 'apps') | ForEach-Object { [string]$_ } | Where-Object { $_ -match '^[A-Za-z0-9][A-Za-z0-9.-]{0,99}$' })
+        return [pscustomobject]@{ At = $at; Apps = $apps; Repairs = [int](& $field 'repairs') }
+    }
+    catch {
+        Write-PreparationLog "Microsoft Store: the record of its AppX staging failures couldn't be read: $($_.Exception.Message)"
+        return $null
+    }
+}
+
+# Records a staging failure the repairs met in $Repairs runs. A record that can't be
+# written is logged: the next run then repairs again.
+function Save-PreparationStagingRecord([string[]]$Apps, [int]$Repairs) {
+    try {
+        $record = [pscustomobject][ordered]@{ at = [DateTime]::UtcNow.ToString('o'); apps = @($Apps | Select-Object -First 20); repairs = $Repairs }
+        Set-PreparationStagingRecordText (ConvertTo-Json -InputObject $record -Compress)
+    }
+    catch { Write-PreparationLog "Microsoft Store: its AppX staging failure couldn't be recorded: $($_.Exception.Message)" }
+}
+
+# Clears the record once the Store works. Without one there's nothing to clear.
+function Clear-PreparationStagingRecord {
+    try {
+        if (-not (Get-PreparationStagingRecordText)) { return }
+        Set-PreparationStagingRecordText ''
+        Write-PreparationStoreEvidence 'works, so the record of its AppX staging failures is cleared'
+    }
+    catch { Write-PreparationLog "Microsoft Store: the record of its AppX staging failures couldn't be cleared: $($_.Exception.Message)" }
+}
+
+# One line of staging evidence in updates.log, cut at a length.
+function Write-PreparationStagingLine([string]$Text) {
+    $line = ($Text -replace '\s+', ' ').Trim()
+    if ($line.Length -gt $script:PreparationStagingLength) { $line = $line.Substring(0, $script:PreparationStagingLength) + '...' }
+    Write-PreparationLog "Microsoft Store: staging evidence: $line"
+}
+
+# Whether reading the evidence has taken its time, which the log then says.
+function Test-PreparationStagingLate($Clock) {
+    if ($Clock.Elapsed.TotalSeconds -lt $script:PreparationStagingSeconds) { return $false }
+    Write-PreparationStagingLine "stopped after $script:PreparationStagingSeconds seconds; the rest is left out"
+    return $true
+}
+
+# The events of one AppX deployment, oldest first: what Get-AppPackageLog
+# -ActivityID gives, through a query each log filters itself, as that command reads
+# every event of every AppX log first.
+function Get-PreparationAppxActivityEvent([string]$ActivityId) {
+    $query = "*[System[Correlation[@ActivityID='{0}']]]" -f ([guid]$ActivityId).ToString('B')
+    $logs = @(Get-WinEvent -ListLog 'Microsoft-Windows-Appx*' -ErrorAction SilentlyContinue |
+            Where-Object { $_.IsEnabled -and [string]$_.LogType -in @('Administrative', 'Operational') } | ForEach-Object { $_.LogName })
+    $events = foreach ($log in $logs) {
+        try { Get-WinEvent -LogName $log -FilterXPath $query -MaxEvents $script:PreparationStagingActivityEvents -ErrorAction Stop }
+        catch { if ([string]$_.FullyQualifiedErrorId -notlike 'NoMatchingEventsFound*') { throw } }
+    }
+    @($events | Sort-Object TimeCreated | Select-Object -First $script:PreparationStagingActivityEvents)
+}
+
+# The subkeys of one place in the AppX store's registry, with the manifest each
+# names; nothing when the place is missing.
+function Get-PreparationAllUserStoreEntry([string]$Place) {
+    $key = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey("$script:PreparationAllUserStore\$Place", $false)
+    if ($null -eq $key) { return }
+    try {
+        foreach ($name in @($key.GetSubKeyNames())) {
+            $path = ''
+            $entry = $key.OpenSubKey($name, $false)
+            if ($null -ne $entry) {
+                try { $path = [string]$entry.GetValue('Path') }
+                finally { $entry.Dispose() }
+            }
+            [pscustomobject]@{ Key = $name; Path = $path }
+        }
+    }
+    finally { $key.Dispose() }
+}
+
+# Whether Windows keeps a package's manifest in its app repository.
+function Test-PreparationAppRepositoryManifest([string]$PackageFullName) {
+    [IO.File]::Exists([IO.Path]::Combine([Environment]::GetFolderPath('CommonApplicationData'), 'Microsoft\Windows\AppRepository', "$PackageFullName.xml"))
+}
+
+# Read-only evidence of a staging failure, in updates.log, once a run: the events
+# of each failing deployment, the AppX deployment log's errors and warnings since
+# the run started, and what Windows records of each app (its packages for every
+# account, its provisioned packages, its entries in the AppX store's registry and
+# its manifest in the app repository). Each part takes so much and the whole so
+# long (see $script:PreparationStagingApps); a part that fails is noted, and
+# nothing here changes the outcome.
+function Write-PreparationStagingEvidence([string[]]$Apps, $Staging) {
+    if ($script:PreparationStagingEvidenceWritten) { return }
+    $script:PreparationStagingEvidenceWritten = $true
+    $clock = [Diagnostics.Stopwatch]::StartNew()
+    $names = @($Apps | Select-Object -First $script:PreparationStagingApps)
+    Write-PreparationStagingLine "Windows couldn't stage updates for $($names -join ', '); what Windows records of them follows"
+    Write-AtlasTransitionEvidence "store: Windows couldn't stage updates for $($names -join ', ') (0x80070490); updates.log has the evidence"
+
+    $activities = [ordered]@{}
+    $families = @{}
+    foreach ($entry in @($Staging | Where-Object { $null -ne $_ })) {
+        $families[[string]$entry.Name] = [string]$entry.Family
+        if ($entry.ActivityId -and -not $activities.Contains([string]$entry.ActivityId)) { $activities[[string]$entry.ActivityId] = [string]$entry.Package }
+    }
+    if ($script:PreparationStagingBootstrap) { $activities[$script:PreparationStagingBootstrap] = 'the App Installer bundle the bootstrap added' }
+    foreach ($id in @($activities.Keys | Select-Object -First $script:PreparationStagingApps)) {
+        if (Test-PreparationStagingLate $clock) { return }
+        Write-PreparationState running $script:PreparationStage
+        try {
+            $logged = @(Get-PreparationAppxActivityEvent $id)
+            Write-PreparationStagingLine "deployment $id ($($activities[$id])): $($logged.Count) event(s)"
+            foreach ($record in $logged) {
+                Write-PreparationStagingLine ('deployment {0}: {1} event {2} at {3:yyyy-MM-dd HH:mm:ss}: {4}' -f $id, $record.LogName, $record.Id, $record.TimeCreated, (Get-PreparationEventText $record))
+            }
+        }
+        catch { Write-PreparationStagingLine "deployment $id couldn't be read: $($_.Exception.Message)" }
+    }
+
+    if (Test-PreparationStagingLate $clock) { return }
+    try {
+        try {
+            $filter = @{ LogName = $script:PreparationDeploymentLog; Level = @(1, 2, 3); StartTime = $script:PreparationStartedAt }
+            $logged = @(Get-WinEvent -FilterHashtable $filter -MaxEvents 200 -ErrorAction Stop)
+        }
+        catch {
+            if ([string]$_.FullyQualifiedErrorId -notlike 'NoMatchingEventsFound*') { throw }
+            $logged = @()
+        }
+        # Newest first, as Get-WinEvent returns them; written oldest first.
+        $kept = [Collections.Generic.List[string]]::new()
+        $counted = [Collections.Generic.HashSet[string]]::new()
+        foreach ($record in $logged) {
+            $text = Get-PreparationEventText $record
+            $key = "$($record.Id) $text"
+            if ($script:PreparationDeploymentSeen.Contains($key) -or -not $counted.Add($key)) { continue }
+            if ($kept.Count -ge $script:PreparationStagingRunEvents) { break }
+            $kept.Add(('event {0} at {1:yyyy-MM-dd HH:mm:ss}: {2}' -f $record.Id, $record.TimeCreated, $text))
+        }
+        Write-PreparationStagingLine "the AppX deployment log's errors and warnings since this run started that updates.log doesn't have already: $($kept.Count)$(if ($kept.Count -ge $script:PreparationStagingRunEvents) { ', the newest' })"
+        for ($index = $kept.Count - 1; $index -ge 0; $index--) { Write-PreparationStagingLine $kept[$index] }
+    }
+    catch { Write-PreparationStagingLine "the AppX deployment log couldn't be read: $($_.Exception.Message)" }
+
+    if (Test-PreparationStagingLate $clock) { return }
+    Write-PreparationState running $script:PreparationStage
+    try { $provisioned = @(Get-AppxProvisionedPackage -Online -ErrorAction Stop) }
+    catch {
+        $provisioned = $null
+        Write-PreparationStagingLine "the provisioned packages couldn't be listed: $($_.Exception.Message)"
+    }
+    $places = [ordered]@{}
+    foreach ($place in @('Applications', 'InboxApplications', 'Deprovisioned')) {
+        try { $places[$place] = @(Get-PreparationAllUserStoreEntry $place) }
+        catch { Write-PreparationStagingLine "AppxAllUserStore\$place couldn't be read: $($_.Exception.Message)" }
+    }
+    foreach ($name in $names) {
+        if (Test-PreparationStagingLate $clock) { return }
+        Write-PreparationState running $script:PreparationStage
+        $family = if ($families.ContainsKey($name)) { $families[$name] } elseif ($name -eq 'Microsoft.DesktopAppInstaller') { $script:PreparationAppInstallerFamily } else { '' }
+        $publisher = if ($family) { $family.Substring($family.LastIndexOf('_') + 1) } else { '' }
+        try {
+            $packages = @(Get-AppxPackage -AllUsers -Name $name -ErrorAction Stop | Where-Object { -not $family -or [string]$_.PackageFamilyName -eq $family } |
+                    Sort-Object { [version]$_.Version } -Descending | Select-Object -First $script:PreparationStagingEntries)
+            if ($packages.Count -eq 0) { Write-PreparationStagingLine "$name`: no package for any account" }
+            foreach ($package in $packages) {
+                # Accounts by SID only, as an account's name would reach reports.
+                $users = try {
+                    @($package.PackageUserInformation | Where-Object { $null -ne $_ } | ForEach-Object { '{0}: {1}' -f $_.UserSecurityId.Sid, $_.InstallState }) -join '; '
+                }
+                catch { 'accounts unreadable' }
+                $manifest = if (Test-PreparationAppRepositoryManifest $package.PackageFullName) { 'present' } else { 'missing' }
+                Write-PreparationStagingLine "$name`: package $($package.PackageFullName), $($package.Status)$(if ($users) { " ($users)" }); AppRepository\$($package.PackageFullName).xml $manifest"
+            }
+        }
+        catch { Write-PreparationStagingLine "$name`: its packages couldn't be listed: $($_.Exception.Message)" }
+        if ($null -ne $provisioned) {
+            $mine = @($provisioned | Where-Object { [string]$_.DisplayName -eq $name } | Select-Object -First $script:PreparationStagingEntries)
+            if ($mine.Count -eq 0) { Write-PreparationStagingLine "$name`: not provisioned" }
+            foreach ($package in $mine) { Write-PreparationStagingLine "$name`: provisioned $($package.PackageName)" }
+        }
+        $found = 0
+        foreach ($place in $places.Keys) {
+            $entries = @($places[$place] | Where-Object {
+                    $key = [string]$_.Key
+                    if ($place -eq 'Deprovisioned') { if ($family) { $key -eq $family } else { $key -like "$name`_*" } }
+                    else { $key -like "$name`_*" -and (-not $publisher -or $key -like "*_$publisher") }
+                } | Select-Object -First $script:PreparationStagingEntries)
+            foreach ($entry in $entries) {
+                $found++
+                $path = if (-not $entry.Path) { '' }
+                elseif ([IO.File]::Exists($entry.Path) -or [IO.Directory]::Exists($entry.Path)) { ", $($entry.Path) present" }
+                else { ", $($entry.Path) missing" }
+                Write-PreparationStagingLine "$name`: AppxAllUserStore\$place\$($entry.Key)$path"
+            }
+        }
+        if ($found -eq 0) { Write-PreparationStagingLine "$name`: no entry in AppxAllUserStore\$(@($places.Keys) -join ', ')" }
+    }
+}
+
+# Ends the Store stage for a staging failure: the evidence, then store-appx-staging,
+# which names the apps and leaves reinstalling Windows as the way on. $Repairs says
+# how the repairs went.
+function Stop-PreparationStoreStaging([string[]]$Apps, $Staging, [string]$Repairs) {
+    Write-PreparationStagingEvidence $Apps $Staging
+    $failure = New-PreparationFailure "Windows couldn't stage updates for these built-in apps (0x80070490, element not found): $($Apps -join ', '). $Repairs" 'store-appx-staging' $script:StagingNotFound
+    $failure.Data['packageName'] = @($Apps | ForEach-Object { $_.Split('.')[-1] }) -join ','
+    throw $failure
 }
 
 # What became of the items an earlier round left in Error or Canceled. The fresh
@@ -1904,6 +2239,7 @@ function Invoke-PreparationStoreStage {
     try {
         if (Update-PreparationStoreItself) { Set-PreparationStoreOutcome 'store-updated' }
         Invoke-PreparationStoreWithRetry
+        Clear-PreparationStagingRecord
         Write-PreparationStoreInventory 'after'
         return
     }
@@ -1917,11 +2253,24 @@ function Invoke-PreparationStoreStage {
 # One pass through the repairs. After each that changed something, the Store
 # is asked to update itself and the apps again; the first that works ends it.
 # A repair can also say 'skipped', when this PC has nothing to run it with. The
-# failure after the last names how each one ended.
+# failure after the last names how each one ended, or the apps of a staging
+# failure (see Get-PreparationStagingApp). A staging failure the repairs already
+# met in as many runs as they may take stops the run before them.
 function Repair-PreparationStore([Exception]$Failure) {
     if ($script:PreparationStoreRepairsRun) { throw $Failure }
     $script:PreparationStoreRepairsRun = $true
     $code = (Get-PreparationFailureDetail $Failure)['errorCode']
+    $record = Read-PreparationStagingRecord
+    if ($null -ne $record -and $record.Repairs -ge $script:PreparationStagingRepairs) {
+        $staging = @(Get-PreparationStagingFailure)
+        if (@($staging | Where-Object { $record.Apps -contains $_.Name }).Count -gt 0) {
+            $apps = @($staging | ForEach-Object { [string]$_.Name })
+            Write-PreparationStoreEvidence ('updating failed ({0}{1}); Windows couldn''t stage updates for {2} again, as in {3} earlier runs whose repairs didn''t help (the last on {4:yyyy-MM-dd}), so they don''t run again' -f
+                $Failure.Message, $(if ($code) { ", $code" }), ($apps -join ', '), $record.Repairs, $record.At)
+            Save-PreparationStagingRecord @($apps + $record.Apps | Select-Object -Unique) $record.Repairs
+            Stop-PreparationStoreStaging $apps $staging "The Store repairs ran in $($record.Repairs) earlier runs without helping, so they didn't run again."
+        }
+    }
     Write-PreparationStoreEvidence "updating failed ($($Failure.Message)$(if ($code) { ", $code" })); repairing"
     $last = $Failure
     $ended = [Collections.Generic.List[string]]::new()
@@ -1931,6 +2280,7 @@ function Repair-PreparationStore([Exception]$Failure) {
         try { $result = Invoke-PreparationStoreRepair $repair | Select-Object -Last 1 }
         catch {
             if ($_.Exception -is [OperationCanceledException]) { throw }
+            if ($repair -eq 'bootstrap') { Register-PreparationBootstrapStaging $_.Exception }
             $network = if ($_.Exception.Data.Contains('network')) { ', a network problem' } else { '' }
             Write-PreparationStoreEvidence "$repair failed$network`: $($_.Exception.Message)"
             $ended.Add("$repair failed$network")
@@ -1952,6 +2302,7 @@ function Repair-PreparationStore([Exception]$Failure) {
             Invoke-PreparationStoreWithRetry
             Set-PreparationStoreOutcome $(if ($repair -eq 'bootstrap' -and $script:PreparationStoreDownloaded) { 'store-bootstrapped' } else { 'store-repaired' })
             Write-PreparationStoreEvidence "works again after $repair"
+            Clear-PreparationStagingRecord
             Write-PreparationStoreInventory 'after'
             return
         }
@@ -1963,6 +2314,16 @@ function Repair-PreparationStore([Exception]$Failure) {
         }
     }
     Write-PreparationStoreInventory 'after'
+    $staging = @(Get-PreparationStagingFailure)
+    $apps = @(Get-PreparationStagingApp $staging $last)
+    if ($apps.Count -gt 0) {
+        # The same apps as a record of an earlier run: one more run whose repairs didn't help.
+        $earlier = Read-PreparationStagingRecord
+        $runs = if ($null -ne $earlier -and @($earlier.Apps | Where-Object { $apps -contains $_ }).Count -gt 0) { $earlier.Repairs + 1 } else { 1 }
+        Save-PreparationStagingRecord $apps $runs
+        Write-PreparationStoreEvidence "Windows couldn't stage updates for $($apps -join ', ') (0x80070490), and the repairs didn't help, as recorded for $runs run(s); from $script:PreparationStagingRepairs such runs on, a run doesn't repair again"
+        Stop-PreparationStoreStaging $apps $staging "The Store repairs didn't help ($($ended -join '; '))."
+    }
     $lastCode = (Get-PreparationFailureDetail $last)['errorCode']
     $hresult = if ($lastCode) { [Convert]::ToInt32($lastCode, 16) } else { 0 }
     throw (New-PreparationFailure "Microsoft Store couldn't be repaired ($($ended -join '; ')): $($last.Message)" 'store-repair-failed' $hresult)

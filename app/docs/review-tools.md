@@ -94,6 +94,7 @@ Previews never start updating or move on by themselves, so each state stays as i
 | `store-updated`, `store-bootstrapped`, `store-repaired` | Updating finished after Microsoft Store was updated, reinstalled or repaired, which only the log says. |
 | `store-skipped-removed` | Updating finished on a PC where Microsoft Store is turned off, so Store apps weren't updated. |
 | `store-repair-failed` | A Store repair that failed, with **Try repair again** and reinstalling behind **Show details**. |
+| `store-appx-staging` | Built-in apps Windows couldn't update after the Store repairs, named, with **Create an Atlas ISO** and **Try again**. |
 | `components-repairing` | Windows repairing its component store before updates. |
 | `components-damaged` | An update that still failed on the component store, with **Restart and try again**. |
 | `components-unrepairable` | Component store damage that Windows can't repair, with **Create an Atlas ISO**. |

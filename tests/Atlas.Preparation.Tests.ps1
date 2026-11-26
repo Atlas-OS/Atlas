@@ -10,6 +10,10 @@ BeforeAll {
     $script:RestartRecordText = ''
     function Get-PreparationRestartRecordText { $script:RestartRecordText }
     function Set-PreparationRestartRecordText([string]$Text) { $script:RestartRecordText = $Text }
+    # Nor its record of AppX staging failures the Store repairs didn't help.
+    $script:StagingRecordText = ''
+    function Get-PreparationStagingRecordText { $script:StagingRecordText }
+    function Set-PreparationStagingRecordText([string]$Text) { $script:StagingRecordText = $Text }
 }
 
 Describe 'Signed-in preparation ownership' {
@@ -482,9 +486,12 @@ Describe 'Microsoft Store before the Store apps' {
         Mock Update-PreparationStoreItself { $false }
         Mock Get-PreparationStoreVersion { '22608.1401.5.0' }
         $script:PreparationStoreDownloaded = $false
-        # No registration or repair may reach the PC running the tests.
+        # No registration or repair may reach the PC running the tests, nor a read of its AppX log.
         Mock Register-PreparationStore { $true }
         Mock Invoke-PreparationStoreRepair { $script:Repairs.Add($Repair); $false }
+        Mock Get-PreparationStagingFailure {}
+        $script:PreparationStagingBootstrap = $null
+        $script:StagingRecordText = ''
     }
 
     It 'skips the Store when the recorded choice removed it, and never repairs or reinstalls it' {
@@ -1132,6 +1139,354 @@ Describe 'Store items Windows refused to deploy' {
         $errorCode = if ($null -ne $Code) { [Runtime.InteropServices.COMException]::new('The Store failed.', $Code) }
         Write-PreparationStoreItem @(New-StoreItem 'Microsoft.WindowsCalculator_8wekyb3d8bbwe' '9WZDNCRFHVN5' $errorCode) @{}
         Should -Invoke Get-WinEvent -Times 0 -Exactly
+    }
+}
+
+Describe 'Updates Windows can''t stage for built-in apps' {
+    BeforeAll {
+        $script:Calculator = 'Microsoft.WindowsCalculator_2021.2607.0.0_neutral_~_8wekyb3d8bbwe'
+        $script:Music = 'Microsoft.ZuneMusic_11.2609.11.0_neutral_~_8wekyb3d8bbwe'
+        $script:Photos = 'Microsoft.Windows.Photos_2026.11090.22001.0_neutral_~_8wekyb3d8bbwe'
+        # Event 401 as Windows records it: DeploymentOperation, PackageFullName, Path, ErrorCode, then more.
+        function New-StagingEvent([string]$Package, [int]$Operation = 4, $Code = -2147023728, [string]$Activity = [guid]::NewGuid().ToString(), [string]$Message) {
+            $values = @($Operation, $Package, ' (x) ', $Code, 'C:') | ForEach-Object { [pscustomobject]@{ Value = $_ } }
+            if (-not $Message) { $Message = "Deployment Stage operation with target volume C: on Package $Package from: (x) failed with error 0x80070490." }
+            [pscustomobject]@{ Id = 401; TimeCreated = [DateTime]::Now; ActivityId = [guid]$Activity; Message = $Message; Properties = $values }
+        }
+        function New-Staging([string]$Package, [string]$Activity = '') {
+            $name = ($Package -split '_')[0]
+            [pscustomobject]@{ Name = $name; Family = "$($name)_8wekyb3d8bbwe"; Package = $Package; ActivityId = $Activity }
+        }
+        # 0x80073CF9, the install failed, as the Store reports a deployment that failed.
+        $script:InstallFailed = [Runtime.InteropServices.COMException]::new('Install failed. Please contact your software vendor.', -2147009287)
+        function Get-StagingLog { Get-Content (Join-Path $JobPath 'updates.log') -Raw }
+    }
+    BeforeEach {
+        Remove-Item -LiteralPath (Join-Path $JobPath 'updates.log') -ErrorAction SilentlyContinue
+        $script:PreparationStagingBootstrap = $null
+        $script:PreparationStagingEvidenceWritten = $false
+        $script:PreparationDeploymentSeen.Clear()
+        $script:StagingRecordText = ''
+        Mock Write-PreparationState {}
+    }
+
+    Context 'Reading them from the AppX deployment log' {
+        It 'reads a Stage or an Add that failed with 0x80070490 from the event''s own values, in any language' {
+            Get-PreparationStagingPackage (New-StagingEvent $script:Calculator 4) | Should -Be $script:Calculator
+            Get-PreparationStagingPackage (New-StagingEvent $script:Calculator 1) | Should -Be $script:Calculator
+            # The same code as an unsigned value.
+            Get-PreparationStagingPackage (New-StagingEvent $script:Calculator 4 ([uint32]2147943568)) | Should -Be $script:Calculator
+            # Simplified Chinese text, which keeps the operation's English name.
+            $chinese = [regex]::Unescape('\u4ece (x) \u4f7f\u7528\u7a0b\u5e8f\u5305 {0} \u4e2d\u7684\u76ee\u6807\u5377 C: \u6267\u884c\u7684\u90e8\u7f72 Stage \u64cd\u4f5c\u5931\u8d25\uff0c\u9519\u8bef\u4e3a 0x80070490\u3002') -f $script:Calculator
+            Get-PreparationStagingPackage (New-StagingEvent $script:Calculator 4 -Message $chinese) | Should -Be $script:Calculator
+            Get-PreparationStagingPackage ([pscustomobject]@{ Id = 401; TimeCreated = [DateTime]::Now; Message = $chinese }) | Should -Be $script:Calculator
+        }
+
+        It 'leaves out a <Case>' -TestCases @(
+            @{ Case = 'Register that failed with 0x80070490'; Operation = 6; Code = -2147023728 }
+            @{ Case = 'Remove that failed with 0x80070490'; Operation = 2; Code = -2147023728 }
+            @{ Case = 'Stage that failed with another error'; Operation = 4; Code = -2147009278 }
+        ) {
+            Get-PreparationStagingPackage (New-StagingEvent $script:Calculator $Operation $Code) | Should -BeExactly ''
+        }
+
+        It 'reads the text when Windows PowerShell has no values for the event' {
+            $text = { param([string]$Message) [pscustomobject]@{ Id = 401; TimeCreated = [DateTime]::Now; Message = $Message } }
+            Get-PreparationStagingPackage (& $text "Deployment Add operation with target volume C: on Package $script:Calculator from: (x) failed with error 0x80070490.") | Should -Be $script:Calculator
+            Get-PreparationStagingPackage (& $text "Deployment Register operation with target volume C: on Package $script:Calculator from: (x) failed with error 0x80070490.") | Should -BeExactly ''
+            Get-PreparationStagingPackage (& $text "Deployment Stage operation with target volume C: on Package $script:Calculator from: (x) failed with error 0x80073D02.") | Should -BeExactly ''
+            Get-PreparationStagingPackage (& $text "The specified package full name $script:Calculator is not eligible for a StageUserDataAsync call. 0x80070490") | Should -BeExactly ''
+        }
+
+        It 'lists each app once, newest first, with its family and the deployment''s activity id' {
+            $script:Newest = [guid]::NewGuid().ToString()
+            Mock Get-WinEvent {
+                New-StagingEvent $script:Music -Activity $script:Newest
+                New-StagingEvent $script:Calculator
+                New-StagingEvent $script:Music
+                New-StagingEvent $script:Photos 6
+            }
+            $staging = @(Get-PreparationStagingFailure)
+            $staging.Count | Should -Be 2
+            $staging[0].Name | Should -Be 'Microsoft.ZuneMusic'
+            $staging[0].Family | Should -Be 'Microsoft.ZuneMusic_8wekyb3d8bbwe'
+            $staging[0].Package | Should -Be $script:Music
+            $staging[0].ActivityId | Should -Be $script:Newest
+            $staging[1].Name | Should -Be 'Microsoft.WindowsCalculator'
+            Should -Invoke Get-WinEvent -Times 1 -Exactly -ParameterFilter {
+                $FilterHashtable[0].LogName -eq 'Microsoft-Windows-AppXDeploymentServer/Operational' -and
+                (@($FilterHashtable[0].Id) -join ',') -eq '401' -and $FilterHashtable[0].StartTime -eq $script:PreparationStartedAt
+            }
+        }
+
+        It 'finds none in a log with nothing since the run started, and says so only when the log can''t be read' {
+            Mock Get-WinEvent {
+                throw [Management.Automation.ErrorRecord]::new([Exception]::new('No events were found that match the specified selection criteria.'),
+                    'NoMatchingEventsFound,Microsoft.PowerShell.Commands.GetWinEventCommand', 'ObjectNotFound', $null)
+            }
+            @(Get-PreparationStagingFailure).Count | Should -Be 0
+            Test-Path -LiteralPath (Join-Path $JobPath 'updates.log') | Should -BeFalse
+            Mock Get-WinEvent { throw 'The RPC server is unavailable.' }
+            @(Get-PreparationStagingFailure).Count | Should -Be 0
+            Get-StagingLog | Should -Match "couldn't be read for staging failures: The RPC server is unavailable\."
+        }
+
+        It 'reads a deployment''s events through a query each AppX log filters itself' {
+            $script:Activity = '162a6484-7af8-0002-6c48-2b16f87add01'
+            Mock Get-WinEvent -ParameterFilter { $ListLog } {
+                [pscustomobject]@{ LogName = 'Microsoft-Windows-AppXDeploymentServer/Operational'; IsEnabled = $true; LogType = 'Operational' }
+                [pscustomobject]@{ LogName = 'Microsoft-Windows-AppxPackaging/Operational'; IsEnabled = $true; LogType = 'Operational' }
+                [pscustomobject]@{ LogName = 'Microsoft-Windows-AppXDeploymentServer/Debug'; IsEnabled = $true; LogType = 'Debug' }
+                [pscustomobject]@{ LogName = 'Microsoft-Windows-AppXDeployment/Operational'; IsEnabled = $false; LogType = 'Operational' }
+            }
+            Mock Get-WinEvent -ParameterFilter { $LogName -eq 'Microsoft-Windows-AppXDeploymentServer/Operational' } {
+                [pscustomobject]@{ LogName = $LogName; Id = 404; TimeCreated = [DateTime]::Now; Message = 'second' }
+            }
+            Mock Get-WinEvent -ParameterFilter { $LogName -eq 'Microsoft-Windows-AppxPackaging/Operational' } {
+                [pscustomobject]@{ LogName = $LogName; Id = 170; TimeCreated = [DateTime]::Now.AddSeconds(-5); Message = 'first' }
+            }
+            $events = @(Get-PreparationAppxActivityEvent $script:Activity)
+            @($events | ForEach-Object Message) | Should -Be @('first', 'second')
+            Should -Invoke Get-WinEvent -Times 2 -Exactly -ParameterFilter {
+                $FilterXPath -eq "*[System[Correlation[@ActivityID='{162a6484-7af8-0002-6c48-2b16f87add01}']]]" -and $MaxEvents -eq $script:PreparationStagingActivityEvents
+            }
+            Should -Invoke Get-WinEvent -Times 0 -Exactly -ParameterFilter { $LogName -like '*Debug' -or $LogName -eq 'Microsoft-Windows-AppXDeployment/Operational' }
+        }
+    }
+
+    Context 'A Store the repairs can''t mend' {
+        BeforeEach {
+            $script:PreparationStoreRepairsRun = $false
+            $script:PreparationStoreOutcome = $null
+            $script:Repairs = [Collections.Generic.List[string]]::new()
+            $script:Staging = @((New-Staging $script:Music '11111111-1111-1111-1111-111111111111'), (New-Staging $script:Calculator '22222222-2222-2222-2222-222222222222'))
+            $script:Failure = New-PreparationStoreFailure 'Microsoft.ZuneMusic_8wekyb3d8bbwe' 'Error' $script:InstallFailed
+            Mock Assert-PreparationContinue {}
+            Mock Write-PreparationStoreInventory {}
+            Mock Test-PreparationStoreRemoved { $false }
+            Mock Get-PreparationStoreVersion { '22610.1401.10.0' }
+            Mock Register-PreparationStore { $true }
+            Mock Update-PreparationStoreItself { $false }
+            Mock Invoke-PreparationStoreWithRetry { throw $script:Failure }
+            Mock Invoke-PreparationStoreRepair { $script:Repairs.Add($Repair); if ($Repair -eq 'storefixer') { 'skipped' } else { $true } }
+            Mock Get-PreparationStagingFailure { $script:Staging }
+            Mock Write-PreparationStagingEvidence {}
+        }
+
+        It 'names the apps after the repairs, leaves reinstalling Windows as the way on, and records the run' {
+            try { Invoke-PreparationStoreStage } catch { $thrown = $_.Exception }
+            @($script:Repairs) | Should -Be @('wsreset', 'bootstrap', 'storefixer')
+            $detail = Get-PreparationFailureDetail $thrown
+            $detail.reason | Should -Be 'store-appx-staging'
+            $detail.errorCode | Should -Be '0x80070490'
+            $detail.packageName | Should -Be 'ZuneMusic,WindowsCalculator'
+            $detail.failureMessage | Should -Match 'Microsoft\.ZuneMusic, Microsoft\.WindowsCalculator'
+            $detail.failureMessage | Should -Match "repairs didn't help \(wsreset didn't help; bootstrap didn't help; storefixer skipped\)"
+            Should -Invoke Write-PreparationStagingEvidence -Times 1 -Exactly -ParameterFilter { ($Apps -join ',') -eq 'Microsoft.ZuneMusic,Microsoft.WindowsCalculator' }
+            $record = $script:StagingRecordText | ConvertFrom-Json
+            $record.repairs | Should -Be 1
+            @($record.apps) | Should -Be @('Microsoft.ZuneMusic', 'Microsoft.WindowsCalculator')
+        }
+
+        It 'stays store-repair-failed for <Case>' -TestCases @(
+            @{ Case = 'one app Windows couldn''t stage'; Staging = { @(New-Staging $script:Music) }; Failure = { $script:Failure } }
+            @{ Case = 'none'; Staging = { @() }; Failure = { $script:Failure } }
+            @{ Case = 'a Store that ends with another failure'; Staging = { $script:Staging }; Failure = { New-PreparationFailure 'Microsoft Store is not registered for this user.' 'store-missing' } }
+        ) {
+            $script:Staging = & $Staging
+            $script:Failure = & $Failure
+            try { Invoke-PreparationStoreStage } catch { $thrown = $_.Exception }
+            (Get-PreparationFailureDetail $thrown).reason | Should -Be 'store-repair-failed'
+            Should -Invoke Write-PreparationStagingEvidence -Times 0 -Exactly
+            $script:StagingRecordText | Should -BeNullOrEmpty
+        }
+
+        It 'counts App Installer''s own bundle that the bootstrap couldn''t add' {
+            $script:Staging = @()
+            $script:Failure = New-PreparationFailure 'Microsoft Store is not registered for this user.' 'store-missing'
+            Mock Invoke-PreparationStoreRepair {
+                $script:Repairs.Add($Repair)
+                if ($Repair -eq 'bootstrap') {
+                    throw "Deployment failed with HRESULT: 0x80073CF9, Install failed.`r`n`r`nDeployment Add operation with target volume C: on Package Microsoft.DesktopAppInstaller_2026.917.151.0_neutral_~_8wekyb3d8bbwe from: (Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle) failed with error 0x80070490.`r`n`r`nNOTE: For additional information, look for [ActivityId] 162a6484-7af8-0000-3c60-2c16f87add01 in the Event Log or use the command line Get-AppPackageLog -ActivityID 162a6484-7af8-0000-3c60-2c16f87add01"
+                }
+                $false
+            }
+            try { Invoke-PreparationStoreStage } catch { $thrown = $_.Exception }
+            $detail = Get-PreparationFailureDetail $thrown
+            $detail.reason | Should -Be 'store-appx-staging'
+            $detail.packageName | Should -Be 'DesktopAppInstaller'
+            $script:PreparationStagingBootstrap | Should -Be '162a6484-7af8-0000-3c60-2c16f87add01'
+        }
+
+        It 'repairs once more in a run that tries again, and counts it' {
+            $script:StagingRecordText = ConvertTo-Json -Compress -InputObject ([pscustomobject]@{ at = [DateTime]::UtcNow.AddDays(-1).ToString('o'); apps = @('Microsoft.ZuneMusic'); repairs = 1 })
+            try { Invoke-PreparationStoreStage } catch { $thrown = $_.Exception }
+            (Get-PreparationFailureDetail $thrown).reason | Should -Be 'store-appx-staging'
+            @($script:Repairs) | Should -Be @('wsreset', 'bootstrap', 'storefixer')
+            ($script:StagingRecordText | ConvertFrom-Json).repairs | Should -Be 2
+        }
+
+        It 'stops before the repairs once they''ve met the same apps in the runs they may take' {
+            $script:StagingRecordText = ConvertTo-Json -Compress -InputObject ([pscustomobject]@{ at = [DateTime]::UtcNow.AddDays(-1).ToString('o'); apps = @('Microsoft.ZuneMusic', 'Microsoft.Xbox.TCUI'); repairs = 2 })
+            try { Invoke-PreparationStoreStage } catch { $thrown = $_.Exception }
+            $script:Repairs.Count | Should -Be 0
+            $detail = Get-PreparationFailureDetail $thrown
+            $detail.reason | Should -Be 'store-appx-staging'
+            $detail.packageName | Should -Be 'ZuneMusic,WindowsCalculator'
+            $detail.failureMessage | Should -Match "ran in 2 earlier runs without helping, so they didn't run again"
+            Should -Invoke Write-PreparationStagingEvidence -Times 1 -Exactly
+            $record = $script:StagingRecordText | ConvertFrom-Json
+            $record.repairs | Should -Be 2
+            @($record.apps) | Should -Contain 'Microsoft.WindowsCalculator'
+            Get-StagingLog | Should -Match "Windows couldn't stage updates for Microsoft\.ZuneMusic, Microsoft\.WindowsCalculator again, as in 2 earlier runs whose repairs didn't help"
+        }
+
+        It 'repairs as usual when <Case>' -TestCases @(
+            @{ Case = 'this run''s failure isn''t a staging failure of the recorded apps'; Apps = @('Microsoft.Xbox.TCUI'); Days = 1 }
+            @{ Case = 'the record is more than 30 days old'; Apps = @('Microsoft.ZuneMusic'); Days = 31 }
+        ) {
+            $script:StagingRecordText = ConvertTo-Json -Compress -InputObject ([pscustomobject]@{ at = [DateTime]::UtcNow.AddDays(-$Days).ToString('o'); apps = $Apps; repairs = 2 })
+            { Invoke-PreparationStoreStage } | Should -Throw
+            @($script:Repairs) | Should -Be @('wsreset', 'bootstrap', 'storefixer')
+            ($script:StagingRecordText | ConvertFrom-Json).repairs | Should -Be 1
+        }
+
+        It 'clears the record once the Store works, <Case>' -TestCases @(
+            @{ Case = 'at once'; Works = { Mock Invoke-PreparationStoreWithRetry {} } }
+            @{ Case = 'after a repair'; Works = { Mock Invoke-PreparationStoreWithRetry { if ($script:Repairs.Count -eq 0) { throw $script:Failure } } } }
+        ) {
+            & $Works
+            $script:StagingRecordText = ConvertTo-Json -Compress -InputObject ([pscustomobject]@{ at = [DateTime]::UtcNow.ToString('o'); apps = @('Microsoft.ZuneMusic'); repairs = 2 })
+            $script:Staging = @()
+            Invoke-PreparationStoreStage
+            $script:StagingRecordText | Should -BeNullOrEmpty
+            Get-StagingLog | Should -Match 'the record of its AppX staging failures is cleared'
+        }
+
+        It 'writes nothing about a record a working Store never had' {
+            Mock Invoke-PreparationStoreWithRetry {}
+            Mock Set-PreparationStagingRecordText {}
+            Invoke-PreparationStoreStage
+            Should -Invoke Set-PreparationStagingRecordText -Times 0 -Exactly
+        }
+    }
+
+    Context 'The evidence' {
+        BeforeEach {
+            $script:PreparationStagingSeconds = 90
+            $script:Staging = @((New-Staging $script:Music '11111111-1111-1111-1111-111111111111'), (New-Staging $script:Calculator ''))
+            Mock Get-PreparationAppxActivityEvent {
+                [pscustomobject]@{ LogName = 'Microsoft-Windows-AppxPackaging/Operational'; Id = 157; TimeCreated = [DateTime]::Now; Message = 'Opening the package failed.' }
+                [pscustomobject]@{ LogName = 'Microsoft-Windows-AppXDeploymentServer/Operational'; Id = 401; TimeCreated = [DateTime]::Now; Message = "Deployment Stage operation on Package $script:Music failed with error 0x80070490." }
+            }
+            $script:Seen = "AppX Deployment operation failed for package $script:Music with error 0x80073CF9."
+            Mock Get-WinEvent {
+                [pscustomobject]@{ Id = 404; TimeCreated = [DateTime]::Now; Message = $script:Seen }
+                [pscustomobject]@{ Id = 465; TimeCreated = [DateTime]::Now; Message = 'Element not found while reading the package repository.' }
+                [pscustomobject]@{ Id = 465; TimeCreated = [DateTime]::Now; Message = 'Element not found while reading the package repository.' }
+            }
+            Mock Get-AppxPackage {
+                $users = @([pscustomobject]@{ UserSecurityId = [pscustomobject]@{ Sid = 'S-1-5-21-1-2-3-1001'; Username = 'DESKTOP-PC\Owner' }; InstallState = 'Installed' })
+                [pscustomobject]@{ Name = $Name; PackageFamilyName = "$($Name)_8wekyb3d8bbwe"; PackageFullName = "$($Name)_11.2512.10.0_x64__8wekyb3d8bbwe"; Version = '11.2512.10.0'; Status = 'Ok'; PackageUserInformation = $users }
+                [pscustomobject]@{ Name = $Name; PackageFamilyName = "$($Name)_othrpublisher1"; PackageFullName = "$($Name)_99.0.0.0_x64__othrpublisher1"; Version = '99.0.0.0'; Status = 'Ok'; PackageUserInformation = @() }
+            }
+            Mock Get-AppxProvisionedPackage { [pscustomobject]@{ DisplayName = 'Microsoft.ZuneMusic'; PackageName = 'Microsoft.ZuneMusic_11.2512.10.0_neutral_~_8wekyb3d8bbwe' } }
+            Mock Get-PreparationAllUserStoreEntry {
+                switch ($Place) {
+                    'Applications' { [pscustomobject]@{ Key = 'Microsoft.ZuneMusic_11.2512.10.0_neutral_~_8wekyb3d8bbwe'; Path = (Join-Path $TestDrive 'missing\AppxBundleManifest.xml') } }
+                    'InboxApplications' { [pscustomobject]@{ Key = 'Microsoft.ZuneMusicPlus_1.0.0.0_x64__8wekyb3d8bbwe'; Path = '' } }
+                    'Deprovisioned' { [pscustomobject]@{ Key = 'Microsoft.WindowsCalculator_8wekyb3d8bbwe'; Path = '' } }
+                }
+            }
+            Mock Test-PreparationAppRepositoryManifest { $PackageFullName -like 'Microsoft.ZuneMusic_*' }
+            $script:PreparationDeploymentSeen.Clear()
+            [void]$script:PreparationDeploymentSeen.Add("404 $script:Seen")
+        }
+
+        It 'reads each failing deployment, the run''s errors and warnings, and what Windows records of each app' {
+            Write-PreparationStagingEvidence @('Microsoft.ZuneMusic', 'Microsoft.WindowsCalculator') $script:Staging
+            $log = Get-StagingLog
+            Should -Invoke Get-PreparationAppxActivityEvent -Times 1 -Exactly -ParameterFilter { $ActivityId -eq '11111111-1111-1111-1111-111111111111' }
+            $log | Should -Match "staging evidence: deployment 11111111-1111-1111-1111-111111111111 \($([regex]::Escape($script:Music))\): 2 event\(s\)"
+            $log | Should -Match 'staging evidence: deployment 11111111-1111-1111-1111-111111111111: Microsoft-Windows-AppxPackaging/Operational event 157 at .+: Opening the package failed\.'
+            Should -Invoke Get-WinEvent -Times 1 -Exactly -ParameterFilter {
+                $FilterHashtable[0].LogName -eq 'Microsoft-Windows-AppXDeploymentServer/Operational' -and (@($FilterHashtable[0].Level) -join ',') -eq '1,2,3' -and
+                $FilterHashtable[0].StartTime -eq $script:PreparationStartedAt
+            }
+            # Each text once, and none updates.log has already.
+            $log | Should -Match "errors and warnings since this run started that updates\.log doesn't have already: 1"
+            ([regex]::Matches($log, 'Element not found while reading the package repository')).Count | Should -Be 1
+            $log | Should -Not -Match 'event 404 at'
+            $log | Should -Match 'staging evidence: Microsoft\.ZuneMusic: package Microsoft\.ZuneMusic_11\.2512\.10\.0_x64__8wekyb3d8bbwe, Ok \(S-1-5-21-1-2-3-1001: Installed\); AppRepository\\Microsoft\.ZuneMusic_11\.2512\.10\.0_x64__8wekyb3d8bbwe\.xml present'
+            $log | Should -Match 'staging evidence: Microsoft\.WindowsCalculator: package Microsoft\.WindowsCalculator_11\.2512\.10\.0_x64__8wekyb3d8bbwe, Ok .+\.xml missing'
+            $log | Should -Not -Match 'othrpublisher1' -Because 'a package of that name from another publisher is another app'
+            $log | Should -Not -Match 'Owner' -Because 'account names would reach reports'
+            $log | Should -Match 'staging evidence: Microsoft\.ZuneMusic: provisioned Microsoft\.ZuneMusic_11\.2512\.10\.0_neutral_~_8wekyb3d8bbwe'
+            $log | Should -Match 'staging evidence: Microsoft\.WindowsCalculator: not provisioned'
+            $log | Should -Match 'staging evidence: Microsoft\.ZuneMusic: AppxAllUserStore\\Applications\\Microsoft\.ZuneMusic_11\.2512\.10\.0_neutral_~_8wekyb3d8bbwe, .+AppxBundleManifest\.xml missing'
+            $log | Should -Not -Match 'ZuneMusicPlus'
+            $log | Should -Match 'staging evidence: Microsoft\.WindowsCalculator: AppxAllUserStore\\Deprovisioned\\Microsoft\.WindowsCalculator_8wekyb3d8bbwe'
+        }
+
+        It 'says when the AppX store''s registry has nothing of an app' {
+            Mock Get-PreparationAllUserStoreEntry {}
+            Write-PreparationStagingEvidence @('Microsoft.ZuneMusic') $script:Staging
+            Get-StagingLog | Should -Match 'staging evidence: Microsoft\.ZuneMusic: no entry in AppxAllUserStore\\Applications, InboxApplications, Deprovisioned'
+        }
+
+        It 'reads the deployment the bootstrap''s App Installer bundle failed in' {
+            $script:PreparationStagingBootstrap = '162a6484-7af8-0000-3c60-2c16f87add01'
+            Write-PreparationStagingEvidence @('Microsoft.DesktopAppInstaller') @()
+            Should -Invoke Get-PreparationAppxActivityEvent -Times 1 -Exactly -ParameterFilter { $ActivityId -eq '162a6484-7af8-0000-3c60-2c16f87add01' }
+            Should -Invoke Get-AppxPackage -Times 1 -Exactly -ParameterFilter { $AllUsers -and $Name -eq 'Microsoft.DesktopAppInstaller' }
+            Get-StagingLog | Should -Match 'Microsoft\.DesktopAppInstaller: package Microsoft\.DesktopAppInstaller_11\.2512\.10\.0_x64__8wekyb3d8bbwe'
+        }
+
+        It 'reads it once a run' {
+            Write-PreparationStagingEvidence @('Microsoft.ZuneMusic') $script:Staging
+            Write-PreparationStagingEvidence @('Microsoft.ZuneMusic') $script:Staging
+            Should -Invoke Get-AppxPackage -Times 1 -Exactly
+        }
+
+        It 'takes so many apps, events and entries, and cuts each line at a length' {
+            $script:Staging = @(1..10 | ForEach-Object { New-Staging "Microsoft.App$($_)_1.0.0.0_x64__8wekyb3d8bbwe" ([guid]::NewGuid().ToString()) })
+            Mock Get-PreparationAppxActivityEvent { [pscustomobject]@{ LogName = 'Microsoft-Windows-AppxPackaging/Operational'; Id = 157; TimeCreated = [DateTime]::Now; Message = 'x' * 2000 } }
+            Mock Get-WinEvent { 1..50 | ForEach-Object { [pscustomobject]@{ Id = 465; TimeCreated = [DateTime]::Now; Message = "warning $_" } } }
+            Write-PreparationStagingEvidence @($script:Staging | ForEach-Object Name) $script:Staging
+            Should -Invoke Get-PreparationAppxActivityEvent -Times $script:PreparationStagingApps -Exactly
+            Should -Invoke Get-AppxPackage -Times $script:PreparationStagingApps -Exactly
+            $lines = @(Get-Content (Join-Path $JobPath 'updates.log'))
+            @($lines | Where-Object { $_ -match ': event 465 at ' }).Count | Should -Be $script:PreparationStagingRunEvents
+            # Newest first, as Get-WinEvent returns them: the newest are kept, and written oldest first.
+            @($lines | Where-Object { $_ -match 'warning (1|30)$' }).Count | Should -Be 2
+            $lines | Where-Object { $_ -match 'warning 31$' } | Should -BeNullOrEmpty
+            [array]::IndexOf($lines, @($lines -match 'warning 30$')[0]) | Should -BeLessThan ([array]::IndexOf($lines, @($lines -match 'warning 1$')[0]))
+            foreach ($line in $lines) { $line.Length | Should -BeLessOrEqual ('Microsoft Store: staging evidence: '.Length + $script:PreparationStagingLength + 3) }
+        }
+
+        It 'stops reading once it has taken its time, and says so' {
+            $script:PreparationStagingSeconds = 0
+            try { Write-PreparationStagingEvidence @('Microsoft.ZuneMusic') $script:Staging }
+            finally { $script:PreparationStagingSeconds = 90 }
+            Should -Invoke Get-PreparationAppxActivityEvent -Times 0 -Exactly
+            Should -Invoke Get-AppxPackage -Times 0 -Exactly
+            Get-StagingLog | Should -Match 'staging evidence: stopped after 0 seconds; the rest is left out'
+        }
+
+        It 'notes a part that fails and goes on with the rest' {
+            Mock Get-PreparationAppxActivityEvent { throw 'The event log service is unavailable.' }
+            Mock Get-WinEvent { throw 'The RPC server is unavailable.' }
+            Mock Get-AppxProvisionedPackage { throw 'Elevation is required.' }
+            Mock Get-AppxPackage { throw 'Access is denied.' }
+            Mock Get-PreparationAllUserStoreEntry { throw 'Requested registry access is not allowed.' }
+            { Write-PreparationStagingEvidence @('Microsoft.ZuneMusic') $script:Staging } | Should -Not -Throw
+            $log = Get-StagingLog
+            $log | Should -Match "deployment 11111111-1111-1111-1111-111111111111 couldn't be read: The event log service is unavailable\."
+            $log | Should -Match "the AppX deployment log couldn't be read: The RPC server is unavailable\."
+            $log | Should -Match "the provisioned packages couldn't be listed: Elevation is required\."
+            $log | Should -Match "Microsoft\.ZuneMusic: its packages couldn't be listed: Access is denied\."
+            $log | Should -Match "AppxAllUserStore\\Applications couldn't be read: Requested registry access is not allowed\."
+        }
     }
 }
 

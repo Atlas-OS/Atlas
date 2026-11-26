@@ -1816,6 +1816,10 @@ prepare-store-broken-title = Microsoft Store no funciona
 prepare-store-broken = Atlas no pudo repararla, e instalar Atlas ahora podría dañar las aplicaciones de la Store.
 prepare-store-broken-iso = Si la reparación sigue fallando, haga una copia de seguridad de sus archivos y reinstale Windows con una ISO de Atlas.
 prepare-repair-store-again = Volver a reparar
+# Windows couldn't install updates for some of its own apps, and Atlas's Store repairs didn't help.
+# $apps lists the apps by their package names, joined with list-and.
+prepare-store-staging-title = Windows no puede actualizar sus aplicaciones integradas
+prepare-store-staging = Windows no pudo instalar las actualizaciones de estas aplicaciones integradas y las reparaciones de Atlas no sirvieron: { $apps }. { prepare-components-unrepairable }
 
 screen-keyboard-title = Idiomas del teclado
 screen-keyboard-question = ¿Usa varios idiomas de teclado?

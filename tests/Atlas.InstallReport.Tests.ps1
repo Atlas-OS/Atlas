@@ -6,7 +6,7 @@ BeforeAll {
     if ($errors) { throw ($errors | Out-String) }
     foreach ($name in 'Add-Line', 'Add-Summary', 'Add-Section', 'Get-InstallTransactionLine', 'Get-RegistryValueOrNull',
         'Get-EventWindow', 'Get-AppxRemovalPattern', 'Get-RecordedInstallOption', 'Test-AppxPatternMatch',
-        'Get-AppxAllUserStorePackage', 'Get-AtlasServicingPackageLine') {
+        'Get-AppxAllUserStorePackage', 'Get-AtlasServicingPackageLine', 'Get-PreparationStoreLine') {
         $function = $script:ReportAst.Find({
                 param($node)
                 $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name
@@ -93,6 +93,30 @@ Describe 'Install report sections' {
         $script:report | Should -Contain 'first line'
         Get-ChildItem -LiteralPath $TestDrive -Filter '*.partial.txt' | Should -BeNullOrEmpty
         $script:Summary | Should -HaveCount 0
+    }
+}
+
+Describe 'Install report Microsoft Store lines' {
+    It 'keeps the newest Store lines of each run, and all of its AppX staging evidence' {
+        $root = Join-Path $TestDrive 'Preparation'
+        $job = Join-Path $root 'anonymous-1\1234-1795404790787221900'
+        New-Item -ItemType Directory -Path $job -Force | Out-Null
+        $evidence = @(1..3 | ForEach-Object { "Microsoft Store: staging evidence: line $_" })
+        $store = @(1..100 | ForEach-Object { "Microsoft Store: item $_" })
+        [IO.File]::WriteAllLines((Join-Path $job 'updates.log'), @('Set a policy value') + $evidence + $store, $script:Utf8)
+        $other = Join-Path $root 'anonymous-1\5678-1795404790787221901'
+        New-Item -ItemType Directory -Path $other -Force | Out-Null
+        [IO.File]::WriteAllLines((Join-Path $other 'updates.log'), @('No Store lines here'), $script:Utf8)
+
+        $lines = @(Get-PreparationStoreLine -Root $root)
+
+        $lines[0] | Should -BeLike '-- Microsoft Store in *1234-1795404790787221900\updates.log (*) --'
+        @($lines | Where-Object { $_ -like 'Microsoft Store: item *' }).Count | Should -Be 80
+        $lines | Should -Contain 'Microsoft Store: item 100'
+        $lines | Should -Not -Contain 'Microsoft Store: item 20'
+        $lines | Should -Contain ('-- AppX staging evidence in {0} --' -f (Join-Path $job 'updates.log'))
+        foreach ($line in $evidence) { $lines | Should -Contain $line }
+        $lines | Should -Not -Contain 'No Store lines here'
     }
 }
 

@@ -1862,6 +1862,11 @@ prepare-store-broken-title = Microsoft Store isn't working
 prepare-store-broken = Atlas couldn't repair it, and installing Atlas now could break Store apps.
 prepare-store-broken-iso = If the repair keeps failing, back up your files and reinstall Windows with an Atlas ISO.
 prepare-repair-store-again = Try repair again
+# Windows couldn't install updates for some of its own apps, such as Calculator or Photos, and
+# Atlas's Store repairs didn't help. $apps lists the apps by their package names (WindowsCalculator,
+# ZuneMusic), joined with list-and. The buttons are iso-open and common-try-again.
+prepare-store-staging-title = Windows can't update its built-in apps
+prepare-store-staging = Windows couldn't install updates for these built-in apps, and Atlas's repairs didn't help: { $apps }. { prepare-components-unrepairable }
 
 screen-keyboard-title = Keyboard languages
 screen-keyboard-question = Do you use multiple keyboard languages?
