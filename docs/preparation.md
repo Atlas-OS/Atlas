@@ -166,31 +166,6 @@ The worker deals with the Store before the Store apps:
 Nothing Atlas 0.5.0 sets by default stops this.
 It leaves the Store's services alone, and turning off automatic Store app updates (`AutoDownload` set to 2) doesn't stop an update Atlas asks for.
 
-### Orphaned AppX deployment rows
-
-Before any update work, the worker looks for **orphaned AppX deployment rows** on a PC that shows their symptom, and removes them when it finds some.
-`StateRepository-Deployment.srd`, under `%ProgramData%\Microsoft\Windows\AppRepository`, keeps each package's files, manifest and source URIs under the package's id in `StateRepository-Machine.srd`.
-Removing packages with AME's `!appx` action, as Atlas 0.4 and 0.5 did, could drop a package from the Machine database and leave those rows behind.
-They are the likely cause of `0x80070490` (`0x80073CF9` in the Store) on PCs that ran those versions: Microsoft doesn't document either database, so this is inferred from affected PCs, where installs fail in the deployment's Evaluated state.
-
-The databases can't be changed while StateRepository runs, and on a running desktop it can't be held stopped: the services that depend on it start it again, and several of them, such as Gaming Services and AppXSvc, start on triggers within seconds of being stopped.
-So the repair runs at the next startup, and asks for that restart only when there is something to remove.
-It comes before the update work so that its restarts never land in the middle of it.
-
-- The symptom is an install that failed in the Evaluated state with `0x80070490` in the last 30 days: event 605 in the `Microsoft-Windows-AppXDeploymentServer/Operational` log, matched by its data, not its localized text. Without one, the worker leaves the databases alone, even when they hold orphaned rows. `0x80073CF9` alone isn't the symptom, since it stands for any failed install, such as one of a paused package. The log keeps only its newest events, so a PC whose failures have aged out of it isn't repaired.
-- The worker counts the orphaned rows in a copy of both databases. With none, or when the checks below refuse, it asks for no restart and goes on with the updates.
-- When Windows already owes a restart, the worker leaves the rows for a later run instead of adding its own restart to it.
-- Only SYSTEM can write the databases, and only TrustedInstaller can change StateRepository's start type. The worker registers three scheduled tasks that run as SYSTEM; started with `RunEx` as `NT SERVICE\TrustedInstaller`, a task also gets the TrustedInstaller group, so no installed Atlas is needed and the repair reaches PCs still on Atlas 0.4 or 0.5. The repair task runs the worker's own protected copy, in the job folder Atlas Manager staged; a worker run from anywhere else leaves the repair out.
-- It sets a notice Windows shows before sign-in, saying that Atlas is repairing Windows and restarts once more by itself. Without StateRepository, the lock screen, Start and the taskbar don't open, packaged apps that start at sign-in, such as PowerToys Command Palette, fail with "Class not registered", and signing in can come before the startup task. A notice the PC already shows is kept, and none is added.
-- Then it disables StateRepository, which keeps running until the restart, and asks Atlas Manager to restart Windows.
-- At startup, StateRepository and every service that depends on it stay stopped. A startup task runs the repair as TrustedInstaller, then always runs the restore, which puts StateRepository's start type back, starts it and the dependents that start automatically, clears the notice and removes all three tasks. The restore needs neither the job folder nor the worker.
-- The restore then restarts Windows once, because a session signed in while StateRepository was off keeps a broken shell. If Atlas Manager is already open again, it restarts only the shell processes that started before the restore, so Atlas Manager's run isn't cut short. While the start type is still disabled, the restore keeps the tasks and the notice, so it runs again at the next startup, where the repair keeps its earlier outcome and changes nothing. When a task or the disabled start type is left, it doesn't restart, so a failed restore can't restart Windows at every startup.
-- The repair removes nothing unless StateRepository is disabled and stopped, when the Machine database lists no packages, or when more files are orphaned than kept, since then that database doesn't describe the packages the Deployment database belongs to.
-- Only once those checks pass, it copies the Deployment database and its write-ahead log beside it, as `StateRepository-Deployment.srd.atlas-backup-<time>`.
-- The rows go in one transaction, which is rolled back when StateRepository has started (checked right before the delete and the commit), when `PRAGMA foreign_key_check` finds a new broken reference in a table pointing at the removed rows, such as `ContentGroupFile`, or when `PRAGMA quick_check` fails.
-- The outcome goes to `apprepository.json` in that job folder. The next run logs it and doesn't repair again.
-- A repair that fails before StateRepository is disabled is logged, and the run goes on with the updates.
-
 ### Microsoft Store repair
 
 If the Store still can't update, the worker tries these repairs once per run, in order, and tries the Store again after each one that changed something.
@@ -251,6 +226,8 @@ After that, a run whose Store fails to stage updates for any of the recorded app
 The Store is still asked to update first, so a Store that works again finishes as usual and clears the record.
 A record more than 30 days old counts for nothing.
 
+Before either stop, the worker can repair the AppX databases once instead, and ask for a restart (see [Orphaned AppX deployment rows](#orphaned-appx-deployment-rows)).
+
 When a run stops this way, `updates.log` also gets read-only evidence, once a run, on lines that start with `Microsoft Store: staging evidence:`:
 
 - the events of each failing deployment, as `Get-AppPackageLog -ActivityID` gives them, read through a query that each AppX log filters itself;
@@ -259,6 +236,83 @@ When a run stops this way, `updates.log` also gets read-only evidence, once a ru
 
 See [Log limits](diagnostics.md#log-limits) for how much of it the worker writes.
 A part that can't be read is noted, and nothing in it changes how the run ends.
+
+### Orphaned AppX deployment rows
+
+**Orphaned AppX deployment rows** are the likely cause of `store-appx-staging` on PCs that ran Atlas 0.4 or 0.5.
+`StateRepository-Deployment.srd`, under `%ProgramData%\Microsoft\Windows\AppRepository`, keeps each package's files, manifest and source URIs under the package's id in `StateRepository-Machine.srd`.
+Removing packages with AME's `!appx` action, as those versions did, could drop a package from the Machine database and leave those rows behind.
+Microsoft doesn't document either database, so this is inferred from affected PCs, where installs fail in the deployment's Evaluated state with `0x80070490`.
+
+Where the run would stop with `store-appx-staging`, the worker sets up a repair of those rows instead, when all of these hold:
+
+- An install failed in the Evaluated state with `0x80070490` in the last 30 days: event 605 in the `Microsoft-Windows-AppXDeploymentServer/Operational` log, matched by its data, not its localised text.
+  The log keeps only its newest events, so a PC whose failures have aged out of it isn't repaired.
+- A copy of both databases holds orphaned rows, and the checks below don't refuse them.
+- No repair has a record yet, and Windows owes no other restart.
+  With one owed, the run asks for that restart, and the run after it decides again.
+- The worker runs from the protected job folder Atlas Manager staged.
+  The repair's task runs that copy, so no installed Atlas is needed, and the repair reaches PCs still on Atlas 0.4 or 0.5.
+
+Otherwise the run stops with `store-appx-staging`, and the worker's message behind **Show details** and `updates.log` say how an earlier repair ended or why it was left out.
+A PC whose Store works never reaches the repair.
+
+The databases can't be changed while StateRepository runs, and on a running desktop it can't be held stopped: the services that depend on it start it again, and several of them, such as Gaming Services and AppXSvc, start on triggers within seconds of being stopped.
+So the repair runs at the next startup, through three scheduled tasks that run as SYSTEM: the repair, the restore and a startup task.
+Only SYSTEM can write the databases, and only TrustedInstaller can change StateRepository's start type through the service manager.
+A task started with `RunEx` as `NT SERVICE\TrustedInstaller` also gets the TrustedInstaller group.
+
+To set the repair up, the worker:
+
+1. Registers the three tasks, and records the repair as `AppRepositoryRepair` under `HKLM\SOFTWARE\AtlasOS\Preparation`.
+2. Sets a notice that Windows shows before sign-in, in Atlas Manager's language, which says that Atlas is repairing Microsoft Store and that the PC restarts by itself.
+   Without StateRepository, the Start menu and the taskbar don't open, packaged apps that start at sign-in fail with "Class not registered", and signing in can come before the startup task.
+   A notice the PC already shows is kept, and none is added.
+3. Disables StateRepository through a task run as TrustedInstaller.
+   It stops and removes that task before it reads the start type for the last time, so a late `sc.exe` can't disable StateRepository after the worker decided it didn't.
+   StateRepository keeps running until the restart.
+4. Asks for a restart, which Atlas Manager makes as it does for updates.
+   The restart reason is **the Microsoft Store repair**.
+
+When StateRepository wasn't disabled, the worker removes what it set up, records the repair as failed and stops with `store-appx-staging`.
+When it is, or may be, the tasks stay to put it back.
+
+At the next startup, StateRepository and every service that depends on it stay stopped, and the startup task:
+
+1. Runs the repair as TrustedInstaller, within a time limit of three minutes.
+2. Runs the restore as TrustedInstaller, which puts StateRepository's start type back and starts it, with the dependents that start automatically.
+3. Runs the repair again, which ends it (see below).
+4. Writes the start type back into StateRepository's registry key itself when it's still disabled, as when TrustedInstaller doesn't start.
+   A task run as SYSTEM can write that key, and Windows reads it at the next start.
+5. Once the start type isn't disabled, clears the notice Atlas set and removes the three tasks.
+   While it is, both stay, and the next startup tries again.
+6. Restarts Windows 30 seconds later, as a session signed in while StateRepository was off keeps a broken shell.
+   It restarts only when StateRepository was disabled at this start and isn't any more, so a restore that fails can't restart Windows at every startup.
+
+The restore and the startup task need neither the job folder nor the worker.
+The repair records each step in `AppRepositoryRepair` before it takes it, with the start of Windows it runs in, and logs how it ended in the job folder's `updates.log`:
+
+- It removes nothing unless StateRepository is disabled and stopped, when the Machine database lists no packages, or when more files are orphaned than kept, since then that database doesn't describe the packages the Deployment database belongs to.
+- Only once those checks pass, it copies the Deployment database and its write-ahead log beside it, as `StateRepository-Deployment.srd.atlas-backup-<time>`.
+- The rows go in one transaction, which is rolled back when StateRepository has started (checked right before the delete and the commit), when `PRAGMA foreign_key_check` finds a new broken reference in a table pointing at the removed rows, such as `ContentGroupFile`, or when `PRAGMA quick_check` fails.
+- Once the commit is in, the rows are gone.
+  A checkpoint that doesn't finish leaves them in the write-ahead log, which SQLite reads as part of the database, and the record says so.
+- The second run ends the repair once StateRepository has started with the change.
+  When StateRepository didn't start, it puts the backup back, starts StateRepository again and records the repair as failed.
+- A first run that its time limit stopped is ended by the second the same way, as failed.
+
+A repair with a record is never set up again, whatever its outcome, so a failed or refused one doesn't cost its restarts twice.
+The record stays when Atlas Manager removes old job folders.
+The first run after the restarts logs how the repair ended and goes on: a Store that works clears `StoreStaging`, and one that still fails stops with `store-appx-staging`.
+
+Every run reads the record before any Store or Windows Update work, which is one registry value on a PC without one:
+
+- While the repair is set up and Windows hasn't restarted, and in the start of Windows the repair ran in, the run asks for the restart again.
+- When Atlas Manager opens at sign-in before the startup task has finished, the run waits for it, and the update row says Microsoft Store is being repaired.
+- When the startup task ended without putting StateRepository back, or didn't start within 10 minutes of Windows starting, the run writes the start type back into the registry, which administrators can write.
+  It removes the tasks and the notice, records an unfinished repair as failed and asks for the restart that needs.
+
+The check before the install stops while the repair is unfinished.
 
 ### Store app updates
 
@@ -403,6 +457,6 @@ These logs belong to the **Get ready** page, so they aren't under `%windir%\Atla
 | `store-timeout` | Store apps didn't finish updating in time. |
 | `store-passes` | The Store still offers updates after eight passes. |
 | `store-repair-failed` | None of the Store repairs made the Store work. |
-| `store-appx-staging` | Windows couldn't stage updates for built-in apps (`0x80070490`), and the Store repairs didn't help. |
+| `store-appx-staging` | Windows couldn't stage updates for built-in apps (`0x80070490`), and the Store repairs didn't help, nor did the [AppX database repair](#orphaned-appx-deployment-rows) where it applied. |
 
 The `feature-*` reasons belong to moving Windows to a newer release, and are listed in [Moving Windows to a newer release](windows-transition.md#failure-reasons).

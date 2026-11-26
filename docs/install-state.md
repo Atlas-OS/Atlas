@@ -23,7 +23,7 @@ For what you see in Atlas Manager when you update, see [Updating Atlas](upgradin
 | `HKCU\SOFTWARE\AtlasOS\UserSetup` | An account's last completed migration, as `UpgradeVersion` |
 | `HKCU\Software\AtlasOS\InstallSession` | The installing user's marker, between Capture and Run |
 | `HKLM\SOFTWARE\AtlasOS\WindowsTransition` | Atlas Manager's record of the Windows Update settings it changed (see [Moving Windows to a newer release](windows-transition.md)) |
-| `HKLM\SOFTWARE\AtlasOS\Preparation` | Updates excluded from the **Get ready** checks (see [Preparing Windows](preparation.md)) |
+| `HKLM\SOFTWARE\AtlasOS\Preparation` | What the **Get ready** worker keeps between runs: updates excluded from its checks, the restarts it asked for and the repairs it ran (see [Preparing Windows](preparation.md)) |
 | `HKLM\SOFTWARE\AtlasOS\Toolbox` | The Atlas Toolbox installer's own record |
 
 ## The active install state
