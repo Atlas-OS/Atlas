@@ -104,10 +104,11 @@ if (-not $keepOneDrive) {
 }
 
 # Windows components and Telemetry (CBS packages)
-# Install-AtlasCbsPackage throws on failure after registering the Safe Mode retry
-# fallback, making this ordered step fail so the orchestrator returns nonzero. A
-# Rebase is a first installation too: the Windows that rebuilt itself lost Atlas's
-# packages, so both choices put NoTelemetry back as a Fresh install does.
+# Install-AtlasCbsPackage throws on failure, after registering the Safe Mode retry
+# fallback where Safe Mode can help, making this ordered step fail so the orchestrator
+# returns nonzero. A Rebase is a first installation too: the Windows that rebuilt
+# itself lost Atlas's packages, so both choices put NoTelemetry back as a Fresh
+# install does.
 if (Test-AtlasOption -Name 'defender-disable') {
     $null = Set-AtlasDefenderChoice -State Disable -Fresh
 }

@@ -414,8 +414,13 @@ Earlier Atlas builds set the Winlogon shell to `cmd.exe` and saved the original 
 3. At the Safe Mode prompt, you run `Scripts\Entry\Invoke-AtlasCbsRetry.cmd`.
    It starts `CbsRetry.ps1 -Recover` through the broker, because servicing needs a TrustedInstaller token.
    With that token it leaves Safe Mode and installs the recorded packages, and with any other token it changes nothing.
-4. The state file goes only after the retry succeeds.
+4. The state file goes only after the retry succeeds, or after it finds the packages can't be installed.
    `Invoke-AtlasCbsRetry.cmd /discard` gives the retry up, leaving Safe Mode and removing the state.
+
+Atlas arms no retry when servicing refuses a package's signature or the certificate chain it needs, such as `0x80092004` or the `0x800B01xx` trust results.
+Windows decides those from the signature and the PC's certificate stores, which Safe Mode doesn't change.
+The install stops and says what to do instead, and a retry that meets such a failure gives itself up.
+Every servicing failure copies the end of `CBS.log` into the install log, and each package add logs the state of the test root key servicing reads.
 
 One mutex serialises the retry, and recovery is always this explicit `-Recover` operation.
 PayloadReplacement refuses to run while a retry is armed, so it can't replace the installer that recovery needs.

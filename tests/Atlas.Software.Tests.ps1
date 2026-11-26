@@ -653,6 +653,154 @@ Describe 'CBS Safe Mode retry fallback' {
             Should -Invoke Enable-AtlasCbsRetry -Times 1 -Exactly
         }
     }
+
+    It 'arms no retry when servicing refuses a signature, and says what to do instead' {
+        InModuleScope Atlas.Software {
+            Mock Assert-AtlasPrivilege {}
+            Mock Initialize-AtlasCbsEnvironment {}
+            Mock Write-Host {}
+            Mock Enable-AtlasCbsRetry {}
+            Mock Install-AtlasCbsCab {
+                if ($CabPath -like '*one.cab') {
+                    return [pscustomobject]@{
+                        Path = $CabPath; Success = $false; RetryEligible = $false
+                        Sha256 = ('A' * 64); FailureKind = 'Trust'; HResult = 0x80092004
+                    }
+                }
+                [pscustomobject]@{
+                    Path = $CabPath; Success = $false; RetryEligible = $true
+                    Sha256 = ('B' * 64); FailureKind = 'Servicing'; HResult = 0x800F0922
+                }
+            }
+            { Install-AtlasCbsPackage -Packages @('C:\Packages\one.cab', 'C:\Packages\two.cab') `
+                    -PackagesPath 'C:\Packages' -LiteralPaths -NonInteractive } |
+                Should -Throw "*one.cab (0x80092004).*doesn't change that*RestoreHealth*repair-install Windows*"
+            Should -Invoke Enable-AtlasCbsRetry -Times 0 -Exactly
+        }
+    }
+
+    It 'reports a refused signature to the interactive installer with no retry to offer' {
+        InModuleScope Atlas.Software {
+            Mock Assert-AtlasPrivilege {}
+            Mock Initialize-AtlasCbsEnvironment {}
+            Mock Write-Host {}
+            Mock Enable-AtlasCbsRetry {}
+            Mock Install-AtlasCbsCab {
+                [pscustomobject]@{
+                    Path = $CabPath; Success = $false; RetryEligible = $false
+                    Sha256 = ('A' * 64); FailureKind = 'Trust'; HResult = 0x800B0109
+                }
+            }
+            $result = Install-AtlasCbsPackage -Packages @('C:\Packages\one.cab') -PackagesPath 'C:\Packages' -LiteralPaths
+            @($result.FailedPackages) | Should -Be @('C:\Packages\one.cab')
+            @($result.RetryPackages).Count | Should -Be 0
+            $result.TrustInstruction | Should -BeLike '*one.cab (0x800B0109)*'
+            Should -Invoke Enable-AtlasCbsRetry -Times 0 -Exactly
+        }
+    }
+}
+
+Describe 'CBS servicing failures' {
+    It 'treats <Code> as a refused signature: <Trust>' -TestCases @(
+        @{ Code = '0x80092004'; Trust = $true }
+        @{ Code = '0x800B0100'; Trust = $true }
+        @{ Code = '0x800B0109'; Trust = $true }
+        @{ Code = '0x800B0111'; Trust = $true }
+        @{ Code = '0x800B0004'; Trust = $true }
+        @{ Code = '0x80096010'; Trust = $true }
+        @{ Code = '0x800F0922'; Trust = $false }
+        @{ Code = '0x80070005'; Trust = $false }
+        @{ Code = '0x800B0200'; Trust = $false }
+        @{ Code = '0x00000000'; Trust = $false }
+    ) {
+        InModuleScope Atlas.Software -Parameters @{ Code = $Code; Trust = $Trust } {
+            Test-AtlasCbsTrustFailure -HResult ([Convert]::ToInt32($Code.Substring(2), 16)) | Should -Be $Trust
+        }
+    }
+
+    It 'reads the HRESULT from the COMException the DISM cmdlets throw' {
+        InModuleScope Atlas.Software {
+            $record = try {
+                throw [Runtime.InteropServices.COMException]::new('A permanent package cannot be uninstalled.', 0x800F0825)
+            }
+            catch { $_ }
+            Get-AtlasCbsFailureHResult -ErrorRecord $record | Should -Be 0x800F0825
+        }
+    }
+
+    It 'reads the HRESULT from a localised message when no COMException carries it' {
+        InModuleScope Atlas.Software {
+            $record = try { throw 'Fehler bei Add-WindowsPackage. Fehlercode = 0x80092004' } catch { $_ }
+            Get-AtlasCbsFailureHResult -ErrorRecord $record | Should -Be 0x80092004
+            $none = try { throw 'Something else failed.' } catch { $_ }
+            Get-AtlasCbsFailureHResult -ErrorRecord $none | Should -Be 0
+        }
+    }
+
+    It 'classifies a refused signature as <Kind> and logs the test root key and CBS.log' -TestCases @(
+        @{ Code = 0x80092004; Kind = 'Trust'; Retry = $false }
+        @{ Code = 0x800F0922; Kind = 'Servicing'; Retry = $true }
+    ) {
+        InModuleScope Atlas.Software -Parameters @{ Code = $Code; Kind = $Kind; Retry = $Retry } {
+            Mock Write-Host {}
+            Mock Write-AtlasLog {}
+            Mock Assert-AtlasCbsHash { 'A' * 64 }
+            Mock Assert-AtlasCbsCertificate {}
+            Mock Get-AtlasCbsTestRootState { 'present, with no values' }
+            Mock Get-AtlasCbsLogTail { @('2026-11-24 03:12:11, Error CBS Failed to add the package [HRESULT = 0x80092004]') }
+            Mock Add-WindowsPackage { throw [Runtime.InteropServices.COMException]::new('Add-WindowsPackage failed.', $Code) }
+
+            $result = Install-AtlasCbsCab -CabPath 'C:\Packages\one.cab'
+
+            $result.Success | Should -BeFalse
+            $result.FailureKind | Should -BeExactly $Kind
+            $result.RetryEligible | Should -Be $Retry
+            $result.HResult | Should -Be $Code
+            Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
+                $Message -like 'Adding one.cab; the test root key servicing reads is present, with no values.'
+            }
+            Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
+                $Message -like 'CBS.log: *HRESULT = 0x80092004*'
+            }
+        }
+    }
+
+    It 'describes the test root key servicing reads' {
+        InModuleScope Atlas.Software {
+            $scratchPath = 'Software\AtlasRewriteTest\CbsTestRoot'
+            [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree($scratchPath, $false)
+            $scratch = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($scratchPath)
+            try {
+                Get-AtlasCbsTestRootState -BaseKey $scratch | Should -BeExactly 'missing'
+                $root = $scratch.CreateSubKey($script:AtlasCbsTestRootKey)
+                Get-AtlasCbsTestRootState -BaseKey $scratch | Should -BeExactly 'present, with no values'
+                $root.SetValue('Blob', [byte[]]@(1), [Microsoft.Win32.RegistryValueKind]::Binary)
+                $root.Dispose()
+                Get-AtlasCbsTestRootState -BaseKey $scratch | Should -BeExactly 'present, with values Blob'
+            }
+            finally {
+                $scratch.Dispose()
+                [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree('Software\AtlasRewriteTest', $false)
+            }
+        }
+    }
+
+    It 'keeps the errors at the end of CBS.log, or its last lines when it names none' {
+        InModuleScope Atlas.Software -Parameters @{ Root = $TestDrive } {
+            $log = Join-Path $Root 'CBS.log'
+            Set-Content -LiteralPath $log -Encoding UTF8 -Value @(
+                '2026-11-24 03:12:10, Info                  CBS    Session initialized'
+                '2026-11-24 03:12:11, Error                 CBS    Failed to stage the package [HRESULT = 0x80092004 - CRYPT_E_NOT_FOUND]'
+                '2026-11-24 03:12:12, Info                  CBS    Starting the store check'
+            )
+            @(Get-AtlasCbsLogTail -Path $log) | Should -Be @(
+                '2026-11-24 03:12:11, Error                 CBS    Failed to stage the package [HRESULT = 0x80092004 - CRYPT_E_NOT_FOUND]'
+            )
+            Set-Content -LiteralPath $log -Encoding UTF8 -Value @('one', 'two', 'three')
+            @(Get-AtlasCbsLogTail -Path $log -MaximumLines 2) | Should -Be @('two', 'three')
+            @(Get-AtlasCbsLogTail -Path (Join-Path $Root 'missing.log')).Count | Should -Be 0
+        }
+    }
 }
 
 Describe 'Start-AtlasSoftwareInstaller' {

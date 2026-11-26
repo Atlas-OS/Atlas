@@ -13,6 +13,8 @@
     with -LibraryOnly to arm, read or clear the retry.
 .PARAMETER Recover
     Installs the armed packages again. Windows starts normally from the next restart.
+    When servicing refuses a package's signature, which Safe Mode doesn't change, the
+    retry is given up instead of left to run again.
 .PARAMETER Discard
     Gives up the retry: leaves Safe Mode and removes the retry state.
 .PARAMETER LibraryOnly
@@ -257,9 +259,31 @@ function Invoke-AtlasCbsRetryInstaller {
     $result = & $Installer -Packages $Packages -LiteralPaths
     if ($null -ne $result -and $null -ne $result.PSObject.Properties['FailedPackages'] -and
         @($result.FailedPackages).Count -ne 0) {
-        throw "CBS packages still failed in Safe Mode: $(@($result.FailedPackages) -join ', ')"
+        $failure = "CBS packages still failed in Safe Mode: $(@($result.FailedPackages) -join ', ')"
+        $trust = $result.PSObject.Properties['TrustInstruction']
+        if ($null -ne $trust -and -not [string]::IsNullOrEmpty([string]$trust.Value)) {
+            # Servicing refused a signature, which no number of retries changes.
+            $exception = [InvalidOperationException]::new("$failure. $($trust.Value)")
+            $exception.Data['AtlasCbsRetryCannotSucceed'] = $true
+            throw $exception
+        }
+        throw $failure
     }
     return $result
+}
+
+function Test-AtlasCbsRetryCannotSucceed {
+    <#
+    .SYNOPSIS
+        Whether a failed retry showed that retrying again can't install the packages.
+    #>
+    param([Parameter(Mandatory = $true)][Exception]$Exception)
+    for ($cause = $Exception; $null -ne $cause; $cause = $cause.InnerException) {
+        if ($cause.Data.Contains('AtlasCbsRetryCannotSucceed') -and [bool]$cause.Data['AtlasCbsRetryCannotSucceed']) {
+            return $true
+        }
+    }
+    return $false
 }
 
 function Enable-AtlasCbsRetry {
@@ -312,7 +336,18 @@ function Invoke-AtlasCbsRetryRecovery {
         if ($SafeModeCommand) { & $SafeModeCommand 'Exit' }
         else { Invoke-AtlasCbsRetrySafeMode -Mode Exit }
         [void](Write-AtlasCbsRetryState -Phase Pending -Packages @($state.Packages) -Path $StatePath)
-        [void](Invoke-AtlasCbsRetryInstaller -Packages @($state.Packages) -Installer $install)
+        try {
+            [void](Invoke-AtlasCbsRetryInstaller -Packages @($state.Packages) -Installer $install)
+        }
+        catch {
+            # Safe Mode is already off, so removing the state gives the retry up: nothing
+            # arms it again for a failure that can't change, and the install that runs
+            # next stops with the same instruction.
+            if (Test-AtlasCbsRetryCannotSucceed -Exception $_.Exception) {
+                Clear-AtlasCbsRetryState -Path $StatePath
+            }
+            throw
+        }
         Clear-AtlasCbsRetryState -Path $StatePath
     }
 }
@@ -416,6 +451,7 @@ function Invoke-AtlasCbsRetryCommand {
     }
 
     $title = 'Safe Mode package retry'
+    $gaveUp = $false
     Set-AtlasLogConsoleStyle -Style Interactive
     Write-AtlasTitle -Text $title
     try {
@@ -446,6 +482,12 @@ function Invoke-AtlasCbsRetryCommand {
         try { [void](Invoke-AtlasTrustedInstaller -Operation CbsRetry -TimeoutSeconds 3600) }
         catch {
             # A retry that reached servicing has already left Safe Mode; say what's left.
+            # Only a retry that found the packages can't be installed removes its state
+            # when it fails, and the install log has its reason and what to do.
+            if (-not [IO.File]::Exists($StatePath)) {
+                $gaveUp = $true
+                throw "The packages didn't install: $($_.Exception.Message) Windows refuses them in Safe Mode too, so the retry was given up and Windows starts normally from the next restart. The install log says why and what to do next."
+            }
             $after = try { Read-AtlasCbsRetryState -Path $StatePath } catch { $null }
             $next = if ($null -ne $after) { " $(Get-AtlasCbsRetryInstruction -Phase ([string]$after.Phase))" } else { '' }
             throw "The packages didn't install: $($_.Exception.Message)$next"
@@ -454,6 +496,8 @@ function Invoke-AtlasCbsRetryCommand {
     catch {
         Write-AtlasLog -Level Error -Message "$title failed: $($_.Exception.Message)" -ErrorRecord $_ -NoConsole
         Write-AtlasNotApplied -Title $title -Reason $_.Exception.Message -DetailsPath (Get-AtlasInstallLogPath)
+        # Safe Mode's command prompt has no Start menu to restart from.
+        if ($gaveUp -and !(Test-AtlasCbsRetryNormalBoot)) { Request-AtlasCbsRetryRestart }
         return 1
     }
 

@@ -232,10 +232,31 @@ Describe 'Atlas CBS retry lifecycle' {
 
     It 'treats reported failed packages as a failed recovery' {
         [void](Write-AtlasCbsRetryState -Phase Armed -Packages $script:package -Path $script:statePath)
-        $installer = { [pscustomobject]@{ FailedPackages = @($script:package) } }
+        $installer = { [pscustomobject]@{ FailedPackages = @($script:package); TrustInstruction = $null } }
         { Invoke-AtlasCbsRetryRecovery -StatePath $script:statePath `
                 -SafeModeCommand {} -Installer $installer } | Should -Throw '*still failed*'
         (Read-AtlasCbsRetryState -Path $script:statePath).Phase | Should -BeExactly 'Pending'
+    }
+
+    It 'gives the retry up when servicing refuses a signature, which another retry cannot change' {
+        [void](Write-AtlasCbsRetryState -Phase Armed -Packages $script:package -Path $script:statePath)
+        $safeMode = { param($Mode) $script:events += $Mode }
+        $installer = {
+            [pscustomobject]@{
+                FailedPackages   = @($script:package)
+                TrustInstruction = "Windows didn't accept the signature of package.cab (0x80092004)."
+            }
+        }
+        $failure = $null
+        try {
+            Invoke-AtlasCbsRetryRecovery -StatePath $script:statePath -SafeModeCommand $safeMode -Installer $installer
+        }
+        catch { $failure = $_ }
+        $failure | Should -Not -BeNullOrEmpty
+        $failure.Exception.Message | Should -BeLike "*still failed*didn't accept the signature*0x80092004*"
+        Test-AtlasCbsRetryCannotSucceed -Exception $failure.Exception | Should -BeTrue
+        $script:events | Should -Be @('Exit')
+        Test-Path -LiteralPath $script:statePath | Should -BeFalse
     }
 
     Context 'The Atlas 0.5 Safe Mode package list' {

@@ -145,6 +145,21 @@ Describe 'The CBS retry command' {
         Should -Invoke Write-AtlasNotApplied -Times 1 -Exactly -ParameterFilter { $Reason -ceq $expectedReason }
     }
 
+    It 'says the retry was given up and offers the restart when the TrustedInstaller run removed it' {
+        [void](Write-AtlasCbsRetryState -Phase Armed -Packages $cbsPackage -Path $cbsState)
+        # A retry servicing refuses for a reason Safe Mode can't change removes its state.
+        Mock Invoke-AtlasTrustedInstaller {
+            Remove-Item -LiteralPath $cbsState -Force
+            throw 'The broker failed.'
+        }
+        $null = & $script:CbsRetryEntry -Recover
+        $LASTEXITCODE | Should -Be 1
+        Should -Invoke Write-AtlasNotApplied -Times 1 -Exactly -ParameterFilter {
+            $Reason -like "The packages didn't install: The broker failed. *the retry was given up and Windows starts normally from the next restart.*"
+        }
+        Should -Invoke Read-AtlasYesNo -Times 1 -Exactly -ParameterFilter { $Question -ceq 'Restart Windows now?' }
+    }
+
     It 'runs the retry itself with a TrustedInstaller token and exits <ExitCode>' -ForEach @(
         @{ Fails = $false; ExitCode = 0 }
         @{ Fails = $true; ExitCode = 1 }
