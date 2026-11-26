@@ -184,6 +184,7 @@ It checks the drive's identity again before erasing and while writing, and reads
 | A network driver couldn't be exported | Choose **Create without them** on the bar, or update the driver in Device Manager first. |
 | A network driver was rejected | Install it from `%windir%\AtlasISO\NetworkDrivers` once Windows is running ([details](#a-network-driver-was-rejected)). |
 | Before-desktop cleanup failed | Run `%windir%\AtlasISO\Desktop.ps1 -RestoreDesktop` ([details](#before-desktop-cleanup-failed)). |
+| Windows couldn't open the ISO | Restart your PC, then try again. Atlas waits for Windows to give the ISO a drive letter, and gives one itself to an ISO it opened ([mounting](iso-internals.md#iso-build)). |
 | An ISO or USB job failed | Choose **Open log folder** to see its logs, request and errors. |
 | The ISO has no network drivers | Nothing to do: this PC's adapters use drivers that come with Windows, and the finished ISO's message says so. |
 

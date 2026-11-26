@@ -9,6 +9,10 @@ The code is in `src/services/iso.rs`, `resources/iso/Build-Iso.ps1` and `resourc
 
 - **Windows download.** On the Windows step, users can browse for an existing ISO or download one. Manager requests the language list and a signed ISO link from the website's `/api/ms-iso` endpoints and downloads the file directly from Microsoft into the Downloads known folder, under a name no file has yet. It picks the language that matches the first Windows display language (`language_for` in `src/pages/iso/download.rs`), and the target PC's architecture. A cancelled or incomplete transfer leaves the destination untouched.
 - **Checks before Create.** The app reads the output's volume as the worker does (`destination` in `src/services/iso.rs`, which a test keeps in step with `Assert-Output`): a local NTFS or ReFS volume with the free space below. The worker asserts the output only for a build, so checking the files never fails on where the ISO will go.
+- **Mounting.** The ISO and USB workers share `resources/iso/Iso-Mount.ps1`, and read a mounted ISO only as exactly one volume with a drive letter.
+  Windows can give the letter late, or none where automatic mounting is off, so the worker reads the image's volume again every half second for about 30 seconds.
+  After about 10 seconds, an image the worker mounted itself gets the highest free drive letter, which the worker takes back before it ejects the image. An image that was already mounted is used as it is.
+  Without such a volume, the worker stops with `iso-mount`, and the log lists each volume's filesystem, drive letter and status.
 - **Inspection.** DISM reads every edition from the source, mounted read-only.
   The worker checks each version against `windows-releases.json` in the Atlas package's compatibility scripts, which the app and the front door share.
   An unknown version triggers a refresh from Microsoft's release page, limited in size and time.

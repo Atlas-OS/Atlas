@@ -42,6 +42,7 @@ foreach ($name in @('source', 'output', 'archive', 'package', 'app')) {
     if ($null -ne $request.PSObject.Properties[$name]) { $request.$name = ConvertFrom-VerbatimPath ([string]$request.$name) }
 }
 . (Join-Path $PSScriptRoot 'Windows-Release.ps1')
+. (Join-Path $PSScriptRoot 'Iso-Mount.ps1')
 $ownedMount = $false
 $work = $null
 $partial = $null
@@ -313,9 +314,7 @@ try {
         $disk = Mount-DiskImage -ImagePath $source -Access ReadOnly -PassThru
         $ownedMount = $true
     }
-    $volumes = @($disk | Get-Volume | Where-Object DriveLetter)
-    if ($volumes.Count -ne 1) { throw 'The ISO must contain one readable Windows installation volume.' }
-    $root = "$($volumes[0].DriveLetter):\"
+    $root = Get-AtlasIsoRoot -ImagePath $source -Disk $disk -Owned:$ownedMount
     foreach ($relative in @('setup.exe', 'sources\boot.wim', 'efi\microsoft\boot\efisys.bin')) {
         if (-not (Test-Path -LiteralPath (Join-Path $root $relative))) { throw "Windows installation file missing: $relative" }
     }
@@ -527,9 +526,7 @@ try {
     try {
         $checkDisk = Mount-DiskImage -ImagePath $verifyIso -Access ReadOnly -PassThru
         $verifiedMount = $true
-        $checkVolumes = @($checkDisk | Get-Volume | Where-Object DriveLetter)
-        if ($checkVolumes.Count -ne 1) { throw 'Output volume is unreadable.' }
-        $checkRoot = "$($checkVolumes[0].DriveLetter):\"
+        $checkRoot = Get-AtlasIsoRoot -ImagePath $verifyIso -Disk $checkDisk -Owned
         # The staged image, not the source: it may be the filtered export.
         $expected = @($imageRelative, 'sources\boot.wim', 'efi\microsoft\boot\efisys.bin') + $bootFiles
         $expected += @(@($payload.Keys) + @($managerName, 'setup.json') | ForEach-Object { Join-Path $atlasIso $_ })
@@ -545,7 +542,7 @@ try {
         }
     }
     finally {
-        if ($verifiedMount) { Dismount-DiskImage -ImagePath $verifyIso -ErrorAction Stop | Out-Null }
+        if ($verifiedMount) { Dismount-AtlasIso $verifyIso -Required }
     }
     [IO.File]::Move($verifyIso, $partial)
     # Read the entire output before publication, retaining a checksum for diagnostics.
@@ -563,7 +560,7 @@ catch {
 }
 finally {
     if ($null -ne $appStream) { $appStream.Dispose() }
-    if ($ownedMount -and $source) { Dismount-DiskImage -ImagePath $source -ErrorAction Continue | Out-Null }
+    if ($ownedMount -and $source) { Dismount-AtlasIso $source }
     # Only remove the exact unique paths created above, after checking their parent.
     if ($work -and (Test-Path -LiteralPath $work)) {
         $resolved = [IO.Path]::GetFullPath($work)

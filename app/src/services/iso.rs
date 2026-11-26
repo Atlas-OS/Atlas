@@ -574,6 +574,9 @@ pub enum FailureReason {
     NetworkArchitecture,
     /// The running Atlas Manager executable disappeared from its launch path.
     ManagerMissing,
+    /// Windows didn't open the ISO as one volume with a drive letter, even
+    /// after the worker waited for one and gave its own mount a letter.
+    IsoMount,
     /// The Atlas package is too old for ISO creation, or has no front door.
     /// Decided by the app before the worker starts, so it has no marker.
     PackageUnsupported,
@@ -606,6 +609,7 @@ impl FailureReason {
             "iso-customised" => Self::IsoCustomised,
             "network-architecture" => Self::NetworkArchitecture,
             "manager-missing" => Self::ManagerMissing,
+            "iso-mount" => Self::IsoMount,
             _ => return None,
         })
     }
@@ -650,6 +654,7 @@ pub fn package_error(error: anyhow::Error) -> anyhow::Error {
 /// The scripts and data the image worker loads from its job directory.
 const WORKER_FILES: &[(&str, &str)] = &[
     ("Build-Iso.ps1", include_str!("../../resources/iso/Build-Iso.ps1")),
+    ("Iso-Mount.ps1", include_str!("../../resources/iso/Iso-Mount.ps1")),
     (
         "Windows-Release.ps1",
         include_str!("../../../package/Executables/AtlasModules/Scripts/Compatibility/Windows-Release.ps1"),
@@ -1181,13 +1186,22 @@ mod tests {
 
     #[test]
     fn failure_reasons_match_the_worker_markers() {
-        // Every marker the worker writes must be understood here, or the page
-        // falls back to generic advice.
-        let script = include_str!("../../resources/iso/Build-Iso.ps1");
-        for marker in script.lines().filter_map(|line| {
-            let start = line.find("Fail '")? + "Fail '".len();
-            line[start..].split('\'').next()
-        }) {
+        // Every marker the worker writes, itself or through the mount helper it
+        // loads, must be understood here, or the page falls back to generic advice.
+        let scripts = [
+            include_str!("../../resources/iso/Build-Iso.ps1"),
+            include_str!("../../resources/iso/Iso-Mount.ps1"),
+        ];
+        let markers: Vec<&str> = scripts
+            .iter()
+            .flat_map(|script| script.lines())
+            .filter_map(|line| {
+                let start = line.find("Fail '")? + "Fail '".len();
+                line[start..].split('\'').next()
+            })
+            .collect();
+        assert!(markers.contains(&"iso-mount"), "{markers:?}");
+        for marker in markers {
             assert!(FailureReason::parse(marker).is_some(), "unknown worker marker {marker:?}");
         }
         assert_eq!(

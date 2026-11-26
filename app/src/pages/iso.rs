@@ -2191,6 +2191,7 @@ impl IsoPage {
                 (t!("iso-manager-missing-title"), t!("iso-manager-missing"))
             }
             Some(FailureReason::DiskSpace) => (generic_title, t!("iso-failed-space")),
+            Some(FailureReason::IsoMount) => (generic_title, t!("iso-mount-failed")),
             Some(FailureReason::Build) if self.network_build && self.stage == Stage::NetworkDrivers => {
                 (generic_title, t!("iso-network-not-added"))
             }

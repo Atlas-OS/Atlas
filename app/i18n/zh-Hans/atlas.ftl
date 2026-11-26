@@ -1141,6 +1141,10 @@ iso-failed-space = 目标驱动器的可用空间不足。请释放空间，或�
 iso-manager-missing = 请将 AtlasManager.exe 下载到“下载”等本地文件夹，然后从那里打开它。
 # 家庭版和 LTSC 是创建 ISO 时会剔除的版本；其他为会保留的版本示例。版本名称与简体中文版 Windows 显示的一致。
 iso-failed-edition = 此 ISO 不包含受支持的 Windows 版本。不支持 Windows 家庭版和 LTSC 版本。请使用包含其他版本（例如专业版、教育版或企业版）的 ISO。
+# Windows didn't open an ISO as a drive Atlas can read: the Windows ISO, the new ISO while it's
+# checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
+# USB page's ISO card.
+iso-mount-failed = Windows 无法打开 ISO。请重启电脑，然后重试。
 # 打开 ISO 或 U 盘任务原始日志所在的文件夹。
 iso-diagnostics = 打开日志文件夹
 # Atlas 从其他页面更新 Windows 或还原 Windows 更新设置期间，显示在 ISO 和 U 盘页面上。完成前，这两个页面上的控件不可用。

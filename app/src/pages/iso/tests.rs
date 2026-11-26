@@ -182,7 +182,7 @@ fn only_failures_nothing_on_the_page_fixes_get_the_help_row() {
         assert!(!failure_needs_help(Some(reason), false, true), "{reason:?}");
     }
     // Unexpected failures, and a job that never started, do.
-    for reason in [Some(Check), Some(Build), Some(ManagerMissing), None] {
+    for reason in [Some(Check), Some(Build), Some(ManagerMissing), Some(IsoMount), None] {
         assert!(failure_needs_help(reason, true, true), "{reason:?}");
         assert!(failure_needs_help(reason, false, true), "{reason:?}");
     }
@@ -236,6 +236,12 @@ fn each_failure_is_named_and_says_what_to_do() {
             let message = page.failure_text().1;
             assert_eq!(message, t!("iso-package-windows-iso"));
             assert!(!message.contains(iso::MINIMUM_VERSION), "{message}");
+            // An ISO Windows couldn't open says so, whether checking or building.
+            page.result = JobResult::Failed(Some(FailureReason::IsoMount));
+            assert_eq!(page.failure_text(), (t!("iso-check-failed"), t!("iso-mount-failed")));
+            page.step = IsoStep::Create;
+            assert_eq!(page.failure_text(), (t!("iso-failed"), t!("iso-mount-failed")));
+            page.step = IsoStep::Windows;
             // A network driver export that failed says so, with the way to leave them out.
             page.step = IsoStep::Create;
             page.network_build = true;

@@ -1334,6 +1334,10 @@ iso-failed-space = На целевом диске недостаточно св�
 iso-manager-missing = Скачайте AtlasManager.exe в локальную папку, например «Загрузки», и запустите его оттуда.
 # Home and LTSC are the editions ISO creation drops; the others are examples it keeps.
 iso-failed-edition = Этот ISO-образ не содержит поддерживаемых редакций Windows. Редакции Windows Home и LTSC не поддерживаются. Используйте ISO-образ с другой редакцией, например Pro, Education или Enterprise.
+# Windows didn't open an ISO as a drive Atlas can read: the Windows ISO, the new ISO while it's
+# checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
+# USB page's ISO card.
+iso-mount-failed = Windows не удалось открыть ISO-образ. Перезагрузите ПК и повторите попытку.
 # Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = Открыть папку журналов
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,

@@ -1249,6 +1249,10 @@ iso-failed-space = Ruang kosong di drive tujuan tidak cukup. Kosongkan ruang, at
 iso-manager-missing = Unduh AtlasManager.exe ke folder lokal seperti Unduhan, lalu buka dari sana.
 # Home and LTSC are the editions ISO creation drops; the others are examples it keeps.
 iso-failed-edition = ISO ini tidak berisi edisi Windows yang didukung. Windows Home dan LTSC tidak didukung. Gunakan ISO yang menyertakan edisi lain, seperti Pro, Education, atau Enterprise.
+# Windows didn't open an ISO as a drive Atlas can read: the Windows ISO, the new ISO while it's
+# checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
+# USB page's ISO card.
+iso-mount-failed = Windows tidak dapat membuka ISO. Mulai ulang PC Anda, lalu coba lagi.
 # Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = Buka folder log
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,

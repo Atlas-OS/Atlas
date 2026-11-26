@@ -249,11 +249,14 @@ pub enum FailureReason {
     DriveChanged,
     /// Windows lost access to the destination while writing its files.
     DriveUnavailable,
+    /// Windows didn't open the ISO as one volume with a drive letter.
+    IsoMount,
 }
 
 impl FailureReason {
     pub fn parse(value: &str) -> Option<Self> {
         Some(match value {
+            "iso-mount" => Self::IsoMount,
             "iso-unsupported" => Self::IsoUnsupported,
             "source-location" => Self::SourceLocation,
             "working-space" => Self::WorkingSpace,
@@ -378,6 +381,7 @@ fn start(
         dir,
         &[
             ("Write-Usb.ps1", include_str!("../../resources/iso/Write-Usb.ps1").as_bytes()),
+            ("Iso-Mount.ps1", include_str!("../../resources/iso/Iso-Mount.ps1").as_bytes()),
             ("usb-request.json", &request_json),
         ],
     )?;
@@ -470,11 +474,15 @@ mod tests {
 
     #[test]
     fn failure_reasons_match_the_worker_markers() {
-        // Every marker the worker writes must be understood here, or the page
-        // falls back to generic advice.
-        let script = include_str!("../../resources/iso/Write-Usb.ps1");
-        let markers: Vec<_> = script
-            .lines()
+        // Every marker the worker writes, itself or through the mount helper it
+        // loads, must be understood here, or the page falls back to generic advice.
+        let scripts = [
+            include_str!("../../resources/iso/Write-Usb.ps1"),
+            include_str!("../../resources/iso/Iso-Mount.ps1"),
+        ];
+        let markers: Vec<_> = scripts
+            .iter()
+            .flat_map(|script| script.lines())
             .filter_map(|line| {
                 let start = line.find("Fail '")? + "Fail '".len();
                 line[start..].split('\'').next()
@@ -485,6 +493,7 @@ mod tests {
             assert!(FailureReason::parse(marker).is_some(), "unknown worker marker {marker:?}");
         }
         assert!(markers.contains(&"drive-changed"));
+        assert!(markers.contains(&"iso-mount"));
     }
 
     #[test]

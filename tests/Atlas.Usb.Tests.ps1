@@ -8,6 +8,9 @@ BeforeAll {
         $node = $ast.Find({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name},$true)
         . ([scriptblock]::Create($node.Extent.Text))
     }
+    # The worker dot-sources the mount helper it shares with the ISO worker.
+    $script:MountHelper = Join-Path (Split-Path $script:UsbScript -Parent) 'Iso-Mount.ps1'
+    . $script:MountHelper
     # Invoke-AtlasUsbEject compiles its CM_Request_Device_EjectW wrapper only when no type of
     # that name exists. This stand-in takes its place in the test session, so no device is
     # ejected: it records the device and refuses as many times as a test asks.
@@ -128,7 +131,7 @@ Describe 'USB worker request and module resolution' {
     It 'writes the drive list as UTF-8 so non-ASCII names reach the app intact' {
         $job = Join-Path $TestDrive 'encoding'
         [void][IO.Directory]::CreateDirectory($job)
-        Copy-Item -LiteralPath $script:UsbScript -Destination $job
+        Copy-Item -LiteralPath $script:UsbScript, $script:MountHelper -Destination $job
         [IO.File]::WriteAllText((Join-Path $job 'usb-request.json'), '{}')
         $name = "Cl$([char]0xE9) $([char]0x424)$([char]0x5C0F)"
         # Functions take precedence over the Storage cmdlets, so no real disk is read.
@@ -159,7 +162,7 @@ function Get-Volume { }
         $marker = Join-Path $TestDrive 'shadow-imported.txt'
         [void][IO.Directory]::CreateDirectory($job)
         [void][IO.Directory]::CreateDirectory($shadow)
-        Copy-Item -LiteralPath $script:UsbScript -Destination $job
+        Copy-Item -LiteralPath $script:UsbScript, $script:MountHelper -Destination $job
         [IO.File]::WriteAllText((Join-Path $job 'usb-request.json'), '{}')
         [IO.File]::WriteAllText((Join-Path $shadow 'Storage.psd1'), "@{ RootModule = 'Storage.psm1'; ModuleVersion = '99.0.0'; FunctionsToExport = @('Get-Disk') }")
         [IO.File]::WriteAllText((Join-Path $shadow 'Storage.psm1'), "[IO.File]::WriteAllText('$marker', 'imported'); function Get-Disk { }")
@@ -562,7 +565,7 @@ Describe 'USB checks and writes take turns' {
     BeforeAll {
         $script:Job = Join-Path $TestDrive 'exclusion'
         [void][IO.Directory]::CreateDirectory($script:Job)
-        Copy-Item -LiteralPath $script:UsbScript -Destination $script:Job
+        Copy-Item -LiteralPath $script:UsbScript, $script:MountHelper -Destination $script:Job
         $script:Iso = Join-Path $script:Job 'Windows.iso'
         Set-Content -LiteralPath $script:Iso -Value 'fixture'
         $request = @{ source=$script:Iso; app=$script:Iso; supportedBuilds=@(26200) } | ConvertTo-Json -Compress

@@ -1264,6 +1264,10 @@ iso-failed-space = 保存先ドライブの空き領域が不足しています�
 iso-manager-missing = AtlasManager.exe を「ダウンロード」などのローカル フォルダーにダウンロードし、そこから開いてください。
 # Home and LTSC are the editions ISO creation drops; the others are examples it keeps.
 iso-failed-edition = この ISO には対応する Windows エディションが含まれていません。Windows Home と LTSC には対応していません。Pro、Education、Enterprise など、別のエディションを含む ISO を使用してください。
+# Windows didn't open an ISO as a drive Atlas can read: the Windows ISO, the new ISO while it's
+# checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
+# USB page's ISO card.
+iso-mount-failed = Windows で ISO を開けませんでした。PC を再起動してから、もう一度お試しください。
 # Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = ログ フォルダーを開く
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,

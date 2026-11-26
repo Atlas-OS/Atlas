@@ -1234,6 +1234,10 @@ iso-failed-space = Hedef sürücüde yeterli boş alan yok. Alan boşaltın veya
 iso-manager-missing = AtlasManager.exe dosyasını İndirilenler gibi yerel bir klasöre indirin, ardından oradan açın.
 # Home and LTSC are the editions ISO creation drops; the others are examples it keeps.
 iso-failed-edition = Bu ISO desteklenen bir Windows sürümü içermiyor. Windows Home ve LTSC desteklenmez. Pro, Education veya Enterprise gibi başka bir sürüm içeren bir ISO kullanın.
+# Windows didn't open an ISO as a drive Atlas can read: the Windows ISO, the new ISO while it's
+# checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
+# USB page's ISO card.
+iso-mount-failed = Windows ISO'yu açamadı. Bilgisayarınızı yeniden başlatın, ardından yeniden deneyin.
 # Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = Günlük klasörünü aç
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,

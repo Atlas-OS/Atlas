@@ -1168,6 +1168,10 @@ iso-failed-space = L’espace libre est insuffisant sur le lecteur de destinatio
 iso-manager-missing = Téléchargez AtlasManager.exe dans un dossier local, comme Téléchargements, puis ouvrez-le depuis ce dossier.
 # Famille (Home) et LTSC sont les éditions que la création d'ISO écarte ; les autres sont des exemples d'éditions conservées.
 iso-failed-edition = Cette ISO ne contient aucune édition de Windows prise en charge. Les éditions Famille et LTSC ne sont pas prises en charge. Utilisez une ISO qui inclut une autre édition, comme Professionnel, Éducation ou Entreprise.
+# Windows didn't open an ISO as a drive Atlas can read: the Windows ISO, the new ISO while it's
+# checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
+# USB page's ISO card.
+iso-mount-failed = Windows n’a pas pu ouvrir l’ISO. Redémarrez votre PC, puis réessayez.
 # Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = Ouvrir le dossier des journaux
 # Sur les pages ISO et USB pendant qu'Atlas met à jour Windows, ou rétablit les paramètres Windows Update, depuis une autre page.

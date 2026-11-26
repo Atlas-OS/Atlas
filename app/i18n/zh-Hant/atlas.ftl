@@ -1241,6 +1241,10 @@ iso-failed-space = 目的地磁碟機的可用空間不足。請釋放空間，�
 iso-manager-missing = 請將 AtlasManager.exe 下載到「下載」等本機資料夾，然後從該處開啟。
 # Home and LTSC are the editions ISO creation drops; the others are examples it keeps.
 iso-failed-edition = 此 ISO 不包含支援的 Windows 版本。不支援 Windows Home 與 LTSC。請使用包含其他版本（例如 Pro、Education 或 Enterprise）的 ISO。
+# Windows didn't open an ISO as a drive Atlas can read: the Windows ISO, the new ISO while it's
+# checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
+# USB page's ISO card.
+iso-mount-failed = Windows 無法開啟 ISO。請重新啟動電腦，然後再試一次。
 # Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = 開啟記錄資料夾
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,

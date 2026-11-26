@@ -1225,6 +1225,10 @@ iso-failed-space = พื้นที่ว่างในไดรฟ์ปล�
 iso-manager-missing = ดาวน์โหลด AtlasManager.exe ไปยังโฟลเดอร์ในเครื่อง เช่น ดาวน์โหลด แล้วเปิดจากที่นั่น
 # Home and LTSC are the editions ISO creation drops; the others are examples it keeps.
 iso-failed-edition = ISO นี้ไม่มีรุ่น Windows ที่รองรับ ไม่รองรับ Windows Home และ LTSC ให้ใช้ ISO ที่มีรุ่นอื่น เช่น Pro, Education หรือ Enterprise
+# Windows didn't open an ISO as a drive Atlas can read: the Windows ISO, the new ISO while it's
+# checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
+# USB page's ISO card.
+iso-mount-failed = Windows เปิด ISO ไม่ได้ รีสตาร์ตพีซีของคุณ แล้วลองอีกครั้ง
 iso-diagnostics = เปิดโฟลเดอร์บันทึก
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,
 # from another page. Their controls are unavailable until it finishes.

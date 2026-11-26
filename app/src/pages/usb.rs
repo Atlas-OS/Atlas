@@ -76,6 +76,8 @@ enum IsoProblem {
     WorkingSpace,
     /// The check failed some other way, such as a damaged ISO.
     Unreadable,
+    /// Windows didn't open the ISO as a drive Atlas can read.
+    Mount,
 }
 
 impl IsoProblem {
@@ -85,7 +87,14 @@ impl IsoProblem {
             Self::Location => t!("usb-iso-location"),
             Self::WorkingSpace => t!("usb-working-space"),
             Self::Unreadable => t!("usb-iso-unreadable"),
+            Self::Mount => t!("iso-mount-failed"),
         }
+    }
+
+    /// Whether nothing the person can do is known to fix it, so the card
+    /// offers help and the check's logs.
+    fn needs_help(self) -> bool {
+        matches!(self, Self::Unreadable | Self::Mount)
     }
 }
 
@@ -234,6 +243,7 @@ impl Failed {
             Some(FailureReason::IsoUnsupported) => Some(IsoProblem::Unsupported),
             Some(FailureReason::SourceLocation) => Some(IsoProblem::Location),
             Some(FailureReason::WorkingSpace) => Some(IsoProblem::WorkingSpace),
+            Some(FailureReason::IsoMount) => Some(IsoProblem::Mount),
             _ => None,
         };
         match operation {
@@ -727,7 +737,7 @@ impl UsbPage {
                     _ => IsoProblem::Unreadable,
                 };
                 self.check = IsoCheck::Failed(problem);
-                self.check_job = job.filter(|_| problem == IsoProblem::Unreadable);
+                self.check_job = job.filter(|_| problem.needs_help());
             }
         }
         self.repick();
@@ -1489,11 +1499,13 @@ impl UsbPage {
                         .when(leads, Button::accent)
                         .trailing_icon(Icon::OpenInNewWindow)
                         .opens(STORAGE_SETTINGS),
-                    IsoProblem::Unreadable => Button::new("usb-iso-fix", t!("common-try-again"))
-                        .when(leads, Button::accent)
-                        .on_click(cx.listener(|this, _, _, cx| this.start_check(false, cx))),
+                    IsoProblem::Unreadable | IsoProblem::Mount => {
+                        Button::new("usb-iso-fix", t!("common-try-again"))
+                            .when(leads, Button::accent)
+                            .on_click(cx.listener(|this, _, _, cx| this.start_check(false, cx)))
+                    }
                 };
-                let help = help && problem == IsoProblem::Unreadable;
+                let help = help && problem.needs_help();
                 content = content.child(
                     div()
                         .id("usb-iso-problem")
@@ -1736,6 +1748,10 @@ mod tests {
         assert_eq!(of(Some(FailureReason::IsoUnsupported)), Failed::Iso(IsoProblem::Unsupported));
         assert_eq!(of(Some(FailureReason::WorkingSpace)), Failed::Iso(IsoProblem::WorkingSpace));
         assert_eq!(of(None), Failed::Iso(IsoProblem::Unreadable));
+        // Windows couldn't open it as a drive: the card says so, with help.
+        assert_eq!(of(Some(FailureReason::IsoMount)), Failed::Iso(IsoProblem::Mount));
+        assert!(IsoProblem::Mount.needs_help() && IsoProblem::Unreadable.needs_help());
+        assert!(!IsoProblem::Unsupported.needs_help() && !IsoProblem::WorkingSpace.needs_help());
         assert_eq!(Failed::of("List", true, None), Failed::Bar(UsbError::Scan));
         assert_eq!(Failed::of("Eject", false, None), Failed::Bar(UsbError::Eject));
     }
@@ -1824,6 +1840,7 @@ mod tests {
                     IsoProblem::Location,
                     IsoProblem::WorkingSpace,
                     IsoProblem::Unreadable,
+                    IsoProblem::Mount,
                 ]
                 .map(IsoProblem::text),
             );

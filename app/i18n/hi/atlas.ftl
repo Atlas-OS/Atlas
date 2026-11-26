@@ -1288,6 +1288,10 @@ iso-failed-space = गंतव्य ड्राइव पर पर्या�
 iso-manager-missing = AtlasManager.exe को डाउनलोड जैसे किसी स्थानीय फ़ोल्डर में सहेजें, फिर उसे वहीं से खोलें।
 # Home and LTSC are the editions ISO creation drops; the others are examples it keeps.
 iso-failed-edition = इस ISO में कोई समर्थित Windows संस्करण नहीं है। Windows Home और LTSC समर्थित नहीं हैं। ऐसा ISO इस्तेमाल करें, जिसमें कोई दूसरा संस्करण हो, जैसे Pro, Education या Enterprise।
+# Windows didn't open an ISO as a drive Atlas can read: the Windows ISO, the new ISO while it's
+# checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
+# USB page's ISO card.
+iso-mount-failed = Windows ISO नहीं खोल सका। अपना PC रीस्टार्ट करें, फिर कोशिश करें।
 # Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = लॉग फ़ोल्डर खोलें
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,
