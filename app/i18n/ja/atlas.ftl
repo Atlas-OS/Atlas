@@ -1625,6 +1625,8 @@ install-windows-edition-only = Atlas { $version } は Windows 11 Pro、Enterpris
 install-windows-edition-until = Atlas { $version } は Windows 11 Pro、Enterprise、Education に対応しているため、{ $product } にはインストールできません。Windows 11 バージョン { $current } のセキュリティ更新プログラムは { $date } まで提供されます。Windows Update で、この PC を新しいバージョンに移行できます。
 # The same once that date has passed.
 install-windows-edition-ended-update = Atlas { $version } は Windows 11 Pro、Enterprise、Education に対応しているため、{ $product } にはインストールできません。バージョン { $current } のセキュリティ更新プログラムの提供は終了しているため、Atlas を使わない場合でも Windows を更新してください。
+# Instead of install-windows-edition-only on an LTSC edition, which Windows names with a year that reads like a version.
+install-windows-edition-ltsc = Atlas { $version } は Windows 11 Pro、Enterprise、Education に対応しています。LTSC エディションには対応していません。
 # $releases lists the supported releases, such as "25H2 or 26H2".
 install-windows-reinstall = Atlas { $version } には Windows 11 バージョン { $releases } が必要ですが、Windows Update でこの PC をそのバージョンに移行することはできません。ファイルをバックアップしてから、Atlas ISO で Windows を再インストールしてください。
 # The same on Home, where the card that creates an Atlas ISO comes first and says how to reinstall.

@@ -110,6 +110,7 @@ Where moving is optional, it asks which release to use, and keeping this one sta
 - A move that stopped for what a check then finds too (hardware, an update server or free space) is said once, by the check with its fix; the card only says the move starts once the checks pass (`AppModel::move_outcome_held_by_check`).
 
 - Home shows the two parts of such an update, warns when the installed Windows version stops getting security updates, and says when an edition or version can't take the package at all.
+  It names Home and Server editions as Windows does, and says LTSC editions aren't supported instead of naming one, because Windows' name for it ends in a year, such as "LTSC 2024", that reads like a version.
 - If Windows reinstalls itself instead of switching the new version on, the move's card says so.
   Atlas then puts itself back on the rebuilt Windows, an install mode called [Rebase](../../docs/windows-transition.md#rebase).
 - A Rebase uses the choices recorded before the move, and **Your choices** asks only for a choice that nothing recorded.

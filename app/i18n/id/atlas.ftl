@@ -1606,6 +1606,8 @@ install-windows-edition-only = Atlas { $version } berfungsi dengan Windows 11 Pr
 install-windows-edition-until = Atlas { $version } berfungsi dengan Windows 11 Pro, Enterprise, dan Education, sehingga tidak dapat diinstal di { $product }. Windows 11, versi { $current } menerima pembaruan keamanan hingga { $date }, dan Windows Update dapat meningkatkan PC ini ke versi yang lebih baru.
 # The same once that date has passed.
 install-windows-edition-ended-update = Atlas { $version } berfungsi dengan Windows 11 Pro, Enterprise, dan Education, sehingga tidak dapat diinstal di { $product }. Versi { $current } tidak lagi menerima pembaruan keamanan, jadi tetap perbarui Windows meskipun tanpa Atlas.
+# Instead of install-windows-edition-only on an LTSC edition, which Windows names with a year that reads like a version.
+install-windows-edition-ltsc = Atlas { $version } berfungsi dengan Windows 11 Pro, Enterprise, dan Education. Edisi LTSC tidak didukung.
 # $releases lists the supported releases, such as "25H2 or 26H2".
 install-windows-reinstall = Atlas { $version } memerlukan Windows 11, versi { $releases }, dan Windows Update tidak dapat meningkatkan PC ini ke versi tersebut. Cadangkan file Anda, lalu instal ulang Windows dengan ISO Atlas.
 # The same on Home, where the card that creates an Atlas ISO comes first and says how to reinstall.

@@ -44,6 +44,17 @@ use windows::Win32::UI::WindowsAndMessaging::{
 use windows::core::{HSTRING, PCWSTR, PWSTR};
 use windows_registry::{CURRENT_USER, LOCAL_MACHINE};
 
+/// The `EditionID`s of the LTSC editions, which every edition gate refuses
+/// (see `every_edition_gate_refuses_the_same_editions`).
+const LTSC_EDITIONS: [&str; 6] = [
+    "EnterpriseS",
+    "EnterpriseSN",
+    "EnterpriseSEval",
+    "EnterpriseSNEval",
+    "IoTEnterpriseS",
+    "IoTEnterpriseSK",
+];
+
 /// The Windows release this app is running on, read once at startup.
 #[derive(Clone, Debug, Default)]
 pub struct SystemInfo {
@@ -91,15 +102,14 @@ impl SystemInfo {
         self.installation_type.eq_ignore_ascii_case("Client")
             && !edition.trim().is_empty()
             && !edition.starts_with("core")
-            && !matches!(
-                edition.as_str(),
-                "enterprises"
-                    | "enterprisesn"
-                    | "enterpriseseval"
-                    | "enterprisesneval"
-                    | "iotenterprises"
-                    | "iotenterprisesk"
-            )
+            && !self.ltsc_edition()
+    }
+
+    /// An Enterprise or IoT Enterprise LTSC edition, which Atlas refuses on
+    /// purpose. Windows names these with the LTSC release's year, such as
+    /// "Windows 11 IoT Enterprise LTSC 2024", which reads like a version.
+    pub fn ltsc_edition(&self) -> bool {
+        LTSC_EDITIONS.iter().any(|edition| self.edition_id.eq_ignore_ascii_case(edition))
     }
 
     /// "26200.1234": the build with its update revision, as text, so it is
@@ -771,6 +781,7 @@ mod tests {
         let direct_list = &direct_line[direct_line.find("'^(").expect("direct list") + 3..];
         let direct_ids: Vec<&str> = direct_list[..direct_list.find(")$'").unwrap()].split('|').collect();
         assert_eq!(iso_ids, direct_ids);
+        assert_eq!(iso_ids, LTSC_EDITIONS, "the app names these as LTSC editions");
         assert!(iso_ids.len() >= 6, "{iso_ids:?}");
         for id in iso_ids.iter().copied().chain(["Core", "CoreN", "CoreSingleLanguage"]) {
             assert!(!edition(id), "{id} passes the app's gate");
@@ -779,6 +790,21 @@ mod tests {
             ["Professional", "ProfessionalWorkstation", "Education", "ProfessionalEducation", "Enterprise"]
         {
             assert!(edition(id), "{id} fails the app's gate");
+        }
+    }
+
+    /// Only the LTSC editions read as LTSC, in any case; Home and Server are
+    /// refused for their own reasons.
+    #[test]
+    fn only_the_ltsc_editions_read_as_ltsc() {
+        let ltsc = |id: &str| SystemInfo { edition_id: id.into(), ..Default::default() }.ltsc_edition();
+        for id in LTSC_EDITIONS.into_iter().chain(["iotenterprises", "ENTERPRISES"]) {
+            assert!(ltsc(id), "{id}");
+        }
+        for id in
+            ["Core", "Professional", "Enterprise", "IoTEnterprise", "ServerStandard", "EnterpriseSX", ""]
+        {
+            assert!(!ltsc(id), "{id}");
         }
     }
 

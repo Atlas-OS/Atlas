@@ -1697,6 +1697,8 @@ install-windows-edition-only = Atlas { $version } работает с Windows 11
 install-windows-edition-until = Atlas { $version } работает с Windows 11 Pro, Enterprise и Education, поэтому его нельзя установить на { $product }. Windows 11 версии { $current } получает обновления безопасности до { $date }, а Центр обновления Windows может перевести этот ПК на более новую версию.
 # The same once that date has passed.
 install-windows-edition-ended-update = Atlas { $version } работает с Windows 11 Pro, Enterprise и Education, поэтому его нельзя установить на { $product }. Версия { $current } больше не получает обновления безопасности, поэтому обновите Windows, даже если не будете устанавливать Atlas.
+# Instead of install-windows-edition-only on an LTSC edition, which Windows names with a year that reads like a version.
+install-windows-edition-ltsc = Atlas { $version } работает с Windows 11 Pro, Enterprise и Education. Редакции LTSC не поддерживаются.
 # $releases lists the supported releases, such as "25H2 or 26H2".
 install-windows-reinstall = Для Atlas { $version } нужна Windows 11 версии { $releases }, а Центр обновления Windows не может перевести на неё этот ПК. Создайте резервную копию файлов и переустановите Windows с помощью ISO-образа с Atlas.
 # The same on Home, where the card that creates an Atlas ISO comes first and says how to reinstall.

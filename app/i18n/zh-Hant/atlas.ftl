@@ -1596,6 +1596,8 @@ install-windows-edition-only = Atlas { $version } 適用於 Windows 11 Pro、Ent
 install-windows-edition-until = Atlas { $version } 適用於 Windows 11 Pro、Enterprise 和 Education，因此無法安裝在 { $product } 上。Windows 11 版本 { $current } 會接收安全性更新至 { $date }，而 Windows Update 可以將這台電腦更新至較新的版本。
 # The same once that date has passed.
 install-windows-edition-ended-update = Atlas { $version } 適用於 Windows 11 Pro、Enterprise 和 Education，因此無法安裝在 { $product } 上。版本 { $current } 已不再接收安全性更新，因此即使不安裝 Atlas，也請更新 Windows。
+# Instead of install-windows-edition-only on an LTSC edition, which Windows names with a year that reads like a version.
+install-windows-edition-ltsc = Atlas { $version } 適用於 Windows 11 Pro、Enterprise 和 Education。不支援 LTSC 版本。
 # $releases lists the supported releases, such as "25H2 or 26H2".
 install-windows-reinstall = Atlas { $version } 需要 Windows 11 版本 { $releases }，而 Windows Update 無法將這台電腦更新至該版本。請備份您的檔案，然後使用 Atlas ISO 重新安裝 Windows。
 # The same on Home, where the card that creates an Atlas ISO comes first and says how to reinstall.

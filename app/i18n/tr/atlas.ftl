@@ -1576,6 +1576,8 @@ install-windows-edition-only = Atlas { $version } sürümü Windows 11 Pro, Ente
 install-windows-edition-until = Atlas { $version } sürümü Windows 11 Pro, Enterprise ve Education ile çalışır, bu yüzden { $product } üzerine kurulamaz. Windows 11 { $current } sürümü { $date } tarihine kadar güvenlik güncelleştirmeleri alır ve Windows Update bu bilgisayarı daha yeni bir sürüme geçirebilir.
 # The same once that date has passed.
 install-windows-edition-ended-update = Atlas { $version } sürümü Windows 11 Pro, Enterprise ve Education ile çalışır, bu yüzden { $product } üzerine kurulamaz. { $current } sürümü artık güvenlik güncelleştirmesi almıyor; Atlas'ı kurmasanız bile Windows'u güncelleştirin.
+# Instead of install-windows-edition-only on an LTSC edition, which Windows names with a year that reads like a version.
+install-windows-edition-ltsc = Atlas { $version } sürümü Windows 11 Pro, Enterprise ve Education ile çalışır. LTSC sürümleri desteklenmez.
 # $releases lists the supported releases, such as "25H2 veya 26H2".
 install-windows-reinstall = Atlas { $version } sürümü için Windows 11 { $releases } sürümü gerekiyor ve Windows Update bu bilgisayarı bu sürüme geçiremiyor. Dosyalarınızı yedekleyin, ardından Windows'u bir Atlas ISO'suyla yeniden yükleyin.
 # The same on Home, where the card that creates an Atlas ISO comes first.

@@ -1565,6 +1565,8 @@ install-windows-edition-only = Atlas { $version } ใช้ได้กับ Wi
 install-windows-edition-until = Atlas { $version } ใช้ได้กับ Windows 11 Pro, Enterprise และ Education จึงติดตั้งบน { $product } ไม่ได้ Windows 11 เวอร์ชัน { $current } จะได้รับการอัปเดตความปลอดภัยจนถึงวันที่ { $date } และ Windows Update เปลี่ยนพีซีเครื่องนี้เป็นเวอร์ชันที่ใหม่กว่าได้
 # The same once that date has passed.
 install-windows-edition-ended-update = Atlas { $version } ใช้ได้กับ Windows 11 Pro, Enterprise และ Education จึงติดตั้งบน { $product } ไม่ได้ เวอร์ชัน { $current } ไม่ได้รับการอัปเดตความปลอดภัยแล้ว จึงควรอัปเดต Windows แม้จะไม่ใช้ Atlas
+# Instead of install-windows-edition-only on an LTSC edition, which Windows names with a year that reads like a version.
+install-windows-edition-ltsc = Atlas { $version } ใช้ได้กับ Windows 11 Pro, Enterprise และ Education ไม่รองรับรุ่น LTSC
 # $releases lists the supported releases, such as "25H2 or 26H2".
 install-windows-reinstall = Atlas { $version } ต้องใช้ Windows 11 เวอร์ชัน { $releases } และ Windows Update เปลี่ยนพีซีเครื่องนี้เป็นเวอร์ชันนั้นไม่ได้ สำรองไฟล์ของคุณ แล้วติดตั้ง Windows ใหม่ด้วย ISO ของ Atlas
 # The same on Home, where the card that creates an Atlas ISO comes first and says how to reinstall.

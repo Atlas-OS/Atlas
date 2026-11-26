@@ -1645,6 +1645,8 @@ install-windows-edition-only = Atlas { $version }, Windows 11 Pro, Enterprise �
 install-windows-edition-until = Atlas { $version }, Windows 11 Pro, Enterprise और Education के साथ काम करता है, इसलिए यह { $product } पर इंस्टॉल नहीं हो सकता। Windows 11, संस्करण { $current } को { $date } तक सुरक्षा अपडेट मिलेंगे, और Windows Update इस PC को नए संस्करण पर ले जा सकता है।
 # The same once that date has passed.
 install-windows-edition-ended-update = Atlas { $version }, Windows 11 Pro, Enterprise और Education के साथ काम करता है, इसलिए यह { $product } पर इंस्टॉल नहीं हो सकता। संस्करण { $current } को अब सुरक्षा अपडेट नहीं मिलते, इसलिए Atlas के बिना भी Windows अपडेट करें।
+# Instead of install-windows-edition-only on an LTSC edition, which Windows names with a year that reads like a version.
+install-windows-edition-ltsc = Atlas { $version }, Windows 11 Pro, Enterprise और Education के साथ काम करता है। LTSC संस्करण समर्थित नहीं हैं।
 # $releases lists the supported releases, such as "25H2 or 26H2".
 install-windows-reinstall = Atlas { $version } के लिए Windows 11, संस्करण { $releases } ज़रूरी है, और Windows Update इस PC को वहाँ नहीं ले जा सकता। अपनी फ़ाइलों का बैकअप लें, फिर Atlas ISO से Windows दोबारा इंस्टॉल करें।
 # The same on Home, where the card that creates an Atlas ISO comes first and says how to reinstall.

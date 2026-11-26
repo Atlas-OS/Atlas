@@ -1017,6 +1017,7 @@ impl InstallBlock {
                         product = product.as_str()
                     ),
                 },
+                WindowsBlock::Ltsc => t!("install-windows-edition-ltsc", version = version.as_str()),
                 WindowsBlock::NoPath { .. } => {
                     t!("install-windows-reinstall", version = version.as_str(), releases = join_or(releases))
                 }
@@ -1180,6 +1181,31 @@ mod tests {
                 assert!(!edition(id, "Client"), "{id} is named as unsupported but accepted");
             }
             assert!(host.contains("Server") && !edition("ServerStandard", "Server"));
+        });
+    }
+
+    /// An LTSC edition is named by its kind: Windows' own name for it carries
+    /// the LTSC release's year, which reads like a Windows version. Home and
+    /// Server keep Windows' name.
+    #[test]
+    fn an_ltsc_edition_is_named_by_its_kind_not_its_year() {
+        let block = |block, product: &str| InstallBlock::Windows {
+            block,
+            version: "0.6.2".into(),
+            product: product.into(),
+            current: "26H2".into(),
+            releases: vec!["25H2".into(), "26H2".into()],
+            ending: None,
+        };
+        english(|| {
+            let ltsc = block(WindowsBlock::Ltsc, "Windows 11 IoT Enterprise LTSC 2024").text(false);
+            assert!(ltsc.contains("LTSC editions") && ltsc.contains("0.6.2"), "{ltsc}");
+            assert!(!ltsc.contains("2024") && !ltsc.contains("IoT"), "{ltsc}");
+            for name in ["Pro", "Enterprise", "Education"] {
+                assert!(ltsc.contains(name), "{name}: {ltsc}");
+            }
+            let home = block(WindowsBlock::Edition, "Windows 11 Home").text(false);
+            assert!(home.contains("Windows 11 Home"), "{home}");
         });
     }
 

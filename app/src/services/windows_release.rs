@@ -337,8 +337,11 @@ pub fn transition_to(release: &str) -> Option<&'static Transition> {
 /// whatever Atlas does, so Home can say so before anything starts.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum WindowsBlock {
-    /// Home, LTSC or Server: the edition, not the version, rules it out.
+    /// Home or Server: the edition, not the version, rules it out.
     Edition,
+    /// An LTSC edition. Windows' name for it carries the LTSC release's
+    /// year, which reads like a version, so it's named by its kind instead.
+    Ltsc,
     /// No update Atlas can make reaches a supported version from this one.
     NoPath { build: u32 },
     /// An Insider or preview build.
@@ -350,7 +353,7 @@ pub fn windows_block(system: &SystemInfo, supported: &[u32], desktop_setup: bool
         return None;
     }
     if !system.supported_edition() {
-        return Some(WindowsBlock::Edition);
+        return Some(if system.ltsc_edition() { WindowsBlock::Ltsc } else { WindowsBlock::Edition });
     }
     if preview_branch(&system.build_lab) {
         return Some(WindowsBlock::Preview);
@@ -412,7 +415,12 @@ mod tests {
         let supported = [26200, 26300];
         let block = |system: &SystemInfo| windows_block(system, &supported, false);
         assert_eq!(block(&system(26100, "Core")), Some(WindowsBlock::Edition));
-        assert_eq!(block(&system(26100, "EnterpriseS")), Some(WindowsBlock::Edition));
+        for edition in ["EnterpriseS", "IoTEnterpriseS", "IoTEnterpriseSK"] {
+            assert_eq!(block(&system(26300, edition)), Some(WindowsBlock::Ltsc), "{edition}");
+        }
+        let mut server = system(26300, "ServerStandard");
+        server.installation_type = "Server".into();
+        assert_eq!(block(&server), Some(WindowsBlock::Edition));
         assert_eq!(block(&system(22631, "Professional")), Some(WindowsBlock::NoPath { build: 22631 }));
         assert_eq!(block(&system(28000, "Professional")), Some(WindowsBlock::NoPath { build: 28000 }));
         let mut insider = system(26300, "Professional");

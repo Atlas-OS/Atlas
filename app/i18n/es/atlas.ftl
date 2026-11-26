@@ -1608,6 +1608,8 @@ install-windows-edition-only = Atlas { $version } funciona con Windows 11 Pro, E
 install-windows-edition-until = Atlas { $version } funciona con Windows 11 Pro, Enterprise y Education, así que no se puede instalar en { $product }. Windows 11, versión { $current }, recibe actualizaciones de seguridad hasta el { $date }, y Windows Update puede pasar este equipo a una versión más reciente.
 # Lo mismo cuando ya pasó esa fecha.
 install-windows-edition-ended-update = Atlas { $version } funciona con Windows 11 Pro, Enterprise y Education, así que no se puede instalar en { $product }. La versión { $current } ya no recibe actualizaciones de seguridad, así que actualice Windows aunque no use Atlas.
+# En lugar de install-windows-edition-only en una edición LTSC, cuyo nombre en Windows lleva un año que parece una versión.
+install-windows-edition-ltsc = Atlas { $version } funciona con Windows 11 Pro, Enterprise y Education. Las ediciones LTSC no cuentan con soporte.
 # $releases enumera las versiones compatibles, como "25H2 o 26H2".
 install-windows-reinstall = Atlas { $version } necesita Windows 11, versión { $releases }, y Windows Update no puede llevar este equipo a esa versión. Haga una copia de seguridad de sus archivos y reinstale Windows con una ISO de Atlas.
 # Lo mismo en Inicio, donde la tarjeta que crea una ISO de Atlas va primero y explica cómo reinstalar.
