@@ -1613,15 +1613,85 @@ Describe 'Restarting into the new version' {
         (Read-Journal).history[-1].detail | Should -BeExactly "0x8024200B $servicing"
     }
 
-    It 'stops offering the same try once the same rollback repeats' {
+    It 'goes back to before the install after a rollback, so trying again installs the update again' {
         Invoke-PreparationCommit
         Set-Fake 'SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' BootId DWord 8
         try { Invoke-PreparationTransition } catch { $first = $_.Exception }
         $first.Data['reason'] | Should -BeExactly 'feature-rolled-back'
+        $journal = Read-Journal
+        $journal.phase | Should -BeExactly 'targeted'
+        $journal.installed | Should -BeNullOrEmpty
+        $journal.commitBoot | Should -BeNullOrEmpty
+        $journal.commitRetried | Should -BeFalse
+        # Try again: the run searches and installs the update again.
+        $script:Offer = New-Offer 'Windows 11, version 26H2' @('5121794') -Upgrade
+        Mock Test-PreparationNetwork { $true }
+        Mock Assert-PreparationContinue {}
+        Mock Invoke-PreparationWindows { 'complete' }
+        Mock New-Object -ParameterFilter { $ComObject -eq 'Microsoft.Update.Session' } { New-Session }
+        Mock Find-PreparationFeatureUpdate { [pscustomobject]@{ Update = $script:Offer; Hidden = $false } }
+        Mock Install-PreparationFeatureUpdate { Set-PreparationInstalled $Journal 'update=again' $Update; 'installed' }
+        Invoke-PreparationTransition | Should -Be 'reboot'
+        $script:PreparationRestartReasons | Should -Be @('feature-update')
+        Should -Invoke Install-PreparationFeatureUpdate -Times 1 -Exactly
+        (Read-Journal).phase | Should -BeExactly 'installed'
+    }
+
+    It 'stops offering the same try once a new attempt rolls back the same way' {
+        Invoke-PreparationCommit
+        Set-Fake 'SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' BootId DWord 8
+        try { Invoke-PreparationTransition } catch { $first = $_.Exception }
+        $first.Data['reason'] | Should -BeExactly 'feature-rolled-back'
+        # The update installed again, committed, and Windows went back once more.
+        Set-PreparationInstalled (Read-Journal) 'update=again'
+        Invoke-PreparationCommit
+        Set-Fake 'SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' BootId DWord 9
         try { Invoke-PreparationTransition } catch { $again = $_.Exception }
         $again.Data['reason'] | Should -BeExactly 'feature-servicing'
         $again.Data['errorCode'] | Should -BeExactly '0x8024200B'
         $again.Message | Should -Match 'again after the restart.*Atlas ISO'
+    }
+
+    It 'reports a rollback another attempt failed differently as a rollback, and tries again' {
+        Invoke-PreparationCommit
+        Set-Fake 'SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' BootId DWord 8
+        try { Invoke-PreparationTransition } catch { $first = $_.Exception }
+        Set-PreparationInstalled (Read-Journal) 'update=again'
+        Invoke-PreparationCommit
+        Set-Fake 'SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' BootId DWord 9
+        Mock Get-PreparationFeatureHistory { [pscustomobject]@{ Date = [DateTime]::UtcNow; ResultCode = 4; HResult = -2146498270; Title = 'KB5121794' } }
+        try { Invoke-PreparationTransition } catch { $again = $_.Exception }
+        $again.Data['reason'] | Should -BeExactly 'feature-rolled-back'
+        $again.Data['errorCode'] | Should -BeExactly '0x800F0922'
+        (Read-Journal).phase | Should -BeExactly 'targeted'
+    }
+
+    It 'counts none of the rollbacks an earlier Atlas recorded again and again for the same attempt' {
+        # Earlier Atlas releases left the record installed after a rollback, and
+        # each try added another rollback of the same attempt.
+        $journal = Read-Journal
+        Invoke-PreparationCommit
+        $journal = Read-Journal
+        foreach ($try in 1..3) {
+            Add-AtlasTransitionHistory $journal 'rolled-back' '0x8024200B'
+            Add-AtlasTransitionHistory $journal 'failed' 'reason=feature-rolled-back code=0x8024200B'
+        }
+        Write-AtlasWindowsTransition $journal
+        Set-Fake 'SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' BootId DWord 8
+        try { Invoke-PreparationTransition } catch { $thrown = $_.Exception }
+        $thrown.Data['reason'] | Should -BeExactly 'feature-rolled-back'
+        (Read-Journal).phase | Should -BeExactly 'targeted'
+    }
+
+    It 'counts no rollback when the record no longer says which attempt it was' {
+        $journal = Read-Journal
+        Invoke-PreparationCommit
+        $journal = Read-Journal
+        $journal.history = @([pscustomobject]@{ at = [DateTime]::UtcNow.ToString('o'); event = 'rolled-back'; detail = '0x8024200B' })
+        Write-AtlasWindowsTransition $journal
+        Set-Fake 'SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' BootId DWord 8
+        try { Invoke-PreparationTransition } catch { $thrown = $_.Exception }
+        $thrown.Data['reason'] | Should -BeExactly 'feature-rolled-back'
     }
 
     It 'names a rollback that repeats the last closed attempt''s, within 30 days, and none older or different: <Case>' -TestCases @(

@@ -3308,6 +3308,13 @@ function Resolve-PreparationPendingMove($Journal) {
     $code = if ($failed.Count -gt 0 -and $failed[0].HResult -ne 0) { '0x{0:X8}' -f $failed[0].HResult } else { '' }
     $servicing = Get-PreparationServicingFailure $Journal
     $repeated = Test-PreparationRollbackRepeated $Journal $code $servicing
+    # This attempt is over, so the record goes back to before the install: the
+    # next run installs the feature update again, and this rollback is counted
+    # once, when the next one is compared with it.
+    $Journal.phase = 'targeted'
+    $Journal | Add-Member -NotePropertyName installed -NotePropertyValue $null -Force
+    $Journal | Add-Member -NotePropertyName commitBoot -NotePropertyValue $null -Force
+    $Journal | Add-Member -NotePropertyName commitRetried -NotePropertyValue $false -Force
     Write-PreparationJournal $Journal 'rolled-back' ((@($code, $servicing) | Where-Object { $_ }) -join ' ')
     $detail = @{}
     if ($code) { $detail.errorCode = $code }
@@ -3350,15 +3357,29 @@ function Get-PreparationServicingFailure($Journal) {
     return ''
 }
 
-# Whether a rollback repeats one recorded before: the same code from Windows
-# Update's history and, where both name one, the same servicing failure. The open
-# record keeps this move's rollbacks, and the summary of the last one closed
-# (LastResult) those of an attempt in the 30 days before. A rollback that names
-# neither can't be told apart from another.
+# Whether a rollback repeats one of an earlier install attempt: the same code
+# from Windows Update's history and, where both name one, the same servicing
+# failure. The open record keeps this move's rollbacks, and the summary of the
+# last one closed (LastResult) those of an attempt in the 30 days before. Each
+# attempt starts with an 'installed' entry, so only rollbacks before the newest
+# one count: those after it are this attempt's own, which a record an earlier
+# Atlas left installed can hold several of. A record that no longer has that
+# entry can't say which attempt its rollbacks were, and none of them count. A
+# rollback that names neither a code nor a failure can't be told apart from
+# another.
 function Test-PreparationRollbackRepeated($Journal, [string]$Code, [string]$Servicing) {
     if (-not $Code -and -not $Servicing) { return $false }
     $earlier = @()
-    if ($null -ne $Journal.PSObject.Properties['history']) { $earlier += @($Journal.history) }
+    if ($null -ne $Journal.PSObject.Properties['history']) {
+        $history = @($Journal.history)
+        for ($index = $history.Count - 1; $index -ge 0; $index--) {
+            $entry = $history[$index]
+            if ($null -ne $entry -and $null -ne $entry.PSObject.Properties['event'] -and [string]$entry.event -ceq 'installed') {
+                if ($index -gt 0) { $earlier += @($history[0..($index - 1)]) }
+                break
+            }
+        }
+    }
     $last = Get-AtlasTransitionValue (Get-AtlasWindowsTransitionRoot) 'LastResult'
     if ($last.Present -and $last.Kind -eq 'String') {
         try {

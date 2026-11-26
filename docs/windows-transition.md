@@ -282,9 +282,11 @@ After the restart:
 - On the target build, the worker decides how Windows moved (see [Rebase](#rebase)), then finishes the monthly and Microsoft Store updates.
 - Still on the old build after a restart from Start without Atlas's commit, it asks for one more restart through Atlas Manager.
 - Still on the old build after that, Windows rolled the update back: `feature-rolled-back`.
+  The record then goes back to before the install, so **Try again** installs the feature update again.
 
 The outcome of a rollback names what the servicing log reported for the update's package: the error, and the component that failed with it.
-When the same failure repeats, in this move or in the last one closed within 30 days, the run ends with `feature-servicing` instead, because trying the same update again can't help.
+When a later install attempt rolls back with the same failure, in this move or in the last one closed within 30 days, the run ends with `feature-servicing` instead, because trying the same update again can't help.
+Only rollbacks of earlier attempts count: each attempt starts with an `installed` entry in the record's history, and the rollbacks after the newest one belong to the attempt being checked.
 Repairing Windows, or reinstalling it from an Atlas ISO, is the way on.
 
 ## Putting Windows Update settings back
