@@ -14,6 +14,9 @@ BeforeAll {
     $script:StagingRecordText = ''
     function Get-PreparationStagingRecordText { $script:StagingRecordText }
     function Set-PreparationStagingRecordText([string]$Text) { $script:StagingRecordText = $Text }
+    # No test reads or starts this PC's Windows Update service.
+    function Get-PreparationUpdateServiceStatus { 'Running' }
+    function Start-PreparationUpdateService { throw 'A test started Windows Update without standing in for it.' }
 }
 
 Describe 'Signed-in preparation ownership' {
@@ -2296,6 +2299,7 @@ Describe 'Windows Update searches that end with errors' {
         Mock New-PreparationCallback { [pscustomobject]@{} }
         Mock Write-AtlasTransitionEvidence { }
         Mock Wait-PreparationSeconds { }
+        Mock Get-PreparationUpdateServiceStatus { 'Running' }
         Remove-Item -LiteralPath (Join-Path $TestDrive 'updates.log') -ErrorAction SilentlyContinue
     }
 
@@ -2318,12 +2322,46 @@ Describe 'Windows Update searches that end with errors' {
         Should -Invoke Wait-PreparationSeconds -Times 2 -Exactly
     }
 
-    It 'searches again after Windows Update stopped for a moment' {
-        $script:results.Enqueue([Runtime.InteropServices.COMException]::new('Exception from HRESULT: 0x8024001E', -2145124322))
+    It 'searches again after Windows Update stopped for a moment (<Code>)' -TestCases @(
+        @{ Code = '0x8024001E'; HResult = -2145124322 }
+        # Windows Update can drop a search as it restarts, as after a component store repair.
+        @{ Code = '0x80240069'; HResult = -2145124247 }
+    ) {
+        param($Code, $HResult)
+        $script:results.Enqueue([Runtime.InteropServices.COMException]::new("Exception from HRESULT: $Code", $HResult))
         $script:results.Enqueue([pscustomobject]@{ ResultCode = 2; Updates = @([pscustomobject]@{ Title = 'Cumulative update' }) })
         @((Invoke-PreparationSearch $script:session 'IsInstalled=0').Title) | Should -Be @('Cumulative update')
         Should -Invoke Wait-PreparationSeconds -Times 1 -Exactly -ParameterFilter { $Seconds -eq 30 }
-        Get-Content -LiteralPath (Join-Path $TestDrive 'updates.log') -Raw | Should -Match 'search failed on attempt 1 of 3: 0x8024001E'
+        Should -Invoke Get-PreparationUpdateServiceStatus -Times 1 -Exactly
+        Get-Content -LiteralPath (Join-Path $TestDrive 'updates.log') -Raw | Should -Match "search failed on attempt 1 of 3: $Code"
+    }
+
+    It 'waits for Windows Update to run again before it searches again, starting a stopped service once' {
+        $script:statuses = [Collections.Queue]::new(@('StopPending', 'Stopped', 'Stopped', 'StartPending', 'Running'))
+        Mock Get-PreparationUpdateServiceStatus { $script:statuses.Dequeue() }
+        Mock Start-PreparationUpdateService { }
+        Mock Assert-PreparationContinue { }
+        Mock Write-PreparationState { }
+        Mock Start-Sleep { }
+        $script:results.Enqueue([Runtime.InteropServices.COMException]::new('Exception from HRESULT: 0x80240069', -2145124247))
+        $script:results.Enqueue([pscustomobject]@{ ResultCode = 2; Updates = @() })
+        @(Invoke-PreparationSearch $script:session 'IsInstalled=0') | Should -HaveCount 0
+        Should -Invoke Get-PreparationUpdateServiceStatus -Times 5 -Exactly
+        Should -Invoke Start-PreparationUpdateService -Times 1 -Exactly
+        $script:results.Count | Should -Be 0 -Because 'the search ran again once the service ran'
+    }
+
+    It 'searches again anyway when Windows Update doesn''t run in time, and logs it' {
+        Mock Get-PreparationUpdateServiceStatus { 'StopPending' }
+        Mock Start-PreparationUpdateService { throw 'never started for a stopping service' }
+        Mock Assert-PreparationContinue { }
+        Mock Write-PreparationState { }
+        Mock Start-Sleep { }
+        $script:results.Enqueue([Runtime.InteropServices.COMException]::new('Exception from HRESULT: 0x8024001E', -2145124322))
+        $script:results.Enqueue([pscustomobject]@{ ResultCode = 2; Updates = @() })
+        @(Invoke-PreparationSearch $script:session 'IsInstalled=0') | Should -HaveCount 0
+        Should -Invoke Start-Sleep -Times ($script:PreparationServiceWaitSeconds / 2) -Exactly
+        Get-Content -LiteralPath (Join-Path $TestDrive 'updates.log') -Raw | Should -Match 'Windows Update still reports StopPending after 120 seconds; searching again anyway\.'
     }
 
     It 'waits longer each time, then names the cause when Windows Update stays out of reach (<Code>)' -TestCases @(

@@ -46,7 +46,9 @@ The worker searches Windows Update online, downloads and installs what it finds,
 - A PC that gets updates from its organisation's server (`AU\UseWUServer` set to 1) keeps that server.
 - A search that fails or ends with errors runs up to three times, after 30 seconds and then 60.
   When Windows Update still can't be reached, or keeps stopping, the run stops with `windows-update-unreachable`.
-  The errors that count are `0x8024001E`, `0x80240438` and `0x80244010` to `0x8024401F`; any other error stops the run at once.
+  The errors that count are `0x8024001E`, `0x80240069`, `0x80240438` and `0x80244010` to `0x8024401F`; any other error stops the run at once.
+- Before a failed search runs again, the worker waits up to two minutes for the Windows Update service to report that it's running, and starts it once if it stopped.
+  Windows Update can drop a search while it restarts, as it can straight after a component store repair.
 - The worker leaves out optional previews (browse-only updates) and feature updates.
   It also leaves out drivers when you chose **Install drivers myself**.
 - When one pass offers several cumulative updates for the installed build, it installs only the newest.

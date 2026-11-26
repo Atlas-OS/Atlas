@@ -1075,11 +1075,45 @@ function Get-PreparationSearchWarning($Result) {
 }
 
 # Windows Update errors that pass on their own: the service was stopping
-# (WU_E_SERVICE_STOP, 0x8024001E), its server couldn't be reached
-# (WU_E_PT_ENDPOINT_UNREACHABLE, 0x80240438), or the server answered with an HTTP
-# error (WU_E_PT_HTTP_STATUS_*, 0x80244010 to 0x8024401F), as a proxy can.
+# (WU_E_SERVICE_STOP, 0x8024001E), it dropped the search as it restarted
+# (0x80240069), as it can straight after a component store repair, its server
+# couldn't be reached (WU_E_PT_ENDPOINT_UNREACHABLE, 0x80240438), or the server
+# answered with an HTTP error (WU_E_PT_HTTP_STATUS_*, 0x80244010 to 0x8024401F),
+# as a proxy can.
 function Test-PreparationTransientUpdateError([int]$HResult) {
-    return $HResult -in @(-2145124322, -2145123272) -or ($HResult -ge -2145107952 -and $HResult -le -2145107937)
+    return $HResult -in @(-2145124322, -2145124247, -2145123272) -or ($HResult -ge -2145107952 -and $HResult -le -2145107937)
+}
+
+# How long a search that failed waits, at most, for Windows Update to run again.
+$script:PreparationServiceWaitSeconds = 120
+
+function Get-PreparationUpdateServiceStatus { [string](Get-Service -Name wuauserv -ErrorAction Stop).Status }
+
+function Start-PreparationUpdateService { Start-Service -Name wuauserv -ErrorAction Stop }
+
+# Before a search runs again, Windows Update has to be running: one that is
+# stopping, or stopped after it dropped the search, fails the next search the
+# same way. A stopped service is started once, as any search would start it.
+# One still not running after $script:PreparationServiceWaitSeconds is logged,
+# and the search runs anyway: its own result is what the run reports.
+function Wait-PreparationUpdateService {
+    $started = $false
+    for ($waited = 0; ; $waited += 2) {
+        $status = try { Get-PreparationUpdateServiceStatus } catch { "unreadable ($($_.Exception.Message))" }
+        if ($status -eq 'Running') { return $true }
+        if ($waited -ge $script:PreparationServiceWaitSeconds) {
+            Write-PreparationLog "Windows Update still reports $status after $waited seconds; searching again anyway."
+            return $false
+        }
+        if ($status -eq 'Stopped' -and -not $started) {
+            $started = $true
+            try { Start-PreparationUpdateService }
+            catch { Write-PreparationLog "Windows Update couldn't be started: $($_.Exception.Message)" }
+        }
+        Assert-PreparationContinue
+        Write-PreparationState running windows-search -Detail $script:PreparationSearchDetail
+        Start-Sleep -Seconds 2
+    }
 }
 
 # A search that fails, or ends with errors, runs again after a wait that grows
@@ -1115,6 +1149,7 @@ function Invoke-PreparationSearch($Session, [string]$Criteria, [switch]$IncludeS
                 throw (New-PreparationFailure "Windows Update couldn't be reached: $described" 'windows-update-unreachable' $failure)
             }
             Wait-PreparationSeconds ($script:PreparationSearchRetrySeconds * $attempt)
+            [void](Wait-PreparationUpdateService)
             continue
         }
         Write-AtlasTransitionEvidence "search on $(Format-PreparationService $searcher): result $($found.ResultCode), $(@($found.Updates).Count) update(s) for $Criteria"

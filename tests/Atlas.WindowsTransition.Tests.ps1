@@ -129,6 +129,8 @@ BeforeAll {
     function Get-AtlasTransitionImageHealth { if ($script:Health -eq 'Throws') { throw 'DISM is unavailable' }; $script:Health }
     function Invoke-PreparationRestoreHealth { throw 'A test started DISM without standing in for it.' }
     function Invoke-AtlasTransitionScanHealth { throw 'A test started DISM without standing in for it.' }
+    function Get-PreparationUpdateServiceStatus { 'Running' }
+    function Start-PreparationUpdateService { throw 'A test started Windows Update without standing in for it.' }
 
     # The pin writer uses the registry cmdlets; HKLM paths go to the double too.
     function ConvertTo-FakePath([string]$Path) { $Path -replace '^HKLM:\\', '' }
