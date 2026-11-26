@@ -1,13 +1,56 @@
 //! Helpers for service tests: disposable directories and registry keys, stub
-//! front doors and small synthetic Atlas packages. Nothing here touches the
-//! real app data, the registry keys the app reads, or the machine's Atlas
-//! state.
+//! front doors, small synthetic Atlas packages and the log records a test
+//! wrote. Nothing here touches the real app data, the registry keys the app
+//! reads, or the machine's Atlas state.
 
+use std::cell::RefCell;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Once;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use windows_registry::{CURRENT_USER, Key};
+
+thread_local! {
+    /// The records of the capture running on this thread, if one is.
+    static CAPTURED: RefCell<Option<Vec<String>>> = const { RefCell::new(None) };
+}
+
+/// Keeps a record only for a capture on the thread that wrote it, so tests
+/// that run in parallel never see each other's records.
+struct CaptureLogger;
+
+impl log::Log for CaptureLogger {
+    fn enabled(&self, _: &log::Metadata) -> bool {
+        true
+    }
+
+    fn log(&self, record: &log::Record) {
+        CAPTURED.with(|captured| {
+            if let Some(records) = captured.borrow_mut().as_mut() {
+                records.push(format!("{} {}", record.level(), record.args()));
+            }
+        });
+    }
+
+    fn flush(&self) {}
+}
+
+/// Runs `body` and returns what it logged on this thread, each record as
+/// `LEVEL message`. Model tests run the model on the test's own thread, so
+/// they capture what it logs too.
+pub fn capture_logs<R>(body: impl FnOnce() -> R) -> (R, Vec<String>) {
+    static INSTALL: Once = Once::new();
+    INSTALL.call_once(|| {
+        if log::set_logger(&CaptureLogger).is_ok() {
+            log::set_max_level(log::LevelFilter::Info);
+        }
+    });
+    CAPTURED.with(|captured| *captured.borrow_mut() = Some(Vec::new()));
+    let result = body();
+    let records = CAPTURED.with(|captured| captured.borrow_mut().take()).unwrap_or_default();
+    (result, records)
+}
 
 fn unique_suffix() -> String {
     let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or_default();

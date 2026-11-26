@@ -193,6 +193,10 @@ impl AppModel {
         self.atlas = (self.env.adapters.read_atlas_state)().map_err(|e| format!("{e:#}"));
         self.install_identity = (self.env.adapters.read_install_identity)().map_err(|e| format!("{e:#}"));
         self.pc_facts = (self.env.adapters.read_pc_facts)();
+        // Home says only that the details can't be read; the log keeps why.
+        if let Err(error) = &self.atlas {
+            log::warn!("could not read the Atlas state document: {error}");
+        }
         if let Err(error) = &self.install_identity {
             log::warn!("could not establish Atlas installation eligibility: {error}");
         }

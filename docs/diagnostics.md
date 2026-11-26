@@ -115,6 +115,7 @@ Correlate app log timestamps with the install, preparation or media job.
 
 | Question | Read first | Look for |
 | --- | --- | --- |
+| Why couldn't Home read the installation's details? | The app log | `could not read the Atlas state document:` and the error that stopped it. |
 | Why did a move to a newer Windows release stop? | `preparation/windows-transition.log` | Each step of the move, with each outcome's reason ID (`feature-*`). |
 | Where are the move's earlier steps? | `preparation/windows-transition.old.log` | The steps before the log passed 1 MiB. |
 | Did Windows offer the feature update? | `preparation/windows-transition.log` | An `Outcome (feature-not-offered)` line, which isn't an error record. |
