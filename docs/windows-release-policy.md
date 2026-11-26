@@ -3,7 +3,7 @@
 This page explains which Windows releases Atlas installs on and builds ISOs from, and how Atlas checks a Windows version.
 It's for testers and maintainers, and for anyone who wants to know why Atlas Manager refused a version of Windows.
 
-Atlas installs on, and builds ISOs from, Windows 11 releases in Microsoft's public General Availability release history.
+Atlas installs on, and builds ISOs from, Windows 11 releases in Microsoft's public General Availability release history, and the hotpatches in its hotpatch calendar.
 Only public releases qualify because they're fixed builds that every PC gets the same way through Windows Update, so a check on one PC holds for another.
 Insider, Canary, Dev, Beta and Release Preview builds can change the components, services and settings Atlas relies on without notice, and a later public release can differ from them.
 
@@ -24,9 +24,9 @@ Edition and architecture are checked separately.
 
 | Result | Meaning |
 | --- | --- |
-| `Released` | The complete version is in the public General Availability table, with an availability date no later than today. |
+| `Released` | The complete version is in the public General Availability table, or is a hotpatch in the hotpatch calendar, with an availability date no later than today. |
 | `Preview` | A supplied BuildLabEx contains a delimited `prerelease` branch marker. |
-| `Unlisted` | Microsoft's release information was read, and the complete version isn't in its General Availability tables. |
+| `Unlisted` | Microsoft's release information was read, and the complete version isn't in its General Availability tables or among its hotpatches. |
 | `Unknown` | Eligibility couldn't be established. |
 
 - `Unlisted` is most often a Release Preview build, or an update the page doesn't list yet.
@@ -34,6 +34,8 @@ Edition and architecture are checked separately.
 - `Unknown` follows unavailable release information, an unexpected response format, or an unlisted version checked offline.
   It isn't evidence of an Insider installation.
 - Public optional non-security updates qualify, even when Microsoft calls them "Preview".
+- Hotpatches qualify, because Windows Update also offers them outside hotpatch enrolment, as a security update marked "Hotpatch capable".
+  The calendar's baseline rows are monthly updates the General Availability table lists already, and its other kinds of row don't count.
 - A build once offered to Insiders can later become public, so historical Insider lists never override published General Availability entries.
 - Enrolment and flight-signing settings don't prove the installed image's channel.
 
@@ -53,9 +55,10 @@ Microsoft documents [servicing ARM64 images from an AMD64 technician PC](https:/
 The bundled [release catalog](#updating-the-catalog) decides most versions offline.
 When it doesn't list a revision, Atlas asks for the Markdown form of [Microsoft's Windows 11 release information](https://learn.microsoft.com/windows/release-health/windows11-release-information):
 
-- Only the General Availability tables of the supported releases are accepted.
+- Only the General Availability tables and the hotpatch calendar of the supported releases are accepted.
 - The request has a 15-second deadline and a 1 MiB body limit.
-  Unexpected content or malformed tables give `Unknown`.
+  Unexpected content or malformed General Availability tables give `Unknown`.
+- A hotpatch calendar that can't be read adds nothing, and the General Availability tables decide on their own.
 - PowerShell follows at most three redirects within the same official HTTPS origin; Atlas Manager rejects redirects.
 - Successful lookups are cached in memory only, never in a persistent trust file.
   Atlas Manager keeps them for 15 minutes.
@@ -72,7 +75,7 @@ A tester build is an Atlas Manager build that carries one Atlas package and inst
 It checks the running system online because `Install-Atlas.ps1` always does, so Get ready and the install agree on an unlisted revision, such as a Release Preview build.
 
 For an ISO, a tester build calls `Get-AtlasWindowsReleaseStatus -NoRefresh`.
-An image has no BuildLabEx to show its branch, so that check accepts an unlisted revision only if it's newer than every listed revision of that build.
+An image has no BuildLabEx to show its branch, so that check accepts an unlisted revision only if it's newer than every listed General Availability revision of that build.
 Older unlisted revisions, such as pre-release flights, stay `Unknown`.
 
 ## What the check doesn't prove
@@ -107,6 +110,9 @@ Review the JSON diff:
 - The catalog records the source URL, document commit, SHA-256 of the response, update timestamp and cutoff date.
   It also records each release's version, date, update type and KB reference.
   Schema 2 declares the supported release and build pairs separately from the full-version rows.
+- Hotpatches are in their own `hotpatches` list, with the same fields.
+  They count as released, but never as the newest listed revision of a build.
+  The script refuses a version listed both as a release and as a hotpatch.
 - Check new rows against the official page.
   Keep public optional releases; leave out Insider-channel rows and future availability dates.
 - Never add a version only because an ISO or a local PC reports it.

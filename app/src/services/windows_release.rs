@@ -1,7 +1,7 @@
 //! Whether a Windows build is a public release, not whether an ISO is genuine.
 //! Cumulative updates can share a build number with earlier Insider flights,
-//! so only builds Microsoft lists under the General Availability Channel
-//! qualify.
+//! so only builds Microsoft lists under the General Availability Channel, or
+//! as a hotpatch in its hotpatch calendar, qualify.
 
 use std::collections::HashSet;
 use std::sync::{Mutex, OnceLock, PoisonError};
@@ -34,6 +34,11 @@ pub enum Status {
 #[derive(Deserialize)]
 struct Catalog {
     releases: Vec<Release>,
+    /// The hotpatches Microsoft's hotpatch calendar lists, which Windows
+    /// Update also offers outside hotpatch enrolment. Kept apart from the
+    /// General Availability releases, which alone decide anything else.
+    #[serde(default)]
+    hotpatches: Vec<Release>,
 }
 
 #[derive(Deserialize)]
@@ -54,6 +59,7 @@ fn snapshot() -> &'static HashSet<String> {
         catalog
             .releases
             .into_iter()
+            .chain(catalog.hotpatches)
             .filter(|release| {
                 NaiveDate::parse_from_str(&release.available_date, "%Y-%m-%d")
                     .expect("validated release date")
@@ -156,7 +162,123 @@ fn parse_markdown(text: &str, today: NaiveDate) -> Result<HashSet<String>> {
         }
     }
     ensure!(!versions.is_empty(), "No supported public Windows release table found in Microsoft's response");
+    // Only adds to the General Availability releases: a calendar that can't
+    // be read leaves them as they are.
+    match parse_hotpatches(text, today) {
+        Ok(hotpatches) => versions.extend(hotpatches),
+        Err(error) => log::warn!(
+            "Microsoft's hotpatch calendar couldn't be read, so only General Availability releases count: {error:#}"
+        ),
+    }
     Ok(versions)
+}
+
+/// The heading Microsoft puts over its hotpatch calendar.
+const HOTPATCH_CALENDAR: &str = "Windows 11 hotpatch calendar";
+
+/// The `Version <release> (OS build <build>)` a line names, bold or as a
+/// heading, without what follows it, such as the calendar year the hotpatch
+/// calendar puts on the same line.
+fn version_heading(line: &str) -> Option<&str> {
+    let text = line.trim().trim_start_matches('#').trim();
+    let text = match text.strip_prefix("**") {
+        Some(bold) => bold.split("**").next().unwrap_or(bold),
+        None => text,
+    };
+    Some(text.trim()).filter(|text| text.starts_with("Version "))
+}
+
+/// The released hotpatches of the supported releases in Microsoft's hotpatch
+/// calendar. Its baseline rows are monthly updates the General Availability
+/// tables list already, and any other kind of row is left out. A calendar
+/// that's missing gives none; a row of a supported release that can't be
+/// read is an error, so a reworked calendar is never misread.
+fn parse_hotpatches(text: &str, today: NaiveDate) -> Result<HashSet<String>> {
+    let mut versions = HashSet::new();
+    let mut seen = HashSet::new();
+    let mut inside = false;
+    let mut prefix: Option<String> = None;
+    let mut header = false;
+    for line in text.lines() {
+        let trimmed = line.trim_start();
+        if trimmed.starts_with("# ") || trimmed.starts_with("## ") {
+            if inside {
+                break;
+            }
+            inside = heading(line) == HOTPATCH_CALENDAR;
+            continue;
+        }
+        if !inside {
+            continue;
+        }
+        if let Some(version) = version_heading(line) {
+            prefix = BUILD_FAMILIES
+                .iter()
+                .find(|(build, release)| version == format!("Version {release} (OS build {build})"))
+                .map(|(build, _)| format!("{build}."));
+            header = false;
+            continue;
+        }
+        if !trimmed.starts_with('|') {
+            continue;
+        }
+        let cells: Vec<_> = line.trim().split('|').map(str::trim).collect();
+        if cells == ["", "Month", "Update type", "Type", "Availability date", "Build", "KB article", ""] {
+            header = true;
+            continue;
+        }
+        if cells.iter().all(|cell| cell.chars().all(|c| matches!(c, '-' | ':'))) {
+            continue;
+        }
+        let Some(prefix) = &prefix else { continue };
+        ensure!(header, "A hotpatch row has no table header");
+        ensure!(cells.len() == 8 && cells[0].is_empty() && cells[7].is_empty(), "Malformed hotpatch row");
+        if cells[3] != "Hotpatch" {
+            continue;
+        }
+        // A month the calendar announces before its hotpatch is released.
+        if cells[4].is_empty() && cells[5].is_empty() {
+            continue;
+        }
+        let date = NaiveDate::parse_from_str(cells[4], "%Y-%m-%d")?;
+        let revision = cells[5].strip_prefix(prefix.as_str()).context("Unexpected hotpatch build")?;
+        ensure!(
+            !revision.is_empty() && revision.bytes().all(|byte| byte.is_ascii_digit()),
+            "Malformed hotpatch revision"
+        );
+        let version = format!("10.0.{prefix}{}", revision.parse::<u32>()?);
+        ensure!(seen.insert(version.clone()), "Duplicate hotpatch version");
+        if date > today {
+            continue;
+        }
+        check_kb_reference(cells[6])?;
+        versions.insert(version);
+    }
+    Ok(versions)
+}
+
+/// Checks a release's KB cell. It isn't used, but checking its shape makes a
+/// reworked page fail closed instead of being misread.
+fn check_kb_reference(cell: &str) -> Result<()> {
+    if cell.is_empty() {
+        return Ok(());
+    }
+    let (kb, url) = cell
+        .strip_prefix('[')
+        .and_then(|text| text.strip_suffix(')'))
+        .and_then(|text| text.split_once("]("))
+        .context("Malformed release KB reference")?;
+    let digits = kb.strip_prefix("KB").context("Unexpected release KB reference")?;
+    ensure!(
+        !digits.is_empty() && digits.bytes().all(|byte| byte.is_ascii_digit()),
+        "Malformed release KB number"
+    );
+    let path = url.strip_prefix("https://support.microsoft.com/").context("Unexpected release KB origin")?;
+    ensure!(
+        !path.is_empty() && !path.chars().any(|c| c.is_whitespace() || c == ')'),
+        "Malformed release KB URL"
+    );
+    Ok(())
 }
 
 /// The released versions in the table under the heading `section`.
@@ -199,26 +321,7 @@ fn parse_release_section(text: &str, today: NaiveDate, build: u32, section: &str
         if date > today {
             continue;
         }
-        // The KB cell is not used, but checking its shape makes a reworked
-        // page fail closed instead of being misread.
-        if !cells[5].is_empty() {
-            let (kb, url) = cells[5]
-                .strip_prefix('[')
-                .and_then(|text| text.strip_suffix(')'))
-                .and_then(|text| text.split_once("]("))
-                .context("Malformed release KB reference")?;
-            let digits = kb.strip_prefix("KB").context("Unexpected release KB reference")?;
-            ensure!(
-                !digits.is_empty() && digits.bytes().all(|byte| byte.is_ascii_digit()),
-                "Malformed release KB number"
-            );
-            let path =
-                url.strip_prefix("https://support.microsoft.com/").context("Unexpected release KB origin")?;
-            ensure!(
-                !path.is_empty() && !path.chars().any(|c| c.is_whitespace() || c == ')'),
-                "Malformed release KB URL"
-            );
-        }
+        check_kb_reference(cells[5])?;
         versions.insert(version);
     }
     ensure!(
@@ -490,6 +593,138 @@ mod tests {
         );
         assert!(parse_markdown(&text.replace("26300.9457", "26200.9457"), today).is_err());
         assert!(parse_markdown(text, NaiveDate::from_ymd_opt(2026, 9, 28).unwrap()).is_err());
+    }
+
+    /// Microsoft's page as it lists hotpatches: the General Availability
+    /// tables, then a calendar whose 26H2 heading carries the year on the
+    /// same line, with baseline rows, an announced month and 24H2 rows.
+    const HOTPATCH_PAGE: &str = "## Windows 11 release history\n\
+        **Version 26H2 (OS build 26300)**\n\
+        | Servicing option | Update type | Availability date | Build | KB article |\n\
+        | --- | --- | --- | --- | --- |\n\
+        | General Availability Channel | 2026-11 B | 2026-11-10 | 26300.9974 | [KB5132061](https://support.microsoft.com/help/5132061) |\n\
+        **Version 25H2 (OS build 26200)**\n\
+        | Servicing option | Update type | Availability date | Build | KB article |\n\
+        | --- | --- | --- | --- | --- |\n\
+        | General Availability Channel | 2026-11 B | 2026-11-10 | 26200.9974 | [KB5132061](https://support.microsoft.com/help/5132061) |\n\
+        \n\
+        ## Windows 11 hotpatch calendar\n\
+        \n\
+        Note\n\
+        \n\
+        Hotpatching is not available on Windows 11, version 26H1.\n\
+        **Version 26H2 (OS build 26300)** **Calendar year 2026**\n\
+        \n\
+        | Month | Update type | Type | Availability date | Build | KB article |\n\
+        | --- | --- | --- | --- | --- | --- |\n\
+        | October | 2026.10 B | Baseline (Restart) | 2026-10-13 | 26300.9711 | [KB5127648](https://support.microsoft.com/help/5127648) |\n\
+        | November | 2026.11 B | Hotpatch | 2026-11-10 | 26300.9911 | [KB5132043](https://support.microsoft.com/help/5132043) |\n\
+        | December | 2026.12 B | Hotpatch |  |  |  |\n\
+        \n\
+        **Version 25H2 (OS build 26200)**\n\
+        **Calendar year 2026**\n\
+        \n\
+        | Month | Update type | Type | Availability date | Build | KB article |\n\
+        | --- | --- | --- | --- | --- | --- |\n\
+        | August | 2026.08 B | Hotpatch | 2026-08-11 | 26200.9106 | [KB5120994](https://support.microsoft.com/help/5120994) |\n\
+        | November | 2026.11 B | Hotpatch | 2026-11-10 | 26200.9911 | [KB5132043](https://support.microsoft.com/help/5132043) |\n\
+        \n\
+        **Calendar year 2025**\n\
+        \n\
+        | Month | Update type | Type | Availability date | Build | KB article |\n\
+        | --- | --- | --- | --- | --- | --- |\n\
+        | November | 2025.11 B | Hotpatch | 2025-11-11 | 26200.7092 | [KB5068966](https://support.microsoft.com/topic/november-11-2025-hotpatch-kb5068966-os-builds-26200-7092-and-26100-7092-d702b84c) |\n\
+        \n\
+        **Version 24H2 (OS build 26100)**\n\
+        **Calendar year 2026**\n\
+        \n\
+        | Month | Update type | Type | Availability date | Build | KB article |\n\
+        | --- | --- | --- | --- | --- | --- |\n\
+        | November | 2026.11 B | Hotpatch | 2026-11-10 | 26100.9911 | [KB5132043](https://support.microsoft.com/help/5132043) |\n";
+
+    fn versions(list: &[&str]) -> HashSet<String> {
+        list.iter().map(|version| format!("10.0.{version}")).collect()
+    }
+
+    #[test]
+    fn released_hotpatches_of_the_supported_releases_count_beside_general_availability() {
+        let today = NaiveDate::from_ymd_opt(2026, 11, 20).unwrap();
+        let general = ["26300.9974", "26200.9974"];
+        assert_eq!(
+            parse_markdown(HOTPATCH_PAGE, today).unwrap(),
+            versions(&[&general[..], &["26300.9911", "26200.9106", "26200.9911", "26200.7092"]].concat()),
+            "baseline rows, the announced month and 24H2 add nothing"
+        );
+        // Not released yet.
+        let later = HOTPATCH_PAGE
+            .replace("2026-11-10 | 26300.9911", "2026-11-25 | 26300.9911")
+            .replace("2026-11-10 | 26200.9911", "2026-11-25 | 26200.9911");
+        assert_eq!(
+            parse_markdown(&later, today).unwrap(),
+            versions(&["26300.9974", "26200.9974", "26200.9106", "26200.7092"])
+        );
+        // A row of another kind, such as a preview, is left out.
+        let preview =
+            HOTPATCH_PAGE.replace("| Hotpatch | 2026-08-11", "| Hotpatch (Release Preview) | 2026-08-11");
+        assert!(!parse_markdown(&preview, today).unwrap().contains("10.0.26200.9106"));
+        // Without a calendar, the General Availability releases are all there is.
+        let (without, _) = HOTPATCH_PAGE.split_once("## Windows 11 hotpatch calendar").unwrap();
+        assert_eq!(parse_markdown(without, today).unwrap(), versions(&general));
+    }
+
+    /// A calendar that can't be read adds nothing and takes nothing away:
+    /// the General Availability releases still count, and are still required.
+    #[test]
+    fn a_calendar_that_cannot_be_read_leaves_general_availability_as_it_is() {
+        let today = NaiveDate::from_ymd_opt(2026, 11, 20).unwrap();
+        let general = versions(&["26300.9974", "26200.9974"]);
+        for broken in [
+            HOTPATCH_PAGE.replace("26200.9106", "26100.9106"),
+            HOTPATCH_PAGE.replace("26200.9106", "26200.bad"),
+            HOTPATCH_PAGE.replace("2026-08-11", "August 11"),
+            HOTPATCH_PAGE.replace("| 2026-08-11 | 26200.9106 |", "| 2026-08-11 |  |"),
+            HOTPATCH_PAGE.replace("26200.7092", "26200.9911"),
+            HOTPATCH_PAGE
+                .replace("https://support.microsoft.com/help/5120994", "https://example.com/5120994"),
+            HOTPATCH_PAGE.replace("| Month | Update type | Type |", "| Month | Update type | Kind |"),
+            HOTPATCH_PAGE.replace(
+                "| November | 2026.11 B | Hotpatch | 2026-11-10 | 26200",
+                "| November | Hotpatch | 2026-11-10 | 26200",
+            ),
+        ] {
+            assert_eq!(parse_markdown(&broken, today).unwrap(), general, "{broken}");
+        }
+        let without_general =
+            HOTPATCH_PAGE.replace("General Availability Channel", "Release Preview Channel");
+        assert!(parse_markdown(&without_general, today).is_err(), "hotpatches alone are no release table");
+    }
+
+    /// The bundled catalog lists hotpatches apart from the General
+    /// Availability releases, never the same version twice, and only for the
+    /// supported builds; they count offline.
+    #[test]
+    fn the_bundled_hotpatches_count_offline() {
+        let catalog: Catalog = serde_json::from_str(CATALOG).unwrap();
+        let general: HashSet<_> = catalog.releases.iter().map(|release| release.version.clone()).collect();
+        assert!(!catalog.hotpatches.is_empty());
+        for hotpatch in &catalog.hotpatches {
+            assert!(!general.contains(&hotpatch.version), "{}", hotpatch.version);
+            assert!(
+                BUILD_FAMILIES
+                    .iter()
+                    .any(|(build, _)| hotpatch.version.starts_with(&format!("10.0.{build}."))),
+                "{}",
+                hotpatch.version
+            );
+        }
+        let no_network: Refresh = || panic!("listed hotpatches need no network");
+        for version in ["10.0.26200.9911", "10.0.26300.9911", "10.0.26200.7092"] {
+            assert_eq!(
+                classify_with(version, "ge_release", snapshot(), no_network),
+                Status::Released,
+                "{version}"
+            );
+        }
     }
 
     #[test]

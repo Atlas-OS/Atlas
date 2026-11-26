@@ -1,6 +1,7 @@
-# Whether a Windows build is a public release. This says nothing about whether the
-# installation or media is genuine. Dot-sourcing only defines functions; the network
-# is used only when the bundled catalog cannot decide.
+# Whether a Windows build is a public release: one Microsoft lists under the General
+# Availability Channel, or as a hotpatch in its hotpatch calendar. This says nothing about
+# whether the installation or media is genuine. Dot-sourcing only defines functions; the
+# network is used only when the bundled catalog cannot decide.
 #
 # Install-Atlas.ps1 dot-sources it elevated to check the running Windows before an
 # install, and Atlas Manager's elevated ISO worker (Build-Iso.ps1) checks the chosen media
@@ -49,6 +50,72 @@ function ConvertFrom-AtlasWindowsReleaseMarkdown {
         }
     }
     if (-not @($rows).Count) { throw "No published $releaseName General Availability releases were found." }
+    @($rows | Sort-Object { [version]$_.version })
+}
+
+# The released hotpatches of one supported release in Microsoft's hotpatch calendar, which
+# Windows Update also offers outside hotpatch enrolment. Its baseline rows are monthly
+# updates the General Availability table lists already, and any other kind of row is left
+# out. A missing calendar gives none; a row of the release that can't be read throws, so a
+# reworked calendar is never misread. windows_release.rs reads the calendar the same way.
+function ConvertFrom-AtlasWindowsHotpatchMarkdown {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Markdown,
+        [datetime]$AsOfDate = [datetime]::UtcNow.Date,
+        [ValidateSet(26200,26300)][int]$Build = 26200
+    )
+    $Markdown = $Markdown.Replace("`r`n", "`n")
+    $releaseName = if ($Build -eq 26200) { '25H2' } else { '26H2' }
+    $calendar = [regex]::Match($Markdown, '(?m)^\s*#{1,2} +Windows 11 hotpatch calendar\s*$')
+    if (-not $calendar.Success) { return @() }
+    $section = $Markdown.Substring($calendar.Index + $calendar.Length)
+    $nextHeading = [regex]::Match($section, '(?m)^\s*#{1,2} ')
+    if ($nextHeading.Success) { $section = $section.Substring(0, $nextHeading.Index) }
+    $inRelease = $false
+    $header = $false
+    $seen = @{}
+    $rows = foreach ($line in ($section -split '\n')) {
+        # A release's heading, bold or as a heading, can carry the calendar year after it.
+        $heading = [regex]::Match($line, '^\s*(?:#{1,6}\s*)?(?:\*\*)?(Version [^*]+?)\s*(?:\*\*.*)?$')
+        if ($heading.Success) {
+            $inRelease = $heading.Groups[1].Value.Trim() -ceq "Version $releaseName (OS build $Build)"
+            $header = $false
+            continue
+        }
+        if ($line -notmatch '^\s*\|') { continue }
+        $cells = @($line.Trim().Split('|') | ForEach-Object { $_.Trim() })
+        if (($cells -join '|') -ceq '|Month|Update type|Type|Availability date|Build|KB article|') { $header = $true; continue }
+        if (-not @($cells | Where-Object { $_ -notmatch '^[-:]*$' }).Count) { continue }
+        if (-not $inRelease) { continue }
+        if (-not $header) { throw 'A hotpatch row has no table header.' }
+        if ($cells.Count -ne 8 -or $cells[0] -or $cells[7]) { throw 'A hotpatch row is malformed.' }
+        if ($cells[3] -cne 'Hotpatch') { continue }
+        # A month the calendar announces before its hotpatch is released.
+        if (-not $cells[4] -and -not $cells[5]) { continue }
+        $date = [datetime]::MinValue
+        if (-not [datetime]::TryParseExact($cells[4], 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::None, [ref]$date)) {
+            throw 'A hotpatch row is malformed.'
+        }
+        if ($cells[5] -notmatch "^$Build\.\d+$") { throw 'A hotpatch row is malformed.' }
+        $version = [version]("10.0." + $cells[5])
+        if ($seen.ContainsKey($version.ToString())) { throw 'Duplicate hotpatch versions need review.' }
+        $seen[$version.ToString()] = $true
+        if ($date.Date -gt $AsOfDate.Date) { continue }
+        $kb = $null
+        if ($cells[6]) {
+            $kbMatch = [regex]::Match($cells[6], '^\[(KB\d+)\]\(https://support\.microsoft\.com/(?:help/\d+|[^\s)]+)\)$')
+            if (-not $kbMatch.Success) { throw 'The hotpatch KB reference has an unexpected format.' }
+            $kb = $kbMatch.Groups[1].Value
+        }
+        [pscustomobject][ordered]@{
+            version = $version.ToString()
+            availableDate = $date.ToString('yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
+            updateType = $cells[2]
+            kb = $kb
+        }
+    }
+    if (-not $rows) { return @() }
     @($rows | Sort-Object { [version]$_.version })
 }
 
@@ -123,7 +190,9 @@ function Get-AtlasWindowsReleaseStatus {
     try {
         $catalog = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'windows-releases.json') -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
         if ($catalog.schemaVersion -eq 2 -and @($catalog.supportedReleases.build) -contains $Version.Build) {
-            foreach ($release in $catalog.releases) {
+            # Hotpatches count as released too, but never as the newest revision below.
+            $hotpatches = if ($catalog.PSObject.Properties['hotpatches']) { @($catalog.hotpatches) } else { @() }
+            foreach ($release in @(@($catalog.releases) + $hotpatches)) {
                 if ($release.version -eq $Version.ToString() -and [datetime]::ParseExact($release.availableDate, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture).Date -le [datetime]::UtcNow.Date) {
                     return 'Released'
                 }
@@ -143,7 +212,14 @@ function Get-AtlasWindowsReleaseStatus {
         if ($null -eq $cached) {
             $markdown = Get-AtlasWindowsReleaseMarkdown
             $releases = @(foreach ($build in 26200,26300) { ConvertFrom-AtlasWindowsReleaseMarkdown -Markdown $markdown -Build $build })
-            $script:AtlasWindowsReleasedVersions = @($releases | ForEach-Object { $_.version })
+            $versions = @($releases | ForEach-Object { $_.version })
+            # Hotpatches only add to the General Availability releases: a calendar that
+            # can't be read leaves them as they are.
+            try {
+                $hotpatches = @(foreach ($build in 26200,26300) { ConvertFrom-AtlasWindowsHotpatchMarkdown -Markdown $markdown -Build $build })
+                $versions += @($hotpatches | ForEach-Object { $_.version })
+            } catch { Write-Verbose "Microsoft's hotpatch calendar couldn't be read, so only General Availability releases count: $_" }
+            $script:AtlasWindowsReleasedVersions = $versions
         }
         if ($script:AtlasWindowsReleasedVersions -contains $Version.ToString()) { return 'Released' }
         # Read, but left out: most often a Release Preview build, or an update the

@@ -5,8 +5,9 @@
 .DESCRIPTION
     Reads the Markdown source of Microsoft's Windows 11 release information page and
     writes, for each build, its General Availability versions with their dates and KB
-    articles. The catalog records the source's commit, SHA-256 and update time. Review
-    the catalog diff before publishing it; docs/windows-release-policy.md has the steps.
+    articles, then, apart from them, the hotpatches its hotpatch calendar lists. The
+    catalog records the source's commit, SHA-256 and update time. Review the catalog diff
+    before publishing it; docs/windows-release-policy.md has the steps.
 .PARAMETER MarkdownPath
     A saved copy of the page's Markdown source.
 .PARAMETER Refresh
@@ -34,6 +35,10 @@ $ErrorActionPreference = 'Stop'
 $markdown = if ($Refresh) { Get-AtlasWindowsReleaseMarkdown } else { [IO.File]::ReadAllText((Resolve-Path -LiteralPath $MarkdownPath).Path) }
 $builds = @($Build | Sort-Object -Unique)
 $releases = @(foreach ($buildNumber in $builds) { ConvertFrom-AtlasWindowsReleaseMarkdown -Markdown $markdown -AsOfDate $AsOfDate -Build $buildNumber })
+$hotpatches = @(foreach ($buildNumber in $builds) { ConvertFrom-AtlasWindowsHotpatchMarkdown -Markdown $markdown -AsOfDate $AsOfDate -Build $buildNumber })
+$listed = @($releases | ForEach-Object { $_.version })
+$both = @($hotpatches | Where-Object { $listed -contains $_.version } | ForEach-Object { $_.version })
+if ($both.Count) { throw "Versions listed both as releases and as hotpatches need review: $($both -join ', ')" }
 $commit = [regex]::Match($markdown, '(?m)^git_commit_id: ([0-9a-f]{40})\s*$').Groups[1].Value
 $updated = [regex]::Match($markdown, '(?m)^updated_at: ([^\r\n]+)').Groups[1].Value.Trim()
 if (-not $commit -or -not $updated) { throw 'Official source metadata is missing; review the source format.' }
@@ -50,7 +55,8 @@ $catalog = [ordered]@{
     updatedAt = $updated
     asOfDate = $AsOfDate.ToString('yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
     releases = $releases
+    hotpatches = $hotpatches
 }
 $text = ($catalog | ConvertTo-Json -Depth 5).Replace("`r`n", "`n") + "`n"
 [IO.File]::WriteAllText([IO.Path]::GetFullPath($OutputPath), $text, [Text.UTF8Encoding]::new($false))
-Write-Output "Wrote $($releases.Count) published versions for builds $($builds -join ', '). Review the catalog diff before publishing."
+Write-Output "Wrote $($releases.Count) published versions and $($hotpatches.Count) hotpatches for builds $($builds -join ', '). Review the catalog diff before publishing."
