@@ -1877,7 +1877,8 @@ namespace Atlas.Native
     }
 
     // ----- Taking back an Atlas-owned object whose permissions refuse Atlas -----
-    // PowerShell consumer: Install\Tasks\Remove-PreviousAtlasInstall.ps1
+    // PowerShell consumers: Install\Tasks\Remove-PreviousAtlasInstall.ps1 and
+    // Atlas.Registry\Domain\Keys.ps1 (Repair-AtlasDefaultUserPolicyKeyAccess)
     // Writing the owner of an object whose DACL refuses the caller needs
     // SeTakeOwnershipPrivilege enabled, and the managed SetAccessControl doesn't enable it.
     // Only the ownership privilege can be enabled here, for this process's token.

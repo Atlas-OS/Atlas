@@ -268,6 +268,8 @@ The child's output never reaches the install console, so a failed shell refresh 
 2. **Live user.** The installing user's process checks its own SID and writes its own `HKCU`.
 3. **Default user.** TrustedInstaller writes the same declarations to the loaded `HKU\Atlas_DefaultUser` hive, with Atlas.Registry bound to the active transaction.
    Only TrustedInstaller with an active transaction may write it, and other `HKEY_USERS` targets are rejected.
+   A key under its `Software\Policies` whose permissions refuse the write, as some keys older Atlas releases wrote do, is taken back: Atlas takes ownership of it, resets it to inherit its parent's permissions and writes again.
+   A key still refused stops the step, naming it.
 
 DefaultHiveLoad and DefaultHiveUnload bracket every plan, and Atlas records that it owns the mount only after loading the hive.
 After a failure, cleanup unloads a mount this run created and leaves any other.

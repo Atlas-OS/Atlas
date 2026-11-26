@@ -120,7 +120,18 @@ function Set-AtlasRegistryValueCore {
     }
 
     $split = Split-AtlasRegistryProviderPath -ProviderPath $ProviderPath
-    $key = $split.BaseKey.CreateSubKey($split.SubPath)
+    try {
+        $key = $split.BaseKey.CreateSubKey($split.SubPath)
+    }
+    catch [System.UnauthorizedAccessException], [System.Security.SecurityException] {
+        # A default-user policy key whose permissions refuse Atlas is taken back; any
+        # other refusal stays an error.
+        $protectedDepth = Get-AtlasDefaultUserPolicyRootDepth -ProviderPath $ProviderPath
+        if ($protectedDepth -eq 0) {
+            throw
+        }
+        $key = Open-AtlasRefusedPolicyKey -Split $split -ProviderPath $ProviderPath -ProtectedDepth $protectedDepth
+    }
     if ($null -eq $key) {
         throw "Failed to create or open the registry key '$ProviderPath'."
     }
