@@ -1,8 +1,9 @@
 # Companion for the ProcessExplorer toggle: installs Sysinternals Process Explorer in place of
 # Task Manager, or uninstalls it. The install and uninstall functions run as Administrator
 # when you run a launcher and when an update replays the recorded state.
-# Set-AtlasProcessExplorerUserPreference runs in your own unelevated process after Enable, and
-# is replayed for each new account at first sign-in.
+# Test-AtlasProcessExplorerReplayApplicable decides during that replay whether Enable still
+# applies. Set-AtlasProcessExplorerUserPreference runs in your own unelevated process after
+# Enable, and is replayed for each new account at first sign-in.
 
 function Get-AtlasProcessExplorerHelperPath {
     # ProcessExplorer-Package.ps1 is a function library; each action dot-sources it
@@ -39,6 +40,24 @@ function Install-AtlasProcessExplorer {
     }
 
     Install-AtlasProcessExplorerPackage -DisablePcw:$disablePcw
+}
+
+function Test-AtlasProcessExplorerReplayApplicable {
+    # Another program can take over Task Manager's IFEO Debugger after Atlas installed
+    # Process Explorer, as third-party Task Manager launchers do. Enable refuses to
+    # replace it, so an update retires the record and leaves that launcher alone instead.
+    param($Toggle)
+
+    . (Get-AtlasProcessExplorerHelperPath -Toggle $Toggle)
+    $layout = Get-AtlasProcessExplorerLayout
+    $debugger = Get-AtlasProcessExplorerDebugger -IfeoPath $layout.IfeoPath
+    if ($debugger.Exists -and
+        -not (Test-AtlasProcessExplorerDebuggerValue -State $debugger -ExpectedPath $layout.BinaryPath)) {
+        Write-AtlasLog -Message ("Task Manager opens '$($debugger.Value)' instead of Atlas's Process Explorer, " +
+            'so Process Explorer is not re-applied and that program stays as it is.')
+        return $false
+    }
+    return $true
 }
 
 function Set-AtlasProcessExplorerUserPreference {

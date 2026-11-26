@@ -166,6 +166,8 @@ The [toggle schema](../package/Executables/AtlasModules/Toggles/README.md#state-
 - A fresh install seeds nothing from launcher defaults, so a `(default)` label isn't evidence of applied work.
 - An update or reinstall replays every existing record, because the store can't tell a default an earlier build seeded from a choice you made.
 - The one exception is a choice toggle that the Choices step set in the same install, which the Defaults step leaves out of its replay (see [choices.json](#choicesjson)).
+- A state whose `ReplayApplicable` check says it no longer applies isn't replayed, and its record is cleared.
+  For example, when another program has taken over Task Manager's IFEO `Debugger`, the Process Explorer Enable record is cleared and that program is left alone.
 - After an update replays the records, the Defaults step checks them and logs any drift, which shows declarations a newer Windows build ignores.
 - The store never keeps executable paths.
 
