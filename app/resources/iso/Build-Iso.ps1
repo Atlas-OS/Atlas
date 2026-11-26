@@ -425,7 +425,7 @@ try {
     }
     $root = Get-AtlasIsoRoot -ImagePath $source -Disk $disk -Owned:$ownedMount
     foreach ($relative in @('setup.exe', 'sources\boot.wim', 'efi\microsoft\boot\efisys.bin')) {
-        if (-not (Test-Path -LiteralPath (Join-Path $root $relative))) { throw "Windows installation file missing: $relative" }
+        if (-not (Test-Path -LiteralPath (Join-Path $root $relative))) { Fail 'windows-unsupported' "Windows installation file missing: $relative" }
     }
     foreach ($relative in @('autounattend.xml', 'unattend.xml', 'sources\autounattend.xml', 'sources\unattend.xml', 'sources\$OEM$')) {
         if (Test-Path -LiteralPath (Join-Path $root $relative)) { Fail 'iso-customised' "This ISO already has custom setup content ($relative). Choose unmodified Microsoft media." }

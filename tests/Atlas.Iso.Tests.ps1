@@ -128,6 +128,28 @@ Describe 'ISO destination validation' {
     }
 }
 
+Describe 'Windows installation files on the source' {
+    BeforeAll {
+        # The worker's check of the mounted source, run on a folder that stands for it.
+        $parsed = [Management.Automation.Language.Parser]::ParseFile((Join-Path $script:IsoResources 'Build-Iso.ps1'), [ref]$null, [ref]$null)
+        $loop = $parsed.Find({ param($n) $n -is [Management.Automation.Language.ForEachStatementAst] -and $n.Condition.Extent.Text -like "*'setup.exe'*" }, $true)
+        $script:CheckInstallationFiles = [scriptblock]::Create("param(`$root)`n" + $loop.Extent.Text)
+        $script:InstallationFiles = @('setup.exe', 'sources\boot.wim', 'efi\microsoft\boot\efisys.bin')
+    }
+    It 'names a missing <Relative> as media the package can''t use' -ForEach @(
+        @{ Relative = 'setup.exe' }, @{ Relative = 'sources\boot.wim' }, @{ Relative = 'efi\microsoft\boot\efisys.bin' }
+    ) {
+        $media = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        foreach ($file in $script:InstallationFiles -ne $Relative) { New-Item -ItemType File -Path (Join-Path $media $file) -Force | Out-Null }
+        { & $script:CheckInstallationFiles "$media\" } | Should -Throw "windows-unsupported: Windows installation file missing: $Relative"
+    }
+    It 'accepts media that has all of them' {
+        $media = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        foreach ($file in $script:InstallationFiles) { New-Item -ItemType File -Path (Join-Path $media $file) -Force | Out-Null }
+        { & $script:CheckInstallationFiles "$media\" } | Should -Not -Throw
+    }
+}
+
 Describe 'ISO workspace paths' {
     It 'measures the longest file path, and a folder path with room for a file in it' {
         $tree = Join-Path $TestDrive 'tree'
