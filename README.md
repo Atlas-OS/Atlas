@@ -15,7 +15,7 @@
   •
   <a href="https://atlasos.net/docs/">📚 Documentation</a>
   •
-  <a href="https://discord.atlasos.net">☎️ Discord</a>
+  <a href="https://atlasos.net/discord">☎️ Discord</a>
   •
   <a href="https://github.com/Atlas-OS/Atlas/discussions">💬 Discussions</a>
 </p>
@@ -70,7 +70,7 @@ You can inspect Atlas before you install it and check its changes afterwards.
 ## Get help
 
 - Read the [Atlas documentation](https://atlasos.net/docs/) and the [FAQ](https://atlasos.net/docs/faq/).
-- Ask questions on [Discord](https://discord.atlasos.net) or in [GitHub Discussions](https://github.com/Atlas-OS/Atlas/discussions).
+- Ask questions on [Discord](https://atlasos.net/discord) or in [GitHub Discussions](https://github.com/Atlas-OS/Atlas/discussions).
 - Report a bug or request a feature with the [issue forms](https://github.com/Atlas-OS/Atlas/issues/new/choose).
 - To send a report privately from Atlas Manager, open **Settings** and choose **Send a report**.
 - Report a security vulnerability as the [security policy](.github/SECURITY.md) describes.

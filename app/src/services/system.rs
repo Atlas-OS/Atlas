@@ -752,7 +752,7 @@ pub mod links {
     pub const RELEASES: &str = "https://github.com/Atlas-OS/Atlas/releases";
     /// The latest release, where the newest Atlas Manager is downloaded.
     pub const LATEST_RELEASE: &str = "https://github.com/Atlas-OS/Atlas/releases/latest";
-    pub const DISCORD: &str = "https://discord.atlasos.net/";
+    pub const DISCORD: &str = "https://atlasos.net/discord";
 }
 
 #[cfg(test)]
