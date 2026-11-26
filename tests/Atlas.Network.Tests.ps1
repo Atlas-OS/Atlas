@@ -387,7 +387,23 @@ Describe 'File Sharing machine state' {
             RuleEnabled     = 1
             RuleProfiles    = 2
             Copies          = @{}
+            FirewallStatus  = 'Running'
+            FirewallKey     = "$script:servicesRoot\mpssvc"
+            FirewallStarts  = @()
         }
+        # The firewall rule cmdlets need Windows Defender Firewall running.
+        Mock Get-Service -ModuleName Atlas.Network {
+            [pscustomobject]@{ Name = 'mpssvc'; Status = $global:AtlasNetworkTestState.FirewallStatus }
+        } -ParameterFilter { @($Name) -ceq 'mpssvc' }
+        Mock Start-Service -ModuleName Atlas.Network {
+            # The startup type the service manager sees when asked to start it.
+            $global:AtlasNetworkTestState.FirewallStarts += [int](Get-ItemProperty `
+                    -LiteralPath $global:AtlasNetworkTestState.FirewallKey -Name Start).Start
+            $global:AtlasNetworkTestState.FirewallStatus = 'Running'
+        } -ParameterFilter { @($Name) -ceq 'mpssvc' }
+        Mock Stop-Service -ModuleName Atlas.Network {
+            $global:AtlasNetworkTestState.FirewallStatus = 'Stopped'
+        } -ParameterFilter { @($Name) -ceq 'mpssvc' }
         # The Net* cmdlets bind their InputObject parameters by CIM class type name, so
         # the fakes are client-only instances of the real classes rather than plain objects.
         Mock Get-NetAdapterBinding -ModuleName Atlas.Network {
@@ -430,6 +446,9 @@ Describe 'File Sharing machine state' {
         # extensions project as Name, Group, Profile and Enabled.
         Mock Get-NetFirewallRule -ModuleName Atlas.Network {
             param($Name)
+            if ($global:AtlasNetworkTestState.FirewallStatus -cne 'Running') {
+                throw 'There are no more endpoints available from the endpoint mapper.'
+            }
             $rules = @(
                 New-CimInstance -ClassName MSFT_NetFirewallRule -ClientOnly -Property @{
                     InstanceID   = 'FPS-SMB-In-TCP'
@@ -690,5 +709,90 @@ Describe 'File Sharing machine state' {
         $global:AtlasNetworkTestState.RuleEnabled | Should -Be 2
         $global:AtlasNetworkTestState.Copies['Atlas-Private-FPS-SMB-In-TCP'].Enabled | Should -Be 2
         Should -Invoke Enable-NetFirewallRule -ModuleName Atlas.Network -Times 0
+    }
+
+    It 'changes the rules through a running firewall service without starting or stopping it' {
+        Disable-AtlasFileSharing -Silent -NetBtInterfacesRoot $script:interfacesRoot -ServicesRoot $script:servicesRoot
+
+        $global:AtlasNetworkTestState.RuleEnabled | Should -Be 2
+        Should -Invoke Start-Service -ModuleName Atlas.Network -Times 0
+        Should -Invoke Stop-Service -ModuleName Atlas.Network -Times 0
+        Test-Path -LiteralPath $global:AtlasNetworkTestState.FirewallKey | Should -BeFalse
+    }
+
+    It 'starts a disabled firewall service as Manual for the rule change and puts it back' {
+        New-Item -Path $global:AtlasNetworkTestState.FirewallKey -Force | Out-Null
+        Set-ItemProperty -Path $global:AtlasNetworkTestState.FirewallKey -Name Start -Value 4 -Type DWord
+        $global:AtlasNetworkTestState.FirewallStatus = 'Stopped'
+
+        Disable-AtlasFileSharing -Silent -NetBtInterfacesRoot $script:interfacesRoot -ServicesRoot $script:servicesRoot
+
+        $global:AtlasNetworkTestState.RuleEnabled | Should -Be 2
+        @($global:AtlasNetworkTestState.FirewallStarts) | Should -Be @(3)
+        $global:AtlasNetworkTestState.FirewallStatus | Should -BeExactly 'Stopped'
+        (Get-ItemProperty -Path $global:AtlasNetworkTestState.FirewallKey -Name Start).Start | Should -Be 4
+        Should -Invoke Stop-Service -ModuleName Atlas.Network -Times 1 -Exactly
+    }
+
+    It 'starts a stopped Manual firewall service for the rule change and stops it again' {
+        New-Item -Path $global:AtlasNetworkTestState.FirewallKey -Force | Out-Null
+        Set-ItemProperty -Path $global:AtlasNetworkTestState.FirewallKey -Name Start -Value 3 -Type DWord
+        $global:AtlasNetworkTestState.FirewallStatus = 'Stopped'
+        $global:AtlasNetworkTestState.RuleEnabled = 2
+        Mock Read-AtlasYesNo -ModuleName Atlas.Network { $true }
+
+        Enable-AtlasFileSharing -NetBtInterfacesRoot $script:interfacesRoot -ServicesRoot $script:servicesRoot
+
+        $global:AtlasNetworkTestState.RuleEnabled | Should -Be 1
+        @($global:AtlasNetworkTestState.FirewallStarts) | Should -Be @(3)
+        $global:AtlasNetworkTestState.FirewallStatus | Should -BeExactly 'Stopped'
+        (Get-ItemProperty -Path $global:AtlasNetworkTestState.FirewallKey -Name Start).Start | Should -Be 3
+    }
+
+    It 'stops with the fix when the firewall service will not start, putting its startup type back' {
+        New-Item -Path $global:AtlasNetworkTestState.FirewallKey -Force | Out-Null
+        Set-ItemProperty -Path $global:AtlasNetworkTestState.FirewallKey -Name Start -Value 4 -Type DWord
+        $global:AtlasNetworkTestState.FirewallStatus = 'Stopped'
+        Mock Start-Service -ModuleName Atlas.Network {
+            throw [InvalidOperationException]::new('Cannot start service mpssvc on computer ''.''.',
+                [ComponentModel.Win32Exception]::new(1068, 'The dependency service or group failed to start.'))
+        } -ParameterFilter { @($Name) -ceq 'mpssvc' }
+
+        { Disable-AtlasFileSharing -Silent -NetBtInterfacesRoot $script:interfacesRoot -ServicesRoot $script:servicesRoot } |
+            Should -Throw "*couldn't start the Windows Defender Firewall service*Cannot start service mpssvc*dependency*Set the Windows Defender Firewall service (mpssvc) to Automatic*"
+
+        $global:AtlasNetworkTestState.RuleEnabled | Should -Be 1
+        (Get-ItemProperty -Path $global:AtlasNetworkTestState.FirewallKey -Name Start).Start | Should -Be 4
+        Should -Invoke Get-NetFirewallRule -ModuleName Atlas.Network -Times 0
+    }
+
+    It 'stops with the fix when the service manager keeps the firewall service Disabled' {
+        $global:AtlasNetworkTestState.FirewallStatus = 'Stopped'
+        New-Item -Path $global:AtlasNetworkTestState.FirewallKey -Force | Out-Null
+        Set-ItemProperty -Path $global:AtlasNetworkTestState.FirewallKey -Name Start -Value 4 -Type DWord
+        Mock Set-AtlasServiceStartup -ModuleName Atlas.Network {
+            [pscustomobject]@{ Name = $Name; Applied = $true; StartupType = $StartupType; ServiceManager = 'Refused' }
+        } -ParameterFilter { $Name -ceq 'mpssvc' }
+
+        { Disable-AtlasFileSharing -Silent -NetBtInterfacesRoot $script:interfacesRoot -ServicesRoot $script:servicesRoot } |
+            Should -Throw '*kept it Disabled*to Automatic*'
+
+        Should -Invoke Start-Service -ModuleName Atlas.Network -Times 0
+        Should -Invoke Set-AtlasServiceStartup -ModuleName Atlas.Network -Times 1 -Exactly -ParameterFilter {
+            $Name -ceq 'mpssvc' -and $StartupType -eq 4
+        }
+    }
+
+    It 'puts the firewall service back when the rule change fails' {
+        New-Item -Path $global:AtlasNetworkTestState.FirewallKey -Force | Out-Null
+        Set-ItemProperty -Path $global:AtlasNetworkTestState.FirewallKey -Name Start -Value 4 -Type DWord
+        $global:AtlasNetworkTestState.FirewallStatus = 'Stopped'
+        Mock Disable-NetFirewallRule -ModuleName Atlas.Network {}
+
+        { Disable-AtlasFileSharing -Silent -NetBtInterfacesRoot $script:interfacesRoot -ServicesRoot $script:servicesRoot } |
+            Should -Throw '*did not retain its disabled state*'
+
+        $global:AtlasNetworkTestState.FirewallStatus | Should -BeExactly 'Stopped'
+        (Get-ItemProperty -Path $global:AtlasNetworkTestState.FirewallKey -Name Start).Start | Should -Be 4
     }
 }

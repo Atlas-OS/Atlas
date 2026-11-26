@@ -1,7 +1,9 @@
 # Atlas.Network domain: the File Sharing machine state shared by the fresh install
 # and the FileSharing toggle. Enable restores the adapter bindings, NetBIOS, the NetBT
 # driver and Network Discovery; Disable removes them, forces Public network profiles,
-# disables the sharing firewall groups and removes the Sharing context menu.
+# disables the sharing firewall groups and removes the Sharing context menu. The firewall
+# groups are changed through the Windows Defender Firewall service, which is started for
+# the change when it's stopped.
 
 # Client for Microsoft Networks, File and Printer Sharing for Microsoft Networks, and the
 # Link-Layer Topology Discovery mapper I/O driver and responder.
@@ -25,6 +27,107 @@ $script:AtlasFileSharingMachineContextMenuKeys = @(
     'HKLM:\SOFTWARE\Classes\LibraryFolder\background\shellex\ContextMenuHandlers\Sharing'
     'HKLM:\SOFTWARE\Classes\UserLibraryFolder\shellex\ContextMenuHandlers\Sharing'
 )
+# Windows Defender Firewall, which serves the firewall rule cmdlets.
+$script:AtlasFirewallServiceName = 'mpssvc'
+
+function Invoke-AtlasFirewallServiceOperation {
+    <#
+    .SYNOPSIS
+        Runs a firewall rule operation with the Windows Defender Firewall service running.
+    .DESCRIPTION
+        The firewall rule cmdlets reach the rules through the service, so while it's
+        stopped they fail with "There are no more endpoints available from the endpoint
+        mapper". A running service is used as it is. A stopped one, which tools outside
+        Atlas can leave Disabled, is started for the operation, set to Manual first when
+        it's Disabled, and then stopped and given its startup type back. A service that
+        won't start stops the operation with the steps that fix it.
+    .PARAMETER Operation
+        The rule changes and their checks.
+    .PARAMETER ServicesRoot
+        The Services key whose startup type is changed. Tests pass an isolated root.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [scriptblock]$Operation,
+
+        [ValidateNotNullOrEmpty()]
+        [string]$ServicesRoot = 'HKLM:\SYSTEM\CurrentControlSet\Services'
+    )
+
+    $firewallService = $script:AtlasFirewallServiceName
+    $fixText = 'Set the Windows Defender Firewall service (mpssvc) to Automatic, restart Windows and try again.'
+    try {
+        $status = [string](Get-Service -Name $firewallService -ErrorAction Stop).Status
+    }
+    catch {
+        throw ("File Sharing changes the sharing firewall rules through the Windows Defender Firewall " +
+            "service (mpssvc), which couldn't be read: $($_.Exception.Message) Repair Windows and try again.")
+    }
+    if ($status -eq 'Running') {
+        & $Operation
+        return
+    }
+
+    $servicePath = Join-Path -Path $ServicesRoot -ChildPath $firewallService
+    $startValue = Get-ItemProperty -LiteralPath $servicePath -Name 'Start' -ErrorAction SilentlyContinue
+    if ($null -eq $startValue -or [int]$startValue.Start -lt 0 -or [int]$startValue.Start -gt 4) {
+        throw "The Windows Defender Firewall service (mpssvc) has no readable startup type. $fixText"
+    }
+    $originalStart = [int]$startValue.Start
+    $restoreStartup = $false
+    $stopAfter = $false
+    $operationFailed = $true
+    try {
+        try {
+            # Start value 4 is Disabled and 3 is Manual.
+            if ($originalStart -eq 4) {
+                $restoreStartup = $true
+                $startup = Set-AtlasServiceStartup -Name $firewallService -StartupType 3 `
+                    -ServicesRoot $ServicesRoot -PassThru
+                if ([string]$startup.ServiceManager -ceq 'Refused') {
+                    throw 'The service manager kept it Disabled.'
+                }
+            }
+            $stopAfter = $true
+            Start-Service -Name $firewallService -ErrorAction Stop
+            $status = [string](Get-Service -Name $firewallService -ErrorAction Stop).Status
+            if ($status -ne 'Running') {
+                throw "It's $status, not Running."
+            }
+        }
+        catch {
+            $reasons = [Collections.Generic.List[string]]::new()
+            for ($cause = $_.Exception; $null -ne $cause; $cause = $cause.InnerException) {
+                if (-not $reasons.Contains($cause.Message)) { $reasons.Add($cause.Message) }
+            }
+            throw ("File Sharing couldn't start the Windows Defender Firewall service (mpssvc), which it " +
+                "needs to change the sharing firewall rules: $($reasons -join ' ') $fixText")
+        }
+        Write-AtlasLog -Message ('Started the stopped Windows Defender Firewall service to change the ' +
+            "sharing firewall rules; it's stopped again afterwards, with startup type $originalStart.")
+
+        & $Operation
+        $operationFailed = $false
+    }
+    finally {
+        $restoreFailures = [Collections.Generic.List[string]]::new()
+        if ($stopAfter) {
+            try { Stop-Service -Name $firewallService -Force -ErrorAction Stop }
+            catch { $restoreFailures.Add("stopping it failed: $($_.Exception.Message)") }
+        }
+        if ($restoreStartup) {
+            try { Set-AtlasServiceStartup -Name $firewallService -StartupType $originalStart -ServicesRoot $ServicesRoot }
+            catch { $restoreFailures.Add("restoring startup type $originalStart failed: $($_.Exception.Message)") }
+        }
+        if ($restoreFailures.Count -gt 0) {
+            $restoreText = "The Windows Defender Firewall service (mpssvc) wasn't put back as it was: " +
+                ($restoreFailures -join '; ')
+            # The operation's own failure is the one that stops the run.
+            if ($operationFailed) { Write-AtlasLog -Level Error -Message $restoreText }
+            else { throw $restoreText }
+        }
+    }
+}
 
 function Get-AtlasFileSharingFirewallRule {
     <#
@@ -233,7 +336,9 @@ function Enable-AtlasFileSharing {
             }
         }
 
-        Enable-AtlasPrivateSharingFirewallRule
+        Invoke-AtlasFirewallServiceOperation -ServicesRoot $ServicesRoot -Operation {
+            Enable-AtlasPrivateSharingFirewallRule
+        }
 
         Set-AtlasRegistryValue `
             -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\NcdAutoSetup\Private' `
@@ -286,13 +391,15 @@ function Disable-AtlasFileSharing {
         throw 'File Sharing disable left a network profile outside the Public category.'
     }
 
-    $rules = @(Get-AtlasFileSharingFirewallRule)
-    if ($rules.Count -ne 0) {
-        Disable-NetFirewallRule -InputObject $rules -ErrorAction Stop | Out-Null
-    }
-    foreach ($rule in @(Get-AtlasFileSharingFirewallRule)) {
-        if ([string]$rule.Enabled -notin @('False', '0')) {
-            throw "Firewall rule '$($rule.Name)' did not retain its disabled state."
+    Invoke-AtlasFirewallServiceOperation -ServicesRoot $ServicesRoot -Operation {
+        $rules = @(Get-AtlasFileSharingFirewallRule)
+        if ($rules.Count -ne 0) {
+            Disable-NetFirewallRule -InputObject $rules -ErrorAction Stop | Out-Null
+        }
+        foreach ($rule in @(Get-AtlasFileSharingFirewallRule)) {
+            if ([string]$rule.Enabled -notin @('False', '0')) {
+                throw "Firewall rule '$($rule.Name)' did not retain its disabled state."
+            }
         }
     }
 
