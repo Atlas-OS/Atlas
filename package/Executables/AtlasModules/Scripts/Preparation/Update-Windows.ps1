@@ -1522,18 +1522,27 @@ function Assert-PreparationCurrent {
 }
 
 function Invoke-PreparationStoreWithRetry {
-    # Retry what passes on its own: another install in progress (0x80240016), and a
-    # Store that cancelled an item (E_ABORT), didn't answer or couldn't resume a
-    # download. Never an app in use or an unknown error. One the last try doesn't
-    # get past goes on to the repairs, as any Store failure does.
+    # Retry what passes on its own: another install in progress (0x80240016), an app
+    # whose files are in use (0x80073D02), which the Store's forced restart of the
+    # app or the user closing it gets past, and a Store that cancelled an item
+    # (E_ABORT), didn't answer or couldn't resume a download. Never an unknown error.
+    # An app still in use after the last try is left to the user to close; any other
+    # failure the last try doesn't get past goes on to the repairs, as any Store
+    # failure does.
     for ($attempt = 0; $attempt -lt 4; $attempt++) {
         try { Invoke-PreparationStore; return }
         catch {
             $detail = Get-PreparationFailureDetail $_.Exception
-            $busy = $detail.ContainsKey('errorCode') -and $detail.errorCode -eq '0x80240016'
+            $code = if ($detail.ContainsKey('errorCode')) { $detail.errorCode } else { '' }
+            $busy = $code -eq '0x80240016'
+            $inUse = $code -eq '0x80073D02'
             $passing = (Get-PreparationStoreTransient $_.Exception) -eq 'retry'
-            if (-not ($busy -or $passing) -or $attempt -eq 3 -or (Test-PreparationRestart)) { throw }
+            if (-not ($busy -or $inUse -or $passing) -or $attempt -eq 3 -or (Test-PreparationRestart)) { throw }
             if ($busy) { Write-PreparationLog "Store is busy; retrying in 15 seconds (attempt $($attempt + 2) of 4)." }
+            elseif ($inUse) {
+                $app = if ($detail.ContainsKey('packageName')) { $detail.packageName } else { 'an app' }
+                Write-PreparationStoreEvidence "$app is in use (0x80073D02); trying again in 15 seconds (attempt $($attempt + 2) of 4)"
+            }
             else { Write-PreparationStoreEvidence "$(([string]$_.Exception.Message).Trim().TrimEnd('.')); trying again in 15 seconds (attempt $($attempt + 2) of 4)" }
             for ($second = 0; $second -lt 15; $second++) {
                 Assert-PreparationContinue

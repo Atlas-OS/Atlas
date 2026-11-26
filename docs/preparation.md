@@ -236,7 +236,9 @@ The worker waits for Store apps while their updates move, until 30 minutes after
 A Store that stops moving for 30 minutes gets the repairs, as a stuck Store can need them.
 One still moving after 90 minutes stops the run with `store-timeout`, without the repairs.
 
-An update that fails because its app is open (`0x80073D02`) names the app on the update row: close it, then try again, in Task Manager if it has no window.
+An update that fails because its app is open (`0x80073D02`) is tried again too, up to four times in all, 15 seconds apart, as the Store closes an app it updates and the app can be closed meanwhile.
+When the app is still open after that, the run stops without the repairs, which can't close it.
+The update row names the app: close it, then try again, in Task Manager if it has no window.
 The row offers only **Try again**, as Microsoft Store has nothing to add.
 
 A Store you removed on purpose stays removed.

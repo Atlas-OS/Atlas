@@ -2574,6 +2574,29 @@ Describe 'Transient Store deployment recovery' {
         Should -Invoke Invoke-PreparationStore -Times 4 -Exactly
         Test-PreparationStoreRepairable $thrown | Should -BeTrue
     }
+    It 'tries again after an app was in use (0x80073D02), and says which' {
+        Mock Write-PreparationStoreEvidence {}
+        Mock Invoke-PreparationStore {
+            $script:storeAttempts++
+            if ($script:storeAttempts -le 2) {
+                throw (New-PreparationStoreFailure 'MicrosoftWindows.Client.WebExperience_cw5n1h2txyewy' 'Error' ([Runtime.InteropServices.COMException]::new('Resources are in use.', -2147009278)))
+            }
+        }
+        { Invoke-PreparationStoreWithRetry } | Should -Not -Throw
+        Should -Invoke Invoke-PreparationStore -Times 3 -Exactly
+        Should -Invoke Start-Sleep -Times 30 -Exactly -ParameterFilter { $Seconds -eq 1 }
+        Should -Invoke Write-PreparationStoreEvidence -Times 1 -Exactly -ParameterFilter { $Text -eq 'WebExperience is in use (0x80073D02); trying again in 15 seconds (attempt 2 of 4)' }
+    }
+    It 'leaves an app still in use after four tries to the user to close, without the repairs' {
+        Mock Write-PreparationStoreEvidence {}
+        Mock Invoke-PreparationStore { throw (New-PreparationStoreFailure 'Microsoft.WindowsNotepad_8wekyb3d8bbwe' 'Error' ([Runtime.InteropServices.COMException]::new('Resources are in use.', -2147009278))) }
+        try { Invoke-PreparationStoreWithRetry } catch { $thrown = $_.Exception }
+        Should -Invoke Invoke-PreparationStore -Times 4 -Exactly
+        $detail = Get-PreparationFailureDetail $thrown
+        $detail.errorCode | Should -Be '0x80073D02'
+        $detail.packageName | Should -Be 'WindowsNotepad'
+        Test-PreparationStoreRepairable $thrown | Should -BeFalse
+    }
     It 'goes on to the repairs at once when an item is cancelled after Windows couldn''t stage updates' {
         Mock Get-PreparationStagingFailure { [pscustomobject]@{ Name = 'Microsoft.WindowsCalculator'; Family = 'Microsoft.WindowsCalculator_8wekyb3d8bbwe'; Package = ''; ActivityId = '' } }
         Mock Invoke-PreparationStore { throw (New-PreparationStoreFailure 'Microsoft.Windows.Photos_8wekyb3d8bbwe' 'Canceled' ([Runtime.InteropServices.COMException]::new('Operation aborted', -2147467260))) }
