@@ -13,7 +13,8 @@ The following install defaults, choices and toggles change startup values.
   File Sharing sets the `NetBT` driver to Disabled (`Start=4`), and Location sets `lfsvc` and `MapsBroker` to Disabled and stops them.
   Enable File Sharing and Enable Location turn them back on.
 - **File Sharing's firewall rule changes** need the Windows Defender Firewall service (`mpssvc`).
-  When it's stopped, File Sharing starts it for the change, setting it to Manual first if it's Disabled, then stops it and puts its startup type back.
+  When it's stopped, File Sharing starts it for the change, setting it to Manual first if it's Disabled, then puts its startup type back.
+  Windows doesn't let the service be stopped, so it keeps running until Windows restarts, and a Disabled service stays Disabled from then.
   If it won't start, File Sharing stops and asks you to set the service to Automatic.
 - **The `disable-pca` privacy tweak** sets `PcaSvc` to Disabled, as the table below describes.
 - **The `disallow-data-collection` privacy tweak** disables and stops `DiagTrack` on fresh installs, upgrades, reinstalls and rebases.

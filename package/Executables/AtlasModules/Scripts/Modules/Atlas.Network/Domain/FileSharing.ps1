@@ -3,7 +3,7 @@
 # driver and Network Discovery; Disable removes them, forces Public network profiles,
 # disables the sharing firewall groups and removes the Sharing context menu. The firewall
 # groups are changed through the Windows Defender Firewall service, which is started for
-# the change when it's stopped.
+# the change when it's stopped and then runs until Windows restarts.
 
 # Client for Microsoft Networks, File and Printer Sharing for Microsoft Networks, and the
 # Link-Layer Topology Discovery mapper I/O driver and responder.
@@ -39,8 +39,10 @@ function Invoke-AtlasFirewallServiceOperation {
         stopped they fail with "There are no more endpoints available from the endpoint
         mapper". A running service is used as it is. A stopped one, which tools outside
         Atlas can leave Disabled, is started for the operation, set to Manual first when
-        it's Disabled, and then stopped and given its startup type back. A service that
-        won't start stops the operation with the steps that fix it.
+        it's Disabled, and given its startup type back afterwards. Windows doesn't accept
+        a stop request for the service (NOT_STOPPABLE), so it keeps running until Windows
+        restarts, and its startup type applies from then. A service that won't start
+        stops the operation with the steps that fix it.
     .PARAMETER Operation
         The rule changes and their checks.
     .PARAMETER ServicesRoot
@@ -75,7 +77,7 @@ function Invoke-AtlasFirewallServiceOperation {
     }
     $originalStart = [int]$startValue.Start
     $restoreStartup = $false
-    $stopAfter = $false
+    $started = $false
     $operationFailed = $true
     try {
         try {
@@ -88,12 +90,12 @@ function Invoke-AtlasFirewallServiceOperation {
                     throw 'The service manager kept it Disabled.'
                 }
             }
-            $stopAfter = $true
             Start-Service -Name $firewallService -ErrorAction Stop
             $status = [string](Get-Service -Name $firewallService -ErrorAction Stop).Status
             if ($status -ne 'Running') {
                 throw "It's $status, not Running."
             }
+            $started = $true
         }
         catch {
             $reasons = [Collections.Generic.List[string]]::new()
@@ -103,28 +105,32 @@ function Invoke-AtlasFirewallServiceOperation {
             throw ("File Sharing couldn't start the Windows Defender Firewall service (mpssvc), which it " +
                 "needs to change the sharing firewall rules: $($reasons -join ' ') $fixText")
         }
-        Write-AtlasLog -Message ('Started the stopped Windows Defender Firewall service to change the ' +
-            "sharing firewall rules; it's stopped again afterwards, with startup type $originalStart.")
 
         & $Operation
         $operationFailed = $false
     }
     finally {
-        $restoreFailures = [Collections.Generic.List[string]]::new()
-        if ($stopAfter) {
-            try { Stop-Service -Name $firewallService -Force -ErrorAction Stop }
-            catch { $restoreFailures.Add("stopping it failed: $($_.Exception.Message)") }
-        }
+        # The service manager keeps a running service running when its startup type
+        # changes, so Disabled takes effect at the next restart.
+        $restoreFailure = $null
         if ($restoreStartup) {
-            try { Set-AtlasServiceStartup -Name $firewallService -StartupType $originalStart -ServicesRoot $ServicesRoot }
-            catch { $restoreFailures.Add("restoring startup type $originalStart failed: $($_.Exception.Message)") }
+            try {
+                Set-AtlasServiceStartup -Name $firewallService -StartupType $originalStart -ServicesRoot $ServicesRoot
+            }
+            catch {
+                $restoreFailure = ("The Windows Defender Firewall service (mpssvc) didn't get its startup type " +
+                    "$originalStart back: $($_.Exception.Message)")
+            }
         }
-        if ($restoreFailures.Count -gt 0) {
-            $restoreText = "The Windows Defender Firewall service (mpssvc) wasn't put back as it was: " +
-                ($restoreFailures -join '; ')
+        if ($started -and $null -eq $restoreFailure) {
+            Write-AtlasLog -Message ('Started the stopped Windows Defender Firewall service to change the sharing ' +
+                "firewall rules. Windows doesn't let it be stopped, so it keeps running until Windows restarts, " +
+                "and its startup type ($originalStart) applies from then.")
+        }
+        if ($null -ne $restoreFailure) {
             # The operation's own failure is the one that stops the run.
-            if ($operationFailed) { Write-AtlasLog -Level Error -Message $restoreText }
-            else { throw $restoreText }
+            if ($operationFailed) { Write-AtlasLog -Level Error -Message $restoreFailure }
+            else { throw $restoreFailure }
         }
     }
 }

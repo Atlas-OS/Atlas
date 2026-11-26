@@ -401,9 +401,10 @@ Describe 'File Sharing machine state' {
                     -LiteralPath $global:AtlasNetworkTestState.FirewallKey -Name Start).Start
             $global:AtlasNetworkTestState.FirewallStatus = 'Running'
         } -ParameterFilter { @($Name) -ceq 'mpssvc' }
+        # Windows reports the firewall service as NOT_STOPPABLE.
         Mock Stop-Service -ModuleName Atlas.Network {
-            $global:AtlasNetworkTestState.FirewallStatus = 'Stopped'
-        } -ParameterFilter { @($Name) -ceq 'mpssvc' }
+            throw "Service 'Windows Defender Firewall (mpssvc)' cannot be stopped due to the following error: Cannot stop mpssvc service on computer '.'."
+        }
         # The Net* cmdlets bind their InputObject parameters by CIM class type name, so
         # the fakes are client-only instances of the real classes rather than plain objects.
         Mock Get-NetAdapterBinding -ModuleName Atlas.Network {
@@ -720,7 +721,7 @@ Describe 'File Sharing machine state' {
         Test-Path -LiteralPath $global:AtlasNetworkTestState.FirewallKey | Should -BeFalse
     }
 
-    It 'starts a disabled firewall service as Manual for the rule change and puts it back' {
+    It 'starts a disabled firewall service as Manual for the rule change, leaves it running and makes it Disabled again' {
         New-Item -Path $global:AtlasNetworkTestState.FirewallKey -Force | Out-Null
         Set-ItemProperty -Path $global:AtlasNetworkTestState.FirewallKey -Name Start -Value 4 -Type DWord
         $global:AtlasNetworkTestState.FirewallStatus = 'Stopped'
@@ -729,12 +730,15 @@ Describe 'File Sharing machine state' {
 
         $global:AtlasNetworkTestState.RuleEnabled | Should -Be 2
         @($global:AtlasNetworkTestState.FirewallStarts) | Should -Be @(3)
-        $global:AtlasNetworkTestState.FirewallStatus | Should -BeExactly 'Stopped'
+        $global:AtlasNetworkTestState.FirewallStatus | Should -BeExactly 'Running'
         (Get-ItemProperty -Path $global:AtlasNetworkTestState.FirewallKey -Name Start).Start | Should -Be 4
-        Should -Invoke Stop-Service -ModuleName Atlas.Network -Times 1 -Exactly
+        Should -Invoke Stop-Service -ModuleName Atlas.Network -Times 0
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Network -Times 1 -Exactly -ParameterFilter {
+            $Message -like '*keeps running until Windows restarts*startup type (4)*'
+        }
     }
 
-    It 'starts a stopped Manual firewall service for the rule change and stops it again' {
+    It 'starts a stopped Manual firewall service for the rule change and leaves it Manual' {
         New-Item -Path $global:AtlasNetworkTestState.FirewallKey -Force | Out-Null
         Set-ItemProperty -Path $global:AtlasNetworkTestState.FirewallKey -Name Start -Value 3 -Type DWord
         $global:AtlasNetworkTestState.FirewallStatus = 'Stopped'
@@ -745,8 +749,28 @@ Describe 'File Sharing machine state' {
 
         $global:AtlasNetworkTestState.RuleEnabled | Should -Be 1
         @($global:AtlasNetworkTestState.FirewallStarts) | Should -Be @(3)
-        $global:AtlasNetworkTestState.FirewallStatus | Should -BeExactly 'Stopped'
+        $global:AtlasNetworkTestState.FirewallStatus | Should -BeExactly 'Running'
         (Get-ItemProperty -Path $global:AtlasNetworkTestState.FirewallKey -Name Start).Start | Should -Be 3
+        Should -Invoke Stop-Service -ModuleName Atlas.Network -Times 0
+    }
+
+    It 'fails after a successful rule change when the Disabled startup type cannot be restored' {
+        New-Item -Path $global:AtlasNetworkTestState.FirewallKey -Force | Out-Null
+        Set-ItemProperty -Path $global:AtlasNetworkTestState.FirewallKey -Name Start -Value 4 -Type DWord
+        $global:AtlasNetworkTestState.FirewallStatus = 'Stopped'
+        Mock Set-AtlasServiceStartup -ModuleName Atlas.Network {
+            if ($StartupType -eq 4) { throw 'Access is denied.' }
+            [pscustomobject]@{ Name = $Name; Applied = $true; StartupType = $StartupType; ServiceManager = 'Synced' }
+        } -ParameterFilter { $Name -ceq 'mpssvc' }
+
+        { Disable-AtlasFileSharing -Silent -NetBtInterfacesRoot $script:interfacesRoot -ServicesRoot $script:servicesRoot } |
+            Should -Throw "*mpssvc) didn't get its startup type 4 back: Access is denied.*"
+
+        $global:AtlasNetworkTestState.RuleEnabled | Should -Be 2
+        Should -Invoke Stop-Service -ModuleName Atlas.Network -Times 0
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Network -Times 0 -ParameterFilter {
+            $Message -like '*keeps running until Windows restarts*'
+        }
     }
 
     It 'stops with the fix when the firewall service will not start, putting its startup type back' {
@@ -764,6 +788,7 @@ Describe 'File Sharing machine state' {
         $global:AtlasNetworkTestState.RuleEnabled | Should -Be 1
         (Get-ItemProperty -Path $global:AtlasNetworkTestState.FirewallKey -Name Start).Start | Should -Be 4
         Should -Invoke Get-NetFirewallRule -ModuleName Atlas.Network -Times 0
+        Should -Invoke Stop-Service -ModuleName Atlas.Network -Times 0
     }
 
     It 'stops with the fix when the service manager keeps the firewall service Disabled' {
@@ -783,7 +808,7 @@ Describe 'File Sharing machine state' {
         }
     }
 
-    It 'puts the firewall service back when the rule change fails' {
+    It 'restores the Disabled startup type when the rule change fails' {
         New-Item -Path $global:AtlasNetworkTestState.FirewallKey -Force | Out-Null
         Set-ItemProperty -Path $global:AtlasNetworkTestState.FirewallKey -Name Start -Value 4 -Type DWord
         $global:AtlasNetworkTestState.FirewallStatus = 'Stopped'
@@ -792,7 +817,25 @@ Describe 'File Sharing machine state' {
         { Disable-AtlasFileSharing -Silent -NetBtInterfacesRoot $script:interfacesRoot -ServicesRoot $script:servicesRoot } |
             Should -Throw '*did not retain its disabled state*'
 
-        $global:AtlasNetworkTestState.FirewallStatus | Should -BeExactly 'Stopped'
         (Get-ItemProperty -Path $global:AtlasNetworkTestState.FirewallKey -Name Start).Start | Should -Be 4
+        Should -Invoke Stop-Service -ModuleName Atlas.Network -Times 0
+    }
+
+    It 'keeps the rule change failure, logging the restore failure, when both fail' {
+        New-Item -Path $global:AtlasNetworkTestState.FirewallKey -Force | Out-Null
+        Set-ItemProperty -Path $global:AtlasNetworkTestState.FirewallKey -Name Start -Value 4 -Type DWord
+        $global:AtlasNetworkTestState.FirewallStatus = 'Stopped'
+        Mock Disable-NetFirewallRule -ModuleName Atlas.Network {}
+        Mock Set-AtlasServiceStartup -ModuleName Atlas.Network {
+            if ($StartupType -eq 4) { throw 'Access is denied.' }
+            [pscustomobject]@{ Name = $Name; Applied = $true; StartupType = $StartupType; ServiceManager = 'Synced' }
+        } -ParameterFilter { $Name -ceq 'mpssvc' }
+
+        { Disable-AtlasFileSharing -Silent -NetBtInterfacesRoot $script:interfacesRoot -ServicesRoot $script:servicesRoot } |
+            Should -Throw '*did not retain its disabled state*'
+
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Network -Times 1 -Exactly -ParameterFilter {
+            $Level -ceq 'Error' -and $Message -like "*didn't get its startup type 4 back: Access is denied.*"
+        }
     }
 }
