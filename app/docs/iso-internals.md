@@ -22,6 +22,7 @@ The code is in `src/services/iso.rs`, `resources/iso/Build-Iso.ps1` and `resourc
   This checks eligibility, not the authenticity of modified media ([Windows release eligibility](../../docs/windows-release-policy.md)).
 - **Editions.** The exclusions match the destination edition check.
   The worker exports the supported editions, with DISM integrity checking, to a new WIM, and verifies their edition identities.
+  On Arm64 Windows, where Atlas Manager and its workers run as x64, the DISM PowerShell module can lack native code for the process (0x8007000B). The worker then deletes the partial WIM and exports the same editions with Windows' own `dism.exe`, with maximum compression and the integrity check, before the same verification.
   Atlas sets no product key or image index, so firmware Home keys and volume licence media need their own boot checks; these settings say nothing about activation.
   For single-edition Enterprise Evaluation media, Setup reads Microsoft's edition configuration in WinPE. Atlas delivers its answer file to the installed Windows Panther folder for the later setup passes.
 - **Staging.** The worker stages in a private, uniquely named folder beside the output.

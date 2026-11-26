@@ -4,7 +4,7 @@ BeforeAll {
     $errors = $null
     $ast = [Management.Automation.Language.Parser]::ParseFile($source, [ref]$null, [ref]$errors)
     if ($errors) { throw ($errors | Out-String) }
-    foreach ($name in @('Fail', 'Get-AtlasMediaEditions', 'Export-AtlasMediaEditions')) {
+    foreach ($name in @('Fail', 'Get-AtlasMediaEditions', 'Test-AtlasWrongArchitecture', 'Invoke-AtlasDismExport', 'Export-AtlasMediaEditions')) {
         $function = $ast.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name }, $true)
         . ([scriptblock]::Create($function.Extent.Text))
     }
@@ -134,5 +134,74 @@ Describe 'Supported editions in mixed Microsoft media' {
         Mock Write-Stage { $script:StageCalls++; if ($script:StageCalls -gt 1) { throw 'Cancelled at a safe checkpoint.' } }
         { Export-AtlasMediaEditions source (Join-Path $TestDrive 'cancelled.wim') @(Get-AtlasMediaEditions source @(26200)) } | Should -Throw '*Cancelled*'
         Should -Invoke Export-WindowsImage -Times 1 -Exactly
+    }
+    Context 'a DISM module without native code for this process (Arm64 Windows)' {
+        BeforeEach {
+            # Export-WindowsImage writes the image, then fails to load its native helper.
+            Mock Export-WindowsImage {
+                param($DestinationImagePath)
+                Set-Content -LiteralPath $DestinationImagePath -Value 'partial'
+                throw [BadImageFormatException]::new('An attempt was made to load a program with an incorrect format. (Exception from HRESULT: 0x8007000B)')
+            }
+            $script:Native = [Collections.Generic.List[string]]::new()
+            Mock Invoke-AtlasDismExport {
+                param($Index, $DestinationImage)
+                $script:Native.Add("$Index $(Test-Path -LiteralPath $DestinationImage)")
+                $original = $script:Images | Where-Object ImageIndex -eq $Index
+                $script:Exported.Add((New-ImageFixture ($script:Exported.Count + 1) $original.EditionId))
+            }
+        }
+        It 'starts again from nothing with Windows'' own DISM, and verifies the result as before' {
+            $destination = Join-Path $TestDrive 'native.wim'
+            Export-AtlasMediaEditions source $destination @(Get-AtlasMediaEditions source @(26200))
+            # The partial image is gone before the first native export.
+            ($script:Native -join ',') | Should -BeExactly '3 False,4 False,5 False'
+            Should -Invoke Export-WindowsImage -Times 1 -Exactly
+            Should -Invoke Invoke-AtlasDismExport -Times 3 -Exactly -ParameterFilter { $SourceImage -eq 'source' -and $DestinationImage -eq $destination }
+            ($script:Exported.EditionId -join ',') | Should -Be 'Professional,ProfessionalN,Education'
+        }
+        It 'recognises the failure by its HRESULT when another exception carries it' {
+            Mock Export-WindowsImage { throw [InvalidOperationException]::new('Export failed.', [Runtime.InteropServices.COMException]::new('Wrong format', -2147024885)) }
+            { Export-AtlasMediaEditions source (Join-Path $TestDrive 'wrapped.wim') @(Get-AtlasMediaEditions source @(26200)) } | Should -Not -Throw
+            Should -Invoke Invoke-AtlasDismExport -Times 3 -Exactly
+        }
+        It 'still refuses what the native export got wrong' {
+            Mock Invoke-AtlasDismExport { $script:Exported.Add((New-ImageFixture ($script:Exported.Count + 1) Core)) }
+            { Export-AtlasMediaEditions source (Join-Path $TestDrive 'native-wrong.wim') @(Get-AtlasMediaEditions source @(26200)) } | Should -Throw '*does not match*'
+        }
+        It 'keeps any other export failure as it is' {
+            Mock Export-WindowsImage { throw 'Access is denied.' }
+            { Export-AtlasMediaEditions source (Join-Path $TestDrive 'denied.wim') @(Get-AtlasMediaEditions source @(26200)) } | Should -Throw 'Access is denied.'
+            Should -Invoke Invoke-AtlasDismExport -Times 0 -Exactly
+        }
+        It 'stops between native exports when cancelled' {
+            $script:StageCalls = 0
+            Mock Write-Stage { $script:StageCalls++; if ($script:StageCalls -gt 2) { throw 'Cancelled at a safe checkpoint.' } }
+            { Export-AtlasMediaEditions source (Join-Path $TestDrive 'native-cancelled.wim') @(Get-AtlasMediaEditions source @(26200)) } | Should -Throw '*Cancelled*'
+            Should -Invoke Invoke-AtlasDismExport -Times 1 -Exactly
+        }
+    }
+}
+
+Describe 'Exporting an edition with Windows'' own DISM' {
+    BeforeAll {
+        # A stand-in for dism.exe that records its arguments, so no image is touched.
+        $script:FakeDism = Join-Path $TestDrive 'dism.ps1'
+        $script:DismArguments = Join-Path $TestDrive 'dism-arguments.txt'
+        Set-Content -LiteralPath $script:FakeDism -Value @"
+`$args | Set-Content -LiteralPath '$script:DismArguments'
+'Error: 87'
+exit `$(if (`$args -contains '/SourceIndex:9') { 87 } else { 0 })
+"@
+    }
+    It 'exports one index with maximum compression and an integrity check' {
+        Invoke-AtlasDismExport 'X:\sources\install.wim' 4 'C:\Users\A B\.atlas-iso-1\supported.wim' -Dism $script:FakeDism
+        (Get-Content -LiteralPath $script:DismArguments) -join '|' | Should -BeExactly (@(
+            '/English', '/Export-Image', '/SourceImageFile:X:\sources\install.wim', '/SourceIndex:4',
+            '/DestinationImageFile:C:\Users\A B\.atlas-iso-1\supported.wim', '/Compress:max', '/CheckIntegrity'
+        ) -join '|')
+    }
+    It 'fails with DISM''s exit code and last words' {
+        { Invoke-AtlasDismExport 'X:\sources\install.wim' 9 'C:\out.wim' -Dism $script:FakeDism } | Should -Throw "DISM couldn't export image 9 (exit code 87): Error: 87"
     }
 }

@@ -278,12 +278,41 @@ public static class AtlasIsoLicense {
         $digest
     }
 }
+# Whether a DISM cmdlet failed for want of native code of this process's architecture
+# (0x8007000B), as on Arm64 Windows, where Atlas Manager and its workers run as x64.
+function Test-AtlasWrongArchitecture($Failure) {
+    for ($exception = $Failure.Exception; $null -ne $exception; $exception = $exception.InnerException) {
+        if ($exception -is [BadImageFormatException] -or $exception.HResult -eq -2147024885) { return $true }
+    }
+    return $false
+}
+# Exports one edition with Windows' own DISM, which runs natively whatever this process's
+# architecture, with the same compression and integrity check as Export-WindowsImage.
+function Invoke-AtlasDismExport([string]$SourceImage, [int]$Index, [string]$DestinationImage, [string]$Dism = (Join-Path ([Environment]::GetFolderPath('System')) 'dism.exe')) {
+    # DISM reports on standard output; its standard error goes to the build log as it is.
+    $output = @(& $Dism /English /Export-Image "/SourceImageFile:$SourceImage" "/SourceIndex:$Index" "/DestinationImageFile:$DestinationImage" /Compress:max /CheckIntegrity)
+    if ($LASTEXITCODE -ne 0) {
+        throw "DISM couldn't export image $Index (exit code $LASTEXITCODE): $((@($output | Where-Object { "$_".Trim() }) | Select-Object -Last 3) -join ' ')"
+    }
+}
 function Export-AtlasMediaEditions([string]$SourceImage, [string]$DestinationImage, [object[]]$Editions) {
     if (Test-Path -LiteralPath $DestinationImage) { throw 'The filtered Windows image already exists.' }
     if ($Editions.Count -eq 0) { Fail 'edition-unsupported' 'The ISO contains no supported Windows editions.' }
-    foreach ($edition in $Editions) {
-        Write-Stage copy
-        Export-WindowsImage -SourceImagePath $SourceImage -SourceIndex $edition.ImageIndex -DestinationImagePath $DestinationImage -CompressionType Max -CheckIntegrity -ErrorAction Stop | Out-Null
+    try {
+        foreach ($edition in $Editions) {
+            Write-Stage copy
+            Export-WindowsImage -SourceImagePath $SourceImage -SourceIndex $edition.ImageIndex -DestinationImagePath $DestinationImage -CompressionType Max -CheckIntegrity -ErrorAction Stop | Out-Null
+        }
+    }
+    catch {
+        if (-not (Test-AtlasWrongArchitecture $_)) { throw }
+        # The cmdlet can fail after writing the image, so the export starts again from nothing.
+        [Console]::Error.WriteLine("The DISM module can't run in this process, so dism.exe exports the editions: $($_.Exception.Message)")
+        if (Test-Path -LiteralPath $DestinationImage) { Remove-Item -LiteralPath $DestinationImage -Force }
+        foreach ($edition in $Editions) {
+            Write-Stage copy
+            Invoke-AtlasDismExport $SourceImage $edition.ImageIndex $DestinationImage
+        }
     }
     $actual = @(Get-WindowsImage -ImagePath $DestinationImage)
     if ($actual.Count -ne $Editions.Count) { throw 'The filtered Windows image has an unexpected edition count.' }
