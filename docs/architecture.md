@@ -211,6 +211,10 @@ It exits with 0 on success, 1 on an install failure and 2 on the wrong privilege
 - Components doesn't install an Atlas CBS package again while servicing shows it installed or waiting for a restart.
   Keeping Defender takes off `Z-Atlas-NoDefender-Package`.
   A failed removal, or a NoDefender package still waiting for a restart, fails the install rather than report success on a PC with no antivirus.
+  Windows can keep the package permanently.
+  Atlas looks for the permanent state (128) in the servicing registry before it changes anything, and a removal Windows refuses with `0x800F0825` means the same.
+  Atlas then says Defender can't come back on that Windows installation, and leaves Defender's core service as it was.
+  Toggle Defender does the same.
 - Choices applies Defender, then Edge, then the app families a choice removes, then the six choice toggles.
   A servicing or Edge failure fails the step at once, and toggle and app failures fail it together once every other choice is applied.
   The next attempt finishes an Edge or app removal an interrupted one began.

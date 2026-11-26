@@ -9,11 +9,135 @@ $script:AtlasDefenderPackagePattern = '*Z-Atlas-NoDefender-Package*'
 $script:AtlasDefenderDocumentationUrl = 'https://atlasos.net/docs/atlas-configuration/security/#defender'
 $script:AtlasDefenderCoreServicePath = 'HKLM:\SYSTEM\CurrentControlSet\Services\MDCoreSvc'
 $script:AtlasDefenderCoreTaskName = 'AtlasDisableMDCoreSvc'
+# CBS_E_CANNOT_UNINSTALL: servicing refuses to remove a permanent package. The package
+# installer exits with it when that's why a removal failed.
+$script:AtlasCbsCannotUninstall = -2146498523 # 0x800F0825
 
 function Get-AtlasDefenderPackageNames {
     return @(Get-WindowsPackage -Online -ErrorAction Stop |
         Where-Object { $_.PackageName -like '*NoDefender*' } |
         ForEach-Object { [string]$_.PackageName })
+}
+
+function Test-AtlasDefenderPackagePermanent {
+    <#
+    .SYNOPSIS
+        Whether servicing records Atlas's NoDefender package as permanent, so it can't
+        be removed and Microsoft Defender can't come back. Reads the CBS registry only.
+    .DESCRIPTION
+        CBS state 128 (CbsInstallStatePermanent) marks a permanent package, either as the
+        package's CurrentState or as the state an owner under its Owners key asked for,
+        in the low word of that value.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        # Tests point these at a scratch key.
+        [ValidateNotNull()]
+        [Microsoft.Win32.RegistryKey]$BaseKey = [Microsoft.Win32.Registry]::LocalMachine,
+
+        [ValidateNotNullOrEmpty()]
+        [string]$PackagesPath = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\Packages'
+    )
+
+    $permanent = 128
+    $packages = $BaseKey.OpenSubKey($PackagesPath, $false)
+    if ($null -eq $packages) {
+        return $false
+    }
+    try {
+        foreach ($name in @($packages.GetSubKeyNames() | Where-Object { $_ -like 'Z-Atlas-NoDefender-Package~*' })) {
+            $package = $packages.OpenSubKey($name, $false)
+            if ($null -eq $package) { continue }
+            try {
+                if (@($package.GetValueNames()) -contains 'CurrentState' -and
+                    $package.GetValueKind('CurrentState') -eq [Microsoft.Win32.RegistryValueKind]::DWord -and
+                    [int]$package.GetValue('CurrentState') -eq $permanent) {
+                    return $true
+                }
+                $owners = $package.OpenSubKey('Owners', $false)
+                if ($null -eq $owners) { continue }
+                try {
+                    foreach ($owner in @($owners.GetValueNames())) {
+                        if ($owners.GetValueKind($owner) -eq [Microsoft.Win32.RegistryValueKind]::DWord -and
+                            ([int]$owners.GetValue($owner) -band 0xFFFF) -eq $permanent) {
+                            return $true
+                        }
+                    }
+                }
+                finally { $owners.Dispose() }
+            }
+            finally { $package.Dispose() }
+        }
+    }
+    finally { $packages.Dispose() }
+    return $false
+}
+
+function Get-AtlasDefenderPermanentMessage {
+    <#
+    .SYNOPSIS
+        What to tell the user when Windows won't remove Atlas's NoDefender package.
+    #>
+    return "Microsoft Defender can't be restored on this Windows installation: Windows has made Atlas's NoDefender package a permanent part of it, so it can't be removed. Keep Microsoft Defender off, or repair-install Windows to get it back."
+}
+
+function Get-AtlasDefenderCoreServiceSnapshot {
+    <#
+    .SYNOPSIS
+        Records what Set-AtlasDefenderCoreService -State Restored changes, so a removal
+        that can't happen can put it back: the service's Start value and whether Atlas's
+        startup task that turns it off is on its way.
+    #>
+    [CmdletBinding()]
+    param(
+        # Tests point this at a scratch key.
+        [ValidateNotNullOrEmpty()]
+        [string]$ServicePath = $script:AtlasDefenderCoreServicePath
+    )
+
+    $start = $null
+    $service = Get-Item -LiteralPath $ServicePath -ErrorAction SilentlyContinue
+    if ($null -ne $service -and @($service.GetValueNames()) -contains 'Start' -and
+        $service.GetValueKind('Start') -eq [Microsoft.Win32.RegistryValueKind]::DWord) {
+        $start = [int]$service.GetValue('Start')
+    }
+    return [pscustomobject]@{
+        ServicePath = $ServicePath
+        Start       = $start
+        TaskEnabled = (Get-AtlasScheduledTaskState -Path "\$script:AtlasDefenderCoreTaskName") -ceq 'Enabled'
+    }
+}
+
+function Restore-AtlasDefenderCoreServiceSnapshot {
+    <#
+    .SYNOPSIS
+        Puts Microsoft Defender Core Service back as Get-AtlasDefenderCoreServiceSnapshot
+        found it, after the NoDefender package couldn't come off. Defender stays removed,
+        so the service would otherwise start automatically and fail at every startup.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [psobject]$Snapshot
+    )
+
+    if ($null -ne $Snapshot.Start) {
+        $service = Get-Item -LiteralPath $Snapshot.ServicePath -ErrorAction SilentlyContinue
+        $current = $null
+        if ($null -ne $service -and @($service.GetValueNames()) -contains 'Start') {
+            $current = $service.GetValue('Start')
+        }
+        if ($null -eq $current -or [int]$current -ne [int]$Snapshot.Start) {
+            # Defender is still removed, so Tamper Protection can't refuse the write.
+            Set-AtlasRegistryValue -Path $Snapshot.ServicePath -Name 'Start' -Type DWord -Data ([int]$Snapshot.Start)
+        }
+    }
+    if ([bool]$Snapshot.TaskEnabled) {
+        Set-AtlasDefenderCoreService -State Removed -ServicePath $Snapshot.ServicePath
+    }
+    Write-AtlasLog -Message 'Microsoft Defender Core Service is back as it was, because Microsoft Defender stays removed.'
 }
 
 function Get-AtlasDefenderState {
@@ -283,6 +407,10 @@ function Set-AtlasDefenderState {
         Write-AtlasLog -Message "Windows Defender is already $($current.ToLowerInvariant()); no package change is needed."
         return
     }
+    # Checked before anything changes: a package Windows won't remove keeps Defender out.
+    if ($State -ceq 'Enable' -and (Test-AtlasDefenderPackagePermanent)) {
+        throw (Get-AtlasDefenderPermanentMessage)
+    }
 
     if (-not $Silent) {
         Confirm-AtlasDefenderStateChange -State $State
@@ -302,12 +430,19 @@ function Set-AtlasDefenderState {
         Write-AtlasStep -Text $step
     }
 
+    $coreService = $null
     if ($State -ceq 'Enable') {
+        $coreService = Get-AtlasDefenderCoreServiceSnapshot
         Set-AtlasDefenderCoreService -State Restored
     }
     $exitCode = Invoke-AtlasDefenderPackageInstaller -Operation $operation -Installer $installer `
         -NoInteraction:$Silent
     if ($null -eq $exitCode -or [int]$exitCode -ne 0) {
+        # Servicing refused before it changed anything, so Defender stays removed.
+        if ($State -ceq 'Enable' -and $null -ne $exitCode -and [int]$exitCode -eq $script:AtlasCbsCannotUninstall) {
+            Restore-AtlasDefenderCoreServiceSnapshot -Snapshot $coreService
+            throw (Get-AtlasDefenderPermanentMessage)
+        }
         throw "$failure failed with exit code $exitCode."
     }
     if ($State -ceq 'Disable') {

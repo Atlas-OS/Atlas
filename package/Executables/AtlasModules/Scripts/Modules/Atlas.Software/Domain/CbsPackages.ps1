@@ -235,6 +235,10 @@ function Format-AtlasCbsHResult {
     return '0x{0:X8}' -f $HResult
 }
 
+# CBS_E_CANNOT_UNINSTALL: servicing refuses to remove a package it keeps permanently.
+# The message that comes with it is localised, so only the code is matched.
+$script:AtlasCbsCannotUninstall = -2146498523 # 0x800F0825
+
 function Test-AtlasCbsTrustFailure {
     <#
     .SYNOPSIS
@@ -626,7 +630,9 @@ function Uninstall-AtlasCbsPackage {
         filtered by architecture. Failures are logged as warnings; must run as
         SYSTEM/TrustedInstaller.
     .OUTPUTS
-        PSCustomObject with RemovedPackages, FailedPackages and UnmatchedPatterns.
+        PSCustomObject with RemovedPackages, FailedPackages, PermanentPackages (failed
+        because servicing keeps them permanently, CBS_E_CANNOT_UNINSTALL) and
+        UnmatchedPatterns.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -643,6 +649,7 @@ function Uninstall-AtlasCbsPackage {
 
     $removedPackages = @()
     $failedPackages = @()
+    $permanentPackages = @()
     if (@($selection.Matched).Count -eq 0) {
         Write-Host "[WARN] '$Packages' matched no installed packages, nothing to do." -ForegroundColor Yellow
     }
@@ -661,7 +668,13 @@ function Uninstall-AtlasCbsPackage {
             }
             catch {
                 Write-Host "[ERROR] $package failed to uninstall: $($_.Exception.Message)" -ForegroundColor Red
+                $hresult = Get-AtlasCbsFailureHResult -ErrorRecord $_
+                Write-AtlasLog -Level Warning -Message "Servicing refused to remove $package with $(Format-AtlasCbsHResult -HResult $hresult): $($_.Exception.Message)"
+                Write-AtlasCbsLogTail
                 $failedPackages += $package
+                if ($hresult -eq $script:AtlasCbsCannotUninstall) {
+                    $permanentPackages += $package
+                }
             }
         }
     }
@@ -669,6 +682,7 @@ function Uninstall-AtlasCbsPackage {
     return [pscustomobject]@{
         RemovedPackages   = $removedPackages
         FailedPackages    = $failedPackages
+        PermanentPackages = $permanentPackages
         UnmatchedPatterns = @($selection.UnmatchedPatterns)
     }
 }

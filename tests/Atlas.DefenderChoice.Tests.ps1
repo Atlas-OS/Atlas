@@ -18,14 +18,24 @@ BeforeAll {
     function Uninstall-AtlasCbsPackage {
         param($Packages)
         $script:Events.Add("Uninstall:$(@($Packages) -join '+')")
-        return [pscustomobject]@{ RemovedPackages = @(); FailedPackages = @($script:UninstallFailed); UnmatchedPatterns = @() }
+        return [pscustomobject]@{
+            RemovedPackages = @(); FailedPackages = @($script:UninstallFailed)
+            PermanentPackages = @($script:UninstallPermanent); UnmatchedPatterns = @()
+        }
     }
     function Set-AtlasDefenderCoreService {
         param($State)
         $script:Events.Add("CoreService:$State")
     }
-    # Stands in for Atlas.Security's reader, so each test's mock answers instead of this PC.
+    function Get-AtlasDefenderCoreServiceSnapshot { [pscustomobject]@{ Start = 4; TaskEnabled = $false } }
+    function Restore-AtlasDefenderCoreServiceSnapshot {
+        param($Snapshot)
+        $script:Events.Add("CoreService:Put back $($Snapshot.Start)")
+    }
+    function Get-AtlasDefenderPermanentMessage { "Microsoft Defender can't be restored on this Windows installation." }
+    # Stand in for Atlas.Security's readers, so each test's mock answers instead of this PC.
     function Test-AtlasDefenderCoreServiceRemoved { }
+    function Test-AtlasDefenderPackagePermanent { }
     function Write-AtlasLog {
         param($Message, $Level = 'Info', $ErrorRecord)
         $script:Logs.Add([pscustomobject]@{ Level = $Level; Message = $Message })
@@ -35,7 +45,8 @@ BeforeAll {
 AfterAll {
     foreach ($name in @(
             'Install-AtlasCbsPackage', 'Uninstall-AtlasCbsPackage', 'Set-AtlasDefenderCoreService', 'Write-AtlasLog'
-            'Test-AtlasDefenderCoreServiceRemoved'
+            'Test-AtlasDefenderCoreServiceRemoved', 'Test-AtlasDefenderPackagePermanent'
+            'Get-AtlasDefenderCoreServiceSnapshot', 'Restore-AtlasDefenderCoreServiceSnapshot', 'Get-AtlasDefenderPermanentMessage'
             'Get-AtlasServicingPackageState', 'Test-AtlasDefenderServicePresent', 'Set-AtlasDefenderChoice'
         )) {
         Microsoft.PowerShell.Management\Remove-Item -LiteralPath "Function:\$name" -ErrorAction SilentlyContinue
@@ -47,13 +58,16 @@ Describe 'Set-AtlasDefenderChoice' {
         $script:Events = [Collections.Generic.List[string]]::new()
         $script:Logs = [Collections.Generic.List[pscustomobject]]::new()
         $script:UninstallFailed = @()
+        $script:UninstallPermanent = @()
         $script:PackageStates = @{}
         $script:DefenderPresent = $true
+        $script:PackagePermanent = $false
         # MDCoreSvc already off, or Atlas's task waiting to turn it off.
         $script:CoreServiceRemoved = $true
         Mock Get-AtlasServicingPackageState { $script:PackageStates[$Name] }
         Mock Test-AtlasDefenderServicePresent { $script:DefenderPresent }
         Mock Test-AtlasDefenderCoreServiceRemoved { $script:CoreServiceRemoved }
+        Mock Test-AtlasDefenderPackagePermanent { $script:PackagePermanent }
     }
 
     Context 'choosing again on an update' {
@@ -88,6 +102,34 @@ Describe 'Set-AtlasDefenderChoice' {
 
             { Set-AtlasDefenderChoice -State Enable } |
                 Should -Throw "Microsoft Defender couldn't be restored: Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0"
+            # Any other refusal may have started the removal, so the service stays restored.
+            @($script:Events) | Should -Be @('CoreService:Restored', 'Uninstall:*Z-Atlas-NoDefender-Package*')
+        }
+
+        It 'fails before changing anything when servicing keeps Atlas''s package permanently' {
+            $script:PackageStates['Z-Atlas-NoDefender-Package'] = 'Installed'
+            $script:PackageStates['Z-Atlas-NoTelemetry-Package'] = 'Installed'
+            $script:PackagePermanent = $true
+
+            { Set-AtlasDefenderChoice -State Enable } |
+                Should -Throw "Microsoft Defender can't be restored on this Windows installation."
+
+            $script:Events | Should -BeNullOrEmpty
+        }
+
+        It 'puts the core service back as it was when servicing refuses to remove a permanent package: NoTelemetry <Telemetry>' -ForEach @(
+            @{ Telemetry = 'missing'; TelemetryState = $null; Expected = @('CoreService:Restored', 'Uninstall:*Z-Atlas-NoDefender-Package*', 'CoreService:Put back 4', 'Install:*Z-Atlas-NoTelemetry-Package*:True') }
+            @{ Telemetry = 'installed'; TelemetryState = 'Installed'; Expected = @('CoreService:Restored', 'Uninstall:*Z-Atlas-NoDefender-Package*', 'CoreService:Put back 4') }
+        ) {
+            $script:PackageStates['Z-Atlas-NoDefender-Package'] = 'Installed'
+            $script:PackageStates['Z-Atlas-NoTelemetry-Package'] = $TelemetryState
+            $script:UninstallFailed = @('Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0')
+            $script:UninstallPermanent = @('Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0')
+
+            { Set-AtlasDefenderChoice -State Enable } |
+                Should -Throw "Microsoft Defender can't be restored on this Windows installation."
+
+            @($script:Events) | Should -Be $Expected
         }
 
         It 'changes nothing when the PC already matches: <Case>' -ForEach @(

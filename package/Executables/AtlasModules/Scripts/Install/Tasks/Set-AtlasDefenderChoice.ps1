@@ -89,9 +89,12 @@ function Set-AtlasDefenderChoice {
         NoTelemetry then goes on with either choice, and Disable always sets up the core
         service, as the first installation always has.
 
-        Package failures throw. Install-AtlasCbsPackage arms the Safe Mode retry first,
-        and a Defender that can't be brought back fails the install, or Atlas would
-        report success to a user who chose to keep Defender and has no antivirus.
+        Package failures throw. Install-AtlasCbsPackage arms the Safe Mode retry first
+        where Safe Mode can help, and a Defender that can't be brought back fails the
+        install, or Atlas would report success to a user who chose to keep Defender and
+        has no antivirus. A NoDefender package Windows keeps permanently fails it before
+        anything changes, or when the removal is refused, with the core service put back
+        as it was.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -131,14 +134,28 @@ function Set-AtlasDefenderChoice {
         }
     }
     elseif ($defender -ceq 'Installed') {
+        # Checked before anything changes: a package Windows won't remove keeps Defender out.
+        if (Test-AtlasDefenderPackagePermanent) {
+            throw (Get-AtlasDefenderPermanentMessage)
+        }
         # The core service goes back first, while Defender is still removed and Tamper
         # Protection can't refuse the write.
         Write-AtlasLog -Message "Bringing Microsoft Defender back: removing Atlas's NoDefender package."
+        $coreService = Get-AtlasDefenderCoreServiceSnapshot
         Set-AtlasDefenderCoreService -State Restored
         $restore = Uninstall-AtlasCbsPackage -Packages @($defenderPattern)
+        # Servicing refused a permanent package before it changed anything, so Defender
+        # stays removed and its core service goes back as it was.
+        $permanent = @($restore.PermanentPackages).Count -gt 0
+        if ($permanent) {
+            Restore-AtlasDefenderCoreServiceSnapshot -Snapshot $coreService
+        }
         if ($telemetryMissing) {
             Install-AtlasCbsPackage -Packages @($telemetryPattern) -NonInteractive | Out-Null
             $telemetryMissing = $false
+        }
+        if ($permanent) {
+            throw (Get-AtlasDefenderPermanentMessage)
         }
         if (@($restore.FailedPackages).Count -gt 0) {
             throw "Microsoft Defender couldn't be restored: $(@($restore.FailedPackages) -join ', ')"

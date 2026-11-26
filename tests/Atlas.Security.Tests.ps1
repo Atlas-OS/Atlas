@@ -365,6 +365,46 @@ Describe 'Windows Defender state' {
         Mock Get-AtlasDefenderPackageNames -ModuleName Atlas.Security { @() }
         # The core service has its own tests; here it must never reach the PC.
         Mock Set-AtlasDefenderCoreService -ModuleName Atlas.Security
+        Mock Test-AtlasDefenderPackagePermanent -ModuleName Atlas.Security { $false }
+        Mock Get-AtlasDefenderCoreServiceSnapshot -ModuleName Atlas.Security {
+            [pscustomobject]@{ ServicePath = 'HKCU:\Software\AtlasRewriteTest\MDCoreSvc'; Start = 4; TaskEnabled = $false }
+        }
+        Mock Restore-AtlasDefenderCoreServiceSnapshot -ModuleName Atlas.Security
+    }
+
+    It 'refuses to enable Defender before changing anything when Windows keeps the package permanently' {
+        Mock Get-AtlasDefenderPackageNames -ModuleName Atlas.Security { @('Z-Atlas-NoDefender-Package~amd64~~1.0.0.0') }
+        Mock Test-AtlasDefenderPackagePermanent -ModuleName Atlas.Security { $true }
+
+        { Set-AtlasDefenderState -State Enable } |
+            Should -Throw "Microsoft Defender can't be restored on this Windows installation*Keep Microsoft Defender off, or repair-install Windows*"
+
+        Should -Invoke Wait-AtlasContinue -ModuleName Atlas.Security -Times 0 -Exactly
+        Should -Invoke Set-AtlasDefenderCoreService -ModuleName Atlas.Security -Times 0 -Exactly
+        Should -Invoke Invoke-AtlasDefenderPackageInstaller -ModuleName Atlas.Security -Times 0 -Exactly
+    }
+
+    It 'puts the core service back as it was when servicing refuses to remove a permanent package' {
+        Mock Get-AtlasDefenderPackageNames -ModuleName Atlas.Security { @('Z-Atlas-NoDefender-Package~amd64~~1.0.0.0') }
+        # CBS_E_CANNOT_UNINSTALL, the exit code of a removal refused this way.
+        Mock Invoke-AtlasDefenderPackageInstaller -ModuleName Atlas.Security { -2146498523 }
+
+        { Set-AtlasDefenderState -State Enable -Silent } |
+            Should -Throw "Microsoft Defender can't be restored on this Windows installation*"
+
+        Should -Invoke Set-AtlasDefenderCoreService -ModuleName Atlas.Security -Times 1 -Exactly -ParameterFilter { $State -ceq 'Restored' }
+        Should -Invoke Restore-AtlasDefenderCoreServiceSnapshot -ModuleName Atlas.Security -Times 1 -Exactly -ParameterFilter {
+            $Snapshot.Start -eq 4
+        }
+    }
+
+    It 'keeps the core service restored for any other failed removal' {
+        Mock Get-AtlasDefenderPackageNames -ModuleName Atlas.Security { @('Z-Atlas-NoDefender-Package~amd64~~1.0.0.0') }
+        Mock Invoke-AtlasDefenderPackageInstaller -ModuleName Atlas.Security { 1 }
+
+        { Set-AtlasDefenderState -State Enable -Silent } | Should -Throw '*Package removal failed with exit code 1*'
+
+        Should -Invoke Restore-AtlasDefenderCoreServiceSnapshot -ModuleName Atlas.Security -Times 0 -Exactly
     }
 
     It 'reports Enabled without the NoDefender package and Disabled with it' {
@@ -533,6 +573,100 @@ Describe 'Set-AtlasDefenderCoreService' {
 
         Test-Path -LiteralPath $script:coreServicePath | Should -BeFalse
         Should -Invoke Remove-AtlasScheduledTask -ModuleName Atlas.Security -Times 1 -Exactly
+    }
+}
+
+Describe 'Test-AtlasDefenderPackagePermanent' {
+    BeforeAll {
+        $script:permanentCbsPath = 'Software\AtlasRewriteTest\Cbs\Packages'
+
+        function Set-TestCbsPackage {
+            param([string]$Key, [int]$CurrentState = 112, $OwnerState)
+            $package = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey("$script:permanentCbsPath\$Key")
+            try {
+                $package.SetValue('CurrentState', $CurrentState, [Microsoft.Win32.RegistryValueKind]::DWord)
+                if ($null -ne $OwnerState) {
+                    $owners = $package.CreateSubKey('Owners')
+                    try { $owners.SetValue($Key, [int]$OwnerState, [Microsoft.Win32.RegistryValueKind]::DWord) }
+                    finally { $owners.Dispose() }
+                }
+            }
+            finally { $package.Dispose() }
+        }
+
+        function Test-TestPackagePermanent {
+            Test-AtlasDefenderPackagePermanent -BaseKey ([Microsoft.Win32.Registry]::CurrentUser) -PackagesPath $script:permanentCbsPath
+        }
+    }
+
+    BeforeEach {
+        [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree('Software\AtlasRewriteTest\Cbs', $false)
+    }
+
+    AfterAll {
+        [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree('Software\AtlasRewriteTest\Cbs', $false)
+    }
+
+    It 'reads <Case> as <Expected>' -ForEach @(
+        @{ Case = 'an owner that installed it'; CurrentState = 112; OwnerState = 0x00020070; Expected = $false }
+        @{ Case = 'an owner that keeps it permanently'; CurrentState = 112; OwnerState = 0x00020080; Expected = $true }
+        @{ Case = 'the permanent CurrentState'; CurrentState = 128; OwnerState = $null; Expected = $true }
+        @{ Case = 'no owners'; CurrentState = 112; OwnerState = $null; Expected = $false }
+    ) {
+        Set-TestCbsPackage -Key 'Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0' -CurrentState $CurrentState -OwnerState $OwnerState
+
+        Test-TestPackagePermanent | Should -Be $Expected
+    }
+
+    It 'ignores other packages and reads no packages as not permanent' {
+        Test-TestPackagePermanent | Should -BeFalse
+        Set-TestCbsPackage -Key 'Z-Atlas-NoTelemetry-Package~31bf3856ad364e35~amd64~~5.0.0.0' -CurrentState 128 -OwnerState 0x00020080
+
+        Test-TestPackagePermanent | Should -BeFalse
+    }
+}
+
+Describe 'Restore-AtlasDefenderCoreServiceSnapshot' {
+    BeforeAll {
+        $script:coreServicePath = "$script:testRoot\MDCoreSvc"
+    }
+
+    BeforeEach {
+        Mock Write-AtlasLog -ModuleName Atlas.Security
+        Mock Set-AtlasDefenderCoreService -ModuleName Atlas.Security
+        $script:coreTaskState = 'Missing'
+        Mock Get-AtlasScheduledTaskState -ModuleName Atlas.Security { $script:coreTaskState }
+        Remove-Item -Path $script:testRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    AfterEach {
+        Remove-Item -Path $script:testRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'puts back the start type and the startup task a restore took away' {
+        Set-TestDword -Path $script:coreServicePath -Name 'Start' -Value 4
+        $script:coreTaskState = 'Enabled'
+        $snapshot = Get-AtlasDefenderCoreServiceSnapshot -ServicePath $script:coreServicePath
+        $snapshot.Start | Should -Be 4
+        $snapshot.TaskEnabled | Should -BeTrue
+        Set-TestDword -Path $script:coreServicePath -Name 'Start' -Value 2
+
+        Restore-AtlasDefenderCoreServiceSnapshot -Snapshot $snapshot
+
+        (Get-TestValueState -Path $script:coreServicePath -Name 'Start').Value | Should -Be 4
+        Should -Invoke Set-AtlasDefenderCoreService -ModuleName Atlas.Security -Times 1 -Exactly -ParameterFilter {
+            $State -ceq 'Removed' -and $ServicePath -ceq $script:coreServicePath
+        }
+    }
+
+    It 'changes nothing that the restore left as it was' {
+        Set-TestDword -Path $script:coreServicePath -Name 'Start' -Value 3
+        $snapshot = Get-AtlasDefenderCoreServiceSnapshot -ServicePath $script:coreServicePath
+
+        Restore-AtlasDefenderCoreServiceSnapshot -Snapshot $snapshot
+
+        (Get-TestValueState -Path $script:coreServicePath -Name 'Start').Value | Should -Be 3
+        Should -Invoke Set-AtlasDefenderCoreService -ModuleName Atlas.Security -Times 0 -Exactly
     }
 }
 

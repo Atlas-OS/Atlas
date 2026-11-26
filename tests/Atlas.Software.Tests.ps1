@@ -765,6 +765,31 @@ Describe 'CBS servicing failures' {
         }
     }
 
+    It 'reports a removal servicing refuses as permanent (<Code>: <Permanent>)' -TestCases @(
+        @{ Code = 0x800F0825; Permanent = $true }
+        @{ Code = 0x800F0922; Permanent = $false }
+    ) {
+        InModuleScope Atlas.Software -Parameters @{ Code = $Code; Permanent = $Permanent } {
+            $package = 'Z-Atlas-NoDefender-Package~31bf3856ad364e35~amd64~~5.0.0.0'
+            Mock Assert-AtlasPrivilege {}
+            Mock Initialize-AtlasCbsEnvironment {}
+            Mock Get-AtlasCbsArchitecture { 'amd64' }
+            Mock Write-Host {}
+            Mock Write-AtlasLog {}
+            Mock Write-AtlasCbsLogTail {}
+            Mock Get-WindowsPackage { [pscustomobject]@{ PackageName = $package } }
+            Mock Remove-WindowsPackage {
+                throw [Runtime.InteropServices.COMException]::new('A permanent package cannot be uninstalled.', $Code)
+            }
+
+            $result = Uninstall-AtlasCbsPackage -Packages @('*Z-Atlas-NoDefender-Package*')
+
+            @($result.FailedPackages) | Should -Be @($package)
+            (@($result.PermanentPackages).Count -eq 1) | Should -Be $Permanent
+            Should -Invoke Write-AtlasCbsLogTail -Times 1 -Exactly
+        }
+    }
+
     It 'describes the test root key servicing reads' {
         InModuleScope Atlas.Software {
             $scratchPath = 'Software\AtlasRewriteTest\CbsTestRoot'
