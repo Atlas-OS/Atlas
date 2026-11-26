@@ -42,7 +42,45 @@ function Test-AtlasSoftwareArm64 {
     }
 }
 
+# Seconds to wait before each further download attempt.
+$script:AtlasSoftwareDownloadRetryDelays = @(5, 15)
+
+function Test-AtlasSoftwareDownloadRetryable {
+    <#
+    .SYNOPSIS
+        Whether a failed download can succeed when tried again: the connection or the
+        request failed, or the server answered 408, 429 or 5xx. A download that ran out
+        of its own time limit, another refused status, a size limit or a local write
+        failure fails the same way again.
+    #>
+    param([Parameter(Mandatory = $true)][Exception]$Exception)
+
+    for ($cause = $Exception; $null -ne $cause; $cause = $cause.InnerException) {
+        if ($cause -is [OperationCanceledException]) {
+            return $false
+        }
+        if ($cause.Data.Contains('AtlasHttpStatus')) {
+            $status = [int]$cause.Data['AtlasHttpStatus']
+            return $status -ge 500 -or $status -in @(408, 429)
+        }
+    }
+    # By name: System.Net.Http loads only with the first download.
+    $transport = @('System.Net.Http.HttpRequestException', 'System.Net.WebException', 'System.Net.Sockets.SocketException')
+    for ($cause = $Exception; $null -ne $cause; $cause = $cause.InnerException) {
+        if ($cause.GetType().FullName -cin $transport) {
+            return $true
+        }
+    }
+    return $false
+}
+
 function Invoke-AtlasSoftwareDownload {
+    <#
+    .SYNOPSIS
+        Downloads an installer over HTTPS into a protected staging path and returns its
+        full path. A connection or server failure is tried again, after 5 and then 15
+        seconds, before the download fails.
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)][uri]$Uri,
@@ -76,32 +114,44 @@ function Invoke-AtlasSoftwareDownload {
     }
 
     Write-Host "Downloading $Description..."
-    try {
-        $stream = [IO.File]::Open(
-            $destinationPath,
-            [IO.FileMode]::CreateNew,
-            [IO.FileAccess]::Write,
-            [IO.FileShare]::None
-        )
+    $attempts = $script:AtlasSoftwareDownloadRetryDelays.Count + 1
+    for ($attempt = 1; ; $attempt++) {
         try {
-            $bytes = Invoke-AtlasLimitedHttpGet `
-                -Uri $Uri `
-                -OutputStream $stream `
-                -MaximumBytes $MaximumBytes `
-                -MaximumSeconds $MaximumSeconds `
-                -AllowRedirect
+            $stream = [IO.File]::Open(
+                $destinationPath,
+                [IO.FileMode]::CreateNew,
+                [IO.FileAccess]::Write,
+                [IO.FileShare]::None
+            )
+            try {
+                $bytes = Invoke-AtlasLimitedHttpGet `
+                    -Uri $Uri `
+                    -OutputStream $stream `
+                    -MaximumBytes $MaximumBytes `
+                    -MaximumSeconds $MaximumSeconds `
+                    -AllowRedirect
+            }
+            finally {
+                $stream.Dispose()
+            }
+            if ($bytes -lt 1) {
+                throw "Downloading $Description from '$Uri' returned an empty file."
+            }
+            return (Get-Item -LiteralPath $destinationPath -Force -ErrorAction Stop).FullName
         }
-        finally {
-            $stream.Dispose()
+        catch {
+            Remove-Item -LiteralPath $destinationPath -Force -ErrorAction SilentlyContinue
+            if ($attempt -ge $attempts -or -not (Test-AtlasSoftwareDownloadRetryable -Exception $_.Exception)) {
+                if ($attempt -gt 1) {
+                    throw [InvalidOperationException]::new(
+                        "Downloading $Description failed after $attempt attempts: $($_.Exception.Message)", $_.Exception)
+                }
+                throw
+            }
+            $delay = $script:AtlasSoftwareDownloadRetryDelays[$attempt - 1]
+            Write-AtlasLog -Level Warning -Message "Downloading $Description failed (attempt $attempt of $attempts): $($_.Exception.Message) Trying again in $delay seconds."
+            Start-Sleep -Seconds $delay
         }
-        if ($bytes -lt 1) {
-            throw "Downloading $Description from '$Uri' returned an empty file."
-        }
-        return (Get-Item -LiteralPath $destinationPath -Force -ErrorAction Stop).FullName
-    }
-    catch {
-        Remove-Item -LiteralPath $destinationPath -Force -ErrorAction SilentlyContinue
-        throw
     }
 }
 
@@ -179,7 +229,10 @@ function Start-AtlasSoftwareInstaller {
         -NoWindow
     $exitCode = [uint32]$result.ExitCodeUInt32
     if ($exitCode -notin $SuccessExitCode) {
-        throw "Installing $Description failed with exit code $exitCode."
+        # The exit code travels with the failure, for a caller that can tell what it means.
+        $failure = [InvalidOperationException]::new("Installing $Description failed with exit code $exitCode.")
+        $failure.Data['AtlasInstallerExitCode'] = $exitCode
+        throw $failure
     }
 }
 
@@ -677,6 +730,131 @@ function Install-AtlasFirefoxBrowser {
     Start-AtlasSoftwareInstaller -FilePath $installerPath -ArgumentList @('/S', '/ALLUSERS=1') -Description 'Firefox'
 }
 
+function Get-AtlasChromeMsiVersion {
+    <#
+    .SYNOPSIS
+        The Chrome version a Google Chrome MSI installs, or $null. The MSI's
+        ProductVersion is an encoded form, so the version is read from the summary
+        information Comments, which begins with it.
+    #>
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $installer = $null
+    $database = $null
+    $summary = $null
+    try {
+        $installer = New-Object -ComObject WindowsInstaller.Installer
+        # 0 is msiOpenDatabaseModeReadOnly, and 6 the PID_COMMENTS summary property.
+        $database = $installer.GetType().InvokeMember('OpenDatabase', 'InvokeMethod', $null, $installer, @($Path, 0))
+        $summary = $database.GetType().InvokeMember('SummaryInformation', 'GetProperty', $null, $database, @(0))
+        $comments = [string]$summary.GetType().InvokeMember('Property', 'GetProperty', $null, $summary, @(6))
+    }
+    catch {
+        Write-AtlasLog -Message "The Google Chrome installer's version couldn't be read: $($_.Exception.Message)"
+        return $null
+    }
+    finally {
+        foreach ($object in @($summary, $database, $installer)) {
+            if ($null -ne $object) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($object) }
+        }
+    }
+    $match = [regex]::Match($comments, '^\s*(\d+\.\d+\.\d+\.\d+)(?:\s|$)')
+    if (-not $match.Success) {
+        Write-AtlasLog -Message "The Google Chrome installer doesn't state its version: '$comments'."
+        return $null
+    }
+    return [version]$match.Groups[1].Value
+}
+
+function Get-AtlasInstalledChrome {
+    <#
+    .SYNOPSIS
+        The machine-wide Google Chrome program, signed by Google, with its version, or
+        $null when there's none.
+    #>
+    $roots = @([Environment]::GetFolderPath('ProgramFiles'), [Environment]::GetFolderPath('ProgramFilesX86')) |
+        Where-Object { $_ } | Select-Object -Unique
+    foreach ($root in $roots) {
+        $path = [IO.Path]::Combine($root, 'Google', 'Chrome', 'Application', 'chrome.exe')
+        if (-not [IO.File]::Exists($path)) { continue }
+        try {
+            Assert-AtlasFileSignature -Path $path -ExpectedSubjectCn 'Google LLC' -Description 'installed Google Chrome'
+            $version = [version]([string](Get-Item -LiteralPath $path -Force -ErrorAction Stop).VersionInfo.ProductVersion).Trim()
+        }
+        catch {
+            Write-AtlasLog -Message "Not counting '$path' as Google Chrome: $($_.Exception.Message)"
+            continue
+        }
+        return [pscustomobject]@{ Path = $path; Version = $version }
+    }
+    return $null
+}
+
+function Get-AtlasChromeRegistryRecord {
+    <#
+    .SYNOPSIS
+        The machine-wide records of a Google Chrome install, with the version each
+        claims: Google Update's client key and the Windows uninstall entry, in both
+        registry views.
+    #>
+    $records = @(
+        @{ SubKey = 'SOFTWARE\Google\Update\Clients\{8A69D345-D564-463c-AFF1-A69D9E530F96}'; Value = 'pv' }
+        @{ SubKey = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Google Chrome'; Value = 'DisplayVersion' }
+    )
+    foreach ($view in @([Microsoft.Win32.RegistryView]::Registry64, [Microsoft.Win32.RegistryView]::Registry32)) {
+        $base = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine, $view)
+        try {
+            foreach ($record in $records) {
+                $key = $base.OpenSubKey($record.SubKey, $false)
+                if ($null -eq $key) { continue }
+                try {
+                    $version = $null
+                    if (-not [version]::TryParse(([string]$key.GetValue($record.Value)).Trim(), [ref]$version)) { continue }
+                    $shown = if ($view -eq [Microsoft.Win32.RegistryView]::Registry32 -and [Environment]::Is64BitOperatingSystem) {
+                        $record.SubKey -replace '^SOFTWARE\\', 'SOFTWARE\WOW6432Node\'
+                    }
+                    else { $record.SubKey }
+                    [pscustomobject]@{ Key = "HKLM\$shown"; Version = $version }
+                }
+                finally { $key.Dispose() }
+            }
+        }
+        finally { $base.Dispose() }
+    }
+}
+
+function Resolve-AtlasChromeInstallRefusal {
+    <#
+    .SYNOPSIS
+        Decides a Google Chrome MSI that ended with 1603, which it gives when a newer
+        Chrome is recorded. A Google-signed machine-wide Chrome at least as new as the
+        MSI is the install Atlas wanted, so it's kept and logged. A newer Chrome that
+        only the registry records stops the install, naming the records to remove.
+        Anything else rethrows the MSI's failure.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$InstallerPath,
+        [Parameter(Mandatory = $true)][System.Management.Automation.ErrorRecord]$Failure
+    )
+
+    $msiVersion = Get-AtlasChromeMsiVersion -Path $InstallerPath
+    if ($null -eq $msiVersion) {
+        throw $Failure
+    }
+    $installed = Get-AtlasInstalledChrome
+    if ($null -ne $installed -and $installed.Version -ge $msiVersion) {
+        Write-AtlasLog -Message "Google Chrome $($installed.Version) is already installed at '$($installed.Path)', signed by Google, and isn't older than the $msiVersion the installer has; it ended with 1603 rather than replace it, so Atlas keeps the installed Chrome."
+        return
+    }
+    $claims = @(Get-AtlasChromeRegistryRecord | Where-Object { $_.Version -ge $msiVersion })
+    if ($claims.Count -gt 0) {
+        $found = if ($null -ne $installed) { "only Google Chrome $($installed.Version) at '$($installed.Path)'" } else { 'no Google Chrome program in Program Files' }
+        $named = @($claims | ForEach-Object { "'$($_.Key)' ($($_.Version))" }) -join ', '
+        throw "Google Chrome $msiVersion couldn't be installed, because Windows records a Google Chrome at least as new: $named. There's $found, so those records are left over. Uninstall Google Chrome in Settings > Apps, or delete those registry keys, then try installing Atlas again."
+    }
+    throw $Failure
+}
+
 function Install-AtlasChromeBrowser {
     param([Parameter(Mandatory = $true)][string]$TempDir)
 
@@ -685,12 +863,23 @@ function Install-AtlasChromeBrowser {
     Invoke-AtlasSoftwareDownload -Uri "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise$chromeArch.msi" -Destination $installerPath -Description 'Google Chrome'
     Assert-AtlasFileSignature -Path $installerPath -ExpectedSubjectCn 'Google LLC' -Description 'Google Chrome'
     $msiExecPath = Join-Path -Path ([Environment]::GetFolderPath('System')) -ChildPath 'msiexec.exe'
-    # 3010 is ERROR_SUCCESS_REBOOT_REQUIRED: installed, and complete after a restart.
-    Start-AtlasSoftwareInstaller `
-        -FilePath $msiExecPath `
-        -ArgumentList @('/i', $installerPath, '/qn', '/norestart') `
-        -Description 'Google Chrome' `
-        -SuccessExitCode @(0, 3010)
+    try {
+        # 3010 is ERROR_SUCCESS_REBOOT_REQUIRED: installed, and complete after a restart.
+        Start-AtlasSoftwareInstaller `
+            -FilePath $msiExecPath `
+            -ArgumentList @('/i', $installerPath, '/qn', '/norestart') `
+            -Description 'Google Chrome' `
+            -SuccessExitCode @(0, 3010)
+    }
+    catch {
+        # 1603 is ERROR_INSTALL_FAILURE, which the Chrome MSI also gives over a newer Chrome.
+        if ($_.Exception.Data.Contains('AtlasInstallerExitCode') -and
+            [uint32]$_.Exception.Data['AtlasInstallerExitCode'] -eq 1603) {
+            Resolve-AtlasChromeInstallRefusal -InstallerPath $installerPath -Failure $_
+            return
+        }
+        throw
+    }
 }
 
 function Install-AtlasLibreWolfBrowser {
@@ -801,12 +990,16 @@ function Test-AtlasVisualCppRuntimeCurrent {
 }
 
 function Install-AtlasVisualCppRuntimes {
-    param([Parameter(Mandatory = $true)][string]$TempDir)
+    param(
+        [Parameter(Mandatory = $true)][string]$TempDir,
 
-    # Keep native setup logs outside disposable software staging. Each attempt gets
-    # its own directory, so retries cannot erase the error we need to investigate.
-    $logRoot = Join-Path ([Environment]::GetFolderPath('Windows')) ('AtlasOS\Install\Diagnostics\vcredist-' + [guid]::NewGuid().ToString('N'))
-    [void][IO.Directory]::CreateDirectory($logRoot)
+        # Keep native setup logs outside disposable software staging. Each attempt gets
+        # its own directory, so retries cannot erase the error we need to investigate.
+        # Tests point this at a scratch folder.
+        [string]$LogRoot = (Join-Path ([Environment]::GetFolderPath('Windows')) ('AtlasOS\Install\Diagnostics\vcredist-' + [guid]::NewGuid().ToString('N')))
+    )
+
+    [void][IO.Directory]::CreateDirectory($LogRoot)
     Write-AtlasLog -Message "Visual C++ installer logs: $logRoot"
     # The 2005 packages are extracted with the IExpress switches /c (extract only),
     # /q (quiet) and /t:<folder>, and their MSIs installed directly. Exit code 3010
@@ -840,8 +1033,17 @@ function Install-AtlasVisualCppRuntimes {
         }
         Write-AtlasLog -Message "Preparing Visual C++ Runtime $vcName from $($entry.Uri)."
         $vcExePath = Join-Path -Path $TempDir -ChildPath "vcredist-$vcName.exe"
-        Invoke-AtlasSoftwareDownload -Uri $entry.Uri -Destination $vcExePath -Description "Visual C++ Runtime $vcName"
-        Assert-AtlasFileSignature -Path $vcExePath -ExpectedSubjectCn 'Microsoft Corporation' -Description "Visual C++ Runtime $vcName"
+        # One runtime that can't be downloaded or verified doesn't stop the others; the
+        # step still fails at the end, naming every runtime that didn't install.
+        try {
+            Invoke-AtlasSoftwareDownload -Uri $entry.Uri -Destination $vcExePath -Description "Visual C++ Runtime $vcName"
+            Assert-AtlasFileSignature -Path $vcExePath -ExpectedSubjectCn 'Microsoft Corporation' -Description "Visual C++ Runtime $vcName"
+        }
+        catch {
+            Write-AtlasLog -Level Warning -Message "Visual C++ Runtime $vcName wasn't installed: $($_.Exception.Message)"
+            $failedInstallers.Add("$vcName download")
+            continue
+        }
 
         if ($vcName -match '^2015\+-(x64|x86)$' -and
             (Test-AtlasVisualCppRuntimeCurrent -Architecture $Matches[1] -InstallerPath $vcExePath)) {

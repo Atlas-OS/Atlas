@@ -208,6 +208,10 @@ It exits with 0 on success, 1 on an install failure and 2 on the wrong privilege
 
 - Software installs the latest stable Atlas Toolbox release.
   Only a tester build made with `--toolbox` carries its own Toolbox, in `AtlasModules\Bundled\Toolbox`, and installs that instead.
+- Software tries a download again after 5 and then 15 seconds when the connection fails or the server answers 408, 429 or 5xx, and logs every cause under the failure.
+  Each Visual C++ runtime is attempted, and the step fails at the end naming any that didn't install.
+- When the Google Chrome MSI ends with 1603, a Google-signed `chrome.exe` in Program Files at least as new as the MSI counts as installed.
+  A newer Chrome that only the registry records stops the step, naming those registry keys.
 - Components doesn't install an Atlas CBS package again while servicing shows it installed or waiting for a restart.
   Keeping Defender takes off `Z-Atlas-NoDefender-Package`.
   A failed removal, or a NoDefender package still waiting for a restart, fails the install rather than report success on a PC with no antivirus.

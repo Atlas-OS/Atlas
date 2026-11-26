@@ -147,6 +147,24 @@ function New-AtlasProtectedStagingDirectory {
     return $directory.FullName
 }
 
+function Get-AtlasDownloadFailureDetail {
+    <#
+    .SYNOPSIS
+        Joins the messages of an exception and every exception under it, so a failed
+        request names its cause, such as the DNS, TLS or socket error.
+    #>
+    param([Parameter(Mandatory = $true)][Exception]$Exception)
+
+    $messages = New-Object 'Collections.Generic.List[string]'
+    for ($cause = $Exception; $null -ne $cause; $cause = $cause.InnerException) {
+        $message = ([string]$cause.Message -replace '\s+', ' ').Trim()
+        if ($message -and ($messages.Count -eq 0 -or $messages[$messages.Count - 1] -cne $message)) {
+            $messages.Add($message)
+        }
+    }
+    return ($messages -join ' -> ')
+}
+
 function Invoke-AtlasLimitedHttpGet {
     <#
     .SYNOPSIS
@@ -155,7 +173,8 @@ function Invoke-AtlasLimitedHttpGet {
     .DESCRIPTION
         Rejects URIs that aren't HTTPS or that carry user information, any non-success
         status, and a redirect that leaves HTTPS. The deadline covers the whole
-        transfer, not each read.
+        transfer, not each read. A failed request names every cause under it, and a
+        refused status carries its code in the exception's AtlasHttpStatus data.
     .PARAMETER Uri
         The HTTPS address to download.
     .PARAMETER OutputStream
@@ -209,7 +228,10 @@ function Invoke-AtlasLimitedHttpGet {
             $deadline.Token
         ).GetAwaiter().GetResult()
         if (-not $response.IsSuccessStatusCode) {
-            throw "Downloading '$Uri' failed with HTTP status $([int]$response.StatusCode)."
+            $statusFailure = [Net.Http.HttpRequestException]::new(
+                "Downloading '$Uri' failed with HTTP status $([int]$response.StatusCode).")
+            $statusFailure.Data['AtlasHttpStatus'] = [int]$response.StatusCode
+            throw $statusFailure
         }
         $finalUri = $response.RequestMessage.RequestUri
         if ($finalUri.Scheme -cne 'https' -or -not [string]::IsNullOrEmpty($finalUri.UserInfo)) {
@@ -238,6 +260,15 @@ function Invoke-AtlasLimitedHttpGet {
             $OutputStream.Write($buffer, 0, $read)
         }
         return $total
+    }
+    catch [Management.Automation.MethodInvocationException] {
+        # A failed task reaches PowerShell wrapped, and its outer message says only that
+        # the request failed. The causes under it stay inner exceptions, so a caller
+        # still finds the deadline's OperationCanceledException.
+        $cause = $_.Exception.InnerException
+        if ($null -eq $cause) { throw }
+        throw [InvalidOperationException]::new(
+            "Downloading '$Uri' failed: $(Get-AtlasDownloadFailureDetail -Exception $cause)", $cause)
     }
     finally {
         if ($null -ne $inputStream) { $inputStream.Dispose() }
