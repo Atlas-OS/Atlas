@@ -57,8 +57,11 @@ param([Parameter(Mandatory)][string]$JobPath, [switch]$FunctionsOnly, [switch]$V
     # skips them and the long in-run wait.
     [switch]$OfferOnly,
     [switch]$RestoreWindowsUpdate,
-    # Only the TrustedInstaller task the AppX database repair registers: removes orphaned AppX
-    # deployment rows (Repair-PreparationAppRepository).
+    # The notice Windows shows before sign-in while the AppX database repair waits for its
+    # startup, in Atlas Manager's language (see Set-PreparationAppRepositoryNotice).
+    [string]$RepairNotice,
+    # Only the AppX database repair's own task, run as TrustedInstaller at startup
+    # (Repair-PreparationAppRepository).
     [switch]$RepairAppRepository)
 # This elevated worker must never autoload a module from an inherited user path.
 $env:PSModulePath = [IO.Path]::Combine($PSHOME, 'Modules')
@@ -1791,6 +1794,7 @@ function Assert-PreparationCurrent {
     Assert-PreparationContinue
     Assert-PreparationUser
     if (Test-PreparationRestart) { throw "Restart Windows and run preparation again before installing Atlas (pending: $($script:PreparationRestartReasons -join ', '))." }
+    if (Test-PreparationAppRepositoryUnfinished) { throw 'Restart Windows and run preparation again before installing Atlas (pending: apprepository).' }
     if (-not (Test-PreparationNetwork)) { throw 'Connect to unrestricted internet before verifying Windows and Store updates.' }
     Write-PreparationState running windows-search
     $session = New-Object -ComObject Microsoft.Update.Session
@@ -2546,7 +2550,8 @@ function Test-PreparationStoreRepairable([Exception]$Exception) {
 # The Store stage of a preparation run: skipped when the user removed the
 # Store; otherwise a Store the PC has but this user hasn't registered is
 # registered, the Store and App Installer update themselves, then the apps, and
-# the repairs follow when that fails.
+# the repairs follow when that fails. Returns 'reboot' when they set up the AppX
+# database repair, which needs a restart.
 function Invoke-PreparationStoreStage {
     if (Test-PreparationStoreRemoved) {
         Write-PreparationStoreEvidence 'turned off for this user by the recorded choice (HKLM\SOFTWARE\AtlasOS\Services\MicrosoftStore state 0); Store app updates skipped. Other accounts may still have the Store; this pass only ever updates the signed-in user'
@@ -2578,7 +2583,7 @@ function Invoke-PreparationStoreStage {
         if (-not (Test-PreparationStoreRepairable $_.Exception)) { throw }
         $failure = $_.Exception
     }
-    Repair-PreparationStore $failure
+    return (Repair-PreparationStore $failure | Select-Object -Last 1)
 }
 
 # One pass through the repairs. After each that changed something, the Store
@@ -2586,7 +2591,9 @@ function Invoke-PreparationStoreStage {
 # A repair can also say 'skipped', when this PC has nothing to run it with. The
 # failure after the last names how each one ended, or the apps of a staging
 # failure (see Get-PreparationStagingApp). A staging failure the repairs already
-# met in as many runs as they may take stops the run before them.
+# met in as many runs as they may take stops the run before them. Before either
+# staging stop, the AppX database repair can take the place of the stop, once
+# (see Invoke-PreparationAppRepository): then this returns 'reboot'.
 function Repair-PreparationStore([Exception]$Failure) {
     if ($script:PreparationStoreRepairsRun) { throw $Failure }
     $script:PreparationStoreRepairsRun = $true
@@ -2599,7 +2606,9 @@ function Repair-PreparationStore([Exception]$Failure) {
             Write-PreparationStoreEvidence ('updating failed ({0}{1}); Windows couldn''t stage updates for {2} again, as in {3} earlier runs whose repairs didn''t help (the last on {4:yyyy-MM-dd}), so they don''t run again' -f
                 $Failure.Message, $(if ($code) { ", $code" }), ($apps -join ', '), $record.Repairs, $record.At)
             Save-PreparationStagingRecord @($apps + $record.Apps | Select-Object -Unique) $record.Repairs
-            Stop-PreparationStoreStaging $apps $staging "The Store repairs ran in $($record.Repairs) earlier runs without helping, so they didn't run again."
+            $repair = Start-PreparationAppRepository
+            if ('reboot' -eq $repair) { return 'reboot' }
+            Stop-PreparationStoreStaging $apps $staging "The Store repairs ran in $($record.Repairs) earlier runs without helping, so they didn't run again. $repair"
         }
     }
     Write-PreparationStoreEvidence "updating failed ($($Failure.Message)$(if ($code) { ", $code" })); repairing"
@@ -2657,7 +2666,9 @@ function Repair-PreparationStore([Exception]$Failure) {
         $runs = if ($null -ne $earlier -and @($earlier.Apps | Where-Object { $apps -contains $_ }).Count -gt 0) { $earlier.Repairs + 1 } else { 1 }
         Save-PreparationStagingRecord $apps $runs
         Write-PreparationStoreEvidence "Windows couldn't stage updates for $($apps -join ', ') (0x80070490), and the repairs didn't help, as recorded for $runs run(s); from $script:PreparationStagingRepairs such runs on, a run doesn't repair again"
-        Stop-PreparationStoreStaging $apps $staging "The Store repairs didn't help ($($ended -join '; '))."
+        $repair = Start-PreparationAppRepository
+        if ('reboot' -eq $repair) { return 'reboot' }
+        Stop-PreparationStoreStaging $apps $staging "The Store repairs didn't help ($($ended -join '; ')). $repair"
     }
     $lastCode = (Get-PreparationFailureDetail $last)['errorCode']
     $hresult = if ($lastCode) { [Convert]::ToInt32($lastCode, 16) } else { 0 }
@@ -3079,7 +3090,7 @@ function Invoke-PreparationStoreFixer {
 # AME's !appx action could leave: staging seems to match a new package's files
 # against File.Digest and fail the Evaluated state on a match whose package is
 # missing. Microsoft doesn't document either database, so this is inferred from
-# affected PCs. Both are SQLite, opened through the winsqlite3.dll Windows ships.
+# affected PCs. Both are SQLite, opened through Windows's own winsqlite3.dll.
 function Initialize-PreparationAppRepositoryType {
     if ('AtlasPreparation.AppRepository' -as [type]) { return }
     Add-Type -TypeDefinition @'
@@ -3091,6 +3102,9 @@ using System.Text;
 namespace AtlasPreparation {
     public sealed class AppRepositoryCount {
         public long Packages, Files, Manifests, SourceUris, LiveFiles;
+        // Why the removal stayed in the write-ahead log after the commit, or null once it's
+        // in the database file. SQLite reads the log as part of the database either way.
+        public string Checkpoint;
         public long Total { get { return Files + Manifests + SourceUris; } }
         // Why rows mustn't be removed, or null. A Machine database that lists no
         // packages, or more orphaned files than kept ones, doesn't describe the
@@ -3149,15 +3163,17 @@ namespace AtlasPreparation {
         // Removes the orphaned rows in one transaction and returns what it removed.
         // Changes nothing when the guards refuse, when stillStopped says StateRepository
         // started again (it is asked right before the delete and the commit), or when
-        // the removal leaves a broken reference or fails the database's check.
+        // the removal leaves a broken reference or fails the database's check. Once the
+        // commit is in, the rows are gone, and a checkpoint that doesn't finish is only noted.
         public static AppRepositoryCount Remove(string deployment, string machine, Func<bool> stillStopped) {
             if (stillStopped == null) throw new ArgumentNullException("stillStopped");
             IntPtr db = OpenDatabase(deployment, ReadWrite);
             try {
                 LoadLive(db, machine);
+                AppRepositoryCount count;
                 Run(db, "BEGIN IMMEDIATE;");
                 try {
-                    AppRepositoryCount count = ReadCount(db);
+                    count = ReadCount(db);
                     string refusal = count.Refusal();
                     if (refusal != null) throw new InvalidOperationException("No rows were removed: " + refusal + ".");
                     List<string> referencing = ReadTexts(db, ReferencingSql);
@@ -3174,15 +3190,27 @@ namespace AtlasPreparation {
                         throw new InvalidOperationException("The database failed its check after the delete (" + String.Join("; ", check.ToArray()) + "), so no rows were removed.");
                     if (!stillStopped()) throw new InvalidOperationException("StateRepository started again before the commit, so no rows were removed.");
                     Run(db, "COMMIT;");
-                    Run(db, "PRAGMA wal_checkpoint(TRUNCATE);");
-                    return count;
                 }
                 catch {
                     Exec(db, Utf8("ROLLBACK;"), IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
                     throw;
                 }
+                count.Checkpoint = Checkpoint(db);
+                return count;
             }
             finally { Close(db); }
+        }
+
+        // Moves the committed change into the database file and empties the log: null when
+        // done, or why not.
+        static string Checkpoint(IntPtr db) {
+            IntPtr statement;
+            if (Prepare(db, Utf8("PRAGMA wal_checkpoint(TRUNCATE);"), -1, out statement, IntPtr.Zero) != Ok) return LastError(db);
+            try {
+                if (Step(statement) != Row) return LastError(db);
+                return ColumnInt64(statement, 0) == 0 ? null : "the database was busy";
+            }
+            finally { FinalizeStatement(statement); }
         }
 
         static string ForeignKeyCheck(string table) { return "PRAGMA foreign_key_check(\"" + table.Replace("\"", "\"\"") + "\");"; }
@@ -3306,12 +3334,38 @@ function Get-PreparationServiceStart([string]$Name) {
     }
 }
 
+# Whether StateRepository runs, given a minute to finish starting.
+function Test-PreparationStateRepositoryRunning {
+    for ($waited = 0; $waited -lt 60; $waited += 2) {
+        $status = [string](Get-Service -Name StateRepository).Status
+        if ($status -eq 'Running') { return $true }
+        if ($status -eq 'Stopped') { return $false }
+        Start-Sleep -Seconds 2
+    }
+    return $false
+}
+
+# The start types the repair puts back, as sc.exe config takes them, with the Start and
+# DelayedAutostart values that stand for them in the service's registry key.
+$script:PreparationServiceStarts = @{ 'auto' = @(2, 0); 'delayed-auto' = @(2, 1); 'demand' = @(3, 0) }
+$script:PreparationStateRepositoryKey = 'HKLM:\SYSTEM\CurrentControlSet\Services\StateRepository'
+
+# Writes StateRepository's start type straight into its registry key, which SYSTEM and
+# administrators can change, while only TrustedInstaller may change it through the
+# service manager. Windows reads it at the next start.
+function Set-PreparationStateRepositoryStart([string]$Start) {
+    $value = $script:PreparationServiceStarts[$Start]
+    Set-ItemProperty -LiteralPath $script:PreparationStateRepositoryKey -Name Start -Value $value[0] -Type DWord
+    if ($value[1]) { Set-ItemProperty -LiteralPath $script:PreparationStateRepositoryKey -Name DelayedAutostart -Value 1 -Type DWord }
+}
+
 $script:PreparationRepairTask = 'AtlasOS AppX database repair'
 $script:PreparationRestoreTask = 'AtlasOS StateRepository restore'
 $script:PreparationStartupTask = 'AtlasOS AppX database repair at startup'
+$script:PreparationDisableTask = 'AtlasOS StateRepository disable'
 $script:PreparationTaskSddl = 'O:BAG:SYD:P(A;;FA;;;SY)(A;;FA;;;BA)'
-# Set once this run starts registering the startup tasks.
-$script:PreparationAppRepositoryArmed = $false
+# How long the worker waits for the task that disables StateRepository.
+$script:PreparationDisableSeconds = 60
 
 function Get-PreparationTaskFolder {
     $service = New-Object -ComObject 'Schedule.Service'
@@ -3336,15 +3390,18 @@ function New-PreparationSystemTask($Service, [string]$Description, [string]$Path
     return $task
 }
 
-# Shown before sign-in while the repair is pending, as Windows shows a legal
-# notice: sign-in can come before the startup task, and without StateRepository
-# the lock screen, Start and the taskbar don't open.
+# Shown before sign-in while the repair waits for its startup, as Windows shows a
+# legal notice: signing in can come before the startup task, and without
+# StateRepository the Start menu and the taskbar don't open. Atlas Manager passes the
+# text in its own language (-RepairNotice). The caption is Atlas's name, which the
+# startup task checks, with the record, before it clears the notice.
 $script:PreparationNoticeKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
-$script:PreparationNoticeCaption = 'Atlas is repairing Windows'
-$script:PreparationNoticeText = 'Atlas is removing leftover app records while Windows starts. For about a minute the lock screen, Start and the taskbar may not work, and apps that start with Windows may show an error. Windows then restarts once by itself to finish. Please do not turn off the PC.'
+$script:PreparationNoticeCaption = 'Atlas'
 
-# Sets the notice unless the PC already shows one of its own, which is kept.
+# Sets the notice and returns $true, unless there's no text for it or the PC already
+# shows one of its own, which is kept.
 function Set-PreparationAppRepositoryNotice {
+    if (-not $RepairNotice) { return $false }
     $current = Get-ItemProperty -LiteralPath $script:PreparationNoticeKey
     foreach ($name in @('legalnoticecaption', 'legalnoticetext')) {
         $value = $current.PSObject.Properties[$name]
@@ -3352,89 +3409,140 @@ function Set-PreparationAppRepositoryNotice {
         if ($null -ne $value -and -not [string]::IsNullOrWhiteSpace(([string]$value.Value).Trim([char]0))) { return $false }
     }
     Set-ItemProperty -LiteralPath $script:PreparationNoticeKey -Name legalnoticecaption -Value $script:PreparationNoticeCaption
-    Set-ItemProperty -LiteralPath $script:PreparationNoticeKey -Name legalnoticetext -Value $script:PreparationNoticeText
+    Set-ItemProperty -LiteralPath $script:PreparationNoticeKey -Name legalnoticetext -Value $RepairNotice
     return $true
 }
 
 function Clear-PreparationAppRepositoryNotice {
     $caption = (Get-ItemProperty -LiteralPath $script:PreparationNoticeKey).PSObject.Properties['legalnoticecaption']
-    if ($null -eq $caption -or [string]$caption.Value -ne $script:PreparationNoticeCaption) { return }
+    if ($null -eq $caption -or [string]$caption.Value -cne $script:PreparationNoticeCaption) { return }
     Set-ItemProperty -LiteralPath $script:PreparationNoticeKey -Name legalnoticecaption -Value ''
     Set-ItemProperty -LiteralPath $script:PreparationNoticeKey -Name legalnoticetext -Value ''
 }
 
-# The restore, run as TrustedInstaller. It puts StateRepository's start type back,
-# starts it and the dependents that start automatically, clears the notice and
-# removes the three tasks. While the start type is still disabled, it keeps the
-# tasks and the notice, so the startup task tries again at the next startup.
-# Then Windows restarts once, as a session signed in while StateRepository was
-# off keeps a broken shell, unless Atlas Manager is already open again: that
-# restart would cut its run short, so only the shell processes that started
-# before the restore are restarted. Never when a task or the disabled start type
-# is left, so a failed restore can't restart Windows at every startup.
+# The restore task's command, run as TrustedInstaller, as only it may change
+# StateRepository's configuration through the service manager: it puts the start type
+# back and starts StateRepository and the dependents that start automatically.
 $script:PreparationRestoreCommand = @'
 sc.exe config StateRepository start= {start};
-if ((Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Services\StateRepository').Start -eq 4) { return };
 Start-Service StateRepository;
-(Get-Service StateRepository).DependentServices | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -eq 'Stopped' } | Start-Service -ErrorAction SilentlyContinue;
-$restored = Get-Date;
-$notice = Get-ItemProperty -LiteralPath '{key}';
-if ($notice.legalnoticecaption -eq '{caption}') { Set-ItemProperty -LiteralPath '{key}' -Name legalnoticecaption -Value ''; Set-ItemProperty -LiteralPath '{key}' -Name legalnoticetext -Value '' };
-foreach ($name in {names}) { schtasks.exe /delete /tn $name /f };
-$left = foreach ($name in {names}) { schtasks.exe /query /tn $name 2>$null | Out-Null; if ($LASTEXITCODE -eq 0) { $name } };
-if ($left -or (Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Services\StateRepository').Start -eq 4) { return };
-if (Get-Process -Name AtlasManager -ErrorAction SilentlyContinue) { Get-Process -Name explorer, StartMenuExperienceHost, ShellExperienceHost, LockApp -ErrorAction SilentlyContinue | Where-Object { $_.StartTime -lt $restored } | Stop-Process -Force; return };
-shutdown.exe /r /t 15 /d p:4:1 /c 'Atlas repaired the app records and restarts Windows once to finish.'
+(Get-Service StateRepository).DependentServices | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -eq 'Stopped' } | Start-Service -ErrorAction SilentlyContinue
 '@
+
+# The startup task's command, run as SYSTEM when Windows starts while StateRepository
+# is disabled. Each step goes on whatever the one before did:
+# - the repair, as TrustedInstaller, within its time limit;
+# - the restore, as TrustedInstaller;
+# - the repair again, which finishes it: see Confirm-PreparationAppRepositoryRow;
+# - the start type written back into the registry when it's still disabled, as SYSTEM
+#   can without TrustedInstaller, for Windows to read at the next start;
+# - once it isn't disabled, the notice Atlas set and the three tasks go. While it is,
+#   both stay, so the next startup tries again.
+# Windows then restarts once, as a session signed in while StateRepository was off
+# keeps a broken shell: only when StateRepository was disabled at this start and isn't
+# any more, so a restore that fails can't restart Windows at every startup. The delay
+# gives Atlas Manager, when it's open again, time to arrange to reopen after it.
+$script:PreparationStartupCommand = @'
+$key = '{service}';
+$disabled = (Get-ItemProperty -LiteralPath $key).Start -eq 4;
+$folder = New-Object -ComObject Schedule.Service; $folder.Connect(); $folder = $folder.GetFolder('\');
+try { Start-Service TrustedInstaller } catch { };
+foreach ($step in @('{repair}', 4), @('{restore}', 3), @('{repair}', 4)) { try { $task = $folder.GetTask($step[0]); [void]$task.RunEx($null, 0, 0, 'NT SERVICE\TrustedInstaller'); $deadline = [DateTime]::UtcNow.AddMinutes($step[1]); do { Start-Sleep -Seconds 2 } while ($task.State -in 2, 4 -and [DateTime]::UtcNow -lt $deadline); if ($task.State -eq 4) { $task.Stop(0) } } catch { } };
+if ((Get-ItemProperty -LiteralPath $key).Start -eq 4) { Set-ItemProperty -LiteralPath $key -Name Start -Value {startvalue} -Type DWord{delayed} };
+if ((Get-ItemProperty -LiteralPath $key).Start -eq 4) { return };
+$record = try { (Get-ItemProperty -LiteralPath 'HKLM:\{root}' -Name AppRepositoryRepair -ErrorAction Stop).AppRepositoryRepair | ConvertFrom-Json -ErrorAction Stop } catch { $null };
+if ($record -and $record.notice -eq $true -and (Get-ItemProperty -LiteralPath '{notice}').legalnoticecaption -ceq '{caption}') { Set-ItemProperty -LiteralPath '{notice}' -Name legalnoticecaption -Value ''; Set-ItemProperty -LiteralPath '{notice}' -Name legalnoticetext -Value '' };
+foreach ($name in {names}) { try { $folder.DeleteTask($name, 0) } catch { } };
+if ($disabled) { shutdown.exe /r /t 30 /d p:4:1 }
+'@
+
+# A task's one-line command: each {name} in $Command replaced by its value.
+function Format-PreparationTaskCommand([string]$Command, [hashtable]$Values) {
+    foreach ($name in $Values.Keys) { $Command = $Command.Replace("{$name}", [string]$Values[$name]) }
+    return $Command -replace '\r?\n', ' '
+}
 
 # The repair runs at the next startup, while StateRepository is disabled: its
 # dependents start it again when they start, several of them on triggers
 # (GamingServices, AppXSvc), so on a running desktop it can't be held stopped.
-# Three tasks do it. The startup one runs the repair as TrustedInstaller and waits
-# for it, then always runs the restore. The restore needs neither the job folder
-# nor this script.
+# Three tasks do it: the repair, which runs this script as TrustedInstaller, the
+# restore, and the startup task that runs both and puts back what they don't. The
+# restore and the startup task need neither the job folder nor this script.
 function Register-PreparationAppRepositoryRepair([string]$Script, [string]$Job, [string]$Start) {
     $tasks = Get-PreparationTaskFolder
     $powershell = [IO.Path]::Combine([Environment]::GetFolderPath('System'), 'WindowsPowerShell\v1.0\powershell.exe')
-    $run = "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command"
-    $repair = New-PreparationSystemTask $tasks.Service 'Removes AppX deployment rows of packages that are no longer registered, while StateRepository is disabled.' $powershell "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$Script`" -JobPath `"$Job`" -RepairAppRepository" 'PT3M'
+    $run = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass'
+    $repair = New-PreparationSystemTask $tasks.Service 'Removes AppX deployment rows of packages that are no longer registered, while StateRepository is disabled.' $powershell "$run -File `"$Script`" -JobPath `"$Job`" -RepairAppRepository" 'PT3M'
     [void]$tasks.Folder.RegisterTaskDefinition($script:PreparationRepairTask, $repair, 6, 'S-1-5-18', $null, 5, $script:PreparationTaskSddl)
-    $names = (@($script:PreparationStartupTask, $script:PreparationRepairTask, $script:PreparationRestoreTask) | ForEach-Object { "'$_'" }) -join ','
-    $command = $script:PreparationRestoreCommand.Replace('{start}', $Start).Replace('{key}', $script:PreparationNoticeKey).Replace('{caption}', $script:PreparationNoticeCaption).Replace('{names}', $names) -replace '\r?\n', ' '
-    $restore = New-PreparationSystemTask $tasks.Service 'Puts StateRepository back after the Atlas AppX database repair.' $powershell "$run `"$command`""
+    $command = Format-PreparationTaskCommand $script:PreparationRestoreCommand @{ start = $Start }
+    $restore = New-PreparationSystemTask $tasks.Service 'Puts StateRepository back after the Atlas AppX database repair.' $powershell "$run -Command `"$command`"" 'PT2M'
     [void]$tasks.Folder.RegisterTaskDefinition($script:PreparationRestoreTask, $restore, 6, 'S-1-5-18', $null, 5, $script:PreparationTaskSddl)
-    $startup = New-PreparationSystemTask $tasks.Service 'Runs the Atlas AppX database repair and then the StateRepository restore, as TrustedInstaller.' $powershell "$run `"Start-Service TrustedInstaller; `$folder = (New-Object -ComObject Schedule.Service); `$folder.Connect(); `$folder = `$folder.GetFolder('\'); try { `$task = `$folder.GetTask('$script:PreparationRepairTask'); [void]`$task.RunEx(`$null, 0, 0, 'NT SERVICE\TrustedInstaller'); `$deadline = [DateTime]::UtcNow.AddMinutes(4); do { Start-Sleep -Seconds 2 } while (`$task.State -in 2, 4 -and [DateTime]::UtcNow -lt `$deadline) } finally { [void]`$folder.GetTask('$script:PreparationRestoreTask').RunEx(`$null, 0, 0, 'NT SERVICE\TrustedInstaller') }`"" 'PT10M'
+    $value = $script:PreparationServiceStarts[$Start]
+    $command = Format-PreparationTaskCommand $script:PreparationStartupCommand @{
+        service = $script:PreparationStateRepositoryKey; repair = $script:PreparationRepairTask; restore = $script:PreparationRestoreTask
+        startvalue = $value[0]; delayed = $(if ($value[1]) { '; Set-ItemProperty -LiteralPath $key -Name DelayedAutostart -Value 1 -Type DWord' } else { '' })
+        root = $script:PreparationReofferedRoot; notice = $script:PreparationNoticeKey; caption = $script:PreparationNoticeCaption
+        names = (@($script:PreparationStartupTask, $script:PreparationRepairTask, $script:PreparationRestoreTask) | ForEach-Object { "'$_'" }) -join ','
+    }
+    $startup = New-PreparationSystemTask $tasks.Service 'Runs the Atlas AppX database repair and then the StateRepository restore, as TrustedInstaller, and puts StateRepository back.' $powershell "$run -Command `"$command`"" 'PT15M'
     [void]$startup.Triggers.Create(8) # TASK_TRIGGER_BOOT
     [void]$tasks.Folder.RegisterTaskDefinition($script:PreparationStartupTask, $startup, 6, 'S-1-5-18', $null, 5, $script:PreparationTaskSddl)
+}
+
+# Whether a Task Scheduler call failed because the task isn't there (0x80070002), as
+# the exception says or the one it wraps.
+function Test-PreparationTaskMissing([Management.Automation.ErrorRecord]$Failure) {
+    for ($cause = $Failure.Exception; $null -ne $cause; $cause = $cause.InnerException) {
+        if ($cause.HResult -eq -2147024894) { return $true }
+    }
+    return $false
 }
 
 function Unregister-PreparationAppRepositoryRepair {
     $folder = (Get-PreparationTaskFolder).Folder
     foreach ($name in @($script:PreparationStartupTask, $script:PreparationRepairTask, $script:PreparationRestoreTask)) {
         try { $folder.DeleteTask($name, 0) }
-        # 0x80070002: the task isn't there, as when registering it failed.
-        catch { if ($_.Exception.HResult -ne -2147024894) { throw } }
+        # As when registering it failed.
+        catch { if (-not (Test-PreparationTaskMissing $_)) { throw } }
     }
 }
 
-# Only TrustedInstaller may change StateRepository's configuration. Disabling it
-# leaves it running until the restart.
+# Disables StateRepository through a task run as TrustedInstaller, as only it may change
+# StateRepository's configuration through the service manager; StateRepository keeps
+# running until the restart. The task is stopped and removed before the start type is
+# read for the last time, so sc.exe can't disable StateRepository after this has
+# decided it didn't. Returns whether StateRepository is disabled, or may be because the
+# task couldn't be removed, with what went wrong.
 function Disable-PreparationStateRepository {
-    $tasks = Get-PreparationTaskFolder
-    $name = 'AtlasOS StateRepository disable'
-    $task = New-PreparationSystemTask $tasks.Service 'Disables StateRepository until the Atlas AppX database repair at the next startup.' ([IO.Path]::Combine([Environment]::GetFolderPath('System'), 'sc.exe')) 'config StateRepository start= disabled' 'PT1M'
+    $task = $null
+    $failure = ''
     try {
-        $registered = $tasks.Folder.RegisterTaskDefinition($name, $task, 6, 'S-1-5-18', $null, 5, $script:PreparationTaskSddl)
+        $tasks = Get-PreparationTaskFolder
+        $definition = New-PreparationSystemTask $tasks.Service 'Disables StateRepository until the Atlas AppX database repair at the next startup.' ([IO.Path]::Combine([Environment]::GetFolderPath('System'), 'sc.exe')) 'config StateRepository start= disabled' 'PT1M'
+        $task = $tasks.Folder.RegisterTaskDefinition($script:PreparationDisableTask, $definition, 6, 'S-1-5-18', $null, 5, $script:PreparationTaskSddl)
         Start-Service -Name TrustedInstaller
-        [void]$registered.RunEx($null, 0, 0, 'NT SERVICE\TrustedInstaller')
-        $deadline = [DateTime]::UtcNow.AddMinutes(1)
+        [void]$task.RunEx($null, 0, 0, 'NT SERVICE\TrustedInstaller')
+        $deadline = [DateTime]::UtcNow.AddSeconds($script:PreparationDisableSeconds)
         while ((Get-PreparationServiceStart StateRepository) -ne 'disabled' -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 500 }
     }
-    finally {
-        try { $tasks.Folder.DeleteTask($name, 0) }
-        catch { Write-PreparationStoreEvidence "AppX database repair: removing the task that disables StateRepository failed: $($_.Exception.Message)" }
+    catch { $failure = $_.Exception.Message }
+    $removed = $true
+    if ($null -ne $task) {
+        try {
+            # 2 and 4: queued and running.
+            if ([int]$task.State -in @(2, 4)) { $task.Stop(0) }
+            for ($waited = 0; [int]$task.State -eq 4 -and $waited -lt 20; $waited++) { Start-Sleep -Milliseconds 500 }
+            if ([int]$task.State -eq 4) { throw 'it still runs' }
+            $tasks.Folder.DeleteTask($script:PreparationDisableTask, 0)
+        }
+        catch {
+            $removed = $false
+            $failure = "the task that disables StateRepository couldn't be removed: $($_.Exception.Message)"
+        }
     }
-    if ((Get-PreparationServiceStart StateRepository) -ne 'disabled') { throw "StateRepository couldn't be disabled" }
+    $disabled = (Get-PreparationServiceStart StateRepository) -eq 'disabled'
+    if (-not ($disabled -or $failure)) { $failure = "StateRepository couldn't be disabled" }
+    return [pscustomobject]@{ Disabled = $disabled -or -not $removed; Failure = $failure }
 }
 
 # The database and its write-ahead log, copied together while StateRepository is
@@ -3446,6 +3554,20 @@ function Save-PreparationAppRepositoryBackup([hashtable]$Path) {
         if ([IO.File]::Exists($source)) { [IO.File]::Copy($source, $source + $suffix) }
     }
     return $Path.Deployment + $suffix
+}
+
+# Puts the database back as Save-PreparationAppRepositoryBackup copied it, while
+# StateRepository is stopped: the log and its index go first, so the database never
+# meets a log of another version, and a file the copy has none of stays gone.
+function Restore-PreparationAppRepositoryBackup([hashtable]$Path, [string]$Backup) {
+    if (-not $Backup.StartsWith($Path.Deployment + '.atlas-backup-', [StringComparison]::OrdinalIgnoreCase) -or -not [IO.File]::Exists($Backup)) { throw 'its backup is missing' }
+    if (-not (Test-PreparationStateRepositoryStopped)) { throw "StateRepository isn't stopped" }
+    $suffix = $Backup.Substring($Path.Deployment.Length)
+    foreach ($extension in @('-wal', '-shm')) { [IO.File]::Delete($Path.Deployment + $extension) }
+    foreach ($extension in @('', '-wal', '-shm')) {
+        $copy = $Path.Deployment + $extension + $suffix
+        if ([IO.File]::Exists($copy)) { [IO.File]::Copy($copy, $Path.Deployment + $extension, $true) }
+    }
 }
 
 # Counts the orphaned rows in a copy of both databases, so a PC without any isn't
@@ -3464,52 +3586,124 @@ function Measure-PreparationAppRepository([hashtable]$Path, [string]$Job) {
     finally { [IO.Directory]::Delete($copy, $true) }
 }
 
-# The TrustedInstaller side, run by the startup task Invoke-PreparationAppRepository
-# registered: only SYSTEM can write the AppX databases. StateRepository was disabled
-# before the restart, so it and every service that depends on it (AppXSvc among
-# them) are stopped, and the guards are checked before anything is copied or
-# changed. The restore task the startup task runs next starts them again. The
-# outcome goes to apprepository.json in the job folder, for the next run to log.
-# A startup after a restore that couldn't put the start type back runs this again:
-# the outcome already there is kept, and nothing is repaired twice.
+# The repair's record, beside the Store's staging record: how far the repair got, and
+# in which start of Windows. 'armed' once the worker has set it up for the next
+# startup; 'started', 'removing' and 'committed' while it runs then; and how it ended,
+# one of $script:PreparationAppRepositoryEnded. A repair with a record is never set up
+# again, so a failed or refused one doesn't cost its restarts twice.
+$script:PreparationAppRepositoryEnded = @('removed', 'none', 'refused', 'failed')
+
+function Get-PreparationAppRepositoryRecordText {
+    $value = Get-AtlasTransitionValue $script:PreparationReofferedRoot 'AppRepositoryRepair'
+    if ($value.Present -and $value.Kind -eq 'String') { return [string]$value.Data }
+    return ''
+}
+
+function Set-PreparationAppRepositoryRecordText([string]$Text) {
+    Set-AtlasTransitionValue $script:PreparationReofferedRoot 'AppRepositoryRepair' 'String' $Text
+}
+
+# The record as a hashtable, or $null without one. One that can't be read counts as a
+# repair that didn't end, which the next run ends (Complete-PreparationAppRepositoryStartup).
+function Read-PreparationAppRepositoryRecord {
+    $text = Get-PreparationAppRepositoryRecordText
+    if (-not $text) { return $null }
+    $record = @{}
+    try { foreach ($property in @(($text | ConvertFrom-Json -ErrorAction Stop).PSObject.Properties)) { $record[$property.Name] = $property.Value } }
+    catch { $record = @{} }
+    if (-not $record['status']) { $record = @{ status = 'unreadable' } }
+    return $record
+}
+
+# Writes $Values into the record, keeping the rest of it.
+function Save-PreparationAppRepositoryRecord([hashtable]$Values) {
+    $record = Read-PreparationAppRepositoryRecord
+    if ($null -eq $record) { $record = @{} }
+    foreach ($name in $Values.Keys) { $record[$name] = $Values[$name] }
+    $record['at'] = [DateTime]::UtcNow.ToString('o')
+    Set-PreparationAppRepositoryRecordText (ConvertTo-Json -InputObject ([pscustomobject]$record) -Compress)
+}
+
+# Run as TrustedInstaller by the startup task, twice (see $script:PreparationStartupCommand),
+# as only SYSTEM can write the AppX databases. The first run removes the orphaned rows;
+# the second, after the restore, ends the repair. Each step is in the record before
+# it's taken, so a run its time limit stops is ended by the next and never repeated.
 function Repair-PreparationAppRepository {
-    $outcome = [IO.Path]::Combine($JobPath, 'apprepository.json')
-    if ([IO.File]::Exists($outcome)) { return }
-    $result = [ordered]@{ status = 'failed'; message = '' }
+    if ((Get-PreparationAppRepositoryIdentity) -ne 'TrustedInstaller') { return }
+    $record = Read-PreparationAppRepositoryRecord
+    if ($null -eq $record) { return }
+    $status = $record['status']
+    if ($status -eq 'armed') { Remove-PreparationAppRepositoryRow }
+    elseif ($status -in @('started', 'removing', 'committed')) { Confirm-PreparationAppRepositoryRow $record }
+    else { return }
     try {
-        if ((Get-PreparationAppRepositoryIdentity) -ne 'TrustedInstaller') { throw 'The AppX database repair runs only as TrustedInstaller.' }
-        if ((Get-PreparationServiceStart StateRepository) -ne 'disabled' -or -not (Test-PreparationStateRepositoryStopped)) { throw 'StateRepository is not disabled and stopped, as it is only at the startup after Atlas disabled it.' }
+        $record = Read-PreparationAppRepositoryRecord
+        Write-PreparationStoreEvidence "AppX database repair at startup: $($record['status']), $($record['message'])"
+    }
+    catch { Write-Verbose "The AppX database repair's line in updates.log couldn't be written: $_" }
+}
+
+# The first run, while StateRepository and every service that depends on it (AppXSvc
+# among them) are stopped, as they are at the startup after the worker disabled it.
+# The guards are checked before anything is copied or changed.
+function Remove-PreparationAppRepositoryRow {
+    Save-PreparationAppRepositoryRecord @{ status = 'started'; boot = Get-PreparationBootId }
+    try {
+        if ((Get-PreparationServiceStart StateRepository) -ne 'disabled' -or -not (Test-PreparationStateRepositoryStopped)) {
+            throw "StateRepository isn't disabled and stopped, as it is only at the startup after Atlas disabled it."
+        }
         $path = Get-PreparationAppRepositoryPath
         if (-not ([IO.File]::Exists($path.Deployment) -and [IO.File]::Exists($path.Machine))) {
-            $result.status = 'none'
-            $result.message = 'the AppX databases are missing'
-            return
-        }
-        Initialize-PreparationAppRepositoryType
-        $count = [AtlasPreparation.AppRepository]::Count($path.Deployment, $path.Machine)
-        $refusal = $count.Refusal()
-        if ($count.Total -eq 0) {
-            $result.status = 'none'
-            $result.message = 'no orphaned rows'
-        }
-        elseif ($refusal) {
-            $result.status = 'refused'
-            $result.message = "$($count.Total) orphaned row(s) left in place: $refusal"
+            $ended = @{ status = 'none'; message = 'the AppX databases are missing' }
         }
         else {
-            $result.backup = Save-PreparationAppRepositoryBackup $path
-            $removed = [AtlasPreparation.AppRepository]::Remove($path.Deployment, $path.Machine, [Func[bool]] { Test-PreparationStateRepositoryStopped })
-            $result.status = 'removed'
-            $result.message = '{0} row(s) of packages no longer registered removed: {1} files, {2} manifests, {3} source URIs; the database before is {4}' -f $removed.Total, $removed.Files, $removed.Manifests, $removed.SourceUris, $result.backup
+            Initialize-PreparationAppRepositoryType
+            $count = [AtlasPreparation.AppRepository]::Count($path.Deployment, $path.Machine)
+            $refusal = $count.Refusal()
+            if ($count.Total -eq 0) { $ended = @{ status = 'none'; message = 'no orphaned rows' } }
+            elseif ($refusal) { $ended = @{ status = 'refused'; message = "$($count.Total) orphaned row(s) left in place: $refusal" } }
+            else {
+                $backup = Save-PreparationAppRepositoryBackup $path
+                Save-PreparationAppRepositoryRecord @{ status = 'removing'; backup = $backup }
+                # Changes nothing when it throws: its transaction is rolled back.
+                $removed = [AtlasPreparation.AppRepository]::Remove($path.Deployment, $path.Machine, [Func[bool]] { Test-PreparationStateRepositoryStopped })
+                $message = '{0} row(s) of packages no longer registered removed ({1} files, {2} manifests, {3} source URIs); the database before is {4}' -f $removed.Total, $removed.Files, $removed.Manifests, $removed.SourceUris, $backup
+                if ($removed.Checkpoint) { $message += "; the write-ahead log keeps the change, as its checkpoint didn't finish ($($removed.Checkpoint))" }
+                $ended = @{ status = 'committed'; message = $message }
+            }
         }
     }
-    catch {
-        $result.status = 'failed'
-        $result.message = $_.Exception.Message
+    catch { $ended = @{ status = 'failed'; message = $_.Exception.Message } }
+    Save-PreparationAppRepositoryRecord $ended
+}
+
+# The second run, after the restore started StateRepository. A repair that changed the
+# database ends once StateRepository has started with it. When StateRepository didn't
+# start, the backup goes back and StateRepository is started again, as for a first
+# run that stopped while it removed rows. A first run that stopped before it changed
+# anything only ends.
+function Confirm-PreparationAppRepositoryRow([hashtable]$Record) {
+    $status = $Record['status']
+    if ($status -eq 'started') {
+        Save-PreparationAppRepositoryRecord @{ status = 'failed'; message = 'the repair stopped before it changed anything' }
+        return
     }
-    finally {
-        [IO.File]::WriteAllText($outcome, (ConvertTo-Json $result -Compress))
+    $done = if ($status -eq 'committed') { [string]$Record['message'] } else { 'the repair stopped while it removed rows' }
+    if (Test-PreparationStateRepositoryRunning) {
+        if ($status -eq 'committed') { $ended = @{ status = 'removed'; message = "$done; StateRepository started with the change" } }
+        else { $ended = @{ status = 'failed'; message = "$done; StateRepository started with the database as it was left" } }
     }
+    else {
+        try {
+            Restore-PreparationAppRepositoryBackup (Get-PreparationAppRepositoryPath) ([string]$Record['backup'])
+            $started = try { Start-Service -Name StateRepository; 'StateRepository started' }
+            catch { "StateRepository still didn't start: $($_.Exception.Message)" }
+            $message = "$done; StateRepository didn't start, so the database before was put back, and $started"
+        }
+        catch { $message = "$done; StateRepository didn't start, and the database before couldn't be put back: $($_.Exception.Message)" }
+        $ended = @{ status = 'failed'; message = $message }
+    }
+    Save-PreparationAppRepositoryRecord $ended
 }
 
 # Whether only SYSTEM, Administrators and TrustedInstaller own and can change the
@@ -3532,16 +3726,6 @@ function Test-PreparationProtectedPath([string]$Path) {
     catch { return $false }
 }
 
-# The outcome of a repair at an earlier startup: the newest apprepository.json in
-# this job folder or another of this scope's, as each run has its own.
-function Get-PreparationAppRepositoryOutcome([string]$Job) {
-    $outcomes = @(Get-ChildItem -LiteralPath ([IO.Path]::GetDirectoryName($Job)) -Directory -ErrorAction SilentlyContinue |
-            ForEach-Object { Get-Item -LiteralPath ([IO.Path]::Combine($_.FullName, 'apprepository.json')) -ErrorAction SilentlyContinue } |
-            Where-Object { Test-PreparationProtectedPath $_.FullName } | Sort-Object LastWriteTimeUtc -Descending)
-    if ($outcomes.Count -eq 0) { return $null }
-    return ([IO.File]::ReadAllText($outcomes[0].FullName) | ConvertFrom-Json)
-}
-
 # The symptom of the orphaned rows: the newest install of the last 30 days that
 # failed in the Evaluated state with 0x80070490, or $null. The event's data is
 # matched, not its localized text. 0x80073CF9 alone isn't one, as it stands for any
@@ -3553,93 +3737,200 @@ function Get-PreparationAppRepositorySymptom {
     return $found[0].TimeCreated
 }
 
-# Prepares the repair for the next startup and returns 'reboot', or $false when
-# there is nothing to remove, Windows shows no symptom of it, or it was done at an
-# earlier startup: one repair at most. It runs before any update work, so its restarts don't land in the middle
-# of it, and waits for a restart Windows already owes. The job folder holding this
-# script is the protected one Atlas Manager staged, so the repair reaches PCs still
-# on Atlas 0.4 or 0.5, which have no Atlas 0.6 Fix MS Store Issues.
+# Sets the repair up for the next startup and returns 'reboot', or returns why it
+# doesn't, for the store-appx-staging stop to say. It needs the symptom and orphaned
+# rows, and is set up at most once: a repair with a record isn't repeated, whatever
+# its outcome. A restart Windows already owes comes first, and the run after it
+# decides again. The job folder holding this script is the protected one Atlas
+# Manager staged, so the repair reaches PCs still on Atlas 0.4 or 0.5, which have no
+# Atlas 0.6 Fix MS Store Issues.
 function Invoke-PreparationAppRepository {
-    $script = $PSCommandPath
+    $record = Read-PreparationAppRepositoryRecord
+    if ($null -ne $record) { return "The AppX database repair ended earlier ($($record['status']): $($record['message'])), so it isn't repeated." }
+    $worker = $PSCommandPath
     $job = [IO.Path]::GetFullPath($JobPath).TrimEnd('\')
-    if (-not ((Test-PreparationProtectedPath $script) -and (Test-PreparationProtectedPath ([IO.Path]::GetDirectoryName($script))) -and (Test-PreparationProtectedPath $job))) {
-        Write-PreparationStoreEvidence 'AppX database repair: this run is not from a protected job folder; left out'
-        return $false
-    }
-    $previous = Get-PreparationAppRepositoryOutcome $job
-    if ($null -ne $previous) {
-        Write-PreparationStoreEvidence "AppX database repair at an earlier startup: $($previous.status), $($previous.message); not repeated"
-        return $false
+    if (-not ((Test-PreparationProtectedPath $worker) -and (Test-PreparationProtectedPath ([IO.Path]::GetDirectoryName($worker))) -and (Test-PreparationProtectedPath $job))) {
+        return 'The AppX database repair was left out, as this run isn''t from a protected job folder.'
     }
     $symptom = Get-PreparationAppRepositorySymptom
-    if ($null -eq $symptom) {
-        Write-PreparationStoreEvidence 'AppX database repair: no install failed in the Evaluated state with 0x80070490 in the last 30 days; left out'
-        return $false
-    }
+    if ($null -eq $symptom) { return 'The AppX database repair was left out, as no install failed in the Evaluated state with 0x80070490 in the last 30 days.' }
     $path = Get-PreparationAppRepositoryPath
-    if (-not ([IO.File]::Exists($path.Deployment) -and [IO.File]::Exists($path.Machine))) {
-        Write-PreparationStoreEvidence 'AppX database repair: the AppX databases are missing; left out'
-        return $false
-    }
+    if (-not ([IO.File]::Exists($path.Deployment) -and [IO.File]::Exists($path.Machine))) { return 'The AppX database repair was left out, as the AppX databases are missing.' }
+    Write-PreparationState running store-repair
     Initialize-PreparationAppRepositoryType
     $count = Measure-PreparationAppRepository $path $job
+    if ($count.Total -eq 0) { return 'The AppX database repair was left out, as the AppX databases hold no orphaned rows.' }
     $refusal = $count.Refusal()
-    if ($count.Total -eq 0) {
-        Write-PreparationStoreEvidence 'AppX database repair: no orphaned rows'
-        return $false
-    }
     if ($refusal) {
-        Write-PreparationStoreEvidence "AppX database repair: $($count.Total) orphaned row(s) left in place: $refusal"
-        return $false
+        Save-PreparationAppRepositoryRecord @{ status = 'refused'; message = "$($count.Total) orphaned row(s) left in place: $refusal" }
+        return "The AppX database repair refused: $($count.Total) orphaned row(s) left in place: $refusal."
     }
     $start = Get-PreparationServiceStart StateRepository
-    if ($start -eq 'disabled') {
-        Write-PreparationStoreEvidence 'AppX database repair: StateRepository is disabled; left out'
-        return $false
-    }
-    $owed = Test-PreparationRestart
-    $script:PreparationRestartReasons = @()
-    if ($owed) {
-        Write-PreparationStoreEvidence "AppX database repair: $($count.Total) orphaned row(s) left until a later run, as Windows already owes a restart"
-        return $false
-    }
+    if (-not $script:PreparationServiceStarts.ContainsKey($start)) { return "The AppX database repair was left out, as StateRepository's start type is $start." }
+    if (Test-PreparationRestart) { return 'The AppX database repair waits for the restart Windows already owes.' }
+    $notice = $false
     try {
-        $script:PreparationAppRepositoryArmed = $true
-        Register-PreparationAppRepositoryRepair $script $job $start
-        if (-not (Set-PreparationAppRepositoryNotice)) { Write-PreparationStoreEvidence 'AppX database repair: this PC shows its own notice before sign-in; Atlas left it as it is' }
-        Disable-PreparationStateRepository
+        Register-PreparationAppRepositoryRepair $worker $job $start
+        Save-PreparationAppRepositoryRecord @{ status = 'armed'; armed = Get-PreparationBootId; start = $start; notice = $false }
+        $notice = Set-PreparationAppRepositoryNotice
+        if ($notice) { Save-PreparationAppRepositoryRecord @{ notice = $true } }
+        $disable = Disable-PreparationStateRepository | Select-Object -Last 1
     }
-    catch {
-        # Once StateRepository is disabled, only the startup tasks put it back.
-        if ((Get-PreparationServiceStart StateRepository) -ne 'disabled') {
-            Unregister-PreparationAppRepositoryRepair
-            Clear-PreparationAppRepositoryNotice
-        }
-        throw
+    catch { $disable = [pscustomobject]@{ Disabled = (Get-PreparationServiceStart StateRepository) -eq 'disabled'; Failure = $_.Exception.Message } }
+    if (-not $disable.Disabled) {
+        # Nothing waits for a restart: what was set up goes, and the repair counts as failed.
+        Save-PreparationAppRepositoryRecord @{ status = 'failed'; message = "setting it up failed: $($disable.Failure)" }
+        Unregister-PreparationAppRepositoryRepair
+        if ($notice) { Clear-PreparationAppRepositoryNotice }
+        return "Setting up the AppX database repair failed: $($disable.Failure)."
     }
-    Write-PreparationStoreEvidence "AppX database repair: the last install that failed in the Evaluated state with 0x80070490 was at $($symptom.ToString('yyyy-MM-dd HH:mm')); $($count.Total) orphaned row(s) ($($count.Files) files, $($count.Manifests) manifests, $($count.SourceUris) source URIs); StateRepository is disabled until they are removed at the next startup, as TrustedInstaller, and Windows restarts once more after that"
+    # Once StateRepository is disabled, or may be, only the startup tasks put it back.
+    if ($disable.Failure) { Write-PreparationStoreEvidence "AppX database repair: $($disable.Failure); the startup tasks stay to put StateRepository back" }
+    Write-PreparationStoreEvidence "AppX database repair: the last install that failed in the Evaluated state with 0x80070490 was at $($symptom.ToString('yyyy-MM-dd HH:mm')); $($count.Total) orphaned row(s) ($($count.Files) files, $($count.Manifests) manifests, $($count.SourceUris) source URIs); StateRepository is disabled until they're removed at the next startup, as TrustedInstaller, and Windows restarts once more after that"
     $script:PreparationRestartReasons = @('apprepository')
     return 'reboot'
 }
 
-# A failed repair doesn't stop the run, unless StateRepository was left disabled:
-# then the startup tasks are kept and the restart is still owed.
+# The repair for a Store stage that stops with store-appx-staging: 'reboot' once it's
+# set up, or why it isn't, which the log and the stop say.
 function Start-PreparationAppRepository {
-    try { return (Invoke-PreparationAppRepository | Select-Object -Last 1) }
+    try { $result = Invoke-PreparationAppRepository | Select-Object -Last 1 }
     catch {
         if ($_.Exception -is [OperationCanceledException]) { throw }
-        Write-PreparationStoreEvidence "AppX database repair failed: $($_.Exception.Message)"
-        if (-not $script:PreparationAppRepositoryArmed -or (Get-PreparationServiceStart StateRepository) -ne 'disabled') { return $false }
-        $script:PreparationRestartReasons = @('apprepository')
-        return 'reboot'
+        $result = "Setting up the AppX database repair failed: $($_.Exception.Message)"
     }
+    if ('reboot' -ne $result) { Write-PreparationStoreEvidence $result }
+    return $result
+}
+
+# The startup task, or $null once it's gone.
+function Get-PreparationAppRepositoryStartupTask {
+    try { return (Get-PreparationTaskFolder).Folder.GetTask($script:PreparationStartupTask) }
+    catch {
+        if (Test-PreparationTaskMissing $_) { return $null }
+        throw
+    }
+}
+
+# Whether StateRepository is disabled while the startup task is still there to put it
+# back. Once the task is gone, a disabled StateRepository isn't the repair's.
+function Test-PreparationAppRepositoryDisabled {
+    (Get-PreparationServiceStart StateRepository) -eq 'disabled' -and $null -ne (Get-PreparationAppRepositoryStartupTask)
+}
+
+# Whether the startup task runs, waits to, or has still to start in this start of
+# Windows, as it can after sign-in: it hasn't run since Windows started, less than 10
+# minutes ago.
+function Test-PreparationAppRepositoryStartupDue {
+    $task = Get-PreparationAppRepositoryStartupTask
+    if ($null -eq $task) { return $false }
+    # 2 and 4: queued and running.
+    if ([int]$task.State -in @(2, 4)) { return $true }
+    $started = Get-PreparationWindowsStart
+    return [DateTime]$task.LastRunTime -lt $started -and [DateTime]::Now -lt $started.AddMinutes(10)
+}
+
+function Get-PreparationWindowsStart { (Get-CimInstance -ClassName Win32_OperatingSystem).LastBootUpTime }
+
+# Waits while the startup task is due, with Get ready showing the Store's repair, for
+# as long as the task may take.
+function Wait-PreparationAppRepositoryStartup {
+    if (-not (Test-PreparationAppRepositoryStartupDue)) { return }
+    Write-PreparationStoreEvidence 'AppX database repair: it runs at this startup; waiting for it'
+    $deadline = [DateTime]::UtcNow.AddMinutes(16)
+    while ((Test-PreparationAppRepositoryStartupDue) -and [DateTime]::UtcNow -lt $deadline) {
+        Assert-PreparationContinue
+        Write-PreparationState running store-repair
+        Start-Sleep -Seconds 2
+    }
+}
+
+# Finishes what the startup task left: StateRepository's start type goes back into the
+# registry, which administrators can write and Windows reads at the next start, then
+# the tasks and the notice Atlas set go, and a repair that didn't end is recorded, as
+# failed unless StateRepository runs with the rows it removed. The backup isn't put
+# back here, as only SYSTEM can write the databases. Returns whether Windows needs a
+# restart, for the start type or for a session that started without StateRepository.
+function Complete-PreparationAppRepositoryStartup([hashtable]$Record) {
+    $disabled = (Get-PreparationServiceStart StateRepository) -eq 'disabled'
+    if ($disabled) {
+        $start = [string]$Record['start']
+        Set-PreparationStateRepositoryStart $(if ($script:PreparationServiceStarts.ContainsKey($start)) { $start } else { 'auto' })
+    }
+    Unregister-PreparationAppRepositoryRepair
+    if ($Record['notice'] -eq $true) { Clear-PreparationAppRepositoryNotice }
+    $running = Test-PreparationStateRepositoryRunning
+    $status = [string]$Record['status']
+    if ($status -eq 'committed' -and $running) {
+        Save-PreparationAppRepositoryRecord @{ status = 'removed'; message = "$($Record['message']); StateRepository runs with the change" }
+    }
+    elseif ($status -notin $script:PreparationAppRepositoryEnded) {
+        $why = switch ($status) {
+            'armed' { "the repair didn't run at startup" }
+            'started' { 'the repair stopped at startup before it changed anything' }
+            'committed' { "$($Record['message']); StateRepository didn't start with the change" }
+            'unreadable' { "the repair's record couldn't be read" }
+            default { 'the repair stopped at startup while it removed rows, and StateRepository keeps the database as it was left' }
+        }
+        Save-PreparationAppRepositoryRecord @{ status = 'failed'; message = $why }
+    }
+    Write-PreparationStoreEvidence "AppX database repair: the startup task ended without putting everything back ($status)$(if ($disabled) { "; StateRepository's start type is back for the next start of Windows" })"
+    return $disabled -or -not $running
+}
+
+# Whether the repair still owes a restart, which every run asks before any Store or
+# Windows Update work: while it's set up and Windows hasn't restarted for it, while the
+# startup task runs it, which the run waits for, and in the start of Windows it ran in,
+# which the startup task ends by restarting. Startup work that ended without putting
+# StateRepository back, or never came, is finished here. Without a record this reads
+# one registry value.
+function Test-PreparationAppRepositoryPending {
+    $record = Read-PreparationAppRepositoryRecord
+    if ($null -eq $record) { return $false }
+    $boot = Get-PreparationBootId
+    $ended = $record['status'] -in $script:PreparationAppRepositoryEnded
+    if (-not $ended -and $record['armed'] -eq $boot) {
+        Write-PreparationStoreEvidence 'AppX database repair: set up for the next startup, which Windows still has to restart for'
+        $script:PreparationRestartReasons = @('apprepository')
+        return $true
+    }
+    if (-not $ended -or (Test-PreparationAppRepositoryDisabled)) {
+        Wait-PreparationAppRepositoryStartup
+        $record = Read-PreparationAppRepositoryRecord
+        if ($record['status'] -notin $script:PreparationAppRepositoryEnded -or (Test-PreparationAppRepositoryDisabled)) {
+            if (-not (Complete-PreparationAppRepositoryStartup $record | Select-Object -Last 1)) { return $false }
+            $script:PreparationRestartReasons = @('apprepository')
+            return $true
+        }
+    }
+    if ($record['boot'] -eq $boot) {
+        Write-PreparationStoreEvidence "AppX database repair at this startup: $($record['status']), $($record['message']); Windows restarts once more to finish it"
+        $script:PreparationRestartReasons = @('apprepository')
+        return $true
+    }
+    # Once, from the run after the restart that ended it; the runs that ended one
+    # before any startup logged it themselves.
+    if ($record['boot'] -and $record['reported'] -ne $true) {
+        Write-PreparationStoreEvidence "AppX database repair at an earlier startup: $($record['status']), $($record['message'])"
+        Save-PreparationAppRepositoryRecord @{ reported = $true }
+    }
+    return $false
+}
+
+# The same question for the check before the install, which changes nothing.
+function Test-PreparationAppRepositoryUnfinished {
+    $record = Read-PreparationAppRepositoryRecord
+    if ($null -eq $record) { return $false }
+    return $record['status'] -notin $script:PreparationAppRepositoryEnded -or $record['boot'] -eq (Get-PreparationBootId) -or
+        (Test-PreparationAppRepositoryDisabled)
 }
 
 function Invoke-PreparationUpdates {
     try {
         # The last value only: stray pipeline output must not become the status.
         if ((Invoke-PreparationWindows | Select-Object -Last 1) -eq 'reboot') { return 'reboot' }
-        Invoke-PreparationStoreStage
+        # The string goes first: $true -eq 'reboot' is true.
+        if ('reboot' -eq (Invoke-PreparationStoreStage | Select-Object -Last 1)) { return 'reboot' }
         Assert-PreparationContinue
         Write-PreparationState running verify
         return (Invoke-PreparationWindows | Select-Object -Last 1)
@@ -4370,7 +4661,9 @@ function Invoke-PreparationRestore {
 
 if ($FunctionsOnly) { return }
 if ($RepairAppRepository) {
-    # The worker that started this task holds the preparation lock and logs the outcome.
+    # Run by the startup task as TrustedInstaller. It takes no preparation lock and
+    # writes no state.json: a worker Atlas Manager starts meanwhile waits for the
+    # startup task before any update work, and the record under HKLM carries the outcome.
     Repair-PreparationAppRepository
     exit 0
 }
@@ -4415,8 +4708,9 @@ try {
         exit 0
     }
     Set-PreparationDriver
-    # The string goes first: $true -eq 'reboot' is true.
-    $outcome = if ('reboot' -eq (Start-PreparationAppRepository)) { 'reboot' }
+    # An AppX database repair that still owes its restart comes first: no Store or
+    # Windows Update work starts while StateRepository can be stopped.
+    $outcome = if (Test-PreparationAppRepositoryPending | Select-Object -Last 1) { 'reboot' }
     elseif ($WindowsTarget) { Invoke-PreparationTransition }
     elseif ($OpenWindowsUpdate) { Invoke-PreparationAccess }
     else { Invoke-PreparationUpdates }

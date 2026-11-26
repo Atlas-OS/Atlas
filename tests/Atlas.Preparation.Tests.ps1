@@ -14,6 +14,10 @@ BeforeAll {
     $script:StagingRecordText = ''
     function Get-PreparationStagingRecordText { $script:StagingRecordText }
     function Set-PreparationStagingRecordText([string]$Text) { $script:StagingRecordText = $Text }
+    # Nor its record of the AppX database repair.
+    $script:AppRepositoryRecordText = ''
+    function Get-PreparationAppRepositoryRecordText { $script:AppRepositoryRecordText }
+    function Set-PreparationAppRepositoryRecordText([string]$Text) { $script:AppRepositoryRecordText = $Text }
     # No test reads or starts this PC's Windows Update service.
     function Get-PreparationUpdateServiceStatus { 'Running' }
     function Start-PreparationUpdateService { throw 'A test started Windows Update without standing in for it.' }
@@ -577,6 +581,16 @@ Describe 'Preparation restart recovery after provider failures' {
         Mock Invoke-PreparationWindows { throw 'Windows install failed' }
         Mock Test-PreparationRestart { throw 'Restart detection failed' }
         { Invoke-PreparationUpdates } | Should -Throw '*Windows install failed*'
+    }
+    It 'asks for the restart the AppX database repair needs, before the check after the Store' {
+        Mock Invoke-PreparationStoreStage { 'reboot' }
+        Invoke-PreparationUpdates | Should -Be 'reboot'
+        Should -Invoke Invoke-PreparationWindows -Times 1 -Exactly
+    }
+    It 'reads nothing else a Store stage leaves behind as a restart' {
+        Mock Invoke-PreparationStoreStage { $true }
+        Invoke-PreparationUpdates | Should -Be 'complete'
+        Should -Invoke Invoke-PreparationWindows -Times 2 -Exactly
     }
 }
 
@@ -1430,6 +1444,9 @@ Describe 'Updates Windows can''t stage for built-in apps' {
             Mock Invoke-PreparationStoreRepair { $script:Repairs.Add($Repair); if ($Repair -eq 'storefixer') { 'skipped' } else { $true } }
             Mock Get-PreparationStagingFailure { $script:Staging }
             Mock Write-PreparationStagingEvidence {}
+            # The AppX database repair, which a staging stop can give way to once.
+            $script:AppRepository = 'The AppX database repair was left out, as no install failed in the Evaluated state with 0x80070490 in the last 30 days.'
+            Mock Start-PreparationAppRepository { $script:AppRepository }
         }
 
         It 'names the apps after the repairs, leaves reinstalling Windows as the way on, and records the run' {
@@ -1466,7 +1483,54 @@ Describe 'Updates Windows can''t stage for built-in apps' {
             try { Invoke-PreparationStoreStage } catch { $thrown = $_.Exception }
             (Get-PreparationFailureDetail $thrown).reason | Should -Be 'store-repair-failed'
             Should -Invoke Write-PreparationStagingEvidence -Times 0 -Exactly
+            Should -Invoke Start-PreparationAppRepository -Times 0 -Exactly
             $script:StagingRecordText | Should -BeNullOrEmpty
+        }
+
+        It 'sets up the AppX database repair in place of the stop, and asks for its restart' {
+            Mock Start-PreparationAppRepository { 'reboot' }
+            Invoke-PreparationStoreStage | Should -Be 'reboot'
+            @($script:Repairs) | Should -Be @('wsreset', 'bootstrap', 'storefixer')
+            Should -Invoke Start-PreparationAppRepository -Times 1 -Exactly
+            Should -Invoke Write-PreparationStagingEvidence -Times 0 -Exactly
+            ($script:StagingRecordText | ConvertFrom-Json).repairs | Should -Be 1 -Because 'the Store repairs still ran without helping'
+        }
+
+        It 'sets it up in place of the stop before the repairs too' {
+            Mock Start-PreparationAppRepository { 'reboot' }
+            $script:StagingRecordText = ConvertTo-Json -Compress -InputObject ([pscustomobject]@{ at = [DateTime]::UtcNow.AddDays(-1).ToString('o'); apps = @('Microsoft.ZuneMusic'); repairs = 2 })
+            Invoke-PreparationStoreStage | Should -Be 'reboot'
+            $script:Repairs.Count | Should -Be 0
+            Should -Invoke Write-PreparationStagingEvidence -Times 0 -Exactly
+        }
+
+        It 'stops once the AppX database repair <Case>, and says so' -TestCases @(
+            @{ Case = 'ran'; Says = 'The AppX database repair ended earlier (removed: 12 row(s) of packages no longer registered removed (12 files, 0 manifests, 0 source URIs); StateRepository started with the change), so it isn''t repeated.' }
+            @{ Case = 'refused'; Says = 'The AppX database repair refused: 9 orphaned row(s) left in place: more files are orphaned (9) than kept (3).' }
+            @{ Case = 'failed'; Says = 'The AppX database repair ended earlier (failed: the repair stopped before it changed anything), so it isn''t repeated.' }
+        ) {
+            $script:AppRepository = $Says
+            try { Invoke-PreparationStoreStage } catch { $thrown = $_.Exception }
+            $detail = Get-PreparationFailureDetail $thrown
+            $detail.reason | Should -Be 'store-appx-staging'
+            $detail.failureMessage | Should -Match "repairs didn't help \(.+\)\. $([regex]::Escape($Says))$"
+        }
+
+        It 'stops before the repairs, and says how the AppX database repair ended' {
+            $script:AppRepository = 'The AppX database repair ended earlier (removed: 3 row(s) removed), so it isn''t repeated.'
+            $script:StagingRecordText = ConvertTo-Json -Compress -InputObject ([pscustomobject]@{ at = [DateTime]::UtcNow.AddDays(-1).ToString('o'); apps = @('Microsoft.ZuneMusic'); repairs = 2 })
+            try { Invoke-PreparationStoreStage } catch { $thrown = $_.Exception }
+            (Get-PreparationFailureDetail $thrown).failureMessage | Should -Match "so they didn't run again\. The AppX database repair ended earlier \(removed: 3 row\(s\) removed\), so it isn't repeated\.$"
+        }
+
+        It 'goes on after the repair''s restarts: a Store that works then clears the record, without the repair' {
+            $script:StagingRecordText = ConvertTo-Json -Compress -InputObject ([pscustomobject]@{ at = [DateTime]::UtcNow.ToString('o'); apps = @('Microsoft.ZuneMusic'); repairs = 2 })
+            $script:AppRepositoryRecordText = '{"status":"removed","boot":"boot:7","message":"12 row(s) removed"}'
+            Mock Invoke-PreparationStoreWithRetry {}
+            try { Invoke-PreparationStoreStage | Should -BeNullOrEmpty }
+            finally { $script:AppRepositoryRecordText = '' }
+            $script:StagingRecordText | Should -BeNullOrEmpty
+            Should -Invoke Start-PreparationAppRepository -Times 0 -Exactly
         }
 
         It 'counts App Installer''s own bundle that the bootstrap couldn''t add' {
