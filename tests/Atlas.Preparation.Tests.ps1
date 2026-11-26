@@ -1288,10 +1288,19 @@ Describe 'Updates Windows can''t stage for built-in apps' {
             @($record.apps) | Should -Be @('Microsoft.ZuneMusic', 'Microsoft.WindowsCalculator')
         }
 
+        It 'names the apps when the Store ends cancelling an item after Windows couldn''t stage updates' {
+            $script:Failure = New-PreparationStoreFailure 'Microsoft.Windows.Photos_8wekyb3d8bbwe' 'Canceled' ([Runtime.InteropServices.COMException]::new('Operation aborted', -2147467260))
+            try { Invoke-PreparationStoreStage } catch { $thrown = $_.Exception }
+            $detail = Get-PreparationFailureDetail $thrown
+            $detail.reason | Should -Be 'store-appx-staging'
+            $detail.packageName | Should -Be 'ZuneMusic,WindowsCalculator'
+        }
+
         It 'stays store-repair-failed for <Case>' -TestCases @(
             @{ Case = 'one app Windows couldn''t stage'; Staging = { @(New-Staging $script:Music) }; Failure = { $script:Failure } }
             @{ Case = 'none'; Staging = { @() }; Failure = { $script:Failure } }
             @{ Case = 'a Store that ends with another failure'; Staging = { $script:Staging }; Failure = { New-PreparationFailure 'Microsoft Store is not registered for this user.' 'store-missing' } }
+            @{ Case = 'a Store that keeps cancelling an item in a run Windows staged everything in'; Staging = { @() }; Failure = { New-PreparationStoreFailure 'Microsoft.Windows.Photos_8wekyb3d8bbwe' 'Canceled' ([Runtime.InteropServices.COMException]::new('Operation aborted', -2147467260)) } }
         ) {
             $script:Staging = & $Staging
             $script:Failure = & $Failure
@@ -2514,6 +2523,7 @@ Describe 'Transient Store deployment recovery' {
         Mock Write-PreparationState {}
         Mock Start-Sleep {}
         Mock Test-PreparationRestart { $false }
+        Mock Get-PreparationStagingFailure {}
         $script:storeAttempts = 0
         Mock Invoke-PreparationStore {
             $script:storeAttempts++
@@ -2564,6 +2574,15 @@ Describe 'Transient Store deployment recovery' {
         Should -Invoke Invoke-PreparationStore -Times 4 -Exactly
         Test-PreparationStoreRepairable $thrown | Should -BeTrue
     }
+    It 'goes on to the repairs at once when an item is cancelled after Windows couldn''t stage updates' {
+        Mock Get-PreparationStagingFailure { [pscustomobject]@{ Name = 'Microsoft.WindowsCalculator'; Family = 'Microsoft.WindowsCalculator_8wekyb3d8bbwe'; Package = ''; ActivityId = '' } }
+        Mock Invoke-PreparationStore { throw (New-PreparationStoreFailure 'Microsoft.Windows.Photos_8wekyb3d8bbwe' 'Canceled' ([Runtime.InteropServices.COMException]::new('Operation aborted', -2147467260))) }
+        try { Invoke-PreparationStoreWithRetry } catch { $thrown = $_.Exception }
+        Should -Invoke Invoke-PreparationStore -Times 1 -Exactly
+        Should -Invoke Start-Sleep -Times 0 -Exactly
+        (Get-PreparationFailureDetail $thrown).errorCode | Should -Be '0x80070490'
+        Test-PreparationStoreRepairable $thrown | Should -BeTrue
+    }
     It 'doesn''t wait again for a Store that was slow until the end' {
         $script:slow = New-PreparationFailure 'Store apps have not finished updating.' 'store-timeout'
         $script:slow.Data['storeTransient'] = 'final'
@@ -2577,6 +2596,7 @@ Describe 'A Store that is slow or briefly fails' {
     BeforeEach {
         Mock Write-PreparationState {}
         Mock Write-PreparationStoreEvidence {}
+        Mock Get-PreparationStagingFailure {}
         $script:now = [DateTime]::new(2026, 1, 1, 12, 0, 0, [DateTimeKind]::Utc)
         Mock Get-PreparationStoreTime { $script:now }
     }
@@ -2584,11 +2604,31 @@ Describe 'A Store that is slow or briefly fails' {
     It 'names an item the Store cancelled (E_ABORT) as a wait, and other failures as they were' {
         $aborted = New-PreparationStoreFailure 'Microsoft.Windows.Photos_8wekyb3d8bbwe' 'Canceled' ([Runtime.InteropServices.COMException]::new('Operation aborted', -2147467260))
         (Get-PreparationFailureDetail $aborted).reason | Should -Be 'store-timeout'
+        (Get-PreparationFailureDetail $aborted).errorCode | Should -Be '0x80004004'
         Get-PreparationStoreTransient $aborted | Should -Be 'retry'
+        Should -Invoke Get-PreparationStagingFailure -Times 1 -Exactly
         $failed = New-PreparationStoreFailure 'Microsoft.Windows.Photos_8wekyb3d8bbwe' 'Error' ([Runtime.InteropServices.COMException]::new('Install failed', -2147009287))
         (Get-PreparationFailureDetail $failed).ContainsKey('reason') | Should -BeFalse
         Get-PreparationStoreTransient $failed | Should -Be ''
         Test-PreparationStoreRepairable $failed | Should -BeTrue
+        # Only an E_ABORT reads the AppX deployment log.
+        Should -Invoke Get-PreparationStagingFailure -Times 1 -Exactly
+    }
+
+    It 'reports the 0x80070490 an E_ABORT hides when Windows couldn''t stage updates earlier in the run' {
+        Mock Get-PreparationStagingFailure {
+            [pscustomobject]@{ Name = 'Microsoft.WindowsCalculator'; Family = 'Microsoft.WindowsCalculator_8wekyb3d8bbwe'; Package = ''; ActivityId = '' }
+            [pscustomobject]@{ Name = 'Microsoft.ZuneMusic'; Family = 'Microsoft.ZuneMusic_8wekyb3d8bbwe'; Package = ''; ActivityId = '' }
+        }
+        $hidden = New-PreparationStoreFailure 'Microsoft.Windows.Photos_8wekyb3d8bbwe' 'Canceled' ([Runtime.InteropServices.COMException]::new('Operation aborted', -2147467260))
+        $detail = Get-PreparationFailureDetail $hidden
+        $detail.errorCode | Should -Be '0x80070490'
+        $detail.ContainsKey('reason') | Should -BeFalse -Because 'a Store that gave up after a staging failure is no wait'
+        $detail.packageName | Should -Be 'Photos'
+        $detail.failureMessage | Should -Match 'Microsoft\.Windows\.Photos_8wekyb3d8bbwe, Canceled, .*Operation aborted'
+        $detail.failureMessage | Should -Match "couldn't stage updates in this run \(0x80070490, element not found\): Microsoft\.WindowsCalculator, Microsoft\.ZuneMusic$"
+        Get-PreparationStoreTransient $hidden | Should -Be ''
+        Test-PreparationStoreRepairable $hidden | Should -BeTrue
     }
 
     It 'names a Store that refuses to resume a download as a wait, with its code' {

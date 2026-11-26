@@ -144,8 +144,17 @@ function New-PreparationStoreFailure([string]$PackageFamilyName, [string]$State,
     $code = if ($null -ne $ErrorCode) { $ErrorCode.HResult } else { 0 }
     # E_ABORT: something interrupted the Store's work on the item, which a later
     # try gets past. A Store that keeps doing it hasn't finished, rather than
-    # being broken.
+    # being broken. One in a run where Windows already couldn't stage updates
+    # (0x80070490) counts as that failure, which another try doesn't get past.
     $aborted = $code -eq $script:StoreAborted
+    if ($aborted) {
+        $staging = @(Get-PreparationStagingFailure)
+        if ($staging.Count -gt 0) {
+            $hidden = New-PreparationFailure "$message; Windows couldn't stage updates in this run (0x80070490, element not found): $(@($staging | ForEach-Object { $_.Name }) -join ', ')" $reason $script:StagingNotFound
+            $hidden.Data['packageName'] = ($PackageFamilyName -split '_')[0].Split('.')[-1]
+            return $hidden
+        }
+    }
     if ($aborted -and -not $reason) { $reason = 'store-timeout' }
     $failure = New-PreparationFailure $message $reason $code
     if ($aborted) { $failure.Data['storeTransient'] = 'retry' }

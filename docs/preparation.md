@@ -192,6 +192,7 @@ After the repairs, the run stops with `store-appx-staging` instead of `store-rep
 - The bootstrap's own App Installer bundle failed with `0x80070490`.
 
 The worker reads the operation and the error from the event's own values, which don't depend on the language Windows uses.
+An item the Store cancels with `0x80004004` (`E_ABORT`) after such a failure counts as that failure (see [Store app updates](#store-app-updates)).
 
 The update row says Windows can't update its built-in apps and names them by their package names, such as ZuneMusic.
 It offers **Create an Atlas ISO**, for reinstalling Windows after a backup, and **Try again**.
@@ -227,6 +228,9 @@ Some Store failures pass on their own:
 
 The worker tries the Store again, up to four times in all, 15 seconds apart.
 When the Store still fails that way, it goes on to the repairs, as a Store that fails every time can be broken.
+
+An item the Store cancels with `0x80004004` in a run whose AppX deployment log already shows Windows unable to stage an update with `0x80070490` counts as that failure instead, as trying again doesn't get past a staging failure.
+The run reports `0x80070490` with the apps Windows couldn't stage, and goes on to the repairs at once (see [Updates Windows can't stage](#updates-windows-cant-stage)).
 
 The worker waits for Store apps while their updates move, until 30 minutes after anything last moved, and for 90 minutes at most.
 A Store that stops moving for 30 minutes gets the repairs, as a stuck Store can need them.
