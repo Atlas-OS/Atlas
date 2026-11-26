@@ -93,7 +93,17 @@ function Remove-AtlasStepsRecorder {
 }
 
 function Enable-AtlasDirectPlay {
-    $feature = Dism\Get-WindowsOptionalFeature -Online -FeatureName DirectPlay -ErrorAction Stop
+    # Enumerate instead of querying the name: a Windows image without the feature reports
+    # it as unknown (0x800F080C) rather than as an object with a state.
+    $features = @(Dism\Get-WindowsOptionalFeature -Online -ErrorAction Stop | Where-Object {
+            [string]$_.FeatureName -eq 'DirectPlay'
+        })
+    if ($features.Count -eq 0) {
+        throw ("Windows doesn't list the DirectPlay optional feature, so Atlas can't enable it: the " +
+            'Windows component is missing from this installation. Repair-install Windows, or back up ' +
+            'your files and reinstall Windows with an Atlas ISO, then try again.')
+    }
+    $feature = $features[0]
     if ([string]$feature.State -eq 'Enabled') {
         Write-AtlasLog -Message 'DirectPlay is already enabled; skipping change.'
         return

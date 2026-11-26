@@ -58,17 +58,42 @@ Describe 'DirectPlay feature enablement' {
     }
 
     It 'does not service an already enabled feature' {
-        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ State = 'Enabled' } }
+        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ FeatureName = 'DirectPlay'; State = 'Enabled' } }
         Enable-AtlasDirectPlay
         Should -Invoke Invoke-AtlasDism -Times 0 -Exactly
     }
 
     It 'enables a disabled feature with its dependencies' {
-        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ State = 'Disabled' } }
+        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ FeatureName = 'DirectPlay'; State = 'Disabled' } }
         Enable-AtlasDirectPlay
         Should -Invoke Invoke-AtlasDism -Times 1 -Exactly -ParameterFilter {
             $Arguments -contains '/Enable-Feature' -and $Arguments -contains '/FeatureName:DirectPlay' -and $Arguments -contains '/All'
         }
+    }
+
+    It 'finds DirectPlay among the listed features instead of querying its name' {
+        Mock Dism\Get-WindowsOptionalFeature {
+            [pscustomobject]@{ FeatureName = 'LegacyComponents'; State = 'Enabled' }
+            [pscustomobject]@{ FeatureName = 'DirectPlay'; State = 'Disabled' }
+        }
+        Enable-AtlasDirectPlay
+        Should -Invoke Dism\Get-WindowsOptionalFeature -Times 1 -Exactly -ParameterFilter {
+            $Online -and -not $PesterBoundParameters.ContainsKey('FeatureName')
+        }
+        Should -Invoke Invoke-AtlasDism -Times 1 -Exactly
+    }
+
+    # Servicing reports the name as unknown (0x800F080C) when the Windows image lacks it.
+    It 'stops with the repair steps when Windows does not list DirectPlay' {
+        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ FeatureName = 'LegacyComponents'; State = 'Enabled' } }
+        { Enable-AtlasDirectPlay } | Should -Throw "*doesn't list the DirectPlay optional feature*component is missing*Repair-install Windows*Atlas ISO*"
+        Should -Invoke Invoke-AtlasDism -Times 0 -Exactly
+    }
+
+    It 'does not mistake a failed feature query for absence' {
+        Mock Dism\Get-WindowsOptionalFeature { Write-Error 'servicing query failed' }
+        { Enable-AtlasDirectPlay } | Should -Throw '*servicing query failed*'
+        Should -Invoke Invoke-AtlasDism -Times 0 -Exactly
     }
 }
 
@@ -129,7 +154,7 @@ Describe 'Features DISM outcomes' {
     }
 
     It 'defers pending operations, and lets a failure pass, only for component-store cleanup' {
-        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ State = 'Disabled' } }
+        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ FeatureName = 'DirectPlay'; State = 'Disabled' } }
         Mock Dism\Get-WindowsCapability { [pscustomobject]@{ Name = 'App.StepsRecorder~~~~0.0.1.0'; State = 'Installed' } }
         Mock Invoke-AtlasDism {}
         Mock Get-AtlasInstalledAtlasPackage {}
@@ -197,7 +222,7 @@ Describe 'A failed DISM run' {
 
 Describe 'Component store cleanup with the Atlas packages' {
     BeforeEach {
-        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ State = 'Enabled' } }
+        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ FeatureName = 'DirectPlay'; State = 'Enabled' } }
         Mock Dism\Get-WindowsCapability { [pscustomobject]@{ Name = 'App.StepsRecorder~~~~0.0.1.0'; State = 'NotPresent' } }
         Mock Invoke-AtlasDism {}
         Mock Write-AtlasLog {}
@@ -220,7 +245,7 @@ Describe 'Component store cleanup with the Atlas packages' {
 
 Describe 'Features work by install mode' {
     BeforeEach {
-        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ State = 'Enabled' } }
+        Mock Dism\Get-WindowsOptionalFeature { [pscustomobject]@{ FeatureName = 'DirectPlay'; State = 'Enabled' } }
         Mock Dism\Get-WindowsCapability { [pscustomobject]@{ Name = 'App.StepsRecorder~~~~0.0.1.0'; State = 'Installed' } }
         Mock Invoke-AtlasDism {}
         Mock Write-AtlasLog {}
