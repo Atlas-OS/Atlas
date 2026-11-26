@@ -142,7 +142,7 @@ public sealed class AtlasIsoDestinationVolume {
     public static AtlasIsoDestinationVolume Read(string path) {
         var root = new StringBuilder(32768);
         if (!GetVolumePathNameW(path, root, (uint)root.Capacity))
-            throw new Win32Exception(Marshal.GetLastWin32Error());
+            throw Failure("GetVolumePathNameW");
 
         string mount = root.ToString();
         uint driveType = GetDriveTypeW(mount);
@@ -152,19 +152,26 @@ public sealed class AtlasIsoDestinationVolume {
         var fileSystem = new StringBuilder(260);
         if (!GetVolumeInformationW(mount, System.IntPtr.Zero, 0, System.IntPtr.Zero,
             System.IntPtr.Zero, System.IntPtr.Zero, fileSystem, (uint)fileSystem.Capacity))
-            throw new Win32Exception(Marshal.GetLastWin32Error());
+            throw Failure("GetVolumeInformationW");
 
         ulong availableBytes;
         if (!GetDiskFreeSpaceExW(path, out availableBytes, System.IntPtr.Zero, System.IntPtr.Zero))
-            throw new Win32Exception(Marshal.GetLastWin32Error());
+            throw Failure("GetDiskFreeSpaceExW");
         return new AtlasIsoDestinationVolume { FileSystem = fileSystem.ToString(), AvailableBytes = availableBytes };
     }
 
     public static string Root(string path) {
         var root = new StringBuilder(32768);
         if (!GetVolumePathNameW(path, root, (uint)root.Capacity))
-            throw new Win32Exception(Marshal.GetLastWin32Error());
+            throw Failure("GetVolumePathNameW");
         return root.ToString();
+    }
+
+    // Names the call Windows refused, as some PCs refuse one of these for their system
+    // drive ("A required privilege is not held by the client").
+    static Win32Exception Failure(string call) {
+        int error = Marshal.GetLastWin32Error();
+        return new Win32Exception(error, call + ": " + new Win32Exception(error).Message);
     }
 }
 '@
@@ -174,10 +181,37 @@ function Get-AtlasIsoDestinationVolume([string]$Path) {
     Initialize-AtlasIsoDestinationVolume
     return [AtlasIsoDestinationVolume]::Read($Path)
 }
-# The mount point of the volume that holds $Path, through any junction on the way.
+# Whether the drive letter $Folder starts with names the volume that holds it: no link or
+# mount point on the way leads to another volume.
+function Test-AtlasIsoLetterVolume($Folder) {
+    if ($Folder.FullName -notmatch '^[A-Za-z]:\\') { return $false }
+    for ($item = $Folder; $null -ne $item; $item = $item.Parent) {
+        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -and @('SymbolicLink', 'Junction') -contains $item.LinkType) { return $false }
+    }
+    return $true
+}
+# The filesystem and free space of the volume that holds $Folder, read by its drive letter
+# with Get-Volume, which needs none of the calls Windows can refuse; nothing where that
+# letter doesn't name the folder's volume, or Get-Volume can't say.
+function Get-AtlasIsoVolumeByLetter($Folder) {
+    if (-not (Test-AtlasIsoLetterVolume $Folder)) { return $null }
+    try {
+        $parameters = Get-AtlasIsoStorageParameters
+        $found = @(Receive-AtlasIsoStorage (Get-Volume -DriveLetter $Folder.FullName[0] @parameters) 'reading the destination volume')
+    }
+    catch { return $null }
+    if ($found.Count -ne 1 -or $null -eq $found[0].PSObject.Properties['FileSystem'] -or $null -eq $found[0].PSObject.Properties['SizeRemaining']) { return $null }
+    return [pscustomobject]@{ FileSystem = [string]$found[0].FileSystem; AvailableBytes = [uint64]$found[0].SizeRemaining }
+}
+# The mount point of the volume that holds $Path, through any junction on the way, or the
+# path's own drive root where Windows refuses the call and that letter names the volume.
 function Get-AtlasIsoVolumeRoot([string]$Path) {
     Initialize-AtlasIsoDestinationVolume
-    return [AtlasIsoDestinationVolume]::Root($Path)
+    try { return [AtlasIsoDestinationVolume]::Root($Path) }
+    catch {
+        if (-not (Test-AtlasIsoLetterVolume (Get-Item -LiteralPath $Path))) { throw }
+        return [IO.Path]::GetPathRoot($Path)
+    }
 }
 # The length a copy of the tree at $Root needs beyond the folder it goes in: its longest
 # file path, or folder path with 12 characters to spare, relative to $Root.
@@ -209,7 +243,14 @@ function Assert-Output([string]$OutputPath, [string]$PackagePath, [string]$Sourc
     if ($parent.FullName.StartsWith('\\')) { Fail 'destination-filesystem' 'Choose a local NTFS or ReFS destination.' }
     # Query the real mount point even for a directory reached through a junction.
     try { $volume = Get-AtlasIsoDestinationVolume -Path $parent.FullName }
-    catch { Fail 'destination-filesystem' "Could not read the volume for '$($parent.FullName)': $($_.Exception.Message)" }
+    catch {
+        # The message names the call Windows refused. Only a refused call has a fallback:
+        # a volume that isn't local stays refused.
+        $failure = $_.Exception.GetBaseException()
+        $volume = if ($failure -is [ComponentModel.Win32Exception]) { Get-AtlasIsoVolumeByLetter $parent }
+        if ($null -eq $volume) { Fail 'destination-filesystem' "Could not read the volume for '$($parent.FullName)': $($failure.Message)" }
+        [Console]::Error.WriteLine("Could not read the volume for '$($parent.FullName)' ($($failure.Message)), so Get-Volume read it by its drive letter.")
+    }
     if ($volume.FileSystem -notin @('NTFS', 'ReFS')) {
         Fail 'destination-filesystem' 'Choose an NTFS or ReFS destination for large installation files.'
     }

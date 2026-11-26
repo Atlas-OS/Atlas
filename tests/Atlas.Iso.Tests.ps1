@@ -4,10 +4,12 @@ BeforeAll {
     $errors = $null
     $ast = [Management.Automation.Language.Parser]::ParseFile((Join-Path $script:IsoResources 'Build-Iso.ps1'), [ref]$null, [ref]$errors)
     if ($errors) { throw ($errors | Out-String) }
-    foreach ($name in @('Assert-BootCatalog', 'Initialize-AtlasIsoDestinationVolume', 'Get-AtlasIsoDestinationVolume', 'Get-AtlasIsoVolumeRoot', 'Get-AtlasIsoDeepestPath', 'Get-AtlasIsoWorkspace', 'Assert-Output', 'Open-AtlasIsoManager')) {
+    foreach ($name in @('Assert-BootCatalog', 'Initialize-AtlasIsoDestinationVolume', 'Get-AtlasIsoDestinationVolume', 'Test-AtlasIsoLetterVolume', 'Get-AtlasIsoVolumeByLetter', 'Get-AtlasIsoVolumeRoot', 'Get-AtlasIsoDeepestPath', 'Get-AtlasIsoWorkspace', 'Assert-Output', 'Open-AtlasIsoManager')) {
         $function = $ast.Find({ param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name }, $true)
         . ([scriptblock]::Create($function.Extent.Text))
     }
+    # The worker loads the storage helpers it shares with the USB worker.
+    . (Join-Path $script:IsoResources 'Iso-Mount.ps1')
     function Fail([string]$Reason, [string]$Message) { throw "$($Reason): $Message" }
     function Get-TestIsoOutput {
         Assert-Output -OutputPath (Join-Path $TestDrive 'destination.iso') -PackagePath $script:Media -SourcePath $script:Image
@@ -78,6 +80,51 @@ Describe 'ISO destination validation' {
     It 'still reports insufficient space on a supported filesystem' {
         Mock Get-AtlasIsoDestinationVolume { [pscustomobject]@{ FileSystem = 'ReFS'; AvailableBytes = 0 } }
         { Get-TestIsoOutput } | Should -Throw 'disk-space:*'
+    }
+
+    It 'names the call Windows refused' {
+        { Get-AtlasIsoDestinationVolume -Path (Join-Path $TestDrive 'missing') } | Should -Throw '*GetDiskFreeSpaceExW: *'
+    }
+
+    Context 'a volume call Windows refuses' {
+        BeforeEach {
+            Mock Get-AtlasIsoDestinationVolume { throw [ComponentModel.Win32Exception]::new(1314, 'GetVolumeInformationW: A required privilege is not held by the client') }
+            Mock Get-AtlasIsoStorageParameters { @{} }
+            Mock Receive-AtlasIsoStorage { if ($null -ne $Job) { $Job } }
+            $script:Volume = [pscustomobject]@{ DriveLetter = 'C'; FileSystem = 'NTFS'; SizeRemaining = 64GB }
+            Mock Get-Volume { $script:Volume }
+        }
+        It 'reads the filesystem and free space with Get-Volume by the folder''s drive letter' {
+            Get-TestIsoOutput | Should -BeExactly $TestDrive.TrimEnd('\')
+            Should -Invoke Get-Volume -Times 1 -Exactly -ParameterFilter { "$DriveLetter" -eq $TestDrive.Substring(0, 1) }
+        }
+        It 'applies the same checks to what Get-Volume read' {
+            $script:Volume.FileSystem = 'exFAT'
+            { Get-TestIsoOutput } | Should -Throw 'destination-filesystem:*NTFS or ReFS*'
+            $script:Volume.FileSystem = 'NTFS'
+            $script:Volume.SizeRemaining = 0
+            { Get-TestIsoOutput } | Should -Throw 'disk-space:*'
+        }
+        It 'names the refused call when Get-Volume cannot read the volume either' {
+            Mock Get-Volume { }
+            { Get-TestIsoOutput } | Should -Throw "destination-filesystem:*GetVolumeInformationW: A required privilege is not held by the client"
+        }
+        It 'keeps any other failure, such as a volume that is not local, as it is' {
+            Mock Get-AtlasIsoDestinationVolume { throw [IO.IOException]::new('The destination does not resolve to a local volume.') }
+            { Get-TestIsoOutput } | Should -Throw 'destination-filesystem:*not resolve to a local volume*'
+            Should -Invoke Get-Volume -Times 0 -Exactly
+        }
+    }
+
+    It 'trusts a drive letter only where no link leads to another volume' {
+        $target = Join-Path $TestDrive 'elsewhere'
+        [void][IO.Directory]::CreateDirectory((Join-Path $target 'ISO'))
+        Test-AtlasIsoLetterVolume (Get-Item -LiteralPath (Join-Path $target 'ISO')) | Should -BeTrue
+        $junction = Join-Path $TestDrive 'linked'
+        $null = cmd.exe /d /c mklink /J "$junction" "$target"
+        try { Test-AtlasIsoLetterVolume (Get-Item -LiteralPath (Join-Path $junction 'ISO')) | Should -BeFalse }
+        finally { [IO.Directory]::Delete($junction) }
+        Test-AtlasIsoLetterVolume ([pscustomobject]@{ FullName = '\\server\share\ISO'; Attributes = [IO.FileAttributes]::Directory; LinkType = $null; Parent = $null }) | Should -BeFalse
     }
 }
 

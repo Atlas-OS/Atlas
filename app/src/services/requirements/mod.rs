@@ -8,7 +8,7 @@
 
 mod deadline;
 mod providers;
-mod wmi;
+pub(in crate::services) mod wmi;
 
 use super::system::{self, PowerSource, SystemInfo};
 use providers::{
