@@ -886,6 +886,27 @@ Describe 'A component store that reads as repairable' {
         $script:Writes.IndexOf('repair') | Should -BeLessThan $script:Writes.IndexOf('monthly updates')
     }
 
+    It 'stops before the monthly updates and the move when the repair fails on missing manifests' {
+        Use-TransitionRun
+        Set-HeldBackUpdate
+        $script:CbsLines = $script:AppInvLog
+        $script:Packages = @()
+        Mock Test-PreparationRestart { $false }
+        Mock Test-PreparationNetwork { $true }
+        Mock Write-PreparationState {}
+        Mock Invoke-PreparationRestoreHealth {
+            $script:CbsLines = @("$('{0:yyyy-MM-dd HH:mm:ss}' -f [DateTime]::Now), Info                  CBS    Store corruption, manifest missing for package: Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~wow64~~10.0.26100.9974")
+            -2146498283
+        }
+        Mock Invoke-PreparationWindows { throw 'The monthly updates never begin on a store that can''t be repaired.' }
+        try { Invoke-PreparationTransition } catch { $detail = Get-PreparationFailureDetail $_.Exception }
+        $detail.reason | Should -BeExactly 'component-store-unrepairable'
+        $detail.errorCode | Should -BeExactly '0x800F0915'
+        Should -Invoke Invoke-PreparationWindows -Times 0 -Exactly
+        (Get-Item-Value 'SOFTWARE\AtlasOS\Preparation' 'ComponentRepairFailed' | ConvertFrom-Json).failures | Should -Be 1
+        (Get-Fake $script:Policy TargetReleaseVersionInfo) | Should -BeNullOrEmpty -Because 'Windows isn''t told to move'
+    }
+
     It 'stops the store check when the user chooses Stop' {
         Use-TransitionRun
         $script:CbsLines = @()

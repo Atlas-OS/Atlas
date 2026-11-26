@@ -837,6 +837,8 @@ function Repair-PreparationRecordedDamage {
         Write-PreparationComponentEvidence 'Windows records damage it can''t repair'
         throw (New-PreparationFailure 'Windows reports that its component store is damaged beyond repair.' 'component-store-unrepairable')
     }
+    # Repaired since by other means: an earlier failed repair no longer counts.
+    if ($health -eq 'Healthy') { Clear-PreparationRepairFailure }
     if ($health -ne 'Repairable') { return $false }
     $packages = @(Get-AtlasInstalledAtlasPackage)
     if ($packages.Count -gt 0) {
@@ -849,21 +851,119 @@ function Repair-PreparationRecordedDamage {
 # Repairs the store once a run; returns whether the repair ran. -Ahead is a
 # repair before any update has failed on the store: when it fails, it doesn't
 # use up the run's repair, which an update that does fail on it then gets.
+#
+# A repair that fails, leaves the store repairable and has servicing report
+# package manifests missing, as for Features on Demand whose manifests are gone,
+# can't put the store right: the Atlas install would then fail on it (0x800F0831),
+# so the run stops with component-store-unrepairable before it. The failure is
+# recorded, so a later run, such as a deliberate try again, repairs once more,
+# and runs after a second such failure stop at once instead of repairing for
+# minutes each time. A store that reads healthy clears the record.
 function Invoke-PreparationComponentRepair([string]$Why, [switch]$Ahead) {
     if ($script:PreparationComponentRepairRun) { return $false }
+    $failures = Get-PreparationRepairFailure
+    if ($null -ne $failures -and $failures.failures -ge 2 -and (Get-PreparationComponentHealth) -eq 'Repairable') {
+        Write-PreparationComponentEvidence ("$Why; its repair already failed {0} times on missing manifests, most recently with {1}, so it isn't repaired again" -f $failures.failures, $failures.code)
+        throw (New-PreparationFailure "Windows couldn't repair its component store: servicing reports package manifests missing, and the repair failed $($failures.failures) times." 'component-store-unrepairable')
+    }
     $script:PreparationComponentRepairRun = $true
     Write-PreparationComponentEvidence "$Why; repairing it with DISM RestoreHealth"
     Write-PreparationState running windows-repair
+    # CBS.log writes local times.
+    $started = [DateTime]::Now
     try { $code = [int](Invoke-PreparationRestoreHealth) }
     catch {
         Write-PreparationComponentEvidence "the repair could not run: $($_.Exception.Message)"
         if ($Ahead) { $script:PreparationComponentRepairRun = $false }
         return $true
     }
-    Write-PreparationComponentEvidence ('the repair ended with 0x{0:X8}; Windows now records it as {1}' -f $code, (Get-PreparationComponentHealth))
+    $health = Get-PreparationComponentHealth
+    Write-PreparationComponentEvidence ('the repair ended with 0x{0:X8}; Windows now records it as {1}' -f $code, $health)
+    if ($health -eq 'Healthy') { Clear-PreparationRepairFailure }
     # 3010: done, with a restart to finish it.
+    if ($code -notin @(0, 3010) -and $health -eq 'Repairable') {
+        $missing = @(Get-PreparationMissingManifest $started)
+        if ($missing.Count -gt 0) {
+            $count = Save-PreparationRepairFailure $code
+            $named = @($missing | Select-Object -First 3) -join ', '
+            Write-PreparationComponentEvidence "servicing reports manifests missing for $($missing.Count) package(s), such as $named; the repair can't put them back (failure $count)"
+            throw (New-PreparationFailure ("Windows couldn't repair its component store (0x{0:X8}): servicing reports manifests missing for {1} package(s), such as {2}." -f $code, $missing.Count, $named) 'component-store-unrepairable' $code)
+        }
+    }
     if ($Ahead -and $code -notin @(0, 3010)) { $script:PreparationComponentRepairRun = $false }
     return $true
+}
+
+# The packages whose manifests servicing reports missing in CBS.log since
+# $Since, as in "Store corruption, manifest missing for package: <name>", or a
+# store corruption failure that names none. Empty when the log can't be read.
+function Get-PreparationMissingManifest([DateTime]$Since) {
+    try { $lines = @(Get-AtlasTransitionCbsLogTail) }
+    catch {
+        Write-PreparationComponentEvidence "the servicing log could not be read: $($_.Exception.Message)"
+        return
+    }
+    $from = $Since.AddSeconds(-5)
+    $packages = [Collections.Generic.List[string]]::new()
+    foreach ($line in $lines) {
+        $stamp = [DateTime]::MinValue
+        if ([string]$line -notmatch '^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}),' -or
+            -not [DateTime]::TryParseExact($Matches[1], 'yyyy-MM-dd HH:mm:ss', [Globalization.CultureInfo]::InvariantCulture,
+                [Globalization.DateTimeStyles]::None, [ref]$stamp) -or $stamp -lt $from) { continue }
+        $name = if ($line -match 'manifest missing for package: (\S+)') { $Matches[1] }
+        elseif ($line -match "Failed to resolve package '([^']+)'.*CBS_E_STORE_CORRUPTION") { $Matches[1] }
+        if ($name -and -not $packages.Contains($name)) { $packages.Add($name) }
+    }
+    $packages
+}
+
+# Failed repairs the last runs recorded (see Invoke-PreparationComponentRepair),
+# kept beside the record of updates no longer waited for. A record more than 30
+# days old counts for nothing.
+function Get-PreparationRepairRecordText {
+    $value = Get-AtlasTransitionValue $script:PreparationReofferedRoot 'ComponentRepairFailed'
+    if ($value.Present -and $value.Kind -eq 'String') { return [string]$value.Data }
+    return ''
+}
+
+function Set-PreparationRepairRecordText([string]$Text) {
+    if ($Text) { Set-AtlasTransitionValue $script:PreparationReofferedRoot 'ComponentRepairFailed' 'String' $Text }
+    else { Remove-AtlasTransitionValue $script:PreparationReofferedRoot 'ComponentRepairFailed' }
+}
+
+# The record as { failures, code, at }, or $null without a valid recent one.
+function Get-PreparationRepairFailure {
+    try {
+        $text = Get-PreparationRepairRecordText
+        if (-not $text) { return $null }
+        $record = $text | ConvertFrom-Json -ErrorAction Stop
+        $at = [DateTime]::MinValue
+        if (-not [DateTime]::TryParse([string]$record.at, [Globalization.CultureInfo]::InvariantCulture,
+                [Globalization.DateTimeStyles]::AdjustToUniversal, [ref]$at) -or $at -lt [DateTime]::UtcNow.AddDays(-30) -or
+            [string]$record.code -notmatch '^0x[0-9A-F]{8}$' -or ($record.failures -isnot [int] -and $record.failures -isnot [long])) { return $null }
+        return [pscustomobject]@{ failures = [int]$record.failures; code = [string]$record.code; at = $at }
+    }
+    catch {
+        Write-PreparationComponentEvidence "the record of failed repairs couldn't be read: $($_.Exception.Message)"
+        return $null
+    }
+}
+
+# Records one more failed repair and returns how many the record now holds.
+function Save-PreparationRepairFailure([int]$Code) {
+    $earlier = Get-PreparationRepairFailure
+    $count = if ($null -ne $earlier) { $earlier.failures + 1 } else { 1 }
+    try {
+        $record = [pscustomobject][ordered]@{ failures = $count; code = '0x{0:X8}' -f $Code; at = [DateTime]::UtcNow.ToString('o') }
+        Set-PreparationRepairRecordText (ConvertTo-Json -InputObject $record -Compress)
+    }
+    catch { Write-PreparationComponentEvidence "the failed repair couldn't be recorded: $($_.Exception.Message)" }
+    return $count
+}
+
+function Clear-PreparationRepairFailure {
+    try { if (Get-PreparationRepairRecordText) { Set-PreparationRepairRecordText '' } }
+    catch { Write-PreparationComponentEvidence "the record of failed repairs couldn't be cleared: $($_.Exception.Message)" }
 }
 
 # DISM's RestoreHealth, which repairs the store from Windows Update. It reports

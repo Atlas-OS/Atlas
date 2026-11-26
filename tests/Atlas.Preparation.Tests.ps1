@@ -17,6 +17,12 @@ BeforeAll {
     # No test reads or starts this PC's Windows Update service.
     function Get-PreparationUpdateServiceStatus { 'Running' }
     function Start-PreparationUpdateService { throw 'A test started Windows Update without standing in for it.' }
+    # Nor reads its servicing log, or reads or writes its record of failed repairs.
+    $script:CbsLines = @()
+    function Get-AtlasTransitionCbsLogTail { $script:CbsLines }
+    $script:RepairRecordText = ''
+    function Get-PreparationRepairRecordText { $script:RepairRecordText }
+    function Set-PreparationRepairRecordText([string]$Text) { $script:RepairRecordText = $Text }
 }
 
 Describe 'Signed-in preparation ownership' {
@@ -2122,6 +2128,77 @@ Describe 'A damaged component store' {
         foreach ($code in @($script:StoreCorruption, 0)) { $script:Installs.Enqueue((New-InstallResult $code)) }
         Invoke-PreparationWindows | Should -Be 'complete'
         Should -Invoke Invoke-PreparationRestoreHealth -Times 1 -Exactly
+    }
+
+    Context 'A repair that fails on missing manifests' {
+        BeforeEach {
+            $script:RepairRecordText = ''
+            $script:CbsLines = @()
+            $script:ComponentHealth = 'Repairable'
+            # DISM ends with 0x800F0915; servicing reports Features on Demand manifests missing.
+            Mock Invoke-PreparationRestoreHealth {
+                $script:Steps.Add('repair')
+                $now = '{0:yyyy-MM-dd HH:mm:ss}' -f [DateTime]::Now
+                $script:CbsLines = @(
+                    "$now, Info                  CBS    Store corruption, manifest missing for package: Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9974"
+                    "$now, Error                 CBS    Failed to resolve package 'Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9974' [HRESULT = 0x800f0831 - CBS_E_STORE_CORRUPTION]"
+                    "$now, Info                  CBS    Store corruption, manifest missing for package: OpenSSH-Client-Package~31bf3856ad364e35~amd64~~10.0.26100.9974"
+                )
+                -2146498283
+            }
+            function Reset-Run { $script:PreparationComponentChecked = $false; $script:PreparationComponentRepairRun = $false }
+        }
+        It 'stops before any update with the unrepairable result, and records the failure' {
+            $thrown = $null
+            try { Invoke-PreparationWindows } catch { $thrown = $_.Exception }
+            $detail = Get-PreparationFailureDetail $thrown
+            $detail.reason | Should -BeExactly 'component-store-unrepairable'
+            $detail.errorCode | Should -BeExactly '0x800F0915'
+            $detail.failureMessage | Should -Match 'manifests missing for 2 package\(s\), such as Microsoft-Windows-PowerShell-ISE-FOD-Package~\S+, OpenSSH-Client-Package~'
+            @($script:Steps) | Should -Be @('repair stage', 'repair')
+            ($script:RepairRecordText | ConvertFrom-Json).failures | Should -Be 1
+            ($script:RepairRecordText | ConvertFrom-Json).code | Should -BeExactly '0x800F0915'
+        }
+        It 'repairs once more on the next try, then stops at once without repairing again' {
+            foreach ($try in 1..3) {
+                Reset-Run
+                try { Invoke-PreparationWindows } catch { $detail = Get-PreparationFailureDetail $_.Exception }
+                $detail.reason | Should -BeExactly 'component-store-unrepairable' -Because "try $try"
+            }
+            Should -Invoke Invoke-PreparationRestoreHealth -Times 2 -Exactly
+            ($script:RepairRecordText | ConvertFrom-Json).failures | Should -Be 2
+            Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'its repair already failed 2 times on missing manifests, most recently with 0x800F0915, so it isn''t repaired again'
+        }
+        It 'repairs again, and goes on as before, once the store has read healthy' {
+            foreach ($try in 1..2) { Reset-Run; try { Invoke-PreparationWindows } catch { $null = $_ } }
+            # Repaired since, by other means.
+            $script:ComponentHealth = 'Healthy'
+            Reset-Run
+            Invoke-PreparationWindows | Should -Be 'complete'
+            $script:RepairRecordText | Should -BeNullOrEmpty
+        }
+        It 'goes on to the updates when servicing reported the missing manifests only before the repair' {
+            Mock Invoke-PreparationRestoreHealth {
+                $script:Steps.Add('repair')
+                $script:CbsLines = @('2001-01-01 00:00:00, Info                  CBS    Store corruption, manifest missing for package: OpenSSH-Client-Package~31bf3856ad364e35~amd64~~10.0.26100.9974')
+                -2146498283
+            }
+            Invoke-PreparationWindows | Should -Be 'complete'
+            @($script:Steps) | Should -Be @('repair stage', 'repair', 'search')
+            $script:RepairRecordText | Should -BeNullOrEmpty
+        }
+        It 'goes on to the updates when the repair fixes the store' {
+            Mock Invoke-PreparationRestoreHealth { $script:Steps.Add('repair'); $script:ComponentHealth = 'Healthy'; 0 }
+            $script:RepairRecordText = '{"failures":1,"code":"0x800F0915","at":"' + [DateTime]::UtcNow.ToString('o') + '"}'
+            Invoke-PreparationWindows | Should -Be 'complete'
+            $script:RepairRecordText | Should -BeNullOrEmpty
+        }
+        It 'leaves a record older than 30 days out' {
+            $script:RepairRecordText = '{"failures":2,"code":"0x800F0915","at":"' + [DateTime]::UtcNow.AddDays(-31).ToString('o') + '"}'
+            try { Invoke-PreparationWindows } catch { $null = $_ }
+            Should -Invoke Invoke-PreparationRestoreHealth -Times 1 -Exactly
+            ($script:RepairRecordText | ConvertFrom-Json).failures | Should -Be 1
+        }
     }
 }
 

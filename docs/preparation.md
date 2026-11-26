@@ -112,6 +112,15 @@ If the repair leaves a restart, the **Get ready** page restarts before it search
 When Windows reads the store as `NonRepairable`, the run stops before any update with `component-store-unrepairable`.
 The update row says Windows is too damaged to update, with **Create an Atlas ISO** as its one button, after a backup; trying again can't help.
 
+A repair can also fail on manifests the store has lost, such as those of Features on Demand.
+DISM then ends with an error such as `0x800F0915`, the store still reads `Repairable`, and `CBS.log` reports `Store corruption, manifest missing for package` since the repair started.
+The Atlas install would fail on such a store with `0x800F0831`, so the run stops with `component-store-unrepairable` there, before any update.
+
+- The worker records the failed repair under `HKLM\SOFTWARE\AtlasOS\Preparation`.
+- The next run, such as trying again, repairs once more.
+- After a second such failure, runs stop at once without repairing, as each repair can take several minutes.
+- A store that reads healthy clears the record, and a record lapses after 30 days.
+
 When an update still fails with `0x80073712` after the repair, the run stops with that error.
 A restart can clear what's left, so the row offers **Restart and try again**.
 It restarts as any restart updating asks for does, and updating carries on by itself after you sign in.
