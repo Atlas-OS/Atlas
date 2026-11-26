@@ -169,6 +169,8 @@ The orderings matter:
 
 - PayloadReplacement replays every time, so a resume syncs the package's files before it skips completed steps.
   A rebuilt package can keep its version while it fixes a failed run.
+  When permissions changed by hand refuse the removal of an old file, it takes ownership of that item in `AtlasModules` or `AtlasDesktop`, gives SYSTEM and Administrators full control and tries again.
+  A removal still refused stops the step, naming the item.
 - Choices runs only when an update or reinstall chooses again, through the step's `ChooseAgainModes` list.
   It comes after LegacyChoices and Software, so the old choices are read and a newly chosen browser is installed first.
   It comes before Defaults and the tweak categories, so they apply the records it writes.

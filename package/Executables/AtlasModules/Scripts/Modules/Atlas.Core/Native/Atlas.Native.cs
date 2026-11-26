@@ -1876,6 +1876,67 @@ namespace Atlas.Native
         }
     }
 
+    // ----- Taking back an Atlas-owned object whose permissions refuse Atlas -----
+    // PowerShell consumer: Install\Tasks\Remove-PreviousAtlasInstall.ps1
+    // Writing the owner of an object whose DACL refuses the caller needs
+    // SeTakeOwnershipPrivilege enabled, and the managed SetAccessControl doesn't enable it.
+    // Only the ownership privilege can be enabled here, for this process's token.
+    // https://learn.microsoft.com/windows/win32/secauthz/enabling-and-disabling-privileges-in-c--
+    public static class OwnershipPrivilege
+    {
+        private const UInt32 TokenAdjustPrivileges = 0x0020;
+        private const UInt32 TokenQuery = 0x0008;
+        private const UInt32 SePrivilegeEnabled = 0x00000002;
+        private const int ErrorNotAllAssigned = 1300;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct Luid { public UInt32 LowPart; public Int32 HighPart; }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct TokenPrivilegesOne {
+            public UInt32 PrivilegeCount;
+            public Luid Luid;
+            public UInt32 Attributes;
+        }
+
+        [DllImport("kernel32.dll")]
+        private static extern IntPtr GetCurrentProcess();
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool CloseHandle(IntPtr handle);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        private static extern bool OpenProcessToken(IntPtr processHandle, UInt32 desiredAccess, out IntPtr tokenHandle);
+
+        [DllImport("advapi32.dll", EntryPoint = "LookupPrivilegeValueW", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern bool LookupPrivilegeValue(string systemName, string name, out Luid luid);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        private static extern bool AdjustTokenPrivileges(IntPtr tokenHandle, bool disableAllPrivileges, ref TokenPrivilegesOne newState, Int32 bufferLength, IntPtr previousState, IntPtr returnLength);
+
+        public static void Enable()
+        {
+            const string name = "SeTakeOwnershipPrivilege";
+            IntPtr token;
+            if (!OpenProcessToken(GetCurrentProcess(), TokenAdjustPrivileges | TokenQuery, out token))
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "Opening this process's token to enable " + name + " failed.");
+            try {
+                Luid luid;
+                if (!LookupPrivilegeValue(null, name, out luid))
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "Looking up " + name + " failed.");
+                TokenPrivilegesOne privileges = new TokenPrivilegesOne();
+                privileges.PrivilegeCount = 1;
+                privileges.Luid = luid;
+                privileges.Attributes = SePrivilegeEnabled;
+                if (!AdjustTokenPrivileges(token, false, ref privileges, 0, IntPtr.Zero, IntPtr.Zero))
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "Enabling " + name + " failed.");
+                if (Marshal.GetLastWin32Error() == ErrorNotAllAssigned)
+                    throw new Win32Exception(ErrorNotAllAssigned, "This process's token doesn't hold " + name + ".");
+            }
+            finally { CloseHandle(token); }
+        }
+    }
+
     // Update the live session as well as the profile: theme application can write
     // cached accessibility flags back over a registry-only shortcut change.
     // https://learn.microsoft.com/windows/win32/api/winuser/ns-winuser-highcontrastw
