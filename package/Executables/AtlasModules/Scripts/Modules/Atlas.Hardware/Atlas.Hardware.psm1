@@ -23,5 +23,5 @@ foreach ($domainModule in @(
 }
 
 Export-ModuleMember -Function @(
-    'Set-AtlasPowerSavingState', 'Set-AtlasDevicePowerSaving', 'Set-AtlasDeviceState'
+    'Set-AtlasPowerSavingState', 'Enable-AtlasBalancedPowerScheme', 'Set-AtlasDevicePowerSaving', 'Set-AtlasDeviceState'
 )

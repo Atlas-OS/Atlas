@@ -7,6 +7,7 @@
     PowerShellVersion = '5.1'
     FunctionsToExport = @(
         'Set-AtlasPowerSavingState'
+        'Enable-AtlasBalancedPowerScheme'
         'Set-AtlasDevicePowerSaving'
         'Set-AtlasDeviceState'
     )
