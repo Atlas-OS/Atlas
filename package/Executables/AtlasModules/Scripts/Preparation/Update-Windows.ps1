@@ -1288,8 +1288,11 @@ function Wait-PreparationStoreTask([Threading.Tasks.Task]$Task) {
             Write-PreparationState running store-search
             if ((Get-PreparationStoreTime) -gt $deadline) {
                 # A busy Store can take this long; a later call usually answers.
+                # One that never does can have a stuck install service, which
+                # the repairs restart first (see Repair-PreparationStore).
                 $silent = New-PreparationFailure 'Microsoft Store did not answer.' 'store-timeout'
                 $silent.Data['storeTransient'] = 'retry'
+                $silent.Data['storeSilent'] = $true
                 throw $silent
             }
         }
@@ -1521,7 +1524,9 @@ function Assert-PreparationCurrent {
     if (-not (Test-PreparationNetwork)) { throw 'The internet connection changed during preparation verification.' }
 }
 
-function Invoke-PreparationStoreWithRetry {
+# Runs $Action, the Store apps' pass unless given another Store call, and returns
+# what it returns.
+function Invoke-PreparationStoreWithRetry([scriptblock]$Action = { Invoke-PreparationStore }) {
     # Retry what passes on its own: another install in progress (0x80240016), an app
     # whose files are in use (0x80073D02), which the Store's forced restart of the
     # app or the user closing it gets past, and a Store that cancelled an item
@@ -1530,7 +1535,7 @@ function Invoke-PreparationStoreWithRetry {
     # failure the last try doesn't get past goes on to the repairs, as any Store
     # failure does.
     for ($attempt = 0; $attempt -lt 4; $attempt++) {
-        try { Invoke-PreparationStore; return }
+        try { return (& $Action) }
         catch {
             $detail = Get-PreparationFailureDetail $_.Exception
             $code = if ($detail.ContainsKey('errorCode')) { $detail.errorCode } else { '' }
@@ -1569,7 +1574,8 @@ $script:PreparationStoreInventoryNames = @(
     'Microsoft.VCLibs.140.00*', 'Microsoft.UI.Xaml.*', 'Microsoft.NET.Native.Framework.*',
     'Microsoft.NET.Native.Runtime.*', 'Microsoft.WindowsAppRuntime.*')
 # In order: wsreset -i, then App Installer (the newer copy this PC has, or one
-# from Microsoft) and the Store through winget, then StoreFixer.
+# from Microsoft) and the Store through winget, then StoreFixer. A Store that
+# didn't answer gets a restart of its install service first ('installservice').
 $script:PreparationStoreRepairs = @('wsreset', 'bootstrap', 'storefixer')
 # Whether the bootstrap downloaded App Installer, rather than registering the
 # copy this PC already had.
@@ -2185,24 +2191,20 @@ function Wait-PreparationStoreItem($Manager, $Item, [string]$Stage, [int]$Minute
 
 # Asks the Store to update itself, then App Installer, by package family, and
 # waits for each. App Installer only helps; a Store that can't update fails.
-# Returns whether either was updated.
-function Update-PreparationStoreItself {
+# With -Retry, the Store's own update gets the tries the Store apps get
+# (Invoke-PreparationStoreWithRetry), as the first try before the repairs; after
+# a repair, one try says whether it helped. Returns whether either was updated.
+function Update-PreparationStoreItself([switch]$Retry) {
     $manager = New-PreparationStoreManager
-    $itemType = [Windows.ApplicationModel.Store.Preview.InstallControl.AppInstallItem]
     $updated = $false
     foreach ($family in @($script:PreparationStoreFamily, $script:PreparationAppInstallerFamily)) {
         Assert-PreparationContinue
         try {
-            $item = Wait-PreparationStoreCall ($manager.UpdateAppByPackageFamilyNameAsync($family)) $itemType
-            if ($null -eq $item) {
-                Write-PreparationStoreEvidence "$family has no update"
-                continue
+            $result = if ($Retry -and $family -eq $script:PreparationStoreFamily) {
+                Invoke-PreparationStoreWithRetry { Update-PreparationStoreFamily $manager $family }
             }
-            Write-PreparationStoreEvidence "$family is out of date; updating it"
-            $before = Get-PreparationPackageVersion
-            try { Wait-PreparationStoreItem $manager $item store-self-update }
-            finally { Write-PreparationStoreItem @($item) $before }
-            $updated = $true
+            else { Update-PreparationStoreFamily $manager $family }
+            if (@($result) -contains $true) { $updated = $true }
         }
         catch {
             # App Installer only helps: whatever a repair could help with, or a
@@ -2213,6 +2215,22 @@ function Update-PreparationStoreItself {
         }
     }
     return $updated
+}
+
+# Asks the Store to update one package family and follows the update to its end.
+# Returns whether there was one.
+function Update-PreparationStoreFamily($Manager, [string]$Family) {
+    $itemType = [Windows.ApplicationModel.Store.Preview.InstallControl.AppInstallItem]
+    $item = Wait-PreparationStoreCall ($Manager.UpdateAppByPackageFamilyNameAsync($Family)) $itemType
+    if ($null -eq $item) {
+        Write-PreparationStoreEvidence "$Family has no update"
+        return $false
+    }
+    Write-PreparationStoreEvidence "$Family is out of date; updating it"
+    $before = Get-PreparationPackageVersion
+    try { Wait-PreparationStoreItem $Manager $item store-self-update }
+    finally { Write-PreparationStoreItem @($item) $before }
+    return $true
 }
 
 # Failures a Store repair can help with. Not a paused queue the user resolves,
@@ -2255,7 +2273,7 @@ function Invoke-PreparationStoreStage {
         }
     }
     try {
-        if (Update-PreparationStoreItself) { Set-PreparationStoreOutcome 'store-updated' }
+        if (Update-PreparationStoreItself -Retry) { Set-PreparationStoreOutcome 'store-updated' }
         Invoke-PreparationStoreWithRetry
         Clear-PreparationStagingRecord
         Write-PreparationStoreInventory 'after'
@@ -2292,7 +2310,11 @@ function Repair-PreparationStore([Exception]$Failure) {
     Write-PreparationStoreEvidence "updating failed ($($Failure.Message)$(if ($code) { ", $code" })); repairing"
     $last = $Failure
     $ended = [Collections.Generic.List[string]]::new()
-    foreach ($repair in $script:PreparationStoreRepairs) {
+    # A Store that didn't answer in any of its tries can have a stuck install
+    # service, which a restart clears without the repairs.
+    $repairs = @($script:PreparationStoreRepairs)
+    if ($Failure.Data.Contains('storeSilent')) { $repairs = @('installservice') + $repairs }
+    foreach ($repair in $repairs) {
         Assert-PreparationContinue
         Write-PreparationState running store-repair
         try { $result = Invoke-PreparationStoreRepair $repair | Select-Object -Last 1 }
@@ -2349,10 +2371,40 @@ function Repair-PreparationStore([Exception]$Failure) {
 
 function Invoke-PreparationStoreRepair([string]$Repair) {
     switch ($Repair) {
+        'installservice' { Restart-PreparationStoreService }
         'wsreset' { Invoke-PreparationWsReset }
         'bootstrap' { Install-PreparationStoreFromMicrosoft }
         'storefixer' { Invoke-PreparationStoreFixer }
     }
+}
+
+# Restarts the Microsoft Store Install Service (InstallService), which carries out
+# the Store's downloads and installs, for a Store that stopped answering. A service
+# that's turned off isn't stopped, as it couldn't start again. Each wait for it is
+# cut at a minute, and Stop doesn't interrupt one, so a restart is never left
+# between stopping and starting. Returns whether it's running again.
+function Restart-PreparationStoreService {
+    $service = Get-Service -Name InstallService -ErrorAction Stop
+    if ([string]$service.StartType -eq 'Disabled') { throw 'The Microsoft Store Install Service is turned off (start type Disabled).' }
+    $was = [string]$service.Status
+    if ($was -ne 'Stopped') {
+        $service.Stop()
+        Wait-PreparationStoreService $service 'Stopped'
+    }
+    $service.Start()
+    Wait-PreparationStoreService $service 'Running'
+    Write-PreparationStoreEvidence "installservice: restarted the Microsoft Store Install Service, which was $was"
+    return $true
+}
+
+function Wait-PreparationStoreService($Service, [string]$Status) {
+    for ($waited = 0; $waited -lt 60; $waited += 2) {
+        Write-PreparationState running store-repair
+        $Service.Refresh()
+        if ([string]$Service.Status -eq $Status) { return }
+        Start-Sleep -Seconds 2
+    }
+    throw "The Microsoft Store Install Service isn't $($Status.ToLowerInvariant()) after a minute; it's $($Service.Status)."
 }
 
 # Starts a program in this session and waits for it, reporting the repair

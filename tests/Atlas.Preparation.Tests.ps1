@@ -642,6 +642,39 @@ Describe 'Microsoft Store before the Store apps' {
         @($script:Repairs) | Should -Be @('wsreset', 'bootstrap', 'storefixer') -Because $Case
     }
 
+    It 'gives the Store''s own update its tries before the repairs, and one try after each' {
+        Mock Update-PreparationStoreItself { if (-not $script:Fixed) { throw (New-PreparationFailure 'Microsoft Store is not registered for this user.' 'store-missing') }; $false }
+        Mock Invoke-PreparationStoreRepair { $script:Repairs.Add($Repair); if ($Repair -eq 'bootstrap') { $script:Fixed = $true }; $true }
+        Invoke-PreparationStoreStage
+        Should -Invoke Update-PreparationStoreItself -Times 1 -Exactly -ParameterFilter { $Retry }
+        Should -Invoke Update-PreparationStoreItself -Times 2 -Exactly -ParameterFilter { -not $Retry }
+    }
+
+    It 'restarts the Store''s install service first when the Store didn''t answer, and stops there when that''s what it needed' {
+        $script:Silent = New-PreparationFailure 'Microsoft Store did not answer.' 'store-timeout'
+        $script:Silent.Data['storeTransient'] = 'retry'
+        $script:Silent.Data['storeSilent'] = $true
+        Mock Update-PreparationStoreItself { if (-not $script:Fixed) { throw $script:Silent }; $false }
+        Mock Invoke-PreparationStoreRepair { $script:Repairs.Add($Repair); if ($Repair -eq 'installservice') { $script:Fixed = $true }; $true }
+        Invoke-PreparationStoreStage
+        @($script:Repairs) | Should -Be @('installservice')
+        (Get-PreparationOutcomeDetail).storeOutcome | Should -Be 'store-repaired'
+        Get-Content (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'works again after installservice'
+    }
+
+    It 'goes on to the usual repairs when restarting the install service doesn''t help' {
+        $script:Silent = New-PreparationFailure 'Microsoft Store did not answer.' 'store-timeout'
+        $script:Silent.Data['storeTransient'] = 'retry'
+        $script:Silent.Data['storeSilent'] = $true
+        Mock Update-PreparationStoreItself { throw $script:Silent }
+        Mock Invoke-PreparationStoreRepair { $script:Repairs.Add($Repair); $true }
+        try { Invoke-PreparationStoreStage } catch { $thrown = $_.Exception }
+        @($script:Repairs) | Should -Be @('installservice', 'wsreset', 'bootstrap', 'storefixer')
+        $detail = Get-PreparationFailureDetail $thrown
+        $detail.reason | Should -Be 'store-repair-failed'
+        $detail.failureMessage | Should -Match "\(installservice didn't help; wsreset didn't help; bootstrap didn't help; storefixer didn't help\)"
+    }
+
     It 'says which repairs ran, failed or were skipped, and names a network problem' {
         Mock Update-PreparationStoreItself { throw (New-PreparationFailure 'Microsoft Store is not registered for this user.' 'store-missing') }
         Mock Invoke-PreparationStoreRepair {
@@ -2672,6 +2705,96 @@ Describe 'A Store that is slow or briefly fails' {
         $thrown.Message | Should -Be 'Microsoft Store did not answer.'
         (Get-PreparationFailureDetail $thrown).reason | Should -Be 'store-timeout'
         Get-PreparationStoreTransient $thrown | Should -Be 'retry'
+        $thrown.Data['storeSilent'] | Should -BeTrue -Because 'the repairs restart the install service first for it'
+    }
+
+    Context 'The Store''s own update' {
+        BeforeEach {
+            Mock Assert-PreparationContinue {}
+            Mock Start-Sleep {}
+            Mock Test-PreparationRestart { $false }
+            $script:manager = [pscustomobject]@{}
+            $script:manager | Add-Member ScriptMethod UpdateAppByPackageFamilyNameAsync { param($Family) $Family }
+            Mock New-PreparationStoreManager { $script:manager }
+            $script:StoreCalls = 0
+            Mock Wait-PreparationStoreCall {
+                if ($Operation -ne 'Microsoft.WindowsStore_8wekyb3d8bbwe') { return $null }
+                $script:StoreCalls++
+                if ($script:StoreCalls -le 2) {
+                    $silent = New-PreparationFailure 'Microsoft Store did not answer.' 'store-timeout'
+                    $silent.Data['storeTransient'] = 'retry'
+                    $silent.Data['storeSilent'] = $true
+                    throw $silent
+                }
+            }
+            $null = [Windows.ApplicationModel.Store.Preview.InstallControl.AppInstallItem, Windows.ApplicationModel.Store.Preview.InstallControl, ContentType=WindowsRuntime]
+        }
+
+        It 'gets the tries the Store apps get, so a Store that answers later updates without the repairs' {
+            Update-PreparationStoreItself -Retry | Should -BeFalse
+            $script:StoreCalls | Should -Be 3
+            Should -Invoke Start-Sleep -Times 30 -Exactly -ParameterFilter { $Seconds -eq 1 }
+            Should -Invoke Write-PreparationStoreEvidence -Times 1 -Exactly -ParameterFilter { $Text -eq 'Microsoft Store did not answer; trying again in 15 seconds (attempt 2 of 4)' }
+            Should -Invoke Write-PreparationStoreEvidence -Times 1 -Exactly -ParameterFilter { $Text -eq 'Microsoft.WindowsStore_8wekyb3d8bbwe has no update' }
+        }
+
+        It 'fails for the repairs once its tries are used up, still marked as not answering' {
+            Mock Wait-PreparationStoreCall {
+                if ($Operation -ne 'Microsoft.WindowsStore_8wekyb3d8bbwe') { return $null }
+                $script:StoreCalls++
+                $silent = New-PreparationFailure 'Microsoft Store did not answer.' 'store-timeout'
+                $silent.Data['storeTransient'] = 'retry'
+                $silent.Data['storeSilent'] = $true
+                throw $silent
+            }
+            try { Update-PreparationStoreItself -Retry } catch { $thrown = $_.Exception }
+            $script:StoreCalls | Should -Be 4
+            $thrown.Data['storeSilent'] | Should -BeTrue
+            Test-PreparationStoreRepairable $thrown | Should -BeTrue
+        }
+
+        It 'gets one try after a repair, which says whether it helped' {
+            { Update-PreparationStoreItself } | Should -Throw 'Microsoft Store did not answer.'
+            $script:StoreCalls | Should -Be 1
+            Should -Invoke Start-Sleep -Times 0 -Exactly
+        }
+    }
+
+    Context 'Restarting the Store''s install service' {
+        BeforeEach {
+            Mock Start-Sleep {}
+            $script:Service = [pscustomobject]@{ Status = 'Running'; StartType = 'Manual'; Calls = [Collections.Generic.List[string]]::new(); Stops = $true }
+            $script:Service | Add-Member ScriptMethod Stop { $this.Calls.Add('Stop'); if ($this.Stops) { $this.Status = 'Stopped' } }
+            $script:Service | Add-Member ScriptMethod Start { $this.Calls.Add('Start'); $this.Status = 'Running' }
+            $script:Service | Add-Member ScriptMethod Refresh {}
+            Mock Get-Service { $script:Service }
+        }
+
+        It 'stops it, starts it again and says so' {
+            Restart-PreparationStoreService | Should -BeTrue
+            @($script:Service.Calls) | Should -Be @('Stop', 'Start')
+            Should -Invoke Get-Service -Times 1 -Exactly -ParameterFilter { $Name -eq 'InstallService' }
+            Should -Invoke Write-PreparationStoreEvidence -Times 1 -Exactly -ParameterFilter { $Text -eq 'installservice: restarted the Microsoft Store Install Service, which was Running' }
+        }
+
+        It 'starts one that isn''t running' {
+            $script:Service.Status = 'Stopped'
+            Restart-PreparationStoreService | Should -BeTrue
+            @($script:Service.Calls) | Should -Be @('Start')
+        }
+
+        It 'leaves alone one that''s turned off, which couldn''t start again' {
+            $script:Service.StartType = 'Disabled'
+            { Restart-PreparationStoreService } | Should -Throw '*turned off*'
+            $script:Service.Calls.Count | Should -Be 0
+        }
+
+        It 'fails after a minute when it doesn''t stop, and never starts it meanwhile' {
+            $script:Service.Stops = $false
+            { Restart-PreparationStoreService } | Should -Throw "*isn't stopped after a minute; it's Running*"
+            @($script:Service.Calls) | Should -Be @('Stop')
+            Should -Invoke Start-Sleep -Times 30 -Exactly
+        }
     }
 
     It 'keeps App Installer as it is, and goes on, when the Store briefly fails to update it' {

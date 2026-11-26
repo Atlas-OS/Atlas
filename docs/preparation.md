@@ -152,6 +152,10 @@ It leaves the Store's services alone, and turning off automatic Store app update
 If the Store still can't update, the worker tries these repairs once per run, in order, and tries the Store again after each one that changed something.
 A Store that fails for a moment is tried again first, and one that's slow but still moving gets no repairs (see [Store app updates](#store-app-updates)).
 
+A Store that didn't answer in any of its tries first has its install service restarted, and is tried again.
+The Microsoft Store Install Service (`InstallService`) carries out the Store's downloads and installs, and a stuck one stops the Store answering.
+The worker waits at most a minute for it to stop and a minute for it to start, and leaves a service that's turned off alone, as it couldn't start again.
+
 1. **`wsreset.exe -i`**, run in your session.
    The switch isn't documented.
    It runs without a window, registers the Store's frameworks (UI.Xaml, VCLibs) again and updates the Store's purchase app in the background, and the worker follows what it queued.
@@ -227,6 +231,7 @@ Some Store failures pass on their own:
 - a Store that refuses to resume a queued download.
 
 The worker tries the Store again, up to four times in all, 15 seconds apart.
+The Store's own update gets the same tries before the repairs, and one try after each repair, which says whether it helped.
 When the Store still fails that way, it goes on to the repairs, as a Store that fails every time can be broken.
 
 An item the Store cancels with `0x80004004` in a run whose AppX deployment log already shows Windows unable to stage an update with `0x80070490` counts as that failure instead, as trying again doesn't get past a staging failure.
