@@ -412,7 +412,16 @@ Describe 'Reviewed release catalog regeneration' {
     It 'refuses a version listed both as a release and as a hotpatch' {
         $overlap = Join-Path $TestDrive 'overlap-source.md'
         [IO.File]::WriteAllText($overlap, (New-HotpatchMarkdownFixture).Replace('26300.9911', '26300.9550'), [Text.UTF8Encoding]::new($false))
-        $output = & $script:AtlasTestToolsHost -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $generator -MarkdownPath $overlap -AsOfDate '2026-11-20' -OutputPath (Join-Path $TestDrive 'overlap.json') 2>&1
+        # Windows PowerShell turns redirected native stderr into error records.
+        # Capture the expected failure even when CI uses ErrorActionPreference=Stop.
+        $savedPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'Continue'
+            $output = & $script:AtlasTestToolsHost -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $generator -MarkdownPath $overlap -AsOfDate '2026-11-20' -OutputPath (Join-Path $TestDrive 'overlap.json') 2>&1
+        }
+        finally {
+            $ErrorActionPreference = $savedPreference
+        }
         $LASTEXITCODE | Should -Not -Be 0
         ($output -join "`n") | Should -Match 'both as releases and as hotpatches'
     }
