@@ -154,11 +154,24 @@ function New-AtlasRecoveryDirectory {
     return $directory.FullName
 }
 
+# Why a recovery copy can't be used as it is, or $null when it can: it must have
+# the protected descriptor and this app's content.
+function Get-AtlasRecoveryCopyProblem {
+    param([string]$Path, [string]$Digest)
+    try { Assert-AtlasRecoveryFileSecurity $Path }
+    catch { return $_.Exception.Message }
+    if ((Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash -ine $Digest) { return 'The existing recovery executable does not match this app.' }
+    return $null
+}
+
 function Copy-AtlasRecoveryExecutable {
     param([string]$Source, [string]$Root)
     Assert-AtlasRecoveryPath $Source
     $rootPath = New-AtlasRecoveryDirectory $Root
-    $inputStream = [IO.File]::Open($Source, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+    # Delete sharing lets a recovery copy that Atlas Manager runs from be moved
+    # aside below while this reads it. The hash and the copy both come from this
+    # one handle, so a change to the path meanwhile can't change what is copied.
+    $inputStream = [IO.File]::Open($Source, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]'Read, Delete')
     $temporary = $null
     try {
         $hasher = [Security.Cryptography.SHA256]::Create()
@@ -167,17 +180,29 @@ function Copy-AtlasRecoveryExecutable {
         $inputStream.Position = 0
         $directory = New-AtlasRecoveryDirectory (Join-Path $rootPath $digest)
         $destination = Join-Path $directory 'AtlasManager.exe'
-        if (-not [IO.File]::Exists($destination)) {
-            $temporary = Join-Path $directory ('.copy-' + [guid]::NewGuid().ToString('N'))
-            $outputStream = New-Object IO.FileStream($temporary, [IO.FileMode]::CreateNew, [Security.AccessControl.FileSystemRights]::Write, [IO.FileShare]::None, 4096, [IO.FileOptions]::None, (Get-AtlasRecoveryFileSecurity))
-            try { $inputStream.CopyTo($outputStream); $outputStream.Flush($true) }
-            finally { $outputStream.Dispose() }
-            if ((Get-FileHash -LiteralPath $temporary -Algorithm SHA256).Hash -ine $digest) { throw 'Recovery copy verification failed.' }
-            try { [IO.File]::Move($temporary, $destination) }
-            catch [IO.IOException] { if (-not [IO.File]::Exists($destination)) { throw } }
+        if ([IO.File]::Exists($destination)) {
+            $problem = Get-AtlasRecoveryCopyProblem $destination $digest
+            if (-not $problem) { return $destination }
+            # A copy that no longer matches, such as one whose permissions a
+            # Windows feature update changed, would fail every staging after it.
+            # Only administrators can change this folder, so the copy is moved
+            # aside and made again. A copy Atlas Manager runs from can't be
+            # deleted until it closes, so it stays aside until then.
+            $aside = Join-Path $directory ('.aside-' + [guid]::NewGuid().ToString('N'))
+            try { [IO.File]::Move($destination, $aside) }
+            catch { throw "The recovery copy of Atlas Manager can't be used ($($problem.TrimEnd('.'))), and Windows refused to move it aside: $($_.Exception.Message)" }
+            try { [IO.File]::Delete($aside) }
+            catch { Write-Verbose "The recovery copy moved aside stays until it is free: $($_.Exception.Message)" }
         }
-        Assert-AtlasRecoveryFileSecurity $destination
-        if ((Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash -ine $digest) { throw 'The existing recovery executable does not match this app.' }
+        $temporary = Join-Path $directory ('.copy-' + [guid]::NewGuid().ToString('N'))
+        $outputStream = New-Object IO.FileStream($temporary, [IO.FileMode]::CreateNew, [Security.AccessControl.FileSystemRights]::Write, [IO.FileShare]::None, 4096, [IO.FileOptions]::None, (Get-AtlasRecoveryFileSecurity))
+        try { $inputStream.CopyTo($outputStream); $outputStream.Flush($true) }
+        finally { $outputStream.Dispose() }
+        if ((Get-FileHash -LiteralPath $temporary -Algorithm SHA256).Hash -ine $digest) { throw 'Recovery copy verification failed.' }
+        try { [IO.File]::Move($temporary, $destination) }
+        catch [IO.IOException] { if (-not [IO.File]::Exists($destination)) { throw } }
+        $problem = Get-AtlasRecoveryCopyProblem $destination $digest
+        if ($problem) { throw "The recovery copy of Atlas Manager still can't be used after it was made again: $problem" }
         return $destination
     }
     finally {

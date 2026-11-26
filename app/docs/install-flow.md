@@ -360,6 +360,8 @@ Protection is never left off silently.
 
 - Before preparation or an install, the app copies itself to the immutable, hash-named `%ProgramFiles%\Atlas Setup Recovery\<SHA-256>\AtlasManager.exe`.
   Restart registrations use this copy, so deleting the download or unplugging its drive doesn't break recovery.
+  An existing copy without the protected permissions or with other content, as a Windows feature update can leave it, is moved aside and made again, then checked.
+  When it can't be moved aside, or the new copy still doesn't match, staging stops with the reason.
   Before-desktop ISO setup already runs from the protected `%windir%\AtlasISO`, and skips the copy.
 - Jobs live in `Atlas Setup Recovery\Preparation`, scoped to the app's settings path, and in `Atlas Setup Recovery\Media` for ISO and USB jobs (`src/services/recovery_app.rs`, `resources/prepare/Stage-App.ps1`).
   Only administrators and SYSTEM can write their workers, driver policies and journals.
