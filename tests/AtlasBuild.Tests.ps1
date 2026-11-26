@@ -58,7 +58,7 @@ Describe 'Test-AtlasManifest' {
                         id      = 'extras'
                         kind    = 'multiple'
                         options = @(
-                            [ordered]@{ id = 'install-another-browser'; label = 'Install a browser' }
+                            [ordered]@{ id = 'install-another-browser'; label = 'Install a browser'; default = $true }
                         )
                     }
                     [ordered]@{
@@ -132,6 +132,8 @@ Describe 'Test-AtlasManifest' {
         @{ Case = 'a single choice without a default'; Change = { param($m) $m.choices[1].Remove('default') }; Problem = "Choice 'browser' is a single choice without a default." }
         @{ Case = 'a default that is not an option'; Change = { param($m) $m.choices[1].default = 'browser-chrome' }; Problem = "Choice 'browser' has the default ""browser-chrome"", which isn't one of its options." }
         @{ Case = 'a default on a multiple choice'; Change = { param($m) $m.choices[0].default = 'install-another-browser' }; Problem = "Choice 'extras' has a default, which only single choices take." }
+        @{ Case = 'an option default on a single choice'; Change = { param($m) $m.choices[1].options[1].default = $true }; Problem = "Option 'browser-firefox' has a default of its own, which only options of a multiple choice take." }
+        @{ Case = 'an option default that is not true or false'; Change = { param($m) $m.choices[0].options[0].default = 'yes' }; Problem = "Option 'install-another-browser' has a default that isn't true or false." }
         @{ Case = 'an unknown kind'; Change = { param($m) $m.choices[0].kind = 'many' }; Problem = "Choice 'extras' must have the kind single or multiple." }
         @{ Case = 'a repeated option id'; Change = { param($m) $m.choices[1].options[1].id = 'install-another-browser' }; Problem = "More than one option has the id 'install-another-browser'." }
         @{ Case = 'a repeated choice id'; Change = { param($m) $m.choices[1].id = 'extras' }; Problem = "More than one choice has the id 'extras'." }

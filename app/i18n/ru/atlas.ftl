@@ -617,7 +617,7 @@ cost-keyboard-shortcuts-off = Alt+Shift и Ctrl+Shift больше не буду
 # One line under an optional extra: what ticking it does.
 extra-disable-hibernation = Освобождает место на диске, но гибернация и быстрый запуск станут недоступны.
 extra-disable-power-saving = ПК может потреблять больше энергии, сильнее нагреваться и быстрее разряжать батарею.
-extra-disable-core-isolation = Это снижает защиту, включая целостность памяти, и может повлиять на приложения и игры, которым она нужна.
+extra-disable-core-isolation = Это снижает защиту, и игры с античитами, например Riot Vanguard или FACEIT, могут не запускаться, пока вы снова не включите целостность памяти.
 extra-uninstall-edge = Закладки, история просмотров и сохранённые пароли Edge на этом ПК будут удалены, кроме синхронизированных с учётной записью Майкрософт.
 extra-install-toolbox = Помогает управлять параметрами Atlas; в бета-версии некоторые функции могут быть не доработаны.
 extra-install-eclean = Инструмент от команды AtlasOS для просмотра ненужных файлов и приложений автозагрузки. Нужны учётная запись и подключение к интернету.
@@ -1134,7 +1134,7 @@ settings-open-data-folder = Открыть папку приложения
 
 consequence-disable-hibernation = Освобождает место на диске, которое используется для сохранения сеанса при гибернации. Гибернация и быстрый запуск станут недоступны.
 consequence-disable-power-saving = Отключает функции энергосбережения. ПК может потреблять больше энергии, сильнее нагреваться и быстрее разряжать батарею.
-consequence-disable-core-isolation = Отключает дополнительный уровень защиты Windows, включая целостность памяти. Это снижает защиту и может повлиять на приложения и игры, которым она нужна.
+consequence-disable-core-isolation = Отключает дополнительный уровень защиты Windows, включая целостность памяти. Это снижает защиту, и игры с античитами, например Riot Vanguard или FACEIT, могут не запускаться, пока вы снова не включите целостность памяти.
 consequence-remove-snipping-tool = Удаляет приложение Windows для снимков и записи экрана.
 consequence-uninstall-edge = Удаляет браузер Microsoft Edge. Убедитесь, что у вас есть другой браузер, или выберите его ниже.
 # Under Remove Microsoft Edge in the Install step's summary, with a caution glyph.
@@ -1374,6 +1374,7 @@ prepare-failed-store-timeout = Приложения Store ещё не обнов
 prepare-failed-store-passes = Microsoft Store продолжал предлагать новые обновления. Установите оставшиеся обновления в Microsoft Store и повторите попытку.
 prepare-failed-manual-updates = Установку некоторых обновлений Windows нужно завершить в Центре обновления Windows. Откройте Центр обновления Windows, завершите установку и повторите попытку.
 prepare-failed-windows-passes = Центр обновления Windows продолжал предлагать новые обновления. Установите оставшиеся обновления в Центре обновления Windows и повторите попытку.
+prepare-failed-windows-update-unreachable = Центру обновления Windows не удалось подключиться к серверам Microsoft. Проверьте подключение к интернету, а также брандмауэр, прокси-сервер или VPN, если они используются, затем повторите попытку.
 # Atlas Manager runs from a folder that links to another place (a junction or symbolic
 # link). "Linked folder" and "local folder" as in usb-iso-location. Atlas keeps using
 # the folder it was opened from, so trying again in the same window can't help.

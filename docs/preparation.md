@@ -44,7 +44,9 @@ The worker searches Windows Update online, downloads and installs what it finds,
 - Each search asks the Windows Update service itself (`ServerSelection` set to `ssWindowsUpdate`).
   The default service can be another catalogue on some PCs, and that catalogue may not offer the update Atlas needs.
 - A PC that gets updates from its organisation's server (`AU\UseWUServer` set to 1) keeps that server.
-- A search that ends with errors runs again, up to three times, 30 seconds apart.
+- A search that fails or ends with errors runs up to three times, after 30 seconds and then 60.
+  When Windows Update still can't be reached, or keeps stopping, the run stops with `windows-update-unreachable`.
+  The errors that count are `0x8024001E`, `0x80240438` and `0x80244010` to `0x8024401F`; any other error stops the run at once.
 - The worker leaves out optional previews (browse-only updates) and feature updates.
   It also leaves out drivers when you chose **Install drivers myself**.
 - When one pass offers several cumulative updates for the installed build, it installs only the newest.
@@ -53,15 +55,31 @@ The worker searches Windows Update online, downloads and installs what it finds,
   An update that requires your input stops the run with `manual-updates`, naming the updates to finish in Windows Settings.
 - A run gives up with `windows-passes` when Windows still offers updates after eight passes.
 
-The worker stops waiting for two kinds of update:
+A failed update gets one more try after a fresh search.
+Some failures are handled first:
+
+- When another installation holds Windows Update (`0x80240016`), the worker waits for it, for at least 30 seconds and at most 10 minutes, then tries again.
+  These waits don't use up the update's try, and a run makes up to three of them.
+- When an install result gives no code of its own, `updates.log` adds the code Windows Update's history records for that attempt, and the run reports that one.
+
+Before a restart for updates, the worker records the updates it's for under `HKLM\SOFTWARE\AtlasOS\Preparation`.
+When one of them fails again after the restart, or asks for yet another restart, the run stops with `manual-updates` instead of restarting again.
+A record from more than a day before doesn't count.
+
+The worker stops waiting for three kinds of update:
 
 - An update that installs successfully and is offered again at once, such as the Windows Security platform update.
   The log calls it `reoffered-after-success`.
 - A driver that Windows Update fails with `0x80070103`, because the device already has one at least as good.
   The log calls it `driver not needed`.
+- Microsoft Defender's own updates (KB2267602 and KB4052623) on a PC Atlas removed Defender from: Atlas's NoDefender package is installed, and the WinDefend service or the Defender engine (`MsMpEng.exe`) is gone.
+  Windows Update can keep offering them there, and they fail with `0x80070643`.
+  The log calls them `defender update not needed`.
+  While Defender could still run, they stay required.
 
-The worker keeps both under `HKLM\SOFTWARE\AtlasOS\Preparation` for 30 days, up to 100 entries.
+The worker keeps all three under `HKLM\SOFTWARE\AtlasOS\Preparation` for 30 days, up to 100 entries.
 The check before the install reads the same record, so it doesn't wait for them either.
+Defender's updates are the exception: each new one has a new ID, so the worker and the check decide them from the PC every time, and the record only shows them.
 
 When Windows Update is turned off, paused or set to delay monthly updates, the **Get ready** page turns it on for the run.
 It records the original settings first, and the Atlas install puts them back at its end (see [Putting Windows Update settings back](windows-transition.md#putting-windows-update-settings-back)).
@@ -73,10 +91,11 @@ When the store is damaged, updates fail, often with `0x80073712` (`ERROR_SXS_COM
 The worker repairs the store at most once per run with `DISM /Online /Cleanup-Image /RestoreHealth`, which takes replacement files from Windows Update.
 Microsoft describes the repair in [Repair a Windows image](https://learn.microsoft.com/windows-hardware/manufacture/desktop/repair-a-windows-image).
 
-The repair runs in two cases:
+The repair runs in three cases:
 
 - Before the run's first search, when Windows already records damage (`/CheckHealth` reads `Repairable`).
   PCs with Atlas packages installed are skipped, as the next section explains.
+- Before moving Windows to a newer release, when the store reads `Repairable` for a reason other than the Atlas packages (see [Preflight checks](windows-transition.md#preflight-checks)).
 - When an update fails with `0x80073712`.
   The updates that failed then get another try.
 
@@ -110,7 +129,8 @@ Atlas handles this in four places:
   When the `Servicing\LocalSourcePath` policy names that folder and the folder is gone, it removes the policy.
 - The **Get ready** page leaves a repairable store alone on a PC with Atlas packages before its first search.
   It still repairs the store when an update fails with `0x80073712`.
-- Before moving Windows to a newer release, the worker records the store's health and goes on with a repairable store (see [Preflight checks](windows-transition.md#preflight-checks)).
+- Before moving Windows to a newer release, the worker records the store's health and goes on with a repairable store.
+  It repairs the store first only when a store check finds damage other than the packages' own (see [Preflight checks](windows-transition.md#preflight-checks)).
 
 Windows's own scheduled store cleanup can have the same effect on any PC with the packages.
 
@@ -154,7 +174,8 @@ It comes before the update work so that its restarts never land in the middle of
 
 ### Microsoft Store repair
 
-If the Store still can't update, the worker tries these repairs once per run, in order, and tries the Store again after each one that changed something:
+If the Store still can't update, the worker tries these repairs once per run, in order, and tries the Store again after each one that changed something.
+A Store that fails for a moment is tried again first, and one that's slow but still moving gets no repairs (see [Store app updates](#store-app-updates)).
 
 1. **`wsreset.exe -i`**, run in your session.
    The switch isn't documented.
@@ -164,18 +185,22 @@ If the Store still can't update, the worker tries these repairs once per run, in
 2. **App Installer, then the Store through winget.**
    When the PC has a newer App Installer staged, or installed for another account, the worker registers that copy for you without a download.
    Otherwise, or when registering it changes nothing, it installs App Installer and its frameworks from the latest stable [winget-cli release](https://github.com/microsoft/winget-cli/releases).
+   When your App Installer is already that release or newer, it downloads nothing.
    If Windows refuses that release because a newer App Installer is on the PC, the worker uses the signed winget available to you.
    Then it installs the Store with `winget install --id 9WZDNCRFJBMP --source msstore`.
 3. **StoreFixer**, started through Atlas's own **Fix MS Store Issues**, which runs it as TrustedInstaller.
-   A PC with an Atlas older than 0.6 has no safe way to start it, so the worker leaves this step out there.
+   A PC with an Atlas older than 0.6 has no safe way to start it, so the worker leaves this step out there, and says it skipped it.
 
 App Installer versions are compared by the package's own version.
+The release's tag gives that version, and the version your winget reports must also be at least the tag before the worker skips the download.
 The list of provisioned packages gives the bundle's version, such as 2026.115.2221.0, which is always above the package's, such as 1.27.459.0, so the worker doesn't use it.
 The winget-cli repository is checked by its GitHub IDs, and each file by the SHA-256 that GitHub records and by Microsoft's signature.
+A download that the connection cuts short, or that a proxy or GitHub refuses, is logged as a network problem.
+GitHub answers HTTP 403 or 429 when one address sends it too many requests, as a shared connection can, and a proxy that wants credentials answers 407.
 
 The first repair after which the Store works ends the repairs, and `updates.log` says what was done.
 The update row doesn't, as it changes nothing you do.
-If none helps, the run stops with `store-repair-failed`.
+If none helps, the run stops with `store-repair-failed`, and its message says how each repair ended.
 The update row says Microsoft Store isn't working and that installing Atlas now could break Store apps, with **Try repair again**, which runs the repairs again.
 Behind **Show details** are the worker's own message and **Create an Atlas ISO**, for reinstalling Windows after a backup if the repair keeps failing.
 The row of help links under it offers **Send a report**, **Export diagnostics** and **Open log folder**.
@@ -187,6 +212,19 @@ If the Store offers the app again, the worker waits for it again and stops if it
 If the update disappears from the Store, the app is up to date, because a busy Store can report `Error` for an update it has already installed.
 If a newly failed update is for an installed app, the worker gives the queue up to a minute to settle and searches again before it starts repairs. It does this once per run.
 The log says which.
+
+Some Store failures pass on their own:
+
+- an update the Store cancels with `0x80004004` (`E_ABORT`);
+- a Store that doesn't answer within three minutes;
+- a Store that refuses to resume a queued download.
+
+The worker tries the Store again, up to four times in all, 15 seconds apart.
+When the Store still fails that way, it goes on to the repairs, as a Store that fails every time can be broken.
+
+The worker waits for Store apps while their updates move, until 30 minutes after anything last moved, and for 90 minutes at most.
+A Store that stops moving for 30 minutes gets the repairs, as a stuck Store can need them.
+One still moving after 90 minutes stops the run with `store-timeout`, without the repairs.
 
 An update that fails because its app is open (`0x80073D02`) names the app on the update row: close it, then try again, in Task Manager if it has no window.
 The row offers only **Try again**, as Microsoft Store has nothing to add.
@@ -245,7 +283,7 @@ Microsoft documents the parts this relies on in [Run and RunOnce registry keys](
 Before Capture, the front door runs the worker again with `-VerifyOnly`, from the protected staging copy of the Atlas package.
 It passes only when:
 
-- an online Windows Update search finds no required updates, apart from those recorded under `HKLM\SOFTWARE\AtlasOS\Preparation`;
+- an online Windows Update search finds no required updates, apart from those recorded under `HKLM\SOFTWARE\AtlasOS\Preparation` and Defender's own updates on a PC Atlas removed Defender from (see [Windows updates](#windows-updates));
 - Microsoft Store is registered for you, with no outstanding updates or active queue items;
 - the connection has confirmed internet access and isn't metered, over its data limit or roaming;
 - Windows needs no restart;
@@ -280,8 +318,9 @@ These logs belong to the **Get ready** page, so they aren't under `%windir%\Atla
 | Reason | Meaning |
 | --- | --- |
 | `session-owner` | The worker isn't running as the signed-in owner of the session. |
-| `manual-updates` | Some updates need you to finish them in Windows Settings. |
+| `manual-updates` | Some updates need you to finish them in Windows Settings, including updates that didn't finish after a restart for them. |
 | `windows-passes` | Windows still offers updates after eight passes. |
+| `windows-update-unreachable` | Windows Update couldn't be reached, or kept stopping, on every try. |
 | `component-store-unrepairable` | Windows reads its component store as damaged beyond repair. |
 | `store-missing` | Microsoft Store isn't registered for you. |
 | `store-paused-battery`, `store-paused-network` | The Store paused an update until the PC is plugged in or on Wi-Fi. |

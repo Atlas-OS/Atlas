@@ -427,7 +427,8 @@ pub(super) fn apply(model: &mut AppModel, preview: &str) {
 /// besides the questions and the summary, each of a first install but
 /// `install-choose-again`'s: a first install's questions
 /// (`options-first-install`), on a PC with one keyboard layout
-/// (`options-one-layout`), and with the extras unfolded (`options-extras`);
+/// (`options-one-layout`), and with the extras folded by Hide
+/// (`options-extras-folded`);
 /// each refusal of the final checks (`install-` and `invalid-options`,
 /// `changed`, `taken-over` or `record-unreadable`); and each result of an
 /// attempt that didn't succeed (`install-failed`, `-not-elevated`,
@@ -436,14 +437,14 @@ fn apply_choices_and_results(model: &mut AppModel, preview: &str) {
     use crate::services::installer::InstallOutcome;
     use crate::services::security::SwitchCounts;
     // A first install, whatever this PC has installed.
-    if matches!(preview, "options-first-install" | "options-one-layout" | "options-extras")
+    if matches!(preview, "options-first-install" | "options-one-layout" | "options-extras-folded")
         || (preview.starts_with("install-") && preview != "install-choose-again")
     {
         model.install_identity = Ok(InstallIdentity::Fresh);
         model.atlas = Ok(None);
         model.update_access = Some(UpdateAccess::default());
     }
-    model.extras_shown = matches!(preview, "options-extras" | "options-choose-again-fixed");
+    model.extras_shown = preview != "options-extras-folded";
     let problem = match preview {
         "install-invalid-options" => {
             // The browser picker left without an answer.
@@ -1388,13 +1389,13 @@ mod tests {
             shown("options-first-install", &|m| {
                 assert!(m.update_choices().is_none() && m.rebase_choices().is_none());
                 assert_eq!(asked(m), [Defender, Mitigations, Updates, Keyboard, Extras]);
-                assert!(!m.extras_shown);
+                assert!(m.extras_shown);
             });
             shown("options-one-layout", &|m| {
                 assert_eq!(asked(m), [Defender, Mitigations, Updates, Extras]);
                 assert!(m.effective_options().iter().any(|o| o == "keyboard-single"));
             });
-            shown("options-extras", &|m| assert!(m.extras_shown && asked(m).contains(&Extras)));
+            shown("options-extras-folded", &|m| assert!(!m.extras_shown && asked(m).contains(&Extras)));
             shown("options-choose-again", &|m| {
                 assert_eq!(screen(m), OptionScreen::UpdatePath);
                 assert!(m.choosing_again());

@@ -107,11 +107,13 @@
         },
         {
           "id": "disable-power-saving",
-          "label": "Turn off power saving"
+          "label": "Turn off power saving",
+          "default": true
         },
         {
           "id": "disable-core-isolation",
-          "label": "Turn off virtualisation-based security (VBS)"
+          "label": "Turn off virtualisation-based security (VBS)",
+          "default": true
         }
       ]
     },

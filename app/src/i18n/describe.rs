@@ -142,6 +142,7 @@ pub fn preparation_failure_reason(id: &str) -> Option<String> {
         COMPONENT_STORE_UNREPAIRABLE => t!("prepare-components-unrepairable"),
         "manual-updates" => t!("prepare-failed-manual-updates"),
         "windows-passes" => t!("prepare-failed-windows-passes"),
+        "windows-update-unreachable" => t!("prepare-failed-windows-update-unreachable"),
         _ => return None,
     })
 }

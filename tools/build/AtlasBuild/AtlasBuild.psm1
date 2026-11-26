@@ -18,7 +18,7 @@ $script:ManifestFields = @(
     'requirements', 'estimatedMinutes', 'choices'
 )
 $script:ChoiceFields = @('id', 'kind', 'default', 'dependsOn', 'description', 'learnMore', 'options')
-$script:OptionFields = @('id', 'label', 'image')
+$script:OptionFields = @('id', 'label', 'image', 'default')
 $script:RequirementIds = @('windows-security-off', 'no-third-party-antivirus', 'plugged-in')
 
 #region Private helpers
@@ -817,6 +817,15 @@ function Test-AtlasManifest {
                                 }
                                 elseif ($null -ne $packageFiles -and -not $packageFiles.Contains("Images/$stem.png")) {
                                     $problems.Add("$optionContext has the image '$stem', but the package has no Images/$stem.png.")
+                                }
+                            }
+                            if ($optionFields.ContainsKey('default')) {
+                                $flag = $optionFields['default'].ValueKind
+                                if ($flag -ne [System.Text.Json.JsonValueKind]::True -and $flag -ne [System.Text.Json.JsonValueKind]::False) {
+                                    $problems.Add("$optionContext has a default that isn't true or false.")
+                                }
+                                elseif ($kind -ceq 'single') {
+                                    $problems.Add("$optionContext has a default of its own, which only options of a multiple choice take.")
                                 }
                             }
                         }

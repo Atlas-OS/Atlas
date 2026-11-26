@@ -582,7 +582,7 @@ cost-keyboard-shortcuts-off = Alt+Shift และ Ctrl+Shift จะไม่ส�
 # One line under an optional extra: what ticking it does.
 extra-disable-hibernation = คืนพื้นที่ดิสก์ แต่จะใช้ไฮเบอร์เนตและการเริ่มต้นอย่างรวดเร็วไม่ได้
 extra-disable-power-saving = พีซีของคุณอาจใช้ไฟมากขึ้น ร้อนขึ้น และใช้แบตเตอรี่ได้สั้นลง
-extra-disable-core-isolation = ลดการป้องกัน รวมถึงปิดความสมบูรณ์ของหน่วยความจำ และอาจกระทบแอปหรือเกมที่ต้องใช้ฟีเจอร์นี้
+extra-disable-core-isolation = ลดการป้องกัน และเกมที่ใช้ระบบป้องกันการโกง เช่น Riot Vanguard หรือ FACEIT อาจเปิดไม่ได้จนกว่าคุณจะเปิดความสมบูรณ์ของหน่วยความจำอีกครั้ง
 extra-uninstall-edge = รายการโปรด ประวัติ และรหัสผ่านที่บันทึกไว้ของ Edge บนพีซีเครื่องนี้จะถูกลบ ยกเว้นข้อมูลที่ซิงค์กับบัญชี Microsoft ของคุณ
 extra-install-toolbox = ช่วยจัดการการตั้งค่า Atlas ของคุณ แต่บางฟีเจอร์อาจยังไม่สมบูรณ์ขณะที่ยังเป็นรุ่นเบต้า
 extra-install-eclean = เครื่องมือจากทีมผู้สร้าง AtlasOS สำหรับตรวจสอบไฟล์ขยะและแอปเริ่มต้นระบบ ต้องมีบัญชีและการเชื่อมต่ออินเทอร์เน็ต
@@ -1024,7 +1024,7 @@ settings-open-data-folder = เปิดโฟลเดอร์ของแอ�
 
 consequence-disable-hibernation = คืนพื้นที่ดิสก์ที่ใช้บันทึกเซสชันของคุณเมื่อไฮเบอร์เนต โดยจะใช้ไฮเบอร์เนตและการเริ่มต้นอย่างรวดเร็วไม่ได้
 consequence-disable-power-saving = ปิดฟีเจอร์ประหยัดพลังงาน พีซีของคุณอาจใช้ไฟมากขึ้น ร้อนขึ้น และใช้แบตเตอรี่ได้สั้นลง
-consequence-disable-core-isolation = ปิดชั้นความปลอดภัยเพิ่มเติมของ Windows รวมถึงความสมบูรณ์ของหน่วยความจำ ซึ่งจะลดการป้องกันลง และอาจกระทบแอปหรือเกมที่ต้องใช้ฟีเจอร์นี้
+consequence-disable-core-isolation = ปิดชั้นความปลอดภัยเพิ่มเติมของ Windows รวมถึงความสมบูรณ์ของหน่วยความจำ ซึ่งจะลดการป้องกันลง และเกมที่ใช้ระบบป้องกันการโกง เช่น Riot Vanguard หรือ FACEIT อาจเปิดไม่ได้จนกว่าคุณจะเปิดความสมบูรณ์ของหน่วยความจำอีกครั้ง
 consequence-remove-snipping-tool = นำแอปของ Windows สำหรับจับภาพหน้าจอและบันทึกวิดีโอหน้าจอออก
 consequence-uninstall-edge = นำเบราว์เซอร์ Microsoft Edge ออก ตรวจดูให้แน่ใจว่าคุณมีเบราว์เซอร์อื่นอยู่ หรือเลือกเบราว์เซอร์ด้านล่าง
 # Under Remove Microsoft Edge in the Install step's summary, with a caution glyph.
@@ -1263,6 +1263,7 @@ prepare-failed-store-timeout = แอปจาก Store ยังอัปเด
 prepare-failed-store-passes = Microsoft Store ยังมีการอัปเดตใหม่เข้ามาเรื่อย ๆ ติดตั้งการอัปเดตที่เหลือใน Microsoft Store ให้เสร็จ แล้วลองอีกครั้ง
 prepare-failed-manual-updates = การอัปเดต Windows บางรายการต้องติดตั้งให้เสร็จใน Windows Update เปิด Windows Update แล้วติดตั้งการอัปเดตเหล่านั้นให้เสร็จ จากนั้นลองอีกครั้ง
 prepare-failed-windows-passes = Windows Update ยังมีการอัปเดตใหม่เข้ามาเรื่อย ๆ ติดตั้งการอัปเดตที่เหลือใน Windows Update ให้เสร็จ แล้วลองอีกครั้ง
+prepare-failed-windows-update-unreachable = Windows Update เชื่อมต่อเซิร์ฟเวอร์ของ Microsoft ไม่ได้ ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต รวมถึงไฟร์วอลล์ พร็อกซี หรือ VPN ที่อาจมีอยู่ แล้วลองอีกครั้ง
 prepare-failed-source-linked = Atlas Manager อยู่ในโฟลเดอร์ที่ลิงก์ไว้ ปิด Atlas ย้าย Atlas Manager ไปยังโฟลเดอร์ในพีซีเครื่องนี้ แล้วเปิดจากที่นั่น
 prepare-error-code = รหัสข้อผิดพลาด: { $code }
 prepare-open-store = เปิด Microsoft Store

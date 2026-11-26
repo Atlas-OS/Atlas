@@ -335,7 +335,8 @@ pub struct IsoPage {
     setup_available: bool,
     manifest: Option<Rc<Manifest>>,
     options: Vec<String>,
-    /// The optional extras are unfolded under the questions.
+    /// The optional extras are unfolded under the questions, as they start;
+    /// Hide folds them.
     extras_shown: bool,
     image: Option<ImageInfo>,
     mode: Mode,
@@ -442,7 +443,7 @@ impl IsoPage {
             setup_available: false,
             manifest: None,
             options: vec![],
-            extras_shown: false,
+            extras_shown: true,
             image: None,
             mode: Mode::Interactive,
             drivers: Default::default(),
@@ -564,7 +565,7 @@ impl IsoPage {
             | "account-empty"
             | "account-invalid"
             | "setup-now"
-            | "setup-extras"
+            | "setup-extras-folded"
             | "before-desktop"
             | "choices-unsupported" => IsoStep::Setup,
             "review"
@@ -583,11 +584,11 @@ impl IsoPage {
         // The checked files can go on to the steps visited before.
         self.furthest = if state == "files-checked" { IsoStep::Create } else { self.step };
         self.mode = match state {
-            "setup-now" | "setup-extras" | "review-before" => Mode::Configured,
+            "setup-now" | "setup-extras-folded" | "review-before" => Mode::Configured,
             "before-desktop" => Mode::BeforeDesktop,
             _ => Mode::Interactive,
         };
-        self.extras_shown = state == "setup-extras";
+        self.extras_shown = state != "setup-extras-folded";
         self.setup_available = state != "choices-unsupported";
         self.reinstall_this_pc = !matches!(state, "setup-another-pc" | "this-pc-arm64");
         self.network_build = matches!(state, "progress-network" | "network-failed");

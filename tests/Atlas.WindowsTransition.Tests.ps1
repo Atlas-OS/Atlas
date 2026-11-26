@@ -128,6 +128,7 @@ BeforeAll {
     function Get-AtlasTransitionFreeSpace { $script:FreeBytes }
     function Get-AtlasTransitionImageHealth { if ($script:Health -eq 'Throws') { throw 'DISM is unavailable' }; $script:Health }
     function Invoke-PreparationRestoreHealth { throw 'A test started DISM without standing in for it.' }
+    function Invoke-AtlasTransitionScanHealth { throw 'A test started DISM without standing in for it.' }
 
     # The pin writer uses the registry cmdlets; HKLM paths go to the double too.
     function ConvertTo-FakePath([string]$Path) { $Path -replace '^HKLM:\\', '' }
@@ -805,20 +806,109 @@ Describe 'A component store that reads as repairable' {
         $finding.Counts['CBS Manifest Corruption'] | Should -Be 0
     }
 
-    It 'goes on and records <Case>' -TestCases @(
-        @{ Case = 'the AppInv files the NoTelemetry package leaves after a store cleanup'; Label = 'the known Atlas package pattern'; Change = { $script:CbsLines = $script:AppInvLog } }
-        @{ Case = 'the files a repair leaves instead'; Label = 'other'; Change = {
+    It 'goes on without a repair for the AppInv files the NoTelemetry package leaves after a store cleanup' {
+        $script:CbsLines = $script:AppInvLog
+        Test-AtlasWindowsTransitionPreflight | Should -BeNullOrEmpty
+        Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw | Should -Match ([regex]::Escape('component store is repairable (the known Atlas package pattern)') + '.*; going on')
+    }
+
+    It 'asks for a repair before the move for <Case>' -TestCases @(
+        @{ Case = 'the files a repair leaves instead'; Change = {
                 $script:CbsLines = $script:AppInvLog -replace 'n-experience-appinv_31bf3856ad364e35_10\.0\.26100\.1591_none_b8a08e9482a41bbe\\aeinvext\.dll', 'entory-data-sources_31bf3856ad364e35_10.0.26100.1591_none_0\r\devinv.dll' } }
-        @{ Case = 'a manifest corruption beside it'; Label = 'other'; Change = { $script:CbsLines = $script:AppInvLog -replace 'CSI Manifest Corruption:\t0', "CSI Manifest Corruption:`t1" } }
-        @{ Case = 'the same files without the NoTelemetry package'; Label = 'other'; Change = { $script:CbsLines = $script:AppInvLog; $script:Packages = @() } }
-        @{ Case = 'no store check in the servicing log'; Label = 'other'; Change = { $script:CbsLines = @('2026-10-01 21:44:29, Info CBS Exec: nothing') } }
+        @{ Case = 'a manifest corruption beside it'; Change = { $script:CbsLines = $script:AppInvLog -replace 'CSI Manifest Corruption:\t0', "CSI Manifest Corruption:`t1" } }
+        @{ Case = 'the same files without the NoTelemetry package'; Change = { $script:CbsLines = $script:AppInvLog; $script:Packages = @() } }
     ) {
-        param($Case, $Label, $Change)
+        param($Case, $Change)
         & $Change
-        { Test-AtlasWindowsTransitionPreflight } | Should -Not -Throw -Because $Case
-        $evidence = Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw
-        $evidence | Should -Match ([regex]::Escape("component store is repairable ($Label)"))
-        $evidence | Should -Match 'going on'
+        Mock Invoke-AtlasTransitionScanHealth { throw 'The servicing log already has a store check.' }
+        Test-AtlasWindowsTransitionPreflight | Should -Match 'corrupt item\(s\) other than the Atlas packages leave' -Because $Case
+        Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw | Should -Match ([regex]::Escape('component store is repairable (other)') + '.*; repairing it before the move')
+        Should -Invoke Invoke-AtlasTransitionScanHealth -Times 0 -Exactly
+    }
+
+    It 'runs a store check when the servicing log has none, then decides from it: <Case>' -TestCases @(
+        @{ Case = 'the known Atlas pattern'; Repair = $false; Scan = { $script:CbsLines = $script:AppInvLog } }
+        @{ Case = 'no damage'; Repair = $false; Scan = { $script:CbsLines = $script:AppInvLog -replace 'Total Detected Corruption:\t2', "Total Detected Corruption:`t0" -replace '\(p\)\tCSI Payload Corrupt.*', '' -replace 'CSI Payload Corruption:\t2', "CSI Payload Corruption:`t0" } }
+        @{ Case = 'other damage'; Repair = $true; Scan = { $script:CbsLines = $script:AppInvLog; $script:Packages = @() } }
+        @{ Case = 'a check that names nothing'; Repair = $true; Scan = { } }
+    ) {
+        param($Case, $Repair, $Scan)
+        $script:CbsLines = @('2026-10-01 21:44:29, Info CBS Exec: nothing')
+        $script:Scan = $Scan
+        Mock Invoke-AtlasTransitionScanHealth { & $script:Scan; 0 }
+        $why = Test-AtlasWindowsTransitionPreflight
+        [bool]$why | Should -Be $Repair -Because $Case
+        Should -Invoke Invoke-AtlasTransitionScanHealth -Times 1 -Exactly
+        Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw | Should -Match 'no store check that says how; running DISM ScanHealth'
+    }
+
+    It 'passes a stop during the store check on, without a repair' {
+        $script:CbsLines = @()
+        Mock Invoke-AtlasTransitionScanHealth { throw (New-Object OperationCanceledException 'Preparation stopped after the current operation.') }
+        { Test-AtlasWindowsTransitionPreflight } | Should -Throw -ExceptionType ([OperationCanceledException])
+    }
+
+    It 'ends DISM when the wait during the store check throws, as for Stop' {
+        # The file's real ScanHealth, which the double stands in for elsewhere.
+        . $script:Library
+        $script:process = [pscustomobject]@{ Id = 0; HasExited = $false; Handle = 1 }
+        $script:process | Add-Member ScriptMethod WaitForExit { $false }
+        Mock Start-Process { $script:process }
+        Mock Stop-AtlasTransitionProcessTree {}
+        { Invoke-AtlasTransitionScanHealth { throw (New-Object OperationCanceledException 'Preparation stopped after the current operation.') } } |
+            Should -Throw -ExceptionType ([OperationCanceledException])
+        Should -Invoke Stop-AtlasTransitionProcessTree -Times 1 -Exactly -ParameterFilter { [object]::ReferenceEquals($Process, $script:process) }
+    }
+
+    It 'asks for a repair when the store check can''t run' {
+        $script:CbsLines = @()
+        Test-AtlasWindowsTransitionPreflight | Should -Be 'Windows records damage to it that no store check names'
+        Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw | Should -Match 'ScanHealth could not run: A test started DISM'
+    }
+
+    It 'repairs other damage once Windows Update is on again, before the monthly updates, and goes on' {
+        Use-TransitionRun
+        Set-HeldBackUpdate
+        $script:CbsLines = $script:AppInvLog
+        $script:Packages = @()
+        Mock Test-PreparationRestart { $false }
+        Mock Test-PreparationNetwork { $true }
+        Mock Write-PreparationState {}
+        Mock Invoke-PreparationComponentRepair { $script:Writes.Add('repair'); $true }
+        Mock Invoke-PreparationWindows { $script:Writes.Add('monthly updates'); throw 'Stop after the monthly updates begin.' }
+        { Invoke-PreparationTransition } | Should -Throw '*monthly updates begin*'
+        Should -Invoke Invoke-PreparationComponentRepair -Times 1 -Exactly -ParameterFilter { $Why -match 'other than the Atlas packages leave' -and $Ahead }
+        # The repair takes its files from Windows Update, which Atlas 0.5.0's launcher can have turned off.
+        $script:Writes.IndexOf('repair') | Should -BeGreaterThan $script:Writes.IndexOf("service wuauserv 3")
+        $script:Writes.IndexOf('repair') | Should -BeGreaterThan $script:Writes.IndexOf("remove $script:Policy|DisableWindowsUpdateAccess")
+        $script:Writes.IndexOf('repair') | Should -BeLessThan $script:Writes.IndexOf('monthly updates')
+    }
+
+    It 'stops the store check when the user chooses Stop' {
+        Use-TransitionRun
+        $script:CbsLines = @()
+        Mock Test-PreparationRestart { $false }
+        Mock Test-PreparationNetwork { $true }
+        Mock Write-PreparationState {}
+        Mock Assert-PreparationContinue { throw (New-Object OperationCanceledException 'Preparation stopped after the current operation.') }
+        Mock Invoke-AtlasTransitionScanHealth { & $Wait; 0 }
+        Mock Invoke-PreparationComponentRepair { $true }
+        { Invoke-PreparationTransition } | Should -Throw -ExceptionType ([OperationCanceledException])
+        Should -Invoke Invoke-PreparationComponentRepair -Times 0 -Exactly
+        @($script:Writes) | Should -BeNullOrEmpty
+    }
+
+    It 'moves without a repair on a store with only the known Atlas pattern' {
+        Use-TransitionRun
+        Set-HeldBackUpdate
+        $script:CbsLines = $script:AppInvLog
+        Mock Test-PreparationRestart { $false }
+        Mock Test-PreparationNetwork { $true }
+        Mock Write-PreparationState {}
+        Mock Invoke-PreparationComponentRepair { $true }
+        Mock Invoke-PreparationWindows { throw 'Stop after the monthly updates begin.' }
+        { Invoke-PreparationTransition } | Should -Throw '*monthly updates begin*'
+        Should -Invoke Invoke-PreparationComponentRepair -Times 0 -Exactly
     }
 
     It 'lists the corrupt items the servicing log names' {
@@ -953,6 +1043,28 @@ Describe 'Moving Windows' {
         $script:PreparationRestartReasons | Should -Be @('feature-update')
         (Read-Journal).phase | Should -BeExactly 'installed'
         Should -Invoke Invoke-PreparationWindowsOperation -Times 1 -Exactly -ParameterFilter { $Kind -eq 'Install' }
+    }
+
+    It 'waits for another installation before installing the update again, without using up its retry' {
+        $script:Offers.default = @(New-Offer 'Windows 11, version 26H2' @('5129195') -Upgrade)
+        $script:Installs = [Collections.Queue]::new()
+        foreach ($result in @((New-Result 4 -2145124330 $false), (New-Result 4 -2145124330 $false), (New-Result 2 0 $true))) { $script:Installs.Enqueue($result) }
+        Mock Invoke-PreparationWindowsOperation { if ($Kind -eq 'Download') { $script:Download } else { $script:Installs.Dequeue() } }
+        Mock Wait-PreparationInstallerIdle { $true }
+        Invoke-PreparationTransition | Should -Be 'reboot'
+        Should -Invoke Wait-PreparationInstallerIdle -Times 2 -Exactly
+        (Read-Journal).phase | Should -BeExactly 'installed'
+    }
+
+    It 'names the code Windows Update''s history gives a failed install whose result names none' {
+        $script:Offers.default = @(New-Offer 'Windows 11, version 26H2' @('5129195') -Upgrade)
+        $script:Install = [pscustomobject]@{ ResultCode = 4; HResult = -2145124318; RebootRequired = $false }
+        $script:Install | Add-Member ScriptMethod GetUpdateResult { param($Index) [pscustomobject]@{ ResultCode = 4; HResult = 0 } }
+        Mock Get-PreparationHistoryCode { -2146498270 }
+        try { Invoke-PreparationTransition } catch { $thrown = $_.Exception }
+        $thrown.Data['reason'] | Should -BeExactly 'feature-failed'
+        $thrown.Data['errorCode'] | Should -BeExactly '0x800F0922'
+        Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw | Should -Match 'Windows Update history records 0x800F0922'
     }
 
     It 'restarts Windows Update to read the new target before it searches' {
@@ -1282,7 +1394,11 @@ Describe 'Optional prerequisites' {
     BeforeEach {
         Reset-Machine
         Use-TransitionRun
-        $script:Windows.UBR = 9550
+        # Below the revision the move needs (9546).
+        $script:Windows.UBR = 9500
+        $script:PreparationOptionalFailed = @{}
+        $script:AtlasTransitionEvidencePath = Join-Path $TestDrive 'optional-evidence.log'
+        Remove-Item -LiteralPath $script:AtlasTransitionEvidencePath -ErrorAction SilentlyContinue
         $script:Optional = @(
             (New-Offer '2026-09 Cumulative Update Preview for Windows 11 Version 24H2 for x64-based Systems (KB5124010) (26100.9600)' @('5124010'))
             (New-Offer '2026-10 Cumulative Update Preview for Windows 11 Version 24H2 for x64-based Systems (KB5130001) (26100.9700)' @('5130001'))
@@ -1311,6 +1427,29 @@ Describe 'Optional prerequisites' {
             throw "Unexpected search $Criteria"
         }
         @(Find-PreparationPrerequisiteUpdate (New-Session)).KBArticleIDs | Should -Be @('5124010')
+    }
+
+    It 'takes nothing optional once Windows has the revision the move needs (<Revision>)' -TestCases @(
+        @{ Revision = 9546 }
+        @{ Revision = 9818 }
+    ) {
+        param($Revision)
+        $script:Windows.UBR = $Revision
+        @(Find-PreparationPrerequisiteUpdate (New-Session)) | Should -BeNullOrEmpty
+        Should -Invoke Invoke-PreparationSearch -Times 0 -Exactly
+        Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw | Should -Match "optional updates left: 26100\.$Revision already has revision 9546"
+    }
+
+    It 'takes the prerequisite as before when the move names no minimum revision' {
+        $script:Windows.UBR = 9550
+        Set-Variable -Name MinimumRevision -Value 0
+        @(Find-PreparationPrerequisiteUpdate (New-Session)).KBArticleIDs | Should -Be @('5124010', '5130001')
+    }
+
+    It 'leaves an optional update that failed earlier in the run' {
+        $script:PreparationOptionalFailed[(Get-PreparationUpdateKey $script:Optional[0])] = $true
+        @(Find-PreparationPrerequisiteUpdate (New-Session)).KBArticleIDs | Should -Be @('5130001')
+        Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw | Should -Match 'optional update left, as it failed earlier in this run: .*KB5124010'
     }
 
     It 'takes nothing once Windows has moved, or outside a move' {
@@ -1395,6 +1534,46 @@ Describe 'Restarting into the new version' {
         Set-Fake 'SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' BootId DWord 8
         try { Invoke-PreparationTransition } catch { $thrown = $_.Exception }
         $thrown.Data['reason'] | Should -BeExactly 'feature-rolled-back'
+    }
+
+    It 'names what servicing reported for the rollback' {
+        $script:CbsLines = @(
+            '2026-11-24 01:41:01, Info                  CBS    Reporting package change completion for package: Package_for_DotNetRollup_481~31bf3856ad364e35~amd64~~10.0.10008.1, current: Staged, original: Staged, target: Installed, status: 0x800f0826, failure source: DOQ, failure details: "(null)", client id: UpdateAgentLCU'
+            "2026-11-24 01:41:01, Info                  CBS    Reporting package change completion for package: Package_for_KB5121794~31bf3856ad364e35~amd64~~26100.9544.1.2, current: Staged, original: Staged, target: Installed, status: 0x80070002, failure source: AI, failure details: `"System Protection`tluainstall.dll`t80070002`t31`tDelta`tNONE`t`", client id: UpdateAgentLCU, initiated offline: False"
+        )
+        Invoke-PreparationCommit
+        Set-Fake 'SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' BootId DWord 8
+        try { Invoke-PreparationTransition } catch { $thrown = $_.Exception }
+        $thrown.Data['reason'] | Should -BeExactly 'feature-rolled-back'
+        $servicing = 'Package_for_KB5121794~31bf3856ad364e35~amd64~~26100.9544.1.2 0x80070002, failure source AI: System Protection luainstall.dll 80070002 31 Delta NONE'
+        $thrown.Message | Should -BeExactly "Windows went back to its earlier version after the restart. Servicing reported $servicing."
+        (Read-Journal).history[-1].detail | Should -BeExactly "0x8024200B $servicing"
+    }
+
+    It 'stops offering the same try once the same rollback repeats' {
+        Invoke-PreparationCommit
+        Set-Fake 'SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' BootId DWord 8
+        try { Invoke-PreparationTransition } catch { $first = $_.Exception }
+        $first.Data['reason'] | Should -BeExactly 'feature-rolled-back'
+        try { Invoke-PreparationTransition } catch { $again = $_.Exception }
+        $again.Data['reason'] | Should -BeExactly 'feature-servicing'
+        $again.Data['errorCode'] | Should -BeExactly '0x8024200B'
+        $again.Message | Should -Match 'again after the restart.*Atlas ISO'
+    }
+
+    It 'names a rollback that repeats the last closed attempt''s, within 30 days, and none older or different: <Case>' -TestCases @(
+        @{ Case = 'the same failure'; Detail = '0x8024200B'; Days = -1; Reason = 'feature-servicing' }
+        @{ Case = 'another failure'; Detail = '0x800F0922'; Days = -1; Reason = 'feature-rolled-back' }
+        @{ Case = 'the same failure long ago'; Detail = '0x8024200B'; Days = -40; Reason = 'feature-rolled-back' }
+    ) {
+        param($Case, $Detail, $Days, $Reason)
+        $closed = [pscustomobject]@{ schema = 1; closedAt = [DateTime]::UtcNow.AddDays($Days).ToString('o'); outcome = 'Abandoned'
+            history = @([pscustomobject]@{ at = [DateTime]::UtcNow.AddDays($Days).ToString('o'); event = 'rolled-back'; detail = $Detail }) }
+        Set-Fake $script:Record LastResult String ($closed | ConvertTo-Json -Depth 4 -Compress)
+        Invoke-PreparationCommit
+        Set-Fake 'SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' BootId DWord 8
+        try { Invoke-PreparationTransition } catch { $thrown = $_.Exception }
+        $thrown.Data['reason'] | Should -BeExactly $Reason -Because $Case
     }
 
     It 'finishes the updates and records that Windows switched on in place when the Atlas components are all there' {

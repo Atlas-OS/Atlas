@@ -591,7 +591,7 @@ cost-keyboard-shortcuts-off = Alt+Shift e Ctrl+Shift deixam de alternar idiomas 
 # One line under an optional extra: what ticking it does.
 extra-disable-hibernation = Libera espaço em disco, mas a hibernação e a inicialização rápida ficam indisponíveis.
 extra-disable-power-saving = Seu PC pode consumir mais energia, esquentar mais e ter menos autonomia de bateria.
-extra-disable-core-isolation = Isso reduz a proteção, incluindo a integridade da memória, e pode afetar apps ou jogos que precisam dela.
+extra-disable-core-isolation = Reduz a proteção, e jogos que usam sistemas antitrapaça como Riot Vanguard ou FACEIT podem não abrir até você reativar a integridade da memória.
 extra-uninstall-edge = Os favoritos, o histórico e as senhas salvas do Edge neste PC são excluídos, exceto o que estiver sincronizado com sua conta Microsoft.
 extra-install-toolbox = Ajuda a gerenciar as configurações do Atlas, mas alguns recursos podem estar incompletos enquanto ele estiver em beta.
 extra-install-eclean = Uma ferramenta da equipe do AtlasOS para revisar arquivos desnecessários e apps de inicialização, que requer uma conta e conexão com a internet.
@@ -1096,7 +1096,7 @@ settings-open-data-folder = Abrir pasta do app
 
 consequence-disable-hibernation = Libera o espaço em disco usado para salvar a sessão durante a hibernação. A hibernação e a inicialização rápida ficarão indisponíveis.
 consequence-disable-power-saving = Desativa os recursos de economia de energia. O PC pode consumir mais energia, esquentar mais e ter menos autonomia de bateria.
-consequence-disable-core-isolation = Desativa uma camada extra de segurança do Windows, incluindo a integridade da memória. Isso reduz a proteção e pode afetar apps ou jogos que exigem esse recurso.
+consequence-disable-core-isolation = Desativa uma camada extra de segurança do Windows, incluindo a integridade da memória. Isso reduz a proteção, e jogos que usam sistemas antitrapaça como Riot Vanguard ou FACEIT podem não abrir até você reativar a integridade da memória.
 consequence-remove-snipping-tool = Remove o app do Windows para capturas e gravações de tela.
 consequence-uninstall-edge = Remove o navegador Microsoft Edge. Tenha outro navegador instalado ou escolha um abaixo.
 # Under Remove Microsoft Edge in the Install step's summary, with a caution glyph.
@@ -1337,6 +1337,7 @@ prepare-failed-store-timeout = Os apps da Store ainda não terminaram de atualiz
 prepare-failed-store-passes = A Microsoft Store continuou oferecendo novas atualizações. Conclua as atualizações restantes na Microsoft Store e tente novamente.
 prepare-failed-manual-updates = Algumas atualizações do Windows precisam ser concluídas no Windows Update. Abra o Windows Update, conclua-as e tente novamente.
 prepare-failed-windows-passes = O Windows Update continuou oferecendo novas atualizações. Conclua as atualizações restantes no Windows Update e tente novamente.
+prepare-failed-windows-update-unreachable = O Windows Update não conseguiu acessar os servidores da Microsoft. Confira sua conexão com a internet e qualquer firewall, proxy ou VPN e tente novamente.
 # Atlas Manager runs from a folder that links to another place (a junction or symbolic
 # link). "Linked folder" and "local folder" as in usb-failed-location. Atlas keeps using
 # the folder it was opened from, so trying again in the same window can't help.

@@ -577,7 +577,7 @@ cost-keyboard-shortcuts-off = Alt+Shift ve Ctrl+Shift artık dili veya klavye d�
 # One line under an optional extra: what ticking it does.
 extra-disable-hibernation = Disk alanı boşaltır, ancak hazırda bekletme ve Hızlı Başlatma kullanılamaz hâle gelir.
 extra-disable-power-saving = Bilgisayarınız daha fazla güç tüketebilir, daha çok ısınabilir ve pil ömrü kısalabilir.
-extra-disable-core-isolation = Bellek bütünlüğü dahil korumayı azaltır; buna ihtiyaç duyan uygulamaları veya oyunları etkileyebilir.
+extra-disable-core-isolation = Korumayı azaltır; Riot Vanguard veya FACEIT gibi hile önleme sistemlerini kullanan oyunlar, bellek bütünlüğünü yeniden açana kadar başlamayabilir.
 extra-uninstall-edge = Microsoft hesabınızla eşitlenenler dışında, bu bilgisayardaki Edge yer işaretleriniz, geçmişiniz ve kayıtlı parolalarınız silinir.
 extra-install-toolbox = Atlas ayarlarınızı yönetmenize yardımcı olur; ancak beta aşamasında olduğu için bazı özellikler tamamlanmamış olabilir.
 extra-install-eclean = AtlasOS ekibinden, gereksiz dosyaları ve başlangıç uygulamalarını incelemeye yarayan bir araç. Hesap ve internet bağlantısı gerektirir.
@@ -1043,7 +1043,7 @@ settings-open-data-folder = Uygulama klasörünü aç
 
 consequence-disable-hibernation = Hazırda bekletme sırasında oturumunuzu kaydetmek için kullanılan disk alanını boşaltır. Hazırda bekletme ve Hızlı Başlatma kullanılamaz hâle gelir.
 consequence-disable-power-saving = Güç tasarrufu özelliklerini kapatır. Bilgisayarınız daha fazla güç tüketebilir, daha çok ısınabilir ve pil ömrü kısalabilir.
-consequence-disable-core-isolation = Bellek bütünlüğü dahil ek bir Windows güvenlik katmanını kapatır. Bu, korumayı azaltır ve bu katmana ihtiyaç duyan uygulama veya oyunları etkileyebilir.
+consequence-disable-core-isolation = Bellek bütünlüğü dahil ek bir Windows güvenlik katmanını kapatır. Bu, korumayı azaltır; Riot Vanguard veya FACEIT gibi hile önleme sistemlerini kullanan oyunlar, bellek bütünlüğünü yeniden açana kadar başlamayabilir.
 consequence-remove-snipping-tool = Ekran görüntüsü ve ekran kaydı almak için kullanılan Windows uygulamasını kaldırır.
 consequence-uninstall-edge = Microsoft Edge tarayıcısını kaldırır. Başka bir tarayıcınız olduğundan emin olun veya aşağıdan birini seçin.
 # Under Remove Microsoft Edge in the Install step's summary, with a caution glyph.
@@ -1275,6 +1275,7 @@ prepare-failed-store-timeout = Store uygulamalarının güncelleştirilmesi tama
 prepare-failed-store-passes = Microsoft Store yeni güncelleştirmeler sunmaya devam etti. Kalan güncelleştirmeleri Microsoft Store'da tamamlayın, ardından yeniden deneyin.
 prepare-failed-manual-updates = Bazı Windows güncelleştirmelerinin Windows Update'te tamamlanması gerekiyor. Windows Update'i açıp bunları tamamlayın, ardından yeniden deneyin.
 prepare-failed-windows-passes = Windows Update yeni güncelleştirmeler sunmaya devam etti. Kalan güncelleştirmeleri Windows Update'te tamamlayın, ardından yeniden deneyin.
+prepare-failed-windows-update-unreachable = Windows Update, Microsoft'un sunucularına ulaşamadı. İnternet bağlantınızı ve varsa güvenlik duvarını, ara sunucuyu veya VPN'i denetleyin, ardından yeniden deneyin.
 # Atlas Manager runs from a folder that links to another place (a junction or symbolic link).
 prepare-failed-source-linked = Atlas Manager bağlantılı bir klasörde. Atlas'ı kapatın, Atlas Manager'ı bu bilgisayardaki yerel bir klasöre taşıyın, ardından oradan açın.
 prepare-error-code = Hata kodu: { $code }

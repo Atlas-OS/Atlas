@@ -259,7 +259,10 @@ impl Drivers {
 /// Windows Update fails with 0x80070103 because the device already has one at
 /// least as good. Installing them again changes nothing, so they no longer count
 /// as pending. The worker keeps the list under HKLM, where only administrators
-/// write; entries older than 30 days lapse.
+/// write; entries older than 30 days lapse. Microsoft Defender's updates that it
+/// recorded because Atlas removed Defender (`why` of `defender-removed`) aren't
+/// among them: the worker decides those from the PC each time, so they count
+/// here as Windows Update offers them.
 pub fn reoffered_updates() -> std::collections::HashSet<String> {
     let text = windows_registry::LOCAL_MACHINE
         .open(r"SOFTWARE\AtlasOS\Preparation")
@@ -276,6 +279,7 @@ fn parse_reoffered(text: &str, now: chrono::DateTime<chrono::Utc>) -> std::colle
     };
     entries
         .iter()
+        .filter(|entry| entry["why"].as_str() != Some("defender-removed"))
         .filter(|entry| {
             entry["at"].as_str().and_then(|at| chrono::DateTime::parse_from_rfc3339(at).ok()).is_some_and(
                 |at| now.signed_duration_since(at.with_timezone(&chrono::Utc)) < chrono::Duration::days(30),
@@ -1364,6 +1368,20 @@ $record | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $PSScri
         assert!(parse_reoffered(one, now).contains("a/1"), "one entry written on its own");
         assert!(parse_reoffered("{not json", now).is_empty());
         assert!(parse_reoffered("", now).is_empty());
+    }
+
+    #[test]
+    fn a_defender_update_recorded_while_defender_was_removed_still_counts_as_pending() {
+        let now =
+            chrono::DateTime::parse_from_rfc3339("2026-10-01T12:00:00Z").unwrap().with_timezone(&chrono::Utc);
+        // The worker decides these from the PC each time, so the record alone
+        // never takes one out of what's pending.
+        let text = r#"[{"key":"intelligence/1","kb":"2267602","at":"2026-09-30T08:00:00Z","why":"defender-removed"},
+            {"key":"driver/1","kb":"","at":"2026-09-30T08:00:00Z"}]"#;
+        let handled = parse_reoffered(text, now);
+        assert_eq!(handled.len(), 1);
+        assert!(handled.contains("driver/1"));
+        assert!(!handled.contains("intelligence/1"));
     }
 
     #[test]

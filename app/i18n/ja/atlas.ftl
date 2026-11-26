@@ -583,7 +583,7 @@ cost-keyboard-shortcuts-off = Alt+Shift と Ctrl+Shift で言語やレイアウ�
 # One line under an optional extra: what ticking it does.
 extra-disable-hibernation = ディスク領域が解放されますが、休止状態と高速スタートアップは使えなくなります。
 extra-disable-power-saving = 消費電力や発熱が増え、バッテリー駆動時間が短くなる場合があります。
-extra-disable-core-isolation = メモリ整合性などの保護が弱まり、それを必要とするアプリやゲームに影響する場合があります。
+extra-disable-core-isolation = 保護が弱まり、Riot Vanguard や FACEIT などのチート対策を使うゲームは、メモリ整合性をオンに戻すまで起動しない場合があります。
 extra-uninstall-edge = この PC の Edge のお気に入り、履歴、保存したパスワードが削除されます。Microsoft アカウントに同期されているものは除きます。
 extra-install-toolbox = Atlas の設定を管理しやすくなります。ベータ版のため、一部の機能は未完成の場合があります。
 extra-install-eclean = 不要なファイルやスタートアップ アプリを確認できる、AtlasOS 開発チームのツールです。アカウントとインターネット接続が必要です。
@@ -1060,7 +1060,7 @@ settings-open-data-folder = アプリのフォルダーを開く
 
 consequence-disable-hibernation = 休止状態でセッションを保存するために使うディスク領域を解放します。休止状態と高速スタートアップは使えなくなります。
 consequence-disable-power-saving = 省電力機能をオフにします。消費電力や発熱が増え、バッテリー駆動時間が短くなる場合があります。
-consequence-disable-core-isolation = メモリ整合性を含む、Windows の追加のセキュリティ層をオフにします。保護が弱まり、この機能を必要とするアプリやゲームに影響する場合があります。
+consequence-disable-core-isolation = メモリ整合性を含む、Windows の追加のセキュリティ層をオフにします。保護が弱まり、Riot Vanguard や FACEIT などのチート対策を使うゲームは、メモリ整合性をオンに戻すまで起動しない場合があります。
 consequence-remove-snipping-tool = スクリーンショットや画面録画に使う Windows のアプリを削除します。
 consequence-uninstall-edge = Microsoft Edge ブラウザーを削除します。別のブラウザーがあることを確認するか、下で選んでください。
 # Under Remove Microsoft Edge in the Install step's summary, with a caution glyph.
@@ -1305,6 +1305,7 @@ prepare-failed-store-timeout = Store アプリの更新が完了していませ�
 prepare-failed-store-passes = Microsoft Store から新しい更新プログラムが提供され続けました。Microsoft Store で残りの更新を完了してから、再試行してください。
 prepare-failed-manual-updates = 一部の Windows 更新プログラムは Windows Update で完了する必要があります。Windows Update を開いて完了してから、再試行してください。
 prepare-failed-windows-passes = Windows Update から新しい更新プログラムが提供され続けました。Windows Update で残りの更新を完了してから、再試行してください。
+prepare-failed-windows-update-unreachable = Windows Update が Microsoft のサーバーに接続できませんでした。インターネット接続と、ファイアウォール、プロキシ、VPN の設定を確認してから、再試行してください。
 # Atlas Manager runs from a folder that links to another place (a junction or symbolic
 # link). "Linked folder" and "local folder" as in usb-failed-location. Atlas keeps using
 # the folder it was opened from, so trying again in the same window can't help.

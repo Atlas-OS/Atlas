@@ -589,7 +589,7 @@ cost-keyboard-shortcuts-off = Alt+Shift and Ctrl+Shift no longer switch language
 # One line under an optional extra: what ticking it does.
 extra-disable-hibernation = Frees disk space, but Hibernate and Fast Startup become unavailable.
 extra-disable-power-saving = Your PC may use more power, run hotter and have shorter battery life.
-extra-disable-core-isolation = This reduces protection, including memory integrity, and may affect apps or games that need it.
+extra-disable-core-isolation = Reduces protection, and games using anti-cheats such as Riot Vanguard or FACEIT may not start until you turn memory integrity back on.
 extra-uninstall-edge = Your Edge bookmarks, history and saved passwords on this PC are deleted, except what's synced to your Microsoft account.
 extra-install-toolbox = Helps you manage your Atlas settings, though some features may be unfinished while it's in beta.
 extra-install-eclean = A tool from the team behind AtlasOS for reviewing junk files and startup apps, which needs an account and an internet connection.
@@ -1087,7 +1087,7 @@ settings-open-data-folder = Open app folder
 
 consequence-disable-hibernation = Frees the disk space used to save your session during hibernation. Hibernate and Fast Startup will be unavailable.
 consequence-disable-power-saving = Disables power-saving features. Your PC may use more power, run hotter and have shorter battery life.
-consequence-disable-core-isolation = Turns off an extra layer of Windows security, including memory integrity. This reduces protection and may affect apps or games that require it.
+consequence-disable-core-isolation = Turns off an extra layer of Windows security, including memory integrity. This reduces protection, and games using anti-cheats such as Riot Vanguard or FACEIT may not start until you turn memory integrity back on.
 consequence-remove-snipping-tool = Removes the Windows app for taking screenshots and screen recordings.
 consequence-uninstall-edge = Removes the Microsoft Edge browser. Make sure you have another browser, or choose one below.
 # Under Remove Microsoft Edge in the Install step's summary, with a caution glyph.
@@ -1334,6 +1334,7 @@ prepare-failed-store-timeout = Store apps haven't finished updating. Finish the 
 prepare-failed-store-passes = Microsoft Store kept offering new updates. Finish the remaining updates in Microsoft Store, then try again.
 prepare-failed-manual-updates = Some Windows updates need to be finished in Windows Update. Open Windows Update, finish them, then try again.
 prepare-failed-windows-passes = Windows Update kept offering new updates. Finish the remaining updates in Windows Update, then try again.
+prepare-failed-windows-update-unreachable = Windows Update couldn't reach Microsoft's servers. Check your internet connection and any firewall, proxy or VPN, then try again.
 # Atlas Manager runs from a folder that links to another place (a junction or symbolic
 # link). "Linked folder" and "local folder" as in usb-iso-location. Atlas keeps using
 # the folder it was opened from, so trying again in the same window can't help.

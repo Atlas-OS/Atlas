@@ -281,7 +281,8 @@ pub struct ChoiceOption {
     pub label: String,
     /// The stem of a PNG in the package's `Images` folder.
     pub image: Option<String>,
-    /// The option a single choice starts with.
+    /// The option a single choice starts with, or a multiple choice's option
+    /// that starts ticked on a new install.
     pub default: bool,
 }
 
@@ -420,13 +421,17 @@ struct OptionFile {
     id: String,
     label: String,
     image: Option<String>,
+    /// Ticked on a new install; only options of a multiple choice take it.
+    #[serde(default)]
+    default: bool,
 }
 
 /// Reads and checks a manifest: this Atlas Manager is one the package
 /// accepts, the format is the one this app reads, every choice and option id
 /// is declared once, every choice has options, and every single choice names
-/// one of its own options as its default. A package for a newer Atlas
-/// Manager is refused with [`ManagerOutdated`].
+/// one of its own options as its default, with none of its options marked as
+/// a default of their own. A package for a newer Atlas Manager is refused
+/// with [`ManagerOutdated`].
 pub fn parse(json: &str) -> Result<Manifest> {
     parse_for(json, &ManagerVersion::current())
 }
@@ -480,6 +485,12 @@ fn parse_for(json: &str, manager: &ManagerVersion) -> Result<Manifest> {
                     choice.options.iter().any(|option| option.id == default),
                     "the choice {id:?} in atlas.json defaults to {default:?}, which isn't one of its options"
                 );
+                if let Some(option) = choice.options.iter().find(|option| option.default) {
+                    anyhow::bail!(
+                        "the option {:?} in atlas.json is a default of its own, which only options of a multiple choice can be",
+                        option.id
+                    );
+                }
                 Some(default)
             }
             ChoiceKind::Multiple => None,
@@ -494,7 +505,10 @@ fn parse_for(json: &str, manager: &ManagerVersion) -> Result<Manifest> {
                 .options
                 .into_iter()
                 .map(|option| ChoiceOption {
-                    default: default.as_deref() == Some(option.id.as_str()),
+                    default: match &default {
+                        Some(default) => *default == option.id,
+                        None => option.default,
+                    },
                     id: option.id,
                     label: option.label,
                     image: option.image,
@@ -989,9 +1003,28 @@ mod tests {
         assert_eq!(manifest.default_options().first().map(String::as_str), Some("defender-enable"));
         let browser = manifest.choices.iter().find(|choice| choice.id == "browser").unwrap();
         assert_eq!(browser.depends_on.as_deref(), Some("install-another-browser"));
-        for choice in manifest.choices.iter().filter(|choice| choice.kind == ChoiceKind::Multiple) {
-            assert!(choice.options.iter().all(|option| !option.default), "{}", choice.id);
-        }
+        // A new install starts with power saving and VBS off, as Atlas 0.5 did,
+        // and every other check box clear.
+        let ticked: Vec<&str> = manifest
+            .choices
+            .iter()
+            .filter(|choice| choice.kind == ChoiceKind::Multiple)
+            .flat_map(|choice| choice.options.iter().filter(|option| option.default))
+            .map(|option| option.id.as_str())
+            .collect();
+        assert_eq!(ticked, ["disable-power-saving", "disable-core-isolation"]);
+    }
+
+    #[test]
+    fn a_multiple_choice_starts_with_the_options_marked_default() {
+        let parsed = parse(
+            r#"{"schemaVersion": 1, "version": "0.6.0", "minimumManagerVersion": "0.6.0", "choices": [
+                {"id": "a", "kind": "single", "default": "a-two", "options": [{"id": "a-one", "label": "One"}, {"id": "a-two", "label": "Two"}]},
+                {"id": "b", "kind": "multiple", "options": [{"id": "b-one", "label": "One", "default": true}, {"id": "b-two", "label": "Two"}, {"id": "b-three", "label": "Three", "default": false}]}
+            ]}"#,
+        )
+        .unwrap();
+        assert_eq!(parsed.default_options(), ["a-two", "b-one"]);
     }
 
     #[test]
@@ -1029,6 +1062,10 @@ mod tests {
             (
                 manifest(&single.replace(r#""default": "a-one""#, r#""default": "b""#)),
                 "isn't one of its options",
+            ),
+            (
+                manifest(&single.replace(r#""label": "One"}"#, r#""label": "One", "default": true}"#)),
+                "only options of a multiple choice",
             ),
             (manifest(&format!("{single}, {single}")), "choice \"a\" twice"),
             (manifest(r#"{"id": "b", "kind": "multiple", "options": []}"#), "no options"),

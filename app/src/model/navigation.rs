@@ -306,7 +306,7 @@ impl AppModel {
             self.flow_id = Some(settings::new_flow_id());
             self.own_session = None;
             self.returning_to_install = false;
-            self.extras_shown = false;
+            self.extras_shown = true;
             self.begin_get_ready();
             self.take_over_draft(cx);
             self.after_step_change(cx);
@@ -385,7 +385,7 @@ impl AppModel {
         self.security_reminder = false;
         self.forget_pending_reminder(cx);
         self.returning_to_install = false;
-        self.extras_shown = false;
+        self.extras_shown = true;
         // A new flow, begun on purpose, takes the draft over from whatever
         // flow held it; from here on only this window may change it.
         self.flow_id = Some(settings::new_flow_id());

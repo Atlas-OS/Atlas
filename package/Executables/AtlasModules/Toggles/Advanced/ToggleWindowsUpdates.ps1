@@ -50,6 +50,9 @@ function Disable-AtlasWindowsUpdates {
         if ($service.Status -ne [System.ServiceProcess.ServiceControllerStatus]::Stopped) {
             Stop-Service -Name $serviceName -Force -ErrorAction Stop
         }
+        # The service manager holds the disabled startup type too (start= disabled),
+        # so nothing starts the service again before Windows restarts; one it won't
+        # change, such as a protected one, takes the registry's at the restart.
         Set-AtlasServiceStartup -Name $serviceName -StartupType 4
     }
     Set-AtlasWindowsUpdateTaskState -Enabled $false
@@ -78,24 +81,13 @@ function Enable-AtlasWindowsUpdates {
     Set-AtlasSettingsPageVisibility -Operation unhide -Page windowsupdate
 
     foreach ($serviceName in @('wuauserv', 'UsoSvc', 'WaaSMedicSvc')) {
-        Set-AtlasServiceStartup -Name $serviceName -StartupType 3
-
-        # The registry write doesn't reach the service manager, which refuses to start a
-        # service it still holds as disabled (error 1058) until Windows restarts. sc.exe
-        # changes both. A service it can't change is left for the restart, not started.
-        $synced = $true
-        try {
-            Invoke-AtlasToggleNativeCommand -FilePath (Join-Path -Path ([Environment]::SystemDirectory) -ChildPath 'sc.exe') `
-                -ArgumentList ([string[]]@('config', $serviceName, 'start=', 'demand')) `
-                -AllowedExitCodes ([int[]]@(0)) | Out-Null
-        }
-        catch {
-            $synced = $false
-            Write-AtlasLog -Level Warning -Message "ToggleWindowsUpdates: the service manager kept the old startup type of '$serviceName': $($_.Exception.Message) Restart Windows to finish."
-        }
-
+        # The service manager refuses to start a service it still holds as disabled
+        # (error 1058) until Windows restarts, so Set-AtlasServiceStartup changes it
+        # there too. A service it couldn't change is left for the restart, not
+        # started; the helper's warning says so.
+        $startup = Set-AtlasServiceStartup -Name $serviceName -StartupType 3 -PassThru
         $service = Get-Service -Name $serviceName -ErrorAction Stop
-        if ($synced -and $service.Status -eq [System.ServiceProcess.ServiceControllerStatus]::Stopped) {
+        if ($startup.ServiceManager -ceq 'Synced' -and $service.Status -eq [System.ServiceProcess.ServiceControllerStatus]::Stopped) {
             Start-Service -Name $serviceName -ErrorAction Stop
         }
     }

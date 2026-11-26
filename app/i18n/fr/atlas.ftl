@@ -552,7 +552,7 @@ cost-keyboard-shortcuts-off = Alt+Maj et Ctrl+Maj ne changent plus la langue ni 
 # One line under an optional extra: what ticking it does.
 extra-disable-hibernation = Libère de l’espace disque, mais la mise en veille prolongée et le démarrage rapide ne sont plus disponibles.
 extra-disable-power-saving = Votre PC peut consommer davantage, chauffer plus et avoir une autonomie réduite.
-extra-disable-core-isolation = Cela réduit la protection, dont l’intégrité de la mémoire, et peut affecter les applications ou les jeux qui en ont besoin.
+extra-disable-core-isolation = Réduit la protection, et les jeux qui utilisent un système anti-triche comme Riot Vanguard ou FACEIT peuvent ne pas démarrer tant que vous n’avez pas réactivé l’intégrité de la mémoire.
 extra-uninstall-edge = Vos favoris, votre historique et vos mots de passe enregistrés dans Edge sur ce PC sont supprimés, sauf ce qui est synchronisé avec votre compte Microsoft.
 extra-install-toolbox = Vous aide à gérer vos paramètres Atlas. En version bêta, certaines fonctionnalités peuvent être inachevées.
 extra-install-eclean = Un outil de l’équipe d’AtlasOS pour examiner les fichiers inutiles et les applications au démarrage. Nécessite un compte et une connexion Internet.
@@ -986,7 +986,7 @@ settings-open-data-folder = Ouvrir le dossier de l’application
 
 consequence-disable-hibernation = Libère l’espace disque utilisé pour enregistrer votre session lors de la mise en veille prolongée. La veille prolongée et le démarrage rapide ne seront plus disponibles.
 consequence-disable-power-saving = Désactive les fonctions d’économie d’énergie. Votre PC peut consommer davantage, chauffer plus et avoir une autonomie réduite.
-consequence-disable-core-isolation = Désactive une couche de sécurité supplémentaire de Windows, dont l’intégrité de la mémoire. Cela réduit la protection et peut affecter les applications ou les jeux qui en ont besoin.
+consequence-disable-core-isolation = Désactive une couche de sécurité supplémentaire de Windows, dont l’intégrité de la mémoire. Cela réduit la protection, et les jeux qui utilisent un système anti-triche comme Riot Vanguard ou FACEIT peuvent ne pas démarrer tant que vous n’avez pas réactivé l’intégrité de la mémoire.
 consequence-remove-snipping-tool = Supprime l’application Windows de capture d’écran et d’enregistrement vidéo de l’écran.
 consequence-uninstall-edge = Supprime le navigateur Microsoft Edge. Assurez-vous d’avoir un autre navigateur ou choisissez-en un ci-dessous.
 # Under Remove Microsoft Edge in the Install step's summary, with a caution glyph.
@@ -1203,6 +1203,7 @@ prepare-failed-store-timeout = Les applications du Store n’ont pas fini de se 
 prepare-failed-store-passes = Le Microsoft Store a continué à proposer de nouvelles mises à jour. Terminez les mises à jour restantes dans le Microsoft Store, puis réessayez.
 prepare-failed-manual-updates = Certaines mises à jour Windows doivent être terminées dans Windows Update. Ouvrez Windows Update, terminez-les, puis réessayez.
 prepare-failed-windows-passes = Windows Update a continué à proposer de nouvelles mises à jour. Terminez les mises à jour restantes dans Windows Update, puis réessayez.
+prepare-failed-windows-update-unreachable = Windows Update n’a pas pu joindre les serveurs de Microsoft. Vérifiez votre connexion Internet ainsi que tout pare-feu, proxy ou VPN, puis réessayez.
 # Atlas Manager runs from a folder that links to another place (a junction or symbolic link).
 prepare-failed-source-linked = Atlas Manager se trouve dans un dossier lié. Fermez Atlas, déplacez Atlas Manager dans un dossier local de ce PC, puis ouvrez-le depuis ce dossier.
 prepare-error-code = Code d’erreur : { $code }
