@@ -442,6 +442,8 @@ acquire-no-asset = Atlas { $version } ไม่มีไฟล์แพ็กเ
 # Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
 # .apbx file from an Atlas release before 0.6.
 acquire-unsupported = แอปนี้ติดตั้งได้เฉพาะ Atlas 0.6.0 ขึ้นไปจากแพ็กเกจ Atlas (.atlaspkg)
+# Instead of acquire-unsupported for a Windows ISO opened as the Atlas package. Create an Atlas ISO (iso-open) is beside it.
+acquire-windows-iso = ไฟล์นี้เป็น ISO ของ Windows ไม่ใช่แพ็กเกจ Atlas (.atlaspkg) หากต้องการติดตั้ง Windows ใหม่พร้อม Atlas ให้ใช้ไฟล์นี้สร้าง ISO พร้อม Atlas
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = Atlas { $version } ขาดไฟล์ที่แอปนี้ต้องใช้ในการติดตั้ง ดาวน์โหลดอีกครั้ง หรือเปิดแพ็กเกจ Atlas (.atlaspkg) อีกไฟล์หนึ่ง
 acquire-failed = เตรียมแพ็กเกจ Atlas ไม่ได้ ดาวน์โหลดอีกครั้ง หรือเปิดแพ็กเกจ Atlas (.atlaspkg) อื่น รายละเอียด: { $error }
@@ -1201,6 +1203,9 @@ iso-release-unconfirmed = Atlas จะตรวจสอบกับรายก
 # $minimum is the oldest Atlas version that can make an ISO, such as "0.6.0".
 iso-package-old-title = แพ็กเกจ Atlas นี้สร้าง ISO ไม่ได้
 iso-package-old = ใช้ Atlas { $minimum } ขึ้นไป
+# Instead of iso-package-old-title and iso-package-old when the file chosen as the Atlas package is a Windows ISO. "The Windows ISO" is the field named iso-source.
+iso-package-windows-iso-title = ไฟล์นี้เป็น ISO ของ Windows ไม่ใช่แพ็กเกจ Atlas
+iso-package-windows-iso = ให้เลือกแพ็กเกจ Atlas (.atlaspkg) แทน และเลือก ISO นี้เป็น ISO ของ Windows
 iso-manager-missing-title = ไม่พบไฟล์ของ Atlas Manager
 iso-fix-package = เลือกแพ็กเกจอื่น
 # A package that needs a newer Atlas Manager; Download Atlas Manager (manager-download) is

@@ -53,6 +53,9 @@ pub enum AcquireProblem {
     /// The file isn't an Atlas package: another kind of file, or an AME
     /// Wizard package from an Atlas release before 0.6.
     NotAPackage,
+    /// The file is a Windows ISO, which goes into an Atlas ISO rather than
+    /// being the Atlas package.
+    WindowsIso,
     /// The package is recent enough to include `Install-Atlas.ps1` but does not.
     Incomplete { version: String },
     /// The package needs a newer Atlas Manager: the version it asks for,
@@ -615,8 +618,8 @@ impl AppModel {
                     AcquireProblem::Unsupported { version: unsupported.version.clone() }
                 } else if let Some(incomplete) = error.downcast_ref::<package::Incomplete>() {
                     AcquireProblem::Incomplete { version: incomplete.version.clone() }
-                } else if error.is::<package::NotAPackage>() {
-                    AcquireProblem::NotAPackage
+                } else if let Some(other) = error.downcast_ref::<package::NotAPackage>() {
+                    if other.windows_iso() { AcquireProblem::WindowsIso } else { AcquireProblem::NotAPackage }
                 } else if let Some(outdated) = error.downcast_ref::<package::ManagerOutdated>() {
                     AcquireProblem::ManagerOutdated { required: outdated.required.clone() }
                 } else {

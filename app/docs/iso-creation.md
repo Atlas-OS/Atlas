@@ -42,6 +42,7 @@ Without administrator permission, Windows asks for it as the page opens, and Atl
    - Once both are known, Atlas checks them by itself, and **Continue** becomes available when the check passes. An ISO for another kind of processor than this PC's can only be for another PC: **This PC** is unavailable, with the reason under it, and **Another PC** stays chosen.
    - While a download or the check runs, **Change** is hidden rather than unavailable.
    - A check that fails names the problem, and its bar offers the fix: **Download from Microsoft** or **Choose an ISO file** for media Atlas can't use, **Choose another package**, or **Try again**.
+     A Windows ISO chosen as the Atlas package is named as one, with **Choose another package**, and the bar says to choose it as the Windows ISO instead.
    - Without the latest Atlas package, the package card says why in the error colour, with **Try again** and **Open package file**.
    - A package that needs a newer Atlas Manager shows one bar with **Download Atlas Manager**, and no **Continue**.
 2. **Setup.** The Windows the ISO installs, and how Atlas is set up from it.

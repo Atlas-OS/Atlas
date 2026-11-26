@@ -58,6 +58,7 @@ What needs attention unfolds under its row.
   Where one check alone stands in the way, its fix is the page's accent; where reinstalling Windows is the only way on, **Create an Atlas ISO** is.
 - The package row downloads the latest release by itself.
   It offers **Open package file** as a link, and **Download again** only after a failure.
+  A Windows ISO opened as the package is named as one, and the row adds **Create an Atlas ISO**, the way to reinstall Windows with Atlas from that ISO.
 - Atlas Manager refuses a package that needs a newer Atlas Manager before unpacking anything.
   Such a package names a later `minimumManagerVersion` than this app, or uses a newer manifest format.
   The package row names the version it needs, when the package gives one, and offers **Download Atlas Manager**, which opens the latest release.

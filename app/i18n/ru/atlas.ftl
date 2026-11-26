@@ -468,6 +468,8 @@ acquire-no-asset = Для Atlas { $version } нет файла пакета дл
 # Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
 # .apbx file from an Atlas release before 0.6.
 acquire-unsupported = Это приложение устанавливает Atlas 0.6.0 и новее из пакетов Atlas (.atlaspkg).
+# Instead of acquire-unsupported for a Windows ISO opened as the Atlas package. Create an Atlas ISO (iso-open) is beside it.
+acquire-windows-iso = Это ISO-образ Windows, а не пакет Atlas (.atlaspkg). Чтобы переустановить Windows с Atlas, создайте из него ISO с Atlas.
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = В Atlas { $version } отсутствуют файлы, которые нужны этому приложению для установки. Скачайте его снова или откройте другой пакет Atlas (.atlaspkg).
 acquire-failed = Не удалось подготовить пакет Atlas. Скачайте его снова или откройте другой пакет Atlas (.atlaspkg). Подробности: { $error }
@@ -1310,6 +1312,9 @@ iso-release-unconfirmed = Atlas сверяет его со списком общ
 # $minimum is the oldest Atlas version that can make an ISO, such as "0.6.0".
 iso-package-old-title = С этим пакетом Atlas нельзя создать ISO-образ
 iso-package-old = Используйте Atlas { $minimum } или новее.
+# Instead of iso-package-old-title and iso-package-old when the file chosen as the Atlas package is a Windows ISO. "The Windows ISO" is the field named iso-source.
+iso-package-windows-iso-title = Это ISO-образ Windows, а не пакет Atlas
+iso-package-windows-iso = Вместо него выберите пакет Atlas (.atlaspkg), а этот образ выберите как ISO-образ Windows.
 iso-manager-missing-title = Файл Atlas Manager не найден
 iso-fix-package = Выбрать другой пакет
 # A package that needs a newer Atlas Manager; Download Atlas Manager (manager-download) is

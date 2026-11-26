@@ -689,7 +689,21 @@ impl InstallPage {
                         .on_click(on_model(&model, |m, cx| m.download_latest(cx)))
                 }
                 .when(accent, Button::accent);
-                below.push(div().flex().child(retry).into_any_element());
+                // A Windows ISO goes into an Atlas ISO, which reinstalls Windows with Atlas.
+                let iso =
+                    (*problem == AcquireProblem::WindowsIso && state.can_navigate(Page::Iso)).then(|| {
+                        Button::new("source-iso", t!("iso-open"))
+                            .on_click(on_model(&model, |m, cx| m.navigate_iso_for_this_pc(cx)))
+                    });
+                below.push(
+                    div()
+                        .flex()
+                        .flex_wrap()
+                        .gap(px(8.))
+                        .child(retry)
+                        .when_some(iso, |row, iso| row.child(iso))
+                        .into_any_element(),
+                );
                 if let Some(raw) = raw {
                     let shown = self.show_package_details;
                     below.push(

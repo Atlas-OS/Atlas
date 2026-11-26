@@ -430,6 +430,8 @@ acquire-no-asset = Atlas { $version } nie ma pliku pakietu do pobrania. Aby kont
 # Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
 # .apbx file from an Atlas release before 0.6.
 acquire-unsupported = Ta aplikacja instaluje Atlas w wersji 0.6.0 i nowszych z pakietów Atlasa (.atlaspkg).
+# Instead of acquire-unsupported for a Windows ISO opened as the Atlas package. Create an Atlas ISO (iso-open) is beside it.
+acquire-windows-iso = To jest obraz ISO Windows, a nie pakiet Atlasa (.atlaspkg). Aby zainstalować ponownie Windows z Atlasem, utwórz z niego ISO z Atlasem.
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = W Atlasie { $version } brakuje plików, których ta aplikacja potrzebuje, aby go zainstalować. Pobierz go ponownie albo otwórz inny pakiet Atlasa (.atlaspkg).
 acquire-failed = Nie udało się przygotować pakietu Atlasa. Pobierz go ponownie albo otwórz inny pakiet Atlasa (.atlaspkg). Szczegóły: { $error }
@@ -1235,6 +1237,9 @@ iso-release-unconfirmed = Atlas porównuje je z listą publicznych wydań firmy 
 # $minimum is the oldest Atlas version that can make an ISO, such as "0.6.0".
 iso-package-old-title = Ten pakiet Atlasa nie może utworzyć obrazu ISO
 iso-package-old = Użyj Atlasa w wersji { $minimum } lub nowszej.
+# Instead of iso-package-old-title and iso-package-old when the file chosen as the Atlas package is a Windows ISO. "The Windows ISO" is the field named iso-source.
+iso-package-windows-iso-title = To jest obraz ISO Windows, a nie pakiet Atlasa
+iso-package-windows-iso = Zamiast tego wybierz pakiet Atlasa (.atlaspkg), a ten obraz wybierz jako obraz ISO Windows.
 iso-manager-missing-title = Brakuje pliku aplikacji Atlas Manager
 iso-fix-package = Wybierz inny pakiet
 # A package that needs a newer Atlas Manager; manager-download is beside it.

@@ -443,6 +443,8 @@ acquire-no-asset = Atlas { $version } にはダウンロードできるパッケ
 # Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
 # .apbx file from an Atlas release before 0.6.
 acquire-unsupported = このアプリでインストールできるのは Atlas 0.6.0 以降の Atlas パッケージ (.atlaspkg) です。
+# Instead of acquire-unsupported for a Windows ISO opened as the Atlas package. Create an Atlas ISO (iso-open) is beside it.
+acquire-windows-iso = これは Windows ISO で、Atlas パッケージ (.atlaspkg) ではありません。Atlas で Windows を再インストールするには、この ISO から Atlas ISO を作成してください。
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = Atlas { $version } には、このアプリでのインストールに必要なファイルが含まれていません。もう一度ダウンロードするか、別の Atlas パッケージ (.atlaspkg) を開いてください。
 acquire-failed = Atlas パッケージを準備できませんでした。もう一度ダウンロードするか、別の Atlas パッケージ (.atlaspkg) を開いてください。詳細: { $error }
@@ -1240,6 +1242,9 @@ iso-release-unconfirmed = Atlas は Microsoft の一般公開版の一覧で確�
 # $minimum is the oldest Atlas version that can make an ISO, such as "0.6.0".
 iso-package-old-title = この Atlas パッケージでは ISO を作成できません
 iso-package-old = Atlas { $minimum } 以降を使用してください。
+# Instead of iso-package-old-title and iso-package-old when the file chosen as the Atlas package is a Windows ISO. "The Windows ISO" is the field named iso-source.
+iso-package-windows-iso-title = これは Windows ISO で、Atlas パッケージではありません
+iso-package-windows-iso = 代わりに Atlas パッケージ (.atlaspkg) を選択し、この ISO は Windows ISO として選択してください。
 iso-manager-missing-title = Atlas Manager のファイルが見つかりません
 iso-fix-package = 別のパッケージを選択
 # A package that needs a newer Atlas Manager; Download Atlas Manager (manager-download) is

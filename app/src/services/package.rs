@@ -152,6 +152,12 @@ impl NotAPackage {
     fn of(path: &Path) -> Self {
         Self { file: super::releases::file_name(path) }
     }
+
+    /// Whether the file is an ISO, as a Windows ISO chosen in place of the
+    /// Atlas package is: what to do then differs from any other file.
+    pub fn windows_iso(&self) -> bool {
+        Path::new(&self.file).extension().is_some_and(|extension| extension.eq_ignore_ascii_case("iso"))
+    }
 }
 
 /// Refuses a file whose extension isn't `.atlaspkg` before anything reads it.
@@ -1190,6 +1196,19 @@ mod tests {
             Some(&NotAPackage { file: "renamed.atlaspkg".into() })
         );
         assert!(package::leftovers(&root).is_empty());
+    }
+
+    /// A Windows ISO chosen as the package is told apart from any other file
+    /// that isn't one, by its extension in any case.
+    #[test]
+    fn a_windows_iso_chosen_as_the_package_is_told_apart() {
+        for name in [r"C:\Downloads\Win11_25H2_English_x64.iso", "Atlas-Windows.ISO"] {
+            let error = check_file_name(Path::new(name)).unwrap_err();
+            assert!(error.downcast_ref::<NotAPackage>().is_some_and(NotAPackage::windows_iso), "{name}");
+        }
+        for name in ["Atlas.apbx", "Atlas.zip", "Atlas.iso.zip", "iso", "renamed.atlaspkg"] {
+            assert!(!NotAPackage { file: name.into() }.windows_iso(), "{name}");
+        }
     }
 
     #[test]

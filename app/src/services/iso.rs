@@ -577,6 +577,9 @@ pub enum FailureReason {
     /// The Atlas package is too old for ISO creation, or has no front door.
     /// Decided by the app before the worker starts, so it has no marker.
     PackageUnsupported,
+    /// A Windows ISO was chosen as the Atlas package. Decided by the app
+    /// before the worker starts, so it has no marker.
+    PackageIsWindowsIso,
     /// The package is no longer the one the files were checked with.
     /// Decided by the app before the worker starts, so it has no marker.
     PackageChanged,
@@ -629,11 +632,15 @@ impl std::fmt::Display for Failure {
 impl std::error::Error for Failure {}
 
 /// Types a package the app cannot use for ISO creation, so the page can say
-/// so instead of pointing at the diagnostics: one too old, or a file that
-/// isn't an Atlas package at all. Other errors pass through, a package for
-/// a newer Atlas Manager among them, which the page reads as it is.
+/// so instead of pointing at the diagnostics: a Windows ISO chosen in its
+/// place, one too old, or another file that isn't an Atlas package at all.
+/// Other errors pass through, a package for a newer Atlas Manager among them,
+/// which the page reads as it is.
 pub fn package_error(error: anyhow::Error) -> anyhow::Error {
-    if error.is::<super::package::Unsupported>() || error.is::<super::package::NotAPackage>() {
+    use super::package::NotAPackage;
+    if error.downcast_ref::<NotAPackage>().is_some_and(NotAPackage::windows_iso) {
+        Failure::new(FailureReason::PackageIsWindowsIso, format!("{error:#}")).into()
+    } else if error.is::<super::package::Unsupported>() || error.is::<NotAPackage>() {
         Failure::new(FailureReason::PackageUnsupported, format!("{error:#}")).into()
     } else {
         error
@@ -1207,6 +1214,12 @@ mod tests {
         assert_eq!(
             other.downcast_ref::<Failure>().map(|failure| failure.reason),
             Some(FailureReason::PackageUnsupported)
+        );
+        let windows =
+            package_error(package::check_file_name(Path::new(r"C:\Downloads\Win11_25H2.iso")).unwrap_err());
+        assert_eq!(
+            windows.downcast_ref::<Failure>().map(|failure| failure.reason),
+            Some(FailureReason::PackageIsWindowsIso)
         );
         assert!(package_error(anyhow::anyhow!("unreadable archive")).downcast_ref::<Failure>().is_none());
     }

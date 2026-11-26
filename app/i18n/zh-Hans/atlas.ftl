@@ -398,6 +398,8 @@ package-none-yet = 尚无 Atlas 安装包
 acquire-no-asset = Atlas { $version } 没有可下载的安装包。请打开已保存的 Atlas 安装包 (.atlaspkg) 以继续。
 # 早于 Atlas 0.6.0 的安装包，以及不是 Atlas 安装包的文件（例如 0.6 之前的 .apbx 文件）。
 acquire-unsupported = 此应用只能通过 Atlas 安装包 (.atlaspkg) 安装 Atlas 0.6.0 及更高版本。
+# 打开的 Atlas 安装包是 Windows ISO 时代替 acquire-unsupported。旁边提供“创建 Atlas ISO”（iso-open）。
+acquire-windows-iso = 这是 Windows ISO，不是 Atlas 安装包 (.atlaspkg)。要使用 Atlas 重新安装 Windows，请用它创建 Atlas ISO。
 # 安装包足够新，本应包含此应用驱动的安装脚本，但缺少该脚本。
 acquire-incomplete = Atlas { $version } 缺少此应用安装所需的文件。请重新下载，或打开其他 Atlas 安装包 (.atlaspkg)。
 acquire-failed = 无法准备 Atlas 安装包。请重新下载，或打开其他 Atlas 安装包 (.atlaspkg)。详细信息：{ $error }
@@ -1119,6 +1121,9 @@ iso-release-unconfirmed = Atlas 会根据 Microsoft 的正式发布版本列表�
 # $minimum 为能够创建 ISO 的最早 Atlas 版本，例如“0.6.0”。
 iso-package-old-title = 此 Atlas 安装包无法创建 ISO
 iso-package-old = 请使用 Atlas { $minimum } 或更高版本。
+# 选作 Atlas 安装包的文件是 Windows ISO 时，代替 iso-package-old-title 和 iso-package-old。“Windows ISO”指名为 iso-source 的字段。
+iso-package-windows-iso-title = 这是 Windows ISO，不是 Atlas 安装包
+iso-package-windows-iso = 请改为选择 Atlas 安装包 (.atlaspkg)，并将此 ISO 选为 Windows ISO。
 iso-manager-missing-title = Atlas Manager 文件缺失
 iso-fix-package = 选择其他安装包
 # 安装包需要更新版本的 Atlas Manager；旁边是 manager-download，acquire-manager-update-needed 说明所需版本。

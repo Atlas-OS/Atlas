@@ -176,7 +176,8 @@ fn only_failures_nothing_on_the_page_fixes_get_the_help_row() {
     for reason in [EditionUnsupported, IsoCustomised, WindowsReleaseUnlisted, WindowsUnsupported] {
         assert!(!failure_needs_help(Some(reason), true, true), "{reason:?}");
     }
-    for reason in [WindowsReleaseUnknown, PackageUnsupported, ManagerOutdated, DiskSpace] {
+    for reason in [WindowsReleaseUnknown, PackageUnsupported, PackageIsWindowsIso, ManagerOutdated, DiskSpace]
+    {
         assert!(!failure_needs_help(Some(reason), true, true), "{reason:?}");
         assert!(!failure_needs_help(Some(reason), false, true), "{reason:?}");
     }
@@ -225,10 +226,16 @@ fn each_failure_is_named_and_says_what_to_do() {
                 (FailureReason::WindowsReleaseUnlisted, t!("iso-preview-title")),
                 (FailureReason::WindowsReleaseUnknown, t!("iso-release-unknown-title")),
                 (FailureReason::PackageUnsupported, t!("iso-package-old-title")),
+                (FailureReason::PackageIsWindowsIso, t!("iso-package-windows-iso-title")),
             ] {
                 page.result = JobResult::Failed(Some(reason));
                 assert_eq!(page.failure_text().0, title, "{reason:?}");
             }
+            // A Windows ISO chosen as the package isn't sent to another Atlas version.
+            page.result = JobResult::Failed(Some(FailureReason::PackageIsWindowsIso));
+            let message = page.failure_text().1;
+            assert_eq!(message, t!("iso-package-windows-iso"));
+            assert!(!message.contains(iso::MINIMUM_VERSION), "{message}");
             // A network driver export that failed says so, with the way to leave them out.
             page.step = IsoStep::Create;
             page.network_build = true;

@@ -410,6 +410,8 @@ package-none-yet = Aucun package Atlas pour le moment
 acquire-no-asset = Atlas { $version } ne propose aucun fichier de package à télécharger. Ouvrez un package Atlas (.atlaspkg) déjà enregistré pour continuer.
 # Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package.
 acquire-unsupported = Cette application installe Atlas 0.6.0 et versions ultérieures à partir de packages Atlas (.atlaspkg).
+# Instead of acquire-unsupported for a Windows ISO opened as the Atlas package. Create an Atlas ISO (iso-open) is beside it.
+acquire-windows-iso = Ce fichier est une ISO Windows, pas un package Atlas (.atlaspkg). Pour réinstaller Windows avec Atlas, utilisez-la pour créer une ISO avec Atlas.
 # Un package assez récent pour inclure le script d'installation que pilote cette application, mais qui ne le contient pas.
 acquire-incomplete = Il manque à Atlas { $version } des fichiers dont cette application a besoin pour l’installer. Téléchargez-le à nouveau ou ouvrez un autre package Atlas (.atlaspkg).
 acquire-failed = Impossible de préparer le package Atlas. Téléchargez-le à nouveau ou ouvrez un autre package Atlas (.atlaspkg). Détails : { $error }
@@ -1146,6 +1148,9 @@ iso-release-unconfirmed = Atlas la compare à la liste Microsoft des versions pu
 # $minimum is the oldest Atlas version that can make an ISO, such as "0.6.0".
 iso-package-old-title = Ce package Atlas ne permet pas de créer une ISO
 iso-package-old = Utilisez Atlas { $minimum } ou une version ultérieure.
+# Instead of iso-package-old-title and iso-package-old when the file chosen as the Atlas package is a Windows ISO. "The Windows ISO" is the field named iso-source.
+iso-package-windows-iso-title = Ce fichier est une ISO Windows, pas un package Atlas
+iso-package-windows-iso = Choisissez plutôt un package Atlas (.atlaspkg), et choisissez cette ISO comme ISO Windows.
 iso-manager-missing-title = Le fichier d’Atlas Manager est introuvable
 iso-fix-package = Choisir un autre package
 # A package that needs a newer Atlas Manager; acquire-manager-update-needed says which version.

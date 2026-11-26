@@ -432,6 +432,8 @@ acquire-no-asset = Atlas { $version } tidak memiliki file paket yang dapat diund
 # Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
 # .apbx file from an Atlas release before 0.6.
 acquire-unsupported = Aplikasi ini dapat menginstal Atlas 0.6.0 dan yang lebih baru dari paket Atlas (.atlaspkg).
+# Instead of acquire-unsupported for a Windows ISO opened as the Atlas package. Create an Atlas ISO (iso-open) is beside it.
+acquire-windows-iso = Ini adalah ISO Windows, bukan paket Atlas (.atlaspkg). Untuk menginstal ulang Windows dengan Atlas, buat ISO Atlas dengan file ini.
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = Atlas { $version } tidak berisi file yang diperlukan aplikasi ini untuk menginstalnya. Unduh lagi, atau buka paket Atlas (.atlaspkg) lain.
 acquire-failed = Tidak dapat menyiapkan paket Atlas. Unduh lagi, atau buka paket Atlas (.atlaspkg) lain. Detail: { $error }
@@ -1225,6 +1227,9 @@ iso-release-unconfirmed = Atlas mencocokkannya dengan daftar rilis publik Micros
 # $minimum is the oldest Atlas version that can make an ISO, such as "0.6.0".
 iso-package-old-title = Paket Atlas ini tidak dapat membuat ISO
 iso-package-old = Gunakan Atlas { $minimum } atau yang lebih baru.
+# Instead of iso-package-old-title and iso-package-old when the file chosen as the Atlas package is a Windows ISO. "The Windows ISO" is the field named iso-source.
+iso-package-windows-iso-title = Ini adalah ISO Windows, bukan paket Atlas
+iso-package-windows-iso = Pilih paket Atlas (.atlaspkg) sebagai gantinya, dan pilih ISO ini sebagai ISO Windows.
 iso-manager-missing-title = File Atlas Manager tidak ditemukan
 iso-fix-package = Pilih paket lain
 # A package that needs a newer Atlas Manager; Download Atlas Manager (manager-download) is

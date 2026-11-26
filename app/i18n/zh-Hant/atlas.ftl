@@ -424,6 +424,8 @@ acquire-no-asset = Atlas { $version } 沒有可下載的套件檔案。請開啟
 # Shown for a package older than Atlas 0.6.0, and for a file that isn't an Atlas package, such as an
 # .apbx file from an Atlas release before 0.6.
 acquire-unsupported = 這個應用程式可透過 Atlas 套件（.atlaspkg）安裝 Atlas 0.6.0 及更新版本。
+# Instead of acquire-unsupported for a Windows ISO opened as the Atlas package. Create an Atlas ISO (iso-open) is beside it.
+acquire-windows-iso = 這是 Windows ISO，不是 Atlas 套件（.atlaspkg）。若要使用 Atlas 重新安裝 Windows，請用它建立 Atlas ISO。
 # A package new enough to include the installer script that this app drives, but without it.
 acquire-incomplete = Atlas { $version } 缺少這個應用程式進行安裝所需的檔案。請重新下載，或開啟其他 Atlas 套件（.atlaspkg）。
 acquire-failed = 無法準備 Atlas 套件。請重新下載，或開啟其他 Atlas 套件（.atlaspkg）。詳細資料：{ $error }
@@ -1217,6 +1219,9 @@ iso-release-unconfirmed = Atlas 會將它與 Microsoft 的正式發行版本清�
 # $minimum is the oldest Atlas version that can make an ISO, such as "0.6.0".
 iso-package-old-title = 此 Atlas 套件無法建立 ISO
 iso-package-old = 請使用 Atlas { $minimum } 或更新版本。
+# Instead of iso-package-old-title and iso-package-old when the file chosen as the Atlas package is a Windows ISO. "The Windows ISO" is the field named iso-source.
+iso-package-windows-iso-title = 這是 Windows ISO，不是 Atlas 套件
+iso-package-windows-iso = 請改為選擇 Atlas 套件（.atlaspkg），並將此 ISO 選為 Windows ISO。
 iso-manager-missing-title = 找不到 Atlas Manager 的檔案
 iso-fix-package = 選擇其他套件
 # A package that needs a newer Atlas Manager; Download Atlas Manager (manager-download) is

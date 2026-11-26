@@ -1051,6 +1051,7 @@ impl AcquireProblem {
         match self {
             AcquireProblem::NoPackageAsset { version } => t!("acquire-no-asset", version = version),
             AcquireProblem::Unsupported { .. } | AcquireProblem::NotAPackage => t!("acquire-unsupported"),
+            AcquireProblem::WindowsIso => t!("acquire-windows-iso"),
             AcquireProblem::Incomplete { version } if bundled => {
                 let error = crate::services::package::Incomplete { version: version.clone() }.to_string();
                 t!("acquire-failed-bundled", error = error)
@@ -1781,6 +1782,18 @@ mod tests {
             assert_ne!(incomplete.text(false), old.text(false));
             let retry = t!("common-try-again");
             assert!(incomplete.text(true).contains(&retry), "a tester build offers only Try again");
+        });
+    }
+
+    /// A Windows ISO opened as the package is told what it is and where it
+    /// goes, not which Atlas versions the app installs.
+    #[test]
+    fn a_windows_iso_opened_as_the_package_is_told_it_is_one() {
+        english(|| {
+            let iso = AcquireProblem::WindowsIso.text(false);
+            assert_ne!(iso, AcquireProblem::NotAPackage.text(false));
+            assert!(iso.contains("Windows ISO") && iso.contains(".atlaspkg"), "{iso}");
+            assert!(!iso.contains("0.6.0"), "{iso}");
         });
     }
 
