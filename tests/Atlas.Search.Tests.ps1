@@ -378,6 +378,11 @@ Describe 'Starting a Windows Search service that does not reach Running' {
         $global:AtlasSearchTestStopRefused = $false
         $global:AtlasSearchTestExit = [pscustomobject]@{ Win32ExitCode = 1066; ServiceSpecificExitCode = 2147749126; ProcessId = 4321 }
         Mock Get-AtlasSearchServiceExitState -ModuleName Atlas.Search { $global:AtlasSearchTestExit }
+        $global:AtlasSearchTestProcessPath = [IO.Path]::Combine([Environment]::SystemDirectory, 'SearchIndexer.exe')
+        Mock Get-AtlasSearchServiceProcessPath -ModuleName Atlas.Search {
+            [void]$global:AtlasSearchTestCalls.Add("path:$ProcessId")
+            $global:AtlasSearchTestProcessPath
+        }
         $global:AtlasSearchTestService = New-TestSearchService
         Mock Get-Service -ModuleName Atlas.Search { $global:AtlasSearchTestService }
         # A start that stays pending runs out of time at once.
@@ -396,7 +401,7 @@ Describe 'Starting a Windows Search service that does not reach Running' {
 
     AfterAll {
         Remove-Variable -Name AtlasSearchTestStarts, AtlasSearchTestRefreshes, AtlasSearchTestStopRefused,
-            AtlasSearchTestExit, AtlasSearchTestService -Scope Global -ErrorAction SilentlyContinue
+            AtlasSearchTestExit, AtlasSearchTestService, AtlasSearchTestProcessPath -Scope Global -ErrorAction SilentlyContinue
     }
 
     It 'fails at once with the exit codes when the service stops while starting' {
@@ -461,10 +466,27 @@ Describe 'Starting a Windows Search service that does not reach Running' {
             'Start'
             'dword:SetupCompletedSuccessfully=0'
             'Stop'
+            'path:4321'
             'kill:4321'
             'Wait:Stopped'
             'Start'
         )
+    }
+
+    It 'never ends a process whose image is not SearchIndexer.exe' -TestCases @(
+        @{ Case = 'a shared service host'; Path = 'C:\Windows\System32\svchost.exe' }
+        @{ Case = 'a process Windows does not describe'; Path = '' }
+    ) {
+        param($Case, $Path)
+        $global:AtlasSearchTestProcessPath = $Path
+        $global:AtlasSearchTestStopRefused = $true
+        $global:AtlasSearchTestStarts.Enqueue([ServiceProcess.ServiceControllerStatus]::StartPending)
+
+        { InModuleScope Atlas.Search { Set-AtlasSearchServiceState -State Running } } |
+            Should -Throw "*couldn't take a stop request (*cannot accept control messages*), and its process 4321 runs '$Path', not '*SearchIndexer.exe', so Atlas doesn't end it.*" -Because $Case
+
+        Should -Invoke Stop-Process -ModuleName Atlas.Search -Times 0
+        @($global:AtlasSearchTestCalls) | Should -Not -Contain 'kill:4321'
     }
 
     It 'accepts a service its recovery actions started before the restart did' {
@@ -478,6 +500,7 @@ Describe 'Starting a Windows Search service that does not reach Running' {
             'Start'
             'dword:SetupCompletedSuccessfully=0'
             'Stop'
+            'path:4321'
             'kill:4321'
             'Wait:Stopped'
             'Start'

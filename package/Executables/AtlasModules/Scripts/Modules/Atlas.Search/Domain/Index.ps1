@@ -205,6 +205,21 @@ function Get-AtlasSearchServiceExitState {
     }
 }
 
+function Get-AtlasSearchServiceProcessPath {
+    <#
+    .SYNOPSIS
+        Returns the executable path of a process, or an empty string when Windows doesn't
+        list it or won't say.
+    #>
+    param([Parameter(Mandatory = $true)][int]$ProcessId)
+
+    $process = @(CimCmdlets\Get-CimInstance -ClassName Win32_Process -Filter "ProcessId=$ProcessId" -ErrorAction Stop)
+    if ($process.Count -ne 1) {
+        return ''
+    }
+    return [string]$process[0].ExecutablePath
+}
+
 function Format-AtlasSearchServiceExit {
     param([Parameter(Mandatory = $true)]$ExitState)
 
@@ -248,8 +263,8 @@ function Wait-AtlasSearchServiceRunning {
 function Restart-AtlasSearchService {
     <#
     .SYNOPSIS
-        Stops WSearch, ending its process when it's still starting and can't take a stop
-        request, then starts it.
+        Stops WSearch, ending its SearchIndexer.exe process when it's still starting and
+        can't take a stop request, then starts it.
     #>
     param([Parameter(Mandatory = $true)]$Service)
 
@@ -259,9 +274,18 @@ function Restart-AtlasSearchService {
             $Service.Stop()
         }
         catch {
+            $stopFailure = $_.Exception.Message
             $processId = [int](Get-AtlasSearchServiceExitState).ProcessId
             if ($processId -le 0) { throw }
-            Write-AtlasLog -Message "Windows Search couldn't take a stop request ($($_.Exception.Message)); ending its process $processId."
+            # WSearch runs in its own SearchIndexer.exe process. A process with any other
+            # image could be a host that other services share, so it's never ended.
+            $indexerPath = [IO.Path]::Combine([Environment]::SystemDirectory, 'SearchIndexer.exe')
+            $processPath = [string](Get-AtlasSearchServiceProcessPath -ProcessId $processId)
+            if (-not $processPath.Equals($indexerPath, [StringComparison]::OrdinalIgnoreCase)) {
+                throw ("Windows Search couldn't take a stop request ($stopFailure), and its process $processId " +
+                    "runs '$processPath', not '$indexerPath', so Atlas doesn't end it.")
+            }
+            Write-AtlasLog -Message "Windows Search couldn't take a stop request ($stopFailure); ending its process $processId."
             Stop-Process -Id $processId -Force -ErrorAction Stop
         }
         try {
