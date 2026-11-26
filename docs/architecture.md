@@ -343,6 +343,7 @@ It changes nothing and prints a report, or JSON with `-Json`.
 It exits with 0 when it finds no drift, 1 when it does, and 2 when Atlas isn't installed or the check couldn't run.
 
 Scheduled-task changes read the scheduler's language-neutral `Enabled` state before and after `schtasks.exe`, so verification doesn't depend on translated output.
+When `schtasks.exe` can't find the path of a task the scheduler lists, Atlas enables or disables it through the Task Scheduler COM API, and the same check decides.
 Search indexing stages its URLs under `HKLM\SOFTWARE\AtlasOS\Search` while WSearch is stopped.
 Once the service runs, it commits them through `ISearchCrawlScopeManager` and reads the saved scope back.
 Includes end in a folder separator and exclusions in `\*`, following Microsoft's [scope rule format](https://learn.microsoft.com/windows/win32/search/-search-3x-wds-extidx-csm-scoperules).

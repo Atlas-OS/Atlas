@@ -59,7 +59,20 @@ function Invoke-AtlasScheduledTaskCommand {
     }
     if ($exitCode -ne 0) {
         $details = (@($output) | ForEach-Object { "$_" }) -join ' '
-        throw "Couldn't $OperationLabel scheduled task '$Path' (schtasks.exe exited with code ${exitCode}): $details"
+        $failure = "Couldn't $OperationLabel scheduled task '$Path' (schtasks.exe exited with code ${exitCode}): $details"
+        # schtasks.exe can report the path of a task as not found while the scheduler
+        # service still lists it. The scheduler's own API reaches the registered task,
+        # and the state check below decides.
+        if ($OperationLabel -cnotin @('disable', 'enable') -or -not (Test-AtlasPathNotFoundText -Text $details)) {
+            throw $failure
+        }
+        Write-AtlasLog -Message "schtasks.exe couldn't find scheduled task '$Path', which the scheduler lists; changing it through the Task Scheduler API."
+        try {
+            Set-AtlasScheduledTaskEnabled -Path $Path -Enabled ($expected -ceq 'Enabled')
+        }
+        catch {
+            throw "$failure The Task Scheduler API couldn't change it either: $($_.Exception.Message)"
+        }
     }
     $after = Get-AtlasScheduledTaskState -Path $Path
     if ($after -cne $expected) {
@@ -330,6 +343,59 @@ function Get-AtlasScheduledTaskState {
         }
         if ($task.Enabled) { return 'Enabled' }
         return 'Disabled'
+    }
+    finally {
+        foreach ($comObject in @($task, $folder, $service)) {
+            if ($null -ne $comObject -and [Runtime.InteropServices.Marshal]::IsComObject($comObject)) {
+                [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($comObject)
+            }
+        }
+    }
+}
+
+function Test-AtlasPathNotFoundText {
+    <#
+    .SYNOPSIS
+        Whether native output carries Windows's message for ERROR_FILE_NOT_FOUND (2) or
+        ERROR_PATH_NOT_FOUND (3). Windows formats the message in the same display
+        language for this process and the native tool, so any language matches.
+    #>
+    param([AllowEmptyString()][string]$Text)
+
+    # Letters and digits only, so spacing and punctuation can't decide.
+    $haystack = ($Text -replace '[^\p{L}\p{Nd}]', '').ToLowerInvariant()
+    foreach ($code in @(2, 3)) {
+        $message = (New-Object ComponentModel.Win32Exception $code).Message
+        $needle = ($message -replace '[^\p{L}\p{Nd}]', '').ToLowerInvariant()
+        if ($needle.Length -gt 0 -and $haystack.Contains($needle)) {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Set-AtlasScheduledTaskEnabled {
+    <#
+    .SYNOPSIS
+        Enables or disables a registered task through the Task Scheduler COM API.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Path,
+
+        [Parameter(Mandatory = $true)]
+        [bool]$Enabled
+    )
+
+    $service = $null
+    $folder = $null
+    $task = $null
+    try {
+        $service = Get-AtlasTaskSchedulerService
+        $folder = $service.GetFolder('\')
+        $task = $folder.GetTask($Path)
+        $task.Enabled = $Enabled
     }
     finally {
         foreach ($comObject in @($task, $folder, $service)) {

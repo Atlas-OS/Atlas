@@ -89,6 +89,75 @@ Describe 'Scheduled-task command failure and postcondition checks' {
     }
 }
 
+Describe 'A task schtasks.exe cannot find but the scheduler lists' {
+    BeforeEach {
+        Mock Write-AtlasLog -ModuleName Atlas.TasksProcs
+        # schtasks.exe prints the Windows message for ERROR_PATH_NOT_FOUND in the display language.
+        $pathNotFound = (New-Object ComponentModel.Win32Exception 3).Message
+        $fake = Join-Path $TestDrive 'schtasks-path-not-found.cmd'
+        Set-Content -LiteralPath $fake -Value "@echo off`r`necho ERROR: $pathNotFound`r`nexit /b 1"
+        Mock Get-AtlasSchtasksPath -ModuleName Atlas.TasksProcs { $fake }
+        $script:apiState = 'Enabled'
+        Mock Get-AtlasScheduledTaskState -ModuleName Atlas.TasksProcs { $script:apiState }
+        Mock Set-AtlasScheduledTaskEnabled -ModuleName Atlas.TasksProcs {
+            $script:apiState = if ($Enabled) { 'Enabled' } else { 'Disabled' }
+        }
+    }
+
+    It 'disables it through the Task Scheduler API and verifies the result' {
+        Disable-AtlasScheduledTask -Path '\Atlas\Task'
+
+        Should -Invoke Set-AtlasScheduledTaskEnabled -ModuleName Atlas.TasksProcs -Times 1 -Exactly -ParameterFilter {
+            $Path -ceq '\Atlas\Task' -and $Enabled -eq $false
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.TasksProcs -Times 1 -Exactly -ParameterFilter {
+            $Message -like '*Verified scheduled task*Enabled -> Disabled*'
+        }
+    }
+
+    It 'enables it through the Task Scheduler API' {
+        $script:apiState = 'Disabled'
+
+        Enable-AtlasScheduledTask -Path '\Atlas\Task'
+
+        $script:apiState | Should -BeExactly 'Enabled'
+    }
+
+    It 'fails as before when the task stays enabled' {
+        Mock Set-AtlasScheduledTaskEnabled -ModuleName Atlas.TasksProcs {}
+
+        { Disable-AtlasScheduledTask -Path '\Atlas\Task' } | Should -Throw "*remained 'Enabled'*expected 'Disabled'*"
+    }
+
+    It 'fails with both errors when the Task Scheduler API refuses' {
+        Mock Set-AtlasScheduledTaskEnabled -ModuleName Atlas.TasksProcs { throw 'Access is denied.' }
+
+        { Disable-AtlasScheduledTask -Path '\Atlas\Task' } |
+            Should -Throw "*exited with code 1*The Task Scheduler API couldn't change it either: Access is denied.*"
+    }
+
+    It 'leaves other schtasks.exe failures and deletions to fail as they do' {
+        Set-Content -LiteralPath $fake -Value "@echo off`r`necho ERROR: Access is denied.`r`nexit /b 1"
+        { Disable-AtlasScheduledTask -Path '\Atlas\Task' } | Should -Throw '*Access is denied*'
+
+        Set-Content -LiteralPath $fake -Value "@echo off`r`necho ERROR: $pathNotFound`r`nexit /b 1"
+        { Remove-AtlasScheduledTask -Path '\Atlas\Task' } | Should -Throw '*exited with code 1*'
+
+        Should -Invoke Set-AtlasScheduledTaskEnabled -ModuleName Atlas.TasksProcs -Times 0 -Exactly
+    }
+
+    It 'recognises the file and path not found messages only' {
+        InModuleScope Atlas.TasksProcs {
+            foreach ($code in @(2, 3)) {
+                Test-AtlasPathNotFoundText -Text ("ERROR: " + (New-Object ComponentModel.Win32Exception $code).Message) |
+                    Should -BeTrue
+            }
+            Test-AtlasPathNotFoundText -Text 'ERROR: Access is denied.' | Should -BeFalse
+            Test-AtlasPathNotFoundText -Text '' | Should -BeFalse
+        }
+    }
+}
+
 Describe 'Stop-AtlasProcess' {
     It 'silently skips processes that are not running' {
         { Stop-AtlasProcess -Name 'AtlasRewriteTestNoSuchProcess*', 'AnotherMissingProcess*' } | Should -Not -Throw
