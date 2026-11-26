@@ -91,6 +91,9 @@ $script:DriverNotNeeded = -2147024637
 # ERROR_SXS_COMPONENT_STORE_CORRUPT (0x80073712): an update failed because the
 # component store, which Windows installs updates into, is damaged.
 $script:ComponentStoreCorrupt = -2147010798
+# CBS_E_STORE_CORRUPTION (0x800F0831): servicing found the component store
+# missing a manifest the update needs, which a repair can report healthy over.
+$script:StoreCorruption = -2146498511
 # A run reads the component store's health once and repairs it at most once:
 # a repair can take half an hour.
 $script:PreparationComponentChecked = $false
@@ -982,7 +985,7 @@ function Invoke-PreparationWindows {
         # one the restart didn't finish.
         $handledHere = @{}
         if (-not $restartNeeded) {
-            foreach ($entry in @($failed | Where-Object { $_.HResult -in @($script:InstallNotAllowed, $script:ComponentStoreCorrupt) })) {
+            foreach ($entry in @($failed | Where-Object { $_.HResult -in @($script:InstallNotAllowed, $script:ComponentStoreCorrupt, $script:StoreCorruption) })) {
                 $handledHere[(Get-PreparationUpdateKey $entry.Update)] = $true
             }
         }
@@ -1008,9 +1011,20 @@ function Invoke-PreparationWindows {
         if ([int]$installed.ResultCode -ne $script:UpdateSucceeded -and ($failed.Count -gt 0 -or ($unneededDrivers -eq 0 -and $optionalFailures.Count -eq 0))) {
             # Updates that failed on a damaged component store get another try
             # once it's repaired, even if they've had one.
-            $damaged = @($failed | Where-Object { $_.HResult -eq $script:ComponentStoreCorrupt })
-            if ($damaged.Count -gt 0 -and (Invoke-PreparationComponentRepair "$($damaged.Count) update(s) failed on it (0x80073712)")) {
-                foreach ($entry in $damaged) { $retried.Remove($entry.Id) }
+            $damaged = @($failed | Where-Object { $_.HResult -in @($script:ComponentStoreCorrupt, $script:StoreCorruption) })
+            if ($damaged.Count -gt 0) {
+                $codes = @($damaged | ForEach-Object { '0x{0:X8}' -f $_.HResult } | Sort-Object -Unique) -join ', '
+                if (Invoke-PreparationComponentRepair "$($damaged.Count) update(s) failed on it ($codes)") {
+                    foreach ($entry in $damaged) { $retried.Remove($entry.Id) }
+                }
+            }
+            # A store missing what an update needs, after its try and the run's
+            # repair, is damage Windows's own repair doesn't put right.
+            $missing = @($failed | Where-Object { $_.HResult -eq $script:StoreCorruption -and $retried.ContainsKey($_.Id) })
+            if ($missing.Count -gt 0) {
+                $names = @($missing | ForEach-Object { Format-PreparationUpdateName $_.Update }) -join '; '
+                Write-PreparationComponentEvidence "updates still fail on it after the repair (0x800F0831): $names"
+                throw (New-PreparationFailure "Windows couldn't install $names (0x800F0831, CBS_E_STORE_CORRUPTION): its component store is missing files the update needs, and Windows's repair didn't put them back." 'component-store-unrepairable' $script:StoreCorruption)
             }
             # So do updates that met another installation, once it's done.
             $busy = @($failed | Where-Object { $_.HResult -eq $script:InstallNotAllowed })
@@ -1032,7 +1046,7 @@ function Select-PreparationOptionalFailure($Failed, [hashtable]$Optional, [switc
         $key = Get-PreparationUpdateKey $entry.Update
         if (-not $Optional.ContainsKey($key)) { continue }
         if ($Installed -and (($entry.HResult -eq $script:InstallNotAllowed -and $script:PreparationBusyWaited -lt $script:PreparationBusyWaits) -or
-                ($entry.HResult -eq $script:ComponentStoreCorrupt -and -not $script:PreparationComponentRepairRun))) { continue }
+                ($entry.HResult -in @($script:ComponentStoreCorrupt, $script:StoreCorruption) -and -not $script:PreparationComponentRepairRun))) { continue }
         $script:PreparationOptionalFailed[$key] = $true
         $line = "Optional update '$($entry.Update.Title)' failed (0x{0:X8}); installing the monthly update it replaced instead." -f $entry.HResult
         Write-PreparationLog $line
@@ -1224,6 +1238,17 @@ function Get-PreparationUpdateKb($Update) {
     $property = $Update.PSObject.Properties['KBArticleIDs']
     if ($null -eq $property -or $null -eq $property.Value) { return }
     foreach ($kb in $property.Value) { [string]$kb }
+}
+
+# An update as a failure message names it: its title, and its KB numbers when
+# the title doesn't give them.
+function Format-PreparationUpdateName($Update) {
+    $property = $Update.PSObject.Properties['Title']
+    $title = if ($null -ne $property) { ([string]$property.Value -replace '\s+', ' ').Trim() } else { '' }
+    $kbs = @(Get-PreparationUpdateKb $Update | Where-Object { $_ -and $title -notmatch "KB$_" } | ForEach-Object { "KB$_" })
+    if ($kbs.Count -eq 0) { return $title }
+    if (-not $title) { return $kbs -join ', ' }
+    return "$title ($($kbs -join ', '))"
 }
 
 function Test-PreparationUpgradeCategory($Update) {

@@ -2096,6 +2096,44 @@ Describe 'A damaged component store' {
         try { Invoke-PreparationWindows } catch { $null = $_ }
         Should -Invoke Invoke-PreparationRestoreHealth -Times 1 -Exactly
     }
+    It 'repairs the store when an update is missing its files (0x800F0831), then names the update and the code when it still fails' {
+        foreach ($code in @($script:StoreCorruption, $script:StoreCorruption)) { $script:Installs.Enqueue((New-InstallResult $code)) }
+        $thrown = $null
+        try { Invoke-PreparationWindows } catch { $thrown = $_.Exception }
+        $detail = Get-PreparationFailureDetail $thrown
+        $detail.reason | Should -BeExactly 'component-store-unrepairable'
+        $detail.errorCode | Should -BeExactly '0x800F0831'
+        $detail.failureMessage | Should -BeExactly "Windows couldn't install Fixture update (0x800F0831, CBS_E_STORE_CORRUPTION): its component store is missing files the update needs, and Windows's repair didn't put them back."
+        @($script:Steps) | Should -Be @('search', 'install', 'repair stage', 'repair', 'search', 'install')
+        $log = Get-Content (Join-Path $JobPath 'updates.log') -Raw
+        $log | Should -Match '1 update\(s\) failed on it \(0x800F0831\); repairing it'
+        $log | Should -Match 'updates still fail on it after the repair \(0x800F0831\): Fixture update'
+    }
+    It 'names the monthly update that is missing its files after the run''s repair reported the store healthy' {
+        $script:ComponentHealth = 'Repairable'
+        foreach ($code in @($script:StoreCorruption, $script:StoreCorruption)) { $script:Installs.Enqueue((New-InstallResult $code)) }
+        $thrown = $null
+        try { Invoke-PreparationWindows } catch { $thrown = $_.Exception }
+        (Get-PreparationFailureDetail $thrown).reason | Should -BeExactly 'component-store-unrepairable'
+        Should -Invoke Invoke-PreparationRestoreHealth -Times 1 -Exactly
+        @($script:Steps | Where-Object { $_ -eq 'install' }).Count | Should -Be 2 -Because 'the update gets its one more try'
+    }
+    It 'installs an update the repair put its files back for' {
+        foreach ($code in @($script:StoreCorruption, 0)) { $script:Installs.Enqueue((New-InstallResult $code)) }
+        Invoke-PreparationWindows | Should -Be 'complete'
+        Should -Invoke Invoke-PreparationRestoreHealth -Times 1 -Exactly
+    }
+}
+
+Describe 'How a failure names an update' {
+    It 'gives <Case>' -TestCases @(
+        @{ Case = 'the title when it names the KB'; Title = '2026-11 Security Update (KB5132061) (26300.9974)'; Kb = @('5132061'); Name = '2026-11 Security Update (KB5132061) (26300.9974)' }
+        @{ Case = 'the KB after a title without it'; Title = 'Security Update  for Windows'; Kb = @('5132061'); Name = 'Security Update for Windows (KB5132061)' }
+        @{ Case = 'the title alone without a KB'; Title = 'Realtek - Net - 1125.21.903.2024'; Kb = @(); Name = 'Realtek - Net - 1125.21.903.2024' }
+    ) {
+        param($Case, $Title, $Kb, $Name)
+        Format-PreparationUpdateName ([pscustomobject]@{ Title = $Title; KBArticleIDs = $Kb }) | Should -BeExactly $Name -Because $Case
+    }
 }
 
 Describe 'Cumulative updates a newer one in the same pass replaces' {

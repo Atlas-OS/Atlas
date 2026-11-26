@@ -102,7 +102,7 @@ The repair runs in three cases:
 - Before the run's first search, when Windows already records damage (`/CheckHealth` reads `Repairable`).
   PCs with Atlas packages installed are skipped, as the next section explains.
 - Before moving Windows to a newer release, when the store reads `Repairable` for a reason other than the Atlas packages (see [Preflight checks](windows-transition.md#preflight-checks)).
-- When an update fails with `0x80073712`.
+- When an update fails with `0x80073712`, or with `0x800F0831` (`CBS_E_STORE_CORRUPTION`), which servicing reports when the store is missing a manifest the update needs.
   The updates that failed then get another try.
 
 While DISM runs, the update row says Windows is being repaired, and under its progress bar that this can take half an hour or more.
@@ -115,6 +115,9 @@ The update row says Windows is too damaged to update, with **Create an Atlas ISO
 When an update still fails with `0x80073712` after the repair, the run stops with that error.
 A restart can clear what's left, so the row offers **Restart and try again**.
 It restarts as any restart updating asks for does, and updating carries on by itself after you sign in.
+
+When an update still fails with `0x800F0831` after its retry and the run's repair, the run stops with `component-store-unrepairable` and that code, and its message names the update.
+The repair can report the store healthy while it's still missing what the update needs, so trying again can't help either.
 
 The health Windows reads, the repair's exit code and the health afterwards go to `updates.log`.
 
@@ -344,7 +347,7 @@ These logs belong to the **Get ready** page, so they aren't under `%windir%\Atla
 | `manual-updates` | Some updates need you to finish them in Windows Settings, including updates that didn't finish after a restart for them. |
 | `windows-passes` | Windows still offers updates after eight passes. |
 | `windows-update-unreachable` | Windows Update couldn't be reached, or kept stopping, on every try. |
-| `component-store-unrepairable` | Windows reads its component store as damaged beyond repair. |
+| `component-store-unrepairable` | Windows reads its component store as damaged beyond repair, or an update stays missing its files after the repair (`0x800F0831`). |
 | `store-missing` | Microsoft Store isn't registered for you. |
 | `store-paused-battery`, `store-paused-network` | The Store paused an update until the PC is plugged in or on Wi-Fi. |
 | `store-timeout` | Store apps didn't finish updating in time. |
