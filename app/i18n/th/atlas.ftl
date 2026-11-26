@@ -1417,6 +1417,8 @@ install-source-resume-package = การติดตั้ง Atlas { $target }
 install-source-resume-bundled = การติดตั้ง Atlas { $target } ยังไม่เสร็จ รุ่นทดสอบนี้ติดตั้งได้เฉพาะแพ็กเกจ Atlas ที่มาพร้อมกัน จึงต้องติดตั้งให้เสร็จด้วยแพ็กเกจ Atlas { $target } ใน Atlas Manager รุ่นเผยแพร่
 # Send a report and Export diagnostics are offered with it.
 install-source-unconfirmed = Atlas ยืนยันไม่ได้ว่ามีอะไรติดตั้งอยู่แล้วบนพีซีเครื่องนี้ จึงจะยังไม่ติดตั้งสิ่งใดในตอนนี้
+# Atlas's files are on this PC without a record of a finished installation. Create an Atlas ISO (iso-open) is beside it.
+install-source-unrecorded = พีซีเครื่องนี้มีไฟล์จาก Atlas เวอร์ชันก่อนหน้า แต่ไม่มีบันทึกว่าการติดตั้งเสร็จสมบูรณ์ จึงอัปเดตไม่ได้ หากต้องการติดตั้ง Atlas ให้สำรองไฟล์ของคุณแล้วติดตั้ง Windows ใหม่
 # Under the editions on the Create step, when Windows Setup asks which to install.
 iso-edition-selection = ในโปรแกรมติดตั้ง Windows ให้เลือกรุ่นที่คุณมีสิทธิ์การใช้งาน
 detail-windows-preview = ไม่รองรับบิลด์ Insider ให้ใช้ Windows 11 รุ่นที่เผยแพร่ทั่วไป

@@ -1428,6 +1428,8 @@ install-source-resume-package = Atlas { $target } kurulumu tamamlanmadı ve bu k
 install-source-resume-bundled = Atlas { $target } kurulumu yarım kaldı. Bu test sürümü yalnızca birlikte gelen Atlas paketini kurabilir, bu yüzden bu kurulumu Atlas Manager'ın bir yayın sürümünde Atlas { $target } paketiyle tamamlayın.
 # Send a report and Export diagnostics are offered with it.
 install-source-unconfirmed = Atlas bu bilgisayarda neyin kurulu olduğunu doğrulayamadı, bu yüzden şimdilik hiçbir şey kurmayacak.
+# Atlas's files are on this PC without a record of a finished installation. Create an Atlas ISO (iso-open) is beside it.
+install-source-unrecorded = Bu bilgisayarda önceki bir Atlas sürümünün dosyaları var, ancak tamamlanmış bir kurulum kaydı yok, bu yüzden güncelleştirilemez. Atlas'ı kurmak için dosyalarınızı yedekleyin ve Windows'u yeniden yükleyin.
 # Under the editions on the Create step, when Windows Setup asks which to install.
 iso-edition-selection = Windows Kurulumu'nda lisansınızın bulunduğu bir sürümü seçin.
 detail-windows-preview = Insider derlemeleri desteklenmiyor. Windows 11'in genel kullanıma sunulan bir sürümünü kullanın.

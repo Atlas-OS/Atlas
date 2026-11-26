@@ -9,6 +9,10 @@ Atlas Manager updates Atlas from the versions listed in `updatableFrom` in [`pac
 Atlas 0.5.0-hotfix records itself as 0.5.0, so it updates as 0.5.0.
 Any other installed version needs a fresh installation of Windows, and so does an Atlas whose version Atlas can't read.
 
+Atlas Manager names releases before 0.4.1 from the [version they recorded in Windows](package-format.md#the-version-recorded-in-windows), so **Home** says which version can't be updated.
+Atlas's files without any record of a finished install, such as an install that never finished or Windows reinstalled over Atlas, get their own message.
+Either way, **Home** puts **Create an Atlas ISO** first, and **Get ready** offers it beside the message.
+
 `updatableFrom` says which versions Atlas Manager accepts, and the [release verification matrix](release-verification-matrix.md) says what a release verifies.
 
 Your Windows release is a separate requirement.

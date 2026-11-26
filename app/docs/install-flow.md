@@ -40,6 +40,7 @@ Windows Security comes last, so protection is off for as short a time as possibl
 - At most one bar shows under it, the most urgent that applies: a restart owed, then Windows Security protection or a missing Microsoft Defender, then Windows Update settings Atlas changed, then the end of security updates for this Windows, then the rest.
   A bar's raw error is behind **Show details**, and the help row shows only under an unexpected failure.
   Windows that no update path reaches gets a warning, and the ISO card first; a record Atlas can't read gets **Try again** as the accent.
+  An installed Atlas that no package updates, and Atlas's files without a record of a finished install, also put the ISO card first, and Get ready's bar offers **Create an Atlas ISO** for them.
 - **Your Atlas setup** lists each choice under its question, as the Install step's summary does, with Windows and the installation history.
   It records what was chosen, so it shows none of the cautions that go with a choice where it's made.
 

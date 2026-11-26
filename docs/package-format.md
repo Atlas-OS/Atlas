@@ -102,6 +102,10 @@ During an install, Atlas writes `Atlas v<version>` to Windows' registered organi
 Releases before Atlas 0.6 wrote `Atlas Playbook v<version>` instead, so code that reads the installed version accepts both forms.
 The [machine state document](install-state.md#the-machine-state-document) remains the main record of what's installed.
 
+Releases before Atlas 0.4.1 wrote `AtlasOS v<version>` to the OEM model name only.
+Atlas Manager reads that form only where Atlas's files remain without any other record, to name a release no package updates.
+The front door and updates don't accept it.
+
 ## Compatibility
 
 Atlas Manager installs Atlas 0.6.0 and later.

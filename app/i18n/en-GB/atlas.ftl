@@ -1498,6 +1498,10 @@ install-source-resume-package = An installation of Atlas { $target } didn't fini
 install-source-resume-bundled = An installation of Atlas { $target } didn't finish. This test build can only install its bundled Atlas package, so finish that installation with the Atlas { $target } package in a release build of Atlas Manager.
 # Send a report and Export diagnostics are offered with it.
 install-source-unconfirmed = Atlas couldn't confirm what's already installed on this PC, so it won't install anything for now.
+# Atlas's files are on this PC without a record of a finished installation, as an earlier Atlas
+# leaves them when its installation didn't finish or Windows was reinstalled over it. Create an
+# Atlas ISO (iso-open) is beside it.
+install-source-unrecorded = This PC has files from an earlier Atlas, but no record of a finished installation, so it can't be updated. To install Atlas, back up your files and reinstall Windows.
 # Under the editions on the Create step, when Windows Setup asks which to install.
 iso-edition-selection = In Windows Setup, choose an edition you have a licence for.
 detail-windows-preview = Insider builds aren't supported. Use a public release of Windows 11.

@@ -40,6 +40,7 @@ Paths are relative to the repository root.
 | `Remove-AtlasStagedPackage` deleting `playbook.conf`, in `package/Executables/AtlasModules/Scripts/Entry/Install-Atlas.ps1` | Staging copies that 0.6.0 test builds made, which hold `playbook.conf` where `atlas.json` sits | Same as above |
 | The `abandoned.json` recovery in `Start-AtlasInstallState`, in `package/Executables/AtlasModules/Scripts/Modules/Atlas.InstallState/` | A failed Fresh run that a 0.6.0 test build archived as `%windir%\AtlasOS\Install\abandoned.json`, which a Reapply of the same version resumes | Same as above |
 | The `Atlas Playbook v<version>` form that `ConvertFrom-AtlasVersionMarker` (`package/Executables/AtlasModules/Scripts/Preparation/WindowsTransition.ps1`) and `marker_version` (`app/src/services/atlas_state.rs`) accept | The version marker that releases before Atlas 0.6 wrote, as [the package format](package-format.md#the-version-recorded-in-windows) describes | `updatableFrom` in `package/atlas.json` contains only versions 0.6 and later |
+| `earlier_marker_version` in `app/src/services/atlas_state.rs`, which reads `AtlasOS v<version>` | The OEM model name that releases before Atlas 0.4.1 wrote, so **Home** names such an install as one no package updates | Naming those releases no longer matters: without it, they get the message for Atlas's files without a record, which offers the same Atlas ISO |
 
 ## Rules
 

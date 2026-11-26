@@ -1351,6 +1351,8 @@ install-source-resume-package = Une installation d’Atlas { $target } ne s’es
 install-source-resume-bundled = Une installation d’Atlas { $target } ne s’est pas terminée. Cette version de test ne peut installer que son package Atlas intégré : terminez donc cette installation avec le package Atlas { $target } dans une version publiée d’Atlas Manager.
 # Send a report and Export diagnostics are offered with it.
 install-source-unconfirmed = Atlas n’a pas pu confirmer ce qui est déjà installé sur ce PC et n’installera donc rien pour le moment.
+# Atlas's files are on this PC without a record of a finished installation. Create an Atlas ISO (iso-open) is beside it.
+install-source-unrecorded = Ce PC contient des fichiers d’une version antérieure d’Atlas, mais aucune installation terminée n’est enregistrée. Cette version ne peut donc pas être mise à jour. Pour installer Atlas, sauvegardez vos fichiers et réinstallez Windows.
 # Under the editions on the Create step, when Windows Setup asks which to install.
 iso-edition-selection = Pendant l’installation de Windows, choisissez une édition couverte par votre licence.
 detail-windows-preview = Les builds Insider ne sont pas prises en charge. Utilisez une version publique de Windows 11.

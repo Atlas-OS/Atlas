@@ -104,6 +104,40 @@ fn unsupported_or_unreadable_identity_blocks_before_preparation_and_is_rechecked
     });
 }
 
+/// Atlas's files without a record of a finished install block every install
+/// as an Atlas no package updates does, with nothing to report: the bar says
+/// to reinstall Windows. The identity is read again before launch, so the
+/// front door never runs over them.
+#[test]
+fn atlas_files_without_a_record_block_every_install() {
+    run_model_test(|mut cx| async move {
+        let (temp, machine, env) = fixture("unrecorded-gate");
+        let (package, marker) = marking_package(&temp, 0);
+        *machine.identity.lock().unwrap() = Some(atlas_state::InstallIdentity::Unrecorded);
+        let model = new_model(&mut cx, env);
+        wait_for(&cx, &model, "startup recovery", |m| !m.recovering).await;
+        act(&mut cx, &model, |m, cx| m.begin_install(cx));
+        read(&cx, &model, |m| {
+            assert!(!m.flow.active);
+            assert_eq!(m.start_block(), Some(InstallBlock::Unrecorded));
+            assert!(m.ready_help().is_none(), "the bar says what to do");
+            assert!(m.installed_version().is_none() && !m.updates_atlas());
+        });
+        *machine.identity.lock().unwrap() = Some(atlas_state::InstallIdentity::Fresh);
+        walk_to_install(&mut cx, &model, &package).await;
+        act(&mut cx, &model, |m, cx| m.next_step(cx));
+        *machine.identity.lock().unwrap() = Some(atlas_state::InstallIdentity::Unrecorded);
+        act(&mut cx, &model, |m, cx| m.start_install(cx));
+        read(&cx, &model, |m| {
+            assert_eq!(m.flow.run, RunState::Idle);
+            assert_eq!(m.install_block(), Some(InstallBlock::Unrecorded));
+            assert!(!m.can_install());
+        });
+        assert!(!marker.exists());
+        settle(&cx, &model).await;
+    });
+}
+
 /// This app's built-in manifest can't judge a version newer than itself:
 /// until a package is chosen the newer install is let through, and the
 /// package that loads applies the exact rule.

@@ -12,9 +12,10 @@
     than declared, or because it describes the machine rather than Atlas:
 
       1. Machine, under a summary of the findings.
-      2. Atlas install state: the state document and its recorded toggle states, then
-         any unfinished install transaction and the last completed one, with their
-         completed steps.
+      2. Atlas install state: the state document and its recorded toggle states, the
+         version markers in the registry, shown only where they look like an Atlas
+         version, then any unfinished install transaction and the last completed one,
+         with their completed steps.
       3. The toggle state registry store.
       4. Drift, from AtlasModules\Scripts\Entry\Test-AtlasHealth.ps1, stopped after
          25 seconds so the sections after it still have time.
@@ -188,6 +189,23 @@ function Get-RegistryValueOrNull {
         return $null
     }
     return $item.$Name
+}
+
+function Format-AtlasVersionMarker {
+    <#
+    .SYNOPSIS
+        A version marker as the report shows it. A PC maker's model name, or the
+        organisation someone registered Windows to, can identify the PC or its owner, so
+        only a value shaped like an Atlas version shows as it is. Atlas Manager's log
+        (describe_marker in app/src/services/atlas_state.rs) shows the markers the same way.
+    #>
+    param([AllowNull()]$Value)
+
+    if ($null -eq $Value) { return 'not set' }
+    $text = [string]$Value
+    if ($text -match '\AAtlas(?:OS)?(?: Playbook)? v?[0-9][0-9a-z.+-]{0,31}\z') { return '"{0}"' -f $text }
+    if ($text.Length -eq 0) { return 'empty' }
+    return 'set to something other than an Atlas version'
 }
 
 function Get-FileTail {
@@ -581,6 +599,12 @@ Add-Section -Title '2. Atlas install state' -Collector {
         $lines += "state.json is missing at '$statePath'."
         Add-Summary 'The Atlas machine state document is missing.'
     }
+
+    # Releases before Atlas 0.6 recorded their version only here, and releases before
+    # 0.4.1 only in the model name, as AtlasOS v<version>.
+    $lines += 'Version markers     :'
+    $lines += "  Model             : $(Format-AtlasVersionMarker (Get-RegistryValueOrNull -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation' -Name 'Model'))"
+    $lines += "  RegisteredOrganization : $(Format-AtlasVersionMarker (Get-RegistryValueOrNull -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'RegisteredOrganization'))"
 
     # A failed or interrupted install keeps its transaction, and the error that stopped
     # it, in active.json until it is resumed; last.json is written only on completion.

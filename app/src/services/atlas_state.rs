@@ -130,6 +130,11 @@ pub enum InstallIdentity {
     Installed(String),
     /// An unfinished install of this version, and what it began with.
     Resume(String, Unfinished),
+    /// Atlas's files, with nothing that records a finished install or names
+    /// its version: an earlier Atlas whose install never finished, or a
+    /// Windows reinstalled over one. No package updates it, and the front
+    /// door refuses it too.
+    Unrecorded,
 }
 
 /// What an unfinished install began with.
@@ -166,6 +171,7 @@ impl InstallIdentity {
             Self::Installed(version) => {
                 version == &manifest.version || manifest.updatable_from.contains(version)
             }
+            Self::Unrecorded => false,
         }
     }
 }
@@ -198,13 +204,31 @@ pub fn read_install_identity() -> Result<InstallIdentity> {
             let windows = path.parent().and_then(|root| root.parent()).context("Windows directory")?;
             Ok(windows.join("AtlasModules/Scripts").try_exists()?)
         },
+        || {
+            if fixture {
+                return Ok(None);
+            }
+            let [(model_key, model_name), (organisation_key, organisation_name)] = MARKERS;
+            let model = read_marker(model_key, model_name);
+            let organisation = read_marker(organisation_key, organisation_name);
+            log::warn!(
+                "Atlas's files are on this PC without a record of a finished install; version markers: \
+                 {model_name} {}, {organisation_name} {}",
+                describe_marker(&model),
+                describe_marker(&organisation)
+            );
+            Ok(model?.as_deref().and_then(earlier_marker_version))
+        },
     )
 }
 
+/// `earlier` reads the version an Atlas release before 0.4.1 left in the
+/// OEM model name, and runs only where Atlas's files are all that's left.
 fn read_identity_at(
     path: &Path,
     legacy: impl FnOnce() -> Result<Vec<String>>,
     atlas_files_exist: impl FnOnce() -> Result<bool>,
+    earlier: impl FnOnce() -> Result<Option<String>>,
 ) -> Result<InstallIdentity> {
     let root = path.parent().context("Atlas state directory")?;
     if let Some(doc) = files::read_json::<serde_json::Value>(&root.join("Install/active.json"))? {
@@ -244,32 +268,75 @@ fn read_identity_at(
     if let Some(version) = versions.pop() {
         return Ok(InstallIdentity::Installed(version));
     }
-    anyhow::ensure!(!atlas_files_exist()?, "Atlas's files exist without an identifiable installed version");
-    Ok(InstallIdentity::Fresh)
+    if !atlas_files_exist()? {
+        return Ok(InstallIdentity::Fresh);
+    }
+    // Neither the front door nor an update reads the earlier marker; it only
+    // names an install that no package updates.
+    Ok(earlier()?.map_or(InstallIdentity::Unrecorded, InstallIdentity::Installed))
 }
 
-/// The Atlas versions in Windows' OEM model name and registered organisation,
-/// where every Atlas install records its version.
+/// Windows' OEM model name and registered organisation, where every Atlas
+/// install records its version.
+const MARKERS: [(&str, &str); 2] = [
+    (r"SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation", "Model"),
+    (r"SOFTWARE\Microsoft\Windows NT\CurrentVersion", "RegisteredOrganization"),
+];
+
+/// A version marker as the registry holds it, `None` when it isn't there.
+fn read_marker(key: &str, name: &str) -> Result<Option<String>> {
+    match windows_registry::LOCAL_MACHINE.open(key).and_then(|key| key.get_string(name)) {
+        Ok(value) => Ok(Some(value)),
+        Err(error) if error.code().0 == registry::NOT_FOUND => Ok(None),
+        Err(error) => Err(error).context("read the Atlas version markers"),
+    }
+}
+
+/// The Atlas versions in the [`MARKERS`].
 fn read_version_markers() -> Result<Vec<String>> {
-    let markers = [
-        (r"SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation", "Model"),
-        (r"SOFTWARE\Microsoft\Windows NT\CurrentVersion", "RegisteredOrganization"),
-    ]
-    .map(|(key, name)| -> Result<Option<String>> {
-        let value = windows_registry::LOCAL_MACHINE.open(key).and_then(|key| key.get_string(name));
-        match value {
-            Ok(value) => Ok(marker_version(&value)),
-            Err(error) if error.code().0 == registry::NOT_FOUND => Ok(None),
-            Err(error) => Err(error).context("read the Atlas version markers"),
-        }
-    });
     let mut versions = Vec::new();
-    for marker in markers {
-        if let Some(version) = marker? {
+    for (key, name) in MARKERS {
+        if let Some(version) = read_marker(key, name)?.as_deref().and_then(marker_version) {
             versions.push(version);
         }
     }
     Ok(versions)
+}
+
+/// The release that first wrote the `Atlas Playbook v<version>` marker.
+const FIRST_PLAYBOOK_MARKER: (u64, u64, u64) = (0, 4, 1);
+
+/// The version in the OEM model name as Atlas releases before 0.4.1 wrote it,
+/// `AtlasOS v<version>`. Only those releases wrote this form, so one naming a
+/// later version isn't Atlas's, and none names a version a package updates
+/// from.
+fn earlier_marker_version(value: &str) -> Option<String> {
+    let version = value.strip_prefix("AtlasOS v")?;
+    let parts: Vec<_> = version.split('.').collect();
+    let numeric =
+        parts.len() == 3 && parts.iter().all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()));
+    let earlier = super::releases::AtlasVersion::parse(version)
+        .is_some_and(|parsed| parsed.core < FIRST_PLAYBOOK_MARKER);
+    (numeric && earlier).then(|| version.to_owned())
+}
+
+/// A version marker as the log shows it. A PC maker's model name, or the
+/// organisation someone registered Windows to, can identify the PC or its
+/// owner, so only a value shaped like an Atlas version shows as it is.
+/// `Get-AtlasInstallReport.ps1` shows the markers the same way.
+fn describe_marker(value: &Result<Option<String>>) -> String {
+    static ATLAS_SHAPED: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
+    let atlas_shaped = ATLAS_SHAPED.get_or_init(|| {
+        regex::Regex::new(r"(?i)\Aatlas(?:os)?(?: playbook)? v?[0-9][0-9a-z.+-]{0,31}\z")
+            .expect("a valid pattern")
+    });
+    match value {
+        Ok(None) => "not set".to_owned(),
+        Ok(Some(value)) if atlas_shaped.is_match(value) => format!("\"{value}\""),
+        Ok(Some(value)) if value.is_empty() => "empty".to_owned(),
+        Ok(Some(_)) => "set to something other than an Atlas version".to_owned(),
+        Err(error) => format!("unreadable ({error:#})"),
+    }
 }
 
 /// The version in a marker: `Atlas v<version>`, or `Atlas Playbook
@@ -330,7 +397,12 @@ mod tests {
                 "schemaVersion": 1, "targetVersion": "0.6.0", "mode": mode, "status": "Capturing",
             });
             std::fs::write(&active, doc.to_string()).unwrap();
-            read_identity_at(&state, || panic!("must use active state"), || panic!("must use active state"))
+            read_identity_at(
+                &state,
+                || panic!("must use active state"),
+                || panic!("must use active state"),
+                || panic!("must use active state"),
+            )
         };
         for mode in modes.iter().flat_map(|mode| [mode.to_string(), mode.to_ascii_lowercase()]) {
             let parsed = InstallMode::parse(Some(&mode));
@@ -417,8 +489,9 @@ mod tests {
         .unwrap();
         let no_legacy = || -> Result<Vec<String>> { panic!("must not read legacy evidence") };
         let no_files = || -> Result<bool> { panic!("must not look for Atlas's files") };
+        let no_earlier = || -> Result<Option<String>> { panic!("must not read the earlier marker") };
         assert_eq!(
-            read_identity_at(&state, no_legacy, no_files).unwrap(),
+            read_identity_at(&state, no_legacy, no_files, no_earlier).unwrap(),
             InstallIdentity::Resume(
                 "0.6.0".into(),
                 Unfinished { mode: InstallMode::Fresh, ..Unfinished::default() }
@@ -426,23 +499,123 @@ mod tests {
         );
         std::fs::remove_file(&active).unwrap();
         assert_eq!(
-            read_identity_at(&state, no_legacy, no_files).unwrap(),
+            read_identity_at(&state, no_legacy, no_files, no_earlier).unwrap(),
             InstallIdentity::Installed("0.3.2".into())
         );
         std::fs::write(&state, r#"{"schemaVersion":1,"options":["choice"]}"#).unwrap();
         assert_eq!(
-            read_identity_at(&state, || Ok(vec!["0.5.0".into(), "0.5.0".into()]), no_files).unwrap(),
+            read_identity_at(&state, || Ok(vec!["0.5.0".into(), "0.5.0".into()]), no_files, no_earlier)
+                .unwrap(),
             InstallIdentity::Installed("0.5.0".into())
         );
-        assert!(read_identity_at(&state, || Ok(vec!["0.5.0".into(), "0.4.1".into()]), no_files).is_err());
-        assert!(read_identity_at(&state, || Ok(vec![]), || Ok(true)).is_err());
-        assert_eq!(read_identity_at(&state, || Ok(vec![]), || Ok(false)).unwrap(), InstallIdentity::Fresh);
-        assert!(read_identity_at(&state, || anyhow::bail!("registry access denied"), no_files).is_err());
+        assert!(
+            read_identity_at(&state, || Ok(vec!["0.5.0".into(), "0.4.1".into()]), no_files, no_earlier)
+                .is_err()
+        );
+        assert_eq!(
+            read_identity_at(&state, || Ok(vec![]), || Ok(false), no_earlier).unwrap(),
+            InstallIdentity::Fresh
+        );
+        assert!(
+            read_identity_at(&state, || anyhow::bail!("registry access denied"), no_files, no_earlier)
+                .is_err()
+        );
         std::fs::write(&active, "broken").unwrap();
-        assert!(read_identity_at(&state, no_legacy, no_files).is_err());
+        assert!(read_identity_at(&state, no_legacy, no_files, no_earlier).is_err());
         std::fs::remove_file(&active).unwrap();
         std::fs::write(&state, "broken").unwrap();
-        assert!(read_identity_at(&state, no_legacy, no_files).is_err());
+        assert!(read_identity_at(&state, no_legacy, no_files, no_earlier).is_err());
+    }
+
+    /// Atlas's files with nothing that names a finished install: the earlier
+    /// marker names the release, which no package updates; without it, the
+    /// files are an install with no record. Neither can be updated, and a
+    /// marker or a file check that can't be read still leaves it unknown.
+    #[test]
+    fn atlas_files_without_a_version_are_named_from_the_earlier_marker_or_unrecorded() {
+        let temp = super::super::test_support::TempDir::new("unrecorded");
+        let state = temp.path().join("state.json");
+        let read = |earlier: Result<Option<String>>| {
+            read_identity_at(&state, || Ok(vec![]), || Ok(true), move || earlier)
+        };
+        assert_eq!(read(Ok(Some("0.4.0".into()))).unwrap(), InstallIdentity::Installed("0.4.0".into()));
+        assert_eq!(read(Ok(None)).unwrap(), InstallIdentity::Unrecorded);
+        assert!(read(Err(anyhow::anyhow!("registry access denied"))).is_err());
+        assert!(
+            read_identity_at(&state, || Ok(vec![]), || anyhow::bail!("access denied"), || Ok(None)).is_err()
+        );
+        // A partial state document from an install that never finished is no record.
+        std::fs::write(&state, r#"{"schemaVersion":1,"options":["choice"]}"#).unwrap();
+        assert_eq!(read(Ok(None)).unwrap(), InstallIdentity::Unrecorded);
+        // Without Atlas's files the marker is never read: a fresh PC stays fresh.
+        let fresh =
+            read_identity_at(&state, || Ok(vec![]), || Ok(false), || panic!("must not read the marker"));
+        assert_eq!(fresh.unwrap(), InstallIdentity::Fresh);
+
+        let manifest = super::super::package::Manifest::builtin();
+        assert!(!InstallIdentity::Unrecorded.allows(&manifest));
+        for version in ["0.3.0", "0.3.1", "0.4.0"] {
+            assert!(!InstallIdentity::Installed(version.into()).allows(&manifest), "{version}");
+        }
+    }
+
+    /// Only the form releases before 0.4.1 wrote, naming one of them, reads
+    /// as a version; `marker_version` and the front door never read it.
+    #[test]
+    fn the_earlier_marker_names_only_the_releases_that_wrote_it() {
+        for (value, version) in
+            [("AtlasOS v0.3.0", "0.3.0"), ("AtlasOS v0.3.1", "0.3.1"), ("AtlasOS v0.4.0", "0.4.0")]
+        {
+            assert_eq!(earlier_marker_version(value).as_deref(), Some(version), "{value}");
+            assert_eq!(marker_version(value), None, "{value}");
+        }
+        for value in [
+            "AtlasOS v0.4.1",
+            "AtlasOS v0.5.0",
+            "AtlasOS v0.6.0",
+            "AtlasOS v1.0.0",
+            "AtlasOS 22H2",
+            "AtlasOS v0.4",
+            "AtlasOS v0.4.0-beta",
+            "AtlasOS v0.4.0 ",
+            "atlasos v0.4.0",
+            "AtlasOS 0.4.0",
+            "Atlas Playbook v0.4.0",
+            "AtlasOS v0.3.99999999999999999999",
+            "System Product Name",
+        ] {
+            assert_eq!(earlier_marker_version(value), None, "{value}");
+        }
+    }
+
+    /// The log shows a marker as it is only when it looks like an Atlas
+    /// version; a model name or an organisation shows only as set.
+    #[test]
+    fn the_log_shows_only_atlas_shaped_markers() {
+        let shown = |value: &str| describe_marker(&Ok(Some(value.to_owned())));
+        for value in [
+            "AtlasOS v0.4.0",
+            "AtlasOS 22H2",
+            "Atlas Playbook v0.5.0",
+            "Atlas Playbook 0.5.0-hotfix",
+            "Atlas v0.6.1",
+            "atlas playbook V0.4.1",
+        ] {
+            assert_eq!(shown(value), format!("\"{value}\""), "{value}");
+        }
+        for value in [
+            "System Product Name",
+            "Contoso Ltd",
+            "Atlas Copco",
+            "Atlas Playbook AtlasVersionUndefined",
+            "AtlasOS v0.4.0\nsecond line",
+            "AtlasOS v0.4.0 for Jane",
+        ] {
+            assert_eq!(shown(value), "set to something other than an Atlas version", "{value}");
+        }
+        assert_eq!(shown(""), "empty");
+        assert_eq!(describe_marker(&Ok(None)), "not set");
+        assert_eq!(describe_marker(&Err(anyhow::anyhow!("access denied"))), "unreadable (access denied)");
     }
 
     /// A plan that runs, or one recovered to Capturing with steps already
@@ -459,7 +632,12 @@ mod tests {
                 "completedSteps": steps, "options": options,
             });
             std::fs::write(&active, doc.to_string()).unwrap();
-            read_identity_at(&state, || panic!("must use active state"), || panic!("must use active state"))
+            read_identity_at(
+                &state,
+                || panic!("must use active state"),
+                || panic!("must use active state"),
+                || panic!("must use active state"),
+            )
         };
         for (status, steps) in
             [("Running", serde_json::json!([])), ("Capturing", serde_json::json!(["Features"]))]
@@ -520,7 +698,12 @@ mod tests {
                 doc["choices"] = choices;
             }
             std::fs::write(&active, doc.to_string()).unwrap();
-            read_identity_at(&state, || panic!("must use active state"), || panic!("must use active state"))
+            read_identity_at(
+                &state,
+                || panic!("must use active state"),
+                || panic!("must use active state"),
+                || panic!("must use active state"),
+            )
         };
         let held = |choose_again| {
             InstallIdentity::Resume(

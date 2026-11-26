@@ -995,6 +995,7 @@ impl InstallBlock {
                 t!("notice-session-unreadable-message", path = record.display().to_string(), error = error)
             }
             InstallBlock::Unknown => t!("install-source-unconfirmed"),
+            InstallBlock::Unrecorded => t!("install-source-unrecorded"),
             InstallBlock::Windows { block, version, product, current, releases, ending } => match block {
                 WindowsBlock::Edition => match ending {
                     Some(date) if chrono::Local::now().date_naive() > *date => t!(
@@ -1445,6 +1446,12 @@ mod tests {
             assert!(!resume.text(true).contains(r"C:\D"), "a tester build can't open one");
             // The text never names the button that opens it: Open package file says that.
             assert!(!resume.text(false).contains(&t!("package-open-file")));
+            // Files without a record say what's there and the way on, not that
+            // nothing could be confirmed; the bar's Create an Atlas ISO opens it.
+            let unrecorded = InstallBlock::Unrecorded.text(false);
+            assert_eq!(unrecorded, InstallBlock::Unrecorded.text(true));
+            assert_ne!(unrecorded, InstallBlock::Unknown.text(false));
+            assert!(unrecorded.contains("reinstall Windows") && !unrecorded.contains(&t!("iso-open")));
         });
     }
 

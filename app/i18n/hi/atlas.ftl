@@ -1489,6 +1489,8 @@ install-source-resume-package = Atlas { $target } का एक इंस्ट�
 install-source-resume-bundled = Atlas { $target } का एक इंस्टॉलेशन पूरा नहीं हुआ। यह परीक्षण बिल्ड केवल अपने साथ दिया गया Atlas पैकेज इंस्टॉल कर सकता है, इसलिए वह इंस्टॉलेशन Atlas Manager के रिलीज़ बिल्ड में Atlas { $target } के पैकेज से पूरा करें।
 # Send a report and Export diagnostics are offered with it.
 install-source-unconfirmed = Atlas पुष्टि नहीं कर सका कि इस PC पर पहले से क्या इंस्टॉल है, इसलिए वह फ़िलहाल कुछ भी इंस्टॉल नहीं करेगा।
+# Atlas's files are on this PC without a record of a finished installation. Create an Atlas ISO (iso-open) is beside it.
+install-source-unrecorded = इस PC पर Atlas के पुराने संस्करण की फ़ाइलें हैं, लेकिन पूरे हुए इंस्टॉलेशन का कोई रिकॉर्ड नहीं है, इसलिए उसे अपडेट नहीं किया जा सकता। Atlas इंस्टॉल करने के लिए अपनी फ़ाइलों का बैकअप लें और Windows दोबारा इंस्टॉल करें।
 # Under the editions on the Create step, when Windows Setup asks which to install.
 iso-edition-selection = Windows सेटअप में वह संस्करण चुनें, जिसका लाइसेंस आपके पास है।
 detail-windows-preview = Insider बिल्ड समर्थित नहीं हैं। Windows 11 का सार्वजनिक रिलीज़ संस्करण इस्तेमाल करें।

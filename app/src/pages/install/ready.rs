@@ -214,7 +214,7 @@ enum Accent {
 impl Accent {
     fn of(state: &AppModel) -> Self {
         let iso = state.can_navigate(Page::Iso);
-        let iso_bar = iso && matches!(state.install_block(), Some(InstallBlock::Unsupported { .. }));
+        let iso_bar = iso && state.install_block().as_ref().is_some_and(reinstall_is_the_way_on);
         let iso_check = state
             .blocking_results()
             .find(|result| {
@@ -260,6 +260,13 @@ impl Accent {
             Self::Run
         }
     }
+}
+
+/// Whether only reinstalling Windows gets past `block`: an installed Atlas
+/// no package updates, or Atlas's files without a record of a finished
+/// install.
+fn reinstall_is_the_way_on(block: &InstallBlock) -> bool {
+    matches!(block, InstallBlock::Unsupported { .. } | InstallBlock::Unrecorded)
 }
 
 /// Whether the move's card asks for its licence terms: the move is chosen,
@@ -346,7 +353,7 @@ impl InstallPage {
                 InfoBar::new(Severity::Error, t!("install-source-title"), block.text(state.bundled()))
                     .id("ready-eligibility");
             // Reinstalling Windows is the way on, and an Atlas ISO is where it starts.
-            if matches!(block, InstallBlock::Unsupported { .. }) && state.can_navigate(Page::Iso) {
+            if reinstall_is_the_way_on(&block) && state.can_navigate(Page::Iso) {
                 bar = bar.action(
                     Button::new("ready-eligibility-iso", t!("iso-open"))
                         .when(iso_accent, Button::accent)
@@ -1208,6 +1215,21 @@ mod tests {
         assert!(!offers_fix(&result(CheckId::ThirdPartyAntivirus, Verdict::Warn)));
         assert!(offers_fix(&result(CheckId::Activation, Verdict::Warn)));
         assert!(!offers_fix(&result(CheckId::Power, Verdict::Pass)));
+    }
+
+    /// Create an Atlas ISO goes on the bar only where reinstalling Windows is
+    /// the way on; a state Atlas can't read or confirm gets the help row.
+    #[test]
+    fn the_bar_offers_an_atlas_iso_only_where_reinstalling_windows_is_the_way_on() {
+        assert!(reinstall_is_the_way_on(&InstallBlock::Unsupported { source: "0.4.0".into(), target: None }));
+        assert!(reinstall_is_the_way_on(&InstallBlock::Unrecorded));
+        for block in [
+            InstallBlock::Unknown,
+            InstallBlock::ResumeOther { target: "0.6.1".into(), downloads: "D".into() },
+            InstallBlock::RecordUnreadable { error: "denied".into(), record: "R".into() },
+        ] {
+            assert!(!reinstall_is_the_way_on(&block), "{block:?}");
+        }
     }
 
     #[test]

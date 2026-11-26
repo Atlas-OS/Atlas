@@ -1469,6 +1469,8 @@ install-source-resume-package = Atlas { $target } のインストールが完了
 install-source-resume-bundled = Atlas { $target } のインストールが完了していません。このテスト ビルドは同梱の Atlas パッケージしかインストールできないため、Atlas Manager のリリース ビルドで Atlas { $target } のパッケージを使用して、このインストールを完了してください。
 # Send a report and Export diagnostics are offered with it.
 install-source-unconfirmed = この PC に何がインストールされているかを Atlas が確認できなかったため、今はインストールを行いません。
+# Atlas's files are on this PC without a record of a finished installation. Create an Atlas ISO (iso-open) is beside it.
+install-source-unrecorded = この PC には以前の Atlas のファイルがありますが、インストールが完了した記録がないため、更新できません。Atlas をインストールするには、ファイルをバックアップしてから Windows を再インストールしてください。
 # Under the editions on the Create step, when Windows Setup asks which to install.
 iso-edition-selection = Windows セットアップで、ライセンスをお持ちのエディションを選んでください。
 detail-windows-preview = Insider ビルドには対応していません。Windows 11 の一般公開版を使用してください。

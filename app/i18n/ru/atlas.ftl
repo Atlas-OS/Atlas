@@ -1535,6 +1535,8 @@ install-source-resume-package = Установка Atlas { $target } не зав
 install-source-resume-bundled = Установка Atlas { $target } не была завершена. Эта тестовая сборка может установить только встроенный пакет Atlas, поэтому завершите установку с помощью пакета Atlas { $target } в релизной сборке Atlas Manager.
 # Send a report and Export diagnostics are offered with it.
 install-source-unconfirmed = Atlas не удалось определить, что уже установлено на этом ПК, поэтому пока он ничего не будет устанавливать.
+# Atlas's files are on this PC without a record of a finished installation. Create an Atlas ISO (iso-open) is beside it.
+install-source-unrecorded = На этом ПК есть файлы более ранней версии Atlas, но нет записи о завершённой установке, поэтому её нельзя обновить. Чтобы установить Atlas, создайте резервную копию файлов и переустановите Windows.
 # Under the editions on the Create step, when Windows Setup asks which to install.
 iso-edition-selection = В программе установки Windows выберите редакцию, на которую у вас есть лицензия.
 detail-windows-preview = Сборки Insider не поддерживаются. Используйте общедоступную версию Windows 11.

@@ -1450,6 +1450,8 @@ install-source-resume-package = Penginstalan Atlas { $target } tidak selesai, da
 install-source-resume-bundled = Penginstalan Atlas { $target } tidak selesai. Versi uji ini hanya dapat menginstal paket Atlas bawaannya, jadi selesaikan penginstalan tersebut dengan paket Atlas { $target } di versi rilis Atlas Manager.
 # Send a report and Export diagnostics are offered with it.
 install-source-unconfirmed = Atlas tidak dapat memastikan apa yang sudah terinstal di PC ini, jadi Atlas tidak akan menginstal apa pun untuk saat ini.
+# Atlas's files are on this PC without a record of a finished installation. Create an Atlas ISO (iso-open) is beside it.
+install-source-unrecorded = PC ini memiliki file dari Atlas versi sebelumnya, tetapi tidak ada catatan penginstalan yang selesai, jadi Atlas tersebut tidak dapat diperbarui. Untuk menginstal Atlas, cadangkan file Anda dan instal ulang Windows.
 # Under the editions on the Create step, when Windows Setup asks which to install.
 iso-edition-selection = Di Penyiapan Windows, pilih edisi yang lisensinya Anda miliki.
 detail-windows-preview = Build Insider tidak didukung. Gunakan rilis publik Windows 11.

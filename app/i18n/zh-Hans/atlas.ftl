@@ -1321,6 +1321,8 @@ install-source-resume-package = Atlas { $target } 的安装未完成，只有 At
 install-source-resume-bundled = Atlas { $target } 的安装未完成。此测试版只能安装其内置的 Atlas 安装包，因此请在 Atlas Manager 正式版中使用 Atlas { $target } 安装包完成该安装。
 # 同时提供“发送报告”和“导出诊断信息”。
 install-source-unconfirmed = Atlas 无法确认这台电脑上已安装了什么，因此暂时不会安装任何内容。
+# 这台电脑上有 Atlas 的文件，但没有完成安装的记录。旁边提供“创建 Atlas ISO”（iso-open）。
+install-source-unrecorded = 这台电脑上有早期版本 Atlas 的文件，但没有完成安装的记录，因此无法更新。要安装 Atlas，请备份文件并重新安装 Windows。
 # “创建”步骤中版本下方，Windows 安装程序询问要安装哪个版本时显示。
 iso-edition-selection = 请在 Windows 安装程序中选择你拥有许可证的版本。
 detail-windows-preview = 不支持 Insider 预览版本。请使用 Windows 11 的正式发布版本。

@@ -22,6 +22,10 @@ pub enum InstallBlock {
     /// The shared install record can't be read, so whether an install is
     /// still running is unknown.
     RecordUnreadable { error: String, record: PathBuf },
+    /// Atlas's files are here, but nothing records a finished install or
+    /// names its version. Only reinstalling Windows installs Atlas, as for
+    /// [`InstallBlock::Unsupported`].
+    Unrecorded,
     /// The installation state couldn't be established.
     Unknown,
     /// This Windows can't take the package: its edition, or a version no
@@ -117,6 +121,7 @@ impl AppModel {
         match &self.install_identity {
             Err(_) => Some(InstallBlock::Unknown),
             Ok(InstallIdentity::Fresh) => None,
+            Ok(InstallIdentity::Unrecorded) => Some(InstallBlock::Unrecorded),
             Ok(InstallIdentity::Resume(target, unfinished)) => {
                 // Install-Atlas.ps1 refuses any other version until this one
                 // finishes. Before a package is chosen, the release on offer

@@ -5,8 +5,8 @@ BeforeAll {
     $script:ReportAst = [Management.Automation.Language.Parser]::ParseFile($script:ReportScript, [ref]$null, [ref]$errors)
     if ($errors) { throw ($errors | Out-String) }
     foreach ($name in 'Add-Line', 'Add-Summary', 'Add-Section', 'Get-InstallTransactionLine', 'Get-RegistryValueOrNull',
-        'Get-EventWindow', 'Get-AppxRemovalPattern', 'Get-RecordedInstallOption', 'Test-AppxPatternMatch',
-        'Get-AppxAllUserStorePackage', 'Get-AtlasServicingPackageLine', 'Get-PreparationStoreLine') {
+        'Format-AtlasVersionMarker', 'Get-EventWindow', 'Get-AppxRemovalPattern', 'Get-RecordedInstallOption',
+        'Test-AppxPatternMatch', 'Get-AppxAllUserStorePackage', 'Get-AtlasServicingPackageLine', 'Get-PreparationStoreLine') {
         $function = $script:ReportAst.Find({
                 param($node)
                 $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name
@@ -343,6 +343,23 @@ Describe 'Install report install state section' {
         $script:Summary | Should -Contain 'Last completed install transaction: Fresh of 0.6.0, 2 step(s) completed.'
     }
 
+    It 'shows the version markers only where they look like an Atlas version' {
+        $script:Markers = @{ Model = 'AtlasOS v0.4.0'; RegisteredOrganization = 'Contoso Ltd' }
+        Mock Get-RegistryValueOrNull { $script:Markers[$Name] } -ParameterFilter { $Name -in 'Model', 'RegisteredOrganization' }
+
+        $lines = @(& $script:StateCollector)
+
+        $lines | Should -Contain '  Model             : "AtlasOS v0.4.0"'
+        $lines | Should -Contain '  RegisteredOrganization : set to something other than an Atlas version'
+        ($lines -join "`n") | Should -Not -Match 'Contoso'
+        Should -Invoke Get-RegistryValueOrNull -Times 1 -Exactly -ParameterFilter {
+            $Path -eq 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation' -and $Name -eq 'Model'
+        }
+        Should -Invoke Get-RegistryValueOrNull -Times 1 -Exactly -ParameterFilter {
+            $Path -eq 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -and $Name -eq 'RegisteredOrganization'
+        }
+    }
+
     It 'keeps the rest of the section when last.json is empty' {
         [IO.File]::WriteAllText((Join-Path $script:installRoot 'active.json'), (New-TransactionJson -Status Running -Mode Reapply -Steps 'phase-a' -LastError 'Step phase-b failed.'))
         [IO.File]::WriteAllText((Join-Path $script:installRoot 'last.json'), '')
@@ -351,6 +368,26 @@ Describe 'Install report install state section' {
 
         $lines | Should -Contain '  lastError         : Step phase-b failed.'
         @($lines | Where-Object { $_ -like '*last.json is unreadable: It is empty or not a JSON object.' }) | Should -HaveCount 1
+    }
+}
+
+Describe 'Install report version markers' {
+    It 'shows <Value> as <Shown>' -TestCases @(
+        @{ Value = 'AtlasOS v0.4.0'; Shown = '"AtlasOS v0.4.0"' }
+        @{ Value = 'AtlasOS 22H2'; Shown = '"AtlasOS 22H2"' }
+        @{ Value = 'Atlas Playbook v0.5.0'; Shown = '"Atlas Playbook v0.5.0"' }
+        @{ Value = 'Atlas Playbook 0.5.0-hotfix'; Shown = '"Atlas Playbook 0.5.0-hotfix"' }
+        @{ Value = 'Atlas v0.6.1'; Shown = '"Atlas v0.6.1"' }
+        @{ Value = 'atlas playbook V0.4.1'; Shown = '"atlas playbook V0.4.1"' }
+        @{ Value = 'System Product Name'; Shown = 'set to something other than an Atlas version' }
+        @{ Value = 'Atlas Copco'; Shown = 'set to something other than an Atlas version' }
+        @{ Value = 'Atlas Playbook AtlasVersionUndefined'; Shown = 'set to something other than an Atlas version' }
+        @{ Value = "AtlasOS v0.4.0`nsecond line"; Shown = 'set to something other than an Atlas version' }
+        @{ Value = 'AtlasOS v0.4.0 for Jane'; Shown = 'set to something other than an Atlas version' }
+        @{ Value = ''; Shown = 'empty' }
+        @{ Value = $null; Shown = 'not set' }
+    ) {
+        Format-AtlasVersionMarker -Value $Value | Should -BeExactly $Shown
     }
 }
 
