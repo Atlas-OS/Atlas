@@ -386,17 +386,24 @@ function Test-AtlasInstallRequirement {
     }
 
     $pendingReboot = $false
+    $staleServicing = $false
     foreach ($key in @(
             'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
             'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired'
         )) {
         if (Test-Path -LiteralPath $key -ErrorAction Stop) {
-            $pendingReboot = $true
+            # Windows can keep servicing's marker over restarts with nothing
+            # pending; the update worker confirmed that in this start of
+            # Windows, and nothing waits for a restart now either
+            # (Test-AtlasServicingMarkerStale, WindowsTransition.ps1).
+            if ($key -like '*\Component Based Servicing\RebootPending' -and (Test-AtlasServicingMarkerStale)) { $staleServicing = $true }
+            else { $pendingReboot = $true }
         }
     }
     $results += [pscustomobject]@{
         Name = 'No pending reboot'; Passed = -not $pendingReboot; Blocking = $true
-        Detail = 'restart Windows before installing so servicing does not run alongside Atlas'
+        Detail = if ($staleServicing -and -not $pendingReboot) { 'servicing keeps a restart marker it has nothing pending for, which Atlas Manager confirmed after restarting' }
+        else { 'restart Windows before installing so servicing does not run alongside Atlas' }
     }
     # Deferred file replacements without either restart flag are only noted: an
     # update can queue some (printer drivers, for one) without asking for a

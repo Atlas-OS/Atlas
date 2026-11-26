@@ -23,6 +23,18 @@ BeforeAll {
     $script:RepairRecordText = ''
     function Get-PreparationRepairRecordText { $script:RepairRecordText }
     function Set-PreparationRepairRecordText([string]$Text) { $script:RepairRecordText = $Text }
+    # Nor its record of the last restart asked for and of a stale servicing marker,
+    # what servicing has waiting, or whether Windows Update waits for a restart.
+    $script:RestartAskedText = ''
+    function Get-PreparationRestartAskedText { $script:RestartAskedText }
+    function Set-PreparationRestartAskedText([string]$Text) { $script:RestartAskedText = $Text }
+    $script:StaleMarkerText = ''
+    function Set-PreparationServicingStaleText([string]$Text) { $script:StaleMarkerText = $Text }
+    $script:ServicingPending = @()
+    function Get-AtlasServicingPending { $script:ServicingPending }
+    $script:UpdateRestart = $false
+    function Test-AtlasTransitionUpdateRestartRequired { $script:UpdateRestart }
+    function Get-AtlasTransitionBootId { 'boot:8' }
 }
 
 Describe 'Signed-in preparation ownership' {
@@ -360,6 +372,84 @@ Describe 'Restart markers' {
 
         Test-PreparationRestart | Should -Be $Restart
         $script:PreparationRestartReasons -join ',' | Should -BeExactly ($Reasons -join ',')
+    }
+
+    Context 'Servicing''s marker after a restart' {
+        BeforeEach {
+            $script:markerFixture = @{ Servicing = $true; WindowsUpdate = $false; Agent = $false }
+            Mock Test-Path {
+                ($script:markerFixture.Servicing -and $LiteralPath -like '*Component Based Servicing*') -or
+                ($script:markerFixture.WindowsUpdate -and $LiteralPath -like '*Auto Update\RebootRequired')
+            }
+            Mock Get-ItemProperty { [pscustomobject]@{} }
+            Mock New-Object { [pscustomobject]@{ RebootRequired = $script:markerFixture.Agent } } -ParameterFilter { $ComObject -eq 'Microsoft.Update.SystemInfo' }
+            Mock Get-PreparationBootId { 'boot:8' }
+            $script:ServicingPending = @()
+            $script:UpdateRestart = $false
+            $script:StaleMarkerText = ''
+            $script:PreparationServicingSetAside = $false
+            $script:PreparationServicingNoted = $false
+            # The run before asked for a restart in the start of Windows before this one, with the marker there.
+            $script:RestartAskedText = (@{ boot = 'boot:7'; at = [DateTime]::UtcNow.AddHours(-1).ToString('o'); reasons = @('servicing'); servicing = $true } | ConvertTo-Json -Compress)
+            Remove-Item -LiteralPath (Join-Path $JobPath 'updates.log') -ErrorAction SilentlyContinue
+        }
+        AfterEach {
+            $script:RestartAskedText = ''
+            $script:PreparationServicingSetAside = $false
+            $script:PreparationServicingNoted = $false
+        }
+        It 'sets the marker aside when servicing has nothing waiting and Windows Update needs no restart, and records it' {
+            Test-PreparationRestart | Should -BeFalse
+            @($script:PreparationRestartReasons) | Should -BeNullOrEmpty
+            $script:PreparationServicingSetAside | Should -BeTrue
+            $script:StaleMarkerText | Should -BeExactly 'boot:8'
+            Should -Invoke New-Object -Times 0 -Exactly -ParameterFilter { $ComObject -eq 'Microsoft.Update.SystemInfo' }
+            Test-PreparationRestart | Should -BeFalse
+            @(Select-String -LiteralPath (Join-Path $JobPath 'updates.log') -Pattern 'stale restart marker: Windows servicing keeps RebootPending after restarting, but has nothing pending').Count | Should -Be 1 -Because 'the run notes it once'
+        }
+        It 'asks for the restart when <Case>' -TestCases @(
+            @{ Case = 'no restart was asked for before'; Arrange = { $script:RestartAskedText = '' } }
+            @{ Case = 'Windows hasn''t restarted since'; Arrange = { Mock Get-PreparationBootId { 'boot:7' } } }
+            @{ Case = 'the marker wasn''t there when the restart was asked for'; Arrange = { $script:RestartAskedText = $script:RestartAskedText -replace '"servicing":true', '"servicing":false' } }
+            @{ Case = 'the restart was asked for more than a week ago'; Arrange = { $script:RestartAskedText = (@{ boot = 'boot:7'; at = [DateTime]::UtcNow.AddDays(-8).ToString('o'); reasons = @('servicing'); servicing = $true } | ConvertTo-Json -Compress) } }
+            @{ Case = 'servicing has something waiting'; Arrange = { $script:ServicingPending = @('pending.xml') } }
+            @{ Case = 'Windows Update needs a restart'; Arrange = { $script:UpdateRestart = $true } }
+            @{ Case = 'Windows Update''s own marker is there too'; Arrange = { $script:markerFixture.WindowsUpdate = $true } }
+            @{ Case = 'the record can''t be read'; Arrange = { $script:RestartAskedText = '{not json' } }
+            @{ Case = 'what servicing has waiting can''t be read'; Arrange = { Mock Get-AtlasServicingPending { throw 'Access is denied.' } } }
+        ) {
+            param($Case, $Arrange)
+            & $Arrange
+            Test-PreparationRestart | Should -BeTrue -Because $Case
+            @($script:PreparationRestartReasons) | Should -Contain 'servicing'
+            $script:PreparationServicingSetAside | Should -BeFalse
+            $script:StaleMarkerText | Should -BeNullOrEmpty
+        }
+        It 'logs what servicing has waiting, once' {
+            $script:ServicingPending = @('pending.xml', 'package Package_for_KB5132061~31bf3856ad364e35~amd64~~26100.9974.1.1 (CurrentState 96)')
+            Test-PreparationRestart | Should -BeTrue
+            Test-PreparationRestart | Should -BeTrue
+            @(Select-String -LiteralPath (Join-Path $JobPath 'updates.log') -Pattern 'still asks for a restart after restarting, and has this waiting: pending\.xml, package Package_for_KB5132061').Count | Should -Be 1
+        }
+        It 'records the restart it asks for, with the start of Windows and whether the marker was there' {
+            $script:RestartAskedText = ''
+            Save-PreparationRestartAsked @('servicing', 'file-renames')
+            $record = $script:RestartAskedText | ConvertFrom-Json
+            $record.boot | Should -BeExactly 'boot:8'
+            @($record.reasons) | Should -Be @('servicing', 'file-renames')
+            $record.servicing | Should -BeTrue
+            $script:markerFixture.Servicing = $false
+            Save-PreparationRestartAsked @('windows-update')
+            ($script:RestartAskedText | ConvertFrom-Json).servicing | Should -BeFalse
+        }
+        It 'stops instead of restarting again when Windows Update still asks for a restart after the marker was set aside' {
+            { Assert-PreparationRestartHelps } | Should -Not -Throw
+            Test-PreparationRestart | Should -BeFalse
+            try { Assert-PreparationRestartHelps } catch { $thrown = $_.Exception }
+            (Get-PreparationFailureDetail $thrown).reason | Should -BeExactly 'manual-updates'
+            $thrown.Data['restartRepeated'] | Should -BeTrue
+            $thrown.Message | Should -Match 'asks for a restart before it installs updates, although Windows has restarted for it'
+        }
     }
 }
 

@@ -105,6 +105,7 @@ Some details of these checks:
   The built-in Administrator account fails this check.
 - Pending file replacements without either restart flag don't block.
   An update can queue some, such as printer drivers, without asking for a restart, and apps such as Xbox Gaming Services queue one at every restart.
+- The servicing stack's flag doesn't block when the preparation worker found it stale in this start of Windows, and servicing and Windows Update still have nothing waiting for a restart (see [Restarts](preparation.md#restarts)).
 - An antivirus registration whose signed program is gone is the leftover of an uninstall, so the check ignores it.
 - `Plugged in` and `No third-party antivirus` each block only when the manifest's `requirements` lists their id, `plugged-in` or `no-third-party-antivirus`.
   Otherwise their failure is a warning.

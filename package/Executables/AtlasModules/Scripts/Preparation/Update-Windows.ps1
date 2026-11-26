@@ -73,6 +73,10 @@ $script:PreparationStateHeld = $false
 # Restart markers seen by the last Test-PreparationRestart, so the app can name one
 # that survives a restart instead of asking for another.
 $script:PreparationRestartReasons = @()
+# Whether this run set aside servicing's restart marker as stale, and whether it
+# logged what servicing has waiting (Test-PreparationServicingStale).
+$script:PreparationServicingSetAside = $false
+$script:PreparationServicingNoted = $false
 # Why the last Test-PreparationNetwork refused the connection; the app words each cause.
 $script:PreparationNetworkReason = $null
 $script:PreparationStage = 'verify'
@@ -284,12 +288,117 @@ function Test-PreparationRestart {
     # apps such as Xbox Gaming Services queue one at every boot. The update
     # provider is asked only when no blocking registry marker already answers.
     $blocking = @($reasons | Where-Object { $_ -ne 'file-renames' })
-    if ($blocking.Count -eq 0 -and [bool](New-Object -ComObject Microsoft.Update.SystemInfo).RebootRequired) {
+    $agentAsked = $false
+    if ($blocking.Count -eq 1 -and $blocking[0] -eq 'servicing' -and (Test-PreparationServicingStale)) {
+        $reasons = @($reasons | Where-Object { $_ -ne 'servicing' })
+        $blocking = @()
+        $agentAsked = $true
+    }
+    if ($blocking.Count -eq 0 -and -not $agentAsked -and [bool](New-Object -ComObject Microsoft.Update.SystemInfo).RebootRequired) {
         $reasons += 'update-agent'
         $blocking += 'update-agent'
     }
     $script:PreparationRestartReasons = $reasons
     return $blocking.Count -gt 0
+}
+
+# Servicing's RebootPending marker on its own, when Windows has restarted since a
+# run asked for a restart while the marker was there (Save-PreparationRestartAsked):
+# Windows can keep the marker over restarts while servicing has nothing pending,
+# and logs "Nothing is pending" at each shutdown. So servicing is asked then, and
+# with nothing waiting for a restart (Get-AtlasServicingPending) and Windows
+# Update needing none either, the marker holds nothing back. A marker no restart
+# has met yet gets its restart as before. The run notes the stale marker once,
+# and records the start of Windows it confirmed it in, which Atlas Manager's
+# restart check and the install's requirement check read.
+function Test-PreparationServicingStale {
+    if (-not (Test-PreparationRestartSurvived)) { return $false }
+    # What can't be read leaves the marker to ask for its restart.
+    try {
+        $pending = @(Get-AtlasServicingPending)
+        if ($pending.Count -eq 0 -and (Test-AtlasTransitionUpdateRestartRequired)) { $pending = @('a restart for Windows Update') }
+        $waiting = "has this waiting: $($pending -join ', ')"
+    }
+    catch {
+        $pending = @('unreadable')
+        $waiting = "what it has waiting couldn't be read: $($_.Exception.Message)"
+    }
+    if ($pending.Count -gt 0) {
+        if (-not $script:PreparationServicingNoted) {
+            $script:PreparationServicingNoted = $true
+            Write-PreparationLog "Windows servicing still asks for a restart after restarting, and $waiting."
+        }
+        return $false
+    }
+    $script:PreparationServicingSetAside = $true
+    if (-not $script:PreparationServicingNoted) {
+        $script:PreparationServicingNoted = $true
+        $line = 'stale restart marker: Windows servicing keeps RebootPending after restarting, but has nothing pending (no pending.xml, exclusive session or package waiting to install or uninstall) and Windows Update needs no restart; going on'
+        Write-PreparationLog $line
+        Write-AtlasTransitionEvidence $line
+        try {
+            $boot = Get-AtlasTransitionBootId
+            if ($boot) { Set-PreparationServicingStaleText $boot }
+        }
+        catch { Write-PreparationLog "The stale restart marker couldn't be recorded: $($_.Exception.Message)" }
+    }
+    return $true
+}
+
+function Set-PreparationServicingStaleText([string]$Text) {
+    Set-AtlasTransitionValue (Get-AtlasServicingStaleRoot) 'ServicingMarkerStale' 'String' $Text
+}
+
+# The restart the last run that asked for one asked for: the start of Windows it
+# ran in, when, why, and whether servicing's RebootPending marker was there.
+# Kept under HKLM beside the record of updates no longer waited for.
+function Get-PreparationRestartAskedText {
+    $value = Get-AtlasTransitionValue $script:PreparationReofferedRoot 'RestartAsked'
+    if ($value.Present -and $value.Kind -eq 'String') { return [string]$value.Data }
+    return ''
+}
+
+function Set-PreparationRestartAskedText([string]$Text) {
+    Set-AtlasTransitionValue $script:PreparationReofferedRoot 'RestartAsked' 'String' $Text
+}
+
+function Save-PreparationRestartAsked([string[]]$Reasons) {
+    try {
+        $servicing = Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
+        $record = [pscustomobject][ordered]@{
+            boot = Get-PreparationBootId; at = [DateTime]::UtcNow.ToString('o'); reasons = @($Reasons); servicing = [bool]$servicing
+        }
+        Set-PreparationRestartAskedText (ConvertTo-Json -InputObject $record -Compress)
+    }
+    catch { Write-PreparationLog "The restart this run asks for couldn't be recorded: $($_.Exception.Message)" }
+}
+
+# Whether Windows has restarted since a run asked for a restart while servicing's
+# RebootPending marker was there, within the last week.
+function Test-PreparationRestartSurvived {
+    try {
+        $text = Get-PreparationRestartAskedText
+        if (-not $text) { return $false }
+        $record = $text | ConvertFrom-Json -ErrorAction Stop
+        $at = [DateTime]::MinValue
+        if (-not [DateTime]::TryParse([string]$record.at, [Globalization.CultureInfo]::InvariantCulture,
+                [Globalization.DateTimeStyles]::AdjustToUniversal, [ref]$at) -or $at -lt [DateTime]::UtcNow.AddDays(-7)) { return $false }
+        return $record.servicing -eq $true -and [string]$record.boot -and [string]$record.boot -ne (Get-PreparationBootId)
+    }
+    catch {
+        Write-PreparationLog "The record of the last restart asked for couldn't be read: $($_.Exception.Message)"
+        return $false
+    }
+}
+
+# A restart Windows asks for before it installs, after this run set aside a
+# stale servicing marker, wouldn't change anything a restart hasn't already: the
+# run stops with what to do instead of restarting again.
+function Assert-PreparationRestartHelps {
+    if (-not $script:PreparationServicingSetAside) { return }
+    $failure = New-PreparationFailure 'Windows Update asks for a restart before it installs updates, although Windows has restarted for it and servicing has nothing pending. Restart from Windows Update, then try again.' 'manual-updates'
+    $failure.Data['restartRepeated'] = $true
+    throw $failure
 }
 
 # Why a pass leaves an offer out, for the log, or '' when it installs it.
@@ -1047,6 +1156,7 @@ function Invoke-PreparationWindows {
         $installer.ForceQuiet = $true
         $installer.AllowSourcePrompts = $false
         if ($installer.RebootRequiredBeforeInstallation) {
+            Assert-PreparationRestartHelps
             $script:PreparationRestartReasons = @('windows-update')
             return 'reboot'
         }
@@ -3322,6 +3432,7 @@ function Install-PreparationFeatureUpdate($Session, $Update, $Journal, [bool]$Ma
         $installer.AllowSourcePrompts = $false
         if ($installer.RebootRequiredBeforeInstallation) {
             Write-AtlasTransitionEvidence 'Windows needs a restart before it installs the update'
+            Assert-PreparationRestartHelps
             $script:PreparationRestartReasons = @('windows-update')
             return 'reboot'
         }
@@ -3737,6 +3848,7 @@ try {
     else { Invoke-PreparationUpdates }
     if (($outcome | Select-Object -Last 1) -eq 'reboot') {
         if ($transitionRun) { Write-PreparationTransitionOutcome 'restart' ($script:PreparationRestartReasons -join ',') }
+        Save-PreparationRestartAsked $script:PreparationRestartReasons
         # What the Store stage did before the restart, so the app can still say so.
         $detail = Get-PreparationOutcomeDetail
         $detail.restartReasons = @($script:PreparationRestartReasons)

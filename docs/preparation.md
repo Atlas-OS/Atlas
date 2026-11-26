@@ -291,6 +291,21 @@ Atlas Manager writes the results of each update and any provider errors to its d
 The worker checks the servicing stack's and Windows Update's restart flags, then asks Windows Update itself.
 Files waiting to be replaced at the next restart are noted but don't ask for one, because apps such as Xbox Gaming Services queue one at every restart.
 
+Windows can keep the servicing stack's flag (`Component Based Servicing\RebootPending`) over restarts while servicing has nothing pending, and `CBS.log` then says `Nothing is pending` at each shutdown.
+So when that flag is the only one left after a restart a run asked for while the flag was there, the worker asks servicing and Windows Update what still waits:
+
+- `%windir%\WinSxS\pending.xml`;
+- an exclusive session under `SessionsPending`;
+- the `PackagesPending` and `RebootInProgress` markers;
+- packages waiting to install or uninstall;
+- Windows Update's own need for a restart.
+
+With none of these, the flag holds nothing back: `updates.log` notes a stale restart marker, and the run goes on.
+A flag that no restart has met yet still gets its restart.
+The worker keeps the restart it last asked for, and the start of Windows in which it found the flag stale, under `HKLM\SOFTWARE\AtlasOS\Preparation`.
+For the rest of that start, the **Get ready** restart check and the install's requirement check don't count the flag either, while servicing still has nothing waiting.
+If Windows Update then asks for a restart before it installs an update, the run stops with `manual-updates` instead of restarting again.
+
 Before Atlas Manager restarts Windows for preparation:
 
 - It saves the draft with the restart time, copies itself to `%ProgramFiles%\Atlas Setup Recovery` and adds the HKCU Run entry `AtlasWindowsPreparation`, which starts that copy with `--after-preparation-restart`.
@@ -321,7 +336,7 @@ It passes only when:
 - an online Windows Update search finds no required updates, apart from those recorded under `HKLM\SOFTWARE\AtlasOS\Preparation` and Defender's own updates on a PC Atlas removed Defender from (see [Windows updates](#windows-updates));
 - Microsoft Store is registered for you, with no outstanding updates or active queue items;
 - the connection has confirmed internet access and isn't metered, over its data limit or roaming;
-- Windows needs no restart;
+- Windows needs no restart, apart from a servicing flag found stale as [Restarts](#restarts) describes;
 - the Windows Update service is available.
 
 The check never downloads or installs updates.

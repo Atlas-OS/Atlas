@@ -47,6 +47,8 @@ BeforeAll {
         $script:CbsLines = @()
         $script:ToggleRecords = @{}
         $script:RebuildFacts = [pscustomobject]@{ WindowsOld = $false; SetupFolder = $false; PantherWritten = $false; AtlasModules = $true }
+        $script:PendingXml = $false
+        $script:UpdateRestart = $false
         Set-Fake $script:Services\BITS Start DWord 3
         Set-Fake $script:Services\CryptSvc Start DWord 3
         Set-Fake $script:Services\TrustedInstaller Start DWord 3
@@ -131,6 +133,8 @@ BeforeAll {
     function Invoke-AtlasTransitionScanHealth { throw 'A test started DISM without standing in for it.' }
     function Get-PreparationUpdateServiceStatus { 'Running' }
     function Start-PreparationUpdateService { throw 'A test started Windows Update without standing in for it.' }
+    function Test-AtlasServicingPendingFile { $script:PendingXml }
+    function Test-AtlasTransitionUpdateRestartRequired { $script:UpdateRestart }
 
     # The pin writer uses the registry cmdlets; HKLM paths go to the double too.
     function ConvertTo-FakePath([string]$Path) { $Path -replace '^HKLM:\\', '' }
@@ -951,6 +955,62 @@ Describe 'A component store that reads as repairable' {
         $script:Health = 'Throws'
         { Test-AtlasWindowsTransitionPreflight } | Should -Not -Throw
         Get-Content -LiteralPath $script:AtlasTransitionEvidencePath -Raw | Should -Match 'component store health could not be read \(0x[0-9A-F]{8}\): DISM is unavailable; going on'
+    }
+}
+
+Describe 'What servicing has waiting for a restart' {
+    BeforeAll {
+        $script:Cbs = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing'
+    }
+    BeforeEach {
+        Reset-Machine
+        Set-Fake "$script:Cbs\Packages\Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.9974.1.1" CurrentState DWord 112
+        Set-Fake "$script:Cbs\Packages\Microsoft-Windows-Foundation-Package~31bf3856ad364e35~amd64~~10.0.26100.1" CurrentState DWord 112
+        Set-Fake "$script:Cbs\Packages\Package_for_KB5000001~31bf3856ad364e35~amd64~~26100.1.1.1" CurrentState DWord 80
+        Set-Fake "$script:Cbs\SessionsPending" Exclusive DWord 0
+    }
+
+    It 'finds nothing on a PC whose servicing has nothing to finish' {
+        @(Get-AtlasServicingPending) | Should -BeNullOrEmpty
+    }
+
+    It 'names <Case>' -TestCases @(
+        @{ Case = 'pending.xml'; Arrange = { $script:PendingXml = $true }; Named = 'pending.xml' }
+        @{ Case = 'an exclusive session'; Arrange = { Set-Fake "$script:Cbs\SessionsPending" Exclusive DWord 1 }; Named = 'an exclusive session' }
+        @{ Case = 'the PackagesPending marker'; Arrange = { Set-Fake "$script:Cbs\PackagesPending" Package_for_KB5132061 DWord 1 }; Named = 'PackagesPending' }
+        @{ Case = 'the RebootInProgress marker'; Arrange = { Set-Fake "$script:Cbs\RebootInProgress" '(key)' Key '' }; Named = 'RebootInProgress' }
+        @{ Case = 'a package waiting to install'; Arrange = { Set-Fake "$script:Cbs\Packages\Package_for_KB5132061~31bf3856ad364e35~amd64~~26100.9974.1.1" CurrentState DWord 96 }; Named = 'package Package_for_KB5132061~31bf3856ad364e35~amd64~~26100.9974.1.1 (CurrentState 96)' }
+        @{ Case = 'a package waiting to uninstall'; Arrange = { Set-Fake "$script:Cbs\Packages\Package_for_KB5000002~31bf3856ad364e35~amd64~~26100.1.1.1" CurrentState DWord 5 }; Named = 'package Package_for_KB5000002~31bf3856ad364e35~amd64~~26100.1.1.1 (CurrentState 5)' }
+    ) {
+        param($Case, $Arrange, $Named)
+        & $Arrange
+        @(Get-AtlasServicingPending) | Should -Be @($Named) -Because $Case
+    }
+
+    It 'names three waiting packages and counts the rest' {
+        foreach ($number in 1..5) { Set-Fake "$script:Cbs\Packages\Package_for_KB500000$number~31bf3856ad364e35~amd64~~26100.1.1.1" CurrentState DWord 96 }
+        $pending = @(Get-AtlasServicingPending)
+        $pending | Should -HaveCount 4
+        $pending[-1] | Should -BeExactly '2 more package(s)'
+    }
+
+    It 'takes servicing''s marker as stale only in the start of Windows the worker confirmed it in, while nothing waits: <Case>' -TestCases @(
+        @{ Case = 'confirmed now, nothing waiting'; Arrange = { Set-Fake 'SOFTWARE\AtlasOS\Preparation' ServicingMarkerStale String 'boot:7' }; Stale = $true }
+        @{ Case = 'confirmed in an earlier start of Windows'; Arrange = { Set-Fake 'SOFTWARE\AtlasOS\Preparation' ServicingMarkerStale String 'boot:6' }; Stale = $false }
+        @{ Case = 'never confirmed'; Arrange = { }; Stale = $false }
+        @{ Case = 'confirmed now, with pending.xml since'; Arrange = { Set-Fake 'SOFTWARE\AtlasOS\Preparation' ServicingMarkerStale String 'boot:7'; $script:PendingXml = $true }; Stale = $false }
+        @{ Case = 'confirmed now, with Windows Update waiting for a restart since'; Arrange = { Set-Fake 'SOFTWARE\AtlasOS\Preparation' ServicingMarkerStale String 'boot:7'; $script:UpdateRestart = $true }; Stale = $false }
+        @{ Case = 'a start of Windows Windows doesn''t count'; Arrange = { Set-Fake 'SOFTWARE\AtlasOS\Preparation' ServicingMarkerStale String 'boot:7'; $script:Registry.Remove('SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters|BootId') }; Stale = $false }
+    ) {
+        param($Case, $Arrange, $Stale)
+        & $Arrange
+        Test-AtlasServicingMarkerStale | Should -Be $Stale -Because $Case
+    }
+
+    It 'shares the stale marker with Atlas Manager under the name and in the format its restart check reads' {
+        # app/src/services/requirements/providers.rs reads the same value.
+        Get-AtlasServicingStaleRoot | Should -BeExactly 'SOFTWARE\AtlasOS\Preparation'
+        Get-AtlasTransitionBootId | Should -BeExactly 'boot:7'
     }
 }
 

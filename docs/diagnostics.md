@@ -122,6 +122,7 @@ Correlate app log timestamps with the install, preparation or media job.
 | Did Windows offer the feature update? | `preparation/windows-transition.log` | An `Outcome (feature-not-offered)` line, which isn't an error record. |
 | Which updates did Get ready install? | `updates.log` in each job folder | That run's updates and the Microsoft Store items it waited for. |
 | Why did a preparation worker stop without reporting? | `worker.log` in the same job folder | The error it wrote, for example when PowerShell refused to run it. |
+| Why does Windows still ask for a restart after restarting? | `updates.log` in the job folders | A `stale restart marker` line when servicing had nothing pending, or what it still had waiting. `report/machine-report.txt` shows the restart flags and the end of `CBS.log`. |
 | Why did a Store item end in `Error`? | The event section of `report/machine-report.txt` | The AppX deployment errors behind 0x80073CF9, which only says the install failed. |
 | Why couldn't Windows update built-in apps (`store-appx-staging`)? | `updates.log`, or the AppX staging evidence in `report/machine-report.txt` | The lines that start with `Microsoft Store: staging evidence:`: each failing deployment's events and what Windows records of each app ([Updates Windows can't stage](preparation.md#updates-windows-cant-stage)). |
 | What state is Windows servicing in? | `report/machine-report.txt` | The `HKLM\SOFTWARE\AtlasOS\WindowsTransition` record, update policies, services, tasks and update history. |

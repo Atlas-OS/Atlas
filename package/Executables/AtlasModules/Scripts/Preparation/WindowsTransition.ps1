@@ -620,6 +620,65 @@ function Test-AtlasTransitionKnownStoreDamage($Finding, [string[]]$AtlasPackages
     return $Finding.Counts.Contains('CSI Payload Corruption')
 }
 
+# The start of Windows, as the BootId Windows counts up at each start, or $null
+# where Windows doesn't keep one.
+function Get-AtlasTransitionBootId {
+    $boot = Get-AtlasTransitionValue 'SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' 'BootId'
+    if ($boot.Present -and $boot.Kind -eq 'DWord') { return "boot:$($boot.Data)" }
+    return $null
+}
+
+# What servicing still has waiting for a restart, read only: pending.xml in the
+# component store, an exclusive session it has yet to finish, the PackagesPending
+# and RebootInProgress markers, and packages waiting to install (CurrentState 96)
+# or uninstall (5). Empty when nothing waits. Windows can keep its RebootPending
+# marker over restarts while none of these is there; servicing itself then logs
+# "Nothing is pending" at each shutdown.
+function Get-AtlasServicingPending {
+    $cbs = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing'
+    if (Test-AtlasServicingPendingFile) { 'pending.xml' }
+    $exclusive = Get-AtlasTransitionValue "$cbs\SessionsPending" 'Exclusive'
+    if ($exclusive.Present -and -not ($exclusive.Kind -eq 'DWord' -and [int64]$exclusive.Data -eq 0)) { 'an exclusive session' }
+    foreach ($marker in @('PackagesPending', 'RebootInProgress')) {
+        if (Test-AtlasTransitionKey "$cbs\$marker") { $marker }
+    }
+    $waiting = 0
+    foreach ($name in @(Get-AtlasTransitionSubKeyName "$cbs\Packages")) {
+        $state = Get-AtlasTransitionValue "$cbs\Packages\$name" 'CurrentState'
+        if ($state.Present -and $state.Kind -eq 'DWord' -and [int64]$state.Data -in @(5, 96)) {
+            if ($waiting -lt 3) { "package $name (CurrentState $($state.Data))" }
+            $waiting++
+        }
+    }
+    if ($waiting -gt 3) { "$($waiting - 3) more package(s)" }
+}
+
+function Test-AtlasServicingPendingFile {
+    return Test-AtlasTransitionPath ([IO.Path]::Combine([Environment]::GetFolderPath('Windows'), 'WinSxS\pending.xml'))
+}
+
+# Whether Windows Update itself waits for a restart.
+function Test-AtlasTransitionUpdateRestartRequired {
+    return [bool](New-Object -ComObject Microsoft.Update.SystemInfo).RebootRequired
+}
+
+# Where the update worker records the start of Windows in which it confirmed
+# that servicing's RebootPending marker stayed after a restart with nothing
+# pending (see Test-PreparationRestart). Atlas Manager's restart check and the
+# install's requirement check read the same value.
+function Get-AtlasServicingStaleRoot { 'SOFTWARE\AtlasOS\Preparation' }
+
+# Whether servicing's RebootPending marker holds nothing back now: the worker
+# confirmed it in this start of Windows, after a restart it asked for, and
+# servicing and Windows Update still have nothing waiting for a restart.
+function Test-AtlasServicingMarkerStale {
+    $recorded = Get-AtlasTransitionValue (Get-AtlasServicingStaleRoot) 'ServicingMarkerStale'
+    $boot = Get-AtlasTransitionBootId
+    if (-not $boot -or -not $recorded.Present -or $recorded.Kind -ne 'String' -or [string]$recorded.Data -cne $boot) { return $false }
+    if (@(Get-AtlasServicingPending).Count -gt 0) { return $false }
+    return -not (Test-AtlasTransitionUpdateRestartRequired)
+}
+
 # An organisation's update server owns this PC's updates; Atlas does not
 # override where updates come from.
 function Test-AtlasWindowsUpdateManaged {
