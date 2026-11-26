@@ -1196,6 +1196,9 @@ iso-unstaged = Atlas เตรียมโฟลเดอร์ทำงาน�
 iso-edition-unsupported-title = ISO นี้ไม่มีรุ่นที่ Atlas รองรับ
 iso-edition-unsupported = ไม่รองรับ Windows Home และ LTSC ให้ใช้ ISO ที่มีรุ่น Pro, Education หรือ Enterprise
 iso-customised-title = ISO นี้ผ่านการปรับแต่งมาแล้ว
+# In place of iso-customised-title, above iso-customised, when the ISO is one Atlas Manager
+# created: Atlas creates an ISO only from an unmodified ISO from Microsoft.
+iso-created-by-atlas-title = ISO นี้สร้างโดย Atlas
 iso-customised = ISO นี้มีไฟล์ตั้งค่าการติดตั้งอยู่แล้ว เช่น autounattend.xml ให้ใช้ ISO จาก Microsoft ที่ไม่ได้ดัดแปลง
 iso-preview-title = ISO นี้เป็นบิลด์ตัวอย่าง
 iso-preview = บิลด์ Windows ของ ISO นี้ไม่อยู่ในรายการรุ่นเผยแพร่สาธารณะของ Microsoft ให้ใช้ ISO จาก Microsoft

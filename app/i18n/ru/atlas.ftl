@@ -1305,6 +1305,9 @@ iso-unstaged = Atlas не удалось подготовить рабочую �
 iso-edition-unsupported-title = В этом ISO-образе нет редакций, которые поддерживает Atlas
 iso-edition-unsupported = Windows Home и LTSC не поддерживаются. Используйте ISO-образ с редакцией Pro, Education или Enterprise.
 iso-customised-title = Этот ISO-образ изменён
+# In place of iso-customised-title, above iso-customised, when the ISO is one Atlas Manager
+# created: Atlas creates an ISO only from an unmodified ISO from Microsoft.
+iso-created-by-atlas-title = Этот ISO-образ создан в Atlas
 iso-customised = В нём уже есть файлы настройки установки, например autounattend.xml. Используйте неизменённый ISO-образ от Microsoft.
 iso-preview-title = Этот ISO-образ — предварительная сборка
 iso-preview = Его сборки Windows нет в списке общедоступных выпусков Microsoft. Используйте ISO-образ от Microsoft.

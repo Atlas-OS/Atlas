@@ -636,6 +636,9 @@ pub enum FailureReason {
     EditionUnsupported,
     /// The ISO already carries custom setup content.
     IsoCustomised,
+    /// The ISO is one Atlas Manager created, which carries Atlas's own setup
+    /// content.
+    IsoCreatedByAtlas,
     /// Network drivers from this PC cannot go on media for another architecture.
     NetworkArchitecture,
     /// The running Atlas Manager executable disappeared from its launch path.
@@ -682,6 +685,7 @@ impl FailureReason {
             "windows-unsupported" => Self::WindowsUnsupported,
             "edition-unsupported" => Self::EditionUnsupported,
             "iso-customised" => Self::IsoCustomised,
+            "iso-created-by-atlas" => Self::IsoCreatedByAtlas,
             "network-architecture" => Self::NetworkArchitecture,
             "manager-missing" => Self::ManagerMissing,
             "iso-mount" => Self::IsoMount,

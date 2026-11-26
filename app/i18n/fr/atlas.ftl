@@ -1141,6 +1141,9 @@ iso-unstaged = Atlas n’a pas pu préparer son dossier de travail : rien n’a
 iso-edition-unsupported-title = Cette ISO ne contient aucune édition prise en charge par Atlas
 iso-edition-unsupported = Windows Famille et LTSC ne sont pas pris en charge. Utilisez une ISO avec l’édition Professionnel, Éducation ou Entreprise.
 iso-customised-title = Cette ISO a été personnalisée
+# In place of iso-customised-title, above iso-customised, when the ISO is one Atlas Manager
+# created: Atlas creates an ISO only from an unmodified ISO from Microsoft.
+iso-created-by-atlas-title = Cette ISO a été créée par Atlas
 iso-customised = Elle contient déjà des fichiers d’installation, comme autounattend.xml. Utilisez une ISO non modifiée provenant de Microsoft.
 iso-preview-title = Cette ISO contient une build en préversion
 iso-preview = Sa build de Windows ne figure pas dans la liste Microsoft des versions publiques. Utilisez une ISO provenant de Microsoft.

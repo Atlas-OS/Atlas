@@ -1220,6 +1220,9 @@ iso-unstaged = Atlas tidak dapat menyiapkan folder kerjanya, sehingga tidak ada 
 iso-edition-unsupported-title = ISO ini tidak berisi edisi yang didukung Atlas
 iso-edition-unsupported = Windows Home dan LTSC tidak didukung. Gunakan ISO dengan edisi Pro, Education, atau Enterprise.
 iso-customised-title = ISO ini sudah dimodifikasi
+# In place of iso-customised-title, above iso-customised, when the ISO is one Atlas Manager
+# created: Atlas creates an ISO only from an unmodified ISO from Microsoft.
+iso-created-by-atlas-title = ISO ini dibuat oleh Atlas
 iso-customised = ISO ini sudah berisi file penyiapan, seperti autounattend.xml. Gunakan ISO dari Microsoft yang belum dimodifikasi.
 iso-preview-title = ISO ini adalah build pratinjau
 iso-preview = Build Windows-nya tidak ada dalam daftar rilis publik Microsoft. Gunakan ISO dari Microsoft.

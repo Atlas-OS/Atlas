@@ -150,6 +150,34 @@ Describe 'Windows installation files on the source' {
     }
 }
 
+Describe 'Setup content already on the source' {
+    BeforeAll {
+        # The worker's two checks, from the one for Atlas's own media to the loop after it.
+        $parsed = [Management.Automation.Language.Parser]::ParseFile((Join-Path $script:IsoResources 'Build-Iso.ps1'), [ref]$null, [ref]$null)
+        $first = $parsed.Find({ param($n) $n -is [Management.Automation.Language.IfStatementAst] -and $n.Clauses[0].Item1.Extent.Text -clike '*\AtlasISO*' }, $true)
+        $loop = $parsed.Find({ param($n) $n -is [Management.Automation.Language.ForEachStatementAst] -and $n.Condition.Extent.Text -like "*'autounattend.xml'*" }, $true)
+        $text = $parsed.Extent.Text.Substring($first.Extent.StartOffset, $loop.Extent.EndOffset - $first.Extent.StartOffset)
+        $script:CheckSetupContent = [scriptblock]::Create("param(`$root)`n" + $text)
+        function New-TestSource([string[]]$Files) {
+            $media = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+            foreach ($file in @('setup.exe') + $Files) { New-Item -ItemType File -Path (Join-Path $media $file) -Force | Out-Null }
+            return "$media\"
+        }
+    }
+    It 'says so when Atlas created the ISO' {
+        $source = New-TestSource @('autounattend.xml', 'sources\$OEM$\$$\AtlasISO\setup.json')
+        { & $script:CheckSetupContent $source } | Should -Throw 'iso-created-by-atlas: *'
+    }
+    It 'still refuses other customised media as before' -ForEach @(
+        @{ File = 'autounattend.xml' }, @{ File = 'sources\$OEM$\$1\Tool.exe' }
+    ) {
+        { & $script:CheckSetupContent (New-TestSource @($File)) } | Should -Throw 'iso-customised: *'
+    }
+    It 'accepts unmodified media' {
+        { & $script:CheckSetupContent (New-TestSource @('sources\install.wim')) } | Should -Not -Throw
+    }
+}
+
 Describe 'ISO workspace paths' {
     It 'measures the longest file path, and a folder path with room for a file in it' {
         $tree = Join-Path $TestDrive 'tree'

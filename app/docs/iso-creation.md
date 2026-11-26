@@ -21,6 +21,7 @@ This page is for people who create Atlas media; [ISO internals](iso-internals.md
 | USB drive | A USB disk from 8 GiB to 2 TiB: one sold as 16 GB or more. |
 
 - Atlas refuses media that has its own answer file or a `$OEM$` folder, rather than merge it with unknown setup instructions.
+  An ISO that Atlas created is refused the same way, and the bar says that Atlas created it.
 - Saving Atlas choices in the ISO needs a package that declares ISO setup support in `Executables\AtlasModules\Scripts\Install\iso-setup.json`.
 - The PC checks, the ISO edition filter and the USB writer all read the supported builds from `supportedBuilds` in the package's `atlas.json`.
 

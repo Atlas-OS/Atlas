@@ -301,6 +301,7 @@ fn other_media_fixes(reason: Option<FailureReason>) -> bool {
         Some(
             FailureReason::EditionUnsupported
                 | FailureReason::IsoCustomised
+                | FailureReason::IsoCreatedByAtlas
                 | FailureReason::IsoMountFile
                 | FailureReason::WindowsReleaseUnlisted
                 | FailureReason::WindowsUnsupported
@@ -2179,6 +2180,10 @@ impl IsoPage {
                 (t!("iso-edition-unsupported-title"), t!("iso-edition-unsupported"))
             }
             Some(FailureReason::IsoCustomised) => (t!("iso-customised-title"), t!("iso-customised")),
+            // The same setup files, put there by Atlas itself.
+            Some(FailureReason::IsoCreatedByAtlas) => {
+                (t!("iso-created-by-atlas-title"), t!("iso-customised"))
+            }
             Some(FailureReason::WindowsUnsupported) => {
                 (t!("iso-windows-unsupported-title"), t!("iso-windows-unsupported"))
             }

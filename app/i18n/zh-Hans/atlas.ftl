@@ -1114,6 +1114,9 @@ iso-unstaged = Atlas 无法准备其工作文件夹，因此未做任何更改�
 iso-edition-unsupported-title = 此 ISO 中没有 Atlas 支持的版本
 iso-edition-unsupported = 不支持 Windows 家庭版和 LTSC 版本。请使用包含专业版、教育版或企业版的 ISO。
 iso-customised-title = 此 ISO 已被自定义
+# In place of iso-customised-title, above iso-customised, when the ISO is one Atlas Manager
+# created: Atlas creates an ISO only from an unmodified ISO from Microsoft.
+iso-created-by-atlas-title = 此 ISO 由 Atlas 创建
 iso-customised = 它已包含安装配置文件，例如 autounattend.xml。请使用 Microsoft 提供的未经修改的 ISO。
 iso-preview-title = 此 ISO 是预览版本
 iso-preview = 它的 Windows 内部版本不在 Microsoft 的正式发布版本列表中。请使用 Microsoft 提供的 ISO。

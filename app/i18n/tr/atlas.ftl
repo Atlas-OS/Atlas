@@ -1206,6 +1206,9 @@ iso-unstaged = Atlas çalışma klasörünü hazırlayamadı, bu yüzden hiçbir
 iso-edition-unsupported-title = Bu ISO'da Atlas'ın desteklediği bir sürüm yok
 iso-edition-unsupported = Windows Home ve LTSC desteklenmez. Pro, Education veya Enterprise içeren bir ISO kullanın.
 iso-customised-title = Bu ISO özelleştirilmiş
+# In place of iso-customised-title, above iso-customised, when the ISO is one Atlas Manager
+# created: Atlas creates an ISO only from an unmodified ISO from Microsoft.
+iso-created-by-atlas-title = Bu ISO, Atlas ile oluşturulmuş
 iso-customised = autounattend.xml gibi kurulum dosyaları zaten içeriyor. Microsoft'tan alınmış, değiştirilmemiş bir ISO kullanın.
 iso-preview-title = Bu ISO bir önizleme derlemesi
 iso-preview = Windows derlemesi, Microsoft'un genel kullanıma sunulan sürümler listesinde yok. Microsoft'tan alınmış bir ISO kullanın.

@@ -1230,6 +1230,9 @@ iso-unstaged = Atlas nie mógł przygotować folderu roboczego, więc nic nie zo
 iso-edition-unsupported-title = Ten obraz ISO nie zawiera edycji obsługiwanej przez Atlas
 iso-edition-unsupported = Edycje Windows Home i LTSC nie są obsługiwane. Użyj obrazu ISO z edycją Pro, Education lub Enterprise.
 iso-customised-title = Ten obraz ISO został zmodyfikowany
+# In place of iso-customised-title, above iso-customised, when the ISO is one Atlas Manager
+# created: Atlas creates an ISO only from an unmodified ISO from Microsoft.
+iso-created-by-atlas-title = Ten obraz ISO utworzył Atlas
 iso-customised = Zawiera już pliki instalacyjne, takie jak autounattend.xml. Użyj niezmodyfikowanego obrazu ISO od firmy Microsoft.
 iso-preview-title = Ten obraz ISO zawiera kompilację zapoznawczą
 iso-preview = Jego kompilacji Windows nie ma na liście publicznych wydań firmy Microsoft. Użyj obrazu ISO od firmy Microsoft.

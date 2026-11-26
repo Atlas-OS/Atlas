@@ -1235,6 +1235,9 @@ iso-unstaged = Atlas は作業フォルダーを準備できなかったため�
 iso-edition-unsupported-title = この ISO には Atlas が対応するエディションがありません
 iso-edition-unsupported = Windows Home と LTSC には対応していません。Pro、Education、Enterprise を含む ISO を使用してください。
 iso-customised-title = この ISO はカスタマイズされています
+# In place of iso-customised-title, above iso-customised, when the ISO is one Atlas Manager
+# created: Atlas creates an ISO only from an unmodified ISO from Microsoft.
+iso-created-by-atlas-title = この ISO は Atlas で作成されたものです
 iso-customised = autounattend.xml などのセットアップ ファイルがすでに含まれています。Microsoft が提供する未変更の ISO を使用してください。
 iso-preview-title = この ISO はプレビュー ビルドです
 iso-preview = この Windows ビルドは、Microsoft の一般公開版の一覧にありません。Microsoft が提供する ISO を使用してください。

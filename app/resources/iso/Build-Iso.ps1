@@ -427,6 +427,10 @@ try {
     foreach ($relative in @('setup.exe', 'sources\boot.wim', 'efi\microsoft\boot\efisys.bin')) {
         if (-not (Test-Path -LiteralPath (Join-Path $root $relative))) { Fail 'windows-unsupported' "Windows installation file missing: $relative" }
     }
+    # Media Atlas created carries Atlas where Windows Setup copies it into %windir%.
+    if (Test-Path -LiteralPath (Join-Path $root 'sources\$OEM$\$$\AtlasISO')) {
+        Fail 'iso-created-by-atlas' 'Atlas created this ISO, so it already has custom setup content (sources\$OEM$\$$\AtlasISO). Choose unmodified Microsoft media.'
+    }
     foreach ($relative in @('autounattend.xml', 'unattend.xml', 'sources\autounattend.xml', 'sources\unattend.xml', 'sources\$OEM$')) {
         if (Test-Path -LiteralPath (Join-Path $root $relative)) { Fail 'iso-customised' "This ISO already has custom setup content ($relative). Choose unmodified Microsoft media." }
     }

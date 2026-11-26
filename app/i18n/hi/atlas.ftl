@@ -1259,6 +1259,9 @@ iso-unstaged = Atlas अपना कार्य फ़ोल्डर तै�
 iso-edition-unsupported-title = इस ISO में ऐसा कोई संस्करण नहीं है, जिसका Atlas समर्थन करता हो
 iso-edition-unsupported = Windows Home और LTSC समर्थित नहीं हैं। Pro, Education या Enterprise वाला ISO इस्तेमाल करें।
 iso-customised-title = इस ISO में बदलाव किए गए हैं
+# In place of iso-customised-title, above iso-customised, when the ISO is one Atlas Manager
+# created: Atlas creates an ISO only from an unmodified ISO from Microsoft.
+iso-created-by-atlas-title = यह ISO, Atlas से बनाया गया है
 iso-customised = इसमें पहले से सेटअप फ़ाइलें हैं, जैसे autounattend.xml। Microsoft का बिना बदलाव वाला ISO इस्तेमाल करें।
 iso-preview-title = यह ISO एक पूर्वावलोकन बिल्ड है
 iso-preview = इसका Windows बिल्ड, Microsoft की सार्वजनिक रिलीज़ की सूची में नहीं है। Microsoft का ISO इस्तेमाल करें।
