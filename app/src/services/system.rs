@@ -119,6 +119,18 @@ impl SystemInfo {
     }
 }
 
+/// The first Windows build whose DWM draws the Mica backdrop the window asks
+/// for (Windows 11, version 22H2).
+const MICA_BUILD: u32 = 22621;
+
+/// Whether Windows draws Mica behind the window on `build`. Below it, GPUI
+/// skips the backdrop but still clears the window to transparent, so the
+/// root has to paint its own background. A build that can't be read (0)
+/// keeps Mica, as the Windows 11 releases Atlas supports all draw it.
+pub fn mica_available(build: u32) -> bool {
+    build == 0 || build >= MICA_BUILD
+}
+
 /// Whether the current process token is elevated (running as administrator).
 pub fn is_elevated() -> bool {
     unsafe {
@@ -790,6 +802,18 @@ mod tests {
             ["Professional", "ProfessionalWorkstation", "Education", "ProfessionalEducation", "Enterprise"]
         {
             assert!(edition(id), "{id} fails the app's gate");
+        }
+    }
+
+    /// Windows 10 and Windows 11 before 22H2 draw no Mica; later builds do,
+    /// and a build that couldn't be read keeps it.
+    #[test]
+    fn mica_is_drawn_from_windows_11_22h2() {
+        for build in [10240, 19045, 22000, 22620] {
+            assert!(!mica_available(build), "{build}");
+        }
+        for build in [0, 22621, 22631, 26100, 26200, 26300, 28000] {
+            assert!(mica_available(build), "{build}");
         }
     }
 

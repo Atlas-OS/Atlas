@@ -10,7 +10,8 @@ This guide is for contributors who build, test or review it; user documentation 
 
 ## Requirements
 
-- Windows 11, build 22621 or later, which the window's Mica backdrop needs.
+- Windows 11, build 22621 or later, for the window's Mica backdrop.
+  Earlier builds, Windows 10 among them, draw no Mica, so the window paints a solid background there instead.
 - [rustup](https://rustup.rs/); `rust-toolchain.toml` pins the compiler, so local and CI builds use the same one.
 - The Visual Studio build tools, whose `rc.exe` embeds the icon and version resource.
 - PowerShell 7.2 or later (`pwsh`) for the release build and the review scripts.
