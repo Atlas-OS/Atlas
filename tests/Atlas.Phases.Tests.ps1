@@ -278,6 +278,84 @@ Describe 'Software phase outcome aggregation' {
     }
 }
 
+Describe 'Shell refresh phase failure detail' {
+    BeforeAll {
+        $script:shellRefreshPhasePath = Join-Path -Path $script:phasesRoot -ChildPath 'Invoke-ShellRefreshPhase.ps1'
+
+        function Invoke-AtlasShellRefreshPhaseForTest {
+            [CmdletBinding()]
+            param(
+                [Parameter(Mandatory = $true)]$Calls,
+                [Parameter(Mandatory = $true)][int]$ExitCode
+            )
+
+            & {
+                function Assert-AtlasPrivilege {
+                    [CmdletBinding()]
+                    param([switch]$TrustedInstaller)
+                    [void]$TrustedInstaller
+                }
+
+                function Get-AtlasContext {
+                    param([switch]$Refresh)
+                    [void]$Refresh
+                    return [pscustomobject]@{
+                        IsInstallStateBacked = $true
+                        InteractiveUserSid   = 'S-1-5-21-1-2-3-1001'
+                        WinDir               = 'C:\Windows'
+                    }
+                }
+
+                function Invoke-AtlasAsUser {
+                    param([string]$FilePath, [string]$Arguments, [string]$WorkingDirectory)
+                    [void]$FilePath
+                    [void]$WorkingDirectory
+                    [void]$Calls.Add("AsUser:$Arguments")
+                    return $ExitCode
+                }
+
+                function Get-AtlasUserSessionHelperStage {
+                    param([int]$ExitCode)
+                    if ($ExitCode -eq 12) { return 'process stop' }
+                    return $null
+                }
+
+                function Get-TestShellRefreshFailureDetail {
+                    param([string]$UserSid, [string]$TranscriptPattern)
+                    [void]$Calls.Add("Detail:$UserSid|$TranscriptPattern")
+                    return " Last lines of 'shell-refresh.log':`nStage: ProcessStop`nError: Access is denied."
+                }
+
+                # The phase dot-sources the real reader, and an alias outranks a function.
+                Set-Alias -Name Get-AtlasUserFailureDetail -Value Get-TestShellRefreshFailureDetail
+
+                . $script:shellRefreshPhasePath
+            }
+        }
+    }
+
+    BeforeEach {
+        $script:shellRefreshCalls = New-Object 'Collections.Generic.List[string]'
+    }
+
+    It 'names a failure record for the run, and reads nothing when the refresh succeeds' {
+        Invoke-AtlasShellRefreshPhaseForTest -Calls $script:shellRefreshCalls -ExitCode 0
+
+        $script:shellRefreshCalls.Count | Should -Be 1
+        $script:shellRefreshCalls[0] | Should -Match ' -ExpectedUserSid "S-1-5-21-1-2-3-1001" -FailureRecordId [0-9a-f]{32}$'
+    }
+
+    It 'logs the error and script position from the run''s record with the failed stage' {
+        {
+            Invoke-AtlasShellRefreshPhaseForTest -Calls $script:shellRefreshCalls -ExitCode 12
+        } | Should -Throw "Exact-user shell refresh failed during process stop (exit code 12). Last lines of*Stage: ProcessStop*Error: Access is denied."
+
+        $id = [regex]::Match($script:shellRefreshCalls[0], '-FailureRecordId ([0-9a-f]{32})$').Groups[1].Value
+        $id | Should -Not -BeNullOrEmpty
+        $script:shellRefreshCalls[1] | Should -BeExactly "Detail:S-1-5-21-1-2-3-1001|shell-refresh-$id.log"
+    }
+}
+
 Describe 'Services phase feature defaults' {
     BeforeAll {
         $script:servicesPhasePath = Join-Path -Path $script:phasesRoot `

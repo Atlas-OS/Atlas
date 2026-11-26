@@ -248,6 +248,7 @@ Run binds the installing user from the marker the front door publishes (see [The
 It runs only from SYSTEM or TrustedInstaller, asks WTS for the recorded session instead of listing sessions, and checks the returned token's SID and session.
 It requires the user's profile hive to be loaded, starts only the inbox Windows PowerShell host with `CreateProcessAsUser`, and waits with a time limit for a child that can't detach.
 Shell refresh, live `HKCU` work, AppX cache work and the other installing-user steps go through it.
+The child's output never reaches the install console, so a failed shell refresh writes its stage, error and script position to `%LOCALAPPDATA%\AtlasOS\Logs\shell-refresh-<id>.log`, named for the run, and the ShellRefresh phase adds them to its error.
 
 ### The HKCU rule
 
