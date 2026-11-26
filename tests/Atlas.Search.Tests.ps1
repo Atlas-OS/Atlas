@@ -235,7 +235,6 @@ Describe 'Set-AtlasIndexConfiguration' {
         @($global:AtlasSearchTestCalls) | Should -Be @(
             'native:config,WSearch,start=,delayed-auto'
             'Start'
-            'Wait:Running'
             'Dispose'
             'native:config,WSearch,start=,disabled'
             'Stop'
@@ -325,6 +324,175 @@ Describe 'Set-AtlasIndexConfiguration' {
         { Set-AtlasIndexConfiguration -Operation ResetSetupCompleted } |
             Should -Throw '*Administrator privileges are required*'
         Should -Invoke Set-AtlasIndexDword -ModuleName Atlas.Search -Times 0
+    }
+}
+
+Describe 'Starting a Windows Search service that does not reach Running' {
+    BeforeAll {
+        # Each Start() takes the next status from its queue, and each Refresh() after the first
+        # Start() from another, so a test can play out how the service manager reports it.
+        function New-TestSearchService {
+            $service = [pscustomobject]@{ Status = [ServiceProcess.ServiceControllerStatus]::Stopped }
+            $service | Add-Member -MemberType ScriptMethod -Name Refresh -Value {
+                if ($global:AtlasSearchTestCalls -contains 'Start' -and $global:AtlasSearchTestRefreshes.Count -gt 0) {
+                    $this.Status = $global:AtlasSearchTestRefreshes.Dequeue()
+                }
+            }
+            $service | Add-Member -MemberType ScriptMethod -Name Start -Value {
+                [void]$global:AtlasSearchTestCalls.Add('Start')
+                $next = $global:AtlasSearchTestStarts.Dequeue()
+                # The recovery actions started it first.
+                if ($next -is [string] -and $next -ceq 'AlreadyRunning') {
+                    $this.Status = [ServiceProcess.ServiceControllerStatus]::Running
+                    throw 'An instance of the service is already running.'
+                }
+                $this.Status = $next
+            }
+            $service | Add-Member -MemberType ScriptMethod -Name Stop -Value {
+                [void]$global:AtlasSearchTestCalls.Add('Stop')
+                if ($global:AtlasSearchTestStopRefused) { throw 'The service cannot accept control messages at this time.' }
+                $this.Status = [ServiceProcess.ServiceControllerStatus]::Stopped
+            }
+            $service | Add-Member -MemberType ScriptMethod -Name WaitForStatus -Value {
+                param($RequestedStatus, $Timeout)
+                [void]$Timeout
+                [void]$global:AtlasSearchTestCalls.Add("Wait:$RequestedStatus")
+                $this.Status = $RequestedStatus
+            }
+            $service | Add-Member -MemberType ScriptMethod -Name Dispose -Value {}
+            return $service
+        }
+    }
+
+    BeforeEach {
+        Mock Write-AtlasLog -ModuleName Atlas.Search
+        Mock Test-AtlasAdmin -ModuleName Atlas.Search { $true }
+        Mock Start-Sleep -ModuleName Atlas.Search
+        Mock Invoke-AtlasHiddenProcess -ModuleName Atlas.Search {}
+        Mock Get-AtlasIndexNativePaths -ModuleName Atlas.Search { [pscustomobject]@{ Sc = 'C:\Windows\System32\sc.exe' } }
+        Mock Set-AtlasIndexDword -ModuleName Atlas.Search { [void]$global:AtlasSearchTestCalls.Add("dword:$Name=$Value") }
+        Mock Stop-Process -ModuleName Atlas.Search { [void]$global:AtlasSearchTestCalls.Add("kill:$Id") }
+        $global:AtlasSearchTestCalls = New-Object 'System.Collections.Generic.List[string]'
+        $global:AtlasSearchTestStarts = New-Object 'System.Collections.Generic.Queue[object]'
+        $global:AtlasSearchTestRefreshes = New-Object 'System.Collections.Generic.Queue[object]'
+        $global:AtlasSearchTestStopRefused = $false
+        $global:AtlasSearchTestExit = [pscustomobject]@{ Win32ExitCode = 1066; ServiceSpecificExitCode = 2147749126; ProcessId = 4321 }
+        Mock Get-AtlasSearchServiceExitState -ModuleName Atlas.Search { $global:AtlasSearchTestExit }
+        $global:AtlasSearchTestService = New-TestSearchService
+        Mock Get-Service -ModuleName Atlas.Search { $global:AtlasSearchTestService }
+        # A start that stays pending runs out of time at once.
+        InModuleScope Atlas.Search {
+            $script:AtlasSearchStartTimeout = [TimeSpan]::Zero
+            $script:AtlasSearchRetryTimeout = [TimeSpan]::Zero
+        }
+    }
+
+    AfterEach {
+        InModuleScope Atlas.Search {
+            $script:AtlasSearchStartTimeout = [TimeSpan]::FromMinutes(2)
+            $script:AtlasSearchRetryTimeout = [TimeSpan]::FromMinutes(5)
+        }
+    }
+
+    AfterAll {
+        Remove-Variable -Name AtlasSearchTestStarts, AtlasSearchTestRefreshes, AtlasSearchTestStopRefused,
+            AtlasSearchTestExit, AtlasSearchTestService -Scope Global -ErrorAction SilentlyContinue
+    }
+
+    It 'fails at once with the exit codes when the service stops while starting' {
+        $global:AtlasSearchTestStarts.Enqueue([ServiceProcess.ServiceControllerStatus]::Stopped)
+        InModuleScope Atlas.Search {
+            $script:AtlasSearchStartTimeout = [TimeSpan]::FromMinutes(2)
+        }
+
+        { InModuleScope Atlas.Search { Set-AtlasSearchServiceState -State Running } } |
+            Should -Throw '*WSearch) stopped while starting, with Win32 exit code 1066 (*), service-specific exit code 0x80040D06*Repair Windows*'
+
+        @($global:AtlasSearchTestCalls) | Should -Be @('Start')
+        Should -Invoke Start-Sleep -ModuleName Atlas.Search -Times 0
+    }
+
+    It 'waits for the recovery restart of a service whose process ended unexpectedly' {
+        $global:AtlasSearchTestExit = [pscustomobject]@{ Win32ExitCode = 1067; ServiceSpecificExitCode = 0; ProcessId = 0 }
+        $global:AtlasSearchTestStarts.Enqueue([ServiceProcess.ServiceControllerStatus]::Stopped)
+        $global:AtlasSearchTestRefreshes.Enqueue([ServiceProcess.ServiceControllerStatus]::Stopped)
+        $global:AtlasSearchTestRefreshes.Enqueue([ServiceProcess.ServiceControllerStatus]::Stopped)
+        $global:AtlasSearchTestRefreshes.Enqueue([ServiceProcess.ServiceControllerStatus]::StartPending)
+        $global:AtlasSearchTestRefreshes.Enqueue([ServiceProcess.ServiceControllerStatus]::Running)
+        InModuleScope Atlas.Search {
+            $script:AtlasSearchStartTimeout = [TimeSpan]::FromMinutes(2)
+        }
+
+        InModuleScope Atlas.Search { Set-AtlasSearchServiceState -State Running }
+
+        @($global:AtlasSearchTestCalls) | Should -Be @('Start')
+        Should -Invoke Start-Sleep -ModuleName Atlas.Search -Times 3 -Exactly
+    }
+
+    It 'resets the index and starts the service again when it stays pending' {
+        $global:AtlasSearchTestStarts.Enqueue([ServiceProcess.ServiceControllerStatus]::StartPending)
+        $global:AtlasSearchTestStarts.Enqueue([ServiceProcess.ServiceControllerStatus]::Running)
+
+        InModuleScope Atlas.Search { Set-AtlasSearchServiceState -State Running }
+
+        @($global:AtlasSearchTestCalls) | Should -Be @(
+            'Start'
+            'dword:SetupCompletedSuccessfully=0'
+            'Stop'
+            'Wait:Stopped'
+            'Start'
+        )
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Search -Times 1 -Exactly -ParameterFilter {
+            $Level -ceq 'Warning' -and $Message -like "*still 'StartPending'*Resetting its index*"
+        }
+        Should -Invoke Write-AtlasLog -ModuleName Atlas.Search -Times 1 -Exactly -ParameterFilter {
+            $Message -ceq 'Windows Search started after its index was reset.'
+        }
+    }
+
+    It 'ends the process of a service that cannot take a stop request while starting' {
+        $global:AtlasSearchTestStopRefused = $true
+        $global:AtlasSearchTestStarts.Enqueue([ServiceProcess.ServiceControllerStatus]::StartPending)
+        $global:AtlasSearchTestStarts.Enqueue([ServiceProcess.ServiceControllerStatus]::Running)
+
+        InModuleScope Atlas.Search { Set-AtlasSearchServiceState -State Running }
+
+        @($global:AtlasSearchTestCalls) | Should -Be @(
+            'Start'
+            'dword:SetupCompletedSuccessfully=0'
+            'Stop'
+            'kill:4321'
+            'Wait:Stopped'
+            'Start'
+        )
+    }
+
+    It 'accepts a service its recovery actions started before the restart did' {
+        $global:AtlasSearchTestStopRefused = $true
+        $global:AtlasSearchTestStarts.Enqueue([ServiceProcess.ServiceControllerStatus]::StartPending)
+        $global:AtlasSearchTestStarts.Enqueue('AlreadyRunning')
+
+        InModuleScope Atlas.Search { Set-AtlasSearchServiceState -State Running }
+
+        @($global:AtlasSearchTestCalls) | Should -Be @(
+            'Start'
+            'dword:SetupCompletedSuccessfully=0'
+            'Stop'
+            'kill:4321'
+            'Wait:Stopped'
+            'Start'
+        )
+    }
+
+    It 'fails with the exit codes when the service is still pending after the reset' {
+        $global:AtlasSearchTestExit = [pscustomobject]@{ Win32ExitCode = 0; ServiceSpecificExitCode = 0; ProcessId = 4321 }
+        $global:AtlasSearchTestStarts.Enqueue([ServiceProcess.ServiceControllerStatus]::StartPending)
+        $global:AtlasSearchTestStarts.Enqueue([ServiceProcess.ServiceControllerStatus]::StartPending)
+
+        { InModuleScope Atlas.Search { Set-AtlasSearchServiceState -State Running } } |
+            Should -Throw "*WSearch) is still 'StartPending' after its index was reset and it was started again, with Win32 exit code 0*"
+
+        Should -Invoke Set-AtlasIndexDword -ModuleName Atlas.Search -Times 1 -Exactly
     }
 }
 

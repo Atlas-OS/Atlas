@@ -346,9 +346,11 @@ Scheduled-task changes read the scheduler's language-neutral `Enabled` state bef
 When `schtasks.exe` can't find the path of a task the scheduler lists, Atlas enables or disables it through the Task Scheduler COM API, and the same check decides.
 Search indexing stages its URLs under `HKLM\SOFTWARE\AtlasOS\Search` while WSearch is stopped.
 Once the service runs, it commits them through `ISearchCrawlScopeManager` and reads the saved scope back.
+A WSearch that stops while starting fails the change at once, with its exit codes.
+One that's still starting after two minutes gets its index reset (`SetupCompletedSuccessfully` = 0), which Windows Search rebuilds, and one more start with a five-minute wait.
 Includes end in a folder separator and exclusions in `\*`, following Microsoft's [scope rule format](https://learn.microsoft.com/windows/win32/search/-search-3x-wds-extidx-csm-scoperules).
 Minimal or Full replaces earlier user scope overrides with Windows's defaults and the preset, and an administrator's Group Policy still wins.
-Atlas leaves Windows's Gather scope records, its `CurrentPolicies` cache and Search setup alone.
+Atlas leaves Windows's Gather scope records, its `CurrentPolicies` cache and Search setup alone, apart from that index reset.
 `Get-AtlasIndexScopeState` reads the scope for reports without changing anything.
 
 ### Registry entry options

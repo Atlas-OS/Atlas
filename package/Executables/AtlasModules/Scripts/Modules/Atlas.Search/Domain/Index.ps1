@@ -185,11 +185,111 @@ function Get-AtlasIndexNativePaths {
     }
 }
 
+$script:AtlasSearchStartTimeout = [TimeSpan]::FromMinutes(2)
+$script:AtlasSearchRetryTimeout = [TimeSpan]::FromMinutes(5)
+
+function Get-AtlasSearchServiceExitState {
+    <#
+    .SYNOPSIS
+        Returns WSearch's Win32 and service-specific exit codes and its process ID, as
+        the service manager reports them.
+    #>
+    $service = @(CimCmdlets\Get-CimInstance -ClassName Win32_Service -Filter "Name='WSearch'" -ErrorAction Stop)
+    if ($service.Count -ne 1) {
+        throw 'The service manager does not list Windows Search (WSearch).'
+    }
+    return [pscustomobject]@{
+        Win32ExitCode           = [int64]$service[0].ExitCode
+        ServiceSpecificExitCode = [int64]$service[0].ServiceSpecificExitCode
+        ProcessId               = [int]$service[0].ProcessId
+    }
+}
+
+function Format-AtlasSearchServiceExit {
+    param([Parameter(Mandatory = $true)]$ExitState)
+
+    $win32 = [int64]$ExitState.Win32ExitCode
+    $text = "Win32 exit code $win32"
+    if ($win32 -ge 0 -and $win32 -le [int]::MaxValue) {
+        $text += " ($((New-Object ComponentModel.Win32Exception ([int]$win32)).Message.TrimEnd('.')))"
+    }
+    return ('{0}, service-specific exit code 0x{1:X8}' -f $text, [uint32]$ExitState.ServiceSpecificExitCode)
+}
+
+function Wait-AtlasSearchServiceRunning {
+    <#
+    .SYNOPSIS
+        Waits for WSearch to reach Running. Returns Running, Stopped when it stopped and
+        the service manager won't start it again, or Pending when the time runs out.
+    .DESCRIPTION
+        ServiceController.WaitForStatus waits out its whole timeout for a service that
+        has already stopped. A service whose process ended unexpectedly (1067,
+        ERROR_PROCESS_ABORTED) is still waited for, because WSearch's recovery actions
+        start it again.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]$Service,
+        [Parameter(Mandatory = $true)][TimeSpan]$Timeout
+    )
+
+    $clock = [Diagnostics.Stopwatch]::StartNew()
+    while ($true) {
+        $Service.Refresh()
+        $status = [string]$Service.Status
+        if ($status -ceq 'Running') { return 'Running' }
+        if ($status -ceq 'Stopped' -and [int64](Get-AtlasSearchServiceExitState).Win32ExitCode -ne 1067) {
+            return 'Stopped'
+        }
+        if ($clock.Elapsed -ge $Timeout) { return 'Pending' }
+        Start-Sleep -Milliseconds 500
+    }
+}
+
+function Restart-AtlasSearchService {
+    <#
+    .SYNOPSIS
+        Stops WSearch, ending its process when it's still starting and can't take a stop
+        request, then starts it.
+    #>
+    param([Parameter(Mandatory = $true)]$Service)
+
+    $Service.Refresh()
+    if ([string]$Service.Status -cne 'Stopped') {
+        try {
+            $Service.Stop()
+        }
+        catch {
+            $processId = [int](Get-AtlasSearchServiceExitState).ProcessId
+            if ($processId -le 0) { throw }
+            Write-AtlasLog -Message "Windows Search couldn't take a stop request ($($_.Exception.Message)); ending its process $processId."
+            Stop-Process -Id $processId -Force -ErrorAction Stop
+        }
+        try {
+            $Service.WaitForStatus([ServiceProcess.ServiceControllerStatus]::Stopped, [TimeSpan]::FromMinutes(1))
+        }
+        catch {
+            throw "Windows Search didn't stop within a minute to start again: $($_.Exception.Message)"
+        }
+    }
+    try {
+        $Service.Start()
+    }
+    catch {
+        # The recovery actions can start a service whose process was ended first.
+        $Service.Refresh()
+        if ([string]$Service.Status -cnotin @('StartPending', 'Running')) { throw }
+    }
+}
+
 function Set-AtlasSearchServiceState {
     <#
     .SYNOPSIS
         Configures WSearch as delayed-auto (Running) or disabled (Stopped) and moves
         the service to the requested runtime state, waiting out pending transitions.
+    .DESCRIPTION
+        A WSearch that stops while starting fails at once, with its exit codes. One that
+        is still starting after two minutes gets its index reset, which makes Windows
+        Search rebuild it, and one more start with a longer wait.
     #>
     param(
         [Parameter(Mandatory = $true)]
@@ -199,6 +299,7 @@ function Set-AtlasSearchServiceState {
 
     $nativePaths = Get-AtlasIndexNativePaths
     $startMode = if ($State -eq 'Running') { 'delayed-auto' } else { 'disabled' }
+    # Invoke-AtlasHiddenProcess throws unless sc.exe exits with 0.
     Invoke-AtlasHiddenProcess -FilePath $nativePaths.Sc `
         -ArgumentList @('config', 'WSearch', 'start=', $startMode) -Wait | Out-Null
 
@@ -222,10 +323,29 @@ function Set-AtlasSearchServiceState {
                 )) {
                 $service.Start()
             }
-            $service.WaitForStatus(
-                [ServiceProcess.ServiceControllerStatus]::Running,
-                [TimeSpan]::FromMinutes(2)
-            )
+            $outcome = Wait-AtlasSearchServiceRunning -Service $service -Timeout $script:AtlasSearchStartTimeout
+            $reset = $false
+            if ($outcome -ceq 'Pending') {
+                $reset = $true
+                Write-AtlasLog -Level Warning -Message (
+                    "Windows Search is still '$($service.Status)' after $($script:AtlasSearchStartTimeout.TotalMinutes) " +
+                    'minutes. Resetting its index, which Windows Search then rebuilds, and starting it again.'
+                )
+                Set-AtlasIndexConfiguration -Operation ResetSetupCompleted
+                Restart-AtlasSearchService -Service $service
+                $outcome = Wait-AtlasSearchServiceRunning -Service $service -Timeout $script:AtlasSearchRetryTimeout
+            }
+            if ($outcome -cne 'Running') {
+                $what = if ($outcome -ceq 'Stopped') { 'stopped while starting' }
+                elseif ($reset) { "is still '$($service.Status)' after its index was reset and it was started again" }
+                $exitText = Format-AtlasSearchServiceExit -ExitState (Get-AtlasSearchServiceExitState)
+                throw ("Windows Search (WSearch) $what, with $exitText. Atlas's indexing settings need it " +
+                    'running. Repair Windows, for example with DISM /RestoreHealth and sfc /scannow, ' +
+                    'restart, and try again.')
+            }
+            if ($reset) {
+                Write-AtlasLog -Message 'Windows Search started after its index was reset.'
+            }
         }
         else {
             if ($service.Status -eq [ServiceProcess.ServiceControllerStatus]::StartPending) {
