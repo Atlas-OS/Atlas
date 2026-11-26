@@ -1257,6 +1257,9 @@ iso-destination-space = Нужно { $needed } · свободно { $free } н�
 iso-destination-short = Для ISO-образа нужно { $needed }, а на диске { $drive } свободно { $free }. Освободите место или сохраните ISO-образ на другой диск.
 iso-destination-filesystem = На диске { $drive } нельзя хранить большие файлы ISO-образа. Сохраните его на диск с файловой системой NTFS, например на диск с Windows.
 iso-destination-unusable = Atlas может сохранить ISO-образ только в папку на диске этого ПК.
+# Copying the ISO's files would pass Windows' limit of 260 characters for a path, even at the
+# root of the drive the new ISO is saved to. Under iso-failed.
+iso-path-too-long = В папке назначения файлам ISO-образа понадобились бы пути длиннее, чем допускает Windows. Сохраните новый ISO-образ в папку с более коротким путём, например на диске с Windows.
 iso-create = Создать ISO
 # Heading above the progress bar and the list of stages (iso-stage-*) while the ISO is
 # being created.

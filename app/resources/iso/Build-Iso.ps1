@@ -45,6 +45,7 @@ foreach ($name in @('source', 'output', 'archive', 'package', 'app')) {
 . (Join-Path $PSScriptRoot 'Iso-Mount.ps1')
 $ownedMount = $false
 $work = $null
+$workParent = $null
 $partial = $null
 $source = $null
 $appStream = $null
@@ -111,7 +112,7 @@ function Assert-BootCatalog([string]$Path, [ValidateSet('x64','arm64')][string]$
     }
     finally { $stream.Dispose() }
 }
-function Get-AtlasIsoDestinationVolume([string]$Path) {
+function Initialize-AtlasIsoDestinationVolume {
     if (-not ('AtlasIsoDestinationVolume' -as [type])) {
         Add-Type -TypeDefinition @'
 using System.ComponentModel;
@@ -158,10 +159,48 @@ public sealed class AtlasIsoDestinationVolume {
             throw new Win32Exception(Marshal.GetLastWin32Error());
         return new AtlasIsoDestinationVolume { FileSystem = fileSystem.ToString(), AvailableBytes = availableBytes };
     }
+
+    public static string Root(string path) {
+        var root = new StringBuilder(32768);
+        if (!GetVolumePathNameW(path, root, (uint)root.Capacity))
+            throw new Win32Exception(Marshal.GetLastWin32Error());
+        return root.ToString();
+    }
 }
 '@
     }
+}
+function Get-AtlasIsoDestinationVolume([string]$Path) {
+    Initialize-AtlasIsoDestinationVolume
     return [AtlasIsoDestinationVolume]::Read($Path)
+}
+# The mount point of the volume that holds $Path, through any junction on the way.
+function Get-AtlasIsoVolumeRoot([string]$Path) {
+    Initialize-AtlasIsoDestinationVolume
+    return [AtlasIsoDestinationVolume]::Root($Path)
+}
+# The length a copy of the tree at $Root needs beyond the folder it goes in: its longest
+# file path, or folder path with 12 characters to spare, relative to $Root.
+function Get-AtlasIsoDeepestPath([string]$Root) {
+    $deepest = 0
+    foreach ($item in Get-ChildItem -LiteralPath $Root -Force -Recurse) {
+        $length = $item.FullName.Length - $Root.Length + $(if ($item.PSIsContainer) { 12 } else { 0 })
+        if ($length -gt $deepest) { $deepest = $length }
+    }
+    return $deepest
+}
+# The workspace $Name, whose media folder takes a copy needing $Deepest more characters.
+# Windows PowerShell's file cmdlets stop at MAX_PATH: a file's path must stay under 260
+# characters, and a folder's under 248, room for an 8.3 name in it. The workspace goes
+# beside the output in $Parent or, when that's too deep, at the root of the same volume,
+# so the finished ISO is still only renamed into place.
+function Get-AtlasIsoWorkspace([string]$Parent, [string]$Name, [int]$Deepest) {
+    $work = Join-Path $Parent $Name
+    if ((Join-Path $work 'media\').Length + $Deepest -lt 260) { return $work }
+    $root = Get-AtlasIsoVolumeRoot $Parent
+    $atRoot = Join-Path $root $Name
+    if ((Join-Path $atRoot 'media\').Length + $Deepest -lt 260) { return $atRoot }
+    Fail 'destination-path' "The ISO's files need $Deepest characters beyond the workspace, more than MAX_PATH leaves beside '$Parent' or at '$root'. Save the ISO to a folder with a shorter path."
 }
 function Assert-Output([string]$OutputPath, [string]$PackagePath, [string]$SourcePath) {
     if ([IO.Path]::GetExtension($OutputPath) -ine '.iso') { throw 'Output must end in .iso.' }
@@ -396,7 +435,8 @@ try {
         if ($cap.schema -ne 1 -or $cap.firstSignIn -ne $true) { throw 'The package does not support ISO setup.' }
     }
     $id = [guid]::NewGuid().ToString('N')
-    $work = Join-Path $parent ".atlas-iso-$id"
+    $work = Get-AtlasIsoWorkspace -Parent $parent -Name ".atlas-iso-$id" -Deepest (Get-AtlasIsoDeepestPath $root)
+    $workParent = [IO.Path]::GetDirectoryName($work)
     $partial = Join-Path $parent ".atlas-iso-$id.partial"
     # The elevated worker creates the private tree with its final ACL atomically:
     # full control for SYSTEM (S-1-5-18) and Administrators (S-1-5-32-544) only.
@@ -593,7 +633,7 @@ finally {
     # Only remove the exact unique paths created above, after checking their parent.
     if ($work -and (Test-Path -LiteralPath $work)) {
         $resolved = [IO.Path]::GetFullPath($work)
-        if ([IO.Path]::GetDirectoryName($resolved) -eq $parent -and [IO.Path]::GetFileName($resolved) -match '^\.atlas-iso-[0-9a-f]{32}$') {
+        if ([IO.Path]::GetDirectoryName($resolved) -eq $workParent -and [IO.Path]::GetFileName($resolved) -match '^\.atlas-iso-[0-9a-f]{32}$') {
             try { Assert-PlainTree $resolved; Remove-Item -LiteralPath $resolved -Recurse -Force } catch { [Console]::Error.WriteLine("Cleanup required: $resolved. $_") }
         }
     }

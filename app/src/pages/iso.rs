@@ -2193,6 +2193,7 @@ impl IsoPage {
                 (t!("iso-manager-missing-title"), t!("iso-manager-missing"))
             }
             Some(FailureReason::DiskSpace) => (generic_title, t!("iso-failed-space")),
+            Some(FailureReason::DestinationPath) => (generic_title, t!("iso-path-too-long")),
             Some(FailureReason::IsoMount) => (generic_title, t!("iso-mount-failed")),
             Some(FailureReason::IsoMountDrivers) => (generic_title, t!("iso-mount-drivers")),
             Some(FailureReason::IsoMountFile) => (generic_title, t!("iso-mount-file")),
@@ -2229,6 +2230,7 @@ fn failure_needs_help(reason: Option<FailureReason>, checking: bool, ran: bool) 
             | FailureReason::PackageIsWindowsIso
             | FailureReason::ManagerOutdated
             | FailureReason::DiskSpace
+            | FailureReason::DestinationPath
             | FailureReason::IsoMountDrivers,
         ) => false,
         reason if checking && other_media_fixes(reason) => false,

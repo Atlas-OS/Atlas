@@ -26,6 +26,8 @@ The code is in `src/services/iso.rs`, `resources/iso/Build-Iso.ps1` and `resourc
   Atlas sets no product key or image index, so firmware Home keys and volume licence media need their own boot checks; these settings say nothing about activation.
   For single-edition Enterprise Evaluation media, Setup reads Microsoft's edition configuration in WinPE. Atlas delivers its answer file to the installed Windows Panther folder for the later setup passes.
 - **Staging.** The worker stages in a private, uniquely named folder beside the output.
+  Windows PowerShell's file cmdlets stop at `MAX_PATH`, so a copied file's path must stay under 260 characters and a folder's under 248.
+  When the ISO's deepest path wouldn't fit beside the output, the folder goes at the root of the output's volume instead, where the finished ISO is still only renamed into place. When it wouldn't fit there either, the worker stops with `destination-path`.
   The app and its notices, the package, the destination scripts and the typed settings go in `sources\$OEM$\$$\AtlasISO`.
   Network drivers, if any, go in its `NetworkDrivers` folder, with `network-drivers.json` as their source report.
   Atlas sits beside the Windows image, never inside it.

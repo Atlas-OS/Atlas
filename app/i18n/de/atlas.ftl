@@ -1130,6 +1130,9 @@ iso-destination-space = Benötigt { $needed } · { $free } frei auf { $drive }
 iso-destination-short = Die ISO benötigt { $needed }, auf { $drive } sind { $free } frei. Geben Sie Speicherplatz frei oder speichern Sie die ISO auf einem anderen Laufwerk.
 iso-destination-filesystem = { $drive } kann die großen Dateien der ISO nicht aufnehmen. Speichern Sie sie auf einem mit NTFS formatierten Laufwerk, etwa Ihrem Windows-Laufwerk.
 iso-destination-unusable = Atlas kann die ISO nur in einem Ordner auf einem Laufwerk dieses PCs speichern.
+# Copying the ISO's files would pass Windows' limit of 260 characters for a path, even at the
+# root of the drive the new ISO is saved to. Under iso-failed.
+iso-path-too-long = Die Dateien der ISO bräuchten im Zielordner längere Pfade, als Windows zulässt. Speichern Sie die neue ISO in einem Ordner mit kürzerem Pfad, etwa auf Ihrem Windows-Laufwerk.
 iso-create = ISO erstellen
 # Heading above the progress bar and the list of stages while the ISO is being created.
 iso-progress-title = Ihre ISO wird erstellt…

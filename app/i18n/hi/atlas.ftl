@@ -1211,6 +1211,9 @@ iso-destination-space = { $needed } चाहिए · { $drive } पर { $free
 iso-destination-short = ISO के लिए { $needed } चाहिए, और { $drive } पर { $free } ख़ाली है। जगह ख़ाली करें, या ISO किसी दूसरी ड्राइव पर सहेजें।
 iso-destination-filesystem = { $drive } पर ISO की बड़ी फ़ाइलें नहीं रखी जा सकतीं। इसे NTFS में फ़ॉर्मैट की गई ड्राइव पर सहेजें, जैसे आपकी Windows ड्राइव।
 iso-destination-unusable = Atlas, ISO को केवल इस PC की किसी ड्राइव के फ़ोल्डर में सहेज सकता है।
+# Copying the ISO's files would pass Windows' limit of 260 characters for a path, even at the
+# root of the drive the new ISO is saved to. Under iso-failed.
+iso-path-too-long = जिस फ़ोल्डर में आप सहेज रहे हैं, उसमें ISO की फ़ाइलों को Windows की अनुमति से लंबे पाथ चाहिए होंगे। नया ISO छोटे पाथ वाले फ़ोल्डर में सहेजें, जैसे आपकी Windows ड्राइव का कोई फ़ोल्डर।
 iso-create = ISO बनाएँ
 # Heading above the progress bar and the list of stages (iso-stage-*) while the ISO is
 # being created.

@@ -564,6 +564,9 @@ pub enum FailureReason {
     DestinationFilesystem,
     /// The destination has too little free space.
     DiskSpace,
+    /// Even at the root of the destination's volume, the workspace's copy of
+    /// the ISO would need paths past MAX_PATH.
+    DestinationPath,
     /// The image is not a supported client build or architecture.
     WindowsUnsupported,
     /// The ISO contains no supported edition (Home, LTSC).
@@ -612,6 +615,7 @@ impl FailureReason {
             "output-exists" => Self::OutputExists,
             "destination-filesystem" => Self::DestinationFilesystem,
             "disk-space" => Self::DiskSpace,
+            "destination-path" => Self::DestinationPath,
             "windows-unsupported" => Self::WindowsUnsupported,
             "edition-unsupported" => Self::EditionUnsupported,
             "iso-customised" => Self::IsoCustomised,

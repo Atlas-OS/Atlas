@@ -1070,6 +1070,9 @@ iso-destination-space = 需要 { $needed } · { $drive } 可用 { $free }
 iso-destination-short = ISO 需要 { $needed }，而 { $drive } 只有 { $free } 可用空间。请释放空间，或将 ISO 保存到其他驱动器。
 iso-destination-filesystem = { $drive } 无法存放 ISO 中的大文件。请将其保存到格式化为 NTFS 的驱动器，例如 Windows 所在的驱动器。
 iso-destination-unusable = Atlas 只能将 ISO 保存到这台电脑上某个驱动器中的文件夹。
+# Copying the ISO's files would pass Windows' limit of 260 characters for a path, even at the
+# root of the drive the new ISO is saved to. Under iso-failed.
+iso-path-too-long = 在你保存到的文件夹中，ISO 中的文件所需的路径会超出 Windows 允许的长度。请将新 ISO 保存到路径较短的文件夹，例如 Windows 所在驱动器上的文件夹。
 iso-create = 创建 ISO
 # 创建 ISO 期间，进度条和阶段列表（iso-stage-*）上方的标题。
 iso-progress-title = 正在创建 ISO…

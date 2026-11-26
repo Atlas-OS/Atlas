@@ -1095,6 +1095,9 @@ iso-destination-space = Nécessite { $needed } · { $free } libres sur { $drive 
 iso-destination-short = L’ISO nécessite { $needed }, et { $drive } n’a que { $free } d’espace libre. Libérez de l’espace ou enregistrez l’ISO sur un autre lecteur.
 iso-destination-filesystem = { $drive } ne peut pas contenir les fichiers volumineux de l’ISO. Enregistrez-la sur un lecteur au format NTFS, comme votre lecteur Windows.
 iso-destination-unusable = Atlas ne peut enregistrer l’ISO que dans un dossier d’un lecteur de ce PC.
+# Copying the ISO's files would pass Windows' limit of 260 characters for a path, even at the
+# root of the drive the new ISO is saved to. Under iso-failed.
+iso-path-too-long = Dans le dossier de destination, les fichiers de l’ISO auraient besoin de chemins plus longs que ce que Windows autorise. Enregistrez la nouvelle ISO dans un dossier dont le chemin est plus court, par exemple sur votre lecteur Windows.
 iso-create = Créer l’ISO
 # Heading above the progress bar and the list of stages while the ISO is being created.
 iso-progress-title = Création de votre ISO…

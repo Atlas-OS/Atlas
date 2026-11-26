@@ -4,7 +4,7 @@ BeforeAll {
     $errors = $null
     $ast = [Management.Automation.Language.Parser]::ParseFile((Join-Path $script:IsoResources 'Build-Iso.ps1'), [ref]$null, [ref]$errors)
     if ($errors) { throw ($errors | Out-String) }
-    foreach ($name in @('Assert-BootCatalog', 'Get-AtlasIsoDestinationVolume', 'Assert-Output', 'Open-AtlasIsoManager')) {
+    foreach ($name in @('Assert-BootCatalog', 'Initialize-AtlasIsoDestinationVolume', 'Get-AtlasIsoDestinationVolume', 'Get-AtlasIsoVolumeRoot', 'Get-AtlasIsoDeepestPath', 'Get-AtlasIsoWorkspace', 'Assert-Output', 'Open-AtlasIsoManager')) {
         $function = $ast.Find({ param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq $name }, $true)
         . ([scriptblock]::Create($function.Extent.Text))
     }
@@ -78,6 +78,42 @@ Describe 'ISO destination validation' {
     It 'still reports insufficient space on a supported filesystem' {
         Mock Get-AtlasIsoDestinationVolume { [pscustomobject]@{ FileSystem = 'ReFS'; AvailableBytes = 0 } }
         { Get-TestIsoOutput } | Should -Throw 'disk-space:*'
+    }
+}
+
+Describe 'ISO workspace paths' {
+    It 'measures the longest file path, and a folder path with room for a file in it' {
+        $tree = Join-Path $TestDrive 'tree'
+        New-Item -ItemType Directory -Path (Join-Path $tree 'sources\dlmanifests') -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $tree 'setup.exe') -Value 'x'
+        Get-AtlasIsoDeepestPath "$tree\" | Should -Be ('sources\dlmanifests'.Length + 12)
+        Set-Content -LiteralPath (Join-Path $tree 'sources\dlmanifests\a-long-manifest-name.dll') -Value 'x'
+        Get-AtlasIsoDeepestPath "$tree\" | Should -Be 'sources\dlmanifests\a-long-manifest-name.dll'.Length
+    }
+    It 'stages beside the output whenever every copied path fits' {
+        Mock Get-AtlasIsoVolumeRoot { throw 'Not needed.' }
+        $parent = 'C:\Users\Someone\Downloads'
+        $name = '.atlas-iso-' + ('0' * 32)
+        # 'C:\Users\Someone\Downloads\.atlas-iso-<32>\media\' is 77 characters.
+        Get-AtlasIsoWorkspace $parent $name 182 | Should -BeExactly "$parent\$name"
+        Should -Invoke Get-AtlasIsoVolumeRoot -Times 0 -Exactly
+    }
+    It 'stages at the root of the same volume when a copied path would reach MAX_PATH' {
+        Mock Get-AtlasIsoVolumeRoot { 'C:\' }
+        $parent = 'C:\Users\Someone\Downloads\' + ('x' * 85)
+        $name = '.atlas-iso-' + ('0' * 32)
+        Get-AtlasIsoWorkspace $parent $name 100 | Should -BeExactly "C:\$name"
+        Should -Invoke Get-AtlasIsoVolumeRoot -Times 1 -Exactly -ParameterFilter { $Path -eq $parent }
+        # A volume mounted in a folder has that folder as its root.
+        Mock Get-AtlasIsoVolumeRoot { 'C:\Mounts\Data\' }
+        Get-AtlasIsoWorkspace $parent $name 100 | Should -BeExactly "C:\Mounts\Data\$name"
+    }
+    It 'asks for a shorter folder when even the volume root is too deep' {
+        Mock Get-AtlasIsoVolumeRoot { 'C:\' + ('m' * 200) + '\' }
+        { Get-AtlasIsoWorkspace ('C:\' + ('m' * 200) + '\iso') ('.atlas-iso-' + ('0' * 32)) 60 } | Should -Throw 'destination-path:*'
+    }
+    It 'finds the mount point of the volume that holds a folder' {
+        Get-AtlasIsoVolumeRoot $script:Media | Should -BeExactly ([IO.Path]::GetPathRoot($script:Media))
     }
 }
 

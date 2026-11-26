@@ -1212,6 +1212,9 @@ iso-destination-space = Needs { $needed } · { $free } free on { $drive }
 iso-destination-short = The ISO needs { $needed }, and { $drive } has { $free } free. Free up space, or save the ISO to another drive.
 iso-destination-filesystem = { $drive } can't hold the ISO's large files. Save it to a drive formatted as NTFS, such as your Windows drive.
 iso-destination-unusable = Atlas can only save the ISO to a folder on a drive in this PC.
+# Copying the ISO's files would pass Windows' limit of 260 characters for a path, even at the
+# root of the drive the new ISO is saved to. Under iso-failed.
+iso-path-too-long = The ISO's files would need longer paths than Windows allows in the folder you're saving to. Save the new ISO to a folder with a shorter path, such as one on your Windows drive.
 iso-create = Create ISO
 # Heading above the progress bar and the list of stages (iso-stage-*) while the ISO is
 # being created.

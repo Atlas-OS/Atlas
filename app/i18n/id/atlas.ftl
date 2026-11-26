@@ -1172,6 +1172,9 @@ iso-destination-space = Memerlukan { $needed } · { $free } kosong di { $drive }
 iso-destination-short = ISO memerlukan { $needed }, sedangkan ruang kosong di { $drive } hanya { $free }. Kosongkan ruang, atau simpan ISO ke drive lain.
 iso-destination-filesystem = { $drive } tidak dapat menyimpan file besar dalam ISO. Simpan ke drive berformat NTFS, seperti drive Windows Anda.
 iso-destination-unusable = Atlas hanya dapat menyimpan ISO ke folder di drive pada PC ini.
+# Copying the ISO's files would pass Windows' limit of 260 characters for a path, even at the
+# root of the drive the new ISO is saved to. Under iso-failed.
+iso-path-too-long = Di folder tujuan, file dalam ISO akan memerlukan jalur yang lebih panjang daripada yang diizinkan Windows. Simpan ISO baru ke folder dengan jalur yang lebih pendek, seperti folder di drive Windows Anda.
 iso-create = Buat ISO
 # Heading above the progress bar and the list of stages (iso-stage-*) while the ISO is
 # being created.

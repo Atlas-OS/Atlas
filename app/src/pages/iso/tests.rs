@@ -178,9 +178,15 @@ fn only_failures_nothing_on_the_page_fixes_get_the_help_row() {
     {
         assert!(!failure_needs_help(Some(reason), true, true), "{reason:?}");
     }
-    for reason in
-        [WindowsReleaseUnknown, PackageUnsupported, PackageIsWindowsIso, ManagerOutdated, DiskSpace, IsoMountDrivers]
-    {
+    for reason in [
+        WindowsReleaseUnknown,
+        PackageUnsupported,
+        PackageIsWindowsIso,
+        ManagerOutdated,
+        DiskSpace,
+        DestinationPath,
+        IsoMountDrivers,
+    ] {
         assert!(!failure_needs_help(Some(reason), true, true), "{reason:?}");
         assert!(!failure_needs_help(Some(reason), false, true), "{reason:?}");
     }
@@ -261,6 +267,9 @@ fn each_failure_is_named_and_says_what_to_do() {
             assert!(!other_media_fixes(Some(FailureReason::IsoMountDrivers)));
             // A network driver export that failed says so, with the way to leave them out.
             page.step = IsoStep::Create;
+            // A folder too deep for the ISO's files, even at the drive's root.
+            page.result = JobResult::Failed(Some(FailureReason::DestinationPath));
+            assert_eq!(page.failure_text(), (t!("iso-failed"), t!("iso-path-too-long")));
             page.network_build = true;
             page.stage = Stage::NetworkDrivers;
             page.result = JobResult::Failed(Some(FailureReason::Build));

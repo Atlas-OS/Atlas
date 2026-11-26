@@ -1182,6 +1182,9 @@ iso-destination-space = 必要な領域: { $needed } · { $drive } の空き領�
 iso-destination-short = ISO には { $needed } が必要ですが、{ $drive } の空き領域は { $free } です。空き領域を確保するか、別のドライブに保存してください。
 iso-destination-filesystem = { $drive } には ISO の大きなファイルを保存できません。Windows ドライブなど、NTFS でフォーマットされたドライブに保存してください。
 iso-destination-unusable = Atlas が ISO を保存できるのは、この PC 内のドライブにあるフォルダーだけです。
+# Copying the ISO's files would pass Windows' limit of 260 characters for a path, even at the
+# root of the drive the new ISO is saved to. Under iso-failed.
+iso-path-too-long = 保存先のフォルダーでは、ISO のファイルに Windows が許可するより長いパスが必要になります。Windows ドライブ上のフォルダーなど、パスの短いフォルダーに新しい ISO を保存してください。
 iso-create = ISO を作成
 # Heading above the progress bar and the list of stages (iso-stage-*) while the ISO is
 # being created.

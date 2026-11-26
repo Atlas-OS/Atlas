@@ -1161,6 +1161,9 @@ iso-destination-space = { $needed } gerekli · { $drive } sürücüsünde { $fre
 iso-destination-short = ISO için { $needed } gerekiyor, { $drive } sürücüsünde ise { $free } boş alan var. Alan boşaltın veya ISO'yu başka bir sürücüye kaydedin.
 iso-destination-filesystem = { $drive } sürücüsü ISO'nun büyük dosyalarını barındıramaz. ISO'yu Windows sürücünüz gibi NTFS biçimli bir sürücüye kaydedin.
 iso-destination-unusable = Atlas, ISO'yu yalnızca bu bilgisayardaki bir sürücüde bulunan bir klasöre kaydedebilir.
+# Copying the ISO's files would pass Windows' limit of 260 characters for a path, even at the
+# root of the drive the new ISO is saved to. Under iso-failed.
+iso-path-too-long = ISO'nun dosyaları, kaydettiğiniz klasörde Windows'un izin verdiğinden daha uzun yollar gerektirir. Yeni ISO'yu Windows sürücünüzdeki bir klasör gibi daha kısa yolu olan bir klasöre kaydedin.
 iso-create = ISO oluştur
 # Heading above the progress bar and the list of stages while the ISO is being created.
 iso-progress-title = ISO'nuz oluşturuluyor…

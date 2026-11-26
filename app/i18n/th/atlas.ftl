@@ -1146,6 +1146,9 @@ iso-destination-space = ต้องใช้ { $needed } · { $drive } ว่�
 iso-destination-short = ISO ต้องใช้พื้นที่ { $needed } แต่ { $drive } มีพื้นที่ว่าง { $free } เพิ่มพื้นที่ว่าง หรือบันทึก ISO ลงในไดรฟ์อื่น
 iso-destination-filesystem = { $drive } เก็บไฟล์ขนาดใหญ่ของ ISO ไม่ได้ บันทึกลงในไดรฟ์ที่ฟอร์แมตเป็น NTFS เช่น ไดรฟ์ Windows ของคุณ
 iso-destination-unusable = Atlas บันทึก ISO ได้เฉพาะในโฟลเดอร์บนไดรฟ์ในพีซีเครื่องนี้
+# Copying the ISO's files would pass Windows' limit of 260 characters for a path, even at the
+# root of the drive the new ISO is saved to. Under iso-failed.
+iso-path-too-long = ในโฟลเดอร์ที่คุณบันทึก ไฟล์ใน ISO จะต้องใช้พาธที่ยาวเกินกว่าที่ Windows อนุญาต บันทึก ISO ใหม่ลงในโฟลเดอร์ที่มีพาธสั้นกว่า เช่น โฟลเดอร์ในไดรฟ์ Windows ของคุณ
 iso-create = สร้าง ISO
 # Heading above the progress bar and the list of stages (iso-stage-*) while the ISO is
 # being created.
