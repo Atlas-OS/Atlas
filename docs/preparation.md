@@ -32,6 +32,10 @@ Its process loads PowerShell modules only from the inbox module root, so a modul
   A check before an install waits up to two minutes for another run to finish, and any other run stops at once.
 - Each run has a job folder under `%ProgramFiles%\Atlas Setup Recovery\Preparation`, which only administrators and SYSTEM can change.
   It holds the worker's `state.json`, its `updates.log` and `worker.log`.
+- The worker replaces `state.json` whole with each report, and tries again while something such as a scanner holds it.
+  A progress report that still can't go in waits for the next one.
+  The report of how the run ended is tried for up to a minute, then written over the held file in place, because Atlas Manager reads only `state.json`.
+  The run fails only when that doesn't work either.
 - **Stop updating** asks the worker to stop after the current step.
   Windows Update's and Microsoft Store's own work isn't interrupted, so a stop waits for it.
 

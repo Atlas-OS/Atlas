@@ -178,7 +178,7 @@ Describe 'Protected preparation recovery journals' {
         ($script:slept | Measure-Object -Sum).Sum | Should -Be 9000
         @(Select-String -LiteralPath (Join-Path $JobPath 'updates.log') -Pattern 'state\.json could not be replaced \(0x80070497: Unable to remove the file to be replaced\.\); it keeps the last report').Count | Should -Be 1
     }
-    It 'waits longer for the report of how the run ended, then fails the run with Windows''s refusal' {
+    It 'waits longer for the report of how the run ended, then fails the run with Windows''s refusal when it can''t be written in place either' {
         Set-Variable -Name PersistentCancellation -Value $false
         $JobPath = Join-Path $TestDrive 'replace-refused-end'
         [void][IO.Directory]::CreateDirectory($JobPath)
@@ -188,11 +188,38 @@ Describe 'Protected preparation recovery journals' {
         $script:slept = 0
         Mock Start-Sleep { $script:slept += $Milliseconds }
         Mock Invoke-AtlasTransitionFileReplace { throw [IO.IOException]::new('Unable to remove the file to be replaced.', -2147023721) }
+        Mock Write-AtlasTransitionFileInPlace { [IO.IOException]::new('The process cannot access the file because it is being used by another process.', -2147024864) }
         { Write-PreparationState complete verify } | Should -Throw '*Unable to remove the file to be replaced*'
         $script:slept | Should -BeGreaterThan 55000
         $script:slept | Should -Not -BeGreaterThan 60000
         [IO.File]::ReadAllBytes($path) | Should -Be $before
         Test-Path (Join-Path $JobPath 'state.tmp') | Should -BeFalse
+        Get-Content -LiteralPath (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'could not be replaced \(0x80070497: .*\) or written in place \(0x80070020: '
+    }
+    It 'writes the report of how the run ended over the held one in place, keeping its protection, so the app gets a result' {
+        Set-Variable -Name PersistentCancellation -Value $true
+        $JobPath = Join-Path $TestDrive 'replace-held-end'
+        [void][IO.Directory]::CreateDirectory($JobPath)
+        Mock Get-PreparationStateSecurity {
+            $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+            $security = New-Object Security.AccessControl.FileSecurity
+            $security.SetSecurityDescriptorSddlForm("O:${sid}D:P(A;;FA;;;${sid})")
+            return $security
+        }
+        $path = Join-Path $JobPath 'state.json'
+        Write-PreparationState running windows-search -Detail @{ currentUpdate = 'A long update title that makes this report longer than the last one' }
+        Mock Start-Sleep {}
+        # Held for the whole run by something that lets the file be read and written,
+        # but not removed, as a scanner can.
+        $holder = [IO.File]::Open($path, 'Open', 'Read', 'ReadWrite')
+        try { { Write-PreparationState complete verify } | Should -Not -Throw }
+        finally { $holder.Dispose() }
+        $report = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+        $report.status | Should -Be 'complete'
+        $report.activity.PSObject.Properties['currentUpdate'] | Should -BeNullOrEmpty -Because 'nothing of the longer report is left behind'
+        (Get-Item -LiteralPath $path).GetAccessControl().AreAccessRulesProtected | Should -BeTrue
+        Test-Path (Join-Path $JobPath 'state.tmp') | Should -BeFalse
+        Get-Content -LiteralPath (Join-Path $JobPath 'updates.log') -Raw | Should -Match 'the report of how the run ended was written over it in place'
     }
     It 'makes no report of its own when Windows moved the old one aside and the new one can''t take its name' {
         Set-Variable -Name PersistentCancellation -Value $false

@@ -355,12 +355,23 @@ function Write-PreparationState([string]$Status, [string]$Stage, [int]$Completed
         # Install-AtlasTransitionFile in WindowsTransition.ps1. Progress while the
         # run goes on can wait for a later report: the earlier one stays whole and
         # names this process, and the output line below carries this one. How the
-        # run ended can't wait, so that report gets longer, and fails the run if
-        # Windows still refuses it.
+        # run ended can't wait, so that report gets longer. Atlas Manager and the
+        # front door read only state.json, so when Windows still refuses to
+        # replace it, the report is written over it in place. Only when that
+        # fails too does the run fail with Windows's refusal, after the output
+        # line has carried the report.
         $running = $Status -eq 'running'
         $refused = Install-AtlasTransitionFile $temporary $path $(if ($running) { 5 } else { 60 })
         if ($null -eq $refused) { $ownsTemporary = $false }
-        elseif (-not $running) { throw $refused }
+        elseif (-not $running) {
+            $unwritten = Write-AtlasTransitionFileInPlace $path $bytes
+            if ($null -ne $unwritten) {
+                [Console]::WriteLine("ATLAS_PREP:$json")
+                Write-PreparationLog ('state.json could not be replaced (0x{0:X8}: {1}) or written in place (0x{2:X8}: {3}).' -f $refused.HResult, ([string]$refused.Message).Trim(), $unwritten.HResult, ([string]$unwritten.Message).Trim())
+                throw $refused
+            }
+            Write-PreparationLog ('state.json could not be replaced (0x{0:X8}: {1}); the report of how the run ended was written over it in place.' -f $refused.HResult, ([string]$refused.Message).Trim())
+        }
         elseif (-not $script:PreparationStateHeld) {
             $script:PreparationStateHeld = $true
             Write-PreparationLog ('state.json could not be replaced (0x{0:X8}: {1}); it keeps the last report it took until a later one goes in.' -f $refused.HResult, ([string]$refused.Message).Trim())

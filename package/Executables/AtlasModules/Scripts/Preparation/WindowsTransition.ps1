@@ -364,6 +364,26 @@ function Install-AtlasTransitionFile([string]$Temporary, [string]$Path, [double]
     }
 }
 
+# Writes $Bytes over $Path where it is, for a report that must reach its reader
+# while Windows keeps refusing to replace the file. Whatever holds it without
+# letting it be removed, such as a scanner, usually still lets it be written.
+# The file keeps its security descriptor. A reader can meet it part written for
+# a moment, which doesn't parse, and reads it again. Returns $null once written,
+# or the error.
+function Write-AtlasTransitionFileInPlace([string]$Path, [byte[]]$Bytes) {
+    try {
+        $stream = [IO.FileStream]::new($Path, [IO.FileMode]::Open, [IO.FileAccess]::Write, [IO.FileShare]'ReadWrite, Delete')
+        try {
+            $stream.Write($Bytes, 0, $Bytes.Length)
+            $stream.SetLength($Bytes.Length)
+            $stream.Flush($true)
+        }
+        finally { $stream.Dispose() }
+        return $null
+    }
+    catch { return $_.Exception }
+}
+
 # The copy's text, or $null without one. A copy someone other than SYSTEM,
 # Administrators or TrustedInstaller owns is never trusted.
 function Read-AtlasTransitionCopy {
