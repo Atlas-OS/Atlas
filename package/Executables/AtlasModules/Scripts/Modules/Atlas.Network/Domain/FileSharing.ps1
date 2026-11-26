@@ -126,14 +126,14 @@ function Set-AtlasFileSharingAdapterBinding {
         if ([bool]$binding.Enabled -eq $Enabled) {
             continue
         }
+        # The binding itself is passed, because -Name is a wildcard: an adapter name with
+        # brackets, such as a VPN adapter's, would read as a character set and match nothing.
         if ($Enabled) {
-            Enable-NetAdapterBinding -Name ([string]$binding.Name) `
-                -ComponentID ([string]$binding.ComponentID) -Confirm:$false `
+            Enable-NetAdapterBinding -InputObject $binding -Confirm:$false `
                 -ErrorAction Stop | Out-Null
         }
         else {
-            Disable-NetAdapterBinding -Name ([string]$binding.Name) `
-                -ComponentID ([string]$binding.ComponentID) -Confirm:$false `
+            Disable-NetAdapterBinding -InputObject $binding -Confirm:$false `
                 -ErrorAction Stop | Out-Null
         }
     }

@@ -381,22 +381,40 @@ Describe 'File Sharing machine state' {
         # Adapter bindings, connection profiles and firewall rules are modelled as
         # shared state that the mocked Net* cmdlets read and change.
         $global:AtlasNetworkTestState = @{
+            AdapterName     = 'Ethernet'
             BindingsEnabled = $true
             ProfileCategory = 'Private'
             RuleEnabled     = 1
             RuleProfiles    = 2
             Copies          = @{}
         }
-        Mock Get-NetAdapterBinding -ModuleName Atlas.Network {
-            @(
-                [pscustomobject]@{ Name = 'Ethernet'; ComponentID = 'ms_server'; Enabled = $global:AtlasNetworkTestState.BindingsEnabled }
-                [pscustomobject]@{ Name = 'Ethernet'; ComponentID = 'ms_msclient'; Enabled = $global:AtlasNetworkTestState.BindingsEnabled }
-            )
-        }
-        Mock Enable-NetAdapterBinding -ModuleName Atlas.Network { $global:AtlasNetworkTestState.BindingsEnabled = $true }
-        Mock Disable-NetAdapterBinding -ModuleName Atlas.Network { $global:AtlasNetworkTestState.BindingsEnabled = $false }
         # The Net* cmdlets bind their InputObject parameters by CIM class type name, so
         # the fakes are client-only instances of the real classes rather than plain objects.
+        Mock Get-NetAdapterBinding -ModuleName Atlas.Network {
+            foreach ($component in @('ms_server', 'ms_msclient')) {
+                New-CimInstance -ClassName MSFT_NetAdapterBindingSettingData -ClientOnly -Property @{
+                    Name        = $global:AtlasNetworkTestState.AdapterName
+                    ComponentID = $component
+                    Enabled     = [bool]$global:AtlasNetworkTestState.BindingsEnabled
+                }
+            }
+        }
+        # -Name is a wildcard that the cmdlets turn into a CIM LIKE query, which reports
+        # an adapter it doesn't match as missing.
+        Mock Enable-NetAdapterBinding -ModuleName Atlas.Network {
+            if ($PesterBoundParameters.ContainsKey('Name') -and
+                -not ($global:AtlasNetworkTestState.AdapterName -like $Name)) {
+                throw 'No matching MSFT_NetAdapterBindingSettingData objects found by CIM query.'
+            }
+            $global:AtlasNetworkTestState.BindingsEnabled = $true
+        }
+        Mock Disable-NetAdapterBinding -ModuleName Atlas.Network {
+            if ($PesterBoundParameters.ContainsKey('Name') -and
+                -not ($global:AtlasNetworkTestState.AdapterName -like $Name)) {
+                throw 'No matching MSFT_NetAdapterBindingSettingData objects found by CIM query.'
+            }
+            $global:AtlasNetworkTestState.BindingsEnabled = $false
+        }
         Mock Get-NetConnectionProfile -ModuleName Atlas.Network {
             New-CimInstance -ClassName MSFT_NetConnectionProfile -ClientOnly -Property @{
                 Name            = 'Home'
@@ -514,6 +532,25 @@ Describe 'File Sharing machine state' {
         { Disable-AtlasFileSharing -Silent -NetBtInterfacesRoot $script:interfacesRoot -ServicesRoot $script:servicesRoot } |
             Should -Throw '*left a managed adapter binding enabled*'
         (Get-Item -Path "$script:servicesRoot\NetBT").GetValueNames() | Should -Not -Contain 'Start'
+    }
+
+    # VPN adapters such as ZeroTier's put their network ID in brackets.
+    It 'changes the bindings of an adapter whose name has wildcard brackets' {
+        $global:AtlasNetworkTestState.AdapterName = 'ZeroTier One [0123456789abcdef]'
+
+        Disable-AtlasFileSharing -Silent -NetBtInterfacesRoot $script:interfacesRoot -ServicesRoot $script:servicesRoot
+        $global:AtlasNetworkTestState.BindingsEnabled | Should -BeFalse
+
+        Enable-AtlasFileSharing -Silent -StateRoot "$script:testRoot\ToggleState" `
+            -NetBtInterfacesRoot $script:interfacesRoot -ServicesRoot $script:servicesRoot
+        $global:AtlasNetworkTestState.BindingsEnabled | Should -BeTrue
+
+        foreach ($command in @('Disable-NetAdapterBinding', 'Enable-NetAdapterBinding')) {
+            Should -Invoke $command -ModuleName Atlas.Network -Times 2 -Exactly -ParameterFilter {
+                -not $PesterBoundParameters.ContainsKey('Name') -and @($InputObject).Count -eq 1 -and
+                $InputObject[0].Name -ceq 'ZeroTier One [0123456789abcdef]'
+            }
+        }
     }
 
     It 'fails when a context-menu key survives removal' {
