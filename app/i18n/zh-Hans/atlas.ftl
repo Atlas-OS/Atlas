@@ -1145,6 +1145,16 @@ iso-failed-edition = 此 ISO 不包含受支持的 Windows 版本。不支持 Wi
 # checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
 # USB page's ISO card.
 iso-mount-failed = Windows 无法打开 ISO。请重启电脑，然后重试。
+# Windows stopped answering while it read or mounted the ISO.
+iso-mount-timeout = Windows 在打开 ISO 时停止响应。请重启电脑，然后重试。
+# vdrvroot and cdrom are the Windows drivers' own names, as tools that turn drivers off show
+# them. Keep them as they are.
+iso-mount-drivers = Windows 无法在这台电脑上打开 ISO 文件，因为它所需的驱动程序 vdrvroot 和 cdrom 已被禁用。请重新启用它们，重启电脑，然后重试。
+# Windows can store a file compressed or encrypted (in the file's Properties, under Advanced),
+# and a download can be stored sparse, with space reserved but not yet written. Windows can't
+# open an ISO stored any of these ways. Under iso-check-failed, with iso-download-windows and
+# iso-use-local beside it, or on the USB page's ISO card.
+iso-mount-file = Windows 无法打开此 ISO，因为该文件已压缩、已加密或为稀疏文件。请将其复制到未压缩且未加密的文件夹，然后使用该副本。
 # 打开 ISO 或 U 盘任务原始日志所在的文件夹。
 iso-diagnostics = 打开日志文件夹
 # Atlas 从其他页面更新 Windows 或还原 Windows 更新设置期间，显示在 ISO 和 U 盘页面上。完成前，这两个页面上的控件不可用。

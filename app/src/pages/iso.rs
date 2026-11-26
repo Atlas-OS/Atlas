@@ -293,13 +293,15 @@ fn architecture_text(architecture: Architecture) -> String {
     }
 }
 
-/// A source the person can fix themselves by using other Windows media.
+/// A source the person can fix themselves by using other Windows media, or a
+/// copy of the ISO that Windows can mount.
 fn other_media_fixes(reason: Option<FailureReason>) -> bool {
     matches!(
         reason,
         Some(
             FailureReason::EditionUnsupported
                 | FailureReason::IsoCustomised
+                | FailureReason::IsoMountFile
                 | FailureReason::WindowsReleaseUnlisted
                 | FailureReason::WindowsUnsupported
         )
@@ -2192,6 +2194,9 @@ impl IsoPage {
             }
             Some(FailureReason::DiskSpace) => (generic_title, t!("iso-failed-space")),
             Some(FailureReason::IsoMount) => (generic_title, t!("iso-mount-failed")),
+            Some(FailureReason::IsoMountDrivers) => (generic_title, t!("iso-mount-drivers")),
+            Some(FailureReason::IsoMountFile) => (generic_title, t!("iso-mount-file")),
+            Some(FailureReason::IsoMountTimeout) => (generic_title, t!("iso-mount-timeout")),
             Some(FailureReason::Build) if self.network_build && self.stage == Stage::NetworkDrivers => {
                 (generic_title, t!("iso-network-not-added"))
             }
@@ -2214,7 +2219,8 @@ impl IsoPage {
 }
 
 /// Whether a failure gets the help row: only one that nothing on the page
-/// fixes, not media to replace, a package to change or a connection to check.
+/// fixes, not media to replace, a package to change, a connection to check or
+/// drivers to turn back on.
 fn failure_needs_help(reason: Option<FailureReason>, checking: bool, ran: bool) -> bool {
     !ran || match reason {
         Some(
@@ -2222,7 +2228,8 @@ fn failure_needs_help(reason: Option<FailureReason>, checking: bool, ran: bool) 
             | FailureReason::PackageUnsupported
             | FailureReason::PackageIsWindowsIso
             | FailureReason::ManagerOutdated
-            | FailureReason::DiskSpace,
+            | FailureReason::DiskSpace
+            | FailureReason::IsoMountDrivers,
         ) => false,
         reason if checking && other_media_fixes(reason) => false,
         _ => true,

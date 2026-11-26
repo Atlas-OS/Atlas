@@ -13,6 +13,9 @@ The code is in `src/services/iso.rs`, `resources/iso/Build-Iso.ps1` and `resourc
   Windows can give the letter late, or none where automatic mounting is off, so the worker reads the image's volume again every half second for about 30 seconds.
   After about 10 seconds, an image the worker mounted itself gets the highest free drive letter, which the worker takes back before it ejects the image. An image that was already mounted is used as it is.
   Without such a volume, the worker stops with `iso-mount`, and the log lists each volume's filesystem, drive letter and status.
+- **Mount failures.** Before it mounts an image, the worker stops with `iso-mount-drivers` if the `vdrvroot` or `cdrom` driver is disabled (`Start` 4), because Windows then mounts no ISO, or waits minutes for a drive that never starts.
+  When Windows refuses to read or mount the source, a file stored compressed, encrypted or sparse stops it with `iso-mount-file`, which asks for a copy in an ordinary folder; the worker changes nothing about the user's file. Any other refusal is `iso-mount`.
+  The storage cmdlets run as jobs on one local CIM session with a 120-second operation timeout, and the worker waits no longer than that for each, because Windows doesn't apply the timeout to every call over a local session. A call that doesn't finish stops the worker with `iso-mount-timeout`.
 - **Inspection.** DISM reads every edition from the source, mounted read-only.
   The worker checks each version against `windows-releases.json` in the Atlas package's compatibility scripts, which the app and the front door share.
   An unknown version triggers a refresh from Microsoft's release page, limited in size and time.

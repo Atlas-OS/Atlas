@@ -1238,6 +1238,16 @@ iso-failed-edition = Bu ISO desteklenen bir Windows sürümü içermiyor. Window
 # checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
 # USB page's ISO card.
 iso-mount-failed = Windows ISO'yu açamadı. Bilgisayarınızı yeniden başlatın, ardından yeniden deneyin.
+# Windows stopped answering while it read or mounted the ISO.
+iso-mount-timeout = Windows, ISO'yu açarken yanıt vermeyi durdurdu. Bilgisayarınızı yeniden başlatın, ardından yeniden deneyin.
+# vdrvroot and cdrom are the Windows drivers' own names, as tools that turn drivers off show
+# them. Keep them as they are.
+iso-mount-drivers = Windows bu bilgisayarda ISO dosyalarını açamıyor, çünkü bunun için kullandığı vdrvroot ve cdrom sürücüleri devre dışı. Bu sürücüleri yeniden etkinleştirin, bilgisayarınızı yeniden başlatın ve yeniden deneyin.
+# Windows can store a file compressed or encrypted (in the file's Properties, under Advanced),
+# and a download can be stored sparse, with space reserved but not yet written. Windows can't
+# open an ISO stored any of these ways. Under iso-check-failed, with iso-download-windows and
+# iso-use-local beside it, or on the USB page's ISO card.
+iso-mount-file = Windows bu ISO'yu açamıyor, çünkü dosya sıkıştırılmış, şifrelenmiş veya seyrek bir dosya. Dosyayı sıkıştırılmamış ve şifrelenmemiş bir klasöre kopyalayın, ardından kopyayı kullanın.
 # Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = Günlük klasörünü aç
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,

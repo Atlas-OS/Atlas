@@ -173,16 +173,21 @@ fn this_pc_s_edition_is_found_by_its_windows_name() {
 fn only_failures_nothing_on_the_page_fixes_get_the_help_row() {
     use FailureReason::*;
     // Other media, a package to change, a connection or free space: the bar has the fix.
-    for reason in [EditionUnsupported, IsoCustomised, WindowsReleaseUnlisted, WindowsUnsupported] {
+    for reason in
+        [EditionUnsupported, IsoCustomised, IsoMountFile, WindowsReleaseUnlisted, WindowsUnsupported]
+    {
         assert!(!failure_needs_help(Some(reason), true, true), "{reason:?}");
     }
-    for reason in [WindowsReleaseUnknown, PackageUnsupported, PackageIsWindowsIso, ManagerOutdated, DiskSpace]
+    for reason in
+        [WindowsReleaseUnknown, PackageUnsupported, PackageIsWindowsIso, ManagerOutdated, DiskSpace, IsoMountDrivers]
     {
         assert!(!failure_needs_help(Some(reason), true, true), "{reason:?}");
         assert!(!failure_needs_help(Some(reason), false, true), "{reason:?}");
     }
     // Unexpected failures, and a job that never started, do.
-    for reason in [Some(Check), Some(Build), Some(ManagerMissing), Some(IsoMount), None] {
+    for reason in
+        [Some(Check), Some(Build), Some(ManagerMissing), Some(IsoMount), Some(IsoMountTimeout), None]
+    {
         assert!(failure_needs_help(reason, true, true), "{reason:?}");
         assert!(failure_needs_help(reason, false, true), "{reason:?}");
     }
@@ -242,6 +247,18 @@ fn each_failure_is_named_and_says_what_to_do() {
             page.step = IsoStep::Create;
             assert_eq!(page.failure_text(), (t!("iso-failed"), t!("iso-mount-failed")));
             page.step = IsoStep::Windows;
+            // Why Windows couldn't, when the worker knows: each says what to do about it.
+            for (reason, message) in [
+                (FailureReason::IsoMountDrivers, t!("iso-mount-drivers")),
+                (FailureReason::IsoMountFile, t!("iso-mount-file")),
+                (FailureReason::IsoMountTimeout, t!("iso-mount-timeout")),
+            ] {
+                page.result = JobResult::Failed(Some(reason));
+                assert_eq!(page.failure_text(), (t!("iso-check-failed"), message), "{reason:?}");
+            }
+            // A copy of the ISO is the fix, so the bar offers another file.
+            assert!(other_media_fixes(Some(FailureReason::IsoMountFile)));
+            assert!(!other_media_fixes(Some(FailureReason::IsoMountDrivers)));
             // A network driver export that failed says so, with the way to leave them out.
             page.step = IsoStep::Create;
             page.network_build = true;

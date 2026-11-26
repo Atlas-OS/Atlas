@@ -309,9 +309,9 @@ try {
     # Only a build writes the output. The app checks its folder before Create,
     # where it can be changed, so a check of the files never fails on it.
     if ($Operation -eq 'Build') { $parent = Assert-Output -OutputPath $request.output -PackagePath $request.package -SourcePath $source }
-    $disk = Get-DiskImage -ImagePath $source
+    $disk = Get-AtlasIsoImage $source
     if (-not $disk.Attached) {
-        $disk = Mount-DiskImage -ImagePath $source -Access ReadOnly -PassThru
+        $disk = Mount-AtlasIso $source -ReadOnly
         $ownedMount = $true
     }
     $root = Get-AtlasIsoRoot -ImagePath $source -Disk $disk -Owned:$ownedMount
@@ -524,7 +524,7 @@ try {
     [IO.File]::Move($partial, $verifyIso)
     $verifiedMount = $false
     try {
-        $checkDisk = Mount-DiskImage -ImagePath $verifyIso -Access ReadOnly -PassThru
+        $checkDisk = Mount-AtlasIso $verifyIso -ReadOnly -OwnFile
         $verifiedMount = $true
         $checkRoot = Get-AtlasIsoRoot -ImagePath $verifyIso -Disk $checkDisk -Owned
         # The staged image, not the source: it may be the filtered export.

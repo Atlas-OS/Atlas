@@ -1229,6 +1229,16 @@ iso-failed-edition = ISO นี้ไม่มีรุ่น Windows ที่�
 # checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
 # USB page's ISO card.
 iso-mount-failed = Windows เปิด ISO ไม่ได้ รีสตาร์ตพีซีของคุณ แล้วลองอีกครั้ง
+# Windows stopped answering while it read or mounted the ISO.
+iso-mount-timeout = Windows หยุดตอบสนองขณะเปิด ISO รีสตาร์ตพีซีของคุณ แล้วลองอีกครั้ง
+# vdrvroot and cdrom are the Windows drivers' own names, as tools that turn drivers off show
+# them. Keep them as they are.
+iso-mount-drivers = Windows เปิดไฟล์ ISO ในพีซีเครื่องนี้ไม่ได้ เนื่องจากไดรเวอร์ที่ใช้เปิดไฟล์เหล่านี้ คือ vdrvroot และ cdrom ถูกปิดใช้งานอยู่ เปิดใช้งานไดรเวอร์เหล่านี้อีกครั้ง รีสตาร์ตพีซีของคุณ แล้วลองอีกครั้ง
+# Windows can store a file compressed or encrypted (in the file's Properties, under Advanced),
+# and a download can be stored sparse, with space reserved but not yet written. Windows can't
+# open an ISO stored any of these ways. Under iso-check-failed, with iso-download-windows and
+# iso-use-local beside it, or on the USB page's ISO card.
+iso-mount-file = Windows เปิด ISO นี้ไม่ได้ เนื่องจากไฟล์ถูกบีบอัด ถูกเข้ารหัส หรือเป็นไฟล์แบบ sparse คัดลอกไฟล์ไปยังโฟลเดอร์ที่ไม่ได้บีบอัดหรือเข้ารหัส แล้วใช้สำเนานั้น
 iso-diagnostics = เปิดโฟลเดอร์บันทึก
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,
 # from another page. Their controls are unavailable until it finishes.

@@ -388,9 +388,9 @@ function Write-AtlasUsbDriveList {
 # mounted it, so it dismounts only its own mount.
 function Mount-AtlasUsbSource {
     param([string]$Source)
-    $image = Get-DiskImage -ImagePath $Source -ErrorAction SilentlyContinue
+    $image = Get-AtlasIsoImage $Source -Quiet
     if ($image -and $image.Attached) { return [pscustomobject]@{ image=$image; owned=$false; source=$Source } }
-    return [pscustomobject]@{ image=(Mount-DiskImage -ImagePath $Source -PassThru); owned=$true; source=$Source }
+    return [pscustomobject]@{ image=(Mount-AtlasIso $Source); owned=$true; source=$Source }
 }
 
 function Get-AtlasUsbSourceRoot {

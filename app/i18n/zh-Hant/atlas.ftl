@@ -1245,6 +1245,16 @@ iso-failed-edition = 此 ISO 不包含支援的 Windows 版本。不支援 Windo
 # checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
 # USB page's ISO card.
 iso-mount-failed = Windows 無法開啟 ISO。請重新啟動電腦，然後再試一次。
+# Windows stopped answering while it read or mounted the ISO.
+iso-mount-timeout = Windows 在開啟 ISO 時停止回應。請重新啟動電腦，然後再試一次。
+# vdrvroot and cdrom are the Windows drivers' own names, as tools that turn drivers off show
+# them. Keep them as they are.
+iso-mount-drivers = Windows 無法在這台電腦上開啟 ISO 檔案，因為它所需的驅動程式 vdrvroot 和 cdrom 已停用。請重新啟用它們、重新啟動電腦，然後再試一次。
+# Windows can store a file compressed or encrypted (in the file's Properties, under Advanced),
+# and a download can be stored sparse, with space reserved but not yet written. Windows can't
+# open an ISO stored any of these ways. Under iso-check-failed, with iso-download-windows and
+# iso-use-local beside it, or on the USB page's ISO card.
+iso-mount-file = Windows 無法開啟此 ISO，因為該檔案已壓縮、已加密或為疏鬆檔案。請將它複製到未壓縮且未加密的資料夾，然後使用該複本。
 # Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = 開啟記錄資料夾
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,

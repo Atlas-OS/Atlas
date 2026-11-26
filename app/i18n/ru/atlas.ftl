@@ -1338,6 +1338,16 @@ iso-failed-edition = Этот ISO-образ не содержит поддер�
 # checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
 # USB page's ISO card.
 iso-mount-failed = Windows не удалось открыть ISO-образ. Перезагрузите ПК и повторите попытку.
+# Windows stopped answering while it read or mounted the ISO.
+iso-mount-timeout = Windows перестала отвечать при открытии ISO-образа. Перезагрузите ПК и повторите попытку.
+# vdrvroot and cdrom are the Windows drivers' own names, as tools that turn drivers off show
+# them. Keep them as they are.
+iso-mount-drivers = Windows не может открывать ISO-файлы на этом ПК, потому что нужные для этого драйверы vdrvroot и cdrom отключены. Включите их снова, перезагрузите ПК и повторите попытку.
+# Windows can store a file compressed or encrypted (in the file's Properties, under Advanced),
+# and a download can be stored sparse, with space reserved but not yet written. Windows can't
+# open an ISO stored any of these ways. Under iso-check-failed, with iso-download-windows and
+# iso-use-local beside it, or on the USB page's ISO card.
+iso-mount-file = Windows не может открыть этот ISO-образ, потому что файл сжат, зашифрован или является разреженным. Скопируйте его в папку без сжатия и шифрования и используйте копию.
 # Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = Открыть папку журналов
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,

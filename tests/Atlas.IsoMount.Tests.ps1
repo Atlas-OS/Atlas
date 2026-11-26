@@ -34,7 +34,7 @@ Describe 'Finding the mounted ISO''s drive' {
         $script:AtlasIsoLetterPolls = 8
         $script:AtlasIsoLetterAssignAfter = 3
         $script:AtlasIsoLetters = @{}
-        # Get-Volume takes the image object Mount-DiskImage returns from the pipeline.
+        # Get-Volume takes the image object Mount-DiskImage returns.
         $script:Disk = [Microsoft.Management.Infrastructure.CimInstance]::new('MSFT_DiskImage', 'root/Microsoft/Windows/Storage')
         # What Get-Volume reports for the image object the mount returned, then what
         # each later query of a fresh image object reports.
@@ -45,11 +45,22 @@ Describe 'Finding the mounted ISO''s drive' {
         Mock Get-AtlasIsoVolumes { $script:Queries++; $script:Later[[Math]::Min($script:Queries, $script:Later.Count) - 1] }
         Mock Start-Sleep { }
         Mock Add-AtlasIsoLetter { throw 'Unexpected drive letter.' }
+        Mock Get-AtlasIsoStorageParameters { @{} }
+        Mock Receive-AtlasIsoStorage { if ($null -ne $Job) { $Job } }
     }
     It 'uses the first answer at once when it is one volume with a drive letter' {
         Get-AtlasIsoRoot -ImagePath 'C:\Downloads\Windows.iso' -Disk $script:Disk -Owned | Should -BeExactly 'E:\'
         Should -Invoke Get-AtlasIsoVolumes -Times 0 -Exactly
         Should -Invoke Start-Sleep -Times 0 -Exactly
+        Should -Invoke Get-Volume -Times 1 -Exactly -ParameterFilter { $DiskImage -eq $script:Disk }
+    }
+    It 'stops at once with a typed reason when Windows stops answering' {
+        $script:First = @(New-TestVolume '')
+        Mock Get-AtlasIsoVolumes { throw [TimeoutException]::new("Windows didn't finish reading the ISO within 120 seconds.") }
+        { Get-AtlasIsoRoot -ImagePath 'C:\Downloads\Windows.iso' -Disk $script:Disk -Owned } | Should -Throw 'iso-mount-timeout|*within 120 seconds*'
+        Should -Invoke Get-AtlasIsoVolumes -Times 1 -Exactly
+        Mock Receive-AtlasIsoStorage { throw [TimeoutException]::new('late') }
+        { Get-AtlasIsoRoot -ImagePath 'C:\Downloads\Windows.iso' -Disk $script:Disk } | Should -Throw 'iso-mount-timeout|late'
     }
     It 'waits for a drive letter Windows gives late, querying the image again' {
         $script:First = @(New-TestVolume '')
@@ -144,20 +155,121 @@ Describe 'Ejecting the ISO' {
         $script:Order = [Collections.Generic.List[string]]::new()
         Mock Remove-AtlasIsoLetter { $script:Order.Add('letter') }
         Mock Dismount-DiskImage { $script:Order.Add('dismount') }
+        Mock Get-AtlasIsoStorageParameters { @{} }
+        Mock Receive-AtlasIsoStorage { if ($null -ne $Job) { $Job } }
     }
     It 'takes back a letter Atlas gave before it ejects the image' {
         Dismount-AtlasIso 'C:\Windows.iso'
         ($script:Order -join ',') | Should -BeExactly 'letter,dismount'
-        Should -Invoke Dismount-DiskImage -Times 1 -Exactly -ParameterFilter { $ImagePath -eq 'C:\Windows.iso' -and $ErrorAction -eq 'Continue' }
+        Should -Invoke Dismount-DiskImage -Times 1 -Exactly -ParameterFilter { $ImagePath -eq 'C:\Windows.iso' }
     }
     It 'ejects the image even when the letter could not be taken back' {
         Mock Remove-AtlasIsoLetter { throw 'Access is denied.' }
         Dismount-AtlasIso 'C:\Windows.iso'
         Should -Invoke Dismount-DiskImage -Times 1 -Exactly
     }
-    It 'fails when the caller needs the image released' {
-        Mock Dismount-DiskImage { Write-Error 'The image is in use.' }
+    It 'writes no failure marker of its own, and fails only when the caller needs the image released' {
+        Mock Dismount-DiskImage { throw 'The image is in use.' }
+        Mock Fail { throw 'A marker would replace the reason the worker is failing for.' }
+        { Dismount-AtlasIso 'C:\Windows.iso' } | Should -Not -Throw
         { Dismount-AtlasIso 'C:\verify.iso' -Required } | Should -Throw '*in use*'
-        Should -Invoke Dismount-DiskImage -Times 1 -Exactly -ParameterFilter { $ErrorAction -eq 'Stop' }
+        Mock Receive-AtlasIsoStorage { throw [TimeoutException]::new('late') }
+        { Dismount-AtlasIso 'C:\Windows.iso' } | Should -Not -Throw
+        Should -Invoke Fail -Times 0 -Exactly
+    }
+}
+
+Describe 'Storage calls with a deadline' {
+    BeforeAll {
+        # Real jobs in a process of their own, which touch no storage.
+        $script:AtlasIsoStorageTimeout = 20
+    }
+    AfterAll { $script:AtlasIsoStorageTimeout = 120 }
+    It 'returns what the call returned' {
+        Receive-AtlasIsoStorage (Start-Job { 'image' }) 'reading the ISO' | Should -BeExactly 'image'
+    }
+    It 'passes on the error the call ended with' {
+        { Receive-AtlasIsoStorage (Start-Job { Write-Error 'A virtual disk support provider for the specified file was not found.' }) 'mounting the ISO' } |
+            Should -Throw '*virtual disk support provider*'
+    }
+    It 'stops waiting at the deadline and says what Windows did not finish' {
+        $script:AtlasIsoStorageTimeout = 1
+        $job = Start-Job { Start-Sleep -Seconds 60 }
+        try {
+            { Receive-AtlasIsoStorage $job 'mounting the ISO' } | Should -Throw "Windows didn't finish mounting the ISO within 1 seconds."
+            $job.State | Should -Be 'Running'
+        }
+        finally { Remove-Job -Job $job -Force; $script:AtlasIsoStorageTimeout = 20 }
+    }
+    It 'uses one local session with the same operation timeout for every call' {
+        $script:AtlasIsoSession = $null
+        Mock New-CimSession { New-MockObject -Type ([Microsoft.Management.Infrastructure.CimSession]) }
+        $first = Get-AtlasIsoStorageParameters
+        $second = Get-AtlasIsoStorageParameters
+        [object]::ReferenceEquals($first.CimSession, $second.CimSession) | Should -BeTrue
+        $first.AsJob | Should -BeTrue
+        $first.ErrorAction | Should -Be 'Continue'
+        Should -Invoke New-CimSession -Times 1 -Exactly -ParameterFilter { $OperationTimeoutSec -eq 20 -and -not $ComputerName }
+        $script:AtlasIsoSession = $null
+    }
+}
+
+Describe 'Mounting the ISO' {
+    BeforeEach {
+        $script:Starts = @{ vdrvroot = 0; cdrom = 1 }
+        Mock Get-ItemProperty {
+            $name = Split-Path -Leaf $LiteralPath
+            if ($script:Starts.ContainsKey($name)) { [pscustomobject]@{ Start = $script:Starts[$name] } }
+        } -ParameterFilter { $LiteralPath -like 'HKLM:\SYSTEM\CurrentControlSet\Services\*' }
+        $script:Image = [pscustomobject]@{ Attached = $true }
+        Mock Mount-DiskImage { $script:Image }
+        Mock Get-DiskImage { $script:Image }
+        Mock Get-AtlasIsoStorageParameters { @{} }
+        Mock Receive-AtlasIsoStorage { if ($null -ne $Job) { $Job } }
+        Mock Get-AtlasIsoFileAttributes { [IO.FileAttributes]::Archive }
+    }
+    It 'mounts the image read-only and returns its image object' {
+        Mount-AtlasIso 'C:\Downloads\Windows.iso' -ReadOnly | Should -Be $script:Image
+        Should -Invoke Mount-DiskImage -Times 1 -Exactly -ParameterFilter { $ImagePath -eq 'C:\Downloads\Windows.iso' -and $Access -eq 'ReadOnly' -and $PassThru }
+    }
+    It 'refuses to mount while <Driver> is disabled, and names it' -ForEach @(@{ Driver = 'vdrvroot' }, @{ Driver = 'cdrom' }) {
+        $script:Starts[$Driver] = 4
+        { Mount-AtlasIso 'C:\Downloads\Windows.iso' } | Should -Throw "iso-mount-drivers|*: $Driver.*"
+        Should -Invoke Mount-DiskImage -Times 0 -Exactly
+    }
+    It 'treats a driver it cannot read, or one set to start on demand, as available' {
+        $script:Starts = @{ cdrom = 3 }
+        { Mount-AtlasIso 'C:\Downloads\Windows.iso' } | Should -Not -Throw
+    }
+    It 'says the file must be copied when Windows refuses a <Stored> file' -ForEach @(
+        @{ Stored = 'Compressed' }, @{ Stored = 'Encrypted' }, @{ Stored = 'SparseFile' }
+    ) {
+        Mock Get-AtlasIsoFileAttributes { [IO.FileAttributes]::Archive -bor [IO.FileAttributes]::$Stored }
+        Mock Mount-DiskImage { throw 'A virtual disk support provider for the specified file was not found.' }
+        { Mount-AtlasIso 'C:\Downloads\Windows.iso' } | Should -Throw "iso-mount-file|*stored $($Stored):*support provider*"
+        # Its own output is no file for the user to copy.
+        { Mount-AtlasIso 'C:\Atlas\verify.iso' -OwnFile } | Should -Throw 'iso-mount|*support provider*'
+    }
+    It 'reports any other mount failure with what Windows said' {
+        Mock Mount-DiskImage { throw 'The device is not ready.' }
+        { Mount-AtlasIso 'C:\Downloads\Windows.iso' } | Should -Throw "iso-mount|Windows couldn't mount 'C:\Downloads\Windows.iso': The device is not ready."
+    }
+    It 'reports a mount Windows did not finish in time' {
+        Mock Receive-AtlasIsoStorage { throw [TimeoutException]::new("Windows didn't finish mounting the ISO within 120 seconds.") }
+        { Mount-AtlasIso 'C:\Downloads\Windows.iso' } | Should -Throw 'iso-mount-timeout|*within 120 seconds*'
+    }
+    It 'types a failure to read the image, and leaves it to the mount when asked' {
+        Get-AtlasIsoImage 'C:\Downloads\Windows.iso' | Should -Be $script:Image
+        # With vdrvroot off, Windows can't read any image.
+        $script:Starts.vdrvroot = 4
+        Mock Get-DiskImage { throw 'A virtual disk support provider for the specified file was not found.' }
+        { Get-AtlasIsoImage 'C:\Downloads\Windows.iso' } | Should -Throw 'iso-mount-drivers|*vdrvroot*'
+        $script:Starts.vdrvroot = 0
+        { Get-AtlasIsoImage 'C:\Downloads\Windows.iso' } | Should -Throw 'iso-mount|*support provider*'
+        Get-AtlasIsoImage 'C:\Downloads\Windows.iso' -Quiet | Should -BeNullOrEmpty
+        # A provider that stops answering stops the worker either way.
+        Mock Get-DiskImage { $script:Image }
+        Mock Receive-AtlasIsoStorage { throw [TimeoutException]::new('late') }
+        { Get-AtlasIsoImage 'C:\Downloads\Windows.iso' -Quiet } | Should -Throw 'iso-mount-timeout|late'
     }
 }

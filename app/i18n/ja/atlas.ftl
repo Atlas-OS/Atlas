@@ -1268,6 +1268,16 @@ iso-failed-edition = この ISO には対応する Windows エディションが
 # checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
 # USB page's ISO card.
 iso-mount-failed = Windows で ISO を開けませんでした。PC を再起動してから、もう一度お試しください。
+# Windows stopped answering while it read or mounted the ISO.
+iso-mount-timeout = ISO を開いている途中で Windows が応答しなくなりました。PC を再起動してから、もう一度お試しください。
+# vdrvroot and cdrom are the Windows drivers' own names, as tools that turn drivers off show
+# them. Keep them as they are.
+iso-mount-drivers = ISO ファイルを開くためのドライバー (vdrvroot と cdrom) が無効になっているため、この PC の Windows では ISO ファイルを開けません。これらを再度有効にし、PC を再起動してから、もう一度お試しください。
+# Windows can store a file compressed or encrypted (in the file's Properties, under Advanced),
+# and a download can be stored sparse, with space reserved but not yet written. Windows can't
+# open an ISO stored any of these ways. Under iso-check-failed, with iso-download-windows and
+# iso-use-local beside it, or on the USB page's ISO card.
+iso-mount-file = ファイルが圧縮、暗号化、またはスパース ファイルになっているため、Windows でこの ISO を開けません。圧縮も暗号化もされていないフォルダーにコピーし、そのコピーを使用してください。
 # Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = ログ フォルダーを開く
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,

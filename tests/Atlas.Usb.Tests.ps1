@@ -424,6 +424,9 @@ Describe 'USB destination safety' {
             $script:MediaRoot = [IO.Path]::GetPathRoot($TestDrive)
             Mock Get-DiskImage { $script:Image }
             Mock Get-Volume { [pscustomobject]@{ DriveLetter=$script:MediaRoot.Substring(0,1) } }
+            # The storage calls run as jobs on a session; these mocks answer directly.
+            Mock Get-AtlasIsoStorageParameters { @{} }
+            Mock Receive-AtlasIsoStorage { if ($null -ne $Job) { $Job } }
             Mock Import-Module { }
             Mock Get-AtlasUsbMediaInfo { [pscustomobject]@{ imagePath=($script:MediaRoot + 'sources\install.wim'); architecture=9 } }
             Mock Get-ChildItem {
@@ -519,6 +522,8 @@ Describe 'USB ISO check before a drive is chosen' {
             }
         }
         Mock Dismount-DiskImage { }
+        Mock Get-AtlasIsoStorageParameters { @{} }
+        Mock Receive-AtlasIsoStorage { if ($null -ne $Job) { $Job } }
         # Nothing a check does may touch a disk.
         Mock Clear-Disk { }
         Mock New-Partition { }

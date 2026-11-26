@@ -1253,6 +1253,16 @@ iso-failed-edition = ISO ini tidak berisi edisi Windows yang didukung. Windows H
 # checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
 # USB page's ISO card.
 iso-mount-failed = Windows tidak dapat membuka ISO. Mulai ulang PC Anda, lalu coba lagi.
+# Windows stopped answering while it read or mounted the ISO.
+iso-mount-timeout = Windows berhenti merespons saat membuka ISO. Mulai ulang PC Anda, lalu coba lagi.
+# vdrvroot and cdrom are the Windows drivers' own names, as tools that turn drivers off show
+# them. Keep them as they are.
+iso-mount-drivers = Windows tidak dapat membuka file ISO di PC ini karena driver yang digunakannya untuk itu, vdrvroot dan cdrom, dinonaktifkan. Aktifkan kembali driver tersebut, mulai ulang PC Anda, lalu coba lagi.
+# Windows can store a file compressed or encrypted (in the file's Properties, under Advanced),
+# and a download can be stored sparse, with space reserved but not yet written. Windows can't
+# open an ISO stored any of these ways. Under iso-check-failed, with iso-download-windows and
+# iso-use-local beside it, or on the USB page's ISO card.
+iso-mount-file = Windows tidak dapat membuka ISO ini karena file-nya dikompresi, dienkripsi, atau berupa file sparse. Salin ke folder yang tidak dikompresi atau dienkripsi, lalu gunakan salinannya.
 # Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = Buka folder log
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,

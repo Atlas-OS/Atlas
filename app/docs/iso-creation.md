@@ -185,6 +185,8 @@ It checks the drive's identity again before erasing and while writing, and reads
 | A network driver was rejected | Install it from `%windir%\AtlasISO\NetworkDrivers` once Windows is running ([details](#a-network-driver-was-rejected)). |
 | Before-desktop cleanup failed | Run `%windir%\AtlasISO\Desktop.ps1 -RestoreDesktop` ([details](#before-desktop-cleanup-failed)). |
 | Windows couldn't open the ISO | Restart your PC, then try again. Atlas waits for Windows to give the ISO a drive letter, and gives one itself to an ISO it opened ([mounting](iso-internals.md#iso-build)). |
+| Windows can't open ISO files on this PC | Turn the `vdrvroot` and `cdrom` drivers back on, if a tool turned them off, and restart your PC. |
+| The ISO file is compressed, encrypted or sparse | Copy it to a folder that isn't compressed or encrypted, and use the copy. Atlas doesn't change your file. |
 | An ISO or USB job failed | Choose **Open log folder** to see its logs, request and errors. |
 | The ISO has no network drivers | Nothing to do: this PC's adapters use drivers that come with Windows, and the finished ISO's message says so. |
 

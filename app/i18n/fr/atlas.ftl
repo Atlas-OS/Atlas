@@ -1172,6 +1172,16 @@ iso-failed-edition = Cette ISO ne contient aucune édition de Windows prise en c
 # checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
 # USB page's ISO card.
 iso-mount-failed = Windows n’a pas pu ouvrir l’ISO. Redémarrez votre PC, puis réessayez.
+# Windows stopped answering while it read or mounted the ISO.
+iso-mount-timeout = Windows a cessé de répondre pendant l’ouverture de l’ISO. Redémarrez votre PC, puis réessayez.
+# vdrvroot and cdrom are the Windows drivers' own names, as tools that turn drivers off show
+# them. Keep them as they are.
+iso-mount-drivers = Windows ne peut pas ouvrir de fichiers ISO sur ce PC, car les pilotes qu’il utilise pour cela, vdrvroot et cdrom, sont désactivés. Réactivez-les, redémarrez votre PC, puis réessayez.
+# Windows can store a file compressed or encrypted (in the file's Properties, under Advanced),
+# and a download can be stored sparse, with space reserved but not yet written. Windows can't
+# open an ISO stored any of these ways. Under iso-check-failed, with iso-download-windows and
+# iso-use-local beside it, or on the USB page's ISO card.
+iso-mount-file = Windows ne peut pas ouvrir cette ISO, car le fichier est compressé, chiffré ou partiellement alloué. Copiez-le dans un dossier qui n’est ni compressé ni chiffré, puis utilisez la copie.
 # Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = Ouvrir le dossier des journaux
 # Sur les pages ISO et USB pendant qu'Atlas met à jour Windows, ou rétablit les paramètres Windows Update, depuis une autre page.

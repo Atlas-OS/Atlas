@@ -1292,6 +1292,16 @@ iso-failed-edition = इस ISO में कोई समर्थित Window
 # checked, or the ISO a USB drive is made from. Under iso-check-failed or iso-failed, or on the
 # USB page's ISO card.
 iso-mount-failed = Windows ISO नहीं खोल सका। अपना PC रीस्टार्ट करें, फिर कोशिश करें।
+# Windows stopped answering while it read or mounted the ISO.
+iso-mount-timeout = ISO खोलते समय Windows ने जवाब देना बंद कर दिया। अपना PC रीस्टार्ट करें, फिर कोशिश करें।
+# vdrvroot and cdrom are the Windows drivers' own names, as tools that turn drivers off show
+# them. Keep them as they are.
+iso-mount-drivers = इस PC पर Windows ISO फ़ाइलें नहीं खोल सकता, क्योंकि इसके लिए ज़रूरी ड्राइवर, vdrvroot और cdrom, बंद हैं। उन्हें फिर से चालू करें, अपना PC रीस्टार्ट करें, फिर कोशिश करें।
+# Windows can store a file compressed or encrypted (in the file's Properties, under Advanced),
+# and a download can be stored sparse, with space reserved but not yet written. Windows can't
+# open an ISO stored any of these ways. Under iso-check-failed, with iso-download-windows and
+# iso-use-local beside it, or on the USB page's ISO card.
+iso-mount-file = Windows यह ISO नहीं खोल सकता, क्योंकि फ़ाइल कंप्रेस, एन्क्रिप्ट या स्पार्स (sparse) है। इसे ऐसे फ़ोल्डर में कॉपी करें जो कंप्रेस या एन्क्रिप्ट न हो, फिर वह कॉपी इस्तेमाल करें।
 # Opens the folder with an ISO or USB job's raw logs.
 iso-diagnostics = लॉग फ़ोल्डर खोलें
 # On the ISO and USB pages while Atlas updates Windows, or puts back Windows Update settings,

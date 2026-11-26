@@ -577,6 +577,14 @@ pub enum FailureReason {
     /// Windows didn't open the ISO as one volume with a drive letter, even
     /// after the worker waited for one and gave its own mount a letter.
     IsoMount,
+    /// The drivers Windows mounts an ISO with, vdrvroot and cdrom, are
+    /// disabled, so no ISO can be mounted on this PC.
+    IsoMountDrivers,
+    /// Windows refused to mount the ISO, whose file is stored compressed,
+    /// encrypted or sparse; a copy in an ordinary folder can be mounted.
+    IsoMountFile,
+    /// Windows didn't finish reading or mounting the ISO in time.
+    IsoMountTimeout,
     /// The Atlas package is too old for ISO creation, or has no front door.
     /// Decided by the app before the worker starts, so it has no marker.
     PackageUnsupported,
@@ -610,6 +618,9 @@ impl FailureReason {
             "network-architecture" => Self::NetworkArchitecture,
             "manager-missing" => Self::ManagerMissing,
             "iso-mount" => Self::IsoMount,
+            "iso-mount-drivers" => Self::IsoMountDrivers,
+            "iso-mount-file" => Self::IsoMountFile,
+            "iso-mount-timeout" => Self::IsoMountTimeout,
             _ => return None,
         })
     }
@@ -1200,7 +1211,9 @@ mod tests {
                 line[start..].split('\'').next()
             })
             .collect();
-        assert!(markers.contains(&"iso-mount"), "{markers:?}");
+        for typed in ["iso-mount", "iso-mount-drivers", "iso-mount-file", "iso-mount-timeout"] {
+            assert!(markers.contains(&typed), "{typed} is missing from {markers:?}");
+        }
         for marker in markers {
             assert!(FailureReason::parse(marker).is_some(), "unknown worker marker {marker:?}");
         }
