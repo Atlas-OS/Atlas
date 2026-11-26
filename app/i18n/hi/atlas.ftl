@@ -1751,7 +1751,7 @@ access-back-stop = अगर आप उससे पहले रोकते �
 
 prepare-reason-feature-update = नया Windows संस्करण
 prepare-reason-feature-commit = नए Windows संस्करण को पूरा करना
-prepare-reason-apprepository = बचे हुए ऐप रिकॉर्ड हटाना
+prepare-reason-apprepository = Microsoft Store को ठीक करना
 # Waiting for Windows Update to offer the new version: the progress bar's label and status
 # line, the line under the bar, and how long Atlas has waited, in whole minutes, after it.
 windows-waiting = Windows Update के Windows 11, संस्करण { $release } उपलब्ध कराने की प्रतीक्षा है…
@@ -1872,6 +1872,7 @@ restart-others-restart = फिर भी रीस्टार्ट करे�
 prepare-store-updating = Microsoft Store अपडेट हो रहा है…
 prepare-store-repairing = Microsoft Store ठीक किया जा रहा है…
 prepare-store-repair-detail = इसमें कुछ मिनट लग सकते हैं।
+prepare-store-repair-notice = Atlas Microsoft Store को ठीक कर रहा है। इसके पूरा होने तक स्टार्ट मेनू और टास्कबार शायद काम न करें, और साइन इन करने पर खुलने वाले ऐप कोई त्रुटि दिखा सकते हैं। अपना PC चालू और प्लग इन रखें। ठीक करना पूरा होने पर यह अपने-आप रीस्टार्ट हो जाएगा।
 # Under ready-updates-done-windows once Get ready has finished, where Microsoft Store is turned off.
 # What updating did to Microsoft Store itself otherwise is only in the log.
 prepare-store-skipped-removed = इस PC पर Microsoft Store बंद है, इसलिए Store ऐप अपडेट नहीं किए गए।

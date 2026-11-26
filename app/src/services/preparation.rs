@@ -314,10 +314,15 @@ impl State {
     /// The state a finished run settles into. A restart request that follows
     /// a restart Atlas already made, with no update work in between, means a
     /// marker survives restarts; it is named instead of restarting again.
-    /// A restart that finishes a Windows version change is the exception:
-    /// the worker bounds those itself.
+    /// A restart that finishes a Windows version change, or the AppX database
+    /// repair, is the exception: the worker bounds those itself.
     pub fn settle(self, after_restart: bool, did_work: bool, reasons: Vec<String>) -> Self {
-        if self == Self::Reboot && after_restart && !did_work && !finishes_version_change(&reasons) {
+        if self == Self::Reboot
+            && after_restart
+            && !did_work
+            && !finishes_version_change(&reasons)
+            && !reasons.iter().any(|reason| reason == APP_REPOSITORY)
+        {
             return Self::RestartPersists { reasons };
         }
         self
@@ -332,6 +337,9 @@ impl State {
 /// restart with Atlas's commit before it.
 pub const FEATURE_UPDATE: &str = "feature-update";
 pub const FEATURE_COMMIT: &str = "feature-commit";
+/// The restart reason of the worker's AppX database repair, which runs at a
+/// startup and restarts Windows once more after it.
+pub const APP_REPOSITORY: &str = "apprepository";
 
 /// Whether a restart request finishes a Windows version change, which
 /// Atlas commits just before restarting.
@@ -378,6 +386,9 @@ pub struct PreparationRequest {
     pub transition: Option<TransitionRequest>,
     /// Turn Windows Update on for this run when it is off, paused or delayed.
     pub open_update_access: bool,
+    /// The notice Windows shows before sign-in while the worker's AppX
+    /// database repair waits for its startup, in the app's language.
+    pub repair_notice: String,
 }
 
 fn join_numbers(numbers: &[u32]) -> String {
@@ -415,6 +426,9 @@ pub fn worker_args(request: &PreparationRequest) -> Vec<String> {
         }
     } else if request.open_update_access {
         args.push("-OpenWindowsUpdate".to_owned());
+    }
+    if !request.repair_notice.is_empty() {
+        args.extend(["-RepairNotice".to_owned(), request.repair_notice.clone()]);
     }
     args
 }
@@ -725,7 +739,9 @@ pub fn run(
     }
     recovery_app::stage_preparation(job, WORKER, LIBRARY, REGISTRY_LIBRARY, request.drivers.policy())?;
     let log = fs::File::create(job.join("worker.log"))?;
-    log::info!("Windows preparation: {}", worker_args(request).join(" "));
+    // The notice is text for the sign-in screen, not something to log each run.
+    let logged = PreparationRequest { repair_notice: String::new(), ..request.clone() };
+    log::info!("Windows preparation: {}", worker_args(&logged).join(" "));
     let mut child = powershell::command()
         .arg("-File")
         .arg(job.join("Update-Windows.ps1"))
@@ -1235,9 +1251,10 @@ $record | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $PSScri
         // Other verdicts are untouched.
         assert_eq!(State::Ready.settle(true, false, reasons.clone()), State::Ready);
         assert_eq!(State::Failed.settle(true, false, reasons), State::Failed);
-        // Finishing a Windows version change needs its own restarts, which
-        // the worker bounds; a marker that survives restarts is still named.
-        for reason in [FEATURE_UPDATE, FEATURE_COMMIT] {
+        // Finishing a Windows version change, or the AppX database repair,
+        // needs its own restarts, which the worker bounds; a marker that
+        // survives restarts is still named.
+        for reason in [FEATURE_UPDATE, FEATURE_COMMIT, APP_REPOSITORY] {
             assert_eq!(State::Reboot.settle(true, false, vec![reason.to_owned()]), State::Reboot, "{reason}");
         }
         assert_eq!(
@@ -1264,9 +1281,16 @@ $record | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $PSScri
 
     #[test]
     fn the_worker_is_asked_to_move_windows_only_with_a_request_and_to_accept_terms_only_when_the_user_did() {
-        let plain =
-            PreparationRequest { drivers: Drivers::Manual, transition: None, open_update_access: false };
+        let plain = PreparationRequest {
+            drivers: Drivers::Manual,
+            transition: None,
+            open_update_access: false,
+            repair_notice: String::new(),
+        };
         assert_eq!(worker_args(&plain), ["-PersistentCancellation", "-DriverMode", "manual"]);
+        let noticed =
+            PreparationRequest { repair_notice: "Atlas is repairing \"it\".".to_owned(), ..plain.clone() };
+        assert_eq!(worker_args(&noticed)[3..], ["-RepairNotice", "Atlas is repairing \"it\"."]);
         let open = PreparationRequest { open_update_access: true, ..plain.clone() };
         assert!(worker_args(&open).contains(&"-OpenWindowsUpdate".to_owned()));
         assert!(!worker_args(&open).contains(&"-WindowsTarget".to_owned()));
@@ -1338,13 +1362,23 @@ $record | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $PSScri
             }
         };
         let job = || vec!["-JobPath".to_owned(), r"C:\Program Files\Atlas Setup Recovery\1-2".to_owned()];
+        let notice = || "Atlas is repairing Microsoft Store.".to_owned();
         for drivers in [Drivers::Automatic, Drivers::Manual] {
-            let opening = PreparationRequest { drivers, transition: None, open_update_access: true };
+            let opening = PreparationRequest {
+                drivers,
+                transition: None,
+                open_update_access: true,
+                repair_notice: notice(),
+            };
             bind(&[job(), worker_args(&opening)].concat());
             for target in windows_release::TRANSITIONS {
                 let request = TransitionRequest { offer_only: true, ..TransitionRequest::new(target, true) };
-                let moving =
-                    PreparationRequest { drivers, transition: Some(request), open_update_access: false };
+                let moving = PreparationRequest {
+                    drivers,
+                    transition: Some(request),
+                    open_update_access: false,
+                    repair_notice: notice(),
+                };
                 bind(&[job(), worker_args(&moving)].concat());
             }
         }

@@ -1731,7 +1731,7 @@ access-back-stop = それより前に停止した場合も、Atlas が元に戻�
 
 prepare-reason-feature-update = 新しい Windows バージョン
 prepare-reason-feature-commit = 新しい Windows バージョンの完了処理
-prepare-reason-apprepository = 残っているアプリ記録の削除
+prepare-reason-apprepository = Microsoft Store の修復
 # Waiting for Windows Update to offer the new version: the progress bar's label and status
 # line, the line under the bar, and how long Atlas has waited, in whole minutes, after it.
 windows-waiting = Windows Update で Windows 11 バージョン { $release } が提供されるのを待っています…
@@ -1851,6 +1851,7 @@ restart-others-restart = このまま再起動
 prepare-store-updating = Microsoft Store を更新しています…
 prepare-store-repairing = Microsoft Store を修復しています…
 prepare-store-repair-detail = 数分かかることがあります。
+prepare-store-repair-notice = Atlas が Microsoft Store を修復しています。完了するまで、スタート メニューとタスク バーが動作しないことがあり、サインイン時に起動するアプリでエラーが表示されることがあります。PC の電源を入れたまま、電源に接続しておいてください。修復が完了すると自動的に再起動します。
 # Under ready-updates-done-windows once Get ready has finished, where Microsoft Store is turned off.
 # What updating did to Microsoft Store itself otherwise is only in the log.
 prepare-store-skipped-removed = この PC では Microsoft Store がオフになっているため、Store アプリは更新されませんでした。

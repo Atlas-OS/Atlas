@@ -1712,7 +1712,7 @@ access-back-stop = Jika Anda berhenti sebelum itu, Atlas akan mengembalikannya.
 
 prepare-reason-feature-update = versi Windows baru
 prepare-reason-feature-commit = penyelesaian versi Windows baru
-prepare-reason-apprepository = penghapusan catatan aplikasi yang tersisa
+prepare-reason-apprepository = perbaikan Microsoft Store
 # Waiting for Windows Update to offer the new version: the progress bar's label and status
 # line, the line under the bar, and how long Atlas has waited, in whole minutes, after it.
 windows-waiting = Menunggu Windows Update menawarkan Windows 11, versi { $release }…
@@ -1831,6 +1831,7 @@ restart-others-restart = Tetap mulai ulang
 prepare-store-updating = Memperbarui Microsoft Store…
 prepare-store-repairing = Memperbaiki Microsoft Store…
 prepare-store-repair-detail = Ini dapat memerlukan waktu beberapa menit.
+prepare-store-repair-notice = Atlas sedang memperbaiki Microsoft Store. Hingga selesai, menu Mulai dan taskbar mungkin tidak berfungsi, dan aplikasi yang terbuka saat Anda masuk mungkin menampilkan kesalahan. Biarkan PC Anda tetap menyala dan terhubung ke sumber listrik. PC akan dimulai ulang dengan sendirinya setelah perbaikan selesai.
 # Under ready-updates-done-windows once Get ready has finished, where Microsoft Store is turned off.
 # What updating did to Microsoft Store itself otherwise is only in the log.
 prepare-store-skipped-removed = Microsoft Store dinonaktifkan di PC ini, sehingga aplikasi Store tidak diperbarui.

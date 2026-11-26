@@ -1803,7 +1803,7 @@ access-back-stop = Если вы остановите обновление ра�
 
 prepare-reason-feature-update = новая версия Windows
 prepare-reason-feature-commit = завершение установки новой версии Windows
-prepare-reason-apprepository = удаление оставшихся записей приложений
+prepare-reason-apprepository = исправление Microsoft Store
 # Waiting for Windows Update to offer the new version: the progress bar's label and status
 # line, the line under the bar, and how long Atlas has waited, in whole minutes, after it.
 windows-waiting = Ожидание, пока Центр обновления Windows предложит Windows 11 версии { $release }…
@@ -1932,6 +1932,7 @@ restart-others-restart = Всё равно перезагрузить
 prepare-store-updating = Обновление Microsoft Store…
 prepare-store-repairing = Исправление Microsoft Store…
 prepare-store-repair-detail = Это может занять несколько минут.
+prepare-store-repair-notice = Atlas исправляет Microsoft Store. Пока исправление не завершится, меню «Пуск» и панель задач могут не работать, а приложения, которые запускаются при входе в систему, могут показывать ошибку. Не выключайте ПК и не отключайте его от сети. После исправления он перезагрузится автоматически.
 # Under ready-updates-done-windows once Get ready has finished, where Microsoft Store is turned off.
 # What updating did to Microsoft Store itself otherwise is only in the log.
 prepare-store-skipped-removed = Microsoft Store на этом ПК отключён, поэтому приложения Store не обновлялись.

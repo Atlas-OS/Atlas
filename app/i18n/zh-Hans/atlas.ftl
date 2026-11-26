@@ -1558,7 +1558,7 @@ access-back-stop = 如果你在此之前停止，Atlas 会还原这些设置。
 
 prepare-reason-feature-update = 新的 Windows 版本
 prepare-reason-feature-commit = 完成新 Windows 版本的安装
-prepare-reason-apprepository = 删除残留的应用记录
+prepare-reason-apprepository = 修复 Microsoft Store
 # 等待 Windows 更新提供新版本：进度条的标签和状态行、进度条下方的一行，以及已等待的整数分钟数。
 windows-waiting = 正在等待 Windows 更新提供 Windows 11 版本 { $release }…
 windows-waiting-detail = 通常需要几分钟，最长 2 小时。Atlas 会自动继续，你可以继续使用电脑。
@@ -1664,6 +1664,7 @@ restart-others-restart = 仍要重启
 prepare-store-updating = 正在更新 Microsoft Store…
 prepare-store-repairing = 正在修复 Microsoft Store…
 prepare-store-repair-detail = 这可能需要几分钟。
+prepare-store-repair-notice = Atlas 正在修复 Microsoft Store。修复完成前，“开始”菜单和任务栏可能无法使用，登录时启动的应用可能会显示错误。请保持电脑开机并接通电源。修复完成后，电脑会自动重启。
 # “准备”步骤完成后、Microsoft Store 已关闭时，显示在 ready-updates-done-windows 下方。
 prepare-store-skipped-removed = 这台电脑上的 Microsoft Store 已关闭，因此商店应用未更新。
 # Atlas 的修复都没能让 Microsoft Store 正常工作。按钮为 prepare-repair-store-again；prepare-store-broken-iso 和 iso-open 在“显示详细信息”中。

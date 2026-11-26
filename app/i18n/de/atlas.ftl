@@ -1641,7 +1641,7 @@ access-back-stop = Wenn Sie vorher abbrechen, stellt Atlas sie wieder her.
 
 prepare-reason-feature-update = die neue Windows-Version
 prepare-reason-feature-commit = Abschluss der neuen Windows-Version
-prepare-reason-apprepository = das Entfernen übrig gebliebener App-Einträge
+prepare-reason-apprepository = die Reparatur des Microsoft Store
 # Waiting for Windows Update to offer the new version: the progress bar's label and status
 # line, the line under the bar, and how long Atlas has waited, in whole minutes, after it.
 windows-waiting = Warten, bis Windows Update Windows 11, Version { $release }, anbietet…
@@ -1759,6 +1759,7 @@ restart-others-restart = Trotzdem neu starten
 prepare-store-updating = Microsoft Store wird aktualisiert…
 prepare-store-repairing = Microsoft Store wird repariert…
 prepare-store-repair-detail = Das kann einige Minuten dauern.
+prepare-store-repair-notice = Atlas repariert den Microsoft Store. Bis die Reparatur abgeschlossen ist, funktionieren das Startmenü und die Taskleiste möglicherweise nicht, und Apps, die bei der Anmeldung starten, zeigen eventuell einen Fehler an. Lassen Sie Ihren PC eingeschaltet und am Stromnetz. Er wird nach Abschluss der Reparatur automatisch neu gestartet.
 # Under ready-updates-done-windows once Get ready has finished, where Microsoft Store is turned off.
 prepare-store-skipped-removed = Der Microsoft Store ist auf diesem PC ausgeschaltet, daher wurden Store-Apps nicht aktualisiert.
 # None of Atlas's repairs made Microsoft Store work. The button is prepare-repair-store-again.

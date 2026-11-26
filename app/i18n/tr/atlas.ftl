@@ -1678,7 +1678,7 @@ access-back-stop = Bundan önce durdurursanız Atlas bunları geri yükler.
 
 prepare-reason-feature-update = yeni Windows sürümü
 prepare-reason-feature-commit = yeni Windows sürümünün tamamlanması
-prepare-reason-apprepository = kalan uygulama kayıtlarının kaldırılması
+prepare-reason-apprepository = Microsoft Store onarımı
 # Waiting for Windows Update to offer the new version: the progress bar's label and status
 # line, the line under the bar, and how long Atlas has waited, in whole minutes, after it.
 windows-waiting = Windows Update'in Windows 11 { $release } sürümünü sunması bekleniyor…
@@ -1801,6 +1801,7 @@ restart-others-restart = Yine de yeniden başlat
 prepare-store-updating = Microsoft Store güncelleştiriliyor…
 prepare-store-repairing = Microsoft Store onarılıyor…
 prepare-store-repair-detail = Bu birkaç dakika sürebilir.
+prepare-store-repair-notice = Atlas, Microsoft Store'u onarıyor. Onarım bitene kadar Başlat menüsü ve görev çubuğu çalışmayabilir, oturum açtığınızda başlayan uygulamalar da hata gösterebilir. Bilgisayarınızı açık ve fişe takılı tutun. Onarım bittiğinde kendiliğinden yeniden başlar.
 # Under ready-updates-done-windows once Get ready has finished, where Microsoft Store is turned off.
 prepare-store-skipped-removed = Microsoft Store bu bilgisayarda kapalı, bu yüzden Store uygulamaları güncelleştirilmedi.
 # None of Atlas's repairs made Microsoft Store work. The button is prepare-repair-store-again;

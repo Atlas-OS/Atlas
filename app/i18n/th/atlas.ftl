@@ -1671,7 +1671,7 @@ access-back-stop = หากคุณหยุดก่อนถึงตอน�
 
 prepare-reason-feature-update = Windows เวอร์ชันใหม่
 prepare-reason-feature-commit = การติดตั้ง Windows เวอร์ชันใหม่ให้เสร็จ
-prepare-reason-apprepository = การลบบันทึกแอปที่ค้างอยู่
+prepare-reason-apprepository = การซ่อมแซม Microsoft Store
 # Waiting for Windows Update to offer the new version: the progress bar's label and status
 # line, the line under the bar, and how long Atlas has waited, in whole minutes, after it.
 windows-waiting = กำลังรอให้ Windows Update เสนอ Windows 11 เวอร์ชัน { $release }…
@@ -1788,6 +1788,7 @@ restart-others-restart = รีสตาร์ตต่อไป
 prepare-store-updating = กำลังอัปเดต Microsoft Store…
 prepare-store-repairing = กำลังซ่อมแซม Microsoft Store…
 prepare-store-repair-detail = การซ่อมแซมนี้อาจใช้เวลาสองสามนาที
+prepare-store-repair-notice = Atlas กำลังซ่อมแซม Microsoft Store ระหว่างนี้เมนูเริ่มและแถบงานอาจใช้งานไม่ได้ และแอปที่เปิดขึ้นเมื่อคุณลงชื่อเข้าใช้อาจแสดงข้อผิดพลาด ให้พีซีเปิดอยู่และเสียบปลั๊กไว้ พีซีจะรีสตาร์ตเองเมื่อซ่อมแซมเสร็จ
 # Under ready-updates-done-windows once Get ready has finished, where Microsoft Store is turned off.
 # What updating did to Microsoft Store itself otherwise is only in the log.
 prepare-store-skipped-removed = Microsoft Store ถูกปิดไว้บนพีซีเครื่องนี้ จึงไม่ได้อัปเดตแอปจาก Store

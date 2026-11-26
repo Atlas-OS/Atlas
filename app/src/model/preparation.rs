@@ -190,6 +190,7 @@ impl AppModel {
                 .transition_request()
                 .map(|transition| preparation::TransitionRequest { offer_only, ..transition }),
             open_update_access: self.update_access_needed(),
+            repair_notice: t!("prepare-store-repair-notice"),
         };
         let run_preparation = self.env.adapters.run_preparation.clone();
         // A run started from the resumed state follows a restart Atlas asked
