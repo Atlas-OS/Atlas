@@ -2,7 +2,9 @@ BeforeAll {
     . (Join-Path $PSScriptRoot 'AtlasTestHost.ps1')
     $script:freshTweak = Join-Path $script:AtlasTestScriptsRoot 'Tweaks\qol\config-start-menu.ps1'
     $script:upgradeTweak = Join-Path $script:AtlasTestScriptsRoot 'Tweaks\qol\restore-start-folder-choices.ps1'
-    $script:folderPolicyWinner = 'C49328F1-A48C-408A-BA0C-972F051825D7'
+    # The local WMI bridge's provider ID differs on every PC; its enrollment names it.
+    $script:folderPolicyWinner = '1CE5F9CB-B407-455C-A1F6-3DE4A511B361'
+    $script:organisationProvider = 'B375585A-FFA3-42C4-89EE-F7E3E5BEE7C5'
     $script:folders = @(
         'AllowPinnedFolderSettings'
         'AllowPinnedFolderFileExplorer'
@@ -16,7 +18,6 @@ BeforeAll {
     )
 
     function Import-AtlasModule { param([string]$Name) [void]$Name }
-    function Get-AtlasInstalledVersion { }
     function Set-AtlasStartLayout { }
     function Invoke-AtlasUserAppxCacheCleanup { param([string]$Mode) [void]$Mode }
     function Write-AtlasLog { param([string]$Level, [string]$Message) $null = $Level; $null = $Message }
@@ -47,8 +48,15 @@ Describe 'Restoring Start folder choices on upgrade' {
             $script:folderPolicyFixture[$name] = 0
             $script:folderPolicyFixture["${name}_WinningProvider"] = $script:folderPolicyWinner
         }
-        Mock Get-AtlasInstalledVersion { '0.6.1' }
+        $script:enrollments = @{
+            $script:folderPolicyWinner = 'WMI_Bridge_SCCM_Server'
+            $script:organisationProvider = 'MS DM Server'
+        }
         Mock Get-ItemProperty { [pscustomobject]$script:folderPolicyFixture } -ParameterFilter { $LiteralPath -like '*\current\device\Start' }
+        Mock Get-ItemProperty {
+            $id = Split-Path -Leaf $LiteralPath
+            if ($script:enrollments.ContainsKey($id)) { [pscustomobject]@{ ProviderID = $script:enrollments[$id] } }
+        } -ParameterFilter { $LiteralPath -like '*\Microsoft\Enrollments\*' }
         Mock Get-ItemProperty {
             [pscustomobject]@{ ConfigureStartPinsJSON = '%SystemRoot%\AtlasModules\Other\StartLayout.json' }
         } -ParameterFilter { $Name -eq 'ConfigureStartPinsJSON' }
@@ -66,8 +74,9 @@ Describe 'Restoring Start folder choices on upgrade' {
     It 'restores user choice for the nine Atlas folder policies through the existing CSP instance' {
         . $script:upgradeTweak
 
-        Should -Invoke Get-AtlasInstalledVersion -Times 1 -Exactly
         Should -Invoke Get-ItemProperty -Times 1 -Exactly -ParameterFilter { $Name -eq 'ConfigureStartPinsJSON' }
+        # One enrollment lookup for the one provider all nine values share.
+        Should -Invoke Get-ItemProperty -Times 1 -Exactly -ParameterFilter { $LiteralPath -like '*\Microsoft\Enrollments\*' }
         Should -Invoke Get-ItemProperty -Times 1 -Exactly -ParameterFilter { $LiteralPath -like '*\current\device\Start' }
         Should -Invoke Get-CimInstance -Times 1 -Exactly -ParameterFilter {
             $Namespace -eq 'root\cimv2\mdm\dmmap' -and $ClassName -eq 'MDM_Policy_Config01_Start02' -and
@@ -80,8 +89,8 @@ Describe 'Restoring Start folder choices on upgrade' {
         Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter { $Level -eq 'Info' }
     }
 
-    It 'skips domain-managed, already editable, visible, and absent folder values' {
-        $script:folderPolicyFixture['AllowPinnedFolderSettings_WinningProvider'] = 'B375585A-FFA3-42C4-89EE-F7E3E5BEE7C5'
+    It 'skips organisation-managed, already editable, visible, and absent folder values' {
+        $script:folderPolicyFixture['AllowPinnedFolderSettings_WinningProvider'] = $script:organisationProvider
         $script:folderPolicyFixture['AllowPinnedFolderPictures'] = 65535
         $script:folderPolicyFixture['AllowPinnedFolderDocuments'] = 1
         $script:folderPolicyFixture.Remove('AllowPinnedFolderMusic')
@@ -108,13 +117,18 @@ Describe 'Restoring Start folder choices on upgrade' {
         Should -Not -Invoke Set-CimInstance
     }
 
-    It 'skips versions that did not apply the old policy' {
-        Mock Get-AtlasInstalledVersion { '0.5.0' }
+    It 'skips values from a provider with no enrollment, or an ID that is not a GUID' {
+        $script:enrollments.Remove($script:folderPolicyWinner)
+        $script:folderPolicyFixture['AllowPinnedFolderVideos_WinningProvider'] = '..\..\Policies'
 
         . $script:upgradeTweak
 
+        Should -Not -Invoke Get-ItemProperty -ParameterFilter { $LiteralPath -like '*Policies' -and $LiteralPath -like '*Enrollments*' }
         Should -Not -Invoke Get-CimInstance
         Should -Not -Invoke Set-CimInstance
+        Should -Invoke Write-AtlasLog -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Info' -and $Message -like '*none are locked*'
+        }
     }
 
     It 'logs a warning and continues when the policy provider fails' {

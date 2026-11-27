@@ -201,7 +201,7 @@ Install modes: Fresh, Upgrade, Reapply and Rebase.
 | `system/crash-control-qol`<br>Configure Crash Control | Keeps the stop error (blue screen) on screen with more detail instead of restarting automatically. Windows still writes a 256 KiB minidump and logs the stop code, so crashes stay diagnosable, but skips full memory dumps. | | Registry 5 |
 | `system/disable-wpbt`<br>Disable Windows Platform Binary Table Execution (WPBT) | Stops Windows running the program that PC firmware can supply through the Windows Platform Binary Table (WPBT) at each start, which is often OEM software. Microsoft doesn't document the value Atlas sets. | | Registry 1 |
 | `config-start-menu`<br>Configure Start Menu | Configures the Start menu pins and removes the Most used, Recently added and Recommended lists. | Fresh installs only | Registry 7, Script `config-start-menu.ps1` |
-| `restore-start-folder-choices`<br>Restore Start Folder Choices | Makes the folder switches beside the Start power button editable again when an earlier Atlas 0.6 install locked them. | Not on fresh installs | Script `restore-start-folder-choices.ps1` |
+| `restore-start-folder-choices`<br>Restore Start Folder Choices | Makes the folder switches beside the Start power button editable again when an earlier Atlas 0.6 install locked them. Runs on every update and reinstall. | Not on fresh installs | Script `restore-start-folder-choices.ps1` |
 | `taskbar/config-pins`<br>Configure Taskbar Pins | Pins your browser, if you have one, and then File Explorer to the taskbar. | Fresh installs only | Registry 4, Script `config-pins.ps1` |
 
 ## security
