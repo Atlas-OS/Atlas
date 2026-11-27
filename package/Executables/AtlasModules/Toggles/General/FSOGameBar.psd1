@@ -43,7 +43,7 @@
                 @{ Path = 'HKCU:\System\GameConfigStore'; Name = 'GameDVR_DXGIHonorFSEWindowsCompatible'; Type = 'DWord'; Data = 0 }
                 @{ Path = 'HKCU:\System\GameConfigStore'; Name = 'GameDVR_EFSEFeatureFlags'; Type = 'DWord'; Data = 0 }
                 @{ Path = 'HKCU:\System\GameConfigStore'; Name = 'GameDVR_FSEBehavior'; Operation = 'Delete' }
-                @{ Path = 'HKCU:\System\GameConfigStore'; Name = 'GameDVR_FSEBehaviorMode'; Type = 'DWord'; Data = 2 }
+                @{ Path = 'HKCU:\System\GameConfigStore'; Name = 'GameDVR_FSEBehaviorMode'; Type = 'DWord'; Data = 2; SkipVerification = 'Game Bar rewrites this value after Atlas restores it.' }
                 @{ Path = 'HKCU:\System\GameConfigStore'; Name = 'GameDVR_HonorUserFSEBehaviorMode'; Type = 'DWord'; Data = 0 }
                 @{ Path = 'HKCU:\SOFTWARE\Microsoft\GameBar'; Name = 'GamePanelStartupTipIndex'; Operation = 'Delete' }
                 @{ Path = 'HKCU:\SOFTWARE\Microsoft\GameBar'; Name = 'ShowStartupPanel'; Operation = 'Delete' }
