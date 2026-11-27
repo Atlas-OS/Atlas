@@ -4,7 +4,7 @@
 use std::cmp::Ordering;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime};
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -224,8 +224,7 @@ pub fn download_into(
 /// place: named for this process and moment, so concurrent writers never
 /// share one, and ending in `.partial` for [`sweep_partials`].
 pub(crate) fn partial_path(dir: &Path, name: &str) -> PathBuf {
-    let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or_default();
-    dir.join(format!("{name}.{}-{nanos:x}.partial", std::process::id()))
+    dir.join(format!("{name}.{}-{:x}.partial", std::process::id(), super::files::unique_stamp()))
 }
 
 /// Removes `.partial` files that an interrupted earlier run (a closed window,

@@ -551,8 +551,7 @@ pub fn staged_options() -> Option<Vec<String>> {
 /// with admin-only access; it is kept after a failure for diagnostics.
 pub fn new_job() -> Result<PathBuf> {
     let root = super::recovery_app::media_root(&super::settings::AppPaths::from_process().settings())?;
-    let id = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
-    Ok(root.join(format!("{}-{id}", std::process::id())))
+    Ok(root.join(format!("{}-{}", std::process::id(), super::files::unique_stamp())))
 }
 
 /// Newest jobs kept whatever their age.

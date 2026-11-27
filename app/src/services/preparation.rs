@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, ExitStatus, Stdio};
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
@@ -535,9 +535,7 @@ pub fn operation_reason(error: &str) -> Option<&str> {
 
 pub fn new_job(settings: &Path) -> Result<PathBuf> {
     let root = recovery_app::preparation_root(settings)?;
-    let id = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
-    let job = root.join(format!("{}-{id}", std::process::id()));
-    Ok(job)
+    Ok(root.join(format!("{}-{}", std::process::id(), files::unique_stamp())))
 }
 
 /// The start stamp of a job directory: one named `<pid>-<nanos>` that is a

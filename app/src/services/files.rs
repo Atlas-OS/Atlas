@@ -1,10 +1,13 @@
 //! File helpers the services share: JSON documents read and replaced whole,
-//! and telling a link from the file or directory it stands in for.
+//! telling a link from the file or directory it stands in for, and stamps
+//! that keep the names of files and folders made at the same moment apart.
 
 use std::fs;
 use std::io::ErrorKind;
 use std::os::windows::fs::MetadataExt;
 use std::path::Path;
+use std::sync::{Mutex, PoisonError};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
 use serde::Serialize;
@@ -50,6 +53,18 @@ pub fn is_reparse_point(metadata: &fs::Metadata) -> bool {
     metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT.0 != 0
 }
 
+/// Nanoseconds since 1970 for naming a file or folder with this process's
+/// id, always later than the last stamp handed out here. Two names asked
+/// for in the same tick of the clock, such as the USB drive list and the
+/// ISO check starting together, would otherwise be the same.
+pub fn unique_stamp() -> u128 {
+    static LAST: Mutex<u128> = Mutex::new(0);
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or_default();
+    let mut last = LAST.lock().unwrap_or_else(PoisonError::into_inner);
+    *last = now.max(*last + 1);
+    *last
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -65,5 +80,25 @@ mod tests {
         let names: Vec<_> =
             fs::read_dir(temp.path()).unwrap().flatten().map(|entry| entry.file_name()).collect();
         assert_eq!(names, ["session.json"], "only the directory remains");
+    }
+
+    #[test]
+    fn stamps_asked_for_together_are_all_different() {
+        // Many threads asking at once land in the same clock tick.
+        let threads: Vec<_> = (0..8)
+            .map(|_| std::thread::spawn(|| (0..1000).map(|_| unique_stamp()).collect::<Vec<_>>()))
+            .collect();
+        let mut stamps: Vec<u128> = threads.into_iter().flat_map(|thread| thread.join().unwrap()).collect();
+        let count = stamps.len();
+        stamps.sort_unstable();
+        stamps.dedup();
+        assert_eq!(stamps.len(), count, "no stamp is handed out twice");
+    }
+
+    #[test]
+    fn each_stamp_is_later_than_the_one_before() {
+        let first = unique_stamp();
+        let second = unique_stamp();
+        assert!(second > first);
     }
 }
