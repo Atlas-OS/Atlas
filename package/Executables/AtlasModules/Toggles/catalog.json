@@ -928,6 +928,48 @@
       ]
     },
     {
+      "name": "HardwareClock",
+      "group": "General",
+      "description": "Sets how Windows reads the hardware clock. Disable treats it as local time, which is the Windows default. Enable treats it as UTC, so a PC that also runs Linux or macOS shows the same time in both.",
+      "elevation": "Admin",
+      "noStateRecord": false,
+      "menu": false,
+      "launcher": null,
+      "warning": "Enable makes Windows read the hardware clock as UTC. If another system on this PC treats it as local time, its clock will be wrong by your UTC offset until it is set to UTC too.",
+      "states": [
+        {
+          "name": "Disable",
+          "stateValue": 0,
+          "launcher": "3. General Configuration\\Hardware Clock\\Disable UTC Hardware Clock (default).cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        },
+        {
+          "name": "Enable",
+          "stateValue": 1,
+          "launcher": "3. General Configuration\\Hardware Clock\\Enable UTC Hardware Clock.cmd",
+          "reboot": "Recommend",
+          "work": {
+            "registry": 1,
+            "services": 0,
+            "scheduledTasks": 0,
+            "machineAction": null,
+            "userAction": null,
+            "action": null,
+            "user": false
+          }
+        }
+      ]
+    },
+    {
       "name": "Hibernation",
       "group": "General",
       "description": "Turns hibernation on or off with `powercfg /hibernate`, along with the Hibernate option in the Start power menu.",
