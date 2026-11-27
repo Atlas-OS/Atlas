@@ -248,13 +248,44 @@ function Write-AtlasProcessExplorerDebugger {
 }
 
 function Test-AtlasProcessExplorerDebuggerValue {
+    # Whether the Task Manager Debugger starts a program in Atlas's Process Explorer folder
+    # (the folder of $ExpectedPath). Atlas writes the bare path; Process Explorer's own
+    # Options > Replace Task Manager writes it in quotes and capitals. Both are Atlas's to
+    # remove: Stop-ProcessExplorerUpgrade.ps1 won't replace the folder while Task Manager
+    # points into it, and removing the package must not leave Task Manager pointing at a
+    # deleted file.
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)][psobject]$State,
         [Parameter(Mandatory = $true)][string]$ExpectedPath
     )
-    return $State.Exists -and $State.Kind -eq 'String' -and
-        ([string]$State.Value).Equals($ExpectedPath, [StringComparison]::OrdinalIgnoreCase)
+    if (-not $State.Exists -or $State.Kind -notin @('String', 'ExpandString')) {
+        return $false
+    }
+    $program = [string]$State.Value
+    if ($State.Kind -eq 'ExpandString') {
+        $program = [Environment]::ExpandEnvironmentVariables($program)
+    }
+    $program = $program.Trim()
+    if ($program.StartsWith('"')) {
+        $end = $program.IndexOf('"', 1)
+        if ($end -lt 0) {
+            return $false
+        }
+        $program = $program.Substring(1, $end - 1)
+    }
+    try {
+        if (-not [IO.Path]::IsPathRooted($program)) {
+            return $false
+        }
+        $folder = [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($program))
+    }
+    catch {
+        # Characters no path can hold: not a program in Atlas's folder.
+        return $false
+    }
+    return $null -ne $folder -and
+        $folder.Equals([IO.Path]::GetDirectoryName($ExpectedPath), [StringComparison]::OrdinalIgnoreCase)
 }
 
 function Get-AtlasProcessExplorerShortcutTarget {

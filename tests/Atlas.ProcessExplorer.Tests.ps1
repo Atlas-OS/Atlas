@@ -269,6 +269,68 @@ Describe 'Process Explorer integration ownership' {
             -ParameterFilter { $Start -eq 2 }
     }
 
+    It 'counts <Name> as Atlas''s Task Manager Debugger' -TestCases @(
+        @{ Name = 'the bare path Atlas writes'; Form = 'Bare'; Kind = 'String' }
+        @{ Name = 'the quoted capitals Process Explorer writes'; Form = 'Quoted'; Kind = 'String' }
+        @{ Name = 'another program in the folder'; Form = 'Sibling'; Kind = 'String' }
+        @{ Name = 'an environment variable path'; Form = 'Expand'; Kind = 'ExpandString' }
+    ) {
+        param($Form, $Kind)
+        $env:ATLAS_TEST_PROCEXP_ROOT = $Layout.PackagePath
+        try {
+            $value = switch ($Form) {
+                'Bare' { $Layout.BinaryPath }
+                'Quoted' { '"' + $Layout.BinaryPath.ToUpperInvariant() + '"' }
+                'Sibling' { '"' + (Join-Path $Layout.PackagePath 'procexp64.exe') + '" /e' }
+                'Expand' { '"%ATLAS_TEST_PROCEXP_ROOT%\procexp.exe"' }
+            }
+            $debugger = [pscustomobject]@{ Exists = $true; Value = $value; Kind = $Kind }
+
+            Test-AtlasProcessExplorerDebuggerValue -State $debugger -ExpectedPath $Layout.BinaryPath |
+                Should -BeTrue
+        }
+        finally {
+            Remove-Item Env:ATLAS_TEST_PROCEXP_ROOT -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'leaves <Name> to its owner' -TestCases @(
+        @{ Name = 'another program'; Value = 'C:\Other\task-manager.exe'; Kind = 'String' }
+        @{ Name = 'a Process Explorer elsewhere'; Value = '"C:\Tools\PROCEXP.EXE"'; Kind = 'String' }
+        @{ Name = 'a folder that only starts the same'; Value = 'Sibling'; Kind = 'String' }
+        @{ Name = 'a relative path'; Value = 'procexp.exe'; Kind = 'String' }
+        @{ Name = 'an unclosed quote'; Value = '"C:\Windows'; Kind = 'String' }
+        @{ Name = 'an unreadable kind'; Value = 'Bare'; Kind = 'DWord' }
+    ) {
+        param($Value, $Kind)
+        $resolved = switch ($Value) {
+            'Sibling' { Join-Path ($Layout.PackagePath + 'Old') 'procexp.exe' }
+            'Bare' { $Layout.BinaryPath }
+            default { $Value }
+        }
+        $debugger = [pscustomobject]@{ Exists = $true; Value = $resolved; Kind = $Kind }
+
+        Test-AtlasProcessExplorerDebuggerValue -State $debugger -ExpectedPath $Layout.BinaryPath |
+            Should -BeFalse
+    }
+
+    It 'removes the Debugger Process Explorer itself wrote, so an update can replace the folder' {
+        Mock Get-AtlasProcessExplorerDebugger {
+            [pscustomobject]@{
+                Exists = $true
+                Value = '"' + $script:Layout.BinaryPath.ToUpperInvariant() + '"'
+                Kind = 'String'
+            }
+        }
+        Mock Write-AtlasProcessExplorerDebugger {}
+        Mock Get-AtlasProcessExplorerShortcutTarget { $null }
+
+        Restore-AtlasProcessExplorerIntegration -Layout $Layout -State $null
+
+        Should -Invoke Write-AtlasProcessExplorerDebugger -Times 1 -Exactly `
+            -ParameterFilter { -not $State.Exists }
+    }
+
     It 'leaves newer foreign integration values untouched' {
         [IO.File]::WriteAllText($Layout.ShortcutPath, 'custom-link')
         $state = [pscustomobject]@{ PcwChanged = $true; PcwPriorStart = 2 }

@@ -168,6 +168,7 @@ The [toggle schema](../package/Executables/AtlasModules/Toggles/README.md#state-
 - The one exception is a choice toggle that the Choices step set in the same install, which the Defaults step leaves out of its replay (see [choices.json](#choicesjson)).
 - A state whose `ReplayApplicable` check says it no longer applies isn't replayed, and its record is cleared.
   For example, when another program has taken over Task Manager's IFEO `Debugger`, the Process Explorer Enable record is cleared and that program is left alone.
+  A `Debugger` that starts a program in Atlas's Process Explorer folder stays Atlas's, including the quoted path Process Explorer writes when you use its own **Replace Task Manager** option.
 - After an update replays the records, the Defaults step checks them and logs any drift, which shows declarations a newer Windows build ignores.
 - The store never keeps executable paths.
 
