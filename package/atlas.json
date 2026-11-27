@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "version": "0.6.1",
-  "minimumManagerVersion": "0.6.0",
+  "version": "0.6.2",
+  "minimumManagerVersion": "0.6.2",
   "supportedBuilds": [
     {
       "build": 26200,
@@ -15,7 +15,8 @@
   "updatableFrom": [
     "0.4.1",
     "0.5.0",
-    "0.6.0"
+    "0.6.0",
+    "0.6.1"
   ],
   "requirements": [
     "windows-security-off",
