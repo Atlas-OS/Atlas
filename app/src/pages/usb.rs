@@ -282,6 +282,9 @@ struct Pending {
 
 pub struct UsbPage {
     pub closed: bool,
+    /// Closed by Done on the finished drive: the job is over, so the page
+    /// that opened the panel goes Home rather than back to itself.
+    pub finished: bool,
     model: Entity<AppModel>,
     source: Option<PathBuf>,
     /// Looking in Downloads for an ISO, when none was given.
@@ -379,6 +382,7 @@ impl UsbPage {
         .detach();
         let mut page = Self {
             closed: false,
+            finished: false,
             model,
             finding_source: source.is_none() && preview.is_none(),
             source,
@@ -967,6 +971,15 @@ impl UsbPage {
         cx.notify();
     }
 
+    /// Done on the finished drive. Back, the title's arrow and Escape still
+    /// return to the page that opened the panel.
+    pub fn finish(&mut self, cx: &mut Context<Self>) {
+        if matches!(self.phase, Phase::Done { .. }) {
+            self.finished = true;
+            self.close(cx);
+        }
+    }
+
     /// Back, from the footer, the title's arrow or Escape alike: out of the
     /// panel, unless the drive is being written.
     pub fn back(&mut self, cx: &mut Context<Self>) {
@@ -1329,7 +1342,7 @@ impl Render for UsbPage {
                 }
                 let done = Button::new("usb-done", t!("common-done"))
                     .when(!bar_leads, Button::accent)
-                    .on_click(cx.listener(|this, _, _, cx| this.close(cx)));
+                    .on_click(cx.listener(|this, _, _, cx| this.finish(cx)));
                 Some(CommandBar::new().primary(done))
             }
             Phase::Choose => {
@@ -2023,7 +2036,26 @@ mod tests {
                 // Back leaves the panel.
                 panel.back(cx);
                 assert!(panel.closed);
+                assert!(!panel.finished, "Back isn't Done");
             });
+        });
+    }
+
+    #[test]
+    fn done_on_the_finished_drive_closes_the_panel_as_finished() {
+        use crate::model::test_harness::{Machine, all_off, new_model, run_model_test};
+        use crate::services::test_support::TempDir;
+        run_model_test(|mut cx| async move {
+            let temp = TempDir::new("usb-done");
+            let model = new_model(&mut cx, Machine::new(all_off()).environment(temp.path()));
+            for state in ["usb-complete", "usb-eject-failed"] {
+                let panel =
+                    cx.update(|cx| cx.new(|cx| UsbPage::new(model.clone(), None, vec![], Some(state), cx)));
+                panel.update(&mut cx, |panel, cx| {
+                    panel.finish(cx);
+                    assert!(panel.closed && panel.finished, "{state}");
+                });
+            }
         });
     }
 
@@ -2095,6 +2127,8 @@ mod tests {
                 assert!(before.is_some());
                 panel.back(cx);
                 assert!(!panel.closed, "Back waits for the write");
+                panel.finish(cx);
+                assert!(!panel.closed && !panel.finished, "so does Done");
                 // A list that ends meanwhile, without the drive, changes nothing picked.
                 let [_, other, _] = usb::preview_drives();
                 panel.drives = vec![other];

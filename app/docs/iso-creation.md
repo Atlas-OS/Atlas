@@ -66,6 +66,7 @@ Before the build starts, Atlas reads the destination again: a folder that isn't 
 - A cancelled build says your original ISO wasn't changed. The worker removes its temporary files.
 - A result belongs to its step, and clears when you leave it.
 - The finished page says the ISO is ready, with **Show in folder**, **Done** and **Create a USB drive**. A finished USB drive shows itself the same way.
+  **Done** on either goes Home, leaving the page ready for another ISO; **Back** from the USB drive returns to the finished ISO.
 
 ### Modes
 

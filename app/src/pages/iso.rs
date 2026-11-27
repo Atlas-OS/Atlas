@@ -662,8 +662,7 @@ impl IsoPage {
         if state.starts_with("usb-") {
             let (model, output) = (self.model.clone(), self.output.clone());
             let panel = cx.new(|cx| UsbPage::new(model, output, vec![], Some(state), cx));
-            cx.observe(&panel, |_, _, cx| cx.notify()).detach();
-            self.usb = Some(panel);
+            self.show_usb(panel, cx);
         }
         self
     }
@@ -829,9 +828,36 @@ impl IsoPage {
             _ => model.read(cx).manifest().supported_builds.clone(),
         };
         let panel = cx.new(|cx| UsbPage::new(model, source, builds, None, cx));
-        cx.observe(&panel, |_, _, cx| cx.notify()).detach();
-        self.usb = Some(panel);
+        self.show_usb(panel, cx);
         cx.notify();
+    }
+
+    /// Shows the USB panel in place of the page. Done on its finished drive
+    /// ends the job here too, as this page's Done does.
+    fn show_usb(&mut self, panel: Entity<UsbPage>, cx: &mut Context<Self>) {
+        cx.observe(&panel, |this, panel, cx| {
+            if panel.read(cx).finished && this.usb.as_ref() == Some(&panel) {
+                this.usb = None;
+                this.shown = None;
+                this.done(cx);
+            }
+            cx.notify();
+        })
+        .detach();
+        self.usb = Some(panel);
+    }
+
+    /// Done, here or on a USB drive made from here: the job is over, so Atlas
+    /// goes Home. A finished ISO leaves the page ready for another: the file
+    /// just written cannot be the next output, so another name is suggested.
+    fn done(&mut self, cx: &mut Context<Self>) {
+        if self.result == JobResult::Complete {
+            self.output = None;
+            self.suggest_output();
+            self.checked_files = None;
+            self.invalidate(cx);
+        }
+        self.model.update(cx, |m, cx| m.navigate(Page::Home, cx));
     }
 
     fn pick(&mut self, field: Field, cx: &mut Context<Self>) {
@@ -2010,15 +2036,8 @@ impl IsoPage {
                 .into_any_element();
         }
         if self.result == JobResult::Complete {
-            let done = Button::new("iso-done", t!("common-done")).on_click(cx.listener(|this, _, _, cx| {
-                // Done leaves the page ready for another ISO: the file just
-                // written cannot be the next output, so another name is suggested.
-                this.output = None;
-                this.suggest_output();
-                this.checked_files = None;
-                this.invalidate(cx);
-                this.model.update(cx, |m, cx| m.navigate(Page::Home, cx));
-            }));
+            let done = Button::new("iso-done", t!("common-done"))
+                .on_click(cx.listener(|this, _, _, cx| this.done(cx)));
             let usb = Button::new("iso-write-usb", t!("iso-create-usb"))
                 .accent()
                 .on_click(cx.listener(|this, _, _, cx| this.open_usb(this.output.clone(), cx)));

@@ -575,3 +575,48 @@ fn a_mode_the_package_cant_carry_builds_with_choices_after_sign_in() {
         });
     });
 }
+
+/// Done on a USB drive made from the finished ISO ends the job as the page's
+/// own Done does: Home, with the page ready for another ISO. Back from the
+/// panel returns to the finished ISO.
+#[test]
+fn done_on_a_usb_drive_made_from_the_finished_iso_goes_home() {
+    run_model_test(|mut cx| async move {
+        let temp = TempDir::new("iso-usb-done");
+        let page = page(&mut cx, &temp);
+        let output = temp.path().join("Atlas-Windows.iso");
+        let open = |cx: &mut gpui::AsyncApp| {
+            page.update(cx, |page, cx| {
+                page.model.update(cx, |m, _| m.page = Page::Iso);
+                page.result = JobResult::Complete;
+                page.output = Some(output.clone());
+                let model = page.model.clone();
+                let panel =
+                    cx.new(|cx| UsbPage::new(model, Some(output.clone()), vec![], Some("usb-complete"), cx));
+                page.show_usb(panel.clone(), cx);
+                panel
+            })
+        };
+
+        let panel = open(&mut cx);
+        panel.update(&mut cx, |panel, cx| panel.back(cx));
+        page.update(&mut cx, |page, cx| {
+            assert_eq!(page.model.read(cx).page, Page::Iso, "Back stays on the page");
+            assert_eq!(page.result, JobResult::Complete);
+            assert_eq!(page.output.as_deref(), Some(output.as_path()));
+        });
+
+        let panel = open(&mut cx);
+        panel.update(&mut cx, |panel, cx| panel.finish(cx));
+        page.update(&mut cx, |page, cx| {
+            assert_eq!(page.model.read(cx).page, Page::Home, "Done goes Home");
+            assert!(page.usb.is_none());
+            assert_eq!(page.result, JobResult::None, "ready for another ISO");
+            assert_ne!(
+                page.output.as_deref(),
+                Some(output.as_path()),
+                "the file just written isn't offered again"
+            );
+        });
+    });
+}
