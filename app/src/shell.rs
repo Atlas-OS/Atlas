@@ -781,7 +781,11 @@ impl Render for Shell {
                         ),
                         |this, notices| this.child(notices),
                     )
-                    .child(if installing {
+                    // The page fills what the notices leave. On its own it would
+                    // claim the whole layer and, when its content is taller,
+                    // keep that height, pushing its bottom (a page's footer)
+                    // out of view under the notices.
+                    .child(div().flex_1().min_h_0().child(if installing {
                         // One thing at a time: the whole layer is the install.
                         self.installing.clone().into_any_element()
                     } else {
@@ -793,7 +797,7 @@ impl Render for Shell {
                             Page::Report => self.report.clone().into_any_element(),
                             Page::Installed => self.installed.clone().into_any_element(),
                         }
-                    }),
+                    })),
             )
     }
 }
